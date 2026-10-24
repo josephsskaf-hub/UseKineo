@@ -1,0 +1,6 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-checkout-honesto-2026-10-07.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 5600
+  ⚠ A1 (aviso): a rota mudou depois de fed18d87 em 489 linha(s) de outras entregas; o diferencial roda contra a rota atual sem o carimbo
+32 verificações ok — test-checkout-honesto-2026-10-07 (diferencial da rota, regra das três linhas, carregador, tela, 24 mutantes vermelhos)

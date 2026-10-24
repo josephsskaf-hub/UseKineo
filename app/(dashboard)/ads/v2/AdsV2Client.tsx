@@ -727,6 +727,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           resume={session === 0}
           escolhaInternal={escolhaInternal} escolhaSample={escolhaSample} escolhaOwnerKey={escolhaOwnerKey} escolhaTestControls={escolhaTestControls} /* KINEO-ADS-ESCOLHA-2310 */
+          oneTimeMember={workspace?.role === 'member'} /* KINEO-COMPRA-AVULSA-2410 — a member uses the owner's credits and must not buy for their own account here. */
           lang={lang}
           balance={balance}
           onBalance={refreshBalance}

@@ -1,0 +1,6 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-hot-nudge-janela-campanhas.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 593
+
+✅ 30 verdes, 0 vermelhas

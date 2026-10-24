@@ -9,6 +9,8 @@ import { CENA_ESCOLHA_MARK, CENA_ESCOLHA_PRESENTERS, CENA_ESCOLHA_CATEGORY_LABEL
 import type { CenaCategory } from '@/lib/ads/cena/catalog'
 import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { TIER_CREDITS, monthlyPriceMinor, type CheckoutPlanTier } from '@/lib/checkoutPricing'
+import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
+import { ONE_TIME_ITEMS_LIVE } from '@/lib/oneTimeItem' // KINEO-COMPRA-AVULSA-2410
 
 type Stage = 'edit' | 'planned' | 'stills' | 'choose' | 'rendering' | 'delivered' | 'failed'
 type Still = { id: string; url: string; score?: number; reasons?: string[] }
@@ -31,7 +33,7 @@ export const ADS_ESCOLHA_CSS = `
 `
 const TAKE_CSS = `.ace-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.ace-timeline span{display:grid;gap:4px;background:var(--card2,#eef1eb);padding:10px 8px;border-radius:9px;font-size:11px;line-height:1.4}.ace-timeline b{font-size:11px;color:var(--accent,#4062e8)}.ace-timeline small{font-size:10px;color:var(--muted,#65756f)}.ace-sequence{font-size:11px;line-height:1.5;color:var(--muted,#65756f)}`
 
-export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, previewSlot, onPreview, onActive, onBalance, internalControls = false, sampleAvailable = false, initialSample = false }: { lang: string; entry?: 'ugc' | 'product' | null; ownerKey: string; resume?: boolean; previewSlot?: HTMLElement | null; onPreview?: (on: boolean) => void; onActive?: (on: boolean) => void; onBalance?: () => Promise<void>; internalControls?: boolean; sampleAvailable?: boolean; initialSample?: boolean }) {
+export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, previewSlot, onPreview, onActive, onBalance, internalControls = false, sampleAvailable = false, initialSample = false, balance = null, oneTimeMember = false }: { lang: string; entry?: 'ugc' | 'product' | null; ownerKey: string; resume?: boolean; previewSlot?: HTMLElement | null; onPreview?: (on: boolean) => void; onActive?: (on: boolean) => void; onBalance?: () => Promise<void>; internalControls?: boolean; sampleAvailable?: boolean; initialSample?: boolean; balance?: number | null; oneTimeMember?: boolean }) {
   const pt = lang === 'pt', t = (a: string, b: string) => pt ? a : b
   const [form, setForm] = useState<Form>({ foto: '', frase: '', oferta: '', beneficios: '', cta: '', language: lang, formato: entry === 'ugc' ? 'ugc' : 'product', voice_mode: 'narrated', rota: '', presenter_id: '', category: '', scenario_id: '' })
   const [stage, setStage] = useState<Stage>('edit'), [orderId, setOrderId] = useState(''), [stills, setStills] = useState<Still[]>([]), [stillId, setStillId] = useState(''), [narration, setNarration] = useState(''), [notes, setNotes] = useState<Note[]>([]), [credits, setCredits] = useState<number | null>(null), [videoUrl, setVideoUrl] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(''), [ready, setReady] = useState(false), [sessionDenied, setSessionDenied] = useState(false)
@@ -46,6 +48,8 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
   const renderCredits = sampleMode ? 0 : credits ?? COMPLETE_CREDITS
   const photoCount = sampleMode ? 2 : 4
   const sampleCapMessage = t('As amostras de hoje acabaram — volte amanhã ou gere a versão completa', 'Today’s samples are all gone — come back tomorrow or generate the full version')
+  const [creditBlocked, setCreditBlocked] = useState(false) // KINEO-COMPRA-AVULSA-2410
+  const needsOneTime = ONE_TIME_ITEMS_LIVE && (creditBlocked || balance !== null && balance < renderCredits) // KINEO-COMPRA-AVULSA-2410
   const alive = useRef(true), inFlight = useRef(false), controller = useRef<AbortController | null>(null)
   const key = `kineo:ads-escolha:v1:${ownerKey}`, route = internalControls ? form.rota || (form.voice_mode === 'talking' ? 'veo31' : 'kling3') : 'kling3', person = escolhaPresenter(form.presenter_id), scene = escolhaScenario(form.scenario_id), chosen = stills.find(s => s.id === stillId), locked = !!orderId || !!busy || sessionDenied
   const benefits = form.beneficios.split('\n').map(s => s.trim()).filter(Boolean), benefitsValid = benefits.length <= 6 && benefits.every(b => b.length <= 160)
@@ -64,6 +68,13 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
   useEffect(() => { if (!ready || linkedOrder) return; try { if (!orderId) localStorage.removeItem(key); else localStorage.setItem(key, JSON.stringify({ version: CENA_ESCOLHA_MARK, form, order_id: orderId, stage, stills, still_id: stillId, narration_used: narration, quality_notes: notes, credits, photo_round: photoRound, max_photo_rounds: maxPhotoRounds, photo_failure: photoFailure, choice_locked: choiceLocked, sample: sampleMode } satisfies Saved)) } catch { /* The server's order remains authoritative. */ } }, [ready, key, form, orderId, stage, stills, stillId, narration, notes, credits, photoRound, maxPhotoRounds, photoFailure, choiceLocked, sampleMode, linkedOrder])
   useEffect(() => { onPreview?.(true); return () => onPreview?.(false) }, [onPreview])
   useEffect(() => { onActive?.(stage === 'stills' || stage === 'rendering'); return () => onActive?.(false) }, [stage, onActive])
+
+  useEffect(() => { // KINEO-COMPRA-AVULSA-2410 — the parent's refresh reads the workspace owner's balance.
+    if (!ONE_TIME_ITEMS_LIVE || !onBalance) return // KINEO-COMPRA-AVULSA-2410
+    const refresh = () => { if (document.visibilityState === 'visible') void onBalance().then(() => { if (alive.current) setCreditBlocked(false) }).catch(() => {}) } // KINEO-COMPRA-AVULSA-2410
+    window.addEventListener('focus', refresh) // KINEO-COMPRA-AVULSA-2410
+    return () => window.removeEventListener('focus', refresh) // KINEO-COMPRA-AVULSA-2410
+  }, [onBalance]) // KINEO-COMPRA-AVULSA-2410
 
   function denied(statusCode: number): boolean {
     if (!sampleMode) {
@@ -135,6 +146,7 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
       const r = await fetch('/api/ads/v2/cena', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: c.signal }), data = await r.json().catch(() => ({})) as Record<string, unknown>
       if (!alive.current) return
       if (denied(r.status)) return
+      if (!r.ok && !sampleMode && ONE_TIME_ITEMS_LIVE && ['insufficient_credits', 'out_of_credits', 'cena_photo_credits_required'].includes(String(data.error ?? data.reason))) { if (action === 'render') absorb(data); setCreditBlocked(true); setStage(priorStage); setError(''); void onBalance?.().catch(() => {}); return } // KINEO-COMPRA-AVULSA-2410 — absorb the authoritative selected-photo lock before offering payment; preserve order and stills.
       if (!r.ok) { if (action === 'render') absorb(data); if (action === 'upgrade' && r.status === 402) { setShowPlans(true); if (typeof data.balance === 'number') setPurchaseBalance(data.balance) } throw new StepError(failureMessage(data), r.status) }
       if (regenerate) setStillId('')
       absorb(data)
@@ -215,6 +227,7 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
       </article>)}</div>
       <div className="ace-actions"><button type="button" disabled={!!busy} onClick={() => { void onBalance?.().catch(() => {}); void run('upgrade') }}>{t('Já comprei — verificar saldo e gerar', 'I purchased — check balance and generate')}</button><a href={`/ads/v2?order=${encodeURIComponent(orderId)}&upgrade=1`}>{t('Link para retomar esta compra', 'Resume this purchase')}</a></div>
     </section> : null}
+    {needsOneTime && !sampleMode && !sessionDenied && !resumeOnly && ['edit', 'planned', 'choose', 'failed'].includes(stage) ? oneTimeMember ? <p className="ace-hint" role="status">{t('O saldo desta equipe não cobre este anúncio. Peça ao dono do espaço para adicionar créditos. Seu pedido e suas fotos continuam guardados.', 'This team balance does not cover the ad. Ask the workspace owner to add credits. Your order and stills remain saved.')}</p> : <><p className="ace-hint" role="status">{t(`Este anúncio precisa de ${renderCredits} créditos.${balance !== null ? ` Seu saldo: ${balance}.` : ''} Você pode comprar só este anúncio para continuar.`, `This ad needs ${renderCredits} credits.${balance !== null ? ` Your balance: ${balance}.` : ''} You can buy just this ad to continue.`)}</p><OneTimeItemOffer surface="ads_choice" lang={lang} orderId={orderId || undefined} newTab busy={!!busy} /></> : null}{/* KINEO-COMPRA-AVULSA-2410 — before the still quota and at final selection; new tab preserves the exact order; members ask the owner. */}
     {previewSlot ? createPortal(preview, previewSlot) : preview}
   </div>
 }

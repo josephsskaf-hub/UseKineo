@@ -1,0 +1,10 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-delivery-2410.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 906
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS exact-balance delivery: 82 actual AST/HMAC checks; trial ON/OFF, owned 21-credit birth, missing/forged/released proof and binding rejection; no network
+KILLED remove exact-balance paid clause
+KILLED remove paid account requirement
+KILLED remove settled proof requirement

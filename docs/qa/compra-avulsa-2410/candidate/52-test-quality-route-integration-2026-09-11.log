@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-quality-route-integration-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1647
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+507 route-integration checks passed; actual failure/replay/footage/publication statements; no network, no refund, no provider.

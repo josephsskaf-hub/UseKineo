@@ -1,5 +1,6 @@
 import { semApresentadores2410 } from './desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
 // KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
+import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { semCardsGiro2410 } from './desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — remove the exact newer layer before every historical chain.
@@ -17,7 +18,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
-  text = semCardsGiro2410(semCartoonTracao2210(semAmostraAnuncio2410(semApresentadores2410(text, file), file), file), file) // KINEO-CARDS-GIRO-2410 — leaf has no older imports, so this creates no cycle.
+  text = semCardsGiro2410(semCartoonTracao2210(semAmostraAnuncio2410(semApresentadores2410(semCompraAvulsa2410(text, file), file), file), file), file) // KINEO-CARDS-GIRO-2410 — leaf has no older imports, so this creates no cycle.
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text

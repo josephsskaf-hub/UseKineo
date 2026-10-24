@@ -1,0 +1,12 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-language-segmentation-2410.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2752
+ok Unicode film gates, real choice montage, script fonts and karaoke
+ok mutant detected: film gate regresses to spaces
+ok mutant detected: short-film guard regresses to spaces
+ok mutant detected: choice captions lose font
+ok mutant detected: karaoke loses font
+ok mutant detected: caption chunker regresses to spaces
+ok mutant detected: verbatim scene plan regresses to one token
+ok language segmentation proof and behavioral mutants

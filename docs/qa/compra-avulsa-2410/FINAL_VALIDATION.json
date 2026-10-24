@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-24",
+  "baseline": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+  "fullCandidate": "4ff20d54543e3c917a15dfc290d8f1185a226eef",
+  "revalidationHead": "aaeb6e4522620cb3b1a5ce78723d9a7f60db2dc4",
+  "fullRun": {
+    "evidence": "candidate/results.json",
+    "commands": 78,
+    "accepted": 75,
+    "knownLegacy": 2,
+    "newRed": 1,
+    "sourceStatusUnchanged": true
+  },
+  "resolvedNewRed": {
+    "test": "scripts/test-ads-formatos-escolha-2410.mjs",
+    "cause": "Legacy UI loader did not resolve the newly imported real TSX offer component",
+    "fixCommit": "aaeb6e4522620cb3b1a5ce78723d9a7f60db2dc4",
+    "revalidationEvidence": "revalidation/results.json",
+    "exit": 0,
+    "assertionsWeakened": false
+  },
+  "effectiveFinal": {
+    "commands": 78,
+    "acceptedIncludingExpectedRejections": 76,
+    "knownLegacy": 2,
+    "unresolvedNewRed": 0,
+    "productiveChangesAfterFullRun": [],
+    "typecheck": {
+      "command": "node node_modules/typescript/lib/tsc.js --noEmit --incremental false",
+      "exit": 0,
+      "evidence": "candidate/00-typescript-noemit.log",
+      "node": "v24.18.0",
+      "typescript": "5.9.3"
+    },
+    "historicalAndTaskUndoRevalidated": true,
+    "finalArtifactInventoryEvidence": "revalidation/final-inventory-results.json"
+  },
+  "knownLegacySignatures": [
+    {
+      "test": "scripts/test-locale-readiness.mjs",
+      "signature": "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+    },
+    {
+      "test": "scripts/test-checkout-currency-truth.mjs",
+      "signature": "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+    }
+  ],
+  "boundaries": {
+    "networkBlockedDuringTests": true,
+    "envFilesBlockedDuringTests": true,
+    "productionCredentialsUsed": false,
+    "paidCalls": false,
+    "buildOrDeploy": false,
+    "migrationApplied": false,
+    "productionValidated": false
+  }
+}

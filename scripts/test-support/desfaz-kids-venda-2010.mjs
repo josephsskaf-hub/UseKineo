@@ -8,6 +8,7 @@
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
 // ENCADEAMENTO: é a camada MAIS NOVA — semAdsCenaAjuste2110 chama ESTE primeiro; semBebeQueFala2010 também chama antes da cadeia antiga. Este não importa ninguém.
 // O guardião scripts/test-kids-venda-2010.mjs prova que, retirada somente a venda, cada arquivo é EXATAMENTE a origin/main 72d23210c.
+import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,7 +51,7 @@ export const KIDS_VENDA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKidsVenda2010(texto, p) {
-  texto = semCartoonTracao2210(texto, p) // KINEO-CARTOON-TRACAO-2210 — preserve every earlier exact guardian.
+  texto = semCartoonTracao2210(semCompraAvulsa2410(texto, p), p) // KINEO-CARTOON-TRACAO-2210 — preserve every earlier exact guardian.
   texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — preserva Kids ao tirar95; depois tira a venda pela tabela original.
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIDS_VENDA_2010) || !KIDS_VENDA_2010_ARQUIVOS.includes(rel)) return texto

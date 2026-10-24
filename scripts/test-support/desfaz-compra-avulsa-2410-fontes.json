@@ -1,0 +1,606 @@
+{
+  "base": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+  "sources": {
+    ".github/workflows/guardiao.yml": {
+      "beforeHash": "8441bd8a57930994a0b143083d8780df4cc18480d04d602c6e5e10bbc3b53ab9",
+      "afterHash": "365a37220833874d32088b1b784dfcb73a08e9415626f3f4978e288af3716583",
+      "changes": [
+        {
+          "before": "      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.\n      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz\n",
+          "after": "      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-COMPRA-AVULSA-2410 — real checkout/webhook/SQL, offline mutants and exact undo.\n      - name: Compra avulsa — pagamento único, concessão atômica e desfaz # KINEO-COMPRA-AVULSA-2410\n        run: | # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-delivery-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410\n      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.\n      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz\n"
+        }
+      ]
+    },
+    "app/(dashboard)/ads/v2/AdsV2Client.tsx": {
+      "beforeHash": "ace9e1028e34fa537608a401b7ea5ce7384d3252942e07fdb9abaea3c4983a78",
+      "afterHash": "960ec7201677dbaaab5112c050c4f528588579b3d3ab5a789025bb1071fee5e5",
+      "changes": [
+        {
+          "before": "          resume={session === 0}\n          escolhaInternal={escolhaInternal} escolhaOwnerKey={escolhaOwnerKey} escolhaTestControls={escolhaTestControls} /* KINEO-ADS-ESCOLHA-2310 */\n          lang={lang}\n          balance={balance}\n",
+          "after": "          resume={session === 0}\n          escolhaInternal={escolhaInternal} escolhaOwnerKey={escolhaOwnerKey} escolhaTestControls={escolhaTestControls} /* KINEO-ADS-ESCOLHA-2310 */\n          oneTimeMember={workspace?.role === 'member'} /* KINEO-COMPRA-AVULSA-2410 — a member uses the owner's credits and must not buy for their own account here. */\n          lang={lang}\n          balance={balance}\n"
+        }
+      ]
+    },
+    "app/(dashboard)/ads/v2/AdsV2Escolha.tsx": {
+      "beforeHash": "3d90949b644748110ba46451c4a633c5009b1dabc5a5f508d1f86f679bffdd40",
+      "afterHash": "47afdea588482ad155e78b045374da07912ecc86af85076be8c727cf2c624d92",
+      "changes": [
+        {
+          "before": "import type { CenaCategory } from '@/lib/ads/cena/catalog'\nimport { adsV2Credits } from '@/lib/ads/v2Tiers'\n\ntype Stage = 'edit' | 'planned' | 'stills' | 'choose' | 'rendering' | 'delivered' | 'failed'\n",
+          "after": "import type { CenaCategory } from '@/lib/ads/cena/catalog'\nimport { adsV2Credits } from '@/lib/ads/v2Tiers'\nimport OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410\nimport { ONE_TIME_ITEMS_LIVE } from '@/lib/oneTimeItem' // KINEO-COMPRA-AVULSA-2410\n\ntype Stage = 'edit' | 'planned' | 'stills' | 'choose' | 'rendering' | 'delivered' | 'failed'\n"
+        },
+        {
+          "before": "const TAKE_CSS = `.ace-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.ace-timeline span{display:grid;gap:4px;background:var(--card2,#eef1eb);padding:10px 8px;border-radius:9px;font-size:11px;line-height:1.4}.ace-timeline b{font-size:11px;color:var(--accent,#4062e8)}.ace-timeline small{font-size:10px;color:var(--muted,#65756f)}.ace-sequence{font-size:11px;line-height:1.5;color:var(--muted,#65756f)}`\n\nexport default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, previewSlot, onPreview, onActive, onBalance, internalControls = false }: { lang: string; entry?: 'ugc' | 'product' | null; ownerKey: string; resume?: boolean; previewSlot?: HTMLElement | null; onPreview?: (on: boolean) => void; onActive?: (on: boolean) => void; onBalance?: () => Promise<void>; internalControls?: boolean }) {\n  const pt = lang === 'pt', t = (a: string, b: string) => pt ? a : b\n  const [form, setForm] = useState<Form>({ foto: '', frase: '', oferta: '', beneficios: '', cta: '', language: lang, formato: entry === 'ugc' ? 'ugc' : 'product', voice_mode: 'narrated', rota: '', presenter_id: '', category: '', scenario_id: '' })\n",
+          "after": "const TAKE_CSS = `.ace-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.ace-timeline span{display:grid;gap:4px;background:var(--card2,#eef1eb);padding:10px 8px;border-radius:9px;font-size:11px;line-height:1.4}.ace-timeline b{font-size:11px;color:var(--accent,#4062e8)}.ace-timeline small{font-size:10px;color:var(--muted,#65756f)}.ace-sequence{font-size:11px;line-height:1.5;color:var(--muted,#65756f)}`\n\nexport default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, previewSlot, onPreview, onActive, onBalance, balance = null, oneTimeMember = false, internalControls = false }: { lang: string; entry?: 'ugc' | 'product' | null; ownerKey: string; resume?: boolean; previewSlot?: HTMLElement | null; onPreview?: (on: boolean) => void; onActive?: (on: boolean) => void; onBalance?: () => Promise<void>; balance?: number | null; oneTimeMember?: boolean; internalControls?: boolean }) { // KINEO-COMPRA-AVULSA-2410\n  const pt = lang === 'pt', t = (a: string, b: string) => pt ? a : b\n  const [form, setForm] = useState<Form>({ foto: '', frase: '', oferta: '', beneficios: '', cta: '', language: lang, formato: entry === 'ugc' ? 'ugc' : 'product', voice_mode: 'narrated', rota: '', presenter_id: '', category: '', scenario_id: '' })\n"
+        },
+        {
+          "before": "  const [photoFailure, setPhotoFailure] = useState(false)\n  const [choiceLocked, setChoiceLocked] = useState(false)\n  const renderCredits = credits ?? adsV2Credits('commercial', 15)\n  const alive = useRef(true), inFlight = useRef(false), controller = useRef<AbortController | null>(null)\n  const key = `kineo:ads-escolha:v1:${ownerKey}`, route = internalControls ? form.rota || (form.voice_mode === 'talking' ? 'veo31' : 'kling3') : 'kling3', person = escolhaPresenter(form.presenter_id), scene = escolhaScenario(form.scenario_id), chosen = stills.find(s => s.id === stillId), locked = !!orderId || !!busy || sessionDenied\n",
+          "after": "  const [photoFailure, setPhotoFailure] = useState(false)\n  const [choiceLocked, setChoiceLocked] = useState(false)\n  const [creditBlocked, setCreditBlocked] = useState(false) // KINEO-COMPRA-AVULSA-2410\n  const renderCredits = credits ?? adsV2Credits('commercial', 15)\n  const needsOneTime = ONE_TIME_ITEMS_LIVE && (creditBlocked || balance !== null && balance < renderCredits) // KINEO-COMPRA-AVULSA-2410\n  const alive = useRef(true), inFlight = useRef(false), controller = useRef<AbortController | null>(null)\n  const key = `kineo:ads-escolha:v1:${ownerKey}`, route = internalControls ? form.rota || (form.voice_mode === 'talking' ? 'veo31' : 'kling3') : 'kling3', person = escolhaPresenter(form.presenter_id), scene = escolhaScenario(form.scenario_id), chosen = stills.find(s => s.id === stillId), locked = !!orderId || !!busy || sessionDenied\n"
+        },
+        {
+          "before": "  useEffect(() => { onActive?.(stage === 'stills' || stage === 'rendering'); return () => onActive?.(false) }, [stage, onActive])\n\n  function denied(statusCode: number): boolean {\n    if (statusCode !== 401 && statusCode !== 403) return false\n",
+          "after": "  useEffect(() => { onActive?.(stage === 'stills' || stage === 'rendering'); return () => onActive?.(false) }, [stage, onActive])\n\n  useEffect(() => { // KINEO-COMPRA-AVULSA-2410 — the parent's refresh reads the workspace owner's balance.\n    if (!ONE_TIME_ITEMS_LIVE || !onBalance) return // KINEO-COMPRA-AVULSA-2410\n    const refresh = () => { if (document.visibilityState === 'visible') void onBalance().then(() => { if (alive.current) setCreditBlocked(false) }).catch(() => {}) } // KINEO-COMPRA-AVULSA-2410\n    window.addEventListener('focus', refresh) // KINEO-COMPRA-AVULSA-2410\n    return () => window.removeEventListener('focus', refresh) // KINEO-COMPRA-AVULSA-2410\n  }, [onBalance]) // KINEO-COMPRA-AVULSA-2410\n\n  function denied(statusCode: number): boolean {\n    if (statusCode !== 401 && statusCode !== 403) return false\n"
+        },
+        {
+          "before": "      if (!alive.current) return\n      if (denied(r.status)) return\n      if (!r.ok) { if (action === 'render') absorb(data); throw new StepError(failureMessage(data), r.status) }\n      if (regenerate) setStillId('')\n",
+          "after": "      if (!alive.current) return\n      if (denied(r.status)) return\n      if (!r.ok && ONE_TIME_ITEMS_LIVE && ['insufficient_credits', 'out_of_credits', 'cena_photo_credits_required'].includes(String(data.error ?? data.reason))) { if (action === 'render') absorb(data); setCreditBlocked(true); setStage(priorStage); setError(''); void onBalance?.().catch(() => {}); return } // KINEO-COMPRA-AVULSA-2410 — absorb the authoritative selected-photo lock before offering payment; preserve order and stills.\n      if (!r.ok) { if (action === 'render') absorb(data); throw new StepError(failureMessage(data), r.status) }\n      if (regenerate) setStillId('')\n"
+        },
+        {
+          "before": "    {orderId && resumeOnly ? <section className=\"ace-card\"><h3>{t('Seu pedido', 'Your order')}</h3>{stage === 'rendering' ? <p role=\"status\">{t('Consultando o pedido existente. A geração segue pelo fluxo original.', 'Checking the existing order. Generation continues through its original flow.')}</p> : null}{stage === 'delivered' && videoUrl ? <video className=\"ace-result\" src={videoUrl} controls playsInline preload=\"metadata\" /> : null}<button type=\"button\" disabled={!!busy || stage === 'rendering'} onClick={reset}>{t('Preparar novo plano', 'Prepare a new plan')}</button></section> : null}\n    {orderId && !resumeOnly ? <section className=\"ace-card\"><h3 className=\"ace-step\"><b>4</b>{t('Mesma cena, quatro fotos. Escolha uma.', 'One scene, four stills. Choose one.')}</h3>{stage === 'planned' ? <><p className=\"ace-hint\">{t(`Prepare quatro fotos grátis com a pessoa e o cenário que escolheu. Para começar, tenha ${renderCredits} créditos ou um plano com Studio Ads. O vídeo só é cobrado depois da sua escolha.`, `Prepare four free stills with your chosen person and scene. To start, keep ${renderCredits} credits or use a plan with Studio Ads. The video is only charged after you choose.`)}</p><button className=\"primary\" type=\"button\" disabled={!!busy} onClick={() => void run('stills')}>{t('Preparar quatro fotos', 'Prepare four stills')}</button></> : null}{stage === 'failed' && photoFailure ? <><p className=\"ace-hint\">{photoRound < maxPhotoRounds ? t('As fotos não ficaram prontas. Você pode usar a segunda rodada grátis neste pedido.', 'The stills were not completed. You can use the second free round in this order.') : t('As duas rodadas deste pedido foram usadas. Comece outro plano para preparar novas fotos, dentro do limite diário.', 'Both rounds for this order have been used. Start another plan to prepare new stills within your daily allowance.')}</p>{photoRound < maxPhotoRounds && !choiceLocked ? <button type=\"button\" disabled={!!busy} onClick={() => void run('stills', true)}>{t('Tentar outra rodada grátis', 'Try another free round')}</button> : null}</> : null}{stage === 'stills' ? <p role=\"status\">{t('Preparando suas fotos. Você pode voltar a este pedido depois.', 'Preparing your stills. You can return to this order later.')}</p> : null}{stage === 'choose' && stills.length > 0 && stills.length < 4 ? <p className=\"ace-hint\" role=\"status\">{t(`O fornecedor retornou ${stills.length} fotos. Você pode escolher uma opção disponível.`, `The provider returned ${stills.length} stills. You can choose an available option.`)}</p> : null}{stills.length ? <fieldset className=\"ace-stills\" aria-label={t('Escolha a única foto que virará vídeo', 'Choose the one still that becomes video')}>{stills.map((s, i) => <label className=\"ace-radio ace-still\" data-selected={stillId === s.id} key={s.id}><input type=\"radio\" name=\"ace-still\" value={s.id} checked={stillId === s.id} disabled={!!busy || choiceLocked || stage === 'rendering' || stage === 'delivered'} onChange={() => setStillId(s.id)} /><img src={s.url} alt={t('Opção de foto', 'Still option') + ' ' + (i + 1)} /><strong>{t('Foto', 'Still')} {i + 1}</strong>{internalControls && s.reasons?.length ? <small>{s.reasons.join(' · ')}</small> : null}{stillId === s.id ? <span className=\"ace-check\" aria-hidden=\"true\">✓</span> : null}</label>)}</fieldset> : null}{stage === 'choose' ? <><p className=\"ace-hint\">{t('Esta foto será a referência das três tomadas do vídeo. As outras três fotos não geram vídeos.', 'This still will be the reference for the three video shots. The other three stills do not generate videos.')}</p><p className=\"ace-hint\">{t(`Rodada ${photoRound || 1} de ${maxPhotoRounds}. Até seis pedidos de fotos por pessoa por dia.`, `Round ${photoRound || 1} of ${maxPhotoRounds}. Up to six still orders per person per day.`)}</p><div className=\"ace-actions\"><button className=\"primary\" type=\"button\" disabled={!chosen || !!busy} onClick={() => void run('render')}>{t('Gerar vídeo com esta foto', 'Generate video with this still')}{` · ${renderCredits} ${t('créditos', 'credits')}`}</button>{photoRound < maxPhotoRounds && !choiceLocked ? <button type=\"button\" disabled={!!busy} onClick={() => void run('stills', true)}>{t('Preparar outra rodada grátis', 'Prepare another free round')}</button> : null}</div>{photoRound >= maxPhotoRounds ? <p className=\"ace-hint\">{t('As duas rodadas deste pedido foram usadas. Escolha uma foto para continuar.', 'Both rounds for this order have been used. Choose a still to continue.')}</p> : null}<p className=\"ace-hint\">{t('Se a geração falhar, o estorno dos créditos é automático.', 'If generation fails, credits are refunded automatically.')}</p></> : null}{stage === 'rendering' ? <p role=\"status\">{t('O vídeo está sendo preparado a partir da foto escolhida. ~10 min, avisamos por e-mail quando ficar pronto. Você pode sair desta página e encontrar o anúncio em Meus Vídeos.', 'Your video is being prepared from your selected still. ~10 min. We’ll email you when it is ready. You can leave this page and find the ad in My Videos.')}</p> : null}{stage === 'delivered' && videoUrl ? <video className=\"ace-result\" src={videoUrl} controls playsInline preload=\"metadata\" /> : null}<div className=\"ace-actions\"><button type=\"button\" disabled={sessionDenied || !!busy || stage === 'stills' || stage === 'rendering'} onClick={reset}>{t('Começar outro plano', 'Start another plan')}</button></div></section> : null}\n    {previewSlot ? createPortal(preview, previewSlot) : preview}\n  </div>\n",
+          "after": "    {orderId && resumeOnly ? <section className=\"ace-card\"><h3>{t('Seu pedido', 'Your order')}</h3>{stage === 'rendering' ? <p role=\"status\">{t('Consultando o pedido existente. A geração segue pelo fluxo original.', 'Checking the existing order. Generation continues through its original flow.')}</p> : null}{stage === 'delivered' && videoUrl ? <video className=\"ace-result\" src={videoUrl} controls playsInline preload=\"metadata\" /> : null}<button type=\"button\" disabled={!!busy || stage === 'rendering'} onClick={reset}>{t('Preparar novo plano', 'Prepare a new plan')}</button></section> : null}\n    {orderId && !resumeOnly ? <section className=\"ace-card\"><h3 className=\"ace-step\"><b>4</b>{t('Mesma cena, quatro fotos. Escolha uma.', 'One scene, four stills. Choose one.')}</h3>{stage === 'planned' ? <><p className=\"ace-hint\">{t(`Prepare quatro fotos grátis com a pessoa e o cenário que escolheu. Para começar, tenha ${renderCredits} créditos ou um plano com Studio Ads. O vídeo só é cobrado depois da sua escolha.`, `Prepare four free stills with your chosen person and scene. To start, keep ${renderCredits} credits or use a plan with Studio Ads. The video is only charged after you choose.`)}</p><button className=\"primary\" type=\"button\" disabled={!!busy} onClick={() => void run('stills')}>{t('Preparar quatro fotos', 'Prepare four stills')}</button></> : null}{stage === 'failed' && photoFailure ? <><p className=\"ace-hint\">{photoRound < maxPhotoRounds ? t('As fotos não ficaram prontas. Você pode usar a segunda rodada grátis neste pedido.', 'The stills were not completed. You can use the second free round in this order.') : t('As duas rodadas deste pedido foram usadas. Comece outro plano para preparar novas fotos, dentro do limite diário.', 'Both rounds for this order have been used. Start another plan to prepare new stills within your daily allowance.')}</p>{photoRound < maxPhotoRounds && !choiceLocked ? <button type=\"button\" disabled={!!busy} onClick={() => void run('stills', true)}>{t('Tentar outra rodada grátis', 'Try another free round')}</button> : null}</> : null}{stage === 'stills' ? <p role=\"status\">{t('Preparando suas fotos. Você pode voltar a este pedido depois.', 'Preparing your stills. You can return to this order later.')}</p> : null}{stage === 'choose' && stills.length > 0 && stills.length < 4 ? <p className=\"ace-hint\" role=\"status\">{t(`O fornecedor retornou ${stills.length} fotos. Você pode escolher uma opção disponível.`, `The provider returned ${stills.length} stills. You can choose an available option.`)}</p> : null}{stills.length ? <fieldset className=\"ace-stills\" aria-label={t('Escolha a única foto que virará vídeo', 'Choose the one still that becomes video')}>{stills.map((s, i) => <label className=\"ace-radio ace-still\" data-selected={stillId === s.id} key={s.id}><input type=\"radio\" name=\"ace-still\" value={s.id} checked={stillId === s.id} disabled={!!busy || choiceLocked || stage === 'rendering' || stage === 'delivered'} onChange={() => setStillId(s.id)} /><img src={s.url} alt={t('Opção de foto', 'Still option') + ' ' + (i + 1)} /><strong>{t('Foto', 'Still')} {i + 1}</strong>{internalControls && s.reasons?.length ? <small>{s.reasons.join(' · ')}</small> : null}{stillId === s.id ? <span className=\"ace-check\" aria-hidden=\"true\">✓</span> : null}</label>)}</fieldset> : null}{stage === 'choose' ? <><p className=\"ace-hint\">{t('Esta foto será a referência das três tomadas do vídeo. As outras três fotos não geram vídeos.', 'This still will be the reference for the three video shots. The other three stills do not generate videos.')}</p><p className=\"ace-hint\">{t(`Rodada ${photoRound || 1} de ${maxPhotoRounds}. Até seis pedidos de fotos por pessoa por dia.`, `Round ${photoRound || 1} of ${maxPhotoRounds}. Up to six still orders per person per day.`)}</p><div className=\"ace-actions\"><button className=\"primary\" type=\"button\" disabled={!chosen || !!busy} onClick={() => void run('render')}>{t('Gerar vídeo com esta foto', 'Generate video with this still')}{` · ${renderCredits} ${t('créditos', 'credits')}`}</button>{photoRound < maxPhotoRounds && !choiceLocked ? <button type=\"button\" disabled={!!busy} onClick={() => void run('stills', true)}>{t('Preparar outra rodada grátis', 'Prepare another free round')}</button> : null}</div>{photoRound >= maxPhotoRounds ? <p className=\"ace-hint\">{t('As duas rodadas deste pedido foram usadas. Escolha uma foto para continuar.', 'Both rounds for this order have been used. Choose a still to continue.')}</p> : null}<p className=\"ace-hint\">{t('Se a geração falhar, o estorno dos créditos é automático.', 'If generation fails, credits are refunded automatically.')}</p></> : null}{stage === 'rendering' ? <p role=\"status\">{t('O vídeo está sendo preparado a partir da foto escolhida. ~10 min, avisamos por e-mail quando ficar pronto. Você pode sair desta página e encontrar o anúncio em Meus Vídeos.', 'Your video is being prepared from your selected still. ~10 min. We’ll email you when it is ready. You can leave this page and find the ad in My Videos.')}</p> : null}{stage === 'delivered' && videoUrl ? <video className=\"ace-result\" src={videoUrl} controls playsInline preload=\"metadata\" /> : null}<div className=\"ace-actions\"><button type=\"button\" disabled={sessionDenied || !!busy || stage === 'stills' || stage === 'rendering'} onClick={reset}>{t('Começar outro plano', 'Start another plan')}</button></div></section> : null}\n    {needsOneTime && !sessionDenied && !resumeOnly && ['edit', 'planned', 'choose', 'failed'].includes(stage) ? oneTimeMember ? <p className=\"ace-hint\" role=\"status\">{t('O saldo desta equipe não cobre este anúncio. Peça ao dono do espaço para adicionar créditos. Seu pedido e suas fotos continuam guardados.', 'This team balance does not cover the ad. Ask the workspace owner to add credits. Your order and stills remain saved.')}</p> : <><p className=\"ace-hint\" role=\"status\">{t(`Este anúncio precisa de ${renderCredits} créditos.${balance !== null ? ` Seu saldo: ${balance}.` : ''} Você pode comprar só este anúncio para continuar.`, `This ad needs ${renderCredits} credits.${balance !== null ? ` Your balance: ${balance}.` : ''} You can buy just this ad to continue.`)}</p><OneTimeItemOffer surface=\"ads_choice\" lang={lang} orderId={orderId || undefined} newTab busy={!!busy} /></> : null}{/* KINEO-COMPRA-AVULSA-2410 — before the still quota and at final selection; new tab preserves the exact order; members ask the owner. */}\n    {previewSlot ? createPortal(preview, previewSlot) : preview}\n  </div>\n"
+        }
+      ]
+    },
+    "app/(dashboard)/ads/v2/AdsV2Simple.tsx": {
+      "beforeHash": "30cfedbc8e7be9f4e23d8da295e5899c03d423221eda2953d4a9bb03908254cd",
+      "afterHash": "699710255982e2ce2d9527282ba4cfa64de3f49d5c362cdef544ebd02994ac81",
+      "changes": [
+        {
+          "before": "\nconst AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — loaded only after the existing Studio Ads gate.\nexport function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean }) { // KINEO-ADS-ESCOLHA-2310\n  return props.escolhaInternal === true && !props.sample && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-ADS-ESCOLHA-2310 — off never mounts any new request, storage or polling effect.\n} // KINEO-ADS-ESCOLHA-2310\nfunction AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.\n",
+          "after": "\nconst AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — loaded only after the existing Studio Ads gate.\nexport function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; oneTimeMember?: boolean }) { // KINEO-COMPRA-AVULSA-2410 · KINEO-ADS-ESCOLHA-2310\n  return props.escolhaInternal === true && !props.sample && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} balance={props.balance} oneTimeMember={props.oneTimeMember} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-COMPRA-AVULSA-2410 · KINEO-ADS-ESCOLHA-2310 — pass the actual workspace balance; legacy stays unchanged.\n} // KINEO-ADS-ESCOLHA-2310\nfunction AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.\n"
+        }
+      ]
+    },
+    "app/api/compose/route.ts": {
+      "beforeHash": "91d0f2bea067c8bbce6cac5da5d4d9a4b57a077c25dc33f3acf70e55feaa9962",
+      "afterHash": "89b03fb0b076875ed4fe78ddc4c252b65b3d5acd34bd340ffbfe0664eb6ffa66",
+      "changes": [
+        {
+          "before": "        (hasPaid && creditBalance > 0) ||\n        ent.isTrial ||\n        (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)\n\n",
+          "after": "        (hasPaid && creditBalance > 0) ||\n        ent.isTrial ||\n        (hasPaid && cinematicUpstreamDebited) || // KINEO-COMPRA-AVULSA-2410 — paid exact-balance film: the owned, HMAC-verified settled birth above already paid; trial rollback cannot refuse delivery.\n        (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)\n\n"
+        }
+      ]
+    },
+    "app/api/events/route.ts": {
+      "beforeHash": "460f1a31a985bc61f7752b0acb149391b97a22892993d5466309a3409703049a",
+      "afterHash": "b8c49902905d9645633af21bd2be76535bbd7ef76d0a7e2c71b17202f0effc9e",
+      "changes": [
+        {
+          "before": "\nconst SERVER_ONLY_EVENTS = new Set([\n  // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.\n  'ads_escolha_plan',\n",
+          "after": "\nconst SERVER_ONLY_EVENTS = new Set([\n  'one_time_item_purchased', // KINEO-COMPRA-AVULSA-2410 — only the atomic paid receipt may record a purchase.\n  // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.\n  'ads_escolha_plan',\n"
+        }
+      ]
+    },
+    "app/api/stripe/checkout/route.ts": {
+      "beforeHash": "aaa64b4580d40fbdd84765c1cc6c8f847d6b887c0f89ac430a786be39c9b486a",
+      "afterHash": "c19c382e63a1a5cfc3e26dfd2f14c935f44f36456669451728d83d54d31914be",
+      "changes": [
+        {
+          "before": "import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)\nimport { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010\nimport { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor\nimport { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010\n",
+          "after": "import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)\nimport { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010\nimport { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' // KINEO-COMPRA-AVULSA-2410\nimport { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor\nimport { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010\n"
+        },
+        {
+          "before": "    // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter\n    const packParam = req.nextUrl.searchParams.get('pack')\n    if (packParam) {\n      // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar packs are gone. Avatar\n",
+          "after": "    // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter\n    const packParam = req.nextUrl.searchParams.get('pack')\n    if (packParam?.startsWith('one_time_')) return await buildOneTimeItemAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-COMPRA-AVULSA-2410 — unknown single-item SKUs fail closed before legacy fallbacks.\n    if (packParam) {\n      // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar packs are gone. Avatar\n"
+        }
+      ]
+    },
+    "app/api/stripe/webhook/route.ts": {
+      "beforeHash": "b0918c6b19f2ace2704d595040a86a797fa4ec7f9a65fbc03f4e7b1ac5c10047",
+      "afterHash": "4fe90147cff13c8e60d5cf05ce5a5bd7e8cbfeded9b2c1cb4ec578a01fbc1788",
+      "changes": [
+        {
+          "before": "import { NextRequest, NextResponse } from 'next/server'\nimport { stripe } from '@/lib/stripe'\nimport { createClient as createSupabaseAdmin } from '@supabase/supabase-js'\n",
+          "after": "import { NextRequest, NextResponse } from 'next/server'\nimport { fulfillOneTimeItem, isOneTimeItemSession } from '@/lib/stripe/oneTimeItemFulfillment' // KINEO-COMPRA-AVULSA-2410\nimport { stripe } from '@/lib/stripe'\nimport { createClient as createSupabaseAdmin } from '@supabase/supabase-js'\n"
+        },
+        {
+          "before": "        // KINEO-PACOTE-3-FILMES-1610 — o pacote \"3 filmes\" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado\n        // por status, stripe_session_id único, evento com id determinístico) e não concede nada.\n        if (!duplicateSession || (!isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)\n          return NextResponse.json({ received: true, duplicate: true })\n        }\n",
+          "after": "        // KINEO-PACOTE-3-FILMES-1610 — o pacote \"3 filmes\" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado\n        // por status, stripe_session_id único, evento com id determinístico) e não concede nada.\n        if (!duplicateSession || (!isOneTimeItemSession(duplicateSession) && !isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado) // KINEO-COMPRA-AVULSA-2410 — atomic receipt permits crash recovery of the same event.\n          return NextResponse.json({ received: true, duplicate: true })\n        }\n"
+        },
+        {
+          "before": "        // publishes it only after the idempotent entitlement update succeeds.\n        checkoutFulfillmentGuard = `checkout_fulfilled:${session.id}`\n\n        // ── Path A: Legacy one-time credit-pack purchase via Payment Link ──\n",
+          "after": "        // publishes it only after the idempotent entitlement update succeeds.\n        checkoutFulfillmentGuard = `checkout_fulfilled:${session.id}`\n        if (isOneTimeItemSession(session)) { // KINEO-COMPRA-AVULSA-2410 — never enter legacy amount/pack-credit fallbacks.\n          entitlementPending = true // KINEO-COMPRA-AVULSA-2410\n          await fulfillOneTimeItem(supabase, session) // KINEO-COMPRA-AVULSA-2410 — receipt + additive balance + paid flag + access + event in one transaction.\n          entitlementConfirmed = true; entitlementPending = false // KINEO-COMPRA-AVULSA-2410 — a duplicate receipt also proves prior delivery.\n          await markTrialConverted(supabase, session.metadata!.supabase_user_id, { source: 'checkout_payment', stripeRef: session.id }) // KINEO-COMPRA-AVULSA-2410 — preserve the existing one-time trial conversion rule.\n          await recordAffiliateCommission(supabase, { userId: session.metadata!.supabase_user_id, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'one_time', attributionSystem: session.metadata?.affiliate_system, session }) // KINEO-COMPRA-AVULSA-2410 — existing idempotent attribution; retry cannot regrant the item.\n          break // KINEO-COMPRA-AVULSA-2410\n        } // KINEO-COMPRA-AVULSA-2410\n\n        // ── Path A: Legacy one-time credit-pack purchase via Payment Link ──\n"
+        }
+      ]
+    },
+    "app/pricing/PricingClient.tsx": {
+      "beforeHash": "7b50340a5e02190a31e82c1ae2d6d113b54001a3b2f55ed4b38d156d2d8ffb2f",
+      "afterHash": "47337ff6fdf2e4c56a7383a91bcd40cf2dfca84087f16e8f416eb09938c2691f",
+      "changes": [
+        {
+          "before": "import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'\nimport Studio50OfferBanner from '@/components/Studio50OfferBanner'\n\n// PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's\n",
+          "after": "import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'\nimport Studio50OfferBanner from '@/components/Studio50OfferBanner'\nimport OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410\n\n// PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's\n"
+        },
+        {
+          "before": "        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.\n            KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê \"Switch to Business\" / \"Current plan\" e troca sem checkout. */}\n        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />\n\n",
+          "after": "        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.\n            KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê \"Switch to Business\" / \"Current plan\" e troca sem checkout. */}\n        <OneTimeItemOffer surface=\"pricing\" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}\n        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />\n\n"
+        }
+      ]
+    },
+    "components/PricingCards.tsx": {
+      "beforeHash": "ae8d882faf2622604166c0ae3bd3f0f421f13ffca7f555b978f486846b23d843",
+      "afterHash": "d0f476ff8586af1f0a04fc20d88dab2c5bde53f4372f00389d85386c655e4692",
+      "changes": [
+        {
+          "before": "import { trackClosedEvent, trackEvent } from '@/lib/analytics'\nimport { useCheckoutLaunch } from '@/lib/checkoutTelemetry'\nimport RegionalFirstPack from '@/components/RegionalFirstPack'\nimport {\n",
+          "after": "import { trackClosedEvent, trackEvent } from '@/lib/analytics'\nimport { useCheckoutLaunch } from '@/lib/checkoutTelemetry'\nimport OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410 — this grid is mounted by GenerateClient on Step 1.\nimport RegionalFirstPack from '@/components/RegionalFirstPack'\nimport {\n"
+        },
+        {
+          "before": "      </div>\n\n      {/* ══════════════════════════════════════════════════════════════════\n          KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.\n",
+          "after": "      </div>\n\n      <OneTimeItemOffer surface=\"generate_paywall\" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off choice beside the active pre-video plans, with the same checkout latch. */}\n\n      {/* ══════════════════════════════════════════════════════════════════\n          KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.\n"
+        }
+      ]
+    },
+    "lib/checkoutPricing.ts": {
+      "beforeHash": "c218ff5bbdc9632864afcf044fafb3cc639602c61ef61d4b7eb27ffdef5d9c02",
+      "afterHash": "acaf822a0d71f1e7d957da3d48cbeb8c4327f3fd38009021341354d81427652b",
+      "changes": [
+        {
+          "before": "import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'\n\nexport type CheckoutTier = 'starter' | 'basic' | 'pro'\n// KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is a fourth PAID plan, but it is\n",
+          "after": "import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'\n\nexport const ONE_TIME_ITEM_USD_MINOR = { one_time_ad: 900, one_time_film35: 500 } as const // KINEO-COMPRA-AVULSA-2410 — founder-approved single-item prices; monthly plans unchanged.\nexport const ONE_TIME_ITEM_V1_AMOUNTS = { one_time_ad: { usd: 900, brl: 4490 }, one_time_film35: { usd: 500, brl: 2490 } } as const // KINEO-COMPRA-AVULSA-2410 — immutable receipt snapshot; future prices must never reprice a paid V1 session.\n\nexport type CheckoutTier = 'starter' | 'basic' | 'pro'\n// KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is a fourth PAID plan, but it is\n"
+        }
+      ]
+    },
+    "package-lock.json": {
+      "beforeHash": "2d0e2d9f9023158c4c8eeb4d62373f6a63512377dab95a95718ae8014dd7a88b",
+      "afterHash": "088f96e3a1da8ad46daaa067db9353f140a1b47e16b311bc4652e5f9ce49092b",
+      "changes": [
+        {
+          "before": "      },\n      \"devDependencies\": {\n        \"@types/node\": \"^20\",\n        \"@types/react\": \"^18\",\n",
+          "after": "      },\n      \"devDependencies\": {\n        \"@electric-sql/pglite\": \"0.3.16\",\n        \"@types/node\": \"^20\",\n        \"@types/react\": \"^18\",\n"
+        },
+        {
+          "before": "      }\n    },\n    \"node_modules/@emnapi/core\": {\n      \"version\": \"1.11.1\",\n",
+          "after": "      }\n    },\n    \"node_modules/@electric-sql/pglite\": {\n      \"version\": \"0.3.16\",\n      \"resolved\": \"https://registry.npmjs.org/@electric-sql/pglite/-/pglite-0.3.16.tgz\",\n      \"integrity\": \"sha512-mZkZfOd9OqTMHsK+1cje8OSzfAQcpD7JmILXTl5ahdempjUDdmg4euf1biDex5/LfQIDJ3gvCu6qDgdnDxfJmA==\",\n      \"dev\": true,\n      \"license\": \"Apache-2.0\"\n    },\n    \"node_modules/@emnapi/core\": {\n      \"version\": \"1.11.1\",\n"
+        }
+      ]
+    },
+    "package.json": {
+      "beforeHash": "b83fe5ad6f9794cf57fa4467f68802a7d6707193b8239ba950f309790d3d422b",
+      "afterHash": "4bbfb87a85aa67879519a1f50d9cc90dffddcf36f65a2ee921eda0d7d6c89a49",
+      "changes": [
+        {
+          "before": "  },\n  \"devDependencies\": {\n    \"@types/node\": \"^20\",\n    \"@types/react\": \"^18\",\n",
+          "after": "  },\n  \"devDependencies\": {\n    \"@electric-sql/pglite\": \"0.3.16\",\n    \"@types/node\": \"^20\",\n    \"@types/react\": \"^18\",\n"
+        }
+      ]
+    },
+    "scripts/test-admin-leve-undo-2310.mjs": {
+      "beforeHash": "1a1581ec553a67d39442bbc2f2cc4be5c7f7455420397ba29d26c8cb1ab88655",
+      "afterHash": "e66c3ec54e1315f1a90e6a22d2fa0e044a3cd6e64afd703d13d98b64d7765a5e",
+      "changes": [
+        {
+          "before": "// KINEO-ADMIN-LEVE-2310 — exact historical source proof; all mutations stay in memory.\nimport fs from 'node:fs'\nimport path from 'node:path'\n",
+          "after": "// KINEO-ADMIN-LEVE-2310 — exact historical source proof; all mutations stay in memory.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport fs from 'node:fs'\nimport path from 'node:path'\n"
+        },
+        {
+          "before": "const ROOT = path.resolve(process.argv.find((a) => a.startsWith('--root='))?.slice(7) || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))\nconst MARK = 'KINEO-ADMIN-LEVE-2310'\nconst read = (file) => semAdsCenaTexto2310(fs.readFileSync(path.join(ROOT, file), 'utf8'), file) // KINEO-ADS-CENA-TEXTO-2310 — historical mutantes still receive every original Admin hunk.\nconst lf = (s) => s.replace(/\\r\\n/g, '\\n')\nconst git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })\n",
+          "after": "const ROOT = path.resolve(process.argv.find((a) => a.startsWith('--root='))?.slice(7) || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))\nconst MARK = 'KINEO-ADMIN-LEVE-2310'\nconst read = (file) => semAdsCenaTexto2310(semCompraAvulsa2410(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file) // KINEO-COMPRA-AVULSA-2410 · KINEO-ADS-CENA-TEXTO-2310 — preserve all original historical mutant asserts.\nconst lf = (s) => s.replace(/\\r\\n/g, '\\n')\nconst git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })\n"
+        }
+      ]
+    },
+    "scripts/test-ads-escolha-publico-2410.mjs": {
+      "beforeHash": "3c433063dc357402fb505541c21db9e7d01cd1de71286aec0a53a352dd4a7249",
+      "afterHash": "b661a56b3dc622b11dffcecfc4c522ff372a60c7bf46fcbd153b633ed927ba72",
+      "changes": [
+        {
+          "before": "// KINEO-ADS-ESCOLHA-PUBLICO-2410 — raw production controllers/builders, offline boundaries, mutants and exact undo.\nimport assert from 'node:assert/strict'\nimport { readFileSync } from 'node:fs'\n",
+          "after": "// KINEO-ADS-ESCOLHA-PUBLICO-2410 — raw production controllers/builders, offline boundaries, mutants and exact undo.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport assert from 'node:assert/strict'\nimport { readFileSync } from 'node:fs'\n"
+        },
+        {
+          "before": "  assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')\n  for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {\n    const integrated = read(file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410\n    assert.equal(withoutLanguages, git('show', `${integrationMain}:${file}`), 'exact Idiomas removal preserves the published Traffic source: ' + file) // KINEO-IDIOMAS-FORMATOS-2410\n    const mainSource = git('show', `${currentMain}:${file}`)\n",
+          "after": "  assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')\n  for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {\n    const integrated = semCompraAvulsa2410(read(file), file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-COMPRA-AVULSA-2410 — historical proof only; runtime stays raw.\n    assert.equal(withoutLanguages, git('show', `${integrationMain}:${file}`), 'exact Idiomas removal preserves the published Traffic source: ' + file) // KINEO-IDIOMAS-FORMATOS-2410\n    const mainSource = git('show', `${currentMain}:${file}`)\n"
+        }
+      ]
+    },
+    "scripts/test-ads-formatos-escolha-2410.mjs": {
+      "beforeHash": "2c2a8fccdb4790c675035684f6cf763eb4ce7f932ae71a9129ab65fe0068b0c6",
+      "afterHash": "72134ba4fd725863555f018460fab8201d96b2e60b78b94f602479a3c09ae510",
+      "changes": [
+        {
+          "before": "  const state=[],refs=[];let at=0,ref=0,requests=[]\n  const hooks={...React,useState(value){const i=at++;if(!(i in state))state[i]=i===0?{...fixture('tea',formato),oferta:'',beneficios:'',cta:'',rota:'',presenter_id:'sofia',category:'tea',scenario_id:'tea_kitchen'}:i===11?true:value;return[state[i],v=>{state[i]=typeof v==='function'?v(state[i]):v}]},useEffect(){},useRef(value){return refs[ref++]??(refs[ref-1]={current:value})}}\n  const load=createOfflineLoader({mocks:{react:hooks,'react/jsx-runtime':await import('react/jsx-runtime'),'react-dom':{createPortal:v=>v},'@/lib/ads/uploadFootage':{AdsUploadError:class extends Error{},uploadFootage(){throw Error('offline upload forbidden')}}},globals:{AbortController,fetch:async(url,o)=>{requests.push(JSON.parse(o.body));return{status:200,ok:true,json:async()=>({stage:'planned',narration_used:'Produto.'})}}},source:(p,s)=>p===UI?ts.transpileModule(s,{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText:s})\n  const component=load(UI).default;const render=()=>{at=ref=0;return component({lang:'pt',ownerKey:'offline',resume:false})};let tree=render()\n  assert.ok(walk(tree).some(n=>n.type==='option'&&n.props.value===formato),'UI exposes selected new format')\n",
+          "after": "  const state=[],refs=[];let at=0,ref=0,requests=[]\n  const hooks={...React,useState(value){const i=at++;if(!(i in state))state[i]=i===0?{...fixture('tea',formato),oferta:'',beneficios:'',cta:'',rota:'',presenter_id:'sofia',category:'tea',scenario_id:'tea_kitchen'}:i===11?true:value;return[state[i],v=>{state[i]=typeof v==='function'?v(state[i]):v}]},useEffect(){},useRef(value){return refs[ref++]??(refs[ref-1]={current:value})}}\n  const jsx=await import('react/jsx-runtime'), jsxSource=(p,s)=>p.endsWith('.tsx')?ts.transpileModule(s,{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText:s // KINEO-COMPRA-AVULSA-2410 — retain raw UI and compile actual TSX dependencies.\n  const purchase=createOfflineLoader({mocks:{react:hooks,'react/jsx-runtime':jsx,'@/lib/analytics':{trackEvent:async()=>true},'@/lib/checkoutTelemetry':{useCheckoutLaunch(){throw Error('offline checkout not exercised')}}},source:jsxSource}) // KINEO-COMPRA-AVULSA-2410 — only IO boundaries are fakes; prices and credits remain real.\n  const actualOffer=purchase('components/OneTimeItemOffer.tsx') // KINEO-COMPRA-AVULSA-2410 — explicit existing TSX path; no null component stub or historical undo.\n  const load=createOfflineLoader({mocks:{react:hooks,'react/jsx-runtime':jsx,'react-dom':{createPortal:v=>v},'@/components/OneTimeItemOffer':actualOffer,'@/lib/ads/uploadFootage':{AdsUploadError:class extends Error{},uploadFootage(){throw Error('offline upload forbidden')}}},globals:{AbortController,fetch:async(url,o)=>{requests.push(JSON.parse(o.body));return{status:200,ok:true,json:async()=>({stage:'planned',narration_used:'Produto.'})}}},source:jsxSource}) // KINEO-COMPRA-AVULSA-2410 — @/lib/oneTimeItem and every language/format source remain current and real.\n  const component=load(UI).default;const render=()=>{at=ref=0;return component({lang:'pt',ownerKey:'offline',resume:false})};let tree=render()\n  assert.ok(walk(tree).some(n=>n.type==='option'&&n.props.value===formato),'UI exposes selected new format')\n"
+        }
+      ]
+    },
+    "scripts/test-idiomas-formatos-undo-2410.mjs": {
+      "beforeHash": "b5aca33cf86f5505a2a54dfb855a753e3b8fa8ae45e04ed3a767d6f1bb000ff5",
+      "afterHash": "e684a0ad01d34cfa167b075c3ad359b821f31663d74d7f1d351b424ee6c7f051",
+      "changes": [
+        {
+          "before": "// KINEO-IDIOMAS-FORMATOS-2410 — both immutable histories, exact integration undo and complete task inventory; no filesystem mutation.\nimport assert from 'node:assert/strict'\nimport { readFileSync, existsSync } from 'node:fs'\n",
+          "after": "// KINEO-IDIOMAS-FORMATOS-2410 — both immutable histories, exact integration undo and complete task inventory; no filesystem mutation.\nimport { semCompraAvulsa2410, COMPRA_AVULSA_2410_MANIFEST as compraAvulsaManifest } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport assert from 'node:assert/strict'\nimport { readFileSync, existsSync } from 'node:fs'\n"
+        },
+        {
+          "before": "for (const [file, item] of Object.entries(manifest.sources)) {\n  const sourceBase = item.sourceBase ?? BASE\n  const raw = readFileSync(file, 'utf8'), current = lf(raw), originalBase = git('show', sourceBase + ':' + file)\n  const integratedBase = git('show', INTEGRATION_BASE + ':' + file)\n  assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)\n",
+          "after": "for (const [file, item] of Object.entries(manifest.sources)) {\n  const sourceBase = item.sourceBase ?? BASE\n  const raw = semCompraAvulsa2410(readFileSync(file, 'utf8'), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-COMPRA-AVULSA-2410\n  const integratedBase = git('show', INTEGRATION_BASE + ':' + file)\n  assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)\n"
+        },
+        {
+          "before": "}\nfor (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), 'artifact is under docs: ' + file)\nconst actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\\n')])].filter(Boolean).sort()\nassert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'task inventory is relative to integrated upstream; upstream-only files are not attributed to this task')\nassert.equal(undo('unrelated\\r\\n', 'lib/unrelated.ts'), 'unrelated\\r\\n')\n",
+          "after": "}\nfor (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), 'artifact is under docs: ' + file)\nconst compraOnly = new Set([...compraAvulsaManifest.newFiles, ...compraAvulsaManifest.artifacts]) // KINEO-COMPRA-AVULSA-2410 — explicitly inventoried newer files.\nfor (const file of Object.keys(compraAvulsaManifest.sources)) { // KINEO-COMPRA-AVULSA-2410\n  let upstream; try { upstream = git('show', INTEGRATION_BASE + ':' + file) } catch { continue } // KINEO-COMPRA-AVULSA-2410\n  if (lf(semCompraAvulsa2410(readFileSync(file, 'utf8'), file)) === upstream) compraOnly.add(file) // KINEO-COMPRA-AVULSA-2410 — exclude only exact upstream bytes after undo.\n} // KINEO-COMPRA-AVULSA-2410\nconst actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\\n')])].filter(Boolean).filter(file => !compraOnly.has(file)).sort() // KINEO-COMPRA-AVULSA-2410\nassert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'task inventory is relative to integrated upstream; upstream-only files are not attributed to this task')\nassert.equal(undo('unrelated\\r\\n', 'lib/unrelated.ts'), 'unrelated\\r\\n')\n"
+        }
+      ]
+    },
+    "scripts/test-kids-venda-2010.mjs": {
+      "beforeHash": "c3cb071b7fd996f7fd6be2cbf7e4d5995dfe331707269d009c159031679a15ae",
+      "afterHash": "fc515a4c6f3957ac638357c11d2dc8c0d042d4b4c7c05e37f43498aa909ee92b",
+      "changes": [
+        {
+          "before": "//      ANTES do gate de plano e dentro de currentPaid; sem o campo = false;\n//   D  desfaz + novos + marca + encadeamento + contagem; M mutantes (todos APLICADOS e VERMELHOS), em memória.\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n",
+          "after": "//      ANTES do gate de plano e dentro de currentPaid; sem o campo = false;\n//   D  desfaz + novos + marca + encadeamento + contagem; M mutantes (todos APLICADOS e VERMELHOS), em memória.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n"
+        },
+        {
+          "before": "const MARCA = 'KINEO-KIDS-VENDA-2010'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIDS_VENDA_2010_BASE}:${p}`)) } catch { return null } }\n",
+          "after": "const MARCA = 'KINEO-KIDS-VENDA-2010'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(semCompraAvulsa2410(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-COMPRA-AVULSA-2410\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIDS_VENDA_2010_BASE}:${p}`)) } catch { return null } }\n"
+        }
+      ]
+    },
+    "scripts/test-kit-bf-1910.mjs": {
+      "beforeHash": "f7268ad9812b5556b384d37223280c16fe1ae50b1ffa0809db57df95bbeefe52",
+      "afterHash": "251efffac65d1cfc32cacf4512470746bed976f7748c00cd22af4c2c15c70abf",
+      "changes": [
+        {
+          "before": "//   D  desfaz exato + novos + marca + encadeamento + reâncoras;\n//   M  mutantes (todos APLICADOS e VERMELHOS).\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n",
+          "after": "//   D  desfaz exato + novos + marca + encadeamento + reâncoras;\n//   M  mutantes (todos APLICADOS e VERMELHOS).\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n"
+        },
+        {
+          "before": "const MARCA = 'KINEO-KIT-BF-1910'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(semHome3Cards1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIT_BF_1910_BASE}:${p}`)) } catch { return null } }\n",
+          "after": "const MARCA = 'KINEO-KIT-BF-1910'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(semHome3Cards1910(semCompraAvulsa2410(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-COMPRA-AVULSA-2410 // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIT_BF_1910_BASE}:${p}`)) } catch { return null } }\n"
+        }
+      ]
+    },
+    "scripts/test-kit-bf-venda-2010.mjs": {
+      "beforeHash": "1530b02b3b6bae80b11dbf7e935b46f4d4d45cf91657ee5e0e374b975895749d",
+      "afterHash": "b600f7ec95b381ebfaf3da47ed33b9d12858beee411ef84b8f1a9dbeef3072e6",
+      "changes": [
+        {
+          "before": "//   D  desfaz + novos + marca + encadeamento + reâncoras;\n//   M  mutantes (todos APLICADOS e VERMELHOS), em memória — nenhum arquivo do disco é tocado.\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n",
+          "after": "//   D  desfaz + novos + marca + encadeamento + reâncoras;\n//   M  mutantes (todos APLICADOS e VERMELHOS), em memória — nenhum arquivo do disco é tocado.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync, existsSync } from 'node:fs'\nimport { join, dirname } from 'node:path'\n"
+        },
+        {
+          "before": "const MARCA = 'KINEO-KIT-BF-VENDA-2010'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(semAdsNota92110(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-NOTA9-2110 — a faixa de uma linha do kit (slim) e a tela foco do Studio Ads (21/10) saem por fora, em memória; era: const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIT_BF_VENDA_2010_BASE}:${p}`)) } catch { return null } }\n",
+          "after": "const MARCA = 'KINEO-KIT-BF-VENDA-2010'\nconst lf = (s) => String(s).split('\\r\\n').join('\\n')\nconst disco = (p) => lf(semAdsNota92110(semCompraAvulsa2410(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-COMPRA-AVULSA-2410 // reancorado KINEO-ADS-NOTA9-2110 — a faixa de uma linha do kit (slim) e a tela foco do Studio Ads (21/10) saem por fora, em memória; era: const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))\nconst git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })\nconst base = (p) => { try { return lf(git('show', `${KIT_BF_VENDA_2010_BASE}:${p}`)) } catch { return null } }\n"
+        }
+      ]
+    },
+    "scripts/test-support/ads-escolha-ui-2310.mjs": {
+      "beforeHash": "f9f2fd014457df934b4f0a675b23bc3d33e01b9b3a92be5acc4767b94c8ffa5a",
+      "afterHash": "d2855a8ad25fe8948707dff7582cfc75f91dda6746cdc8fa432e3ed325a9db41",
+      "changes": [
+        {
+          "before": "      },\n    }\n    const localRequire = id => id === 'react' ? hooks\n      : id === 'react-dom' ? { createPortal: value => value }\n        : id.includes('escolhaCatalog') ? catalog\n          : id.includes('v2Tiers') ? tiers\n          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.\n          : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }\n",
+          "after": "      },\n    }\n    const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.\n    const localRequire = id => id === 'react' ? hooks\n      : id === 'react-dom' ? { createPortal: value => value }\n        : id.includes('escolhaCatalog') ? catalog\n          : id.includes('v2Tiers') ? tiers\n          : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id === '@/components/OneTimeItemOffer' ? id + '.tsx' : id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.\n          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.\n          : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }\n"
+        },
+        {
+          "before": "      return { ok: response[0] >= 200 && response[0] < 300, status: response[0], json: async () => response[1] }\n    }\n    const module = { exports: {} }\n    new Function('require', 'module', 'exports', 'fetch', 'localStorage', 'window', componentCode)(localRequire, module, module.exports, transport,\n      { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },\n      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) })\n    function render() {\n      for (let round = 0; round < 8; round++) {\n",
+          "after": "      return { ok: response[0] >= 200 && response[0] < 300, status: response[0], json: async () => response[1] }\n    }\n    const module = { exports: {} }, browserEvents = new EventTarget() // KINEO-COMPRA-AVULSA-2410 — real event target at the browser boundary for focus cleanup.\n    new Function('require', 'module', 'exports', 'fetch', 'localStorage', 'window', componentCode)(localRequire, module, module.exports, transport,\n      { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },\n      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, addEventListener: browserEvents.addEventListener.bind(browserEvents), removeEventListener: browserEvents.removeEventListener.bind(browserEvents), setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) }) // KINEO-COMPRA-AVULSA-2410 — current raw UI also listens when checkout returns in another tab.\n    function render() {\n      for (let round = 0; round < 8; round++) {\n"
+        }
+      ]
+    },
+    "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs": {
+      "beforeHash": "64bcbd5b6f76c0fb7e863da2f1be624b88c00f06c1023766dcf416403aa5c6e0",
+      "afterHash": "43469a989973e62132147027053c0e2309963ed795efb52ca089b8f49877c170",
+      "changes": [
+        {
+          "before": "// KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest leaf layer; restore exact sources before historical guards.\nimport { readFileSync } from 'node:fs'\nimport { createHash } from 'node:crypto'\n",
+          "after": "// KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest leaf layer; restore exact sources before historical guards.\nimport { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync } from 'node:fs'\nimport { createHash } from 'node:crypto'\n"
+        },
+        {
+          "before": "export const ADS_ESCOLHA_PUBLICO_ARTIFACTS = Object.freeze(manifest.artifacts ?? [])\nexport function semAdsEscolhaPublico2410(text, file) {\n  text = semIdiomasFormatos2410(text, file) // KINEO-IDIOMAS-FORMATOS-2410\n  text = semTrafego2310(text, file) // KINEO-TRAFEGO-2310 — before every marker/hash/unknown-path early return; pure leaf, no older imports.\n",
+          "after": "export const ADS_ESCOLHA_PUBLICO_ARTIFACTS = Object.freeze(manifest.artifacts ?? [])\nexport function semAdsEscolhaPublico2410(text, file) {\n  text = semCompraAvulsa2410(text, file) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.\n  text = semIdiomasFormatos2410(text, file) // KINEO-IDIOMAS-FORMATOS-2410\n  text = semTrafego2310(text, file) // KINEO-TRAFEGO-2310 — before every marker/hash/unknown-path early return; pure leaf, no older imports.\n"
+        }
+      ]
+    },
+    "scripts/test-support/desfaz-idiomas-formatos-2410.mjs": {
+      "beforeHash": "dd6840f862da3b7c127c795bb27432721f221d3ee260c4abd2f3bed5648758f4",
+      "afterHash": "baef2df075948a544336ae5fbc6d10c3044418fa5c4c51ca8464c37ebbeea65c",
+      "changes": [
+        {
+          "before": "// KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.\nimport { readFileSync } from 'node:fs'\nimport { createHash } from 'node:crypto'\n",
+          "after": "// KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.\nimport { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync } from 'node:fs'\nimport { createHash } from 'node:crypto'\n"
+        },
+        {
+          "before": "}\nexport function semIdiomasFormatos2410(text, file) {\n  const rel = String(file ?? '').replace(/\\\\/g, '/')\n  const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]\n",
+          "after": "}\nexport function semIdiomasFormatos2410(text, file) {\n  text = semCompraAvulsa2410(text, file) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.\n  const rel = String(file ?? '').replace(/\\\\/g, '/')\n  const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]\n"
+        }
+      ]
+    },
+    "scripts/test-support/desfaz-kids-venda-2010.mjs": {
+      "beforeHash": "ebbc1dd9237f3b4a6591615d52253c430eeee13de2e9e593ebbc278acf36445e",
+      "afterHash": "083ea4799288a8646575f5e3f1faabd8d460fe01cd2213a5ef7417220d2bbe22",
+      "changes": [
+        {
+          "before": "// ENCADEAMENTO: é a camada MAIS NOVA — semAdsCenaAjuste2110 chama ESTE primeiro; semBebeQueFala2010 também chama antes da cadeia antiga. Este não importa ninguém.\n// O guardião scripts/test-kids-venda-2010.mjs prova que, retirada somente a venda, cada arquivo é EXATAMENTE a origin/main 72d23210c.\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n",
+          "after": "// ENCADEAMENTO: é a camada MAIS NOVA — semAdsCenaAjuste2110 chama ESTE primeiro; semBebeQueFala2010 também chama antes da cadeia antiga. Este não importa ninguém.\n// O guardião scripts/test-kids-venda-2010.mjs prova que, retirada somente a venda, cada arquivo é EXATAMENTE a origin/main 72d23210c.\nimport { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n"
+        },
+        {
+          "before": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKidsVenda2010(texto, p) {\n  texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — preserva Kids ao tirar95; depois tira a venda pela tabela original.\n  const rel = String(p ?? '').replace(/\\\\/g, '/')\n",
+          "after": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKidsVenda2010(texto, p) {\n  texto = semCompraAvulsa2410(texto, p) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.\n  texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — preserva Kids ao tirar95; depois tira a venda pela tabela original.\n  const rel = String(p ?? '').replace(/\\\\/g, '/')\n"
+        }
+      ]
+    },
+    "scripts/test-support/desfaz-kit-bf-1910.mjs": {
+      "beforeHash": "208032262e5aa4a17b993b1c9549f6319bcd0be4e6f76b4a55cc63165a75e3ac",
+      "afterHash": "cf57284b02e4aa1d90ada7b9b92520c24268124439932ffedbd9aad52f589ac6",
+      "changes": [
+        {
+          "before": "// do kit sem ser editado. Os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).\n// O guardião scripts/test-kit-bf-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_1910_BASE).\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n",
+          "after": "// do kit sem ser editado. Os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).\n// O guardião scripts/test-kit-bf-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_1910_BASE).\nimport { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n"
+        },
+        {
+          "before": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKitBf1910(texto, p) {\n  texto = semApresentadorOlhos1910(texto, p) // KINEO-APRESENTADOR-OLHOS-1910 — a camada mais nova sai primeiro\n  if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_1910) || !KIT_BF_1910_ARQUIVOS.includes(p)) return texto\n",
+          "after": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKitBf1910(texto, p) {\n  texto = semCompraAvulsa2410(texto, p) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.\n  texto = semApresentadorOlhos1910(texto, p) // KINEO-APRESENTADOR-OLHOS-1910 — a camada mais nova sai primeiro\n  if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_1910) || !KIT_BF_1910_ARQUIVOS.includes(p)) return texto\n"
+        }
+      ]
+    },
+    "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": {
+      "beforeHash": "fb3ad5c8a8aecb1da494a02a01f3288a69a1acc0d4cbb532f680da70eb3669e8",
+      "afterHash": "caef22dd32230f0cba3bead18e964c7c5f1bd483ddbbc2560912cd40481625b7",
+      "changes": [
+        {
+          "before": "// desfeita aqui); os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).\n// O guardião scripts/test-kit-bf-venda-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_VENDA_2010_BASE).\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n",
+          "after": "// desfeita aqui); os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).\n// O guardião scripts/test-kit-bf-venda-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_VENDA_2010_BASE).\nimport { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\n"
+        },
+        {
+          "before": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKitBfVenda2010(texto, p) {\n  texto = semPaginasUgc2010(texto, p) // reancorado KINEO-PAGINAS-UGC-2010 — a camada mais nova sai primeiro\n  if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_VENDA_2010) || !KIT_BF_VENDA_2010_ARQUIVOS.includes(p)) return texto\n",
+          "after": "/** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */\nexport function semKitBfVenda2010(texto, p) {\n  texto = semCompraAvulsa2410(texto, p) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.\n  texto = semPaginasUgc2010(texto, p) // reancorado KINEO-PAGINAS-UGC-2010 — a camada mais nova sai primeiro\n  if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_VENDA_2010) || !KIT_BF_VENDA_2010_ARQUIVOS.includes(p)) return texto\n"
+        }
+      ]
+    },
+    "scripts/test-trafego-pages-2310.mjs": {
+      "beforeHash": "a3de72fca74b99a8b422f0189f7bf2de66eb506f727061bbc5c882db351b6413",
+      "afterHash": "c021ff17429765cacf52f7b350c0f4766875a21cdab80f40310d2786db0cd0cd",
+      "changes": [
+        {
+          "before": "// Offline regression guard. Does not load .env, contact services or generate files.\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'\n",
+          "after": "// Offline regression guard. Does not load .env, contact services or generate files.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'\n"
+        },
+        {
+          "before": "  assert(text.includes(`${selector} === '${page}' ? <CitationDetails page=\"${page}\" /> : null`), `${page}: no sibling details mounts`)\n}\nfor (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts']) assert.equal(source(file), original(file), `${file}: prices and settlement unchanged`)\nassert(disclosure.includes('Customers in Brazil pay in reais (BRL) at checkout'))\nassert(!disclosure.includes('USD worldwide'))\n",
+          "after": "  assert(text.includes(`${selector} === '${page}' ? <CitationDetails page=\"${page}\" /> : null`), `${page}: no sibling details mounts`)\n}\nfor (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts']) assert.equal(semCompraAvulsa2410(source(file), file), original(file), `${file}: prices and settlement unchanged`) // KINEO-COMPRA-AVULSA-2410\nassert(disclosure.includes('Customers in Brazil pay in reais (BRL) at checkout'))\nassert(!disclosure.includes('USD worldwide'))\n"
+        }
+      ]
+    },
+    "scripts/test-trafego-undo-2310.mjs": {
+      "beforeHash": "6924b9a9e0caec9571b70450166bf7a77ee226ce4d66ee558fd819c77229bc64",
+      "afterHash": "0df0329b144a2a30f1183224aabd916ea318f8be7a925ba98b32172129540b8a",
+      "changes": [
+        {
+          "before": "// Exact complete task delta, in memory only. No production/credentials/network.\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'\n",
+          "after": "// Exact complete task delta, in memory only. No production/credentials/network.\nimport { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.\nimport assert from 'node:assert/strict'\nimport fs from 'node:fs'\n"
+        },
+        {
+          "before": "const check = (value, message) => { assert.ok(value, message); checks++ }\nfor (const [file, hunks] of Object.entries(TRAFEGO_2310_HUNKS)) {\n  const integrated = fs.readFileSync(file, 'utf8'), actual = semIdiomasFormatos2410(integrated, file), current = lf(actual), base = lf(git('show', `${TRAFEGO_2310_BASE}:${file}`)) // KINEO-IDIOMAS-FORMATOS-2410\n  check(current === lf(git('show', `8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405:${file}`)), file + ': Idiomas removal preserves the exact published Traffic layer') // KINEO-IDIOMAS-FORMATOS-2410\n  check(semTrafego2310(current, file) === base, file + ': complete source returns exactly to immutable base')\n",
+          "after": "const check = (value, message) => { assert.ok(value, message); checks++ }\nfor (const [file, hunks] of Object.entries(TRAFEGO_2310_HUNKS)) {\n  const integrated = semCompraAvulsa2410(fs.readFileSync(file, 'utf8'), file), actual = semIdiomasFormatos2410(integrated, file), current = lf(actual), base = lf(git('show', `${TRAFEGO_2310_BASE}:${file}`)) // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-COMPRA-AVULSA-2410\n  check(current === lf(git('show', `8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405:${file}`)), file + ': Idiomas removal preserves the exact published Traffic layer') // KINEO-IDIOMAS-FORMATOS-2410\n  check(semTrafego2310(current, file) === base, file + ': complete source returns exactly to immutable base')\n"
+        },
+        {
+          "before": "}\nfor (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'vercel.json', 'app/robots.ts']) {\n  check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${TRAFEGO_2310_BASE}:${file}`)), file + ': protected source untouched')\n}\ncheck(semTrafego2310(null, 'app/sitemap.ts') === null && semTrafego2310('untouched', 'other.ts') === 'untouched', 'unrelated/null unchanged')\n",
+          "after": "}\nfor (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'vercel.json', 'app/robots.ts']) {\n  check(lf(semCompraAvulsa2410(fs.readFileSync(file, 'utf8'), file)) === lf(git('show', `${TRAFEGO_2310_BASE}:${file}`)), file + ': protected source untouched') // KINEO-COMPRA-AVULSA-2410\n}\ncheck(semTrafego2310(null, 'app/sitemap.ts') === null && semTrafego2310('untouched', 'other.ts') === 'untouched', 'unrelated/null unchanged')\n"
+        }
+      ]
+    }
+  },
+  "newFiles": [
+    "app/api/stripe/checkout/item/route.ts",
+    "app/checkout/item/page.tsx",
+    "components/OneTimeItemConfirmation.tsx",
+    "components/OneTimeItemOffer.tsx",
+    "lib/oneTimeItem.ts",
+    "lib/stripe/oneTimeItemCheckout.ts",
+    "lib/stripe/oneTimeItemFulfillment.ts",
+    "migrations_pending/2026-10-24_one_time_items.sql",
+    "scripts/test-compra-avulsa-2410.mjs",
+    "scripts/test-compra-avulsa-delivery-2410.mjs",
+    "scripts/test-compra-avulsa-return-2410.mjs",
+    "scripts/test-compra-avulsa-sql-2410.mjs",
+    "scripts/test-compra-avulsa-ui-2410.mjs",
+    "scripts/test-compra-avulsa-undo-2410.mjs",
+    "scripts/test-compra-avulsa-webhook-2410.mjs",
+    "scripts/test-support/desfaz-compra-avulsa-2410-fontes.json",
+    "scripts/test-support/desfaz-compra-avulsa-2410.mjs"
+  ],
+  "artifacts": [
+    "docs/previews/COMPRA-AVULSA-2410-ads-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-ads-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-auth-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-auth-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-confirming-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-confirming-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-pending-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-pending-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-member-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-member-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-paywall-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-paywall-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-pricing-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-pricing-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-stills-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-stills-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410.html",
+    "docs/previews/render-compra-avulsa-2410.cjs",
+    "docs/qa/compra-avulsa-2410/.gitattributes",
+    "docs/qa/compra-avulsa-2410/.gitignore",
+    "docs/qa/compra-avulsa-2410/ENTREGA.md",
+    "docs/qa/compra-avulsa-2410/FINAL_VALIDATION.json",
+    "docs/qa/compra-avulsa-2410/baseline/00-typescript-noemit.log",
+    "docs/qa/compra-avulsa-2410/baseline/01-test-idiomas-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/02-test-language-segmentation-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/03-test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/04-test-idiomas-formatos-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/05-test-ads-escolha-publico-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/06-test-ads-escolha-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/07-test-ads-render-fix-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/08-test-trafego-pages-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/09-test-trafego-index-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/10-test-trafego-health-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/11-test-trafego-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/12-test-admin-leve-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/13-test-admin-leve-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/14-test-roteiro-curto-sem-falha-2210-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/15-test-roteiro-curto-undo-2210.log",
+    "docs/qa/compra-avulsa-2410/baseline/16-test-admin-truncamento-2026-10.log",
+    "docs/qa/compra-avulsa-2410/baseline/17-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/baseline/18-test-coerencia-kineo1-2026-09-16.log",
+    "docs/qa/compra-avulsa-2410/baseline/19-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/20-test-carta-da-recusa.log",
+    "docs/qa/compra-avulsa-2410/baseline/21-test-momentum-topic.log",
+    "docs/qa/compra-avulsa-2410/baseline/22-test-stalled-frescor-2026-09-05.log",
+    "docs/qa/compra-avulsa-2410/baseline/23-test-hot-nudge-janela-campanhas.log",
+    "docs/qa/compra-avulsa-2410/baseline/24-test-gpt-v31-facts-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/25-test-gpt-v31-facts-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/26-test-sharing-safety.log",
+    "docs/qa/compra-avulsa-2410/baseline/27-test-paid-video-citation-guidance-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/baseline/28-test-seedance-hero-plans-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/baseline/29-test-motores-geo-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/30-test-ads-aeo-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/31-test-five-improvements.log",
+    "docs/qa/compra-avulsa-2410/baseline/32-test-studio-entry-transition.log",
+    "docs/qa/compra-avulsa-2410/baseline/33-test-locale-readiness.log",
+    "docs/qa/compra-avulsa-2410/baseline/34-test-app-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/baseline/35-test-home-curation.log",
+    "docs/qa/compra-avulsa-2410/baseline/36-test-home-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/baseline/37-test-home-referral-bridge.log",
+    "docs/qa/compra-avulsa-2410/baseline/38-test-home-pricing-checkout.log",
+    "docs/qa/compra-avulsa-2410/baseline/39-test-showcase-premium.log",
+    "docs/qa/compra-avulsa-2410/baseline/40-test-cinematic-timeline-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/41-test-cinematic-speech-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/42-test-music-direction-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/43-test-visual-contract-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/44-test-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/45-test-quality-route-integration-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/46-test-quality-failure-ui-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/47-test-active-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/48-test-cinematic-terminal-proof-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/49-test-cinematic-poll-diagnostic-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/50-test-scene-retry-mutex-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/51-test-gpt-5h-a-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/52-test-gpt-5h-a-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/53-test-gpt-5h-b-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/54-test-gpt-5h-b-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/55-test-gpt-5h-c-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/56-test-gpt-5h-c-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/57-test-kit-bf-1910.log",
+    "docs/qa/compra-avulsa-2410/baseline/58-test-kit-bf-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/baseline/59-test-kids-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/baseline/60-test-stripe-async-checkout.log",
+    "docs/qa/compra-avulsa-2410/baseline/61-test-stripe-checkout-failure-truth.log",
+    "docs/qa/compra-avulsa-2410/baseline/62-test-verified-checkout-purchase.log",
+    "docs/qa/compra-avulsa-2410/baseline/63-test-checkout-success-entitlement.log",
+    "docs/qa/compra-avulsa-2410/baseline/64-test-checkout-currency-truth.log",
+    "docs/qa/compra-avulsa-2410/baseline/65-test-checkout-clareza-1610.log",
+    "docs/qa/compra-avulsa-2410/baseline/66-test-checkout-honesto-2026-10-07.log",
+    "docs/qa/compra-avulsa-2410/baseline/67-test-low-balance-pricing-bridge.log",
+    "docs/qa/compra-avulsa-2410/baseline/68-test-pricing-plan-choice-attribution.log",
+    "docs/qa/compra-avulsa-2410/baseline/69-test-pricing-diz-a-verdade-2026-09-27.log",
+    "docs/qa/compra-avulsa-2410/baseline/BASELINE.md",
+    "docs/qa/compra-avulsa-2410/baseline/extra-inline-pricing-decision-funnel.log",
+    "docs/qa/compra-avulsa-2410/baseline/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/baseline/results.json",
+    "docs/qa/compra-avulsa-2410/baseline/retry-dependencies.mjs",
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/run-baseline.mjs",
+    "docs/qa/compra-avulsa-2410/build-manifest.mjs",
+    "docs/qa/compra-avulsa-2410/candidate/00-typescript-noemit.log",
+    "docs/qa/compra-avulsa-2410/candidate/01-test-compra-avulsa-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/02-test-compra-avulsa-webhook-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/03-test-compra-avulsa-return-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/04-test-compra-avulsa-delivery-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/05-test-compra-avulsa-ui-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/06-test-compra-avulsa-sql-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/07-test-compra-avulsa-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/08-test-idiomas-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/09-test-language-segmentation-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/10-test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/11-test-idiomas-formatos-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/12-test-ads-escolha-publico-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/13-test-ads-escolha-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/14-test-ads-render-fix-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/15-test-trafego-pages-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/16-test-trafego-index-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/17-test-trafego-health-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/18-test-trafego-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/19-test-admin-leve-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/20-test-admin-leve-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/21-test-roteiro-curto-sem-falha-2210-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/22-test-roteiro-curto-undo-2210.log",
+    "docs/qa/compra-avulsa-2410/candidate/23-test-admin-truncamento-2026-10.log",
+    "docs/qa/compra-avulsa-2410/candidate/24-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/candidate/25-test-coerencia-kineo1-2026-09-16.log",
+    "docs/qa/compra-avulsa-2410/candidate/26-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/candidate/27-test-carta-da-recusa.log",
+    "docs/qa/compra-avulsa-2410/candidate/28-test-momentum-topic.log",
+    "docs/qa/compra-avulsa-2410/candidate/29-test-stalled-frescor-2026-09-05.log",
+    "docs/qa/compra-avulsa-2410/candidate/30-test-hot-nudge-janela-campanhas.log",
+    "docs/qa/compra-avulsa-2410/candidate/31-test-gpt-v31-facts-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/32-test-gpt-v31-facts-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/33-test-sharing-safety.log",
+    "docs/qa/compra-avulsa-2410/candidate/34-test-paid-video-citation-guidance-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/candidate/35-test-seedance-hero-plans-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/candidate/36-test-motores-geo-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/candidate/37-test-ads-aeo-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/38-test-five-improvements.log",
+    "docs/qa/compra-avulsa-2410/candidate/39-test-studio-entry-transition.log",
+    "docs/qa/compra-avulsa-2410/candidate/40-test-locale-readiness.log",
+    "docs/qa/compra-avulsa-2410/candidate/41-test-app-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/candidate/42-test-home-curation.log",
+    "docs/qa/compra-avulsa-2410/candidate/43-test-home-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/candidate/44-test-home-referral-bridge.log",
+    "docs/qa/compra-avulsa-2410/candidate/45-test-home-pricing-checkout.log",
+    "docs/qa/compra-avulsa-2410/candidate/46-test-showcase-premium.log",
+    "docs/qa/compra-avulsa-2410/candidate/47-test-cinematic-timeline-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/48-test-cinematic-speech-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/49-test-music-direction-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/50-test-visual-contract-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/51-test-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/52-test-quality-route-integration-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/53-test-quality-failure-ui-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/54-test-active-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/55-test-cinematic-terminal-proof-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/56-test-cinematic-poll-diagnostic-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/57-test-scene-retry-mutex-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/58-test-gpt-5h-a-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/59-test-gpt-5h-a-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/60-test-gpt-5h-b-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/61-test-gpt-5h-b-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/62-test-gpt-5h-c-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/63-test-gpt-5h-c-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/64-test-kit-bf-1910.log",
+    "docs/qa/compra-avulsa-2410/candidate/65-test-kit-bf-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/candidate/66-test-kids-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/candidate/67-test-stripe-async-checkout.log",
+    "docs/qa/compra-avulsa-2410/candidate/68-test-stripe-checkout-failure-truth.log",
+    "docs/qa/compra-avulsa-2410/candidate/69-test-verified-checkout-purchase.log",
+    "docs/qa/compra-avulsa-2410/candidate/70-test-checkout-success-entitlement.log",
+    "docs/qa/compra-avulsa-2410/candidate/71-test-checkout-currency-truth.log",
+    "docs/qa/compra-avulsa-2410/candidate/72-test-checkout-clareza-1610.log",
+    "docs/qa/compra-avulsa-2410/candidate/73-test-checkout-honesto-2026-10-07.log",
+    "docs/qa/compra-avulsa-2410/candidate/74-test-low-balance-pricing-bridge.log",
+    "docs/qa/compra-avulsa-2410/candidate/75-test-pricing-plan-choice-attribution.log",
+    "docs/qa/compra-avulsa-2410/candidate/76-test-pricing-diz-a-verdade-2026-09-27.log",
+    "docs/qa/compra-avulsa-2410/candidate/77-test-inline-pricing-decision-funnel.log",
+    "docs/qa/compra-avulsa-2410/candidate/COMPLETED.json",
+    "docs/qa/compra-avulsa-2410/candidate/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/candidate/results.json",
+    "docs/qa/compra-avulsa-2410/candidate/run-candidate.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory-results.json",
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory.log",
+    "docs/qa/compra-avulsa-2410/revalidation/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/revalidation/results.json",
+    "docs/qa/compra-avulsa-2410/revalidation/run-final-inventory.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/run-revalidation.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/revalidation/test-compra-avulsa-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/revalidation/test-idiomas-formatos-undo-2410.log"
+  ]
+}

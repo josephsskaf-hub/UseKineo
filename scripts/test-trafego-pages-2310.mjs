@@ -1,4 +1,5 @@
 // Offline regression guard. Does not load .env, contact services or generate files.
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -43,7 +44,7 @@ for (const [file, selector, page] of [
   assert(text.includes(`${selector} === '${page}' ? <CitationDirectAnswer page="${page}" />`), `${page}: no sibling answer changes`)
   assert(text.includes(`${selector} === '${page}' ? <CitationDetails page="${page}" /> : null`), `${page}: no sibling details mounts`)
 }
-for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts']) assert.equal(source(file), original(file), `${file}: prices and settlement unchanged`)
+for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts']) assert.equal(semCompraAvulsa2410(source(file), file), original(file), `${file}: prices and settlement unchanged`) // KINEO-COMPRA-AVULSA-2410
 assert(disclosure.includes('Customers in Brazil pay in reais (BRL) at checkout'))
 assert(!disclosure.includes('USD worldwide'))
 console.log(`PASS KINEO-TRAFEGO-2310 pages: ${results.length} rendered blocks, 40–60 words, 5 FAQs, date, metadata, prices, BRL and slug isolation`)

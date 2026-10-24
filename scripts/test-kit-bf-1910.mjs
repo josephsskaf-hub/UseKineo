@@ -14,6 +14,7 @@
 //   P  PREÇO INTOCADO: v2Tiers, v2Billing, v2Batch, v2BatchRules, v2StartCore, /start, sample, serverAccess byte a byte; a conta do total é N × adsV2Credits;
 //   D  desfaz exato + novos + marca + encadeamento + reâncoras;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,7 +33,7 @@ process.chdir(ROOT)
 const require = createRequire(import.meta.url)
 const MARCA = 'KINEO-KIT-BF-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(semHome3Cards1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória
+const disco = (p) => lf(semHome3Cards1910(semCompraAvulsa2410(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-COMPRA-AVULSA-2410 // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIT_BF_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0

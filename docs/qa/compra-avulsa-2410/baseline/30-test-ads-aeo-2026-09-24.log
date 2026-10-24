@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-ads-aeo-2026-09-24.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2262
+test-ads-aeo-2026-09-24: 41 ok · 0 falhas

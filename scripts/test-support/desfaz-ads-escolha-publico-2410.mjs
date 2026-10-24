@@ -1,4 +1,5 @@
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest leaf layer; restore exact sources before historical guards.
+import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
@@ -13,6 +14,7 @@ export const ADS_ESCOLHA_PUBLICO_FILES = Object.freeze(Object.keys(manifest.sour
 export const ADS_ESCOLHA_PUBLICO_NEW = Object.freeze(manifest.newFiles)
 export const ADS_ESCOLHA_PUBLICO_ARTIFACTS = Object.freeze(manifest.artifacts ?? [])
 export function semAdsEscolhaPublico2410(text, file) {
+  text = semCompraAvulsa2410(text, file) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.
   text = semIdiomasFormatos2410(text, file) // KINEO-IDIOMAS-FORMATOS-2410
   text = semTrafego2310(text, file) // KINEO-TRAFEGO-2310 — before every marker/hash/unknown-path early return; pure leaf, no older imports.
   const path = String(file ?? '').replace(/\\/g, '/'), known = manifest.sources[path]

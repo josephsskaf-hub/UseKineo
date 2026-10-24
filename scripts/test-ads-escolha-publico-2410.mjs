@@ -1,4 +1,5 @@
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — raw production controllers/builders, offline boundaries, mutants and exact undo.
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -382,7 +383,7 @@ async function undoProof() {
   assert.equal(Undo.ADS_ESCOLHA_PUBLICO_BASE, '07f1da96cdfdf69ade9e5514d0c4c524cb8b2294')
   assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {
-    const integrated = read(file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410
+    const integrated = semCompraAvulsa2410(read(file), file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-COMPRA-AVULSA-2410 — historical proof only; runtime stays raw.
     assert.equal(withoutLanguages, git('show', `${integrationMain}:${file}`), 'exact Idiomas removal preserves the published Traffic source: ' + file) // KINEO-IDIOMAS-FORMATOS-2410
     const mainSource = git('show', `${currentMain}:${file}`)
     assert.equal(hash(mainSource), item.afterHash, 'reviewed current main still matches the immutable Public2410 source manifest: ' + file)

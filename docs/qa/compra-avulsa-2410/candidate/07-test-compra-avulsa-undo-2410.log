@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-undo-2410.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 6168
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS compra avulsa undo: 27 exact sources; full task inventory; LF/CRLF/Windows; tamper rejected; base 7950e41134dd03388e67c131501d3e2bce61a3eb
