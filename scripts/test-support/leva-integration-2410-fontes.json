@@ -453,6 +453,7 @@
     "scripts/test-ads-amostra-undo-2410.mjs",
     "scripts/test-ads-cena-95-pacing-2110.mjs",
     "scripts/test-ads-escolha-publico-2410.mjs",
+    "scripts/test-ads-fiel-1510.mjs",
     "scripts/test-ads-formatos-escolha-2410.mjs",
     "scripts/test-ads-ia-faz-2026-09-26.mjs",
     "scripts/test-ads-packshot-1410.mjs",
@@ -512,6 +513,7 @@
     "scripts/test-paginas-ia-claras-2110.mjs",
     "scripts/test-paginas-ugc-2010.mjs",
     "scripts/test-paypal-canonical-catalog.mjs",
+    "scripts/test-paypal-idempotencia.mjs",
     "scripts/test-ph-kit-2026-09-09.mjs",
     "scripts/test-plan-film-language.mjs",
     "scripts/test-ponte-com-preco-2026-09-07.mjs",
@@ -1442,6 +1444,9 @@
     "scripts/test-ads-escolha-publico-2410.mjs": {
       "hash": "ef957689fe73f889f08c0aac3e93ab9a8dd4097a18327bfb11a5d74dc79f965b"
     },
+    "scripts/test-ads-fiel-1510.mjs": {
+      "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
+    },
     "scripts/test-ads-formatos-escolha-2410.mjs": {
       "hash": "3bc938654cca311b1746eb78fc6f8f93f91c5dffb88f43cc644fb305ab6f2c9c"
     },
@@ -1618,6 +1623,9 @@
     },
     "scripts/test-paypal-canonical-catalog.mjs": {
       "hash": "85d58c49024d660a1b6785b8868a81258c8c5faeb28876865ac2b32747d6aa14"
+    },
+    "scripts/test-paypal-idempotencia.mjs": {
+      "hash": "1c2f35b9e5ab003c057ca57f499e7456dc383f2c2b93d3e45a4318cc132943a8"
     },
     "scripts/test-ph-kit-2026-09-09.mjs": {
       "hash": "7acf4a977938c482c683eceda53695e54a49a9edc88a473ca95038e2c50cc4c0"
