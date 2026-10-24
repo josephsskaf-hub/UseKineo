@@ -28,8 +28,8 @@ for (const [k, t] of tomadas.entries()) {
   check(orig.length > 2500, `R2.${k} o caso real passa de 2500 (${orig.length})`)
   check(fit.length <= ESCOLHA_SHOT_PROMPT_MAX, `R3.${k} ajustado cabe (${fit.length})`)
   check(fit.endsWith(t), `R4.${k} a parte da tomada (Absolute…) fica inteira no fim`)
-  check(fit.startsWith("Use the customer's CHOSEN still"), `R5.${k} a 1ª frase (foto escolhida) fica`)
-  check(/COMPOSITION LOCK|Exactly one adult/.test(fit), `R6.${k} regras centrais seguem presentes`)
+  check(fit.length <= 500, `R5.${k} cabe em 500 caracteres`)
+  check(/SILENT scene|closed relaxed lips/.test(fit), `R6.${k} a regra de boca fechada da tomada segue presente`)
 }
 const curto = 'Short prompt. Absolute0–5s: wide.'
 check(escolhaShotPromptFit(curto) === curto, 'R7 prompt curto volta intocado')

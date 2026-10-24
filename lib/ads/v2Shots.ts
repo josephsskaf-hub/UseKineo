@@ -109,6 +109,7 @@ export async function pollFalJob(model: string, requestId: string, pick: 'video'
         if (pollMessageSignal(finished.error) === 'explicit_exhausted_balance') {
           await alertFalExhausted({ source: 'ads', engine: model, userId: ctx.userId, generationId: ctx.orderId, countRow: false })
         }
+        console.warn('[fal] job failed', model, requestId, String(finished.error).slice(0, 500)) // KINEO-ADS-RENDER-FIX-2310 — o motivo da fal passa a aparecer nos logs
         return { state: 'failed', url: null }
       }
       if (!idMatches) return { state: 'processing', url: null }
@@ -125,7 +126,7 @@ export async function pollFalJob(model: string, requestId: string, pick: 'video'
       const urls = pick === 'image' && Array.isArray(data?.images) ? data.images.map((im) => im?.url).filter((u): u is string => typeof u === 'string' && /^https:\/\//i.test(u)) : [] // KINEO-APRESENTADOR-V2-1710 — as 4 opções do apresentador (a 1ª continua sendo `url`)
       return typeof url === 'string' && /^https:\/\//i.test(url) ? { state: 'done', url, ...(pick === 'image' ? { urls } : {}) } : { state: 'processing', url: null } // KINEO-APRESENTADOR-V2-1710 — + urls na imagem
     }
-    if (status === 'FAILED' && idMatches) return { state: 'failed', url: null }
+    if (status === 'FAILED' && idMatches) { console.warn('[fal] job FAILED', model, requestId, JSON.stringify(st).slice(0, 500)); return { state: 'failed', url: null } } // KINEO-ADS-RENDER-FIX-2310
     return { state: 'processing', url: null }
   } catch (error) {
     const body = (error as { body?: { detail?: unknown } } | null)?.body
@@ -134,7 +135,7 @@ export async function pollFalJob(model: string, requestId: string, pick: 'video'
     }
     const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : null
     // Só um job COMPLETED com a identidade confirmada fecha por 400/422 no result. O resto é dúvida de consulta.
-    if (stage === 'result' && idMatches && (status === 422 || status === 400)) return { state: 'failed', url: null }
+    if (stage === 'result' && idMatches && (status === 422 || status === 400)) { console.warn('[fal] result rejected', model, requestId, status, JSON.stringify(body?.detail ?? null).slice(0, 500)); return { state: 'failed', url: null } } // KINEO-ADS-RENDER-FIX-2310
     return { state: 'processing', url: null }
   }
 }
