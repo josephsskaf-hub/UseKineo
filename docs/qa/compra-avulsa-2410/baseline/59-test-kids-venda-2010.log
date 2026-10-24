@@ -1,0 +1,101 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-kids-venda-2010.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 44238
+D — desfaz / novos / marca
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/(dashboard)/kids-cartoon/page.tsx
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/compose/status/[renderId]/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/cron/autopilot-generate/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/cron/finish-stranded-renders/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/generate-video-cinematic/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/stripe/checkout/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/api/stripe/webhook/route.ts
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): app/pricing/PricingClient.tsx
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): components/kidsCartoon/KidsCartoonPages.tsx
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-mcp-studio-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-meta95-personagem-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-saida-regiao-2026-10-07.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-support/desfaz-bebe-que-fala-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-trilha-15s-1610.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-ads-cena-2110.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-ads-cena-ajuste-2110.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-cena-negacao-1510.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-contrato-classicos-1410.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-veo-marcado-2026-09-29.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-veo-modo-ia-2026-09-29.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-home-cards-claros-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-meta95-personagem-ajuste-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-verbatim-intocavel-2010.mjs
+  ok  D1 desfaz exato = origin/main 72d23210c (sem páginas claras, sem95 e sem venda): scripts/test-mcp-studio-ajuste-2010.mjs
+  ok  D2 os arquivos novos existem e não estavam na base
+  ok  D3 todo arquivo novo carrega a marca
+  ok  D4 trocas só em arquivos declarados
+  ok  D5 contagem de linhas marcadas = acréscimos + trocas
+  ok  D6 idempotente fora da lista e sem marca
+  ok  D7 encadeado: a cabeça (semMenuUgc2010 → semBebeQueFala2010) tira esta camada primeiro
+P / S / C / Q / A / I / R / N — no disco
+  ok  P1_precos
+  ok  P2_pack_valor_servidor
+  ok  P3_piloto_assinatura_inline
+  ok  P4_brl_formula
+  ok  P5_margem_positiva_pior_caso
+  ok  P6_um_piloto_por_conta
+  ok  P7_tema_fere_regra_infantil
+  ok  S1_ligado_no_disco
+  ok  S0_checkout_publico_ligado
+  ok  S2_checkout_recusa_fora_da_casa
+  ok  S3_cartoes_somem
+  ok  C1_posicoes
+  ok  C2_ciclo_30_dias_da_assinatura
+  ok  C3_um_por_dia_e_recuperacao
+  ok  C4_teto_de_credito
+  ok  C5_renovacao_zera_e_e_idempotente
+  ok  Q1_fila
+  ok  Q2_run_nasce_antes_do_gasto
+  ok  Q3_pausa_da_fal
+  ok  Q4_estorno_tira_de_volta
+  ok  Q6_email_so_do_cron
+  ok  Q5_no_cron_do_autopilot
+  ok  A1_amostra
+  ok  I1_pack_guard_antes_pedido_antes_do_valor
+  ok  I2_piloto_antes_do_path_b
+  ok  I3_intercepcoes_antes_do_plano
+  ok  I4_duplicata_retoma
+  ok  I5_pack_pedido_unico_sem_credito
+  ok  I6_piloto_ciclo_da_assinatura_e_dono
+  ok  I7_falha_do_banco_vira_retentativa
+  ok  R1_admissao_antes_do_gate
+  ok  R2_admissao_executada
+  ok  N1_telas
+  ok  N2_16_linguas_sem_renda
+M — mutantes
+  ok  M1 piloto 2900→2500 → P1_precos VERMELHO
+  ok  M2 pack 4900→3900 → P1_precos VERMELHO
+  ok  M3 valor vindo da URL → P2_pack_valor_servidor VERMELHO
+  ok  M4 piloto sem recurring → P3_piloto_assinatura_inline VERMELHO
+  ok  M5 venda desligada sem autorização → S1_ligado_no_disco VERMELHO
+  ok  M26 template desligado fecha a venda pública → S1_ligado_no_disco VERMELHO
+  ok  M6 checkout ignora o interruptor → S2_checkout_recusa_fora_da_casa VERMELHO
+  ok  M7 35 s (prejuízo) → P5_margem_positiva_pior_caso VERMELHO
+  ok  M8 2º piloto passa → P6_um_piloto_por_conta VERMELHO
+  ok  M9 posição além do total → C1_posicoes VERMELHO
+  ok  M10 ciclo de 31 dias → C2_ciclo_30_dias_da_assinatura VERMELHO
+  ok  M11 renovação repete → C5_renovacao_zera_e_e_idempotente VERMELHO
+  ok  M12 pack 30 de uma vez → Q1_fila VERMELHO
+  ok  M13 amostra sem teto → A1_amostra VERMELHO
+  ok  M14 2ª amostra passa → A1_amostra VERMELHO
+  ok  M15 pack concede crédito → I5_pack_pedido_unico_sem_credito VERMELHO
+  ok  M16 dono errado passa → I6_piloto_ciclo_da_assinatura_e_dono VERMELHO
+  ok  M17 falha do banco engolida → I7_falha_do_banco_vira_retentativa VERMELHO
+  ok  M18 admissão sem checar o dono → R2_admissao_executada VERMELHO
+  ok  M19 admissão com run já despachada → R2_admissao_executada VERMELHO
+  ok  M20 estorno não tira de volta → Q4_estorno_tira_de_volta VERMELHO
+  ok  M21 webhook: pedido antes do guard → I1_pack_guard_antes_pedido_antes_do_valor VERMELHO
+  ok  M22 rota: admissão fora de currentPaid → R1_admissao_antes_do_gate VERMELHO
+  ok  M24 e-mail genérico da rota de status sai para o episódio → Q6_email_so_do_cron VERMELHO
+  ok  M25 e-mail de resgate da casa sai para o episódio → Q6_email_so_do_cron VERMELHO
+  ok  M23 preço na URL do cartão → N1_telas VERMELHO
+
+92 ok, 0 falha(s)

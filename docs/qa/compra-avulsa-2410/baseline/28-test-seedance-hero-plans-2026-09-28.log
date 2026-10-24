@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-seedance-hero-plans-2026-09-28.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1295
+PASS: 6 actual engine pages; Seedance hero-only hierarchy, exact signup intent and two existing click events

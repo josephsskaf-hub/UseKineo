@@ -117,10 +117,10 @@ await viewDedupe()
 await viewDedupe({ pending: true })
 
 const adsForm = { foto: '', frase: 'Produto', oferta: '', beneficios: '', cta: '', language: 'pt', formato: 'product', voice_mode: 'narrated', rota: '', presenter_id: '', category: '', scenario_id: '' }
-async function adsCreditFailure(code, stage) {
+async function adsCreditFailure(code, stage, sources = {}) {
   const stills = stage === 'choose' ? [{ id: 'still-1', url: 'https://offline.invalid/still.jpg' }] : []
   const orderId = '00000000-0000-4000-8000-000000000001'
-  const e = environment({ state: { 0: adsForm, 1: stage, 2: orderId, 3: stills, 4: 'still-1', 7: 41, 11: true }, fetcher: async () => ({ status: 402, ok: false, json: async () => ({ error: code }) }) })
+  const e = environment({ sources, state: { 0: adsForm, 1: stage, 2: orderId, 3: stills, 4: 'still-1', 7: 41, 11: true }, fetcher: async () => ({ status: 402, ok: false, json: async () => ({ error: code, ...(stage === 'choose' ? { stage: 'chosen', selected_still_id: 'still-1' } : {}) }) }) })
   const props = { lang: 'pt', ownerKey: 'offline', resume: false, balance: 0, onBalance: async () => {} }
   const tree = e.expand(React.createElement(e.load(adsFile).default, props))
   const button = e.all(tree, n => n.type === 'button' && e.text(n).includes(stage === 'choose' ? 'Gerar vídeo com esta foto' : 'Preparar quatro fotos'))[0]
@@ -132,6 +132,7 @@ async function adsCreditFailure(code, stage) {
   equal(e.states[4], 'still-1', 'insufficient credit preserves the selected still')
   equal(e.states[9], '', 'insufficient credit does not add a red error')
   equal(e.states[19], true, 'server credit refusal opens the neutral one-off choice')
+  if (stage === 'choose') equal(e.states[18], true, 'the server-selected photo remains locked across payment')
 }
 await adsCreditFailure('insufficient_credits', 'choose')
 await adsCreditFailure('cena_photo_credits_required', 'planned')
@@ -190,6 +191,8 @@ for (const state of ['confirming', 'pending', 'auth', 'unavailable']) {
 let killed = 0
 async function kills(name, task) { try { await task() } catch (error) { if (error instanceof assert.AssertionError) { killed++; return } throw error } throw new Error(`Surviving mutant: ${name}`) }
 const offerSource = fs.readFileSync(path.join(root, offerFile), 'utf8'), confirmSource = fs.readFileSync(path.join(root, confirmationFile), 'utf8')
+const adsSource = fs.readFileSync(path.join(root, adsFile), 'utf8')
+await kills('payment offer bypasses server-selected photo lock', () => adsCreditFailure('out_of_credits', 'choose', { [adsFile]: adsSource.replace("if (action === 'render') absorb(data); setCreditBlocked(true)", 'setCreditBlocked(true)') }))
 await kills('displayed price drifts from canonical source', () => offerContract({ [offerFile]: offerSource.replace('label = oneTimeItemPriceLabel(sku)', "label = 'WRONG_PRICE'") }))
 await kills('rejected view closes dedupe', () => viewDedupe({ sources: { [offerFile]: offerSource.replace('if (!accepted) return', 'if (false) return') } }))
 await kills('Strict remount inflates pending view', () => viewDedupe({ pending: true, sources: { [offerFile]: offerSource.replace('viewed.has(key) || pendingViews.has(key)', 'viewed.has(key)') } }))

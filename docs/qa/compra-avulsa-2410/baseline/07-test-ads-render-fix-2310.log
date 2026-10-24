@@ -1,0 +1,38 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-ads-render-fix-2310.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 342
+  ok  R0 o arquivo declara o teto e a função de ajuste
+  ok  R1 teto abaixo do maxLength 2500 da fal
+  ok  R2.0 o caso real passa de 2500 (2642)
+  ok  R3.0 ajustado cabe (490)
+  ok  R4.0 a parte da tomada (Absolute…) fica inteira no fim
+  ok  R5.0 cabe em 500 caracteres
+  ok  R6.0 a regra de boca fechada da tomada segue presente
+  ok  R2.1 o caso real passa de 2500 (2657)
+  ok  R3.1 ajustado cabe (463)
+  ok  R4.1 a parte da tomada (Absolute…) fica inteira no fim
+  ok  R5.1 cabe em 500 caracteres
+  ok  R6.1 a regra de boca fechada da tomada segue presente
+  ok  R2.2 o caso real passa de 2500 (2819)
+  ok  R3.2 ajustado cabe (500)
+  ok  R4.2 a parte da tomada (Absolute…) fica inteira no fim
+  ok  R5.2 cabe em 500 caracteres
+  ok  R6.2 a regra de boca fechada da tomada segue presente
+  ok  R7 prompt curto volta intocado
+  ok  M1 sem o ajuste, o caso real estoura o teto (o guardião reprovaria)
+  ok  R8 as tomadas do Kling3 passam pelo ajuste antes do multi_prompt
+  ok  S1 música aceita (pending) espera até 8 min
+  ok  S2 o corte de 45 s não vale mais para música já aceita
+  ok  S3 pending só desiste depois de ESCOLHA_MUSIC_PENDING_MS
+  ok  S4 no tênis a tomada do meio é a pessoa correndo
+  ok  S5 o close proíbe marca/texto inventado no produto
+  ok  S6 a foto pede imagem única e não carrega o texto das 3 tomadas
+  ok  S7 creme abre com o tap das unhas na tampa
+  ok  S8 o pote é aberto antes de aparecer creme
+  ok  S9 aplica no rosto uma vez só (sem repetição)
+  ok  S10 narrado pede só som ambiente, fala proibida
+  ok  S11 Kling gera o som ambiente no narrado
+  ok  S12 som ambiente entra a 35% sob a narração
+
+32 ok, 0 falha(s)

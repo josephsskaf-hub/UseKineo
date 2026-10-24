@@ -1,0 +1,45 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-motores-geo-2026-10-06.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 61239
+TESTE motores-geo — páginas de motor citáveis (06/10)
+  ok  (1–7) preço da fonte, comparação direta, motor pausado fora do índice, robots, sitemap, llms.txt, CTA com campanha, mentiras corrigidas
+  ok  as 11 edições da página que os guardiões de trava descontam existem (scripts/test-support/motores-geo-2026-10-06.mjs)
+  ok  hoje: Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3 e MiniMax H3 indexáveis com camada citável; Omni (pausado) e Kineo 1 (aposentado) fora [seedance,kling,veo,kling-3,minimax-h3,minimax-h3-max,seedance-2-5]
+  ok  (8) ping usa a chave da casa: public/<chave>.txt na raiz do site, a mesma de lib/indexnow.ts
+  ok  (8) ping escolhe pelo lastmod desta revisão (espelho de ENGINE_GEO_REVIEWED_ISO)
+  ok  (8) ping é ensaio por padrão: só envia com --submit, depois de conferir a chave no ar
+  ok  (8) ping offline escolhe EXATAMENTE as 3 URLs desta revisão que a rodada 3 não re-datou (hub e 2 comparações) — nada de motor pausado nem de página de outra sessão [veio 3]
+  ok  C1 preço do Creator muda na fonte → a página acompanha (US$ derivado) → verde
+  ok  C2 pausar o Veo no interruptor → a página dele sai do índice sozinha → verde
+  ok  C3 clipe do 2.5 LIGADO → página, tabela, FAQ e llms.txt com o clipe pago (preço da fonte, "paid plans") → verde
+  ok  C4 clipe do 2.5 DESLIGADO → nenhum clipe do 2.5 nas páginas nem no llms.txt → verde
+  ok  M1 preço do clipe digitado → vermelho pelo motivo certo (veo: preço do clipe na 1ª frase ≠ fonte (8 cr, $1.06)…)
+  ok  M2 preço do filme de 60 s digitado → vermelho pelo motivo certo (kling: preço do filme de 60 s na 1ª frase ≠ fonte (75 cr)…)
+  ok  M3 preço do plano digitado (com a fonte mudando) → vermelho pelo motivo certo (seedance: preço do clipe na 1ª frase ≠ fonte (5 cr, $1.06)…)
+  ok  M4 motor pausado ganha página citável (com o Veo pausado) → vermelho pelo motivo certo (INDEXABLE_ENGINE_SLUGS ≠ régua do interruptor: seedance,kling,veo,kling-3,minimax-h3,minimax-h3-max,seedance-2…)
+  ok  M5 sitemap ignora a pausa (com o Veo pausado) → vermelho pelo motivo certo (sitemap: motor pausado veo no mapa…)
+  ok  M6 layout não põe noindex (com o Veo pausado) → vermelho pelo motivo certo (veo: layout indexável ≠ régua (fora=true)…)
+  ok  M7 robots sem o Bingbot → vermelho pelo motivo certo (robots: Bingbot sem grupo explícito…)
+  ok  M8 robots sem o OAI-SearchBot → vermelho pelo motivo certo (robots: OAI-SearchBot sem grupo explícito…)
+  ok  M9 robots bloqueia as páginas de motor → vermelho pelo motivo certo (robots: OAI-SearchBot bloqueado nas páginas de motor…)
+  ok  M10 llms.txt sem a seção de onde usar → vermelho pelo motivo certo (llms.txt: sem a seção "Where to use each video engine online"…)
+  ok  M11 CTA do card sem cadastro (vai direto ao Studio) → vermelho pelo motivo certo (seedance: CTA do card ≠ cadastro com a campanha (/studio?engine=seedance&intent_campaign=seo_engine_seedance)…)
+  ok  M12 campanha errada nos CTAs → vermelho pelo motivo certo (seedance: CTA do card ≠ cadastro com a campanha (/signup?intent_campaign=seo_engine&redirect=%2Fstudio%3Fengin…)
+  ok  M13 resposta deixa de ser a 1ª frase depois do H1 → vermelho pelo motivo certo (seedance: o primeiro parágrafo depois do H1 não é a resposta citável…)
+  ok  M14 volta o "3–7 minutes" → vermelho pelo motivo certo (seedance: ainda promete 3–7 minutes…)
+  ok  M15 volta o "unlocked on every account" → vermelho pelo motivo certo (seedance: ainda diz "unlocked on every account"…)
+  ok  M16 sitemap re-data com a data antiga → vermelho pelo motivo certo (sitemap: /ai-video-generator sem o lastmod da revisão…)
+  ok  M17 preço direto inventado (Runway com crédito/s digitado) → vermelho pelo motivo certo (kling: Runway (Standard plan) ≈ 120 ≠ cotação oficial 180…)
+  ok  M18 Veo volta a dizer "native audio" → vermelho pelo motivo certo (kineoFacts: Veo ainda diz "native audio" (a casa desliga o áudio do modelo)…)
+  ok  M19 tier volta a ser digitado (Kling 3 = Studio) → vermelho pelo motivo certo (kling-3: tier "Studio" ≠ menor plano que paga 60 s (Creator)…)
+  ok  M20 frase da marca some do CTA → vermelho pelo motivo certo (seedance: frase da marca não está logo abaixo do CTA…)
+  ok  M21 espelho do país desligado (trial volta a valer "para todos" nas traduzidas) → vermelho pelo motivo certo (enginePageLangs: espelho do país (false) ≠ GRANT_COUNTRY_CLAUSE (true)…)
+  ok  M22 tradução volta a prometer 3–7 minutos → vermelho pelo motivo certo (de: tempo de entrega ainda é 3–7 min…)
+  ok  M23 a frase "clips from … (paid plans)" some (clipe do 2.5 ligado) → vermelho pelo motivo certo (seedance-2-5: frase "clips from … (paid plans)" ausente…)
+  ok  M24 a camada citável vende o clipe do 2.5 com o interruptor desligado → vermelho pelo motivo certo (seedance-2-5: tabela com linha de clipe que não se vende…)
+  ok  M25 o 2.5 volta a comparar com a Runway Standard → vermelho pelo motivo certo ((mutante lançou: Error: engineCitation: Runway Standard não lista seedance-2.5 na página oficial (runway-s25-s…)
+  ok  M26 sem a trava do quote() e com a Runway Standard no 2.5 → vermelho pelo motivo certo (seedance-2-5: cita Runway (Standard plan), plano que a página oficial não lista com o modelo…)
+  ok  M27 a listagem oficial passa a incluir o Standard → vermelho pelo motivo certo (seedance-2-5: Runway (Standard plan) ≈ 240 ≠ cotação oficial 156…)
+
+  RESULTADO: 38 ok · 0 falha(s)

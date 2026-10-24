@@ -24,6 +24,15 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-COMPRA-AVULSA-2410 — real checkout/webhook/SQL, offline mutants and exact undo.
+      - name: Compra avulsa — pagamento único, concessão atômica e desfaz # KINEO-COMPRA-AVULSA-2410
+        run: | # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410
       # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.
       - name: Idiomas e formatos — voz, escrita, tomadas e desfaz
         run: |

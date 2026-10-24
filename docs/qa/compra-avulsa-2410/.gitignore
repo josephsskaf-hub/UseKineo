@@ -1,0 +1,2 @@
+# Evidence logs from the offline guards; no env files are read or copied.
+!*.log

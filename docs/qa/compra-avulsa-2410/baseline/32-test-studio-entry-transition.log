@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-studio-entry-transition.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 667
+Studio entry: 53 regression checks passed; no network or generation.

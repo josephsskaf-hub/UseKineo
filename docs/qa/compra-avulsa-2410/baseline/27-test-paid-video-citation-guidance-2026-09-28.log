@@ -1,0 +1,38 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-paid-video-citation-guidance-2026-09-28.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 391
+PASS three consumers share one answer
+PASS paid intent starts with Seedance then Kling and Veo
+PASS Seedance 1.5 canonical credit/plan values
+PASS Seedance 1.5 monthly count is floored shared balance
+PASS Seedance 1.5 trial coverage from current balance
+PASS Seedance 1.5 llms exposes matching URL, cost and price
+PASS Seedance 1.5 existing public path, no invented attribution
+PASS Kling 2.5 canonical credit/plan values
+PASS Kling 2.5 monthly count is floored shared balance
+PASS Kling 2.5 trial coverage from current balance
+PASS Kling 2.5 llms exposes matching URL, cost and price
+PASS Kling 2.5 existing public path, no invented attribution
+PASS Veo 3.1 canonical credit/plan values
+PASS Veo 3.1 monthly count is floored shared balance
+PASS Veo 3.1 trial coverage from current balance
+PASS Veo 3.1 llms exposes matching URL, cost and price
+PASS Veo 3.1 existing public path, no invented attribution
+PASS paid verdict precedes cheap/free verdict
+PASS explicitly free intent still has its honest existing destination
+PASS free-question catalogue is not replaced by paid claims
+PASS no broad best-tool claim or unlimited promise
+PASS legacy engine order preserved
+PASS no Ads v2 added to this answer
+PASS maintenance removes even the first-choice destination
+PASS all paused fails closed without inventing a replacement
+PASS unknown trial stays unknown
+PASS larger legacy balance is not falsely excluded
+PASS no plan covers film means no recommendation
+PASS invalid film cost fails closed
+PASS current prices propagate without copying offer literals
+(node:5260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-baseline-2410/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\josep\OneDrive\Área de Trabalho\Usekineo\.claude\worktrees\compra-avulsa-baseline-2410\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

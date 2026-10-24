@@ -20,6 +20,7 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'one_time_item_purchased', // KINEO-COMPRA-AVULSA-2410 — only the atomic paid receipt may record a purchase.
   // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.
   'ads_escolha_plan',
   'ads_escolha_stills_ready',

@@ -69,7 +69,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
-          : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
+          : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id === '@/components/OneTimeItemOffer' ? id + '.tsx' : id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
           : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
@@ -80,10 +80,10 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       assert.ok(response, 'unexpected unstubbed UI transport')
       return { ok: response[0] >= 200 && response[0] < 300, status: response[0], json: async () => response[1] }
     }
-    const module = { exports: {} }
+    const module = { exports: {} }, browserEvents = new EventTarget() // KINEO-COMPRA-AVULSA-2410 — real event target at the browser boundary for focus cleanup.
     new Function('require', 'module', 'exports', 'fetch', 'localStorage', 'window', componentCode)(localRequire, module, module.exports, transport,
       { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
-      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) })
+      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, addEventListener: browserEvents.addEventListener.bind(browserEvents), removeEventListener: browserEvents.removeEventListener.bind(browserEvents), setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) }) // KINEO-COMPRA-AVULSA-2410 — current raw UI also listens when checkout returns in another tab.
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []

@@ -1,0 +1,48 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant
+EXPECTED: reject
+EXIT: 1
+ELAPSED_MS: 266
+FAIL trial copy separates balance from access in same statement
+PASS access entitlement preserved rather than falsely disabling engines
+PASS current balance covers no 60-second reference film, and the 15-second Seedance film instead
+PASS recurring free access is not announced (module and facts payload)
+PASS legacy helper caller explicitly exposes unknown/no cap as null
+PASS invalid recurring duration is rejected
+PASS not-a-fit copy names the free 15-second film as the only advertised free film
+PASS start route explains new grant and preserves existing account balances
+PASS Omni (fora da oferta) is not advertised at all
+PASS llms includes source-derived recurring seconds and no stale Omni badge
+PASS schema stops promising Starter covers every engine
+PASS schema preserves legacy engine id without recommending paused Omni
+PASS classic 35s schema budget present
+PASS fast 35s budget accepted by real estimator
+PASS seedance 35s budget accepted by real estimator
+PASS kling 35s budget accepted by real estimator
+PASS veo 35s budget accepted by real estimator
+PASS classic 60s schema budget present
+PASS fast 60s budget accepted by real estimator
+PASS seedance 60s budget accepted by real estimator
+PASS kling 60s budget accepted by real estimator
+PASS veo 60s budget accepted by real estimator
+PASS classic 90s schema budget present
+PASS fast 90s budget accepted by real estimator
+PASS seedance 90s budget accepted by real estimator
+PASS kling 90s budget accepted by real estimator
+PASS veo 90s budget accepted by real estimator
+PASS hollywood 35s schema budget present
+PASS hollywood 35s budget accepted by real estimator
+PASS h3 35s budget accepted by real estimator
+PASS omni 35s budget accepted by real estimator
+PASS hollywood 60s schema budget present
+PASS hollywood 60s budget accepted by real estimator
+PASS h3 60s budget accepted by real estimator
+PASS omni 60s budget accepted by real estimator
+PASS hollywood 90s schema budget present
+PASS hollywood 90s budget accepted by real estimator
+PASS h3 90s budget accepted by real estimator
+PASS omni 90s budget accepted by real estimator
+PASS only approved handoff POST and facts GET exist
+(node:9756) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-baseline-2410/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\josep\OneDrive\Área de Trabalho\Usekineo\.claude\worktrees\compra-avulsa-baseline-2410\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -124,7 +124,7 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
       const r = await fetch('/api/ads/v2/cena', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: c.signal }), data = await r.json().catch(() => ({})) as Record<string, unknown>
       if (!alive.current) return
       if (denied(r.status)) return
-      if (!r.ok && ONE_TIME_ITEMS_LIVE && ['insufficient_credits', 'out_of_credits', 'cena_photo_credits_required'].includes(String(data.error ?? data.reason))) { setCreditBlocked(true); setStage(priorStage); setError(''); void onBalance?.().catch(() => {}); return } // KINEO-COMPRA-AVULSA-2410 — neutral purchase choice; keep the existing order and stills.
+      if (!r.ok && ONE_TIME_ITEMS_LIVE && ['insufficient_credits', 'out_of_credits', 'cena_photo_credits_required'].includes(String(data.error ?? data.reason))) { if (action === 'render') absorb(data); setCreditBlocked(true); setStage(priorStage); setError(''); void onBalance?.().catch(() => {}); return } // KINEO-COMPRA-AVULSA-2410 — absorb the authoritative selected-photo lock before offering payment; preserve order and stills.
       if (!r.ok) { if (action === 'render') absorb(data); throw new StepError(failureMessage(data), r.status) }
       if (regenerate) setStillId('')
       absorb(data)
