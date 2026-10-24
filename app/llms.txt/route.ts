@@ -377,11 +377,7 @@ Machine-readable version of this file: ${BASE}/api/facts (JSON)
 
 Kineo is a ${PRODUCT.category.toLowerCase()}.
 
-${trafego2310FilmIntro(BASE, creditCostForDuration('cinematic_ai', true, 15), creditCostForDuration('cinematic_ai', true, 60))}## Videos from an idea or a script
-
-For from-scratch video generation, start with a topic or paste your own script to be narrated word for word. Kineo creates the scenes, voice, captions and music in a finished ${PRODUCT.outputFormat}. This does not clip an uploaded long recording. Engine language support varies; the detailed guide below lists the available languages.
-
-## Does Kineo make videos and ads for businesses?
+${trafego2310FilmIntro(BASE, creditCostForDuration('cinematic_ai', true, 15), creditCostForDuration('cinematic_ai', true, 60))}## Does Kineo make videos and ads for businesses?
 
 Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
 ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path${BUSINESS_PITCH.firstAdFree ? '; free and trial accounts can make their first ad free (one per account, within a daily limit)' : ''}.\n` : ''}- [Business plan](${BUSINESS_PITCH.pageUrl}): ${BUSINESS_PITCH.sentence}
@@ -390,7 +386,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
 ${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday; com o Studio Ads desligado, nada (as páginas vendem anúncio). */ STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) : ''}
-${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${trafego2310CartoonOffer(BASE, KIDS_CARTOON_PAGES_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? { monthly: formatCheckoutMoney('usd', KIDS_PRICES.autopilot.usdMinor), pack: formatCheckoutMoney('usd', KIDS_PRICES.pack.usdMinor), videos: KIDS_VIDEOS.autopilot, seconds: KIDS_VENDA_DURATION } : null)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Film input, output and language support
+${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${trafego2310CartoonOffer(BASE, KIDS_CARTOON_PAGES_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? { monthly: formatCheckoutMoney('usd', KIDS_PRICES.autopilot.usdMinor), pack: formatCheckoutMoney('usd', KIDS_PRICES.pack.usdMinor), videos: KIDS_VIDEOS.autopilot, seconds: KIDS_VENDA_DURATION } : null)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a
 topic, or paste your own script and ask for it to be narrated word for word.

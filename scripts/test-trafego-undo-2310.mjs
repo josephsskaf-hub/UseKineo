@@ -23,9 +23,7 @@ for (const [file, hunks] of Object.entries(TRAFEGO_2310_HUNKS)) {
 }
 for (const file of TRAFEGO_2310_NEW_PRODUCT_FILES) {
   check(fs.existsSync(file), file + ': new file present')
-  let existed = true
-  try { git('cat-file', '-e', `${TRAFEGO_2310_BASE}:${file}`) } catch { existed = false }
-  check(!existed, file + ': absent in base')
+  check(git('ls-tree', '--name-only', TRAFEGO_2310_BASE, '--', file).trim() === '', file + ': absent in base')
 }
 for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'vercel.json', 'app/robots.ts']) {
   check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${TRAFEGO_2310_BASE}:${file}`)), file + ': protected source untouched')
