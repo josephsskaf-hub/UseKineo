@@ -9,6 +9,7 @@ import { isEscolhaSamplePlan } from './escolhaSamplePolicy'
 import { fullEscolhaPlan } from './escolhaPlan'
 import { newCenaState } from './pipeline'
 import { adsV2Credits } from '../v2Tiers'
+import { adsV2BillingRef, confirmAdsV2Debit } from '../v2Billing'
 import { v2Fail, v2Json } from '../v2Server'
 import { hasEscolhaSampleReservation, markEscolhaSampleUpsell } from './escolhaSampleServer'
 
@@ -21,11 +22,27 @@ export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderR
   const args = { orderId: order.id, actorId: user.id, ownerId: user.id }
   if (!await hasEscolhaSampleReservation(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
   if (!await markEscolhaSampleUpsell(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
-  const id = escolhaUpgradeId(order.id)
-  const found = await d.admin.from('ads_v2_orders').select('*').eq('id', id).eq('user_id', user.id).maybeSingle()
+  const needed = adsV2Credits('commercial', 15)
+  let id = escolhaUpgradeId(order.id)
+  const readAttempt = () => d.admin.from('ads_v2_orders').select('*').eq('id', id).eq('user_id', user.id).maybeSingle()
+  let found = await readAttempt()
+  // Failed paid attempts stay immutable. Follow at most eight refunded links (nine attempt reads),
+  // then fail closed; a damaged/long history cannot create an unbounded request or new charge.
+  for (let depth = 0; !found.error && found.data && ['failed', 'cancelled'].includes(found.data.status); depth++) {
+    const previous = found.data
+    if (depth >= 8 || previous.plan?.escolhaSampleSource !== order.id || previous.video_id || !previous.generation_id || !previous.billing_ref || Number(previous.credits_charged) !== needed) return v2Fail('ads_sample_retry_unavailable', 503)
+    try {
+      if (previous.billing_ref !== adsV2BillingRef(previous.id, previous.generation_id)) return v2Fail('ads_sample_retry_unavailable', 503)
+      const debit = await confirmAdsV2Debit(d.admin, { userId: user.id, billingRef: previous.billing_ref, cost: needed })
+      if (!debit.ok || !debit.refunded) return v2Fail('ads_sample_retry_unavailable', 503)
+    } catch { return v2Fail('ads_sample_retry_unavailable', 503) }
+    // Every concurrent click derives the same successor from the same settled generation.
+    id = escolhaUpgradeId(`retry:${previous.id}:${previous.generation_id}:${previous.billing_ref}`)
+    found = await readAttempt()
+  }
   if (found.error) return v2Fail('cena_order_failed', 503)
   if (found.data && ['generating', 'assembling', 'delivered'].includes(found.data.status)) return v2Json({ order_id: id, status: found.data.status, sample: false, status_url: `/api/ads/v2/status?order_id=${id}` }, 202)
-  const needed = adsV2Credits('commercial', 15)
+  if (found.data && !['draft', 'planned'].includes(found.data.status)) return v2Fail('ads_sample_retry_unavailable', 503)
   const profile = await d.admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
   if (profile.error || !profile.data) return v2Fail('credits_unavailable', 503)
   const balance = Number(profile.data.video_credits)
@@ -43,5 +60,10 @@ export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderR
     if (ins.error && ins.error.code !== '23505') return v2Fail('cena_order_failed', 503)
   }
   const response = await d.start(id), body = await response.json()
+  if (response.status === 409) {
+    // The other tab may have won the existing atomic start claim after our read/insert.
+    const raced = await readAttempt()
+    if (!raced.error && raced.data && ['generating', 'assembling', 'delivered'].includes(raced.data.status)) return v2Json({ order_id: id, status: raced.data.status, sample: false, status_url: `/api/ads/v2/status?order_id=${id}` }, 202)
+  }
   return v2Json({ ...body, sample: false, seconds: 15 }, response.status)
 }
