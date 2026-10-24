@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { semAdsCenaRespaldo2110 } from './test-support/desfaz-ads-cena-respaldo-2110.mjs' // KINEO-ADS-CENA-RESPALDO-2110
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
@@ -11,7 +12,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 const BASE='796333e9a07ee0c83bb414312a062b63f8fc32bb', MARK='KINEO-ADS-CENA-RETOMADA-2110'
 const F={route:'app/api/admin/ads-cena/route.ts',internal:'lib/ads/cena/internal.ts',internalAjuste:'lib/ads/cena/internalAjuste.ts',live:'lib/ads/cena/live.ts',plan:'lib/ads/cena/plan.ts',natural:'lib/ads/cena/ajustePlan.ts',preflight:'lib/ads/cena/ajustePreflight.ts',runtime:'lib/ads/cena/runtime.ts',pipeline:'lib/ads/cena/pipeline.ts',start:'lib/ads/v2StartCore.ts',early:'lib/ads/v2AudioCedo.ts',media:'lib/ads/cena/ajusteMedia.ts',montage:'lib/ads/cena/ajusteMontage.ts',legacyMontage:'lib/ads/cena/montage.ts'}
-const read=p=>semPaginasIaClaras2110(semAdsCenaRespaldo2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p),p) // KINEO-ADS-CENA-RESPALDO-2110 — restaura a camada mais nova primeiro, antes dos mutantes e da camada Pages.
+const read=p=>semPaginasIaClaras2110(semAdsCenaRespaldo2110(semCartoonConsistencia2210(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p),p) /* KINEO-CARTOON-CONSISTENCIA-2210 */,p) // KINEO-ADS-CENA-RESPALDO-2110 — restaura a camada mais nova primeiro, antes dos mutantes e da camada Pages.
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8',maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
 const deliveryHead=git('log','--format=%H%x09%s',BASE+'..HEAD').trim().split('\n').find(line=>{const subject=line.slice(line.indexOf('\t')+1);return (subject.startsWith(MARK+' ')||subject.startsWith(MARK+': '))&&subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')})?.split('\t')[0] // KINEO-ADS-CENA-RESPALDO-2110 — própria entrega Retomada, com fronteira e autorização exatas, antes de BUG3.
 assert.ok(deliveryHead,'commit final marcado e autorizado da RETOMADA existe') // KINEO-ADS-CENA-RESPALDO-2110
@@ -19,7 +20,7 @@ const plain=x=>JSON.parse(JSON.stringify(x)),same=(a,b,why)=>assert.deepEqual(pl
 const NOW=Date.parse('2026-10-22T20:00:00Z')
 class FixedDate extends Date {constructor(...a){super(...(a.length?a:[NOW]))}static now(){return NOW}}
 class OfflineResponse extends Response {static json(body,init={}){return new OfflineResponse(JSON.stringify(body),{...init,headers:{'Content-Type':'application/json',...init.headers}})}}
-const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??semPaginasIaClaras2110(semAdsCenaRespaldo2110(s,p),p),globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}}) // KINEO-ADS-CENA-RESPALDO-2110 — somente fallback histórico; overrides mutados nunca são desfeitos.
+const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??semPaginasIaClaras2110(semAdsCenaRespaldo2110(semCartoonConsistencia2210(s,p),p) /* KINEO-CARTOON-CONSISTENCIA-2210 */,p),globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}}) // KINEO-ADS-CENA-RESPALDO-2110 — somente fallback histórico; overrides mutados nunca são desfeitos.
 export const RETOMADA_FIXTURES=[
  {category:'skincare',product:'Creme GLOW',input:{foto:PACING_PHOTO,frase:'Creme GLOW; Não contém fragrância.',beneficios:['Não contém fragrância.'],oferta:'Compre 1 e leve 2.',cta:'Use o cupom GLOW10.',language:'pt',formato:'ugc',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Qual creme escolher?','Rotina sem perfume?','GLOW na bancada?'],use:'Veja o Creme GLOW na sua rotina.',benefit:'Ele não contém fragrância. Compre 1 e leve 2.',cta:'Use o cupom GLOW10.'}},
  {category:'footwear',product:'Stride shoes',input:{foto:PACING_PHOTO,frase:'Stride shoes; Easy to clean.',beneficios:['Easy to clean.'],oferta:'Buy one, get one free.',cta:'Choose your Stride shoes.',language:'en',formato:'product',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Ready to leave?','Time to move?','Which shoes today?'],use:'Take a step with Stride shoes.',benefit:'Stride shoes are easy to clean. Buy one, get one free.',cta:'Choose your Stride shoes.'}},

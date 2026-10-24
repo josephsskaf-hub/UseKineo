@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semAdsCenaRespaldo2110 } from './desfaz-ads-cena-respaldo-2110.mjs' // KINEO-ADS-CENA-RESPALDO-2110
+import { semCartoonConsistencia2210 } from './desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 export const CENA_RETOMADA_MARK = 'KINEO-ADS-CENA-RETOMADA-2110'
 export const CENA_RETOMADA_BASE = '796333e9a07ee0c83bb414312a062b63f8fc32bb'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-retomada-2110-fontes.json'), 'utf8'))
@@ -24,6 +25,7 @@ export const CENA_RETOMADA_NEW = Object.freeze([
   "scripts/test-support/desfaz-ads-cena-retomada-2110.mjs"
 ])
 export function semAdsCenaRetomada2110(texto, file) {
+  texto = semCartoonConsistencia2210(texto, file) // KINEO-CARTOON-CONSISTENCIA-2210 — newest exact layer before main adapters and unchanged hashes.
   texto = semAdsCenaRespaldo2110(texto, file) // KINEO-ADS-CENA-RESPALDO-2110 — antes das demais camadas e do hash da retomada.
   texto = semPaginasIaClaras2110(texto, file) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — antes das camadas Ads e do hash integral.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]

@@ -168,6 +168,7 @@ export async function musicaAquecida(a: {
   prompt: string
   esperarLyria(job: LyriaJob, prazoAbsolutoMs: number): Promise<string | null>
   orcamentoMs: number
+  naoRepetirJobAceito?: boolean // KINEO-CARTOON-CONSISTENCIA-2210 — desenho15 não gera outra faixa depois de um job aceito
   agora(): number
   dormir(ms: number): Promise<void>
 }): Promise<string | null | undefined> {
@@ -177,7 +178,7 @@ export async function musicaAquecida(a: {
   let m = daqui(reg)
   if (!reg || !m) return undefined
   if (m.status === 'pronta') return typeof m.url === 'string' && m.url.startsWith('https://') ? m.url : undefined
-  if (m.status === 'falhou') return undefined
+  if (m.status === 'falhou' && !(a.naoRepetirJobAceito && m.job?.requestId)) return undefined // KINEO-CARTOON-CONSISTENCIA-2210 — job aceito continua na mesma espera
   // Pendente sem job ainda (o POST está saindo): relê por alguns segundos.
   const limiteSemJob = Math.min(prazo, a.agora() + 10_000)
   while (!m.job && m.status === 'pendente' && vivo(reg!, a.agora()) && a.agora() < limiteSemJob) {
@@ -186,10 +187,10 @@ export async function musicaAquecida(a: {
     m = daqui(reg)
     if (!m) return undefined
     if (m.status === 'pronta') return typeof m.url === 'string' && m.url.startsWith('https://') ? m.url : undefined
-    if (m.status === 'falhou') return undefined
+    if (m.status === 'falhou' && !(a.naoRepetirJobAceito && m.job?.requestId)) return undefined // KINEO-CARTOON-CONSISTENCIA-2210 — inclusive se o aquecimento terminar durante a espera
   }
   const job = m.job
-  if (!job || !job.statusUrl?.startsWith('https://') || !job.responseUrl?.startsWith('https://')) return undefined
+  if (!job || !job.statusUrl?.startsWith('https://') || !job.responseUrl?.startsWith('https://')) return a.naoRepetirJobAceito && job?.requestId ? null : undefined // KINEO-CARTOON-CONSISTENCIA-2210 — job aceito sem URL utilizável cai no catálogo, nunca em outro POST
   // O MESMO job da fal (nada pago de novo), no orçamento de sempre da montagem.
   const url = await a.esperarLyria(job, prazo).catch(() => null)
   return url ?? null
@@ -241,6 +242,7 @@ export function montagemComAudioDoClique<E extends { voiceoverUrl: string; audio
   lookup(chave: string): Promise<E | null>
   esperarLyria(job: LyriaJob, prazoAbsolutoMs: number): Promise<string | null>
   orcamentoLyriaMs: number
+  naoRepetirJobAceito?: () => boolean // KINEO-CARTOON-CONSISTENCIA-2210 — lida só quando a música é pedida, depois da verificação do claim
   agora?: () => number
   dormir?: (ms: number) => Promise<void>
 }) {
@@ -256,7 +258,8 @@ export function montagemComAudioDoClique<E extends { voiceoverUrl: string; audio
   return {
     relato,
     musica: async (prompt: string) => {
-      const r = await musicaAquecida({ db: a.db, generationId: a.generationId, prompt, esperarLyria: a.esperarLyria, orcamentoMs: a.orcamentoLyriaMs, agora, dormir }).catch(() => undefined)
+      const naoRepetirJobAceito = a.naoRepetirJobAceito?.() === true // KINEO-CARTOON-CONSISTENCIA-2210 — só o claim verificado pode impedir outro gasto de música
+      const r = await musicaAquecida({ db: a.db, generationId: a.generationId, prompt, esperarLyria: a.esperarLyria, orcamentoMs: a.orcamentoLyriaMs, agora, dormir, naoRepetirJobAceito }).then(r => naoRepetirJobAceito ? r ?? null : r).catch(() => naoRepetirJobAceito ? null : undefined) // KINEO-CARTOON-CONSISTENCIA-2210 — sem aquecimento útil, desenho15 usa catálogo; outros produtos mantêm o retorno de sempre
       relato.musica = typeof r === 'string' ? 'pronta' : r === null ? 'nao_veio' : 'sem'
       return r
     },

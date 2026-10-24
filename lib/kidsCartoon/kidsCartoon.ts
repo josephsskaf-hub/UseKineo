@@ -169,7 +169,7 @@ export function kidsStoryWriterPrompt(i: { request: KidsCartoonRequest; minWords
     'Keep it innocent, kind, warm and a little funny: no romance, no nudity, no violence, no weapons, no danger or scary moments, no making fun of anyone, no brands, no real people, no adult products.',
     'Shape: a happy opening, a small everyday problem, a gentle solution, and one sentence with a kind lesson. End with one short friendly question to the child watching.',
   ].join(' ')
-  const user = `Story idea: ${c.name} ${i.request.idea}`
+  const user = `Story idea: ${i.request.idea}` // KINEO-CARTOON-CONSISTENCIA-2210 — o sistema já fixa o personagem; a ideia completa nunca ganha um nome duplicado
   return { system, user }
 }
 
@@ -185,7 +185,7 @@ export function kidsStoryCheck(script: string, i: { character: KidsCharacterId; 
   if (n < i.minWords) return { ok: false, reason: 'too_short' }
   if (n > i.maxWords) return { ok: false, reason: 'too_long' }
   const c = kidsCharacter(i.character) as KidsCharacter
-  if (!new RegExp(`${B}${c.name}${E}`, 'u').test(s)) return { ok: false, reason: 'no_character' }
+  if (!new RegExp(`${B}${c.name}${E}`, 'iu').test(s)) return { ok: false, reason: 'no_character' } // KINEO-CARTOON-CONSISTENCIA-2210 — o mesmo nome em outra caixa continua sendo o personagem, com as mesmas fronteiras
   if (kidsContentRefusal(s)) return { ok: false, reason: 'not_innocent' }
   return { ok: true, script: s }
 }

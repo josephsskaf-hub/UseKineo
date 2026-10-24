@@ -18,6 +18,7 @@
 //   S7 o literal 'kids_story' de niche-mapping e musicDirection = KIDS_NARRATION_VERTICAL;
 //   K  desfaz encadeado como camada mais nova (semDesenhoNota9_2110 chama este primeiro); diff da base só nos arquivos declarados;
 //   M  mutantes: cada um APLICADO (provado por diferença) e VERMELHO.
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import fs from 'node:fs'
 import { semAvatarEstorno2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: as linhas do estorno/legenda bengali (camada mais nova) saem antes da conferência da marca
 import path from 'node:path'
@@ -31,7 +32,7 @@ import {
 } from './test-support/desfaz-desenho-som-2110.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
+const rd = (f) => semCartoonConsistencia2210(fs.readFileSync(path.join(ROOT, f), 'utf8'), f).replace(/\r\n/g, '\n') // KINEO-CARTOON-CONSISTENCIA-2210 — o som mantém sua régua histórica; a identidade Cartoon tem prova própria.
 const git = (...a) => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }) } catch { return '' } }
 const base = (f) => { const s = git('show', `${BASE}:${f}`); return s ? s.replace(/\r\n/g, '\n') : null }
 const ts = createRequire(path.join(ROOT, 'package.json'))('typescript')

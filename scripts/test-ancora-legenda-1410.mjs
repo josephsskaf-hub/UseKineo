@@ -1,3 +1,4 @@
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210 — régua histórica; a entrega nova tem prova própria.
 // KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10, "1 sim, 3 sim"] — guardião dos dois ajustes de 14/10:
 //   1. Seedance 1.5 com still FLUX em TODAS as cenas (o teto de 6 caiu; orçamento de stills 60 s, como Kling 2.5 e Veo 3.1);
 //   3. legenda centralizada também no vertical 9:16 (x_alignment '50%'), em todos os builders de filme e no render legado.
@@ -31,7 +32,7 @@ import { semAncoraLegenda1410, desfazAncoraLegenda1410, ARQUIVOS_ANCORA_LEGENDA_
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => lf(semCartoonConsistencia2210(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CARTOON-CONSISTENCIA-2210 — somente a camada posterior sai antes do desfaz/hashes históricos.
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let total = 0
 let falhas = 0

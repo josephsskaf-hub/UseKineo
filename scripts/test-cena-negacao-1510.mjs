@@ -22,12 +22,14 @@
 //   (G) mutantes, cada um provado aplicado, cada um tem de ficar VERMELHO.
 //
 // Rodar: node scripts/test-cena-negacao-1510.mjs
-import { readFileSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410 — local virtual historical diff; production sources never rewritten.
+import { readFileSync, mkdtempSync, writeFileSync, unlinkSync, rmSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410 — local virtual historical diff; production sources never rewritten.
 import { tmpdir } from 'node:os' // KINEO-IDIOMAS-FORMATOS-2410
 import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semCenaNegacao1510, MARCA_CENA_NEGACAO_1510 as MARCA } from './test-support/desfaz-cena-negacao-1510.mjs'
@@ -41,6 +43,17 @@ const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneTruth.ts'
 const MODO = 'lib/cinematic/visualMode.ts'
 const ler = (p) => readFileSync(join(RAIZ, p), 'utf8')
+function diffSemCartoon2210(before, atual, arquivo) { // KINEO-CARTOON-CONSISTENCIA-2210
+  const scratch = mkdtempSync(join(tmpdir(), 'kineo-negacao-cartoon-2210-')), a = join(scratch, 'before.ts'), b = join(scratch, 'after.ts') // KINEO-CARTOON-CONSISTENCIA-2210
+  try { // KINEO-CARTOON-CONSISTENCIA-2210
+    writeFileSync(a, before.replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
+    writeFileSync(b, semCartoonConsistencia2210(atual, arquivo).replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
+    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '--', a, b], { encoding: 'utf8', maxBuffer: 1 << 28 }) } // KINEO-CARTOON-CONSISTENCIA-2210
+    catch (e) { if (e.status === 1 && typeof e.stdout === 'string') return e.stdout; throw e } // KINEO-CARTOON-CONSISTENCIA-2210
+  } finally { // KINEO-CARTOON-CONSISTENCIA-2210
+    rmSync(a, { force: true }); rmSync(b, { force: true }); rmdirSync(scratch) // KINEO-CARTOON-CONSISTENCIA-2210
+  } // KINEO-CARTOON-CONSISTENCIA-2210
+} // KINEO-CARTOON-CONSISTENCIA-2210
 
 function carregar(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
@@ -191,7 +204,7 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
   const diffHistorico = (p) => { // KINEO-IDIOMAS-FORMATOS-2410 — compare the real base with current source after reversing only the exact new layer.
     const scratch = mkdtempSync(join(tmpdir(), 'kineo-negacao-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts') // KINEO-IDIOMAS-FORMATOS-2410
     try { // KINEO-IDIOMAS-FORMATOS-2410
-      writeFileSync(before, git('show', `${base}:${p}`)); writeFileSync(after, semIdiomasFormatos2410(ler(p), p)) // KINEO-IDIOMAS-FORMATOS-2410
+      writeFileSync(before, git('show', `${base}:${p}`)); writeFileSync(after, semIdiomasFormatos2410(semCartoonConsistencia2210(ler(p), p), p)) // KINEO-IDIOMAS-FORMATOS-2410
       try { return execFileSync('git', ['diff', '--no-index', '--no-color', '--', before, after], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }) } // KINEO-IDIOMAS-FORMATOS-2410
       catch (error) { if (error.status === 1 && typeof error.stdout === 'string') return error.stdout; throw error } // KINEO-IDIOMAS-FORMATOS-2410
     } finally { for (const file of [before, after]) { try { unlinkSync(file) } catch (error) { if (error.code !== 'ENOENT') throw error } }; rmdirSync(scratch) } // KINEO-IDIOMAS-FORMATOS-2410

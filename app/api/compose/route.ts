@@ -92,6 +92,7 @@ import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING2
 import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
 import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
+import { CartoonDurationError, enforceCartoonDurationFloor } from '@/lib/kidsCartoon/cartoonDuration' // KINEO-CARTOON-CONSISTENCIA-2210 — piso só do desenho de 15 s assinado
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -798,7 +799,7 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     const tempo = cronometroDaMontagem() // KINEO-FILME-RAPIDO-1710 · tempo — voz, transcrição, música e envio ao Creatomate, em ms (evento compose_stage_timing)
-    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre
+    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS, naoRepetirJobAceito: () => cinematicBirthClaim?.quality === 'cinematic_ai' && Number(cinematicBirthClaim.response?.duration) === 15 && desenhoDoClaim(cinematicBirthClaim.response) !== null }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre // KINEO-CARTOON-CONSISTENCIA-2210 — só desenho15 do claim verificado; o corpo não liga esta proteção
     let cinematicBirthClaim: CinematicClaim | null = null
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
     // (nunca do corpo): null = montagem de hoje
@@ -3556,6 +3557,14 @@ export async function POST(req: NextRequest) {
     const desenhoAssinado = desenhoDoClaim(cinematicBirthClaim?.response) // KINEO-DESENHO-SOM-2110 — só o claim assinado decide (null = filme comum: nada abaixo roda)
     if (desenhoAssinado && !desenhoAssinado.captions && !semLegenda.tirarLegenda) { const sl = tirarLegendaEGancho(source, { legenda: true, gancho: false }); source = sl.source; console.log(`[compose] KINEO-DESENHO-SOM-2110 desenho sem legenda: ${sl.legendas} legenda(s) retirada(s)`) } // KINEO-DESENHO-SOM-2110 — a marca d'água (trilha 9) fica
     if (desenhoAssinado) { const q = kidsMusicQuieter(source); source = q.source; console.log(`[compose] KINEO-DESENHO-SOM-2110 trilha do desenho mais baixa: ${q.changed}`) } // KINEO-DESENHO-SOM-2110
+    try { // KINEO-CARTOON-CONSISTENCIA-2210 — depois de TODAS as transformações, antes de qualquer envio ao fornecedor
+      const cartoonFloor = enforceCartoonDurationFloor(source, { verifiedClaim: cinematicBirthClaim, clipUrls: composeClipUrls }) // KINEO-CARTOON-CONSISTENCIA-2210 — navegador e cron usam o mesmo claim verificado
+      source = cartoonFloor.source // KINEO-CARTOON-CONSISTENCIA-2210 — sem desenho assinado = mesmo objeto; voz/legenda nunca são esticadas
+      if (cartoonFloor.applied) console.log(`[compose] cartoon duration floor: ${cartoonFloor.beforeSeconds}s → ${cartoonFloor.seconds}s`) // KINEO-CARTOON-CONSISTENCIA-2210
+    } catch (error) { // KINEO-CARTOON-CONSISTENCIA-2210
+      if (!(error instanceof CartoonDurationError)) throw error // KINEO-CARTOON-CONSISTENCIA-2210
+      return rejectBeforeProviderSubmission(NextResponse.json({ error: 'This cartoon did not have enough signed moving footage to deliver its full length. Nothing was submitted.', code: 'cinematic_timeline_too_short', actualSeconds: error.availableSeconds, requestedSeconds: error.requestedSeconds }, { status: 422 })) // KINEO-CARTOON-CONSISTENCIA-2210 — falha/estorno padrão, nunca entrega curta ou quadro congelado
+    } // KINEO-CARTOON-CONSISTENCIA-2210
 
     // Step 5 — Submit to Creatomate once per authenticated generation. The
     // provider has no documented idempotency key, so a blind retry after an

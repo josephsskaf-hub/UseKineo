@@ -17,6 +17,7 @@
 //       provados contra a base;
 //   (4) a rota: cada fio ligado no lugar certo (texto real da rota) e a moderação antes do ensaio, do still e do POST;
 //   (5) mutantes: cada um aplicado (prova por texto) tem de deixar o guardião vermelho.
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210 — mesma época antes de comprovar/aplicar cada mutante.
 import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
@@ -262,13 +263,13 @@ const MUTANTES = [
 ]
 let mortos = 0
 for (const [nome, arquivo, de, para] of MUTANTES) {
-  const original = rd(arquivo)
+  const original = semCartoonConsistencia2210(rd(arquivo), arquivo) // KINEO-CARTOON-CONSISTENCIA-2210 — comprova a âncora na fonte histórica que receberá a mutação.
   const aplicado = original.includes(de) && original.split(de).join(para) !== original
   if (!aplicado) { falhas.push(`mutante NÃO aplicou: ${nome}`); console.log('  FALHA mutante não aplicou:', nome); continue }
   // vermelho = uma ASSERÇÃO falhou (exceção de carregamento não conta como prova: o mutante tem de carregar e rodar)
   let quebras
   try {
-    const Mm = carregar((rel, txt) => (rel === arquivo ? txt.split(de).join(para) : txt))
+    const Mm = carregar((rel, txt) => { const historico = semCartoonConsistencia2210(txt, rel); return rel === arquivo ? historico.split(de).join(para) : historico }) // KINEO-CARTOON-CONSISTENCIA-2210 — retira só esta camada ANTES da mutação; asserções e camadas antigas preservadas.
     quebras = avalia(Mm, MB, false)
   } catch (e) { falhas.push(`mutante não carregou: ${nome}`); console.log('  FALHA mutante não carregou:', nome, '-', e instanceof Error ? e.message : e); continue }
   if (quebras.length) { mortos++; console.log(`  ok   mutante vermelho: ${nome} (${quebras.length}; 1ª: ${quebras[0]})`) } else { falhas.push(`mutante sobreviveu: ${nome}`); console.log('  FALHA mutante sobreviveu:', nome) }

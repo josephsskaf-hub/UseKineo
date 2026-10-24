@@ -234,6 +234,8 @@ import { kidsOrderAdmits } from '@/lib/kidsVenda/server' // KINEO-KIDS-VENDA-201
 import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o som do desenho infantil (voz contadora, trilha infantil, legenda opcional)
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
+import { cartoonReferenceFrames } from '@/lib/kidsCartoon/cartoonReferenceServer' // KINEO-CARTOON-CONSISTENCIA-2210
+import { cartoonSceneModels, cartoonVariableCost, CARTOON_EDIT_MODEL } from '@/lib/kidsCartoon/cartoonConsistency' // KINEO-CARTOON-CONSISTENCIA-2210
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -1737,6 +1739,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-BEBE-QUE-FALA-2010 — do claim e do débito. Sem o campo: inativo, nada muda (lib/kidsCartoon/kidsCartoon.ts desenhoInfantilDoPedido).
     const desenhoInfantil = desenhoInfantilDoPedido({ raw: (body as { kids_cartoon?: unknown }).kids_cartoon, engine: body.engine, duration, aberto: kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email)), texto: prompt }) // KINEO-BEBE-QUE-FALA-2010
     if (desenhoInfantil.recusa) { await writeServerEvent({ name: 'kids_cartoon_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: desenhoInfantil.recusa.reason, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, charged: false } }); return NextResponse.json({ error: desenhoInfantil.recusa.error, reason: desenhoInfantil.recusa.reason, retryable: false, charged: false, refunded: false }, { status: desenhoInfantil.recusa.status }) } // KINEO-BEBE-QUE-FALA-2010
+    if (desenhoInfantil.ativo && (estrelaAtiva || personagem.ativo)) return NextResponse.json({ error: 'The cartoon uses its own character catalog. Choose the character in the Cartoon screen.', reason: 'kids_reference_conflict', charged: false, refunded: false, retryable: false }, { status: 422 }) // KINEO-CARTOON-CONSISTENCIA-2210 — referências de outros produtos não podem substituir o catálogo infantil nem gerar trabalho pago extra
     if (desenhoInfantil.ativo) body.vertical = KIDS_NARRATION_VERTICAL // KINEO-DESENHO-SOM-2110 — ANTES da voz ser medida (vozCurta/classicPersona logo abaixo): a contadora calorosa e a trilha infantil; o pedido do cliente não escolhe isto
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood' // KINEO-H3MAX-2026-10-13
 
@@ -6853,6 +6856,7 @@ async function manipularPost(req: NextRequest) {
     // nem o seed. Gravado ANTES de cada POST — a despachante para no primeiro aceite, então o último payload gravado é o
     // aceito, no modelo de usedModels[i]; sem aceite, é o da última tentativa (mesmo modelo que o claim grava).
     const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)
+    if (!desenhoInfantil.ativo) { // KINEO-CARTOON-CONSISTENCIA-2210 — o Cartoon substitui este pool; não paga FLUX e edit para a mesma cena
     if (anchorActive) {
       // FLUX stills are paid Fal work: once we start them, an unexpected throw
       // must keep the deterministic claim PENDING (never release + let a new
@@ -6955,6 +6959,20 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
+    } // KINEO-CARTOON-CONSISTENCIA-2210 — fim do pool dos outros produtos
+    if (desenhoInfantil.ativo) { // KINEO-CARTOON-CONSISTENCIA-2210 — todas as referências precisam estar prontas antes do primeiro clipe
+      providerSubmissionMayExist = true // KINEO-CARTOON-CONSISTENCIA-2210
+      const seconds = scenes.map(s => s.clipSeconds ?? 10) // KINEO-CARTOON-CONSISTENCIA-2210
+      const references = await cartoonReferenceFrames({ primary: desenhoInfantil.personagem.id, story: prompt, duration, prompts: classicScenePrompts, narrations: scenes.map(s => s.voiceover || s.description), seconds, aspect: aspectRequested, userId: user.id, seed: generationSeed }) // KINEO-CARTOON-CONSISTENCIA-2210
+      await writeServerEvent({ name: 'cartoon_reference_frames', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { model: CARTOON_EDIT_MODEL, character: desenhoInfantil.personagem.id, submitted_count: references.submitted, request_ids: references.requestIds, clip_seconds: seconds, known_cost_usd: references.reason === 'invalid_plan' ? null : seconds.length ? cartoonVariableCost(seconds).knownUsd : null, other_costs_usd: null, complete: references.ok, reason: references.ok ? null : references.reason } }) // KINEO-CARTOON-CONSISTENCIA-2210 — parcelas documentadas; custo total real só pela fatura e demais fornecedores
+      if (!references.ok) { // KINEO-CARTOON-CONSISTENCIA-2210 — sem fallback que perca a identidade; fornecedor de vídeo não é chamado
+        const released = await releaseBirthClaim('provider_cartoon_reference_rejected') // KINEO-CARTOON-CONSISTENCIA-2210
+        const c = ctxDespacho(); c.claimAction = released ? 'released' : 'release_failed'; c.refundConfirmed = released // KINEO-CARTOON-CONSISTENCIA-2210
+        return NextResponse.json({ error: released ? 'The character reference did not come out right. Your credits were refunded. Please try again.' : 'The character reference failed and the refund is still being confirmed. Retry this same generation.', reason: 'kids_reference_failed', charged: !released, refunded: released, retryable: true }, { status: 503 }) // KINEO-CARTOON-CONSISTENCIA-2210
+      } // KINEO-CARTOON-CONSISTENCIA-2210
+      references.urls.forEach((url, index) => { sceneStills[index] = url }) // KINEO-CARTOON-CONSISTENCIA-2210
+    } // KINEO-CARTOON-CONSISTENCIA-2210
+
     // Submit ONE scene with a REAL single retry on an EXPLICIT (non-ambiguous)
     // reject. submitToFal returns null ONLY for an explicit FalQueueSubmitError
     // (Fal definitively did NOT accept the job — safe to re-POST); it THROWS for
@@ -6996,6 +7014,7 @@ async function manipularPost(req: NextRequest) {
       const modelos = imageUrl
         ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? SEEDANCE_I2V_MODEL : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
         : [model]
+      if (desenhoInfantil.ativo) modelos.splice(0, modelos.length, ...cartoonSceneModels(modelos)) // KINEO-CARTOON-CONSISTENCIA-2210 — somente Seedance i2v; a rejeição não pode remover a imagem
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),
         { ...classicVisualPolicy, character: sanitizeRealPeople(storyCharacter || ''), eraSuffix, opening: sceneIndex === 0 },
@@ -7012,6 +7031,7 @@ async function manipularPost(req: NextRequest) {
           // i2v e no t2v de reserva); em Seedance/Veo/Sora é undefined — o mesmo `undefined` de antes, payload byte a byte.
           // KINEO-CENA-CLASSICA-2026-09-28 — o input assinado fica em classicSceneInputs para a retomada da cena.
           const input = buildFalInput(m, promptForAttempt, hd, false, scene.clipSeconds, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode)
+          if (desenhoInfantil.ativo) { input.resolution = '720p'; input.generate_audio = false; input.enable_safety_checker = true; input.prompt = String(input.prompt) + '. Preserve the exact face, age, hair shape and outfit from the reference image throughout the entire shot; no morphing, hairstyle changes or age changes.' } // KINEO-CARTOON-CONSISTENCIA-2210 — mesma régua de custo em toda cena e na retomada assinada
           if (romanceAdulto.ativo && typeof input.negative_prompt === 'string') input.negative_prompt = negativoRomanceAdulto(input.negative_prompt) // KINEO-ROMANCE-ADULTO-2026-10-13 — Veo/Kling 2.5 (o Seedance não tem negative: vale o sufixo)
           classicSceneInputs[sceneIndex] = input // KINEO-CENA-CLASSICA-2026-09-28
           return submitFalQueueOnce(m, input, onPost)

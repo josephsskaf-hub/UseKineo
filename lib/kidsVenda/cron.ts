@@ -226,7 +226,7 @@ async function dispatchPass(db: Db, baseUrl: string, deadline: number, sessions:
     if (Date.now() > deadline) break
     const cycleKey = order.kind === 'autopilot' ? kidsCycleKey(order.cycle_start) : ''
     if (order.kind === 'autopilot' && order.cycle_end && Date.parse(order.cycle_end) < Date.now()) { out.skipped++; continue } // ciclo pago acabou: espera a fatura
-    const openQ = await db.from(KIDS_RUNS_TABLE).select('seq, attempt, status').eq('order_id', order.id).eq('cycle_key', cycleKey).in('status', ['pending', 'dispatched', 'failed']).range(0, 499)
+    const openQ = await db.from(KIDS_RUNS_TABLE).select('seq, attempt, status, credits_funded').eq('order_id', order.id).eq('cycle_key', cycleKey).in('status', ['pending', 'dispatched', 'failed']).range(0, 499) // KINEO-CARTOON-CONSISTENCIA-2210 — o gasto possível sobrevive a estorno e reativação da assinatura
     if (openQ.error) { out.skipped++; continue }
     const open = (openQ.data ?? []) as { seq: number; attempt: number; status: string }[]
     let inFlight = open.filter((r) => r.status !== 'failed').length
@@ -235,6 +235,12 @@ async function dispatchPass(db: Db, baseUrl: string, deadline: number, sessions:
     while (starts < kidsStartsAllowedThisPass(order.kind) && out.started + out.failed < KIDS_MAX_STARTS_PER_PASS && Date.now() < deadline) {
       const seq = kidsNextSeq({ total: order.videos_total, delivered: order.videos_delivered, inFlight })
       if (seq === null) { if (order.kind !== 'autopilot' && inFlight === 0 && order.videos_delivered >= order.videos_total) await patchOrder(db, order.id, { status: 'completed', completed_at: nowIso(), next_run_at: null }); break }
+      if (order.duration === 15 && open.some(r => r.seq === seq && r.status === 'failed' && ((r as { credits_funded?: number }).credits_funded ?? 0) > 0)) { // KINEO-CARTOON-CONSISTENCIA-2210 — custo já possível nesta posição/ciclo: nunca iniciar outro filme automaticamente
+        await patchOrder(db, order.id, { status: 'paused', pause_reason: `provider_budget_review_seq_${seq}`, next_run_at: null }) // KINEO-CARTOON-CONSISTENCIA-2210 — preserva a obrigação de entrega para revisão; não inventa episódio entregue
+        await writeServerEvent({ name: KIDS_EVENTS.orderPaused, userId: order.user_id, path: KIDS_CRON_PATH, metadata: { order_id: order.id, reason: 'provider_budget_review', seq, cycle_key: cycleKey } }).catch(() => false) // KINEO-CARTOON-CONSISTENCIA-2210
+        out.skipped++ // KINEO-CARTOON-CONSISTENCIA-2210
+        break // KINEO-CARTOON-CONSISTENCIA-2210
+      } // KINEO-CARTOON-CONSISTENCIA-2210
       const attempt = 1 + open.filter((r) => r.seq === seq && r.status === 'failed').length
       if (attempt > KIDS_MAX_ATTEMPTS_PER_SEQ) {
         await patchOrder(db, order.id, { status: 'paused', pause_reason: `attempts_exhausted_seq_${seq}`, next_run_at: null })
@@ -282,6 +288,8 @@ async function dispatchPass(db: Db, baseUrl: string, deadline: number, sessions:
       runRow.credits_funded = cost
       funded += cost
       await patchRun(db, runId, { credits_funded: cost })
+      const fundedRecord = await db.from(KIDS_RUNS_TABLE).select('credits_funded').eq('id', runId).maybeSingle() // KINEO-CARTOON-CONSISTENCIA-2210 — confirma a trilha persistente antes de qualquer POST do filme
+      if (fundedRecord.error || (fundedRecord.data as { credits_funded?: number } | null)?.credits_funded !== cost) { await failRun('funding_record_unconfirmed'); break } // KINEO-CARTOON-CONSISTENCIA-2210 — sem confirmação, sem fornecedor; o crédito em memória volta pelo clawBack existente
       await patchOrder(db, order.id, { cycle_credits_funded: funded })
       await writeServerEvent({ name: KIDS_EVENTS.creditsFunded, userId: order.user_id, path: KIDS_CRON_PATH, sessionId: generationId, metadata: { run_id: runId, order_id: order.id, credits: cost, balance_after: fundedNow.balance, seq } }).catch(() => false)
       const budget = Math.max(15_000, Math.min(170_000, deadline - Date.now() - 5_000))

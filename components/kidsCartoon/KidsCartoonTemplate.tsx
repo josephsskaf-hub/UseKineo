@@ -371,6 +371,7 @@ export default function KidsCartoonTemplate() {
 
   function restart() {
     save(null)
+    setIdea(''); setIdeaId(null); setCopied(false) // KINEO-CARTOON-CONSISTENCIA-2210 — outro desenho começa sem tema, ideia pronta nem cópia do episódio anterior
     setStage('idle'); setScript(''); setCaption(''); setVideoUrl(null); setError(null); setNeedPlans(false); setClips({ done: 0, total: 0 }); setComposePct(0)
   }
 

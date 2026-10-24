@@ -26,10 +26,12 @@ import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-suppo
 //
 // Rodar: node scripts/test-trilha-15s-1610.mjs            (prova)
 //        node scripts/test-trilha-15s-1610.mjs --doc=ARQ   (prova + grava o antes × depois dos 5 roteiros em ARQ)
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
@@ -43,7 +45,7 @@ process.chdir(RAIZ) // o loader offline resolve '@/…' a partir do cwd
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const VPP = 'lib/cinematic/visualPromptPolicy.ts'
 const LIB = 'lib/cinematic/planoDeBroll.ts'
-const ler = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-IDIOMAS-FORMATOS-2410
+const ler = (p) => semIdiomasFormatos2410(semCartoonConsistencia2210(readFileSync(join(RAIZ, p), 'utf8'), p), p).replace(/\r\n/g, '\n') // KINEO-IDIOMAS-FORMATOS-2410
 const FX = JSON.parse(readFileSync(join(RAIZ, 'scripts/test-support/trilha-15s-1610-roteiros.json'), 'utf8')).roteiros
 const SELO = '[TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]'
 const CAUDA_INICIO = ', faceless cinematic b-roll'
@@ -313,7 +315,7 @@ for (const f of res.falhas) relata(f, false)
   }
   const assuntos = git('log', '--format=%s', `${base}..${historicalRangeEnd}`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')).filter((s) => !s.includes('KINEO-DESENHO-SOM-2110')) /* reancorado KINEO-DESENHO-SOM-2110 — os commits do som do desenho levam a marca deles */.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam o selo deles */ // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo "Vai pra meta do 95"
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da ideia no escritor marcado (19/10) levam o selo deles
-  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles
+  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110') && !(s.startsWith('KINEO-CARTOON-CONSISTENCIA-2210 ') && s.includes('[TRAVA 8.2 — vai do fundador 22/10 "vamos dar tração em todas"]')))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles // KINEO-CARTOON-CONSISTENCIA-2210 — só os commits nominais e autorizados desta entrega saem do selo ancestral.
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-2010'))) // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da folha de personagem (20/10) levam o selo deles
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010'))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os consertos da folha (20/10) levam o selo da meta do 95
   relata(`F todo commit do conserto traz o selo ${SELO}`, assuntos.every((s) => s.includes(SELO)), assuntos.filter((s) => !s.includes(SELO)).slice(0, 1).join(''))
