@@ -90,7 +90,7 @@ export const HOME_CARD_BADGE: Record<HomeCardId, string> = {
 
 /** Um vídeo de card: prévia leve em public/previews/ (≤ 1,5 MB, sem áudio, faststart) + pôster .webp em public/posters/. */
 export type HomeCycleCardId = HomeCardId | 'kids_cartoon'
-export type HomeCardClip = { src: string; poster: string; objectPosition: string; mobileObjectPosition?: string; objectFit?: 'cover' | 'contain' }
+export type HomeCardClip = { src: string; poster: string; objectPosition: string; mobileObjectPosition?: string; objectFit?: 'cover' | 'contain'; scale?: number }
 export type HomeCardPlaylist = readonly [HomeCardClip, ...HomeCardClip[]]
 const preview = (name: string, objectPosition = '50% 0%', mobileObjectPosition = objectPosition): HomeCardClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp`, objectPosition, mobileObjectPosition })
 
@@ -106,7 +106,8 @@ const preview = (name: string, objectPosition = '50% 0%', mobileObjectPosition =
 // KINEO-CARDS-GIRO-2410 — edit only these lists to replace approved local previews; framing belongs to each clip.
 export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPlaylist; pt?: HomeCardPlaylist }> = {
   films: { default: [
-    preview('home-card-film-flannan', '50% 0%'),
+    // Preserve the original top-anchored crop: the burned-in bottom caption stays outside the card.
+    { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
     { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
     { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
   ] },

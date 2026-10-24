@@ -40,7 +40,7 @@ function mount(source = rd(PLAYER), { reduced=false, noObserver=false, clips } =
   class Observer {constructor(fn){this.fn=fn;observers.push(this)}observe(){}disconnect(){this.disconnected=true}}
   const controller = moduleOf(source,{window,document,IntersectionObserver:noObserver?undefined:Observer,setTimeout:timer,setInterval:timer})
   Object.assign(window,{setTimeout:timer,setInterval:timer})
-  const list = clips??[0,1,2].map(i=>({src:`/previews/${i}.mp4`,poster:`/posters/${i}.webp`,objectPosition:`50% ${i*10}%`,mobileObjectPosition:`50% ${i*15}%`}))
+  const list = clips??[0,1,2].map(i=>({src:`/previews/${i}.mp4`,poster:`/posters/${i}.webp`,objectPosition:`50% ${i*10}%`,mobileObjectPosition:`50% ${i*15}%`,...(i===0?{scale:1.1}:i===2?{scale:1.05}:{})}))
   const cleanup = controller.attachHomeCardPlayback(root,list)
   return {videos,list,requests,cleanup,motion,document,visible(value){for(const observer of observers)if(!observer.disconnected)observer.fn([{isIntersecting:value,intersectionRatio:value?1:0}])},reduce(value){motion.matches=value;motion.emit('change')},hidden(value){document.hidden=value;document.emit('visibilitychange')},on(video,name,detail){video.emit(name,detail)},observers}
 }
@@ -52,10 +52,12 @@ function playbackProof(source=rd(PLAYER)) {
   assert.equal(a.src,h.list[0].src,'first visible clip starts at zero')
   assert.equal(b.src,'','next waits for active playing')
   assert.equal(a.preload,'none','active consumes through play, not eager preload')
+  assert.equal(a.vars.get('--home-clip-scale'),'1.1','first clip gets its own scale')
   a.emit('playing')
   assert.equal(a.getAttribute('data-on'),'','first playing reveals first')
   assert.equal(b.src,h.list[1].src,'only the next clip is prepared')
   assert.equal(b.preload,'auto','hidden next may preload')
+  assert.equal(b.vars.get('--home-clip-scale'),'1','unscaled next does not inherit the first clip zoom')
   assert.equal(h.requests.length,2,'third clip remains unassigned')
   assert.equal(b.playCalls,0,'hidden next has no preroll')
   a.emit('timeupdate')
@@ -78,6 +80,7 @@ function playbackProof(source=rd(PLAYER)) {
   assert.equal(a.preload,'auto','recycled buffer preloads next only')
   assert.equal(a.vars.get('--home-clip-position'),h.list[2].objectPosition,'recycled clip gets its own desktop framing')
   assert.equal(a.vars.get('--home-clip-mobile-position'),h.list[2].mobileObjectPosition,'recycled clip gets its own mobile framing')
+  assert.equal(a.vars.get('--home-clip-scale'),'1.05','recycled buffer receives its clip scale')
   b.ended=true;b.emit('ended');a.emit('playing');a.emit('transitionend',{propertyName:'opacity'})
   assert.equal(b.src,h.list[0].src,'third returns to first without skipping')
   h.visible(false)
@@ -119,9 +122,12 @@ function ssrProof(source=rd(MEDIA), lib=pure) {
     for(const video of videos){assert.ok(!/\ssrc=|\sautoPlay=|\sloop=/.test(video),'SSR starts no media download or endless single loop');assert.ok(video.includes('preload="none"')&&video.includes('muted=""')&&video.includes('playsinline=""'),'SSR buffers are muted inline and preload none')}
     assert.ok(html.includes('--home-clip-position:'+first.objectPosition),'SSR poster has clip desktop framing')
     assert.ok(html.includes('--home-clip-mobile-position:'+(first.mobileObjectPosition??first.objectPosition)),'SSR poster has clip mobile framing')
+    assert.ok(html.includes('--home-clip-scale:'+(first.scale??1)),'SSR poster preserves the first clip scale')
   }
   assert.ok(media.HOME_CARD_CYCLE_CSS.includes('transition:opacity'),'fade is visual opacity transition')
   assert.ok(media.HOME_CARD_CYCLE_CSS.includes('--home-clip-mobile-position'),'mobile applies per-clip position')
+  assert.ok(media.HOME_CARD_CYCLE_CSS.includes('transform:scale(var(--home-clip-scale,1)) !important'),'video scale comes from the clip, including hover')
+  assert.ok(media.HOME_CARD_CYCLE_CSS.includes('transform:scale(var(--home-clip-scale,1));transform-origin:50% 0'),'SSR poster uses the same top-anchored scale')
   // The legacy product :not([data-trio]) framing is !important at class/attribute specificity 4.
   // A plain video selector loses to it; this was reproduced in the actual browser during this delivery.
   const framingRules=[...media.HOME_CARD_CYCLE_CSS.matchAll(/([^{}]+)\{([^{}]*object-position:[^{}]*!important[^{}]*)\}/g)]
@@ -163,6 +169,7 @@ function listProof(lib=pure) {
       assert.match(clip.poster,/^\/(?:posters|previews)\//,'local poster')
       assert.match(clip.objectPosition,/^\d+(?:\.\d+)?% \d+(?:\.\d+)?%$/,'explicit desktop framing per clip')
       assert.match(clip.mobileObjectPosition??clip.objectPosition,/^\d+(?:\.\d+)?% \d+(?:\.\d+)?%$/,'explicit mobile framing per clip')
+      assert.ok(Number.isFinite(clip.scale??1)&&(clip.scale??1)>=1,'optional per-clip scale is finite and at least one')
       for(const src of [clip.src,clip.poster])assert.ok(fs.existsSync(path.join(ROOT,'public',src)),'asset exists: '+src)
       const bytes=fs.readFileSync(path.join(ROOT,'public',clip.src))
       mediaProof(bytes)
@@ -205,6 +212,7 @@ if(process.argv.includes('--mutants')) {
   killed('outgoing overwritten during fade',()=>playbackProof(mutate(p,"        video.setAttribute('data-on', '')","        video.setAttribute('data-on', '')\n        assign(1 - active, nextIndex(), true)")))
   killed('next no preload',()=>playbackProof(mutate(p,"video.preload = next ? 'auto' : 'none'","video.preload = 'none'")))
   killed('mobile framing lost',()=>playbackProof(mutate(p,'clip.mobileObjectPosition ?? clip.objectPosition','clip.objectPosition')))
+  killed('per-clip scale ignored',()=>playbackProof(mutate(p,'String(clip.scale ?? 1)',"'1'")))
   killed('SSR video eagerly downloads',()=>ssrProof(mutate(s,'preload="none"','preload="auto"')))
   killed('SSR source assigned to every buffer',()=>ssrProof(mutate(s,'data-home-cycle-slot={slot}','data-home-cycle-slot={slot} src={first.src}')))
   killed('CSS loses to legacy important product crop',()=>ssrProof(mutate(s,'video[data-home-cycle-slot]','video')))

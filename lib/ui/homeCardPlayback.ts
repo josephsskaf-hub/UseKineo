@@ -34,6 +34,7 @@ export function attachHomeCardPlayback(root: HTMLElement, clips: readonly HomeCa
     video.style.setProperty('--home-clip-position', clip.objectPosition)
     video.style.setProperty('--home-clip-mobile-position', clip.mobileObjectPosition ?? clip.objectPosition)
     video.style.setProperty('--home-clip-fit', clip.objectFit ?? 'cover')
+    video.style.setProperty('--home-clip-scale', String(clip.scale ?? 1))
     video.poster = clip.poster
     video.preload = next ? 'auto' : 'none'
     assigned[slot] = index
