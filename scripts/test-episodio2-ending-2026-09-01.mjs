@@ -11,8 +11,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const ts = createRequire(path.join(ROOT, 'package.json'))('typescript')
 let ok = 0
 const fails = []
 const check = (name, cond) => { if (cond) ok++; else fails.push(name) }
@@ -106,8 +108,34 @@ check('B3 fonte fixa do loss saiu do helper', !/buildSeriesContinuationEmailUrl\
 check('B4 tipo da fonte importado', /type SeriesContinuationSource,/.test(route))
 check('B5 chamada do loss passa a fonte do loss', route.includes("episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', 'lifecycle_loss_email', attr)"))
 check('B6 chamada do ending passa a fonte do ending', route.includes("episodeTwoBlock(c.lastTopic, 'trial_ending_episode2', 'lifecycle_ending_email', attr)"))
-// sprint-assinaturas #20: 3a chamada no corpo `burned_with_film` do downgraded_loss
-check('B7 exatamente tres chamadas do helper', (route.match(/episodeTwoBlock\(c\.lastTopic/g) || []).length === 3)
+// The original three branches remain. Approved D5/D10 messages added two more
+// continuations. Freeze every argument AND its owning branch, instead of
+// accepting an arbitrary increased count or reading calls from comments.
+const routeAst = ts.createSourceFile('trial-lifecycle-emails.ts', route, ts.ScriptTarget.Latest, true)
+const episodeCalls = []
+function visitCalls(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(routeAst) === 'episodeTwoBlock') {
+    const owners = []
+    for (let parent = node.parent; parent; parent = parent.parent) {
+      if (ts.isIfStatement(parent)) {
+        const branch = parent.thenStatement.pos <= node.pos && parent.thenStatement.end >= node.end ? 'then' : 'else'
+        owners.push(`${branch}: ${parent.expression.getText(routeAst)}`)
+      }
+    }
+    episodeCalls.push({ args: node.arguments.map(argument => argument.getText(routeAst)), owners })
+  }
+  ts.forEachChild(node, visitCalls)
+}
+visitCalls(routeAst)
+const expectedEpisodeCalls = [
+  { args: ['c.lastTopic', "'trial_ending_episode2'", "'lifecycle_ending_email'", 'attr'], owners: ["then: c.kind === 'ending_soon'"] },
+  { args: ['c.lastTopic', "'trial_loss_burned_film_episode2'", "'lifecycle_loss_email'", 'attr'], owners: ['then: c.burnedWithFilm', "then: c.kind === 'downgraded_loss'"] },
+  { args: ['c.lastTopic', "'trial_loss_episode2'", "'lifecycle_loss_email'", 'attr'], owners: ["then: c.kind === 'downgraded_loss'"] },
+  { args: ['c.lastTopic', "'trial_offer_d5_episode2'", "'lifecycle_loss_email'", 'attr'], owners: ['then: c.videosMade >= 1', "then: c.kind === 'expired_offer_d5'"] },
+  { args: ['c.lastTopic', "'trial_offer_d10_episode2'", "'lifecycle_loss_email'", 'attr'], owners: ['then: c.videosMade >= 1', "then: c.kind === 'expired_lastcall_d10'"] },
+]
+check('B7 as tres chamadas originais e as duas aprovadas D5/D10: argumentos e ramos exatos',
+  JSON.stringify(episodeCalls) === JSON.stringify(expectedEpisodeCalls))
 check('B8 fail-closed continua no helper', route.includes("if (!url.includes('prompt=')) return null"))
 
 // posicao: a chamada do ending esta DENTRO do if (c.kind === 'ending_soon')

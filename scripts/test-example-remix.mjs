@@ -95,7 +95,20 @@ ok(form.includes('intersectionRatio >= 0.5'), 'impression requires 50% visibilit
 ok(form.includes('sessionStorage.getItem(marker)'), 'form impression dedupes within the browser session')
 ok(form.includes('topic_length: safeTopic.length'), 'telemetry retains useful topic length')
 ok(!/trackEvent\('example_remix_topic_submitted',[\s\S]{0,300}\btopic:\s*safeTopic/.test(form), 'telemetry never emits the visitor topic')
-ok(form.includes('No card required to start.'), 'the form states the existing trial condition honestly')
+// The approved copy now states the free grant explicitly. Read the canonical
+// numeric declaration without executing its environment-sensitive dependencies.
+const offerAst = ts.createSourceFile('freeTierOffer.ts', source('lib/freeTierOffer.ts'), ts.ScriptTarget.Latest, true)
+const grantDeclarations = []
+function findGrant(node) {
+  if (ts.isVariableDeclaration(node) && node.name.getText(offerAst) === 'TRIAL_GRANT_CREDITS_COPY') grantDeclarations.push(node)
+  ts.forEachChild(node, findGrant)
+}
+findGrant(offerAst)
+equal(grantDeclarations.length, 1, 'trial copy has one canonical grant declaration')
+ok(ts.isNumericLiteral(grantDeclarations[0].initializer), 'canonical trial grant is a numeric literal')
+const trialGrant = Number(grantDeclarations[0].initializer.text)
+ok(form.includes(`Free to start: ${trialGrant} credits, no card.`), 'the form states the canonical free grant and no-card condition honestly')
+ok(form.includes('You can edit the prompt before generating.'), 'the form preserves review before generation')
 ok(admin.includes("'example_remix_form_viewed', 'example_remix_topic_submitted'"), 'admin fetches both funnel events')
 ok(admin.includes("event.metadata?.version === 'example_remix_v1'"), 'admin isolates the experiment version')
 ok(admin.includes('.map(checkoutActorKey)'), 'browser stages count unique identifiable actors')

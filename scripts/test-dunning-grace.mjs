@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // CRLF normalizado na leitura: sem isto toda asserção multi-linha fica vermelha
@@ -19,6 +20,31 @@ const read = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
 const access = read('lib/billing/subscriptionAccess.ts')
 const webhook = read('app/api/stripe/webhook/route.ts')
 const mrr = read('app/api/admin/_shared/mrr.ts')
+const ts = createRequire(join(root, 'package.json'))('typescript')
+
+// Owner lookup and reconciliation grew this branch beyond a text-distance
+// window. Require the actual event call to remain inside the dunning-only
+// then-branch; an event moved outside it or emitted twice must fail.
+function dunningEventIsGuarded(source) {
+  const ast = ts.createSourceFile('stripe-webhook.ts', source, ts.ScriptTarget.Latest, true)
+  const events = []
+  function visit(node) {
+    if (ts.isCallExpression(node) && node.expression.getText(ast) === 'writeServerEvent' &&
+        node.arguments[0] && ts.isObjectLiteralExpression(node.arguments[0]) &&
+        node.arguments[0].properties.some(property => ts.isPropertyAssignment(property) &&
+          property.name.getText(ast) === 'name' && ts.isStringLiteral(property.initializer) &&
+          property.initializer.text === 'subscription_access_held_during_dunning')) events.push(node)
+    ts.forEachChild(node, visit)
+  }
+  visit(ast)
+  return events.length === 1 && events.every(event => {
+    for (let parent = event.parent; parent; parent = parent.parent) {
+      if (ts.isIfStatement(parent) && parent.expression.getText(ast) === 'stripeSubscriptionIsDunning(failedSubscription.status)' &&
+          parent.thenStatement.pos <= event.pos && parent.thenStatement.end >= event.end) return true
+    }
+    return false
+  })
+}
 
 let total = 0
 let failed = 0
@@ -86,10 +112,14 @@ check(
 )
 check(
   'o evento só sai no ramo de cobrança em curso, não em todo acesso mantido',
-  /if \(stripeSubscriptionIsDunning\(failedSubscription\.status\)\) \{[\s\S]{0,400}?subscription_access_held_during_dunning/.test(
-    webhook
-  )
+  dunningEventIsGuarded(webhook)
 )
+check('controle: emitir em todo acesso mantido reprova', !dunningEventIsGuarded(webhook.replace(
+  'if (stripeSubscriptionIsDunning(failedSubscription.status)) {', 'if (true) {'
+)))
+check('controle: remover o evento reprova', !dunningEventIsGuarded(webhook.replace(
+  "name: 'subscription_access_held_during_dunning'", "name: 'mutant_event_removed'"
+)))
 
 // ── 4. A contradição que provou o defeito não pode voltar ───────────────────
 // O painel conta past_due como receita viva. Se o produto voltar a tratar
