@@ -25,7 +25,8 @@
     "scripts/test-filmes-f1f3-ajuste-1910.mjs": 0,
     "scripts/test-support/desfaz-ads-escolha-2310.mjs": 0,
     "scripts/test-ads-escolha-2310.mjs": 0,
-    "scripts/test-ads-cena-respaldo-2110.mjs": 0
+    "scripts/test-ads-cena-respaldo-2110.mjs": 0,
+    "scripts/test-romance-adulto-1310.mjs": 1
   },
   "__contextos": {
     "app/api/generate-video-cinematic/route.ts": [
@@ -222,5 +223,15 @@
   "scripts/test-support/desfaz-ads-cena-retomada-2110.mjs": [],
   "scripts/test-support/desfaz-ads-escolha-2310.mjs": [],
   "scripts/test-ads-escolha-2310.mjs": [],
-  "scripts/test-ads-cena-respaldo-2110.mjs": []
+  "scripts/test-ads-cena-respaldo-2110.mjs": [],
+  "scripts/test-romance-adulto-1310.mjs": [
+    [
+      "  const original = semCartoonConsistencia2210(rd(arquivo), arquivo) // KINEO-CARTOON-CONSISTENCIA-2210 — comprova a âncora na fonte histórica que receberá a mutação.",
+      "  const original = rd(arquivo)"
+    ],
+    [
+      "    const Mm = carregar((rel, txt) => { const historico = semCartoonConsistencia2210(txt, rel); return rel === arquivo ? historico.split(de).join(para) : historico }) // KINEO-CARTOON-CONSISTENCIA-2210 — retira só esta camada ANTES da mutação; asserções e camadas antigas preservadas.",
+      "    const Mm = carregar((rel, txt) => (rel === arquivo ? txt.split(de).join(para) : txt))"
+    ]
+  ]
 }
