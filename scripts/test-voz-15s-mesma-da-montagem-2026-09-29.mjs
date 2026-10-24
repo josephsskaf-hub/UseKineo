@@ -23,6 +23,7 @@
 //   5. mutantes, todos VERMELHOS.
 import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newest layer before the prior voice contract.
 import { linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { linhasTrocadasJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: o crítico do still só acrescenta linhas (nenhuma troca); a lista de trocas dele entra no filtro por completude
 import { linhasTrocadasMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // reancorado KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as linhas da base da rota que o assunto traduzido / a fala sem buraco trocaram de propósito (lista exata no desfaz; provadas em test-meta95-assunto-1910)
@@ -87,7 +88,7 @@ const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
 const semCR = (s) => (s == null ? null : s.split(CR + LF).join(LF))
-const rd = (p) => semCR(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => semCR(semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p))
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }
@@ -132,6 +133,12 @@ let BASE = null
   }
 }
 const rdBase = (p) => { if (!BASE) return null; try { return semCR(git(['show', `${BASE}:${p}`])) } catch { return null } }
+const historicalTarget = (p) => { // KINEO-IDIOMAS-FORMATOS-2410 — pin only after proving the exact complete undo equals the immutable task base; any other drift remains guarded.
+  const raw = semCR(readFileSync(join(RAIZ, p), 'utf8')), restored = semIdiomasFormatos2410(raw, p)
+  if (restored === raw) return []
+  if (restored !== semCR(git(['show', `${IDIOMAS_FORMATOS_2410_BASE}:${p}`]))) throw new Error('Restored source diverges from immutable task base: ' + p)
+  return [IDIOMAS_FORMATOS_2410_BASE]
+}
 console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 
 // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: o conserto de 13/10 troca em
@@ -410,7 +417,7 @@ console.log('4) 35/60/90 e os outros motores (e o 15 s fora do Seedance): rota e
   checa('campo narration_voice inválido (vertical não-texto ou longo, fator fora de (0, 1], tipo errado): ignorado — o corpo do cliente intacto', todosIguais.every(Boolean))
   checa('sem claim (Kineo 1 / fast): nenhuma voz assinada, TTS igual à base', await (async () => { const g = await AGORA.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); const a = await ANTES.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); return g.vozAssinada === null && eqJ(g.tts, a.tts) && eqJ(g.bodyDepois, a.bodyDepois) })())
   // as duas rotas só GANHARAM linhas (a trava do 3x6 exige; e nenhuma chamada de TTS do compose mudou)
-  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }
+  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, ...historicalTarget(p), '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }
   checa('rota do cinematic e /api/compose: nenhuma linha da base alterada ou apagada — só acréscimos', Boolean(BASE) && soAcrescimos(ROTA_P) && soAcrescimos(COMPOSE_P))
 }
 

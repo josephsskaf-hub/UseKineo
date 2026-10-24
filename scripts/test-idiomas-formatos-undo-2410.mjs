@@ -9,7 +9,6 @@ const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer
 const lf = s => s.replace(/\r\n/g, '\n')
 const hash = s => createHash('sha256').update(s).digest('hex')
 assert.equal(manifest.base, BASE)
-let checks = 0
 for (const [file, item] of Object.entries(manifest.sources)) {
   const raw = readFileSync(file, 'utf8'), current = lf(raw), base = git('show', BASE + ':' + file)
   assert.equal(item.before, base, 'before bytes come from immutable origin/main: ' + file)
@@ -23,7 +22,6 @@ for (const [file, item] of Object.entries(manifest.sources)) {
   assert.throws(() => undo(current + '\n// source tampered\n', file), /fonte divergente/)
   const removed = current.replaceAll('KINEO-IDIOMAS-FORMATOS-2410', 'REMOVED_TASK_MARK')
   if (removed !== current) assert.throws(() => undo(removed, file), /fonte divergente/)
-  checks += 10
 }
 assert.ok(Object.keys(manifest.sources).length >= 20, 'complete productive and historical adaptation layer is inventoried')
 for (const file of manifest.newFiles) {
@@ -34,4 +32,4 @@ for (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && exi
 const actual = [...new Set([...git('diff', '--name-only', BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
 assert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'no changed or new task file escapes exact undo inventory')
 assert.equal(undo('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n')
-console.log(`ok idiomas/formatos undo: ${checks} exact source checks; immutable base; idempotent; LF/CRLF/Windows; tampering rejected; full inventory; no network or filesystem mutation`)
+console.log(`ok idiomas/formatos undo: ${Object.keys(manifest.sources).length} existing sources restored exactly; immutable base; idempotent; LF/CRLF/Windows; tampering rejected; full inventory; no network or filesystem mutation`)
