@@ -173,6 +173,7 @@
     "docs/CARTOON-TRACAO-2210.md",
     "docs/DECISIONS.md",
     "docs/KINEO-AMOSTRA-ANUNCIO-2410.md",
+    "docs/ph/PH-TEXTOS-2026-09-10.md",
     "docs/previews/COMPRA-AVULSA-2410-ads-desktop.png",
     "docs/previews/COMPRA-AVULSA-2410-ads-mobile.png",
     "docs/previews/COMPRA-AVULSA-2410-confirmation-auth-desktop.png",
@@ -434,6 +435,7 @@
     "lib/growth/kidsLaunchEmail.ts",
     "lib/lifecycle/emailEvents.ts",
     "lib/oneTimeItem.ts",
+    "lib/paypal.ts",
     "lib/stripe/oneTimeItemCheckout.ts",
     "lib/stripe/oneTimeItemFulfillment.ts",
     "lib/ui/homeCardPlayback.ts",
@@ -443,6 +445,7 @@
     "package.json",
     "scripts/apresentadores-2410.mjs",
     "scripts/lib/apresentadores-admin2410.mjs",
+    "scripts/ph-fatos.mjs",
     "scripts/test-admin-leve-undo-2310.mjs",
     "scripts/test-ads-amostra-anuncio-2410.mjs",
     "scripts/test-ads-amostra-data-2410.mjs",
@@ -469,6 +472,7 @@
     "scripts/test-cards-giro-2410.mjs",
     "scripts/test-cards-giro-undo-2410.mjs",
     "scripts/test-cartoon-tracao.mjs",
+    "scripts/test-client-short-brief.mjs",
     "scripts/test-compra-avulsa-2410.mjs",
     "scripts/test-compra-avulsa-delivery-2410.mjs",
     "scripts/test-compra-avulsa-return-2410.mjs",
@@ -476,13 +480,56 @@
     "scripts/test-compra-avulsa-ui-2410.mjs",
     "scripts/test-compra-avulsa-undo-2410.mjs",
     "scripts/test-compra-avulsa-webhook-2410.mjs",
+    "scripts/test-compra-sem-login-2026-10-06.mjs",
+    "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
+    "scripts/test-credit-minutes-ui.mjs",
+    "scripts/test-enterprise-alternative-business-path.mjs",
+    "scripts/test-entrega-noite-r6-2026-09-09.mjs",
+    "scripts/test-failure-recovery-honest.mjs",
+    "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
+    "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-gpt-handoff-verdade.mjs",
+    "scripts/test-growth-roundup-search-intent.mjs",
+    "scripts/test-hora-da-volta-2026-08-31.mjs",
     "scripts/test-idiomas-formatos-undo-2410.mjs",
     "scripts/test-kids-venda-2010.mjs",
     "scripts/test-kit-bf-1910.mjs",
     "scripts/test-kit-bf-venda-2010.mjs",
     "scripts/test-leva-integration-2410.mjs",
+    "scripts/test-limit-purchase-fit.mjs",
+    "scripts/test-llms-engine-availability.mjs",
+    "scripts/test-local-business-tool-discovery.mjs",
+    "scripts/test-manrope-system.mjs",
+    "scripts/test-mcp-pagina-2026-09-30.mjs",
+    "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-money-truth-contract.mjs",
+    "scripts/test-motores-d1-2026-09-01.mjs",
+    "scripts/test-multiformato-2026-09-02.mjs",
+    "scripts/test-next-episode-wall-2026-09-06.mjs",
+    "scripts/test-pacote2-precos-2026-10-05.mjs",
+    "scripts/test-pagamentos-alternativos-2026-10.mjs",
     "scripts/test-paginas-ia-claras-2110.mjs",
+    "scripts/test-paginas-ugc-2010.mjs",
+    "scripts/test-paypal-canonical-catalog.mjs",
+    "scripts/test-ph-kit-2026-09-09.mjs",
+    "scripts/test-plan-film-language.mjs",
+    "scripts/test-ponte-com-preco-2026-09-07.mjs",
+    "scripts/test-porta-episodio2-2026-09-04.mjs",
+    "scripts/test-precos-clipes-kling25-1610.mjs",
+    "scripts/test-private-file-share.mjs",
+    "scripts/test-publicador-refspec-2026-09-05.mjs",
+    "scripts/test-quadro-real-2026-09-02.mjs",
+    "scripts/test-ready-notice-studio-review.mjs",
+    "scripts/test-recusa-analyze-copy-2026-09-01.mjs",
+    "scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs",
+    "scripts/test-render-morto.mjs",
+    "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+    "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs",
+    "scripts/test-rodape-segmentos-2026-09-27.mjs",
     "scripts/test-runway.mjs",
+    "scripts/test-scene-disposition.mjs",
+    "scripts/test-script-preflight.mjs",
+    "scripts/test-season-strip.mjs",
     "scripts/test-support/ads-amostra-data-sql-2410.cjs",
     "scripts/test-support/ads-amostra-entry-2410.mjs",
     "scripts/test-support/ads-amostra-race-2410.mjs",
@@ -513,6 +560,7 @@
     "scripts/test-support/leva-integration-2410.mjs",
     "scripts/test-support/offline-ts-loader.mjs",
     "scripts/test-support/seal-leva-integration-2410.mjs",
+    "scripts/test-teto-no-prompt.mjs",
     "scripts/test-trafego-pages-2310.mjs",
     "scripts/test-trafego-undo-2310.mjs",
     "supabase/migrations/20261024175246_ads_escolha_sample.sql"
@@ -616,6 +664,9 @@
     },
     "docs/KINEO-AMOSTRA-ANUNCIO-2410.md": {
       "hash": "fa206611fba1d5de5b2f742f8a745011885510b94f32fb3648470f900d25d0b3"
+    },
+    "docs/ph/PH-TEXTOS-2026-09-10.md": {
+      "hash": "7273d8dd34610ac840f8f298bcaca3598743416c0832d4b188e0abeded999e46"
     },
     "docs/previews/COMPRA-AVULSA-2410.html": {
       "hash": "8f0387fc20e8bb1acbbe1122fda23a540d0087c9859f6e404de2d1595731dcaa"
@@ -1313,6 +1364,9 @@
     "lib/oneTimeItem.ts": {
       "hash": "8517d9e013c5f688e26fc8cdf235cd569acea5d0de2198454427abc5d5eecf42"
     },
+    "lib/paypal.ts": {
+      "hash": "253d761dfedfb3456aa0174219240038fb4f44255107da4589d44cc4f8a408c1"
+    },
     "lib/stripe/oneTimeItemCheckout.ts": {
       "hash": "3e01c1386dd3954448d3812044b62c7f2d209ddc6588e26f3eed3fc67fd59219"
     },
@@ -1339,6 +1393,9 @@
     },
     "scripts/lib/apresentadores-admin2410.mjs": {
       "hash": "d45439abad0e835e3eb505cacd004d11a1a3df5a0f6b2778b9856a4d3edd4ced"
+    },
+    "scripts/ph-fatos.mjs": {
+      "hash": "ad738f695d104f6dc8b7a8d8cdf8af0ccd6ffcf594e27a64bca7985b95ab4d14"
     },
     "scripts/test-admin-leve-undo-2310.mjs": {
       "hash": "e66c3ec54e1315f1a90e6a22d2fa0e044a3cd6e64afd703d13d98b64d7765a5e"
@@ -1418,6 +1475,9 @@
     "scripts/test-cartoon-tracao.mjs": {
       "hash": "210dd0be3ff75e545c31c92501be00f149066d7632ee6709367bd39e5890758f"
     },
+    "scripts/test-client-short-brief.mjs": {
+      "hash": "dc1ac3843966e0a19e1d7d3d5287f4dea3f8dad354c0d26e1466a8ea5a1965aa"
+    },
     "scripts/test-compra-avulsa-2410.mjs": {
       "hash": "818cc801de6ee954d8e811a446919d4fa1f5c927ac534f5646a369fd569114d7"
     },
@@ -1439,6 +1499,39 @@
     "scripts/test-compra-avulsa-webhook-2410.mjs": {
       "hash": "9a9c59fa3d399c5b38e2af5cba656b82b1a6444132ff5f5eae6468735523b087"
     },
+    "scripts/test-compra-sem-login-2026-10-06.mjs": {
+      "hash": "650647296fa70bbe410e39bdba69b4d953acddab6261bfd5b9b3e092c525dc9b"
+    },
+    "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs": {
+      "hash": "e78365e5073a3484fb553623294fd05fa9ae708ea835db77a5d7465ba205ef3a"
+    },
+    "scripts/test-credit-minutes-ui.mjs": {
+      "hash": "a670ac2e9e7d392d66cf9a5b8a5b2de26f71ddb8803af6addc3ede7b1324a7c1"
+    },
+    "scripts/test-enterprise-alternative-business-path.mjs": {
+      "hash": "822d824a4c875bbac036448afe170767e8ed6b173287dc6cf15a1ca9ba260c0c"
+    },
+    "scripts/test-entrega-noite-r6-2026-09-09.mjs": {
+      "hash": "7088348d3b1dc2cd06ffd8f8c470c3ba6b18ce803253a76e04b0c6f58f1c5082"
+    },
+    "scripts/test-failure-recovery-honest.mjs": {
+      "hash": "b4699a1a9a782aaba2e6dc4dd6ed7b9c38b848bc82354c818db7ed5879ff7676"
+    },
+    "scripts/test-fal-saldo-alerta-2026-09-28.mjs": {
+      "hash": "a5fe7e299e5454bd4e7a99a23d44f135278e1a2799d22873c4562a8cfca90fbf"
+    },
+    "scripts/test-filmes-f1-virgula-1910.mjs": {
+      "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
+    },
+    "scripts/test-gpt-handoff-verdade.mjs": {
+      "hash": "e31778c2fe127348d7ae60798036d63e1e42af92c7b788c0c4fa52d0f6e0b26d"
+    },
+    "scripts/test-growth-roundup-search-intent.mjs": {
+      "hash": "c36ba304d2a5b8c059049bade7d40f96dd6208be822efc483886f774f0e933cc"
+    },
+    "scripts/test-hora-da-volta-2026-08-31.mjs": {
+      "hash": "307d81ef06c5d8bcee255431d19da9344c7b362de36371c28b46417932ef2fd0"
+    },
     "scripts/test-idiomas-formatos-undo-2410.mjs": {
       "hash": "9c239409e4b261080033b4f7de281b2357909d1480e0b34040c4577437301cc2"
     },
@@ -1454,11 +1547,107 @@
     "scripts/test-leva-integration-2410.mjs": {
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
     },
+    "scripts/test-limit-purchase-fit.mjs": {
+      "hash": "86fc482c98289209ba5087bf02664562c6052b6678669894bc3d3be1db29b991"
+    },
+    "scripts/test-llms-engine-availability.mjs": {
+      "hash": "bf4523aea539ed192a8ab664865d28f86cbed0db663ff96965b0a479cf9ffcac"
+    },
+    "scripts/test-local-business-tool-discovery.mjs": {
+      "hash": "c8175aa64ddfb635d7f6a375f9428542c2efd097f19cc52aac34baee07522bfe"
+    },
+    "scripts/test-manrope-system.mjs": {
+      "hash": "aacf743785fb92bfc5b6ef44fd8d69862a3fee5536d564d45ec00a5e314ac50d"
+    },
+    "scripts/test-mcp-pagina-2026-09-30.mjs": {
+      "hash": "88ae992cde7b4c88f7a82cf1ae2496674463d787e6740010175f665c7f43c9c1"
+    },
+    "scripts/test-menu-ugc-2010.mjs": {
+      "hash": "0cc36ad33d7e7751c6912c2b4cfaec03df51d4aa7619834c413e76ffe1a7bbc6"
+    },
+    "scripts/test-money-truth-contract.mjs": {
+      "hash": "efdff89605df6a760e9ce38490b4f0f311c02d70645bef2b95bf3cf303ae6de7"
+    },
+    "scripts/test-motores-d1-2026-09-01.mjs": {
+      "hash": "e42abb98ff7a35a99360ab861db7d6954b74da5fefe8ba76b576e89944dc562b"
+    },
+    "scripts/test-multiformato-2026-09-02.mjs": {
+      "hash": "ee10a1d67bcaa2d3331ec1d2239fbf2cc5fd2bf0e2cdfb3a641eef07320bf5cd"
+    },
+    "scripts/test-next-episode-wall-2026-09-06.mjs": {
+      "hash": "326087d062058f572b3df5ebbb9af4e54d8d86ba43b5144df6a1cecb96f4da34"
+    },
+    "scripts/test-pacote2-precos-2026-10-05.mjs": {
+      "hash": "12bf397482e24a74b77abdf11822528db1e26fc288eaefe928f8e9b9f1eacc1b"
+    },
+    "scripts/test-pagamentos-alternativos-2026-10.mjs": {
+      "hash": "e933e1f5f4bde76b37947f0e166afb166cc71232f0e8aef6b0c4da0edecc7924"
+    },
     "scripts/test-paginas-ia-claras-2110.mjs": {
       "hash": "d884158d4704bdc12969054ef440b77572b715aa0bf99f51aa7bc571d715afaf"
     },
+    "scripts/test-paginas-ugc-2010.mjs": {
+      "hash": "89274ea10613dd6df3dfbe48db1b531e987af344fc524982862e9b4f2508d3b0"
+    },
+    "scripts/test-paypal-canonical-catalog.mjs": {
+      "hash": "85d58c49024d660a1b6785b8868a81258c8c5faeb28876865ac2b32747d6aa14"
+    },
+    "scripts/test-ph-kit-2026-09-09.mjs": {
+      "hash": "7acf4a977938c482c683eceda53695e54a49a9edc88a473ca95038e2c50cc4c0"
+    },
+    "scripts/test-plan-film-language.mjs": {
+      "hash": "477cf61c69e7b5d1f6c33d85501f3eaae7584265565e043b436f2b8f5f948743"
+    },
+    "scripts/test-ponte-com-preco-2026-09-07.mjs": {
+      "hash": "f8e0f6efc6c20e525a69217bff7756a979b47de94ca7fc9da2d88168287bf8c7"
+    },
+    "scripts/test-porta-episodio2-2026-09-04.mjs": {
+      "hash": "4064cafd05b15557b4ca61586bdacf74ebb59374e3848d4ba872eb1ff2efb82e"
+    },
+    "scripts/test-precos-clipes-kling25-1610.mjs": {
+      "hash": "1dcdcd1c1f628b4ca1f85f6577fad06a9e2b7c1730b5ee591ee8eea1b2c789a5"
+    },
+    "scripts/test-private-file-share.mjs": {
+      "hash": "55533327bdb1322be6d97d4816df640a3df4fee02655faccc37c381af78ffa9f"
+    },
+    "scripts/test-publicador-refspec-2026-09-05.mjs": {
+      "hash": "66c9d6e38b61b8badbce5a0cf3b5c9e3a4e0b32a1a2a32b601ac4a260f7667ba"
+    },
+    "scripts/test-quadro-real-2026-09-02.mjs": {
+      "hash": "63991752851db64df7b6ac8624aa15e0f6d5919e8e44b41792d32c21cfe3a8ac"
+    },
+    "scripts/test-ready-notice-studio-review.mjs": {
+      "hash": "308fd3fb838ecd97cd6f5b5a7891a4dc5b20e3efbfc0451053e9f1d0c1bdc7be"
+    },
+    "scripts/test-recusa-analyze-copy-2026-09-01.mjs": {
+      "hash": "31cffa2212292cd9ac84e64c3de040eb1cd6fb293afcd42ec765e81a778b5a34"
+    },
+    "scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs": {
+      "hash": "ba6c651edb0e4d2eb53640feb4743071cbc4dcdf452235fe647ded42efdfda6c"
+    },
+    "scripts/test-render-morto.mjs": {
+      "hash": "c245eb0a92c75208bc5478010de7826d6296f2a314e9659b68484e140a238255"
+    },
+    "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs": {
+      "hash": "ac90788fd977a675303f108576d10aacb2d96b158b00738af2537fafbe4c466d"
+    },
+    "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs": {
+      "hash": "d944441fd6df3043e710708d1d15ed8357ae98a0064be7fbfa33eca76ea57b61"
+    },
+    "scripts/test-rodape-segmentos-2026-09-27.mjs": {
+      "hash": "49fc5c59efdc5bf436a6135350182ebc52a90409d90eec50e03acbd6d46211c1"
+    },
     "scripts/test-runway.mjs": {
       "hash": "32b2908b94391051d862da8d13e2f175e0eb5038fbcb7957ff9b0186f5370b7b"
+    },
+    "scripts/test-scene-disposition.mjs": {
+      "hash": "b5dcb69c1c75d87269e6dee053704b399373f7df2d1677eda6dc5abc00b329ca"
+    },
+    "scripts/test-script-preflight.mjs": {
+      "hash": "423a866f9edbeb4abf8e23e8c8bae39b6ce8721d6831b7b02c1dff1607aeab35"
+    },
+    "scripts/test-season-strip.mjs": {
+      "hash": "f3657557864e9666f482fbbab82939c301e697fef69b69582dadc871bc89a307"
     },
     "scripts/test-support/ads-amostra-data-sql-2410.cjs": {
       "hash": "e37fb7075544e003d710ff4a420e25ecf7a8d9874eba57365ee7aeab24a7d8e4"
@@ -1546,6 +1735,9 @@
     },
     "scripts/test-support/seal-leva-integration-2410.mjs": {
       "hash": "f553c94da01c7576d7d935773d7edba59f9083124b53b65c9ed4c357dfff2eb0"
+    },
+    "scripts/test-teto-no-prompt.mjs": {
+      "hash": "b5ea491973aae19ae7f317bc72a48db17a102efc82fc7c7d2e2ee38bd6c6e799"
     },
     "scripts/test-trafego-pages-2310.mjs": {
       "hash": "c021ff17429765cacf52f7b350c0f4766875a21cdab80f40310d2786db0cd0cd"
