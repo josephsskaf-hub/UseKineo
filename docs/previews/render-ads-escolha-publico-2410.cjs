@@ -13,7 +13,8 @@ function render(before,stage='edit',lang='pt',extra={}){
  function load(p){if(cache.has(p))return cache.get(p);const box={exports:{}};cache.set(p,box.exports);const code=ts.transpileModule(read(p,before),{compilerOptions:{jsx:4,module:1,target:9,esModuleInterop:true}}).outputText;vm.runInNewContext(code,{module:box,exports:box.exports,URL,URLSearchParams,AbortController,console,require:id=>{
  if(id==='react')return hooks;if(id==='react/jsx-runtime')return req(id);if(id==='react-dom')return {createPortal:x=>x};if(id.includes('uploadFootage'))return {AdsUploadError:class extends Error{},uploadFootage:()=>{throw Error('no effects in visual fixture')}};let next=id.startsWith('@/')?id.slice(2):path.posix.join(path.posix.dirname(p),id);if(!fs.existsSync(path.join(root,next)))next+=fs.existsSync(path.join(root,next+'.tsx'))?'.tsx':'.ts';return load(next)}},{filename:p});return box.exports}
  const component=load(file),cat=load('lib/ads/cena/escolhaCatalog.ts');
- const fixture=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(cat.escolhaScenario('footwear_beach').previewSvg.replace('PRÉVIA ILUSTRATIVA','FIXTURE ILUSTRATIVA'))}`;
+ const fixtureSvg=decodeURIComponent(cat.escolhaPreviewDataUrl('footwear_beach',lang).split(',')[1]).replace('PRÉVIA ILUSTRATIVA','FIXTURE ILUSTRATIVA').replace('ILLUSTRATIVE PREVIEW','ILLUSTRATIVE FIXTURE');
+ const fixture=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(fixtureSvg)}`;
  if(stage==='choose'||stage==='rendering'){values[3]=[1,2,3,4].map(n=>({id:'still-'+n,url:fixture,reasons:['anatomy:unassessed:knees']}));values[4]='still-2'}
  let html=renderToStaticMarkup(React.createElement(component.default,{lang,ownerKey:'offline:owner',resume:false})).replaceAll('src="https://offline.invalid/product.jpg"', 'src="'+fixture+'"');
  html=html.replace(/src="\/ads\/presenters\/([^\"]+)"/g,(_,name)=>`src="data:image/webp;base64,${fs.readFileSync(path.join(root,'public/ads/presenters',name)).toString('base64')}"`);
