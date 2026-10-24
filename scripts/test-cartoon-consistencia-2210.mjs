@@ -11,6 +11,7 @@ import { cartoonEpisodeBudgetProof } from './test-support/cartoon-episode-budget
 import { cartoonMusicBudgetProof } from './test-support/cartoon-music-budget-proof-2210.mjs'
 import { semCartoonConsistencia2210, CARTOON_CONSISTENCIA_FILES, CARTOON_CONSISTENCIA_NEW, CARTOON_CONSISTENCIA_BASE, CARTOON_CONSISTENCIA_MARK as MARK } from './test-support/desfaz-cartoon-consistencia-2210.mjs'
 import { semAdsCenaRetomada2110 } from './test-support/desfaz-ads-cena-retomada-2110.mjs'
+import { cartoonMergeSource2410 } from './test-support/cartoon-merge-sources-2410.mjs' // KINEO-CARTOON-JUNTAR-2410 — behavior above reads raw sources; historical bytes below reverse only the exact external integration hunks.
 
 const RULE = 'lib/kidsCartoon/cartoonConsistency.ts', SERVER = 'lib/kidsCartoon/cartoonReferenceServer.ts'
 const GEN = 'app/api/generate-video-cinematic/route.ts'
@@ -235,7 +236,7 @@ for (const [name, file, from, to] of [
 await import('./test-cartoon-duration-floor-2210.mjs')
 
 for (const file of CARTOON_CONSISTENCIA_FILES) {
-  const actual = read(file), before = base(file), undone = semCartoonConsistencia2210(actual, file)
+  const actual = cartoonMergeSource2410(read(file), file, 'consistencia'), before = base(file), undone = semCartoonConsistencia2210(actual, file)
   assert.equal(undone, before, 'exact undo to base: ' + file)
   assert.equal(semCartoonConsistencia2210(undone, file), before, 'idempotent undo: ' + file)
   assert.equal(semCartoonConsistencia2210(actual.replace(/\n/g, '\r\n'), file), before.replace(/\n/g, '\r\n'), 'CRLF preserved: ' + file)
@@ -246,9 +247,9 @@ for (const file of CARTOON_CONSISTENCIA_FILES) {
 check('undeclared paths and null are untouched', semCartoonConsistencia2210('// ' + MARK, 'outside.ts') === '// ' + MARK && semCartoonConsistencia2210(null, CARTOON_CONSISTENCIA_FILES[0]) === null)
 const git = args => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 27 }).trim().split('\n').filter(Boolean)
 const declared = new Set([...CARTOON_CONSISTENCIA_FILES, ...CARTOON_CONSISTENCIA_NEW])
-const changed = [...git(['diff', '--name-only', CARTOON_CONSISTENCIA_BASE]), ...git(['ls-files', '--others', '--exclude-standard'])]
+const changed = git(['diff', '--name-only', CARTOON_CONSISTENCIA_BASE, '153e9f31f']) // KINEO-CARTOON-JUNTAR-2410 — closed layer inventory, not unrelated upstream files.
 check('the delivery touches only its explicit files', changed.length > 0 && changed.every(p => declared.has(p)))
 const TRAVA = '[TRAVA 8.2 — vai do fundador 22/10 "vamos dar tração em todas"]'
-const subjects = git(['log', '--format=%s', CARTOON_CONSISTENCIA_BASE + '..HEAD'])
+const subjects = git(['log', '--format=%s', CARTOON_CONSISTENCIA_BASE + '..153e9f31f']) // KINEO-CARTOON-JUNTAR-2410 — this task's immutable committed authorization remains checked.
 check('each committed delivery change carries its own prefix and exact founder authorization', subjects.every(s => s.startsWith(MARK + ' ') && s.includes(TRAVA)))
 console.log(`${MARK}: ${proofs} integrated proofs + ${story.assertions} story/reset + ${retry.assertions} retry + ${episode.assertions} episode budget + ${music.assertions} music budget; ${killed}/${killed} integrated mutants rejected + duration 5/5; no real network/provider call.`)

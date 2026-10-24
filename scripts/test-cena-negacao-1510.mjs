@@ -28,7 +28,6 @@ import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
 import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import vm from 'node:vm'
 import ts from 'typescript'

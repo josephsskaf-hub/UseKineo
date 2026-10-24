@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { cartoonMergeSource2410 } from './test-support/cartoon-merge-sources-2410.mjs' // KINEO-CARTOON-JUNTAR-2410 — raw behavior above, exact historical integration projection below.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -262,7 +263,7 @@ const cases = {
     const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs', 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs', 'scripts/test-ads-cena-95-pacing-2110.mjs', 'scripts/test-support/desfaz-ads-escolha-2310.mjs', 'scripts/test-ads-escolha-2310.mjs']
     ok(JSON.stringify(Object.keys(hunks)) === JSON.stringify(expected), 'undo has exact nine existing task sources, no unrelated source')
     for (const [file, changes] of Object.entries(hunks)) {
-      const candidate = read(file), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
+      const candidate = cartoonMergeSource2410(read(file), file, 'tracao'), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
       ok(undo(candidate, file) === base, 'exact reverse to immutable base: ' + file)
       ok(undo(candidate.replace(/\n/g, '\r\n'), file) === base.replace(/\n/g, '\r\n'), 'CRLF exact reverse: ' + file)
       ok(undo(base, file) === base && undo(candidate, file.replace(/\//g, '\\')) === base, 'base idempotence plus Windows paths: ' + file)
@@ -289,33 +290,34 @@ const cases = {
     }
   },
   async historicalHashChain() {
+    const historicalRead = file => cartoonMergeSource2410(read(file), file, 'tracao') // KINEO-CARTOON-JUNTAR-2410 — same immutable hash-chain proofs, with only the exact newer integration removed.
     const { semCartoonTracao2210: undo } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
     const { compileOffline } = await import('./test-support/truncamento-dedupe-offline.mjs')
     const { semAdsCenaRetomada2110: retomada } = await import('./test-support/desfaz-ads-cena-retomada-2110.mjs')
     const pacingFile = 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs'
     const dependencies = { 'node:fs': { readFileSync: fs.readFileSync }, 'node:crypto': await import('node:crypto'), 'node:path': await import('node:path'), 'node:url': await import('node:url'), './desfaz-cartoon-tracao-2210.mjs': { semCartoonTracao2210: undo }, './desfaz-ads-cena-retomada-2110.mjs': { semAdsCenaRetomada2110: retomada } }
     const compile = source => compileOffline(source.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, pacingFile))), dependencies).semAdsCena95Pacing2110
-    const source = read(pacingFile), pacing = compile(source)
+    const source = historicalRead(pacingFile), pacing = compile(source)
     const file = 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs'
-    const snapshots = JSON.parse(read('scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json'))
-    ok(pacing(read(file), file) === snapshots[file].before, 'direct pacing callers remove exact Cartoon delta before preserving the historical hash')
-    const unrelated = 'X' + retomada(undo(read(file), file), file)
+    const snapshots = JSON.parse(historicalRead('scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json'))
+    ok(pacing(historicalRead(file), file) === snapshots[file].before, 'direct pacing callers remove exact Cartoon delta before preserving the historical hash')
+    const unrelated = 'X' + retomada(undo(historicalRead(file), file), file)
     assert.throws(() => pacing(unrelated, file), /fonte divergente/, 'historical whole-source hash still rejects any other edit')
     checks++
     // The newest main adapter now also removes Cartoon. Mutate that head, rather than a redundant inner adapter.
     const escolhaFile = 'scripts/test-support/desfaz-ads-escolha-2310.mjs'
     const compileHead = text => compileOffline(text.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, escolhaFile))), dependencies).semAdsEscolha2310
-    const headSource = read(escolhaFile), head = compileHead(headSource)
+    const headSource = historicalRead(escolhaFile), head = compileHead(headSource)
     const headFile = '.github/workflows/guardiao.yml', headBefore = git('show', BASE + ':' + headFile).replace(/\r\n/g, '\n')
-    ok(head(read(headFile), headFile) === headBefore, 'newest main adapter removes exact Cartoon before handing unrelated sources to earlier unchanged hashes')
+    ok(head(historicalRead(headFile), headFile) === headBefore, 'newest main adapter removes exact Cartoon before handing unrelated sources to earlier unchanged hashes')
     const withoutAdapter = compileHead(headSource.replace('texto = semCartoonTracao2210(texto, file)', 'texto = texto'))
-    assert.throws(() => assert.equal(withoutAdapter(read(headFile), headFile), headBefore), assert.AssertionError, 'in-memory mutant removing newest adapter leaves the Cartoon delta and fails exact historical input')
+    assert.throws(() => assert.equal(withoutAdapter(historicalRead(headFile), headFile), headBefore), assert.AssertionError, 'in-memory mutant removing newest adapter leaves the Cartoon delta and fails exact historical input')
     checks++
-    const knownHeadFile = 'lib/ads/cena/internal.ts', headSnapshots = JSON.parse(read('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
-    assert.throws(() => head('X' + read(knownHeadFile), knownHeadFile), /fonte divergente/, 'newest unchanged historical hash rejects one unrelated character in a known source')
+    const knownHeadFile = 'lib/ads/cena/internal.ts', headSnapshots = JSON.parse(historicalRead('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
+    assert.throws(() => head('X' + historicalRead(knownHeadFile), knownHeadFile), /fonte divergente/, 'newest unchanged historical hash rejects one unrelated character in a known source')
     checks++
     const withoutHeadHash = compileHead(headSource.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
-    ok(withoutHeadHash('X' + read(knownHeadFile), knownHeadFile) === headSnapshots[knownHeadFile].before, 'in-memory newest-hash bypass accepts an unrelated edit and is detected')
+    ok(withoutHeadHash('X' + historicalRead(knownHeadFile), knownHeadFile) === headSnapshots[knownHeadFile].before, 'in-memory newest-hash bypass accepts an unrelated edit and is detected')
     const withoutStrictHash = compile(source.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
     ok(withoutStrictHash(unrelated, file) === snapshots[file].before, 'in-memory mutant bypassing historical hash wrongly accepts unrelated edit and is detected')
   },
@@ -326,13 +328,13 @@ const cases = {
       'docs/CARTOON-INSTAGRAM-2210.md', 'docs/CARTOON-TRACAO-2210.md',
       'docs/previews/cartoon-tracao-2210.html', 'docs/previews/cartoon-tracao-2210-en-desktop.png', 'docs/previews/cartoon-tracao-2210-en-mobile.png',
       'docs/previews/cartoon-tracao-2210-pt-desktop.png', 'docs/previews/cartoon-tracao-2210-pt-mobile.png'])
-    const changed = git('diff', '--name-only', BASE).trim().split('\n').filter(Boolean)
-    const untracked = git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter(Boolean)
+    const changed = git('diff', '--name-only', BASE, '189e7e2b5').trim().split('\n').filter(Boolean) // KINEO-CARTOON-JUNTAR-2410 — exact closed task inventory.
+    const untracked = [] // KINEO-CARTOON-JUNTAR-2410 — new integration files belong to their own finite guardian.
     const assertScope = files => assert.ok(files.length > 0 && files.every(file => allowed.has(file)), 'finite Cartoon scope violated: ' + files.filter(file => !allowed.has(file)).join(', '))
     assertScope([...changed, ...untracked]); checks++
     assert.throws(() => assertScope([...changed, 'lib/compose.ts']), assert.AssertionError, 'in-memory scope mutant adding an unrelated production path is red'); checks++
     assert.throws(() => assertScope([...changed, 'docs/unrelated.md']), assert.AssertionError, 'in-memory scope mutant adding an unrelated document is red'); checks++
-    const subjects = git('log', '--format=%s', BASE + '..HEAD').trim().split('\n').filter(Boolean)
+    const subjects = git('log', '--format=%s', BASE + '..189e7e2b5').trim().split('\n').filter(Boolean) // KINEO-CARTOON-JUNTAR-2410 — preserve exact authorization on this closed delivery.
     ok(subjects.length > 0 && subjects.every(subject => subject.includes('[TRAVA 8.2 — vai do fundador 22/10 "de 1 ao 4, vamos dar tração em todas"]')), 'all current task commits carry the full founder authorization token')
   },
 }

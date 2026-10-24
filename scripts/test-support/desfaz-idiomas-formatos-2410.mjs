@@ -1,6 +1,7 @@
 // KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { cartoonMergeSource2410 } from './cartoon-merge-sources-2410.mjs' // KINEO-CARTOON-JUNTAR-2410 — exact newer integration before immutable language hashes.
 
 export const IDIOMAS_FORMATOS_2410_BASE = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
 export const IDIOMAS_FORMATOS_2410_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url), 'utf8'))
@@ -12,6 +13,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = cartoonMergeSource2410(text, file) // KINEO-CARTOON-JUNTAR-2410
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text

@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cartoonMergeSource2410 } from './cartoon-merge-sources-2410.mjs' // KINEO-CARTOON-JUNTAR-2410 — retain main's exact reader variants.
 export const CARTOON_CONSISTENCIA_MARK = 'KINEO-CARTOON-CONSISTENCIA-2210'
 export const CARTOON_CONSISTENCIA_BASE = '9501618af9f8ae588988d79b6ea954009c378097'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-cartoon-consistencia-2210-trocas.json'), 'utf8'))
@@ -18,6 +19,7 @@ export const CARTOON_CONSISTENCIA_NEW = Object.freeze([
   'docs/CARTOON-CONSISTENCIA-2026-10-22.md', 'docs/verification/cartoon-consistencia-2210-suite.json',
 ])
 export function semCartoonConsistencia2210(texto, file) {
+  if (String(file ?? '').replace(/\\/g, '/').startsWith('scripts/')) texto = cartoonMergeSource2410(texto, file) // KINEO-CARTOON-JUNTAR-2410
   const relative = String(file ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !Object.hasOwn(table.__acrescimos, relative) || !texto.includes(CARTOON_CONSISTENCIA_MARK)) return texto
   const swaps = new Map(table[relative] ?? []), used = new Set(), kept = []
