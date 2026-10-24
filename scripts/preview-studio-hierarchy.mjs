@@ -15,39 +15,54 @@ const entry = 'app/(dashboard)/studio/StudioClient.tsx'
 // time broke the harness after publication. Runtime still loads current code.
 const BASELINE_SHA = 'b80de68cd12cbcb7e65a573672e90801c2986e4d'
 const baseline = execFileSync('git', ['show', BASELINE_SHA + ':' + entry], { cwd: root, encoding: 'utf8' })
+const approvedRuntime = execFileSync('git', ['show', '3ec6c9d9b:' + entry], { cwd: root, encoding: 'utf8' })
 const cache = new Map()
 // Fixture state is keyed by real useState declarations, never a guessed index.
 // This is an offline render only: effects and setters are not executed.
-const ast = ts.createSourceFile(entry, baseline, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
-const stateNames = []
-function collectStates(node) {
-  if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) && node.initializer && ts.isCallExpression(node.initializer) && node.initializer.expression.getText(ast) === 'useState') stateNames.push(node.name.elements[0].getText(ast))
-  ts.forEachChild(node, collectStates)
+function statesIn(source) {
+  const ast = ts.createSourceFile(entry, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const names = []
+  function collect(node) {
+    if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) && node.initializer && ts.isCallExpression(node.initializer) && node.initializer.expression.getText(ast) === 'useState') names.push(node.name.elements[0].getText(ast))
+    ts.forEachChild(node, collect)
+  }
+  // Child components have independent hook frames; this harness invokes only
+  // StudioClient. Do not count their declarations as Studio state slots.
+  const component = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'StudioClient')
+  if (!component) throw new Error('Missing StudioClient function')
+  collect(component)
+  return names
 }
-collectStates(ast)
-let fixture = {}, stateIndex = 0, runtimeMode = false
-const react = { ...React, useEffect: () => {}, useMemo: (fn) => fn(), useRef: (value) => ({ current: value }), useState: (value) => {
-  const name = stateNames[stateIndex++]
+const stateNames = statesIn(baseline)
+let fixture = {}, stateIndex = 0, runtimeMode = false, runtimeSource = null, activeStateNames = stateNames
+const react = { ...React, useEffect: () => {}, useMemo: (fn) => fn(), useCallback: fn => fn, useRef: (value) => ({ current: value }), useState: (value) => {
+  const name = activeStateNames[stateIndex++]
   if (!name) throw new Error('Unexpected hook order; review fixture mapping')
   return [Object.hasOwn(fixture, name) ? fixture[name] : typeof value === 'function' ? value() : value, () => {}]
 } }
 function load(file) {
   if (cache.has(file)) return cache.get(file)
-  const source = file === entry && !runtimeMode ? baseline : fs.readFileSync(path.join(root, file), 'utf8')
+  const source = file === entry ? runtimeMode ? runtimeSource : baseline : fs.readFileSync(path.join(root, file), 'utf8')
   const module = { exports: {} }
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020 } }).outputText
   const shim = (name) => {
     if (name === 'react') return react
+    if (name === 'react-dom') return { createPortal: () => { throw new Error('Portal execution forbidden') } }
     if (name === 'next/navigation') return { useRouter: () => ({ push: () => { throw new Error('Navigation forbidden') } }), useSearchParams: () => new URLSearchParams() }
     if (name === 'next/link') return { default: ({ children }) => React.createElement('span', null, children) }
     if (name === '@/lib/analytics') return { trackEvent: () => { throw new Error('Tracking forbidden') } }
+    if (name === '@supabase/ssr') return { createBrowserClient: () => { throw new Error('Database forbidden') } }
     if (name === '@/lib/seriesDoorImpressions') return { useSeriesDoorSeen: () => ({ registrarPorta: () => () => {} }) }
-    if (!name.startsWith('@/')) throw new Error('Unexpected dependency: ' + name)
-    const relative = name.slice(2)
-    for (const extension of ['.ts', '.tsx']) if (fs.existsSync(path.join(root, relative + extension))) return load(relative + extension)
+    // Default English boundary, without React context/effects or browser state.
+    if (name === '@/components/InterfaceLanguage' || /(?:^|\/)InterfaceLanguage$/.test(name)) return { UiLabel: function UiLabel({ children }) { return children }, useUiCopy: () => en => en, useInterfaceLanguage: () => 'en' }
+    if (!name.startsWith('@/') && !name.startsWith('.')) throw new Error('Unexpected dependency: ' + name)
+    const relative = name.startsWith('@/') ? name.slice(2) : path.posix.normalize(path.posix.join(path.posix.dirname(file), name))
+    if (relative.startsWith('../')) throw new Error('Dependency outside workspace: ' + name)
+    if (relative.endsWith('.json')) return JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'))
+    for (const extension of ['', '.ts', '.tsx']) if (fs.existsSync(path.join(root, relative + extension)) && /\.tsx?$/.test(relative + extension)) return load(relative + extension)
     throw new Error('Missing local dependency: ' + name)
   }
-  new Function('require', 'module', 'exports', 'React', js)(shim, module, module.exports, React)
+  new Function('require', 'module', 'exports', 'React', 'process', 'fetch', js)(shim, module, module.exports, React, { env: {} }, () => { throw new Error('Network forbidden') })
   cache.set(file, module.exports)
   return module.exports
 }
@@ -57,6 +72,7 @@ function elements(node) {
 }
 export function buildStudioHierarchyProposal(states = {}) {
 runtimeMode = false
+activeStateNames = stateNames
 cache.clear()
 fixture = states
 stateIndex = 0
@@ -105,16 +121,19 @@ return { original, proposed }
 }
 // After approval, verify the actual runtime component against the proposal,
 // not merely the tree transformation. Effects remain disabled in both paths.
-export function buildStudioHierarchyRuntime(states = {}) {
+export function buildStudioHierarchyRuntime(states = {}, source = fs.readFileSync(path.join(root, entry), 'utf8')) {
   runtimeMode = true
+  runtimeSource = source
+  activeStateNames = statesIn(source)
   cache.clear()
   fixture = states
   stateIndex = 0
-  for (const name of Object.keys(states)) if (!stateNames.includes(name)) throw new Error('Unknown fixture state: ' + name)
+  for (const name of Object.keys(states)) if (!activeStateNames.includes(name)) throw new Error('Unknown fixture state: ' + name)
   const result = load(entry).default()
-  if (stateIndex !== stateNames.length) throw new Error('Runtime hook/declaration mismatch')
+  if (stateIndex !== activeStateNames.length) throw new Error('Runtime hook/declaration mismatch')
   return result
 }
+export const buildStudioHierarchyApproved = states => buildStudioHierarchyRuntime(states, approvedRuntime)
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 const { original, proposed } = buildStudioHierarchyProposal()
 // Default preview has no media/account. Fixture tests separately check
