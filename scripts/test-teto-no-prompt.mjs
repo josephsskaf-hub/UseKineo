@@ -21,6 +21,7 @@
 // Ancoras de UMA LINHA (licao da #14).
 
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -103,7 +104,14 @@ const bloco = rota.slice(iBase > 0 ? iBase : 0, iVeredito > 0 ? iVeredito : rota
 v('C1: o caminho do teto nao chama /api/compose', !/api\/compose/.test(bloco))
 v('C1: o caminho do teto nao debita credito', !/credit/i.test(bloco))
 v('C1: o caminho do teto nao chama submitToFal', !/submitToFal/.test(bloco))
-v('growth_limit continua devolvendo 422', /outcome: 'growth_limit' as ExpandOutcome[\s\S]{0,2400}status: 422/.test(rota))
+const expandTree = ts.createSourceFile('expand.ts', rota, ts.ScriptTarget.Latest, true)
+let growthRejection
+function findGrowth(node) { if (ts.isIfStatement(node) && node.expression.getText(expandTree) === '!withinGrowthLimit(speechBase, depois.speech)') growthRejection = node.thenStatement; ts.forEachChild(node, findGrowth) }
+findGrowth(expandTree)
+const growthReturn = growthRejection && ts.isBlock(growthRejection) ? growthRejection.statements.find(ts.isReturnStatement)?.expression : null
+const growthPayload = growthReturn && ts.isCallExpression(growthReturn) ? growthReturn.arguments[0]?.getText(expandTree) ?? '' : ''
+const growthOptions = growthReturn && ts.isCallExpression(growthReturn) ? growthReturn.arguments[1]?.getText(expandTree) ?? '' : ''
+v('growth_limit continua devolvendo 422', growthPayload.includes("outcome: 'growth_limit' as ExpandOutcome") && /status:\s*422/.test(growthOptions))
 v('o candidato da #30 continua voltando na resposta', /candidate: expandido,/.test(rota))
 v('candidateFits da #30 continua na resposta', /candidateFits: depois\.ok,/.test(rota))
 v('needs_authoring (preflight D1) continua vivo', /if \(needsAuthoring\(antes\.speech, target\)\)/.test(rota))

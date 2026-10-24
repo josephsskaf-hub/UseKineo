@@ -21,6 +21,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { AsyncLocalStorage } from 'node:async_hooks'
+import ts from 'typescript'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const saida = mkdtempSync(join(tmpdir(), 'kineo-353a-'))
@@ -239,8 +240,20 @@ checa('cinematic_submission_claim está na denylist', /'cinematic_submission_cla
 checa('cinematic_dispatch_result está na denylist', /'cinematic_dispatch_result',/.test(eventos))
 
 // ── 8. o comportamento financeiro atual continua coberto ──────────────────
-checa('FAILFAST clássico só libera a claim quando nenhum ID é renderizável',
-  /if \(!hasRenderableClassicScene\(falRequestIds\)\)[\s\S]{0,500}releaseBirthClaim\(ctxDespacho\(\)\.balanceExhausted/.test(rota))
+const routeTree = ts.createSourceFile('route.ts', rota, ts.ScriptTarget.Latest, true)
+let noRenderable
+function findNoRenderable(node) { if (ts.isIfStatement(node) && node.expression.getText(routeTree) === '!hasRenderableClassicScene(falRequestIds)') noRenderable = node.thenStatement; ts.forEachChild(node, findNoRenderable) }
+findNoRenderable(routeTree)
+let guardedRelease = false
+function findRelease(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(routeTree) === 'releaseBirthClaim' && ts.isAwaitExpression(node.parent)) {
+    const reason = node.arguments[0]?.getText(routeTree) ?? ''
+    guardedRelease ||= reason.includes('ctxDespacho().balanceExhausted') && reason.includes("'provider_balance_rejected'") && reason.includes("'provider_rejected'")
+  }
+  ts.forEachChild(node, findRelease)
+}
+if (noRenderable) findRelease(noRenderable)
+checa('FAILFAST clássico só libera a claim quando nenhum ID é renderizável', guardedRelease)
 checa('FAILFAST hollywood ainda libera a claim e estorna',
   /hollywood FAILFAST[\s\S]{0,400}releaseBirthClaim\(ctxDespacho\(\)\.balanceExhausted/.test(rota))
 checa('#353A NÃO cria submitting/recoverable', !/'submitting'|'recoverable'/.test(rota))

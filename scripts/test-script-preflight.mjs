@@ -57,11 +57,11 @@ check('o bloco antes da viagem não retorna cedo', !autofitBlock.includes('\n   
 check('a primeira vontade alcança o gate normal', restoreGate > client.indexOf('KINEO-FIRST-CLICK-AUTOFIT-2026-09-03'))
 
 console.log('\n— 2. o autofit de roteiro longo continua intacto —')
-check('fala ainda é medida no modo verbatim', /scriptMode === 'verbatim'[\s\S]{0,180}speechSeconds\(baseChecagem\)/.test(autofitBlock))
-check('cobertura usa a régua canônica', /const cobre = falaSeg >= duration \* MIN_COVERAGE/.test(autofitBlock))
-check('roteiro longo ainda sobe o alvo', /if \(cobre && falaSeg > duration \* 1\.2\)/.test(autofitBlock))
+check('fala verbatim é medida na régua canônica da voz e da língua', /scriptMode === 'verbatim'/.test(autofitBlock) && autofitBlock.includes('const reguaAnalise = reguaDoServidorNaTela(') && autofitBlock.includes('const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise)'))
+check('cobertura usa a régua canônica', /const cobre = falaSeg >= duration \* minCoverageFor\(duration\)/.test(autofitBlock))
+check('roteiro longo sobe pelo veredito canônico, limitado ao saldo, sem mudar a fala', autofitBlock.includes('const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })') && autofitBlock.includes('subidaQueOSaldoPaga(') && /if \(sobePara !== undefined\) \{\s*setDuration\(sobePara\)\s*alvoAnalise = sobePara/.test(autofitBlock))
 check('alvo efetivo segue para analyze-idea', /JSON\.stringify\(\{ prompt: source, duration: alvoAnalise, language, scriptMode: opts\?\.scriptModeOverride \?\? scriptMode \}\)/.test(client))
-check('speechSeconds e MIN_COVERAGE continuam importados', /import \{ MIN_COVERAGE, speechSeconds \} from '@\/lib\/narrationFit'/.test(client))
+check('reguas de cobertura e voz continuam importadas das fontes canônicas', /import \{[^}]*minCoverageFor[^}]*\} from '@\/lib\/narrationFit'/.test(client) && /import \{[^}]*reguaDoServidorNaTela[^}]*falaNaReguaDaTela[^}]*\} from '@\/lib\/contadorVoz'/.test(client))
 
 console.log('\n— 3. a decisão de roteiro curto pertence ao servidor —')
 check('servidor emite script_duration_autofit_down', route.includes("name: 'script_duration_autofit_down'"))

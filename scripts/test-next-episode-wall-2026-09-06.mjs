@@ -7,6 +7,7 @@
 //
 // ⚠ CRLF: normaliza antes de casar.
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -16,6 +17,14 @@ const ler = (p) => readFileSync(join(raiz, p), 'utf8').replace(/\r\n/g, '\n')
 const src = ler('app/api/admin/send-next-episode-wall/route.ts')
 const semComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 const codigo = semComentarios(src)
+const tree = ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
+let dryBlock
+function findDry(node) { if (ts.isIfStatement(node) && node.expression.getText(tree) === '!confirm') dryBlock = node.thenStatement; ts.forEachChild(node, findDry) }
+findDry(tree)
+const dryReturn = dryBlock && ts.isBlock(dryBlock) ? dryBlock.statements.find(ts.isReturnStatement) : null
+const dryCall = dryReturn?.expression
+const dryObject = dryCall && ts.isCallExpression(dryCall) ? dryCall.arguments[0] : null
+const dryMode = dryObject && ts.isObjectLiteralExpression(dryObject) ? dryObject.properties.find(node => ts.isPropertyAssignment(node) && node.name.getText(tree) === 'mode') : null
 
 let ok = 0
 const falhas = []
@@ -23,7 +32,7 @@ const check = (nome, cond) => { if (cond) ok += 1; else falhas.push(nome) }
 
 // ── 1. NAO DISPARA SOZINHA ────────────────────────────────────────────────
 check('dry-run e o padrao', /const confirm = req\.nextUrl\.searchParams\.get\('confirm'\) === 'SEND'/.test(codigo))
-check('sem confirm devolve DRY_RUN e SAI', /if \(!confirm\) \{\s*return NextResponse\.json\(\{\s*mode: 'DRY_RUN'/.test(codigo))
+check('sem confirm devolve DRY_RUN e SAI', dryCall?.expression?.getText(tree) === 'NextResponse.json' && dryMode?.initializer?.getText(tree) === "'DRY_RUN'")
 // ⚠ Esta comparacao le `src` (com comentarios) DE PROPOSITO: `semComentarios`
 // remove `//[^\n]*` e isso engole o `//` de qualquer URL — 'api.resend.com'
 // some de `codigo` e o indexOf devolve -1, que faria a checagem passar ou

@@ -1,3 +1,4 @@
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-LEVA-2410 — exact newer layer before the original G13 chain contract.
 // KINEO-PAGINAS-UGC-2010 — guardião das páginas do AI UGC Ads (pilar EN/PT, gerador, 12 nichos) e do Kit Black Friday (EN/PT).
 // Executa os módulos REAIS pelos loaders offline da casa (sem rede, sem banco) e renderiza cada página. Cada regra tem mutante
 // que TEM de ficar vermelho na regra certa, com prova de que o mutante foi aplicado.
@@ -364,7 +365,7 @@ async function audit(rep = {}, groups = null) {
         if (out.replace(/\r\n/g, '\n') !== base.replace(/\r\n/g, '\n')) fail('G13', `${f}: desfeito ≠ base`)
         if (out.includes(D.MARCA_PAGINAS_UGC_2010)) fail('G13', `${f}: sobrou a marca`)
       }
-      if (!/export function semKitBfVenda2010\(texto, p\) \{\n  texto = semPaginasUgc2010\(texto, p\)/.test(read('scripts/test-support/desfaz-kit-bf-venda-2010.mjs'))) fail('G13', 'a cabeça da cadeia (semKitBfVenda2010) não chama o desfaz desta camada primeiro')
+      if (!/export function semKitBfVenda2010\(texto, p\) \{\n  texto = semPaginasUgc2010\(texto, p\)/.test(semCompraAvulsa2410(read('scripts/test-support/desfaz-kit-bf-venda-2010.mjs'), 'scripts/test-support/desfaz-kit-bf-venda-2010.mjs'))) fail('G13', 'a cabeça da cadeia (semKitBfVenda2010) não chama o desfaz desta camada primeiro')
     } catch (e) { fail('G13', `desfaz não carrega: ${e.message}`) }
   }
   return fails
