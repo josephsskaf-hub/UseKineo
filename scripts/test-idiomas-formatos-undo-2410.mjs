@@ -6,6 +6,9 @@ import { createHash } from 'node:crypto'
 import { semCardsGiro2410, CARDS_GIRO_2410_MANIFEST as cardsGiro } from './test-support/desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — preserve the original exact hashes and inventory below.
 import { semIdiomasFormatos2410 as undo, IDIOMAS_FORMATOS_2410_BASE as BASE, IDIOMAS_FORMATOS_2410_MANIFEST as manifest } from './test-support/desfaz-idiomas-formatos-2410.mjs'
 
+import { semCartoonTracao2210 } from './test-support/desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
+const CARTOON_TRACAO_IDIOMAS_DELIVERY = '7950e41134dd03388e67c131501d3e2bce61a3eb' // KINEO-CARTOON-TRACAO-2210 — completed upstream scope; current Cartoon delta is independently finite.
+
 const INTEGRATION_BASE = '8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405'
 const PREVIOUS = 'b01cfe2cb2d9f244df0ee22baa649daa8d6103fe'
 const OVERLAPS = ['.github/workflows/guardiao.yml', 'scripts/test-ads-escolha-publico-2410.mjs', 'scripts/test-support/desfaz-ads-escolha-publico-2410.mjs'].sort()
@@ -22,7 +25,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = semCardsGiro2410(readFileSync(file, 'utf8'), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
+  const raw = semCardsGiro2410(semCartoonTracao2210(readFileSync(file, 'utf8'), file), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)

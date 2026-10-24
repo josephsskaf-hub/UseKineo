@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semAdsCena952110 } from './desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110 — a camada posterior sai antes da contagem exata da venda.
+import { semCartoonTracao2210 } from './desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
 
 export const MARCA_KIDS_VENDA_2010 = 'KINEO-KIDS-VENDA-2010'
 
@@ -49,6 +50,7 @@ export const KIDS_VENDA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKidsVenda2010(texto, p) {
+  texto = semCartoonTracao2210(texto, p) // KINEO-CARTOON-TRACAO-2210 — preserve every earlier exact guardian.
   texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — preserva Kids ao tirar95; depois tira a venda pela tabela original.
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIDS_VENDA_2010) || !KIDS_VENDA_2010_ARQUIVOS.includes(rel)) return texto
