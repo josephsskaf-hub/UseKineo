@@ -38,5 +38,15 @@ const mutante = (p) => p
 check(mutante(comum + ' ' + tomadas[2]).length > ESCOLHA_SHOT_PROMPT_MAX, 'M1 sem o ajuste, o caso real estoura o teto (o guardião reprovaria)')
 check(/shotPrompts\.map\(p => escolhaShotPromptFit\(p\)\)/.test(src.slice(0, ini)), 'R8 as tomadas do Kling3 passam pelo ajuste antes do multi_prompt')
 
+// Rodada 2 (fundador 23/10: "faltou o som", "melhorar o ambiente"): música aceita não morre em 45 s; tênis corre; close sem marca inventada.
+const media = readFileSync('lib/ads/cena/escolhaMedia.ts', 'utf8')
+check(/export const ESCOLHA_MUSIC_PENDING_MS = 8 \* 60_000/.test(media), 'S1 música aceita (pending) espera até 8 min')
+check(/music\.status !== 'pending' && music\.claimedAt !== undefined && d\.now\(\) - music\.claimedAt > 45_000/.test(media), 'S2 o corte de 45 s não vale mais para música já aceita')
+check(/music\.status === 'pending' && music\.claimedAt !== undefined && d\.now\(\) - music\.claimedAt > ESCOLHA_MUSIC_PENDING_MS/.test(media), 'S3 pending só desiste depois de ESCOLHA_MUSIC_PENDING_MS')
+const plano = readFileSync('lib/ads/cena/escolhaPlan.ts', 'utf8')
+check(/plan\.category === 'footwear' \? 'Absolute5–10s: the same selected person stands up and jogs forward/.test(plano), 'S4 no tênis a tomada do meio é a pessoa correndo')
+check(/never add letters, logos or brand marks that are not on the reference product/.test(plano), 'S5 o close proíbe marca/texto inventado no produto')
+check(/SINGLE PHOTOGRAPH: one single full-bleed vertical 9:16 frame/.test(plano) && !/const still = `[^`]*\$\{common\}/.test(plano), 'S6 a foto pede imagem única e não carrega o texto das 3 tomadas')
+
 console.log(`\n${ok} ok, ${falha} falha(s)`)
 process.exit(falha ? 1 : 0)

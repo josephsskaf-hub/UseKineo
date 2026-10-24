@@ -21,6 +21,8 @@ export interface EscolhaMediaDeps<Audio> {
   submitMusic(mood: MusicMood): Promise<LyriaHandle | null>;
   pollMusic(handle: LyriaHandle): Promise<string | null>;
 }
+/** KINEO-ADS-RENDER-FIX-2310 — música já aceita pela fal (pending) espera até 8 min: o vídeo do Kling leva ~8 min, então a montagem não atrasa. */
+export const ESCOLHA_MUSIC_PENDING_MS = 8 * 60_000
 export function escolhaMusicMood(s: Pick<CenaEscolhaState, 'plan'>): MusicMood {
   const choice = escolhaOf(s.plan), scene = `${choice?.scenarioId ?? ''} ${s.plan.setting}`.toLowerCase()
   const configured = choice && escolhaScenario(choice.scenarioId)
@@ -71,7 +73,7 @@ export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: Escolh
   if (s.phase !== 'ready') return 'ready'
   const music = media.music
   if (music.status === 'done' || music.status === 'skipped') return 'ready'
-  if (music.status === 'submitting' || music.claimedAt !== undefined && d.now() - music.claimedAt > 45_000) { music.status = 'skipped'; await d.save(s) }
+  if (music.status === 'submitting' || music.status !== 'pending' && music.claimedAt !== undefined && d.now() - music.claimedAt > 45_000 || music.status === 'pending' && music.claimedAt !== undefined && d.now() - music.claimedAt > ESCOLHA_MUSIC_PENDING_MS) { music.status = 'skipped'; await d.save(s) } // KINEO-ADS-RENDER-FIX-2310 — 45 s valia também para a música JÁ aceita (pending): o Lyria leva mais que isso e todo vídeo saía mudo depois da voz (order fbfa2001)
   if (music.status === 'new') {
     music.status = 'submitting'; music.claimedAt = d.now(); await d.save(s)
     let handle: LyriaHandle | null = null
