@@ -12,10 +12,27 @@ const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
 const literal = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］')
 const norm = (s: string): string => s.replace(/\s+/gu, ' ').trim().toLowerCase()
 /** A literal offer occurs in exactly one visual field, even when included in a literal typed CTA. */
-export function escolhaFinalTextElements(plan: CenaPlan): Record<string, unknown>[] {
+export function escolhaFinalTextElements(plan: CenaPlan, expectedImageUrl?: string): Record<string, unknown>[] {
   const cta = plan.input.cta || plan.script.cta, offer = plan.input.oferta ?? ''
   const titleHas = escolhaHasOffer(plan.product, offer), ctaHas = escolhaHasOffer(cta, offer)
-  return ajusteFinalTextElements({ ...plan, input: { ...plan.input, oferta: titleHas || ctaHas ? '' : offer }, script: { ...plan.script, cta } }).map(e => ({ ...e, shadow_color: 'rgba(0,0,0,0.65)', shadow_blur: '4px', shadow_y: '3px' }))
+  const elements: Record<string, unknown>[] = ajusteFinalTextElements({ ...plan, input: { ...plan.input, oferta: titleHas || ctaHas ? '' : offer }, script: { ...plan.script, cta } }).map(e => ({ ...e, shadow_color: 'rgba(0,0,0,0.65)', shadow_blur: '4px', shadow_y: '3px' }))
+  const choice = escolhaOf(plan)
+  if (!choice) return elements
+  const ranges = elements.map(e => {
+    const center = parseFloat(String(e.y)) * 1920 / 100
+    const height = typeof e.height === 'number' ? e.height : String(e.text).split('\n').length * Number(e.font_size) * 1.1
+    return { top: center - height / 2, bottom: center + height / 2 }
+  })
+  const top = Math.min(...ranges.map(r => r.top)), bottom = Math.max(...ranges.map(r => r.bottom)), center = (top + bottom) / 2 / 1920 * 100
+  const grounding = expectedImageUrl === undefined || choice.captionGrounding?.imageUrl === expectedImageUrl ? choice.captionGrounding : undefined
+  const layout = escolhaCaptionLayout(choice.captionLane, grounding, bottom - top, center)
+  if (!layout) {
+    addAjusteQuality(plan, { stage: 'montage', code: 'final_text_grounding_unavailable', message: 'The complete customer name, offer and CTA retain their readable layout because no observed empty band can fit the whole group. Product avoidance for this final copy has not been verified; no customer text was removed.' })
+    return elements
+  }
+  addAjusteQuality(plan, { stage: 'montage', code: 'final_text_preview_grounded', message: 'The final name, offer and CTA move together around the product and face observed in the chosen preview. Later moving close-up frames have not been measured.' })
+  const shift = layout.center - center
+  return elements.map(e => ({ ...e, y: `${parseFloat(String(e.y)) + shift}%` }))
 }
 function wrap(text: string, font: number): string {
   const columns = Math.max(1, Math.floor(890 / (font * .75))), lines: string[] = []
@@ -65,7 +82,7 @@ export function buildCenaEscolhaMontage(s: CenaEscolhaState): Record<string, unk
     elements.push({ ...base, track: 2, duration, volume: mode === 'narrated' ? ESCOLHA_AMBIENT_VOLUME : '0%', ...(available < duration ? { loop: true } : { loop: false, trim_start: 0 }) }) // KINEO-ADS-RENDER-FIX-2310 — narrado: o som ambiente nativo da cena (toque das unhas, mar, passos) fica baixo sob a voz
     if (mode === 'talking') elements.push({ ...base, track: 1, duration: Math.min(duration, available), volume: '100%', loop: false, trim_start: 0 })
   })
-  elements.push(...captions(s), ...escolhaFinalTextElements(s.plan))
+  elements.push(...captions(s), ...escolhaFinalTextElements(s.plan, s.keyframe))
   if (mode === 'narrated') elements.push({ type: 'audio', track: 50, time: 0, duration: s.escolhaMedia!.voice.seconds, source: s.voiceUrl!, volume: '100%' })
   elements.push(...escolhaMusicElements(s.escolhaMedia?.music.url, mode === 'narrated' ? s.escolhaMedia!.voice.seconds! : 15))
   return { output_format: 'mp4', width: 1080, height: 1920, frame_rate: ADS_V2_FRAME_RATE, duration: 15, snapshot_time: 1, elements }

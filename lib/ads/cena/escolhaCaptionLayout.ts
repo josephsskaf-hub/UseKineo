@@ -17,9 +17,10 @@ export function parseEscolhaGrounding(raw: unknown, imageUrl: string): EscolhaCa
   } catch { return undefined }
 }
 /** Full caption rectangle, including stroke/shadow clearance, fits in an observed empty vertical interval. */
-export function escolhaCaptionLayout(preferred: 'top' | 'bottom', grounding?: EscolhaCaptionGrounding): { center: number; height: number } | null {
+export function escolhaCaptionLayout(preferred: 'top' | 'bottom', grounding?: EscolhaCaptionGrounding, height = 204, targetPercent?: number): { center: number; height: number } | null {
   if (grounding?.source !== 'preview_judge' || !boxes(grounding.product).length) return null
-  const height = 204, half = height / 1920 / 2, margin = 0.025
+  if (!(Number.isFinite(height) && height > 0)) return null
+  const half = height / 1920 / 2, margin = 0.025
   const occupied = [...boxes(grounding.product), ...boxes(grounding.face)]
     .filter(box => box[2] + margin > 0.08 && box[0] - margin < 0.92)
     .map(box => [Math.max(0.06, box[1] - margin), Math.min(0.94, box[3] + margin)] as [number, number])
@@ -27,7 +28,7 @@ export function escolhaCaptionLayout(preferred: 'top' | 'bottom', grounding?: Es
   const gaps: [number, number][] = []; let cursor = 0.06
   for (const [start, end] of occupied) { if (start > cursor) gaps.push([cursor, start]); cursor = Math.max(cursor, end) }
   if (cursor < 0.94) gaps.push([cursor, 0.94])
-  const target = preferred === 'top' ? 0.62 : 0.70
+  const target = typeof targetPercent === 'number' && Number.isFinite(targetPercent) && targetPercent >= 0 && targetPercent <= 100 ? targetPercent / 100 : preferred === 'top' ? 0.62 : 0.70
   const centers = gaps.filter(([start, end]) => end - start >= half * 2).map(([start, end]) => Math.max(start + half, Math.min(end - half, target)))
   centers.sort((a, b) => Math.abs(a - target) - Math.abs(b - target) || a - b)
   return centers.length ? { center: centers[0] * 100, height } : null
