@@ -35,6 +35,8 @@ import { captionFontFor, narrationLanguage } from '@/lib/textLanguage'
 import { speakableForTts } from '@/lib/ads/speakable'
 import { adsV2NarrationForTts, adsV2PronounceOf } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — a marca dita como a pessoa ensinou (só na voz)
 import { writeServerEvent } from '@/lib/serverEvents'
+import { writeEscolhaEvent } from '@/lib/ads/cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
+import { notifyEscolhaDelivered } from '@/lib/ads/cena/escolhaNotify' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
@@ -1464,6 +1466,8 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
     .select('id')
     .maybeSingle()
   if (!won.error && won.data) {
+    await writeEscolhaEvent('delivered', order.user_id, order.id, order.plan, { video_id: videoId })
+    await notifyEscolhaDelivered(admin, { ...order, status: 'delivered', video_id: videoId })
     await writeServerEvent({
       name: 'ads_v2_delivered',
       userId: order.user_id,

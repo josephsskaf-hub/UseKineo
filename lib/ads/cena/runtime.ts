@@ -32,6 +32,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   if (!state || order.status !== 'generating') return
   const auth = await admin.auth.admin.getUserById(order.user_id)
   if (auth.error || !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
+  if (!state.plan.escolha && !isAdsInternalEmail(auth.data.user?.email)) { await failCenaOrder(admin, order, 'cena_internal_only'); return } // KINEO-ADS-ESCOLHA-PUBLICO-2410
   if (state.plan.voice_mode) {
     try { cenaAssertVoiceRoute(state.route, state.plan.voice_mode, state.plan.input.language) }
     catch (e) { await failCenaOrder(admin, order, e instanceof Error ? e.message : 'cena_bad_voice_mode'); return }

@@ -49,6 +49,7 @@ import { CENA95_LIVE } from '@/lib/ads/cena/live' // KINEO-ADS-CENA-RETOMADA-211
 import { preflightCenaAjuste } from '@/lib/ads/cena/ajustePreflight' // KINEO-ADS-CENA-RETOMADA-2110
 import { escolhaReadyForStart } from '@/lib/ads/cena/escolhaStills' // KINEO-ADS-ESCOLHA-2310
 import { preflightCenaEscolha } from '@/lib/ads/cena/escolhaPlan' // KINEO-ADS-ESCOLHA-2310
+import { writeEscolhaEvent } from '@/lib/ads/cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -82,6 +83,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
     const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
+    if (cena && !cena.plan.escolha && !isAdsInternalEmail(user.email)) return v2Fail('cena_internal_only', 403) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — legacy engines stay internal.
     if (cena && 'quality95' in cena.plan && !CENA95_LIVE) return v2Fail('cena95_disabled_replan', 409, { reason: 'O motor 9,5 está desligado. Gere um novo plano AJUSTE antes de iniciar; nenhum crédito foi debitado.' }) // KINEO-ADS-CENA-RETOMADA-2110 — paid orders continue their saved runtime; this gate is before debit.
     if (cena?.plan.escolha?.marker === 'KINEO-ADS-ESCOLHA-2310') { // KINEO-ADS-ESCOLHA-2310 — human choice is required before the existing credit claim.
       if (!escolhaReadyForStart(plan)) return v2Fail('cena_still_choice_required', 409)
@@ -167,7 +169,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
-    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
+    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeEscolhaEvent('render_started', uid, orderId, plan, { credits: cost }); await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
     const rows = buildInitialShotRows(orderId, order.tier, plan)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {
