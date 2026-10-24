@@ -4,14 +4,14 @@ import fs from 'node:fs'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
 const file = 'app/(dashboard)/generate/GenerateClient.tsx'
-// KINEO-PAREDE-V1-2026-09-23 — reancorado com motivo: a base 2d6d7940 antecede a parede v1 (fundador 23/09,
-// "faz as 3"), que acrescenta handlers, hrefs (intent_campaign=wall_v1), o cartão Empresas e o estado de
-// sincronia do pacote no mesmo arquivo. b021fe9d é a ponta que contém a tela larga do Codex (d25748e0) E a
-// parede; a trava volta a comparar contra ela. Nada foi afrouxado: a lista de atributos e a lógica antes
-// do JSX continuam tendo de ser byte a byte as da base.
-const base = 'b021fe9d'
+// The approved wall (b021fe9d) and later features added real handlers and
+// recovery logic. Guard the original delivery and complete current main separately.
 const current = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
-const previous = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).replace(/\r\n/g, '\n')
+const snapshot = revision => execFileSync('git', ['show', `${revision}:${file}`], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).replace(/\r\n/g, '\n')
+// Preserve the original layout-only proof at its immutable delivery, before
+// the later approved wall, completion, sharing and recovery features existed.
+const layoutDelivery = snapshot('d25748e0'), layoutParent = snapshot('2d6d7940')
+const approved = snapshot('3ec6c9d9b')
 let checks = 0
 function equal(a, b, label) { assert.deepEqual(a, b, label); checks++ }
 function okay(value, label) { assert.ok(value, label); checks++ }
@@ -28,8 +28,10 @@ function attributes(ast) {
   }
   walk(ast); return found
 }
-equal(attributes(parse(current)), attributes(parse(previous)), 'every handler, ref, media source, download target, gate and frame marker preserved')
-equal(current.slice(0, current.indexOf('    <main className=')), previous.slice(0, previous.indexOf('    <main className=')), 'all generation, billing and recovery logic before JSX unchanged')
+equal(attributes(parse(layoutDelivery)), attributes(parse(layoutParent)), 'original layout delivery preserved every handler, ref, media source, download target, gate and frame marker')
+equal(layoutDelivery.slice(0, layoutDelivery.indexOf('    <main className=')), layoutParent.slice(0, layoutParent.indexOf('    <main className=')), 'original layout delivery preserved all generation, billing and recovery logic before JSX')
+equal(current, approved, 'complete current source retains all subsequently approved behavior and layout')
+equal(attributes(parse(current)), attributes(parse(approved)), 'current handlers, refs, media, download gates and frame markers remain approved')
 const ast = parse(current)
 let result, main, title
 function find(n) {
