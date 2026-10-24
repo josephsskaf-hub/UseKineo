@@ -446,6 +446,7 @@
     "scripts/apresentadores-2410.mjs",
     "scripts/lib/apresentadores-admin2410.mjs",
     "scripts/ph-fatos.mjs",
+    "scripts/preview-studio-hierarchy.mjs",
     "scripts/test-admin-leve-undo-2310.mjs",
     "scripts/test-ads-amostra-anuncio-2410.mjs",
     "scripts/test-ads-amostra-data-2410.mjs",
@@ -517,6 +518,7 @@
     "scripts/test-porta-episodio2-2026-09-04.mjs",
     "scripts/test-precos-clipes-kling25-1610.mjs",
     "scripts/test-private-file-share.mjs",
+    "scripts/test-public-video-privacy.mjs",
     "scripts/test-publicador-refspec-2026-09-05.mjs",
     "scripts/test-quadro-real-2026-09-02.mjs",
     "scripts/test-ready-notice-studio-review.mjs",
@@ -526,10 +528,17 @@
     "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs",
     "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs",
     "scripts/test-rodape-segmentos-2026-09-27.mjs",
+    "scripts/test-roteiro-perdido-2026-08-31.mjs",
     "scripts/test-runway.mjs",
     "scripts/test-scene-disposition.mjs",
     "scripts/test-script-preflight.mjs",
     "scripts/test-season-strip.mjs",
+    "scripts/test-sem-porteiro-2026-09-02.mjs",
+    "scripts/test-signup-product-destination.mjs",
+    "scripts/test-sistema-de-compra-2026-09-08.mjs",
+    "scripts/test-stranded-extra-attempt-4xx.mjs",
+    "scripts/test-studio-hierarchy-runtime.mjs",
+    "scripts/test-studio-tile-episode2-2026-08-31.mjs",
     "scripts/test-support/ads-amostra-data-sql-2410.cjs",
     "scripts/test-support/ads-amostra-entry-2410.mjs",
     "scripts/test-support/ads-amostra-race-2410.mjs",
@@ -560,9 +569,24 @@
     "scripts/test-support/leva-integration-2410.mjs",
     "scripts/test-support/offline-ts-loader.mjs",
     "scripts/test-support/seal-leva-integration-2410.mjs",
+    "scripts/test-temporada.mjs",
     "scripts/test-teto-no-prompt.mjs",
+    "scripts/test-text-to-video-intent-router.mjs",
     "scripts/test-trafego-pages-2310.mjs",
     "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-troca-de-plano-2026-09-09.mjs",
+    "scripts/test-ux-complete.mjs",
+    "scripts/test-ux-mobile-navigation.mjs",
+    "scripts/test-verbatim-order-warning.mjs",
+    "scripts/test-video-editing.mjs",
+    "scripts/test-video-ready-nudge.mjs",
+    "scripts/test-video-share-consent.mjs",
+    "scripts/test-videos-search.mjs",
+    "scripts/test-vigia-cenario-inventado-2026-09-11.mjs",
+    "scripts/test-viralnow-search-intent.mjs",
+    "scripts/test-visibilidade-chatgpt-2026-10-06.mjs",
+    "scripts/test-works-with-claude-2026-09-30.mjs",
+    "scripts/test-workspace-spanish.mjs",
     "supabase/migrations/20261024175246_ads_escolha_sample.sql"
   ],
   "sources": {
@@ -1397,6 +1421,9 @@
     "scripts/ph-fatos.mjs": {
       "hash": "ad738f695d104f6dc8b7a8d8cdf8af0ccd6ffcf594e27a64bca7985b95ab4d14"
     },
+    "scripts/preview-studio-hierarchy.mjs": {
+      "hash": "d08e080a94060c6d883ca002c112ba033652708f98b384902aa5c123789e428b"
+    },
     "scripts/test-admin-leve-undo-2310.mjs": {
       "hash": "e66c3ec54e1315f1a90e6a22d2fa0e044a3cd6e64afd703d13d98b64d7765a5e"
     },
@@ -1610,6 +1637,9 @@
     "scripts/test-private-file-share.mjs": {
       "hash": "55533327bdb1322be6d97d4816df640a3df4fee02655faccc37c381af78ffa9f"
     },
+    "scripts/test-public-video-privacy.mjs": {
+      "hash": "76cd0cfe3453f9ab9d477b515032827f07b4bddf5c8e3d32557da75616977a2b"
+    },
     "scripts/test-publicador-refspec-2026-09-05.mjs": {
       "hash": "66c9d6e38b61b8badbce5a0cf3b5c9e3a4e0b32a1a2a32b601ac4a260f7667ba"
     },
@@ -1637,6 +1667,9 @@
     "scripts/test-rodape-segmentos-2026-09-27.mjs": {
       "hash": "49fc5c59efdc5bf436a6135350182ebc52a90409d90eec50e03acbd6d46211c1"
     },
+    "scripts/test-roteiro-perdido-2026-08-31.mjs": {
+      "hash": "afd06735147d82550c1eeb12409354cc3e11cf8d876d205c93e798944580e8da"
+    },
     "scripts/test-runway.mjs": {
       "hash": "32b2908b94391051d862da8d13e2f175e0eb5038fbcb7957ff9b0186f5370b7b"
     },
@@ -1648,6 +1681,24 @@
     },
     "scripts/test-season-strip.mjs": {
       "hash": "f3657557864e9666f482fbbab82939c301e697fef69b69582dadc871bc89a307"
+    },
+    "scripts/test-sem-porteiro-2026-09-02.mjs": {
+      "hash": "a230b990942f16b0614d2dea58af7b4726d927b4c69c5a147a354606989411bb"
+    },
+    "scripts/test-signup-product-destination.mjs": {
+      "hash": "29f3532a1210769d8b76b28b555fba6de563b168fc3ce8a31d4c7cec793189d8"
+    },
+    "scripts/test-sistema-de-compra-2026-09-08.mjs": {
+      "hash": "0eb7cc129cd320e3bb4607e4edf41032b535cc7cafa52fba38a444863078e249"
+    },
+    "scripts/test-stranded-extra-attempt-4xx.mjs": {
+      "hash": "86c2561d245fe1f3c733389fa47ecac57a9958e7b6073fa08cfd6f6867435614"
+    },
+    "scripts/test-studio-hierarchy-runtime.mjs": {
+      "hash": "081f0d5b2f047d7dbfe28e17630761f667cfb2079c8732485697945000d78765"
+    },
+    "scripts/test-studio-tile-episode2-2026-08-31.mjs": {
+      "hash": "af5e2b4415e7785aaab0e65255ca4d03a6ce3e4d8a7e78f3bf05912341787ef4"
     },
     "scripts/test-support/ads-amostra-data-sql-2410.cjs": {
       "hash": "e37fb7075544e003d710ff4a420e25ecf7a8d9874eba57365ee7aeab24a7d8e4"
@@ -1736,14 +1787,59 @@
     "scripts/test-support/seal-leva-integration-2410.mjs": {
       "hash": "f553c94da01c7576d7d935773d7edba59f9083124b53b65c9ed4c357dfff2eb0"
     },
+    "scripts/test-temporada.mjs": {
+      "hash": "b8ed4e58f5c64c52b6b20c470d90b96eb4eb397b3f4c21ad00c3474cd40b0f2b"
+    },
     "scripts/test-teto-no-prompt.mjs": {
       "hash": "b5ea491973aae19ae7f317bc72a48db17a102efc82fc7c7d2e2ee38bd6c6e799"
+    },
+    "scripts/test-text-to-video-intent-router.mjs": {
+      "hash": "a2e0dacab6c18d4ff182e6fec2c2375dcd76e71741d652ac416f798e238205f0"
     },
     "scripts/test-trafego-pages-2310.mjs": {
       "hash": "c021ff17429765cacf52f7b350c0f4766875a21cdab80f40310d2786db0cd0cd"
     },
     "scripts/test-trafego-undo-2310.mjs": {
       "hash": "0df0329b144a2a30f1183224aabd916ea318f8be7a925ba98b32172129540b8a"
+    },
+    "scripts/test-troca-de-plano-2026-09-09.mjs": {
+      "hash": "33935866e521b8f21595f51f87a3d4c63b87a50d530e7cd860ba38a3df85d3bf"
+    },
+    "scripts/test-ux-complete.mjs": {
+      "hash": "3feec9ac64c41402d45b53b64b868b2d6b46677ce2e04aa557898a43c775d158"
+    },
+    "scripts/test-ux-mobile-navigation.mjs": {
+      "hash": "0798a339ca19e2e13619175d3eb81de92c08a70f7b5ea51be634e6da323ca4a2"
+    },
+    "scripts/test-verbatim-order-warning.mjs": {
+      "hash": "2309dd8b5c41ba1dd01f5b85c1962d2087174473132e525616e2fb0769a4c863"
+    },
+    "scripts/test-video-editing.mjs": {
+      "hash": "d2dabcd17175e1563751d3658ac916aaa862b88c308aa40d95763f2095b26480"
+    },
+    "scripts/test-video-ready-nudge.mjs": {
+      "hash": "3697f9c789ed20fe600192e46864ce5676d060561af558971423dea46060fe44"
+    },
+    "scripts/test-video-share-consent.mjs": {
+      "hash": "8556aeb92ae587ec6d273f0fe704997b9e6115b1e8f0e21560edcfb288fbd504"
+    },
+    "scripts/test-videos-search.mjs": {
+      "hash": "a7e20095ef62ac620450978232ca239b0daba98fe43886e5e3adb7bd9d5775b1"
+    },
+    "scripts/test-vigia-cenario-inventado-2026-09-11.mjs": {
+      "hash": "340f4024c8b623671678d909cffd503e155d051c0b455b12b533deeaeaede959"
+    },
+    "scripts/test-viralnow-search-intent.mjs": {
+      "hash": "4cd77b359b62fc2234eebe254afeb0436f30bdea1df1e5dfc6a8ec0277bf243b"
+    },
+    "scripts/test-visibilidade-chatgpt-2026-10-06.mjs": {
+      "hash": "1012fd3a22164cf6893b528481cfe888805cfc8c6f976598901c8377acee2b25"
+    },
+    "scripts/test-works-with-claude-2026-09-30.mjs": {
+      "hash": "15f8d662e02f51605aa9038b493ee01536fcb3e3bb0d5a33e27c9829ea8d7a84"
+    },
+    "scripts/test-workspace-spanish.mjs": {
+      "hash": "4d695572a77eb9ddda0abb29a7a5dccf6b1b8155b5a1be5721a61f15eba173bc"
     },
     "supabase/migrations/20261024175246_ads_escolha_sample.sql": {
       "hash": "a8516f26e7fcc52d0bd0dc31310f2f21256f8b053ecb2ad1e54f0b834a61390f"
