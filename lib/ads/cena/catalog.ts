@@ -1,7 +1,8 @@
 // KINEO-ADS-CENA-2110 — tabela única editável: a visão escolhe a categoria, nunca inventa cenário nem ação.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — rollout visibility; access is still resolved separately by adsGate.
 // KINEO-ADS-CENA-AJUSTE-2110 — figurino explícito e estável nas duas imagens, tomadas e refações.
 // KINEO-ADS-CENA-95-2110 — chá tem preparo próprio em vez de girar a embalagem como produto genérico.
-export const ADS_CENA_LIVE: 'off' | 'internal' = 'internal'
+export const ADS_CENA_LIVE: 'off' | 'internal' | 'public' = 'public'
 export const CENA_CATALOG = {
   wearable: { format: 'athlete_demo', setting: 'an outdoor running track at dawn', actor: 'one adult runner in sportswear', interaction: 'wears the watch on their own LEFT wrist, runs, slows down and looks at the watch', scale: 'a watch fitted around the LEFT wrist' },
   skincare: { format: 'hands_demo', setting: 'a bright clean bathroom counter', actor: 'one adult, only their own forearms and hands visible', interaction: 'opens the jar and applies a small amount to their own forearm', scale: 'a small jar fitting in one palm' },
@@ -29,4 +30,4 @@ export const CENA_ACTORS: Record<CenaCategory, string> = { wearable: 'jade', ski
 export function cenaCategory(value: unknown): value is CenaCategory { return typeof value === 'string' && Object.hasOwn(CENA_CATALOG, value) }
 
 // Recebe um booleano derivado SOMENTE da lista EXATA do auth do Studio Ads. Não usa padrões de métricas.
-export function cenaEnabled(internal: boolean, flag: string = ADS_CENA_LIVE): boolean { return flag === 'internal' && internal === true }
+export function cenaEnabled(internal: boolean, flag: string = ADS_CENA_LIVE): boolean { return flag === 'public' || flag === 'internal' && internal === true }

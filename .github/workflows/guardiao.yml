@@ -24,6 +24,12 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-ADS-ESCOLHA-PUBLICO-2410 — actual public route, bounded photo effects, executable mutants and exact undo.
+      - name: Studio Ads público — escolha, custo, qualidade e desfaz exato
+        run: |
+          node scripts/test-ads-escolha-publico-2410.mjs
+          node scripts/test-ads-escolha-2310.mjs
+          node scripts/test-ads-render-fix-2310.mjs
       # KINEO-TRAFEGO-2310 — six entry pages, public index and DB-independent alarm.
       - name: Tráfego — conteúdo citável, sitemap, alarme e desfaz exato
         run: |
