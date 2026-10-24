@@ -18,7 +18,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const raiz = process.cwd()
 // Licao do #1: guardiao que compara literais tem de normalizar a quebra de linha,
@@ -32,12 +32,10 @@ function checa(nome, condicao) {
   falhas.push(nome)
 }
 
-const { looksLikeInstruction, pickMomentumTopic } = await import(
-  pathToFileURL(path.join(raiz, 'lib/momentumTopic.ts')).href
-)
-const { pareceRoteiroDaCasa, temMarcadores } = await import(
-  pathToFileURL(path.join(raiz, 'lib/nextEpisodeMarkers.ts')).href
-)
+// KINEO-LEVA-2410: transpilar o grafo TS real, inclusive imports relativos sem extensão.
+const carregar = createOfflineLoader()
+const { looksLikeInstruction, pickMomentumTopic } = carregar('lib/momentumTopic.ts')
+const { pareceRoteiroDaCasa, temMarcadores } = carregar('lib/nextEpisodeMarkers.ts')
 
 // ── 1. PROVA DO CHAMADOR: o formato que este teste usa e o formato que o codigo
 //       da home realmente produz. Se um dos dois mudar, o teste cai.
