@@ -1299,6 +1299,27 @@
     "docs/previews/ads-formatos-mobile-2410.png",
     "docs/previews/idiomas-2410.html",
     "docs/previews/idiomas-2410.png",
-    "docs/previews/render-ads-formatos-2410.cjs"
+    "docs/previews/render-ads-formatos-2410.cjs",
+    "docs/qa/idiomas-formatos-2410-validation/.gitattributes",
+    "docs/qa/idiomas-formatos-2410-validation/README.md",
+    "docs/qa/idiomas-formatos-2410-validation/candidate-list.json",
+    "docs/qa/idiomas-formatos-2410-validation/compare-qa.cjs",
+    "docs/qa/idiomas-formatos-2410-validation/comparison.json",
+    "docs/qa/idiomas-formatos-2410-validation/final-flags.json",
+    "docs/qa/idiomas-formatos-2410-validation/final-inventory.json",
+    "docs/qa/idiomas-formatos-2410-validation/final-two-list.json",
+    "docs/qa/idiomas-formatos-2410-validation/logs/candidate-controls__scripts__test-ads-formatos-escolha-2410.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/candidate-controls__scripts__test-idiomas-2410.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/candidate-controls__scripts__test-language-segmentation-2410.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-flags__node_modules_typescript_bin_tsc.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-flags__scripts_test-admin-leve-2310.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-flags__scripts_test-roteiro-curto-sem-falha-2210.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-inventory__scripts__test-idiomas-formatos-undo-2410.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-two__scripts__test-idiomas-formatos-undo-2410.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-two__scripts__test-trilha-15s-1610.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/logs/final-two__scripts__test-verbatim-scene-plan.mjs.log",
+    "docs/qa/idiomas-formatos-2410-validation/offline-preload.cjs",
+    "docs/qa/idiomas-formatos-2410-validation/run-suite.cjs",
+    "docs/qa/idiomas-formatos-2410-validation/validation.json"
   ]
 }

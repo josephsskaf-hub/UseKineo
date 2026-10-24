@@ -1,0 +1,156 @@
+{
+  "checkedUtc": "2026-10-24T13:47:30.121Z",
+  "taskBase": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+  "sourceSnapshot": "089006cdf724fb05372615527327eca1401a403c",
+  "finalTestCheckpoint": "8c7cdae291162776af5475dff182a70b132a74da",
+  "typescriptUnchangedAfterSnapshot": true,
+  "independentAudit": {
+    "agent": "auditoria",
+    "result": "1007 total;855 pass;152 inherited fail;0 new/changed/missing/duplicate/timeout; all log hashes match",
+    "confirmationRecordedUtc": "2026-10-24T13:48:53.522Z"
+  },
+  "receipts": [
+    {
+      "name": "full-baseline",
+      "sha256": "ba6984e2685d61087c230a20c36a46b34f8cfb3746542dafb64b186c5ab54d94",
+      "base": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+      "total": 1003,
+      "done": 1003,
+      "pass": 844,
+      "fail": 159,
+      "started": "2026-10-24T12:48:49.191Z",
+      "finished": "2026-10-24T13:04:17.191Z"
+    },
+    {
+      "name": "baseline-controls",
+      "sha256": "f7f127da4c91e2625f07fa03f27337f888b7c598e3078e2ca247b7ab35b06070",
+      "base": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+      "total": 9,
+      "done": 9,
+      "pass": 7,
+      "fail": 2,
+      "started": "2026-10-24T13:05:38.606Z",
+      "finished": "2026-10-24T13:14:51.185Z"
+    },
+    {
+      "name": "baseline-effective",
+      "sha256": "0c474b90ad3357ee21d7838b1d18a60a62f1c0dfd940474b79384474ae790a12",
+      "base": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+      "total": 1003,
+      "done": 1003,
+      "pass": 851,
+      "fail": 152,
+      "started": "2026-10-24T12:48:49.191Z",
+      "finished": "2026-10-24T13:04:17.191Z"
+    },
+    {
+      "name": "full-candidate2",
+      "sha256": "39682794ed88400c53b55b6fadfc0ed6e36bc552c298bd0b3659c3e3ed5633ec",
+      "base": "089006cdf724fb05372615527327eca1401a403c",
+      "total": 1007,
+      "done": 1007,
+      "pass": 808,
+      "fail": 199,
+      "started": "2026-10-24T13:13:18.290Z",
+      "finished": "2026-10-24T13:29:21.170Z"
+    },
+    {
+      "name": "candidate-controls",
+      "sha256": "445f5bac8973c4b2b2213704b07cd4ad28c489390a4fd6d9204d78b16d01f1c7",
+      "base": "ab5a67b685bd08d9ab3eea8fe67786330d89fce5",
+      "total": 60,
+      "done": 60,
+      "pass": 50,
+      "fail": 10,
+      "started": "2026-10-24T13:35:47.576Z",
+      "finished": "2026-10-24T13:41:09.453Z"
+    },
+    {
+      "name": "final-two",
+      "sha256": "c4a9ea3f5f1b4c29a5b27dee2d03ebcfe175fe2741cfc9f0a244e32123f8b663",
+      "base": "8c7cdae291162776af5475dff182a70b132a74da",
+      "total": 3,
+      "done": 3,
+      "pass": 3,
+      "fail": 0,
+      "started": "2026-10-24T13:45:13.325Z",
+      "finished": "2026-10-24T13:45:55.180Z"
+    }
+  ],
+  "selectedLogs": [
+    {
+      "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "receipt": "candidate-controls",
+      "path": "logs/candidate-controls__scripts__test-ads-formatos-escolha-2410.mjs.log",
+      "sha256": "11ff25a1afb4e02988295cdd0f27e705ab08fa6624bd8b7e9370daed59b30ee6"
+    },
+    {
+      "file": "scripts/test-idiomas-2410.mjs",
+      "receipt": "candidate-controls",
+      "path": "logs/candidate-controls__scripts__test-idiomas-2410.mjs.log",
+      "sha256": "5d17c58ce84ff750d028ca9ceac6ab85dcfc7c2028c5a8ba1effc1023e12997e"
+    },
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "receipt": "final-two",
+      "path": "logs/final-two__scripts__test-idiomas-formatos-undo-2410.mjs.log",
+      "sha256": "ab297dd8300bb65828ffea3541b5570ef35fdda045bca06aba9688c889a6b283"
+    },
+    {
+      "file": "scripts/test-language-segmentation-2410.mjs",
+      "receipt": "candidate-controls",
+      "path": "logs/candidate-controls__scripts__test-language-segmentation-2410.mjs.log",
+      "sha256": "ff98ed46f540a4f6b7f7cdfeca6425ca72e451c13aaef957b3ac31dc2cf2af2b"
+    },
+    {
+      "file": "scripts/test-trilha-15s-1610.mjs",
+      "receipt": "final-two",
+      "path": "logs/final-two__scripts__test-trilha-15s-1610.mjs.log",
+      "sha256": "d0427f3a448f1f65db7d3da93fd705144e479b56196557b02ac1ae675365cdf8"
+    },
+    {
+      "file": "scripts/test-verbatim-scene-plan.mjs",
+      "receipt": "final-two",
+      "path": "logs/final-two__scripts__test-verbatim-scene-plan.mjs.log",
+      "sha256": "f8087b9b54994b5de84e6a1d955852ddb9e0980bf16f5a4be5554658d4bc58ac"
+    },
+    {
+      "args": [
+        "scripts/test-admin-leve-2310.mjs",
+        "--mutants"
+      ],
+      "receipt": "final-flags",
+      "path": "logs/final-flags__scripts_test-admin-leve-2310.mjs.log",
+      "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304"
+    },
+    {
+      "args": [
+        "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+        "--mutants"
+      ],
+      "receipt": "final-flags",
+      "path": "logs/final-flags__scripts_test-roteiro-curto-sem-falha-2210.mjs.log",
+      "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9"
+    },
+    {
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "--pretty",
+        "false"
+      ],
+      "receipt": "final-flags",
+      "path": "logs/final-flags__node_modules_typescript_bin_tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "finalArtifactInventory": {
+    "receipt": "final-inventory.json",
+    "status": 0,
+    "sha256": "ab297dd8300bb65828ffea3541b5570ef35fdda045bca06aba9688c889a6b283",
+    "log": "logs/final-inventory__scripts__test-idiomas-formatos-undo-2410.mjs.log",
+    "checkedUtc": "2026-10-24T13:49:59.508Z"
+  }
+}
