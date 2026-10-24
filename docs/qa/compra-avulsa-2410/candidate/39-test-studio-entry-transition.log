@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-studio-entry-transition.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1170
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+Studio entry: 53 regression checks passed; no network or generation.

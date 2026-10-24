@@ -1,0 +1,43 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-ads-escolha-2310.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 101805
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+ok escolha: real admin/UI controllers, dry/live parity, 4previews, ownership, ledger only after choice, ranking and replay
+ok mutant cobra sem escolha
+ok mutant rotaadmin volta motor automático
+ok mutant gera só três imagens
+ok mutant escolha ignora clique
+ok mutant referência de vídeo troca produto
+ok mutant vídeo começa ao ranquear
+ok mutant veta ressalva visual
+ok mutant perde notas do juiz
+ok mutant reenvia POST ambíguo
+ok mutant perde única repetição confirmada
+ok mutant ignora apresentador escolhido
+ok mutant sem auth interna
+ok mutant categoria errada passa
+ok mutant skincare volta proibição rosto
+ok mutant snapshot antigo depois do lease
+ok mutant cópia sem prazo
+ok mutant juiz permite perna invertida antes da saudável
+ok mutant dry aceita still que real recusa
+ok mutant juiz ignora joelho invertido
+ok mutant abandona três imagens válidas
+ok mutant perde recibo tardio sem retomar
+ok mutant montagem estica vídeo
+ok mutant volta packshot parado
+ok mutant oferta duplicada
+ok mutant sobreposição final na mesma trilha
+ok mutant vídeo vira quadrante
+ok mutant remove contraste da legenda
+ok mutant cor sem acabamento uniforme
+ok mutant música na frente da voz
+ok mutant fala longa vira upload e corte
+ok mutant TTS duplicado em talking
+ok mutant Kling sem três tomadas
+ok mutant Kling decide planos sem respeitar três takes
+ok mutant take dura quinze em vez de cinco
+ok mutant oferta volta a duplicar por pontuação
+ok escolha: 39 mutantes comportamentais; 29 provas UI; desfaz exato e mídia offline

@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-return-2410.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1168
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS one-time return: pending before grant, owner/session-only receipt, no writes, no cached state, exact destination

@@ -1,0 +1,77 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-carta-da-recusa.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 877
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+
+A. quem recebe a carta (decisão exercitada, não contada)
+  ✓ as três decisões são funções exportadas e puras (testáveis)
+  ✓ recusa de COMPRA INICIAL entra
+  ✓ RENOVAÇÃO não entra — cliente que já paga tem a régua da Stripe
+  ✓ estágio DESCONHECIDO não entra (falha fechada: a fatura não pôde ser lida)
+  ✓ estágio ausente não entra
+  ✓ nome vindo de metadata da Stripe é confiável
+  ✓ nome vindo da assinatura da fatura é confiável
+  ✓ nome vindo da sessão de checkout é confiável
+  ✓ nome vindo de `customer_id` é confiável
+  ✓ o reparo manual conferido à mão é confiável
+  ✓ nome INFERIDO por e-mail NÃO envia sozinho — pode ser outra pessoa
+  ✓ recusa anônima não recebe carta nenhuma
+  ✓ `card_restricted` vira frase sobre o BANCO, não sobre a pessoa
+  ✓ a frase muda com o motivo (não é texto fixo)
+  ✓ motivo desconhecido cai num padrão que ainda é verdadeiro
+
+B. a carta obedece as réguas da casa (arquivo real)
+  ✓ a decisão de coorte é MESMO usada no laço, não só declarada
+  ✓ a decisão de identidade é MESMO usada no laço
+  ✓ o padrão é DRY RUN: só envia com confirm=SEND explícito
+  ✓ sem sessão de admin nem segredo de cron, a rota devolve 403
+  ✓ a autorização por cron falha FECHADA sem a env
+  ✓ supressão de 24h da casa é consultada e filtra de verdade
+  ✓ quem já pagou não recebe
+  ✓ quem entrou em outra campanha não recebe
+  ✓ carimbo vitalício: quem já recebeu esta carta não recebe de novo
+  ✓ opt-out e e-mail descartável saem antes de tudo
+  ✓ os 4 bloqueados do ciclo estão na lista
+  ✓ cabeçalho de descadastro vai em todo envio
+  ✓ payment_success: GET real lê 2500 linhas e não envia indevidamente
+  ✓ payment_success: falha da segunda página responde 500 e zero envio/carimbo
+  ✓ payment_success: mutante vivo sem readAll envia uma carta indevida e é morto
+  ✓ payment_success: mutante vivo que aceita página parcial viola o HTTP 500
+  ✓ checkout_recovery_emailed_v1: GET real lê 2500 linhas e não envia indevidamente
+  ✓ checkout_recovery_emailed_v1: falha da segunda página responde 500 e zero envio/carimbo
+  ✓ checkout_recovery_emailed_v1: mutante vivo sem readAll envia uma carta indevida e é morto
+  ✓ checkout_recovery_emailed_v1: mutante vivo que aceita página parcial viola o HTTP 500
+  ✓ card_declined_emailed_v1: GET real lê 2500 linhas e não envia indevidamente
+  ✓ card_declined_emailed_v1: falha da segunda página responde 500 e zero envio/carimbo
+  ✓ card_declined_emailed_v1: mutante vivo sem readAll envia uma carta indevida e é morto
+  ✓ card_declined_emailed_v1: mutante vivo que aceita página parcial viola o HTTP 500
+  ✓ readAll real: 2500 ids exatos e ORDER estável antes de todos os range
+  ✓ mutante vivo sem desempate por id perde linhas com empates e é morto
+  ✓ teto de 30 por lote e pacing de 600ms
+  ✓ o envio deixa carimbo em `events` com o nome canônico
+  ✓ o preço do pacote vem de `packPriceLabel()`, nunca escrito na copy
+  ✓ a quantidade de créditos vem de `PACK_CREDITS.starter`
+  ✓ os dois links da carta são etiquetados (senão a venda chega como tráfego direto)
+  ✓ a carta não promete desconto, cupom nem crédito de graça
+
+C. a segunda porta é mesmo cobrança única (arquivo do checkout)
+  ✓ o handler do pacote foi encontrado
+  ✓ `?pack=starter` cria sessão `mode: 'payment'` — cobrança ÚNICA, sem mandato
+  ✓ e NÃO cria assinatura
+  ✓ o pacote está a US$ 4,99 (a carta manda o valor que a Stripe cobra)
+  ✓ o pacote tem 35 créditos (1 filme Seedance de 60 s)
+
+D. o carimbo novo está registrado nos três lugares
+  ✓ registro canônico de supressão conhece `card_declined_emailed_v1`
+  ✓ campanha vizinha (checkout expirado) conhece `card_declined_emailed_v1`
+  ✓ campanha vizinha (carta da temporada) conhece `card_declined_emailed_v1`
+
+E. a carta dispara sozinha, e com o gatilho armado
+  ✓ a carta tem uma entrada de cron
+  ✓ e o cron chama com `confirm=SEND` — sem isso ela roda em dry-run para sempre
+  ✓ e com teto de lote explícito
+  ✓ a agenda é diária, não de minuto em minuto
+
+59/59 verificações passaram.

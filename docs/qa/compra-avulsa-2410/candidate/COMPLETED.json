@@ -1,0 +1,15 @@
+{
+  "total": 78,
+  "accepted": 75,
+  "knownLegacy": 2,
+  "newRed": [
+    {
+      "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "args": [],
+      "exit": 1,
+      "signature": "Error: Unexpected import: @/components/OneTimeItemOffer",
+      "log": "10-test-ads-formatos-escolha-2410.log"
+    }
+  ],
+  "sourceStatusUnchanged": true
+}

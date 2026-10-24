@@ -1,0 +1,27 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-sql-2410.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 35438
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+ok SQL every missing dependency, wrong type or missing event default aborts the entire migration
+ok SQL migration can re-run; the SQL V1 matches the actual existing cost/settlement sources
+ok SQL receipt, exact grant, access, event and replay after spending
+ok SQL both SKUs settle in USD/BRL, preserve subscriptions and never shorten access
+ok SQL invalid identities, quantities, contracts, prices and currencies fail without artifacts
+ok SQL a final event failure rolls back every financial write and can retry
+ok SQL preexisting legacy marker without a receipt fails closed
+ok SQL profile or marker failure rolls back the receipt and all other writes
+ok SQL an interrupted enclosing transaction rolls back successful RPC work
+ok SQL racing request submissions keep a single grant and distinct purchases add without lost balance
+ok SQL browser roles are closed; only the server executes the fixed-path definer
+ok SQL mutant rejected: omit receipt
+ok SQL mutant rejected: omit has_paid
+ok SQL mutant rejected: overwrite balance
+ok SQL mutant rejected: omit access
+ok SQL mutant rejected: ignore receipt mismatch
+ok SQL mutant rejected: omit fulfillment marker
+ok SQL mutant rejected: swallow final event failure
+ok SQL mutant rejected: grant publicly executable
+ok SQL mutant rejected: omit migration dependency preflight
+ok 20 SQL proofs; actual PostgreSQL/WASM, no network or credentials; proposed migration remains unapplied

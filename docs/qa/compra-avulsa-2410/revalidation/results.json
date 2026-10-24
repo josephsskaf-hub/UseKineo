@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-24T18:33:22.825Z",
+  "head": "aaeb6e4522620cb3b1a5ce78723d9a7f60db2dc4",
+  "typecheckHead": "4ff20d54",
+  "results": [
+    {
+      "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "args": [],
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 28651,
+      "log": "test-ads-formatos-escolha-2410.log"
+    },
+    {
+      "file": "scripts/test-compra-avulsa-undo-2410.mjs",
+      "args": [],
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 7976,
+      "log": "test-compra-avulsa-undo-2410.log"
+    },
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "args": [],
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 99978,
+      "log": "test-idiomas-formatos-undo-2410.log"
+    }
+  ],
+  "productiveChanges": []
+}

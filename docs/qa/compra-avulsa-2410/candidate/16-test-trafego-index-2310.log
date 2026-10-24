@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-trafego-index-2310.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 4795
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+{"classification":"FATO CONFIRMADO / TESTADO LOCALMENTE","date":"2026-10-23","sitemapUrls":593,"clearPages":151,"cartoonPages":2,"missing":[],"duplicates":0,"llms":"Film first; current Cartoon offers; Brazil BRL; real GET"}
