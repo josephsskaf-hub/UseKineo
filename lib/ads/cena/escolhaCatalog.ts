@@ -1,3 +1,4 @@
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — translated previews preserve the Portuguese default.
 // KINEO-ADS-ESCOLHA-2310 — public/isomorphic choice data; every preview is an illustration, never generated output.
 import type { CenaCategory } from './catalog'
 export const CENA_ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
