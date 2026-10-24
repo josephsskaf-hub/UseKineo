@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'orders_read_failed' })
   }
   const results: { order_id: string; before: string; after: string | null }[] = []
+  await checkEscolhaSampleConversionAlert(admin, started + TOTAL_BUDGET_MS) // KINEO-AMOSTRA-ANUNCIO-2410 — evaluate the stopping signal before render work can exhaust the cron budget.
   for (const o of (data ?? []) as { id: string; status: string }[]) {
     if (Date.now() - started > TOTAL_BUDGET_MS) break
     const view = await advanceAdsV2Order(admin, o.id, { deadlineMs: Math.min(started + TOTAL_BUDGET_MS, Date.now() + PER_ORDER_BUDGET_MS) })
@@ -57,7 +58,6 @@ export async function GET(req: NextRequest) {
   }
   const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310
   await retryEscolhaNotices(admin, started + TOTAL_BUDGET_MS) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — retry the authorized transactional notice.
-  await checkEscolhaSampleConversionAlert(admin, started + TOTAL_BUDGET_MS) // KINEO-AMOSTRA-ANUNCIO-2410 — matured external people, never client events.
   const demos = await advanceDemosSobMedida(admin, { deadlineMs: started + TOTAL_BUDGET_MS + 40_000, secret: process.env.SUPABASE_SERVICE_ROLE_KEY }) // KINEO-DEMO-SOB-MEDIDA-1510 — nunca lança; sem demo, duas leituras
   console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, demos, ms: Date.now() - started })) // KINEO-DEMO-SOB-MEDIDA-1510 — + demos
   return NextResponse.json({ ok: true, scanned: results.length, results, batches })

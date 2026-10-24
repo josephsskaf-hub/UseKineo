@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
-const F = { helper: 'lib/ads/cena/escolhaSampleServer.ts', webhook: 'app/api/stripe/webhook/route.ts', sink: 'app/api/events/route.ts' }
+const F = { helper: 'lib/ads/cena/escolhaSampleServer.ts', webhook: 'app/api/stripe/webhook/route.ts', sink: 'app/api/events/route.ts', cron: 'app/api/cron/ads-v2-advance/route.ts' }
 const read = p => readFileSync(p, 'utf8').replace(/\r\n/gu, '\n')
 const actor = '10000000-0000-4000-8000-000000000001', order = '20000000-0000-4000-8000-000000000001', token = '30000000-0000-4000-8000-000000000001'
 const identity = { actorId: actor, ownerId: actor, orderId: order }, lease = '2026-10-24T12:00:00Z'
@@ -97,12 +97,24 @@ async function webhookProof(over={}) {
   await write(admin,'evt_test',{...session,livemode:false},1792843200);assert.equal(rows[1].metadata.stripe_livemode,false,'SQL can exclude test-mode events')
   const source=over[F.webhook]??read(F.webhook);assert.match(source,/recordPaymentSuccess\(supabase, event\.id, session, event\.created\)/u,'signed event time is passed by actual webhook callers')
 }
+async function cronAlertBudgetProof(over={}) {
+  let now=1_000_000, sent=0;const calls=[]
+  class Clock extends Date {static now(){return now}}
+  const q={select:()=>q,in:()=>q,order:()=>q,limit:async()=>({data:[{id:order,status:'generating'}],error:null})},admin={from:()=>q}
+  const get=actualFunction(F.cron,'GET',{
+    isAuthorized:()=>true,Date:Clock,footageAdminClient:()=>admin,BATCH:6,TOTAL_BUDGET_MS:240000,PER_ORDER_BUDGET_MS:60000,isMissingAdsTable:()=>false,
+    NextResponse:{json:x=>x},console:{log(){},error(){}},process:{env:{}},
+    checkEscolhaSampleConversionAlert:async(_db,deadline)=>{calls.push('alert');if(now+12000<deadline)sent++;return sent>0},
+    advanceAdsV2Order:async()=>{calls.push('render');now+=240000;return{status:'assembling'}},drainAdsV2Batches:async()=>[],retryEscolhaNotices:async()=>{},advanceDemosSobMedida:async()=>[],
+  },over)
+  await get({});assert.equal(sent,1,'a busy render queue cannot starve the stopping email');assert.equal(calls[0],'alert','evaluate conversion before exhausting the render budget')
+}
 async function sinkProof(over={}) {
   const source=over[F.sink]??read(F.sink),match=source.match(/const SERVER_ONLY_EVENTS = new Set\((\[[\s\S]*?\])\)/u);assert.ok(match)
   const events=new Function('return '+match[1])()
   for(const event of ['ads_sample_started','ads_sample_delivered','ads_sample_upsell_clicked','ads_sample_purchased_7d']) assert.ok(events.includes(event),'browser cannot forge '+event)
 }
-for(const proof of [accountProof,reserveProof,reservationProof,alertProof,webhookProof,sinkProof]) await proof()
+for(const proof of [accountProof,reserveProof,reservationProof,alertProof,webhookProof,sinkProof,cronAlertBudgetProof]) await proof()
 const mutants=[
  ['unconfirmed e-mail qualifies',F.helper,"typeof user.email_confirmed_at !== 'string' || !Number.isFinite(Date.parse(user.email_confirmed_at))","false",accountProof],
  ['antifarm bypassed',F.helper,'return await adsSampleAccountOk(admin, actorId) ? user : null','return user',accountProof],
@@ -119,6 +131,7 @@ const mutants=[
  ['payment time replaced by arrival',F.webhook,'new Date(stripeEventCreated * 1000).toISOString()','new Date().toISOString()',webhookProof],
  ['unpaid checkout becomes payment',F.webhook,"if (session.payment_status !== 'paid') return",'if (false) return',webhookProof],
  ['sample delivery browser forgery',F.sink,"  'ads_sample_delivered',\n",'',sinkProof],
+ ['cron alert receives exhausted deadline',F.cron,'checkEscolhaSampleConversionAlert(admin, started + TOTAL_BUDGET_MS)','checkEscolhaSampleConversionAlert(admin, started)',cronAlertBudgetProof],
 ]
 for(const [name,file,from,to,proof] of mutants){
  const source=read(file);assert.equal(source.split(from).length-1,1,'unique mutant: '+name)
@@ -126,4 +139,4 @@ for(const [name,file,from,to,proof] of mutants){
  let error;try{await proof({[file]:changed})}catch(e){error=e}
  assert.equal(error?.code,'ERR_ASSERTION','assertion-killed mutant '+name+': '+(error?.stack??'SURVIVED'))
 }
-console.log(`ok ads-amostra-data: six production behavioral groups; ${mutants.length} assertion-killed mutants; no network,env,credential,paid call or source mutation`)
+console.log(`ok ads-amostra-data: seven production behavioral groups; ${mutants.length} assertion-killed mutants; no network,env,credential,paid call or source mutation`)
