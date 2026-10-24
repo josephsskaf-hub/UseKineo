@@ -1,5 +1,1225 @@
 {
-  "state": "comparison in progress; replace with final measured results",
-  "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
-  "date": "2026-10-24"
+  "task": "KINEO-CARDS-GIRO-2410",
+  "date": "2026-10-24",
+  "state": "TESTADO LOCALMENTE",
+  "baseSHA": "1c078ed013302ac47c42f783305df688c4e97cfd",
+  "fullCandidateSnapshotSHA": "cf4c15bd785e7cdab472760ef0b2decbc3e03474",
+  "finalCandidateSnapshotSHA": "078b765d8952834b11c91b1b6f57255f3c1ad8b3",
+  "scope": "Critical workflow plus five historical home guardians; full cf4 suite plus isolated Motores and eight affected final-source rechecks; final raw TypeScript check reused only after verifying all six final productive LF hashes.",
+  "isolation": {
+    "credentials": "sanitized environment",
+    "environmentFiles": "reads blocked",
+    "network": "blocked",
+    "productionWrites": "none",
+    "paidGeneration": "none",
+    "readOnlyConcurrency": 2,
+    "diskMutants": "Admin leve and Roteiro curto run sequentially after all read-only checks",
+    "readOnlyAllowlistRepair": "Task-specific preload adds git ls-tree; baseline Traffic undo rechecked successfully with 196 assertions."
+  },
+  "baseline": {
+    "count": 62,
+    "pass": 61,
+    "fail": 1,
+    "results": [
+      {
+        "id": "typescript",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 160508
+      },
+      {
+        "id": "scripts/test-idiomas-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3251
+      },
+      {
+        "id": "scripts/test-language-segmentation-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 10864
+      },
+      {
+        "id": "scripts/test-ads-formatos-escolha-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 24627
+      },
+      {
+        "id": "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 131880
+      },
+      {
+        "id": "scripts/test-ads-escolha-publico-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 96450
+      },
+      {
+        "id": "scripts/test-ads-escolha-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 162974
+      },
+      {
+        "id": "scripts/test-ads-render-fix-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 927
+      },
+      {
+        "id": "scripts/test-trafego-pages-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3840
+      },
+      {
+        "id": "scripts/test-trafego-index-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 10250
+      },
+      {
+        "id": "scripts/test-trafego-health-2310.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 10191
+      },
+      {
+        "id": "scripts/test-admin-leve-undo-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 5365
+      },
+      {
+        "id": "scripts/test-trafego-undo-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true
+      },
+      {
+        "id": "scripts/test-admin-truncamento-2026-10.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1810
+      },
+      {
+        "id": "scripts/test-afiliados-acordam.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1233
+      },
+      {
+        "id": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1392
+      },
+      {
+        "id": "scripts/test-roteiro-curto-undo-2210.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 16703
+      },
+      {
+        "id": "scripts/test-carta-da-recusa.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1620
+      },
+      {
+        "id": "scripts/test-momentum-topic.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3647
+      },
+      {
+        "id": "scripts/test-stalled-frescor-2026-09-05.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2319
+      },
+      {
+        "id": "scripts/test-hot-nudge-janela-campanhas.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1825
+      },
+      {
+        "id": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 328
+      },
+      {
+        "id": "scripts/test-gpt-5h-a-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL rendered buttons use canonical builder and page attribution"
+        ],
+        "ms": 311
+      },
+      {
+        "id": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 403
+      },
+      {
+        "id": "scripts/test-gpt-5h-b-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL paused row is not advertised as purchasable"
+        ],
+        "ms": 702
+      },
+      {
+        "id": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 655
+      },
+      {
+        "id": "scripts/test-gpt-5h-c-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL OpenAPI reads live tier price/deadline without new order endpoint"
+        ],
+        "ms": 882
+      },
+      {
+        "id": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1166
+      },
+      {
+        "id": "scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL trial copy separates balance from access in same statement"
+        ],
+        "ms": 704
+      },
+      {
+        "id": "scripts/test-juiz-still-2026-10-06.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 24337
+      },
+      {
+        "id": "scripts/test-sharing-safety.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1371
+      },
+      {
+        "id": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1060
+      },
+      {
+        "id": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3863
+      },
+      {
+        "id": "scripts/test-ads-aeo-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 9491
+      },
+      {
+        "id": "scripts/test-five-improvements.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 6335
+      },
+      {
+        "id": "scripts/test-studio-entry-transition.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1789
+      },
+      {
+        "id": "scripts/test-locale-readiness.mjs",
+        "expectedExit": 0,
+        "status": 1,
+        "passed": false,
+        "failures": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ],
+        "ms": 1050
+      },
+      {
+        "id": "scripts/test-app-blue-layout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 14310
+      },
+      {
+        "id": "scripts/test-home-curation.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1656
+      },
+      {
+        "id": "scripts/test-home-blue-layout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 19957
+      },
+      {
+        "id": "scripts/test-home-referral-bridge.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 749
+      },
+      {
+        "id": "scripts/test-home-pricing-checkout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 184
+      },
+      {
+        "id": "scripts/test-showcase-premium.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1722
+      },
+      {
+        "id": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1790
+      },
+      {
+        "id": "scripts/test-cinematic-speech-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 9855
+      },
+      {
+        "id": "scripts/test-music-direction-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 11529
+      },
+      {
+        "id": "scripts/test-visual-contract-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 7257
+      },
+      {
+        "id": "scripts/test-quality-rejection-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 10332
+      },
+      {
+        "id": "scripts/test-quality-route-integration-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1992
+      },
+      {
+        "id": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2490
+      },
+      {
+        "id": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2909
+      },
+      {
+        "id": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2741
+      },
+      {
+        "id": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1527
+      },
+      {
+        "id": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 23397
+      },
+      {
+        "id": "scripts/test-home-3-cards-1910.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 12590
+      },
+      {
+        "id": "scripts/test-home-cards-botoes-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 7824
+      },
+      {
+        "id": "scripts/test-home-cards-claros-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 8738
+      },
+      {
+        "id": "scripts/test-bebe-que-fala-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 52098
+      },
+      {
+        "id": "scripts/test-motores-geo-2026-10-06.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 122899
+      },
+      {
+        "id": "scripts/test-paginas-ia-claras-2110.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 53618
+      },
+      {
+        "id": "scripts/test-admin-leve-2310.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 36903
+      },
+      {
+        "id": "scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 47157
+      }
+    ]
+  },
+  "candidate": {
+    "count": 64,
+    "pass": 63,
+    "fail": 1,
+    "results": [
+      {
+        "id": "scripts/test-idiomas-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 4824
+      },
+      {
+        "id": "scripts/test-language-segmentation-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 23306
+      },
+      {
+        "id": "scripts/test-ads-formatos-escolha-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 46357
+      },
+      {
+        "id": "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 116689
+      },
+      {
+        "id": "scripts/test-ads-escolha-publico-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 117080
+      },
+      {
+        "id": "scripts/test-ads-render-fix-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 716
+      },
+      {
+        "id": "scripts/test-trafego-pages-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 4398
+      },
+      {
+        "id": "scripts/test-trafego-index-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 9575
+      },
+      {
+        "id": "scripts/test-trafego-health-2310.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 9136
+      },
+      {
+        "id": "scripts/test-trafego-undo-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 13243
+      },
+      {
+        "id": "scripts/test-admin-leve-undo-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 5587
+      },
+      {
+        "id": "scripts/test-roteiro-curto-undo-2210.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 19194
+      },
+      {
+        "id": "scripts/test-admin-truncamento-2026-10.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3803
+      },
+      {
+        "id": "scripts/test-afiliados-acordam.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2503
+      },
+      {
+        "id": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2900
+      },
+      {
+        "id": "scripts/test-juiz-still-2026-10-06.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 26574
+      },
+      {
+        "id": "scripts/test-carta-da-recusa.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2592
+      },
+      {
+        "id": "scripts/test-momentum-topic.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2618
+      },
+      {
+        "id": "scripts/test-stalled-frescor-2026-09-05.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2252
+      },
+      {
+        "id": "scripts/test-hot-nudge-janela-campanhas.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2039
+      },
+      {
+        "id": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 980
+      },
+      {
+        "id": "scripts/test-gpt-5h-a-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL rendered buttons use canonical builder and page attribution"
+        ],
+        "ms": 366
+      },
+      {
+        "id": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 503
+      },
+      {
+        "id": "scripts/test-gpt-5h-b-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL paused row is not advertised as purchasable"
+        ],
+        "ms": 494
+      },
+      {
+        "id": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 859
+      },
+      {
+        "id": "scripts/test-gpt-5h-c-2026-09-24.mjs--mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL OpenAPI reads live tier price/deadline without new order endpoint"
+        ],
+        "ms": 819
+      },
+      {
+        "id": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 891
+      },
+      {
+        "id": "scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant",
+        "expectedExit": 1,
+        "status": 1,
+        "passed": true,
+        "failures": [
+          "FAIL trial copy separates balance from access in same statement"
+        ],
+        "ms": 834
+      },
+      {
+        "id": "scripts/test-sharing-safety.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1671
+      },
+      {
+        "id": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1738
+      },
+      {
+        "id": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 4737
+      },
+      {
+        "id": "scripts/test-ads-escolha-2310.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 148350
+      },
+      {
+        "id": "scripts/test-ads-aeo-2026-09-24.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 11176
+      },
+      {
+        "id": "scripts/test-five-improvements.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 9733
+      },
+      {
+        "id": "scripts/test-studio-entry-transition.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2894
+      },
+      {
+        "id": "scripts/test-locale-readiness.mjs",
+        "expectedExit": 0,
+        "status": 1,
+        "passed": false,
+        "failures": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ],
+        "ms": 1298
+      },
+      {
+        "id": "scripts/test-app-blue-layout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 13633
+      },
+      {
+        "id": "scripts/test-home-curation.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1329
+      },
+      {
+        "id": "scripts/test-home-blue-layout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 19760
+      },
+      {
+        "id": "scripts/test-home-referral-bridge.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 800
+      },
+      {
+        "id": "scripts/test-home-pricing-checkout.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 180
+      },
+      {
+        "id": "scripts/test-showcase-premium.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1867
+      },
+      {
+        "id": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1647
+      },
+      {
+        "id": "scripts/test-cinematic-speech-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 5924
+      },
+      {
+        "id": "scripts/test-music-direction-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 5463
+      },
+      {
+        "id": "scripts/test-visual-contract-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 8772
+      },
+      {
+        "id": "scripts/test-quality-rejection-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 8462
+      },
+      {
+        "id": "scripts/test-quality-route-integration-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1940
+      },
+      {
+        "id": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 2402
+      },
+      {
+        "id": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3164
+      },
+      {
+        "id": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 1921
+      },
+      {
+        "id": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 907
+      },
+      {
+        "id": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 24753
+      },
+      {
+        "id": "scripts/test-home-3-cards-1910.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 10396
+      },
+      {
+        "id": "scripts/test-home-cards-botoes-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 6421
+      },
+      {
+        "id": "scripts/test-home-cards-claros-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 8425
+      },
+      {
+        "id": "scripts/test-bebe-que-fala-2010.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 39469
+      },
+      {
+        "id": "scripts/test-motores-geo-2026-10-06.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 124197
+      },
+      {
+        "id": "scripts/test-cards-giro-2410.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 17093
+      },
+      {
+        "id": "scripts/test-cards-giro-undo-2410.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 3139
+      },
+      {
+        "id": "scripts/test-paginas-ia-claras-2110.mjs",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 43322
+      },
+      {
+        "id": "scripts/test-admin-leve-2310.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 43292
+      },
+      {
+        "id": "scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "ms": 40703
+      },
+      {
+        "id": "typescript",
+        "expectedExit": 0,
+        "status": 0,
+        "passed": true,
+        "reused": true
+      }
+    ]
+  },
+  "comparison": {
+    "newReds": [],
+    "sameReds": [
+      "scripts/test-locale-readiness.mjs"
+    ],
+    "changedFailures": [],
+    "resolved": [],
+    "missing": [],
+    "passed": true
+  },
+  "fullCandidateIntermediateFailures": [
+    {
+      "id": "scripts/test-locale-readiness.mjs",
+      "expectedExit": 0,
+      "status": 1,
+      "passed": false,
+      "failures": [
+        "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+      ],
+      "ms": 1298
+    },
+    {
+      "id": "scripts/test-motores-geo-2026-10-06.mjs",
+      "expectedExit": 0,
+      "status": 1,
+      "passed": false,
+      "failures": [
+        "  FAIL M14 volta o \"3–7 minutes\" → vermelho pelo motivo certo (esperado /ainda promete 3–7 minutes/; veio: (mutante lançou: Error: Script execution timed out after 5000ms))",
+        "  FAIL M18 Veo volta a dizer \"native audio\" → vermelho pelo motivo certo (esperado /Veo ainda diz \"native audio\"/; veio: (mutante lançou: Error: Script execution timed out after 5000ms))"
+      ],
+      "ms": 229703
+    },
+    {
+      "id": "scripts/test-paginas-ia-claras-2110.mjs",
+      "expectedExit": 0,
+      "status": 1,
+      "passed": false,
+      "failures": [
+        "  FALHA  O UTM ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM OPENAI; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM OPENAI; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM OPENAI; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM OPENAI; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer OpenAI; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer OpenAI; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer OpenAI; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O referrer OpenAI; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM Google + referrer ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM Google + referrer ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM Google + referrer ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O UTM Google + referrer ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O sem origem; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O sem origem; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O sem origem; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O sem origem; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Google; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Google; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Google; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Google; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Claude; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Claude; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Claude; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais",
+        "  FALHA  O Claude; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais"
+      ],
+      "ms": 44737
+    }
+  ],
+  "finalSourceRechecks": [
+    {
+      "id": "scripts/test-cards-giro-undo-2410.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 3139
+    },
+    {
+      "id": "scripts/test-cards-giro-2410.mjs --mutants",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 17093
+    },
+    {
+      "id": "scripts/test-home-3-cards-1910.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 10396
+    },
+    {
+      "id": "scripts/test-home-cards-botoes-2010.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 6421
+    },
+    {
+      "id": "scripts/test-home-cards-claros-2010.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 8425
+    },
+    {
+      "id": "scripts/test-bebe-que-fala-2010.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 39469
+    },
+    {
+      "id": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 116689
+    },
+    {
+      "id": "scripts/test-paginas-ia-claras-2110.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 43322
+    }
+  ],
+  "environmentRetries": [
+    {
+      "id": "scripts/test-trafego-undo-2310.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true
+    },
+    {
+      "id": "scripts/test-motores-geo-2026-10-06.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 122899
+    },
+    {
+      "id": "scripts/test-motores-geo-2026-10-06.mjs",
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "ms": 124197
+    }
+  ],
+  "verificationRegressionResolved": {
+    "id": "scripts/test-paginas-ia-claras-2110.mjs",
+    "intermediateFailureCount": 32,
+    "cause": "Historical origin checks compared complete old single-video SSR to newly authorized double-buffer media.",
+    "correction": "Historical fixture removes the exact Giro layer before the original complete SSR equality and eight origin mutants; new guard independently executes 64 current EN/PT arrival variants with real order, initial SSR, deduplicated DOM and click positions/hrefs.",
+    "recheckPassed": true
+  },
+  "typecheck": {
+    "command": "tsc --noEmit --incremental false",
+    "exitCode": 0,
+    "sourceEvidence": "docs/qa/cards-giro-2410/typecheck.json",
+    "allSixFinalSnapshotSourceHashesVerified": true,
+    "sourceHashesLF": {
+      "components/home/HomeCardCycleMedia.tsx": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87",
+      "components/home/HomeThreeCards.tsx": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602",
+      "components/home/HomeKidsCard.tsx": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4",
+      "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb",
+      "lib/ui/homeCardPlayback.ts": "afdfaa2013cff2ac509e4f66c28b2d117dc1918c66deb3de2e029e9f5bc901d0",
+      "lib/ui/homeThreeCards.ts": "393e382903627c6d1934de1d61b2b6498efd2fa7cef7db6791d62c7b000f2be2"
+    },
+    "testedSourceCommit": "6fe45076cd2152df35f2ab5dc2c9e80492de321b",
+    "allSixTestedSourceHashesVerified": true
+  },
+  "sourceRestoration": {
+    "baseline": {
+      "passed": true,
+      "initialDiffHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "finalDiffHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "cleanBeforeAndAfter": true
+    },
+    "fullCandidate": {
+      "passed": true,
+      "initialDiffHash": "a3d6c84c625b30a8fdbe7ebda4b45cea868f5bc188a4d20516610ef3449be782",
+      "finalDiffHash": "a3d6c84c625b30a8fdbe7ebda4b45cea868f5bc188a4d20516610ef3449be782",
+      "cleanBeforeAndAfter": true
+    },
+    "finalPostsubset": {
+      "passed": true,
+      "initialDiffHash": "b3372683bf4e60cf73170de460d836a35b904875b753fd21ed0c03dd837b1069",
+      "finalDiffHash": "b3372683bf4e60cf73170de460d836a35b904875b753fd21ed0c03dd837b1069",
+      "cleanBeforeAndAfter": true
+    }
+  },
+  "logs": "Raw receipts and logs remain external; no production data or credentials used.",
+  "newGuard": {
+    "passed": true,
+    "appliedMutants": 14,
+    "rejectedMutants": 14,
+    "mutantNames": [
+      "timeupdate advances before end",
+      "fixed timer",
+      "reduced motion ignored",
+      "viewport ignored",
+      "incoming revealed before playing",
+      "outgoing overwritten during fade",
+      "next no preload",
+      "mobile framing lost",
+      "per-clip scale ignored",
+      "SSR video eagerly downloads",
+      "SSR source assigned to every buffer",
+      "CSS loses to legacy important product crop",
+      "missing approved poster",
+      "click position changed"
+    ],
+    "actualArrivalVariants": 64,
+    "interfaceLanguages": [
+      "en",
+      "pt"
+    ]
+  },
+  "historicalPagesGuard": {
+    "passed": true,
+    "assertionsPassed": 235,
+    "assertionsFailed": 0,
+    "completeSsrEqualityPreserved": true,
+    "historicalOriginVariants": 32,
+    "historicalOriginMutants": 8
+  },
+  "diskMutantRestoration": [
+    {
+      "id": "scripts/test-admin-leve-2310.mjs --mutants",
+      "passed": true,
+      "rejected": 17,
+      "applied": 17,
+      "exactBufferUndoVerified": true,
+      "positiveControlPassed": true,
+      "mutantNames": [
+        "cache-default-30s",
+        "cache-no-singleflight",
+        "cache-never-expires",
+        "cache-retains-failed-flight",
+        "route-cache-bypassed",
+        "route-auth-bypassed",
+        "route-service-bypassed",
+        "route-rpc-error-as-success",
+        "polling-hidden-active",
+        "polling-30s",
+        "polling-no-hidden-timer-cleanup",
+        "polling-no-visible-resume",
+        "polling-allows-overlap",
+        "polling-listener-leaks",
+        "polling-pending-rearms-after-unmount",
+        "polling-ignores-ssr-seed",
+        "live-caller-drops-load"
+      ]
+    },
+    {
+      "id": "scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants",
+      "passed": true,
+      "rejected": 10,
+      "applied": 10,
+      "exactBufferUndoVerified": true,
+      "positiveControlPassed": true,
+      "mutantNames": [
+        "phase-failed",
+        "failure-cause",
+        "url-false",
+        "studio-url-bypass",
+        "admin-counts-short",
+        "c1-auto-render",
+        "reuse-released-attempt",
+        "stale-duration",
+        "offered-wrong-words",
+        "writer-url-bypass"
+      ]
+    }
+  ]
 }

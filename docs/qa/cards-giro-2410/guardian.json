@@ -1,9 +1,12 @@
 {
   "date": "2026-10-24",
   "state": "TESTADO LOCALMENTE",
-  "command": "node --require ./docs/qa/idiomas-formatos-2410-validation/offline-preload.cjs scripts/test-cards-giro-2410.mjs --mutants",
+  "command": "node scripts/test-cards-giro-2410.mjs --mutants",
   "exitCode": 0,
   "appliedMutants": 14,
   "rejectedMutants": 14,
-  "groups": 4
+  "groups": 4,
+  "isolation": "sanitized environment; offline preload blocks network, env reads and protected-source writes",
+  "testedSnapshotSHA": "078b765d8952834b11c91b1b6f57255f3c1ad8b3",
+  "actualArrivalVariants": 64
 }
