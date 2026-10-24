@@ -454,6 +454,7 @@
     "scripts/test-ads-cena-95-pacing-2110.mjs",
     "scripts/test-ads-escolha-publico-2410.mjs",
     "scripts/test-ads-fiel-1510.mjs",
+    "scripts/test-ads-fiel-7-1610.mjs",
     "scripts/test-ads-formatos-escolha-2410.mjs",
     "scripts/test-ads-ia-faz-2026-09-26.mjs",
     "scripts/test-ads-packshot-1410.mjs",
@@ -1446,6 +1447,9 @@
     },
     "scripts/test-ads-fiel-1510.mjs": {
       "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
+    },
+    "scripts/test-ads-fiel-7-1610.mjs": {
+      "hash": "06038e78d1af7c32e164d60788946139e0c890599c2100d0d8c50983bf51babf"
     },
     "scripts/test-ads-formatos-escolha-2410.mjs": {
       "hash": "3bc938654cca311b1746eb78fc6f8f93f91c5dffb88f43cc644fb305ab6f2c9c"
