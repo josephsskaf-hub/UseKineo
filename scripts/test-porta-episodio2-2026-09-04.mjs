@@ -135,7 +135,7 @@ ok(iPortaTopo < iPrateleira, '2.5 e antes da prateleira de tema NOVO, que hoje a
 ok(iPortaRodape > 0, '2.6 a porta antiga NAO foi removida — as duas fontes convivem para comparacao')
 ok(client.indexOf('KINEO-DELIVER-FIRST-2026-07-30') > 0 && client.indexOf('KINEO-DELIVER-FIRST-2026-07-30') < iDownload,
   '2.7 a decisao DELIVER-FIRST continua governando a ordem: entregar antes de convidar')
-ok(/watermarkedDownloadConfirmed[\s\S]{0,400}linear-gradient\(135deg, #2997ff/.test(
+ok(/background: watermarkedDownloadConfirmed\s*\? 'var\(--accent\)'\s*: 'var\(--accent-soft\)'/.test(
   blocoPorta),
   '2.8 a porta so ganha peso de acao PRINCIPAL depois que o arquivo esta na mao')
 
@@ -207,13 +207,14 @@ ok(!client.includes("from '@/lib/compose'"), '6.0b a tela nao importa o motor de
 // speechSeconds, para desenhar o aviso de cobertura). O que esta jogada nao
 // pode fazer e USAR a regua: a porta do episodio 2 e navegacao, nao decisao
 // de roteiro. Se um dia ela passar a calcular segundos de fala, esta cai.
-ok(client.includes("import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'"),
+ok(client.includes("import { MIN_COVERAGE, minCoverageFor, autofitDown } from '@/lib/narrationFit'"),
   '6.0c o import pre-existente da regua de narracao ficou byte a byte o de antes')
 ok(!blocoPorta.includes('speechSeconds') && !blocoPorta.includes('MIN_COVERAGE'),
   '6.0d e a porta nova nao chama a regua de narracao')
 ok(cont.includes('This is the next episode in the same Short series'),
   '6.2 o texto do prompt de continuacao ficou byte a byte o de hoje')
-ok(!cont.includes('hollywood') && !cont.includes('cinematic'),
+const executableContinuation = ts.createPrinter({ removeComments: true }).printFile(ts.createSourceFile('seriesContinuation.ts', cont, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS))
+ok(!executableContinuation.includes('hollywood') && !executableContinuation.includes('cinematic'),
   '6.3 o modulo do link nao decide motor caro nem prompt de cena')
 
 // ───────────────────────────────────────────────────────────────────────────
