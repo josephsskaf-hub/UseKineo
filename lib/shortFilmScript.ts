@@ -1,3 +1,4 @@
+import { narrationWordCount, narrationSentences, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o roteiro de 15 s nasce do tamanho que a guarda do cinematic aceita ═══
 //
 // O defeito (ensaio real em produção, 29/09): /api/generate-script com targetSeconds 15 e engine cinematic_ai devolveu
@@ -124,10 +125,10 @@ const SENTENCE_SPLIT = new RegExp(String.raw`(?<=[^.][.!?])(?<!(?:^|[^\p{L}\p{N}
 const FIM_EM_ABREVIACAO = new RegExp(String.raw`(?:^|[^\p{L}\p{N}])(?:${ABREV_ALT}|R|(?:\p{L}\.)+\p{L})\.["'”’)\]]*$`, 'u')
 
 function sentencesOf(body: string): string[] {
-  return body.split(SENTENCE_SPLIT).map((s) => s.trim()).filter(Boolean)
+  return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(body) ? narrationSentences(body) : body.split(SENTENCE_SPLIT).map((s) => s.trim()).filter(Boolean) // KINEO-IDIOMAS-FORMATOS-2410
 }
 
-const wordsOf = (t: string): number => t.split(/\s+/).filter(Boolean).length
+const wordsOf = (t: string): number => narrationWordCount(t) // KINEO-IDIOMAS-FORMATOS-2410
 
 // ─── CTA de rede social ─────────────────────────────────────────────────────────────────────────────────────────────
 // O filme de 15 s acaba quando a narração acaba: "Seguir para mais!" gasta 1,2 s de um filme de 15 e não é história.
@@ -191,7 +192,7 @@ const PENDURADAS = new Set([
   // es
   'el', 'la', 'los', 'las', 'un', 'una', 'y', 'en', 'con', 'del', 'al', 'por', 'que',
 ])
-const FIM_DE_FRASE = /[.!?…]["'”’)\]]*$/
+const FIM_DE_FRASE = /[.!?…。！？]["'”’)\]]*$/ // KINEO-IDIOMAS-FORMATOS-2410
 
 /** Frases do roteiro (fala, sem cabeçalhos nem pistas) que parecem cortadas no meio. */
 export function truncatedSentences(script: string): string[] {
@@ -269,7 +270,7 @@ export function fitShortFilmScript(script: string, args: FitShortFilmArgs): FitS
   // KINEO-ROTEIRO-15S-REVISAO-2026-09-29 (achado 2): a frase fixa do PAYOFF é a 1ª que NÃO é pergunta — em "Qual é o
   // detalhe? Da varanda de cada suíte…" a fixa é a revelação; fixar a pergunta deixava o filme terminar em "Qual é o
   // detalhe?".
-  const pergunta = (f: string) => /\?["'”’)\]]*$/.test(f)
+  const pergunta = (f: string) => /[?？]["'”’)\]]*$/.test(f) // KINEO-IDIOMAS-FORMATOS-2410
   const fixaDoFim = fim === inicio ? 0 : Math.max(0, frases[fim]?.findIndex((f) => !pergunta(f)) ?? 0)
   const units: Unit[] = []
   let ordem = 0
@@ -280,7 +281,7 @@ export function fitShortFilmScript(script: string, args: FitShortFilmArgs): FitS
   }))
   const renderMask = (removed: Set<string>): string => render(
     blocks
-      .map((b, i) => ({ ...b, body: frases[i].filter((_, j) => !removed.has(`${i}:${j}`)).join(' ') }))
+      .map((b, i) => ({ ...b, body: joinNarrationTokens(frases[i].filter((_, j) => !removed.has(`${i}:${j}`))) }))
       .filter((b, i) => frases[i].length === 0 || b.body.length > 0),
   )
   const resultado = (removed: Set<string>, overCeiling: boolean): FitShortFilmResult => {

@@ -1,3 +1,4 @@
+import { narrationWordCount, narrationTokens, narrationSentences, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import type { ScenePurpose } from './types'
 
 export interface SceneSegment {
@@ -74,7 +75,7 @@ function splitByMarkers(text: string): SceneSegment[] {
 
     if (!body) continue
 
-    const wordCount = body.split(/\s+/).filter(Boolean).length
+    const wordCount = narrationWordCount(body)
     segments.push({
       narration: body,
       purpose,
@@ -102,7 +103,7 @@ const SENTENCE_END = /(?<=[.!?\u0964\u06D4\u061F\u3002\uFF01\uFF1F])\s+/
 const CLAUSE_END = /(?<=[,;:\u060C\u3001])\s+/ // vírgula latina, ponto-e-vírgula, dois-pontos, vírgula árabe "،", vírgula CJK "、"
 
 function wordCountOf(s: string): number {
-  return s.split(/\s+/).filter(Boolean).length
+  return narrationWordCount(s)
 }
 
 /** Parte um bloco longo em pedaços de até SCENE_SPLIT_MAX_WORDS, primeiro nas vírgulas, depois por contagem. */
@@ -117,20 +118,19 @@ export function splitLongBlock(block: string): string[] {
   if (atual) out.push(atual)
   // Cláusula única gigante (sem vírgula): corta por contagem de palavras.
   return out.flatMap((piece) => {
-    const words = piece.split(/\s+/).filter(Boolean)
+    const words = narrationTokens(piece)
     if (words.length <= SCENE_SPLIT_MAX_WORDS) return [piece]
     const chunks: string[] = []
     const n = Math.ceil(words.length / SCENE_SPLIT_MAX_WORDS)
     const size = Math.ceil(words.length / n)
-    for (let i = 0; i < words.length; i += size) chunks.push(words.slice(i, i + size).join(' '))
+    for (let i = 0; i < words.length; i += size) chunks.push(joinNarrationTokens(words.slice(i, i + size)))
     return chunks
   })
 }
 
 /** Frases de um texto em qualquer das 16 línguas da casa; blocos longos são partidos (ver cabeçalho). */
 export function splitSentencesPolyglot(text: string): string[] {
-  return text
-    .split(SENTENCE_END)
+  return (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(text) ? narrationSentences(text) : text.split(SENTENCE_END)) // KINEO-IDIOMAS-FORMATOS-2410
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
     .flatMap(splitLongBlock)
@@ -144,7 +144,7 @@ function splitBySentences(text: string): SceneSegment[] {
 
   // Assign purposes based on position
   const segments: SceneSegment[] = sentences.map((narration, i) => {
-    const wordCount = narration.split(/\s+/).filter(Boolean).length
+    const wordCount = narrationWordCount(narration)
     let purpose: ScenePurpose
 
     if (i === 0) {

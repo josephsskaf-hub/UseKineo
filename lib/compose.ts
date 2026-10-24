@@ -1,3 +1,4 @@
+import { narrationWordCount, narrationTokens, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // NOTE: do NOT statically `import { openai } from '@/lib/openai'` here.
 // The compose-status route only needs the Creatomate helpers and we don't
 // want to trigger OpenAI client instantiation (which reads OPENAI_API_KEY at
@@ -421,7 +422,7 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   const cleanInput = (rawScript ?? '').trim()
   if (!cleanInput) return ''
 
-  const words = cleanInput.split(/\s+/).filter(Boolean)
+  const words = narrationTokens(cleanInput) // KINEO-IDIOMAS-FORMATOS-2410
   // If already close to target (±15%), don't bother round-tripping to OpenAI.
   // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — faixa assimétrica: acima do alvo até +15 % o filme só fica um pouco
   // mais longo (bom, fundador 02/09); abaixo de 92 % a voz seria arrastada pelo corretivo do compose
@@ -444,7 +445,7 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   const hookMatch = cleanInput.match(/^\s*([\s\S]+?[.!?]["'”’)\]]?)(\s+|$)/)
   const hook = hookMatch ? hookMatch[1].trim() : ''
   const body = hook ? cleanInput.slice(hookMatch![0].length).trim() : ''
-  const hookWords = hook ? hook.split(/\s+/).filter(Boolean).length : 0
+  const hookWords = hook ? narrationWordCount(hook) : 0
 
   // Only take the isolate-and-rescale-body path when there's a real hook AND a
   // real body to rescale (a single-sentence script has nothing to pad/trim).
@@ -482,9 +483,9 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
     }
 
     // Body-only fallback — naive truncate/pad of the BODY, hook kept verbatim.
-    const bodyWords = body.split(/\s+/).filter(Boolean)
+    const bodyWords = narrationTokens(body) // KINEO-IDIOMAS-FORMATOS-2410
     if (hookWords + bodyWords.length > targetWords) {
-      return `${hook} ${bodyWords.slice(0, bodyTargetWords).join(' ')}`.trim()
+      return `${hook} ${joinNarrationTokens(bodyWords.slice(0, bodyTargetWords))}`.trim()
     }
     return cleanInput
   }
@@ -523,7 +524,7 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   }
 
   // Fallback — naive truncate / pad.
-  if (words.length > targetWords) return words.slice(0, targetWords).join(' ')
+  if (words.length > targetWords) return joinNarrationTokens(words.slice(0, targetWords))
   return cleanInput
 }
 
@@ -1044,7 +1045,7 @@ export function mapWhisperTimingsToSegments(
   let wIdx = 0
 
   for (let i = 0; i < segments.length; i++) {
-    const nWords = Math.max(1, (segments[i].text ?? '').trim().split(/\s+/).filter(Boolean).length)
+    const nWords = Math.max(1, narrationWordCount(segments[i].text ?? '')) // KINEO-IDIOMAS-FORMATOS-2410
 
     if (wIdx >= words.length) {
       // Push #244 — Whisper ran out of words before all segments were processed.
@@ -1057,13 +1058,13 @@ export function mapWhisperTimingsToSegments(
       const fillStart = lastEntry ? lastEntry.time + lastEntry.duration : 0
       const remaining = segments.slice(i)
       const remainWords = remaining.reduce(
-        (sum, s) => sum + Math.max(1, (s.text ?? '').trim().split(/\s+/).filter(Boolean).length),
+        (sum, s) => sum + Math.max(1, narrationWordCount(s.text ?? '')),
         0,
       )
       const fillWindow = Math.max(0.1, captionWindowEnd - fillStart)
       let localElapsed = fillStart
       for (const rem of remaining) {
-        const remWords = Math.max(1, (rem.text ?? '').trim().split(/\s+/).filter(Boolean).length)
+        const remWords = Math.max(1, narrationWordCount(rem.text ?? ''))
         const slot = Math.max(0.1, (remWords / remainWords) * fillWindow)
         result.push({
           time: Math.round(localElapsed * 1000) / 1000,
@@ -1254,7 +1255,7 @@ export function buildCaptionsFromWhisperWords(
       usedWords = usedWords.slice(1)
     }
 
-    const text = chunkWords.join(' ').trim()
+    const text = joinNarrationTokens(chunkWords).trim() // KINEO-IDIOMAS-FORMATOS-2410
     if (!text) continue
 
     // Caption starts when its first word is spoken (+ sync offset).
@@ -1307,7 +1308,7 @@ export function buildCaptionsFromWhisperWords(
 function wordCount(s: string): number {
   const t = (s ?? '').trim()
   if (!t) return 0
-  return t.split(/\s+/).length
+  return narrationWordCount(t) // KINEO-IDIOMAS-FORMATOS-2410
 }
 
 /**
@@ -1872,10 +1873,7 @@ export function buildCaptionElements({
           const segStart = k === 0 ? time : bounds[i]
           const segEnd = k === kept.length - 1 ? chunkEnd : bounds[kept[k + 1]]
           if (segEnd - segStart < 0.04) continue
-          const richText = upper
-            .map((w, j) => (j === i ? `[color ${HIGHLIGHT_COLOR}]${w}[/color]` : w))
-            .join(' ')
-            .trim()
+          const richText = joinNarrationTokens(upper.map((w, j) => (j === i ? `[color ${HIGHLIGHT_COLOR}]${w}[/color]` : w))).trim() // KINEO-IDIOMAS-FORMATOS-2410
           els.push({
             ...baseCaption,
             time: round3(segStart),

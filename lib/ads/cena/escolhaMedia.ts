@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-ESCOLHA-2310 — durable, injected media effects; no close generation, video spend or billing here.
 import type { LyriaHandle } from '@/lib/lyriaMusic'
 import type { MusicMood } from '@/lib/pixabayMusic'
@@ -53,7 +54,7 @@ export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: Escolh
     voice.seconds = seconds
     if (seconds > 15) {
       if (voice.attempt === 2) { voice.status = 'failed'; voice.reason = 'escolha_voice_core_does_not_fit_15s'; await d.save(s); return 'failed' }
-      const count = voice.text.split(/\s+/u).length, target = Math.min(24, Math.max(1, Math.floor(count * 13.5 / seconds)))
+      const count = narrationWordCount(voice.text, s.plan.input.language), target = Math.min(24, Math.max(1, Math.floor(count * 13.5 / seconds))) // KINEO-IDIOMAS-FORMATOS-2410
       let fitted
       try { fitted = fitCenaEscolhaScript(s.plan.script, s.plan.input, s.plan.product, target) }
       catch { voice.status = 'failed'; voice.reason = 'escolha_voice_core_does_not_fit_15s'; await d.save(s); return 'failed' }

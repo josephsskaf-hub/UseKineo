@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
@@ -800,7 +801,7 @@ export async function POST(req: NextRequest) {
     const prosaVerbatim = ownScript && !verbatim
     const falaPropria = verbatim ? parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ') : (parsedScript.narration && parsedScript.narration.trim().length > 0 ? parsedScript.narration : prompt)
     if (ownScript) {
-      const speechSeconds = falaPropria.trim().split(/\s+/).filter(Boolean).length / fastRate.wordsPerSecond
+      const speechSeconds = narrationWordCount(falaPropria) / fastRate.wordsPerSecond
       const sobe = decideDurationFollowsScriptUp({ ownScript, requestedSeconds: duration, speechSeconds, largestFitting: largestFittingDuration(speechSeconds, SUPPORTED_DURATIONS) })
       if (sobe?.kind === 'too_long') {
         if (!(body.dry_run === true && isDryRunAccount(user.email))) {
@@ -900,7 +901,7 @@ export async function POST(req: NextRequest) {
         // reescrita por alvo (mesma função da família hollywood), texto da IA —
         // nunca do autor (este ramo é o modo IA). Fail-open.
         try {
-          const wordsOf = (t: string | undefined) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          const wordsOf = (t: string | undefined) => narrationWordCount(t ?? '')
           const alvoTotal = Math.round(Math.max(5, Math.min(120, Math.round(duration))) * fastRate.wordsPerSecond) // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15: mesma régua da faixa
           const total = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
           if (scenes.length > 0 && total < alvoTotal * 0.95) {
@@ -1277,7 +1278,7 @@ export async function POST(req: NextRequest) {
     if (prosaVerbatim) scenes.forEach((sc, i) => { const qs = planoCenas[i]?.queries ?? []; if (qs.length > 0) { sc.stockSearchQuery = qs[0]; sc.searchKeywords = qs.join(' ') } })
     // Duração provável do filme (o compose mede o áudio): a fala no ritmo da voz, +10%, com o piso de 61,5 s do TIKTOK-61
     // — é o que decide se a fatia do clipe de IA pode reentrar na volta de reciclagem (planAiClipForSlot).
-    const filmeEstimadoS = Math.min(90, Math.max(duration >= 60 ? 61.5 : 0, Math.max(duration, (ownScript ? falaPropria : scenes.map((sc) => sc.voiceover ?? '').join(' ')).split(/\s+/).filter(Boolean).length / Math.max(0.5, fastRate.wordsPerSecond)) * 1.1))
+    const filmeEstimadoS = Math.min(90, Math.max(duration >= 60 ? 61.5 : 0, Math.max(duration, narrationWordCount(ownScript ? falaPropria : scenes.map((sc) => sc.voiceover ?? '').join(' ')) / Math.max(0.5, fastRate.wordsPerSecond)) * 1.1))
 
     const usedPexelsUrls = new Set<string>()
     const clipUrls: string[] = []

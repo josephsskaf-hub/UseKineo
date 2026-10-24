@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-95-2110 — fala calibrada sem preencher a contagem com alegações ou clichês.
 import { inventedClaims, inventedNumbers } from '../scriptPrompt'
 import { honestyIssues } from '../v2Honesty'
@@ -9,7 +10,7 @@ export const CENA95_PAUSE_SECONDS = 0.35
 export const CENA95_TARGET_WPS = 2.9
 const clean = (x: unknown): string => typeof x === 'string' ? x.replace(/\s+/gu, ' ').trim() : ''
 const fold = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
-export const cena95WordCount = (s: string): number => clean(s).split(/\s+/u).filter(Boolean).length
+export const cena95WordCount = (s: string): number => narrationWordCount(clean(s)) // KINEO-IDIOMAS-FORMATOS-2410
 export interface Cena95Script extends CenaScript { pain: string; demonstration: string; offer: string; spokenOffer?: string; rawBenefit?: string; beforeCta: string; words: number; hookEstimatedSeconds: number; estimatedSeconds: number; timingBasis: 'rate_estimate'; pauseSeconds: number; language?: string; wordsPerSecond?: number; normalization?: Cena95TextRepair['normalization'] }
 export function parseCena95Script(raw: unknown, input: CenaInput, product: string, options: Cena95RepairOptions = {}): Cena95Script {
   // KINEO-ADS-CENA-95-PACING-2110 — length is repaired deterministically; honesty remains a hard constraint.

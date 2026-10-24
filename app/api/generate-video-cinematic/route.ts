@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // Push #315 — Cinematic Mode: fal.ai Wan 2.1 AI video generation.
 // Submits each scene to fal.ai queue (async), returns request IDs immediately.
 // Client polls /api/cinematic-clip-status until all clips are ready, then
@@ -3499,7 +3500,7 @@ async function manipularPost(req: NextRequest) {
     if (verbatim) {
       const SECONDS_PER_CLIP = (wantsVeo || wantsSora) ? 8 : 10 // Veo/Sora 8s, Seedance/Kling 10s
       const WORDS_PER_SECOND = 2.5 // ~ElevenLabs at speed 1.05 (conservative)
-      const words = parsedScript.narration.split(/\s+/).filter(Boolean).length
+      const words = narrationWordCount(parsedScript.narration)
       const estSeconds = words / WORDS_PER_SECOND
       const needed = Math.ceil(estSeconds / SECONDS_PER_CLIP)
       const sized = Math.max(clipCount, Math.min(9, needed))
@@ -3520,7 +3521,7 @@ async function manipularPost(req: NextRequest) {
     // palavras batia no 12 e enchia com planos de 10 s; o fundador quer ~13-14 planos de 5 s num 60 s com 65-70 s de fala.
     let kling25Footage = 0
     if (wantsKling) {
-      const palavrasDoRoteiro = verbatim ? parsedScript.narration.split(/\s+/).filter(Boolean).length : 0
+      const palavrasDoRoteiro = verbatim ? narrationWordCount(parsedScript.narration) : 0
       kling25Footage = kling25FootageNeeded({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond })
       const planos = kling25ShotCount(kling25Footage, { verbatim })
       console.log(`[cinematic] KLING25-PLANOS-5S: ${clipCount} planos de 10 s → ${planos} planos de 5 s (imagem necessária ${kling25Footage}s${verbatim ? `, roteiro de ${palavrasDoRoteiro} palavras` : ''})`)
@@ -3738,7 +3739,7 @@ async function manipularPost(req: NextRequest) {
     // Guardião: scripts/test-veo-marcado-2026-09-29.mjs.
     let veoMarcadoRelato: { blocos: number; cenas_antes: number; planos: number; teto: number; fundidos: boolean; divididas: number[]; transbordam: number[] } | null = null
     if (wantsVeo && verbatim && parsedScript.segments.length > 0 && scenes.length > 0) {
-      const palavrasDoRoteiro = parsedScript.narration.split(/\s+/).filter(Boolean).length
+      const palavrasDoRoteiro = narrationWordCount(parsedScript.narration)
       const teto = veoMaxShots({ verbatim: true, footageSeconds: veoFilmSeconds({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond }) })
       const blocos = veoMarkedBeats(parsedScript.segments, teto)
       const narracaoDoFilme = parsedScript.narration ? parsedScript.narration : blocos.map((b) => b.voiceover).filter(Boolean).join(' ')
@@ -6490,7 +6491,7 @@ async function manipularPost(req: NextRequest) {
     let kling25Passo = 0
     if (wantsKling && kling25Footage > 0 && scenes.length > 0) {
       const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ') // ≡ voiceoverScript da resposta
-      const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
+      const palavrasDoFilme = narrationWordCount(narracaoDoFilme)
       const inicios = kling25SceneWordStarts(narracaoDoFilme, scenes.map((s) => s.voiceover))
       const atribuidas = inicios.map((a, i) => (i + 1 < inicios.length ? inicios[i + 1] : palavrasDoFilme) - a)
       kling25Passo = kling25PlanPace(narrationRate.wordsPerSecond, palavrasDoFilme)
@@ -6531,7 +6532,7 @@ async function manipularPost(req: NextRequest) {
     // clip_word_starts) → compose. Seedance/Kling/Sora: `wantsVeo` falso, nada roda aqui. Guardião: test-veo-modo-ia.
     let veoAiRelato: { cenas: number; planos: number; divididas: number[]; transbordam: number[]; clips_usd_before_ai: number } | null = null
     if (wantsVeo && !verbatim && scenes.length > 0) {
-      const palavrasDoFilme = scenes.map((s) => s.voiceover).filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length // ≡ voiceoverScript da resposta
+      const palavrasDoFilme = narrationWordCount(scenes.map((s) => s.voiceover).filter(Boolean).join(' ')) // ≡ voiceoverScript da resposta
       const plano = veoAiPlan(scenes.map((s) => s.voiceover), { footageSeconds: veoFootage, wordsPerSecond: narrationRate.wordsPerSecond, maxShots: VEO_MAX_SHOTS })
       veoPasso = plano.pace
       const cenasAntes = scenes
@@ -6561,7 +6562,7 @@ async function manipularPost(req: NextRequest) {
     let seedanceClipSeconds: number[] | null = null
     if (seedanceShortFilm && scenes.length > 0) {
       const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
-      const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
+      const palavrasDoFilme = narrationWordCount(narracaoDoFilme)
       const fala = seedanceShortSpeechSeconds(narracaoDoFilme, narrationRate.wordsPerSecond)
       const segundos = seedanceShortClipSeconds(fala, KLING25_CLIP_LOSS_SECONDS)
       seedanceClipSeconds = scenes.map(() => segundos)

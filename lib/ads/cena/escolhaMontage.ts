@@ -1,3 +1,4 @@
+import { narrationTokens, joinNarrationTokens, captionFontFor, DEFAULT_CAPTION_FONT } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-ESCOLHA-2310 — chosen live scene for all15s; no original-photo close, card, opaque box or duration extension.
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — relocate captions around the human-selected preview's observed product/face boxes.
 import { ADS_V2_FRAME_RATE } from '../adV2Montage'
@@ -15,7 +16,7 @@ const norm = (s: string): string => s.replace(/\s+/gu, ' ').trim().toLowerCase()
 export function escolhaFinalTextElements(plan: CenaPlan, expectedImageUrl?: string): Record<string, unknown>[] {
   const cta = plan.input.cta || plan.script.cta, offer = plan.input.oferta ?? ''
   const titleHas = escolhaHasOffer(plan.product, offer), ctaHas = escolhaHasOffer(cta, offer)
-  const elements: Record<string, unknown>[] = ajusteFinalTextElements({ ...plan, input: { ...plan.input, oferta: titleHas || ctaHas ? '' : offer }, script: { ...plan.script, cta } }).map(e => ({ ...e, shadow_color: 'rgba(0,0,0,0.65)', shadow_blur: '4px', shadow_y: '3px' }))
+  const elements: Record<string, unknown>[] = ajusteFinalTextElements({ ...plan, input: { ...plan.input, oferta: titleHas || ctaHas ? '' : offer }, script: { ...plan.script, cta } }).map(e => ({ ...e, ...(captionFontFor(plan.input.language) !== DEFAULT_CAPTION_FONT ? { font_family: captionFontFor(plan.input.language) } : {}), shadow_color: 'rgba(0,0,0,0.65)', shadow_blur: '4px', shadow_y: '3px' }))
   const choice = escolhaOf(plan)
   if (!choice) return elements
   const ranges = elements.map(e => {
@@ -35,10 +36,11 @@ export function escolhaFinalTextElements(plan: CenaPlan, expectedImageUrl?: stri
   return elements.map(e => ({ ...e, y: `${parseFloat(String(e.y)) + shift}%` }))
 }
 function wrap(text: string, font: number): string {
-  const columns = Math.max(1, Math.floor(890 / (font * .75))), lines: string[] = []
-  for (const word of text.split(/\s+/u)) {
-    const chunks = Array.from(word).reduce<string[]>((out, c) => { if (!out.length || Array.from(out[out.length - 1]).length >= columns) out.push(c); else out[out.length - 1] += c; return out }, [])
-    for (const chunk of chunks) { const last = lines[lines.length - 1]; if (last && Array.from(last + ' ' + chunk).length <= columns) lines[lines.length - 1] = last + ' ' + chunk; else lines.push(chunk) }
+  const compact = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(text), columns = Math.max(1, Math.floor(890 / (font * (compact ? 1.2 : .75)))), lines: string[] = [] // KINEO-IDIOMAS-FORMATOS-2410
+  for (const word of narrationTokens(text)) {
+    const glyphs = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(word), x => x.segment) // KINEO-IDIOMAS-FORMATOS-2410 — never split Thai combining marks.
+    const chunks = glyphs.reduce<string[]>((out, c) => { if (!out.length || Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(out[out.length - 1])).length >= columns) out.push(c); else out[out.length - 1] += c; return out }, [])
+    for (const chunk of chunks) { const last = lines[lines.length - 1]; if (last && Array.from(joinNarrationTokens([last, chunk])).length <= columns) lines[lines.length - 1] = joinNarrationTokens([last, chunk]); else lines.push(chunk) }
   }
   return lines.join('\n')
 }
@@ -53,7 +55,7 @@ function captions(s: CenaEscolhaState): Record<string, unknown>[] {
   addAjusteQuality(s, { stage: 'montage', code: 'caption_preview_grounded', message: `Caption band at ${center}% avoids the product and face observed in the chosen preview. This is opening-image grounding; later moving video frames have not been measured.` })
   const duration = cenaVoiceModeOf(s.plan) === 'narrated' ? s.escolhaMedia!.voice.seconds! : 15
   // Timing is a proportional word estimate from measured audio length, never claimed forced alignment.
-  return cenaCaptionElements({ text: literal(s.plan.script.narration), seconds: duration, width: 1080, height: 1920, track: 40 }).flatMap(e => {
+  return cenaCaptionElements({ text: literal(s.plan.script.narration), seconds: duration, width: 1080, height: 1920, track: 40, fontFamily: captionFontFor(s.plan.input.language) === DEFAULT_CAPTION_FONT ? 'Inter' : captionFontFor(s.plan.input.language) }).flatMap(e => {
     const time = Number(e.time), end = Math.min(13, time + Number(e.duration))
     if (time >= end) return []
     let font = 63, text = wrap(String(e.text), font)

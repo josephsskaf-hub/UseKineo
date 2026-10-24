@@ -1,3 +1,4 @@
+import { narrationWordCount, narrationTokens, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { openai } from '@/lib/openai'
 import { LANGUAGE_NAMES, type NarrationLanguage } from '@/lib/textLanguage'
 import { detectVisualCategory } from '@/lib/visualAssetCategories'
@@ -243,9 +244,9 @@ export function shortCaptionFromVoiceover(text: string, maxWords = 8): string {
     .replace(/\s+/g, ' ')
     .trim()
   if (!cleaned) return ''
-  const words = cleaned.split(' ').filter(Boolean)
+  const words = narrationTokens(cleaned) // KINEO-IDIOMAS-FORMATOS-2410
   const sliced = words.length <= maxWords ? words : words.slice(0, maxWords)
-  return sliced.join(' ').replace(/[.!?,;:]+$/, '')
+  return joinNarrationTokens(sliced).replace(/[.!?,;:。！？]+$/, '') // KINEO-IDIOMAS-FORMATOS-2410
 }
 
 // ═══ KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 ═══════════════════════════════
@@ -611,7 +612,7 @@ ${visualDescriptionDirection(visualPolicy)}
     let maior = 0
     scenes.forEach((s, i) => {
       const fala = s.voiceover ?? ''
-      const w = fala.split(/\s+/).filter(Boolean).length
+      const w = narrationWordCount(fala)
       if (frasesDe(fala).length >= 2 && w > maior) { maior = w; alvo = i }
     })
     if (alvo >= 0) {
@@ -629,7 +630,7 @@ ${visualDescriptionDirection(visualPolicy)}
     let maiorV = 0
     scenes.forEach((s, i) => {
       const fala = s.voiceover ?? ''
-      const w = fala.split(/\s+/).filter(Boolean).length
+      const w = narrationWordCount(fala)
       if (w >= 12 && /[,;—–]\s/.test(fala) && !/^Here is something most people do not know about/i.test(fala) && w > maiorV) { maiorV = w; alvoV = i } // o enchimento curto nunca é dividido
     })
     if (alvoV >= 0) {
@@ -682,7 +683,7 @@ ${visualDescriptionDirection(visualPolicy)}
 
 /** Reescreve as falas abaixo de `lo` palavras para a faixa [lo, hi]; devolve as cenas como vieram se a soma já cobre 85% do piso ou se a resposta não bate. */
 export async function expandShortVoiceovers(scenes: Scene[], lo: number, hi: number, language?: NarrationLanguage): Promise<Scene[]> {
-  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const wordsOf = (t: string) => narrationWordCount(t ?? '')
   const total0 = scenes.reduce((a, s) => a + wordsOf(s.voiceover), 0)
   // KINEO-ANALISE-MOTORES-2026-09-13 — o piso era 85% de (cenas × lo) e o Seedance
   // em modo IA parou em 147 palavras para 60 s (47 s de fala; a faixa pedia
@@ -850,7 +851,7 @@ export interface VoiceoverTarget { text: string; targetWords: number; maxWords?:
 export const fitsVoiceoverTarget = (words: number, target: number, max = target + 1): boolean => words >= target - 2 && words <= max
 /** Reescreve cada item para o alvo de palavras (janela alvo−2..alvo+1), em até `rounds` rodadas; devolve os textos na ordem. Fail-open: item que não melhora volta como estava. */
 export async function expandVoiceoversToTargets(items: VoiceoverTarget[], language: NarrationLanguage | undefined, topic: string, rounds = 2): Promise<string[]> {
-  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const wordsOf = (t: string) => narrationWordCount(t ?? '')
   if (items.length === 0) return []
   const langName = LANGUAGE_NAMES[language ?? 'en']
   // 14/09 00:30 — a 1ª versão aceitava ≥80% do alvo e sem teto: o Omni voltou
@@ -895,7 +896,7 @@ export function juntarContinuacao(base: string, continuacao: string): string {
   return `${b}${/[.!?…]$/.test(b) ? '' : '.'} ${c}`.replace(/\s{2,}/g, ' ').trim()
 }
 export async function appendNarrationToTargets(items: AppendTarget[], language: NarrationLanguage | undefined, topic: string, rounds = 2): Promise<string[]> {
-  const wordsOf = (t: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const wordsOf = (t: string) => narrationWordCount(t ?? '')
   if (items.length === 0) return []
   const langName = LANGUAGE_NAMES[language ?? 'en']
   const out = items.map((it) => it.text)
@@ -935,7 +936,7 @@ export async function appendNarrationToTargets(items: AppendTarget[], language: 
           else if (sobra >= 4) {
             // R13 (ensaios do Omni): nem a primeira frase cabia (8-13 palavras para 6-9 de sobra). Fica a primeira ORAÇÃO
             // que caiba (até a última vírgula/ponto e vírgula dentro da sobra), fechada com ponto; só então recusa.
-            const ate = primeira.split(/\s+/).slice(0, sobra).join(' ')
+            const ate = joinNarrationTokens(narrationTokens(primeira).slice(0, sobra))
             const corte = Math.max(ate.lastIndexOf(','), ate.lastIndexOf(';'))
             const oracao = corte > 0 ? ate.slice(0, corte).trim() : ''
             if (oracao && wordsOf(oracao) >= 4) { console.warn(`[scene] narration append: line ${i} trimmed to its first clause (${wordsOf(v)} → ${wordsOf(oracao)} words, room ${sobra})`); v = oracao.replace(/[,;:]+$/, '') + '.' }

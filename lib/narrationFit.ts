@@ -42,6 +42,7 @@
 /** Palavras por segundo da narração. 2,3 é a taxa que a casa já usa para
  *  dimensionar roteiro (CLAUDE.md) e é a que reproduz os números medidos: o
  *  Kasparov, com 139 palavras, encheu exatamente os 60s. */
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410 — Unicode speech units, not measured speed.
 export const WORDS_PER_SECOND = 2.3
 
 /** Caracteres por palavra em inglês, incluindo o espaço. Usado só quando não
@@ -63,7 +64,7 @@ export function speechSeconds(script: string): number {
     .replace(/\[[^\]]*\]/g, ' ')
     .trim()
   if (!limpo) return 0
-  const palavras = limpo.split(/\s+/).filter(Boolean).length
+  const palavras = narrationWordCount(limpo) // KINEO-IDIOMAS-FORMATOS-2410
   return palavras / WORDS_PER_SECOND
 }
 

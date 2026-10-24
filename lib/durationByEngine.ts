@@ -1,3 +1,4 @@
+import { narrationWordCount, narrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-SEEDANCE-15S-2026-09-29 — a duração de 15 s existe SÓ no Seedance 1.5 ('cinematic_ai') ═══
 // "Vai" nominal do fundador para o 15 s (29/09). O Seedance a 15 s custa creditCostForDuration('cinematic_ai', true, 15)
 // = 7 créditos — o primeiro filme de IA que cabe no trial de 10. Os outros motores continuam em 35/60/90:
@@ -222,7 +223,7 @@ export function ritmoDaVozNoIdioma(voiceWordsPerSecond: number, language?: strin
 
 /** Fala estimada de um texto, em segundos, na régua da guarda (palavras ÷ 2,5 pal/s — a mesma do #442 da rota; no 15 s, o ritmo da língua). */
 export function estimarFalaSegundos(narration: string | null | undefined, language?: string | null): number {
-  const words = String(narration ?? '').split(/\s+/).filter(Boolean).length
+  const words = narrationWordCount(String(narration ?? ''), language) // KINEO-IDIOMAS-FORMATOS-2410
   return words / ritmoDoFilmeCurto(language)
 }
 
@@ -281,7 +282,7 @@ export function checarFalaCurtaDoMotor(args: { engine: string | null | undefined
   const classico = isKling25(args.engine) || isVeo31(args.engine)
   const hollywood = isHollywoodRoad(args.engine)
   const wordsPerSecond = hollywood ? RITMO_HOLLYWOOD : ritmoDoFilmeCurto(args.language)
-  const words = String(args.narration ?? '').split(/\s+/).filter(Boolean).length
+  const words = narrationWordCount(String(args.narration ?? ''), args.language) // KINEO-IDIOMAS-FORMATOS-2410
   const estSeconds = words / wordsPerSecond
   const limitSeconds = args.seconds * SHORT_FILM_SPEECH_FACTOR_OUTROS
   if (!args.verbatim || !(classico || hollywood) || !(args.seconds < MIN_DURATION_ALL_ENGINES)) return { ok: true, estSeconds, limitSeconds }
@@ -319,7 +320,7 @@ export function scriptTooLongForShortFilmMessageDoMotor(checagem: { estSeconds: 
  * planos, na ordem; a soma delas é a narração. Pistas repetidas num mesmo plano entram uma vez.
  */
 export function pistasDosTrechos(blocos: ReadonlyArray<{ voiceover: string; pexelsQuery: string }>, trechos: ReadonlyArray<string>): string[] {
-  const n = (t: string) => String(t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const n = (t: string) => narrationWordCount(String(t ?? '')) // KINEO-IDIOMAS-FORMATOS-2410
   const totalBlocos = blocos.reduce((a, b) => a + n(b.voiceover), 0)
   // fala antes do 1º marcador (a narração a tem, os blocos não): os blocos começam depois dela, e ela fica com o 1º bloco
   const antes = Math.max(0, trechos.reduce((a, t) => a + n(t), 0) - totalBlocos)
@@ -409,7 +410,7 @@ export const SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS = 0.1
  */
 export function palavrasFaladas(narration: string | null | undefined): number {
   let total = 0
-  for (const w of String(narration ?? '').split(/\s+/).filter(Boolean)) {
+  for (const w of narrationTokens(String(narration ?? ''))) { // KINEO-IDIOMAS-FORMATOS-2410
     const digitos = (w.match(/[0-9]/g) ?? []).length
     total += digitos > 0 ? Math.min(4, digitos) + (/[%$€£]/.test(w) ? 1 : 0) : 1
   }
