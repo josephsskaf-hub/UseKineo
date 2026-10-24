@@ -56,6 +56,10 @@ const pairs = [
   { id: 'stills', title: 'Studio Ads · antes da preparação das fotos', before: ads(true, 'planned'), after: ads(false, 'planned'), dark: false },
   { id: 'member', title: 'Studio Ads · membro usa o saldo do dono', before: ads(true, 'choose', true), after: ads(false, 'choose', true), dark: false },
 ]
+for (const [state, title] of [['confirming', 'Confirmando a compra'], ['pending', 'Confirmação ainda pendente'], ['auth', 'Sessão precisa de login']]) {
+  const r = renderer(false)
+  pairs.push({ id: `confirmation-${state}`, title: `Retorno do pagamento · ${title}`, before: '<div class="context">Esta tela de confirmação ainda não existia na base 7950e411.</div>', after: renderToStaticMarkup(React.createElement(r.load('components/OneTimeItemConfirmation.tsx').OneTimeItemConfirmationView, { state, loginHref: '/login?redirect=%2Fcheckout%2Fitem%3Fsession_id%3Dcs_test_offline' })), dark: false })
+}
 async function main() {
   const postcss = req('postcss'), tailwind = req('tailwindcss')
   const utilities = (await postcss([tailwind({ content: [{ raw: pairs.map(p => p.before + p.after).join(''), extension: 'html' }], corePlugins: { preflight: false }, theme: { extend: {} } })]).process('@tailwind utilities;', { from: undefined })).css
