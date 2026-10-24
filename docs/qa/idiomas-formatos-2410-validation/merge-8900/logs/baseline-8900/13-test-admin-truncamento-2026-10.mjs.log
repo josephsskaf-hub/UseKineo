@@ -1,0 +1,20 @@
+OK tripwire: 1000 exato, rota/tabela, sem PII; 999 e 1001 não disparam
+OK 2500 linhas embaralhadas, empate na ordem de negócio e id como desempate
+OK 2000 linhas exigem terceira página vazia para provar completude
+OK erro na segunda página rejeita sem devolver resultado parcial
+OK chave composta funciona em tabela sem id
+OK PK real das tabelas sem id; ORDER em coluna ausente falha no mock
+OK SDK Supabase real: range inclusivo, filtros, ordem original e PK chegam à URL
+OK mutante morto: tripwire só acima de 1000
+OK mutante morto: primeira página tratada como lista completa
+OK mutante morto: range removido
+OK mutante morto: ORDER de desempate removido
+OK mutante morto: credit_debits ordenada pela coluna id inexistente
+OK handler real: já recebeu além de 1000 não reenvia
+OK handler real: erro na página 2 do dedupe aborta e não envia
+OK mutante morto: dedupe do handler em consulta única reenvia
+FIXTURE 2026-10-06; baseline 7b4417ce / novo / mutante sem paginação: {"before":{"externalUsers":2499,"activatedAll":2499,"mrrPaidUsd":90},"after":{"externalUsers":2499,"activatedAll":2499,"mrrPaidUsd":90},"unpagedMutant":{"externalUsers":999,"activatedAll":999,"mrrPaidUsd":30}}
+OK overview real: 3 métricas antes/depois e contraste de truncamento
+OK overview real: helper antigo deixa parcial; novo rejeita falha na página 2
+
+[admin-truncamento] 17 passaram; 0 falharam. Execução offline, sem rede ou envio.

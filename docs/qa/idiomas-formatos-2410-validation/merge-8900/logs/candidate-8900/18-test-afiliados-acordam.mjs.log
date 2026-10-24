@@ -1,0 +1,90 @@
+
+── 1. A CASA NAO ELOGIA COM NUMERO QUE NAO SUSTENTA
+ok   1 a carta nao fala em cliques (10 dos 15 tem zero, e os 25 tem robo dentro)
+ok   2 a carta nao fala em visitas ao link
+ok   3 a carta nao fala em cadastros/indicacoes (sao zero para os 15)
+ok   4 a carta nao cita ganho acumulado (nunca houve comissao)
+ok   5 a carta nao promete calendario de pagamento que a casa nunca exerceu
+
+── 2. A COMISSAO E A DA PESSOA, LIDA DO BANCO
+ok   6 taxa 0.4 → "40% recurring" no texto
+ok   7 taxa 0.4 → "40% recurring" no html
+ok   8 taxa 0.25 → a carta diz 25%
+ok   9 taxa 0.25 → NENHUM "40%" chumbado sobrou (o numero da pagina nao vaza)
+ok   10 taxa 0.5 → a carta diz 50%
+ok   11 taxa quebrada nao vira "37%" nem "38%"
+ok   12 nenhuma taxa literal no construtor da carta
+
+── 3. DINHEIRO NUNCA E DIGITADO: taxa de entrada e mensalidade vem do cobrador
+ok   13 a entrada ($1) sai de trialEntryFeeLabel, no corpo e no assunto
+ok   14 a mensalidade ($19.90) sai de trialMonthlyAfterLabel
+ok   15 nenhum valor em dolar digitado no codigo da rota
+ok   16 a promessa inteira vem da fonte unica, nao remontada a mao
+
+── 4. O LINK E O DO SOCIO, NO HOST CANONICO
+ok   17 o codigo vai MAIUSCULO e no host de producao
+ok   18 o html linka o mesmo endereco
+ok   19 o codigo nao esta chumbado — muda com a pessoa
+ok   20 a vitrine com os filmes para postar esta na carta
+
+── 5. DESCADASTRO E RODAPE EM TODA CARTA
+ok   21 o rodape de descadastro esta no html
+ok   22 o rodape de descadastro esta no texto
+ok   23 os headers de descadastro vao no envio, por pessoa
+ok   24 a resposta do socio cai na caixa do fundador
+
+── 6. A ROTA NAO ENVIA POR PADRAO, E O LOTE TEM TETO
+ok   25 so `?confirm=SEND` envia
+ok   26 sem confirm, a rota devolve DRY_RUN e nao passa do return
+ok   27 o limite pedido nunca ultrapassa MAX_BATCH
+ok   28 o laco de envio percorre no maximo o lote
+ok   29 pacing de 600ms entre e-mails
+ok   30 o mutante do confirm foi realmente aplicado (senao o verde nao vale nada)
+ok   31 com o mutante, a trava do confirm some — e esta checagem a pegaria
+
+── 7. QUEM FICA DE FORA FICA DE FORA
+ok   32 os 4 contatos proibidos pelo fundador estao na lista
+ok   33 a lista proibida e o e-mail interno sao APLICADOS no filtro da coorte
+ok   34 socio inativo nao recebe convite
+ok   35 socio sem taxa conhecida NAO recebe convite (nao se promete o que nao se sabe)
+ok   36 sem dono, e-mail ou codigo a casa nao tem o que dizer
+ok   37 quem pediu para nao receber nao recebe
+ok   38 1x por pessoa PARA SEMPRE, pelo carimbo
+ok   39 a supressao de 24h da casa e aplicada na lista final
+
+── 8. O CARIMBO EXISTE, TEM NOME PROPRIO E ESTA REGISTRADO
+ok   40 o carimbo tem nome proprio
+ok   41 o carimbo esta em LIFECYCLE_EMAIL_EVENT_NAMES (mesmo commit)
+ok   42 o evento gravado usa a constante, nao uma string repetida
+ok   43 o bloco de metadata do carimbo foi localizado (senao a checagem seguinte e vacante)
+ok   44 o codigo do socio NAO vai para a analitica (e ativo financeiro dele)
+ok   45 o carimbo leva a taxa do deploy — linha sem `fee` e de antes desta carta
+
+── 9. A COORTE NAO E TRUNCADA EM SILENCIO
+ok   46 coorte, opt-out e dedupe chamam o mesmo readAll real
+ok   47 erro de leitura vira excecao, nao coorte vazia silenciosa
+ok   48 opt-out e carimbo tambem falham alto em vez de sumir com gente
+ok   49 GET real le TODOS os 1501 socios, com ordem estavel e pagina 2
+ok   50 carimbo antigo na linha 1201 continua excluindo o segundo socio
+ok   51 coorte preserva created_at e acrescenta id como desempate
+ok   52 dedupe realmente le segunda pagina dentro do bloco de usuarios
+ok   53 dry-run paginado permanece sem envio e sem escrita
+ok   54 erro page2 dedupe falha fechado, nunca lista parcial ou envio
+ok   55 mutante remove readAll apenas do dedupe, preservando o handler real
+ok   56 mutante morto: consulta unica perde carimbo e recoloca quem ja recebeu
+
+── 10. O PORTAO DO CARDAPIO: a atribuicao existe antes do convite
+ok   57 a rota /a/<code> grava o cookie de atribuicao
+ok   58 a prova de clique acompanha o cookie
+ok   59 o cadastro CHAMA a finalizacao (nao e contrato sem chamador)
+ok   60 a finalizacao recebe o cookie enquanto o OAuth ainda o carrega
+ok   61 o pagamento lanca a comissao — a promessa da carta e executavel
+ok   62 o referral vira `paid` quando o dinheiro entra
+
+── 11. A CARTA TEM GATILHO PROPRIO, E ELE NAO PISA EM NINGUEM
+ok   63 a carta NÃO tem gatilho no vercel.json (KINEO-CARTAS-POS-MORTE-DESLIGADAS-2026-09-24: prometia a porta de US$1 morta em 09/09; fundador: "desliga")
+ok   64 a rota continua existindo para disparo manual (não foi apagada)
+ok   65 o horario do gatilho foi lido (senao a checagem seguinte e vacante) — ou nao ha gatilho (desligado 24/09)
+ok   66 sem gatilho agendado, nada a colidir (desligado 24/09)
+
+66 ok / 0 falhas

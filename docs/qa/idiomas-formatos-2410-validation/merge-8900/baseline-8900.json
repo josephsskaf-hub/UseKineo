@@ -1,0 +1,870 @@
+{
+  "label": "baseline-8900",
+  "root": "C:\\kineo2410\\.claude\\worktrees\\merge-main-8900",
+  "base": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+  "started": "2026-10-24T16:43:31.257Z",
+  "commandsFile": "C:\\kineo2410\\qa-merge\\baseline-8900.commands.json",
+  "offlinePreload": "C:/kineo2410/offline-preload.cjs",
+  "serial": true,
+  "initialStatus": "",
+  "total": 55,
+  "results": [
+    {
+      "id": "typescript",
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "expectedExit": 0,
+      "source": "workflow typecheck",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 53326,
+      "log": "01-typescript.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-ads-escolha-publico-2410.mjs",
+      "args": [
+        "scripts/test-ads-escolha-publico-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 21965,
+      "log": "02-test-ads-escolha-publico-2410.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-ads-escolha-2310.mjs",
+      "args": [
+        "scripts/test-ads-escolha-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 35937,
+      "log": "03-test-ads-escolha-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-ads-render-fix-2310.mjs",
+      "args": [
+        "scripts/test-ads-render-fix-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 462,
+      "log": "04-test-ads-render-fix-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-trafego-pages-2310.mjs",
+      "args": [
+        "scripts/test-trafego-pages-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1031,
+      "log": "05-test-trafego-pages-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-trafego-index-2310.mjs",
+      "args": [
+        "scripts/test-trafego-index-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1733,
+      "log": "06-test-trafego-index-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-trafego-health-2310.mjs --mutants",
+      "args": [
+        "scripts/test-trafego-health-2310.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 2331,
+      "log": "07-test-trafego-health-2310.mjs_--mutants.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-trafego-undo-2310.mjs",
+      "args": [
+        "scripts/test-trafego-undo-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1591,
+      "log": "08-test-trafego-undo-2310.mjs.log",
+      "passed": false,
+      "failures": [
+        "const blocked = kind => { throw new Error('KINEO_OFFLINE_BLOCKED: ' + kind); };",
+        "Error: KINEO_OFFLINE_BLOCKED: child command git"
+      ]
+    },
+    {
+      "id": "test-admin-leve-2310.mjs --mutants",
+      "args": [
+        "scripts/test-admin-leve-2310.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 10397,
+      "log": "09-test-admin-leve-2310.mjs_--mutants.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-admin-leve-undo-2310.mjs",
+      "args": [
+        "scripts/test-admin-leve-undo-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1437,
+      "log": "10-test-admin-leve-undo-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-roteiro-curto-sem-falha-2210.mjs --mutants",
+      "args": [
+        "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 9237,
+      "log": "11-test-roteiro-curto-sem-falha-2210.mjs_--mutants.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-roteiro-curto-undo-2210.mjs",
+      "args": [
+        "scripts/test-roteiro-curto-undo-2210.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 3167,
+      "log": "12-test-roteiro-curto-undo-2210.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-admin-truncamento-2026-10.mjs",
+      "args": [
+        "scripts/test-admin-truncamento-2026-10.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 587,
+      "log": "13-test-admin-truncamento-2026-10.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-afiliados-acordam.mjs",
+      "args": [
+        "scripts/test-afiliados-acordam.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 374,
+      "log": "14-test-afiliados-acordam.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-coerencia-kineo1-2026-09-16.mjs",
+      "args": [
+        "scripts/test-coerencia-kineo1-2026-09-16.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 376,
+      "log": "15-test-coerencia-kineo1-2026-09-16.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-juiz-still-2026-10-06.mjs",
+      "args": [
+        "scripts/test-juiz-still-2026-10-06.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 7010,
+      "log": "16-test-juiz-still-2026-10-06.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-carta-da-recusa.mjs",
+      "args": [
+        "scripts/test-carta-da-recusa.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 577,
+      "log": "17-test-carta-da-recusa.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-momentum-topic.mjs",
+      "args": [
+        "scripts/test-momentum-topic.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 473,
+      "log": "18-test-momentum-topic.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-stalled-frescor-2026-09-05.mjs",
+      "args": [
+        "scripts/test-stalled-frescor-2026-09-05.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 436,
+      "log": "19-test-stalled-frescor-2026-09-05.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-hot-nudge-janela-campanhas.mjs",
+      "args": [
+        "scripts/test-hot-nudge-janela-campanhas.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 476,
+      "log": "20-test-hot-nudge-janela-campanhas.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-gpt-5h-a-2026-09-24.mjs",
+      "args": [
+        "scripts/test-gpt-5h-a-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow GPT loop",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 109,
+      "log": "21-test-gpt-5h-a-2026-09-24.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-gpt-5h-a-2026-09-24.mjs--mutant",
+      "args": [
+        "scripts/test-gpt-5h-a-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "source": "workflow GPT loop",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 89,
+      "log": "22-test-gpt-5h-a-2026-09-24.mjs--mutant.log",
+      "passed": true,
+      "failures": [
+        "FAIL rendered buttons use canonical builder and page attribution"
+      ]
+    },
+    {
+      "id": "test-gpt-5h-b-2026-09-24.mjs",
+      "args": [
+        "scripts/test-gpt-5h-b-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow GPT loop",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 121,
+      "log": "23-test-gpt-5h-b-2026-09-24.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-gpt-5h-b-2026-09-24.mjs--mutant",
+      "args": [
+        "scripts/test-gpt-5h-b-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "source": "workflow GPT loop",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 121,
+      "log": "24-test-gpt-5h-b-2026-09-24.mjs--mutant.log",
+      "passed": true,
+      "failures": [
+        "FAIL paused row is not advertised as purchasable"
+      ]
+    },
+    {
+      "id": "test-gpt-5h-c-2026-09-24.mjs",
+      "args": [
+        "scripts/test-gpt-5h-c-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow GPT loop",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 324,
+      "log": "25-test-gpt-5h-c-2026-09-24.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-gpt-5h-c-2026-09-24.mjs--mutant",
+      "args": [
+        "scripts/test-gpt-5h-c-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "source": "workflow GPT loop",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 204,
+      "log": "26-test-gpt-5h-c-2026-09-24.mjs--mutant.log",
+      "passed": true,
+      "failures": [
+        "FAIL OpenAPI reads live tier price/deadline without new order endpoint"
+      ]
+    },
+    {
+      "id": "test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [
+        "scripts/test-gpt-v31-facts-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 205,
+      "log": "27-test-gpt-v31-facts-2026-09-24.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-gpt-v31-facts-2026-09-24.mjs --mutant",
+      "args": [
+        "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "source": "workflow node command",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 201,
+      "log": "28-test-gpt-v31-facts-2026-09-24.mjs_--mutant.log",
+      "passed": true,
+      "failures": [
+        "FAIL trial copy separates balance from access in same statement"
+      ]
+    },
+    {
+      "id": "test-sharing-safety.mjs",
+      "args": [
+        "scripts/test-sharing-safety.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 431,
+      "log": "29-test-sharing-safety.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-paid-video-citation-guidance-2026-09-28.mjs",
+      "args": [
+        "scripts/test-paid-video-citation-guidance-2026-09-28.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 312,
+      "log": "30-test-paid-video-citation-guidance-2026-09-28.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-seedance-hero-plans-2026-09-28.mjs",
+      "args": [
+        "scripts/test-seedance-hero-plans-2026-09-28.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 961,
+      "log": "31-test-seedance-hero-plans-2026-09-28.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-motores-geo-2026-10-06.mjs",
+      "args": [
+        "scripts/test-motores-geo-2026-10-06.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 45197,
+      "log": "32-test-motores-geo-2026-10-06.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-ads-aeo-2026-09-24.mjs",
+      "args": [
+        "scripts/test-ads-aeo-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1765,
+      "log": "33-test-ads-aeo-2026-09-24.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-five-improvements.mjs",
+      "args": [
+        "scripts/test-five-improvements.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1492,
+      "log": "34-test-five-improvements.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-studio-entry-transition.mjs",
+      "args": [
+        "scripts/test-studio-entry-transition.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 637,
+      "log": "35-test-studio-entry-transition.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-locale-readiness.mjs",
+      "args": [
+        "scripts/test-locale-readiness.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 386,
+      "log": "36-test-locale-readiness.mjs.log",
+      "passed": false,
+      "failures": [
+        "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+      ]
+    },
+    {
+      "id": "test-app-blue-layout.mjs",
+      "args": [
+        "scripts/test-app-blue-layout.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 2365,
+      "log": "37-test-app-blue-layout.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-home-curation.mjs",
+      "args": [
+        "scripts/test-home-curation.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 289,
+      "log": "38-test-home-curation.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-home-blue-layout.mjs",
+      "args": [
+        "scripts/test-home-blue-layout.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 3240,
+      "log": "39-test-home-blue-layout.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-home-referral-bridge.mjs",
+      "args": [
+        "scripts/test-home-referral-bridge.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 272,
+      "log": "40-test-home-referral-bridge.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-home-pricing-checkout.mjs",
+      "args": [
+        "scripts/test-home-pricing-checkout.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 63,
+      "log": "41-test-home-pricing-checkout.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-showcase-premium.mjs",
+      "args": [
+        "scripts/test-showcase-premium.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 635,
+      "log": "42-test-showcase-premium.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-cinematic-timeline-2026-09-11.mjs",
+      "args": [
+        "scripts/test-cinematic-timeline-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 498,
+      "log": "43-test-cinematic-timeline-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-cinematic-speech-2026-09-11.mjs",
+      "args": [
+        "scripts/test-cinematic-speech-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 997,
+      "log": "44-test-cinematic-speech-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-music-direction-2026-09-11.mjs",
+      "args": [
+        "scripts/test-music-direction-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1168,
+      "log": "45-test-music-direction-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-visual-contract-2026-09-11.mjs",
+      "args": [
+        "scripts/test-visual-contract-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1591,
+      "log": "46-test-visual-contract-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-quality-rejection-2026-09-11.mjs",
+      "args": [
+        "scripts/test-quality-rejection-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1516,
+      "log": "47-test-quality-rejection-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-quality-route-integration-2026-09-11.mjs",
+      "args": [
+        "scripts/test-quality-route-integration-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 598,
+      "log": "48-test-quality-route-integration-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-quality-failure-ui-2026-09-11.mjs",
+      "args": [
+        "scripts/test-quality-failure-ui-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 631,
+      "log": "49-test-quality-failure-ui-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-active-quality-rejection-2026-09-11.mjs",
+      "args": [
+        "scripts/test-active-quality-rejection-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 977,
+      "log": "50-test-active-quality-rejection-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "args": [
+        "scripts/test-cinematic-terminal-proof-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 570,
+      "log": "51-test-cinematic-terminal-proof-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "args": [
+        "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 384,
+      "log": "52-test-cinematic-poll-diagnostic-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-scene-retry-mutex-2026-09-11.mjs",
+      "args": [
+        "scripts/test-scene-retry-mutex-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 2508,
+      "log": "53-test-scene-retry-mutex-2026-09-11.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-paginas-ia-claras-2110.mjs",
+      "args": [
+        "scripts/test-paginas-ia-claras-2110.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "requested extra",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 9426,
+      "log": "54-test-paginas-ia-claras-2110.mjs.log",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "id": "test-plan-film-language.mjs",
+      "args": [
+        "scripts/test-plan-film-language.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "requested extra",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "ms": 253,
+      "log": "55-test-plan-film-language.mjs.log",
+      "passed": false,
+      "failures": [
+        "AssertionError [ERR_ASSERTION]: current Starter grant buys eight paid Kineo 1 films"
+      ]
+    }
+  ],
+  "finished": "2026-10-24T16:47:24.953Z",
+  "done": 55,
+  "pass": 52,
+  "fail": 3,
+  "finalStatus": "",
+  "finalHead": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+  "sourcesRestored": true
+}

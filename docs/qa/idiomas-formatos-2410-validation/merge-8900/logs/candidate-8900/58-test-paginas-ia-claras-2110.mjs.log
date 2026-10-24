@@ -1,0 +1,274 @@
+
+A. nenhum fundo escuro nos modelos
+  ok  app/ai-video-generator/[engine]/page.tsx: sem fundo escuro
+  ok  app/ai-video-generator/[engine]/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/ai-video-generator/[engine]/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/text-to-video-shorts/page.tsx: sem fundo escuro
+  ok  app/text-to-video-shorts/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/text-to-video-shorts/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/free-ai-shorts/[niche]/page.tsx: sem fundo escuro
+  ok  app/free-ai-shorts/[niche]/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/free-ai-shorts/[niche]/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/ai-video-generator/for/[slug]/page.tsx: sem fundo escuro
+  ok  app/ai-video-generator/for/[slug]/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/ai-video-generator/for/[slug]/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/gerador-de-shorts-gratis/page.tsx: sem fundo escuro
+  ok  app/gerador-de-shorts-gratis/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/gerador-de-shorts-gratis/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/state-of-ai-shorts-2026/page.tsx: sem fundo escuro
+  ok  app/state-of-ai-shorts-2026/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/state-of-ai-shorts-2026/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/best-ai-shorts-generators/page.tsx: sem fundo escuro
+  ok  app/best-ai-shorts-generators/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/best-ai-shorts-generators/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/free-ai-shorts-generator/page.tsx: sem fundo escuro
+  ok  app/free-ai-shorts-generator/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/free-ai-shorts-generator/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  app/chatgpt/page.tsx: sem fundo escuro
+  ok  app/chatgpt/page.tsx: sem o texto claro/azul do tema preto (#f5f5f7, #2997ff, #86868b)
+  ok  app/chatgpt/page.tsx: <main className="kpl"> com o fundo claro da home
+  ok  tokens = os da home clara (app/kineoLandingTheme.ts)
+  ok  a cor #F7F7F5 existe no tema da home
+  ok  a cor #0A5CFF existe no tema da home
+  ok  a cor #0E1116 existe no tema da home
+  ok  a cor #E4E4E0 existe no tema da home
+  ok  a cor #5A5F67 existe no tema da home
+  ok  a cor #EEF3FF existe no tema da home
+
+B. menu do topo e os 4 cards da home, logo abaixo do título
+  ok  app/ai-video-generator/[engine]/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/ai-video-generator/[engine]/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/text-to-video-shorts/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/text-to-video-shorts/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/free-ai-shorts/[niche]/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/free-ai-shorts/[niche]/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/ai-video-generator/for/[slug]/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/ai-video-generator/for/[slug]/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/gerador-de-shorts-gratis/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/gerador-de-shorts-gratis/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/state-of-ai-shorts-2026/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/state-of-ai-shorts-2026/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/best-ai-shorts-generators/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/best-ai-shorts-generators/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/free-ai-shorts-generator/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/free-ai-shorts-generator/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  app/chatgpt/page.tsx: o menu do topo da home, uma vez, antes do título
+  ok  app/chatgpt/page.tsx: os 4 cards uma vez, logo abaixo do <h1> e do 1º parágrafo (a resposta segue colada ao título), antes do 1º <h2>
+  ok  os cards são o MESMO componente da home (HomeThreeCards), com o 4º card pelo mesmo interruptor
+  ok  o 4º card (AI Cartoon Videos) está ligado
+  ok  Filme · Product Ads · UGC (3) + AI Cartoon Videos = 4 cards
+  ok  a home usa o mesmo componente (mesmos destinos dos botões azuis)
+  ok  a faixa dos cards usa o tema claro exportado da home; a home (KineoLanding) segue byte a byte
+  ok  o menu do topo tem <UiLabel>Make a film</UiLabel>
+  ok  o menu do topo tem <UiLabel>Product ads</UiLabel>
+  ok  o menu do topo tem <NavUgcAdsLink data-nav-item="more:ugc" />
+  ok  o menu do topo tem {MENU_CARTOON_LABEL}
+  ok  o menu do topo tem {MENU_CONNECTOR_LABEL}
+  ok  o menu do topo tem 🔥 Trending
+  ok  o menu do topo tem <UiLabel>Pricing</UiLabel>
+
+C. <title>, description, canonical, hreflang e JSON-LD iguais à base 1b991815ca62701c2c6e06a69aa2eba068e63d5f
+  ok  app/ai-video-generator/[engine]/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/text-to-video-shorts/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/free-ai-shorts/[niche]/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/ai-video-generator/for/[slug]/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/gerador-de-shorts-gratis/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/state-of-ai-shorts-2026/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/best-ai-shorts-generators/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/free-ai-shorts-generator/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+  ok  app/chatgpt/page.tsx: linhas de title/description/canonical/JSON-LD iguais à base
+
+D. a vitrine velha saiu; a nova é a da /claude-connector; curadoria intocada
+  ok  app/ai-video-generator/[engine]/page.tsx: a vitrine atual na página
+  ok  app/ai-video-generator/[engine]/page.tsx: nenhum player/galeria velho na tela
+  ok  app/text-to-video-shorts/page.tsx: a vitrine atual na página
+  ok  app/text-to-video-shorts/page.tsx: nenhum player/galeria velho na tela
+  ok  app/free-ai-shorts/[niche]/page.tsx: a vitrine atual na página
+  ok  app/free-ai-shorts/[niche]/page.tsx: nenhum player/galeria velho na tela
+  ok  app/ai-video-generator/for/[slug]/page.tsx: a vitrine atual na página
+  ok  app/ai-video-generator/for/[slug]/page.tsx: nenhum player/galeria velho na tela
+  ok  app/gerador-de-shorts-gratis/page.tsx: a vitrine atual na página
+  ok  app/gerador-de-shorts-gratis/page.tsx: nenhum player/galeria velho na tela
+  ok  app/free-ai-shorts-generator/page.tsx: a vitrine atual na página
+  ok  app/free-ai-shorts-generator/page.tsx: nenhum player/galeria velho na tela
+  ok  a vitrine é o ShowcaseGrid da /claude-connector (nenhuma curadoria nova)
+  ok  lib/engineWall.ts igual à base (só leitura)
+  ok  lib/homeVideoCuration.ts igual à base (só leitura)
+  ok  app/claude-connector/ShowcaseGrid.tsx igual à base (só leitura)
+
+E. /claude-connector: quem vem do ChatGPT abre na aba ChatGPT
+  ok  vemDoChatgpt("chatgpt.com", null) = true
+  ok  vemDoChatgpt(null, "https://chatgpt.com/") = true
+  ok  vemDoChatgpt("openai", "") = true
+  ok  vemDoChatgpt("ChatGPT", undefined) = true
+  ok  vemDoChatgpt(null, "https://chat.openai.com/c/1") = true
+  ok  vemDoChatgpt("google", "https://www.google.com/") = false
+  ok  vemDoChatgpt(undefined, undefined) = false
+  ok  vemDoChatgpt("claude", "https://claude.ai/") = false
+  ok  o pedido abre num chat novo do ChatGPT, codificado
+  ok  quem vem de outro lugar: a aba de sempre (Claude)
+  ok  utm_source/referrer com chatgpt|openai → aba ChatGPT
+  ok  a galeria troca "Try it in Claude" por "Try it in ChatGPT" pela mesma regra
+  ok  mesmo catálogo (PRESETS) nos dois casos
+  ok  o selo "Engine set · <motor>" saiu dos cartões
+
+F. /chatgpt: primeiro conectar, depois copiar; jargão só na caixa
+  ok  conectar vem antes de copiar o prompt
+  ok  os passos são os MESMOS da aba ChatGPT da /claude-connector
+  ok  a URL é https://www.usekineo.com/api/mcp/studio
+  ok  nenhum HOOK/MICRO REWARD/ESCALATION/PAYOFF no texto da página
+  ok  o prompt técnico fica dentro da caixa recolhida (<details>)
+  ok  a caixa de colar não mostra os rótulos técnicos
+
+R. render real (react-dom/server) das páginas claras, com o código NOVO
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"seedance"}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"seedance"}}: a vitrine atual renderizada
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"seedance"}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"veo"}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"veo"}}: a vitrine atual renderizada
+  ok  app/ai-video-generator/[engine]/page.tsx {"params":{"engine":"veo"}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/text-to-video-shorts/page.tsx {}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/text-to-video-shorts/page.tsx {}: a vitrine atual renderizada
+  ok  app/text-to-video-shorts/page.tsx {}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"horror"}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"horror"}}: a vitrine atual renderizada
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"horror"}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"localbusiness"}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"localbusiness"}}: a vitrine atual renderizada
+  ok  app/free-ai-shorts/[niche]/page.tsx {"params":{"niche":"localbusiness"}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/ai-video-generator/for/[slug]/page.tsx {"params":{"slug":"urdu"}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/ai-video-generator/for/[slug]/page.tsx {"params":{"slug":"urdu"}}: a vitrine atual renderizada
+  ok  app/ai-video-generator/for/[slug]/page.tsx {"params":{"slug":"urdu"}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/gerador-de-shorts-gratis/page.tsx {}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/gerador-de-shorts-gratis/page.tsx {}: a vitrine atual renderizada
+  ok  app/gerador-de-shorts-gratis/page.tsx {}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/state-of-ai-shorts-2026/page.tsx {}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/state-of-ai-shorts-2026/page.tsx {}: página sem galeria (nada a trocar)
+  ok  app/state-of-ai-shorts-2026/page.tsx {}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/best-ai-shorts-generators/page.tsx {}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/best-ai-shorts-generators/page.tsx {}: página sem galeria (nada a trocar)
+  ok  app/best-ai-shorts-generators/page.tsx {}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/free-ai-shorts-generator/page.tsx {"searchParams":{}}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/free-ai-shorts-generator/page.tsx {"searchParams":{}}: a vitrine atual renderizada
+  ok  app/free-ai-shorts-generator/page.tsx {"searchParams":{}}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+  ok  app/chatgpt/page.tsx {}: menu do topo + 4 cards da home renderizados (4)
+  ok  app/chatgpt/page.tsx {}: página sem galeria (nada a trocar)
+  ok  app/chatgpt/page.tsx {}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML
+
+O. origem → efeito → ordem DOM → posições reais dos cliques (home e páginas compartilham a mesma faixa)
+  ok  O UTM ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM OPENAI; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM OPENAI; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM OPENAI; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM OPENAI; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer OpenAI; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer OpenAI; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer OpenAI; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O referrer OpenAI; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM Google + referrer ChatGPT; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM Google + referrer ChatGPT; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM Google + referrer ChatGPT; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O UTM Google + referrer ChatGPT; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O sem origem; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O sem origem; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O sem origem; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O sem origem; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Google; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Google; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Google; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Google; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Claude; signedIn=false; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Claude; signedIn=false; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Claude; signedIn=true; kidsCard=false: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O Claude; signedIn=true; kidsCard=true: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais
+  ok  O mutante aplicado e recusado: efeito não reconhece origem
+  ok  O mutante aplicado e recusado: Cartoon primeiro também para Google/Claude
+  ok  O mutante aplicado e recusado: referrer ignorado
+  ok  O mutante aplicado e recusado: Cartoon duplicado
+  ok  O mutante aplicado e recusado: interruptor do quarto card ignorado
+  ok  O mutante aplicado e recusado: cliques dos três cards guardam posições antigas
+  ok  O mutante aplicado e recusado: Cartoon continua medido como quarto
+  ok  O mutante aplicado e recusado: SSR começa com Cartoon primeiro
+
+X. desfaz exato da camada (para os guardiões antigos)
+  ok  X1 os 65 arquivos tocados, desfeitos, = base 1b991815ca62701c2c6e06a69aa2eba068e63d5f (ok)
+  ok  X2 todo arquivo tocado leva a marca
+fatal: path 'app/claude-connector/AiOrigin.tsx' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'components/seo/PaginaClara.tsx' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/PAGINAS-IA-CLARAS-2026-10-21.md' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'lib/seo/paginasIaClaras2110.ts' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'scripts/test-paginas-ia-claras-2110.mjs' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'scripts/test-support/desfaz-paginas-ia-claras-2110-trocas.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/qa/paginas-ia-claras-2210-merge-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/qa/paginas-ia-claras-2210-2b2-merge-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'scripts/test-support/paginas-ia-claras-cards-harness.mjs' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-2210.html' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-chatgpt-desktop-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-chatgpt-mobile-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-other-desktop-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-other-mobile-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/qa/paginas-ia-claras-cartoon-first-2210-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+fatal: path 'docs/qa/paginas-ia-claras-2210-1b991-merge-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+  ok  X3 os 17 arquivos novos existem e não existiam na base
+  ok  X4 trecho mudado por outra mão lança; sem a marca / fora da lista / null volta intocado
+  ok  X5 fim de linha preservado (CRLF entra, CRLF sai)
+  ok  X6 desfaz idempotente em todos os arquivos existentes
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/cena/catalog.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/cena/internal.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/cena/runtime.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/v2Advance.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/v2AudioCedo.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: lib/ads/v2StartCore.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-ads-cena-2110.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-ads-cena-ajuste-2110.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-ads-cena-voz-2110.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-kids-venda-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-mcp-studio-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-mcp-studio-ajuste-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-meta95-personagem-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-meta95-personagem-ajuste-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-support/desfaz-kids-venda-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-verbatim-intocavel-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/(dashboard)/kids-cartoon/page.tsx
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/compose/status/[renderId]/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/cron/autopilot-generate/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/cron/finish-stranded-renders/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/generate-video-cinematic/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/stripe/checkout/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/api/stripe/webhook/route.ts
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: app/pricing/PricingClient.tsx
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: components/kidsCartoon/KidsCartoonPages.tsx
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-saida-regiao-2026-10-07.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-support/desfaz-bebe-que-fala-2010.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-trilha-15s-1610.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-cena-negacao-1510.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-contrato-classicos-1410.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-veo-marcado-2026-09-29.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-veo-modo-ia-2026-09-29.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs
+  ok  X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: scripts/test-home-cards-claros-2010.mjs
+  ok  X8 camadas mais novas saem antes das consultas/trocas de Cena95, Ajuste e Bing
+  ok  X9 diff completo contra a main só contém arquivos declarados da camada
+  ok  X10 todo commit próprio leva prefixo e TRAVA exatos; nenhum assunto alheio é excluído
+
+M. mutantes (cada verificador acusa o que devia)
+  ok  M1 fundo #000 no <main> é acusado
+  ok  M2 rgba escuro opaco é acusado; véu translúcido de selo passa
+  ok  M3 PAGE_BG preto e CSS escuro em <style> são acusados
+  ok  M4 cards ausentes, abaixo do 1º <h2> ou ANTES da resposta (entre o H1 e o 1º parágrafo) são acusados
+  ok  M5 título mudado é acusado
+  ok  M6 texto claro do tema preto é acusado
+  ok  M7 no HTML: fundo escuro e texto claro acusados; var(--kpl-*) e botão azul passam
+  ok  M8 prefixo parecido, marca no meio ou TRAVA ausente não escondem commit alheio
+  ok  M9 fonte adulterada fora do bloco também é recusada pelo desfaz integral
+
+235 ok, 0 falha(s)

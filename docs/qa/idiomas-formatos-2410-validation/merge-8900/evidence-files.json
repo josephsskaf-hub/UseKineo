@@ -1,0 +1,527 @@
+{
+  "utc": "2026-10-24T16:52:19.149Z",
+  "scope": "unified critical workflow, compiler, requested Ads/Traffic/current-layer guardians and two inherited diagnostic extras; not a new full legacy suite",
+  "files": [
+    {
+      "file": "baseline-8900.json",
+      "sha256": "82b3b7bdcdb9dc2ed13749d2af09ee5d07cdc1758db5b8ff56301898df86b67b"
+    },
+    {
+      "file": "baseline-8900.effective.json",
+      "sha256": "6fbe686e6346a4b044ff8be0ff0dfbcf9aa65de2b094d1c25da1f8a8b6ef3a1c"
+    },
+    {
+      "file": "baseline-8900-rechecks.json",
+      "sha256": "708786fcbe047f7e36172d3a27843b571ffd46a9b8ced9cb8ce3d9c30d24f47f"
+    },
+    {
+      "file": "baseline-8900.commands.json",
+      "sha256": "277302ab81971436a0cc4c51a3c47985b830fdbf000d8d23ec5f363caf0d57d8"
+    },
+    {
+      "file": "candidate-8900.json",
+      "sha256": "cd8fff0978d6288bcca1d8a0e76575172754cb56d199167120be075364ab9320"
+    },
+    {
+      "file": "candidate-8900.commands.json",
+      "sha256": "092cf613fbbd2d978fb19be5e23bd86c16b382407d6bef90042d049199a3a56c"
+    },
+    {
+      "file": "merge-comparison.json",
+      "sha256": "59b3627aab08e48edfc0efbc2b33a027396558d7472eb9343030bfecbf202e4b"
+    },
+    {
+      "file": "source-union.json",
+      "sha256": "c4d952242050519bd89711652dc49a809e919af1557d66cd5392f88ab1b4fc3c"
+    },
+    {
+      "file": "run-workflow-baseline.cjs",
+      "sha256": "e0b5329ca254c772862d04fa810f204d693f6d7507918efa81f4f406a55420ae"
+    },
+    {
+      "file": "offline-preload.cjs",
+      "sha256": "0293413766b100bbcad646611eca9a1567cd5573ed1120eb861d5cde5fdac3a0"
+    },
+    {
+      "file": "compare-merge.cjs",
+      "sha256": "b8a828c9d5136ce6ebafd412bb1509e00f633327ecb588319f7b6609406f1c62"
+    },
+    {
+      "file": "prove-source-union.cjs",
+      "sha256": "53f5398ae1dcece548345ef8d75a5c34f682bdb0e95301170a539dfd7067d158"
+    }
+  ],
+  "logs": [
+    {
+      "file": "logs/baseline-8900/01-typescript.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "logs/baseline-8900/02-test-ads-escolha-publico-2410.mjs.log",
+      "sha256": "576e7d679891469eef93d0c0962872cd8ce4d5a59b8085cc48c4aa47418619cc"
+    },
+    {
+      "file": "logs/baseline-8900/03-test-ads-escolha-2310.mjs.log",
+      "sha256": "65fbd89a261adb8de3658f8b2488f90f9b54a2ec02c205a6d77b2769a38e5c9b"
+    },
+    {
+      "file": "logs/baseline-8900/04-test-ads-render-fix-2310.mjs.log",
+      "sha256": "50efe6d9d0b283bf26c0728ae24649cf4332a3c70591d833329e5649cfc929f2"
+    },
+    {
+      "file": "logs/baseline-8900/05-test-trafego-pages-2310.mjs.log",
+      "sha256": "7db319e1995641910f5824f67e873dacac00726efc92cec74f8d569f056f8220"
+    },
+    {
+      "file": "logs/baseline-8900/06-test-trafego-index-2310.mjs.log",
+      "sha256": "c9c046d85908719d4eb67b77983922a9d409f4b7effc2e35e11e9bae44e02971"
+    },
+    {
+      "file": "logs/baseline-8900/07-test-trafego-health-2310.mjs_--mutants.log",
+      "sha256": "cc729a5f80632d716b6757ee55fc06826beadbb91e7caf82faad94d4e77d8092"
+    },
+    {
+      "file": "logs/baseline-8900/08-test-trafego-undo-2310.mjs.log",
+      "sha256": "af0302be37436698fb866d06fc2c133065e1f45f2248fa8059033a9afa989c7c"
+    },
+    {
+      "file": "logs/baseline-8900/09-test-admin-leve-2310.mjs_--mutants.log",
+      "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304"
+    },
+    {
+      "file": "logs/baseline-8900/10-test-admin-leve-undo-2310.mjs.log",
+      "sha256": "dd0f5dd179bd6849083f35a2870c3856b5abccdca1d3e41797ed9b33c26b4cfb"
+    },
+    {
+      "file": "logs/baseline-8900/11-test-roteiro-curto-sem-falha-2210.mjs_--mutants.log",
+      "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9"
+    },
+    {
+      "file": "logs/baseline-8900/12-test-roteiro-curto-undo-2210.mjs.log",
+      "sha256": "ed0e9142f9bcf4b72624795fa033d84fda39bff54944c80494e47af060e3f2d0"
+    },
+    {
+      "file": "logs/baseline-8900/13-test-admin-truncamento-2026-10.mjs.log",
+      "sha256": "5fedd2ed44244f1cc0a123e7805112fd73a03e64369530f85350660c65e97323"
+    },
+    {
+      "file": "logs/baseline-8900/14-test-afiliados-acordam.mjs.log",
+      "sha256": "c8491d35d7dd505694535317c72baa588fba69cdb31e273f8463e9113b9cefe4"
+    },
+    {
+      "file": "logs/baseline-8900/15-test-coerencia-kineo1-2026-09-16.mjs.log",
+      "sha256": "4420bcf8e1aba4c8ccf0e355d60213866f152c492693c5731505e71217ef8502"
+    },
+    {
+      "file": "logs/baseline-8900/16-test-juiz-still-2026-10-06.mjs.log",
+      "sha256": "9146ad61631e884090bdd11587000534d5c8bdfcb3f5cd5f5cc59f212f6f9d81"
+    },
+    {
+      "file": "logs/baseline-8900/17-test-carta-da-recusa.mjs.log",
+      "sha256": "888c5a3765c2d4dc8c26f330d47b9092bedac1424eb94158b351a78201ab2b01"
+    },
+    {
+      "file": "logs/baseline-8900/18-test-momentum-topic.mjs.log",
+      "sha256": "c83dc17db40f837d1667648a251a356f4ff2abf31971d88c98d4af500ca34a2a"
+    },
+    {
+      "file": "logs/baseline-8900/19-test-stalled-frescor-2026-09-05.mjs.log",
+      "sha256": "01b75625deebc0ac0c44d6cf3022f7d5ea41e9733d38f14b354236d8d4d0d3c6"
+    },
+    {
+      "file": "logs/baseline-8900/20-test-hot-nudge-janela-campanhas.mjs.log",
+      "sha256": "b673a48a7f110ec648e1111833bbf3be4287eeef950b944129b22878145b3441"
+    },
+    {
+      "file": "logs/baseline-8900/21-test-gpt-5h-a-2026-09-24.mjs.log",
+      "sha256": "545d4b6f895bf942c052eec8223bc6589674b86d9bb2f1c8a2869887347099d7"
+    },
+    {
+      "file": "logs/baseline-8900/22-test-gpt-5h-a-2026-09-24.mjs--mutant.log",
+      "sha256": "18cb8ece5a4dde83dee225d27e8c6f2c2fb4ec06dd931e3f1b67346e59684345"
+    },
+    {
+      "file": "logs/baseline-8900/23-test-gpt-5h-b-2026-09-24.mjs.log",
+      "sha256": "215c78ae6a47e1327abef7479c3fbe56d21cdb8fc69800dbb28cceb640a2b3f9"
+    },
+    {
+      "file": "logs/baseline-8900/24-test-gpt-5h-b-2026-09-24.mjs--mutant.log",
+      "sha256": "e38496954d3c8ec64e6e09bf686330e1d748995711f8bf13be05a16726740348"
+    },
+    {
+      "file": "logs/baseline-8900/25-test-gpt-5h-c-2026-09-24.mjs.log",
+      "sha256": "6528ed9104c30eee67f80d00ef44c8bb94200e83fb5e51057d96f83c5efdcb1c"
+    },
+    {
+      "file": "logs/baseline-8900/26-test-gpt-5h-c-2026-09-24.mjs--mutant.log",
+      "sha256": "8fec56e0cc4eed14d3f40eb67e9493d84599ef09d48a0c3b03315d5717faf794"
+    },
+    {
+      "file": "logs/baseline-8900/27-test-gpt-v31-facts-2026-09-24.mjs.log",
+      "sha256": "7c35d6122a2059411e985ddc8bacd342e15b38a913971a52a96c93633bace285"
+    },
+    {
+      "file": "logs/baseline-8900/28-test-gpt-v31-facts-2026-09-24.mjs_--mutant.log",
+      "sha256": "0550fd2a12ada0efaa5e1ee85dcf39a8023e2787f8e97a1255a88e58c2067557"
+    },
+    {
+      "file": "logs/baseline-8900/29-test-sharing-safety.mjs.log",
+      "sha256": "3b2ec1a3df96a8de7a04be89e814de3ada46b28b7eb978a84a221039b40a6dda"
+    },
+    {
+      "file": "logs/baseline-8900/30-test-paid-video-citation-guidance-2026-09-28.mjs.log",
+      "sha256": "22acfacee5dc4ef158c968bdf48cb87c7240d00780907fd5ea92f5ff12ea6922"
+    },
+    {
+      "file": "logs/baseline-8900/31-test-seedance-hero-plans-2026-09-28.mjs.log",
+      "sha256": "b281f13db647a08752628e6ae90e3e99fdb1510f10fa0b955cd6b6c544551ac4"
+    },
+    {
+      "file": "logs/baseline-8900/32-test-motores-geo-2026-10-06.mjs.log",
+      "sha256": "db9c429ac8efee9d5dacd61098edef023ec7aaa893b0d2d8f91bff08c4ebeb74"
+    },
+    {
+      "file": "logs/baseline-8900/33-test-ads-aeo-2026-09-24.mjs.log",
+      "sha256": "56f93eea038c1c5cbda89ca5861166cab57d73d3431749a75c59f92ee260abd6"
+    },
+    {
+      "file": "logs/baseline-8900/34-test-five-improvements.mjs.log",
+      "sha256": "dbf83a9bd3f013b78095244211369154fb7204e14aa5948921729184a2cea960"
+    },
+    {
+      "file": "logs/baseline-8900/35-test-studio-entry-transition.mjs.log",
+      "sha256": "2a08548fdac663ae654447e85a98f25e1f1d8e73ac724fbe21bba9b0a6d3cfac"
+    },
+    {
+      "file": "logs/baseline-8900/36-test-locale-readiness.mjs.log",
+      "sha256": "577a00c9f0545e1115a18430be5baf1d90734e8e4afec1d58ef9cd556ff1d51a"
+    },
+    {
+      "file": "logs/baseline-8900/37-test-app-blue-layout.mjs.log",
+      "sha256": "9cf849a9acd9c527a20dd68a7f2a3c27773b981f49bff13eba2c6b7706abeeb4"
+    },
+    {
+      "file": "logs/baseline-8900/38-test-home-curation.mjs.log",
+      "sha256": "f0717b2fc3e3abe427cbf72f1e5bd808406bbcd2dd085244c9f3616b723bfd96"
+    },
+    {
+      "file": "logs/baseline-8900/39-test-home-blue-layout.mjs.log",
+      "sha256": "e11f4da74c572568a769a2caecf6a4820b1630117417538cbca8fb631e4d40ce"
+    },
+    {
+      "file": "logs/baseline-8900/40-test-home-referral-bridge.mjs.log",
+      "sha256": "aea24a555ac371b781e1dde51f60bd8efde4960854c24b77e51ccee6d4178a57"
+    },
+    {
+      "file": "logs/baseline-8900/41-test-home-pricing-checkout.mjs.log",
+      "sha256": "b4b8198773e1e63e9c4e4b9dbbfa31f6bf9de3f5883378eae9f7ef7b9cd417ab"
+    },
+    {
+      "file": "logs/baseline-8900/42-test-showcase-premium.mjs.log",
+      "sha256": "f78c240689ebebd0de5e4e3ff9047268e8ab4ba87ddbd184825f406b1d14cd9b"
+    },
+    {
+      "file": "logs/baseline-8900/43-test-cinematic-timeline-2026-09-11.mjs.log",
+      "sha256": "cfcfe1f62887bda55c85f100882ab058de2d6ec2f206fb95a84600d91e62ca75"
+    },
+    {
+      "file": "logs/baseline-8900/44-test-cinematic-speech-2026-09-11.mjs.log",
+      "sha256": "165ce9da199e90600419417f71b02c89d12c6492fd8c3dffc988feb340af9e0e"
+    },
+    {
+      "file": "logs/baseline-8900/45-test-music-direction-2026-09-11.mjs.log",
+      "sha256": "6965670b6d96eeaf8be00474d865ef8f6305ea496c1e5ce100327eb6d37b7b99"
+    },
+    {
+      "file": "logs/baseline-8900/46-test-visual-contract-2026-09-11.mjs.log",
+      "sha256": "808a1eecaf05d905f2f3db9128011f3df5355de6e206dcde56ebf72395f0ff4e"
+    },
+    {
+      "file": "logs/baseline-8900/47-test-quality-rejection-2026-09-11.mjs.log",
+      "sha256": "c4819e3bad6ca190afb489f70809e8a5df0de8bc3543b56a81ea6deb6aa788f2"
+    },
+    {
+      "file": "logs/baseline-8900/48-test-quality-route-integration-2026-09-11.mjs.log",
+      "sha256": "e83ff1ad0efc6e9cea35f4399e2e69235e8bb650c84346ec1ad3c2b17f3daaf4"
+    },
+    {
+      "file": "logs/baseline-8900/49-test-quality-failure-ui-2026-09-11.mjs.log",
+      "sha256": "e3a9b82b592d3f231b6f105445362882a840f274956dd68cc4523ab653ab590e"
+    },
+    {
+      "file": "logs/baseline-8900/50-test-active-quality-rejection-2026-09-11.mjs.log",
+      "sha256": "0e48a24c544e240e082f1ade8d4e94b9f04c34d9f39050cf76da96085440ed4f"
+    },
+    {
+      "file": "logs/baseline-8900/51-test-cinematic-terminal-proof-2026-09-11.mjs.log",
+      "sha256": "4099e237a5b24a6867a4f1431fd6372516ee3120f8a6de910c72d3d621e27a5e"
+    },
+    {
+      "file": "logs/baseline-8900/52-test-cinematic-poll-diagnostic-2026-09-11.mjs.log",
+      "sha256": "96280f6b517fd6b34b771a7deb0be4dbe46bf3cd6bba4bd3ac4df4f0c744eecf"
+    },
+    {
+      "file": "logs/baseline-8900/53-test-scene-retry-mutex-2026-09-11.mjs.log",
+      "sha256": "c4c1ecfe4859b266ea508b79b56b4f13b216f51def9b0bb52d61913e44e1e5d7"
+    },
+    {
+      "file": "logs/baseline-8900/54-test-paginas-ia-claras-2110.mjs.log",
+      "sha256": "90a5235d62bc4580a708363d6b07563a4900e87ba2320081bf470f435c5dc235"
+    },
+    {
+      "file": "logs/baseline-8900/55-test-plan-film-language.mjs.log",
+      "sha256": "3c25589e54cdca7aa000a1b6b0890450a21ea5c264e4b87ff045176b6ba79037"
+    },
+    {
+      "file": "logs/baseline-8900-rechecks/01-test-trafego-undo-2310.mjs.log",
+      "sha256": "34138d73463fdc2622725f58b793edd6e421cfacfb73df89b9aa35c0e04c1866"
+    },
+    {
+      "file": "logs/candidate-8900/01-typescript.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "logs/candidate-8900/02-test-idiomas-2410.mjs.log",
+      "sha256": "5d17c58ce84ff750d028ca9ceac6ab85dcfc7c2028c5a8ba1effc1023e12997e"
+    },
+    {
+      "file": "logs/candidate-8900/03-test-language-segmentation-2410.mjs.log",
+      "sha256": "ff98ed46f540a4f6b7f7cdfeca6425ca72e451c13aaef957b3ac31dc2cf2af2b"
+    },
+    {
+      "file": "logs/candidate-8900/04-test-ads-formatos-escolha-2410.mjs.log",
+      "sha256": "11ff25a1afb4e02988295cdd0f27e705ab08fa6624bd8b7e9370daed59b30ee6"
+    },
+    {
+      "file": "logs/candidate-8900/05-test-idiomas-formatos-undo-2410.mjs.log",
+      "sha256": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44"
+    },
+    {
+      "file": "logs/candidate-8900/06-test-ads-escolha-publico-2410.mjs.log",
+      "sha256": "576e7d679891469eef93d0c0962872cd8ce4d5a59b8085cc48c4aa47418619cc"
+    },
+    {
+      "file": "logs/candidate-8900/07-test-ads-escolha-2310.mjs.log",
+      "sha256": "65fbd89a261adb8de3658f8b2488f90f9b54a2ec02c205a6d77b2769a38e5c9b"
+    },
+    {
+      "file": "logs/candidate-8900/08-test-ads-render-fix-2310.mjs.log",
+      "sha256": "50efe6d9d0b283bf26c0728ae24649cf4332a3c70591d833329e5649cfc929f2"
+    },
+    {
+      "file": "logs/candidate-8900/09-test-trafego-pages-2310.mjs.log",
+      "sha256": "7db319e1995641910f5824f67e873dacac00726efc92cec74f8d569f056f8220"
+    },
+    {
+      "file": "logs/candidate-8900/10-test-trafego-index-2310.mjs.log",
+      "sha256": "c9c046d85908719d4eb67b77983922a9d409f4b7effc2e35e11e9bae44e02971"
+    },
+    {
+      "file": "logs/candidate-8900/11-test-trafego-health-2310.mjs_--mutants.log",
+      "sha256": "cc729a5f80632d716b6757ee55fc06826beadbb91e7caf82faad94d4e77d8092"
+    },
+    {
+      "file": "logs/candidate-8900/12-test-trafego-undo-2310.mjs.log",
+      "sha256": "a9eb15da15415c88544b7408709618859fed8666fce608ca5ab1b1143cdce99a"
+    },
+    {
+      "file": "logs/candidate-8900/13-test-admin-leve-2310.mjs_--mutants.log",
+      "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304"
+    },
+    {
+      "file": "logs/candidate-8900/14-test-admin-leve-undo-2310.mjs.log",
+      "sha256": "dd0f5dd179bd6849083f35a2870c3856b5abccdca1d3e41797ed9b33c26b4cfb"
+    },
+    {
+      "file": "logs/candidate-8900/15-test-roteiro-curto-sem-falha-2210.mjs_--mutants.log",
+      "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9"
+    },
+    {
+      "file": "logs/candidate-8900/16-test-roteiro-curto-undo-2210.mjs.log",
+      "sha256": "ed0e9142f9bcf4b72624795fa033d84fda39bff54944c80494e47af060e3f2d0"
+    },
+    {
+      "file": "logs/candidate-8900/17-test-admin-truncamento-2026-10.mjs.log",
+      "sha256": "5fedd2ed44244f1cc0a123e7805112fd73a03e64369530f85350660c65e97323"
+    },
+    {
+      "file": "logs/candidate-8900/18-test-afiliados-acordam.mjs.log",
+      "sha256": "c8491d35d7dd505694535317c72baa588fba69cdb31e273f8463e9113b9cefe4"
+    },
+    {
+      "file": "logs/candidate-8900/19-test-coerencia-kineo1-2026-09-16.mjs.log",
+      "sha256": "4420bcf8e1aba4c8ccf0e355d60213866f152c492693c5731505e71217ef8502"
+    },
+    {
+      "file": "logs/candidate-8900/20-test-juiz-still-2026-10-06.mjs.log",
+      "sha256": "9146ad61631e884090bdd11587000534d5c8bdfcb3f5cd5f5cc59f212f6f9d81"
+    },
+    {
+      "file": "logs/candidate-8900/21-test-carta-da-recusa.mjs.log",
+      "sha256": "888c5a3765c2d4dc8c26f330d47b9092bedac1424eb94158b351a78201ab2b01"
+    },
+    {
+      "file": "logs/candidate-8900/22-test-momentum-topic.mjs.log",
+      "sha256": "c83dc17db40f837d1667648a251a356f4ff2abf31971d88c98d4af500ca34a2a"
+    },
+    {
+      "file": "logs/candidate-8900/23-test-stalled-frescor-2026-09-05.mjs.log",
+      "sha256": "01b75625deebc0ac0c44d6cf3022f7d5ea41e9733d38f14b354236d8d4d0d3c6"
+    },
+    {
+      "file": "logs/candidate-8900/24-test-hot-nudge-janela-campanhas.mjs.log",
+      "sha256": "b673a48a7f110ec648e1111833bbf3be4287eeef950b944129b22878145b3441"
+    },
+    {
+      "file": "logs/candidate-8900/25-test-gpt-5h-a-2026-09-24.mjs.log",
+      "sha256": "e41abb9e8c653a51317c335a6d4be7be0711c898ecedc2471bb47c9966970eef"
+    },
+    {
+      "file": "logs/candidate-8900/26-test-gpt-5h-a-2026-09-24.mjs--mutant.log",
+      "sha256": "54d743ba6ab9873c226bad06c22b29f9fe66c671b525d441decd8757aac9a462"
+    },
+    {
+      "file": "logs/candidate-8900/27-test-gpt-5h-b-2026-09-24.mjs.log",
+      "sha256": "9b126f0b6c159c2fb4e89e001e360f25474bc5c64b97e193c1a703701dd00e66"
+    },
+    {
+      "file": "logs/candidate-8900/28-test-gpt-5h-b-2026-09-24.mjs--mutant.log",
+      "sha256": "ec3e227a705c118022b7bc175ede30bfa83598b5739584363a30d686c0afba1e"
+    },
+    {
+      "file": "logs/candidate-8900/29-test-gpt-5h-c-2026-09-24.mjs.log",
+      "sha256": "44956e54e6f3231f2ecaa6a3ad03e5843ec9744d95ad5f37daef6bdf0e7d1b73"
+    },
+    {
+      "file": "logs/candidate-8900/30-test-gpt-5h-c-2026-09-24.mjs--mutant.log",
+      "sha256": "8bf138c53ea23f8c2720eef9a866d68799ba7a0921462cf842c5bad6abe92fe8"
+    },
+    {
+      "file": "logs/candidate-8900/31-test-gpt-v31-facts-2026-09-24.mjs.log",
+      "sha256": "2ca335ad703c3f1e6fdfbd4d1d6f459c49543234bc1360e5c7169987fa050b32"
+    },
+    {
+      "file": "logs/candidate-8900/32-test-gpt-v31-facts-2026-09-24.mjs_--mutant.log",
+      "sha256": "4b2360ebbd7af144af9279decb39528507b673fbaf5aed7b3555ec6825aafa12"
+    },
+    {
+      "file": "logs/candidate-8900/33-test-sharing-safety.mjs.log",
+      "sha256": "3b2ec1a3df96a8de7a04be89e814de3ada46b28b7eb978a84a221039b40a6dda"
+    },
+    {
+      "file": "logs/candidate-8900/34-test-paid-video-citation-guidance-2026-09-28.mjs.log",
+      "sha256": "b6c2daa94a75609eea834ad5c0d4f1feeef6e71ef1584d80f7695f3acac60aa7"
+    },
+    {
+      "file": "logs/candidate-8900/35-test-seedance-hero-plans-2026-09-28.mjs.log",
+      "sha256": "b281f13db647a08752628e6ae90e3e99fdb1510f10fa0b955cd6b6c544551ac4"
+    },
+    {
+      "file": "logs/candidate-8900/36-test-motores-geo-2026-10-06.mjs.log",
+      "sha256": "db9c429ac8efee9d5dacd61098edef023ec7aaa893b0d2d8f91bff08c4ebeb74"
+    },
+    {
+      "file": "logs/candidate-8900/37-test-ads-aeo-2026-09-24.mjs.log",
+      "sha256": "56f93eea038c1c5cbda89ca5861166cab57d73d3431749a75c59f92ee260abd6"
+    },
+    {
+      "file": "logs/candidate-8900/38-test-five-improvements.mjs.log",
+      "sha256": "dbf83a9bd3f013b78095244211369154fb7204e14aa5948921729184a2cea960"
+    },
+    {
+      "file": "logs/candidate-8900/39-test-studio-entry-transition.mjs.log",
+      "sha256": "2a08548fdac663ae654447e85a98f25e1f1d8e73ac724fbe21bba9b0a6d3cfac"
+    },
+    {
+      "file": "logs/candidate-8900/40-test-locale-readiness.mjs.log",
+      "sha256": "2cbb097c4926497ae02622d8c8a8746bd16398fbc8b3d6eb39e7f74700452a09"
+    },
+    {
+      "file": "logs/candidate-8900/41-test-app-blue-layout.mjs.log",
+      "sha256": "9cf849a9acd9c527a20dd68a7f2a3c27773b981f49bff13eba2c6b7706abeeb4"
+    },
+    {
+      "file": "logs/candidate-8900/42-test-home-curation.mjs.log",
+      "sha256": "f0717b2fc3e3abe427cbf72f1e5bd808406bbcd2dd085244c9f3616b723bfd96"
+    },
+    {
+      "file": "logs/candidate-8900/43-test-home-blue-layout.mjs.log",
+      "sha256": "e11f4da74c572568a769a2caecf6a4820b1630117417538cbca8fb631e4d40ce"
+    },
+    {
+      "file": "logs/candidate-8900/44-test-home-referral-bridge.mjs.log",
+      "sha256": "aea24a555ac371b781e1dde51f60bd8efde4960854c24b77e51ccee6d4178a57"
+    },
+    {
+      "file": "logs/candidate-8900/45-test-home-pricing-checkout.mjs.log",
+      "sha256": "b4b8198773e1e63e9c4e4b9dbbfa31f6bf9de3f5883378eae9f7ef7b9cd417ab"
+    },
+    {
+      "file": "logs/candidate-8900/46-test-showcase-premium.mjs.log",
+      "sha256": "39ce3c54e31c7bb0902ac80165a5e88b450edc2e2e54a992b57d18e77747e81f"
+    },
+    {
+      "file": "logs/candidate-8900/47-test-cinematic-timeline-2026-09-11.mjs.log",
+      "sha256": "cfcfe1f62887bda55c85f100882ab058de2d6ec2f206fb95a84600d91e62ca75"
+    },
+    {
+      "file": "logs/candidate-8900/48-test-cinematic-speech-2026-09-11.mjs.log",
+      "sha256": "165ce9da199e90600419417f71b02c89d12c6492fd8c3dffc988feb340af9e0e"
+    },
+    {
+      "file": "logs/candidate-8900/49-test-music-direction-2026-09-11.mjs.log",
+      "sha256": "6965670b6d96eeaf8be00474d865ef8f6305ea496c1e5ce100327eb6d37b7b99"
+    },
+    {
+      "file": "logs/candidate-8900/50-test-visual-contract-2026-09-11.mjs.log",
+      "sha256": "808a1eecaf05d905f2f3db9128011f3df5355de6e206dcde56ebf72395f0ff4e"
+    },
+    {
+      "file": "logs/candidate-8900/51-test-quality-rejection-2026-09-11.mjs.log",
+      "sha256": "c4819e3bad6ca190afb489f70809e8a5df0de8bc3543b56a81ea6deb6aa788f2"
+    },
+    {
+      "file": "logs/candidate-8900/52-test-quality-route-integration-2026-09-11.mjs.log",
+      "sha256": "e83ff1ad0efc6e9cea35f4399e2e69235e8bb650c84346ec1ad3c2b17f3daaf4"
+    },
+    {
+      "file": "logs/candidate-8900/53-test-quality-failure-ui-2026-09-11.mjs.log",
+      "sha256": "e3a9b82b592d3f231b6f105445362882a840f274956dd68cc4523ab653ab590e"
+    },
+    {
+      "file": "logs/candidate-8900/54-test-active-quality-rejection-2026-09-11.mjs.log",
+      "sha256": "0e48a24c544e240e082f1ade8d4e94b9f04c34d9f39050cf76da96085440ed4f"
+    },
+    {
+      "file": "logs/candidate-8900/55-test-cinematic-terminal-proof-2026-09-11.mjs.log",
+      "sha256": "4099e237a5b24a6867a4f1431fd6372516ee3120f8a6de910c72d3d621e27a5e"
+    },
+    {
+      "file": "logs/candidate-8900/56-test-cinematic-poll-diagnostic-2026-09-11.mjs.log",
+      "sha256": "96280f6b517fd6b34b771a7deb0be4dbe46bf3cd6bba4bd3ac4df4f0c744eecf"
+    },
+    {
+      "file": "logs/candidate-8900/57-test-scene-retry-mutex-2026-09-11.mjs.log",
+      "sha256": "c4c1ecfe4859b266ea508b79b56b4f13b216f51def9b0bb52d61913e44e1e5d7"
+    },
+    {
+      "file": "logs/candidate-8900/58-test-paginas-ia-claras-2110.mjs.log",
+      "sha256": "90a5235d62bc4580a708363d6b07563a4900e87ba2320081bf470f435c5dc235"
+    },
+    {
+      "file": "logs/candidate-8900/59-test-plan-film-language.mjs.log",
+      "sha256": "7ce7df4dacd0768059df01ebff1014a8e4e8d049ffa14427767386e8510d62af"
+    }
+  ],
+  "independentAudit": {
+    "recordedUtc": "2026-10-24T16:55:54.291Z",
+    "result": "55 baseline / 59 candidate; 0 new or changed failure; 104 source entries verified against Git; expected mutant contracts and raw hashes verified"
+  },
+  "finalInventory": {
+    "receipt": "final-inventory.json",
+    "receiptSha256": "19b9748cad3aae64e3c77baca11752433f2cbca7eda91ccd4db37752e363796c",
+    "log": "logs/final-inventory/undo.log",
+    "logSha256": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44",
+    "status": 0
+  }
+}

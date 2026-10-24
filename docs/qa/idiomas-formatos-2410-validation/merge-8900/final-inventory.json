@@ -1,0 +1,24 @@
+{
+  "label": "final-merge-inventory",
+  "root": "C:/kineo2410/.claude/worktrees/main",
+  "base": "d09cf5d91417a2b6626707ab8e9849a7546b6a54",
+  "started": "2026-10-24T16:54:40.199Z",
+  "finished": "2026-10-24T16:55:07.724Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 1,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 27484,
+      "log": "scripts__test-idiomas-formatos-undo-2410.mjs.log",
+      "failures": []
+    }
+  ]
+}
