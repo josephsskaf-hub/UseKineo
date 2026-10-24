@@ -1,0 +1,296 @@
+{
+  "task": "KINEO-APRESENTADORES-2410",
+  "generatedAt": "2026-10-24T18:05:30.277Z",
+  "execution": "PREPARADO — nenhuma chamada executada; geração futura exige --generate --allow-paid.",
+  "priceSource": "app/api/images/generate/route.ts:49-55, comentário sem verificação comercial atual; estimativa do fundador em 24/10/2026: US$ 0,15 por imagem, exclui voz e repetição.",
+  "jobs": [
+    {
+      "id": "liana",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_LovelyLady",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a Latina university student with medium brown skin and dark curly shoulder-length hair, wearing a plain beige t-shirt and navy trousers. Fictional adult AI presenter, age 20 to 22. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/liana.webp",
+        "facePortrait": "/ads/presenters/liana-face.webp",
+        "voiceSample": "/ads/presenters/liana-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "mateo",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ReservedYoungMan",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an East Asian and Latino male university student with light olive skin and short straight black hair, wearing a plain gray t-shirt and beige trousers. Fictional adult AI presenter, age 22 to 24. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/mateo.webp",
+        "facePortrait": "/ads/presenters/mateo-face.webp",
+        "voiceSample": "/ads/presenters/mateo-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "zuri",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_LovelyLady",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a Black female athlete with deep brown skin and short natural coily hair, wearing a plain charcoal athletic t-shirt and neutral track pants. Fictional adult AI presenter, age 28 to 30. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/zuri.webp",
+        "facePortrait": "/ads/presenters/zuri-face.webp",
+        "voiceSample": "/ads/presenters/zuri-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "omar",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ReliableMan",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an Arab male athlete with olive skin, short dark curls and a neatly trimmed beard, wearing a plain navy athletic t-shirt and gray track pants. Fictional adult AI presenter, age 31 to 33. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/omar.webp",
+        "facePortrait": "/ads/presenters/omar-face.webp",
+        "voiceSample": "/ads/presenters/omar-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "meilin",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ConfidentWoman",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an East Asian businesswoman with light skin and a straight chin-length dark bob, wearing a plain beige blazer over a neutral top and navy trousers. Fictional adult AI presenter, age 43 to 45. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/meilin.webp",
+        "facePortrait": "/ads/presenters/meilin-face.webp",
+        "voiceSample": "/ads/presenters/meilin-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "diego",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ReliableMan",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a Latino businessman with tan skin and short salt-and-pepper wavy hair, wearing a plain navy blazer over a white shirt and gray trousers. Fictional adult AI presenter, age 46 to 48. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/diego.webp",
+        "facePortrait": "/ads/presenters/diego-face.webp",
+        "voiceSample": "/ads/presenters/diego-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "priya",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ConfidentWoman",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a South Asian mother with brown skin and shoulder-length dark wavy hair, wearing a plain sage shirt and neutral trousers. Fictional adult AI presenter, age 37 to 39. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/priya.webp",
+        "facePortrait": "/ads/presenters/priya-face.webp",
+        "voiceSample": "/ads/presenters/priya-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "samir",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_ReliableMan",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a Black and Arab father with medium brown skin, short dark hair and a close-trimmed beard, wearing a plain cream knit top and navy trousers. Fictional adult AI presenter, age 40 to 42. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/samir.webp",
+        "facePortrait": "/ads/presenters/samir-face.webp",
+        "voiceSample": "/ads/presenters/samir-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "elena",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_Wiselady",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an active white woman in her early sixties with naturally lined skin and short silver hair, wearing a plain light blue cotton top and neutral walking trousers. Fictional adult AI presenter, age 62 to 64. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/elena.webp",
+        "facePortrait": "/ads/presenters/elena-face.webp",
+        "voiceSample": "/ads/presenters/elena-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "joao",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_Deep-VoicedGentleman",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an active Black man aged sixty-five with naturally lined deep brown skin, short silver hair and a neat gray beard, wearing a plain beige cotton polo and dark walking trousers. Fictional adult AI presenter, age 65 to 65. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/joao.webp",
+        "facePortrait": "/ads/presenters/joao-face.webp",
+        "voiceSample": "/ads/presenters/joao-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "naomi",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_Wiselady",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of an East Asian and Black female content creator in her mid-fifties with brown skin and shoulder-length curly salt-and-pepper hair, wearing a plain cream shirt and charcoal trousers. Fictional adult AI presenter, age 54 to 56. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/naomi.webp",
+        "facePortrait": "/ads/presenters/naomi-face.webp",
+        "voiceSample": "/ads/presenters/naomi-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    },
+    {
+      "id": "tariq",
+      "voice": {
+        "model": "fal-ai/minimax/speech-2.8-hd",
+        "voiceId": "Portuguese_Deep-VoicedGentleman",
+        "languageBoost": "Portuguese",
+        "speed": 1,
+        "sampleLanguage": "pt",
+        "instruction": "Preparar amostra PT com lib/avatar/voice.ts synthesizeWithVoice e estes parâmetros. /api/audio/generate usa voz padrão e não serve para esta amostra. Não executado nesta tarefa."
+      },
+      "endpoint": "/api/images/generate",
+      "method": "POST",
+      "body": {
+        "prompt": "Photorealistic full-length head-to-toe portrait of a South Asian male content creator in his late fifties with brown skin, short salt-and-pepper hair and a neat beard, wearing a plain olive shirt and neutral trousers. Fictional adult AI presenter, age 57 to 59. Both eyes fully OPEN, looking directly at the camera, clear visible pupils, relaxed attentive expression, lips gently closed. Natural daylight from a large window, plain light neutral background. Neutral unbranded clothing and shoes, no text, no logos, no props. Both arms relaxed, both hands fully visible with five natural fingers each; anatomically correct hands. Entire body including head, hands and feet inside the frame with generous margins. Face large and sharply focused enough for a separate face crop. Stable straight camera, realistic skin texture, no beauty filter, no glamour retouching, no closed eyes, no sunglasses, no motion blur. Vertical 9:16.",
+        "model": "nanobanana",
+        "size": "portrait_16_9"
+      },
+      "outputs": {
+        "portrait": "/ads/presenters/tariq.webp",
+        "facePortrait": "/ads/presenters/tariq-face.webp",
+        "voiceSample": "/ads/presenters/tariq-voice.mp3"
+      },
+      "face": "Recortar o MESMO corpo inteiro com --import --crop; nenhuma segunda geração paga."
+    }
+  ]
+}

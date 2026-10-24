@@ -1,3 +1,5 @@
+import { presenterCandidateById2410 } from '../presenterCandidates2410' // KINEO-APRESENTADORES-2410
+import { presenterCandidateVoice2410 } from '../presenterVoice2410' // KINEO-APRESENTADORES-2410
 // KINEO-ADS-ESCOLHA-2310 — pure planning for one customer-approved actor, scenario and still.
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the skincare still is the CLOSED starting state, before the timed opening/application.
 import { classifyCena, cenaHttps, cenaVoiceModeOf, type CenaInput, type CenaJson, type CenaPlan, type CenaScript } from './plan'
@@ -153,6 +155,8 @@ export function preflightCenaEscolha(plan: CenaPlan, route: CenaRoute): void {
 export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: CenaJson, selection: CenaEscolhaRequestSelection): Promise<CenaPlan> {
   const sample = selection.sample === true, maxWords = sample ? ADS_ESCOLHA_SAMPLE_WORDS : 30 // KINEO-AMOSTRA-ANUNCIO-2410
   if (sample && route !== 'kling3') throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  const candidate2410 = presenterCandidateById2410(selection.presenter_id) // KINEO-APRESENTADORES-2410
+  if (candidate2410) presenterCandidateVoice2410(candidate2410, input.language ?? 'en') // KINEO-APRESENTADORES-2410 — unsupported legacy languages stop before planning or media spending
   const presenter = escolhaPresenter(selection.presenter_id), scenario = escolhaScenario(selection.scenario_id)
   if (!presenter || !scenario || !cenaCategory(scenario.category) || selection.category !== undefined && selection.category !== scenario.category) throw new Error('escolha_invalid_selection')
   const category = scenario.category, actorUrl = presenter.portrait.startsWith('/') ? `https://www.usekineo.com${presenter.portrait}` : presenter.portrait

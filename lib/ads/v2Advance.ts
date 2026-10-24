@@ -1032,8 +1032,15 @@ async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackT
     } catch (e) { console.warn(`[ads-v2] voz do Close real falhou order=${order.id} (segue a de sempre):`, e instanceof Error ? e.message : String(e)) } // KINEO-CLOSE-REAL-1910
     return synthesizeTtsFallback(text, ctx) // KINEO-CLOSE-REAL-1910
   } // KINEO-CLOSE-REAL-1910
+  // KINEO-APRESENTADORES-2410 — selected candidates keep their explicit voice in every legacy style, even without a v2 plan.
+  const candidateId2410 = adsV2PresenterPlanOf(order.plan)?.presenterId // KINEO-APRESENTADORES-2410
+  const candidate2410 = (await import('./presenterCandidates2410')).presenterCandidateById2410(candidateId2410) // KINEO-APRESENTADORES-2410
+  if (candidate2410) { // KINEO-APRESENTADORES-2410
+    const profile = (await import('./presenterVoice2410')).presenterCandidateVoice2410(candidate2410, narrationLanguage(order.language) ?? 'en') // KINEO-APRESENTADORES-2410
+    return (await import('@/lib/avatar/voice')).synthesizeWithVoice({ text, ...profile, speed: speedOverride ?? profile.speed }) // KINEO-APRESENTADORES-2410 — failures propagate; no default-voice substitution
+  } // KINEO-APRESENTADORES-2410
   const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-1710 — a voz do apresentador v2 por língua (PT-BR: Portuguese_ConfidentWoman na speech-2.8-hd); 'current' = a de sempre (abaixo)
-  const v2Voice = pv ? pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) : null // KINEO-APRESENTADOR-V2-1710
+  const v2Voice = pv ? pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender, pv.v2.entryId) /* KINEO-APRESENTADORES-2410 */ : null // KINEO-APRESENTADOR-V2-1710
   if (v2Voice && v2Voice.engine === 'minimax') { // KINEO-APRESENTADOR-V2-1710
     try { // KINEO-APRESENTADOR-V2-1710
       const vm = await import('@/lib/avatar/voice') // KINEO-APRESENTADOR-V2-1710 — a síntese com voice id (o /audio e a TTS da casa não mudam)
@@ -1063,9 +1070,11 @@ async function adsV2NarrationVoiceId(order: AdsV2OrderRow): Promise<string> { //
     const lang = narrationLanguage(order.language) ?? 'en' // KINEO-APRESENTADOR-OLHOS-1910
     if (adsV2CloseRealOf(order.plan)) { const lib = await presenterV2Lib(); return lib ? lib.adsV2PresenterV2VoiceIdOf(lang, 'woman', null) : 'minimax:default' } // KINEO-APRESENTADOR-OLHOS-1910
     const presenterId = adsV2PresenterPlanOf(order.plan)?.presenterId ?? null // KINEO-APRESENTADOR-OLHOS-1910
+    const candidate2410 = (await import('./presenterCandidates2410')).presenterCandidateById2410(presenterId) // KINEO-APRESENTADORES-2410
+    if (candidate2410) return 'minimax:' + (await import('./presenterVoice2410')).presenterCandidateVoice2410(candidate2410, lang).voiceId // KINEO-APRESENTADORES-2410
     const entryVoice = presenterId ? adsV2PresenterVoiceOf(presenterId) : null // KINEO-APRESENTADOR-OLHOS-1910
     const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-OLHOS-1910
-    if (pv) return pv.lib.adsV2PresenterV2VoiceIdOf(lang, pv.v2.gender, entryVoice) // KINEO-APRESENTADOR-OLHOS-1910
+    if (pv) return pv.lib.adsV2PresenterV2VoiceIdOf(lang, pv.v2.gender, entryVoice, pv.v2.entryId) /* KINEO-APRESENTADORES-2410 */ // KINEO-APRESENTADOR-OLHOS-1910
     return entryVoice && entryVoice.engine === 'eleven' ? `eleven:${entryVoice.voice}` : 'minimax:default' // KINEO-APRESENTADOR-OLHOS-1910
   } catch { return 'unknown' } // KINEO-APRESENTADOR-OLHOS-1910
 } // KINEO-APRESENTADOR-OLHOS-1910
@@ -1079,7 +1088,7 @@ async function presenterV2FitVoice(order: AdsV2OrderRow, narration: string, lang
   try { // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-AJUSTE-1710
     if (!pv || !order.plan) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
-    const voice = pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const voice = pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender, pv.v2.entryId) /* KINEO-APRESENTADORES-2410 */ // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax', language: narrationLanguage(order.language) ?? 'en' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed · KINEO-ADS-BOLA-2110 — + a língua: a voz CURTA ganha a frase a mais na língua do anúncio
     const record = pv.lib.adsV2PresenterV2VoiceFitRecord(fit, { seconds: voiceSeconds, text: narration }) // KINEO-APRESENTADOR-V2-AJUSTE-1710
     if (fit.action === 'ok' || !record) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
