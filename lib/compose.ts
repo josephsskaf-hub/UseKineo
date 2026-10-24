@@ -5,7 +5,7 @@
 // dynamically import it below.
 
 import { createHash } from 'node:crypto'
-import { captionFontFor, DEFAULT_CAPTION_FONT, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { captionFontFor, DEFAULT_CAPTION_FONT, usesMiniMaxNarration, minimaxVoiceFor, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
@@ -562,6 +562,10 @@ export async function generateTTS(
   // string_too_short → 502 "Voiceover generation failed", DETERMINÍSTICO (o cron de resgate repetiu e levou o mesmo). [KINEO-ESTORNO-NARRACAO-2026-10-13]
   // Texto que o estrito já aceita segue byte a byte igual (o tolerante só entra quando sobrou zero). [KINEO-ESTORNO-NARRACAO-2026-10-13]
   const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13
+  if (usesMiniMaxNarration(language)) { // KINEO-IDIOMAS-FORMATOS-2410
+    const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-IDIOMAS-FORMATOS-2410
+    return synthesizeTtsFallback(cleaned, { language, speed }) // KINEO-IDIOMAS-FORMATOS-2410
+  } // KINEO-IDIOMAS-FORMATOS-2410
   if (!cleaned.trim()) throw new Error('TTS input is empty after sanitization') // KINEO-ESTORNO-NARRACAO-2026-10-13 — nunca chama a OpenAI com ''
 
   // ── Phase 2b: ElevenLabs premium provider (flag-gated, fail-open) ─────────
@@ -1523,6 +1527,7 @@ export function resolveTtsVoiceIdentity(
   language: NarrationLanguage, // KINEO-IDIOMAS-15
   model: string,
 ): { voice: string; speed: number; model: string } {
+  if (usesMiniMaxNarration(language)) return { voice: minimaxVoiceFor(language), speed: Math.max(0.7, Math.min(1.3, speed)), model: 'fal-ai/minimax/speech-2.8-hd' } // KINEO-IDIOMAS-FORMATOS-2410
   const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13 — espelho de generateTTS (mesma persona, mesma chave de cache)
   if (vertical) {
     try {

@@ -1,13 +1,14 @@
+import { minimaxLanguageBoost, minimaxVoiceFor, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-95-2110 — MiniMax existente, contrato conferido em 21/10/2026; nenhum SDK, env ou efeito neste módulo.
 export const CENA95_MINIMAX_ENDPOINT = 'fal-ai/minimax/speech-2.8-hd'
 export const CENA95_VOICE_DOCS = 'https://fal.ai/models/fal-ai/minimax/speech-2.8-hd/api'
 export const CENA95_VOICE_CATALOG_SOURCE = 'https://platform.minimax.io/docs/faq/system-voice-id'
-export type Cena95VoiceLanguage = 'en' | 'pt' | 'es'
+export type Cena95VoiceLanguage = NarrationLanguage // KINEO-IDIOMAS-FORMATOS-2410
 export type Cena95VoiceGender = 'female' | 'male'
 export type Cena95VoiceAge = 'young_adult' | 'adult' | 'mature'
 type Voices = Record<Cena95VoiceGender, Record<Cena95VoiceAge, string>>
 /** IDs documentados, não uma alegação de idade exata ou de qualidade vocal já ouvida/testada. */
-export const CENA95_NARRATOR_VOICES: Record<Cena95VoiceLanguage, Voices> = {
+export const CENA95_NARRATOR_VOICES: Record<'en' | 'pt' | 'es', Voices> = {
   en: { female: { young_adult: 'English_compelling_lady1', adult: 'English_ConfidentWoman', mature: 'English_Wiselady' }, male: { young_adult: 'English_ReservedYoungMan', adult: 'English_Trustworth_Man', mature: 'English_Deep-VoicedGentleman' } },
   pt: { female: { young_adult: 'Portuguese_LovelyLady', adult: 'Portuguese_ConfidentWoman', mature: 'Portuguese_Wiselady' }, male: { young_adult: 'Portuguese_ReservedYoungMan', adult: 'Portuguese_ReliableMan', mature: 'Portuguese_Deep-VoicedGentleman' } },
   es: { female: { young_adult: 'Spanish_SophisticatedLady', adult: 'Spanish_ConfidentWoman', mature: 'Spanish_Wiselady' }, male: { young_adult: 'Spanish_ReservedYoungMan', adult: 'Spanish_ReliableMan', mature: 'Spanish_Deep-tonedMan' } },
@@ -15,7 +16,7 @@ export const CENA95_NARRATOR_VOICES: Record<Cena95VoiceLanguage, Voices> = {
 export interface Cena95NarratedVoiceInput {
   text?: string; beforeCta?: string; cta?: string; pauseSeconds?: number;
   language: Cena95VoiceLanguage; gender: Cena95VoiceGender; age: Cena95VoiceAge;
-  formato?: 'ugc' | 'product'; speed?: number; estimatedWordsPerSecond?: number;
+  formato?: 'ugc' | 'product' | 'product_in_hand' | 'unboxing'; speed?: number; estimatedWordsPerSecond?: number;
 }
 export function cena95NarratedVoiceRequest(data: Cena95NarratedVoiceInput) {
   const clean = (v: unknown) => typeof v === 'string' ? v.replace(/\s+/gu, ' ').trim() : ''
@@ -27,14 +28,15 @@ export function cena95NarratedVoiceRequest(data: Cena95NarratedVoiceInput) {
   const text = split ? `${clean(data.beforeCta)} <#${pause.toFixed(2)}#> ${clean(data.cta)}` : clean(data.text)
   if (!text || text.length > 10_000) throw new Error('cena95_voice_bad_text')
   const language = data.language, gender = data.gender, age = data.age
-  if (!Object.hasOwn(CENA95_NARRATOR_VOICES, language) || !['female', 'male'].includes(gender) || !['young_adult', 'adult', 'mature'].includes(age)) throw new Error('cena95_voice_bad_profile')
-  if (data.formato !== undefined && data.formato !== 'ugc' && data.formato !== 'product') throw new Error('cena95_voice_bad_format')
+  if (!narrationLanguage(language) || !['female', 'male'].includes(gender) || !['young_adult', 'adult', 'mature'].includes(age)) throw new Error('cena95_voice_bad_profile')
+  if (data.formato !== undefined && !['ugc', 'product', 'product_in_hand', 'unboxing'].includes(data.formato)) throw new Error('cena95_voice_bad_format')
   // Direções de planejamento independentes, não uma calibração medida de speed→palavras/s; a resposta mede duration_ms.
   const speed = data.speed ?? 1.05, wps = data.estimatedWordsPerSecond ?? 2.9
   if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw new Error('cena95_voice_bad_speed')
   if (!Number.isFinite(wps) || wps < 2 || wps > 2.9) throw new Error('cena95_voice_bad_estimated_rate') // KINEO-ADS-CENA-95-PACING-2110 — conservative per-language planning; model speed remains unchanged.
-  const voiceId = CENA95_NARRATOR_VOICES[language][gender][age]
-  const languageBoost = ({ en: 'English', pt: 'Portuguese', es: 'Spanish' } as const)[language]
+  const legacy = language === 'en' || language === 'pt' || language === 'es' ? CENA95_NARRATOR_VOICES[language] : null // KINEO-IDIOMAS-FORMATOS-2410
+  const voiceId = legacy?.[gender][age] ?? minimaxVoiceFor(language, gender) // KINEO-IDIOMAS-FORMATOS-2410
+  const languageBoost = minimaxLanguageBoost(language) // KINEO-IDIOMAS-FORMATOS-2410
   const formato = data.formato ?? 'product'
   const emotion: 'happy' | 'neutral' = formato === 'ugc' ? 'happy' : 'neutral'
   return {

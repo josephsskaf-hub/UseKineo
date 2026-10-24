@@ -8,16 +8,11 @@
 // clara; caso contrário devolve null e o chamador mantém o que a pessoa
 // escolheu. Só as três línguas que a casa narra (en · pt · es).
 
-// ═══ KINEO-IDIOMAS-15-2026-09-17 — a narração em 16 línguas (inglês + 15) ═══════════════════════════════
-// Fundador (17/09): "Você tem meu vai pro 6 idiomas… acredito que 15 idiomas esteja ok". Mercado: Fliki 80+, HeyGen 175+,
-// InVideo 50+; a casa narrava 3. Escolha pelos cadastros de 30 dias (IN 145 · BR 50 · NG/PK 42 · US 41 · GB 22 · DE 20 ·
-// ES 19 · NL 15 · FR 14 · EG 13 · TR 11 · PL/UA 8 · ID 7 · IT 6) e pelas 15 páginas de idioma do Projeto 1.
-// JAPONÊS E COREANO FICAM DE FORA nesta rodada: toda a régua de duração da casa conta PALAVRAS separadas por espaço
-// (narrationFit, palavras por cena, expansão de fala) e nessas línguas a contagem daria 1 por frase — o filme sairia
-// com o tamanho errado. Entram quando a régua souber contar caracteres.
-// O catálogo mora AQUI, não em arquivo próprio, porque três guardiões carregam lib/textLanguage.ts cru (sem resolver
-// imports). Quem precisa da lista importa daqui.
-export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi' | 'bn' // KINEO-LEGENDA-BENGALI-2010 — a língua atravessa as rotas até a fonte do Creatomate
+// KINEO-IDIOMAS-FORMATOS-2410 — catálogo único de fala, separado do idioma da interface.
+// Schema fal consultado 24/10/2026: 37 idiomas explícitos; Urdu/Bengali seguem legados, sem alegação de suporte MiniMax.
+// Os 3 motores de voz própria preservam o gate en/pt/es; este catálogo serve a narração TTS.
+export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi' | 'bn' | 'zh' | 'yue' | 'ja' | 'ko' | 'th' | 'ro' | 'el' | 'cs' | 'fi' | 'bg' | 'da' | 'he' | 'ms' | 'sk' | 'sv' | 'hr' | 'hu' | 'no' | 'sl' | 'ca' | 'nn' | 'af' // KINEO-IDIOMAS-FORMATOS-2410
+export type MiniMaxLanguageBoost = 'English' | 'Portuguese' | 'Spanish' | 'Hindi' | 'French' | 'German' | 'Italian' | 'Dutch' | 'Polish' | 'Turkish' | 'Russian' | 'Ukrainian' | 'Arabic' | 'Indonesian' | 'Vietnamese' | 'Chinese' | 'Chinese,Yue' | 'Japanese' | 'Korean' | 'Thai' | 'Romanian' | 'Greek' | 'Czech' | 'Finnish' | 'Bulgarian' | 'Danish' | 'Hebrew' | 'Malay' | 'Slovak' | 'Swedish' | 'Croatian' | 'Hungarian' | 'Norwegian' | 'Slovenian' | 'Catalan' | 'Nynorsk' | 'Afrikaans' | 'auto' // KINEO-IDIOMAS-FORMATOS-2410 — schema fal
 export interface NarrationLanguageSpec {
   code: NarrationLanguage
   /** Nome que vai na instrução ao roteirista ("Write all voiceover sentences in …"). */
@@ -26,27 +21,51 @@ export interface NarrationLanguageSpec {
   native: string
   /** Fonte das legendas no Creatomate (Google Fonts). Montserrat não tem devanágari nem árabe. */
   captionFont: string
+  minimaxBoost?: MiniMaxLanguageBoost // KINEO-IDIOMAS-FORMATOS-2410 — enum oficial fal, ausente nos legados Urdu/Bengali
+  minimaxPrimary?: true // KINEO-IDIOMAS-FORMATOS-2410 — línguas novas usam Speech 2.8 HD
   rtl: boolean
 }
 export const DEFAULT_CAPTION_FONT = 'Montserrat'
 export const NARRATION_LANGUAGES: readonly NarrationLanguageSpec[] = [
-  { code: 'en', name: 'English', native: 'English', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', rtl: false },
+  { code: 'en', name: 'English', native: 'English', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'English', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Portuguese', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Spanish', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', minimaxBoost: 'Hindi', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
   { code: 'bn', name: 'Bengali', native: 'বাংলা', captionFont: 'Noto Sans Bengali', rtl: false }, // KINEO-LEGENDA-BENGALI-2010 — mesma estrada Google Fonts já usada pelo hindi
-  { code: 'fr', name: 'French', native: 'Français', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'de', name: 'German', native: 'Deutsch', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'it', name: 'Italian', native: 'Italiano', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'nl', name: 'Dutch', native: 'Nederlands', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'pl', name: 'Polish', native: 'Polski', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'tr', name: 'Turkish', native: 'Türkçe', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'ru', name: 'Russian', native: 'Русский', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'uk', name: 'Ukrainian', native: 'Українська', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'ar', name: 'Arabic (Modern Standard)', native: 'العربية', captionFont: 'Noto Sans Arabic', rtl: true },
+  { code: 'fr', name: 'French', native: 'Français', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'French', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'de', name: 'German', native: 'Deutsch', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'German', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'it', name: 'Italian', native: 'Italiano', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Italian', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'nl', name: 'Dutch', native: 'Nederlands', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Dutch', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'pl', name: 'Polish', native: 'Polski', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Polish', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'tr', name: 'Turkish', native: 'Türkçe', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Turkish', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ru', name: 'Russian', native: 'Русский', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Russian', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'uk', name: 'Ukrainian', native: 'Українська', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Ukrainian', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ar', name: 'Arabic (Modern Standard)', native: 'العربية', captionFont: 'Noto Sans Arabic', minimaxBoost: 'Arabic', rtl: true }, // KINEO-IDIOMAS-FORMATOS-2410
   { code: 'ur', name: 'Urdu', native: 'اردو', captionFont: 'Noto Sans Arabic', rtl: true },
-  { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
-  { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
+  { code: 'id', name: 'Indonesian', native: 'Bahasa Indonesia', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Indonesian', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Vietnamese', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'zh', name: 'Mandarin Chinese', native: '普通话', captionFont: 'Noto Sans SC', minimaxBoost: 'Chinese', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'yue', name: 'Cantonese', native: '粵語', captionFont: 'Noto Sans TC', minimaxBoost: 'Chinese,Yue', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ja', name: 'Japanese', native: '日本語', captionFont: 'Noto Sans JP', minimaxBoost: 'Japanese', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ko', name: 'Korean', native: '한국어', captionFont: 'Noto Sans KR', minimaxBoost: 'Korean', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'th', name: 'Thai', native: 'ไทย', captionFont: 'Noto Sans Thai', minimaxBoost: 'Thai', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ro', name: 'Romanian', native: 'Română', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Romanian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'el', name: 'Greek', native: 'Ελληνικά', captionFont: 'Noto Sans', minimaxBoost: 'Greek', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'cs', name: 'Czech', native: 'Čeština', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Czech', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'fi', name: 'Finnish', native: 'Suomi', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Finnish', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'bg', name: 'Bulgarian', native: 'Български', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Bulgarian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'da', name: 'Danish', native: 'Dansk', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Danish', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'he', name: 'Hebrew', native: 'עברית', captionFont: 'Noto Sans Hebrew', minimaxBoost: 'Hebrew', minimaxPrimary: true, rtl: true }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ms', name: 'Malay', native: 'Bahasa Melayu', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Malay', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'sk', name: 'Slovak', native: 'Slovenčina', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Slovak', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'sv', name: 'Swedish', native: 'Svenska', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Swedish', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'hr', name: 'Croatian', native: 'Hrvatski', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Croatian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'hu', name: 'Hungarian', native: 'Magyar', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Hungarian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'no', name: 'Norwegian (Bokmål)', native: 'Norsk bokmål', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Norwegian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'sl', name: 'Slovenian', native: 'Slovenščina', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Slovenian', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'ca', name: 'Catalan', native: 'Català', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Catalan', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'nn', name: 'Norwegian Nynorsk', native: 'Norsk nynorsk', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Nynorsk', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'af', name: 'Afrikaans', native: 'Afrikaans', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Afrikaans', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
 ]
 export const NARRATION_LANGUAGE_CODES: readonly NarrationLanguage[] = NARRATION_LANGUAGES.map((l) => l.code)
 /** Código válido do catálogo ou null — NUNCA cai em 'en' sozinho: quem chama decide o padrão. */
@@ -154,4 +173,64 @@ export function resolveNarrationLanguage(requested: unknown, text: string): { la
   return { language: 'en', detected: guess.language, switched: false, confidence: guess.confidence }
 }
 
+
+// KINEO-IDIOMAS-FORMATOS-2410 — todos os boosts vêm das linhas do catálogo; nunca passar ISO à fal.
+export function minimaxLanguageBoost(raw: unknown): MiniMaxLanguageBoost {
+  return NARRATION_LANGUAGES.find(l => l.code === narrationLanguage(raw))?.minimaxBoost ?? 'auto'
+}
+export function usesMiniMaxNarration(raw: unknown): boolean {
+  return NARRATION_LANGUAGES.some(l => l.code === narrationLanguage(raw) && l.minimaxPrimary === true)
+}
+/** Espaços preservam a régua anterior. CJK/Thai usam palavras Unicode, sem cortar grafemas ou fingir que a frase inteira é uma palavra. */
+export function narrationTokens(text: string, language?: unknown): string[] {
+  const value = String(text ?? '').trim()
+  if (!value) return []
+  const code = narrationLanguage(language)
+  const compact = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(value)
+  if (!['zh', 'yue', 'ja', 'th'].includes(code ?? '') && !compact) return value.split(/\s+/u).filter(Boolean)
+  const locale = code === 'yue' ? 'zh-Hant' : code === 'zh' ? 'zh-Hans' : code ?? (/\p{Script=Thai}/u.test(value) ? 'th' : /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(value) ? 'ja' : 'zh')
+  const result: string[] = []
+  let prefix = ''
+  for (const item of new Intl.Segmenter(locale, { granularity: 'word' }).segment(value)) {
+    if (item.isWordLike) { result.push(prefix + item.segment); prefix = '' }
+    else if (item.segment.trim()) {
+      if (result.length) result[result.length - 1] += item.segment
+      else prefix += item.segment
+    }
+  }
+  return result.length ? result : [value]
+}
+export function narrationWordCount(text: string, language?: unknown): number { return narrationTokens(text, language).length }
+export function joinNarrationTokens(tokens: readonly string[], language?: unknown): string {
+  return tokens.join(['zh', 'yue', 'ja', 'th'].includes(narrationLanguage(language) ?? '') || tokens.some(t => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(t)) ? '' : ' ')
+}
+export function narrationSentences(text: string, language?: unknown): string[] {
+  const value = String(text ?? '').trim()
+  if (!value) return []
+  const code = narrationLanguage(language)
+  return Array.from(new Intl.Segmenter(code === 'yue' ? 'zh-Hant' : code ?? 'en', { granularity: 'sentence' }).segment(value), item => item.segment.trim()).filter(Boolean)
+}
+
 export const LANGUAGE_NAMES: Record<NarrationLanguage, string> = Object.fromEntries(NARRATION_LANGUAGES.map((l) => [l.code, l.name])) as Record<NarrationLanguage, string>
+
+// KINEO-IDIOMAS-FORMATOS-2410 — IDs da lista oficial MiniMax consultada em 24/10/2026.
+// Língua sem voz nativa publicada nessa lista usa uma voz multilíngue documentada; não inventamos um ID com prefixo da língua.
+const MINIMAX_VOICE_PAIRS: Partial<Record<NarrationLanguage, readonly [string, string]>> = {
+  en: ['English_ConfidentWoman', 'English_Trustworth_Man'], pt: ['Portuguese_ConfidentWoman', 'Portuguese_ReliableMan'],
+  es: ['Spanish_ConfidentWoman', 'Spanish_ReliableMan'], zh: ['Chinese (Mandarin)_Mature_Woman', 'Chinese (Mandarin)_Gentleman'],
+  yue: ['Cantonese_GentleLady', 'Cantonese_ProfessionalHost (M)'], ja: ['Japanese_CalmLady', 'Japanese_GentleButler'],
+  ko: ['Korean_CalmLady', 'Korean_CalmGentleman'], th: ['Thai_female_1_sample1', 'Thai_male_1_sample8'],
+  fr: ['French_FemaleAnchor', 'French_MaleNarrator'], de: ['German_SweetLady', 'German_FriendlyMan'],
+  ru: ['Russian_AmbitiousWoman', 'Russian_ReliableMan'], it: ['Italian_BraveHeroine', 'Italian_Narrator'],
+  nl: ['Dutch_kindhearted_girl', 'English_Trustworth_Man'], vi: ['Vietnamese_kindhearted_girl', 'English_Trustworth_Man'],
+  ar: ['Arabic_CalmWoman', 'Arabic_FriendlyGuy'], tr: ['Turkish_CalmWoman', 'Turkish_Trustworthyman'],
+  uk: ['Ukrainian_CalmWoman', 'Ukrainian_WiseScholar'], id: ['Indonesian_ConfidentWoman', 'Indonesian_CaringMan'],
+  pl: ['Polish_female_1_sample1', 'Polish_male_1_sample4'], ro: ['Romanian_female_2_sample1', 'Romanian_male_1_sample2'],
+  el: ['Greek_female_1_sample1', 'greek_male_1a_v1'], cs: ['czech_female_2_v2', 'czech_male_1_v1'],
+  fi: ['finnish_female_4_v1', 'finnish_male_3_v1'], hi: ['hindi_female_2_v1', 'hindi_male_1_v2'],
+}
+export function minimaxVoiceFor(raw: unknown, gender: 'female' | 'male' = 'female'): string {
+  const code = narrationLanguage(raw)
+  const voices = code ? MINIMAX_VOICE_PAIRS[code] : null
+  return (voices ?? MINIMAX_VOICE_PAIRS.en!)[gender === 'male' ? 1 : 0]
+}
