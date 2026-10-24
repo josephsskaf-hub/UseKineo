@@ -8,6 +8,7 @@ const plan = { cena:{plan:{escolha:{sample:'KINEO-AMOSTRA-ANUNCIO-2410'}}} }, le
 (async()=>{
 const db = new PGlite();
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+alter default privileges in schema public grant all on tables to service_role;
 create table public.ads_v2_orders(id uuid primary key,user_id uuid,status text,assembly_lease_at timestamptz,plan jsonb,video_id uuid,credits_charged integer,billing_ref text);
 create table public.events(id uuid primary key default gen_random_uuid(),name text,user_id uuid,path text,metadata jsonb,created_at timestamptz default now());
 grant usage on schema public to service_role;grant select,insert,update on public.ads_v2_orders,public.events to service_role;`);
@@ -95,6 +96,7 @@ if(process.argv.includes('--mutants')) {
  const path=require('node:path'),os=require('node:os'),{spawnSync}=require('node:child_process');
  const source=fs.readFileSync(migration,'utf8').replace(/\r\n/g,'\n');
  const mutations=[
+  ['inherited default DELETE grant survives','from public, anon, authenticated, service_role;','from public, anon, authenticated;'],
   ['daily budget admits seventh','if v_cents + 150 > 1000 then','if v_cents + 150 > 1500 then'],
   ['second order reuses lifetime sample',"return jsonb_build_object('code', 'ads_sample_used');","return jsonb_build_object('code', 'ok', 'estimate_cents', 150);"],
   ['replay crosses orders','if v_claim.order_id = p_order_id and v_claim.owner_id = p_owner_id then','if v_claim.owner_id = p_owner_id then'],

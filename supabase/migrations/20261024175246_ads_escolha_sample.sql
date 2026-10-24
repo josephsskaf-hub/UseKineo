@@ -35,8 +35,8 @@ create table public.ads_escolha_sample_alerts (
 alter table public.ads_escolha_sample_days enable row level security;
 alter table public.ads_escolha_samples enable row level security;
 alter table public.ads_escolha_sample_alerts enable row level security;
-revoke all on public.ads_escolha_sample_days, public.ads_escolha_samples, public.ads_escolha_sample_alerts from public, anon, authenticated;
--- UPDATE is needed only for lifecycle fields and alert leases. No DELETE privilege is granted.
+revoke all on public.ads_escolha_sample_days, public.ads_escolha_samples, public.ads_escolha_sample_alerts from public, anon, authenticated, service_role;
+-- UPDATE is needed only for lifecycle fields and alert leases. Default ACLs are reset; DELETE and TRUNCATE are not granted.
 grant select, insert, update on public.ads_escolha_sample_days, public.ads_escolha_samples, public.ads_escolha_sample_alerts to service_role;
 
 create function public.reserve_ads_escolha_sample(p_order_id uuid, p_actor_id uuid, p_owner_id uuid, p_lease_at timestamptz, p_is_internal boolean)
