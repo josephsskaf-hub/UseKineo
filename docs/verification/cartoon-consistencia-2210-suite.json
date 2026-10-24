@@ -1,7 +1,1190 @@
 {
-  "date": "2026-10-23",
+  "date": "2026-10-24",
   "timezone": "America/Sao_Paulo",
-  "classification": "FATO CONFIRMADO / TESTADO LOCALMENTE; execução offline. Não comprova produção ou resultado comercial.",
+  "classification": "TESTADO LOCALMENTE / reanchor20261024 CLOSED_PASS; earlier 23/22 objects retained as historical evidence",
+  "reanchor20261024": {
+    "date": "2026-10-24",
+    "classification": "TESTADO LOCALMENTE / exact undo, own guards and corrected independent selective comparison PASS; raw99 preserved, no production validation",
+    "testedCodeHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+    "codeFixParent": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+    "mergeCodeHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+    "mergeParents": [
+      "153e9f31f00d77654e512fdc2b1292b04a7c470b",
+      "1c078ed013302ac47c42f783305df688c4e97cfd"
+    ],
+    "main": "1c078ed013302ac47c42f783305df688c4e97cfd",
+    "preservedPublishedTip": "153e9f31f00d77654e512fdc2b1292b04a7c470b",
+    "originalHistoricalTip": "62b306ad51fa5c65a32ee768262848e2ff2d2d00",
+    "historicalIdiomasDelivery": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+    "sourceProtocol": {
+      "fullSuiteExecuted": false,
+      "rawSelected409Head": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+      "rawSelected409Comparison": {
+        "path": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-raw99-complete409-independent-comparison.json",
+        "sha256": "d87516607a76252eade7c858db041ce6b2adca0e64de95c2ae03de4acef24f7f",
+        "baseline": {
+          "commands": 407,
+          "files": 403,
+          "conformant": 366,
+          "nonConformant": 41,
+          "intentionalNegative": 4,
+          "retained795Observations": 21,
+          "freshMainOrFrozenCandidateExecutions": 386
+        },
+        "candidate": {
+          "commands": 409,
+          "files": 405,
+          "conformant": 334,
+          "nonConformant": 75,
+          "intentionalNegative": 4,
+          "retained795Observations": 0,
+          "freshMainOrFrozenCandidateExecutions": 409
+        },
+        "newRed": 34,
+        "changedFailSets": 1,
+        "pass": false
+      },
+      "final409RerunClaimed": false,
+      "correctedAffectedReplayStatus": "CLOSED_PASS",
+      "doNotCarryForwardFull999OrHistorical950Approval": true,
+      "sourceBridge": {
+        "changedPaths": [
+          "scripts/test-cena-negacao-1510.mjs",
+          "scripts/test-contrato-classicos-1410.mjs",
+          "scripts/test-support/desfaz-cartoon-consistencia-2210-trocas.json",
+          "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+          "scripts/test-trilha-15s-1610.mjs"
+        ],
+        "scriptOnly": true,
+        "productTSUnchanged": true,
+        "raw409Preserved": true
+      },
+      "selectedComparisonStatus": "CLOSED_PASS"
+    },
+    "finiteScope": {
+      "existingUndoPaths": 31,
+      "newDeclaredPaths": 16,
+      "totalOwnPaths": 47,
+      "literalSwapRows": 17,
+      "contextEntries": 18,
+      "old30EntriesByteExact": 27,
+      "old30EntriesAfterContextReanchored": 3,
+      "old17BeforeContextsPreserved": true,
+      "reanchoredThree": [
+        "scripts/test-cena-negacao-1510.mjs",
+        "scripts/test-contrato-classicos-1410.mjs",
+        "scripts/test-trilha-15s-1610.mjs"
+      ],
+      "historicalRegeneratedContextSubset13IsNotTotal": true,
+      "ownAndIdiomasSharedPathCount": 13
+    },
+    "products": {
+      "unionCount": 3,
+      "unions": [
+        {
+          "file": "app/api/generate-video-cinematic/route.ts",
+          "union": true,
+          "currentRawSha256": "7d0af0b7a1ff89972148dbb4544617ee27988df0e53adb233b856c99da7d9a35",
+          "publishedRawSha256": "097f85ddab5b57e17811b11b46c024b7a36ccb0c055a031480b6e60395b6e55a",
+          "publishedRawEqual": false,
+          "preparedUnionLfEqual": true,
+          "publishedBlob": "f4149b15161293bbe8908a7661aee7bf3ef31dd1"
+        },
+        {
+          "file": "components/kidsCartoon/KidsCartoonTemplate.tsx",
+          "union": true,
+          "currentRawSha256": "473f660930baec3e52bc99822c67f4298b6105ca6620993d63fcf7a5cd1dbc78",
+          "publishedRawSha256": "9a6e174a9bad8c95270935c55551b77052d6a434c4c200d9d0b71738762afd91",
+          "publishedRawEqual": false,
+          "preparedUnionLfEqual": true,
+          "publishedBlob": "9e8f007544f80ca693f80a57836298142520d3da"
+        },
+        {
+          "file": "lib/kidsCartoon/kidsCartoon.ts",
+          "union": true,
+          "currentRawSha256": "c604ed77aeaf472c4ad2d76b78de23047d8b1370553a7f0583af0ec844971ce9",
+          "publishedRawSha256": "9b430ad2d60032db2fa27a846783e3207437cabd01705b424cfe33a73bdd39c3",
+          "publishedRawEqual": false,
+          "preparedUnionLfEqual": true,
+          "publishedBlob": "24d5521e285345211d3906d2e71409eb75bec403"
+        }
+      ],
+      "otherSevenRawEqualPublished153": true,
+      "allTenUnchangedFromMerge99": true,
+      "originalTenRawEqual62bClaimed": false
+    },
+    "protectedFiles": [
+      {
+        "file": "lib/engineWall.ts",
+        "currentRawSha256": "3f8e67079091d3e0bd992f9a111937dec7aadbe1b72d492f052a24e23f87eaa5",
+        "baselineRawSha256": "3f8e67079091d3e0bd992f9a111937dec7aadbe1b72d492f052a24e23f87eaa5",
+        "rawEqual": true,
+        "committedBaseBlob": "980990d37d2bc1478cafe1a91558ce8009c067dd"
+      },
+      {
+        "file": "lib/homeVideoCuration.ts",
+        "currentRawSha256": "76ddb38054ed607afbdc865fcf25938537e9cd9c1d065efb7e997a825aed295b",
+        "baselineRawSha256": "76ddb38054ed607afbdc865fcf25938537e9cd9c1d065efb7e997a825aed295b",
+        "rawEqual": true,
+        "committedBaseBlob": "054fb127170c65a64afd9dc600d9f17e26d48342"
+      },
+      {
+        "file": "lib/kidsVenda/kidsVenda.ts",
+        "currentRawSha256": "bcd1bc2d1d3aac4b26c73cc8e7fcb2c43c2772f63b3a392b8f3cc4759c7858a1",
+        "baselineRawSha256": "bcd1bc2d1d3aac4b26c73cc8e7fcb2c43c2772f63b3a392b8f3cc4759c7858a1",
+        "rawEqual": true,
+        "committedBaseBlob": "0b3d12b66bb3929c1c6a753cc6d133553f72098c"
+      },
+      {
+        "file": "lib/ads/cena/escolhaVideo.ts",
+        "currentRawSha256": "8a06d30c1c10b78cd6be8000ae3bd82a41cebda7204239d6a741bfbc77349ed9",
+        "baselineRawSha256": "8a06d30c1c10b78cd6be8000ae3bd82a41cebda7204239d6a741bfbc77349ed9",
+        "rawEqual": true,
+        "committedBaseBlob": "fbf98ca48731264411bd31caaaeff7252483a900"
+      },
+      {
+        "file": "scripts/test-ads-render-fix-2310.mjs",
+        "currentRawSha256": "50a3a371d0d068e0045dacbe3dd271a8ee29b36811527732d73f15eaf3eb270d",
+        "baselineRawSha256": "50a3a371d0d068e0045dacbe3dd271a8ee29b36811527732d73f15eaf3eb270d",
+        "rawEqual": true,
+        "committedBaseBlob": "6563ef686f92bc8d4d871469b3e06e41353870cf"
+      }
+    ],
+    "ownGuard": {
+      "parts": {
+        "integrated": 235,
+        "storyReset": 104,
+        "retry": 24,
+        "episodeBudget": 36,
+        "musicBudget": 68,
+        "duration": 30
+      },
+      "total": 497,
+      "durationAlreadyIncluded": true,
+      "integratedMutants": {
+        "rejected": 20,
+        "total": 20
+      },
+      "durationMutants": {
+        "rejected": 5,
+        "total": 5
+      },
+      "freshAtHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de"
+    },
+    "syntax": {
+      "files": 31,
+      "pass": true,
+      "receipt": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-known-fixes-syntax.json",
+      "sha256": "5d0fa70ac559fb3dcdf20e922b78bd1df72387b085c7ddf6118e8a1cf331669e"
+    },
+    "rawIntegrity": {
+      "sourceRawCount": 3443,
+      "publicAssets": 673,
+      "sourcesAssetsToolsUnchangedWithinFinalBatch": true,
+      "onlyFiveExpectedSourcesDifferFrom99": true,
+      "fiveProtectedRawEqualMain": true,
+      "threeProductUnionsUnchangedFrom99": true,
+      "otherSevenProductsRawEqual153": true,
+      "headStableClean": true
+    },
+    "typecheck": {
+      "pass": true,
+      "exitCode": 0,
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "sourceCaptureCount": 3447,
+      "stdoutSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "head": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+      "receipt": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-known-fixes-tsc.json",
+      "sha256": "d0c8067fba43938f3a5fc66819926a262d03a0cf2d9be38dd51a147fe1dc2188"
+    },
+    "romance19": {
+      "rawActualAuditHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+      "rawActualAuditReceipt": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-romance19-actual-receipt.json",
+      "rawActualAuditSHA256": "45732c991900b1bc8818a2f8c5fcaa70070296dc0418a6dbf92e9a3e8ae7b02a",
+      "freshAtFinalHead": false,
+      "bridgeStatus": "VALIDATED_BY_EXACT_INPUT_BRIDGE",
+      "bridge": {
+        "status": "BRIDGE_VALIDATED",
+        "actualExecutionCandidateHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+        "bridgeTargetHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+        "freshAtFinalHead": false,
+        "orderedFailureLists": 19,
+        "causalMutantsWithAddedRelevantFailure": 19,
+        "inheritedFactoryControlFailures": 3,
+        "rawCandidateControlFailures": 4,
+        "artifact": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-romance19-actual-receipt.json",
+          "sha256": "45732c991900b1bc8818a2f8c5fcaa70070296dc0418a6dbf92e9a3e8ae7b02a"
+        },
+        "causalReview": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-1c-romance19-causal-review.json",
+          "sha256": "a67f757a30744fb49e38ba18f0ab21e8f27a8b4e363cdbd4be410bc3bdf2071c"
+        },
+        "bridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-99-da8-input-equivalence-bridge-v2.json",
+          "sha256": "9e785b0b0da53ccafb0ee13f33f841f8f41fc38010ec5dfb7fe3935e7044add1"
+        },
+        "supplement": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-da8-bridge-binding-supplement.json",
+          "sha256": "e0721516675aac53b71024c3d78b4380e23b1a8d18385979ab23c896facd0210"
+        },
+        "limits": [
+          "This strengthens19nonempty-kill counting by proving an added relevant failure beyond the factory control for EACH mutant.",
+          "Route wiring cases14–19 inspect original route text; they do not execute a complete production POST, provider or paid render.",
+          "The3factory-control failures are preserved and reported, not silently turned green. The candidate raw unnormalized control has4failures; actual factory normalization restores the same3baseline failures.",
+          "No new repository modification, repeated suite, VM, compiler, network, database or paid call."
+        ]
+      }
+    },
+    "f1ActualAudit": {
+      "rawAuditHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+      "all25SemanticMembersEqual": true,
+      "failedMemberCounts": {
+        "A4b": 6,
+        "U4": 4
+      },
+      "selectedRefsDerivedOnlyFromActualGitShowArgv": true,
+      "receipt": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-f1-actual-member-audit.json",
+      "sha256": "744d20ea3e32eb53fcf4ba5d57d4ea6ee4441d6afc8a96ae69a81c6ce758b7fd",
+      "freshVMAtFinalHead": false,
+      "bridgeStatus": "VALIDATED_BY_EXACT_INPUT_BRIDGE",
+      "bridge": {
+        "status": "BRIDGE_VALIDATED",
+        "members": 25,
+        "actualExecutionCandidateHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+        "bridgeTargetHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+        "freshAtFinalHead": false,
+        "aggregates": [
+          {
+            "kind": "F1F4-A4b",
+            "members": 15,
+            "failedMembers": [
+              "scripts/test-filme-rapido-1710.mjs",
+              "scripts/test-gancho-1q-2026-10-03.mjs",
+              "scripts/test-sem-legenda-2026-10-06.mjs",
+              "scripts/test-veo-marcado-2026-09-29.mjs",
+              "scripts/test-veo-modo-ia-2026-09-29.mjs",
+              "scripts/test-close-real-1910.mjs"
+            ]
+          },
+          {
+            "kind": "F1Virgula-U4",
+            "members": 10,
+            "failedMembers": [
+              "scripts/test-gancho-1q-2026-10-03.mjs",
+              "scripts/test-parceiro-eyebible-2-1410.mjs",
+              "scripts/test-filme-rapido-1710.mjs",
+              "scripts/test-close-real-1910.mjs"
+            ]
+          }
+        ],
+        "artifact": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-actual-member-audit.json",
+          "sha256": "744d20ea3e32eb53fcf4ba5d57d4ea6ee4441d6afc8a96ae69a81c6ce758b7fd"
+        },
+        "gitBridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-99-to-da8-git-input-bridge.json",
+          "sha256": "93bb9f1a206c67c0baec5e08a5887be0affadc0e66f55ea51b68612ec1321042"
+        },
+        "semanticBridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-f1actual25-99-da8-semantic-bridge.json",
+          "sha256": "3d0f4db1cc771d341921359c84acc495756b896615c3ba6f25b8563351582911"
+        },
+        "actualRefsFromGitShowArgv": true
+      }
+    },
+    "independentComparison": {
+      "status": "CLOSED_PASS",
+      "selection": "409 exact file+args+expectedCode keys in 405 files; affected inputs and critical commands, not the historical full suite",
+      "baselineCommands": 407,
+      "baselineFiles": 403,
+      "candidateCommands": 409,
+      "candidateFiles": 405,
+      "baselineFreshCommandsAt1c": 386,
+      "baselineRetained795CommandsWithIndividualInputProof": 21,
+      "rawCandidateHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+      "correctedCandidateHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+      "candidateRawOriginalRemainingCommandsAt99": 406,
+      "candidateRawOriginalFocusedCommandsAt99": 3,
+      "correctedFreshCommandObservations": 131,
+      "correctedOwnGuardianCommands": 1,
+      "correctedAffectedReplayCommands": 130,
+      "preservedRaw99CommandsWithIndividualProof": 278,
+      "baseline": {
+        "commands": 407,
+        "files": 403,
+        "conformant": 366,
+        "nonConformant": 41,
+        "intentionalNegative": 4
+      },
+      "candidateRaw": {
+        "commands": 409,
+        "files": 405,
+        "conformant": 334,
+        "nonConformant": 75,
+        "intentionalNegative": 4
+      },
+      "candidate": {
+        "commands": 409,
+        "files": 405,
+        "conformant": 368,
+        "nonConformant": 41,
+        "intentionalNegative": 4
+      },
+      "newFailingCommands": 0,
+      "changedInternalFailedMembers": 0,
+      "changedInternalFailuresInsideConformantCommands": 0,
+      "removedCommands": 0,
+      "unsafeRemaining": 0,
+      "intentionalNegativeCommands": 4,
+      "finalPass": true,
+      "receiptPath": "C:/tmp/cartoon-reanchor-2410/consistencia-1c-independent-final-receipt.json",
+      "receiptSha256": "67f9daf095c0befa48242d19c3eb2b3e9cd670cbd5ffc46e854be54e09d8a180",
+      "independentReviewPath": "C:/tmp/cartoon-reanchor-2410/guardian-consistencia-1c-final-independent-review.json",
+      "independentReviewSha256": "e6e6c7370460e1fe59f7faf1a38d55fa62cdc8a216730bc07782e2a68812401a",
+      "outputDifferencesReviewed": [
+        {
+          "id": "test-gpt-5h-a-2026-09-24.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "d28625be250a06d4d654ea52d9c0e0da4a79b9fea16b71b2d780492dd87fabbd",
+          "currentRawSha256": "05f1871c0e325564073adbcf4341a6a0f186087774039421a2fe14e385654f5e",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "d28625be250a06d4d654ea52d9c0e0da4a79b9fea16b71b2d780492dd87fabbd",
+            "currentRawSha256": "05f1871c0e325564073adbcf4341a6a0f186087774039421a2fe14e385654f5e",
+            "addedLines": [
+              "(node:18812) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/dfyServiceFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:33504) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/dfyServiceFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-5h-a-2026-09-24.mjs__mutant",
+          "status": "same-conformant",
+          "baselineRawSha256": "f9cfdecef5cc20e9edf221d808ccb18a4feb584aee16133b65b172eec0b28cae",
+          "currentRawSha256": "39bb326a5d209b10c3ee29b6ec70a53430f542c9adcec912cc1d7060724110a2",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "f9cfdecef5cc20e9edf221d808ccb18a4feb584aee16133b65b172eec0b28cae",
+            "currentRawSha256": "39bb326a5d209b10c3ee29b6ec70a53430f542c9adcec912cc1d7060724110a2",
+            "addedLines": [
+              "(node:38096) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/dfyServiceFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:14532) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/dfyServiceFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-5h-b-2026-09-24.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "cc7b3ca4453e82ffa537e2b43c0afd1813c6dfd7ef672d4da420a9fdb82beb82",
+          "currentRawSha256": "d04b28f54a7e371a6c657a42ebb2e882e94c1e0e989a540982e40bf825039314",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "cc7b3ca4453e82ffa537e2b43c0afd1813c6dfd7ef672d4da420a9fdb82beb82",
+            "currentRawSha256": "d04b28f54a7e371a6c657a42ebb2e882e94c1e0e989a540982e40bf825039314",
+            "addedLines": [
+              "(node:42260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/soraMigrationFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:47208) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/soraMigrationFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-5h-b-2026-09-24.mjs__mutant",
+          "status": "same-conformant",
+          "baselineRawSha256": "5aebe56c8e1059c55549cecfcd3b6467c356caf4037bf77d223c16fb56e2a30c",
+          "currentRawSha256": "7fd461cbeb8237f4b49bde9bb30a01e1b6e26d675f384c352353cec46e1d922b",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "5aebe56c8e1059c55549cecfcd3b6467c356caf4037bf77d223c16fb56e2a30c",
+            "currentRawSha256": "7fd461cbeb8237f4b49bde9bb30a01e1b6e26d675f384c352353cec46e1d922b",
+            "addedLines": [
+              "(node:16156) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/soraMigrationFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:31028) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/growth/soraMigrationFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-5h-c-2026-09-24.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "00883ba3fa17d2c415801a15cb473c1f543a9bf42e5fe5dc70ad8d0d90d802ac",
+          "currentRawSha256": "5d2286a7e8f6c71babda3994b1019082edb9705e4d7823dc6694c3fa3c2278ed",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "00883ba3fa17d2c415801a15cb473c1f543a9bf42e5fe5dc70ad8d0d90d802ac",
+            "currentRawSha256": "5d2286a7e8f6c71babda3994b1019082edb9705e4d7823dc6694c3fa3c2278ed",
+            "addedLines": [
+              "(node:11360) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:38484) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-5h-c-2026-09-24.mjs__mutant",
+          "status": "same-conformant",
+          "baselineRawSha256": "947d0a3e8eb415acb7e092d6ff892088768bc30543afd234e13f7870d47867b5",
+          "currentRawSha256": "681945180e231a2c305ef14c330953a71cc216364233cf4537692a3d3bdc29f8",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "947d0a3e8eb415acb7e092d6ff892088768bc30543afd234e13f7870d47867b5",
+            "currentRawSha256": "681945180e231a2c305ef14c330953a71cc216364233cf4537692a3d3bdc29f8",
+            "addedLines": [
+              "(node:19364) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:16464) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-v31-facts-2026-09-24.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "1c6b8c56f389727ca5333f8c5f9283ae6c9b7127dd7d3e84d5fc6dc2fa2f4ee9",
+          "currentRawSha256": "1966685a3937012eb8e2a56c272b7da9f05633aacd10c54e417939ae4244bd0f",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "1c6b8c56f389727ca5333f8c5f9283ae6c9b7127dd7d3e84d5fc6dc2fa2f4ee9",
+            "currentRawSha256": "1966685a3937012eb8e2a56c272b7da9f05633aacd10c54e417939ae4244bd0f",
+            "addedLines": [
+              "(node:19740) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:39120) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-gpt-v31-facts-2026-09-24.mjs__mutant",
+          "status": "same-conformant",
+          "baselineRawSha256": "3c24c24962ecc63beca2fb9dd62fd7db2e8b11700e5400f629f3c1bdbcb618e1",
+          "currentRawSha256": "2a45f387a6eb407a00fe444d31ab90a431de1daf2532178d747e71c513027b37",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "3c24c24962ecc63beca2fb9dd62fd7db2e8b11700e5400f629f3c1bdbcb618e1",
+            "currentRawSha256": "2a45f387a6eb407a00fe444d31ab90a431de1daf2532178d747e71c513027b37",
+            "addedLines": [
+              "(node:29556) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:47220) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-paid-video-citation-guidance-2026-09-28.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "5925de61b00806abb1bf5de65243ee6965aef4afad28cb7c92f9c60f4b25d7be",
+          "currentRawSha256": "c40db4946ff4b37b1297b6c27a38e168e282b9ce8a7cb0c6094ed424c0497b17",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "5925de61b00806abb1bf5de65243ee6965aef4afad28cb7c92f9c60f4b25d7be",
+            "currentRawSha256": "c40db4946ff4b37b1297b6c27a38e168e282b9ce8a7cb0c6094ed424c0497b17",
+            "addedLines": [
+              "(node:26388) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:17196) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-ads-v2-servidor-2026-09-28.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "8804692f4eb79bf6b5f63cf119be7d1a8588995a88fb89f12a9c134b5c665990",
+          "currentRawSha256": "765aeb5beff5c15839d08cf517c51757b5e06f568d9c14b9895e442859cb88f2",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "8804692f4eb79bf6b5f63cf119be7d1a8588995a88fb89f12a9c134b5c665990",
+            "currentRawSha256": "765aeb5beff5c15839d08cf517c51757b5e06f568d9c14b9895e442859cb88f2",
+            "addedLines": [
+              "(node:25512) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/ads/v2ShotLists.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:25532) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/ads/v2ShotLists.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-business-depois-da-amostra.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "d0df44fb3ee3975b208121f37bdc755f4b9a28c3e64e3878374979565a0527bb",
+          "currentRawSha256": "c008fcff818e4916261937b8245dafe7e3a58743c8158e7aca408c5e6109ad6e",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "d0df44fb3ee3975b208121f37bdc755f4b9a28c3e64e3878374979565a0527bb",
+            "currentRawSha256": "c008fcff818e4916261937b8245dafe7e3a58743c8158e7aca408c5e6109ad6e",
+            "addedLines": [
+              "(node:21656) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/app/api/admin/_shared/sales.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:48828) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/app/api/admin/_shared/sales.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-home-clips-first-2026-10-05.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "f35a5d2c493aa95eb35aa516d28fbcabf9c57432ebf673671845202da8dcd133",
+          "currentRawSha256": "3cb5f91ca61cf8c0a47848398ac739332af0ef5a14cb539b5f43cbcd4ec53e1e",
+          "review": {
+            "rationale": "Exact independent console-only randomUUID sample line; script and tested bucket library RAW identical",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "f35a5d2c493aa95eb35aa516d28fbcabf9c57432ebf673671845202da8dcd133",
+            "currentRawSha256": "3cb5f91ca61cf8c0a47848398ac739332af0ef5a14cb539b5f43cbcd4ec53e1e",
+            "addedLines": [
+              "       (amostra: 49.43% de 10.000 UUIDs em clips_first)"
+            ],
+            "removedLines": [
+              "       (amostra: 49.99% de 10.000 UUIDs em clips_first)"
+            ]
+          }
+        },
+        {
+          "id": "test-mcp-studio-2010.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "921327125a657ebf11c9255ffb2a1524289fc09dbafd4fac640336593794ba1e",
+          "currentRawSha256": "fcc4c3c3e56429d70f0a4a9feb17524a91fac74dfe4002a6673d8e66e0726b4c",
+          "review": {
+            "rationale": "Seven literal stack frames differ only in recorded dependency installation path; function/line/column unchanged and four current dependency files byte-identical",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "921327125a657ebf11c9255ffb2a1524289fc09dbafd4fac640336593794ba1e",
+            "currentRawSha256": "fcc4c3c3e56429d70f0a4a9feb17524a91fac74dfe4002a6673d8e66e0726b4c",
+            "addedLines": [
+              "    at stringFromUTF8 (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\ssr\\dist\\main\\utils\\base64url.js:194:19)",
+              "    at stringFromBase64URL (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\ssr\\dist\\main\\utils\\base64url.js:94:17)",
+              "    at Object.getItem (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\ssr\\dist\\main\\cookies.js:250:63)",
+              "    at async getItemAsync (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\auth-js\\dist\\main\\lib\\helpers.js:130:19)",
+              "    at async SupabaseAuthClient._recoverAndRefresh (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:3818:37)",
+              "    at async SupabaseAuthClient._initialize (C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:333:13)",
+              "    at async C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:272:24"
+            ],
+            "removedLines": [
+              "    at stringFromUTF8 (C:\\kineo\\node_modules\\@supabase\\ssr\\dist\\main\\utils\\base64url.js:194:19)",
+              "    at stringFromBase64URL (C:\\kineo\\node_modules\\@supabase\\ssr\\dist\\main\\utils\\base64url.js:94:17)",
+              "    at Object.getItem (C:\\kineo\\node_modules\\@supabase\\ssr\\dist\\main\\cookies.js:250:63)",
+              "    at async getItemAsync (C:\\kineo\\node_modules\\@supabase\\auth-js\\dist\\main\\lib\\helpers.js:130:19)",
+              "    at async SupabaseAuthClient._recoverAndRefresh (C:\\kineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:3818:37)",
+              "    at async SupabaseAuthClient._initialize (C:\\kineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:333:13)",
+              "    at async C:\\kineo\\node_modules\\@supabase\\auth-js\\dist\\main\\GoTrueClient.js:272:24"
+            ]
+          }
+        },
+        {
+          "id": "test-modelos-openai-inventario-1410.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "943f4216659ce692303ce783cbd46f04171a77328e158f0b26f7572f70113b8d",
+          "currentRawSha256": "652be3f1dcfdf2a1f64ca222cb0a5a72a93eebe4124c55e14f0d907a0fb7565d",
+          "review": {
+            "rationale": "Exact scanner predicate and three added source paths explain displayed inventory only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "943f4216659ce692303ce783cbd46f04171a77328e158f0b26f7572f70113b8d",
+            "currentRawSha256": "652be3f1dcfdf2a1f64ca222cb0a5a72a93eebe4124c55e14f0d907a0fb7565d",
+            "addedLines": [
+              "Inventário de modelos OpenAI — 1838 arquivos em app, lib, components (KINEO-MIGRACAO-OPENAI-F1-1410)",
+              "  ok  varreu mais de 500 arquivos (1838)"
+            ],
+            "removedLines": [
+              "Inventário de modelos OpenAI — 1835 arquivos em app, lib, components (KINEO-MIGRACAO-OPENAI-F1-1410)",
+              "  ok  varreu mais de 500 arquivos (1835)"
+            ]
+          }
+        },
+        {
+          "id": "test-shopify-app-1310.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "4615f8f8ca358a9e57376a4972918e56b2d6ccb412a85d4bcdb8f54ed5429561",
+          "currentRawSha256": "f4593fbb363421fa93f64e3399bf12399aa07f9a4eb4d4c8e67e9aad9355c665",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "4615f8f8ca358a9e57376a4972918e56b2d6ccb412a85d4bcdb8f54ed5429561",
+            "currentRawSha256": "f4593fbb363421fa93f64e3399bf12399aa07f9a4eb4d4c8e67e9aad9355c665",
+            "addedLines": [
+              "(node:9488) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/shopify/core.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:2580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/shopify/core.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-vs-alternativas-1310.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "672a02b9c9c2f49cb31de9a2b87618ea593bee12b1df7b90d3396ab236cbb6e1",
+          "currentRawSha256": "7da9a05b3db722bfebaf641092888f494e524a3ff9294eb042e3346c5a9f923c",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "672a02b9c9c2f49cb31de9a2b87618ea593bee12b1df7b90d3396ab236cbb6e1",
+            "currentRawSha256": "7da9a05b3db722bfebaf641092888f494e524a3ff9294eb042e3346c5a9f923c",
+            "addedLines": [
+              "(node:7596) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:13948) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-vs-novos-1610.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "c5e02453e30ed45354eb918fc12f4e29190bc57e36438e4b757f8b6761f71936",
+          "currentRawSha256": "ff54b31c85259ddbc4ee85a303e3b06645629a22b2a0a1dcac4f3115cc79c25b",
+          "review": {
+            "rationale": "Literal Node warning process ID only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "c5e02453e30ed45354eb918fc12f4e29190bc57e36438e4b757f8b6761f71936",
+            "currentRawSha256": "ff54b31c85259ddbc4ee85a303e3b06645629a22b2a0a1dcac4f3115cc79c25b",
+            "addedLines": [
+              "(node:23208) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "(node:33268) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/kineoFacts.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-dodo-trilho.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "4f4303d91a5a1c93562b0aa5ef0818a210cce35ed7ca5783dfbaec65602cc1c8",
+          "currentRawSha256": "74cf1ddc750c7e553d36c282262ea0af8c9888cf5779cbe04a131f20a8e85107",
+          "review": {
+            "rationale": "Literal Node warning process ID only; Exact scanner predicate and three added source paths explain displayed inventory only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "4f4303d91a5a1c93562b0aa5ef0818a210cce35ed7ca5783dfbaec65602cc1c8",
+            "currentRawSha256": "74cf1ddc750c7e553d36c282262ea0af8c9888cf5779cbe04a131f20a8e85107",
+            "addedLines": [
+              "  ✓ nenhum dos 1612 arquivos de app/ e lib/ contém um literal pdt_…",
+              "(node:47320) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/dodo.ts is not specified and it doesn't parse as CommonJS."
+            ],
+            "removedLines": [
+              "  ✓ nenhum dos 1609 arquivos de app/ e lib/ contém um literal pdt_…",
+              "(node:12696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///<ROOT>/lib/dodo.ts is not specified and it doesn't parse as CommonJS."
+            ]
+          }
+        },
+        {
+          "id": "test-verdade-trial-2026-10-05.mjs",
+          "status": "same-conformant",
+          "baselineRawSha256": "e78dac327990166038b4579d696dbe66eb7b0c251b1740f3d30a1d8a6c9035d6",
+          "currentRawSha256": "00a3c689251d0d05844d7cf0a8467454290f8ee3f7b5935b4dcaa0f755efb773",
+          "review": {
+            "rationale": "Exact scanner predicate and three added source paths explain displayed inventory only",
+            "evidenceFile": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+            "evidenceSha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685",
+            "baselineRawSha256": "e78dac327990166038b4579d696dbe66eb7b0c251b1740f3d30a1d8a6c9035d6",
+            "currentRawSha256": "00a3c689251d0d05844d7cf0a8467454290f8ee3f7b5935b4dcaa0f755efb773",
+            "addedLines": [
+              "  ✓ varredura cobre app/, lib/ e components/ (1860 arquivos de texto)"
+            ],
+            "removedLines": [
+              "  ✓ varredura cobre app/, lib/ e components/ (1857 arquivos de texto)"
+            ]
+          }
+        }
+      ],
+      "mutableOriginMain": {
+        "fixedBaseline": "1c078ed013302ac47c42f783305df688c4e97cfd",
+        "fixedCandidate": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+        "observedCurrentRoundRefs": [
+          "1c078ed013302ac47c42f783305df688c4e97cfd",
+          "3ec6c9d9b790e00c05650ccab7e9af426cd106d1",
+          "7ab62db2b10bea45b0c550879c7353f03caf3a6a"
+        ],
+        "readerCountPrior1c3ec": 35,
+        "proof": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-origin-main-1c-3ec-input-review.json",
+          "sha256": "a7626f2baf5283d75183547a41128d86389eab43c26b6b7c170983401cc29ce5"
+        },
+        "latestObserved50": {
+          "observedRef": "7ab62db2b10bea45b0c550879c7353f03caf3a6a",
+          "restrictedLabel": "consistencia-da8-git-residual50",
+          "commands": 50,
+          "actualOriginReaderCallers": 4,
+          "otherCommands": 46,
+          "allBeforeAndAfterRefsEqual": true,
+          "transitionDuring50Observed": false,
+          "proof": {
+            "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-runtime50-origin-3ec-7ab-input-gate.json",
+            "sha256": "5eecc762e7d221025c014b9f968bda2c7a33bcda7fcd3c07d716b28628634034"
+          }
+        },
+        "limits": [
+          "The409 selected commandkeys and both fixed trees were inspected; current static branch/input proof is not a trace of old executions.",
+          "Global name-only diff differs after25main paths, so only the actual prohibited-path projection and subject predicates are certified equal; raw global diffs are retained separately.",
+          "Each direct show uses byte-identical old/new blobs. All historical fallbacks have a nonempty immutable-parent candidate passing the original predicate before origin/main can be selected.",
+          "The21 retained case inputs remain current1cRAW as previously proved and contain no operational mutable-origin reference; observations are not relabeled as fresh1c execution.",
+          "F1actual25 uses its independently captured immutable Gitshow argv and contents; no origin/main argument occurs in those50 side/member selector traces. Whole script historical BASE fallback is covered separately by static first-parent proof.",
+          "Complement242 was active; its exact captured snapshot is an observation up to capture time, not a claim about later results or later origin updates.",
+          "No new main merge, no fetch, no test/compiler/VM/repository-module execution, no repository edit.",
+          "No new test/VM/compiler/child script run; only read-only Git plumbing and AST parsing.",
+          "The50 full outcomes/logs are observed runtime results from the linked manifest, not produced by this audit.",
+          "Historical BASE selection proof is current fixed-source and actual immutable Git-object evidence, not a child-process trace captured during the older tests.",
+          "Only the50 observed keys are covered; no general acceptance of7ab as a new product baseline.",
+          "Baseline1c and candidate da8 stay fixed; the six changed main paths are recorded but not merged.",
+          "The fixed code/base remain1c/da8. Only observed reference states in the preserved test records are certified; this does not chase or merge newer main."
+        ]
+      },
+      "inputBindings": [
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\inventory-consistencia-1c-final-union409.json",
+          "sha256": "1b381c38734529fe4a426d73136f7487659daeee186aaafe87d525c61e627c20"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-raw99-complete409-baseline-ledger.json",
+          "sha256": "ad6111352bb935f463e2701ba7fd9ec9593a3d079f596c39c2ad663f2ab5b9e6"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-raw99-complete409-candidate-ledger.json",
+          "sha256": "ea2c679a49e3ad331e72f7326d59179afec17e88d318a2dabf5b537746396f41"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-effective409-candidate-ledger.json",
+          "sha256": "6e6459442143287c4d9f54922911a8698c2f9f491ff67d94cc95fc016861874a"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-da8-final409-independent-comparison.json",
+          "sha256": "d26840a70193072d127ff034722b74ed4bb4fb72388e61f775812547883f0873"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-da8-final409-raw-boundaries.json",
+          "sha256": "9c357ec7ccea6cb3d587f5267734e936f04f770de9d8603e7a85ae8733435543"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\main-1c078-before.json",
+          "sha256": "5d6eb897ad289f01a6945fabe9b80ec8e290f0cef3261835da0caf61850c73b2"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-frozen.json",
+          "sha256": "3d393755a9f362a7cb9e1a957ed5cb218315fd551a85a797ff65e8cf6e45ecfb"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-known-fixes-frozen.json",
+          "sha256": "2684f5e4fb61e16b6908ed5d62d42896012a0176674709e355c87d2bcd747c13"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\main-1c-first134-integrity.json",
+          "sha256": "59348d757f519fe4433b0374652e48e4a26fdf74d19d97e1a8ea7e613750676f"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\main-1c-complement242-integrity.json",
+          "sha256": "cf02155c2a6399e94c907b8fb91eb4b02926975b4cc5a3a45f4844380e9da055"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\main-1c-extra10-integrity.json",
+          "sha256": "2fe9dc43163f76e769fcf5d893de6900b279bd5adac107126bd8cc900ce2c966"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-focused-integrity.json",
+          "sha256": "2de13938f5871a322eb9fe19c2fcedbb8893cf3b3958985977e51e15e06f1248"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-remainder406-integrity.json",
+          "sha256": "f4e0a4512f88c63dd121a6c98bcbd25d9d5a0683669e35e8f5fbdeaaf82c45db"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-postfix-complement43-integrity.json",
+          "sha256": "db94b6e3bb362499eb8611503ebc28ed430ff61eae6a86174cfd1651a814cc50"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-known-regressions35-integrity.json",
+          "sha256": "7a2fffcf3b2d4b56aefd3b155c7b3605b1ef024c27d1ea17744e0cda90282a85"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-git-residual50-integrity.json",
+          "sha256": "cf019794aa2c09317726bb389b1e59e6c8617b74bd4ccee99d4e75b91093cff2"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-known-fixes-own-integrity.json",
+          "sha256": "d2bafe529ccc32155ae10d8d256fb08626e04e3cc678e8250a1f5580ac209b48"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-outside215-witnesses2-integrity.json",
+          "sha256": "9f732ddf017673febc2b7daf4aeef838139f0a766667714a09e17b8a956baa84"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-known-fixes-local-receipt.json",
+          "sha256": "7f15d462db63b4a2f540283f8696b11f57d9bfe9a2ad9117e5c04ed72c429adb"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-known-fixes-tsc.json",
+          "sha256": "d0c8067fba43938f3a5fc66819926a262d03a0cf2d9be38dd51a147fe1dc2188"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-actual-member-audit.json",
+          "sha256": "744d20ea3e32eb53fcf4ba5d57d4ea6ee4441d6afc8a96ae69a81c6ce758b7fd"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-f1actual25-99-da8-semantic-bridge.json",
+          "sha256": "3d0f4db1cc771d341921359c84acc495756b896615c3ba6f25b8563351582911"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-99-to-da8-git-input-bridge.json",
+          "sha256": "93bb9f1a206c67c0baec5e08a5887be0affadc0e66f55ea51b68612ec1321042"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-romance19-actual-receipt.json",
+          "sha256": "45732c991900b1bc8818a2f8c5fcaa70070296dc0418a6dbf92e9a3e8ae7b02a"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-1c-romance19-causal-review.json",
+          "sha256": "a67f757a30744fb49e38ba18f0ab21e8f27a8b4e363cdbd4be410bc3bdf2071c"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-99-da8-input-equivalence-bridge-v2.json",
+          "sha256": "9e785b0b0da53ccafb0ee13f33f841f8f41fc38010ec5dfb7fe3935e7044add1"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-da8-bridge-binding-supplement.json",
+          "sha256": "e0721516675aac53b71024c3d78b4380e23b1a8d18385979ab23c896facd0210"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-retained86-whole-outcome-bridge-final-review.json",
+          "sha256": "3cfe7306bd325b964a820b3f1c66020a0dc2edafbb62a245b080bf8ad954b412"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-retained86-dynamic-import-resolution-supplement.json",
+          "sha256": "3eaf36a4dd56cf803731267131f3d3a3bed0b80ce9697d7c3207e4ef4acce812"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\root-outside194-independent-final-review.json",
+          "sha256": "8dce1f7fe60442b6e096649fbef9a5a0a77b43768bdc00ceeef04259286f2ea2"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-git-residual50-entire-output-baseline-proof.json",
+          "sha256": "c4b449e2e25e48dc42ae69041b36e8f8f1704254e131a0922ab6fdf73d8e8cd0"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-origin-main-1c-3ec-input-review.json",
+          "sha256": "a7626f2baf5283d75183547a41128d86389eab43c26b6b7c170983401cc29ce5"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-phase2-command-reuse-final-v2.json",
+          "sha256": "4202ba5c4f9def8320415097cf5fe63723e1268f260f7f1462324ba73f18093e"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-runtime50-origin-3ec-7ab-input-gate.json",
+          "sha256": "5eecc762e7d221025c014b9f968bda2c7a33bcda7fcd3c07d716b28628634034"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-known35-results-audit.json",
+          "sha256": "842164d93aedc2c9708abc6fc4e2d9fcfa1b4297e56dab1c3f92a87db0aae40d"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-complement43-results-audit.json",
+          "sha256": "f210eb4fe89941f406f954057a05cbc86d59959ee5de46303845eb0b2e6da327"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-outside215-witnesses2-entire-output-baseline-proof.json",
+          "sha256": "1dac8b0933f7a81494eb3edf88ec3113220c63a44aeb659f85f8a2ea37d461c4"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-whole-outcome-retention-plan.json",
+          "sha256": "c05c3da7a433641b80d29ddca4cdba27371e2b4d989fb80fdd7ea83c1d0edc58"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-outside215-194-whole-input-bridge.json",
+          "sha256": "5061f48ea4133746e4f7d9497b66138f5a18411aef082623e0176ea5c1743a97"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-outside215-fs-alias-supplement.json",
+          "sha256": "c7ebb7ef0533a5b8733e2acbe571fd028709b4dd697340d82f716444ff39b493"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-outside215-git-selectors-supplement.json",
+          "sha256": "6de95b36a5b95985b4d3622cf147a86ba5cc8e4a38439fd5ccda8081315d1b83"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\root-outside194-independent-checks.json",
+          "sha256": "d4a5d0f2c533b271f3d2f46fbc7f96552a01742006a9ee011a38a4f5494c147e"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\root-review-outside194.cjs",
+          "sha256": "ba128aed04cf96ee7f3862b1d4b0e11479f740830a7e99ef4ea7210ca7f5a7b0"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-io.cjs",
+          "sha256": "eca9da6bf3479e633a3663493004951268cf919fff1e3fe0204f6306b2f77a30"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-module-closure.cjs",
+          "sha256": "da5cfd8720eb9f177c62aec48525cd4a56ea37cb36b42ec17292155a8b67ff1b"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-ts-io.cjs",
+          "sha256": "bef607df6687bb1baf0b036a94d5355c44c617db7483a4c0fa18b23cb92d8259"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-git-projections.cjs",
+          "sha256": "e9534a074a324753a31f7bbf1f8365273469c5592cfd7a2e838abd926e1cda74"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-git-selector-supplement.cjs",
+          "sha256": "9d71bc0182f88ac39c482281fbb26ee33ea3413cabdba1994c45663d7782612f"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-script-path-literals.cjs",
+          "sha256": "1e8c2279566d3615e52b51d4210328ef21193e753d4f37b46f597e8c2b07e17b"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\review-outside215-fs-aliases.cjs",
+          "sha256": "7e4f2c42cb200a47491b76391444c9a5b0a21ca241f344ed0dcaf61fbb76d229"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\bind-outside215-whole-input-bridge.cjs",
+          "sha256": "a420399535623cbd6635982cdce817e9c920a3001cd123241cc6a37ac98e0810"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\finalize-root-outside194-review.cjs",
+          "sha256": "8791d674eb38b4f7dbf52756e968bd36b31c0737f9ab8d6a57269d4e95a0fbab"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian139-filesystem-function-final-gate.json",
+          "sha256": "59a6895e8cb3591667459d128f370f33a34623d6f20155d9006c49a1037a12b7"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-139-extra-normalizers-static.json",
+          "sha256": "53051631e060d7955f16c64b60ba8846c55c01f69c1b827f7784c4966e87b7c6"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian139-direct-catalog-path-domains.json",
+          "sha256": "1f531e27684b2822ae50f582b56c0883b2fc202c4bda7ddcfbbb20aefdcabb85"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-phase2-combined-five-static-review.json",
+          "sha256": "d353ee00122114c3f3d480fcbbcb1f86d0c74547261092a40367137b901fc1ee"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-retained86-actual-import-native-git-inspection.json",
+          "sha256": "552d5e4d731bcee8be21b3d4043f098f6ca6f7b4eb39188bd93b2e390a3135a9"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-139-git-semantic-callsite-gates-prepared-v2.json",
+          "sha256": "cc050719b41301295fee58ceb64442600d72149e56b96f87796d6155687ab105"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-postfix139-subprocess5-binding-gate.json",
+          "sha256": "c6336db4e565c54de797517bcc21385812defbd166bc7f42048f16bee06ff506"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\phase2-atores-ia-pub154-filesystem-gate.json",
+          "sha256": "08b4161da759f7a7a26dc5cd1836f014175cdc2846a99a98066ae2547b54a7ce"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\inventory-consistencia-da8-known-regressions35.json",
+          "sha256": "91d879c41f4280183c1e2af4f630c9b66544b7a20b3bc3f1167df1c78b6b63dd"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\inventory-consistencia-da8-postfix-complement43.json",
+          "sha256": "c2ee2ad91e6c108e22cc34aea5fea12366f404ba89b15c8a84f242c936bc657d"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\inventory-consistencia-da8-git-residual50.json",
+          "sha256": "22fe97c0e00903a5f378da10bc80eb1972139e9f187d21a6f35f3740122b175f"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-known-fixes-own.json",
+          "sha256": "b38957c27abaf62ef328108f115665515449222351d95e791c1e0e4820849361"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-known-regressions35.json",
+          "sha256": "20a0f6c7f7980f3b7af4f69e9f9fbad61a6222d10c183893599e2b724f656d17"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-postfix-complement43.json",
+          "sha256": "a5484c09ef8906bce87ded404ce951813fb5892d488bc3f51b4944beeb6d7105"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-outside215-witnesses2.json",
+          "sha256": "8513dbffa5c70cdc4106deb70f602d342962ca36a8d84ace0d1ad9c458608d6e"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-git-residual50.json",
+          "sha256": "a8bd93b6947483becc9fde514e24416f6650de41ea556669ef3ccc0fbb5df69e"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\compose-consistencia-da8-retention-plan.cjs",
+          "sha256": "5ba6d88c372794d43f697d71bd10f150af2b1532cf988ecffeba492341f78f8a"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-da8-literal-output-evidence19.json",
+          "sha256": "28f2f60b120b47f77b03eecec97855bb3ab3c994f5591f99cba0f102b559d685"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\inventory-main-1c-complement242.json",
+          "sha256": "98721a99374a9d883f86ab4a4c69c45077907e98503c4b43fa2273818c88575e"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\finalize-consistencia-da8-independent.cjs",
+          "sha256": "74af85a4c75a0ee466b378fc5b272a92a55bd1715d9577d30f4c826992f909fe"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\compare-consistencia-da8.cjs",
+          "sha256": "ea2a4b77a2c369001b7fbe6a1039afb07df4796abb759bfd430a07a24d6e38d1"
+        },
+        {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\build-consistencia-da8-effective-ledger.cjs",
+          "sha256": "f775fcb8ee93a19e399944654655910e54a0e7de9c6fb1c03a809ad5e3bd4abc"
+        }
+      ],
+      "criticalMainCi": {
+        "baseline": {
+          "commands": 56,
+          "files": 52,
+          "conformant": 55,
+          "nonConformant": 1,
+          "intentionalNegative": 4
+        },
+        "candidate": {
+          "commands": 56,
+          "files": 52,
+          "conformant": 55,
+          "nonConformant": 1,
+          "intentionalNegative": 4
+        }
+      },
+      "freshF1Actual25": {
+        "status": "BRIDGE_VALIDATED",
+        "members": 25,
+        "actualExecutionCandidateHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+        "bridgeTargetHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+        "freshAtFinalHead": false,
+        "aggregates": [
+          {
+            "kind": "F1F4-A4b",
+            "members": 15,
+            "failedMembers": [
+              "scripts/test-filme-rapido-1710.mjs",
+              "scripts/test-gancho-1q-2026-10-03.mjs",
+              "scripts/test-sem-legenda-2026-10-06.mjs",
+              "scripts/test-veo-marcado-2026-09-29.mjs",
+              "scripts/test-veo-modo-ia-2026-09-29.mjs",
+              "scripts/test-close-real-1910.mjs"
+            ]
+          },
+          {
+            "kind": "F1Virgula-U4",
+            "members": 10,
+            "failedMembers": [
+              "scripts/test-gancho-1q-2026-10-03.mjs",
+              "scripts/test-parceiro-eyebible-2-1410.mjs",
+              "scripts/test-filme-rapido-1710.mjs",
+              "scripts/test-close-real-1910.mjs"
+            ]
+          }
+        ],
+        "artifact": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-actual-member-audit.json",
+          "sha256": "744d20ea3e32eb53fcf4ba5d57d4ea6ee4441d6afc8a96ae69a81c6ce758b7fd"
+        },
+        "gitBridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-f1-99-to-da8-git-input-bridge.json",
+          "sha256": "93bb9f1a206c67c0baec5e08a5887be0affadc0e66f55ea51b68612ec1321042"
+        },
+        "semanticBridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-f1actual25-99-da8-semantic-bridge.json",
+          "sha256": "3d0f4db1cc771d341921359c84acc495756b896615c3ba6f25b8563351582911"
+        },
+        "actualRefsFromGitShowArgv": true
+      },
+      "freshRomanceActual19": {
+        "status": "BRIDGE_VALIDATED",
+        "actualExecutionCandidateHead": "99da64e4a497fa4f45dd9b7bde9aa38c17e82b66",
+        "bridgeTargetHead": "da8c9f37f83d02fc8aeab5f531151cbe03d592de",
+        "freshAtFinalHead": false,
+        "orderedFailureLists": 19,
+        "causalMutantsWithAddedRelevantFailure": 19,
+        "inheritedFactoryControlFailures": 3,
+        "rawCandidateControlFailures": 4,
+        "artifact": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\consistencia-1c-romance19-actual-receipt.json",
+          "sha256": "45732c991900b1bc8818a2f8c5fcaa70070296dc0418a6dbf92e9a3e8ae7b02a"
+        },
+        "causalReview": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-consistencia-1c-romance19-causal-review.json",
+          "sha256": "a67f757a30744fb49e38ba18f0ab21e8f27a8b4e363cdbd4be410bc3bdf2071c"
+        },
+        "bridge": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-99-da8-input-equivalence-bridge-v2.json",
+          "sha256": "9e785b0b0da53ccafb0ee13f33f841f8f41fc38010ec5dfb7fe3935e7044add1"
+        },
+        "supplement": {
+          "file": "C:\\tmp\\cartoon-reanchor-2410\\guardian-romance19-da8-bridge-binding-supplement.json",
+          "sha256": "e0721516675aac53b71024c3d78b4380e23b1a8d18385979ab23c896facd0210"
+        },
+        "limits": [
+          "This strengthens19nonempty-kill counting by proving an added relevant failure beyond the factory control for EACH mutant.",
+          "Route wiring cases14–19 inspect original route text; they do not execute a complete production POST, provider or paid render.",
+          "The3factory-control failures are preserved and reported, not silently turned green. The candidate raw unnormalized control has4failures; actual factory normalization restores the same3baseline failures.",
+          "No new repository modification, repeated suite, VM, compiler, network, database or paid call."
+        ]
+      }
+    },
+    "localReceipt": {
+      "path": "C:\\tmp\\cartoon-reanchor-2410/consistencia-1c-known-fixes-local-receipt.json",
+      "sha256": "7f15d462db63b4a2f540283f8696b11f57d9bfe9a2ad9117e5c04ed72c429adb"
+    },
+    "constraints": {
+      "envFilesRead": false,
+      "paidCalls": false,
+      "databaseWrites": false,
+      "buildOrDeploy": false,
+      "externalMessagesSent": false,
+      "engineWallAndHomeVideoCurationEdited": false,
+      "immutableUpstreamSnapshotsRecaptured": false,
+      "pushDestination": "refs/heads/codex/cartoon-consistencia-2210 only; verify remote SHA after push"
+    },
+    "limitations": [
+      "No full409 rerun on corrected head; raw409 remains at99 and final selected results use explicit affected replays and input bridges.",
+      "No production validation or new paid MP4.",
+      "Historical22 prices, calculations and links unchanged.",
+      "Cartoon base1c and closed Idiomas history795 remain independent."
+    ]
+  },
   "reanchor20261023": {
     "date": "2026-10-23",
     "classification": "FATO CONFIRMADO / TESTADO LOCALMENTE. Complete fresh950 comparison with explicit baseline/candidate overlays and narrow H3 source bridge. No historical895 approval inherited.",
@@ -1192,18 +2375,23 @@
     },
     "finalPass": true
   },
-  "typecheck": {
-    "checkedAt": "2026-10-23T21:58:04.4926394-03:00",
-    "root": "C:\\tmp\\cartoon-consistencia-2210\\.claude\\worktrees\\implementation",
-    "exitCode": 0,
-    "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
-    "notes": "TypeScript e seus insumos preservados desde a execução verde; H3 muda somente dois arquivos de guardião/dados de desfaz, e este commit somente documentação.",
-    "resultSha256": "51a61333febb0c2869a56359fa0d93b4464101d5f54cec88a136eea2ff669e4e",
-    "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-  },
-  "independentFinalReceipt": {
-    "localPath": "C:\\tmp\\cartoon-reanchor-2310\\consistencia-950-h3-independent-final-receipt.json",
-    "sha256": "8afeaf1fdb04deb62ff95db6f67cef7f61a2f9ae37ec75d6edc142c0007b47af"
+  "historicalMetadata20261023": {
+    "date": "2026-10-23",
+    "timezone": "America/Sao_Paulo",
+    "classification": "FATO CONFIRMADO / TESTADO LOCALMENTE; execução offline. Não comprova produção ou resultado comercial.",
+    "typecheck": {
+      "checkedAt": "2026-10-23T21:58:04.4926394-03:00",
+      "root": "C:\\tmp\\cartoon-consistencia-2210\\.claude\\worktrees\\implementation",
+      "exitCode": 0,
+      "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "notes": "TypeScript e seus insumos preservados desde a execução verde; H3 muda somente dois arquivos de guardião/dados de desfaz, e este commit somente documentação.",
+      "resultSha256": "51a61333febb0c2869a56359fa0d93b4464101d5f54cec88a136eea2ff669e4e",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "independentFinalReceipt": {
+      "localPath": "C:\\tmp\\cartoon-reanchor-2310\\consistencia-950-h3-independent-final-receipt.json",
+      "sha256": "8afeaf1fdb04deb62ff95db6f67cef7f61a2f9ae37ec75d6edc142c0007b47af"
+    }
   },
   "historical20261022": {
     "date": "2026-10-22",
