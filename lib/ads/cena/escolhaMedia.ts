@@ -8,6 +8,9 @@ import { ajusteMusicMood } from './ajusteMedia'
 import { addAjusteQuality } from './ajusteQuality'
 import { escolhaOf, fitCenaEscolhaScript } from './escolhaPlan'
 import { escolhaScenario } from './escolhaCatalog'
+import { getBackgroundMusicUrl } from '@/lib/pixabayMusic' // KINEO-AMOSTRA-ANUNCIO-2410
+import { adsV2FallbackTrack, adsV2SwapLibraryTrack } from '../v2Music' // KINEO-AMOSTRA-ANUNCIO-2410
+import { isEscolhaSamplePlan, escolhaSeconds } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
 
 export interface EscolhaVoice { status: 'new' | 'submitting' | 'done' | 'failed'; attempt: 1 | 2; claimedAt?: number; text?: string; seconds?: number; reason?: string }
 export interface EscolhaMedia {
@@ -37,6 +40,8 @@ export function escolhaMusicMood(s: Pick<CenaEscolhaState, 'plan'>): MusicMood {
 export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: EscolhaMediaDeps<Audio>): Promise<'pending' | 'ready' | 'failed'> {
   if (!escolhaOf(s.plan)) throw new Error('escolha_plan_required')
   const narrated = cenaVoiceModeOf(s.plan) === 'narrated'
+  const sample = isEscolhaSamplePlan(s.plan), outputSeconds = escolhaSeconds(s.plan) // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (s.route !== 'kling3' || !narrated)) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
   if (!s.escolhaMedia) {
     s.escolhaMedia = { marker: 'KINEO-ADS-ESCOLHA-2310', voice: { status: narrated ? 'new' : 'done', attempt: 1 }, music: { status: s.plan.ajusteLive?.music === true ? 'new' : 'skipped' } }
     await d.save(s)
@@ -52,7 +57,8 @@ export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: Escolh
     const { audio, seconds } = await d.synthesize(voice.text)
     if (!(Number.isFinite(seconds) && seconds > 0)) { voice.status = 'failed'; voice.reason = 'escolha_voice_unusable'; await d.save(s); return 'failed' }
     voice.seconds = seconds
-    if (seconds > 15) {
+    if (seconds > outputSeconds) { // KINEO-AMOSTRA-ANUNCIO-2410
+      if (sample) { voice.status = 'failed'; voice.reason = 'escolha_voice_core_does_not_fit_8s'; await d.save(s); return 'failed' } // KINEO-AMOSTRA-ANUNCIO-2410 — measured full TTS, never trim it or buy a second synthesis.
       if (voice.attempt === 2) { voice.status = 'failed'; voice.reason = 'escolha_voice_core_does_not_fit_15s'; await d.save(s); return 'failed' }
       const count = narrationWordCount(voice.text, s.plan.input.language), target = Math.min(24, Math.max(1, Math.floor(count * 13.5 / seconds))) // KINEO-IDIOMAS-FORMATOS-2410
       let fitted
@@ -66,10 +72,19 @@ export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: Escolh
     const url = await d.upload(audio)
     if (!cenaHttps(url)) throw new Error('escolha_voice_upload_failed')
     s.voiceUrl = url; voice.status = 'done'
-    addAjusteQuality(s, { stage: 'voice', code: 'escolha_voice_ready', message: `Complete narration measures ${seconds}s; fixed15s output preserves its end and CTA. Caption word timing remains estimated.` })
+    addAjusteQuality(s, { stage: 'voice', code: 'escolha_voice_ready', message: `Complete narration measures ${seconds}s; fixed${outputSeconds}s output preserves its end and CTA. Caption word timing remains estimated.` }) // KINEO-AMOSTRA-ANUNCIO-2410
     await d.save(s)
   }
-  if (narrated && (!cenaHttps(s.voiceUrl) || !(Number.isFinite(voice.seconds) && voice.seconds! > 0 && voice.seconds! <= 15))) throw new Error('escolha_voice_unusable')
+  if (narrated && (!cenaHttps(s.voiceUrl) || !(Number.isFinite(voice.seconds) && voice.seconds! > 0 && voice.seconds! <= outputSeconds))) throw new Error('escolha_voice_unusable') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample) { // KINEO-AMOSTRA-ANUNCIO-2410 — an explicit mood uses the existing curated library without network search or paid music generation.
+    if (media.music.status !== 'done') { // KINEO-AMOSTRA-ANUNCIO-2410
+      const seed = `${s.plan.escolha!.presenterId}:${s.plan.escolha!.scenarioId}:${s.plan.input.foto}`, mood = escolhaMusicMood(s), libraryUrl = await getBackgroundMusicUrl(seed, mood) // KINEO-AMOSTRA-ANUNCIO-2410
+      const url = libraryUrl && adsV2SwapLibraryTrack(libraryUrl, adsV2FallbackTrack(mood, seed)) // KINEO-AMOSTRA-ANUNCIO-2410 — only measured, approved ad excerpts; excludes the slow emotional-08 track.
+      if (!cenaHttps(url)) throw new Error('escolha_sample_music_unavailable') // KINEO-AMOSTRA-ANUNCIO-2410
+      media.music = { status: 'done', url }; await d.save(s) // KINEO-AMOSTRA-ANUNCIO-2410
+    } // KINEO-AMOSTRA-ANUNCIO-2410
+    return 'ready' // KINEO-AMOSTRA-ANUNCIO-2410
+  } // KINEO-AMOSTRA-ANUNCIO-2410
   // Music is optional and is not allowed to delay submission of the chosen video.
   if (s.phase !== 'ready') return 'ready'
   const music = media.music

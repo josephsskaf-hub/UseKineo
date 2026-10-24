@@ -7,6 +7,7 @@ import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality'
 import { CENA_AMBIGUOUS_MS, CENA_JOB_MS, type CenaJob, type CenaState } from './pipeline'
 import { parseEscolhaGrounding, type EscolhaCaptionGrounding } from './escolhaCaptionLayout'
 import { escolhaStory } from './escolhaShots'
+import { ADS_ESCOLHA_SAMPLE_PHOTOS, isEscolhaSamplePlan, escolhaSeconds } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
 
 export const ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
 export interface EscolhaStill extends CenaJob { id: string; attempt: number; falUrl?: string; copyStartedAt?: number; grounding?: EscolhaCaptionGrounding }
@@ -27,6 +28,7 @@ export const ESCOLHA_PHOTO_ROUNDS = 2
 /** A confirmed per-image retry already spends the second photo round; manual regeneration shares that same budget. */
 export function escolhaPhotoRound(flow: EscolhaFlow): 1 | 2 { return flow.round === 2 || flow.stills.some(j => j.attempt >= 2) ? 2 : 1 }
 export function restartEscolhaStills(plan: CenaPlan, flow: EscolhaFlow): void {
+  if (isEscolhaSamplePlan(plan)) throw new Error('cena_photo_round_limit') // KINEO-AMOSTRA-ANUNCIO-2410 — only the two initial images fit the admitted sample budget.
   if (escolhaPhotoRound(flow) >= ESCOLHA_PHOTO_ROUNDS) throw new Error('cena_photo_round_limit')
   if (flow.stage !== 'choose' && flow.stage !== 'failed') throw new Error('cena_stills_not_ready')
   flow.previousStills = [...(flow.previousStills ?? []), ...flow.stills]
@@ -41,8 +43,9 @@ export interface EscolhaStillDeps {
   persist(job: EscolhaStill): Promise<string|null>;
 }
 function previews(plan: CenaPlan, round: 1 | 2 = 1): EscolhaStill[] {
-  return Array.from({ length: 4 }, (_, index) => {
-    const request = cenaKeyframeRequest({ productUrl: plan.input.foto, actorUrl: plan.escolha!.actorUrl, prompt: `${plan.keyframePrompts[0]} Preview ${index + 1} of four: a subtle alternative camera angle, same person, same clothes, same scene and product.`, attempt: round })
+  const count = isEscolhaSamplePlan(plan) ? ADS_ESCOLHA_SAMPLE_PHOTOS : 4 // KINEO-AMOSTRA-ANUNCIO-2410
+  return Array.from({ length: count }, (_, index) => { // KINEO-AMOSTRA-ANUNCIO-2410
+    const request = cenaKeyframeRequest({ productUrl: plan.input.foto, actorUrl: plan.escolha!.actorUrl, prompt: `${plan.keyframePrompts[0]} Preview ${index + 1} of ${count === 4 ? 'four' : 'two'}: a subtle alternative camera angle, same person, same clothes, same scene and product.`, attempt: round }) // KINEO-AMOSTRA-ANUNCIO-2410
     if (plan.category === 'skincare' && plan.input.formato !== 'product_in_hand' && plan.input.formato !== 'unboxing') request.input.prompt = String(request.input.prompt).replace('Nothing touches the face.', "The CLOSED skincare jar stays below and away from the person's own face; no application in this opening photograph.")
     return {
     ...request,
@@ -66,9 +69,11 @@ function verdict(raw: unknown) {
 export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: EscolhaStillDeps): Promise<void> {
   if (flow.stage === 'chosen' || flow.stage === 'choose' || flow.stage === 'failed') return
   if (!plan.escolha || plan.escolha.marker !== ESCOLHA_MARK) throw new Error('cena_choice_plan_required')
+  const sample = isEscolhaSamplePlan(plan), maxRounds = sample ? 1 : ESCOLHA_PHOTO_ROUNDS, count = sample ? ADS_ESCOLHA_SAMPLE_PHOTOS : 4 // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (flow.stills.length > count || flow.round === 2 || flow.stills.some(j => j.attempt > 1))) throw new Error('escolha_sample_photo_budget_invalid') // KINEO-AMOSTRA-ANUNCIO-2410
   if (!flow.stills.length) { flow.stills = previews(plan); flow.stage = 'stills'; await d.save(flow) }
   for (const j of flow.stills) {
-    if (j.status === 'failed' && j.attempt < 2) {
+    if (j.status === 'failed' && j.attempt < maxRounds) { // KINEO-AMOSTRA-ANUNCIO-2410
       j.attempt++; flow.round = 2; j.status = 'new'; delete j.requestId; delete j.claimedAt; delete j.url; delete j.falUrl; delete j.copyStartedAt
       await d.save(flow)
     }
@@ -84,7 +89,7 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
     if (j.status === 'submitting') {
       if (d.now() - (j.claimedAt ?? d.now()) > CENA_AMBIGUOUS_MS) {
         // Receipt missing: a paid request may exist. No retry can be proved safe.
-        j.status = 'failed'; j.attempt = 2
+        j.status = 'failed'; j.attempt = maxRounds // KINEO-AMOSTRA-ANUNCIO-2410
         addAjusteQuality(flow, { stage: 'keyframe', candidate: j.index, code: 'preview_submit_unconfirmed', message: 'Image submission has no receipt. It was not resubmitted.' })
         await d.save(flow)
       }
@@ -95,13 +100,13 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
       try { r = j.falUrl ? { state: 'done', url: j.falUrl } : await d.poll(j) } catch { continue }
       if (r.state === 'failed') { j.status = 'failed'; await d.save(flow); continue }
       if (r.state !== 'done' || !cenaHttps(r.url)) {
-        if (d.now() - (j.claimedAt ?? d.now()) > CENA_JOB_MS) { j.status = 'failed'; j.attempt = 2; await d.save(flow) }
+        if (d.now() - (j.claimedAt ?? d.now()) > CENA_JOB_MS) { j.status = 'failed'; j.attempt = maxRounds; await d.save(flow) } // KINEO-AMOSTRA-ANUNCIO-2410
         continue
       }
       j.url = r.url
       if (j.copyStartedAt === undefined) { j.copyStartedAt = d.now(); j.falUrl = r.url; await d.save(flow) }
       if (d.now() - j.copyStartedAt > CENA_JOB_MS) {
-        j.status = 'failed'; j.attempt = 2
+        j.status = 'failed'; j.attempt = maxRounds // KINEO-AMOSTRA-ANUNCIO-2410
         addAjusteQuality(flow, { stage: 'keyframe', candidate: j.index, code: 'preview_copy_failed', message: 'Generated image could not be copied within the technical deadline. The paid generation was not repeated.' })
         await d.save(flow); continue
       }
@@ -120,12 +125,12 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
       await d.save(flow)
     }
   }
-  const complete = flow.stills.length === 4 && flow.stills.every(j => j.status === 'done' && j.url && j.verdict || j.status === 'failed' && j.attempt >= 2)
+  const complete = flow.stills.length === count && flow.stills.every(j => j.status === 'done' && j.url && j.verdict || j.status === 'failed' && j.attempt >= maxRounds) // KINEO-AMOSTRA-ANUNCIO-2410
   if (complete) {
     const available = flow.stills.filter(j => j.status === 'done' && j.url && j.verdict).length
     if (available) {
       flow.stage = 'choose'
-      if (available < 4) addAjusteQuality(flow, { stage: 'keyframe', code: 'preview_partial_provider_failure', message: `The provider returned ${available} of four preview images after the bounded retry. All available images remain selectable; no video has started or been charged.` })
+      if (available < count) addAjusteQuality(flow, { stage: 'keyframe', code: 'preview_partial_provider_failure', message: sample ? `The provider returned ${available} of two preview images. All available images remain selectable; no paid image retry is allowed for this free sample.` : `The provider returned ${available} of four preview images after the bounded retry. All available images remain selectable; no video has started or been charged.` }) // KINEO-AMOSTRA-ANUNCIO-2410
     } else {
       flow.stage = 'failed'
       flow.reason = flow.quality_notes?.some(n => n.code === 'preview_copy_failed') ? 'cena_preview_copy_failed' : flow.quality_notes?.some(n => n.code === 'preview_submit_unconfirmed') ? 'cena_preview_submit_unconfirmed' : 'cena_preview_provider_failed'
@@ -156,10 +161,11 @@ export function escolhaReadyForStart(stored: unknown): boolean {
 export function escolhaView(stored: unknown) {
   const p = escolhaOf(stored)
   if (!p) return {}
+  const sample = isEscolhaSamplePlan(p.cena.plan), maxRounds = sample ? 1 : ESCOLHA_PHOTO_ROUNDS // KINEO-AMOSTRA-ANUNCIO-2410
   const review: { quality_notes?: AjusteQualityNote[] } = {}
   for (const note of [...(p.cena.plan.quality_notes ?? []), ...(p.escolhaFlow.quality_notes ?? []), ...(p.cena.quality_notes ?? [])]) addAjusteQuality(review, note)
-  return { stage: p.escolhaFlow.stage, photo_round: escolhaPhotoRound(p.escolhaFlow), max_photo_rounds: ESCOLHA_PHOTO_ROUNDS, can_regenerate: ['choose', 'failed'].includes(p.escolhaFlow.stage) && escolhaPhotoRound(p.escolhaFlow) < ESCOLHA_PHOTO_ROUNDS, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId, format_id: p.cena.plan.input.formato ?? 'product', category: p.cena.plan.category,
+  return { sample, seconds: escolhaSeconds(p.cena.plan), stage: p.escolhaFlow.stage, photo_round: escolhaPhotoRound(p.escolhaFlow), max_photo_rounds: maxRounds, can_regenerate: ['choose', 'failed'].includes(p.escolhaFlow.stage) && escolhaPhotoRound(p.escolhaFlow) < maxRounds, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId, format_id: p.cena.plan.input.formato ?? 'product', category: p.cena.plan.category, // KINEO-AMOSTRA-ANUNCIO-2410
     stills: p.escolhaFlow.stills.filter(j => j.status === 'done' && j.url).map(j => ({ id: j.id, url: j.url!, score: j.verdict?.score ?? 0, reasons: j.verdict?.reasons ?? [] })).sort((a, b) => anatomyIssues(a.reasons) - anatomyIssues(b.reasons) || b.score - a.score || a.id.localeCompare(b.id)),
-    narration_used: p.cena.plan.script.narration, quality_notes: review.quality_notes ?? [], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? 'The image provider could not produce four usable preview URLs. No video was started or charged.' } : {}) }
+    narration_used: p.cena.plan.script.narration, quality_notes: review.quality_notes ?? [], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? `The image provider could not produce ${sample ? 'two' : 'four'} usable preview URLs. No video was started or charged.` } : {}) } // KINEO-AMOSTRA-ANUNCIO-2410
 }
 function anatomyIssues(reasons: string[]): number { return reasons.filter(r => /^anatomy:.*:false$/u.test(r) || r.startsWith('Selected face or outfit differs')).length }

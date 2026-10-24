@@ -2,6 +2,7 @@
 // KINEO-ADS-CENA-AJUSTE-2110 — propaga o modo explícito sem reinterpretar trabalhos legados em andamento.
 import { cenaKeyframeRequest, cenaVideoRequests, type CenaRoute } from './adapters'
 import { escolhaVideoRequests } from './escolhaVideo' // KINEO-ADS-ESCOLHA-2310
+import { isEscolhaSamplePlan } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
 import { CENA_JUDGE_QUESTION, cenaVoiceModeOf, judgeCena, type CenaJson, type CenaPlan, type CenaVerdict } from './plan' // KINEO-ADS-CENA-SEGUE-2110
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { CENA_CATALOG } from './catalog' // KINEO-ADS-CENA-SEGUE-2110
@@ -32,6 +33,7 @@ function images(s: CenaState): CenaJob[] {
 }
 function ajusteVerdictReason(verdict: CenaJob['verdict']): string { return [verdict?.quality_reason, verdict?.category_reason].filter((reason): reason is string => typeof reason === 'string' && !!reason.trim()).join(' ') } // KINEO-ADS-CENA-SEGUE-2110 — retain the judge's actual reservations without replacing the established reason codes.
 async function failed(s: CenaState, reason: string, d: CenaDeps): Promise<void> {
+  if (isEscolhaSamplePlan(s.plan)) { s.phase = 'failed'; s.reason = reason; await d.save(s); return } // KINEO-AMOSTRA-ANUNCIO-2410 — no second paid photo/video attempt on a budgeted sample.
   if (s.phase === 'video' && s.videoAttempt < CENA_VIDEO_ATTEMPTS) {
     s.videoAttempt++; s.jobs = s.jobs.filter(j => j.kind === 'image');
     await d.event('ads_cena_video_retry', { attempt: s.videoAttempt, reason })
@@ -43,6 +45,7 @@ async function failed(s: CenaState, reason: string, d: CenaDeps): Promise<void> 
 }
 /** Um passo limitado, retomado pela tela/cron. Nunca debita créditos: o pedido foi cobrado uma vez no start v2. */
 export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
+  if (isEscolhaSamplePlan(s.plan) && !['video', 'ready', 'failed'].includes(s.phase)) throw new Error('escolha_chosen_still_required') // KINEO-AMOSTRA-ANUNCIO-2410 — samples cannot enter the legacy four-image machine.
   const ajuste = s.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' // KINEO-ADS-CENA-SEGUE-2110
   if (ajuste && s.phase === 'failed' && s.reason === 'cena_keyframes_rejected' && s.jobs.some(j => j.kind === 'image' && j.status === 'done' && j.url)) { s.phase = 'judge'; delete s.reason; addAjusteQuality(s, { stage: 'keyframe', code: 'quality_failure_recovered', message: 'Existing paid images from an earlier quality-only rejection are reused while the order is still generating; no image is resubmitted.' }); await d.save(s) } // KINEO-ADS-CENA-SEGUE-2110 — runtime calls this only for generating orders; refunded/failed orders never enter it.
   if (s.phase === 'failed' || s.phase === 'ready') return // KINEO-ADS-CENA-SEGUE-2110
