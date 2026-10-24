@@ -43,7 +43,32 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-1510'
 const BASE = '285ac112a0be9f96182ec922cb06c4896b5357b1'
-const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+// KINEO-LEVA-2410 — reviewed local purity: this script never mutates the imported projection data.
+// Cache only text transforms; every call still reads the actual source. Exact path, relative key
+// and full raw bytes distinguish file variants. Shared helpers, errors and execution worlds are not cached.
+const projectionCache = new Map()
+const MAX_PROJECTED_ENTRIES = 256, MAX_PROJECTED_BYTES = 32 * 1024 * 1024
+let projectedBytes = 0
+function rd(p) {
+  const absolutePath = join(ROOT, p)
+  const raw = readFileSync(absolutePath, 'utf8')
+  const key = absolutePath + '\0' + p + '\0' + raw
+  const hit = projectionCache.get(key)
+  if (hit) return hit.projected
+  const projected = projectRead(p, raw)
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(projected, 'utf8')
+  if (bytes <= MAX_PROJECTED_BYTES) {
+    while (projectionCache.size >= MAX_PROJECTED_ENTRIES || projectedBytes + bytes > MAX_PROJECTED_BYTES) {
+      const first = projectionCache.keys().next().value
+      projectedBytes -= projectionCache.get(first).bytes
+      projectionCache.delete(first)
+    }
+    projectionCache.set(key, { projected, bytes })
+    projectedBytes += bytes
+  }
+  return projected
+}
+const projectRead = (p, raw) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, semCloseReal1910(raw, p))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (p) => git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n')
 let pass = 0
@@ -60,6 +85,31 @@ const F = {
 }
 
 // ── carregador: transpila TS → CJS (no MESMO reino do Node: rápido), resolve '@/' com stubs; `over` = fonte mutante ─────────
+// Pure bounded compilation cache only. Every world below still rereads its sources, creates
+// fresh exports and binds its own mocks/timers. Source mutants have distinct full-text keys.
+const compilationCache = new Map()
+const COMPILER_OPTIONS = Object.freeze({ module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true })
+const COMPILER_KEY = JSON.stringify(COMPILER_OPTIONS)
+const MAX_COMPILED_ENTRIES = 256, MAX_COMPILED_BYTES = 32 * 1024 * 1024
+let compiledBytes = 0
+function compileSource(rel, text) {
+  const key = rel + '\0' + COMPILER_KEY + '\0' + text
+  const hit = compilationCache.get(key)
+  if (hit) return hit.js
+  const js = ts.transpileModule(text, { compilerOptions: COMPILER_OPTIONS }).outputText
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(js, 'utf8')
+  if (bytes <= MAX_COMPILED_BYTES) {
+    while (compilationCache.size >= MAX_COMPILED_ENTRIES || compiledBytes + bytes > MAX_COMPILED_BYTES) {
+      const first = compilationCache.keys().next().value
+      compiledBytes -= compilationCache.get(first).bytes
+      compilationCache.delete(first)
+    }
+    compilationCache.set(key, { js, bytes })
+    compiledBytes += bytes
+  }
+  return js
+}
+
 const REAIS = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Pronounce.ts', 'lib/ads/v2PresenterHolds.ts', 'lib/ads/v2FreeRedo.ts', 'lib/ads/v2Png.ts', 'lib/ads/v2Styles.ts', 'lib/ads/access.ts', 'lib/internalAccounts.ts', 'lib/ads/offer.ts', 'lib/ads/events.ts']
 function makeLoader(stubs, opts = {}) {
   const cache = new Map()
@@ -68,7 +118,7 @@ function makeLoader(stubs, opts = {}) {
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel)
     const text = Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : rd(rel)
-    const js = ts.transpileModule(text, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
+    const js = compileSource(rel, text)
     const module = { exports: {} }
     cache.set(rel, module.exports)
     const req = (spec) => {
