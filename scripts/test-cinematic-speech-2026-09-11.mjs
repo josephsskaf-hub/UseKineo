@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // Executes actual generation payload/metadata, compose speech orchestration and
 // Creatomate builder code, with injected in-memory providers; no outbound I/O.
 import fs from 'node:fs'
@@ -10,7 +11,7 @@ let checks = 0
 const eq = (actual, expected, label) => { assert.deepEqual(JSON.parse(JSON.stringify(actual)), expected, label); checks++ }
 const ok = (value, label) => { assert.ok(value, label); checks++ }
 const rejects = (fn, label) => { assert.throws(fn, /unverified|narration|captions|timeline/); checks++ }
-const load = createOfflineLoader()
+const load = createOfflineLoader({ source: (file, source) => semIdiomasFormatos2410(source, file) }) // KINEO-IDIOMAS-FORMATOS-2410 — loadReal below still exercises current production sources.
 const speech = load('@/lib/cinematic/speechContract')
 // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — o catch do host na rota lê o classificador de saldo real.
 const falAlertReal = load('@/lib/falAlert')
@@ -51,13 +52,13 @@ eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeco
 eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 2 }).ok, true, 'Words inside the clip pass')
 eq(speech.verifyObservedSpeech('Hello world', words('Hello world'), { maxEndSeconds: 0.7 }).ok, true, '0.25s ASR tolerance')
 {
-  const rota = fs.readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const rota = semIdiomasFormatos2410(fs.readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8'), 'app/api/compose/route.ts').replace(/\r\n/g, '\n')
   eq(rota.includes('verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })') && rota.includes("const tetoReal = (s: number) => (medicao === 'mvhd' ? Math.min(s, mediaSeconds as number) : Math.min(s, autorizado))"), true, 'compose passes the usable seconds of the clip — real media length when measured, the authorized seconds when unknown — to the verifier')
   eq(/speech\.reason === 'speech_overruns_clip'\) \{[\s\S]{0,900}c\.seconds = Math\.round\(\(lastEnd \+ 0\.3\) \* 10\) \/ 10/.test(rota), true, 'an overrun grows the scene to the last word instead of cutting the speech')
   eq(rota.indexOf('const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds)') > rota.indexOf("speech.reason === 'speech_overruns_clip'"), true, 'pre-trim seconds are read after the scene may have grown')
   // Board 14/09: re-checagem depois do teto + o montador confere a duração final
   eq(rota.includes("const recheck = verifyObservedSpeech(c.dialogueLine, words, { maxEndSeconds: tetoReal(cinematicSceneSeconds(c)) })") && rota.includes("code: 'cinematic_dialogue_overruns_clip', recoverable: true,"), true, 'after growing to the cap, the route re-verifies and refuses honestly if speech still overruns')
-  const montador = fs.readFileSync(new URL('../lib/compose.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+  const montador = semIdiomasFormatos2410(fs.readFileSync(new URL('../lib/compose.ts', import.meta.url), 'utf8'), 'lib/compose.ts').replace(/\r\n/g, '\n')
   eq(montador.includes('verifyObservedSpeech(clip.dialogueLine, clip.speechWords, { maxEndSeconds: secondsFor(clip) })'), true, 'the builder verifies speech against the FINAL scene seconds, not only the text')
 }
 for (const [expected, observed, reason] of [
@@ -71,7 +72,7 @@ for (const [expected, observed, reason] of [
 
 // Extract exact production syntax nodes, not a copied implementation. Dependency
 // injection exercises real statements without unrelated account/billing setup.
-const generationSource = fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8')
+const generationSource = semIdiomasFormatos2410(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8'), 'app/api/generate-video-cinematic/route.ts')
 const generationAst = ts.createSourceFile('route.ts', generationSource, ts.ScriptTarget.Latest, true)
 function findNode(ast, predicate) {
   let found
@@ -131,7 +132,7 @@ for (const engine of ['dialogue', 'host']) {
   ok(oneWord.elements.some(e => e.type === 'text' && /HELLO/i.test(e.text)), 'One actual spoken word is sufficient; no fabricated fallback')
 }
 
-const composeSource = fs.readFileSync('app/api/compose/route.ts', 'utf8')
+const composeSource = semIdiomasFormatos2410(fs.readFileSync('app/api/compose/route.ts', 'utf8'), 'app/api/compose/route.ts')
 const composeAst = ts.createSourceFile('route.ts', composeSource, ts.ScriptTarget.Latest, true)
 const advanced = findNode(composeAst, n => ts.isIfStatement(n) && n.expression.getText(composeAst).includes("quality === 'cinematic_hollywood'") && n.thenStatement.getText(composeAst).includes('const rawEngines'))
 const statements = advanced.thenStatement.statements

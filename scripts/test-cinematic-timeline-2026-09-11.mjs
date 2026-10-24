@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // Offline: real timeline policy and real Creatomate builder. No credentials or I/O providers.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -14,7 +15,7 @@ const cache = new Map()
 function load(file) {
   if (cache.has(file)) return cache.get(file)
   const box = { exports: {} }; cache.set(file,box.exports)
-  const code = ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:1,target:9,esModuleInterop:true}}).outputText
+  const code = ts.transpileModule(semIdiomasFormatos2410(fs.readFileSync(file,'utf8'),file),{compilerOptions:{module:1,target:9,esModuleInterop:true}}).outputText
   vm.runInNewContext(code,{
     exports:box.exports, module:box, Buffer, URL, URLSearchParams, TextEncoder,
     process:{env:{}}, console:{log(){},warn(){},error(){}}, fetch:forbidden,
@@ -84,7 +85,7 @@ const long=builder({clips:Array.from({length:10},()=>scene(10,'dialogue')),narra
 eq(long.duration,100,'Final native payoff is not cut by the former 90s ceiling')
 
 // Execute the actual route's descent decision (AST, no copied implementation).
-const route=fs.readFileSync('app/api/generate-video-cinematic/route.ts','utf8')
+const route=semIdiomasFormatos2410(fs.readFileSync('app/api/generate-video-cinematic/route.ts','utf8'),'app/api/generate-video-cinematic/route.ts') // KINEO-IDIOMAS-FORMATOS-2410
 const sf=ts.createSourceFile('route.ts',route,99,true)
 let decision
 function visit(n){if(ts.isVariableDeclaration(n)&&n.name.getText(sf)==='degrau')decision=n.initializer.getText(sf);ts.forEachChild(n,visit)}

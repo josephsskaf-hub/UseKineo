@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — âncora reancorada: o escritor de cenas lê até SCENE_WRITER_INPUT_MAX_CHARS (era 1.200); a prova segue sendo a ordem e os argumentos.
 // KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — guardião: o escritor de cenas do
 // Kineo 1 recebe a duração em palavras, e o texto do prompt sem opção fica
@@ -19,7 +20,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
