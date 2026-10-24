@@ -8,6 +8,8 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const baseline = process.argv[2] || 'fc1bd4e922db96033daa9d7a98038e47742a4e33'
 assert.match(baseline, /^[a-f0-9]{40}$/)
 const oldSource = execFileSync('git', ['show', `${baseline}:app/llms.txt/route.ts`], { encoding: 'utf8' })
+// Later approved catalogue, acquisition and price changes remain allowed; integration scope is frozen to main.
+const approvedMainSource = execFileSync('git', ['show', '1c078ed01:app/llms.txt/route.ts'], { encoding: 'utf8', maxBuffer: 16 << 20 })
 const now = Date.parse('2026-09-16T05:09:38Z')
 class FixedDate extends Date {
   constructor(...args) { super(...(args.length ? args : [now])) }
@@ -29,7 +31,12 @@ function section(body, heading) {
 function verifyAvailability(body, facts, launch, enabled) {
   const free = section(body, enabled ? '## What a new account gets for free' : '## Free tier')
   const catalogue = section(body, '## Engines and what a video costs')
-  const pauses = launch.PAUSED_ENGINE_KEYS.map(key => launch.ENGINE_PAUSE[key])
+  // Maintenance applies in the server, but engines retired from the offer must not be advertised even as paused.
+  const pauses = launch.PAUSED_ON_OFFER_KEYS.map(key => launch.ENGINE_PAUSE[key])
+  for (const key of launch.PAUSED_ENGINE_KEYS.filter(key => !launch.engineOffered(key))) {
+    assert.ok(!free.includes(launch.ENGINE_PAUSE[key].label), 'retired engines stay out of free-tier advertising')
+    assert.ok(!catalogue.includes(`[**${launch.ENGINE_PAUSE[key].label}**]`), 'retired engines stay out of the priced catalogue')
+  }
   const activeLine = free.split('\n').find(line => line.startsWith('- Engines not paused in the catalogue:'))
   assert.ok(activeLine, 'Availability must be explicit even when trial is disabled')
   assert.match(activeLine, /not a live provider-health check or a guarantee of generation/)
@@ -84,6 +91,15 @@ for (const enabled of [true, false]) {
   const response = route.GET(), body = await response.text()
   assert.equal(response.status, 200)
   verifyAvailability(body, facts, launch, enabled)
+  // Retired Omni no longer leaves a real on-offer pause. Keep the original maintenance behavior exercised
+  // by pausing a current catalogue engine in memory, without changing the product's maintenance switches.
+  const pause = { since: '2026-09-15', label: facts.ENGINE_FACTS[0].name, alternative: { key: 'hollywood', label: 'Kling 3' }, message: 'fixture maintenance' }
+  const pausedLaunch = { ...launch, ENGINE_PAUSE: { ...launch.ENGINE_PAUSE, fixture: pause }, PAUSED_ENGINE_KEYS: [...launch.PAUSED_ENGINE_KEYS, 'fixture'], PAUSED_ON_OFFER_KEYS: ['fixture'] }
+  const pauseLoad = createOfflineLoader({
+    env: { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: String(enabled) },
+    mocks: { '@/lib/engineLaunch': pausedLaunch }, globals: { Response, Date: FixedDate },
+  })
+  verifyAvailability(await pauseLoad('app/llms.txt/route.ts').GET().text(), facts, pausedLaunch, enabled)
   // Reancorado 29/09 (revisão da E2b, texto achado 10): a cota recorrente deixou de ser anunciada (E3,
   // RECURRING_FREE_ACCESS = null) e o fonte da BASELINE lê `.videosPerWindow` sem checar nulo — o GET antigo morria com
   // TypeError antes de qualquer asserção. Só para o fonte antigo, a cota volta a ser o objeto que ele esperava (o mesmo
@@ -95,15 +111,16 @@ for (const enabled of [true, false]) {
   })
   const previous = compile(oldSource, baselineLoad).GET(), oldBody = await previous.text()
   assert.throws(() => verifyAvailability(oldBody, facts, launch, enabled), assert.AssertionError, 'Baseline must reproduce the missing availability distinction')
-  assert.deepEqual([...response.headers], [...previous.headers], 'No cache/header change')
+  const approvedMainResponse = compile(approvedMainSource, load).GET(), approvedMainBody = await approvedMainResponse.text()
+  assert.deepEqual([...response.headers], [...approvedMainResponse.headers], 'No cache/header change from approved main')
   assert.equal(route.dynamic, 'force-static')
   assert.equal(route.fetchCache, 'force-no-store')
   const links = text => [...text.matchAll(/\]\((https?:\/\/[^\s)]+)\)/g)].map(m => m[1])
-  assert.deepEqual(links(body), links(oldBody), 'Every existing URL and campaign stays unchanged')
+  assert.deepEqual(links(body), links(approvedMainBody), 'Every approved main URL and campaign stays unchanged')
   const removeChangedSections = text => text
     .replace(section(text, enabled ? '## What a new account gets for free' : '## Free tier'), '<trial>')
     .replace(section(text, '## Engines and what a video costs'), '<engines>')
-  assert.equal(removeChangedSections(body), removeChangedSections(oldBody), 'All other content, including prices, remains byte-identical')
+  assert.equal(removeChangedSections(body), removeChangedSections(approvedMainBody), 'All other approved main content, including prices, remains byte-identical')
   if (enabled) {
     // Exercise the dormant eligibility branch and a balance that covers paused engines.
     // Only trial facts are varied; the actual maintenance source and GET remain in use.
