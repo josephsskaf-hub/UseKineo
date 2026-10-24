@@ -461,6 +461,7 @@
     "scripts/test-ads-cena-95-pacing-2110.mjs",
     "scripts/test-ads-escolha-publico-2410.mjs",
     "scripts/test-ads-fiel-1510.mjs",
+    "scripts/test-ads-fiel-6-1610.mjs",
     "scripts/test-ads-fiel-7-1610.mjs",
     "scripts/test-ads-formatos-escolha-2410.mjs",
     "scripts/test-ads-ia-faz-2026-09-26.mjs",
@@ -473,18 +474,23 @@
     "scripts/test-afiliados-atribuicao-2026-10-03.mjs",
     "scripts/test-agency-appearance.mjs",
     "scripts/test-alvo-fantasma-2026-08-31.mjs",
+    "scripts/test-another-short-shelf.mjs",
     "scripts/test-aparar-expansao-2026-09-02.mjs",
+    "scripts/test-apresentador-v2-1710.mjs",
     "scripts/test-apresentadores-2410.mjs",
     "scripts/test-apresentadores-admin-2410.mjs",
     "scripts/test-apresentadores-legacy-voice-2410.mjs",
     "scripts/test-apresentadores-undo-2410.mjs",
     "scripts/test-apresentadores-voice-2410.mjs",
+    "scripts/test-archive-studio-review.mjs",
+    "scripts/test-assistant-deep-link.mjs",
     "scripts/test-autopilot-case-study-path.mjs",
     "scripts/test-b2c-subscription-truth-report.mjs",
     "scripts/test-cards-giro-2410.mjs",
     "scripts/test-cards-giro-undo-2410.mjs",
     "scripts/test-carta-episodio-gatilho-2026-09-06.mjs",
     "scripts/test-cartoon-tracao.mjs",
+    "scripts/test-causa-sempre-2026-08-31.mjs",
     "scripts/test-chatgpt-paste-page.mjs",
     "scripts/test-checkout-currency-truth.mjs",
     "scripts/test-client-short-brief.mjs",
@@ -500,8 +506,10 @@
     "scripts/test-compra-avulsa-webhook-2410.mjs",
     "scripts/test-compra-sem-login-2026-10-06.mjs",
     "scripts/test-consentimento-superficie.mjs",
+    "scripts/test-convite-na-hora-certa-2026-08-31.mjs",
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
     "scripts/test-credit-minutes-ui.mjs",
+    "scripts/test-credits-held-waitroom.mjs",
     "scripts/test-cta-composer-2026-09-06.mjs",
     "scripts/test-data-cache-no-store.mjs",
     "scripts/test-demo-sob-medida-1510.mjs",
@@ -543,7 +551,11 @@
     "scripts/test-kids-venda-2010.mjs",
     "scripts/test-kit-bf-1910.mjs",
     "scripts/test-kit-bf-venda-2010.mjs",
+    "scripts/test-last-setup-memory.mjs",
+    "scripts/test-leva-confiabilidade-2026-08-28.mjs",
     "scripts/test-leva-integration-2410.mjs",
+    "scripts/test-library-search.mjs",
+    "scripts/test-library-visual-gallery.mjs",
     "scripts/test-limit-purchase-fit.mjs",
     "scripts/test-llms-affiliate-source.mjs",
     "scripts/test-llms-engine-availability.mjs",
@@ -559,12 +571,16 @@
     "scripts/test-money-truth-contract.mjs",
     "scripts/test-motores-d1-2026-09-01.mjs",
     "scripts/test-multiformato-2026-09-02.mjs",
+    "scripts/test-next-episode-visibility.mjs",
     "scripts/test-next-episode-wall-2026-09-06.mjs",
+    "scripts/test-next-idea-wait-45.mjs",
+    "scripts/test-next-shorts-affordance-2026-08-31.mjs",
     "scripts/test-pacote-no-email-de-entrega.mjs",
     "scripts/test-pacote2-precos-2026-10-05.mjs",
     "scripts/test-pagamentos-alternativos-2026-10.mjs",
     "scripts/test-paginas-ia-claras-2110.mjs",
     "scripts/test-paginas-ugc-2010.mjs",
+    "scripts/test-painel-verdade.mjs",
     "scripts/test-paypal-canonical-catalog.mjs",
     "scripts/test-paypal-idempotencia.mjs",
     "scripts/test-ph-kit-2026-09-09.mjs",
@@ -572,10 +588,15 @@
     "scripts/test-ponte-com-preco-2026-09-07.mjs",
     "scripts/test-porta-email-2026-09-06.mjs",
     "scripts/test-porta-episodio2-2026-09-04.mjs",
+    "scripts/test-preco-para-saldo-cheio-2026-09-07.mjs",
+    "scripts/test-preco-visivel-2026-09-02.mjs",
     "scripts/test-precos-clipes-kling25-1610.mjs",
+    "scripts/test-pricing-monthly-campaign.mjs",
     "scripts/test-private-file-share.mjs",
+    "scripts/test-product-surface-intent.mjs",
     "scripts/test-public-video-privacy.mjs",
     "scripts/test-publicador-refspec-2026-09-05.mjs",
+    "scripts/test-publish-kit-business-path.mjs",
     "scripts/test-quadro-real-2026-09-02.mjs",
     "scripts/test-ready-notice-studio-review.mjs",
     "scripts/test-recusa-analyze-copy-2026-09-01.mjs",
@@ -597,8 +618,10 @@
     "scripts/test-signup-product-destination.mjs",
     "scripts/test-silencio-na-cena-2026-09-11.mjs",
     "scripts/test-sistema-de-compra-2026-09-08.mjs",
+    "scripts/test-stranded-email-dedupe.mjs",
     "scripts/test-stranded-extra-attempt-4xx.mjs",
     "scripts/test-studio-hierarchy-runtime.mjs",
+    "scripts/test-studio-prompt-limit.mjs",
     "scripts/test-studio-tile-episode2-2026-08-31.mjs",
     "scripts/test-support/ads-amostra-data-sql-2410.cjs",
     "scripts/test-support/ads-amostra-entry-2410.mjs",
@@ -635,6 +658,7 @@
     "scripts/test-text-to-video-intent-router.mjs",
     "scripts/test-trafego-pages-2310.mjs",
     "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-tres-jogadas-servidor-2026-09-23.mjs",
     "scripts/test-troca-de-plano-2026-09-09.mjs",
     "scripts/test-ux-complete.mjs",
     "scripts/test-ux-mobile-navigation.mjs",
@@ -646,6 +670,7 @@
     "scripts/test-vigia-cenario-inventado-2026-09-11.mjs",
     "scripts/test-viralnow-search-intent.mjs",
     "scripts/test-visibilidade-chatgpt-2026-10-06.mjs",
+    "scripts/test-vitrine-em-alta-2026-08-31.mjs",
     "scripts/test-works-with-claude-2026-09-30.mjs",
     "scripts/test-workspace-spanish.mjs",
     "supabase/migrations/20261024175246_ads_escolha_sample.sql"
@@ -1527,6 +1552,9 @@
     "scripts/test-ads-fiel-1510.mjs": {
       "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
     },
+    "scripts/test-ads-fiel-6-1610.mjs": {
+      "hash": "3a40fd6dce3e4a4c251464aa6d466a171284aca8a784a5ea48f241cbbe11f0b0"
+    },
     "scripts/test-ads-fiel-7-1610.mjs": {
       "hash": "06038e78d1af7c32e164d60788946139e0c890599c2100d0d8c50983bf51babf"
     },
@@ -1563,8 +1591,14 @@
     "scripts/test-alvo-fantasma-2026-08-31.mjs": {
       "hash": "6ad0ca75ce2112ca356fd0ca4648afb35e0fb3629459474fd68246c53dfbf6a2"
     },
+    "scripts/test-another-short-shelf.mjs": {
+      "hash": "3cdd41b8894ddf22faf76c3678d7b7745460d9f14e1bd65b172edeafd1c87150"
+    },
     "scripts/test-aparar-expansao-2026-09-02.mjs": {
       "hash": "9bbbda293c2ed5d61cb8bdc2ac317166fc28ffb95246264cbe9499cd63c0aa86"
+    },
+    "scripts/test-apresentador-v2-1710.mjs": {
+      "hash": "dc9275057450a33280bf25c3fbb68a39008353fd03c93d9c5c6e0402c0cdfc82"
     },
     "scripts/test-apresentadores-2410.mjs": {
       "hash": "dd19121d2d131f9c7cea107846821ee19bafbbaa197beaca8d9d521464619abd"
@@ -1580,6 +1614,12 @@
     },
     "scripts/test-apresentadores-voice-2410.mjs": {
       "hash": "2ff608ca2f0ca575b2068dad39e9b3be9dd33ca9ea70c1853b1a7e0c90244e00"
+    },
+    "scripts/test-archive-studio-review.mjs": {
+      "hash": "513d2803d9ab84ec223328713d27715fc7fab1b831c397d3f97ec6ce4895e074"
+    },
+    "scripts/test-assistant-deep-link.mjs": {
+      "hash": "4c09ad1c2a828c726153ea553a962ab5055a1c71301a5cae87b596868d69b57e"
     },
     "scripts/test-autopilot-case-study-path.mjs": {
       "hash": "2c5a42107dff2f5d9be763951c16a0d465521f8c3e9f6697b39491e81492e6c2"
@@ -1598,6 +1638,9 @@
     },
     "scripts/test-cartoon-tracao.mjs": {
       "hash": "210dd0be3ff75e545c31c92501be00f149066d7632ee6709367bd39e5890758f"
+    },
+    "scripts/test-causa-sempre-2026-08-31.mjs": {
+      "hash": "df97034121b477d05fdee429c1bd969841b5e9dbe1ee29cae61ec0168dd8c097"
     },
     "scripts/test-chatgpt-paste-page.mjs": {
       "hash": "9c1504ce9213c7b12da284d78ef957996f7abd7b9e63e69e7e87d895008a6f9e"
@@ -1644,11 +1687,17 @@
     "scripts/test-consentimento-superficie.mjs": {
       "hash": "c989a1d9df5017dad4bc3cc6053d6e409a8ed1d80a2091fe911e0efdc2978085"
     },
+    "scripts/test-convite-na-hora-certa-2026-08-31.mjs": {
+      "hash": "39e402813833c7229e7c0c5cdddc61f04502914ff3ebc1e39345be731eb0a36e"
+    },
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs": {
       "hash": "e78365e5073a3484fb553623294fd05fa9ae708ea835db77a5d7465ba205ef3a"
     },
     "scripts/test-credit-minutes-ui.mjs": {
       "hash": "a670ac2e9e7d392d66cf9a5b8a5b2de26f71ddb8803af6addc3ede7b1324a7c1"
+    },
+    "scripts/test-credits-held-waitroom.mjs": {
+      "hash": "8c8807e9bff539dff4bb522409ba3fd97a439f54674a82d1661b4554c81a8638"
     },
     "scripts/test-cta-composer-2026-09-06.mjs": {
       "hash": "99e7873ad21bcf3f195f00ef976640da281f16dac2a4b34197041374a1ec5f19"
@@ -1773,8 +1822,20 @@
     "scripts/test-kit-bf-venda-2010.mjs": {
       "hash": "b600f7ec95b381ebfaf3da47ed33b9d12858beee411ef84b8f1a9dbeef3072e6"
     },
+    "scripts/test-last-setup-memory.mjs": {
+      "hash": "7ed0f95eddb17c6ce62a5b355f32750aaea362c0bd7951902f5c10de87e1f610"
+    },
+    "scripts/test-leva-confiabilidade-2026-08-28.mjs": {
+      "hash": "30ac74f24c07a9ab2a6fc892f36878a87d920f14d0c8447890ea5b0a980d117b"
+    },
     "scripts/test-leva-integration-2410.mjs": {
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
+    },
+    "scripts/test-library-search.mjs": {
+      "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
+    },
+    "scripts/test-library-visual-gallery.mjs": {
+      "hash": "4b131688dd5c6f9bab7e50eff11f84928292e5ffae10604a012f39822096f4ba"
     },
     "scripts/test-limit-purchase-fit.mjs": {
       "hash": "86fc482c98289209ba5087bf02664562c6052b6678669894bc3d3be1db29b991"
@@ -1821,8 +1882,17 @@
     "scripts/test-multiformato-2026-09-02.mjs": {
       "hash": "ee10a1d67bcaa2d3331ec1d2239fbf2cc5fd2bf0e2cdfb3a641eef07320bf5cd"
     },
+    "scripts/test-next-episode-visibility.mjs": {
+      "hash": "98bc8c724ec2499b7437518bb4a74bfacf2656105e93c42d58e6bcae7e504834"
+    },
     "scripts/test-next-episode-wall-2026-09-06.mjs": {
       "hash": "326087d062058f572b3df5ebbb9af4e54d8d86ba43b5144df6a1cecb96f4da34"
+    },
+    "scripts/test-next-idea-wait-45.mjs": {
+      "hash": "6b1cb0f44a5c686bfdd71dceb247fb8a798aa31b627123366b62e099b9fecba2"
+    },
+    "scripts/test-next-shorts-affordance-2026-08-31.mjs": {
+      "hash": "d5df895ae0cda381c55d7e5dd9f46d5e5eb99bd73894ff2225fad94a33bc3ee1"
     },
     "scripts/test-pacote-no-email-de-entrega.mjs": {
       "hash": "c2d5c4c73ffd0c9818aa55e1724d10bce9ee57fa67c26430d13f0a0978b495f6"
@@ -1838,6 +1908,9 @@
     },
     "scripts/test-paginas-ugc-2010.mjs": {
       "hash": "89274ea10613dd6df3dfbe48db1b531e987af344fc524982862e9b4f2508d3b0"
+    },
+    "scripts/test-painel-verdade.mjs": {
+      "hash": "fee14b81044a7185c68b8cb49bbfdfbe9997f52b32025e7af18f6bb7764b9641"
     },
     "scripts/test-paypal-canonical-catalog.mjs": {
       "hash": "85d58c49024d660a1b6785b8868a81258c8c5faeb28876865ac2b32747d6aa14"
@@ -1860,17 +1933,32 @@
     "scripts/test-porta-episodio2-2026-09-04.mjs": {
       "hash": "4064cafd05b15557b4ca61586bdacf74ebb59374e3848d4ba872eb1ff2efb82e"
     },
+    "scripts/test-preco-para-saldo-cheio-2026-09-07.mjs": {
+      "hash": "94b76fb3a60705580cc0debf6b19bf8e704c5133d680c6a4a768e015f2827bc0"
+    },
+    "scripts/test-preco-visivel-2026-09-02.mjs": {
+      "hash": "45f71016d2ee3e8fc3c1cf7f775a52b9a8b68f6456d43a7bdecffa560c81896f"
+    },
     "scripts/test-precos-clipes-kling25-1610.mjs": {
       "hash": "1dcdcd1c1f628b4ca1f85f6577fad06a9e2b7c1730b5ee591ee8eea1b2c789a5"
     },
+    "scripts/test-pricing-monthly-campaign.mjs": {
+      "hash": "6967ea625ff09725842ae1dce8eeeb41db9df9264be463df0a589cf879770080"
+    },
     "scripts/test-private-file-share.mjs": {
       "hash": "55533327bdb1322be6d97d4816df640a3df4fee02655faccc37c381af78ffa9f"
+    },
+    "scripts/test-product-surface-intent.mjs": {
+      "hash": "4113ef85fd929aad303ecce7b746a36c8f297a803637c02101b0fdb13368a79c"
     },
     "scripts/test-public-video-privacy.mjs": {
       "hash": "76cd0cfe3453f9ab9d477b515032827f07b4bddf5c8e3d32557da75616977a2b"
     },
     "scripts/test-publicador-refspec-2026-09-05.mjs": {
       "hash": "66c9d6e38b61b8badbce5a0cf3b5c9e3a4e0b32a1a2a32b601ac4a260f7667ba"
+    },
+    "scripts/test-publish-kit-business-path.mjs": {
+      "hash": "75661530b3b9c4694e3b2f27777f402bfa70388b1dbeb9e822cb27b3646f51ac"
     },
     "scripts/test-quadro-real-2026-09-02.mjs": {
       "hash": "63991752851db64df7b6ac8624aa15e0f6d5919e8e44b41792d32c21cfe3a8ac"
@@ -1935,11 +2023,17 @@
     "scripts/test-sistema-de-compra-2026-09-08.mjs": {
       "hash": "0eb7cc129cd320e3bb4607e4edf41032b535cc7cafa52fba38a444863078e249"
     },
+    "scripts/test-stranded-email-dedupe.mjs": {
+      "hash": "4ddcf5e975d8f27374699b0ef4583ad15238ea59e9393a8169c516824d6ab5df"
+    },
     "scripts/test-stranded-extra-attempt-4xx.mjs": {
       "hash": "86c2561d245fe1f3c733389fa47ecac57a9958e7b6073fa08cfd6f6867435614"
     },
     "scripts/test-studio-hierarchy-runtime.mjs": {
       "hash": "081f0d5b2f047d7dbfe28e17630761f667cfb2079c8732485697945000d78765"
+    },
+    "scripts/test-studio-prompt-limit.mjs": {
+      "hash": "a7d1c7df90d1dc7effe1166bfa553b453cdd617ae000bfab734e73ea765fb66b"
     },
     "scripts/test-studio-tile-episode2-2026-08-31.mjs": {
       "hash": "af5e2b4415e7785aaab0e65255ca4d03a6ce3e4d8a7e78f3bf05912341787ef4"
@@ -2046,6 +2140,9 @@
     "scripts/test-trafego-undo-2310.mjs": {
       "hash": "0df0329b144a2a30f1183224aabd916ea318f8be7a925ba98b32172129540b8a"
     },
+    "scripts/test-tres-jogadas-servidor-2026-09-23.mjs": {
+      "hash": "893377b1813e8848486885ed77eca6404c01977e097641a91e03366a8aa0a1dd"
+    },
     "scripts/test-troca-de-plano-2026-09-09.mjs": {
       "hash": "33935866e521b8f21595f51f87a3d4c63b87a50d530e7cd860ba38a3df85d3bf"
     },
@@ -2078,6 +2175,9 @@
     },
     "scripts/test-visibilidade-chatgpt-2026-10-06.mjs": {
       "hash": "1012fd3a22164cf6893b528481cfe888805cfc8c6f976598901c8377acee2b25"
+    },
+    "scripts/test-vitrine-em-alta-2026-08-31.mjs": {
+      "hash": "30f688760f178c767ef9cb5eea8a8f2f5462a8e6dea6fb5e372b48828b35a992"
     },
     "scripts/test-works-with-claude-2026-09-30.mjs": {
       "hash": "15f8d662e02f51605aa9038b493ee01536fcb3e3bb0d5a33e27c9829ea8d7a84"
