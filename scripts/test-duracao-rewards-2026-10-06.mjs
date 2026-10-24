@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-DURACAO-REWARDS-2026-10-06 — guardião da ferramenta grátis /tiktok-creator-rewards-length-checker
 // ("seu roteiro tem duração para as recompensas do TikTok?", aposta C do fundador, sprint 06/10).
 // O que ele prova — tudo EXECUTADO, não lido:
@@ -29,7 +30,7 @@ const ts = require('typescript')
 const React = require('react')
 const jsxRuntime = require('react/jsx-runtime')
 const { renderToStaticMarkup } = require('react-dom/server')
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

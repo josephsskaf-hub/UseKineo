@@ -1,4 +1,16 @@
 #!/usr/bin/env node
+// KINEO-IDIOMAS-FORMATOS-2410 — virtual diff keeps every original marked-line check after exact source restoration.
+function historicalSourceDiff(beforeText, afterText) {
+  const scratch = mkdtempSync(join(tmpdir(), 'kineo-historical-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts')
+  try {
+    writeFileSync(before, beforeText); writeFileSync(after, afterText)
+    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '-U0', '--', before, after], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }) }
+    catch (error) { if (error.status === 1 && typeof error.stdout === 'string') return error.stdout; throw error }
+  } finally { for (const file of [before, after]) { try { unlinkSync(file) } catch (error) { if (error.code !== 'ENOENT') throw error } }; rmdirSync(scratch) }
+}
+import { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
+import { tmpdir } from 'node:os' // KINEO-IDIOMAS-FORMATOS-2410
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-CONTRATO-CLASSICOS-1410 [TRAVA 8.2 — vai do fundador 14/10] — guardião do Contrato de Cena no caminho clássico.
 //
 // O que foi medido antes (30 d, `cinematic_submission_claim`): o contrato JÁ roda nos clássicos desde 121b669e (27/08) e
@@ -44,7 +56,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneTruth.ts'
 const MODO = 'lib/cinematic/visualMode.ts'
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 
 let ok = 0
@@ -199,7 +211,7 @@ checa('visualMode intocado (proibidosPorModo é a régua dos dois caminhos)', rd
 checa('proibidosPorModo em diante: byte a byte a base, sem desfazer nada', Boolean(rdBase(MODO)) && atual.modo.slice(atual.modo.indexOf('export function proibidosPorModo')) === rdBase(MODO).slice(rdBase(MODO).indexOf('export function proibidosPorModo')) && atual.modo.includes('export function proibidosPorModo')) // KINEO-PARCEIRO-EYEBIBLE-1410
 checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não tem linha sem marca)', (() => {
   if (!BASE) return false
-  const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\r/g, '')
+  const d = [ROTA, LIB].map(file => historicalSourceDiff(git(['show', `${BASE}:${file}`]), rd(file))).join('\n').replace(/\r/g, '') // KINEO-IDIOMAS-FORMATOS-2410
   const add = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
   add.splice(0, add.length, ...add.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — as linhas da venda do Cartoon têm marca e desfaz exato próprios; fora da conta do contrato
   return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA

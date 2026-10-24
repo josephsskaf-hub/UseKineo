@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-GANCHO-1Q-2026-10-03 — guardião do "gancho escrito no primeiro quadro" (diagnóstico TikTok de 02/10: a maior
 // parte do público sai em 0:02). A 1ª frase da narração (até 8 palavras) entra como texto no topo do quadro de 0 a 2,5 s,
 // só para contas internas enquanto GANCHO_1Q_PUBLIC=false, injetada DEPOIS de montado (como o logo da marca) — lib/compose
@@ -36,7 +37,7 @@ import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
