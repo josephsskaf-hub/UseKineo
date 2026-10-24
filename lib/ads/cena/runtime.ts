@@ -61,7 +61,14 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     const advanceEscolhaMedia = async () => { // KINEO-ADS-ESCOLHA-2310 — injected effects share the existing winner lease and save, never a second billing path.
       const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
       return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
-        synthesize: async text => { const audio = await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id, language: state.plan.input.language }); return { audio, seconds: estimateMp3DurationSeconds(audio) } }, // KINEO-ADS-ESCOLHA-2310
+        synthesize: async text => { // KINEO-APRESENTADORES-2410 — new candidates use an explicit age/gender voice; the six existing choices retain their call.
+          const { presenterCandidateById2410 } = await import('../presenterCandidates2410') // KINEO-APRESENTADORES-2410
+          const candidate = presenterCandidateById2410(state.plan.escolha?.presenterId) // KINEO-APRESENTADORES-2410
+          const audio = candidate // KINEO-APRESENTADORES-2410
+            ? await (await import('@/lib/avatar/voice')).synthesizeWithVoice({ text, ...(await import('../presenterVoice2410')).presenterCandidateVoice2410(candidate, state.plan.input.language) }) // KINEO-APRESENTADORES-2410 — failure propagates; never substitute a default/female voice.
+            : await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id, language: state.plan.input.language }) // KINEO-APRESENTADORES-2410
+          return { audio, seconds: estimateMp3DurationSeconds(audio) } // KINEO-APRESENTADORES-2410
+        }, // KINEO-APRESENTADORES-2410
         upload: audio => uploadVoiceoverToSupabase(order.user_id, audio), // KINEO-ADS-ESCOLHA-2310
         submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-ESCOLHA-2310
         pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-ESCOLHA-2310
