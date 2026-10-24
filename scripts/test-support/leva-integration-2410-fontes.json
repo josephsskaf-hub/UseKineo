@@ -145,19 +145,26 @@
     "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
     "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
     "app/(dashboard)/ads/v2/page.tsx",
+    "app/api/admin/moderation-scan/route.ts",
     "app/api/admin/send-kids-launch/route.ts",
     "app/api/ads/v2/cena/route.ts",
     "app/api/ads/v2/start/route.ts",
     "app/api/ads/v2/status/route.ts",
     "app/api/compose/route.ts",
     "app/api/cron/ads-v2-advance/route.ts",
+    "app/api/cron/placar-versao-b/route.ts",
+    "app/api/cron/rescue-vendor-assets/route.ts",
     "app/api/events/route.ts",
     "app/api/footage/route.ts",
+    "app/api/next-action/route.ts",
+    "app/api/shopify/auth/callback/route.ts",
+    "app/api/shopify/products/route.ts",
     "app/api/stripe/checkout/item/route.ts",
     "app/api/stripe/checkout/route.ts",
     "app/api/stripe/webhook/route.ts",
     "app/checkout/item/page.tsx",
     "app/pricing/PricingClient.tsx",
+    "app/shopify/open/route.ts",
     "components/OneTimeItemConfirmation.tsx",
     "components/OneTimeItemOffer.tsx",
     "components/PricingCards.tsx",
@@ -486,8 +493,18 @@
     "scripts/test-compra-sem-login-2026-10-06.mjs",
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
     "scripts/test-credit-minutes-ui.mjs",
+    "scripts/test-data-cache-no-store.mjs",
+    "scripts/test-demo-sob-medida-1510.mjs",
+    "scripts/test-diretor-kineo-2026-09-23.mjs",
+    "scripts/test-done-footer-2026-08-31.mjs",
+    "scripts/test-done-workspace.mjs",
+    "scripts/test-dunning-grace.mjs",
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs",
     "scripts/test-enterprise-alternative-business-path.mjs",
     "scripts/test-entrega-noite-r6-2026-09-09.mjs",
+    "scripts/test-episodio2-ending-2026-09-01.mjs",
+    "scripts/test-example-remix.mjs",
     "scripts/test-failure-recovery-honest.mjs",
     "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
     "scripts/test-filmes-f1-virgula-1910.mjs",
@@ -608,6 +625,9 @@
     "app/(dashboard)/ads/v2/page.tsx": {
       "hash": "f475a7084cc108464c981e906055f7678e537e3b68a355bea49bb38334728974"
     },
+    "app/api/admin/moderation-scan/route.ts": {
+      "hash": "2278661b2d10f6e782f15648dc0b38f01debd6d2109a3da0f53cdc5590a6b51e"
+    },
     "app/api/admin/send-kids-launch/route.ts": {
       "hash": "7d53f92338136a91ae4ecb68eecd46b277094168e264559bd5355649c13897ff"
     },
@@ -626,14 +646,29 @@
     "app/api/cron/ads-v2-advance/route.ts": {
       "hash": "2a28551a21d1798bf2c6aa7e5cd9f89553ae5463335e64521f4e23671db133e3"
     },
+    "app/api/cron/placar-versao-b/route.ts": {
+      "hash": "09a7775210adf77a866d58910cb3de6e8fb67e63728226c6478a27996a21b0b5"
+    },
+    "app/api/cron/rescue-vendor-assets/route.ts": {
+      "hash": "491f3573aeab6fe9d95896714835aaef636b940127279228e994551d2dc1bfa6"
+    },
     "app/api/events/route.ts": {
       "hash": "7db24de472da2ed0c95a21d567ddb478543c343e538db6dc6e9b584a50c94c4a"
     },
     "app/api/footage/route.ts": {
       "hash": "f64a018860d9ef9409c0d31a396f048b82412a7fa798143be61f1a3ac3279549"
     },
+    "app/api/next-action/route.ts": {
+      "hash": "ea48a258dd4352edbd0089db2cb35194f939507f986865d7704f3665788b2b5c"
+    },
+    "app/api/shopify/auth/callback/route.ts": {
+      "hash": "bd85f96a6c3e5fbbc7b207707a97c3f9ddb52896b0b8507b70934aba0d0b259f"
+    },
+    "app/api/shopify/products/route.ts": {
+      "hash": "04df28cb013893f4ea0b60a602d3e483ce7cebfd0631448ccb2c86097bb76927"
+    },
     "app/api/stripe/checkout/item/route.ts": {
-      "hash": "aafd84789f75f3ee20f769feb938d5bc891a95af9d09928e9376c502fcc3072a"
+      "hash": "6ff58c42de341ac2f9bbc89309797acca98588d79e4afb6cf13a8ad0271d6830"
     },
     "app/api/stripe/checkout/route.ts": {
       "hash": "55a4509e4dfe1587cba91079f6f7733b424016f64bdeea8b17ee8cc1c8169b01"
@@ -646,6 +681,9 @@
     },
     "app/pricing/PricingClient.tsx": {
       "hash": "47337ff6fdf2e4c56a7383a91bcd40cf2dfca84087f16e8f416eb09938c2691f"
+    },
+    "app/shopify/open/route.ts": {
+      "hash": "1dcf76a3e60124588f9779402934c069df1e14a5f4f8fcf88e7eecedcd888d3b"
     },
     "components/OneTimeItemConfirmation.tsx": {
       "hash": "b9f5c73aec403a18163dba9ff13c179238a23df1c572046059d829add07df411"
@@ -1544,11 +1582,41 @@
     "scripts/test-credit-minutes-ui.mjs": {
       "hash": "a670ac2e9e7d392d66cf9a5b8a5b2de26f71ddb8803af6addc3ede7b1324a7c1"
     },
+    "scripts/test-data-cache-no-store.mjs": {
+      "hash": "638976baed71400988df7e78b5ca6d7b2850c72e70b9ca279fd4b378b962b2f7"
+    },
+    "scripts/test-demo-sob-medida-1510.mjs": {
+      "hash": "f2d13325f3e7206577b6e7fcc09b50e015cb0ce4cbd6d0ea05a7552eed9a2998"
+    },
+    "scripts/test-diretor-kineo-2026-09-23.mjs": {
+      "hash": "310ca4870917a73dce2907d96e236512b537716db1b35835e34f4876d54ec4b7"
+    },
+    "scripts/test-done-footer-2026-08-31.mjs": {
+      "hash": "dcff7838394f67c7cce0650c988038b96ef439069342841d1859ce2aaa8aa078"
+    },
+    "scripts/test-done-workspace.mjs": {
+      "hash": "36bc7f5581430f04324a9504e76ed14e5a7c6248679331ed03be6672f74862f3"
+    },
+    "scripts/test-dunning-grace.mjs": {
+      "hash": "a2c9782ab25dc03e6fefd663f304abfd9bb58a1a7787e33ed6d9c0c0fa7347ab"
+    },
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": {
+      "hash": "b8a9b228c8517355cd398fc42f456f99937c970a142e343a84a0e61e56b2c309"
+    },
+    "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs": {
+      "hash": "4268c1390213cd3fff4299214c2d43fcd01d05ad60bef372559aa84801190c29"
+    },
     "scripts/test-enterprise-alternative-business-path.mjs": {
       "hash": "822d824a4c875bbac036448afe170767e8ed6b173287dc6cf15a1ca9ba260c0c"
     },
     "scripts/test-entrega-noite-r6-2026-09-09.mjs": {
       "hash": "7088348d3b1dc2cd06ffd8f8c470c3ba6b18ce803253a76e04b0c6f58f1c5082"
+    },
+    "scripts/test-episodio2-ending-2026-09-01.mjs": {
+      "hash": "bc8b5cfe6c197de81eb3593f626217af681113ead91752adb432b0f459337ab8"
+    },
+    "scripts/test-example-remix.mjs": {
+      "hash": "60a5eaaa242cb33ce6c134cc6610026b67112f3794985f4739e7098ec9c19a61"
     },
     "scripts/test-failure-recovery-honest.mjs": {
       "hash": "b4699a1a9a782aaba2e6dc4dd6ed7b9c38b848bc82354c818db7ed5879ff7676"
