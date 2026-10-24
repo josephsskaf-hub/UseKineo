@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore the exact newest layer before historical readers, diffs and seals.
 // KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"] — guardião da TRILHA do clipe na estrada clássica.
 //
 // O defeito (docs/SEEDANCE-15-FORA-DA-TRILHA-2026-10-16.md, 20 filmes Seedance 1.5 de 15 s, 60 cenas): o Studio manda o plano
@@ -42,7 +43,7 @@ process.chdir(RAIZ) // o loader offline resolve '@/…' a partir do cwd
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const VPP = 'lib/cinematic/visualPromptPolicy.ts'
 const LIB = 'lib/cinematic/planoDeBroll.ts'
-const ler = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const ler = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-IDIOMAS-FORMATOS-2410
 const FX = JSON.parse(readFileSync(join(RAIZ, 'scripts/test-support/trilha-15s-1610-roteiros.json'), 'utf8')).roteiros
 const SELO = '[TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]'
 const CAUDA_INICIO = ', faceless cinematic b-roll'
@@ -54,7 +55,7 @@ function carregarLib(src) {
   return exp
 }
 /** Os libs de apoio (parser, divisor, plano, descrições) vêm SEMPRE da árvore atual — o conserto não os toca. */
-const apoio = createOfflineLoader()
+const apoio = createOfflineLoader({ source: (p, text) => semIdiomasFormatos2410(text, p) }) // KINEO-IDIOMAS-FORMATOS-2410
 const SP = apoio('@/lib/scriptParser')
 const D = apoio('@/lib/durationByEngine')
 const B = apoio('@/lib/broll/scene-splitter')
@@ -64,7 +65,7 @@ const SS = apoio('@/lib/cinematic/sceneStyle')
 
 /** visualPromptPolicy com a fonte dada (o resto, real). */
 function carregarVpp(srcVpp) {
-  const load = createOfflineLoader({ source: (rel, txt) => (rel === VPP ? srcVpp : txt) })
+  const load = createOfflineLoader({ source: (rel, txt) => (rel === VPP ? srcVpp : semIdiomasFormatos2410(txt, rel)) }) // KINEO-IDIOMAS-FORMATOS-2410
   return load('@/lib/cinematic/visualPromptPolicy')
 }
 
@@ -282,6 +283,14 @@ for (const f of res.falhas) relata(f, false)
 // (F) byte a byte contra o pai do 1º commit com a marca (ou HEAD, antes do commit)
 {
   const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  const historicalTarget = (p) => { // KINEO-IDIOMAS-FORMATOS-2410
+    const raw = readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), restored = ler(p) // KINEO-IDIOMAS-FORMATOS-2410
+    if (restored === raw) return [] // KINEO-IDIOMAS-FORMATOS-2410
+    if (restored !== git('show', `${IDIOMAS_FORMATOS_2410_BASE}:${p}`).replace(/\r\n/g, '\n')) throw new Error('Restored source diverges from immutable task base: ' + p) // KINEO-IDIOMAS-FORMATOS-2410
+    return [IDIOMAS_FORMATOS_2410_BASE] // KINEO-IDIOMAS-FORMATOS-2410
+  } // KINEO-IDIOMAS-FORMATOS-2410
+  const historicalDiff = (base, ...files) => files.map((p) => git('diff', base, ...historicalTarget(p), '--', p)).join('\n') // KINEO-IDIOMAS-FORMATOS-2410
+  const historicalRangeEnd = [ROTA, VPP, LIB].every((p) => ler(p) === git('show', `${IDIOMAS_FORMATOS_2410_BASE}:${p}`).replace(/\r\n/g, '\n')) ? IDIOMAS_FORMATOS_2410_BASE : 'HEAD' // KINEO-IDIOMAS-FORMATOS-2410 — only reuse history when every protected source equals the immutable task base.
   const shas = git('log', '--format=%H', '-S', MARCA, '--', ROTA, VPP).trim().split('\n').filter(Boolean)
   const base = shas.length ? shas[shas.length - 1] + '^' : 'HEAD'
   for (const p of [ROTA, VPP]) {
@@ -294,15 +303,15 @@ for (const f of res.falhas) relata(f, false)
     const f = FORMA_TRILHA_15S_1610[p]
     relata(`F ${p}: ${f.trocas} troca(s) + ${f.acrescimos} acréscimo(s) + ${f.blocos} bloco(s), toda linha marcada no comentário`, fora.length === 0 && marcadas.length >= f.trocas + f.acrescimos, fora.slice(0, 1).join(''))
   }
-  const add = git('diff', base, '--', ROTA, VPP).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha
+  const add = historicalDiff(base, ROTA, VPP).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha
   relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))
   let libNaBase = true
   try { execFileSync('git', ['-C', RAIZ, 'cat-file', '-e', `${base}:${LIB}`], { stdio: ['ignore', 'ignore', 'ignore'] }) } catch { libNaBase = false }
   relata('F lib/cinematic/planoDeBroll.ts é arquivo novo (não existe na base)', !libNaBase)
   for (const p of ['lib/hollywood/varietyAxis.ts', 'lib/cinematic/sceneTruth.ts', 'lib/cinematic/sceneStyle.ts', 'lib/cinematic/sceneDescriptions.ts', 'lib/durationByEngine.ts', 'lib/broll/scene-splitter.ts', 'lib/cinematic/speechImageAlign.ts']) {
-    relata(`F ${p} intocado (cauda protegida, contrato, divisor e descritor)`, git('diff', base, '--', p).trim() === '')
+    relata(`F ${p} intocado (cauda protegida, contrato, divisor e descritor)`, historicalDiff(base, p).trim() === '') // KINEO-IDIOMAS-FORMATOS-2410
   }
-  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')).filter((s) => !s.includes('KINEO-DESENHO-SOM-2110')) /* reancorado KINEO-DESENHO-SOM-2110 — os commits do som do desenho levam a marca deles */.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam o selo deles */ // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo "Vai pra meta do 95"
+  const assuntos = git('log', '--format=%s', `${base}..${historicalRangeEnd}`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')).filter((s) => !s.includes('KINEO-DESENHO-SOM-2110')) /* reancorado KINEO-DESENHO-SOM-2110 — os commits do som do desenho levam a marca deles */.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam o selo deles */ // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo "Vai pra meta do 95"
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da ideia no escritor marcado (19/10) levam o selo deles
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-2010'))) // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da folha de personagem (20/10) levam o selo deles

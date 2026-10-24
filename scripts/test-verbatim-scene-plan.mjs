@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile the exact historical source in TEMP, preserving the real compiler and checks.
 // Executa a função real usada pela rota; sem rede, fornecedor ou crédito.
 
 import { execFileSync } from 'node:child_process'
@@ -11,11 +12,13 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const output = mkdtempSync(join(tmpdir(), 'kineo-verbatim-beats-'))
 const requireFromOutput = createRequire(join(output, 'x.cjs'))
+const historicalInput = join(output, 'verbatimBeats.ts') // KINEO-IDIOMAS-FORMATOS-2410
+writeFileSync(historicalInput, semIdiomasFormatos2410(readFileSync(join(root, 'lib/cinematic/verbatimBeats.ts'), 'utf8'), 'lib/cinematic/verbatimBeats.ts')) // KINEO-IDIOMAS-FORMATOS-2410
 
 try {
   execFileSync(process.execPath, [
     join(root, 'node_modules', 'typescript', 'bin', 'tsc'),
-    join(root, 'lib', 'cinematic', 'verbatimBeats.ts'),
+    historicalInput,
     '--outDir', output,
     '--module', 'commonjs',
     '--target', 'es2022',
@@ -28,7 +31,7 @@ try {
 }
 
 const { resolveVerbatimSegments } = requireFromOutput(join(output, 'verbatimBeats.js'))
-const routeSource = readFileSync(join(root, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
+const routeSource = semIdiomasFormatos2410(readFileSync(join(root, 'app/api/generate-video-cinematic/route.ts'), 'utf8'), 'app/api/generate-video-cinematic/route.ts') // KINEO-IDIOMAS-FORMATOS-2410
 let failures = 0
 let checks = 0
 function check(label, condition) {
