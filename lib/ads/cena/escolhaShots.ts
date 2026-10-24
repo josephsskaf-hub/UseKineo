@@ -30,7 +30,7 @@ const CATEGORY_STORIES: Record<CenaCategory, Story> = {
   perfume: { opening: 'holds the actual perfume bottle upright with its original cap still attached, ready to remove it', shots: [
     { pt: 'Pega o frasco e tira a tampa', en: 'Lifts bottle and removes cap', action: 'WIDE full body: lifts the real perfume bottle and removes its original cap with their own hands.' },
     { pt: 'Borrifa uma vez no pulso', en: 'Sprays once onto the wrist', action: 'MEDIUM: sprays the real perfume ONCE onto their own wrist, bottle pointed away from the face, then lowers the wrist.' },
-    { pt: 'Close do frasco real', en: 'Close-up of the real bottle', action: 'CLOSE: replaces the original cap and slowly turns the real bottle in their own hand, front label unobstructed.' },
+    { pt: 'Close do frasco real', en: 'Close-up of the real bottle', action: 'CLOSE: replaces the original cap and holds the real bottle steady in their own hand, front label facing camera, unobstructed.' },
   ] },
   bag: { opening: 'rests their own hand on the actual bag existing handle, ready to lift it', shots: [
     { pt: 'Pega a bolsa pela alça', en: 'Lifts the bag by its handle', action: 'WIDE full body: lifts the real bag by its existing handle with their own connected hand.' },
@@ -72,10 +72,10 @@ export function escolhaStory(category: CenaCategory, format: CenaEscolhaFormat =
 export function escolhaShotPreview(category: CenaCategory, format: CenaEscolhaFormat = 'product') { return escolhaStory(category, format).shots.map((s, i) => ({ id: ['wide', 'medium', 'close'][i], seconds: 5, pt: s.pt, en: s.en })) }
 /** The chosen still carries identity/scene detail. Essential continuity, sound and product constraints remain in every sent shot. */
 export function escolhaShotPrompts(category: CenaCategory, format: CenaEscolhaFormat, speech?: readonly [string, string, string], language = 'en'): [string, string, string] {
-  const lock = 'Chosen still: same ONE adult, outfit, scene and whole real product, label unchanged. Own attached hands, five fingers. No invented branding/text/split screen.'
+  const lock = 'Chosen still: same ONE adult, outfit, scene and whole real product, label unchanged. Own attached hands, five fingers. No invented branding/text/split screen. Product in frame.' // KINEO-ADS-MARCA-QUADRO-2410 — fundador 24/10 (perfume 9,5): o frasco saía do quadro quando ela esticava o braço
   return escolhaStory(category, format).shots.map((s, i) => {
     const sound = speech ? speech[i] ? `${i === 2 ? 'Same person off-camera' : 'Person on camera'} says ONLY in ${language}: ${speech[i]}` : 'No speech, lips closed.' : 'Lips closed; ambient action sounds only, no speech/music.'
-    const tail = i === 2 ? ' Whole label above56%; live movement to15s; no card.' : ''
+    const tail = i === 2 ? ' Label faces camera, no reveal turn. Whole label above56%; live movement to15s; no card.' : '' // KINEO-ADS-MARCA-QUADRO-2410 — a marca aparece já de frente, sem girar o produto para revelar
     const prompt = `${lock} Absolute${i * 5}–${(i + 1) * 5}s: ${s.action}${tail} ${sound}`
     if (prompt.length > 500) throw new Error('escolha_shot_prompt_exceeds_500')
     return prompt
