@@ -1,5 +1,5 @@
 // KINEO-APRESENTADORES-2410 — preparation is separate from founder approval.
-import candidates from './presenterCandidates2410.json'
+import candidates from './presenterCandidates2410.json' with { type: 'json' }
 import type { AdsV2PresenterEntry } from './v2Presenter'
 
 export interface PresenterCandidate2410 extends Omit<AdsV2PresenterEntry, 'voice' | 'clip'> {
