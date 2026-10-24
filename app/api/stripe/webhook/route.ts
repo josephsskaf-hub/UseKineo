@@ -796,7 +796,8 @@ function isOwnerRejection(code: string | null | undefined): boolean {
 async function recordPaymentSuccess(
   supabase: AdminClient,
   stripeEventId: string,
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
+  stripeEventCreated?: number // KINEO-AMOSTRA-ANUNCIO-2410 — signed payment event time; delayed webhook arrival is not purchase time.
 ): Promise<void> {
   if (session.payment_status !== 'paid') return
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — compra de convidado ainda sem dono: quem grava é o Path B, logo depois de
@@ -863,6 +864,12 @@ async function recordPaymentSuccess(
     session_id: browserSessionId,
     metadata: {
       source: 'stripe_webhook',
+      // KINEO-AMOSTRA-ANUNCIO-2410 — unknown signed time never becomes an attributed sample purchase.
+      ...(typeof stripeEventCreated === 'number' && Number.isFinite(stripeEventCreated) && stripeEventCreated > 0 ? {
+        stripe_livemode: session.livemode === true,
+        stripe_payment_status: session.payment_status,
+        stripe_paid_at: new Date(stripeEventCreated * 1000).toISOString(),
+      } : {}),
       stripe_event_id: stripeEventId,
       stripe_session_id: session.id,
       stripe_customer_id: customerId,
@@ -1627,7 +1634,7 @@ export async function POST(req: NextRequest) {
         // Tracking is ancillary: a temporary analytics failure must never stop
         // the paid user from receiving their entitlement.
         try {
-          await recordPaymentSuccess(supabase, event.id, session)
+          await recordPaymentSuccess(supabase, event.id, session, event.created) // KINEO-AMOSTRA-ANUNCIO-2410
         } catch (trackingError) {
           console.error('[stripe webhook] payment_success tracking threw:', trackingError)
         }
@@ -1980,7 +1987,7 @@ export async function POST(req: NextRequest) {
           session.metadata = { ...(session.metadata ?? {}), supabase_user_id: guestOwner.userId }
           // O payment_success de cima pulou esta sessão (dono ainda desconhecido); agora ele sai com o user_id.
           try {
-            await recordPaymentSuccess(supabase, event.id, session)
+            await recordPaymentSuccess(supabase, event.id, session, event.created) // KINEO-AMOSTRA-ANUNCIO-2410
           } catch (trackingError) {
             console.error('[stripe webhook] guest payment_success tracking threw:', trackingError)
           }
