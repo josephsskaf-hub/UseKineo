@@ -1,12 +1,14 @@
 // KINEO-ADS-RENDER-FIX-2310 — guardião: o prompt de cada tomada do Kling3 cabe no limite da fal (2500) e preserva a parte da tomada.
 // Caso real: render do fluxo ESCOLHA em 23/10 (order 1a09131b) mandou 2642, 2657 e 2819 caracteres por tomada e falhou sem erro gravado.
 import { readFileSync } from 'node:fs'
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — keep the approved 23/10 behavioral baseline; new raw prompts have their own executable guardian.
 import ts from 'typescript'
+const read = file => semIdiomasFormatos2410(readFileSync(file, 'utf8'), file)
 
 let ok = 0, falha = 0
 const check = (cond, nome) => { if (cond) { ok++; console.log('  ok  ' + nome) } else { falha++; console.log('  FALHA  ' + nome) } }
 
-const src = readFileSync('lib/ads/cena/escolhaVideo.ts', 'utf8')
+const src = read('lib/ads/cena/escolhaVideo.ts')
 const ini = src.indexOf('export const ESCOLHA_SHOT_PROMPT_MAX')
 check(ini > 0, 'R0 o arquivo declara o teto e a função de ajuste')
 const trecho = src.slice(ini)
@@ -39,11 +41,11 @@ check(mutante(comum + ' ' + tomadas[2]).length > ESCOLHA_SHOT_PROMPT_MAX, 'M1 se
 check(/shotPrompts\.map\(p => escolhaShotPromptFit\(p\)\)/.test(src.slice(0, ini)), 'R8 as tomadas do Kling3 passam pelo ajuste antes do multi_prompt')
 
 // Rodada 2 (fundador 23/10: "faltou o som", "melhorar o ambiente"): música aceita não morre em 45 s; tênis corre; close sem marca inventada.
-const media = readFileSync('lib/ads/cena/escolhaMedia.ts', 'utf8')
+const media = read('lib/ads/cena/escolhaMedia.ts')
 check(/export const ESCOLHA_MUSIC_PENDING_MS = 8 \* 60_000/.test(media), 'S1 música aceita (pending) espera até 8 min')
 check(/music\.status !== 'pending' && music\.claimedAt !== undefined && d\.now\(\) - music\.claimedAt > 45_000/.test(media), 'S2 o corte de 45 s não vale mais para música já aceita')
 check(/music\.status === 'pending' && music\.claimedAt !== undefined && d\.now\(\) - music\.claimedAt > ESCOLHA_MUSIC_PENDING_MS/.test(media), 'S3 pending só desiste depois de ESCOLHA_MUSIC_PENDING_MS')
-const plano = readFileSync('lib/ads/cena/escolhaPlan.ts', 'utf8')
+const plano = read('lib/ads/cena/escolhaPlan.ts')
 check(/plan\.category === 'footwear' \? 'Absolute5–10s: the same selected person stands up and jogs forward/.test(plano), 'S4 no tênis a tomada do meio é a pessoa correndo')
 check(/never add letters, logos or brand marks that are not on the reference product/.test(plano), 'S5 o close proíbe marca/texto inventado no produto')
 check(/SINGLE PHOTOGRAPH: one single full-bleed vertical 9:16 frame/.test(plano) && !/const still = `[^`]*\$\{common\}/.test(plano), 'S6 a foto pede imagem única e não carrega o texto das 3 tomadas')
@@ -53,9 +55,9 @@ check(/plan\.category === 'skincare' \? 'Absolute0–5s: WIDE FULL-BODY, the sam
 check(/twists the lid OFF the real jar[^']*no cream appears before the jar is open/.test(plano), 'S8 o pote é aberto antes de aparecer creme')
 check(/smooths that cream onto one cheek in a single gentle stroke/.test(plano), 'S9 aplica no rosto uma vez só (sem repetição)')
 check(/only natural ambient sound effects of the scene and the actions, no dialogue and no music/.test(plano), 'S10 narrado pede só som ambiente, fala proibida')
-const video = readFileSync('lib/ads/cena/escolhaVideo.ts', 'utf8')
+const video = read('lib/ads/cena/escolhaVideo.ts')
 check(/if \(plan\.voice_mode === 'narrated'\) input\.generate_audio = true/.test(video), 'S11 Kling gera o som ambiente no narrado')
-const montagem = readFileSync('lib/ads/cena/escolhaMontage.ts', 'utf8')
+const montagem = read('lib/ads/cena/escolhaMontage.ts')
 check(/export const ESCOLHA_AMBIENT_VOLUME = '35%'/.test(montagem) && /volume: mode === 'narrated' \? ESCOLHA_AMBIENT_VOLUME : '0%'/.test(montagem), 'S12 som ambiente entra a 35% sob a narração')
 
 console.log(`\n${ok} ok, ${falha} falha(s)`)

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — historical exact undo excludes only the new inventoried task layer; behavioral proofs stay raw.
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { createEscolhaWorld, escolhaFixture } from './test-ads-escolha-2310.mjs'
@@ -372,7 +373,7 @@ async function undoProof() {
   assert.equal(Undo.ADS_ESCOLHA_PUBLICO_BASE, '07f1da96cdfdf69ade9e5514d0c4c524cb8b2294')
   assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {
-    const raw = read(file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file]
+    const raw = semIdiomasFormatos2410(read(file), file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410
     assert.equal(item.before, before); assert.equal(item.beforeHash, hash(before)); assert.equal(item.afterHash, hash(raw))
     assert.ok(raw.includes(Undo.ADS_ESCOLHA_PUBLICO_MARK), 'every modified exact source identifies the public layer: ' + file)
     assert.equal(Undo.semAdsEscolhaPublico2410(raw, file), before, 'exact base bytes restored: ' + file)
@@ -383,8 +384,8 @@ async function undoProof() {
   }
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_NEW) { assert.ok(readFileSync(file).length > 0); assert.throws(() => git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`)) }
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_ARTIFACTS) { assert.ok(file.startsWith('docs/')); assert.ok(readFileSync(file).length > 0); assert.ok(git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`)) }
-  const actual = git('diff', '--name-only', Undo.ADS_ESCOLHA_PUBLICO_BASE).trim().split('\n').filter(Boolean)
-  const unknown = git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter(Boolean)
+  const actual = git('diff', '--name-only', Undo.ADS_ESCOLHA_PUBLICO_BASE, IDIOMAS_FORMATOS_2410_BASE).trim().split('\n').filter(Boolean) // KINEO-IDIOMAS-FORMATOS-2410 — reproduce the immutable pre-task inventory, including its existing later-home-assets diagnostic.
+  const unknown = [] // KINEO-IDIOMAS-FORMATOS-2410 — pre-task commit has no untracked inputs; the new exact-undo guardian inventories every current addition.
   equal([...Undo.ADS_ESCOLHA_PUBLICO_FILES, ...Undo.ADS_ESCOLHA_PUBLICO_NEW, ...Undo.ADS_ESCOLHA_PUBLICO_ARTIFACTS].sort(), [...new Set([...actual, ...unknown])].sort(), 'complete changed/new inventory; exact source undo covers code/workflow/test adapters; document artifacts are inventoried')
   assert.equal(Undo.semAdsEscolhaPublico2410('unrelated\n', 'lib/unrelated.ts'), 'unrelated\n')
 }

@@ -24,6 +24,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.
+      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz
+        run: |
+          node scripts/test-idiomas-2410.mjs
+          node scripts/test-language-segmentation-2410.mjs
+          node scripts/test-ads-formatos-escolha-2410.mjs
+          node scripts/test-idiomas-formatos-undo-2410.mjs
       # KINEO-ADS-ESCOLHA-PUBLICO-2410 — actual public route, bounded photo effects, executable mutants and exact undo.
       - name: Studio Ads público — escolha, custo, qualidade e desfaz exato
         run: |

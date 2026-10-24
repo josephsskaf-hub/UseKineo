@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semIdiomasFormatos2410 } from './desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — remove newest exact layer before historical snapshots.
 
 export const ADS_ESCOLHA_PUBLICO_MARK = 'KINEO-ADS-ESCOLHA-PUBLICO-2410'
 export const ADS_ESCOLHA_PUBLICO_BASE = '07f1da96cdfdf69ade9e5514d0c4c524cb8b2294'
@@ -11,6 +12,7 @@ export const ADS_ESCOLHA_PUBLICO_FILES = Object.freeze(Object.keys(manifest.sour
 export const ADS_ESCOLHA_PUBLICO_NEW = Object.freeze(manifest.newFiles)
 export const ADS_ESCOLHA_PUBLICO_ARTIFACTS = Object.freeze(manifest.artifacts ?? [])
 export function semAdsEscolhaPublico2410(text, file) {
+  text = semIdiomasFormatos2410(text, file) // KINEO-IDIOMAS-FORMATOS-2410
   const path = String(file ?? '').replace(/\\/g, '/'), known = manifest.sources[path]
   if (!known || typeof text !== 'string' || !text.includes(ADS_ESCOLHA_PUBLICO_MARK)) return text
   const hash = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')

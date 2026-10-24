@@ -8,7 +8,6 @@ import { ajusteMusicMood } from './ajusteMedia'
 import { addAjusteQuality } from './ajusteQuality'
 import { escolhaOf, fitCenaEscolhaScript } from './escolhaPlan'
 import { escolhaScenario } from './escolhaCatalog'
-import { narrationWordCount } from '@/lib/textLanguage'
 
 export interface EscolhaVoice { status: 'new' | 'submitting' | 'done' | 'failed'; attempt: 1 | 2; claimedAt?: number; text?: string; seconds?: number; reason?: string }
 export interface EscolhaMedia {

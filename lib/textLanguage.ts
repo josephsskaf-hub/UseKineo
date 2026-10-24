@@ -193,7 +193,7 @@ export function narrationTokens(text: string, language?: unknown): string[] {
   let prefix = ''
   for (const item of new Intl.Segmenter(locale, { granularity: 'word' }).segment(value)) {
     if (item.isWordLike) { result.push(prefix + item.segment); prefix = '' }
-    else if (item.segment.trim()) {
+    else if (item.segment) { // KINEO-IDIOMAS-FORMATOS-2410 — preserve spaces in mixed CJK/Thai product names, e.g. Apple Watch.
       if (result.length) result[result.length - 1] += item.segment
       else prefix += item.segment
     }
@@ -202,7 +202,7 @@ export function narrationTokens(text: string, language?: unknown): string[] {
 }
 export function narrationWordCount(text: string, language?: unknown): number { return narrationTokens(text, language).length }
 export function joinNarrationTokens(tokens: readonly string[], language?: unknown): string {
-  return tokens.join(['zh', 'yue', 'ja', 'th'].includes(narrationLanguage(language) ?? '') || tokens.some(t => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(t)) ? '' : ' ')
+  return tokens.join(['zh', 'yue', 'ja', 'th'].includes(narrationLanguage(language) ?? '') || tokens.some(t => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|^\s|\s$/u.test(t)) ? '' : ' ')
 }
 export function narrationSentences(text: string, language?: unknown): string[] {
   const value = String(text ?? '').trim()
