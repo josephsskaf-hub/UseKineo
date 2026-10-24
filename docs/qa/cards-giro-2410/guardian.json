@@ -3,7 +3,7 @@
   "state": "TESTADO LOCALMENTE",
   "command": "node --require ./docs/qa/idiomas-formatos-2410-validation/offline-preload.cjs scripts/test-cards-giro-2410.mjs --mutants",
   "exitCode": 0,
-  "appliedMutants": 13,
-  "rejectedMutants": 13,
+  "appliedMutants": 14,
+  "rejectedMutants": 14,
   "groups": 4
 }

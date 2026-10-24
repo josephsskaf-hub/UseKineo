@@ -2,12 +2,15 @@
   "date": "2026-10-24",
   "base": "1c078ed0",
   "algorithm": "sha256",
+  "normalization": "LF",
   "files": {
-    "components/home/HomeCardCycleMedia.tsx": "6b07b8cfff230a984a267d2adc4889f38350e116ed1aafc6095053d63c721e0f",
-    "components/home/HomeThreeCards.tsx": "d46c88f538546214ab55eeea5328bc18f49feb92fa31fa73f58da43a3d14fa55",
-    "components/home/HomeKidsCard.tsx": "6ff2ffc9c504bda54637e5bd79763b03c0cec138249ad1498417b709f9f7a474",
+    "components/home/HomeCardCycleMedia.tsx": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87",
+    "components/home/HomeThreeCards.tsx": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602",
+    "components/home/HomeKidsCard.tsx": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4",
     "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb",
-    "lib/ui/homeCardPlayback.ts": "f2b6e8db4edb26b002973ffb7fef923860bb6e0727f785cb39de2e5c5753b1d1",
-    "lib/ui/homeThreeCards.ts": "7e1134bf27275dcaf6ae098b8b0d687a6b49aff287773ff0e4fb76ffcef2c571"
-  }
+    "lib/ui/homeCardPlayback.ts": "afdfaa2013cff2ac509e4f66c28b2d117dc1918c66deb3de2e029e9f5bc901d0",
+    "lib/ui/homeThreeCards.ts": "393e382903627c6d1934de1d61b2b6498efd2fa7cef7db6791d62c7b000f2be2"
+  },
+  "sourceCommit": "6fe45076cd2152df35f2ab5dc2c9e80492de321b",
+  "patchBase": "cf4c15bd"
 }
