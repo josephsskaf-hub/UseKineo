@@ -31,6 +31,7 @@ jobs:
           node scripts/test-ads-amostra-data-2410.mjs
           node scripts/test-support/ads-escolha-sample-media-2410.mjs
           node scripts/test-support/ads-amostra-race-2410.mjs
+          node scripts/test-support/ads-amostra-upgrade-retry-2410.mjs
           node scripts/test-support/ads-amostra-entry-2410.mjs
           node scripts/test-ads-amostra-undo-2410.mjs
       - name: Amostra — Postgres isolado e mutantes SQL

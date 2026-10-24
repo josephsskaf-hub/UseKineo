@@ -1,6 +1,7 @@
 // Execute actual upgrade and debit-confirmation code with only database/start boundaries in memory.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import { createOfflineLoader } from './offline-ts-loader.mjs'
 import { createEscolhaWorld, escolhaFixture } from '../test-ads-escolha-2310.mjs'
@@ -141,4 +142,10 @@ export async function runAdsSampleUpgradeRetryMutants2410() {
     killed.push(label)
   }
   return killed
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await runAdsSampleUpgradeRetry2410()
+  const killed = await runAdsSampleUpgradeRetryMutants2410()
+  console.log(`PASS paid sample retry: immutable refunded predecessor, same reference, concurrent/replay, closed ledger and bounded chain; ${killed.length} assertion-killed mutants`)
 }
