@@ -2,11 +2,14 @@
 // Nenhuma delas sobe servidor: a regra da sprint e que a verificacao possa
 // rodar em 30 segundos e ainda assim provar o que importa.
 import { readFileSync } from 'node:fs'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
+import ts from 'typescript'
 
 const FILE = 'app/(dashboard)/generate/GenerateClient.tsx'
 const src = readFileSync(FILE, 'utf8')
-const diff = execSync('git diff HEAD -- "' + FILE + '"', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+const DELIVERY = '32112373132021d287a68dbf33020b70707cae03'
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+const diff = git('diff', DELIVERY + '^', DELIVERY, '--', FILE)
 const added = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
 const addedCode = added.filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('{/*') && !l.trim().startsWith('*'))
 
@@ -32,7 +35,24 @@ t('SSR-safe na escrita', /function writeLastSetup[\s\S]*?if \(typeof window === 
 const dispatchIdx = src.indexOf("trackEvent('video_generation_started', dispatchMetadata)")
 const writeIdx = src.indexOf('writeLastSetup(currentUserIdRef.current, {')
 t('grava depois do evento de despacho', dispatchIdx > 0 && writeIdx > dispatchIdx)
-t('grava a menos de 20 linhas do despacho', src.slice(dispatchIdx, writeIdx).split('\n').length < 20)
+// The approved server-render safety request now sits between telemetry and storage.
+// Require the same direct dispatch block instead of counting unrelated comments/lines.
+function recordsInDispatchBlock(text) {
+  const ast = ts.createSourceFile(FILE, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  let dispatch, write
+  function walk(node) {
+    if (ts.isCallExpression(node)) {
+      if (node.expression.getText(ast) === 'trackEvent' && node.arguments[0]?.getText(ast) === "'video_generation_started'") dispatch = node
+      if (node.expression.getText(ast) === 'writeLastSetup' && node.arguments[0]?.getText(ast) === 'currentUserIdRef.current') write = node
+    }
+    ts.forEachChild(node, walk)
+  }
+  walk(ast)
+  return Boolean(dispatch && write && ts.isExpressionStatement(dispatch.parent) && ts.isExpressionStatement(write.parent) && ts.isBlock(dispatch.parent.parent) && dispatch.parent.parent === write.parent.parent && dispatch.end < write.pos)
+}
+t('grava no mesmo bloco direto de despacho real', recordsInDispatchBlock(src))
+t('mutante: gravação antes do despacho é recusada', !recordsInDispatchBlock(src.replace("trackEvent('video_generation_started', dispatchMetadata)", "writeLastSetup(currentUserIdRef.current, {})")))
+t('mutante: gravação deslocada para outro bloco é recusada', !recordsInDispatchBlock(src.replace('writeLastSetup(currentUserIdRef.current, {', 'if (true) { writeLastSetup(currentUserIdRef.current, {').replace('    setError(null)\n    setTaskStates({})', '    }\n    setError(null)\n    setTaskStates({})')))
 t('nao grava no clique de analisar', !/analyze_idea_clicked[\s\S]{0,600}writeLastSetup/.test(src))
 t('grava o motor REALMENTE usado, nao o seletor', src.includes("quality: (mode === 'fast' || mode === 'creator' ? 'fast' : quality) as Quality"))
 t('uma unica escrita no arquivo inteiro', src.split('writeLastSetup(currentUserIdRef.current').length - 1 === 1)
@@ -83,7 +103,7 @@ const sujas = addedCode.filter((l) => codexWords.test(l) && !l.includes('credito
 t('nenhuma linha de codigo nova toca preco/plano/credito/checkout: ' + JSON.stringify(sujas.slice(0, 3)), sujas.length === 0)
 
 // ── o diff mexeu em UM arquivo de produto ──────────────────────────────────
-const arquivos = execSync('git diff --name-only HEAD', { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const arquivos = git('diff', '--name-only', DELIVERY + '^', DELIVERY).trim().split('\n').filter(Boolean)
 const produto = arquivos.filter((f) => !f.startsWith('docs/') && !f.startsWith('scripts/'))
 t('so GenerateClient.tsx mudou em producao: ' + JSON.stringify(produto), produto.length === 1 && produto[0] === FILE)
 t('nenhum arquivo da pista do Codex no diff', !arquivos.some((f) => /^app\/api\/stripe\/|checkoutPricing|marketingPrice|^lib\/growth\/|^app\/business-|^app\/ai-shorts-|OfferModal|ExitIntentOffer|CheckoutResumeBanner|ReferralPromoBanner/.test(f)))

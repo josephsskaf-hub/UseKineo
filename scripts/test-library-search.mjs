@@ -1,6 +1,7 @@
 // sprint-ui #10 — prova da busca na Library (3 abas), 30/08/2026.
 // Continuacao do sprint #9: /history e /my-videos ja buscavam; a Library nao.
 import { readFileSync } from 'node:fs'
+import { renderPage } from './preview-ux-complete.mjs'
 const src = readFileSync(new URL('../app/(dashboard)/library/LibraryClient.tsx', import.meta.url), 'utf8')
 let pass = 0, fail = 0
 const check = (name, cond) => { cond ? pass++ : (fail++, console.error('FAIL: ' + name)) }
@@ -46,11 +47,29 @@ check('grid de videos renderiza fVids', src.includes('fVids.map((v)'))
 check('grid de imagens renderiza fImgs', src.includes('fImgs.map((im)'))
 check('lista de audio renderiza fAuds', src.includes('fAuds.map((a)'))
 
-// zero resultado mostra o termo + Clear search (nunca mascara como acervo vazio)
-check('zero resultado video mostra o termo', src.includes('No videos match'))
-check('zero resultado imagem mostra o termo', src.includes('No images match'))
-check('zero resultado audio mostra o termo', src.includes('No audio matches'))
-check('botao Clear search limpa a busca', src.includes('Clear search') && src.includes("setQ('')"))
+// Approved organization controls use one filter-empty message and Reset filters.
+// Exercise the real page for each asset type; a search miss must not become an empty library.
+for (const tab of ['videos', 'images', 'audio']) {
+  const html = renderPage('app/(dashboard)/library/LibraryClient.tsx', false, {
+    loaded: true, tab, q: 'no-such-fixture',
+    vids: [{ id: 'v', title: 'Lighthouse', video_url: '/v.mp4' }],
+    imgs: [{ id: 'i', model: 'Lighthouse', url: '/i.png' }],
+    auds: [{ id: 'a', text: 'Lighthouse', voice: 'Demo', model: 'Demo', url: '/a.mp3' }],
+  })
+  check('zero resultado ' + tab + ' distingue filtros de acervo vazio', html.includes('No projects match these filters.') && html.includes('Reset filters') && !html.includes('No ' + tab + ' yet'))
+}
+const clearSection = src.slice(src.indexOf('const clearBtn = ('), src.indexOf('\n  return (', src.indexOf('const clearBtn = (')))
+const clearHandler = clearSection.match(/onClick=\{(\(\) => \{[\s\S]*?\})\}/)?.[1]
+function cleared(handler) {
+  const calls = []
+  if (!handler) return false
+  new Function('setQ', 'organization', 'return (' + handler + ')')(
+    value => calls.push(['query', value]), { setFavoritesOnly: value => calls.push(['favoritesOnly', value]) },
+  )()
+  return JSON.stringify(calls) === JSON.stringify([['query', ''], ['favoritesOnly', false]])
+}
+check('Reset filters executa limpeza da busca e do filtro de favoritos', cleared(clearHandler))
+check('mutante: botão que não limpa a busca reprova', Boolean(clearHandler) && !cleared(clearHandler.replace("setQ('');", '')))
 
 // invariantes preservadas
 check('abas contam o acervo TOTAL (nao o filtrado)', src.includes('count: vids.length') && !src.includes('count: fVids.length'))

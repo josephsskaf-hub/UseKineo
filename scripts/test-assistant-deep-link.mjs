@@ -30,10 +30,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import assert from 'node:assert/strict'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { registerHooks } from 'node:module'
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 
 let pass = 0
@@ -115,7 +115,12 @@ if (L) {
   // /chatgpt) entrou; os dois primeiros continuam nas MESMAS posições.
   // Reancorado 29/09 (KINEO-MCP-CLAUDE-2026-09-29): o quarto canal (claude_connector, a tool do conector MCP do
   // Claude) entrou no FIM; os três antigos continuam nas MESMAS posições — é isso que esta âncora protege.
-  check('(A3) HANDOFF_CHANNELS = gpt_store, assistant_link, paste_page, claude_connector', Array.isArray(L.HANDOFF_CHANNELS) && L.HANDOFF_CHANNELS.length === 4 && L.HANDOFF_CHANNELS[0] === 'gpt_store' && L.HANDOFF_CHANNELS[1] === 'assistant_link' && L.HANDOFF_CHANNELS[2] === 'paste_page' && L.HANDOFF_CHANNELS[3] === 'claude_connector')
+  // The approved ChatGPT plugin adds the fifth channel; old positions/tags stay fixed.
+  const expectedChannels = ['gpt_store', 'assistant_link', 'paste_page', 'claude_connector', 'chatgpt_plugin']
+  check('(A3) catálogo exato de cinco canais aprovados, na ordem histórica', JSON.stringify(L.HANDOFF_CHANNELS) === JSON.stringify(expectedChannels))
+  check('(A3) todos os canais têm etiquetas próprias e passam pelo validador', expectedChannels.every(channel => L.isHandoffChannel(channel) && utm(L.buildStudioDestination({ ...base, channel })).get('utm_source') === L.CHANNEL_TAGS[channel].utmSource) && new Set(expectedChannels.map(channel => L.CHANNEL_TAGS[channel].utmSource)).size === expectedChannels.length)
+  check('(A3) motores legados continuam aceitos, mas não anunciados', L.isHandoffEngine('fast') && L.isHandoffEngine('omni') && JSON.stringify(L.UNADVERTISED_HANDOFF_ENGINES) === JSON.stringify(['fast', 'omni']))
+  check('(A3) lista anunciada vem do filtro canônico, sem remover outro motor', JSON.stringify(L.ADVERTISED_HANDOFF_ENGINES) === JSON.stringify(L.HANDOFF_ENGINES.filter(engine => !['fast', 'omni'].includes(engine))))
   check('(A3) DEFAULT_CHANNEL executado = gpt_store', L.DEFAULT_CHANNEL === 'gpt_store', String(L.DEFAULT_CHANNEL))
   check('(A3) isHandoffChannel aceita os dois e recusa o resto', L.isHandoffChannel('gpt_store') && L.isHandoffChannel('assistant_link') && !L.isHandoffChannel('chatgpt_gpt') && !L.isHandoffChannel(null))
   check('(A3) CHANNEL_TAGS.gpt_store == constantes de sempre', L.CHANNEL_TAGS.gpt_store.utmSource === L.HANDOFF_UTM_SOURCE && L.CHANNEL_TAGS.gpt_store.intentCampaign === L.HANDOFF_INTENT_CAMPAIGN)
@@ -254,7 +259,7 @@ const factsCode = stripComments(facts)
 const importFromLib = facts.match(/import \{([^}]*)\} from '\.\/gptHandoff'/s)
 check("(F1) kineoFacts importa de './gptHandoff'", Boolean(importFromLib))
 const imported = importFromLib ? importFromLib[1].split(',').map((s) => s.trim()).filter(Boolean) : []
-for (const name of ['ASSISTANT_LINK_PATH', 'DURATIONS', 'HANDOFF_ENGINES', 'ASPECTS', 'SCRIPT_MAX_CHARS', 'HANDOFF_TTL_DAYS', 'DEFAULT_DURATION', 'DEFAULT_ENGINE', 'DEFAULT_ASPECT', 'DEFAULT_LANGUAGE', 'TOPIC_MAX_CHARS']) {
+for (const name of ['ASSISTANT_LINK_PATH', 'DURATIONS', 'ADVERTISED_HANDOFF_ENGINES', 'ASPECTS', 'SCRIPT_MAX_CHARS', 'HANDOFF_TTL_DAYS', 'DEFAULT_DURATION', 'DEFAULT_ENGINE', 'DEFAULT_ASPECT', 'DEFAULT_LANGUAGE', 'TOPIC_MAX_CHARS']) {
   check(`(F1) importa ${name} da lib`, imported.includes(name))
 }
 const bloco = facts.match(/ASSISTANT_DEEP_LINK_FACT \(início\)[\s\S]*?ASSISTANT_DEEP_LINK_FACT \(fim\)/)
@@ -263,7 +268,7 @@ const blocoCode = bloco ? stripComments(bloco[0]) : ''
 check('(F2) url = `${BASE}${ASSISTANT_LINK_PATH}` (caminho importado)', /url: `\$\{BASE\}\$\{ASSISTANT_LINK_PATH\}`/.test(blocoCode))
 check('(F2) example usa ASSISTANT_LINK_PATH + DEFAULT_DURATION + DEFAULT_ENGINE', /example: `\$\{BASE\}\$\{ASSISTANT_LINK_PATH\}\?script=<urlencoded script>&duration=\$\{DEFAULT_DURATION\}&engine=\$\{DEFAULT_ENGINE\}`/.test(blocoCode))
 check('(F2) duration.values = DURATIONS', /duration: \{ required: false, values: DURATIONS, default: DEFAULT_DURATION/.test(blocoCode))
-check('(F2) engine.values = HANDOFF_ENGINES', /engine: \{ required: false, values: HANDOFF_ENGINES, default: DEFAULT_ENGINE/.test(blocoCode))
+check('(F2) engine.values = ADVERTISED_HANDOFF_ENGINES (aceito e anunciado têm contratos distintos desde 12/10)', /engine: \{ required: false, values: ADVERTISED_HANDOFF_ENGINES, default: DEFAULT_ENGINE/.test(blocoCode))
 check('(F2) aspect.values = ASPECTS', /aspect: \{ required: false, values: ASPECTS, default: DEFAULT_ASPECT \}/.test(blocoCode))
 check('(F2) script.maxChars = SCRIPT_MAX_CHARS · topic.maxChars = TOPIC_MAX_CHARS', /maxChars: SCRIPT_MAX_CHARS/.test(blocoCode) && /maxChars: TOPIC_MAX_CHARS/.test(blocoCode))
 check('(F2) linkValidDays = HANDOFF_TTL_DAYS', /linkValidDays: HANDOFF_TTL_DAYS,/.test(blocoCode))
