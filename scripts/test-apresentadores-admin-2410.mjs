@@ -24,6 +24,7 @@ async function fixture(t, { assets = false } = {}) {
   return root
 }
 const review = (catalog, action = 'approve') => ({ id: 'candidatea', action, expectedHash: catalog.hash, reviewedBy: FOUNDER, founderAcknowledgement: true, checks: Object.fromEntries(CHECKS.map(key => [key, true])) })
+async function approval(root, catalog) { catalog ??= await loadCatalog(root); return { ...review(catalog), expectedAssetHashes: (await inspectAssets(root, catalog.entries[0])).assetHashes } }
 
 test('plan prepares twelve existing-route jobs without generating', () => {
   const plan = buildPlan(Array.from({ length: 12 }, (_, i) => fixtureEntry(i)))
@@ -84,11 +85,12 @@ test('founder identity and every check are mandatory', async (t) => {
   await assert.rejects(decide(root, { ...review(catalog), reviewedBy: 'Other' }), /Joseph Skaf/)
   await assert.rejects(decide(root, { ...review(catalog), founderAcknowledgement: false }), /Joseph Skaf/)
   await assert.rejects(decide(root, { ...review(catalog), checks: { ...review(catalog).checks, voiceMatch: false } }), /todos os itens/)
+  await assert.rejects(decide(root, review(catalog)), /arquivos da prévia/)
 })
 test('approval binds actual fullbody, face and voice bytes; reject and undo are reversible', async (t) => {
   const root = await fixture(t, { assets: true })
   const before = await loadCatalog(root)
-  const approved = await decide(root, review(before))
+  const approved = await decide(root, await approval(root, before))
   const entry = approved.entries[0]
   assert.equal(entry.status, 'approved')
   assert.equal(entry.reviewedBy, FOUNDER)
@@ -115,7 +117,7 @@ test('stale decisions and concurrent lock cannot overwrite another review', asyn
 })
 test('changed audio bytes invalidate the previous approved hash', async (t) => {
   const root = await fixture(t, { assets: true })
-  const catalog = await decide(root, review(await loadCatalog(root)))
+  const catalog = await decide(root, await approval(root))
   const audioPath = join(root, 'public', 'ads', 'presenters', 'candidatea-voice.mp3')
   const bytes = await readFile(audioPath)
   bytes[bytes.length - 1] ^= 1
@@ -126,7 +128,7 @@ test('changed audio bytes invalidate the previous approved hash', async (t) => {
 })
 test('safe local import revokes approval and keeps rejected candidates rejected', async (t) => {
   const root = await fixture(t, { assets: true })
-  const approved = await decide(root, review(await loadCatalog(root)))
+  const approved = await decide(root, await approval(root))
   const source = join(sourceRoot, 'public', 'ads', 'presenters', 'sofia.webp')
   const imported = await importCandidate(root, { id: 'candidatea', source, faceSource: source })
   assert.equal(imported.entries[0].status, 'pending')
@@ -136,6 +138,33 @@ test('safe local import revokes approval and keeps rejected candidates rejected'
   const stillRejected = await importCandidate(root, { id: 'candidatea', voiceSource: join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3') })
   assert.equal(stillRejected.entries[0].status, 'rejected')
   assert.ok(approved.hash !== imported.hash)
+})
+test('pending-to-pending replacement cannot approve bytes from a stale preview even with unchanged catalog hash', async (t) => {
+  const root = await fixture(t, { assets: true })
+  const source = join(sourceRoot, 'public', 'ads', 'presenters', 'sofia.webp')
+  await importCandidate(root, { id: 'candidatea', source, faceSource: source, voiceSource: join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3') })
+  const staleCatalog = await loadCatalog(root)
+  const staleDecision = await approval(root, staleCatalog)
+  // An authorized import can change bytes while pending status, paths and all catalog fields remain identical.
+  const changedVoice = join(root, 'changed-voice.mp3')
+  const voice = await readFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3'))
+  voice[voice.length - 1] ^= 1
+  await writeFile(changedVoice, voice)
+  await importCandidate(root, { id: 'candidatea', voiceSource: changedVoice })
+  const current = await loadCatalog(root)
+  assert.equal(current.hash, staleCatalog.hash)
+  await assert.rejects(decide(root, staleDecision), /arquivos da prévia mudaram/)
+  assert.equal((await loadCatalog(root)).entries[0].status, 'pending')
+  const approved = await decide(root, await approval(root))
+  assert.equal(approved.entries[0].status, 'approved')
+  assert.notEqual(approved.entries[0].assetHashes.voiceSample, staleDecision.expectedAssetHashes.voiceSample)
+})
+test('live admin embeds only the exact safe asset hash snapshot in the approval request', () => {
+  const hashes = { portrait: 'a'.repeat(64), facePortrait: 'b'.repeat(64), voiceSample: 'c'.repeat(64) }
+  const inspected = { ready: true, assets: Object.fromEntries(Object.entries(hashes).map(([key, value]) => [key, { hash: value }])), errors: [] }
+  const html = renderAdmin([fixtureEntry(0)], { candidatea: inspected }, { token: 'local-token', catalogHash: 'd'.repeat(64), nonce: 'local-nonce' })
+  assert.ok(html.includes(`assetSnapshot=${JSON.stringify({ candidatea: hashes })}`))
+  assert.ok(html.includes('expectedAssetHashes:assetSnapshot[card.dataset.id]'))
 })
 test('import refuses env paths, malformed images and unknown candidates', async (t) => {
   const root = await fixture(t)
