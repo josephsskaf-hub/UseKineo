@@ -480,9 +480,12 @@
     "scripts/test-apresentadores-undo-2410.mjs",
     "scripts/test-apresentadores-voice-2410.mjs",
     "scripts/test-autopilot-case-study-path.mjs",
+    "scripts/test-b2c-subscription-truth-report.mjs",
     "scripts/test-cards-giro-2410.mjs",
     "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-carta-episodio-gatilho-2026-09-06.mjs",
     "scripts/test-cartoon-tracao.mjs",
+    "scripts/test-chatgpt-paste-page.mjs",
     "scripts/test-checkout-currency-truth.mjs",
     "scripts/test-client-short-brief.mjs",
     "scripts/test-clique-perdido.mjs",
@@ -496,6 +499,7 @@
     "scripts/test-compra-avulsa-undo-2410.mjs",
     "scripts/test-compra-avulsa-webhook-2410.mjs",
     "scripts/test-compra-sem-login-2026-10-06.mjs",
+    "scripts/test-consentimento-superficie.mjs",
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
     "scripts/test-credit-minutes-ui.mjs",
     "scripts/test-cta-composer-2026-09-06.mjs",
@@ -519,15 +523,23 @@
     "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
     "scripts/test-fila-global-pilula-2026-08-31.mjs",
     "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f4-1910.mjs",
     "scripts/test-first-film-free-offer.mjs",
     "scripts/test-free-limit-wall.mjs",
+    "scripts/test-go-auto-forward.mjs",
     "scripts/test-gpt-handoff-verdade.mjs",
+    "scripts/test-growth-candidate-2026-09-01.mjs",
     "scripts/test-growth-roundup-search-intent.mjs",
+    "scripts/test-growth-space-intent.mjs",
+    "scripts/test-guardiao-2026-08-28.mjs",
+    "scripts/test-guardiao-yaml-2026-09-03.mjs",
     "scripts/test-history-second-video-milestone.mjs",
     "scripts/test-home-curation-restore.mjs",
     "scripts/test-home-welcome-goal-router.mjs",
     "scripts/test-hora-da-volta-2026-08-31.mjs",
     "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-imagem-para-video-2026-09-25.mjs",
+    "scripts/test-interface-16-linguas-2026-09-21.mjs",
     "scripts/test-kids-venda-2010.mjs",
     "scripts/test-kit-bf-1910.mjs",
     "scripts/test-kit-bf-venda-2010.mjs",
@@ -536,6 +548,7 @@
     "scripts/test-llms-affiliate-source.mjs",
     "scripts/test-llms-engine-availability.mjs",
     "scripts/test-local-business-tool-discovery.mjs",
+    "scripts/test-locale-readiness.mjs",
     "scripts/test-manrope-system.mjs",
     "scripts/test-marcador-da-casa.mjs",
     "scripts/test-mcp-claude-2026-09-29.mjs",
@@ -577,8 +590,12 @@
     "scripts/test-scene-disposition.mjs",
     "scripts/test-script-preflight.mjs",
     "scripts/test-season-strip.mjs",
+    "scripts/test-segunda-tentativa-1usd.mjs",
     "scripts/test-sem-porteiro-2026-09-02.mjs",
+    "scripts/test-serie-memoria-2026-09-04.mjs",
+    "scripts/test-showcase-2026-10-02.mjs",
     "scripts/test-signup-product-destination.mjs",
+    "scripts/test-silencio-na-cena-2026-09-11.mjs",
     "scripts/test-sistema-de-compra-2026-09-08.mjs",
     "scripts/test-stranded-extra-attempt-4xx.mjs",
     "scripts/test-studio-hierarchy-runtime.mjs",
@@ -1567,14 +1584,23 @@
     "scripts/test-autopilot-case-study-path.mjs": {
       "hash": "2c5a42107dff2f5d9be763951c16a0d465521f8c3e9f6697b39491e81492e6c2"
     },
+    "scripts/test-b2c-subscription-truth-report.mjs": {
+      "hash": "770d78be7857b9c9c2832e0b081edee894ff43dff0325ce127efeb9b21a91feb"
+    },
     "scripts/test-cards-giro-2410.mjs": {
       "hash": "33d0472ee175800accc6c49284c854e44d3f0a610e6f6ca8f433bcb2f04e6809"
     },
     "scripts/test-cards-giro-undo-2410.mjs": {
       "hash": "c7a2cde60877f609a6424350cf500d4d2e975039bbbf5389fe7ca6c7cda295d4"
     },
+    "scripts/test-carta-episodio-gatilho-2026-09-06.mjs": {
+      "hash": "f466ec0f77255bd5d24c5816a06ddf5db4ea7a950255f996fd6c39c8c9d482cc"
+    },
     "scripts/test-cartoon-tracao.mjs": {
       "hash": "210dd0be3ff75e545c31c92501be00f149066d7632ee6709367bd39e5890758f"
+    },
+    "scripts/test-chatgpt-paste-page.mjs": {
+      "hash": "9c1504ce9213c7b12da284d78ef957996f7abd7b9e63e69e7e87d895008a6f9e"
     },
     "scripts/test-checkout-currency-truth.mjs": {
       "hash": "3443d62e8e3c566c6b2fef3503a8b2510ec9145637a7abd8f470876f375878b0"
@@ -1614,6 +1640,9 @@
     },
     "scripts/test-compra-sem-login-2026-10-06.mjs": {
       "hash": "650647296fa70bbe410e39bdba69b4d953acddab6261bfd5b9b3e092c525dc9b"
+    },
+    "scripts/test-consentimento-superficie.mjs": {
+      "hash": "c989a1d9df5017dad4bc3cc6053d6e409a8ed1d80a2091fe911e0efdc2978085"
     },
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs": {
       "hash": "e78365e5073a3484fb553623294fd05fa9ae708ea835db77a5d7465ba205ef3a"
@@ -1684,17 +1713,35 @@
     "scripts/test-filmes-f1-virgula-1910.mjs": {
       "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
     },
+    "scripts/test-filmes-f1f4-1910.mjs": {
+      "hash": "3b2fc57dfd9c3816234870cb197ac048dc7ea1771ea8cd178e5b6730163cd579"
+    },
     "scripts/test-first-film-free-offer.mjs": {
       "hash": "b38a7e9720ffc4646923036b88bb4134bd2c09cc8cf3f2510154befbd49bf709"
     },
     "scripts/test-free-limit-wall.mjs": {
       "hash": "3e44df7b44b5cc03850ac307a490d70d2fbedc9a9adc26a6268ba06fced06ea2"
     },
+    "scripts/test-go-auto-forward.mjs": {
+      "hash": "737d43f192a5277c3d916eb3ed654a4b6a7e1ffd80284df04cc78763f3b1b2f1"
+    },
     "scripts/test-gpt-handoff-verdade.mjs": {
       "hash": "e31778c2fe127348d7ae60798036d63e1e42af92c7b788c0c4fa52d0f6e0b26d"
     },
+    "scripts/test-growth-candidate-2026-09-01.mjs": {
+      "hash": "48b39ff09367f23c7e1a8ce18ffaa1d52152c5f2ae8805f67d024dd49cf8285c"
+    },
     "scripts/test-growth-roundup-search-intent.mjs": {
       "hash": "c36ba304d2a5b8c059049bade7d40f96dd6208be822efc483886f774f0e933cc"
+    },
+    "scripts/test-growth-space-intent.mjs": {
+      "hash": "02d9e80dafc1266a08c10e8d8b7d36accecd5063a1c0d4baf1cdfd3537ca7eec"
+    },
+    "scripts/test-guardiao-2026-08-28.mjs": {
+      "hash": "bf0169120d0126993aed05e56d97f2b516a7ddc3305dba668bd1e5aebefc4eb6"
+    },
+    "scripts/test-guardiao-yaml-2026-09-03.mjs": {
+      "hash": "ce6da436225ec3bb3141d2b55f3e504ba10e6a9a52cc04ae9eb18a84e77491f2"
     },
     "scripts/test-history-second-video-milestone.mjs": {
       "hash": "810ca52107c9652b34209aca53a1f41aac4bfa1affb6910ad960c888c5d47ca5"
@@ -1710,6 +1757,12 @@
     },
     "scripts/test-idiomas-formatos-undo-2410.mjs": {
       "hash": "9c239409e4b261080033b4f7de281b2357909d1480e0b34040c4577437301cc2"
+    },
+    "scripts/test-imagem-para-video-2026-09-25.mjs": {
+      "hash": "a171eab3f7100ebffaef969bd61ca2e80368e4cfd05d2afe0f0e816b8f87b0fd"
+    },
+    "scripts/test-interface-16-linguas-2026-09-21.mjs": {
+      "hash": "d75d1e46cd57b596640e4aef52ebc921ee5d099a5bcc9a3b4b20b8732a992955"
     },
     "scripts/test-kids-venda-2010.mjs": {
       "hash": "fc515a4c6f3957ac638357c11d2dc8c0d042d4b4c7c05e37f43498aa909ee92b"
@@ -1734,6 +1787,9 @@
     },
     "scripts/test-local-business-tool-discovery.mjs": {
       "hash": "c8175aa64ddfb635d7f6a375f9428542c2efd097f19cc52aac34baee07522bfe"
+    },
+    "scripts/test-locale-readiness.mjs": {
+      "hash": "7ae31524204c73c43ebfb5c031e386ba04d69e11216b1f78e801c80e5d2ad197"
     },
     "scripts/test-manrope-system.mjs": {
       "hash": "aacf743785fb92bfc5b6ef44fd8d69862a3fee5536d564d45ec00a5e314ac50d"
@@ -1858,11 +1914,23 @@
     "scripts/test-season-strip.mjs": {
       "hash": "f3657557864e9666f482fbbab82939c301e697fef69b69582dadc871bc89a307"
     },
+    "scripts/test-segunda-tentativa-1usd.mjs": {
+      "hash": "f0e2387769ffbb44e83872df5e6116057a9a63fe8847938ad1c30b43cd52997e"
+    },
     "scripts/test-sem-porteiro-2026-09-02.mjs": {
       "hash": "a230b990942f16b0614d2dea58af7b4726d927b4c69c5a147a354606989411bb"
     },
+    "scripts/test-serie-memoria-2026-09-04.mjs": {
+      "hash": "6113d8d3db0852bb8505b4bb7e4c568f1dd58c661927bc124c4a6779ab74314e"
+    },
+    "scripts/test-showcase-2026-10-02.mjs": {
+      "hash": "f2747b14a12cc48cfeb57da3ab5294a6ea66de757fd7b32666ad0ade2237eb35"
+    },
     "scripts/test-signup-product-destination.mjs": {
       "hash": "29f3532a1210769d8b76b28b555fba6de563b168fc3ce8a31d4c7cec793189d8"
+    },
+    "scripts/test-silencio-na-cena-2026-09-11.mjs": {
+      "hash": "0b68902b8d6a91ebfa90f139b2a9876c8ebe4fdf8fb47d62808a774cbe52acff"
     },
     "scripts/test-sistema-de-compra-2026-09-08.mjs": {
       "hash": "0eb7cc129cd320e3bb4607e4edf41032b535cc7cafa52fba38a444863078e249"
