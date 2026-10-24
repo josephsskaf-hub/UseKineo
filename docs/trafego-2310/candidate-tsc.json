@@ -1,0 +1,7 @@
+{
+  "node": "24.18.0",
+  "sha": "09a4047f",
+  "exit": 0,
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "compiler": "TypeScript 5.9.3"
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "file": "test-admin-leve-2310.mjs",
+    "args": [
+      "--mutants"
+    ],
+    "exit": 0,
+    "tail": "Positive control after exact undo passed.\nKINEO-ADMIN-LEVE-2310: 102 passed, 0 failed."
+  },
+  {
+    "file": "test-roteiro-curto-sem-falha-2210.mjs",
+    "args": [
+      "--mutants"
+    ],
+    "exit": 0,
+    "tail": "Disk mutants: 10/10 rejected; exact Buffer undo verified.\nPositive control after undo: KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22: 90 passed, 0 failed."
+  }
+]
