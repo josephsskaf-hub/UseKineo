@@ -42,7 +42,7 @@ ok(shell.includes('faqJsonLd(faqs)') && shell.includes('{faqs.map('), 'FAQ JSON-
 // Superfícies: sitemap, llms.txt, rodapé.
 ok(read('app/sitemap.ts').includes('...Object.values(HUB_PAGES).map('), 'sitemap lists every hub page')
 const llms = read('app/llms.txt/route.ts')
-ok(llms.includes('# Kineo (usekineo.com)'), 'llms.txt H1 carries the domain')
+ok(llms.includes('return `# Kineo —') && llms.includes('const BASE = PRODUCT.url') && read('lib/kineoFacts.ts').includes('url: BASE,') && read('lib/comparisons.ts').includes("export const BASE = 'https://www.usekineo.com'"), 'llms.txt names Kineo and uses the canonical first-party domain')
 ok(llms.includes('Not the same company as Kineo Studio (kineo.studio)'), 'llms.txt disambiguates kineo.studio')
 ok(llms.includes('Object.values(HUB_PAGES)'), 'llms.txt links the hub pages')
 const footer = read('components/Footer.tsx')

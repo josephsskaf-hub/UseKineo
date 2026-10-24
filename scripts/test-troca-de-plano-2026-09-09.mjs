@@ -44,7 +44,7 @@ console.log('== o webhook ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
 const iCreate = wh.indexOf("if (billingReason === 'subscription_create') break")
 const iUpdate = wh.indexOf("if (billingReason === 'subscription_update') {")
-const iGrant = wh.indexOf('const renewalCredits = renewalCreditsFor(')
+const iGrant = wh.indexOf('const renewalCredits = renewalCreditsForInvoice(')
 checa('fatura de proration (subscription_update) sai ANTES do grant de renovação', iCreate > 0 && iUpdate > iCreate && iGrant > iUpdate)
 checa('proration deixa rastro (subscription_update_invoice_paid)', /name: 'subscription_update_invoice_paid'/.test(wh))
 

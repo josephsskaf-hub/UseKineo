@@ -71,7 +71,7 @@ try {
     handoff.carryCreationHandoff(publicQuery, authDestination)
     const activation = handoff.resolveActivationCreationContract(authDestination)
     equal(activation.scriptMode, mode.scriptMode, `${mode.id}: mode survives signup`)
-    equal(activation.duration, mode.duration, `${mode.id}: duration survives signup`)
+    equal(activation.duration, mode.duration === 45 ? 35 : mode.duration, `${mode.id}: signup preserves canonical duration and repairs the retired 45-second target`)
     equal(activation.structureFirst, mode.scriptMode === 'ai', `${mode.id}: writer policy matches the choice`)
   }
 

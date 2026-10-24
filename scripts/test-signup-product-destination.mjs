@@ -148,7 +148,8 @@ ok(signup.includes("import { buildSignupProductDestinationPreview } from '@/lib/
 ok(/buildSignupProductDestinationPreview\(params\.get\('redirect'\)(?:, \{ portuguese \})?\)/.test(signup), 'real signup derives proof from the validated redirect field')
 ok(signup.includes('if (isCheckoutResume) return null'), 'checkout resume suppresses product proof')
 ok(signup.indexOf("? 'Create your account to continue'") < signup.indexOf(': savedProductDestination'), 'checkout heading keeps first priority')
-ok(signup.indexOf(': savedProductDestination') < signup.indexOf(': savedCreation'), 'product destination is named before generic creation copy')
+const destinationHeading = [...signup.matchAll(/<h1[\s\S]*?<\/h1>/g)].map(match => match[0]).find(heading => heading.includes('savedProductDestination.heading'))
+ok(Boolean(destinationHeading) && destinationHeading.indexOf('savedProductDestination') < destinationHeading.indexOf('savedCreation'), 'actual product destination heading has priority over generic creation copy')
 ok(signup.includes('aria-labelledby="saved-product-destination-heading"'), 'destination proof has an accessible heading')
 ok(signup.includes('{savedProductDestination.destinationLabel}'), 'fixed destination label is rendered')
 ok(signup.includes('{savedProductDestination.description}'), 'fixed continuation contract is rendered')
@@ -165,7 +166,7 @@ ok(helper.includes('PRODUCT_SURFACE_DESTINATIONS'), 'preview matches the same de
 ok(helper.includes('ENGINE_LANDING_PARAMS'), 'preview recognizes the same engine enum used by engine landing pages')
 ok(helper.includes('ENGINE_LANDING_LABELS'), 'preview names engines from the engine landing source')
 
-equal(engineIntent.ENGINE_LANDING_PARAMS.length, 7, 'all seven engine landing params execute')
+equal(engineIntent.ENGINE_LANDING_PARAMS, ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25'], 'all nine approved engine landing params execute')
 const enginePage = source('lib/growth/enginePageCatalog.ts')
 for (const engine of engineIntent.ENGINE_LANDING_PARAMS) {
   const campaign = `test_${engine}`
