@@ -5,6 +5,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getOneTimeItem, isOneTimeItemId, oneTimeItemOrderId } from '@/lib/oneTimeItem'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 const headers = { 'Cache-Control': 'private, no-store, max-age=0' }
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('session_id') ?? ''

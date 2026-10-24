@@ -10,6 +10,7 @@ import { adminGraphql, shopifyAdmin, validAccessToken } from '@/lib/shopify/serv
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 const PRODUCTS_QUERY = `query KineoProducts($first: Int!, $after: String, $query: String) {
   products(first: $first, after: $after, query: $query, sortKey: UPDATED_AT, reverse: true) {
