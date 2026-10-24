@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import vm from 'node:vm'
 import assert from 'node:assert/strict'
+import {execFileSync} from 'node:child_process'
 import ts from 'typescript'
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
@@ -11,7 +12,30 @@ const ok=(v,m)=>{assert.ok(v,m);checks++},eq=(a,b,m)=>{assert.deepEqual(a,b,m);c
 function pure(file){const exports={};vm.runInNewContext(ts.transpileModule(source(file),{compilerOptions:{module:1,target:9}}).outputText,{exports});return exports}
 const {INTERFACE_HI:hi,canonicalCopyHindi}=pure('lib/ui/interfaceHindi.ts')
 const {parseInterfaceLanguage}=pure('lib/ui/interfaceLanguage.ts')
-for(const key of Object.keys(pure('lib/ui/interfaceLabels.ts').INTERFACE_ES))ok(hi[key],'Hindi covers existing UiLabel dictionary: '+key)
+// Preserve the original complete Hindi proof. Later approved pricing/FAQ copy
+// has six untranslated labels; freeze that exact main state and execute the
+// explicit English fallback, rather than inventing translations in integration.
+const gitSource=(ref,file)=>execFileSync('git',['show',`${ref}:${file}`],{encoding:'utf8',maxBuffer:32*1024*1024}).replace(/\r\n/g,'\n')
+const pureText=text=>{const exports={};vm.runInNewContext(ts.transpileModule(text,{compilerOptions:{module:1,target:9}}).outputText,{exports});return exports}
+const originalHindi=pureText(gitSource('b9b49729','lib/ui/interfaceHindi.ts')).INTERFACE_HI
+const originalSpanish=pureText(gitSource('b9b49729','lib/ui/interfaceLabels.ts')).INTERFACE_ES
+for(const key of Object.keys(originalSpanish))ok(originalHindi[key],'original Hindi covers original UiLabel dictionary: '+key)
+const approvedMissing=[
+ 'Any video engine — premium engines use more credits per film',
+ '500 projects · your films stay in your library',
+ 'Unlimited projects · your films stay in your library',
+ '20% off your first month · then',
+ '/first month',
+ 'None. You type one idea and the AI writes the script, records the voice, generates every scene and adds captions.',
+]
+for(const file of ['lib/ui/interfaceHindi.ts','lib/ui/interfaceLabels.ts'])eq(source(file).replace(/\r\n/g,'\n'),gitSource('3ec6c9d9b',file),'approved current dictionary exact '+file)
+eq(Object.keys(pure('lib/ui/interfaceLabels.ts').INTERFACE_ES).filter(key=>!hi[key]).sort(),approvedMissing.slice().sort(),'only the six approved main labels use fallback')
+const component=source('components/InterfaceLanguage.tsx'),componentAst=ts.createSourceFile('InterfaceLanguage.tsx',component,99,true,4)
+const realUiText=componentAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='UiText')?.getText(componentAst)
+ok(realUiText,'real UiText can be executed')
+const uiExports={}
+vm.runInNewContext(ts.transpileModule(realUiText+'\nexports.UiText=UiText',{compilerOptions:{module:1,target:9,jsx:2}}).outputText,{exports:uiExports,React,InterfaceLanguageContext:{},useContext:()=>({language:'hi',dict:null}),hindiInterfaceCopy:text=>hi[text]??canonicalCopyHindi(text),KineoBoltText:({children})=>children})
+for(const key of approvedMissing){const html=renderToStaticMarkup(React.createElement(uiExports.UiText,{es:'fixture Spanish'},key));ok(html.includes('lang="en"'),'untranslated approved label is marked English');ok(html.includes(key.replace(/&/g,'&amp;')),'fallback preserves authored claim verbatim')}
 for(const l of ['en','es','hi'])eq(parseInterfaceLanguage(l),l,'explicit locale accepted')
 for(const v of ['xx','pt-BR','HI','in',null,'<script>'])/* KINEO-INTERFACE-16-LINGUAS-2026-09-21: 'pt' virou língua da interface */eq(parseInterfaceLanguage(v),'en','unknown locale never geoguessed')
 for(const [en,translated] of Object.entries(hi)){
@@ -34,23 +58,34 @@ const libraryResetAfter="onClick={() => { setQ(''); organization.setFavoritesOnl
 // retain the historical baseline for every other handler, gate and media source.
 const historyReanchors=new Map([
  ["onClick={() => setQuery('')}","onClick={() => { setQuery(''); organization.setFavoritesOnly(false); setFormat('all') }}"],
- ['src={enhUrls[v.id] ?? v.video_url}','src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}'],
+ ['src={enhUrls[v.id] ?? v.video_url}','src={src}'],
  ['src={enhUrls[video.id] ?? video.video_url}','src={filmSource(video.video_url, enhUrls[video.id], fileVersions[video.id])!}'],
+])
+const studioReanchors=new Map([
+ ['disabled={!prompt.trim() || limit.over}','disabled={!prompt.trim() || limit.over || linkOnlyInput}'],
+ ['onChange={(e) => setPrompt(e.target.value)}','onChange={(e) => { setPrompt(e.target.value); if (isStandaloneHttpUrl(e.target.value)) setChatGptQuickstart(null) }}'],
 ])
 function handlers(code) {
  const a=ts.createSourceFile('component.tsx',code,99,true,4),out=[]
- function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src','poster'].includes(n.name.getText(a)))out.push(n.getText(a).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}
+ function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src','poster','onDownload','onClose','downloading'].includes(n.name.getText(a)))out.push(n.getText(a).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}
  walk(a);return out.sort()
 }
 function missingHandlers(file,code) {
  const now=handlers(code)
- const base=handlers(source(file,true,'6f6eca73')).map(h=>{
+ const base=file===historyFile?handlers(source(file,true,'3ec6c9d9b')):handlers(source(file,true,'6f6eca73')).map(h=>{
   if(file===historyFile)return historyReanchors.get(h)??h
   if(file===libraryFile)return h===libraryResetBefore?libraryResetAfter:h.replace('completed_video_count: vids.length','completed_video_count: completedCount')
+  if(file==='app/(dashboard)/studio/StudioClient.tsx')return studioReanchors.get(h)??h
   return h
  })
  return base.filter(h=>!now.includes(h))
 }
+// The Essential preview extracted the old modal into FilmPreviewDialog. Keep
+// the prior full handler proof on its immutable approved source, and pin the
+// current wrapper and consumer while checking their actual props below.
+const oldHistoryHandlers=handlers(source(historyFile,true,'6f6eca73')).map(h=>h==='src={enhUrls[v.id] ?? v.video_url}'?'src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}':historyReanchors.get(h)??h)
+eq(oldHistoryHandlers.filter(h=>!handlers(source(historyFile,true,'221a59ba')).includes(h)),[],'original complete History wiring survives in its approved pre-extraction fixture')
+for(const file of [historyFile,'components/FilmPreviewDialog.tsx','app/(dashboard)/studio/StudioClient.tsx'])eq(source(file).replace(/\r\n/g,'\n'),gitSource('3ec6c9d9b',file),'approved current wrapper full source '+file)
 for(const file of ['app/(dashboard)/history/HistoryClient.tsx','app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/library/LibraryClient.tsx','app/tools/editor/VideoEditor.tsx']) {
  // KINEO-TRES-MODOS-2026-09-11 — acréscimo aprovado no Studio (modo clipe): a trava exige que todo handler da base continue presente; remoção/mudança segue reprovando.
  // The approved unified Library includes unfinished projects. Its completed
@@ -89,7 +124,13 @@ ok(libraryResetWorks(libraryResetExpression),'Library reset clears query and fav
 for(const call of ["setQ('');",'organization.setFavoritesOnly(false)'])ok(!libraryResetWorks(libraryResetExpression.replace(call,'')),'Library reset mutant rejected: '+call)
 ok(missingHandlers(libraryFile,libraryCode.replace(libraryResetAfter,'onClick={() => {}}')).length>0,'guard rejects disconnected Library reset')
 const {filmSource}=pure('lib/ui/deliveryRefinement.ts')
-const mediaExpressions=[...historyReanchors.values()].filter(v=>v.startsWith('src=')).map(attribute=>jsxExpression(attribute))
+const mediaExpressions=[...historyReanchors.values()].filter(v=>v.startsWith('src=')).map(attribute=>{
+ const expression=jsxExpression(attribute)
+ if(expression!=='src')return expression
+ let initializer
+ function walk(n){if(ts.isVariableDeclaration(n)&&n.name.getText(historyAst)==='src'&&n.initializer?.getText(historyAst).includes('filmSource(v.video_url'))initializer=n.initializer.getText(historyAst);ts.forEachChild(n,walk)}
+ walk(historyAst);ok(initializer,'real Essential preview src uses the version selector');return initializer
+})
 function mediaWorks(select) {
  for(const expression of mediaExpressions)for(const choice of [undefined,'original','enhanced'])for(const enhanced of [undefined,'enhanced.mp4']) {
   const film={id:'chosen-film',video_url:'original.mp4'}
@@ -161,13 +202,33 @@ for(const language of ['en','es','hi']){
  ok(opened.includes('aria-label="Private sharing notice"'),'secondary privacy information remains reachable')
 }
 // Use the literal from the actual production component, not a copy of its CSS.
+function cssConstant(file,names,target){
+ const ast=ts.createSourceFile(file,source(file),99,true,4),pieces=[]
+ for(const st of ast.statements)if(ts.isVariableStatement(st))for(const d of st.declarationList.declarations)if(names.includes(d.name.getText(ast)))pieces.push('const '+d.getText(ast))
+ ok(pieces.length===names.length,'all actual CSS constants found '+file)
+ return execute(pieces.join('\n')+'\nexports.css='+target).css
+}
+function actualCss(expression,ast){
+ if(ts.isNoSubstitutionTemplateLiteral(expression))return expression.text
+ if(!ts.isIdentifier(expression))return null
+ if(expression.text==='STUDIO_LAYOUT_CSS')return cssConstant('app/(dashboard)/studio/StudioClient.tsx',['STUDIO_LAYOUT_CSS'],'STUDIO_LAYOUT_CSS')
+ if(expression.text==='STAGE_CSS')return cssConstant('app/(dashboard)/studio/StudioClient.tsx',['STAGE_TINT','STAGE_CSS'],'STAGE_CSS')
+ if(expression.text==='STUDIO_KIT_CSS'){
+  const workspace=cssConstant('lib/ui/workspacePresentation.ts',['WORKSPACE_PRESENTATION_CSS'],'WORKSPACE_PRESENTATION_CSS')
+  const kitAst=ts.createSourceFile('studioKit.tsx',source('components/studioKit.tsx'),99,true,4)
+  const decl=kitAst.statements.filter(ts.isVariableStatement).flatMap(st=>[...st.declarationList.declarations]).find(d=>d.name.getText(kitAst)==='STUDIO_KIT_CSS')
+  ok(decl,'actual shared Studio CSS declaration found')
+  return execute('const '+decl.getText(kitAst)+'\nexports.css=STUDIO_KIT_CSS',{WORKSPACE_PRESENTATION_CSS:workspace}).css
+ }
+ return null
+}
 for(const file of ['components/MobileNav.tsx','app/(dashboard)/studio/StudioClient.tsx']){
  const a=ts.createSourceFile(file,source(file),99,true,4),styles=[]
  function walk(n){if(ts.isJsxSelfClosingElement(n)&&n.tagName.getText(a)==='style'){
   const attr=n.attributes.properties.find(p=>ts.isJsxAttribute(p)&&p.name.text==='dangerouslySetInnerHTML')
   const obj=attr?.initializer?.expression
   const css=obj&&ts.isObjectLiteralExpression(obj)?obj.properties.find(p=>p.name?.getText(a)==='__html')?.initializer:null
-  if(css&&ts.isNoSubstitutionTemplateLiteral(css))styles.push(css.text)
+  if(css){const value=actualCss(css,a);ok(typeof value==='string','every real raw style resolves to actual constant '+file);if(typeof value==='string')styles.push(value)}
  }ts.forEachChild(n,walk)}walk(a)
  ok(styles.length>=1,'actual static raw CSS found '+file)
  for(const css of styles){

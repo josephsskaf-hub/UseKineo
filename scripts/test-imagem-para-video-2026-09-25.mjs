@@ -191,12 +191,14 @@ while (cond && !ts.isConditionalExpression(cond)) cond = cond.parent
 ok(!!cond && cond.condition.getText(imagesSf) === 'it.id', 'o link com id só existe quando a imagem tem linha no banco (senão, /animate genérico)')
 const label = opening?.parent && ts.isJsxElement(opening.parent) ? opening.parent.children.map((c) => c.getText(imagesSf)).join('') : ''
 const labelText = (label.match(/<UiLabel>([^<]+)<\/UiLabel>/) ?? [])[1] ?? ''
-ok(labelText === '🎬 Turn into video', `rótulo = "${labelText}"`)
+ok(labelText === 'Turn into video' && /<ControlIcon name="film"\s*\/>/.test(label), `rótulo e ícone de filme = "${labelText}"`)
 ok(labelText && !/\d/.test(labelText) && !/film/i.test(labelText), 'rótulo não digita crédito nem promete filme')
 ok(imagesSrc.includes("import { trackEvent } from '@/lib/analytics'"), 'ImagesClient importa trackEvent')
 const dict = (file, name) => { const box = { exports: {} }; vm.runInNewContext(ts.transpileModule(read(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, { exports: box.exports }); return box.exports[name] }
-const es = dict('lib/ui/interfaceLabels.ts', 'INTERFACE_ES')['🎬 Turn into video']
-const hi = dict('lib/ui/interfaceHindi.ts', 'INTERFACE_HI')['🎬 Turn into video']
+const refinements = JSON.parse(read('lib/ui/refinementCopy.json'))
+const es = dict('lib/ui/interfaceLabels.ts', 'INTERFACE_ES')[labelText] ?? refinements.es?.[labelText]
+const hi = dict('lib/ui/interfaceHindi.ts', 'INTERFACE_HI')[labelText] ?? refinements.hi?.[labelText]
+ok(read('components/InterfaceLanguage.tsx').includes("?? refinedCopy('hi', normalized)") && read('components/InterfaceLanguage.tsx').includes("?? refinedCopy('es', normalized)"), 'as traduções atuais são ligadas pelo mesmo fallback de UiLabel')
 ok(typeof es === 'string' && es.trim() && !/\d/.test(es) && !/pel[ií]cula/i.test(es), `es: "${es}"`)
 ok(typeof hi === 'string' && hi.trim() && !/\d/.test(hi), `hi: "${hi}"`)
 

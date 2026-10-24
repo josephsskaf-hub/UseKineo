@@ -17,8 +17,9 @@
 // import antes da primeira verificação (lição registrada em memória).
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = path.resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))
+const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 
 let pass = 0

@@ -7,10 +7,12 @@ import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
 const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const original = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
 function roda(src, req = {}) {
@@ -33,13 +35,23 @@ checa('es e hi seguem no bundle (BUNDLED_INTERFACE_LANGUAGES)', JSON.stringify(L
 
 console.log('2) os 13 dicionários cobrem o corpus vivo')
 const keysOf = (src) => [...src.matchAll(/^ {2}'((?:[^'\\]|\\.)*)':/gm)].map((m) => m[1].replace(/\\'/g, "'"))
-const corpus = new Set([...keysOf(rd('lib/ui/interfaceHindi.ts')), ...keysOf(rd('lib/ui/interfaceLabels.ts'))])
+// As tabelas de 21/09 preservam frases que a cópia posterior já retirou dos dois
+// bundles. Conservar o corpus original e aceitar somente UiLabel literal real.
+const corpus = new Set(['lib/ui/interfaceHindi.ts', 'lib/ui/interfaceLabels.ts'].flatMap(p => [...keysOf(rd(p)), ...keysOf(original('e45d2c78c9f905dcaed2467a6c52d1c2b83f5fc1', p))]))
+const studioPath = 'app/(dashboard)/studio/StudioClient.tsx'
+const studioAst = ts.createSourceFile(studioPath, rd(studioPath), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+function authoredLabels(n) {
+  if (ts.isJsxElement(n) && n.openingElement.tagName.getText(studioAst) === 'UiLabel' && n.children.length === 1 && ts.isJsxText(n.children[0])) corpus.add(n.children[0].text.trim())
+  ts.forEachChild(n, authoredLabels)
+}
+authoredLabels(studioAst)
 const dicts = {}
 for (const code of NOVAS) {
   const p = `lib/ui/interface/${code}.ts`
   checa(`${code}: arquivo existe`, existsSync(join(root, p)))
   if (!existsSync(join(root, p))) continue
   const src = rd(p)
+  checa(`${code}: tabela inteira é a versão aprovada da main`, src === original('3ec6c9d9b', p))
   const D = roda(src).DICT
   dicts[code] = D
   const keys = Object.keys(D)
@@ -63,7 +75,7 @@ console.log('4) o componente')
 const comp = rd('components/InterfaceLanguage.tsx')
 checa('contexto expõe dict e carrega quando a língua muda', comp.includes('const [dict, setDict] = useState<InterfaceDictionary | null>(null)') && comp.includes('const p = loadInterfaceDictionary(language)'))
 checa('tradução: es → INTERFACE_ES, hi → INTERFACE_HI, novas → dict; frase desconhecida devolve undefined (inglês)', comp.includes(": dict?.[normalized]") && comp.includes("language === 'es' ? (INTERFACE_ES[normalized] ?? canonicalCopySpanish(normalized))") && comp.includes('return translated === undefined ? undefined :'))
-checa('UiText marca lang da língua escolhida só quando traduziu; senão lang="en"', comp.includes("return <span lang={translated === undefined ? 'en' : language} style={{ all: 'unset' }}>{translated ?? children}</span>"))
+checa('UiText marca lang da língua escolhida só quando traduziu; senão lang="en"; ícone preserva o texto', comp.includes("return <span lang={translated === undefined ? 'en' : language} style={{ all: 'unset' }}><KineoBoltText>{translated ?? children}</KineoBoltText></span>"))
 checa('<html dir> segue a língua (rtl para ar/ur)', comp.includes("document.documentElement.dir = interfaceLanguageIsRtl(language) ? 'rtl' : 'ltr'"))
 checa('seletor lista as 16 do catálogo (não uma lista digitada)', comp.includes('{INTERFACE_LANGUAGE_OPTIONS.map((o) => (') && !comp.includes('<option value="es" lang="es">Español</option>'))
 checa('useUiCopy: es continua honrando o texto inline; as novas vão pelo dicionário', comp.includes("if (language === 'es' && es !== undefined) return es") && comp.includes('return translateAuthoredCopy(language, dict, en) ?? en'))
