@@ -90,7 +90,7 @@ equal(verbatimOpeningLine('<b>Create</b> a short'), '<b>Create</b> a short', 'de
 const client = read('app/(dashboard)/generate/GenerateClient.tsx')
 const iAnalyze = client.indexOf('async function handleAnalyze(')
 ok(iAnalyze > 0, 'handleAnalyze existe')
-const iLeitura = client.indexOf('const leituraColada = readPastedDirectives(expandBaseRef.current)', iAnalyze)
+const iLeitura = client.indexOf('const leituraColada = readPastedDirectives(expandBaseRef.current, opcoesDeDuracao.map((o) => o.value))', iAnalyze)
 ok(iLeitura > iAnalyze, 'o detector da analise (readPastedDirectives) roda dentro de handleAnalyze')
 const iChecagem = client.indexOf('const baseChecagem = expandBaseRef.current', iLeitura)
 ok(iChecagem > iLeitura, 'o espelho verbatim vem depois do detector')
@@ -141,7 +141,7 @@ ok(!corpoIf.includes("setScriptMode('ai')"), 'a analise NAO troca o modo sozinha
 // o resto de handleAnalyze segue lendo o MESMO scriptMode (os guardioes
 // vizinhos test-script-preflight e test-chatgpt-script-handoff prendem isto)
 ok(client.slice(iChecagem, iChecagem + 200).includes("if (scriptMode === 'verbatim' && baseChecagem)"), 'espelho de roteiro longo intacto')
-ok(client.includes('JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode })'), '/api/analyze-idea recebe o scriptMode como antes')
+ok(client.includes('JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode: opts?.scriptModeOverride ?? scriptMode })'), '/api/analyze-idea recebe o scriptMode como antes')
 
 // ─── 3. O one-click do Studio nao gasta por cima do aviso ───────────────────
 const iEfeito = client.indexOf("if (phase !== 'options' || studioOneClickFiredRef.current) return")
@@ -161,8 +161,16 @@ ok(bloqueio.trimEnd().endsWith('return'), 'hold devolve sem disparar o render')
 // ─── 4. A UI: primeira linha entre aspas + saida de um clique ───────────────
 const iDetalhe = client.indexOf('function renderVerbatimOrderDetails()')
 ok(iDetalhe > 0, 'o pedaco decisivo do aviso vive num lugar so (renderVerbatimOrderDetails)')
-const iDetalheFim = client.indexOf('// KINEO-STUDIO-CORTINA-2026-08-17', iDetalhe)
-ok(iDetalheFim > iDetalhe, 'o bloco termina antes da cortina do Studio')
+// Parse the actual function boundary: later UI helpers before the old curtain marker may legitimately render trusted CSS.
+const clientAst = ts.createSourceFile('GenerateClient.tsx', client, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+let detalheFunction
+function findDetails(node) {
+  if (ts.isFunctionDeclaration(node) && node.name?.text === 'renderVerbatimOrderDetails') detalheFunction = node
+  ts.forEachChild(node, findDetails)
+}
+findDetails(clientAst)
+const iDetalheFim = detalheFunction?.end ?? -1
+ok(iDetalheFim > iDetalhe, 'o bloco termina na funcao real do aviso')
 const detalhe = client.slice(iDetalhe, iDetalheFim)
 ok(!detalhe.includes('dangerouslySetInnerHTML'), 'a frase colada NUNCA vira HTML')
 ok(detalhe.includes("if (scriptMode !== 'verbatim') return null"), 'o pedaco decisivo so existe em verbatim (em ai a frase seria falsa)')
