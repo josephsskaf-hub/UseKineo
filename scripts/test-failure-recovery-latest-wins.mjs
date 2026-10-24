@@ -7,12 +7,17 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 const R = join(dirname(fileURLToPath(import.meta.url)), '..')
-const src = readFileSync(join(R, 'app/api/cron/send-failure-recovery/route.ts'), 'utf8')
+const src = readFileSync(join(R, 'app/api/cron/send-failure-recovery/route.ts'), 'utf8').replace(/\r\n/g, '\n')
+const ts = createRequire(join(R, 'package.json'))('typescript')
+const compile = code => ts.transpileModule(code, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText
 let ok = 0, bad = 0
 const t = (name, cond) => { if (cond) { ok++; console.log('  ✓', name) } else { bad++; console.log('  ✗', name) } }
 
-// ── (a) classificador executado com o codigo real (strip de tipos) ──────────
+// ── (a) classificador real: o compilador TS remove tipos, nunca regex ───────
 const grab = (start, end) => src.slice(src.indexOf(start), src.indexOf(end))
 const consts = [
   src.match(/const RE_SCRIPT_SHORT =\s*\n?\s*\/.+\/i/)[0],
@@ -31,8 +36,7 @@ const consts = [
   'const MIN_DURATION_ALL_ENGINES = 35',
 ].join('\n')
 const fnSrc = grab('function classifyFailure', '\n// #15: e-mail do roteiro COMPRIDO')
-  .replace(/\(erro: string, meta\?: FalhaMeta\): \{[^}]*\}\s*\{/, '(erro, meta) {')
-const classify = new Function(`${consts}\n${fnSrc}\nreturn classifyFailure`)()
+const classify = new Function(compile(`${consts}\n${fnSrc}\nreturn classifyFailure`))()
 
 const CURTO = 'Your script is about 27 seconds of narration, but you asked for a 35-second video — that would leave roughly 8 seconds of music with no story being told. Add about 14 more words.\n\n'
 const LONGO = 'prompt_len=6228 limite=5000'
@@ -60,12 +64,6 @@ t('narration_too_short sem numeros continua script_short', classify('no_detail:n
 
 // ── (b) agregacao: o erro mais recente decide ───────────────────────────────
 const aggSrc = grab('  type Falha = {', '  if (porPessoa.size === 0) {')
-  .replace(/type Falha = \{[^}]*\}\n/, '')
-  .replace(/: Falha\[\]/g, '').replace(/as Falha\[\]/g, '')
-  .replace(/new Map<[^>]*>\(\)/, 'new Map()')
-  .replace(/\(f\.metadata \?\? \{\}\) as \{[^}]*\}/, '(f.metadata ?? {})')
-  // #6: o filtro de razao do estorno carrega um cast proprio
-  .replace(/\(e\.metadata as \{[^}]*\} \| null\)/g, '(e.metadata || {})')
 // #6 (03/09): a decisao deixou de ser "a lista NAO_E_BUG" e virou a funcao
 // `ehDefeito` (confissao explicita vence a lista; marcador do estorno do
 // servidor e defeito por definicao). A agregacao passou a receber uma TERCEIRA
@@ -77,10 +75,14 @@ const decisaoSrc = [
   src.match(/const DEFEITO_EXPLICITO = \[[\s\S]*?\n\]/)[0],
   src.match(/const DEFECT_REFUND_REASONS = .+/)[0],
   src.match(/const SERVER_REFUND_MARK = .+/)[0],
-  grab('function ehDefeito', 'function classifyFailure')
-    .replace('function ehDefeito(erro: string): boolean {', 'function ehDefeito(erro) {'),
+  src.match(/const FILM_LONG_MARK = .+/)[0],
+  grab('function ehDefeito', 'function classifyFailure'),
 ].join('\n')
-const agg = new Function('falhas', 'longas', 'estornos', `${decisaoSrc}\n${aggSrc}\nreturn porPessoa`)
+const makeAggregator = code => {
+  const run = new Function('falhas', 'longas', 'estornos', 'filmesLongos', compile(`${decisaoSrc}\n${code}\nreturn porPessoa`))
+  return (falhas = [], longas = [], estornos = [], filmesLongos = []) => run(falhas, longas, estornos, filmesLongos)
+}
+const agg = makeAggregator(aggSrc)
 const ev = (uid, name, created_at, metadata) => ({ user_id: uid, created_at, metadata, name })
 // caso real: 02:52 curto (generate_failed) → 03:09..03:30 sete longos (stage_error)
 const falhasAdrian = [ev('adrian', 'generate_failed', '2026-09-02T02:52:20Z', { error: CURTO, duration: 35 })]
@@ -121,7 +123,18 @@ t('e-mail script_long mostra caracteres, teto e creditos', /\$\{fmt\(l\.chars\)\
 t('e-mail script_long diz que nada foi cobrado', /nothing was charged/i.test(fn))
 t('e-mail script_long manda colar SO a narracao', /paste only the narration/i.test(fn))
 t('e-mail script_long nao promete cupom, nao nomeia motor', !/coupon|discount|% off|Kling|Veo|Seedance|MiniMax|Omni/i.test(fn))
-t('utm proprio failure_recovery_script_long', /utm_campaign=failure_recovery_script_long/.test(fn))
+// URL construction moved to the canonical pure writer. Execute both the real
+// writer and this real email builder; searching for a serialized query in the
+// caller no longer proves its campaign or destination.
+const composerModule = { exports: {} }
+new Function('module', 'exports', compile(readFileSync(join(R, 'lib/lifecycle/composerUrl.ts'), 'utf8')))(composerModule, composerModule.exports)
+const buildLong = new Function('composerUrl', 'emailFooterHtml', 'emailFooterText', compile(
+  `const APP = 'https://www.usekineo.com'; const WORDS_PER_SEC = 2.3;\n${grab('function buildScriptLongEmail', 'function buildFilmLongEmail')}\nreturn buildScriptLongEmail`,
+))(composerModule.exports.composerUrl, () => '<footer>unsubscribe</footer>', () => '\nunsubscribe')
+const builtLong = buildLong('offline-user', 10, { chars: 6228, limit: 5000, durationSec: 90 })
+const recoveryUrl = new URL(builtLong.html.match(/href="([^"]+)"/)[1])
+t('utm proprio failure_recovery_script_long no e-mail real', recoveryUrl.searchParams.get('utm_campaign') === 'failure_recovery_script_long')
+t('e-mail real pousa no composer e nao inicia render', recoveryUrl.pathname === '/studio/create' && !recoveryUrl.searchParams.has('create_intent') && !recoveryUrl.searchParams.has('autoanalyze'))
 t('palavras por duracao = 2,3 wps arredondado de 5 em 5 (90s → 205)', Math.round((90 * 2.3) / 5) * 5 === 205 && /Math\.round\(\(l\.durationSec \* WORDS_PER_SEC\) \/ 5\) \* 5/.test(fn))
 t('rodape de unsubscribe presente', /emailFooterHtml\(userId\)/.test(fn) && /emailFooterText\(userId\)/.test(fn))
 // #6: buildEmail passou a receber staleDays (a copy "it is fixed now" so vale
@@ -158,6 +171,20 @@ const r10 = agg(
   [estorno('s5', '2026-09-02T06:00:00Z', 'cinematic_abandoned_no_delivery')],
 )
 t('recusa legitima antes, estorno depois → pessoa ENTRA pelo servidor', r10.get('s5')?.doServidor === true && r10.get('s5')?.n === 1)
+// The approved fourth input is now part of the real aggregation. It must keep
+// duration metadata and take precedence by time, exactly like the older inputs.
+const filmWall = ev('wall', 'short_film_script_too_long', '2026-10-09T12:13:39Z', {
+  requested_seconds: 15, est_speech_seconds: 64, suggested_seconds: 35,
+})
+const r11 = agg([], [], [], [filmWall])
+t('fonte da parede 15s atravessa a agregacao', r11.get('wall')?.n === 1 && classify(r11.get('wall').erro, r11.get('wall').meta).kind === 'film_long')
+t('fonte da parede preserva numeros sem inventar', r11.get('wall')?.meta.requested_seconds === 15 && r11.get('wall')?.meta.est_speech_seconds === 64 && r11.get('wall')?.meta.suggested_seconds === 35)
+const latestOrder = 'String(a.created_at).localeCompare(String(b.created_at))'
+t('controle de ordem tem ancora unica', aggSrc.split(latestOrder).length === 2)
+const oldestWins = makeAggregator(aggSrc.replace(latestOrder, 'String(b.created_at).localeCompare(String(a.created_at))'))
+t('controle: ordenar ao contrario perde o erro mais recente', oldestWins(falhasAdrian, longasAdrian).get('adrian')?.erro !== LONGO)
+const droppedWall = makeAggregator(aggSrc.replace('    ...daParede15s,', ''))
+t('controle: remover a quarta fonte perde a pessoa da parede', !droppedWall([], [], [], [filmWall]).has('wall'))
 t('sem credito, sem estorno, sem preco: nada de video_credits update/rpc', !/update\(\{ video_credits|rpc\(/.test(src))
 
 console.log(`\n${ok} ok · ${bad} falhas`)
