@@ -1,5 +1,5 @@
 // KINEO-AMOSTRA-ANUNCIO-2410 — executes the NEW migration in embedded PostgreSQL; no env, credential or network.
-// node scripts/test-support/ads-amostra-data-sql-2410.cjs <installed-PGlite-module-path> [migration-file]
+// node scripts/test-support/ads-amostra-data-sql-2410.cjs <installed-PGlite-module-path> [migration-file] [--mutants]
 const fs = require('node:fs'), assert = require('node:assert/strict');
 const { PGlite } = require(process.argv[2] || '@electric-sql/pglite');
 const migration = process.argv[3] || 'supabase/migrations/20261024175246_ads_escolha_sample.sql';
@@ -20,7 +20,7 @@ const reserve = async(n,actor=uuid(n+100),owner=actor,l=lease,internal=false) =>
 for(let n=1;n<=12;n++) await add(n);
 await asService();
 // Promise pressure hits the actual atomic SQL function; PGlite serializes engine access, not independent live connections.
-const claims = await Promise.all(Array.from({length:7},(_,i)=>reserve(i+1)));
+const claims = await Promise.all(Array.from({length:7},(_,i)=>reserve(i+1).catch(()=>({code:'database_exception'}))));
 assert.equal(claims.filter(r=>r.code==='ok').length,6,'150c reservation admits exactly six under1000c');
 assert.equal(claims[6].code,'ads_sample_cap');
 assert.equal((await reserve(1)).replay,true);
@@ -91,4 +91,33 @@ for(const role of ['anon','authenticated']){
 await asService();await assert.rejects(q('delete from ads_escolha_samples'),/permission denied/);await reset();
 await assert.rejects(db.exec("update ads_escolha_sample_days set reserved_cents=1001"),/check constraint/);
 await db.close();console.log('SQL green: new migration executes;150c/1000c UTC counter,six allowed,lifetime/replay/ownership/lease,deletion-safe,delivery/upsell/person events,live signed purchase7d+repair,50 mature external alert/lease/retry/dedupe,and private grants. PGlite queues SQL;independent live-connection concurrency is not claimed.');
+if(process.argv.includes('--mutants')) {
+ const path=require('node:path'),os=require('node:os'),{spawnSync}=require('node:child_process');
+ const source=fs.readFileSync(migration,'utf8').replace(/\r\n/g,'\n');
+ const mutations=[
+  ['daily budget admits seventh','if v_cents + 150 > 1000 then','if v_cents + 150 > 1500 then'],
+  ['second order reuses lifetime sample',"return jsonb_build_object('code', 'ads_sample_used');","return jsonb_build_object('code', 'ok', 'estimate_cents', 150);"],
+  ['replay crosses orders','if v_claim.order_id = p_order_id and v_claim.owner_id = p_owner_id then','if v_claim.owner_id = p_owner_id then'],
+  ['internal people counted','if not p_is_internal then','if true then'],
+  ['paid delivery pretends free',"and video_id is not null and credits_charged = 0 and billing_ref like 'adssample-escolha-%'","and video_id is not null and credits_charged >= 0 and billing_ref like 'adssample-escolha-%'"],
+  ['Stripe test mode converts',"or v_event.metadata->>'stripe_livemode' is distinct from 'true'","or false"],
+  ['purchase after seven days converts',"v_paid_at <= delivered_at + interval '7 days'","v_paid_at <= delivered_at + interval '70 days'"],
+  ['49 people alert early',"coalesce(cardinality(v_ids), 0) < 50","coalesce(cardinality(v_ids), 0) < 49"],
+  ['internal samples trigger stopping alert',"from public.ads_escolha_samples where is_internal = false\n        and delivered_at <=","from public.ads_escolha_samples where true\n        and delivered_at <="],
+  ['sent alert repeats','sent_at = case when p_sent then now() else null end','sent_at = case when false then now() else null end'],
+ ];
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'kineo-amostra-data-sql-mutants-'));
+ try {
+  for(let i=0;i<mutations.length;i++) {
+   const [name,from,to]=mutations[i];assert.equal(source.split(from).length-1,1,'unique SQL mutant anchor: '+name);
+   const file=path.join(dir,String(i)+'.sql');fs.writeFileSync(file,source.replace(from,to));
+   const child=spawnSync(process.execPath,[__filename,process.argv[2]||'@electric-sql/pglite',file],{encoding:'utf8',timeout:30000,maxBuffer:2**20});
+   assert.equal(child.error,undefined,'SQL mutant completes: '+name);
+   assert.notEqual(child.status,0,'SQL mutant cannot survive: '+name);
+   assert.match((child.stderr||'')+(child.stdout||''),/AssertionError \[ERR_ASSERTION\]/,'SQL mutant must die at a behavioral assertion,not parser/import/database setup: '+name);
+   fs.unlinkSync(file);console.log('ok SQL assertion-killed mutant: '+name);
+  }
+ } finally {for(const file of fs.readdirSync(dir))fs.unlinkSync(path.join(dir,file));fs.rmdirSync(dir)}
+ console.log('SQL mutants green: '+mutations.length+' assertion-killed behavioral mutants; migration source untouched.');
+}
 })().catch(e=>{console.error(e);process.exitCode=1});
