@@ -36,6 +36,8 @@ function captions(s: CenaEscolhaState): Record<string, unknown>[] {
   })
 }
 /** Music remains below speech; a native take keeps its original audio once, without a second narration. */
+/** KINEO-ADS-RENDER-FIX-2310 — fundador 24/10: "faltou o som" / ASMR das unhas no pote: no modo narrado o Kling gera só som ambiente (sem fala) e ele entra baixo sob a narração. */
+export const ESCOLHA_AMBIENT_VOLUME = '35%'
 export function escolhaMusicElements(url: string | undefined, speechSeconds: number): Record<string, unknown>[] {
   if (!cenaHttps(url)) return []
   const stop = Math.min(15, Math.max(0, speechSeconds)), edges = [...new Set([0, stop, 15])].sort((a, b) => a - b)
@@ -51,7 +53,7 @@ export function buildCenaEscolhaMontage(s: CenaEscolhaState): Record<string, unk
     const time = k === 0 ? 0 : 8, duration = clips.length === 1 ? 15 : k === 0 ? 8 : 7, available = j.measuredSeconds ?? j.seconds
     if (!(Number.isFinite(available) && available > 0)) throw new Error('escolha_video_unusable')
     const base = { type: 'video', time, source: j.url!, fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', color_filter: 'contrast', color_filter_value: 5 }
-    elements.push({ ...base, track: 2, duration, volume: '0%', ...(available < duration ? { loop: true } : { loop: false, trim_start: 0 }) })
+    elements.push({ ...base, track: 2, duration, volume: mode === 'narrated' ? ESCOLHA_AMBIENT_VOLUME : '0%', ...(available < duration ? { loop: true } : { loop: false, trim_start: 0 }) }) // KINEO-ADS-RENDER-FIX-2310 — narrado: o som ambiente nativo da cena (toque das unhas, mar, passos) fica baixo sob a voz
     if (mode === 'talking') elements.push({ ...base, track: 1, duration: Math.min(duration, available), volume: '100%', loop: false, trim_start: 0 })
   })
   elements.push(...captions(s), ...escolhaFinalTextElements(s.plan))

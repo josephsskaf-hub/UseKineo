@@ -9,6 +9,7 @@ export function escolhaVideoRequests(plan: CenaPlan, route: CenaRoute, keyframeU
   if (route !== 'kling3') return requests
   // Do not send an ending wide reference: the final take is the close of the real product in this same scene.
   const { prompt: _singlePrompt, end_image_url: _endImage, ...input } = requests[0].input
+  if (plan.voice_mode === 'narrated') input.generate_audio = true // KINEO-ADS-RENDER-FIX-2310 — som ambiente nativo (sem fala, pelo prompt); a montagem o deixa baixo sob a narração
   return [{ ...requests[0], input: { ...input, shot_type: 'customize', multi_prompt: selected.shotPrompts.map(prompt => ({ prompt, duration: '5' })) } }]
 }
 

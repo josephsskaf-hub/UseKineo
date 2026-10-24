@@ -48,5 +48,15 @@ check(/plan\.category === 'footwear' \? 'Absolute5–10s: the same selected pers
 check(/never add letters, logos or brand marks that are not on the reference product/.test(plano), 'S5 o close proíbe marca/texto inventado no produto')
 check(/SINGLE PHOTOGRAPH: one single full-bleed vertical 9:16 frame/.test(plano) && !/const still = `[^`]*\$\{common\}/.test(plano), 'S6 a foto pede imagem única e não carrega o texto das 3 tomadas')
 
+// Rodada 3 (fundador 24/10, creme): tap das unhas (ASMR), abre o pote antes de pegar o creme, aplica 1 vez; som ambiente nativo baixo sob a voz.
+check(/plan\.category === 'skincare' \? 'Absolute0–5s: WIDE FULL-BODY, the same selected person from head to feet holds the CLOSED real jar and taps it twice with the fingernails/.test(plano), 'S7 creme abre com o tap das unhas na tampa')
+check(/twists the lid OFF the real jar[^']*no cream appears before the jar is open/.test(plano), 'S8 o pote é aberto antes de aparecer creme')
+check(/smooths that cream onto one cheek in a single gentle stroke/.test(plano), 'S9 aplica no rosto uma vez só (sem repetição)')
+check(/only natural ambient sound effects of the scene and the actions, no dialogue and no music/.test(plano), 'S10 narrado pede só som ambiente, fala proibida')
+const video = readFileSync('lib/ads/cena/escolhaVideo.ts', 'utf8')
+check(/if \(plan\.voice_mode === 'narrated'\) input\.generate_audio = true/.test(video), 'S11 Kling gera o som ambiente no narrado')
+const montagem = readFileSync('lib/ads/cena/escolhaMontage.ts', 'utf8')
+check(/export const ESCOLHA_AMBIENT_VOLUME = '35%'/.test(montagem) && /volume: mode === 'narrated' \? ESCOLHA_AMBIENT_VOLUME : '0%'/.test(montagem), 'S12 som ambiente entra a 35% sob a narração')
+
 console.log(`\n${ok} ok, ${falha} falha(s)`)
 process.exit(falha ? 1 : 0)
