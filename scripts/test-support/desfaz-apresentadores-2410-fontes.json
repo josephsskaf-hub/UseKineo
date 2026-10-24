@@ -89,6 +89,8 @@
     "scripts/test-apresentadores-voice-2410.mjs",
     "scripts/test-support/desfaz-apresentadores-2410.mjs",
     "docs/previews/apresentadores-2410.png",
-    "docs/previews/apresentadores-2410-desktop.png"
+    "docs/previews/apresentadores-2410-desktop.png",
+    "docs/APRESENTADORES-2410-ENTREGA.md",
+    "docs/qa/apresentadores-2410/validation.json"
   ]
 }

@@ -1,0 +1,653 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "verifiedAt": "2026-10-24T18:26:38.639Z",
+  "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
+  "testedCodeSha": "09e819f5",
+  "typecheck": {
+    "command": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "exitCode": 0,
+    "sourceSha": "f7c8bcb26f397f75c78b8219584efc7d4cf520e6",
+    "note": "The only subsequent implementation change is the local MJS MP3 cap, verified by its 16-case guardian; TypeScript sources are unchanged."
+  },
+  "sharedInvocations": 60,
+  "sharedPassed": 59,
+  "sharedExistingFailures": [
+    {
+      "file": "scripts/test-locale-readiness.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": false,
+      "candidatePass": false
+    }
+  ],
+  "newRedCount": 0,
+  "newGuardians": [
+    {
+      "file": "scripts/test-apresentadores-2410.mjs",
+      "exitCode": 0,
+      "pass": true,
+      "log": "test-apresentadores-2410.mjs.final.log"
+    },
+    {
+      "file": "scripts/test-apresentadores-admin-2410.mjs",
+      "exitCode": 0,
+      "pass": true,
+      "log": "test-apresentadores-admin-2410.mjs.final.log"
+    },
+    {
+      "file": "scripts/test-apresentadores-voice-2410.mjs",
+      "exitCode": 0,
+      "pass": true,
+      "log": "test-apresentadores-voice-2410.mjs.final.log"
+    },
+    {
+      "file": "scripts/test-apresentadores-legacy-voice-2410.mjs",
+      "exitCode": 0,
+      "pass": true,
+      "log": "test-apresentadores-legacy-voice-2410.mjs.final.log"
+    },
+    {
+      "file": "scripts/test-apresentadores-undo-2410.mjs",
+      "exitCode": 0,
+      "pass": true,
+      "log": "test-apresentadores-undo-2410.mjs.final.log"
+    }
+  ],
+  "adminCases": 16,
+  "mutantRetests": [
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "exitCode": 1,
+      "expected": "nonzero"
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "exitCode": 1,
+      "expected": "nonzero"
+    }
+  ],
+  "conditions": {
+    "node": "v24.18.0",
+    "productionNetwork": "denied for shared guardians by external preload; new tests use mocked paid boundaries and loopback only",
+    "envFiles": "not read",
+    "testVmTimeout": "external local QA allowance raised from 5 s to 60 s in both baseline and candidate, without changing repository assertions",
+    "paidGenerationExecuted": false,
+    "baselineArtifacts": "C:/Users/josep/AppData/Local/Temp/kineo-apresentadores-baseline-2410-1c078ed0/",
+    "candidateArtifacts": "C:/tmp/kineo-apresentadores-2410-candidate/",
+    "initialFailures": "Preserved in original external logs. Fixed source/import/historical adaptation failures were rerun; only the same Hindi dictionary assertion remains."
+  },
+  "common": [
+    {
+      "file": "scripts/test-idiomas-2410.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-language-segmentation-2410.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true,
+      "initialCandidateExitCode": 1,
+      "retestLog": "retry-idiomas-undo.log"
+    },
+    {
+      "file": "scripts/test-ads-escolha-publico-2410.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true,
+      "initialCandidateExitCode": 1,
+      "retestLog": "retry-public-escolha.log"
+    },
+    {
+      "file": "scripts/test-ads-escolha-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-ads-render-fix-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-trafego-pages-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-trafego-index-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-trafego-health-2310.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-trafego-undo-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-admin-leve-2310.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-admin-leve-undo-2310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-admin-truncamento-2026-10.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-afiliados-acordam.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-juiz-still-2026-10-06.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-carta-da-recusa.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-momentum-topic.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true,
+      "initialCandidateExitCode": 1,
+      "retestLog": "retry-gpt5c.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero",
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero",
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero",
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true,
+      "initialCandidateExitCode": 1,
+      "retestLog": "retry-gptv31.log"
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero",
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-sharing-safety.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true,
+      "initialCandidateExitCode": 1,
+      "retestLog": "retry-paidcitation.log"
+    },
+    {
+      "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-motores-geo-2026-10-06.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-five-improvements.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-studio-entry-transition.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-locale-readiness.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 1,
+      "candidateExitCode": 1,
+      "baselinePass": false,
+      "candidatePass": false
+    },
+    {
+      "file": "scripts/test-app-blue-layout.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-home-curation.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-home-blue-layout.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-home-referral-bridge.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-home-pricing-checkout.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-showcase-premium.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-music-direction-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-visual-contract-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-atores-ia-1310.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-apresentador-olhos-1910.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-ugc-ajustes-2010.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    },
+    {
+      "file": "scripts/test-ads-cena-95-2110.mjs",
+      "args": [],
+      "expected": 0,
+      "baselineExitCode": 0,
+      "candidateExitCode": 0,
+      "baselinePass": true,
+      "candidatePass": true
+    }
+  ]
+}
