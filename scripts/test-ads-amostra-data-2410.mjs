@@ -48,9 +48,10 @@ async function reserveProof(over={}) {
 }
 async function reservationProof(over={}) {
   const w=world({},over);assert.equal(await w.api.hasEscolhaSampleReservation(w.admin,identity),true)
-  for(const options of [{row:{order_id:token,estimate_cents:150}},{row:{order_id:order,estimate_cents:0}},{rowError:true},{policy:{ADS_ESCOLHA_SAMPLE_LIVE:false}}]) {
+  for(const options of [{row:{order_id:token,estimate_cents:150}},{row:{order_id:order,estimate_cents:0}},{rowError:true}]) {
     const x=world(options,over);assert.equal(await x.api.hasEscolhaSampleReservation(x.admin,identity),false,'unreserved direct start forbidden')
   }
+  const paused=world({policy:{ADS_ESCOLHA_SAMPLE_LIVE:false}},over);assert.equal(await paused.api.hasEscolhaSampleReservation(paused.admin,identity),true,'paid continuation can read an existing reservation while free acquisition is off')
   assert.equal(await w.api.hasEscolhaSampleReservation(w.admin,{...identity,ownerId:token}),false)
   assert.equal(await w.api.escolhaSampleUsed(w.admin,actor),true)
   const missing=world({rowError:true},over);assert.equal(await missing.api.escolhaSampleUsed(missing.admin,actor),true,'missing schema is used,not another free allowance')

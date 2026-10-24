@@ -46,7 +46,7 @@ export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & 
 
 /** A draft cannot bypass reservation by posting directly to the paid-render start endpoint. */
 export async function hasEscolhaSampleReservation(admin: SupabaseClient, i: Identity): Promise<boolean> {
-  if (!ADS_ESCOLHA_SAMPLE_LIVE || !personal(i)) return false
+  if (!personal(i)) return false
   try {
     const r = await admin.from(TABLE).select('order_id,estimate_cents').eq('actor_id', i.actorId).eq('owner_id', i.ownerId).eq('order_id', i.orderId).maybeSingle()
     return !r.error && r.data?.order_id === i.orderId && r.data.estimate_cents === ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS

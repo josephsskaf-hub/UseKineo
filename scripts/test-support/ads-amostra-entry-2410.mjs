@@ -1,5 +1,6 @@
 // KINEO-AMOSTRA-ANUNCIO-2410 — execute real entry/upload boundaries without SDKs, network or credentials.
 import assert from 'node:assert/strict'
+import { pathToFileURL } from 'node:url'
 import fs from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
@@ -161,4 +162,9 @@ export async function runAdsSampleEntryMutants2410() {
     killed.push(label)
   }
   return killed
+}
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  await runAdsSampleEntry2410()
+  const killed = await runAdsSampleEntryMutants2410()
+  console.log(`PASS sample upload, personal page/login and purchase resume; ${killed.length} behavioral mutants rejected (offline)`)
 }

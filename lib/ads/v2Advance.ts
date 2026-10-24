@@ -37,6 +37,7 @@ import { adsV2NarrationForTts, adsV2PronounceOf } from '@/lib/ads/v2Pronounce' /
 import { writeServerEvent } from '@/lib/serverEvents'
 import { writeEscolhaEvent } from '@/lib/ads/cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 import { notifyEscolhaDelivered } from '@/lib/ads/cena/escolhaNotify' // KINEO-ADS-ESCOLHA-PUBLICO-2410
+import { isEscolhaSamplePlan } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
@@ -117,7 +118,7 @@ export const ADS_V2_SHOT_COLS =
 
 export interface AdsV2StoredOverlay { role: string; start: number; end: number; text: string }
 // KINEO-ATOR-ANUNCIO-2026-10-09 — `presenter` só existe quando o pedido pediu o ator e havia foto de produto + narração.
-export type AdsV2StoredPlan = Omit<AdsV2ShotPlan, 'overlays'> & { overlays: AdsV2StoredOverlay[]; narration: string | null; presenter?: AdsV2PresenterPlan }
+export type AdsV2StoredPlan = Omit<AdsV2ShotPlan, 'overlays'> & { overlays: AdsV2StoredOverlay[]; narration: string | null; presenter?: AdsV2PresenterPlan; cena?: import('./cena/pipeline').CenaState; escolhaSampleSource?: string }
 
 export interface AdsV2OrderRow {
   id: string
@@ -1420,7 +1421,7 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
   // Cópia para o nosso bucket com a chave de cobrança como render_id (a mesma do videos.render_id).
   const assets = await persistRenderAssets({ userId: order.user_id, renderId: order.billing_ref, videoUrl: st.url, snapshotUrl: st.snapshotUrl, downloadTimeoutMs: 60_000 })
   const business = businessName(order)
-  const seconds = assets.measuredSeconds ?? st.durationSeconds ?? (order.plan?.totalSeconds ?? order.seconds)
+  const seconds = assets.measuredSeconds ?? st.durationSeconds ?? (isEscolhaSamplePlan(order.plan?.cena?.plan) ? 8 : order.plan?.totalSeconds ?? order.seconds)
   const row = {
     user_id: order.user_id,
     status: 'completed',
@@ -1550,7 +1551,7 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
     order_id: order.id,
     status: order.status,
     tier: order.tier,
-    seconds: order.seconds,
+    seconds: isEscolhaSamplePlan(order.plan?.cena?.plan) ? 8 : order.seconds,
     credits: order.credits_charged,
     video_id: order.video_id,
     error: order.status === 'failed' ? (order.error ?? 'failed') : null,

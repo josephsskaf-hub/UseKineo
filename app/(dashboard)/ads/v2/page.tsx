@@ -30,6 +30,9 @@ import { AdsPresenterAllProvider } from '@/components/ads/AdsPresenterPicker' //
 import { ADS_SAMPLE_PROBE_PARAM, adsSampleProbeOn } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — ?sample_probe=1: a conta interna vê (e faz) a amostra grátis de verdade
 import AdsV2Client from './AdsV2Client'
 import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-ESCOLHA-2310 — share the existing rollout switch.
+import { ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
+import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
+import { isUuid } from '@/lib/ads/v2Contract'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -41,11 +44,17 @@ export const dynamic = 'force-dynamic'
 export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {
   const rawEntry = searchParams?.entry // KINEO-HOME-3-CARDS-1910
   const entry: AdsSampleEntry | null = adsSampleEntryOf(Array.isArray(rawEntry) ? rawEntry[0] : rawEntry) // KINEO-HOME-3-CARDS-1910
+  const rawResume = searchParams?.order
+  const resumeOrder = Array.isArray(rawResume) ? rawResume[0] : rawResume
+  const resumeQuery = new URLSearchParams()
+  if (entry) resumeQuery.set('entry', entry)
+  if (isUuid(resumeOrder)) { resumeQuery.set('order', resumeOrder.toLowerCase()); if (searchParams?.upgrade === '1') resumeQuery.set('upgrade', '1') }
+  const loginTarget = `/ads/v2${resumeQuery.size ? `?${resumeQuery}` : ''}`
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')
+  if (!user) redirect(`/login?redirect=${encodeURIComponent(loginTarget)}`) // KINEO-AMOSTRA-ANUNCIO-2410 — preserve the owned result and explicit upgrade intent through login.
 
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de um Business entra com o acesso, o saldo e o kit DO DONO (uid = dono).
   const { admin, reason: reasonOwn, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true }) // KINEO-UGC-AJUSTES-2010 — era: { admin, reason, ...ws } (o reason passa pelo probe abaixo)
@@ -54,7 +63,9 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   const reason = sampleProbe ? 'none' : reasonOwn // KINEO-UGC-AJUSTES-2010 — a interna com o probe entra pela amostra (as mesmas travas de quem é de fora)
   const uid: string = ws.ownerId ?? user.id
   const gate = adsGate(reason)
-  const sample = gate === 'no_access' && (await adsSampleOpen(admin, uid, reason)) // KINEO-ADS-AMOSTRA-2026-10-09
+  const rawOrder = searchParams?.order
+  const personalResume = await isEscolhaPersonalOrder(admin, user.id, Array.isArray(rawOrder) ? rawOrder[0] : rawOrder)
+  const sample = gate !== 'ok' && (ADS_ESCOLHA_SAMPLE_LIVE || personalResume || gate === 'no_access' && await adsSampleOpen(admin, uid, reason)) // KINEO-AMOSTRA-ANUNCIO-2410 — this sample has one admission switch; paid access retains its own gate.
   if (gate !== 'ok') {
     // KINEO-ADS-AMOSTRA-2026-10-09 — quem entra pela amostra grátis passa SEM rastro de negação; o resto, como antes.
     if (!sample) {
@@ -62,7 +73,7 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
       redirect('/ads?from=v2')
     }
   }
-  if (!adsV2Visible(user.email)) redirect('/ads/new')
+  if (!adsV2Visible(user.email) && !ADS_ESCOLHA_SAMPLE_LIVE && !personalResume) redirect('/ads/new')
 
   let balance: number | null = null
   try {
@@ -83,5 +94,5 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} escolhaInternal={gate === 'ok' && !sample && cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaTestControls={isAdsInternalEmail(user.email) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} /></AdsPresenterAllProvider> // KINEO-ADS-ESCOLHA-PUBLICO-2410 — existing access/paywall gate first; free sample remains on its original path, internal test controls stay internal. Storage is scoped to authenticated user and workspace owner.
+  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} escolhaInternal={gate === 'ok' && !sample && cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaSample={ADS_ESCOLHA_SAMPLE_LIVE || personalResume} escolhaTestControls={isAdsInternalEmail(user.email) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} /></AdsPresenterAllProvider> // KINEO-ADS-ESCOLHA-PUBLICO-2410 — existing access/paywall gate first; free sample remains on its original path, internal test controls stay internal. Storage is scoped to authenticated user and workspace owner.
 }

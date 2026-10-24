@@ -24,6 +24,19 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-AMOSTRA-ANUNCIO-2410 — real personal sample, media, UI, conversion and byte-exact source restoration, all offline.
+      - name: Amostra com apresentadora — custo, compra e desfaz
+        run: |
+          node scripts/test-ads-amostra-anuncio-2410.mjs
+          node scripts/test-ads-amostra-data-2410.mjs
+          node scripts/test-support/ads-escolha-sample-media-2410.mjs
+          node scripts/test-support/ads-amostra-race-2410.mjs
+          node scripts/test-support/ads-amostra-entry-2410.mjs
+          node scripts/test-ads-amostra-undo-2410.mjs
+      - name: Amostra — Postgres isolado e mutantes SQL
+        run: |
+          npm install --prefix "$RUNNER_TEMP/kineo-sample-sql" --ignore-scripts --no-audit --no-fund --package-lock=false @electric-sql/pglite@0.5.11
+          node scripts/test-support/ads-amostra-data-sql-2410.cjs "$RUNNER_TEMP/kineo-sample-sql/node_modules/@electric-sql/pglite" supabase/migrations/20261024175246_ads_escolha_sample.sql --mutants
       # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.
       - name: Idiomas e formatos — voz, escrita, tomadas e desfaz
         run: |

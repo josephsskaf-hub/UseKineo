@@ -1954,6 +1954,7 @@ async function buildAndRedirect(
       },
     },
     success_url: buildSubscriptionCheckoutSuccessUrl({
+      adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
       appUrl,
       tier,
       currency: chargeCurrency,
@@ -2438,6 +2439,7 @@ async function buildAndRedirect(
     // conversion value. It must report the actual discounted first charge,
     // never the undiscounted list price.
     sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+      adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
       appUrl,
       tier,
       currency: chargeCurrency,
@@ -2652,7 +2654,8 @@ async function buildAndRedirect(
       sessionParams.subscription_data!.metadata!.public_promo_first_charge_minor = String(autoResolution.firstChargeMinor)
       // A volta do pagamento reporta o que a Stripe cobrou hoje (o 1º mês com 20%), como no pedido explícito.
       sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
-        appUrl,
+        adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
+      appUrl,
         tier,
         currency: chargeCurrency,
         amount: autoResolution.firstChargeMinor,
