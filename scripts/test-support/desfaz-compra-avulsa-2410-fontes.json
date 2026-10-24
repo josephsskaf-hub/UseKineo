@@ -3,11 +3,11 @@
   "sources": {
     ".github/workflows/guardiao.yml": {
       "beforeHash": "8441bd8a57930994a0b143083d8780df4cc18480d04d602c6e5e10bbc3b53ab9",
-      "afterHash": "41dbb0c608e168926fef213f966cc1a5b5b3498d0c86685d8b37d935ddf6e44b",
+      "afterHash": "365a37220833874d32088b1b784dfcb73a08e9415626f3f4978e288af3716583",
       "changes": [
         {
           "before": "      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.\n      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz\n",
-          "after": "      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-COMPRA-AVULSA-2410 — real checkout/webhook/SQL, offline mutants and exact undo.\n      - name: Compra avulsa — pagamento único, concessão atômica e desfaz # KINEO-COMPRA-AVULSA-2410\n        run: | # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410\n      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.\n      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz\n"
+          "after": "      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-COMPRA-AVULSA-2410 — real checkout/webhook/SQL, offline mutants and exact undo.\n      - name: Compra avulsa — pagamento único, concessão atômica e desfaz # KINEO-COMPRA-AVULSA-2410\n        run: | # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-delivery-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410\n          node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410\n      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.\n      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz\n"
         }
       ]
     },
@@ -58,6 +58,16 @@
         {
           "before": "\nconst AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — loaded only after the existing Studio Ads gate.\nexport function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean }) { // KINEO-ADS-ESCOLHA-2310\n  return props.escolhaInternal === true && !props.sample && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-ADS-ESCOLHA-2310 — off never mounts any new request, storage or polling effect.\n} // KINEO-ADS-ESCOLHA-2310\nfunction AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.\n",
           "after": "\nconst AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — loaded only after the existing Studio Ads gate.\nexport function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; oneTimeMember?: boolean }) { // KINEO-COMPRA-AVULSA-2410 · KINEO-ADS-ESCOLHA-2310\n  return props.escolhaInternal === true && !props.sample && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} balance={props.balance} oneTimeMember={props.oneTimeMember} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-COMPRA-AVULSA-2410 · KINEO-ADS-ESCOLHA-2310 — pass the actual workspace balance; legacy stays unchanged.\n} // KINEO-ADS-ESCOLHA-2310\nfunction AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.\n"
+        }
+      ]
+    },
+    "app/api/compose/route.ts": {
+      "beforeHash": "91d0f2bea067c8bbce6cac5da5d4d9a4b57a077c25dc33f3acf70e55feaa9962",
+      "afterHash": "89b03fb0b076875ed4fe78ddc4c252b65b3d5acd34bd340ffbfe0664eb6ffa66",
+      "changes": [
+        {
+          "before": "        (hasPaid && creditBalance > 0) ||\n        ent.isTrial ||\n        (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)\n\n",
+          "after": "        (hasPaid && creditBalance > 0) ||\n        ent.isTrial ||\n        (hasPaid && cinematicUpstreamDebited) || // KINEO-COMPRA-AVULSA-2410 — paid exact-balance film: the owned, HMAC-verified settled birth above already paid; trial rollback cannot refuse delivery.\n        (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)\n\n"
         }
       ]
     },
@@ -380,6 +390,7 @@
     "lib/stripe/oneTimeItemFulfillment.ts",
     "migrations_pending/2026-10-24_one_time_items.sql",
     "scripts/test-compra-avulsa-2410.mjs",
+    "scripts/test-compra-avulsa-delivery-2410.mjs",
     "scripts/test-compra-avulsa-return-2410.mjs",
     "scripts/test-compra-avulsa-sql-2410.mjs",
     "scripts/test-compra-avulsa-ui-2410.mjs",

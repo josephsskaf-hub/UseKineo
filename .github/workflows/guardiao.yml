@@ -30,6 +30,7 @@ jobs:
           node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
           node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
           node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410
+          node scripts/test-compra-avulsa-delivery-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
           node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
           node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
           node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410
