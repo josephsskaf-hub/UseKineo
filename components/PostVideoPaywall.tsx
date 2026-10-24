@@ -13,7 +13,6 @@
 // the server route applies BRL via x-vercel-ip-country (#112).
 
 import { useState } from 'react'
-import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
 import { PLANS } from '@/lib/pricing'
 // KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel
 // também é USD fixo). O checkout continua resolvendo a moeda no servidor.
@@ -180,8 +179,6 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           onSelect={() => setSelectedPlan('pro')}
         />
       </div>
-
-      <OneTimeItemOffer surface="post_video_paywall" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — the same one-off choices alongside the monthly plans. */}
 
       {/* ROBO-ENTRY-490 (Joseph aprovou 30/06) — lowest-commitment option on the
           post-Short nudge. A free user who just made their first Short faces a

@@ -7,7 +7,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { ONE_TIME_ITEMS_LIVE, getOneTimeItem, oneTimeItemCheckoutHref, oneTimeItemPriceLabel } from '@/lib/oneTimeItem'
 
 type ItemId = 'one_time_ad' | 'one_time_film35'
-type Surface = 'pricing' | 'post_video_paywall' | 'ads_choice'
+type Surface = 'pricing' | 'generate_paywall' | 'ads_choice'
 type Launcher = Pick<ReturnType<typeof useCheckoutLaunch>, 'launch' | 'pending' | 'error'>
 const DEFAULT_ITEMS: readonly ItemId[] = ['one_time_ad', 'one_time_film35']
 const AD_ONLY: readonly ItemId[] = ['one_time_ad']
@@ -16,7 +16,7 @@ const pendingViews = new Map<string, Promise<void>>()
 
 export const ONE_TIME_ITEM_OFFER_CSS = `
 .oti{--oti-card:var(--card,#fff);--oti-text:var(--text,#21302b);--oti-muted:var(--muted,#65756f);--oti-line:var(--border,#d9dedb);--oti-accent:var(--accent,#4062e8);margin:20px auto;padding:20px;border:1px solid var(--oti-line);border-radius:18px;background:var(--oti-card);color:var(--oti-text);text-align:left;max-width:960px;min-width:0}
-.oti *{box-sizing:border-box}.oti[data-surface=post_video_paywall]{--oti-card:#1d1d1f;--oti-text:#f5f5f7;--oti-muted:#b2b2b8;--oti-line:#3a3a3c;--oti-accent:#4062e8;margin:16px 0}
+.oti *{box-sizing:border-box}
 .oti h3,.oti h4,.oti p{margin:0}.oti h3{font-size:18px;font-weight:780;letter-spacing:-.02em;line-height:1.35}.oti .oti-sub{margin-top:5px;color:var(--oti-muted);font-size:12.5px;line-height:1.5}.oti-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}.oti[data-single=true] .oti-grid{grid-template-columns:1fr}.oti-item{border:1px solid var(--oti-line);border-radius:13px;padding:16px;display:grid;gap:9px;min-width:0}.oti-item h4{font-size:14px;font-weight:750;line-height:1.4}.oti-price{font-size:24px;font-weight:800;line-height:1.2;letter-spacing:-.035em}.oti-price small{font-size:11.5px;letter-spacing:0;font-weight:500;color:var(--oti-muted);margin-left:7px}.oti-desc{color:var(--oti-muted);font-size:12px;line-height:1.5;min-height:36px}.oti .oti-buy{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--oti-accent);border-radius:10px;background:var(--oti-accent);color:#fff;text-decoration:none;font:inherit;font-size:13px;font-weight:750;cursor:pointer;line-height:1.4;text-align:center}.oti .oti-buy:disabled,.oti .oti-buy[aria-disabled=true]{opacity:.6;cursor:wait}.oti .oti-buy:focus-visible{outline:3px solid var(--oti-accent);outline-offset:3px}.oti-note{font-size:12px;line-height:1.5;color:var(--oti-muted);margin-top:12px!important}.oti-feedback{margin-top:12px!important;border:1px solid var(--oti-line);padding:11px 12px;border-radius:10px;font-size:12px;line-height:1.5;color:var(--oti-text)}
 @media(max-width:600px){.oti{padding:16px;border-radius:15px}.oti-grid{grid-template-columns:1fr}.oti-item{padding:14px}.oti-desc{min-height:0}.oti h3{font-size:17px}}
 `

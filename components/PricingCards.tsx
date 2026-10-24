@@ -52,6 +52,7 @@ import {
 } from '@/lib/marketingPrice'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410 — this grid is mounted by GenerateClient on Step 1.
 import RegionalFirstPack from '@/components/RegionalFirstPack'
 import {
   INLINE_PRICING_DWELL_MS,
@@ -585,6 +586,8 @@ export default function PricingCards({
           }}
         />
       </div>
+
+      <OneTimeItemOffer surface="generate_paywall" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off choice beside the active pre-video plans, with the same checkout latch. */}
 
       {/* ══════════════════════════════════════════════════════════════════
           KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.

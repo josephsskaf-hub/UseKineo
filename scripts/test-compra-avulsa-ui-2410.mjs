@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 
 const root = process.cwd(), req = createRequire(path.join(root, 'package.json'))
 const React = req('react'), ts = req('typescript'), { renderToStaticMarkup } = req('react-dom/server')
@@ -14,7 +15,7 @@ let checks = 0
 function ok(value, message) { assert.ok(value, message); checks++ }
 function equal(actual, expected, message) { assert.deepEqual(actual, expected, message); checks++ }
 
-function environment({ state = {}, effects = [], track = async () => true, storage = new Map(), fetcher = noNetwork, sources = {}, disabled = false, visible = false } = {}) {
+function environment({ state = {}, effects = [], track = async () => true, storage = new Map(), fetcher = noNetwork, sources = {}, disabled = false, visible = false, checkoutLauncher = null } = {}) {
   let index = 0
   const cache = new Map(), states = { ...state }
   const hooks = { ...React, useState(initial) { const at = index++; if (!(at in states)) states[at] = typeof initial === 'function' ? initial() : initial; return [states[at], value => { states[at] = typeof value === 'function' ? value(states[at]) : value }] }, useRef: initial => ({ current: visible && initial === null ? {} : initial }), useEffect: effect => { effects.push(effect) } }
@@ -29,7 +30,7 @@ function environment({ state = {}, effects = [], track = async () => true, stora
       if (id === 'react/jsx-runtime') return req(id)
       if (id === 'react-dom') return { createPortal: node => node }
       if (id === '@/lib/analytics') return { trackEvent: track }
-      if (id.includes('checkoutTelemetry')) return { useCheckoutLaunch: () => ({ pending: null, error: null, launch: noNetwork, setError() {} }) }
+      if (id.includes('checkoutTelemetry')) return { useCheckoutLaunch: () => checkoutLauncher ?? ({ pending: null, error: null, launch: noNetwork, setError() {} }) }
       if (id.includes('uploadFootage')) return { AdsUploadError: class extends Error {}, uploadFootage: noNetwork }
       let next = id.startsWith('@/') ? id.slice(2) : path.posix.join(path.posix.dirname(file), id)
       if (!fs.existsSync(path.join(root, next))) next += fs.existsSync(path.join(root, `${next}.tsx`)) ? '.tsx' : '.ts'
@@ -53,7 +54,7 @@ function environment({ state = {}, effects = [], track = async () => true, stora
 }
 
 function offerContract(sources = {}) {
-  for (const surface of ['pricing', 'post_video_paywall']) {
+  for (const surface of ['pricing', 'generate_paywall']) {
     const e = environment({ sources }), calls = [], launcher = { pending: null, error: null, launch: (...args) => { calls.push(args); return true } }
     const rootNode = e.expand(React.createElement(e.load(offerFile).default, { surface, checkout: launcher }))
     const buttons = e.all(rootNode, n => n.type === 'button')
@@ -86,10 +87,41 @@ function offerContract(sources = {}) {
   equal(off.effects.length, 0, 'OFF starts no view effect or checkout launcher')
 }
 offerContract()
-for (const [file, surface] of [['app/pricing/PricingClient.tsx', 'pricing'], ['components/PostVideoPaywall.tsx', 'post_video_paywall']]) {
+for (const [file, surface] of [['app/pricing/PricingClient.tsx', 'pricing'], ['components/PricingCards.tsx', 'generate_paywall']]) {
   const source = fs.readFileSync(path.join(root, file), 'utf8')
   ok(source.includes(`<OneTimeItemOffer surface="${surface}" checkout={checkout}`), `${surface}: the actual screen mounts the shared offer with its existing checkout latch`)
 }
+
+{
+  const generateFile = 'app/(dashboard)/generate/GenerateClient.tsx', source = fs.readFileSync(path.join(root, generateFile), 'utf8')
+  const ast = ts.createSourceFile(generateFile, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX), nodes = []
+  const visit = node => { nodes.push(node); ts.forEachChild(node, visit) }; visit(ast)
+  ok(nodes.some(node => ts.isImportDeclaration(node) && node.moduleSpecifier.text === '@/components/PricingCards' && node.importClause?.name?.text === 'PricingCards'), 'GenerateClient imports the live PricingCards component')
+  const mounts = nodes.filter(node => (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && node.tagName.getText(ast) === 'PricingCards')
+  equal(mounts.length, 1, 'GenerateClient mounts PricingCards exactly once')
+  ok(ts.isBinaryExpression(mounts[0].parent) && mounts[0].parent.left.getText(ast) === 'showStep1' && mounts[0].parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken, 'the actual PricingCards mount is gated by showStep1')
+  const gate = nodes.find(node => ts.isVariableDeclaration(node) && node.name.getText(ast) === 'showStep1')
+  ok(gate?.initializer, 'the actual phase gate exists')
+  for (const phase of ['idle', 'analyzing', 'scripting', 'options', 'generating', 'done']) equal(vm.runInNewContext(gate.initializer.getText(ast), { phase }), ['idle', 'analyzing', 'scripting'].includes(phase), `pre-video offer visibility follows phase ${phase}`)
+  ok(!nodes.some(node => (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && node.tagName.getText(ast) === 'PostVideoPaywall'), 'the orphan PostVideoPaywall has no active GenerateClient mount')
+  const orphan = fs.readFileSync(path.join(root, 'components/PostVideoPaywall.tsx'))
+  equal(execFileSync('git', ['hash-object', '--path=components/PostVideoPaywall.tsx', '--stdin'], { cwd: root, input: orphan }).toString().trim(), execFileSync('git', ['rev-parse', '7950e411:components/PostVideoPaywall.tsx'], { cwd: root }).toString().trim(), 'orphan PostVideoPaywall has the exact canonical versioned bytes from 7950e411')
+}
+function activePaywall(sources = {}) {
+  const calls = [], launcher = { pending: null, error: null, launch: (...args) => { calls.push(args); return true }, setError() {} }
+  const e = environment({ sources, state: { 0: 'usd' }, checkoutLauncher: launcher }), file = 'components/PricingCards.tsx'
+  const html = e.render(file, {})
+  ok(html.includes('data-sku="one_time_ad"') && html.includes('data-sku="one_time_film35"'), 'real PricingCards SSR exposes both one-off SKUs')
+  const tree = e.expand(React.createElement(e.load(file).default, {}))
+  const planButtons = e.all(tree, node => node.type === 'button' && String(node.props.className).includes('py-3.5'))
+  equal(planButtons.length, 3, 'real PricingCards preserves all three plan purchase buttons')
+  const oneOffButtons = e.all(tree, node => node.type === 'button' && node.props.className === 'oti-buy')
+  equal(oneOffButtons.length, 2, 'real PricingCards includes both one-off purchase actions')
+  oneOffButtons[0].props.onClick({ preventDefault() {} })
+  equal(calls.length, 1, 'one real paywall click creates exactly one launcher call')
+  equal(calls[0][1], '/api/stripe/checkout?pack=one_time_ad&surface=generate_paywall', 'active paywall carries its faithful pre-video surface into the GET checkout')
+}
+activePaywall()
 
 async function viewDedupe({ sources = {}, pending = false } = {}) {
   const calls = [], effects = [], storage = new Map(); let accept
@@ -192,6 +224,8 @@ let killed = 0
 async function kills(name, task) { try { await task() } catch (error) { if (error instanceof assert.AssertionError) { killed++; return } throw error } throw new Error(`Surviving mutant: ${name}`) }
 const offerSource = fs.readFileSync(path.join(root, offerFile), 'utf8'), confirmSource = fs.readFileSync(path.join(root, confirmationFile), 'utf8')
 const adsSource = fs.readFileSync(path.join(root, adsFile), 'utf8')
+const paywallSource = fs.readFileSync(path.join(root, 'components/PricingCards.tsx'), 'utf8')
+await kills('live paywall drops the one-off option', () => activePaywall({ 'components/PricingCards.tsx': paywallSource.replace('<OneTimeItemOffer surface="generate_paywall" checkout={checkout} />', '') }))
 await kills('payment offer bypasses server-selected photo lock', () => adsCreditFailure('out_of_credits', 'choose', { [adsFile]: adsSource.replace("if (action === 'render') absorb(data); setCreditBlocked(true)", 'setCreditBlocked(true)') }))
 await kills('displayed price drifts from canonical source', () => offerContract({ [offerFile]: offerSource.replace('label = oneTimeItemPriceLabel(sku)', "label = 'WRONG_PRICE'") }))
 await kills('rejected view closes dedupe', () => viewDedupe({ sources: { [offerFile]: offerSource.replace('if (!accepted) return', 'if (false) return') } }))

@@ -35,7 +35,7 @@ function pricing(before) {
   const oneTime = before ? '' : r.render('components/OneTimeItemOffer.tsx', { surface: 'pricing' })
   return `<div class="context">Contexto: os planos Starter, Creator e Studio continuam acima, com os mesmos preços.</div>${oneTime}${business}`
 }
-function paywall(before) { return renderer(before).render('components/PostVideoPaywall.tsx', { credits: 0 }) }
+function paywall(before) { return renderer(before, { 0: 'usd' }).render('components/PricingCards.tsx', {}) }
 function ads(before, stage = 'choose', member = false) {
   const form = { foto: '', frase: 'Stride: tênis leve para sua rotina.', oferta: '', beneficios: 'Leve', cta: 'Conheça o Stride.', language: 'pt', formato: 'product', voice_mode: 'narrated', rota: '', presenter_id: 'amara', category: 'footwear', scenario_id: 'footwear_beach' }
   const values = { 0: form, 1: stage, 2: '00000000-0000-4000-8000-000000000001', 3: [], 4: 'still-2', 5: 'Stride. Leve para sua rotina. Conheça o Stride.', 7: 41, 11: true, 15: 1, 16: 2 }
@@ -51,7 +51,7 @@ function ads(before, stage = 'choose', member = false) {
 }
 const pairs = [
   { id: 'pricing', title: 'Tela de pagamento · planos e opção avulsa', before: pricing(true), after: pricing(false), dark: false },
-  { id: 'paywall', title: 'Paywall após vídeo · opção ao lado dos planos', before: paywall(true), after: paywall(false), dark: true },
+  { id: 'paywall', title: 'Paywall de criação · antes do vídeo, junto dos planos', before: paywall(true), after: paywall(false), dark: true },
   { id: 'ads', title: 'Studio Ads · seleção final, saldo insuficiente', before: ads(true), after: ads(false), dark: false },
   { id: 'stills', title: 'Studio Ads · antes da preparação das fotos', before: ads(true, 'planned'), after: ads(false, 'planned'), dark: false },
   { id: 'member', title: 'Studio Ads · membro usa o saldo do dono', before: ads(true, 'choose', true), after: ads(false, 'choose', true), dark: false },
