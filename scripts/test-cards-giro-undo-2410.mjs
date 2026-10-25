@@ -27,7 +27,7 @@ for (const [file,item] of Object.entries(manifest.sources)) {
 }
 for(const file of manifest.newFiles){assert.ok(existsSync(file),'new task file exists: '+file);assert.throws(()=>git('show',BASE+':'+file),undefined,'new task file absent from base: '+file)}
 for(const file of manifest.artifacts??[])assert.ok(file.startsWith('docs/')&&existsSync(file),'review evidence under docs: '+file)
-const actual=[...new Set([...git('diff','--name-only',BASE).trim().split('\n'),...git('ls-files','--others','--exclude-standard').trim().split('\n')])].filter(Boolean).filter(f=>!f.startsWith('scripts/test-support/desfaz-cards-bordas-2410')).sort() /* KINEO-CARDS-BORDAS-2410 — camada posterior com desfaz próprio */
+const actual=[...new Set([...git('diff','--name-only',BASE,'7ab62db2b10bea45b0c550879c7353f03caf3a6a').trim().split('\n')])].filter(Boolean).filter(f=>!f.startsWith('scripts/test-support/desfaz-cards-bordas-2410')).sort() /* KINEO-CARDS-BORDAS-2410 — camada posterior com desfaz próprio */ // KINEO-TRENDING-INVENTARIO-2510 — fronteira imutavel do lote anterior; hashes dos arquivos atuais continuam obrigatorios.
 assert.deepEqual([...Object.keys(manifest.sources),...manifest.newFiles,...(manifest.artifacts??[])].sort(),actual,'exact complete task inventory; no file outside declared layer')
 assert.equal(undo(null,'lib/ui/homeThreeCards.ts'),null)
 assert.equal(undo('unrelated\r\n','lib/unrelated.ts'),'unrelated\r\n')

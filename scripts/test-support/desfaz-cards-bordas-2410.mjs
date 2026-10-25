@@ -4,10 +4,12 @@
 // Troca linha inteira por linha inteira (tabela em desfaz-cards-bordas-2410-trocas.json). Sem a marca = intocado; linha divergente = LANÇA.
 // Camada mais nova sobre o giro: semCardsGiro2410 chama isto PRIMEIRO. Fim de linha: o do próprio texto. Idempotente.
 import { readFileSync } from 'node:fs'
+import { semTrendingInventario2510 } from './desfaz-trending-inventario-2510.mjs'
 export const MARCA_CARDS_BORDAS_2410 = 'KINEO-CARDS-BORDAS-2410'
 export const CARDS_BORDAS_2410 = JSON.parse(readFileSync(new URL('./desfaz-cards-bordas-2410-trocas.json', import.meta.url), 'utf8'))
 
 export function semCardsBordas2410(texto, p) {
+  texto = semTrendingInventario2510(texto, p) // KINEO-TRENDING-INVENTARIO-2510 — newer exact inventory line comes off first.
   const rel = String(p ?? '').split(String.fromCharCode(92)).join('/')
   if (typeof texto !== 'string' || !Object.hasOwn(CARDS_BORDAS_2410.arquivos, rel) || !texto.includes(MARCA_CARDS_BORDAS_2410)) return texto
   const crlf = texto.includes('\r\n')

@@ -43,4 +43,14 @@
 
 **SUGESTÃO:** integrar a alteração isolada a uma cópia atualizada e limpa de `origin/main`, rodar os dois guardiões e TypeScript, publicar pelo fluxo do fundador e conferir `/trending#film-topics` em desktop/celular. Conferir também um tema escolhido por `today.json` e o vídeo Dyatlov. A worktree principal suja não foi usada para editar ou publicar.
 
-**FATO CONFIRMADO:** não houve mudança de preços, ofertas, cobrança, créditos, banco, login, motores, destinos de compra, home ou `/viral-now`. Não houve push, deploy, mensagem externa ou uso de credenciais. Esta entrega trata a ausência de capas do screenshot; resultados comerciais permanecem desconhecidos.
+**FATO CONFIRMADO:** não houve mudança de preços, ofertas, cobrança, créditos, banco, login, motores, destinos de compra, home ou `/viral-now`. Na preparação local registrada às 18h33 não houve push, deploy, mensagem externa ou uso de credenciais. Esta entrega trata a ausência de capas do screenshot; resultados comerciais permanecem desconhecidos.
+
+## Integração autorizada em 25/10
+
+**DECISÃO DO FUNDADOR NESTA CONVERSA:** “pode dar merge”, após a entrega da correção visual. A integração usa a worktree isolada; a `main` local com arquivos de outras tarefas permanece intacta.
+
+**EVIDÊNCIA DO CI — 25/10/2026:** o primeiro [run do GitHub](https://github.com/josephsskaf-hub/UseKineo/actions/runs/40237664958) passou no TypeScript e nos contratos funcionais dos cards, mas rejeitou os arquivos de Trending na verificação de inventário de uma entrega anterior (`scripts/test-cards-giro-undo-2410.mjs:31`). Nenhum defeito funcional das capas foi indicado nessa falha.
+
+**IMPLEMENTADO:** os inventários históricos de Cards e Idiomas agora usam o limite imutável `7ab62db2b10bea45b0c550879c7353f03caf3a6a`, onde ambas as entregas já estavam publicadas. A leitura e conferência dos hashes dos arquivos protegidos continuam usando os arquivos atuais. Os manifestos e hashes originais não foram reescritos. Um adaptador de uma linha exata em `scripts/test-support/desfaz-trending-inventario-2510.mjs` preserva a cadeia anterior de restauração do teste de Idiomas. Isso evita atribuir arquivos de todas as tarefas futuras ao inventário de 24/10.
+
+**TESTADO LOCALMENTE — 25/10/2026:** Cards undo passou com os oito fontes exatos; Idiomas undo passou com 104 fontes exatos; Traffic undo passou com 196 verificações. O adaptador passou em idempotência, CRLF, caminhos Windows, rejeição de linha alterada/duplicada e preservação de arquivo alheio. O resultado do novo CI e o SHA remoto final devem ser conferidos na conclusão da integração, sem confundir branch enviada com merge ou publicação.

@@ -1,0 +1,5 @@
+{
+  "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+  "before": "const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\\n')])].filter(file => file && !file.startsWith('scripts/test-support/desfaz-cards-bordas-2410') && (!giroFiles.has(file) || idiomaFiles.has(file))).sort() // KINEO-CARDS-GIRO-2410 · KINEO-CARDS-BORDAS-2410",
+  "after": "const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE, '7ab62db2b10bea45b0c550879c7353f03caf3a6a').trim().split('\\n')])].filter(file => file && !file.startsWith('scripts/test-support/desfaz-cards-bordas-2410') && (!giroFiles.has(file) || idiomaFiles.has(file))).sort() // KINEO-CARDS-GIRO-2410 · KINEO-CARDS-BORDAS-2410 // KINEO-TRENDING-INVENTARIO-2510 — inventario historico da entrega publicada, nao de todas as tarefas futuras."
+}
