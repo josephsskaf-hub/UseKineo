@@ -32,6 +32,24 @@ function TrendingVideo({ video, poster, label }: { video: string; poster: string
   return <video ref={ref} className="tr-video" src={visible ? video : undefined} poster={poster} aria-label={label} muted loop playsInline preload="none" />
 }
 
+function TrendingIllustration({ src, hook, badge }: { src: string; hook: string; badge: TrendingCardData['badge'] }) {
+  const [failed, setFailed] = useState(false)
+  return <>
+    {failed
+      ? <div className="tr-script"><span className="tr-script-mark" aria-hidden="true">“</span><p>{hook}</p></div>
+      : <>
+        <img className="tr-topic-image" src={src} alt="" aria-hidden="true" width={360} height={640} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+        <div className="tr-topic-shade" aria-hidden="true" />
+        <p className="tr-topic-hook">{hook}</p>
+      </>}
+    <div className="tr-topic-badges">
+      {!failed ? <span className="tr-badge tr-badge-illustration"><UiLabel>Illustrative image</UiLabel></span> : null}
+      {badge === 'new' ? <span className="tr-badge tr-badge-new"><UiLabel>New</UiLabel></span> : null}
+      {badge === 'pick' ? <span className="tr-badge tr-badge-pick"><UiLabel>Today’s pick</UiLabel></span> : null}
+    </div>
+  </>
+}
+
 export default function TrendingCard({ block, card }: { block: TrendingBlock['id']; card: TrendingCardData }) {
   const language = useInterfaceLanguage()
   // Estilos de anúncio: nome e frase nas 16 línguas pelo próprio catálogo (ADS_V2_STYLE_COPY); efeitos: pelo dicionário.
@@ -39,6 +57,7 @@ export default function TrendingCard({ block, card }: { block: TrendingBlock['id
   const translatable = block === 'ad-styles' || block === 'clip-effects'
   const title = styleCopy ? styleCopy.label : card.title
   const sub = styleCopy ? styleCopy.oneLine : card.sub
+  const illustrated = !(card.video && card.poster) && !!card.illustration
   // KINEO-ESTILOS-DIA1-2026-10-13 — estilo de época (season 'holiday' no catálogo): selo "Holiday" na língua da interface.
   const seasonTag = styleCopy && isAdsV2Style(card.key) && adsV2Style(card.key).season === 'holiday' ? adsV2StyleCopy(language).seasonTag : null
   return (
@@ -46,9 +65,11 @@ export default function TrendingCard({ block, card }: { block: TrendingBlock['id
       <div className="tr-media">
         {card.video && card.poster
           ? <TrendingVideo video={card.video} poster={card.poster} label={title} />
+          : card.illustration
+          ? <TrendingIllustration key={card.illustration} src={card.illustration} hook={card.sub} badge={card.badge} />
           : <div className="tr-script"><span className="tr-script-mark" aria-hidden="true">“</span><p>{card.sub}</p></div>}
-        {card.badge === 'new' ? <span className="tr-badge tr-badge-new"><UiLabel>New</UiLabel></span> : null}
-        {card.badge === 'pick' ? <span className="tr-badge tr-badge-pick"><UiLabel>Today’s pick</UiLabel></span> : null}
+        {!illustrated && card.badge === 'new' ? <span className="tr-badge tr-badge-new"><UiLabel>New</UiLabel></span> : null}
+        {!illustrated && card.badge === 'pick' ? <span className="tr-badge tr-badge-pick"><UiLabel>Today’s pick</UiLabel></span> : null}
         {seasonTag ? <span className="tr-badge tr-badge-season" data-season="holiday">{seasonTag}</span> : null}
         {card.scriptReady ? <span className="tr-badge tr-badge-script"><UiLabel>Script ready</UiLabel></span> : null}
       </div>

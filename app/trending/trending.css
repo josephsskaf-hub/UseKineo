@@ -22,10 +22,16 @@
 .tr-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border,#d5e0ec);background:var(--card,#fff);border-radius:14px;overflow:hidden}
 .tr-media{position:relative;aspect-ratio:9/16;background:#090c13;overflow:hidden}
 .tr-video{display:block;width:100%;height:100%;object-fit:cover;background:#090c13}
+.tr-topic-image{display:block;width:100%;height:100%;object-fit:cover}
+.tr-topic-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 38%,#080e1b80 60%,#080e1bf2 100%);pointer-events:none}
+.tr-topic-hook{position:absolute;left:14px;right:14px;bottom:45px;margin:0;color:#fff;font-size:clamp(12px,1.2vw,16px);font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 3px #0008}
+.tr-badge-illustration{background:#0b1529d9;color:#fff;max-width:calc(100% - 16px)}
 .tr-script{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:18px 16px;background:linear-gradient(160deg,#1b2340,#0b0f1c 62%,#2a1340);color:#f2f4f8}
 .tr-script-mark{font-size:54px;line-height:.6;color:#ff8a3d;font-family:Georgia,serif}
 .tr-script p{margin:0;font-size:clamp(14px,1.5vw,17px);line-height:1.45;font-weight:600;display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
 .tr-badge{position:absolute;left:8px;top:8px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.02em;line-height:1.3}
+.tr-topic-badges{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px}
+.tr-topic-badges .tr-badge{position:static;max-width:100%}
 .tr-badge-new{background:#ff5a1f;color:#fff}
 .tr-badge-pick{background:#ffd23f;color:#20252b}
 .tr-badge-script{top:auto;bottom:8px;background:#ffffffe6;color:#20252b}

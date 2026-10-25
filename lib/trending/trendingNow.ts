@@ -7,7 +7,8 @@
 //                            clipEffectEngineLabel (o modelo real: Kling 2.5, Kling 1.6, PixVerse 5.5, Seedance 1.5)
 //   3. Temas de filme      → lib/viralTopics.ts (a mesma fonte do Viral Now: /api/viral-now e o cron refresh-viral-now só
 //                            chamam getViralNowTopics, 8 temas a cada bloco de 4 h UTC). Filme da casa SÓ quando o assunto é
-//                            o mesmo (TOPIC_HOUSE_FILMS, com a palavra que prova); senão o cartão diz "Script ready".
+//                            o mesmo (TOPIC_HOUSE_FILMS, com a palavra que prova); senão usa capa editorial local,
+//                            identificada como ilustração, e mantém "Script ready".
 //   4. Motores em ação     → o melhor filme da casa por motor, das listas curadas (ENGINE_PAGE_LEAD + FOUNDER_SHOWCASE de
 //                            lib/publicExamples.ts, na ordem do fundador), só motores na oferta (engineOffered/enginePaused).
 //
@@ -32,6 +33,7 @@ import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE, type FounderShowcaseExample } from 
 import { engineLabelFor } from '@/lib/engineLabel'
 import { STUDIO_ENGINE_FOR_QUALITY } from '@/lib/navigation/reviewVideoRetry'
 import { enginePaused, engineOffered } from '@/lib/engineLaunch'
+import { topicCoverFor } from './topicCovers'
 
 export const TRENDING_PATH = '/trending'
 export const TRENDING_MARKER = 'KINEO-TRENDING-2026-10-13'
@@ -85,6 +87,7 @@ export const TRENDING_COPY = [
   'Film topics', 'Ideas with a script ready. Open one in the Studio and make the film.',
   'Engines in action', 'The best house film from each engine.',
   'Make mine', 'New', 'Today’s pick', 'Script ready', 'Made on Kineo', 'House film on this subject', 'Picked from today’s research',
+  'Illustrative image', 'Real videos and ready-to-use film ideas. Pick one and make your own.',
 ] as const
 
 export type TrendingBadge = 'new' | 'pick' | null
@@ -97,6 +100,8 @@ export interface TrendingCardData {
   engine: string | null
   video: string | null
   poster: string | null
+  /** Editorial illustration for a script-only topic. It is not a video poster or model output. */
+  illustration?: string
   href: string
   badge: TrendingBadge
   /** Tema sem filme da casa: o cartão mostra "Script ready" no lugar do vídeo. */
@@ -250,7 +255,7 @@ export function filmTopicCards(picks: readonly string[] = []): TrendingCardData[
       poster: film ? film.posterPath : null,
       href: trendingTopicHref(t),
       badge: picked.has(t.id) ? 'pick' : null,
-      ...(film ? { houseFilm: true } : { scriptReady: true }),
+      ...(film ? { houseFilm: true } : { scriptReady: true, illustration: topicCoverFor(t.vertical) }),
     }
   })
 }
