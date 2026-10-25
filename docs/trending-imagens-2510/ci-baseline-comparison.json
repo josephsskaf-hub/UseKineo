@@ -1,0 +1,228 @@
+{
+  "date": "2026-10-25",
+  "base": "7ab62db2b10bea45b0c550879c7353f03caf3a6a",
+  "candidate": "b7fc7494e47101fe0597468fd7a5634b91534842",
+  "results": [
+    {
+      "file": "test-locale-readiness.mjs",
+      "base": {
+        "code": 1,
+        "signature": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ]
+      },
+      "candidate": {
+        "code": 1,
+        "signature": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ]
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-app-blue-layout.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-home-curation.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-home-blue-layout.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-home-referral-bridge.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-home-pricing-checkout.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-showcase-premium.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-cinematic-timeline-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-cinematic-speech-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-music-direction-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-visual-contract-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-quality-rejection-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-quality-route-integration-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-quality-failure-ui-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-active-quality-rejection-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    },
+    {
+      "file": "test-scene-retry-mutex-2026-09-11.mjs",
+      "base": {
+        "code": 0,
+        "signature": []
+      },
+      "candidate": {
+        "code": 0,
+        "signature": []
+      },
+      "noNewFailure": true
+    }
+  ],
+  "newFailures": []
+}
