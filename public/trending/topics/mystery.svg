@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="mystery-title mystery-desc">
+  <title id="mystery-title">Misterios</title>
+  <desc id="mystery-desc">Montanhas azuis, lua e um vale envolvido em neblina.</desc>
+  <defs>
+    <linearGradient id="mystery-bg" x2="0" y2="1"><stop stop-color="#17283f"/><stop offset=".6" stop-color="#294252"/><stop offset="1" stop-color="#080f1b"/></linearGradient>
+    <radialGradient id="mystery-moon"><stop stop-color="#d9edf0"/><stop offset=".65" stop-color="#abcdd5"/><stop offset="1" stop-color="#708f9e"/></radialGradient>
+    <linearGradient id="mystery-fog" x2="0" y2="1"><stop stop-color="#d2e4e4" stop-opacity=".34"/><stop offset="1" stop-color="#a2c6d4" stop-opacity="0"/></linearGradient>
+    <linearGradient id="mystery-shade" x2="0" y2="1"><stop offset=".5" stop-color="#080f1b" stop-opacity="0"/><stop offset="1" stop-color="#080f1b"/></linearGradient>
+  </defs>
+  <path fill="url(#mystery-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="239" cy="149" r="54" fill="#a0c9d2" opacity=".06"/>
+  <circle cx="239" cy="149" r="39" fill="url(#mystery-moon)"/>
+  <g fill="#4c697b"><path d="m-35 323 116-146 119 149 105-115 87 123v161H-35z"/></g>
+  <path d="m81 177 24 89-28-17-28 19zM305 211l20 63-24-20-24 14z" fill="#79909d"/>
+  <path d="m-30 397 128-164 63 86 70-114 150 209v158H-30z" fill="#294759"/>
+  <path d="m231 205 12 99-18-23-17 14zM98 233l7 74-14-21-21 20z" fill="#547481"/>
+  <path d="M-30 335c91-53 150 52 245 1 70-38 121-25 177-10v72H-30z" fill="url(#mystery-fog)"/>
+  <path d="m-24 454 77-131 91 107 67-86 84 94 87-79v281H-24z" fill="#162c3f"/>
+  <path d="M-36 418c82-35 114 23 183 4 111-31 117 35 240-10v59H-36z" fill="url(#mystery-fog)"/>
+  <path d="M219 372c-91 55 14 52-51 106-22 19-20 41 10 53 33 14 22 46-21 84" fill="none" stroke="#8faeb7" stroke-width="12" opacity=".36"/>
+  <path d="m0 484 62-40 62 67-27 129H0zM360 454l-78-37-52 125 29 98h101z" fill="#0c1b2c"/>
+  <g fill="#081421"><path d="m24 410-18 72h11l-18 39h21v47h7v-47h22l-18-39h11zM329 386l-22 79h13l-22 48h25v62h9v-62h26l-23-48h14z"/></g>
+  <path fill="url(#mystery-shade)" d="M0 0h360v640H0z"/>
+</svg>

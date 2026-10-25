@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="billionaire-title billionaire-desc">
+  <title id="billionaire-title">Fortuna e luxo</title>
+  <desc id="billionaire-desc">Relogio dourado sobre arquitetura noturna abstrata.</desc>
+  <defs>
+    <linearGradient id="billionaire-bg" x2="1" y2="1"><stop stop-color="#26303c"/><stop offset=".52" stop-color="#101823"/><stop offset="1" stop-color="#050b13"/></linearGradient>
+    <linearGradient id="billionaire-gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0bd"/><stop offset=".23" stop-color="#b78743"/><stop offset=".48" stop-color="#f4d696"/><stop offset=".76" stop-color="#8c5a26"/><stop offset="1" stop-color="#e9c57a"/></linearGradient>
+    <radialGradient id="billionaire-light"><stop stop-color="#c79c54" stop-opacity=".35"/><stop offset="1" stop-color="#c79c54" stop-opacity="0"/></radialGradient>
+    <linearGradient id="billionaire-shade" x2="0" y2="1"><stop offset=".48" stop-color="#050b13" stop-opacity="0"/><stop offset="1" stop-color="#050b13"/></linearGradient>
+  </defs>
+  <path fill="url(#billionaire-bg)" d="M0 0h360v640H0z"/>
+  <ellipse cx="208" cy="247" rx="210" ry="258" fill="url(#billionaire-light)"/>
+  <g fill="#1c2835" stroke="#d6ad66" stroke-opacity=".16">
+    <path d="M-16 374 45 345v252h-61zM54 335l54-30v292H54zM269 348l45-30v279h-45zM323 292l51-22v327h-51z"/>
+    <path d="M120 409h32v188h-32zM224 395h31v202h-31z"/>
+  </g>
+  <g transform="rotate(-19 180 280)">
+    <path d="M139 69h82l10 133H129zM130 366h100l-9 140h-82z" fill="#17202b" stroke="url(#billionaire-gold)" stroke-width="8"/>
+    <path d="M146 79v110m17-110v110m34-110v110m17-110v110M145 382v113m18-113v113m34-113v113m17-113v113" stroke="#d8b779" stroke-width="5" opacity=".45"/>
+    <path d="M129 105h102m-100 25h98m-96 25h94M133 410h94m-92 27h90m-88 27h86" stroke="#03080f" stroke-width="3"/>
+    <circle cx="180" cy="283" r="106" fill="#070d16" stroke="#070b10" stroke-width="18"/>
+    <circle cx="180" cy="276" r="106" fill="url(#billionaire-gold)"/>
+    <circle cx="180" cy="276" r="92" fill="#101a25" stroke="#675030" stroke-width="2"/>
+    <circle cx="180" cy="276" r="81" fill="none" stroke="#bc965c" stroke-width="1" stroke-dasharray="1 9"/>
+    <path d="M180 199v12m0 130v12m-77-77h12m130 0h12m-131-54 9 9m90 90 9 9m-108 0 9-9m90-90 9-9" stroke="#ebcd90" stroke-width="4"/>
+    <g fill="#182432" stroke="#a58552"><circle cx="145" cy="270" r="21"/><circle cx="215" cy="270" r="21"/><circle cx="180" cy="316" r="19"/></g>
+    <path d="M180 276v-53m0 53 46 26" stroke="#f2dbac" stroke-width="6" stroke-linecap="round"/>
+    <path d="m164 311 48-99" stroke="#c89a52" stroke-width="2"/>
+    <circle cx="180" cy="276" r="6" fill="#f7e4bb"/>
+    <rect x="285" y="263" width="14" height="25" rx="4" fill="url(#billionaire-gold)"/>
+    <path d="m105 186 9 16 18-2-16 10-1 18-8-16-18-3 17-7z" fill="#fff2c9"/>
+  </g>
+  <path fill="url(#billionaire-shade)" d="M0 0h360v640H0z"/>
+</svg>

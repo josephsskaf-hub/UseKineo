@@ -21,11 +21,11 @@ import './trending.css'
 const URL_PUBLIC = 'https://www.usekineo.com' + TRENDING_PATH
 export const metadata: Metadata = {
   title: 'Trending now — real videos made on Kineo | Kineo',
-  description: 'The newest ad styles, clip effects, film topics and engines on Kineo, each with a real video made on Kineo and a one-click way to make your own.',
+  description: 'Explore ad styles, clip effects, real videos made on Kineo and film ideas with ready-to-use scripts. Pick one and open the right creation tool.',
   alternates: { canonical: URL_PUBLIC },
   openGraph: {
     title: 'Trending now on Kineo',
-    description: 'Real videos made on Kineo: ad styles, clip effects, film topics and engines. Pick one and make your own.',
+    description: 'Real videos and ready-to-use film ideas on Kineo: ad styles, clip effects, topics and engines. Pick one and make your own.',
     url: URL_PUBLIC,
     images: [{ url: '/videos/example-turkmenistan.jpg', width: 360, height: 640 }],
   },
@@ -77,7 +77,7 @@ export default async function TrendingPage() {
         <section className="tr-hero" aria-labelledby="trending-title">
           <p className="tr-eyebrow"><UiLabel>Made on Kineo</UiLabel></p>
           <h1 id="trending-title"><span aria-hidden="true">🔥 </span><UiLabel>Trending now</UiLabel></h1>
-          <p className="tr-lead"><UiLabel>Real videos made on Kineo. Pick one and make your own.</UiLabel></p>
+          <p className="tr-lead"><UiLabel>Real videos and ready-to-use film ideas. Pick one and make your own.</UiLabel></p>
           <p className="tr-note"><UiLabel>No view counts, no fake numbers. Trending here means the newest styles and effects, and today’s picks.</UiLabel></p>
           {today ? <p className="tr-note tr-note-pick"><UiLabel>Picked from today’s research</UiLabel> · <span dir="ltr">{today.date}</span></p> : null}
           <nav className="tr-jump" aria-label="Trending now">

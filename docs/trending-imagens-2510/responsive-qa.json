@@ -1,0 +1,42 @@
+[
+  {
+    "badgeCollision": false,
+    "buttons": true,
+    "columns": "130.5px 130.5px",
+    "images": 7,
+    "loadedVisibleImages": true,
+    "mediaRatio": true,
+    "overflow": false,
+    "width": 320
+  },
+  {
+    "badgeCollision": false,
+    "buttons": true,
+    "columns": "165.5px 165.5px",
+    "images": 7,
+    "loadedVisibleImages": true,
+    "mediaRatio": true,
+    "overflow": false,
+    "width": 390
+  },
+  {
+    "badgeCollision": false,
+    "buttons": true,
+    "columns": "224.969px 224.984px 224.984px",
+    "images": 7,
+    "loadedVisibleImages": true,
+    "mediaRatio": true,
+    "overflow": false,
+    "width": 768
+  },
+  {
+    "badgeCollision": false,
+    "buttons": true,
+    "columns": "254.922px 254.922px 254.922px 254.922px 254.938px",
+    "images": 7,
+    "loadedVisibleImages": true,
+    "mediaRatio": true,
+    "overflow": false,
+    "width": 1440
+  }
+]

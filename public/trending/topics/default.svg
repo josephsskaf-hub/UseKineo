@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="default-title default-desc">
+  <title id="default-title">Criacao e ideias</title>
+  <desc id="default-desc">Composicao abstrata de quadros e luz, sem assunto especifico.</desc>
+  <defs>
+    <linearGradient id="default-bg" x2="1" y2="1"><stop stop-color="#1c3054"/><stop offset="1" stop-color="#0a1122"/></linearGradient>
+    <linearGradient id="default-frame" x2="1" y2="1"><stop stop-color="#9bb7e7"/><stop offset=".5" stop-color="#526a9b"/><stop offset="1" stop-color="#273b67"/></linearGradient>
+    <linearGradient id="default-light" x2="0" y2="1"><stop stop-color="#b3c8f8" stop-opacity=".22"/><stop offset="1" stop-color="#b3c8f8" stop-opacity="0"/></linearGradient>
+    <radialGradient id="default-glow"><stop stop-color="#d1b5e4" stop-opacity=".24"/><stop offset="1" stop-color="#d1b5e4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="default-shade" x2="0" y2="1"><stop offset=".5" stop-color="#0a1122" stop-opacity="0"/><stop offset="1" stop-color="#0a1122"/></linearGradient>
+  </defs>
+  <path fill="url(#default-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="182" cy="260" r="190" fill="url(#default-glow)"/>
+  <path d="m179 84-131 435h265z" fill="url(#default-light)"/>
+  <g transform="rotate(-16 180 288)">
+    <rect x="51" y="178" width="162" height="246" rx="15" fill="#172440" stroke="#52648a" stroke-width="2"/>
+    <path d="M69 196h126v208H69z" fill="#26395c"/>
+    <path d="m69 361 40-64 32 30 54-89v166H69z" fill="#405779"/>
+  </g>
+  <g transform="rotate(14 226 286)">
+    <rect x="136" y="163" width="162" height="246" rx="15" fill="#213050" stroke="#8094bc" stroke-width="2"/>
+    <path d="M154 181h126v208H154z" fill="#344665"/>
+    <circle cx="214" cy="254" r="42" fill="#687594"/>
+    <path d="M154 343c48-39 77 23 126-9v55H154z" fill="#253958"/>
+  </g>
+  <rect x="102" y="137" width="159" height="270" rx="16" fill="url(#default-frame)" stroke="#aec2e8" stroke-width="2"/>
+  <rect x="111" y="146" width="141" height="252" rx="10" fill="#182b4c"/>
+  <path d="M127 309v-72c0-31 23-53 54-53s55 22 55 53v72z" fill="#7283aa"/>
+  <path d="M145 309v-70c0-23 16-39 36-39s37 16 37 39v70z" fill="#b3a3c5"/>
+  <circle cx="181" cy="255" r="24" fill="#e6c5c8"/>
+  <path d="M112 338c48-33 88 27 140-4v64H112z" fill="#405a82"/>
+  <path d="M112 363c53-34 80 17 140 5v30H112z" fill="#243c63"/>
+  <path d="m72 126 4 12 13 4-13 4-4 13-4-13-13-4 13-4zM284 422l3 10 10 3-10 3-3 10-3-10-10-3 10-3z" fill="#bbc8e9" opacity=".7"/>
+  <path d="M49 471c89-28 178-22 270 0" fill="none" stroke="#7797c6" stroke-opacity=".24" stroke-width="2"/>
+  <path fill="url(#default-shade)" d="M0 0h360v640H0z"/>
+</svg>

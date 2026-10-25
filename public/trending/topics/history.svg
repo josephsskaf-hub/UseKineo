@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="history-title history-desc">
+  <title id="history-title">Historia</title>
+  <desc id="history-desc">Colunas antigas e uma ampulheta iluminada em dourado.</desc>
+  <defs>
+    <linearGradient id="history-bg" x2="1" y2="1"><stop stop-color="#3a3029"/><stop offset="1" stop-color="#101825"/></linearGradient>
+    <linearGradient id="history-stone" x2="1" y2="0"><stop stop-color="#665e54"/><stop offset=".35" stop-color="#c1aa89"/><stop offset=".7" stop-color="#8b7a65"/><stop offset="1" stop-color="#3e4143"/></linearGradient>
+    <linearGradient id="history-gold" x2="1" y2="1"><stop stop-color="#f5d69b"/><stop offset="1" stop-color="#99692e"/></linearGradient>
+    <linearGradient id="history-shade" x2="0" y2="1"><stop offset=".5" stop-color="#101825" stop-opacity="0"/><stop offset="1" stop-color="#101825"/></linearGradient>
+  </defs>
+  <path fill="url(#history-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="242" cy="160" r="80" fill="#b89a65" opacity=".07"/>
+  <path d="M0 193 173 117l187 76v26H0z" fill="#6e6b63"/>
+  <path d="m34 187 139-56 145 56z" fill="#b6a48b" opacity=".55"/>
+  <path d="M11 219h338v20H11zM0 391h360v18H0zM0 411h360v17H0z" fill="#8b806c"/>
+  <g fill="url(#history-stone)">
+    <path d="M26 243h42l-3 145H29zM102 243h42l-3 145h-36zM178 243h42l-3 145h-36zM254 243h42l-3 145h-36z"/>
+    <path d="M19 237h56v13H19zM95 237h56v13H95zM171 237h56v13h-56zM247 237h56v13h-56z"/>
+  </g>
+  <g stroke="#3d4144" stroke-width="3" opacity=".65"><path d="M39 255v124m13-124v124m63-124v124m13-124v124m63-124v124m13-124v124m63-124v124m13-124v124"/></g>
+  <path d="M57 426h117l-9 63H36zM-18 460l68-12 25 75-93 25z" fill="#4e5150"/>
+  <g transform="rotate(9 252 397)">
+    <path d="M202 292h100v14H202zM202 477h100v14H202z" fill="url(#history-gold)"/>
+    <path d="M209 306h11v171h-11zM284 306h11v171h-11z" fill="#a07b43"/>
+    <path d="M225 309h53c0 53-22 63-22 79s22 27 22 85h-53c0-58 22-69 22-85s-22-26-22-79z" fill="#b3d9d9" fill-opacity=".08" stroke="#c5d8cf" stroke-opacity=".68" stroke-width="2"/>
+    <path d="M232 334h39c-3 25-19 35-19 50-2-14-17-25-20-50zM232 463c2-20 15-24 20-32 5 8 18 12 20 32z" fill="#d9b574"/>
+    <path d="M252 385v47" stroke="#e4c28b" stroke-width="2" stroke-dasharray="2 4"/>
+  </g>
+  <path fill="url(#history-shade)" d="M0 0h360v640H0z"/>
+</svg>

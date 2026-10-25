@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="ai-title ai-desc">
+  <title id="ai-title">Inteligencia artificial</title>
+  <desc id="ai-desc">Cerebro digital com conexoes luminosas sobre um circuito.</desc>
+  <defs>
+    <linearGradient id="ai-bg" x2="1" y2="1"><stop stop-color="#111f44"/><stop offset="1" stop-color="#090d1c"/></linearGradient>
+    <linearGradient id="ai-brain" x2="1" y2="1"><stop stop-color="#8bf4ff"/><stop offset=".45" stop-color="#7e8cff"/><stop offset="1" stop-color="#b663f5"/></linearGradient>
+    <radialGradient id="ai-glow"><stop stop-color="#5971ff" stop-opacity=".3"/><stop offset="1" stop-color="#5971ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="ai-shade" x2="0" y2="1"><stop offset=".5" stop-color="#090d1c" stop-opacity="0"/><stop offset="1" stop-color="#090d1c"/></linearGradient>
+  </defs>
+  <path fill="url(#ai-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="180" cy="278" r="207" fill="url(#ai-glow)"/>
+  <g fill="none" stroke="#6576bc" stroke-opacity=".25"><path d="m0 195 58 30v55l47 24M0 350l57-33m303-122-58 30v55l-47 24m105 46-57-33M65 68v61l37 21m193-82v61l-37 21M118 414v61l-58 33m182-94v61l58 33"/><path d="m32 532 148-84 148 84-148 84zM63 532l117-66 117 66-117 66z"/></g>
+  <path d="M178 143c-24-20-66-7-71 23-33 0-57 31-45 62-25 25-22 64 5 82-8 37 23 69 55 65 9 29 39 35 58 17 19 18 49 12 58-17 32 4 63-28 55-65 27-18 30-57 5-82 12-31-12-62-45-62-5-30-47-43-71-23z" fill="#182c50" stroke="url(#ai-brain)" stroke-width="4"/>
+  <path d="M180 150v232m-65-210 25 22v44l40 24m-109-28 37 18 1 50 36 20v51m-72-63 31-20m143-118-27 22v44l-40 24m109-28-37 18-1 50-36 20v51m72-63-31-20m-99-40-39 22m78-22 39 22" fill="none" stroke="url(#ai-brain)" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#b5eeff" stroke="#334f80" stroke-width="3"><circle cx="140" cy="194" r="7"/><circle cx="108" cy="252" r="7"/><circle cx="145" cy="322" r="7"/><circle cx="220" cy="194" r="7"/><circle cx="252" cy="252" r="7"/><circle cx="215" cy="322" r="7"/><circle cx="180" cy="262" r="9"/></g>
+  <g stroke="#758cfb" stroke-width="3" fill="none"><path d="M152 397v44l-33 19m89-63v44l33 19m-61-62v87"/><path d="m116 487 64-36 64 36-64 37z"/></g>
+  <path d="m150 486 30-17 30 17-30 18z" fill="#8b9cff"/>
+  <g fill="#a2c2ff"><circle cx="58" cy="225" r="3"/><circle cx="302" cy="225" r="3"/><circle cx="65" cy="129" r="3"/><circle cx="295" cy="129" r="3"/></g>
+  <path fill="url(#ai-shade)" d="M0 0h360v640H0z"/>
+</svg>

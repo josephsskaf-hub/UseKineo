@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="space-title space-desc">
+  <title id="space-title">Espaco e exploracao</title>
+  <desc id="space-desc">Planeta vermelho e um veiculo explorador sobre uma paisagem rochosa.</desc>
+  <defs>
+    <linearGradient id="space-bg" x2="0" y2="1"><stop stop-color="#0a152c"/><stop offset="1" stop-color="#201b30"/></linearGradient>
+    <radialGradient id="space-mars" cx=".29" cy=".22"><stop stop-color="#e0a77e"/><stop offset=".35" stop-color="#c27858"/><stop offset=".75" stop-color="#783e3b"/><stop offset="1" stop-color="#38223a"/></radialGradient>
+    <clipPath id="space-planet-clip"><circle cx="224" cy="219" r="131"/></clipPath>
+    <linearGradient id="space-shade" x2="0" y2="1"><stop offset=".5" stop-color="#101628" stop-opacity="0"/><stop offset="1" stop-color="#101628"/></linearGradient>
+  </defs>
+  <path fill="url(#space-bg)" d="M0 0h360v640H0z"/>
+  <g fill="#d4e0f4" opacity=".65"><circle cx="41" cy="92" r="1.5"/><circle cx="78" cy="165" r="1"/><circle cx="102" cy="50" r="1"/><circle cx="277" cy="65" r="1.5"/><circle cx="323" cy="102" r="1"/><circle cx="31" cy="274" r="1"/><circle cx="61" cy="345" r="1.5"/><circle cx="334" cy="338" r="1"/></g>
+  <circle cx="224" cy="219" r="137" fill="#d1886a" opacity=".05"/>
+  <circle cx="224" cy="219" r="131" fill="url(#space-mars)"/>
+  <g clip-path="url(#space-planet-clip)" fill="none" stroke="#5f3339" stroke-opacity=".4"><path d="M96 154c48 29 42-16 108 11 51 22 50-5 116 20m-208 32c53-24 67 27 114 19 47-9 66 20 125 8M83 282c50-36 76 12 115-2 54-20 92 48 147 9" stroke-width="15"/><ellipse cx="177" cy="124" rx="23" ry="11" stroke-width="5"/><ellipse cx="273" cy="282" rx="34" ry="17" stroke-width="7"/><ellipse cx="159" cy="246" rx="17" ry="10" stroke-width="4"/></g>
+  <path d="m0 398 61-32 44 20 55-35 57 38 47-15 96 34v232H0z" fill="#54404b"/>
+  <path d="m0 435 66-21 82 17 79-26 133 44v191H0z" fill="#7b5250"/>
+  <path d="m0 472 100-18 100 25 160-8v169H0z" fill="#493a46"/>
+  <g transform="translate(66 338)">
+    <path d="m52 63 72-15 54 23-73 18z" fill="#c6c5bc" stroke="#dde2d9" stroke-width="2"/>
+    <path d="m52 63 53 26v30L52 91z" fill="#6e7d8a"/>
+    <path d="m105 89 73-18v31l-73 17z" fill="#9aa8b1"/>
+    <path d="m65 65 59-12 39 17-59 14z" fill="#253a50" stroke="#6589a1" stroke-width="2"/>
+    <path d="m81 66 39-9m-21 23 39-9m-43-9 26 15m-8-19 26 15" stroke="#769ab0" stroke-width="1"/>
+    <path d="M139 55V1m0 17h26V3h-26" fill="none" stroke="#b4c6ce" stroke-width="5"/>
+    <path d="M129 7h41v16h-41z" fill="#a8b9c1"/><circle cx="160" cy="14" r="4" fill="#263e56"/>
+    <path d="m58 92-19 21 32 14m77-20 24 11m-81-8-9 24m57-26 5 23" fill="none" stroke="#9caeb6" stroke-width="5"/>
+    <g fill="#172737" stroke="#7e929d" stroke-width="4"><ellipse cx="38" cy="119" rx="16" ry="20"/><ellipse cx="84" cy="138" rx="16" ry="20"/><ellipse cx="143" cy="133" rx="16" ry="20"/><ellipse cx="181" cy="119" rx="16" ry="20"/></g>
+  </g>
+  <path fill="url(#space-shade)" d="M0 0h360v640H0z"/>
+</svg>

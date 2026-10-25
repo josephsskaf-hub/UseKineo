@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="money-title money-desc">
+  <title id="money-title">Dinheiro e crescimento</title>
+  <desc id="money-desc">Moedas em perspectiva e uma linha ascendente sobre fundo verde escuro.</desc>
+  <defs>
+    <linearGradient id="money-bg" x2="1" y2="1"><stop stop-color="#0c3438"/><stop offset="1" stop-color="#050f19"/></linearGradient>
+    <linearGradient id="money-gold" x2="0" y2="1"><stop stop-color="#ffe5a2"/><stop offset=".4" stop-color="#c49141"/><stop offset="1" stop-color="#79501f"/></linearGradient>
+    <linearGradient id="money-edge" x2="1" y2="0"><stop stop-color="#775224"/><stop offset=".4" stop-color="#edca7b"/><stop offset="1" stop-color="#a8782b"/></linearGradient>
+    <linearGradient id="money-shade" x2="0" y2="1"><stop offset=".5" stop-color="#050f19" stop-opacity="0"/><stop offset="1" stop-color="#050f19"/></linearGradient>
+  </defs>
+  <path fill="url(#money-bg)" d="M0 0h360v640H0z"/>
+  <g stroke="#76e3b7" stroke-opacity=".09"><path d="M0 146h360M0 207h360M0 268h360M0 329h360M0 390h360M0 451h360M59 113v388m61-388v388m61-388v388m61-388v388m61-388v388"/></g>
+  <path d="m28 325 66-44 50 20 65-87 51 19 66-100" fill="none" stroke="#7bffd0" stroke-opacity=".12" stroke-width="21" stroke-linejoin="round"/>
+  <path d="m28 325 66-44 50 20 65-87 51 19 66-100m-48 10 48-10 6 48" fill="none" stroke="#76e9ba" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="url(#money-edge)" stroke="#f7d88e" stroke-opacity=".3">
+    <path d="M37 392v47c0 16 91 16 91 0v-47z"/><path d="M37 407c0 16 91 16 91 0m-91 16c0 16 91 16 91 0" fill="none"/>
+    <path d="M130 343v96c0 19 100 19 100 0v-96z"/><path d="M130 362c0 19 100 19 100 0m-100 20c0 19 100 19 100 0m-100 20c0 19 100 19 100 0m-100 20c0 19 100 19 100 0" fill="none"/>
+    <path d="M239 287v132c0 16 85 16 85 0V287z"/><path d="M239 308c0 16 85 16 85 0m-85 22c0 16 85 16 85 0m-85 22c0 16 85 16 85 0m-85 22c0 16 85 16 85 0m-85 22c0 16 85 16 85 0" fill="none"/>
+  </g>
+  <g fill="url(#money-gold)" stroke="#f8d98d" stroke-width="2"><ellipse cx="82" cy="392" rx="45" ry="17"/><ellipse cx="180" cy="343" rx="50" ry="19"/><ellipse cx="281" cy="287" rx="42" ry="16"/></g>
+  <g fill="none" stroke="#7f5828" stroke-width="2"><ellipse cx="82" cy="392" rx="31" ry="10"/><ellipse cx="180" cy="343" rx="35" ry="12"/><ellipse cx="281" cy="287" rx="28" ry="9"/></g>
+  <g transform="rotate(-22 239 464)"><ellipse cx="239" cy="465" rx="47" ry="52" fill="url(#money-edge)"/><ellipse cx="233" cy="459" rx="44" ry="50" fill="url(#money-gold)" stroke="#ffe5a2" stroke-width="2"/><ellipse cx="233" cy="459" rx="32" ry="38" fill="none" stroke="#9c712f" stroke-width="2"/><path d="m218 466 10 9 23-32" fill="none" stroke="#ac813d" stroke-width="5" stroke-linecap="round"/></g>
+  <path fill="url(#money-shade)" d="M0 0h360v640H0z"/>
+</svg>

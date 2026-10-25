@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="crime-title crime-desc">
+  <title id="crime-title">Investigacao</title>
+  <desc id="crime-desc">Impressao digital em linhas luminosas e uma lupa sobre fundo noturno.</desc>
+  <defs>
+    <linearGradient id="crime-bg" x2="1" y2="1"><stop stop-color="#202c3c"/><stop offset="1" stop-color="#0b1221"/></linearGradient>
+    <linearGradient id="crime-print" x2="1" y2="1"><stop stop-color="#b0d0e1"/><stop offset=".55" stop-color="#6f9eae"/><stop offset="1" stop-color="#d59f7e"/></linearGradient>
+    <linearGradient id="crime-metal" x2="1" y2="1"><stop stop-color="#b8c4d1"/><stop offset=".45" stop-color="#536c84"/><stop offset="1" stop-color="#223448"/></linearGradient>
+    <linearGradient id="crime-shade" x2="0" y2="1"><stop offset=".5" stop-color="#0b1221" stop-opacity="0"/><stop offset="1" stop-color="#0b1221"/></linearGradient>
+  </defs>
+  <path fill="url(#crime-bg)" d="M0 0h360v640H0z"/>
+  <g fill="none" stroke="#8c9fb6" stroke-opacity=".12"><path d="M29 161h35v-35m231 35h-35v-35M29 358h35v35m231-35h-35v35M21 261h285"/><circle cx="163" cy="261" r="149"/></g>
+  <g fill="none" stroke="url(#crime-print)" stroke-width="3" stroke-linecap="round">
+    <path d="M58 287c-15-96 28-162 100-165 79-4 125 71 115 159"/>
+    <path d="M72 312c-26-101 9-172 85-176 72-4 112 65 102 149"/>
+    <path d="M87 329c-28-75-18-174 68-180 61-4 98 52 91 125-3 36 9 47 22 61"/>
+    <path d="M104 342c-33-67-29-174 51-179 57-4 85 47 78 109-4 40 5 54 26 77"/>
+    <path d="M124 351c-31-50-44-163 29-174 50-8 75 41 67 93-6 43 1 62 30 92"/>
+    <path d="M143 358c-32-51-50-148 11-166 40-12 60 29 53 74-7 48 4 75 28 103"/>
+    <path d="M164 362c-27-50-58-136-13-153 33-13 48 21 42 57-8 48 1 84 29 116"/>
+    <path d="M183 366c-24-48-55-121-28-142 19-14 29 13 24 42-9 52 3 90 28 119"/>
+    <path d="M168 266c-8 39 0 73 7 96m-18-122c-7 11-3 30 3 49m-74 65 13 21m-27-37 4 13m179-144 6 21m-59 151 14 16"/>
+  </g>
+  <path d="m263 414 56 63" stroke="#0b1423" stroke-width="26" stroke-linecap="round"/>
+  <path d="m260 410 56 63" stroke="url(#crime-metal)" stroke-width="17" stroke-linecap="round"/>
+  <circle cx="215" cy="361" r="79" fill="#0b1726" fill-opacity=".28" stroke="#152338" stroke-width="18"/>
+  <circle cx="215" cy="357" r="79" fill="#7ea9bd" fill-opacity=".08" stroke="url(#crime-metal)" stroke-width="10"/>
+  <path d="M162 346a57 57 0 0 1 57-46" fill="none" stroke="#d3e3e8" stroke-opacity=".65" stroke-width="3" stroke-linecap="round"/>
+  <path fill="url(#crime-shade)" d="M0 0h360v640H0z"/>
+</svg>

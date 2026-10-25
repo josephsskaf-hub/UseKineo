@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="science-title science-desc">
+  <title id="science-title">Ciencia e descobertas</title>
+  <desc id="science-desc">Orbitas de um atomo acima de um frasco de laboratorio luminoso.</desc>
+  <defs>
+    <linearGradient id="science-bg" x2="1" y2="1"><stop stop-color="#10303b"/><stop offset="1" stop-color="#0a1124"/></linearGradient>
+    <linearGradient id="science-liquid" x2="0" y2="1"><stop stop-color="#68e3d5"/><stop offset="1" stop-color="#20788c"/></linearGradient>
+    <radialGradient id="science-glow"><stop stop-color="#3cb7ca" stop-opacity=".2"/><stop offset="1" stop-color="#3cb7ca" stop-opacity="0"/></radialGradient>
+    <linearGradient id="science-shade" x2="0" y2="1"><stop offset=".5" stop-color="#0a1124" stop-opacity="0"/><stop offset="1" stop-color="#0a1124"/></linearGradient>
+  </defs>
+  <path fill="url(#science-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="180" cy="281" r="204" fill="url(#science-glow)"/>
+  <g fill="none" stroke="#8ddbdc" stroke-opacity=".12"><path d="m17 170 29-17 29 17v34l-29 17-29-17zM284 382l30-17 30 17v35l-30 17-30-17zM288 126l20-12 20 12v24l-20 12-20-12z"/><path d="M46 221v42m0 0 28 17m0 0v34"/></g>
+  <g fill="none" stroke-linecap="round" stroke-width="3">
+    <ellipse cx="180" cy="232" rx="123" ry="45" stroke="#87e3ed" transform="rotate(-20 180 232)"/>
+    <ellipse cx="180" cy="232" rx="123" ry="45" stroke="#72a5ea" transform="rotate(40 180 232)"/>
+    <ellipse cx="180" cy="232" rx="123" ry="45" stroke="#b4bcf8" transform="rotate(100 180 232)"/>
+  </g>
+  <g fill="#bdedeb"><circle cx="64" cy="266" r="7"/><circle cx="274" cy="311" r="7"/><circle cx="196" cy="114" r="7"/></g>
+  <circle cx="180" cy="232" r="21" fill="#69d5da" opacity=".12"/>
+  <g fill="#b7e7ed"><circle cx="176" cy="226" r="9"/><circle cx="187" cy="234" r="8"/><circle cx="173" cy="240" r="8"/></g>
+  <path d="M148 316h64v11h-10v52l54 91c9 16-2 31-20 31H124c-18 0-29-15-20-31l54-91v-52h-10z" fill="#a4d8e2" fill-opacity=".07" stroke="#9dd5dc" stroke-width="3"/>
+  <path d="m127 440 106 0 20 34c5 9 0 17-13 17H120c-13 0-18-8-13-17z" fill="url(#science-liquid)" opacity=".85"/>
+  <ellipse cx="180" cy="441" rx="53" ry="8" fill="#b7f2db" opacity=".72"/>
+  <path d="M163 340v44l-38 67m75-30h12m-2 22h12m0 22h13" fill="none" stroke="#e2f7ec" stroke-width="3" stroke-linecap="round" opacity=".5"/>
+  <g fill="#a9e7dc"><circle cx="164" cy="465" r="5"/><circle cx="204" cy="478" r="3"/><circle cx="189" cy="424" r="4"/><circle cx="173" cy="401" r="3"/><circle cx="189" cy="361" r="5"/></g>
+  <path fill="url(#science-shade)" d="M0 0h360v640H0z"/>
+</svg>
