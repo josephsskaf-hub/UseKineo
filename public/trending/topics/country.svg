@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="country-title country-desc">
+  <title id="country-title">Paises e culturas</title>
+  <desc id="country-desc">Globo simbolico com uma cidade cosmopolita em primeiro plano.</desc>
+  <defs>
+    <linearGradient id="country-bg" x2="0" y2="1"><stop stop-color="#1b2447"/><stop offset="1" stop-color="#0a1426"/></linearGradient>
+    <radialGradient id="country-globe" cx=".3" cy=".25"><stop stop-color="#6f96c7"/><stop offset=".6" stop-color="#36557d"/><stop offset="1" stop-color="#172b4c"/></radialGradient>
+    <linearGradient id="country-city" x2="0" y2="1"><stop stop-color="#67719b"/><stop offset="1" stop-color="#172840"/></linearGradient>
+    <linearGradient id="country-shade" x2="0" y2="1"><stop offset=".5" stop-color="#0a1426" stop-opacity="0"/><stop offset="1" stop-color="#0a1426"/></linearGradient>
+  </defs>
+  <path fill="url(#country-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="192" cy="242" r="141" fill="#5776b4" opacity=".06"/>
+  <circle cx="192" cy="242" r="121" fill="url(#country-globe)" stroke="#7f9fca" stroke-opacity=".45" stroke-width="2"/>
+  <g fill="none" stroke="#a4bfda" stroke-opacity=".28"><ellipse cx="192" cy="242" rx="121" ry="42"/><ellipse cx="192" cy="242" rx="121" ry="87"/><ellipse cx="192" cy="242" rx="42" ry="121"/><ellipse cx="192" cy="242" rx="86" ry="121"/><path d="M71 242h242m-121-121v242"/></g>
+  <path d="m119 171 29-18 23 14 17 3 11 23-19 16-8 25-22 4-10-24-21-15zM195 213l29-9 23 20 5 26-18 6-10 32-22-15-8-24-14-11zM250 170l22 14 13 27-19 16-13-25-16-7zM137 265l27-10 20 19-8 28-16 13-10-22zM232 312l23-9 21 12-4 19-28 6z" fill="#96b0b1" opacity=".65"/>
+  <path d="M19 312c73-97 218-129 314-86" fill="none" stroke="#d7a6af" stroke-width="2" stroke-dasharray="5 6"/>
+  <path d="m327 217 15 12-21 2 4-7z" fill="#edb9b6"/>
+  <path d="M-12 412h33v-77h39v100h17V307l20-28 20 28v128h21V362h39v73h18V296h49v139h14V345h38v90h14v-57h35v100H-12z" fill="url(#country-city)"/>
+  <path d="M194 296h49v15h-49zM214 261h8v35h-8zM79 312h37v9H79z" fill="#9c9ab1"/>
+  <g stroke="#b3c8dc" stroke-width="3" opacity=".55"><path d="M30 349h20m-20 15h20m-20 15h20m37-44h19m-19 17h19m-19 17h19m-19 17h19m41-10h19m-19 17h19m45-64h28m-28 17h28m-28 17h28m-28 17h28m35-16h18m-18 16h18"/></g>
+  <path d="M-5 453c114-28 240-23 370 7v35H-5z" fill="#a1a2ba" opacity=".17"/>
+  <path fill="url(#country-shade)" d="M0 0h360v640H0z"/>
+</svg>

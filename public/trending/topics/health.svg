@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640" role="img" aria-labelledby="health-title health-desc">
+  <title id="health-title">Saude e bem-estar</title>
+  <desc id="health-desc">Coracao anatomico estilizado e um pulso luminoso.</desc>
+  <defs>
+    <linearGradient id="health-bg" x2="1" y2="1"><stop stop-color="#163742"/><stop offset="1" stop-color="#0b1427"/></linearGradient>
+    <linearGradient id="health-heart" x2="1" y2="1"><stop stop-color="#f39d94"/><stop offset=".35" stop-color="#d26c7c"/><stop offset="1" stop-color="#6e385a"/></linearGradient>
+    <radialGradient id="health-glow"><stop stop-color="#e16f83" stop-opacity=".2"/><stop offset="1" stop-color="#e16f83" stop-opacity="0"/></radialGradient>
+    <linearGradient id="health-shade" x2="0" y2="1"><stop offset=".5" stop-color="#0b1427" stop-opacity="0"/><stop offset="1" stop-color="#0b1427"/></linearGradient>
+  </defs>
+  <path fill="url(#health-bg)" d="M0 0h360v640H0z"/>
+  <circle cx="190" cy="279" r="186" fill="url(#health-glow)"/>
+  <g fill="none" stroke="#a4ddd7" stroke-opacity=".09"><circle cx="183" cy="281" r="145"/><circle cx="183" cy="281" r="166"/><path d="M28 281h310m-155-155v310"/></g>
+  <path d="M172 225v-66c0-28 18-45 45-45h15v31h-14c-9 0-15 8-15 18v52" fill="#b76c83" stroke="#edb0a4" stroke-width="3"/>
+  <path d="M149 222v-49h-31v-25h51c10 0 16 8 16 19v59" fill="#9f7995" stroke="#bfabbf" stroke-width="3"/>
+  <path d="M218 228v-46l27-17 14 22-15 12v46" fill="#82739b" stroke="#beb0d3" stroke-width="3"/>
+  <path d="M182 233c-35-52-99-24-105 21-10 72 55 143 110 175 39-33 86-73 91-133 4-50-30-89-61-79-13 4-24 10-35 16z" fill="url(#health-heart)" stroke="#e2959a" stroke-width="2"/>
+  <path d="M182 233c34 43 14 83 5 196" fill="none" stroke="#8e4165" stroke-width="6"/>
+  <path d="M170 251c-13 27-32 41-59 51m59-51 32 30 33 12m-69-17-4 54-30 25m30-25 33 18 16 40m-46-97-46-3" fill="none" stroke="#efb3ad" stroke-width="3" stroke-linecap="round"/>
+  <path d="M97 244c-10 18-7 42 0 59" fill="none" stroke="#ffc6b6" stroke-opacity=".65" stroke-width="5" stroke-linecap="round"/>
+  <path d="M16 439h63l14-24 21 51 25-92 27 65h28l16-22 17 22h117" fill="none" stroke="#85e6d7" stroke-opacity=".1" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M16 439h63l14-24 21 51 25-92 27 65h28l16-22 17 22h117" fill="none" stroke="#85e6d7" stroke-width="3" stroke-linejoin="round"/>
+  <path fill="url(#health-shade)" d="M0 0h360v640H0z"/>
+</svg>
