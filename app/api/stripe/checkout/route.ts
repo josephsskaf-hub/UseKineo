@@ -9,7 +9,7 @@ import { stripe } from '@/lib/stripe'
 import { ensureAffiliateBaseCoupon } from '@/lib/affiliateCoupon'
 import { AFFILIATE_LINK_PROMO_SOURCE, affiliateDiscountEligible, subscriptionAcceptsManualPromotions } from '@/lib/affiliateDiscount'
 import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, type AffiliateLinkOffer } from '@/lib/affiliateLinkOffer'
-import { affiliateOfferCopy } from '@/lib/affiliateOfferCopy'
+import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
@@ -2668,10 +2668,10 @@ async function buildAndRedirect(
       checkoutMetadata = { ...checkoutMetadata, ...partnerMetadata, affiliate_discount_applied: true }
       failureContext = { ...checkoutMetadata }
       sessionParams.custom_text!.submit = {
-        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', affiliateOffer.partnerName)}. ${checkoutValueContext.submitMessage}`,
+        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', affiliateOffer.partnerName)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${checkoutValueContext.submitMessage}`,
       }
       sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
-        appUrl, tier, currency: chargeCurrency, amount: chargeAmount - Math.round(chargeAmount * 0.5),
+        appUrl, tier, currency: chargeCurrency, amount: Math.round(chargeAmount * 0.5),
       })
     } else {
       checkoutMetadata.affiliate_discount_applied = false
@@ -3142,11 +3142,11 @@ async function buildGuestSubscriptionAndRedirect(
       Object.assign(params.metadata!, partnerMetadata)
       Object.assign(params.subscription_data!.metadata!, partnerMetadata)
       params.custom_text!.submit = {
-        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', ctx.affiliateOffer.partnerName)}. ${ctx.checkoutValueContext.submitMessage}`,
+        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', ctx.affiliateOffer.partnerName)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${ctx.checkoutValueContext.submitMessage}`,
       }
       params.success_url = buildGuestCheckoutSuccessUrl({
         appUrl: ctx.appUrl, tier: ctx.tier, currency: settlement.chargeCurrency,
-        amount: settlement.chargeAmount - Math.round(settlement.chargeAmount * 0.5),
+        amount: Math.round(settlement.chargeAmount * 0.5),
       })
     }
   }
