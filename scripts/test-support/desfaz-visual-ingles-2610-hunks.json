@@ -1,0 +1,16 @@
+{
+ "marca": "KINEO-VISUAL-INGLES-2610",
+ "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+ "scope": {
+  "lib/runway.ts": {
+   "beforeSha256": "421952f9ea9922261a8780ec464f38975383e06503958e0e00e5d147bd7dacbf",
+   "afterSha256": "d7709f1724673014ca1c2eaff3b9564fa98b81682ac90f6f82b850a40bd0e1c7",
+   "hunks": [
+    {
+     "before": "  // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).\n  const languageRule = writerOptions?.language && writerOptions.language !== 'en' ? ` Write this narration line in ${LANGUAGE_NAMES[writerOptions.language]}.` : ''\n  const defaultNegative = visualPolicy\n",
+     "after": "  // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).\n  const languageRule = writerOptions?.language && writerOptions.language !== 'en' ? ` Write this narration line in ${LANGUAGE_NAMES[writerOptions.language]}. Every OTHER field except \"caption\" (description, searchKeywords, stockSearchQuery, negativeVisualPrompt, visualIntent) MUST be written in ENGLISH — the image and video models read English; never translate them into the narration language.` : '' // KINEO-VISUAL-INGLES-2610 — fundador 26/10: \"precisa reconhecer todas as línguas, temos vídeos de todos os países\"; o visual em inglês serve às 37 línguas (o teste 6b454f92 veio com a cena em português e a folha de personagem não achou ninguém)\n  const defaultNegative = visualPolicy\n"
+    }
+   ]
+  }
+ }
+}

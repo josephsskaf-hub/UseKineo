@@ -291,7 +291,7 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
     : '10-22 words'
   // KINEO-IDIOMA-DO-TEXTO-2026-09-12 — só entra no texto quando a língua não é
   // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).
-  const languageRule = writerOptions?.language && writerOptions.language !== 'en' ? ` Write this narration line in ${LANGUAGE_NAMES[writerOptions.language]}.` : ''
+  const languageRule = writerOptions?.language && writerOptions.language !== 'en' ? ` Write this narration line in ${LANGUAGE_NAMES[writerOptions.language]}. Every OTHER field except "caption" (description, searchKeywords, stockSearchQuery, negativeVisualPrompt, visualIntent) MUST be written in ENGLISH — the image and video models read English; never translate them into the narration language.` : '' // KINEO-VISUAL-INGLES-2610 — fundador 26/10: "precisa reconhecer todas as línguas, temos vídeos de todos os países"; o visual em inglês serve às 37 línguas (o teste 6b454f92 veio com a cena em português e a folha de personagem não achou ninguém)
   const defaultNegative = visualPolicy
     ? classicVisualNegativePrompt(visualPolicy.mode, isStylizedLook(visualPolicy.style))
     : 'cartoon, animation, clipart, toy'

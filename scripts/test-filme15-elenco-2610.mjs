@@ -54,6 +54,10 @@ if (typeof extrair === 'function' && typeof AJUSTE.cenasDoElenco === 'function')
   checa(`A5 pedido com a menina + visuais com o avô: os dois (o teste chave azul 26/10 tinha só a menina) — ${c.elenco.map((f) => f.nome).join(' + ')}`, c.origem === 'pedido+cenas' && c.elenco.length === 2 && c.elenco[0].nome === 'the young girl' && c.elenco[0].protagonista === true && /man|grandfather/.test(c.elenco[1].nome) && c.elenco[1].protagonista === false)
   checa('A4 visual sem gente: elenco vazio', E.elencoDoFilme15({ elencoDoPedido: [], visuals: ['A stormy sea at night', 'Lightning over the cliffs'], extrair }).origem === 'nenhum')
 
+  const VIS_PT = ['Uma menina de cabelos cacheados segura uma chave azul brilhante enquanto seu avô observa um portão antigo', 'Um portão de madeira envelhecida se abre lentamente', 'Um jardim exuberante cheio de flores']
+  const g = E.elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_PT, extrair })
+  checa(`A6 visual escrito em português (teste 6b454f92): a glosa acha a menina e o avô — ${g.elenco.map((f) => f.nome).join(' + ')}`, g.elenco.length === 2 && /girl/.test(g.elenco[0].nome) && /grandfather/.test(g.elenco[1].nome))
+  checa('A7 a glosa só lê: o texto sem pessoa PT/ES volta igual', E.glosaDePessoas('A stormy sea at night') === 'A stormy sea at night' && E.glosaDePessoas('uma menina sorri') === 'a girl sorri')
   console.log('== B. protagonista em toda cena ==')
   const n = E.elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_NOITE, extrair })
   checa(`B0 elenco do caso noturno: o rapaz (${n.elenco.map((f) => f.nome).join(' + ')})`, n.elenco.length >= 1 && /man/.test(n.elenco[0].nome))
@@ -90,7 +94,7 @@ console.log('== mutantes ==')
 const m1 = E_SRC.replace('if ((contagem.get(a.chave) ?? 0) >= 2 || comOProtagonista) elenco.push', 'if (false) elenco.push')
 checa('M1 aplicado (o 2º papel nunca entra)', m1 !== E_SRC)
 if (typeof extrair === 'function') checa('M1 → A1 e A5 vermelhos (o avô some)', roda(m1).elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_CHAVE, extrair }).elenco.length === 1)
-const m2 = E_SRC.replace('if (cenaCitaElenco(v, args.elenco)) return v', 'return v')
+const m2 = E_SRC.replace('if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v', 'return v')
 checa('M2 aplicado (nunca força o protagonista)', m2 !== E_SRC)
 if (typeof extrair === 'function') { const n2 = roda(m2).elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_NOITE, extrair }); checa('M2 → B1 vermelho', roda(m2).protagonistaEmTodaCena({ visuals: VIS_NOITE, elenco: n2.elenco }).forcadas.length === 0) }
 
