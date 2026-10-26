@@ -33,7 +33,7 @@ const roda = (src, mods = {}) => {
   return exp
 }
 const BASE_ARQ = { 'app/api/compose/route.ts': 'compose', 'app/api/generate-video-cinematic/route.ts': 'rota', 'lib/cinematic/visualMode.ts': 'visualMode', 'lib/cinematic/criticoStill.ts': 'criticoStill', 'lib/whisperNaEscrita.ts': 'whisper' }
-checa('a camada cobre exatamente os 5 arquivos', JSON.stringify([...FILME15_FIEL_2610_ARQUIVOS].sort()) === JSON.stringify(Object.keys(BASE_ARQ).sort()))
+checa('a camada cobre os 5 arquivos de produto + a re-âncora do guardião do Kling', JSON.stringify([...FILME15_FIEL_2610_ARQUIVOS].sort()) === JSON.stringify([...Object.keys(BASE_ARQ), 'scripts/test-kling-duracao-2026-09-15.mjs'].sort()))
 
 const atual = Object.fromEntries(Object.keys(BASE_ARQ).map((f) => [f, rd(f)]))
 const semCamada = Object.fromEntries(Object.keys(BASE_ARQ).map((f) => [f, semFilme15Fiel2610(atual[f], f)]))

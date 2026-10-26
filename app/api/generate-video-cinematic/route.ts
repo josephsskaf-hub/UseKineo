@@ -21,6 +21,7 @@ import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '
 import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-ESTRELA-DO-FILME-2026-09-29 — celebridade atual nomeada + estrela = recusa
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { rostoFixoNoFilme15 } from '@/lib/filmes/filme15RostoFixo' // KINEO-FILME15-ROSTO-2610
 import { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29
 import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 — "vai" do 3x6] preço por segundo do Seedance 720p sem áudio (só o ensaio de $0 o mostra)
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
@@ -1494,7 +1495,8 @@ async function manipularPost(req: NextRequest) {
     if (romanceAdulto.ativo && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless') Object.assign(formatoVisual, { modo: 'character_story', motivo: `${romanceAdulto.motivo}: as duas pessoas aparecem, mudas, adultas` }) // KINEO-ROMANCE-ADULTO-2026-10-13
     // KINEO-META95-PERSONAGEM-2010 — a folha de personagem pedida (conta interna + formatFlags "personagem"; PERSONAGEM_PUBLIC=false) e um roteiro COM personagem: o filme mostra o personagem
     // KINEO-META95-PERSONAGEM-2010 — (character_story, como a Estrela e o romance fazem) — o faceless apagava o protagonista (C5 do diagnóstico). Cliente que manda o campo: nada muda.
-    const personagemPedido = PERSONAGEM_PUBLIC || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010
+    const filme15RostoFixo = rostoFixoNoFilme15({ duration: body.duration, engine: body.engine, interna: isInternalEmail(user.email) }) // KINEO-FILME15-ROSTO-2610 — o filme grátis de 15 s pede a folha de personagem sozinho (fase 1: só conta interna)
+    const personagemPedido = PERSONAGEM_PUBLIC || filme15RostoFixo || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010
     if (personagemPedido && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless' && elencoDeterministico(prompt).length > 0) Object.assign(formatoVisual, { modo: 'character_story', motivo: `folha de personagem: o roteiro tem personagem nomeado ou protagonista (antes: ${formatoVisual.motivo})` }) // KINEO-META95-PERSONAGEM-2010
     const facelessRequested = !permiteApresentador(formatoVisual.modo)
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
@@ -1719,7 +1721,7 @@ async function manipularPost(req: NextRequest) {
     /** A sobretaxa da estrela nesta duração (0 sem estrela). A MESMA função que a tela do /studio soma ao preço. [KINEO-ESTRELA-DO-FILME-2026-09-29] */
     const estrelaSobretaxaDe = (segundos: number): number => (estrelaAtiva ? estrelaSobretaxa(body.engine, segundos) : 0) // KINEO-ESTRELA-DO-FILME-2026-09-29
     // KINEO-META95-PERSONAGEM-2010 — a decisão da folha (lib/cinematic/folhaDePersonagem decidirPersonagem): pedido interno (ou público), motor clássico com still por cena, âncora ligada, sem Estrela, sem [faceless]
-    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010
+    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email) || filme15RostoFixo, pedido: filme15RostoFixo ? ['personagem'] : (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, /* KINEO-FILME15-ROSTO-2610 — filme de 15 s: pedido implícito da folha */ anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010
     if (personagemPedido) console.log(`[personagem] gen=${generationId} folha ${personagem.ativo ? 'LIGADA' : `desligada (${personagem.motivo})`}`) // KINEO-META95-PERSONAGEM-2010
     // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" nominal do fundador para o 15 s] ═══
     // 15 s é só do Seedance 1.5. Nos outros motores um alvo abaixo de 35 é RECUSADO aqui — antes do custo (mais abaixo,

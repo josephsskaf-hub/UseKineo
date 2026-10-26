@@ -1,0 +1,24 @@
+{
+ "marca": "KINEO-FILME15-ROSTO-2610",
+ "base": "39fea3e5c0ca5dab24bed3c5094865549b9ec347",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "93c1632aa63b9c7720a81152921de82a246a352e7413674e9456cf48258205d3",
+   "afterSha256": "3f9f9466a9cad5b6d3bee3ec24001811877f65d0724437eeba0c53eeaa1aa9f3",
+   "hunks": [
+    {
+     "before": "import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — \"vai\" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29\nimport { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — \"vai conserta\" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29",
+     "after": "import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — \"vai\" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29\nimport { rostoFixoNoFilme15 } from '@/lib/filmes/filme15RostoFixo' // KINEO-FILME15-ROSTO-2610\nimport { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — \"vai conserta\" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29"
+    },
+    {
+     "before": "    // KINEO-META95-PERSONAGEM-2010 — (character_story, como a Estrela e o romance fazem) — o faceless apagava o protagonista (C5 do diagnóstico). Cliente que manda o campo: nada muda.\n    const personagemPedido = PERSONAGEM_PUBLIC || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010\n    if (personagemPedido && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless' && elencoDeterministico(prompt).length > 0) Object.assign(formatoVisual, { modo: 'character_story', motivo: `folha de personagem: o roteiro tem personagem nomeado ou protagonista (antes: ${formatoVisual.motivo})` }) // KINEO-META95-PERSONAGEM-2010",
+     "after": "    // KINEO-META95-PERSONAGEM-2010 — (character_story, como a Estrela e o romance fazem) — o faceless apagava o protagonista (C5 do diagnóstico). Cliente que manda o campo: nada muda.\n    const filme15RostoFixo = rostoFixoNoFilme15({ duration: body.duration, engine: body.engine, interna: isInternalEmail(user.email) }) // KINEO-FILME15-ROSTO-2610 — o filme grátis de 15 s pede a folha de personagem sozinho (fase 1: só conta interna)\n    const personagemPedido = PERSONAGEM_PUBLIC || filme15RostoFixo || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010\n    if (personagemPedido && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless' && elencoDeterministico(prompt).length > 0) Object.assign(formatoVisual, { modo: 'character_story', motivo: `folha de personagem: o roteiro tem personagem nomeado ou protagonista (antes: ${formatoVisual.motivo})` }) // KINEO-META95-PERSONAGEM-2010"
+    },
+    {
+     "before": "    // KINEO-META95-PERSONAGEM-2010 — a decisão da folha (lib/cinematic/folhaDePersonagem decidirPersonagem): pedido interno (ou público), motor clássico com still por cena, âncora ligada, sem Estrela, sem [faceless]\n    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010\n    if (personagemPedido) console.log(`[personagem] gen=${generationId} folha ${personagem.ativo ? 'LIGADA' : `desligada (${personagem.motivo})`}`) // KINEO-META95-PERSONAGEM-2010\n",
+     "after": "    // KINEO-META95-PERSONAGEM-2010 — a decisão da folha (lib/cinematic/folhaDePersonagem decidirPersonagem): pedido interno (ou público), motor clássico com still por cena, âncora ligada, sem Estrela, sem [faceless]\n    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email) || filme15RostoFixo, pedido: filme15RostoFixo ? ['personagem'] : (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, /* KINEO-FILME15-ROSTO-2610 — filme de 15 s: pedido implícito da folha */ anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010\n    if (personagemPedido) console.log(`[personagem] gen=${generationId} folha ${personagem.ativo ? 'LIGADA' : `desligada (${personagem.motivo})`}`) // KINEO-META95-PERSONAGEM-2010\n"
+    }
+   ]
+  }
+ }
+}
