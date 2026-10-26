@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 export const UPSELL_FILME15_2610 = JSON.parse(readFileSync(new URL('./desfaz-upsell-filme15-2610-hunks.json', import.meta.url), 'utf8'))
 const sha = text => createHash('sha256').update(text).digest('hex')
 export function semUpsellFilme152610(source, file) {
-  const rel = String(file ?? '').replace(/\\/g, '/'), entry = UPSELL_FILME15_2610.scope[rel]
+  const rel = String(file ?? '').replace(/\\/g, '/'), entry = UPSELL_FILME15_2610.scope[rel] ?? UPSELL_FILME15_2610.readerScope?.[rel]
   if (!entry || typeof source !== 'string') return source
   const crlf = source.includes('\r\n'); let text = source.replace(/\r\n/g, '\n')
   if (sha(text) === entry.beforeSha256) return source

@@ -8,7 +8,7 @@ const normalize = source => source.replace(/\r\n/g, '\n')
 const sha = source => createHash('sha256').update(source).digest('hex')
 assert.equal(manifest.base, '46fa10e58fced6430e0a2ba7bb445bb8905bd2e7')
 let hunks = 0
-for (const [file, entry] of Object.entries(manifest.scope)) {
+for (const [file, entry] of Object.entries({ ...manifest.scope, ...manifest.readerScope })) {
   const before = normalize(execFileSync('git', ['show', `${manifest.base}:${file}`], { encoding: 'utf8', maxBuffer: 4e6 }))
   const current = normalize(readFileSync(file, 'utf8'))
   assert.equal(sha(before), entry.beforeSha256, 'immutable main hash: ' + file)
@@ -27,6 +27,7 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
   }
 }
 assert.equal(Object.keys(manifest.scope).length, 7)
+assert.equal(Object.keys(manifest.readerScope).length, 1)
 assert.equal(manifest.newRuntimeFiles.length, 9)
 assert.equal(semUpsellFilme152610('unrelated source', 'lib/unrelated.ts'), 'unrelated source')
-console.log(`upsell-filme15 exact undo: 7 raw sources, 9 new runtime files, ${hunks} frozen hunks; LF/CRLF/idempotence/tamper/ambiguity pass; no source writes`)
+console.log(`upsell-filme15 exact undo: 7 runtime sources, 1 historical reader, 9 new runtime files, ${hunks} frozen hunks; LF/CRLF/idempotence/tamper/ambiguity pass; no source writes`)
