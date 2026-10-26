@@ -1,0 +1,218 @@
+{
+  "source": "Own authorized canary P15-C, existing paid ASR recovered from voice cache; not OCR and not a new transcription",
+  "observed_at": "2026-10-26",
+  "audioDuration": 15.336,
+  "createdAt": "2026-10-26T06:55:33.385Z",
+  "script": "Uma arqueóloga abre uma caixa... encontra uma pena dourada. A pena, feita de ouro puro, brilha intensamente. Ao segurá-la, a sala se ilumina completamente, revelando detalhes ocultos. Então... uma porta secreta se abre, mudando tudo. A pena é a chave.",
+  "words": [
+    {
+      "word": "Uma",
+      "start": 0,
+      "end": 0.3400000035762787
+    },
+    {
+      "word": "arqueóloga",
+      "start": 0.3400000035762787,
+      "end": 0.699999988079071
+    },
+    {
+      "word": "abre",
+      "start": 0.699999988079071,
+      "end": 0.8999999761581421
+    },
+    {
+      "word": "uma",
+      "start": 0.8999999761581421,
+      "end": 1.159999966621399
+    },
+    {
+      "word": "caixa",
+      "start": 1.159999966621399,
+      "end": 1.5
+    },
+    {
+      "word": "encontra",
+      "start": 2.0399999618530273,
+      "end": 2.3399999141693115
+    },
+    {
+      "word": "te",
+      "start": 2.3399999141693115,
+      "end": 2.5
+    },
+    {
+      "word": "uma",
+      "start": 2.5,
+      "end": 2.640000104904175
+    },
+    {
+      "word": "pena",
+      "start": 2.640000104904175,
+      "end": 2.880000114440918
+    },
+    {
+      "word": "dourada",
+      "start": 2.880000114440918,
+      "end": 3.4000000953674316
+    },
+    {
+      "word": "e",
+      "start": 3.4000000953674316,
+      "end": 3.819999933242798
+    },
+    {
+      "word": "a",
+      "start": 3.819999933242798,
+      "end": 4
+    },
+    {
+      "word": "pequena",
+      "start": 4,
+      "end": 4.179999828338623
+    },
+    {
+      "word": "faceboard",
+      "start": 4.179999828338623,
+      "end": 4.840000152587891
+    },
+    {
+      "word": "de",
+      "start": 4.840000152587891,
+      "end": 5.059999942779541
+    },
+    {
+      "word": "Persefuro",
+      "start": 5.059999942779541,
+      "end": 5.599999904632568
+    },
+    {
+      "word": "brilhantemente",
+      "start": 5.599999904632568,
+      "end": 6.639999866485596,
+      "sentenceEnd": true
+    },
+    {
+      "word": "Ao",
+      "start": 7.599999904632568,
+      "end": 7.679999828338623
+    },
+    {
+      "word": "segurá",
+      "start": 7.679999828338623,
+      "end": 8.020000457763672
+    },
+    {
+      "word": "la",
+      "start": 8.020000457763672,
+      "end": 8.140000343322754
+    },
+    {
+      "word": "a",
+      "start": 8.15999984741211,
+      "end": 8.5
+    },
+    {
+      "word": "sala",
+      "start": 8.5,
+      "end": 8.5
+    },
+    {
+      "word": "é",
+      "start": 8.5,
+      "end": 8.720000267028809
+    },
+    {
+      "word": "fila",
+      "start": 8.720000267028809,
+      "end": 8.819999694824219
+    },
+    {
+      "word": "embredamente",
+      "start": 8.819999694824219,
+      "end": 9.4399995803833
+    },
+    {
+      "word": "revelando",
+      "start": 9.65999984741211,
+      "end": 9.84000015258789
+    },
+    {
+      "word": "detalhes",
+      "start": 9.84000015258789,
+      "end": 10.15999984741211
+    },
+    {
+      "word": "ocultos",
+      "start": 10.15999984741211,
+      "end": 10.65999984741211,
+      "sentenceEnd": true
+    },
+    {
+      "word": "Numa",
+      "start": 11.180000305175781,
+      "end": 11.300000190734863
+    },
+    {
+      "word": "porta",
+      "start": 11.300000190734863,
+      "end": 11.520000457763672
+    },
+    {
+      "word": "cai",
+      "start": 11.520000457763672,
+      "end": 11.960000038146973
+    },
+    {
+      "word": "e",
+      "start": 11.960000038146973,
+      "end": 12.039999961853027
+    },
+    {
+      "word": "te",
+      "start": 12.039999961853027,
+      "end": 12.079999923706055
+    },
+    {
+      "word": "o",
+      "start": 12.079999923706055,
+      "end": 12.300000190734863
+    },
+    {
+      "word": "abre",
+      "start": 12.300000190734863,
+      "end": 12.399999618530273
+    },
+    {
+      "word": "morando",
+      "start": 12.819999694824219,
+      "end": 12.960000038146973
+    },
+    {
+      "word": "tudo",
+      "start": 12.960000038146973,
+      "end": 13.4399995803833,
+      "sentenceEnd": true
+    },
+    {
+      "word": "É",
+      "start": 14.0600004196167,
+      "end": 14.220000267028809
+    },
+    {
+      "word": "sangue",
+      "start": 14.220000267028809,
+      "end": 14.460000038146973
+    },
+    {
+      "word": "da",
+      "start": 14.460000038146973,
+      "end": 14.65999984741211
+    },
+    {
+      "word": "chave",
+      "start": 14.65999984741211,
+      "end": 15.020000457763672,
+      "sentenceEnd": true
+    }
+  ]
+}

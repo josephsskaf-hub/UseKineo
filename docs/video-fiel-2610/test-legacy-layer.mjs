@@ -6,6 +6,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semCaptionCanonico2610 } from '../../scripts/test-support/desfaz-caption-canonico-2610.mjs'
 import { VIDEO_FIEL_BASE, VIDEO_FIEL_MANIFEST as manifest, semVideoFiel2610 as undo, comVideoFiel2610 as redo } from '../../scripts/test-support/desfaz-video-fiel-2610.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -25,7 +26,7 @@ check(() => assert.equal(manifest.base, '9d8d3fad413d94798081528dbd61f3ba7848a76
 check(() => assert.ok(Object.keys(manifest.scope).length >= 25))
 for (const [file, entry] of Object.entries(manifest.scope)) {
   const base = git('show', VIDEO_FIEL_BASE + ':' + file)
-  const current = flat(fs.readFileSync(path.join(root, file), 'utf8'))
+  const current = flat(semCaptionCanonico2610(fs.readFileSync(path.join(root, file), 'utf8'), file))
   check(() => assert.equal(hash(base), entry.beforeSha256, 'immutable base: ' + file))
   check(() => assert.equal(hash(current), entry.afterSha256, 'frozen candidate: ' + file))
   check(() => assert.equal(hash(JSON.stringify(entry.hunks)), entry.hunksSha256, 'frozen hunks: ' + file))

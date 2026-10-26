@@ -1,0 +1,420 @@
+[
+  {
+    "label": "A",
+    "source": "Own authorized canary; existing paid ASR recovered from voice cache, not OCR/new transcription",
+    "observed_at": "2026-10-26",
+    "audioDuration": 13.728,
+    "createdAt": "2026-10-26T06:50:35.938Z",
+    "script": "Uma menina encontra... uma chave azul escondida no jardim. Ela entrega a chave ao avô... que observa curioso. O avô abre um portão antigo... com a chave. Juntos, eles entram... e descobrem um mundo mágico... além do portão.",
+    "words": [
+      {
+        "word": "Uma",
+        "start": 0,
+        "end": 0.20000000298023224
+      },
+      {
+        "word": "menina",
+        "start": 0.20000000298023224,
+        "end": 0.47999998927116394
+      },
+      {
+        "word": "encontra",
+        "start": 0.47999998927116394,
+        "end": 0.8999999761581421
+      },
+      {
+        "word": "uma",
+        "start": 0.8999999761581421,
+        "end": 1.340000033378601
+      },
+      {
+        "word": "chave",
+        "start": 1.340000033378601,
+        "end": 1.440000057220459
+      },
+      {
+        "word": "azul",
+        "start": 1.440000057220459,
+        "end": 1.7599999904632568
+      },
+      {
+        "word": "escondida",
+        "start": 1.7599999904632568,
+        "end": 2.259999990463257
+      },
+      {
+        "word": "no",
+        "start": 2.259999990463257,
+        "end": 2.4600000381469727
+      },
+      {
+        "word": "jardim",
+        "start": 2.4600000381469727,
+        "end": 2.880000114440918,
+        "sentenceEnd": true
+      },
+      {
+        "word": "Ela",
+        "start": 4.179999828338623,
+        "end": 4.260000228881836
+      },
+      {
+        "word": "entrega",
+        "start": 4.260000228881836,
+        "end": 4.579999923706055
+      },
+      {
+        "word": "a",
+        "start": 4.579999923706055,
+        "end": 4.900000095367432
+      },
+      {
+        "word": "chave",
+        "start": 4.900000095367432,
+        "end": 4.900000095367432
+      },
+      {
+        "word": "ao",
+        "start": 4.900000095367432,
+        "end": 5.059999942779541
+      },
+      {
+        "word": "avô",
+        "start": 5.059999942779541,
+        "end": 5.320000171661377
+      },
+      {
+        "word": "que",
+        "start": 5.579999923706055,
+        "end": 5.699999809265137
+      },
+      {
+        "word": "observa",
+        "start": 5.699999809265137,
+        "end": 6.059999942779541
+      },
+      {
+        "word": "curioso",
+        "start": 6.059999942779541,
+        "end": 6.960000038146973,
+        "sentenceEnd": true
+      },
+      {
+        "word": "O",
+        "start": 7.28000020980835,
+        "end": 7.340000152587891
+      },
+      {
+        "word": "avô",
+        "start": 7.340000152587891,
+        "end": 7.559999942779541
+      },
+      {
+        "word": "abre",
+        "start": 7.559999942779541,
+        "end": 7.820000171661377
+      },
+      {
+        "word": "um",
+        "start": 7.820000171661377,
+        "end": 8.220000267028809
+      },
+      {
+        "word": "portão",
+        "start": 8.220000267028809,
+        "end": 8.220000267028809
+      },
+      {
+        "word": "antigo",
+        "start": 8.220000267028809,
+        "end": 8.600000381469727
+      },
+      {
+        "word": "com",
+        "start": 8.600000381469727,
+        "end": 8.760000228881836
+      },
+      {
+        "word": "a",
+        "start": 8.760000228881836,
+        "end": 9.15999984741211
+      },
+      {
+        "word": "chave",
+        "start": 9.15999984741211,
+        "end": 9.15999984741211,
+        "sentenceEnd": true
+      },
+      {
+        "word": "Juntos",
+        "start": 10.279999732971191,
+        "end": 10.4399995803833
+      },
+      {
+        "word": "eles",
+        "start": 10.5600004196167,
+        "end": 10.739999771118164
+      },
+      {
+        "word": "entram",
+        "start": 10.739999771118164,
+        "end": 11.0600004196167
+      },
+      {
+        "word": "e",
+        "start": 11.0600004196167,
+        "end": 11.34000015258789
+      },
+      {
+        "word": "descobrem",
+        "start": 11.34000015258789,
+        "end": 11.619999885559082
+      },
+      {
+        "word": "um",
+        "start": 11.619999885559082,
+        "end": 11.979999542236328
+      },
+      {
+        "word": "mundo",
+        "start": 11.979999542236328,
+        "end": 11.979999542236328
+      },
+      {
+        "word": "mágico",
+        "start": 11.979999542236328,
+        "end": 12.460000038146973
+      },
+      {
+        "word": "além",
+        "start": 12.460000038146973,
+        "end": 12.699999809265137
+      },
+      {
+        "word": "do",
+        "start": 12.699999809265137,
+        "end": 13.020000457763672
+      },
+      {
+        "word": "portão",
+        "start": 13.020000457763672,
+        "end": 13.220000267028809,
+        "sentenceEnd": true
+      }
+    ]
+  },
+  {
+    "label": "B",
+    "source": "Own authorized canary; existing paid ASR recovered from voice cache, not OCR/new transcription",
+    "observed_at": "2026-10-26",
+    "audioDuration": 18.672,
+    "createdAt": "2026-10-26T06:51:18.297Z",
+    "script": "Três cidades antigas escondem segredos incríveis! Roma tinha um sistema de aquedutos que fornecia água limpa para milhões. Atenas, berço da democracia, realizava assembleias com até 6.000 cidadãos. Mas Tikal... surpreende com seu observatório astronômico Maia, alinhado aos solstícios.",
+    "words": [
+      {
+        "word": "Três",
+        "start": 0,
+        "end": 0.3199999928474426
+      },
+      {
+        "word": "cidades",
+        "start": 0.3199999928474426,
+        "end": 0.7400000095367432
+      },
+      {
+        "word": "antigas",
+        "start": 0.7400000095367432,
+        "end": 1.2799999713897705
+      },
+      {
+        "word": "escondem",
+        "start": 1.2799999713897705,
+        "end": 1.840000033378601
+      },
+      {
+        "word": "segredos",
+        "start": 1.840000033378601,
+        "end": 2.4200000762939453
+      },
+      {
+        "word": "incríveis",
+        "start": 2.4200000762939453,
+        "end": 3.0999999046325684,
+        "sentenceEnd": true
+      },
+      {
+        "word": "Roma",
+        "start": 3.740000009536743,
+        "end": 3.819999933242798
+      },
+      {
+        "word": "tinha",
+        "start": 3.819999933242798,
+        "end": 4
+      },
+      {
+        "word": "um",
+        "start": 4,
+        "end": 4.460000038146973
+      },
+      {
+        "word": "sistema",
+        "start": 4.460000038146973,
+        "end": 4.460000038146973
+      },
+      {
+        "word": "de",
+        "start": 4.460000038146973,
+        "end": 4.659999847412109
+      },
+      {
+        "word": "aquedutos",
+        "start": 4.659999847412109,
+        "end": 5.079999923706055
+      },
+      {
+        "word": "que",
+        "start": 5.079999923706055,
+        "end": 5.260000228881836
+      },
+      {
+        "word": "fornecia",
+        "start": 5.260000228881836,
+        "end": 5.639999866485596
+      },
+      {
+        "word": "água",
+        "start": 5.639999866485596,
+        "end": 5.860000133514404
+      },
+      {
+        "word": "limpa",
+        "start": 5.860000133514404,
+        "end": 6.099999904632568
+      },
+      {
+        "word": "para",
+        "start": 6.099999904632568,
+        "end": 6.320000171661377
+      },
+      {
+        "word": "milhões",
+        "start": 6.320000171661377,
+        "end": 6.800000190734863,
+        "sentenceEnd": true
+      },
+      {
+        "word": "Atenas",
+        "start": 7.559999942779541,
+        "end": 7.78000020980835
+      },
+      {
+        "word": "berço",
+        "start": 8.199999809265137,
+        "end": 8.260000228881836
+      },
+      {
+        "word": "da",
+        "start": 8.260000228881836,
+        "end": 8.420000076293945
+      },
+      {
+        "word": "democracia",
+        "start": 8.420000076293945,
+        "end": 9.079999923706055
+      },
+      {
+        "word": "realizava",
+        "start": 9.359999656677246,
+        "end": 9.720000267028809
+      },
+      {
+        "word": "assembleias",
+        "start": 9.720000267028809,
+        "end": 10.220000267028809
+      },
+      {
+        "word": "com",
+        "start": 10.220000267028809,
+        "end": 10.399999618530273
+      },
+      {
+        "word": "até",
+        "start": 10.399999618530273,
+        "end": 10.680000305175781
+      },
+      {
+        "word": "6",
+        "start": 10.680000305175781,
+        "end": 11.039999961853027
+      },
+      {
+        "word": "mil",
+        "start": 11.039999961853027,
+        "end": 11.15999984741211
+      },
+      {
+        "word": "cidadãos",
+        "start": 11.15999984741211,
+        "end": 11.760000228881836,
+        "sentenceEnd": true
+      },
+      {
+        "word": "Mas",
+        "start": 12.420000076293945,
+        "end": 12.640000343322754
+      },
+      {
+        "word": "Tikal",
+        "start": 12.640000343322754,
+        "end": 13.100000381469727
+      },
+      {
+        "word": "surpreende",
+        "start": 13.100000381469727,
+        "end": 14.239999771118164
+      },
+      {
+        "word": "com",
+        "start": 14.239999771118164,
+        "end": 14.420000076293945
+      },
+      {
+        "word": "seu",
+        "start": 14.420000076293945,
+        "end": 14.65999984741211
+      },
+      {
+        "word": "observatório",
+        "start": 14.65999984741211,
+        "end": 15.239999771118164
+      },
+      {
+        "word": "astronômico",
+        "start": 15.239999771118164,
+        "end": 15.979999542236328
+      },
+      {
+        "word": "Maya",
+        "start": 15.979999542236328,
+        "end": 16.440000534057617
+      },
+      {
+        "word": "alinhado",
+        "start": 16.959999084472656,
+        "end": 17.15999984741211
+      },
+      {
+        "word": "aos",
+        "start": 17.15999984741211,
+        "end": 17.34000015258789
+      },
+      {
+        "word": "solstícios",
+        "start": 17.34000015258789,
+        "end": 18.040000915527344,
+        "sentenceEnd": true
+      }
+    ]
+  }
+]
