@@ -76,7 +76,8 @@ const inventory = [...Object.keys(manifest.scope), ...Object.keys(manifest.added
 // KINEO-LEVA-PERFEITO-2610 — o inventário é medido contra a main do merge (as camadas irmãs já estão nela); arquivo de fora do
 // inventário só passa se TODA linha que a integração mudou nele traz a marca da integração (re-âncora de guardião irmão).
 const soReancora = (file) => { const d = git('diff', '-U0', MAIN_DO_MERGE, '--', file).split('\n').filter(l => /^[+-](?![+-])/.test(l)); return d.length > 0 && d.filter(l => l.startsWith('+')).every(l => l.includes('KINEO-LEVA-PERFEITO-2610')) }
-const actual = [...new Set([...git('diff', '--name-only', MAIN_DO_MERGE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])]
+const PONTA = git('log', '-1', '--format=%H', '--grep=KINEO-LEVA-PERFEITO-2610').trim() || 'HEAD' // KINEO-LEVA-PERFEITO-2610 — inventário medido na última commit deste pacote: camadas mais novas por cima (ex.: KINEO-PRIVACIDADE-PLUGIN-2610) não entram
+const actual = [...new Set([...git('diff', '--name-only', MAIN_DO_MERGE, PONTA).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])]
   .filter(file => file && !file.endsWith('.tsbuildinfo') && !file.startsWith('node_modules/'))
   .filter(file => inventory.includes(file) || !soReancora(file)).sort()
 check(() => assert.deepEqual(inventory, actual, 'complete task inventory relative to exact upstream'))
