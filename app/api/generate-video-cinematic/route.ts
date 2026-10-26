@@ -75,6 +75,7 @@ import { veoMaxShots, veoMarkedBeats, veoMarkedPlan } from '@/lib/cinematic/veoS
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
+import { usaRostoFixo15, ancorasDoRosto15, planoDeAcrescimo15, aceitarAcrescimo15 } from '@/lib/cinematic/filme15Perfeito' // KINEO-FILME15-PERFEITO-2610
 import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
 import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
 import { findPreviousEpisode } from '@/lib/episodeSubject' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
@@ -6578,6 +6579,24 @@ async function manipularPost(req: NextRequest) {
     // inalterado (creditCostForDuration('cinematic_ai', true, 15) = 7).
     let seedanceClipSeconds: number[] | null = null
     if (seedanceShortFilm && scenes.length > 0) {
+      // KINEO-FILME15-PERFEITO-2610 — sentence filters run AFTER generateScenes' own
+      // length check. Repair only a short AI line by append, before planning clips.
+      // The final measured-audio floor is enforced by compose; estimates alone are insufficient.
+      if (!verbatim) {
+        const pedidos15 = planoDeAcrescimo15(scenes.map(s => s.voiceover ?? ''), narrationWordCount, narrationRate.wordsPerSecond)
+        if (pedidos15.length) {
+          try {
+            const novas15 = await appendNarrationToTargets(pedidos15, narrationLanguage.language, prompt.slice(0, 300), 1)
+            for (let i = 0; i < pedidos15.length; i++) {
+              const p = pedidos15[i]
+              const candidata = aceitarAcrescimo15(p.text, novas15[i])
+              const fiel = filtrarFalaSemBuraco(candidata, comVocabularioDoLugar(prompt)).texto
+              const aceita = aceitarAcrescimo15(p.text, fiel)
+              scenes[p.index] = { ...scenes[p.index], voiceover: aceita, caption: shortCaptionFromVoiceover(aceita) }
+            }
+          } catch (err) { console.warn('[free15] narration append failed; measured duration remains guarded:', err instanceof Error ? err.message : String(err)) }
+        }
+      }
       const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
       const palavrasDoFilme = narrationWordCount(narracaoDoFilme)
       const fala = seedanceShortSpeechSeconds(narracaoDoFilme, narrationRate.wordsPerSecond)
@@ -6861,7 +6880,8 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
     const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
-    const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
+    const rostoFixo15 = usaRostoFixo15(seedanceShortFilm, classicVisualMode, estrelaAtiva) // KINEO-FILME15-PERFEITO-2610
+    const anchorActive = anchorEngine !== null && (CINEMATIC_ANCHOR_ENABLED || rostoFixo15) // KINEO-FILME15-PERFEITO-2610
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
     // ═══ KINEO-CENA-CLASSICA-2026-09-28 — o payload que foi ao fal, cena a cena ═══
     // 3ab8128c (externa, Seedance 60 s, 16/09): 1 de 7 cenas nunca voltou e o filme morreu no prazo; d6e8e8b3 (fundador,
@@ -6936,7 +6956,7 @@ async function manipularPost(req: NextRequest) {
       } // KINEO-JUIZ-STILL-1410
       for (let start = 0; start < anchorCount && Date.now() < stillDeadline; start += STILL_POOL) {
         const batch: number[] = []
-        for (let i = start; i < Math.min(start + STILL_POOL, anchorCount); i++) batch.push(i)
+        for (let i = start; i < Math.min(start + STILL_POOL, anchorCount); i++) if (!rostoFixo15 || i === 0) batch.push(i) // KINEO-FILME15-PERFEITO-2610 — exactly ONE base image, scene 1
         const results = await Promise.all(
           batch.map(async (idx) => {
             const scenePrompt = classicScenePrompts[idx]
@@ -6961,6 +6981,11 @@ async function manipularPost(req: NextRequest) {
         for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.url // KINEO-JUIZ-STILL-1410 — log_only devolve sempre a original
         await esperarCriticos(criticoEventos, 1_500) // KINEO-JUIZ-STILL-1410 — os eventos já gravados em paralelo; teto de 1,5 s para não segurar o despacho
       } // KINEO-JUIZ-STILL-1410
+      if (rostoFixo15) { // KINEO-FILME15-PERFEITO-2610 — freeze the reviewed base before submitting ANY clip
+        const referencias15 = ancorasDoRosto15(sceneStills[0], scenes.length)
+        for (let i = 0; i < scenes.length; i++) sceneStills[i] = referencias15[i]
+        await writeServerEvent({ name: 'free15_identity_anchor', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, base_scene: 0, base_ready: Boolean(sceneStills[0]), scenes: scenes.length, generated_stills: stillsMade, extra_sheet_stills: 0 } })
+      } // KINEO-FILME15-PERFEITO-2610
       // Cost logging only — the USER credit price is unchanged (kling stays 50cr).
       // Account the extra provider cost the same conservative way Hollywood does
       // (ANCHORS_USD per generated still).
@@ -7002,6 +7027,7 @@ async function manipularPost(req: NextRequest) {
       // flag ON). Undefined → pure t2v (byte-identical to before).
       imageUrl?: string,
     ): Promise<SceneSubmitResult> => {
+      if (rostoFixo15 && !imageUrl) return { kind: 'id', id: null, model } // KINEO-FILME15-PERFEITO-2610 — no independent t2v face when the base failed
       const cinematic = classicScenePrompts[sceneIndex]
       // ═══ KINEO-353A.1 — O RETRY CEGO MORREU AQUI ══════════════════════
       // Antes: `if (id === null) { sleep(800); submitToFal(...) }` — re-POST
@@ -7013,6 +7039,7 @@ async function manipularPost(req: NextRequest) {
       const modelos = imageUrl
         ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? SEEDANCE_I2V_MODEL : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
         : [model]
+      if (rostoFixo15) modelos.splice(1) // KINEO-FILME15-PERFEITO-2610 — a provider rejection cannot silently discard the fixed face
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),
         { ...classicVisualPolicy, character: sanitizeRealPeople(storyCharacter || ''), eraSuffix, opening: sceneIndex === 0 },
@@ -7020,7 +7047,7 @@ async function manipularPost(req: NextRequest) {
       const despachoCena = await dispatchOneSceneWithSafeVisualRetry({
         sceneIndex,
         models: modelos,
-        visualPrompt: cinematic,
+        visualPrompt: rostoFixo15 ? `Keep the exact same protagonist identity as the supplied scene-1 reference: identical face, hair, age, clothes and body. Perform this shot's action and framing: ${cinematic}` : cinematic, // KINEO-FILME15-PERFEITO-2610
         safeVisualPrompt: romanceAdulto.ativo && safeVisualPrompt ? aplicarRomanceAdulto(safeVisualPrompt, romanceAdulto) : safeVisualPrompt, // KINEO-ROMANCE-ADULTO-2026-10-13 — a 2ª tentativa "family-safe" também é de adultos
         submit: async (m, promptForAttempt, onPost) => {
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
@@ -7089,6 +7116,7 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
+    if (!rostoFixo15) { // KINEO-FILME15-PERFEITO-2610 — the one shared base replaces extra per-character sheets in this scope
     if (personagem.ativo && anchorActive && !estrelaAtiva && personagemElenco.elenco.length > 0) { // KINEO-META95-PERSONAGEM-2010
       const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
       providerSubmissionMayExist = true // folha e stills com folha são trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-META95-PERSONAGEM-2010
@@ -7125,6 +7153,7 @@ async function manipularPost(req: NextRequest) {
       void writeServerEvent({ name: PERSONAGEM_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...personagemRelatoFinal } }) // KINEO-META95-PERSONAGEM-2010
     } // KINEO-META95-PERSONAGEM-2010
     // <<< KINEO-META95-PERSONAGEM-2010 bloco
+    } // KINEO-FILME15-PERFEITO-2610
 
     // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
     // each scene actually ran on (i2v for anchored scenes, t2v otherwise), both

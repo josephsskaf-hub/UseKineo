@@ -3490,6 +3490,7 @@ export async function POST(req: NextRequest) {
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         quality,
         realAudioDuration,
+        seedanceShortFilm: quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response),
         whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
@@ -3548,6 +3549,16 @@ export async function POST(req: NextRequest) {
       },
     })
     source = captionSelection.source
+    // KINEO-FILME15-PERFEITO-2610: production caption audit found blind 4-word
+    // proportional fallbacks ending on connectors. Group canonical text before
+    // the FIRST assembly too; only replace captions, never the approved voice/cuts.
+    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response) &&
+      (!legendaWords?.length || captionSelection.alignment?.source === 'canonical_tts_script')) {
+      const { buildFree15CanonicalCaptions } = await import('@/lib/free15CanonicalCaptions')
+      const { repairGateCaptions } = await import('@/lib/free15Gate')
+      const canonicalCaptions = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
+      source = repairGateCaptions(source, canonicalCaptions) ?? source
+    }
     if (captionSelection.alignment) console.log('[compose-caption-alignment]', captionSelection.alignment)
     if (faceless15.ativo) console.log(`[compose] KINEO-FILMES-F1-F4-1910 fases=${faceless15.fases.join(',')} ${JSON.stringify(faceless15Relato)}`) // KINEO-FILMES-F1-F4-1910
     // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
@@ -3709,6 +3720,21 @@ export async function POST(req: NextRequest) {
     // ?quality / ?deducted params. For Fast, the intended cost mirrors the
     // watermark decision's paid-user resolution (isFreePlanFast): paid → 1,
     // free → 0. Premium engines are deterministic. Best-effort, never throws.
+    let free15ContextStored = true
+    // KINEO-FILME15-PERFEITO-2610: bind the final source and raw narration evidence
+    // to the owner/render before status can expose the final MP4.
+    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response)) {
+      const { storeFree15Gate } = await import('@/lib/free15GateServer')
+      const { FREE15_GATE_VERSION } = await import('@/lib/free15Gate')
+      const { buildFree15CanonicalCaptions, FREE15_CANONICAL_CAPTION_TIMING } = await import('@/lib/free15CanonicalCaptions')
+      const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
+      const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {
+        version: FREE15_GATE_VERSION, status: 'ready', source, captionElements, captionTiming: FREE15_CANONICAL_CAPTION_TIMING,
+        captionEvidence, attempted: false, reason: 'awaiting_final_assembly', updatedAt: Date.now(),
+        context: { asked: String(cinematicBirthClaim?.response?.prompt ?? body.topic ?? ''), narration: scaledScript, language },
+      } })
+      free15ContextStored = stored
+    }
     const intentStored = await recordRenderIntent({
       renderId,
       userId: user.id,
@@ -3718,7 +3744,7 @@ export async function POST(req: NextRequest) {
     const claimStored = await completeGenerationClaim(renderId, intendedCost)
     await registrarVersaoDaCasa({ userId: authenticatedUserId, generationId, renderId, quality, decisao: semLegenda, source }) // KINEO-SEM-LEGENDA-2026-10-06 — conta interna: versão gerada + RenderScript da versão B; cliente: nada
     await guardarFonteDoFilme({ userId: authenticatedUserId, generationId, renderId, quality, source }) // KINEO-META95-REFAZER-1910 — todo filme clássico (Seedance 1.5, Kling 2.5, Veo 3.1): o RenderScript exato, assinado, para "Refazer uma cena (grátis, 1×)"; nunca lança, resposta igual
-    if ((!intentStored && !claimStored) || (cinematicUpstreamDebited && !claimStored)) {
+    if (!free15ContextStored || (!intentStored && !claimStored) || (cinematicUpstreamDebited && !claimStored)) {
       return NextResponse.json(
         { error: 'Your render was accepted and is being recovered safely.', pending: true, retry_after_ms: 5000 },
         { status: 503 },

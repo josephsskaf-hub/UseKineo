@@ -286,11 +286,10 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
     const virgula = ws.map((w, i) => (temVirgula(w) ? 6 : 0) + (gap(f.ini + i) >= PAUSA_FRASE_S ? 8 : gap(f.ini + i) >= PAUSA_VIRGULA_S ? 4 : 0))
     let i = 0
     for (const tam of partirFraseFaceless15(ws.length, naoFecha, virgula, max)) {
-      let usados = ws.slice(i, i + tam)
+      const usados = ws.slice(i, i + tam) // KINEO-FILME15-PERFEITO-2610 — a partição conserva todas as palavras faladas
       i += tam
-      // anti-gagueira de lib/compose: a mesma palavra no fim de um bloco e no começo do seguinte (TTS "it. It's") sai uma vez
-      const ant = blocos[blocos.length - 1]?.words.slice(-1)[0]
-      if (usados.length > 1 && ant && normPalavra(ant.word) !== '' && normPalavra(ant.word) === normPalavra(usados[0].word)) usados = usados.slice(1)
+      // KINEO-FILME15-PERFEITO-2610 — não deduplica depois da partição: "very / very beginning" virava "beginning" sozinho,
+      // e "No. No one…" perdia fala real. A evidência já está alinhada à voz; repetição dita deve aparecer.
       const text = usados.map((w) => String(w.word).trim()).join(' ').trim()
       if (!text) continue
       blocos.push({ text, highlight: pickHighlightWord(text), words: usados.map((w) => ({ word: String(w.word).trim(), start: r3(w.start), end: r3(w.end) })), fraseInteira: tam === ws.length })

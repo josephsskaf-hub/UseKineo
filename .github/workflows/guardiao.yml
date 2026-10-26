@@ -76,6 +76,11 @@ jobs:
         run: | # CAPTION-CANONICO-2610: actual raw ASR evidence; no providers or credentials.
           node docs/free15-quality-v2/caption-test.mjs
           node docs/free15-quality-v2/caption-legacy-test.mjs
+      - name: Portão do filme grátis de 15 s — reparo único, mutantes e desfaz exato
+        run: | # KINEO-FILME15-PERFEITO-2610: no env, network or paid renders.
+          node scripts/test-filme15-perfeito-2610.mjs
+          node scripts/test-filme15-gate-integration-2610.mjs
+          node scripts/test-filme15-perfeito-undo-2610.mjs
       - name: Compra — capacidade real, ideia própria e revisão sem gerar
         run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
           node docs/compra-clareza-2610/test-recurring-plan-value.mjs

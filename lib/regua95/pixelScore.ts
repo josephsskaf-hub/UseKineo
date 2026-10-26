@@ -145,7 +145,13 @@ export type PixelResult = EvidenceAssessment & {
   version: string
   score: number | null
   frames: PixelFrameVerdict[]
+  /** Located defects from both readings, so averaging cannot lose the repair target. */
+  defect_frames?: PixelFrameVerdict[]
+  /** Extra evidence consumed only by the free15 gate; historical score fields stay unchanged. */
+  gate_evidence?: { identity_changed: boolean; caption_illegible: boolean; caption_language_wrong: boolean }
   identity_consistent: boolean | null
+  /** Located changes retained for the free15 pre-delivery repair; frame indices are 1-based. */
+  identity_changes?: Array<{ from: number; to: number; what: string }>
   caption_present: boolean | null
   caption_legible: boolean | null
   caption_language_ok: boolean | null
@@ -281,6 +287,7 @@ export function normalizePixel(
     frames: verdicts,
     readings: validated.evidence_status === 'complete' ? [score] : [],
     identity_consistent: identity,
+    identity_changes: trocas.filter(t => Number.isInteger(t.from) && Number.isInteger(t.to) && Number(t.from) >= 1 && Number(t.to) >= 1 && Number(t.from) <= ctx.frames.length && Number(t.to) <= ctx.frames.length && t.from !== t.to && typeof t.what === 'string' && !!t.what.trim()).map(t => ({ from: Number(t.from), to: Number(t.to), what: String(t.what).slice(0, 160) })),
     caption_present: captionPresent,
     caption_legible: captionLegible,
     caption_language_ok: captionLang,
@@ -333,6 +340,9 @@ export function combinePixelReadings(leituras: PixelResult[], ctx: { usdFrames: 
     score: evidence.evidence_status === 'complete' ? Math.min(capLimit, Math.round(validas.reduce((a, r) => a + r.score, 0) / validas.length)) : null,
     cap_limit: capLimit,
     caps: [...new Set(leituras.flatMap((r) => r.caps))],
+    identity_changes: leituras.flatMap(r => r.identity_changes ?? []),
+    gate_evidence: { identity_changed: leituras.some(r => r.identity_consistent === false), caption_illegible: leituras.some(r => r.caption_legible === false), caption_language_wrong: leituras.some(r => r.caption_language_ok === false) },
+    defect_frames: leituras.flatMap(r => r.frames.filter(f => f.issues.length > 0)),
     readings: validas.map((r) => r.score),
     usd_frames: Math.round(ctx.usdFrames * 1e6) / 1e6,
     usd_vision: Math.round(usdVision * 1e6) / 1e6,
@@ -382,10 +392,10 @@ export async function scorePixel(
   videoUrl: string,
   seconds: number | null | undefined,
   ctx: PixelContext,
-  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string },
+  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string; timeoutMs?: number },
 ): Promise<PixelResult | null> {
   const started = Date.now()
-  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey })
+  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey, timeoutMs: opts?.timeoutMs })
   if (!ex) return null
-  return judgeFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started })
+  return judgeFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started, timeoutMs: opts?.timeoutMs })
 }
