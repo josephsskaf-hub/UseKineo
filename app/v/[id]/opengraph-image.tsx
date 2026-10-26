@@ -31,6 +31,9 @@ import { resolvePublicVideoTitle } from '@/lib/publicVideos'
 // não há permissão. O `published_at` vem na MESMA consulta do título (uma ida
 // ao banco só), e não é renderizado em lugar nenhum.
 export const runtime = 'edge'
+// KINEO-VITRINE-FILMES-2610 — the preview must follow the latest per-film consent.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const alt = 'A viral Short made with Kineo'
