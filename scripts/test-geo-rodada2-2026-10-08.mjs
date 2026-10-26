@@ -116,6 +116,9 @@ const SITEMAP_MOCKS = (nicheSlugs) => ({
   'lib/growth/citationAnswers.ts': { CITATION_ANSWER_LINKS: [], CITATION_REVIEW_DATE: '2026-09-27' },
   'lib/seo/freeShortsGeneratorLangs.ts': { FREE_SHORTS_LANGS: [] },
 })
+// KINEO-VITRINE-FILMES-2610 — create historical sitemap mutants only after the
+// exact Vitrine/Pages/Bing projections; a mutated source must not be undone again.
+const sitemapBeforeMutations = () => semBingSeo1510(SITEMAP, rd(SITEMAP))
 const listaPasta = (world) => world.dir ?? readdirSync(join(ROOT, DATA_DIR))
 const jsonVigente = () => JSON.parse(rd(`${DATA_DIR}/${edicaoImportada({})}.json`))
 function edicaoImportada(rep) {
@@ -378,7 +381,7 @@ async function problemas(world = { rep: {} }) {
 // mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do
 // Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por
 // scripts/test-bing-seo-1510.mjs.
-  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: semBingSeo1510(SITEMAP, rep[SITEMAP] ?? rd(SITEMAP)) }, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()
+  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: rep[SITEMAP] ?? sitemapBeforeMutations() }, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()
   const lm = (path) => { const e = sm.find((x) => x.url === `${BASE}${path}`); return e ? new Date(e.lastModified).toISOString() : null }
   const r2 = new Date(`${RODADA2_ISO}T12:00:00.000Z`).toISOString()
   if (ideas.GEO_RODADA2_REVIEWED_ISO !== RODADA2_ISO) p.push('D: GEO_RODADA2_REVIEWED_ISO ≠ 2026-10-08')
@@ -439,7 +442,7 @@ console.log('  URLs para o IndexNow: ' + ping.deveTer.join(' '))
 
 // ── mutantes e controles ───────────────────────────────────────────────────────────────────────────────────────────────
 const troca = (rel, de, para, extra = {}) => {
-  const src = Object.hasOwn(extra, rel) ? extra[rel] : rd(rel)
+  const src = Object.hasOwn(extra, rel) ? extra[rel] : rel === SITEMAP ? sitemapBeforeMutations() : rd(rel)
   if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
   return { ...extra, [rel]: src.split(de).join(para) }
 }

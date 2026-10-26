@@ -790,6 +790,8 @@ function VideoCard({
               >
                 {isDownloading ? '…' : isWatermarkedFastAsset(v) ? '⬇ Watermarked MP4' : '⬇ Download clean MP4'}
               </button>
+              {/* KINEO-VITRINE-FILMES-2610 — owner can return later to withdraw consent. */}
+              <Link href={`/made-with-kineo/manage?videoId=${encodeURIComponent(v.id)}`} className="rounded-lg px-3 py-2 text-xs" style={{ color: 'var(--text2)', border: '1px solid var(--border)' }}>Showcase privacy</Link>
             </div>
             {isWatermarkedFastAsset(v) && cleanExportLocked === true && (
               <button

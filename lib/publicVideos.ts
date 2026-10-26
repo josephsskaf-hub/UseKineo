@@ -610,6 +610,8 @@ function adminClient() {
   // that safe — never select `*` with this client.
   return createAdminClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // KINEO-VITRINE-FILMES-2610 — an owner revocation must be read on the next request.
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
   })
 }
 

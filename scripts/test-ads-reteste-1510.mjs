@@ -26,7 +26,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const rd = (rel) => semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const rd = (rel) => (semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel) ?? '').replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 let pass = 0
 let fail = 0

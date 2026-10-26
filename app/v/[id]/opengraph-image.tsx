@@ -31,6 +31,9 @@ import { resolvePublicVideoTitle } from '@/lib/publicVideos'
 // não há permissão. O `published_at` vem na MESMA consulta do título (uma ida
 // ao banco só), e não é renderizado em lugar nenhum.
 export const runtime = 'edge'
+// KINEO-VITRINE-FILMES-2610 — the preview must follow the latest per-film consent.
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 export const alt = 'A viral Short made with Kineo'
@@ -52,6 +55,8 @@ async function getRow(id: string): Promise<OgRow | null> {
     if (!url || !key) return null
     const admin = createAdminClient(url, key, {
       auth: { autoRefreshToken: false, persistSession: false },
+      // KINEO-VITRINE-FILMES-2610 — do not serve consent from the Data Cache.
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
     })
     const { data, error } = await admin
       .from('videos')
@@ -66,7 +71,8 @@ async function getRow(id: string): Promise<OgRow | null> {
     const rawTopic = (data?.topic ?? '').toString()
     const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title
     const line =
-      raw
+      // KINEO-VITRINE-FILMES-2610 — the bitmap must redact contact details too.
+      raw.replace(/\b[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+\b/g, '[redacted]')
         .split('\n')
         .map((s) => s.replace(/^#+\s*/, '').trim())
         .filter(Boolean)[0] ?? ''
@@ -110,6 +116,6 @@ export default async function OgImage({ params }: { params: { id: string } }) {
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, headers: { 'cache-control': 'private, no-store, max-age=0' } },
   )
 }

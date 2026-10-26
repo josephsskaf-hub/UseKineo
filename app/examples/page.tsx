@@ -97,6 +97,8 @@ export default async function ExamplesPage() {
         {/* Only explicitly approved, founder-owned public assets enter this collection. */}
         <ExamplesGallery videos={EXAMPLES_SELECTION_SEP24.map(examplesSprintVideo)} separateFeatured previewActionLabel="Make one like this" />
         <BusinessAdExamples />
+        {/* KINEO-VITRINE-FILMES-2610 — owner-consented films, distinct from house examples. */}
+        <p style={{ margin: '24px 0', lineHeight: 1.6 }}><Link href="/made-with-kineo" style={{ color: '#2997ff' }}>Made with Kineo — films shared by their creators ↗</Link></p>
 
         {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
             todos os reviews que temos". Todos = UM (Rick, autorização escrita

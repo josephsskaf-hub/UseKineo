@@ -28,7 +28,11 @@ import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reanc
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semMarcas1510(rel, semLista1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const read = (rel) => {
+  const source = semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)
+  // KINEO-VITRINE-FILMES-2610 — a removed source stays absent; only existing text enters the older string-only layers.
+  return (source === null ? null : semMarcas1510(rel, semLista1510(rel, source.replace(/\r\n/g, '\n')))) ?? ''
+} // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)))
 let pass = 0
 let fail = 0

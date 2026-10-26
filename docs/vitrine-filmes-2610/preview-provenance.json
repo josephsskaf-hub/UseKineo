@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-26",
+  "base": "62213b008292f110117d1abbe20c157efdb55902",
+  "uiCommit": "925e12e2a",
+  "sources": [
+    {
+      "file": "app/made-with-kineo/showcase.module.css",
+      "version": "candidate",
+      "sha256": "e62afa5c9a1eddd31b4552d22eecfeefe48418045dae9bed79bf9266d5cf2f78"
+    },
+    {
+      "file": "components/MadeWithKineo.tsx",
+      "version": "candidate",
+      "sha256": "278f4cda8d0cad407db056ea2164f6a742ea11a9f5b49319a16d3edcae309d73"
+    },
+    {
+      "file": "lib/madeWithKineo.ts",
+      "version": "candidate",
+      "sha256": "c67b4daa0c619abdcefad3c9fa55044515639e94eb464133b21a1b1452239456"
+    },
+    {
+      "file": "lib/engineLabel.ts",
+      "version": "candidate",
+      "sha256": "0acd38b51a112bca6b0abca066d0b16b342e2bf72e9fafaad2195668cb2c5ba5"
+    },
+    {
+      "file": "lib/internalAccounts.ts",
+      "version": "candidate",
+      "sha256": "395b6a835d5f4071924c4db4b88574e4ebd6d4f7c77a9af76f2595511fc632ff"
+    },
+    {
+      "file": "lib/madeWithKineoCopy.ts",
+      "version": "candidate",
+      "sha256": "16e57dc6087748a1072d9cfc4c61603c7964e965342178e461b408cfb22ebf73"
+    },
+    {
+      "file": "components/ShowcaseConsent.tsx",
+      "version": "candidate",
+      "sha256": "118e4a4b6ae6ecc739744ee7ea822d57030f2d978de65a4e1bf5441f8603d852"
+    },
+    {
+      "file": "app/made-with-kineo/manage/page.tsx",
+      "version": "candidate",
+      "sha256": "fa71360c5b048a53a0d9c1e8cad3c9a0a09b15353aaa1e02f942713fd7202513"
+    },
+    {
+      "file": "app/not-found.tsx",
+      "version": "candidate",
+      "sha256": "969553f474526e9b902364e246b1fcb53fcdc81edc1c8b0ae0e2fb7490e667dc"
+    },
+    {
+      "file": "app/(dashboard)/my-videos/MyVideosClient.tsx",
+      "version": "62213b008292f110117d1abbe20c157efdb55902",
+      "sha256": "d8f5f6bd9daa73ee4b933a8ee625515d8af017531b9d361c55663e42e00030bc"
+    },
+    {
+      "file": "app/(dashboard)/my-videos/MyVideosClient.tsx",
+      "version": "candidate",
+      "sha256": "c71dbaf63ffc552b7904a9795c6be03e38f314f31bd1962a72ee5d9ca8ae567a"
+    },
+    {
+      "file": "app/examples/page.tsx",
+      "version": "candidate",
+      "sha256": "b39a75040706c41dcbcfa3794892620dd95897dde5d3e09a6e3de6db1fca8c60"
+    }
+  ],
+  "fixtures": "SIMULATED; no real customer, consent, timings or word counts",
+  "postDownloadContext": "simplified; only ShowcaseConsent is the actual component",
+  "network": "forbidden in renderer; data-only posters and empty data video in HTML"
+}

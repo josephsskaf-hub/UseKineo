@@ -145,11 +145,11 @@ async function readSentLast24h(admin: Admin | null): Promise<number> {
   }
 }
 
-async function fetchPublishedSitemap(): Promise<{ entries: IndexNowEntry[]; error: string | null }> {
+async function fetchPublishedSitemap(path = '/sitemap.xml'): Promise<{ entries: IndexNowEntry[]; error: string | null }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 15_000)
   try {
-    const res = await fetch(`${INDEXNOW_ORIGIN}/sitemap.xml`, { cache: 'no-store', signal: controller.signal, headers: { 'user-agent': 'Kineo-IndexNow/1.0' } })
+    const res = await fetch(`${INDEXNOW_ORIGIN}${path}`, { cache: 'no-store', signal: controller.signal, headers: { 'user-agent': 'Kineo-IndexNow/1.0' } })
     if (!res.ok) return { entries: [], error: `sitemap HTTP ${res.status}` }
     return { entries: parseSitemapXml(await res.text()), error: null }
   } catch (err) {
@@ -195,7 +195,9 @@ export async function GET(req: NextRequest) {
     videoEntries = []
   }
 
-  const sitemap = await fetchPublishedSitemap()
+  // KINEO-VITRINE-FILMES-2610 — same scheduled IndexNow snapshot/budget, including owner-consented watch pages.
+  const [sitemap, showcaseSitemap] = await Promise.all([fetchPublishedSitemap(), fetchPublishedSitemap('/made-with-kineo/sitemap.xml')])
+  if (showcaseSitemap.error) console.error('[submit-indexnow] showcase sitemap unavailable')
   if (sitemap.error) {
     // eslint-disable-next-line no-console
     console.error('[submit-indexnow] could not read the published sitemap:', sitemap.error)
@@ -204,7 +206,7 @@ export async function GET(req: NextRequest) {
   const admin = adminClient()
   const [previous, sentLast24h] = await Promise.all([readSnapshot(admin), readSentLast24h(admin)])
   // Sitemap ANTES dos vídeos: com o teto mordendo, a página de SEO alterada no deploy tem a vez.
-  const current: IndexNowEntry[] = [...sitemap.entries, ...videoEntries]
+  const current: IndexNowEntry[] = [...sitemap.entries, ...showcaseSitemap.entries, ...videoEntries]
   const changed = changedSinceSnapshot(current, previous, now)
   const budget = Math.min(MAX_URLS_PER_RUN, remainingDailyBudget(sentLast24h))
   const videoSet = new Set(videoEntries.map((v) => v.loc))
