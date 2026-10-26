@@ -33,6 +33,7 @@ import { DESENHO_SOM_2110_ARQUIVOS, DESENHO_SOM_2110_NOVOS, DESENHO_SOM_2110_REE
 import { REGRAS_AVATAR_ESTORNO_2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: o estorno do avatar abandonado (Codex) veio depois
 import { REGRAS_LEGENDA_BENGALI_2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — idem para a legenda bengali
 import path from 'node:path'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { registerHooks } from 'node:module'
@@ -45,8 +46,8 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const read = (rel) => semPaginasIaClaras2110(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — fonte histórica antes de S e dos mutantes; raw conserva a fonte atual.
-const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+const raw = (rel) => { const source=fs.readFileSync(path.join(ROOT,rel),'utf8'), projected=semAfiliado50_2610(rel,source); return source.includes('\r\n')?projected.replace(/\n/g,'\r\n'):projected }
+const read = (rel) => semPaginasIaClaras2110(lf(raw(rel)), rel) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — fonte histórica antes de S e dos mutantes; raw conserva a fonte atual.
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MCP_STUDIO_AJUSTE_2010_BASE}:${rel}`)) } catch { return null } }
 const code = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')

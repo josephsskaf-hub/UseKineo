@@ -1,15 +1,17 @@
 // KINEO-CARDS-GIRO-2410 — exact source undo, fixed points, EOL, Windows paths, tamper rejection and bounded task inventory; no writes.
 import { semCardsBordas2410 } from './test-support/desfaz-cards-bordas-2410.mjs' // KINEO-CARDS-BORDAS-2410
 import assert from 'node:assert/strict'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { semCardsGiro2410 as undo, CARDS_GIRO_2410_MANIFEST as manifest, CARDS_GIRO_2410_BASE as BASE } from './test-support/desfaz-cards-giro-2410.mjs'
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',windowsHide:true,maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
 const lf = source => source.replace(/\r\n/g,'\n'), crlf=source=>lf(source).replace(/\n/g,'\r\n'), hash=source=>createHash('sha256').update(source).digest('hex')
+const affiliateRaw = file => { const source=readFileSync(file,'utf8'), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?crlf(projected):projected }
 assert.equal(manifest.base,BASE)
 for (const [file,item] of Object.entries(manifest.sources)) {
-  const raw=semCardsBordas2410(readFileSync(file,'utf8'),file), current=lf(raw) /* KINEO-CARDS-BORDAS-2410 */, before=git('show',BASE+':'+file)
+  const raw=semCardsBordas2410(affiliateRaw(file),file), current=lf(raw) /* KINEO-CARDS-BORDAS-2410 */, before=git('show',BASE+':'+file)
   assert.equal(item.before,before,'before bytes come from immutable base: '+file)
   assert.equal(item.beforeHash,hash(before),'base hash: '+file)
   assert.equal(item.afterHash,hash(current),'complete current source hash: '+file)
