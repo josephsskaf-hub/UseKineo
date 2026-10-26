@@ -276,7 +276,7 @@
     "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs": {
       "kind": "modified",
       "beforeSha256": "882a6885ebfc9da0f9e96d4fde447cf303cf46d684d7bb60f8013dea8ca5b93b",
-      "afterSha256": "d21557b200d06281ca2e1ebf6ec89abf8c20ae2961da870864922acf2793e8a2",
+      "afterSha256": "d36bc5204a9d6206ac7914fe7a69920fd2d8cc5ad944ce475e977c65bb9302ad",
       "hunks": [
         {
           "before": "import { dirname, join } from 'node:path'\nimport { fileURLToPath } from 'node:url'\nimport { semAdminLeve2310 } from './desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove the exact later layer before this complete historical snapshot.\n\nexport const MARCA_PAGINAS_IA_CLARAS_2110 = 'KINEO-PAGINAS-IA-CLARAS-2110'\nexport const PAGINAS_IA_CLARAS_2110_TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]'\n",
@@ -284,10 +284,10 @@
         },
         {
           "before": "\n/** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */\nexport function semPaginasIaClaras2110(texto, p) {\n  texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.\n  const r = rel(p)\n  if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto\n",
-          "after": "\n/** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */\nexport function semPaginasIaClaras2110(texto, p) {\n  texto = semVitrine2610(texto, p) // KINEO-VITRINE-FILMES-2610 — preserve all historical assertions, mutation anchors and frozen snapshots below.\n  texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.\n  const r = rel(p)\n  if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto\n"
+          "after": "\n/** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */\nexport function semPaginasIaClaras2110(texto, p) {\n  const tinhaFonte = typeof texto === 'string' // KINEO-VITRINE-FILMES-2610 — legacy scanners consume source strings.\n  texto = semVitrine2610(texto, p) // KINEO-VITRINE-FILMES-2610 — preserve all historical assertions, mutation anchors and frozen snapshots below.\n  if (tinhaFonte && texto === null) return '' // KINEO-VITRINE-FILMES-2610 — only a verified exact new file becomes an empty legacy source; original null remains null and tampering still throws.\n  texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.\n  const r = rel(p)\n  if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto\n"
         }
       ],
-      "hunksSha256": "89529f80f340e50d7d99aea6b15a9e39426d2dcb6ea6173d66b2dd52e8e70913"
+      "hunksSha256": "bd17340a5dc6a09de06a2e26461d1a0dfd1a5ebcb0921c48f6eeb6d007670079"
     }
   }
 }

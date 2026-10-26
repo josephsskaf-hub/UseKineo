@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { semVitrine2610, VITRINE_2610_BASE, VITRINE_2610_MANIFEST } from './test-support/desfaz-vitrine-filmes-2610.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs'
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
 const lf = value => value.replace(/\r\n/g, '\n')
@@ -58,6 +59,10 @@ for (const [file, entry] of Object.entries(manifest.testScope)) {
     rejects(() => semVitrine2610(current + '\n' + hunk.after, file), /expected exactly 1 candidate match/, file + ': duplicated historical hunk rejected')
   }
 }
+const newLegacyFile = 'components/MadeWithKineo.tsx', newLegacySource = fs.readFileSync(newLegacyFile, 'utf8')
+check(semPaginasIaClaras2110(newLegacySource, newLegacyFile) === '', 'legacy string scanner receives empty source for a verified exact new file')
+check(semPaginasIaClaras2110(null, newLegacyFile) === null, 'legacy adapter preserves an originally absent source as null')
+rejects(() => semPaginasIaClaras2110(newLegacySource + '\n// altered new file\n', newLegacyFile), /modified new file; refusing deletion/, 'legacy adapter never hides an altered new source as empty')
 for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'lib/publicSurfacePolicy.ts', 'vercel.json']) {
   check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${VITRINE_2610_BASE}:${file}`)), file + ': unrelated pricing, privacy flag and cron schedule untouched')
 }
