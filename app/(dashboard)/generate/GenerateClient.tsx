@@ -2022,6 +2022,7 @@ export default function GenerateClient({
   // Push #316 — output language selector (en | pt | es). PUSH #36 preserves
   // the language promised by localized acquisition pages through auth.
   const [language, setLanguage] = useState<NarrationLanguage>(initialLanguage)
+  const capacityLocale = useInterfaceLanguage() // PEDIDO-FIEL-2610 — the notice follows the interface, not the narration language.
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
   const qualityFailureRef = useRef<VideoQualityFailure | null>(null)
@@ -12418,7 +12419,7 @@ export default function GenerateClient({
   // botoes de duracao, e some sozinha quando a pessoa reescreve. `null` = nada
   // comprovado a dizer — idioma e "sem banco de imagens" saem como `unknown` e
   // NUNCA chegam aqui, porque recusar sem medir seria copy que mente.
-  const avisoColado = fraseDoQueNaoDamosConta(readPastedDirectives(prompt))
+  const avisoColado = fraseDoQueNaoDamosConta(readPastedDirectives(prompt), capacityLocale)
 
   // ═══════════════════════════════════════════════════════════════════════
   // sprint-retencao #2 (2026-09-04) — A PORTA DO EPISODIO 2 ESTAVA NO RODAPE
@@ -13112,7 +13113,6 @@ export default function GenerateClient({
   const ladderPrimaryPlanLabel = postVideoOfferDecision.primaryPlanLabel
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, o plano não é vendido em "Kineo 1 quick videos".
   // BEGIN COMPRA-CLAREZA-2610 capacity
-  const capacityLocale = useInterfaceLanguage()
   const ladderCapacity = getPostVideoCapacity({ tier: ladderPrimaryTier, quality: planFitQuality, seconds: duration, kineo1Allowed: kineo1Shown })
   const ladderPrimaryOutputLabel = ladderCapacity.status === 'ready'
     ? `up to ${ladderCapacity.filmsPerMonth} new ${ladderCapacity.seconds}-second ${ladderCapacity.engineName} films if all monthly credits go to this setup`
@@ -15745,15 +15745,15 @@ export default function GenerateClient({
                 ordem colada fizeram um 2º em 8,7%, contra 27,5% de quem começou
                 de um tema. As amostras reais pediam "2–4 minute, 16:9
                 widescreen" e recebiam 35s em 9:16, caladas. Aqui a pessoa lê
-                isso com o botão ainda na mão — não é bloqueio, e o filme sai
-                igual se ela seguir. */}
+                isso com o botão ainda na mão. PEDIDO-FIEL-2610: a revisão do
+                servidor pode bloquear um conflito explícito antes do débito. */}
             {avisoColado && (
               <div
                 className="rounded-xl px-3 py-2.5 mt-2"
                 style={{ background: 'rgba(255,214,10,.06)', border: '1px solid rgba(255,214,10,.26)' }}
               >
                 <p className="text-xs font-bold" style={{ color: '#ffd60a', lineHeight: 1.5 }}>
-                  {avisoColado} We&apos;ll still make it — just not that part.
+                  {avisoColado} {capacityLocale === 'pt' ? 'Revise o pedido e a duração antes de gerar.' : capacityLocale === 'es' ? 'Revisa el pedido y la duración antes de generar.' : 'Review your request and duration before generating.'}
                 </p>
               </div>
             )}
