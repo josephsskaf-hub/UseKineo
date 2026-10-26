@@ -70,7 +70,7 @@ await check('generateTTS e cache escolhem MiniMax apenas nas línguas novas', as
     const audio = await raw.generateTTS('A complete story.', 1.1, undefined, 'free', row.code)
     assert.equal(audio.toString(), 'offline-voice'); assert.equal(calls.at(-1).ctx.language, row.code)
   }
-  assert.equal(calls.length, 22); assert.equal(R.calls.openai.length, 0)
+  assert.equal(calls.length, 24) /* reancorado KINEO-VOZ-NATIVA-2610 */; assert.equal(R.calls.openai.length, 0)
 })
 await check('mutantes aplicados em memória derrubam o contrato', () => {
   const files={ T:'lib/textLanguage.ts', F:'lib/ttsFallback.ts' }
