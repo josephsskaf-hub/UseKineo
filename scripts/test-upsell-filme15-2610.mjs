@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { world, USER, VIDEO, OTHER, VERSION, CAMPAIGN, read } from './test-support/upsell-filme15-harness-2610.mjs'
+import { film15UiFixtures } from './test-support/upsell-filme15-ui-fixtures-2610.mjs'
 
 const SERVER = 'lib/filmComplete/server.ts'
 const CONSTANTS = 'lib/growth/filmComplete.ts'
@@ -120,6 +121,7 @@ async function retireChecks(overrides) {
 
 await identityChecks()
 await copyChecks()
+await film15UiFixtures()
 {
   const component = read('components/FilmReadyFullVersionUpsell.tsx'), generate = read('app/(dashboard)/generate/GenerateClient.tsx')
   assert.ok(component.includes("filmCompleteCheckoutHref(videoId, 'film_ready')"), 'live CTA enters the durable checkout route')

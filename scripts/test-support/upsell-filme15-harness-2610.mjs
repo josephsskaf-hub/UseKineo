@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const require = createRequire(join(ROOT, 'package.json'))
-const ts = require('typescript')
+export const ts = require('typescript')
 const pureCache = new Map()
 export const USER = '11111111-1111-4111-8111-111111111111'
 export const VIDEO = '22222222-2222-4222-8222-222222222222'
