@@ -88,9 +88,15 @@ function setup() {
   const begin = checkoutSource.indexOf("const rwReferral = req.cookies.get('rewardful_referral')?.value")
   const end = checkoutSource.indexOf('// KINEO-CHECKOUT-IDEMPOTENCY', begin)
   assert.ok(begin > 0 && end > begin, 'real checkout metadata block located')
+  const checkoutBlock = checkoutSource.slice(begin, end)
+  // Affiliate50 resolves first-touch before discounts. Execute that same source
+  // declaration when it now precedes the metadata block, preserving the proof.
+  const earlyOwner = checkoutBlock.includes('const customAffiliateId =') ? '' :
+    checkoutSource.match(/^\s*const customAffiliateId = await resolveCustomAffiliateBeforeSubscription\(req, user, profile\)$/m)?.[0]
+  assert.notEqual(earlyOwner, undefined, 'real checkout owner resolution located')
   const checkout = compile(
     declaration('app/api/stripe/checkout/route.ts', 'resolveCustomAffiliateBeforeSubscription') +
-    `\nexport async function run(req, user, profile) { const sessionParams = {metadata:{}, subscription_data:{metadata:{}}}; ${checkoutSource.slice(begin, end)}; return sessionParams; }`, {}, attribution,
+    `\nexport async function run(req, user, profile) { const sessionParams = {metadata:{}, subscription_data:{metadata:{}}}; ${earlyOwner}\n${checkoutBlock}; return sessionParams; }`, {}, attribution,
   )
   const payment = compile(
     declaration('app/api/stripe/webhook/route.ts', 'RetryableAffiliateLedgerError') + '\n' +

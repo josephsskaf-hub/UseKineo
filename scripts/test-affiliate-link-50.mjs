@@ -115,6 +115,45 @@ async function guest(input = {}, route = read(ROUTE)) {
   return vm.runInNewContext(compile(wrapper) + '\nrun', { URL, Object, Math, console })(...Object.values(deps))
 }
 
+async function requestedCode(input = {}) {
+  const text = read(ROUTE)
+  const ast = ts.createSourceFile(ROUTE, text, ts.ScriptTarget.Latest, true)
+  let node
+  function visit(n) {
+    if (ts.isIfStatement(n) && n.expression.getText(ast) === '!discountApplied && requestedPromo && !promoBlocked') node = n
+    ts.forEachChild(n, visit)
+  }
+  visit(ast)
+  assert.ok(node, 'real final requested-code gate found')
+  const legacy = { id: 'promo_archived_20', code: 'KINEOABCDEFGH', active: true, coupon: { id: 'KINEO_AFFILIATE_20', percent_off: 20, duration: 'once' }, metadata: { affiliate_id: partner.id, source: 'kineo_affiliate_auto' } }
+  const replacement = { ...legacy, id: 'promo_replacement_50', coupon: { id: 'KINEO_AFFILIATE_50', percent_off: 50, duration: 'once' } }
+  let lookups = 0
+  const sessionParams = { metadata: {}, subscription_data: { metadata: {} }, custom_text: {} }
+  const deps = {
+    discountApplied: false, requestedPromo: legacy.code, promoBlocked: false, privatePackPromo: false,
+    tier: 'basic', isAnnual: false, wantsTrial: false, resolvedPromo: null, checkoutMetadata: {}, sessionParams,
+    stripe: { promotionCodes: { list: async () => {
+      lookups++
+      if ((input.resolvedPromo || lookups > 1) && input.refreshThrows) throw new Error('offline simulated refresh failure')
+      return { data: [lookups === 1 && !input.resolvedPromo ? legacy : input.unverifiedReplacement ? legacy : replacement] }
+    } } },
+    ...input,
+    ...policy(),
+    ensureAffiliateBaseCoupon: async () => input.couponUnavailable ? null : 'KINEO_AFFILIATE_50',
+    readAffiliateOfferById: async () => partner,
+    normalizeAffiliateCode: load('lib/affiliateCode.ts').normalizeAffiliateCode,
+    affiliateOfferCopy: () => '50% off your first month — via Partner A', affiliateOfferScopeCopy: () => 'Monthly only; no stacking.',
+    checkoutValueContext: { submitMessage: 'Clean MP4 after payment' }, req: { nextUrl: new URL('https://example.invalid'), headers: new Headers() },
+    isGet: true, redirectError: message => ({ error: message }), jsonError: message => ({ error: message }),
+    appUrl: 'https://example.invalid', chargeCurrency: 'usd', chargeAmount: 2490,
+    buildSubscriptionCheckoutSuccessUrl: info => `https://example.invalid/success?amount=${info.amount}`,
+  }
+  if (input.resolvedPromo) deps.resolvedPromo = legacy
+  const wrapper = `async function run(${Object.keys(deps).join(',')}) { ${node.getText(ast)}; return { sessionParams, discountApplied, checkoutMetadata }; }`
+  const result = await vm.runInNewContext(compile(wrapper) + '\nrun', { URL, Object, Boolean, Math, console: { warn() {} } })(...Object.values(deps))
+  return { ...result, lookups, actualParams: sessionParams }
+}
+
 async function verify() {
   const p = policy()
   equal(p.AFFILIATE_LINK_PROMO_SOURCE, 'affiliate_link_50', 'source is stable')
@@ -168,9 +207,23 @@ async function verify() {
   const route = read(ROUTE)
   check(route.indexOf('const customAffiliateId = await resolveCustomAffiliateBeforeSubscription') < route.indexOf('  let affiliateDiscountApplied = false'), 'canonical first-touch resolves before discount')
   check(route.includes("affiliateOffer = await resolveAffiliateDisplayOffer(user.id, req.cookies.get('sf_aff')?.value, req.cookies.get('sf_aff_click')?.value)"), 'canonical account replaces cookie partner via read-only resolver')
-  check(route.includes('affiliate_discount_applied: affiliateDiscountApplied,'), 'checkout_started reads actual result')
-  check(route.includes('affiliate_code: affiliateOffer?.code ?? null,'), 'checkout_started records canonical partner code')
+  check(route.includes('affiliate_discount_applied: affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,'), 'checkout_started reads actual link or verified manual-code result')
+  check(route.includes('affiliate_code: checkoutMetadata.affiliate_code ?? affiliateOffer?.code ?? null,'), 'checkout_started records verified code owner or canonical link partner')
   check(route.indexOf('  let affiliateDiscountApplied = false') < route.indexOf('  let autoWelcome20Applied = false'), 'affiliate executes before automatic welcome')
+  const code = await requestedCode()
+  equal(code.actualParams.discounts, [{ promotion_code: 'promo_replacement_50' }], 'failed pre-check retry uses verified replacement50, never archived20')
+  equal(code.checkoutMetadata.affiliate_discount_applied, true, 'verified manual code reports boolean discount')
+  equal(code.checkoutMetadata.public_promo_source, 'affiliate_code_50', 'manual code source distinguished from link')
+  equal(code.actualParams.metadata.affiliate_code, partner.code, 'manual code event identifies actual code owner')
+  for (const shape of [{ isAnnual: true }, { tier: 'business' }, { tier: 'starter' }]) {
+    const denied = await requestedCode(shape)
+    equal(denied.actualParams.discounts, undefined, 'late retry cannot bypass annual/Business/Starter scope')
+  }
+  for (const shape of [{ resolvedPromo: true, refreshThrows: true }, { unverifiedReplacement: true }, { couponUnavailable: true }]) {
+    const denied = await requestedCode(shape)
+    check(denied.error, 'unverified migrated code fails closed')
+    equal(denied.actualParams.discounts, undefined, 'archived or unverified promo object is never applied')
+  }
 
   // The unchanged webhook pays commission on the actually paid value.
   const webhook = read('app/api/stripe/webhook/route.ts')
