@@ -9,8 +9,9 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { ADS_CENA_95_2110_BASE } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110
 import { semAdsCena2110, ADS_CENA_2110_BASE, ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs'
 import { semAdsCenaAjuste2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs' // KINEO-ADS-CENA-AJUSTE-2110 — o guardião original continua provando a camada original.
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 const F = { cat: 'lib/ads/cena/catalog.ts', plan: 'lib/ads/cena/plan.ts', pipe: 'lib/ads/cena/pipeline.ts', adapt: 'lib/ads/cena/adapters.ts', montage: 'lib/ads/cena/montage.ts', runtime: 'lib/ads/cena/runtime.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', start: 'lib/ads/v2StartCore.ts', captions: 'lib/ads/v2CenaQuality.ts' }
-const read = p => semAdsCenaAjuste2110(readFileSync(p, 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-AJUSTE-2110
+const read = p => semAdsCenaAjuste2110(semAfiliado50_2610(p, readFileSync(p, 'utf8')), p).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-AJUSTE-2110
 const plain = v => JSON.parse(JSON.stringify(v))
 const same = (actual, expected, label) => assert.deepEqual(plain(actual), plain(expected), label)
 const photo = 'https://offline.example/product.png', actor = 'https://offline.example/actor.png'

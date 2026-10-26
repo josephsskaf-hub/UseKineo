@@ -73,7 +73,9 @@ check(!firstClickOffer.caption.includes('Use code'), 'coupon sentence stays abse
 const couponOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({
   affiliate: { status: 'ACTIVE', coupon_code: 'SAVE20' },
 }))
-check(couponOffer.caption.includes('Use code SAVE20 for 20% off the first month.'), 'ready post attaches the available first-month coupon')
+check(couponOffer.caption.includes('Use code SAVE20 for 50% off the first month of Creator or Studio monthly.'), 'ready post attaches the available monthly partner coupon')
+check(couponOffer.caption.includes('Full monthly price from month two'), 'partner caption distinguishes first invoice from renewal')
+check(couponOffer.caption.includes('cannot be combined with another discount'), 'partner caption explains discounts do not stack')
 
 for (const surface of ['/studio', '/studio/create', '/generate', '/history']) {
   equal(firstClick.isAffiliateFirstClickSurface(surface), true, surface + ' exposes the first-click mission')

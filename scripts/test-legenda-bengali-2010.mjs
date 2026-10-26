@@ -25,10 +25,13 @@ import { semLegendaBengali2010, MARCA_LEGENDA_BENGALI_2010 as MARCA, LEGENDA_BEN
 import { semAvatarEstorno2010, MARCA_AVATAR_ESTORNO_2010, REGRAS_AVATAR_ESTORNO_2010 } from './test-support/desfaz-avatar-estorno-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-LEGENDA-BENGALI-2010 — reancorado na integração 21/10: o som do desenho (21/10) mexeu no /api/compose depois; a prova "montador intacto" lê a rota sem aquela camada
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
-const rd = p => lf(semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, p), 'utf8'), p))
+const rd = p => lf(semIdiomasFormatos2410(affiliateRaw(p, fs.readFileSync(path.join(ROOT, p), 'utf8')), p))
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 26 })
 const base = p => lf(git('show', `${BASE}:${p}`))
 const F = 'lib/textLanguage.ts', COMPOSE = 'lib/compose.ts'

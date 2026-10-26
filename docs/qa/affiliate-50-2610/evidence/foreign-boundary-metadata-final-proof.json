@@ -1,0 +1,509 @@
+{
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "sourceCheckpoint": "0a51ca9c5542013142fbac91e03f6bab318c9fdd",
+  "selectors": 9,
+  "inputs": 55,
+  "restoredOriginalRefs": 55,
+  "restoredOriginalSources": 55,
+  "positiveAndNegativeControls": 12,
+  "metadataMutantsKilled": 3,
+  "futureUnrelatedAndProductCommitsRetained": true,
+  "independentFutureSourceEditsPreserved": true,
+  "rows": [
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "lib/compose.ts",
+      "oldSelected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "baselineSelected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "lib/hookFirstFrame.ts",
+      "oldSelected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "baselineSelected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "lib/lyriaMusic.ts",
+      "oldSelected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "baselineSelected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "app/api/compose/route.ts",
+      "oldSelected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "baselineSelected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "selected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "app/api/compose/unlock/route.ts",
+      "oldSelected": "7b6d54e8bf02b9c2014646488fcc0261b2509d2a",
+      "baselineSelected": "7b6d54e8bf02b9c2014646488fcc0261b2509d2a",
+      "selected": "7b6d54e8bf02b9c2014646488fcc0261b2509d2a",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-gancho-1q-2026-10-03.mjs",
+      "oldSelected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "baselineSelected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "selected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-parceiro-eyebible-2-1410.mjs",
+      "oldSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "baselineSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "selected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-filmes-f1f4-1910.mjs",
+      "oldSelected": "f5ac64582cad87547cccafca99eef47e4d9c7538",
+      "baselineSelected": "3f073c52ea320f3bbf14c0184fc25f05c4e34fe7",
+      "selected": "3f073c52ea320f3bbf14c0184fc25f05c4e34fe7",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "oldSelected": "f5ac64582cad87547cccafca99eef47e4d9c7538",
+      "baselineSelected": "738e173b1d736ff62cb48b1fbfb62bd1fc6e78f0",
+      "selected": "738e173b1d736ff62cb48b1fbfb62bd1fc6e78f0",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-close-real-ajuste-1910.mjs",
+      "oldSelected": "64dace56da149ddc25bd42a6c18dfd9a4d54e694",
+      "baselineSelected": "8496190707835747cea8beb95af90eafa8fb0923",
+      "selected": "8496190707835747cea8beb95af90eafa8fb0923",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-close-real-v3-1910.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "8496190707835747cea8beb95af90eafa8fb0923",
+      "selected": "8496190707835747cea8beb95af90eafa8fb0923",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-apresentador-v2-libera-1910.mjs",
+      "oldSelected": "d4d7111860532c634722763b0575f5e5e54864b5",
+      "baselineSelected": "d4d7111860532c634722763b0575f5e5e54864b5",
+      "selected": "d4d7111860532c634722763b0575f5e5e54864b5",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-filme-rapido-1710.mjs",
+      "oldSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "baselineSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "selected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-close-real-1910.mjs",
+      "oldSelected": "23fed18437c3bfdda98823763825fc7c2c369eb5",
+      "baselineSelected": "51e8bf15908cad0272cc4d4862ffa10e97656818",
+      "selected": "51e8bf15908cad0272cc4d4862ffa10e97656818",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 0,
+      "target": "lib/compose.ts",
+      "oldSelected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "baselineSelected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 0,
+      "target": "lib/hookFirstFrame.ts",
+      "oldSelected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "baselineSelected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 0,
+      "target": "lib/lyriaMusic.ts",
+      "oldSelected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "baselineSelected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 0,
+      "target": "app/api/compose/route.ts",
+      "oldSelected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "baselineSelected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "selected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 1,
+      "target": "scripts/test-filmes-f1f4-1910.mjs",
+      "oldSelected": "f5ac64582cad87547cccafca99eef47e4d9c7538",
+      "baselineSelected": "7926056b025f668556f691022d4eef5ff1b4db2c",
+      "selected": "7926056b025f668556f691022d4eef5ff1b4db2c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selector": 1,
+      "target": "scripts/test-close-real-ajuste-1910.mjs",
+      "oldSelected": "64dace56da149ddc25bd42a6c18dfd9a4d54e694",
+      "baselineSelected": "27e5638b38f062db01df409185b0b5f503687ca6",
+      "selected": "27e5638b38f062db01df409185b0b5f503687ca6",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-ads-mao-ajuste-3-1610.mjs",
+      "oldSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "baselineSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "selected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-ads-mao-juiz-1610.mjs",
+      "oldSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "baselineSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "selected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-estrela-sobretaxa-assinada-2026-10-01.mjs",
+      "oldSelected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "baselineSelected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "selected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-filme-rapido-1710.mjs",
+      "oldSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "baselineSelected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "selected": "fd40ce1fd0c0a7acaf5e3d7f2654e173e5018480",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-gancho-1q-2026-10-03.mjs",
+      "oldSelected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "baselineSelected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "selected": "13b83ecd7a7fe2f9ea8a03dc707754b0d622ca13",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-parceiro-eyebible-1410.mjs",
+      "oldSelected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "baselineSelected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "selected": "57f6f4b4598660d7d53b89a751ee34f980e8606e",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-sem-legenda-2026-10-06.mjs",
+      "oldSelected": "280354510980550e7160006c2899b6b6e597937d",
+      "baselineSelected": "280354510980550e7160006c2899b6b6e597937d",
+      "selected": "280354510980550e7160006c2899b6b6e597937d",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-veo-marcado-2026-09-29.mjs",
+      "oldSelected": "a753c7ee97ee2bf80bc9b46eb03c67b64635f72e",
+      "baselineSelected": "a753c7ee97ee2bf80bc9b46eb03c67b64635f72e",
+      "selected": "a753c7ee97ee2bf80bc9b46eb03c67b64635f72e",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-veo-modo-ia-2026-09-29.mjs",
+      "oldSelected": "ab5a67b685bd08d9ab3eea8fe67786330d89fce5",
+      "baselineSelected": "ab5a67b685bd08d9ab3eea8fe67786330d89fce5",
+      "selected": "ab5a67b685bd08d9ab3eea8fe67786330d89fce5",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-apresentador-v2-libera-1910.mjs",
+      "oldSelected": "743d83e5897b0e362baf480ad0e83210a989ed56",
+      "baselineSelected": "743d83e5897b0e362baf480ad0e83210a989ed56",
+      "selected": "743d83e5897b0e362baf480ad0e83210a989ed56",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-juiz-grade-1610.mjs",
+      "oldSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "baselineSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "selected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-close-real-1910.mjs",
+      "oldSelected": "23fed18437c3bfdda98823763825fc7c2c369eb5",
+      "baselineSelected": "51e8bf15908cad0272cc4d4862ffa10e97656818",
+      "selected": "51e8bf15908cad0272cc4d4862ffa10e97656818",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-apresentador-v2-1710.mjs",
+      "oldSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "baselineSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "selected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-apresentador-v2-ajuste-1710.mjs",
+      "oldSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "baselineSelected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "selected": "47ac8d279dd827ed32ec260e6e18de1ac8600574",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selector": 0,
+      "target": "scripts/test-apresentador-v2-ajuste-3-1710.mjs",
+      "oldSelected": "10c037efc0ada51b50ba1537e6d1c8ba8792f03f",
+      "baselineSelected": "10c037efc0ada51b50ba1537e6d1c8ba8792f03f",
+      "selected": "10c037efc0ada51b50ba1537e6d1c8ba8792f03f",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 0,
+      "target": "scripts/test-mcp-studio-2010.mjs",
+      "oldSelected": "77b09536e85a84945876997215e791255bbeae19",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 0,
+      "target": "scripts/test-meta95-personagem-2010.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 0,
+      "target": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+      "oldSelected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "baselineSelected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "selected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 0,
+      "target": "scripts/test-avatar-preso-2010.mjs",
+      "oldSelected": "a318cedef6bee13979918701527c5dec10bfe8c5",
+      "baselineSelected": "7d65b5a5747c320887335de05869f49199332cf0",
+      "selected": "7d65b5a5747c320887335de05869f49199332cf0",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 1,
+      "target": "scripts/test-mcp-studio-2010.mjs",
+      "oldSelected": "77b09536e85a84945876997215e791255bbeae19",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 1,
+      "target": "scripts/test-meta95-personagem-2010.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 1,
+      "target": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+      "oldSelected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "baselineSelected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "selected": "aa7cebbdf9bf7a0752a72d1c0b2523e0025a998a",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 1,
+      "target": "scripts/test-avatar-preso-2010.mjs",
+      "oldSelected": "a318cedef6bee13979918701527c5dec10bfe8c5",
+      "baselineSelected": "7d65b5a5747c320887335de05869f49199332cf0",
+      "selected": "7d65b5a5747c320887335de05869f49199332cf0",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 2,
+      "target": "scripts/test-mcp-studio-2010.mjs",
+      "oldSelected": "77b09536e85a84945876997215e791255bbeae19",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 2,
+      "target": "scripts/test-meta95-personagem-2010.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 2,
+      "target": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+      "oldSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "baselineSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "selected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 2,
+      "target": "scripts/test-avatar-preso-2010.mjs",
+      "oldSelected": "a318cedef6bee13979918701527c5dec10bfe8c5",
+      "baselineSelected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "selected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 3,
+      "target": "scripts/test-mcp-studio-2010.mjs",
+      "oldSelected": "77b09536e85a84945876997215e791255bbeae19",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 3,
+      "target": "scripts/test-meta95-personagem-2010.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "27c074acf461f6347031b13230e05e63394c323c",
+      "selected": "27c074acf461f6347031b13230e05e63394c323c",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 3,
+      "target": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+      "oldSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "baselineSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "selected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 3,
+      "target": "scripts/test-avatar-preso-2010.mjs",
+      "oldSelected": "a318cedef6bee13979918701527c5dec10bfe8c5",
+      "baselineSelected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "selected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 4,
+      "target": "scripts/test-mcp-studio-2010.mjs",
+      "oldSelected": "77b09536e85a84945876997215e791255bbeae19",
+      "baselineSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "selected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 4,
+      "target": "scripts/test-meta95-personagem-2010.mjs",
+      "oldSelected": "a8ad83b6b5019f954e57be0ede7bb5f9bc93f9b6",
+      "baselineSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "selected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 4,
+      "target": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+      "oldSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "baselineSelected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "selected": "6034606736d4ab23437e401811299f99e429bdf8",
+      "exactHistoricalSource": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selector": 4,
+      "target": "scripts/test-avatar-preso-2010.mjs",
+      "oldSelected": "a318cedef6bee13979918701527c5dec10bfe8c5",
+      "baselineSelected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "selected": "0fbc9e91ffec565b673429791590346d257bb827",
+      "exactHistoricalSource": true
+    }
+  ]
+}

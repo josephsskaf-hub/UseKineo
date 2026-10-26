@@ -26,13 +26,15 @@ import { semPaginasUgc2010 } from './test-support/desfaz-paginas-ugc-2010.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 sai antes da conferência de marca do D6
 import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar": a regra "o menu só cresce" deste guardião foi revogada pelo próprio fundador; H/P/P5/D6 medem o item UGC no menu SEM a remodelação (camada mais nova, provada em scripts/test-home-remodela-2010.mjs)
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-MENU-UGC-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const rd = (rel) => lf(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MENU_UGC_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -229,7 +231,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
     let out
-    try { out = semMenuUgc2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }
+    try { out = semMenuUgc2010(affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }
     if (lf(out) !== b) difs.push(f)
   }
   ok(difs.length === 0, `D1 ${MENU_UGC_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${MENU_UGC_2010_BASE.slice(0, 9)} (${difs.join('; ') || 'ok'})`)
@@ -240,7 +242,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
   const DESFAZ_UGC = rd('scripts/test-support/desfaz-ugc-ajustes-2010.mjs')
   const cadeia = /export function semUgcAjustes2010\(texto, p\) \{\n  texto = semMenuUgc2010\(texto, p\)/.test(DESFAZ_UGC)
   const igual = MENU_UGC_2010_ARQUIVOS.every((f) => {
-    const raw = fs.readFileSync(path.join(ROOT, f), 'utf8'), semEste = semMenuUgc2010(raw, f)
+    const raw = affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), semEste = semMenuUgc2010(raw, f)
     return semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f) && semPaginasUgc2010(raw, f) === semPaginasUgc2010(semEste, f) && semHome3Cards1910(raw, f) === semHome3Cards1910(semEste, f)
   })
   ok(cadeia && igual, 'D4 encadeamento: semUgcAjustes2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; paginas-ugc e home-3-cards herdam')

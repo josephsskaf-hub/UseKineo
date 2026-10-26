@@ -32,7 +32,8 @@ process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-V3-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
 import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
-const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(semMeta95Assunto1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(semMeta95Assunto1910(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_V3_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -251,7 +252,7 @@ const provaBotao = (over = {}) => {
 // ── R: o resto ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const provaResto = () => {
   const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD').trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista · reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)
-  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(semHome3Cards1910(readFileSync(join(ROOT, f), 'utf8'), f), f)) === base(f)))) // reancorado KINEO-KIT-BF-1910 — arquivo tocado SÓ pelo kit (desfeito = a base desta entrega) não conta como tocado aqui · reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova, por cima do kit) sai primeiro
+  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(semHome3Cards1910(semAfiliado50_2610(f, readFileSync(join(ROOT, f), 'utf8')), f), f)) === base(f)))) // reancorado KINEO-KIT-BF-1910 — arquivo tocado SÓ pelo kit (desfeito = a base desta entrega) não conta como tocado aqui · reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova, por cima do kit) sai primeiro
   const intocados = ['lib/ads/v2PresenterV2.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2PlanCore.ts', 'lib/compose.ts', 'lib/ttsFallback.ts', 'lib/avatar/voice.ts'].every((f) => !tocados.includes(f))
   // no avanço: o corpo de adsV2NarrationVoice é o MESMO da base (a voz do Apresentador não mudou); só o invólucro do Close real e o bloco da montagem dele
   const corpo = (s) => s.slice(s.indexOf('async function adsV2NarrationVoice('), s.indexOf('\n}\n', s.indexOf('async function adsV2NarrationVoice(')))

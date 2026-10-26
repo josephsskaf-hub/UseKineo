@@ -3,7 +3,7 @@
 // A página copia o MOLDE do programa de criadores da Higgsfield, mas só pode prometer o que o produto da Kineo executa.
 // Este guardião prova, lendo e EXECUTANDO as fontes reais:
 //   (1) a comissão vem do código (AFFILIATE_COMMISSION_PCT), nunca digitada; o único % digitado fora da tabela
-//       comparativa é o do cupom, e ele bate com AFFILIATE_COUPON_PERCENT de app/api/affiliate/me/route.ts;
+//       comparativa é o do cupom, e ele bate com AFFILIATE_COUPON_PERCENT de lib/affiliateCoupon.ts;
 //   (2) cada benefício prometido tem fonte viva no código (pacote/cortesia, interruptor PARTNER_PACK_LIVE, Seedance 2.5 e
 //       Studio Ads para parceiro ativo, crédito pelo post público, sem piso de seguidores, 90 dias, auto-indicação);
 //   (3) nenhuma promessa da Higgsfield que a Kineo não executa (crédito mensal, vitrine, acesso antecipado, prazo de
@@ -34,6 +34,7 @@ const F = {
   adsServer: 'lib/ads/serverAccess.ts',
   cinematic: 'app/api/generate-video-cinematic/route.ts',
   me: 'app/api/affiliate/me/route.ts',
+  coupon: 'lib/affiliateCoupon.ts',
   apply: 'app/api/affiliate/apply/route.ts',
   partnerPost: 'app/api/affiliate/partner-post/route.ts',
   dashboard: 'app/(dashboard)/affiliate/page.tsx',
@@ -142,11 +143,11 @@ function problems(overrides = {}) {
     .replace(/gridTemplateColumns: '[^']*'/g, '')
     .split('\n').filter((l) => !l.includes("q: 'How does Kineo compare with other AI video affiliate programs?'")).join('\n')
   const typedPct = [...semComparacao.matchAll(/\b(\d{1,3}) ?%/g)].map((m) => m[1])
-  const me = S(F.me)
-  const coupon = me.match(/^const AFFILIATE_COUPON_PERCENT = (\d+)$/m)?.[1]
-  if (!coupon || !/duration: 'once'/.test(me)) p.push('fonte do cupom (AFFILIATE_COUPON_PERCENT, once) não encontrada')
+  const couponSource = S(F.coupon)
+  const coupon = couponSource.match(/^export const AFFILIATE_COUPON_PERCENT = (\d+)$/m)?.[1]
+  if (!coupon || !/duration: 'once'/.test(couponSource)) p.push('fonte do cupom (AFFILIATE_COUPON_PERCENT, once) não encontrada')
   for (const n of typedPct) if (n !== coupon) p.push(`% digitado na página sem fonte: ${n}%`)
-  if (!/20% off their first month/.test(code) || coupon !== '20') p.push('cupom de 20% no 1º mês não bate com app/api/affiliate/me/route.ts')
+  if (!/50% off the first month of Creator or Studio monthly/.test(code) || coupon !== '50') p.push('cupom de 50% no 1º mês Creator/Studio mensal não bate com lib/affiliateCoupon.ts')
 
   // ── (2) cada benefício com fonte viva ──────────────────────────────────────────────────────────────────────────
   const court = A('What is the courtesy Creator account?')
@@ -230,7 +231,7 @@ const mutants = [
   ['M5 ignora o interruptor do pacote', F.page, "const PACK_DELIVERY = PARTNER_PACK_LIVE ? 'added the moment you join' : 'added by our team — email us after you join'", "const PACK_DELIVERY = 'added the moment you join'"],
   ['M6 JSON-LD de outra lista', F.page, 'mainEntity: faq.map((f) =>', 'mainEntity: faq.slice(1).map((f) =>'],
   ['M7 FAQ visível filtra pergunta (JSON-LD ≠ visível)', F.page, '{faq.map((f) => (', "{faq.filter((f) => f.q !== 'Who can join?').map((f) => ("],
-  ['M8 cupom muda na fonte e a página fica', F.me, 'const AFFILIATE_COUPON_PERCENT = 20', 'const AFFILIATE_COUPON_PERCENT = 25'],
+  ['M8 cupom muda na fonte e a página fica', F.coupon, 'export const AFFILIATE_COUPON_PERCENT = 50', 'export const AFFILIATE_COUPON_PERCENT = 25'],
   ['M9 regra do selo de IA some', F.page, "{ t: 'Label it as AI', d: 'Everything Kineo makes is AI-generated. Use your platform’s AI label or say it in the caption.' },\n", ''],
   ['M10 ganho em dólar digitado', F.page, '<li>No follower minimum</li>', '<li>No follower minimum</li>\n            <li>Earn $500 a month</li>'],
   ['M11 CTA vai para backend novo', F.page, "const APPLY = '/affiliate?", "const APPLY = '/api/partners/apply?"],

@@ -21,6 +21,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ts = createRequire(join(root, 'package.json'))('typescript')
@@ -271,7 +272,7 @@ for (const [nome, rep] of MUTANTES) {
   try { git('merge-base', '--is-ancestor', CONSENTIMENTO_1610_BASE, 'HEAD') } catch { ruins.push('base do desfaz não é ancestral de HEAD') }
   for (const f of CONSENTIMENTO_1610_ARQUIVOS) {
     try {
-      if (semConsentimento1610(f, semKitBfVenda2010(semPrivacidadePlugin2610(read(f), f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória
+      if (semConsentimento1610(f, semKitBfVenda2010(semPrivacidadePlugin2610(semAfiliado50_2610(f, read(f)), f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória
     } catch (e) { ruins.push(`${f}: ${e.message}`) }
   }
   if (CONSENTIMENTO_1610_ARQUIVOS.length !== 5) ruins.push(`desfaz cobre ${CONSENTIMENTO_1610_ARQUIVOS.length} arquivos, devia 5`)

@@ -1,0 +1,130 @@
+{
+  "checkpoint": "e298633b46dc982ebb0d08ba7071684088419aac",
+  "note": "Removing only the added strict source ingress wrappers/imports gives identical executable AST, including every assertion, immutable inventory, equality and mutant.",
+  "rows": [
+    {
+      "file": "scripts/test-admin-leve-undo-2310.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-cena-95-pacing-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-cena-retomada-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-cena-segue-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-cena-texto-2310.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-escolha-2310.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ads-nota9-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-avatar-estorno-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-avatar-preso-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-bebe-que-fala-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-close-real-legenda-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-close-real-legenda-corte-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-close-real-legenda-pilula-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-close-real-v3-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-desenho-nota9-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-desenho-som-2110.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-publico-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-home-3-cards-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-home-cards-botoes-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-home-cards-claros-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-home-remodela-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-kit-bf-1910.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-legenda-bengali-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-menu-ugc-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-meta95-escrita-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-meta95-personagem-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-meta95-personagem-ajuste-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-trafego-undo-2310.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-ugc-ajustes-2010.mjs",
+      "equal": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "equal": true
+    }
+  ]
+}

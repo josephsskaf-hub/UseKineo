@@ -33,10 +33,12 @@ import {
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs' // KINEO-DESENHO-NOTA9-2110 — reâncora: a camada mais nova (o desenho infantil na tela clara, 21/10) sai antes da conferência da marca
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
-const rd = (p) => lf(semKidsVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-KIDS-VENDA-2010 — a camada nova sai em memória antes dos checks e dos mutantes da home
+const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const rd = (p) => lf(semKidsVenda2010(affiliateRaw(p, readFileSync(join(ROOT, p), 'utf8')), p)) // KINEO-KIDS-VENDA-2010 — a camada nova sai em memória antes dos checks e dos mutantes da home
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 const F = { kids: 'components/home/HomeKidsCard.tsx', three: 'components/home/HomeThreeCards.tsx', bebe: 'scripts/test-support/desfaz-bebe-que-fala-2010.mjs' }
@@ -151,7 +153,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   for (const f of HOME_CARDS_CLAROS_2010_ARQUIVOS) {
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
-    try { if (lf(semHomeCardsClaros2010(readFileSync(join(ROOT, f), 'utf8'), f)) !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) }
+    try { if (lf(semHomeCardsClaros2010(affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), f)) !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) }
   }
   const novos = HOME_CARDS_CLAROS_2010_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null)
   ok(difs.length === 0 && novos, `D1 ${HOME_CARDS_CLAROS_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${B}; ${HOME_CARDS_CLAROS_2010_NOVOS.length} novos existem e não existiam (${difs.join('; ') || 'ok'})`)
@@ -169,7 +171,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; vídeos/curadoria/enquadramento/4º card intocados (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`), ...intocados.map((f) => `mexeu: ${f}`)].join('; ') || 'ok'})`)
 
   const cadeia = /export function semBebeQueFala2010\(texto, p\) \{\n  texto = semHomeCardsClaros2010\(texto, p\)/.test(rd(F.bebe))
-  const igual = HOME_CARDS_CLAROS_2010_ARQUIVOS.every((f) => { const raw = readFileSync(join(ROOT, f), 'utf8'), semEste = semHomeCardsClaros2010(raw, f); return semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
+  const igual = HOME_CARDS_CLAROS_2010_ARQUIVOS.every((f) => { const raw = affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), semEste = semHomeCardsClaros2010(raw, f); return semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
   let lancou = false
   try { semHomeCardsClaros2010(rd(F.three) + `\n/* linha nova ${MARCA} */`, F.three) } catch { lancou = true }
   ok(cadeia && igual && lancou && semHomeCardsClaros2010('sem marca', F.three) === 'sem marca' && semHomeCardsClaros2010(rd(F.three), 'outro/arquivo.tsx') === rd(F.three) && desfazHomeCardsClaros2010(F.three, null) === null &&

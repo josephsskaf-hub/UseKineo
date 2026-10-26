@@ -1,5 +1,6 @@
 // KINEO-IDIOMAS-FORMATOS-2410 — both immutable histories, exact integration undo and complete task inventory; no filesystem mutation.
 import assert from 'node:assert/strict'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -15,6 +16,7 @@ const UPSTREAM_READER = 'scripts/test-trafego-undo-2310.mjs'
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', windowsHide: true, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
 const lf = s => s.replace(/\r\n/g, '\n')
 const crlf = s => s.replace(/\n/g, '\r\n')
+const affiliateRaw = file => { const source=readFileSync(file,'utf8'), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?crlf(projected):projected }
 const hash = s => createHash('sha256').update(s).digest('hex')
 assert.equal(manifest.base, BASE, 'the original immutable task base is preserved')
 assert.deepEqual(manifest.integration, { base: INTEGRATION_BASE, previous: PREVIOUS }, 'integration names the exact upstream and original branch SHAs')
@@ -24,7 +26,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = semCardsGiro2410(semVideoFiel2610(semVitrine2610(readFileSync(file, 'utf8'), file), file), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
+  const raw = semCardsGiro2410(semVideoFiel2610(semVitrine2610(affiliateRaw(file), file), file), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)

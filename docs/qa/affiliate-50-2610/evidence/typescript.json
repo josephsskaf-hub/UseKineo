@@ -1,0 +1,23 @@
+{
+  "label": "TESTADO LOCALMENTE",
+  "date": "2026-10-26",
+  "exit_code": 0,
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "typescript": "5.9.3",
+  "frozen_app_lib_sha": "2fbdb8b0a3638f3742b7058ac506d33c04ad6818",
+  "production_validation": false,
+  "later_changes": {
+    "final_checkpoint": "b4de47939a5111aae002de56ce80d986efa6af66",
+    "scope": "Tests/docs only; root verified app/lib remains identical to the frozen compiler source"
+  },
+  "observed_tool_transcript": {
+    "session": 46327,
+    "exit_code": 0,
+    "output": "",
+    "stdout": "",
+    "stderr": "",
+    "diagnostics": [],
+    "raw_log_captured": false,
+    "provenance": "Root agent observed the completed tool poll; transcript metadata recorded afterward"
+  }
+}

@@ -25,12 +25,13 @@ import { semApresentadorOlhos1910, desfazApresentadorOlhos1910, APRESENTADOR_OLH
 import { semCloseRealLegendaCorte1910 } from './test-support/desfaz-close-real-legenda-corte-1910.mjs'
 import { desfazApresentadorV2Ajuste3_1710 } from './test-support/desfaz-apresentador-v2-ajuste-3-1710.mjs'
 import { semHomeCardsBotoes2010, diffSoHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs' // reancorado KINEO-HOME-CARDS-BOTOES-2010 — os botões distintos dos cards de anúncio (camada mais nova) saem do disco e do diff antes das provas D2/D4
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
 const MARCA = 'KINEO-APRESENTADOR-OLHOS-1910'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semUgcAjustes2010(readFileSync(join(ROOT, p), 'utf8'), p)) // o arquivo VIVO (esta é a camada mais nova) · reancorado KINEO-UGC-AJUSTES-2010 — os ajustes do UGC de 20/10 (Jade e Robert aprovados, sub-teto, probe, folga de 23) saem primeiro, em memória (provados em scripts/test-ugc-ajustes-2010.mjs)
+const rd = (p) => lf(semUgcAjustes2010(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')), p)) // o arquivo VIVO (esta é a camada mais nova) · reancorado KINEO-UGC-AJUSTES-2010 — os ajustes do UGC de 20/10 (Jade e Robert aprovados, sub-teto, probe, folga de 23) saem primeiro, em memória (provados em scripts/test-ugc-ajustes-2010.mjs)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = APRESENTADOR_OLHOS_1910_BASE
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }

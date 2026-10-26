@@ -10,13 +10,14 @@
 //   + mutantes: cada um deixa pelo menos uma verificação vermelha (e prova que foi aplicado: alvo único, senão lança).
 // Só readFileSync + carregador offline (scripts/gpt24h-offline-support.mjs): nada de rede, banco ou Stripe.
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs' // KINEO-AFILIADO-50-2610 — desfaz exato da camada nova antes da régua de 48 h dos 20%.
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { root, offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 const MARCA = 'KINEO-CHECKOUT-CLAREZA-1610'
-const read = (rel) => semCloseReal1910(readFileSync(resolve(root, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const read = (rel) => semCloseReal1910(semAfiliado50_2610(rel, readFileSync(resolve(root, rel), 'utf8')), rel).replace(/\r\n/g, '\n') /* KINEO-AFILIADO-50-2610: restaura a base da garantia/prazo sem apagar mutações; depois sai Close do produto real. */
 const PRICES = 'lib/checkoutPricing.ts'
 const CLIENT = 'app/pricing/PricingClient.tsx'
 const STAGE = 'components/pricing/PlanValueStage.tsx'

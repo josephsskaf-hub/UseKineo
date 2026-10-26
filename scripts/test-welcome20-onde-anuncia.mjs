@@ -121,15 +121,15 @@ function problems(rep = {}) {
   if (!recusa.includes("public_promo_auto: 'fallback_full_price'")) p.push('recusa do automático sem motivo no evento')
   const started = startedAt > 0 ? route.slice(startedAt, startedAt + 900) : ''
   if (!started.includes('public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied')) p.push('checkout_started não conta o automático como desconto aplicado')
-  if (!started.includes('public_promo_source: autoWelcome20Applied')) p.push('checkout_started sem public_promo_source')
+  if (!started.includes('public_promo_source: affiliateDiscountApplied ? AFFILIATE_LINK_PROMO_SOURCE : autoWelcome20Applied')) p.push('checkout_started sem public_promo_source ou precedência do afiliado')
 
   // 4. o convidado
   if (!route.includes("? { kind: 'welcome_first_month_20', requestedCode: WELCOME20_PROMOTION_CODE, auto: true }")) p.push('o convidado não recebe o automático')
   if (!route.includes(': autoWelcome20 && GUEST_WELCOME_PROMO_LIVE')) p.push('o automático do convidado ignora o interruptor do convidado')
   const guestFnAt = route.indexOf('async function buildGuestSubscriptionAndRedirect(')
   const guestFn = guestFnAt > 0 ? route.slice(guestFnAt, route.indexOf('const plan = TIERS[ctx.tier]', guestFnAt)) : ''
-  const autoGuestAt = guestFn.indexOf('if (ctx.welcomePromo?.auto === true) {')
-  const explicitGuestAt = guestFn.indexOf('} else if (ctx.welcomePromo) {')
+  const autoGuestAt = guestFn.indexOf('if (ctx.welcomePromo?.auto === true && !partnerEligible) {')
+  const explicitGuestAt = guestFn.indexOf('} else if (ctx.welcomePromo && !ctx.welcomePromo.auto) {')
   const autoGuest = autoGuestAt >= 0 && explicitGuestAt > autoGuestAt ? guestFn.slice(autoGuestAt, explicitGuestAt) : ''
   if (!autoGuest || /\breturn\b/.test(autoGuest) || !autoGuest.includes('autoWelcomeFallback = autoResolution.reason')) p.push('no convidado, a recusa do automático volta ao cadastro (devia seguir a preço cheio)')
   if (!autoGuest.includes('guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })')) p.push('no convidado, o automático ignora o recorte Creator/Studio mensal')
@@ -164,7 +164,7 @@ const MUTANTES = [
   ['rota esquece o afiliado da conta', troca(ROUTE, "  if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {\n    autoWelcome20 = false\n", "  if (false) {\n    autoWelcome20 = false\n")],
   ['automático empilha com desconto já posto', troca(ROUTE, 'if (autoWelcome20 && !discountApplied && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {', 'if (autoWelcome20 && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {')],
   ['recusa do automático vira erro', troca(ROUTE, "      console.warn('[stripe/checkout] WELCOME20 automático não confirmado; segue a preço cheio:', autoResolution.reason)\n", "      return rejectPromisedPublicPromo(autoResolution.reason)\n")],
-  ['checkout_started esquece o automático', troca(ROUTE, 'public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied,', 'public_promo_applied: promisedPublicPromoVerified,')],
+  ['checkout_started esquece o automático', troca(ROUTE, 'public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied || affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,', 'public_promo_applied: promisedPublicPromoVerified || affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,')],
   ['convidado sem o automático', troca(ROUTE, "? { kind: 'welcome_first_month_20', requestedCode: WELCOME20_PROMOTION_CODE, auto: true }", '? null')],
   ['convidado volta ao cadastro na recusa do automático', troca(ROUTE, "      autoWelcomeFallback = autoResolution.reason\n", "      return { ok: false, failure: { reason: 'stripe_session_failed', detail: {} } }\n")],
   ['explícito do convidado vira preço cheio na recusa', troca(ROUTE, "    if (resolution.status === 'rejected') {\n      return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', resolution.reason) } }\n    }\n    welcome = {\n", "    if (resolution.status === 'rejected') {\n      welcome = null\n    } else welcome = {\n")],

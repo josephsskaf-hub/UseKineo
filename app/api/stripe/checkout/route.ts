@@ -6,6 +6,10 @@ import { headers as requestHeaders } from 'next/headers' // KINEO-CHECKOUT-HONES
 import { clientIp, hashIp } from '@/lib/requestIdentity' // KINEO-CHECKOUT-HONESTO-2026-10-07 — o MESMO ip_hash do sink /api/events
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
+import { ensureAffiliateBaseCoupon } from '@/lib/affiliateCoupon'
+import { AFFILIATE_LINK_PROMO_SOURCE, affiliateDiscountEligible, subscriptionAcceptsManualPromotions } from '@/lib/affiliateDiscount'
+import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, readAffiliateOfferById, type AffiliateLinkOffer } from '@/lib/affiliateLinkOffer'
+import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
@@ -104,6 +108,7 @@ import {
   GUEST_CHECKOUT_NONCE_COOKIE,
   GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
   GUEST_CHECKOUT_VERSION,
+  buildGuestCheckoutSuccessUrl,
   // KINEO-CUPOM-CONVIDADO-2026-10-07 — o interruptor da oferta de boas-vindas sem conta e o recorte dela (Creator/Studio
   // mensal, o mesmo do caminho logado).
   GUEST_WELCOME_PROMO_LIVE,
@@ -1359,6 +1364,11 @@ async function buildAndRedirect(
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
 
+  // A normalized cookie alone does not prove an active partner link.
+  let affiliateOffer = await resolveAffiliateLinkOffer(
+    req.cookies.get('sf_aff')?.value,
+    req.cookies.get('sf_aff_click')?.value,
+  )
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   failureUserId = user?.id ?? null
@@ -1409,6 +1419,7 @@ async function buildAndRedirect(
           // Só chega aqui com cupom quando a régua liberou a oferta de boas-vindas; sem cupom, null (a compra de sempre).
           // KINEO-CLARITY-WELCOME20-2026-10-12 — sem ?promo= nenhum, o Creator/Studio mensal leva o WELCOME20 automático
           // (auto: true = se a Stripe não confirmar, segue convidado a preço cheio em vez de voltar ao cadastro).
+          affiliateOffer,
           welcomePromo: promisedPublicPromo && requestedPromo
             ? { kind: promisedPublicPromo, requestedCode: requestedPromo }
             : autoWelcome20 && GUEST_WELCOME_PROMO_LIVE
@@ -1496,6 +1507,10 @@ async function buildAndRedirect(
       ? redirectError('Your account is still being prepared. Please refresh and try again.')
       : jsonError('Your account is still being prepared. Please refresh and try again.', 503)
   }
+  // Canonical first touch wins over a different browser cookie. Reuse this
+  // resolution for commission ownership; never reassign to sell a discount.
+  const customAffiliateId = await resolveCustomAffiliateBeforeSubscription(req, user, profile)
+  affiliateOffer = await resolveAffiliateDisplayOffer(user.id, req.cookies.get('sf_aff')?.value, req.cookies.get('sf_aff_click')?.value)
   // KINEO-CLARITY-WELCOME20-2026-10-12 — conta já atribuída a um afiliado (first-touch permanente, sem o cookie neste
   // navegador) também fica fora do automático: o campo manual da Stripe continua aberto para o cupom do parceiro.
   if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {
@@ -2511,8 +2526,46 @@ async function buildAndRedirect(
       // Reaproveita o pre-check de precedência (KINEO-PROMO-BEATS-INTRO) quando
       // ele já resolveu; só chama a Stripe de novo no caminho privatePackPromo,
       // que é o único que não passa pelo pre-check.
-      const pc = resolvedPromo
+      let pc: Stripe.PromotionCode | undefined = resolvedPromo
         ?? (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0]
+      if (pc && (['KINEO_AFFILIATE_20', 'KINEO_AFFILIATE_50'].includes(pc.coupon.id)
+        || pc.metadata?.source === 'kineo_affiliate_auto')) {
+        // This final gate also covers a failed pre-check followed by a successful
+        // retry. Never use an archived legacy object captured before migration.
+        if (!affiliateDiscountEligible({ tier, isAnnual, affiliatePresent: true, discountApplied, wantsTrial })) {
+          pc = undefined
+        } else {
+          let refreshed: Stripe.PromotionCode | undefined
+          try {
+            const affiliateCoupon = await ensureAffiliateBaseCoupon()
+            if (affiliateCoupon) {
+              const candidate = (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0]
+              if (candidate?.coupon.id === affiliateCoupon && candidate.coupon.percent_off === 50
+                && candidate.coupon.duration === 'once' && candidate.active) refreshed = candidate
+            }
+          } catch { /* No replacement verified: fail closed for this requested offer. */ }
+          if (!refreshed) return isGet
+            ? redirectError('We could not verify your partner discount. Please try again.')
+            : jsonError('We could not verify your partner discount. Please try again.', 503)
+          pc = refreshed
+          const codeOwner = pc.metadata?.affiliate_id ? await readAffiliateOfferById(pc.metadata.affiliate_id) : null
+          const affiliateCode = codeOwner?.code ?? (pc.code.startsWith('KINEO') ? normalizeAffiliateCode(pc.code.slice(5)) : null)
+          const manualPartnerMetadata = {
+            public_promo_source: 'affiliate_code_50',
+            affiliate_discount_applied: 'true',
+            ...(affiliateCode ? { affiliate_code: affiliateCode } : {}),
+          }
+          Object.assign(sessionParams.metadata!, manualPartnerMetadata)
+          Object.assign(sessionParams.subscription_data!.metadata!, manualPartnerMetadata)
+          checkoutMetadata = { ...checkoutMetadata, ...manualPartnerMetadata, affiliate_discount_applied: true }
+          sessionParams.custom_text!.submit = {
+            message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', codeOwner?.partnerName ?? null)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${checkoutValueContext.submitMessage}`,
+          }
+          sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+            appUrl, tier, currency: chargeCurrency, amount: Math.round(chargeAmount * 0.5),
+          })
+        }
+      }
       if (pc) {
         if (privatePackPromo) {
           const restrictedCustomerId = typeof pc.customer === 'string'
@@ -2617,6 +2670,39 @@ async function buildAndRedirect(
   // Roda DEPOIS de todo outro desconto: com qualquer `discounts` já posto, não entra (nunca empilha).
   // SÓ LEITURA na Stripe, igual ao convidado (loadGuestWelcomePromoCandidate): o automático não cria cupom nem código —
   // quem provisiona o WELCOME20 continua sendo o pedido explícito (cartão do /pricing). Logado e convidado decidem igual.
+  // Partner offer follows explicit/intro discounts and precedes automatic WELCOME20.
+  let affiliateDiscountApplied = false
+  if (affiliateDiscountEligible({
+    tier, isAnnual, affiliatePresent: affiliateOffer !== null,
+    discountApplied: discountApplied || Boolean(sessionParams.discounts?.length),
+    wantsTrial, intro, checkoutRecovery: Boolean(checkoutRecovery), promoRequested: rawPromo.length > 0,
+  })) {
+    const coupon = await ensureAffiliateBaseCoupon()
+    if (coupon && affiliateOffer) {
+      sessionParams.discounts = [{ coupon }]
+      discountApplied = true
+      affiliateDiscountApplied = true
+      autoWelcome20 = false
+      const partnerMetadata = {
+        public_promo_source: AFFILIATE_LINK_PROMO_SOURCE,
+        affiliate_discount_applied: 'true',
+        affiliate_code: affiliateOffer.code,
+      }
+      Object.assign(sessionParams.metadata!, partnerMetadata)
+      Object.assign(sessionParams.subscription_data!.metadata!, partnerMetadata)
+      checkoutMetadata = { ...checkoutMetadata, ...partnerMetadata, affiliate_discount_applied: true }
+      failureContext = { ...checkoutMetadata }
+      sessionParams.custom_text!.submit = {
+        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', affiliateOffer.partnerName)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${checkoutValueContext.submitMessage}`,
+      }
+      sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+        appUrl, tier, currency: chargeCurrency, amount: Math.round(chargeAmount * 0.5),
+      })
+    } else {
+      checkoutMetadata.affiliate_discount_applied = false
+      checkoutMetadata.affiliate_discount_failure = 'coupon_unavailable'
+    }
+  }
   let autoWelcome20Applied = false
   if (autoWelcome20 && !discountApplied && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {
     const autoKind: PromisedPublicPromoKind = 'welcome_first_month_20'
@@ -2689,7 +2775,7 @@ async function buildAndRedirect(
   // Stripe forbids combining `discounts` with allow_promotion_codes, so we enable
   // it ONLY when no discount was applied above (never both on the same session).
   // KINEO-BUSINESS-84-2026-10-09 — o Business não abre o campo manual (planAcceptsPromotions): WELCOME20 digitado à mão não vale nele.
-  if (!discountApplied && planAcceptsPromotions(tier)) {
+  if (!discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual)) {
     sessionParams.allow_promotion_codes = true
   }
 
@@ -2699,7 +2785,7 @@ async function buildAndRedirect(
   sessionParams.after_expiration = {
     recovery: {
       enabled: true,
-      allow_promotion_codes: !discountApplied && planAcceptsPromotions(tier), // KINEO-BUSINESS-84-2026-10-09
+      allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual),
     },
   }
 
@@ -2715,7 +2801,6 @@ async function buildAndRedirect(
   // as client_reference_id so Rewardful attributes the subscription to the affiliate.
   // Only when present — Stripe Checkout errors on a blank client_reference_id.
   const rwReferral = req.cookies.get('rewardful_referral')?.value
-  const customAffiliateId = await resolveCustomAffiliateBeforeSubscription(req, user, profile)
   // PUSH #68: only one commission system may own a subscription. Permanent
   // custom first-touch attribution wins; otherwise Rewardful can receive the
   // Checkout reference. Store the choice on the Subscription for renewals.
@@ -2881,11 +2966,13 @@ async function buildAndRedirect(
       ...checkoutMetadata,
       intro_applied: discountApplied && intro,
       private_offer_applied: privatePackPromo && discountApplied,
-      public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied,
+      affiliate_discount_applied: affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,
+      affiliate_code: checkoutMetadata.affiliate_code ?? affiliateOffer?.code ?? null,
+      public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied || affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,
       // KINEO-CLARITY-WELCOME20-2026-10-12 — de onde veio o desconto: o link/cartão com ?promo=WELCOME20 ou o automático.
-      public_promo_source: autoWelcome20Applied
+      public_promo_source: affiliateDiscountApplied ? AFFILIATE_LINK_PROMO_SOURCE : autoWelcome20Applied
         ? WELCOME20_AUTO_SOURCE
-        : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : null,
+        : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : checkoutMetadata.public_promo_source ?? null,
       stripe_session_id: session.id,
       checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
       checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
@@ -2937,6 +3024,7 @@ async function buildGuestSubscriptionAndRedirect(
     checkoutMetadata: Record<string, unknown>
     checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
     /** KINEO-CUPOM-CONVIDADO-2026-10-07 — a oferta de boas-vindas liberada pela régua; null = compra sem cupom. */
+    affiliateOffer: AffiliateLinkOffer | null
     welcomePromo: { kind: PromisedPublicPromoKind; requestedCode: string; auto?: true } | null
   },
 ): Promise<
@@ -2952,7 +3040,12 @@ async function buildGuestSubscriptionAndRedirect(
   // KINEO-CLARITY-WELCOME20-2026-10-12 — o WELCOME20 automático (sem ?promo=): recusado pela Stripe, o convidado segue a
   // preço cheio (ninguém prometeu nada naquele clique); o pedido explícito continua voltando ao cadastro, como antes.
   let autoWelcomeFallback: PublicPromoFailureReason | null = null
-  if (ctx.welcomePromo?.auto === true) {
+  const partnerEligible = affiliateDiscountEligible({
+    tier: ctx.tier, isAnnual: ctx.isAnnual, affiliatePresent: ctx.affiliateOffer !== null,
+    discountApplied: false, intro: ctx.intro,
+    promoRequested: Boolean(ctx.welcomePromo && !ctx.welcomePromo.auto),
+  })
+  if (ctx.welcomePromo?.auto === true && !partnerEligible) {
     const auto = ctx.welcomePromo
     const autoResolution = guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })
       ? await resolvePromisedPublicPromo(
@@ -2972,7 +3065,7 @@ async function buildGuestSubscriptionAndRedirect(
         firstChargeMinor: autoResolution.firstChargeMinor,
       }
     }
-  } else if (ctx.welcomePromo) {
+  } else if (ctx.welcomePromo && !ctx.welcomePromo.auto) {
     const offer = ctx.welcomePromo
     if (!guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })) {
       return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', 'invalid_checkout_shape') } }
@@ -3053,6 +3146,35 @@ async function buildGuestSubscriptionAndRedirect(
     welcomePromo: welcome,
   })
 
+  // The hosted field cannot enforce monthly-only coupons; gate it before Stripe.
+  if (!subscriptionAcceptsManualPromotions(ctx.tier, ctx.isAnnual)) {
+    delete params.allow_promotion_codes
+    if (params.after_expiration?.recovery) params.after_expiration.recovery.allow_promotion_codes = false
+  }
+  let affiliateDiscountApplied = false
+  if (partnerEligible && !params.discounts?.length && ctx.affiliateOffer) {
+    const coupon = await ensureAffiliateBaseCoupon()
+    if (coupon) {
+      params.discounts = [{ coupon }]
+      delete params.allow_promotion_codes
+      if (params.after_expiration?.recovery) params.after_expiration.recovery.allow_promotion_codes = false
+      affiliateDiscountApplied = true
+      const partnerMetadata = {
+        public_promo_source: AFFILIATE_LINK_PROMO_SOURCE,
+        affiliate_discount_applied: 'true',
+        affiliate_code: ctx.affiliateOffer.code,
+      }
+      Object.assign(params.metadata!, partnerMetadata)
+      Object.assign(params.subscription_data!.metadata!, partnerMetadata)
+      params.custom_text!.submit = {
+        message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', ctx.affiliateOffer.partnerName)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${ctx.checkoutValueContext.submitMessage}`,
+      }
+      params.success_url = buildGuestCheckoutSuccessUrl({
+        appUrl: ctx.appUrl, tier: ctx.tier, currency: settlement.chargeCurrency,
+        amount: Math.round(settlement.chargeAmount * 0.5),
+      })
+    }
+  }
   const guestMetadata: Record<string, unknown> = {
     ...ctx.checkoutMetadata,
     settlement_currency: settlement.chargeCurrency,
@@ -3063,6 +3185,9 @@ async function buildGuestSubscriptionAndRedirect(
     guest_checkout_version: GUEST_CHECKOUT_VERSION,
     affiliate_system: affiliateSystem,
     affiliate_code_present: Boolean(affiliateCode),
+    affiliate_discount_applied: affiliateDiscountApplied,
+    affiliate_code: ctx.affiliateOffer?.code ?? null,
+    ...(affiliateDiscountApplied ? { public_promo_source: AFFILIATE_LINK_PROMO_SOURCE } : {}),
     // Com o desconto de boas-vindas, o funil diz o mesmo que o caminho logado diz depois de criar a sessão ('applied' +
     // o 1º mês). Sem ele, nenhuma chave muda.
     ...(welcome
@@ -3107,7 +3232,7 @@ async function buildGuestSubscriptionAndRedirect(
     ...guestMetadata,
     intro_applied: false,
     private_offer_applied: false,
-    public_promo_applied: welcome !== null,
+    public_promo_applied: welcome !== null || affiliateDiscountApplied,
     stripe_session_id: session.id,
     checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
     checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,

@@ -1,0 +1,109 @@
+{
+  "label": "TESTADO LOCALMENTE",
+  "task": "KINEO-AFILIADO-50-2610",
+  "generated_at_utc": "2026-10-26T21:54:26.200Z",
+  "source_sha": "b4de47939a5111aae002de56ce80d986efa6af66",
+  "expected": 1015,
+  "executed": 1015,
+  "green": 848,
+  "red": 167,
+  "files": [
+    {
+      "file": "avatar-history-metadata-final-proof.json",
+      "bytes": 5283,
+      "sha256": "29023b72f916813874a10213b9ee1aa9a3b7c8b21f574cfb4d20420f26fc1a2b"
+    },
+    {
+      "file": "compatibility.json",
+      "bytes": 34261,
+      "sha256": "6799a51a57c164975a20c835a6dfec3aa3c13121f1bd80dd4cc0dfa4fdd5e4b8"
+    },
+    {
+      "file": "final-selection.json",
+      "bytes": 2564,
+      "sha256": "8c1cd8ac05dab878fe38415fdee66996abe2bfcfad1a7a7c279c577aada31d05"
+    },
+    {
+      "file": "foreign-boundary-metadata-final-proof.json",
+      "bytes": 21208,
+      "sha256": "e857d5cfddbb965f3c3c378f001ad832b603f0070c157467b9d5c1dd0d362d53"
+    },
+    {
+      "file": "ingress-ast-identity-proof.json",
+      "bytes": 2993,
+      "sha256": "54c28a5594acbbfc96be17bbb342a87d696c8b41ee4840ebaea6a6677ab933f6"
+    },
+    {
+      "file": "inverse-proof-metadata-final.json",
+      "bytes": 29838,
+      "sha256": "01e957015474cef2794c36848d40a38b46bb2a071980f6c0682bda508f31c9b5"
+    },
+    {
+      "file": "metadata-final-summary.json",
+      "bytes": 2175,
+      "sha256": "0519049330e9cde73ed2c0601e0f5e28cd2ac58c140681f5fbc929b15dc2c8f8"
+    },
+    {
+      "file": "metadata-selection.json",
+      "bytes": 312,
+      "sha256": "d7816d0f77d7571563a03251b7a962b34a892478e70e04eff3056279bb06da2b"
+    },
+    {
+      "file": "mutants.json",
+      "bytes": 2685,
+      "sha256": "83ec45964551ab54132bdc51f327d2963508b12cd2784f6b77eb8380209e989f"
+    },
+    {
+      "file": "mutants.log",
+      "bytes": 282,
+      "sha256": "04c98455c6ef8df3d70a03b37cbada5a814221dbcee5c472f2132ffc9f8227e2"
+    },
+    {
+      "file": "offline-preload.cjs",
+      "bytes": 1734,
+      "sha256": "113403b24c50a3e9f877e6da294fb74decd38f62f84c03347be3a9b4106a75b6"
+    },
+    {
+      "file": "protected-files.json",
+      "bytes": 1108,
+      "sha256": "54b125c2aeb18e8d7b2a4640b9f5adb0ada292d6f9a8d43a026f09abab5db719"
+    },
+    {
+      "file": "raw-ingress-metadata-final-proof.json",
+      "bytes": 107008,
+      "sha256": "ce580d6000bef59a4d1ff2ee106bd0dfeded4dc138eaf87edeca23729c5c6eeb"
+    },
+    {
+      "file": "run-suite.mjs",
+      "bytes": 4848,
+      "sha256": "f27a6780ec30ebd9374f0f57c083efd99215783adaa9bb470b6c9229a1b3b75a"
+    },
+    {
+      "file": "selector-reader-metadata-final-ast-proof.json",
+      "bytes": 959,
+      "sha256": "01a0fbf1cbbae7070555a504cfe2423c9baa33b4a757741cb3ab04d398fb4495"
+    },
+    {
+      "file": "test-consumer-metadata-final-report.json",
+      "bytes": 77143,
+      "sha256": "b4275747536397e517e1ae22ae2afa2be0f8fa10d345c947e3cd3c8bdc826f4b"
+    },
+    {
+      "file": "test-consumer-metadata-final-selection.json",
+      "bytes": 2477,
+      "sha256": "ad0534da72ef8bf89573340558808b1cda8838d15a3e2e3320b83c3490198392"
+    },
+    {
+      "file": "test-matrix.json",
+      "bytes": 462848,
+      "sha256": "9830d811f3e1a40b2e0efcefbf4365452ce459419a1c3dc92f6c5353b4452418"
+    },
+    {
+      "file": "typescript.json",
+      "bytes": 774,
+      "sha256": "c128d731c6b27f8a5f0ac5ea4e3a36c28a32d8a135cbbdc7826a35d83ab805b2"
+    }
+  ],
+  "production_validation": false,
+  "packaging": "Text artifacts use LF; runner trailing blank lines removed. Git attributes preserve exact bytes. Evidence results are unchanged."
+}

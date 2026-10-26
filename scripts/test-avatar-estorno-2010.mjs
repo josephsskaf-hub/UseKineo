@@ -9,10 +9,12 @@ import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAvatarEstorno2010, AVATAR_ESTORNO_2010_BASE as BASE, REGRAS_AVATAR_ESTORNO_2010 as REGRAS } from './test-support/desfaz-avatar-estorno-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
-const rd = p => lf(fs.readFileSync(path.join(ROOT, p), 'utf8'))
+const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const rd = p => lf(affiliateRaw(p, fs.readFileSync(path.join(ROOT, p), 'utf8')))
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 26 })
 const BASE_INTEGRACAO = '1a9254123feccb20d8d72ab1d5a9ba4c44f3e035' // reancorado na integração 21/10: a camada foi mesclada sobre esta origin/main (bebê/verbatim/home/desenho nota 9/Ads nota 9/som do desenho/ajuste da folha vieram depois de 9d4d0ffc1 e ficam); refund.ts/reservation.ts/composeHold.ts são idênticos nas duas bases
 const base = p => lf(git('show', `${BASE_INTEGRACAO}:${p}`))

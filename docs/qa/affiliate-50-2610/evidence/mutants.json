@@ -1,0 +1,69 @@
+{
+  "label": "TESTADO LOCALMENTE",
+  "date": "2026-10-26",
+  "checks": 259,
+  "killed": [
+    "stack discount",
+    "annual",
+    "Business",
+    "no cookie or account attribution"
+  ],
+  "positive_control_after_restore": true,
+  "exact_buffer_restore": true,
+  "files": [
+    {
+      "file": "lib/affiliateDiscount.ts",
+      "candidate_sha256": "F837DDB9568B0EE58D71A62C86A55AE0BD364F09B7BAAC3C332389445693084B",
+      "restored_sha256": "F837DDB9568B0EE58D71A62C86A55AE0BD364F09B7BAAC3C332389445693084B",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateLinkOffer.ts",
+      "candidate_sha256": "E6B9CF266F2105DAF07BF71AF6C8300F30EC74076925F08D331946901D682F4B",
+      "restored_sha256": "E6B9CF266F2105DAF07BF71AF6C8300F30EC74076925F08D331946901D682F4B",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateCode.ts",
+      "candidate_sha256": "5DA9B13F21B47077C259385C3C0B27D1A06654F7EF0FAB2701E9E6EEB434B82D",
+      "restored_sha256": "5DA9B13F21B47077C259385C3C0B27D1A06654F7EF0FAB2701E9E6EEB434B82D",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateAttribution.ts",
+      "candidate_sha256": "0D2FA89C82009D72C84812AA617EE35A7F955C32726EB3BF49071BF7595A582D",
+      "restored_sha256": "0D2FA89C82009D72C84812AA617EE35A7F955C32726EB3BF49071BF7595A582D",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateLedger.ts",
+      "candidate_sha256": "89BD98812A6725B558EB0D84424EC9255FF9BE4878D72649D52308A6B5F2867C",
+      "restored_sha256": "89BD98812A6725B558EB0D84424EC9255FF9BE4878D72649D52308A6B5F2867C",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateCommission.ts",
+      "candidate_sha256": "7C0756ADDC55F0D3AD63939108BB542E6A7FA08444FC35DC4CEEF11930B98E88",
+      "restored_sha256": "7C0756ADDC55F0D3AD63939108BB542E6A7FA08444FC35DC4CEEF11930B98E88",
+      "identical": true
+    },
+    {
+      "file": "lib/checkoutPricing.ts",
+      "candidate_sha256": "358985E0797B2764EFBF499FE7B71CFC6456D17A259EBE1BE00BA01794160BDE",
+      "restored_sha256": "358985E0797B2764EFBF499FE7B71CFC6456D17A259EBE1BE00BA01794160BDE",
+      "identical": true
+    },
+    {
+      "file": "app/api/stripe/checkout/route.ts",
+      "candidate_sha256": "C4D51F7C39231B1F5C2D270ADEC570819B62E7BDE7D03C2007D41FE03C8D348A",
+      "restored_sha256": "C4D51F7C39231B1F5C2D270ADEC570819B62E7BDE7D03C2007D41FE03C8D348A",
+      "identical": true
+    },
+    {
+      "file": "app/api/stripe/webhook/route.ts",
+      "candidate_sha256": "B3EDC43FEAE5C8B59D3520AD9AC5D63F567C51CD6D42B4797E530025B30D2917",
+      "restored_sha256": "B3EDC43FEAE5C8B59D3520AD9AC5D63F567C51CD6D42B4797E530025B30D2917",
+      "identical": true
+    }
+  ]
+}

@@ -668,7 +668,7 @@ export default function AffiliatePage() {
   const link = buildAffiliateShareLink(data.link ?? '', selectedDestinationKey)
   const sharePitch = selectedDestination.sharePitch
   const couponLine = a.coupon_code
-    ? ` Use code ${a.coupon_code} for 20% off the first month.`
+    ? ` Use code ${a.coupon_code} for 50% off the first month of Creator or Studio monthly. Full monthly price from month two; cannot be combined with another discount.`
     : ''
   const readyCaption = `${sharePitch} ${link}${couponLine}`.trim()
   const spokenScript = `${selectedDestination.spokenPitch}${couponLine}`.trim()
@@ -1079,9 +1079,10 @@ export default function AffiliatePage() {
           <p className="text-xs mt-3 leading-relaxed" style={{ color: MUTED }}>
             Say it out loud in your video:{' '}
             <span style={{ color: TEXT, fontWeight: 800 }}>
-              &ldquo;use code {a.coupon_code} for 20% off&rdquo;
+              &ldquo;use code {a.coupon_code} for 50% off your first month&rdquo;
             </span>
-            . An eligible new customer types it at checkout and gets 20% off their first month. When
+            . An eligible new customer types it at checkout and gets 50% off their first month of Creator or Studio monthly.
+            The link applies it automatically too. The full monthly price applies from month two; discounts do not stack. When
             that customer is attributed through your code, eligible subscription payments are credited
             to you while they remain subscribed — no link in the video required.
           </p>

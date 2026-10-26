@@ -29,9 +29,11 @@ import {
   semDesenhoSom2110, desfazDesenhoSom2110, MARCA_DESENHO_SOM_2110 as MARCA, DESENHO_SOM_2110_BASE as BASE,
   DESENHO_SOM_2110_ARQUIVOS, DESENHO_SOM_2110_NOVOS, DESENHO_SOM_2110_REESCRITOS, TROCAS_DESENHO_SOM_2110,
 } from './test-support/desfaz-desenho-som-2110.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
+const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const rd = (f) => affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')).replace(/\r\n/g, '\n')
 const git = (...a) => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }) } catch { return '' } }
 const base = (f) => { const s = git('show', `${BASE}:${f}`); return s ? s.replace(/\r\n/g, '\n') : null }
 const ts = createRequire(path.join(ROOT, 'package.json'))('typescript')

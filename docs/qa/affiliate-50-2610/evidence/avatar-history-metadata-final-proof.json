@@ -1,0 +1,76 @@
+{
+  "checkpoint": "a3c4f6dfda556a5a7a103c403d5f9cd8c6f58f81",
+  "sourceCheckpoint": "0a51ca9c5542013142fbac91e03f6bab318c9fdd",
+  "sourceFile": "scripts/test-avatar-preso-2010.mjs",
+  "positiveAndNegativeCases": 17,
+  "metadataMutantsKilled": 5,
+  "originalExecutableASTPreserved": true,
+  "historicalD8RetainedAndGreen": true,
+  "excluded": [
+    {
+      "hash": "0a51ca9c5542013142fbac91e03f6bab318c9fdd",
+      "subject": "KINEO-AFILIADO-50-2610: keep later test compatibility outside historical delivery ownership [TRAVA 8.2 — vai do fundador 26/10 \"A\"]",
+      "paths": [
+        "scripts/test-avatar-preso-2010.mjs"
+      ]
+    },
+    {
+      "hash": "68b239b03a3f416a9aa17959f130e5661c76b02c",
+      "subject": "KINEO-AFILIADO-50-2610: keep later test compatibility outside historical delivery ownership [TRAVA 8.2 — vai do fundador 26/10 \"A\"]",
+      "paths": [
+        "scripts/test-avatar-preso-2010.mjs"
+      ]
+    },
+    {
+      "hash": "b775eefacd2ac265a9406b946fd517e1399e9cf6",
+      "subject": "test: project affiliate layer at ten historical source ingresses [TRAVA 8.2 — vai do fundador 26/10 A]",
+      "paths": [
+        "scripts/test-avatar-estorno-2010.mjs",
+        "scripts/test-avatar-preso-2010.mjs",
+        "scripts/test-bebe-que-fala-2010.mjs",
+        "scripts/test-desenho-nota9-2110.mjs",
+        "scripts/test-desenho-som-2110.mjs",
+        "scripts/test-home-3-cards-1910.mjs",
+        "scripts/test-home-cards-botoes-2010.mjs",
+        "scripts/test-home-cards-claros-2010.mjs",
+        "scripts/test-home-remodela-2010.mjs",
+        "scripts/test-menu-ugc-2010.mjs"
+      ]
+    }
+  ],
+  "retainedCommits": [
+    {
+      "hash": "9d4d0ffc1f71a34f9e4f56a05c55631908b925fc",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] reâncora do f1-virgula U4: a versão alheia pula também os commits do avatar preso (merges da fila e reâncoras), como já pula os da legenda na escrita"
+    },
+    {
+      "hash": "6034606736d4ab23437e401811299f99e429bdf8",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] reâncoras do conector Kineo Studio (E2 sem a camada do avatar no /api/compose; F3/F4 deixam de fora os arquivos e commits do avatar) e da folha de personagem (D7 deixa de fora os commits do avatar); desfaz do avatar com as 2 entradas novas"
+    },
+    {
+      "hash": "e6e6cb6e1d9e8326291328dbec5ee4691b530872",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] reâncoras depois do merge da fila: o desfaz da legenda na escrita tira as reâncoras do avatar (só scripts/) primeiro; o guardião dela mede D1/D6 sem a camada do avatar; f1f3-ajuste A2 e f1-virgula U0 comparam os dois lados sem o avatar (o merge da fila vira a versão alheia); desfaz do avatar com as 4 novas entradas (base 02c69b8c0)"
+    },
+    {
+      "hash": "495bb62edaa4f4a61ac027448a986599d9049094",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] cadeia geral só tira as reâncoras em scripts/ (semAvatarPreso2010NosGuardioes): o /api/compose segue intacto nela, como \"última versão alheia\" (test-filmes-f1f3-ajuste A2 e test-filmes-f1f3-publico D3 verdes); guardião ganha D5c"
+    },
+    {
+      "hash": "755ceef201d869b5cbcaa2d6550d0c5e6e64bebf",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] encadeamento na cabeça da cadeia geral: semMenuUgc2010 chama semAvatarPreso2010 primeiro (as reâncoras dos guardiões do 15 s saem antes de semMeta95Assunto1910 contar as linhas dele; test-meta95-assunto-1910 verde); guardião ganha D4b/D5b e o mutante M16"
+    },
+    {
+      "hash": "2054e7336e395b742cd79931bfccd98b1a3ce3c9",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] reâncoras: test-seedance-15s-3x6 e test-voz-15s-mesma-da-montagem toleram as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (linhasTrocadasAvatarPreso2010, exportada pelo desfaz); os dois guardiões entram no desfaz como camada desta entrega"
+    },
+    {
+      "hash": "2143ca18f981d373f26c41e093204735aab816d1",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] guardião scripts/test-avatar-preso-2010.mjs (caso real 70 × 18 executado: vermelho na base, verde hoje; compose grava o nascimento em 15/35/52/60/90 s; sem cobrança dupla; cron fase 3 reconhece; Ads Produção/Apresentador v2 byte a byte; desfaz/encadeamento/diff; 15 mutantes) + docs/AVATAR-PRESO-2026-10-20.md (afetados desde julho: 0 clientes, 1 render do fundador a reprocessar)"
+    },
+    {
+      "hash": "d90fd5a26527ac4d7732b7c4bdff11fe84904fdf",
+      "subject": "KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 \"vai pra tudo\"] montagem do /avatar presa para sempre: o compose grava o custo do NASCIMENTO (70/110) no claim de montagem e no intent do avatar pré-pago, e a conferência do status aceita o claim velho só com o número exato da régua para a duração do próprio claim; desfaz encadeado como camada mais nova do /api/compose (semMeta95Refazer1910 chama primeiro)"
+    }
+  ],
+  "productionValidated": false
+}

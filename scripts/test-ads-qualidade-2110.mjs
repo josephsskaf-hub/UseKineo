@@ -17,11 +17,12 @@ import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsQualidade2110, ADS_QUALIDADE_2110_ARQUIVOS, ADS_QUALIDADE_2110_NOVOS, ADS_QUALIDADE_2110_BASE, MARCA_ADS_QUALIDADE_2110 } from './test-support/desfaz-ads-qualidade-2110.mjs'
 import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas
+const rd = (p) => lf(semAdsCena2110(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const baseCache = new Map()
 const base = (p) => { if (!baseCache.has(p)) { let t = null; try { t = lf(git('show', `${ADS_QUALIDADE_2110_BASE}:${p}`)) } catch { t = null } baseCache.set(p, t) } return baseCache.get(p) }

@@ -24,6 +24,7 @@ import { semAvatarPreso2010, MARCA_AVATAR_PRESO_2010, AVATAR_PRESO_2010_ARQUIVOS
 import { MARCA_AVATAR_ESTORNO_2010, REGRAS_AVATAR_ESTORNO_2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — entrega posterior, com desfaz exato próprio
 import { MARCA_LEGENDA_BENGALI_2010, REGRAS_LEGENDA_BENGALI_2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — entrega posterior, com desfaz exato próprio
 import fs from 'node:fs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url' // KINEO-ADS-CENA-95-2110 — caminho real no Windows, sem percent-encoding no nome da pasta.
 import { execFileSync } from 'node:child_process'
@@ -50,8 +51,8 @@ import { KIDS_VENDA_2010_ARQUIVOS, MARCA_KIDS_VENDA_2010 } from './test-support/
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..') // KINEO-ADS-CENA-95-2110 — permite executar os checks F4 também em Área de Trabalho.
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
-const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+const raw = (rel) => { const source=fs.readFileSync(path.join(ROOT,rel),'utf8'), projected=semAfiliado50_2610(rel,source); return source.includes('\r\n')?projected.replace(/\n/g,'\r\n'):projected }
+const read = (rel) => lf(raw(rel))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const deliveryHead = git('log', '--format=%H', `--grep=^${MARCA_MCP_STUDIO_2010} `, '-1', 'HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical scope/subjects belong to this delivery; runtime and mutants still read current sources.
 if (!deliveryHead) throw new Error('Missing marked MCP Studio delivery commit') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22

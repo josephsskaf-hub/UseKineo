@@ -2,6 +2,7 @@
 // Reads the actual existing candidate files and adapter with readFileSync; git show supplies the immutable base.
 // No disk mutation, network, SDK, environment files, engineWall or homeVideoCuration are read.
 import fs from 'node:fs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { semCompraClareza2610 } from './test-support/desfaz-compra-clareza-2610.mjs' // COMPRA-CLAREZA-2610
 import { semAdminLeve2310 } from './test-support/desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove only the exact later admin delta before historical source integrity checks.
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
@@ -58,7 +59,8 @@ const SCOPE = {
   "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs": 2,
   "scripts/test-verbatim-intocavel-2010.mjs": 1
 }
-const read = (file) => semAdminLeve2310(semPaginasIaClaras2110(semCompraClareza2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file), file) // COMPRA-CLAREZA-2610 — exact presentation layer first; preserve every historical comparison and mutant.
+const affiliateRaw = file => { const source=fs.readFileSync(path.join(ROOT,file),'utf8'), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?projected.replace(/\n/g,'\r\n'):projected }
+const read = (file) => semAdminLeve2310(semPaginasIaClaras2110(semCompraClareza2610(affiliateRaw(file), file), file), file) // COMPRA-CLAREZA-2610 — exact presentation layer first; preserve every historical comparison and mutant.
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
 let passed = 0
 function assert(condition, message) { if (!condition) throw new Error(message); passed++ }

@@ -9,9 +9,12 @@ import { pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 const BASE='796333e9a07ee0c83bb414312a062b63f8fc32bb', MARK='KINEO-ADS-CENA-RETOMADA-2110'
 const F={route:'app/api/admin/ads-cena/route.ts',internal:'lib/ads/cena/internal.ts',internalAjuste:'lib/ads/cena/internalAjuste.ts',live:'lib/ads/cena/live.ts',plan:'lib/ads/cena/plan.ts',natural:'lib/ads/cena/ajustePlan.ts',preflight:'lib/ads/cena/ajustePreflight.ts',runtime:'lib/ads/cena/runtime.ts',pipeline:'lib/ads/cena/pipeline.ts',start:'lib/ads/v2StartCore.ts',early:'lib/ads/v2AudioCedo.ts',media:'lib/ads/cena/ajusteMedia.ts',montage:'lib/ads/cena/ajusteMontage.ts',legacyMontage:'lib/ads/cena/montage.ts'}
-const read=p=>semPaginasIaClaras2110(semAdsCenaRespaldo2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p),p) // KINEO-ADS-CENA-RESPALDO-2110 — restaura a camada mais nova primeiro, antes dos mutantes e da camada Pages.
+const read=p=>semPaginasIaClaras2110(semAdsCenaRespaldo2110(affiliateRaw(p, readFileSync(p,'utf8')).replace(/\r\n/g,'\n'),p),p) // KINEO-ADS-CENA-RESPALDO-2110 — restaura a camada mais nova primeiro, antes dos mutantes e da camada Pages.
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8',maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
 const deliveryHead=git('log','--format=%H%x09%s',BASE+'..HEAD').trim().split('\n').find(line=>{const subject=line.slice(line.indexOf('\t')+1);return (subject.startsWith(MARK+' ')||subject.startsWith(MARK+': '))&&subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')})?.split('\t')[0] // KINEO-ADS-CENA-RESPALDO-2110 — própria entrega Retomada, com fronteira e autorização exatas, antes de BUG3.
 assert.ok(deliveryHead,'commit final marcado e autorizado da RETOMADA existe') // KINEO-ADS-CENA-RESPALDO-2110

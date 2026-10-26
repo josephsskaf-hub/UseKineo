@@ -173,8 +173,12 @@ async function problems(S) {
     const begin = S.checkout.indexOf("const rwReferral = req.cookies.get('rewardful_referral')?.value")
     const end = S.checkout.indexOf('// KINEO-CHECKOUT-IDEMPOTENCY', begin)
     if (!(begin > 0 && end > begin)) return [...p, 'bloco de afiliado do checkout não encontrado']
+    const checkoutBlock = S.checkout.slice(begin, end)
+    const earlyOwner = checkoutBlock.includes('const customAffiliateId =') ? '' :
+      S.checkout.match(/^\s*const customAffiliateId = await resolveCustomAffiliateBeforeSubscription\(req, user, profile\)$/m)?.[0]
+    if (earlyOwner === undefined) return [...p, 'declaração real do dono do checkout não encontrada']
     checkout = compile(declaration(S.checkout, 'resolveCustomAffiliateBeforeSubscription') +
-      `\nexport async function run(req, user, profile) { const sessionParams = {metadata:{}, subscription_data:{metadata:{}}}; ${S.checkout.slice(begin, end)}; return sessionParams; }`, {}, attribution)
+      `\nexport async function run(req, user, profile) { const sessionParams = {metadata:{}, subscription_data:{metadata:{}}}; ${earlyOwner}\n${checkoutBlock}; return sessionParams; }`, {}, attribution)
     payment = compile(declaration(S.webhook, 'RetryableAffiliateLedgerError') + '\n' + declaration(S.webhook, 'recordAffiliateCommission') + '\nexport { recordAffiliateCommission };', {}, {
       ...ledger, ...compile(S.commission), resolveAffiliateByCoupon: async () => null,
     })

@@ -23,9 +23,10 @@ import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS } from './test-support/desf
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs'
 import { renderCardArrival } from './test-support/paginas-ia-claras-cards-harness.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 — efeito e cliques reais do componente compartilhado.
 import { semCardsGiro2410 } from './test-support/desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — preserve the exact historical media fixture and its origin mutants.
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const BASE = '1b991815ca62701c2c6e06a69aa2eba068e63d5f' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
-const rd = (p) => semCardsGiro2410(semAdsCenaRespaldo2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) // KINEO-CARDS-GIRO-2410 — historical assertions and mutants see the same pre-Giro sources.
+const rd = (p) => semCardsGiro2410(semAdsCenaRespaldo2110(semAfiliado50_2610(p, readFileSync(p, 'utf8')).replace(/\r\n/g, '\n'), p), p) // Later independent affiliate test compatibility exits before older exact undo layers.
 const base = (p) => execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let falhas = 0, oks = 0
 const ok = (cond, msg) => { if (cond) { oks++; console.log('  ok  ' + msg) } else { falhas++; console.log('  FALHA  ' + msg) } }

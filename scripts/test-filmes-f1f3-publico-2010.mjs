@@ -20,12 +20,15 @@ import { semHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
 import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o carregador offline resolve '@/' a partir do cwd
 const MARCA = 'KINEO-FILMES-F1F3-PUBLICO-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => lf(affiliateRaw(p, readFileSync(join(RAIZ, p), 'utf8')))
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let pass = 0
 let fail = 0
@@ -123,9 +126,9 @@ check("X2 a montagem do export limpo do cliente (sem marca d'água, sem cartão 
 // ═══ D. desfaz ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, nada no motor')
 const provaDesfaz = (sem = semFilmesF1F3Publico2010) =>
-  FILMES_F1F3_PUBLICO_2010_ARQUIVOS.length === 5 && FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(readFileSync(join(RAIZ, f), 'utf8'), f)) === b }) &&
+  FILMES_F1F3_PUBLICO_2010_ARQUIVOS.length === 5 && FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(affiliateRaw(f, readFileSync(join(RAIZ, f), 'utf8')), f)) === b }) &&
   FILMES_F1F3_PUBLICO_2010_NOVOS.length === 3 && FILMES_F1F3_PUBLICO_2010_NOVOS.every((f) => existsSync(join(RAIZ, f)) && statSync(join(RAIZ, f)).size > 0 && base(f) === null) && MARCA_FILMES_F1F3_PUBLICO_2010 === MARCA &&
-  eqJ(carregar(lf(sem(readFileSync(join(RAIZ, F15), 'utf8'), F15))).F.FACELESS15_PUBLIC, { f1: false, f2: false, f3: false, f4: false, cta: false })
+  eqJ(carregar(lf(sem(affiliateRaw(F15, readFileSync(join(RAIZ, F15), 'utf8')), F15))).F.FACELESS15_PUBLIC, { f1: false, f2: false, f3: false, f4: false, cta: false })
 check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs), é EXATAMENTE a base; desfeito, o interruptor volta a tudo false; os novos existem e não existiam', () => provaDesfaz())
 check('D2 toda linha nova traz a marca; o diff da base até o último commit da entrega só toca a lista, os novos e o doc; lib/compose, hookFirstFrame, lyriaMusic, as rotas do compose/unlock e a cobrança intocados', () => {
   const tocados = git('diff', '--name-only', BASE, TOPO).trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => f && !diffSoFilmesF1F3Publico2010(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))).filter(Boolean)
@@ -136,7 +139,7 @@ check('D2 toda linha nova traz a marca; o diff da base até o último commit da 
 })
 check('D3 encadeamento: semHomeCardsBotoes2010 (e, por ela, semApresentadorOlhos1910 e semHome3Cards1910) tira esta camada PRIMEIRO; sem a marca, fora da lista e null passam igual', () => {
   return FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => {
-    const raw = readFileSync(join(RAIZ, f), 'utf8'), semEste = semFilmesF1F3Publico2010(raw, f)
+    const raw = affiliateRaw(f, readFileSync(join(RAIZ, f), 'utf8')), semEste = semFilmesF1F3Publico2010(raw, f)
     return semHomeCardsBotoes2010(raw, f) === semHomeCardsBotoes2010(semEste, f) && semApresentadorOlhos1910(raw, f) === semApresentadorOlhos1910(semEste, f) && semHome3Cards1910(raw, f) === semHome3Cards1910(semEste, f)
   }) && /export function semHomeCardsBotoes2010\(texto, p\) \{\n  texto = semFilmesF1F3Publico2010\(texto, p\)/.test(rd('scripts/test-support/desfaz-home-cards-botoes-2010.mjs')) &&
     semFilmesF1F3Publico2010(rd(ROTA), ROTA) === semMeta95Escrita2010(rd(ROTA), ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null && // KINEO-META95-ESCRITA-2010 — reancorado: a rota ganhou a legenda na escrita do roteiro (camada mais nova, que a cadeia tira); esta camada segue sem tocá-la
