@@ -32,12 +32,14 @@ import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories e o bebê-podcast (20/10) entraram depois: o generate-avatar ganhou a regra infantil do retrato do bebê e 5 arquivos desta lista ganharam reâncoras; saem em memória
 import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10) é a camada mais nova: a cabeça da cadeia ganhou 1 linha dela; D1/D3/D4b leem o arquivo SEM ela
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
 const MARCA = 'KINEO-AVATAR-PRESO-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => semAvatarEstorno2010(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // KINEO-AVATAR-ESTORNO-2010
+const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const rd = (rel) => semAvatarEstorno2010(lf(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))), rel) // KINEO-AVATAR-ESTORNO-2010
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${AVATAR_PRESO_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -277,10 +279,10 @@ console.log('\nD. desfaz, encadeamento e diff')
   const MU = semHomeRemodela2010(semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(/export function semMenuUgc2010\(texto, p\) \{\n(?:  texto = semBebeQueFala2010\(texto, p\)[^\n]*\n)?  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)') // reancorado KINEO-BEBE-QUE-FALA-2010
   const guardioes = ['scripts/test-seedance-15s-3x6-2026-09-29.mjs', 'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs']
-  ok(guardioes.every((g) => { try { return !semMenuUgc2010(fs.readFileSync(path.join(ROOT, g), 'utf8'), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
+  ok(guardioes.every((g) => { try { return !semMenuUgc2010(affiliateRaw(g, fs.readFileSync(path.join(ROOT, g), 'utf8')), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
   const minhas = (t) => lf(t).split('\n').filter((l) => l.includes(MARCA)).join('\n')
-  ok([F.compose, F.reserva].every((f) => { const t = fs.readFileSync(path.join(ROOT, f), 'utf8'); return minhas(t).length > 0 && minhas(semMenuUgc2010(t, f)) === minhas(t) }), 'D5c a cadeia geral NÃO tira as linhas desta camada do /api/compose nem da reservation.ts (os guardiões que leem "a última versão alheia" seguem verdes)')
-  const viaCadeia = semMeta95Refazer1910(fs.readFileSync(path.join(ROOT, F.compose), 'utf8'), F.compose)
+  ok([F.compose, F.reserva].every((f) => { const t = affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')); return minhas(t).length > 0 && minhas(semMenuUgc2010(t, f)) === minhas(t) }), 'D5c a cadeia geral NÃO tira as linhas desta camada do /api/compose nem da reservation.ts (os guardiões que leem "a última versão alheia" seguem verdes)')
+  const viaCadeia = semMeta95Refazer1910(affiliateRaw(F.compose, fs.readFileSync(path.join(ROOT, F.compose), 'utf8')), F.compose)
   ok(!viaCadeia.includes(MARCA) && !viaCadeia.includes('KINEO-META95-REFAZER-1910'), 'D5 a cadeia do /api/compose tira esta camada e a de antes (nenhuma marca sobra)')
   ok(!MARCA_AVATAR_PRESO_2010.includes('KINEO-META95') && !'KINEO-META95-REFAZER-1910'.includes(MARCA), 'D6 a marca não contém a de nenhuma camada de antes')
   // diff: o que os commits DESTA entrega tocam + o que ainda não foi commitado
