@@ -12,7 +12,7 @@ const flat = source => source.replace(/\r\n/g, '\n')
 const sha = source => crypto.createHash('sha256').update(source).digest('hex')
 let assertions = 0, mutants = 0
 function check(run) { run(); assertions++ }
-assert.deepEqual(Object.keys(COMPRA_CLAREZA_HUNKS).sort(), ['.github/workflows/guardiao.yml', 'app/(dashboard)/generate/GenerateClient.tsx', 'app/(dashboard)/studio/StudioClient.tsx', 'scripts/test-support/desfaz-roteiro-curto-2210.mjs'].sort())
+assert.deepEqual(Object.keys(COMPRA_CLAREZA_HUNKS).sort(), ['.github/workflows/guardiao.yml', 'app/(dashboard)/generate/GenerateClient.tsx', 'app/(dashboard)/studio/StudioClient.tsx', 'scripts/test-support/desfaz-roteiro-curto-2210.mjs', 'scripts/test-support/desfaz-trending-inventario-2510.mjs', 'scripts/test-roteiro-curto-undo-2210.mjs'].sort())
 for (const [file, hunks] of Object.entries(COMPRA_CLAREZA_HUNKS)) {
   const candidate = flat(fs.readFileSync(path.join(ROOT, file), 'utf8'))
   const base = flat(execFileSync('git', ['show', `${COMPRA_CLAREZA_MANIFEST.base}:${file}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }))
