@@ -32,7 +32,7 @@ import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories e o bebê-podcast (20/10) entraram depois: o generate-avatar ganhou a regra infantil do retrato do bebê e 5 arquivos desta lista ganharam reâncoras; saem em memória
 import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10) é a camada mais nova: a cabeça da cadeia ganhou 1 linha dela; D1/D3/D4b leem o arquivo SEM ela
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+import { semAfiliado50_2610, AFILIADO50_2610_BASE } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
@@ -42,6 +42,27 @@ const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(fi
 const rd = (rel) => semAvatarEstorno2010(lf(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))), rel) // KINEO-AVATAR-ESTORNO-2010
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${AVATAR_PRESO_2010_BASE}:${rel}`)) } catch { return null } }
+// KINEO-AFILIADO-50-2610: these later test-only commits are not the Avatar delivery.
+const affiliateIngressSubject = 'test: project affiliate layer at ten historical source ingresses [TRAVA 8.2 — vai do fundador 26/10 A]'
+const affiliateHistorySubject = 'KINEO-AFILIADO-50-2610: keep later test compatibility outside historical delivery ownership [TRAVA 8.2 — vai do fundador 26/10 "A"]'
+const affiliateIngressPaths = [
+  'scripts/test-avatar-estorno-2010.mjs', 'scripts/test-avatar-preso-2010.mjs',
+  'scripts/test-bebe-que-fala-2010.mjs', 'scripts/test-desenho-nota9-2110.mjs',
+  'scripts/test-desenho-som-2110.mjs', 'scripts/test-home-3-cards-1910.mjs',
+  'scripts/test-home-cards-botoes-2010.mjs', 'scripts/test-home-cards-claros-2010.mjs',
+  'scripts/test-home-remodela-2010.mjs', 'scripts/test-menu-ugc-2010.mjs',
+]
+function isLaterAffiliateCompatibility(subject, paths, laterSingleParent) {
+  if (!laterSingleParent || paths.length === 0 || new Set(paths).size !== paths.length) return false
+  if (subject === affiliateIngressSubject) {
+    return paths.length === affiliateIngressPaths.length && paths.every(p => affiliateIngressPaths.includes(p))
+  }
+  if (subject === affiliateHistorySubject) {
+    return paths.includes('scripts/test-avatar-preso-2010.mjs') && paths.every(p =>
+      p === 'scripts/test-avatar-preso-2010.mjs' || p === 'scripts/test-support/desfaz-afiliado50-2610.mjs')
+  }
+  return false
+}
 let pass = 0
 let fail = 0
 function ok(cond, msg) { if (cond) { pass++; console.log('  ok  ', msg) } else { fail++; console.log('  FALHA', msg) } }
@@ -300,6 +321,15 @@ console.log('\nD. desfaz, encadeamento e diff')
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector (reâncoras no guardião desta entrega) levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-HOME-REMODELA-2010'))) // KINEO-HOME-REMODELA-2010 — os commits da home remodelada (reâncoras neste guardião) levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.startsWith('KINEO-AVATAR-ESTORNO-2010 '))) // KINEO-AVATAR-ESTORNO-2010 — a camada posterior tem marca/prova próprias; não é um commit da entrega antiga
+  meus.splice(0, meus.length, ...meus.filter(([h, s]) => {
+    if (s !== affiliateIngressSubject && s !== affiliateHistorySubject) return true
+    try {
+      const paths = git('diff-tree', '--no-commit-id', '--name-only', '--no-renames', '-r', h).trim().split('\n').filter(Boolean)
+      const laterSingleParent = git('merge-base', AFILIADO50_2610_BASE, h).trim() === AFILIADO50_2610_BASE
+        && git('rev-list', '--parents', '-n', '1', h).trim().split(/\s+/).length === 2
+      return !isLaterAffiliateCompatibility(s, paths, laterSingleParent)
+    } catch { return true }
+  }))
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 
