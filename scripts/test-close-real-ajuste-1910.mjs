@@ -25,13 +25,14 @@ import { semCloseRealAjuste1910, CLOSE_REAL_AJUSTE_1910_ARQUIVOS, CLOSE_REAL_AJU
 import { semFilmesF1F3Ajuste1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs' // KINEO-FILMES-F1F3-AJUSTE-1910 — reancorado: a camada mais nova sai primeiro
 import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 sai antes (este guardião prova o ajuste)
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova (Faceless 15 s no export limpo) sai primeiro
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-AJUSTE-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
 import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
-const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (a mais nova) sai primeiro, depois a rodada 3 do Close real e o ajuste F1/F3, em memória
+const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')), p), p), p), p)) // Later independent affiliate test compatibility exits before older exact undo layers.
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_AJUSTE_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
