@@ -80,6 +80,10 @@ jobs:
         run: | # KINEO-FILME15-PERFEITO-2610: no env, network or paid renders.
           node scripts/test-filme15-perfeito-2610.mjs
           node scripts/test-filme15-gate-integration-2610.mjs
+          node scripts/test-filme15-portao-fonte-2610.mjs
+          node scripts/test-filme15-rosto-duracao-2610.mjs
+          node scripts/test-filme15-legenda-inteira-2610.mjs
+          node scripts/test-filme15-legenda-canonica-2610.mjs
           node scripts/test-filme15-perfeito-undo-2610.mjs
       - name: Compra — capacidade real, ideia própria e revisão sem gerar
         run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
