@@ -62,7 +62,7 @@ import {
 //                       PARTNER_PACK_LIVE = false — a copy segue o interruptor
 //   Seedance 2.5 e Studio Ads para parceiro ativo → lib/partnerAccess.ts (cortesia ativa + afiliado ativo)
 //   +créditos pelo 1º post público → app/api/affiliate/partner-post/route.ts + revisão no /admin/partners
-//   cupom falado de 20% → AFFILIATE_COUPON_PERCENT em app/api/affiliate/me/route.ts
+//   cupom falado de 50% no 1º mês Creator/Studio mensal → KINEO-AFILIADO-50-2610
 //   sem piso de seguidores → app/api/affiliate/apply/route.ts não pede nada além da conta
 // O que a Higgsfield promete e a Kineo NÃO executa (crédito mensal automático, vitrine dos melhores posts, acesso
 // antecipado, prazo de resposta) ficou FORA — decisão do fundador. Guardião: scripts/test-partners-criadores-1610.mjs.
@@ -159,7 +159,7 @@ export default function PartnersPage() {
     // programa e precisa estar dita em publico, com a mecanica REAL: nao tem
     // janela de 90 dias nem first-touch por clique — a atribuicao acontece no
     // momento do pagamento, quando o codigo e digitado.
-    { q: 'What if I promote on TikTok, Reels or Shorts, where links do not work?', a: 'Every affiliate also gets a coupon code, shown next to your link in the affiliate dashboard. Say it out loud in the video — "use code KINEOXXXX" — and your viewer types it at checkout. They get 20% off their first month, you get credited, and no link or bio click is needed. Once someone redeems your code, their renewals keep counting for you for as long as they stay subscribed.' },
+    { q: 'What if I promote on TikTok, Reels or Shorts, where links do not work?', a: 'Every affiliate also gets a coupon code, shown next to your link in the affiliate dashboard. Say it out loud in the video — "use code KINEOXXXX" — and your viewer types it at checkout. They get 50% off the first month of Creator or Studio monthly, you get credited, and no link or bio click is needed. Your link applies this discount automatically too. Full monthly price from month two; cannot be combined with another discount. Once someone redeems your code, their renewals keep counting for you for as long as they stay subscribed.' },
     { q: 'Which wins if someone clicks a link and also types a coupon?', a: 'The link. We honour first touch: whoever the visitor reached first owns the referral, and a coupon typed later does not move it. The customer still gets the discount.' },
     // KINEO-AFILIADO-TERMOS-2026-09-09 — os termos saem da fonte única, nunca digitados aqui.
     // KINEO-AFILIADOS-40-2026-10-06 — a resposta terminava com "Add your PayPal e-mail in the affiliate dashboard so the payout
@@ -290,13 +290,8 @@ export default function PartnersPage() {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>{/* ⚠️ KINEO-CONTRADICAO-PARTNERS-2026-08-21 — esta frase dizia "there is no
-    discounted first month to erode the first commission", e a MESMA PÁGINA
-    promete ao afiliado que quem digita o código dele "gets 20% off their first
-    month". A segunda é a que corresponde ao código (KINEO_AFFILIATE_20 =
-    percent_off 20, duration 'once', em app/api/affiliate/me/route.ts).
-    Agora a frase diz a mecânica real, com o número derivado. */}
-Example only, not a promise. Illustration based on {AFFILIATE_COMMISSION_PCT} of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Plan prices are charged in USD worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
+Example only, not a promise. Illustration based on {AFFILIATE_COMMISSION_PCT} of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Commission always uses the amount actually paid. With your link or coupon, the first month of Creator or Studio monthly is 50% smaller — so is that first commission. Full monthly price applies from month two.</p>
         </section>
 
         <section style={{ marginTop: 44 }}>

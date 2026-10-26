@@ -52,7 +52,7 @@ export function buildAffiliateFirstClickOffer(
   if (!destination || !link) return null
 
   const couponLine = payload.affiliate.coupon_code
-    ? ` Use code ${payload.affiliate.coupon_code} for 20% off the first month.`
+    ? ` Use code ${payload.affiliate.coupon_code} for 50% off the first month of Creator or Studio monthly. Full monthly price from month two; cannot be combined with another discount.`
     : ''
 
   return {
