@@ -58,8 +58,7 @@ function isLaterAffiliateCompatibility(subject, paths, laterSingleParent) {
     return paths.length === affiliateIngressPaths.length && paths.every(p => affiliateIngressPaths.includes(p))
   }
   if (subject === affiliateHistorySubject) {
-    return paths.includes('scripts/test-avatar-preso-2010.mjs') && paths.every(p =>
-      p === 'scripts/test-avatar-preso-2010.mjs' || p === 'scripts/test-support/desfaz-afiliado50-2610.mjs')
+    return paths.length === 1 && paths[0] === 'scripts/test-avatar-preso-2010.mjs'
   }
   return false
 }
