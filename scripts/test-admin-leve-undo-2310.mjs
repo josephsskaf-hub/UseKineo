@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { semAdsCenaTexto2310 } from './test-support/desfaz-ads-cena-texto-2310.mjs' // KINEO-ADS-CENA-TEXTO-2310
 import { semAdminLeve2310, ADMIN_LEVE_2310_BASE, ADMIN_LEVE_2310_HUNKS, ADMIN_LEVE_2310_NEW_PRODUCT_FILES } from './test-support/desfaz-admin-leve-2310.mjs'
+import { semVitrine2610 } from './test-support/desfaz-vitrine-filmes-2610.mjs' // KINEO-VITRINE-FILMES-2610 — project the exact later adapter layer before the unchanged Admin source and tamper proofs.
 
 const ROOT = path.resolve(process.argv.find((a) => a.startsWith('--root='))?.slice(7) || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))
 const MARK = 'KINEO-ADMIN-LEVE-2310'
-const read = (file) => semAdsCenaTexto2310(fs.readFileSync(path.join(ROOT, file), 'utf8'), file) // KINEO-ADS-CENA-TEXTO-2310 — historical mutantes still receive every original Admin hunk.
+const read = (file) => semAdsCenaTexto2310(semVitrine2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file) // KINEO-ADS-CENA-TEXTO-2310 — historical mutantes still receive every original Admin hunk.
 const lf = (s) => s.replace(/\r\n/g, '\n')
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
 let passed = 0

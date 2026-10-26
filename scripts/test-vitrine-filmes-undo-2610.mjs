@@ -44,7 +44,7 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
   }
 }
 check(manifest.testScopeBase === VITRINE_2610_BASE, 'historical-script preimages use the same immutable main base')
-check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
+check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
 for (const [file, entry] of Object.entries(manifest.testScope)) {
   const current = lf(fs.readFileSync(file, 'utf8')), base = lf(git('show', `${manifest.testScopeBase}:${file}`))
   check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
