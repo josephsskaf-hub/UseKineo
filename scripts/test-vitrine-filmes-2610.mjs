@@ -221,6 +221,28 @@ r = route()
 response = await r.mod.POST(request())
 check(response.status === 200 && r.mutations.length === 0, 'repeat opt in is idempotent')
 
+// A legacy signed link consents to a watch page, not the showcase. Its src is
+// caller-controlled and must never impersonate the reserved showcase marker.
+for (const source of [pure.SHOWCASE_CONSENT_SOURCE, 'email_delivery', 'done_screen']) {
+  const db = database({ rows: [fixture({ published_at: null, published_via: null })] })
+  class LegacyReply extends Reply {
+    static redirect(url, options) { return new Response(null, { status: options.status, headers: { ...options.headers, Location: url } }) }
+  }
+  const legacy = load('app/api/video/publish/route.ts', {
+    'next/server': { NextResponse: LegacyReply },
+    '@supabase/supabase-js': { createClient: () => db.client() },
+    '@/lib/serverEvents': { writeServerEvent: async () => {} },
+    '@/lib/videoShareLink': { mintShareConfirmation: () => 'fixture-confirmation', verifyShareConfirmation: () => true, verifyShareToken: () => true },
+  })
+  const legacyResponse = await legacy.POST(new Request(ORIGIN + '/api/video/publish', {
+    method: 'POST', headers: { origin: ORIGIN },
+    body: new URLSearchParams({ v: ID, action: 'publish', confirmation: 'fixture-confirmation', src: source }),
+  }))
+  check(legacyResponse.status === 303 && db.mutations.length === 1, 'legacy explicit page sharing continues to work')
+  check(db.mutations[0].payload.published_via === (source === pure.SHOWCASE_CONSENT_SOURCE ? 'email_delivery' : source), 'signed link cannot forge reserved showcase provenance through src')
+  check(pure.toShowcaseFilm(fixture(db.mutations[0].payload), 'outside@example.invalid') === null, 'legacy page consent never enters the showcase')
+}
+
 // Exercise the existing /v privacy lookup as well as the new projection.
 // A private film must stay missing even if the caller knows its UUID.
 for (const publishedAt of [null, '']) {
@@ -443,7 +465,7 @@ if (process.argv.includes('--mutants')) {
   const files = [
     'lib/madeWithKineo.ts', 'lib/madeWithKineoServer.ts', 'lib/madeWithKineoCopy.ts', 'lib/engineLabel.ts',
     'lib/internalAccounts.ts', 'lib/publicVideos.ts', 'lib/indexnow.ts', 'components/MadeWithKineo.tsx',
-    'components/ShowcaseConsent.tsx', 'app/api/video/showcase/route.ts',
+    'components/ShowcaseConsent.tsx', 'app/api/video/showcase/route.ts', 'app/api/video/publish/route.ts',
     'app/(dashboard)/generate/GenerateClient.tsx', 'app/v/[id]/opengraph-image.tsx',
     'app/made-with-kineo/sitemap.xml/route.ts', 'app/robots.ts', 'app/api/cron/submit-indexnow/route.ts',
     'scripts/submit-indexnow.mjs',
@@ -468,6 +490,7 @@ if (process.argv.includes('--mutants')) {
     ['revoked-v-page-cached', 'lib/publicVideos.ts', "cache: 'no-store'", "cache: 'force-cache'"],
     ['revoked-preview-cached', 'app/v/[id]/opengraph-image.tsx', "fetchCache = 'force-no-store'", "fetchCache = 'force-cache'"],
     ['preview-email-leak', 'app/v/[id]/opengraph-image.tsx', "raw.replace(/\\b[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+\\b/g, '[redacted]')", 'raw'],
+    ['legacy-source-forges-showcase-consent', 'app/api/video/publish/route.ts', ".replace(/^vitrine_filmes_2610$/, 'email_delivery')", ''],
   ]
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'kineo-vitrine-mutants-'))
   try {

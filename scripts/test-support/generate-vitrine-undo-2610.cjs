@@ -11,7 +11,8 @@ const git = (...args) => execFileSync('git', args, { encoding: 'utf8', windowsHi
 const hash = text => createHash('sha256').update(text).digest('hex')
 const lf = text => text.replace(/\r\n/g, '\n')
 // Keep the reviewed product scope: later evidence/test commits are not product.
-const status = git('diff', '--name-status', BASE, PRODUCT, '--', ...Object.keys(previous.scope)).trim().split('\n').map(line => line.split('\t'))
+const scopePaths = [...new Set([...Object.keys(previous.scope), ...process.argv.slice(3)])]
+const status = git('diff', '--name-status', BASE, PRODUCT, '--', ...scopePaths).trim().split('\n').map(line => line.split('\t'))
 const scope = {}
 for (const [kind, file] of status) {
   const after = lf(git('show', `${PRODUCT}:${file}`))

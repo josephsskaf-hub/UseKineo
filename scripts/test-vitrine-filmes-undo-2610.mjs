@@ -13,7 +13,7 @@ let checks = 0
 const check = (value, label) => { assert.ok(value, label); checks++ }
 const rejects = (callback, pattern, label) => { assert.throws(callback, pattern, label); checks++ }
 const manifest = VITRINE_2610_MANIFEST
-check(Object.keys(manifest.scope).length === 24, 'complete task scope is frozen as 24 product files')
+check(Object.keys(manifest.scope).length === 25, 'complete task scope is frozen as 25 product files')
 check(VITRINE_2610_BASE === '62213b008292f110117d1abbe20c157efdb55902', 'base is immutable latest main used at task start')
 for (const [file, entry] of Object.entries(manifest.scope)) {
   const actual = fs.readFileSync(file, 'utf8'), current = lf(actual)

@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
     const videoId = String(form.get('v') ?? ''), action = String(form.get('action') ?? '')
     const confirmation = String(form.get('confirmation') ?? '')
     if (!UUID.test(videoId) || (action !== 'publish' && action !== 'unpublish') || !verifyShareConfirmation(videoId, action, confirmation)) return back('invalid')
-    const source = String(form.get('src') ?? 'unknown').slice(0,40)
+    // KINEO-VITRINE-FILMES-2610 — src is not bound to this signed page-share
+    // confirmation. Only the authenticated showcase action may grant showcase consent.
+    const source = String(form.get('src') ?? 'unknown').slice(0,40).replace(/^vitrine_filmes_2610$/, 'email_delivery')
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !key) return unavailable()
     const admin = createAdminClient(url, key, {auth:{persistSession:false}})
