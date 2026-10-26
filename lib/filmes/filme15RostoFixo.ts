@@ -14,8 +14,8 @@
 // roteiro com personagem): esta peça só responde "o pedido existe?".
 import { SEEDANCE_SHORT_SECONDS, isSeedance15 } from '@/lib/durationByEngine'
 
-/** Fase 2: true = todo filme grátis de 15 s ganha a folha de personagem. Hoje false (só contas internas, teste do fundador). */
-export const FILME15_ROSTO_FIXO_PUBLIC = false
+/** Fase 2 LIGADA (fundador 26/10, depois do teste do faroleiro: "ficou bom, pode ligar para todos"): todo filme grátis de 15 s ganha a folha de personagem. */
+export const FILME15_ROSTO_FIXO_PUBLIC = true // KINEO-FILME15-ROSTO-2610 · fase 2
 
 /** O pedido é o filme grátis de 15 s (Seedance 1.5)? */
 export function ehFilme15(duration: unknown, engine: unknown): boolean {
