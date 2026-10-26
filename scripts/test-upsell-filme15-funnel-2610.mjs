@@ -103,6 +103,10 @@ function checks(build = buildFilm15UpsellReport) {
   assert.equal(out.before.clickedPeople, 1)
   assert.equal(out.before.paidWithin48hPeople, 1)
   assert.equal(out.repeatPeopleAcrossPeriods, 1)
+  const partial = r([...old, ...j], { generatedAt: iso(deployment + 3 * day) })
+  assert.equal(partial.after.watchedPeople, 1, 'partial mature people remain visible')
+  assert.equal(partial.comparisonMature, false)
+  assert.equal(partial.paidRateChangePercentagePoints, null, 'do not compare a complete baseline with a partial after period')
   assert.equal(Date.parse(out.before.watchWindow.endExclusive) + FILM15_PAYMENT_WINDOW_MS, deployment)
   assert.equal(Date.parse(out.before.watchWindow.endExclusive) - Date.parse(out.before.watchWindow.start), 7 * day)
   assert.equal(r(old.filter(e => e.name !== 'result_video_value_sampled')).before.watchedPeople, 0, 'no fabricated historical watch')
@@ -125,6 +129,7 @@ const mutants = [
   ['payment from another session', '|| session(event) !== session(checkout)', '|| false'],
   ['zero as revenue', 'Number.isSafeInteger(amount) && amount > 0', 'Number.isSafeInteger(amount) && amount >= 0'],
   ['historical impression as watch', "if (event.name !== 'result_video_value_sampled'", "if (event.name !== 'film_ready_60s_upsell_shown'"],
+  ['compares partial after period', 'paidRateChangePercentagePoints: comparisonMature &&', 'paidRateChangePercentagePoints:'],
 ]
 for (const [label, before, after] of mutants) {
   assert.equal(source.split(before).length, 2, `unique mutation anchor: ${label}`)

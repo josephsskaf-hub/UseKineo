@@ -180,6 +180,7 @@ export function buildFilm15UpsellReport({ events, profiles, deployedAt, generate
     end: deployment - FILM15_PAYMENT_WINDOW_MS, outcomeEnd: deployment, byPerson })
   const afterEnd = deployment + windowMs
   const after = cohort({ name: 'after', start: deployment, end: afterEnd, outcomeEnd: now, byPerson })
+  const comparisonMature = now >= afterEnd + FILM15_PAYMENT_WINDOW_MS
   const beforePeople = new Set(before.people.map(person => person.userId))
   return {
     version: FILM15_REPORT_VERSION, generatedAt: new Date(now).toISOString(), deployedAt: new Date(deployment).toISOString(),
@@ -187,9 +188,9 @@ export function buildFilm15UpsellReport({ events, profiles, deployedAt, generate
     unit: 'authenticated_external_person', internalAccountsExcluded: true,
     windowDays, paymentWindowHours: FILM15_PAYMENT_WINDOW_MS / 3_600_000,
     before, after,
-    comparisonMature: now >= afterEnd + FILM15_PAYMENT_WINDOW_MS,
+    comparisonMature,
     repeatPeopleAcrossPeriods: after.people.filter(person => beforePeople.has(person.userId)).length,
-    paidRateChangePercentagePoints: before.watchedToPaid48hPercent !== null && after.watchedToPaid48hPercent !== null
+    paidRateChangePercentagePoints: comparisonMature && before.watchedToPaid48hPercent !== null && after.watchedToPaid48hPercent !== null
       ? Math.round((after.watchedToPaid48hPercent - before.watchedToPaid48hPercent) * 100) / 100 : null,
     exclusions: { internalPeople: excludedInternal.size, unknownIdentityPeople: unidentifiable.size,
       anonymousEvents: excludedAnonymousEvents, botOrDryRunEvents: excludedBotOrDryRunEvents },
