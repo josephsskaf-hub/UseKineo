@@ -1,0 +1,27 @@
+{
+  "label": "baseline-env-final",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/baseline",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "started": "2026-10-26T19:06:15.376Z",
+  "finished": "2026-10-26T19:06:16.570Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 0,
+  "fail": 1,
+  "results": [
+    {
+      "file": "scripts/test-manrope-system.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 1185,
+      "log": "scripts__test-manrope-system.mjs.log.gz",
+      "failures": [
+        "AssertionError [ERR_ASSERTION]: app/(auth)/forgot-password/page.tsx: only font-family changes; all behavior/copy unchanged"
+      ]
+    }
+  ]
+}

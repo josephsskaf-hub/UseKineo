@@ -1,0 +1,59 @@
+{
+  "label": "baseline-rechecks",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/baseline",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "started": "2026-10-26T18:49:30.355Z",
+  "finished": "2026-10-26T18:51:03.367Z",
+  "total": 4,
+  "parallel": 4,
+  "serial": 0,
+  "done": 4,
+  "pass": 2,
+  "fail": 2,
+  "results": [
+    {
+      "file": "scripts/test-ads-cena-segue-2110.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 90012,
+      "log": "scripts__test-ads-cena-segue-2110.mjs.log.gz",
+      "failures": [
+        "Error: Script execution timed out after 5000ms"
+      ]
+    },
+    {
+      "file": "scripts/test-ads-cena-texto-2310.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 92993,
+      "log": "scripts__test-ads-cena-texto-2310.mjs.log.gz",
+      "failures": [
+        "Error: Script execution timed out after 5000ms"
+      ]
+    },
+    {
+      "file": "scripts/test-erros-vercel-2026-09-03.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 228,
+      "log": "scripts__test-erros-vercel-2026-09-03.mjs.log.gz",
+      "failures": []
+    },
+    {
+      "file": "scripts/test-fila-proximo-episodio-2026-08-31.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 2126,
+      "log": "scripts__test-fila-proximo-episodio-2026-08-31.mjs.log.gz",
+      "failures": []
+    }
+  ]
+}

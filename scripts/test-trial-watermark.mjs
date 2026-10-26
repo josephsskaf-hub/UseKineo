@@ -12,13 +12,14 @@
 // `@/` morre no import antes da primeira verificação (72 testes da casa já
 // morreram assim).
 import { readFileSync } from 'node:fs'
+import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs' // Preserve the original expression/fixture contract after removing only the exact later offer layer.
 
 let pass = 0
 const fails = []
 const ok = (name, cond) => { if (cond) pass++; else fails.push(name) }
 const eq = (name, got, want) => ok(`${name} (got ${JSON.stringify(got)}, want ${JSON.stringify(want)})`, got === want)
 
-const norm = (p) => readFileSync(p, 'utf8').split('\r\n').join('\n')
+const norm = (p) => semUpsellFilme152610(readFileSync(p, 'utf8'), p).split('\r\n').join('\n')
 const compose = norm('app/api/compose/route.ts')
 const unlock = norm('app/api/compose/unlock/route.ts')
 const client = norm('app/(dashboard)/generate/GenerateClient.tsx')

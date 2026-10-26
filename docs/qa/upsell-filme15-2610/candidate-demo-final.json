@@ -1,0 +1,28 @@
+{
+  "label": "candidate-demo-final",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/guardian",
+  "base": "cdefd7d327844d3276e7f4d399aad34ed7c1cf18",
+  "started": "2026-10-26T19:37:04.377Z",
+  "finished": "2026-10-26T19:42:13.824Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 0,
+  "fail": 1,
+  "results": [
+    {
+      "file": "scripts/test-demo-sob-medida-1510.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 309435,
+      "log": "scripts__test-demo-sob-medida-1510.mjs.log.gz",
+      "failures": [
+        "FAIL D6 depois da ENTREGA, pelo CRON: 4:5 e 1:1 com as MESMAS URLs de clipe, entregues; aprovação com o nome da marca (token = o da tela); evento de entregue; 2ª volta não remonta nem duplica; tela \"pronta\" com link + EN/ES/DE; página privada com 3 formatos em renders/share, sample:true e nada da casa",
+        "FAIL D10 o desfaz devolve o PAI byte a byte em cada arquivo que já existia (vista da aprovação, tela da aprovação, vista pública, cron, menu do admin); estrito: trecho alterado = lança; lib/ads/v2PostDeliveryServer.ts INTOCADO"
+      ]
+    }
+  ]
+}

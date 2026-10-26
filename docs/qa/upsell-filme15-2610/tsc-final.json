@@ -1,0 +1,10 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "completed_at_utc": "2026-10-26T18:49:39.6677291Z",
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "runtime_snapshot": "f6019fc74c202fb6399d64b777b312360fc0fdc6",
+  "exit_code": 0,
+  "diagnostics": [],
+  "paid_render": false,
+  "env_files_read": false
+}

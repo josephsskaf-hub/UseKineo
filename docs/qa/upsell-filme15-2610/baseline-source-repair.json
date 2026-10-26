@@ -1,0 +1,35 @@
+{
+  "label": "baseline-source-repair",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/baseline",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "started": "2026-10-26T19:19:59.133Z",
+  "finished": "2026-10-26T19:20:04.494Z",
+  "total": 2,
+  "parallel": 2,
+  "serial": 0,
+  "done": 2,
+  "pass": 2,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-shopify-app-1310.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 1806,
+      "log": "scripts__test-shopify-app-1310.mjs.log.gz",
+      "failures": []
+    },
+    {
+      "file": "scripts/test-trafego-undo-2310.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 3543,
+      "log": "scripts__test-trafego-undo-2310.mjs.log.gz",
+      "failures": []
+    }
+  ]
+}

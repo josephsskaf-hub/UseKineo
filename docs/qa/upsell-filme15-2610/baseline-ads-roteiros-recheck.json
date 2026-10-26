@@ -1,0 +1,13 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "file": "scripts/test-ads-roteiros-1310.mjs",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "recordedAt": "2026-10-26T19:08:43.109Z",
+  "status": 1,
+  "passChecks": 30,
+  "failedChecks": 1,
+  "failures": [
+    "FAIL C1 versões em timeout, erro 500, JSON ruim ou prazo curto = 1 roteiro e o plano OK (nunca exceção); sem scripts:true (ou sem voz e sem frases) nenhuma chamada a mais"
+  ],
+  "evidence": "Manual offline execution in unified exec session8623; C1 seen in initial stdout chunk, final stdout says30 verdes1vermelhos, exit1. Summary rather than a full stdout capture."
+}

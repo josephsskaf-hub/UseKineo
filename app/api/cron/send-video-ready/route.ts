@@ -11,7 +11,9 @@ import { packEmailHtml, packEmailText } from '@/lib/publishPackEmail'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
 import { feedbackRowHtml, feedbackRowText } from '@/lib/filmFeedback' // KINEO-FEEDBACK-DO-FILME-2026-09-16
 import type { PacoteDePublicacao } from '@/lib/publishPack'
-import { film60Copy, film60EmailHref, film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
+import { film60UpsellEligible } from '@/lib/growth/filmReady60s'
+import { filmCompleteEmail } from '@/lib/growth/filmCompleteCopy'
+import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
 //
@@ -243,29 +245,11 @@ Write the next episode with ChatGPT (or Claude, or Gemini) — grab our prompt, 
   <p style="margin:0;"><a href="${chatgptUrl}" style="display:inline-block;background:#111;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">Get the prompt &rarr;</a></p>
 </div>`
 
-  // ═══ KINEO-VERSAO-60S-2026-10-13 — a versão de 60 s DESTE filme ═══════════════════════════════════════════════
-  // Só para quem NÃO paga e recebeu o filme curto do Seedance 1.5 (decisão em lib/growth/filmReady60s.ts, a mesma da
-  // tela de filme pronto). Preço e contagem de filmes vêm da fonte única (buyCreatorPrice/creatorSeedanceFilms) — nada
-  // digitado. O link vai à ponte /film-60?v=<id>, que grava o bilhete da volta e segue ao checkout do Creator mensal
-  // (WELCOME20 automático). Fora do recorte, as duas variáveis são string vazia e nenhum bloco entra no e-mail.
-  const film60 = ctx.film60 ? film60Copy('en') : null
-  const film60Href = ctx.film60 ? film60EmailHref(APP_URL, video.id) : null
-  const film60Button = film60 ? film60.button.replace(/\s*→$/, '') : ''
-  const film60Text = film60 && film60Href
-    ? `
-── ${film60.title.toUpperCase()} ──
-${film60.subtitle}
-${film60Button}: ${film60Href}
-──────────────
-`
-    : ''
-  const film60Html = film60 && film60Href
-    ? `<div style="border:2px solid #2997ff;border-radius:12px;padding:16px;margin:0 0 16px;">
-  <p style="margin:0 0 8px;font-weight:bold;font-size:16px;">${escapeHtmlText(film60.title)} 🎬</p>
-  <p style="margin:0 0 14px;color:#475569;font-size:14px;">${escapeHtmlText(film60.subtitle)}</p>
-  <p style="margin:0;"><a href="${film60Href}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">${escapeHtmlText(film60Button)} &rarr;</a></p>
-</div>`
-    : ''
+  // KINEO-UPSELL-FILME15-2610 — same 35 s offer as the immediate delivery email and the result screen.
+  // Without a saved film id there is no offer: opening an empty checkout would lose the person's film.
+  const film60 = ctx.film60 && video.id ? filmCompleteEmail({ appUrl: APP_URL, videoId: video.id }) : null
+  const film60Text = film60?.text ?? ''
+  const film60Html = film60?.html ?? ''
 
   const text = `Hey,
 
@@ -288,7 +272,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">${headlineHtml}</p>
   ${thumbHtml}
-  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
+  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:${film60 ? 'transparent' : '#2997ff'};color:${film60 ? '#176dbb' : '#ffffff'};border:${film60 ? '1px solid #cbd5e1' : 'none'};text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
   ${film60Html}
   ${shareHtml}
@@ -593,8 +577,11 @@ export async function GET(req: NextRequest) {
               // recebeu o pacote", que foi o erro que a casa ja cometeu com a
               // porta do episodio 2 (memoria `remedio-nunca-apertado`).
               publish_pack: !!ctx.pack,
-              // KINEO-VERSAO-60S-2026-10-13 — o denominador da oferta da versão de 60 s no e-mail.
+              // Retain the historic nudge field; the versioned field below identifies the current 35 s offer.
               film60_offer: !!ctx.film60,
+              film15_full_offer: Boolean(ctx.film60 && video.id),
+              film15_offer_version: ctx.film60 && video.id ? FILM_COMPLETE_VERSION : null,
+              source_video_id: ctx.film60 ? video.id : null,
             },
           })
         } catch (e) {

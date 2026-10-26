@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
+import { settleFilmComplete } from '@/lib/filmComplete/server'
+import { FILM_COMPLETE_VERSION, filmCompletePaymentMetadata } from '@/lib/growth/filmComplete'
+export const maxDuration = 300
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
@@ -873,6 +876,7 @@ async function recordPaymentSuccess(
       pack: session.metadata?.pack ?? null,
       checkout_origin: session.metadata?.checkout_origin ?? null,
       intent_campaign: session.metadata?.intent_campaign ?? null,
+      ...(session.metadata?.film_complete_version === FILM_COMPLETE_VERSION ? filmCompletePaymentMetadata(session.metadata) : {}),
       checkout_value_context: session.metadata?.checkout_value_context ?? null,
       checkout_value_variant: session.metadata?.checkout_value_variant ?? null,
       checkout_payment_guidance: session.metadata?.checkout_payment_guidance ?? null,
@@ -2195,6 +2199,7 @@ export async function POST(req: NextRequest) {
           await markTrialConverted(supabase, userId, { source: 'checkout_subscription_resumed', stripeRef: session.id })
           // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a entrega anterior pode ter morrido entre o grant e o e-mail (1×/sessão).
           if (sendGuestReadyEmail) await sendGuestReadyEmail()
+          if (session.metadata?.film_complete_version === FILM_COMPLETE_VERSION) await settleFilmComplete(supabase, session, req.nextUrl.origin, event.created * 1000)
           console.log('[stripe webhook] subscription Checkout already fulfilled:', session.id)
           break
         }
@@ -2344,6 +2349,9 @@ export async function POST(req: NextRequest) {
         // (1×/sessão Stripe, nunca lança). Conta que já existia: sendGuestReadyEmail fica null (ela recebe só o link
         // que a página /checkout/guest manda).
         if (sendGuestReadyEmail) await sendGuestReadyEmail()
+
+        // Explicit opt-in for THIS completed free film. Ordinary purchases retain the existing no-autostart rule.
+        if (session.metadata?.film_complete_version === FILM_COMPLETE_VERSION) await settleFilmComplete(supabase, session, req.nextUrl.origin, event.created * 1000)
 
         break
       }

@@ -1,0 +1,53 @@
+{
+  "label": "guardian-final-readers",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/guardian",
+  "base": "66274430c7d7199e7f7bc17cd0600a89226285ed",
+  "started": "2026-10-26T19:33:59.206Z",
+  "finished": "2026-10-26T19:34:01.327Z",
+  "total": 3,
+  "parallel": 3,
+  "serial": 0,
+  "done": 3,
+  "pass": 1,
+  "fail": 2,
+  "results": [
+    {
+      "file": "scripts/test-sem-porteiro-2026-09-02.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 1299,
+      "log": "scripts__test-sem-porteiro-2026-09-02.mjs.log.gz",
+      "failures": [
+        "FAIL bento da home vai DIRETO ao destino final",
+        "FAIL o caminho de quem NÃO está logado ficou intocado (signup)",
+        "FAIL AvatarLaunchBanner: idem",
+        "FAIL arquivos ainda mandando pelo porteiro: lib/kidsCartoon/kidsCartoon.ts, lib/ui/workspaceFocus.ts, lib/ui/workspaceNavigation.ts"
+      ]
+    },
+    {
+      "file": "scripts/test-stranded-ready-footer.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 625,
+      "log": "scripts__test-stranded-ready-footer.mjs.log.gz",
+      "failures": []
+    },
+    {
+      "file": "scripts/test-trial-watermark.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 186,
+      "log": "scripts__test-trial-watermark.mjs.log.gz",
+      "failures": [
+        "FALHOU:",
+        "x a decisao acontece ANTES do builder"
+      ]
+    }
+  ]
+}
