@@ -64,6 +64,8 @@ async function run(rows, { source = routeSource, user = true, rate = settlement.
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: user ? { id: 'fixture-owner' } : null } }) } }) },
     '@supabase/supabase-js': { createClient: () => db },
     '@/lib/stripe': { stripe: new Proxy({}, { get: prohibit }) },
+    // Coupon provisioning is covered with real code and mocked Stripe in test-affiliate-coupon-50.mjs.
+    '@/lib/affiliateCoupon': { mintCouponIfMissing: async (_admin, affiliate) => affiliate.coupon_code },
     '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: rate },
     // Reancorado 03/10 (KINEO-PARTNERS-PACOTE-2026-10-03): a rota lê o estado do pacote de demonstração (lib/partnerPack,
     // pura, compilada de verdade). O dublê do banco não conhece partner_packs, a leitura cai em "indisponível" e o

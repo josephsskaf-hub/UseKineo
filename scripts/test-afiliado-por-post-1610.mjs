@@ -409,6 +409,7 @@ async function problems(S) {
         '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'session-user' } } }) } }) },
         '@supabase/supabase-js': { createClient: () => meDb },
         '@/lib/stripe': { stripe: {} },
+        '@/lib/affiliateCoupon': { mintCouponIfMissing: async (_admin, affiliate) => affiliate.coupon_code },
         '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: 5 },
         '@/lib/partnerPack': compile(read('lib/partnerPack.ts'), {}),
         '@/lib/affiliateCommission': compile(read('lib/affiliateCommission.ts'), {}),
