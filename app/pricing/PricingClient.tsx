@@ -157,6 +157,8 @@ import {
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
+import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -372,6 +374,24 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 } = {}) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
+  const interfaceLanguage = useInterfaceLanguage()
+  const [affiliateOffer, setAffiliateOffer] = useState<{ code: string; partnerName: string | null } | null>(null)
+  const [affiliateOfferChecked, setAffiliateOfferChecked] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetch('/api/affiliate/offer', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((result: { offer?: { code?: unknown; partnerName?: unknown } | null } | null) => {
+        if (controller.signal.aborted || !result || !('offer' in result)) return
+        const offer = result.offer
+        if (offer && typeof offer.code === 'string' && (offer.partnerName === null || typeof offer.partnerName === 'string')) {
+          setAffiliateOffer({ code: offer.code, partnerName: offer.partnerName })
+        }
+        setAffiliateOfferChecked(true)
+      })
+      .catch(() => { /* An unavailable offer lookup never advertises a conflicting WELCOME20. */ })
+    return () => controller.abort()
+  }, [])
 
   const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q))
 
@@ -593,8 +613,10 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   const [welcomeSeen, setWelcomeSeen] = useState<Welcome20DeadlineSurface | null>(null)
   const welcomeDeadline = useWelcome20Deadline({ enabled: signedIn === true, start: signedIn === true ? welcomeSeen : null })
   const welcome20Allowed = signedIn === false || (signedIn === true && welcomeDeadline.ready && welcomeDeadline.allowed)
+  const affiliateOnCard = (tier: string): tier is 'basic' | 'pro' =>
+    affiliateOffer !== null && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed
   const welcomeOnCard = (tier: string): tier is 'basic' | 'pro' =>
-    PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed
+    affiliateOfferChecked && !affiliateOffer && PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed
   // KINEO-CHECKOUT-CLAREZA-1610 — o cartão mostrou os 20% (mensal) a quem tem conta: é a pessoa vendo a oferta.
   const welcomeCardShown = welcomeOnCard('basic') || welcomeOnCard('pro')
   useEffect(() => {
@@ -608,7 +630,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   }, [])
   const welcomeEndedNotice = arrivedWelcomeCode && signedIn === true && welcomeDeadline.deadline?.state === 'expired'
   const welcomeFirstMonthMinor = (tier: 'basic' | 'pro'): number =>
-    Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)
+    Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100)
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
   // ?preview=valor liga para quem abrir o link (lido no efeito abaixo, nunca no render: hidratação igual ao servidor).
   const [valueCards, setValueCards] = useState(PRICING_VALUE_CARDS_PUBLIC)
@@ -770,6 +792,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null
     const promo = pricingParams?.get('promo') ?? cardPromo
     const promoParam = promo && !isBusiness ? `&promo=${encodeURIComponent(promo)}` : '' // KINEO-BUSINESS-84-2026-10-09: Business sem cupom
+    // Display language only; the server still decides the discount from protected attribution.
+    const affiliateLanguageParam = affiliateOnCard(tier) ? `&ui_lang=${encodeURIComponent(interfaceLanguage)}` : ''
     const rawIntentCampaign = pricingParams?.get('intent_campaign')
     const intentCampaign = sanitizePricingIntentCampaign(rawIntentCampaign)
     const intentParam = intentCampaign ? `&intent_campaign=${encodeURIComponent(intentCampaign)}` : ''
@@ -780,7 +804,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     const effectiveBilling = isMonthlyOnly ? 'monthly' : billing // KINEO-BUSINESS-84-2026-10-09
     const started = checkout.launch(
       tier,
-      conversionCheckoutHref(`/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`, 'pricing', `${tier}_${effectiveBilling}`),
+      conversionCheckoutHref(`/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}${affiliateLanguageParam}`, 'pricing', `${tier}_${effectiveBilling}`),
       { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign, ...(cardPromo && !isBusiness && !pricingParams?.get('promo') ? { card_promo: cardPromo } : {}) },
     )
     // A suppressed duplicate click must not double-count the funnel or fire a
@@ -988,7 +1012,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
       {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
           aos planos, onde o botão do Creator/Studio aplica o WELCOME20. Some para assinante e para quem chegou com outro cupom. */}
-      {PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed ? (
+      {affiliateOffer && !arrivedWithPromo && !planSwitch.subscribed ? (
+        <aside data-testid="affiliate-link-offer" lang={interfaceLanguage} className="relative z-[60] border-b px-4 py-3 text-center" style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--text)' }}>
+          <p className="m-0 text-[14px] font-extrabold" style={{ overflowWrap: 'anywhere' }}>{affiliateOfferCopy(interfaceLanguage, affiliateOffer.partnerName)}</p>
+          <p className="mb-0 mt-1 text-[12px] leading-relaxed">{affiliateOfferScopeCopy(interfaceLanguage)}</p>
+        </aside>
+      ) : null}
+      {affiliateOfferChecked && !affiliateOffer && PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed ? (
         <PricingDealBar
           percent={WELCOME20_PERCENT_OFF}
           endsLabel={welcomeDeadline.label /* KINEO-CHECKOUT-CLAREZA-1610 — "Ends in 47h 12m", só com prazo ativo */}
@@ -1050,7 +1080,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           justo quando a pessoa começava a ler o cartão novo. Agora ele espera 20 s: chega para quem ficou na página
           pensando, não para quem acabou de chegar. A oferta (20% no 1º mês, Creator/Studio) não muda. */}
       {/* KINEO-WELCOME20-NO-CARTAO-2026-10-09 — com os 20% no cartão, o pop-up não abre mais aqui ("no lugar do pop-up"). */}
-      {PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}
+      {PRICING_WELCOME20_ON_CARD || !affiliateOfferChecked || affiliateOffer ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}
 
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
@@ -1214,7 +1244,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         : ctaLabel
                     const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
                     // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — mensal do Creator/Studio: o 1º mês com 20%, o preço cheio riscado ao lado.
-                    const welcome = welcomeOnCard(tier) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
+                    const welcome = (affiliateOnCard(tier) || welcomeOnCard(tier)) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
                     return (
                       <PlanValueCard
                         key={p.tier}
@@ -1234,7 +1264,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         note={settlementCurrency === 'brl'
                           ? welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
-                            ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - WELCOME20_PERCENT_OFF)) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
+                            ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
                             : settlementNote(
                             planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd')),
                             'brl',
@@ -1247,9 +1277,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         save={annual && displayCurrency && annualSavingMinor > 0
                           ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>
                           : welcome !== null
-                            ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
+                            ? affiliateOnCard(tier) && affiliateOffer
+                              ? affiliateOfferCopy(interfaceLanguage, affiliateOffer.partnerName)
+                              : <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
                             : 'Cancel anytime'}
-                        extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed ? (
+                        extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed && !affiliateOnCard(p.tier) ? (
                           <a
                             href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
                             data-testid={`plan-upi-${p.tier}`}
@@ -2314,7 +2346,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               : mobileStickyPlanLabel({
                   tier: 'basic',
                   billing,
-                  monthlyLabel: welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic'), // KINEO-WELCOME20-NO-CARTAO-2026-10-09
+                  monthlyLabel: affiliateOnCard('basic') || welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic'), // KINEO-AFILIADO-50-2610
                   annualTotalLabel: annualPrices.basic.total,
                 })}
           </button>
@@ -2340,7 +2372,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               : mobileStickyPlanLabel({
                   tier: 'pro',
                   billing,
-                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion)), // KINEO-WELCOME20-NO-CARTAO-2026-10-09
+                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, affiliateOnCard('pro') || welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion)), // KINEO-AFILIADO-50-2610
                   annualTotalLabel: annualPrices.pro.total,
                 })}
           </button>
