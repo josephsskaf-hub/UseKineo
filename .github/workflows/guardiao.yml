@@ -61,6 +61,12 @@ jobs:
           node scripts/test-roteiro-curto-undo-2210.mjs
       - name: Admin — paginação, tripwire e dedupe após 1000 linhas
         run: node scripts/test-admin-truncamento-2026-10.mjs
+      - name: Compra — capacidade real, ideia própria e revisão sem gerar
+        run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
+          node docs/compra-clareza-2610/test-recurring-plan-value.mjs
+          node docs/compra-clareza-2610/test-own-idea-start.mjs
+          node docs/compra-clareza-2610/test-result-script-review.mjs
+          node docs/compra-clareza-2610/test-legacy-layer.mjs
       - name: Admin — contratos dos sete guardiões de campanhas e coerência
         run: |
           node scripts/test-afiliados-acordam.mjs

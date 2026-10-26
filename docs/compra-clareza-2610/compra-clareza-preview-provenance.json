@@ -1,9 +1,9 @@
 {
-  "builtAt": "2026-10-26T03:58:44.849Z",
+  "builtAt": "2026-10-26T04:02:43.652Z",
   "sourceRoot": "C:\\kineo-wt\\compra-clareza-2610",
   "base": "563d7f30064cb0e7ee392490d0e9e48e95c4e1bc",
-  "candidateHead": "d97d0c0173116fe1dcd205a8abd5e948342731ea",
-  "htmlSha256": "f9547f74eb999c62c0e6d4170312d14c15398c648d691130d4e09e517ac1979c",
+  "candidateHead": "6b63cec177a868243010eec7c4599842fae1d929",
+  "htmlSha256": "38ec6b302eb0146baa53ff95805a48f8587bdd55d34841a1a5b9ddd57eff7924",
   "fixtures": {
     "locale": "en",
     "tier": "starter",

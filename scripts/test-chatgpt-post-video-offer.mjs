@@ -97,8 +97,8 @@ check(client.includes('data.signup_utm_source'), 'source comes from the existing
 check(client.includes('const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource, quality)'), 'visual decision reads persisted first touch and delivered quality')
 check(client.includes('const offerDecision = decidePostVideoOffer(signupUtmSource, quality)'), 'impression decision uses the same engine-aware policy')
 check(client.includes('TIER_CREDITS[ladderPrimaryTier]'), 'displayed grant follows the checkout tier')
-check(client.includes("videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'fast')"), 'Fast value count is derived from canonical cost')
-check(client.includes("videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'cinematic_ai')"), 'premium film count is derived from canonical cost')
+check(client.includes('getPostVideoCapacity({ tier: ladderPrimaryTier, quality: planFitQuality, seconds: duration, kineo1Allowed: kineo1Shown })'), 'monthly value uses the delivered engine, requested duration and resolved entitlement') // COMPRA-CLAREZA-2610
+check(client.includes("ladderCapacity.status === 'ready'") && client.includes('ladderCapacity.filmsPerMonth') && client.includes('ladderCapacity.engineName') && client.includes('ladderCapacity.seconds'), 'only a proven configuration names capacity, motor and duration; unknown data never defaults to a 60s Seedance') // COMPRA-CLAREZA-2610
 check(client.includes('tier=${ladderPrimaryTier}'), 'primary CTA opens the selected canonical tier')
 check(client.includes('postVideoOfferDecision.secondaryTier'), 'the other recurring plan stays available')
 check(client.includes('first_touch_source: postVideoOfferDecision.firstTouchSource'), 'click records normalized first touch')

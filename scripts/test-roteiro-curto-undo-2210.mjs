@@ -2,6 +2,7 @@
 // Reads the actual existing candidate files and adapter with readFileSync; git show supplies the immutable base.
 // No disk mutation, network, SDK, environment files, engineWall or homeVideoCuration are read.
 import fs from 'node:fs'
+import { semCompraClareza2610 } from './test-support/desfaz-compra-clareza-2610.mjs' // COMPRA-CLAREZA-2610
 import { semAdminLeve2310 } from './test-support/desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove only the exact later admin delta before historical source integrity checks.
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import path from 'node:path'
@@ -57,7 +58,7 @@ const SCOPE = {
   "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs": 2,
   "scripts/test-verbatim-intocavel-2010.mjs": 1
 }
-const read = (file) => semAdminLeve2310(semPaginasIaClaras2110(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file) // KINEO-ADMIN-LEVE-2310 — exact later layer first. KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+const read = (file) => semAdminLeve2310(semPaginasIaClaras2110(semCompraClareza2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file), file) // COMPRA-CLAREZA-2610 — exact presentation layer first; preserve every historical comparison and mutant.
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
 let passed = 0
 function assert(condition, message) { if (!condition) throw new Error(message); passed++ }
@@ -70,9 +71,10 @@ function rejects(run, message) {
 try {
   // Execute the adapter actually on disk. Its private hunk data stays private in production;
   // this VM-only observation avoids adding a new public export solely for this proof.
-  const context = vm.createContext({ fetch: unavailable, require: unavailable, setTimeout: unavailable })
+  const context = vm.createContext({ fetch: unavailable, require: unavailable, setTimeout: unavailable, semCompraClareza2610 })
   const helper = semAdsCena95PlanFailed2110(read(HELPER), HELPER) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — executar o helper Roteiro exato antes da VM.
-  vm.runInContext(helper.replace(/^export\s+/gm, '') + '\nglobalThis.proof = { undo: semRoteiroCurto2210, hunks: HUNKS }', context, { timeout: 3000, filename: HELPER })
+  const executableHelper = helper.replace(/^import \{ semCompraClareza2610 \} from [^\n]+\n/m, '') // COMPRA-CLAREZA-2610 — inject the real imported pure function into the bounded VM.
+  vm.runInContext(executableHelper.replace(/^export\s+/gm, '') + '\nglobalThis.proof = { undo: semRoteiroCurto2210, hunks: HUNKS }', context, { timeout: 3000, filename: HELPER })
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,

@@ -369,7 +369,12 @@ import {
 } from '@/lib/expandPolicy'
 import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
 import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+// BEGIN COMPRA-CLAREZA-2610 imports
+import RecurringPlanValue from '@/components/growth/RecurringPlanValue'
+import ResultScriptReview from '@/components/growth/ResultScriptReview'
+import { getPostVideoCapacity, POST_VIDEO_CAPACITY_VERSION } from '@/lib/growth/postVideoCapacity'
+// END COMPRA-CLAREZA-2610 imports
 import VideoQualityFailurePanel from '@/components/VideoQualityFailurePanel'
 import { parseVideoQualityFailure, qualityFailureOwnsSnapshot, type VideoQualityFailure } from '@/lib/cinematic/qualityFailureUi'
 import { parseQualityFailureExit, type QualityFailureExit } from '@/lib/qualityFailureExit'
@@ -5875,6 +5880,7 @@ export default function GenerateClient({
       trackEvent('post_video_offer_viewed', {
         source: 'result_export_choice',
         offer: 'starter_intro_month',
+        value_copy_version: POST_VIDEO_CAPACITY_VERSION, // COMPRA-CLAREZA-2610
         // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — esta caixa nunca soube nada
         // sobre trial, e a partir de agora ela divide a tela com a caixa de
         // assinatura na fase 'ending'. Sem este campo não há como responder se
@@ -11239,6 +11245,7 @@ export default function GenerateClient({
     trackEvent('series_continue_clicked', {
       source,
       video_id: videoId ?? null,
+      value_copy_version: POST_VIDEO_CAPACITY_VERSION, // COMPRA-CLAREZA-2610
       // sem este campo nao da para separar, no banco, a continuacao que saiu
       // com o motor herdado da que foi desviada para o motor gratis.
       engine: engine ?? null,
@@ -11427,6 +11434,15 @@ export default function GenerateClient({
     setPhase('idle')
     setError(null)
   }
+
+  // BEGIN COMPRA-CLAREZA-2610 script-review
+  function handleReviewResultScript(reviewed: string) {
+    if (!reviewed.trim()) return
+    if (reviewed !== prompt) structuredScriptRef.current = null
+    setPrompt(reviewed)
+    handleBackToEdit()
+  }
+  // END COMPRA-CLAREZA-2610 script-review
 
   // Push #098 — out-of-credits guard. Wraps every Generate/Analyze/
   // Generate-Similar entry point so a click with credits<=0 opens the
@@ -11758,6 +11774,7 @@ export default function GenerateClient({
     trackEvent('post_video_clean_export_clicked', {
       source: 'result_export_choice',
       offer: 'starter_intro_month',
+      value_copy_version: POST_VIDEO_CAPACITY_VERSION, // COMPRA-CLAREZA-2610
       checkout_path: watermarkedDownloadConfirmed
         ? 'direct_after_download_v1'
         : 'modal_before_download_v1',
@@ -11809,6 +11826,7 @@ export default function GenerateClient({
     trackEvent('post_video_single_unlock_clicked', {
       source: 'result_export_choice',
       offer: 'starter_pack_one_time',
+      value_copy_version: POST_VIDEO_CAPACITY_VERSION, // COMPRA-CLAREZA-2610
       checkout_path: watermarkedDownloadConfirmed
         ? 'direct_after_download_v1'
         : 'modal_before_download_v1',
@@ -12468,6 +12486,7 @@ export default function GenerateClient({
       try {
         void trackEvent('series_continue_seen', {
           source: 'done_screen_top',
+          value_copy_version: POST_VIDEO_CAPACITY_VERSION, // COMPRA-CLAREZA-2610
           attempt_id: attemptId,
           seconds_after_ready: Math.round((Date.now() - doneAt) / 1000),
           observed,
@@ -13092,11 +13111,13 @@ export default function GenerateClient({
   const ladderPrimaryTier = postVideoOfferDecision.primaryTier
   const ladderPrimaryPlanLabel = postVideoOfferDecision.primaryPlanLabel
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, o plano não é vendido em "Kineo 1 quick videos".
-  const ladderPrimaryOutputLabel = postVideoOfferDecision.lastVideoFit === 'fast' && kineo1Shown
-    ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'fast')} Kineo 1 quick videos`
-    : postVideoOfferDecision.lastVideoFit === 'premium'
-      ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'cinematic_ai')} AI films like this`
-      : null
+  // BEGIN COMPRA-CLAREZA-2610 capacity
+  const capacityLocale = useInterfaceLanguage()
+  const ladderCapacity = getPostVideoCapacity({ tier: ladderPrimaryTier, quality: planFitQuality, seconds: duration, kineo1Allowed: kineo1Shown })
+  const ladderPrimaryOutputLabel = ladderCapacity.status === 'ready'
+    ? `up to ${ladderCapacity.filmsPerMonth} new ${ladderCapacity.seconds}-second ${ladderCapacity.engineName} films if all monthly credits go to this setup`
+    : null
+  // END COMPRA-CLAREZA-2610 capacity
   const trialPrimaryUnlocksCurrentFilm =
     trialPostVideoPhase !== null && currentResultHasWatermark
   const prepareTrialCleanCheckout = (surface: 'monthly' | 'one_time'): boolean => {
@@ -17685,7 +17706,8 @@ export default function GenerateClient({
                           : 'var(--sh-card)',
                       }}
                     >
-                      <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
+                      {/* COMPRA-CLAREZA-2610 — existing continuation still opens review before a new render. */}
+                      <span style={{ fontSize: '0.92rem' }}>Plan episode 2 of this story →</span>
                       <span
                         style={{
                           marginTop: 4,
@@ -17697,7 +17719,7 @@ export default function GenerateClient({
                       >
                         {episode2Engine === 'fast'
                           ? 'Your balance won\u2019t cover the same engine \u00b7 this one renders on Kineo 1, free on your account, with our watermark'
-                          : 'Same subject, one click \u00b7 new hook, new facts, new payoff'}
+                          : 'Review the idea, engine, duration and cost before generating'}
                       </span>
                     </button>
                   )}
@@ -17756,6 +17778,9 @@ export default function GenerateClient({
                         telemetry={{ ...cleanExportTrialDoorTelemetry, host: 'direct_after_download' }}
                         onStart={() => startCleanExportTrialCheckout('direct_after_download')}
                       />
+                      {/* BEGIN COMPRA-CLAREZA-2610 direct-value */}
+                      <RecurringPlanValue tier="starter" quality={planFitQuality} seconds={duration} kineo1Allowed={kineo1Shown} locale={capacityLocale} />
+                      {/* END COMPRA-CLAREZA-2610 direct-value */}
                       <button
                         type="button"
                         onClick={handleRemoveWatermark}
@@ -17806,6 +17831,9 @@ export default function GenerateClient({
                       >
                         Just this video — {packPriceLabel()}, one-time
                       </button>
+                      {/* BEGIN COMPRA-CLAREZA-2610 one-time-value */}
+                      <p style={{ margin: '7px 0 0', textAlign: 'center', color: 'var(--muted2)', fontSize: 12 }}><UiLabel>No subscription · no monthly renewal</UiLabel></p>
+                      {/* END COMPRA-CLAREZA-2610 one-time-value */}
                       <p style={{ margin: '9px 0 0', textAlign: 'center', color: 'var(--muted)', fontSize: 10.5, lineHeight: 1.45 }}>
                         Secure Stripe checkout · cancel anytime · 7-day money-back
                       </p>
@@ -17855,7 +17883,11 @@ export default function GenerateClient({
                             <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: 'var(--text)' }}>YOUR FILM</span>
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
-                            This is the exact video you just made. Clean means this same file, rebuilt without the Kineo watermark.
+                            {/* BEGIN COMPRA-CLAREZA-2610 clean-explanation */}
+                            {cleanExportRebuildReady
+                              ? 'Your film can be rebuilt from its saved inputs without the Kineo watermark.'
+                              : 'Your current download stays available. A plan adds credits for your next films.'}
+                            {/* END COMPRA-CLAREZA-2610 clean-explanation */}
                           </div>
                         </div>
                         <div style={{ padding: '26px 26px 22px' }}>
@@ -17880,6 +17912,9 @@ export default function GenerateClient({
                             telemetry={{ ...cleanExportTrialDoorTelemetry, host: 'modal_before_download' }}
                             onStart={() => startCleanExportTrialCheckout('modal_before_download')}
                           />
+                          {/* BEGIN COMPRA-CLAREZA-2610 modal-value */}
+                          <RecurringPlanValue tier="starter" quality={planFitQuality} seconds={duration} kineo1Allowed={kineo1Shown} locale={capacityLocale} />
+                          {/* END COMPRA-CLAREZA-2610 modal-value */}
                           <button
                             type="button"
                             onClick={handleRemoveWatermark}
@@ -18054,7 +18089,8 @@ export default function GenerateClient({
                         : 'var(--sh-card)',
                     }}
                   >
-                    <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
+                    {/* COMPRA-CLAREZA-2610 — same copy in the sibling result branch. */}
+                    <span style={{ fontSize: '0.92rem' }}>Plan episode 2 of this story →</span>
                     <span
                       style={{
                         marginTop: 4,
@@ -18066,7 +18102,7 @@ export default function GenerateClient({
                     >
                       {episode2Engine === 'fast'
                         ? 'Your balance won’t cover the same engine · this one renders on Kineo 1, free on your account, with our watermark'
-                        : 'Same subject, one click · new hook, new facts, new payoff'}
+                        : 'Review the idea, engine, duration and cost before generating'}
                     </span>
                   </button>
                 )}
@@ -18074,6 +18110,9 @@ export default function GenerateClient({
                 {/* KINEO-FLUXO-NOVO-2026-09-25 — Peça A: as 3 saídas do filme pronto (próximo filme · mais créditos ·
                     assinar). Depois do download e da porta do episódio 2, nunca antes: deliver-first intacto. Fora do
                     <details> fechado para ficar no primeiro olhar. Decisões em lib/growth/filmReadyExits.ts. */}
+                {/* BEGIN COMPRA-CLAREZA-2610 result-review */}
+                <ResultScriptReview key={publicVideoId ?? finalVideoUrl ?? 'result'} initialScript={prompt} onReview={handleReviewResultScript} />
+                {/* END COMPRA-CLAREZA-2610 result-review */}
                 <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
                 {commercialPlan === 'free' && planTier === 'free' && hasPaid === false && <MrrShareFooter />}
 
