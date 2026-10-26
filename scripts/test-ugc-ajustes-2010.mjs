@@ -29,12 +29,15 @@ import { semFilmesF1F3Publico2010 } from './test-support/desfaz-filmes-f1f3-publ
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs'
 import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a bola (que tira a qualidade primeiro) veio depois
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-UGC-AJUSTES-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => semAdsEscolhaPublico2410(lf(readFileSync(join(ROOT, p), 'utf8')), p)
+const rd = (p) => semAdsEscolhaPublico2410(lf(affiliateRaw(p, readFileSync(join(ROOT, p), 'utf8'))), p)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = UGC_AJUSTES_2010_BASE
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }

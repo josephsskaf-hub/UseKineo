@@ -32,12 +32,15 @@ import crypto from 'node:crypto'
 // frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => affiliateRaw(p, readFileSync(join(root, p), 'utf8')).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { let v = false; try { v = typeof cond === 'function' ? cond() : cond } catch { v = false } if (v) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }
@@ -74,7 +77,7 @@ function criaLoader({ sobrescritas = {}, externos = {}, env = {}, globais = {} }
     const exports = {}
     cache.set(f, exports)
     const rel = f.slice(root.length + 1).split(sep).join('/')
-    const src = Object.hasOwn(sobrescritas, rel) ? sobrescritas[rel] : readFileSync(f, 'utf8')
+    const src = Object.hasOwn(sobrescritas, rel) ? sobrescritas[rel] : affiliateRaw(rel, readFileSync(f, 'utf8'))
     vm.runInNewContext(transpila(src), { ...contexto, exports, require: (n) => carrega(n, dirname(f)) }, { timeout: 10000, filename: f })
     return exports
   }

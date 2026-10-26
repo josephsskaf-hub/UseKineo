@@ -28,7 +28,10 @@ process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-LEGENDA-CORTE-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
 import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
-const disco = (p) => lf(semMeta95Assunto1910(readFileSync(join(ROOT, p), 'utf8'), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido (mais nova) sai primeiro */
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
+const disco = (p) => lf(semMeta95Assunto1910(affiliateRaw(p, readFileSync(join(ROOT, p), 'utf8')), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido (mais nova) sai primeiro */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_LEGENDA_CORTE_1910_BASE}:${p}`)) } catch { return null } }
 const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b)

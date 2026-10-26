@@ -23,6 +23,9 @@ import {
   META95_PERSONAGEM_AJUSTE_2010_NOVOS, ACRESCIMOS_META95_PERSONAGEM_AJUSTE_2010, TROCAS_META95_PERSONAGEM_AJUSTE_2010,
 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs'
 import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -30,7 +33,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MARCA = MARCA_META95_PERSONAGEM_AJUSTE_2010
 const SELO = '[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const deliveryHead = git('log', '--format=%H', `--grep=^${MARCA} `, '-1', 'HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — limit historical ownership to the marked delivery; current runtime/mutants remain unchanged.
 if (!deliveryHead) throw new Error('Missing marked character adjustment delivery commit') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
@@ -384,7 +387,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   for (const f of META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS) {
     const b = base(f)
     let d
-    try { d = lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)) } catch (e) { d = [e.message] }
+    try { d = lf(semMeta95PersonagemAjuste2010(affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f)) } catch (e) { d = [e.message] }
     if (b === null) probs.push(`${f}: sem base`)
     else if (Array.isArray(d)) probs.push(`${f}: ${d[0]}`)
     else if (d !== b) probs.push(`${f}: desfeito ≠ base`)

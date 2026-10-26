@@ -26,13 +26,16 @@ import { semKitBf1910, KIT_BF_1910_ARQUIVOS, KIT_BF_1910_NOVOS, KIT_BF_1910_BASE
 import { semCloseRealLegendaCorte1910 } from './test-support/desfaz-close-real-legenda-corte-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (mesclados depois, por cima do kit) saem do disco antes das provas deste guardião
 import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a bola (que tira a qualidade primeiro) veio depois
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const require = createRequire(import.meta.url)
 const MARCA = 'KINEO-KIT-BF-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(semHome3Cards1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória
+const disco = (p) => lf(semHome3Cards1910(affiliateRaw(p, readFileSync(join(ROOT, p), 'utf8')), p)) // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIT_BF_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -350,7 +353,7 @@ await check('P1 v2Tiers/v2Billing/v2Batch/v2BatchRules/v2StartCore//start//batch
 
 console.log('\nD. desfaz exato, novos, marca, encadeamento')
 await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-kit-bf-1910.mjs), é EXATAMENTE a base ${KIT_BF_1910_BASE.slice(0, 9)}; os novos existem e não existiam lá`, () =>
-  KIT_BF_1910_ARQUIVOS.length >= 6 && KIT_BF_1910_ARQUIVOS.every((f) => base(f) !== null && lf(semKitBf1910(semHome3Cards1910(readFileSync(join(ROOT, f), 'utf8'), f), f)) === base(f)) && // reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova) sai primeiro
+  KIT_BF_1910_ARQUIVOS.length >= 6 && KIT_BF_1910_ARQUIVOS.every((f) => base(f) !== null && lf(semKitBf1910(semHome3Cards1910(affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), f), f)) === base(f)) && // reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova) sai primeiro
   KIT_BF_1910_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null))
 await check('D2 toda linha nova/trocada dos arquivos tocados carrega a marca; a contagem de acréscimos e as trocas batem; a marca não contém a de outra camada', () =>
   MARCA_KIT_BF_1910 === MARCA && KIT_BF_1910_ARQUIVOS.every((f) => { const n = disco(f).split('\n').filter((l) => l.includes(MARCA)).length; return n === (ACRESCIMOS_KIT_BF_1910[f] ?? 0) + (TROCAS_KIT_BF_1910[f] ?? []).length && n > 0 }) && !/CLOSE-REAL|META95|FIEL/.test(MARCA))
@@ -359,7 +362,7 @@ await check('D3 idempotente e restrito: texto sem a marca ou arquivo fora da lis
 await check('D4 encadeamento: a cabeça da cadeia do Ads (semCloseRealLegendaCorte1910) tira o kit PRIMEIRO; v2Brief/v2PlanCore/v2Advance/tela pela cadeia = a base', () => {
   const corte = disco('scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs')
   return corte.includes("import { semKitBf1910 } from './desfaz-kit-bf-1910.mjs'") && corte.includes('  texto = semKitBf1910(texto, p)') &&
-    [F.plan, F.brief, F.advance, F.tela].every((f) => lf(semCloseRealLegendaCorte1910(readFileSync(join(ROOT, f), 'utf8'), f)) === base(f))
+    [F.plan, F.brief, F.advance, F.tela].every((f) => lf(semCloseRealLegendaCorte1910(affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), f)) === base(f))
 })
 await check('D5 reâncoras: o guardião da rodada 3 do Close real só não conta como tocado o arquivo cujo ÚNICO toque é o do kit', () => {
   const v3 = disco('scripts/test-close-real-v3-1910.mjs')

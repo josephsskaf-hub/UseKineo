@@ -35,6 +35,9 @@ import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.m
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a qualidade do Studio Ads (21/10) veio depois
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
+const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -42,7 +45,7 @@ const require = createRequire(join(ROOT, 'package.json'))
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(affiliateRaw(p, readFileSync(join(ROOT, p), 'utf8')))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 /** Os arquivos DESTA entrega: os commits com a marca (rebase/fila não importam) + o que ainda não foi commitado + os novos sem rastreio. */
@@ -269,7 +272,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   for (const f of ADS_NOTA9_2110_ARQUIVOS) {
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
-    try { if (lf(semAdsNota92110(readFileSync(join(ROOT, f), 'utf8'), f)) !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) }
+    try { if (lf(semAdsNota92110(affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), f)) !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) }
   }
   const novos = ADS_NOTA9_2110_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null)
   ok(difs.length === 0 && novos, `D1 ${ADS_NOTA9_2110_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${B}; ${ADS_NOTA9_2110_NOVOS.length} novos existem e não existiam (${difs.join('; ') || 'ok'})`)
@@ -281,7 +284,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && trocasOk && !/KINEO-HOME-CARDS-CLAROS|KINEO-BEBE|KINEO-MENU-UGC|KINEO-DESENHO-NOTA9/.test(MARCA),
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; trocas de linha inteira (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const cadeia = /export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(rd(F.claros))
-  const igual = ADS_NOTA9_2110_ARQUIVOS.every((f) => { const raw = readFileSync(join(ROOT, f), 'utf8'), semEste = semAdsNota92110(raw, f); return semDesenhoNota9_2110(raw, f) === semDesenhoNota9_2110(semEste, f) && semHomeCardsClaros2010(raw, f) === semHomeCardsClaros2010(semEste, f) && semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
+  const igual = ADS_NOTA9_2110_ARQUIVOS.every((f) => { const raw = affiliateRaw(f, readFileSync(join(ROOT, f), 'utf8')), semEste = semAdsNota92110(raw, f); return semDesenhoNota9_2110(raw, f) === semDesenhoNota9_2110(semEste, f) && semHomeCardsClaros2010(raw, f) === semHomeCardsClaros2010(semEste, f) && semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
   const idem = semAdsNota92110('qualquer coisa', F.simple) === 'qualquer coisa' && semAdsNota92110(`x ${MARCA}`, 'outro/arquivo.ts') === `x ${MARCA}` && semAdsNota92110(null, F.simple) === null
   let lanca = false
   try { semAdsNota92110(rd(F.simple) + `\n// mais uma ${MARCA}`, F.simple) } catch { lanca = true }
