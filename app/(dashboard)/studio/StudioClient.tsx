@@ -2,6 +2,10 @@
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import StudioNearIdeaAction from '@/components/StudioNearIdeaAction'
 import MrrFirstFilm from '@/components/MrrFirstFilm'
+// BEGIN COMPRA-CLAREZA-2610 OWN-IDEA IMPORTS
+import OwnIdeaStart from '@/components/growth/OwnIdeaStart'
+import { applyOwnIdeaStarter, ownIdeaArrivalProtected } from '@/lib/growth/ownIdeaStart'
+// END COMPRA-CLAREZA-2610 OWN-IDEA IMPORTS
 import { MRR_NEAR_IDEA_ENABLED } from '@/lib/growth/mrrStudio'
 import { useMrrStudioFunnel } from '@/lib/growth/useMrrStudioFunnel'
 
@@ -1116,19 +1120,14 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
               </div>
             ) : null}
-            <div className="row" style={{ marginBottom: 8 }}>
-              {([
-                ['📊 Facts', '5 shocking facts about ', 'ai'],
-                ['🕵️ Mystery', 'The unsolved mystery of ', 'ai'],
-                ['📖 True Story', 'The incredible true story of ', 'ai'],
-                ['📝 My Script', '', 'verbatim'],
-              ] as const).map(([label, seed, mode]) => (
-                <button key={label} type="button" className="pill" style={{ fontSize: 11.5 }}
-                  onClick={() => { setScriptMode(mode as 'ai' | 'verbatim'); if (seed) setPrompt(seed) }}>
-                  <UiLabel>{label}</UiLabel>
-                </button>
-              ))}
-            </div>
+            {/* BEGIN COMPRA-CLAREZA-2610 OWN-IDEA START */}
+            <OwnIdeaStart prompt={prompt} mode={scriptMode} arrivalProtected={Boolean(chatGptQuickstart) || ownIdeaArrivalProtected(searchSignature)}
+              onUseStarter={(goal, reference, language) => {
+                setPrompt(current => applyOwnIdeaStarter(current, { mode: scriptMode, arrivalProtected: Boolean(chatGptQuickstart) || ownIdeaArrivalProtected(searchSignature) }, goal, reference, language))
+                promptRef.current?.focus()
+              }}
+              onReview={() => promptRef.current?.focus()} />
+            {/* END COMPRA-CLAREZA-2610 OWN-IDEA START */}
             {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — a pasted URL is never classified as a finished script. */}
             <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => { setPrompt(e.target.value); if (isStandaloneHttpUrl(e.target.value)) setChatGptQuickstart(null) }} onInput={(e) => { if (e.currentTarget.value.trim() && !isStandaloneHttpUrl(e.currentTarget.value)) recordMrr('mrr_idea_entered') }} rows={5}
               placeholder={chatGptQuickstart === 'finished_script'
