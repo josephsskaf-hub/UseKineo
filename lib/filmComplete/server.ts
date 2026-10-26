@@ -261,6 +261,8 @@ export async function retryPaidFilmCompleteIntents(
     .eq('name', FILM_COMPLETE_INTENT_EVENT).eq('metadata->>version', FILM_COMPLETE_VERSION)
     .in('metadata->>state', ['starting', 'waiting_entitlement']).not('metadata->>paid_session_id', 'is', null)
     .gte('metadata->>paid_at', new Date(now - 48 * 60 * 60_000).toISOString())
+    // Unchecked intents go first; repeated entitlement waits cannot monopolize the bounded retry pass.
+    .order('metadata->>retry_checked_at', { ascending: true, nullsFirst: true })
     .order('created_at', { ascending: true }).limit(10)
   if (error) throw new Error('film_complete_retry_unavailable')
   let scanned = 0
@@ -271,9 +273,20 @@ export async function retryPaidFilmCompleteIntents(
     if (!intent || !text(intent.metadata.paid_session_id)) continue
     const paidAt = Date.parse(text(intent.metadata.paid_at))
     if (!Number.isFinite(paidAt) || paidAt > now) continue
+    const observed = await filmCompleteStatus(db, intent)
+    const retire = ['processing', 'completed', 'failed'].includes(String(observed.state))
     const leaseAt = Date.parse(text(intent.metadata.launch_at))
-    if (Number.isFinite(leaseAt) && now - leaseAt < 5 * 60_000) continue
-    const task = async () => { await launch(db, intent, origin) }
+    if (!retire && Number.isFinite(leaseAt) && now - leaseAt < 5 * 60_000) continue
+    const metadata = { ...intent.metadata, retry_checked_at: new Date(now).toISOString(), ...(retire ? { state: observed.state } : {}) }
+    // Compare the complete JSON snapshot: a concurrent writer/launcher may have frozen the screenplay
+    // since our read. A lost CAS skips this intent instead of overwriting that newly saved text or lease.
+    const { data: reconciled, error: re } = await db.from('events').update({ metadata }).eq('id', intent.id)
+      .eq('user_id', intent.userId).eq('name', FILM_COMPLETE_INTENT_EVENT)
+      .eq('metadata', JSON.stringify(intent.metadata)).select('id').maybeSingle()
+    if (re) throw new Error('film_complete_retry_reconcile_unavailable')
+    if (!reconciled || retire) continue
+    const currentIntent = { ...intent, metadata }
+    const task = async () => { await launch(db, currentIntent, origin) }
     if (!depoisDaResposta('film-complete-retry', task)) await task()
     return { scanned, scheduled: 1 }
   }
