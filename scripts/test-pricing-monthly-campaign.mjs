@@ -54,6 +54,7 @@ export function fixture(before = false) {
       if (name === '@/lib/checkoutTelemetry') return { useCheckoutLaunch: () => ({ pending: null, error: null,
         setError: noop, launch: (tier, href, metadata) => { launches.push({ tier, href, metadata }); return true } }) }
       if (name === '@/components/FreeTierOfferProvider') return { useFreeTierOffer: () => load('lib/freeTierOffer.ts').buildFreeTierOffer(false) }
+      if (name === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => 'en' } // KINEO-AFILIADO-50-2610: display language is deterministic; effects/network stay forbidden.
       if (name.startsWith('@/components/') || name === './AutopilotBreakEvenCalculator') return () => null
       if (name.startsWith('@/') || name.startsWith('.')) {
         const base = name.startsWith('@/') ? name.slice(2) : path.join(path.dirname(file), name)
