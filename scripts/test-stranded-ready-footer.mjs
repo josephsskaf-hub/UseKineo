@@ -6,6 +6,7 @@
 // avisam o mesmo render duas vezes. Le a rota real + roda a funcao real do
 // rodape com as MESMAS entradas que a rota monta (perfil + linha de videos).
 import { readFileSync } from 'node:fs'
+import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs' // Exact later email layer; current raw behavior has its own guardian.
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -14,7 +15,7 @@ const require = createRequire(import.meta.url)
 const ts = require(path.join(root, 'node_modules/typescript'))
 let n = 0, fail = 0
 const ok = (cond, msg) => { n++; if (!cond) { fail++; console.log('FAIL', n, msg) } else console.log('ok  ', n, msg) }
-const read = (p) => readFileSync(path.join(root, p), 'utf8')
+const read = (p) => semUpsellFilme152610(readFileSync(path.join(root, p), 'utf8'), p)
 function loadTs(p, mocks = {}) {
   const out = ts.transpileModule(read(p), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: p }).outputText
   const m = { exports: {} }
