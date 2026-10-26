@@ -22,8 +22,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { root, offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
-const read = (rel) => semClareza1610(rel, readFileSync(resolve(root, rel), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
+const read = (rel) => semClareza1610(rel, semAfiliado50_2610(rel, readFileSync(resolve(root, rel), 'utf8'))).replace(/\r\n/g, '\n') // Later independent affiliate offer exits before the historical clarity layer.
 const VALUE = 'lib/pricingPlanValue.ts'
 const STAGE = 'components/pricing/PlanValueStage.tsx'
 const CLIENT = 'app/pricing/PricingClient.tsx'
