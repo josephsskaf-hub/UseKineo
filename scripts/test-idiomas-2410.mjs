@@ -27,7 +27,7 @@ function contract(M) {
   const {T,K,V,F} = M
   assert.equal(T.NARRATION_LANGUAGES.length, 39)
   assert.equal(new Set(T.NARRATION_LANGUAGE_CODES).size, 39)
-  assert.equal(T.NARRATION_LANGUAGES.filter(l => l.minimaxPrimary).length, 22)
+  assert.equal(T.NARRATION_LANGUAGES.filter(l => l.minimaxPrimary).length, 24) /* reancorado KINEO-VOZ-NATIVA-2610 — pt e es entraram na MiniMax (fundador 26/10 "2A") */
   assert.deepEqual(json(T.NARRATION_LANGUAGES.filter(l => l.minimaxBoost).map(l => l.minimaxBoost).sort()), enumBoosts.toSorted())
   assert.deepEqual(json(K.KIDS_CARTOON_LANGUAGES), json(T.NARRATION_LANGUAGE_CODES))
   assert.equal(T.minimaxLanguageBoost('yue'), 'Chinese,Yue')

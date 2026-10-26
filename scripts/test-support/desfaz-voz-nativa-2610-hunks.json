@@ -1,0 +1,16 @@
+{
+ "marca": "KINEO-VOZ-NATIVA-2610",
+ "base": "162491513eaf282b5033d9fd9b125c0389803d33",
+ "scope": {
+  "lib/textLanguage.ts": {
+   "beforeSha256": "f30851532d242cb05e7ac710de917c5358947b235cdb39c61b865c6bc3d2103d",
+   "afterSha256": "aa31ff9b7e75c5c54baaeb2518c9fbac09a9fc229a51e9199c4f7f9a534fa813",
+   "hunks": [
+    {
+     "before": "  { code: 'en', name: 'English', native: 'English', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'English', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Portuguese', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Spanish', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n  { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', minimaxBoost: 'Hindi', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n",
+     "after": "  { code: 'en', name: 'English', native: 'English', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'English', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Portuguese', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-2610 — voz nativa MiniMax (Portuguese_ConfidentWoman); a tts-1-hd americana lia português com sotaque (chave azul 26/10: \"a menina\" ouvida como \"o menino\")\n  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Spanish', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-2610 — voz nativa MiniMax (Spanish_ConfidentWoman)\n  { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', minimaxBoost: 'Hindi', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410\n"
+    }
+   ]
+  }
+ }
+}

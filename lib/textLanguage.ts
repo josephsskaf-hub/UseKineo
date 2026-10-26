@@ -28,8 +28,8 @@ export interface NarrationLanguageSpec {
 export const DEFAULT_CAPTION_FONT = 'Montserrat'
 export const NARRATION_LANGUAGES: readonly NarrationLanguageSpec[] = [
   { code: 'en', name: 'English', native: 'English', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'English', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
-  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Portuguese', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
-  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Spanish', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
+  { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Portuguese', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-2610 — voz nativa MiniMax (Portuguese_ConfidentWoman); a tts-1-hd americana lia português com sotaque (chave azul 26/10: "a menina" ouvida como "o menino")
+  { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'Spanish', minimaxPrimary: true, rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-2610 — voz nativa MiniMax (Spanish_ConfidentWoman)
   { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', minimaxBoost: 'Hindi', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
   { code: 'bn', name: 'Bengali', native: 'বাংলা', captionFont: 'Noto Sans Bengali', rtl: false }, // KINEO-LEGENDA-BENGALI-2010 — mesma estrada Google Fonts já usada pelo hindi
   { code: 'fr', name: 'French', native: 'Français', captionFont: DEFAULT_CAPTION_FONT, minimaxBoost: 'French', rtl: false }, // KINEO-IDIOMAS-FORMATOS-2410
