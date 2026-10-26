@@ -116,6 +116,6 @@ export default async function OgImage({ params }: { params: { id: string } }) {
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, headers: { 'cache-control': 'private, no-store, max-age=0' } },
   )
 }

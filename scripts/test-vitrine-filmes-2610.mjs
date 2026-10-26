@@ -278,7 +278,7 @@ for (const raw of [
   const db = database({ rows: [fixture(raw)] })
   const og = load('app/v/[id]/opengraph-image.tsx', {
     'react/jsx-runtime': jsxRuntime,
-    'next/og': { ImageResponse: class { constructor(element) { this.html = renderToStaticMarkup(element) } } },
+    'next/og': { ImageResponse: class { constructor(element, options) { this.html = renderToStaticMarkup(element); this.headers = new Headers(options.headers) } } },
     'next/navigation': { notFound() { throw Error('FIXTURE_NOT_FOUND') } },
     '@supabase/supabase-js': { createClient: () => db.client() },
     '@/lib/publicSurfacePolicy': { publicSurfaceAllowsRow: value => !!value },
@@ -286,6 +286,7 @@ for (const raw of [
   })
   const bitmap = await og.default({ params: { id: ID } })
   check(!bitmap.html.includes('contact@example.invalid') && bitmap.html.includes('[redacted]'), 'generated OG never paints an email from title or topic fallback')
+  check(bitmap.headers.get('cache-control') === 'private, no-store, max-age=0', 'OG overrides the immutable one-year ImageResponse default, including browser caches')
 }
 {
   const db = database({ rows: [fixture({ published_at: null })] })
@@ -491,6 +492,7 @@ if (process.argv.includes('--mutants')) {
     ['revoked-preview-cached', 'app/v/[id]/opengraph-image.tsx', "fetchCache = 'force-no-store'", "fetchCache = 'force-cache'"],
     ['preview-email-leak', 'app/v/[id]/opengraph-image.tsx', "raw.replace(/\\b[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+\\b/g, '[redacted]')", 'raw'],
     ['legacy-source-forges-showcase-consent', 'app/api/video/publish/route.ts', ".replace(/^vitrine_filmes_2610$/, 'email_delivery')", ''],
+    ['preview-public-immutable-cache', 'app/v/[id]/opengraph-image.tsx', "headers: { 'cache-control': 'private, no-store, max-age=0' }", "headers: { 'cache-control': 'public, immutable, max-age=31536000' }"],
   ]
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'kineo-vitrine-mutants-'))
   try {
