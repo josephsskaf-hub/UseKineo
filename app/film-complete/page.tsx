@@ -35,7 +35,8 @@ function FilmCompleteContent() {
   const intentId = UUID.test(rawIntent) ? rawIntent : null
   const cancelled = params.get('cancelled') === '1'
   const language = useInterfaceLanguage()
-  const copy = COPY[language === 'pt' || language === 'es' ? language : 'en']
+  const copyLanguage = language === 'pt' || language === 'es' ? language : 'en'
+  const copy = COPY[copyLanguage]
   const welcomeLive = useWelcome20OfferLive(WELCOME20_SITE_OFFER_LIVE)
   const offer = filmCompleteCopy(language, welcomeLive)
   const [status, setStatus] = useState<Status | null>(null)
@@ -44,10 +45,23 @@ function FilmCompleteContent() {
   const [retry, setRetry] = useState(0)
 
   useEffect(() => {
+    setStatus(null)
+    setNeedsLogin(false)
+    setNetworkError(false)
     if (!intentId) return
     let alive = true
     let timer: ReturnType<typeof setTimeout> | undefined
     let lastStartAt = 0
+    let startInFlight = false
+    let latestState: State | null = null
+    const requests = new Set<AbortController>()
+    const terminal = (state: State | null) => state === 'completed' || state === 'failed' || state === 'unavailable'
+    const request = (url: string, init: RequestInit, timeoutMs: number) => {
+      const controller = new AbortController()
+      requests.add(controller)
+      const timeout = setTimeout(() => controller.abort(), timeoutMs)
+      return fetch(url, { ...init, signal: controller.signal }).finally(() => { clearTimeout(timeout); requests.delete(controller) })
+    }
     const accept = (value: unknown): Status | null => {
       if (!value || typeof value !== 'object') return null
       const candidate = value as Partial<Status>
@@ -56,10 +70,11 @@ function FilmCompleteContent() {
     const check = async () => {
       let next: Status | null = null
       try {
-        const response = await fetch(`/api/film-complete/status?intent=${encodeURIComponent(intentId)}`, { cache: 'no-store', signal: AbortSignal.timeout(8_000) })
+        const response = await request(`/api/film-complete/status?intent=${encodeURIComponent(intentId)}`, { cache: 'no-store' }, 8_000)
         if (!alive) return
         if (response.status === 401) { setNeedsLogin(true); return }
         if (response.status === 403 || response.status === 404) {
+          latestState = 'unavailable'
           setStatus({ state: 'unavailable', intentId })
           setNetworkError(false)
           return
@@ -67,7 +82,8 @@ function FilmCompleteContent() {
         if (!response.ok) throw new Error('status_unavailable')
         next = accept(await response.json())
         if (!next) throw new Error('invalid_status')
-        if (!alive) return
+        if (!alive || terminal(latestState)) return
+        latestState = next.state
         setStatus(next)
         setNeedsLogin(false)
         setNetworkError(false)
@@ -75,43 +91,56 @@ function FilmCompleteContent() {
         // a query parameter, success-page visit or local storage can never authorize generation.
         const shouldStart = (!cancelled && next.state === 'awaiting_payment')
           || next.state === 'waiting_entitlement' || next.state === 'starting'
-        if (shouldStart && Date.now() - lastStartAt >= 10_000) {
+        if (shouldStart && !startInFlight && Date.now() - lastStartAt >= 10_000) {
           lastStartAt = Date.now()
-          const started = await fetch('/api/film-complete/start', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intentId }),
-            cache: 'no-store', signal: AbortSignal.timeout(12_000),
-          })
-          if (!alive) return
-          if (started.status === 401) { setNeedsLogin(true); return }
-          if (started.ok || started.status === 402) {
-            const updated = accept(await started.json())
-            if (updated && alive) { next = updated; setStatus(updated) }
-          }
+          startInFlight = true
+          // Launching may take longer than a status read. Keep the GET poll independent and allow only one launch
+          // request in flight. Every request uses the same saved intent; the server owns paid/idempotency checks.
+          void (async () => {
+            try {
+              const started = await request('/api/film-complete/start', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intentId }), cache: 'no-store',
+              }, 45_000)
+              if (!alive || terminal(latestState)) return
+              if (started.status === 401) { setNeedsLogin(true); return }
+              if (started.status === 403 || started.status === 404) {
+                latestState = 'unavailable'
+                setStatus({ state: 'unavailable', intentId })
+                return
+              }
+              if (started.ok || started.status === 402) {
+                const updated = accept(await started.json())
+                if (updated && alive && !terminal(latestState)) { latestState = updated.state; setStatus(updated) }
+              } else if (alive) setNetworkError(true)
+            } catch { if (alive && !terminal(latestState)) setNetworkError(true) }
+            finally { startInFlight = false }
+          })()
         }
-      } catch { if (alive) setNetworkError(true) }
-      if (alive && !next?.state.match(/^(completed|failed|unavailable)$/)) timer = setTimeout(() => { void check() }, 3_000)
+      } catch { if (alive && !terminal(latestState)) setNetworkError(true) }
+      if (alive && !terminal(latestState)) timer = setTimeout(() => { void check() }, 3_000)
     }
     void check()
-    return () => { alive = false; if (timer) clearTimeout(timer) }
+    return () => { alive = false; if (timer) clearTimeout(timer); requests.forEach((controller) => controller.abort()) }
   }, [intentId, cancelled, retry])
 
-  const state = status?.state
+  const currentStatus = status?.intentId === intentId ? status : null
+  const state = currentStatus?.state
   const saved = cancelled && state === 'awaiting_payment'
   const creating = state === 'starting' || state === 'processing'
   const unavailable = !intentId || state === 'unavailable'
-  const videoUrl = safeVideoUrl(status?.videoUrl)
-  const sourceUrl = safeVideoUrl(status?.sourceVideoUrl)
+  const videoUrl = safeVideoUrl(currentStatus?.videoUrl)
+  const sourceUrl = safeVideoUrl(currentStatus?.sourceVideoUrl)
   const title = needsLogin || unavailable ? copy.unavailable : saved ? copy.saved
     : state === 'completed' ? copy.completed : state === 'failed' ? copy.failed
-      : creating ? copy.creating : status ? copy.pending : copy.checking
+      : creating ? copy.creating : currentStatus ? copy.pending : copy.checking
   const body = needsLogin || unavailable ? copy.unavailableBody : saved ? copy.savedBody
     : state === 'completed' ? copy.completedBody : state === 'failed' ? copy.failedBody
-      : creating ? copy.creatingBody : status ? copy.pendingBody : ''
+      : creating ? copy.creatingBody : currentStatus ? copy.pendingBody : ''
   const buttonStyle = { display: 'block', width: '100%', padding: '13px 16px', borderRadius: 12, lineHeight: 1.45, textAlign: 'center' as const, fontSize: 15, fontWeight: 800, textDecoration: 'none', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }
   const loginReturn = `/film-complete?${new URLSearchParams({ ...(intentId ? { intent: intentId } : {}), ...(cancelled ? { cancelled: '1' } : {}) }).toString()}`
 
   return <main style={{ minHeight: '80vh', background: 'var(--bg)', color: 'var(--text)', padding: '36px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <section dir={interfaceLanguageIsRtl(language) ? 'rtl' : undefined} data-kineo="film15-full-result"
+    <section lang={copyLanguage} dir="ltr" data-kineo="film15-full-result"
       style={{ width: '100%', maxWidth: 520, padding: 'clamp(22px, 5vw, 32px)', border: '1px solid var(--border)', borderRadius: 22, background: 'var(--card)', boxSizing: 'border-box' }}>
       <h1 style={{ margin: 0, fontSize: 'clamp(1.45rem, 5vw, 1.9rem)', lineHeight: 1.2 }} aria-live="polite">{title}</h1>
       {body ? <p style={{ margin: '14px 0 20px', color: 'var(--muted2)', fontSize: 15, lineHeight: 1.6 }}>{body}</p> : null}
@@ -122,7 +151,7 @@ function FilmCompleteContent() {
       {saved ? <>
         {sourceUrl ? <video controls playsInline preload="none" src={sourceUrl} style={{ display: 'block', width: '100%', maxHeight: 340, borderRadius: 12, background: '#000', marginBottom: 16 }} /> : null}
         <a href={sourceUrl ?? '/history'} download={sourceUrl ? 'kineo-free-film.mp4' : undefined} style={buttonStyle}>{sourceUrl ? copy.source : copy.films}</a>
-        <p style={{ margin: '18px 0 8px', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.5 }}>{offer.billing}</p>
+        <p lang={language} dir={interfaceLanguageIsRtl(language) ? 'rtl' : 'ltr'} style={{ margin: '18px 0 8px', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.5 }}>{offer.billing}</p>
         <a href={`/api/film-complete/checkout?intent=${encodeURIComponent(intentId!)}`} style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', fontWeight: 750, fontSize: 14 }}>{copy.resume} →</a>
       </> : null}
       {needsLogin ? <Link href={`/login?redirect=${encodeURIComponent(loginReturn)}`} style={buttonStyle}>{copy.login}</Link> : null}

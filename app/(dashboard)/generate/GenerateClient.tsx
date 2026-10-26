@@ -5803,8 +5803,8 @@ export default function GenerateClient({
         !falUsedRef.current && Boolean(lastFastRenderRef.current)
   // KINEO-UPSELL-FILME15-2610 — one personalized primary offer replaces generic clean-export checkouts for this cohort.
   const fullVersionOfferEligible = Boolean(publicVideoId) && film60UpsellEligible({
-    plan: commercialPlan, hasPaid, engine: mode === 'cinematic_ai' ? aiEngine : null,
-    seconds: duration, delivered: phase === 'done' && Boolean(finalVideoUrl),
+    plan: commercialPlan, hasPaid, quality: falUsedRef.current ? falQualityRef.current : null,
+    seconds: finalVideoSeconds ?? duration, delivered: phase === 'done' && Boolean(finalVideoUrl),
   })
   const showPostVideoExportChoice =
     phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
@@ -5990,13 +5990,11 @@ export default function GenerateClient({
   // five cumulative seconds of real, visible playback before judging whether
   // an offer was shown before value was perceived. No player or offer behavior
   // changes; this is an invisible measurement gate.
-  // KINEO-UPSELL-FILME15-2610 — read current ownership/eligibility when actual playback reaches five seconds.
-  // An offer impression alone never becomes evidence that someone watched their free film.
-  const film15WatchContextRef = useRef({ videoId: publicVideoId, eligible: false })
-  film15WatchContextRef.current = {
-    videoId: publicVideoId,
-    eligible: fullVersionOfferEligible,
-  }
+  // KINEO-UPSELL-FILME15-2610 — keep actual playback evidence until the profile and saved film id resolve.
+  // Hydration can happen after five seconds; it must not discard a real sample or invent a new watch.
+  const film15PlaybackEvidenceRef = useRef<Record<string, unknown> | null>(null)
+  const film15WatchAttemptsRef = useRef({ key: '', count: 0 })
+  const [film15PlaybackTick, setFilm15PlaybackTick] = useState(0)
   const resultVideoValueContextRef = useRef<ResultVideoValueContext>({
     attemptId: generationAttemptRef.current ?? '',
     quality: planFitNormalizedQuality,
@@ -6036,13 +6034,10 @@ export default function GenerateClient({
       writeLatch: (key, value) => localStorage.setItem(key, value),
       removeLatch: (key) => localStorage.removeItem(key),
       emit: async (metadata) => {
-        const watchedFilm = film15WatchContextRef.current
         const recorded = await trackClosedEvent(RESULT_VIDEO_VALUE_SAMPLED_EVENT, metadata)
-        if (recorded === 'stored' && watchedFilm.eligible && watchedFilm.videoId) {
-          await trackClosedEvent('film15_free_film_watched', {
-            ...metadata, version: FILM_COMPLETE_VERSION, source_video_id: watchedFilm.videoId,
-            video_id: watchedFilm.videoId, surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
-          })
+        if (recorded === 'stored') {
+          film15PlaybackEvidenceRef.current = metadata
+          setFilm15PlaybackTick((value) => value + 1)
         }
         return recorded
       },
@@ -6092,6 +6087,39 @@ export default function GenerateClient({
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [phase, finalVideoUrl])
+  useEffect(() => {
+    const evidence = film15PlaybackEvidenceRef.current
+    if (!fullVersionOfferEligible || !publicVideoId || !evidence || evidence.threshold_seconds !== 5 ||
+        evidence.attempt_id !== generationAttemptRef.current) return
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+    if (!locks) return
+    const key = `kineo:${FILM_COMPLETE_VERSION}:watched:${publicVideoId}`
+    if (film15WatchAttemptsRef.current.key !== key) film15WatchAttemptsRef.current = { key, count: 0 }
+    let active = true
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    void locks.request(`${key}:lock`, async () => {
+      if (!active || film15WatchAttemptsRef.current.count >= 2) return
+      try {
+        const previous = localStorage.getItem(key)
+        if (previous === 'stored' || previous === 'pending') return
+        localStorage.setItem(key, 'pending')
+        if (localStorage.getItem(key) !== 'pending') return
+        film15WatchAttemptsRef.current.count += 1
+        const outcome = await trackClosedEvent('film15_free_film_watched', {
+          ...evidence, version: FILM_COMPLETE_VERSION, source_video_id: publicVideoId,
+          video_id: publicVideoId, surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
+        })
+        if (outcome === 'not_stored') {
+          localStorage.removeItem(key)
+          if (active && film15WatchAttemptsRef.current.count < 2) {
+            retryTimer = setTimeout(() => setFilm15PlaybackTick((value) => value + 1), 2_000)
+          }
+        } else if (outcome === 'stored') localStorage.setItem(key, 'stored')
+        // Ambiguous delivery keeps the pending latch: another tab must not duplicate a possible stored event.
+      } catch { /* Tracking fails closed; it never changes playback, the offer or generation. */ }
+    }).catch(() => { /* An unavailable cross-tab lock cannot manufacture a watch. */ })
+    return () => { active = false; if (retryTimer) clearTimeout(retryTimer) }
+  }, [film15PlaybackTick, fullVersionOfferEligible, publicVideoId, phase, finalVideoUrl])
   const planFitOfferCandidate =
     phase === 'done' &&
     Boolean(finalVideoUrl) &&
