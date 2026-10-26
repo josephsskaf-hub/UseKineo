@@ -579,7 +579,7 @@ export async function GET(
       )
     }
 
-    let state
+    let state: Awaited<ReturnType<typeof pollCreatomateRender>>
     try {
       state = await pollCreatomateRender(renderId)
     } catch (err) {
@@ -592,12 +592,6 @@ export async function GET(
     }
 
     if (state.status === 'succeeded' && state.url) {
-      // KINEO-DURACAO-REAL-2026-08-20 — a partir daqui, `duration` é a duração
-      // do ARQUIVO (o Creatomate acabou de montá-lo e sabe o número exato). O
-      // valor pedido só sobrevive se o fornecedor não devolver a medida.
-      if (typeof state.durationSeconds === 'number' && state.durationSeconds > 0) {
-        duration = Math.round(state.durationSeconds)
-      }
       if (prepaidCinematicClaim?.status === 'released') {
         return NextResponse.json({
           phase: 'failed',
@@ -609,6 +603,32 @@ export async function GET(
           creditsRefunded: prepaidCinematicClaim.creditCost,
           progress: 0,
         })
+      }
+      // KINEO-FILME15-PERFEITO-2610: authoritative birth, never ?duration or ?quality.
+      // This runs BEFORE any settlement, history insert, ready email or URL response.
+      let free15GateFailure: { reason: string; creditsRefunded: number } | null = null
+      if (quality === 'cinematic_ai' && prepaidCinematicClaim?.response?.duration === 15) {
+        const { isSeedanceShortClaim } = await import('@/lib/durationByEngine')
+        const { FREE15_GATE_VERSION } = await import('@/lib/free15Gate')
+        if (isSeedanceShortClaim(prepaidCinematicClaim.response) && prepaidCinematicClaim.response.free15_gate_version === FREE15_GATE_VERSION && cinematicAdmin) {
+          const { runFree15Gate, refundFailedFree15Gate } = await import('@/lib/free15GateServer')
+          const ctx = { db: cinematicAdmin, secret: cinematicSecret, userId: user.id, renderId, claim: prepaidCinematicClaim }
+          const gate = await runFree15Gate({ ...ctx, media: { url: state.url, snapshotUrl: state.snapshotUrl, durationSeconds: state.exactDurationSeconds ?? null } })
+          if (gate.status === 'pending') return NextResponse.json({ phase: 'processing', progress: 97, quality_review: true })
+          if (gate.status === 'failed') {
+            const creditsRefunded = await refundFailedFree15Gate({ ...ctx, reason: gate.reason })
+            if (creditsRefunded === null) return NextResponse.json({ phase: 'processing', progress: 98, reconcile: true, quality_review: true })
+            free15GateFailure = { reason: gate.reason, creditsRefunded }
+          }
+          state = { ...state, url: gate.media.url, snapshotUrl: gate.media.snapshotUrl, durationSeconds: gate.media.durationSeconds }
+        }
+      }
+      if (!state.url) return NextResponse.json({ phase: 'processing', progress: 98 })
+      // KINEO-DURACAO-REAL-2026-08-20 — a partir daqui, `duration` é a duração
+      // do ARQUIVO (o Creatomate acabou de montá-lo e sabe o número exato). O
+      // valor pedido só sobrevive se o fornecedor não devolver a medida.
+      if (typeof state.durationSeconds === 'number' && state.durationSeconds > 0) {
+        duration = Math.round(state.durationSeconds)
       }
       let creditsDeducted = prepaidCinematicClaim !== null || prepaidAvatarClaim !== null
       let creditsRemaining: number | null = null
@@ -1109,7 +1129,7 @@ export async function GET(
             // e worker de demo — nascia "Untitled Short": 44% dos vídeos de
             // 21/08. `topicFinal` cai no claim quando a URL não traz nada.
             topic: topicFinal,
-            creditsUsed: cost,
+            creditsUsed: free15GateFailure ? 0 : cost,
             youtubeDescription: historyDescription,
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
@@ -1539,8 +1559,9 @@ export async function GET(
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,
         progress: 100,
-        creditsDeducted,
+        creditsDeducted: free15GateFailure ? false : creditsDeducted,
         creditsRemaining,
+        ...(free15GateFailure ? { free15_gate_failed: true, quality_review_reason: free15GateFailure.reason, creditsRefunded: free15GateFailure.creditsRefunded } : {}),
       })
     }
 

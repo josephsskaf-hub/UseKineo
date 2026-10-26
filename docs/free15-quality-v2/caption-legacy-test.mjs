@@ -5,6 +5,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semFilme15Perfeito2610 } from '../../scripts/test-support/desfaz-filme15-perfeito-2610.mjs'
 import { CAPTION_CANONICO_MANIFEST as manifest, semCaptionCanonico2610 as undo, comCaptionCanonico2610 as redo } from '../../scripts/test-support/desfaz-caption-canonico-2610.mjs'
 import { semFilme15Fiel2610 } from '../../scripts/test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-FIEL-2610
 
@@ -13,7 +14,7 @@ const flat = s => s.replace(/\r\n/g, '\n')
 const crlf = s => flat(s).replace(/\n/g, '\r\n')
 const hash = s => crypto.createHash('sha256').update(s).digest('hex')
 const git = (...args) => flat(execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }))
-const read = file => flat(fs.readFileSync(path.join(root, file), 'utf8'))
+const read = file => flat(semFilme15Perfeito2610(fs.readFileSync(path.join(root, file), 'utf8'), file))
 let checks = 0, mutants = 0
 const check = fn => { fn(); checks++ }
 function preserveMutation(source, file, base) {

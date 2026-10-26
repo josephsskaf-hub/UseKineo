@@ -1,0 +1,125 @@
+{
+  "task": "KINEO-FILME15-PERFEITO-2610",
+  "classification": "TESTADO LOCALMENTE — 26/10/2026; não validado por render novo em produção",
+  "recordedAt": "2026-10-26T18:29:30.785Z",
+  "base": "2072944f17eab603bc40fcaa0d576d3b0ce9c78f",
+  "branch": "codex/filme15-perfeito-2610",
+  "productHead": "4ac68ed82f90095afa62a03c14629414dc88d077",
+  "node": "v24.18.0",
+  "typescript": {
+    "started": "2026-10-26T18:13:53.985Z",
+    "finished": "2026-10-26T18:14:05.151Z",
+    "command": "node node_modules/typescript/lib/tsc.js --noEmit",
+    "version": "5.9.3",
+    "head": "4ac68ed82f90095afa62a03c14629414dc88d077",
+    "exitCode": 0,
+    "error": null,
+    "productHashesMatchFinal": true
+  },
+  "allScripts": {
+    "requestedGlob": "scripts/test-*.mjs",
+    "total": 1021,
+    "executed": 1021,
+    "firstPassFailures": 162,
+    "finalPassed": 860,
+    "finalFailed": 161,
+    "knownAllowedFailures": 7,
+    "additionalPreexistingFailures": 154,
+    "uncomparedFailures": 0,
+    "newlyObservedRegressions": 0,
+    "onlySevenKnownRedCriterionMet": false
+  },
+  "focusedGuards": {
+    "count": 10,
+    "allPassed": true,
+    "files": [
+      "test-filme15-cena-visivel-2610.mjs",
+      "test-filme15-duracao-2610.mjs",
+      "test-filme15-gate-integration-2610.mjs",
+      "test-filme15-legenda-canonica-2610.mjs",
+      "test-filme15-legenda-inteira-2610.mjs",
+      "test-filme15-numero-unidade-2610.mjs",
+      "test-filme15-objetos-2610.mjs",
+      "test-filme15-perfeito-2610.mjs",
+      "test-filme15-perfeito-undo-2610.mjs",
+      "test-filme15-portao-fonte-2610.mjs"
+    ],
+    "stateMachineRejectedMutants": 8
+  },
+  "exactUndo": {
+    "chain": "CAPTION-CANONICO → FILME15-FIEL → FILME15-PERFEITO; ROSTO standalone also strips PERFEITO first",
+    "status": "PASS",
+    "olderManifestsUnmodified": true,
+    "checks": 384,
+    "rejectedMutants": 101,
+    "scopeFiles": 19,
+    "addedFiles": 27
+  },
+  "limits": {
+    "paidRenders": 0,
+    "environmentFileReads": 0,
+    "productionWrites": 0,
+    "readOnlyEvidence": "SELECT and GET of existing frames",
+    "productionQualityValidation": false,
+    "captionFaceOcclusionNotResolvedByWordGrouping": true,
+    "properNameGroupingUncalibrated": true,
+    "unresolvedNarrationMismatchAfterRepair": "fail/refund; clean frames cannot certify unchanged audio"
+  },
+  "baselineComparison": {
+    "mode": "Every final failing script rerun in a detached worktree at exact base, with the same sanitized environment/offline guard. This is a comparison of failures, not a complete run of all baseline scripts.",
+    "outcome": "All final failures reproduce in base. Error signatures checked, including failures within already-red scripts; historical retry response and exact quota/status projection retested without removing original assertions.",
+    "notAClaim": "Failing scripts include stale assertions/legacy loaders. Counts do not mean 161 newly found product bugs.",
+    "errorSignatures": {
+      "compared": 161,
+      "identicalErrorMultisets": 160,
+      "improvedErrors": 1,
+      "newErrorsRemaining": 0,
+      "fullLogsEquivalentAfterNormalizingTransportNoise": 158,
+      "details": "E4 final retest: exactly three existing failures (71/74); retry response guard: 138/138. The remaining error-signature change improves LevaConfiabilidade from four failures to three."
+    }
+  },
+  "lateFixRetests": [
+    {
+      "file": "test-filme15-perfeito-2610.mjs",
+      "started": "2026-10-26T18:15:08.647Z",
+      "finished": "2026-10-26T18:15:09.289Z",
+      "status": 0,
+      "error": null,
+      "head": "4ac68ed82f90095afa62a03c14629414dc88d077"
+    },
+    {
+      "file": "test-cena-classica-retentativa-2026-09-28.mjs",
+      "started": "2026-10-26T18:15:09.317Z",
+      "finished": "2026-10-26T18:15:13.662Z",
+      "status": 0,
+      "error": null,
+      "head": "4ac68ed82f90095afa62a03c14629414dc88d077"
+    },
+    {
+      "file": "test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+      "started": "2026-10-26T18:22:30.707Z",
+      "finished": "2026-10-26T18:22:34.918Z",
+      "status": 1,
+      "error": null,
+      "head": "4ac68ed82f90095afa62a03c14629414dc88d077",
+      "note": "exact projection restores 71/74; remaining three failures reproduced in base207"
+    }
+  ],
+  "productSourcesSha256LF": {
+    "app/api/compose/route.ts": "803f39bf5e38789e5e7ca3369696d3756b08186adb52321d941c98ee1120342a",
+    "app/api/compose/status/[renderId]/route.ts": "9106db723c1f8bdf8d01ad8784148af1ace6b38cd6e0f8aa8e56fc766c49e24d",
+    "app/api/events/route.ts": "afb41462c82283c90b3ab9c9597c5360d5a96848e4f5bfbe2464b61788496ef5",
+    "app/api/generate-video-cinematic/route.ts": "201d47f39e06118a686d620c3c444da66e4302afcc994efe6932545c83bebd9a",
+    "lib/cinematic/filme15Perfeito.ts": "3aa53809b1818554e62d67fc14394e1a94638b3d5ccc5ff16ada1a0e6c16f5fb",
+    "lib/cinematic/objetosSemTexto15.ts": "068536d360b0eef6631f3404ccee8f1124d212b2e489eb57b0ead7a555ba9d0c",
+    "lib/compose.ts": "c108e1b55a82158b16c0784699c77394a7443d2d28b7c03df5d7021d204ab2ea",
+    "lib/filmes/faceless15.ts": "7b23dc41a6c9ccb78c9ee347028cfa0dd9bf00edc5be8d901d4b8759df9d2b22",
+    "lib/free15CanonicalCaptions.ts": "e21d3983edf1204aaf433fe0b4f45819cdcf2d03917d7909c953e155848543df",
+    "lib/free15Gate.ts": "52a27c2d8f734a6180cb4ab18dcfa3ebfb39463444fc333b890307a42a98c2cc",
+    "lib/free15GateServer.ts": "a276bf4ce9a43d692d92244da30868d8fe1835ef1e2597ddf505df4f9a8dc2df",
+    "lib/regua95/pixelScore.ts": "a30e5c860faa159d2924babfc867a2503027e016fa62782fa5143455137f81a0"
+  },
+  "readme": "README.md",
+  "details": "qa-results.json",
+  "recommendation": "BLOQUEADO pela régua global: triar as 154 falhas adicionais já existentes na base antes de merge; não alterar oferta, preços ou outros motores para esconder teste vermelho."
+}

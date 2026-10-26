@@ -17,7 +17,8 @@
 //   3. regras de CÓDIGO por cima do modelo (a nota nasce aqui, não da confiança no modelo): quadro quase preto pelo tamanho
 //      do JPEG, rosto/mão deformada em 2+ quadros, personagem que troca, produto infiel (Ads), legenda ilegível.
 // Custo alvo ≤ US$ 0,03 por vídeo: ~US$ 0,015 da visão + ~US$ 0,002–0,005 da fal (estimado pelo tempo; docs/REGUA-95-2026-10-19.md). Roda DEPOIS da entrega
-// (cron /api/cron/regua-95); nunca no caminho do cliente; falha aberta (erro = sem nota, nunca exceção).
+// (cron /api/cron/regua-95); erro = sem nota, nunca exceção. KINEO-FILME15-PERFEITO-2610: o portão Seedance15 também
+// chama esta régua antes de entregar; o chamador exige evidência completa e trata erro como falha com estorno.
 import type { ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
@@ -70,7 +71,7 @@ type FalImage = { url?: unknown; file_size?: unknown }
 export async function extractFramesFal(
   videoUrl: string,
   seconds: number | null | undefined,
-  opts?: { fetchImpl?: typeof fetch; falKey?: string; timeoutMs?: number },
+  opts?: { fetchImpl?: typeof fetch; falKey?: string; timeoutMs?: number; fps?: number; exactFrameTimes?: boolean },
 ): Promise<{ frames: Frame[]; via: 'nth_frame' | 'extract_frame'; ms: number; usd: number } | null> {
   const key = opts?.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
   if (!key || !videoUrl) return null
@@ -95,14 +96,17 @@ export async function extractFramesFal(
       clearTimeout(timer)
     }
   }
-  const interval = frameIntervalFor(seconds)
+  // The free15 delivery gate knows the signed composition's frame rate. Keep
+  // legacy sampling/timestamps unchanged when these optional fields are absent.
+  const fps = typeof opts?.fps === 'number' && Number.isFinite(opts.fps) && opts.fps > 0 ? opts.fps : PIXEL_FPS_ASSUMED
+  const interval = frameIntervalFor(seconds, fps)
   const nth = await call(FAL_NTH_FRAME_MODEL, { video_url: videoUrl, frame_interval: interval, max_frames: PIXEL_FRAMES + 2, output_format: 'jpg', quality: 80 })
   const asFrames = (imgs: FalImage[], tOf: (i: number) => number | null): Frame[] =>
     imgs
       .map((im, i) => ({ url: typeof im?.url === 'string' ? im.url : '', t: tOf(i), bytes: typeof im?.file_size === 'number' ? im.file_size : null }))
       .filter((f) => f.url)
   if (nth && nth.length > 0) {
-    const all = asFrames(nth, (i) => Math.round(((i * interval) / PIXEL_FPS_ASSUMED) * 10) / 10)
+    const all = asFrames(nth, (i) => opts?.exactFrameTimes ? (i * interval) / fps : Math.round(((i * interval) / fps) * 10) / 10)
     const ms = Date.now() - started
     return { frames: pickEvenly(all, PIXEL_FRAMES), via: 'nth_frame', ms, usd: (ms / 1000) * FAL_USD_PER_COMPUTE_SECOND }
   }
@@ -113,7 +117,7 @@ export async function extractFramesFal(
   const frames: Frame[] = []
   res3.forEach((imgs, i) => {
     const im = imgs?.[0]
-    if (im && typeof im.url === 'string') frames.push({ url: im.url, t: s == null ? null : i === 0 ? 0 : i === 1 ? Math.round(s * 5) / 10 : s, bytes: typeof im.file_size === 'number' ? im.file_size : null })
+    if (im && typeof im.url === 'string') frames.push({ url: im.url, t: s == null ? null : i === 0 ? 0 : i === 1 ? opts?.exactFrameTimes ? s / 2 : Math.round(s * 5) / 10 : opts?.exactFrameTimes ? Math.max(0, Math.ceil(s * fps) - 1) / fps : s, bytes: typeof im.file_size === 'number' ? im.file_size : null })
   })
   if (frames.length === 0) return null
   const ms = Date.now() - started
@@ -134,6 +138,8 @@ export type PixelContext = {
   productPhotoUrls?: string[] | null
   /** língua da fala/legenda esperada (ex.: "pt", "en", "hi") */
   language?: string | null
+  /** Opt-in from the free15 signed RenderScript, never inferred from the image. */
+  expectedKineoWatermark?: boolean
 }
 
 export const PIXEL_ISSUES = ['subject_missing', 'deformed_face_or_hand', 'invented_text', 'near_black', 'repeated', 'caption_illegible', 'caption_broken', 'product_unfaithful', 'ugc_eyes_mouth_hands', 'off_topic'] as const
@@ -145,7 +151,13 @@ export type PixelResult = EvidenceAssessment & {
   version: string
   score: number | null
   frames: PixelFrameVerdict[]
+  /** Located defects from both readings, so averaging cannot lose the repair target. */
+  defect_frames?: PixelFrameVerdict[]
+  /** Extra evidence consumed only by the free15 gate; historical score fields stay unchanged. */
+  gate_evidence?: { identity_changed: boolean; caption_illegible: boolean; caption_language_wrong: boolean }
   identity_consistent: boolean | null
+  /** Located changes retained for the free15 pre-delivery repair; frame indices are 1-based. */
+  identity_changes?: Array<{ from: number; to: number; what: string }>
   caption_present: boolean | null
   caption_legible: boolean | null
   caption_language_ok: boolean | null
@@ -196,6 +208,7 @@ export function buildPixelMessages(ctx: PixelContext, frames: Frame[], detail: P
   if (ctx.narration) lines.push(`NARRATION:\n"""${String(ctx.narration).slice(0, 1500)}"""`)
   if (ctx.spokenByScene && ctx.spokenByScene.length) lines.push(`SPOKEN LINE PER SCENE (in order): ${ctx.spokenByScene.map((s, i) => `[${i + 1}] ${String(s).replace(/\s+/g, ' ').slice(0, 200)}`).join(' ')}`)
   if (ctx.language) lines.push(`EXPECTED LANGUAGE: ${ctx.language}`)
+  if (ctx.product === 'filme' && ctx.expectedKineoWatermark === true) lines.push('EXPECTED EDITOR OVERLAY: the signed montage places the exact watermark "usekineo.com/free" at the TOP of the frame. This matching top watermark is intentional, not invented_text or a spoken caption. Continue flagging letters/gibberish generated INSIDE objects, screens, documents and signs; this exception applies only to the matching editor watermark.')
   lines.push(`FRAMES (${frames.length}, in time order${frames.some((f) => f.t != null) ? `: ${frames.map((f, i) => `#${i + 1}@${f.t ?? '?'}s`).join(' ')}` : ''}).${refs.length ? ` The FIRST ${refs.length} image(s) are REFERENCE PRODUCT PHOTOS uploaded by the customer (not frames); the product in the video is faithful when it matches ANY of them (a cropped or zoomed real photo is faithful).` : ''}`)
   const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: PixelDetail } }> = [{ type: 'text', text: lines.join('\n\n') }]
   for (const u of refs) content.push({ type: 'image_url', image_url: { url: u, detail } })
@@ -281,6 +294,7 @@ export function normalizePixel(
     frames: verdicts,
     readings: validated.evidence_status === 'complete' ? [score] : [],
     identity_consistent: identity,
+    identity_changes: trocas.filter(t => Number.isInteger(t.from) && Number.isInteger(t.to) && Number(t.from) >= 1 && Number(t.to) >= 1 && Number(t.from) <= ctx.frames.length && Number(t.to) <= ctx.frames.length && t.from !== t.to && typeof t.what === 'string' && !!t.what.trim()).map(t => ({ from: Number(t.from), to: Number(t.to), what: String(t.what).slice(0, 160) })),
     caption_present: captionPresent,
     caption_legible: captionLegible,
     caption_language_ok: captionLang,
@@ -333,6 +347,9 @@ export function combinePixelReadings(leituras: PixelResult[], ctx: { usdFrames: 
     score: evidence.evidence_status === 'complete' ? Math.min(capLimit, Math.round(validas.reduce((a, r) => a + r.score, 0) / validas.length)) : null,
     cap_limit: capLimit,
     caps: [...new Set(leituras.flatMap((r) => r.caps))],
+    identity_changes: leituras.flatMap(r => r.identity_changes ?? []),
+    gate_evidence: { identity_changed: leituras.some(r => r.identity_consistent === false), caption_illegible: leituras.some(r => r.caption_legible === false), caption_language_wrong: leituras.some(r => r.caption_language_ok === false) },
+    defect_frames: leituras.flatMap(r => r.frames.filter(f => f.issues.length > 0)),
     readings: validas.map((r) => r.score),
     usd_frames: Math.round(ctx.usdFrames * 1e6) / 1e6,
     usd_vision: Math.round(usdVision * 1e6) / 1e6,
@@ -382,10 +399,10 @@ export async function scorePixel(
   videoUrl: string,
   seconds: number | null | undefined,
   ctx: PixelContext,
-  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string },
+  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string; timeoutMs?: number; fps?: number; exactFrameTimes?: boolean },
 ): Promise<PixelResult | null> {
   const started = Date.now()
-  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey })
+  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey, timeoutMs: opts?.timeoutMs, fps: opts?.fps, exactFrameTimes: opts?.exactFrameTimes })
   if (!ex) return null
-  return judgeFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started })
+  return judgeFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started, timeoutMs: opts?.timeoutMs })
 }

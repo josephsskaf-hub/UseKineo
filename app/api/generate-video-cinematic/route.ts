@@ -77,6 +77,9 @@ import { veoMaxShots, veoMarkedBeats, veoMarkedPlan } from '@/lib/cinematic/veoS
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
+import { FREE15_GATE_VERSION } from '@/lib/free15Gate' // KINEO-FILME15-PERFEITO-2610 — signed birth opt-in; old films never trigger retroactive refunds
+import { sanitizarObjetos15 } from '@/lib/cinematic/objetosSemTexto15' // KINEO-FILME15-PERFEITO-2610
+import { planoDeAcrescimo15, aceitarAcrescimo15 } from '@/lib/cinematic/filme15Perfeito' // KINEO-FILME15-PERFEITO-2610
 import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
 import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
 import { findPreviousEpisode } from '@/lib/episodeSubject' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
@@ -6582,6 +6585,24 @@ async function manipularPost(req: NextRequest) {
     // inalterado (creditCostForDuration('cinematic_ai', true, 15) = 7).
     let seedanceClipSeconds: number[] | null = null
     if (seedanceShortFilm && scenes.length > 0) {
+      // KINEO-FILME15-PERFEITO-2610 — sentence filters run AFTER generateScenes' own
+      // length check. Repair only a short AI line by append, before planning clips.
+      // The final measured-audio floor is enforced by compose; estimates alone are insufficient.
+      if (!verbatim) {
+        const pedidos15 = planoDeAcrescimo15(scenes.map(s => s.voiceover ?? ''), narrationWordCount, narrationRate.wordsPerSecond)
+        if (pedidos15.length) {
+          try {
+            const novas15 = await appendNarrationToTargets(pedidos15, narrationLanguage.language, prompt.slice(0, 300), 1)
+            for (let i = 0; i < pedidos15.length; i++) {
+              const p = pedidos15[i]
+              const candidata = aceitarAcrescimo15(p.text, novas15[i])
+              const fiel = filtrarFalaSemBuraco(candidata, comVocabularioDoLugar(prompt)).texto
+              const aceita = aceitarAcrescimo15(p.text, fiel)
+              scenes[p.index] = { ...scenes[p.index], voiceover: aceita, caption: shortCaptionFromVoiceover(aceita) }
+            }
+          } catch (err) { console.warn('[free15] narration append failed; measured duration remains guarded:', err instanceof Error ? err.message : String(err)) }
+        }
+      }
       const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
       const palavrasDoFilme = narrationWordCount(narracaoDoFilme)
       const fala = seedanceShortSpeechSeconds(narracaoDoFilme, narrationRate.wordsPerSecond)
@@ -6778,6 +6799,8 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: moderationRefusalMessage(moderacaoRomance.reason), reason: `content_moderation_${moderacaoRomance.reason}`, retryable: moderacaoRomance.reason === 'unavailable', charged: false, refunded: devolvido }, { status: moderationRefusalStatus(moderacaoRomance.reason) }) // KINEO-ROMANCE-ADULTO-2026-10-13
       } // KINEO-ROMANCE-ADULTO-2026-10-13
     } // KINEO-ROMANCE-ADULTO-2026-10-13
+
+    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -7429,6 +7452,7 @@ async function manipularPost(req: NextRequest) {
       scenes: scenes.map((s) => s.description),
       scene_captions: scenes.map((s) => s.caption),
       voiceover_script: voiceoverScript,
+      ...(seedanceShortFilm ? { free15_gate_version: FREE15_GATE_VERSION } : {}), // KINEO-FILME15-PERFEITO-2610 — inside the hashed/signed birth response
       language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — pena dourada (26/10): a rota escreveu em pt, o compose recebeu 'en' da interface e narrou com voz inglesa; o idioma resolvido agora viaja no claim
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)

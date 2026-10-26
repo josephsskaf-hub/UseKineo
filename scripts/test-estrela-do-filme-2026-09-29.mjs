@@ -13,6 +13,7 @@
 //   D. a tela, o /studio/create, o analyze-idea, o interruptor, os eventos.
 //   E. mutantes (dono, autorização, sobretaxa depois do débito, regra REAL PEOPLE aberta, interruptor aberto) ficam vermelhos.
 import { readFileSync } from 'node:fs'
+import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact newer layer before the historical anchor sandbox and snapshots; current identity tests read raw source.
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse this exact delta before any historical reversal or snapshot assertion.
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
@@ -26,7 +27,7 @@ const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJu
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFilme15Fiel2610(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-FILME15-PERFEITO-2610
 const BASE = '54e53aa5'
 const rdBase = (p) => { try { return execFileSync('git', ['-C', root, 'show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { return null } }
 

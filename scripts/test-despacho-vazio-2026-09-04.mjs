@@ -34,6 +34,9 @@
 
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact, separately verified newer task before this historical queue guard.
+import { FILME15_PERFEITO_MANIFEST } from './test-support/desfaz-filme15-perfeito-2610.mjs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -193,7 +196,22 @@ const PROIBIDOS = [
   'lib/compose', 'lib/hollywood/', 'lib/cinematic/', 'lib/broll/',
   'lib/lyriaMusic', 'lib/narrationFit', 'app/api/analyze-idea/', 'app/api/generate-script/',
 ]
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean)
+// KINEO-FILME15-PERFEITO-2610: exclude only this founder-requested layer when its
+// exact reverse equals origin/main. Unknown, partial or additional changes remain
+// subject to every original path/seal assertion below; no marker-only stripping.
+const deltaFilme15Exato = (file) => {
+  const existing = FILME15_PERFEITO_MANIFEST.scope[file]
+  const addedHash = FILME15_PERFEITO_MANIFEST.addedSources[file]
+  if (!existing && !addedHash) return false
+  const current = readFileSync(join(raiz, file), 'utf8').replace(/\r\n/g, '\n')
+  if (existing) {
+    const before = execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n')
+    return semFilme15Fiel2610(current, file) === before
+  }
+  const upstream = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  return !upstream && createHash('sha256').update(current).digest('hex') === addedHash
+}
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o

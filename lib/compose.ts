@@ -287,6 +287,8 @@ export interface ComposeInputs {
    * Optional: when absent the window falls back to the requested duration.
    */
   realAudioDuration?: number
+  /** Server verified Seedance 1.5 / 15s claim only (FILME15-PERFEITO-2610). */
+  seedanceShortFilm?: boolean
   /**
    * Push #175 — optional pre-computed word-level timing from Whisper
    * transcription. Each entry aligns with the corresponding caption segment
@@ -392,6 +394,8 @@ export interface CreatomateRenderState {
    *  esteve certo; o registro é que mentia — e métrica que mente produz
    *  decisão errada, que é o defeito mais caro que existe. */
   durationSeconds: number | null
+  /** Provider precision retained for the strict free15 <14s gate. */
+  exactDurationSeconds?: number | null
 }
 
 // Push #234 — calibrated to the REAL TTS pace. OpenAI tts-1 (onyx) speaks at
@@ -2072,6 +2076,7 @@ export function buildCreatomateSource({
   duration,
   quality,
   realAudioDuration,
+  seedanceShortFilm,
   whisperTimings,
   whisperWords,
   musicUrl,
@@ -2106,6 +2111,9 @@ export function buildCreatomateSource({
       ? realAudioDuration
       : duration
   let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, 90)
+  // Three 6s clips supply enough image; short measured TTS used to shrink the film.
+  // Preserve all speech and hold the existing final shot/music through the 14s floor.
+  if (seedanceShortFilm === true && quality === 'cinematic_ai' && duration === 15 && !hasAvatar) totalDuration = Math.max(14, totalDuration)
   const cleanClips = clipUrls.filter((u) => typeof u === 'string' && u.trim().length > 0)
   // Avatar tail fix (13/06) — in avatar mode the narration IS the master
   // clock: the lip-synced face and the mp3 are the same length, so the
@@ -3814,6 +3822,7 @@ export async function pollCreatomateRender(renderId: string): Promise<Creatomate
     snapshotUrl: typeof data.snapshot_url === 'string' ? data.snapshot_url : null,
     error: typeof data.error_message === 'string' ? data.error_message : null,
     // A duração real do MP4, direto de quem montou o arquivo.
+    exactDurationSeconds: typeof data.duration === 'number' && Number.isFinite(data.duration) && data.duration > 0 ? data.duration : null,
     durationSeconds:
       typeof data.duration === 'number' && data.duration > 0
         ? Math.round(data.duration * 10) / 10

@@ -5,13 +5,14 @@
 // se tudo vai dar certo". Até 11/09 só a família Kling 3/H3/Omni tinha dry-run;
 // Seedance/Kling 2.5/Veo e Kineo 1 seguiam para o POST pago com o flag ligado.
 import { readFileSync } from 'node:fs'
+import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact newer delta before historical dry-run anchors; current identity tests remain raw.
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFilme15Fiel2610(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-FILME15-PERFEITO-2610
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

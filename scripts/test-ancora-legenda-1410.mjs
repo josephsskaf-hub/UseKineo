@@ -18,6 +18,7 @@ const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(t
 const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
+import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — restore the exact historical anchor slice before its isolated VM; current identity tests read raw sources.
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -31,7 +32,7 @@ import { semAncoraLegenda1410, desfazAncoraLegenda1410, ARQUIVOS_ANCORA_LEGENDA_
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => lf(semFilme15Fiel2610(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-FILME15-PERFEITO-2610 — frozen newer delta only; preserve every historical assertion and mutant.
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let total = 0
 let falhas = 0

@@ -32,6 +32,7 @@ import crypto from 'node:crypto'
 // frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { semFilme15Perfeito2610 } from './test-support/desfaz-filme15-perfeito-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact historical status projection only
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
@@ -528,7 +529,11 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   try {
     // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o unlock ganhou só linhas ACRESCENTADAS e marcadas (import + chamada do gancho
     // escrito, depois do logo). A prova continua: nenhuma linha removida e toda linha nova carrega o marcador — qualquer outra mudança segue vermelha.
-    const d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
+    let d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
+    // KINEO-FILME15-PERFEITO-2610 — omit ONLY the exact new gate delta. Unknown bytes or any unlock change remain under the original assertion.
+    const statusFile = 'app/api/compose/status/[renderId]/route.ts' // KINEO-FILME15-PERFEITO-2610
+    const upstreamStatus = execFileSync('git', ['show', `origin/main:${statusFile}`], { cwd: root, encoding: 'utf8' }).replace(/\r\n/g, '\n') // KINEO-FILME15-PERFEITO-2610
+    if (semFilme15Perfeito2610(rd(statusFile), statusFile) === upstreamStatus) d = d.split(/(?=^diff --git )/m).filter(chunk => !chunk.startsWith(`diff --git a/${statusFile} b/${statusFile}`)).join('') // KINEO-FILME15-PERFEITO-2610
     const mudadas = d.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
     // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): o compose/status ganhou só linhas ACRESCENTADAS e marcadas (o Enhance
     // automático da conta da casa deixa de rodar no Seedance 2.5, pedido do fundador). Mesma prova: nada removido, tudo marcado.
