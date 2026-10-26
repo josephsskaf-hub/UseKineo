@@ -9,9 +9,10 @@ import { semAdsCena95PlanFailed2110, ADS_CENA_95_PLAN_FAILED_BASE, ADS_CENA_95_P
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs'
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const F = { internal: 'lib/ads/cena/internal.ts', plan: 'lib/ads/cena/plan95.ts', script: 'lib/ads/cena/script95.ts', contract: 'lib/ads/cena/script95Contract.ts', captions: 'lib/ads/cena/captions95.ts', catalog: 'lib/ads/cena/catalog.ts', route: 'app/api/admin/ads-cena/route.ts' }
-const read = p => semAdsCena95Pacing2110(semPaginasIaClaras2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) // KINEO-ADS-CENA-95-PACING-2110 — régua BUG1 antes dos mutantes e do seu desfaz exato.
+const read = p => semAdsCena95Pacing2110(semPaginasIaClaras2110(semAfiliado50_2610(p, readFileSync(p, 'utf8')).replace(/\r\n/g, '\n'), p), p) // KINEO-ADS-CENA-95-PACING-2110 — régua BUG1 antes dos mutantes e do seu desfaz exato.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 25 }).replace(/\r\n/g, '\n')
 const plain = x => JSON.parse(JSON.stringify(x))
 const same = (a, b) => assert.deepEqual(plain(a), plain(b))

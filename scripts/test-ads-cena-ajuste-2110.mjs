@@ -8,7 +8,8 @@ import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsCena952110 } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110 — histórico do ajuste preservado; motor novo tem guardião próprio.
 import { semAdsCenaAjuste2110, ADS_CENA_AJUSTE_2110_ARQUIVOS, ADS_CENA_AJUSTE_2110_NOVOS, ADS_CENA_AJUSTE_2110_BASE, MARCA_ADS_CENA_AJUSTE_2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs'
-const source = p => semAdsCena952110(semRoteiroCurto2210(semPaginasIaClaras2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p), p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — desfazer roteiro antes da camada Cena95; manter ambas as provas.
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+const source = p => semAdsCena952110(semRoteiroCurto2210(semPaginasIaClaras2110(semAfiliado50_2610(p, readFileSync(p, 'utf8')).replace(/\r\n/g, '\n'), p), p), p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — desfazer roteiro antes da camada Cena95; manter ambas as provas.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
 const load = createOfflineLoader({ source: (p, s) => semAdsCena952110(s, p), globals: { Response, Request, Error }, mocks: { '../v2Server': { // KINEO-ADS-CENA-95-2110
   v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }),

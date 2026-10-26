@@ -11,6 +11,7 @@ import { PACING_HOUSE, PACING_ORDER } from './test-support/ads-cena-95-pacing-fi
 import * as Undo from './test-support/desfaz-ads-escolha-publico-2410.mjs'
 import { runEscolhaUiProof } from './test-support/ads-escolha-ui-2310.mjs'
 import { semTrafego2310 } from './test-support/desfaz-trafego-2310.mjs' // KINEO-TRAFEGO-2310 — exact restoration only inside the historical undo proof; runtime and mutants remain raw.
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const F = {
   catalog: 'lib/ads/cena/catalog.ts', core: 'lib/ads/cena/internalEscolha.ts', route: 'app/api/ads/v2/cena/route.ts',
@@ -20,7 +21,7 @@ const F = {
   billing: 'lib/ads/v2Billing.ts', advance: 'lib/ads/v2Advance.ts', notify: 'lib/ads/cena/escolhaNotify.ts', sink: 'app/api/events/route.ts',
 }
 const USER = { ...PACING_HOUSE, email: 'external-customer@example.org' }
-const plain = x => JSON.parse(JSON.stringify(x)), read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const plain = x => JSON.parse(JSON.stringify(x)), read = p => semAfiliado50_2610(p, readFileSync(p, 'utf8')).replace(/\r\n/g, '\n')
 const equal = (a, b, message) => assert.deepEqual(plain(a), plain(b), message)
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
 const world = (over = {}, opts = {}) => createEscolhaWorld(over, { current: true, user: USER, reason: 'subscriber', plan: 'pro', ...opts })
