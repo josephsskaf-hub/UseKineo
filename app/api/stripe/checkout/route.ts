@@ -8,7 +8,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { ensureAffiliateBaseCoupon } from '@/lib/affiliateCoupon'
 import { AFFILIATE_LINK_PROMO_SOURCE, affiliateDiscountEligible, subscriptionAcceptsManualPromotions } from '@/lib/affiliateDiscount'
-import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, type AffiliateLinkOffer } from '@/lib/affiliateLinkOffer'
+import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, readAffiliateOfferById, type AffiliateLinkOffer } from '@/lib/affiliateLinkOffer'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED } from '@/lib/flags'
@@ -2548,6 +2548,22 @@ async function buildAndRedirect(
             ? redirectError('We could not verify your partner discount. Please try again.')
             : jsonError('We could not verify your partner discount. Please try again.', 503)
           pc = refreshed
+          const codeOwner = pc.metadata?.affiliate_id ? await readAffiliateOfferById(pc.metadata.affiliate_id) : null
+          const affiliateCode = codeOwner?.code ?? (pc.code.startsWith('KINEO') ? normalizeAffiliateCode(pc.code.slice(5)) : null)
+          const manualPartnerMetadata = {
+            public_promo_source: 'affiliate_code_50',
+            affiliate_discount_applied: 'true',
+            ...(affiliateCode ? { affiliate_code: affiliateCode } : {}),
+          }
+          Object.assign(sessionParams.metadata!, manualPartnerMetadata)
+          Object.assign(sessionParams.subscription_data!.metadata!, manualPartnerMetadata)
+          checkoutMetadata = { ...checkoutMetadata, ...manualPartnerMetadata, affiliate_discount_applied: true }
+          sessionParams.custom_text!.submit = {
+            message: `${affiliateOfferCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en', codeOwner?.partnerName ?? null)}. ${affiliateOfferScopeCopy(req.nextUrl.searchParams.get('ui_lang') ?? req.headers.get('accept-language') ?? 'en')} ${checkoutValueContext.submitMessage}`,
+          }
+          sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+            appUrl, tier, currency: chargeCurrency, amount: Math.round(chargeAmount * 0.5),
+          })
         }
       }
       if (pc) {
@@ -2950,13 +2966,13 @@ async function buildAndRedirect(
       ...checkoutMetadata,
       intro_applied: discountApplied && intro,
       private_offer_applied: privatePackPromo && discountApplied,
-      affiliate_discount_applied: affiliateDiscountApplied,
-      affiliate_code: affiliateOffer?.code ?? null,
-      public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied || affiliateDiscountApplied,
+      affiliate_discount_applied: affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,
+      affiliate_code: checkoutMetadata.affiliate_code ?? affiliateOffer?.code ?? null,
+      public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied || affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true,
       // KINEO-CLARITY-WELCOME20-2026-10-12 — de onde veio o desconto: o link/cartão com ?promo=WELCOME20 ou o automático.
       public_promo_source: affiliateDiscountApplied ? AFFILIATE_LINK_PROMO_SOURCE : autoWelcome20Applied
         ? WELCOME20_AUTO_SOURCE
-        : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : null,
+        : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : checkoutMetadata.public_promo_source ?? null,
       stripe_session_id: session.id,
       checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
       checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
