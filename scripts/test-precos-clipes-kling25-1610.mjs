@@ -273,6 +273,9 @@ for (const [name, over, expect] of MUTANTS) {
   const { execFileSync } = await import('node:child_process')
   const { semPrecosClipesKling25_1610, PRECOS_CLIPES_KLING25_1610_ARQUIVOS, PRECOS_CLIPES_KLING25_1610_BASE } = await import('./test-support/desfaz-precos-clipes-kling25-1610.mjs')
   const { semClareza1610 } = await import('./test-support/desfaz-checkout-clareza-1610.mjs')
+  const { semIdiomasFormatos2410 } = await import('./test-support/desfaz-idiomas-formatos-2410.mjs')
+  const { semTrafego2310 } = await import('./test-support/desfaz-trafego-2310.mjs')
+  const historical = f => semTrafego2310(semIdiomasFormatos2410(read(f), f), f)
   const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
   let anc = true
   try { git('merge-base', '--is-ancestor', PRECOS_CLIPES_KLING25_1610_BASE, 'HEAD') } catch { anc = false }
@@ -281,8 +284,8 @@ for (const [name, over, expect] of MUTANTS) {
   for (const f of PRECOS_CLIPES_KLING25_1610_ARQUIVOS) {
     const base = git('show', `${PRECOS_CLIPES_KLING25_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
     try {
-      const a = semClareza1610(f, semPrecosClipesKling25_1610(f, read(f)))
-      const b = semPrecosClipesKling25_1610(f, semClareza1610(f, read(f)))
+      const a = semClareza1610(f, semPrecosClipesKling25_1610(f, historical(f)))
+      const b = semPrecosClipesKling25_1610(f, semClareza1610(f, historical(f)))
       if (a !== base || b !== base) ruins.push(f)
     } catch (e) { ruins.push(f + ' (lançou: ' + (e && e.message) + ')') }
   }

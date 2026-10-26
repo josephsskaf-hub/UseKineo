@@ -63,7 +63,7 @@ equal(signup.searchParams.get('utm_source'), 'client_brief_generator', 'source i
 equal(signup.searchParams.get('utm_medium'), 'organic', 'medium remains organic')
 equal(signup.searchParams.get('utm_campaign'), 'client_short_brief_v1', 'campaign is versioned')
 const redirect = new URL(signup.searchParams.get('redirect'), 'https://www.usekineo.com')
-equal(redirect.pathname, '/generate', 'brief carries into the existing generator')
+equal(redirect.pathname, '/studio/create', 'brief carries into the canonical Studio composer')
 equal(redirect.searchParams.get('duration'), '35', 'brief uses a supported duration')
 equal(redirect.searchParams.get('autoanalyze'), '1', 'handoff analyzes without auto-rendering')
 equal(redirect.searchParams.has('create_intent'), false, 'brief never auto-starts a render')

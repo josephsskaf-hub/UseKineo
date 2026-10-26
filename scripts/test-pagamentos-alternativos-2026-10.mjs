@@ -49,6 +49,8 @@ function loader({ modules = {}, replacements = {}, environment = env, fetcher, l
       module, exports: module.exports,
       require(id) {
         if (Object.hasOwn(builtins, id)) return builtins[id]
+        if (id === '@/lib/paypalCatalog') return load('lib/paypalCatalog.ts')
+        if (id === '@/lib/checkoutPricing') return load('lib/checkoutPricing.ts')
         if (id.startsWith('.')) return load(resolve(dirname(absolute), /\.[cm]?[jt]sx?$/.test(id) ? id : id + '.ts'))
         throw new Error('Unapproved import: ' + id)
       },

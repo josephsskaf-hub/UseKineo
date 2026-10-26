@@ -1,3 +1,4 @@
+import { semLevaSobreMain2610 } from './leva-rebase-2610.mjs' // KINEO-LEVA-REBASE-2610: newest merged source leaves before exact main hashes.
 // [TRAVA 8.2 — vai do fundador 26/10 "o ads de 15 está horrível… arrumasse para mim o mais rápido possível"] KINEO-FILME15-FIEL-2610 —
 // desfaz EXATO, em memória, da camada "filme de 15 s fiel": idioma do filme pelo roteiro (compose), Whisper no idioma do filme
 // (lib/whisperNaEscrita), protagonista em PT/ES/EN vira história com personagem (lib/cinematic/visualMode), crítico do still em
@@ -13,7 +14,16 @@ export const FILME15_FIEL_2610_BASE = FILME15_FIEL_2610.base
 export const FILME15_FIEL_2610_ARQUIVOS = Object.freeze(Object.keys(FILME15_FIEL_2610.scope))
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 
+// Intersection of the immutable main guardian scopes with this reviewed merge.
+// Other paths have no newer main overlap; leave them to their original LEVA undo chain.
+const MAIN_REBASE_OVERLAPS_2610 = new Set([
+  '.github/workflows/guardiao.yml', 'app/api/compose/route.ts',
+  'docs/video-fiel-2610/test-legacy-layer.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs',
+  'scripts/test-locale-readiness.mjs', 'scripts/test-support/desfaz-compra-clareza-2610.mjs',
+  'scripts/test-support/desfaz-idiomas-formatos-2410.mjs',
+])
 export function semFilme15Fiel2610(texto, p) {
+  if (MAIN_REBASE_OVERLAPS_2610.has(String(p ?? '').replace(/\\/g, '/'))) texto = semLevaSobreMain2610(texto, p)
   texto = semFilme15Rosto2610(texto, p) // KINEO-FILME15-ROSTO-2610
   const rel = String(p ?? '').split(String.fromCharCode(92)).join('/')
   const entry = FILME15_FIEL_2610.scope[rel]

@@ -22,6 +22,8 @@
 // Esta bateria não valida YAML de verdade (não temos parser aqui). Ela procura
 // EXATAMENTE o defeito que nos custou a manhã, que é barato de detectar.
 import { readFileSync, existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 const url = new URL('../.github/workflows/guardiao.yml', import.meta.url)
 let ok = 0, fail = 0
 const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, console.log('  FAIL ' + n)) }
@@ -29,6 +31,8 @@ const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, conso
 console.log('1 · o arquivo existe e tem o formato mínimo')
 check('o workflow existe', existsSync(url))
 const raw = readFileSync(url, 'utf8').replace(/\r\n/g, '\n')
+const original = (ref) => execFileSync('git', ['show', `${ref}:.github/workflows/guardiao.yml`], { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' }).replace(/\r\n/g, '\n')
+const historico = original('8000825f')
 const linhas = raw.split('\n')
 check('tem nome, gatilho e jobs', /^name:/m.test(raw) && /^on:/m.test(raw) && /^jobs:/m.test(raw))
 check('roda em push na main', /branches: \[main\]/.test(raw))
@@ -60,17 +64,26 @@ check(
   culpados.length === 0,
 )
 check('a string do placar não é mais quebrada em duas linhas', !/vermelhas="\$vermelhas\n/.test(raw))
-check('o aviso para o próximo autor ficou escrito no arquivo', raw.includes('NÃO quebre string de shell em duas linhas'))
+check('o aviso para o próximo autor foi preservado na prova histórica', historico.includes('NÃO quebre string de shell em duas linhas'))
 
 console.log('3 · o CI mede antes de bloquear (senão vira 30 e-mails de novo)')
-check('a suíte de 252 baterias não reprova o push', /suite:[\s\S]{0,400}continue-on-error: true/.test(raw))
-check('o typecheck também mede primeiro, com a razão escrita', /typecheck:[\s\S]{0,700}continue-on-error: true/.test(raw) && raw.includes('Um alarme que toca sempre é um alarme que ninguém escuta'))
-check('quando virar portão de verdade, é só remover o continue-on-error', raw.split('continue-on-error: true').length === 3)
+check('histórico: a suíte de 252 baterias não reprovava o push', /suite:[\s\S]{0,400}continue-on-error: true/.test(historico))
+check('histórico: typecheck media primeiro, com a razão escrita', /typecheck:[\s\S]{0,700}continue-on-error: true/.test(historico) && historico.includes('Um alarme que toca sempre é um alarme que ninguém escuta'))
+check('histórico: os dois diagnósticos eram explícitos', historico.split('continue-on-error: true').length === 3)
 
 console.log('4 · o que o CI ainda tem que fazer (não virou enfeite)')
-check('continua rodando TODAS as baterias scripts/test-*.mjs', raw.includes('for f in scripts/test-*.mjs; do'))
+check('histórico: rodava TODAS as baterias scripts/test-*.mjs', historico.includes('for f in scripts/test-*.mjs; do'))
 check('continua publicando o placar no resumo do GitHub', raw.includes('$GITHUB_STEP_SUMMARY'))
-check('continua filtrando os 3 erros de tipo conhecidos, como o bat local', raw.includes('grep -v "acacia"') && raw.includes('grep -v "TrialDowngradeModal"'))
+check('histórico: filtrava os 3 erros de tipo conhecidos, como o bat local', historico.includes('grep -v "acacia"') && historico.includes('grep -v "TrialDowngradeModal"'))
+
+console.log('5 · portões atuais aprovados: bruto, bloqueante e todas as camadas')
+check('workflow atual inteiro é o integrado aprovado', raw === original('a698625a'))
+const critical = raw.slice(raw.indexOf('  critical:'), raw.indexOf('  legacy:'))
+const legacy = raw.slice(raw.indexOf('  legacy:'))
+check('push protege main e branches codex; PR protege main', /push:\s*\n\s+branches: \[main, 'codex\/\*\*'\]/.test(raw) && /pull_request:\s*\n\s+branches: \[main\]/.test(raw))
+check('typecheck bruto bloqueia sem filtro nem continue-on-error', critical.includes('npx tsc --noEmit --incremental false') && !critical.includes('continue-on-error') && !critical.includes('grep -v'))
+check('todas as camadas executam seus guardiões reais e desfaz', ['test-cards-giro-2410.mjs --mutants','test-cards-giro-undo-2410.mjs','test-cartoon-tracao.mjs --mutants','test-ads-amostra-anuncio-2410.mjs','test-ads-amostra-undo-2410.mjs','test-apresentadores-2410.mjs','test-apresentadores-undo-2410.mjs','test-compra-avulsa-2410.mjs --mutants','test-compra-avulsa-undo-2410.mjs','test-leva-integration-2410.mjs'].every(name => critical.includes('node scripts/' + name)))
+check('diagnóstico legado só manual e não bloqueante, com inventário completo', legacy.includes("if: github.event_name == 'workflow_dispatch'") && legacy.includes('continue-on-error: true') && legacy.includes("'test-*.mjs'"))
 
 console.log(`\n${ok} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

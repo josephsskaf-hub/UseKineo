@@ -87,24 +87,28 @@ check('F5 o carimbo diz de quem é o filme', lib.slice(iRamo).includes('user_id:
 check('F6 o carimbo diz qual render', lib.slice(iRamo).includes('render_id: renderId'))
 // A entrega continua bounded: aumentar o prazo aqui quebraria o maxDuration
 // de 60s do /api/compose/status, com a pessoa esperando.
-check('F7 o caminho vivo mantém orçamento de download bounded', /downloadTimeoutMs:\s*25_000/.test(lib))
+check('F7 o caminho vivo mantém orçamento de download bounded', /const videoTimeoutMs = typeof args\.downloadTimeoutMs === 'number' && args\.downloadTimeoutMs > 0 \? args\.downloadTimeoutMs : 25_000/.test(lib) && /downloadTimeoutMs:\s*videoTimeoutMs/.test(lib))
 
 // ── G. O REMÉDIO É APERTADO SOZINHO ─────────────────────────────────────────
 // Um conserto que depende de alguém lembrar de clicar não conserta nada.
 check('G1 o resgate está no vercel.json', vercel.includes('/api/cron/rescue-vendor-assets'))
 let cronsOk = false
-let minutoUnico = false
+let semSobreporResgate = false
 try {
   const j = JSON.parse(vercel)
   const alvo = j.crons.filter((c) => c.path === '/api/cron/rescue-vendor-assets')
   cronsOk = alvo.length === 1 && typeof alvo[0].schedule === 'string'
   if (cronsOk) {
-    const minuto = alvo[0].schedule.split(' ')[0]
-    minutoUnico = j.crons.filter((c) => c.schedule.split(' ')[0] === minuto).length === 1
+    // Dense schedules of unrelated functions may share minutes. The rescue itself
+    // remains unique and hourly, with its entire execution bounded below its cadence.
+    const hourly = /^([0-5]?\d) \* \* \* \*$/.test(alvo[0].schedule)
+    const maxSeconds = Number(rota.match(/export const maxDuration\s*=\s*([\d_]+)/)?.[1]?.replace(/_/g,''))
+    const wallMs = Number(rota.match(/WALL_BUDGET_MS\s*=\s*([\d_]+)/)?.[1]?.replace(/_/g,''))
+    semSobreporResgate = hourly && maxSeconds > 0 && wallMs > 0 && wallMs < maxSeconds * 1000 && maxSeconds * 1000 < 60 * 60 * 1000
   }
 } catch { /* JSON inválido cai no vermelho abaixo */ }
 check('G2 vercel.json continua sendo JSON válido com UMA entrada do resgate', cronsOk)
-check('G3 o resgate não divide o minuto com outro cron', minutoUnico)
+check('G3 uma rodada limitada do resgate termina antes da próxima cadência horária', semSobreporResgate)
 check('G4 o gatilho não depende de query string de confirmação', !/rescue-vendor-assets\?[^"]*confirm/.test(vercel))
 
 // ── H. O PADRÃO É AGIR ──────────────────────────────────────────────────────

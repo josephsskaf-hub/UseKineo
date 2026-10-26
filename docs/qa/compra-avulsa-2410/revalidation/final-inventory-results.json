@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-24T18:38:15.792Z",
+  "head": "aaeb6e4522620cb3b1a5ce78723d9a7f60db2dc4",
+  "productiveChanges": [],
+  "file": "scripts/test-compra-avulsa-undo-2410.mjs",
+  "exit": 0,
+  "ok": true,
+  "elapsedMs": 12147,
+  "log": "final-inventory.log"
+}

@@ -23,7 +23,7 @@ check('keeps the title concise', '#ViralNow: 8 YouTube Shorts Ideas to Post Toda
 check('describes the catalogue as curated', page.includes('curated library'))
 check('describes the four-hour behavior as rotation', page.includes('rotated every 4 hours'))
 check('does not call the metadata topics live trending data', !/const DESCRIPTION\s*=\s*\n?\s*['"][^'"]*trending/i.test(page))
-check('preserves the no-card promise', page.includes('no card required'))
+check('preserves the no-card promise', page.includes('free to start, no card.'))
 check('preserves the canonical URL', page.includes("const VIRAL_NOW_URL = 'https://www.usekineo.com/viral-now'"))
 check('keeps the page indexable', page.includes('robots: { index: true, follow: true }'))
 check('names the ItemList for the exact search intent', page.includes("name: '#ViralNow: 8 YouTube Shorts ideas to post today'"))

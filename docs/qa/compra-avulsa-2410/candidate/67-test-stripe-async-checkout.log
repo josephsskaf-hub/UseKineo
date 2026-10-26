@@ -1,0 +1,11 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-stripe-async-checkout.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 218
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+stripe async checkout: 31/31 checks passed
+(node:39732) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/lib/stripeCheckoutAsyncSettlement.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\josep\OneDrive\Área de Trabalho\Usekineo\.claude\worktrees\compra-avulsa-2410\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

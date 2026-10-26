@@ -7,31 +7,18 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import ts from 'typescript'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0, fail = 0
 const t = (nome, cond) => { if (cond) { ok++ } else { fail++; console.error('  ✗ ' + nome) } }
 
-// ── O módulo é TypeScript puro sem import: transpila por remoção de tipos ───
+// ── O módulo é TypeScript puro sem import; transpilar de verdade também em CRLF. ──
 const libSrc = readFileSync(join(raiz, 'lib/analyzeRefusalCopy.ts'), 'utf8')
 t('A0 · módulo não importa nada (puro)', !/^\s*import\s/m.test(libSrc))
-const jsSrc = libSrc
-  .replace(/^export type [\s\S]*?(?=\n\n)/m, '')
-  .replace(/^export interface [\s\S]*?^}/gm, '')
-  .replace(/: AnalyzeRefusalCode \| null/g, '')
-  .replace(/\(code: AnalyzeRefusalCode\)/g, '(code)')
-  .replace(/\(value: unknown\)/g, '(value)')
-  .replace(/\(body: unknown\)/g, '(body)')
-  .replace(/\): string \| null \{/g, ') {')
-  .replace(/\): string \{/g, ') {')
-  .replace(/\): number \{/g, ') {')
-  .replace(/\): AnalyzeRefusalTelemetry \{/g, ') {')
-  .replace(/^\s*code: AnalyzeRefusalCode,$/m, '  code,')
-  .replace(/^\s*body: unknown,$/m, '  body,')
-  .replace(/^\s*promptValue: unknown,$/m, '  promptValue,')
-  .replace(/ as Record<string, unknown>/g, '')
-  .replace(/export /g, '')
-const mod = new Function(`${jsSrc}\nreturn { analyzeRefusalCopy, promptChars, bodyKeys, analyzeRefusalTelemetry }`)()
+const jsSrc = ts.transpileModule(libSrc, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+const mod = {}
+new Function('exports', jsSrc)(mod)
 const { analyzeRefusalCopy, promptChars, bodyKeys, analyzeRefusalTelemetry } = mod
 
 // ── Bloco A · a frase ──────────────────────────────────────────────────────
@@ -97,9 +84,9 @@ t('C6 · as quatro portas carimbam código', ['body_malformed', 'prompt_missing'
 t('C7 · as três frases novas saem de analyzeRefusalCopy', ['body_malformed', 'prompt_missing', 'prompt_only_camera_tag']
   .every(c => rota.includes(`analyzeRefusalCopy('${c}')`)))
 t('C8 · o teto continua com a frase da fonte única',
-  rota.includes('analyzePromptTooLongMessage()'))
-t('C9 · o teto continua lendo ANALYZE_PROMPT_MAX_CHARS',
-  rota.includes('prompt.length > ANALYZE_PROMPT_MAX_CHARS'))
+  rota.includes('analyzePromptTooLongMessage(promptMaxChars)'))
+t('C9 · o teto continua lendo a fonte única para o modo solicitado',
+  rota.includes('const promptMaxChars = analyzePromptMaxChars(body.scriptMode)') && rota.includes('prompt.length > promptMaxChars'))
 t('C10 · os quatro continuam 400 (nenhum virou 200 nem 500)',
   (rota.match(/recusarAnalise\(\s*\n?\s*400,/g) || []).length >= 4)
 t('C11 · o 401 de não-logado continua de pé',

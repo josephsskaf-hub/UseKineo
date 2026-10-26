@@ -63,6 +63,6 @@ for (const file of manifest.currentBehaviorTests) {
   check(() => assert.ok(fs.readFileSync(path.join(root, '.github/workflows/guardiao.yml'), 'utf8').includes('node ' + file), 'current behavior remains a CI gate: ' + file))
 }
 check(() => assert.equal(undo('unrelated\r\nVIDEO-FIEL-2610', 'unrelated.ts'), 'unrelated\r\nVIDEO-FIEL-2610'))
-const changedOldManifests = git('diff', '--name-only', VIDEO_FIEL_BASE, '--', 'scripts/test-support/*fontes.json').trim().split('\n').filter(Boolean).filter(file => !file.endsWith('/desfaz-video-fiel-2610-fontes.json'))
-check(() => assert.deepEqual(changedOldManifests, [], 'old frozen JSON manifests and hashes remain immutable'))
+const changedOldManifests = git('diff', '--name-only', '--diff-filter=a', VIDEO_FIEL_BASE, '--', 'scripts/test-support/*fontes.json').trim().split('\n').filter(Boolean).filter(file => !file.endsWith('/desfaz-video-fiel-2610-fontes.json'))
+check(() => assert.deepEqual(changedOldManifests, [], 'old frozen JSON manifests and hashes remain immutable; added LEVA manifests have separate sealed guardians'))
 console.log(JSON.stringify({ status: 'PASS', checks, rejectedMutants: mutants, sources: Object.keys(manifest.scope).length, newProductSources: Object.keys(manifest.addedProduct).length, currentBehaviorTests: manifest.currentBehaviorTests.length, base: VIDEO_FIEL_BASE, writes: 0, network: 0 }))

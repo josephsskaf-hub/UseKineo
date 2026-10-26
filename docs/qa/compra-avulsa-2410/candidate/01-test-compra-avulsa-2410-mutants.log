@@ -1,0 +1,18 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-2410.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 20515
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS compra avulsa: 35 executable checkout/fulfillment contracts
+KILLED mode: 'payment',
+    line_items
+KILLED unit_amount: amount, product_data
+KILLED if (probes.some(probe => probe.error))
+KILLED quantity: 1 }]
+KILLED await deps.recordCheckoutEvent('checkout_started'
+KILLED session.payment_status !== 'paid'
+KILLED session.metadata?.pack_credits !== String(credits)
+KILLED session.amount_total !== oneTimeItemV1Amount(sku, currency)
+KILLED p_credits: credits
+KILLED if (result.error || typeof result.data

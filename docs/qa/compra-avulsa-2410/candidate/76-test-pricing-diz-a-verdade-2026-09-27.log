@@ -1,0 +1,44 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-pricing-diz-a-verdade-2026-09-27.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 179
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+  ✓ reancorado KINEO-PRECOS-LIMPEZA-1510: a tabela "Compare plans" saiu do PricingClient (nenhuma <table>)
+  ✓ fontes lidas: TIER_CREDITS 60/150/300 · custo 60 s H3 45 · Kling 2.5 75 · Kling 3 150
+  ✓ creditCostForDuration a 60 s devolve exatamente creditCostFor (referência = 60)
+  ✓ characterLimitFor lido: free 0 · starter/basic 3 · pro 10 · trial (rota) 3
+  ✓ a cota do trial na rota é o MESMO número de characterLimitFor("basic_trial") — a página deriva de lá
+  ✓ a rota aplica Math.max(plano, cota de trial): "N during trial" é o que o servidor entrega
+  ✓ literal antigo '✅ 1/mo' sumiu do PricingClient
+  ✓ a tabela não fala mais em 1080p (720p nativo em todo plano)
+  ✓ célula '12' de personagens sumiu (era 1/12/12/12)
+  ✓ 'Priority' sumiu da tabela (label e célula)
+  ✓ '900+ creators · 450+ Shorts rendered' sumiu
+  ✓ tempo de render antigo (~3-5 / Usually 3–7) sumiu da tabela
+  ✓ FAQ não promete mais "about 3–5 minutes"
+  ✓ /terms não fala mais em preço introdutório (não existe intro)
+  ✓ reancorado KINEO-PRECOS-LIMPEZA-1510: filmCreditsAt60s / filmsPerMonthFor / filmsCell e o import de creditCostForDuration saíram do PricingClient
+  ✓ a contagem NÃO usa INTRO_CREDITS
+  ✓ Starter × H3 pinta "✅ 1 film" (60 ≥ 45)
+  ✓ Starter × Kling 2.5 pinta "—" (60 vs 75)
+  ✓ Studio × Kling 3 pinta "✅ 2/mo" (300 ÷ 150)
+  ✓ Creator × Kling 3 pinta "✅ 1/mo" (150 ÷ 150)
+  ✓ Starter × Kling 3 continua "—" (60 < 150)
+  ✓ page.tsx importa characterLimitFor de lib/characters.ts
+  ✓ page.tsx deriva free/trial/starter/basic/pro de characterLimitFor
+  ✓ page.tsx entrega characterLimits ao PricingClient
+  ✓ reancorado KINEO-PRECOS-LIMPEZA-1510: a linha "Saved characters" e o charCell saíram com a tabela
+  ✓ pinta —(free) / 3 during trial / 3 / 3 / 10 com os números de hoje
+  ✓ PricingClient ('use client') NÃO importa lib/characters (node:crypto não entra no bundle do navegador)
+  ✓ RENDER_TIME_COPY = "AI engines 8–20 min" (sem Kineo 1)
+  ✓ FAQ "How fast" usa RENDER_TIME_COPY
+  ✓ reancorado KINEO-PRECOS-LIMPEZA-1510: linhas Render time e Support saíram com a tabela
+  ✓ prova social = '2,100+ creators · 1,500+ films'
+  ✓ comentário com a origem do placar (banco 2026-09-27)
+  ✓ /terms §4 = "Payments and refunds"
+  ✓ /terms §4 cobra "the price shown in checkout" e mostra preço + renovação antes do pagamento
+  ✓ /terms mantém a garantia de 7 dias
+  ✓ TIER_CREDITS intacto (60/150/300) — a entrega não mexeu em grant
+
+36 verificações passaram; 0 falharam.

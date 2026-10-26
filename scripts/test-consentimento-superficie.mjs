@@ -18,6 +18,9 @@
 // E o guardião se amarra à VARIÁVEL QUE DECIDE, não só conta texto: um mutante
 // que troque a condição por `true` tem que ficar vermelho aqui.
 import { readFileSync } from 'node:fs'
+import crypto from 'node:crypto'
+import ts from 'typescript'
+import vm from 'node:vm'
 const src = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 let ok = 0, fail = 0
 const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, console.log('  FAIL ' + n)) }
@@ -129,12 +132,58 @@ check('PUBLIC_VIDEO_COLUMNS NÃO ganhou published_at', !colunas.includes('publis
 check('PUBLIC_VIDEO_COLUMNS continua sem user_id/prompt/script', !/\buser_id\b|\bprompt\b|\bscript\b/.test(colunas))
 
 console.log('4 · app/api/video/publish/route.ts — ninguém publica sem token (regressão)')
-const idxToken = publish.indexOf('if (!verifyShareToken(videoId, token)) return voltarParaBiblioteca')
-const idxEscrita = publish.indexOf("update({ published_at: new Date().toISOString()")
-check('a rota exige verifyShareToken', idxToken > 0)
-check('a verificação do token vem ANTES da escrita do carimbo', idxEscrita > idxToken)
-check('a escrita só acontece em linha completed com URL de reprodução',
-  publish.indexOf("if (row.status !== 'completed' || !playable) return voltarParaBiblioteca('not_ready')") < idxEscrita)
+const post = corpo(publish, 'export async function POST(')
+const idxToken = post.indexOf('!verifyShareConfirmation(videoId, action, confirmation)')
+const idxEscrita = post.indexOf('admin.from(\'videos\').update(')
+const idxReady = post.indexOf("if (!undo && (row.status !== 'completed' || !(row.final_video_url || row.video_url || '').trim())) return back('not_ready')")
+check('GET exige token e só apresenta confirmação; POST exige capacidade assinada por ação', corpo(publish, 'export async function GET(').includes('!verifyShareToken(videoId,') && idxToken > 0)
+check('a confirmação assinada vem ANTES de abrir o cliente e escrever o carimbo', idxToken < post.indexOf('createAdminClient(url, key') && idxEscrita > idxToken)
+check('a escrita de publicação só acontece em linha completed com URL de reprodução', idxReady > idxToken && idxReady < idxEscrita)
+// Executar HMAC e rota reais: GET de scanner é inerte; nenhuma negativa pode
+// abrir cliente privilegiado ou publicar, e o positivo precisa realmente gravar.
+const fixtureEnv = { VIDEO_SHARE_SECRET: 'offline-synthetic-consent-secret', NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-not-real' }
+function loadText(code, imports, environment = fixtureEnv) {
+  const exports = {}
+  vm.runInNewContext(ts.transpileModule(code, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports, require: id => { if (Object.hasOwn(imports, id)) return imports[id]; throw Error('unapproved offline import ' + id) }, process: { env: environment }, URL, URLSearchParams, Headers, Buffer, Date, console: { error() {} } }, { timeout: 5000 })
+  return exports
+}
+const shares = loadText(src('lib/videoShareLink.ts'), { crypto })
+const VIDEO = '11111111-1111-4111-8111-111111111111'
+class Reply extends Response {
+  static redirect(url, opts = {}) { return new Reply(null, { status: opts.status ?? 307, headers: { ...opts.headers, location: url } }) }
+}
+function routeFixture({ code = publish, row = {}, environment = fixtureEnv } = {}) {
+  const mutations = [], events = []; let clients = 0
+  const video = { id: VIDEO, user_id: 'owner', status: 'completed', video_url: 'https://fixture.invalid/film.mp4', published_at: null, ...row }
+  const admin = { from: table => { if (table !== 'videos') throw Error('unexpected table'); return {
+    select: () => ({ eq: () => ({ single: async () => ({ data: video, error: null }) }) }),
+    update: value => { mutations.push(value); const chain = { eq: () => chain, is: () => chain, select: () => chain, maybeSingle: async () => ({ data: { id: VIDEO, published_at: value.published_at }, error: null }) }; return chain },
+  } } }
+  const mod = loadText(code, { 'next/server': { NextResponse: Reply }, '@supabase/supabase-js': { createClient: () => { clients++; return admin } }, '@/lib/serverEvents': { writeServerEvent: async e => events.push(e) }, '@/lib/videoShareLink': shares }, environment)
+  return { mod, mutations, events, get clients() { return clients } }
+}
+function request({ action = 'publish', token = shares.mintShareConfirmation(VIDEO, action), origin = 'https://fixture.invalid' } = {}) {
+  return new Request('https://fixture.invalid/api/video/publish', { method: 'POST', headers: { origin }, body: new URLSearchParams({ v: VIDEO, action, confirmation: token, src: 'offline-test' }) })
+}
+const inbox = routeFixture()
+const inboxResponse = await inbox.mod.GET(new Request(`https://fixture.invalid/api/video/publish?v=${VIDEO}&t=${shares.mintShareToken(VIDEO)}`))
+check('GET válido mostra formulário de confirmação sem cliente ou escrita', inboxResponse.status === 200 && (await inboxResponse.text()).includes('method="post"') && inbox.clients === 0 && inbox.mutations.length === 0)
+for (const [name, options] of [
+  ['token malformado', { token: 'bad' }],
+  ['token de outro vídeo', { token: shares.mintShareConfirmation('22222222-2222-4222-8222-222222222222', 'publish') }],
+  ['ação invertida', { action: 'unpublish', token: shares.mintShareConfirmation(VIDEO, 'publish') }],
+  ['token expirado', { token: shares.mintShareConfirmation(VIDEO, 'publish', Date.now() - 901000) }],
+  ['origem alheia', { origin: 'https://evil.invalid' }],
+]) { const f = routeFixture(); await f.mod.POST(request(options)); check(name + ': rejeitado antes do cliente e da escrita', f.clients === 0 && f.mutations.length === 0 && f.events.length === 0) }
+for (const row of [{ status: 'processing' }, { status: 'failed' }, { video_url: null }]) { const f = routeFixture({ row }); await f.mod.POST(request()); check('não pronto/sem reprodução nunca publica: ' + JSON.stringify(row), f.mutations.length === 0 && f.events.length === 0) }
+const positive = routeFixture(), confirmed = await positive.mod.POST(request())
+check('confirmação válida publica a linha e emite um único evento confirmado', confirmed.status === 303 && positive.mutations.length === 1 && !!positive.mutations[0].published_at && positive.events.length === 1 && positive.events[0].name === 'video_published_v1')
+const noAuth = routeFixture({ code: publish.replace('!verifyShareConfirmation(videoId, action, confirmation)', 'false') })
+await noAuth.mod.POST(request({ token: 'bad' }))
+check('mutante sem confirmação assinada é detectado', noAuth.clients > 0 && noAuth.mutations.length === 1)
+const noReady = routeFixture({ row: { status: 'processing' }, code: publish.replace("if (!undo && (row.status !== 'completed' || !(row.final_video_url || row.video_url || '').trim()))", 'if (false)') })
+await noReady.mod.POST(request())
+check('mutante sem trava de entrega é detectado', noReady.mutations.length === 1)
 
 console.log('5 · a copy do consentimento diz a VERDADE sobre o que o clique faz')
 // A #27/#28 prometia apenas "um link que voce manda por mensagem". A partir

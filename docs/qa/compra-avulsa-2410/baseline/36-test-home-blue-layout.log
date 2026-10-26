@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-home-blue-layout.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 4409
+Home blue: 144 rendered session, referral and language checks passed; offline.

@@ -44,7 +44,7 @@ ok(!/recordDfyOrderPaid|recordPaymentSuccess|grant|credits/.test(ramoPendente), 
 const iGate = gate ? bloco.indexOf(gate[0]) : -1
 const iFimGate = iGate >= 0 ? iGate + gate[0].length : -1
 const iDfy = bloco.indexOf('await recordDfyOrderPaid(supabase, event.id, session)')
-const iVenda = bloco.indexOf('await recordPaymentSuccess(supabase, event.id, session)')
+const iVenda = bloco.indexOf('await recordPaymentSuccess(supabase, event.id, session, event.created)') // KINEO-AMOSTRA-ANUNCIO-2410 also passes the actual payment timestamp.
 ok(iGate >= 0 && iDfy > iFimGate && iVenda > iFimGate, `2f. pedido Empresas (dfy_order_paid) e payment_success só depois do portão (portão ${iGate}, venda ${iVenda}, pedido ${iDfy})`)
 const chamadasDfy = wh.split('await recordDfyOrderPaid(').length - 1
 ok(chamadasDfy === 1, `2g. recordDfyOrderPaid tem UM chamador em toda a rota (${chamadasDfy}) — nenhum caminho grava pedido sem passar pelo portão`)

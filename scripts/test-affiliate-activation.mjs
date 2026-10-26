@@ -73,7 +73,9 @@ ok(component.includes("state === 'pending' || state === 'suspended'"), 'non-acti
 ok(component.includes('30% on eligible subscription payments'), 'approved commission promise is qualified')
 ok(history.includes('isAffiliateMomentumEligible({'), 'real history caller uses eligibility policy')
 ok(history.includes('isHistorySubscriptionOfferEligible({'), 'real history caller uses subscription recovery policy')
-ok(history.includes('history_first_video_offer_viewed'), 'one-video recovery impression is measured separately')
+// Rendering and qualified human attention now have separate denominators; do not restore the inflated viewed event.
+ok(history.includes('history_first_video_offer_rendered'), 'one-video recovery render is measured separately')
+ok(history.includes('createHistoryFirstVideoOfferRecorder({') && history.includes('shouldDwellOnHistoryFirstVideoOffer({') && history.includes('createHistoryFirstVideoOfferDwellController({'), 'one-video human view uses the qualified recorder and dwell policy')
 ok(history.includes('history_first_video_offer_clicked'), 'one-video recovery click is measured separately')
 ok(history.includes("firstVideoSubscriptionRecovery ? 'history_first_video_offer' : 'history_repeat_offer'"), 'checkout origin distinguishes first-video recovery from repeat creator')
 ok(history.includes('<AffiliateMomentumCard completedVideoCount={completedVideos.length} />'), 'real history page mounts the card')

@@ -15,8 +15,9 @@ import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2
 // ok/FAIL; o processo sai != 0 se qualquer uma falhar.
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 let pass = 0

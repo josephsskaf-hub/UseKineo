@@ -128,6 +128,7 @@ console.log('== 4. espelhos e superfícies leem a fonte ==')
 const ROTA = rd('app/api/stripe/checkout/route.ts')
 const WH = rd('app/api/stripe/webhook/route.ts')
 const PP = rd('lib/paypal.ts')
+const PPC = rd('lib/paypalCatalog.ts')
 const PPR = rd('app/api/paypal/return/route.ts')
 const PRICING = rd('app/pricing/PricingClient.tsx')
 const TERMS = rd('app/terms/page.tsx')
@@ -145,7 +146,7 @@ checa('webhook: fallback por valor 499 → PACK_CREDITS.starter e 490 legado →
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: o anual mudou de preço de novo, os planos PayPal sobem para v4 (um v3 anual já
 // criado cobraria o de 40% para sempre) e os anuais ocupados do Studio Ads passam a 10800/25000/46000.
 // KINEO-PRECO-TESTE-2026-10-08 — planos PayPal v5 (Starter/Creator a $9,90/$19,90 no teste de 7 dias; um v4 cobraria o antigo).
-checa('PayPal: pack lê PACK_PRICE_MINOR (sem "4.90" digitado), retorno com amount da fonte, planos v5', /usd: usd\(PACK_PRICE_MINOR\.usd\)/.test(PP) && !/usd: '4\.90'/.test(PP) && /const PLAN_VERSION = 'v5'/.test(PP) && /amount=\$\{PACK_PRICE_MINOR\.usd\}/.test(PPR))
+checa('PayPal: catálogo único lê PACK_PRICE_MINOR, retorno da fonte e planos identificam preço e créditos', /usd: usdValue\(PACK_PRICE_MINOR\.usd\)/.test(PPC) && !/usd: '4\.90'/.test(PP + PPC) && /const PLAN_VERSION = 'v5'/.test(PP) && PP.includes("from '@/lib/paypalCatalog'") && PP.includes('const cfgKey = paypalPlanConfigKey(tier, billing)') && PP.includes('idempotencyKey: paypalPlanRequestId(tier, billing)') && /amount=\$\{PACK_PRICE_MINOR\.usd\}/.test(PPR))
 checa('Studio Ads: 499 e anuais vigentes (30% off; 8300/16700/46000 no teste de 08/10) ocupados; 12900/54900, os de 40% (9290/21500/39500) e os de 30% da V8-A (10800/25000) saíram', (() => { const arr = ((OFFER.match(/ONE_TIME_USD_MINOR_OCCUPIED: readonly number\[\] = \[([^\]]*)\]/) || [])[1] || '').split(',').map((x) => Number(x.trim())); return [499, 490, 8300, 16700, 46000].every((n) => arr.includes(n)) && ![12900, 54900, 9290, 21500, 39500, 10800, 25000].some((n) => arr.includes(n)) })())
 checa('pricing: selo "SAVE {ANNUAL_DISCOUNT_PERCENT}%" no lugar de "2 MONTHS FREE"', PRICING.includes('SAVE {ANNUAL_DISCOUNT_PERCENT}%') && !PRICING.includes('2 MONTHS FREE'))
 checa('pricing: card anual "≈ $X" + "/mo, billed $Y yearly · save {ANNUAL_DISCOUNT_PERCENT}%" (30% desde 08/10)', PRICING.includes('`≈ ${annualPrices[p.tier as PaidTier].perMonth}`') && PRICING.includes("`/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`"))

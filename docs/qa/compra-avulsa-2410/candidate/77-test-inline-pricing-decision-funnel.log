@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-inline-pricing-decision-funnel.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 538
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+inline-pricing-decision-funnel: 72/72 checks passed

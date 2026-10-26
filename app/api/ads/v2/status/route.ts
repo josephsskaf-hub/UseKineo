@@ -8,6 +8,8 @@ import { isUuid } from '@/lib/ads/v2Contract'
 import { adsV2View, advanceAdsV2Order, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { adsV2FirstRedoFor } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — a tela mostra "Refazer esta cena · grátis" na 1ª refação
+import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
+import { escolhaView } from '@/lib/ads/cena/escolhaStills'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
     const orderId = (req.nextUrl.searchParams.get('order_id') ?? '').toLowerCase()
     if (!isUuid(orderId)) return v2Fail('bad_order_id', 400)
     const { admin, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
-    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
+    const uid: string = await isEscolhaPersonalOrder(admin, user.id, orderId) ? user.id : ws.ownerId ?? user.id // KINEO-AMOSTRA-ANUNCIO-2410 — samples and their paid continuation belong to the actor personally.
     const { order, error } = await loadAdsV2Order(admin, orderId, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('status_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
     // KINEO-ADS-REFACAO-ATOR-1410 — só no anúncio entregue: a MESMA regra que a rota /retake usa para cobrar (leitura falhou = sem "grátis").
     const firstRedoFree = view.status === 'delivered' ? (await adsV2FirstRedoFor(admin, order, uid))?.free === true : false // KINEO-ADS-REFACAO-ATOR-1410
-    return v2Json({ ...view, video, ...(firstRedoFree ? { first_redo_free: true } : {}) }) // KINEO-ADS-REFACAO-ATOR-1410 — sem a chave = a vista de antes
+    return v2Json({ ...view, ...escolhaView(order.plan), status: view.status, video, ...(firstRedoFree ? { first_redo_free: true } : {}) }) // KINEO-ADS-REFACAO-ATOR-1410 — sem a chave = a vista de antes
   } catch (e) {
     console.warn('[ads/v2/status] falhou:', e instanceof Error ? e.message : String(e))
     return v2Fail('status_failed', 502)

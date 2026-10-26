@@ -1,0 +1,26 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-admin-leve-2310.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 20909
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+mutant rejected: cache-default-30s
+mutant rejected: cache-no-singleflight
+mutant rejected: cache-never-expires
+mutant rejected: cache-retains-failed-flight
+mutant rejected: route-cache-bypassed
+mutant rejected: route-auth-bypassed
+mutant rejected: route-service-bypassed
+mutant rejected: route-rpc-error-as-success
+mutant rejected: polling-hidden-active
+mutant rejected: polling-30s
+mutant rejected: polling-no-hidden-timer-cleanup
+mutant rejected: polling-no-visible-resume
+mutant rejected: polling-allows-overlap
+mutant rejected: polling-listener-leaks
+mutant rejected: polling-pending-rearms-after-unmount
+mutant rejected: polling-ignores-ssr-seed
+mutant rejected: live-caller-drops-load
+Disk mutants: 17/17 rejected; exact Buffer undo verified.
+Positive control after exact undo passed.
+KINEO-ADMIN-LEVE-2310: 102 passed, 0 failed.

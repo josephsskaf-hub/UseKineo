@@ -50,12 +50,14 @@ import { preflightCenaAjuste } from '@/lib/ads/cena/ajustePreflight' // KINEO-AD
 import { escolhaReadyForStart } from '@/lib/ads/cena/escolhaStills' // KINEO-ADS-ESCOLHA-2310
 import { preflightCenaEscolha } from '@/lib/ads/cena/escolhaPlan' // KINEO-ADS-ESCOLHA-2310
 import { writeEscolhaEvent } from '@/lib/ads/cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
+import { ADS_ESCOLHA_SAMPLE_LIVE, isEscolhaSamplePlan } from '@/lib/ads/cena/escolhaSamplePolicy'
+import { escolhaSampleAccountOk, hasEscolhaSampleReservation } from '@/lib/ads/cena/escolhaSampleServer'
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
 
 /** O início do anúncio v2 para `user`, com o acesso `access` já resolvido. `readBody` lê o corpo só depois das portas. */
-export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now(), dependencies: { moderate?: typeof moderateContent } = {}): Promise<NextResponse> { // KINEO-ADS-CENA-95-PACING-2110 — server-only DI; request bodies cannot supply it.
+export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now(), dependencies: { moderate?: typeof moderateContent; escolhaPersonal?: boolean } = {}): Promise<NextResponse> { // KINEO-ADS-CENA-95-PACING-2110 — server-only DI; request bodies cannot supply it.
   let locked: { id: string; user_id: string; billing_ref: string | null } | null = null
   let admin: Awaited<ReturnType<typeof loadAdsAccess>>['admin'] | null = null
   try {
@@ -63,15 +65,15 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     admin = access.admin
     const gate = adsGate(access.reason)
     const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, access.reason) // KINEO-ADS-AMOSTRA-2026-10-09
-    if (gate !== 'ok' && !sample) {
+    if (gate !== 'ok' && !sample && !dependencies.escolhaPersonal) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/start', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }
     // Interruptor do v2 ANTES de qualquer débito.
-    if (!adsV2Visible(user.email)) return v2Fail('v2_closed', 403)
+    if (!adsV2Visible(user.email) && !dependencies.escolhaPersonal) return v2Fail('v2_closed', 403)
     // KINEO-ADS-AMOSTRA-2026-10-09 — este início é a amostra grátis (o gate barrou e a amostra abriu). Assinante, passe e
     // interna (gate 'ok') NUNCA caem aqui: o caminho pago deles fica idêntico.
-    const sampleRun = gate !== 'ok' && sample
+    let sampleRun = gate !== 'ok' && sample
 
     const parsed = sanitizeStartBody(await readBody())
     if (!parsed.ok) return v2Fail(parsed.error, 400)
@@ -82,7 +84,17 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
-    const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
+    const cena = cenaOf(plan)
+    const escolhaSample = !!cena && isEscolhaSamplePlan(cena.plan)
+    const escolhaUpgrade = !!plan?.escolhaSampleSource && dependencies.escolhaPersonal === true && uid === user.id
+    if (dependencies.escolhaPersonal && !escolhaSample && !escolhaUpgrade) return v2Fail('no_access', 403)
+    if (escolhaSample) {
+      if (!ADS_ESCOLHA_SAMPLE_LIVE) return v2Fail('ads_sample_disabled', 403)
+      if (uid !== user.id || !await escolhaSampleAccountOk(admin, user.id)) return v2Fail('ads_sample_account_blocked', 403)
+      if (!await hasEscolhaSampleReservation(admin, { orderId, actorId: user.id, ownerId: uid })) return v2Fail('ads_sample_unavailable', 503)
+    }
+    sampleRun = escolhaSample || sampleRun && !escolhaUpgrade
+    if (cena && !escolhaSample && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
     if (cena && !cena.plan.escolha && !isAdsInternalEmail(user.email)) return v2Fail('cena_internal_only', 403) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — legacy engines stay internal.
     if (cena && 'quality95' in cena.plan && !CENA95_LIVE) return v2Fail('cena95_disabled_replan', 409, { reason: 'O motor 9,5 está desligado. Gere um novo plano AJUSTE antes de iniciar; nenhum crédito foi debitado.' }) // KINEO-ADS-CENA-RETOMADA-2110 — paid orders continue their saved runtime; this gate is before debit.
     if (cena?.plan.escolha?.marker === 'KINEO-ADS-ESCOLHA-2310') { // KINEO-ADS-ESCOLHA-2310 — human choice is required before the existing credit claim.
@@ -93,16 +105,16 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
-    if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
+    if (sampleRun && !escolhaSample && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
     const samplePresenter = sampleRun && adsSamplePresenterPlanOk(plan) // KINEO-HOME-3-CARDS-1910 — a amostra com a pessoa: só com a marca que o /plan grava pela entrada UGC + o apresentador planejado
-    if (sampleRun && !adsV2CloseRealOf(plan) && !samplePresenter) return v2Fail('sample_level_only', 403) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — ou o Close real, ou a amostra com a pessoa; era: if (sampleRun && !adsV2CloseRealOf(plan)) — a amostra só sai no Close do produto real (plano sem a marca = planejado antes; o /plan refaz grátis)
+    if (sampleRun && !escolhaSample && !adsV2CloseRealOf(plan) && !samplePresenter) return v2Fail('sample_level_only', 403) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — ou o Close real, ou a amostra com a pessoa; era: if (sampleRun && !adsV2CloseRealOf(plan)) — a amostra só sai no Close do produto real (plano sem a marca = planejado antes; o /plan refaz grátis)
 
     // Moderação (a régua do v1, superfície ads_render): o texto que vira VOZ e TELA.
     const text = [plan.narration ?? '', ...(plan.overlays ?? []).map((o) => o.text)].filter(Boolean).join('\n')
     const safety = await (dependencies.moderate ?? moderateContent)({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { order_id: orderId, v2: true } }) // KINEO-ADS-CENA-95-PACING-2110 — default always moderates; internal request reuses the same verdict.
     if (!safety.ok) return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
 
-    const cost = adsV2Credits(order.tier, order.seconds)
+    const cost = escolhaSample ? 0 : adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
     if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()) }) // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — o ensaio também respeita o modo salvo; legado sem modo conserva estimativa antiga.
 
@@ -122,11 +134,11 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
       })
     }
 
-    if (sampleRun) {
+    if (sampleRun && !escolhaSample) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — teto GLOBAL do dia ANTES da trava (o custo da amostra é nosso). Sem saldo: não cobra.
       if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
       if (samplePresenter && await adsSamplePresenterCapReached(admin)) return v2Fail(ADS_SAMPLE_PRESENTER_CAP_CODE, 429) // KINEO-UGC-AJUSTES-2010 — o plano com a pessoa chegou depois do sub-teto de 10/dia: ANTES da trava, sem débito; a tela refaz o plano (sai no Close real)
-    } else {
+    } else if (!sampleRun) {
       // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
       const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()
       const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
@@ -136,7 +148,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     // Trava condicional: só um início por pedido; o índice único parcial deixa só UM anúncio ativo por conta.
     const generationId = randomUUID()
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra trava com a chave 'adssample-…' (sem débito) e credits_charged 0.
-    const billingRef = sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
+    const billingRef = escolhaSample ? `adssample-escolha-${orderId}-${generationId}` : sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
     const lock = await admin
       .from('ads_v2_orders')
       .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null, ...(cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' ? { plan } : {}) }) // KINEO-ADS-CENA-SEGUE-2110 — persist corrected copy/notes in the existing atomic start claim.
@@ -163,7 +175,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
       return v2Fail(charge.code, charge.status, charge.balance !== undefined ? { needed: cost, balance: charge.balance } : {})
     }
 
-    if (sampleRun) {
+    if (sampleRun && !escolhaSample) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — o rastro da amostra (o custo é nosso: conta o teto e o US$ estimado).
       await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost, format: samplePresenter ? 'presenter' : 'close_real', watermark: true } }) // KINEO-HOME-3-CARDS-1910 — o formato da amostra (Close real ou com a pessoa) // KINEO-CLOSE-REAL-1910 — + o formato e a marca-d'água; era: o mesmo evento sem format/watermark
     }

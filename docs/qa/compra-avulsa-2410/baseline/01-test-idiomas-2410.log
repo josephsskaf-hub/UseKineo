@@ -1,0 +1,9 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-idiomas-2410.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 959
+ok — catálogo, boosts, vozes, scripts e fontes reais nos 39 códigos
+ok — o Studio de filme e Cartoon leem a lista única; idioma da interface separado
+ok — generateTTS e cache escolhem MiniMax apenas nas línguas novas
+ok — mutantes aplicados em memória derrubam o contrato
+4 contratos passaram; 5 mutantes rejeitados; chamadas pagas: 0

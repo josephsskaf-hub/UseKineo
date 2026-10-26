@@ -1,18 +1,21 @@
 // KINEO-COERENCIA-HISTORIA + KINEO-PRIMEIRO-VIDEO — 02/09/2026
 // Provas lendo o codigo real (o gate que existe so na biblioteca nao conta).
 import { readFileSync } from 'node:fs'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const src = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8')
 let ok = 0, fail = 0
 const check = (name, cond) => { if (cond) { ok++; console.log('  ok  ' + name) } else { fail++; console.log('  FAIL ' + name) } }
 
 const router = src('lib/hollywood/router.ts')
 console.log('router.ts')
-check('teto do planner acompanha o alvo (nao mais 60 chumbado)', router.includes("const ceiling = Math.max(60, Math.round(durationSeconds || 60) + 6)") && !router.includes('while (total > 60 && outScenes.length > 2)'))
+check('teto do planner acompanha o alvo, incluindo filme curto de 15 s', router.includes('const ceiling = (durationSeconds || 60) < 35 ? Math.round(durationSeconds) + 6 : Math.max(60, Math.round(durationSeconds || 60) + 6)') && !router.includes('while (total > 60 && outScenes.length > 2)'))
 check('quando corta, sai a penultima cena — PAYOFF fica', router.includes('outScenes.splice(outScenes.length - 2, 1)'))
-check('prompt do planner aceita alvo ate 100s (era 70)', router.includes('Math.max(30, Math.min(100, Math.round(durationSeconds || 60)))'))
+check('prompt do planner aceita 15–100 s (durações curtas aprovadas em 29/09)', router.includes('Math.max(15, Math.min(100, Math.round(durationSeconds || 60)))'))
 check('regra de ORCAMENTO DE NARRACAO no prompt (palavras, nao seconds)', router.includes('NARRATION BUDGET (STRICT') && router.includes('at least 2.1 × the target seconds'))
 check('regra: a historia TEM de acabar (PAYOFF falado inteiro)', router.includes('THE STORY MUST END (STRICT)'))
-check('faceless de verdade: dialogue do planner vira support narrado', router.includes('KINEO-FACELESS-DE-VERDADE-2026-09-02') && router.includes("sc.type = 'support'"))
+const cenas = [{ type: 'dialogue', dialogueLine: 'The wave crossed the bay.', prompt: 'A huge wave crosses the bay.' }]
+createOfflineLoader()('lib/hollywood/fidelidade.ts').aplicarFidelidadeAoPlano(cenas, '', 'en', true)
+check('faceless de verdade: chamada canônica converte diálogo em support narrado', router.includes("aplicarFidelidadeAoPlano(outScenes, characterSheet, (args.language === 'pt' || args.language === 'es') ? args.language : 'en', true)") && cenas[0].type === 'support' && cenas[0].voiceover === 'The wave crossed the bay.' && cenas[0].needsNarration === true && !('dialogueLine' in cenas[0]))
 
 const route = src('app/api/generate-video-cinematic/route.ts')
 console.log('route.ts')

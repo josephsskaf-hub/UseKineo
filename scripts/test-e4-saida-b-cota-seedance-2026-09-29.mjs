@@ -33,6 +33,8 @@ import crypto from 'node:crypto'
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
+// KINEO-LEVA-2410: produto e banco falso usam a mesma data, independente do dia da execução.
+const AGORA_FIXTURE = Date.parse('2026-09-29T12:00:00Z')
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const require = createRequire(import.meta.url)
@@ -54,7 +56,7 @@ function criaLoader({ sobrescritas = {}, externos = {}, env = {}, globais = {} }
     '@supabase/supabase-js': { createClient: () => indisponivel('Supabase') },
     ...externos,
   }
-  const agora = Date.parse('2026-09-29T12:00:00Z')
+  const agora = AGORA_FIXTURE
   class DataFixa extends Date { constructor(...a) { super(...(a.length ? a : [agora])) } static now() { return agora } }
   const contexto = {
     Buffer, URL, URLSearchParams, TextEncoder, TextDecoder, Response, Date: DataFixa,
@@ -71,10 +73,16 @@ function criaLoader({ sobrescritas = {}, externos = {}, env = {}, globais = {} }
     if (!existsSync(f) && existsSync(f.replace(/\.ts$/, '.tsx'))) f = f.replace(/\.ts$/, '.tsx')
     if (!existsSync(f)) throw new Error('import inesperado: ' + spec)
     if (cache.has(f)) return cache.get(f)
-    const exports = {}
-    cache.set(f, exports)
     const rel = f.slice(root.length + 1).split(sep).join('/')
     const src = Object.hasOwn(sobrescritas, rel) ? sobrescritas[rel] : readFileSync(f, 'utf8')
+    // KINEO-LEVA-2410: os candidatos de apresentador são dados JSON reais, inclusive nas sobrescritas.
+    if (f.endsWith('.json')) {
+      const dados = JSON.parse(src)
+      cache.set(f, dados)
+      return dados
+    }
+    const exports = {}
+    cache.set(f, exports)
     vm.runInNewContext(transpila(src), { ...contexto, exports, require: (n) => carrega(n, dirname(f)) }, { timeout: 10000, filename: f })
     return exports
   }
@@ -153,7 +161,7 @@ checa("mutante (política volta a 'todos') → vermelho", !provaPais(criaLoader(
 // ══ (b) concessão do trial executada ════════════════════════════════════════════════════════════════════════════════
 console.log('== (b) lib/reverseTrial.ts executado: a regra só age na concessão ==')
 const ENV_RT = { KINEO_REVERSE_TRIAL_ENABLED: 'true', NEXT_PUBLIC_SUPABASE_URL: 'https://x.invalid', SUPABASE_SERVICE_ROLE_KEY: 'k' }
-async function ativa({ country, perfil, criadoEm = new Date().toISOString(), sobrescritas = {} }) {
+async function ativa({ country, perfil, criadoEm = new Date(AGORA_FIXTURE).toISOString(), sobrescritas = {} }) {
   const db = bancoFalso({ perfil: perfil ?? { id: 'u-1', trial_status: null, plan: 'free', has_paid: false, video_credits: 0 } })
   const eventos = []
   const RT = criaLoader({ sobrescritas, env: ENV_RT, externos: { '@supabase/supabase-js': { createClient: () => db }, '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); return true } } } })('lib/reverseTrial.ts')
@@ -180,7 +188,7 @@ async function ativa({ country, perfil, criadoEm = new Date().toISOString(), sob
     checa(`cadastro novo de ${c ?? 'país nulo'}: trial concedido (${x.db.estado.perfil.video_credits} cr)`, x.r.activated === true && x.db.estado.perfil.trial_status === 'active' && x.db.estado.perfil.video_credits > 0)
   }
   const antiga = { id: 'u-1', trial_status: 'downgraded', plan: 'free', has_paid: false, video_credits: 3 }
-  const velha = await ativa({ country: 'PK', perfil: antiga, criadoEm: new Date(Date.now() - 30 * 86400000).toISOString() })
+  const velha = await ativa({ country: 'PK', perfil: antiga, criadoEm: new Date(AGORA_FIXTURE - 30 * 86400000).toISOString() })
   checa('conta ANTIGA do PK (trial encerrado, 3 cr): nada é escrito, saldo e status intactos', velha.r.activated === false && velha.db.estado.updates.length === 0 && velha.db.estado.perfil.video_credits === 3 && velha.db.estado.perfil.trial_status === 'downgraded')
   const recente = await ativa({ country: 'PK', perfil: { ...antiga, trial_status: 'active', video_credits: 10 } })
   checa('conta do PK que JÁ tem trial ativo (cadastrada antes da virada): trial intacto, sem marca region_paid_only', recente.r.reason === 'trial_already_used' && recente.db.estado.updates.length === 0 && recente.db.estado.perfil.trial_status === 'active' && recente.db.estado.perfil.video_credits === 10)
@@ -193,7 +201,7 @@ console.log('== (c) cota semanal: 1 Seedance 1.5 de 15 s, só país rico, sem ac
 const FW = L0('lib/freeWeeklyFilm.ts')
 const ECOST = L0('lib/credits/engineCost.ts')
 const DIA = 86400000
-const velhaConta = new Date(Date.now() - 60 * DIA).toISOString()
+const velhaConta = new Date(AGORA_FIXTURE - 60 * DIA).toISOString()
 const P = (o = {}) => ({ id: 'u-1', plan: 'free', has_paid: false, trial_status: 'downgraded', created_at: velhaConta, video_credits: 0, ...o })
 checa(`custo do filme da semana = creditCostForDuration('cinematic_ai', true, 15) = ${FW.FREE_WEEKLY_FILM_CREDITS}; 15 s; Seedance 1.5`, FW.FREE_WEEKLY_FILM_CREDITS === ECOST.creditCostForDuration('cinematic_ai', true, 15) && FW.FREE_WEEKLY_FILM_SECONDS === 15 && FW.FREE_WEEKLY_FILM_QUALITY === 'cinematic_ai')
 const matriz = (M) => [
@@ -204,7 +212,7 @@ const matriz = (M) => [
   [P({ trial_status: 'region_paid_only' }), 'US', 'region_paid_only'], [P({ trial_status: 'region_paid_only' }), null, 'region_paid_only'],
   [P({ has_paid: true }), 'US', 'paid'], [P({ plan: 'starter' }), 'US', 'paid'], [P({ plan: 'autopilot' }), 'US', 'paid'],
   [P({ trial_status: 'active' }), 'US', 'trial_status'], [P({ trial_status: 'blocked' }), 'US', 'trial_status'], [P({ trial_status: 'card_required' }), 'US', 'trial_status'],
-  [P({ trial_status: null, created_at: new Date().toISOString() }), 'US', 'too_new'], [P({ trial_status: null }), 'US', 'eligible'],
+  [P({ trial_status: null, created_at: new Date(AGORA_FIXTURE).toISOString() }), 'US', 'too_new'], [P({ trial_status: null }), 'US', 'eligible'],
 ].every(([perfil, pais, esperado]) => M.freeWeeklyFilmEligibility(perfil, pais) === esperado)
 checa('elegibilidade: só grátis de país CONHECIDO da lista (nulo/XX/T1 não); region_paid_only/pago/trial ativo/blocked/conta nova fora', matriz(FW))
 checa('mutante (region_paid_only deixa de ser barrada) → vermelho', !matriz(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', "  if (status === REGION_PAID_ONLY_TRIAL_STATUS) return 'region_paid_only'\n", '') })('lib/freeWeeklyFilm.ts')))
@@ -229,9 +237,10 @@ const exclusivo = (M) =>
   M.freeWeeklyFilmExclusive({ otherActiveHold: false, weekCinematicDebits: null }) === false
 checa('exclusividade: outro render em voo (hold) ou débito cinematic não estornado na semana ou leitura falha = recusa', exclusivo(FW))
 checa('mutante (hold alheio ignorado) → vermelho', !exclusivo(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return input.otherActiveHold === false && input.weekCinematicDebits === 0\n', '  return input.weekCinematicDebits === 0\n') })('lib/freeWeeklyFilm.ts')))
-const semAcumular = (M) => M.freeWeeklyTopUp(0) === 7 && M.freeWeeklyTopUp(3) === 4 && M.freeWeeklyTopUp(7) === 0 && M.freeWeeklyTopUp(40) === 0 && M.freeWeeklyTopUp(null) === 7
-checa('recarga completa até 7 e nunca além (0→7, 3→+4, 7→0, 40→0)', semAcumular(FW))
-checa('mutante (recarga soma 7 sempre) → vermelho', !semAcumular(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return Math.max(0, FREE_WEEKLY_FILM_CREDITS - b)', '  return FREE_WEEKLY_FILM_CREDITS') })('lib/freeWeeklyFilm.ts')))
+const COTA = ECOST.creditCostForDuration('cinematic_ai', true, FW.FREE_WEEKLY_FILM_SECONDS)
+const semAcumular = (M) => M.FREE_WEEKLY_FILM_CREDITS === COTA && M.freeWeeklyTopUp(0) === COTA && M.freeWeeklyTopUp(3) === COTA - 3 && M.freeWeeklyTopUp(COTA) === 0 && M.freeWeeklyTopUp(40) === 0 && M.freeWeeklyTopUp(null) === COTA
+checa('recarga completa até o custo canônico do filme e nunca além', semAcumular(FW))
+checa('mutante (recarga soma a cota sempre) → vermelho', !semAcumular(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return Math.max(0, FREE_WEEKLY_FILM_CREDITS - b)', '  return FREE_WEEKLY_FILM_CREDITS') })('lib/freeWeeklyFilm.ts')))
 const admite = (M) =>
   M.freeWeeklyFilmAdmissible({ quality: 'cinematic_ai', durationSeconds: 15, eligibility: 'eligible', recentSeedanceFilms: 0 }) === true &&
   M.freeWeeklyFilmAdmissible({ quality: 'cinematic_ai', durationSeconds: 35, eligibility: 'eligible', recentSeedanceFilms: 0 }) === false &&
@@ -253,7 +262,7 @@ async function recarga({ perfil, pais = 'US', eventos = [], sobrescritas = {}, c
   const r = await G.grantFreeWeeklyFilm(db, async (e) => {
     escritos.push({ ...e, updatesAntes: db.estado.updates.length })
     if (carimboFalha && e.name === 'free_weekly_film_granted') return false
-    db.estado.eventos.push({ name: e.name, created_at: new Date().toISOString(), metadata: e.metadata })
+    db.estado.eventos.push({ name: e.name, created_at: new Date(AGORA_FIXTURE).toISOString(), metadata: e.metadata })
     return true
   }, { userId: 'u-1', country: pais })
   return { r, db, escritos }
@@ -261,16 +270,16 @@ async function recarga({ perfil, pais = 'US', eventos = [], sobrescritas = {}, c
 async function provaRecarga(sobrescritas = {}) {
   const p = []
   const a = await recarga({ perfil: P(), sobrescritas })
-  if (!(a.r.granted === 7 && a.db.estado.perfil.video_credits === 7 && a.escritos.length === 1 && a.escritos[0].name === 'free_weekly_film_granted' && a.escritos[0].metadata?.country === 'US')) p.push('US grátis com 0 cr não recebeu 7 com evento: ' + JSON.stringify(a.r))
+  if (!(a.r.granted === COTA && a.db.estado.perfil.video_credits === COTA && a.escritos.length === 1 && a.escritos[0].name === 'free_weekly_film_granted' && a.escritos[0].metadata?.country === 'US')) p.push('US grátis com 0 cr não recebeu a cota com evento: ' + JSON.stringify(a.r))
   if (!(a.escritos[0]?.updatesAntes === 0)) p.push('carimbo gravado DEPOIS do crédito (achado 3)')
   const cas = a.db.estado.updates[0]?.filtros?.some(([k, c, v]) => k === 'eq' && c === 'video_credits' && v === 0)
   if (!cas) p.push('UPDATE sem compare-and-set no saldo lido')
-  const b = await recarga({ perfil: P({ video_credits: 7 }), sobrescritas })
-  if (!(b.r.granted === 0 && b.db.estado.updates.length === 0 && b.escritos.length === 0)) p.push('saldo 7 recebeu mais (acumulou): ' + JSON.stringify(b.r))
-  const c = await recarga({ perfil: P({ video_credits: 0 }), eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(Date.now() - 3 * DIA).toISOString() }], sobrescritas })
+  const b = await recarga({ perfil: P({ video_credits: COTA }), sobrescritas })
+  if (!(b.r.granted === 0 && b.db.estado.updates.length === 0 && b.escritos.length === 0)) p.push('saldo na cota recebeu mais (acumulou): ' + JSON.stringify(b.r))
+  const c = await recarga({ perfil: P({ video_credits: 0 }), eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(AGORA_FIXTURE - 3 * DIA).toISOString() }], sobrescritas })
   if (!(c.r.granted === 0 && c.r.reason === 'week_used' && c.db.estado.updates.length === 0)) p.push('2ª recarga na mesma semana: ' + JSON.stringify(c.r))
-  const d = await recarga({ perfil: P({ video_credits: 0 }), eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(Date.now() - 8 * DIA).toISOString() }], sobrescritas })
-  if (!(d.r.granted === 7)) p.push('semana seguinte sem recarga: ' + JSON.stringify(d.r))
+  const d = await recarga({ perfil: P({ video_credits: 0 }), eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(AGORA_FIXTURE - 8 * DIA).toISOString() }], sobrescritas })
+  if (!(d.r.granted === COTA)) p.push('semana seguinte sem recarga: ' + JSON.stringify(d.r))
   const e = await recarga({ perfil: P(), pais: 'PK', sobrescritas })
   if (!(e.r.granted === 0 && e.db.estado.updates.length === 0)) p.push('PK recebeu recarga')
   const f = await recarga({ perfil: P({ trial_status: 'region_paid_only' }), pais: 'US', sobrescritas })
@@ -285,10 +294,10 @@ async function provaRecarga(sobrescritas = {}) {
   const j = await recarga({ perfil: P(), carimboFalha: true, sobrescritas })
   if (!(j.r.granted === 0 && j.r.reason === 'stamp_failed' && j.db.estado.updates.length === 0)) p.push('carimbo falhou e o crédito saiu: ' + JSON.stringify(j.r))
   // achado 4: país da 1ª vez fixo; desconhecido/Tor não recarrega
-  const k = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(Date.now() - 20 * DIA).toISOString(), metadata: { country: 'GB' } }], sobrescritas })
+  const k = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(AGORA_FIXTURE - 20 * DIA).toISOString(), metadata: { country: 'GB' } }], sobrescritas })
   if (!(k.r.granted === 0 && k.r.reason === 'country_changed' && k.db.estado.updates.length === 0)) p.push('trocou de país (GB→US) e recarregou: ' + JSON.stringify(k.r))
-  const l = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_admitted', created_at: new Date(Date.now() - 20 * DIA).toISOString(), metadata: { country: 'US' } }], sobrescritas })
-  if (!(l.r.granted === 7)) p.push('mesmo país da 1ª vez não recarregou: ' + JSON.stringify(l.r))
+  const l = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_admitted', created_at: new Date(AGORA_FIXTURE - 20 * DIA).toISOString(), metadata: { country: 'US' } }], sobrescritas })
+  if (!(l.r.granted === COTA)) p.push('mesmo país da 1ª vez não recarregou: ' + JSON.stringify(l.r))
   for (const pais of [null, 'T1', 'XX']) {
     const m = await recarga({ perfil: P(), pais, sobrescritas })
     if (!(m.r.granted === 0 && m.db.estado.updates.length === 0)) p.push(`país ${pais} (desconhecido/Tor) recarregou`)
@@ -297,7 +306,7 @@ async function provaRecarga(sobrescritas = {}) {
 }
 {
   const real = await provaRecarga()
-  checa(`recarga executada: 0→7 com carimbo ANTES do crédito e compare-and-set; carimbo falho = nada; 7 não acumula; 1×/7 dias; país fixo; PK, Tor, region_paid_only, pagante e corrida fora${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
+  checa(`recarga executada: 0→cota canônica com carimbo ANTES do crédito e compare-and-set; carimbo falho = nada; saldo na cota não acumula; 1×/7 dias; país fixo; PK, Tor, region_paid_only, pagante e corrida fora${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
   checa('mutante (sem a janela de 7 dias) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "    if (Array.isArray(recent) && recent.length > 0) return { granted: 0, reason: 'week_used', balanceAfter: balance }\n", ''))).length > 0)
   checa('mutante (sem compare-and-set) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "      .eq('video_credits', p.video_credits ?? 0)\n", ''))).length > 0)
   checa('mutante (carimbo que falhou é ignorado) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "    if (stamped !== true) return { granted: 0, reason: 'stamp_failed', balanceAfter: balance }\n", ''))).length > 0)
@@ -326,7 +335,7 @@ console.log('== (c2) admissão semanal no /api/generate-video-cinematic (bloco r
     const f = vm.runInNewContext(transpila(fn), { Date, process: { env: semEnv ? {} : { NEXT_PUBLIC_SUPABASE_URL: 'https://x.invalid', SUPABASE_SERVICE_ROLE_KEY: 'k' } } })
     const eventos = []
     const db = bancoFalso({ videosRecentes: recentes, eventos: eventosAntes })
-    const adm = await f({ isPaidUser: pago, trialActive: trial, costQuality: quality, duration: duracao, profile: perfil, req: { headers: { get: (n) => (n === 'x-vercel-ip-country' ? pais : null) } }, supabase: db, user: { id: 'u-1' }, writeServerEvent: async (e) => { eventos.push(e) }, cost: 7, balance: 7, paisDoRequest: POL.paisDoRequest, createAdminClient: () => db, ...FWM })
+    const adm = await f({ isPaidUser: pago, trialActive: trial, costQuality: quality, duration: duracao, profile: perfil, req: { headers: { get: (n) => (n === 'x-vercel-ip-country' ? pais : null) } }, supabase: db, user: { id: 'u-1' }, writeServerEvent: async (e) => { eventos.push(e) }, cost: COTA, balance: COTA, paisDoRequest: POL.paisDoRequest, createAdminClient: () => db, ...FWM })
     return { adm, eventos, db }
   }
   const prova = async (bloco) => {
@@ -368,7 +377,7 @@ console.log('== (c2) admissão semanal no /api/generate-video-cinematic (bloco r
     const FWM = L0('lib/freeWeeklyFilm.ts')
     const fn = `(async ({ freeWeeklyAdmitted, cinematicAdmin, user, holds, cost, releaseBirthClaim, writeServerEvent, NextResponse, FREE_WEEKLY_FILM_WINDOW_MS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, freeWeeklyFilmExclusive }) => {\n${bloco}\nreturn 'PASSOU' })`
     const soltos = [], eventos = []
-    const r = await vm.runInNewContext(transpila(fn), { Date })({ freeWeeklyAdmitted: admitido, cinematicAdmin: bancoFalso({ debitosSemana: debitos }), user: { id: 'u-1' }, holds: { ok: true, totalHeld: held, currentSeen: true }, cost: 7, releaseBirthClaim: async (m) => { soltos.push(m) }, writeServerEvent: async (e) => { eventos.push(e) }, NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, ...FWM })
+    const r = await vm.runInNewContext(transpila(fn), { Date })({ freeWeeklyAdmitted: admitido, cinematicAdmin: bancoFalso({ debitosSemana: debitos }), user: { id: 'u-1' }, holds: { ok: true, totalHeld: held, currentSeen: true }, cost: COTA, releaseBirthClaim: async (m) => { soltos.push(m) }, writeServerEvent: async (e) => { eventos.push(e) }, NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, ...FWM })
     return { r, soltos, eventos }
   }
   const provaEx = async (bloco) => {
@@ -615,10 +624,22 @@ console.log('== (f) llms.txt e /api/facts executados; aviso da conta region_paid
     checa('mutante (política \'todos\' com o espelho da entrada esquecido) → vermelho', gm.p.length > 0)
     checa('/llms.txt e /api/facts: "every new account in supported countries gets" e "free credits on signup in supported countries"', real.llms.includes('every new account in supported countries gets') && (real.facts.freeTier?.allowance ?? '').includes('free credits on signup in supported countries'))
     // varredura: nenhuma frase de grant sem a cláusula em app/, lib/ e components/ (regra espalhada vive em vários arquivos)
+    // A GEO de 08/10 passou a anunciar o filme concedido fora da lista. Exceção exata:
+    // fonte inteira igual à main aprovada e execução dos dois lados da política.
+    const seoPath = 'lib/seo/seedanceAnswer.ts'
+    const seoOriginal = execFileSync('git', ['show', '3ec6c9d9b790e00c05650ccab7e9af426cd106d1:' + seoPath], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
+    const SEO = L0(seoPath)
+    const geo = { plans: [{ tier: 'starter', label: 'Starter', usdCents: 1, credits: 1 }], rows: { film35: { credits: 1, perPlan: [] }, film60: { credits: 1, perPlan: [] } } }
+    const fatos = { trialCredits: 10, trialCoversFilm: true, filmSeconds: 15, filmCredits: COTA, countryClause: ' in supported countries', regionFilm: false, regionClipSeconds: null }
+    const restrita = SEO.seedanceFreeAnswer(geo, fatos)
+    const mundial = SEO.seedanceFreeAnswer(geo, { ...fatos, regionFilm: true })
+    const seoReancorada = rd(seoPath) === seoOriginal && restrita.lead.includes('in supported countries') && restrita.faq.a.includes('once in supported countries') && mundial.lead.includes('for every new account') && mundial.faq.a.includes('elsewhere it is granted as one free film')
+    checa('GEO aprovada: fonte exata da main e promessa mundial somente quando a região também recebe filme', seoReancorada)
     let soltas = []
     try {
       const out = execFileSync('git', ['grep', '-n', '-E', '[Ee]very (new )?account (starts free|gets|receives|starts with (the free|a Creator) trial)', '--', 'app', 'lib', 'components'], { cwd: root, encoding: 'utf8' })
       soltas = out.split('\n').filter(Boolean).filter((l) => !/COUNTRY_CLAUSE|\$\{CC\}|^[^:]+:\d+:\s*\/\/|canonicalCopySpanish/.test(l))
+        .filter(l => !(seoReancorada && l.startsWith(seoPath + ':')))
     } catch (e) { soltas = e.status === 1 ? [] : ['git grep falhou'] }
     checa(`varredura: toda frase "every new account gets/starts free…" em app/lib/components carrega a cláusula de país${soltas.length ? ' — ' + soltas.map((l) => l.slice(0, 90)).join(' | ') : ''}`, soltas.length === 0)
   }

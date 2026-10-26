@@ -10,6 +10,7 @@
 // apresentador v2 → Close real → legenda → pílula → corte) chama esta PRIMEIRO; todo guardião que já desfazia essas camadas lê o texto de antes
 // do kit sem ser editado. Os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).
 // O guardião scripts/test-kit-bf-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_1910_BASE).
+import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,6 +39,7 @@ export const KIT_BF_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKitBf1910(texto, p) {
+  texto = semCompraAvulsa2410(texto, p) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.
   texto = semApresentadorOlhos1910(texto, p) // KINEO-APRESENTADOR-OLHOS-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_1910) || !KIT_BF_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')

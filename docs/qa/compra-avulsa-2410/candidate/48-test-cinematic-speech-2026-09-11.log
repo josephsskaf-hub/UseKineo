@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-cinematic-speech-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2068
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+cinematic-speech: 300 passed; real production payload/compose branches/builder; no external calls

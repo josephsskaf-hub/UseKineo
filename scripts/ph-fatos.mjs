@@ -35,7 +35,7 @@ const num = (txt, nome) => {
   if (!Number.isFinite(m)) throw new Error(`numero ausente: ${nome}`)
   return m
 }
-const roda = (src) => {
+const roda = (src, imports = {}) => {
   const limpo = src
     .replace(/: Record<[^=]+> =/g, ' =')
     .replace(/quality: Quality/g, 'quality')
@@ -47,7 +47,10 @@ const roda = (src) => {
     .replace(/ as const/g, '')
   const js = ts.transpileModule(limpo, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp })
+  vm.runInNewContext(js, { exports: exp, require: name => {
+    if (!Object.hasOwn(imports, name)) throw new Error('Dependência inesperada nos fatos offline: ' + name)
+    return imports[name]
+  } })
   return exp
 }
 
@@ -79,19 +82,25 @@ export function fatos() {
   ].join('\n'))
 
   // Nomes públicos: o MAPA de lib/engineLabel.ts é a única tradução da casa.
-  const mapa = {}
-  for (const [, q, nome] of el.matchAll(/^\s{2}(\w+): '([^']+)',$/gm)) mapa[q] = nome
-  // Uma linha por motor: o mesmo texto que a vitrine da home mostra hoje
-  // (components/EngineCycleCard.tsx META). Nada reescrito aqui.
+  const mapa = roda(el + '\nexport { MAPA }').MAPA
+  const launch = roda(rd('lib/engineLaunch.ts') + '\nexport { PUBLIC_VIDEO_ENGINE_NAMES }', {
+    '@/lib/internalAccounts': { isInternalEmail: () => false },
+  })
+  // Descrição existente da vitrine, quando há uma; os novos motores usam
+  // somente o nome canônico como descrição, sem inventar uma promessa.
   const ec2 = rd('components/EngineCycleCard.tsx')
   const descs = {}
   for (const [, q, d] of ec2.matchAll(/^\s{2}(\w+): \{ name: '[^']+', desc: (?:'([^']*)'|"([^"]*)")/gm)) descs[q] = d
   for (const [, q, d] of ec2.matchAll(/^\s{2}(\w+): \{ name: '[^']+', desc: "([^"]*)"/gm)) descs[q] = d
-  const ORDEM = ['fast', 'cinematic_ai', 'cinematic_h3', 'cinematic_kling', 'cinematic_veo', 'avatar', 'cinematic_hollywood', 'cinematic_omni']
+  const ORDEM = launch.PUBLIC_VIDEO_ENGINE_NAMES.map(publicName => {
+    const name = publicName.replace(/ \(paid plans\)$/, '')
+    const quality = Object.keys(mapa).find(q => (q === 'fast' || q === 'avatar' || q.startsWith('cinematic_')) && mapa[q] === name)
+    if (!quality) throw new Error('Motor público sem quality canônico: ' + publicName)
+    return quality
+  })
   const motores = ORDEM.map((q) => {
     if (!mapa[q]) throw new Error(`engineLabel sem nome para ${q}`)
-    const desc = descs[q] ?? descs[q === 'avatar' ? 'presenter' : q]
-    if (!desc) throw new Error(`EngineCycleCard sem desc para ${q}`)
+    const desc = descs[q] ?? descs[q === 'avatar' ? 'presenter' : q] ?? mapa[q]
     return { q, nome: mapa[q], desc, cr60: E.creditCostForDuration(q, true, 60) }
   }).sort((a, b) => a.cr60 - b.cr60)
 
@@ -109,7 +118,7 @@ export function fatos() {
     holly: M.videosPerMonth(p.tier, 'cinematic_hollywood'),
   }))
 
-  return { precos: P.TIER_PRICES, creditos: P.TIER_CREDITS, copy: C, motores, planos }
+  return { precos: P.TIER_PRICES, creditos: P.TIER_CREDITS, copy: C, motores, planos, engineCountWord: launch.VIDEO_ENGINE_COUNT_WORD, engineListCopy: launch.VIDEO_ENGINE_LIST_COPY }
 }
 
 if (process.argv[1] && process.argv[1].endsWith('ph-fatos.mjs')) {

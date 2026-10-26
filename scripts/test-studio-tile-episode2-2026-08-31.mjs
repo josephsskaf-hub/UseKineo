@@ -4,8 +4,10 @@
 // funciona em telefone. Rodar: node scripts/test-studio-tile-episode2-2026-08-31.mjs
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
-const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
+const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ler = (p) => fs.readFileSync(path.join(raiz, p), 'utf8')
 // Proibicao roda sobre CODIGO, nunca sobre comentario (regra de metodo das
 // rodadas #4-#7: o teste ja reprovou quatro vezes o proprio comentario).
@@ -33,7 +35,15 @@ yes('A1 union tem studio_video_tile', /\|\s*'studio_video_tile'/.test(SERIES))
 yes('A2 origens antigas intactas', ['done_screen','history_milestone','studio_milestone','library_video_card','render_pill','done_footer','returning_ready_banner']
   .every((s) => SERIES.includes(`'${s}'`)))
 yes('A3 href leva prompt+autoanalyze+series', /prompt,\s*\n?\s*autoanalyze: '1',\s*\n?\s*series: '1'/.test(SERIES.replace(/\r/g,'')))
-yes('A4 titulo vazio nao inventa tema', /if \(!prompt\) return '\/generate'/.test(SERIES))
+yes('A4 titulo vazio nao inventa tema', /return seriesContinuationHrefOrNull\(value, source, opts\) \?\? '\/studio'/.test(SERIES))
+
+// The approved Studio review adapter keeps the topic and waits for an explicit generation.
+const { buildStudioSeriesReviewHref } = createOfflineLoader()('@/lib/navigation/studioSeriesReview')
+eq('A5 titulo vazio abre o Studio sem tema inventado', buildStudioSeriesReviewHref('', 'studio_video_tile'), '/studio')
+for (const origem of ['studio_video_tile', 'studio_milestone']) {
+  const href = new URL(buildStudioSeriesReviewHref('Machu Picchu at dawn', origem), 'https://www.usekineo.com')
+  yes('A6 '+origem+' preserva assunto e revisao explicita', href.pathname === '/studio' && href.searchParams.get('prompt')?.includes('Machu Picchu at dawn') && href.searchParams.get('continuation_source') === origem && href.searchParams.get('studio_continuation') === 'topic-v1' && !href.searchParams.has('autoanalyze'))
+}
 
 // ── B. a miniatura virou duas acoes com rotulo permanente ──────────────────
 no('B1 miniatura nao e mais UM link unico', /<a key=\{v\.id\} className="vtile"/.test(STUDIO_CODIGO))
@@ -42,8 +52,8 @@ yes('B3 assistir continua existindo (.vtwatch)', /className="vtwatch"/.test(STUD
 yes('B4 assistir ainda abre em outra aba', /className="vtwatch"[\s\S]{0,400}target="_blank"[\s\S]{0,120}rel="noreferrer"/.test(STUDIO_CODIGO))
 yes('B5 barra de acao permanente (.vtnext)', /className="vtnext"/.test(STUDIO_CODIGO))
 yes('B6 rotulo visivel diz Episode 2', /Episode 2 →/.test(STUDIO_CODIGO))
-yes('B7 href usa o tema DAQUELE video', /buildSeriesContinuationHref\(v\.title, 'studio_video_tile'\)/.test(STUDIO_CODIGO))
-yes('B8 marco antigo segue no video mais recente', /buildSeriesContinuationHref\(myVids\[0\]\?\.title, 'studio_milestone'\)/.test(STUDIO_CODIGO))
+yes('B7 href usa o tema DAQUELE video', /buildStudioSeriesReviewHref\(v\.title, 'studio_video_tile'\)/.test(STUDIO_CODIGO))
+yes('B8 marco antigo segue no video mais recente', /buildStudioSeriesReviewHref\(myVids\[0\]\?\.title, 'studio_milestone'\)/.test(STUDIO_CODIGO))
 yes('B9 clique grava series_continue_clicked', /source: 'studio_video_tile'/.test(STUDIO_CODIGO))
 yes('B10 clique carrega a posicao na fileira', /position: idx/.test(STUDIO_CODIGO))
 yes('B11 assistir tambem vira dado', /studio_tile_watch_clicked/.test(STUDIO_CODIGO))
@@ -86,7 +96,7 @@ no('D13 nenhuma crase no bloco novo de CSS', KIT_CODIGO.slice(KIT_CODIGO.indexOf
 
 // ── E. a peca esta LIGADA (licao do sceneTruth: biblioteca morta) ──────────
 yes('E1 /studio renderiza o StudioClient', /StudioClient/.test(PAGE))
-yes('E2 StudioClient importa o helper de tema', /import \{ buildSeriesContinuationHref \} from '@\/lib\/seriesContinuation'/.test(STUDIO))
+yes('E2 StudioClient importa o helper de tema', /import \{[^}]*\bbuildStudioSeriesReviewHref\b[^}]*\} from '@\/lib\/navigation\/studioSeriesReview'/.test(STUDIO))
 yes('E3 StudioClient importa a telemetria', /import \{ trackEvent \} from '@\/lib\/analytics'/.test(STUDIO))
 yes('E4 StudioClient usa o CSS alterado', /STUDIO_KIT_CSS/.test(STUDIO))
 yes('E5 useRef disponivel para a guarda', /useRef/.test(STUDIO.split('\n').find((l) => l.startsWith('import { useEffect')) ?? ''))

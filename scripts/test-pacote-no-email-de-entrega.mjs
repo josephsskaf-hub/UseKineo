@@ -29,6 +29,8 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+const ts = createRequire(import.meta.url)('typescript')
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Normaliza CRLF na leitura (memoria `guardiao-crlf-falso-vermelho`).
@@ -79,7 +81,22 @@ check('18. a sonda diz o caminho certo (/api/compose/status, nao o do cron)', /n
 check('19. a sonda carrega o motivo vindo do onFalha (mesmo formato do cron)', /onFalha: \(motivo\) => \{ motivoPack = motivo \}/.test(status) && /reason: motivoPack \?\? 'desconhecido'/.test(status))
 check('20. a sonda e best-effort (engole o proprio erro)', /name: 'publish_pack_unavailable'[\s\S]{0,600}?\} catch \{ \/\* observar nunca pode impedir o e-mail \*\/ \}/.test(status))
 check('21. estourar o orcamento tem nome proprio na sonda', /'orcamento_estourado'/.test(status))
-check('22. o carimbo do e-mail registra se o pacote viajou (denominador)', /name: 'video_ready_email_sent'[\s\S]{0,1500}?publish_pack: !!pack,/.test(status))
+// KINEO-LEVA-2410: metadata cresceu além do recorte arbitrário de 1500 caracteres.
+// O campo precisa pertencer ao objeto do evento real, com o predicado intacto.
+function pacoteNoEvento(src) {
+  const ast = ts.createSourceFile('status.ts', src, ts.ScriptTarget.Latest, true)
+  const eventos = []
+  const prop = (obj, nome) => obj.properties.find(p => ts.isPropertyAssignment(p) && p.name.getText(ast).replace(/['"]/g, '') === nome)
+  function visita(n) {
+    if (ts.isObjectLiteralExpression(n) && prop(n, 'name')?.initializer.getText(ast) === "'video_ready_email_sent'") eventos.push(n)
+    ts.forEachChild(n, visita)
+  }
+  visita(ast)
+  return eventos.length === 1 && ts.isObjectLiteralExpression(prop(eventos[0], 'metadata')?.initializer) && prop(prop(eventos[0], 'metadata').initializer, 'publish_pack')?.initializer.getText(ast) === '!!pack'
+}
+check('22. o carimbo do e-mail registra se o pacote viajou (denominador)', pacoteNoEvento(status))
+check('22b. carimbo não aceita pacote constante true', !pacoteNoEvento(status.replace('publish_pack: !!pack,', 'publish_pack: true,')))
+check('22c. carimbo não aceita pacote constante false', !pacoteNoEvento(status.replace('publish_pack: !!pack,', 'publish_pack: false,')))
 
 // ══ (C) O CREDITO SEGUE A VARIAVEL QUE JA DECIDE O RODAPE ════════════════
 // Amarrado ao PREDICADO REAL: `readyEmailIsSubscriber` e a variavel que o

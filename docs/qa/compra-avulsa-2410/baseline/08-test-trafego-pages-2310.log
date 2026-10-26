@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-trafego-pages-2310.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1933
+PASS KINEO-TRAFEGO-2310 pages: 6 rendered blocks, 40–60 words, 5 FAQs, date, metadata, prices, BRL and slug isolation

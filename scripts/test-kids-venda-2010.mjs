@@ -18,6 +18,7 @@
 //   R  ROTA DO FILME: admissão `kids_order` só com pedido ativo da pessoa + run pendente deste generationId (executada no dublê), colocada
 //      ANTES do gate de plano e dentro de currentPaid; sem o campo = false;
 //   D  desfaz + novos + marca + encadeamento + contagem; M mutantes (todos APLICADOS e VERMELHOS), em memória.
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,7 +32,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-KIDS-VENDA-2010'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const disco = (p) => lf(semCompraAvulsa2410(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-COMPRA-AVULSA-2410
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIDS_VENDA_2010_BASE}:${p}`)) } catch { return null } }
 let pass = 0

@@ -1,0 +1,11 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-webhook-2410.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 4192
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS actual webhook POST: signed immediate/async, unpaid, duplicates, crash resume, failure and browser purchase forgery protection
+KILLED !isOneTimeItemSession(duplicateSession) && 
+KILLED await fulfillOneTimeItem(supabase, session)
+KILLED if (!checkoutSettled) {
+KILLED if (!sig) {

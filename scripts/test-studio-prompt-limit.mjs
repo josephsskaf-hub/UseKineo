@@ -91,10 +91,50 @@ eq(MAX, 5000, 'teto unico continua 5000')
 // ── StudioClient: fiacao ────────────────────────────────────────────────────
 {
   const src = read('app/(dashboard)/studio/StudioClient.tsx')
+  const ast = ts.createSourceFile('StudioClient.tsx', src, 99, true, 4)
+  const declarations = new Map(), buttons = []
+  function walk(n) {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) declarations.set(n.name.text, n)
+    if (ts.isJsxOpeningElement(n) && n.tagName.getText(ast) === 'button') buttons.push(n)
+    ts.forEachChild(n, walk)
+  }
+  walk(ast)
+  const evaluate = (expression, context) => {
+    const code = ts.transpileModule('exports.value = (' + expression + ')', { compilerOptions: { target: 9 } }).outputText
+    const exports = {}; new Function('exports', ...Object.keys(context), code)(exports, ...Object.values(context)); return exports.value
+  }
   ok(src.includes("from '@/lib/studioPromptLimit'"), 'StudioClient importa a lib')
-  ok(src.includes('const limit = useMemo(() => promptLimitState(finalPrompt), [finalPrompt])'), 'teto medido no finalPrompt (com o sufixo da camera)')
-  ok(/const generate = \(\) => \{\s*\n(?:\s*\/\/.*\n)*\s*if \(limit\.over\) return/.test(src), 'generate() nao navega acima do teto')
-  ok(src.includes('disabled={!prompt.trim() || limit.over}'), 'botao Generate travado acima do teto')
+  ok(src.includes('const promptMax = useMemo(() => analyzePromptMaxChars(scriptMode), [scriptMode])') && src.includes('const limit = useMemo(() => promptLimitState(finalPrompt, promptMax), [finalPrompt, promptMax])'), 'teto medido no finalPrompt e no modo real (inclui sufixo da câmera)')
+  for (const [mode, max] of [['verbatim', 5000], ['ai', 20000], ['clip', 6000]]) {
+    const context = { useMemo: fn => fn(), scriptMode: mode, analyzePromptMaxChars: limits.analyzePromptMaxChars }
+    const promptMax = evaluate(declarations.get('promptMax').initializer.getText(ast), context)
+    eq(promptMax, max, 'teto atual por modo: ' + mode)
+    for (const extra of [0, 1]) {
+      const finalPrompt = 'a'.repeat(max + extra)
+      const state = evaluate(declarations.get('limit').initializer.getText(ast), { useMemo: fn => fn(), promptLimitState: lib.promptLimitState, finalPrompt, promptMax })
+      eq(state.over, extra === 1, 'memo real usa o teto do modo e texto final: ' + mode + '/' + extra)
+    }
+  }
+  const generate = declarations.get('generate').initializer
+  const limitIndex = generate.body.statements.findIndex(n => ts.isIfStatement(n) && n.expression.getText(ast) === 'limit.over')
+  ok(limitIndex >= 2, 'bloqueio de limite do caminho principal vem após URL e modo clipe')
+  const prefix = generate.body.statements.slice(0, limitIndex + 1).map(n => n.getText(ast)).join('\n')
+  const { isStandaloneHttpUrl } = loadTs('lib/scriptInput.ts')
+  function dispatchAllowed(code, { prompt = 'A complete story.', scriptMode = 'ai', over = false } = {}) {
+    let dispatched = 0, focused = 0
+    const run = evaluate('() => {\n' + code + '\n dispatch() }', { prompt, scriptMode, limit: { over }, isStandaloneHttpUrl, promptRef: { current: { focus: () => { focused++ } } }, generateClip: () => { dispatched++ }, dispatch: () => { dispatched++ } })
+    run(); return { dispatched, focused }
+  }
+  for (const mode of ['ai','verbatim','clip']) eq(dispatchAllowed(prefix, { scriptMode: mode, over: true }).dispatched, 0, 'generate real bloqueia excesso antes de navegar/renderizar: ' + mode)
+  for (const mode of ['ai','verbatim','clip']) eq(dispatchAllowed(prefix, { scriptMode: mode }).dispatched, 1, 'controle abaixo do teto despacha uma vez: ' + mode)
+  for (const mode of ['ai','verbatim','clip']) { const result = dispatchAllowed(prefix, { scriptMode: mode, prompt: 'https://example.invalid/script' }); eq(result.dispatched, 0, 'URL isolada não gera: ' + mode); eq(result.focused, 1, 'URL devolve foco para o texto: ' + mode) }
+  eq(dispatchAllowed(prefix.replace('if (limit.over) return', 'if (false) return'), { scriptMode: 'clip', over: true }).dispatched, 1, 'mutante que ignora limite do clipe seria detectado')
+  eq(dispatchAllowed(prefix.replaceAll('if (limit.over) return', 'if (false) return'), { scriptMode: 'ai', over: true }).dispatched, 1, 'mutante que ignora limite principal seria detectado')
+  eq(dispatchAllowed(prefix.replace('if (isStandaloneHttpUrl(prompt))', 'if (false)'), { prompt: 'https://example.invalid/script' }).dispatched, 1, 'mutante que ignora URL seria detectado')
+  const button = buttons.find(n => n.attributes.properties.some(a => ts.isJsxAttribute(a) && a.name.text === 'onClick' && a.initializer?.expression?.getText(ast) === 'generate'))
+  const disabled = button?.attributes.properties.find(a => ts.isJsxAttribute(a) && a.name.text === 'disabled')?.initializer?.expression.getText(ast)
+  ok(disabled === '!prompt.trim() || limit.over || linkOnlyInput', 'botão Generate liga limite e bloqueio de URL reais')
+  for (const [prompt, over, linkOnlyInput, expected] of [['',false,false,true],['story',true,false,true],['https://example.invalid',false,true,true],['story',false,false,false]]) eq(evaluate(disabled,{prompt,limit:{over},linkOnlyInput}),expected,'estado real do botão bloqueia só entradas recusadas')
   ok(src.includes('? `Trim ${limit.excess.toLocaleString(\'en-US\')} characters to continue`'), 'rotulo do botao diz quantos cortar')
   ok(src.includes('formatLimitCounter(limit)'), 'contador na caixa')
   ok(src.includes('✂ Trim to fit'), 'botao de corte de 1 clique')
@@ -105,7 +145,20 @@ eq(MAX, 5000, 'teto unico continua 5000')
   ok(src.includes('delete scene labels and visual notes'), 'dica honesta para roteiro verbatim com rubricas')
   // a tela seguinte continua com a propria regua (defesa em profundidade)
   const gen = read('app/(dashboard)/generate/GenerateClient.tsx')
-  ok(gen.includes('if (sourceLen > ANALYZE_PROMPT_MAX_CHARS) {'), 'GenerateClient mantem o portao proprio')
+  const genAst = ts.createSourceFile('GenerateClient.tsx', gen, 99, true, 4)
+  let defense
+  function findDefense(n) { if (ts.isIfStatement(n) && n.expression.getText(genAst) === 'sourceLen > promptMaxAqui') defense = n; ts.forEachChild(n, findDefense) }
+  findDefense(genAst)
+  ok(defense && ts.isBlock(defense.parent), 'GenerateClient mantém o próprio bloqueio real por modo')
+  const block = defense.parent, index = block.statements.indexOf(defense)
+  ok(block.statements[index - 1]?.getText(genAst) === 'const promptMaxAqui = analyzePromptMaxChars(scriptMode)' && block.statements[index + 1]?.getText(genAst).startsWith('const analyzeBody = JSON.stringify('), 'bloqueio usa a régua única e precede o payload/rede')
+  for (const mode of ['ai','verbatim','clip']) for (const extra of [0,1]) {
+    let errors = 0, failures = 0, idle = 0, dispatch = 0
+    const run = evaluate('() => {\n' + defense.getText(genAst) + '\n dispatch() }', { sourceLen: limits.analyzePromptMaxChars(mode) + extra, promptMaxAqui: limits.analyzePromptMaxChars(mode), scriptMode: mode, setError: () => { errors++ }, trackGenerationFailure: () => { failures++ }, setPhase: p => { if(p==='idle')idle++ }, dispatch: () => { dispatch++ } })
+    run()
+    eq(dispatch, extra ? 0 : 1, 'Generate bloqueia antes da rede só acima do teto: ' + mode + '/' + extra)
+    eq(errors + failures + idle, extra ? 3 : 0, 'excesso real informa erro, mede recusa e volta a idle: ' + mode + '/' + extra)
+  }
 }
 
 console.log(`test-studio-prompt-limit: ${checks} verificacoes OK`)

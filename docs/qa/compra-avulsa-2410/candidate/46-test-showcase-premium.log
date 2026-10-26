@@ -1,0 +1,13 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-showcase-premium.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1335
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+Showcase premium: 280 checks passed. Offline helpers + actual React SSR; browser is a separate gate.
+Warning: React does not recognize the `fetchPriority` prop on a DOM element. If you intentionally want it to appear in the DOM as a custom attribute, spell it as lowercase `fetchpriority` instead. If you accidentally passed it from a parent component, remove it from the DOM element.
+    at img
+    at span
+    at a
+    at default (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-showcase-premium.mjs:22:68)
+    at EngineCycleCard (components/EngineCycleCard.tsx:52:28)

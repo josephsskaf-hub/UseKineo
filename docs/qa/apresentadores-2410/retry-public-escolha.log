@@ -1,0 +1,34 @@
+ok public accessProof
+ok public eligibilityProof
+ok public quotaProof
+ok public qualityProof
+ok public roundsProof
+ok public eventsProof
+ok public terminalProof
+ok public noticeProof
+ok public uiProof
+ok public mutant public remains house only
+ok public mutant free bypasses Studio gate
+ok public mutant low balance buys free photos
+ok public mutant forty-one is rejected
+ok public mutant unknown RPC opens paid boundary
+ok public mutant daily cap grows to seven
+ok public mutant quota serializes by workspace owner
+ok public mutant hidden knee caps score
+ok public mutant grounding from another chosen image
+ok public mutant caption returns to default product band
+ok public mutant final copy stays over the product
+ok public mutant third manual photo round allowed
+ok public mutant retry budget ignores spent automatic round
+ok public mutant event metadata trusts supplied category
+ok public mutant choice event repeated by polling
+ok public mutant delivered event removed from actual winner
+ok public mutant failed event removed from actual refund winner
+ok public mutant transactional notice ignores closed claim
+ok public mutant retry outbox emails a still-generating order
+ok public mutant browser can forge delivered funnel event
+ok public mutant free sample mounts paid photos
+ok public mutant UI forgets second photo round flag
+ok public mutant UI unlocks still radios after credit failure
+ok public mutant UI leaks internal judge reasons
+ok public: 24 assertion-killed mutants; exact undo; raw routes/builders, no network or paid calls; SQL inspected only

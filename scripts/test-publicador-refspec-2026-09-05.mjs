@@ -38,7 +38,7 @@ const check = (nome, cond, detalhe = '') => {
   else { fail++; console.log(`  FALHA ${nome}${detalhe ? ` — ${detalhe}` : ''}`); }
 };
 
-console.log('== 1. o bat real, lido do disco ==');
+console.log('== 1. publicador revisado atual, lido do disco ==');
 const bat = readFileSync(BAT, 'latin1');
 const linhas = bat.split(/\r?\n/);
 
@@ -53,36 +53,24 @@ const posix = linhas
 check('nenhum >/dev/null (sintaxe POSIX) dentro do .bat', posix.length === 0,
   posix.map(([n, l]) => `linha ${n}: ${l.trim()}`).join(' | '));
 
-// e o --skip do v10 precisa continuar existindo, agora com redacao de cmd
-const skip = linhas.filter(l => /cherry-pick\s+--skip/.test(l));
-check('o cherry-pick --skip continua no bat', skip.length >= 1);
-check('o --skip usa >nul (redacao do cmd), nao >/dev/null',
-  skip.every(l => />nul/.test(l) && !/\/dev\/null/.test(l)),
-  skip.map(l => l.trim()).join(' | '));
-
-// (b) TODO refspec que escreve em refs/remotes/ precisa do "+" de forca
-const refspecs = [];
-for (const [i, l] of linhas.entries()) {
-  if (!/git fetch/.test(l)) continue;
-  for (const m of l.matchAll(/"([^"]*:refs\/remotes\/[^"]*)"/g)) refspecs.push([i + 1, m[1]]);
-}
-check('o bat ainda tem refspecs de fetch para refs/remotes/ (o teste nao ficou cego)',
-  refspecs.length >= 3, `achei ${refspecs.length}`);
-const semForca = refspecs.filter(([, r]) => !r.startsWith('+'));
-check('todo refspec de fetch para refs/remotes/ carrega o "+" de forca',
-  semForca.length === 0,
-  semForca.map(([n, r]) => `linha ${n}: ${r}`).join(' | '));
-
-// o refspec que travava a fila, nominalmente
-check('o refspec do empurrar-novo e forcado',
-  refspecs.some(([, r]) => r === '+refs/heads/empurrar:refs/remotes/empurrar-novo'));
-
-// a ordem de seguranca nao pode ter mudado: o branch -f so acontece DEPOIS do
-// fetch dar certo, senao a fila seria movida para um hash nao verificado.
-const iFetch = linhas.findIndex(l => /empurrar-novo/.test(l) && /git fetch/.test(l));
-const iBranch = linhas.findIndex(l => /git branch -f entrega-atual/.test(l));
-check('o `git branch -f entrega-atual` continua DEPOIS do fetch verificado',
-  iFetch > -1 && iBranch > -1 && iBranch > iFetch, `fetch=${iFetch + 1} branch=${iBranch + 1}`);
+// 1f66e281 retired the automatic rebase/refspec publisher. The reviewed-SHA
+// replacement must not reintroduce it; the original forced-ref proof stays below.
+const reviewed = '1f66e2813ef4770d5f22f23590b9a903a3c0deb9';
+const lf = text => text.replace(/\r\n/g, '\n');
+const immutable = file => execFileSync('git', ['show', reviewed + ':' + file], { cwd: RAIZ, encoding: 'utf8' });
+const publisher = readFileSync(join(RAIZ, 'scripts', 'publish-reviewed-queue.sh'), 'utf8');
+check('o wrapper e o publicador sao exatamente a substituicao revisada',
+  lf(bat) === lf(immutable('scripts/!RODAR-AGORA.bat')) && lf(publisher) === lf(immutable('scripts/publish-reviewed-queue.sh')));
+check('o bat encaminha os dois SHAs revisados e preserva a saida de erro',
+  /publish-reviewed-queue\.sh" "%~dp0\.\." "%~1" "%~2"/.test(bat) && bat.includes('set "KINEO_PUBLISH_EXIT=%ERRORLEVEL%"') && bat.includes('exit /b %KINEO_PUBLISH_EXIT%'));
+check('a publicacao exige dois SHAs completos', publisher.includes('"$approved" =~ ^[0-9a-f]{40}$ && "$base" =~ ^[0-9a-f]{40}$'));
+check('fila e main sao verificadas novamente antes do unico push',
+  (publisher.match(/remote=\$\(read_main\)/g) ?? []).length === 2 && (publisher.match(/refs\/heads\/entrega-atual\^\{commit\}/g) ?? []).length === 2 && publisher.includes('git merge-base --is-ancestor "$base" "$approved"'));
+const publisherCommands = publisher.split(/\r?\n/).filter(line => !/^\s*#/.test(line)).join('\n');
+check('o push usa o objeto aprovado, sem forca, limpeza ou reconciliacao automatica',
+  publisherCommands.includes('git push origin "$approved:refs/heads/main"') && !/git\s+(?:fetch|cherry-pick|rebase|reset|clean)|git\s+branch\s+-f|--force/.test(publisherCommands));
+check('o publicador confere a ponta depois do push e nao promete deploy',
+  publisher.includes('[[ "$actual" == "$approved" ]]') && publisher.includes('Validacao de deploy pendente.'));
 
 console.log('== 2. prova executavel: o "+" e mesmo o que destrava ==');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -90,7 +78,7 @@ const box = mkdtempSync(join(tmpdir(), 'kineo-refspec-'));
 try {
   const origem = join(box, 'origem'), destino = join(box, 'destino');
   for (const d of [origem, destino]) {
-    git(box, 'init', '-q', d);
+    git(box, 'init', '-q', '-b', 'master', d);
     git(d, 'config', 'user.email', 'teste@kineo');
     git(d, 'config', 'user.name', 'Teste');
   }

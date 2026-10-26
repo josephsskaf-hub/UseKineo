@@ -43,10 +43,21 @@ check(source.includes('const milestoneMode = resolveHistoryMilestoneMode({'), 'r
 check(source.includes("const subscriptionIsPrimary = milestoneMode === 'subscription_primary'"), 'subscription hierarchy derives from policy')
 check(source.includes("milestoneMode === 'episode_primary' || milestoneMode === 'episode_only'"), 'episode hierarchy derives from policy')
 
-const cardStart = source.indexOf('{completedVideos.length >= 1 && (')
-const cardEnd = source.indexOf('{affiliateMomentumEligible ? (', cardStart)
-const card = cardStart >= 0 && cardEnd > cardStart ? source.slice(cardStart, cardEnd) : ''
+// Library embedding added a visibility guard and moved sharing tools. Isolate
+// the actual milestone section rather than spanning unrelated later sections.
+const ast = ts.createSourceFile('HistoryClient.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const cards = []
+function visit(node) {
+  if (ts.isJsxElement(node) && node.openingElement.tagName.getText(ast) === 'section' &&
+      node.openingElement.attributes.properties.some(property => ts.isJsxAttribute(property) && property.name.getText(ast) === 'aria-label' &&
+        property.initializer?.getText(ast).includes("'Create your second Short'"))) cards.push(node)
+  ts.forEachChild(node, visit)
+}
+visit(ast)
+equal(cards.length, 1, 'exactly one real milestone section exists')
+const card = cards[0].getText(ast)
 check(card.length > 0, 'real milestone card is found')
+check(source.includes('{!embedded && completedVideos.length >= 1 && ('), 'milestone remains gated on delivered value outside the embedded Library')
 check(card.includes("'First Short complete · build momentum'"), 'first-video copy names momentum')
 check(card.includes("'Turn your first Short into episode 2'"), 'first-video heading names episode two')
 check(card.includes('Build Episode 2 →'), 'episode-two primary CTA is explicit')

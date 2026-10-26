@@ -169,8 +169,8 @@ check('writeServerEvent engole erro por dentro (o redirect acontece sempre)',
   /^\s*try \{/m.test(writeFn) && /\} catch/.test(writeFn) && /Promise<boolean>/.test(writeFn))
 
 console.log('5 · limites: nada além do portão e da fonte única foi tocado')
-check('a página NÃO ganhou lógica de JSX nova (GenerateClient montado igual)',
-  pagina.includes('<GenerateClient initialViralPrompt={seedPrompt} initialUserId={user.id} />'))
+check('página monta GenerateClient com a semente e usuário preservados, ao lado das novas políticas de entrada',
+  /<GenerateClient\s+initialViralPrompt=\{seedPrompt\}\s+initialUserId=\{user\.id\}/.test(pagina))
 check('generate_arrived_server (logado) segue intacto',
   pagina.includes("name: 'generate_arrived_server'") && pagina.includes('dedupeMinutes: 30,'))
 // A fonte única não pode ser importada por remetente nenhum: o conserto é no

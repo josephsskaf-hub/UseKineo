@@ -110,14 +110,22 @@ console.log('== o texto nao contradiz a casa ==')
 const colavel = [...md.matchAll(/```\n([\s\S]*?)```/g)].map((m) => m[1]).join('\n')
 checa('achei os blocos colaveis (a varredura abaixo roda)', colavel.length > 2000)
 checa('o texto diz a contagem de motores certa',
-  colavel.toLowerCase().includes(F.motores.length === 8 ? 'eight engines' : `${F.motores.length} engines`))
-checa('o colavel NAO promete nove motores', !/nine (video )?engines/i.test(colavel))
-checa('o texto carrega a frase do sem-free-tier', md.includes(F.copy.noFreeTier) || /no free tier/i.test(colavel))
+  colavel.toLowerCase().includes(`${F.engineCountWord.toLowerCase()} engines`) || colavel.toLowerCase().includes(`${F.motores.length} engines`))
+const engineCounts = [...colavel.toLowerCase().matchAll(/\b(zero|one|two|three|four|five|six|seven|eight|nine|\d+) (?:video )?engines\b/g)].map(m => m[1])
+checa('o colavel NAO promete uma contagem diferente do catalogo publico atual', engineCounts.length > 0 && engineCounts.every(count => count === F.engineCountWord.toLowerCase() || count === String(F.motores.length)))
+checa('o texto carrega a frase da entrada atual', colavel.includes(F.copy.noFreeTier))
 for (const m of F.motores) {
   // tolera quebra de linha entre o nome e o número (a lista quebra em duas)
   checa(`o texto cita ${m.nome} com ${m.cr60} creditos`,
     new RegExp(m.nome.replace('.', '\\.') + '[^\\d]{0,40}\\b' + m.cr60 + '\\b').test(colavel))
 }
+const creditList = colavel.match(/Credits for one 60-second film:\n([\s\S]*?)\n\n/)?.[1] ?? ''
+const listedEngines = creditList.trim().split(/\s*·\s*|\n/).map(line => line.trim()).filter(Boolean).sort()
+const expectedEngines = F.motores.map(m => `${m.nome} ${m.cr60}`).sort()
+checa('a lista de creditos cobre exatamente o catalogo publico ativo', JSON.stringify(listedEngines) === JSON.stringify(expectedEngines))
+const grant = F.copy.noFreeTier.match(/(\d+) credits on signup/)?.[1]
+const grants = [...colavel.matchAll(/(\d+) credits on signup/g)].map(m => m[1])
+checa('todo grant de cadastro anunciado corresponde a entrada canonica atual', Boolean(grant) && grants.length >= 2 && grants.every(value => value === grant))
 checa('o link do lancamento aponta para a /ph com a campanha do dia',
   md.includes('usekineo.com/ph?ref=producthunt&utm_source=producthunt'))
 checa('o colavel NAO manda pedir upvote', !/upvote/i.test(colavel))
@@ -173,7 +181,7 @@ const portaAbre = (() => {
     return false
   }
 })()
-checa('a porta de $1 que o kit anuncia e aceita pela Stripe (detalhe: node ' + PORTA + ')', portaAbre)
+checa('a entrada atual respeita o guardiao da porta (detalhe: node ' + PORTA + ')', portaAbre)
 
 console.log('')
 console.log(`  verificacoes: ${ok} · falhas: ${falhas.length}`)
@@ -181,4 +189,4 @@ if (falhas.length) {
   for (const f of falhas) console.log('  FALHOU: ' + f)
   process.exit(1)
 }
-console.log('OK — kit do Product Hunt completo, com os precos e a contagem de motores da fonte unica, e a porta de $1 abrindo')
+console.log('OK — pecas historicas presentes; texto com precos, grant e catalogo atuais da fonte unica; guardiao da entrada verde')

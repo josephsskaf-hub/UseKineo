@@ -66,23 +66,24 @@ equal(language.planFilmLanguageMetadata(), {
 const starterFilms = marketing.videosPerMonth('starter', 'fast')
 const creatorFilms = marketing.videosPerMonth('basic', 'cinematic_ai')
 const studioFilms = marketing.videosPerMonth('pro', 'cinematic_ai')
-equal(starterFilms, 8, 'current Starter grant buys eight paid Kineo 1 films')
-equal(creatorFilms, 3, 'current Creator grant buys three Seedance films')
-equal(studioFilms, 7, 'current Studio grant buys seven Seedance films')
+equal(Object.fromEntries(['starter', 'basic', 'pro'].map(tier => [tier, pricing.TIER_CREDITS[tier]])), { starter: 60, basic: 150, pro: 300 }, 'approved main keeps the 60/150/300 grant ladder')
+equal(starterFilms, 12, 'Starter historical Kineo 1 capacity follows the approved grant')
+equal(creatorFilms, 4, 'Creator grant buys four full Seedance films')
+equal(studioFilms, 8, 'Studio grant buys eight full Seedance films')
 
 equal(
   language.formatPlanFilmCapacity(starterFilms, 'Kineo 1 film', pricing.TIER_CREDITS.starter),
-  '8 Kineo 1 films / month · 40 credits',
+  '12 Kineo 1 films / month · 60 credits',
   'Starter label puts finished films before credits',
 )
 equal(
   language.formatPlanFilmCapacity(creatorFilms, 'Seedance film', pricing.TIER_CREDITS.basic),
-  '3 Seedance films / month · 90 credits',
+  '4 Seedance films / month · 150 credits',
   'Creator label puts finished films before credits',
 )
 equal(
   language.formatPlanFilmCapacity(studioFilms, 'Seedance film', pricing.TIER_CREDITS.pro),
-  '7 Seedance films / month · 180 credits',
+  '8 Seedance films / month · 300 credits',
   'Studio label puts finished films before credits',
 )
 equal(
@@ -101,7 +102,7 @@ for (const [source, label] of [[welcome, 'welcome'], [exit, 'exit intent']]) {
 }
 ok(welcome.includes("videosPerMonth('basic', 'cinematic_ai')"), 'welcome Creator count comes from canonical engine cost')
 ok(welcome.includes("videosPerMonth('pro', 'cinematic_ai')"), 'welcome Studio count comes from canonical engine cost')
-ok(exit.includes("videosPerMonth('starter', 'fast')"), 'exit Starter count comes from canonical engine cost')
+ok(exit.includes("videosPerMonth('starter', 'cinematic_ai')"), 'exit Starter count uses the approved public Seedance engine and canonical cost')
 ok(exit.includes("videosPerMonth('basic', 'cinematic_ai')"), 'exit Creator count comes from canonical engine cost')
 ok(welcome.includes('TIER_CREDITS.basic') && welcome.includes('TIER_CREDITS.pro'), 'welcome credit details remain canonical')
 ok(exit.includes('TIER_CREDITS.starter') && exit.includes('TIER_CREDITS.basic'), 'exit credit details remain canonical')

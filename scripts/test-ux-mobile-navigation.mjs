@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -30,6 +31,7 @@ const hooks = {
 }
 const Link = ({ children, ...props }) => React.createElement('a', props, children)
 const TopBar = () => null
+const loadPure = createOfflineLoader()
 function loadComponent(file) {
   const source = fs.readFileSync(path.join(root, file), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: {
@@ -40,6 +42,8 @@ function loadComponent(file) {
     if (name === 'react') return hooks
     if (name === 'next/link') return { default: Link }
     if (name === 'next/navigation') return { usePathname: () => pathname }
+    if (name.startsWith('@/lib/')) return loadPure(name)
+    if (name === '@/components/InterfaceLanguage') return { UiLabel: ({ children }) => children }
     if (name === '@/components/TopBar') return { default: TopBar }
     if (name.startsWith('@/components/')) return { default: () => null }
     throw new Error('Unexpected import: ' + name)
@@ -63,8 +67,9 @@ const render = (route = '/studio', signedIn = true) => {
 }
 const tree = render()
 const links = nodes(tree).filter((n) => n.type === Link)
-const expected = ['/studio', '/history', '/pricing', '/images', '/audio', '/avatar', '/animate', '/thumbnail-generator', '/library', '/viral-now', '/channel', '/autopilot', '/referral', '/affiliate', '/account']
-check('all 15 destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.sort()))
+// Founder 09/10 menu-enxuto + 13/10 duas-portas/trending: removed menu items retain their direct routes.
+const expected = ['/studio', '/ads/new', '/library', '/pricing', '/trending', '/images', '/clips', '/spaces', '/affiliate', '/account']
+check('all 10 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.sort()))
 for (const href of expected) {
   check('existing route ' + href, () => assert.ok(
     ['app', 'app/(dashboard)'].some((base) => fs.existsSync(path.join(root, base, href.slice(1), 'page.tsx'))),
@@ -91,7 +96,7 @@ check('tools active on child route', () => {
 })
 check('native disclosures and named navigation', () => {
   assert.equal(tree.props['aria-label'], 'Mobile navigation')
-  assert.equal(nodes(tree).filter((n) => n.type === 'details').length, 2)
+  assert.equal(nodes(tree).filter((n) => n.type === 'details').length, 1)
   assert.equal(nodes(tree).filter((n) => n.props.role === 'menu').length, 0)
 })
 check('opening another group closes the first', () => {
@@ -142,7 +147,7 @@ check('outside pointer listener cleaned up', () => {
   delete globalThis.document
   delete globalThis.Node
 })
-for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'Images', '/audio': 'Audio', '/library': 'Library', '/studio/create': 'Generate New Short', '/pricing': 'Pricing', '/history': 'My Videos' })) {
+for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'Images', '/audio': 'Audio', '/library': 'Library', '/studio/create': 'Studio', '/pricing': 'Pricing', '/history': 'My Videos' })) {
   check('real shell caller title ' + route, () => {
     pathname = route
     const shell = Shell({ children: null, userEmail: '', isPro: false, generationsUsed: 0, isLoggedIn: false })
@@ -152,7 +157,7 @@ for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'I
 check('SSR outputs links and controls without network', () => {
   const html = renderToStaticMarkup(render())
   assert.ok(html.includes('href="/pricing"'))
-  assert.ok(html.includes('aria-label="Close Tools"'))
+  assert.ok(html.includes('aria-label="Close More"'))
   assert.ok(html.includes('safe-area-inset-bottom'))
   assert.ok(html.includes('.kineo-mobile-nav:has(details[open]){z-index:71}'), 'open tools clear existing install/push layers; verify in browser too')
   assert.ok(!html.includes('<form'))

@@ -589,8 +589,8 @@ export function AdsAfterSampleOffer({ lang, business, compact = false }: { lang:
 // ─── a sessão do modo simples ─────────────────────────────────────────────────────────────────
 
 const AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — loaded only after the existing Studio Ads gate.
-export function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean }) { // KINEO-ADS-ESCOLHA-2310
-  return props.escolhaInternal === true && !props.sample && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-ADS-ESCOLHA-2310 — off never mounts any new request, storage or polling effect.
+export function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; oneTimeMember?: boolean }) { // KINEO-ADS-ESCOLHA-2310
+  return (props.escolhaInternal === true && !props.sample || props.escolhaSample === true) && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} internalControls={props.escolhaTestControls} sampleAvailable={props.escolhaSample} initialSample={props.sample} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} balance={props.balance} oneTimeMember={props.oneTimeMember} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-ADS-ESCOLHA-2310 — off never mounts any new request, storage or polling effect.
 } // KINEO-ADS-ESCOLHA-2310
 function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.
   resume,

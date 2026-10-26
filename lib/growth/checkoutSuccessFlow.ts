@@ -3,7 +3,7 @@ export const AUTOPILOT_CHECKOUT_SUCCESS_VERSION = 'autopilot_checkout_success_v1
 export type CheckoutSuccessFlow =
   | {
       kind: 'self_serve'
-      destination: '/studio'
+      destination: string
     }
   | {
       kind: 'autopilot'
@@ -21,9 +21,10 @@ function safeStripeSessionId(value: string | null): string | null {
 
 export function readCheckoutSuccessFlow(params: SearchParamsReader): CheckoutSuccessFlow {
   if (params.get('tier') !== 'autopilot') {
+    const sampleId = params.get('ads_sample_order')
     return {
       kind: 'self_serve',
-      destination: '/studio',
+      destination: sampleId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sampleId) ? `/ads/v2?order=${sampleId.toLowerCase()}&upgrade=1` : '/studio',
     }
   }
 
@@ -42,9 +43,11 @@ export function buildSubscriptionCheckoutSuccessUrl(input: {
   tier: string
   currency: string
   amount: number
+  adsSampleOrder?: string | null
 }): string {
   const autopilotTier = input.tier === 'autopilot' ? '&tier=autopilot' : ''
-  return `${input.appUrl}/checkout/success?success=true&currency=${input.currency}&amount=${input.amount}${autopilotTier}&session_id={CHECKOUT_SESSION_ID}`
+  const sample = input.tier !== 'autopilot' && input.adsSampleOrder && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.adsSampleOrder) ? `&ads_sample_order=${input.adsSampleOrder.toLowerCase()}` : ''
+  return `${input.appUrl}/checkout/success?success=true&currency=${input.currency}&amount=${input.amount}${autopilotTier}${sample}&session_id={CHECKOUT_SESSION_ID}`
 }
 
 export function isAutopilotEntitlementReady(plan: unknown): boolean {

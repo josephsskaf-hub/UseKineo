@@ -9,6 +9,36 @@ const require = createRequire(import.meta.url), ts = require('typescript')
 export const BEFORE = '881f69dc9fa7b19d97440bec23c3141107c44360'
 export const files = ['page.tsx', 'AgencyHeaderCta.tsx', 'AgencyPacksClient.tsx', 'AgencyMarginCalculator.tsx', 'AgencyBriefClient.tsx'].map(f => 'app/ai-shorts-for-agencies/' + f)
 const old = (file, ref = BEFORE) => execFileSync('git', ['show', ref + ':' + file], { cwd: root, encoding: 'utf8' })
+// Preserve the appearance-only freeze while undoing only the exact later approved agency-page hunks:
+// public pack retirement (27ea7884) and truthful Business team copy (b37f05b3).
+// Git objects are immutable; any changed/missing/non-unique hunk fails instead of masking unrelated edits.
+const agencyPage = 'app/ai-shorts-for-agencies/page.tsx'
+const approvedDiff = execFileSync('git', ['diff', '--no-ext-diff', '--unified=0', '67edfe1a', 'b37f05b3', '--', agencyPage], { cwd: root, encoding: 'utf8' }).replace(/\r\n/g, '\n')
+const approvedHunks = []
+for (const part of approvedDiff.split(/^@@[^\n]*\n/m).slice(1)) {
+ const before = [], after = []
+ for (const line of part.split('\n')) {
+  if (line.startsWith('-')) before.push(line.slice(1))
+  else if (line.startsWith('+')) after.push(line.slice(1))
+ }
+ approvedHunks.push({ before: before.length ? before.join('\n') + '\n' : '', after: after.length ? after.join('\n') + '\n' : '' })
+}
+assert.equal(approvedHunks.length, 5, 'only the five exact later agency-page hunks are projected')
+function appearanceSource(file) {
+ let text = source(file).replace(/\r\n/g, '\n')
+ if (file.endsWith('/AgencyBriefClient.tsx')) {
+  // 474d568e added explicit privacy masking after the palette work; retain and separately prove that protection.
+  const mask = '              data-clarity-mask="true"\n'
+  assert.equal(text.split(mask).length, 2, 'work email keeps its exact Clarity privacy mask')
+  return text.replace(mask, '')
+ }
+ if (file !== agencyPage) return text
+ for (const { before, after } of [...approvedHunks].reverse()) {
+  assert.ok(after && text.split(after).length === 2, 'approved agency hunk must match exactly once')
+  text = text.replace(after, before)
+ }
+ return text
+}
 export const focusCss = ' .agency-page :is(a,button,input,select,summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .agency-page input::placeholder { color: var(--muted); opacity: 1; } '
 // Fixtures change initial local state only, never invoke an effect or handler.
 function fixtureSource(file, input, fixture) {
@@ -24,12 +54,14 @@ function fixtureSource(file, input, fixture) {
  for (const [start, end, text] of edits.sort((a, b) => b[0] - a[0])) input = input.slice(0, start) + text + input.slice(end)
  return input
 }
-export function agencyHtml(before = false, fixtures = {}, includeFooter = true) {
- const replacements = Object.fromEntries(files.map(file => [file, fixtureSource(file, before ? old(file, typeof before === 'string' ? before : BEFORE) : source(file), fixtures[file.split('/').at(-1)] ?? {})]))
+export function agencyHtml(before = false, fixtures = {}, includeFooter = true, appearanceOnly = false) {
+ const replacements = Object.fromEntries(files.map(file => [file, fixtureSource(file, before ? old(file, typeof before === 'string' ? before : BEFORE) : appearanceOnly ? appearanceSource(file) : source(file), fixtures[file.split('/').at(-1)] ?? {})]))
  // Next pathname fixture for the untouched footer's calculator link.
  replacements['components/CostCalculatorLink.tsx'] = source('components/CostCalculatorLink.tsx').replace('usePathname()', JSON.stringify('/ai-shorts-for-agencies'))
  const forbidden = () => { throw Error('No telemetry in offline render') }
  const mocks = { 'lib/analytics.ts': { trackEvent: forbidden, trackClosedEvent: forbidden } }
+ // Render the retained pack page in an explicit local fixture; production's canonical gate stays off.
+ mocks['lib/bulkPacksPublic.ts'] = { BULK_PACKS_PUBLIC: true, BULK_PACK_REPLACEMENT_PATH: '/pricing' }
  if (!includeFooter) mocks['components/Footer.tsx'] = { __esModule: true, default: () => null }
  const load = offlineModules({ replacements, mocks })
  return renderToStaticMarkup(React.createElement(load(files[0]).default))
@@ -100,13 +132,13 @@ function textContrast(html, theme) {
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
  for (const file of files) {
-  assert.equal(frozenAst(file, source(file)), frozenAst(file, old(file)), file + ': all executable logic, layout, copy, media and destinations frozen')
+  assert.equal(frozenAst(file, appearanceSource(file)), frozenAst(file, old(file)), file + ': all executable logic, layout, copy, media and destinations frozen after exact approved later hunks')
   assert.ok(!/#[\da-f]{3,8}\b|rgba?\(|gradient\(/i.test(source(file)), file + ': no private literal palette')
  }
  assert.ok(source(files[0]).includes(focusCss), 'scoped focus and readable placeholders')
  const results = []
  for (const [name, fixtures] of states) {
-  assert.equal(content(agencyHtml(false, fixtures)), content(agencyHtml(true, fixtures)), name + ': full actual SSR content/attributes preserved')
+  assert.equal(content(agencyHtml(false, fixtures, true, true)), content(agencyHtml(true, fixtures)), name + ': full appearance-only SSR content/attributes preserved after exact approved later hunks')
   const html = agencyHtml(false, fixtures, false)
   for (const theme of ['light', 'dark']) results.push({ state: name, theme, ...textContrast(html, theme) })
  }

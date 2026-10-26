@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-cinematic-terminal-proof-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1187
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+cinematic-terminal-proof: 197 passed; actual claim HMAC/CAS and route GET; no external calls

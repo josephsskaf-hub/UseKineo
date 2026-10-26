@@ -16,6 +16,8 @@
 //   · link COM query  → /studio/create?<a mesma query, intacta>
 // Assim o destino final é byte-a-byte o mesmo; o que some é a viagem extra.
 import { readFileSync, existsSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import ts from 'typescript'
 const src = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 let ok = 0, fail = 0
 const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, console.log('  FAIL ' + n)) }
@@ -32,6 +34,8 @@ const hist = src('app/(dashboard)/history/HistoryClient.tsx')
 const meus = src('app/(dashboard)/my-videos/MyVideosClient.tsx')
 const create = src('app/(dashboard)/create/CreateClient.tsx')
 const autopilot = src('app/(dashboard)/autopilot/AutopilotClient.tsx')
+const homeFilm = {}
+new Function('exports', ts.transpileModule(src('lib/growth/homeClipsFirst.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(homeFilm)
 
 console.log('1 · o porteiro CONTINUA de pé (link no inbox de cliente não quebra)')
 check('/generate ainda existe como rota', existsSync(new URL('../app/(dashboard)/generate/page.tsx', import.meta.url)))
@@ -40,9 +44,9 @@ check('ele ainda repassa a query INTEIRA (não enumera chaves)', porteiro.includ
 check('o destino real existe', existsSync(new URL('../app/(dashboard)/studio/create/page.tsx', import.meta.url)))
 
 console.log('2 · o botão que o fundador viu quebrado')
-check('bento da home vai DIRETO ao destino final', landing.includes("'/studio?src=engine_bento'"))
+check('a porta de filme que substituiu o bento vai DIRETO ao destino final', landing.includes('href={clipsFirstFilmHref(isSignedIn)}') && homeFilm.clipsFirstFilmHref(true) === '/studio?intent_campaign=home_clips_first_film')
 check('e não passa mais pelo porteiro', !landing.includes("'/generate?src=engine_bento'"))
-check('o caminho de quem NÃO está logado ficou intocado (signup)', landing.includes("'/signup?utm_source=engine_bento'"))
+check('quem NÃO está logado passa pelo signup preservando o destino direto', new URL(homeFilm.clipsFirstFilmHref(false), 'https://test.invalid').pathname === '/signup' && new URL(homeFilm.clipsFirstFilmHref(false), 'https://test.invalid').searchParams.get('redirect') === homeFilm.clipsFirstFilmHref(true))
 check('a razão está escrita no código, não só no commit', landing.includes('KINEO-SEM-PORTEIRO-2026-09-02'))
 
 console.log('3 · pós-pagamento (o pior lugar possível para uma tela lenta)')
@@ -64,7 +68,7 @@ console.log('4 · avatar (landing própria + banner)')
 const semComentario = (f) =>
   f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
 check('AvatarLandingClient: 3 CTAs diretos, com o avatar=1 preservado', avatarLanding.split('href="/studio/create?avatar=1').length === 4 && !semComentario(avatarLanding).includes('/generate?avatar=1'))
-check('AvatarLaunchBanner: idem', avatarBanner.includes('href="/studio/create?avatar=1"') && !semComentario(avatarBanner).includes('/generate?avatar=1'))
+check('AvatarLaunchBanner abre a porta própria atual sem porteiro', avatarBanner.includes('href="/avatar"') && existsSync(new URL('../app/(dashboard)/avatar/page.tsx', import.meta.url)) && !semComentario(avatarBanner).includes('/generate?avatar=1'))
 
 console.log('5 · preço (a página que o comprador lê antes de decidir)')
 check('PricingCards sem porteiro', !pricingCards.includes('href="/generate"'))
@@ -162,6 +166,23 @@ const PERMITIDOS = new Set([
   'lib/growth/ideiaPousaNoStudio.ts',
 ])
 const semComment = (f) => f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+// These exact immutable statements recognize legacy URLs; they do not navigate.
+// The legacy kids API also returns its original compatibility href, while the
+// current template consumes the script and renders in place. Exclude only the
+// approved statements/functions, never their whole files or an unknown change.
+const approved = p => execFileSync('git', ['show', `3ec6c9d9b:${p}`], { encoding: 'utf8', maxBuffer: 8 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
+function statement(text, name) {
+  const tree = ts.createSourceFile('source.ts', text, ts.ScriptTarget.Latest, true)
+  return tree.statements.find(node => (ts.isFunctionDeclaration(node) && node.name?.text === name) || (ts.isVariableStatement(node) && node.declarationList.declarations.some(declaration => declaration.name.getText(tree) === name)))?.getText(tree)
+}
+const recognizedLegacy = new Map()
+for (const [file, name] of [['lib/ui/workspaceFocus.ts', 'FOCUSED_PATHS'], ['lib/ui/workspaceNavigation.ts', 'workspaceNavActive'], ['lib/kidsCartoon/kidsCartoon.ts', 'kidsCartoonGenerateHref']]) {
+  const original = statement(approved(file), name), current = statement(src(file), name)
+  check(`${name}: só a declaração legada aprovada é reconhecida`, Boolean(original) && current === original)
+  if (original && current === original) recognizedLegacy.set(file, original)
+}
+const kidsTemplate = src('components/kidsCartoon/KidsCartoonTemplate.tsx')
+check('a tela infantil consome a história e gera no próprio lugar, sem usar o href legado', kidsTemplate.includes('setScript(data.script)') && kidsTemplate.includes("postJson('/api/generate-video-cinematic', kidsCinematicPayload(") && !/\bdata(?:\.|\?\.)href|\bdata\s*\[\s*['"]href['"]\s*\]/.test(semComment(kidsTemplate)))
 const acharArquivos = (dir, acc = []) => {
   for (const nome of readdirSync(dir)) {
     if (nome === 'node_modules' || nome === '.next' || nome === '.git' || nome === 'docs' || nome === 'scripts') continue
@@ -178,7 +199,8 @@ const reincidentes = []
 for (const arq of acharArquivos(RAIZ)) {
   const rel = decodeURIComponent(arq.pathname.replace(RAIZ.pathname, ''))
   if (PERMITIDOS.has(rel)) continue
-  const corpo = semComment(readFileSync(arq, 'utf8').replace(/\r\n/g, '\n'))
+  const raw = readFileSync(arq, 'utf8').replace(/\r\n/g, '\n')
+  const corpo = semComment(recognizedLegacy.has(rel) ? raw.replace(recognizedLegacy.get(rel), '') : raw)
   // Só interessa /generate em posição de CAMINHO (aspas ou crase na frente).
   if (/['"`]\/generate(\?|['"`])/.test(corpo)) reincidentes.push(rel)
 }

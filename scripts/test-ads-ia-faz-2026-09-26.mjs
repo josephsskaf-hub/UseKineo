@@ -21,7 +21,7 @@ function load(rel, srcOverride) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const m = { exports: {} }
   new Function('module', 'exports', 'require', js)(m, m.exports, (n) => {
-    const map = { './models': 'lib/ads/models.ts', './scriptPrompt': 'lib/ads/scriptPrompt.ts', './orderContract': 'lib/ads/orderContract.ts', './types': null }
+    const map = { './models': 'lib/ads/models.ts', './scriptPrompt': 'lib/ads/scriptPrompt.ts', './orderContract': 'lib/ads/orderContract.ts', './v2BolaFix': 'lib/ads/v2BolaFix.ts', './v2Simple': 'lib/ads/v2Simple.ts', './types': null }
     if (n in map) return map[n] ? load(map[n]) : {}
     throw new Error('import ' + n)
   })

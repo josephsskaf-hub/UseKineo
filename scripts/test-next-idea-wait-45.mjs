@@ -9,7 +9,7 @@
 //   5. nenhum render dispara daqui (a trava do #14 continua de pe)
 // ═══════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 
 let ok = 0
 const falhas = []
@@ -21,7 +21,11 @@ function v(nome, cond) {
 const GC = 'app/(dashboard)/generate/GenerateClient.tsx'
 const src = readFileSync(GC, 'utf8').replace(/\r\n/g, '\n')
 const fila = readFileSync('lib/proximoEpisodioFila.ts', 'utf8')
-const diff = execSync(`git diff -- "${GC}"`, { encoding: 'utf8', maxBuffer: 40 * 1024 * 1024 })
+// This contribution was committed on01/09. Its ownership/diff assertions must
+// inspect that immutable patch, while every behavior assertion still reads the
+// current component above. A clean integration HEAD is not the original patch.
+const CONTRIBUTION = '1327a046f07b87b9cef6fd65152d2e64d91c1251'
+const diff = execFileSync('git', ['diff', `${CONTRIBUTION}^`, CONTRIBUTION, '--', GC], { encoding: 'utf8', maxBuffer: 40 * 1024 * 1024 })
 const mais = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
 const menos = diff.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'))
 
@@ -31,8 +35,8 @@ v('diff cabe numa leitura humana (<200 linhas +)', mais.length < 200)
 // Um unico arquivo de PRODUTO. `docs/` (o diario) e `scripts/` (este teste)
 // nao sao produto e nao contam — o que nao pode acontecer e a rodada espalhar
 // mudanca por telas que ninguem pediu.
-const tocados = execSync('git status --porcelain', { encoding: 'utf8' })
-  .split('\n').map((l) => l.slice(3).trim()).filter(Boolean)
+const contributionFiles = execFileSync('git', ['diff', `${CONTRIBUTION}^`, CONTRIBUTION, '--name-only'], { encoding: 'utf8' })
+const tocados = contributionFiles.split('\n').map(line => line.trim()).filter(Boolean)
 const produto = tocados.filter((f) => !f.startsWith('docs/') && !f.startsWith('scripts/'))
 v('um arquivo so de produto mexido', produto.length === 1 && produto[0].includes('GenerateClient.tsx'))
 
@@ -93,8 +97,8 @@ const soCodigo = (l) => !/^\+\s*(\/\/|\*|\/\*)/.test(l)
 const suspeitas = mais.filter((l) => soCodigo(l) && proibidas.test(l))
 v('nenhuma linha + toca preco/plano/credito/checkout', suspeitas.length === 0)
 v('nenhuma linha - removida da pista do Codex', menos.filter((l) => !/^-\s*(\/\/|\*|\/\*)/.test(l) && proibidas.test(l)).length === 0)
-v('nenhum arquivo do Codex no diff', !execSync('git diff --name-only', { encoding: 'utf8' }).match(/stripe|checkoutPricing|marketingPrice|growth\/|Offer|Upgrade/i))
-v('vitrine de motores intocada', !execSync('git diff --name-only', { encoding: 'utf8' }).match(/engineWall|EngineCycleCard|previews/i))
+v('nenhum arquivo do Codex no diff', !contributionFiles.match(/stripe|checkoutPricing|marketingPrice|growth\/|Offer|Upgrade/i))
+v('vitrine de motores intocada', !contributionFiles.match(/engineWall|EngineCycleCard|previews/i))
 
 // ── 8. o que NAO podia mudar ─────────────────────────────────────────────
 v('cartao opcional recolhido; vitrine removida pelo pedido visual de 23/09', /<details className="render-workspace-disclosure">\s*<summary>Next video idea<\/summary>\s*<NextIdeaDuringWait/.test(src) && !src.includes('<WaitingShowcase />'))

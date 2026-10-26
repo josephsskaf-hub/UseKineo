@@ -19,8 +19,8 @@ check('history: visibleVideos filtra por extractTitle + topic', hist.includes('e
 check('history: grid renderiza visibleVideos (nao mais videos cru)', hist.includes('visibleVideos.map((video)') && !hist.includes('{videos.map((video)'))
 check('history: input de busca com aria-label', hist.includes('aria-label="Search your videos by title or topic"'))
 check('history: 16px anti-zoom iOS no input (licao sprint #1)', /type="search"[\s\S]{0,900}?fontSize: 16/.test(hist))
-check('history: busca so aparece com acervo (>=6)', hist.includes('videos.length >= 6 && ('))
-check('history: zero resultado tem saida (Clear search)', hist.includes('Clear search'))
+check('history: busca aparece com acervo >=6 ou na Biblioteca incorporada', hist.includes('(embedded || videos.length >= 6) && ('))
+check('history: zero resultado tem saida que limpa busca e filtros', hist.includes('Reset filters') && hist.includes("setQuery(''); organization.setFavoritesOnly(false); setFormat('all')"))
 check('history: stats continuam no acervo TOTAL (nao no filtrado)', hist.includes('String(videos.length), label:'))
 
 // /my-videos

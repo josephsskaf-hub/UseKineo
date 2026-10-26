@@ -83,7 +83,7 @@ check('nao existe ramo que dispense as duas portas', !/if \(porCron\)\s*\{[\s\S]
 
 // ── 3. O LINK NAO E CEGO ────────────────────────────────────────────────────
 console.log('\n3. Os dois CTAs sao rastreaveis')
-check('a rota usa o helper unico de destino', /from '@\/lib\/lifecycle\/composerUrl'/.test(rota) && /composerUrl\(/.test(rota))
+check('rota usa a porta canônica da continuação, com atribuição', /from '@\/lib\/seriesContinuation'/.test(rota) && /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme, 'lifecycle_episode_wall', \{/.test(rota))
 check('a campanha tem nome proprio', /const CAMPANHA = '[a-z0-9_]+'/.test(rota))
 check('a porta do plano carrega utm_campaign', /\/pricing\?utm_source=[^`]*utm_campaign=\$\{CAMPANHA\}/.test(rota))
 // O defeito original: `${SITE}/studio/create` digitado a mao, sem query.
@@ -100,7 +100,7 @@ check('o helper aceita prefill', /readonly prompt\?: string \| null/.test(helper
 check('o prefill vira ?prompt= na URL', /params\.set\('prompt', prefill\)/.test(helper))
 check('prefill vazio nao muda o link', /if \(prefill\) params\.set/.test(helper))
 check('ha teto de tamanho no prefill', /COMPOSER_PREFILL_MAX_CHARS/.test(helper) && /slice\(0, COMPOSER_PREFILL_MAX_CHARS\)/.test(helper))
-check('a rota manda o titulo como prefill', /composerUrl\(\{ base: SITE, campaign: CAMPANHA, prompt: filme \}\)/.test(rota))
+check('rota envia episódio já escrito ou título de origem pela porta canônica', /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme, 'lifecycle_episode_wall', \{/.test(rota))
 // A promessa antiga, que era falsa para quem chega por e-mail: o bloco de
 // proximo episodio do GenerateClient so roda em `phase === 'done'`.
 check(
@@ -124,11 +124,11 @@ check(
 // frase seja decidida pela MESMA variavel que decide o prefill: `filme`.
 check(
   'a frase do texto e decidida por `filme`, o mesmo valor que decide o prefill',
-  /const ponte = filme\n\s*\?/.test(rota),
+  /const ponte = episodio\n\s*\?[\s\S]+?: filme\n\s*\? `The link below opens the studio with/.test(rota),
 )
 check(
   'a frase do html tambem e decidida por `filme`',
-  /<p>\$\{filme\n\s*\?/.test(rota),
+  /<p>\$\{episodio\n\s*\?[\s\S]+?: filme\n\s*\? `The button below opens the studio with/.test(rota),
 )
 
 // ── 5. OS LIMITES DO CICLO ──────────────────────────────────────────────────

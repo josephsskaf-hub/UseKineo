@@ -1,9 +1,35 @@
 // sprint-v1v4 #43 — o muro do free que se rearmava como convite.
 // Le os ARQUIVOS REAIS. Nao ha mock: se a tela mudar, este teste cai.
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 const GC = readFileSync(new URL('../app/(dashboard)/generate/GenerateClient.tsx', import.meta.url), 'utf8')
 const COMPOSE = readFileSync(new URL('../app/api/compose/route.ts', import.meta.url), 'utf8')
+const ts = createRequire(new URL('../package.json', import.meta.url))('typescript')
+
+function both402BranchesReturnOptions(source) {
+  const ast = ts.createSourceFile('GenerateClient.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const arms = []
+  function visit(node) {
+    if (ts.isCallExpression(node) && node.expression.getText(ast) === 'armarMuroDoFree' &&
+        node.arguments[0]?.getText(ast) === 'data' && node.arguments[1] && ts.isStringLiteral(node.arguments[1])) {
+      let branch = null
+      for (let parent = node.parent; parent; parent = parent.parent) {
+        if (ts.isIfStatement(parent) && /\.status === 402/.test(parent.expression.getText(ast)) &&
+            parent.thenStatement.pos <= node.pos && parent.thenStatement.end >= node.end) { branch = parent.thenStatement; break }
+      }
+      const returnsOptions = branch && ts.isBlock(branch) && branch.statements.some(statement =>
+        ts.isExpressionStatement(statement) && ts.isCallExpression(statement.expression) &&
+        statement.expression.expression.getText(ast) === 'setPhase' &&
+        statement.expression.arguments[0]?.getText(ast) === "'options'")
+      arms.push({ source: node.arguments[1].text, returnsOptions })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(ast)
+  return arms.length === 2 && ['compose_dispatch', 'compose_resume'].every(source => arms.filter(arm => arm.source === source && arm.returnsOptions).length === 1)
+}
 
 let ok = 0, bad = 0
 const t = (nome, cond) => { if (cond) { ok++ } else { bad++; console.error('  FALHOU:', nome) } }
@@ -37,7 +63,8 @@ t('compose_daily_free_limit agora leva detail', /detail:\s*typeof data\?\.error 
 const depoisResume = GC.split("'compose_resume_daily_free_limit', {")[1]?.slice(0, 300) ?? ''
 t('compose_resume_daily_free_limit agora leva detail', /detail:\s*typeof data\?\.error === 'string'/.test(depoisResume))
 t('os dois ramos continuam abrindo o MESMO modal de sempre', (GC.match(/openOutOfCreditsModal\('credits'\)/g) || []).length >= 3)
-t('os dois ramos continuam pousando em options', /armarMuroDoFree\(data, 'compose_dispatch'\)[\s\S]{0,900}setPhase\('options'\)/.test(GC))
+t('os dois ramos402 continuam pousando em options no proprio ramo', both402BranchesReturnOptions(GC))
+t('controle: pousar em failed reprova os dois ramos', !both402BranchesReturnOptions(GC.replaceAll("setPhase('options')", "setPhase('failed')")))
 
 // ── 5. o bloqueio da segunda viagem ───────────────────────────────────────
 const bloco = GC.split('if (freeLimitWall && (credits ?? 0) <= 0) {')[1]?.split('\n    }\n')[0] ?? ''
@@ -64,17 +91,15 @@ t('escape hatch promete o que e verdade (roteiro intacto, nada cobrado)',
 
 // ── 7. fronteira com o Codex — nada de oferta, preco ou plano ─────────────
 // Aqui nao vale ler o arquivo inteiro: o que interessa e o que ESTA RODADA
-// acrescentou. Lemos as linhas '+' do diff contra o commit anterior.
+// acrescentou. Freeze that original contribution, not whichever integration
+// commit happens to be HEAD when this historical guardian is run.
 import { execFileSync } from 'node:child_process'
-const raiz = new URL('..', import.meta.url).pathname
+const raiz = fileURLToPath(new URL('..', import.meta.url))
+const WALL_COMMIT = '76309a410537dd7598522d2443601787a863a6be'
 let novas = ''
 try {
-  novas = execFileSync('git', ['diff', 'HEAD', '--unified=0', '--', 'app', 'lib', 'components'], { cwd: raiz, encoding: 'utf8' })
+  novas = execFileSync('git', ['show', WALL_COMMIT, '--format=', '--unified=0', '--', 'app', 'lib', 'components'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
     .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).join('\n')
-  if (!novas.trim()) {
-    novas = execFileSync('git', ['show', 'HEAD', '--unified=0', '--', 'app', 'lib', 'components'], { cwd: raiz, encoding: 'utf8' })
-      .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).join('\n')
-  }
 } catch { novas = '' }
 t('consegui ler as linhas novas do diff', novas.trim().length > 0)
 t('nenhuma linha nova fala em dolar', !/\$\d|USD|BRL/.test(novas))
@@ -87,7 +112,7 @@ const novasCodigo = novas.split('\n').filter((l) => !/^\+\s*(\/\/|\*|\/\*)/.test
 t('nenhuma linha nova de CODIGO escreve um numero de cota no cliente', !/\blimit\s*[:=]\s*[0-9]/.test(novasCodigo))
 t('o limite so aparece em comentario, citando producao', /\blimit: 1\b/.test(novas) && !/\blimit: 1\b/.test(novasCodigo))
 t('nenhuma linha nova toca no servidor da cota', !/app\/api\/compose/.test(
-  (() => { try { return execFileSync('git', ['diff', 'HEAD', '--name-only'], { cwd: raiz, encoding: 'utf8' }) } catch { return '' } })()
+  (() => { try { return execFileSync('git', ['diff', `${WALL_COMMIT}^`, WALL_COMMIT, '--name-only'], { cwd: raiz, encoding: 'utf8' }) } catch { return '' } })()
     .split('\n').filter((f) => f.startsWith('app/api/')).join('\n')))
 t('a cota do servidor nao foi tocada', /reservedOrCompleted/.test(COMPOSE) && /FREE_OFFER\.limit/.test(COMPOSE))
 

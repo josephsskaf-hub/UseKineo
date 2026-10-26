@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-trafego-undo-2310.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 6716
+KINEO-TRAFEGO-2310-UNDO: 196 passed, 0 failed.

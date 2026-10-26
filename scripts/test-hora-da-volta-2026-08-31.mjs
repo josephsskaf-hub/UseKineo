@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0, falhas = []
@@ -14,7 +15,7 @@ const vdd = (nome, c) => eq(nome, !!c, true)
 //    strip de tipos na mao ja me custou uma rodada, e um transpile de verdade
 //    tambem PROVA que o arquivo compila).
 const src = readFileSync(join(raiz, 'lib/freeQuotaReset.ts'), 'utf8')
-const ts = (await import(join(raiz, 'node_modules/typescript/lib/typescript.js'))).default
+const ts = createRequire(import.meta.url)('typescript')
 const js = ts.transpileModule(src, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } }).outputText
 const mod = await import('data:text/javascript;base64,' + Buffer.from(js, 'utf8').toString('base64'))
 const { quandoLiberaVaga, fraseDaVolta, minutosAteLiberar } = mod

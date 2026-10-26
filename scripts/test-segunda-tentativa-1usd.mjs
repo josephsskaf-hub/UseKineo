@@ -35,6 +35,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -50,7 +52,8 @@ function loadTs(p, mocks = {}, srcOverride = null) {
   const src = srcOverride ?? read(p)
   const out = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: p }).outputText
   const m = { exports: {} }
-  new Function('require', 'module', 'exports', out)((id) => { if (id in mocks) return mocks[id]; throw new Error(`${p}: unexpected import ${id}`) }, m, m.exports)
+  const local = createOfflineLoader({ mocks })
+  new Function('require', 'module', 'exports', out)((id) => { if (id in mocks) return mocks[id]; if (id.startsWith('@/lib/') || id.startsWith('.')) return local(id, path.dirname(path.join(root, p))); throw new Error(`${p}: unexpected import ${id}`) }, m, m.exports)
   return m.exports
 }
 
@@ -66,6 +69,7 @@ const reachLine = loadTs('lib/lifecycle/trialReachLine.ts', { '@/lib/credits/eng
 const FOOT_HTML = '<!--FOOTER_HTML-->'
 const FOOT_TEXT = '\n[FOOTER_TEXT]'
 const MOCKS = {
+  '@/lib/stripe': { stripe: null }, // SDK externo fora do ensaio do renderizador da carta
   'next/server': { NextResponse: { json: (b, i) => ({ body: b, init: i }) } },
   '@/lib/supabase/server': { createClient: () => ({}) },
   '@supabase/supabase-js': { createClient: () => ({}) },
@@ -128,7 +132,8 @@ console.log('\n── 3. O ASSUNTO NAO CARREGA `videos.title` (prompt cru trunca
 console.log('\n── 4. DINHEIRO NUNCA E DIGITADO')
 {
   const code = src.split('\n').filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
-  ok(!/\$\d/.test(code), 'nenhum valor em dolar digitado no codigo')
+  const avisoDesligado = "'CARD_TRIAL_LIVE=false — a porta de $1 está fechada; esta carta não sai enquanto o cobrador não a honrar'"
+  ok(code.split(avisoDesligado).length === 2 && !/\$\d/.test(code.replace(avisoDesligado, "''")), 'nenhum preço digitado: única menção histórica está no diagnóstico da carta desligada')
   ok(!/\b19\.90\b|\b7\/mo\b|\b\d+ ?\/month\b/.test(code), 'nenhuma mensalidade digitada')
   ok(src.includes("from '@/lib/lifecycle/trialEntryFee'"), 'a taxa vem da fonte unica do cobrador')
   const e = buildSecondTryEmail(P())
@@ -160,7 +165,9 @@ console.log('\n── 6. A PORTA E A QUE O COBRADOR ACEITA')
   ok(/const TRIAL_TIER = 'basic'/.test(checkout), 'o cobrador ainda so aceita trial no tier basic')
   ok(/searchParams\.get\('trial'\) === '1'/.test(checkout), "o cobrador ainda le ?trial=1")
   ok(/has_paid\?: boolean \| null \} \| null\)\?\.has_paid === true/.test(checkout), 'a unica recusa do trial continua sendo has_paid=true')
-  ok(/CARD_TRIAL_ENABLED = true/.test(checkout), 'a porta de $1 continua LIGADA em producao')
+  ok(pricing.CARD_TRIAL_LIVE === false, 'porta retirada em 09/09 continua desligada na configuração')
+  const bloqueada = await load().GET({ nextUrl: { searchParams: new URLSearchParams('confirm=SEND') } })
+  ok(bloqueada.body?.mode === 'DISABLED' && bloqueada.body?.sent === 0, 'GET real com confirm=SEND continua sem enviar enquanto a oferta está desligada')
 }
 
 console.log('\n── 7. QUEM A ROTA NUNCA PODE ALCANCAR')
@@ -191,9 +198,13 @@ console.log('\n── 8. O DEFAULT E NAO ENVIAR')
 
 console.log('\n── 9. A COORTE NAO E TRUNCADA EM SILENCIO')
 {
-  ok(/from \+= 1000/.test(src), 'perfis lidos em paginas de 1000')
-  ok(/\.range\(from, from \+ 999\)/.test(src), 'paginacao por range, nao por limit')
-  ok(/\.in\('name', CHECKOUT_INTENT\)[\s\S]{0,200}\.range\(from, from \+ 999\)/.test(src), 'os eventos de checkout tambem sao paginados')
+  ok(/await readAll\(\(\) => admin\s*\.from\('profiles'\)/.test(src), 'perfis usam a paginação canônica completa')
+  const paginas = []
+  const paginador = loadTs('lib/supabase/readAll.ts', { '../serverEvents': { writeServerEvent: async () => { throw Error('não deveria truncar') } } })
+  const completas = Array.from({ length: 1001 }, (_, id) => ({ id }))
+  const leitura = await paginador.readAll(() => { let faixa; return { order() { return this }, range(a,b) { faixa=[a,b]; paginas.push(faixa); return this }, then(res,rej) { return Promise.resolve({ data: completas.slice(faixa[0],faixa[1]+1), error:null }).then(res,rej) } } }, { route: 'offline', table: 'profiles' })
+  ok(leitura.data.length === 1001 && JSON.stringify(paginas) === '[[0,999],[1000,1999]]', 'paginador real lê duas páginas completas sem perder a 1001ª pessoa')
+  ok(/await readAll\(\(\) => admin\s*\.from\('events'\)\s*\.select\('user_id, session_id, created_at'\)\s*\.in\('name', CHECKOUT_INTENT\)/.test(src), 'eventos de checkout também usam paginação canônica')
   ok(/if \(pageErr\) throw pageErr/.test(src), 'erro de pagina estoura em vez de virar coorte menor')
   ok(!/\.in\('name', CHECKOUT_INTENT\)[\s\S]{0,120}\.limit\(/.test(src), 'os eventos de checkout NAO usam .limit (corta em 1000 sem erro)')
 }
@@ -281,7 +292,11 @@ console.log('\n── 12. O GATILHO: a carta sai sozinha, e o relogio dela nao p
   ok(/function autorizadoPorCron/.test(src), 'a rota aceita o gatilho automatico da casa (CRON_SECRET)')
   ok(/if \(!cronSecret\) return false/.test(src), 'fail-closed: env ausente NAO abre a rota')
   ok(/const porCron = autorizadoPorCron\(req\)[\s\S]{0,200}if \(!porCron\) \{/.test(src), 'sem o segredo, a rota ainda exige admin logado')
-  const vercel = JSON.parse(read('vercel.json'))
+  // KINEO-LEVA-2410: fundador desligou esta carta em d448ac79 (24/09).
+  // Preservar prova do agendamento original; configuração viva exige ausência.
+  const vivo = JSON.parse(read('vercel.json'))
+  ok(!(vivo.crons ?? []).some(c => String(c.path).includes('send-second-try-1usd')), 'carta desligada não voltou à agenda atual')
+  const vercel = JSON.parse(execFileSync('git', ['show', 'ad32c1e2:vercel.json'], { encoding: 'utf8' }))
   const meu = (vercel.crons ?? []).filter((c) => String(c.path).includes('send-second-try-1usd'))
   ok(meu.length === 1, 'a carta tem UMA entrada de cron, nao duas')
   ok(/confirm=SEND/.test(meu[0]?.path ?? ''), 'o cron dispara de verdade (confirm=SEND)')

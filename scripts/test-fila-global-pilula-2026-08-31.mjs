@@ -8,11 +8,17 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pill = readFileSync(join(raiz, 'components/ActiveRenderPill.tsx'), 'utf8')
 const gc = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const fila = readFileSync(join(raiz, 'lib/proximoEpisodioFila.ts'), 'utf8')
+const ts = createRequire(join(raiz, 'package.json'))('typescript')
+const ast = ts.createSourceFile('ActiveRenderPill.tsx', pill, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const nodes = []
+function visit(node) { nodes.push(node); ts.forEachChild(node, visit) }
+visit(ast)
 
 let ok = 0
 let bad = 0
@@ -34,11 +40,27 @@ t('A8 handleFilaDismiss existe e é usado', /function handleFilaDismiss\(/.test(
 console.log('\nB — O CAMINHO DO 2º VÍDEO É O MESMO DA TELA DE VÍDEO PRONTO')
 const hrefPill = pill.match(/idea_source: '([a-z_]+)'/)
 const hrefGc = gc.match(/idea_source: '([a-z_]+)'/)
-t('B1 a pílula empurra para /generate com prompt+autoanalyze', /\/generate\?\$\{new URLSearchParams\(\{[\s\S]{0,220}prompt: ideia\.seed[\s\S]{0,120}autoanalyze: '1'/.test(pill))
+t('B1 a pílula empurra para o Studio direto com prompt+autoanalyze', /\/studio\/create\?\$\{new URLSearchParams\(\{[\s\S]{0,220}prompt: ideia\.seed[\s\S]{0,120}autoanalyze: '1'/.test(pill))
 t('B2 a pílula carimba idea_source próprio', hrefPill?.[1] === 'wait_queue_pill')
 t('B3 a tela de vídeo pronto continua com o dela', hrefGc?.[1] === 'wait_queue')
 t('B4 as duas origens são DIFERENTES (dá para medir separado)', hrefPill?.[1] !== hrefGc?.[1])
 t('B5 a pílula LIMPA a fila antes de navegar', /limparFila\(\)\s*\n\s*setFila\(null\)\s*\n[\s\S]{0,200}router\.push/.test(pill))
+const goNode = nodes.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'handleFilaGo')
+const calls = []
+const compiledGo = ts.transpileModule(goNode.getText(ast) + '\nreturn handleFilaGo', {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText
+const go = new Function('trackEvent', 'limparFila', 'setFila', 'router', 'pathname', compiledGo)(
+  (name, metadata) => calls.push({ name, metadata }), () => calls.push({ name: 'clear' }),
+  value => calls.push({ name: 'setFila', value }), { push: href => calls.push({ name: 'navigate', href }) }, '/history',
+)
+const seed = 'Ice caves & volcanoes / próximo episódio'
+go({ seed, savedAt: Date.now() - 5000, stage: 'rendering' })
+const navigation = calls.find(call => call.name === 'navigate')
+const destination = new URL(navigation.href, 'https://example.invalid')
+t('B6 handler real preserva o tema na URL', destination.pathname === '/studio/create' && destination.searchParams.get('prompt') === seed)
+t('B7 handler real preserva autoanalyze e origem', destination.searchParams.get('autoanalyze') === '1' && destination.searchParams.get('idea_source') === 'wait_queue_pill')
+t('B8 handler real limpa antes da navegacao', calls.findIndex(call => call.name === 'clear') < calls.findIndex(call => call.name === 'navigate') && calls.some(call => call.name === 'setFila' && call.value === null))
 
 console.log('\nC — NÃO PROMETE O QUE NÃO CUMPRE (render em voo recusaria)')
 t('C1 filaVisivel exige que NÃO haja render rodando', /const filaVisivel =[\s\S]{0,160}probe\?\.state !== 'rendering'/.test(pill))
@@ -69,9 +91,8 @@ t('F4 next_idea_cleared carrega source=render_pill', /next_idea_cleared'[\s\S]{0
 t('F5 waited_s medido do savedAt', /waited_s: Math\.max\(0, Math\.floor\(\(Date\.now\(\) - ideia\.savedAt\)/.test(pill))
 
 console.log('\nG — ORDEM NO PICO DE ALEGRIA: a ideia DELA ganha da sugestão')
-const j = pill.indexOf("if (!isRendering && (nextSeed ||")
-const k = pill.indexOf('function FilaLinedUpPill(')
-const bloco = j >= 0 && k > j ? pill.slice(j, k) : ''
+const readyBranch = nodes.find(node => ts.isIfStatement(node) && node.expression.getText(ast) === "probe.state === 'completed' && (nextSeed || (filaVisivel && fila))")
+const bloco = readyBranch?.thenStatement.getText(ast) ?? ''
 t('G0 a fatia do cartão de pronto tem tamanho real', bloco.length > 1500)
 t('G1 com fila, "Next episode" some e vira "Series"', /nextSeed && !\(filaVisivel && fila\)/.test(bloco) && /Series/.test(bloco))
 t('G2 "Make it now" é o botão verde (flex-1)', /handleFilaGo\(fila\)[\s\S]{0,320}flex-1/.test(bloco))

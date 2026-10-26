@@ -2,7 +2,7 @@
 // botao "Generate Another Short" para de apagar a prateleira dos 3 episodios
 // quando ela existe, e que nada de preco/plano/credito/SKU foi tocado.
 import { readFileSync } from 'node:fs'
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 
 const GC = readFileSync('app/(dashboard)/generate/GenerateClient.tsx', 'utf8')
 const NS = readFileSync('components/video/NextShortsSection.tsx', 'utf8')
@@ -59,7 +59,12 @@ t('"Start something new" continua sendo reset de verdade',
 t('"Start over" continua sendo reset de verdade', /onClick=\{handleReset\}[\s\S]{0,600}?Start over/.test(GC))
 
 // ── 6. Fronteira com o Codex: o diff nao toca preco/plano/SKU/oferta ────────
-const diff = execSync('git diff -U0 -- "app/(dashboard)/generate/GenerateClient.tsx" components/video/NextShortsSection.tsx', { encoding: 'utf8' })
+// Audit the immutable delivery even when this guardian runs from a clean integrated tree.
+const DELIVERY = '094a6e074172814c725f03aa8ef95d56ca5c1e41'
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+const diff = git('diff', '-U0', DELIVERY + '^', DELIVERY, '--', 'app/(dashboard)/generate/GenerateClient.tsx', 'components/video/NextShortsSection.tsx')
+const deliveryFiles = git('diff', '--name-only', DELIVERY + '^', DELIVERY).split('\n').filter(Boolean)
+const productFiles = deliveryFiles.filter(f => /^(app|components|lib)\//.test(f))
 const add = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
 t('o diff tem linhas adicionadas', add.length > 0)
 const proibido = /\$\d|price|pricing|checkout|stripe|tier|plan_?tier|coupon|sku|upgrade|intro=1|trial/i
@@ -79,14 +84,13 @@ t('duas e SO duas linhas de onAnother mudaram',
   add.filter((l) => /onAnother=/.test(l)).length === 2 && rem.filter((l) => /onAnother=/.test(l)).length === 2)
 if (suja.length) console.log(suja.join('\n'))
 t('nenhum arquivo do Codex foi tocado',
-  execSync('git diff --name-only', { encoding: 'utf8' })
-    .split('\n').filter(Boolean)
+  deliveryFiles
     .every((f) => !/^app\/api\/stripe\/|^lib\/(checkoutPricing|marketingPrice|growth)|UpgradeModal|OfferModal|OfferBanner/.test(f)))
 t('so 2 arquivos de producao no diff',
-  execSync('git diff --name-only', { encoding: 'utf8' }).split('\n').filter(Boolean).length === 2)
-t('app/api/compose intacto', !execSync('git diff --name-only', { encoding: 'utf8' }).includes('api/compose'))
+  productFiles.length === 2)
+t('app/api/compose intacto', !deliveryFiles.join('\n').includes('api/compose'))
 t('lib/engineWall e EngineCycleCard intactos',
-  !execSync('git diff --name-only', { encoding: 'utf8' }).match(/engineWall|EngineCycleCard|public\/previews/))
+  !deliveryFiles.join('\n').match(/engineWall|EngineCycleCard|public\/previews/))
 
 console.log(`\n${ok} verificacoes OK, ${bad} falhas`)
 process.exit(bad ? 1 : 0)

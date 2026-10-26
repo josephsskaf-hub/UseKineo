@@ -75,10 +75,10 @@ const couponOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({
 }))
 check(couponOffer.caption.includes('Use code SAVE20 for 20% off the first month.'), 'ready post attaches the available first-month coupon')
 
-for (const surface of ['/studio', '/studio/create', '/generate', '/history']) {
+for (const surface of ['/affiliate', '/referral', '/studio', '/studio/create', '/generate', '/history']) {
   equal(firstClick.isAffiliateFirstClickSurface(surface), true, surface + ' exposes the first-click mission')
 }
-for (const unsafeSurface of ['/', '/pricing', '/affiliate', '/studio/create/extra', '/generate?x=1', '']) {
+for (const unsafeSurface of ['/', '/pricing', '/affiliate/extra', '/referral/extra', '/studio/create/extra', '/generate?x=1', '']) {
   equal(firstClick.isAffiliateFirstClickSurface(unsafeSurface), false, (unsafeSurface || '(empty)') + ' fails closed')
 }
 equal(firstClick.AFFILIATE_FIRST_CLICK_NUDGE_VERSION, 'affiliate_first_click_reach_v2', 'reach experiment is versioned')

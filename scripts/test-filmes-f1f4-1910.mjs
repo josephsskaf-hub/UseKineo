@@ -29,11 +29,13 @@ import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' 
 import { semFilmesF1F4_1910, MARCA_FILMES_F1F4_1910, ACRESCIMOS_FILMES_F1F4_1910, TROCAS_FILMES_F1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs'
 import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gerar-sfx-faceless15-1910.mjs'
 import { semFilmesF1F3Publico2010 } from './test-support/desfaz-filmes-f1f3-publico-2010.mjs' // KINEO-FILMES-F1F3-PUBLICO-2010 — o módulo da ÉPOCA (F1/F3 só por pedido) para as provas fase a fase
+import { LEVA, levaBlob, levaHash } from './test-support/leva-integration-2410.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semCloseRealAjuste1910(semFilmesF1Virgula1910(semMeta95Assunto1910(readFileSync(join(RAIZ, p), 'utf8'), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e SEM o ajuste do Close real
+const projectRead = (p, raw) => lf(semCloseRealAjuste1910(semFilmesF1Virgula1910(semMeta95Assunto1910(raw, p), p), p))
+const rd = (p) => projectRead(p, readFileSync(join(RAIZ, p), 'utf8')) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e SEM o ajuste do Close real
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -70,15 +72,33 @@ checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) =>
   // A referência de cada guardião reancorado é a ÚLTIMA versão dele deixada por outra sessão (o último commit que o tocou sem a
   // minha marca): o merge de 19/10 (liberação do apresentador v2) reancorou test-filme-rapido-1710 na mesma linha que eu e criou
   // um guardião novo que também precisou do meu desfaz; a regra "pai do 1º commit" não enxergaria nenhum dos dois.
-  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
-  const ruins = []
+  // Search only immutable merged history. A later merge can carry this layer
+  // while its own message names another feature; require the original old lines
+  // and absence of this layer, then independently compare the whole inverse.
+  const rdAlheio = (p, trocas) => {
+    try {
+      const shas = execFileSync('git', ['log', '--format=%H', LEVA.head, '--', p], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 32 << 20 }).trim().split('\n').filter(Boolean)
+      for (const sha of shas) {
+        const candidate = levaBlob(sha, p)
+        if (!candidate.includes(MARCA_FILMES_F1F4_1910) && trocas.every(([, antiga]) => candidate.split('\n').includes(antiga))) return candidate
+      }
+    } catch { return null }
+    return null
+  }
+  const ruins = [], atuaisAlterados = []
   for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F4_1910)) {
-    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória
-    const base = rdAlheio(p)
+    // O reparo de um guardião em outubro não muda a versão histórica que a
+    // receita reancorou. Provar ambos: fonte atual inteira selada e inversão
+    // original inteira sobre o prefixo integrado imutável anterior aos reparos.
+    const atual = lf(readFileSync(join(RAIZ, p), 'utf8'))
+    if (LEVA.sources[p] ? levaHash(atual) !== LEVA.sources[p].hash : atual !== levaBlob(LEVA.head, p)) atuaisAlterados.push(p)
+    const vivo = semHome3Cards1910(projectRead(p, levaBlob(LEVA.head, p)), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória
+    const base = rdAlheio(p, trocas)
     const linhas = vivo.split('\n')
     if (base === null || !trocas.every(([nova, antiga]) => linhas.includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA_FILMES_F1F4_1910) && !antiga.includes(MARCA_FILMES_F1F4_1910))) { ruins.push(p); continue }
     try { if (semFilmesF1F4_1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
   }
+  checa('A4b atual: todos os guardiões têm a fonte inteira aprovada e selada', atuaisAlterados.length === 0)
   checa(`A4b ${Object.keys(TROCAS_FILMES_F1F4_1910).length} guardiões reancorados: cada troca da tabela está no arquivo vivo e na base; desfeitos (trocas + import marcado) = base byte a byte`, Object.keys(TROCAS_FILMES_F1F4_1910).length >= 9 && ruins.length === 0)
   checa('A4c o desfaz é idempotente e nunca toca linha sem a marca', semFilmesF1F4_1910('a\nb', 'x') === 'a\nb' && semFilmesF1F4_1910(`a\nb // ${MARCA_FILMES_F1F4_1910}\nc`, 'x') === 'a\nc')
 }

@@ -1,0 +1,821 @@
+{
+  "base": "7950e411",
+  "date": "2026-10-24T17:42:30.511Z",
+  "node": "v24.18.0",
+  "results": [
+    {
+      "file": "typescript-noemit",
+      "args": [],
+      "expected": "pass",
+      "suite": "typecheck",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 73366,
+      "error": null,
+      "log": "00-typescript-noemit.log"
+    },
+    {
+      "file": "scripts/test-idiomas-2410.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 959,
+      "error": null,
+      "log": "01-test-idiomas-2410.log"
+    },
+    {
+      "file": "scripts/test-language-segmentation-2410.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2752,
+      "error": null,
+      "log": "02-test-language-segmentation-2410.log"
+    },
+    {
+      "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 8234,
+      "error": null,
+      "log": "03-test-ads-formatos-escolha-2410.log"
+    },
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 32674,
+      "error": null,
+      "log": "04-test-idiomas-formatos-undo-2410.log"
+    },
+    {
+      "file": "scripts/test-ads-escolha-publico-2410.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 31579,
+      "error": null,
+      "log": "05-test-ads-escolha-publico-2410.log"
+    },
+    {
+      "file": "scripts/test-ads-escolha-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 47921,
+      "error": null,
+      "log": "06-test-ads-escolha-2310.log"
+    },
+    {
+      "file": "scripts/test-ads-render-fix-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 342,
+      "error": null,
+      "log": "07-test-ads-render-fix-2310.log"
+    },
+    {
+      "file": "scripts/test-trafego-pages-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1933,
+      "error": null,
+      "log": "08-test-trafego-pages-2310.log"
+    },
+    {
+      "file": "scripts/test-trafego-index-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 4417,
+      "error": null,
+      "log": "09-test-trafego-index-2310.log"
+    },
+    {
+      "file": "scripts/test-trafego-health-2310.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 3680,
+      "error": null,
+      "log": "10-test-trafego-health-2310-mutants.log"
+    },
+    {
+      "file": "scripts/test-trafego-undo-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 6716,
+      "error": null,
+      "log": "11-test-trafego-undo-2310.log"
+    },
+    {
+      "file": "scripts/test-admin-leve-2310.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 12530,
+      "error": null,
+      "log": "12-test-admin-leve-2310-mutants.log"
+    },
+    {
+      "file": "scripts/test-admin-leve-undo-2310.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1095,
+      "error": null,
+      "log": "13-test-admin-leve-undo-2310.log"
+    },
+    {
+      "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+      "args": [
+        "--mutants"
+      ],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 11861,
+      "error": null,
+      "log": "14-test-roteiro-curto-sem-falha-2210-mutants.log"
+    },
+    {
+      "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 5189,
+      "error": null,
+      "log": "15-test-roteiro-curto-undo-2210.log"
+    },
+    {
+      "file": "scripts/test-admin-truncamento-2026-10.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 790,
+      "error": null,
+      "log": "16-test-admin-truncamento-2026-10.log"
+    },
+    {
+      "file": "scripts/test-afiliados-acordam.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 1,
+      "ok": false,
+      "elapsedMs": 368,
+      "error": null,
+      "log": "17-test-afiliados-acordam.log"
+    },
+    {
+      "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 521,
+      "error": null,
+      "log": "18-test-coerencia-kineo1-2026-09-16.log"
+    },
+    {
+      "file": "scripts/test-juiz-still-2026-10-06.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 1,
+      "ok": false,
+      "elapsedMs": 89,
+      "error": null,
+      "log": "19-test-juiz-still-2026-10-06.log"
+    },
+    {
+      "file": "scripts/test-carta-da-recusa.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 752,
+      "error": null,
+      "log": "20-test-carta-da-recusa.log"
+    },
+    {
+      "file": "scripts/test-momentum-topic.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 610,
+      "error": null,
+      "log": "21-test-momentum-topic.log"
+    },
+    {
+      "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 553,
+      "error": null,
+      "log": "22-test-stalled-frescor-2026-09-05.log"
+    },
+    {
+      "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 593,
+      "error": null,
+      "log": "23-test-hot-nudge-janela-campanhas.log"
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 399,
+      "error": null,
+      "log": "24-test-gpt-v31-facts-2026-09-24.log"
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "reject",
+      "suite": "critical",
+      "exit": 1,
+      "ok": true,
+      "elapsedMs": 266,
+      "error": null,
+      "log": "25-test-gpt-v31-facts-2026-09-24-mutant.log"
+    },
+    {
+      "file": "scripts/test-sharing-safety.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 501,
+      "error": null,
+      "log": "26-test-sharing-safety.log"
+    },
+    {
+      "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 391,
+      "error": null,
+      "log": "27-test-paid-video-citation-guidance-2026-09-28.log"
+    },
+    {
+      "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1295,
+      "error": null,
+      "log": "28-test-seedance-hero-plans-2026-09-28.log"
+    },
+    {
+      "file": "scripts/test-motores-geo-2026-10-06.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 61239,
+      "error": null,
+      "log": "29-test-motores-geo-2026-10-06.log"
+    },
+    {
+      "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2262,
+      "error": null,
+      "log": "30-test-ads-aeo-2026-09-24.log"
+    },
+    {
+      "file": "scripts/test-five-improvements.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2000,
+      "error": null,
+      "log": "31-test-five-improvements.log"
+    },
+    {
+      "file": "scripts/test-studio-entry-transition.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 667,
+      "error": null,
+      "log": "32-test-studio-entry-transition.log"
+    },
+    {
+      "file": "scripts/test-locale-readiness.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 1,
+      "ok": false,
+      "elapsedMs": 335,
+      "error": null,
+      "log": "33-test-locale-readiness.log"
+    },
+    {
+      "file": "scripts/test-app-blue-layout.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2789,
+      "error": null,
+      "log": "34-test-app-blue-layout.log"
+    },
+    {
+      "file": "scripts/test-home-curation.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 423,
+      "error": null,
+      "log": "35-test-home-curation.log"
+    },
+    {
+      "file": "scripts/test-home-blue-layout.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 4409,
+      "error": null,
+      "log": "36-test-home-blue-layout.log"
+    },
+    {
+      "file": "scripts/test-home-referral-bridge.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 322,
+      "error": null,
+      "log": "37-test-home-referral-bridge.log"
+    },
+    {
+      "file": "scripts/test-home-pricing-checkout.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 85,
+      "error": null,
+      "log": "38-test-home-pricing-checkout.log"
+    },
+    {
+      "file": "scripts/test-showcase-premium.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 760,
+      "error": null,
+      "log": "39-test-showcase-premium.log"
+    },
+    {
+      "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 649,
+      "error": null,
+      "log": "40-test-cinematic-timeline-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1361,
+      "error": null,
+      "log": "41-test-cinematic-speech-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-music-direction-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1598,
+      "error": null,
+      "log": "42-test-music-direction-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-visual-contract-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2020,
+      "error": null,
+      "log": "43-test-visual-contract-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 2529,
+      "error": null,
+      "log": "44-test-quality-rejection-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 930,
+      "error": null,
+      "log": "45-test-quality-route-integration-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1174,
+      "error": null,
+      "log": "46-test-quality-failure-ui-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 1216,
+      "error": null,
+      "log": "47-test-active-quality-rejection-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 832,
+      "error": null,
+      "log": "48-test-cinematic-terminal-proof-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 402,
+      "error": null,
+      "log": "49-test-cinematic-poll-diagnostic-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 3780,
+      "error": null,
+      "log": "50-test-scene-retry-mutex-2026-09-11.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 192,
+      "error": null,
+      "log": "51-test-gpt-5h-a-2026-09-24.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "reject",
+      "suite": "critical",
+      "exit": 1,
+      "ok": true,
+      "elapsedMs": 145,
+      "error": null,
+      "log": "52-test-gpt-5h-a-2026-09-24-mutant.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 181,
+      "error": null,
+      "log": "53-test-gpt-5h-b-2026-09-24.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "reject",
+      "suite": "critical",
+      "exit": 1,
+      "ok": true,
+      "elapsedMs": 178,
+      "error": null,
+      "log": "54-test-gpt-5h-b-2026-09-24-mutant.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 279,
+      "error": null,
+      "log": "55-test-gpt-5h-c-2026-09-24.log"
+    },
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "reject",
+      "suite": "critical",
+      "exit": 1,
+      "ok": true,
+      "elapsedMs": 280,
+      "error": null,
+      "log": "56-test-gpt-5h-c-2026-09-24-mutant.log"
+    },
+    {
+      "file": "scripts/test-kit-bf-1910.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 9770,
+      "error": null,
+      "log": "57-test-kit-bf-1910.log"
+    },
+    {
+      "file": "scripts/test-kit-bf-venda-2010.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 15400,
+      "error": null,
+      "log": "58-test-kit-bf-venda-2010.log"
+    },
+    {
+      "file": "scripts/test-kids-venda-2010.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 44238,
+      "error": null,
+      "log": "59-test-kids-venda-2010.log"
+    },
+    {
+      "file": "scripts/test-stripe-async-checkout.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 135,
+      "error": null,
+      "log": "60-test-stripe-async-checkout.log"
+    },
+    {
+      "file": "scripts/test-stripe-checkout-failure-truth.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 116,
+      "error": null,
+      "log": "61-test-stripe-checkout-failure-truth.log"
+    },
+    {
+      "file": "scripts/test-verified-checkout-purchase.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 430,
+      "error": null,
+      "log": "62-test-verified-checkout-purchase.log"
+    },
+    {
+      "file": "scripts/test-checkout-success-entitlement.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 273,
+      "error": null,
+      "log": "63-test-checkout-success-entitlement.log"
+    },
+    {
+      "file": "scripts/test-checkout-currency-truth.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 1,
+      "ok": false,
+      "elapsedMs": 329,
+      "error": null,
+      "log": "64-test-checkout-currency-truth.log"
+    },
+    {
+      "file": "scripts/test-checkout-clareza-1610.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 5145,
+      "error": null,
+      "log": "65-test-checkout-clareza-1610.log"
+    },
+    {
+      "file": "scripts/test-checkout-honesto-2026-10-07.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 5600,
+      "error": null,
+      "log": "66-test-checkout-honesto-2026-10-07.log"
+    },
+    {
+      "file": "scripts/test-low-balance-pricing-bridge.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 255,
+      "error": null,
+      "log": "67-test-low-balance-pricing-bridge.log"
+    },
+    {
+      "file": "scripts/test-pricing-plan-choice-attribution.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 260,
+      "error": null,
+      "log": "68-test-pricing-plan-choice-attribution.log"
+    },
+    {
+      "file": "scripts/test-pricing-diz-a-verdade-2026-09-27.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 85,
+      "error": null,
+      "log": "69-test-pricing-diz-a-verdade-2026-09-27.log"
+    },
+    {
+      "file": "scripts/test-afiliados-acordam.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical_retry_dependency",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 483,
+      "log": "retry-test-afiliados-acordam.log"
+    },
+    {
+      "file": "scripts/test-juiz-still-2026-10-06.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "critical_retry_dependency",
+      "exit": 0,
+      "ok": true,
+      "elapsedMs": 10321,
+      "log": "retry-test-juiz-still-2026-10-06.log"
+    },
+    {
+      "file": "scripts/test-inline-pricing-decision-funnel.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent_additional_live_paywall",
+      "exit": 0,
+      "ok": true,
+      "log": "extra-inline-pricing-decision-funnel.log",
+      "date": "2026-10-24"
+    }
+  ]
+}

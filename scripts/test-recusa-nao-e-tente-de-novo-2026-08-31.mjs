@@ -4,11 +4,15 @@
 // Licao do sceneTruth: nao basta a peca existir, tem que estar LIGADA nas duas
 // pontas. Os blocos C e D leem os arquivos que CHAMAM.
 import { readFileSync } from 'node:fs'
-import { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage } from '../lib/analyzeLimits.ts'
+import ts from 'typescript'
 
 let ok = 0, fail = 0
 const t = (nome, cond) => { if (cond) { ok++ } else { fail++; console.error('  ✗ ' + nome) } }
 const R = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8')
+// Execute the real pure TypeScript contract, including the approved mode-aware limits.
+const limitSource = R('lib/analyzeLimits.ts'), limits = {}
+new Function('exports', ts.transpileModule(limitSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(limits)
+const { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage, analyzePromptMaxChars } = limits
 
 // ── A. a fonte unica ────────────────────────────────────────────────────────
 t('A1 teto e 5000', ANALYZE_PROMPT_MAX_CHARS === 5000)
@@ -16,19 +20,23 @@ t('A2 teto e inteiro positivo', Number.isInteger(ANALYZE_PROMPT_MAX_CHARS) && AN
 t('A3 frase cita o numero', analyzePromptTooLongMessage().includes('5,000'))
 t('A4 frase e em ingles (cliente)', /Prompt is too long/.test(analyzePromptTooLongMessage()))
 t('A5 frase termina com ponto', analyzePromptTooLongMessage().trim().endsWith('.'))
+for (const [mode, expected] of [['verbatim', 5000], ['ai', 20000], ['clip', 6000], [undefined, 20000]]) {
+  t(`A6 ${mode ?? 'default'} usa o teto aprovado do modo`, analyzePromptMaxChars(mode) === expected)
+  t(`A7 ${mode ?? 'default'} mostra o mesmo teto que cobra`, analyzePromptTooLongMessage(analyzePromptMaxChars(mode)).includes(expected.toLocaleString('en-US')))
+}
 
 // ── B. servidor: le a fonte unica, nao um numero solto ──────────────────────
 const route = R('app/api/analyze-idea/route.ts')
 t('B1 route importa a fonte unica', /from '@\/lib\/analyzeLimits'/.test(route))
-t('B2 route compara contra a constante', /prompt\.length > ANALYZE_PROMPT_MAX_CHARS/.test(route))
-t('B3 route usa a frase da fonte unica', /analyzePromptTooLongMessage\(\)/.test(route))
+t('B2 route compara contra o teto canonico do modo', route.includes('const promptMaxChars = analyzePromptMaxChars(body.scriptMode)') && /prompt\.length > promptMaxChars/.test(route))
+t('B3 route usa a frase da fonte unica com o mesmo teto cobrado', /analyzePromptTooLongMessage\(promptMaxChars\)/.test(route))
 t('B4 nenhum 5000 solto sobrou no teste de comprimento', !/prompt\.length > 5000/.test(route))
-t('B5 continua 400 (recusa de entrada, nao falha nossa)', /analyzePromptTooLongMessage\(\)\s*\},\s*\{\s*status:\s*400/.test(route.replace(/\s+/g, ' ')) || /status: 400/.test(route))
+t('B5 continua 400 (recusa de entrada, nao falha nossa)', /if \(prompt\.length > promptMaxChars\) \{\s*return await recusarAnalise\(\s*400,\s*\{ error: analyzePromptTooLongMessage\(promptMaxChars\) \}/.test(route))
 
 // ── C. cliente: o guarda existe e roda ANTES do fetch ──────────────────────
 const cli = R('app/(dashboard)/generate/GenerateClient.tsx')
-t('C1 cliente importa a fonte unica', /import \{ ANALYZE_PROMPT_MAX_CHARS \} from '@\/lib\/analyzeLimits'/.test(cli))
-t('C2 textarea usa a constante', /maxLength=\{ANALYZE_PROMPT_MAX_CHARS\}/.test(cli))
+t('C1 cliente importa a fonte unica por modo', /import \{ analyzePromptMaxChars \} from '@\/lib\/analyzeLimits'/.test(cli))
+t('C2 textarea usa o mesmo teto canonico do modo', /maxLength=\{analyzePromptMaxChars\(scriptMode\)\}/.test(cli) && cli.includes('const promptMaxAqui = analyzePromptMaxChars(scriptMode)') && cli.includes('if (sourceLen > promptMaxAqui)'))
 t('C3 nenhum maxLength=5000 sobrou', !/maxLength=\{5000\}/.test(cli))
 const iGuardaVazio = cli.indexOf("analyze_prompt_empty")
 const iGuardaLongo = cli.indexOf("analyze_prompt_too_long")
@@ -39,7 +47,7 @@ t('C6 guarda de vazio vem ANTES do corpo do fetch', iGuardaVazio > 0 && iGuardaV
 t('C7 guarda de comprimento vem ANTES do corpo do fetch', iGuardaLongo > 0 && iGuardaLongo < iBody)
 t('C8 guarda devolve a tela ao estado utilizavel', /setPhase\('idle'\)\s*\n\s*return/.test(cli.slice(iGuardaVazio, iGuardaVazio + 900)))
 t('C9 a mensagem de comprimento diz o numero da pessoa', /Your text is \$\{sourceLen/.test(cli))
-t('C10 a mensagem de comprimento diz quanto cortar', /over the \$\{ANALYZE_PROMPT_MAX_CHARS/.test(cli))
+t('C10 a mensagem de comprimento diz quanto cortar para o teto deste modo', /over the \$\{promptMaxAqui/.test(cli) && cli.includes('const excedente = sourceLen - promptMaxAqui'))
 t('C11 a mensagem de vazio nao manda "try again"', !/Type an idea first[^']*try again/i.test(cli))
 
 // ── D. cliente: 4xx mostra a frase do servidor; 5xx nao ────────────────────
@@ -61,7 +69,8 @@ t('E2 nenhuma crase nos comentarios novos do cliente', comentariosNovos.every((l
 t('E3 lib nova sem crase em comentario', R('lib/analyzeLimits.ts').split('\n').filter((l) => l.trim().startsWith('//')).every((l) => !l.includes('`')))
 
 // ── F. fronteira: nao encostei na pista do Codex ───────────────────────────
-t('F1 nao toquei em preco/credito/trial nesta lib', !/price|credit|trial|plan/i.test(R('lib/analyzeLimits.ts')))
+const executableLimits = ts.createPrinter({ removeComments: true }).printFile(ts.createSourceFile('analyzeLimits.ts', limitSource, ts.ScriptTarget.Latest, true))
+t('F1 a API executavel desta lib nao mexe em preco/credito/trial/plano', !/price|credit|trial|plan/i.test(executableLimits))
 
 console.log(`\n${ok} ok · ${fail} falhas`)
 process.exit(fail ? 1 : 0)

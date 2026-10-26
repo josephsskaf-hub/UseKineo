@@ -17,6 +17,7 @@ import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRend
 import { synthesizeTtsFallback } from '@/lib/ttsFallback'
 import type { AjusteState, CenaAjusteLive } from './ajusteMedia' // KINEO-ADS-CENA-RETOMADA-2110
 import { addAjusteQuality } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
+import { isEscolhaSamplePlan } from './escolhaSamplePolicy'
 export const cenaJson: CenaJson = async c => {
   const measured = c as typeof c & { maxOutputTokens?: number; onUsage?: (u: { prompt_tokens?: number; completion_tokens?: number }) => void }
   const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: measured.maxOutputTokens ?? 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
@@ -31,7 +32,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   const state = cenaOf(order.plan)
   if (!state || order.status !== 'generating') return
   const auth = await admin.auth.admin.getUserById(order.user_id)
-  if (auth.error || !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
+  if (auth.error || !isEscolhaSamplePlan(state.plan) && !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
   if (!state.plan.escolha && !isAdsInternalEmail(auth.data.user?.email)) { await failCenaOrder(admin, order, 'cena_internal_only'); return } // KINEO-ADS-ESCOLHA-PUBLICO-2410
   if (state.plan.voice_mode) {
     try { cenaAssertVoiceRoute(state.route, state.plan.voice_mode, state.plan.input.language) }
@@ -58,10 +59,27 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     if (r.error || !r.data) throw new Error('cena_lease_lost')
   }
   try {
+    // KINEO-AMOSTRA-ANUNCIO-2410 — a contender can acquire a released NULL lease with an old snapshot.
+    // Read the winner's durable state under our lease before TTS, video or montage; never overwrite it with stale intents.
+    if (isEscolhaSamplePlan(state.plan)) {
+      const fresh = await admin.from('ads_v2_orders').select('plan').eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).maybeSingle()
+      const latest = !fresh.error && fresh.data ? cenaOf(fresh.data.plan) : null
+      if (!latest || !isEscolhaSamplePlan(latest.plan)) return
+      for (const key of Object.keys(state)) delete (state as unknown as Record<string, unknown>)[key]
+      Object.assign(state, latest)
+      order.plan = fresh.data!.plan
+    }
     const advanceEscolhaMedia = async () => { // KINEO-ADS-ESCOLHA-2310 — injected effects share the existing winner lease and save, never a second billing path.
       const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
       return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
-        synthesize: async text => { const audio = await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id, language: state.plan.input.language }); return { audio, seconds: estimateMp3DurationSeconds(audio) } }, // KINEO-ADS-ESCOLHA-2310
+        synthesize: async text => { // KINEO-APRESENTADORES-2410 — new candidates use an explicit age/gender voice; the six existing choices retain their call.
+          const { presenterCandidateById2410 } = await import('../presenterCandidates2410') // KINEO-APRESENTADORES-2410
+          const candidate = presenterCandidateById2410(state.plan.escolha?.presenterId) // KINEO-APRESENTADORES-2410
+          const audio = candidate // KINEO-APRESENTADORES-2410
+            ? await (await import('@/lib/avatar/voice')).synthesizeWithVoice({ text, ...(await import('../presenterVoice2410')).presenterCandidateVoice2410(candidate, state.plan.input.language) }) // KINEO-APRESENTADORES-2410 — failure propagates; never substitute a default/female voice.
+            : await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id, language: state.plan.input.language }) // KINEO-APRESENTADORES-2410
+          return { audio, seconds: estimateMp3DurationSeconds(audio) } // KINEO-APRESENTADORES-2410
+        }, // KINEO-APRESENTADORES-2410
         upload: audio => uploadVoiceoverToSupabase(order.user_id, audio), // KINEO-ADS-ESCOLHA-2310
         submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-ESCOLHA-2310
         pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-ESCOLHA-2310

@@ -88,6 +88,7 @@ import { BULK_PACK_REPLACEMENT_PATH, BULK_PACK_UNAVAILABLE_MESSAGE, BULK_PACK_UN
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)
 import { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010
+import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' // KINEO-COMPRA-AVULSA-2410
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
@@ -1954,6 +1955,7 @@ async function buildAndRedirect(
       },
     },
     success_url: buildSubscriptionCheckoutSuccessUrl({
+      adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
       appUrl,
       tier,
       currency: chargeCurrency,
@@ -2438,6 +2440,7 @@ async function buildAndRedirect(
     // conversion value. It must report the actual discounted first charge,
     // never the undiscounted list price.
     sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+      adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
       appUrl,
       tier,
       currency: chargeCurrency,
@@ -2652,7 +2655,8 @@ async function buildAndRedirect(
       sessionParams.subscription_data!.metadata!.public_promo_first_charge_minor = String(autoResolution.firstChargeMinor)
       // A volta do pagamento reporta o que a Stripe cobrou hoje (o 1º mês com 20%), como no pedido explícito.
       sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
-        appUrl,
+        adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
+      appUrl,
         tier,
         currency: chargeCurrency,
         amount: autoResolution.firstChargeMinor,
@@ -4349,6 +4353,7 @@ export async function GET(req: NextRequest) {
 
     // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter
     const packParam = req.nextUrl.searchParams.get('pack')
+    if (packParam?.startsWith('one_time_')) return await buildOneTimeItemAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-COMPRA-AVULSA-2410 — unknown single-item SKUs fail closed before legacy fallbacks.
     if (packParam) {
       // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar packs are gone. Avatar
       // videos now use universal credits, so avatar_credits packs are unsellable.

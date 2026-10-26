@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-scene-retry-mutex-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 7455
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+scene-retry-mutex: 258 passed; actual POST/Fal queue/HMAC/active/compose-lock callers; synthetic DB only

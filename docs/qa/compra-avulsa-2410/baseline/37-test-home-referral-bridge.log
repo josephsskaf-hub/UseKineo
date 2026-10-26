@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-home-referral-bridge.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 322
+PASS — 69/69 referral home bridge checks

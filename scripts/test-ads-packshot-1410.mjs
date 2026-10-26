@@ -15,6 +15,7 @@
 //   P9  linhas marcadas do núcleo: exatamente as esperadas, nenhuma de crédito/débito/preço;
 //   P10 dica da cena nas 16 línguas diz que a foto real aparece no anúncio e no cartão, sem prometer "exatamente igual";
 //   M   mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
+import { semAmostraAnuncio2410 } from './test-support/desfaz-amostra-anuncio-2410.mjs' // KINEO-AMOSTRA-ANUNCIO-2410 — restaura somente a fonte exata no contrato histórico de preço; execução e mutantes atuais permanecem.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -84,7 +85,7 @@ const p2 = (listsSrc) => {
     const cost = (shots) => T.estimateAdUsd({ tier, shots: shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds })
     const dur = (shots) => Math.round(shots.reduce((a, s) => a + s.cutSeconds, 0) * 1000)
     return dur(out) === dur(plan.shots) && r4(cost(plan.shots).videoUsd - cost(out).videoUsd) === r4(kling) && cost(out).totalUsd < cost(plan.shots).totalUsd
-  })) && /const credits = adsV2Credits\(order\.tier, order\.seconds\)/.test(SRC.core) && /const cost = adsV2Credits\(order\.tier, order\.seconds\)/.test(rd('lib/ads/v2StartCore.ts')) &&
+  })) && /const credits = adsV2Credits\(order\.tier, order\.seconds\)/.test(SRC.core) && /const cost = adsV2Credits\(order\.tier, order\.seconds\)/.test(semAmostraAnuncio2410(rd('lib/ads/v2StartCore.ts'), 'lib/ads/v2StartCore.ts')) &&
     // a tabela de créditos por nível × duração (o que a pessoa paga) é a de sempre
     JSON.stringify(TIERS.map((t) => SECS.map((s) => T.adsV2Credits(t, s)))) === JSON.stringify(TIERS.map((t) => SECS.map((s) => Math.ceil(T.ADS_V2_TIERS[t].credits15 * s / 15))))
 }

@@ -1,3 +1,4 @@
+import { semApresentadores2410 } from './test-support/desfaz-apresentadores-2410.mjs' // KINEO-LEVA-2410 — exact newer layer before the unchanged historical chain assertion.
 // KINEO-MENU-UGC-2010 — guardião do item "AI UGC Ads" no menu do topo do site (fundador 20/10: "o 2 no menu no topo, sim").
 //
 // O QUE ELE PROVA (lendo os arquivos reais, EXECUTANDO a lib pura num vm e comparando com a base no git):
@@ -237,7 +238,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
   ok(novosOk, `D2 os ${MENU_UGC_2010_NOVOS.length} arquivos novos existem e não existiam na base`)
   const trocasOk = Object.entries(TROCAS_MENU_UGC_2010).every(([f, ts]) => MENU_UGC_2010_ARQUIVOS.includes(f) && ts.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(trocasOk && Object.values(ACRESCIMOS_MENU_UGC_2010).every((n) => Number.isInteger(n) && n >= 0), 'D3 trocas: linha nova com a marca, linha da base sem; contagens inteiras')
-  const DESFAZ_UGC = rd('scripts/test-support/desfaz-ugc-ajustes-2010.mjs')
+  const DESFAZ_UGC = semApresentadores2410(rd('scripts/test-support/desfaz-ugc-ajustes-2010.mjs'), 'scripts/test-support/desfaz-ugc-ajustes-2010.mjs')
   const cadeia = /export function semUgcAjustes2010\(texto, p\) \{\n  texto = semMenuUgc2010\(texto, p\)/.test(DESFAZ_UGC)
   const igual = MENU_UGC_2010_ARQUIVOS.every((f) => {
     const raw = fs.readFileSync(path.join(ROOT, f), 'utf8'), semEste = semMenuUgc2010(raw, f)
@@ -293,7 +294,7 @@ mut('M15 componente sem medição (data-nav-item some)', rd(F.comp), ' data-nav-
   ok(dictProblems(e).length > 0, 'M17 rótulo em inglês cru no PT → vermelho')
 }
 {
-  const DESFAZ_UGC = rd('scripts/test-support/desfaz-ugc-ajustes-2010.mjs')
+  const DESFAZ_UGC = semApresentadores2410(rd('scripts/test-support/desfaz-ugc-ajustes-2010.mjs'), 'scripts/test-support/desfaz-ugc-ajustes-2010.mjs')
   const de = '  texto = semMenuUgc2010(texto, p)'
   const quebrado = DESFAZ_UGC.replace(de, '  // (sem a camada do menu)')
   ok(DESFAZ_UGC.includes(de) && quebrado !== DESFAZ_UGC && !/export function semUgcAjustes2010\(texto, p\) \{\n  texto = semMenuUgc2010\(texto, p\)/.test(quebrado), 'M18 cabeça da cadeia sem chamar esta camada → D4 vermelho')

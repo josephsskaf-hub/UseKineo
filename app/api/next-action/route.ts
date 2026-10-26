@@ -67,6 +67,7 @@ import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
 // contrato já serve para medir: `next_action_served` passa a dar denominador
 // ao degrau que hoje é 21 → 1.
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 
 /** Espelho do predicado do cobrador (`/api/generate-video-cinematic`, L1476).

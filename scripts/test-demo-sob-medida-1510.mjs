@@ -30,6 +30,7 @@ import { semDemoSobMedida1510, ARQUIVOS_DEMO_SOB_MEDIDA_1510, MARCA_DEMO_SOB_MED
 // KINEO-ADMIN-JORNADA-1510 — a aba Clientes (camada mais nova) mexeu no menu do admin: desfeita por DENTRO antes do byte a byte do D10.
 import { semAdminJornada1510 } from './test-support/desfaz-admin-jornada-1510.mjs'
 import { semPacote3Filmes1610 } from './test-support/desfaz-pacote-3-filmes-1610.mjs' // KINEO-PACOTE-3-FILMES-1610 — o menu do admin ganhou "Pedidos 3 filmes" depois: sai PRIMEIRO
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -71,6 +72,12 @@ const V1 = '55555555-5555-4555-8555-555555555555'
 const SB = 'https://x.supabase.co/storage/v1/object/public'
 const SECRET = 'segredo-de-teste-da-demo'
 const NOW = new Date('2026-10-15T15:00:00Z') // quinta, 12:00 em Brasília
+// Product readers use the same date as this dated fixture; otherwise a later
+// calendar week hides the delivered demo from the real weekly admin listing.
+class FixtureDate extends Date {
+  constructor(...args) { super(...(args.length ? args : [NOW.getTime()])) }
+  static now() { return NOW.getTime() }
+}
 const clipUrl = (i) => `${SB}/renders/${HOUSE}/adsv2-${ORDER}-shot-${i}.mp4`
 const CARD = `${SB}/user-footage/${HOUSE}/card.png`
 const VOICE = `${SB}/voiceovers/${HOUSE}/v.mp3`
@@ -215,7 +222,7 @@ function mundo(opts = {}) {
   }
   return { db, calls, admin, mocks }
 }
-const carregar = (w, over = {}) => createOfflineLoader({ mocks: w.mocks, env: { SUPABASE_SERVICE_ROLE_KEY: SECRET, NEXT_PUBLIC_SUPABASE_URL: 'https://x.supabase.co', CRON_SECRET: 'cron' }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
+const carregar = (w, over = {}) => createOfflineLoader({ mocks: w.mocks, globals: { Date: FixtureDate }, env: { SUPABASE_SERVICE_ROLE_KEY: SECRET, NEXT_PUBLIC_SUPABASE_URL: 'https://x.supabase.co', CRON_SECRET: 'cron' }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
 const req = (body, q = '', headers = {}) => ({ json: async () => body, nextUrl: new URL(`https://usekineo.test/api/admin/demo${q}`), headers: { get: (k) => headers[k.toLowerCase()] ?? null } })
 const BODY = { link: 'https://lume.test/p/1?utm_source=mail&email=ana@lume.test', brand: 'Lume Parfums', voice: 'de', scene: 'on a marble shelf in morning light' }
 const evs = (w, n) => w.calls.events.filter((e) => e.name === n)
@@ -344,10 +351,13 @@ async function provas(over = {}) {
   })
   await p('D10 o desfaz devolve o PAI byte a byte em cada arquivo que já existia (vista da aprovação, tela da aprovação, vista pública, cron, menu do admin); estrito: trecho alterado = lança; lib/ads/v2PostDeliveryServer.ts INTOCADO', () => {
     const porArquivo = { [F.view]: 'view', [F.posPure]: 'posPure', [F.approveClient]: 'approveClient', [F.cron]: 'cron' }
+    // Only this historical byte proof removes newer chained layers. D1–D9 and
+    // every mutation above still execute the actual integrated product sources.
+    const historical = (f, text) => semCloseReal1910(text, f)
     const lanca = (fn) => { try { fn(); return false } catch { return true } }
-    return PAI !== null && ARQUIVOS_DEMO_SOB_MEDIDA_1510.length === 5 && ARQUIVOS_DEMO_SOB_MEDIDA_1510.every((f) => { const vivo = porArquivo[f] ? fonte(porArquivo[f]) : semAdminJornada1510(f, semPacote3Filmes1610(f, rd(f))); const pai = rdPai(f); return pai !== null && vivo.includes(MARCA_DEMO_SOB_MEDIDA_1510) && lf(semDemoSobMedida1510(f, vivo)) === pai && !pai.includes(MARCA_DEMO_SOB_MEDIDA_1510) }) &&
-      lanca(() => semDemoSobMedida1510(F.view, fonte('view').replace('await openApproval(admin, body?.token, secret))', 'await openApproval(admin, body?.token, secret ))'))) &&
-      (fonte('posServer') === rdPai(F.posServer)) // o núcleo da aprovação (dinheiro/pós-entrega) ficou byte a byte o do pai
+    return PAI !== null && ARQUIVOS_DEMO_SOB_MEDIDA_1510.length === 5 && ARQUIVOS_DEMO_SOB_MEDIDA_1510.every((f) => { const vivo = porArquivo[f] ? historical(f, fonte(porArquivo[f])) : semAdminJornada1510(f, semPacote3Filmes1610(f, historical(f, rd(f)))); const pai = rdPai(f); return pai !== null && vivo.includes(MARCA_DEMO_SOB_MEDIDA_1510) && lf(semDemoSobMedida1510(f, vivo)) === pai && !pai.includes(MARCA_DEMO_SOB_MEDIDA_1510) }) &&
+      lanca(() => semDemoSobMedida1510(F.view, historical(F.view, fonte('view')).replace('await openApproval(admin, body?.token, secret))', 'await openApproval(admin, body?.token, secret ))'))) &&
+      (historical(F.posServer, fonte('posServer')) === rdPai(F.posServer)) // o núcleo da aprovação (dinheiro/pós-entrega) ficou byte a byte o do pai
   })
   return out
 }

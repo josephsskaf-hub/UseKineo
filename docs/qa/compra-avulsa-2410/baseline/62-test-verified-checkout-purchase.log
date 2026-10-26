@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-verified-checkout-purchase.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 430
+Verified checkout purchase: 108/108 assertions passed (offline, zero external calls).

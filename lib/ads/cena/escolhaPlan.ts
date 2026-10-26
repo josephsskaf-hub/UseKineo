@@ -1,3 +1,5 @@
+import { presenterCandidateById2410 } from '../presenterCandidates2410' // KINEO-APRESENTADORES-2410
+import { presenterCandidateVoice2410 } from '../presenterVoice2410' // KINEO-APRESENTADORES-2410
 // KINEO-ADS-ESCOLHA-2310 — pure planning for one customer-approved actor, scenario and still.
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the skincare still is the CLOSED starting state, before the timed opening/application.
 import { classifyCena, cenaHttps, cenaVoiceModeOf, type CenaInput, type CenaJson, type CenaPlan, type CenaScript } from './plan'
@@ -12,14 +14,16 @@ import { escolhaFormat, escolhaStory, escolhaShotPrompts } from './escolhaShots'
 import { narrationWordCount, narrationTokens, narrationSentences, joinNarrationTokens } from '@/lib/textLanguage'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import type { EscolhaCaptionGrounding } from './escolhaCaptionLayout'
+import { ADS_ESCOLHA_SAMPLE_MARK, ADS_ESCOLHA_SAMPLE_WORDS, isEscolhaSamplePlan, escolhaSeconds } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
 
 export interface CenaEscolhaSelection {
   marker: 'KINEO-ADS-ESCOLHA-2310'; presenterId: string; scenarioId: string; category: CenaCategory;
   actorUrl: string; wardrobe: string; captionLane: 'top' | 'bottom'; shotPrompts: [string, string, string];
   captionGrounding?: EscolhaCaptionGrounding;
+  sample?: typeof ADS_ESCOLHA_SAMPLE_MARK; // KINEO-AMOSTRA-ANUNCIO-2410 — assigned only by server admission, never trusted from request JSON.
 }
 export type CenaEscolhaPlan = CenaPlan & { escolha: CenaEscolhaSelection }
-export interface CenaEscolhaRequestSelection { presenter_id: string; scenario_id: string; category?: unknown }
+export interface CenaEscolhaRequestSelection { presenter_id: string; scenario_id: string; category?: unknown; sample?: boolean } // KINEO-AMOSTRA-ANUNCIO-2410 — internal server call contract.
 const clean = (v: unknown): string => typeof v === 'string' ? v.replace(/\s+/gu, ' ').trim() : ''
 const fold = (s: string): string => clean(s).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 const words = (s: string, language?: string): number => narrationWordCount(clean(s), language)
@@ -96,6 +100,7 @@ export function fitCenaEscolhaScript(raw: unknown, input: CenaInput, product: st
   return script
 }
 function prompts(plan: CenaEscolhaPlan): void {
+  const sample = isEscolhaSamplePlan(plan), end = escolhaSeconds(plan), edges = sample ? [0, 3, 6, 8] : [0, 5, 10, 15] // KINEO-AMOSTRA-ANUNCIO-2410
   const selected = escolhaScenario(plan.escolha.scenarioId)!
   const mode = cenaVoiceModeOf(plan), formatId = plan.input.formato ?? 'product', story = escolhaStory(plan.category, formatId)
   const skin = plan.category === 'skincare' && (formatId === 'product' || formatId === 'ugc'), wornShoes = plan.category === 'footwear' && (formatId === 'product' || formatId === 'ugc')
@@ -107,7 +112,7 @@ function prompts(plan: CenaEscolhaPlan): void {
   const format = formatId === 'product_in_hand' ? 'PRODUCT IN HAND: the selected person presents the real product to camera, turns front to side, then holds it in a moving close-up. Never apply, consume or wear it.' : formatId === 'unboxing' ? 'UNBOXING: open only a plain unbranded outer box with a transparent front, lift out the real product and show its unchanged label. Preserve actual retail packaging; do not invent branded packaging or accessories.' : plan.input.formato === 'ugc' ? 'UGC: the selected creator addresses the camera naturally in the wide and medium takes, with their recognizable face and actual product clearly visible; then show the real product in use in close-up.' : `PRODUCT AD: the actual product is the hero through a clear demonstration by the selected recognizable actor, with a wide full-body establishing take, a medium demonstration and a detailed product-in-use close-up. ${skin ? 'Facial skincare is applied to the selected person own face, never forearm.' : 'Every take uses the same referenced product and the same selected person.'}`
   const placement = wornShoes ? 'In the WIDE full-body take, the real shoes stay naturally on the feet in the bottom80–100% of the frame, below the caption band; never lift or relocate worn shoes to the chest. In the final CLOSE, reframe the whole real shoes and any printed label above56% of the close-up frame.' : 'In wide and medium takes, hold/use the whole real product and its printed label naturally above56% of frame height; in the final CLOSE keep the whole product above56% of that close-up frame.'
   const composition = `COMPOSITION LOCK: vertical9:16, one full-screen view at any moment, never quadrants, collage, split-screen or picture-in-picture. Keep the face in the upper third when visible. ${placement} Reserve a quiet text-safe strip centred at ${lane}% for captions. Product label and face must never enter or be obscured by that strip. Leave62–72% uncluttered for final text. Do not generate any text, logo, badge, price, discount, subtitle or card; the editor adds those once.`
-  const sceneInteraction = formatId === 'product_in_hand' || formatId === 'unboxing' ? story.shots.map(s => s.action).join(' ') : skin ? 'follow the timed sequence: keep the jar CLOSED for nail taps at0–5s, open it only at5–10s, then apply a small amount with their own fingers to their own cheek only at10–15s' : plan.interaction
+  const sceneInteraction = formatId === 'product_in_hand' || formatId === 'unboxing' ? story.shots.map(s => s.action).join(' ') : skin ? `follow the timed sequence: keep the jar CLOSED for nail taps at0–${edges[1]}s, open it only at${edges[1]}–${edges[2]}s, then apply a small amount with their own fingers to their own cheek only at${edges[2]}–${end}s` : plan.interaction // KINEO-AMOSTRA-ANUNCIO-2410
   const common = `${format} ${safety} In ${selected.setting}, ${sceneInteraction}. ${composition}`
   const base = `Use the customer's CHOSEN still as the exact first frame and identity/composition reference. ${common}`
   const silent = 'Closed relaxed lips, no speech, no singing and no lip-sync; only natural ambient sound effects of the scene and the actions, no dialogue and no music; a separate full narration is added in editing.' // KINEO-ADS-RENDER-FIX-2310 — o Kling gera som ambiente (unhas no pote, mar, passos); fala continua proibida
@@ -125,7 +130,8 @@ function prompts(plan: CenaEscolhaPlan): void {
     takes[take] = joinNarrationTokens(units.slice(at, at + count), plan.input.language); at += count
   }
   plan.escolha.shotPrompts = escolhaShotPrompts(plan.category, formatId, mode === 'talking' ? takes as [string, string, string] : undefined, plan.input.language)
-  plan.videoPrompt = `${base} Exactly three sequential full-screen moving takes in the SAME scene: ${story.shots.map((shot, i) => `${i * 5}–${(i + 1) * 5}s ${shot.action}`).join(' ')} Same identity, wardrobe, lighting and product throughout; no quadrants, collage, frozen photograph, packshot or end card. Final overlays13–15s sit above the live close-up. ${voice}`
+  if (sample) plan.escolha.shotPrompts = plan.escolha.shotPrompts.map((p, i) => p.replace(/Absolute\d+–\d+s/u, `Absolute${edges[i]}–${edges[i + 1]}s`).replace('live movement to15s', 'live movement to8s').replace('Lips closed; ambient action sounds only, no speech/music.', 'Lips closed; silent, no speech, sound or music.')) as [string, string, string] // KINEO-AMOSTRA-ANUNCIO-2410
+  plan.videoPrompt = `${base} Exactly three sequential full-screen moving takes in the SAME scene: ${story.shots.map((shot, i) => `${edges[i]}–${edges[i + 1]}s ${shot.action}`).join(' ')} Same identity, wardrobe, lighting and product throughout; no quadrants, collage, frozen photograph, packshot or end card. Final overlays${end - 2}–${end}s sit above the live close-up. ${sample ? 'Silent video: lips closed, no speech, sound or music; narration and music are added separately.' : voice}` // KINEO-AMOSTRA-ANUNCIO-2410
   const parts = [plan.script.hook, plan.script.use, plan.script.benefit, plan.script.cta].filter(Boolean)
   let left = '', right = ''
   for (const part of parts) { if (words(left) < words(plan.script.narration) * .48) left = [left, part].filter(Boolean).join(' '); else right = [right, part].filter(Boolean).join(' ') }
@@ -133,18 +139,24 @@ function prompts(plan: CenaEscolhaPlan): void {
 }
 /** Same pure safety and provider contracts for dry-run, start and runtime; no legacy composition/copy rewrite. */
 export function preflightCenaEscolha(plan: CenaPlan, route: CenaRoute): void {
+  const sample = isEscolhaSamplePlan(plan) // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (route !== 'kling3' || cenaVoiceModeOf(plan) !== 'narrated' || plan.input.voice_mode !== 'narrated')) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
   const choice = escolhaOf(plan), presenter = choice && escolhaPresenter(choice.presenterId), scenario = choice && escolhaScenario(choice.scenarioId)
   if (!escolhaFormat(plan.input.formato ?? 'product')) throw new Error('escolha_invalid_format')
   if (!choice || !presenter || !scenario || !cenaCategory(choice.category) || scenario.category !== choice.category || !cenaHttps(plan.input.foto)) throw new Error('escolha_invalid_selection')
   const actorUrl = presenter.portrait.startsWith('/') ? `https://www.usekineo.com${presenter.portrait}` : presenter.portrait
   if (choice.actorUrl !== actorUrl || plan.input.actorUrl !== actorUrl || plan.continuity?.actorUrl !== actorUrl || choice.captionLane !== scenario.captionLane || plan.category !== choice.category || !choice.wardrobe) throw new Error('escolha_selection_changed')
   cenaAssertVoiceRoute(route, cenaVoiceModeOf(plan), plan.input.language)
-  if (!plan.script?.narration || words(plan.script.narration, plan.input.language) > 30 || [plan.script.hook, plan.script.use, plan.script.benefit, plan.script.cta].filter(Boolean).join(' ') !== plan.script.narration) throw new Error('escolha_spoken_core_exceeds_15s')
+  if (!plan.script?.narration || words(plan.script.narration, plan.input.language) > (sample ? ADS_ESCOLHA_SAMPLE_WORDS : 30) || [plan.script.hook, plan.script.use, plan.script.benefit, plan.script.cta].filter(Boolean).join(' ') !== plan.script.narration) throw new Error(sample ? 'escolha_spoken_core_exceeds_8s' : 'escolha_spoken_core_exceeds_15s') // KINEO-AMOSTRA-ANUNCIO-2410
   if (clean(plan.input.oferta) && escolhaHasOffer(plan.script.narration, plan.input.oferta!)) throw new Error('escolha_offer_must_be_visual_only')
   if (!plan.videoPrompt?.trim() || plan.segmentPrompts?.length !== 2 || !plan.segmentPrompts.every(p => p.trim()) || choice.shotPrompts?.length !== 3 || !choice.shotPrompts.every(p => p.trim())) throw new Error('escolha_prompts_missing')
   escolhaVideoRequests(plan, route, plan.input.foto)
 }
 export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: CenaJson, selection: CenaEscolhaRequestSelection): Promise<CenaPlan> {
+  const sample = selection.sample === true, maxWords = sample ? ADS_ESCOLHA_SAMPLE_WORDS : 30 // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && route !== 'kling3') throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  const candidate2410 = presenterCandidateById2410(selection.presenter_id) // KINEO-APRESENTADORES-2410
+  if (candidate2410) presenterCandidateVoice2410(candidate2410, input.language ?? 'en') // KINEO-APRESENTADORES-2410 — unsupported legacy languages stop before planning or media spending
   const presenter = escolhaPresenter(selection.presenter_id), scenario = escolhaScenario(selection.scenario_id)
   if (!presenter || !scenario || !cenaCategory(scenario.category) || selection.category !== undefined && selection.category !== scenario.category) throw new Error('escolha_invalid_selection')
   const category = scenario.category, actorUrl = presenter.portrait.startsWith('/') ? `https://www.usekineo.com${presenter.portrait}` : presenter.portrait
@@ -153,13 +165,23 @@ export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: 
   try { classified = await classifyCena(input, json) }
   catch { classified = { category, product: clean(input.frase.split(/[;.!?]/u)[0]).slice(0, 160), benefits: [], offer: '' }; addAjusteQuality(quality, { stage: 'classification', code: 'classifier_repaired', message: 'Typed product and selected category retained after an unavailable classifier.' }) }
   if (classified.category !== 'other' && classified.category !== category) throw new Error('escolha_scenario_category_mismatch')
-  input = { ...input, actorUrl, oferta: input.oferta || classified.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classified.benefits])], voice_mode: input.voice_mode ?? 'narrated' }
+  input = { ...input, actorUrl, oferta: input.oferta || classified.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classified.benefits])], voice_mode: sample ? 'narrated' : input.voice_mode ?? 'narrated' } // KINEO-AMOSTRA-ANUNCIO-2410
   const product = classified.product, spoken = speechInput(input, product)
-  const scriptPrompt = `${ajusteScriptPrompt(spoken, product)} NEW SCENE SELECTION: at most30 spoken words in the selected language, completed sentences. The typed offer is a final visual overlay ONLY: never say a discount, price, promotion or offer in the speech. Name the product once. No description of actors or cameras.`
+  const scriptPrompt = `${ajusteScriptPrompt(spoken, product)} NEW SCENE SELECTION: at most${maxWords} spoken words in the selected language, completed sentences. The typed offer is a final visual overlay ONLY: never say a discount, price, promotion or offer in the speech. Name the product once. No description of actors or cameras.` // KINEO-AMOSTRA-ANUNCIO-2410
   const draft = legacySpeech(input) ? await writeAjusteScript(spoken, product, json, raw => naturalAjusteScript(raw, spoken, product), scriptPrompt, note => addAjusteQuality(quality, note)) : await writeLocalizedEscolhaScript(spoken, product, json, scriptPrompt)
   const wardrobe = 'the exact original outfit visible in the approved presenter portrait, with identical colour, fabric and sleeves'
   const choice: CenaEscolhaSelection = { marker: CENA_ESCOLHA_MARK, presenterId: presenter.id, scenarioId: scenario.id, category, actorUrl, wardrobe, captionLane: scenario.captionLane, shotPrompts: ['', '', ''] }
+  if (sample) choice.sample = ADS_ESCOLHA_SAMPLE_MARK // KINEO-AMOSTRA-ANUNCIO-2410
   const plan: CenaEscolhaPlan = { marker: 'KINEO-ADS-CENA-2110', input, product, category, format: '', setting: scenario.setting, interaction: scenario.interaction, actor: '', script: fitCenaEscolhaScript(draft, input, product), keyframePrompts: ['', ''], videoPrompt: '', segmentPrompts: ['', ''], voice_mode: input.voice_mode, audioMode: input.voice_mode === 'talking' ? 'native' : 'voiceover', continuity: { actorUrl, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, ajusteLive: { version: 'KINEO-ADS-CENA-RETOMADA-2110', music: true }, escolha: choice, quality_notes: quality.quality_notes }
+  if (sample) plan.script = fitCenaEscolhaScript(draft, input, product, maxWords) // KINEO-AMOSTRA-ANUNCIO-2410
   prompts(plan); preflightCenaEscolha(plan, route)
   return plan
 }
+/** KINEO-AMOSTRA-ANUNCIO-2410 — upgrade reuses the exact saved person, scenario, product and complete spoken script; no new planning or image effect. */
+export function fullEscolhaPlan(samplePlan: CenaPlan): CenaPlan { // KINEO-AMOSTRA-ANUNCIO-2410
+  if (!isEscolhaSamplePlan(samplePlan)) throw new Error('escolha_sample_plan_required') // KINEO-AMOSTRA-ANUNCIO-2410
+  const plan = JSON.parse(JSON.stringify(samplePlan)) as CenaEscolhaPlan // KINEO-AMOSTRA-ANUNCIO-2410
+  delete plan.escolha.sample // KINEO-AMOSTRA-ANUNCIO-2410
+  prompts(plan); preflightCenaEscolha(plan, 'kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  return plan // KINEO-AMOSTRA-ANUNCIO-2410
+} // KINEO-AMOSTRA-ANUNCIO-2410

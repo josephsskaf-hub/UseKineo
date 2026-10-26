@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-home-curation.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 561
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+Home curation: 200 checks passed; no database or provider calls.

@@ -43,12 +43,12 @@ console.log('\n═══ PONTE COM PREÇO — tela de filme pronto ═══\n')
 // Se a condição de render mudar de nome, o recorte falha e o guardião cai
 // inteiro — que é exatamente o comportamento desejado: a peça está amarrada
 // à variável que decide a visibilidade dela, não a uma frase.
-const CONDICAO_PONTE = '{showTrialPostVideoOffer && trialBalanceBridge.eligible && ('
+const CONDICAO_PONTE = "{postDeliverySlotOwner === 'balance_bridge' && ("
 const inicio = gc.indexOf(CONDICAO_PONTE)
 t('A1 o bloco da ponte existe e é achado pela sua condição de render', inicio !== -1,
   `procurei por ${JSON.stringify(CONDICAO_PONTE)}`)
 
-const DEPOIS = '{showTrialPostVideoOffer && !trialBalanceBridge.eligible'
+const DEPOIS = "{postDeliverySlotOwner === 'commercial_ask'"
 const fim = gc.indexOf(DEPOIS, inicio === -1 ? 0 : inicio)
 t('A2 o degrau seguinte existe (o recorte tem fim, não vai até o fim do arquivo)',
   inicio !== -1 && fim > inicio)

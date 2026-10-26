@@ -705,7 +705,7 @@ console.log('== 8. card do /admin/supplier-health ==')
   checa('o card tem o botão de recarga e o rótulo de contas internas', pagina.includes('href={FAL_BILLING_URL}') && pagina.includes('INTERNAL_ACCOUNTS_LABEL'))
   checa('o vermelho do card vem de falRefusalIsFresh(panel) (última recusa), não da reserva', pagina.includes('const fresh = falRefusalIsFresh(panel, nowMs)') && !pagina.includes('falAlarmIsFresh'))
   const manchete = pagina.slice(pagina.indexOf("{!panel\n"), pagina.indexOf("'No balance refusal recorded yet'") + 40)
-  checa('manchete: panel null é a PRIMEIRA pergunta e diz "Not measured" em âmbar', /\{!panel\s*\n\s*\? 'Not measured right now — this is NOT a sign of health'/.test(manchete) && pagina.includes("color: !panel ? '#fbbf24'"))
+  checa('manchete: panel null é a PRIMEIRA pergunta e diz "Not measured" em âmbar', /\{!panel\s*\n\s*\? 'Not measured right now — this is NOT a sign of health'/.test(manchete) && pagina.includes("color: !panel ? '#FFBF58'"))
   const mig = 'supabase/migrations/20260928090000_admin_fal_balance_panel.sql'
   const sql = existsSync(join(RAIZ, mig)) ? rd(mig) : ''
   checa('migration da RPC existe, conta no banco e só o service_role executa', sql.includes('create or replace function public.admin_fal_balance_panel(') && sql.includes('revoke all on function public.admin_fal_balance_panel(text[], text[], integer) from public, anon, authenticated;') && sql.includes('grant execute on function public.admin_fal_balance_panel(text[], text[], integer) to service_role;'))
@@ -748,7 +748,8 @@ console.log('== 8b. card: filme em voo fora do "refund them"; fallback nunca ver
     const m = new RegExp(`>${rotulo}</div><div class="font-black" style="[^"]*color:(#[0-9a-fA-F]{6})">([^<]*)</div>(?:<p[^>]*>([^<]*)</p>)?`).exec(html)
     return m ? { cor: m[1].toLowerCase(), valor: m[2], nota: m[3] ?? '' } : null
   }
-  const VERDE = '#34d399', AMBAR = '#fbbf24', VERMELHO = '#f87171'
+  // Canonical admin palette changed after this behavior guard; semantic states remain mandatory.
+  const VERDE = '#5fd4a4', AMBAR = '#ffbf58', VERMELHO = '#ff8787'
   // (1) O CASO DO REVISOR, fallback (migration não aplicada = o estado no lançamento): RPC PGRST202 + 4 leituras exatas.
   const adminFallback = {
     rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'function not found' } }),

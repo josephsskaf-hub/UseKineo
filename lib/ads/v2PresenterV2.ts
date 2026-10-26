@@ -1,3 +1,5 @@
+import { PRESENTER_APPROVED_IDS_2410, presenterCandidateById2410 } from './presenterCandidates2410' // KINEO-APRESENTADORES-2410
+import { presenterCandidateVoice2410 } from './presenterVoice2410' // KINEO-APRESENTADORES-2410
 // KINEO-APRESENTADOR-V2-1710 — o APRESENTADOR do Studio Ads (pessoa de IA falando com o produto na mão) vira o método principal, copiando os
 // líderes (docs/COMO-OS-LIDERES-FAZEM-AVATAR-COM-PRODUTO-2026-10-17.md, pipeline A; teste de 17/10 em docs/RESULTADO-TESTE-AVATAR-FALANTE-2026-10-17.md).
 // O fundador deu nota 9 a este caminho. O que muda em relação ao ator de 09/10 (lib/ads/v2Presenter.ts):
@@ -301,7 +303,9 @@ export const ADS_V2_PRESENTER_V2_VOICES: Readonly<Record<string, { woman: AdsV2P
   es: { woman: ADS_V2_PRESENTER_V2_CURRENT_VOICE, man: ADS_V2_PRESENTER_V2_CURRENT_VOICE },
 }
 /** A voz do apresentador nesta língua e gênero (pura). */
-export function adsV2PresenterV2VoiceFor(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined): AdsV2PresenterV2Voice {
+export function adsV2PresenterV2VoiceFor(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined, presenterId?: string | null): AdsV2PresenterV2Voice {
+  const candidate = presenterCandidateById2410(presenterId) // KINEO-APRESENTADORES-2410
+  if (candidate) return { engine: 'minimax', ...presenterCandidateVoice2410(candidate, language ?? 'en') } // KINEO-APRESENTADORES-2410
   const row = typeof language === 'string' && Object.prototype.hasOwnProperty.call(ADS_V2_PRESENTER_V2_VOICES, language) ? ADS_V2_PRESENTER_V2_VOICES[language] : null
   if (!row) return ADS_V2_PRESENTER_V2_CURRENT_VOICE
   return gender === 'man' ? row.man : row.woman
@@ -667,7 +671,7 @@ export function adsV2PresenterV2ProductRect(inv: { products?: readonly { type?: 
 // KINEO-APRESENTADOR-OLHOS-1910 — antiga ou da API vira um aprovado do MESMO gênero, e o sorteio do v2 só cai em aprovada (Sofia ou Amara). Para ampliar: pôr o id na lista. false = os 12 para todos.
 /** KINEO-APRESENTADOR-OLHOS-1910 — quem aparece para clientes na tela de escolha (ids da biblioteca, lib/ads/v2Presenter.ts). */
 // KINEO-UGC-AJUSTES-2010 — revalidação de 20/10 (docs/REVALIDACAO-8-APRESENTADORES-2026-10-20.md): Jade 8 e Robert 8 passaram com os olhos abertos; os outros 6 seguem "em teste".
-export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji', 'jade', 'robert'] // KINEO-UGC-AJUSTES-2010 — era: os 4 aprovados de 19/10 (Sofia, Amara, Rahul, Kenji)
+export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = PRESENTER_APPROVED_IDS_2410 // KINEO-APRESENTADORES-2410; KINEO-UGC-AJUSTES-2010 — era: os 4 aprovados de 19/10 (Sofia, Amara, Rahul, Kenji)
 /** KINEO-APRESENTADOR-OLHOS-1910 — Interruptor ÚNICO: true = clientes só veem (e só recebem) os aprovados; false = os 12 para todos, como antes. */
 export const ADS_V2_PRESENTER_V2_APPROVED_ONLY: boolean = true // KINEO-APRESENTADOR-OLHOS-1910
 /** KINEO-APRESENTADOR-OLHOS-1910 — o apresentador aparece na tela? (puro) `all` = conta interna (vê todos). */
@@ -710,12 +714,14 @@ export const ADS_V2_PRESENTER_V2_VOICE_SAMPLES: Readonly<Record<string, string>>
 /** KINEO-APRESENTADOR-OLHOS-1910 — a amostra da tela (pura): com a língua do anúncio e o v2 valendo, a da voz do ANÚNCIO; sem língua (fora do v2) = a do retrato, como antes. */
 export function adsV2PresenterV2SampleFor(entry: { gender: 'woman' | 'man'; voiceSample: string | null } | null | undefined, language: string | null | undefined): string | null { // KINEO-APRESENTADOR-OLHOS-1910
   if (!entry) return null // KINEO-APRESENTADOR-OLHOS-1910
+  const candidate = presenterCandidateById2410((entry as { id?: string }).id) // KINEO-APRESENTADORES-2410
+  if (candidate) return String(language ?? 'pt').slice(0, 2) === 'pt' ? candidate.voiceSample : null // KINEO-APRESENTADORES-2410 — never pass off a PT sample as another language
   if (typeof language === 'string' && language) { const v = adsV2PresenterV2VoiceFor(language, entry.gender); if (v.engine === 'minimax') return ADS_V2_PRESENTER_V2_VOICE_SAMPLES[v.voiceId] ?? null } // KINEO-APRESENTADOR-OLHOS-1910
   return entry.voiceSample ?? null // KINEO-APRESENTADOR-OLHOS-1910
 } // KINEO-APRESENTADOR-OLHOS-1910
 /** KINEO-APRESENTADOR-OLHOS-1910 — o voice_id que a voz do anúncio usa (puro, para o evento): a da tabela ('minimax:<voice id>'), senão a do retrato ('eleven:<voz>'), senão a MiniMax padrão. */
-export function adsV2PresenterV2VoiceIdOf(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined, entryVoice: { engine: string; voice?: string } | null | undefined): string { // KINEO-APRESENTADOR-OLHOS-1910
-  const v = adsV2PresenterV2VoiceFor(language, gender) // KINEO-APRESENTADOR-OLHOS-1910
+export function adsV2PresenterV2VoiceIdOf(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined, entryVoice: { engine: string; voice?: string } | null | undefined, presenterId?: string | null): string { // KINEO-APRESENTADOR-OLHOS-1910; KINEO-APRESENTADORES-2410
+  const v = adsV2PresenterV2VoiceFor(language, gender, presenterId) // KINEO-APRESENTADORES-2410 // KINEO-APRESENTADOR-OLHOS-1910
   if (v.engine === 'minimax') return `minimax:${v.voiceId}` // KINEO-APRESENTADOR-OLHOS-1910
   return entryVoice && entryVoice.engine === 'eleven' && typeof entryVoice.voice === 'string' && entryVoice.voice ? `eleven:${entryVoice.voice}` : 'minimax:default' // KINEO-APRESENTADOR-OLHOS-1910
 } // KINEO-APRESENTADOR-OLHOS-1910

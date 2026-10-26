@@ -1,0 +1,27 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-checkout-clareza-1610.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 5145
+PASS desfaz exato: 15 arquivos desfeitos = e2d39301a99675ddfc5258fbbaa668daabbfd5ae~1
+PASS base: garantia única, preço por filme, UGC e prazo de 48 h
+PASS mutante morto: garantia volta a "all plans" (garantia: frase ≠ a aprovada: Full refund if you email us within 7 days of your first mont)
+PASS mutante morto: FAQ volta à versão antiga (FAQ: a resposta da garantia não é a frase única)
+PASS mutante morto: cartão sem a garantia sob o botão (cartão: a garantia não está sob o botão de pagar)
+PASS mutante morto: modal de upgrade volta à frase vaga (modal de upgrade: sem a frase única (ou com a versão antiga))
+PASS mutante morto: preço por filme com a conta errada (starter: US$ por filme 495 ≠ round(990/1))
+PASS mutante morto: cartão não recebe o preço do caixa (PricingClient: o cartão não recebe o preço CHEIO do caixa por mês)
+PASS mutante morto: UGC com número trocado (UGC: frase de mercado mudou: A human UGC creator typically charges US$ 100–500 per video ()
+PASS mutante morto: prazo de 72 h (prazo ≠ 48 h)
+PASS mutante morto: relógio reinicia depois de vencer (vencido: expired, inserts 1 (não pode recomeçar))
+PASS mutante morto: lê a linha mais nova (com duas linhas, não vale a mais antiga)
+PASS mutante morto: vencido continua aparecendo (vencido ainda deixa a oferta aparecer)
+PASS mutante morto: link vencido segue com o cupom (régua) (régua do checkout errada)
+PASS mutante morto: link vencido: o cupom não sai do resto da rota (o bloco genérico aplicaria o WELCOME20) (checkout: link vencido não vira sessão a preço cheio (cupom descartado + carimbo + aviso))
+PASS mutante morto: link vencido volta a ser recusado (perde a venda) (checkout: link vencido ainda RECUSA a compra (perde a venda))
+PASS mutante morto: resposta JSON sem o aviso (checkout: a resposta JSON não leva o aviso)
+PASS mutante morto: /pricing sem o aviso do link vencido (/pricing: quem chega com ?promo=WELCOME20 vencido não vê o aviso)
+PASS mutante morto: checkout não desliga o automático do vencido (checkout: vencido ainda leva o WELCOME20 automático)
+PASS mutante morto: navegador pode cunhar o relógio (o navegador pode cunhar welcome20_deadline_started (falta em SERVER_ONLY_EVENTS))
+PASS mutante morto: cartão ignora o prazo (/pricing: o cartão (e o ?promo= do botão) não respeita o prazo)
+PASS mutante morto: convite abre com o prazo vencido (convite: abre com o prazo vencido)
+OK — base verde e 20 mutantes mortos

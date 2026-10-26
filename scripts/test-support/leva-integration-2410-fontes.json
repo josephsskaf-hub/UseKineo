@@ -1,0 +1,2192 @@
+{
+  "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
+  "head": "68c65670",
+  "layers": {
+    "cards": {
+      "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
+      "original": "3ec6c9d9",
+      "before": "1c078ed013302ac47c42f783305df688c4e97cfd",
+      "after": "3ec6c9d9",
+      "files": [
+        ".github/workflows/guardiao.yml",
+        "components/home/HomeKidsCard.tsx",
+        "components/home/HomeProductAdsReel.tsx",
+        "components/home/HomeThreeCards.tsx",
+        "lib/ui/homeThreeCards.ts",
+        "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "scripts/test-paginas-ia-claras-2110.mjs",
+        "scripts/test-support/desfaz-idiomas-formatos-2410.mjs"
+      ]
+    },
+    "sample": {
+      "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
+      "original": "17afd045d",
+      "before": "618bed34",
+      "after": "cfd30692",
+      "files": [
+        ".github/workflows/guardiao.yml",
+        "app/(dashboard)/ads/v2/AdsV2Client.tsx",
+        "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+        "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
+        "app/(dashboard)/ads/v2/page.tsx",
+        "app/api/ads/v2/cena/route.ts",
+        "app/api/ads/v2/start/route.ts",
+        "app/api/ads/v2/status/route.ts",
+        "app/api/cron/ads-v2-advance/route.ts",
+        "app/api/events/route.ts",
+        "app/api/footage/route.ts",
+        "app/api/stripe/checkout/route.ts",
+        "app/api/stripe/webhook/route.ts",
+        "docs/DECISIONS.md",
+        "lib/ads/cena/escolhaMedia.ts",
+        "lib/ads/cena/escolhaMontage.ts",
+        "lib/ads/cena/escolhaNotify.ts",
+        "lib/ads/cena/escolhaPlan.ts",
+        "lib/ads/cena/escolhaStills.ts",
+        "lib/ads/cena/escolhaVideo.ts",
+        "lib/ads/cena/internalEscolha.ts",
+        "lib/ads/cena/pipeline.ts",
+        "lib/ads/cena/runtime.ts",
+        "lib/ads/uploadFootage.ts",
+        "lib/ads/v2Advance.ts",
+        "lib/ads/v2StartCore.ts",
+        "lib/growth/checkoutSuccessFlow.ts",
+        "scripts/test-ads-escolha-publico-2410.mjs",
+        "scripts/test-ads-packshot-1410.mjs",
+        "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "scripts/test-support/ads-escolha-ui-2310.mjs",
+        "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+        "scripts/test-support/offline-ts-loader.mjs"
+      ]
+    },
+    "presenters": {
+      "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
+      "original": "3a4db3096",
+      "before": "cfd30692",
+      "after": "418971fd",
+      "files": [
+        ".github/workflows/guardiao.yml",
+        "lib/ads/cena/escolhaCatalog.ts",
+        "lib/ads/cena/escolhaPlan.ts",
+        "lib/ads/cena/presenters95.ts",
+        "lib/ads/cena/runtime.ts",
+        "lib/ads/v2Advance.ts",
+        "lib/ads/v2PlanCore.ts",
+        "lib/ads/v2Presenter.ts",
+        "lib/ads/v2PresenterV2.ts",
+        "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "scripts/test-support/ads-escolha-ui-2310.mjs",
+        "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+        "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+        "scripts/test-support/offline-ts-loader.mjs"
+      ]
+    },
+    "purchase": {
+      "base": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+      "original": "51b6431ce",
+      "before": "418971fd",
+      "after": "68c65670",
+      "files": [
+        ".github/workflows/guardiao.yml",
+        "app/(dashboard)/ads/v2/AdsV2Client.tsx",
+        "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+        "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
+        "app/api/compose/route.ts",
+        "app/api/events/route.ts",
+        "app/api/stripe/checkout/route.ts",
+        "app/api/stripe/webhook/route.ts",
+        "app/pricing/PricingClient.tsx",
+        "components/PricingCards.tsx",
+        "lib/checkoutPricing.ts",
+        "package-lock.json",
+        "package.json",
+        "scripts/test-admin-leve-undo-2310.mjs",
+        "scripts/test-ads-escolha-publico-2410.mjs",
+        "scripts/test-ads-formatos-escolha-2410.mjs",
+        "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "scripts/test-kids-venda-2010.mjs",
+        "scripts/test-kit-bf-1910.mjs",
+        "scripts/test-kit-bf-venda-2010.mjs",
+        "scripts/test-support/ads-escolha-ui-2310.mjs",
+        "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs",
+        "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+        "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "scripts/test-support/desfaz-kit-bf-1910.mjs",
+        "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
+        "scripts/test-trafego-pages-2310.mjs",
+        "scripts/test-trafego-undo-2310.mjs"
+      ]
+    },
+    "cartoon": {
+      "base": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+      "original": "c91476688",
+      "before": "3ec6c9d9",
+      "after": "618bed34",
+      "files": [
+        ".github/workflows/guardiao.yml",
+        "components/kidsCartoon/KidsCartoonPages.tsx",
+        "lib/lifecycle/emailEvents.ts",
+        "scripts/test-ads-cena-95-pacing-2110.mjs",
+        "scripts/test-idiomas-formatos-undo-2410.mjs",
+        "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs",
+        "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs",
+        "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+        "scripts/test-support/desfaz-kids-venda-2010.mjs"
+      ]
+    },
+    "languages": {
+      "base": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+      "original": "7950e41134dd03388e67c131501d3e2bce61a3eb"
+    }
+  },
+  "inventory": [
+    ".github/workflows/guardiao.yml",
+    "app/(dashboard)/ads/v2/AdsV2Client.tsx",
+    "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+    "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
+    "app/(dashboard)/ads/v2/page.tsx",
+    "app/api/admin/moderation-scan/route.ts",
+    "app/api/admin/send-kids-launch/route.ts",
+    "app/api/ads/v2/cena/route.ts",
+    "app/api/ads/v2/start/route.ts",
+    "app/api/ads/v2/status/route.ts",
+    "app/api/compose/route.ts",
+    "app/api/cron/ads-v2-advance/route.ts",
+    "app/api/cron/placar-versao-b/route.ts",
+    "app/api/cron/rescue-vendor-assets/route.ts",
+    "app/api/events/route.ts",
+    "app/api/footage/route.ts",
+    "app/api/next-action/route.ts",
+    "app/api/shopify/auth/callback/route.ts",
+    "app/api/shopify/products/route.ts",
+    "app/api/stripe/checkout/item/route.ts",
+    "app/api/stripe/checkout/route.ts",
+    "app/api/stripe/webhook/route.ts",
+    "app/checkout/item/page.tsx",
+    "app/pricing/PricingClient.tsx",
+    "app/shopify/open/route.ts",
+    "components/OneTimeItemConfirmation.tsx",
+    "components/OneTimeItemOffer.tsx",
+    "components/PricingCards.tsx",
+    "components/home/HomeCardCycleMedia.tsx",
+    "components/home/HomeKidsCard.tsx",
+    "components/home/HomeProductAdsReel.tsx",
+    "components/home/HomeThreeCards.tsx",
+    "components/kidsCartoon/KidsCartoonPages.tsx",
+    "docs/ADS-AMOSTRA-MEDICAO-2410.sql",
+    "docs/APRESENTADORES-2410-ADMIN.md",
+    "docs/APRESENTADORES-2410-ENTREGA.md",
+    "docs/CARTOON-INSTAGRAM-2210.md",
+    "docs/CARTOON-TRACAO-2210.md",
+    "docs/DECISIONS.md",
+    "docs/KINEO-AMOSTRA-ANUNCIO-2410.md",
+    "docs/ph/PH-TEXTOS-2026-09-10.md",
+    "docs/previews/COMPRA-AVULSA-2410-ads-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-ads-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-auth-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-auth-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-confirming-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-confirming-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-pending-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-confirmation-pending-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-member-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-member-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-paywall-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-paywall-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-pricing-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-pricing-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410-stills-desktop.png",
+    "docs/previews/COMPRA-AVULSA-2410-stills-mobile.png",
+    "docs/previews/COMPRA-AVULSA-2410.html",
+    "docs/previews/amostra-anuncio-2410-mobile.png",
+    "docs/previews/amostra-anuncio-2410.html",
+    "docs/previews/amostra-anuncio-2410.png",
+    "docs/previews/apresentadores-2410-desktop.png",
+    "docs/previews/apresentadores-2410-plan.json",
+    "docs/previews/apresentadores-2410.html",
+    "docs/previews/apresentadores-2410.png",
+    "docs/previews/cartoon-tracao-2210-en-desktop.png",
+    "docs/previews/cartoon-tracao-2210-en-mobile.png",
+    "docs/previews/cartoon-tracao-2210-pt-desktop.png",
+    "docs/previews/cartoon-tracao-2210-pt-mobile.png",
+    "docs/previews/cartoon-tracao-2210.html",
+    "docs/previews/render-amostra-anuncio-2410.cjs",
+    "docs/previews/render-compra-avulsa-2410.cjs",
+    "docs/qa/amostra-anuncio-2410-gates.json",
+    "docs/qa/apresentadores-2410/baseline-locale-readiness.log",
+    "docs/qa/apresentadores-2410/candidate-locale-readiness.log",
+    "docs/qa/apresentadores-2410/retry-gpt5c-mutant.log",
+    "docs/qa/apresentadores-2410/retry-gpt5c.log",
+    "docs/qa/apresentadores-2410/retry-gptv31-mutant.log",
+    "docs/qa/apresentadores-2410/retry-gptv31.log",
+    "docs/qa/apresentadores-2410/retry-idiomas-undo.log",
+    "docs/qa/apresentadores-2410/retry-paidcitation.log",
+    "docs/qa/apresentadores-2410/retry-public-escolha.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-admin-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-legacy-voice-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-undo-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-voice-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/validation.json",
+    "docs/qa/cards-giro-2410/PREVIEW-HOME.html",
+    "docs/qa/cards-giro-2410/QA-FINAL.json",
+    "docs/qa/cards-giro-2410/README.md",
+    "docs/qa/cards-giro-2410/comparison-mobile-overview.png",
+    "docs/qa/cards-giro-2410/comparison-overview.png",
+    "docs/qa/cards-giro-2410/guardian.json",
+    "docs/qa/cards-giro-2410/media-inspection.json",
+    "docs/qa/cards-giro-2410/source-hashes.json",
+    "docs/qa/cards-giro-2410/suite-comparison.json",
+    "docs/qa/cards-giro-2410/typecheck.json",
+    "docs/qa/cards-giro-2410/ugc-framing-before-after.jpg",
+    "docs/qa/compra-avulsa-2410/.gitattributes",
+    "docs/qa/compra-avulsa-2410/.gitignore",
+    "docs/qa/compra-avulsa-2410/ENTREGA.md",
+    "docs/qa/compra-avulsa-2410/FINAL_VALIDATION.json",
+    "docs/qa/compra-avulsa-2410/baseline/00-typescript-noemit.log",
+    "docs/qa/compra-avulsa-2410/baseline/01-test-idiomas-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/02-test-language-segmentation-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/03-test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/04-test-idiomas-formatos-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/05-test-ads-escolha-publico-2410.log",
+    "docs/qa/compra-avulsa-2410/baseline/06-test-ads-escolha-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/07-test-ads-render-fix-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/08-test-trafego-pages-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/09-test-trafego-index-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/10-test-trafego-health-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/11-test-trafego-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/12-test-admin-leve-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/13-test-admin-leve-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/baseline/14-test-roteiro-curto-sem-falha-2210-mutants.log",
+    "docs/qa/compra-avulsa-2410/baseline/15-test-roteiro-curto-undo-2210.log",
+    "docs/qa/compra-avulsa-2410/baseline/16-test-admin-truncamento-2026-10.log",
+    "docs/qa/compra-avulsa-2410/baseline/17-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/baseline/18-test-coerencia-kineo1-2026-09-16.log",
+    "docs/qa/compra-avulsa-2410/baseline/19-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/20-test-carta-da-recusa.log",
+    "docs/qa/compra-avulsa-2410/baseline/21-test-momentum-topic.log",
+    "docs/qa/compra-avulsa-2410/baseline/22-test-stalled-frescor-2026-09-05.log",
+    "docs/qa/compra-avulsa-2410/baseline/23-test-hot-nudge-janela-campanhas.log",
+    "docs/qa/compra-avulsa-2410/baseline/24-test-gpt-v31-facts-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/25-test-gpt-v31-facts-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/26-test-sharing-safety.log",
+    "docs/qa/compra-avulsa-2410/baseline/27-test-paid-video-citation-guidance-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/baseline/28-test-seedance-hero-plans-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/baseline/29-test-motores-geo-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/30-test-ads-aeo-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/31-test-five-improvements.log",
+    "docs/qa/compra-avulsa-2410/baseline/32-test-studio-entry-transition.log",
+    "docs/qa/compra-avulsa-2410/baseline/33-test-locale-readiness.log",
+    "docs/qa/compra-avulsa-2410/baseline/34-test-app-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/baseline/35-test-home-curation.log",
+    "docs/qa/compra-avulsa-2410/baseline/36-test-home-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/baseline/37-test-home-referral-bridge.log",
+    "docs/qa/compra-avulsa-2410/baseline/38-test-home-pricing-checkout.log",
+    "docs/qa/compra-avulsa-2410/baseline/39-test-showcase-premium.log",
+    "docs/qa/compra-avulsa-2410/baseline/40-test-cinematic-timeline-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/41-test-cinematic-speech-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/42-test-music-direction-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/43-test-visual-contract-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/44-test-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/45-test-quality-route-integration-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/46-test-quality-failure-ui-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/47-test-active-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/48-test-cinematic-terminal-proof-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/49-test-cinematic-poll-diagnostic-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/50-test-scene-retry-mutex-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/baseline/51-test-gpt-5h-a-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/52-test-gpt-5h-a-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/53-test-gpt-5h-b-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/54-test-gpt-5h-b-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/55-test-gpt-5h-c-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/baseline/56-test-gpt-5h-c-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/baseline/57-test-kit-bf-1910.log",
+    "docs/qa/compra-avulsa-2410/baseline/58-test-kit-bf-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/baseline/59-test-kids-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/baseline/60-test-stripe-async-checkout.log",
+    "docs/qa/compra-avulsa-2410/baseline/61-test-stripe-checkout-failure-truth.log",
+    "docs/qa/compra-avulsa-2410/baseline/62-test-verified-checkout-purchase.log",
+    "docs/qa/compra-avulsa-2410/baseline/63-test-checkout-success-entitlement.log",
+    "docs/qa/compra-avulsa-2410/baseline/64-test-checkout-currency-truth.log",
+    "docs/qa/compra-avulsa-2410/baseline/65-test-checkout-clareza-1610.log",
+    "docs/qa/compra-avulsa-2410/baseline/66-test-checkout-honesto-2026-10-07.log",
+    "docs/qa/compra-avulsa-2410/baseline/67-test-low-balance-pricing-bridge.log",
+    "docs/qa/compra-avulsa-2410/baseline/68-test-pricing-plan-choice-attribution.log",
+    "docs/qa/compra-avulsa-2410/baseline/69-test-pricing-diz-a-verdade-2026-09-27.log",
+    "docs/qa/compra-avulsa-2410/baseline/BASELINE.md",
+    "docs/qa/compra-avulsa-2410/baseline/extra-inline-pricing-decision-funnel.log",
+    "docs/qa/compra-avulsa-2410/baseline/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/baseline/results.json",
+    "docs/qa/compra-avulsa-2410/baseline/retry-dependencies.mjs",
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/baseline/run-baseline.mjs",
+    "docs/qa/compra-avulsa-2410/build-manifest.mjs",
+    "docs/qa/compra-avulsa-2410/candidate/00-typescript-noemit.log",
+    "docs/qa/compra-avulsa-2410/candidate/01-test-compra-avulsa-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/02-test-compra-avulsa-webhook-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/03-test-compra-avulsa-return-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/04-test-compra-avulsa-delivery-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/05-test-compra-avulsa-ui-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/06-test-compra-avulsa-sql-2410-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/07-test-compra-avulsa-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/08-test-idiomas-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/09-test-language-segmentation-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/10-test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/11-test-idiomas-formatos-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/12-test-ads-escolha-publico-2410.log",
+    "docs/qa/compra-avulsa-2410/candidate/13-test-ads-escolha-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/14-test-ads-render-fix-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/15-test-trafego-pages-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/16-test-trafego-index-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/17-test-trafego-health-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/18-test-trafego-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/19-test-admin-leve-2310-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/20-test-admin-leve-undo-2310.log",
+    "docs/qa/compra-avulsa-2410/candidate/21-test-roteiro-curto-sem-falha-2210-mutants.log",
+    "docs/qa/compra-avulsa-2410/candidate/22-test-roteiro-curto-undo-2210.log",
+    "docs/qa/compra-avulsa-2410/candidate/23-test-admin-truncamento-2026-10.log",
+    "docs/qa/compra-avulsa-2410/candidate/24-test-afiliados-acordam.log",
+    "docs/qa/compra-avulsa-2410/candidate/25-test-coerencia-kineo1-2026-09-16.log",
+    "docs/qa/compra-avulsa-2410/candidate/26-test-juiz-still-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/candidate/27-test-carta-da-recusa.log",
+    "docs/qa/compra-avulsa-2410/candidate/28-test-momentum-topic.log",
+    "docs/qa/compra-avulsa-2410/candidate/29-test-stalled-frescor-2026-09-05.log",
+    "docs/qa/compra-avulsa-2410/candidate/30-test-hot-nudge-janela-campanhas.log",
+    "docs/qa/compra-avulsa-2410/candidate/31-test-gpt-v31-facts-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/32-test-gpt-v31-facts-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/33-test-sharing-safety.log",
+    "docs/qa/compra-avulsa-2410/candidate/34-test-paid-video-citation-guidance-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/candidate/35-test-seedance-hero-plans-2026-09-28.log",
+    "docs/qa/compra-avulsa-2410/candidate/36-test-motores-geo-2026-10-06.log",
+    "docs/qa/compra-avulsa-2410/candidate/37-test-ads-aeo-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/38-test-five-improvements.log",
+    "docs/qa/compra-avulsa-2410/candidate/39-test-studio-entry-transition.log",
+    "docs/qa/compra-avulsa-2410/candidate/40-test-locale-readiness.log",
+    "docs/qa/compra-avulsa-2410/candidate/41-test-app-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/candidate/42-test-home-curation.log",
+    "docs/qa/compra-avulsa-2410/candidate/43-test-home-blue-layout.log",
+    "docs/qa/compra-avulsa-2410/candidate/44-test-home-referral-bridge.log",
+    "docs/qa/compra-avulsa-2410/candidate/45-test-home-pricing-checkout.log",
+    "docs/qa/compra-avulsa-2410/candidate/46-test-showcase-premium.log",
+    "docs/qa/compra-avulsa-2410/candidate/47-test-cinematic-timeline-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/48-test-cinematic-speech-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/49-test-music-direction-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/50-test-visual-contract-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/51-test-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/52-test-quality-route-integration-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/53-test-quality-failure-ui-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/54-test-active-quality-rejection-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/55-test-cinematic-terminal-proof-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/56-test-cinematic-poll-diagnostic-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/57-test-scene-retry-mutex-2026-09-11.log",
+    "docs/qa/compra-avulsa-2410/candidate/58-test-gpt-5h-a-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/59-test-gpt-5h-a-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/60-test-gpt-5h-b-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/61-test-gpt-5h-b-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/62-test-gpt-5h-c-2026-09-24.log",
+    "docs/qa/compra-avulsa-2410/candidate/63-test-gpt-5h-c-2026-09-24-mutant.log",
+    "docs/qa/compra-avulsa-2410/candidate/64-test-kit-bf-1910.log",
+    "docs/qa/compra-avulsa-2410/candidate/65-test-kit-bf-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/candidate/66-test-kids-venda-2010.log",
+    "docs/qa/compra-avulsa-2410/candidate/67-test-stripe-async-checkout.log",
+    "docs/qa/compra-avulsa-2410/candidate/68-test-stripe-checkout-failure-truth.log",
+    "docs/qa/compra-avulsa-2410/candidate/69-test-verified-checkout-purchase.log",
+    "docs/qa/compra-avulsa-2410/candidate/70-test-checkout-success-entitlement.log",
+    "docs/qa/compra-avulsa-2410/candidate/71-test-checkout-currency-truth.log",
+    "docs/qa/compra-avulsa-2410/candidate/72-test-checkout-clareza-1610.log",
+    "docs/qa/compra-avulsa-2410/candidate/73-test-checkout-honesto-2026-10-07.log",
+    "docs/qa/compra-avulsa-2410/candidate/74-test-low-balance-pricing-bridge.log",
+    "docs/qa/compra-avulsa-2410/candidate/75-test-pricing-plan-choice-attribution.log",
+    "docs/qa/compra-avulsa-2410/candidate/76-test-pricing-diz-a-verdade-2026-09-27.log",
+    "docs/qa/compra-avulsa-2410/candidate/77-test-inline-pricing-decision-funnel.log",
+    "docs/qa/compra-avulsa-2410/candidate/COMPLETED.json",
+    "docs/qa/compra-avulsa-2410/candidate/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/candidate/results.json",
+    "docs/qa/compra-avulsa-2410/candidate/run-candidate.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory-results.json",
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory.log",
+    "docs/qa/compra-avulsa-2410/revalidation/offline-guard.cjs",
+    "docs/qa/compra-avulsa-2410/revalidation/results.json",
+    "docs/qa/compra-avulsa-2410/revalidation/run-final-inventory.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/run-revalidation.mjs",
+    "docs/qa/compra-avulsa-2410/revalidation/test-ads-formatos-escolha-2410.log",
+    "docs/qa/compra-avulsa-2410/revalidation/test-compra-avulsa-undo-2410.log",
+    "docs/qa/compra-avulsa-2410/revalidation/test-idiomas-formatos-undo-2410.log",
+    "lib/ads/cena/escolhaCatalog.ts",
+    "lib/ads/cena/escolhaMedia.ts",
+    "lib/ads/cena/escolhaMontage.ts",
+    "lib/ads/cena/escolhaNotify.ts",
+    "lib/ads/cena/escolhaPersonalAccess.ts",
+    "lib/ads/cena/escolhaPlan.ts",
+    "lib/ads/cena/escolhaSamplePolicy.ts",
+    "lib/ads/cena/escolhaSampleServer.ts",
+    "lib/ads/cena/escolhaSampleUpgrade.ts",
+    "lib/ads/cena/escolhaStills.ts",
+    "lib/ads/cena/escolhaVideo.ts",
+    "lib/ads/cena/internalEscolha.ts",
+    "lib/ads/cena/pipeline.ts",
+    "lib/ads/cena/presenters95.ts",
+    "lib/ads/cena/runtime.ts",
+    "lib/ads/presenterCandidates2410.json",
+    "lib/ads/presenterCandidates2410.ts",
+    "lib/ads/presenterVoice2410.ts",
+    "lib/ads/uploadFootage.ts",
+    "lib/ads/v2Advance.ts",
+    "lib/ads/v2PlanCore.ts",
+    "lib/ads/v2Presenter.ts",
+    "lib/ads/v2PresenterV2.ts",
+    "lib/ads/v2StartCore.ts",
+    "lib/checkoutPricing.ts",
+    "lib/growth/checkoutSuccessFlow.ts",
+    "lib/growth/kidsLaunchEmail.ts",
+    "lib/lifecycle/emailEvents.ts",
+    "lib/oneTimeItem.ts",
+    "lib/paypal.ts",
+    "lib/stripe/oneTimeItemCheckout.ts",
+    "lib/stripe/oneTimeItemFulfillment.ts",
+    "lib/ui/homeCardPlayback.ts",
+    "lib/ui/homeThreeCards.ts",
+    "migrations_pending/2026-10-24_one_time_items.sql",
+    "package-lock.json",
+    "package.json",
+    "scripts/apresentadores-2410.mjs",
+    "scripts/lib/apresentadores-admin2410.mjs",
+    "scripts/ph-fatos.mjs",
+    "scripts/preview-studio-hierarchy.mjs",
+    "scripts/test-admin-leve-undo-2310.mjs",
+    "scripts/test-ads-amostra-anuncio-2410.mjs",
+    "scripts/test-ads-amostra-data-2410.mjs",
+    "scripts/test-ads-amostra-undo-2410.mjs",
+    "scripts/test-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-ads-escolha-publico-2410.mjs",
+    "scripts/test-ads-fiel-1510.mjs",
+    "scripts/test-ads-fiel-6-1610.mjs",
+    "scripts/test-ads-fiel-7-1610.mjs",
+    "scripts/test-ads-formatos-escolha-2410.mjs",
+    "scripts/test-ads-ia-faz-2026-09-26.mjs",
+    "scripts/test-ads-packshot-1410.mjs",
+    "scripts/test-aeo-business-offer.mjs",
+    "scripts/test-affiliate-activation.mjs",
+    "scripts/test-affiliate-destinations.mjs",
+    "scripts/test-affiliate-ledger.mjs",
+    "scripts/test-afiliado-ref-2026-09-08.mjs",
+    "scripts/test-afiliados-atribuicao-2026-10-03.mjs",
+    "scripts/test-agency-appearance.mjs",
+    "scripts/test-alvo-fantasma-2026-08-31.mjs",
+    "scripts/test-another-short-shelf.mjs",
+    "scripts/test-aparar-expansao-2026-09-02.mjs",
+    "scripts/test-apresentador-v2-1710.mjs",
+    "scripts/test-apresentadores-2410.mjs",
+    "scripts/test-apresentadores-admin-2410.mjs",
+    "scripts/test-apresentadores-legacy-voice-2410.mjs",
+    "scripts/test-apresentadores-undo-2410.mjs",
+    "scripts/test-apresentadores-voice-2410.mjs",
+    "scripts/test-archive-studio-review.mjs",
+    "scripts/test-assistant-deep-link.mjs",
+    "scripts/test-autopilot-case-study-path.mjs",
+    "scripts/test-b2c-subscription-truth-report.mjs",
+    "scripts/test-cards-giro-2410.mjs",
+    "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-carta-episodio-gatilho-2026-09-06.mjs",
+    "scripts/test-cartoon-tracao.mjs",
+    "scripts/test-causa-sempre-2026-08-31.mjs",
+    "scripts/test-chatgpt-paste-page.mjs",
+    "scripts/test-checkout-currency-truth.mjs",
+    "scripts/test-client-short-brief.mjs",
+    "scripts/test-clique-perdido.mjs",
+    "scripts/test-close-real-1910.mjs",
+    "scripts/test-coerencia-historia-2026-09-02.mjs",
+    "scripts/test-compra-avulsa-2410.mjs",
+    "scripts/test-compra-avulsa-delivery-2410.mjs",
+    "scripts/test-compra-avulsa-return-2410.mjs",
+    "scripts/test-compra-avulsa-sql-2410.mjs",
+    "scripts/test-compra-avulsa-ui-2410.mjs",
+    "scripts/test-compra-avulsa-undo-2410.mjs",
+    "scripts/test-compra-avulsa-webhook-2410.mjs",
+    "scripts/test-compra-sem-login-2026-10-06.mjs",
+    "scripts/test-consentimento-superficie.mjs",
+    "scripts/test-convite-na-hora-certa-2026-08-31.mjs",
+    "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
+    "scripts/test-credit-minutes-ui.mjs",
+    "scripts/test-credits-held-waitroom.mjs",
+    "scripts/test-cta-composer-2026-09-06.mjs",
+    "scripts/test-data-cache-no-store.mjs",
+    "scripts/test-demo-sob-medida-1510.mjs",
+    "scripts/test-diretor-kineo-2026-09-23.mjs",
+    "scripts/test-done-footer-2026-08-31.mjs",
+    "scripts/test-done-workspace.mjs",
+    "scripts/test-dunning-grace.mjs",
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs",
+    "scripts/test-enterprise-alternative-business-path.mjs",
+    "scripts/test-entrega-noite-r6-2026-09-09.mjs",
+    "scripts/test-episodio2-ending-2026-09-01.mjs",
+    "scripts/test-example-remix.mjs",
+    "scripts/test-failure-cause-38.mjs",
+    "scripts/test-failure-recovery-honest.mjs",
+    "scripts/test-failure-recovery-latest-wins.mjs",
+    "scripts/test-failure-screen-40.mjs",
+    "scripts/test-faixa-continuar.mjs",
+    "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
+    "scripts/test-fila-global-pilula-2026-08-31.mjs",
+    "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f4-1910.mjs",
+    "scripts/test-first-film-free-offer.mjs",
+    "scripts/test-free-limit-wall.mjs",
+    "scripts/test-go-auto-forward.mjs",
+    "scripts/test-gpt-handoff-verdade.mjs",
+    "scripts/test-growth-candidate-2026-09-01.mjs",
+    "scripts/test-growth-roundup-search-intent.mjs",
+    "scripts/test-growth-space-intent.mjs",
+    "scripts/test-guardiao-2026-08-28.mjs",
+    "scripts/test-guardiao-yaml-2026-09-03.mjs",
+    "scripts/test-history-second-video-milestone.mjs",
+    "scripts/test-home-curation-restore.mjs",
+    "scripts/test-home-welcome-goal-router.mjs",
+    "scripts/test-hora-da-volta-2026-08-31.mjs",
+    "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-imagem-para-video-2026-09-25.mjs",
+    "scripts/test-interface-16-linguas-2026-09-21.mjs",
+    "scripts/test-kids-venda-2010.mjs",
+    "scripts/test-kit-bf-1910.mjs",
+    "scripts/test-kit-bf-venda-2010.mjs",
+    "scripts/test-last-setup-memory.mjs",
+    "scripts/test-leva-confiabilidade-2026-08-28.mjs",
+    "scripts/test-leva-integration-2410.mjs",
+    "scripts/test-library-search.mjs",
+    "scripts/test-library-visual-gallery.mjs",
+    "scripts/test-limit-purchase-fit.mjs",
+    "scripts/test-llms-affiliate-source.mjs",
+    "scripts/test-llms-engine-availability.mjs",
+    "scripts/test-local-business-tool-discovery.mjs",
+    "scripts/test-locale-readiness.mjs",
+    "scripts/test-manrope-system.mjs",
+    "scripts/test-marcador-da-casa.mjs",
+    "scripts/test-mcp-claude-2026-09-29.mjs",
+    "scripts/test-mcp-pagina-2026-09-30.mjs",
+    "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-moeda-local-2026-09-09.mjs",
+    "scripts/test-momentum-motor-gratis.mjs",
+    "scripts/test-money-truth-contract.mjs",
+    "scripts/test-motores-d1-2026-09-01.mjs",
+    "scripts/test-multiformato-2026-09-02.mjs",
+    "scripts/test-next-episode-visibility.mjs",
+    "scripts/test-next-episode-wall-2026-09-06.mjs",
+    "scripts/test-next-idea-wait-45.mjs",
+    "scripts/test-next-shorts-affordance-2026-08-31.mjs",
+    "scripts/test-pacote-no-email-de-entrega.mjs",
+    "scripts/test-pacote2-precos-2026-10-05.mjs",
+    "scripts/test-pagamentos-alternativos-2026-10.mjs",
+    "scripts/test-paginas-ia-claras-2110.mjs",
+    "scripts/test-paginas-ugc-2010.mjs",
+    "scripts/test-painel-verdade.mjs",
+    "scripts/test-paypal-canonical-catalog.mjs",
+    "scripts/test-paypal-idempotencia.mjs",
+    "scripts/test-ph-kit-2026-09-09.mjs",
+    "scripts/test-plan-film-language.mjs",
+    "scripts/test-ponte-com-preco-2026-09-07.mjs",
+    "scripts/test-porta-email-2026-09-06.mjs",
+    "scripts/test-porta-episodio2-2026-09-04.mjs",
+    "scripts/test-preco-para-saldo-cheio-2026-09-07.mjs",
+    "scripts/test-preco-visivel-2026-09-02.mjs",
+    "scripts/test-precos-clipes-kling25-1610.mjs",
+    "scripts/test-pricing-monthly-campaign.mjs",
+    "scripts/test-private-file-share.mjs",
+    "scripts/test-product-surface-intent.mjs",
+    "scripts/test-public-video-privacy.mjs",
+    "scripts/test-publicador-refspec-2026-09-05.mjs",
+    "scripts/test-publish-kit-business-path.mjs",
+    "scripts/test-quadro-real-2026-09-02.mjs",
+    "scripts/test-ready-notice-studio-review.mjs",
+    "scripts/test-recusa-analyze-copy-2026-09-01.mjs",
+    "scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs",
+    "scripts/test-render-morto.mjs",
+    "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+    "scripts/test-returning-seed-2026-09-01.mjs",
+    "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs",
+    "scripts/test-rodape-segmentos-2026-09-27.mjs",
+    "scripts/test-roteiro-perdido-2026-08-31.mjs",
+    "scripts/test-runway.mjs",
+    "scripts/test-scene-disposition.mjs",
+    "scripts/test-script-preflight.mjs",
+    "scripts/test-season-strip.mjs",
+    "scripts/test-segunda-tentativa-1usd.mjs",
+    "scripts/test-sem-porteiro-2026-09-02.mjs",
+    "scripts/test-serie-memoria-2026-09-04.mjs",
+    "scripts/test-showcase-2026-10-02.mjs",
+    "scripts/test-signup-product-destination.mjs",
+    "scripts/test-silencio-na-cena-2026-09-11.mjs",
+    "scripts/test-sistema-de-compra-2026-09-08.mjs",
+    "scripts/test-stranded-email-dedupe.mjs",
+    "scripts/test-stranded-extra-attempt-4xx.mjs",
+    "scripts/test-studio-hierarchy-runtime.mjs",
+    "scripts/test-studio-prompt-limit.mjs",
+    "scripts/test-studio-tile-episode2-2026-08-31.mjs",
+    "scripts/test-support/ads-amostra-data-sql-2410.cjs",
+    "scripts/test-support/ads-amostra-entry-2410.mjs",
+    "scripts/test-support/ads-amostra-race-2410.mjs",
+    "scripts/test-support/ads-amostra-ui-2410.mjs",
+    "scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
+    "scripts/test-support/ads-escolha-sample-media-2410.mjs",
+    "scripts/test-support/ads-escolha-ui-2310.mjs",
+    "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs",
+    "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs",
+    "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json",
+    "scripts/test-support/desfaz-amostra-anuncio-2410.mjs",
+    "scripts/test-support/desfaz-apresentadores-2410-fontes.json",
+    "scripts/test-support/desfaz-apresentadores-2410.mjs",
+    "scripts/test-support/desfaz-cards-giro-2410-fontes.json",
+    "scripts/test-support/desfaz-cards-giro-2410.mjs",
+    "scripts/test-support/desfaz-cartoon-tracao-2210-hunks.json",
+    "scripts/test-support/desfaz-cartoon-tracao-2210-original-hunks.json",
+    "scripts/test-support/desfaz-cartoon-tracao-2210.mjs",
+    "scripts/test-support/desfaz-compra-avulsa-2410-fontes.json",
+    "scripts/test-support/desfaz-compra-avulsa-2410.mjs",
+    "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+    "scripts/test-support/desfaz-kids-venda-2010.mjs",
+    "scripts/test-support/desfaz-kit-bf-1910.mjs",
+    "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
+    "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+    "scripts/test-support/leva-integration-2410-fontes.json",
+    "scripts/test-support/leva-integration-2410.mjs",
+    "scripts/test-support/offline-ts-loader.mjs",
+    "scripts/test-support/seal-leva-integration-2410.mjs",
+    "scripts/test-temporada.mjs",
+    "scripts/test-teto-no-prompt.mjs",
+    "scripts/test-text-to-video-intent-router.mjs",
+    "scripts/test-trafego-pages-2310.mjs",
+    "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-tres-jogadas-servidor-2026-09-23.mjs",
+    "scripts/test-troca-de-plano-2026-09-09.mjs",
+    "scripts/test-ux-complete.mjs",
+    "scripts/test-ux-mobile-navigation.mjs",
+    "scripts/test-verbatim-order-warning.mjs",
+    "scripts/test-video-editing.mjs",
+    "scripts/test-video-ready-nudge.mjs",
+    "scripts/test-video-share-consent.mjs",
+    "scripts/test-videos-search.mjs",
+    "scripts/test-vigia-cenario-inventado-2026-09-11.mjs",
+    "scripts/test-viralnow-search-intent.mjs",
+    "scripts/test-visibilidade-chatgpt-2026-10-06.mjs",
+    "scripts/test-vitrine-em-alta-2026-08-31.mjs",
+    "scripts/test-works-with-claude-2026-09-30.mjs",
+    "scripts/test-workspace-spanish.mjs",
+    "supabase/migrations/20261024175246_ads_escolha_sample.sql"
+  ],
+  "sources": {
+    ".github/workflows/guardiao.yml": {
+      "hash": "87e42b97ebcc2c94b54827ac5d554bdb180a003e95c6ea341e97576c997e76fb"
+    },
+    "app/(dashboard)/ads/v2/AdsV2Client.tsx": {
+      "hash": "880ac2b360e98cc76454ae1de04284d715902890d5d73fbf3643d8ec9bd3fc97"
+    },
+    "app/(dashboard)/ads/v2/AdsV2Escolha.tsx": {
+      "hash": "52a75d18de118e77d3d898a525b048ed99e5e8d96305c910e0f6eeeaf79abe3a"
+    },
+    "app/(dashboard)/ads/v2/AdsV2Simple.tsx": {
+      "hash": "ff6bdaed59890d48916f7a064fa47b89442a231f256d83735decbbacbeda9d27"
+    },
+    "app/(dashboard)/ads/v2/page.tsx": {
+      "hash": "f475a7084cc108464c981e906055f7678e537e3b68a355bea49bb38334728974"
+    },
+    "app/api/admin/moderation-scan/route.ts": {
+      "hash": "2278661b2d10f6e782f15648dc0b38f01debd6d2109a3da0f53cdc5590a6b51e"
+    },
+    "app/api/admin/send-kids-launch/route.ts": {
+      "hash": "7d53f92338136a91ae4ecb68eecd46b277094168e264559bd5355649c13897ff"
+    },
+    "app/api/ads/v2/cena/route.ts": {
+      "hash": "cd01d749722727b94b3885c95e15821a8a9cad8f7fc2df1d03673a0c9377f2e8"
+    },
+    "app/api/ads/v2/start/route.ts": {
+      "hash": "3b049a83ded7c36155412f86d19222600cc7cc9ec194dff2103c6c038969d612"
+    },
+    "app/api/ads/v2/status/route.ts": {
+      "hash": "61713381569bdbe40fe0d0eff9dc5ce41ed4205acb8bf89c9014953864b85f1f"
+    },
+    "app/api/compose/route.ts": {
+      "hash": "89b03fb0b076875ed4fe78ddc4c252b65b3d5acd34bd340ffbfe0664eb6ffa66"
+    },
+    "app/api/cron/ads-v2-advance/route.ts": {
+      "hash": "2a28551a21d1798bf2c6aa7e5cd9f89553ae5463335e64521f4e23671db133e3"
+    },
+    "app/api/cron/placar-versao-b/route.ts": {
+      "hash": "09a7775210adf77a866d58910cb3de6e8fb67e63728226c6478a27996a21b0b5"
+    },
+    "app/api/cron/rescue-vendor-assets/route.ts": {
+      "hash": "491f3573aeab6fe9d95896714835aaef636b940127279228e994551d2dc1bfa6"
+    },
+    "app/api/events/route.ts": {
+      "hash": "7db24de472da2ed0c95a21d567ddb478543c343e538db6dc6e9b584a50c94c4a"
+    },
+    "app/api/footage/route.ts": {
+      "hash": "f64a018860d9ef9409c0d31a396f048b82412a7fa798143be61f1a3ac3279549"
+    },
+    "app/api/next-action/route.ts": {
+      "hash": "ea48a258dd4352edbd0089db2cb35194f939507f986865d7704f3665788b2b5c"
+    },
+    "app/api/shopify/auth/callback/route.ts": {
+      "hash": "bd85f96a6c3e5fbbc7b207707a97c3f9ddb52896b0b8507b70934aba0d0b259f"
+    },
+    "app/api/shopify/products/route.ts": {
+      "hash": "04df28cb013893f4ea0b60a602d3e483ce7cebfd0631448ccb2c86097bb76927"
+    },
+    "app/api/stripe/checkout/item/route.ts": {
+      "hash": "6ff58c42de341ac2f9bbc89309797acca98588d79e4afb6cf13a8ad0271d6830"
+    },
+    "app/api/stripe/checkout/route.ts": {
+      "hash": "55a4509e4dfe1587cba91079f6f7733b424016f64bdeea8b17ee8cc1c8169b01"
+    },
+    "app/api/stripe/webhook/route.ts": {
+      "hash": "21cd6cc6d1426aeb8024901b7036f2e8357d88667c82a4e908da3edf3c4634eb"
+    },
+    "app/checkout/item/page.tsx": {
+      "hash": "ed5589525807e49d11512d890d61259fd3cb12ada6a13ed3a3e10c3b9566bc82"
+    },
+    "app/pricing/PricingClient.tsx": {
+      "hash": "47337ff6fdf2e4c56a7383a91bcd40cf2dfca84087f16e8f416eb09938c2691f"
+    },
+    "app/shopify/open/route.ts": {
+      "hash": "1dcf76a3e60124588f9779402934c069df1e14a5f4f8fcf88e7eecedcd888d3b"
+    },
+    "components/OneTimeItemConfirmation.tsx": {
+      "hash": "b9f5c73aec403a18163dba9ff13c179238a23df1c572046059d829add07df411"
+    },
+    "components/OneTimeItemOffer.tsx": {
+      "hash": "c53c3395bad34ea8e8d9ef5472b9df29d2bbea1c1edc64954c4ef113de1e755f"
+    },
+    "components/PricingCards.tsx": {
+      "hash": "d0f476ff8586af1f0a04fc20d88dab2c5bde53f4372f00389d85386c655e4692"
+    },
+    "components/home/HomeCardCycleMedia.tsx": {
+      "hash": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87"
+    },
+    "components/home/HomeKidsCard.tsx": {
+      "hash": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4"
+    },
+    "components/home/HomeProductAdsReel.tsx": {
+      "hash": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb"
+    },
+    "components/home/HomeThreeCards.tsx": {
+      "hash": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602"
+    },
+    "components/kidsCartoon/KidsCartoonPages.tsx": {
+      "hash": "d4b2ea9de2fe23932a89a9148717da4fed3685ece5db58f6969412126bca5ebb"
+    },
+    "docs/ADS-AMOSTRA-MEDICAO-2410.sql": {
+      "hash": "6be739908e98e8347f49270f82b45a51d9ec0b2ead5c04a68a6694a039cf9d09"
+    },
+    "docs/APRESENTADORES-2410-ADMIN.md": {
+      "hash": "32e906ed9b955e20b676e24a512c89bf62216cba9ba93eca7a053ef332aabb4b"
+    },
+    "docs/APRESENTADORES-2410-ENTREGA.md": {
+      "hash": "c9db5b9f5cd0b184ec0b8ed8c05dca8bfd2330ef5ef159a5be836cfce663e60c"
+    },
+    "docs/CARTOON-INSTAGRAM-2210.md": {
+      "hash": "dd720bfa6bdecdff0472e7a4bcef24d8c62d050644e508539f0f6fe765ed476f"
+    },
+    "docs/CARTOON-TRACAO-2210.md": {
+      "hash": "4c6d45283b0858c09ee4d2d1207c38f3fe18afce80e1dfcd0184213dbd4a3172"
+    },
+    "docs/DECISIONS.md": {
+      "hash": "603d65dea724edd15350fce6eed953daeb7079c9661e8951ff1501f489ce420c"
+    },
+    "docs/KINEO-AMOSTRA-ANUNCIO-2410.md": {
+      "hash": "fa206611fba1d5de5b2f742f8a745011885510b94f32fb3648470f900d25d0b3"
+    },
+    "docs/ph/PH-TEXTOS-2026-09-10.md": {
+      "hash": "7273d8dd34610ac840f8f298bcaca3598743416c0832d4b188e0abeded999e46"
+    },
+    "docs/previews/COMPRA-AVULSA-2410.html": {
+      "hash": "8f0387fc20e8bb1acbbe1122fda23a540d0087c9859f6e404de2d1595731dcaa"
+    },
+    "docs/previews/amostra-anuncio-2410.html": {
+      "hash": "a3b8110193c5c3884b135503dc7a098f8ea4be7caa0613bbea43fdcc52f89e77"
+    },
+    "docs/previews/apresentadores-2410-plan.json": {
+      "hash": "87f8c4b27a3f4b446ed0650f9996eb67e8b5bdf6e8bd176fe7372a66b21bda14"
+    },
+    "docs/previews/apresentadores-2410.html": {
+      "hash": "1e96bfb6cd43b9fddd7dcd23e681f72ba47069cdaca3bc89343b2b50287a39f5"
+    },
+    "docs/previews/cartoon-tracao-2210.html": {
+      "hash": "3bbdbb5b6e42bac3d194a94461d85b0d23c6031f331683f0d17e73f0455f72a0"
+    },
+    "docs/previews/render-amostra-anuncio-2410.cjs": {
+      "hash": "17b58af794e1bbd2a8cc8777a86a87a7eb6e377582ce9c4a6a53ecb2d442f680"
+    },
+    "docs/previews/render-compra-avulsa-2410.cjs": {
+      "hash": "297409edd928513f7a2aacfa838a936839190a85656681478e6bd694aebec518"
+    },
+    "docs/qa/amostra-anuncio-2410-gates.json": {
+      "hash": "bc56d17be7d21f2ca636ad9ac1568acc089ad8dd961e7cea5e90d88127b2a3eb"
+    },
+    "docs/qa/apresentadores-2410/baseline-locale-readiness.log": {
+      "hash": "aaafeca92d6a24b66d4ae8f2f57421d9b41d901fc22958b0bb12064928bb42d8"
+    },
+    "docs/qa/apresentadores-2410/candidate-locale-readiness.log": {
+      "hash": "42ef6af77125c38658baf65ad9cb4948809c2410994eacf85e25ac950edfc42a"
+    },
+    "docs/qa/apresentadores-2410/retry-gpt5c-mutant.log": {
+      "hash": "fc6e13ac442976092ea3a472e2966c32df56ce380a049f2d1b492e2b2bf9aa3e"
+    },
+    "docs/qa/apresentadores-2410/retry-gpt5c.log": {
+      "hash": "682c267793d4c61bbf2b3181c8af4b860c11532bfc3877844e6792fd6a032afd"
+    },
+    "docs/qa/apresentadores-2410/retry-gptv31-mutant.log": {
+      "hash": "93c2cf28322ffd592ffa3f805eaf63e639d16130c2745e8cadc07b4464f24a87"
+    },
+    "docs/qa/apresentadores-2410/retry-gptv31.log": {
+      "hash": "72e0e74c305aa0c4b81591c6da3cd8e72382f4559e1bdae3951d5e8f06d58890"
+    },
+    "docs/qa/apresentadores-2410/retry-idiomas-undo.log": {
+      "hash": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44"
+    },
+    "docs/qa/apresentadores-2410/retry-paidcitation.log": {
+      "hash": "b67abf87a47fbbc9b02f552f801ac9480260e21a8875f9475fe4f86dd149799f"
+    },
+    "docs/qa/apresentadores-2410/retry-public-escolha.log": {
+      "hash": "576e7d679891469eef93d0c0962872cd8ce4d5a59b8085cc48c4aa47418619cc"
+    },
+    "docs/qa/apresentadores-2410/test-apresentadores-2410.mjs.final.log": {
+      "hash": "c7e5dfbc3c4aa0805b63fb0ab5e68fde8a8d365dc1850dd224fa7c510da1d8fe"
+    },
+    "docs/qa/apresentadores-2410/test-apresentadores-admin-2410.mjs.final.log": {
+      "hash": "2bb82c1ea1eb5b69a596b37f4e4e291b24ead3acb6df9d82138e313624484aaf"
+    },
+    "docs/qa/apresentadores-2410/test-apresentadores-legacy-voice-2410.mjs.final.log": {
+      "hash": "569d004855b930b45f7c5facc3bc47cd9d79e0b0533d857e5673f5a5df0aee55"
+    },
+    "docs/qa/apresentadores-2410/test-apresentadores-undo-2410.mjs.final.log": {
+      "hash": "d9c54f8cda12aab524ade77adce92f950d7c8dd44182b90bd53fb76cd229ce00"
+    },
+    "docs/qa/apresentadores-2410/test-apresentadores-voice-2410.mjs.final.log": {
+      "hash": "9bf4441d4b13b3a2d682c4d54f8cf2fa60cdc34fc9b911a87acded3f14a7a30d"
+    },
+    "docs/qa/apresentadores-2410/validation.json": {
+      "hash": "ee5e4de49c05d42eb150a2d57061a2b732304a4cb7d8a8bfcb1811d908f35cc8"
+    },
+    "docs/qa/cards-giro-2410/PREVIEW-HOME.html": {
+      "hash": "abbc80f097b2e6872342f989e9b5fed8fc4e4ff6bc7d0c7092071310a3c44fc0"
+    },
+    "docs/qa/cards-giro-2410/QA-FINAL.json": {
+      "hash": "fb6587db0112e7db28eedea972fd51bed7e6aa3fdd5bcd6674b6e109ed04003e"
+    },
+    "docs/qa/cards-giro-2410/README.md": {
+      "hash": "1400ba2f89d4b9e56faa1f74d5de19bd75d3e0bf7382b1353d4bf7753a0d8968"
+    },
+    "docs/qa/cards-giro-2410/guardian.json": {
+      "hash": "165230166a2b4d60b53eaf62f388bdf59e67c7ccb47d26c61829aa682fce9840"
+    },
+    "docs/qa/cards-giro-2410/media-inspection.json": {
+      "hash": "261089f1f001b18273771c7080f9b18496995a63bfb61dc16643298d21128c0c"
+    },
+    "docs/qa/cards-giro-2410/source-hashes.json": {
+      "hash": "4d2f68f85016e8d2264ff3e8e6572b68e2b021331fbd83fc53110a7cd14a7b72"
+    },
+    "docs/qa/cards-giro-2410/suite-comparison.json": {
+      "hash": "29d0f0dd0dcf63135ea746c4e149d5cbdf55522ff2cbadf1b7309db08354d36e"
+    },
+    "docs/qa/cards-giro-2410/typecheck.json": {
+      "hash": "7002d3ba441f938a84e03b506222c98c2e3efdb307f78ecdbfed65cbbcba494f"
+    },
+    "docs/qa/compra-avulsa-2410/ENTREGA.md": {
+      "hash": "70a41ee32331a8f311b58cfaf917a728bd0b6bcce0256a243a03c3f221f6b98f"
+    },
+    "docs/qa/compra-avulsa-2410/FINAL_VALIDATION.json": {
+      "hash": "bd912036d7c123228e9f444406815e1f23b6ed8c16d21682f9a959f0fff08dce"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/00-typescript-noemit.log": {
+      "hash": "c8e649c4c7a2218423ad2ca90e7cca890489a44a2d870bf4cdcd1d99bc2d833f"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/01-test-idiomas-2410.log": {
+      "hash": "65c90f7d2cde831e9b37c30dc77182e1f3b99ace085631450845e3e7d53c1fe5"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/02-test-language-segmentation-2410.log": {
+      "hash": "1beff0c6a11daee43d85d7d9c5b0c683b5a67e1e621b44e48cd56b086cfce10c"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/03-test-ads-formatos-escolha-2410.log": {
+      "hash": "c3b4d48ea2620a4cb9d88e2f4e318521706cc97285b53da1c96222f9fceb613c"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/04-test-idiomas-formatos-undo-2410.log": {
+      "hash": "8aa6596345150e1383c2a7fa6771eb894728515ff0485bb8bb3125a9cbad4a3f"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/05-test-ads-escolha-publico-2410.log": {
+      "hash": "16cf295c1a1b97ec0cb157cd29895e2735e9cf41a55aeedb93fc4e1706641458"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/06-test-ads-escolha-2310.log": {
+      "hash": "8a05cd240e83cae6736647c2afc639c19f1838e74ae36053e73c8ed17a08c92a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/07-test-ads-render-fix-2310.log": {
+      "hash": "90681af92bf204200438063d77d84b997f92f101aae2ce8a11858af0f4175fea"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/08-test-trafego-pages-2310.log": {
+      "hash": "8f6623bb59404ff215a7824012ad68687678227d2994a1092f58a6e923b02842"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/09-test-trafego-index-2310.log": {
+      "hash": "bdab6d450d51893460886bebd9d1c9c95102ea19cc318bfd20791014f225adeb"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/10-test-trafego-health-2310-mutants.log": {
+      "hash": "b9b475e959abf2b6db65c9a53beafb3cc2798b584ddd36fdd47bb405eb439a8a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/11-test-trafego-undo-2310.log": {
+      "hash": "0054ab68addd0ff7b39ddd11f718deadf44c3b5f8a591ea75d0c23b1caf03e6d"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/12-test-admin-leve-2310-mutants.log": {
+      "hash": "b5792f30eb894507fccd69ea34c8a8630979fe81fcc655ce05371e8796dfc883"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/13-test-admin-leve-undo-2310.log": {
+      "hash": "db795be90c0817dbdea8e8577d980f4ec12e65a789282d2477ccbbab724cd212"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/14-test-roteiro-curto-sem-falha-2210-mutants.log": {
+      "hash": "5f3e0e78adc410849c13dcfc9c18163c260fea5b78d91b7f0c00dcdbf9a278a0"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/15-test-roteiro-curto-undo-2210.log": {
+      "hash": "91b5cdf4a77ebd933b52fc6371205a3d2c53e1a45fcd6f6c1cab721c7848b580"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/16-test-admin-truncamento-2026-10.log": {
+      "hash": "517d75e1a4700a8ba8a729fc2f32dbf11b1f1f98ffca0a4268bebd830cae190c"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/17-test-afiliados-acordam.log": {
+      "hash": "082f1732731f81f7bbc7f3e21719d9b2dc95366f38f0d942383468786878e3ae"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/18-test-coerencia-kineo1-2026-09-16.log": {
+      "hash": "7b38dbfd99907ecf491eb05563753583d4b786a4d66fb30cbaa5227fe6e6d619"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/19-test-juiz-still-2026-10-06.log": {
+      "hash": "642dd69dfee9fb11d7c6333fb41967e5964004d0e5d9da469f5248ab9a00f5a6"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/20-test-carta-da-recusa.log": {
+      "hash": "14401589f8a6359608b6dc1c47da140c7c3ac17d684c3b26adadb280a4a99a19"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/21-test-momentum-topic.log": {
+      "hash": "3c1af89e20de213214015f6dd48bfabc55e46820651180fd55fb1f7ecd3de295"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/22-test-stalled-frescor-2026-09-05.log": {
+      "hash": "f203b5c67254cabaf5cde89f3f5edc2adb1a9ec7d17c4642a696ec35b5526f6b"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/23-test-hot-nudge-janela-campanhas.log": {
+      "hash": "fd3afd831322795b4bd1e6249188065283b6f532bc6dd6b5e5e236b4629bcd1e"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/24-test-gpt-v31-facts-2026-09-24.log": {
+      "hash": "b725ddc154f4ca0f186e055a8b6114fd951fe9d26fa0a202f1edf97088397dc2"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/25-test-gpt-v31-facts-2026-09-24-mutant.log": {
+      "hash": "f14565e5b510ae374da0063e5f09ccc4bf1012e46890861ad92fee2b0db56bf3"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/26-test-sharing-safety.log": {
+      "hash": "81cbd41f0d39d2603a21ff887256715b7d9187312d45ab86cffe8e426f6b7d24"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/27-test-paid-video-citation-guidance-2026-09-28.log": {
+      "hash": "654349b422f480ae98f4dee778b9c3b7afca4f37df1ee8ccefe3cabcb841847f"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/28-test-seedance-hero-plans-2026-09-28.log": {
+      "hash": "47e590e0299893a99ee4375da464b25499adfc4dc9cbf2b49bb867719c0dd62c"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/29-test-motores-geo-2026-10-06.log": {
+      "hash": "e994fb1feeafc1edeb33294f084a07bb15f2a69732015b1a7be64e579481245a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/30-test-ads-aeo-2026-09-24.log": {
+      "hash": "912af743877124af6ec460d43d7e15406960a51c6c581e30d4f955905090ab8d"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/31-test-five-improvements.log": {
+      "hash": "3fe98aaa6ee33e1d959765ee697f31d5436cb22411bf9b7f9f9e40d4ab613b72"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/32-test-studio-entry-transition.log": {
+      "hash": "cc597764e2782de466249345a890226abd0aac5d8730473bf242d7e64b927e23"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/33-test-locale-readiness.log": {
+      "hash": "9df7cf3af4413cb05393df77867e8a8ef4a624193b5306d19494f7cc53885ab9"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/34-test-app-blue-layout.log": {
+      "hash": "424ec85b275a39c77142ae2c5b0285b0421aef1632e4a62e943d32ae78e130a0"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/35-test-home-curation.log": {
+      "hash": "2c252edf28797884069b51ae2494db27fb7ce2cd0c9c20af08eeb45502332b4b"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/36-test-home-blue-layout.log": {
+      "hash": "9c170ac57b8aafce6472466856f0ff142072cc08a7b4928469b42400c555bfa4"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/37-test-home-referral-bridge.log": {
+      "hash": "63be549357e73824bdaa80bda721839cc3a8565f7e2691b418799ee93ab0250b"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/38-test-home-pricing-checkout.log": {
+      "hash": "a3b9a8b2b2c5f9bdebdd53f1f94e63e8f52a452fad30af0c3167a3854768473c"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/39-test-showcase-premium.log": {
+      "hash": "4cc83388209e92fe8cdc3a264dfaeb68c4e4905938e6a6133f34cd68ee5140bb"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/40-test-cinematic-timeline-2026-09-11.log": {
+      "hash": "ac09c38e4d1656c9c8c030a0eef79e9839eb283309640e40c3e4c49e9f66a31e"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/41-test-cinematic-speech-2026-09-11.log": {
+      "hash": "02465948d23193f757f1e37f47c57e5963b9d92a8985545b1182d4d648f4e091"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/42-test-music-direction-2026-09-11.log": {
+      "hash": "812818ebf8672a29993cccb1e616a1dc50e7cbc64d15085fe5097461df18865e"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/43-test-visual-contract-2026-09-11.log": {
+      "hash": "fdeb6097a4cebd57ce738883404780eb4f87f384b1a82053e84d5beb4038e761"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/44-test-quality-rejection-2026-09-11.log": {
+      "hash": "dd940aaeb871ad2f7434d4b389751a23b798ec9f61cc086e36f8b0fa13b8dede"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/45-test-quality-route-integration-2026-09-11.log": {
+      "hash": "1d91de8edafe569b879820a07e5a5363d44a329093915324c9aed46df823e8ef"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/46-test-quality-failure-ui-2026-09-11.log": {
+      "hash": "ecff9c5ba75688e4e4f0fd88b9da78777eab046823f3296268e32faa71297b51"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/47-test-active-quality-rejection-2026-09-11.log": {
+      "hash": "9303a879788860a29f15b59d37e5c437e8c377010f2c2c296d31a82221f12d9a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/48-test-cinematic-terminal-proof-2026-09-11.log": {
+      "hash": "b6fb4f99ea21561a2809fd7674dcbd1f2a7fd6dfc011cc302d40d0bca5a14e70"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/49-test-cinematic-poll-diagnostic-2026-09-11.log": {
+      "hash": "6aa5ec2e8df3fc9d3073b9bd9d29f7e424875f55a66ae171e403a2ae46e62790"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/50-test-scene-retry-mutex-2026-09-11.log": {
+      "hash": "a2daa11bc0e31bbdc0131e49b3941b480e2c577c7873da19eee687a33c87ef90"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/51-test-gpt-5h-a-2026-09-24.log": {
+      "hash": "445c60e7f935644ce0ac49658944cf3af2a2062ee23b8bdf45184bac494a7867"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/52-test-gpt-5h-a-2026-09-24-mutant.log": {
+      "hash": "842d237fbd17d907ebc80e6bf64c56f0aade790e0aa33b800592230221045b83"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/53-test-gpt-5h-b-2026-09-24.log": {
+      "hash": "2a362a1781fa47aaa28b02db14e87035f73e5fbf84f59524a8fcb4692fb98d82"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/54-test-gpt-5h-b-2026-09-24-mutant.log": {
+      "hash": "13447530c1be8b9536ce104a6cb89ba9a34d6a4ba8684dfd722aad04fd5424cb"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/55-test-gpt-5h-c-2026-09-24.log": {
+      "hash": "840cf1284717d102aa0ea7d33172b1c890445d1b89056f899e4e850acfb7c1ac"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/56-test-gpt-5h-c-2026-09-24-mutant.log": {
+      "hash": "793135e8eb78f8609a1cb772d930d0c0e1e45c119087635e6ff28ac7dd0ddf06"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/57-test-kit-bf-1910.log": {
+      "hash": "ce2050f3b01e04b9f2f10c7120ddde4e8b9d64eb05ce7c295627bc30fd32f226"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/58-test-kit-bf-venda-2010.log": {
+      "hash": "7d361eb1bf768d07a49ff0933e84870147c43c7e9dd4f7392633f9f051f9ae7f"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/59-test-kids-venda-2010.log": {
+      "hash": "15e97276fe24b415466346d8f992c4fd5f11599316e2b90623eb095238a1a8c8"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/60-test-stripe-async-checkout.log": {
+      "hash": "7e54b229388d2a9e629b03c4125c2ea65af74240c69fcfc9dce40f8727b70399"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/61-test-stripe-checkout-failure-truth.log": {
+      "hash": "af54a766675e5be355fccb8bb120bbd72f4c3e657f7620fc6147b247db4b36d0"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/62-test-verified-checkout-purchase.log": {
+      "hash": "feb6bddc067728625b1fc837101d03766d7a11719eccfdefe11dede991186bfd"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/63-test-checkout-success-entitlement.log": {
+      "hash": "b058f7643013a37ea102ba2f4b35ab5ecb5ef40405115c362fda6a1a00565604"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/64-test-checkout-currency-truth.log": {
+      "hash": "ca0a6551ab1ff53f057bb6e7346b08b7ece302c53ee72f0569c2cf1c567ed255"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/65-test-checkout-clareza-1610.log": {
+      "hash": "72a0e4c39b96924c33e7615b2fa70bb1fa6b36e4e79a73ec0319134cf571b5e6"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/66-test-checkout-honesto-2026-10-07.log": {
+      "hash": "cea1eedaf78efe58b45ffb6c43af7bad32b86333d2b854b2988b276250d37113"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/67-test-low-balance-pricing-bridge.log": {
+      "hash": "0ebb796a38a126efe76dc34726be2c2b7767e93749177719287cb5df9cfdc54f"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/68-test-pricing-plan-choice-attribution.log": {
+      "hash": "1dc54161b896d64c39b094b3db6064e9d23ca0bebd7784b56b6e06bfa0b34c8b"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/69-test-pricing-diz-a-verdade-2026-09-27.log": {
+      "hash": "2b6dcf7cb7c52ba8f2a2dff423a56b59889dd16e99911965ee3194101ba9f012"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/BASELINE.md": {
+      "hash": "0b95d213e05dc6e44cb6a8f5924ea8951132e24a621ac581efc78a0ddc2b9389"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/extra-inline-pricing-decision-funnel.log": {
+      "hash": "d23031025a8789b0f3c95adc80c80573f767970c16e9022e8893718812fe3b6a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/offline-guard.cjs": {
+      "hash": "5d2c30f999299a67b71cb37c6311feee06631182917b28f94b790e0a73b75ecb"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/results.json": {
+      "hash": "9515ead6c2e3c144d4e6aa7d4603f9daf2e687d0a9dad3dad2856bdaddca217a"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/retry-dependencies.mjs": {
+      "hash": "93814af60b4b2c9ed9ac0d9a65f536960b8baecde1d10dba3f17158399936fab"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-afiliados-acordam.log": {
+      "hash": "42f1f248b7d3a1e2720274a223109470420ae123e4dd139a7127809d3d0397cd"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/retry-test-juiz-still-2026-10-06.log": {
+      "hash": "4fea507e7f3605e470e305125c33b6e91af8bf8c156e44729a9cd72ca2073793"
+    },
+    "docs/qa/compra-avulsa-2410/baseline/run-baseline.mjs": {
+      "hash": "3a9d8f5eeb79b379316480589e005793f1a2435b0a06a65e21a7021369ec8b57"
+    },
+    "docs/qa/compra-avulsa-2410/build-manifest.mjs": {
+      "hash": "25c956cd7a43bc6c20d10d5bc56cf1bf8b165bc3060c0fd6c16d7109a76c98be"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/00-typescript-noemit.log": {
+      "hash": "562dc8fafc47e5cd1ad9769c9f6a05c32bb3a5b57906b38354c140a893d0d7b5"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/01-test-compra-avulsa-2410-mutants.log": {
+      "hash": "6ac238990564263140d8d5a8ebea663c127f57c48aa3e908bedce00c584f2c21"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/02-test-compra-avulsa-webhook-2410-mutants.log": {
+      "hash": "673968e2e2395dc3f1e6152d0e647d106928f954180384a9c2f0ad31c2d43ccd"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/03-test-compra-avulsa-return-2410.log": {
+      "hash": "8442cd660176fe94f6560c89b824b915404df84a4f2f9f729f25d19ace1f54dc"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/04-test-compra-avulsa-delivery-2410-mutants.log": {
+      "hash": "6f6635542c826b404b8181969431619af164aa003090ce152510ec9091e3c602"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/05-test-compra-avulsa-ui-2410-mutants.log": {
+      "hash": "31d837168d3dd8ab409fab2c205817a668a25956ec4a1abaa7de40746fe2be36"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/06-test-compra-avulsa-sql-2410-mutants.log": {
+      "hash": "c66e319c3977de737dabd1060a0a4d3030d45187b0755ca78bcfd9e49260da28"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/07-test-compra-avulsa-undo-2410.log": {
+      "hash": "c1fe1f9d337bd8849300f57594800ffed1be02d9f2ba8d4c3417fe65af0e431e"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/08-test-idiomas-2410.log": {
+      "hash": "e4017e5e72154734ccd66c073819e9e75edfa536b0659a146f1a7875cd1f149c"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/09-test-language-segmentation-2410.log": {
+      "hash": "2f7698bb7c4f4d3afbc4fa41f893dbba6aa4b829ca2750d55b9c6f90811c67ac"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/10-test-ads-formatos-escolha-2410.log": {
+      "hash": "2d3a544d2dfb504c050b6d06dffd51da4169761d48c544ebf16bf5d160325e4a"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/11-test-idiomas-formatos-undo-2410.log": {
+      "hash": "fe2d0bbb6c42ce9fe2859207256aa277284bb06c4b74e41fd12949d76bf6bcec"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/12-test-ads-escolha-publico-2410.log": {
+      "hash": "9d7dae45a8c3b1e259fcccec51760fab6638abea763d1b43a352290a0cc843f7"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/13-test-ads-escolha-2310.log": {
+      "hash": "3b0124f23e0fc5f195b147154a5c44f623c123c3318fe555b79ff6b29f1f2654"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/14-test-ads-render-fix-2310.log": {
+      "hash": "c14207a2f14499b68c976ad44ddd0b4f2f8dadb46387a10f0618f8885aec8faa"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/15-test-trafego-pages-2310.log": {
+      "hash": "744e8128b8e6a6d3dba174c0b2a2df2dfdbdecc037fcece63da75a953d6a7afc"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/16-test-trafego-index-2310.log": {
+      "hash": "c1eda29829447edf4de9e5a72d5c910d2e438754809568089db6bc7ead89a7c3"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/17-test-trafego-health-2310-mutants.log": {
+      "hash": "afbfb31a0d56905889ef96dca96a242c772e42fec5c97a85d60903397337555f"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/18-test-trafego-undo-2310.log": {
+      "hash": "84881257ba8e93ec18e5a36ddd764ea8cd6b4cdd82e6c066e574143f56a2499f"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/19-test-admin-leve-2310-mutants.log": {
+      "hash": "42c6aa3db11be7e0ab635c161b047fa9a07ffe7f8f1d7f1dd12172177bfcfc59"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/20-test-admin-leve-undo-2310.log": {
+      "hash": "9e2b12d42c39581313e15b9583ed55b388665d6b108ef3764c7678eead08a409"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/21-test-roteiro-curto-sem-falha-2210-mutants.log": {
+      "hash": "5ebafc5f6ac99c7eca17cf4c393a88330af50a6fa67b8a6dbf29448d55975d24"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/22-test-roteiro-curto-undo-2210.log": {
+      "hash": "75bbfd71cf14c6d53942c3d3f54ed47777081c4dd7427071705e9c33e8b41fbd"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/23-test-admin-truncamento-2026-10.log": {
+      "hash": "0ce17d16586c0ef9f6cc03aa6fe0ad466d9462ec047096896c76877c396e69bc"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/24-test-afiliados-acordam.log": {
+      "hash": "5902cf1855c2c26fe15852b378add496a67be4a503fd34750411324fc76f4c46"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/25-test-coerencia-kineo1-2026-09-16.log": {
+      "hash": "2cd100eee1e96cadd8fe961b99ae06a23d3bd557cbe2e330a9c2504908163e2c"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/26-test-juiz-still-2026-10-06.log": {
+      "hash": "6bfa660b336927658f4101f1993e0c3115f384bf23f8d38c1aded6bd1db22d31"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/27-test-carta-da-recusa.log": {
+      "hash": "3967454bbb5b19acaee1dc3a9910760ced7386f588f122c98b1072e7c070304e"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/28-test-momentum-topic.log": {
+      "hash": "1611ed4de8379e7951f94ffb782a6ffbc60d34b9a5a69e784f5574828d0793f9"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/29-test-stalled-frescor-2026-09-05.log": {
+      "hash": "c21eccd436e71aa87254fd3d31288bc91466a244ee9704d8cb2b832b3a9e5c68"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/30-test-hot-nudge-janela-campanhas.log": {
+      "hash": "e47dab13dcb0bd01a5ca2ff35c616cb8188871052628fcabd72a8f815b8d9837"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/31-test-gpt-v31-facts-2026-09-24.log": {
+      "hash": "36a7d71588d474f2bd41198e6a5c2f5a4dd6cdad63fa760fe45097819f868d8a"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/32-test-gpt-v31-facts-2026-09-24-mutant.log": {
+      "hash": "9f8213a6e36893613415f3570d57fbcb885fd15802fcf16a1377721d05de6e9f"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/33-test-sharing-safety.log": {
+      "hash": "dd854f327797f01452f22bbb62ea3251aa7331a0ba65eb2e472435f32fd6a72b"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/34-test-paid-video-citation-guidance-2026-09-28.log": {
+      "hash": "34d108ff400c221822080b44b1b6517a0d7fcddb7ee59bb4c6c9dae608f341df"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/35-test-seedance-hero-plans-2026-09-28.log": {
+      "hash": "10addf4cca3d85195e53c16c2dcac1042f7b2a5e0ed4390cd2798da514167bdf"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/36-test-motores-geo-2026-10-06.log": {
+      "hash": "a67c324ade6de4689f266a77edb42723d9cd338930fae677aacbe1b1bb9f3d46"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/37-test-ads-aeo-2026-09-24.log": {
+      "hash": "de736df36cbabde254f2acba615267870d025936c27d462020d4f3c1364ec5c4"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/38-test-five-improvements.log": {
+      "hash": "98e1cf085d2a559c2f5e90b6c973e133ead549f7403e804d89ce15d8211e1d9c"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/39-test-studio-entry-transition.log": {
+      "hash": "46383779e947aa3230a324388bdc75e97f4ff17c5fb7d8861e112aec554fbfb3"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/40-test-locale-readiness.log": {
+      "hash": "2c9c14378bf88c5d09800147bdaeb5470e3b947f5a9af82067874274edc41505"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/41-test-app-blue-layout.log": {
+      "hash": "4581149d3ba92511ffef973da46c30f69ddf7f0d68a7bfe0807fcaabfaadbe37"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/42-test-home-curation.log": {
+      "hash": "59e80739afd727cf09702f8d86c8258caff4cd251f45d87dc8c6060dd2324a12"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/43-test-home-blue-layout.log": {
+      "hash": "7d316e8d0b28097069737d011ea706e25e920d6f926b792a8865cdfbc660c3b9"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/44-test-home-referral-bridge.log": {
+      "hash": "4525d4f5fde6b558b9051eb317173f256a4602d75f4413517bf17d702619d5f7"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/45-test-home-pricing-checkout.log": {
+      "hash": "034460a78bbcba9952da0b966951ea297a68fe60595fc30a74b1bd7790d1a7f2"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/46-test-showcase-premium.log": {
+      "hash": "4779fe650593d46633207f3372f21fefcae4eee6f7b4a86934a44034067af365"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/47-test-cinematic-timeline-2026-09-11.log": {
+      "hash": "a60b69a61f463182ef60254dfe1f5961a4e028699a5e3b95cefadb58b3db2208"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/48-test-cinematic-speech-2026-09-11.log": {
+      "hash": "dcd3401fad12dd2251d6bf468cecc63eb1a29d533a1af1888b7158b47ce53299"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/49-test-music-direction-2026-09-11.log": {
+      "hash": "cedaf35d168c09995009821b0b11811a6a18addbee1bf72f0e180960d74a5fcf"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/50-test-visual-contract-2026-09-11.log": {
+      "hash": "239ac79a63e76eedd681b0eb94d863fde3d41819e0602056e169f2d33c03b367"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/51-test-quality-rejection-2026-09-11.log": {
+      "hash": "9e9c135675fe46c7114d7592da7e5c96aed5e14c3a8d263075d0691ea9a4cf1d"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/52-test-quality-route-integration-2026-09-11.log": {
+      "hash": "2a43b0d91865b57996990b1720cbe1fde66bd08af6199d9cf043bec8cc894bda"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/53-test-quality-failure-ui-2026-09-11.log": {
+      "hash": "0bee0432ec8a569b869a593a2f76869ccb9a4d4ae6e3dba98e920f86ec52ac5c"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/54-test-active-quality-rejection-2026-09-11.log": {
+      "hash": "8aa146bbb0316f7acf331df84d6a7b5e6bcd36535d75856c4336a14904512031"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/55-test-cinematic-terminal-proof-2026-09-11.log": {
+      "hash": "11d2b14cee0f0c38b995a5de87976ded11933a92806faa569dd8b6c7a66b2016"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/56-test-cinematic-poll-diagnostic-2026-09-11.log": {
+      "hash": "2c846a8fd90819e7ce1f7471f37d897a447d3560319911822f9cc704fda3221f"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/57-test-scene-retry-mutex-2026-09-11.log": {
+      "hash": "1daafa4889eed9b2fa93ceff9fe8141a23a79d8a6e40c14b8abc5f5b727f52d1"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/58-test-gpt-5h-a-2026-09-24.log": {
+      "hash": "de7b62bdde02530ec6f0af1b9e6c09a3184568c201069a5e2fa164ea13c98215"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/59-test-gpt-5h-a-2026-09-24-mutant.log": {
+      "hash": "a7c94c06c3ced906259f6a3504972f50f9ebe26e1571465b37d99df6a639a608"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/60-test-gpt-5h-b-2026-09-24.log": {
+      "hash": "1457087e8be8163ebfca712539d6a3213f5a2eb3db487d2dcf1171540ad2e0bf"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/61-test-gpt-5h-b-2026-09-24-mutant.log": {
+      "hash": "75dda745eb370014d1abc94d2ae632b793be7becbd16112f8e81eb69609c7721"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/62-test-gpt-5h-c-2026-09-24.log": {
+      "hash": "3dfab48e05a478619e032f0922ffaade10d25a5d8b678a89b66398f83f30f011"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/63-test-gpt-5h-c-2026-09-24-mutant.log": {
+      "hash": "7596cfe7f5ff8ff696f6c34793d6471bd3589e226604ba505db8cc4ea1c49ed3"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/64-test-kit-bf-1910.log": {
+      "hash": "3894767db9e90cffc14ad9399ceeea0570dc6a0a9dcab0db938152fd9e0e01cf"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/65-test-kit-bf-venda-2010.log": {
+      "hash": "6acf4c5297bda1be8ac3c4f7ba99d69166d5f87a31659fa55e6be22546215673"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/66-test-kids-venda-2010.log": {
+      "hash": "db5eeb23c179816aedb152f8e9947c9c035577b22e3d867293dea8388a72d197"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/67-test-stripe-async-checkout.log": {
+      "hash": "09577fa9190084659de7b987421e9f5b9937501123793676c60a2fd7007680a1"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/68-test-stripe-checkout-failure-truth.log": {
+      "hash": "4d1271862cb040c5e0bb9938be4bbc71d760930704846f412d8dbe1723fe8720"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/69-test-verified-checkout-purchase.log": {
+      "hash": "ef9fc57e5df0a7b496fd50ce6582e64ffa659d46184e60abe4b6ff94598d95aa"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/70-test-checkout-success-entitlement.log": {
+      "hash": "cbed93fd39e9f8f19ee115abfab2d953a4ee04e1eaacb5c088e7187206ebf1eb"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/71-test-checkout-currency-truth.log": {
+      "hash": "ca004460466ef21d7a7a59036d033a9e76c1e5181b7f42e02f6649ae56b930ae"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/72-test-checkout-clareza-1610.log": {
+      "hash": "e8128b16fdb22e4bf7b77261cd901b79ee1d67daf62eb80beaf95bdabc2c8834"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/73-test-checkout-honesto-2026-10-07.log": {
+      "hash": "aeaa1173ccd8579f2106251449d078e34625ace4d8f4fa7c771ae50591ae7764"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/74-test-low-balance-pricing-bridge.log": {
+      "hash": "4f72d2f5f6b9398176de82331564417ce96de38eda1cb264dc59b8223ac5479b"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/75-test-pricing-plan-choice-attribution.log": {
+      "hash": "52d82170da30635b073283b890c86143c6614191d16f4fbb4431dc58102a22b3"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/76-test-pricing-diz-a-verdade-2026-09-27.log": {
+      "hash": "8653c68ce663174f01b6661dbad2556d49933c5c495252a48f7b342f72817fd6"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/77-test-inline-pricing-decision-funnel.log": {
+      "hash": "87aa4e30b42701830c52809ae689673a3c77f38afa219d5440881d2224581971"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/COMPLETED.json": {
+      "hash": "eaab960ed2b8f6cc8f75a8f511b695f6286bb1ca43be14249e11a31a7faf854c"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/offline-guard.cjs": {
+      "hash": "5d2c30f999299a67b71cb37c6311feee06631182917b28f94b790e0a73b75ecb"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/results.json": {
+      "hash": "f75df38a036ecf366e36ee9c8f8c7d9c111af214fb7f742624a008f7f6650909"
+    },
+    "docs/qa/compra-avulsa-2410/candidate/run-candidate.mjs": {
+      "hash": "e41210c28463f6a203cc465d31fc2ecb08222f2ff2a559b429ad778f077a0e00"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory-results.json": {
+      "hash": "e2b97914e403d2b3f3ed153affe331034e28f2a596c00abbd8782104d9db6f01"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/final-inventory.log": {
+      "hash": "a7abaef1a6fda302d4b20a143ac6210feacb4f5172c5d53b68b40ca5af9a6fd5"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/offline-guard.cjs": {
+      "hash": "5d2c30f999299a67b71cb37c6311feee06631182917b28f94b790e0a73b75ecb"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/results.json": {
+      "hash": "0c11aa8586b61d147529a17afeac1990063d2dd9e612f08b8ca5a85f6e146278"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/run-final-inventory.mjs": {
+      "hash": "b679c72e00e7ef1f034d1a74783922c62bb42b1388b943525117f8ffaf95ab16"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/run-revalidation.mjs": {
+      "hash": "5b29c3f888e7c0062b444c0670f05eda733545c17c6ac6dcc14b760da3b7b27d"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/test-ads-formatos-escolha-2410.log": {
+      "hash": "37902b4d5473ffb22d66bc8d2b4c53cb45341ce237758f7fa0c3bf70d8e6a17b"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/test-compra-avulsa-undo-2410.log": {
+      "hash": "a7abaef1a6fda302d4b20a143ac6210feacb4f5172c5d53b68b40ca5af9a6fd5"
+    },
+    "docs/qa/compra-avulsa-2410/revalidation/test-idiomas-formatos-undo-2410.log": {
+      "hash": "71d9478ab8b9e38be67f57f5146770d8fe2698e0d3f8c0f126df2a0e4ff45891"
+    },
+    "lib/ads/cena/escolhaCatalog.ts": {
+      "hash": "639f3c0fb57ee09752fcb1ad085c797fa2d895fd9bddaa5e7ee248c22842e5da"
+    },
+    "lib/ads/cena/escolhaMedia.ts": {
+      "hash": "84f7e2c7e68f2768de449049b5854a1a8f5f2b55abf64d4d62abbb4139f9a988"
+    },
+    "lib/ads/cena/escolhaMontage.ts": {
+      "hash": "bf76d24df9ea49fa22b164c11cc5fb0376d3ad4d0ff5816c1f0a2bfe2b022e3e"
+    },
+    "lib/ads/cena/escolhaNotify.ts": {
+      "hash": "89d15c0bbcf57e40c5f2aed992e8ea198c78b2ac2c3b5797e655a72ae03f7093"
+    },
+    "lib/ads/cena/escolhaPersonalAccess.ts": {
+      "hash": "7a7b380039993704fc76f7f04a34d3234b06b3dc86122bee80a0fc118e6841d9"
+    },
+    "lib/ads/cena/escolhaPlan.ts": {
+      "hash": "bcd0c4e754fd77daafff660b338aadd24a9601437a72880f2bebfe85393f35a2"
+    },
+    "lib/ads/cena/escolhaSamplePolicy.ts": {
+      "hash": "a74c4c7864b5cf9b1b98c54b63b693157cc66f6f4da34025c425d2a239944c71"
+    },
+    "lib/ads/cena/escolhaSampleServer.ts": {
+      "hash": "82e4d5d32b140b12dec59b095e4a15b1a3475ac54f62f6f2fd5d24a037090ce7"
+    },
+    "lib/ads/cena/escolhaSampleUpgrade.ts": {
+      "hash": "fef2a6d86b23ce6744be4afde01d03c3e1eb356d27b7cbbd6d6f6075565d6e4a"
+    },
+    "lib/ads/cena/escolhaStills.ts": {
+      "hash": "86924f058c0dae127218783dbaf861a452c9bd7b3ce6c3c40a72c4f67972d028"
+    },
+    "lib/ads/cena/escolhaVideo.ts": {
+      "hash": "c584127a05a07ad2b1f150b9a4522cedddf0c5113fb23edb5e3456c06815f9b6"
+    },
+    "lib/ads/cena/internalEscolha.ts": {
+      "hash": "3f9830ccf5229ec3119e85a32ac4357248e55a7f0be1e39b831ecf94245292df"
+    },
+    "lib/ads/cena/pipeline.ts": {
+      "hash": "4680ea6f66edae5212bc1d5b9ba492297a40e9d02721f95a9923dd36276b0bd2"
+    },
+    "lib/ads/cena/presenters95.ts": {
+      "hash": "b21bc79de664e4cbd04edc432655cce336e740fba6419e8528159948d8306729"
+    },
+    "lib/ads/cena/runtime.ts": {
+      "hash": "f567962959e986d3a6af819b3c6ee4f5c93194f94e69da087a57311eb00b813b"
+    },
+    "lib/ads/presenterCandidates2410.json": {
+      "hash": "0329266faa464445c39afd58e0e364589dcab443ec9cd1e7e9019a3a6d932aef"
+    },
+    "lib/ads/presenterCandidates2410.ts": {
+      "hash": "2de70fb488dbce54e09ad09326d783c4caae429aaa41ad12fbef9310181a43bb"
+    },
+    "lib/ads/presenterVoice2410.ts": {
+      "hash": "aa5a954fc6fa96a6a755484566abf24fbf291abbabb97821999f0aafee643dbd"
+    },
+    "lib/ads/uploadFootage.ts": {
+      "hash": "e0ba89616735b7951cf3b483324b515d69099c84da1f3639ae0794c9c4586368"
+    },
+    "lib/ads/v2Advance.ts": {
+      "hash": "10de1ff7413f0ece0398e7d94ac47bda502a7642e114f08594511e99bf4d9d38"
+    },
+    "lib/ads/v2PlanCore.ts": {
+      "hash": "3510081009cdfdeb29461c8682c0dc8f638b766939323b7dee65fe66ad086c7a"
+    },
+    "lib/ads/v2Presenter.ts": {
+      "hash": "2a3149f48352f1e400624f00863743c7f7de4881a1d2b63efacc1b172cac9056"
+    },
+    "lib/ads/v2PresenterV2.ts": {
+      "hash": "6ce6b47fc7aaa4d57047a12b13d60a7368b96337e85c167ba55bf344e38da52d"
+    },
+    "lib/ads/v2StartCore.ts": {
+      "hash": "7cddedb5b688f7f89c210518d82ecd268ac48f35bfd98c6568eafe457b6fe0ba"
+    },
+    "lib/checkoutPricing.ts": {
+      "hash": "acaf822a0d71f1e7d957da3d48cbeb8c4327f3fd38009021341354d81427652b"
+    },
+    "lib/growth/checkoutSuccessFlow.ts": {
+      "hash": "f87231b6ef361af94e442333648778aae4823430ea042b46f3d56e6921050dea"
+    },
+    "lib/growth/kidsLaunchEmail.ts": {
+      "hash": "7bb7319ee9b8ab77e4388fa43f3621521e6de792833cd74e2b557684d5201076"
+    },
+    "lib/lifecycle/emailEvents.ts": {
+      "hash": "60f8e91c4b1335e0e368fb5cee2596f42125d13a37aa7356534cb28ea5fc5270"
+    },
+    "lib/oneTimeItem.ts": {
+      "hash": "8517d9e013c5f688e26fc8cdf235cd569acea5d0de2198454427abc5d5eecf42"
+    },
+    "lib/paypal.ts": {
+      "hash": "253d761dfedfb3456aa0174219240038fb4f44255107da4589d44cc4f8a408c1"
+    },
+    "lib/stripe/oneTimeItemCheckout.ts": {
+      "hash": "3e01c1386dd3954448d3812044b62c7f2d209ddc6588e26f3eed3fc67fd59219"
+    },
+    "lib/stripe/oneTimeItemFulfillment.ts": {
+      "hash": "2d8dd22bb3cd3881dc88abea4b7b20f2757cd9cdd6a422d997363e0e6d99143f"
+    },
+    "lib/ui/homeCardPlayback.ts": {
+      "hash": "afdfaa2013cff2ac509e4f66c28b2d117dc1918c66deb3de2e029e9f5bc901d0"
+    },
+    "lib/ui/homeThreeCards.ts": {
+      "hash": "393e382903627c6d1934de1d61b2b6498efd2fa7cef7db6791d62c7b000f2be2"
+    },
+    "migrations_pending/2026-10-24_one_time_items.sql": {
+      "hash": "d9b3548866b503bcd593b73c2bcbe701ab0540239348d218694f737d79946e60"
+    },
+    "package-lock.json": {
+      "hash": "088f96e3a1da8ad46daaa067db9353f140a1b47e16b311bc4652e5f9ce49092b"
+    },
+    "package.json": {
+      "hash": "4bbfb87a85aa67879519a1f50d9cc90dffddcf36f65a2ee921eda0d7d6c89a49"
+    },
+    "scripts/apresentadores-2410.mjs": {
+      "hash": "2767dd11d1e8485ab5ee064967fe438e04753495bdabf957968181851e7b8d19"
+    },
+    "scripts/lib/apresentadores-admin2410.mjs": {
+      "hash": "d45439abad0e835e3eb505cacd004d11a1a3df5a0f6b2778b9856a4d3edd4ced"
+    },
+    "scripts/ph-fatos.mjs": {
+      "hash": "ad738f695d104f6dc8b7a8d8cdf8af0ccd6ffcf594e27a64bca7985b95ab4d14"
+    },
+    "scripts/preview-studio-hierarchy.mjs": {
+      "hash": "d08e080a94060c6d883ca002c112ba033652708f98b384902aa5c123789e428b"
+    },
+    "scripts/test-admin-leve-undo-2310.mjs": {
+      "hash": "e66c3ec54e1315f1a90e6a22d2fa0e044a3cd6e64afd703d13d98b64d7765a5e"
+    },
+    "scripts/test-ads-amostra-anuncio-2410.mjs": {
+      "hash": "2f6e95a046ebfede36f1820e20023395c971c875b1b056b2ae9a00b906b5e4cc"
+    },
+    "scripts/test-ads-amostra-data-2410.mjs": {
+      "hash": "5aec480d2685ffa0e95c71432a100f2fedbc5b3461a1083ffbd8d520c3365713"
+    },
+    "scripts/test-ads-amostra-undo-2410.mjs": {
+      "hash": "d4dfc811f09ff3b95f6219b8280f0af539b8b5c16872b3cecc830b55b9ed0398"
+    },
+    "scripts/test-ads-cena-95-pacing-2110.mjs": {
+      "hash": "c80d82cdc02013e1f73811b8a19e18281f5250dd20c749731449d69c11c7e398"
+    },
+    "scripts/test-ads-escolha-publico-2410.mjs": {
+      "hash": "ef957689fe73f889f08c0aac3e93ab9a8dd4097a18327bfb11a5d74dc79f965b"
+    },
+    "scripts/test-ads-fiel-1510.mjs": {
+      "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
+    },
+    "scripts/test-ads-fiel-6-1610.mjs": {
+      "hash": "3a40fd6dce3e4a4c251464aa6d466a171284aca8a784a5ea48f241cbbe11f0b0"
+    },
+    "scripts/test-ads-fiel-7-1610.mjs": {
+      "hash": "06038e78d1af7c32e164d60788946139e0c890599c2100d0d8c50983bf51babf"
+    },
+    "scripts/test-ads-formatos-escolha-2410.mjs": {
+      "hash": "3bc938654cca311b1746eb78fc6f8f93f91c5dffb88f43cc644fb305ab6f2c9c"
+    },
+    "scripts/test-ads-ia-faz-2026-09-26.mjs": {
+      "hash": "260e370d3d846e092baee82e69b3656c839aec010de1395e5b3a2c623c7ff80e"
+    },
+    "scripts/test-ads-packshot-1410.mjs": {
+      "hash": "4e0ebc3eb819fa111c3001431a5a0f894fad0bfe0267aa7662145b42fac040c7"
+    },
+    "scripts/test-aeo-business-offer.mjs": {
+      "hash": "ada17cde1009c408e60bcaa01bc712e9b8eea0cb784ea316bd0da8961b3974c4"
+    },
+    "scripts/test-affiliate-activation.mjs": {
+      "hash": "3d3c61120c11ee1c3db1cc9558a959b3ad6dcabbabcee4e9f4422842b460aaac"
+    },
+    "scripts/test-affiliate-destinations.mjs": {
+      "hash": "00b94de84d96e967c55380e5b3d67b13f2ff86c66941286eed34818ab6c306a5"
+    },
+    "scripts/test-affiliate-ledger.mjs": {
+      "hash": "9c79183241f3e1506b98d010b68def55f6e9765e5a7fc637ec1534d8cf7cb926"
+    },
+    "scripts/test-afiliado-ref-2026-09-08.mjs": {
+      "hash": "804532dbe7341c664c3b8237e727485a8f4a3be06ceea4ed77ca44d394776406"
+    },
+    "scripts/test-afiliados-atribuicao-2026-10-03.mjs": {
+      "hash": "a045423f9023502338a7b3c8acf34b3a29a61b6b13af2fe38a2362784673d9eb"
+    },
+    "scripts/test-agency-appearance.mjs": {
+      "hash": "22cab61c84b7a97eecebc6c6eacf0884256236af3fe1d5b66f7dce82f23f3e1e"
+    },
+    "scripts/test-alvo-fantasma-2026-08-31.mjs": {
+      "hash": "6ad0ca75ce2112ca356fd0ca4648afb35e0fb3629459474fd68246c53dfbf6a2"
+    },
+    "scripts/test-another-short-shelf.mjs": {
+      "hash": "3cdd41b8894ddf22faf76c3678d7b7745460d9f14e1bd65b172edeafd1c87150"
+    },
+    "scripts/test-aparar-expansao-2026-09-02.mjs": {
+      "hash": "9bbbda293c2ed5d61cb8bdc2ac317166fc28ffb95246264cbe9499cd63c0aa86"
+    },
+    "scripts/test-apresentador-v2-1710.mjs": {
+      "hash": "dc9275057450a33280bf25c3fbb68a39008353fd03c93d9c5c6e0402c0cdfc82"
+    },
+    "scripts/test-apresentadores-2410.mjs": {
+      "hash": "dd19121d2d131f9c7cea107846821ee19bafbbaa197beaca8d9d521464619abd"
+    },
+    "scripts/test-apresentadores-admin-2410.mjs": {
+      "hash": "e6b39263fdb4db5a795c6a14eb01ccb39abfe886294f87ec3b456efbf3aa0a30"
+    },
+    "scripts/test-apresentadores-legacy-voice-2410.mjs": {
+      "hash": "6e943c1bd850afd01f2040a5d6c2fbb02a6e5c2dca507f2de5891a3a88fb6052"
+    },
+    "scripts/test-apresentadores-undo-2410.mjs": {
+      "hash": "aa5a95d7070397e59c57826b1a57f593f80ea5435c8fee07567ab505f63b39a2"
+    },
+    "scripts/test-apresentadores-voice-2410.mjs": {
+      "hash": "2ff608ca2f0ca575b2068dad39e9b3be9dd33ca9ea70c1853b1a7e0c90244e00"
+    },
+    "scripts/test-archive-studio-review.mjs": {
+      "hash": "513d2803d9ab84ec223328713d27715fc7fab1b831c397d3f97ec6ce4895e074"
+    },
+    "scripts/test-assistant-deep-link.mjs": {
+      "hash": "4c09ad1c2a828c726153ea553a962ab5055a1c71301a5cae87b596868d69b57e"
+    },
+    "scripts/test-autopilot-case-study-path.mjs": {
+      "hash": "2c5a42107dff2f5d9be763951c16a0d465521f8c3e9f6697b39491e81492e6c2"
+    },
+    "scripts/test-b2c-subscription-truth-report.mjs": {
+      "hash": "770d78be7857b9c9c2832e0b081edee894ff43dff0325ce127efeb9b21a91feb"
+    },
+    "scripts/test-cards-giro-2410.mjs": {
+      "hash": "33d0472ee175800accc6c49284c854e44d3f0a610e6f6ca8f433bcb2f04e6809"
+    },
+    "scripts/test-cards-giro-undo-2410.mjs": {
+      "hash": "c7a2cde60877f609a6424350cf500d4d2e975039bbbf5389fe7ca6c7cda295d4"
+    },
+    "scripts/test-carta-episodio-gatilho-2026-09-06.mjs": {
+      "hash": "f466ec0f77255bd5d24c5816a06ddf5db4ea7a950255f996fd6c39c8c9d482cc"
+    },
+    "scripts/test-cartoon-tracao.mjs": {
+      "hash": "210dd0be3ff75e545c31c92501be00f149066d7632ee6709367bd39e5890758f"
+    },
+    "scripts/test-causa-sempre-2026-08-31.mjs": {
+      "hash": "df97034121b477d05fdee429c1bd969841b5e9dbe1ee29cae61ec0168dd8c097"
+    },
+    "scripts/test-chatgpt-paste-page.mjs": {
+      "hash": "9c1504ce9213c7b12da284d78ef957996f7abd7b9e63e69e7e87d895008a6f9e"
+    },
+    "scripts/test-checkout-currency-truth.mjs": {
+      "hash": "3443d62e8e3c566c6b2fef3503a8b2510ec9145637a7abd8f470876f375878b0"
+    },
+    "scripts/test-client-short-brief.mjs": {
+      "hash": "dc1ac3843966e0a19e1d7d3d5287f4dea3f8dad354c0d26e1466a8ea5a1965aa"
+    },
+    "scripts/test-clique-perdido.mjs": {
+      "hash": "4bcc8055bf625b554a34ff243a5b2d4ea205899c14d9d8fd5c0c96a1993b8844"
+    },
+    "scripts/test-close-real-1910.mjs": {
+      "hash": "8d9315b65a84cb4f7268a59d80bbb36b226e01b0738028d987fe7007cea4f57a"
+    },
+    "scripts/test-coerencia-historia-2026-09-02.mjs": {
+      "hash": "8e643101f036e337e7e992d10c8dec7c836034ac0c288a7e4ff70381092d5f14"
+    },
+    "scripts/test-compra-avulsa-2410.mjs": {
+      "hash": "818cc801de6ee954d8e811a446919d4fa1f5c927ac534f5646a369fd569114d7"
+    },
+    "scripts/test-compra-avulsa-delivery-2410.mjs": {
+      "hash": "e95c7fdd0cd67273cd480148da6bf2003dc3eb71dcfad9e95094a77a5f5b0163"
+    },
+    "scripts/test-compra-avulsa-return-2410.mjs": {
+      "hash": "b95f3bd1d14537ce1caf22136e49779a2dd90b9d8a2e977db510f59e4439bd76"
+    },
+    "scripts/test-compra-avulsa-sql-2410.mjs": {
+      "hash": "07c5bc5dff26b07e65b03bfa1d3eb121ebf3979ccd1ed712a363e38ca440552f"
+    },
+    "scripts/test-compra-avulsa-ui-2410.mjs": {
+      "hash": "0015e733cf99d43040e55b44db75a560cc837ca383048c4e2658a7550ed456cd"
+    },
+    "scripts/test-compra-avulsa-undo-2410.mjs": {
+      "hash": "c15c8d09a6ef84f2f23b99af2e7d1f288cc92927e917dd1c9034769e607042f7"
+    },
+    "scripts/test-compra-avulsa-webhook-2410.mjs": {
+      "hash": "9a9c59fa3d399c5b38e2af5cba656b82b1a6444132ff5f5eae6468735523b087"
+    },
+    "scripts/test-compra-sem-login-2026-10-06.mjs": {
+      "hash": "650647296fa70bbe410e39bdba69b4d953acddab6261bfd5b9b3e092c525dc9b"
+    },
+    "scripts/test-consentimento-superficie.mjs": {
+      "hash": "c989a1d9df5017dad4bc3cc6053d6e409a8ed1d80a2091fe911e0efdc2978085"
+    },
+    "scripts/test-convite-na-hora-certa-2026-08-31.mjs": {
+      "hash": "39e402813833c7229e7c0c5cdddc61f04502914ff3ebc1e39345be731eb0a36e"
+    },
+    "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs": {
+      "hash": "e78365e5073a3484fb553623294fd05fa9ae708ea835db77a5d7465ba205ef3a"
+    },
+    "scripts/test-credit-minutes-ui.mjs": {
+      "hash": "a670ac2e9e7d392d66cf9a5b8a5b2de26f71ddb8803af6addc3ede7b1324a7c1"
+    },
+    "scripts/test-credits-held-waitroom.mjs": {
+      "hash": "8c8807e9bff539dff4bb522409ba3fd97a439f54674a82d1661b4554c81a8638"
+    },
+    "scripts/test-cta-composer-2026-09-06.mjs": {
+      "hash": "99e7873ad21bcf3f195f00ef976640da281f16dac2a4b34197041374a1ec5f19"
+    },
+    "scripts/test-data-cache-no-store.mjs": {
+      "hash": "638976baed71400988df7e78b5ca6d7b2850c72e70b9ca279fd4b378b962b2f7"
+    },
+    "scripts/test-demo-sob-medida-1510.mjs": {
+      "hash": "f2d13325f3e7206577b6e7fcc09b50e015cb0ce4cbd6d0ea05a7552eed9a2998"
+    },
+    "scripts/test-diretor-kineo-2026-09-23.mjs": {
+      "hash": "310ca4870917a73dce2907d96e236512b537716db1b35835e34f4876d54ec4b7"
+    },
+    "scripts/test-done-footer-2026-08-31.mjs": {
+      "hash": "dcff7838394f67c7cce0650c988038b96ef439069342841d1859ce2aaa8aa078"
+    },
+    "scripts/test-done-workspace.mjs": {
+      "hash": "36bc7f5581430f04324a9504e76ed14e5a7c6248679331ed03be6672f74862f3"
+    },
+    "scripts/test-dunning-grace.mjs": {
+      "hash": "a2c9782ab25dc03e6fefd663f304abfd9bb58a1a7787e33ed6d9c0c0fa7347ab"
+    },
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": {
+      "hash": "b8a9b228c8517355cd398fc42f456f99937c970a142e343a84a0e61e56b2c309"
+    },
+    "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs": {
+      "hash": "4268c1390213cd3fff4299214c2d43fcd01d05ad60bef372559aa84801190c29"
+    },
+    "scripts/test-enterprise-alternative-business-path.mjs": {
+      "hash": "822d824a4c875bbac036448afe170767e8ed6b173287dc6cf15a1ca9ba260c0c"
+    },
+    "scripts/test-entrega-noite-r6-2026-09-09.mjs": {
+      "hash": "7088348d3b1dc2cd06ffd8f8c470c3ba6b18ce803253a76e04b0c6f58f1c5082"
+    },
+    "scripts/test-episodio2-ending-2026-09-01.mjs": {
+      "hash": "bc8b5cfe6c197de81eb3593f626217af681113ead91752adb432b0f459337ab8"
+    },
+    "scripts/test-example-remix.mjs": {
+      "hash": "60a5eaaa242cb33ce6c134cc6610026b67112f3794985f4739e7098ec9c19a61"
+    },
+    "scripts/test-failure-cause-38.mjs": {
+      "hash": "dd562ae77507f103ffb6b6c26a1910cce38bded0dafd1aa7c3a568dac03b7041"
+    },
+    "scripts/test-failure-recovery-honest.mjs": {
+      "hash": "b4699a1a9a782aaba2e6dc4dd6ed7b9c38b848bc82354c818db7ed5879ff7676"
+    },
+    "scripts/test-failure-recovery-latest-wins.mjs": {
+      "hash": "f077f3b6622415cbb1089a6271be1feeb39e6b7277e6701fc7acb702d78a12c2"
+    },
+    "scripts/test-failure-screen-40.mjs": {
+      "hash": "a73e14da39bc1d3bd3e17364edbf422103d6847cd40bcbc66710e8b3a1b5d4d4"
+    },
+    "scripts/test-faixa-continuar.mjs": {
+      "hash": "201e98e5c68ef13f4698e985626f41015c561daf0286d8e882a10ed942a4bf60"
+    },
+    "scripts/test-fal-saldo-alerta-2026-09-28.mjs": {
+      "hash": "a5fe7e299e5454bd4e7a99a23d44f135278e1a2799d22873c4562a8cfca90fbf"
+    },
+    "scripts/test-fila-global-pilula-2026-08-31.mjs": {
+      "hash": "cd8cc02ec15ed3d9e50e7bb2328df7661455e76c47306abdc1ca060a80db0bf5"
+    },
+    "scripts/test-filmes-f1-virgula-1910.mjs": {
+      "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
+    },
+    "scripts/test-filmes-f1f4-1910.mjs": {
+      "hash": "3b2fc57dfd9c3816234870cb197ac048dc7ea1771ea8cd178e5b6730163cd579"
+    },
+    "scripts/test-first-film-free-offer.mjs": {
+      "hash": "b38a7e9720ffc4646923036b88bb4134bd2c09cc8cf3f2510154befbd49bf709"
+    },
+    "scripts/test-free-limit-wall.mjs": {
+      "hash": "3e44df7b44b5cc03850ac307a490d70d2fbedc9a9adc26a6268ba06fced06ea2"
+    },
+    "scripts/test-go-auto-forward.mjs": {
+      "hash": "737d43f192a5277c3d916eb3ed654a4b6a7e1ffd80284df04cc78763f3b1b2f1"
+    },
+    "scripts/test-gpt-handoff-verdade.mjs": {
+      "hash": "e31778c2fe127348d7ae60798036d63e1e42af92c7b788c0c4fa52d0f6e0b26d"
+    },
+    "scripts/test-growth-candidate-2026-09-01.mjs": {
+      "hash": "48b39ff09367f23c7e1a8ce18ffaa1d52152c5f2ae8805f67d024dd49cf8285c"
+    },
+    "scripts/test-growth-roundup-search-intent.mjs": {
+      "hash": "c36ba304d2a5b8c059049bade7d40f96dd6208be822efc483886f774f0e933cc"
+    },
+    "scripts/test-growth-space-intent.mjs": {
+      "hash": "02d9e80dafc1266a08c10e8d8b7d36accecd5063a1c0d4baf1cdfd3537ca7eec"
+    },
+    "scripts/test-guardiao-2026-08-28.mjs": {
+      "hash": "bf0169120d0126993aed05e56d97f2b516a7ddc3305dba668bd1e5aebefc4eb6"
+    },
+    "scripts/test-guardiao-yaml-2026-09-03.mjs": {
+      "hash": "ce6da436225ec3bb3141d2b55f3e504ba10e6a9a52cc04ae9eb18a84e77491f2"
+    },
+    "scripts/test-history-second-video-milestone.mjs": {
+      "hash": "810ca52107c9652b34209aca53a1f41aac4bfa1affb6910ad960c888c5d47ca5"
+    },
+    "scripts/test-home-curation-restore.mjs": {
+      "hash": "37e6c28e42dc1f93e1a49788a2b9018234822ee2adbe75f8e0a8b529408dea26"
+    },
+    "scripts/test-home-welcome-goal-router.mjs": {
+      "hash": "5878a0d564af5449a142e052e10e666b46107c60dd2ee511f21ff6fc3a69ba42"
+    },
+    "scripts/test-hora-da-volta-2026-08-31.mjs": {
+      "hash": "307d81ef06c5d8bcee255431d19da9344c7b362de36371c28b46417932ef2fd0"
+    },
+    "scripts/test-idiomas-formatos-undo-2410.mjs": {
+      "hash": "9c239409e4b261080033b4f7de281b2357909d1480e0b34040c4577437301cc2"
+    },
+    "scripts/test-imagem-para-video-2026-09-25.mjs": {
+      "hash": "a171eab3f7100ebffaef969bd61ca2e80368e4cfd05d2afe0f0e816b8f87b0fd"
+    },
+    "scripts/test-interface-16-linguas-2026-09-21.mjs": {
+      "hash": "d75d1e46cd57b596640e4aef52ebc921ee5d099a5bcc9a3b4b20b8732a992955"
+    },
+    "scripts/test-kids-venda-2010.mjs": {
+      "hash": "fc515a4c6f3957ac638357c11d2dc8c0d042d4b4c7c05e37f43498aa909ee92b"
+    },
+    "scripts/test-kit-bf-1910.mjs": {
+      "hash": "251efffac65d1cfc32cacf4512470746bed976f7748c00cd22af4c2c15c70abf"
+    },
+    "scripts/test-kit-bf-venda-2010.mjs": {
+      "hash": "b600f7ec95b381ebfaf3da47ed33b9d12858beee411ef84b8f1a9dbeef3072e6"
+    },
+    "scripts/test-last-setup-memory.mjs": {
+      "hash": "7ed0f95eddb17c6ce62a5b355f32750aaea362c0bd7951902f5c10de87e1f610"
+    },
+    "scripts/test-leva-confiabilidade-2026-08-28.mjs": {
+      "hash": "30ac74f24c07a9ab2a6fc892f36878a87d920f14d0c8447890ea5b0a980d117b"
+    },
+    "scripts/test-leva-integration-2410.mjs": {
+      "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
+    },
+    "scripts/test-library-search.mjs": {
+      "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
+    },
+    "scripts/test-library-visual-gallery.mjs": {
+      "hash": "4b131688dd5c6f9bab7e50eff11f84928292e5ffae10604a012f39822096f4ba"
+    },
+    "scripts/test-limit-purchase-fit.mjs": {
+      "hash": "86fc482c98289209ba5087bf02664562c6052b6678669894bc3d3be1db29b991"
+    },
+    "scripts/test-llms-affiliate-source.mjs": {
+      "hash": "e6d725e0e3c8054ead98e48f47fec7e57934071c9596ea86343f5c9821eaecbd"
+    },
+    "scripts/test-llms-engine-availability.mjs": {
+      "hash": "bf4523aea539ed192a8ab664865d28f86cbed0db663ff96965b0a479cf9ffcac"
+    },
+    "scripts/test-local-business-tool-discovery.mjs": {
+      "hash": "c8175aa64ddfb635d7f6a375f9428542c2efd097f19cc52aac34baee07522bfe"
+    },
+    "scripts/test-locale-readiness.mjs": {
+      "hash": "7ae31524204c73c43ebfb5c031e386ba04d69e11216b1f78e801c80e5d2ad197"
+    },
+    "scripts/test-manrope-system.mjs": {
+      "hash": "aacf743785fb92bfc5b6ef44fd8d69862a3fee5536d564d45ec00a5e314ac50d"
+    },
+    "scripts/test-marcador-da-casa.mjs": {
+      "hash": "36a3be262087a5a6ab30f578a7dce07c221555934d1c09f948a7951dc0504aec"
+    },
+    "scripts/test-mcp-claude-2026-09-29.mjs": {
+      "hash": "364a33408383f73995b7af434cee95a8e6a439d6343ac739cb8604030f50914a"
+    },
+    "scripts/test-mcp-pagina-2026-09-30.mjs": {
+      "hash": "88ae992cde7b4c88f7a82cf1ae2496674463d787e6740010175f665c7f43c9c1"
+    },
+    "scripts/test-menu-ugc-2010.mjs": {
+      "hash": "0cc36ad33d7e7751c6912c2b4cfaec03df51d4aa7619834c413e76ffe1a7bbc6"
+    },
+    "scripts/test-moeda-local-2026-09-09.mjs": {
+      "hash": "a88d22a3c77a9529be48d68675618fa9c16f2e59058cfecea1322c5be26f92af"
+    },
+    "scripts/test-momentum-motor-gratis.mjs": {
+      "hash": "e2f187c634a2411f3fd02d8d591a5045ab0577c3a4172ea2677e43b74637f864"
+    },
+    "scripts/test-money-truth-contract.mjs": {
+      "hash": "efdff89605df6a760e9ce38490b4f0f311c02d70645bef2b95bf3cf303ae6de7"
+    },
+    "scripts/test-motores-d1-2026-09-01.mjs": {
+      "hash": "e42abb98ff7a35a99360ab861db7d6954b74da5fefe8ba76b576e89944dc562b"
+    },
+    "scripts/test-multiformato-2026-09-02.mjs": {
+      "hash": "ee10a1d67bcaa2d3331ec1d2239fbf2cc5fd2bf0e2cdfb3a641eef07320bf5cd"
+    },
+    "scripts/test-next-episode-visibility.mjs": {
+      "hash": "98bc8c724ec2499b7437518bb4a74bfacf2656105e93c42d58e6bcae7e504834"
+    },
+    "scripts/test-next-episode-wall-2026-09-06.mjs": {
+      "hash": "326087d062058f572b3df5ebbb9af4e54d8d86ba43b5144df6a1cecb96f4da34"
+    },
+    "scripts/test-next-idea-wait-45.mjs": {
+      "hash": "6b1cb0f44a5c686bfdd71dceb247fb8a798aa31b627123366b62e099b9fecba2"
+    },
+    "scripts/test-next-shorts-affordance-2026-08-31.mjs": {
+      "hash": "d5df895ae0cda381c55d7e5dd9f46d5e5eb99bd73894ff2225fad94a33bc3ee1"
+    },
+    "scripts/test-pacote-no-email-de-entrega.mjs": {
+      "hash": "c2d5c4c73ffd0c9818aa55e1724d10bce9ee57fa67c26430d13f0a0978b495f6"
+    },
+    "scripts/test-pacote2-precos-2026-10-05.mjs": {
+      "hash": "12bf397482e24a74b77abdf11822528db1e26fc288eaefe928f8e9b9f1eacc1b"
+    },
+    "scripts/test-pagamentos-alternativos-2026-10.mjs": {
+      "hash": "e933e1f5f4bde76b37947f0e166afb166cc71232f0e8aef6b0c4da0edecc7924"
+    },
+    "scripts/test-paginas-ia-claras-2110.mjs": {
+      "hash": "d884158d4704bdc12969054ef440b77572b715aa0bf99f51aa7bc571d715afaf"
+    },
+    "scripts/test-paginas-ugc-2010.mjs": {
+      "hash": "89274ea10613dd6df3dfbe48db1b531e987af344fc524982862e9b4f2508d3b0"
+    },
+    "scripts/test-painel-verdade.mjs": {
+      "hash": "fee14b81044a7185c68b8cb49bbfdfbe9997f52b32025e7af18f6bb7764b9641"
+    },
+    "scripts/test-paypal-canonical-catalog.mjs": {
+      "hash": "85d58c49024d660a1b6785b8868a81258c8c5faeb28876865ac2b32747d6aa14"
+    },
+    "scripts/test-paypal-idempotencia.mjs": {
+      "hash": "1c2f35b9e5ab003c057ca57f499e7456dc383f2c2b93d3e45a4318cc132943a8"
+    },
+    "scripts/test-ph-kit-2026-09-09.mjs": {
+      "hash": "7acf4a977938c482c683eceda53695e54a49a9edc88a473ca95038e2c50cc4c0"
+    },
+    "scripts/test-plan-film-language.mjs": {
+      "hash": "477cf61c69e7b5d1f6c33d85501f3eaae7584265565e043b436f2b8f5f948743"
+    },
+    "scripts/test-ponte-com-preco-2026-09-07.mjs": {
+      "hash": "f8e0f6efc6c20e525a69217bff7756a979b47de94ca7fc9da2d88168287bf8c7"
+    },
+    "scripts/test-porta-email-2026-09-06.mjs": {
+      "hash": "8499e73b68d20764d36f1ae6ea01d73de7dcc022b56ea2ea25d781a457f7d144"
+    },
+    "scripts/test-porta-episodio2-2026-09-04.mjs": {
+      "hash": "4064cafd05b15557b4ca61586bdacf74ebb59374e3848d4ba872eb1ff2efb82e"
+    },
+    "scripts/test-preco-para-saldo-cheio-2026-09-07.mjs": {
+      "hash": "94b76fb3a60705580cc0debf6b19bf8e704c5133d680c6a4a768e015f2827bc0"
+    },
+    "scripts/test-preco-visivel-2026-09-02.mjs": {
+      "hash": "45f71016d2ee3e8fc3c1cf7f775a52b9a8b68f6456d43a7bdecffa560c81896f"
+    },
+    "scripts/test-precos-clipes-kling25-1610.mjs": {
+      "hash": "1dcdcd1c1f628b4ca1f85f6577fad06a9e2b7c1730b5ee591ee8eea1b2c789a5"
+    },
+    "scripts/test-pricing-monthly-campaign.mjs": {
+      "hash": "6967ea625ff09725842ae1dce8eeeb41db9df9264be463df0a589cf879770080"
+    },
+    "scripts/test-private-file-share.mjs": {
+      "hash": "55533327bdb1322be6d97d4816df640a3df4fee02655faccc37c381af78ffa9f"
+    },
+    "scripts/test-product-surface-intent.mjs": {
+      "hash": "4113ef85fd929aad303ecce7b746a36c8f297a803637c02101b0fdb13368a79c"
+    },
+    "scripts/test-public-video-privacy.mjs": {
+      "hash": "76cd0cfe3453f9ab9d477b515032827f07b4bddf5c8e3d32557da75616977a2b"
+    },
+    "scripts/test-publicador-refspec-2026-09-05.mjs": {
+      "hash": "66c9d6e38b61b8badbce5a0cf3b5c9e3a4e0b32a1a2a32b601ac4a260f7667ba"
+    },
+    "scripts/test-publish-kit-business-path.mjs": {
+      "hash": "75661530b3b9c4694e3b2f27777f402bfa70388b1dbeb9e822cb27b3646f51ac"
+    },
+    "scripts/test-quadro-real-2026-09-02.mjs": {
+      "hash": "63991752851db64df7b6ac8624aa15e0f6d5919e8e44b41792d32c21cfe3a8ac"
+    },
+    "scripts/test-ready-notice-studio-review.mjs": {
+      "hash": "308fd3fb838ecd97cd6f5b5a7891a4dc5b20e3efbfc0451053e9f1d0c1bdc7be"
+    },
+    "scripts/test-recusa-analyze-copy-2026-09-01.mjs": {
+      "hash": "31cffa2212292cd9ac84e64c3de040eb1cd6fb293afcd42ec765e81a778b5a34"
+    },
+    "scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs": {
+      "hash": "ba6c651edb0e4d2eb53640feb4743071cbc4dcdf452235fe647ded42efdfda6c"
+    },
+    "scripts/test-render-morto.mjs": {
+      "hash": "c245eb0a92c75208bc5478010de7826d6296f2a314e9659b68484e140a238255"
+    },
+    "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs": {
+      "hash": "ac90788fd977a675303f108576d10aacb2d96b158b00738af2537fafbe4c466d"
+    },
+    "scripts/test-returning-seed-2026-09-01.mjs": {
+      "hash": "ade85b32d63c0cd081a2cc6aefcc2b7e449157d0550272bcbe9b56532964c571"
+    },
+    "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs": {
+      "hash": "d944441fd6df3043e710708d1d15ed8357ae98a0064be7fbfa33eca76ea57b61"
+    },
+    "scripts/test-rodape-segmentos-2026-09-27.mjs": {
+      "hash": "49fc5c59efdc5bf436a6135350182ebc52a90409d90eec50e03acbd6d46211c1"
+    },
+    "scripts/test-roteiro-perdido-2026-08-31.mjs": {
+      "hash": "afd06735147d82550c1eeb12409354cc3e11cf8d876d205c93e798944580e8da"
+    },
+    "scripts/test-runway.mjs": {
+      "hash": "32b2908b94391051d862da8d13e2f175e0eb5038fbcb7957ff9b0186f5370b7b"
+    },
+    "scripts/test-scene-disposition.mjs": {
+      "hash": "b5dcb69c1c75d87269e6dee053704b399373f7df2d1677eda6dc5abc00b329ca"
+    },
+    "scripts/test-script-preflight.mjs": {
+      "hash": "423a866f9edbeb4abf8e23e8c8bae39b6ce8721d6831b7b02c1dff1607aeab35"
+    },
+    "scripts/test-season-strip.mjs": {
+      "hash": "f3657557864e9666f482fbbab82939c301e697fef69b69582dadc871bc89a307"
+    },
+    "scripts/test-segunda-tentativa-1usd.mjs": {
+      "hash": "f0e2387769ffbb44e83872df5e6116057a9a63fe8847938ad1c30b43cd52997e"
+    },
+    "scripts/test-sem-porteiro-2026-09-02.mjs": {
+      "hash": "a230b990942f16b0614d2dea58af7b4726d927b4c69c5a147a354606989411bb"
+    },
+    "scripts/test-serie-memoria-2026-09-04.mjs": {
+      "hash": "6113d8d3db0852bb8505b4bb7e4c568f1dd58c661927bc124c4a6779ab74314e"
+    },
+    "scripts/test-showcase-2026-10-02.mjs": {
+      "hash": "f2747b14a12cc48cfeb57da3ab5294a6ea66de757fd7b32666ad0ade2237eb35"
+    },
+    "scripts/test-signup-product-destination.mjs": {
+      "hash": "29f3532a1210769d8b76b28b555fba6de563b168fc3ce8a31d4c7cec793189d8"
+    },
+    "scripts/test-silencio-na-cena-2026-09-11.mjs": {
+      "hash": "0b68902b8d6a91ebfa90f139b2a9876c8ebe4fdf8fb47d62808a774cbe52acff"
+    },
+    "scripts/test-sistema-de-compra-2026-09-08.mjs": {
+      "hash": "0eb7cc129cd320e3bb4607e4edf41032b535cc7cafa52fba38a444863078e249"
+    },
+    "scripts/test-stranded-email-dedupe.mjs": {
+      "hash": "4ddcf5e975d8f27374699b0ef4583ad15238ea59e9393a8169c516824d6ab5df"
+    },
+    "scripts/test-stranded-extra-attempt-4xx.mjs": {
+      "hash": "86c2561d245fe1f3c733389fa47ecac57a9958e7b6073fa08cfd6f6867435614"
+    },
+    "scripts/test-studio-hierarchy-runtime.mjs": {
+      "hash": "081f0d5b2f047d7dbfe28e17630761f667cfb2079c8732485697945000d78765"
+    },
+    "scripts/test-studio-prompt-limit.mjs": {
+      "hash": "a7d1c7df90d1dc7effe1166bfa553b453cdd617ae000bfab734e73ea765fb66b"
+    },
+    "scripts/test-studio-tile-episode2-2026-08-31.mjs": {
+      "hash": "af5e2b4415e7785aaab0e65255ca4d03a6ce3e4d8a7e78f3bf05912341787ef4"
+    },
+    "scripts/test-support/ads-amostra-data-sql-2410.cjs": {
+      "hash": "e37fb7075544e003d710ff4a420e25ecf7a8d9874eba57365ee7aeab24a7d8e4"
+    },
+    "scripts/test-support/ads-amostra-entry-2410.mjs": {
+      "hash": "2c9a9e4c26542a0164db86c3bccd620a0a17437438812ec25fb4c0742f28a515"
+    },
+    "scripts/test-support/ads-amostra-race-2410.mjs": {
+      "hash": "adfe3bf0742fadb2874b034cbdbdf7c760e0c45e8176abdd4902345b72ae01e7"
+    },
+    "scripts/test-support/ads-amostra-ui-2410.mjs": {
+      "hash": "c80302abdd1438fb4eca8ae118e68c096bea3c1817a74db08b6a4a8c139a891a"
+    },
+    "scripts/test-support/ads-amostra-upgrade-retry-2410.mjs": {
+      "hash": "441d613d197555621ec038042531435dcefb11e87ce40d102271c9ae9e25c6aa"
+    },
+    "scripts/test-support/ads-escolha-sample-media-2410.mjs": {
+      "hash": "8055bde7ff79946c291316ea1046ddc467e0fb338736b04a5d86154cf593bd4b"
+    },
+    "scripts/test-support/ads-escolha-ui-2310.mjs": {
+      "hash": "99428638885554b9971d27b4b8f182922c5ca184262445412ba8868119bd3086"
+    },
+    "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs": {
+      "hash": "cf66edf80cfd668f2ec2d5fcb1ff8c69dd424e3cdf1a5189899e02e66261414d"
+    },
+    "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs": {
+      "hash": "3db273eb9bf665c5891ae115a7d4ff0dc6b03d3488cb686ac59306ac2e584de9"
+    },
+    "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs": {
+      "hash": "43469a989973e62132147027053c0e2309963ed795efb52ca089b8f49877c170"
+    },
+    "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json": {
+      "hash": "6b85435443ecef52927213d2b9978e60bf661a2d6497b41076f88e9309dd7327"
+    },
+    "scripts/test-support/desfaz-amostra-anuncio-2410.mjs": {
+      "hash": "081dc3e96d231a4ae39cf28e60777539adc7705c20f44ddddf0ee4f5f16f0c90"
+    },
+    "scripts/test-support/desfaz-apresentadores-2410-fontes.json": {
+      "hash": "bb0a1376ec5376a8cfb80bd24189de139882e7563e2ef5a7442e81fa09d6effb"
+    },
+    "scripts/test-support/desfaz-apresentadores-2410.mjs": {
+      "hash": "e69d1738d0c94c1682efa6641f7f4125e98a9aff45086ec60626f58d0328d7d2"
+    },
+    "scripts/test-support/desfaz-cards-giro-2410-fontes.json": {
+      "hash": "b5557801481ab6227286b36b95ad01e64e554d21f1c83ebf99d4fe7dafb7af33"
+    },
+    "scripts/test-support/desfaz-cards-giro-2410.mjs": {
+      "hash": "7d251ee680110e91152319a333d6fc0ec596f7f531389c6253d1fcdac744b43e"
+    },
+    "scripts/test-support/desfaz-cartoon-tracao-2210-hunks.json": {
+      "hash": "f5d205f5ef9be42683a96dd2dadc49bd5e863a09f7ab2aa537d5232ce0ffbd5c"
+    },
+    "scripts/test-support/desfaz-cartoon-tracao-2210-original-hunks.json": {
+      "hash": "3aa28906621f42cf6914c7b8a6173fc797b9b1d438b9454522c5f6e6153b6aee"
+    },
+    "scripts/test-support/desfaz-cartoon-tracao-2210.mjs": {
+      "hash": "d6a199436dadd68922cc44f3cc940bef560484385d50c380ab96410bb91abb2c"
+    },
+    "scripts/test-support/desfaz-compra-avulsa-2410-fontes.json": {
+      "hash": "b63c424182c5d8c86842dc04687c3bb93bac6dd33b200905092ed9ea3f54065c"
+    },
+    "scripts/test-support/desfaz-compra-avulsa-2410.mjs": {
+      "hash": "73a2fac777fbf9586dfd33540a4241c140d69ade9abfff61b3aa7916d12e05a2"
+    },
+    "scripts/test-support/desfaz-idiomas-formatos-2410.mjs": {
+      "hash": "64fd89e619fc1a4b2cc7fe10d30ea53d1ecdfc45d7a24d1568ab2275d06e9c38"
+    },
+    "scripts/test-support/desfaz-kids-venda-2010.mjs": {
+      "hash": "4a2cbc91e2f6c2c41bb900921f768c7aa87534738d1bb04b2e9fb0e477451be8"
+    },
+    "scripts/test-support/desfaz-kit-bf-1910.mjs": {
+      "hash": "cf57284b02e4aa1d90ada7b9b92520c24268124439932ffedbd9aad52f589ac6"
+    },
+    "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": {
+      "hash": "caef22dd32230f0cba3bead18e964c7c5f1bd483ddbbc2560912cd40481625b7"
+    },
+    "scripts/test-support/desfaz-ugc-ajustes-2010.mjs": {
+      "hash": "6be9c826782bcb4fafb031c932a3723785b4959997326b93561db28fd9ee0e09"
+    },
+    "scripts/test-support/leva-integration-2410.mjs": {
+      "hash": "17902e64919d63f1cf8e7adfdd9366a9f9934ccc09b7f81aa0147507a82b09a3"
+    },
+    "scripts/test-support/offline-ts-loader.mjs": {
+      "hash": "8713a25e9b200f4b0d30f91c9809dc29b140a9dbec1933eb6a202040cebee239"
+    },
+    "scripts/test-support/seal-leva-integration-2410.mjs": {
+      "hash": "f553c94da01c7576d7d935773d7edba59f9083124b53b65c9ed4c357dfff2eb0"
+    },
+    "scripts/test-temporada.mjs": {
+      "hash": "b8ed4e58f5c64c52b6b20c470d90b96eb4eb397b3f4c21ad00c3474cd40b0f2b"
+    },
+    "scripts/test-teto-no-prompt.mjs": {
+      "hash": "b5ea491973aae19ae7f317bc72a48db17a102efc82fc7c7d2e2ee38bd6c6e799"
+    },
+    "scripts/test-text-to-video-intent-router.mjs": {
+      "hash": "a2e0dacab6c18d4ff182e6fec2c2375dcd76e71741d652ac416f798e238205f0"
+    },
+    "scripts/test-trafego-pages-2310.mjs": {
+      "hash": "c021ff17429765cacf52f7b350c0f4766875a21cdab80f40310d2786db0cd0cd"
+    },
+    "scripts/test-trafego-undo-2310.mjs": {
+      "hash": "0df0329b144a2a30f1183224aabd916ea318f8be7a925ba98b32172129540b8a"
+    },
+    "scripts/test-tres-jogadas-servidor-2026-09-23.mjs": {
+      "hash": "893377b1813e8848486885ed77eca6404c01977e097641a91e03366a8aa0a1dd"
+    },
+    "scripts/test-troca-de-plano-2026-09-09.mjs": {
+      "hash": "33935866e521b8f21595f51f87a3d4c63b87a50d530e7cd860ba38a3df85d3bf"
+    },
+    "scripts/test-ux-complete.mjs": {
+      "hash": "3feec9ac64c41402d45b53b64b868b2d6b46677ce2e04aa557898a43c775d158"
+    },
+    "scripts/test-ux-mobile-navigation.mjs": {
+      "hash": "0798a339ca19e2e13619175d3eb81de92c08a70f7b5ea51be634e6da323ca4a2"
+    },
+    "scripts/test-verbatim-order-warning.mjs": {
+      "hash": "2309dd8b5c41ba1dd01f5b85c1962d2087174473132e525616e2fb0769a4c863"
+    },
+    "scripts/test-video-editing.mjs": {
+      "hash": "d2dabcd17175e1563751d3658ac916aaa862b88c308aa40d95763f2095b26480"
+    },
+    "scripts/test-video-ready-nudge.mjs": {
+      "hash": "3697f9c789ed20fe600192e46864ce5676d060561af558971423dea46060fe44"
+    },
+    "scripts/test-video-share-consent.mjs": {
+      "hash": "8556aeb92ae587ec6d273f0fe704997b9e6115b1e8f0e21560edcfb288fbd504"
+    },
+    "scripts/test-videos-search.mjs": {
+      "hash": "a7e20095ef62ac620450978232ca239b0daba98fe43886e5e3adb7bd9d5775b1"
+    },
+    "scripts/test-vigia-cenario-inventado-2026-09-11.mjs": {
+      "hash": "340f4024c8b623671678d909cffd503e155d051c0b455b12b533deeaeaede959"
+    },
+    "scripts/test-viralnow-search-intent.mjs": {
+      "hash": "4cd77b359b62fc2234eebe254afeb0436f30bdea1df1e5dfc6a8ec0277bf243b"
+    },
+    "scripts/test-visibilidade-chatgpt-2026-10-06.mjs": {
+      "hash": "1012fd3a22164cf6893b528481cfe888805cfc8c6f976598901c8377acee2b25"
+    },
+    "scripts/test-vitrine-em-alta-2026-08-31.mjs": {
+      "hash": "30f688760f178c767ef9cb5eea8a8f2f5462a8e6dea6fb5e372b48828b35a992"
+    },
+    "scripts/test-works-with-claude-2026-09-30.mjs": {
+      "hash": "15f8d662e02f51605aa9038b493ee01536fcb3e3bb0d5a33e27c9829ea8d7a84"
+    },
+    "scripts/test-workspace-spanish.mjs": {
+      "hash": "4d695572a77eb9ddda0abb29a7a5dccf6b1b8155b5a1be5721a61f15eba173bc"
+    },
+    "supabase/migrations/20261024175246_ads_escolha_sample.sql": {
+      "hash": "a8516f26e7fcc52d0bd0dc31310f2f21256f8b053ecb2ad1e54f0b834a61390f"
+    }
+  }
+}

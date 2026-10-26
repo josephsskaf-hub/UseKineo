@@ -1,3 +1,4 @@
+import { PRESENTER_APPROVED_ENTRIES_2410 } from './presenterCandidates2410' // KINEO-APRESENTADORES-2410
 // KINEO-ATOR-ANUNCIO-2026-10-09 — "Person talking about it": um ATOR de IA segura o produto do cliente e fala a narração.
 //
 // Decisão do fundador (09/10/2026): 8 de 14 concorrentes vendem uma pessoa de IA falando do produto (Arcads, Creatify,
@@ -130,6 +131,8 @@ export const ADS_V2_PRESENTER_LIBRARY: readonly AdsV2PresenterEntry[] = [
   { id: 'robert', name: 'Robert', gender: 'man', ageMin: 55, ageMax: 59, tag: 'home', look: 'a warm white man in his late fifties with short gray hair and a short gray beard, wearing a knit cardigan', pronoun: 'He', voice: { engine: 'eleven', voice: 'Daniel' }, portrait: `${P}robert.webp`, clip: null, voiceSample: `${P}robert-voice.mp3` }, // KINEO-ATORES-IA-RETRATOS-2026-10-13 — gerado em produção pela conta do fundador (Nano Banana Pro / ElevenLabs v3)
   { id: 'lucia', name: 'Lucía', gender: 'woman', ageMin: 50, ageMax: 54, tag: 'home', look: 'a warm Latina woman in her early fifties with shoulder-length dark hair with a few gray strands, wearing a simple linen apron over a blouse', pronoun: 'She', voice: { engine: 'eleven', voice: 'Aria' }, portrait: `${P}lucia.webp`, clip: null, voiceSample: `${P}lucia-voice.mp3` }, // KINEO-ATORES-IA-RETRATOS-2026-10-13 — gerado em produção pela conta do fundador (Nano Banana Pro / ElevenLabs v3)
   { id: 'yasmin', name: 'Yasmin', gender: 'woman', ageMin: 25, ageMax: 27, tag: 'beauty', look: 'a smiling Middle Eastern woman in her mid twenties with long dark hair, wearing a soft cream blouse', pronoun: 'She', voice: { engine: 'eleven', voice: 'Jessica' }, portrait: `${P}yasmin.webp`, clip: null, voiceSample: `${P}yasmin-voice.mp3` }, // KINEO-ATORES-IA-RETRATOS-2026-10-13 — gerado em produção pela conta do fundador (Nano Banana Pro / ElevenLabs v3)
+  ...PRESENTER_APPROVED_ENTRIES_2410, // KINEO-APRESENTADORES-2410 — pending/rejected never reach any picker
+
 ]
 
 export const ADS_V2_PRESENTER_IDS: readonly string[] = ADS_V2_PRESENTER_LIBRARY.map((p) => p.id)

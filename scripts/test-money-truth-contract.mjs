@@ -64,6 +64,7 @@ const comparisons = loadTs('lib/comparisons.ts', {
   '@/lib/checkoutPricing': checkout,
   '@/lib/freeTierOffer': freeTier,
   '@/lib/marketingPrice': marketing,
+  '@/lib/ads/team': loadTs('lib/ads/team.ts'),
 })
 
 let passed = 0
@@ -166,15 +167,17 @@ check('checker canônico de pricing fica verde', () => {
   assert.deepEqual(checkout.checkPricingInvariants(), [])
 })
 
-check('moeda do checkout permanece USD em qualquer país', () => {
+check('moeda de referência canônica permanece USD em qualquer país', () => {
   for (const country of [null, 'US', 'BR', 'IN', 'NG']) {
     assert.equal(checkout.resolveCheckoutCurrency(country), 'usd')
   }
 })
 
-check('disclosure público diz cobrança em USD e conversão apenas pelo banco', () => {
-  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /lists and charges plan prices in USD worldwide/i)
-  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /Your bank may convert/i)
+check('disclosure público separa referência USD, liquidação BRL e taxas do banco', () => {
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /lists reference plan prices in USD/i)
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /Customers in Brazil pay in reais \(BRL\) at checkout/i)
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /checkout shows the final charge currency/i)
+  assert.match(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /your bank may add conversion or cross-border fees/i)
   assert.doesNotMatch(marketing.CHECKOUT_CURRENCY_DISCLOSURE, /Kineo converts|shown in local currency/i)
 })
 
@@ -210,7 +213,8 @@ const requiredReferences = {
   'components/Creator30OfferModal.tsx': ['TIER_CREDITS.basic', 'videosPerMonth', 'Claim {percent}% off'],
   'components/UpgradeModal.tsx': ['videosPerMonth'],
   'app/(dashboard)/generate/LowCreditsUpsell.tsx': ['videosPerMonth'],
-  'components/CreditsTopupModal.tsx': ['videosForCredits', 'TOPUP_CREDITS'],
+  // The approved slider replaced fixed pack cards; guard its actual pricing and capacity callers.
+  'components/CreditsTopupModal.tsx': ['sliderPriceUsdMinor(amount)', '<CreditMinutesSummary credits={amount} live />'],
   'components/AvatarLandingClient.tsx': ["creditsPerReferenceVideo('avatar')"],
   'components/StructuredData.tsx': ["videosPerMonth('basic', 'cinematic_ai')", "videosPerMonth('basic', 'fast')"],
   'components/TrialActiveBanner.tsx': ["creditsPerReferenceVideo('cinematic_ai')"],
@@ -226,7 +230,9 @@ const requiredReferences = {
   'components/ExitIntentOffer.tsx': ['TRIAL_SEEDANCE15_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
   'components/PostVideoPaywall.tsx': ['packPriceLabel()', 'PACK_CREDITS.starter'],
   'app/(dashboard)/generate/Offer290Banner.tsx': [
-    "videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai')",
+    'OFFER290_FILM_SECONDS = PACK_ADVERTISED_SECONDS.starter290',
+    "PACK_CREDITS.starter290 / creditCostForDuration('cinematic_ai', true, OFFER290_FILM_SECONDS)",
+    'formatResultCount(OFFER290_FILMS',
   ],
   'app/(dashboard)/generate/GenerateClient.tsx': [
     "creditCostForDuration('cinematic_hollywood', true, duration)",
