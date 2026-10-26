@@ -9,13 +9,14 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 import { semAdsEscolha2310 } from './test-support/desfaz-ads-escolha-2310.mjs' // KINEO-ADS-ESCOLHA-2310 — historic TEXTO assertions keep the exact pre-ESCOLHA source.
+import { semVitrine2610 } from './test-support/desfaz-vitrine-filmes-2610.mjs' // integration: newest exact layer first.
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 // KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
 const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 const BASE='45b6083a6c39005d076491eb33b5d312f3e7e757', PREMERGE_BASE='591399abb34fc93c25300d82d644b6c94444ded6', MARK='KINEO-ADS-CENA-TEXTO-2310'
 const F={route:'app/api/admin/ads-cena/route.ts',internal:'lib/ads/cena/internal.ts',internalAjuste:'lib/ads/cena/internalAjuste.ts',live:'lib/ads/cena/live.ts',plan:'lib/ads/cena/plan.ts',natural:'lib/ads/cena/ajustePlan.ts',preflight:'lib/ads/cena/ajustePreflight.ts',runtime:'lib/ads/cena/runtime.ts',pipeline:'lib/ads/cena/pipeline.ts',start:'lib/ads/v2StartCore.ts',early:'lib/ads/v2AudioCedo.ts',media:'lib/ads/cena/ajusteMedia.ts',montage:'lib/ads/cena/ajusteMontage.ts',legacyMontage:'lib/ads/cena/montage.ts',respaldo:'lib/ads/cena/ajusteRespaldo.ts'}
 Object.assign(F,{orders:'app/api/ads/v2/orders/route.ts',status:'app/api/ads/v2/status/route.ts',advance:'lib/ads/v2Advance.ts',quality:'lib/ads/cena/ajusteQuality.ts'})
-const read=p=>semAdsEscolha2310(affiliateRaw(p, readFileSync(p,'utf8')).replace(/\r\n/g,'\n'),p) // KINEO-ADS-ESCOLHA-2310
+const read=p=>semAdsEscolha2310(semVitrine2610(affiliateRaw(p, readFileSync(p,'utf8')),p).replace(/\r\n/g,'\n'),p) // KINEO-ADS-ESCOLHA-2310
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8',maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
 // KINEO-ADS-ESCOLHA-2310 — certify the historical TEXTO delivery, not a later unrelated HEAD inventory.
 const textoDelivery=()=>{const trava='[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]',tip=git('log','--format=%H%x00%s','HEAD').trim().split('\n').map(line=>line.split('\0')).find(([,subject])=>(subject?.startsWith(MARK+' ')||subject?.startsWith(MARK+':'))&&subject.includes(trava))?.[0];assert.equal(tip,'36a5286aa9bc8aa16e8b4c72edc42fbf1d1ac7a7','historical TEXTO delivery retains its exact marker/TRAVA and complete inventory');return tip}

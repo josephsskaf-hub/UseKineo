@@ -33,7 +33,7 @@ import {
 // em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte (H); o
 // comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
-import { semAfiliado50_2610, AFILIADO50_2610_BASE, AFILIADO50_2610_ARQUIVOS } from './test-support/desfaz-afiliado50-2610.mjs'
+import { semAfiliado50_2610, AFILIADO50_2610_BASE, AFILIADO50_2610_SOURCE_BASES, AFILIADO50_2610_ARQUIVOS } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const root = process.cwd()
 // Reverse the exact later offer layer before the older delivery helpers.
@@ -492,7 +492,7 @@ assert.equal(failed, 0, `${failed} mutante(s) sobreviveram ou não se aplicaram`
   // foreign edits and rejecting a changed hunk. It never substitutes a base file.
   for (const f of AFILIADO50_2610_ARQUIVOS) {
     const actual = fs.readFileSync(path.join(root, f), 'utf8').replace(/\r\n/g, '\n')
-    const base = git('show', `${AFILIADO50_2610_BASE}:${f}`).replace(/\r\n/g, '\n')
+    const base = git('show', `${AFILIADO50_2610_SOURCE_BASES[f] ?? AFILIADO50_2610_BASE}:${f}`).replace(/\r\n/g, '\n')
     assert.equal(semAfiliado50_2610(f, actual), base, `50% undo: ${f} is not exactly the task base`)
     assert.equal(semAfiliado50_2610(f, base), base, `50% undo: a prior tree was changed (${f})`)
   }

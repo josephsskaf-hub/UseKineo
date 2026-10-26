@@ -1,10 +1,11 @@
 // Complete task delta restored exactly to its immutable main base, in memory.
 // No file writes, env, database, provider access or network.
 import assert from 'node:assert/strict'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { semVitrine2610, VITRINE_2610_BASE, VITRINE_2610_MANIFEST } from './test-support/desfaz-vitrine-filmes-2610.mjs'
+import { semVitrine2610, VITRINE_2610_BASE, VITRINE_2610_MANIFEST, VITRINE_2610_GUARDIAN_ADAPTERS as adapters } from './test-support/desfaz-vitrine-filmes-2610.mjs'
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs'
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs'
@@ -48,8 +49,9 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
 }
 check(manifest.testScopeBase === VITRINE_2610_BASE, 'historical-script preimages use the same immutable main base')
 check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-ads-reteste-1510.mjs', 'scripts/test-equipe-business-2026-10-10.mjs', 'scripts/test-geo-rodada2-2026-10-08.mjs', 'scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
-for (const [file, entry] of Object.entries(manifest.testScope)) {
-  const current = lf(fs.readFileSync(file, 'utf8')), base = lf(git('show', `${manifest.testScopeBase}:${file}`))
+check(JSON.stringify(Object.keys(adapters.scope).sort()) === JSON.stringify(['scripts/test-admin-leve-undo-2310.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs']), 'integration adapter scope is exact')
+for (const [file, entry] of Object.entries({ ...manifest.testScope, ...adapters.scope })) {
+  const current = semAfiliado50_2610(file, lf(fs.readFileSync(file, 'utf8'))), base = lf(git('show', `${adapters.scope[file] ? adapters.base : manifest.testScopeBase}:${file}`))
   check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
   check(semVitrine2610(current, file) === base, file + ': later test adaptation returns exactly to main preimage')
   check(semVitrine2610(current.replace(/\n/g, '\r\n'), file.replace(/\//g, '\\')) === base.replace(/\n/g, '\r\n'), file + ': historical CRLF and Windows separators')
