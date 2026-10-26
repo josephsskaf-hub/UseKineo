@@ -8,9 +8,10 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semClareza1610(p, readFileSync(join(RAIZ, p), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
+const rd = (p) => semClareza1610(p, semAfiliado50_2610(p, readFileSync(join(RAIZ, p), 'utf8'))).replace(/\r\n/g, '\n') // Later independent affiliate offer exits before the historical clarity layer.
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
