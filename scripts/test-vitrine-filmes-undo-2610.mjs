@@ -43,6 +43,21 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
     rejects(() => semVitrine2610(current + '\n' + hunk.after, file), /expected exactly 1 candidate match/, file + ': duplicated hunk rejected')
   }
 }
+check(manifest.testScopeBase === VITRINE_2610_BASE, 'historical-script preimages use the same immutable main base')
+check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
+for (const [file, entry] of Object.entries(manifest.testScope)) {
+  const current = lf(fs.readFileSync(file, 'utf8')), base = lf(git('show', `${manifest.testScopeBase}:${file}`))
+  check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
+  check(semVitrine2610(current, file) === base, file + ': later test adaptation returns exactly to main preimage')
+  check(semVitrine2610(current.replace(/\n/g, '\r\n'), file.replace(/\//g, '\\')) === base.replace(/\n/g, '\r\n'), file + ': historical CRLF and Windows separators')
+  check(semVitrine2610(base, file) === base, file + ': historical preimage is a fixed point')
+  const extra = '\n// unrelated historical-test edit survives\r\n'
+  check(semVitrine2610(current + extra, file) === base + extra, file + ': unrelated script work preserved')
+  for (const hunk of entry.hunks) {
+    rejects(() => semVitrine2610(current.replace(hunk.after, hunk.after.replace(/\S/, '@')), file), /expected exactly 1 candidate match/, file + ': corrupted historical hunk rejected')
+    rejects(() => semVitrine2610(current + '\n' + hunk.after, file), /expected exactly 1 candidate match/, file + ': duplicated historical hunk rejected')
+  }
+}
 for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'lib/publicSurfacePolicy.ts', 'vercel.json']) {
   check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${VITRINE_2610_BASE}:${file}`)), file + ': unrelated pricing, privacy flag and cron schedule untouched')
 }

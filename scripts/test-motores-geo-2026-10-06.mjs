@@ -81,6 +81,11 @@ const SITEMAP_MOCKS = {
   'lib/seo/freeShortsGeneratorLangs.ts': { FREE_SHORTS_LANGS: [] },
 }
 
+// KINEO-VITRINE-FILMES-2610 — historical sitemap mutants are applied only after
+// the exact Vitrine/Pages/Bing projections. Never re-run a strict source undo
+// on a deliberately mutated historical source.
+const sitemapBeforeMutations = () => semBingSeo1510(SITEMAP, rd(SITEMAP))
+
 /** Tudo que esta mudança promete, medido no código real com as trocas `rep` (caminho → fonte). [] = verde. */
 async function problemas(rep = {}) {
   const p = []
@@ -314,7 +319,7 @@ async function problemas(rep = {}) {
 // mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do
 // Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por
 // scripts/test-bing-seo-1510.mjs.
-  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: semBingSeo1510(SITEMAP, rep[SITEMAP] ?? rd(SITEMAP)) }, mocks: SITEMAP_MOCKS })(SITEMAP).default()
+  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: rep[SITEMAP] ?? sitemapBeforeMutations() }, mocks: SITEMAP_MOCKS })(SITEMAP).default()
   const urls = sm.map((x) => x.url)
   // REANCORADO KINEO-GEO-RODADA2-2026-10-08 (com motivo): a rodada 2 de GEO (sessão CEO 08/10) mudou de verdade a página do
   // Seedance 1.5 ("é grátis?", 1.5 × 2.5, filmes reais) — o lastmod dela passa a ser a data REAL dessa revisão
@@ -435,13 +440,13 @@ ok(edicoesMotoresGeo(rd(PAGE)) === 11, 'as 11 edições da página que os guardi
 
 // ── mutantes: cada regra quebrada fica VERMELHA; controles (a fonte muda) ficam VERDES ──
 const troca = (rel, de, para, extra = {}) => {
-  const src = rd(rel)
+  const src = rel === SITEMAP ? sitemapBeforeMutations() : rd(rel)
   if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
   return { ...extra, [rel]: src.replace(de, () => para) }
 }
 // KINEO-S25-CLIPES-2026-10-06 — várias trocas no MESMO arquivo (cada âncora tem de existir uma vez só).
 const trocaDupla = (rel, pares, extra = {}) => {
-  let src = rd(rel)
+  let src = rel === SITEMAP ? sitemapBeforeMutations() : rd(rel)
   for (const [de, para] of pares) {
     if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
     src = src.replace(de, () => para)

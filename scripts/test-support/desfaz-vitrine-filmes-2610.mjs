@@ -16,7 +16,7 @@ const positions = (text, needle) => {
 
 export function semVitrine2610(source, file) {
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
-  const entry = VITRINE_2610_MANIFEST.scope[relative]
+  const entry = VITRINE_2610_MANIFEST.scope[relative] ?? VITRINE_2610_MANIFEST.testScope?.[relative]
   if (!entry || source === null) return source
   if (typeof source !== 'string') throw Error('VITRINE-2610: source must be string or null: ' + relative)
   const text = flat(source)
