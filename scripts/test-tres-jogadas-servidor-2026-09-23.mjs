@@ -262,7 +262,7 @@ if (typeof W.recordDfyOrderPaid === 'function') {
 const semComentWh = (s) => s.replace(/^\s*\/\/.*$/gm, '')
 const caseIni = wh.indexOf("case 'checkout.session.completed':")
 const antesDoRamo = caseIni < 0 ? '' : wh.slice(caseIni, wh.indexOf('if (isDfyOrderSession(session)) {', caseIni))
-checa('P0 resposta 200: do case até o ramo Empresas não há laço nem throw (o `break` do ramo sai do switch) e o payment_success anterior roda em try/catch', antesDoRamo.length > 200 && !/\b(?:for|while)\s*\(|\bthrow\b/.test(semComentWh(antesDoRamo)) && /try \{\s*await recordPaymentSuccess\(supabase, event\.id, session\)\s*\} catch \(trackingError\)/.test(antesDoRamo))
+checa('P0 resposta 200: do case até o ramo Empresas não há laço nem throw (o `break` do ramo sai do switch) e o payment_success anterior roda em try/catch', antesDoRamo.length > 200 && !/\b(?:for|while)\s*\(|\bthrow\b/.test(semComentWh(antesDoRamo)) && /try \{\s*await recordPaymentSuccess\(supabase, event\.id, session, event\.created\)\s*\} catch \(trackingError\)/.test(semComentWh(antesDoRamo).replaceAll(' // KINEO-AMOSTRA-ANUNCIO-2410', '')))
 const posSwitch = wh.slice(wh.indexOf("console.log('Unhandled webhook event type:', event.type)"))
 checa('P0 resposta 200: depois do switch a saída é `NextResponse.json({ received: true })` sem status; o 500 só existe no catch (que exige throw)', /^[^\n]*\n\s*\}\n\n\s*return NextResponse\.json\(\{ received: true \}\)\n\s*\} catch \(error\) \{/.test(posSwitch))
 const grantTs = rd('lib/payments/grant.ts')

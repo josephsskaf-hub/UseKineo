@@ -1,0 +1,6129 @@
+{
+  "classification": "TESTADO LOCALMENTE; no production validation",
+  "measured_at": "2026-10-24T19:28:18.378Z",
+  "base_sha": "1c078ed013302ac47c42f783305df688c4e97cfd",
+  "code_head_before_report": "bf122adc0870e9a2c09d0393b9aec086f383f2a2",
+  "branch": "codex/amostra-anuncio-2410",
+  "scope": {
+    "selected_positive_scripts": 174,
+    "selection": "all pre-existing critical CI commands plus affected Ads/Close/UGC/Shopify/checkout/Stripe legacy; not the entire legacy inventory",
+    "new_behavioral_mutants": 69,
+    "new_mutants_by_group": {
+      "controller": 7,
+      "data_and_cron": 16,
+      "media": 19,
+      "entry_and_upload": 8,
+      "runtime_race": 1,
+      "paid_refunded_retry": 7,
+      "postgres_sql": 11
+    },
+    "expected_negative_cases_per_tree": 4,
+    "exact_undo": {
+      "existing": 33,
+      "new": 16
+    }
+  },
+  "comparison": {
+    "base_pass": 170,
+    "candidate_pass": 170,
+    "inherited_failures": [
+      {
+        "file": "scripts/test-ads-ia-faz-2026-09-26.mjs",
+        "status": 1,
+        "failLines": [
+          "Error: import ./v2BolaFix"
+        ]
+      },
+      {
+        "file": "scripts/test-checkout-currency-truth.mjs",
+        "status": 1,
+        "failLines": [
+          "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+        ]
+      },
+      {
+        "file": "scripts/test-close-real-1910.mjs",
+        "status": 1,
+        "failLines": [
+          "  FAIL D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)"
+        ]
+      },
+      {
+        "file": "scripts/test-locale-readiness.mjs",
+        "status": 1,
+        "failLines": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ]
+      }
+    ],
+    "new_failures": [],
+    "unresolved_timeouts": 0,
+    "blocked_calls": 0,
+    "base": {
+      "initial": [
+        {
+          "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2927,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 30147,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4284,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-truncamento-2026-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1160,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-1foto-link-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 24531,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3-variacoes-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7181,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3var-cor-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 916,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-amostra-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14012,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 43788,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-ajustes-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20917,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-bola-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28408,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 29075,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 38679,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 59598,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-audio-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2838,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-frames-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1872,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-montagem-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 21617,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pacing-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 203363,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pipeline-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 96638,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 104638,
+          "blocked": false,
+          "failLines": [
+            "KINEO-ADS-CENA-95-PLAN-FAILED-2110: verde; 10 mutantes vermelhos; offline, sem render/DB/cobrança"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-cena-95-runtime-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 120677,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-ajuste-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6174,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-calibracao-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4132,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-final-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5974,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-quality-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-respaldo-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 175221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-retomada-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 134252,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-segue-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 209390,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-texto-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 183161,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-voz-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12892,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-chamada-repetida-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 795,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comecar-do-zero-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 417,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comparacoes-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1220,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12372,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-tela-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3005,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-demo-universo-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10952,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 80588,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-publico-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 65505,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilo-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1574,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilos-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18076,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 35212,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-2-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 21684,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-3-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 26986,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-4-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 41867,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-5-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 52651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-6-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 75124,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-7-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 84513,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-liga-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 22453,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fluxo-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11702,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fonte-studio-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 399,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-for-segmentos-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1958,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 36829,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 27096,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fundacao-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 811,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ia-faz-2026-09-26.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 498,
+          "blocked": false,
+          "failLines": [
+            "Error: import ./v2BolaFix"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-link-lojas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6409,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-link-tela-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15168,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lista-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25707,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lote-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2542,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-ajuste-3-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 51822,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-juiz-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 75028,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-marcas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 26810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-modo-simples-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 134061,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-nota9-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 60452,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-packshot-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18024,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-palco-voltar-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2181,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-parede-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-porta-plano-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2646,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-pos-entrega-1510.mjs",
+          "args": [],
+          "status": null,
+          "error": "ETIMEDOUT",
+          "ms": 240167,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-ajuste-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-quadro-studio-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1987,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-qualidade-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20771,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-recursos-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 774,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refacao-ator-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 39696,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refazer-cena-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1278,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-render-fix-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 831,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-reteste-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 165496,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-roteiros-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 33627,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-self-serve-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1330,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sem-legenda-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2079,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-servidor-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1718,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-simples-acabamento-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28123,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sprint16h-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1379,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-teste1-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1952,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ux-marca-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9378,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-base-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 593,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-cartas-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 222,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-musica-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 621,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-servidor-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-tela-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2922,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-virada-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3279,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-video-do-cliente-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5831,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-afiliados-acordam.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2264,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-app-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11567,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-carta-da-recusa.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2200,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-auth-session-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1193,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-deliver-first.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 999,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-objection-visibility.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 998,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-clareza-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13771,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-currency-truth.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 953,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+          ]
+        },
+        {
+          "file": "scripts/test-checkout-entry-surface.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 912,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-fallback-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 718,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-honesto-2026-10-07.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14560,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-hot-nudge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 228,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-intent.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 821,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-oauth-failure-handoff.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 863,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-password-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 946,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-payment-guidance.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1386,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-profile-read.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2411,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 277,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-delivery-guard.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 744,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-human-view.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 971,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-own-film.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 977,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-unavailable.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 898,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-robo-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2372,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-session-window.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 885,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-setup-failure-return.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-signup-resolution.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 729,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-success-entitlement.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 841,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-value-context.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1172,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-visual-proof.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1206,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1196,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4854,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2826,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2465,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-1910.mjs",
+          "args": [],
+          "status": null,
+          "error": "ETIMEDOUT",
+          "ms": 240111,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-ajuste-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 146829,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12348,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-corte-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6316,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-pilula-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 8676,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-v3-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 34781,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2250,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-five-improvements.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7151,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 697,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 961,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3359,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3153,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 35963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-curation.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1045,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-pricing-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 183,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-referral-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 755,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1486,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2071,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 138929,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-juiz-still-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25531,
+          "blocked": false,
+          "failLines": [
+            "  ok  aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motivos e desfecho)",
+            "  ok  (P1 a linha não mostra o juiz) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv",
+            "  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv"
+          ]
+        },
+        {
+          "file": "scripts/test-language-segmentation-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15817,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-locale-readiness.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 1129,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+          ]
+        },
+        {
+          "file": "scripts/test-momentum-topic.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1478,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-motores-geo-2026-10-06.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 23204,
+          "blocked": false,
+          "failLines": [
+            "Error: Script execution timed out after 5000ms"
+          ]
+        },
+        {
+          "file": "scripts/test-music-direction-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7473,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2617,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2382,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10930,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1993,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 34512,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20634,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16809,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3510,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-sharing-safety.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1378,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-shopify-app-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3850,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-showcase-premium.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2276,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-async-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 345,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1185,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-checkout-failure-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 383,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-studio-entry-transition.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2819,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-health-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 10127,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-index-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7773,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-pages-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ugc-ajustes-2010.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18205,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-visual-contract-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7731,
+          "blocked": false,
+          "failLines": []
+        }
+      ],
+      "effective": [
+        {
+          "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2927,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 30147,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4284,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-truncamento-2026-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1160,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-1foto-link-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 24531,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3-variacoes-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7181,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3var-cor-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 916,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-amostra-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14012,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 43788,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-ajustes-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20917,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-bola-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28408,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 29075,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 38679,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 59598,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-audio-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2838,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-frames-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1872,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-montagem-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 21617,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pacing-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 203363,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pipeline-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 96638,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 104638,
+          "blocked": false,
+          "failLines": [
+            "KINEO-ADS-CENA-95-PLAN-FAILED-2110: verde; 10 mutantes vermelhos; offline, sem render/DB/cobrança"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-cena-95-runtime-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 120677,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-ajuste-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6174,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-calibracao-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4132,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-final-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5974,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-quality-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-respaldo-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 175221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-retomada-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 134252,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-segue-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 209390,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-texto-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 183161,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-voz-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12892,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-chamada-repetida-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 795,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comecar-do-zero-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 417,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comparacoes-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1220,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12372,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-tela-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3005,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-demo-universo-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10952,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 80588,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-publico-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 65505,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilo-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1574,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilos-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18076,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 35212,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-2-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 21684,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-3-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 26986,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-4-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 41867,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-5-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 52651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-6-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 75124,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-7-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 84513,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-liga-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 22453,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fluxo-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11702,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fonte-studio-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 399,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-for-segmentos-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1958,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 36829,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 27096,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fundacao-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 811,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ia-faz-2026-09-26.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 498,
+          "blocked": false,
+          "failLines": [
+            "Error: import ./v2BolaFix"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-link-lojas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6409,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-link-tela-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15168,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lista-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25707,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lote-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2542,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-ajuste-3-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 51822,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-juiz-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 75028,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-marcas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 26810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-modo-simples-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 134061,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-nota9-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 60452,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-packshot-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18024,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-palco-voltar-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2181,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-parede-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-porta-plano-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2646,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-pos-entrega-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 202442,
+          "blocked": false,
+          "source_sha": "1c078ed013302ac47c42f783305df688c4e97cfd",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-ajuste-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-quadro-studio-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1987,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-qualidade-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20771,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-recursos-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 774,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refacao-ator-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 39696,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refazer-cena-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1278,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-render-fix-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 831,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-reteste-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 165496,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-roteiros-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 33627,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-self-serve-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1330,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sem-legenda-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2079,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-servidor-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1718,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-simples-acabamento-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28123,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sprint16h-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1379,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-teste1-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1952,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ux-marca-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9378,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-base-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 593,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-cartas-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 222,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-musica-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 621,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-servidor-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-tela-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2922,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-virada-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3279,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-video-do-cliente-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5831,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-afiliados-acordam.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2264,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-app-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11567,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-carta-da-recusa.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2200,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-auth-session-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1193,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-deliver-first.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 999,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-objection-visibility.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 998,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-clareza-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13771,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-currency-truth.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 953,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+          ]
+        },
+        {
+          "file": "scripts/test-checkout-entry-surface.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 912,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-fallback-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 718,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-honesto-2026-10-07.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14560,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-hot-nudge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 228,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-intent.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 821,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-oauth-failure-handoff.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 863,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-password-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 946,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-payment-guidance.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1386,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-profile-read.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2411,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 277,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-delivery-guard.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 744,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-human-view.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 971,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-own-film.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 977,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-unavailable.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 898,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-robo-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2372,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-session-window.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 885,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-setup-failure-return.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-signup-resolution.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 729,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-success-entitlement.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 841,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-value-context.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1172,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-visual-proof.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1206,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1196,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4854,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2826,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2465,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-1910.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 306580,
+          "blocked": false,
+          "failLines": [
+            "  FAIL D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)"
+          ],
+          "receipt": "recheck-close-results.json"
+        },
+        {
+          "file": "scripts/test-close-real-ajuste-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 146829,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12348,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-corte-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6316,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-pilula-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 8676,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-v3-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 34781,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2250,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-five-improvements.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7151,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 697,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 961,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3359,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3153,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 35963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-curation.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1045,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-pricing-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 183,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-referral-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 755,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1486,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2071,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 138929,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-juiz-still-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25531,
+          "blocked": false,
+          "failLines": [
+            "  ok  aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motivos e desfecho)",
+            "  ok  (P1 a linha não mostra o juiz) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv",
+            "  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv"
+          ]
+        },
+        {
+          "file": "scripts/test-language-segmentation-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15817,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-locale-readiness.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 1129,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+          ]
+        },
+        {
+          "file": "scripts/test-momentum-topic.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1478,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-motores-geo-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 193191,
+          "blocked": false,
+          "failLines": [
+            "  ok  M25 o 2.5 volta a comparar com a Runway Standard → vermelho pelo motivo certo ((mutante lançou: Error: engineCitation: Runway Standard não lista seedance-2.5 na página oficial (runway-s25-s…)"
+          ],
+          "receipt": "recheck-motores-results.json"
+        },
+        {
+          "file": "scripts/test-music-direction-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7473,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2617,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2382,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10930,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1993,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 34512,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20634,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16809,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3510,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-sharing-safety.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1378,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-shopify-app-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3850,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-showcase-premium.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2276,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-async-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 345,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1185,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-checkout-failure-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 383,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-studio-entry-transition.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2819,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-health-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 10127,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-index-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7773,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-pages-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ugc-ajustes-2010.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 18205,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-visual-contract-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7731,
+          "blocked": false,
+          "failLines": []
+        }
+      ],
+      "reruns": [
+        {
+          "file": "scripts/test-close-real-1910.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 306580,
+          "blocked": false,
+          "failLines": [
+            "  FAIL D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)"
+          ]
+        },
+        {
+          "file": "scripts/test-motores-geo-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 193191,
+          "blocked": false,
+          "failLines": [
+            "  ok  M25 o 2.5 volta a comparar com a Runway Standard → vermelho pelo motivo certo ((mutante lançou: Error: engineCitation: Runway Standard não lista seedance-2.5 na página oficial (runway-s25-s…)"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-pos-entrega-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 202442,
+          "blocked": false,
+          "source_sha": "1c078ed013302ac47c42f783305df688c4e97cfd",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        }
+      ]
+    },
+    "candidate": {
+      "initial": [
+        {
+          "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 996,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 25916,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2626,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-truncamento-2026-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1140,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-1foto-link-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16078,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3-variacoes-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15231,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3var-cor-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 980,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6209,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-amostra-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23371,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-2026-10-09.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 49867,
+          "blocked": false,
+          "failLines": [
+            "  FAIL 5c plan/start/variations passam o ator à estimativa (lido); o preço continua adsV2Credits(tier, segundos)",
+            "  FAIL 8b /start: a ÚNICA mudança desde a base é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-ator-ajustes-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11835,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-bola-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12188,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 31272,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12096,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23356,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-audio-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1541,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-frames-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1451,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-montagem-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pacing-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25730,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pipeline-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5506,
+          "blocked": false,
+          "failLines": [
+            "KINEO-ADS-CENA-95-PLAN-FAILED-2110: verde; 10 mutantes vermelhos; offline, sem render/DB/cobrança"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-cena-95-runtime-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9889,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-ajuste-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4345,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-calibracao-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1780,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-final-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1811,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-quality-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1015,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-respaldo-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25602,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-retomada-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25035,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-segue-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 39568,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-texto-2310.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 41371,
+          "blocked": false,
+          "failLines": [
+            "Error: desfaz-amostra-anuncio-2410: fonte divergente .github/workflows/guardiao.yml"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-cena-voz-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3157,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-chamada-repetida-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 680,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comecar-do-zero-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 443,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comparacoes-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1431,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3927,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-tela-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 64536,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-demo-universo-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 89969,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-publico-2410.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 4592,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-estilo-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1776,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilos-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 43445,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 230363,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-2-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 71249,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-3-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 80594,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-4-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 126318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-5-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 113651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-6-1610.mjs",
+          "args": [],
+          "status": null,
+          "error": "ETIMEDOUT",
+          "ms": 240530,
+          "blocked": false,
+          "failLines": [
+            "  FAIL V2 todo bloco novo nos arquivos de produto (lib/ e app/) traz a marca KINEO-ADS-FIEL-6-1610, e toda linha de código fora de comentário também; só os 4 arquivos da trava"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-fiel-7-1610.mjs",
+          "args": [],
+          "status": null,
+          "error": "ETIMEDOUT",
+          "ms": 240089,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-liga-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 78174,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fluxo-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 169484,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fonte-studio-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 437,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-for-segmentos-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2754,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15723,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12431,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fundacao-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ia-faz-2026-09-26.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 903,
+          "blocked": false,
+          "failLines": [
+            "Error: import ./v2BolaFix"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-link-lojas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15672,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-link-tela-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 27448,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lista-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 49996,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lote-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1514,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-ajuste-3-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 152185,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-juiz-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 157943,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-marcas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25865,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-modo-simples-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 92312,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-nota9-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 57941,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-packshot-1410.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 7310,
+          "blocked": false,
+          "failLines": [
+            "  FAIL P2 créditos IGUAIS (o núcleo do /plan e o /start cobram adsV2Credits(nível, duração) — nenhum plano entra no preço) e o custo de fal cai EXATAMENTE um Kling O3 (US$ 0,336) em cada nível × duração"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-palco-voltar-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14560,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-parede-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 8559,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-porta-plano-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1466,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-pos-entrega-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 85106,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 178561,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-ajuste-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 149825,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-quadro-studio-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14967,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-qualidade-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20620,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-recursos-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1000,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refacao-ator-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 188793,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refazer-cena-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6678,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-render-fix-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 879,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-reteste-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 239957,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-roteiros-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15519,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-self-serve-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1619,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sem-legenda-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2557,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-servidor-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2437,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-simples-acabamento-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 63875,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sprint16h-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1107,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-teste1-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1348,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ux-marca-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 64504,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-base-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 812,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-cartas-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 234,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-musica-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 420,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-servidor-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10780,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-tela-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 29148,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-virada-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2961,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-video-do-cliente-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13660,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-afiliados-acordam.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1214,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-app-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12201,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-carta-da-recusa.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2434,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-auth-session-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1063,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-deliver-first.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 678,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-objection-visibility.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1078,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-clareza-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32805,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-currency-truth.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 879,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+          ]
+        },
+        {
+          "file": "scripts/test-checkout-entry-surface.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 686,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-fallback-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 672,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-honesto-2026-10-07.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28757,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-hot-nudge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 229,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-intent.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 756,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-oauth-failure-handoff.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-password-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1281,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-payment-guidance.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2600,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-profile-read.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2725,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 275,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-delivery-guard.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 969,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-human-view.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 954,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-own-film.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 782,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-unavailable.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 752,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-robo-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1991,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-session-window.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 972,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-setup-failure-return.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 884,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-signup-resolution.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 808,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-success-entitlement.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1080,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-value-context.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-visual-proof.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1106,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1823,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7669,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5619,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2233,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-1910.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 239827,
+          "blocked": false,
+          "failLines": [
+            "  FAIL D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)"
+          ]
+        },
+        {
+          "file": "scripts/test-close-real-ajuste-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 101648,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6838,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-corte-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4374,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-pilula-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4406,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-v3-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 22810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1216,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-five-improvements.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5759,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 279,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 671,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1163,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13846,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-curation.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 958,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-pricing-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 194,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-referral-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 826,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1559,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1739,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 859,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: current exact source hash: .github/workflows/guardiao.yml"
+          ]
+        },
+        {
+          "file": "scripts/test-juiz-still-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 17033,
+          "blocked": false,
+          "failLines": [
+            "  ok  aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motivos e desfecho)",
+            "  ok  (P1 a linha não mostra o juiz) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv",
+            "  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv"
+          ]
+        },
+        {
+          "file": "scripts/test-language-segmentation-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4306,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-locale-readiness.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 788,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+          ]
+        },
+        {
+          "file": "scripts/test-momentum-topic.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1533,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-motores-geo-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 85645,
+          "blocked": false,
+          "failLines": [
+            "  ok  M25 o 2.5 volta a comparar com a Runway Standard → vermelho pelo motivo certo ((mutante lançou: Error: engineCitation: Runway Standard não lista seedance-2.5 na página oficial (runway-s25-s…)"
+          ]
+        },
+        {
+          "file": "scripts/test-music-direction-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4158,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1001,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1986,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2111,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 30840,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 17295,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2845,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3577,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-sharing-safety.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1347,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-shopify-app-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-showcase-premium.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2677,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1553,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-async-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-checkout-failure-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 542,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-studio-entry-transition.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2153,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-health-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 9277,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-index-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7211,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-pages-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4965,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10426,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ugc-ajustes-2010.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16881,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-visual-contract-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4961,
+          "blocked": false,
+          "failLines": []
+        }
+      ],
+      "effective": [
+        {
+          "file": "scripts/test-active-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 996,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 25916,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-leve-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2626,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-admin-truncamento-2026-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1140,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-1foto-link-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16078,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3-variacoes-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15231,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-3var-cor-2026-09-30.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 980,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-aeo-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6209,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-amostra-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23371,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 59071,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-ator-ajustes-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 11835,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-bola-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12188,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 31272,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12096,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23356,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-audio-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1541,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-frames-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1451,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-montagem-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pacing-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25730,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-pipeline-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5097,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5506,
+          "blocked": false,
+          "failLines": [
+            "KINEO-ADS-CENA-95-PLAN-FAILED-2110: verde; 10 mutantes vermelhos; offline, sem render/DB/cobrança"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-cena-95-runtime-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 9889,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-ajuste-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4345,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-calibracao-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1780,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-final-cena-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1811,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-quality-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1015,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-respaldo-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25602,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-retomada-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25035,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-segue-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 39568,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-texto-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 68313,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-cena-voz-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3157,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-chamada-repetida-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 680,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comecar-do-zero-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 443,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-comparacoes-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1431,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3927,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-consertos-tela-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 64536,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-demo-universo-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 89969,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 23746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-publico-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 50319,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-estilo-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1776,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-estilos-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 43445,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 230363,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-2-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 71249,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-3-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 80594,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-4-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 126318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-5-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 113651,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-6-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 350412,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-fiel-7-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 501141,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": [],
+          "receipt": "recheck-results.json"
+        },
+        {
+          "file": "scripts/test-ads-fiel-liga-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 78174,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fluxo-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 169484,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fonte-studio-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 437,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-for-segmentos-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2754,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15723,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-formatos-escolha-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12431,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fundacao-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2746,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ia-faz-2026-09-26.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 903,
+          "blocked": false,
+          "failLines": [
+            "Error: import ./v2BolaFix"
+          ]
+        },
+        {
+          "file": "scripts/test-ads-link-lojas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15672,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-link-tela-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 27448,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lista-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 49996,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-lote-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1514,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-ajuste-3-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 152185,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-mao-juiz-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 157943,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-marcas-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 25865,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-modo-simples-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 92312,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-nota9-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 57941,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-packshot-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4738,
+          "started_at": "2026-10-24T19:19:01.322Z",
+          "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+          "source_sha256": "e9b01e4fa2716456b572d3e0333b6c506c6224a401e27b816f972648225f2f26",
+          "log": "test-ads-packshot-1410.mjs.final.log",
+          "log_sha256": "7baae4c00d8f267db6aa2135fa3ed1a02d699a7b91765c05329f1ba0886331e6",
+          "blocked": false,
+          "tail": [
+            "  ok  mutante M6 núcleo do /plan sem a linha do packshot: aplicou e fica VERMELHO",
+            "  ok  mutante M7 inserts do ator voltando a pular o packshot: aplicou e fica VERMELHO",
+            "  ok  mutante M8 pedido de produto usando a foto de TEXTO: aplicou e fica VERMELHO",
+            "test-ads-packshot-1410: 18 verdes, 0 vermelhos"
+          ],
+          "receipt": "final-guards-results.json"
+        },
+        {
+          "file": "scripts/test-ads-palco-voltar-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14560,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-parede-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 8559,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-porta-plano-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1466,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-pos-entrega-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 85106,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 178561,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-produto-na-mao-ajuste-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 149825,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-quadro-studio-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 14967,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-qualidade-2110.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 20620,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-recursos-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1000,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refacao-ator-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 188793,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-refazer-cena-1410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6678,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-render-fix-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 879,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-reteste-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 239957,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-roteiros-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 15519,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-self-serve-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1619,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sem-legenda-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2557,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-servidor-2026-09-25.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2437,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-simples-acabamento-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 63875,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-sprint16h-2026-09-27.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1107,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-teste1-2026-09-26.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1348,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ux-marca-2026-10-10.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 64504,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-base-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 812,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-cartas-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 234,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-musica-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 420,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-servidor-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10780,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-tela-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 29148,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-v2-virada-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2961,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-video-do-cliente-2026-09-29.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13660,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-afiliados-acordam.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1214,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-app-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 12201,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-carta-da-recusa.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2434,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-auth-session-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1063,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-deliver-first.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 678,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-cancel-objection-visibility.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1078,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-clareza-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 32805,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-currency-truth.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 879,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: canonical disclosure states the real currency and bank caveat"
+          ]
+        },
+        {
+          "file": "scripts/test-checkout-entry-surface.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 686,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-fallback-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 672,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-honesto-2026-10-07.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 28757,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-hot-nudge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 229,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-intent.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 756,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-oauth-failure-handoff.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-password-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1281,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-payment-guidance.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2600,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-profile-read.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2725,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-recovery.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 275,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-delivery-guard.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 969,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-human-view.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 954,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-own-film.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 782,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-resume-unavailable.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 752,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-robo-1510.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1991,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-session-window.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 972,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-setup-failure-return.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 884,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-signup-resolution.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 808,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-success-entitlement.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1080,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-value-context.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1303,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-checkout-visual-proof.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1106,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1823,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-speech-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7669,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5619,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2233,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-1910.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 239827,
+          "blocked": false,
+          "failLines": [
+            "  FAIL D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)"
+          ]
+        },
+        {
+          "file": "scripts/test-close-real-ajuste-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 101648,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6838,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-corte-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4374,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-legenda-pilula-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4406,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-close-real-v3-1910.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 22810,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1216,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-five-improvements.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5759,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 279,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 491,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 671,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1163,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-blue-layout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 13846,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-curation.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 958,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-pricing-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 194,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-home-referral-bridge.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 826,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-hot-nudge-janela-campanhas.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1559,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1739,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 126982,
+          "head": "bf122adc0870e9a2c09d0393b9aec086f383f2a2",
+          "source_sha256": "41c17e9b81e284cac6519f4304b5c8b53983bc4b5c57b1d1f5e1daa8f17df591",
+          "log": "test-idiomas-formatos-undo-2410.mjs.inventory-recheck.log",
+          "log_sha256": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44",
+          "blocked": false,
+          "tail": [
+            "ok idiomas/formatos undo: 104 exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals 8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation"
+          ],
+          "failLines": [],
+          "receipt": "recheck-inventory-results.json"
+        },
+        {
+          "file": "scripts/test-juiz-still-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 17033,
+          "blocked": false,
+          "failLines": [
+            "  ok  aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motivos e desfecho)",
+            "  ok  (P1 a linha não mostra o juiz) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv",
+            "  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv"
+          ]
+        },
+        {
+          "file": "scripts/test-language-segmentation-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4306,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-locale-readiness.mjs",
+          "args": [],
+          "status": 1,
+          "ms": 788,
+          "blocked": false,
+          "failLines": [
+            "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+          ]
+        },
+        {
+          "file": "scripts/test-momentum-topic.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1533,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-motores-geo-2026-10-06.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 85645,
+          "blocked": false,
+          "failLines": [
+            "  ok  M25 o 2.5 volta a comparar com a Runway Standard → vermelho pelo motivo certo ((mutante lançou: Error: engineCitation: Runway Standard não lista seedance-2.5 na página oficial (runway-s25-s…)"
+          ]
+        },
+        {
+          "file": "scripts/test-music-direction-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4158,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1001,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1986,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-rejection-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6221,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-quality-route-integration-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2111,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 30840,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-roteiro-curto-undo-2210.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 17295,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-scene-retry-mutex-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2845,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 3577,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-sharing-safety.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1347,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-shopify-app-1310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 5318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-showcase-premium.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2677,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stalled-frescor-2026-09-05.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 1553,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-async-checkout.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 318,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 963,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-stripe-checkout-failure-truth.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 542,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-studio-entry-transition.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 2153,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-health-2310.mjs",
+          "args": [
+            "--mutants"
+          ],
+          "status": 0,
+          "ms": 9277,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-index-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 7211,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-pages-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4965,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-trafego-undo-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 10426,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ugc-ajustes-2010.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 16881,
+          "blocked": false,
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-visual-contract-2026-09-11.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 4961,
+          "blocked": false,
+          "failLines": []
+        }
+      ],
+      "reruns": [
+        {
+          "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 126982,
+          "head": "bf122adc0870e9a2c09d0393b9aec086f383f2a2",
+          "source_sha256": "41c17e9b81e284cac6519f4304b5c8b53983bc4b5c57b1d1f5e1daa8f17df591",
+          "log": "test-idiomas-formatos-undo-2410.mjs.inventory-recheck.log",
+          "log_sha256": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44",
+          "blocked": false,
+          "tail": [
+            "ok idiomas/formatos undo: 104 exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals 8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation"
+          ],
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-amostra-undo-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 6837,
+          "head": "bf122adc0870e9a2c09d0393b9aec086f383f2a2",
+          "source_sha256": "a361518e2bfa18bd68d986323414dde0ead9de78b544fde9b76aae8c841a4fbe",
+          "log": "test-ads-amostra-undo-2410.mjs.inventory-recheck.log",
+          "log_sha256": "a785b349a0e455a1d5b9a0b63247f153d9531f85a5949cb84f2f2e106e615799",
+          "blocked": false,
+          "tail": [
+            "PASS sample exact undo: 33 existing sources, 16 new sources; original blobs, SHA256, CRLF, tamper and byte preservation"
+          ],
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-ator-2026-10-09.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 59071,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-cena-texto-2310.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 68313,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-escolha-publico-2410.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 50319,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-6-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 350412,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        },
+        {
+          "file": "scripts/test-ads-fiel-7-1610.mjs",
+          "args": [],
+          "status": 0,
+          "ms": 501141,
+          "blocked": false,
+          "source_sha": "0fc487a99a7f76fbd99121db18625d232fa0e6ec",
+          "preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+          "failLines": []
+        }
+      ]
+    }
+  },
+  "guards": [
+    {
+      "file": "scripts/test-ads-amostra-anuncio-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 35218,
+      "started_at": "2026-10-24T19:11:26.245Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "2f6e95a046ebfede36f1820e20023395c971c875b1b056b2ae9a00b906b5e4cc",
+      "log": "test-ads-amostra-anuncio-2410.mjs.final.log",
+      "log_sha256": "fa6c1c0bfae80c246479919374ce533ecf39367ca2b83e4c764c8923117a4a87",
+      "blocked": false,
+      "tail": [
+        "PASS actual sample controller, free/paid accounts, quota before models, zero debit, result purchase, same reference, replay and checkout return",
+        "PASS sample controller: 7 behavioral mutants rejected; in-memory source undo exact"
+      ]
+    },
+    {
+      "file": "scripts/test-ads-amostra-data-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 1973,
+      "started_at": "2026-10-24T19:12:02.111Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "cb2785a70977fc63546ce76bffd0518ed4a252565005882f06259bf7ebd90ee8",
+      "log": "test-ads-amostra-data-2410.mjs.final.log",
+      "log_sha256": "490d2f486a37104dfba55e5a7d83ca4a657847f0ca3acb593deff3fdf41fe20a",
+      "blocked": false,
+      "tail": [
+        "ok ads-amostra-data: seven production behavioral groups; 16 assertion-killed mutants; no network,env,credential,paid call or source mutation"
+      ]
+    },
+    {
+      "file": "scripts/test-support/ads-escolha-sample-media-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 15929,
+      "started_at": "2026-10-24T19:12:04.237Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "5e0997fdfd535d1514660f8ebcb1d31ba7df360f5f653e6c7a146e7d9988c926",
+      "log": "ads-escolha-sample-media-2410.mjs.final.log",
+      "log_sha256": "ecbff703c9640e8ebf519d0343d3370a4132799328034ea823bb15353d070701",
+      "blocked": false,
+      "tail": [
+        "VERDE: KINEO-AMOSTRA-ANUNCIO-2410 media + 19 behavioral mutants (offline, no disk mutation)"
+      ]
+    },
+    {
+      "file": "scripts/test-support/ads-amostra-entry-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 5628,
+      "started_at": "2026-10-24T19:12:20.429Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "959770a1ff6c0fed2062763c06f7fd9cb1d329df7679c9e6075eb3350830e532",
+      "log": "ads-amostra-entry-2410.mjs.final.log",
+      "log_sha256": "7319cc301fc8026c9b23121c93ac52db1b1d548c9fa4ff725cb79d95611cea79",
+      "blocked": false,
+      "tail": [
+        "PASS sample upload, personal page/login and purchase resume; 8 behavioral mutants rejected (offline)"
+      ]
+    },
+    {
+      "file": "scripts/test-support/ads-amostra-race-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 2364,
+      "started_at": "2026-10-24T19:12:26.199Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "e7d0435cf092f277656802f4720cf4aa22dad791be2cedf5e5701d77f96fe233",
+      "log": "ads-amostra-race-2410.mjs.final.log",
+      "log_sha256": "2338314842dd174fc674c4c2ae66807010779023b5a70723873782809b4004dd",
+      "blocked": false,
+      "tail": [
+        "VERDE: sample runtime delayed NULL-lease contender + null/error reads + behavioral mutant (offline)"
+      ]
+    },
+    {
+      "file": "scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 18704,
+      "started_at": "2026-10-24T19:12:29.013Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "441d613d197555621ec038042531435dcefb11e87ce40d102271c9ae9e25c6aa",
+      "log": "ads-amostra-upgrade-retry-2410.mjs.final.log",
+      "log_sha256": "40a67e171c617d63b5997654b4a2a18ed249e8919342219adde297bbb34d78ef",
+      "blocked": false,
+      "tail": [
+        "PASS paid sample retry: immutable refunded predecessor, same reference, concurrent/replay, closed ledger and bounded chain; 7 assertion-killed mutants"
+      ]
+    },
+    {
+      "file": "scripts/test-ads-amostra-undo-2410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 6837,
+      "head": "bf122adc0870e9a2c09d0393b9aec086f383f2a2",
+      "source_sha256": "a361518e2bfa18bd68d986323414dde0ead9de78b544fde9b76aae8c841a4fbe",
+      "log": "test-ads-amostra-undo-2410.mjs.inventory-recheck.log",
+      "log_sha256": "a785b349a0e455a1d5b9a0b63247f153d9531f85a5949cb84f2f2e106e615799",
+      "blocked": false,
+      "tail": [
+        "PASS sample exact undo: 33 existing sources, 16 new sources; original blobs, SHA256, CRLF, tamper and byte preservation"
+      ],
+      "failLines": []
+    },
+    {
+      "file": "scripts/test-support/ads-amostra-data-sql-2410.cjs",
+      "args": [
+        "C:/Users/josep/AppData/Local/Temp/kineo-ads-publico-2410-sql/node_modules/@electric-sql/pglite",
+        "supabase/migrations/20261024175246_ads_escolha_sample.sql",
+        "--mutants"
+      ],
+      "status": 0,
+      "ms": 183439,
+      "started_at": "2026-10-24T19:12:59.000Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "e37fb7075544e003d710ff4a420e25ecf7a8d9874eba57365ee7aeab24a7d8e4",
+      "log": "ads-amostra-data-sql-2410.cjs.final.log",
+      "log_sha256": "fd4513f87ed6b6c77b7a2a4d733abeb700395a32cc9ec8a1a6ea1ab9770a3465",
+      "blocked": false,
+      "tail": [
+        "ok SQL assertion-killed mutant: 49 people alert early",
+        "ok SQL assertion-killed mutant: internal samples trigger stopping alert",
+        "ok SQL assertion-killed mutant: sent alert repeats",
+        "SQL mutants green: 11 assertion-killed behavioral mutants; migration source untouched."
+      ]
+    },
+    {
+      "file": "node_modules/typescript/bin/tsc",
+      "args": [
+        "--noEmit",
+        "--incremental",
+        "false",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "ms": 178544,
+      "started_at": "2026-10-24T19:16:02.624Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+      "log": "tsc.final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blocked": false,
+      "tail": []
+    },
+    {
+      "file": "scripts/test-ads-packshot-1410.mjs",
+      "args": [],
+      "status": 0,
+      "ms": 4738,
+      "started_at": "2026-10-24T19:19:01.322Z",
+      "head": "965cccdfd3009cfedcc6bd97a10e702328f5a603",
+      "source_sha256": "e9b01e4fa2716456b572d3e0333b6c506c6224a401e27b816f972648225f2f26",
+      "log": "test-ads-packshot-1410.mjs.final.log",
+      "log_sha256": "7baae4c00d8f267db6aa2135fa3ed1a02d699a7b91765c05329f1ba0886331e6",
+      "blocked": false,
+      "tail": [
+        "  ok  mutante M6 núcleo do /plan sem a linha do packshot: aplicou e fica VERMELHO",
+        "  ok  mutante M7 inserts do ator voltando a pular o packshot: aplicou e fica VERMELHO",
+        "  ok  mutante M8 pedido de produto usando a foto de TEXTO: aplicou e fica VERMELHO",
+        "test-ads-packshot-1410: 18 verdes, 0 vermelhos"
+      ]
+    }
+  ],
+  "negative_cases": [
+    {
+      "file": "scripts/test-gpt-5h-a-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero assertion",
+      "status": 1,
+      "assertion": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-b-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero assertion",
+      "status": 1,
+      "assertion": true
+    },
+    {
+      "file": "scripts/test-gpt-5h-c-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero assertion",
+      "status": 1,
+      "assertion": true
+    },
+    {
+      "file": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "args": [
+        "--mutant"
+      ],
+      "expected": "nonzero assertion",
+      "status": 1,
+      "assertion": true
+    }
+  ],
+  "protected_unchanged": [
+    "lib/checkoutPricing.ts",
+    "lib/ads/v2Tiers.ts",
+    "lib/ads/v2Billing.ts",
+    "lib/internalAccounts.ts",
+    "package.json",
+    "package-lock.json",
+    "lib/credits/**"
+  ],
+  "provenance": {
+    "composition": "Initial runs began during integration. Failures affected by intermediate sources or wall/VM timeouts were repeated; final-guards also replaces the packshot receipt. Every receipt is retained, with final effective comparison separate.",
+    "initial_wall_timeout_ms": 240000,
+    "recheck_wall_timeout_ms": 900000,
+    "offline_preload": "blocks env file reads and HTTP/TCP/TLS/fetch; no production credentials loaded",
+    "immutable_git_cache": "only git show with a fixed hexadecimal blob revision, args+cwd+encoding keyed; fresh Buffer copy; HEAD/log/diff/errors/worktree reads never cached",
+    "compiled_test_cache": "candidate caches transpiled code only by filename+exact transformed text; source still read and fresh VM/exports on every world",
+    "offline_preload_sha256": "ef8ee4f44879666ad772908d7aa9850dbae209bf66b9e499121e4cf9389cd83e",
+    "raw_logs": "retained locally under .claude/amostra-proof in each isolated worktree; hashes for final guards included",
+    "pglite": "0.5.11 embedded Postgres; queues statements, does not claim independent live-connection concurrency",
+    "local_only": true,
+    "migration_applied": false,
+    "build_or_deploy": false,
+    "paid_calls": false,
+    "email_sent": false
+  }
+}

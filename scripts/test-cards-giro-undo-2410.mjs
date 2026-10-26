@@ -1,3 +1,4 @@
+import { levaTaskSource, levaTaskInventory, levaCurrentInventory } from './test-support/leva-integration-2410.mjs' // KINEO-LEVA-2410 — sealed live source and complete current-tree inventory.
 // KINEO-CARDS-GIRO-2410 — exact source undo, fixed points, EOL, Windows paths, tamper rejection and bounded task inventory; no writes.
 import { semCardsBordas2410 } from './test-support/desfaz-cards-bordas-2410.mjs' // KINEO-CARDS-BORDAS-2410
 import assert from 'node:assert/strict'
@@ -11,7 +12,7 @@ const lf = source => source.replace(/\r\n/g,'\n'), crlf=source=>lf(source).repla
 const affiliateRaw = file => { const source=readFileSync(file,'utf8'), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?crlf(projected):projected }
 assert.equal(manifest.base,BASE)
 for (const [file,item] of Object.entries(manifest.sources)) {
-  const raw=semCardsBordas2410(affiliateRaw(file),file), current=lf(raw) /* KINEO-CARDS-BORDAS-2410 */, before=git('show',BASE+':'+file)
+  const raw=levaTaskSource(affiliateRaw(file),file,'cards'), current=lf(raw), before=git('show',BASE+':'+file)
   assert.equal(item.before,before,'before bytes come from immutable base: '+file)
   assert.equal(item.beforeHash,hash(before),'base hash: '+file)
   assert.equal(item.afterHash,hash(current),'complete current source hash: '+file)
@@ -29,7 +30,7 @@ for (const [file,item] of Object.entries(manifest.sources)) {
 }
 for(const file of manifest.newFiles){assert.ok(existsSync(file),'new task file exists: '+file);assert.throws(()=>git('show',BASE+':'+file),undefined,'new task file absent from base: '+file)}
 for(const file of manifest.artifacts??[])assert.ok(file.startsWith('docs/')&&existsSync(file),'review evidence under docs: '+file)
-const actual=[...new Set([...git('diff','--name-only',BASE,'7ab62db2b10bea45b0c550879c7353f03caf3a6a').trim().split('\n')])].filter(Boolean).filter(f=>!f.startsWith('scripts/test-support/desfaz-cards-bordas-2410')).sort() /* KINEO-CARDS-BORDAS-2410 — camada posterior com desfaz próprio */ // KINEO-TRENDING-INVENTARIO-2510 — fronteira imutavel do lote anterior; hashes dos arquivos atuais continuam obrigatorios.
+const actual=levaTaskInventory('cards',levaCurrentInventory(BASE)) // KINEO-LEVA-2410
 assert.deepEqual([...Object.keys(manifest.sources),...manifest.newFiles,...(manifest.artifacts??[])].sort(),actual,'exact complete task inventory; no file outside declared layer')
 assert.equal(undo(null,'lib/ui/homeThreeCards.ts'),null)
 assert.equal(undo('unrelated\r\n','lib/unrelated.ts'),'unrelated\r\n')

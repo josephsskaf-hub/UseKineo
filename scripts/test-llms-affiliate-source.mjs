@@ -18,18 +18,24 @@ function loadGraph(overrides = {}) {
     assert.ok(path.startsWith(root + sep), 'module stays in workspace')
     if (cache.has(path)) return cache.get(path).exports
     const input = overrides[relative] ?? readFileSync(path, 'utf8')
+    // KINEO-LEVA-2410: dados JSON entram como dados reais; o override continua funcionando.
+    if (path.endsWith('.json')) {
+      const module = { exports: JSON.parse(input) }
+      cache.set(path, module)
+      return module.exports
+    }
     const module = { exports: {} }
     cache.set(path, module)
     const localRequire = (name) => {
       if (name === 'node:crypto') return { createHash }
       assert.ok(name.startsWith('@/lib/') || name.startsWith('.'), `No external dependency: ${name}`)
       const candidate = name.startsWith('@/') ? resolve(root, name.slice(2)) : resolve(dirname(path), name)
-      const file = existsSync(candidate + '.ts') ? candidate + '.ts' : candidate + '/index.ts'
+      const file = existsSync(candidate) && /\.json$/.test(candidate) ? candidate : existsSync(candidate + '.ts') ? candidate + '.ts' : candidate + '/index.ts'
       assert.ok(file.startsWith(resolve(root, 'lib') + sep), 'pure lib dependency only')
       return load(file.slice(root.length + 1).replaceAll('\\', '/'))
     }
     vm.runInNewContext(ts.transpileModule(input, {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
     }).outputText, { module, exports: module.exports, require: localRequire, Response, URL, URLSearchParams,
       process: Object.freeze({ env: Object.freeze({ NODE_ENV: 'production' }) }),
     }, { timeout: 5000, filename: relative })

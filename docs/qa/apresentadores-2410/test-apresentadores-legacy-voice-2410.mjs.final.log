@@ -1,0 +1,1 @@
+ok complete legacy voice: 12 candidates × 37 languages × both fallback modes without v2; audit ids, speed override and failure propagation; six old presenters match origin/main across success/failure; close-real unchanged; baseline mutant rejected; zero network/paid calls

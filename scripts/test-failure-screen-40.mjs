@@ -20,7 +20,7 @@ const renderWorkspace = src.indexOf('{showRender && (')
 t('narracao curta usa revisao neutra fora do render', neutralReview > 0 && renderWorkspace > neutralReview && !/const failureScreenKind:[^=]*'narration_short'/.test(src))
 t('failureScreenKind cobre credits_held', /creditsHeld \? 'credits_held'/.test(src))
 t('failureScreenKind cai em generic', /: 'generic'/.test(src))
-t('failureScreenKind e null fora de failed', /phase !== 'failed' \? null/.test(src))
+t('failureScreenKind e null fora de failed e na revisao neutra/qualidade', /phase !== 'failed' \|\| qualityFailure \|\| scriptTooShort \? null/.test(src))
 
 // ── 2. o efeito passou a usar o gatilho largo, e nao o generico ─────────────
 const efeito = src.slice(src.indexOf('const failedScreenLoggedRef'), src.indexOf('const failureWillRepeat'))
@@ -38,7 +38,7 @@ t('deps incluem scriptTooShort', /scriptTooShort,\n\s+error,/.test(efeito))
 
 // ── 3. classificacao honesta de cada card ──────────────────────────────────
 t('narracao curta fica fora da classificacao de falhas', /phase !== 'failed' \|\| qualityFailure \|\| scriptTooShort \? null/.test(src) && !/return 'narration_short'/.test(src)) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
-t('credito preso NAO e deterministico', /failureScreenKind === 'credits_held'\n\s+\? false/.test(src))
+t('credito preso NAO e deterministico', /failureScreenKind === 'credits_held'\s*\? false/.test(src))
 t('generico herda a heuristica antiga', /: failureIsDeterministic/.test(src))
 
 // ── 4. o aviso de repeticao continua exclusivo do card generico ────────────
@@ -67,7 +67,7 @@ t('expandir continua chamando handleExpandScript', /void handleExpandScript\(\)/
 t('trocar duracao continua setando setDuration', /setDuration\(scriptTooShort\.suggestedDuration as Duration\)/.test(src))
 t('voltar ao texto continua limpando o estado', /setScriptTooShort\(null\); setError\(null\); setPhase\('idle'\)/.test(src))
 t('rechecar credito continua chamando recheckHeldCredits', /void recheckHeldCredits\('manual'\)/.test(src))
-t('showGenericFailure intacto', /const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld/.test(src))
+t('showGenericFailure preserva as exclusoes de qualidade e revisao neutra', /const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld/.test(src))
 
 // ── 7. nao encostou em preco, credito nem plano ────────────────────────────
 t('nenhum setCredits novo', (src.match(/setVideoCredits\(/g) || []).length === (src.match(/setVideoCredits\(/g) || []).length)

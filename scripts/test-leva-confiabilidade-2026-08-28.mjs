@@ -1,5 +1,6 @@
 // KINEO-LEVA-CONFIABILIDADE-2026-08-28 — "ninguém mais tenta fazer vídeo e falha"
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const R = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -24,7 +25,7 @@ chk('passe de reconciliação existe', cron.includes('KINEO-LINHA-PERDIDA-2026-0
 chk('varre generate_completed de 72h', cron.includes("'generate_completed'") && cron.includes('72 * 60 * 60 * 1000'))
 chk('reusa o status route (insert canônico idempotente)', cron.includes('await composeStatusGet(statusReq, { params: { renderId } })'))
 chk('recriação vira evento video_row_relinked', cron.includes("'video_row_relinked'"))
-chk('relinked aparece na resposta do cron', cron.includes('fastReady, relinked, results'))
+chk('relinked aparece na resposta do cron', (() => { const ast = ts.createSourceFile('cron.ts', cron, 99, true); let found = false; function walk(n) { if (ts.isCallExpression(n) && n.expression.getText(ast) === 'NextResponse.json' && ts.isObjectLiteralExpression(n.arguments[0])) { const fields = n.arguments[0].properties.map(p => p.name?.getText(ast)); if (['fastReady', 'relinked', 'results'].every(k => fields.includes(k))) found = true } ts.forEachChild(n, walk) } walk(ast); return found })())
 
 console.log('\nP3) Zero POSTs deixa de culpar o cliente (caso Joscha 6×)')
 const cin = ler('app/api/generate-video-cinematic/route.ts')
@@ -57,10 +58,20 @@ chk('o ADIVINHADOR por preço morreu', !lineCod('app/(dashboard)/my-videos/MyVid
 chk('Library também mostra o selo', ler('app/(dashboard)/library/LibraryClient.tsx').includes('engineLabelFor(v.quality_mode)'))
 chk('/api/videos envia quality_mode', ler('app/api/videos/route.ts').includes('quality_mode: strOrNull(row.quality_mode)'))
 
-console.log('\nP5-audit) snapshot_time inventado foi REMOVIDO (nao existe na API do Creatomate)')
+console.log('\nP5-audit) snapshot_time fica DENTRO do source, nunca no corpo do POST (correção aprovada 08/09)')
 const compose = ler('lib/compose.ts')
-chk('o POST volta a mandar so { source }', compose.includes('body: JSON.stringify({ source }),'))
-chk('nenhum snapshot_time sobrou no CODIGO (a mencao no comentario-licao fica)', !lineCod('lib/compose.ts').includes('snapshot_time'))
+const requestBody = /body:\s*JSON\.stringify\(\{\s*source:\s*withSnapshotRequest\(source\)\s*\}\)/
+chk('POST contém somente source com o pedido de capa correto', requestBody.test(compose))
+chk('snapshot_time nunca é irmão de source no POST', !/JSON\.stringify\(\{[^}]*\bsource\b[^}]*snapshot_time/.test(lineCod('lib/compose.ts')))
+const ast = ts.createSourceFile('compose.ts', compose, 99, true)
+const snapshotFunctions = ast.statements.filter(n => ts.isFunctionDeclaration(n) && ['snapshotTimeFor', 'withSnapshotRequest'].includes(n.name?.text)).map(n => n.getText(ast)).join('\n')
+const snapshotConstant = ast.statements.filter(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === 'SNAPSHOT_TIME_SECONDS')).map(n => n.getText(ast)).join('\n')
+const snapshotJS = ts.transpileModule(snapshotConstant + '\n' + snapshotFunctions, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+const snapshotModule = { exports: {} }; new Function('module', 'exports', snapshotJS)(snapshotModule, snapshotModule.exports)
+const originalSource = { duration: 3, output_format: 'mp4' }, withCover = snapshotModule.exports.withSnapshotRequest(originalSource)
+chk('função real pede capa dentro do filme e não altera o source original', withCover.snapshot_time === 1.5 && !('snapshot_time' in originalSource) && withCover.duration === 3 && withCover.output_format === 'mp4')
+const rawMutant = compose.replace('source: withSnapshotRequest(source)', 'source')
+chk('mutante: remover pedido de capa reprova', rawMutant !== compose && !requestBody.test(rawMutant))
 
 console.log('\nP8) Painel de saúde /api/admin/health')
 const h = ler('app/api/admin/health/route.ts')

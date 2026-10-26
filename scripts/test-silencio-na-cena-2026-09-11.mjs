@@ -48,7 +48,21 @@ const rt = rd('app/api/generate-video-cinematic/route.ts')
 checa('frase de < 5 palavras é absorvida no bloco atual mesmo passando da cota', /if \(chunk\.length > 0 && \(w \+ nw > capWords\(sc\) \|\| \(w >= share && nw >= 5\)\)\) break/.test(rt))
 checa('rota importa a régua', /import \{ fitCinematicPlanFloor, planSilenceReport, SILENCE_SCENE_MAX_SECONDS, SILENCE_TOTAL_MAX_SECONDS \} from '@\/lib\/cinematic\/timelineContract'/.test(rt))
 checa('portão pago: roda depois do portão de duração e antes das âncoras (nada foi pago ainda)', (() => { const a = rt.indexOf("reason: 'plan_duration_below_request'"); const b = rt.indexOf("const silence = reguaDoFilme(plan.scenes, ritmoVoz)\n        if (!silence.ok)") /* 15/09 KINEO-RITMO-DA-VOZ: a mesma régua, no ritmo da voz pinada (2,3 × velocidade da persona); 23/09 KINEO-REGUA-PROPORCIONAL: teto total proporcional ao filme */; const c = rt.indexOf('let anchors: HollywoodAnchors | null = null'); return a > 0 && b > a && c > b })())
-checa('portão pago: estorna, libera o claim e responde 422 com o motivo', /releaseBirthClaim\('plan_silence_inside_scenes'\)/.test(rt) && /reason: 'plan_silence_inside_scenes',/.test(rt) && /\}, \{ status: 422 \}\)\n\s+\}\n\s+\}\n\s+let anchors/.test(rt))
+// KINEO-LEVA-2410: novas guardas precedem as âncoras; executar o bloco real da recusa,
+// incluindo a dependência entre estorno confirmado e liberação do claim.
+const astRota = ts.createSourceFile('route.ts', rt, ts.ScriptTarget.Latest, true)
+const blocosSilencio = []
+function acharSilencio(n) { if (ts.isIfStatement(n) && n.expression.getText(astRota) === '!silence.ok') blocosSilencio.push(n.thenStatement.getText(astRota)); ts.forEachChild(n, acharSilencio) }
+acharSilencio(astRota)
+async function provaRecusaSilencio(confirmado) {
+  if (blocosSilencio.length !== 1) return false
+  const chamadas = []
+  const executar = new Function('silence', 'confirmCinematicRefund', 'releaseBirthClaim', 'writeServerEvent', 'user', 'generationId', 'family', 'SILENCE_SCENE_MAX_SECONDS', 'NextResponse', `return (async () => ${blocosSilencio[0]})()`)
+  const r = await executar({ total: 9, worstScene: 1, worst: 3, perScene: [], wordsToAdd: 8, totalMax: 8 }, async () => { chamadas.push('refund'); return confirmado }, async motivo => { chamadas.push(motivo); return true }, async e => { chamadas.push(e.name) }, { id: 'offline-user' }, 'offline-generation', 'offline-family', 1.5, { json: (body, init) => ({ body, status: init.status }) })
+  return r.status === 422 && r.body.reason === 'plan_silence_inside_scenes' && r.body.refunded === confirmado && r.body.refundConfirmed === confirmado && r.body.claimReleased === confirmado && chamadas.join(',') === (confirmado ? 'refund,plan_silence_inside_scenes,plan_silence_rejected' : 'refund,plan_silence_rejected')
+}
+checa('portão pago: estorno confirmado libera claim e responde 422 com o motivo', await provaRecusaSilencio(true))
+checa('portão pago: estorno não confirmado mantém o claim e informa a falha', await provaRecusaSilencio(false))
 checa('portão pago: a mensagem diz a cena, os segundos e quantas palavras faltam', /Scene \$\{silence\.worstScene\} would sit \$\{silence\.worst\.toFixed\(1\)\} seconds with no narration/.test(rt) && /Add about \$\{silence\.wordsToAdd\} more words, or choose a shorter length/.test(rt))
 checa('portão pago: grava plan_silence_rejected com per_scene e words_to_add', /name: 'plan_silence_rejected'/.test(rt) && /per_scene: silence\.perScene, words_to_add: silence\.wordsToAdd/.test(rt))
 checa('dry-run: mesma régua, campos por cena e veredito', /silence_inside_scenes_seconds: silence\.total,\n\s+silence_worst_scene: silence\.worstScene,/.test(rt) && /preflightProblems\.length === 0 && silence\.ok\n/.test(rt) && /FAIL — cena \$\{silence\.worstScene\} fica \$\{silence\.worst\}s sem fala/.test(rt))

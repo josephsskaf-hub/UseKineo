@@ -181,14 +181,14 @@ check('29b. nem a rota nem o escritor fazem UPDATE em nada', !/\.update\(/.test(
 // Fonte unica de custo e de entitlement (memoria `predicado-do-cobrador-nao-se-redigita`).
 check('30. o custo vem de creditCostForDuration, nao de numero digitado', /creditCostForDuration\(q, pago, seg\)/.test(rota))
 check('31. free/pago vem de getEffectiveEntitlement().treatAsPaid', /getEffectiveEntitlement\(/.test(rota) && /ent\.treatAsPaid/.test(rota))
-check('32. `affordable` e derivado do custo e do saldo, nunca digitado', /affordable: custo !== null && custo <= balance/.test(rota))
+check('32. `affordable` e posicional, derivado de custo, saldo e cota, nunca digitado', rota.includes('episodiosQueCabem({ custo, saldo: balance, cotaRestante, total: TOTAL_EPISODIOS })') && /affordable: cabem === null \? custo !== null : i < cabem/.test(rota))
 // Preco publico e do fundador: a rota nao pode conter cifrao nem nome de plano.
 check(
   '33. a rota nao escreve preco nem nome de plano',
   !/\$\d|9\.90|19\.90|39\.90|'starter'|'creator'|'studio'/i.test(rota.replace(/^\s*\/\/.*$/gm, '')),
 )
 // Ausencia de temporada nao pode virar erro (senao a tela quebra por falta).
-check('34. sem filme e sem temporada a rota responde 200 com season:null', /return resposta\(null, null, balance, null\)/.test(corpoGet) && !/status: 404/.test(rota))
+check('34. sem filme e sem temporada a rota responde 200 com season:null e a cota restante', /return resposta\(null, null, balance, null, cotaRestante\)/.test(corpoGet) && !/status: 404/.test(rota))
 check('35. so o 401 de nao-autenticado sai como erro', (rota.match(/status: \d+/g) ?? []).join() === 'status: 401')
 // A rota so pode enxergar filme da propria pessoa.
 // As duas leituras de `videos` filtram por dono — uma usa a variavel

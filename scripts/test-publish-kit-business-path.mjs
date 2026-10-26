@@ -118,8 +118,25 @@ ok(!eventSink.includes("'publish_kit_business_path_clicked',"), 'browser sink do
 
 const analytics = read('lib/analytics.ts')
 ok(analytics.includes("const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'ref'] as const"), 'shared analytics may add only its declared attribution fields')
-ok(analytics.includes('metadata: { ...storedUtms(), ...(metadata ?? {}) }'), 'test acknowledges global attribution is merged with experiment metadata')
-ok(!analytics.includes('metadata: { ...metadata, ...storedUtms()'), 'experiment metadata cannot be overwritten by a stored attribution key')
+// The approved persistence refactor passes merged metadata to persistBrowserEvent.
+// Execute the real merge expression, proving caller fields win over stored UTMs.
+const analyticsAst = ts.createSourceFile('analytics.ts', analytics, 99, true)
+const track = analyticsAst.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'trackEvent')
+let merge
+function findMerge(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(analyticsAst) === 'persistBrowserEvent') merge = node.arguments[1]
+  ts.forEachChild(node, findMerge)
+}
+if (track) findMerge(track)
+ok(merge && ts.isObjectLiteralExpression(merge), 'trackEvent passes an explicit metadata merge to the real persistence function')
+function merged(expression) { return new Function('storedUtms', 'metadata', 'return (' + expression + ')')(() => ({utm_source:'fixture', placement:'old'}), {placement:'post_value_secondary', version:policy.PUBLISH_KIT_BUSINESS_PATH_VERSION}) }
+const mergeCode = merge.getText(analyticsAst)
+const mergedMetadata = merged(mergeCode)
+equal(mergedMetadata.utm_source, 'fixture', 'global declared attribution remains in the actual payload')
+equal(mergedMetadata.placement, 'post_value_secondary', 'experiment metadata cannot be overwritten by stored attribution')
+equal(mergedMetadata.version, policy.PUBLISH_KIT_BUSINESS_PATH_VERSION, 'experiment version survives the shared analytics layer')
+const reversedMerge = '{ ...(metadata ?? {}), ...storedUtms() }'
+ok(merged(reversedMerge).placement !== 'post_value_secondary', 'mutant with reversed precedence is detected')
 for (const downstream of [
   'business_content_plan_viewed',
   'business_content_plan_generated',

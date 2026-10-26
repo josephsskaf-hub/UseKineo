@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — o guardião do f1f4 também foi reancorado pelos 3 cards (mais novos): sai primeiro, em memória
 import { semFilmesF1F3Ajuste1910, MARCA_FILMES_F1F3_AJUSTE_1910, TROCAS_FILMES_F1F3_AJUSTE_1910, ACRESCIMOS_FILMES_F1F3_AJUSTE_1910, ARQUIVOS_FILMES_F1F3_AJUSTE_1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
@@ -35,6 +36,9 @@ const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const clone = (v) => JSON.parse(JSON.stringify(v))
 const r3 = (v) => Math.round(v * 1000) / 1000
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
+const reportGitFailure = (phase, file, error) => console.error('F1F3 Git lookup failed', JSON.stringify({
+  phase, file, code: error?.code ?? null, status: error?.status ?? null, signal: error?.signal ?? null,
+})) // Diagnostic metadata only: never command text, source contents or credentials.
 
 // ── base = o pai do 1º commit do ajuste (onde quer que a fila o tenha rebaseado); antes do commit, HEAD; senão origin/main
 const F15 = 'lib/filmes/faceless15.ts'
@@ -47,7 +51,7 @@ let BASE = null
     try { if (!git(['show', `${ref}:${F15}`]).includes(MARCA_FILMES_F1F3_AJUSTE_1910)) { BASE = ref; break } } catch { /* próximo */ }
   }
 }
-const rdBase = (p) => { if (!BASE) return null; try { return lf(git(['show', `${BASE}:${p}`])) } catch { return null } }
+const rdBase = (p) => { if (!BASE) return null; try { return lf(git(['show', `${BASE}:${p}`])) } catch (error) { reportGitFailure('base', p, error); return null } }
 console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 
 // ═══ A · arquivos ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -55,15 +59,32 @@ checa('A1 a base existe e o módulo da receita nela ainda não carrega a marca d
 for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts', 'app/api/compose/route.ts']) {
   // nenhum commit do ajuste (fora os merges da fila) toca o arquivo, e o vivo é BYTE A BYTE a última versão alheia dele (quem
   // vier depois e mexer nele não deixa este guardião vermelho; o ajuste mexendo nele, sim)
-  const meus = (() => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim() } catch { return 'erro' } })()
-  const alheio = (() => { try { const sha = selectAffiliate50ForeignRef(git, ['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(readAffiliate50ForeignSource(git, sha, p)) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
-  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && semAvatarPreso2010(rd(p), p) === semAvatarPreso2010(lf(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(alheio, p), p), p)), p) && rdBase(p) !== null) // reancorado KINEO-AVATAR-PRESO-2010: o merge da fila (avatar + legenda) vira a versão alheia; os dois lados saem sem o avatar e pela mesma cadeia do rd
+  const meus = (() => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim() } catch (error) { reportGitFailure('own_commits', p, error); return 'erro' } })()
+  const alheio = (() => { try { const sha = selectAffiliate50ForeignRef(git, ['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(readAffiliate50ForeignSource(git, sha, p)) : null } catch (error) { reportGitFailure('external_source', p, error); return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
+  // Capture only values the ORIGINAL short-circuit predicate actually evaluates.
+  // No lookup/projection is repeated; the same one checa call decides the result.
+  const a2Diagnostic = {}
+  const a2Valid = meus === '' && alheio !== null && (a2Diagnostic.lhs = semAvatarPreso2010(rd(p), p)) === (a2Diagnostic.rhs = semAvatarPreso2010(lf(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(alheio, p), p), p)), p)) && (a2Diagnostic.base = rdBase(p)) !== null
+  if (!a2Valid) {
+    const digest = value => typeof value === 'string' ? createHash('sha256').update(value).digest('hex') : null
+    console.error('F1F3 A2 diagnostic', JSON.stringify({
+      file: p, baseRef: BASE, meus, ownCommitsEmpty: meus === '', alheioPresent: alheio !== null,
+      projectionEvaluated: Object.hasOwn(a2Diagnostic, 'lhs') && Object.hasOwn(a2Diagnostic, 'rhs'),
+      projectionsEqual: a2Diagnostic.lhs === a2Diagnostic.rhs, baseEvaluated: Object.hasOwn(a2Diagnostic, 'base'),
+      basePresent: Object.hasOwn(a2Diagnostic, 'base') ? a2Diagnostic.base !== null : null,
+      alheioHash: digest(alheio), lhsHash: digest(a2Diagnostic.lhs), rhsHash: digest(a2Diagnostic.rhs), baseHash: digest(a2Diagnostic.base),
+    }))
+  }
+  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, a2Valid) // reancorado KINEO-AVATAR-PRESO-2010: o merge da fila (avatar + legenda) vira a versão alheia; os dois lados saem sem o avatar e pela mesma cadeia do rd
 }
 {
   // A referência do guardião reancorado é a ÚLTIMA versão dele deixada por OUTRA sessão (o último commit que o tocou sem a
   // marca do ajuste): o Close real (KINEO-CLOSE-REAL-AJUSTE-1910) reancorou o mesmo guardião no topo, mesclado depois do meu
   // 1º commit — a regra "pai do 1º commit" não enxergaria a camada dele.
-  const rdAlheio = (p) => { try { const sha = selectAffiliate50ForeignRef(git, ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(readAffiliate50ForeignSource(git, sha, p), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
+  // KINEO-LEVA-REBASE-2610: retain every original exclusion and comparison,
+  // bounded to approved main46. New LEVA commit fa6c8a63 reanchors this same
+  // reader and still carries F1F3's marked lines; it is not its historical base.
+  const rdAlheio = (p) => { try { const sha = selectAffiliate50ForeignRef(git, ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '46fa10e58fced6430e0a2ba7bb445bb8905bd2e7', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(readAffiliate50ForeignSource(git, sha, p), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
   const ruins = []
   for (const p of ARQUIVOS_FILMES_F1F3_AJUSTE_1910) {
     const trocas = TROCAS_FILMES_F1F3_AJUSTE_1910[p] ?? []

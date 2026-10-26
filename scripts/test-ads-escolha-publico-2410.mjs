@@ -1,4 +1,5 @@
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — raw production controllers/builders, offline boundaries, mutants and exact undo.
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -284,6 +285,7 @@ async function noticeProof(over = {}) {
       },
     }
     const run = actualFunction(F.notify, 'notifyEscolhaDelivered', {
+      isEscolhaSamplePlan: w.load('lib/ads/cena/escolhaSamplePolicy.ts').isEscolhaSamplePlan, // KINEO-AMOSTRA-ANUNCIO-2410 — actual new dependency; all existing paid notice assertions remain raw.
       escolhaOf: w.load(F.stills).escolhaOf, isUuid: v => typeof v === 'string' && /^[0-9a-f-]{36}$/u.test(v), process: { env: options.noKey ? {} : { RESEND_API_KEY: 'offline-fixture-only' } },
       claimEmailSlot: async () => { claims++; return { allowed: options.allowed !== false } }, recordResendResponse: async () => {},
       emailFooterText: () => '\nOffline footer', unsubscribeHeaders: () => ({}), writeServerEvent: async e => event.push(plain(e)),
@@ -382,7 +384,7 @@ async function undoProof() {
   assert.equal(Undo.ADS_ESCOLHA_PUBLICO_BASE, '07f1da96cdfdf69ade9e5514d0c4c524cb8b2294')
   assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {
-    const integrated = read(file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410
+    const integrated = semCompraAvulsa2410(read(file), file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-COMPRA-AVULSA-2410 — historical proof only; runtime stays raw.
     assert.equal(withoutLanguages, git('show', `${integrationMain}:${file}`), 'exact Idiomas removal preserves the published Traffic source: ' + file) // KINEO-IDIOMAS-FORMATOS-2410
     const mainSource = git('show', `${currentMain}:${file}`)
     assert.equal(hash(mainSource), item.afterHash, 'reviewed current main still matches the immutable Public2410 source manifest: ' + file)
@@ -418,7 +420,7 @@ async function mutant(name, file, from, to, proof) {
 for (const [name, proof] of Object.entries({ accessProof, eligibilityProof, quotaProof, qualityProof, roundsProof, eventsProof, terminalProof, noticeProof, uiProof })) { await proof(); console.log('ok public ' + name) }
 const mutants = [
   ['public remains house only', F.catalog, "flag === 'public'", 'false', accessProof],
-  ['free bypasses Studio gate', F.route, "if (gate !== 'ok')", 'if (false)', accessProof],
+  ['free bypasses Studio gate', F.route, "if (gate !== 'ok' && !sampleMode)", 'if (false)', accessProof], // KINEO-AMOSTRA-ANUNCIO-2410 — same paid-gate mutant at its current production condition.
   ['low balance buys free photos', F.quota, 'balance >= needed', 'balance >= 0', eligibilityProof],
   ['forty-one is rejected', F.quota, 'balance >= needed', 'balance > needed', eligibilityProof],
   ['unknown RPC opens paid boundary', F.quota, "if (r.error || !row || !['ok', 'cena_photo_daily_limit'].includes(row.code))", "if (false)", quotaProof],

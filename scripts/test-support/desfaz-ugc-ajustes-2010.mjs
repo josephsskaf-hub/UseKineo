@@ -1,3 +1,4 @@
+import { semApresentadores2410 } from './desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
 // KINEO-UGC-AJUSTES-2010 — DESFAZ, em memória, os AJUSTES DO UGC de 20/10 no Studio Ads: Jade e Robert na lista de aprovados do apresentador v2 (revalidação de 20/10),
 // KINEO-UGC-AJUSTES-2010 — o SUB-TETO de 10/dia da amostra com a pessoa (passou dele, a entrada UGC cai no Close real com aviso honesto; o /start confere de novo), o
 // KINEO-UGC-AJUSTES-2010 — "sample_probe" (só a conta interna, com ?sample_probe=1, vira 'none' no /plan, no /start e na tela) e a folga de 23 palavras do roteiro do
@@ -38,6 +39,7 @@ export const UGC_AJUSTES_2010_BINARIOS = { 'public/ads/presenters/voice-pt-confi
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semUgcAjustes2010(texto, p) {
+  texto = semApresentadores2410(texto, p) // KINEO-APRESENTADORES-2410
   texto = semMenuUgc2010(texto, p) // KINEO-MENU-UGC-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_UGC_AJUSTES_2010) || !UGC_AJUSTES_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')

@@ -40,13 +40,12 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const read = file => source(rawCurrent ? readFileSync(resolve(process.cwd(), file), 'utf8') : semAdsEscolhaPublico2410(readFileSync(resolve(process.cwd(), file), 'utf8'), file), file)
   const pure = createOfflineLoader({ source: (file, text) => source(rawCurrent ? text : semAdsEscolhaPublico2410(text, file), file) }) // KINEO-IDIOMAS-FORMATOS-2410 — current:true retains every current language/format source.
   const componentCode = compile(read(COMPONENT), COMPONENT)
-  const catalog = {}
-  new Function('exports', compile(read(CATALOG), CATALOG))(catalog)
+  const catalog = pure(CATALOG) // KINEO-APRESENTADORES-2410 — current catalog has a reviewed JSON dependency; execute its real imports.
   const tiers = {}; new Function('exports', compile(read('lib/ads/v2Tiers.ts'), 'lib/ads/v2Tiers.ts'))(tiers)
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
-  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true } = {}) {
+  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false } = {}) {
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
@@ -64,11 +63,13 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
         if (!old || !dependencies || dependencies.some((value, n) => value !== old.dependencies?.[n])) pending.push(() => { old?.cleanup?.(); effects[index] = { dependencies, cleanup: callback() } })
       },
     }
+    const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
-          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
+          : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id === '@/components/OneTimeItemOffer' ? id + '.tsx' : id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
+          : id === '@/lib/textLanguage' || id.includes('escolhaShots') || id.includes('checkoutPricing') ? pure(id) // KINEO-AMOSTRA-ANUNCIO-2410 — execute the real single price source for result purchase.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
               : require(id)
@@ -78,14 +79,14 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       assert.ok(response, 'unexpected unstubbed UI transport')
       return { ok: response[0] >= 200 && response[0] < 300, status: response[0], json: async () => response[1] }
     }
-    const module = { exports: {} }
+    const module = { exports: {} }, browserEvents = new EventTarget() // KINEO-COMPRA-AVULSA-2410 — real event target at the browser boundary for focus cleanup.
     new Function('require', 'module', 'exports', 'fetch', 'localStorage', 'window', componentCode)(localRequire, module, module.exports, transport,
       { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
-      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) })
+      { location: { search: query, href: `https://offline.invalid/ads/v2${query}` }, history: { replaceState() {} }, addEventListener: browserEvents.addEventListener.bind(browserEvents), removeEventListener: browserEvents.removeEventListener.bind(browserEvents), setTimeout: callback => { timers.set(++timerId, callback); return timerId }, clearTimeout: id => timers.delete(id) }) // KINEO-COMPRA-AVULSA-2410 — current raw UI also listens when checkout returns in another tab.
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []
-        tree = module.exports.default({ lang, internalControls, ownerKey: owner, resume: true, onBalance: async () => {} })
+        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {} })
         for (const effect of pending) effect()
         if (!changed) return tree
       }

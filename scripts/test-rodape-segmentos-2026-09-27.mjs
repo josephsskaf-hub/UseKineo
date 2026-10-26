@@ -74,10 +74,16 @@ const beforeHrefs = hrefs(before), afterHrefs = hrefs(after)
 // (fundador 27/09: "avatar sai por hora"). A exceção é lida do interruptor único, não digitada: enquanto
 // AVATAR_PUBLIC=false o link precisa estar AUSENTE; com true ele volta a ser exigido como histórico.
 const avatarOffCatalogue = /^export const AVATAR_PUBLIC = false$/m.test(read('lib/engineLaunch.ts').replace(/\r\n/g, '\n'))
-const historicalHrefs = beforeHrefs.filter((h) => !(avatarOffCatalogue && h === '/ai-avatar'))
-check(beforeHrefs.length > 0 && historicalHrefs.every((h) => afterHrefs.includes(h)), 'every historical footer link (' + historicalHrefs.length + ') is still rendered')
+// Approved main already retired private library destinations and added current
+// discovery doors. Pin that complete navigation, retaining the original snapshot
+// to prove the segment doors were orphaned before this feature.
+const approvedHrefs = hrefs(renderPage(FOOTER, true, {}, {}, '3ec6c9d9'))
+const historicalHrefs = beforeHrefs.filter(h => approvedHrefs.includes(h))
+equal([...afterHrefs].sort(), [...approvedHrefs].sort(), 'complete current footer navigation matches the approved main snapshot')
+check(beforeHrefs.length > 0 && historicalHrefs.every((h) => afterHrefs.includes(h)), 'every historical footer link retained by approved main (' + historicalHrefs.length + ') is still rendered')
 check(!avatarOffCatalogue || (beforeHrefs.includes('/ai-avatar') && !afterHrefs.includes('/ai-avatar')), 'Avatar off the catalogue: /ai-avatar was in the footer and is no longer rendered')
-equal(afterHrefs.filter((h) => !beforeHrefs.includes(h)).sort(), [...expectedHrefs].sort(), 'the only new links are the derived segment doors')
+const approvedWithoutSegments = approvedHrefs.filter(h => !expectedHrefs.includes(h))
+equal(afterHrefs.filter(h => !approvedWithoutSegments.includes(h)).sort(), [...expectedHrefs].sort(), 'the segment additions to approved current navigation are exactly the derived doors')
 check((before.match(/href="\/ads\/for\//g) || []).length === 0, 'baseline had zero segment links from the footer (the orphan state this item closes)')
 
 // ── Mutantes em memória (nada gravado em disco) ─────────────────────────────────────────────
@@ -87,7 +93,7 @@ const mocks = {
   'components/FooterBusinessLink.tsx': { __esModule: true, default: anchor },
   'components/CostCalculatorLink.tsx': { __esModule: true, default: anchor },
   'components/LiveStatsBadge.tsx': { __esModule: true, default: () => null },
-  'components/InterfaceLanguage.tsx': { __esModule: true, InterfaceLanguageSelect: () => null, UiLabel: ({ children }) => children },
+  'components/InterfaceLanguage.tsx': { __esModule: true, InterfaceLanguageSelect: () => null, UiLabel: ({ children }) => children, useInterfaceLanguage: () => 'en' },
 }
 const renderSource = (src) => renderToStaticMarkup(React.createElement(offlineModules({ mocks, replacements: { [FOOTER]: src } })(FOOTER).default, { showStats: false }))
 equal(renderProblems(renderSource(footerSource)), [], 'mutant harness renders the unmutated source green (so red below is the mutation, not the harness)')

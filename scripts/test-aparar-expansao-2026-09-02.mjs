@@ -10,7 +10,15 @@ const rota = readFileSync(join(R, 'app/api/expand-script/route.ts'), 'utf8')
 chk('tesoura existe e preserva frases do autor (Set de authorSentences)', pol.includes('export function trimCandidateToBudget') && pol.includes('const autor = new Set(authorSentences(falaOriginal))'))
 chk('rota apara ANTES de recusar por growth_limit', rota.indexOf('trimCandidateToBudget(expandido') < rota.indexOf("outcome: 'growth_limit'"))
 chk('so apara quando o candidato ENCHE o alvo (depois.ok)', rota.includes('if (!withinGrowthLimit(speechBase, depois.speech) && depois.ok) {'))
-chk('depois de aparar exige: teto ok + alvo ok + autor preservado + marcadores intactos', rota.includes('authorPreserved(falaOriginal, falaCortada).ok') && rota.includes('lostMarkers(original, cortado).length === 0'))
+// KINEO-EXPANSOR-DEGRAU-2026-09-03 centralized these checks in the real verdict; the route must pass all original/trimmed inputs.
+const judge = pol.slice(pol.indexOf('export function judgeTrimmedCandidate('), pol.indexOf('export const SEED_MAX_SENTENCES'))
+chk('depois de aparar exige: teto ok + alvo real ok + autor preservado + marcadores intactos',
+  ['originalRaw: original', 'originalSpeech: falaOriginal', 'trimmedRaw: cortado', 'trimmedSpeech: falaCortada', 'baseSpeechSeconds: speechBase', 'targetSeconds: target'].every((s) => rota.includes(s))
+  && rota.includes('if (veredito.accepted) {')
+  && judge.includes('if (!withinCap) return') && judge.includes('if (!authorOk) return') && judge.includes('if (!markersOk) return')
+  && judge.includes('authorPreserved(args.originalSpeech, args.trimmedSpeech).ok')
+  && judge.includes('lostMarkers(args.originalRaw, args.trimmedRaw).length === 0')
+  && judge.includes('if (fitsTarget) return') && judge.includes('if (descida.applied) {'))
 chk('orcamento = min(teto, palavras do alvo + 8) — nunca acima do teto', rota.includes('Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)'))
 chk('resposta de sucesso carrega trimmed', rota.includes('trimmed: aparado'))
 // simulacao pura da tesoura (copia da logica, sem TS): 62 palavras do autor + 130 da IA, orcamento 89

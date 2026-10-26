@@ -1,4 +1,5 @@
 // KINEO-ADMIN-LEVE-2310 — exact historical source proof; all mutations stay in memory.
+import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +13,7 @@ const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel
 
 const ROOT = path.resolve(process.argv.find((a) => a.startsWith('--root='))?.slice(7) || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))
 const MARK = 'KINEO-ADMIN-LEVE-2310'
-const read = (file) => semAdsCenaTexto2310(semVitrine2610(affiliateRaw(file, fs.readFileSync(path.join(ROOT, file), 'utf8')), file), file) // KINEO-ADS-CENA-TEXTO-2310 — historical mutantes still receive every original Admin hunk.
+const read = (file) => semAdsCenaTexto2310(semCompraAvulsa2410(semVitrine2610(affiliateRaw(file, fs.readFileSync(path.join(ROOT, file), 'utf8')), file), file), file) // KINEO-ADS-CENA-TEXTO-2310 — historical mutantes still receive every original Admin hunk.
 const lf = (s) => s.replace(/\r\n/g, '\n')
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
 let passed = 0

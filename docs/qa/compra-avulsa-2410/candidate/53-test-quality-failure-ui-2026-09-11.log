@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-quality-failure-ui-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 1756
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+quality-failure-ui: 141 passed; actual panel SSR and caller callbacks; no external calls

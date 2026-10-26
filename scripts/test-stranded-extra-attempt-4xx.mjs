@@ -14,7 +14,10 @@ const check = (name, ok, extra = '') => { n++; if (ok) console.log(`  ok  ${n}. 
 
 check('teto base continua 2', /const MAX_COMPOSE_ATTEMPTS = 2\n/.test(src))
 check('extra é exatamente 1', /const EXTRA_ATTEMPT_AFTER_4XX = 1\n/.test(src))
-check('lote de marcadores passa a ler stranded_outcome', /\.in\('name', \[RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT\]\)/.test(src))
+// Later recovery layers added fast-ready and client-poll markers to this SAME
+// batch. Keep every approved marker, including the original outcome evidence.
+const markerBatch = src.match(/\.in\('name', \[RESCUE_EVENT, ([^\]]*)\]\)/)?.[1]
+check('lote de marcadores preserva todos os eventos de recuperação e stranded_outcome', markerBatch === 'ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT, CINEMATIC_CLIENT_POLL_EVENT')
 check('só compose_error_4xx conta como "só 4xx"', /only4xx: prev\.only4xx && \/\^compose_error_4\\d\\d\$\/\.test\(oc\)/.test(src))
 check('cap extra exige total de desfechos >= teto E só 4xx', /oc && oc\.total >= MAX_COMPOSE_ATTEMPTS && oc\.only4xx\s*\n\s*\? MAX_COMPOSE_ATTEMPTS \+ EXTRA_ATTEMPT_AFTER_4XX\s*\n\s*: MAX_COMPOSE_ATTEMPTS/.test(src))
 check('a desistência (e-mail de resgate) usa attemptCap', /if \(attemptCount >= attemptCap\) \{\s*\n\s*\/\/ Fallback V1/.test(src))

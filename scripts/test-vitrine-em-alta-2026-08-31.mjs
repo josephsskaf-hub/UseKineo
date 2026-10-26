@@ -9,13 +9,20 @@
 //
 // Rodar: node scripts/test-vitrine-em-alta-2026-08-31.mjs
 import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import vm from 'node:vm'
 
 let ok = 0
 const falhas = []
 const v = (nome, cond) => { if (cond) ok++; else falhas.push(nome) }
 
 const CAMINHO = 'components/video/NextShortsSection.tsx'
-const src = readFileSync(CAMINHO, 'utf8')
+// Prova integral da contribuição31/08. A rodada01/09 retirou esta prateleira;
+// o componente vigente é validado separadamente, sem restaurar UI aposentada.
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${CAMINHO}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
+const src = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
+const atual = readFileSync(CAMINHO, 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: same immutable component pin, canonical LF.
 const GEN = readFileSync('app/(dashboard)/generate/GenerateClient.tsx', 'utf8')
 const API = readFileSync('app/api/viral-now/route.ts', 'utf8')
 
@@ -50,9 +57,20 @@ v('C3 o bloco pessoal so ocupa espaco se tiver algo', /\(loading \|\| ideas\.len
 v('C4 a prateleira so aparece com tema', /trending\.length > 0 &&/.test(CODIGO))
 
 // ── D · O PARSER ERRA SEMPRE PARA "NAO TEM NADA"
-const mod = await import('../components/video/NextShortsSection.tsx').catch(() => null)
-// O .tsx nao roda no node cru; entao o parser e verificado pelo texto, com as
-// mesmas garantias que a lib da #14 pediu por escrito.
+// O parser histórico também executa pelo compilador real, sem regex de tipos.
+const ts = createRequire(new URL('../package.json', import.meta.url))('typescript')
+const ast = ts.createSourceFile(CAMINHO, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node) && ['textoSeguro', 'lerTemasEmAlta'].includes(node.name?.text))
+const module = { exports: {} }
+vm.runInNewContext(ts.transpileModule(functions.map(node => node.getText(ast)).join('\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { module, exports: module.exports })
+const parse = module.exports.lerTemasEmAlta
+const valid = { id: 'id', title: 'Tema\u0000 seguro', prompt: 'A'.repeat(80), vertical: 'science' }
+v('D-runtime1 parser rejeita payload ausente/hostil', parse(null, 3).length === 0 && parse({ topics: 'bad' }, 3).length === 0)
+const parsed = parse({ topics: [valid, valid, valid, valid] }, 3)
+v('D-runtime2 parser limpa controles e limita quantidade', parsed.length === 3 && parsed[0].title === 'Tema  seguro')
+v('D-runtime3 parser descarta titulo vazio/prompt curto', parse({ topics: [{ ...valid, title: '' }, { ...valid, prompt: 'short' }] }, 3).length === 0)
+v('D-runtime4 parser limita titulo e id', parse({ topics: [{ ...valid, title: 'T'.repeat(200), id: 'I'.repeat(100) }] }, 1)[0].title.length === 90 && parse({ topics: [{ ...valid, id: 'I'.repeat(100) }] }, 1)[0].id.length === 64)
+v('D-runtime5 getter hostil falha fechado', parse({ get topics() { throw new Error('synthetic hostile getter') } }, 3).length === 0)
 v('D1 lerTemasEmAlta e exportada', /export function lerTemasEmAlta/.test(src))
 v('D2 payload nao-array devolve lista vazia', /if \(!Array\.isArray\(lista\)\) return \[\]/.test(CODIGO))
 v('D3 tudo dentro de try/catch com catch vazio', /catch \{\s*return \[\]\s*\}/.test(CODIGO))
@@ -122,6 +140,11 @@ v('J2 o rotulo permanente da #7 sobreviveu, e agora sao dois', (CODIGO.match(/Ma
 v('J3 ambienteDePonteiro continua sem tocar dado da pessoa', /function ambienteDePonteiro/.test(src))
 v('J4 skeleton de carregamento preservado', CODIGO.includes('minHeight: 104'))
 
+v('K1 componente atual igual à substituição aprovada da main', atual === frozen('1c078ed01'))
+v('K2 atual mantém fetch pessoal,3ideias e falha silenciosa', atual.includes("fetch('/api/next-shorts'") && atual.includes('data.ideas.slice(0, 3)') && atual.includes('if (!loading && ideas.length === 0) return null'))
+v('K3 atual carrega compositor sem iniciar geração', atual.includes('onPick(idea)') && atual.includes('Load into the composer') && !atual.includes('handleGenerate'))
+v('K4 atual distingue carga de visibilidade real uma vez', atual.includes("'next_shorts_shown'") && atual.includes("'next_shorts_seen'") && atual.includes('intersectionRatio >= 0.35') && atual.includes('if (seenRef.current) return'))
+
 console.log(`\n${ok} verificacoes ok, ${falhas.length} falhas`)
 if (falhas.length) { falhas.forEach((f) => console.log('  ✗ ' + f)); process.exit(1) }
-console.log('✓ sprint-v1v4 #16 — prateleira de temas em alta na tela de video pronto\n')
+console.log('✓ contribuição31/08 preservada e substituição atual validada\n')

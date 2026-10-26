@@ -41,7 +41,33 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-7-1610'
-const rd = (p) => semProdutoNaMao1610(p, semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto-na-mão veio depois: este guardião lê o texto SEM ele (semProdutoNaMao1610 já devolve LF) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const projectRead = (p, raw) => semProdutoNaMao1610(p, semFilmeRapido1710(semCloseReal1910(raw, p), p)) // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto-na-mão veio depois: este guardião lê o texto SEM ele (semProdutoNaMao1610 já devolve LF) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+// Only this script's pure string projection is reused. Always read the actual
+// file first; exact p and full raw text form part of the key. The loaded undo
+// tables are fixed for this run. Git/diffs, assertions, mutating mocks and
+// scenario outcomes are outside this cache; thrown projections are not stored.
+const projectionCache = new Map()
+const MAX_PROJECTED_ENTRIES = 256, MAX_PROJECTED_BYTES = 32 * 1024 * 1024
+let projectedBytes = 0
+const rd = (p) => {
+  const absolutePath = join(ROOT, p)
+  const raw = readFileSync(absolutePath, 'utf8')
+  const key = absolutePath + '\0' + p + '\0' + raw
+  const hit = projectionCache.get(key)
+  if (hit) return hit.projected
+  const projected = projectRead(p, raw)
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(projected, 'utf8')
+  if (bytes <= MAX_PROJECTED_BYTES) {
+    while (projectionCache.size >= MAX_PROJECTED_ENTRIES || projectedBytes + bytes > MAX_PROJECTED_BYTES) {
+      const first = projectionCache.keys().next().value
+      projectedBytes -= projectionCache.get(first).bytes
+      projectionCache.delete(first)
+    }
+    projectionCache.set(key, { projected, bytes })
+    projectedBytes += bytes
+  }
+  return projected
+}
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null
@@ -65,13 +91,39 @@ const F = {
 }
 
 // ── carregador: transpila TS → CJS, resolve '@/' com stubs (o resto real); `over` = fonte mutante ─────────────────────────
+// Pure bounded compilation cache only. Every world still rereads its sources,
+// creates fresh exports and binds its own mocks/timers. Mutant source is part
+// of the full-text key; module instances and scenario results are never shared.
+const compilationCache = new Map()
+const COMPILER_OPTIONS = Object.freeze({ module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React })
+const COMPILER_KEY = JSON.stringify(COMPILER_OPTIONS)
+const MAX_COMPILED_ENTRIES = 256, MAX_COMPILED_BYTES = 32 * 1024 * 1024
+let compiledBytes = 0
+function compileSource(rel, text) {
+  const key = rel + '\0' + COMPILER_KEY + '\0' + text
+  const hit = compilationCache.get(key)
+  if (hit) return hit.js
+  const js = ts.transpileModule(text, { compilerOptions: COMPILER_OPTIONS }).outputText
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(js, 'utf8')
+  if (bytes <= MAX_COMPILED_BYTES) {
+    while (compilationCache.size >= MAX_COMPILED_ENTRIES || compiledBytes + bytes > MAX_COMPILED_BYTES) {
+      const first = compilationCache.keys().next().value
+      compiledBytes -= compilationCache.get(first).bytes
+      compilationCache.delete(first)
+    }
+    compilationCache.set(key, { js, bytes })
+    compiledBytes += bytes
+  }
+  return js
+}
+
 function makeLoader(stubs, opts = {}) {
   const cache = new Map()
   const over = opts.over ?? {}
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel)
     const text = Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : rd(rel)
-    const js = ts.transpileModule(text, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React } }).outputText
+    const js = compileSource(rel, text)
     const module = { exports: {} }
     cache.set(rel, module.exports)
     const req = (spec) => {

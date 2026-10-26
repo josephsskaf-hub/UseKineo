@@ -5,6 +5,7 @@
 // growth_limit joga fora -> tela sem UM botão (21s não cabe em 35/60/90) ->
 // pessoa vai embora com 0 vídeos.
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 
 const rota = readFileSync(new URL('../app/api/expand-script/route.ts', import.meta.url), 'utf8')
 const tela = readFileSync(new URL('../app/(dashboard)/generate/GenerateClient.tsx', import.meta.url), 'utf8')
@@ -13,12 +14,23 @@ let ok = 0, fail = 0
 const t = (nome, cond) => { if (cond) { ok++ } else { fail++; console.error('  ✗', nome) } }
 
 // ── SERVIDOR ────────────────────────────────────────────────────────────────
-const blocoGL = rota.slice(rota.indexOf("outcome: 'growth_limit'"), rota.indexOf("outcome: 'growth_limit'") + 2200)
+// A resposta ganhou comentários e reparos de narração. Delimitar a chamada JSON
+// real pela AST preserva status/payload sem truncar o bloco por tamanho arbitrário.
+const ast = ts.createSourceFile('expand-script.ts', rota, ts.ScriptTarget.Latest, true)
+const growthResponses = []
+function visit(n) {
+  if (ts.isCallExpression(n) && n.expression.getText(ast) === 'NextResponse.json' && ts.isObjectLiteralExpression(n.arguments[0]) &&
+      n.arguments[0].properties.some(p => ts.isPropertyAssignment(p) && p.name.getText(ast) === 'outcome' && /^'growth_limit'/.test(p.initializer.getText(ast)))) growthResponses.push(n.getText(ast))
+  ts.forEachChild(n, visit)
+}
+visit(ast)
+const blocoGL = growthResponses.length === 1 ? growthResponses[0] : ''
+t('uma única resposta JSON growth_limit real foi encontrada', growthResponses.length === 1)
 t('growth_limit devolve candidate', /candidate: expandido/.test(blocoGL))
 t('growth_limit devolve candidateSeconds', /candidateSeconds: Math\.round\(depois\.speech\)/.test(blocoGL))
 t('growth_limit devolve candidateFits', /candidateFits: depois\.ok/.test(blocoGL))
 t('candidateFits vem de depois.ok (regua do guard, nao do texto cru)',
-  /const depois = narrationFit\(falaExpandida, target\)/.test(rota))
+  /let depois = narrationFit\(falaExpandida, target\)/.test(rota))
 t('o teto de 2,5x NAO foi afrouxado', /export const MAX_GROWTH_FACTOR = 2\.5/.test(
   readFileSync(new URL('../lib/expandPolicy.ts', import.meta.url), 'utf8')))
 t('growth_limit continua 422 (nada renderiza)', /status: 422/.test(blocoGL))

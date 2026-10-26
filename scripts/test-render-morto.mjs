@@ -31,7 +31,7 @@ console.log('\n  TESTE — render morto para de girar para sempre\n')
 // ── servidor ──────────────────────────────────────────────────────────────
 checa('rota tem a marca KINEO-RENDER-MORTO-2026-09-01', rota.includes('KINEO-RENDER-MORTO-2026-09-01'))
 checa('rota le generation_stage_error', rota.includes("eq('name', 'generation_stage_error')"))
-checa('rota responde state failed', conta(rota, "state: 'failed',") === 1)
+checa('rota responde state failed', conta(rota, "state: 'failed',") === 2 && /const deadRenderResponse[\s\S]*?state: 'failed',/.test(rota))
 checa('a leitura de falha e SOMENTE leitura (nenhum insert/update/delete novo)',
   !rota.includes('.insert(') && !rota.includes('.update(') && !rota.includes('.delete('))
 checa('a morte e comparada por TEMPO (nao mata a tentativa 2)', rota.includes('failureAt > claimAtMs'))
@@ -76,7 +76,7 @@ checa('video pronto continua saindo pelo /history na mesma fonte', alvos.include
 checa('o motivo real aparece no title',
   pillCode.includes("probe.state === 'failed' && probe.message") &&
   pillCode.includes('? probe.message'))
-checa('cor ambar so no estado failed', pill.includes("isFailed ? '#f59e0b'"))
+checa('cor ambar so no estado failed', pill.includes("isFailed ? 'var(--warning)' : 'var(--indigo)'"))
 checa('estado failed e dispensavel com o X', pill.includes("probe.state !== 'rendering' && dismissedId != null"))
 checa('poll de 15s so roda com render de verdade', pill.includes("const hasActiveRender = probe?.state === 'rendering'"))
 checa('a pilula continua sem poller proprio de status', !pillCode.includes('/api/compose/status'))

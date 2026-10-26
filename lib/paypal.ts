@@ -12,7 +12,7 @@
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { renewalBalance } from './credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
-import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS, PACK_PRICE_MINOR } from './checkoutPricing'
+import { PAYPAL_TIER_USD, PAYPAL_PLAN_CREDITS, PAYPAL_PACK, paypalPlanConfigKey, paypalPlanRequestId } from '@/lib/paypalCatalog'
 
 import { grantAlternativePack, updatePaymentProfile, paymentError } from './payments/alternative'
 
@@ -53,27 +53,7 @@ export const PAYPAL_BASE =
 // vizinho da Stripe — e o site anunciaria um preço que o checkout não cobra.
 // Agora não existe segunda tabela: preço e grant vêm de lib/checkoutPricing,
 // a mesma fonte que a Stripe e a tela de preços leem. Mudou lá, mudou aqui.
-const usd = (cents: number) => (cents / 100).toFixed(2)
-
-export const PAYPAL_TIER_USD: Record<PayPalTier, { monthly: string; annual: string; name: string }> = {
-  starter: { monthly: usd(TIER_PRICES.starter.usd), annual: usd(ANNUAL_PRICES.starter.usd), name: 'Kineo — Starter' },
-  basic:   { monthly: usd(TIER_PRICES.basic.usd),   annual: usd(ANNUAL_PRICES.basic.usd),   name: 'Kineo — Creator' },
-  pro:     { monthly: usd(TIER_PRICES.pro.usd),     annual: usd(ANNUAL_PRICES.pro.usd),     name: 'Kineo — Studio' },
-}
-
-export const PAYPAL_PLAN_CREDITS: Record<PayPalTier, number> = {
-  starter: TIER_CREDITS.starter,
-  basic: TIER_CREDITS.basic,
-  pro: TIER_CREDITS.pro,
-}
-
-// First Pack — mesmo SKU da Stripe (?pack=starter): PACK_PRICE_MINOR por PACK_CREDITS.starter.
-// KINEO-PASSE-AVULSO-2026-10-05 — o preço deixou de ser literal ('4.90'): sai da fonte única (US$ 4,99).
-export const PAYPAL_PACK = {
-  credits: PACK_CREDITS.starter,
-  usd: usd(PACK_PRICE_MINOR.usd),
-  name: `Kineo — First Pack (${PACK_CREDITS.starter} credits)`,
-}
+export { PAYPAL_TIER_USD, PAYPAL_PLAN_CREDITS, PAYPAL_PACK }
 
 // Planos no PayPal são IMUTÁVEIS no preço: um plano criado a $9.90 cobra $9.90
 // para sempre. Por isso a chave de config e a idempotency key ganham versão —
@@ -88,6 +68,8 @@ export const PAYPAL_PACK = {
 // KINEO-PRECO-TESTE-2026-10-08 — v4 → v5: Starter e Creator voltaram a $9,90 / $19,90 (anual $83 / $167) no teste de
 // 7 dias; um plano v4 já criado cobraria $12,90 / $29,90 para sempre. Studio e Autopilot não mudam de preço, mas ganham
 // v5 também (a versão é uma só para o catálogo inteiro).
+// KINEO-LEVA-2410 — keep the approved product identity; plan identities fingerprint canonical price and credits.
+// Existing v/unversioned plan keys remain recognized by tierFromPlanId.
 const PLAN_VERSION = 'v5'
 
 export function paypalAdminClient() {
@@ -172,14 +154,14 @@ async function ensureProduct(admin: Admin, tier: PayPalTier): Promise<string> {
 }
 
 export async function ensurePlan(admin: Admin, tier: PayPalTier, billing: PayPalBilling): Promise<string> {
-  const cfgKey = `plan_${tier}_${billing}_${PLAN_VERSION}`
+  const cfgKey = paypalPlanConfigKey(tier, billing)
   const existing = await getPaypalConfig(admin, cfgKey)
   if (existing) return existing
   const productId = await ensureProduct(admin, tier)
   const price = billing === 'annual' ? PAYPAL_TIER_USD[tier].annual : PAYPAL_TIER_USD[tier].monthly
   const plan = await paypalFetch('/v1/billing/plans', {
     method: 'POST',
-    idempotencyKey: `kineo-plan-${tier}-${billing}-${PLAN_VERSION}-${price}`,
+    idempotencyKey: paypalPlanRequestId(tier, billing),
     body: JSON.stringify({
       product_id: productId,
       name: `${PAYPAL_TIER_USD[tier].name} (${billing === 'annual' ? 'Annual' : 'Monthly'})`,

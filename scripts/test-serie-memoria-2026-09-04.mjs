@@ -74,7 +74,12 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 //     devolver /^app\/api\/compose\// à lista.
 const BASE_COMMIT = (() => {
   try {
-    return execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+    // KINEO-LEVA-REBASE-2610: origin/main is locally stale at b0d4e093.
+    // Attribute this merge's changes to its approved main46 parent, rather
+    // than falsely attributing main's Film15 quality layers to episode memory.
+    // Every forbidden-path/content assertion below still examines the full
+    // current delta after that immutable parent; no path is filtered out.
+    return execFileSync('git', ['merge-base', 'HEAD', '46fa10e58fced6430e0a2ba7bb445bb8905bd2e7'], { cwd: root, encoding: 'utf8' }).trim()
   } catch { return '463fc378' }
 })()
 // Dentro de app/api/compose/**, só estes símbolos são intocáveis — são eles
@@ -115,6 +120,8 @@ function loadTs(path, mocks = {}) {
   const module = { exports: {} }
   const localRequire = (id) => {
     if (Object.prototype.hasOwnProperty.call(mocks, id)) return mocks[id]
+    if (id === '@supabase/supabase-js') return { createClient: () => { throw new Error('teste offline proíbe cliente de serviço real') } }
+    if (id.startsWith('@/lib/')) return loadTs(id.slice(2) + '.ts', mocks)
     throw new Error(path + ': import inesperado ' + id)
   }
   new Function('require', 'module', 'exports', output)(localRequire, module, module.exports)
@@ -157,7 +164,10 @@ secao('1. a leitura do filme de origem e restrita ao dono')
 
 // ═══ 2. SEM SERVICE KEY ═════════════════════════════════════════════════════
 secao('2. a rota nao usa service key')
-ok(!/SUPABASE_SERVICE_ROLE_KEY|service_role|createAdminClient|createServiceClient|serviceKey|supabaseAdmin/i.test(rota), 'nenhuma referencia a service key/admin client na rota')
+// KINEO-LEVA-2410: a memória de episódios ganhou acesso a events (06/09),
+// mantendo todos os vídeos no cliente RLS autenticado, provado nos casos abaixo.
+const memoriaAdmin = rota.slice(rota.indexOf('function adminOuNulo()'), rota.indexOf('// KINEO-EPISODIO2-MARCADORES-2026-09-05: a checagem'))
+ok(memoriaAdmin.startsWith('function adminOuNulo()') && (memoriaAdmin.match(/\.from\('events'\)/g) ?? []).length === 2 && !/\.from\('videos'\)/.test(memoriaAdmin) && memoriaAdmin.includes(".eq('user_id', userId)") && memoriaAdmin.includes(".eq('session_id', fromVideoId)") && memoriaAdmin.includes('if (!url || !key) return null'), 'cliente de serviço restrito à memória em events, dono+filme e sem chave retorna null')
 ok(/createClient\(\)/.test(rota) && /from '@\/lib\/supabase\/server'/.test(rota), 'a rota usa o createClient() autenticado de @/lib/supabase/server')
 ok((rota.match(/createClient\(\)/g) ?? []).length === 1, 'um unico client — o mesmo que faz getUser()')
 
@@ -188,7 +198,7 @@ secao('4. alreadyDone: servidor monta, exclui a origem, normaliza, teto 6/8')
   ok(/Write EPISODE \$\{episodeNumber\}\./.test(rota), 'o prompt nomeia o episodio ("Write EPISODE ${episodeNumber}.")')
   ok(/Math\.max\(2, memoria\.totalConcluidos \+ 1\)/.test(rota), 'episodeNumber = concluidos + 1, minimo 2')
   ok(/hadMemory: memoria\.hadMemory/.test(rota) && /alreadyDoneCount: jaFeitosFinal\.length/.test(rota) && /episodeNumber,/.test(rota), 'a resposta devolve episodeNumber, hadMemory e alreadyDoneCount')
-  ok(/title: titulo \|\| `Episode \$\{episodeNumber\}`/.test(rota), 'o fallback do titulo acompanha o numero')
+  ok(/const tituloFinal = titulo \|\| `Episode \$\{episodeNumber\}`/.test(rota) && /title: tituloFinal,/.test(rota), 'fallback do título acompanha o número e é compartilhado pela resposta e memória')
   ok((rota.match(/console\.warn\('\[next-episode\] memoria/g) ?? []).length >= 4, 'toda leitura de banco falha fechada com console.warn (4 pontos: erro e throw, x2 leituras)')
 }
 

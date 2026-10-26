@@ -1,0 +1,22 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-ads-formatos-escolha-2410.mjs
+EXPECTED: pass
+EXIT: 1
+ELAPSED_MS: 1210
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-support/offline-ts-loader.mjs:33
+    if (!fs.existsSync(filename) || !/\.tsx?$/.test(filename)) throw new Error(`Unexpected import: ${specifier}`)
+                                                               ^
+
+Error: Unexpected import: @/components/OneTimeItemOffer
+    at load (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-support/offline-ts-loader.mjs:33:70)
+    at require (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-support/offline-ts-loader.mjs:43:45)
+    at C:\Users\josep\OneDrive\Área de Trabalho\Usekineo\.claude\worktrees\compra-avulsa-2410\app\(dashboard)\ads\v2\AdsV2Escolha.tsx:15:28
+    at Script.runInContext (node:vm:149:12)
+    at Script.runInNewContext (node:vm:154:17)
+    at Object.runInNewContext (node:vm:310:38)
+    at load (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-support/offline-ts-loader.mjs:42:8)
+    at uiProof (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-ads-formatos-escolha-2410.mjs:69:19)
+    at async file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/compra-avulsa-2410/scripts/test-ads-formatos-escolha-2410.mjs:75:28
+
+Node.js v24.18.0

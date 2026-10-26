@@ -27,7 +27,7 @@ const ly = ler('lib/lyriaMusic.ts')
 chk('endpoint correto fal-ai/lyria3/pro', ly.includes("'https://queue.fal.run/fal-ai/lyria3/pro'"))
 // 11/09: direction is an internal argument, not a new provider field. The new
 // executable music-direction suite inspects the actual fetch JSON as well.
-chk('input só com prompt (schema: sem duração, sem seed; negative deprecado)', ly.includes('JSON.stringify({ prompt: lyriaPromptFor(mood, direction) })'))
+chk('input só com prompt (schema: sem duração, sem seed; negative deprecado)', ly.includes('await submeterLyria(lyriaPromptFor(mood, direction))') && ly.includes('body: JSON.stringify({ prompt })'))
 chk('lê a saída no campo certo (audio.url)', ly.includes('out.audio?.url'))
 chk('instrumental por contrato (narração é o trilho mestre — C1)', ly.includes('Instrumental only'))
 chk('prazo próprio: música nunca vira gargalo do compose', ly.includes('LYRIA_BUDGET_MS = 45_000'))
@@ -63,11 +63,11 @@ const lc = ler('lib/engineLaunch.ts')
 // USA (o portão pago na rota, lib/s25Access.ts; provado em scripts/test-s25-abre-2026-10-06.mjs).
 chk('interruptor unico existe e esta ABERTO (S25_PUBLIC=true, 06/10) com o portao pago na rota', lc.includes('export const S25_PUBLIC = true') && rc.includes("import { s25AccessFor } from '@/lib/s25Access'"))
 chk('mega-menu da home le o interruptor (so a casa ve hoje)', ler('app/KineoLanding.tsx').includes('s25Visible(initialEmail) && ('))
-chk('/generate: Omni entrou no seletor (nunca esteve) + 2.5 atras do gate', /key: 'omni', label: 'Omni Flash'/.test(ler('app/(dashboard)/generate/GenerateClient.tsx')) && ler('app/(dashboard)/generate/GenerateClient.tsx').includes("...(s25Ok ? [{ key: 's25' as const"))
+chk('/generate: Omni retirado da oferta aprovada + 2.5 atras do gate', lc.includes("OFFER_RETIRED_ENGINE_KEYS: readonly string[] = ['omni']") && !/key: 'omni', label: 'Omni Flash'/.test(ler('app/(dashboard)/generate/GenerateClient.tsx')) && ler('app/(dashboard)/generate/GenerateClient.tsx').includes("...(s25Ok ? [{ key: 's25' as const"))
 // 15/09 (KINEO-MOTOR-EM-MANUTENCAO): o pricing deixou de listar o 2.5 pelo interruptor S25_PUBLIC porque o motor está pausado (a linha do flagship virou só Kling 3); schema e calculadora seguem lendo o interruptor único.
 chk('pricing / schema / calculadora atras do interruptor', (ler('app/pricing/PricingClient.tsx').includes('S25_PUBLIC ?') || ler('app/pricing/PricingClient.tsx').includes('KINEO-MOTOR-EM-MANUTENCAO')) && ler('components/StructuredData.tsx').includes('VIDEO_ENGINE_COUNT_WORD') && ler('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx').includes('S25_PUBLIC ?'))
 chk("armadilha 1: duration e STRING '4'..'30'", rc.includes("duration: String(Math.max(4, Math.min(30,"))
-chk("armadilha 2: aspect_ratio 9:16 explicito no t2v (default 'auto' deita o filme)", /S25_T2V_MODEL\) \{[^}]*aspect_ratio: '9:16'/s.test(rc))
+chk("armadilha 2: t2v envia o quadro pedido explicitamente, com padrão 9:16", /S25_T2V_MODEL\) \{[^}]*aspect_ratio: frame\.falAspectRatio/s.test(rc) && rc.includes('const frame = aspectSpec(aspect)') && ler('lib/aspect.ts').includes("export const DEFAULT_ASPECT: Aspect = '9:16'"))
 chk('armadilha 3: generate_audio false (C1 — narracao e do usuario)', /S25_I2V_MODEL\) \{[^}]*generate_audio: false/s.test(rc))
 chk('preco FINAL 150cr espelhado nos dois lados da cobranca', rc.includes('S25_CREDIT_COST = 150') && ler('lib/credits/engineCost.ts').includes('return 150'))
 chk('#128c CONSERTADO: claim assina o motor REAL (ramo omni existia so no quality)', /claimEngine = wantsS25[^;]*wantsOmni[^;]*'omni'/s.test(rc))

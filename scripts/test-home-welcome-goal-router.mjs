@@ -4,11 +4,12 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
-const source = (rel) => readFileSync(join(root, rel), 'utf8')
+const source = (rel) => readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: normalize EOL without relaxing whole-source pins.
 
 function loadTs(rel) {
   const output = ts.transpileModule(source(rel), {
@@ -50,12 +51,15 @@ const css = source('components/HomeWelcomeGoalRouter.module.css')
 const studio = source('app/(dashboard)/studio/StudioClient.tsx')
 const machine = source('app/(dashboard)/generate/GenerateClient.tsx')
 const preview = source('docs/previews/HOME-WELCOME-OUTCOME-SELECTOR-V3-2026-09-01.html')
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 
 ok(page.includes("firstSearchParam(searchParams, 'welcome') === '1'"), 'email signup handoff shows the router')
 ok(page.includes("firstSearchParam(searchParams, 'signup') === '1'"), 'OAuth/modal signup handoff also shows the router')
 ok(page.includes('showWelcomeGoalRouter={showWelcomeGoalRouter}'), 'server passes only a serializable boolean')
 // KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): primeira tela = os quatro motores validados; H3 e Omni em manutenção saem dela.
-ok(landing.indexOf('const order = [\'cinematic_ai\', \'cinematic_kling\', \'cinematic_veo\', \'cinematic_hollywood\']') >= 0, 'founder-approved four-engine order is unchanged (16/09)')
+ok(frozen('2c918543', 'app/KineoLanding.tsx').includes("const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']"), 'fixed16/09 fixture preserves the original approved engine order')
+ok(landing.includes('<HomeFeaturedFilms />') && source('components/HomeFeaturedFilms.tsx').includes('heroOnly featuredCount={4}'), 'approved24/09 film gallery is mounted before the router')
+equal(source('lib/ui/homeFeaturedFilms.ts'), frozen('1c078ed01', 'lib/ui/homeFeaturedFilms.ts'), 'current four-film selection and playlists retain their approved main bytes')
 ok(landing.indexOf('</header>') < landing.indexOf('<HomeWelcomeGoalRouter />'), 'router renders after the four-video hero')
 ok(landing.includes('{showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}'), 'React conditional is explicit')
 ok(component.includes("'use client'"), 'router can measure the real human handoff')

@@ -69,7 +69,7 @@ t('retry ainda chama handleGenerateGuarded', src.includes('handleGenerateGuarded
 
 // 6) O aviso de repeticao exige as DUAS condicoes (2a vez E deterministico).
 t('failureWillRepeat exige >=2 e deterministico',
-  /const failureWillRepeat = sameFailureCount >= 2 && failureIsDeterministic/.test(src))
+  /const failureWillRepeat = showGenericFailure && sameFailureCount >= 2 && failureIsDeterministic/.test(src))
 
 // 7) Falha de fornecedor NAO e deterministica — retentar ali funciona de
 //    verdade (souzaforteslucas se curou assim as 17:14 de 01/09).
@@ -86,8 +86,8 @@ t('edit my text NAO apaga o prompt', !editBlock.includes('setPrompt('))
 // 9) O card generico agora usa a mesma condicao que a telemetria — se as duas
 //    divergirem, o evento mede uma tela que o cliente nao ve.
 t('card usa showGenericFailure', src.includes('{showGenericFailure && ('))
-t('showGenericFailure = failed sem scriptTooShort/creditsHeld',
-  src.includes("const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld"))
+t('showGenericFailure = failed sem qualityFailure/scriptTooShort/creditsHeld',
+  src.includes("const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld"))
 
 console.log(`\n${ok} verificacoes OK, ${fail} falhas`)
 process.exit(fail ? 1 : 0)

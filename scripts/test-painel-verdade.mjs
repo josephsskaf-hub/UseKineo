@@ -1,19 +1,29 @@
 // KINEO-PAINEL-VERDADE-2026-08-27 — provas dos consertos do painel /admin.
 //
-// Este teste NÃO é um mock. Ele lê o repositório e o BANCO DE PRODUÇÃO, porque
-// os quatro defeitos consertados eram todos invisíveis em teste de unidade:
+// Por padrão executa o código real com transporte/banco sintéticos. --live
+// preserva as verificações de produção abaixo, usando só env já fornecido.
+// Nunca carrega arquivo de ambiente. Os quatro defeitos históricos foram:
 // truncamento silencioso do PostgREST, exclusão de conta interna faltando,
 // rótulo que afirma um fato que os dados desmentem, e paginação sem ORDER BY.
-// Nenhum deles apareceria num mock — só olhando o dado de verdade.
+// As fixtures locais exercitam truncamento, ordem, exclusões e erro da RPC;
+// somente --live permite consultar dados de produção com credenciais explícitas.
 //
 // Rodar: node scripts/test-painel-verdade.mjs
-// Precisa de NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (.env.local).
+// --live exige NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY explícitos.
 
-import { readFileSync, existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join, dirname, resolve, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+import vm from 'node:vm'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
+const ts = createRequire(join(RAIZ, 'package.json'))('typescript')
+const liveRequested = process.argv.includes('--live')
+if (liveRequested && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+  console.error('--live requires explicit database URL and service-role key; no environment file is loaded.')
+  process.exit(1)
+}
 let ok = 0
 let falhou = 0
 const check = (nome, cond, detalhe = '') => {
@@ -27,15 +37,6 @@ const ler = (p) => readFileSync(join(RAIZ, p), 'utf8')
 const codigo = (p) => ler(p)
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .split('\n').filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n')
-
-// ── carregar .env.local sem dependência ──────────────────────────────────────
-const envPath = join(RAIZ, '.env.local')
-if (existsSync(envPath)) {
-  for (const linha of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/)
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '').trim()
-  }
-}
 
 console.log('\n═══ PAINEL VERDADE — provas dos 4 consertos ═══\n')
 
@@ -81,8 +82,8 @@ check('internal() agora delega para isInternalEmail()',
 check('a cópia local de PAID_PLANS morreu',
   !liveCodigo.includes("new Set(['starter', 'basic', 'pro', 'autopilot'])"),
   'faltavam os planos *_trial: quem estava em trial pago aparecia como grátis')
-check('is_paid usa isPaidPlan() de _shared/mrr',
-  live.includes('is_paid: isPaidPlan('))
+check('is_paid usa isPayingPlan() canonico e separa trial',
+  live.includes('is_paid: isPayingPlan(') && live.includes('is_trial: isTrialPlan('))
 
 const migracao = ler('supabase/migrations/20260827200000_admin_live_counters_exact.sql')
 check('a migration NÃO tem e-mail de conta interna escrito dentro',
@@ -96,11 +97,12 @@ check('a RPC é service_role only (events está trancada desde 27/08)',
 console.log('\n3) Paginação estável (fetchAllRows)')
 // ─────────────────────────────────────────────────────────────────────────────
 const db = ler('app/api/admin/_shared/db.ts')
-check('fetchAllRows ordena antes de paginar',
-  db.includes(".order('id', { ascending: true })"),
+const paging = ler('lib/supabase/readAll.ts')
+check('fetchAllRows delega para readAll, que ordena pela chave unica',
+  db.includes('await readAll(() => {') && paging.includes('query = query.order(key, { ascending: true })'),
   'OFFSET sem ORDER BY pode repetir ou perder linha entre páginas')
-check('a ordenação vem ANTES do .range()',
-  db.indexOf(".order('id'") < db.indexOf('.range(from, from + CHUNK - 1)'))
+check('a ordenação canonica vem ANTES do .range()',
+  paging.indexOf('query = query.order(key') < paging.indexOf('query.range(from, from + POSTGREST_PAGE_SIZE - 1)'))
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\n4) O card CHECKOUT LEAK parou de afirmar o que não mediu')
@@ -129,13 +131,95 @@ check('a paginação da Stripe tem teto explícito',
   compute.includes('MAX_SESSOES'))
 
 // ─────────────────────────────────────────────────────────────────────────────
-console.log('\n5) Contra o banco de produção (a prova que importa)')
+console.log('\n5) Runtime: RPC, MRR e paginação reais com banco sintético')
 // ─────────────────────────────────────────────────────────────────────────────
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!url || !key) {
-  console.log('  ⚠ sem NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY — pulando')
+if (!liveRequested) {
+  // Fresh module instances per world. No SDK/client/network may escape these
+  // explicit boundaries; readAll, fetchAllRows, MRR and the route remain real.
+  function loader(mocks = {}) {
+    const cache = new Map()
+    function load(file) {
+      const absolute = resolve(RAIZ, file), rel = relative(RAIZ, absolute).replace(/\\/g, '/')
+      if (Object.hasOwn(mocks, rel)) return mocks[rel]
+      if (cache.has(absolute)) return cache.get(absolute).exports
+      if (rel.startsWith('..') || rel.split('/').some(part => /^\.env(?:\.|$)/i.test(part))) throw new Error('unapproved source')
+      const module = { exports: {} }; cache.set(absolute, module)
+      const compiled = ts.transpileModule(readFileSync(absolute, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
+      vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://database.invalid', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-offline-key' } }, URL, URLSearchParams,
+        require(id) {
+          if (Object.hasOwn(mocks, id)) return mocks[id]
+          if (id.startsWith('@/')) return load(id.slice(2) + '.ts')
+          if (id.startsWith('.')) return load(resolve(dirname(absolute), id + '.ts'))
+          throw new Error('unapproved import ' + id)
+        }, console: { log() {}, error() {}, warn() {} },
+        fetch() { throw new Error('Network forbidden in offline guardian') },
+      }, { filename: rel, timeout: 5000 })
+      return module.exports
+    }
+    return load
+  }
+  const baseMocks = {
+    '@supabase/supabase-js': { createClient() { throw new Error('Real database client forbidden') } },
+    '@/lib/stripe': { stripe: {} },
+    'lib/serverEvents.ts': { writeServerEvent: async () => true },
+  }
+  const load = loader(baseMocks), mrr = load('app/api/admin/_shared/mrr.ts'), sharedDb = load('app/api/admin/_shared/db.ts')
+  check('runtime MRR separa trial pago de mensalidade', mrr.isPaidPlan('basic_trial') && mrr.isTrialPlan('basic_trial') && !mrr.isPayingPlan('basic_trial'))
+  check('runtime MRR reconhece assinantes e falha fechado em free/desconhecido', mrr.isPayingPlan(' BASIC ') && mrr.isPayingPlan('business') && !mrr.isPayingPlan('free') && !mrr.isPayingPlan(null))
+  const rows = Array.from({ length: 2501 }, (_, id) => ({ id: String(id).padStart(5, '0') })).reverse()
+  function database(failSecond = false) {
+    const operations = []
+    return { operations, from() {
+      let ordered = false, filtered = rows
+      const query = {
+        select() { return query }, in(_key, ids) { filtered = filtered.filter(row => ids.includes(row.id)); return query },
+        order(key, options) { operations.push({ type: 'order', key, ascending: options.ascending }); ordered = true; return query },
+        range(from, to) {
+          operations.push({ type: 'range', from, ordered })
+          if (failSecond && from === 1000) return { data: null, error: { message: 'synthetic second-page failure' } }
+          const list = ordered ? [...filtered].sort((a, b) => a.id.localeCompare(b.id)) : filtered
+          return { data: list.slice(from, to + 1), error: null }
+        },
+      }; return query
+    } }
+  }
+  const paged = database(), all = await sharedDb.fetchAllRows(paged, 'profiles', 'id')
+  check('runtime le2501 linhas em3paginas sem truncar ou duplicar', all.length === 2501 && new Set(all.map(row => row.id)).size === 2501 && paged.operations.filter(op => op.type === 'range').length === 3)
+  check('runtime ordena cada pagina antes de range', paged.operations.filter(op => op.type === 'range').every(op => op.ordered) && all[0].id === '00000' && all.at(-1).id === '02500')
+  let rejected = false
+  try { await sharedDb.fetchAllRows(database(true), 'profiles', 'id') } catch { rejected = true }
+  check('runtime erro na pagina2 rejeita resultado parcial', rejected)
+  const empty = database()
+  check('runtime filtro vazio nao consulta banco', (await sharedDb.fetchAllRows(empty, 'profiles', 'id', { column: 'id', values: [] })).length === 0 && empty.operations.length === 0)
+  const internal = load('lib/internalAccounts.ts')
+  function routeWorld() {
+    const state = { user: { email: 'josephsskaf@gmail.com' }, rpcError: false, calls: [] }
+    const counters = { visitors_7d: 17, visitors_24h: 7, signups_7d: 3, signups_24h: 2, videos_24h: 1, checkouts_24h: 4 }
+    const admin = { rpc: async (name, args) => { state.calls.push({ name, args }); return { data: [counters], error: state.rpcError ? { message: 'synthetic RPC failure' } : null } },
+      from() { const query = {}; for (const key of ['select', 'gte', 'order', 'in', 'eq', 'limit']) query[key] = () => query; query.range = () => ({ data: [], error: null }); return query } }
+    const route = loader({ ...baseMocks,
+      'next/server': { NextResponse: { json: (body, opts = {}) => ({ body, status: opts.status ?? 200 }) } },
+      '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: state.user } }) } }) },
+      '../_shared/db': { isAdminEmail: sharedDb.isAdminEmail, serviceClient: () => admin },
+      '@/lib/admin/checkoutHonesto': { carregarCheckoutHonesto: async () => null },
+      '@/lib/admin/ledgerGrants': { LEDGER_GRANT_EVENTS: [], summarizeLedgerGrants: () => new Map() },
+      '@/lib/admin/rotuloCredito': { rotuloCredito: () => '' },
+      '@/lib/admin/narrationCompletion': { isNarrationCompletionEvent: () => false },
+    })('app/api/admin/live/route.ts')
+    return { state, get: () => route.GET() }
+  }
+  const world = routeWorld(), response = await world.get()
+  check('runtime rota preserva os seis contadores reais da RPC', response.status === 200 && ['visitors_7d', 'visitors_24h', 'signups_7d', 'signups_24h', 'videos_24h', 'checkouts_24h'].every(key => response.body[key] === ({ visitors_7d:17, visitors_24h:7, signups_7d:3, signups_24h:2, videos_24h:1, checkouts_24h:4 })[key]))
+  check('runtime RPC recebe exclusoes canonicas sem segunda lista', world.state.calls[0]?.name === 'admin_live_counters' && JSON.stringify(world.state.calls[0].args) === JSON.stringify({ p_exact_emails: internal.INTERNAL_EXACT_EMAILS, p_like_patterns: internal.INTERNAL_LIKE_PATTERNS }))
+  world.state.user = null
+  check('runtime usuario sem autorizacao nao recebe snapshot privado', (await world.get()).status === 403)
+  const failure = routeWorld(); failure.state.rpcError = true
+  check('runtime RPC com erro devolve500, nunca zeros bem-sucedidos', (await failure.get()).status === 500)
+  failure.state.rpcError = false
+  check('runtime erro RPC nao e cacheado e a proxima chamada recupera', (await failure.get()).status === 200 && failure.state.calls.length === 2)
 } else {
   const { createClient } = await import('@supabase/supabase-js')
   const admin = createClient(url, key, { auth: { persistSession: false } })

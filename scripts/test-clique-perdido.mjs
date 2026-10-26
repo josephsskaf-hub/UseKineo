@@ -105,13 +105,14 @@ check('cron: teto de 24h', cron.includes('const ATTEMPT_LOST_MAX_AGE_MS = 24 * 6
 check('cron: teto por rodada', /const MAX_ATTEMPT_LOST_PER_RUN = \d+/.test(cron))
 // o piso tem de ser MUITO maior que o p90 medido até o claim (60s).
 check('cron: o piso é pelo menos 10x o p90 até o claim (60s)', 20 * 60 * 1000 >= 10 * 60 * 1000)
-check('cron: a fase lê exatamente o evento de abertura', cron.includes(".eq('name', ATTEMPT_OPENED_EVENT)"))
+// KINEO-LEVA-2410: o sinal anterior ao POST é o clique do cliente; foi corrigido na main.
+check('cron: fase lê exatamente o sinal de perda anterior ao POST', cron.includes(".eq('name', ATTEMPT_LOSS_SIGNAL_EVENT)") && cron.includes("const ATTEMPT_LOSS_SIGNAL_EVENT = 'video_generation_started'"))
 
 // ── 8. O CRON FALHA FECHADO (lição do #4: erro engolido = e-mail repetido) ──
 check('cron: erro na leitura de abertos INTERROMPE', cron.includes('if (openedErr) throw new Error('))
 check('cron: erro na leitura de fechados INTERROMPE', cron.includes('if (settledErr) throw new Error('))
 check('cron: o lote de dedupe inclui os já fechados E os já avisados',
-  cron.includes('[ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT]'))
+  cron.includes('[ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT, ATTEMPT_LOST_CANDIDATE_EVENT]'))
 check('cron: pula quem já está fechado ou avisado', cron.includes('if (settled.has(genId)) continue'))
 
 // ── 9. A COORTE E OS LIMITES DE ENVIO ──────────────────────────────────────
@@ -154,7 +155,7 @@ check('cron: nenhum cupom ou desconto na copy nova', !/(discount|% off|coupon|50
 check('cron: nenhuma promessa de crédito na copy nova', !/\bcredits? (for|free|on us)\b/i.test(corpoCopy))
 
 // ── 13. A RODADA É MEDÍVEL ─────────────────────────────────────────────────
-check('cron: a resposta conta a fase nova', cron.includes('attemptsLost, results }'))
+check('cron: resposta conta envios e candidatos sem envio', cron.includes('attemptsLost, attemptsLostWouldSend, results,'))
 check('cron: contador só sobe com envio de verdade', cron.includes('if (ok) attemptsLost += 1'))
 check('cron: o carimbo grava se o envio deu certo', cron.includes('sent: ok,'))
 check('cron: o carimbo guarda quando o clique aconteceu', cron.includes('opened_at: row.created_at'))

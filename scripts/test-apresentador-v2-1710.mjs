@@ -33,8 +33,60 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-1710'
-const rd = (p) => desfazApresentadorV2Ajuste1710(p, semFilmeRapido1710(semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-1710 — o ajuste do apresentador v2 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste é provado em scripts/test-apresentador-v2-ajuste-1710.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
+// Only the three diagnostics approved in 2314b88b follow this older byte-for-byte proof.
+// Unique exact lines reverse; the raw whole-source pin below also protects missing diagnostics.
+const SHOT_DIAGNOSTICS = [
+  [
+    "        console.warn('[fal] job failed', model, requestId, String(finished.error).slice(0, 500)) // KINEO-ADS-RENDER-FIX-2310 — o motivo da fal passa a aparecer nos logs",
+    ""
+  ],
+  [
+    "    if (status === 'FAILED' && idMatches) { console.warn('[fal] job FAILED', model, requestId, JSON.stringify(st).slice(0, 500)); return { state: 'failed', url: null } } // KINEO-ADS-RENDER-FIX-2310",
+    "    if (status === 'FAILED' && idMatches) return { state: 'failed', url: null }"
+  ],
+  [
+    "    if (stage === 'result' && idMatches && (status === 422 || status === 400)) { console.warn('[fal] result rejected', model, requestId, status, JSON.stringify(body?.detail ?? null).slice(0, 500)); return { state: 'failed', url: null } } // KINEO-ADS-RENDER-FIX-2310",
+    "    if (stage === 'result' && idMatches && (status === 422 || status === 400)) return { state: 'failed', url: null }"
+  ]
+]
+function withoutApprovedShotDiagnostics(p, text) {
+  if (p !== 'lib/ads/v2Shots.ts') return text
+  for (const [after, before] of SHOT_DIAGNOSTICS) {
+    if (text.split(after).length === 2) text = text.replace(after + '\n', before ? before + '\n' : '')
+  }
+  return text
+}
+// KINEO-LEVA-2410 — reviewed local purity: this script never mutates the imported projection data.
+// Cache only text transforms; every call still reads the actual source. Exact path, relative key
+// and full raw bytes distinguish file variants. Shared helpers, errors and execution worlds are not cached.
+const projectionCache = new Map()
+const MAX_PROJECTED_ENTRIES = 256, MAX_PROJECTED_BYTES = 32 * 1024 * 1024
+let projectedBytes = 0
+function rd(p) {
+  const absolutePath = join(ROOT, p)
+  const raw = readFileSync(absolutePath, 'utf8')
+  // Pin the entire actual current source BEFORE lookup or historical projection.
+  if (p === 'lib/ads/v2Shots.ts' && !approvedCurrentShots(raw)) throw new Error('v2Shots current source differs from approved 37cca7e2')
+  const key = absolutePath + '\0' + p + '\0' + raw
+  const hit = projectionCache.get(key)
+  if (hit) return hit.projected
+  const projected = projectRead(p, raw)
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(projected, 'utf8')
+  if (bytes <= MAX_PROJECTED_BYTES) {
+    while (projectionCache.size >= MAX_PROJECTED_ENTRIES || projectedBytes + bytes > MAX_PROJECTED_BYTES) {
+      const first = projectionCache.keys().next().value
+      projectedBytes -= projectionCache.get(first).bytes
+      projectionCache.delete(first)
+    }
+    projectionCache.set(key, { projected, bytes })
+    projectedBytes += bytes
+  }
+  return projected
+}
+const projectRead = (p, raw) => withoutApprovedShotDiagnostics(p, desfazApresentadorV2Ajuste1710(p, semFilmeRapido1710(semCloseReal1910(semFilmesF1F4_1910(raw, p), p), p))) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-1710 — o ajuste do apresentador v2 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste é provado em scripts/test-apresentador-v2-ajuste-1710.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+const APPROVED_SHOTS = git('show', '37cca7e2ecff13cb5e40a0d3afffc2af81706f11:lib/ads/v2Shots.ts').replace(/\r\n/g, '\n')
+const approvedCurrentShots = text => text.replace(/\r\n/g, '\n') === APPROVED_SHOTS
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0
 let fail = 0
@@ -50,13 +102,43 @@ const F = {
   voice: 'lib/avatar/voice.ts', advance: 'lib/ads/v2Advance.ts', plan: 'lib/ads/v2PlanCore.ts', tts: 'lib/ttsFallback.ts', vision: 'lib/ads/v2LockVision.ts',
 }
 
+// The historical D1 proof must never make deletion of a newer diagnostic invisible.
+ok(approvedCurrentShots(readFileSync(join(ROOT, 'lib/ads/v2Shots.ts'), 'utf8')), 'D0 fonte atual inteira de v2Shots preserva a revisão aprovada antes da projeção')
+const missingDiagnostic = APPROVED_SHOTS.replace(SHOT_DIAGNOSTICS[0][0] + '\n', '')
+ok(missingDiagnostic !== APPROVED_SHOTS && !approvedCurrentShots(missingDiagnostic), 'D0 mutante: apagar log aprovado reprova o pin atual')
+
 // ── carregador: transpila TS → CJS, resolve '@/' (os arquivos reais) com stubs; `over` = fonte mutante ───────────────────────────
+// Pure bounded compilation cache only. Every world below still rereads its sources, creates
+// fresh exports and binds its own mocks/timers. Source mutants have distinct full-text keys.
+const compilationCache = new Map()
+const COMPILER_OPTIONS = Object.freeze({ module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true })
+const COMPILER_KEY = JSON.stringify(COMPILER_OPTIONS)
+const MAX_COMPILED_ENTRIES = 256, MAX_COMPILED_BYTES = 32 * 1024 * 1024
+let compiledBytes = 0
+function compileSource(rel, text) {
+  const key = rel + '\0' + COMPILER_KEY + '\0' + text
+  const hit = compilationCache.get(key)
+  if (hit) return hit.js
+  const js = ts.transpileModule(text, { compilerOptions: COMPILER_OPTIONS }).outputText
+  const bytes = Buffer.byteLength(key, 'utf8') + Buffer.byteLength(js, 'utf8')
+  if (bytes <= MAX_COMPILED_BYTES) {
+    while (compilationCache.size >= MAX_COMPILED_ENTRIES || compiledBytes + bytes > MAX_COMPILED_BYTES) {
+      const first = compilationCache.keys().next().value
+      compiledBytes -= compilationCache.get(first).bytes
+      compilationCache.delete(first)
+    }
+    compilationCache.set(key, { js, bytes })
+    compiledBytes += bytes
+  }
+  return js
+}
+
 function makeLoader(stubs, over = {}) {
   const cache = new Map()
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel)
     const text = Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : rd(rel)
-    const js = ts.transpileModule(text, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
+    const js = compileSource(rel, text)
     const module = { exports: {} }
     cache.set(rel, module.exports)
     const req = (spec) => {

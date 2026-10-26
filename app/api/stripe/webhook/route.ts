@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fulfillOneTimeItem, isOneTimeItemSession } from '@/lib/stripe/oneTimeItemFulfillment' // KINEO-COMPRA-AVULSA-2410
 import { stripe } from '@/lib/stripe'
 import { settleFilmComplete } from '@/lib/filmComplete/server'
 import { FILM_COMPLETE_VERSION, filmCompletePaymentMetadata } from '@/lib/growth/filmComplete'
@@ -799,7 +800,8 @@ function isOwnerRejection(code: string | null | undefined): boolean {
 async function recordPaymentSuccess(
   supabase: AdminClient,
   stripeEventId: string,
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
+  stripeEventCreated?: number // KINEO-AMOSTRA-ANUNCIO-2410 — signed payment event time; delayed webhook arrival is not purchase time.
 ): Promise<void> {
   if (session.payment_status !== 'paid') return
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — compra de convidado ainda sem dono: quem grava é o Path B, logo depois de
@@ -866,6 +868,12 @@ async function recordPaymentSuccess(
     session_id: browserSessionId,
     metadata: {
       source: 'stripe_webhook',
+      // KINEO-AMOSTRA-ANUNCIO-2410 — unknown signed time never becomes an attributed sample purchase.
+      ...(typeof stripeEventCreated === 'number' && Number.isFinite(stripeEventCreated) && stripeEventCreated > 0 ? {
+        stripe_livemode: session.livemode === true,
+        stripe_payment_status: session.payment_status,
+        stripe_paid_at: new Date(stripeEventCreated * 1000).toISOString(),
+      } : {}),
       stripe_event_id: stripeEventId,
       stripe_session_id: session.id,
       stripe_customer_id: customerId,
@@ -1594,7 +1602,7 @@ export async function POST(req: NextRequest) {
         // são idempotentes (dedupe por stripe_session_id + id determinístico), então reexecutar é seguro.
         // KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado
         // por status, stripe_session_id único, evento com id determinístico) e não concede nada.
-        if (!duplicateSession || (!isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)
+        if (!duplicateSession || (!isOneTimeItemSession(duplicateSession) && !isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado) // KINEO-COMPRA-AVULSA-2410 — atomic receipt permits crash recovery of the same event.
           return NextResponse.json({ received: true, duplicate: true })
         }
         console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)
@@ -1631,7 +1639,7 @@ export async function POST(req: NextRequest) {
         // Tracking is ancillary: a temporary analytics failure must never stop
         // the paid user from receiving their entitlement.
         try {
-          await recordPaymentSuccess(supabase, event.id, session)
+          await recordPaymentSuccess(supabase, event.id, session, event.created) // KINEO-AMOSTRA-ANUNCIO-2410
         } catch (trackingError) {
           console.error('[stripe webhook] payment_success tracking threw:', trackingError)
         }
@@ -1640,6 +1648,14 @@ export async function POST(req: NextRequest) {
         // legacy pack claims it before its additive grant; recurring checkout
         // publishes it only after the idempotent entitlement update succeeds.
         checkoutFulfillmentGuard = `checkout_fulfilled:${session.id}`
+        if (isOneTimeItemSession(session)) { // KINEO-COMPRA-AVULSA-2410 — never enter legacy amount/pack-credit fallbacks.
+          entitlementPending = true // KINEO-COMPRA-AVULSA-2410
+          await fulfillOneTimeItem(supabase, session) // KINEO-COMPRA-AVULSA-2410 — receipt + additive balance + paid flag + access + event in one transaction.
+          entitlementConfirmed = true; entitlementPending = false // KINEO-COMPRA-AVULSA-2410 — a duplicate receipt also proves prior delivery.
+          await markTrialConverted(supabase, session.metadata!.supabase_user_id, { source: 'checkout_payment', stripeRef: session.id }) // KINEO-COMPRA-AVULSA-2410 — preserve the existing one-time trial conversion rule.
+          await recordAffiliateCommission(supabase, { userId: session.metadata!.supabase_user_id, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'one_time', attributionSystem: session.metadata?.affiliate_system, session }) // KINEO-COMPRA-AVULSA-2410 — existing idempotent attribution; retry cannot regrant the item.
+          break // KINEO-COMPRA-AVULSA-2410
+        } // KINEO-COMPRA-AVULSA-2410
 
         // ── Path A: Legacy one-time credit-pack purchase via Payment Link ──
         // Push #020 moved off Payment Links onto Stripe Checkout subscriptions,
@@ -1984,7 +2000,7 @@ export async function POST(req: NextRequest) {
           session.metadata = { ...(session.metadata ?? {}), supabase_user_id: guestOwner.userId }
           // O payment_success de cima pulou esta sessão (dono ainda desconhecido); agora ele sai com o user_id.
           try {
-            await recordPaymentSuccess(supabase, event.id, session)
+            await recordPaymentSuccess(supabase, event.id, session, event.created) // KINEO-AMOSTRA-ANUNCIO-2410
           } catch (trackingError) {
             console.error('[stripe webhook] guest payment_success tracking threw:', trackingError)
           }

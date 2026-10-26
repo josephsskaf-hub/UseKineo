@@ -1,0 +1,47 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-roteiro-curto-undo-2210.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 7600
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS .github/workflows/guardiao.yml: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS app/(dashboard)/generate/GenerateClient.tsx: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 34 hunks mutation/missing/duplicate rejected
+PASS app/(dashboard)/studio/StudioClient.tsx: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 9 hunks mutation/missing/duplicate rejected
+PASS app/api/admin/live/route.ts: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 8 hunks mutation/missing/duplicate rejected
+PASS components/ChatGptWelcomeBanner.tsx: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 6 hunks mutation/missing/duplicate rejected
+PASS scripts/diagnose-studio-continuation.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS scripts/test-ads-cena-2110.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-ads-cena-95-2110.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 3 hunks mutation/missing/duplicate rejected
+PASS scripts/test-ads-cena-ajuste-2110.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-ads-fluxo-1310.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-bebe-que-fala-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 4 hunks mutation/missing/duplicate rejected
+PASS scripts/test-chatgpt-script-handoff.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS scripts/test-coerencia-kineo1-2026-09-16.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-desenho-nota9-2110.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-despacho-vazio-2026-09-04.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS scripts/test-duracao-rewards-2026-10-06.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-estorno-explicado-2026-09-02.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS scripts/test-estrela-do-filme-2026-09-29.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-failure-cause-38.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 4 hunks mutation/missing/duplicate rejected
+PASS scripts/test-failure-screen-40.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 3 hunks mutation/missing/duplicate rejected
+PASS scripts/test-filme-rapido-1710.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 3 hunks mutation/missing/duplicate rejected
+PASS scripts/test-five-improvements.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-kids-venda-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-leva-confiabilidade-2026-08-28.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+PASS scripts/test-mcp-studio-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 3 hunks mutation/missing/duplicate rejected
+PASS scripts/test-mcp-studio-ajuste-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-meta95-personagem-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-meta95-personagem-ajuste-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-motor-15s-1510.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-mrr-studio-near-idea-2026-10-01.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-parceiro-eyebible-2-1410.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-parede-v1-2026-09-23.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-quality-failure-ui-2026-09-11.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-rotulo-credito-1510.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-script-preflight.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 3 hunks mutation/missing/duplicate rejected
+PASS scripts/test-studio-duracao-saldo-1510.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-studio-fantasma-1510.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-support/desfaz-ads-cena-95-2110.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected
+PASS scripts/test-verbatim-intocavel-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected
+KINEO-ROTEIRO-CURTO-UNDO-2210: 725 passed, 0 failed.

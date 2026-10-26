@@ -1,3 +1,4 @@
+import { PRESENTER_APPROVED_IDS_2410 } from '../presenterCandidates2410' // KINEO-APRESENTADORES-2410
 // KINEO-ADS-CENA-95-2110 — biblioteca aprovada, seleção por dono e exclusão dos três pedidos mais recentes.
 import { ADS_V2_PRESENTER_LIBRARY, type AdsV2PresenterEntry } from '../v2Presenter'
 import type { CenaCategory } from './catalog'
@@ -19,7 +20,7 @@ const profile = (p: AdsV2PresenterEntry): Cena95Presenter => ({ id: p.id, name: 
 export function chooseCena95Presenter(category: CenaCategory, userId: string, recent: readonly string[], requestedPortrait?: string): Cena95Presenter {
   if (!userId || !Array.isArray(recent)) throw new Error('cena95_history_required')
   const excluded = new Set(recent.slice(0, 3))
-  const approved = CENA95_ACTORS[category].map(id => ADS_V2_PRESENTER_LIBRARY.find(p => p.id === id)).filter((p): p is AdsV2PresenterEntry => !!p?.portrait)
+  const approved = [...new Set([...CENA95_ACTORS[category].filter(id => PRESENTER_APPROVED_IDS_2410.includes(id)), ...PRESENTER_APPROVED_IDS_2410])].map(id => ADS_V2_PRESENTER_LIBRARY.find(p => p.id === id)).filter((p): p is AdsV2PresenterEntry => !!p?.portrait)
   if (requestedPortrait) {
     const requested = approved.find(p => `https://www.usekineo.com${p.portrait}` === requestedPortrait)
     if (!requested) throw new Error('cena95_actor_not_approved')

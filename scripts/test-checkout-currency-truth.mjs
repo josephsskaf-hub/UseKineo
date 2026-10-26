@@ -8,6 +8,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
@@ -81,7 +82,8 @@ const ok = (value, message) => { assert.ok(value, message); checks += 1 }
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks += 1 }
 
 const disclosure =
-  'Kineo lists and charges plan prices in USD worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.'
+  // KINEO-LEVA-2410: liquidação brasileira aprovada em 23/10; USD continua a referência.
+  'Kineo lists reference plan prices in USD. Customers in Brazil pay in reais (BRL) at checkout. Elsewhere, the checkout shows the final charge currency; your bank may add conversion or cross-border fees.'
 
 equal(Object.keys(checkout.CURRENCY_DISPLAY), ['usd'], 'checkout exposes only USD')
 for (const country of [null, 'US', 'BR', 'IN', 'DE', 'PK']) {
@@ -117,9 +119,9 @@ const structured = source('components/StructuredData.tsx')
   const faq = (home.split('\n').find((l) => l.includes('CHECKOUT_CURRENCY_DISCLOSURE') && l.includes('<details')) ?? '')
   ok(faq.length > 0, 'the visible pricing FAQ answer exists on the home')
   ok(faq.includes('{CHECKOUT_CURRENCY_DISCLOSURE}'), 'visible home FAQ uses canonical disclosure')
-  ok(/New accounts get free credits/.test(faq), 'the same visible answer still promises the free first video')
+  ok(faq.includes('Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits') && faq.includes('${TRIAL_FIRST_FILM_PHRASE}'), 'same visible answer uses canonical grant, country clause and first film')
 }
-ok(structured.includes('${CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits'), 'FAQ JSON-LD uses the same canonical disclosure')
+ok(structured.includes('${CHECKOUT_CURRENCY_DISCLOSURE} Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits') && structured.includes('${TRIAL_FIRST_FILM_PHRASE}'), 'FAQ JSON-LD uses the same canonical disclosure and qualified grant')
 ok(!home.includes(disclosure), 'visible FAQ does not duplicate the disclosure literal')
 ok(!structured.includes(disclosure), 'JSON-LD does not duplicate the disclosure literal')
 
@@ -159,7 +161,8 @@ const factsSource = source('lib/kineoFacts.ts')
 ok(factsSource.includes('currencies: Object.values(CURRENCY_DISPLAY).map(({ label }) => label)'), 'AEO currency list derives from canonical checkout display')
 ok(!factsSource.includes("currencies: ['USD', 'BRL', 'INR']"), 'AEO source does not retain the retired multi-currency list')
 ok(source('app/facts/page.tsx').includes('Checkout currency: ${PRODUCT.currencies.join'), 'human facts page publishes the singular canonical checkout currency')
-ok(source('app/llms.txt/route.ts').includes('Checkout currency: ${PRODUCT.currencies.join'), 'llms.txt publishes the singular canonical checkout currency')
+const llms = await createOfflineLoader({ globals: { Response } })('app/llms.txt/route.ts').GET().text()
+ok(llms.includes('Published plan amounts are reference prices in USD. Customers in Brazil normally pay in BRL; check the checkout for the currency and amount.'), 'real llms.txt GET publishes USD references and Brazilian BRL settlement')
 equal(checkout.checkPricingInvariants(), [], 'canonical pricing invariants remain green')
 
 console.log('\n' + checks + '/' + checks + ' checkout currency-truth checks passed')

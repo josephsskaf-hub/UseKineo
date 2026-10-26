@@ -46,7 +46,7 @@ t('e-mail script_short traz narrationSec, requestedSec e wordsMissing', /\$\{s\.
 t('e-mail script_short diz que nada foi cobrado e mostra os creditos', /nothing was charged/i.test(fn) && /\$\{credits\} credits/.test(fn))
 t('e-mail script_short nao promete cupom/desconto', !/coupon|discount|% off/i.test(fn))
 t('e-mail script_short nao nomeia motor', !/Kling|Veo|Seedance|MiniMax|Omni|Sora/.test(fn))
-t('utm_campaign separado (failure_recovery_script) para medir a parte', /utm_campaign=failure_recovery_script/.test(fn))
+t('utm_campaign separado (failure_recovery_script) via compositor canônico', /composerUrl\(\{ base: APP, campaign: 'failure_recovery_script' \}\)/.test(fn))
 t('rodape de unsubscribe presente', /emailFooterHtml\(userId\)/.test(fn) && /emailFooterText\(userId\)/.test(fn))
 
 // #6: o carimbo ganhou `fonte` (navegador x servidor), `stale_days` e

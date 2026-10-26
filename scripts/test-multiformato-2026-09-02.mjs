@@ -10,6 +10,8 @@
 // A REGRA DE SEGURANÇA que estes testes existem para provar: SEM `aspect`,
 // absolutamente nada muda. 100% dos primeiros vídeos da casa são Shorts.
 import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
+import ts from 'typescript'
 // ⚠️ `.replace(/\r\n/g, '\n')`: os arquivos existentes do repo estão em CRLF
 // (autocrlf=true no Windows) e os arquivos novos nascem em LF. Sem normalizar,
 // toda verificação multi-linha falha por causa do \r invisível — e o autor
@@ -19,6 +21,23 @@ let ok = 0, fail = 0
 const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, console.log('  FAIL ' + n)) }
 
 const aspect = src('lib/aspect.ts')
+const aspectExports = {}
+vm.runInNewContext(ts.transpileModule(aspect, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports: aspectExports }, { timeout: 5000 })
+const shortSpec = aspectExports.aspectSpec()
+const cineTree = ts.createSourceFile('route.ts', src('app/api/generate-video-cinematic/route.ts'), ts.ScriptTarget.Latest, true)
+const falBuilder = cineTree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'buildFalInput')
+const ratioProperties = [], classicDispatches = []
+function visit(node) {
+  if (ts.isPropertyAssignment(node) && node.name.getText(cineTree) === 'aspect_ratio') ratioProperties.push(node.initializer.getText(cineTree))
+  if (ts.isCallExpression(node) && node.expression.getText(cineTree) === 'buildFalInput' && node.arguments[6]?.getText(cineTree) === 'generationSeed') classicDispatches.push(node)
+  ts.forEachChild(node, visit)
+}
+visit(falBuilder)
+function findDispatch(node) {
+  if (ts.isCallExpression(node) && node.expression.getText(cineTree) === 'buildFalInput' && node.arguments[6]?.getText(cineTree) === 'generationSeed') classicDispatches.push(node)
+  ts.forEachChild(node, findDispatch)
+}
+findDispatch(cineTree)
 const profile = src('lib/renderProfile.ts')
 const compose = src('lib/compose.ts')
 const cine = src('app/api/generate-video-cinematic/route.ts')
@@ -33,7 +52,7 @@ console.log('1 · a fonte única (lib/aspect.ts)')
 check('os 4 formatos existem', aspect.includes("export const ASPECTS = ['9:16', '16:9', '1:1', '4:5'] as const"))
 check('o padrão é 9:16', aspect.includes("export const DEFAULT_ASPECT: Aspect = '9:16'"))
 check('entrada inválida cai no padrão (URL, body, banco)', aspect.includes('return (ASPECTS as readonly string[]).includes(s) ? (s as Aspect) : DEFAULT_ASPECT'))
-check('9:16 mantém 1080×1920 e os números históricos do layout', /'9:16': \{[\s\S]{0,400}width: 1080,[\s\S]{0,80}height: 1920,[\s\S]{0,400}captionBottomY: '78%',[\s\S]{0,80}captionWidth: '78%',[\s\S]{0,120}captionFontSize: 62,[\s\S]{0,60}hookFontSize: 76,[\s\S]{0,60}letterboxPct: 6,/.test(aspect))
+check('9:16 mantém 1080×1920 e os números históricos do layout (fonte executada)', shortSpec.width === 1080 && shortSpec.height === 1920 && shortSpec.captionBottomY === '78%' && shortSpec.captionWidth === '78%' && shortSpec.captionFontSize === 62 && shortSpec.hookFontSize === 76 && shortSpec.letterboxPct === 6)
 check('16:9 = 1920×1080 e SEM letterbox (o quadro já é cinema)', /'16:9': \{[\s\S]{0,400}width: 1920,[\s\S]{0,80}height: 1080,[\s\S]{0,600}letterboxPct: 0,/.test(aspect))
 check('1:1 = 1080×1080 · 4:5 = 1080×1350', aspect.includes('width: 1080,\n    height: 1080,') && aspect.includes('width: 1080,\n    height: 1350,'))
 check('toda dimensão é PAR (H.264 exige 4:2:0)', [1080, 1920, 1080, 1080, 1350].every((n) => n % 2 === 0))
@@ -59,10 +78,10 @@ console.log('4 · motores geram no quadro certo (é aqui que a vantagem existe)'
 // verificação foi quem pegou: sem ela, um pedido de 16:9 sairia deitado
 // justamente no motor mais usado e certo em todos os outros. Defeito parcial
 // é o pior tipo, porque "funciona quando eu testo".
-check('os 10 literais aspect_ratio viraram um ponto só', !cine.includes("aspect_ratio: '9:16'") && cine.split('aspect_ratio: frame.falAspectRatio').length === 11)
-check('buildFalInput recebe o formato como ÚLTIMO parâmetro', cine.includes('aspect?: string | null,\n): Record<string, unknown> {') && cine.includes('const frame = aspectSpec(aspect)'))
+check('todos os ramos atuais (ao menos os 10 originais) usam o mesmo quadro', ratioProperties.length >= 10 && ratioProperties.every(value => value === 'frame.falAspectRatio'))
+check('buildFalInput preserva aspect na posição 9, antes do modo visual adicionado depois', falBuilder.parameters[8]?.name.getText(cineTree) === 'aspect' && falBuilder.parameters[9]?.name.getText(cineTree) === 'visualMode' && cine.includes('const frame = aspectSpec(aspect)'))
 check('submitToFal repassa (call sites posicionais intactos)', cine.includes('stylized?: boolean, aspect?: string | null)') && cine.includes('buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect)'))
-check('o caminho clássico manda o formato no despacho', cine.includes('generationSeed, undefined, aspectRequested)'))
+check('o caminho clássico manda o formato na mesma posição do despacho atual', classicDispatches.length > 0 && classicDispatches.every(call => call.arguments[8]?.getText(cineTree) === 'aspectRequested'))
 check('a rota lê o formato do body, com default seguro', cine.includes("const aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)"))
 check('o planner recebe o formato em TODAS as 5 chamadas', cine.split('aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02').length === 6)
 
@@ -77,13 +96,13 @@ check('bônus de orientação segue o quadro (não mais "+10 retrato" fixo)', pi
 check('penalidade de resolução espelha o corte real', pix.includes('? portrait ? (rez.height < 1080 ? 3 : 0) : (rez.width < 2560 ? 2 : 0)') && pix.includes(': portrait ? (rez.height < 2560 ? 2 : 0) : (rez.width < 1920 ? 3 : 0)'))
 check('o passe preferido busca altura em Short e LARGURA em 16:9', pix.includes("ACTIVE_FRAME.vertical ? `&min_height=1200` : `&min_width=1920`"))
 check('a entrada pública fixa o quadro antes de buscar', pix.includes('setActiveFrame(opts?.aspect)'))
-check('a rota fast passa o formato ao ranker', fast.includes('styleCtx, aspect }') && fast.includes("const aspect = normalizeAspect((body as { aspect?: unknown }).aspect)"))
+check('a rota fast passa o formato ao ranker', /styleCtx,\s*aspect(?:,|\s*})/.test(fast) && fast.includes("const aspect = normalizeAspect((body as { aspect?: unknown }).aspect)"))
 
 console.log('7 · a corrente inteira: Studio → URL → generate → compose')
-check('Studio tem os 4 formatos (16:9 sai do SOON)', studio.includes('ASPECT_PILLS.map((a) =>') && !studio.includes('title="Coming soon">16:9'))
+check('Studio mantém os 4 formatos para filmes; clipes filtram só os formatos suportados', studio.includes('const ASPECT_PILLS = allAspectSpecs().map') && studio.includes("ASPECT_PILLS.filter((a) => scriptMode !== 'clip' || (CLIP_ASPECTS as readonly string[]).includes(a.value)).map") && !studio.includes('title="Coming soon">16:9'))
 check('a escolha VIAJA na URL (antes morria na tela)', studio.includes("if (aspect !== '9:16') q.set('aspect', aspect)"))
 check('GenerateClient lê da URL com default seguro', gen.includes("const aspectRequested = normalizeAspect(searchParams.get('aspect'))"))
-check('só viaja quando não é o padrão (link antigo intacto) — 3 pontos', gen.split("aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}").length === 4)
+check('só viaja quando não é o padrão (link antigo intacto) — 6 envios atuais', gen.split("aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}").length === 7)
 check('compose recebe e repassa aos DOIS builders', composeRoute.includes('const aspectRequested = normalizeAspect') && composeRoute.split('aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02').length === 3)
 
 console.log('8 · custo (o argumento comercial)')

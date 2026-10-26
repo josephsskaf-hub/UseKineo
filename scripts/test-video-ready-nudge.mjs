@@ -8,9 +8,10 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
-const ts = require(path.join(root, 'node_modules/typescript'))
+const ts = require('typescript')
 let n = 0, fail = 0
 const ok = (cond, msg) => { n++; if (!cond) { fail++; console.log('FAIL', n, msg) } else console.log('ok  ', n, msg) }
 // sprint-assinaturas #1 (05/09) — normaliza CRLF: a assercao do assunto casa
@@ -65,10 +66,12 @@ const route = read(ROUTE)
 const s = route.indexOf('interface ReadyVideo {')
 const e = route.indexOf('export async function GET(')
 ok(s > 0 && e > s, 'rota: trecho puro (ReadyVideo … buildEmail) existe')
-const pure = `const APP_URL = '${APP}'\nimport { emailFooterHtml, emailFooterText } from '@/lib/emailSuppression'\nimport type { VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'\n` + route.slice(s, e) + `\nexport { buildEmail }\n`
+const pure = `const APP_URL = '${APP}'\nimport { emailFooterHtml, emailFooterText } from '@/lib/emailSuppression'\nimport type { VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'\nimport { packEmailHtml, packEmailText } from '@/lib/publishPackEmail'\nimport { publishHref, unpublishHref } from '@/lib/videoShareLink'\nimport { feedbackRowHtml, feedbackRowText } from '@/lib/filmFeedback'\nimport { film60Copy, film60EmailHref } from '@/lib/growth/filmReady60s'\n` + route.slice(s, e) + `\nexport { buildEmail }\n`
 const out = ts.transpileModule(pure, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: 'pure.ts' }).outputText
 const m = { exports: {} }
+const realPure = createOfflineLoader()
 new Function('require', 'module', 'exports', out)((id) => {
+  if (['@/lib/publishPackEmail', '@/lib/videoShareLink', '@/lib/filmFeedback', '@/lib/growth/filmReady60s'].includes(id)) return realPure(id)
   if (id === '@/lib/emailSuppression') return { emailFooterHtml: () => '<!--foot-->', emailFooterText: () => '\n[foot]' }
   throw new Error('unexpected import ' + id)
 }, m, m.exports)
@@ -113,7 +116,7 @@ ok(/READY_EMAIL_GAP_MS = 6 \* 60 \* 60 \* 1000/.test(route) && /now - lastReady 
 ok(/READY_EMAIL_EVENTS = \['video_ready_email_sent', 'stranded_ready_sent', 'stranded_fast_ready_sent'\]/.test(route), 'rota: enxerga o e-mail da rota de status (#24) e os do resgate (#25)')
 ok(/if \(dlErr\) \{[\s\S]*?status: 500/.test(route), 'rota: erro na consulta de sinais = não manda (fail-closed)')
 ok(/\.select\('id, email, video_ready_sent_at, has_paid, plan, video_credits'\)/.test(route), 'rota: lê has_paid/plan/video_credits do perfil (entradas do rodapé)')
-ok(/created_at, credits_used, duration'\)/.test(route), 'rota: lê credits_used/duration da linha de videos')
+ok(/created_at, credits_used, duration, quality_mode'\)/.test(route), 'rota: lê credits_used/duration da linha de videos')
 ok(/videoReadyFooterFromRows\(prof, \{ title: video\.title/.test(route), 'rota: rodapé pela função da lib (mesma do #24/#25)')
 ok(/name: NUDGE_EVENT/.test(route) && /saw_ready_screen: ctx\.sawIt/.test(route) && /footer: footer\.kind/.test(route) && /second_touch: typeof lastReady === 'number'/.test(route), 'rota: carimbo video_ready_nudge_sent com saw/footer/subscriber/second_touch')
 ok(/\.update\(\{ video_ready_sent_at: new Date\(\)\.toISOString\(\) \}\)/.test(route), 'rota: 1× por pessoa PARA SEMPRE mantido (coluna do perfil)')

@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 584
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+cinematic-poll-diagnostic: 185 passed; no external calls

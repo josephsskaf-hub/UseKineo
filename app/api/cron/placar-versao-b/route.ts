@@ -13,6 +13,7 @@ import { fetchAllRows } from '@/app/api/admin/_shared/db'
 import { funilVersaoB, funilVersaoBLinha, VERSAO_B_EVENT_NAMES, VERSAO_B_SINCE, type EventRow } from '@/lib/admin/versaoBFunnel'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 export const maxDuration = 120
 
 const DAY_MS = 24 * 60 * 60 * 1000

@@ -24,6 +24,11 @@ const SERVER_ONLY_EVENTS = new Set([
   'free15_delivery_gate',
   'free15_gate_failed',
   'film15_full_intent', // private saved story + paid launch ledger; never browser-writable
+  // KINEO-AMOSTRA-ANUNCIO-2410 — person-level sample transitions live in the service-only database ledger.
+  'ads_sample_delivered',
+  'ads_sample_upsell_clicked',
+  'ads_sample_purchased_7d',
+  'one_time_item_purchased', // KINEO-COMPRA-AVULSA-2410 — only the atomic paid receipt may record a purchase.
   // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.
   'ads_escolha_plan',
   'ads_escolha_stills_ready',

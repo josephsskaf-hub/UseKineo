@@ -138,8 +138,27 @@ checa('componente: sem crédito na cópia ("Nothing is generated or charged")', 
 
 // Montagem no Studio
 const S = rd('app/(dashboard)/studio/StudioClient.tsx')
-const iMount = S.indexOf('<DiretorKineo ')
-checa('Studio: Diretor montado antes da revisão/Generate', iMount > 0 && iMount < S.indexOf('<div className="cost studio-generation-review"'))
+// KINEO-LEVA-2410: a revisão ganhou id/tabIndex. Reconhecer seus atributos pela AST,
+// sem depender da ordem textual deles e sem aceitar a classe em CSS/comentário.
+function diretorAntesDaRevisao(src) {
+  const ast = ts.createSourceFile('StudioClient.tsx', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const diretores = [], revisoes = []
+  function visita(n) {
+    if (ts.isJsxSelfClosingElement(n) && n.tagName.getText(ast) === 'DiretorKineo') diretores.push(n)
+    if (ts.isJsxElement(n) && n.openingElement.tagName.getText(ast) === 'div') {
+      const attrs = n.openingElement.attributes.properties
+      if (attrs.some(a => ts.isJsxAttribute(a) && a.name.text === 'className' && a.initializer && ts.isStringLiteral(a.initializer) && a.initializer.text.split(/\s+/).includes('studio-generation-review'))) revisoes.push(n)
+    }
+    ts.forEachChild(n, visita)
+  }
+  visita(ast)
+  return !ast.parseDiagnostics.length && diretores.length === 1 && revisoes.length === 1 && diretores[0].end < revisoes[0].pos
+}
+checa('Studio: Diretor montado antes da revisão/Generate', diretorAntesDaRevisao(S))
+checa('Studio: ausência do Diretor é detectada', !diretorAntesDaRevisao(S.replace(/<DiretorKineo [^\n]+\/>/, '')))
+const chamadaDiretor = S.match(/<DiretorKineo [^\n]+\/>/)?.[0]
+const atalhoRevisao = '<MobileCreationShortcut targetId="studio-generation-review"'
+checa('Studio: Diretor movido para depois da revisão é detectado', !!chamadaDiretor && S.split(atalhoRevisao).length === 2 && !diretorAntesDaRevisao(S.replace(chamadaDiretor, '').replace(atalhoRevisao, chamadaDiretor + atalhoRevisao)))
 checa('Studio: montagem liga texto, modo, motor, duração, idioma, formato e setPrompt', /<DiretorKineo text=\{prompt\} mode=\{scriptMode\} engine=\{engine\} engineName=\{eng\.name\} duration=\{duration\} language=\{language\} aspect=\{aspect\} onApply=\{setPrompt\} \/>/.test(S))
 checa('Studio: montado uma única vez', S.split('<DiretorKineo ').length === 2)
 

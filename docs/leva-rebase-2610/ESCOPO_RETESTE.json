@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-26T20:46:17.178Z",
+  "mode": "Read-only dependency/undo analysis plus pure in-memory equivalence; no test suite execution and no repo edits",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "main": "62213b008292f110117d1abbe20c157efdb55902",
+  "delta": [
+    "lib/filmes/filme15Elenco.ts",
+    "lib/runway.ts",
+    "scripts/test-filme15-elenco-2610.mjs",
+    "scripts/test-support/desfaz-filme15-elenco-2610.mjs",
+    "scripts/test-support/desfaz-visual-ingles-2610-hunks.json",
+    "scripts/test-support/desfaz-visual-ingles-2610.mjs",
+    "scripts/test-visual-ingles-2610.mjs"
+  ],
+  "existingFinalListCount": 39,
+  "additions": [
+    {
+      "file": "scripts/test-escritor-monumento-1310.mjs",
+      "reason": "raw createOfflineLoader loads @/lib/runway with no source transform for current generator, while historical base is transformed"
+    },
+    {
+      "file": "scripts/test-h3-verbatim-corte-2026-09-23.mjs",
+      "reason": "raw runway reader; source slicing and assertions, no semIdiomas wrapper"
+    },
+    {
+      "file": "scripts/test-kineo1-imagem-v2-2026-09-28.mjs",
+      "reason": "raw runway source assertions, no historical projection"
+    },
+    {
+      "file": "scripts/test-modelos-openai-inventario-1410.mjs",
+      "reason": "scans all raw app/lib/components files including both changed product modules"
+    },
+    {
+      "file": "scripts/test-sem-letras-2026-09-21.mjs",
+      "reason": "raw runway prompt contract assertions, no historical projection"
+    }
+  ],
+  "combinedCount": 44,
+  "historicalReaders": [
+    {
+      "file": "scripts/test-enche-silencio-2026-09-13.mjs",
+      "line": 13,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-kling25-planos-5s-2026-09-28.mjs",
+      "line": 46,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n'), p)"
+    },
+    {
+      "file": "scripts/test-qualidade-classicos-2026-09-12.mjs",
+      "line": 17,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-qualidade-comprovada-2026-09-15.mjs",
+      "line": 22,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-sem-enchimento-2026-09-15.mjs",
+      "line": 23,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const read = p => semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p)"
+    },
+    {
+      "file": "scripts/test-veo-marcado-2026-09-29.mjs",
+      "line": 112,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-veo-modo-ia-2026-09-29.mjs",
+      "line": 111,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-vigia-palavras-por-cena-2026-09-11.mjs",
+      "line": 23,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n')"
+    },
+    {
+      "file": "scripts/test-visual-contract-2026-09-11.mjs",
+      "line": 16,
+      "reason": "Read wrapper applies semIdiomasFormatos2410, which removes the new VisualEnglish layer before the old assertions",
+      "wrapper": "const read = p => desfazAncoraEJuizStill1410(p, semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte"
+    }
+  ],
+  "historicalChainProof": {
+    "path": "lib/runway.ts",
+    "oldRef": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+    "newRef": "62213b008292f110117d1abbe20c157efdb55902",
+    "rawContainsNewLayer": true,
+    "historicalProjectionEqual": true,
+    "projectedContainsNewLayer": false
+  },
+  "elenco": {
+    "rawReaders": [
+      "scripts/test-filme15-elenco-2610.mjs"
+    ],
+    "alreadyInFinalList": true,
+    "reason": "The only direct executable reader of lib/filmes/filme15Elenco.ts is the updated Elenco guardian; generic raw inventory/seal scans remain covered separately"
+  },
+  "runwaySmokeNote": {
+    "file": "scripts/test-runway.mjs",
+    "readsChangedModule": false,
+    "reason": "Standalone REST fixture runner; does not import/read lib/runway.ts, so it cannot replace the new VisualEnglish guardian"
+  },
+  "combined": [
+    "docs/video-fiel-2610/test-legacy-layer.mjs",
+    "scripts/test-ads-fiel-3-1510.mjs",
+    "scripts/test-ads-reteste-1510.mjs",
+    "scripts/test-archive-studio-review.mjs",
+    "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-convite-na-hora-certa-2026-08-31.mjs",
+    "scripts/test-despacho-vazio-2026-09-04.mjs",
+    "scripts/test-done-workspace.mjs",
+    "scripts/test-escritor-monumento-1310.mjs",
+    "scripts/test-faixa-continuar.mjs",
+    "scripts/test-fala-cabe-2026-09-15.mjs",
+    "scripts/test-filme15-elenco-2610.mjs",
+    "scripts/test-filme15-fiel-2610.mjs",
+    "scripts/test-filme15-rosto-2610.mjs",
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+    "scripts/test-first-film-free-offer.mjs",
+    "scripts/test-guardiao-yaml-2026-09-03.mjs",
+    "scripts/test-h3-fala-atravessa-o-corte-2026-09-25.mjs",
+    "scripts/test-h3-mesma-regua-do-escritor-2026-09-25.mjs",
+    "scripts/test-h3-palavras-2026-09-15.mjs",
+    "scripts/test-h3-verbatim-corte-2026-09-23.mjs",
+    "scripts/test-home-curation-restore.mjs",
+    "scripts/test-home-welcome-goal-router.mjs",
+    "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-kineo1-imagem-v2-2026-09-28.mjs",
+    "scripts/test-kling-duracao-2026-09-15.mjs",
+    "scripts/test-leva-integration-2410.mjs",
+    "scripts/test-leva-rebase-2610.mjs",
+    "scripts/test-locale-readiness.mjs",
+    "scripts/test-modelos-openai-inventario-1410.mjs",
+    "scripts/test-next-shorts-affordance-2026-08-31.mjs",
+    "scripts/test-personagem-sem-apresentador-2026-09-15.mjs",
+    "scripts/test-qualidade-comprovada-2026-09-15.mjs",
+    "scripts/test-restauracao-2026-09-09.mjs",
+    "scripts/test-salvage-estorno-2026-09-15.mjs",
+    "scripts/test-sem-enchimento-2026-09-15.mjs",
+    "scripts/test-sem-letras-2026-09-21.mjs",
+    "scripts/test-serie-memoria-2026-09-04.mjs",
+    "scripts/test-stranded-email-dedupe.mjs",
+    "scripts/test-studio-hierarchy-runtime.mjs",
+    "scripts/test-visual-ingles-2610.mjs",
+    "scripts/test-vitrine-em-alta-2026-08-31.mjs",
+    "scripts/test-voz-nativa-2610.mjs",
+    "scripts/test-workspace-spanish.mjs"
+  ],
+  "classification": "FATO CONFIRMADO / read-only code analysis",
+  "repoWrites": 0
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict'
 import { buildB2cSubscriptionTruthReport } from './b2c-subscription-truth-report.mjs'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 let checks = 0
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks += 1 }
@@ -63,20 +64,11 @@ const historyExposure = event('history_first_video_offer_viewed', 'u1', 1, 3, {
 const inlineExposure = event('inline_pricing_value_anchor_viewed', 'u1', 1, 4, {
   version: 'inline_pricing_decision_v1',
 })
-const trialActiveViewMetadata = {
-  offer_version: 'trial_active_subscription_cta_human_view_v1',
-  offer_mode: 'trial_active_subscription',
-  surface: 'trial_active_banner',
-  delivery_evidence: 'api_videos_completed_count_gte_1',
-  human_exposure_claimed: true,
-  return_ladder_rendered: true,
-}
-const trialActiveClickMetadata = {
-  surface: 'trial_active_banner',
-  offer_version: 'trial_active_subscription_cta_human_view_v1',
-  offer_mode: 'trial_active_subscription',
-  return_ladder_rendered: true,
-}
+// KINEO-LEVA-2410: fixtures válidas vêm do emissor real; casos inválidos abaixo
+// continuam mutando os mesmos campos e precisam ser rejeitados pelo relatório.
+const trialCta = createOfflineLoader()('lib/growth/trialActiveSubscriptionCta.ts')
+const trialActiveViewMetadata = trialCta.trialActiveSubscriptionCtaViewMetadata({ returnLadderRendered: true, tier: 'starter' })
+const trialActiveClickMetadata = trialCta.trialActiveSubscriptionCtaClickMetadata({ returnLadderRendered: true, tier: 'starter' })
 
 let report = build([
   resultExposure,

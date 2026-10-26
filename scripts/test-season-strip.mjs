@@ -70,7 +70,7 @@ check('ha exatamente UM sitio de render da prateleira (o par que a regra manda c
 // O GET tem `escrever: false` e devolve null para quem ainda nao tem temporada
 // gravada, que e todo mundo no instante em que o filme 1 fica pronto. Um GET
 // aqui renderizaria nada para 100% das pessoas.
-const fetchStrip = STRIP.match(/fetch\('\/api\/season'[\s\S]{0,320}?\}\)/)
+const fetchStrip = STRIP_C.match(/fetch\(`\/api\/season\$\{qs\}`[\s\S]{0,400}?\}\)/)
 check('SeasonStrip chama /api/season', fetchStrip !== null)
 check('e chama por POST (GET nao escreve e devolveria null)',
   fetchStrip !== null && /method:\s*'POST'/.test(fetchStrip[0]))
@@ -88,8 +88,8 @@ check('a chamada e guardada por ref (uma vez por filme)',
 
 // ── 3. FALHA CALADA — a tela de filme pronto nunca mostra erro ──────────────
 check('renderiza null sem temporada', /if \(!data\?\.season\) return null/.test(STRIP))
-check('res nao-ok nao quebra a tela', /if \(!res\.ok\) return/.test(STRIP))
-check('o fetch tem catch', /\}\s*catch\s*\{[\s\S]{0,120}?\}\s*\n\s*\}\)\(\)/.test(STRIP))
+check('res nao-ok nao quebra a tela', /if \(!res\.ok\) \{\s*reportarAusencia\(onEvent, 'http_not_ok', res.status\)\s*return/.test(STRIP_C))
+check('o fetch tem catch', /\}\s*catch\s*\{[\s\S]{0,180}?\}\s*\n\s*\}\)\(\)/.test(STRIP_C))
 check('episodios vazios nao renderizam faixa vazia',
   /payload\.season\.episodes\.length === 0/.test(STRIP))
 
@@ -114,7 +114,7 @@ check('sem IntersectionObserver conta como visto (nao perde a metrica)',
 const clique = STRIP.match(/onEvent\?\.\('season_episode_clicked',\s*\{[\s\S]*?\}\)/)
 check('season_episode_clicked existe', clique !== null)
 check('e carrega o numero do episodio', clique !== null && /episode:\s*ep\.n/.test(clique[0]))
-check('e carrega se cabia no saldo', clique !== null && /affordable:\s*ep\.affordable/.test(clique[0]))
+check('e carrega se cabia no saldo', clique !== null && /affordable:\s*desbloqueado/.test(clique[0]))
 check('season_plan_clicked mede quem vai para o plano',
   /onEvent\?\.\('season_plan_clicked'/.test(STRIP))
 
@@ -132,10 +132,10 @@ check('nenhum cifrao no componente', !/\$\d/.test(STRIP))
 check('nenhum preco de plano digitado', !/9\.90|19\.90|39\.90|299/.test(STRIP))
 check('o custo do episodio vem do payload, nao e recalculado',
   /ep\.cost/.test(STRIP_C) && !/creditCostFor/.test(STRIP_C))
-check('affordable vem do payload, nao e recalculado',
-  /ep\.affordable/.test(STRIP_C) && !/cost\s*<=\s*balance/.test(STRIP_C))
+check('affordable usa o acesso acumulado do payload, nunca cinco comparações isoladas',
+  /acessoDaTemporada\(episodes.length, affordableEpisodes\)/.test(STRIP_C) && /const desbloqueado = i < liberados/.test(STRIP_C) && !/cost\s*<=\s*balance/.test(STRIP_C))
 check('quantos episodios o saldo paga vem de affordableEpisodes da rota',
-  /affordableEpisodes/.test(STRIP) && /Math\.floor\(balance \/ custo\)/.test(ROTA))
+  /affordableEpisodes/.test(STRIP) && /episodiosQueCabem/.test(ROTA) && /Math\.floor\(s \/ custo\)/.test(norm('lib/temporada.ts')))
 check('a saida bloqueada aponta para /pricing', /href="\/pricing"/.test(STRIP))
 
 // A rota nao pode passar a cobrar por causa desta faixa.

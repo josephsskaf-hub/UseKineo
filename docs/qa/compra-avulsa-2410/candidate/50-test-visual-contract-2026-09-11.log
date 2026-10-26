@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-visual-contract-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2974
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+437 executable visual-contract checks passed; 48 actual classic-caller simulations; network disabled.

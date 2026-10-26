@@ -14,9 +14,9 @@ function check(value, message) {
 
 // Search Console opportunity is served by an answer-first roundup, not by a
 // title-only rewrite. The exact count and update date must agree everywhere.
-check(roundup.includes("const UPDATED = 'August 28, 2026'"), 'roundup freshness date is current')
-check(roundup.includes('13 Best AI YouTube Shorts Generators (2026)'), '13-tool title is present')
-check(roundup.includes('The ranking: 13 best AI Shorts generators'), 'visible ranking count is 13')
+check(roundup.includes("const UPDATED = 'August 30, 2026'") && roundup.includes('updated {UPDATED}'), 'visible roundup freshness follows the approved later review')
+check(roundup.includes('13 Best AI Tools for YouTube Shorts (2026)'), '13-tool intent heading is present')
+check(roundup.includes('The ranking: 13 best AI tools for YouTube Shorts'), 'visible ranking count is 13')
 check(!roundup.includes('The ranking: 10 best AI Shorts generators'), 'stale 10-tool count is absent')
 check(roundup.includes('The quick answer: choose by what you already have'), 'answer-first decision map is present')
 check(roundup.includes('Only an idea'), 'idea-first intent is mapped')
@@ -56,7 +56,8 @@ check(alternatives.includes('publicly described (August 2026)'), 'visible compar
 check(!alternatives.includes('publicly described (July 2026)'), 'stale visible comparison date is absent')
 check(sitemap.includes("import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'"), 'sitemap imports comparison slugs')
 check(sitemap.includes('const altEntries = COMPETITOR_SLUGS.map'), 'sitemap emits every comparison slug')
-check(sitemap.includes("new Date('2026-08-28T18:30:00.000Z')"), 'sitemap freshness advances with the new URLs')
+const sitemapDate = sitemap.match(/const LAST_MODIFIED = new Date\('([^']+)'\)/)?.[1]
+check(Number.isFinite(Date.parse(sitemapDate)) && Date.parse(sitemapDate) >= Date.parse('2026-08-28T18:30:00.000Z'), 'sitemap freshness preserves or advances the roundup delivery date')
 
 // Money truth: Kineo prices remain sourced from marketingPrice; no competitor
 // price is frozen into the new StoryShort or ShortsPilot records.

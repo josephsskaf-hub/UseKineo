@@ -1,0 +1,2 @@
+# Keep captured stdout/stderr verbatim, including whitespace emitted by legacy tests.
+**/*.log -whitespace

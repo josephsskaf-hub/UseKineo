@@ -19,34 +19,40 @@ const entry = 'app/pricing/PricingClient.tsx'
 
 export function fixture(before = false) {
   const ast = ts.createSourceFile(entry, source(entry, before), 99, true, ts.ScriptKind.TSX)
-  const stateNames = []
+  const stateNames = [], stateCalls = []
   function visit(node) {
     if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name) &&
       node.initializer && ts.isCallExpression(node.initializer) &&
-      node.initializer.expression.getText(ast) === 'useState') stateNames.push(node.name.elements[0].getText(ast))
+      node.initializer.expression.getText(ast) === 'useState') {
+      const name = node.name.elements[0].getText(ast)
+      stateNames.push(name)
+      stateCalls.push([node.initializer.getStart(ast), node.initializer.end, '__pricingState(' + JSON.stringify(name) + ', ' + (node.initializer.arguments[0]?.getText(ast) ?? 'undefined') + ')'])
+    }
     ts.forEachChild(node, visit)
   }
   visit(ast)
+  const component = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword))
+  assert.ok(component?.body, 'actual pricing component found')
+  stateCalls.push([component.body.statements[0].getStart(ast), component.body.statements[0].getStart(ast), '__captureBuy(handleBuy);\n'])
   const cache = new Map(), launches = [], events = []
-  let hook = 0, state = {}, previousKey = Symbol('initial'), query = ''
+  let hook = 0, state = {}, previousKey = Symbol('initial'), query = '', legacyBuy = null
   const noop = () => {}
   const forbidden = () => { throw new Error('Network/DB forbidden in offline test') }
   function load(file) {
     file = file.replaceAll('\\', '/')
     if (cache.has(file)) return cache.get(file)
     const module = { exports: {} }; cache.set(file, module.exports)
-    const output = ts.transpileModule(source(file, before), {
+    let code = source(file, before)
+    // Only the page's own declarations receive named state. Imported hooks
+    // execute their own isolated SSR defaults and cannot shift page fixtures.
+    if (file === entry) for (const [start, end, replacement] of [...stateCalls].sort((a,b) => b[0] - a[0])) code = code.slice(0,start) + replacement + code.slice(end)
+    const output = ts.transpileModule(code, {
       fileName: file, compilerOptions: { module: ts.ModuleKind.CommonJS,
         target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     }).outputText
     function resolve(name) {
       if (name === 'react') return { ...React, useEffect: noop, useRef: current => ({ current }),
-        useState: initial => {
-          const key = stateNames[hook++]
-          assert.ok(key, 'every actual component state is mapped')
-          if (!Object.hasOwn(state, key)) state[key] = typeof initial === 'function' ? initial() : initial
-          return [state[key], value => { state[key] = typeof value === 'function' ? value(state[key]) : value }]
-        } }
+        useState: initial => [typeof initial === 'function' ? initial() : initial, noop] }
       if (name === 'next/link') return ({ children, prefetch, ...props }) => React.createElement('a', props, children)
       if (name === '@/lib/analytics') return { trackEvent: (name, data) => { events.push({ name, data }) }, rememberSignupCampaign: noop }
       if (name === '@/lib/trackClick') return { trackCheckoutClick: noop }
@@ -55,10 +61,16 @@ export function fixture(before = false) {
         setError: noop, launch: (tier, href, metadata) => { launches.push({ tier, href, metadata }); return true } }) }
       if (name === '@/components/FreeTierOfferProvider') return { useFreeTierOffer: () => load('lib/freeTierOffer.ts').buildFreeTierOffer(false) }
       if (name === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => 'en' } // KINEO-AFILIADO-50-2610: display language is deterministic; effects/network stay forbidden.
-      if (name.startsWith('@/components/') || name === './AutopilotBreakEvenCalculator') return () => null
+      if (name.startsWith('@/components/') || name === './AutopilotBreakEvenCalculator') {
+        const Stub = ({children}) => children ?? null
+        return new Proxy({default:Stub}, {get:(target,key) => key === '__esModule' ? true : String(key).endsWith('_CSS') ? '' : target[key] ?? Stub})
+      }
       if (name.startsWith('@/') || name.startsWith('.')) {
         const base = name.startsWith('@/') ? name.slice(2) : path.join(path.dirname(file), name)
-        const target = ['.ts', '.tsx'].map(ext => base + ext).find(f => fs.existsSync(path.join(root, f)))
+        const target = ['.ts', '.tsx'].map(ext => base + ext).find(f => {
+          if (!before) return fs.existsSync(path.join(root, f))
+          try { execFileSync('git', ['cat-file','-e',BASE + ':' + f.replaceAll('\\','/')], {cwd:root,stdio:'ignore'}); return true } catch { return false }
+        })
         if (!target) throw new Error(`Missing module ${name}`)
         return load(target)
       }
@@ -68,7 +80,13 @@ export function fixture(before = false) {
       if (!['react/jsx-runtime', 'node:crypto', 'crypto', '@supabase/supabase-js'].includes(name)) throw new Error(`Unexpected dependency ${name}`)
       return require(name)
     }
-    new Function('require', 'module', 'exports', 'fetch', output)(resolve, module, module.exports, forbidden)
+    const pricingState = (key, initial) => {
+      assert.ok(stateNames.includes(key), 'every actual component state is mapped')
+      hook++
+      if (!Object.hasOwn(state, key)) state[key] = typeof initial === 'function' ? initial() : initial
+      return [state[key], value => { state[key] = typeof value === 'function' ? value(state[key]) : value }]
+    }
+    new Function('require', 'module', 'exports', 'fetch', '__pricingState', '__captureBuy', output)(resolve, module, module.exports, forbidden, pricingState, handler => { legacyBuy = handler })
     cache.set(file, module.exports); return module.exports
   }
   const page = load('app/pricing/page.tsx').default
@@ -109,13 +127,25 @@ export function fixture(before = false) {
           String(node.props.onClick).includes(`handleBuy('${tier}')`)))
       let button = matches[0]
       if (!mobile && !button) {
-        const card = find(tree, node => node.props?.id === `pricing-plan-${tier}`)[0]
+        const card = find(tree, node => node.props?.id === `pricing-plan-${tier}` || node.props?.cardId === `pricing-plan-${tier}` || (node.props?.tier === tier && typeof node.props?.onBuy === 'function'))[0]
         button = find(card, node => node.type === 'button' && String(node.props?.onClick).includes('handleBuy'))[0]
+        // Current value cards receive the owner's real onBuy callback.
+        if (!button) {
+          const control = find(card, node => typeof node.props?.onBuy === 'function')[0]
+          if (control) button = {props:{onClick:control.props.onBuy}}
+        }
       }
       assert.ok(button, `real ${mobile ? 'mobile' : 'card'} ${tier} CTA located`)
       const previousWindow = globalThis.window
       globalThis.window = { location: { search: query }, ttq: undefined }
       try { button.props.onClick() } finally { globalThis.window = previousWindow }
+      return launches.at(-1)
+    },
+    buyLegacy(tier) {
+      assert.equal(typeof legacyBuy, 'function', 'legacy owner purchase handler captured')
+      const previousWindow = globalThis.window
+      globalThis.window = {location:{search:query},ttq:undefined}
+      try { legacyBuy(tier) } finally { globalThis.window = previousWindow }
       return launches.at(-1)
     },
     events,
@@ -125,21 +155,18 @@ export function fixture(before = false) {
 let checks = 0
 const equal = (a, b, label) => { assert.deepEqual(a, b, label); checks++ }
 const campaign = 'checkout141_completed_first50_20260916'
-// KINEO-PADRAO-MENSAL-2026-09-23 — o padrão da página passou de 'annual' para
-// 'monthly' (lib/growth/pricingPlanChoiceAttribution.ts, fundador 23/09: o
-// anual concede crédito por fatura 1×/ano enquanto a página promete reset
-// mensal, e o anual teve 0 vendas). Toda linha SEM pedido explícito de anual
-// passa a esperar 'monthly'; `billing=annual` explícito segue abrindo no anual.
-// Pedido inválido ou duplicado (weekly, dois billing) NÃO é pedido: cai no padrão.
+// Approved 05/10 annual default follows monthly annual-plan credit refills.
+// FIRST50/COMEBACK50 still promise monthly; explicit cadence wins otherwise.
+// Invalid or duplicated requests fail back to the approved annual default.
 const cases = [
-  ['', 'monthly'], ['intent_campaign=' + campaign, 'monthly'], ['tier=basic', 'monthly'],
-  ['billing=monthly', 'monthly'], ['billing=annual', 'annual'], ['billing=weekly', 'monthly'],
+  ['', 'annual'], ['intent_campaign=' + campaign, 'annual'], ['tier=basic', 'annual'],
+  ['billing=monthly', 'monthly'], ['billing=annual', 'annual'], ['billing=weekly', 'annual'],
   ['promo=FIRST50', 'monthly'], ['promo=COMEBACK50', 'monthly'],
   ['promo=first50', 'monthly'], ['promo=%20FIRST50%20', 'monthly'],
-  ['promo=FIRST50&billing=annual', 'monthly'], ['promo=UNKNOWN', 'monthly'],
-  ['promo=UNKNOWN&billing=monthly', 'monthly'], ['promo=FIRST50FAKE', 'monthly'],
-  ['promo=', 'monthly'], ['promo=FIRST50&promo=UNKNOWN', 'monthly'],
-  ['billing=monthly&billing=annual', 'monthly'],
+  ['promo=FIRST50&billing=annual', 'monthly'], ['promo=UNKNOWN', 'annual'],
+  ['promo=UNKNOWN&billing=monthly', 'monthly'], ['promo=FIRST50FAKE', 'annual'],
+  ['promo=', 'annual'], ['promo=FIRST50&promo=UNKNOWN', 'annual'],
+  ['billing=monthly&billing=annual', 'annual'],
 ]
 for (const [query, expected] of cases) {
   const app = fixture(), ssr = app.render(query, { ssr: true }), client = app.render(query)
@@ -160,17 +187,21 @@ view = app.render(`promo=FIRST50&intent_campaign=another_source`)
 equal(view.billing, 'annual', 'unrelated campaign attribution change preserves manual choice')
 let launch = app.buy(view.tree, 'basic')
 equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('billing'), 'annual', 'manual cadence reaches actual handler')
-equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('intent_campaign'), 'another_source', 'current attribution preserved')
+// The approved MRR conversion layer owns the bounded checkout campaign;
+// the incoming source remains explicit metadata instead of being discarded.
+equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('intent_campaign'), 'mrr0610_v1_pricing_basic_annual', 'checkout campaign describes the canonical offer')
+equal(launch.metadata.previous_intent_campaign, 'another_source', 'current incoming attribution is preserved in canonical metadata')
 equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('promo'), 'FIRST50', 'manual choice does not forge or change coupon')
 view = app.render('promo=COMEBACK50')
 equal(view.billing, 'monthly', 'new monthly offer handoff initializes monthly')
 view = app.render('')
-equal(view.billing, 'monthly', 'return to ordinary pricing restores MONTHLY default (KINEO-PADRAO-MENSAL-2026-09-23)')
+equal(view.billing, 'annual', 'return to ordinary pricing restores the approved annual default of 05/10')
 app.toggle(view.tree, 'monthly'); view = app.render()
 equal(view.billing, 'monthly', 'manual monthly choice works for ordinary visitors')
 view = app.render('billing=annual')
 for (const tier of ['autopilot', 'autopilot_lite']) {
-  launch = app.buy(view.tree, tier)
+  // Retired public cards keep their existing legacy handler contract.
+  launch = app.buyLegacy(tier)
   equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('billing'), 'monthly', `${tier} keeps monthly URL`)
   equal(launch.metadata.billing, 'monthly', `${tier} keeps monthly metadata`)
 }

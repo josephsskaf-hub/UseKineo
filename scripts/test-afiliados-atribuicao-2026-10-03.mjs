@@ -215,17 +215,18 @@ async function problems(S) {
   // (6) webhook: eventos simulados → argumentos montados PELA ROTA → comissão real
   const sites = commissionCallSites(S.webhook)
   if (sites.length < 5) p.push(`webhook perdeu chamadas de comissão (${sites.length}, esperado ≥5)`)
-  const evalArgs = (text, env) => new Function('session', 'userId', 'invoice', 'subscription', 'renewalUserId', 'subscriptionId', `return (${text})`)(env.session, env.userId, env.invoice, env.subscription, env.renewalUserId, env.subscriptionId)
+  // Evaluate the real TS argument expression after transpiling (e.g. metadata! from the atomic item path).
+  const evalArgs = (text, env) => compile(`export const args = (${text})`, {}, env).args
   const session = {
     id: 'cs_sim_initial', object: 'checkout.session', mode: 'subscription', payment_status: 'paid', amount_total: 2990, currency: 'usd',
     metadata: { supabase_user_id: 'buyer', ...params.metadata }, total_details: { amount_discount: 0 },
   }
   const initialSite = sites.find((t) => /type: 'initial'/.test(t) && /paymentKind: 'subscription'/.test(t))
-  const packSite = sites.find((t) => /paymentKind: 'one_time'/.test(t))
+  const packSites = sites.filter((t) => /paymentKind: 'one_time'/.test(t))
   // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: a fatura da subida para o Business (cobrada na hora) também paga comissão
   // 'recurring' e vem ANTES no arquivo; a renovação é a chamada de renewalUserId.
   const renewalSite = sites.find((t) => /type: 'recurring'/.test(t) && /userId: renewalUserId/.test(t))
-  if (!initialSite || !packSite || !renewalSite) return [...p, 'webhook sem chamada de comissão inicial/pacote/renovação']
+  if (!initialSite || packSites.length !== 2 || !renewalSite) return [...p, 'webhook sem chamada de comissão inicial/pacote/item/renovação']
   const initialArgs = evalArgs(initialSite, { session, userId: session.metadata.supabase_user_id })
   try { await payment.recordAffiliateCommission(db, initialArgs); await payment.recordAffiliateCommission(db, initialArgs) } catch (e) { p.push('comissão inicial lançou: ' + e.message) }
   const c0 = db.tables.affiliate_commissions[0]
@@ -241,10 +242,12 @@ async function problems(S) {
   const c1 = db.tables.affiliate_commissions[1]
   if (!c1 || c1.type !== 'recurring' || c1.external_id !== 'in_sim_cycle' || c1.commission_amount !== 1196 || c1.affiliate_id !== 'aff-1') p.push('renovação não gerou comissão recorrente de 40%: ' + JSON.stringify(c1))
   // pacote avulso: comissão sim, "pagante" (assinante) não muda por ele
-  const packSession = { ...session, id: 'cs_sim_pack', mode: 'payment', amount_total: 990 }
-  try { await payment.recordAffiliateCommission(db, evalArgs(packSite, { session: packSession, userId: 'buyer' })) } catch (e) { p.push('comissão de pacote lançou: ' + e.message) }
-  const c2 = db.tables.affiliate_commissions[2]
-  if (!c2 || c2.commission_amount !== 396 || c2.type !== 'initial') p.push('pacote avulso sem comissão de 40%')
+  for (const [index, packSite] of packSites.entries()) {
+    const packSession = { ...session, id: `cs_sim_pack_${index}`, mode: 'payment', amount_total: 990 }
+    try { await payment.recordAffiliateCommission(db, evalArgs(packSite, { session: packSession, userId: 'buyer' })) } catch (e) { p.push('comissão avulsa lançou: ' + e.message) }
+    const c2 = db.tables.affiliate_commissions.find((c) => c.external_id === packSession.id)
+    if (!c2 || c2.commission_amount !== 396 || c2.type !== 'initial') p.push('pacote/item avulso sem comissão de 40%')
+  }
   // Rewardful dono da venda → nada no livro próprio
   const rw = evalArgs(initialSite, { session: { ...session, id: 'cs_sim_rw', metadata: { ...session.metadata, affiliate_system: 'rewardful' } }, userId: 'buyer' })
   await payment.recordAffiliateCommission(db, rw)

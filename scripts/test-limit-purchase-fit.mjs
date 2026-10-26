@@ -29,12 +29,14 @@ mkdirSync(sourceDir, { recursive: true })
 
 for (const [source, destination] of [
   ['lib/growth/limitPurchaseFit.ts', 'limitPurchaseFit.ts'],
+  ['lib/growth/topupEligibility.ts', 'topupEligibility.ts'],
   ['lib/checkoutPricing.ts', 'checkoutPricing.ts'],
   ['lib/credits/engineCost.ts', 'engineCost.ts'],
   ['lib/autopilot/config.ts', 'autopilotConfig.ts'],
 ]) {
   const content = readFileSync(join(root, source), 'utf8')
     .replace(/from '@\/lib\/checkoutPricing'/g, "from './checkoutPricing'")
+    .replace(/from '@\/lib\/growth\/topupEligibility'/g, "from './topupEligibility'")
     .replace(/from '@\/lib\/credits\/engineCost'/g, "from './engineCost'")
     .replace(/from '@\/lib\/autopilot\/config'/g, "from './autopilotConfig'")
   writeFileSync(join(sourceDir, destination), content)
@@ -43,6 +45,7 @@ for (const [source, destination] of [
 execFileSync(process.execPath, [
   findTsc(root),
   join(sourceDir, 'limitPurchaseFit.ts'),
+  join(sourceDir, 'topupEligibility.ts'),
   join(sourceDir, 'checkoutPricing.ts'),
   join(sourceDir, 'engineCost.ts'),
   join(sourceDir, 'autopilotConfig.ts'),
@@ -74,17 +77,19 @@ const zeroToKling = fit.calculateLimitPurchaseFit({ balance: 0, requiredCredits:
 check('known shortage produces a fit contract', zeroToKling !== null)
 check('exact shortfall is preserved', zeroToKling?.shortfall === 150)
 check('Starter does not falsely cover 150', !zeroToKling?.fittingPlanIds.includes('starter'))
-check('Creator does not falsely cover 150', !zeroToKling?.fittingPlanIds.includes('basic'))
-check('Studio covers 150 using canonical grant', zeroToKling?.fittingPlanIds[0] === 'pro')
-check('Studio is the subscription recommendation', zeroToKling?.recommended?.type === 'plan' && zeroToKling?.recommended?.id === 'pro')
-check('300-credit top-up is a truthful alternative', zeroToKling?.fittingTopupIds[0] === 'topup300')
+check('Creator covers 150 with its canonical first-purchase grant', zeroToKling?.fittingPlanIds.includes('basic') && fit.firstPurchaseCredits('basic') >= 150)
+check('Studio also covers 150 using canonical grant', zeroToKling?.fittingPlanIds.includes('pro') && fit.firstPurchaseCredits('pro') >= 150)
+check('Creator is the smallest current subscription that covers 150', zeroToKling?.recommended?.type === 'plan' && zeroToKling?.recommended?.id === 'basic')
+check('a non-subscriber is never offered a top-up checkout would reject', zeroToKling?.fittingTopupIds.length === 0 && zeroToKling?.topupPurchasable === false)
 
 const partialToSeedance = fit.calculateLimitPurchaseFit({ balance: 21, requiredCredits: 25, isSubscriber: false })
 check('partial balance shortfall is exact', partialToSeedance?.shortfall === 4)
 check('Starter is the smallest fitting plan', partialToSeedance?.recommended?.type === 'plan' && partialToSeedance?.recommended?.id === 'starter')
-check('smallest fitting top-up comes from canonical credits', partialToSeedance?.fittingTopupIds[0] === 'topup40')
+check('partial free balance still does not grant top-up eligibility', partialToSeedance?.fittingTopupIds.length === 0 && partialToSeedance?.recommended?.type !== 'topup')
+const paidPartial = fit.calculateLimitPurchaseFit({ balance: 21, requiredCredits: 25, isSubscriber: true, plan: 'starter' })
+check('eligible paid Starter gets the smallest fitting canonical top-up', paidPartial?.recommended?.type === 'topup' && paidPartial?.recommended?.id === 'topup40' && pricing.TOPUP_CREDITS.topup40 >= paidPartial.shortfall)
 
-const subscriber = fit.calculateLimitPurchaseFit({ balance: 51, requiredCredits: 150, isSubscriber: true })
+const subscriber = fit.calculateLimitPurchaseFit({ balance: 51, requiredCredits: 150, isSubscriber: true, plan: 'basic' })
 check('subscriber receives no second-plan recommendation', subscriber?.fittingPlanIds.length === 0)
 check('subscriber gets the smallest fitting top-up', subscriber?.recommended?.type === 'topup' && subscriber?.recommended?.id === 'topup300')
 check('subscriber recommendation covers exact request', fit.limitPurchaseChoiceFits(subscriber, subscriber.recommended))
@@ -109,6 +114,7 @@ check('Studio first-purchase grant is canonical', fit.firstPurchaseCredits('pro'
 
 const client = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 check('GenerateClient imports the executed fit helper', client.includes("from '@/lib/growth/limitPurchaseFit'"))
+check('modal receives verified plan for checkout eligibility', /<UpgradeModal[\s\S]*?plan=\{serverPlanName\}/.test(client))
 check('modal receives current balance', /<UpgradeModal[\s\S]*?balance=\{credits\}/.test(client))
 check('modal receives selected request cost', /<UpgradeModal[\s\S]*?requiredCredits=\{selectedCost\}/.test(client))
 check('view event is versioned', client.includes("trackEvent('limit_purchase_fit_viewed'"))

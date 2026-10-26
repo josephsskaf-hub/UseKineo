@@ -1,0 +1,55 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-momentum-topic.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 610
+(a) portao antigo rejeitava TODOS os roteiros reais
+  ✓ cleanTopic antigo: 23/23 → null (com_tema=0)
+(b) portao novo devolve o gancho dos filmes de verdade
+  ✓ "At 3:00 AM, a mysterious door appears... in my hal"
+  ✓ "What mysterious voice haunts this magical house at"
+  ✓ "Think you know push-ups? Here's the perfect form —"
+  ✓ "You're wasting hours doing things AI can do in sec"
+  ✓ "In a Pakistani kitchen, the potato is about to rul"
+  ✓ "This image hides two faces — can you see both?"
+  ✓ "Imagine a place drowning in rain—every single day!"
+  ✓ "Ever seen a poster that makes you double-take?"
+  ✓ "The secret behind football's craziest goals? It’s "
+  ✓ "A 2,000-year-old computer... discovered in the dee"
+  ✓ "GTA 5 vs GTA 6... Which one truly raises the bar?"
+  ✓ "Ever heard of an island where no one can survive?"
+  ✓ "These fruits cost more than a luxury car!"
+  ✓ "Five hundred years ago, people set fire to leaves."
+  ✓ "What’s the secret behind billionaires' private jet"
+  ✓ "Did you know... snakes can mimic human behavior?"
+  ✓ "A haunting text... from his own phone number."
+  ✓ "Ever wondered why TikTok dances go viral?"
+  ✓ "Já imaginou caminhar em uma cidade futurista, onde"
+(c) instrucao ao modelo NAO vira anchor
+  ✓ rejeita "Create a 40-second Shorts video titled "What…"
+  ✓ rejeita "Absolutely. Below is a **complete content pa…"
+  ✓ rejeita "All spoken dialogue must be in FRENCH ONLY.
+…"
+  ✓ rejeita "STYLE: Bright, colourful, cute high-quality …"
+  ✓ vazio/null → null
+  ✓ gancho com <b> perde os sinais
+  ✓ gancho > 90 chars → null (nao inventa titulo cortado no e-mail)
+  ✓ gancho "Here's why…" (comum em Shorts) e ACEITO
+  ✓ formato HOOK: marcador e Pexels tambem passam pela regua da casa
+(d) anchor e rota
+  ✓ anchor com tema vem entre aspas (gancho termina em ? ou !)
+  ✓ anchor sem tema, 1 video = frase neutra de antes
+  ✓ anchor sem tema, 3 videos
+  ✓ rota importa pickMomentumTopic e momentumAnchor
+  ✓ rota usa pickMomentumTopic no alvo
+  ✓ rota nao define mais cleanTopic
+  ✓ anchor da rota vem do modulo
+  ✓ tema segue viajando no botao (buildSeriesContinuationEmailUrl com topic)
+  ✓ momentum: GET real lê 2500 linhas e não envia indevidamente
+  ✓ momentum: falha da segunda página responde 500 e zero envio/carimbo
+  ✓ momentum: mutante vivo sem readAll envia uma carta indevida e é morto
+  ✓ momentum: mutante vivo que aceita página parcial viola o HTTP 500
+  ✓ readAll real: 2500 ids exatos e ORDER estável antes de todos os range
+  ✓ mutante vivo sem desempate por id perde linhas com empates e é morto
+  ✓ copy nao nomeia motor nem preco
+
+44 ok · 0 falhas

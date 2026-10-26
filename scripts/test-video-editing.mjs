@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
-import { renderPage } from './preview-ux-complete.mjs'
+import { renderPage, source } from './preview-ux-complete.mjs'
 const require = createRequire(import.meta.url), ts = require('typescript')
 let checks = 0
 const ok = (value, label) => { assert.ok(value, label); checks++ }
@@ -108,5 +108,7 @@ for (const html of [hub,spanish]) {
 }
 for (const tool of policy.EDITING_TOOLS) { ok(hub.includes(`/tools/editor?tool=${tool.id}`), tool.id + ' reachable from real hub'); ok(spanish.includes(tool.es), tool.id + ' Spanish card') }
 const home = renderPage('app/KineoLanding.tsx')
-eq((home.match(/href="\/tools">Editing tools<\/a>/g) || []).length, 2, 'desktop and mobile navigation renamed')
+// Founder 20/10 withdrew Editing tools from home navigation; direct editor and hub contracts above remain live.
+eq((home.match(/href="\/tools(?:[?"])/g) || []).length, 0, 'founder withdrawal of home editing links is respected')
+ok(source('app/KineoLanding.tsx').includes('Editing tools and Arena temporarily withdrawn by the founder.'), 'withdrawal is an explicit approved curation, not a missing hub')
 console.log(`PASS ${checks} editing contracts: real policy, real export pipeline with browser primitives mocked, hub SSR. No network, provider or credit use. Browser codec verification still required.`)

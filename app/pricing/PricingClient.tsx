@@ -159,6 +159,7 @@ import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPrici
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
+import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -1805,6 +1806,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
             KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
+        <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
         <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
 
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}<KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}

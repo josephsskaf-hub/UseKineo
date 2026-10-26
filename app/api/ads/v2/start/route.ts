@@ -22,6 +22,7 @@ import { loadAdsAccess } from '@/lib/ads/serverAccess'
 import { ADS_SAMPLE_PROBE_PARAM, adsSampleProbeOn } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — o teste interno da amostra (?sample_probe=1, só conta interna)
 import { v2Fail } from '@/lib/ads/v2Server'
 import { adsV2StartFor } from '@/lib/ads/v2StartCore'
+import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,9 +35,12 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const access = await loadAdsAccess(user.id, user.email, { workspace: true })
+    let access = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const body = await req.json().catch(() => null)
+    const escolhaPersonal = await isEscolhaPersonalOrder(access.admin, user.id, body?.order_id)
+    if (escolhaPersonal) access = await loadAdsAccess(user.id, user.email)
     if (adsSampleProbeOn(access.reason, req.nextUrl?.searchParams?.get(ADS_SAMPLE_PROBE_PARAM))) access.reason = 'none' // KINEO-UGC-AJUSTES-2010 — conta INTERNA com ?sample_probe=1 vira 'none': cai nas travas da amostra de verdade (1 por conta, tetos, marca-d'água); ninguém de fora aciona
-    return await adsV2StartFor(user, access, () => req.json().catch(() => null), started)
+    return await adsV2StartFor(user, access, async () => body, started, { escolhaPersonal })
   } catch (e) {
     console.warn('[ads/v2/start] falhou:', e instanceof Error ? e.message : String(e))
     return v2Fail('start_failed', 502)

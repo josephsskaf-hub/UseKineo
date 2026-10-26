@@ -4,15 +4,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { execFileSync } from 'node:child_process'
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: preserve exact source assertions across checkout EOL.
 let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks++ }
 const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++ }
 
-function executeTs(file, mocks) {
-  const compiled = ts.transpileModule(read(file), {
+function executeTs(file, mocks, source = read(file)) {
+  const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
   }).outputText
   const moduleBox = { exports: {} }
@@ -129,14 +130,41 @@ equal(oneEngine.length, 0, 'engine SEO page does not infer customer publication 
 equal(databaseCalls, 0, 'no containment branch touched the database')
 
 const landing = read('app/KineoLanding.tsx')
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
+const originalLanding = frozen('2c918543399ccb65d695ef461371711e22f72f88', 'app/KineoLanding.tsx')
 // KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): a primeira tela volta aos quatro motores validados; H3 e Omni em manutenção saem dela.
-check(landing.includes("const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']"), 'top row order is Seedance, Kling 2.5, Veo, Kling 3 (founder 16/09; H3 and Omni paused)')
-check(!landing.includes("'cinematic_h3', 'cinematic_omni']"), 'paused engines do not open the first screen')
-check(landing.includes("tileVidLast('cinematic_ai')"), 'middle Seedance tile consumes restored wall (last clip: the first now opens the hero card)')
-check(landing.includes("tileVidLast('cinematic_kling')"), 'middle Kling 2.5 tile consumes restored wall (last clip)')
-check(landing.includes("tileVidLast('cinematic_veo')"), 'middle Veo tile takes the last clip (first opens the hero card)')
-check(landing.includes("tileVidLast('cinematic_hollywood')"), 'middle Kling 3 tile remains visually distinct')
+// Those engine cards were replaced by the separately approved 24/09 film
+// gallery. Keep every original composition assertion on its immutable revision,
+// and execute/freeze the current replacement below; previews do not promise that
+// an engine is currently available for generation.
+check(originalLanding.includes("const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']"), '16/09 fixture: top row order is Seedance, Kling2.5, Veo, Kling3')
+check(!originalLanding.includes("'cinematic_h3', 'cinematic_omni']"), '16/09 fixture: paused engines do not open the first screen')
+check(originalLanding.includes("tileVidLast('cinematic_ai')"), '16/09 fixture: middle Seedance consumes the last restored clip')
+check(originalLanding.includes("tileVidLast('cinematic_kling')"), '16/09 fixture: middle Kling2.5 consumes the last clip')
+check(originalLanding.includes("tileVidLast('cinematic_veo')"), '16/09 fixture: middle Veo consumes the last clip')
+check(originalLanding.includes("tileVidLast('cinematic_hollywood')"), '16/09 fixture: middle Kling3 remains distinct')
 check(landing.includes('Made with Kineo — every engine'), 'static internal showcase is not mislabeled as trending')
+const featuredSource = read('lib/ui/homeFeaturedFilms.ts')
+equal(featuredSource, frozen('1c078ed01', 'lib/ui/homeFeaturedFilms.ts'), 'current approved film selection and playlists retain main bytes')
+check(landing.includes('<HomeFeaturedFilms />'), 'current home renders the approved film gallery')
+check(read('components/HomeFeaturedFilms.tsx').includes('heroOnly featuredCount={4}'), 'current gallery still exposes four hero cards')
+const selection = executeTs('lib/ui/examplesSelectionSep24.ts', { '@/lib/publicExamples': publicExamplesModule })
+const featuredMocks = { './examplesSelectionSep24': selection }
+const featured = executeTs('lib/ui/homeFeaturedFilms.ts', featuredMocks)
+const featuredIds = ['36a04f7b-65f7-42d9-a2ab-198b5a7f115e', '1b8e12f9-83e5-411c-8fda-0b277d289934', '19e317fe-6838-4edc-9fbf-d830d62be140', '6b9b363c-3185-4db7-a877-46b77e334f06']
+const approvedFeatured = films => JSON.stringify(films.map(video => video.id)) === JSON.stringify(featuredIds) &&
+  films.every(video => video.href === '/studio' && video.publicSource === 'founder_owned_engine_example')
+check(approvedFeatured(featured.HOME_FEATURED_FILMS), 'executed hero has the four approved openers in order and no customer-page link')
+const playlistClips = featured.HOME_FEATURED_PLAYLISTS.flat()
+equal(new Set(playlistClips.map(video => video.id)).size, playlistClips.length, 'simultaneous playlists never repeat a film')
+for (const video of playlistClips) {
+  const asset = path.join(root, 'public', video.videoUrl)
+  check(fs.existsSync(asset) && fs.statSync(asset).size > 20_000, `${video.id} current gallery preview exists and is nonempty`)
+}
+const unsafeLink = executeTs('lib/ui/homeFeaturedFilms.ts', featuredMocks, featuredSource.replace("href: '/studio'", "href: '/v/unconsented-customer'"))
+check(!approvedFeatured(unsafeLink.HOME_FEATURED_FILMS), 'mutant: customer-page destination fails current-gallery protection')
+const reversed = executeTs('lib/ui/homeFeaturedFilms.ts', featuredMocks, featuredSource.replace('HOME_FEATURED_PLAYLISTS.map(playlist => playlist[0])', 'HOME_FEATURED_PLAYLISTS.map(playlist => playlist[0]).reverse()'))
+check(!approvedFeatured(reversed.HOME_FEATURED_FILMS), 'mutant: reordered openers fail current-gallery protection')
 
 const previewBase = 'docs/previews/HOME-CURATION-RESTORE-2026-08-27'
 for (const extension of ['html', 'png']) {

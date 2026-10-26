@@ -1,8 +1,15 @@
-// Execute the runtime with synthetic state; compare to the approved proposal.
+// Execute the runtime with synthetic state; compare to immutable approved main.
+// The original b80 proposal remains executed by test-studio-hierarchy-proposal.
+// Later approved Studio work (KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30) put the
+// engine before the idea and added controls; do not silently erase those deltas.
 // No effects, API, credentials, render or purchase. Not a browser test.
 import assert from 'node:assert/strict'
 import React from 'react'
-import { buildStudioHierarchyProposal, buildStudioHierarchyRuntime } from './preview-studio-hierarchy.mjs'
+import { buildStudioHierarchyApproved, buildStudioHierarchyRuntime } from './preview-studio-hierarchy.mjs'
+import { readFileSync } from 'node:fs'
+import { semCompraClareza2610 } from './test-support/desfaz-compra-clareza-2610.mjs' // KINEO-LEVA-REBASE-2610: exact later main layers before the immutable 3ec runtime/layout proof.
+const studioFile = 'app/(dashboard)/studio/StudioClient.tsx'
+const source = semCompraClareza2610(readFileSync(new URL('../' + studioFile, import.meta.url), 'utf8'), studioFile)
 const nodes = (node, out = []) => {
   if (React.isValidElement(node)) {
     out.push(node)
@@ -28,25 +35,42 @@ function signature(node) {
   // Compare that default copy, not the extra React node. Only UiLabel qualifies;
   // real Spanish rendering + the entire unchanged file are tested separately.
   if (typeof node.type === 'function' && node.type.name === 'UiLabel') return signature(node.props.children)
-  return { type: typeof node.type === 'string' ? node.type : 'component', props: Object.fromEntries(
+  return { type: typeof node.type === 'string' ? node.type : node.type.name, props: Object.fromEntries(
     Object.entries({ ...node.props, children: node.props.children ?? [] }).filter(([key]) => key !== 'ref').map(([key, value]) => [key,
       // React.Children.map in the approved prototype wraps singleton children
       // in arrays. Compare the rendered child sequence, not that wrapper.
-      // The separate L2 acceptance suite executes this exact attribution call.
-      // Ignore ONLY that approved navigation delta when comparing layout to main.
-      key === 'children' ? React.Children.toArray(value).map(signature) : typeof value === 'function' ? value.toString().replace(/\s+/g, '').replace('(0,studioSeriesReview_1.carryStudioSeriesReview)(newURLSearchParams(searchSignature),q);', '') : value]),
+      key === 'children' ? React.Children.toArray(value).map(signature) : typeof value === 'function' ? value.toString().replace(/\s+/g, '') : value]),
   ) }
 }
 for (const [name, state] of variants) {
-  const expected = nodes(buildStudioHierarchyProposal(state).proposed)
-  const actual = nodes(buildStudioHierarchyRuntime(state))
-  for (const tag of ['button', 'input', 'textarea', 'video']) {
+  const expectedRoot = buildStudioHierarchyApproved(state), actualRoot = buildStudioHierarchyRuntime(state, source)
+  const expected = nodes(expectedRoot), actual = nodes(actualRoot)
+  assert.deepEqual(signature(actualRoot), signature(expectedRoot), name + ': complete approved layout, copy, values, destinations and handlers')
+  for (const tag of ['button', 'input', 'textarea', 'select', 'video']) {
     assert.deepEqual(actual.filter(n => n.type === tag).map(signature), expected.filter(n => n.type === tag).map(signature), name + ': ' + tag)
   }
-  assert.deepEqual(signature(actual.find(n => n.props.className === 'cost')), signature(expected.find(n => n.props.className === 'cost')), name + ': financial UI unchanged')
+  const hasClass = (n, name) => typeof n.props.className === 'string' && n.props.className.split(/\s+/).includes(name)
+  const cost = actual.find(n => hasClass(n, 'cost'))
+  assert.ok(cost, name + ': financial UI exists')
+  assert.deepEqual(signature(cost), signature(expected.find(n => hasClass(n, 'cost'))), name + ': financial UI unchanged')
   assert.equal(actual.filter(n => n.props.className === 'myv').length, expected.filter(n => n.props.className === 'myv').length, name + ': continuation retained')
-  assert.ok(actual.findIndex(n => n.type === 'textarea') < actual.findIndex(n => n.props.className === 'mdlbtn'), name + ': idea first')
+  assert.ok(actual.findIndex(n => n.props.className === 'mdlbtn') < actual.findIndex(n => n.type === 'textarea'), name + ': approved engine selection before idea')
+  assert.ok(actual.findIndex(n => n.type === 'textarea') < actual.findIndex(n => hasClass(n, 'composer-proposal-settings')), name + ': idea before settings and generation')
   for (const label of ['Optional settings', 'How it works']) assert.ok(actual.some(n => n.type === 'summary' && signature(n).props.children.includes(label)), name + ': ' + label)
   console.log('OK runtime matches approved controls: ' + name)
 }
-console.log('11 runtime states passed; navigation covered by separate caller tests.')
+// Exact approved comparison must reject real regressions, rather than merely
+// making two executions of a bad current source agree. Mutants never touch disk.
+// Mutants apply after the exact historical projection, so added current
+// controls cannot themselves make a disconnected old handler look rejected.
+for (const [name, before, after] of [
+  ['button handler', 'onClick={() => setPickerOpen((o) => !o)}', 'onClick={() => {}}'],
+  ['cost output', "scriptMode === 'clip' ? CLIP_CREDITS : cost", '999'],
+  ['idea field', 'value={prompt}', 'value="lost idea"'],
+  ['continuation', '{myVids.length > 0 && <section', '{false && <section'],
+]) {
+  assert.ok(source.includes(before), name + ': mutant applied')
+  const mutant = buildStudioHierarchyRuntime({ prompt: 'The signal returned.', myVids: [video(1)], balance: 100 }, source.replace(before, after))
+  assert.notDeepEqual(signature(mutant), signature(buildStudioHierarchyApproved({ prompt: 'The signal returned.', myVids: [video(1)], balance: 100 })), name + ': real regression rejected')
+}
+console.log('11 runtime states passed against immutable approved main; 4 real source mutants rejected; historical proposal retained.')

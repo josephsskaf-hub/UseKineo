@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-five-improvements.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2000
+Five improvements: 657 checks passed; offline only.

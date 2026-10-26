@@ -1,0 +1,252 @@
+{
+  "classification": "TESTADO LOCALMENTE / QUESTÃO PENDENTE — causa do primeiro vermelho desconhecida",
+  "dateUtc": "2026-10-26T21:09:35.420Z",
+  "initialFailure": "postfix-final/logs/0014-scripts__test-filmes-f1f3-ajuste-1910.mjs.log: A2 lib/lyriaMusic.ts (48 verdes, 1 vermelha)",
+  "unchangedIsolatedRerun": {
+    "date": "2026-10-26T20:58:03.218Z",
+    "root": "checkout/codex-leva-rebase-2610",
+    "base": "047b41c34bbc1d83547492cb6ef2963ee731c1da",
+    "total": 1,
+    "completed": 1,
+    "failed": 0,
+    "results": [
+      {
+        "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 45532,
+        "log": "0001-scripts__test-filmes-f1f3-ajuste-1910.mjs.log"
+      }
+    ]
+  },
+  "main46FreshControl": {
+    "date": "2026-10-26T20:56:28.158Z",
+    "root": "checkout/codex-lrb-base-2610",
+    "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+    "total": 1,
+    "completed": 1,
+    "failed": 0,
+    "results": [
+      {
+        "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 28268,
+        "log": "0001-scripts__test-filmes-f1f3-ajuste-1910.mjs.log"
+      }
+    ]
+  },
+  "decomposition": {
+    "date": "2026-10-26T20:54:57.157Z",
+    "head": "047b41c34bbc1d83547492cb6ef2963ee731c1da",
+    "filters": [
+      "KINEO-FILMES-F1-VIRGULA-1910",
+      "KINEO-FILMES-F1F3-AJUSTE-1910",
+      "KINEO-META95-ASSUNTO-1910",
+      "KINEO-BEBE-QUE-FALA-2010",
+      "KINEO-META95-ESCRITA-2010"
+    ],
+    "rows": [
+      {
+        "file": "lib/compose.ts",
+        "currentBlob": "82893fafdc909216773d2eb4945c9db9d0cc078c",
+        "currentProjectedHash": "923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9",
+        "entries": [
+          {
+            "boundary": "38960b06",
+            "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+            "subject": "KINEO-IDIOMAS-FORMATOS-2410 segmenta fala e legendas Unicode [TRAVA 8.2 — vai do fundador 24/10 \"vamos começar com 1 e 2\"]",
+            "selectedBlob": "82893fafdc909216773d2eb4945c9db9d0cc078c",
+            "sourceHash": "67406db045f1c8df6bb49a9f4e87e6059c410b43d21b7b9c672856ce3688dcd4",
+            "projectedHash": "923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "047b41c3",
+            "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+            "subject": "KINEO-IDIOMAS-FORMATOS-2410 segmenta fala e legendas Unicode [TRAVA 8.2 — vai do fundador 24/10 \"vamos começar com 1 e 2\"]",
+            "selectedBlob": "82893fafdc909216773d2eb4945c9db9d0cc078c",
+            "sourceHash": "67406db045f1c8df6bb49a9f4e87e6059c410b43d21b7b9c672856ce3688dcd4",
+            "projectedHash": "923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "46fa10e58",
+            "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+            "subject": "KINEO-IDIOMAS-FORMATOS-2410 segmenta fala e legendas Unicode [TRAVA 8.2 — vai do fundador 24/10 \"vamos começar com 1 e 2\"]",
+            "selectedBlob": "82893fafdc909216773d2eb4945c9db9d0cc078c",
+            "sourceHash": "67406db045f1c8df6bb49a9f4e87e6059c410b43d21b7b9c672856ce3688dcd4",
+            "projectedHash": "923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "62213b00",
+            "selected": "020e839bb4ba8621f86e9bd3274dd6e8f03b2367",
+            "subject": "KINEO-IDIOMAS-FORMATOS-2410 segmenta fala e legendas Unicode [TRAVA 8.2 — vai do fundador 24/10 \"vamos começar com 1 e 2\"]",
+            "selectedBlob": "82893fafdc909216773d2eb4945c9db9d0cc078c",
+            "sourceHash": "67406db045f1c8df6bb49a9f4e87e6059c410b43d21b7b9c672856ce3688dcd4",
+            "projectedHash": "923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          }
+        ]
+      },
+      {
+        "file": "lib/hookFirstFrame.ts",
+        "currentBlob": "8fc9785c1a5d717efcb7342e81b36e2f4cbf5d28",
+        "currentProjectedHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+        "entries": [
+          {
+            "boundary": "38960b06",
+            "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+            "subject": "KINEO-CENTRO-ADS-GANCHO-1410: frases do Ads, cartão da Produção e gancho do 1º quadro centralizados [TRAVA 8.2 — vai do fundador 14/10]",
+            "selectedBlob": "8fc9785c1a5d717efcb7342e81b36e2f4cbf5d28",
+            "sourceHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "projectedHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "047b41c3",
+            "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+            "subject": "KINEO-CENTRO-ADS-GANCHO-1410: frases do Ads, cartão da Produção e gancho do 1º quadro centralizados [TRAVA 8.2 — vai do fundador 14/10]",
+            "selectedBlob": "8fc9785c1a5d717efcb7342e81b36e2f4cbf5d28",
+            "sourceHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "projectedHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "46fa10e58",
+            "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+            "subject": "KINEO-CENTRO-ADS-GANCHO-1410: frases do Ads, cartão da Produção e gancho do 1º quadro centralizados [TRAVA 8.2 — vai do fundador 14/10]",
+            "selectedBlob": "8fc9785c1a5d717efcb7342e81b36e2f4cbf5d28",
+            "sourceHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "projectedHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "62213b00",
+            "selected": "02d10312139a4b2f4eea33099a2a56fa448fa4b6",
+            "subject": "KINEO-CENTRO-ADS-GANCHO-1410: frases do Ads, cartão da Produção e gancho do 1º quadro centralizados [TRAVA 8.2 — vai do fundador 14/10]",
+            "selectedBlob": "8fc9785c1a5d717efcb7342e81b36e2f4cbf5d28",
+            "sourceHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "projectedHash": "c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          }
+        ]
+      },
+      {
+        "file": "lib/lyriaMusic.ts",
+        "currentBlob": "05b1ce2fd98ff63c2b24590771fda7b8b8d83bd7",
+        "currentProjectedHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+        "entries": [
+          {
+            "boundary": "38960b06",
+            "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+            "subject": "KINEO-FILME-RAPIDO-1710 (3/6) voz e música no clique: trilha, voz e vozes por cena saem enquanto a fal gera as cenas [TRAVA 8.2 — vai do fundador 17/10 \"vai pra tudo\"]",
+            "selectedBlob": "05b1ce2fd98ff63c2b24590771fda7b8b8d83bd7",
+            "sourceHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "projectedHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "047b41c3",
+            "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+            "subject": "KINEO-FILME-RAPIDO-1710 (3/6) voz e música no clique: trilha, voz e vozes por cena saem enquanto a fal gera as cenas [TRAVA 8.2 — vai do fundador 17/10 \"vai pra tudo\"]",
+            "selectedBlob": "05b1ce2fd98ff63c2b24590771fda7b8b8d83bd7",
+            "sourceHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "projectedHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "46fa10e58",
+            "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+            "subject": "KINEO-FILME-RAPIDO-1710 (3/6) voz e música no clique: trilha, voz e vozes por cena saem enquanto a fal gera as cenas [TRAVA 8.2 — vai do fundador 17/10 \"vai pra tudo\"]",
+            "selectedBlob": "05b1ce2fd98ff63c2b24590771fda7b8b8d83bd7",
+            "sourceHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "projectedHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "62213b00",
+            "selected": "d5fa5cf0c6152a78156afc15c9207402674cd081",
+            "subject": "KINEO-FILME-RAPIDO-1710 (3/6) voz e música no clique: trilha, voz e vozes por cena saem enquanto a fal gera as cenas [TRAVA 8.2 — vai do fundador 17/10 \"vai pra tudo\"]",
+            "selectedBlob": "05b1ce2fd98ff63c2b24590771fda7b8b8d83bd7",
+            "sourceHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "projectedHash": "a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          }
+        ]
+      },
+      {
+        "file": "app/api/compose/route.ts",
+        "currentBlob": "fa7411ab5aa326dd5f150a19df7958b5ab0d5d65",
+        "currentProjectedHash": "528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093",
+        "entries": [
+          {
+            "boundary": "38960b06",
+            "selected": "38960b06e1e5c5fac04103ea9ea35ff25c790796",
+            "subject": "KINEO-LEVA-REBASE-2610: merge leva 2410 sobre main 2610 com desfaz encadeados",
+            "selectedBlob": "fa7411ab5aa326dd5f150a19df7958b5ab0d5d65",
+            "sourceHash": "8156eecf4896ccee234d611f0b52f100939dbbb80f2365d440bbe72a0b05c141",
+            "projectedHash": "528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "047b41c3",
+            "selected": "38960b06e1e5c5fac04103ea9ea35ff25c790796",
+            "subject": "KINEO-LEVA-REBASE-2610: merge leva 2410 sobre main 2610 com desfaz encadeados",
+            "selectedBlob": "fa7411ab5aa326dd5f150a19df7958b5ab0d5d65",
+            "sourceHash": "8156eecf4896ccee234d611f0b52f100939dbbb80f2365d440bbe72a0b05c141",
+            "projectedHash": "528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "46fa10e58",
+            "selected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+            "subject": "KINEO-FILME15-FIEL-2610 filme de 15 s fiel: idioma do roteiro no claim e no compose, Whisper no idioma do filme, protagonista em PT/ES/EN vira história com personagem, crítico do still em enforce no 15 s [TRAVA 8.2 — vai do fundador 26/10 \"o ads de 15 está horrível... arrumasse para mim o mais rápido possível\"]",
+            "selectedBlob": "9314a5ed2a4c1736a46f7098cb605aa5c151a23a",
+            "sourceHash": "c338eb6daaea8ffefea2ab8f494c1d9c3fda2629e5f39782a5780c142664f102",
+            "projectedHash": "528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          },
+          {
+            "boundary": "62213b00",
+            "selected": "ec4f2e8eb2966f0fe4f02e6f3bebc4224b02a143",
+            "subject": "KINEO-FILME15-FIEL-2610 filme de 15 s fiel: idioma do roteiro no claim e no compose, Whisper no idioma do filme, protagonista em PT/ES/EN vira história com personagem, crítico do still em enforce no 15 s [TRAVA 8.2 — vai do fundador 26/10 \"o ads de 15 está horrível... arrumasse para mim o mais rápido possível\"]",
+            "selectedBlob": "9314a5ed2a4c1736a46f7098cb605aa5c151a23a",
+            "sourceHash": "c338eb6daaea8ffefea2ab8f494c1d9c3fda2629e5f39782a5780c142664f102",
+            "projectedHash": "528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093",
+            "equalsCurrentProjection": true,
+            "myOwnCommitMatches": []
+          }
+        ]
+      }
+    ]
+  },
+  "diagnosticPredicateEquivalence": {
+    "status": "PASS",
+    "cases": 6,
+    "assertionCountChanged": false,
+    "rootEdited": false
+  },
+  "decomposedLog": "   base de comparação: 68e7f4fe00e34777e05d0933feb94aed37732400^\nA2_CLAUSES {\"file\":\"lib/compose.ts\",\"BASE\":\"68e7f4fe00e34777e05d0933feb94aed37732400^\",\"meus\":\"\",\"selected\":\"020e839bb4ba8621f86e9bd3274dd6e8f03b2367\",\"alheioIsNull\":false,\"lhsHash\":\"923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9\",\"rhsHash\":\"923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9\",\"lhsEqualsRhs\":true,\"baseIsNull\":false,\"baseHash\":\"923800d4bcf8e88d1cac4b05eb687f16b8e70c571a01b772e95c3f976f2f75c9\"}\nA2_CLAUSES {\"file\":\"lib/hookFirstFrame.ts\",\"BASE\":\"68e7f4fe00e34777e05d0933feb94aed37732400^\",\"meus\":\"\",\"selected\":\"02d10312139a4b2f4eea33099a2a56fa448fa4b6\",\"alheioIsNull\":false,\"lhsHash\":\"c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632\",\"rhsHash\":\"c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632\",\"lhsEqualsRhs\":true,\"baseIsNull\":false,\"baseHash\":\"c538ea91afbcf2a4a55437ba7f2fc98999e2218330f9b8edcfd580d8074e7632\"}\nA2_CLAUSES {\"file\":\"lib/lyriaMusic.ts\",\"BASE\":\"68e7f4fe00e34777e05d0933feb94aed37732400^\",\"meus\":\"\",\"selected\":\"d5fa5cf0c6152a78156afc15c9207402674cd081\",\"alheioIsNull\":false,\"lhsHash\":\"a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe\",\"rhsHash\":\"a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe\",\"lhsEqualsRhs\":true,\"baseIsNull\":false,\"baseHash\":\"a28de0e031c6a9948e0c2a0649a1301633320adad8e7d45a27606b93245ea2fe\"}\nA2_CLAUSES {\"file\":\"app/api/compose/route.ts\",\"BASE\":\"68e7f4fe00e34777e05d0933feb94aed37732400^\",\"meus\":\"\",\"selected\":\"38960b06e1e5c5fac04103ea9ea35ff25c790796\",\"alheioIsNull\":false,\"lhsHash\":\"528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093\",\"rhsHash\":\"528e23b11442b74a2f965ca99e8e409174f508dfb03127d076d769dac416d093\",\"lhsEqualsRhs\":true,\"baseIsNull\":false,\"baseHash\":\"0fa25885321ef2163f99b3a7099b71b760d6ba79fbff15cd0f4d57c9450a8fa2\"}\nDIAGNOSTIC_SUMMARY {\"ok\":9,\"falhas\":[]}\n",
+  "conclusion": "Falha isolada não reproduzida; hipótese de mudança na referência alheia refutada. Não atribuir causa a concorrência ou recursos sem evidência. Nenhuma condição foi removida ou relaxada; a versão final acrescenta diagnóstico em caso de falha."
+}

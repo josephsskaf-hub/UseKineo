@@ -70,6 +70,12 @@ function loadDownloadModule(onTrack = () => {}) {
     exports: moduleBox.exports,
     require: (id) => {
       if (id === '@/lib/analytics') return { trackEvent: onTrack }
+      if (id === '@/lib/postVideoSignal') {
+        const exports = {}
+        const code = ts.transpileModule(read('lib/postVideoSignal.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+        vm.runInNewContext(code, { ...sandbox, exports })
+        return exports
+      }
       throw new Error(`unmocked import ${id}`)
     },
     console,
@@ -245,7 +251,7 @@ check(privateCard.includes('Copy invite message'), 'copy alternative names the s
 check(privateCard.includes("privateReferral?.headline ?? 'Share the MP4 — without making it public'"), 'invalid referral falls back to the original private headline')
 check(privateCard.includes('Nothing is sent until you choose a recipient.'), 'copy preserves explicit user choice')
 check(privateCard.includes('Public watch links are temporarily paused'), 'privacy containment remains visible')
-check(privateCard.includes('explicit visibility choice'), 'public-page boundary remains explicit')
+check(privateCard.includes('Download the MP4 to share it directly.') && privacy.includes('PUBLIC_VIDEO_SHARING_ENABLED = false'), 'public-page boundary remains explicit')
 check(!privateCard.includes('href="/v/'), 'private card cannot leak a public link')
 
 const viewStart = generate.indexOf("trackEvent('private_video_file_share_viewed'")

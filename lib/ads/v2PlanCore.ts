@@ -87,6 +87,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const { order, error } = await loadAdsV2Order(admin, input.order_id, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('plan_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
+    const candidate2410 = (await import('./presenterCandidates2410')).presenterCandidateById2410(input.presenter_id) // KINEO-APRESENTADORES-2410
+    if (candidate2410) { try { (await import('./presenterVoice2410')).presenterCandidateVoice2410(candidate2410, order.language ?? 'en') } catch { return v2Fail('presenter_language_unsupported', 400) } } // KINEO-APRESENTADORES-2410 — before script/image/TTS spending
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
     // KINEO-ADS-AMOSTRA-2026-10-09 — pela amostra, só o pedido no nível e na duração da amostra é planejado.
     if (gate !== 'ok' && sample && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)

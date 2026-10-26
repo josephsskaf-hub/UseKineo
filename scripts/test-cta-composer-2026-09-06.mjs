@@ -84,7 +84,10 @@ const RESGATE = [
 for (const arquivo of RESGATE) {
   const src = ler(arquivo)
   const nome = arquivo.split('/').slice(-2, -1)[0]
-  check(`${nome}: usa o helper`, /composerUrl\(/.test(src) && /from '@\/lib\/lifecycle\/composerUrl'/.test(src))
+  // KINEO-LEVA-2410: a continuação ganhou porta própria, com os mesmos UTMs.
+  check(`${nome}: usa o helper`, nome === 'send-next-episode-wall'
+    ? /buildSeriesContinuationEmailUrl\(SITE, episodio \?\? filme, 'lifecycle_episode_wall', \{/.test(src) && /from '@\/lib\/seriesContinuation'/.test(src)
+    : /composerUrl\(/.test(src) && /from '@\/lib\/lifecycle\/composerUrl'/.test(src))
   // CTA cru para a vitrine: `${BASE}/studio` que nao seja /studio/create.
   const vitrineCrua = src.match(/\$\{[A-Z_]+\}\/studio(?!\/create)/g) ?? []
   check(`${nome}: nenhum CTA cru para /studio`, vitrineCrua.length === 0, vitrineCrua.join(' · '))

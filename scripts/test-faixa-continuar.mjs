@@ -6,9 +6,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const lerArq = (rel) => fs.readFileSync(path.join(RAIZ, rel), "utf8")
+const lerArq = (rel) => fs.readFileSync(path.join(RAIZ, rel), "utf8").replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: exact source pins use canonical LF, as git blobs do.
 
 let falhas = 0
 let n = 0
@@ -28,6 +30,12 @@ const land = lerArq('app/KineoLanding.tsx')
 const serie = lerArq('lib/seriesContinuation.ts')
 const libT = lerArq('lib/resumeStrip.ts')
 const vezes = (src, t) => src.split(t).length - 1
+const ts = createRequire(path.join(RAIZ, 'package.json'))('typescript')
+const landAst = ts.createSourceFile('KineoLanding.tsx', land, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const landingFunction = landAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'KineoLanding')
+const landingProps = landingFunction?.parameters[0]?.name
+const resumeProp = landingProps && ts.isObjectBindingPattern(landingProps) && landingProps.elements.find(element => element.name.getText(landAst) === 'resume')
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 
 // --- a medida (licao da rodada #9: shown no fetch nao e olho) ---
 checar("resume_strip_seen e emitido exatamente 1x", vezes(strip, "trackEvent('resume_strip_seen'") === 1)
@@ -58,7 +66,7 @@ checar("page.tsx importa extractShortTitle", /import \{ extractShortTitle \} fro
 checar("page.tsx passa resume para KineoLanding", /resume=\{resume\}/.test(page))
 checar("page.tsx le o ultimo video completado", /\.eq\(.status., .completed.\)/.test(page) && /ascending: false/.test(page))
 checar("KineoLanding importa ResumeStrip 1x", vezes(land, "import ResumeStrip from") === 1)
-checar("KineoLanding recebe resume na assinatura", /resume = null,\s*\}: Props/.test(land))
+checar("KineoLanding recebe resume com default null na assinatura real", resumeProp?.initializer?.kind === ts.SyntaxKind.NullKeyword)
 // rodada #14: a entrega de 10:22 morreu porque o Codex mexeu nestes dois
 // arquivos. Se um patch meu apagar uma prop dele, o portao reprova.
 checar("props do Codex intactas (nao pisei na pista dele)", /showWelcomeGoalRouter/.test(land) && /initialAcquisitionSource/.test(land) && /showWelcomeGoalRouter=\{showWelcomeGoalRouter\}/.test(page))
@@ -70,7 +78,12 @@ checar("faixa nao fala de preco/plano/upgrade/checkout", !/(upgrade|checkout|sub
 checar("faixa nao usa localStorage/sessionStorage", !/localStorage|sessionStorage/.test(strip))
 checar("nao encostei no EngineCycleCard", !/KINEO-FAIXA-CONTINUAR/.test(lerArq("components/EngineCycleCard.tsx")))
 checar("nao encostei em lib/engineWall.ts", !/KINEO-FAIXA-CONTINUAR/.test(lerArq("lib/engineWall.ts")))
-checar("os cards de motor continuam na home", vezes(land, "EngineCycleCard") >= 1)
+// Engine cards were intentionally replaced by the approved four-film gallery
+// on 24/09. Preserve the old wiring proof on its fixed 16/09 revision, and
+// require the actual replacement and its approved inventory on today's home.
+checar("fixture16/09 preserva os cards de motor originais", vezes(frozen('2c918543', 'app/KineoLanding.tsx'), 'EngineCycleCard') >= 1)
+checar("home atual monta a galeria aprovada de filmes", land.includes('<HomeFeaturedFilms />') && lerArq('components/HomeFeaturedFilms.tsx').includes('heroOnly featuredCount={4}'))
+checar("inventario atual da galeria permanece o aprovado na main", lerArq('lib/ui/homeFeaturedFilms.ts') === frozen('1c078ed01', 'lib/ui/homeFeaturedFilms.ts'))
 
 console.log('')
 console.log(falhas === 0

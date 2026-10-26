@@ -34,13 +34,11 @@
  * Nenhuma passou despercebida.
  */
 import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const requireFromRepo = createRequire(join(root, 'package.json'))
-const ts = requireFromRepo('typescript')
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
 let checks = 0
@@ -55,17 +53,8 @@ function equal(actual, expected, label) {
 }
 
 function loadTs(path, mocks = {}) {
-  const output = ts.transpileModule(read(path), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-    fileName: path,
-  }).outputText
-  const module = { exports: {} }
-  const localRequire = (id) => {
-    if (Object.prototype.hasOwnProperty.call(mocks, id)) return mocks[id]
-    throw new Error(path + ': import inesperado ' + id)
-  }
-  new Function('require', 'module', 'exports', output)(localRequire, module, module.exports)
-  return module.exports
+  // KINEO-LEVA-2410: grafo local TS real; dependências novas não são substituídas por constantes.
+  return createOfflineLoader({ mocks })(path)
 }
 
 const ladder = loadTs('lib/momentumLadder.ts')
@@ -133,12 +122,12 @@ ok(!/fetch\(|createClient|process\.env/.test(ladderSrc), '2.15 a escada continua
 ok(/momentumNextFilm\(\{/.test(route), '3.1 a rota chama a regra')
 ok(/creditFloor: minCredits/.test(route),
   '3.1b o piso do ramo pago E o bar antigo — a coorte de hoje nao muda de carta')
-ok(route.includes("const minCredits = creditCostFor('fast', true)"),
-  '3.1c e esse bar continua derivado de creditCostFor')
+ok(route.includes("const minCredits = creditCostForDuration('cinematic_ai', true, 15)"),
+  '3.1c E4: piso deriva do Seedance de 15 s na função canônica')
 ok(!/video_credits as number\) \?\? 0\) < minCredits/.test(route),
   '3.2 o descarte mudo por menor-que-minCredits NAO existe mais')
-ok(route.includes("const freeEngineCost = creditCostFor('fast', false)"),
-  '3.3 o custo do proximo filme deriva de creditCostFor com o argumento da conta certa')
+ok(route.includes('const freeEngineCost = minCredits'),
+  '3.3 E4: sem anunciar Kineo 1 grátis, próximo filme usa o mesmo piso canônico')
 ok(/freeEngineCost,\s*\n/.test(route),
   '3.3b e e ESSE valor que a decisao recebe (nao um literal no call site)')
 ok(!/freeEngineCost:\s*0\b/.test(route), '3.4 nenhum zero cravado no lugar do preco')
@@ -165,12 +154,14 @@ ok(/OFFER\.limit - \(freeUsageByUser\.get\(id\) \?\? 0\)/.test(route),
 ok(/freeQuotaLeft: freeQuotaLeftFor\(id\)/.test(route),
   '4.6b e a decisao de CADA pessoa recebe a vaga DELA — nunca um numero fixo')
 
-// a oferta residual do reverse trial e 1 por 30 dias — o numero que a promessa respeita
+// KINEO-LEVA-2410: E4 retirou o Kineo 1 gratuito em 29/09. A regra pura continua
+// provada acima; a configuração viva bloqueia a cota antiga no reverse trial.
 const on = offerMod.buildFreeTierOffer(true)
-equal(on.limit, 1, '4.7 free tier residual do reverse trial: 1 filme por janela')
-equal(on.windowMs, 30 * 24 * 3600000, '4.8 janela rolante de 30 dias')
+equal(on.limit, 0, '4.7 E4: Kineo 1 gratuito desligado com reverse trial')
+equal(on.windowMs, 7 * 24 * 3600000, '4.8 E4: janela semanal da oferta atual')
 const off = offerMod.buildFreeTierOffer(false)
-equal(off.limit, 3, '4.9 com a flag desligada, 3 por janela')
+equal(off.limit, 3, '4.9 sem reverse trial o limite legado permanece 3')
+equal(nf(0, on.limit).reason, 'free_quota_used', '4.9b cota desligada não promete motor grátis para saldo zero')
 ok(typeof quota.countFreeFastUsage === 'function', '4.10 a funcao de cota existe onde a rota a busca')
 
 // a contagem real: uma reserva na janela ocupa a vaga, com ou sem video
@@ -192,13 +183,13 @@ const urlPago = series.buildSeriesContinuationEmailUrl('https://www.usekineo.com
   'momentum_email', { utm_source: 'lifecycle', utm_medium: 'email', utm_campaign: 'momentum' })
 ok(/[?&]engine=fast/.test(urlFree), '5.1 o link do ramo free carrega o motor')
 ok(!/engine=/.test(urlPago), '5.2 o link de quem TEM credito continua identico ao de antes')
-ok(urlFree.startsWith('https://www.usekineo.com/generate?'), '5.3 destino continua o Studio')
+ok(new URL(urlFree).pathname === series.SERIES_EMAIL_DOOR_PATH && series.SERIES_EMAIL_DOOR_PATH === '/api/episode-link', '5.3 destino usa a porta canônica de continuação')
 ok(/prompt=/.test(urlFree) && /autoanalyze=1/.test(urlFree), '5.4 o tema continua viajando no botao')
 
 ok(/\.\.\.\(freeEngine \? \{ engine: 'fast' \} : \{\}\)/.test(route),
   '5.5 a rota so acrescenta o motor no ramo free')
 ok(/const freeEngine = nextFilm === 'free_engine'/.test(route), '5.6 o ramo governa a carta inteira')
-ok(/costs no credits on your account/.test(route), '5.7 a carta diz que o proximo filme nao custa credito')
+ok(/your free plan still makes one at no credit cost/.test(route), '5.7 carta do ramo free mantém o custo grátis explícito')
 ok(!/trial credits are gone/.test(route),
   '5.7b a frase nao afirma saldo ZERO — o ramo tambem cobre quem tem 1-4 creditos')
 ok(/watermark/.test(route), '5.8 e diz a verdade inteira: sai com marca d agua')

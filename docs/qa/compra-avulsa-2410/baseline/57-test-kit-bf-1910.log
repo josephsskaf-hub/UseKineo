@@ -1,0 +1,63 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-kit-bf-1910.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 9770
+
+O. oferta vazia = nada muda
+  ok  O1 EXECUTADO (montagem do Close real de verdade, PT/EN, 1080 e 720, 5 recortes): oferta null/""/espaços/só decoração = o MESMO objeto, intocado
+  ok  O2 EXECUTADO (v2Brief de verdade, OpenAI falsa): sem kit (ou kit sem oferta e sem ângulo) = o texto e TODOS os pedidos ao modelo byte a byte os da base
+  ok  O3 o corpo: amostra grátis e outros formatos ignoram oferta/ângulo; sem oferta nada é gravado no plano nem acrescentado ao texto
+  ok  O4 os fios: o /plan só passa o kit com oferta/ângulo e só grava plan.kitBf no Close real; o avanço só aplica com oferta; a tela só manda a oferta quando há (e só fora da amostra)
+
+G. a oferta no gancho e no cartão, sem cobrir o produto
+  ok  G1 EXECUTADO (2 quadros × 2 línguas × 5 recortes × 5 ofertas = 100 casos): o selo existe, num canto, do quadro 0 ao fim do gancho (ou ≥ 1,2 s), fora do produto com o zoom e fora das legendas vivas, dentro de 14%–65%
+  ok  G2 EXECUTADO: no cartão a oferta (maior que o botão; a de 16–24 caracteres, ≥ 3% da altura) fica entre o nome e o botão, o botão termina até 65%, nada no produto do fundo do kit (que é o fundo do cartão)
+  ok  G3 EXECUTADO: sem o fundo do kit o cartão fica byte a byte como estava (o selo do gancho continua)
+  ok  G4 só propriedades que a montagem do Close real já usa; trilhas novas 11 e 12 (livres); nada de sombra/filtro
+  ok  G5 o fundo do cartão com oferta: o MESMO quadro do gancho (recorte do cache) numa caixa mais alta; nenhum motor, nenhuma cobrança
+
+N. a narração cita a oferta 1×
+  ok  N1 faltou = entra (antes da chamada final); repetida = só a 1ª frase fica; 1× = intocada; nas 16 línguas a oferta inserida conta 1×; "−30%" vira "30% de desconto" na voz
+  ok  N2 EXECUTADO (v2Brief de verdade): sem a oferta na resposta → 1×; com 2× → 1×; o pedido diz "exactly ONCE" antes da linha da resposta; o brief e o texto do negócio levam a oferta digitada
+
+V. variações
+  ok  V1 3 e 5 ângulos DISTINTOS na ordem da BF; a oferta falada só existe com oferta; 1 = nenhum ângulo (o anúncio de sempre)
+  ok  V2 cada ângulo é um pedido diferente ao modelo (sem número, sem depoimento inventado); sem kit = o MESMO pedido
+  ok  V3 a ordem das fotos muda por variação (5 ordens distintas com 4 fotos; a do produto, que faz o gancho, fica 1ª)
+  ok  V4 o corpo do /plan: offer ≤ 24, kit_angle da lista, kit_variant 0–4, "oferta falada" sem oferta = 400; 16 línguas com 4 sugestões ≤ 24 caracteres
+  ok  V5 EXECUTADO (o lote da tela, AdsV2KitBf.tsx): N−1 rascunhos com research_from, N roteiros pelo /batch com ângulos distintos e as MESMAS fotos/oferta, fila com expected_credits = N × preço e batch_id; roteiro que falhou = fila não começa
+  ok  V6 o total das N = N × adsV2Credits do nível (nos 3 níveis), sem desconto
+  ok  V7 a tela: o total aparece ANTES de confirmar (no botão e na prévia), N > 1 vai pelo lote e abre a tela do lote (baixar todos)
+
+P. preço intocado
+  ok  P1 v2Tiers/v2Billing/v2Batch/v2BatchRules/v2StartCore//start//batch/sample/serverAccess/v2Contract/v2CloseReal fora da entrega; o lote confere o total (price_changed) e a amostra não entra no lote
+
+D. desfaz exato, novos, marca, encadeamento
+  ok  D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-kit-bf-1910.mjs), é EXATAMENTE a base 9ddb24c7e; os novos existem e não existiam lá
+  ok  D2 toda linha nova/trocada dos arquivos tocados carrega a marca; a contagem de acréscimos e as trocas batem; a marca não contém a de outra camada
+  ok  D3 idempotente e restrito: texto sem a marca ou arquivo fora da lista passa igual; contagem errada lança
+  ok  D4 encadeamento: a cabeça da cadeia do Ads (semCloseRealLegendaCorte1910) tira o kit PRIMEIRO; v2Brief/v2PlanCore/v2Advance/tela pela cadeia = a base
+  ok  D5 reâncoras: o guardião da rodada 3 do Close real só não conta como tocado o arquivo cujo ÚNICO toque é o do kit
+  ok  D6 o 4:5 ficou anotado (a montagem do Close real é 9:16 de ponta a ponta) — nada de formato prometido sem montagem
+
+M. mutantes (aplicados e vermelhos)
+  ok  mutante "selo ignora o produto" → vermelho
+  ok  mutante "selo ignora as legendas" → vermelho
+  ok  mutante "oferta vazia mexe na montagem" → vermelho
+  ok  mutante "oferta por cima do nome no cartão" → vermelho
+  ok  mutante "botão do cartão passa de 65%" → vermelho
+  ok  mutante "cartão troca sem o fundo do kit" → vermelho
+  ok  mutante "oferta repetida fica" → vermelho
+  ok  mutante "oferta esquecida não entra" → vermelho
+  ok  mutante "o pedido não diz ONCE" → vermelho
+  ok  mutante "ângulos repetidos" → vermelho
+  ok  mutante "oferta falada sem oferta" → vermelho
+  ok  mutante "desconto escondido no total" → vermelho
+  ok  mutante "amostra recebe a oferta" → vermelho
+  ok  mutante "sem kit o pedido muda" → vermelho
+  ok  mutante "fotos na mesma ordem" → vermelho
+  ok  mutante "lote cobra o preço de UM" → vermelho
+  ok  mutante "lote começa com roteiro falho" → vermelho
+  ok  mutante "lote sem ângulo" → vermelho
+
+43 ok, 0 falha(s)

@@ -1,0 +1,105 @@
+COMMAND: node scripts/test-juiz-still-2026-10-06.mjs
+DEPENDENCY_FIX: ignored local node_modules junction
+EXIT: 0
+TESTE juiz da foto-base (Seedance 2.5) — só s25, teto de tempo, falha aberta, 1 regeração, instrução sem o objeto, eventos, aba — 06/10
+  ok  JUIZ_STILL_FAMILIAS = [s25] e juizStillLigado só no s25
+  ok  pedido: a foto (detail low) + época/lugar "Boston, 1919" + o que a cena deve mostrar + a narração + as cenas anteriores (foto e texto)
+  ok  pedido sem foto anterior: 1 imagem e "never use REPEAT"; sem época: anacronismo só contra a história
+  ok  o sistema traz os 4 critérios objetivos, "na dúvida OK" e o JSON
+  ok  resposta REJECT anacronismo lida (critério, objeto, motivo, correção, nota)
+  ok  REJECT sem critério objetivo (gosto) vira OK
+  ok  REJECT por repetição sem foto anterior mostrada vira OK
+  ok  lixo / JSON sem veredito = null (vira ERRO, falha aberta)
+  ok  nota presa em 0-100
+  ok  correção do juiz só entra positiva: sem negação, sem o substantivo do objeto, sem objeto com letras, sem pôr gente numa cena sem gente (8 casos)
+  ok  correção com gente vale quando a cena já tinha gente
+  ok  instrução da foto nova NUNCA nomeia o objeto proibido e não acrescenta citação ao prompt (9 objetos × 4 critérios × 4 correções)
+  ok  qualificador genérico não é o objeto ("modern car" proíbe "car"; a frase de época "no modern items" não conta)
+  ok  instrução da foto nova nunca usa negação (o motor não tem negative_prompt)
+  ok  anacronismo: frase padrão com a época ("true to Boston, 1919"); correção boa do juiz vai na frente
+  ok  repetida: troca de plano (anterior aberto → close-up); texto: superfícies lisas; câmera: de lado/de costas
+  ok  a instrução entra logo depois do visual da cena (onde a época mora no S25), o resto continua
+  ok  semente da foto nova: outra, determinística, dentro de 31 bits
+  ok  OK: a foto segue, nenhuma regeração, 1 chamada, custo do juiz > 0
+  ok  REJECT → UMA foto nova (semente nova, janela ≤ 9 s) → OK: segue a nova
+  ok  custo da foto nova entra no relato (US$ 0,015 + as 2 chamadas)
+  ok  REJECT → REJECT (nota menor): segue a ORIGINAL; o gerador foi chamado UMA vez só
+  ok  REJECT → REJECT (nota maior): segue a nova; ainda uma regeração só
+  ok  no máximo 1 regeração por foto, mesmo com o juiz recusando sem parar
+  ok  foto nova que falha: segue a original, regeracao_ok=false, custo da tentativa contado
+  ok  gerador que LANÇA: falha aberta (original, regeracao_ok=false, sem erro de juiz)
+  ok  juiz com rede: veredito ERRO, a foto de antes segue, nenhuma regeração
+  ok  juiz com HTTP 500: veredito ERRO, a foto de antes segue, nenhuma regeração
+  ok  juiz com JSON ilegível: veredito ERRO, a foto de antes segue, nenhuma regeração
+  ok  disjuntor: 2 falhas seguidas → a 3ª foto nem chama o juiz (PULADO) e segue
+  ok  teto da chamada: a chamada pendurada ABORTA no teto e vira ERRO timeout (nunca segura a cena)
+  ok  teto da chamada = min(6 s, folga da cena, folga do filme): com 2 s de orçamento no filme, a chamada leva teto de 2 s
+  ok  orçamento do filme (45 s) esgotado: PULADO sem chamar o juiz, a foto segue
+  ok  teto da cena (20 s): recusa que chega aos 15 s não regera (pulado_por teto_cena), a foto segue
+  ok  a MESMA foto da cena anterior é recusada sem chamar o juiz (repetida) e ganha foto nova
+  ok  resumo: 3 fotos, 3 julgadas, 2 recusadas, 2 refeitas, 1 salva, 1 com defeito, custo somado, motivos por cena
+  ok  o painel lê o resumo gravado (ida e volta pelo JSON); lixo = null
+  ok  rota: import da lib do juiz, marcado
+  ok  rota: fecho antes do laço; juiz do still depois do still do S25 e ANTES do Omni, da âncora e do POST do vídeo
+  ok  rota: juiz da foto de ambiente entre inNarratorWorld e a escolha da âncora; resumo depois do laço, antes do acolchoamento
+  ok  rota: família h3 — nenhum juiz (fecho null), nenhuma chamada, nenhum evento, âncoras como antes
+  ok  rota: família omni — nenhum juiz (fecho null), nenhuma chamada, nenhum evento, âncoras como antes
+  ok  rota: família hollywood — nenhum juiz (fecho null), nenhuma chamada, nenhum evento, âncoras como antes
+  ok  S25 Boston: a foto de AMBIENTE (arranha-céus de vidro em 1919) é recusada e refeita; a nova vira a âncora da cena 1 e a do filme
+  ok  S25 Boston: cena 2 (still aprovado) segue com a própria foto; cena 3 (texto, recusada 2×) segue a original de nota maior
+  ok  S25 Boston: a cena 3 pede a rua do ambiente de novo e NÃO reusa a foto (nem a nova) — "uma vez por filme" vale para a foto julgada
+  ok  S25 Boston: 2 regerações no filme (uma por foto recusada), semente nova, janela ≤ 9 s
+  ok  S25 Boston: a foto nova do ambiente leva a correção positiva do juiz + "true to Boston, 1919" e NÃO nomeia o arranha-céu
+  ok  S25 Boston: a foto de ambiente refeita continua o LUGAR VAZIO (environmentSheet + época + plano de estabelecimento), nunca a ação da cena
+  ok  S25 Boston: a foto nova da cena 3 (texto) pede superfícies lisas e não nomeia a placa
+  ok  S25 Boston: o juiz vê a foto anterior a partir da cena 2 (a foto NOVA do ambiente) e a época de cada cena (1919) em todas
+  ok  evento juiz_still por foto: generation_id, veredito, motivo, regerou?, custo estimado, ms (session_id = geração)
+  ok  evento juiz_still_resumo por filme: 3 fotos, 2 recusadas, 2 refeitas, 1 salva, 1 com defeito, custo = soma das fotos
+  ok  o juiz só troca a FOTO: o prompt de vídeo de cada cena é idêntico ao do filme sem juiz
+  ok  falha aberta na rota: julgarFotoBase que LANÇA → as fotos de antes seguem e as 3 cenas vão ao vídeo
+  ok  falha aberta: juiz fora do ar (rede, HTTP) → disjuntor na 3ª foto, fotos originais, filme inteiro despachado, resumo diz isso
+  ok  still da estrela (cena 1) não passa pelo juiz e não é trocado
+  ok  personagem salvo sem âncoras geradas (ambiente = retrato): o juiz não mexe na foto do cliente
+  ok  fecho da rota: julgarFotoBase que lança → devolve a MESMA foto (nunca null, nunca exceção)
+  ok  aba: wrapper real lê os claims após a linha 1.000 sem perder generation_id ou narração
+  ok  aba: cada página de eventos tem range e desempate id; ordem descendente do juiz é preservada
+  ok  aba: o leitor busca juiz_still_resumo pelo generation_id de cada filme (session_id)
+  ok  aba: o filme do Seedance 2.5 traz o juiz (3 julgadas, 2 recusadas, 2 refeitas, motivos, custo); o do Kling 3 vem sem (null)
+  ok  aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motivos e desfecho)
+  ok  aba: filme sem juiz (outro motor / antes do deploy) — a linha sai como antes, sem o bloco
+  ok  aba: filtro "foto recusada pelo juiz" (so=juiz) e a legenda 📷 no topo
+    · custo estimado por foto julgada: US$ 0.00053 (só a foto) · US$ 0.00096 (com a foto anterior) · foto nova US$ 0.015
+    · filme típico (6 fotos, 1 refeita, 7 chamadas): ≈ US$ 0.021 · teto de tempo 45 s/filme, 20 s/cena, 6 s/chamada
+  ok  trava por diff (commit 53a03154 contra o pai): 56 linhas novas na rota, 0 sem o selo KINEO-JUIZ-STILL-2026-10-06, 0 da base tiradas
+  ok  (L1 o juiz abre para o H3) → vermelho — JUIZ_STILL_FAMILIAS = [s25] e juizStillLigado só no s25
+  ok  (L2 a chamada não aborta no teto) → vermelho — teto da chamada: a chamada pendurada ABORTA no teto e vira ERRO timeout (nunca segura a cena)
+  ok  (L3 o teto da cena some) → vermelho — teto da cena (20 s): recusa que chega aos 15 s não regera (pulado_por teto_cena), a foto segue
+  ok  (L4 o orçamento do filme esquece o gasto) → vermelho — teto da chamada = min(6 s, folga da cena, folga do filme): com 2 s de orçamento no filme, a chamada leva teto de 2 s
+  ok  (L5 o teto da chamada ignora a folga) → vermelho — teto da chamada = min(6 s, folga da cena, folga do filme): com 2 s de orçamento no filme, a chamada leva teto de 2 s
+  ok  (L6 o disjuntor some) → vermelho — disjuntor: 2 falhas seguidas → a 3ª foto nem chama o juiz (PULADO) e segue
+  ok  (L7 gerador que lança vira erro do juiz) → vermelho — gerador que LANÇA: falha aberta (original, regeracao_ok=false, sem erro de juiz)
+  ok  (L8 segunda regeração) → vermelho — REJECT → REJECT (nota menor): segue a ORIGINAL; o gerador foi chamado UMA vez só
+  ok  (L9 a correção do juiz entra sem filtro) → vermelho — instrução da foto nova NUNCA nomeia o objeto proibido e não acrescenta citação ao prompt (9 objetos × 4 critérios × 4 co
+  ok  (L10 a instrução nomeia o objeto) → vermelho — instrução da foto nova NUNCA nomeia o objeto proibido e não acrescenta citação ao prompt (9 objetos × 4 critérios × 4 co
+  ok  (L11 a foto nova sai de graça no relato) → vermelho — custo da foto nova entra no relato (US$ 0,015 + as 2 chamadas)
+  ok  (L12 a mesma foto da anterior passa) → vermelho — a MESMA foto da cena anterior é recusada sem chamar o juiz (repetida) e ganha foto nova
+  ok  (L13 REJECT por gosto vale) → vermelho — REJECT sem critério objetivo (gosto) vira OK
+  ok  (L14 a correção põe gente onde não tinha) → vermelho — correção do juiz só entra positiva: sem negação, sem o substantivo do objeto, sem objeto com letras, sem pôr gente numa 
+  ok  (L15 2º REJECT sempre fica com a nova) → vermelho — REJECT → REJECT (nota menor): segue a ORIGINAL; o gerador foi chamado UMA vez só
+  ok  (T1 o juiz roda em toda família) → vermelho — rota: família h3 — nenhum juiz (fecho null), nenhuma chamada, nenhum evento, âncoras como antes
+  ok  (T2 o still da cena não passa pelo juiz) → vermelho — S25 Boston: 2 regerações no filme (uma por foto recusada), semente nova, janela ≤ 9 s
+  ok  (T3 a foto de ambiente é julgada mas não trocada) → vermelho — S25 Boston: a foto de AMBIENTE (arranha-céus de vidro em 1919) é recusada e refeita; a nova vira a âncora da cena 1 e a 
+  ok  (T4 a foto do personagem salvo vira alvo do juiz) → vermelho — personagem salvo sem âncoras geradas (ambiente = retrato): o juiz não mexe na foto do cliente
+  ok  (T5 o juiz que lança derruba a cena) → vermelho — rota: as fatias rodam sem lançar (quebrou de propósito)
+  ok  (T6 o evento perde o custo) → vermelho — evento juiz_still por foto: generation_id, veredito, motivo, regerou?, custo estimado, ms (session_id = geração)
+  ok  (T7 o resumo do filme não é gravado) → vermelho — evento juiz_still_resumo por filme: 3 fotos, 2 recusadas, 2 refeitas, 1 salva, 1 com defeito, custo = soma das fotos
+  ok  (T9 a foto de ambiente é refeita com a ação da cena (pode pôr gente)) → vermelho — S25 Boston: a foto de ambiente refeita continua o LUGAR VAZIO (environmentSheet + época + plano de estabelecimento), nun
+  ok  (T8 a estrela vira alvo do juiz) → vermelho — still da estrela (cena 1) não passa pelo juiz e não é trocado
+  ok  (A1 a linha da aba perde o juiz) → vermelho — aba: o filme do Seedance 2.5 traz o juiz (3 julgadas, 2 recusadas, 2 refeitas, motivos, custo); o do Kling 3 vem sem (nu
+  ok  (A2 a aba lê o evento errado) → vermelho — aba: cada página de eventos tem range e desempate id; ordem descendente do juiz é preservada
+  ok  (A3 o wrapper para na primeira página e esconde o juiz) → vermelho — aba: wrapper real lê os claims após a linha 1.000 sem perder generation_id ou narração
+  ok  (A4 o wrapper perde a ordem estável) → vermelho — aba: cada página de eventos tem range e desempate id; ordem descendente do juiz é preservada
+  ok  (P1 a linha não mostra o juiz) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv
+  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv
+
+  RESULTADO: 97 ok · 0 falha(s)

@@ -9,6 +9,7 @@
 // ENCADEAMENTO: é a camada MAIS NOVA. Os desfaz que já existiam e leem os mesmos arquivos chamam ESTE primeiro (linha marcada neles, também
 // desfeita aqui); os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).
 // O guardião scripts/test-kit-bf-venda-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIT_BF_VENDA_2010_BASE).
+import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,6 +39,7 @@ export const KIT_BF_VENDA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKitBfVenda2010(texto, p) {
+  texto = semCompraAvulsa2410(texto, p) // KINEO-COMPRA-AVULSA-2410 — before every historical hash and early return.
   texto = semPaginasUgc2010(texto, p) // reancorado KINEO-PAGINAS-UGC-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_VENDA_2010) || !KIT_BF_VENDA_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')

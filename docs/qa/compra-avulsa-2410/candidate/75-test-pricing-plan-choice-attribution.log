@@ -1,0 +1,8 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-pricing-plan-choice-attribution.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 530
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+
+32/32 pricing plan-choice attribution checks passed

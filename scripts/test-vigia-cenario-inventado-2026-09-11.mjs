@@ -132,11 +132,12 @@ const iContrato = rt.indexOf('const contratoRelatoClassico: Array<{')
 checa('o bloco fica ANTES de contratoRelatoClassico: o guardião do Codex (test-visual-contract) fatia a rota a partir dali e não conhece a variável prompt', iScrub < iContrato && iContrato > 0)
 // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13, conserto autorizado pelo fundador): a história continua tema + fala, passada por
 // comVocabularioDoLugar (a MESMA string sem lugar real curado; + vocabulário verdadeiro do monumento com ele). Prova: scripts/test-monumento-real-1310.mjs.
-checa('a história = tema + fala (voiceover), nunca aiPrompt/description', /const historia = comVocabularioDoLugar\(`\$\{prompt\} \$\{scenes\.map\(\(s\) => s\.voiceover \?\? ''\)\.join\(' '\)\}`\) \/\/ KINEO-MONUMENTO-2026-10-13/.test(rt))
+// 19/10 META95-ASSUNTO adds the translated factual context via contextoDoFiltro; the source remains only theme + voiceover.
+checa('a história = tema + fala (voiceover), nunca aiPrompt/description', /const historia = await contextoDoFiltro\(comVocabularioDoLugar\(`\$\{prompt\} \$\{scenes\.map\(\(s\) => s\.voiceover \?\? ''\)\.join\(' '\)\}`\)\) \/\/ KINEO-META95-ASSUNTO-1910/.test(rt))
 checa('as três fontes passam pelo filtro: aiPrompt, stockSearchQuery, description', /scrubInventedSetting\(s\.aiPrompt, historia\)/.test(rt) && /scrubInventedSetting\(s\.stockSearchQuery, historia\)/.test(rt) && /scrubInventedSetting\(s\.description, historia\)/.test(rt))
 checa('o texto filtrado SUBSTITUI o original em scenes (não só loga)', /\.\.\.\(aiPrompt \? \{ aiPrompt: aiPrompt\.text \} : \{\}\)/.test(rt) && /scenes = scenes\.map\(\(s, i\) => \{/.test(rt.slice(iScrub, iPrepare)))
 checa('a narração (voiceover) não é reescrita pelo bloco', !/voiceover:\s*[a-zA-Z]+\.text/.test(rt.slice(iScrub, iPrepare)))
-checa('o contexto de despacho recebe cenarioRemovido', /ctxDespacho\(\)\.cenarioRemovido = cenarioRemovido/.test(rt) && /cenarioRemovido: string\[\]\n\s*\/\*\* Ja registrou\?/.test(rt) && /cenarioRemovido: \[\],/.test(rt))
+checa('o contexto de despacho recebe cenarioRemovido', /ctxDespacho\(\)\.cenarioRemovido = cenarioRemovido/.test(rt) && /cenarioRemovido: string\[\]\n/.test(rt) && /cenarioRemovido: \[\],/.test(rt))
 checa('cinematic_dispatch_result grava setting_scrubbed (medível na próxima rotação)', /setting_scrubbed: ctx\.cenarioRemovido\.map\(\(x\) => x\.slice\(0, 160\)\),/.test(rt))
 checa('log de aviso quando algo foi removido', /cenario-scrub: lugar\/epoca fora da historia removidos/.test(rt))
 

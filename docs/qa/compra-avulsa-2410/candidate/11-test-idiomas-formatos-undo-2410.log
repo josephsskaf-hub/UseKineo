@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-idiomas-formatos-undo-2410.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 71963
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+ok idiomas/formatos undo: 104 exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals 8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation

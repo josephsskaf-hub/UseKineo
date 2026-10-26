@@ -1,0 +1,24 @@
+✔ plan prepares twelve existing-route jobs without generating (4.5867ms)
+✔ generation fails closed before credentials or network without allow-paid (1.1371ms)
+✔ explicit future generation reuses the route, keeps cookie first-party and never silently retries (38.8104ms)
+✔ invalid and duplicate candidate ids are refused (9.2496ms)
+✔ missing assets block approval, including founder-confirmed checks (11.9345ms)
+✔ founder identity and every check are mandatory (23.41ms)
+✔ approval binds actual fullbody, face and voice bytes; reject and undo are reversible (34.301ms)
+✔ stale decisions and concurrent lock cannot overwrite another review (12.9957ms)
+✔ changed audio bytes invalidate the previous approved hash (26.0742ms)
+✔ safe local import revokes approval and keeps rejected candidates rejected (47.0545ms)
+✔ pending-to-pending replacement cannot approve bytes from a stale preview even with unchanged catalog hash (50.9885ms)
+✔ live admin embeds only the exact safe asset hash snapshot in the approval request (1.0317ms)
+✔ import refuses env paths, malformed images and unknown candidates (9.462ms)
+✔ UI escapes catalog text and never fabricates a missing preview (0.3699ms)
+✔ HTTP server only binds loopback and rejects foreign host/origin and CSRF (93.9245ms)
+✔ voice import keeps the existing 120 KiB catalog sample limit (17.1069ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 392.7514

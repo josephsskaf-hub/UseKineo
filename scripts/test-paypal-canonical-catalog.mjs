@@ -2,6 +2,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
+import * as crypto from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -10,9 +12,9 @@ const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
 const source = (rel) => readFileSync(join(root, rel), 'utf8')
 
-function loadTs(rel, mocks = {}) {
+function loadTs(rel, mocks = {}, raw = source(rel)) {
   const filename = join(root, rel)
-  const output = ts.transpileModule(source(rel), {
+  const output = ts.transpileModule(raw, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
     fileName: filename,
   }).outputText
@@ -33,6 +35,10 @@ const checkout = loadTs('lib/checkoutPricing.ts', {
 })
 const catalog = loadTs('lib/paypalCatalog.ts', { '@/lib/checkoutPricing': checkout })
 const checkoutIntent = loadTs('lib/paypalCheckoutIntent.ts', { '@/lib/paypalCatalog': catalog })
+const mainPricing = loadTs('lib/checkoutPricing.ts', {
+  '@/lib/credits/engineCost': engine,
+  '@/lib/autopilot/config': autopilot,
+}, execFileSync('git', ['show', '3ec6c9d9b:lib/checkoutPricing.ts'], { encoding: 'utf8', maxBuffer: 8 << 20, stdio: ['ignore', 'pipe', 'ignore'] }))
 
 let checks = 0
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks++ }
@@ -53,10 +59,8 @@ for (const tier of tiers) {
   }
 }
 
-equal(catalog.PAYPAL_TIER_USD.starter.monthly, '14.00', 'Starter recovery link charges current $14 monthly price (V7)')
-equal(catalog.PAYPAL_TIER_USD.basic.monthly, '29.00', 'Creator recovery link charges current $29 monthly price (V7)')
-equal(catalog.PAYPAL_TIER_USD.pro.monthly, '59.00', 'Studio recovery link charges current $59 monthly price (V7)')
-equal(catalog.PAYPAL_PLAN_CREDITS, { starter: 60, basic: 150, pro: 300 }, 'PayPal grants current 60/150/300 ladder (V7)')
+for (const tier of tiers) equal(catalog.PAYPAL_TIER_USD[tier].monthly, (mainPricing.TIER_PRICES[tier].usd / 100).toFixed(2), `${tier} keeps the immutable approved main price`)
+equal(catalog.PAYPAL_PLAN_CREDITS, Object.fromEntries(tiers.map(tier => [tier, mainPricing.TIER_CREDITS[tier]])), 'PayPal keeps the immutable approved main credit grants')
 equal(catalog.PAYPAL_PACK.usd, (checkout.PACK_PRICE_MINOR.usd / 100).toFixed(2), 'PayPal First Pack price is canonical')
 equal(catalog.PAYPAL_PACK.credits, checkout.PACK_CREDITS.starter, 'PayPal First Pack grant is canonical')
 
@@ -169,16 +173,22 @@ try {
   else process.env.PAYPAL_CLIENT_SECRET = routeClientSecret
 }
 
+const renewal = loadTs('lib/credits/renewalBalance.ts')
+const alternative = loadTs('lib/payments/alternative.ts', { 'node:crypto': crypto })
 const paypal = loadTs('lib/paypal.ts', {
   '@/lib/paypalCatalog': catalog,
   '@supabase/supabase-js': { createClient: () => ({}) },
+  './credits/renewalBalance': renewal,
+  './payments/alternative': alternative,
 })
 
 const storedConfig = new Map([
-  ['product_basic', 'PRODUCT-EXISTING'],
+  ['product_basic_v5', 'PRODUCT-EXISTING'],
   ['plan_basic_monthly', 'PLAN-LEGACY-WRONG-OFFER'],
+  ['plan_basic_monthly_v5', 'PLAN-V5-WRONG-OFFER'],
 ])
 const planPosts = []
+const planRequestIds = []
 const previousFetch = globalThis.fetch
 const previousClientId = process.env.PAYPAL_CLIENT_ID
 const previousClientSecret = process.env.PAYPAL_CLIENT_SECRET
@@ -191,7 +201,8 @@ globalThis.fetch = async (url, init = {}) => {
   }
   if (href.endsWith('/v1/billing/plans')) {
     planPosts.push(JSON.parse(String(init.body)))
-    return new Response(JSON.stringify({ id: 'PLAN-CANONICAL-CREATOR' }), { status: 200 })
+    planRequestIds.push(init.headers['PayPal-Request-Id'])
+    return new Response(JSON.stringify({ id: planPosts.length === 1 ? 'PLAN-CANONICAL-CREATOR' : `PLAN-CHANGED-${planPosts.length}` }), { status: 200 })
   }
   throw new Error(`unexpected PayPal fetch: ${href}`)
 }
@@ -225,9 +236,10 @@ try {
   const canonicalPlanId = await paypal.ensurePlan(fakeAdmin, 'basic', 'monthly')
   equal(canonicalPlanId, 'PLAN-CANONICAL-CREATOR', 'legacy cached Creator plan is not reused')
   equal(planPosts.length, 1, 'one canonical provider plan is created')
-  equal(planPosts[0].billing_cycles[0].pricing_scheme.fixed_price.value, '19.00', 'provider request charges canonical Creator amount')
+  equal(planPosts[0].billing_cycles[0].pricing_scheme.fixed_price.value, catalog.PAYPAL_TIER_USD.basic.monthly, 'provider request charges canonical Creator amount')
   equal(planPosts[0].billing_cycles[0].frequency.interval_unit, 'MONTH', 'monthly cadence is preserved')
-  equal(storedConfig.get('plan_basic_monthly_usd1500_c90_v2'), 'PLAN-CANONICAL-CREATOR', 'canonical plan id is cached under fingerprinted key')
+  equal(planRequestIds[0], catalog.paypalPlanRequestId('basic', 'monthly'), 'actual provider idempotency fingerprints the same canonical terms')
+  equal(storedConfig.get(catalog.paypalPlanConfigKey('basic', 'monthly')), 'PLAN-CANONICAL-CREATOR', 'canonical plan id is cached under fingerprinted key')
 
   const cachedPlanId = await paypal.ensurePlan(fakeAdmin, 'basic', 'monthly')
   equal(cachedPlanId, 'PLAN-CANONICAL-CREATOR', 'second request reuses the canonical cached plan')
@@ -235,6 +247,33 @@ try {
 
   equal(await paypal.tierFromPlanId(fakeAdmin, 'PLAN-CANONICAL-CREATOR'), { tier: 'basic', billing: 'monthly' }, 'webhook maps the fingerprinted plan id')
   equal(await paypal.tierFromPlanId(fakeAdmin, 'PLAN-LEGACY-WRONG-OFFER'), { tier: 'basic', billing: 'monthly' }, 'webhook still recognizes an already-issued legacy plan')
+  equal(await paypal.tierFromPlanId(fakeAdmin, 'PLAN-V5-WRONG-OFFER'), { tier: 'basic', billing: 'monthly' }, 'webhook still recognizes already-issued versioned plans')
+
+  // Independent future catalog worlds: a change to either amount or credit grant
+  // must create a different commercial identity; same terms must reuse its cache.
+  for (const [label, priceDelta, creditsDelta] of [['price', 100, 0], ['credits', 0, 1]]) {
+    const nextCheckout = {
+      ...checkout,
+      TIER_PRICES: { ...checkout.TIER_PRICES, basic: { ...checkout.TIER_PRICES.basic, usd: checkout.TIER_PRICES.basic.usd + priceDelta } },
+      TIER_CREDITS: { ...checkout.TIER_CREDITS, basic: checkout.TIER_CREDITS.basic + creditsDelta },
+    }
+    const nextCatalog = loadTs('lib/paypalCatalog.ts', { '@/lib/checkoutPricing': nextCheckout })
+    const nextPaypal = loadTs('lib/paypal.ts', {
+      '@/lib/paypalCatalog': nextCatalog,
+      '@supabase/supabase-js': { createClient: () => { throw new Error('live database forbidden') } },
+      './credits/renewalBalance': renewal,
+      './payments/alternative': alternative,
+    })
+    const beforePosts = planPosts.length
+    const id = await nextPaypal.ensurePlan(fakeAdmin, 'basic', 'monthly')
+    ok(id !== canonicalPlanId, `${label} change never reuses the prior commercial plan`)
+    equal(planPosts.length, beforePosts + 1, `${label} change creates exactly one new provider plan`)
+    equal(planPosts.at(-1).billing_cycles[0].pricing_scheme.fixed_price.value, nextCatalog.PAYPAL_TIER_USD.basic.monthly, `${label} payload uses that world's canonical price`)
+    equal(planRequestIds.at(-1), nextCatalog.paypalPlanRequestId('basic', 'monthly'), `${label} provider idempotency follows new terms`)
+    equal(storedConfig.get(nextCatalog.paypalPlanConfigKey('basic', 'monthly')), id, `${label} cache fingerprints the canonical price and grant`)
+    equal(await nextPaypal.ensurePlan(fakeAdmin, 'basic', 'monthly'), id, `${label} unchanged terms reuse the new cached plan`)
+    equal(planPosts.length, beforePosts + 1, `${label} cache reuse creates no duplicate provider plan`)
+  }
 } finally {
   globalThis.fetch = previousFetch
   if (previousClientId === undefined) delete process.env.PAYPAL_CLIENT_ID

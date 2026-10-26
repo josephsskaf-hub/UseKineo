@@ -14,6 +14,7 @@ import { openai } from '@/lib/openai'
 import { decideModeration, mentionsMinor } from '@/lib/safety/moderationPolicy'
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 export const maxDuration = 60
 
 const BATCH = 32

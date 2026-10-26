@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { execFileSync } from 'node:child_process'
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
@@ -12,8 +13,8 @@ const check = (condition, message) => {
   checks++
 }
 
-function executeTs(file, mocks = {}) {
-  const compiled = ts.transpileModule(read(file), {
+function executeTs(file, mocks = {}, source = read(file), env = {}) {
+  const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText
   const moduleBox = { exports: {} }
@@ -25,7 +26,7 @@ function executeTs(file, mocks = {}) {
       throw new Error(`unmocked import ${id} while executing ${file}`)
     },
     console,
-    process: { env: {} },
+    process: { env },
     URL,
     URLSearchParams,
     Promise,
@@ -38,26 +39,80 @@ const policy = executeTs('lib/publicSurfacePolicy.ts')
 const seriesContinuation = executeTs('lib/seriesContinuation.ts')
 check(policy.CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED === false, 'customer video surface must default OFF')
 const publicExamplesModule = executeTs('lib/publicExamples.ts')
-check(publicExamplesModule.PUBLIC_EXAMPLES.length === 6, 'honest examples copy must match the six static allow-listed assets')
-check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.length === 26, 'engine showcase must match the founder-confirmed static allowlist')
+const frozenExamples = executeTs('lib/publicExamples.ts', {}, execFileSync('git', ['show', '68c65670:lib/publicExamples.ts'], { encoding: 'utf8' }))
+for (const key of ['PUBLIC_EXAMPLES', 'PUBLIC_ENGINE_EXAMPLES', 'FOUNDER_SHOWCASE', 'ENGINE_PAGE_LEAD']) {
+  check(JSON.stringify(publicExamplesModule[key]) === JSON.stringify(frozenExamples[key]), `${key} exactly matches the immutable approved static ownership inventory`)
+}
 check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.every((item) => item.ownershipEvidence === 'founder_confirmed_owned'), 'engine showcase must record founder ownership confirmation')
-check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.every((item) => item.ownershipVerifiedAt === '2026-08-27'), 'engine showcase must record when production ownership was verified')
+check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.every((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.ownershipVerifiedAt)), 'each approved engine asset records its own ownership verification date')
+check(!policy.publicSurfaceAllowsRow(null) && !policy.publicSurfaceAllowsRow('  ') && policy.publicSurfaceAllowsRow('2026-09-07T12:00:00Z'), 'row consent is explicit and the global flag stays closed')
 
-// Execute the real product functions with a mocked Supabase factory. A wrong
-// gate/order increments the counter (or throws), so this proves the service-role
-// client is not created — it is not a regex-only test.
-let publicAdminCreates = 0
-const publicModule = executeTs('lib/publicVideos.ts', {
-  '@supabase/supabase-js': { createClient: () => { publicAdminCreates++; throw new Error('private DB read') } },
-  '@/lib/scriptParser': { stripScriptMarkers: (value) => value },
-  '@/lib/publicSurfacePolicy': policy,
-  '@/lib/seriesContinuation': seriesContinuation,
-})
-const deniedSingle = await publicModule.getPublicVideoResult('11111111-1111-4111-8111-111111111111')
-const deniedList = await publicModule.listIndexablePublicVideos(10)
-check(deniedSingle.status === 'missing', 'real anonymous lookup must look missing')
-check(Array.isArray(deniedList) && deniedList.length === 0, 'real anonymous enumeration must be empty')
-check(publicAdminCreates === 0, 'real public-video functions must not create the admin client')
+// Exercise real service-role readers with fake credentials and a faithful in-memory query.
+// Completed is never consent: public columns are read only after a separate publication check.
+function publicWorld(rows, options = {}, source = read('lib/publicVideos.ts')) {
+  const state = { creates: 0, queries: [] }
+  const api = executeTs('lib/publicVideos.ts', {
+    '@supabase/supabase-js': { createClient: () => {
+      state.creates++
+      return { from(table) {
+        assert.equal(table, 'videos')
+        let columns = '', predicates = [], maximum = Infinity
+        const query = {
+          select(value) { columns = value; return query },
+          eq(key, value) { predicates.push(row => row[key] === value); return query },
+          not(key, operator, value) { assert.equal(operator, 'is'); assert.equal(value, null); predicates.push(row => row[key] != null); return query },
+          order() { return query }, limit(value) { maximum = value; return query },
+          async run(single = false) {
+            state.queries.push(columns)
+            if (options.throwRead) throw Error('offline read failed')
+            if (options.readError) return { data: null, error: { code: 'XX000' } }
+            const selected = rows.filter(row => predicates.every(test => test(row))).slice(0, maximum)
+              .map(row => Object.fromEntries(columns.split(',').map(key => [key.trim(), row[key.trim()]])))
+            return single ? { data: selected[0] ?? null, error: selected.length ? null : { code: 'PGRST116' } } : { data: selected, error: null }
+          },
+          single() { return query.run(true) },
+          then(resolve, reject) { return query.run().then(resolve, reject) },
+        }
+        return query
+      } }
+    } },
+    '@/lib/scriptParser': { stripScriptMarkers: value => value },
+    '@/lib/publicSurfacePolicy': policy, '@/lib/seriesContinuation': seriesContinuation,
+  }, source, { NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'OFFLINE_FIXTURE' })
+  return { api, state }
+}
+const PRIVATE_ID = '11111111-1111-4111-8111-111111111111'
+const PUBLIC_ID = '22222222-2222-4222-8222-222222222222'
+const publicationRow = {
+  id: PRIVATE_ID, title: 'How an ancient bridge survived its first winter',
+  topic: Array.from({ length: 70 }, (_, i) => `bridge${i}`).join(' '), status: 'completed',
+  video_url: 'https://www.usekineo.com/videos/fixture.mp4', duration: 35, quality: 'cinematic_ai',
+  created_at: '2026-09-07T12:00:00Z', hashtags: [], published_at: null,
+}
+const publishedRow = { ...publicationRow, id: PUBLIC_ID, published_at: '2026-09-07T12:00:00Z' }
+const world = publicWorld([publicationRow, publishedRow, { ...publishedRow, id: '33333333-3333-4333-8333-333333333333', topic: 'Too short', title: 'Too short' }])
+const publicModule = world.api
+check((await publicModule.getPublicVideoResult('bad-id')).status === 'missing' && world.state.creates === 0, 'invalid UUID is rejected before admin creation')
+const deniedSingle = await publicModule.getPublicVideoResult(PRIVATE_ID)
+check(deniedSingle.status === 'missing', 'completed row without publication consent looks missing')
+check(world.state.queries.join(',') === 'published_at', 'denied lookup reads only the consent column')
+const allowedSingle = await publicModule.getPublicVideoResult(PUBLIC_ID)
+check(allowedSingle.status === 'ok' && allowedSingle.video.id === PUBLIC_ID, 'explicitly published row is readable')
+check(world.state.queries.slice(-2).join('|') === `published_at|${publicModule.PUBLIC_VIDEO_COLUMNS}`, 'consent check precedes the exact public column allowlist')
+const allowedList = await publicModule.listIndexablePublicVideos(10)
+check(allowedList.length === 1 && allowedList[0].id === PUBLIC_ID, 'enumeration excludes private rows and consented rows that fail quality')
+publishedRow.published_at = null
+check((await publicModule.getPublicVideoResult(PUBLIC_ID)).status === 'missing' && (await publicModule.listIndexablePublicVideos(10)).length === 0, 'revoking row consent closes lookup and enumeration again')
+for (const failure of [{ readError: true }, { throwRead: true }]) {
+  const failed = publicWorld([publishedRow], failure)
+  check((await failed.api.getPublicVideoResult(PUBLIC_ID)).status === 'unavailable', 'unconfirmed consent never exposes a video during read failures')
+  check((await failed.api.listIndexablePublicVideos(10)).length === 0, 'failed enumeration returns no customer rows')
+}
+const privacySource = read('lib/publicVideos.ts')
+const noConsent = privacySource.replace('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {', 'if (false) {')
+check(noConsent !== privacySource && (await publicWorld([publicationRow], {}, noConsent).api.getPublicVideoResult(PRIVATE_ID)).status === 'ok', 'control mutation demonstrates the private-row denial catches a removed consent gate')
+const noListFilter = privacySource.replace("if (!global) query = query.not('published_at', 'is', null)", '')
+check(noListFilter !== privacySource && (await publicWorld([publicationRow], {}, noListFilter).api.listIndexablePublicVideos(10)).some(video => video.id === PRIVATE_ID), 'control mutation demonstrates enumeration catches a removed consent filter')
 
 const legacySeriesPrompt = 'Create the next episode in the same Short series about "AI Revolution: Are You Ready?". Keep the topic and format recognizable, but use a completely new hook, new facts, and a fresh payoff. Do not repeat the previous episode.'
 const legacySeriesRow = {
@@ -111,14 +166,16 @@ const sample = {
   slug: 'founder-sample', shortTitle: 'Founder sample', videoPath: '/videos/founder.mp4', posterPath: '/videos/founder.jpg',
 }
 const internalEngineSample = {
-  id: 'internal-fast-sample', title: 'Internal Fast sample', engine: 'fast',
+  id: 'internal-engine-sample', title: 'Internal engine sample', engine: 'cinematic_ai',
   videoPath: '/previews/internal-fast.webm', posterPath: '/posters/internal-fast.jpg',
   ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-08-27',
 }
+const founderSample = { id: 'founder-showcase-sample', title: 'Founder showcase sample', engine: 'cinematic_ai', previewPath: '/previews/founder.mp4', posterPath: '/posters/founder.webp' }
 const wallModule = executeTs('lib/engineWall.ts', {
   '@supabase/supabase-js': { createClient: () => { wallAdminCreates++; throw new Error('private wall read') } },
   '@/lib/publicVideos': { cleanTitleLine: (value) => value },
-  '@/lib/publicExamples': { PUBLIC_EXAMPLES: [sample], PUBLIC_ENGINE_EXAMPLES: [internalEngineSample], posterWebpPath: (value) => value.replace(/\.jpg$/, '.webp') },
+  '@/lib/publicExamples': { PUBLIC_EXAMPLES: [sample], PUBLIC_ENGINE_EXAMPLES: [internalEngineSample], FOUNDER_SHOWCASE: [founderSample], ENGINE_PAGE_LEAD: [founderSample], posterWebpPath: (value) => value.replace(/\.jpg$/, '.webp') },
+  '@/lib/homeVideoCuration': { HOME_ENGINE_EXAMPLES: [internalEngineSample] },
   '@/lib/publicSurfacePolicy': policy,
 })
 const staticHero = await wallModule.getEngineHero()
@@ -139,8 +196,9 @@ for (const [name, result] of [['hero', staticHero], ['engine showcase', staticTr
   check(result[0].href && !result[0].href.startsWith('/v/'), `real ${name} must never manufacture a customer watch URL`)
 }
 check(deniedEngineRenders.length === 0, 'engine-specific pages must not misattribute a generic static sample')
-check(staticWall.length === 1 && staticWall[0].href === '/examples/founder-sample', 'real examples wall must use static assets')
-check(staticWall[0].posterUrl === '/videos/founder.webp', 'static wall must use its repository-owned poster')
+const genericWallExample = staticWall.find(video => video.engine === 'static_example')
+check(staticWall.length === 2 && genericWallExample?.href === '/examples/founder-sample' && staticWall.some(video => video.id === founderSample.id && video.publicSource === 'founder_owned_engine_example'), 'real examples wall contains only approved founder showcase and generic static assets')
+check(genericWallExample?.posterUrl === '/videos/founder.webp', 'static wall must use its repository-owned poster')
 check(wallAdminCreates === 0, 'real engine-wall functions must not create the admin client')
 
 const publicVideos = read('lib/publicVideos.ts')
@@ -149,11 +207,11 @@ const singleBlock = publicVideos.slice(
   publicVideos.indexOf('export async function getPublicVideo(', publicVideos.indexOf('export async function getPublicVideoResult')),
 )
 check(singleBlock.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED)'), 'single lookup must use the central gate')
-check(singleBlock.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED)') < singleBlock.indexOf('adminClient()'), 'single gate must run before admin client creation')
+check(singleBlock.indexOf(".select('published_at')") < singleBlock.indexOf('.select(PUBLIC_VIDEO_COLUMNS)'), 'single-row consent lookup precedes reading any public video columns')
 
 const listBlock = publicVideos.slice(publicVideos.indexOf('export async function listIndexablePublicVideos'))
-check(listBlock.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED)'), 'enumeration must use the central gate')
-check(listBlock.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED)') < listBlock.indexOf('const admin = adminClient()'), 'list gate must run before admin client creation')
+check(listBlock.includes('const global = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED as boolean'), 'enumeration consumes the central gate')
+check(listBlock.includes("if (!global) query = query.not('published_at', 'is', null)"), 'closed global gate filters enumeration by explicit row consent in the database')
 
 const page = read('app/v/[id]/page.tsx')
 check(page.includes("export const dynamic = 'force-dynamic'"), '/v must not share ISR output across sessions')
@@ -161,8 +219,8 @@ check(page.includes('export const revalidate = 0'), '/v revalidation must be dis
 check(page.indexOf('getPublicVideoResult(params.id)') < page.indexOf("if (result.status === 'missing') notFound()"), '/v must hard-404 the denied result')
 
 const og = read('app/v/[id]/opengraph-image.tsx')
-check(og.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()'), 'OG route must share the privacy gate')
-check(og.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()') < og.indexOf('const title = await getTitle'), 'OG gate must run before its service-role lookup')
+check(og.includes('if (!publicSurfaceAllowsRow(row.publishedAt)) notFound()'), 'OG route must share the explicit row-consent policy')
+check(og.indexOf('if (!publicSurfaceAllowsRow(row.publishedAt)) notFound()') < og.indexOf('const title = row.title'), 'OG consent gate runs before preparing any public title bitmap')
 check(og.includes("import { resolvePublicVideoTitle } from '@/lib/publicVideos'"), 'OG bitmap must share the public title resolver')
 check(og.includes('resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title'), 'OG bitmap must recover the subject before rendering text')
 
@@ -171,7 +229,7 @@ const wallBlock = engineWall.slice(engineWall.indexOf('async function buildWall'
 check(wallBlock.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []'), 'engine wall must be empty while customer surfaces are off')
 check(wallBlock.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []') < wallBlock.indexOf('createAdminClient('), 'engine wall gate must run before admin client creation')
 const bestBlock = engineWall.slice(engineWall.indexOf('export async function getExamplesBest'), engineWall.indexOf('export async function getTrending'))
-check(bestBlock.includes('return staticExampleWall()'), '/examples must fall back to repository-owned static assets')
+check(bestBlock.includes('return [...founderShowcaseWall(), ...staticExampleWall()]'), '/examples combines only the two explicit founder-owned static inventories')
 check(engineWall.includes("href: `/examples/${example.slug}`"), 'static examples must link to static example routes')
 for (const wrapper of ['getEngineShowcase', 'getEngineWall']) {
   const start = engineWall.indexOf(`${wrapper}(`)
@@ -189,22 +247,27 @@ const engineRendersStart = engineWall.indexOf('getEngineRenders(')
 const engineRendersEnd = engineWall.indexOf('const caps:', engineRendersStart)
 check(engineWall.slice(engineRendersStart, engineRendersEnd).includes('return Promise.resolve([])'), 'engine-specific gallery must stay empty while sharing is off')
 const examplesPage = read('app/examples/page.tsx')
-check(examplesPage.includes('Six Kineo-owned demo previews'), '/examples copy must describe the static inventory honestly')
-check(examplesPage.includes('Customer videos stay private'), '/examples must state the customer privacy boundary')
+check(examplesPage.includes('EXAMPLES_SELECTION_SEP24.map(examplesSprintVideo)'), '/examples uses the explicit founder-selected static inventory')
+const selectionFile = 'lib/ui/examplesSelectionSep24.ts'
+check(read(selectionFile).replace(/\r\n/g, '\n') === execFileSync('git', ['show', `68c65670:${selectionFile}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n'), 'the exact founder-selected examples and their ownership-safe destinations remain frozen')
+check(!examplesPage.includes('listIndexablePublicVideos(') && !examplesPage.includes(".from('videos')"), '/examples does not enumerate customer videos')
 
 const landing = read('app/KineoLanding.tsx')
-check(landing.includes("engineWall.filter((v) => v.engine === 'static_example')"), 'home hero must render static examples without engine attribution')
+check(landing.includes("trending.every((v) => v.publicSource === 'founder_owned_engine_example')") && landing.includes("trending.some((v) => v.engine === 'static_example')"), 'home showcase labels distinguish verified engine assets from generic static examples')
 check(landing.includes("? 'Made with Kineo — every engine'"), 'verified internal engine samples must be labeled as a static Kineo showcase')
 check(landing.includes("? 'Kineo-owned examples'"), 'generic static fallback must be labeled as Kineo-owned examples')
 const cycleCard = read('components/EngineCycleCard.tsx')
 check(cycleCard.includes('href={v.href ?? meta.href}'), 'hero static samples must use their explicit safe destination')
-check(cycleCard.includes('v.posterUrl ?? POSTER[v.engine]'), 'hero static samples must keep a local poster')
+const heroFrame = executeTs('lib/ui/heroFrame.ts', { './heroOpening': { heroOpeningPoster: () => null } })
+check(cycleCard.includes('const frame = heroFrame(v)') && cycleCard.includes('frame.poster ?? POSTER[v.engine]') && heroFrame.heroFrame({ ...internalEngineSample, posterUrl: internalEngineSample.posterPath }).poster === internalEngineSample.posterPath, 'hero static samples preserve an explicitly supplied local poster through the frame helper')
 const trendingRow = read('components/TrendingRow.tsx')
-check(trendingRow.includes('href={v.href ?? `/v/${v.id}`}'), 'trending static samples must use their explicit safe destination')
+check(trendingRow.includes('video.href && <Link') && trendingRow.includes('href={video.href}') && !trendingRow.includes('`/v/${'), 'trending static samples use only their explicit safe destination')
 
 const videoShare = read('lib/videoShare.ts')
 check(videoShare.includes('PUBLIC_VIDEO_SHARING_ENABLED = false'), 'public share URL factory must be disabled')
-check(videoShare.indexOf('if (!PUBLIC_VIDEO_SHARING_ENABLED) return null') < videoShare.indexOf("const id = (videoId ?? '').trim()"), 'share helper must stop before using a persistent video id')
+check(videoShare.indexOf('if (!PUBLIC_VIDEO_SHARING_ENABLED) return null') < videoShare.indexOf('return buildPublishedVideoSharePath(videoId, referralCode)'), 'unconfirmed share helper stops before delegating to the explicit published-row path')
+const sharePolicy = executeTs('lib/videoShare.ts')
+check(sharePolicy.buildPublicVideoSharePath(PUBLIC_ID) === null && sharePolicy.buildPublishedVideoSharePath(PUBLIC_ID).startsWith(`/v/${PUBLIC_ID}?`), 'legacy callers stay closed while explicit publication has a distinct URL builder')
 
 for (const file of [
   'app/(dashboard)/history/HistoryClient.tsx',
@@ -213,7 +276,7 @@ for (const file of [
   const source = read(file)
   check(source.includes('PUBLIC_VIDEO_SHARING_ENABLED'), `${file} must consume the central sharing flag`)
   check(source.includes('Public watch links are temporarily paused'), `${file} must explain the paused public link`)
-  check(source.includes('explicit visibility choice'), `${file} must explain the privacy reason`)
+  check(file.includes('/history/') ? source.includes('explicit visibility choice') : source.includes('(PUBLIC_VIDEO_SHARING_ENABLED || publicPagePublished)'), `${file} requires an explicit publication decision before exposing a public watch link`)
 }
 
 const generateClient = read('app/(dashboard)/generate/GenerateClient.tsx')
@@ -233,7 +296,7 @@ check(readyEmail.includes('private by default'), 'lifecycle email must state the
 
 const sitemap = read('app/video-sitemap.xml/route.ts')
 check(sitemap.includes('PUBLIC_EXAMPLES'), 'video sitemap must retain static examples')
-check(publicVideos.includes('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []'), 'dynamic sitemap source must resolve empty')
+check(publicVideos.includes("if (!global) query = query.not('published_at', 'is', null)"), 'dynamic sitemap source includes only rows with explicit publication consent while the global gate is closed')
 
 const indexNow = read('app/api/cron/submit-indexnow/route.ts')
 check(indexNow.includes("skipped: 'no new indexable videos in window'"), 'IndexNow must no-op when the gated list is empty')

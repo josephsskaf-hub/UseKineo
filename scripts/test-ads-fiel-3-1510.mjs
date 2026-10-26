@@ -318,32 +318,41 @@ const srvStubs = {
   '@/lib/ads/v2Shots': { adsV2ShotRenderId: (o, i, a) => `adsv2-${o}-p${i}-a${a}` },
 }
 const realFetch = globalThis.fetch
-globalThis.fetch = async (url) => {
+const fixtureFetch = async (url) => {
   const u = String(url)
   const body = storage.get(u) ?? (u === 'https://fal.media/cut.png' ? cutBytes : u === 'https://fal.media/scene.png' ? sceneBytes : null)
   return body ? new Response(body, { status: 200 }) : new Response('no', { status: 404 })
 }
+globalThis.fetch = fixtureFetch
 process.env.FAL_KEY = 'test-key'
 const loadSrv = (over = {}) => makeLoader(srvStubs, { over })(F.server)
 const SRV = loadSrv()
 const LOCK_O = { footageId: 'f-prod', url: `${PH}prod-1x1.jpg`, mode: 'scene', sourceFootageId: 'f-prod-full', sourceUrl: `${PH}prod-full.jpg` }
 const g4 = async (S = SRV) => {
-  srvCalls.fal.length = 0; srvCalls.uploads.length = 0; storage.clear()
-  await S.adsV2CutoutFor(USER, LOCK_O)
-  const comOriginal = { input: srvCalls.fal[0] && srvCalls.fal[0].input.image_url, path: srvCalls.uploads[0] }
-  await S.adsV2CutoutFor(USER, { footageId: 'f-prod', url: `${PH}prod-1x1.jpg` })
-  return comOriginal.input === `${PH}prod-full.jpg` && comOriginal.path === `${USER}/adsv2-cutout-f-prod-full.png` && srvCalls.fal.length === 2 && srvCalls.fal[1].input.image_url === `${PH}prod-1x1.jpg` && srvCalls.uploads[1] === `${USER}/adsv2-cutout-f-prod.png`
+  const previousFetch = globalThis.fetch
+  globalThis.fetch = fixtureFetch // KINEO-LEVA-REBASE-2610: this fixture also owns later mutant executions.
+  try {
+    srvCalls.fal.length = 0; srvCalls.uploads.length = 0; storage.clear()
+    await S.adsV2CutoutFor(USER, LOCK_O)
+    const comOriginal = { input: srvCalls.fal[0] && srvCalls.fal[0].input.image_url, path: srvCalls.uploads[0] }
+    await S.adsV2CutoutFor(USER, { footageId: 'f-prod', url: `${PH}prod-1x1.jpg` })
+    return comOriginal.input === `${PH}prod-full.jpg` && comOriginal.path === `${USER}/adsv2-cutout-f-prod-full.png` && srvCalls.fal.length === 2 && srvCalls.fal[1].input.image_url === `${PH}prod-1x1.jpg` && srvCalls.uploads[1] === `${USER}/adsv2-cutout-f-prod.png`
+  } finally { globalThis.fetch = previousFetch }
 }
 await check('R6 servidor: o birefnet recebe a foto ORIGINAL e o recorte fica no cache dela (o da foto cortada nunca é reaproveitado); sem original = a de antes', () => g4())
 const g5 = async (S = SRV) => {
-  srvCalls.json.length = 0
-  const sc = T1.scenes[1]
-  const out = await S.adsV2FinishLockedScene({ userId: USER, orderId: ORDER, idx: 3, attempt: 1, lock: LOCK_O, format: '9:16', sceneUrl: 'https://fal.media/scene.png', layout: sc.layout })
-  const j = srvCalls.json[0]
-  const boxes = j ? SL.adsV2ParseLockSidecar(j.text) : null
-  const prod = nrm(out.rect, 1080, 1920)
-  return SL.adsV2IsLockedImage(out.url) && out.placement && out.placement.source === 'surface' && out.placement.faceOverlap === 0 && out.placement.side === 'left' &&
-    j && j.path === `${USER}/adsv2-${ORDER}-p3-a1-lock.json` && SL.adsV2LockSidecarUrl(out.url) === pub(j.path) && boxes && boxes.length === 3 && Math.abs(boxes[0].x0 - prod.x0) < 1e-3 && Math.abs(boxes[0].y1 - prod.y1) < 1e-3
+  const previousFetch = globalThis.fetch
+  globalThis.fetch = fixtureFetch // KINEO-LEVA-REBASE-2610: no mutant can fall back to real network fetch.
+  try {
+    srvCalls.json.length = 0
+    const sc = T1.scenes[1]
+    const out = await S.adsV2FinishLockedScene({ userId: USER, orderId: ORDER, idx: 3, attempt: 1, lock: LOCK_O, format: '9:16', sceneUrl: 'https://fal.media/scene.png', layout: sc.layout })
+    const j = srvCalls.json[0]
+    const boxes = j ? SL.adsV2ParseLockSidecar(j.text) : null
+    const prod = nrm(out.rect, 1080, 1920)
+    return SL.adsV2IsLockedImage(out.url) && out.placement && out.placement.source === 'surface' && out.placement.faceOverlap === 0 && out.placement.side === 'left' &&
+      j && j.path === `${USER}/adsv2-${ORDER}-p3-a1-lock.json` && SL.adsV2LockSidecarUrl(out.url) === pub(j.path) && boxes && boxes.length === 3 && Math.abs(boxes[0].x0 - prod.x0) < 1e-3 && Math.abs(boxes[0].y1 - prod.y1) < 1e-3
+  } finally { globalThis.fetch = previousFetch }
 }
 await check('G4 servidor: o quadro travado pousa pelo lugar calculado (T1, cena do balcão: lado esquerdo, sem rosto) e grava "…-lock.json" com o produto e os rostos, que a montagem acha pelo nome do quadro', () => g5())
 const AIM = pure()(F.aiModels)
@@ -667,6 +676,7 @@ console.log('\nM. mutantes (cada um tem de ficar VERMELHO)')
 const mut = async (nome, fn) => { naoAplicou = null; const verde = await tenta(fn); if (naoAplicou) { ok(false, `M ${nome} — mutante NÃO aplicou (${naoAplicou})`); return } ok(!verde, `M ${nome}`) }
 const SLsrc = rd(F.shotLists), PNGsrc = rd(F.png), SRVsrc = rd(F.server), ADVsrc = rd(F.advance), MONTsrc = rd(F.montage), F3src = rd(F.fiel3), CONsrc = rd(F.contract)
 const slMut = (de, para) => pure({ [F.shotLists]: trocar(SLsrc, de, para) })(F.shotLists)
+await check('M controle positivo R6: servidor intacto passa imediatamente antes do mutante da foto original', () => g4(loadSrv()))
 await mut('o recorte volta a sair da foto cortada (servidor ignora a original)', () => g4(loadSrv({ [F.server]: trocar(SRVsrc, 'const falUrl = await runCutout(src.url)', 'const falUrl = await runCutout(lock.url)') })))
 await mut('a trava esquece a foto original', () => r1(slMut("return { footageId: product.footage_id, url: product.url.trim(), mode: 'scene', ...original }", "return { footageId: product.footage_id, url: product.url.trim(), mode: 'scene' }")))
 await mut('o contrato deixa passar original_footage_id inválido', () => r3(pure({ [F.contract]: trocar(CONsrc, "!isUuid(p.original_footage_id)) return fail('bad_photo_id')", "false) return fail('bad_photo_id')") })(F.contract)))
@@ -677,6 +687,7 @@ await mut('sem o vão entre os rostos (balcão com duas pessoas)', () => l2(slMu
 await mut('o lado não muda entre cenas', () => l3(slMut("n % 2 === 0 ? ['right', 'left', 'center'] : ['left', 'right', 'center']", "['right', 'left', 'center']")))
 await mut('regra fixa no meio do quadro (onde a pessoa mora)', () => l3(slMut("{ left: 0.27, right: 0.73, center: 0.5 }", "{ left: 0.5, right: 0.5, center: 0.5 }")))
 await mut('o PNG ignora o lugar (volta a caixa fixa)', () => g1(pure({ [F.png]: trocar(PNGsrc, "const placed = opts.place && mode === 'scene' ?", "const placed = false && mode === 'scene' ?") })(F.png)))
+await check('M controle positivo G4: servidor intacto passa imediatamente antes do mutante do JSON do lugar', () => g5(loadSrv()))
 await mut('o servidor não grava o JSON do lugar', () => g5(loadSrv({ [F.server]: trocar(SRVsrc, '  if (out.placement) await uploadJson(', '  if (false) await uploadJson(') })))
 await mut('o avanço não lê a cena (layout sempre null)', () => a1(loadAdvance({ [F.advance]: trocar(ADVsrc, "v && typeof v.adsV2SceneLayout === 'function' ? v.adsV2SceneLayout(sceneUrl) : null", 'null') })))
 await mut('o movimento da cena travada sem a proibição de objeto novo', () => w1(slMut("appears anywhere. ${ADS_V2_LOCK_NO_NEW_OBJECT} ${ADS_V2_KEEP_PHRASE}`", "appears anywhere. ${ADS_V2_KEEP_PHRASE}`")))

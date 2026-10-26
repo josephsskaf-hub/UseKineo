@@ -72,7 +72,20 @@ ok(pages.engine.includes('href={ENGINE_HUB_SIGNUP_HREF}'), 'engine hub CTA uses 
 ok(pages.upscaler.includes('href={UPSCALER_SIGNUP_HREF}'), 'upscaler CTA uses bounded handoff')
 equal((pages.talking.match(/href=\{TALKING_CHARACTERS_SIGNUP_HREF\}/g) ?? []).length, 2, 'both talking-character CTAs use H3 handoff')
 ok(!pages.talking.includes('Make one free'), 'talking-character CTA no longer promises an unaffordable free render')
-ok(pages.talking.includes('does not cover a full 60-second H3 film by itself'), 'FAQ states the trial-to-engine gap')
+// The approved FAQ now describes the credit grant in plural; bind the
+// disclosure to canonical inputs and execute the actual FAQ template.
+ok(/import \{[^}]*TRIAL_CREDITS_SHOWN[^}]*\} from '@\/lib\/freeTierOffer'/.test(pages.talking), 'trial disclosure imports the canonical grant')
+const talkingAst = ts.createSourceFile('talking.tsx', pages.talking, 99, true, ts.ScriptKind.TSX)
+let faq
+for (const node of talkingAst.statements) if (ts.isVariableStatement(node)) for (const decl of node.declarationList.declarations) if (decl.name.getText(talkingAst) === 'FAQ') faq = decl.initializer
+ok(faq && ts.isArrayLiteralExpression(faq), 'real talking-character FAQ is located')
+const costNode = faq.elements.find(node => ts.isObjectLiteralExpression(node) && node.properties.some(p => p.name?.getText(talkingAst) === 'q' && p.initializer?.text === 'How much does it cost?'))
+const answer = costNode?.properties.find(p => p.name?.getText(talkingAst) === 'a')?.initializer
+ok(answer && ts.isTemplateExpression(answer) && ['H3_60_CREDITS', 'KLING3_60_CREDITS', 'TRIAL_CREDITS_SHOWN', 'STARTER_MONTH'].every(name => answer.templateSpans.some(span => span.expression.getText(talkingAst) === name)), 'FAQ derives grant, both engine costs and plan price from canonical bindings')
+const renderAnswer = (grant, h3) => new Function('H3_60_CREDITS','KLING3_60_CREDITS','TRIAL_CREDITS_SHOWN','STARTER_MONTH', 'return ' + answer.getText(talkingAst))(h3,150,grant,'fixture-plan-price')
+const disclosure = renderAnswer(10,45)
+ok(disclosure.includes('45 credits') && disclosure.includes('10 credits') && /do(?:es)? not cover a full 60-second H3 film/.test(disclosure), 'FAQ exposes grant-to-engine gap before signup')
+ok(renderAnswer(11,46).includes('46 credits') && renderAnswer(11,46).includes('11 credits'), 'mutant control: changing canonical inputs changes the actual FAQ output')
 ok(pages.talking.includes('this specific engine needs additional balance'), 'hero states the trial-to-engine gap before signup')
 ok(pages.talking.includes("creditCostForDuration('cinematic_h3', true, 60)"), 'H3 cost is derived from the billing source')
 ok(pages.talking.includes("creditCostForDuration('cinematic_hollywood', true, 60)"), 'Kling 3 cost is derived from the billing source')

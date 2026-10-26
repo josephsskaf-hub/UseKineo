@@ -27,10 +27,10 @@
 // morrem no resolver antes da 1ª verificação).
 import fs from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { registerHooks } from 'node:module'
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
@@ -163,7 +163,8 @@ console.log('\n(B) lib/gptHandoff.ts lida')
   // filme de 15 s) — folhas puras, zero import (test-gpt-handoff A0 prova a pureza das duas).
   ok(libImports.every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === '@/lib/scriptParser' || s === '@/lib/durationByEngine' || s === 'node:crypto'), `(B1) a lib continua importando só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser, @/lib/durationByEngine e node:crypto (achados: ${libImports.join(', ')})`)
   // Reancorado 29/09 (KINEO-MCP-CLAUDE-2026-09-29): claude_connector entrou DEPOIS de paste_page; a ordem antiga fica.
-  ok(/export const HANDOFF_CHANNELS = \['gpt_store', 'assistant_link', 'paste_page', 'claude_connector'\] as const/.test(libCode), "(B2) HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page', 'claude_connector'] as const")
+  // KINEO-LEVA-2410: plugin ChatGPT aprovado em a78b466f foi acrescentado ao fim da lista fechada.
+  ok(/export const HANDOFF_CHANNELS = \['gpt_store', 'assistant_link', 'paste_page', 'claude_connector', 'chatgpt_plugin'\] as const/.test(libCode), '(B2) cinco canais aprovados, em ordem, incluindo chatgpt_plugin')
   ok(/paste_page: \{ utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' \}/.test(libCode), '(B2) CHANNEL_TAGS.paste_page escrito uma vez, na lib')
   ok(/export const ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500/.test(libCode), '(B3) ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500 declarado')
   ok(/export const ASSISTANT_PASTE_PROMPT: string = `/.test(libCode), '(B3) o prompt é um TEMPLATE LITERAL (os números entram por interpolação)')

@@ -1,0 +1,20 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-ads-formatos-escolha-2410.mjs
+EXIT: 0
+{
+  "status": "TESTADO LOCALMENTE",
+  "combinations": 36,
+  "sentShots": 108,
+  "maxPromptCharacters": 418,
+  "languageParserPreflights": 1404,
+  "uiFormats": 2,
+  "mutantsKilled": [
+    "parser_drops_new_format",
+    "unboxing_becomes_generic",
+    "watch_loses_action",
+    "close_loses_brand_guard",
+    "runtime_discards_category_prompts",
+    "cantonese_rejected_as_three_letters",
+    "localized_script_uses_english_repair"
+  ],
+  "paidCalls": 0
+}

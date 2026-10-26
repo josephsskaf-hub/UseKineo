@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-home-pricing-checkout.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 179
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+PASS 36/36 home pricing checkout checks

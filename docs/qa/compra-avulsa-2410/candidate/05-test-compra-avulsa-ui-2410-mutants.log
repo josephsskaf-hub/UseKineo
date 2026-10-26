@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-compra-avulsa-ui-2410.mjs --mutants
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 2941
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+{"status":"PASS","checks":118,"mutantsKilled":8,"network":"offline mocks only","providers":0,"database":0,"realCheckout":0}

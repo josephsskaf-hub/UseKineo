@@ -1,0 +1,5 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-cinematic-timeline-2026-09-11.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 649
+44 timeline checks passed; provider calls 0; no render, DB, or secrets.

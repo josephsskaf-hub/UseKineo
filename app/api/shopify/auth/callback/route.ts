@@ -22,6 +22,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 function clearState(res: NextResponse): NextResponse {
   res.cookies.set(SHOPIFY_STATE_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/api/shopify/auth', maxAge: 0 })

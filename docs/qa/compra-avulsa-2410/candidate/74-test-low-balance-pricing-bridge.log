@@ -1,0 +1,7 @@
+COMMAND: C:\Program Files\nodejs\node.exe scripts/test-low-balance-pricing-bridge.mjs
+EXPECTED: pass
+EXIT: 0
+ELAPSED_MS: 617
+KNOWN_LEGACY: false
+TIMEOUT_MS: 600000
+Low-balance pricing bridge: 57/57 checks passed

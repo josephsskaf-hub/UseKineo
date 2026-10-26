@@ -7,10 +7,12 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const gen = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const series = readFileSync(join(root, 'lib/seriesContinuation.ts'), 'utf8')
+const ts = createRequire(join(root, 'package.json'))('typescript')
 
 let ok = 0
 let bad = 0
@@ -22,7 +24,18 @@ function check(name, cond) {
 // Recorta o ramo novo para poder afirmar o que ele NAO contem.
 const marca = 'KINEO-SPRINT-V1V4-2026-08-31 (#3)'
 const ini = gen.indexOf(marca)
-const bloco = ini > -1 ? gen.slice(ini, ini + 5200) : ''
+// The queued-idea addition expanded this branch past the former 5200-character
+// window. Read the actual conditional branch, including BOTH buttons, without
+// letting unrelated pricing/upsell branches satisfy the footer assertions.
+const ast = ts.createSourceFile('GenerateClient.tsx', gen, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const footerBranches = []
+function visit(node) {
+  if (ts.isConditionalExpression(node) && node.whenFalse.getFullText(ast).includes(marca)) footerBranches.push(node.whenFalse)
+  ts.forEachChild(node, visit)
+}
+visit(ast)
+const footer = footerBranches.sort((a, b) => (a.end - a.pos) - (b.end - b.pos))[0]
+const bloco = ini > -1 && footer ? gen.slice(ini, footer.end) : ''
 // As asserções de "não invade a pista do Codex" olham o CÓDIGO, não o
 // comentário: o comentário explica justamente que ali não há upgrade/preço,
 // e a palavra dentro da explicação não pode reprovar o próprio bloco.

@@ -105,7 +105,7 @@ t('D3 jaTemIdeiaNaUrl olha prompt, topic e viral_topic',
   /viralTopic,/.test(page))
 t('D4 o prompt do viral_topic continua tendo prioridade', /let seedPrompt = viralTopic\?\.prompt \?\? ''/.test(page))
 t('D5 o GenerateClient recebe a semente pela prop que ja existia',
-  /<GenerateClient initialViralPrompt=\{seedPrompt\}/.test(page))
+  /<GenerateClient\s+initialViralPrompt=\{seedPrompt\}/.test(page))
 t('D6 a leitura do banco e SOMENTE SELECT', /\.from\('videos'\)\s*\n\s*\.select\('topic'\)/.test(page) &&
   !/\.insert\(|\.update\(|\.delete\(/.test(page))
 t('D7 le no maximo o teto de videos', /\.limit\(SEMENTE_TETO_VIDEOS\)/.test(page))
