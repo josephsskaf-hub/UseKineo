@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-10-26T22:03:00Z",
+  "command": "node --max-old-space-size=3072 node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "product": "b3b6b49adb11bcbf4b0370ca7bc62256f5674b06",
+  "exitCode": 0,
+  "diagnostics": 0,
+  "source": "functions.write_stdin session 3656 observed exit_code 0 and empty output on 2026-10-26",
+  "scope": "Final product including explicit OG HTTP cache header. Later commits change only tests, undo adapters and receipts. No build/deploy/env file access.",
+  "afterRecoveryCheck": {
+    "recordedAt": "2026-10-26T20:56:59.305Z",
+    "source": "functions.write_stdin session 33861 observed exit_code 0 and empty output",
+    "product": "4a43ef90cab84e2edb31f6c8b689697072bf30b0",
+    "exitCode": 0,
+    "diagnostics": 0,
+    "scope": "After restoration and privacy corrections before explicit OG HTTP cache header"
+  },
+  "firstCheck": {
+    "checkedAt": "2026-10-26T20:23:48.741Z",
+    "source": "functions.write_stdin session 63480 observed exit_code 0 and empty output",
+    "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "product": "f915e3b75",
+    "exitCode": 0,
+    "diagnostics": 0,
+    "scope": "local TypeScript check, no build/deploy/env file access"
+  }
+}

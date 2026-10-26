@@ -1,0 +1,32 @@
+{
+  "root": "C:/kineo-wt/vitrine-repo-2610/.claude/worktrees/vitrine",
+  "head": "4f367d48a78b3f9bd159aa4f93a40033cf6aded1",
+  "startedAt": "2026-10-26T20:53:48.962Z",
+  "tracked": 6069,
+  "exact": 1496,
+  "normalizedLF": 4570,
+  "symlinks": 0,
+  "skippedEnv": [
+    ".env.local.example"
+  ],
+  "missing": [],
+  "mismatched": [
+    {
+      "file": "docs/previews/GPT24H-G5-2026-09-27.html",
+      "expected": "190af14a01885f69de3ae0a7382ea9a671e8ca3f",
+      "actual": "286c084ac610dcc23df532dd7104afd00a0cdffb",
+      "isolatedBaselineSameRaw": true,
+      "isolatedBaselineSameLF": true,
+      "isolatedBaselineRawGitHash": "286c084ac610dcc23df532dd7104afd00a0cdffb"
+    },
+    {
+      "file": "docs/vitrine-filmes-2610/guardian-results.json",
+      "expected": "d2438dc6005a79e9d9ff66cda9b76b629ca8f4a8",
+      "actual": "fb9c997a708fde2b3214d32cf4b8a00b92111786"
+    }
+  ],
+  "readErrors": [],
+  "nonzeroStages": [],
+  "finishedAt": "2026-10-26T20:54:24.553Z",
+  "refinedAt": "2026-10-26T20:55:35.346Z"
+}

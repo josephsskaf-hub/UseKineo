@@ -1,0 +1,167 @@
+{
+  "at": "2026-10-26T20:52:30.748Z",
+  "head": "4f367d48a78b3f9bd159aa4f93a40033cf6aded1",
+  "trackedFiles": 6069,
+  "missingTracked": 0,
+  "originalTreeMissingTracked": 0,
+  "productCount": 25,
+  "products": [
+    {
+      "file": "app/(dashboard)/generate/GenerateClient.tsx",
+      "sha256Lf": "4ec8b4ed7e40b24ac9843dc1b3385c5d0a924ee8bee32375f0bc6824a16e3511",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/(dashboard)/my-videos/MyVideosClient.tsx",
+      "sha256Lf": "c71dbaf63ffc552b7904a9795c6be03e38f314f31bd1962a72ee5d9ca8ae567a",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/api/cron/submit-indexnow/route.ts",
+      "sha256Lf": "467c701e36b7a6c02302b125eb7822793378da4855e646f711f18bed08172e17",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/api/video/publish/route.ts",
+      "sha256Lf": "d8049a3735b682e0275ab7a8af097cb55fd1d688c327e1d4b0791f8968472210",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/api/video/showcase/route.ts",
+      "sha256Lf": "020d1b6f0ff3b333d18c3d668f5431a4393afeaa97946dab6046ac0166ef1d25",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/es/made-with-kineo/[slug]/page.tsx",
+      "sha256Lf": "837c2c118911eb3d1920fdc364dcd3e8cc5bf7c32cfe2a3b6f1119a99692740c",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/es/made-with-kineo/page.tsx",
+      "sha256Lf": "0c9e6ac890043fef0e2559de9c963f98d8ce124bc100af37dea876bd170e3eef",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/examples/page.tsx",
+      "sha256Lf": "b39a75040706c41dcbcfa3794892620dd95897dde5d3e09a6e3de6db1fca8c60",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/made-with-kineo/[slug]/page.tsx",
+      "sha256Lf": "8010e992b6cfb6134a44f2d2e43f99c3f98b059f40e9a343354cc0ae49ffb0ce",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/made-with-kineo/manage/page.tsx",
+      "sha256Lf": "fa71360c5b048a53a0d9c1e8cad3c9a0a09b15353aaa1e02f942713fd7202513",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/made-with-kineo/page.tsx",
+      "sha256Lf": "059eca14efd5fbf3fdc1bac3420d13223dab55ac605cb6a8f7a930c16b205558",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/made-with-kineo/showcase.module.css",
+      "sha256Lf": "e62afa5c9a1eddd31b4552d22eecfeefe48418045dae9bed79bf9266d5cf2f78",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/made-with-kineo/sitemap.xml/route.ts",
+      "sha256Lf": "26607b44f7420822f4a13fb601a4bfc62baf95d9c6b27b36357d6c89e700bc20",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/pt/made-with-kineo/[slug]/page.tsx",
+      "sha256Lf": "4a1a6db2b7656b4f27268da3154bfd3b37691e64998517ff014ee0c2c45fc4aa",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/pt/made-with-kineo/page.tsx",
+      "sha256Lf": "392e67079dd10f7a854dc7c5015ee9f56d0aff1cdec86346dc7185e7814fea91",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/robots.ts",
+      "sha256Lf": "313800b18805e81a94eca811677bced06698010b48fb3357d629d2c7411d5944",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/sitemap.ts",
+      "sha256Lf": "9ced8210a83d6787465d6f2659a3625e15c40f8f40b81f4af377a87acf7059c1",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "app/v/[id]/opengraph-image.tsx",
+      "sha256Lf": "fbd00b8e49d48ba89be217f25e136b1d2d4d9ce6f2c73c39f4a1211f323bd7ff",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "components/MadeWithKineo.tsx",
+      "sha256Lf": "278f4cda8d0cad407db056ea2164f6a742ea11a9f5b49319a16d3edcae309d73",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "components/ShowcaseConsent.tsx",
+      "sha256Lf": "118e4a4b6ae6ecc739744ee7ea822d57030f2d978de65a4e1bf5441f8603d852",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "lib/madeWithKineo.ts",
+      "sha256Lf": "c67b4daa0c619abdcefad3c9fa55044515639e94eb464133b21a1b1452239456",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "lib/madeWithKineoCopy.ts",
+      "sha256Lf": "16e57dc6087748a1072d9cfc4c61603c7964e965342178e461b408cfb22ebf73",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "lib/madeWithKineoServer.ts",
+      "sha256Lf": "8dee5078acd87c9c66ee70527d853d3a0d35e00bb80587000de8844bf320fe56",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "lib/publicVideos.ts",
+      "sha256Lf": "24b29cc8831d11f09a7db91cb44cf8c58d59332b61786621f520b3e1e9789e37",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    },
+    {
+      "file": "scripts/submit-indexnow.mjs",
+      "sha256Lf": "1ed652cb2677c4299de2705b41e068fef8f381ca1411b6ec1f794503f3f36ac1",
+      "matchesHead": true,
+      "matchesFrozenManifest": true
+    }
+  ],
+  "status": " M docs/vitrine-filmes-2610/guardian-results.json\n?? docs/vitrine-filmes-2610/ENTREGA.md\n?? docs/vitrine-filmes-2610/tsc.json\n",
+  "unexpectedStatus": [],
+  "nodeModules": {
+    "junction": true,
+    "target": "C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\node_modules",
+    "typescriptExists": true
+  }
+}
