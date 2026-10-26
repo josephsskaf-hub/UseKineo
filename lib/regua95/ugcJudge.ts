@@ -29,6 +29,7 @@
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_USD_PER_COMPUTE_SECOND, PIXEL_MODEL_DEFAULT, PIXEL_MODEL_RATES, type Frame, type PixelDetail } from '@/lib/regua95/pixelScore'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { inspectFrameEvidence, objectRecord, type EvidenceAssessment } from '@/lib/regua95/evidence'
 
 export const UGC_SCORE_EVENT = 'ugc_score'
 export const UGC_SCORE_VERSION = 'regua95_ugc_v1'
@@ -84,9 +85,9 @@ export type UgcContext = {
   language?: string | null
 }
 
-export type UgcResult = {
+export type UgcResult = EvidenceAssessment & {
   version: string
-  score: number
+  score: number | null
   frames: UgcFrameVerdict[]
   caps: string[]
   /** "0,5 s gancho: olhos fechados" — um motivo por quadro com defeito (o que o painel e o evento mostram) */
@@ -249,11 +250,18 @@ const fmtT = (t: number | null) => (t == null ? '?' : `${String(t).replace('.', 
  */
 export function normalizeUgc(
   parsed: Record<string, unknown>,
-  ctx: { frames: Array<{ url: string; t: number | null; zone: UgcZone }>; hasReference: boolean; hasPauses: boolean; speechSeconds: number | null; via: UgcResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number },
+  ctx: { frames: Array<{ url: string; t: number | null; zone: UgcZone }>; expectedFrames?: number; hasReference: boolean; hasPauses: boolean; speechSeconds: number | null; via: UgcResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number },
 ): UgcResult {
+  parsed = objectRecord(parsed)
+  const evidence = inspectFrameEvidence(parsed, ctx.frames, ctx.expectedFrames ?? 12, (r) =>
+    ['open', 'closed', 'half', 'na'].includes(String(r.eyes)) && typeof r.grin === 'boolean' &&
+    ['ok', 'deformed', 'extra', 'na'].includes(String(r.hand)) && typeof r.dup === 'boolean' &&
+    ['match', 'different', 'unreadable', 'na'].includes(String(r.label)) && ['ok', 'illegible', 'none'].includes(String(r.caption)) &&
+    typeof r.note === 'string' && (r.eyes !== 'na' || r.hand !== 'na' || r.label !== 'na' || r.caption !== 'none') &&
+    (!ctx.hasPauses || ctx.frames[Number(r.i) - 1]?.zone !== 'pausa' || ['open', 'closed', 'na'].includes(String(r.mouth))))
   const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []
   const verdicts: UgcFrameVerdict[] = ctx.frames.map((f, idx) => {
-    const r = raw.find((x) => Number(x?.i) === idx + 1) ?? raw[idx] ?? null
+    const r = raw.find((x) => x?.i === idx + 1) ?? null
     const label = pick<UgcLabel>(r?.label, ['match', 'different', 'unreadable', 'na'], 'na')
     return {
       i: idx + 1,
@@ -330,8 +338,9 @@ export function normalizeUgc(
     if (m.length) motivos.push(`${fmtT(v.t)} ${v.zone}: ${m.join(', ')}${v.note ? ` (${v.note})` : ''}`)
   }
   return {
+    ...evidence,
     version: UGC_SCORE_VERSION,
-    score,
+    score: evidence.evidence_status === 'complete' ? score : null,
     frames: verdicts,
     caps,
     motivos: motivos.slice(0, 14),
@@ -355,7 +364,7 @@ export function normalizeUgc(
 export async function judgeUgcFrames(
   ctx: UgcContext,
   frames: Array<Frame & { zone: UgcZone }>,
-  opts?: { fetchImpl?: typeof fetch; model?: string; apiKey?: string; timeoutMs?: number; via?: UgcResult['frame_via']; usdFrames?: number; startedAt?: number; detail?: PixelDetail },
+  opts?: { fetchImpl?: typeof fetch; model?: string; apiKey?: string; timeoutMs?: number; via?: UgcResult['frame_via']; usdFrames?: number; startedAt?: number; detail?: PixelDetail; expectedFrames?: number },
 ): Promise<UgcResult | null> {
   const started = opts?.startedAt ?? Date.now()
   if (frames.length === 0) return null
@@ -383,7 +392,7 @@ export async function judgeUgcFrames(
     const hasReference = (ctx.productPhotoUrls ?? []).some((u) => typeof u === 'string' && u)
     const hasPauses = frames.some((f) => f.zone === 'pausa')
     return normalizeUgc(parsed, {
-      frames, hasReference, hasPauses, speechSeconds: finitePos(ctx.speechSeconds) ? ctx.speechSeconds : null, via: opts?.via ?? null, model,
+      frames, expectedFrames: opts?.expectedFrames, hasReference, hasPauses, speechSeconds: finitePos(ctx.speechSeconds) ? ctx.speechSeconds : null, via: opts?.via ?? null, model,
       usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started,
     })
   } catch {
@@ -404,5 +413,5 @@ export async function scoreUgc(
   const plan = planUgcFrames({ seconds, speechSeconds: ctx.speechSeconds, pausesSeconds: ctx.pausesSeconds })
   const ex = await extractUgcFramesFal(videoUrl, plan, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey })
   if (!ex) return null
-  return judgeUgcFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started })
+  return judgeUgcFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started, expectedFrames: plan.length })
 }

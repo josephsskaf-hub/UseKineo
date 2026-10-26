@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { semVideoFiel2610 } from './test-support/desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: before immutable afterHash comparison.
 import { semCardsGiro2410, CARDS_GIRO_2410_MANIFEST as cardsGiro } from './test-support/desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — preserve the original exact hashes and inventory below.
 import { semIdiomasFormatos2410 as undo, IDIOMAS_FORMATOS_2410_BASE as BASE, IDIOMAS_FORMATOS_2410_MANIFEST as manifest } from './test-support/desfaz-idiomas-formatos-2410.mjs'
 
@@ -22,7 +23,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = semCardsGiro2410(readFileSync(file, 'utf8'), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
+  const raw = semCardsGiro2410(semVideoFiel2610(readFileSync(file, 'utf8'), file), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)

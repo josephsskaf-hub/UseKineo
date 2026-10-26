@@ -18,9 +18,9 @@
 //   · descriptionBatches: acima de 12 cenas o pedido vai em 2 lotes equilibrados (18 → 9+9), em paralelo;
 //   · descriptionTokenBudget: teto de tokens proporcional ao lote (espelho do inline da rota);
 //   · describeScenesCovered: junta os lotes e RE-PEDE só as faltantes (1 tentativa);
-//   · completeSceneDescriptions: cena ainda sem descrição nasce do SUJEITO da cena vizinha válida, com outro
-//     enquadramento — nunca da frase narrada. Sem NENHUMA descrição do modelo (descritor fora do ar), a pista própria só
-//     entra depois de perder CTA e metáfora de criatura; fala que é só CTA repete o assunto do filme.
+//   · completeSceneDescriptions (revisão KINEO-CENAS-FIEIS-2610): cena sem descrição usa pista visual PRÓPRIA, nunca o
+//     sujeito/estado da vizinha nem narração crua. Sem pista segura, reviewRequired entrega o índice à rota para não
+//     despachar ao fornecedor. Só CTA puro pode conservar um assunto visual conhecido, sem inventar acontecimento.
 //   · hasSpeechArtifacts: o supervisor fala×imagem (compartilhado com o hollywood, por isso intocado) não pode devolver
 //     uma cena de fallback à criatura/CTA literal — a rota confere antes de aplicar a reescrita.
 // Hollywood intocado: nada aqui é chamado pelo hollywoodPath.
@@ -200,24 +200,28 @@ export function subjectFromTopic(topic: string): string {
 }
 
 export type SceneForCoverage = { voiceover?: string | null; hint?: string | null }
-export type CoverageFallback = { index: number; source: 'previous' | 'next' | 'own_hint_scrubbed' | 'film_subject' }
+export type CoverageFallback = { index: number; source: 'previous' | 'next' | 'own_hint_scrubbed' | 'film_subject' | 'requires_review' }
 
 /**
- * Toda cena sai com descrição. Válida do modelo → fica. Faltante → sujeito + cauda da vizinha válida mais próxima
- * (antes; senão depois), com outro enquadramento. Sem nenhuma válida → pista própria sem CTA/criatura (≥ 3 palavras);
- * senão o assunto do filme. A frase narrada NUNCA entra como está.
+ * Válida do modelo → fica. Faltante → pista visual da PRÓPRIA cena; a vizinha
+ * empresta apenas câmera/luz. Copiar seu sujeito também copiava seu estado/ação.
+ * Uma fala crua não é pista visual. Sem pista segura, a rota recebe o índice
+ * em reviewRequired e usa o caminho de falha/estorno ANTES do fornecedor.
+ * Só CTA puro pode conservar o sujeito conhecido da vizinha, sem novo evento.
  */
 export function completeSceneDescriptions(input: {
   descriptions: ReadonlyArray<string | null | undefined>
   scenes: ReadonlyArray<SceneForCoverage>
   topic: string
-}): { descriptions: string[]; fallbacks: CoverageFallback[] } {
+}): { descriptions: string[]; fallbacks: CoverageFallback[]; reviewRequired?: number[] } {
   const n = input.scenes.length
   const model: (string | null)[] = Array.from({ length: n }, (_, i) => (isUsableDescription(input.descriptions[i]) ? String(input.descriptions[i]).trim() : null))
   const out: string[] = []
   const fallbacks: CoverageFallback[] = []
-  const firstModel = model.find((d): d is string => Boolean(d))
-  const filmSubject = firstModel ? sceneSubjectOf(firstModel) : subjectFromTopic(input.topic)
+  const reviewRequired: number[] = []
+  // KINEO-CENAS-FIEIS-2610 — igualdade sem caixa/pontuação identifica a fala
+  // transformada em query pelo parser; ela não é uma descrição verificada.
+  const sameWords = (t: string) => t.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
   for (let i = 0; i < n; i++) {
     const own = model[i]
     if (own) { out.push(own); continue }
@@ -225,14 +229,29 @@ export function completeSceneDescriptions(input: {
     let source: CoverageFallback['source'] = 'film_subject'
     for (let j = i - 1; j >= 0; j--) if (model[j]) { src = model[j]; source = 'previous'; break }
     if (!src) for (let j = i + 1; j < n; j++) if (model[j]) { src = model[j]; source = 'next'; break }
-    if (src) {
+    const fala = String(input.scenes[i]?.voiceover ?? '')
+    const rawHint = String(input.scenes[i]?.hint ?? '').trim()
+    // A pista visual não é fala: "a dragon" pode ser o protagonista literal.
+    // Remove CTA, mas não apaga uma criatura e deixa uma frase sem sujeito.
+    const pista = rawHint.replace(CTA_RE, ' ').replace(/\s+/g, ' ').trim()
+    const hintIsSpeech = Boolean(fala.trim()) && (
+      sameWords(rawHint) === sameWords(fala) || sameWords(pista) === sameWords(scrubSpeechArtifacts(fala))
+    )
+    const instruction = /\b(?:return (?:only |exactly )?(?:json|\d+ (?:scenes?|items?))|system prompt|voiceover\s*:|narration\s*:|generate (?:a |the )?(?:video|film)|create (?:a |the )?(?:video|film))\b/i.test(pista)
+    const creatureWords = pista.match(/\b(?:monsters?|beasts?|creatures?|behemoths?|titans?|demons?|leviathans?|dragons?)\b/gi) ?? []
+    const unexplainedCreature = creatureWords.some((word) => !new RegExp(`\\b${word.replace(/s$/i, '')}s?\\b`, 'i').test(input.topic))
+    if (wordCount(pista) >= 3 && !hintIsSpeech && !instruction && !unexplainedCreature) {
+      // Nem a cauda da vizinha é herdada: ela pode conter outro ator/adereço.
+      out.push(describeFromSubject(i, pista, 'preserve the established lighting and art style', rawHint))
+      source = 'own_hint_scrubbed'
+    } else if (src && fala.match(CTA_RE) && isSpeechOnlyCta(fala)) {
       out.push(describeFromSubject(i, sceneSubjectOf(src), shotTailOf(src), src))
     } else {
-      const pista = scrubSpeechArtifacts(String(input.scenes[i]?.hint ?? ''))
-      if (wordCount(pista) >= 3) { out.push(pista); source = 'own_hint_scrubbed' }
-      else out.push(describeFromSubject(i, filmSubject, ''))
+      out.push('')
+      reviewRequired.push(i)
+      source = 'requires_review'
     }
     fallbacks.push({ index: i, source })
   }
-  return { descriptions: out, fallbacks }
+  return { descriptions: out, fallbacks, ...(reviewRequired.length ? { reviewRequired } : {}) }
 }

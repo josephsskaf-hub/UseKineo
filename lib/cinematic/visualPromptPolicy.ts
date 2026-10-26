@@ -44,6 +44,15 @@ export function applyVisualFraming(prompt: string, aspect?: string | null): stri
     .replace(/(?:\b(?:vertical|widescreen|square|portrait|landscape)\s+)*\b(?:9:16|16:9|1:1|4:5)(?:\s+(?:vertical|widescreen|square|portrait|landscape|cinematic|framing|composition))*/gi, frame.promptFraming)
 }
 
+// KINEO-CENAS-FIEIS-2610 — direção da chamada que já existe, antes de still/vídeo.
+// A variedade da câmera nunca autoriza trocar o elenco ou inventar um evento.
+export const SCENE_FIDELITY_DIRECTION =
+  'SCENE FIDELITY (takes priority over camera variety): the customer request fixes the cast, objects, relationships, setting and event order; each scene\'s own spoken line fixes its action and current state. ' +
+  'Keep every specified subject distinct: same number, species, identity, size, clothing, colors and named accessories across shots, changing only when the story says so. Never merge two characters into one or add an unrequested presenter, bystander, animal, vehicle, weapon or decorative prop. ' +
+  'Show the requested action happening, with its participants and target readable: a fight requires a concrete strike, block or dodge, not a portrait, heroic pose, static face-off or unrelated aftermath. Use one clear action beat per shot in the requested sequence; do not invent combat or damage for a scene that does not ask for it. ' +
+  'Carry established states forward until the spoken story changes them; the final shot must retain the final stated state. For a state change, seed the shot in the resulting state rather than relying on an unfinished transformation. ' +
+  'Reusing the same subjects is correct when their action advances. Vary framing and camera distance around those subjects, never replace them to create variety. If an input leaves a detail unknown, keep it unspecified; do not import objects or facts from examples or another scene. These are directing rules, not words or objects to depict.'
+
 /** Shared direction for the existing description call; no additional LLM call. */
 export function visualDescriptionDirection(policy: VisualPromptPolicy): string {
   const mode = policy.mode === 'documentary_faceless'
@@ -51,7 +60,7 @@ export function visualDescriptionDirection(policy: VisualPromptPolicy): string {
     : policy.mode === 'character_story'
       ? 'Show the described characters and actions. Preserve their identity and design; they do not address the camera.'
       : 'Preserve the explicitly requested on-screen presenter and setting; do not replace the subject with an empty landscape.'
-  return `${mode} ${policy.style.lookPhrase}. ${policy.style.suffix}. ${aspectSpec(policy.aspect).promptFraming}.`
+  return `${mode} ${policy.style.lookPhrase}. ${policy.style.suffix}. ${aspectSpec(policy.aspect).promptFraming}. ${SCENE_FIDELITY_DIRECTION}`
 }
 
 // KINEO-VIGIA-CENARIO-2026-09-11 — a metade determinística do VISUAL-DRIFT-11.

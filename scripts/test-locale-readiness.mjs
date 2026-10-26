@@ -6,6 +6,8 @@ import ts from 'typescript'
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {renderPage, source} from './preview-ux-complete.mjs'
+import { inspectFilmPreviewConnection } from './test-support/film-preview-contract-2610.mjs'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // Approved input guards/own-idea controls have separate raw runtime tests.
 let checks=0
 const ok=(v,m)=>{assert.ok(v,m);checks++},eq=(a,b,m)=>{assert.deepEqual(a,b,m);checks++}
 function pure(file){const exports={};vm.runInNewContext(ts.transpileModule(source(file),{compilerOptions:{module:1,target:9}}).outputText,{exports});return exports}
@@ -25,6 +27,10 @@ const prices=html=>html.replace(/<[^>]*>/g,'').match(/\$[\d.]+/g)
 const author='My original story — Español हिन्दी <not markup> & 25 USD'
 const fixtureVideo={id:'demo-video',topic:author,title:author,video_url:'/fixture.mp4',status:'completed',credits_used:4,created_at:'2026-09-07T00:00:00Z'}
 const historyFile='app/(dashboard)/history/HistoryClient.tsx'
+const previewCode=source('components/FilmPreviewDialog.tsx')
+// aeced38a moved these exact old lightbox controls to a component. Only a
+// successful real parent->child behavior proof can satisfy their old locations.
+const extractedPreviewHandlers=new Set(['disabled={downloadingId === v.id}','onClick={() => handleDownload(v)}','onClick={() => setLightbox(null)}','onClick={(e) => e.stopPropagation()}','src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}'])
 const libraryFile='app/(dashboard)/library/LibraryClient.tsx'
 const libraryResetBefore="onClick={() => setQ('')}"
 const libraryResetAfter="onClick={() => { setQ(''); organization.setFavoritesOnly(false) }}"
@@ -43,13 +49,16 @@ function handlers(code) {
  walk(a);return out.sort()
 }
 function missingHandlers(file,code) {
+ if(file==='app/(dashboard)/studio/StudioClient.tsx')code=semRoteiroCurto2210(code,file) // Historical attribute comparison only; all locale SSR below stays current.
  const now=handlers(code)
+ let connectedPreview=false
+ if(file===historyFile)try{inspectFilmPreviewConnection(code,previewCode);connectedPreview=true}catch{}
  const base=handlers(source(file,true,'6f6eca73')).map(h=>{
   if(file===historyFile)return historyReanchors.get(h)??h
   if(file===libraryFile)return h===libraryResetBefore?libraryResetAfter:h.replace('completed_video_count: vids.length','completed_video_count: completedCount')
   return h
  })
- return base.filter(h=>!now.includes(h))
+ return base.filter(h=>!now.includes(h)&&!(connectedPreview&&extractedPreviewHandlers.has(h)))
 }
 for(const file of ['app/(dashboard)/history/HistoryClient.tsx','app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/library/LibraryClient.tsx','app/tools/editor/VideoEditor.tsx']) {
  // KINEO-TRES-MODOS-2026-09-11 — acréscimo aprovado no Studio (modo clipe): a trava exige que todo handler da base continue presente; remoção/mudança segue reprovando.
@@ -61,6 +70,7 @@ for(const file of ['app/(dashboard)/history/HistoryClient.tsx','app/(dashboard)/
 // than accepting changed strings without proving the behavior they represent.
 const historyCode=source(historyFile),historyAst=ts.createSourceFile(historyFile,historyCode,99,true,4)
 function jsxExpression(attribute,ast=historyAst) {
+ if(ast===historyAst&&attribute==='src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}')return inspectFilmPreviewConnection(historyCode,previewCode).sourceExpression
  let expression
  function walk(n){if(ts.isJsxAttribute(n)&&n.getText(ast).replace(/\r\n/g,'\n')===attribute)expression=n.initializer.expression.getText(ast);ts.forEachChild(n,walk)}
  walk(ast);assert.ok(expression,'approved JSX attribute is wired');return expression
@@ -110,12 +120,20 @@ for(const choice of [undefined,'original','enhanced'])for(const enhanced of [und
  eq(calls.map(c=>c.url),[choice==='original'?'original.mp4':enhanced??'original.mp4'],'download matches preview selection '+choice+' / '+enhanced)
 }
 for(const [from,to] of [
- ...[...historyReanchors.values()].map(attribute=>[attribute,attribute.startsWith('src=')?'src={"wrong.mp4"}':'onClick={() => {}}']),
+ ...[...historyReanchors.values()].filter(attribute=>!attribute.includes('filmSource(v.')).map(attribute=>[attribute,attribute.startsWith('src=')?'src={"wrong.mp4"}':'onClick={() => {}}']),
  ['onClick={() => handleDownload(video)}','onClick={() => {}}'],
  ['onClick={() => handleEnhance(video)}','onClick={() => {}}'],
 ]) {
  ok(historyCode.includes(from),'mutation anchor exists: '+from)
  ok(missingHandlers(historyFile,historyCode.replace(from,to)).length>0,'guard rejects changed approved or commercial wiring: '+from)
+}
+for(const [from,to] of [['onDownload={() => handleDownload(v)}','onDownload={() => {}}'],['onClose={() => setLightbox(null)}','onClose={() => {}}'],['downloading={downloadingId === v.id}','downloading={false}'],['src={src}','src={"wrong.mp4"}']]){
+ ok(historyCode.includes(from),'current preview mutation anchor: '+from)
+ assert.throws(()=>inspectFilmPreviewConnection(historyCode.replace(from,to),previewCode));checks++
+}
+for(const [from,to] of [['onClick={onDownload}','onClick={() => {}}'],['disabled={downloading}','disabled={false}'],['src={src}','src={"wrong.mp4"}'],['onClick={onClose}','onClick={() => {}}'],['event.target === event.currentTarget','true']]){
+ ok(previewCode.includes(from),'child preview mutation anchor: '+from)
+ assert.throws(()=>inspectFilmPreviewConnection(historyCode,previewCode.replaceAll(from,to)));checks++
 }
 for(const [file,fixture,props] of [
  ['app/KineoLanding.tsx',{},{}], ['app/tools/page.tsx',{},{}],
@@ -168,6 +186,12 @@ for(const file of ['components/MobileNav.tsx','app/(dashboard)/studio/StudioClie
   const obj=attr?.initializer?.expression
   const css=obj&&ts.isObjectLiteralExpression(obj)?obj.properties.find(p=>p.name?.getText(a)==='__html')?.initializer:null
   if(css&&ts.isNoSubstitutionTemplateLiteral(css))styles.push(css.text)
+  // Approved13/10 CLS fix moved the same static layout literal above the JSX.
+  // Resolve only a local literal identifier; never accept arbitrary computed CSS.
+  if(css&&ts.isIdentifier(css)){
+   const declaration=a.statements.filter(ts.isVariableStatement).flatMap(s=>[...s.declarationList.declarations]).find(d=>ts.isIdentifier(d.name)&&d.name.text===css.text)
+   if(declaration?.initializer&&ts.isNoSubstitutionTemplateLiteral(declaration.initializer))styles.push(declaration.initializer.text)
+  }
  }ts.forEachChild(n,walk)}walk(a)
  ok(styles.length>=1,'actual static raw CSS found '+file)
  for(const css of styles){

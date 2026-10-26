@@ -3,6 +3,7 @@
 // calibrador offline — a mesma regra nos três.
 import type { IdeaSource, ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import type { PixelContext } from '@/lib/regua95/pixelScore'
+import { isScore } from '@/lib/regua95/evidence'
 
 export const PRODUTOS_REGUA: ProdutoRegua[] = ['filme', 'ads', 'ugc', 'clipe']
 export const ROTULO_PRODUTO_REGUA: Record<ProdutoRegua, string> = { filme: 'Filmes', ads: 'Ads', ugc: 'UGC / avatar', clipe: 'Clipes' }
@@ -84,6 +85,12 @@ export function notaRegua(coerencia: number | null | undefined, pixel: number | 
   if (c == null) return p
   if (p == null) return c
   return Math.min(c, p)
+}
+
+/** Explicit applicability. Missing a REQUIRED judge is not a passing grade. Legacy helper stays available for history. */
+export function combinarNotaPorProduto(product: ProdutoRegua, notas: { coerencia?: number | null; pixel?: number | null; ugc?: number | null }): number | null {
+  const required = product === 'filme' ? [notas.coerencia, notas.pixel] : product === 'ugc' ? [notas.pixel, notas.ugc] : [notas.pixel]
+  return required.every(isScore) ? Math.min(...required as number[]) : null
 }
 
 export type LinhaPlacar = { n: number; media: number | null; pct95: number | null }

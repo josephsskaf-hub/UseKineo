@@ -2,6 +2,12 @@
  * Unknown copy explicitly falls back to English; country never selects this locale.
  */
 export const INTERFACE_HI: Record<string, string> = {
+  'Any video engine — premium engines use more credits per film': 'कोई भी वीडियो इंजन — प्रीमियम इंजन प्रति फ़िल्म ज़्यादा क्रेडिट इस्तेमाल करते हैं',
+  '500 projects · your films stay in your library': '500 प्रोजेक्ट · आपकी फ़िल्में आपकी लाइब्रेरी में रहती हैं',
+  'Unlimited projects · your films stay in your library': 'असीमित प्रोजेक्ट · आपकी फ़िल्में आपकी लाइब्रेरी में रहती हैं',
+  '20% off your first month · then': 'पहले महीने पर 20% की छूट · फिर',
+  '/first month': '/पहला महीना',
+  'None. You type one idea and the AI writes the script, records the voice, generates every scene and adds captions.': 'कुछ नहीं। आप एक आइडिया लिखते हैं और AI स्क्रिप्ट लिखता है, आवाज़ रिकॉर्ड करता है, हर दृश्य बनाता है और कैप्शन जोड़ता है।',
   'Videos for businesses': 'व्यवसायों के लिए वीडियो',
   // KINEO-NAV-4-ITENS-2026-09-25 — rótulos do menu de 4 itens (decisão do fundador 24/09).
   'Create video': 'वीडियो बनाएँ',

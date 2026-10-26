@@ -97,7 +97,7 @@ const RE_SEM_BANCO = /\b(no\s+stock\s+footage|do\s*not\s+use\s+stock|all\s+visua
 // o caminho da série já a trata. Sem essa exclusão, 43 filmes legítimos da
 // porta de continuação entrariam na coorte e sujariam toda medição.
 const RE_SEMENTE_DA_CASA = /^create the next episode in the same short series\b/i
-const RE_COMECO_DE_ORDEM = /^(create|make|generate|write|produce|give me|i want|i need|please|absolutely|sure|certainly|of course|below is|okay|ok\b)/i
+const RE_COMECO_DE_ORDEM = /^(?:create|make|generate|write|produce|give me|i want|i need|please|absolutely|sure|certainly|of course|below is|okay|ok|crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i // PEDIDO-FIEL-2610
 const RE_ROTULO = /^[A-Z][A-Z /&-]{2,}:/
 const RE_MARKDOWN = /(\*\*|^#{1,6}\s|^---)/
 
@@ -115,6 +115,31 @@ export function menorBotaoQueCobre(segundos: number, duracoes: readonly number[]
 
 function segundosDe(valor: number, unidade: string): number {
   return /^(minute|min|minuto)/i.test(unidade) ? valor * 60 : valor
+}
+
+/** PEDIDO-FIEL-2610: mm:ss is duration only next to a film/duration request.
+ * A story's clock time ("at 3:00") and aspect ratio ("9:16") are not duration. */
+function primeiraDuracaoPedida(texto: string): { raw: string; seconds: number; index: number } | null {
+  RE_DURACAO.lastIndex = 0
+  const unit = RE_DURACAO.exec(texto)
+  let first = unit ? {
+    raw: unit[0].trim(),
+    seconds: segundosDe(unit[2] ? Math.max(Number(unit[1]), Number(unit[2])) : Number(unit[1]), unit[3]),
+    index: unit.index,
+  } : null
+  const clock = /(?<!\d)(\d{1,3}):([0-5]\d)(?!\d)/g
+  for (let m = clock.exec(texto); m; m = clock.exec(texto)) {
+    const before = texto.slice(Math.max(0, m.index - 80), m.index)
+    const after = texto.slice(m.index + m[0].length, m.index + m[0].length + 80)
+    const explicit = /\b(?:dura[çc][ãa]o|duraci[oó]n|duration|length)\s*(?:(?::|=|de|of)\s*)?$/i.test(before)
+      || /^\s*(?:(?:de|of)\s+)?(?:dura[çc][ãa]o|duraci[oó]n|duration)\b/i.test(after)
+    const film = /\b(?:v[íi]deo|filme|film|movie|short|reel|clip)\s+(?:(?:de|com|of|lasting|tenha|dure|lasts)\s*)?$/i.test(before)
+      || /^\s*(?:-\s*)?(?:v[íi]deo|filme|film|movie|short|reel|clip)\b/i.test(after)
+    if (!explicit && (!film || m[0] === '9:16')) continue
+    const seconds = Number(m[1]) * 60 + Number(m[2])
+    if (seconds > 0 && (!first || m.index < first.index)) first = { raw: m[0], seconds, index: m.index }
+  }
+  return first
 }
 
 /**
@@ -142,20 +167,15 @@ export function readPastedDirectives(raw: string | null | undefined, duracoes: r
   // número de segundos que NÃO é pedido da pessoa. Fora dela, o primeiro
   // número de duração do texto é a intenção declarada.
   if (!semente) {
-    RE_DURACAO.lastIndex = 0
-    const m = RE_DURACAO.exec(texto)
-    if (m) {
-      const a = Number(m[1])
-      const b = m[2] ? Number(m[2]) : null
-      const unidade = m[3]
-      // Numa faixa ("35–45 second"), o teto é o que a pessoa espera receber;
-      // entregar o piso seria justamente o defeito de história interrompida.
-      const pedido = segundosDe(b !== null ? Math.max(a, b) : a, unidade)
+    const duration = primeiraDuracaoPedida(texto)
+    if (duration) {
+      // Ranges use their upper bound; clock notation needs explicit film context.
+      const pedido = duration.seconds
       if (pedido > 0) {
         const botao = menorBotaoQueCobre(pedido, duracoes)
         directives.push({
           kind: 'duration',
-          raw: m[0].trim(),
+          raw: duration.raw,
           support: botao === null ? 'unsupported' : 'honored',
           askedSeconds: pedido,
           ...(botao === null ? {} : { appliedSeconds: botao }),
@@ -189,15 +209,22 @@ export function readPastedDirectives(raw: string | null | undefined, duracoes: r
  * A frase honesta para a tela. Devolve null quando não há NADA comprovado a
  * dizer — silêncio é melhor que aviso genérico, e `unknown` nunca vira recusa.
  */
-export function fraseDoQueNaoDamosConta(leitura: PastedDirectivesReading): string | null {
+export function fraseDoQueNaoDamosConta(leitura: PastedDirectivesReading, language = 'en'): string | null {
+  const locale = language.toLowerCase().split(/[-_]/)[0] // PEDIDO-FIEL-2610 — caller chooses the interface language.
   const partes = leitura.unsupported.map((d) => {
     if (d.kind === 'duration') {
       const pedido = d.askedSeconds ?? 0
+      if (locale === 'pt') return `${pedido >= 120 ? `${Math.round(pedido / 60)} minutos` : `${pedido} segundos`} (a maior duração aqui é 90 segundos)`
+      if (locale === 'es') return `${pedido >= 120 ? `${Math.round(pedido / 60)} minutos` : `${pedido} segundos`} (la duración máxima aquí es de 90 segundos)`
       const label = pedido >= 120 ? `${Math.round(pedido / 60)} minutes` : `${pedido} seconds`
       return `${label} (the longest film here is 90 seconds)`
     }
+    if (locale === 'pt') return `${d.raw} (revise o formato selecionado antes de continuar)`
+    if (locale === 'es') return `${d.raw} (revisa el formato seleccionado antes de continuar)`
     return `${d.raw} (every film here is vertical 9:16)`
   })
   if (!partes.length) return null
+  if (locale === 'pt') return `Seu texto pede ${partes.join(' e ')}.`
+  if (locale === 'es') return `Tu texto pide ${partes.join(' y ')}.`
   return `Your text asks for ${partes.join(' and ')}.`
 }

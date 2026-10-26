@@ -61,6 +61,17 @@ jobs:
           node scripts/test-roteiro-curto-undo-2210.mjs
       - name: Admin — paginação, tripwire e dedupe após 1000 linhas
         run: node scripts/test-admin-truncamento-2026-10.mjs
+      - name: Vídeo fiel — pedido, cenas, juiz, canário e evidência no admin
+        run: | # VIDEO-FIEL-2610: current product sources, offline, no credentials or provider calls.
+          node docs/video-fiel-2610/juiz-offline.mjs
+          node docs/video-fiel-2610/cenas-test.mjs
+          node docs/video-fiel-2610/pedido-test.mjs
+          node docs/video-fiel-2610/pedido-mcp-test.mjs
+          node docs/video-fiel-2610/canario-offline.mjs
+          node docs/video-fiel-2610/test-admin-quality.mjs
+          node scripts/test-meta95-regua-1910.mjs
+          node scripts/test-meta95-ugc-1910.mjs
+          node docs/video-fiel-2610/test-legacy-layer.mjs
       - name: Compra — capacidade real, ideia própria e revisão sem gerar
         run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
           node docs/compra-clareza-2610/test-recurring-plan-value.mjs

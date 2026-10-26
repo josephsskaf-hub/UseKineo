@@ -99,6 +99,7 @@ import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
+import { reviewRequestFidelity, briefRequiresReview, sceneDescriptionReviewMessage } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 // KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
 // medição que originou a regra.
@@ -950,7 +951,7 @@ RULES:
 - ${NO_TEXT_OBJECT_DIRECTION}
 - Output ONLY valid JSON: { "descriptions": ["...", "..."] } with EXACTLY ${scenes.length} items, in scene order.`
 
-  const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}${lote ? `\n\n(These are scenes ${lote.numeros.join(', ')} of a ${lote.total}-scene film; the other scenes are described in a separate call — keep the same look and vary the framing within this set.)` : ''}`
+  const userMsg = `Topic: ${topic.slice(0, 12000)}\n\nScenes:\n${list}${lote ? `\n\n(These are scenes ${lote.numeros.join(', ')} of a ${lote.total}-scene film; the other scenes are described in a separate call — keep the same look and vary the framing within this set.)` : ''}` // PEDIDO-FIEL-2610 — same route input cap; retain cast/constraints beyond character 200.
 
   // KINEO-VIGIA-DESCRICAO-2026-09-11 — render 802f024e: o modelo devolveu 2
   // descrições para 5 cenas e as cenas 3-5 subiram para a fal com o pedaço
@@ -1460,6 +1461,8 @@ async function manipularPost(req: NextRequest) {
     const tagFacelessPresente = TAG_FACELESS.test(promptRaw)
     // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto da pessoa não é o tema.
     const intake = stripIdeaPrefix(promptRaw.replace(/\[faceless\]/gi, '').trim())
+    const requestReview = reviewRequestFidelity({ prompt: intake.text, scriptMode: body.script_mode, duration: Number(body.duration) || 45, language: body.language }) // PEDIDO-FIEL-2610 — before transformation, writer, claim and debit.
+    if (requestReview) return NextResponse.json(requestReview, { status: 422 })
     if (intake.strippedIdea) await writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-cinematic', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
     let prompt = intake.text // KINEO-EPISODIO-COM-ASSUNTO: `let` — o pedido de continuação ganha o episódio anterior abaixo
     // ═══ KINEO-EPISODIO-COM-ASSUNTO-2026-09-22 — "próximo episódio" recebe o ASSUNTO, não só o gancho (ver generate-video-fast) ═══
@@ -1509,6 +1512,7 @@ async function manipularPost(req: NextRequest) {
     // Plano SEM lugar real segue recusado como antes. `lugarDoPedido` também ancora o lugar nos prompts das cenas, abaixo. [KINEO-MONUMENTO-2026-10-13]
     const lugarDoPedido = lugarPrincipal(prompt) // KINEO-MONUMENTO-2026-10-13
     if (lugarDoPedido && detectShotSpec(prompt).isShotSpec) { // KINEO-MONUMENTO-2026-10-13
+      if (body.script_mode !== 'ai') return NextResponse.json(briefRequiresReview(body.language), { status: 422 }) // PEDIDO-FIEL-2610 — no silent conversion of a literal script into an AI tour.
       const planoOriginal = detectShotSpec(prompt) // KINEO-MONUMENTO-2026-10-13
       prompt = pedidoDeTourNarrado(prompt, lugarDoPedido) // KINEO-MONUMENTO-2026-10-13
       body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13
@@ -3940,6 +3944,19 @@ async function manipularPost(req: NextRequest) {
         scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),
         topic: prompt,
       })
+      // PEDIDO-FIEL-2610 — planning is AFTER the existing debit; refund must be confirmed.
+      // No empty description may fall back to raw narration or another scene's subject.
+      const descriptionReview = (completas as typeof completas & { reviewRequired?: number[] }).reviewRequired ?? []
+      if (descriptionReview.length) {
+        const refunded = await confirmCinematicRefund()
+        const released = refunded && await releaseBirthClaim('scene_description_requires_review')
+        return NextResponse.json({
+          error: sceneDescriptionReviewMessage(body.language, refunded),
+          qualityCheckFailed: true, reason: 'scene_description_requires_review', review_required: true,
+          generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+          scenes_requiring_review: descriptionReview.map(index => index + 1),
+        }, { status: refunded ? 422 : 503 })
+      }
       scenes = scenes.map((s, i) => ({ ...s, aiPrompt: completas.descriptions[i] }))
       for (const f of completas.fallbacks) cenasSemDescricaoDoModelo.add(f.index)
       const got = cobertura.descriptions.filter(Boolean).length

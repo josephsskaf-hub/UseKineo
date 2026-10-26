@@ -1,6 +1,7 @@
 // KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semVideoFiel2610 } from './desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: exact later layer, historical readers only.
 import { semCardsGiro2410 } from './desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — remove the exact newer layer before every historical chain.
 
 export const IDIOMAS_FORMATOS_2410_BASE = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
@@ -13,6 +14,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semVideoFiel2610(text, file)
   text = semCardsGiro2410(text, file) // KINEO-CARDS-GIRO-2410 — leaf has no older imports, so this creates no cycle.
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]

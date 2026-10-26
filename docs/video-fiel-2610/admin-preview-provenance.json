@@ -1,0 +1,265 @@
+{
+  "generated_at_utc": "2026-10-26T06:39:04.166Z",
+  "base": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+  "head": "85601cd9185557a577d9a948fd40e78d101eaaa1",
+  "source_worktree_has_uncommitted_changes": true,
+  "data": "Three synthetic anonymous examples, no customer media/identifiers or production access",
+  "inert_boundaries": [
+    "auth",
+    "database",
+    "network",
+    "navigation",
+    "evaluation",
+    "feedback"
+  ],
+  "sources": [
+    {
+      "file": "app/admin/coerencia/page.tsx",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "d2c330d8ec51aec47339cde8c9f657f5f5fdec00996e269cd43d67f96b3135b6"
+    },
+    {
+      "file": "app/admin/coerencia/PedirFeedback.tsx",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "c6a413c3d0af54e8e96be9d21da32ebe1fdb7029a1ece6efd3fdf2ae41f805c4"
+    },
+    {
+      "file": "app/admin/coerencia/AvaliarPendentes.tsx",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "d04e402c3d149a6fe859ec0b8c7bdf4edf1575652a05196d65c3f0369f367a6d"
+    },
+    {
+      "file": "app/admin/coerencia/AvaliarRegua95.tsx",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "06241304931917958ededa0121f176b5fe381e8afff99a8061a38c675fe7cc2a"
+    },
+    {
+      "file": "lib/regua95/contexto.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "b143fdb7e761b2b4940861777b634fd2a602112d1c1c3e1937cde796921cdd26"
+    },
+    {
+      "file": "lib/admin/regua95Painel.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "62f3cb90d37c34be03eecc68e9aa329903bc4de43441155cb5bd3056fcd6e85f"
+    },
+    {
+      "file": "lib/regua95/coherenceV2.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "70cd58ace7460735e66e511dd317f2d778e7fb9b8e3e734912f6536c6a847d8c"
+    },
+    {
+      "file": "lib/aiModels.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "6ab66f1f6b89e59a4950eaf68d161d1af588687f2bca7de9329bd1819fe75f65"
+    },
+    {
+      "file": "lib/fastCoherence.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "8e37e02815d43e72c92d61a624791f08f8f66402e7703420ab8afea1ea77ef7e"
+    },
+    {
+      "file": "lib/promptGuard.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "e36b6adf68797d6bf5881cb8d9a93f2be235277782cd05f019d3119333c940bb"
+    },
+    {
+      "file": "lib/modelRefusal.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "45b9ce80134e10bce7800568895bdb488beb8549ca6e5ea7d1c10f378becbb8c"
+    },
+    {
+      "file": "lib/regua95/pixelScore.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "c93a26bf9bd622f5b602982c9459e41182f3dee038ad747fa594861b75cb9175"
+    },
+    {
+      "file": "lib/regua95/ugcJudge.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "bf7a898370d56e44479c01769fd857b1c36f5cf0bf2ca29e8d81e4c639660d38"
+    },
+    {
+      "file": "lib/internalAccounts.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "c74edff15a4b01088911233de9a9a6648267eac6d9ab1c64f7a5320ec307c5ba"
+    },
+    {
+      "file": "app/admin/coerencia/page.tsx",
+      "state": "candidate-worktree",
+      "sha256": "bb9b319344a93c01af2c3be7992cc934fae9584892ca11a66fa753e1b7ecf5a1"
+    },
+    {
+      "file": "app/admin/coerencia/PedirFeedback.tsx",
+      "state": "candidate-worktree",
+      "sha256": "c7b2a311a0f8bbeae10dc843b9d3c24f3fb2342569d746dd632150d28f8b28b1"
+    },
+    {
+      "file": "app/admin/coerencia/AvaliarPendentes.tsx",
+      "state": "candidate-worktree",
+      "sha256": "506da5b1763972346de2f844c608b07bd28f61cdd86ca5a2add29af168ffe7c2"
+    },
+    {
+      "file": "app/admin/coerencia/AvaliarRegua95.tsx",
+      "state": "candidate-worktree",
+      "sha256": "55d9d533fee84b6dd085cfe61f1d42d288d386f3906d5e73f0cf9b288d553d8c"
+    },
+    {
+      "file": "lib/regua95/contexto.ts",
+      "state": "candidate-worktree",
+      "sha256": "1f9869c66a4cf8eaa1e1e1d9a97e15f31a6925354645a3d2b28c3e543cedc8a8"
+    },
+    {
+      "file": "lib/regua95/evidence.ts",
+      "state": "candidate-worktree",
+      "sha256": "de080eea3214ae45b0c66b3d56914758d56408f8f99e134787bdbadedc7be434"
+    },
+    {
+      "file": "components/admin/QualityAssessment.tsx",
+      "state": "candidate-worktree",
+      "sha256": "3368816ee661c197efb5640b91637b715773962acdcfaad6387289c9901e7660"
+    },
+    {
+      "file": "lib/admin/qualityEvidence.ts",
+      "state": "candidate-worktree",
+      "sha256": "c547201b0ee2f0ba76e298abde62b142c1102a207c10c4a74c7a91566d88ab9a"
+    },
+    {
+      "file": "lib/regua95/taskFulfillmentCanary.ts",
+      "state": "candidate-worktree",
+      "sha256": "a461df15af5ab37650138509d5d707641e15e741e9afd23f77a003646bf85bdd"
+    },
+    {
+      "file": "lib/aiModels.ts",
+      "state": "candidate-worktree",
+      "sha256": "0fa9c12baf9842f3fdab39fc8d9e5cb5c47ee3b8970f7ce571734bde5e5b6aee"
+    },
+    {
+      "file": "components/admin/TaskCanaryControl.tsx",
+      "state": "candidate-worktree",
+      "sha256": "0aef87b48e607e1b55da76173cebd102deb91c6c411578556e5137b9b79585df"
+    },
+    {
+      "file": "lib/admin/regua95Painel.ts",
+      "state": "candidate-worktree",
+      "sha256": "6ca5b1b8efff672a3a3a216c1a72711f1e332d63b6e1c826dc0ce2090ba25b25"
+    },
+    {
+      "file": "lib/regua95/coherenceV2.ts",
+      "state": "candidate-worktree",
+      "sha256": "2000fb74ba185deee97962252f491311c06f57aa10dbe0991fd58e33081eb495"
+    },
+    {
+      "file": "lib/fastCoherence.ts",
+      "state": "candidate-worktree",
+      "sha256": "38d03b55e2d3471aed6262f12a6022e9ff6fa846c4b4e4954b063dff8d7199e3"
+    },
+    {
+      "file": "lib/promptGuard.ts",
+      "state": "candidate-worktree",
+      "sha256": "e5048b84b28a2ff4a87a234540bff385ee38cd7ed9a1ea1482a436d3827ac4b2"
+    },
+    {
+      "file": "lib/modelRefusal.ts",
+      "state": "candidate-worktree",
+      "sha256": "0bc7fa0fc01a915c21a88dc323e9f581d19f61c390bf3c1de02a273c2f89aefb"
+    },
+    {
+      "file": "lib/regua95/pixelScore.ts",
+      "state": "candidate-worktree",
+      "sha256": "2c8fa9b005bb2108d6d819ab9588d5edde7e0f885c32873b2d165f7fea785075"
+    },
+    {
+      "file": "lib/regua95/ugcJudge.ts",
+      "state": "candidate-worktree",
+      "sha256": "03810dc860dbebd93c9dbb68e5865cd02f6efd65c3af6bfa9a3d1874a4c9aec9"
+    },
+    {
+      "file": "lib/internalAccounts.ts",
+      "state": "candidate-worktree",
+      "sha256": "c74edff15a4b01088911233de9a9a6648267eac6d9ab1c64f7a5320ec307c5ba"
+    },
+    {
+      "file": "lib/pastedDirectives.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "dcf327fee815f726f320079dcbd11e93417001d3cf64f9fcd8c2821b2f6c87f6"
+    },
+    {
+      "file": "lib/pastedDirectives.ts",
+      "state": "candidate-worktree",
+      "sha256": "0cbeaa9edb3f136afc6770053de6a1ede7f2cb2d2b09cc96e43f11fca3b5856f"
+    },
+    {
+      "file": "app/(dashboard)/generate/GenerateClient.tsx",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "a8bc8755ef96ab627387da3d0f70f2078e28061febdcf0592018147fa49803cd"
+    },
+    {
+      "file": "app/(dashboard)/generate/GenerateClient.tsx",
+      "state": "candidate-worktree",
+      "sha256": "694dfeec76ea69d544046931d6d24223ba4470bada4ce414c7992bf4a3b6a7e0"
+    },
+    {
+      "file": "lib/ui/interfaceHindi.ts",
+      "state": "9d8d3fad413d94798081528dbd61f3ba7848a76a",
+      "sha256": "0a73ecf6d6ed49129db6ec8b9edf0c14592991b58175df2a168f6d8670498065"
+    },
+    {
+      "file": "lib/ui/interfaceHindi.ts",
+      "state": "candidate-worktree",
+      "sha256": "e7ba250eb4f530fa54bc50edc5ef9d6ddb463970ee0b695ebdc4526874d64e87"
+    }
+  ],
+  "visual_verification": {
+    "checked_at_utc": "2026-10-26T06:43:27.098Z",
+    "browser": "Chrome via computer-use",
+    "data": "synthetic only",
+    "desktop": true,
+    "mobile_iframe_width": 388,
+    "capture_scope": "Native browser screenshots of the actual synthetic SSR page; full HTML includes every changed section. No customer content.",
+    "mobile_card_css_width": 390
+  },
+  "screenshots": [
+    {
+      "file": "admin-desktop-cards.jpg",
+      "sha256": "383427fd39ef50d4f0f498e16deb19bb7732230a52ed4cf42588fddae5cc1de8",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    },
+    {
+      "file": "admin-desktop-top.jpg",
+      "sha256": "9a85b299cd5905242c6265473b14592b45ba501cf35741403340d43defcc310d",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    },
+    {
+      "file": "admin-mobile-cards.jpg",
+      "sha256": "38a7d3e12a8d22f32a04b952f3ca469857529ae07c1cfdde958d8137ff2daf81",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    },
+    {
+      "file": "admin-mobile.jpg",
+      "sha256": "c2936f4d9005faba268e04b00c308b1039d1775181ead5199a0a8d4bbc1858de",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    },
+    {
+      "file": "entrada-desktop.jpg",
+      "sha256": "1dd41744d9afcf45793a9115ed0388c57a43c3f7529ec6e47e9846f71be2542c",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    },
+    {
+      "file": "traducoes-desktop.jpg",
+      "sha256": "c7a69375998bbabc91b321094293b64daa5fd58bd105effc0cef215bc3d44b94",
+      "width": 1905,
+      "height": 904,
+      "format": "Jpeg"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+import { semVideoFiel2610 } from './test-support/desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: only the historical page's extracted JSX; actual judge stays raw.
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -26,7 +27,7 @@ const ts = require(join(RAIZ, 'node_modules', 'typescript'))
 const React = require(join(RAIZ, 'node_modules', 'react'))
 const ReactDOMServer = require(join(RAIZ, 'node_modules', 'react-dom', 'server'))
 const jsxRuntime = require(join(RAIZ, 'node_modules', 'react', 'jsx-runtime'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => { const raw = readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'); return p === 'app/admin/coerencia/page.tsx' ? semVideoFiel2610(raw, p) : raw }
 const MARCA = 'KINEO-JUIZ-STILL-2026-10-06'
 const LIB = 'lib/hollywood/juizStill.ts'
 const ROTA = 'app/api/generate-video-cinematic/route.ts'

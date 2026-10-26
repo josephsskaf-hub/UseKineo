@@ -21,6 +21,7 @@
 import type { ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { assessEvidence, inspectFrameEvidence, isScore, objectRecord, type EvidenceAssessment } from '@/lib/regua95/evidence'
 
 export const PIXEL_SCORE_EVENT = 'pixel_score'
 export const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'
@@ -140,9 +141,9 @@ export type PixelIssue = (typeof PIXEL_ISSUES)[number]
 
 export type PixelFrameVerdict = { i: number; t: number | null; subject: string; score: number; issues: PixelIssue[]; note: string }
 
-export type PixelResult = {
+export type PixelResult = EvidenceAssessment & {
   version: string
-  score: number
+  score: number | null
   frames: PixelFrameVerdict[]
   identity_consistent: boolean | null
   caption_present: boolean | null
@@ -150,6 +151,7 @@ export type PixelResult = {
   caption_language_ok: boolean | null
   product_faithful: boolean | null
   caps: string[]
+  cap_limit: number
   summary: string
   /** nota de cada leitura (a média é `score`) */
   readings: number[]
@@ -227,17 +229,24 @@ export function normalizePixel(
   parsed: Record<string, unknown>,
   ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number },
 ): PixelResult {
+  parsed = objectRecord(parsed)
+  const evidence = inspectFrameEvidence(parsed, ctx.frames, PIXEL_FRAMES, (r) =>
+    isScore(r.score) && typeof r.subject === 'string' && !!r.subject.trim() && Array.isArray(r.issues) &&
+    r.issues.every((c) => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) &&
+    typeof r.note === 'string' && (r.score === 100 && r.issues.length === 0 || !!r.note.trim()))
   const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []
   const verdicts: PixelFrameVerdict[] = ctx.frames.map((f, idx) => {
-    const r = raw.find((x) => Number(x?.i) === idx + 1) ?? raw[idx] ?? null
+    const r = raw.find((x) => x?.i === idx + 1) ?? null
     const issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []
     const nearBlack = typeof f.bytes === 'number' && f.bytes > 0 && f.bytes < NEAR_BLACK_JPEG_BYTES
     if (nearBlack && !issues.includes('near_black')) issues.push('near_black')
     return { i: idx + 1, t: f.t, subject: typeof r?.subject === 'string' ? r.subject.trim().slice(0, 60) : '', score: r ? clamp(r.score) : 0, issues, note: typeof r?.note === 'string' ? r.note.trim().slice(0, 120) : r ? '' : 'sem leitura do juiz para este quadro' }
   })
   const caps: string[] = []
+  let capLimit = 100
   let score = verdicts.length ? Math.round(verdicts.reduce((a, v) => a + v.score, 0) / verdicts.length) : 0
   const cap = (limit: number, why: string) => {
+    capLimit = Math.min(capLimit, limit)
     if (score > limit) score = limit
     caps.push(`${why} (teto ${limit})`)
   }
@@ -251,26 +260,33 @@ export function normalizePixel(
   const productFaithful = ctx.product === 'ads' || ctx.product === 'ugc' ? bool(parsed.product_faithful) : null
   if (count('near_black') > 0) cap(60, `${count('near_black')} quadro(s) quase preto(s)`)
   if (identity === false) cap(70, 'personagem ou produto troca entre quadros')
-  const deformed = count('deformed_face_or_hand') + count('ugc_eyes_mouth_hands')
+  const deformed = verdicts.filter((v) => v.issues.includes('deformed_face_or_hand') || v.issues.includes('ugc_eyes_mouth_hands')).length
   if (deformed >= 2) cap(75, `rosto/mão deformado em ${deformed} quadros`)
   if (productFaithful === false || count('product_unfaithful') >= 2) cap(70, 'produto diferente da foto real')
   if (captionPresent === true && (captionLegible === false || captionLang === false)) cap(85, captionLang === false ? 'legenda na língua/escrita errada' : 'legenda ilegível')
-  if (count('off_topic') + count('subject_missing') >= 2) cap(80, `${count('off_topic') + count('subject_missing')} quadros sem o sujeito da fala`)
+  const missingSubject = verdicts.filter((v) => v.issues.includes('off_topic') || v.issues.includes('subject_missing')).length
+  if (missingSubject >= 2) cap(80, `${missingSubject} quadros sem o sujeito da fala`)
   if (count('repeated') >= 3) cap(85, `${count('repeated')} quadros repetidos`)
   if (count('invented_text') >= 1) cap(85, `texto inventado na imagem em ${count('invented_text')} quadro(s)`)
   // KINEO-META95-UGC-1910 — no UGC/apresentador a frase curta no alto é o formato: legenda só pesa se for ilegível (teto 85 acima).
   if (ctx.product !== 'ugc' && count('caption_broken') >= 2) cap(88, `legenda partida/órfã em ${count('caption_broken')} quadros`)
+  if (identity === false && !trocas.some((t) => Number.isInteger(t.from) && Number.isInteger(t.to) && Number(t.from) >= 1 && Number(t.to) >= 1 && Number(t.from) <= ctx.frames.length && Number(t.to) <= ctx.frames.length && t.from !== t.to && typeof t.what === 'string' && !!t.what.trim())) evidence.evidence_reasons.push('identity_defect_not_located')
+  if (productFaithful === false && count('product_unfaithful') === 0) evidence.evidence_reasons.push('product_defect_not_located')
+  if (captionPresent === true && (captionLegible === false || captionLang === false) && !verdicts.some((v) => (v.issues.includes('caption_illegible') || v.issues.includes('caption_broken')) && v.note.trim())) evidence.evidence_reasons.push('caption_defect_not_located')
+  const validated = assessEvidence(evidence.evidence_reasons, evidence.coverage)
   return {
+    ...validated,
     version: PIXEL_SCORE_VERSION,
-    score,
+    score: validated.evidence_status === 'complete' ? score : null,
     frames: verdicts,
-    readings: [score],
+    readings: validated.evidence_status === 'complete' ? [score] : [],
     identity_consistent: identity,
     caption_present: captionPresent,
     caption_legible: captionLegible,
     caption_language_ok: captionLang,
     product_faithful: productFaithful,
     caps,
+    cap_limit: capLimit,
     summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',
     frame_via: ctx.via,
     frame_count: ctx.frames.length,
@@ -292,22 +308,32 @@ export async function judgeFrames(
   const started = opts?.startedAt ?? Date.now()
   const n = Math.max(1, Math.min(3, opts?.readings ?? PIXEL_READINGS))
   const leituras = (await Promise.all(Array.from({ length: n }, () => judgeFramesOnce(ctx, frames, { ...opts, usdFrames: 0, startedAt: started })))).filter((r): r is PixelResult => r !== null)
-  return combinePixelReadings(leituras, { usdFrames: opts?.usdFrames ?? 0, ms: Date.now() - started })
+  return combinePixelReadings(leituras, { usdFrames: opts?.usdFrames ?? 0, ms: Date.now() - started, expectedReadings: Math.max(n, PIXEL_READINGS) })
 }
 
 /**
  * Junta as leituras do juiz de visão (a de temperatura 0 com imagens ainda oscila: no calibrador, o mesmo Dino levou 70 e
- * 88 em duas rodadas). Nota = média das notas JÁ com os tetos de cada leitura; o detalhe (quadros, tetos, resumo) é o da
- * leitura mais dura — é a que viu o defeito.
+ * 88 em duas rodadas). A média nunca ultrapassa um teto fundamentado de qualquer leitura. Evidência incompleta = null;
+ * duas respostas iguais são registradas como concordantes, não como avaliações independentes.
  */
-export function combinePixelReadings(leituras: PixelResult[], ctx: { usdFrames: number; ms: number }): PixelResult | null {
+export function combinePixelReadings(leituras: PixelResult[], ctx: { usdFrames: number; ms: number; expectedReadings?: number }): PixelResult | null {
   if (leituras.length === 0) return null
-  const dura = leituras.reduce((a, b) => (b.score < a.score ? b : a), leituras[0])
+  const validas = leituras.filter((r): r is PixelResult & { score: number } => isScore(r.score) && r.evidence_status === 'complete')
+  const dura = validas.length ? validas.reduce((a, b) => (b.score < a.score ? b : a), validas[0]) : leituras[0]
+  const expectedReadings = ctx.expectedReadings ?? PIXEL_READINGS
+  const reasons = leituras.flatMap((r) => r.evidence_reasons)
+  if (validas.length < expectedReadings) reasons.push('readings_below_plan')
+  const signatures = validas.map((r) => JSON.stringify({ frames: r.frames, caps: r.caps, summary: r.summary }))
+  const evidence = assessEvidence(reasons, { ...dura.coverage, expected_readings: expectedReadings, valid_readings: validas.length, readings_identical: signatures.length > 1 && new Set(signatures).size === 1 })
+  const capLimit = Math.min(...leituras.map((r) => r.cap_limit))
   const usdVision = leituras.reduce((a, r) => a + r.usd_vision, 0)
   return {
     ...dura,
-    score: Math.round(leituras.reduce((a, r) => a + r.score, 0) / leituras.length),
-    readings: leituras.map((r) => r.score),
+    ...evidence,
+    score: evidence.evidence_status === 'complete' ? Math.min(capLimit, Math.round(validas.reduce((a, r) => a + r.score, 0) / validas.length)) : null,
+    cap_limit: capLimit,
+    caps: [...new Set(leituras.flatMap((r) => r.caps))],
+    readings: validas.map((r) => r.score),
     usd_frames: Math.round(ctx.usdFrames * 1e6) / 1e6,
     usd_vision: Math.round(usdVision * 1e6) / 1e6,
     usd: Math.round((ctx.usdFrames + usdVision) * 1e6) / 1e6,

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import crypto from 'node:crypto'
+import { semVideoFiel2610 } from './test-support/desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: only historical page markup; judge behavior remains raw.
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — remove only the exact approved input guard before legacy contracts.
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -83,7 +84,7 @@ console.log('== (d) painel ==')
 const la = rd('lib/admin/fastCoherence.ts')
 checa('rota grava o prompt INTEIRO no plano (videos.topic corta em 500); leitor usa o texto mais longo, marca truncado e só aceita nota da versão vigente', ft.includes('topic: prompt.slice(0, 5000), scenes: sceneEvidence') && la.includes('scoreEv.metadata.version === FAST_COHERENCE_VERSION') && la.includes('const topic = candidatos.reduce((a, b) => (b.length > a.length ? b : a), \'\')') && la.includes('promptMayBeTruncated: r.topic_truncated'))
 checa('leitor junta vídeo → claim (render_id) → plano (generation_id) → nota, e julga só o que falta', la.includes("eq('name', 'compose_submission_claim')") && la.includes("eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds)") && la.includes('const pending = rows.filter((r) => !r.coherence && r.generation_id && r.narration && r.topic)') && la.includes('name: FAST_COHERENCE_EVENT'))
-const pg = rd('app/admin/coerencia/page.tsx')
+const pg = semVideoFiel2610(rd('app/admin/coerencia/page.tsx'), 'app/admin/coerencia/page.tsx')
 checa('/admin/coerencia: gate admin, média/fora/parciais, escreveu × narrou × cena a cena, link do filme', pg.includes('isAdminEmail(email)') && pg.includes('fora do pedido') && pg.includes('Cena a cena') && pg.includes('▶ abrir o filme'))
 const pm = rd('app/api/admin/person-media/route.ts')
 checa('painel por pessoa devolve coherence por vídeo (30 dias, até 4 julgados por abertura, falha aberta), com leitura paginada injetada e rota real', pm.includes("listFastCoherence(admin, { route: '/api/admin/person-media', hours: 24 * 30, limit: 60, userId: uid, maxCompute: 4 }, readAll)") && pm.includes('coherence: coerenciaPorVideo.get(v.id as string) ?? null'))

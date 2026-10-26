@@ -1,5 +1,6 @@
 import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
-// [TRAVA 8.2] KLING25-DESCRICOES — guardião: toda cena tem descrição e o fallback NUNCA é a fala (28/09/2026).
+// [TRAVA 8.2] KLING25-DESCRICOES — cobertura do descritor; revisão CENAS-FIEIS-2610:
+// descrição segura da própria cena ou reviewRequired, nunca fala crua nem estado emprestado da vizinha.
 //
 // FATO (render real 28/09 02:35 UTC, conta do fundador, Kling 2.5 60 s, 18 planos, 18/18 aceitos, filme 72 s, nota 9,5): o
 // prompt submetido da cena 18 foi a NARRAÇÃO crua — "That's the thing about a monster like this It doesn't need to hit you
@@ -16,14 +17,15 @@ import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2
 //   (2) describeScenesCovered: lotes em paralelo, junção por índice REAL, re-pedido só das faltantes (1 tentativa), lote
 //       que falha não derruba o outro;
 //   (3) fatia real da rota, 18 cenas com 17 descrições (a fatia do render): a 18ª NÃO contém a fala, nem "Follow for the
-//       next one", nem "monster"; contém o sujeito da 17ª com outro enquadramento; o re-pedido pediu SÓ a cena 18; o
+//       next one", nem "monster"; sem pista própria segura recebe reviewRequired[17], não o sujeito da 17ª; o re-pedido pediu SÓ a cena 18; o
 //       teto de tokens de cada chamada cresce com o lote; re-pedido que responde é aceito;
 //   (4) 12 cenas → idêntico ao de hoje: UMA chamada, mensagens byte-idênticas às da BASE (origin/main), nenhum fallback;
-//   (5) descritor fora do ar (toda chamada lança): nenhuma cena sem prompt; CTA-only repete o assunto do filme; sem
-//       "monster"; a rota não lança;
+//   (5) descritor fora do ar (toda chamada lança): sinaliza cada cena irresolvida, sem preencher por invenção;
+//       CTA-only só conserva assunto CONHECIDO por descrição válida, não infere uma imagem do tópico cru;
 //   (6) supervisor fala×imagem: reescrita que devolve a cena de fallback à criatura/CTA é recusada; a de cena do modelo
 //       (ou sem artefato) é aplicada — a lib do supervisor (compartilhada com o hollywood) fica byte-idêntica à base;
-//   (7) mutantes: fallback = fala (rota e lib) → vermelho; sem lotes → vermelho; teto fixo 1000 de volta → vermelho;
+//   (7) mutantes: fallback = fala (rota e lib), sem lotes, teto fixo, vizinha com estado errado, sinal omitido e fala
+//       alterada → vermelho. A fatia histórica do descritor não substitui a prova da nova API de falha/estorno pré-fornecedor;
 //   (8) estático: os guardiões irmãos continuam válidos (laço de 2 tentativas; `await generateCinematicDescriptions(` só
 //       depois de styleAnchor); hollywood intocado (speechImageAlign.ts e klingShots.ts idênticos à base; contagem de
 //       hollywoodPath igual).
@@ -74,7 +76,9 @@ checa('a base (sem o marcador) está disponível para as comparações', Boolean
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneDescriptions.ts'
 const rota = semTrilha15s1610(rd(ROTA), ROTA) // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: a regra nova do plano de b-roll (plano só alinhado; senão o descritor roda) sai em memória — o bloco do descritor que este guardião executa é byte a byte o de antes; a regra nova é provada em scripts/test-trilha-15s-1610.mjs
-const libSrc = rd(LIB)
+// O helper ATUAL é o objeto deste contrato revisado; projeções históricas não
+// podem restaurar justamente o fallback inseguro que estas asserções recusam.
+const libSrc = readFileSync(join(RAIZ, LIB), 'utf8').replace(/\r\n/g, '\n')
 const rotaBase = rdBase(ROTA)
 const S = roda(libSrc)
 const K = roda(rd('lib/cinematic/klingShots.ts'))
@@ -117,18 +121,21 @@ checa('subjectFromTopic: primeira sentença, sem colchetes/CTA/abertura retóric
   const comp = S.completeSceneDescriptions({ descriptions: [...Array.from({ length: 17 }, (_, i) => descModelo(i + 1)), null], scenes: cenas(18).map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery })), topic: TOPICO })
   checa('lib, 18 cenas / 17 descrições: as 17 ficam como estão', comp.descriptions.slice(0, 17).every((d, i) => d === descModelo(i + 1)))
   checa('lib: a 18ª não contém a fala, nem "Follow for the next one", nem "monster"', !comp.descriptions[17].includes(PISTA18) && !/follow for the next one|monster/i.test(comp.descriptions[17]))
-  checa('lib: a 18ª contém o sujeito da 17ª (o mar tempestuoso) com outro enquadramento e a mesma luz', comp.descriptions[17].includes('the stormy sea under black clouds') && comp.descriptions[17].includes('cold blue light') && !comp.descriptions[17].startsWith('Wide shot of'))
-  checa('lib: relato = só a cena 18, fonte previous', eqJ(comp.fallbacks, [{ index: 17, source: 'previous' }]))
+  checa('lib: a 18ª sem pista segura fica vazia e exige revisão 0-based17, sem copiar o estado da 17ª', comp.descriptions[17] === '' && eqJ(comp.reviewRequired, [17]))
+  checa('lib: relato = só a cena 18, fonte requires_review', eqJ(comp.fallbacks, [{ index: 17, source: 'requires_review' }]))
   const comp12 = S.completeSceneDescriptions({ descriptions: Array.from({ length: 12 }, (_, i) => descModelo(i + 1)), scenes: cenas(12).map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery })), topic: TOPICO })
   checa('lib, 12 cenas / 12 descrições: idêntico, sem fallback', comp12.fallbacks.length === 0 && comp12.descriptions.every((d, i) => d === descModelo(i + 1)))
   const comp1 = S.completeSceneDescriptions({ descriptions: [null, descModelo(2), descModelo(3)], scenes: cenas(3).map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery })), topic: TOPICO })
-  checa('lib: cena 1 sem descrição usa a PRÓXIMA (source next), nunca a fala', comp1.fallbacks[0].source === 'next' && comp1.descriptions[0].includes('the hurricane coast of scene 2') && !comp1.descriptions[0].includes('seawall'))
+  checa('lib: cena 1 com pista igual à fala exige revisão, não importa sujeito/ação da PRÓXIMA', comp1.fallbacks[0].source === 'requires_review' && comp1.descriptions[0] === '' && eqJ(comp1.reviewRequired, [0]))
   const compGap = S.completeSceneDescriptions({ descriptions: [descModelo(1), null, null, null, descModelo(5)], scenes: cenas(5).map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery })), topic: TOPICO })
-  checa('lib: três cenas seguidas sem descrição saem com enquadramentos DIFERENTES entre si (nunca 3 prompts iguais)', new Set(compGap.descriptions.slice(1, 4)).size === 3 && compGap.descriptions.slice(1, 4).every((d) => d.includes('the hurricane coast of scene 1')))
+  checa('lib: três cenas sem pista segura sinalizam três revisões, sem fingir três enquadramentos verificados', eqJ(compGap.reviewRequired, [1, 2, 3]) && compGap.descriptions.slice(1, 4).every((d) => d === '') && compGap.descriptions[0] === descModelo(1) && compGap.descriptions[4] === descModelo(5))
   const compZero = S.completeSceneDescriptions({ descriptions: [null, null, null], scenes: [{ voiceover: 'Hurricane Polo formed over warm Pacific waters', hint: 'Hurricane Polo formed over warm Pacific waters' }, { voiceover: FALA18, hint: PISTA18 }, { voiceover: 'Follow for the next one.', hint: K.kling25VisualHint('Follow for the next one.') }], topic: TOPICO })
-  checa('lib, descritor fora do ar: nenhuma cena sem prompt (≥ 3 palavras); nenhum traz CTA/monster', compZero.descriptions.every((d) => palavras(d).length >= 3 && !/monster|follow|subscribe/i.test(d)))
-  checa('lib, descritor fora do ar: fala que é só CTA repete o assunto do filme', compZero.descriptions[2].includes("Hurricane Polo didn't just hit the coast") && compZero.fallbacks[2].source === 'film_subject')
-  checa('lib, descritor fora do ar: pista própria entra só sem os artefatos (own_hint_scrubbed)', compZero.fallbacks[1].source === 'own_hint_scrubbed' && /stop everything/.test(compZero.descriptions[1]))
+  checa('lib, descritor fora do ar: cenas sem evidência ficam vazias com todos os índices de revisão; nenhum CTA/monster', eqJ(compZero.reviewRequired, [0, 1, 2]) && compZero.descriptions.every((d) => d === '' && !/monster|follow|subscribe/i.test(d)))
+  checa('lib, descritor fora do ar: CTA sem nenhuma imagem conhecida não inventa o assunto do filme', compZero.descriptions[2] === '' && compZero.fallbacks[2].source === 'requires_review')
+  const ownHint = S.completeSceneDescriptions({ descriptions: [D17, null], scenes: [{ voiceover: 'The storm batters the coast.', hint: 'storm coast' }, { voiceover: 'Water breaks through the seawall.', hint: 'Tracking shot of floodwater breaking through the seawall' }], topic: TOPICO })
+  checa('lib: pista visual PRÓPRIA entra como own_hint_scrubbed, preserva ação atual sem mar da vizinha', !ownHint.reviewRequired && ownHint.fallbacks[0].source === 'own_hint_scrubbed' && /floodwater breaking through the seawall/.test(ownHint.descriptions[1]) && !/stormy sea|black clouds|ominous mood/.test(ownHint.descriptions[1]))
+  const ctaKnown = S.completeSceneDescriptions({ descriptions: [D17, null], scenes: [{ voiceover: 'The sea is stormy.' }, { voiceover: 'Follow for the next one.', hint: 'Follow for the next one' }], topic: TOPICO })
+  checa('lib: CTA puro com imagem conhecida mantém o sujeito, sem nova ação nem revisão desnecessária', !ctaKnown.reviewRequired && ctaKnown.fallbacks[0].source === 'previous' && ctaKnown.descriptions[1].includes('the stormy sea under black clouds') && !/follow|monster/i.test(ctaKnown.descriptions[1]))
 }
 
 console.log('== (2) describeScenesCovered ==')
@@ -172,11 +179,13 @@ const fakeOpenai = (politica) => {
   } } } }
 }
 function montaRota(fn, call, lib) {
-  const js = transpila(`${fn}\nexports.generateCinematicDescriptions = generateCinematicDescriptions\nexports.run = async (scenes, prompt, classicVisualPolicy, verbatim, planScenes, hollywoodPath) => {\n${call}\nreturn { scenes, semModelo: [...cenasSemDescricaoDoModelo] }\n}`)
+  const js = transpila(`${fn}\nexports.generateCinematicDescriptions = generateCinematicDescriptions\nexports.run = async (scenes, prompt, classicVisualPolicy, verbatim, planScenes, hollywoodPath) => {\n${call}\nreturn { scenes, semModelo: [...cenasSemDescricaoDoModelo], reviewRequired: [...reviewSignals] }\n}`)
   return (openai, logs) => {
     const exp = {}
     const L = lib ?? S
-    vm.runInNewContext(js, { exports: exp, console: { log: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error() {} }, ...BUILTINS, process: { env: {} }, ...stubs(), openai, describeScenesCovered: L.describeScenesCovered, completeSceneDescriptions: L.completeSceneDescriptions, hasSpeechArtifacts: L.hasSpeechArtifacts })
+    const reviewSignals = []
+    const completeSceneDescriptions = (input) => { const result = L.completeSceneDescriptions(input); reviewSignals.push(...(result.reviewRequired ?? [])); return result }
+    vm.runInNewContext(js, { exports: exp, console: { log: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error() {} }, ...BUILTINS, process: { env: {} }, ...stubs(), openai, describeScenesCovered: L.describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts: L.hasSpeechArtifacts, reviewSignals })
     return exp
   }
 }
@@ -189,7 +198,7 @@ const politicaRender = (nums) => (nums.length === 9 && nums[0] === 10 ? nums.sli
   const r = await rotaReal(oa, logs).run(cenas(18), TOPICO, POLITICA, true, [], false)
   const p18 = r.scenes[17].aiPrompt
   checa('rota: a 18ª NÃO contém a fala crua, nem "Follow for the next one", nem "monster"', typeof p18 === 'string' && !p18.includes(PISTA18) && !/follow for the next one|monster/i.test(p18))
-  checa('rota: a 18ª contém o sujeito da 17ª com outro enquadramento', p18.includes('the stormy sea under black clouds') && !p18.startsWith('Wide shot of'))
+  checa('fatia do descritor: a 18ª não finge continuidade; helper sinaliza revisão antes do construtor', p18 === '' && eqJ(r.reviewRequired, [17]))
   checa('rota: as 17 do modelo ficam byte-iguais', r.scenes.slice(0, 17).every((s, i) => s.aiPrompt === descModelo(i + 1)))
   checa('rota: a narração da 18ª NÃO foi tocada', r.scenes[17].voiceover === FALA18 && r.scenes[17].stockSearchQuery === PISTA18)
   const iniciais = oa.calls.filter((c) => c.nums.length === 9)
@@ -200,8 +209,8 @@ const politicaRender = (nums) => (nums.length === 9 && nums[0] === 10 ? nums.sli
   checa('rota: teto de tokens de cada chamada = espelho(n do lote) e ≥ 1000; lote de 9 → 1010', oa.calls.every((c) => c.max_tokens === Math.max(1000, 90 * c.nums.length + 200) && c.max_tokens >= 1000) && iniciais.every((c) => c.max_tokens === 1010))
   checa('rota: nota de lote presente nos lotes (não é a chamada única de sempre)', iniciais.every((c) => /of a 18-scene film; the other scenes are described in a separate call/.test(c.messages[1].content)))
   checa('rota: só a cena 18 marcada como sem descrição do modelo (0-based 17)', eqJ(r.semModelo, [17]))
-  checa('rota: log diz 17/18, 2 lotes, re-pedida 18 → 0 recuperada', logs.some((l) => /#441 cinematic descriptions: 17\/18 scenes \(2 lote\(s\); re-pedidas 18 → 0 recuperada\(s\)\)/.test(l)) && logs.some((l) => /KLING25-DESCRICOES: 1 cena\(s\) sem descrição do modelo .* cena 18 \(previous\)/.test(l)))
-  checa('rota: a cadeia do prompt continua aiPrompt PRIMEIRO (a fala em stockSearchQuery nunca chega ao construtor quando há aiPrompt)', /const visualPrompt = scene\.aiPrompt \|\| scene\.stockSearchQuery \|\| scene\.description/.test(rota) && r.scenes.every((s) => typeof s.aiPrompt === 'string' && s.aiPrompt.length > 3))
+  checa('fatia do descritor: log distingue 17/18 descrições e cena18 requires_review (não uma descrição confirmada)', logs.some((l) => /#441 cinematic descriptions: 17\/18 scenes \(2 lote\(s\); re-pedidas 18 → 0 recuperada\(s\)\)/.test(l)) && logs.some((l) => /KLING25-DESCRICOES: 1 cena\(s\) sem descrição do modelo .* cena 18 \(requires_review\)/.test(l)))
+  checa('fatia do descritor: aiPrompt válido continua prioritário; cada vazio é explicitamente marcado para a nova porta da API', /const visualPrompt = scene\.aiPrompt \|\| scene\.stockSearchQuery \|\| scene\.description/.test(rota) && r.scenes.every((s, i) => typeof s.aiPrompt === 'string' && (s.aiPrompt.length > 3 || r.reviewRequired.includes(i))) && r.reviewRequired.length === 1)
 }
 // (3b) o re-pedido responde
 {
@@ -247,8 +256,8 @@ console.log('== (5) descritor fora do ar ==')
   let lancou = false
   let r = null
   try { r = await rotaReal(oa, logs).run(scenesDead, TOPICO, POLITICA, true, [], false) } catch { lancou = true }
-  checa('rota não lança; toda cena sai com aiPrompt de ≥ 3 palavras', !lancou && r && r.scenes.every((s) => palavras(s.aiPrompt).length >= 3))
-  checa('rota: nenhum prompt traz "monster"/"follow"/"subscribe"; a cena só-CTA repete o assunto do filme', r && r.scenes.every((s) => !/monster|follow|subscribe/i.test(s.aiPrompt)) && r.scenes[2].aiPrompt.includes("Hurricane Polo didn't just hit the coast"))
+  checa('fatia do descritor não lança; cada cena sem imagem segura é vazia e tem índice de revisão explícito', !lancou && r && eqJ(r.reviewRequired, [0, 1, 2]) && r.scenes.every((s) => s.aiPrompt === ''))
+  checa('fatia do descritor: nenhum prompt traz "monster"/"follow"/"subscribe"; CTA sem imagem conhecida permanece desconhecido', r && r.scenes.every((s) => !/monster|follow|subscribe/i.test(s.aiPrompt)) && r.scenes[2].aiPrompt === '' && r.reviewRequired.includes(2))
   checa('rota: as 3 marcadas como sem descrição do modelo; log 0/3 com erros', r && eqJ(r.semModelo, [0, 1, 2]) && logs.some((l) => /#441 cinematic descriptions: 0\/3 scenes \(1 lote\(s\); re-pedidas 1,2,3 → 0 recuperada\(s\); erros: /.test(l)))
 }
 
@@ -279,7 +288,7 @@ console.log('== (7) mutantes ==')
   const rM1 = await montaRota(fnSrc, callM1)(fakeOpenai(politicaRender), []).run(cenas(18), TOPICO, POLITICA, true, [], false)
   checa('M1 (fallback = fala na rota) é pego: a 18ª volta a trazer "monster" e "Follow for the next one"', /monster/.test(rM1.scenes[17].aiPrompt) && /Follow for the next one/.test(rM1.scenes[17].aiPrompt))
   // M2: lib devolve a narração no lugar do sujeito
-  const libM2 = libSrc.replace('out.push(describeFromSubject(i, sceneSubjectOf(src), shotTailOf(src), src))', "out.push(String(input.scenes[i]?.voiceover ?? ''))")
+  const libM2 = libSrc.replace("out.push('')", "out.push(String(input.scenes[i]?.voiceover ?? ''))")
   checa('M2 aplicado', libM2 !== libSrc)
   const rM2 = await montaRota(fnSrc, callSrc, roda(libM2))(fakeOpenai(politicaRender), []).run(cenas(18), TOPICO, POLITICA, true, [], false)
   checa('M2 (fallback = fala na lib) é pego: a 18ª é a narração literal', rM2.scenes[17].aiPrompt === FALA18)
@@ -301,6 +310,33 @@ console.log('== (7) mutantes ==')
   const expM5 = roda(`exports.run = (alinhado, scenes, cenasSemDescricaoDoModelo, historiaAlinhada) => {\n${alignM5}\nreturn scenes }`, { scrubInventedSetting: (t) => ({ text: t, removed: [] }), hasSpeechArtifacts: S.hasSpeechArtifacts })
   const outM5 = expM5.run({ rewritten: [{ index: 17, shot: 'A giant monster rising from the sea' }] }, Array.from({ length: 18 }, (_, i) => ({ aiPrompt: `plano ${i + 1}` })), new Set([17]), '')
   checa('M5 (sem a guarda do supervisor) é pego: o monstro volta pela reescrita', outM5[17].aiPrompt === 'A giant monster rising from the sea')
+
+  // CENAS-FIEIS-2610: o MESMO oráculo é usado no código atual e nos mutantes.
+  // Não basta não ter "monster": sujeito, estado/ação e narração precisam bater.
+  const ownSceneOracle = (api) => {
+    const input = { descriptions: ['Wide shot of a white sock waiting, a dog watches beside it', null], scenes: [{ voiceover: 'The sock waits while white.' }, { voiceover: 'The sock is now fully blue.', hint: 'Macro view of the same sock now fully blue' }], topic: 'A sock changes from white to blue.' }
+    const before = JSON.stringify(input)
+    const result = api.completeSceneDescriptions(input)
+    return !result.reviewRequired && /fully blue/.test(result.descriptions[1]) && !/white sock|dog watches|waiting/.test(result.descriptions[1]) && result.fallbacks[0].source === 'own_hint_scrubbed' && JSON.stringify(input) === before
+  }
+  const unknownOracle = (api) => {
+    const input = { descriptions: [D17, null], scenes: [{ voiceover: 'The sea is stormy.' }, { voiceover: 'The sock is now fully blue.', hint: 'The sock is now fully blue.' }], topic: 'A sock changes from white to blue.' }
+    const before = JSON.stringify(input)
+    const result = api.completeSceneDescriptions(input)
+    return result.descriptions[1] === '' && eqJ(result.reviewRequired, [1]) && result.fallbacks[0].source === 'requires_review' && JSON.stringify(input) === before
+  }
+  checa('oráculo atual: pista própria preserva azul/ação sem vizinha e não muda narração', ownSceneOracle(S))
+  checa('oráculo atual: fala crua exige revisão explícita, sem narração alterada', unknownOracle(S))
+  const ownAnchor = "describeFromSubject(i, pista, 'preserve the established lighting and art style', rawHint)"
+  const libM6 = libSrc.replace(ownAnchor, "describeFromSubject(i, sceneSubjectOf(src || ''), shotTailOf(src || ''), rawHint)")
+  checa('M6 aplicado: sujeito/estado da vizinha substitui o azul da própria cena', libM6 !== libSrc)
+  checa('M6 rejeitado pelo MESMO oráculo de continuidade, não apenas por ausência de monster', !ownSceneOracle(roda(libM6)))
+  const libM7 = libSrc.replace('reviewRequired.push(i)', 'void i')
+  checa('M7 aplicado: omitir índice de revisão', libM7 !== libSrc)
+  checa('M7 rejeitado: vazio sem reviewRequired não pode parecer plano aprovado', !unknownOracle(roda(libM7)))
+  const libM8 = libSrc.replace('const n = input.scenes.length', "(input.scenes[0] as { voiceover?: string }).voiceover = 'A different narrated story.'; const n = input.scenes.length")
+  checa('M8 aplicado: mudar a fala para combinar com o plano visual', libM8 !== libSrc)
+  checa('M8 rejeitado: a narração é trilho mestre e permanece byte-idêntica', !ownSceneOracle(roda(libM8)))
 }
 
 console.log('== (8) estático: irmãos válidos, hollywood intocado ==')

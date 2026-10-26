@@ -150,13 +150,39 @@ function readNumber(o: Record<string, unknown>, keys: string[]): number | null {
   return null
 }
 
+// PEDIDO-MCP-2610: only the explicit, generation-bound scene review is terminal.
+// Ordinary timeouts/outages keep their established recovery path.
+type StudioReview = {
+  generationId: string; reason: 'scene_description_requires_review'; qualityCheckFailed: true;
+  review_required: true; retryable: false; refunded: boolean; refundConfirmed: boolean; claimReleased: boolean;
+}
+function readStudioReview(status: number, data: Record<string, unknown>, generationId: string): StudioReview | null {
+  if (status < 400 || data.generationId !== generationId || data.reason !== 'scene_description_requires_review'
+    || data.qualityCheckFailed !== true || data.review_required !== true || data.retryable !== false) return null
+  const refunded = data.refunded === true && data.refundConfirmed === true
+  return { generationId, reason: 'scene_description_requires_review', qualityCheckFailed: true,
+    review_required: true, retryable: false, refunded, refundConfirmed: refunded, claimReleased: data.claimReleased === true }
+}
+function studioReviewOutcome(review: StudioReview) {
+  const refundPending = !review.refundConfirmed
+  const status = refundPending ? 'failed' : 'refunded'
+  const message = refundPending
+    ? 'This attempt stopped for review. The credit refund is not confirmed yet. Do not start it again; contact Kineo support if it remains unresolved. Status checks do not restart generation.'
+    : review.claimReleased
+      ? 'This attempt stopped for review and its credits were returned. Review the scene descriptions before explicitly starting a new attempt.'
+      : 'This attempt stopped for review and its credits were returned, but release of the attempt is not confirmed yet. Contact Kineo support before starting it again.'
+  return { status, reason: review.reason, review_required: true, retryable: false,
+    refund_pending: refundPending, refund_confirmed: review.refundConfirmed, claim_released: review.claimReleased,
+    credits_charged: null, message }
+}
+
 export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput, estimate: number, io: StudioIo = STUDIO_REAL_IO): Promise<StudioToolResult> {
   if (input.idempotencyKey) {
     const existing = await findJobByKey(ctx, input.idempotencyKey)
     if (existing) {
       const status = await studioVideoStatus(ctx, existing.generation_id, io)
       return status.ok
-        ? { ok: true, data: { ...status.data, reused: true, idempotency_key: input.idempotencyKey }, summary: 'Same request already started — returning the existing job (nothing charged again).' }
+        ? { ok: true, data: { ...status.data, reused: true, idempotency_key: input.idempotencyKey }, summary: 'Same request already recorded — returning its existing outcome (nothing charged again).' }
         : status
     }
   }
@@ -202,12 +228,19 @@ export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput,
         res = null
         break
       }
-      if (!isPendingAnswer(res.status, data)) break
+      if (readStudioReview(res.status, data, generationId) || !isPendingAnswer(res.status, data)) break // PEDIDO-MCP-2610: explicit review is never an outage replay.
       const wait = typeof data.retry_after_ms === 'number' && Number.isFinite(data.retry_after_ms) ? data.retry_after_ms : 2500
       await io.sleep(Math.min(Math.max(wait, 1000), 5000))
     }
   } finally {
     await minted.session.dispose()
+  }
+  const review = res ? readStudioReview(res.status, data, generationId) : null
+  if (review) {
+    const outcome = studioReviewOutcome(review)
+    const tracked = await recordStudioJob(ctx, input, generationId, null,
+      { http_status: res!.status, outcome: 'review_required', review }, outcome.status)
+    return { ok: false, error: outcome.message, details: { ...outcome, job_id: tracked ? generationId : null, http_status: res!.status } }
   }
   const plans = `${ctx.publicOrigin}/pricing?utm_source=claude_studio_connector`
   // Sem resposta, `pending` até o fim do prazo, ou 5xx: o débito PODE ter acontecido. Grava o job (com o corpo, para o
@@ -259,7 +292,7 @@ export function isPendingAnswer(status: number, data: Record<string, unknown>): 
 }
 
 /** KINEO-MCP-STUDIO-AJUSTE-2010 — a linha do job (com o user_id do token). Devolve se gravou. */
-async function recordStudioJob(ctx: StudioCtx, input: CreateVideoInput, generationId: string, credits: number, dispatch: Record<string, unknown>): Promise<boolean> {
+async function recordStudioJob(ctx: StudioCtx, input: CreateVideoInput, generationId: string, credits: number | null, dispatch: Record<string, unknown>, status: string = 'processing'): Promise<boolean> {
   const { error: jobErr } = await ctx.db.from('mcp_studio_jobs').insert({
     user_id: ctx.userId,
     idempotency_key: input.idempotencyKey,
@@ -268,7 +301,7 @@ async function recordStudioJob(ctx: StudioCtx, input: CreateVideoInput, generati
     engine: input.engine,
     duration: input.duration,
     credits,
-    status: 'processing',
+    status,
     dispatch: { ...dispatch, title: input.title },
   })
   if (jobErr) console.error('[mcp-studio] job row insert failed:', jobErr.message)
@@ -299,7 +332,7 @@ export async function fillStudioVideoTitle(ctx: StudioCtx, videoId: string, titl
 }
 
 /** KINEO-MCP-STUDIO-AJUSTE-2010 — reenvia a MESMA geração presa (claim 'pending'/'done'), como a aba do site faz. */
-async function replayStuckGeneration(ctx: StudioCtx, replay: Record<string, unknown>, io: StudioIo): Promise<number | null> {
+async function replayStuckGeneration(ctx: StudioCtx, replay: Record<string, unknown>, io: StudioIo): Promise<{ status: number; review: StudioReview | null } | null> {
   if (!ctx.email || replay.generationId === undefined) return null
   const minted = await io.mint(ctx.userId, ctx.email)
   if (!minted.ok) return null
@@ -311,7 +344,8 @@ async function replayStuckGeneration(ctx: StudioCtx, replay: Record<string, unkn
       cache: 'no-store',
       signal: AbortSignal.timeout(STUDIO_STATUS_REPLAY_TIMEOUT_MS),
     })
-    return res.status
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    return { status: res.status, review: typeof replay.generationId === 'string' ? readStudioReview(res.status, data, replay.generationId) : null }
   } catch (e) {
     console.error('[mcp-studio] replay failed:', e instanceof Error ? e.message : String(e))
     return null
@@ -348,6 +382,21 @@ export async function studioVideoStatus(ctx: StudioCtx, jobId: string, io: Studi
     if (job.status !== status) await ctx.db.from('mcp_studio_jobs').update({ status, updated_at: new Date().toISOString() }).eq('id', job.id).eq('user_id', ctx.userId)
   }
 
+  // PEDIDO-MCP-2610: reconcile financial evidence by reading only. A review
+  // must never flow into replayStuckGeneration, even if a stale replay exists.
+  const savedReview = job.dispatch && typeof job.dispatch === 'object' ? (job.dispatch as Record<string, unknown>).review : null
+  const review = savedReview && typeof savedReview === 'object' && !Array.isArray(savedReview)
+    ? readStudioReview(503, savedReview as Record<string, unknown>, job.generation_id) : null
+  if (review) {
+    const { data: debit, error: debitError } = await ctx.db.from('credit_debits').select('refunded_at')
+      .eq('user_id', ctx.userId).eq('render_id', `cinematic-${cinematicClaimId(ctx.userId, job.generation_id)}`).maybeSingle()
+    const refundConfirmed = review.refundConfirmed || job.status === 'refunded' || (!debitError && typeof debit?.refunded_at === 'string' && Number.isFinite(Date.parse(debit.refunded_at)))
+    const claimReleased = review.claimReleased || (!claim.error && claimMeta.status === 'released')
+    const outcome = studioReviewOutcome({ ...review, refunded: refundConfirmed, refundConfirmed, claimReleased })
+    await finish(outcome.status)
+    return { ok: true, data: { ...base, ...outcome }, summary: outcome.message }
+  }
+
   if (video && (video.status ?? '') === 'completed' && (video.final_video_url || video.video_url)) {
     await finish('completed')
     const links = videoLinks(ctx, video)
@@ -376,7 +425,19 @@ export async function studioVideoStatus(ctx: StudioCtx, jobId: string, io: Studi
   const replay = job.dispatch && typeof job.dispatch === 'object' ? (job.dispatch as Record<string, unknown>).replay : null
   let replayed: number | null = null
   if ((claimStatus === 'pending' || claimStatus === 'done') && replay && typeof replay === 'object' && elapsedMs !== null && elapsedMs >= STUDIO_STATUS_REPLAY_AFTER_MS) {
-    replayed = await replayStuckGeneration(ctx, replay as Record<string, unknown>, io)
+    const replayResult = await replayStuckGeneration(ctx, replay as Record<string, unknown>, io)
+    replayed = replayResult?.status ?? null
+    if (replayResult?.review) {
+      // A legitimate timeout recovery can itself reach a terminal review.
+      // Persist that outcome and discard the old body before any later poll.
+      const outcome = studioReviewOutcome(replayResult.review)
+      const dispatch = { ...(job.dispatch as Record<string, unknown>) }
+      delete dispatch.replay
+      await ctx.db.from('mcp_studio_jobs').update({ status: outcome.status, credits: null,
+        dispatch: { ...dispatch, http_status: replayResult.status, outcome: 'review_required', review: replayResult.review },
+        updated_at: new Date().toISOString() }).eq('id', job.id).eq('user_id', ctx.userId)
+      return { ok: true, data: { ...base, ...outcome }, summary: outcome.message }
+    }
   }
   if (elapsedMs !== null && elapsedMs > STUDIO_JOB_GIVE_UP_MS) {
     await finish('stalled')

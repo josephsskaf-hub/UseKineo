@@ -186,7 +186,9 @@ export async function notasExistentes(admin: SupabaseClient, keys: string[], rea
       const nome = v === COHERENCE_V2_VERSION ? COHERENCE_V2_EVENT : v === PIXEL_SCORE_VERSION ? PIXEL_SCORE_EVENT : v === UGC_SCORE_VERSION ? UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */ : null
       if (!nome) continue
       const marca = `${nome}:${e.session_id}`
+      // A completed validation attempt is recorded, not automatically bought again. Historical scores stay untouched.
       if (typeof e.metadata?.score === 'number') { done.add(marca); continue }
+      if (e.metadata?.evidence_validation === '2026-10-26') { done.add(marca); continue }
       const f = falhas.get(marca) ?? { n: 0, ultima: 0 }
       f.n += 1
       f.ultima = Math.max(f.ultima, Date.parse(e.created_at) || 0)
@@ -278,7 +280,7 @@ export async function julgarPendentesRegua(
           const inicioUgc = Date.now()
           const plano = planUgcFrames({ seconds: e.seconds, speechSeconds: e.ugc.speechSeconds, pausesSeconds: e.ugc.pausesSeconds })
           const exU = await extractUgcFramesFal(e.video_url, plano, { fetchImpl: opts.fetchImpl })
-          const u = exU ? await judgeUgcFrames(e.ugc, exU.frames, { fetchImpl: opts.fetchImpl, via: exU.via, usdFrames: exU.usd, startedAt: inicioUgc }) : null
+          const u = exU ? await judgeUgcFrames(e.ugc, exU.frames, { fetchImpl: opts.fetchImpl, via: exU.via, usdFrames: exU.usd, startedAt: inicioUgc, expectedFrames: plano.length }) : null
           if (u) {
             r.ugc = u.score
             r.usd += u.usd

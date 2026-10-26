@@ -296,6 +296,11 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
     ? classicVisualNegativePrompt(visualPolicy.mode, isStylizedLook(visualPolicy.style))
     : 'cartoon, animation, clipart, toy'
   const defaultVisualIntent = visualPolicy ? visualDescriptionDirection(visualPolicy) : 'Documentary style, cinematic and grounded'
+  // KINEO-CENAS-FIEIS-2610 — números não são requisito de uma ficção; a fala
+  // continua com a mesma faixa/língua e usa só os dados do pedido.
+  const specificityRule = visualPolicy || wps
+    ? 'Use only the specific subjects, events and facts supplied by the idea. Include a number, name, date, amount or comparison only when the input supplies it; when it does not, be concrete through the requested action. Fiction stays fiction: never manufacture a historical fact or statistic.'
+    : 'MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims.'
 
   // Push #211 — Creative Director Engine. gpt-4o with 9-field scene schema.
   // Push #212 — Added visualCategory field for verified whitelist selection.
@@ -320,7 +325,7 @@ Your job is to return a JSON array of scene objects. Each scene object must incl
    health_body, crime_mystery, animal_wildlife,
    general_science, general_documentary
    Pick the most specific category that matches the scene content.
-8. "voiceover" — one narration line (${voiceoverRule}). MUST include at least one SPECIFIC number, name, date, dollar amount, or comparison — no vague claims. Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".${languageRule}
+8. "voiceover" — one narration line (${voiceoverRule}). ${specificityRule} Exact TTS text. No filler like "imagine…", "what if…", or "most people don't know…".${languageRule}
 9. "caption" — ≤8-word on-screen caption paraphrasing the voiceover. Punchy fragment. No period.
 
 You always respond with a valid JSON array ONLY — no markdown, no code fences, no commentary.`
@@ -476,6 +481,7 @@ ${visualDescriptionDirection(visualPolicy)}
 - Build each stockSearchQuery from that scene's concrete visual nouns, not from a broader topic.
 - ${NO_TEXT_OBJECT_DIRECTION}
 - Follow HOOK, ESCALATION, DISCOVERY, EXPLANATION, PAYOFF and FINAL_LINE as appropriate. Vary camera distance and motion across scenes, while preserving subject continuity.
+- ${safeCount <= 3 ? 'SHORT STORY: use the existing scenes for opening action, its development, and the input\'s ending. The last scene must show the stated resolution or final state, never a generic teaser or extra CTA. Do not spend the first scene just introducing or posing the cast.' : 'CONNECTED STORY: keep the input\'s events in order and reserve the last scene for its stated ending and final state, never a generic teaser or extra CTA.'} If the source leaves a mystery unresolved, preserve that uncertainty instead of inventing a solution. Do not add scenes or lengthen the film to fit more events.
 - Return ONLY a valid JSON array of exactly ${safeCount} objects with all 9 fields from the system schema.` : ''
 
   const completion = await openai.chat.completions.create(

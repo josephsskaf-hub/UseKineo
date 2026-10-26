@@ -31,6 +31,7 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript, screenplaySpeechOnly } from '@/lib/scriptParser' // KINEO-PORTA-FORMATO-2026-09-24: fala rotulada dentro de um plano
+import { reviewRequestFidelity, briefRequiresReview } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
 import { decideDurationFollowsScript, decideDurationFollowsScriptUp, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'
@@ -496,6 +497,8 @@ export async function POST(req: NextRequest) {
     }
     // ═══ FIM KINEO-DRY-RUN-AUTORIZADO (posição) ═══
     const intake = stripIdeaPrefix((body.prompt ?? '').trim())
+    const requestReview = reviewRequestFidelity({ prompt: intake.text, scriptMode: body.script_mode, duration: SUPPORTED_DURATIONS.includes(Number(body.duration) as Duration) ? Number(body.duration) : 45, language: body.language }) // PEDIDO-FIEL-2610 — before transformation, planning, dedupe and provider work.
+    if (requestReview) return NextResponse.json(requestReview, { status: 422 })
     if (intake.strippedIdea) void writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-fast', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
     let prompt = intake.text // KINEO-EPISODIO-COM-ASSUNTO: `let` — o pedido de continuação ganha o episódio anterior abaixo
     if (!prompt) {
@@ -759,7 +762,7 @@ export async function POST(req: NextRequest) {
     // escritor de cenas lê o briefing inteiro (o prompt não muda).
     const briefColado = KINEO1_IMAGEM_V2 && KINEO1_BRIEF_COLADO && body.script_mode === 'verbatim' && !marcadoresValidos ? splitPastedBrief(prompt) : null
     if (briefColado?.mode === 'narration_kept') parsedScript.narration = parseUserScript(briefColado.narration).narration || briefColado.narration
-    if (briefColado?.mode === 'brief_only') body.script_mode = 'ai'
+    if (briefColado?.mode === 'brief_only') return NextResponse.json(briefRequiresReview(body.language), { status: 422 }) // PEDIDO-FIEL-2610 — never switch the author's mode silently.
     if (briefColado && briefColado.mode !== 'none' && !(body.dry_run === true && isDryRunAccount(user.email))) {
       void writeServerEvent({ name: PASTED_BRIEF_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', mode: briefColado.mode, lines_total: briefColado.linesTotal, lines_removed: briefColado.brief.length, kinds: briefColado.kinds, narration_words: briefColado.narrationWords, version: PASTED_BRIEF_VERSION } })
       console.log(`[brief-colado] ${briefColado.mode}: ${briefColado.brief.length} linha(s) de instrução fora da fala, ${briefColado.narrationWords} palavra(s) de fala user=${user.id.slice(0, 8)}`)
