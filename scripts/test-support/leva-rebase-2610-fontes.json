@@ -1263,7 +1263,7 @@
       "hash": "bb038464d0c0a1d18662442ab4b8fc73eda29941de59229900a10887d5d9bfa3"
     },
     "docs/compra-clareza-2610/test-legacy-layer.mjs": {
-      "hash": "a62001fa4946f5e80cfcdbff3919f856704fa4044f20614f008b3478aac037b9"
+      "hash": "eef43e6ea009dba6bf2552118258930ffd62577fc1d87ee4843da2baf2eb5d70"
     },
     "docs/compra-clareza-2610/test-own-idea-start.mjs": {
       "hash": "8cd0ba6891b5a168e7353cba31736adf094d2a4431df3b5767513e82cfad3a9f"
@@ -2316,7 +2316,7 @@
       "hash": "db0b3d75843e1e25552b67b6012a1637118d76cb5e1998b695ec3788b4f4ec8e"
     },
     "docs/video-fiel-2610/test-legacy-layer.mjs": {
-      "hash": "818323133c33610c501ec3ed2043cd82d956b7cf9f2240023492648b0f4275d8"
+      "hash": "b35063513ddf1b3d27f4d7952419f1b52f7b11a53c16697fcde1f4a9c02ce5d0"
     },
     "docs/video-fiel-2610/traducoes-desktop.jpg": {
       "hash": "c7a69375998bbabc91b321094293b64daa5fd58bd105effc0cef215bc3d44b94"
@@ -2709,7 +2709,7 @@
       "hash": "2f6e95a046ebfede36f1820e20023395c971c875b1b056b2ae9a00b906b5e4cc"
     },
     "scripts/test-ads-amostra-data-2410.mjs": {
-      "hash": "5aec480d2685ffa0e95c71432a100f2fedbc5b3461a1083ffbd8d520c3365713"
+      "hash": "9b326f8e6b130069b3656d527fc8e384ed0cf309df8c279c251ba19803679b06"
     },
     "scripts/test-ads-amostra-undo-2410.mjs": {
       "hash": "d4dfc811f09ff3b95f6219b8280f0af539b8b5c16872b3cecc830b55b9ed0398"
@@ -3204,7 +3204,7 @@
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
     },
     "scripts/test-leva-rebase-2610.mjs": {
-      "hash": "8e2e04ebb629858872f17d7e1207148a20ac8b7ea0e26fbd4f578cd381991583"
+      "hash": "1e21d6783fdb7ef84e53a0068eb693a06b9d170197ae835e9a5f4cb623d50457"
     },
     "scripts/test-library-search.mjs": {
       "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
@@ -3495,7 +3495,7 @@
       "hash": "43469a989973e62132147027053c0e2309963ed795efb52ca089b8f49877c170"
     },
     "scripts/test-support/desfaz-afiliado50-2610.mjs": {
-      "hash": "3b8598e15341a1967a7aacaf523ce30095f2722710f7bc546f55be6e438e4010"
+      "hash": "8e6defb42f1d60f1ec1929a17276a4bada1f7cfa13324cc762f4f2fa9cc7c8a2"
     },
     "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json": {
       "hash": "6b85435443ecef52927213d2b9978e60bf661a2d6497b41076f88e9309dd7327"
@@ -3609,7 +3609,7 @@
       "hash": "7f3cf5f379512332501b43a6db4883ef094a80e11347f215c434066e7f4fcbc8"
     },
     "scripts/test-support/desfaz-upsell-filme15-2610.mjs": {
-      "hash": "e21259e19425b4570d7d32e660e69f0ec15d732d839cf9423730a199146dafad"
+      "hash": "98352a18ad77bd4be8f9c0432c4ae848fd38380538927843efa2b9ea5c383eb8"
     },
     "scripts/test-support/desfaz-video-fiel-2610-fontes.json": {
       "hash": "7ee719f7c856f9320c09bf1c3a2cb4d547731113e2cd3abedddf4bc033bb0344"
@@ -3627,7 +3627,7 @@
       "hash": "013cc5ec69ccc36d6214c9fc2f3dff7027d039ef404ee5a493c77cd68ff351a7"
     },
     "scripts/test-support/desfaz-vitrine-filmes-2610.mjs": {
-      "hash": "789d7915b423d294e4a594339f7e6126ed151ab750b583b6d9da88c72762e981"
+      "hash": "fcd78ce0d38fa3a8541f7a6fd531b30940fecf0ed698c0b514cdae0f0fb99b79"
     },
     "scripts/test-support/desfaz-voz-nativa-2610-hunks.json": {
       "hash": "2e7a0ad9c47f1f5d764eea96b473e7dde42da132c8c6b961829e582533c88ea1"

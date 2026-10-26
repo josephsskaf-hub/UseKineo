@@ -85,7 +85,10 @@ function actualFunction(file,name,bindings,over={}) {
 }
 async function webhookProof(over={}) {
   const rows=[], admin={from:()=>{const q={select:()=>q,eq:()=>q,contains:()=>q,limit:async()=>({data:[]}),insert:async r=>{rows.push(r);return{}}};return q}}
+  // Final integration: keep the extracted writer raw and load its new pure dependencies from the real module.
+  const { FILM_COMPLETE_VERSION, filmCompletePaymentMetadata } = createOfflineLoader()('lib/growth/filmComplete.ts')
   const write=actualFunction(F.webhook,'recordPaymentSuccess',{
+    FILM_COMPLETE_VERSION,filmCompletePaymentMetadata,
     createHash,console:{error(){}},isGuestCheckoutSession:()=>false,sessionOwnerUuid:()=>actor,isDfyOrderSession:()=>false,dfySessionTier:()=>null,
     paidClickMetadataFromEvent:()=>({}),firstPaymentCreditsFromSession:()=>null,isOwnerRejection:()=>false,
   },over)

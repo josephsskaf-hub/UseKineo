@@ -53,10 +53,10 @@ const positions = (text, needle) => {
 }
 
 export function semVitrine2610(source, file) {
-  source = semUpsellFilme152610(semLevaSobreIntegracao2610(source, file), file)
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
   const entry = VITRINE_2610_MANIFEST.scope[relative] ?? VITRINE_2610_MANIFEST.testScope?.[relative] ?? VITRINE_2610_GUARDIAN_ADAPTERS.scope[relative]
   if (!entry || source === null) return source
+  source = semUpsellFilme152610(semLevaSobreIntegracao2610(source, file), file)
   if (typeof source !== 'string') throw Error('VITRINE-2610: source must be string or null: ' + relative)
   const text = flat(source)
   if (entry.kind === 'new') {

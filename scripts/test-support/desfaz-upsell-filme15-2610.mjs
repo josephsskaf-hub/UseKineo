@@ -21,10 +21,10 @@ function integrationEntry(rel) {
   return entry
 }
 export function semUpsellFilme152610(source, file) {
-  source = semLevaSobreIntegracao2610(source, file)
   const rel = String(file ?? '').replace(/\\/g, '/')
   const original = UPSELL_FILME15_2610.scope[rel] ?? UPSELL_FILME15_2610.readerScope?.[rel]
   if (!original || typeof source !== 'string') return source
+  source = semLevaSobreIntegracao2610(source, file)
   const integrated = integrationEntry(rel)
   const crlf = source.includes('\r\n'); let text = source.replace(/\r\n/g, '\n')
   const digest = sha(text)

@@ -6,6 +6,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semIntegracaoSobreMain2372610 } from '../../scripts/test-support/leva-rebase-2610.mjs' // Only the complete sealed composition enters the immutable main history; unknown bytes remain visible.
 import { semCaptionCanonico2610 } from '../../scripts/test-support/desfaz-caption-canonico-2610.mjs'
 import { VIDEO_FIEL_BASE, VIDEO_FIEL_MANIFEST as manifest, semVideoFiel2610 as undo, comVideoFiel2610 as redo } from '../../scripts/test-support/desfaz-video-fiel-2610.mjs'
 
@@ -26,7 +27,7 @@ check(() => assert.equal(manifest.base, '9d8d3fad413d94798081528dbd61f3ba7848a76
 check(() => assert.ok(Object.keys(manifest.scope).length >= 25))
 for (const [file, entry] of Object.entries(manifest.scope)) {
   const base = git('show', VIDEO_FIEL_BASE + ':' + file)
-  const current = flat(semCaptionCanonico2610(fs.readFileSync(path.join(root, file), 'utf8'), file))
+  const current = flat(semCaptionCanonico2610(semIntegracaoSobreMain2372610(fs.readFileSync(path.join(root, file), 'utf8'), file), file))
   check(() => assert.equal(hash(base), entry.beforeSha256, 'immutable base: ' + file))
   check(() => assert.equal(hash(current), entry.afterSha256, 'frozen candidate: ' + file))
   check(() => assert.equal(hash(JSON.stringify(entry.hunks)), entry.hunksSha256, 'frozen hunks: ' + file))
@@ -54,7 +55,7 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
   } finally { entry.hunks[0].before = saved }
 }
 for (const [file, expected] of Object.entries(manifest.addedProduct)) {
-  check(() => assert.equal(hash(flat(fs.readFileSync(path.join(root, file), 'utf8'))), expected, 'new product source frozen: ' + file))
+  check(() => assert.equal(hash(flat(semIntegracaoSobreMain2372610(fs.readFileSync(path.join(root, file), 'utf8'), file))), expected, 'new product source frozen: ' + file))
   check(() => assert.throws(() => git('show', VIDEO_FIEL_BASE + ':' + file), undefined, 'new product source is not misattributed to base: ' + file))
 }
 for (const file of manifest.currentBehaviorTests) {

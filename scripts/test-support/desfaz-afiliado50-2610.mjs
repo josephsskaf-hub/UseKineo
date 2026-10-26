@@ -772,10 +772,10 @@ const LAYERS = {
 export const AFILIADO50_2610_ARQUIVOS = Object.keys(LAYERS)
 
 export function semAfiliado50_2610(rel, text) {
+  const hunks = LAYERS[rel]
+  if (!hunks) return String(text).replace(/\r\n/g, '\n')
   text = semUpsellFilme152610(semLevaSobreIntegracao2610(text, rel), rel)
   let source = String(text).replace(/\r\n/g, '\n')
-  const hunks = LAYERS[rel]
-  if (!hunks) return source
   const count = (part) => source.split(part).length - 1
   // A tree predating this delivery is unchanged. An edited or partial task
   // layer cannot take this path: every original context must match exactly.

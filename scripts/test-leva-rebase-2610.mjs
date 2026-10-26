@@ -1,6 +1,9 @@
 // KINEO-LEVA-REBASE-2610 — physical source seals plus both complete immutable chains.
 // No environment, network, database, paid render or source mutation.
 import assert from 'node:assert/strict'
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+import { semVitrine2610 } from './test-support/desfaz-vitrine-filmes-2610.mjs'
+import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs'
 import { readFileSync } from 'node:fs'
 import {
   REBASE, REBASE_MAIN, REBASE_LEVA, REBASE_BASE, REBASE_MANIFEST_PATH, FINAL_PRE_LEVA_2610, FINAL_MAIN_2610,
@@ -77,6 +80,12 @@ check(() => assert.notEqual(duplicatedOwnGuardian, rebaseLf(rawWorkflow), 'new g
 check(() => assert.throws(() => verifyRawWorkflowParents(duplicatedOwnGuardian), /workflow/, 'duplicating the new guard rejects'))
 mutants += 2
 
+// A source owned by the Ads sample must keep its CURRENT paid/sample gate when
+// entering unrelated historical adapters. The sealed final projection is not global.
+const unrelatedSourceFile = 'app/api/ads/v2/cena/route.ts', unrelatedSource = readFileSync(unrelatedSourceFile, 'utf8')
+check(() => assert.equal(semAfiliado50_2610(unrelatedSourceFile, unrelatedSource), rebaseLf(unrelatedSource)))
+check(() => assert.equal(semVitrine2610(unrelatedSource, unrelatedSourceFile), unrelatedSource))
+check(() => assert.equal(semUpsellFilme152610(unrelatedSource, unrelatedSourceFile), unrelatedSource))
 preloadRebaseBlobs2610()
 for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610], [FINAL_PRE_LEVA_2610, semLevaSobreIntegracao2610], [FINAL_MAIN_2610, semIntegracaoSobreMain2372610]]) {
   for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile)) {
