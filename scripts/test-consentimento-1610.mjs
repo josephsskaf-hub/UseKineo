@@ -265,12 +265,13 @@ for (const [nome, rep] of MUTANTES) {
 {
   const { execFileSync } = await import('node:child_process')
   const { semConsentimento1610, CONSENTIMENTO_1610_ARQUIVOS, CONSENTIMENTO_1610_BASE } = await import('./test-support/desfaz-consentimento-1610.mjs')
+  const { semPrivacidadePlugin2610 } = await import('./test-support/desfaz-privacidade-plugin-2610.mjs') // KINEO-PRIVACIDADE-PLUGIN-2610 — a política completa (camada mais nova do /privacy) sai antes, em memória
   const git = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
   const ruins = []
   try { git('merge-base', '--is-ancestor', CONSENTIMENTO_1610_BASE, 'HEAD') } catch { ruins.push('base do desfaz não é ancestral de HEAD') }
   for (const f of CONSENTIMENTO_1610_ARQUIVOS) {
     try {
-      if (semConsentimento1610(f, semKitBfVenda2010(read(f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória
+      if (semConsentimento1610(f, semKitBfVenda2010(semPrivacidadePlugin2610(read(f), f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória
     } catch (e) { ruins.push(`${f}: ${e.message}`) }
   }
   if (CONSENTIMENTO_1610_ARQUIVOS.length !== 5) ruins.push(`desfaz cobre ${CONSENTIMENTO_1610_ARQUIVOS.length} arquivos, devia 5`)
