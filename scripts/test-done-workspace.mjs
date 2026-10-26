@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
+import { semVitrine2610 } from './test-support/desfaz-vitrine-filmes-2610.mjs' // KINEO-VITRINE-FILMES-2610 — remove only the later showcase layer before comparing the historical handlers and generation prefix.
 const file = 'app/(dashboard)/generate/GenerateClient.tsx'
 // KINEO-PAREDE-V1-2026-09-23 — reancorado com motivo: a base 2d6d7940 antecede a parede v1 (fundador 23/09,
 // "faz as 3"), que acrescenta handlers, hrefs (intent_campaign=wall_v1), o cartão Empresas e o estado de
@@ -10,7 +11,7 @@ const file = 'app/(dashboard)/generate/GenerateClient.tsx'
 // parede; a trava volta a comparar contra ela. Nada foi afrouxado: a lista de atributos e a lógica antes
 // do JSX continuam tendo de ser byte a byte as da base.
 const base = 'b021fe9d'
-const current = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+const current = semVitrine2610(fs.readFileSync(file, 'utf8'), file).replace(/\r\n/g, '\n')
 const previous = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let checks = 0
 function equal(a, b, label) { assert.deepEqual(a, b, label); checks++ }
