@@ -20,8 +20,9 @@ export function elencoDoFilme15(args: {
   elencoDoPedido: ReadonlyArray<FichaDePersonagem>
   visuals: ReadonlyArray<string>
   extrair: (texto: string) => FichaDePersonagem[]
-}): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'cenas' | 'nenhum' } {
-  if (args.elencoDoPedido.length > 0) return { elenco: args.elencoDoPedido.map((f) => ({ ...f })), origem: 'pedido' }
+}): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'pedido+cenas' | 'cenas' | 'nenhum' } {
+  const doPedido = args.elencoDoPedido.slice(0, FILME15_ELENCO_MAX).map((f) => ({ ...f }))
+  if (doPedido.length >= FILME15_ELENCO_MAX) return { elenco: doPedido, origem: 'pedido' }
   // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo
   //    ("the girl hands the key to an elderly man" → girl, depois man).
   const porCena: Array<Array<{ chave: string; ficha: FichaDePersonagem }>> = args.visuals.map((visual) => {
@@ -38,20 +39,25 @@ export function elencoDoFilme15(args: {
   // 2. O protagonista: o 1º papel da 1ª cena que tem gente. Os outros só entram se aparecem em 2+ cenas OU na mesma cena que o
   //    protagonista (o avô que recebe a chave da menina). Quem aparece uma vez, sozinho, é INTRUSO (a "mulher na janela" que
   //    tomou o lugar do rapaz) — não entra no elenco, e a cena dele passa a mostrar o protagonista.
-  const primeiro = porCena.find((c) => c.length > 0)?.[0]
+  //    Com elenco do pedido (a menina descrita pelo autor), ele é o protagonista e os visuais só COMPLETAM (o avô que recebe a chave
+  //    — teste "chave azul" 26/10: a folha saiu só para a menina e o avô mudava de cara).
+  const primeiro = doPedido.length > 0
+    ? { chave: nucleoDe(doPedido[0]), ficha: doPedido[0] }
+    : porCena.find((c) => c.length > 0)?.[0]
   if (!primeiro) return { elenco: [], origem: 'nenhum' }
-  const elenco: FichaDePersonagem[] = [{ ...primeiro.ficha, protagonista: true }]
+  const elenco: FichaDePersonagem[] = doPedido.length > 0 ? doPedido.map((f, i) => ({ ...f, protagonista: i === 0 })) : [{ ...primeiro.ficha, protagonista: true }]
   const contagem = new Map<string, number>()
   for (const c of porCena) for (const a of c) contagem.set(a.chave, (contagem.get(a.chave) ?? 0) + 1)
+  const antes = elenco.length
   for (const c of porCena) {
     for (const a of c) {
       if (elenco.length >= FILME15_ELENCO_MAX) break
-      if (a.chave === primeiro.chave || elenco.some((e) => nucleoDe(e) === a.chave)) continue
-      const comOProtagonista = c.some((x) => x.chave === primeiro.chave)
+      if (a.chave === primeiro.chave || elenco.some((e) => nucleoDe(e) === a.chave) || citaPalavra(String(primeiro.ficha.nome ?? ''), a.chave)) continue
+      const comOProtagonista = c.some((x) => x.chave === primeiro.chave || citaPalavra(String(primeiro.ficha.nome ?? ''), x.chave))
       if ((contagem.get(a.chave) ?? 0) >= 2 || comOProtagonista) elenco.push({ ...a.ficha, protagonista: false })
     }
   }
-  return { elenco, origem: 'cenas' }
+  return { elenco, origem: doPedido.length > 0 ? (elenco.length > antes ? 'pedido+cenas' : 'pedido') : 'cenas' }
 }
 
 const nucleoDe = (f: FichaDePersonagem): string => String(f.nucleo || f.nome.split(' ').pop() || '').trim().toLowerCase()

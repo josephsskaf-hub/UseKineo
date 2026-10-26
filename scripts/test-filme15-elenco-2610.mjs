@@ -47,8 +47,11 @@ if (typeof extrair === 'function' && typeof AJUSTE.cenasDoElenco === 'function')
   checa(`A1 elenco pelos visuais: origem cenas, 2 papéis (${a.elenco.map((f) => f.nome).join(' + ')})`, a.origem === 'cenas' && a.elenco.length === 2)
   checa('A2 a menina é a protagonista e o avô entra', a.elenco[0]?.protagonista === true && /girl/.test(a.elenco[0]?.nome ?? '') && a.elenco.some((f) => /grandfather|man/.test(f.nome)) && a.elenco[1]?.protagonista === false)
   const ped = [{ nome: 'the old lighthouse keeper', nucleo: 'keeper', tipo: 'humano', canonica: 'the old lighthouse keeper, x', origem: 'autor', protagonista: true, genero: null }]
-  const b = E.elencoDoFilme15({ elencoDoPedido: ped, visuals: VIS_CHAVE, extrair })
-  checa('A3 com elenco do pedido: usa o do pedido, intocado', b.origem === 'pedido' && b.elenco.length === 1 && b.elenco[0].nome === 'the old lighthouse keeper')
+  const b = E.elencoDoFilme15({ elencoDoPedido: ped, visuals: ['The old lighthouse keeper climbs the spiral stairs', 'A stormy sea at night'], extrair })
+  checa('A3 com elenco do pedido e ninguém mais nas cenas: o do pedido, intocado', b.origem === 'pedido' && b.elenco.length === 1 && b.elenco[0].nome === 'the old lighthouse keeper' && b.elenco[0].protagonista === true)
+  const menina = [{ nome: 'the young girl', nucleo: 'girl', tipo: 'humano', canonica: 'the young girl, x', origem: 'autor', protagonista: true, genero: 'feminino' }]
+  const c = E.elencoDoFilme15({ elencoDoPedido: menina, visuals: VIS_CHAVE, extrair })
+  checa(`A5 pedido com a menina + visuais com o avô: os dois (o teste chave azul 26/10 tinha só a menina) — ${c.elenco.map((f) => f.nome).join(' + ')}`, c.origem === 'pedido+cenas' && c.elenco.length === 2 && c.elenco[0].nome === 'the young girl' && c.elenco[0].protagonista === true && /man|grandfather/.test(c.elenco[1].nome) && c.elenco[1].protagonista === false)
   checa('A4 visual sem gente: elenco vazio', E.elencoDoFilme15({ elencoDoPedido: [], visuals: ['A stormy sea at night', 'Lightning over the cliffs'], extrair }).origem === 'nenhum')
 
   console.log('== B. protagonista em toda cena ==')
@@ -84,9 +87,9 @@ checa('D3 idempotente e preserva CRLF', semFilme15Elenco2610(baseTxt, f) === bas
 checa('D4 todo trecho novo leva a marca', FILME15_ELENCO_2610.scope[f].hunks.every((h) => h.after.includes(MARCA)))
 
 console.log('== mutantes ==')
-const m1 = E_SRC.replace('if (args.elencoDoPedido.length > 0) return', 'if (true) return')
-checa('M1 aplicado (sempre o elenco do pedido)', m1 !== E_SRC)
-if (typeof extrair === 'function') checa('M1 → A1 vermelho', roda(m1).elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_CHAVE, extrair }).elenco.length === 0)
+const m1 = E_SRC.replace('if ((contagem.get(a.chave) ?? 0) >= 2 || comOProtagonista) elenco.push', 'if (false) elenco.push')
+checa('M1 aplicado (o 2º papel nunca entra)', m1 !== E_SRC)
+if (typeof extrair === 'function') checa('M1 → A1 e A5 vermelhos (o avô some)', roda(m1).elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_CHAVE, extrair }).elenco.length === 1)
 const m2 = E_SRC.replace('if (cenaCitaElenco(v, args.elenco)) return v', 'return v')
 checa('M2 aplicado (nunca força o protagonista)', m2 !== E_SRC)
 if (typeof extrair === 'function') { const n2 = roda(m2).elencoDoFilme15({ elencoDoPedido: [], visuals: VIS_NOITE, extrair }); checa('M2 → B1 vermelho', roda(m2).protagonistaEmTodaCena({ visuals: VIS_NOITE, elenco: n2.elenco }).forcadas.length === 0) }
