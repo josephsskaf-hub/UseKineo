@@ -1,5 +1,7 @@
 // Complete task delta restored exactly to its immutable main base, in memory.
 // No file writes, env, database, provider access or network.
+import { semLevaSobreIntegracao2610 } from './test-support/leva-rebase-2610.mjs'
+import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs'
 import assert from 'node:assert/strict'
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import fs from 'node:fs'
@@ -20,7 +22,7 @@ const manifest = VITRINE_2610_MANIFEST
 check(Object.keys(manifest.scope).length === 25, 'complete task scope is frozen as 25 product files')
 check(VITRINE_2610_BASE === '62213b008292f110117d1abbe20c157efdb55902', 'base is immutable latest main used at task start')
 for (const [file, entry] of Object.entries(manifest.scope)) {
-  const actual = fs.readFileSync(file, 'utf8'), current = lf(actual)
+  const actual = semUpsellFilme152610(semLevaSobreIntegracao2610(fs.readFileSync(file, 'utf8'), file), file), current = lf(actual)
   check(hash(current) === entry.afterSha256, file + ': current product source matches frozen reviewed task delta')
   check(lf(git('show', `${manifest.product}:${file}`)) === current, file + ': manifest source tied to immutable product commit')
   if (entry.kind === 'new') {
@@ -52,6 +54,7 @@ check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(
 check(JSON.stringify(Object.keys(adapters.scope).sort()) === JSON.stringify(['scripts/test-admin-leve-undo-2310.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs']), 'integration adapter scope is exact')
 for (const [file, entry] of Object.entries({ ...manifest.testScope, ...adapters.scope })) {
   const current = semAfiliado50_2610(file, lf(fs.readFileSync(file, 'utf8'))), base = lf(git('show', `${adapters.scope[file] ? adapters.base : manifest.testScopeBase}:${file}`))
+  if (adapters.scope[file]) check(current === lf(git('show', `${adapters.product}:${file}`)), file + ': adapter tied to immutable product commit')
   check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
   check(semVitrine2610(current, file) === base, file + ': later test adaptation returns exactly to main preimage')
   check(semVitrine2610(current.replace(/\n/g, '\r\n'), file.replace(/\//g, '\\')) === base.replace(/\n/g, '\r\n'), file + ': historical CRLF and Windows separators')
@@ -69,7 +72,7 @@ check(legacySourceChain(newLegacySource) === null && legacySourceChain(null) ===
 check((legacySourceChain(newLegacySource) ?? '').replace(/\r\n/g, '\n') === '', 'only the outer legacy scanner converts removed source to empty text')
 rejects(() => legacySourceChain(newLegacySource + '\n// altered new file\n'), /modified new file; refusing deletion/, 'historical chain never hides an altered new source as empty')
 for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'lib/publicSurfacePolicy.ts', 'vercel.json']) {
-  check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${VITRINE_2610_BASE}:${file}`)), file + ': unrelated pricing, privacy flag and cron schedule untouched')
+  check(lf(semLevaSobreIntegracao2610(fs.readFileSync(file, 'utf8'), file)) === lf(git('show', `${VITRINE_2610_BASE}:${file}`)), file + ': unrelated pricing, privacy flag and cron schedule untouched')
 }
 check(semVitrine2610('unchanged', 'unrelated.ts') === 'unchanged', 'unknown files untouched')
 console.log(`KINEO-VITRINE-FILMES-2610-UNDO: ${checks} passed, 0 failed (exact, in memory).`)

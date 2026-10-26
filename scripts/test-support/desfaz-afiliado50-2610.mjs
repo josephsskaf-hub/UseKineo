@@ -1,3 +1,5 @@
+import { semLevaSobreIntegracao2610 } from './leva-rebase-2610.mjs' // final integration: newest sealed source first.
+import { semUpsellFilme152610 } from './desfaz-upsell-filme15-2610.mjs'
 // KINEO-AFILIADO-50-2610: exact inverse of this task's hunks, in memory only.
 // Apply BEFORE older delivery undo helpers. Context must match exactly once;
 // edits outside these hunks survive. No filesystem, Git, env or production access.
@@ -770,6 +772,7 @@ const LAYERS = {
 export const AFILIADO50_2610_ARQUIVOS = Object.keys(LAYERS)
 
 export function semAfiliado50_2610(rel, text) {
+  text = semUpsellFilme152610(semLevaSobreIntegracao2610(text, rel), rel)
   let source = String(text).replace(/\r\n/g, '\n')
   const hunks = LAYERS[rel]
   if (!hunks) return source

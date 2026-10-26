@@ -12,7 +12,7 @@ const lf = source => source.replace(/\r\n/g,'\n'), crlf=source=>lf(source).repla
 const affiliateRaw = file => { const source=readFileSync(file,'utf8'), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?crlf(projected):projected }
 assert.equal(manifest.base,BASE)
 for (const [file,item] of Object.entries(manifest.sources)) {
-  const raw=levaTaskSource(affiliateRaw(file),file,'cards'), current=lf(raw), before=git('show',BASE+':'+file)
+  const raw=levaTaskSource(readFileSync(file,'utf8'),file,'cards'), current=lf(raw), before=git('show',BASE+':'+file)
   assert.equal(item.before,before,'before bytes come from immutable base: '+file)
   assert.equal(item.beforeHash,hash(before),'base hash: '+file)
   assert.equal(item.afterHash,hash(current),'complete current source hash: '+file)

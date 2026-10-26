@@ -9,8 +9,11 @@
     "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
     "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
     "app/(dashboard)/ads/v2/page.tsx",
+    "app/(dashboard)/affiliate/page.tsx",
     "app/(dashboard)/generate/GenerateClient.tsx",
+    "app/(dashboard)/my-videos/MyVideosClient.tsx",
     "app/(dashboard)/studio/StudioClient.tsx",
+    "app/.well-known/oauth-protected-resource/route.ts",
     "app/admin/coerencia/page.tsx",
     "app/api/admin/coerencia/canario/route.ts",
     "app/api/admin/moderation-scan/route.ts",
@@ -18,12 +21,21 @@
     "app/api/ads/v2/cena/route.ts",
     "app/api/ads/v2/start/route.ts",
     "app/api/ads/v2/status/route.ts",
+    "app/api/affiliate/me/route.ts",
+    "app/api/affiliate/offer/route.ts",
     "app/api/analyze-idea/route.ts",
     "app/api/compose/route.ts",
+    "app/api/compose/status/[renderId]/route.ts",
     "app/api/cron/ads-v2-advance/route.ts",
+    "app/api/cron/finish-stranded-renders/route.ts",
     "app/api/cron/placar-versao-b/route.ts",
     "app/api/cron/rescue-vendor-assets/route.ts",
+    "app/api/cron/send-video-ready/route.ts",
+    "app/api/cron/submit-indexnow/route.ts",
     "app/api/events/route.ts",
+    "app/api/film-complete/checkout/route.ts",
+    "app/api/film-complete/start/route.ts",
+    "app/api/film-complete/status/route.ts",
     "app/api/footage/route.ts",
     "app/api/generate-video-cinematic/route.ts",
     "app/api/generate-video-fast/route.ts",
@@ -33,15 +45,37 @@
     "app/api/stripe/checkout/item/route.ts",
     "app/api/stripe/checkout/route.ts",
     "app/api/stripe/webhook/route.ts",
+    "app/api/video/publish/route.ts",
+    "app/api/video/showcase/route.ts",
     "app/checkout/item/page.tsx",
+    "app/es/made-with-kineo/[slug]/page.tsx",
+    "app/es/made-with-kineo/page.tsx",
+    "app/examples/page.tsx",
+    "app/film-complete/layout.tsx",
+    "app/film-complete/page.tsx",
+    "app/made-with-kineo/[slug]/page.tsx",
+    "app/made-with-kineo/manage/page.tsx",
+    "app/made-with-kineo/page.tsx",
+    "app/made-with-kineo/showcase.module.css",
+    "app/made-with-kineo/sitemap.xml/route.ts",
+    "app/partners/page.tsx",
     "app/pricing/PricingClient.tsx",
+    "app/privacy/page.tsx",
+    "app/pt/made-with-kineo/[slug]/page.tsx",
+    "app/pt/made-with-kineo/page.tsx",
+    "app/robots.ts",
     "app/shopify/open/route.ts",
+    "app/sitemap.ts",
     "app/trending/TrendingCard.tsx",
     "app/trending/page.tsx",
     "app/trending/trending.css",
+    "app/v/[id]/opengraph-image.tsx",
+    "components/FilmReadyFullVersionUpsell.tsx",
+    "components/MadeWithKineo.tsx",
     "components/OneTimeItemConfirmation.tsx",
     "components/OneTimeItemOffer.tsx",
     "components/PricingCards.tsx",
+    "components/ShowcaseConsent.tsx",
     "components/admin/QualityAssessment.tsx",
     "components/admin/TaskCanaryControl.tsx",
     "components/growth/OwnIdeaStart.tsx",
@@ -59,6 +93,7 @@
     "docs/CARTOON-TRACAO-2210.md",
     "docs/DECISIONS.md",
     "docs/KINEO-AMOSTRA-ANUNCIO-2410.md",
+    "docs/chatgpt-plugin/package/plugin.json",
     "docs/compra-clareza-2610/EXECUCAO.md",
     "docs/compra-clareza-2610/OWN-IDEA-HANDOFF.md",
     "docs/compra-clareza-2610/antes-depois-ideia-desktop.png",
@@ -78,6 +113,17 @@
     "docs/compra-clareza-2610/test-own-idea-start.mjs",
     "docs/compra-clareza-2610/test-recurring-plan-value.mjs",
     "docs/compra-clareza-2610/test-result-script-review.mjs",
+    "docs/filme15-perfeito-2610/README.md",
+    "docs/filme15-perfeito-2610/caption-audit.json",
+    "docs/filme15-perfeito-2610/caption-unit-rules.md",
+    "docs/filme15-perfeito-2610/caption-visual-audit.json",
+    "docs/filme15-perfeito-2610/duration-audit.json",
+    "docs/filme15-perfeito-2610/freeze-undo.mjs",
+    "docs/filme15-perfeito-2610/offline-guard.cjs",
+    "docs/filme15-perfeito-2610/qa-results.json",
+    "docs/filme15-perfeito-2610/qa-summary.json",
+    "docs/filme15-perfeito-2610/run-offline-tests.mjs",
+    "docs/filme15-perfeito-2610/text-audit.json",
     "docs/free15-quality-v2/caption-entrega.md",
     "docs/free15-quality-v2/caption-legacy-test.mjs",
     "docs/free15-quality-v2/caption-owned-controls.json",
@@ -110,6 +156,11 @@
     "docs/previews/COMPRA-AVULSA-2410-stills-desktop.png",
     "docs/previews/COMPRA-AVULSA-2410-stills-mobile.png",
     "docs/previews/COMPRA-AVULSA-2410.html",
+    "docs/previews/affiliate-50-2610-desktop.png",
+    "docs/previews/affiliate-50-2610-mobile.html",
+    "docs/previews/affiliate-50-2610-mobile.png",
+    "docs/previews/affiliate-50-2610-render.mjs",
+    "docs/previews/affiliate-50-2610.html",
     "docs/previews/amostra-anuncio-2410-mobile.png",
     "docs/previews/amostra-anuncio-2410.html",
     "docs/previews/amostra-anuncio-2410.png",
@@ -124,6 +175,28 @@
     "docs/previews/cartoon-tracao-2210.html",
     "docs/previews/render-amostra-anuncio-2410.cjs",
     "docs/previews/render-compra-avulsa-2410.cjs",
+    "docs/qa/affiliate-50-2610/.gitattributes",
+    "docs/qa/affiliate-50-2610/README.md",
+    "docs/qa/affiliate-50-2610/evidence/avatar-history-metadata-final-proof.json",
+    "docs/qa/affiliate-50-2610/evidence/compatibility.json",
+    "docs/qa/affiliate-50-2610/evidence/evidence-manifest.json",
+    "docs/qa/affiliate-50-2610/evidence/final-selection.json",
+    "docs/qa/affiliate-50-2610/evidence/foreign-boundary-metadata-final-proof.json",
+    "docs/qa/affiliate-50-2610/evidence/ingress-ast-identity-proof.json",
+    "docs/qa/affiliate-50-2610/evidence/inverse-proof-metadata-final.json",
+    "docs/qa/affiliate-50-2610/evidence/metadata-final-summary.json",
+    "docs/qa/affiliate-50-2610/evidence/metadata-selection.json",
+    "docs/qa/affiliate-50-2610/evidence/mutants.json",
+    "docs/qa/affiliate-50-2610/evidence/mutants.log",
+    "docs/qa/affiliate-50-2610/evidence/offline-preload.cjs",
+    "docs/qa/affiliate-50-2610/evidence/protected-files.json",
+    "docs/qa/affiliate-50-2610/evidence/raw-ingress-metadata-final-proof.json",
+    "docs/qa/affiliate-50-2610/evidence/run-suite.mjs",
+    "docs/qa/affiliate-50-2610/evidence/selector-reader-metadata-final-ast-proof.json",
+    "docs/qa/affiliate-50-2610/evidence/test-consumer-metadata-final-report.json",
+    "docs/qa/affiliate-50-2610/evidence/test-consumer-metadata-final-selection.json",
+    "docs/qa/affiliate-50-2610/evidence/test-matrix.json",
+    "docs/qa/affiliate-50-2610/evidence/typescript.json",
     "docs/qa/amostra-anuncio-2410-gates.json",
     "docs/qa/apresentadores-2410/baseline-locale-readiness.log",
     "docs/qa/apresentadores-2410/candidate-locale-readiness.log",
@@ -325,6 +398,36 @@
     "docs/qa/compra-avulsa-2410/revalidation/test-ads-formatos-escolha-2410.log",
     "docs/qa/compra-avulsa-2410/revalidation/test-compra-avulsa-undo-2410.log",
     "docs/qa/compra-avulsa-2410/revalidation/test-idiomas-formatos-undo-2410.log",
+    "docs/qa/upsell-filme15-2610/ENTREGA.md",
+    "docs/qa/upsell-filme15-2610/VALIDATION.md",
+    "docs/qa/upsell-filme15-2610/baseline-46fa-complete.json",
+    "docs/qa/upsell-filme15-2610/baseline-ads-roteiros-recheck.json",
+    "docs/qa/upsell-filme15-2610/baseline-demo-recheck.json",
+    "docs/qa/upsell-filme15-2610/baseline-e4-boundary.json",
+    "docs/qa/upsell-filme15-2610/baseline-env-final.json",
+    "docs/qa/upsell-filme15-2610/baseline-long-timeouts.json",
+    "docs/qa/upsell-filme15-2610/baseline-main.json",
+    "docs/qa/upsell-filme15-2610/baseline-rechecks.json",
+    "docs/qa/upsell-filme15-2610/baseline-source-repair.json",
+    "docs/qa/upsell-filme15-2610/candidate-demo-final.json",
+    "docs/qa/upsell-filme15-2610/candidate-e4-final.json",
+    "docs/qa/upsell-filme15-2610/candidate-final.json",
+    "docs/qa/upsell-filme15-2610/candidate-kids-final.json",
+    "docs/qa/upsell-filme15-2610/candidate-long-final.json",
+    "docs/qa/upsell-filme15-2610/candidate-main-comparison.json",
+    "docs/qa/upsell-filme15-2610/candidate-paginas-final.json",
+    "docs/qa/upsell-filme15-2610/collect-baseline.cjs",
+    "docs/qa/upsell-filme15-2610/collect-final.cjs",
+    "docs/qa/upsell-filme15-2610/create-preview.cjs",
+    "docs/qa/upsell-filme15-2610/create-undo.cjs",
+    "docs/qa/upsell-filme15-2610/failure-signature.cjs",
+    "docs/qa/upsell-filme15-2610/guardian-final-readers.json",
+    "docs/qa/upsell-filme15-2610/offline-preload.cjs",
+    "docs/qa/upsell-filme15-2610/preview.html",
+    "docs/qa/upsell-filme15-2610/run-all.cjs",
+    "docs/qa/upsell-filme15-2610/temp-only-tests.json",
+    "docs/qa/upsell-filme15-2610/tsc-final.json",
+    "docs/qa/upsell-filme15-2610/ui-review-results.md",
     "docs/trending-capas-2510.md",
     "docs/trending-imagens-2510/ENTREGA.md",
     "docs/trending-imagens-2510/PREVIEW.html",
@@ -359,6 +462,25 @@
     "docs/video-fiel-2610/test-admin-quality.mjs",
     "docs/video-fiel-2610/test-legacy-layer.mjs",
     "docs/video-fiel-2610/traducoes-desktop.jpg",
+    "docs/vitrine-filmes-2610/ENTREGA.md",
+    "docs/vitrine-filmes-2610/PREVIEW-CONSENT.png",
+    "docs/vitrine-filmes-2610/PREVIEW-FILM.png",
+    "docs/vitrine-filmes-2610/PREVIEW-GALLERY-DESKTOP.png",
+    "docs/vitrine-filmes-2610/PREVIEW-GALLERY-MOBILE.png",
+    "docs/vitrine-filmes-2610/PREVIEW-LINKS.png",
+    "docs/vitrine-filmes-2610/PREVIEW-MANAGE.png",
+    "docs/vitrine-filmes-2610/PREVIEW.html",
+    "docs/vitrine-filmes-2610/VALIDACAO.md",
+    "docs/vitrine-filmes-2610/clean-critical-reanchor-complete.json",
+    "docs/vitrine-filmes-2610/guardian-results.json",
+    "docs/vitrine-filmes-2610/historical-reds.json",
+    "docs/vitrine-filmes-2610/historical-suite.json",
+    "docs/vitrine-filmes-2610/index-audit-vitrine.json",
+    "docs/vitrine-filmes-2610/preview-provenance.json",
+    "docs/vitrine-filmes-2610/reanchor-impact.json",
+    "docs/vitrine-filmes-2610/render-preview.cjs",
+    "docs/vitrine-filmes-2610/restoration-verified.json",
+    "docs/vitrine-filmes-2610/tsc.json",
     "lib/admin/qualityEvidence.ts",
     "lib/admin/regua95Painel.ts",
     "lib/admin/taskFulfillmentCanary.ts",
@@ -386,25 +508,44 @@
     "lib/ads/v2Presenter.ts",
     "lib/ads/v2PresenterV2.ts",
     "lib/ads/v2StartCore.ts",
+    "lib/affiliateCoupon.ts",
+    "lib/affiliateDiscount.ts",
+    "lib/affiliateFirstClick.ts",
+    "lib/affiliateLinkOffer.ts",
+    "lib/affiliateOfferCopy.ts",
     "lib/captionEvidenceGuard.ts",
     "lib/checkoutPricing.ts",
     "lib/cinematic/criticoStill.ts",
+    "lib/cinematic/filme15Perfeito.ts",
+    "lib/cinematic/objetosSemTexto15.ts",
     "lib/cinematic/sceneDescriptions.ts",
     "lib/cinematic/visualMode.ts",
     "lib/cinematic/visualPromptPolicy.ts",
+    "lib/compose.ts",
+    "lib/filmComplete/server.ts",
+    "lib/filmes/faceless15.ts",
     "lib/filmes/filme15Elenco.ts",
     "lib/filmes/filme15RostoFixo.ts",
+    "lib/free15CanonicalCaptions.ts",
+    "lib/free15Gate.ts",
+    "lib/free15GateServer.ts",
     "lib/growth/checkoutSuccessFlow.ts",
+    "lib/growth/filmComplete.ts",
+    "lib/growth/filmCompleteCopy.ts",
     "lib/growth/kidsLaunchEmail.ts",
     "lib/growth/ownIdeaStart.ts",
     "lib/growth/postVideoCapacity.ts",
     "lib/hollywood/router.ts",
     "lib/lifecycle/emailEvents.ts",
+    "lib/madeWithKineo.ts",
+    "lib/madeWithKineoCopy.ts",
+    "lib/madeWithKineoServer.ts",
     "lib/mcp/studioTools.ts",
     "lib/meta95/ideiaNoEscritor.ts",
     "lib/oneTimeItem.ts",
     "lib/pastedDirectives.ts",
     "lib/paypal.ts",
+    "lib/publicVideos.ts",
     "lib/regua95/coherenceV2.ts",
     "lib/regua95/coletar.ts",
     "lib/regua95/contexto.ts",
@@ -444,13 +585,24 @@
     "public/trending/topics/technology.svg",
     "scripts/apresentadores-2410.mjs",
     "scripts/lib/apresentadores-admin2410.mjs",
+    "scripts/measure-upsell-filme15-2610.mjs",
     "scripts/ph-fatos.mjs",
     "scripts/preview-studio-hierarchy.mjs",
+    "scripts/submit-indexnow.mjs",
     "scripts/test-admin-leve-undo-2310.mjs",
     "scripts/test-ads-amostra-anuncio-2410.mjs",
     "scripts/test-ads-amostra-data-2410.mjs",
     "scripts/test-ads-amostra-undo-2410.mjs",
+    "scripts/test-ads-cena-2110.mjs",
+    "scripts/test-ads-cena-95-2110.mjs",
     "scripts/test-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+    "scripts/test-ads-cena-ajuste-2110.mjs",
+    "scripts/test-ads-cena-respaldo-2110.mjs",
+    "scripts/test-ads-cena-retomada-2110.mjs",
+    "scripts/test-ads-cena-segue-2110.mjs",
+    "scripts/test-ads-cena-texto-2310.mjs",
+    "scripts/test-ads-escolha-2310.mjs",
     "scripts/test-ads-escolha-publico-2410.mjs",
     "scripts/test-ads-fiel-1510.mjs",
     "scripts/test-ads-fiel-3-1510.mjs",
@@ -458,18 +610,28 @@
     "scripts/test-ads-fiel-7-1610.mjs",
     "scripts/test-ads-formatos-escolha-2410.mjs",
     "scripts/test-ads-ia-faz-2026-09-26.mjs",
+    "scripts/test-ads-nota9-2110.mjs",
     "scripts/test-ads-packshot-1410.mjs",
+    "scripts/test-ads-qualidade-2110.mjs",
     "scripts/test-ads-reteste-1510.mjs",
     "scripts/test-aeo-business-offer.mjs",
     "scripts/test-affiliate-activation.mjs",
+    "scripts/test-affiliate-coupon-50.mjs",
     "scripts/test-affiliate-destinations.mjs",
     "scripts/test-affiliate-ledger.mjs",
+    "scripts/test-affiliate-link-50.mjs",
+    "scripts/test-affiliate-me-currency-contract.mjs",
+    "scripts/test-affiliate-payment-chain.mjs",
+    "scripts/test-afiliado-destino-1610.mjs",
+    "scripts/test-afiliado-por-post-1610.mjs",
     "scripts/test-afiliado-ref-2026-09-08.mjs",
     "scripts/test-afiliados-atribuicao-2026-10-03.mjs",
     "scripts/test-agency-appearance.mjs",
     "scripts/test-alvo-fantasma-2026-08-31.mjs",
+    "scripts/test-ancora-legenda-1410.mjs",
     "scripts/test-another-short-shelf.mjs",
     "scripts/test-aparar-expansao-2026-09-02.mjs",
+    "scripts/test-apresentador-olhos-1910.mjs",
     "scripts/test-apresentador-v2-1710.mjs",
     "scripts/test-apresentadores-2410.mjs",
     "scripts/test-apresentadores-admin-2410.mjs",
@@ -479,7 +641,11 @@
     "scripts/test-archive-studio-review.mjs",
     "scripts/test-assistant-deep-link.mjs",
     "scripts/test-autopilot-case-study-path.mjs",
+    "scripts/test-avatar-estorno-2010.mjs",
+    "scripts/test-avatar-preso-2010.mjs",
     "scripts/test-b2c-subscription-truth-report.mjs",
+    "scripts/test-bebe-que-fala-2010.mjs",
+    "scripts/test-business-84-2026-10-09.mjs",
     "scripts/test-cards-giro-2410.mjs",
     "scripts/test-cards-giro-undo-2410.mjs",
     "scripts/test-carta-episodio-gatilho-2026-09-06.mjs",
@@ -488,10 +654,16 @@
     "scripts/test-cena-classica-retentativa-2026-09-28.mjs",
     "scripts/test-chatgpt-paste-page.mjs",
     "scripts/test-chatgpt-post-video-offer.mjs",
+    "scripts/test-checkout-clareza-1610.mjs",
     "scripts/test-checkout-currency-truth.mjs",
     "scripts/test-client-short-brief.mjs",
     "scripts/test-clique-perdido.mjs",
     "scripts/test-close-real-1910.mjs",
+    "scripts/test-close-real-ajuste-1910.mjs",
+    "scripts/test-close-real-legenda-1910.mjs",
+    "scripts/test-close-real-legenda-corte-1910.mjs",
+    "scripts/test-close-real-legenda-pilula-1910.mjs",
+    "scripts/test-close-real-v3-1910.mjs",
     "scripts/test-coerencia-historia-2026-09-02.mjs",
     "scripts/test-coerencia-kineo1-2026-09-16.mjs",
     "scripts/test-compra-avulsa-2410.mjs",
@@ -502,6 +674,7 @@
     "scripts/test-compra-avulsa-undo-2410.mjs",
     "scripts/test-compra-avulsa-webhook-2410.mjs",
     "scripts/test-compra-sem-login-2026-10-06.mjs",
+    "scripts/test-consentimento-1610.mjs",
     "scripts/test-consentimento-superficie.mjs",
     "scripts/test-convite-na-hora-certa-2026-08-31.mjs",
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
@@ -510,15 +683,21 @@
     "scripts/test-cta-composer-2026-09-06.mjs",
     "scripts/test-data-cache-no-store.mjs",
     "scripts/test-demo-sob-medida-1510.mjs",
+    "scripts/test-desenho-nota9-2110.mjs",
+    "scripts/test-desenho-som-2110.mjs",
+    "scripts/test-despacho-vazio-2026-09-04.mjs",
     "scripts/test-diretor-kineo-2026-09-23.mjs",
     "scripts/test-done-footer-2026-08-31.mjs",
     "scripts/test-done-workspace.mjs",
+    "scripts/test-dryrun-classico-2026-09-12.mjs",
     "scripts/test-dunning-grace.mjs",
     "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
     "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs",
     "scripts/test-enterprise-alternative-business-path.mjs",
     "scripts/test-entrega-noite-r6-2026-09-09.mjs",
     "scripts/test-episodio2-ending-2026-09-01.mjs",
+    "scripts/test-equipe-business-2026-10-10.mjs",
+    "scripts/test-estrela-do-filme-2026-09-29.mjs",
     "scripts/test-example-remix.mjs",
     "scripts/test-failure-cause-38.mjs",
     "scripts/test-failure-recovery-honest.mjs",
@@ -527,14 +706,26 @@
     "scripts/test-faixa-continuar.mjs",
     "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
     "scripts/test-fila-global-pilula-2026-08-31.mjs",
+    "scripts/test-filme15-cena-visivel-2610.mjs",
+    "scripts/test-filme15-duracao-2610.mjs",
     "scripts/test-filme15-elenco-2610.mjs",
     "scripts/test-filme15-fiel-2610.mjs",
+    "scripts/test-filme15-gate-integration-2610.mjs",
+    "scripts/test-filme15-legenda-canonica-2610.mjs",
+    "scripts/test-filme15-legenda-inteira-2610.mjs",
+    "scripts/test-filme15-numero-unidade-2610.mjs",
+    "scripts/test-filme15-objetos-2610.mjs",
+    "scripts/test-filme15-perfeito-2610.mjs",
+    "scripts/test-filme15-perfeito-undo-2610.mjs",
+    "scripts/test-filme15-portao-fonte-2610.mjs",
     "scripts/test-filme15-rosto-2610.mjs",
     "scripts/test-filmes-f1-virgula-1910.mjs",
     "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+    "scripts/test-filmes-f1f3-publico-2010.mjs",
     "scripts/test-filmes-f1f4-1910.mjs",
     "scripts/test-first-film-free-offer.mjs",
     "scripts/test-free-limit-wall.mjs",
+    "scripts/test-geo-rodada2-2026-10-08.mjs",
     "scripts/test-go-auto-forward.mjs",
     "scripts/test-gpt-handoff-verdade.mjs",
     "scripts/test-growth-candidate-2026-09-01.mjs",
@@ -543,7 +734,11 @@
     "scripts/test-guardiao-2026-08-28.mjs",
     "scripts/test-guardiao-yaml-2026-09-03.mjs",
     "scripts/test-history-second-video-milestone.mjs",
+    "scripts/test-home-3-cards-1910.mjs",
+    "scripts/test-home-cards-botoes-2010.mjs",
+    "scripts/test-home-cards-claros-2010.mjs",
     "scripts/test-home-curation-restore.mjs",
+    "scripts/test-home-remodela-2010.mjs",
     "scripts/test-home-welcome-goal-router.mjs",
     "scripts/test-hora-da-volta-2026-08-31.mjs",
     "scripts/test-idiomas-2410.mjs",
@@ -555,8 +750,10 @@
     "scripts/test-kit-bf-1910.mjs",
     "scripts/test-kit-bf-venda-2010.mjs",
     "scripts/test-kling-duracao-2026-09-15.mjs",
+    "scripts/test-kling25-60s-ancora-2026-09-28.mjs",
     "scripts/test-kling25-descricoes-2026-09-28.mjs",
     "scripts/test-last-setup-memory.mjs",
+    "scripts/test-legenda-bengali-2010.mjs",
     "scripts/test-leva-confiabilidade-2026-08-28.mjs",
     "scripts/test-leva-integration-2410.mjs",
     "scripts/test-leva-rebase-2610.mjs",
@@ -571,13 +768,21 @@
     "scripts/test-marcador-da-casa.mjs",
     "scripts/test-mcp-claude-2026-09-29.mjs",
     "scripts/test-mcp-pagina-2026-09-30.mjs",
+    "scripts/test-mcp-raiz-2610.mjs",
+    "scripts/test-mcp-studio-2010.mjs",
+    "scripts/test-mcp-studio-ajuste-2010.mjs",
     "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-meta95-escrita-2010.mjs",
+    "scripts/test-meta95-personagem-2010.mjs",
+    "scripts/test-meta95-personagem-ajuste-2010.mjs",
     "scripts/test-meta95-regua-1910.mjs",
     "scripts/test-meta95-ugc-1910.mjs",
     "scripts/test-moeda-local-2026-09-09.mjs",
     "scripts/test-momentum-motor-gratis.mjs",
     "scripts/test-money-truth-contract.mjs",
     "scripts/test-motores-d1-2026-09-01.mjs",
+    "scripts/test-motores-geo-2026-10-06.mjs",
+    "scripts/test-mrr-1-3-2026-09-16.mjs",
     "scripts/test-multiformato-2026-09-02.mjs",
     "scripts/test-next-episode-visibility.mjs",
     "scripts/test-next-episode-wall-2026-09-06.mjs",
@@ -589,6 +794,7 @@
     "scripts/test-paginas-ia-claras-2110.mjs",
     "scripts/test-paginas-ugc-2010.mjs",
     "scripts/test-painel-verdade.mjs",
+    "scripts/test-partners-criadores-1610.mjs",
     "scripts/test-paypal-canonical-catalog.mjs",
     "scripts/test-paypal-idempotencia.mjs",
     "scripts/test-ph-kit-2026-09-09.mjs",
@@ -598,8 +804,10 @@
     "scripts/test-porta-episodio2-2026-09-04.mjs",
     "scripts/test-preco-para-saldo-cheio-2026-09-07.mjs",
     "scripts/test-preco-visivel-2026-09-02.mjs",
+    "scripts/test-precos-cartao-valor-2026-10-09.mjs",
     "scripts/test-precos-clipes-kling25-1610.mjs",
     "scripts/test-pricing-monthly-campaign.mjs",
+    "scripts/test-privacidade-plugin-2610.mjs",
     "scripts/test-private-file-share.mjs",
     "scripts/test-product-surface-intent.mjs",
     "scripts/test-public-video-privacy.mjs",
@@ -630,6 +838,7 @@
     "scripts/test-sistema-de-compra-2026-09-08.mjs",
     "scripts/test-stranded-email-dedupe.mjs",
     "scripts/test-stranded-extra-attempt-4xx.mjs",
+    "scripts/test-stranded-ready-footer.mjs",
     "scripts/test-studio-hierarchy-runtime.mjs",
     "scripts/test-studio-prompt-limit.mjs",
     "scripts/test-studio-tile-episode2-2026-08-31.mjs",
@@ -640,9 +849,11 @@
     "scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
     "scripts/test-support/ads-escolha-sample-media-2410.mjs",
     "scripts/test-support/ads-escolha-ui-2310.mjs",
+    "scripts/test-support/affiliate50-history-2610.mjs",
     "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs",
     "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs",
     "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs",
+    "scripts/test-support/desfaz-afiliado50-2610.mjs",
     "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json",
     "scripts/test-support/desfaz-amostra-anuncio-2410.mjs",
     "scripts/test-support/desfaz-apresentadores-2410-fontes.json",
@@ -663,6 +874,8 @@
     "scripts/test-support/desfaz-filme15-elenco-2610.mjs",
     "scripts/test-support/desfaz-filme15-fiel-2610-hunks.json",
     "scripts/test-support/desfaz-filme15-fiel-2610.mjs",
+    "scripts/test-support/desfaz-filme15-perfeito-2610-fontes.json",
+    "scripts/test-support/desfaz-filme15-perfeito-2610.mjs",
     "scripts/test-support/desfaz-filme15-rosto-2610-hunks.json",
     "scripts/test-support/desfaz-filme15-rosto-2610.mjs",
     "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
@@ -670,17 +883,25 @@
     "scripts/test-support/desfaz-kit-bf-1910.mjs",
     "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
     "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+    "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+    "scripts/test-support/desfaz-privacidade-plugin-2610.mjs",
     "scripts/test-support/desfaz-roteiro-curto-2210.mjs",
     "scripts/test-support/desfaz-trending-inventario-2510-troca.json",
     "scripts/test-support/desfaz-trending-inventario-2510.mjs",
     "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+    "scripts/test-support/desfaz-upsell-filme15-2610-hunks.json",
+    "scripts/test-support/desfaz-upsell-filme15-2610-integration.json",
+    "scripts/test-support/desfaz-upsell-filme15-2610.mjs",
     "scripts/test-support/desfaz-video-fiel-2610-fontes.json",
     "scripts/test-support/desfaz-video-fiel-2610.mjs",
     "scripts/test-support/desfaz-visual-ingles-2610-hunks.json",
     "scripts/test-support/desfaz-visual-ingles-2610.mjs",
+    "scripts/test-support/desfaz-vitrine-filmes-2610-hunks.json",
+    "scripts/test-support/desfaz-vitrine-filmes-2610.mjs",
     "scripts/test-support/desfaz-voz-nativa-2610-hunks.json",
     "scripts/test-support/desfaz-voz-nativa-2610.mjs",
     "scripts/test-support/film-preview-contract-2610.mjs",
+    "scripts/test-support/generate-vitrine-undo-2610.cjs",
     "scripts/test-support/leva-integration-2410-fontes.json",
     "scripts/test-support/leva-integration-2410.mjs",
     "scripts/test-support/leva-rebase-2610-fontes.json",
@@ -688,6 +909,8 @@
     "scripts/test-support/offline-ts-loader.mjs",
     "scripts/test-support/seal-leva-integration-2410.mjs",
     "scripts/test-support/seal-leva-rebase-2610.mjs",
+    "scripts/test-support/upsell-filme15-harness-2610.mjs",
+    "scripts/test-support/upsell-filme15-ui-fixtures-2610.mjs",
     "scripts/test-temporada.mjs",
     "scripts/test-teto-no-prompt.mjs",
     "scripts/test-text-to-video-intent-router.mjs",
@@ -695,9 +918,15 @@
     "scripts/test-trafego-undo-2310.mjs",
     "scripts/test-trending-capas-2510.mjs",
     "scripts/test-tres-jogadas-servidor-2026-09-23.mjs",
+    "scripts/test-trial-watermark.mjs",
     "scripts/test-troca-de-plano-2026-09-09.mjs",
+    "scripts/test-ugc-ajustes-2010.mjs",
+    "scripts/test-upsell-filme15-2610.mjs",
+    "scripts/test-upsell-filme15-funnel-2610.mjs",
+    "scripts/test-upsell-filme15-undo-2610.mjs",
     "scripts/test-ux-complete.mjs",
     "scripts/test-ux-mobile-navigation.mjs",
+    "scripts/test-verbatim-intocavel-2010.mjs",
     "scripts/test-verbatim-order-warning.mjs",
     "scripts/test-video-editing.mjs",
     "scripts/test-video-ready-nudge.mjs",
@@ -708,14 +937,18 @@
     "scripts/test-visibilidade-chatgpt-2026-10-06.mjs",
     "scripts/test-visual-ingles-2610.mjs",
     "scripts/test-vitrine-em-alta-2026-08-31.mjs",
+    "scripts/test-vitrine-filmes-2610.mjs",
+    "scripts/test-vitrine-filmes-undo-2610.mjs",
     "scripts/test-voz-nativa-2610.mjs",
+    "scripts/test-welcome20-onde-anuncia.mjs",
     "scripts/test-works-with-claude-2026-09-30.mjs",
     "scripts/test-workspace-spanish.mjs",
+    "scripts/upsell-filme15-report.mjs",
     "supabase/migrations/20261024175246_ads_escolha_sample.sql"
   ],
   "sources": {
     ".github/workflows/guardiao.yml": {
-      "hash": "b001697bd285f171e88145ac08be0c915aef842527790d009ea157f0a29088ca"
+      "hash": "aac67a438959288317b6d37bd9446c0bae8643d59b29b43262a603dd13b560e9"
     },
     "app/(dashboard)/ads/v2/AdsV2Client.tsx": {
       "hash": "880ac2b360e98cc76454ae1de04284d715902890d5d73fbf3643d8ec9bd3fc97"
@@ -729,11 +962,20 @@
     "app/(dashboard)/ads/v2/page.tsx": {
       "hash": "f475a7084cc108464c981e906055f7678e537e3b68a355bea49bb38334728974"
     },
+    "app/(dashboard)/affiliate/page.tsx": {
+      "hash": "dadc582c6c4edecc5c34fd6d38bcd0d48d07ad1835d83d244b20e5346d72a5e1"
+    },
     "app/(dashboard)/generate/GenerateClient.tsx": {
-      "hash": "7c7144c66134a9208e737e70b4bedbbbbc2377e9b5b9ffe4e42e0da8c2e3e576"
+      "hash": "5513d8843230ce9274d8652ad39143d4ec01aeaf75a7479a4c042c0c9ce218c7"
+    },
+    "app/(dashboard)/my-videos/MyVideosClient.tsx": {
+      "hash": "c71dbaf63ffc552b7904a9795c6be03e38f314f31bd1962a72ee5d9ca8ae567a"
     },
     "app/(dashboard)/studio/StudioClient.tsx": {
       "hash": "d9d6caf89e68870c5680ae6dee21cf09a87f8694928557c440d62a4500b6fc4a"
+    },
+    "app/.well-known/oauth-protected-resource/route.ts": {
+      "hash": "5bfeaca5926ce380551a207a4c20402e1a2d9695bcef9fdadd2244206d113ea2"
     },
     "app/admin/coerencia/page.tsx": {
       "hash": "bc87acf000e9a067855d08d6ffe87462318c632c830f1b7b10ee2180976b532c"
@@ -756,14 +998,26 @@
     "app/api/ads/v2/status/route.ts": {
       "hash": "61713381569bdbe40fe0d0eff9dc5ce41ed4205acb8bf89c9014953864b85f1f"
     },
+    "app/api/affiliate/me/route.ts": {
+      "hash": "81a17e6b565fd9238494f154d121f08013709163244e0e064f49042dcce150a0"
+    },
+    "app/api/affiliate/offer/route.ts": {
+      "hash": "c270c3150f654c990b5a4849637f0fab79924d2281074efc04db30e55a12936a"
+    },
     "app/api/analyze-idea/route.ts": {
       "hash": "f08d54d9af5947ce1a9ed3e0f14ad7d320367650ac4ec5e4724d0523e507b3a1"
     },
     "app/api/compose/route.ts": {
-      "hash": "8156eecf4896ccee234d611f0b52f100939dbbb80f2365d440bbe72a0b05c141"
+      "hash": "f69564062610d288aca34a889617295c1e382e4bda125a53a5ff686be80adca9"
+    },
+    "app/api/compose/status/[renderId]/route.ts": {
+      "hash": "16f6ef97a8cb637b67233f4fa12a0aa7aa9a2cef15478cdb216733b1f3cbb08b"
     },
     "app/api/cron/ads-v2-advance/route.ts": {
       "hash": "2a28551a21d1798bf2c6aa7e5cd9f89553ae5463335e64521f4e23671db133e3"
+    },
+    "app/api/cron/finish-stranded-renders/route.ts": {
+      "hash": "3a1d16d621cc30c899ba6c108d4392fda278caf5139305661d36de829f92deb3"
     },
     "app/api/cron/placar-versao-b/route.ts": {
       "hash": "09a7775210adf77a866d58910cb3de6e8fb67e63728226c6478a27996a21b0b5"
@@ -771,14 +1025,29 @@
     "app/api/cron/rescue-vendor-assets/route.ts": {
       "hash": "491f3573aeab6fe9d95896714835aaef636b940127279228e994551d2dc1bfa6"
     },
+    "app/api/cron/send-video-ready/route.ts": {
+      "hash": "019400ebabe04d47836a29fd8021fb123b93ae37a561336c50ddccceffd93187"
+    },
+    "app/api/cron/submit-indexnow/route.ts": {
+      "hash": "467c701e36b7a6c02302b125eb7822793378da4855e646f711f18bed08172e17"
+    },
     "app/api/events/route.ts": {
-      "hash": "7db24de472da2ed0c95a21d567ddb478543c343e538db6dc6e9b584a50c94c4a"
+      "hash": "a466ad8040dd332c72aa2718abdb0f721044e45e99658938a41be0e84032a594"
+    },
+    "app/api/film-complete/checkout/route.ts": {
+      "hash": "1896c36eb30e9fa6aa58da524704c25d4fd2549f624d58880f3e1b0f6e306e0c"
+    },
+    "app/api/film-complete/start/route.ts": {
+      "hash": "44ba635e1c4f700288b8270dd8df0e1f3d5d452812d379243af37aa4091cada4"
+    },
+    "app/api/film-complete/status/route.ts": {
+      "hash": "ddd8bd257e937fd80ab4d96f864ac8d51e463e0f34a6372774cfaf249a1a6212"
     },
     "app/api/footage/route.ts": {
       "hash": "f64a018860d9ef9409c0d31a396f048b82412a7fa798143be61f1a3ac3279549"
     },
     "app/api/generate-video-cinematic/route.ts": {
-      "hash": "d616adb5a3cbf52512a570df59618f5e08bdf33c719395df734aa4e401a046d9"
+      "hash": "28ebb32dc06ab6209809ab7c4c1547dd6a8d60a8482c0ceef77f2e4fad0af499"
     },
     "app/api/generate-video-fast/route.ts": {
       "hash": "c1776b5c77be40151385f823ffb51ced6884ed21551afc1e54f8ae029810106e"
@@ -796,19 +1065,73 @@
       "hash": "6ff58c42de341ac2f9bbc89309797acca98588d79e4afb6cf13a8ad0271d6830"
     },
     "app/api/stripe/checkout/route.ts": {
-      "hash": "55a4509e4dfe1587cba91079f6f7733b424016f64bdeea8b17ee8cc1c8169b01"
+      "hash": "77015c1027535146e5f0a903ad104c1cb75500caa646b75afb1d9b400edebe40"
     },
     "app/api/stripe/webhook/route.ts": {
-      "hash": "21cd6cc6d1426aeb8024901b7036f2e8357d88667c82a4e908da3edf3c4634eb"
+      "hash": "fda9f63f5d76c1d7bb425399cd9e91fbe943e720095efcabe135b5187ec99250"
+    },
+    "app/api/video/publish/route.ts": {
+      "hash": "d8049a3735b682e0275ab7a8af097cb55fd1d688c327e1d4b0791f8968472210"
+    },
+    "app/api/video/showcase/route.ts": {
+      "hash": "020d1b6f0ff3b333d18c3d668f5431a4393afeaa97946dab6046ac0166ef1d25"
     },
     "app/checkout/item/page.tsx": {
       "hash": "ed5589525807e49d11512d890d61259fd3cb12ada6a13ed3a3e10c3b9566bc82"
     },
+    "app/es/made-with-kineo/[slug]/page.tsx": {
+      "hash": "837c2c118911eb3d1920fdc364dcd3e8cc5bf7c32cfe2a3b6f1119a99692740c"
+    },
+    "app/es/made-with-kineo/page.tsx": {
+      "hash": "0c9e6ac890043fef0e2559de9c963f98d8ce124bc100af37dea876bd170e3eef"
+    },
+    "app/examples/page.tsx": {
+      "hash": "b39a75040706c41dcbcfa3794892620dd95897dde5d3e09a6e3de6db1fca8c60"
+    },
+    "app/film-complete/layout.tsx": {
+      "hash": "3c1cdb352ad5a1e7ff1ed54d1e34c111407f85a05481ae7fb7124a761287da24"
+    },
+    "app/film-complete/page.tsx": {
+      "hash": "da20fbc20487ff0cfb00d7f98aa8e65f34e1ad31c0d45189ade7abe04a1fcbd8"
+    },
+    "app/made-with-kineo/[slug]/page.tsx": {
+      "hash": "8010e992b6cfb6134a44f2d2e43f99c3f98b059f40e9a343354cc0ae49ffb0ce"
+    },
+    "app/made-with-kineo/manage/page.tsx": {
+      "hash": "fa71360c5b048a53a0d9c1e8cad3c9a0a09b15353aaa1e02f942713fd7202513"
+    },
+    "app/made-with-kineo/page.tsx": {
+      "hash": "059eca14efd5fbf3fdc1bac3420d13223dab55ac605cb6a8f7a930c16b205558"
+    },
+    "app/made-with-kineo/showcase.module.css": {
+      "hash": "e62afa5c9a1eddd31b4552d22eecfeefe48418045dae9bed79bf9266d5cf2f78"
+    },
+    "app/made-with-kineo/sitemap.xml/route.ts": {
+      "hash": "26607b44f7420822f4a13fb601a4bfc62baf95d9c6b27b36357d6c89e700bc20"
+    },
+    "app/partners/page.tsx": {
+      "hash": "3228880edc8068482f619f649696e51e69ef804d288d32ca1ae91fdaa2e20e49"
+    },
     "app/pricing/PricingClient.tsx": {
-      "hash": "47337ff6fdf2e4c56a7383a91bcd40cf2dfca84087f16e8f416eb09938c2691f"
+      "hash": "5bd831b2e0e70552e48f716acf8706f4863b2ad3119e12b486b4bf40ada28ac0"
+    },
+    "app/privacy/page.tsx": {
+      "hash": "c96f471f4df02c78637931d3fdee0657113885866485dafd70387a8e38b12a29"
+    },
+    "app/pt/made-with-kineo/[slug]/page.tsx": {
+      "hash": "4a1a6db2b7656b4f27268da3154bfd3b37691e64998517ff014ee0c2c45fc4aa"
+    },
+    "app/pt/made-with-kineo/page.tsx": {
+      "hash": "392e67079dd10f7a854dc7c5015ee9f56d0aff1cdec86346dc7185e7814fea91"
+    },
+    "app/robots.ts": {
+      "hash": "313800b18805e81a94eca811677bced06698010b48fb3357d629d2c7411d5944"
     },
     "app/shopify/open/route.ts": {
       "hash": "1dcf76a3e60124588f9779402934c069df1e14a5f4f8fcf88e7eecedcd888d3b"
+    },
+    "app/sitemap.ts": {
+      "hash": "9ced8210a83d6787465d6f2659a3625e15c40f8f40b81f4af377a87acf7059c1"
     },
     "app/trending/TrendingCard.tsx": {
       "hash": "f3627c7da19170b74f080ccdc926b5365aa0790cbe4a2a1a65ce0062be1b4373"
@@ -819,6 +1142,15 @@
     "app/trending/trending.css": {
       "hash": "7b700796768fd6cb0ea4514caa02183dc7d38ebbcea59f917c359ef18ea61040"
     },
+    "app/v/[id]/opengraph-image.tsx": {
+      "hash": "8072aa860b6d7022e21a56a22a9efddab174bf42a468affe8e0c54cbca9bcdf9"
+    },
+    "components/FilmReadyFullVersionUpsell.tsx": {
+      "hash": "2c83bad100881ba930d27c0c66f8d8309925e6764edf6455e20f3afe3d6d7d4c"
+    },
+    "components/MadeWithKineo.tsx": {
+      "hash": "278f4cda8d0cad407db056ea2164f6a742ea11a9f5b49319a16d3edcae309d73"
+    },
     "components/OneTimeItemConfirmation.tsx": {
       "hash": "b9f5c73aec403a18163dba9ff13c179238a23df1c572046059d829add07df411"
     },
@@ -827,6 +1159,9 @@
     },
     "components/PricingCards.tsx": {
       "hash": "d0f476ff8586af1f0a04fc20d88dab2c5bde53f4372f00389d85386c655e4692"
+    },
+    "components/ShowcaseConsent.tsx": {
+      "hash": "118e4a4b6ae6ecc739744ee7ea822d57030f2d978de65a4e1bf5441f8603d852"
     },
     "components/admin/QualityAssessment.tsx": {
       "hash": "3368816ee661c197efb5640b91637b715773962acdcfaad6387289c9901e7660"
@@ -878,6 +1213,9 @@
     },
     "docs/KINEO-AMOSTRA-ANUNCIO-2410.md": {
       "hash": "fa206611fba1d5de5b2f742f8a745011885510b94f32fb3648470f900d25d0b3"
+    },
+    "docs/chatgpt-plugin/package/plugin.json": {
+      "hash": "c57ec5ae15145befb3b762d4b5f5a605d74ac46da1b084eef1fdafe5467c7440"
     },
     "docs/compra-clareza-2610/EXECUCAO.md": {
       "hash": "29f2e8149672d8ffea1092bb41f4e24d4010cda29fe9ceb9ce169ce6fd82e690"
@@ -936,11 +1274,44 @@
     "docs/compra-clareza-2610/test-result-script-review.mjs": {
       "hash": "2608965ca8ec6420a4146e3d3c0ebbe37eaf65d18222dc43ae2513292039371d"
     },
+    "docs/filme15-perfeito-2610/README.md": {
+      "hash": "a9c7c5a9f83e80cf4f2140bb0126ac4933938ad1a19f779d6fc91b3bb1b54866"
+    },
+    "docs/filme15-perfeito-2610/caption-audit.json": {
+      "hash": "00e2bbdef86a502111c451731bae496fcb6bedc6c6dc769e1868691bac4aea0b"
+    },
+    "docs/filme15-perfeito-2610/caption-unit-rules.md": {
+      "hash": "f9fea28dcebadf6e507624c1bc23cce091930fbafd034def4960f391f1e08918"
+    },
+    "docs/filme15-perfeito-2610/caption-visual-audit.json": {
+      "hash": "c5ddcf63065953de04af1e826094c83d12acf95b719d94ae78cb9b773ce1df7e"
+    },
+    "docs/filme15-perfeito-2610/duration-audit.json": {
+      "hash": "b199669dc6f7bfabf2e7c0dca4f87ad2d91f456b41ca19f2d0326651354cd741"
+    },
+    "docs/filme15-perfeito-2610/freeze-undo.mjs": {
+      "hash": "5c21472466a3e3c682cdfda70fead82ab8d6f72a67e3e7d6b06496d919eeb920"
+    },
+    "docs/filme15-perfeito-2610/offline-guard.cjs": {
+      "hash": "6c526c046285b294193012359dce823dde08bf7955b962b18c2770a0afb53d77"
+    },
+    "docs/filme15-perfeito-2610/qa-results.json": {
+      "hash": "34fd6799d677cc297e5873daa6f78cfdc1782c26ec09b983ba249874a20921dc"
+    },
+    "docs/filme15-perfeito-2610/qa-summary.json": {
+      "hash": "569e475010a6ca6e3b5b4b763da2945c57dac464faa07559ac9f602d8f6d931c"
+    },
+    "docs/filme15-perfeito-2610/run-offline-tests.mjs": {
+      "hash": "cf5dc1f2893417198693e4512801e141e1a78a9f41d2690a4ee38525fff86137"
+    },
+    "docs/filme15-perfeito-2610/text-audit.json": {
+      "hash": "6b2b3fb1067d92e67f80771d8488a5498189ecf395389f9f12f9a4b9ec200e59"
+    },
     "docs/free15-quality-v2/caption-entrega.md": {
       "hash": "442c3f7e0a5b46f6d08941775454d0e7e8159e3d5ceab242106bb169f412b361"
     },
     "docs/free15-quality-v2/caption-legacy-test.mjs": {
-      "hash": "f27ac818917219992dc163f2bcd0701674ded09b97d2ad0b0e5131f727407286"
+      "hash": "987e477ee2a10c4954ac5ada4dfdfd3315ebefc3d7ec0b419c4c24abf970dc99"
     },
     "docs/free15-quality-v2/caption-owned-controls.json": {
       "hash": "8c8457a11dbf81c3085b3b7e83b89530d5d9a665a979ba3b4ddc9d898db2f0cb"
@@ -949,7 +1320,7 @@
       "hash": "3ea5875487cee7a3e91af4d0cb6fec15508a33a9412b379c348680fb80ebb908"
     },
     "docs/free15-quality-v2/caption-test.mjs": {
-      "hash": "92129a84da552d4bb4f67bc770848d09656b687e136faa1bf3ef8248e7c5d47f"
+      "hash": "e863a69bdeb09f9e53b713c3487f6ed845de2147a56373e46679dba73dd3220d"
     },
     "docs/leva-rebase-2610/COMPARACAO_MAIN.json": {
       "hash": "6042e4ff61a458e840c51e9a2d82e63c10bfcea1a300ca3250e5d9270f85bd01"
@@ -1032,6 +1403,21 @@
     "docs/previews/COMPRA-AVULSA-2410.html": {
       "hash": "8f0387fc20e8bb1acbbe1122fda23a540d0087c9859f6e404de2d1595731dcaa"
     },
+    "docs/previews/affiliate-50-2610-desktop.png": {
+      "hash": "243c392a21b4fbbfe137a496dfdbe6d3d33a4b797963ad0d1df2f092b7d83b10"
+    },
+    "docs/previews/affiliate-50-2610-mobile.html": {
+      "hash": "d9529c913ddb4a3413cbdc9d76564f04728c288ed17c944b8e14f53ea5b94082"
+    },
+    "docs/previews/affiliate-50-2610-mobile.png": {
+      "hash": "831804e0979166bca50969b447e06b19fe5973f431cb32a7653e2befc8f682b4"
+    },
+    "docs/previews/affiliate-50-2610-render.mjs": {
+      "hash": "f9caa447313603700e33a443e3b0fd9a77fa58f6c65205d71c75285547fe3961"
+    },
+    "docs/previews/affiliate-50-2610.html": {
+      "hash": "e463fba40a793551560d5e5508741acd22b559f66c282bc2b9f5dfdf4aab0eae"
+    },
     "docs/previews/amostra-anuncio-2410-mobile.png": {
       "hash": "f0b7517a852f8c5e3fda5a74b61cd055ebd21cf700144a6ae54c2506fabd9128"
     },
@@ -1073,6 +1459,72 @@
     },
     "docs/previews/render-compra-avulsa-2410.cjs": {
       "hash": "297409edd928513f7a2aacfa838a936839190a85656681478e6bd694aebec518"
+    },
+    "docs/qa/affiliate-50-2610/.gitattributes": {
+      "hash": "6d0896c6b665c761b6a231e841364c9850ee55cde62abbe99bfea01e467a0769"
+    },
+    "docs/qa/affiliate-50-2610/README.md": {
+      "hash": "f20cf0e00d6f7d38a16909b193c0f3d4339c4e999ab21b2229d07b9d6024680e"
+    },
+    "docs/qa/affiliate-50-2610/evidence/avatar-history-metadata-final-proof.json": {
+      "hash": "29023b72f916813874a10213b9ee1aa9a3b7c8b21f574cfb4d20420f26fc1a2b"
+    },
+    "docs/qa/affiliate-50-2610/evidence/compatibility.json": {
+      "hash": "6799a51a57c164975a20c835a6dfec3aa3c13121f1bd80dd4cc0dfa4fdd5e4b8"
+    },
+    "docs/qa/affiliate-50-2610/evidence/evidence-manifest.json": {
+      "hash": "441ee57d9905952b1a755f31d64a2609d936897d0bc2d2d9ceadf53477e3b320"
+    },
+    "docs/qa/affiliate-50-2610/evidence/final-selection.json": {
+      "hash": "8c1cd8ac05dab878fe38415fdee66996abe2bfcfad1a7a7c279c577aada31d05"
+    },
+    "docs/qa/affiliate-50-2610/evidence/foreign-boundary-metadata-final-proof.json": {
+      "hash": "e857d5cfddbb965f3c3c378f001ad832b603f0070c157467b9d5c1dd0d362d53"
+    },
+    "docs/qa/affiliate-50-2610/evidence/ingress-ast-identity-proof.json": {
+      "hash": "54c28a5594acbbfc96be17bbb342a87d696c8b41ee4840ebaea6a6677ab933f6"
+    },
+    "docs/qa/affiliate-50-2610/evidence/inverse-proof-metadata-final.json": {
+      "hash": "01e957015474cef2794c36848d40a38b46bb2a071980f6c0682bda508f31c9b5"
+    },
+    "docs/qa/affiliate-50-2610/evidence/metadata-final-summary.json": {
+      "hash": "0519049330e9cde73ed2c0601e0f5e28cd2ac58c140681f5fbc929b15dc2c8f8"
+    },
+    "docs/qa/affiliate-50-2610/evidence/metadata-selection.json": {
+      "hash": "d7816d0f77d7571563a03251b7a962b34a892478e70e04eff3056279bb06da2b"
+    },
+    "docs/qa/affiliate-50-2610/evidence/mutants.json": {
+      "hash": "83ec45964551ab54132bdc51f327d2963508b12cd2784f6b77eb8380209e989f"
+    },
+    "docs/qa/affiliate-50-2610/evidence/mutants.log": {
+      "hash": "04c98455c6ef8df3d70a03b37cbada5a814221dbcee5c472f2132ffc9f8227e2"
+    },
+    "docs/qa/affiliate-50-2610/evidence/offline-preload.cjs": {
+      "hash": "113403b24c50a3e9f877e6da294fb74decd38f62f84c03347be3a9b4106a75b6"
+    },
+    "docs/qa/affiliate-50-2610/evidence/protected-files.json": {
+      "hash": "54b125c2aeb18e8d7b2a4640b9f5adb0ada292d6f9a8d43a026f09abab5db719"
+    },
+    "docs/qa/affiliate-50-2610/evidence/raw-ingress-metadata-final-proof.json": {
+      "hash": "ce580d6000bef59a4d1ff2ee106bd0dfeded4dc138eaf87edeca23729c5c6eeb"
+    },
+    "docs/qa/affiliate-50-2610/evidence/run-suite.mjs": {
+      "hash": "f27a6780ec30ebd9374f0f57c083efd99215783adaa9bb470b6c9229a1b3b75a"
+    },
+    "docs/qa/affiliate-50-2610/evidence/selector-reader-metadata-final-ast-proof.json": {
+      "hash": "01a0fbf1cbbae7070555a504cfe2423c9baa33b4a757741cb3ab04d398fb4495"
+    },
+    "docs/qa/affiliate-50-2610/evidence/test-consumer-metadata-final-report.json": {
+      "hash": "b4275747536397e517e1ae22ae2afa2be0f8fa10d345c947e3cd3c8bdc826f4b"
+    },
+    "docs/qa/affiliate-50-2610/evidence/test-consumer-metadata-final-selection.json": {
+      "hash": "ad0534da72ef8bf89573340558808b1cda8838d15a3e2e3320b83c3490198392"
+    },
+    "docs/qa/affiliate-50-2610/evidence/test-matrix.json": {
+      "hash": "9830d811f3e1a40b2e0efcefbf4365452ce459419a1c3dc92f6c5353b4452418"
+    },
+    "docs/qa/affiliate-50-2610/evidence/typescript.json": {
+      "hash": "c128d731c6b27f8a5f0ac5ea4e3a36c28a32d8a135cbbdc7826a35d83ab805b2"
     },
     "docs/qa/amostra-anuncio-2410-gates.json": {
       "hash": "bc56d17be7d21f2ca636ad9ac1568acc089ad8dd961e7cea5e90d88127b2a3eb"
@@ -1677,6 +2129,96 @@
     "docs/qa/compra-avulsa-2410/revalidation/test-idiomas-formatos-undo-2410.log": {
       "hash": "71d9478ab8b9e38be67f57f5146770d8fe2698e0d3f8c0f126df2a0e4ff45891"
     },
+    "docs/qa/upsell-filme15-2610/ENTREGA.md": {
+      "hash": "0f92e2462e21a95ef187eb4cd3c8e0f105a31a94d6fd0d9aff22b0973070b5b4"
+    },
+    "docs/qa/upsell-filme15-2610/VALIDATION.md": {
+      "hash": "421885fb9e39e97653523063aaec125b7c8463e1c54abeae2508016d556ba301"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-46fa-complete.json": {
+      "hash": "07469766a1e3735d458cc6a23318ae4857900eb8eacc3b3adcb91c2dab7f6fbc"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-ads-roteiros-recheck.json": {
+      "hash": "06e2890908fbed83cbfae012f874fabe44065f93a0d19885badecc63f1c8a31c"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-demo-recheck.json": {
+      "hash": "013886598798ca47ac2412a768f62f615a9ce406f7a005596213f889ce88a0d7"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-e4-boundary.json": {
+      "hash": "484429abdadd7d9d7a8d2b586b38784e4a89b708430e2a4e24013c20df75afca"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-env-final.json": {
+      "hash": "b00ac4d8961c6aa301a94fb25a42e120a58c2cc21fbadab4d62cd9c771d01242"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-long-timeouts.json": {
+      "hash": "e36f9b04bb908dabf002800b0f7762dbc6a02f4936f1df58bc97ab0778f3574e"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-main.json": {
+      "hash": "db9002b353e82f7281c366148d088494760b1c6ad04026f93d5221c66e745f4a"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-rechecks.json": {
+      "hash": "fdb53b3286e0ef6dd4dec9764ae500b7e64944b731f521691639d0bf1be9b157"
+    },
+    "docs/qa/upsell-filme15-2610/baseline-source-repair.json": {
+      "hash": "cdc1ba352114f2d51e809714011cbef44ac455b6f0677b964341bb0654c408c0"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-demo-final.json": {
+      "hash": "cbe82876825a05aa9fe98681d09b34a92d2aed57566bc316c536620e0dbf04a0"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-e4-final.json": {
+      "hash": "1479bd9952c1f0f0db559d9a8bbd6e8e9b65f8ab469eef7a65908b57e5803029"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-final.json": {
+      "hash": "f07288f945c467015142bc9d4d7fcbfca78caa443f140417ef8ff796574bbad5"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-kids-final.json": {
+      "hash": "c6c2cbc88390360ec4211c4751d73928bc6ed73c652f3f54952bebe971303cf2"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-long-final.json": {
+      "hash": "6f54e3892dd6dfe75262b301c0f14913219b09390a137cefafbd6277cbf2d868"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-main-comparison.json": {
+      "hash": "5cfdd72867fa5372876b309b6384821070d4941ad521b2e55548939766b4f25e"
+    },
+    "docs/qa/upsell-filme15-2610/candidate-paginas-final.json": {
+      "hash": "e863d01d59fb757f058cfe6e707b2bebbe52ded1c2c3f07b51189cce8fa543b6"
+    },
+    "docs/qa/upsell-filme15-2610/collect-baseline.cjs": {
+      "hash": "ba946f592b22bbd2a00e5416befb730caa89f7f4289b11b26b09c366afb66f41"
+    },
+    "docs/qa/upsell-filme15-2610/collect-final.cjs": {
+      "hash": "1f7b98f2845fe1871156d0e6e9a21866b9c122764951b585b961d9947e9d3db7"
+    },
+    "docs/qa/upsell-filme15-2610/create-preview.cjs": {
+      "hash": "695ddd5023bdb5a25baa107b283cb1d39e613ecffff2a3adc62491ae2e222858"
+    },
+    "docs/qa/upsell-filme15-2610/create-undo.cjs": {
+      "hash": "28a92cbca0c188e96e8a6602af0e985c05faee12539e2ee5397c3b684225b6b3"
+    },
+    "docs/qa/upsell-filme15-2610/failure-signature.cjs": {
+      "hash": "9729d917f6b40f257d6112f0920b91f70a840b1003e76dfb0424e86d096547ca"
+    },
+    "docs/qa/upsell-filme15-2610/guardian-final-readers.json": {
+      "hash": "1dc64b58c210080e12682cd1ade131dc7f32ac6b962805beaa559fb413865f1d"
+    },
+    "docs/qa/upsell-filme15-2610/offline-preload.cjs": {
+      "hash": "69c53ddff2f8c986f674fad2a1497642629d26177cae15d771245e47202a1509"
+    },
+    "docs/qa/upsell-filme15-2610/preview.html": {
+      "hash": "43b71f1ac3f0ff63fc5a64e57b52eff32346cb29bcd545da6fced65dc8eb32d3"
+    },
+    "docs/qa/upsell-filme15-2610/run-all.cjs": {
+      "hash": "50824e0206879fbb1674d29b982f5a12efeb40d00244c05e430f9b872aeeee29"
+    },
+    "docs/qa/upsell-filme15-2610/temp-only-tests.json": {
+      "hash": "7c9006e8ac95bde40f1240e0f757b7baeeba75c3301e2631d4fdfd11e65ad8a0"
+    },
+    "docs/qa/upsell-filme15-2610/tsc-final.json": {
+      "hash": "729d398264818c4ebc7339b07b58441b70f382cdba5c889630d2d1566a070772"
+    },
+    "docs/qa/upsell-filme15-2610/ui-review-results.md": {
+      "hash": "3d47fa891956c5fcb04bfd6fee0418323150a293efbcaeae3faf9d4051791117"
+    },
     "docs/trending-capas-2510.md": {
       "hash": "992317389df2b3d0e6775dcdfe9e76ebe9659d9f3a90c45d144f72334a14ec6c"
     },
@@ -1774,10 +2316,67 @@
       "hash": "db0b3d75843e1e25552b67b6012a1637118d76cb5e1998b695ec3788b4f4ec8e"
     },
     "docs/video-fiel-2610/test-legacy-layer.mjs": {
-      "hash": "f5d30d35e9b0a2d948a4532a503a840d6b13417519a17f0c47fb68b893b8e7c4"
+      "hash": "818323133c33610c501ec3ed2043cd82d956b7cf9f2240023492648b0f4275d8"
     },
     "docs/video-fiel-2610/traducoes-desktop.jpg": {
       "hash": "c7a69375998bbabc91b321094293b64daa5fd58bd105effc0cef215bc3d44b94"
+    },
+    "docs/vitrine-filmes-2610/ENTREGA.md": {
+      "hash": "7c614d2f8bc4720e2c19df9980d041430fb8cdd321ba655488e0c4a8c83f12ae"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-CONSENT.png": {
+      "hash": "95754019a7290167cda51cd8eb2ee233d4ad89cad7f338b91c41f94a0fa8b9cc"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-FILM.png": {
+      "hash": "d309d31529a87f3c1fc82858625bc833d795e6d346ddef3764420306b528e0ed"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-GALLERY-DESKTOP.png": {
+      "hash": "7a4654ea9ba89abccc6711b37d36e2ae114627d3fde6aae9ce50a096f8eba140"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-GALLERY-MOBILE.png": {
+      "hash": "6fcc40899477d2f4ef02e0a3ea6a0c8a19d0f2b60fb2a15a87f588d7283fd888"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-LINKS.png": {
+      "hash": "e98f46d25fa29167d21ce551d66e1ee73c9ee6b7131a04895e81b8b784ab79d3"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW-MANAGE.png": {
+      "hash": "c1aae3638cbec4c31373d6d2608ce6171a9bec1b17bdac7bb4f59e5ce1ff5c42"
+    },
+    "docs/vitrine-filmes-2610/PREVIEW.html": {
+      "hash": "dad217b5cce364b5b2e375edc3c5ef085db6228ebbbba25dc9733f296d94393e"
+    },
+    "docs/vitrine-filmes-2610/VALIDACAO.md": {
+      "hash": "7105c0e82689c58a9adea1221345bfa1471139e972449e4a54b2e3589e15f7c1"
+    },
+    "docs/vitrine-filmes-2610/clean-critical-reanchor-complete.json": {
+      "hash": "8ce608c0e99b0d94a5093379b5ce5412b5a773f32529578d9eb80118d2ec79d2"
+    },
+    "docs/vitrine-filmes-2610/guardian-results.json": {
+      "hash": "2656cd13d7a305fa7b2d3427a9fbf26d45176af33c7b7ceffc2c2c639ca16ad6"
+    },
+    "docs/vitrine-filmes-2610/historical-reds.json": {
+      "hash": "517948fca7f2de531d83df332549d775c485f03b0612a5a5d4beb0b6669bc15f"
+    },
+    "docs/vitrine-filmes-2610/historical-suite.json": {
+      "hash": "d3fbad66f90652977b5705d719613840de0deef7ec994a9acc235fda37d7cfab"
+    },
+    "docs/vitrine-filmes-2610/index-audit-vitrine.json": {
+      "hash": "d006396df5e8fc1e87ee3bb137e2d09c7600374b25aecfabc9a71f259f94e78a"
+    },
+    "docs/vitrine-filmes-2610/preview-provenance.json": {
+      "hash": "4ed466c5772405b09aaa51364cea14a753e60d7e8b3183a0611831556b9d9382"
+    },
+    "docs/vitrine-filmes-2610/reanchor-impact.json": {
+      "hash": "04f49ac410e8fe73231df6cba864dbe446913112729487c46e8d82a3764d79ce"
+    },
+    "docs/vitrine-filmes-2610/render-preview.cjs": {
+      "hash": "0933252e8f56a2e7b50d009f2de20c33e18ececd4a391f5bb1aa7fe1f52087db"
+    },
+    "docs/vitrine-filmes-2610/restoration-verified.json": {
+      "hash": "011fc8b36d8934f3b49f93a74e1edea8c9d66b476f1153dd293e28aad90e57d4"
+    },
+    "docs/vitrine-filmes-2610/tsc.json": {
+      "hash": "cf8ffc1fdfa671d30d4c7bd04ad5dc8ec8db6507e3f4643758b4e41b61831800"
     },
     "lib/admin/qualityEvidence.ts": {
       "hash": "c547201b0ee2f0ba76e298abde62b142c1102a207c10c4a74c7a91566d88ab9a"
@@ -1860,6 +2459,21 @@
     "lib/ads/v2StartCore.ts": {
       "hash": "7cddedb5b688f7f89c210518d82ecd268ac48f35bfd98c6568eafe457b6fe0ba"
     },
+    "lib/affiliateCoupon.ts": {
+      "hash": "e3d78dfdafcb7789b00544eaa8360ea424fb15c3c1c1b515462cd2da3528faba"
+    },
+    "lib/affiliateDiscount.ts": {
+      "hash": "f837ddb9568b0ee58d71a62c86a55ae0bd364f09b7baac3c332389445693084b"
+    },
+    "lib/affiliateFirstClick.ts": {
+      "hash": "01e6e6a2e779abae5b1dc99ef207215359c01b66dca54d6c3e01e0c4603358d6"
+    },
+    "lib/affiliateLinkOffer.ts": {
+      "hash": "9e405b151c1f3972618c6722b83868d045d3440955112f240107b45f26d31aee"
+    },
+    "lib/affiliateOfferCopy.ts": {
+      "hash": "4a80d50ff1a9474a5a92630683a4123f0181ef9a09f17cc051296e2201b21278"
+    },
     "lib/captionEvidenceGuard.ts": {
       "hash": "8f115fa7a1be057bbf3616a35b90ab5ec18e7472154a5b9d0af82ca7938f3673"
     },
@@ -1868,6 +2482,12 @@
     },
     "lib/cinematic/criticoStill.ts": {
       "hash": "fe615d41a11f8b7e33ef208ecf28425bfe15b974dd848bc1ca04b8e44e530bb4"
+    },
+    "lib/cinematic/filme15Perfeito.ts": {
+      "hash": "3aa53809b1818554e62d67fc14394e1a94638b3d5ccc5ff16ada1a0e6c16f5fb"
+    },
+    "lib/cinematic/objetosSemTexto15.ts": {
+      "hash": "068536d360b0eef6631f3404ccee8f1124d212b2e489eb57b0ead7a555ba9d0c"
     },
     "lib/cinematic/sceneDescriptions.ts": {
       "hash": "d9d6cdcd1b7c66e29fe82859dd1264985e6b2eafadbf6296a7161564d34d1ccf"
@@ -1878,14 +2498,38 @@
     "lib/cinematic/visualPromptPolicy.ts": {
       "hash": "128061b33d9e0fd1af9c110ec29761d0d21deb5a5b629f86fed7708074ae41ef"
     },
+    "lib/compose.ts": {
+      "hash": "c108e1b55a82158b16c0784699c77394a7443d2d28b7c03df5d7021d204ab2ea"
+    },
+    "lib/filmComplete/server.ts": {
+      "hash": "eb1486093ec1cac4d30be5b348b6f0dd3453f4ff9b2d4df9c51d8af3c9276993"
+    },
+    "lib/filmes/faceless15.ts": {
+      "hash": "7b23dc41a6c9ccb78c9ee347028cfa0dd9bf00edc5be8d901d4b8759df9d2b22"
+    },
     "lib/filmes/filme15Elenco.ts": {
       "hash": "04c30c24ff012da54260104aa49197dcf739b96caf95221ee1458d59948f7e14"
     },
     "lib/filmes/filme15RostoFixo.ts": {
       "hash": "9bfaeacb17b9f65222f97ffdd676e1e0226e4c93c327b0a3b3b0f22e4c5ad7d5"
     },
+    "lib/free15CanonicalCaptions.ts": {
+      "hash": "e21d3983edf1204aaf433fe0b4f45819cdcf2d03917d7909c953e155848543df"
+    },
+    "lib/free15Gate.ts": {
+      "hash": "52a27c2d8f734a6180cb4ab18dcfa3ebfb39463444fc333b890307a42a98c2cc"
+    },
+    "lib/free15GateServer.ts": {
+      "hash": "a276bf4ce9a43d692d92244da30868d8fe1835ef1e2597ddf505df4f9a8dc2df"
+    },
     "lib/growth/checkoutSuccessFlow.ts": {
       "hash": "f87231b6ef361af94e442333648778aae4823430ea042b46f3d56e6921050dea"
+    },
+    "lib/growth/filmComplete.ts": {
+      "hash": "a48f6f6fd71ac1bf74b337c2f3d6dd24955eb5842e38c879694a74342cc8a2f2"
+    },
+    "lib/growth/filmCompleteCopy.ts": {
+      "hash": "66ce1ac42024c154694aa21beecc5542475f1100cb125d467687585b5199783d"
     },
     "lib/growth/kidsLaunchEmail.ts": {
       "hash": "7bb7319ee9b8ab77e4388fa43f3621521e6de792833cd74e2b557684d5201076"
@@ -1902,6 +2546,15 @@
     "lib/lifecycle/emailEvents.ts": {
       "hash": "60f8e91c4b1335e0e368fb5cee2596f42125d13a37aa7356534cb28ea5fc5270"
     },
+    "lib/madeWithKineo.ts": {
+      "hash": "c67b4daa0c619abdcefad3c9fa55044515639e94eb464133b21a1b1452239456"
+    },
+    "lib/madeWithKineoCopy.ts": {
+      "hash": "16e57dc6087748a1072d9cfc4c61603c7964e965342178e461b408cfb22ebf73"
+    },
+    "lib/madeWithKineoServer.ts": {
+      "hash": "8dee5078acd87c9c66ee70527d853d3a0d35e00bb80587000de8844bf320fe56"
+    },
     "lib/mcp/studioTools.ts": {
       "hash": "f45e88eb7c9711bdd1da116a6d7bd59de405c2c07e0171629ddfebff3fb0da2e"
     },
@@ -1917,6 +2570,9 @@
     "lib/paypal.ts": {
       "hash": "253d761dfedfb3456aa0174219240038fb4f44255107da4589d44cc4f8a408c1"
     },
+    "lib/publicVideos.ts": {
+      "hash": "24b29cc8831d11f09a7db91cb44cf8c58d59332b61786621f520b3e1e9789e37"
+    },
     "lib/regua95/coherenceV2.ts": {
       "hash": "c42e9da0743a01d528584d01500a3b8df291c00f76d955545d5fce609bf7ca09"
     },
@@ -1930,7 +2586,7 @@
       "hash": "ab5ce2e8fec3f080349a82a940f4bfe146c4799d190c537bebe8360e87c0791a"
     },
     "lib/regua95/pixelScore.ts": {
-      "hash": "9ecbd2b1dc38f6f3eb46a5b14745f08e9287400dea7d310247f89ae5e69ffad5"
+      "hash": "a30e5c860faa159d2924babfc867a2503027e016fa62782fa5143455137f81a0"
     },
     "lib/regua95/taskFulfillmentCanary.ts": {
       "hash": "b94547fee7fef502a2574c0955522a370468a705d2cb6ba6a007de347e25cf10"
@@ -2034,14 +2690,20 @@
     "scripts/lib/apresentadores-admin2410.mjs": {
       "hash": "d45439abad0e835e3eb505cacd004d11a1a3df5a0f6b2778b9856a4d3edd4ced"
     },
+    "scripts/measure-upsell-filme15-2610.mjs": {
+      "hash": "801d19d231d97fc413f782dd26e811f213fa89bf1dac8b93a47ee31bc968d49c"
+    },
     "scripts/ph-fatos.mjs": {
       "hash": "ad738f695d104f6dc8b7a8d8cdf8af0ccd6ffcf594e27a64bca7985b95ab4d14"
     },
     "scripts/preview-studio-hierarchy.mjs": {
       "hash": "d08e080a94060c6d883ca002c112ba033652708f98b384902aa5c123789e428b"
     },
+    "scripts/submit-indexnow.mjs": {
+      "hash": "1ed652cb2677c4299de2705b41e068fef8f381ca1411b6ec1f794503f3f36ac1"
+    },
     "scripts/test-admin-leve-undo-2310.mjs": {
-      "hash": "e66c3ec54e1315f1a90e6a22d2fa0e044a3cd6e64afd703d13d98b64d7765a5e"
+      "hash": "9625c1f3849f7f6e3400956164deacd4efff1d2485ad648d24bf95fb386ec088"
     },
     "scripts/test-ads-amostra-anuncio-2410.mjs": {
       "hash": "2f6e95a046ebfede36f1820e20023395c971c875b1b056b2ae9a00b906b5e4cc"
@@ -2052,11 +2714,38 @@
     "scripts/test-ads-amostra-undo-2410.mjs": {
       "hash": "d4dfc811f09ff3b95f6219b8280f0af539b8b5c16872b3cecc830b55b9ed0398"
     },
+    "scripts/test-ads-cena-2110.mjs": {
+      "hash": "d0a0c4314c167ad6c955c361e03ccdf5bf9cd2fd66d0139895e8aa5932edf35c"
+    },
+    "scripts/test-ads-cena-95-2110.mjs": {
+      "hash": "8c3d652abe6f910fa36e4a2623dfff8c107e011cd08c454cf91f367b68fcd8cb"
+    },
     "scripts/test-ads-cena-95-pacing-2110.mjs": {
-      "hash": "c80d82cdc02013e1f73811b8a19e18281f5250dd20c749731449d69c11c7e398"
+      "hash": "a14aeed106f84386e7503dda9bd0ee146155563a640c43fc4265bbf74ae0172d"
+    },
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs": {
+      "hash": "41d808b006a5b69d4fa5a451ecaedfdb776b4afd28a6f18f36f7c108ff24705c"
+    },
+    "scripts/test-ads-cena-ajuste-2110.mjs": {
+      "hash": "804829cdced7b4c12b86583421c38c7b2c6826d0ee72fe249dcb033fb4b76f0c"
+    },
+    "scripts/test-ads-cena-respaldo-2110.mjs": {
+      "hash": "81d7762806ffdfa3d1eed43ddddcb1bf73b072d4b1c86ea309ec87896a62a890"
+    },
+    "scripts/test-ads-cena-retomada-2110.mjs": {
+      "hash": "d43d5b691c4f5e873ac6dbff1fca9427e00d02fefd63813af17b3cf3564788f6"
+    },
+    "scripts/test-ads-cena-segue-2110.mjs": {
+      "hash": "fe494ead3058c07d1a5ea090feb96b64a91ea49fbb62a9552c17defeacf9a352"
+    },
+    "scripts/test-ads-cena-texto-2310.mjs": {
+      "hash": "951685973c19cbca14f88d7ef92678ac851f487d23fa8f194415c82c4d0983f3"
+    },
+    "scripts/test-ads-escolha-2310.mjs": {
+      "hash": "7cadfaebbeb92d72e8710efada6a494ab3c8adf1d77c7dee61ddaacd05182fd9"
     },
     "scripts/test-ads-escolha-publico-2410.mjs": {
-      "hash": "ef957689fe73f889f08c0aac3e93ab9a8dd4097a18327bfb11a5d74dc79f965b"
+      "hash": "3a14e653df2044a9117252789a6923e97468909ef6933bb9fac6cf0521daf6d5"
     },
     "scripts/test-ads-fiel-1510.mjs": {
       "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
@@ -2076,11 +2765,17 @@
     "scripts/test-ads-ia-faz-2026-09-26.mjs": {
       "hash": "260e370d3d846e092baee82e69b3656c839aec010de1395e5b3a2c623c7ff80e"
     },
+    "scripts/test-ads-nota9-2110.mjs": {
+      "hash": "40ede0a3ce7e079a9bc7035f5b53c444f6ddb21184c8cca34b6552ce79c1bbe7"
+    },
     "scripts/test-ads-packshot-1410.mjs": {
       "hash": "4e0ebc3eb819fa111c3001431a5a0f894fad0bfe0267aa7662145b42fac040c7"
     },
+    "scripts/test-ads-qualidade-2110.mjs": {
+      "hash": "94a17c1c8a16c10ed054b63cccb5741c6dc7bfdc39e8431467d5efb3d4e93476"
+    },
     "scripts/test-ads-reteste-1510.mjs": {
-      "hash": "ff14b68c39fe33f9c36ad44b809570a2525d16f31dffe9d8c2e3d1db04ff17b9"
+      "hash": "8464bf1ec16c0ad8cbd348775de1f245a21102e267aab02f5884213fa87e5ed2"
     },
     "scripts/test-aeo-business-offer.mjs": {
       "hash": "ada17cde1009c408e60bcaa01bc712e9b8eea0cb784ea316bd0da8961b3974c4"
@@ -2088,17 +2783,35 @@
     "scripts/test-affiliate-activation.mjs": {
       "hash": "3d3c61120c11ee1c3db1cc9558a959b3ad6dcabbabcee4e9f4422842b460aaac"
     },
+    "scripts/test-affiliate-coupon-50.mjs": {
+      "hash": "0caefaccc9b3d682ad29a338c27df86d71b93e6c7331d9b54ca7147ca0479943"
+    },
     "scripts/test-affiliate-destinations.mjs": {
-      "hash": "00b94de84d96e967c55380e5b3d67b13f2ff86c66941286eed34818ab6c306a5"
+      "hash": "4bfa6853e0baf709b0c352d811e8b92adc08c2c55c0831873b58081a07ac069f"
     },
     "scripts/test-affiliate-ledger.mjs": {
       "hash": "9c79183241f3e1506b98d010b68def55f6e9765e5a7fc637ec1534d8cf7cb926"
+    },
+    "scripts/test-affiliate-link-50.mjs": {
+      "hash": "db33ed1bb6ea00e24de2d6dc2c21dc270d6e64998a4a2ceef0c45c8469a2f4fe"
+    },
+    "scripts/test-affiliate-me-currency-contract.mjs": {
+      "hash": "56b187c890425109c2821b8f70d2aab92bdf6d952b216190d89dd06a3ae4f68b"
+    },
+    "scripts/test-affiliate-payment-chain.mjs": {
+      "hash": "177911c195f2849b3bb2556aba70ae006eda6728edfb086e7a2040e35040c6f9"
+    },
+    "scripts/test-afiliado-destino-1610.mjs": {
+      "hash": "81434aad11722a4be707e669ab5f7764bf9928bf732a715d8c25e26b1f273305"
+    },
+    "scripts/test-afiliado-por-post-1610.mjs": {
+      "hash": "dc011c39368fce16eb332b9d143b86ffd344346c823919368b833034ce56bb5f"
     },
     "scripts/test-afiliado-ref-2026-09-08.mjs": {
       "hash": "804532dbe7341c664c3b8237e727485a8f4a3be06ceea4ed77ca44d394776406"
     },
     "scripts/test-afiliados-atribuicao-2026-10-03.mjs": {
-      "hash": "a045423f9023502338a7b3c8acf34b3a29a61b6b13af2fe38a2362784673d9eb"
+      "hash": "5d4259c035155a979226fe12d88af79fec804cc83f80ebaef491075b968eeb65"
     },
     "scripts/test-agency-appearance.mjs": {
       "hash": "22cab61c84b7a97eecebc6c6eacf0884256236af3fe1d5b66f7dce82f23f3e1e"
@@ -2106,11 +2819,17 @@
     "scripts/test-alvo-fantasma-2026-08-31.mjs": {
       "hash": "6ad0ca75ce2112ca356fd0ca4648afb35e0fb3629459474fd68246c53dfbf6a2"
     },
+    "scripts/test-ancora-legenda-1410.mjs": {
+      "hash": "f85b25a8e0f8d679865404b59cf3c1337ac0996a5341fddde79a8303fcd4ba18"
+    },
     "scripts/test-another-short-shelf.mjs": {
       "hash": "3cdd41b8894ddf22faf76c3678d7b7745460d9f14e1bd65b172edeafd1c87150"
     },
     "scripts/test-aparar-expansao-2026-09-02.mjs": {
       "hash": "9bbbda293c2ed5d61cb8bdc2ac317166fc28ffb95246264cbe9499cd63c0aa86"
+    },
+    "scripts/test-apresentador-olhos-1910.mjs": {
+      "hash": "2f512805bd5379266a30fe7795685e57f03fcc8d8c1063c1aa171dd5d9a87de1"
     },
     "scripts/test-apresentador-v2-1710.mjs": {
       "hash": "dc9275057450a33280bf25c3fbb68a39008353fd03c93d9c5c6e0402c0cdfc82"
@@ -2139,14 +2858,26 @@
     "scripts/test-autopilot-case-study-path.mjs": {
       "hash": "2c5a42107dff2f5d9be763951c16a0d465521f8c3e9f6697b39491e81492e6c2"
     },
+    "scripts/test-avatar-estorno-2010.mjs": {
+      "hash": "7efd8fb86187ba67a8b434c665870075312e90e9174d9b4f5b966e9f4b76239c"
+    },
+    "scripts/test-avatar-preso-2010.mjs": {
+      "hash": "6f7a69001b556bc80aae6cb6891e749324c0e1e6e5599e46db0b65df38d55210"
+    },
     "scripts/test-b2c-subscription-truth-report.mjs": {
       "hash": "770d78be7857b9c9c2832e0b081edee894ff43dff0325ce127efeb9b21a91feb"
+    },
+    "scripts/test-bebe-que-fala-2010.mjs": {
+      "hash": "0a97f9cef0950bf4ca410bcdb8fdb50aea66f6d676ed289031de36592190d5a5"
+    },
+    "scripts/test-business-84-2026-10-09.mjs": {
+      "hash": "ca2ff6679c7def00b39cf199facab1098f8efdea01a47aed58c652836f159c79"
     },
     "scripts/test-cards-giro-2410.mjs": {
       "hash": "33d0472ee175800accc6c49284c854e44d3f0a610e6f6ca8f433bcb2f04e6809"
     },
     "scripts/test-cards-giro-undo-2410.mjs": {
-      "hash": "1cba80b41210f8de2feb1925a664e5509d6f02542306537ca8dad0d29cbe25d3"
+      "hash": "ca07abdbf56cc1b9f6b42cf4caa8e1bbd37a4f32cb182887c2ed70199980a7cf"
     },
     "scripts/test-carta-episodio-gatilho-2026-09-06.mjs": {
       "hash": "f466ec0f77255bd5d24c5816a06ddf5db4ea7a950255f996fd6c39c8c9d482cc"
@@ -2158,13 +2889,16 @@
       "hash": "df97034121b477d05fdee429c1bd969841b5e9dbe1ee29cae61ec0168dd8c097"
     },
     "scripts/test-cena-classica-retentativa-2026-09-28.mjs": {
-      "hash": "df510399f973b50663c40948ed77ecc40add470afe27a65c5f8e49c082a0a614"
+      "hash": "5bc57d457321a513d2d7154d42434c944e6c53ca3cee04d74fd9e6a4b5a73b0a"
     },
     "scripts/test-chatgpt-paste-page.mjs": {
       "hash": "9c1504ce9213c7b12da284d78ef957996f7abd7b9e63e69e7e87d895008a6f9e"
     },
     "scripts/test-chatgpt-post-video-offer.mjs": {
       "hash": "ad58f9f1f15c3e48eec6a461a89451fe0f325083318a1f788ad9cfe6703c5d17"
+    },
+    "scripts/test-checkout-clareza-1610.mjs": {
+      "hash": "74d88ac7656eb3e94d3522e0137137e72bfb555e27e7e5aea17c616341b546d2"
     },
     "scripts/test-checkout-currency-truth.mjs": {
       "hash": "3443d62e8e3c566c6b2fef3503a8b2510ec9145637a7abd8f470876f375878b0"
@@ -2176,7 +2910,22 @@
       "hash": "4bcc8055bf625b554a34ff243a5b2d4ea205899c14d9d8fd5c0c96a1993b8844"
     },
     "scripts/test-close-real-1910.mjs": {
-      "hash": "8d9315b65a84cb4f7268a59d80bbb36b226e01b0738028d987fe7007cea4f57a"
+      "hash": "552490b54901c62a2cee83bc3abd20f9f396ecd7e652c09d0feb090ea950e710"
+    },
+    "scripts/test-close-real-ajuste-1910.mjs": {
+      "hash": "232f798eff3f3e255ed26649e07340a3d8e4a5f257764f00f1e0f0c4bcb282e7"
+    },
+    "scripts/test-close-real-legenda-1910.mjs": {
+      "hash": "b06adc0261920e22e5976cc36a53b4e84a90314fc6a6e41612e139a5cfd2108a"
+    },
+    "scripts/test-close-real-legenda-corte-1910.mjs": {
+      "hash": "412b1c00dd88c5a7ea4974569dab38154a9a84c43f886022ad267e77e03696a8"
+    },
+    "scripts/test-close-real-legenda-pilula-1910.mjs": {
+      "hash": "acc9db9dfe5a42f8fe455cd7e08aba9c379af68b0065977fc3e51f4f014160ce"
+    },
+    "scripts/test-close-real-v3-1910.mjs": {
+      "hash": "02bfd7cccc77fb63fc55961d9018d81f3d53136b2e899ad7670eb00941f1f489"
     },
     "scripts/test-coerencia-historia-2026-09-02.mjs": {
       "hash": "8e643101f036e337e7e992d10c8dec7c836034ac0c288a7e4ff70381092d5f14"
@@ -2208,6 +2957,9 @@
     "scripts/test-compra-sem-login-2026-10-06.mjs": {
       "hash": "650647296fa70bbe410e39bdba69b4d953acddab6261bfd5b9b3e092c525dc9b"
     },
+    "scripts/test-consentimento-1610.mjs": {
+      "hash": "bd58438ee056f1fa214b778350dc52b78042b81c5fd9cfd7b73d58e9db4cb597"
+    },
     "scripts/test-consentimento-superficie.mjs": {
       "hash": "c989a1d9df5017dad4bc3cc6053d6e409a8ed1d80a2091fe911e0efdc2978085"
     },
@@ -2232,6 +2984,15 @@
     "scripts/test-demo-sob-medida-1510.mjs": {
       "hash": "f2d13325f3e7206577b6e7fcc09b50e015cb0ce4cbd6d0ea05a7552eed9a2998"
     },
+    "scripts/test-desenho-nota9-2110.mjs": {
+      "hash": "94128104a65e0910b60e33da4bf677ee9e34800d2d8467e52562d7f0f246a5bc"
+    },
+    "scripts/test-desenho-som-2110.mjs": {
+      "hash": "e423f0fd50b2702972481ecd8114a112f1b9ded7989fca1a80126e95eb29c8ee"
+    },
+    "scripts/test-despacho-vazio-2026-09-04.mjs": {
+      "hash": "69c6a155ba1fb87950ef4bade6e5285ba500b56c3760a39898ab27ee9a4104ed"
+    },
     "scripts/test-diretor-kineo-2026-09-23.mjs": {
       "hash": "310ca4870917a73dce2907d96e236512b537716db1b35835e34f4876d54ec4b7"
     },
@@ -2239,13 +3000,16 @@
       "hash": "dcff7838394f67c7cce0650c988038b96ef439069342841d1859ce2aaa8aa078"
     },
     "scripts/test-done-workspace.mjs": {
-      "hash": "e2681d4948c1ae9d58c44ff3ccfc7897a434544347f1161aa578c9edf1094071"
+      "hash": "cd90ee4780305842f8eaafc073209d28ec6b7070e48e5fe83d5d9a9c5454d292"
+    },
+    "scripts/test-dryrun-classico-2026-09-12.mjs": {
+      "hash": "f2b53c39641d4943f51c9f425e20e3129f9f74c7eaf529be38e7a37f31ef843c"
     },
     "scripts/test-dunning-grace.mjs": {
       "hash": "a2c9782ab25dc03e6fefd663f304abfd9bb58a1a7787e33ed6d9c0c0fa7347ab"
     },
     "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": {
-      "hash": "b8a9b228c8517355cd398fc42f456f99937c970a142e343a84a0e61e56b2c309"
+      "hash": "db98e8f4e6563e5af33bff893f71ecaa03809959e99a005c16d95a0fc05bfd34"
     },
     "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs": {
       "hash": "4268c1390213cd3fff4299214c2d43fcd01d05ad60bef372559aa84801190c29"
@@ -2258,6 +3022,12 @@
     },
     "scripts/test-episodio2-ending-2026-09-01.mjs": {
       "hash": "bc8b5cfe6c197de81eb3593f626217af681113ead91752adb432b0f459337ab8"
+    },
+    "scripts/test-equipe-business-2026-10-10.mjs": {
+      "hash": "bb1861bce7e5c9c28bc9b65803d555fe9be35af66a42de03cc77e52983a69ca5"
+    },
+    "scripts/test-estrela-do-filme-2026-09-29.mjs": {
+      "hash": "077e9a2d0eefd0f0d1150c7bf9949c358dfb4674ed30c430491385b3a22aa722"
     },
     "scripts/test-example-remix.mjs": {
       "hash": "60a5eaaa242cb33ce6c134cc6610026b67112f3794985f4739e7098ec9c19a61"
@@ -2283,29 +3053,65 @@
     "scripts/test-fila-global-pilula-2026-08-31.mjs": {
       "hash": "cd8cc02ec15ed3d9e50e7bb2328df7661455e76c47306abdc1ca060a80db0bf5"
     },
+    "scripts/test-filme15-cena-visivel-2610.mjs": {
+      "hash": "3cbfff31abf358a38bfa64bd0f7e40c7a9e7599347ddec79cc19e3fba03d4346"
+    },
+    "scripts/test-filme15-duracao-2610.mjs": {
+      "hash": "7e616736ce45bc7a9d1d4e1c33065c3f029fe7a5fb462e9c486e707c00f1ffc1"
+    },
     "scripts/test-filme15-elenco-2610.mjs": {
-      "hash": "87466a7c41836b72937ca33d5ed0f5d5c22e8895450046dcfa67a4c990a87a66"
+      "hash": "7e36ff68bc4d0257eefdf7710c3832fb790a0ef51397255c587b351a2b1b0cc5"
     },
     "scripts/test-filme15-fiel-2610.mjs": {
       "hash": "851a8da8ebc776d88e41bb3ca5258d5f691159ca64e1b0534f520522ad34b425"
+    },
+    "scripts/test-filme15-gate-integration-2610.mjs": {
+      "hash": "fbbad1bb8f61cce180e5deafa73075a871fbcaa5928c0a478b03e0540c6da070"
+    },
+    "scripts/test-filme15-legenda-canonica-2610.mjs": {
+      "hash": "2fbcd77c3b0d7b433ac15f8d9a394605420f37db0e36932c6df7e0fafcc3058d"
+    },
+    "scripts/test-filme15-legenda-inteira-2610.mjs": {
+      "hash": "8afc0c4b8c0fce9ecf09521fdcf8568e8344ad01477f7ba1f949c80133b652b0"
+    },
+    "scripts/test-filme15-numero-unidade-2610.mjs": {
+      "hash": "905bc095e776251a1524f9369b8c680fd9855a6bf3d1cdf180c9aed857952d0a"
+    },
+    "scripts/test-filme15-objetos-2610.mjs": {
+      "hash": "f33edefc2fd6d55d6bdd1a523d2394bb11f83591bdc0b77caa8e1d3393de52fc"
+    },
+    "scripts/test-filme15-perfeito-2610.mjs": {
+      "hash": "238963429e4dff6be9faf77f390989697a941a9c9680d998c5cff054e5716bfe"
+    },
+    "scripts/test-filme15-perfeito-undo-2610.mjs": {
+      "hash": "3025140dc721bbb65e6b8acb10cf655dad910a0ac54fc8b89a74242e385419d9"
+    },
+    "scripts/test-filme15-portao-fonte-2610.mjs": {
+      "hash": "d7f213b8a4bbac2a53d0055a37901716575cbabff90bb0ebaf27db35cd70c3de"
     },
     "scripts/test-filme15-rosto-2610.mjs": {
       "hash": "96581e66a512908d92d716567ae246637c5a708fc56d5fbd2b8cdb0ca89f18d7"
     },
     "scripts/test-filmes-f1-virgula-1910.mjs": {
-      "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
+      "hash": "ff5b58c5bbee3994f42357efc59b6d4fbd9610f3195a2ff8d41e06735d70a6b3"
     },
     "scripts/test-filmes-f1f3-ajuste-1910.mjs": {
-      "hash": "54f10a18ad9acfdb86849b7ce2a2e36459afd7579f955ead6279754b06b6711e"
+      "hash": "84a54f0dba270094e3fa9d74cc0d031723540cc60f535ad5bcd7480586100924"
+    },
+    "scripts/test-filmes-f1f3-publico-2010.mjs": {
+      "hash": "d6628b5336e5ae5c3082b50ec6c3d24684fcedb5bf4a6514f0ed5f4296b861de"
     },
     "scripts/test-filmes-f1f4-1910.mjs": {
-      "hash": "3b2fc57dfd9c3816234870cb197ac048dc7ea1771ea8cd178e5b6730163cd579"
+      "hash": "4b0275a968eaa5c37d0e03f3dcdd1812dd4af550becc361dbd3c3fd0c97b25c0"
     },
     "scripts/test-first-film-free-offer.mjs": {
       "hash": "291051ecf53b2750f7228c21314601859cc70db51a9e42a8700faba7a759a792"
     },
     "scripts/test-free-limit-wall.mjs": {
       "hash": "3e44df7b44b5cc03850ac307a490d70d2fbedc9a9adc26a6268ba06fced06ea2"
+    },
+    "scripts/test-geo-rodada2-2026-10-08.mjs": {
+      "hash": "080330f360c9e8ae728ab4fede0de921451cf3cd915ae73a9398d6de10493bf6"
     },
     "scripts/test-go-auto-forward.mjs": {
       "hash": "737d43f192a5277c3d916eb3ed654a4b6a7e1ffd80284df04cc78763f3b1b2f1"
@@ -2331,8 +3137,20 @@
     "scripts/test-history-second-video-milestone.mjs": {
       "hash": "810ca52107c9652b34209aca53a1f41aac4bfa1affb6910ad960c888c5d47ca5"
     },
+    "scripts/test-home-3-cards-1910.mjs": {
+      "hash": "91baa093117f54f012ed2a3295012ce4e42ca568a8de60a6fe6af8f2f612c45b"
+    },
+    "scripts/test-home-cards-botoes-2010.mjs": {
+      "hash": "0160827010a8fc5901f942489914e8083728ab009d87f62dabe7f7e8ce2666bb"
+    },
+    "scripts/test-home-cards-claros-2010.mjs": {
+      "hash": "4382bbeaf3a7a1aa6c4ee29075ece107d692b97e0e67dab79bc4881f15fc8870"
+    },
     "scripts/test-home-curation-restore.mjs": {
       "hash": "d25802f99cc6d2e55e700b9ca13bc862c639a7419590b0ebcad73019f5efc1b3"
+    },
+    "scripts/test-home-remodela-2010.mjs": {
+      "hash": "02f7379842fc881c7ac1ece6c890addd7342a5b1b71c88d2903c264c6185d2f3"
     },
     "scripts/test-home-welcome-goal-router.mjs": {
       "hash": "02d4104b53325f909db58648ddd8f139739f3f494178b589ad62bbb14fb519fa"
@@ -2344,7 +3162,7 @@
       "hash": "71f1e6419d419075e493a05d7292b666136c932daf6a12b4915f2443e74751cf"
     },
     "scripts/test-idiomas-formatos-undo-2410.mjs": {
-      "hash": "aca10e5f695ffd7e74b7b66fd02c3787806fac3cd713717b23925da0c2681534"
+      "hash": "4480b765d3285c4edd8f15b72049a285e5a4f74b4808892f7d6e11f8862bde7e"
     },
     "scripts/test-imagem-para-video-2026-09-25.mjs": {
       "hash": "a171eab3f7100ebffaef969bd61ca2e80368e4cfd05d2afe0f0e816b8f87b0fd"
@@ -2356,22 +3174,28 @@
       "hash": "19cb1e6f46d2e3252f04d09cbaedbe1133a96809e317790c8fb667edbba0b90c"
     },
     "scripts/test-kids-venda-2010.mjs": {
-      "hash": "fc515a4c6f3957ac638357c11d2dc8c0d042d4b4c7c05e37f43498aa909ee92b"
+      "hash": "e942b13ad82012b50fea9c9539143e41110e628d7e5b27ced71cd2fcdbacbac2"
     },
     "scripts/test-kit-bf-1910.mjs": {
-      "hash": "251efffac65d1cfc32cacf4512470746bed976f7748c00cd22af4c2c15c70abf"
+      "hash": "64dc442b77c3721318ffedb195075c746cd42258fa6c06e1be17fe75c8d75a77"
     },
     "scripts/test-kit-bf-venda-2010.mjs": {
-      "hash": "b600f7ec95b381ebfaf3da47ed33b9d12858beee411ef84b8f1a9dbeef3072e6"
+      "hash": "438b0ea0e0bcf3a9c03a6c8ca0f2c5c2b6501a7fea76dd9aab9d4814909dffd7"
     },
     "scripts/test-kling-duracao-2026-09-15.mjs": {
       "hash": "412b53e222f781085f11cf8e4e31503934eee27e2b1e4ef9fa70c4ecb4a9941a"
+    },
+    "scripts/test-kling25-60s-ancora-2026-09-28.mjs": {
+      "hash": "dc7c4fb65a84d64268f69d3959aacfe366b2c2f6bd90406101757e12307af840"
     },
     "scripts/test-kling25-descricoes-2026-09-28.mjs": {
       "hash": "0dbfe884e4c6ead0f27f786dfa4d1d9eccc8b3d818f0cb06c74b6e730314253c"
     },
     "scripts/test-last-setup-memory.mjs": {
       "hash": "7ed0f95eddb17c6ce62a5b355f32750aaea362c0bd7951902f5c10de87e1f610"
+    },
+    "scripts/test-legenda-bengali-2010.mjs": {
+      "hash": "c6fe5c42eb5982cd76062513956dfbaacb8d92e8149d067f560e3f35900f0521"
     },
     "scripts/test-leva-confiabilidade-2026-08-28.mjs": {
       "hash": "30ac74f24c07a9ab2a6fc892f36878a87d920f14d0c8447890ea5b0a980d117b"
@@ -2380,7 +3204,7 @@
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
     },
     "scripts/test-leva-rebase-2610.mjs": {
-      "hash": "3ee23cd09b9c750c7973afb3e0b110ad6cfe13bbf72e3041c11139713ddb1d8d"
+      "hash": "8e2e04ebb629858872f17d7e1207148a20ac8b7ea0e26fbd4f578cd381991583"
     },
     "scripts/test-library-search.mjs": {
       "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
@@ -2415,8 +3239,26 @@
     "scripts/test-mcp-pagina-2026-09-30.mjs": {
       "hash": "88ae992cde7b4c88f7a82cf1ae2496674463d787e6740010175f665c7f43c9c1"
     },
+    "scripts/test-mcp-raiz-2610.mjs": {
+      "hash": "52a6d3753cc35135ebed07de062462e3d22d682f8d79f3cf937fea391c3b85b5"
+    },
+    "scripts/test-mcp-studio-2010.mjs": {
+      "hash": "cdc1eeb6b8f3e0f10ec83587efd130dcccd71f03ad6dedd40db2c856e5544325"
+    },
+    "scripts/test-mcp-studio-ajuste-2010.mjs": {
+      "hash": "8de1284bdf60e8c9f0da729add2db2c9148cdd9a691883e6214f3d61bdc5727f"
+    },
     "scripts/test-menu-ugc-2010.mjs": {
-      "hash": "0cc36ad33d7e7751c6912c2b4cfaec03df51d4aa7619834c413e76ffe1a7bbc6"
+      "hash": "2e6490f9394d9dc7c23d809c8ddeee5a1ade82b6cea63e741723c2815a0babb7"
+    },
+    "scripts/test-meta95-escrita-2010.mjs": {
+      "hash": "cc60d16892adb35493b3ce4de7d16f056c13d11c431374ae38d8234f647a5f81"
+    },
+    "scripts/test-meta95-personagem-2010.mjs": {
+      "hash": "b760662afbe09c7fe60ec3ae54010dd2fe1e5a94f7ab67845e9a976de2805d7e"
+    },
+    "scripts/test-meta95-personagem-ajuste-2010.mjs": {
+      "hash": "136c150b4068578207ce1459fbc0743855455054ad2fa65ca417785ae64443bd"
     },
     "scripts/test-meta95-regua-1910.mjs": {
       "hash": "9df6873c67a730ac6455188636a811b289db9d43ff9e63ef0ca5aad583a1c745"
@@ -2435,6 +3277,12 @@
     },
     "scripts/test-motores-d1-2026-09-01.mjs": {
       "hash": "e42abb98ff7a35a99360ab861db7d6954b74da5fefe8ba76b576e89944dc562b"
+    },
+    "scripts/test-motores-geo-2026-10-06.mjs": {
+      "hash": "0f61d5b02ddfbaf27be61d1efa087c84e920a2b006aaf054d678a95e11dcafe0"
+    },
+    "scripts/test-mrr-1-3-2026-09-16.mjs": {
+      "hash": "0e698561a60a3f7923cb20ba726be9b3e8bddae692fa413c932182953236dede"
     },
     "scripts/test-multiformato-2026-09-02.mjs": {
       "hash": "ee10a1d67bcaa2d3331ec1d2239fbf2cc5fd2bf0e2cdfb3a641eef07320bf5cd"
@@ -2455,19 +3303,22 @@
       "hash": "c2d5c4c73ffd0c9818aa55e1724d10bce9ee57fa67c26430d13f0a0978b495f6"
     },
     "scripts/test-pacote2-precos-2026-10-05.mjs": {
-      "hash": "12bf397482e24a74b77abdf11822528db1e26fc288eaefe928f8e9b9f1eacc1b"
+      "hash": "e2a39d01418fe328cc4211dc0dd65a5d10440e5e1a40458c7630f6baf5a609f7"
     },
     "scripts/test-pagamentos-alternativos-2026-10.mjs": {
       "hash": "e933e1f5f4bde76b37947f0e166afb166cc71232f0e8aef6b0c4da0edecc7924"
     },
     "scripts/test-paginas-ia-claras-2110.mjs": {
-      "hash": "d884158d4704bdc12969054ef440b77572b715aa0bf99f51aa7bc571d715afaf"
+      "hash": "225679285994614167afa693f3fcea6816fafccccb5b84aac7bf1035b39f95aa"
     },
     "scripts/test-paginas-ugc-2010.mjs": {
       "hash": "89274ea10613dd6df3dfbe48db1b531e987af344fc524982862e9b4f2508d3b0"
     },
     "scripts/test-painel-verdade.mjs": {
       "hash": "fee14b81044a7185c68b8cb49bbfdfbe9997f52b32025e7af18f6bb7764b9641"
+    },
+    "scripts/test-partners-criadores-1610.mjs": {
+      "hash": "68fb674e51e3cc29c66cb7092d6b267d646cc15399064679622bf57272da1aed"
     },
     "scripts/test-paypal-canonical-catalog.mjs": {
       "hash": "85d58c49024d660a1b6785b8868a81258c8c5faeb28876865ac2b32747d6aa14"
@@ -2496,11 +3347,17 @@
     "scripts/test-preco-visivel-2026-09-02.mjs": {
       "hash": "45f71016d2ee3e8fc3c1cf7f775a52b9a8b68f6456d43a7bdecffa560c81896f"
     },
+    "scripts/test-precos-cartao-valor-2026-10-09.mjs": {
+      "hash": "2b1e713b471735f34a1a0b64134af706bd9de7e803cb0da458abc244e8f4153f"
+    },
     "scripts/test-precos-clipes-kling25-1610.mjs": {
       "hash": "1dcdcd1c1f628b4ca1f85f6577fad06a9e2b7c1730b5ee591ee8eea1b2c789a5"
     },
     "scripts/test-pricing-monthly-campaign.mjs": {
-      "hash": "6967ea625ff09725842ae1dce8eeeb41db9df9264be463df0a589cf879770080"
+      "hash": "dcf45a6fa9f631f03ff3de56e4f0c76e7767b1c36d905b7675eedd7d9c6e6907"
+    },
+    "scripts/test-privacidade-plugin-2610.mjs": {
+      "hash": "854f11986c3c68ba5df82e0fb9aa08b2e6c3848c6916da4ed7f65a1ff9442d0b"
     },
     "scripts/test-private-file-share.mjs": {
       "hash": "55533327bdb1322be6d97d4816df640a3df4fee02655faccc37c381af78ffa9f"
@@ -2548,7 +3405,7 @@
       "hash": "49fc5c59efdc5bf436a6135350182ebc52a90409d90eec50e03acbd6d46211c1"
     },
     "scripts/test-roteiro-curto-undo-2210.mjs": {
-      "hash": "8ab6ccfa51a96455e007fceaf6668525fc397dc2a7a9bf253162266683627fa4"
+      "hash": "da363b0b63572eacc28a2eb5764174a81f11789cd15ea258d828d09d6fc7745d"
     },
     "scripts/test-roteiro-perdido-2026-08-31.mjs": {
       "hash": "afd06735147d82550c1eeb12409354cc3e11cf8d876d205c93e798944580e8da"
@@ -2592,6 +3449,9 @@
     "scripts/test-stranded-extra-attempt-4xx.mjs": {
       "hash": "86c2561d245fe1f3c733389fa47ecac57a9958e7b6073fa08cfd6f6867435614"
     },
+    "scripts/test-stranded-ready-footer.mjs": {
+      "hash": "d01e4d2c82aca6a647f2c93aca612da9e350b34640a20cc496e324f7dbd20639"
+    },
     "scripts/test-studio-hierarchy-runtime.mjs": {
       "hash": "82e739d53c607355a71e51e9c0adb03d0a6b603a7d343e392713092c2f0736ba"
     },
@@ -2622,6 +3482,9 @@
     "scripts/test-support/ads-escolha-ui-2310.mjs": {
       "hash": "99428638885554b9971d27b4b8f182922c5ca184262445412ba8868119bd3086"
     },
+    "scripts/test-support/affiliate50-history-2610.mjs": {
+      "hash": "c0060b94ae13e3d693206223d2d5406872023175d1ff0b3643a0c3c42092073b"
+    },
     "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs": {
       "hash": "cf66edf80cfd668f2ec2d5fcb1ff8c69dd424e3cdf1a5189899e02e66261414d"
     },
@@ -2630,6 +3493,9 @@
     },
     "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs": {
       "hash": "43469a989973e62132147027053c0e2309963ed795efb52ca089b8f49877c170"
+    },
+    "scripts/test-support/desfaz-afiliado50-2610.mjs": {
+      "hash": "3b8598e15341a1967a7aacaf523ce30095f2722710f7bc546f55be6e438e4010"
     },
     "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json": {
       "hash": "6b85435443ecef52927213d2b9978e60bf661a2d6497b41076f88e9309dd7327"
@@ -2689,13 +3555,19 @@
       "hash": "c923eadbe6b325581dcf911682b49a659c9ce30e2c0b64edd3c7526342fc85c8"
     },
     "scripts/test-support/desfaz-filme15-fiel-2610.mjs": {
-      "hash": "23450797ade41781fb9a1c0ba24e475309236268e30565ed000cb7564a3f86f6"
+      "hash": "37f1e0429a24d30694dbdf1a26656dd89fc8742545b33e1cfee79b494cce7da1"
+    },
+    "scripts/test-support/desfaz-filme15-perfeito-2610-fontes.json": {
+      "hash": "00248ec4638ae7975e12933d7a7bd2f0a3529ec47b0dd81fd1d082c0dd0b93d3"
+    },
+    "scripts/test-support/desfaz-filme15-perfeito-2610.mjs": {
+      "hash": "da306a429480371cd4a1edbc043be1df9c60aa493d5854c1892da3f511eaf8af"
     },
     "scripts/test-support/desfaz-filme15-rosto-2610-hunks.json": {
       "hash": "4c00b57ab127fe41f3a0f11dd237a8e309a93eb28305cd186f17edf4e02ae0a6"
     },
     "scripts/test-support/desfaz-filme15-rosto-2610.mjs": {
-      "hash": "45639a0cffc07c6a34fb3f4180fd5c86af614f353077fe8c559f21f3f83c2eb2"
+      "hash": "b50183ab2d471111505fa8df45ae33ce1b8eddb5ec01f5f213b2b7c4ad4aa009"
     },
     "scripts/test-support/desfaz-idiomas-formatos-2410.mjs": {
       "hash": "b2097324904fdcb88beaff21e94838ffab0d5ef83cad9ac0435c40851d8d5072"
@@ -2712,6 +3584,12 @@
     "scripts/test-support/desfaz-meta95-escrita-2010.mjs": {
       "hash": "43cb5969cff358f7b38a796e967a96f4aa51f360e519ec1e0f18f872ce4dbe74"
     },
+    "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs": {
+      "hash": "d21557b200d06281ca2e1ebf6ec89abf8c20ae2961da870864922acf2793e8a2"
+    },
+    "scripts/test-support/desfaz-privacidade-plugin-2610.mjs": {
+      "hash": "25b088eb17e0dec24afafb5e8bd2eee57d5f2078df129332e659d77b03505084"
+    },
     "scripts/test-support/desfaz-roteiro-curto-2210.mjs": {
       "hash": "9418d42810c0dff7bd7228641362ba2a695f6d16aed71b9b4eefbc5cdeeff715"
     },
@@ -2724,17 +3602,32 @@
     "scripts/test-support/desfaz-ugc-ajustes-2010.mjs": {
       "hash": "6be9c826782bcb4fafb031c932a3723785b4959997326b93561db28fd9ee0e09"
     },
+    "scripts/test-support/desfaz-upsell-filme15-2610-hunks.json": {
+      "hash": "5b27c7cd1baf97f304917c18fd4fae23ca4cc6ed5007d712b9c62d1da5e640f5"
+    },
+    "scripts/test-support/desfaz-upsell-filme15-2610-integration.json": {
+      "hash": "7f3cf5f379512332501b43a6db4883ef094a80e11347f215c434066e7f4fcbc8"
+    },
+    "scripts/test-support/desfaz-upsell-filme15-2610.mjs": {
+      "hash": "e21259e19425b4570d7d32e660e69f0ec15d732d839cf9423730a199146dafad"
+    },
     "scripts/test-support/desfaz-video-fiel-2610-fontes.json": {
       "hash": "7ee719f7c856f9320c09bf1c3a2cb4d547731113e2cd3abedddf4bc033bb0344"
     },
     "scripts/test-support/desfaz-video-fiel-2610.mjs": {
-      "hash": "e148b6c0c0e91f25c0e21c7c7a10ae2ac832112ce258eb7b4a1dc510ffab74c7"
+      "hash": "f95a6f6326b8da3f67988135ccc268b266d0d031d937f4bd160fadb0c8a5a356"
     },
     "scripts/test-support/desfaz-visual-ingles-2610-hunks.json": {
       "hash": "13600781f6d6054e7447c68fbd0b30122d6d4fe4e68755e2a1893e01d767e187"
     },
     "scripts/test-support/desfaz-visual-ingles-2610.mjs": {
       "hash": "4c6cdf042408247a910ab9a1aa0823747da7890f3e1115fbc40ebb3770a8bc27"
+    },
+    "scripts/test-support/desfaz-vitrine-filmes-2610-hunks.json": {
+      "hash": "013cc5ec69ccc36d6214c9fc2f3dff7027d039ef404ee5a493c77cd68ff351a7"
+    },
+    "scripts/test-support/desfaz-vitrine-filmes-2610.mjs": {
+      "hash": "789d7915b423d294e4a594339f7e6126ed151ab750b583b6d9da88c72762e981"
     },
     "scripts/test-support/desfaz-voz-nativa-2610-hunks.json": {
       "hash": "2e7a0ad9c47f1f5d764eea96b473e7dde42da132c8c6b961829e582533c88ea1"
@@ -2745,6 +3638,9 @@
     "scripts/test-support/film-preview-contract-2610.mjs": {
       "hash": "cb851d7b7eda80fd9a1c0fc064100ccd610f31dc4d19fcdb31a66edbcf6c1a95"
     },
+    "scripts/test-support/generate-vitrine-undo-2610.cjs": {
+      "hash": "4f7c2890e2f22224679b1355bd4ba7f41f61e1f5c2c8c2fc868c7619967ad5c0"
+    },
     "scripts/test-support/leva-integration-2410-fontes.json": {
       "hash": "2c8454c0c4819f711ea7aca84ff4c84ae75f7e26ffae9ba6ee4fd35a1f14f71d"
     },
@@ -2752,7 +3648,7 @@
       "hash": "ea95ff8cd120fe254fd52ffaf6233409fc1d78148a74529244a267ddc7fbe85e"
     },
     "scripts/test-support/leva-rebase-2610.mjs": {
-      "hash": "39b595a7f9498f3df2b4024863d1d4f761abff7c1d346d40499054d2953568ec"
+      "hash": "dada83208d4802cd55b20bdaf2d843bc9525f3b7c79b74ca1a028182d7551147"
     },
     "scripts/test-support/offline-ts-loader.mjs": {
       "hash": "8713a25e9b200f4b0d30f91c9809dc29b140a9dbec1933eb6a202040cebee239"
@@ -2762,6 +3658,12 @@
     },
     "scripts/test-support/seal-leva-rebase-2610.mjs": {
       "hash": "965f4d4942d2fbd3b8225fa75f333ced3b17d8e23b3cdfb2b1632bb232f8a0cd"
+    },
+    "scripts/test-support/upsell-filme15-harness-2610.mjs": {
+      "hash": "757bbbe622c8f8280744b7944cf690621041aa9a508c9bda0d7a152a137cd53e"
+    },
+    "scripts/test-support/upsell-filme15-ui-fixtures-2610.mjs": {
+      "hash": "df509311696773032e90b526b895aa79abac4f1606d8d7bc87a31d5c696dff32"
     },
     "scripts/test-temporada.mjs": {
       "hash": "b8ed4e58f5c64c52b6b20c470d90b96eb4eb397b3f4c21ad00c3474cd40b0f2b"
@@ -2776,7 +3678,7 @@
       "hash": "c021ff17429765cacf52f7b350c0f4766875a21cdab80f40310d2786db0cd0cd"
     },
     "scripts/test-trafego-undo-2310.mjs": {
-      "hash": "0df0329b144a2a30f1183224aabd916ea318f8be7a925ba98b32172129540b8a"
+      "hash": "f557705019055326d32fccc332014d1970b29a0a0a7764996951be795493ffb4"
     },
     "scripts/test-trending-capas-2510.mjs": {
       "hash": "44573aed810f1593ebec7f28a92b6749367063f473f0d3013c4d6b7804933dba"
@@ -2784,14 +3686,32 @@
     "scripts/test-tres-jogadas-servidor-2026-09-23.mjs": {
       "hash": "893377b1813e8848486885ed77eca6404c01977e097641a91e03366a8aa0a1dd"
     },
+    "scripts/test-trial-watermark.mjs": {
+      "hash": "3c39b1b41539d9195f0cb34a7774079125c6aa89e0dc1ece87208184468763b5"
+    },
     "scripts/test-troca-de-plano-2026-09-09.mjs": {
       "hash": "33935866e521b8f21595f51f87a3d4c63b87a50d530e7cd860ba38a3df85d3bf"
+    },
+    "scripts/test-ugc-ajustes-2010.mjs": {
+      "hash": "7fe9293c99e4dbbee383581af74f058daf5266e55e5976c2e76ee20ea637b20b"
+    },
+    "scripts/test-upsell-filme15-2610.mjs": {
+      "hash": "b1b9eb1b94e8a3132bc084ffc00c3de1f5fd2b7794c4887c5869e0f6e3296af1"
+    },
+    "scripts/test-upsell-filme15-funnel-2610.mjs": {
+      "hash": "535f6b6c94bf6b309f022ba42fe606f9f5e4449455af506cab1e8af2824276dc"
+    },
+    "scripts/test-upsell-filme15-undo-2610.mjs": {
+      "hash": "037f4fea1f4862fe5b1b894ae578a1ec0a30729687d0646892a2f47d679dd4f6"
     },
     "scripts/test-ux-complete.mjs": {
       "hash": "3feec9ac64c41402d45b53b64b868b2d6b46677ce2e04aa557898a43c775d158"
     },
     "scripts/test-ux-mobile-navigation.mjs": {
       "hash": "0798a339ca19e2e13619175d3eb81de92c08a70f7b5ea51be634e6da323ca4a2"
+    },
+    "scripts/test-verbatim-intocavel-2010.mjs": {
+      "hash": "762a33e8f4bc287a12608faade9eeb1716ea12453e8e36f28ce67e1e73d3710e"
     },
     "scripts/test-verbatim-order-warning.mjs": {
       "hash": "2309dd8b5c41ba1dd01f5b85c1962d2087174473132e525616e2fb0769a4c863"
@@ -2823,14 +3743,26 @@
     "scripts/test-vitrine-em-alta-2026-08-31.mjs": {
       "hash": "31acaf62d7b16210071a7e9d9304a688d8ece8a06180ce4650dde8e4757c100c"
     },
+    "scripts/test-vitrine-filmes-2610.mjs": {
+      "hash": "10241a2acffb97fa4b753f218715a34123dfa4d072ed38bce1d9d8ca67407607"
+    },
+    "scripts/test-vitrine-filmes-undo-2610.mjs": {
+      "hash": "19edd6af328bf71aa0625441c7912db345c73d622d06df929c7b5f264e5559d1"
+    },
     "scripts/test-voz-nativa-2610.mjs": {
       "hash": "ef0ab0240fdd050069ac8d021b035ca0ece8fdbf923128b3edca89f43110bd1d"
+    },
+    "scripts/test-welcome20-onde-anuncia.mjs": {
+      "hash": "329bd2c3fbcf3905a0e8591524bd0d0b47efb94d8ab3477a2be78162278c19d9"
     },
     "scripts/test-works-with-claude-2026-09-30.mjs": {
       "hash": "15f8d662e02f51605aa9038b493ee01536fcb3e3bb0d5a33e27c9829ea8d7a84"
     },
     "scripts/test-workspace-spanish.mjs": {
       "hash": "078f6b36116edfac2abe3de5265c2aad0ff2660b11df0e92a52980baf4cb8208"
+    },
+    "scripts/upsell-filme15-report.mjs": {
+      "hash": "c7c32edde8267039cd5ecd6a9a94ace6559cb1b6e5c1eb6473040f08e89cdcbb"
     },
     "supabase/migrations/20261024175246_ads_escolha_sample.sql": {
       "hash": "a8516f26e7fcc52d0bd0dc31310f2f21256f8b053ecb2ad1e54f0b834a61390f"

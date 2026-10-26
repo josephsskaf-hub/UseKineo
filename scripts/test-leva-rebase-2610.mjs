@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  REBASE, REBASE_MAIN, REBASE_LEVA, REBASE_BASE, REBASE_MANIFEST_PATH,
+  REBASE, REBASE_MAIN, REBASE_LEVA, REBASE_BASE, REBASE_MANIFEST_PATH, FINAL_PRE_LEVA_2610, FINAL_MAIN_2610,
   REBASE_LEGACY_MANIFEST, rebaseLf, rebaseHash, rebaseGit, rebaseTextFile,
   rebaseCurrentInventory, verifyRebaseManifest, verifyRebaseCurrentTree,
-  semLevaSobreMain2610, semMainSobreLeva2610, preloadRebaseBlobs2610, rebaseImmutableSource2610,
+  semLevaSobreMain2610, semMainSobreLeva2610, semLevaSobreIntegracao2610, semIntegracaoSobreMain2372610, preloadRebaseBlobs2610, rebaseImmutableSource2610,
 } from './test-support/leva-rebase-2610.mjs'
 let checks = 0, mutants = 0
 const check = fn => { fn(); checks++ }
@@ -21,16 +21,16 @@ check(() => assert.equal(rebaseLf(readFileSync(REBASE_LEGACY_MANIFEST, 'utf8')),
 // The newer main owns these complete sources, including native PT/ES MiniMax
 // and the character-sheet block inside the real cinematic generation route.
 const protectedMain = [
-  ...rebaseGit('ls-tree', '-r', '--name-only', REBASE_MAIN, '--', 'lib/filmes').trim().split('\n').filter(Boolean),
+  ...rebaseGit('ls-tree', '-r', '--name-only', FINAL_MAIN_2610, '--', 'lib/filmes').trim().split('\n').filter(Boolean),
   'lib/textLanguage.ts', 'app/api/generate-video-cinematic/route.ts',
 ]
-for (const file of protectedMain) check(() => assert.equal(rebaseLf(readFileSync(file, 'utf8')), rebaseGit('show', REBASE_MAIN + ':' + file), 'complete current main product survives byte-exact: ' + file))
+for (const file of protectedMain) check(() => assert.equal(rebaseLf(readFileSync(file, 'utf8')), rebaseGit('show', FINAL_MAIN_2610 + ':' + file), 'complete current main product survives byte-exact: ' + file))
 const composeFile = 'app/api/compose/route.ts'
 const purchaseLines = rebaseGit('show', REBASE_LEVA + ':' + composeFile).split('\n').filter(line => line.includes('KINEO-COMPRA-AVULSA-2410') && line.includes('hasPaid && cinematicUpstreamDebited'))
 check(() => assert.equal(purchaseLines.length, 1, 'the exact one-line purchase delta comes from immutable LEVA'))
 const compose = rebaseLf(readFileSync(composeFile, 'utf8')), purchaseLine = purchaseLines[0] + '\n'
 check(() => assert.equal(compose.split(purchaseLine).length - 1, 1, 'paid exact-balance delivery survives exactly once in raw compose'))
-check(() => assert.equal(compose.replace(purchaseLine, ''), rebaseGit('show', REBASE_MAIN + ':' + composeFile), 'every main compose byte survives; the only new product delta is the immutable purchase line'))
+check(() => assert.equal(compose.replace(purchaseLine, ''), rebaseGit('show', FINAL_MAIN_2610 + ':' + composeFile), 'every main compose byte survives; the only new product delta is the immutable purchase line'))
 
 // Current CI gates are checked on RAW workflow bytes independently of seals or
 // historical projection. Resealing a workflow that loses either parent's gate
@@ -38,7 +38,7 @@ check(() => assert.equal(compose.replace(purchaseLine, ''), rebaseGit('show', RE
 const workflowFile = '.github/workflows/guardiao.yml'
 const rawWorkflow = readFileSync(workflowFile, 'utf8')
 const workflowCommand = line => /^\s*(?:run:\s*)?node\s/.test(line) ? line.trim().replace(/^run:\s*/, '') : null
-const workflowParents = [REBASE_MAIN, REBASE_LEVA].map(ref => {
+const workflowParents = [FINAL_MAIN_2610, REBASE_LEVA].map(ref => {
   const lines = rebaseGit('show', ref + ':' + workflowFile).split('\n')
   return { ref, lines, commands: lines.map(workflowCommand).filter(Boolean) }
 })
@@ -78,7 +78,7 @@ check(() => assert.throws(() => verifyRawWorkflowParents(duplicatedOwnGuardian),
 mutants += 2
 
 preloadRebaseBlobs2610()
-for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610]]) {
+for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610], [FINAL_PRE_LEVA_2610, semLevaSobreIntegracao2610], [FINAL_MAIN_2610, semIntegracaoSobreMain2372610]]) {
   for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile)) {
     const raw = readFileSync(file, 'utf8'), current = rebaseLf(raw)
     check(() => assert.equal(rebaseHash(current), REBASE.sources[file].hash, 'physical full-source seal: ' + file))

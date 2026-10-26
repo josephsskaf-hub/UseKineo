@@ -1,3 +1,5 @@
+import { semLevaSobreIntegracao2610 } from './leva-rebase-2610.mjs' // final integration: newest sealed source first.
+import { semUpsellFilme152610 } from './desfaz-upsell-filme15-2610.mjs'
 // KINEO-VITRINE-FILMES-2610 — exact task-only projection, in memory.
 // Existing files preserve unrelated bytes. New files are removed only when
 // their complete frozen content matches; modifications cause a hard refusal.
@@ -51,6 +53,7 @@ const positions = (text, needle) => {
 }
 
 export function semVitrine2610(source, file) {
+  source = semUpsellFilme152610(semLevaSobreIntegracao2610(source, file), file)
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
   const entry = VITRINE_2610_MANIFEST.scope[relative] ?? VITRINE_2610_MANIFEST.testScope?.[relative] ?? VITRINE_2610_GUARDIAN_ADAPTERS.scope[relative]
   if (!entry || source === null) return source

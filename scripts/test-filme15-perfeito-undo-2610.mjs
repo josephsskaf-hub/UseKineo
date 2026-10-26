@@ -1,3 +1,4 @@
+import { semIntegracaoSobreMain2372610 } from './test-support/leva-rebase-2610.mjs' // exact final source before immutable historical proofs.
 // KINEO-FILME15-PERFEITO-2610: exact undo, immutable base, mutants and real chain.
 // All projections happen in memory. No source writes, environment files or network.
 import assert from 'node:assert/strict'
@@ -22,7 +23,7 @@ import { semCaptionCanonico2610 } from './test-support/desfaz-caption-canonico-2
 const lf = s => s.replace(/\r\n/g, '\n')
 const crlf = s => lf(s).replace(/\n/g, '\r\n')
 const hash = s => crypto.createHash('sha256').update(s).digest('hex')
-const read = file => lf(fs.readFileSync(file, 'utf8'))
+const read = file => lf(semIntegracaoSobreMain2372610(fs.readFileSync(file, 'utf8'), file))
 const git = (...args) => lf(execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }))
 let checks = 0, mutants = 0
 const check = fn => { fn(); checks++ }

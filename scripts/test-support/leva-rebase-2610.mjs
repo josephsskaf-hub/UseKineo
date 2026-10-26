@@ -7,6 +7,8 @@ import { createHash } from 'node:crypto'
 export const REBASE_MANIFEST_PATH = 'scripts/test-support/leva-rebase-2610-fontes.json'
 export const REBASE_MAIN = '62213b008292f110117d1abbe20c157efdb55902'
 export const REBASE_LEVA = '07435f57b7e18d4d37c325e57134776d452db382'
+export const FINAL_PRE_LEVA_2610 = '3c41db6f931d4c3840ff2f28153fd94be608f89c'
+export const FINAL_MAIN_2610 = '237b14fb186655e448e9d2e5e80b5b904a8e9863'
 export const REBASE_BASE = '1c078ed013302ac47c42f783305df688c4e97cfd'
 export const REBASE_LEGACY_MANIFEST = 'scripts/test-support/leva-integration-2410-fontes.json'
 export const REBASE = JSON.parse(readFileSync(new URL('./leva-rebase-2610-fontes.json', import.meta.url), 'utf8'))
@@ -55,7 +57,7 @@ export function preloadRebaseBlobs2610() {
   }
 }
 export function rebaseImmutableSource2610(ref, file) {
-  if (![REBASE_MAIN, REBASE_LEVA].includes(ref)) throw Error('KINEO-LEVA-REBASE-2610: unpinned destination')
+  if (![REBASE_MAIN, REBASE_LEVA, FINAL_PRE_LEVA_2610, FINAL_MAIN_2610].includes(ref)) throw Error('KINEO-LEVA-REBASE-2610: unpinned destination')
   const source = blob(ref, pathOf(file))
   if (source === null) throw Error('KINEO-LEVA-REBASE-2610: absent immutable source')
   return source
@@ -93,6 +95,9 @@ function project(text, file, target) {
 
 export const semLevaSobreMain2610 = (text, file) => project(text, file, REBASE_MAIN)
 export const semMainSobreLeva2610 = (text, file) => project(text, file, REBASE_LEVA)
+// Final sealed composition leaves before each earlier exact layer; unknown bytes stay visible.
+export const semLevaSobreIntegracao2610 = (text, file) => project(text, file, FINAL_PRE_LEVA_2610)
+export const semIntegracaoSobreMain2372610 = (text, file) => project(text, file, FINAL_MAIN_2610)
 
 export function rebaseCurrentInventory(base = REBASE_BASE) {
   return [...new Set([...rebaseGit('diff', '--name-only', base).trim().split('\n'), ...rebaseGit('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
