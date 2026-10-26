@@ -1,0 +1,390 @@
+{
+  "classification": "FATO CONFIRMADO — read-only source audit",
+  "reviewedAt": "2026-10-26",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "review": "Actual writes stay inside unique OS mkdtemp directories. Explicit compiler file inputs and --outDir stay inside those directories. Actual repository source mutators and uncertain network/indexing/transport cases are excluded. Exact normalized-LF SHA-256 is required; changed tests fall back to serialization.",
+  "entries": [
+    {
+      "file": "scripts/test-billing-drift.mjs",
+      "sha256": "d58a35ebc50768df7c5581c8cf62fff142141fb1b23a29f2765d72a64103eda9",
+      "evidence": [
+        "scripts/test-billing-drift.mjs:54",
+        "scripts/test-billing-drift.mjs:58",
+        "scripts/test-billing-drift.mjs:64",
+        "scripts/test-billing-drift.mjs:65",
+        "scripts/test-billing-drift.mjs:72",
+        "scripts/test-billing-drift.mjs:75"
+      ]
+    },
+    {
+      "file": "scripts/test-business-depois-da-amostra.mjs",
+      "sha256": "f46cdd908f1cce4ff99635075fdbd2f15ca7fd5cf7fe1428453c0608657760aa",
+      "evidence": [
+        "scripts/test-business-depois-da-amostra.mjs:117",
+        "scripts/test-business-depois-da-amostra.mjs:123"
+      ]
+    },
+    {
+      "file": "scripts/test-cena-negacao-1510.mjs",
+      "sha256": "ed62a7978ae43b0d9465ef86922d0ae23f27b1888ba650baab85bcacc781aea7",
+      "evidence": [
+        "scripts/test-cena-negacao-1510.mjs:192",
+        "scripts/test-cena-negacao-1510.mjs:194"
+      ]
+    },
+    {
+      "file": "scripts/test-chatgpt-script-handoff.mjs",
+      "sha256": "926045bd067ed9de854b524f5fb8604e2a831babe51a444d59b6705c73de0bb8",
+      "evidence": [
+        "scripts/test-chatgpt-script-handoff.mjs:14",
+        "scripts/test-chatgpt-script-handoff.mjs:61",
+        "scripts/test-chatgpt-script-handoff.mjs:67"
+      ]
+    },
+    {
+      "file": "scripts/test-checkout-profile-read.mjs",
+      "sha256": "d707ecdc927a4fef40fa2179863ad14231348450b9f5bfe34bedf4e142acf31d",
+      "evidence": [
+        "scripts/test-checkout-profile-read.mjs:9",
+        "scripts/test-checkout-profile-read.mjs:28",
+        "scripts/test-checkout-profile-read.mjs:31"
+      ]
+    },
+    {
+      "file": "scripts/test-clean-export-trial-door.mjs",
+      "sha256": "dd46a79bd13a929e3542ca7b1a982896ace80dd0374b1b7039e611125e6f10cd",
+      "evidence": [
+        "scripts/test-clean-export-trial-door.mjs:75",
+        "scripts/test-clean-export-trial-door.mjs:79",
+        "scripts/test-clean-export-trial-door.mjs:83"
+      ]
+    },
+    {
+      "file": "scripts/test-clean-film-trial-door.mjs",
+      "sha256": "91b2733bbed0c3ac8724624eb0430d70e997688fa35c337fc9d79e1e1b3d29f7",
+      "evidence": [
+        "scripts/test-clean-film-trial-door.mjs:91",
+        "scripts/test-clean-film-trial-door.mjs:95",
+        "scripts/test-clean-film-trial-door.mjs:99",
+        "scripts/test-clean-film-trial-door.mjs:107"
+      ]
+    },
+    {
+      "file": "scripts/test-contrato-classicos-1410.mjs",
+      "sha256": "2cf26a1897894f2ee7cdd3a29694ae114d7c92f6ef5de932a9b180780abfbcaf",
+      "evidence": [
+        "scripts/test-contrato-classicos-1410.mjs:4",
+        "scripts/test-contrato-classicos-1410.mjs:6"
+      ]
+    },
+    {
+      "file": "scripts/test-credito-preso.mjs",
+      "sha256": "2cc8233e069ed6b736924b30b94f4d520a3148c77b01164df911d7ea1e49ce04",
+      "evidence": [
+        "scripts/test-credito-preso.mjs:68",
+        "scripts/test-credito-preso.mjs:71",
+        "scripts/test-credito-preso.mjs:74",
+        "scripts/test-credito-preso.mjs:77"
+      ]
+    },
+    {
+      "file": "scripts/test-credito-vitrine.mjs",
+      "sha256": "31acbcb5062a06185400a09a0b1298d0eea35483d92c03575d20597f2016eae4",
+      "evidence": [
+        "scripts/test-credito-vitrine.mjs:25",
+        "scripts/test-credito-vitrine.mjs:27",
+        "scripts/test-credito-vitrine.mjs:29",
+        "scripts/test-credito-vitrine.mjs:30"
+      ]
+    },
+    {
+      "file": "scripts/test-dispatch-contract.mjs",
+      "sha256": "89ed75b09356e73e333f8d20e78d713939dbe99db7a64d31481995f77f1366c9",
+      "evidence": [
+        "scripts/test-dispatch-contract.mjs:27",
+        "scripts/test-dispatch-contract.mjs:35",
+        "scripts/test-dispatch-contract.mjs:38"
+      ]
+    },
+    {
+      "file": "scripts/test-expand-policy.mjs",
+      "sha256": "c4b1a8f1887613f6689249cd658c42cbcef94d1f470f1aa6b107bca83c6f01a9",
+      "evidence": [
+        "scripts/test-expand-policy.mjs:30",
+        "scripts/test-expand-policy.mjs:36",
+        "scripts/test-expand-policy.mjs:47",
+        "scripts/test-expand-policy.mjs:56"
+      ]
+    },
+    {
+      "file": "scripts/test-expand-seed-authoring.mjs",
+      "sha256": "882934e3514aa1573a0638e9156f215ad8c6060e4e1b566bbfa7a5d63e5ad970",
+      "evidence": [
+        "scripts/test-expand-seed-authoring.mjs:42",
+        "scripts/test-expand-seed-authoring.mjs:46",
+        "scripts/test-expand-seed-authoring.mjs:83",
+        "scripts/test-expand-seed-authoring.mjs:91"
+      ]
+    },
+    {
+      "file": "scripts/test-expansor-degrau.mjs",
+      "sha256": "dbd88215554184ef55532343aa2fc8b6b33048e7eda77e6b84e34d077b0286ff",
+      "evidence": [
+        "scripts/test-expansor-degrau.mjs:33",
+        "scripts/test-expansor-degrau.mjs:37",
+        "scripts/test-expansor-degrau.mjs:47",
+        "scripts/test-expansor-degrau.mjs:52"
+      ]
+    },
+    {
+      "file": "scripts/test-history-referral-mission.mjs",
+      "sha256": "4716d30d64eceb9dfd215475cc7ad8cdab926a1e460f8908bbf4bf1e966603ce",
+      "evidence": [
+        "scripts/test-history-referral-mission.mjs:9",
+        "scripts/test-history-referral-mission.mjs:28",
+        "scripts/test-history-referral-mission.mjs:31"
+      ]
+    },
+    {
+      "file": "scripts/test-legenda-bengali-2010.mjs",
+      "sha256": "ebf2441d9abd769198af9d9e4bb8059d0dd5286330a9842bb342734c0d713895",
+      "evidence": [
+        "scripts/test-legenda-bengali-2010.mjs:3",
+        "scripts/test-legenda-bengali-2010.mjs:5"
+      ]
+    },
+    {
+      "file": "scripts/test-limit-purchase-fit.mjs",
+      "sha256": "22705401480dc45af8047d7359fb07570d878b72ce1583c9c792a4e767da62b9",
+      "evidence": [
+        "scripts/test-limit-purchase-fit.mjs:25",
+        "scripts/test-limit-purchase-fit.mjs:40",
+        "scripts/test-limit-purchase-fit.mjs:49",
+        "scripts/test-limit-purchase-fit.mjs:56"
+      ]
+    },
+    {
+      "file": "scripts/test-local-business-ad-brief.mjs",
+      "sha256": "4541f6bbc660cc1da728fa29e6fb26c1a996ae1e3c3d5db494026817fa9c99fb",
+      "evidence": [
+        "scripts/test-local-business-ad-brief.mjs:12",
+        "scripts/test-local-business-ad-brief.mjs:15",
+        "scripts/test-local-business-ad-brief.mjs:28"
+      ]
+    },
+    {
+      "file": "scripts/test-local-business-brief-observability.mjs",
+      "sha256": "e9d2e97a3179dc11e014cddad544ce5eecbee64be038ddb74109ae4c84abe900",
+      "evidence": [
+        "scripts/test-local-business-brief-observability.mjs:9",
+        "scripts/test-local-business-brief-observability.mjs:19"
+      ]
+    },
+    {
+      "file": "scripts/test-momentum-ladder.mjs",
+      "sha256": "b934303ddb570eae28a3669d614a2bc75bed9028f4be334def0464394c499f6d",
+      "evidence": [
+        "scripts/test-momentum-ladder.mjs:15",
+        "scripts/test-momentum-ladder.mjs:19"
+      ]
+    },
+    {
+      "file": "scripts/test-momentum-topic.mjs",
+      "sha256": "8e07577939fa47155c44dedf9218027b447df3858e7f1cf98ce23bd39251f81f",
+      "evidence": [
+        "scripts/test-momentum-topic.mjs:18",
+        "scripts/test-momentum-topic.mjs:30"
+      ]
+    },
+    {
+      "file": "scripts/test-narracao-degrau.mjs",
+      "sha256": "f96ab05131e43976b914b3f213c56ec9398b65a1195b9d3969bae2af6e52d330",
+      "evidence": [
+        "scripts/test-narracao-degrau.mjs:44",
+        "scripts/test-narracao-degrau.mjs:47",
+        "scripts/test-narracao-degrau.mjs:48",
+        "scripts/test-narracao-degrau.mjs:54",
+        "scripts/test-narracao-degrau.mjs:57"
+      ]
+    },
+    {
+      "file": "scripts/test-parser-voice-1510.mjs",
+      "sha256": "e99bee7f4acdd4017935cd51d4960b961795ffb3374ee26f205edea8b547f0f0",
+      "evidence": [
+        "scripts/test-parser-voice-1510.mjs:47",
+        "scripts/test-parser-voice-1510.mjs:48"
+      ]
+    },
+    {
+      "file": "scripts/test-plan-fit.mjs",
+      "sha256": "8a3336cf3d311890315619b918be2c4cf457bb7d3080a5e437744d92cfedb7dd",
+      "evidence": [
+        "scripts/test-plan-fit.mjs:25",
+        "scripts/test-plan-fit.mjs:47",
+        "scripts/test-plan-fit.mjs:53",
+        "scripts/test-plan-fit.mjs:60"
+      ]
+    },
+    {
+      "file": "scripts/test-platform-decision.mjs",
+      "sha256": "e1909cf9710ebf18e82aa3602463c25a73dc74d05dda139326c344705c274e0b",
+      "evidence": [
+        "scripts/test-platform-decision.mjs:9",
+        "scripts/test-platform-decision.mjs:23"
+      ]
+    },
+    {
+      "file": "scripts/test-porta-fala-em-filmes-2026-09-09.mjs",
+      "sha256": "3b22fceca22b7a42db1c9446bafc0abc53637a6f74be9396b8c3b2b597ce3957",
+      "evidence": [
+        "scripts/test-porta-fala-em-filmes-2026-09-09.mjs:93",
+        "scripts/test-porta-fala-em-filmes-2026-09-09.mjs:97",
+        "scripts/test-porta-fala-em-filmes-2026-09-09.mjs:101",
+        "scripts/test-porta-fala-em-filmes-2026-09-09.mjs:109"
+      ]
+    },
+    {
+      "file": "scripts/test-porta-terceiro-filme-2026-09-17.mjs",
+      "sha256": "f3b7c9d232333966486cdcd3681865fec13ba9deb253f95efc0b9bf081fd33ec",
+      "evidence": [
+        "scripts/test-porta-terceiro-filme-2026-09-17.mjs:32",
+        "scripts/test-porta-terceiro-filme-2026-09-17.mjs:35",
+        "scripts/test-porta-terceiro-filme-2026-09-17.mjs:36",
+        "scripts/test-porta-terceiro-filme-2026-09-17.mjs:38"
+      ]
+    },
+    {
+      "file": "scripts/test-post-delivery-silence.mjs",
+      "sha256": "f2d8b8747c4fb2a532db4c2f0930546d3d53c1adcdc48217d8edef4f7531cd85",
+      "evidence": [
+        "scripts/test-post-delivery-silence.mjs:31",
+        "scripts/test-post-delivery-silence.mjs:35",
+        "scripts/test-post-delivery-silence.mjs:42",
+        "scripts/test-post-delivery-silence.mjs:50"
+      ]
+    },
+    {
+      "file": "scripts/test-post-delivery-slot.mjs",
+      "sha256": "9bd522e334b1b7033a70e134c5f7856ec2688d157743e60ba8258970fafda4b4",
+      "evidence": [
+        "scripts/test-post-delivery-slot.mjs:38",
+        "scripts/test-post-delivery-slot.mjs:42",
+        "scripts/test-post-delivery-slot.mjs:46",
+        "scripts/test-post-delivery-slot.mjs:54"
+      ]
+    },
+    {
+      "file": "scripts/test-resgate-defeito.mjs",
+      "sha256": "b1c1152fbe1e4ddbfb84f786e920e9c5158129cf3b46d024ebfae5b49fc45adb",
+      "evidence": [
+        "scripts/test-resgate-defeito.mjs:82",
+        "scripts/test-resgate-defeito.mjs:85",
+        "scripts/test-resgate-defeito.mjs:91",
+        "scripts/test-resgate-defeito.mjs:94"
+      ]
+    },
+    {
+      "file": "scripts/test-result-video-value-sampled.mjs",
+      "sha256": "ce9023ed88ac10f328bacfbbfac119ec2f5f2982e57dfb1e199e1ff2e0f984f5",
+      "evidence": [
+        "scripts/test-result-video-value-sampled.mjs:21",
+        "scripts/test-result-video-value-sampled.mjs:25",
+        "scripts/test-result-video-value-sampled.mjs:26",
+        "scripts/test-result-video-value-sampled.mjs:28"
+      ]
+    },
+    {
+      "file": "scripts/test-roteiro-de-cinema.mjs",
+      "sha256": "1be3d9c72da189251d6492c6b3664abc1a0114329fa6bdcb568025350f355d63",
+      "evidence": [
+        "scripts/test-roteiro-de-cinema.mjs:24",
+        "scripts/test-roteiro-de-cinema.mjs:32",
+        "scripts/test-roteiro-de-cinema.mjs:40"
+      ]
+    },
+    {
+      "file": "scripts/test-scene-disposition.mjs",
+      "sha256": "c94889415b24334da18b3f703dadd28f9ffda486a1b8b28f6576aa1328def4eb",
+      "evidence": [
+        "scripts/test-scene-disposition.mjs:26",
+        "scripts/test-scene-disposition.mjs:33",
+        "scripts/test-scene-disposition.mjs:36"
+      ]
+    },
+    {
+      "file": "scripts/test-scene-truth.mjs",
+      "sha256": "c99c782a4a757055ac9f0e0f5d5415f95ce67db4e31b19b1c1b8a3bda91a9ca0",
+      "evidence": [
+        "scripts/test-scene-truth.mjs:44",
+        "scripts/test-scene-truth.mjs:48",
+        "scripts/test-scene-truth.mjs:54",
+        "scripts/test-scene-truth.mjs:57"
+      ]
+    },
+    {
+      "file": "scripts/test-serie-episodio-2.mjs",
+      "sha256": "d37991e35715e383b1a9775aedacb989a76ae3a995e60e6bca931e485d688fe8",
+      "evidence": [
+        "scripts/test-serie-episodio-2.mjs:53",
+        "scripts/test-serie-episodio-2.mjs:56",
+        "scripts/test-serie-episodio-2.mjs:61",
+        "scripts/test-serie-episodio-2.mjs:64"
+      ]
+    },
+    {
+      "file": "scripts/test-shorts-script-timer.mjs",
+      "sha256": "c2d6f7ca8d1bf9d076dc728f3cfa8a07808c7f42fd01da5f092d215233c1fa73",
+      "evidence": [
+        "scripts/test-shorts-script-timer.mjs:12",
+        "scripts/test-shorts-script-timer.mjs:15",
+        "scripts/test-shorts-script-timer.mjs:25"
+      ]
+    },
+    {
+      "file": "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs",
+      "sha256": "3b2219fe0f347dc619235b31e91729284be8828343cb9896a41947062773599a",
+      "evidence": [
+        "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs:217",
+        "scripts/test-stripe-atraso-2-meses-2026-09-28.mjs:229"
+      ]
+    },
+    {
+      "file": "scripts/test-studio-fantasma-1510.mjs",
+      "sha256": "aa19e642bff8814421809d99e9259ac4c6341cf5b71c605c82a0b730c52377ed",
+      "evidence": [
+        "scripts/test-studio-fantasma-1510.mjs:201",
+        "scripts/test-studio-fantasma-1510.mjs:205",
+        "scripts/test-studio-fantasma-1510.mjs:206"
+      ]
+    },
+    {
+      "file": "scripts/test-text-to-video-intent-router.mjs",
+      "sha256": "2d262a71681dfc9c412729485681a2523f690eeea7dcdf2031374627659dc1a6",
+      "evidence": [
+        "scripts/test-text-to-video-intent-router.mjs:11",
+        "scripts/test-text-to-video-intent-router.mjs:30",
+        "scripts/test-text-to-video-intent-router.mjs:36"
+      ]
+    },
+    {
+      "file": "scripts/test-variety-axis.mjs",
+      "sha256": "650a3a909339f55c5b10f94874695d9bc9417c4546141628e7169d6c5495c7ad",
+      "evidence": [
+        "scripts/test-variety-axis.mjs:43",
+        "scripts/test-variety-axis.mjs:46",
+        "scripts/test-variety-axis.mjs:52",
+        "scripts/test-variety-axis.mjs:55"
+      ]
+    },
+    {
+      "file": "scripts/test-verbatim-scene-plan.mjs",
+      "sha256": "cd6a577587d37b38823712a09c59c7b14cc3e03d5d7a6ce6f8fefeca036c2e64",
+      "evidence": [
+        "scripts/test-verbatim-scene-plan.mjs:13",
+        "scripts/test-verbatim-scene-plan.mjs:16",
+        "scripts/test-verbatim-scene-plan.mjs:22",
+        "scripts/test-verbatim-scene-plan.mjs:27"
+      ]
+    }
+  ]
+}
