@@ -6,7 +6,7 @@ import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const BASE = 'b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d'
+const BASE = '2072944f17eab603bc40fcaa0d576d3b0ce9c78f'
 const MANIFEST = 'scripts/test-support/desfaz-filme15-perfeito-2610-fontes.json'
 const lf = s => s.replace(/\r\n/g, '\n')
 const hash = s => crypto.createHash('sha256').update(s).digest('hex')

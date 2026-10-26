@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { semFilme15Perfeito2610 } from '../../scripts/test-support/desfaz-filme15-perfeito-2610.mjs'
 import { CAPTION_CANONICO_MANIFEST as manifest, semCaptionCanonico2610 as undo, comCaptionCanonico2610 as redo } from '../../scripts/test-support/desfaz-caption-canonico-2610.mjs'
+import { semFilme15Fiel2610 } from '../../scripts/test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-FIEL-2610
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const flat = s => s.replace(/\r\n/g, '\n')
@@ -24,7 +25,7 @@ function preserveMutation(source, file, base) {
 check(() => assert.equal(manifest.base, '464bc9d19dbc23a34b08092b7db6c0f5128b7619'))
 check(() => assert.deepEqual(Object.keys(manifest.scope).sort(), ['.github/workflows/guardiao.yml', 'app/api/compose/route.ts', 'docs/video-fiel-2610/test-legacy-layer.mjs', 'scripts/test-support/desfaz-video-fiel-2610.mjs'].sort()))
 for (const [file, entry] of Object.entries(manifest.scope)) {
-  const before = git('show', manifest.base + ':' + file), after = read(file)
+  const before = git('show', manifest.base + ':' + file), after = flat(semFilme15Fiel2610(read(file), file)) // KINEO-FILME15-FIEL-2610 — camada posterior com desfaz próprio sai antes do hash congelado
   check(() => assert.equal(hash(before), entry.beforeSha256, 'immutable before: ' + file))
   check(() => assert.equal(hash(after), entry.afterSha256, 'frozen after: ' + file))
   check(() => assert.equal(hash(JSON.stringify(entry.hunks)), entry.hunksSha256))

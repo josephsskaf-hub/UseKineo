@@ -1,15 +1,4 @@
-// KINEO-FILME15-PERFEITO-2610 — the scope decision is made by seedanceShortFilm in the route.
-// One existing scene-1 still becomes the identity reference for all three i2v shots,
-// exactly as the Hollywood portrait anchor. No extra character-sheet or image edits.
-export function usaRostoFixo15(seedanceShortFilm: boolean, visualMode: string, estrelaAtiva: boolean): boolean {
-  return seedanceShortFilm && visualMode === 'character_story' && !estrelaAtiva
-}
-
-/** Never replace the reference with an independently generated face. Null stays null. */
-export function ancorasDoRosto15(base: string | null, count: number): (string | null)[] {
-  return Array.from({ length: count }, () => base)
-}
-
+// KINEO-FILME15-PERFEITO-2610 — narration length planning only.
 /** The existing scene writer can be followed by filters that remove whole sentences.
  * Recheck the accepted narration before buying footage; only AI narration may receive
  * an appended sentence. The author's words are never rewritten or cut. */

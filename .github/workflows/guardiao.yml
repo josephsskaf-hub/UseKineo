@@ -81,7 +81,7 @@ jobs:
           node scripts/test-filme15-perfeito-2610.mjs
           node scripts/test-filme15-gate-integration-2610.mjs
           node scripts/test-filme15-portao-fonte-2610.mjs
-          node scripts/test-filme15-rosto-duracao-2610.mjs
+          node scripts/test-filme15-duracao-2610.mjs
           node scripts/test-filme15-legenda-inteira-2610.mjs
           node scripts/test-filme15-legenda-canonica-2610.mjs
           node scripts/test-filme15-perfeito-undo-2610.mjs

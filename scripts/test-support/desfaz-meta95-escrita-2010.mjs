@@ -9,6 +9,7 @@
 // ENCADEAMENTO: é a camada MAIS NOVA — semMeta95Personagem2010 (a cabeça que semMenuUgc2010 e as cadeias de antes chamam primeiro) chama ESTE
 // primeiro. Este não importa ninguém.
 // O guardião scripts/test-meta95-escrita-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_ESCRITA_2010_BASE).
+import { semFilme15Fiel2610 } from './desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-FIEL-2610
 import { readFileSync } from 'node:fs'
 import { semAvatarPreso2010NosGuardioes } from './desfaz-avatar-preso-2010.mjs' // KINEO-AVATAR-PRESO-2010 — a camada mais nova (20/10): as reâncoras dela nos guardiões saem primeiro
 import { dirname, join } from 'node:path'
@@ -58,6 +59,7 @@ export const META95_ESCRITA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Escrita2010(texto, p) {
+  texto = semFilme15Fiel2610(texto, p) // KINEO-FILME15-FIEL-2610 — a camada mais nova (re-âncora do guardião do Kling) sai primeiro
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro (texto sem a marca passa igual)
   texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010 — encadeado (o /api/compose fica com a cadeia dele)
   const rel = String(p ?? '').replace(/\\/g, '/')

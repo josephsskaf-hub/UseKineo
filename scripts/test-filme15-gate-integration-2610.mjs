@@ -145,7 +145,7 @@ await check('gate precedes status asset persistence/settlement and compose inten
   assert.match(statusCode, /free15_gate_failed: true/)
 })
 await check('browser cannot mint delivery locks, gate failures or identity-cost evidence', async () => {
-  const names = ['free15_delivery_gate', 'free15_gate_failed', 'free15_identity_anchor']
+  const names = ['free15_delivery_gate', 'free15_gate_failed']
   const makeSink = removed => {
     let attempts = 0
     const unsafe = () => { attempts++; throw Error('Must not reach storage/auth') }

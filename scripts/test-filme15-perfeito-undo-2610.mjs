@@ -15,7 +15,7 @@ const read = file => lf(fs.readFileSync(file, 'utf8'))
 const git = (...args) => lf(execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }))
 let checks = 0, mutants = 0
 const check = fn => { fn(); checks++ }
-assert.equal(BASE, 'b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d')
+assert.equal(BASE, '2072944f17eab603bc40fcaa0d576d3b0ce9c78f')
 function preserveMutation(changed, file, before) {
   try { assert.notEqual(lf(undo(changed, file)), before, 'unknown mutation erased: ' + file) }
   catch (error) { if (error.code === 'ERR_ASSERTION') throw error; assert.match(String(error), /FILME15-PERFEITO-2610:/) }
@@ -32,7 +32,7 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
   check(() => assert.equal(undo(undo(after, file), file), before))
   check(() => assert.equal(redo(redo(before, file), file), after))
   check(() => assert.equal(undo(crlf(after), file.replaceAll('/', '\\')), crlf(before)))
-  check(() => assert.equal(semFilme15Fiel2610(after, file), before, 'FIEL entrypoint strips the newer layer first'))
+  check(() => assert.equal(semFilme15Fiel2610(after, file), semFilme15Fiel2610(before, file), 'FIEL entrypoint strips the newer layer first'))
   const extra = '\n// unknown later bytes must remain visible\n'
   check(() => assert.equal(undo(after + extra, file), before + extra))
   check(() => assert.equal(redo(before + extra, file), after + extra))
@@ -55,7 +55,7 @@ for (const [file, expected] of Object.entries(manifest.addedSources)) {
 const captionHelper = read('scripts/test-support/desfaz-caption-canonico-2610.mjs')
 check(() => assert.match(captionHelper, /project\(semFilme15Fiel2610\(source, file\), file, 'reverse'\)/, 'actual canonical historical chain strips perfeito through FIEL first'))
 check(() => assert.equal(semCaptionCanonico2610('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n'))
-for (const file of ['scripts/test-filme15-perfeito-2610.mjs', 'scripts/test-filme15-gate-integration-2610.mjs', 'scripts/test-filme15-portao-fonte-2610.mjs', 'scripts/test-filme15-rosto-duracao-2610.mjs', 'scripts/test-filme15-legenda-inteira-2610.mjs', 'scripts/test-filme15-legenda-canonica-2610.mjs']) {
+for (const file of ['scripts/test-filme15-perfeito-2610.mjs', 'scripts/test-filme15-gate-integration-2610.mjs', 'scripts/test-filme15-portao-fonte-2610.mjs', 'scripts/test-filme15-duracao-2610.mjs', 'scripts/test-filme15-legenda-inteira-2610.mjs', 'scripts/test-filme15-legenda-canonica-2610.mjs']) {
   if (fs.existsSync(file)) check(() => assert.doesNotMatch(read(file), /import[^\n]*desfaz-|semFilme15Perfeito2610\(/, 'current behavior reads raw code: ' + file))
 }
 const oldManifests = git('ls-tree', '-r', '--name-only', BASE, '--', 'scripts/test-support').trim().split('\n').filter(file => /(?:fontes|trocas|hunks).*\.json$/.test(file))

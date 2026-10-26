@@ -68,7 +68,7 @@ import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 import { assessOwnTtsCaptionEvidence, selectOwnTtsCaptionSource } from '@/lib/captionEvidenceGuard'
 import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)
-import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
+import { transcreverNoIdiomaDoFilme } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 · KINEO-FILME15-FIEL-2610 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -157,7 +157,7 @@ import {
 // host lines, so host speech and b-roll narration share a single narrator.
 // Failure preserves the clips for recovery; it never selects a different voice.
 import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
-import { narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 · KINEO-FILME15-FIEL-2610
 
 export const maxDuration = 300
 
@@ -772,7 +772,9 @@ export async function POST(req: NextRequest) {
     })()
 
     // Push #316 — output language. OpenAI TTS auto-detects from the script text.
-    const language = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15: qualquer código do catálogo
+    const idiomaDoFilme = resolveNarrationLanguage(body.language, voiceoverScript) // KINEO-FILME15-FIEL-2610 — a MESMA regra da rota de geração: escolha explícita vence; "en" (a interface) cede ao idioma claro do roteiro. Pena dourada (26/10): roteiro em português, interface em inglês → voz inglesa, Whisper sem idioma, legenda em outra língua
+    let language = idiomaDoFilme.language // KINEO-IDIOMAS-15: qualquer código do catálogo · KINEO-FILME15-FIEL-2610 (era const narrationLanguage(body.language) ?? 'en'; o claim assinado pode corrigir logo abaixo)
+    if (idiomaDoFilme.switched) console.warn(`[compose] KINEO-FILME15-FIEL-2610: interface pediu ${String(body.language ?? 'en')}, o roteiro está em ${language} (confiança ${idiomaDoFilme.confidence}) — o filme segue o roteiro`) // KINEO-FILME15-FIEL-2610
     const rawGenerationId = typeof body.generationId === 'string' ? body.generationId.trim() : ''
     if (!validComposeGenerationId(rawGenerationId)) {
       return NextResponse.json(
@@ -821,7 +823,14 @@ export async function POST(req: NextRequest) {
       )
     }
     cinematicBirthClaim = cinematicClaimLoad.claim
-    const qualityFailureResponse = (facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({
+    { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu viaja no claim assinado e VENCE o da interface (pena dourada 26/10: rota pt, compose 'en' → voz inglesa, Whisper sem idioma, legenda errada)
+      const idiomaDoClaim = narrationLanguage((cinematicBirthClaim?.response as { language?: unknown } | undefined)?.language) // KINEO-FILME15-FIEL-2610
+      if (idiomaDoClaim && idiomaDoClaim !== language) { // KINEO-FILME15-FIEL-2610
+        console.warn(`[compose] KINEO-FILME15-FIEL-2610: idioma do claim ${idiomaDoClaim} vence ${language} (interface ${String(body.language ?? 'en')})`) // KINEO-FILME15-FIEL-2610
+        language = idiomaDoClaim // KINEO-FILME15-FIEL-2610
+      } // KINEO-FILME15-FIEL-2610
+    } // KINEO-FILME15-FIEL-2610
+    const qualityFailureResponse =(facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({
       ...facts, qualityCheckFailed: true, generationId, retryable: false,
       error: message ?? 'This generation did not pass the final quality check. No final video was submitted. Review the recovery details below.',
     }, { status: 422 })
@@ -3287,7 +3296,7 @@ export async function POST(req: NextRequest) {
       composeCtx.stage = 'voiceover_whisper_and_upload' // KINEO-COMPOSE-FALHA-COM-NOME
       tempo.inicio('transcricao') // KINEO-FILME-RAPIDO-1710 · tempo — Whisper + upload da voz, em paralelo
       const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
-        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn…
+        ? transcreverNoIdiomaDoFilme(audioBuffer, scaledScript, language) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn… · KINEO-FILME15-FIEL-2610 — escrita latina fora do inglês: Whisper com o idioma do filme (pena dourada 26/10: legenda em outra língua)
             .then((words) => {
               if (words.length > 0) {
                 console.log(`[compose] Whisper sync: ${words.length} words for direct caption build`)

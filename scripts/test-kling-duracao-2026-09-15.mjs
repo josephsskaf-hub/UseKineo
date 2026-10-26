@@ -93,7 +93,7 @@ console.log('== (b2) Board: palavras, ordem, legendas e sincronia preservadas; s
   checa('o corretivo NÃO existe fora dessa banda: nunca pede 1,5× ou mais ao TTS', /Math\.max\(0\.7, Math\.min\(1\.3/.test(lib))
   const iFim = rota.indexOf(FIM)
   const depois = rota.slice(iFim)
-  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', depois.includes('transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)') && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)')) // KINEO-META95-ESCRITA-2010 — reancorado: o mesmo buffer corrigido, agora pelo Whisper na escrita do roteiro
+  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', (depois.includes('transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)') || depois.includes('transcreverNoIdiomaDoFilme(audioBuffer, scaledScript, language)') /* reancorado KINEO-FILME15-FIEL-2610 — mesmo buffer, agora com o idioma do filme */) && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)')) // KINEO-META95-ESCRITA-2010 — reancorado: o mesmo buffer corrigido, agora pelo Whisper na escrita do roteiro
   checa('a duração real usada pelo compose passa a ser a corrigida (realAudioDuration = retryDuration), não a prevista', fatia.includes('realAudioDuration = retryDuration'))
 }
 
