@@ -22,7 +22,7 @@
 
 **TESTADO LOCALMENTE, 26/10/2026.** A medição passou nos casos sintéticos e nos mutantes em memória do guardião `scripts/test-upsell-filme15-funnel-2610.mjs`. Esses dados são fixtures, não clientes nem receita de produção. O registro completo de typecheck e da matriz de todos os testes acompanha esta entrega em arquivo separado.
 
-**FATO CONFIRMADO — limites da execução.** Não houve alteração em `lib/checkoutPricing.ts` ou `lib/credits/engineCost.ts` em relação à base. Não houve migration aplicada, deploy, merge na main, render pago, leitura de `.env` ou mensagem externa. A nova automação só passa a executar no ambiente onde o código vier a ser publicado.
+**FATO CONFIRMADO — limites da execução.** Não houve alteração em `lib/checkoutPricing.ts` ou `lib/credits/engineCost.ts` em relação à base. Não executei migration, deploy, merge na main, render pago, leitura de `.env` ou mensagem externa. O envio autorizado é apenas para a branch da tarefa. A nova automação só passa a executar no ambiente onde o código vier a ser publicado.
 
 **TESTADO LOCALMENTE / BLOQUEADO — comparação visual.** `preview.html` é autocontido, sem servidor/build, e mostra antes/depois em desktop e mobile para os ramos de resultado, e-mails, pagamento em processamento/concluído e cancelamento. Os blocos de oferta dos e-mails são gerados pelo helper real; o entorno das telas e os filmes são reconstruções estáticas. Não são screenshots de produção. A captura visual foi bloqueada pela ferramenta de computador: ela não conseguiu determinar a URL atual do Chrome com confiança suficiente para aplicar sua política e encerrou o controle. Não houve tentativa de contornar esse bloqueio.
 
