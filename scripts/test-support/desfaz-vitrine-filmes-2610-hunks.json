@@ -1,7 +1,7 @@
 {
   "task": "KINEO-VITRINE-FILMES-2610",
   "base": "62213b008292f110117d1abbe20c157efdb55902",
-  "product": "f915e3b751166d4d72d0dd545ab6684747ca0bc2",
+  "product": "90290caa5f8b65ffb840665145ddc29d468c5ec0",
   "scope": {
     "app/(dashboard)/generate/GenerateClient.tsx": {
       "kind": "modified",
@@ -152,7 +152,7 @@
     "app/v/[id]/opengraph-image.tsx": {
       "kind": "modified",
       "beforeSha256": "d125cad4792e2fd643c02918d32a7a9358d1359a2fa673d3512efae4175a9d2a",
-      "afterSha256": "b2355891538b3485363230fbcbd3b7490056b92d5f009ad3e47872a0c0897fd3",
+      "afterSha256": "fbd00b8e49d48ba89be217f25e136b1d2d4d9ce6f2c73c39f4a1211f323bd7ff",
       "hunks": [
         {
           "before": "// não há permissão. O `published_at` vem na MESMA consulta do título (uma ida\n// ao banco só), e não é renderizado em lugar nenhum.\nexport const runtime = 'edge'\nexport const size = { width: 1200, height: 630 }\nexport const contentType = 'image/png'\nexport const alt = 'A viral Short made with Kineo'\n",
@@ -161,9 +161,13 @@
         {
           "before": "    if (!url || !key) return null\n    const admin = createAdminClient(url, key, {\n      auth: { autoRefreshToken: false, persistSession: false },\n    })\n    const { data, error } = await admin\n      .from('videos')\n",
           "after": "    if (!url || !key) return null\n    const admin = createAdminClient(url, key, {\n      auth: { autoRefreshToken: false, persistSession: false },\n      // KINEO-VITRINE-FILMES-2610 — do not serve consent from the Data Cache.\n      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },\n    })\n    const { data, error } = await admin\n      .from('videos')\n"
+        },
+        {
+          "before": "    const rawTopic = (data?.topic ?? '').toString()\n    const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title\n    const line =\n      raw\n        .split('\\n')\n        .map((s) => s.replace(/^#+\\s*/, '').trim())\n        .filter(Boolean)[0] ?? ''\n",
+          "after": "    const rawTopic = (data?.topic ?? '').toString()\n    const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title\n    const line =\n      // KINEO-VITRINE-FILMES-2610 — the bitmap must redact contact details too.\n      raw.replace(/\\b[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+\\b/g, '[redacted]')\n        .split('\\n')\n        .map((s) => s.replace(/^#+\\s*/, '').trim())\n        .filter(Boolean)[0] ?? ''\n"
         }
       ],
-      "hunksSha256": "c94a74921b9339c790f4ce58fc6318c151e95987c9ee324294b54ff7af308bb9"
+      "hunksSha256": "062271c23d2320e91d42fdde226824e067490bfff0ff3e5032547c306f3199c1"
     },
     "components/MadeWithKineo.tsx": {
       "kind": "new",

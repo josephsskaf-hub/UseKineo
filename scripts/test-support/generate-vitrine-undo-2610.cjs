@@ -4,11 +4,14 @@ const { execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
 const path = require('node:path')
 const BASE = '62213b008292f110117d1abbe20c157efdb55902'
-const PRODUCT = 'f915e3b75'
+const manifestPath = path.join(__dirname, 'desfaz-vitrine-filmes-2610-hunks.json')
+const previous = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+const PRODUCT = process.argv[2] || previous.product
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
 const hash = text => createHash('sha256').update(text).digest('hex')
 const lf = text => text.replace(/\r\n/g, '\n')
-const status = git('diff', '--name-status', BASE, PRODUCT).trim().split('\n').map(line => line.split('\t'))
+// Keep the reviewed product scope: later evidence/test commits are not product.
+const status = git('diff', '--name-status', BASE, PRODUCT, '--', ...Object.keys(previous.scope)).trim().split('\n').map(line => line.split('\t'))
 const scope = {}
 for (const [kind, file] of status) {
   const after = lf(git('show', `${PRODUCT}:${file}`))
@@ -43,5 +46,5 @@ for (const [kind, file] of status) {
   scope[file] = { kind: 'modified', beforeSha256: hash(before), afterSha256: hash(after), hunks, hunksSha256: hash(JSON.stringify(hunks)) }
 }
 const manifest = { task: 'KINEO-VITRINE-FILMES-2610', base: BASE, product: git('rev-parse', PRODUCT).trim(), scope }
-fs.writeFileSync(path.join(__dirname, 'desfaz-vitrine-filmes-2610-hunks.json'), JSON.stringify(manifest, null, 2) + '\n')
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
 console.log('Frozen exact undo for ' + status.length + ' product files.')
