@@ -33,6 +33,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 
 const F = {
   PRICING: 'lib/checkoutPricing.ts',
+  PROMOTIONS: 'lib/affiliateDiscount.ts',
   PLANS: 'lib/pricing.ts',
   BIZ: 'lib/businessPlan.ts',
   SETTLE: 'lib/settlementCurrency.ts',
@@ -68,11 +69,12 @@ function runChecks(over = {}, verbose = false) {
   const failed = []
   const check = (c, m) => { if (verbose) ok(c, m); if (!c) failed.push(m) }
   const load = offline(over)
-  let P, PL, B, S, A, AD, G, K, M, AP, FA
+  let P, PL, B, S, A, AD, G, K, M, AP, FA, PROMOTIONS
   try {
     P = load('@/' + F.PRICING); PL = load('@/' + F.PLANS); B = load('@/' + F.BIZ); S = load('@/' + F.SETTLE)
     A = load('@/' + F.AFF); AD = load('@/' + F.ADS); G = load('@/' + F.GATE); K = load('@/' + F.K1)
     M = load('@/' + F.MRR); AP = load('@/' + F.AP); FA = load('@/' + F.FACTS)
+    PROMOTIONS = load('@/' + F.PROMOTIONS)
   } catch (e) {
     check(false, 'carregar os módulos: ' + (e && e.message))
     return failed
@@ -140,8 +142,10 @@ function runChecks(over = {}, verbose = false) {
 
   // (7) cupom
   check(P.planAcceptsPromotions('business') === false && P.planAcceptsPromotions('pro') === true, '(7) planAcceptsPromotions: business não, pro sim')
-  check(/if \(!discountApplied && planAcceptsPromotions\(tier\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), '(7) campo manual da Stripe desligado para business (logado)')
-  check(/allow_promotion_codes: !discountApplied && planAcceptsPromotions\(tier\)/.test(co), '(7) recuperação da sessão sem campo manual para business (logado)')
+  check(PROMOTIONS.subscriptionAcceptsManualPromotions('business', false) === false && PROMOTIONS.subscriptionAcceptsManualPromotions('business', true) === false, '(7) campo manual da Stripe: Business fica fora no mensal e anual')
+  check(PROMOTIONS.subscriptionAcceptsManualPromotions('pro', false) === true, '(7) controle: Studio mensal continua aceitando promoções')
+  check(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), '(7) campo manual da Stripe desligado para business (logado)')
+  check(/allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)/.test(co), '(7) recuperação da sessão sem campo manual para business (logado)')
   const gu = src(over, F.GUEST)
   check(/if \(input\.tier === 'business'\) \{\n\s+delete params\.allow_promotion_codes\n\s+params\.after_expiration = \{ recovery: \{ enabled: true, allow_promotion_codes: false \} \}\n\s+\}\n\s+return \{ params, affiliateSystem \}/.test(gu), '(7) convidado: sem campo manual para business (sessão e recuperação)')
   check(/\(tier !== 'basic' && tier !== 'pro'\) \|\| isAnnual\)/.test(co), '(7) WELCOME20 segue restrito a Creator/Studio mensal')
@@ -198,7 +202,8 @@ const MUTANTS = [
   ['renovação esquece o business', F.WEBHOOK, "                  : subscription.metadata?.tier === 'business' ? 'business'", "                  : subscription.metadata?.tier === 'x_business' ? 'business'", /\(3\) webhook: renovação/],
   ['1º pagamento esquece o business', F.WEBHOOK, "                  : session.metadata?.tier === 'business' ? 'business'", "                  : session.metadata?.tier === 'x_business' ? 'business'", /\(3\) webhook: 1º pagamento/],
   ['checkout volta a aceitar cupom no business', F.CHECKOUT, "    intro = false\n    promo = undefined\n  }", "    intro = false\n  }", /\(1\)\(7\) checkout normaliza/],
-  ['campo manual da Stripe ligado para todos', F.CHECKOUT, 'if (!discountApplied && planAcceptsPromotions(tier)) {', 'if (!discountApplied) {', /\(7\) campo manual/],
+  ['campo manual da Stripe ligado para todos', F.CHECKOUT, 'if (!discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual)) {', 'if (!discountApplied) {', /\(7\) campo manual/],
+  ['helper do campo manual libera o Business', F.PROMOTIONS, "return planAcceptsPromotions(tier) && !isAnnual && (tier === 'basic' || tier === 'pro')", 'return true', /\(7\) campo manual/],
   ['Studio Ads sem business', F.ADS, ", 'autopilot_lite', 'business']", ", 'autopilot_lite']", /\(5\) Studio Ads abre/],
   ['afiliado do Business volta a 40%', F.AFF, "plan.trim().toLowerCase() === 'business'", "plan.trim().toLowerCase() === 'x_business'", /\(6\) Business paga 20%/],
   ['webhook ignora o plano na comissão', F.WEBHOOK, 'calculateAffiliateCommission(args.amountGross, chargeRate)', 'calculateAffiliateCommission(args.amountGross, rate)', /\(6\) webhook calcula/],
