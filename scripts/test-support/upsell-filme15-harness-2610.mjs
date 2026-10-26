@@ -29,15 +29,15 @@ export function world(overrides = {}) {
   }
   const field = (row, key) => key.includes('->>') ? row[key.split('->>')[0]]?.[key.split('->>')[1]] : row[key]
   const db = { from(table) {
-    const predicates = []; let action = 'select', payload, max = Infinity, ordering = null
+    const predicates = [], ordering = []; let action = 'select', payload, max = Infinity
     const q = {
       select() { return q },
-      eq(key, value) { predicates.push(row => field(row, key) === value); return q },
+      eq(key, value) { predicates.push(row => key === 'metadata' && typeof value === 'string' ? JSON.stringify(field(row, key)) === value : field(row, key) === value); return q },
       is(key, value) { predicates.push(row => value === null ? field(row, key) == null : field(row, key) === value); return q },
       in(key, values) { predicates.push(row => values.includes(field(row, key))); return q },
       not(key, operator, value) { if (operator !== 'is' || value !== null) throw new Error('unexpected predicate'); predicates.push(row => field(row, key) != null); return q },
       gte(key, value) { predicates.push(row => String(field(row, key) ?? '') >= value); return q },
-      order(key, opts) { ordering = [key, opts?.ascending !== false]; return q },
+      order(key, opts) { ordering.push([key, opts?.ascending !== false, opts?.nullsFirst === true]); return q },
       limit(value) { max = value; return q },
       insert(value) { action = 'insert'; payload = value; return q },
       update(value) { action = 'update'; payload = value; return q },
@@ -52,8 +52,9 @@ export function world(overrides = {}) {
         for (const item of items) rows.push(clone(item))
         return { data: clone(items), error: null }
       }
+      if (action === 'update' && ctx.beforeUpdate) { const hook = ctx.beforeUpdate; ctx.beforeUpdate = null; hook(table, payload) }
       let selected = rows.filter(row => predicates.every(predicate => predicate(row)))
-      if (ordering) selected.sort((a, b) => String(field(a, ordering[0])).localeCompare(String(field(b, ordering[0]))) * (ordering[1] ? 1 : -1))
+      if (ordering.length) selected.sort((a, b) => { for (const [key, ascending, nullsFirst] of ordering) { const av = field(a, key), bv = field(b, key); const n = av == null && bv != null ? (nullsFirst ? -1 : 1) : bv == null && av != null ? (nullsFirst ? 1 : -1) : String(av).localeCompare(String(bv)) * (ascending ? 1 : -1); if (n) return n } return 0 })
       selected = selected.slice(0, max)
       if (action === 'update') for (const row of selected) Object.assign(row, clone(payload))
       return { data: clone(selected), error: null }

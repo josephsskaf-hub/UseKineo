@@ -101,6 +101,23 @@ async function retryChecks(overrides) {
   assert.deepEqual(ctx.persistedAtDispatch, [true, true])
 }
 
+async function retireChecks(overrides) {
+  const ctx = world(overrides), intents = []
+  for (let i = 1; i <= 11; i++) {
+    const id = `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    ctx.tables.videos.push({ ...ctx.tables.videos[0], id, render_id: null })
+    const intent = await ctx.service.createFilmCompleteIntent(ctx.db, USER, id, 'film_ready')
+    intents.push(intent)
+    Object.assign(ctx.tables.events.find(row => row.id === intent.id).metadata, { paid_session_id: 'cs_live_' + i, paid_at: new Date(ctx.now - 60_000).toISOString(), state: 'starting' })
+    if (i <= 10) ctx.tables.events.push({ id: ctx.load('lib/cinematic/claim.ts').cinematicClaimId(USER, intent.generationId), user_id: USER, name: ctx.load('lib/cinematic/claim.ts').CINEMATIC_CLAIM_EVENT, metadata: { status: 'settled' } })
+  }
+  const calls = [], launch = async (_db, intent) => { calls.push(intent.id); return { state: 'processing' } }
+  assert.equal((await ctx.service.retryPaidFilmCompleteIntents(ctx.db, 'https://www.usekineo.com', ctx.now, launch)).scheduled, 0, 'already processing intents are retired without redispatch')
+  assert.equal(calls.length, 0)
+  assert.equal((await ctx.service.retryPaidFilmCompleteIntents(ctx.db, 'https://www.usekineo.com', ctx.now, launch)).scheduled, 1, 'retiring old first-page intents exposes later paid intents')
+  assert.deepEqual(calls, [intents[10].id])
+}
+
 await identityChecks()
 await copyChecks()
 {
@@ -130,6 +147,7 @@ for (const change of [
 await paymentChecks()
 await launchChecks()
 await retryChecks()
+await retireChecks()
 {
   const ctx = world(), intent = await arm(ctx), row = ctx.tables.events.find(row => row.id === intent.id)
   Object.assign(row.metadata, { state: 'starting', paid_at: new Date(ctx.now - 60_000).toISOString() })
@@ -142,6 +160,11 @@ await retryChecks()
   assert.equal((await ctx.service.retryPaidFilmCompleteIntents(ctx.db, 'https://www.usekineo.com', ctx.now, launch)).scheduled, 0, 'future payment timestamp does not arm retry')
   row.metadata.paid_at = new Date(ctx.now - 49 * 60 * 60_000).toISOString()
   assert.equal((await ctx.service.retryPaidFilmCompleteIntents(ctx.db, 'https://www.usekineo.com', ctx.now, launch)).scheduled, 0, 'old cohort is outside rescue window')
+  assert.equal(calls.length, 0)
+  row.metadata.paid_at = new Date(ctx.now - 60_000).toISOString()
+  ctx.beforeUpdate = () => { row.metadata.dispatch_prompt = 'new concurrently frozen screenplay'; row.metadata.launch_at = new Date(ctx.now).toISOString() }
+  assert.equal((await ctx.service.retryPaidFilmCompleteIntents(ctx.db, 'https://www.usekineo.com', ctx.now, launch)).scheduled, 0, 'lost retry CAS never dispatches stale snapshot')
+  assert.equal(row.metadata.dispatch_prompt, 'new concurrently frozen screenplay')
   assert.equal(calls.length, 0)
 }
 {
@@ -188,8 +211,8 @@ const mutants = [
   ['positive money required', "!(typeof session.amount_total === 'number' && session.amount_total > 0)", "!(typeof session.amount_total === 'number' && session.amount_total >= 0)", paymentChecks],
   ['rewrite frozen screenplay', 'let dispatchPrompt = text(intent.metadata.dispatch_prompt)', "let dispatchPrompt = ''", retryChecks],
   ['wrong script mode', "script_mode: 'verbatim', allow_shorter_duration", "script_mode: 'ai', allow_shorter_duration", launchChecks],
-  ['lease bypass', ": lease.is('metadata->>launch_at', null)", ': lease', launchChecks],
   ['saved narration dropped', 'source_script: script, source_topic: topic,', "source_script: '', source_topic: topic,", identityChecks],
+  ['redispatch reconciled films', 'if (!reconciled || retire) continue', 'if (!reconciled) continue', retireChecks],
 ]
 for (const [label, before, after, checks] of mutants) {
   assert.equal(source.split(before).length, 2, 'unique mutation: ' + label)
