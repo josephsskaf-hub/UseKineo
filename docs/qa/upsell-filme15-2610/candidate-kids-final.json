@@ -1,0 +1,25 @@
+{
+  "label": "candidate-kids-final",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work",
+  "base": "e2883f46251ca4cd439c89f0a8a32a75dddc7a82",
+  "started": "2026-10-26T19:22:48.165Z",
+  "finished": "2026-10-26T19:26:12.599Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 1,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-kids-venda-2010.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 204418,
+      "log": "scripts__test-kids-venda-2010.mjs.log.gz",
+      "failures": []
+    }
+  ]
+}

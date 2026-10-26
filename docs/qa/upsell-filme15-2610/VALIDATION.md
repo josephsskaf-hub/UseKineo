@@ -1,0 +1,19 @@
+# Validação local — KINEO-UPSELL-FILME15-2610
+
+**TESTADO LOCALMENTE — 26/10/2026.** A referência imutável é `46fa10e58fced6430e0a2ba7bb445bb8905bd2e7`. O código de produto validado corresponde, byte a byte, a `f6019fc7`. Os hashes completos do produto e de cada teste estão em [candidate-main-comparison.json](candidate-main-comparison.json).
+
+**TESTADO LOCALMENTE — 26/10/2026.** Todos os arquivos diretos `scripts/test-*.mjs` foram executados. Depois das verificações complementares registradas, a main tem **1.013 scripts: 835 verdes e 178 vermelhos**; o candidato tem **1.016: 851 verdes e 165 vermelhos**. Fontes: [baseline-main.json](baseline-main.json) e [candidate-main-comparison.json](candidate-main-comparison.json). Os resultados originais e cada repetição permanecem nos JSONs desta pasta; nenhum resultado inicial foi apagado do histórico de tentativas.
+
+**TESTADO LOCALMENTE — 26/10/2026.** O gate terminou com **zero novo script vermelho, zero causa adicional de falha, zero saída não classificada e zero comparação pendente**. A comparação verifica as condições que falharam, não apenas o nome do script. Os três guardiões atuais passam: oito mutantes de comportamento, oito de medição e desfaz exato de sete arquivos de produto mais um leitor histórico, em 37 trechos congelados (35 do produto e dois do leitor), com LF/CRLF, alteração e duplicação de trechos verificadas.
+
+**FATO CONFIRMADO / TESTADO LOCALMENTE.** As projeções históricas removem somente os bytes congelados desta tarefa; os testes atuais leem o código bruto. O quadro `readerScope` separa o adaptador do E4 do código de produto. Fonte: `scripts/test-support/desfaz-upsell-filme15-2610-hunks.json`; prova: `scripts/test-upsell-filme15-undo-2610.mjs`.
+
+**TESTADO LOCALMENTE — 26/10/2026.** As falhas herdadas incluem asserts históricos, incompatibilidades do carregamento TypeScript nativo e limites do ambiente offline. O smoke Runway encerra sem chave, antes do fornecedor (`scripts/test-runway.mjs:13`). Os testes que excederam o orçamento inicial receberam contraprovas completas: Ads Reteste e Meta95 passam na main e no candidato com orçamento de 600 segundos. Demo Sob Medida, repetido integralmente, termina nas mesmas condições D6/D10 em ambos. Não se atribui um defeito do produto a um timeout.
+
+**TESTADO LOCALMENTE — 26/10/2026.** O scanner Sem Porteiro foi repetido no candidato congelado sem worktrees descendentes: o diretório de coordenação do pai havia entrado na varredura de arquivos não rastreados. As mesmas quatro falhas da main foram reproduzidas, sem alterar o scanner. Os demais adaptadores preservam as asserções originais de rodapé e marca d’água.
+
+**FATO CONFIRMADO / TESTADO LOCALMENTE.** `offline-preload.cjs` bloqueia leitura de `.env`, rede e comandos externos não permitidos. Os filhos recebem ambiente sem credenciais. O único `git grep` adicional aceita um padrão fixo e os caminhos explícitos `app`, `lib`, `components`. O paralelismo de testes com escrita exige o SHA-256 de uma das 41 fontes auditadas como escrita apenas em diretórios temporários exclusivos; os demais permanecem serializados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO.** Estes artefatos comprovam preparação e testes locais. Pagamentos externos posteriores à publicação e o efeito comercial precisam ser observados após o deploy, com o horário real informado ao leitor de medição. Nenhum render pago foi executado nesta validação.
+
+**FATO CONFIRMADO.** `collect-baseline.cjs`, `collect-final.cjs` e `failure-signature.cjs` preservam o algoritmo usado para consolidar esta execução local, com os caminhos dos worktrees e logs registrados. `run-all.cjs`, `offline-preload.cjs` e `temp-only-tests.json` preservam as condições de execução. O coletor exige os worktrees/logs locais referenciados; os JSONs consolidados incluem as causas normalizadas e os hashes para revisão independente.

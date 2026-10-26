@@ -1,0 +1,28 @@
+{
+  "label": "baseline-demo-recheck",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/baseline",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "started": "2026-10-26T19:22:11.297Z",
+  "finished": "2026-10-26T19:31:05.567Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 0,
+  "fail": 1,
+  "results": [
+    {
+      "file": "scripts/test-demo-sob-medida-1510.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 534256,
+      "log": "scripts__test-demo-sob-medida-1510.mjs.log.gz",
+      "failures": [
+        "FAIL D6 depois da ENTREGA, pelo CRON: 4:5 e 1:1 com as MESMAS URLs de clipe, entregues; aprovação com o nome da marca (token = o da tela); evento de entregue; 2ª volta não remonta nem duplica; tela \"pronta\" com link + EN/ES/DE; página privada com 3 formatos em renders/share, sample:true e nada da casa",
+        "FAIL D10 o desfaz devolve o PAI byte a byte em cada arquivo que já existia (vista da aprovação, tela da aprovação, vista pública, cron, menu do admin); estrito: trecho alterado = lança; lib/ads/v2PostDeliveryServer.ts INTOCADO"
+      ]
+    }
+  ]
+}

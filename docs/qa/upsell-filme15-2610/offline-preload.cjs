@@ -21,7 +21,8 @@ function allowed(file,args){
  const base=path.basename(String(file)).toLowerCase();
  if(base==='git'||base==='git.exe'){
    const a=Array.isArray(args)?args:[]; let i=0; if(a[0]==='-C')i=2; while(a[i]==='-c'&&/^(?:core\.safecrlf|core\.autocrlf)=(?:true|false)$/.test(String(a[i+1])))i+=2;
-   return ['show','log','diff','status','rev-parse','merge-base','ls-files','cat-file','diff-tree','hash-object'].includes(a[i]);
+   const scopedCopyGrep=a[i]==='grep'&&a[i+1]==='-n'&&a[i+2]==='-E'&&a[i+3]==='[Ee]very (new )?account (starts free|gets|receives|starts with (the free|a Creator) trial)'&&JSON.stringify(a.slice(i+4))===JSON.stringify(['--','app','lib','components']);
+   return scopedCopyGrep||['show','log','diff','status','rev-parse','merge-base','ls-files','ls-tree','cat-file','diff-tree','hash-object'].includes(a[i]);
  }
  return ['node','node.exe','ffprobe','ffprobe.exe'].includes(base);
 }

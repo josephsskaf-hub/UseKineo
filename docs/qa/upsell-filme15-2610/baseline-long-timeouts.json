@@ -1,0 +1,35 @@
+{
+  "label": "baseline-long-timeouts",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/baseline",
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "started": "2026-10-26T19:39:31.388Z",
+  "finished": "2026-10-26T19:48:03.351Z",
+  "total": 2,
+  "parallel": 2,
+  "serial": 0,
+  "done": 2,
+  "pass": 2,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-ads-reteste-1510.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 396867,
+      "log": "scripts__test-ads-reteste-1510.mjs.log.gz",
+      "failures": []
+    },
+    {
+      "file": "scripts/test-meta95-assunto-1910.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 511939,
+      "log": "scripts__test-meta95-assunto-1910.mjs.log.gz",
+      "failures": []
+    }
+  ]
+}

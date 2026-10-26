@@ -1,0 +1,32 @@
+{
+  "label": "candidate-e4-final",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work",
+  "base": "36443074c8989733572334e2996d2f1772da0c43",
+  "started": "2026-10-26T19:16:54.154Z",
+  "finished": "2026-10-26T19:17:07.678Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 0,
+  "fail": 1,
+  "results": [
+    {
+      "file": "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+      "status": 1,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 13512,
+      "log": "scripts__test-e4-saida-b-cota-seedance-2026-09-29.mjs.log.gz",
+      "failures": [
+        "✗ recarga completa até 7 e nunca além (0→7, 3→+4, 7→0, 40→0)",
+        "✗ recarga executada: 0→7 com carimbo ANTES do crédito e compare-and-set; carimbo falho = nada; 7 não acumula; 1×/7 dias; país fixo; PK, Tor, region_paid_only, pagante e corrida fora — US grátis com 0 cr não recebeu 7 com evento: {\"granted\":9,\"reason\":\"granted\",\"balanceAfter\":9} | saldo 7 recebeu mais (acumulou): {\"granted\":2,\"reason\":\"granted\",\"balanceAfter\":9} | semana seguinte sem recarga: {\"granted\":0,\"reason\":\"week_used\",\"balanceAfter\":0} | trocou de país (GB→US) e recarregou: {\"granted\":0,\"reason\":\"week_used\",\"balanceAfter\":0} | mesmo país da 1ª vez não recarregou: {\"granted\":9,\"reason\":\"granted\",\"balanceAfter\":9}",
+        "✗ varredura: toda frase \"every new account gets/starts free…\" em app/lib/components carrega a cláusula de país — lib/seo/seedanceAnswer.ts:155:  const faqLead = !f.trialCoversFilm ? lead : everyone ? `Ye | lib/seo/seedanceAnswer.ts:157:    ? ` In supported countries it comes from the ${f.trialCr | lib/seo/seedanceAnswer.ts:158:    : f.trialCoversFilm ? ` It comes from the ${f.trialCredi",
+        "FALHOU: recarga completa até 7 e nunca além (0→7, 3→+4, 7→0, 40→0)",
+        "FALHOU: recarga executada: 0→7 com carimbo ANTES do crédito e compare-and-set; carimbo falho = nada; 7 não acumula; 1×/7 dias; país fixo; PK, Tor, region_paid_only, pagante e corrida fora — US grátis com 0 cr não recebeu 7 com evento: {\"granted\":9,\"reason\":\"granted\",\"balanceAfter\":9} | saldo 7 recebeu mais (acumulou): {\"granted\":2,\"reason\":\"granted\",\"balanceAfter\":9} | semana seguinte sem recarga: {\"granted\":0,\"reason\":\"week_used\",\"balanceAfter\":0} | trocou de país (GB→US) e recarregou: {\"granted\":0,\"reason\":\"week_used\",\"balanceAfter\":0} | mesmo país da 1ª vez não recarregou: {\"granted\":9,\"reason\":\"granted\",\"balanceAfter\":9}",
+        "FALHOU: varredura: toda frase \"every new account gets/starts free…\" em app/lib/components carrega a cláusula de país — lib/seo/seedanceAnswer.ts:155:  const faqLead = !f.trialCoversFilm ? lead : everyone ? `Ye | lib/seo/seedanceAnswer.ts:157:    ? ` In supported countries it comes from the ${f.trialCr | lib/seo/seedanceAnswer.ts:158:    : f.trialCoversFilm ? ` It comes from the ${f.trialCredi"
+      ]
+    }
+  ]
+}

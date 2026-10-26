@@ -1,0 +1,35 @@
+{
+  "label": "candidate-long-final",
+  "root": "C:/kineo-wt/upsell-filme15-2610-work/.claude/worktrees/guardian",
+  "base": "cdefd7d327844d3276e7f4d399aad34ed7c1cf18",
+  "started": "2026-10-26T19:50:40.858Z",
+  "finished": "2026-10-26T19:59:48.105Z",
+  "total": 2,
+  "parallel": 2,
+  "serial": 0,
+  "done": 2,
+  "pass": 2,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-ads-reteste-1510.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 547235,
+      "log": "scripts__test-ads-reteste-1510.mjs.log.gz",
+      "failures": []
+    },
+    {
+      "file": "scripts/test-meta95-assunto-1910.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "spawnError": null,
+      "ms": 511944,
+      "log": "scripts__test-meta95-assunto-1910.mjs.log.gz",
+      "failures": []
+    }
+  ]
+}
