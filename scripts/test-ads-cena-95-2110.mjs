@@ -9,8 +9,9 @@ import { semAdsCena952110, ADS_CENA_95_2110_BASE, ADS_CENA_95_2110_FORK_BASE, AD
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-ADS-CENA-95-2110 — prova as duas camadas, sem apagar a venda ao desfazer95.
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — apply 95 integrity mutants after reversing only our later layer.
 import { semAdsCena95PlanFailed2110 } from './test-support/desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — régua histórica; o novo guardião testa a fonte real.
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a,b) => assert.deepEqual(plain(a),plain(b))
-const read = p => semAdsCena95PlanFailed2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'), p) // KINEO-ADS-CENA-95-PLAN-FAILED-2110
+const read = p => semAdsCena95PlanFailed2110(semAfiliado50_2610(p, readFileSync(p,'utf8')).replace(/\r\n/g,'\n'), p) // Later independent affiliate offer exits before the historical exact undo.
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',maxBuffer:1<<26}).replace(/\r\n/g,'\n')
 const deliveryHead = git('log','--format=%H','--grep=^'+MARCA_ADS_CENA_95_2110,'-1','HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — bind historical scope to its own delivery; runtime/mutants still read current files.
 assert.ok(deliveryHead,'commit final marcado da entrega95 existe') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
