@@ -86,6 +86,7 @@ async function authenticated(input = {}, route = read(ROUTE), source = read(POLI
     ...p, ensureAffiliateBaseCoupon: async () => { calls++; return input.couponUnavailable ? null : 'KINEO_AFFILIATE_50' },
     req: { nextUrl: new URL('https://example.invalid/api/stripe/checkout'), headers: new Headers() },
     affiliateOfferCopy: (_lang, name) => `50% off your first month — via ${name || 'your partner link'}`,
+    affiliateOfferScopeCopy: () => 'Creator and Studio monthly. Full price from month two; no stacking.',
     buildSubscriptionCheckoutSuccessUrl: info => `https://example.invalid/success?amount=${info.amount}`,
   }
   const keys = Object.keys(deps)
@@ -106,6 +107,7 @@ async function guest(input = {}, route = read(ROUTE)) {
     ensureAffiliateBaseCoupon: async () => 'KINEO_AFFILIATE_50',
     AFFILIATE_LINK_PROMO_SOURCE: policy().AFFILIATE_LINK_PROMO_SOURCE,
     affiliateOfferCopy: (_lang, name) => `50% off your first month — via ${name || 'your partner link'}`,
+    affiliateOfferScopeCopy: () => 'Creator and Studio monthly. Full price from month two; no stacking.',
     req: { nextUrl: new URL('https://example.invalid/api/stripe/checkout'), headers: new Headers() },
     buildGuestCheckoutSuccessUrl: info => `https://example.invalid/guest/success?amount=${info.amount}`,
   }

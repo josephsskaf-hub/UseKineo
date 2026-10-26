@@ -147,7 +147,7 @@ function problems(overrides = {}) {
   const coupon = couponSource.match(/^export const AFFILIATE_COUPON_PERCENT = (\d+)$/m)?.[1]
   if (!coupon || !/duration: 'once'/.test(couponSource)) p.push('fonte do cupom (AFFILIATE_COUPON_PERCENT, once) não encontrada')
   for (const n of typedPct) if (n !== coupon) p.push(`% digitado na página sem fonte: ${n}%`)
-  if (!/50% off their first month/.test(code) || coupon !== '50') p.push('cupom de 50% no 1º mês não bate com lib/affiliateCoupon.ts')
+  if (!/50% off the first month of Creator or Studio monthly/.test(code) || coupon !== '50') p.push('cupom de 50% no 1º mês Creator/Studio mensal não bate com lib/affiliateCoupon.ts')
 
   // ── (2) cada benefício com fonte viva ──────────────────────────────────────────────────────────────────────────
   const court = A('What is the courtesy Creator account?')
