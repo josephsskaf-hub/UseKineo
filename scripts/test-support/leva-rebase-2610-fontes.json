@@ -84,6 +84,8 @@
     "docs/free15-quality-v2/caption-owned-fixture.json",
     "docs/free15-quality-v2/caption-test.mjs",
     "docs/leva-rebase-2610/ENTREGA.md",
+    "docs/leva-rebase-2610/tools/offline-guard.cjs",
+    "docs/leva-rebase-2610/tools/run-offline.mjs",
     "docs/ph/PH-TEXTOS-2026-09-10.md",
     "docs/previews/COMPRA-AVULSA-2410-ads-desktop.png",
     "docs/previews/COMPRA-AVULSA-2410-ads-mobile.png",
@@ -945,6 +947,12 @@
     },
     "docs/leva-rebase-2610/ENTREGA.md": {
       "hash": "e39fe5102e4687616675c9dfc02057276c7bc749390ead7357fe54dbca9e7a54"
+    },
+    "docs/leva-rebase-2610/tools/offline-guard.cjs": {
+      "hash": "e17395ae0cfd328e485ee8894dfd67063a1d153b5d59f4cd2b6e0fe590baec39"
+    },
+    "docs/leva-rebase-2610/tools/run-offline.mjs": {
+      "hash": "6e89a7f82118302ab4fecddd775f3da4775a62b818e5b462ca40595bb6625a5f"
     },
     "docs/ph/PH-TEXTOS-2026-09-10.md": {
       "hash": "7273d8dd34610ac840f8f298bcaca3598743416c0832d4b188e0abeded999e46"
@@ -2264,7 +2272,7 @@
       "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
     },
     "scripts/test-filmes-f1f3-ajuste-1910.mjs": {
-      "hash": "0c1227313982e389b6e305b2d5007b1a0a3b40d7eebca3b4f17f24d80990de16"
+      "hash": "54f10a18ad9acfdb86849b7ce2a2e36459afd7579f955ead6279754b06b6711e"
     },
     "scripts/test-filmes-f1f4-1910.mjs": {
       "hash": "3b2fc57dfd9c3816234870cb197ac048dc7ea1771ea8cd178e5b6730163cd579"
