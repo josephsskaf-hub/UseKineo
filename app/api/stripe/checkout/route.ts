@@ -2107,19 +2107,6 @@ async function buildAndRedirect(
     try {
       const pre = await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })
       resolvedPromo = pre.data[0] ?? null
-      if (resolvedPromo && (['KINEO_AFFILIATE_20', 'KINEO_AFFILIATE_50'].includes(resolvedPromo.coupon.id)
-        || resolvedPromo.metadata?.source === 'kineo_affiliate_auto')) {
-        // Reconcile already shared partner codes before using the saved object.
-        const affiliateCoupon = await ensureAffiliateBaseCoupon()
-        if (!affiliateCoupon) return isGet
-          ? redirectError('We could not verify your partner discount. Please try again.')
-          : jsonError('We could not verify your partner discount. Please try again.', 503)
-        resolvedPromo = (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0] ?? null
-        if (!affiliateDiscountEligible({ tier, isAnnual, affiliatePresent: true, discountApplied: false, wantsTrial })) {
-          resolvedPromo = null
-          promoBlocked = true
-        }
-      }
     } catch (preErr) {
       // Falha de rede não pode custar a venda: sem resolução, o intro segue
       // valendo e o bloco de promo mais abaixo tenta de novo.
@@ -2539,8 +2526,30 @@ async function buildAndRedirect(
       // Reaproveita o pre-check de precedência (KINEO-PROMO-BEATS-INTRO) quando
       // ele já resolveu; só chama a Stripe de novo no caminho privatePackPromo,
       // que é o único que não passa pelo pre-check.
-      const pc = resolvedPromo
+      let pc: Stripe.PromotionCode | undefined = resolvedPromo
         ?? (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0]
+      if (pc && (['KINEO_AFFILIATE_20', 'KINEO_AFFILIATE_50'].includes(pc.coupon.id)
+        || pc.metadata?.source === 'kineo_affiliate_auto')) {
+        // This final gate also covers a failed pre-check followed by a successful
+        // retry. Never use an archived legacy object captured before migration.
+        if (!affiliateDiscountEligible({ tier, isAnnual, affiliatePresent: true, discountApplied, wantsTrial })) {
+          pc = undefined
+        } else {
+          let refreshed: Stripe.PromotionCode | undefined
+          try {
+            const affiliateCoupon = await ensureAffiliateBaseCoupon()
+            if (affiliateCoupon) {
+              const candidate = (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0]
+              if (candidate?.coupon.id === affiliateCoupon && candidate.coupon.percent_off === 50
+                && candidate.coupon.duration === 'once' && candidate.active) refreshed = candidate
+            }
+          } catch { /* No replacement verified: fail closed for this requested offer. */ }
+          if (!refreshed) return isGet
+            ? redirectError('We could not verify your partner discount. Please try again.')
+            : jsonError('We could not verify your partner discount. Please try again.', 503)
+          pc = refreshed
+        }
+      }
       if (pc) {
         if (privatePackPromo) {
           const restrictedCustomerId = typeof pc.customer === 'string'
