@@ -71,7 +71,8 @@ async function getRow(id: string): Promise<OgRow | null> {
     const rawTopic = (data?.topic ?? '').toString()
     const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title
     const line =
-      raw
+      // KINEO-VITRINE-FILMES-2610 — the bitmap must redact contact details too.
+      raw.replace(/\b[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+\b/g, '[redacted]')
         .split('\n')
         .map((s) => s.replace(/^#+\s*/, '').trim())
         .filter(Boolean)[0] ?? ''

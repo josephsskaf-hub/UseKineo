@@ -241,6 +241,43 @@ const ogSource = read('app/v/[id]/opengraph-image.tsx')
 check(ogSource.includes("dynamic = 'force-dynamic'") && ogSource.includes("fetchCache = 'force-no-store'"), 'public preview cannot outlive revoked consent in route cache')
 check(ogSource.includes("cache: 'no-store'"), 'public preview also bypasses underlying Data Cache')
 
+// The real OG route is a public bitmap boundary: a cleaned card title is not
+// enough if the generated thumbnail still paints raw contact details.
+const legacyTitles = load('lib/publicVideos.ts', {
+  '@supabase/supabase-js': { createClient: forbid },
+  '@/lib/scriptParser': { stripScriptMarkers: value => value },
+  '@/lib/publicSurfacePolicy': { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED: false },
+  '@/lib/seriesContinuation': { normalizeSeriesSeed: value => value },
+})
+for (const raw of [
+  { title: 'Film contact@example.invalid', topic: 'Ocean' },
+  { title: '', topic: 'Ocean contact@example.invalid' },
+]) {
+  const db = database({ rows: [fixture(raw)] })
+  const og = load('app/v/[id]/opengraph-image.tsx', {
+    'react/jsx-runtime': jsxRuntime,
+    'next/og': { ImageResponse: class { constructor(element) { this.html = renderToStaticMarkup(element) } } },
+    'next/navigation': { notFound() { throw Error('FIXTURE_NOT_FOUND') } },
+    '@supabase/supabase-js': { createClient: () => db.client() },
+    '@/lib/publicSurfacePolicy': { publicSurfaceAllowsRow: value => !!value },
+    '@/lib/publicVideos': legacyTitles,
+  })
+  const bitmap = await og.default({ params: { id: ID } })
+  check(!bitmap.html.includes('contact@example.invalid') && bitmap.html.includes('[redacted]'), 'generated OG never paints an email from title or topic fallback')
+}
+{
+  const db = database({ rows: [fixture({ published_at: null })] })
+  const og = load('app/v/[id]/opengraph-image.tsx', {
+    'react/jsx-runtime': jsxRuntime,
+    'next/og': { ImageResponse: class { constructor() { throw Error('PRIVATE_BITMAP_CREATED') } } },
+    'next/navigation': { notFound() { throw Error('FIXTURE_NOT_FOUND') } },
+    '@supabase/supabase-js': { createClient: () => db.client() },
+    '@/lib/publicSurfacePolicy': { publicSurfaceAllowsRow: value => !!value },
+    '@/lib/publicVideos': legacyTitles,
+  })
+  await assert.rejects(() => og.default({ params: { id: ID } }), /FIXTURE_NOT_FOUND/); checks++
+}
+
 const generateSource = read('app/(dashboard)/generate/GenerateClient.tsx')
 const downloadGuard = generateSource.match(/\{(downloadDelivered[^?\n]+)\? <ShowcaseConsent/)?.[1]
 check(!!downloadGuard, 'post-download showcase entry has an explicit delivered-file gate')
@@ -430,6 +467,7 @@ if (process.argv.includes('--mutants')) {
     ['download-from-another-film', 'app/(dashboard)/generate/GenerateClient.tsx', 'downloadDelivered && publicVideoId && downloadedShowcaseVideoId === publicVideoId ?', 'downloadDelivered && publicVideoId ?'],
     ['revoked-v-page-cached', 'lib/publicVideos.ts', "cache: 'no-store'", "cache: 'force-cache'"],
     ['revoked-preview-cached', 'app/v/[id]/opengraph-image.tsx', "fetchCache = 'force-no-store'", "fetchCache = 'force-cache'"],
+    ['preview-email-leak', 'app/v/[id]/opengraph-image.tsx', "raw.replace(/\\b[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+\\b/g, '[redacted]')", 'raw'],
   ]
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'kineo-vitrine-mutants-'))
   try {
