@@ -32,7 +32,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-KIDS-VENDA-2010'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const disco = (p) => lf(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIDS_VENDA_2010_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -261,7 +261,7 @@ for (const p of KIDS_VENDA_2010_ARQUIVOS) {
   // KINEO-ADS-CENA-95-2110 — retira a camada posterior95 e depois a venda; tela clara, som e folha continuam na comparação.
   const b = base(p)
   let des = null
-  try { des = semKidsVenda2010(semAfiliado50_2610(p, disco(p)), p) } catch (e) { console.log('       (' + e.message + ')') }
+  try { des = semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
   ok(b !== null && des === b, `D1 desfaz exato = origin/main ${KIDS_VENDA_2010_BASE} (sem páginas claras, sem95 e sem venda): ${p}`) // KINEO-ADS-CENA-95-2110 // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
 }
