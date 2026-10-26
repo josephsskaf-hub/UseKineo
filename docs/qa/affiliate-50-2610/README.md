@@ -1,0 +1,23 @@
+# KINEO-AFILIADO-50-2610
+
+Data: 26/10/2026. Base remota conferida: `46fa10e58fced6430e0a2ba7bb445bb8905bd2e7`. Branch de entrega: `codex/afiliado-50-2610`. Autorização: pedido do fundador de 26/10, alternativa A, incluindo commits e push somente nesta branch.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** `lib/affiliateCoupon.ts:5` define o novo cupom de 50%, com duração `once` e nome `Partner 50% first month`. `lib/affiliateCoupon.ts:155` provisiona e valida o contrato, migra todas as páginas de códigos legados ativos e retoma migrações interrompidas. O texto público do código permanece igual; customer, metadata, expiração, restrições e resgates restantes são preservados. O código antigo é arquivado e um novo objeto Stripe usa o mesmo texto. Essa substituição segue a API, que não permite trocar o cupom de um promotion code existente ([referência oficial](https://docs.stripe.com/api/promotion_codes/update), consultada em 26/10/2026).
+
+**FATO CONFIRMADO — IMPLEMENTADO:** `lib/affiliateDiscount.ts:12` permite o automático apenas para Creator/Studio mensais, com link/atribuição validado e sem desconto já aplicado. A resolução canônica em `lib/affiliateLinkOffer.ts:64` tem precedência sobre outro cookie. `app/api/stripe/checkout/route.ts:2674` aplica o afiliado antes do WELCOME20 automático; o caminho convidado recebe a mesma oferta em `app/api/stripe/checkout/route.ts:3154`. Sessão e assinatura recebem `public_promo_source=affiliate_link_50`, e `checkout_started` registra o booleano e o código. Um código de parceiro solicitado explicitamente tem a mesma validação final, inclusive após retry, e usa a origem distinta `affiliate_code_50`.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** `lib/affiliateDiscount.ts:7` restringe o campo manual hospedado pelo Stripe a Creator/Studio mensais, inclusive na recuperação. Isso fecha a aplicação de um código de 50% digitado no anual, Starter ou Business; as promoções explícitas por URL continuam passando pelas respectivas validações do servidor.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** `app/pricing/PricingClient.tsx:1016` apresenta o nome cadastrado ou o fallback de parceiro, com texto nas línguas de `lib/affiliateOfferCopy.ts:6`. Cards, cobrança inicial em BRL e botões mobile derivam os valores da tabela canônica. O checkout preserva as orientações de entrega e acrescenta a oferta e as condições traduzidas.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** o webhook e a tabela de preços não têm diff em relação à base. A comissão inicial recebe `session.amount_total` em `app/api/stripe/webhook/route.ts:2326`; as renovações recebem `invoice.amount_paid` em `app/api/stripe/webhook/route.ts:2998`. O cálculo em `app/api/stripe/webhook/route.ts:682` usa esse valor efetivamente pago. O guardião executa também os cálculos de 30%/40% sobre pagamento inicial descontado e renovação integral; não confunde o campo da primeira sessão com o da fatura recorrente.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE (26/10/2026):** TypeScript 5.9.3, `node node_modules/typescript/bin/tsc --noEmit --incremental false`, saída 0. Guardião de checkout: quatro mutantes mortos (empilhamento, anual, Business, ausência de cookie/atribuição), restauração byte a byte e controle positivo depois do desfaz. O teste de cupom cobre paginação, códigos existentes, override inválido, corrida, rollback, retomada e limpeza dos marcadores concluídos. Os testes usam Stripe/Supabase simulados.
+
+**QUESTÃO PENDENTE:** consolidação da execução de todos os `scripts/test-*.mjs` e comparação dos vermelhos com a base limpa. Os arquivos de evidência serão incorporados após o término da régua.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** comparação visual estática inspecionada em desktop e mobile: [HTML](../../previews/affiliate-50-2610.html), [desktop](../../previews/affiliate-50-2610-desktop.png), [mobile](../../previews/affiliate-50-2610-mobile.png). O checkout hospedado aparece como representação estática da copy; não é captura de uma sessão de produção.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ativação da versão e reconciliação dos códigos na conta Stripe de produção, aplicação em uma compra externa e efeito sobre conversão não foram medidos nesta tarefa. A entrega autorizada é código e evidência local na branch. A reconciliação é executada pelo servidor quando o módulo é usado após a publicação; nenhum teste local chamou serviços de produção nem leu arquivos `.env`.
+
+**SUGESTÃO — PRÓXIMO PASSO RECOMENDADO:** revisar a branch e, no fluxo de publicação aprovado pelo fundador, verificar uma sessão mensal real mostrando a origem do parceiro e o desconto apenas na primeira fatura. Medir pessoas externas que pagam, preservando a atribuição canônica e distinguindo código preparado de resultado comercial.
