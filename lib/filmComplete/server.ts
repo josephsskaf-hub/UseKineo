@@ -9,6 +9,8 @@ import { CINEMATIC_CLAIM_EVENT, cinematicClaimId } from '@/lib/cinematic/claim'
 import { mintUserSession } from '@/lib/mcp/studioSession'
 import { depoisDaResposta } from '@/lib/posResposta'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage'
+import { parseUserScript } from '@/lib/scriptParser'
+import { promptComRoteiro } from '@/lib/meta95/ideiaNoEscritor'
 
 type Meta = Record<string, unknown>
 export interface FilmCompleteIntent {
@@ -127,6 +129,14 @@ export async function filmCompleteStatus(db: SupabaseClient, intent: FilmComplet
     .eq('user_id', intent.userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle()
   if (error) throw new Error('film_complete_status_unavailable')
   if (claim?.metadata?.status === 'released') return { ...base, state: 'failed' }
+  if (claim?.metadata?.status === 'settled' || claim?.metadata?.status === 'done') {
+    // A rescue that exhausted compose attempts is an explicit delivery failure, not an endless spinner.
+    const { data: outcome, error: oe } = await db.from('events').select('metadata').eq('user_id', intent.userId).eq('session_id', intent.generationId)
+      .eq('name', 'stranded_outcome').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (oe) throw new Error('film_complete_status_unavailable')
+    const result = text(outcome?.metadata?.outcome)
+    if (['compose_gave_up', 'rescue_email_sent', 'rescue_already_sent_direct', 'pending_stale', 'no_request_ids'].includes(result) || result.startsWith('pending_stale:')) return { ...base, state: 'failed' }
+  }
   if (claim?.metadata?.status === 'settled' || claim?.metadata?.status === 'done') return { ...base, state: 'processing' }
   const state: FilmCompleteState = intent.metadata.state === 'failed' ? 'failed' : intent.metadata.state === 'waiting_entitlement' ? 'waiting_entitlement' : 'starting'
   return { ...base, state }
@@ -150,7 +160,7 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
   const leaseAt = text(intent.metadata.launch_at)
   if (leaseAt && io.now() - Date.parse(leaseAt) < 5 * 60_000) return { ...status, state: 'starting' }
   const owner = randomUUID()
-  const next = { ...intent.metadata, state: 'starting', launch_owner: owner, launch_at: new Date(io.now()).toISOString() }
+  const next: Meta = { ...intent.metadata, state: 'starting', launch_owner: owner, launch_at: new Date(io.now()).toISOString() }
   let lease = db.from('events').update({ metadata: next }).eq('id', intent.id).eq('user_id', intent.userId).eq('name', FILM_COMPLETE_INTENT_EVENT)
     .eq('metadata->>paid_session_id', text(intent.metadata.paid_session_id))
   lease = leaseAt ? lease.eq('metadata->>launch_at', leaseAt) : lease.is('metadata->>launch_at', null)
@@ -158,17 +168,42 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
   if (le) throw new Error('film_complete_launch_unavailable')
   if (!acquired) return { ...status, state: 'starting' }
   const update = async (values: Meta) => {
-    const { error } = await db.from('events').update({ metadata: { ...next, ...values } }).eq('id', intent.id).eq('user_id', intent.userId)
-      .eq('name', FILM_COMPLETE_INTENT_EVENT).eq('metadata->>launch_owner', owner)
-    if (error) throw new Error('film_complete_launch_save_unavailable')
+    const { data, error } = await db.from('events').update({ metadata: { ...next, ...values } }).eq('id', intent.id).eq('user_id', intent.userId)
+      .eq('name', FILM_COMPLETE_INTENT_EVENT).eq('metadata->>launch_owner', owner).select('id').maybeSingle()
+    if (error || data?.id !== intent.id) throw new Error('film_complete_launch_save_unavailable')
   }
   let minted: Awaited<ReturnType<typeof mintUserSession>> | null = null
   try {
     minted = await io.mint(intent.userId, text(profile.email))
     if (!minted.ok) { await update({ launch_at: null }); return { ...status, state: 'starting' } }
+    let dispatchPrompt = text(intent.metadata.dispatch_prompt)
+    if (!dispatchPrompt) {
+      // The normal cinematic AI writer runs BEFORE its fingerprint. Freeze its expanded screenplay first,
+      // otherwise a retry could rewrite the text and conflict with the same generation's original claim.
+      const context = intent.prompt.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim()
+      const writer = await io.fetch(`${origin}/api/generate-script`, {
+        method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
+        body: JSON.stringify({ topic: `Expand the same story into a ${FILM_COMPLETE_TARGET_SECONDS}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events. Original story and direction: [${context}]`, language: intent.language, targetSeconds: FILM_COMPLETE_TARGET_SECONDS, engine: FILM_COMPLETE_ENGINE, forceAuthoring: true }),
+        signal: AbortSignal.timeout(60_000),
+      })
+      const written = await writer.json().catch(() => ({})) as Meta
+      const script = text(written.script)
+      const parsed = parseUserScript(script)
+      if (!writer.ok || written.stillShort === true || !parsed.hasMarkers || !parsed.segments.length || Number(written.targetSeconds) !== FILM_COMPLETE_TARGET_SECONDS) {
+        const state = writer.status >= 500 || writer.status === 429 ? 'starting' : 'failed'
+        await update({ state, launch_at: null, writer_http_status: writer.status })
+        return { ...status, state }
+      }
+      dispatchPrompt = promptComRoteiro(intent.prompt, script)
+      if (dispatchPrompt.length > 12000) { await update({ state: 'failed' }); return { ...status, state: 'failed' } }
+      // Persist and confirm the exact bytes before any paid scene can start. Every later launch reuses them.
+      next.dispatch_prompt = dispatchPrompt
+      next.dispatch_script_mode = 'verbatim'
+      await update({ state: 'starting' })
+    }
     const response = await io.fetch(`${origin}/api/generate-video-cinematic`, {
       method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
-      body: JSON.stringify({ generationId: intent.generationId, prompt: intent.prompt, language: intent.language, engine: FILM_COMPLETE_ENGINE, duration: FILM_COMPLETE_TARGET_SECONDS, script_mode: 'ai', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16' }),
+      body: JSON.stringify({ generationId: intent.generationId, prompt: dispatchPrompt, language: intent.language, engine: FILM_COMPLETE_ENGINE, duration: FILM_COMPLETE_TARGET_SECONDS, script_mode: 'verbatim', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16' }),
       signal: AbortSignal.timeout(240_000),
     })
     const result = await response.json().catch(() => ({})) as Meta
