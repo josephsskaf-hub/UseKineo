@@ -1,0 +1,357 @@
+{
+  "task": "KINEO-FILME15-PERFEITO-2610",
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — inspeção visual de quadros históricos já existentes",
+  "inspected_at_utc": "2026-10-26T17:05:49Z",
+  "cohort_source": "docs/filme15-perfeito-2610/caption-audit.json; apenas os 15 casos com RenderScript sem violação lexical simples",
+  "fixed_window": {
+    "start_inclusive": "2026-10-19T15:12:00Z",
+    "end_exclusive": "2026-10-26T15:12:00Z"
+  },
+  "method": [
+    "SELECT no pixel_score já selecionado pela auditoria original; nenhuma avaliação nova.",
+    "GET das URLs frame_urls preexistentes; os dois primeiros quadros marcados caption_broken por caso, em ordem.",
+    "Inspeção com view_image dos JPEGs originais em diretório temporário; sem editar imagens.",
+    "Artefato contém apenas notas e case_keys anônimos. Nenhuma imagem, URL, UUID de cliente/vídeo ou narração integral foi copiada para o repositório."
+  ],
+  "counts": {
+    "selected_cases": 15,
+    "visually_inspected_cases": 14,
+    "frames_inspected": 28,
+    "successful_existing_artifact_gets": 28,
+    "expired_or_unavailable_gets": 0,
+    "case_without_located_caption_frame": 1,
+    "confirmed_face_occlusion_cases": 5,
+    "semantic_unit_split_cases": 2,
+    "suspect_text_semantics_cases": 1,
+    "defect_not_reproduced_in_two_frame_sample_cases": 6
+  },
+  "findings": [
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO",
+      "finding": "Oclusão de olhos/focinho/nariz aparece em cinco casos. Número de palavras sozinho não limita a altura da legenda nem considera a posição do rosto.",
+      "cases": [
+        "2697ba4acddc",
+        "6e7e47e27025",
+        "b65594b79a4f",
+        "bead07d1c13f",
+        "d55abf534f07"
+      ]
+    },
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO",
+      "finding": "Dois casos separam entidades semânticas: nome composto e número+unidade. Isso pode acontecer sem órfã temporal ou final de conector.",
+      "cases": [
+        "47fe64d0aa97",
+        "8da074c197bc"
+      ]
+    },
+    {
+      "classification": "HIPÓTESE",
+      "finding": "Em seis casos a alegação histórica de corte não se reproduz nos dois quadros: caracteres inteiros e legíveis, com quebra de linha. Isso sugere possíveis falsos positivos, mas não comprova que o filme inteiro é livre de defeito.",
+      "cases": [
+        "1c6ed0abd260",
+        "2cc3154856a2",
+        "4f616b23d47b",
+        "5f1f96171736",
+        "f39be0f1a1cd",
+        "f648734729fe"
+      ]
+    }
+  ],
+  "next_steps": [
+    {
+      "classification": "SUGESTÃO",
+      "action": "Distinguir no juiz órfã temporal de palavra isolada por wrap normal de linha, usando exemplos existentes; não afrouxar casos de rosto oculto ou texto fora do quadro."
+    },
+    {
+      "classification": "SUGESTÃO",
+      "action": "O reparo de legenda deve tratar geometria quando o teto decorre de rosto oculto. O helper atual preserva y/fonte do source; portanto pode deixar o segundo julgamento falhar e devolver crédito. Mudança visual exige comparação antes/depois conforme AGENTS.md."
+    },
+    {
+      "classification": "SUGESTÃO",
+      "action": "Testar proteção de entidades e número+unidade no agrupamento usando trechos curtos reais anonimizados, sem alterar fala."
+    }
+  ],
+  "limitations": [
+    "Uma amostra de dois quadros por caso não verifica sincronia, transições ou todos os blocos do filme.",
+    "Não houve render, extração de quadro, chamada fal/visão, escrita em banco, uso de .env ou chamada paga.",
+    "Nenhum layout/código de produto foi modificado por esta inspeção.",
+    "O artefato descreve evidência e limitações; não autoriza publicar os quadros de clientes nem afirmar qualidade de 100%."
+  ],
+  "cases": [
+    {
+      "case_key": "1c6ed0abd260",
+      "source_scored_at": "2026-10-21 02:19:38.006081+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Nos dois quadros, legenda inteira e legível dentro das margens. O segundo bloco ocupa duas linhas; a palavra longa na segunda linha não é um bloco temporal independente. Não há corte de glifo nem sobreposição entre legendas.",
+      "attribution": "HIPÓTESE: o juiz pode ter confundido quebra visual normal de linha com órfã temporal. A amostra não valida o filme inteiro."
+    },
+    {
+      "case_key": "2697ba4acddc",
+      "source_scored_at": "2026-10-22 16:04:41.158226+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "http_status": 200
+        }
+      ],
+      "category": "subject_face_occlusion",
+      "finding": "No primeiro quadro, pronome curto fica sozinho na segunda linha. No segundo, cinco palavras ocupam três linhas e a caixa cobre parte central do rosto/focinho do personagem. Texto não está cortado pelas bordas do MP4.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: limitação de altura/posição e unidade semântica, não divisão lexical 4+1. O teto de cinco palavras não limita linhas renderizadas nem evita rosto."
+    },
+    {
+      "case_key": "2cc3154856a2",
+      "source_scored_at": "2026-10-24 22:34:31.599011+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Dois blocos em duas linhas, com caracteres inteiros, bom contraste e margens visíveis. Há palavra isolada na segunda linha do primeiro bloco, mas o bloco temporal contém cinco palavras. Não identifiquei corte geométrico da legenda.",
+      "attribution": "HIPÓTESE: possível falso positivo de órfã por linha visual; conclusão restrita aos dois quadros."
+    },
+    {
+      "case_key": "47fe64d0aa97",
+      "source_scored_at": "2026-10-25 21:34:31.256757+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200
+        }
+      ],
+      "category": "semantic_unit_split",
+      "finding": "Primeiro bloco termina na primeira parte de um nome; o bloco seguinte começa no sobrenome. Outro nome composto tem sua última parte sozinha na segunda linha. Texto legível e inteiro no quadro.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: nomes próprios/unidades semânticas podem atravessar blocos porque o agrupador protege conectores e tamanho, sem reconhecer entidades. Não é corte de glifo."
+    },
+    {
+      "case_key": "4f616b23d47b",
+      "source_scored_at": "2026-10-25 15:19:32.859178+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Primeiro bloco em duas linhas e segundo em três linhas, com palavras longas. Todas as letras estão visíveis. A caixa ocupa parte das pernas da cena, sem colisão entre legendas ou recorte nas bordas.",
+      "attribution": "DESCONHECIDO: o teto histórico pode se referir a quebra semântica/ocupação visual. Corte literal não reproduzido; não chamar o filme inteiro de aprovado."
+    },
+    {
+      "case_key": "5f1f96171736",
+      "source_scored_at": "2026-10-23 02:49:31.112521+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.5,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Os dois blocos têm duas linhas, frases legíveis e caracteres completos, afastados do personagem pequeno. Sem caixa sobre olhos/rosto, corte de glifo ou colisão de elementos de legenda.",
+      "attribution": "HIPÓTESE: possível falso positivo do juiz nos quadros selecionados; a alegação de legenda cortada não é visível nesta amostra."
+    },
+    {
+      "case_key": "6e7e47e27025",
+      "source_scored_at": "2026-10-25 13:34:31.781816+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 1.8,
+          "http_status": 200
+        }
+      ],
+      "category": "subject_face_occlusion",
+      "finding": "A caixa da legenda cobre os olhos do personagem em ambos os quadros. As letras estão completas e legíveis, mas a informação central do rosto está escondida.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: y fixo e largura/altura da caixa não consideram onde o rosto foi composto na cena. Reagrupar palavras mantendo y/fonte não garante reparo."
+    },
+    {
+      "case_key": "7e71cc07fc9d",
+      "source_scored_at": "2026-10-25 02:34:32.643109+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "http_status": 200
+        }
+      ],
+      "category": "caption_text_or_semantics_suspect",
+      "finding": "Primeiro quadro contém termo estranho ao contexto; segundo tem três linhas com substantivo sozinho na última. Caracteres não estão geometricamente cortados. A comparação textual anterior marcou divergência entre legenda integral e roteiro.",
+      "attribution": "HIPÓTESE: corrupção/reconhecimento de texto ou conflito entre roteiro e fala. Sem ouvir áudio e sem ASR bruto não atribuir a causa exclusivamente ao agrupador."
+    },
+    {
+      "case_key": "8da074c197bc",
+      "source_scored_at": "2026-10-25 23:19:25.475357+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.4,
+          "http_status": 200
+        }
+      ],
+      "category": "semantic_unit_split",
+      "finding": "Número fica sozinho na segunda linha do primeiro bloco, separado da unidade que inicia o bloco seguinte. O segundo bloco tem três linhas. Texto completo dentro das margens.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: ligação número+unidade não é protegida pelo limite de palavras/conectores. A legenda também mostra linguagem de instrução; isso é distinto de corte geométrico."
+    },
+    {
+      "case_key": "92a421df48d2",
+      "source_scored_at": "2026-10-26 14:49:36.050539+00",
+      "inspected_frames": [],
+      "category": "unknown_no_located_caption_frame",
+      "finding": "O evento selecionado contém teto de legenda partida, mas nenhum quadro de sua lista frames está marcado caption_broken. Nenhum quadro foi baixado/inspecionado para este caso.",
+      "attribution": "DESCONHECIDO: ausência de localização. O resultado combinado não fornece qual quadro sustentou esse teto."
+    },
+    {
+      "case_key": "b65594b79a4f",
+      "source_scored_at": "2026-10-25 21:19:23.001865+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.3,
+          "http_status": 200
+        }
+      ],
+      "category": "subject_face_occlusion",
+      "finding": "A legenda cobre focinho/boca no primeiro quadro. No segundo ocupa três linhas e encobre olhos e focinho do personagem. Todas as letras continuam inteiras.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: posição/altura sobre o rosto; também há adjetivo ou substantivo isolado visualmente na última linha, apesar de o bloco temporal ter cinco palavras."
+    },
+    {
+      "case_key": "bead07d1c13f",
+      "source_scored_at": "2026-10-24 16:49:34.832749+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200
+        }
+      ],
+      "category": "subject_face_occlusion",
+      "finding": "Nos dois quadros a caixa atravessa nariz e parte central do rosto. O texto está completo, em duas linhas, sem corte pela borda do vídeo.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: oclusão do sujeito por posicionamento fixo; o problema é geometria relativa ao rosto, não ausência de caracteres."
+    },
+    {
+      "case_key": "d55abf534f07",
+      "source_scored_at": "2026-10-21 07:04:40.180865+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.8,
+          "http_status": 200
+        }
+      ],
+      "category": "subject_face_occlusion",
+      "finding": "A caixa de duas linhas cobre olhos/nariz/boca do personagem, com outra figura parcialmente atrás da caixa no segundo quadro. Caracteres árabes são visíveis dentro das margens.",
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: oclusão do rosto. Correção linguística/ordem de leitura do árabe permanece DESCONHECIDA nesta revisão."
+    },
+    {
+      "case_key": "f39be0f1a1cd",
+      "source_scored_at": "2026-10-24 19:34:32.81503+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Ambos os blocos em duas linhas, texto inteiro, contraste alto, margens preservadas. A caixa fica acima do personagem pequeno, sem encobrir seu rosto.",
+      "attribution": "HIPÓTESE: possível falso positivo histórico de legenda cortada. Sem inspeção temporal completa não certificar todo o filme."
+    },
+    {
+      "case_key": "f648734729fe",
+      "source_scored_at": "2026-10-25 19:19:27.281481+00",
+      "inspected_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200
+        }
+      ],
+      "category": "defect_not_reproduced_in_sample",
+      "finding": "Blocos legíveis em duas linhas, sem caracteres cortados e com rostos das pessoas livres. A caixa sobrepõe parte do brinquedo central e mãos, mas não impede reconhecer a ação nos quadros inspecionados.",
+      "attribution": "DESCONHECIDO: critério amplo de sobreposição com sujeito pode ter provocado o teto; não encontrei corte literal ou colisão entre legendas."
+    }
+  ]
+}

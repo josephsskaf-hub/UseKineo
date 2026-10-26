@@ -193,6 +193,21 @@ const PAUSA_FRASE_S = 0.28
 const normPalavra = (w: string): string => (w ?? '').toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '').trim()
 const fechaFrase = (w: WhisperWord): boolean => w.sentenceEnd === true || /[.!?…]["'”’)\]]*$/.test((w.word ?? '').trim())
 const temVirgula = (w: WhisperWord): boolean => /[,;:—–]["'”’)\]]*$/.test((w.word ?? '').trim())
+// KINEO-FILME15-PERFEITO-2610 — caso real 8da074c197bc: "... DE 50" / "SEGUNDOS ...".
+// Só medidas explícitas EN/PT/ES depois de numeral em algarismos. Não adivinha nomes próprios nem números por extenso.
+const UNIDADES_FACELESS15: ReadonlySet<string> = new Set([
+  's', 'sec', 'secs', 'second', 'seconds', 'seg', 'segundo', 'segundos',
+  'ms', 'millisecond', 'milliseconds', 'milissegundo', 'milissegundos', 'milisegundo', 'milisegundos',
+  'min', 'mins', 'minute', 'minutes', 'minuto', 'minutos', 'h', 'hour', 'hours', 'hora', 'horas',
+  'day', 'days', 'dia', 'dias', 'día', 'días', 'week', 'weeks', 'semana', 'semanas',
+  'month', 'months', 'mes', 'meses', 'year', 'years', 'ano', 'anos', 'año', 'años',
+  'mm', 'cm', 'm', 'km', 'meter', 'meters', 'metre', 'metres', 'metro', 'metros',
+  'kilometer', 'kilometers', 'kilometre', 'kilometres', 'quilômetro', 'quilômetros', 'kilómetro', 'kilómetros',
+  'g', 'kg', 'gram', 'grams', 'grama', 'gramas', 'gramo', 'gramos', 'kilogram', 'kilograms', 'quilo', 'quilos',
+  'ml', 'l', 'liter', 'liters', 'litre', 'litres', 'litro', 'litros',
+])
+const numeroComUnidadeFaceless15 = (left: WhisperWord | undefined, right: WhisperWord | undefined): boolean =>
+  !!left && !!right && !fechaFrase(left) && /^\d+(?:[.,]\d+)*$/.test(normPalavra(left.word)) && UNIDADES_FACELESS15.has(normPalavra(right.word))
 
 export interface BlocoLegendaFaceless15 {
   text: string
@@ -203,7 +218,7 @@ export interface BlocoLegendaFaceless15 {
 }
 
 /** Parte UMA frase (n palavras) em blocos de 2..max: menos blocos, tamanhos parecidos, nunca fecha em preposição/artigo, prefere vírgula/pausa. Devolve os tamanhos. */
-export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean>, virgula: ReadonlyArray<number>, max = FACELESS15_LEGENDA_PALAVRAS): number[] {
+export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean>, virgula: ReadonlyArray<number>, max = FACELESS15_LEGENDA_PALAVRAS, naoCorta: ReadonlyArray<boolean> = []): number[] {
   if (n <= 1) return n === 1 ? [1] : []
   if (n <= max) return [n]
   const alvo = n / Math.ceil(n / max)
@@ -216,11 +231,12 @@ export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean
       if (!Number.isFinite(custo[ini])) continue
       const ultima = fim - 1
       const meio = fim < n
+      if (meio && naoCorta[ultima]) continue // KINEO-FILME15-PERFEITO-2610 — mantém número+unidade no mesmo bloco quando a régua de 2..max permite
       const c = custo[ini] + 10 + (tam - alvo) ** 2 + (meio && naoFecha[ultima] ? 100 : 0) - (meio ? (virgula[ultima] ?? 0) : 0)
       if (c < custo[fim] - 1e-9) { custo[fim] = c; de[fim] = ini }
     }
   }
-  if (!Number.isFinite(custo[n])) return [n]
+  if (!Number.isFinite(custo[n])) return naoCorta.some(Boolean) ? partirFraseFaceless15(n, naoFecha, virgula, max) : [n] // KINEO-FILME15-PERFEITO-2610 — teto customizado incompatível preserva a partição anterior
   const tams: number[] = []
   for (let fim = n; fim > 0; fim = de[fim]) tams.unshift(fim - de[fim])
   return tams
@@ -266,7 +282,7 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
     let ini = 0
     for (let i = 0; i < toks.length; i++) {
       const real = toks[i].sentenceEnd === true
-      const porPausa = !temPontuacao && Number.isFinite(gap(i)) && gap(i) >= PAUSA_FRASE_S
+      const porPausa = !temPontuacao && Number.isFinite(gap(i)) && gap(i) >= PAUSA_FRASE_S && !numeroComUnidadeFaceless15(toks[i], toks[i + 1]) // KINEO-FILME15-PERFEITO-2610 — uma pausa não separa "50 segundos" sem fim de frase real
       if (real || porPausa || i === toks.length - 1) { frases.push({ ini, fim: i + 1, real: real || i === toks.length - 1 }); ini = i + 1 }
     }
   }
@@ -282,10 +298,11 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
   const blocos: BlocoLegendaFaceless15[] = []
   for (const f of frases) {
     const ws = toks.slice(f.ini, f.fim)
+    const naoCorta = ws.map((w, i) => numeroComUnidadeFaceless15(w, ws[i + 1])) // KINEO-FILME15-PERFEITO-2610 — não muda tokens, texto nem timestamps
     const naoFecha = ws.map((w) => FACELESS15_PALAVRAS_QUE_NAO_FECHAM.has(normPalavra(w.word)))
     const virgula = ws.map((w, i) => (temVirgula(w) ? 6 : 0) + (gap(f.ini + i) >= PAUSA_FRASE_S ? 8 : gap(f.ini + i) >= PAUSA_VIRGULA_S ? 4 : 0))
     let i = 0
-    for (const tam of partirFraseFaceless15(ws.length, naoFecha, virgula, max)) {
+    for (const tam of partirFraseFaceless15(ws.length, naoFecha, virgula, max, naoCorta)) { // KINEO-FILME15-PERFEITO-2610
       const usados = ws.slice(i, i + tam) // KINEO-FILME15-PERFEITO-2610 — a partição conserva todas as palavras faladas
       i += tam
       // KINEO-FILME15-PERFEITO-2610 — não deduplica depois da partição: "very / very beginning" virava "beginning" sozinho,
