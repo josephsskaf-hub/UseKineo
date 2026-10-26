@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
+import { semCompraClareza2610 } from './test-support/desfaz-compra-clareza-2610.mjs' // KINEO-LEVA-REBASE-2610: newer exact main layers precede this immutable historical source proof.
 const file = 'app/(dashboard)/generate/GenerateClient.tsx'
 // The approved wall (b021fe9d) and later features added real handlers and
 // recovery logic. Guard the original delivery and complete current main separately.
-const current = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+const current = semCompraClareza2610(fs.readFileSync(file, 'utf8'), file).replace(/\r\n/g, '\n')
 const snapshot = revision => execFileSync('git', ['show', `${revision}:${file}`], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 // Preserve the original layout-only proof at its immutable delivery, before
 // the later approved wall, completion, sharing and recovery features existed.

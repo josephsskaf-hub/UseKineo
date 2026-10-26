@@ -7,6 +7,9 @@ import assert from 'node:assert/strict'
 import React from 'react'
 import { buildStudioHierarchyApproved, buildStudioHierarchyRuntime } from './preview-studio-hierarchy.mjs'
 import { readFileSync } from 'node:fs'
+import { semCompraClareza2610 } from './test-support/desfaz-compra-clareza-2610.mjs' // KINEO-LEVA-REBASE-2610: exact later main layers before the immutable 3ec runtime/layout proof.
+const studioFile = 'app/(dashboard)/studio/StudioClient.tsx'
+const source = semCompraClareza2610(readFileSync(new URL('../' + studioFile, import.meta.url), 'utf8'), studioFile)
 const nodes = (node, out = []) => {
   if (React.isValidElement(node)) {
     out.push(node)
@@ -40,7 +43,7 @@ function signature(node) {
   ) }
 }
 for (const [name, state] of variants) {
-  const expectedRoot = buildStudioHierarchyApproved(state), actualRoot = buildStudioHierarchyRuntime(state)
+  const expectedRoot = buildStudioHierarchyApproved(state), actualRoot = buildStudioHierarchyRuntime(state, source)
   const expected = nodes(expectedRoot), actual = nodes(actualRoot)
   assert.deepEqual(signature(actualRoot), signature(expectedRoot), name + ': complete approved layout, copy, values, destinations and handlers')
   for (const tag of ['button', 'input', 'textarea', 'select', 'video']) {
@@ -58,7 +61,8 @@ for (const [name, state] of variants) {
 }
 // Exact approved comparison must reject real regressions, rather than merely
 // making two executions of a bad current source agree. Mutants never touch disk.
-const source = readFileSync(new URL('../app/(dashboard)/studio/StudioClient.tsx', import.meta.url), 'utf8')
+// Mutants apply after the exact historical projection, so added current
+// controls cannot themselves make a disconnected old handler look rejected.
 for (const [name, before, after] of [
   ['button handler', 'onClick={() => setPickerOpen((o) => !o)}', 'onClick={() => {}}'],
   ['cost output', "scriptMode === 'clip' ? CLIP_CREDITS : cost", '999'],

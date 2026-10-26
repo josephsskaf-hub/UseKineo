@@ -191,7 +191,9 @@ checa('copy: nao esconde a marca d agua', /watermark/i.test(bloco))
 // removed that promise; current eligibility derives from OFFER.limit and hides
 // the old engine when unavailable. Freeze the historical proof without putting
 // an obsolete quota promise back in today's product.
-const originalOffer = execFileSync('git', ['show', 'f4860a28a0e48abc54856c8738205bd78303c6c7:app/(dashboard)/generate/GenerateClient.tsx'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+// KINEO-LEVA-REBASE-2610: reachable ead6 and original f486 have the identical
+// immutable fixture blob 7edd08b1b660b4b7ec6f1a7cdd486f91daa74502.
+const originalOffer = execFileSync('git', ['show', 'ead6c6a04bd729c59d418d76b0842d23c104cfa8:app/(dashboard)/generate/GenerateClient.tsx'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
 checa('fixture04/09 declara o teto historico de3 por dia', /3 films a day/.test(originalOffer))
 checa('copy atual nao promete a cota retirada', !/3 films a day/.test(bloco))
 checa('oferta atual depende da cota e do motor realmente disponiveis', /freeFilmAvailable &&/.test(pred) && /kineo1Shown/.test(pred) && GEN.includes('const freeFilmAvailable = OFFER.limit > 0'))

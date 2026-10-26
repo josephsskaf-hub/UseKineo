@@ -32,6 +32,51 @@ const compose = rebaseLf(readFileSync(composeFile, 'utf8')), purchaseLine = purc
 check(() => assert.equal(compose.split(purchaseLine).length - 1, 1, 'paid exact-balance delivery survives exactly once in raw compose'))
 check(() => assert.equal(compose.replace(purchaseLine, ''), rebaseGit('show', REBASE_MAIN + ':' + composeFile), 'every main compose byte survives; the only new product delta is the immutable purchase line'))
 
+// Current CI gates are checked on RAW workflow bytes independently of seals or
+// historical projection. Resealing a workflow that loses either parent's gate
+// must never make the old whole-workflow historical pin sufficient by itself.
+const workflowFile = '.github/workflows/guardiao.yml'
+const rawWorkflow = readFileSync(workflowFile, 'utf8')
+const workflowCommand = line => /^\s*(?:run:\s*)?node\s/.test(line) ? line.trim().replace(/^run:\s*/, '') : null
+const workflowParents = [REBASE_MAIN, REBASE_LEVA].map(ref => {
+  const lines = rebaseGit('show', ref + ':' + workflowFile).split('\n')
+  return { ref, lines, commands: lines.map(workflowCommand).filter(Boolean) }
+})
+function subsequence(expected, actual) {
+  let at = 0
+  for (const value of actual) if (value === expected[at]) at++
+  return at === expected.length
+}
+const ownWorkflowCommand = 'node scripts/test-leva-rebase-2610.mjs'
+function verifyRawWorkflowParents(source) {
+  const lines = rebaseLf(source).split('\n'), commands = lines.map(workflowCommand).filter(Boolean)
+  for (const parent of workflowParents) {
+    assert.ok(subsequence(parent.lines, lines), 'raw workflow preserves every exact parent line and its order: ' + parent.ref)
+    assert.ok(subsequence(parent.commands, commands), 'raw workflow preserves every parent command and its order: ' + parent.ref)
+  }
+  assert.equal(commands.filter(command => command === ownWorkflowCommand).length, 1, 'raw workflow executes the new rebase guardian exactly once')
+}
+check(() => verifyRawWorkflowParents(rawWorkflow))
+check(() => verifyRawWorkflowParents(crlf(rawWorkflow)))
+const currentWorkflowLines = rebaseLf(rawWorkflow).split('\n')
+for (let i = 0; i < workflowParents.length; i++) {
+  const parent = workflowParents[i], other = workflowParents[1 - i]
+  const unique = parent.commands.find(command => !other.commands.includes(command) && currentWorkflowLines.filter(line => workflowCommand(line) === command).length === 1)
+  check(() => assert.ok(unique, 'each parent has a unique current command to mutate: ' + parent.ref))
+  const removed = currentWorkflowLines.filter(line => workflowCommand(line) !== unique).join('\n')
+  check(() => assert.notEqual(removed, rebaseLf(rawWorkflow), 'parent command deletion is actually applied'))
+  check(() => assert.throws(() => verifyRawWorkflowParents(removed), /workflow/, 'removing a unique parent command rejects even with a fresh source seal'))
+  mutants++
+}
+const ownWorkflowLine = currentWorkflowLines.find(line => workflowCommand(line) === ownWorkflowCommand)
+check(() => assert.ok(ownWorkflowLine, 'the current rebase command has a real executable line'))
+const noOwnGuardian = currentWorkflowLines.filter(line => workflowCommand(line) !== ownWorkflowCommand).join('\n')
+check(() => assert.throws(() => verifyRawWorkflowParents(noOwnGuardian), /workflow/, 'deleting the new guard rejects'))
+const duplicatedOwnGuardian = rebaseLf(rawWorkflow).replace(ownWorkflowLine, ownWorkflowLine + '\n' + ownWorkflowLine)
+check(() => assert.notEqual(duplicatedOwnGuardian, rebaseLf(rawWorkflow), 'new guard duplication is actually applied'))
+check(() => assert.throws(() => verifyRawWorkflowParents(duplicatedOwnGuardian), /workflow/, 'duplicating the new guard rejects'))
+mutants += 2
+
 preloadRebaseBlobs2610()
 for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610]]) {
   for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile)) {

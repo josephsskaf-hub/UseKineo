@@ -20,9 +20,9 @@ const v = (nome, cond) => { if (cond) ok++; else falhas.push(nome) }
 const CAMINHO = 'components/video/NextShortsSection.tsx'
 // Prova integral da contribuição31/08. A rodada01/09 retirou esta prateleira;
 // o componente vigente é validado separadamente, sem restaurar UI aposentada.
-const frozen = (sha) => execFileSync('git', ['show', `${sha}:${CAMINHO}`], { encoding: 'utf8' })
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${CAMINHO}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
 const src = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
-const atual = readFileSync(CAMINHO, 'utf8')
+const atual = readFileSync(CAMINHO, 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: same immutable component pin, canonical LF.
 const GEN = readFileSync('app/(dashboard)/generate/GenerateClient.tsx', 'utf8')
 const API = readFileSync('app/api/viral-now/route.ts', 'utf8')
 

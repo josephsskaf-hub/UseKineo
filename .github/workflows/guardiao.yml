@@ -33,6 +33,8 @@ jobs:
         run: node scripts/test-leva-integration-2410.mjs
       - name: Leva na main atual — fontes preservadas e inventário completo
         run: node scripts/test-leva-rebase-2610.mjs
+      - name: Campos visuais em inglês — regra e desfaz
+        run: node scripts/test-visual-ingles-2610.mjs
       # KINEO-AMOSTRA-ANUNCIO-2410 — real personal sample, media, UI, conversion and byte-exact source restoration, all offline.
       - name: Amostra com apresentadora — custo, compra e desfaz
         run: |

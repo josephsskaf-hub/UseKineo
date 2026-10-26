@@ -74,7 +74,12 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 //     devolver /^app\/api\/compose\// à lista.
 const BASE_COMMIT = (() => {
   try {
-    return execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { cwd: root, encoding: 'utf8' }).trim()
+    // KINEO-LEVA-REBASE-2610: origin/main is locally stale at b0d4e093.
+    // Attribute this merge's changes to its approved main46 parent, rather
+    // than falsely attributing main's Film15 quality layers to episode memory.
+    // Every forbidden-path/content assertion below still examines the full
+    // current delta after that immutable parent; no path is filtered out.
+    return execFileSync('git', ['merge-base', 'HEAD', '46fa10e58fced6430e0a2ba7bb445bb8905bd2e7'], { cwd: root, encoding: 'utf8' }).trim()
   } catch { return '463fc378' }
 })()
 // Dentro de app/api/compose/**, só estes símbolos são intocáveis — são eles

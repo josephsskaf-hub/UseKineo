@@ -1,7 +1,7 @@
 {
   "version": 1,
   "base": "1c078ed013302ac47c42f783305df688c4e97cfd",
-  "main": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "main": "62213b008292f110117d1abbe20c157efdb55902",
   "leva": "07435f57b7e18d4d37c325e57134776d452db382",
   "inventory": [
     ".github/workflows/guardiao.yml",
@@ -445,11 +445,13 @@
     "scripts/test-ads-cena-95-pacing-2110.mjs",
     "scripts/test-ads-escolha-publico-2410.mjs",
     "scripts/test-ads-fiel-1510.mjs",
+    "scripts/test-ads-fiel-3-1510.mjs",
     "scripts/test-ads-fiel-6-1610.mjs",
     "scripts/test-ads-fiel-7-1610.mjs",
     "scripts/test-ads-formatos-escolha-2410.mjs",
     "scripts/test-ads-ia-faz-2026-09-26.mjs",
     "scripts/test-ads-packshot-1410.mjs",
+    "scripts/test-ads-reteste-1510.mjs",
     "scripts/test-aeo-business-offer.mjs",
     "scripts/test-affiliate-activation.mjs",
     "scripts/test-affiliate-destinations.mjs",
@@ -521,6 +523,7 @@
     "scripts/test-filme15-fiel-2610.mjs",
     "scripts/test-filme15-rosto-2610.mjs",
     "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs",
     "scripts/test-filmes-f1f4-1910.mjs",
     "scripts/test-first-film-free-offer.mjs",
     "scripts/test-free-limit-wall.mjs",
@@ -600,6 +603,7 @@
     "scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs",
     "scripts/test-render-morto.mjs",
     "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+    "scripts/test-restauracao-2026-09-09.mjs",
     "scripts/test-returning-seed-2026-09-01.mjs",
     "scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs",
     "scripts/test-rodape-segmentos-2026-09-27.mjs",
@@ -664,6 +668,8 @@
     "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
     "scripts/test-support/desfaz-video-fiel-2610-fontes.json",
     "scripts/test-support/desfaz-video-fiel-2610.mjs",
+    "scripts/test-support/desfaz-visual-ingles-2610-hunks.json",
+    "scripts/test-support/desfaz-visual-ingles-2610.mjs",
     "scripts/test-support/desfaz-voz-nativa-2610-hunks.json",
     "scripts/test-support/desfaz-voz-nativa-2610.mjs",
     "scripts/test-support/film-preview-contract-2610.mjs",
@@ -692,6 +698,7 @@
     "scripts/test-vigia-cenario-inventado-2026-09-11.mjs",
     "scripts/test-viralnow-search-intent.mjs",
     "scripts/test-visibilidade-chatgpt-2026-10-06.mjs",
+    "scripts/test-visual-ingles-2610.mjs",
     "scripts/test-vitrine-em-alta-2026-08-31.mjs",
     "scripts/test-voz-nativa-2610.mjs",
     "scripts/test-works-with-claude-2026-09-30.mjs",
@@ -700,7 +707,7 @@
   ],
   "sources": {
     ".github/workflows/guardiao.yml": {
-      "hash": "464fcaac9f5ca3aa1817a70495965bed25c01c6844122e00ef39baa710ea877e"
+      "hash": "b001697bd285f171e88145ac08be0c915aef842527790d009ea157f0a29088ca"
     },
     "app/(dashboard)/ads/v2/AdsV2Client.tsx": {
       "hash": "880ac2b360e98cc76454ae1de04284d715902890d5d73fbf3643d8ec9bd3fc97"
@@ -1840,7 +1847,7 @@
       "hash": "128061b33d9e0fd1af9c110ec29761d0d21deb5a5b629f86fed7708074ae41ef"
     },
     "lib/filmes/filme15Elenco.ts": {
-      "hash": "d551875da9c6f9b59e134fa270dd6f5d853d5fffb7da63864843fd4ea6f80cb2"
+      "hash": "04c30c24ff012da54260104aa49197dcf739b96caf95221ee1458d59948f7e14"
     },
     "lib/filmes/filme15RostoFixo.ts": {
       "hash": "9bfaeacb17b9f65222f97ffdd676e1e0226e4c93c327b0a3b3b0f22e4c5ad7d5"
@@ -1903,7 +1910,7 @@
       "hash": "03542d614dcc127c4c3d1e294cc8b8d3c29e830ad6c3972ebc23df5ebb4a95c2"
     },
     "lib/runway.ts": {
-      "hash": "421952f9ea9922261a8780ec464f38975383e06503958e0e00e5d147bd7dacbf"
+      "hash": "d7709f1724673014ca1c2eaff3b9564fa98b81682ac90f6f82b850a40bd0e1c7"
     },
     "lib/scriptParser.ts": {
       "hash": "ba3fb8211497c6a4c3ebaa4920c35737c9ba8cb6acc2d5ebdc803675bfdb1f48"
@@ -2022,6 +2029,9 @@
     "scripts/test-ads-fiel-1510.mjs": {
       "hash": "98b8ce9c0aec5497cf3f66d74907914d50f99e200304624603f6ddd87c09f8e1"
     },
+    "scripts/test-ads-fiel-3-1510.mjs": {
+      "hash": "d3ae47ac0dbb5b679ea59cf222e8be37d9d46460dda20e9ebc15e6cdfc831a56"
+    },
     "scripts/test-ads-fiel-6-1610.mjs": {
       "hash": "3a40fd6dce3e4a4c251464aa6d466a171284aca8a784a5ea48f241cbbe11f0b0"
     },
@@ -2036,6 +2046,9 @@
     },
     "scripts/test-ads-packshot-1410.mjs": {
       "hash": "4e0ebc3eb819fa111c3001431a5a0f894fad0bfe0267aa7662145b42fac040c7"
+    },
+    "scripts/test-ads-reteste-1510.mjs": {
+      "hash": "ff14b68c39fe33f9c36ad44b809570a2525d16f31dffe9d8c2e3d1db04ff17b9"
     },
     "scripts/test-aeo-business-offer.mjs": {
       "hash": "ada17cde1009c408e60bcaa01bc712e9b8eea0cb784ea316bd0da8961b3974c4"
@@ -2086,7 +2099,7 @@
       "hash": "2ff608ca2f0ca575b2068dad39e9b3be9dd33ca9ea70c1853b1a7e0c90244e00"
     },
     "scripts/test-archive-studio-review.mjs": {
-      "hash": "513d2803d9ab84ec223328713d27715fc7fab1b831c397d3f97ec6ce4895e074"
+      "hash": "ff4758914ac40413d6d0a0bbfb89c19cb76dbdcd2947a69ae0cbe4d916a4c51b"
     },
     "scripts/test-assistant-deep-link.mjs": {
       "hash": "4c09ad1c2a828c726153ea553a962ab5055a1c71301a5cae87b596868d69b57e"
@@ -2167,7 +2180,7 @@
       "hash": "c989a1d9df5017dad4bc3cc6053d6e409a8ed1d80a2091fe911e0efdc2978085"
     },
     "scripts/test-convite-na-hora-certa-2026-08-31.mjs": {
-      "hash": "39e402813833c7229e7c0c5cdddc61f04502914ff3ebc1e39345be731eb0a36e"
+      "hash": "b2fe987c69c52c88955a3cbf90181aeb580cabe0d2f308bef7a6bceed7ad952f"
     },
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs": {
       "hash": "e78365e5073a3484fb553623294fd05fa9ae708ea835db77a5d7465ba205ef3a"
@@ -2194,7 +2207,7 @@
       "hash": "dcff7838394f67c7cce0650c988038b96ef439069342841d1859ce2aaa8aa078"
     },
     "scripts/test-done-workspace.mjs": {
-      "hash": "36bc7f5581430f04324a9504e76ed14e5a7c6248679331ed03be6672f74862f3"
+      "hash": "e2681d4948c1ae9d58c44ff3ccfc7897a434544347f1161aa578c9edf1094071"
     },
     "scripts/test-dunning-grace.mjs": {
       "hash": "a2c9782ab25dc03e6fefd663f304abfd9bb58a1a7787e33ed6d9c0c0fa7347ab"
@@ -2230,7 +2243,7 @@
       "hash": "a73e14da39bc1d3bd3e17364edbf422103d6847cd40bcbc66710e8b3a1b5d4d4"
     },
     "scripts/test-faixa-continuar.mjs": {
-      "hash": "201e98e5c68ef13f4698e985626f41015c561daf0286d8e882a10ed942a4bf60"
+      "hash": "9fb52895977722dfb231e19b05703863de018f802452965fe24cda59d3326737"
     },
     "scripts/test-fal-saldo-alerta-2026-09-28.mjs": {
       "hash": "a5fe7e299e5454bd4e7a99a23d44f135278e1a2799d22873c4562a8cfca90fbf"
@@ -2239,7 +2252,7 @@
       "hash": "cd8cc02ec15ed3d9e50e7bb2328df7661455e76c47306abdc1ca060a80db0bf5"
     },
     "scripts/test-filme15-elenco-2610.mjs": {
-      "hash": "b6a64ded8fc616a2aeb0788063415e442354af061b97264b6032bbec3ce8c795"
+      "hash": "87466a7c41836b72937ca33d5ed0f5d5c22e8895450046dcfa67a4c990a87a66"
     },
     "scripts/test-filme15-fiel-2610.mjs": {
       "hash": "851a8da8ebc776d88e41bb3ca5258d5f691159ca64e1b0534f520522ad34b425"
@@ -2250,11 +2263,14 @@
     "scripts/test-filmes-f1-virgula-1910.mjs": {
       "hash": "3e0a510bfbe6465b6ceb8297c5bc675deb81decc5e474d827fcb0f38f9c687cb"
     },
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs": {
+      "hash": "0c1227313982e389b6e305b2d5007b1a0a3b40d7eebca3b4f17f24d80990de16"
+    },
     "scripts/test-filmes-f1f4-1910.mjs": {
       "hash": "3b2fc57dfd9c3816234870cb197ac048dc7ea1771ea8cd178e5b6730163cd579"
     },
     "scripts/test-first-film-free-offer.mjs": {
-      "hash": "b38a7e9720ffc4646923036b88bb4134bd2c09cc8cf3f2510154befbd49bf709"
+      "hash": "291051ecf53b2750f7228c21314601859cc70db51a9e42a8700faba7a759a792"
     },
     "scripts/test-free-limit-wall.mjs": {
       "hash": "3e44df7b44b5cc03850ac307a490d70d2fbedc9a9adc26a6268ba06fced06ea2"
@@ -2278,16 +2294,16 @@
       "hash": "bf0169120d0126993aed05e56d97f2b516a7ddc3305dba668bd1e5aebefc4eb6"
     },
     "scripts/test-guardiao-yaml-2026-09-03.mjs": {
-      "hash": "ce6da436225ec3bb3141d2b55f3e504ba10e6a9a52cc04ae9eb18a84e77491f2"
+      "hash": "96573ab746f0ba6c634af3a9f57b988798aa217adbf7e6a2481faa6656f0d665"
     },
     "scripts/test-history-second-video-milestone.mjs": {
       "hash": "810ca52107c9652b34209aca53a1f41aac4bfa1affb6910ad960c888c5d47ca5"
     },
     "scripts/test-home-curation-restore.mjs": {
-      "hash": "37e6c28e42dc1f93e1a49788a2b9018234822ee2adbe75f8e0a8b529408dea26"
+      "hash": "d25802f99cc6d2e55e700b9ca13bc862c639a7419590b0ebcad73019f5efc1b3"
     },
     "scripts/test-home-welcome-goal-router.mjs": {
-      "hash": "5878a0d564af5449a142e052e10e666b46107c60dd2ee511f21ff6fc3a69ba42"
+      "hash": "02d4104b53325f909db58648ddd8f139739f3f494178b589ad62bbb14fb519fa"
     },
     "scripts/test-hora-da-volta-2026-08-31.mjs": {
       "hash": "307d81ef06c5d8bcee255431d19da9344c7b362de36371c28b46417932ef2fd0"
@@ -2332,7 +2348,7 @@
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
     },
     "scripts/test-leva-rebase-2610.mjs": {
-      "hash": "19d15295a4ef4e8330b0981da3149137b0a2ebe48aa5cac968f966b34c399960"
+      "hash": "3ee23cd09b9c750c7973afb3e0b110ad6cfe13bbf72e3041c11139713ddb1d8d"
     },
     "scripts/test-library-search.mjs": {
       "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
@@ -2401,7 +2417,7 @@
       "hash": "6b1cb0f44a5c686bfdd71dceb247fb8a798aa31b627123366b62e099b9fecba2"
     },
     "scripts/test-next-shorts-affordance-2026-08-31.mjs": {
-      "hash": "d5df895ae0cda381c55d7e5dd9f46d5e5eb99bd73894ff2225fad94a33bc3ee1"
+      "hash": "09f05d900e8566fbbde25a741b6838f0df1026719dd01abc09cfe172282c721e"
     },
     "scripts/test-pacote-no-email-de-entrega.mjs": {
       "hash": "c2d5c4c73ffd0c9818aa55e1724d10bce9ee57fa67c26430d13f0a0978b495f6"
@@ -2487,6 +2503,9 @@
     "scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs": {
       "hash": "ac90788fd977a675303f108576d10aacb2d96b158b00738af2537fafbe4c466d"
     },
+    "scripts/test-restauracao-2026-09-09.mjs": {
+      "hash": "4e481863d55eee195db3abe3c51c64ec3cf11ae5862eb02025e75fa990a7f1d3"
+    },
     "scripts/test-returning-seed-2026-09-01.mjs": {
       "hash": "ade85b32d63c0cd081a2cc6aefcc2b7e449157d0550272bcbe9b56532964c571"
     },
@@ -2521,7 +2540,7 @@
       "hash": "a230b990942f16b0614d2dea58af7b4726d927b4c69c5a147a354606989411bb"
     },
     "scripts/test-serie-memoria-2026-09-04.mjs": {
-      "hash": "6113d8d3db0852bb8505b4bb7e4c568f1dd58c661927bc124c4a6779ab74314e"
+      "hash": "8051767c70208f6d360a912af64ba1dd40b4ed2ac9a9b7817869efa0cec6ca21"
     },
     "scripts/test-showcase-2026-10-02.mjs": {
       "hash": "f2747b14a12cc48cfeb57da3ab5294a6ea66de757fd7b32666ad0ade2237eb35"
@@ -2536,13 +2555,13 @@
       "hash": "0eb7cc129cd320e3bb4607e4edf41032b535cc7cafa52fba38a444863078e249"
     },
     "scripts/test-stranded-email-dedupe.mjs": {
-      "hash": "4ddcf5e975d8f27374699b0ef4583ad15238ea59e9393a8169c516824d6ab5df"
+      "hash": "37f9bef0fc76c8d683e8d5c000960f8af3e9457b662f1948bb4fa3ced3a59ac7"
     },
     "scripts/test-stranded-extra-attempt-4xx.mjs": {
       "hash": "86c2561d245fe1f3c733389fa47ecac57a9958e7b6073fa08cfd6f6867435614"
     },
     "scripts/test-studio-hierarchy-runtime.mjs": {
-      "hash": "081f0d5b2f047d7dbfe28e17630761f667cfb2079c8732485697945000d78765"
+      "hash": "82e739d53c607355a71e51e9c0adb03d0a6b603a7d343e392713092c2f0736ba"
     },
     "scripts/test-studio-prompt-limit.mjs": {
       "hash": "a7d1c7df90d1dc7effe1166bfa553b453cdd617ae000bfab734e73ea765fb66b"
@@ -2632,7 +2651,7 @@
       "hash": "09aa1ac6b9e41b9150bf58a7a25510a3bd0ed3df22d7a69ec23c9e817f99e5e9"
     },
     "scripts/test-support/desfaz-filme15-elenco-2610.mjs": {
-      "hash": "225d1f9133288a57a6da8b565a95792607f149f579d448b1df6dfcc386be788c"
+      "hash": "8e9337c42ced0f1e12aeb29909057778469afc851e14c9d4d541686bfc24d024"
     },
     "scripts/test-support/desfaz-filme15-fiel-2610-hunks.json": {
       "hash": "c923eadbe6b325581dcf911682b49a659c9ce30e2c0b64edd3c7526342fc85c8"
@@ -2679,6 +2698,12 @@
     "scripts/test-support/desfaz-video-fiel-2610.mjs": {
       "hash": "e148b6c0c0e91f25c0e21c7c7a10ae2ac832112ce258eb7b4a1dc510ffab74c7"
     },
+    "scripts/test-support/desfaz-visual-ingles-2610-hunks.json": {
+      "hash": "13600781f6d6054e7447c68fbd0b30122d6d4fe4e68755e2a1893e01d767e187"
+    },
+    "scripts/test-support/desfaz-visual-ingles-2610.mjs": {
+      "hash": "4c6cdf042408247a910ab9a1aa0823747da7890f3e1115fbc40ebb3770a8bc27"
+    },
     "scripts/test-support/desfaz-voz-nativa-2610-hunks.json": {
       "hash": "2e7a0ad9c47f1f5d764eea96b473e7dde42da132c8c6b961829e582533c88ea1"
     },
@@ -2695,7 +2720,7 @@
       "hash": "ea95ff8cd120fe254fd52ffaf6233409fc1d78148a74529244a267ddc7fbe85e"
     },
     "scripts/test-support/leva-rebase-2610.mjs": {
-      "hash": "72d9628635fe309bf7a53dcf2cb4cbfebac11c28e2d880b0970c97d9f666a5be"
+      "hash": "39b595a7f9498f3df2b4024863d1d4f761abff7c1d346d40499054d2953568ec"
     },
     "scripts/test-support/offline-ts-loader.mjs": {
       "hash": "8713a25e9b200f4b0d30f91c9809dc29b140a9dbec1933eb6a202040cebee239"
@@ -2704,7 +2729,7 @@
       "hash": "f553c94da01c7576d7d935773d7edba59f9083124b53b65c9ed4c357dfff2eb0"
     },
     "scripts/test-support/seal-leva-rebase-2610.mjs": {
-      "hash": "3d92ba00257dec66660aba13f6259eb220a8b9ce3f70beec65ea0f941ff7c4e8"
+      "hash": "965f4d4942d2fbd3b8225fa75f333ced3b17d8e23b3cdfb2b1632bb232f8a0cd"
     },
     "scripts/test-temporada.mjs": {
       "hash": "b8ed4e58f5c64c52b6b20c470d90b96eb4eb397b3f4c21ad00c3474cd40b0f2b"
@@ -2760,8 +2785,11 @@
     "scripts/test-visibilidade-chatgpt-2026-10-06.mjs": {
       "hash": "1012fd3a22164cf6893b528481cfe888805cfc8c6f976598901c8377acee2b25"
     },
+    "scripts/test-visual-ingles-2610.mjs": {
+      "hash": "99f5bf771c724b7a27d12fef302a47472fca14dba06fd2fc402af15aed4b22c9"
+    },
     "scripts/test-vitrine-em-alta-2026-08-31.mjs": {
-      "hash": "30f688760f178c767ef9cb5eea8a8f2f5462a8e6dea6fb5e372b48828b35a992"
+      "hash": "31acaf62d7b16210071a7e9d9304a688d8ece8a06180ce4650dde8e4757c100c"
     },
     "scripts/test-voz-nativa-2610.mjs": {
       "hash": "ef0ab0240fdd050069ac8d021b035ca0ece8fdbf923128b3edca89f43110bd1d"
@@ -2770,7 +2798,7 @@
       "hash": "15f8d662e02f51605aa9038b493ee01536fcb3e3bb0d5a33e27c9829ea8d7a84"
     },
     "scripts/test-workspace-spanish.mjs": {
-      "hash": "4d695572a77eb9ddda0abb29a7a5dccf6b1b8155b5a1be5721a61f15eba173bc"
+      "hash": "078f6b36116edfac2abe3de5265c2aad0ff2660b11df0e92a52980baf4cb8208"
     },
     "supabase/migrations/20261024175246_ads_escolha_sample.sql": {
       "hash": "a8516f26e7fcc52d0bd0dc31310f2f21256f8b053ecb2ad1e54f0b834a61390f"

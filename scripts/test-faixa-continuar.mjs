@@ -10,7 +10,7 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const lerArq = (rel) => fs.readFileSync(path.join(RAIZ, rel), "utf8")
+const lerArq = (rel) => fs.readFileSync(path.join(RAIZ, rel), "utf8").replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: exact source pins use canonical LF, as git blobs do.
 
 let falhas = 0
 let n = 0
@@ -35,7 +35,7 @@ const landAst = ts.createSourceFile('KineoLanding.tsx', land, ts.ScriptTarget.La
 const landingFunction = landAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'KineoLanding')
 const landingProps = landingFunction?.parameters[0]?.name
 const resumeProp = landingProps && ts.isObjectBindingPattern(landingProps) && landingProps.elements.find(element => element.name.getText(landAst) === 'resume')
-const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 
 // --- a medida (licao da rodada #9: shown no fetch nao e olho) ---
 checar("resume_strip_seen e emitido exatamente 1x", vezes(strip, "trackEvent('resume_strip_seen'") === 1)

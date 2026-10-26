@@ -26,7 +26,20 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const rd = (rel) => semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+// KINEO-LEVA-REBASE-2610: this guardian never mutates the undo manifests.
+// Re-read physical bytes on EVERY call; only identical path+bytes reuse their
+// already executed historical normalization. A changed file runs the ENTIRE
+// original chain again. Mutant strings are applied AFTER rd(), by mutante/over,
+// and every world still gets fresh exports, mocks and runtime execution.
+const normalizedSources = new Map()
+const rd = (rel) => {
+  const raw = fs.readFileSync(path.join(ROOT, rel))
+  const cached = normalizedSources.get(rel)
+  if (cached && cached.raw.equals(raw)) return cached.source
+  const source = semCloseReal1910(raw.toString('utf8'), rel).replace(/\r\n/g, '\n')
+  normalizedSources.set(rel, { raw, source })
+  return source
+} /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 let pass = 0
 let fail = 0

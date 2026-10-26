@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
-const source = (rel) => readFileSync(join(root, rel), 'utf8')
+const source = (rel) => readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: normalize EOL without relaxing whole-source pins.
 
 function loadTs(rel) {
   const output = ts.transpileModule(source(rel), {
@@ -51,7 +51,7 @@ const css = source('components/HomeWelcomeGoalRouter.module.css')
 const studio = source('app/(dashboard)/studio/StudioClient.tsx')
 const machine = source('app/(dashboard)/generate/GenerateClient.tsx')
 const preview = source('docs/previews/HOME-WELCOME-OUTCOME-SELECTOR-V3-2026-09-01.html')
-const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 
 ok(page.includes("firstSearchParam(searchParams, 'welcome') === '1'"), 'email signup handoff shows the router')
 ok(page.includes("firstSearchParam(searchParams, 'signup') === '1'"), 'OAuth/modal signup handoff also shows the router')

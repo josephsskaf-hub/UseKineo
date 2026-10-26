@@ -166,9 +166,9 @@ checa('não anuncia no fallback de popup', !trechoPopup.includes('anunciarVideoE
 // ── BLOCO C ────────────────────────────────────────────────────────────────
 console.log('C) contribuição31/08 congelada — visibilidade e convite históricos')
 const componente = 'components/video/NextShortsSection.tsx'
-const frozen = (sha) => execFileSync('git', ['show', `${sha}:${componente}`], { cwd: raiz, encoding: 'utf8' })
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${componente}`], { cwd: raiz, encoding: 'utf8' }).replace(/\r\n/g, '\n')
 const secao = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
-const atual = readFileSync(path.join(raiz, componente), 'utf8')
+const atual = readFileSync(path.join(raiz, componente), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: preserve the complete source pin across checkout EOL.
 // A rodada01/09 substituiu a convocação por download por visibilidade35%.
 // As provas anteriores continuam acima/abaixo; esta é a fronteira vigente.
 checa('componente atual corresponde à substituição aprovada na main', atual === frozen('1c078ed01'))

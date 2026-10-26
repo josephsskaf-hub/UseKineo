@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {source,renderPage} from './preview-ux-complete.mjs'
+import {semCompraClareza2610} from './test-support/desfaz-compra-clareza-2610.mjs' // KINEO-LEVA-REBASE-2610: only the old whole-file proof is projected; Spanish runtime stays RAW.
 const baseline='d8889f6c'
 // Keep the original wrapper-only proof at its immutable delivery. Current UI is exercised below; later approved features are not wrapper changes.
 const delivery='6e30c986'
@@ -12,7 +13,7 @@ const strip=s=>s.replace(/\r\n/g,'\n').replace(/^import \{ UiLabel \} from '@\/c
 // This covers callbacks, effects, consent, sources, routing and input values,
 // not only selected regular-expression anchors or a disconnected library.
 for(const file of ['app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/avatar/AvatarStudioClient.tsx','app/(dashboard)/animate/AnimateClient.tsx','components/EngineCycleCard.tsx','components/NavEngineItem.tsx','components/Sidebar.tsx','app/KineoLanding.tsx']){
- assert.equal(source(file).replace(/\r\n/g,'\n'),source(file,true,approvedIntegration).replace(/\r\n/g,'\n'),file+' current whole source matches the approved integration');checks++
+ assert.equal(semCompraClareza2610(source(file),file).replace(/\r\n/g,'\n'),source(file,true,approvedIntegration).replace(/\r\n/g,'\n'),file+' current whole source matches the approved integration');checks++
  const before=execFileSync('git',['show',`${baseline}:${file}`],{encoding:'utf8'})
  // Founder 06/09 moved the language control into Main and removed the three
  // duplicate hero shortcuts. Normalize only that exact approved navigation delta;

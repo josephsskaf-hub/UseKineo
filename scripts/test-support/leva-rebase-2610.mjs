@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 
 export const REBASE_MANIFEST_PATH = 'scripts/test-support/leva-rebase-2610-fontes.json'
-export const REBASE_MAIN = '46fa10e58fced6430e0a2ba7bb445bb8905bd2e7'
+export const REBASE_MAIN = '62213b008292f110117d1abbe20c157efdb55902'
 export const REBASE_LEVA = '07435f57b7e18d4d37c325e57134776d452db382'
 export const REBASE_BASE = '1c078ed013302ac47c42f783305df688c4e97cfd'
 export const REBASE_LEGACY_MANIFEST = 'scripts/test-support/leva-integration-2410-fontes.json'

@@ -87,7 +87,9 @@ checa('/ph: CTA vai para o cadastro com utm do PH', /const CTA = '\/signup\?utm_
 // KINEO-VERDADE-TRIAL-2026-10-05 — a letra miúda trocou a promessa de motores pela frase única do primeiro filme.
 checa('/ph: letra miúda fala em créditos grátis, não em $1', /\{FREE_ENTRY_CREDITS\} credits free · \{TRIAL_FIRST_FILM_SHORT\} · no card/.test(ph) && !/Is the \$1 real\?/.test(ph))
 const kit = rd('docs/ph/PH-TEXTOS-2026-09-10.md')
-checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.test(kit) && /Free to start, 10 credits, no card/.test(kit))
+// KINEO-LEVA-REBASE-2610: the factual PH correction of 24/10 in LEVA074
+// retains 10 credits/no card and adds entryPolicy's supported-countries clause.
+checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.test(kit) && /Free to start in supported countries, 10 credits, no card\./.test(kit))
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }

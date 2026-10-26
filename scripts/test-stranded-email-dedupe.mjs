@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import ts from 'typescript'
 const here = dirname(fileURLToPath(import.meta.url))
-const src = readFileSync(join(here, '..', 'app', 'api', 'cron', 'finish-stranded-renders', 'route.ts'), 'utf8')
+const src = readFileSync(join(here, '..', 'app', 'api', 'cron', 'finish-stranded-renders', 'route.ts'), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: LF anchors must apply before AST mutant rejection on Windows.
 let pass = 0, fail = 0
 function check(name, ok) { if (ok) { pass++; console.log('  ok  ' + name) } else { fail++; console.log('  FAIL ' + name) } }
 

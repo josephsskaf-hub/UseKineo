@@ -7,7 +7,7 @@ import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8')
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: preserve exact source assertions across checkout EOL.
 let checks = 0
 const check = (value, message) => { assert.ok(value, message); checks++ }
 const equal = (actual, expected, message) => { assert.equal(actual, expected, message); checks++ }
@@ -130,7 +130,7 @@ equal(oneEngine.length, 0, 'engine SEO page does not infer customer publication 
 equal(databaseCalls, 0, 'no containment branch touched the database')
 
 const landing = read('app/KineoLanding.tsx')
-const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+const frozen = (sha, file) => execFileSync('git', ['show', `${sha}:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 const originalLanding = frozen('2c918543399ccb65d695ef461371711e22f72f88', 'app/KineoLanding.tsx')
 // KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): a primeira tela volta aos quatro motores validados; H3 e Omni em manutenção saem dela.
 // Those engine cards were replaced by the separately approved 24/09 film

@@ -19,9 +19,9 @@ const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 // A contribuição de 31/08 foi substituída explicitamente em 01/09. Os seus
 // controles continuam integrais nesta fixture; o produto atual roda abaixo.
 const caminho = 'components/video/NextShortsSection.tsx'
-const frozen = (sha) => execFileSync('git', ['show', `${sha}:${caminho}`], { cwd: raiz, encoding: 'utf8' })
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${caminho}`], { cwd: raiz, encoding: 'utf8' }).replace(/\r\n/g, '\n')
 const comp = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
-const current = readFileSync(join(raiz, caminho), 'utf8')
+const current = readFileSync(join(raiz, caminho), 'utf8').replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: I1 retains the exact approved source with canonical LF.
 const caller = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 
 const semComentarios = (t) =>

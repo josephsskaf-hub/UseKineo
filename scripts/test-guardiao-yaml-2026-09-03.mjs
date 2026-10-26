@@ -24,6 +24,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semMainSobreLeva2610 } from './test-support/leva-rebase-2610.mjs' // KINEO-LEVA-REBASE-2610: exact sealed current integration before the unchanged LEVA whole-file pin.
 const url = new URL('../.github/workflows/guardiao.yml', import.meta.url)
 let ok = 0, fail = 0
 const check = (n, c) => { c ? (ok++, console.log('  ok  ' + n)) : (fail++, console.log('  FAIL ' + n)) }
@@ -77,7 +78,7 @@ check('continua publicando o placar no resumo do GitHub', raw.includes('$GITHUB_
 check('histórico: filtrava os 3 erros de tipo conhecidos, como o bat local', historico.includes('grep -v "acacia"') && historico.includes('grep -v "TrialDowngradeModal"'))
 
 console.log('5 · portões atuais aprovados: bruto, bloqueante e todas as camadas')
-check('workflow atual inteiro é o integrado aprovado', raw === original('a698625a'))
+check('workflow atual inteiro é o integrado aprovado', semMainSobreLeva2610(raw, '.github/workflows/guardiao.yml') === original('a698625a'))
 const critical = raw.slice(raw.indexOf('  critical:'), raw.indexOf('  legacy:'))
 const legacy = raw.slice(raw.indexOf('  legacy:'))
 check('push protege main e branches codex; PR protege main', /push:\s*\n\s+branches: \[main, 'codex\/\*\*'\]/.test(raw) && /pull_request:\s*\n\s+branches: \[main\]/.test(raw))

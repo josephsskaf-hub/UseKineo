@@ -15,6 +15,45 @@ import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 
 export const FILME15_ELENCO_MAX = 2
 
+// O escritor de cenas às vezes escreve o visual na língua do filme ("Uma menina de cabelos cacheados segura uma chave", teste
+// 6b454f92 de 26/10) e o extrator só lê inglês: nenhuma folha. A GLOSA troca, só para LER o elenco, "artigo + (até 2 palavras) +
+// pessoa" em português/espanhol pelo equivalente inglês ("a girl", "the grandfather"). O visual enviado ao motor não muda.
+const PESSOA_PT_ES_EN: Record<string, string> = {
+  menina: 'girl', garota: 'girl', menino: 'boy', garoto: 'boy', rapaz: 'young man', moça: 'young woman', moca: 'young woman',
+  mulher: 'woman', homem: 'man', avô: 'grandfather', avo: 'grandfather', avó: 'grandmother', vovô: 'grandfather', vovó: 'grandmother',
+  pai: 'father', mãe: 'mother', mae: 'mother', filho: 'son', filha: 'daughter', irmão: 'brother', irmã: 'sister',
+  criança: 'child', crianca: 'child', bebê: 'baby', bebe: 'baby', arqueóloga: 'archaeologist', arqueologa: 'archaeologist', arqueólogo: 'archaeologist',
+  arqueologo: 'archaeologist', cientista: 'scientist', médico: 'doctor', medico: 'doctor', médica: 'doctor', medica: 'doctor', soldado: 'soldier',
+  pescador: 'fisherman', faroleiro: 'lighthouse keeper', rei: 'king', rainha: 'queen', princesa: 'princess', príncipe: 'prince', principe: 'prince',
+  professor: 'teacher', professora: 'teacher', estudante: 'student', velho: 'old man', velha: 'old woman', idoso: 'elderly man', idosa: 'elderly woman',
+  niña: 'girl', nina: 'girl', niño: 'boy', nino: 'boy', chica: 'girl', chico: 'boy', abuelo: 'grandfather', abuela: 'grandmother',
+  hombre: 'man', mujer: 'woman', madre: 'mother', hijo: 'son', hija: 'daughter', hermano: 'brother', hermana: 'sister',
+}
+const ARTIGO_INDEFINIDO = new Set(['um', 'uma', 'un', 'una'])
+const ARTIGO_DEFINIDO = new Set(['o', 'a', 'el', 'la', 'seu', 'sua', 'su'])
+/** Só para o extrator: "uma menina de cabelos" → "a girl de cabelos"; "seu avô" → "the grandfather". Texto sem pessoa PT/ES: igual. */
+export function glosaDePessoas(texto: string): string {
+  const partes = String(texto ?? '').split(/(\s+)/)
+  const saida: string[] = []
+  for (let i = 0; i < partes.length; i++) {
+    const w = partes[i]
+    const art = w.toLowerCase()
+    if (!ARTIGO_INDEFINIDO.has(art) && !ARTIGO_DEFINIDO.has(art)) { saida.push(w); continue }
+    // procura a pessoa até 2 palavras depois do artigo
+    let achou = -1
+    for (let j = i + 2, n = 0; j < partes.length && n < 3; j += 2, n++) {
+      const limpo = partes[j].toLowerCase().replace(/[^\p{L}]/gu, '')
+      if (PESSOA_PT_ES_EN[limpo]) { achou = j; break }
+    }
+    if (achou < 0) { saida.push(w); continue }
+    const nome = PESSOA_PT_ES_EN[partes[achou].toLowerCase().replace(/[^\p{L}]/gu, '')]
+    const resto = partes[achou].replace(/^[\p{L}]+/u, '')
+    saida.push(`${ARTIGO_INDEFINIDO.has(art) ? 'a' : 'the'} ${nome}${resto}`)
+    i = achou
+  }
+  return saida.join('')
+}
+
 /** O elenco do 15 s: o do pedido quando existe; senão, o dos visuais das cenas (papéis distintos, até 2, o 1º é o protagonista). */
 export function elencoDoFilme15(args: {
   elencoDoPedido: ReadonlyArray<FichaDePersonagem>
@@ -26,7 +65,7 @@ export function elencoDoFilme15(args: {
   // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo
   //    ("the girl hands the key to an elderly man" → girl, depois man).
   const porCena: Array<Array<{ chave: string; ficha: FichaDePersonagem }>> = args.visuals.map((visual) => {
-    let resto = String(visual ?? '')
+    let resto = glosaDePessoas(String(visual ?? '')) // visual em PT/ES: a glosa deixa o extrator (inglês) achar a pessoa
     const achados: Array<{ chave: string; ficha: FichaDePersonagem }> = []
     for (let volta = 0; volta < 3; volta++) {
       const f = args.extrair(resto).find((x) => nucleoDe(x) && !achados.some((a) => a.chave === nucleoDe(x)))
@@ -89,7 +128,7 @@ export function protagonistaEmTodaCena(args: {
   if (!protagonista) return { visuals, forcadas: [] }
   const forcadas: number[] = []
   const saida = visuals.map((v, i) => {
-    if (cenaCitaElenco(v, args.elenco)) return v
+    if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v
     forcadas.push(i)
     return `${protagonista.nome}, the only person in the shot — ${v}`
   })

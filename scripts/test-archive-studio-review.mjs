@@ -17,6 +17,7 @@ const delivery = '9448d2ef95c39a2cb46e802f2ece5ae91dae4142'
 const approved = '37cca7e2ecff13cb5e40a0d3afffc2af81706f11'
 const at = (ref, file) => execFileSync('git', ['show', ref + ':' + file], {cwd:root,encoding:'utf8',maxBuffer:16*1024*1024}).replace(/\r\n/g,'\n')
 function calls(text, file) {
+  text = text.replace(/\r\n/g, '\n') // KINEO-LEVA-REBASE-2610: JSX caller contracts compare canonical LF on Windows too.
   const ast = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
   const links = []; let follow
   function visit(n) {
