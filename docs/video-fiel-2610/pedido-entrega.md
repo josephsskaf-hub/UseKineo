@@ -13,10 +13,19 @@ IMPLEMENTADO:
 
 TESTADO LOCALMENTE, sem rede, credenciais, banco ou modelo:
 
-- `node docs/video-fiel-2610/pedido-test.mjs`: 14 grupos de provas comportamentais; módulos reais, guardas extraídas por AST das três rotas, preservação de entrada, duração, localização, fallback/refund confirmado e pendente, mutante de bypass.
+- `node docs/video-fiel-2610/pedido-test.mjs`: 19 grupos de provas comportamentais; módulos reais, guardas extraídas por AST das três rotas, preservação de entrada, duração, localização, fallback/refund confirmado e pendente, mutante de bypass.
 - `test-brief-e-ideia-colada-2026-09-12.mjs`: 44/44.
 - `test-diretrizes-coladas-2026-09-04.mjs`: 61/61.
 - TypeScript `--noEmit --incremental false`: passou na árvore desta peça.
 - Diff verificado com `core.whitespace=cr-at-eol`, pois scriptParser já é rastreado com CRLF.
 
 LIMITES: detector determinístico conservador, sem promessa de reconhecer toda língua/paráfrase. As provas de rota executam os blocos reais de guarda e verificam sua ordem no arquivo; não são E2E autenticado. Nenhum dado integral dos dez clientes entrou no repositório. A média editorial5,7 não é alvo numérico nem rubrica automática. Integração de cenas/juiz, guardiões históricos e validação completa ficam no root. Não publicado nem validado em produção.
+
+
+## Bordas encontradas pela revisão independente — segundo lote
+
+FATO CONFIRMADO / IMPLEMENTADO: o leitor anterior só reconhecia duração com unidade (segundos/minutos), deixando passar pedidos como “vídeo de1:00” com seleção de15s. Agora mm:ss exige contexto adjacente de filme/duração; horário da história (3:00), formato9:16 e segundos inválidos não viram duração. O primeiro pedido explícito continua prevalecendo. Nenhuma duração ou modo é alterado.
+
+FATO CONFIRMADO / IMPLEMENTADO: HOOK/Pexels posterior não isenta uma instrução inicial que sobrevive na narração real do parser. O detector consulta o parser puro somente nessa borda; preserva roteiros rotulados/aspas quando a fala foi corretamente isolada. Texto original continua intacto.
+
+TESTADO LOCALMENTE:19 grupos no pedido-test (incluindo os3 casos reproduzidos pelo root, guardas reais das3 entradas, relógio/proporção e3 mutantes comportamentais);44/44 de brief e61/61 de diretrizes. TypeScript sem emissão passou. Nenhum render, banco, rede, publicação ou gasto.

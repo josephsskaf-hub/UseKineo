@@ -480,17 +480,24 @@ export function papeisQueFalam(raw: string): string[] { // KINEO-PARCEIRO-EYEBIB
   } // KINEO-PARCEIRO-EYEBIBLE-2-1410
   return papeis // KINEO-PARCEIRO-EYEBIBLE-2-1410
 } // KINEO-PARCEIRO-EYEBIBLE-2-1410
-/** Texto que é um BRIEFING (ficha + instruções) e não uma narração: ≥2 linhas de ficha/instrução e nenhum rótulo de fala. */
+/** Pedido de produção, numa linha ou ficha/instruções, sem fala literal isolada com segurança. */
 export function looksLikeBrief(raw: string): boolean {
   const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
-  if (lines.some((u) => SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u))) return false
-  // PEDIDO-FIEL-2610: an explicit spoken script remains the author's text.
-  // A one-line production request is still a brief; line breaks are not consent.
-  if (lines.some((u) => BEAT_LABEL_HEAD.test(u) || dialogueSpeech(u, true) !== null || /\[Pexels\s*:/i.test(u))) return false
+  // PEDIDO-FIEL-2610: labels protect actual speech, not a production request
+  // that still survives at the start of the parser's narration.
+  const hasExplicitSpeech = lines.some((u) => (SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)) || BEAT_LABEL_HEAD.test(u) || dialogueSpeech(u, true) !== null || /\[Pexels\s*:/i.test(u))
   const opening = (lines[0] ?? '').split(/[.!?]\s+/)[0].replace(/^(?:please|por favor)[,\s]+/i, '')
   const creation = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
   const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a)\b/i.test(opening)
-  if (!habitualAdvice && creation.test(opening) && isInstructionLine(opening.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening)) return true
+  const startsWithRequest = !habitualAdvice && creation.test(opening) && isInstructionLine(opening.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening)
+  if (hasExplicitSpeech) {
+    if (!startsWithRequest) return false
+    // Parsing is pure and does not call looksLikeBrief. Keep legitimate
+    // labelled/quoted speech when the existing parser isolated it correctly.
+    const spokenOpening = parseUserScript(raw).narration.replace(/^(?:please|por favor)[,\s]+/i, '')
+    return spokenOpening.startsWith(opening)
+  }
+  if (startsWithRequest) return true
   let ficha = 0
   let instrucao = 0
   let producao = 0

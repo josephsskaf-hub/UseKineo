@@ -117,6 +117,31 @@ function segundosDe(valor: number, unidade: string): number {
   return /^(minute|min|minuto)/i.test(unidade) ? valor * 60 : valor
 }
 
+/** PEDIDO-FIEL-2610: mm:ss is duration only next to a film/duration request.
+ * A story's clock time ("at 3:00") and aspect ratio ("9:16") are not duration. */
+function primeiraDuracaoPedida(texto: string): { raw: string; seconds: number; index: number } | null {
+  RE_DURACAO.lastIndex = 0
+  const unit = RE_DURACAO.exec(texto)
+  let first = unit ? {
+    raw: unit[0].trim(),
+    seconds: segundosDe(unit[2] ? Math.max(Number(unit[1]), Number(unit[2])) : Number(unit[1]), unit[3]),
+    index: unit.index,
+  } : null
+  const clock = /(?<!\d)(\d{1,3}):([0-5]\d)(?!\d)/g
+  for (let m = clock.exec(texto); m; m = clock.exec(texto)) {
+    const before = texto.slice(Math.max(0, m.index - 80), m.index)
+    const after = texto.slice(m.index + m[0].length, m.index + m[0].length + 80)
+    const explicit = /\b(?:dura[çc][ãa]o|duraci[oó]n|duration|length)\s*(?:(?::|=|de|of)\s*)?$/i.test(before)
+      || /^\s*(?:(?:de|of)\s+)?(?:dura[çc][ãa]o|duraci[oó]n|duration|long)\b/i.test(after)
+    const film = /\b(?:v[íi]deo|filme|film|movie|short|reel|clip)\s+(?:(?:de|com|of|lasting|tenha|dure|lasts)\s*)?$/i.test(before)
+      || /^\s*(?:-\s*)?(?:v[íi]deo|filme|film|movie|short|reel|clip)\b/i.test(after)
+    if (!explicit && (!film || m[0] === '9:16')) continue
+    const seconds = Number(m[1]) * 60 + Number(m[2])
+    if (seconds > 0 && (!first || m.index < first.index)) first = { raw: m[0], seconds, index: m.index }
+  }
+  return first
+}
+
 /**
  * Lê as diretrizes que a pessoa escreveu no texto colado.
  * Puro: mesma entrada, mesma saída, sem efeito nenhum.
@@ -142,20 +167,15 @@ export function readPastedDirectives(raw: string | null | undefined, duracoes: r
   // número de segundos que NÃO é pedido da pessoa. Fora dela, o primeiro
   // número de duração do texto é a intenção declarada.
   if (!semente) {
-    RE_DURACAO.lastIndex = 0
-    const m = RE_DURACAO.exec(texto)
-    if (m) {
-      const a = Number(m[1])
-      const b = m[2] ? Number(m[2]) : null
-      const unidade = m[3]
-      // Numa faixa ("35–45 second"), o teto é o que a pessoa espera receber;
-      // entregar o piso seria justamente o defeito de história interrompida.
-      const pedido = segundosDe(b !== null ? Math.max(a, b) : a, unidade)
+    const duration = primeiraDuracaoPedida(texto)
+    if (duration) {
+      // Ranges use their upper bound; clock notation needs explicit film context.
+      const pedido = duration.seconds
       if (pedido > 0) {
         const botao = menorBotaoQueCobre(pedido, duracoes)
         directives.push({
           kind: 'duration',
-          raw: m[0].trim(),
+          raw: duration.raw,
           support: botao === null ? 'unsupported' : 'honored',
           askedSeconds: pedido,
           ...(botao === null ? {} : { appliedSeconds: botao }),

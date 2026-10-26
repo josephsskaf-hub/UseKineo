@@ -52,6 +52,67 @@ check('50/60 second request does not silently become a 15 second film', () => {
   }
   assert.equal(request.reviewRequestFidelity({ ...base, scriptMode: 'ai', duration: 60 }), null)
 })
+
+check('contextual mm:ss duration is reviewed without changing mode or selection', () => {
+  const prompts = [
+    'Quero uma luta de dois guerreiros, com um vencedor por pouco no final, e quero que o vídeo tenha 1:00 de duração',
+    'Crie um vídeo de1:00 sobretrêscidades. Useimagens e incluanarração.',
+    'Crie um vídeo de 0:50 sobre uma montanha.',
+    'Create a 1:00 video about a lighthouse.',
+    'Crea un vídeo con duración 1:00 sobre un faro.',
+  ]
+  for (const prompt of prompts) {
+    const input = { ...base, prompt, scriptMode: 'ai' }, original = JSON.stringify(input)
+    const seconds = prompt.includes('0:50') ? 50 : 60
+    const review = request.reviewRequestFidelity(input)
+    assert.equal(review?.reason, 'request_duration_mismatch', prompt)
+    assert.equal(review.requested_seconds, seconds)
+    assert.equal(review.selected_seconds, 15)
+    assert.equal(review.retryable, false)
+    assert.equal(JSON.stringify(input), original)
+    assert.equal(request.reviewRequestFidelity({ ...input, duration: 60 }), null)
+  }
+})
+check('story clock times, aspect ratios and invalid clock values are not requested duration', () => {
+  for (const prompt of [
+    'Crie um vídeo sobre uma porta que abre às 3:00 da manhã.',
+    'Create a video about an alarm that rings at 3:00 every night.',
+    'Crie um vídeo de 9:16 sobre um farol.',
+    'Crie um vídeo vertical 9:16 sobre um farol.',
+    'Crie um vídeo de 1:99 sobre um farol.',
+  ]) {
+    assert.equal(pasted.readPastedDirectives(prompt).directives.some(d => d.kind === 'duration'), false, prompt)
+    assert.equal(request.reviewRequestFidelity({ ...base, prompt, scriptMode: 'ai' }), null, prompt)
+  }
+  assert.equal(request.reviewRequestFidelity({ ...base, prompt: 'Às 3:00, o relógio parou. A porta abriu devagar.' }), null)
+  assert.equal(pasted.readPastedDirectives('Crie um vídeo de 0:50 sobre o que acontece às 3:00. Use um plano de 10 segundos.').directives.find(d => d.kind === 'duration').askedSeconds, 50)
+  assert.equal(pasted.readPastedDirectives('Crie um vídeo de 50 segundos. Duração: 1:00.').directives.find(d => d.kind === 'duration').askedSeconds, 50)
+})
+check('mixed instruction cannot hide behind later HOOK/Pexels labels', () => {
+  for (const prompt of [
+    'Crie um vídeo de60segundos. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
+    'Crie um vídeo de 1:00. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
+    'Create a 60-second video. HOOK: [Pexels: mountains] The climbers left early.',
+  ]) {
+    assert.equal(parser.looksLikeBrief(prompt), true, prompt)
+    assert.equal(request.reviewRequestFidelity({ ...base, prompt })?.reason, 'brief_requires_review')
+    assert.equal(writer.ehIdeiaSolta({ prompt, scriptMode: 'verbatim' }), false)
+  }
+})
+check('correctly isolated labelled speech stays literal despite production wrapper', () => {
+  const prompts = [
+    'Crie um vídeo de 60 segundos.\nHOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
+    'Crie um vídeo de 60 segundos.\nNARRAÇÃO: Os alpinistas partiram cedo porque queriam chegar ao topo da montanha antes do pôr do sol.',
+    'Crie um vídeo de 60 segundos.\nNARRAÇÃO: “Os alpinistas partiram cedo porque queriam chegar ao topo da montanha antes do pôr do sol.”',
+    'HOOK: [Pexels: camera] “Crie um vídeo de 60 segundos”, disse a professora.\nPAYOFF: [Pexels: classroom] O aluno começou a filmar.',
+  ]
+  for (const prompt of prompts) {
+    assert.equal(parser.looksLikeBrief(prompt), false, prompt)
+    assert.equal(request.reviewRequestFidelity({ ...base, prompt }), null)
+    assert.equal(writer.ehIdeiaSolta({ prompt, scriptMode: 'verbatim' }), false)
+  }
+})
+
 check('English and Spanish production requests have localized review', () => {
   assert.match(request.reviewRequestFidelity({ ...base, prompt: 'Create a 60-second video about a lighthouse.', language: 'en' }).error, /finished narration/)
   assert.match(request.reviewRequestFidelity({ ...base, prompt: 'Crea un vídeo de 60 segundos sobre un faro.', language: 'es' }).error, /narración lista/)
@@ -100,7 +161,7 @@ for (const [rel, modeField, laterCalls] of routes) {
     }
     const code = ts.transpileModule('(function(body,promptRaw){ const intake = { text: promptRaw }; ' + g.code + '; return { proceeded:true };})', { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
     const fn = vm.runInNewContext(code, { SUPPORTED_DURATIONS: [35, 45, 60, 90], reviewRequestFidelity: request.reviewRequestFidelity, NextResponse: { json: (data, init) => ({ data, status: init.status }) } })
-    for (const [scriptMode, prompt, reason] of [['verbatim', brief, 'brief_requires_review'], ['ai', brief, 'request_duration_mismatch']]) {
+    for (const [scriptMode, prompt, reason] of [['verbatim', brief, 'brief_requires_review'], ['ai', brief, 'request_duration_mismatch'], ['ai', 'Crie um vídeo de1:00 sobre montanhas.', 'request_duration_mismatch'], ['verbatim', 'Crie um vídeo de60segundos. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.', 'brief_requires_review']]) {
       const body = { prompt, [modeField]: scriptMode, duration: 15, language: 'pt' }, before = JSON.stringify(body)
       const result = fn(body, prompt)
       assert.equal(result.status, 422)
@@ -145,5 +206,12 @@ for (const refunded of [false, true]) {
 check('mutant that bypasses explicit-mode review is caught behaviorally', () => {
   const mutant = createOfflineLoader({ source: (rel, source) => rel === 'lib/requestFidelity.ts' ? source.replace("if (mode !== 'ai')", 'if (false)') : source })('lib/requestFidelity.ts')
   assert.notEqual(mutant.reviewRequestFidelity(base)?.reason, 'brief_requires_review')
+})
+
+check('mutants that ignore clocks or exempt all marked requests are caught', () => {
+  const noClock = createOfflineLoader({ source: (rel, source) => rel === 'lib/pastedDirectives.ts' ? source.replace('if (!explicit && (!film', 'if (true || !explicit && (!film') : source })('lib/requestFidelity.ts')
+  assert.equal(noClock.reviewRequestFidelity({ ...base, scriptMode: 'ai', prompt: 'Crie um vídeo de1:00 sobre montanhas.' }), null)
+  const allMarked = createOfflineLoader({ source: (rel, source) => rel === 'lib/scriptParser.ts' ? source.replace('return spokenOpening.startsWith(opening)', 'return false') : source })('lib/requestFidelity.ts')
+  assert.equal(allMarked.reviewRequestFidelity({ ...base, prompt: 'Crie um vídeo de60segundos. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.' }), null)
 })
 console.log(`PEDIDO-FIEL-2610 PASS: ${checks} behavioral checks, actual route AST guards, no external operations.`)
