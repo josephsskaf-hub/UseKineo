@@ -1,0 +1,1276 @@
+{
+  "task": "KINEO-FILME15-PERFEITO-2610",
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — SELECT e inspeção manual de quadros já existentes",
+  "audited_at_utc": "2026-10-26T17:57:16Z",
+  "window": {
+    "start_inclusive": "2026-10-19T15:12:00Z",
+    "end_exclusive": "2026-10-26T15:12:00Z",
+    "basis": "videos.created_at; avaliações e fontes existentes antes do mesmo fim de janela"
+  },
+  "cohort": {
+    "films": 170,
+    "distinct_people": 170,
+    "pixel_scored_films": 170,
+    "invented_text_cap_films": 21,
+    "caption_cap_films": 26,
+    "internal_accounts": "Excluídas pela lista exata e todos os padrões de lib/internalAccounts.ts; perfil vinculado e e-mail não nulo.",
+    "person_not_event_counting": "Um caso por vídeo; nesta coorte cada filme pertence a uma pessoa distinta."
+  },
+  "supplied_baseline": {
+    "films": 208,
+    "invented_text": 21,
+    "same_21_count_reproduced": true,
+    "same_original_membership_confirmed": false,
+    "classification": "CONTRADIÇÃO / DESCONHECIDO: o número 21 reproduz, mas a coorte verificável é 170, não 208; não se afirma que sejam os mesmos IDs da medição original."
+  },
+  "selection": "Último pixel_score COM cap contendo 'texto inventado' por vídeo antes do fim da janela; não o último pixel_score geral. Claims e RenderScripts mais recentes antes do mesmo limite.",
+  "results": {
+    "inspected_cases": 21,
+    "inspected_existing_flagged_frames": 127,
+    "existing_frame_GET_200": 127,
+    "unavailable_frames": 0,
+    "complete_evidence_status": 0,
+    "legacy_evidence_status_not_recorded": 21,
+    "render_scripts_available": 21,
+    "scene_prompt_arrays_available": 21,
+    "confirmed_watermark_source_cases": 21,
+    "confirmed_customer_image_overlay_cases": 3,
+    "case_partition": {
+      "object_text_clear": 4,
+      "composited_caption_misclassified_as_scene_text": 2,
+      "expected_compositor_overlay_only_confirmed": 13,
+      "incidental_object_lettering_uncertain": 2
+    },
+    "confirmed_free_floating_model_letters_without_object_in_inspected_frames": 0,
+    "literal_watermark_mentions_in_historical_notes": 5
+  },
+  "code_snapshot": {
+    "commit": "b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d",
+    "findings": [
+      {
+        "classification": "FATO CONFIRMADO",
+        "source": "lib/regua95/pixelScore.ts:175",
+        "finding": "A regra de filme exclui explicitamente legendas queimadas no meio/baixo; não nomeia a marca d’água esperada."
+      },
+      {
+        "classification": "FATO CONFIRMADO",
+        "source": "lib/regua95/pixelScore.ts:191",
+        "finding": "O contrato geral distingue caption/overlay do brief de texto inventado, mas não recebe uma lista de overlays esperados do RenderScript."
+      },
+      {
+        "classification": "FATO CONFIRMADO",
+        "source": "lib/compose.ts:47",
+        "finding": "O compositor adiciona a marca d’água própria no track 9; as fontes históricas desta coorte confirmam a string 'usekineo.com/free'."
+      }
+    ]
+  },
+  "method": [
+    "Apenas SELECT no conector Supabase autorizado e GET de URLs de quadros já presentes em pixel_score; nenhum upload, novo render, extração paga, transcrição, OCR ou julgamento por modelo.",
+    "Inspecionados todos os 127 quadros que o registro selecionado marcou com invented_text, em ordem; índices i são base 1 e correspondem a frame_urls[i-1].",
+    "Conferidos prompts de cena aceitos e elementos textuais do RenderScript; track 9 para marca d’água, track 5/7 para legendas, track 10 para imagens de logo nos três casos correspondentes.",
+    "As classes são observacionais. 'Somente overlays esperados confirmados' não certifica o filme inteiro nem outros critérios; ausência de letras extras nesta amostra não prova ausência no MP4 completo.",
+    "Texto de legenda com origem confirmada no compositor não é automaticamente texto correto: idioma, grafia e fidelidade à narração continuam critérios separados."
+  ],
+  "recommendations": [
+    {
+      "classification": "SUGESTÃO",
+      "action": "Antes de still/clipe do 15 s, preservar o objeto e a ação, mas substituir instruções de texto legível por enquadramento/superfície sem leitura: celular com ícones/luz sem palavras; papel com verso/selos/relevo; caixa e embalagens sem impressão.",
+      "evidence": "Quatro casos com texto claro em objeto; dois candidatos incidentais em embalagens/placas. Uma frase negativa ao fim contradiz pedidos como 'displaying a dramatic message'."
+    },
+    {
+      "classification": "SUGESTÃO",
+      "action": "O juiz deve receber overlays esperados derivados do source assinado, com posição/track e texto; a exceção deve ser restrita a esses overlays, mantendo idioma/legibilidade/fidelidade das legendas sob avaliação.",
+      "evidence": "Treze casos sem outro texto do fornecedor confirmado; dois textos apontados pelo juiz constam literalmente do track 5; marca d’água presente no source de todos os casos."
+    }
+  ],
+  "limitations": [
+    "As 21 avaliações são históricas e não registram evidence_status. São indícios observados, não evidência completa certificada pelo validador atual.",
+    "Não foram vistos todos os quadros do MP4, somente todos os quadros armazenados que o registro marcou com invented_text. Não houve nova extração de imagens.",
+    "As duas superfícies pequenas/desfocadas permanecem DESCONHECIDAS quanto a leitura e fidelidade; não foram forçadas para a classe de defeito ou de falso positivo.",
+    "O documento críptico tem texto pedido no próprio prompt; sem o documento de referência não se certifica sua fidelidade semântica.",
+    "Nenhuma URL, UUID de usuário/vídeo, e-mail de cliente, voz ou narração integral é persistida neste artefato. Os hashes curtos são identificadores de caso derivados no SELECT."
+  ],
+  "queries": {
+    "cohort_cte": "WITH cc AS (\n  SELECT DISTINCT ON (metadata->>'render_id') metadata, created_at\n  FROM public.events\n  WHERE name='compose_submission_claim'\n    AND created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND metadata->>'render_id' IS NOT NULL\n  ORDER BY metadata->>'render_id', created_at DESC\n), cohort AS (\n  SELECT v.id, v.user_id, v.render_id, v.created_at\n  FROM public.videos v\n  JOIN public.profiles p ON p.id=v.user_id\n  JOIN cc ON cc.metadata->>'render_id'=v.render_id AND cc.metadata->>'duration'='15'\n  WHERE v.status='completed' AND v.quality_mode='cinematic_ai'\n    AND v.created_at >= '2026-10-19T15:12:00Z'::timestamptz\n    AND v.created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND p.email IS NOT NULL\n    AND NOT (lower(p.email) IN ('josephsskaf@gmail.com','josephskaf@hotmail.com','victoriaskaf96@gmail.com','joseph+teste01@gmail.com','teste01@shortsforgeai.com')\n      OR lower(p.email) LIKE 'josephsskaf+%@gmail.com' OR lower(p.email) LIKE 'joseph+%@gmail.com'\n      OR lower(p.email) LIKE 'joseph+%' OR lower(p.email) LIKE 'victoriaskaf%'\n      OR lower(p.email) LIKE '%@theresanaiforthat.com' OR lower(p.email) LIKE 'josephsskaf%'\n      OR lower(p.email) LIKE 'josephskaf%' OR lower(p.email) LIKE '%@shortsforgeai.com'\n      OR lower(p.email) LIKE 'test%' OR lower(p.email) LIKE '%mailinator%' OR lower(p.email) LIKE 'smoketest%')\n)",
+    "case_selection_and_existing_evidence": "WITH cc AS (\n  SELECT DISTINCT ON (metadata->>'render_id') metadata, created_at\n  FROM public.events\n  WHERE name='compose_submission_claim'\n    AND created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND metadata->>'render_id' IS NOT NULL\n  ORDER BY metadata->>'render_id', created_at DESC\n), cohort AS (\n  SELECT v.id, v.user_id, v.render_id, v.created_at\n  FROM public.videos v\n  JOIN public.profiles p ON p.id=v.user_id\n  JOIN cc ON cc.metadata->>'render_id'=v.render_id AND cc.metadata->>'duration'='15'\n  WHERE v.status='completed' AND v.quality_mode='cinematic_ai'\n    AND v.created_at >= '2026-10-19T15:12:00Z'::timestamptz\n    AND v.created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND p.email IS NOT NULL\n    AND NOT (lower(p.email) IN ('josephsskaf@gmail.com','josephskaf@hotmail.com','victoriaskaf96@gmail.com','joseph+teste01@gmail.com','teste01@shortsforgeai.com')\n      OR lower(p.email) LIKE 'josephsskaf+%@gmail.com' OR lower(p.email) LIKE 'joseph+%@gmail.com'\n      OR lower(p.email) LIKE 'joseph+%' OR lower(p.email) LIKE 'victoriaskaf%'\n      OR lower(p.email) LIKE '%@theresanaiforthat.com' OR lower(p.email) LIKE 'josephsskaf%'\n      OR lower(p.email) LIKE 'josephskaf%' OR lower(p.email) LIKE '%@shortsforgeai.com'\n      OR lower(p.email) LIKE 'test%' OR lower(p.email) LIKE '%mailinator%' OR lower(p.email) LIKE 'smoketest%')\n)\nSELECT left(md5(c.id::text),12) AS case_key,\n c.created_at AS delivered_at, px.created_at AS scored_at,\n px.metadata->>'score' AS pixel_score,\n coalesce(px.metadata->>'evidence_status','legacy_not_recorded') AS evidence_status,\n px.metadata->'caps' AS caps,\n px.metadata->'frames' AS frames,\n px.metadata->'frame_urls' AS frame_urls,\n px.metadata->>'summary' AS pixel_summary,\n birth.metadata->'response'->'scene_prompts' AS scene_prompts,\n (SELECT jsonb_agg(jsonb_build_object('prompt', x->>'prompt')) FROM jsonb_array_elements(coalesce(birth.metadata->'response'->'scene_fal_inputs','[]'::jsonb)) AS x) AS accepted_scene_prompts,\n coalesce(birth.metadata->'response'->>'visual_mode',birth.metadata->'response'->>'format') AS visual_mode\nFROM cohort c\nJOIN LATERAL (\n SELECT e.metadata,e.created_at FROM public.events e\n WHERE e.name='pixel_score' AND e.metadata->>'video_id'=c.id::text\n  AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n  AND e.metadata->>'caps' ILIKE '%texto inventado%'\n ORDER BY e.created_at DESC LIMIT 1\n) px ON true\nJOIN cc ON cc.metadata->>'render_id'=c.render_id\nLEFT JOIN LATERAL (\n SELECT e.metadata FROM public.events e\n WHERE e.name='cinematic_submission_claim' AND e.user_id=c.user_id\n  AND e.session_id=cc.metadata->>'generation_id'\n  AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n ORDER BY e.created_at DESC LIMIT 1\n) birth ON true\nORDER BY c.created_at;",
+    "render_script_text_elements": "WITH cc AS (\n  SELECT DISTINCT ON (metadata->>'render_id') metadata, created_at\n  FROM public.events\n  WHERE name='compose_submission_claim'\n    AND created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND metadata->>'render_id' IS NOT NULL\n  ORDER BY metadata->>'render_id', created_at DESC\n), cohort AS (\n  SELECT v.id, v.user_id, v.render_id, v.created_at\n  FROM public.videos v\n  JOIN public.profiles p ON p.id=v.user_id\n  JOIN cc ON cc.metadata->>'render_id'=v.render_id AND cc.metadata->>'duration'='15'\n  WHERE v.status='completed' AND v.quality_mode='cinematic_ai'\n    AND v.created_at >= '2026-10-19T15:12:00Z'::timestamptz\n    AND v.created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND p.email IS NOT NULL\n    AND NOT (lower(p.email) IN ('josephsskaf@gmail.com','josephskaf@hotmail.com','victoriaskaf96@gmail.com','joseph+teste01@gmail.com','teste01@shortsforgeai.com')\n      OR lower(p.email) LIKE 'josephsskaf+%@gmail.com' OR lower(p.email) LIKE 'joseph+%@gmail.com'\n      OR lower(p.email) LIKE 'joseph+%' OR lower(p.email) LIKE 'victoriaskaf%'\n      OR lower(p.email) LIKE '%@theresanaiforthat.com' OR lower(p.email) LIKE 'josephsskaf%'\n      OR lower(p.email) LIKE 'josephskaf%' OR lower(p.email) LIKE '%@shortsforgeai.com'\n      OR lower(p.email) LIKE 'test%' OR lower(p.email) LIKE '%mailinator%' OR lower(p.email) LIKE 'smoketest%')\n)\nSELECT left(md5(c.id::text),12) AS case_key,\n src.created_at AS source_recorded_at,\n (SELECT jsonb_agg(jsonb_build_object('track',el->'track','text',el->'text','time',el->'time','duration',el->'duration','x',el->'x','y',el->'y'))\n  FROM jsonb_array_elements(coalesce(src.metadata->'source'->'elements','[]'::jsonb)) el WHERE el->>'type'='text') AS text_elements\nFROM cohort c\nJOIN LATERAL (\n SELECT e.metadata FROM public.events e WHERE e.name='pixel_score'\n AND e.metadata->>'video_id'=c.id::text AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n AND e.metadata->>'caps' ILIKE '%texto inventado%' ORDER BY e.created_at DESC LIMIT 1\n) px ON true\nLEFT JOIN LATERAL (\n SELECT e.metadata,e.created_at FROM public.events e WHERE e.name='free_redo_film_source'\n AND e.metadata->>'render_id'=c.render_id AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n ORDER BY e.created_at DESC LIMIT 1\n) src ON true\nORDER BY c.created_at;"
+  },
+  "cases": [
+    {
+      "case_key": "22a287e0533f",
+      "delivered_at": "2026-10-20 14:48:08.984928+00",
+      "scored_at": "2026-10-20 14:49:31.044667+00",
+      "pixel_score": 89,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "object_text_clear",
+      "classification_label": "Superfície textual clara em objeto",
+      "object": "documento/página antiga",
+      "observation": "Linhas de caracteres impressos no próprio papel; o prompt pediu documento com texto críptico. A nota aponta o documento, não a legenda.",
+      "attribution_limit": "EVIDÊNCIA DE PRODUÇÃO: superfície textual confirmada; fidelidade semântica ao documento original DESCONHECIDA.",
+      "accepted_prompt_excerpt_exact": "revealing cryptic text",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Documento antigo com texto inventado.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "4dc3f8e815d71c1839c5d1160db0fb20653a1623e7100e9edc42a1e149bd5e2d"
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200,
+          "sha256": "c84d4b65502b0e549c982c0cd51d2f187a7adf14bf1a891609cc318da54c9b30"
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "http_status": 200,
+          "sha256": "4d3aa052119305a6a892c5e2acb5bd7933adfcfe33a571f9b00b041f3ae57822"
+        },
+        {
+          "frame": 4,
+          "time": 6,
+          "http_status": 200,
+          "sha256": "68c801f01e42ad454420b5a44f82b4069ee70e59c80ee19b44ba80962de1a85f"
+        }
+      ]
+    },
+    {
+      "case_key": "49a00e084bf7",
+      "delivered_at": "2026-10-20 23:18:10.685205+00",
+      "scored_at": "2026-10-20 23:19:35.613673+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Nos quadros marcados, texto do topo corresponde à marca d’água e a uma imagem de logo presente no RenderScript (track 10). Nenhum texto adicional do fornecedor foi confirmado visualmente.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "expected_image_overlay_source_track": 10,
+      "historical_note_excerpt": "Trator ao nascer do sol, texto inventado no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "1f6706ff7a96e6bb95f409d7fda679a747d3059988ad230acd4c4b8d14d0d37f"
+        },
+        {
+          "frame": 2,
+          "time": 2.4,
+          "http_status": 200,
+          "sha256": "9d938bafea07a78135d07c246f4d00f4dc39f205f0b7cf189de25e45ee09ef77"
+        },
+        {
+          "frame": 3,
+          "time": 4.8,
+          "http_status": 200,
+          "sha256": "92aeefeade00072d5a0135b6818f905f73f54d85294c5d48772a68a271f5a5dc"
+        },
+        {
+          "frame": 4,
+          "time": 7.1,
+          "http_status": 200,
+          "sha256": "5317242685dbc712fc06a2ea17409bc833074fb3b5c56e5b686d0747f10e0386"
+        },
+        {
+          "frame": 5,
+          "time": 9.5,
+          "http_status": 200,
+          "sha256": "f3e961be9fd536af28b4dfad14980b3b1f4ea12cd5788bbf2694f54843d90861"
+        },
+        {
+          "frame": 6,
+          "time": 11.9,
+          "http_status": 200,
+          "sha256": "6c984084bdea69d75c5359afa886ed29bbcd14204d2c46510e8d8d213622bcf1"
+        },
+        {
+          "frame": 7,
+          "time": 14.3,
+          "http_status": 200,
+          "sha256": "70e3e79b56216a3b32246f57597b8db3447b521469121bf1573f71f72aed65eb"
+        },
+        {
+          "frame": 8,
+          "time": 16.6,
+          "http_status": 200,
+          "sha256": "7de4bd58ca909e7262364faf05cd9d581bea56518b304416f436be1664d922f0"
+        }
+      ]
+    },
+    {
+      "case_key": "30873d5534df",
+      "delivered_at": "2026-10-21 17:13:08.203035+00",
+      "scored_at": "2026-10-21 17:19:34.004161+00",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Texto no topo corresponde à marca d’água track 9; o texto sobre a salada é legenda composta. Sem letras extras confirmadas nos três quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Homem jovem com tigela de salada, texto inventado no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "e54bd08abb0cb458ae843c772b4b3f9ed9c8f1e13e97dbaaa7bb474fcd12f321"
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200,
+          "sha256": "967ade45cee2a9acfd3c5b31809c1e604859aee57a2101e5b0ed85a31c8d0ffc"
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "http_status": 200,
+          "sha256": "fa8ee1f76b9a764d0901d4f41d06a2bb02a43e2ba94c6e0f813432152b339175"
+        }
+      ]
+    },
+    {
+      "case_key": "d60117c62c20",
+      "delivered_at": "2026-10-21 20:16:42.305689+00",
+      "scored_at": "2026-10-21 20:19:28.973016+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "object_text_clear",
+      "classification_label": "Superfície textual clara em objeto",
+      "object": "tela de celular",
+      "observation": "A tela contém uma chamada em pseudopalavras e linhas incoerentes, separadas da legenda composta. O prompt solicitou que a tela mostrasse uma mensagem dramática.",
+      "accepted_prompt_excerpt_exact": "A close-up of a phone screen displaying a dramatic message",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Tela de celular com texto ilegível.",
+      "frames": [
+        {
+          "frame": 7,
+          "time": 13.1,
+          "http_status": 200,
+          "sha256": "3bda6c0364b485743f1906c7eeaec0de87bd7fe105f93d155782ad1f96d8173d"
+        },
+        {
+          "frame": 8,
+          "time": 15,
+          "http_status": 200,
+          "sha256": "9bdd3cb469a4d4738c4aac8a418f2b0e295189a2471239018786648f4aa00b8a"
+        }
+      ]
+    },
+    {
+      "case_key": "2ad709ad50f0",
+      "delivered_at": "2026-10-22 01:06:12.168599+00",
+      "scored_at": "2026-10-22 01:19:26.546903+00",
+      "pixel_score": 89,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Paisagem do mar; texto observado é marca d’água superior e legenda composta. Não foi confirmado texto adicional do fornecedor nos quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Pôr do sol sobre o oceano com texto inventado.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "5819b7230dc6b2aa61d45e39df0677d0c492d75fd0ece61027129302ad1438d4"
+        },
+        {
+          "frame": 2,
+          "time": 1.8,
+          "http_status": 200,
+          "sha256": "28b359e3c53bef654c23697a1c9919010b33337e584bafea8471abd2e7d4e779"
+        },
+        {
+          "frame": 3,
+          "time": 3.5,
+          "http_status": 200,
+          "sha256": "fd85a5d4ea4f438928ea1631f6001bc6d80d2f1d06243ea6316c7af97f7d673f"
+        }
+      ]
+    },
+    {
+      "case_key": "085be5c6e0b4",
+      "delivered_at": "2026-10-22 04:52:05.396523+00",
+      "scored_at": "2026-10-22 05:04:26.411929+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Homem/reflexo no banheiro; textos observados são marca d’água e legendas do RenderScript. Nenhuma superfície textual extra confirmada nos quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Homem jovem no banheiro com texto sobreposto.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "0eb702a740d2e997ad4206c5046a772160567f92bd0bdf01b8af2dc31eccc157"
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200,
+          "sha256": "1248ec9b0d3506a86ea6412b97caf6947d02d5b298dccc924b4ea09966156e3f"
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "http_status": 200,
+          "sha256": "9984b8996af3b125d94a30a504619fe86a922bd602bed2b70c00e74646719429"
+        },
+        {
+          "frame": 4,
+          "time": 6,
+          "http_status": 200,
+          "sha256": "b93ac0248e4a15e0682754cbee521d4a20ded15c48d8702359d4611877511462"
+        },
+        {
+          "frame": 5,
+          "time": 8,
+          "http_status": 200,
+          "sha256": "2f95dd8ba1a7c5d321144fa961958b47c92c8f6edb2fbabacbb82c271eca18ed"
+        },
+        {
+          "frame": 6,
+          "time": 10,
+          "http_status": 200,
+          "sha256": "9731ef0a13942de2f44e49c2d536653fcfea0b4fb04385fafdba0395f2d4d84b"
+        },
+        {
+          "frame": 7,
+          "time": 12,
+          "http_status": 200,
+          "sha256": "1a84d58271b6ef5e95df29104a1a78d19341a85498dab4ad3ec045769e945849"
+        },
+        {
+          "frame": 8,
+          "time": 14,
+          "http_status": 200,
+          "sha256": "35b47ededabde574e1e8265d32b7c70cc6f46673c6e97dceaf2cc372a5bca8ef"
+        }
+      ]
+    },
+    {
+      "case_key": "c55d814f49da",
+      "delivered_at": "2026-10-22 11:16:44.478284+00",
+      "scored_at": "2026-10-22 11:19:32.372906+00",
+      "pixel_score": 87,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Criança com escova; marca d’água no topo e legendas compostas. Sem texto adicional do fornecedor confirmado nos quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Criança com escova de dentes, texto inventado no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "b7869f6ac2cc98baa1d49de8bb494f6730678e3019afff2bfffd6b3a9f1dbd6e"
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "http_status": 200,
+          "sha256": "1720b5a6be1096830b7f3f8784766565d54150bc8cdbcefd31ed744f4c0550d0"
+        },
+        {
+          "frame": 3,
+          "time": 3.8,
+          "http_status": 200,
+          "sha256": "67ab5010a23cda58d1aa94ee9b7414a37a24f09517f66733ebda81a56c9d74cd"
+        },
+        {
+          "frame": 4,
+          "time": 5.6,
+          "http_status": 200,
+          "sha256": "e748a3632b2ec4164ecddd14c9e35d493a6eabd2ade5674167473ba2323da607"
+        },
+        {
+          "frame": 5,
+          "time": 7.5,
+          "http_status": 200,
+          "sha256": "e54ba06b3e0e58a91ca6322bca729580bc0a91dea4c9a9674bd2a2d606b80c3f"
+        },
+        {
+          "frame": 6,
+          "time": 9.4,
+          "http_status": 200,
+          "sha256": "2e18b04e67ec841b360ab2d6f4afcb2cae4eb4718044adced8a48604ba6896ea"
+        },
+        {
+          "frame": 7,
+          "time": 11.3,
+          "http_status": 200,
+          "sha256": "7c964a08cb22160d34563c9ee0157b0f7cab2161a7d3885488280ba8be8e3883"
+        },
+        {
+          "frame": 8,
+          "time": 13.1,
+          "http_status": 200,
+          "sha256": "22e50aabff441ba5fd4645661462eaaf9852418bcf0b7d042f5454e3d6086e41"
+        }
+      ]
+    },
+    {
+      "case_key": "33cd3efe6c30",
+      "delivered_at": "2026-10-22 13:28:57.886282+00",
+      "scored_at": "2026-10-22 13:34:41.780842+00",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "composited_caption_misclassified_as_scene_text",
+      "classification_label": "Legenda composta atribuída a texto dentro da cena",
+      "object": null,
+      "observation": "As sequências que a nota chama de texto inventado estão na legenda do RenderScript, track 5: 'AND ESCANDALO DE FRUTAS' e outros blocos. Há defeito textual possível/visível, mas a origem desses caracteres é a composição, não o clipe.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "reported_text_exists_in_caption_source_track": 5,
+      "historical_note_excerpt": "Fruta amarilla con texto inventado 'AND ESCANDALO'.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "86cb91aeb3f7655d104ba250ba92db6f63a822ef843d825e52b88fed5baa8891"
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200,
+          "sha256": "e6a6f07eb7a1e3f72c0669550aee51070521062af9dd893afaa3665455331c82"
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "http_status": 200,
+          "sha256": "984d0ad6e26ebf4e3feacae5763e2ec04a61c23ab99c5545a4d8afa632e003f9"
+        },
+        {
+          "frame": 4,
+          "time": 6.4,
+          "http_status": 200,
+          "sha256": "1945662ca8f48f5f6c7155b6445e5af55d077dae025e5fdfd8b2f0b5a01f8d99"
+        },
+        {
+          "frame": 5,
+          "time": 10.6,
+          "http_status": 200,
+          "sha256": "1cff1eef4059fc270fb6db8c027856f9ca8718465d0eff340042d1d78b803c0e"
+        },
+        {
+          "frame": 6,
+          "time": 12.8,
+          "http_status": 200,
+          "sha256": "a1725f78ced1a4b1b23dbcd59cba24b847cea03dad8bb07ec2c8e4e683965f99"
+        },
+        {
+          "frame": 7,
+          "time": 14.9,
+          "http_status": 200,
+          "sha256": "090491edada3f3a90d4c4b6b499894d0d1d4c83b07664b3e9ac7b608d7568c0f"
+        },
+        {
+          "frame": 8,
+          "time": 17,
+          "http_status": 200,
+          "sha256": "4dce3cd32c32d17c5e9ef2ff70ffc98f2a81065235772f051fb588c5ce9b56eb"
+        }
+      ]
+    },
+    {
+      "case_key": "6129fe30f1ec",
+      "delivered_at": "2026-10-23 13:23:14.573293+00",
+      "scored_at": "2026-10-23 13:34:29.314832+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Raposa/coelho em floresta; textos observados correspondem à marca d’água e legendas compostas. Nenhuma letra adicional do fornecedor confirmada nos quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Raposa bebê laranja em floresta mágica, texto inventado.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "8106a1d6a46040ce282da297bd8ea76d09850ec0ba10118d8ef0c15070124da0"
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200,
+          "sha256": "f837f8ea6197a1e0ead804150f4d5c76a2d6cc39d7114b74305b694835c10006"
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "http_status": 200,
+          "sha256": "a9b0dd89f2009740d1b1888d187fdfef2e6204fcdc4332f0968b3e88a3479d05"
+        },
+        {
+          "frame": 4,
+          "time": 6,
+          "http_status": 200,
+          "sha256": "cacbd3deb3c7b3d1813af96b59728183cb180ebc97864796f94fd0a87d81fabb"
+        },
+        {
+          "frame": 5,
+          "time": 10,
+          "http_status": 200,
+          "sha256": "098b9653807cee59bdb9f7d8362fa6a15c2b3ecb6cd40fe3f6b2bb8dcd2d9217"
+        },
+        {
+          "frame": 6,
+          "time": 12,
+          "http_status": 200,
+          "sha256": "7bb171f9e352e6691c200604a6a15e937c4370fbf101567b7446e8bf12edf82c"
+        },
+        {
+          "frame": 7,
+          "time": 14,
+          "http_status": 200,
+          "sha256": "534c75e09a49d9b480b688bac129c4cb2be7e129bb210ed431bf00061de4fe1f"
+        },
+        {
+          "frame": 8,
+          "time": 16,
+          "http_status": 200,
+          "sha256": "d1d185ed9fc95bd13acd6e6a49adc5b5d1d158d2748ab11b4678e04af143a292"
+        }
+      ]
+    },
+    {
+      "case_key": "0091f17a843a",
+      "delivered_at": "2026-10-24 00:39:12.471697+00",
+      "scored_at": "2026-10-24 00:49:34.822433+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Menino, cobra e macaco; texto superior é a marca d’água e o inferior é legenda composta em escrita não latina. Não se atribuiu texto do fornecedor a essa escrita.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Texto inventado no topo da imagem.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "68e0cfe5a8aaf45077f1b1b15aabf93ee200c8189403ff7dd92dca22c55dc105"
+        },
+        {
+          "frame": 2,
+          "time": 2.6,
+          "http_status": 200,
+          "sha256": "ef403408d32def85cd50a061d05dc7c707fb0254e5585c48575ae2c25ed605ab"
+        },
+        {
+          "frame": 3,
+          "time": 5.3,
+          "http_status": 200,
+          "sha256": "1b203b85e05444a107b48061c193573dab387b0d5b4288b1512732d15a34014c"
+        },
+        {
+          "frame": 4,
+          "time": 7.9,
+          "http_status": 200,
+          "sha256": "98e42169d55cff94ba322e1a08798a0fab71c263554bf53c9ed2a09641741d49"
+        },
+        {
+          "frame": 5,
+          "time": 10.5,
+          "http_status": 200,
+          "sha256": "d6353a4c0989dd8b3e44cda991dc4ef9e44d9a74fc34e4768580091f6054b9a9"
+        },
+        {
+          "frame": 6,
+          "time": 13.1,
+          "http_status": 200,
+          "sha256": "a8f1a520c43a02fd0e7821e72ded44d662baca12cb29da580b1078ab416201e5"
+        },
+        {
+          "frame": 7,
+          "time": 15.8,
+          "http_status": 200,
+          "sha256": "741e1a3364233439cd1283a65bffa666b193e2d16d0730029e9dafa599b8abfb"
+        },
+        {
+          "frame": 8,
+          "time": 18.4,
+          "http_status": 200,
+          "sha256": "4d8ed36bbd286af067f3fed4bde754162a66dce266b4502543ff31df01a49251"
+        }
+      ]
+    },
+    {
+      "case_key": "7976df6dc52a",
+      "delivered_at": "2026-10-24 03:32:46.311827+00",
+      "scored_at": "2026-10-24 03:34:25.110847+00",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "composited_caption_misclassified_as_scene_text",
+      "classification_label": "Legenda composta atribuída a texto dentro da cena",
+      "object": null,
+      "observation": "'MY FRIENDS', 'I’LL BE LEAVING FIRST' e os demais trechos citados pelo juiz constam da legenda track 5. Marca d’água e logo track 10 também são overlays do RenderScript. A qualidade/idioma da legenda deve ser avaliada separadamente.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "expected_image_overlay_source_track": 10,
+      "reported_text_exists_in_caption_source_track": 5,
+      "historical_note_excerpt": "Texto 'MY FRIENDS' não corresponde ao esperado.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "03ad79f2832f2b5859607fb9591c73168dad6a560f6ebc083715e7ce7ce5540e"
+        },
+        {
+          "frame": 2,
+          "time": 1.4,
+          "http_status": 200,
+          "sha256": "53ed11976ad70fe7b275aafc5451551414f16357a3592fcd318681f821fba06b"
+        },
+        {
+          "frame": 3,
+          "time": 2.8,
+          "http_status": 200,
+          "sha256": "add875150c603515010aabf6f29afbb7bdaca1280b92cc426639e68d6e95fec3"
+        },
+        {
+          "frame": 4,
+          "time": 4.1,
+          "http_status": 200,
+          "sha256": "6e829f9d35c68d7ceef4504f5d88b78aba8b21eda7612c810c04bf4778e94756"
+        },
+        {
+          "frame": 5,
+          "time": 5.5,
+          "http_status": 200,
+          "sha256": "7b66bb39f8cea48cdc5156b23c45e211ee4b646e23e2624c310aa386a00186dc"
+        },
+        {
+          "frame": 6,
+          "time": 6.9,
+          "http_status": 200,
+          "sha256": "0d12ef07be43c4dec82edb402c64fe26131bdbb3ea183c1e304a207ad820a31a"
+        },
+        {
+          "frame": 7,
+          "time": 8.3,
+          "http_status": 200,
+          "sha256": "5b528a911a114f7a8833d8df8d76e4a636e3c8cd573d7bb602e9611af02610a8"
+        },
+        {
+          "frame": 8,
+          "time": 9.6,
+          "http_status": 200,
+          "sha256": "3b99c2622b7d678c73c33fad720dc3d96204b9183ee1a9614df8909b6120a31b"
+        }
+      ]
+    },
+    {
+      "case_key": "dd9497345030",
+      "delivered_at": "2026-10-24 05:50:11.941378+00",
+      "scored_at": "2026-10-24 06:04:26.092272+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "object_text_clear",
+      "classification_label": "Superfície textual clara em objeto",
+      "object": "papel/extrato bancário",
+      "observation": "Papel na mão com título visível 'BANK TEAT' e linhas de pseudotexto; o prompt pediu documentação de tarifas bancárias e iluminação dos detalhes.",
+      "accepted_prompt_excerpt_exact": "A close-up of a hand holding crumpled bank fee paperwork",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Mão segurando extrato bancário com texto inventado.",
+      "frames": [
+        {
+          "frame": 4,
+          "time": 7.1,
+          "http_status": 200,
+          "sha256": "ae77b894bb2cf5935af13f41487e5cdda3d37d74fbaee71c1f07d981ab8deea3"
+        },
+        {
+          "frame": 5,
+          "time": 9.5,
+          "http_status": 200,
+          "sha256": "4a2954946714b405913751ebb6cb2f3ef5dd7728b0b7306e4357f111f2c557a3"
+        },
+        {
+          "frame": 6,
+          "time": 11.9,
+          "http_status": 200,
+          "sha256": "4c779699330835990da50d150c02ed88778afb6b50e8f20e6fb233af2a3615fd"
+        }
+      ]
+    },
+    {
+      "case_key": "f8995703c0eb",
+      "delivered_at": "2026-10-24 07:55:11.921926+00",
+      "scored_at": "2026-10-24 08:04:28.810848+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "incidental_object_lettering_uncertain",
+      "classification_label": "Marcas incidentais em objeto; leitura/fidelidade desconhecida",
+      "object": "rótulos em latas/garrafas",
+      "observation": "A nota culpa texto sobreposto em todos os quadros. Nos quadros 6–8 também há embalagens com marcações pequenas semelhantes a letras; a leitura/fidelidade dessas marcas não foi estabelecida. Os quadros 1–5 mostram apenas overlays esperados.",
+      "accepted_prompt_excerpt_exact": "checking emergency supplies on a table, with canned goods and bottled water clearly visible",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Texto inventado sobre estrada rural ao pôr do sol.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "36457d7206d4b1d8abde099002a132ddd4d3316663e6a37e7cf68294731af914"
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200,
+          "sha256": "dbbe134bc33f9663bde4776c619dc5a457f36d81671ca026fd602eb8ccd88465"
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "http_status": 200,
+          "sha256": "4d77cbfb5531265c9ab2a691ce3118fa1413a7fc03252e6b199ef4ac310dd12f"
+        },
+        {
+          "frame": 4,
+          "time": 6,
+          "http_status": 200,
+          "sha256": "31f0cad2a96ba883e226e4145759e1bc8b08fd3fc9eb7a267d189a2acaa7af2c"
+        },
+        {
+          "frame": 5,
+          "time": 8,
+          "http_status": 200,
+          "sha256": "a3e4a2dc25b27b2ac869b6b40e8b1e3bba107a58065f92e0662e7a35e02f80a4"
+        },
+        {
+          "frame": 6,
+          "time": 10,
+          "http_status": 200,
+          "sha256": "daa531b0b8b6bf5d8a4c5d17c74ff1a7e382e846e4539a2bb4a52c3e06add51f"
+        },
+        {
+          "frame": 7,
+          "time": 12,
+          "http_status": 200,
+          "sha256": "6ba4869dc0ed1e61e30fe98229879adbfd8783415abc1771377476c1cae32ba4"
+        },
+        {
+          "frame": 8,
+          "time": 14,
+          "http_status": 200,
+          "sha256": "93d6984cc9639e912c78b0acf8f1a9294171989ef54ce5e72305e1c875bb10e3"
+        }
+      ]
+    },
+    {
+      "case_key": "b07227bc1c79",
+      "delivered_at": "2026-10-24 17:09:13.061215+00",
+      "scored_at": "2026-10-24 17:19:24.503514+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "A nota cita literalmente 'usekineo.com/free'; a mesma string está no track 9 e nos quadros. Frascos na geladeira não exibem letras adicionais legíveis confirmadas nesta inspeção.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Texto 'usekineo.com/free' no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "0540a7ad22fac35c1f4befcb301df507023a92b4a50f6918e1031f1789e53af7"
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "http_status": 200,
+          "sha256": "c85375b31cfa2c963cbb53a971ae2b876369dd7e77554c74ac69b8e0593c80a1"
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "http_status": 200,
+          "sha256": "bd2dd22523e2f550a3ce906e233fdc76b12e9a0d973bc8df2145a0ab249b37a1"
+        },
+        {
+          "frame": 4,
+          "time": 6,
+          "http_status": 200,
+          "sha256": "e68ca53e2801a683d380996d609735ea6e8cc06f502236d4d23bc5d44cc75501"
+        },
+        {
+          "frame": 5,
+          "time": 8,
+          "http_status": 200,
+          "sha256": "403bc006d28dd0cacbf1fa229bb843721318553740a764501c984a211f17f813"
+        },
+        {
+          "frame": 6,
+          "time": 10,
+          "http_status": 200,
+          "sha256": "ba6ba07c673e2553fe652bef6ce2ff0c5d255d277eb81fe1f87be77f1dd43864"
+        },
+        {
+          "frame": 7,
+          "time": 12,
+          "http_status": 200,
+          "sha256": "11483276a0d90b7ca1395a4e7913ad9e4668df742d144734c59e626e985dae28"
+        },
+        {
+          "frame": 8,
+          "time": 14,
+          "http_status": 200,
+          "sha256": "070bd10187e1a2272a437cde976f06f07180e0af1e3bba9cce6df6c4a603d707"
+        }
+      ]
+    },
+    {
+      "case_key": "62f4ab5c58d4",
+      "delivered_at": "2026-10-25 03:14:05.927296+00",
+      "scored_at": "2026-10-25 03:19:34.964485+00",
+      "pixel_score": 65,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "object_text_clear",
+      "classification_label": "Superfície textual clara em objeto",
+      "object": "caixa de pizza",
+      "observation": "No quadro 4 a caixa de pizza traz letras/palavras impressas; o prompt pediu uma caixa de pizza, sem fornecer conteúdo textual para o rótulo. As notas históricas são genéricas e não permitem atribuir cada teto exclusivamente a essa superfície.",
+      "accepted_prompt_excerpt_exact": "snatching a bright pizza box from a suburban doorstep",
+      "object_text_frame_indices": [
+        4
+      ],
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Alien amarelo comendo pizza, texto inventado visível.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "ad7aa9c3b7f11dbb54a076be4679f349256b1b9e29d7583c98df2c41c5f4261b"
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200,
+          "sha256": "7cf7ff751247cf0018fc3642e78d206de57eb329fe46e4a7f5e4c74ed929f1a0"
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "http_status": 200,
+          "sha256": "817a629d91168696f6dc2a7bef214406c421f175b892b545fe0575925e9e8a36"
+        },
+        {
+          "frame": 4,
+          "time": 6.4,
+          "http_status": 200,
+          "sha256": "0f122d8ecb000370aba7f108790b0025046e29ffa5e9b18306c31f815c7480e6"
+        },
+        {
+          "frame": 5,
+          "time": 10.6,
+          "http_status": 200,
+          "sha256": "f5ab7d6468a0942999578c1748a6ab9f695d48d9e9b68b40d584f1c6ecca3a9c"
+        },
+        {
+          "frame": 6,
+          "time": 12.8,
+          "http_status": 200,
+          "sha256": "2253027d1d9caf3fd12a1fcc93dd12f5f8aa7f17de118a4e17749c5fb645b450"
+        },
+        {
+          "frame": 7,
+          "time": 14.9,
+          "http_status": 200,
+          "sha256": "f0d90bfcf597116e534e901341cf1ea8e8d9e2ce5b1a61f982b4d81b3b41834e"
+        },
+        {
+          "frame": 8,
+          "time": 17,
+          "http_status": 200,
+          "sha256": "0a9a1dd89029f1a225b45535c69249895da2c6b546d01c6ce4c2eaac4f9694b0"
+        }
+      ]
+    },
+    {
+      "case_key": "374c239cb3f0",
+      "delivered_at": "2026-10-25 03:14:12.030815+00",
+      "scored_at": "2026-10-25 03:19:34.664698+00",
+      "pixel_score": 65,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "A nota transcreve 'usekino.com/free', mas os quadros e o RenderScript mostram 'usekineo.com/free'. A caixa de pizza observada não mostra rótulo legível adicional. Evidência de erro de leitura/atribuição do juiz, sem novo OCR.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "judge_watermark_reading_disagrees_with_source_and_frame": true,
+      "historical_note_excerpt": "Texto 'usekino.com/free' visível no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "b7a816bde8b25f9541dc0b517b7bf6e48476717ec5de37c009af7890a7aeea6b"
+        },
+        {
+          "frame": 2,
+          "time": 2.5,
+          "http_status": 200,
+          "sha256": "f7a66043d115b76abccfc041f529e493656b117ac8728a45d2784def902c174d"
+        },
+        {
+          "frame": 3,
+          "time": 5,
+          "http_status": 200,
+          "sha256": "d9facefe540fcdbe055cbbd6cb7ad1623a51f9c2b33eacb39cbda67a116324c0"
+        },
+        {
+          "frame": 4,
+          "time": 7.5,
+          "http_status": 200,
+          "sha256": "8c41b1d8e39a84dd635b3be341106091c8b14d9770c07249659e8ffe2cec22e2"
+        },
+        {
+          "frame": 5,
+          "time": 10,
+          "http_status": 200,
+          "sha256": "212e667d12299eaf5b33dffeb6d2c6570107efca799dcb756a65bc5076d99975"
+        },
+        {
+          "frame": 6,
+          "time": 12.5,
+          "http_status": 200,
+          "sha256": "1a38eb648308c758ef07192f5b6bd8fd15f8583b58e48207fd419a8792001c03"
+        },
+        {
+          "frame": 7,
+          "time": 15,
+          "http_status": 200,
+          "sha256": "ce5d809ba7b42983e7d414ebd2fdee014b11c63057f5a5359ab03abf48e48a2a"
+        },
+        {
+          "frame": 8,
+          "time": 17.5,
+          "http_status": 200,
+          "sha256": "7c80a3812e3fceaa22ea38e0ec7235125d89306ea18b0b487e0af7ca39e744a6"
+        }
+      ]
+    },
+    {
+      "case_key": "39ea349dfa5b",
+      "delivered_at": "2026-10-25 03:26:06.135393+00",
+      "scored_at": "2026-10-25 03:34:34.418413+00",
+      "pixel_score": 61,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "A nota cita a marca d’água. Ela consta do track 9 e dos quadros; as demais palavras observadas são legendas compostas. Não se certifica identidade ou outros critérios do filme.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Texto 'usekineo.com/free' visível no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "5823a6769cb612a87f562beba9e0f134121fe02aff9da1e022eab652f7baded0"
+        },
+        {
+          "frame": 2,
+          "time": 2.9,
+          "http_status": 200,
+          "sha256": "72d66956542d2bc952e4569da0d0ba1ec4a390abd6308d90280bac4b0f5874fe"
+        },
+        {
+          "frame": 3,
+          "time": 5.8,
+          "http_status": 200,
+          "sha256": "3346e3c49c2f8ba72e5136191b19fb0c20502423d26b20ab09bcf318476b2b26"
+        },
+        {
+          "frame": 4,
+          "time": 8.6,
+          "http_status": 200,
+          "sha256": "572bd894905dd5bc1886513125a71e7606c7f876775a48d1863e173f3c60ca47"
+        },
+        {
+          "frame": 5,
+          "time": 11.5,
+          "http_status": 200,
+          "sha256": "1c4b15b9cc04bd79380d038133a778df9d05e8a45b38e4653c3975470f11fd5a"
+        },
+        {
+          "frame": 6,
+          "time": 14.4,
+          "http_status": 200,
+          "sha256": "b7267e655a3fa13fcd9f5a370514028ca7c5a6b2f20e8f44fba088df10be605f"
+        },
+        {
+          "frame": 7,
+          "time": 17.3,
+          "http_status": 200,
+          "sha256": "ecc0cfb2522b2bdb0937aacadc9ae5561157a90da32d54646a4cbed6e6ff2bce"
+        },
+        {
+          "frame": 8,
+          "time": 20.1,
+          "http_status": 200,
+          "sha256": "6cdf03d5bb678d4d7a9a92ae00f4101e5de71c70b70b718ee76cc83517709c0b"
+        }
+      ]
+    },
+    {
+      "case_key": "4343cbe9268a",
+      "delivered_at": "2026-10-25 07:41:50.33347+00",
+      "scored_at": "2026-10-25 07:49:29.783875+00",
+      "pixel_score": 87,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Mercado com fumaça; textos observados correspondem à marca d’água, imagem de logo track 10 e legenda composta. Não foi confirmado texto adicional do fornecedor nos três quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "expected_image_overlay_source_track": 10,
+      "historical_note_excerpt": "Silhuetas em mercado com fumaça, texto inventado.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "856592a8135004b4465eac384b10d89891dc7863cef48bac25d31cbdb7fbad06"
+        },
+        {
+          "frame": 2,
+          "time": 1.6,
+          "http_status": 200,
+          "sha256": "b2cc0b5a4d76e5aff0c55c90fa3a664cf28b0f97c0662395179b89877734d66e"
+        },
+        {
+          "frame": 3,
+          "time": 3.3,
+          "http_status": 200,
+          "sha256": "a324f1c2a2faeaed08e56dd5e8ae6588cc069eb112bf68c8c6273cf7b10c29e3"
+        }
+      ]
+    },
+    {
+      "case_key": "87e9d0a830c5",
+      "delivered_at": "2026-10-25 08:23:11.781115+00",
+      "scored_at": "2026-10-25 08:34:34.546717+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "incidental_object_lettering_uncertain",
+      "classification_label": "Marcas incidentais em objeto; leitura/fidelidade desconhecida",
+      "object": "placas/cartazes de neon no fundo",
+      "observation": "A nota cita literalmente a marca d’água, confirmada no source. O cenário animado também contém placas com formas semelhantes a letras, pequenas/desfocadas; não foi estabelecida leitura ou fidelidade dessas marcas.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Texto 'usekineo.com/free' no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "ea7fa576359cbac9c60cc467d60db0b859e830eefb773803a7b557e8b0cc26a4"
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "http_status": 200,
+          "sha256": "dc8f15bf0af4ea47ed54e7c09d5560393d84ef4606c8569558db6603c57aeaec"
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "http_status": 200,
+          "sha256": "9b346e85008d280d1602b5194770db219cc80a9e6e33fd2ebecfc9101278e793"
+        }
+      ]
+    },
+    {
+      "case_key": "d9bc2a71dea7",
+      "delivered_at": "2026-10-25 10:39:54.281651+00",
+      "scored_at": "2026-10-25 10:49:26.056983+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "Espada sobre palha; texto superior é a marca d’água e texto central/inferior é legenda composta. Sem texto adicional do fornecedor confirmado nos dois quadros marcados.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Espada no chão com texto inventado no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "aa3074922f80f5981aefa18ac520cc31504bba30eff8a0c416668bc6501553dd"
+        },
+        {
+          "frame": 2,
+          "time": 2.4,
+          "http_status": 200,
+          "sha256": "1f4f0d92e9f1474c04d58b2442c135838666fd90ec91f79b40b4510611bc9df0"
+        }
+      ]
+    },
+    {
+      "case_key": "b80062bd6949",
+      "delivered_at": "2026-10-25 11:57:37.099683+00",
+      "scored_at": "2026-10-25 12:04:33.825932+00",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "classification": "expected_compositor_overlay_only_confirmed",
+      "classification_label": "Somente overlays esperados confirmados nos quadros marcados",
+      "object": null,
+      "observation": "A nota cita 'usekineo.com/free'. Quadros confirmam marca d’água track 9; texto não latino sobre as imagens é legenda composta, sem letras adicionais do fornecedor confirmadas.",
+      "watermark": {
+        "source_track": 9,
+        "text": "usekineo.com/free",
+        "source_matches_visual": true
+      },
+      "historical_note_excerpt": "Bloco de texto 'usekineo.com/free' no topo.",
+      "frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "http_status": 200,
+          "sha256": "62bdde29185d7550c26a584403e8c7b0561adc5275273507dbf971a7102f84be"
+        },
+        {
+          "frame": 2,
+          "time": 2.9,
+          "http_status": 200,
+          "sha256": "7c784945ea61641da8832ecd3a38900ef06efb62be5b67fdbb28634d7d7deb6f"
+        },
+        {
+          "frame": 3,
+          "time": 5.8,
+          "http_status": 200,
+          "sha256": "69e56ce3ed6acb2ccf169286cb2d245278a9de2e0d43d30995bd31fcf03da0ac"
+        },
+        {
+          "frame": 4,
+          "time": 8.6,
+          "http_status": 200,
+          "sha256": "4ac5c22424fb31aa75729286727b42a01cd742079434cd88f5773c150bc0868e"
+        },
+        {
+          "frame": 5,
+          "time": 14.4,
+          "http_status": 200,
+          "sha256": "00c42c4321cce28e770e34784bb711b3eaaa12f3ddd595b71cde737b84c0bb8f"
+        },
+        {
+          "frame": 6,
+          "time": 17.3,
+          "http_status": 200,
+          "sha256": "4be44b242e424031e4efe0f58c05dadc086213318b3663434f27b282cbac1b08"
+        },
+        {
+          "frame": 7,
+          "time": 20.1,
+          "http_status": 200,
+          "sha256": "2946039e893ee7be5152a5f983c0b0c43ca62dc929ffd2cc301a9bf3ea188be1"
+        },
+        {
+          "frame": 8,
+          "time": 23,
+          "http_status": 200,
+          "sha256": "dc58bc38d4a8206f9309c889589a02da5d60a79f291ca7814f82ad67f9f639d6"
+        }
+      ]
+    }
+  ]
+}

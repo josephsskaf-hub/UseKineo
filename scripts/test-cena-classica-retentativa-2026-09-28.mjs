@@ -28,11 +28,12 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semFilme15Perfeito2610 } from './test-support/desfaz-filme15-perfeito-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — historical response slice predates the signed gate enrollment
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFilme15Perfeito2610(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-FILME15-PERFEITO-2610 — keep every original retry/HMAC assertion; current gate tests read raw source
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

@@ -5,6 +5,7 @@
 // em desfaz-filme15-fiel-2610-hunks.json. Sem a marca = intocado. Trecho ausente/ambíguo ou resultado diferente da base = LANÇA.
 // Camada MAIS NOVA: desfaz-caption-canonico-2610 (a cabeça da corrente) chama isto PRIMEIRO. Fim de linha: o do próprio texto.
 import { readFileSync } from 'node:fs'
+import { semFilme15Perfeito2610 } from './desfaz-filme15-perfeito-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — newer layer first
 import { createHash } from 'node:crypto'
 import { semFilme15Rosto2610 } from './desfaz-filme15-rosto-2610.mjs' // KINEO-FILME15-ROSTO-2610 — camada mais nova sai primeiro
 export const MARCA_FILME15_FIEL_2610 = 'KINEO-FILME15-FIEL-2610'
@@ -14,6 +15,7 @@ export const FILME15_FIEL_2610_ARQUIVOS = Object.freeze(Object.keys(FILME15_FIEL
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 
 export function semFilme15Fiel2610(texto, p) {
+  texto = semFilme15Perfeito2610(texto, p) // KINEO-FILME15-PERFEITO-2610
   texto = semFilme15Rosto2610(texto, p) // KINEO-FILME15-ROSTO-2610
   const rel = String(p ?? '').split(String.fromCharCode(92)).join('/')
   const entry = FILME15_FIEL_2610.scope[rel]

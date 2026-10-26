@@ -142,7 +142,7 @@ function routeSlice(source, from, until) {
   visit(sf); assert.ok(found, 'actual route slice ' + from); return found
 }
 const evidenceSlice = source => routeSlice(source, 'captionEvidence', (s, sf, named) => named(s, 'detectedPersonaId'))
-const selectionSlice = source => routeSlice(source, 'captionSelection', (s, sf) => ts.isIfStatement(s) && s.expression.getText(sf) === 'faceless15.ativo')
+const selectionSlice = source => routeSlice(source, 'captionSelection', (s, sf) => ts.isIfStatement(s) && (s.expression.getText(sf) === 'faceless15.ativo' || s.getText(sf).includes('buildFree15CanonicalCaptions'))) // KINEO-LEVA-PERFEITO-2610 — o reagrupamento de legenda do filme perfeito (await import, guardiões próprios) fica fora do recorte síncrono
 function routeRun({ fixture = actual, source = route, avatarMode = false, hasUserVoice = false, isServiceFinish = false, setup = {}, module = load(lib) } = {}) {
   const built = buildCase(fixture, setup), snapshot = json(built.source), raw = JSON.stringify(fixture.words)
   const code = evidenceSlice(source).code + '\n' + selectionSlice(source).code + '\nreturn { source, captionSelection, faceless15Relato };'

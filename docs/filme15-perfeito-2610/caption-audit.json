@@ -1,0 +1,1224 @@
+{
+  "task": "KINEO-FILME15-PERFEITO-2610",
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — auditoria SQL somente leitura, 26/10/2026",
+  "project": "cqqukkvjjrguayiyjvhh",
+  "window": {
+    "start_inclusive": "2026-10-19T15:12:00Z",
+    "end_exclusive": "2026-10-26T15:12:00Z",
+    "basis": "videos.created_at; avaliação pixel_score existente antes do fim da mesma janela"
+  },
+  "cohort": {
+    "product": "videos.status='completed'; quality_mode='cinematic_ai'; compose_submission_claim.metadata.duration='15'",
+    "internal_accounts": "Excluídas por lista exata e padrões de lib/internalAccounts.ts; somente perfis vinculados com e-mail não nulo",
+    "films": 170,
+    "distinct_people": 170,
+    "pixel_scored_films": 170,
+    "caption_cap_films": 26
+  },
+  "supplied_baseline": {
+    "films": 208,
+    "caption_broken": 25,
+    "reproduced": false,
+    "classification": "CONTRADIÇÃO DE COORTE / DESCONHECIDO: os números fornecidos não se reproduzem na janela fixa e critérios documentados; sem IDs/janela da medição original, não substituí-la por uma aproximação"
+  },
+  "separate_diagnostic_do_not_add": {
+    "basis": "pixel_score.created_at na mesma janela, não videos.created_at",
+    "seedance15_films": 248,
+    "distinct_people": 248,
+    "pixel_events": 273,
+    "caption_cap_films": 36
+  },
+  "sources": {
+    "tables": [
+      "public.videos",
+      "public.events",
+      "public.profiles"
+    ],
+    "events": [
+      "compose_submission_claim",
+      "pixel_score",
+      "free_redo_film_source",
+      "faceless15_fases"
+    ],
+    "sample_selection": "Um caso por vídeo; último pixel_score com cap contendo 'legenda partida' antes do limite final; source e claim mais recentes antes do mesmo limite; texto completo de narração não persistido"
+  },
+  "results": {
+    "cases": 26,
+    "render_scripts_available": 25,
+    "render_script_missing": 1,
+    "faceless_trace_whisper": 16,
+    "faceless_trace_proportional": 2,
+    "faceless_trace_missing": 8,
+    "one_word_candidate_cases": 10,
+    "connector_end_candidate_cases": 8,
+    "over_five_word_cases": 0,
+    "lexical_candidate_cases_union": 10,
+    "canonical_text_exact_match_lexical_cases": 7,
+    "source_cases_without_simple_lexical_violation": 15,
+    "pixel_evidence_status_complete": 1,
+    "pixel_evidence_status_legacy_not_recorded": 25
+  },
+  "method": [
+    "Colapsar elementos consecutivos de karaokê com texto igual e fronteira contígua (tolerância 15 ms) antes de contar blocos; nunca contar cada palavra colorida como nova legenda.",
+    "Candidato a órfã: bloco com uma palavra, salvo frase canônica completa de uma palavra quando texto integral da legenda corresponde ao roteiro.",
+    "Candidato a conector: bloco não final terminando no léxico EN/PT/ES de faceless15, salvo fim de frase canônica confirmado; léxico não calibrado para FR/AR.",
+    "Comparação canônica: somente equivalência exata dos tokens após normalizar caixa, acentos e pontuação. Não tratar divergência como erro de voz.",
+    "A avaliação pixel é dado histórico observado; ausência de evidence_status em 25 casos impede chamá-los de evidência completa segundo o validador atual."
+  ],
+  "confirmed_findings": [
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO + FATO CONFIRMADO NO CÓDIGO",
+      "cases": [
+        "a81b4f7bf7be",
+        "085fcd7f5d73"
+      ],
+      "rule": "F1 proporcional só veste os blocos já cortados em 4 palavras; não executa agruparLegendaFaceless15.",
+      "code": "lib/filmes/faceless15.ts:348; lib/compose.ts:2909; lib/openai.ts:259",
+      "correction": "buildFree15CanonicalCaptions reagrupa texto canônico antes do render de reparo, com timing explicitamente approximate e sem usar posições sintéticas como ASR."
+    },
+    {
+      "classification": "FATO CONFIRMADO POR REGRESSÃO SINTÉTICA; ATRIBUIÇÃO À COORTE DESCONHECIDA",
+      "rule": "A deduplicação depois da partição podia remover repetição falada e criar bloco 5+1.",
+      "code": "lib/filmes/faceless15.ts:289",
+      "correction": "Preservar todos os tokens após a partição; EN/PT/ES e mutante em scripts/test-filme15-legenda-inteira-2610.mjs.",
+      "cohort_attribution": "Sem ASR bruto/sentenceEnd original não atribuir este mecanismo a nenhum dos 26 casos."
+    }
+  ],
+  "limitations": [
+    "Nenhum render, reavaliação paga, chamada de fornecedor de vídeo ou escrita de banco foi executado nesta auditoria.",
+    "Não foram lidos .env nem valores de credencial. SQL executado exclusivamente pelo conector autorizado, somente SELECT.",
+    "ASR bruto não foi obtido nas fontes inspecionadas. Um RenderScript contém o resultado final da legenda, não prova qual regra interna recebeu os dados errados.",
+    "Nos 15 sources sem violação lexical simples, causa visual, quebra semântica, recorte e falso positivo do juiz continuam DESCONHECIDOS sem inspeção dos quadros. Não presumir que agruparLegendaFaceless15 falhou em todos.",
+    "Extratos de legenda limitados a 56 caracteres e no máximo dois por caso; notas de quadro limitadas a três por caso. Nenhuma URL, UUID de cliente/vídeo, e-mail de cliente ou narração integral está neste artefato."
+  ],
+  "cases": [
+    {
+      "case_key": "b82fa94333bf",
+      "delivered_at": "2026-10-19 17:17:40.400571+00",
+      "scored_at": "2026-10-20 06:04:31.340705+00",
+      "language": "en",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": false,
+      "source_blocks": 0,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: RenderScript ausente",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Quarto escuro com cama, legenda cortada"
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "note_excerpt": "Sombra de mão na parede, legenda cortada"
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "ac4a6ec9b292",
+      "delivered_at": "2026-10-20 01:42:12.355023+00",
+      "scored_at": "2026-10-20 02:19:32.316548+00",
+      "language": "en",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 14,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 5,
+        "connector_end_candidates": 2,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: candidatos no RenderScript; origem exata DESCONHECIDA sem ASR/sentenceEnd bruto",
+      "examples": [
+        {
+          "caption_excerpt": "3AM",
+          "time": 1.09,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": null
+        },
+        {
+          "caption_excerpt": "RULE",
+          "time": 1.77,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": null
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Beco escuro com legenda quebrada no topo."
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "note_excerpt": "Beco escuro com legenda quebrada no topo."
+        },
+        {
+          "frame": 6,
+          "time": 9.4,
+          "note_excerpt": "Criança na porta com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "22852322b43d",
+      "delivered_at": "2026-10-20 01:43:52.513923+00",
+      "scored_at": "2026-10-20 01:49:32.000959+00",
+      "language": "en",
+      "pixel_score": 92,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 16,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 3,
+        "connector_end_candidates": 4,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: quebra lexical confirmada por texto canônico igual e fronteira dentro da frase; causa interna DESCONHECIDA sem ASR bruto",
+      "examples": [
+        {
+          "caption_excerpt": "GLITCH",
+          "time": 4.39,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "REVEALING",
+          "time": 10.07,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Mão tocando no celular, legenda cortada"
+        },
+        {
+          "frame": 2,
+          "time": 2.3,
+          "note_excerpt": "Mão tocando no celular, legenda cortada"
+        },
+        {
+          "frame": 3,
+          "time": 4.5,
+          "note_excerpt": "Mão tocando no celular, legenda cortada"
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "f2b8027437ca",
+      "delivered_at": "2026-10-20 03:06:11.880172+00",
+      "scored_at": "2026-10-20 03:34:34.128546+00",
+      "language": "en",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 13,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 1,
+        "connector_end_candidates": 1,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: quebra lexical confirmada por texto canônico igual e fronteira dentro da frase; causa interna DESCONHECIDA sem ASR bruto",
+      "examples": [
+        {
+          "caption_excerpt": "SUDDENLY",
+          "time": 5.03,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": false
+        },
+        {
+          "caption_excerpt": "THE GHOST SCREAMS AND",
+          "time": 13.59,
+          "rule": "connector_end_candidate",
+          "canonical_sentence_end": false
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 5,
+          "time": 11.9,
+          "note_excerpt": "Jovem se virando, legenda cortada."
+        },
+        {
+          "frame": 6,
+          "time": 14.3,
+          "note_excerpt": "Fantasma e criança gritando, legenda cortada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "1a7742d3c67c",
+      "delivered_at": "2026-10-20 09:16:25.680273+00",
+      "scored_at": "2026-10-20 09:19:33.130802+00",
+      "language": "fr",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 13,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 1,
+        "connector_end_candidates": 1,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: quebra lexical confirmada por texto canônico igual e fronteira dentro da frase; causa interna DESCONHECIDA sem ASR bruto",
+      "examples": [
+        {
+          "caption_excerpt": "NUIT",
+          "time": 11.03,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "LE SILENCE DE LA",
+          "time": 10.03,
+          "rule": "connector_end_candidate",
+          "canonical_sentence_end": false
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Mão segurando um telefone, legenda cortada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Mão segurando um telefone, legenda cortada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": false
+    },
+    {
+      "case_key": "e335eb347796",
+      "delivered_at": "2026-10-20 12:25:33.062543+00",
+      "scored_at": "2026-10-20 12:34:29.152245+00",
+      "language": "en",
+      "pixel_score": 91,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 13,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 2,
+        "connector_end_candidates": 2,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: quebra lexical confirmada por texto canônico igual e fronteira dentro da frase; causa interna DESCONHECIDA sem ASR bruto",
+      "examples": [
+        {
+          "caption_excerpt": "PEACE",
+          "time": 11.49,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "SHOCK",
+          "time": 13.53,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": false
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Menino indiano triste ao lado de fogo."
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "note_excerpt": "Menino indiano triste ao lado de fogo."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "a81b4f7bf7be",
+      "delivered_at": "2026-10-21 00:17:15.204571+00",
+      "scored_at": "2026-10-21 00:19:33.020251+00",
+      "language": "pt",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 13,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "proporcional",
+        "chunks": 13,
+        "max_words": 4
+      },
+      "observed_rules": {
+        "one_word_candidates": 2,
+        "connector_end_candidates": 1,
+        "over_five_words": 0
+      },
+      "attribution": "FATO CONFIRMADO: fallback proporcional conserva cortes cegos; candidatos visíveis no RenderScript",
+      "examples": [
+        {
+          "caption_excerpt": "3D...",
+          "time": 2.485,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "ENCANTADA...",
+          "time": 22.026,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Capivara cartoon com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 3.5,
+          "note_excerpt": "Capivara cartoon com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 7,
+          "note_excerpt": "Coelhinho cartoon com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "1c6ed0abd260",
+      "delivered_at": "2026-10-21 02:06:05.723063+00",
+      "scored_at": "2026-10-21 02:19:38.006081+00",
+      "language": "en",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 13,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 13,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Homem no elevador com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Homem no elevador com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "note_excerpt": "Homem no elevador com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "d55abf534f07",
+      "delivered_at": "2026-10-21 06:54:31.404905+00",
+      "scored_at": "2026-10-21 07:04:40.180865+00",
+      "language": "ar",
+      "pixel_score": 92,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 8,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 8,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Bundoq em pé com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2.8,
+          "note_excerpt": "Bundoq e germe com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": false
+    },
+    {
+      "case_key": "9d8c220d3652",
+      "delivered_at": "2026-10-21 07:43:13.528098+00",
+      "scored_at": "2026-10-21 08:04:31.909146+00",
+      "language": "en",
+      "pixel_score": 92,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 11,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 1,
+        "connector_end_candidates": 2,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: quebra lexical confirmada por texto canônico igual e fronteira dentro da frase; causa interna DESCONHECIDA sem ASR bruto",
+      "examples": [
+        {
+          "caption_excerpt": "TEXAS",
+          "time": 4.01,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "SHE DRIVES THROUGH THE",
+          "time": 5.21,
+          "rule": "connector_end_candidate",
+          "canonical_sentence_end": false
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 4,
+          "time": 5.6,
+          "note_excerpt": "Cowgirl loira dirigindo caminhonete."
+        },
+        {
+          "frame": 5,
+          "time": 9.4,
+          "note_excerpt": "Cowgirl loira dirigindo caminhonete."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "085fcd7f5d73",
+      "delivered_at": "2026-10-22 04:50:12.192519+00",
+      "scored_at": "2026-10-22 05:04:27.491656+00",
+      "language": "en",
+      "pixel_score": 78,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 11,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "proporcional",
+        "chunks": 11,
+        "max_words": 4
+      },
+      "observed_rules": {
+        "one_word_candidates": 2,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "FATO CONFIRMADO: fallback proporcional conserva cortes cegos; candidatos visíveis no RenderScript",
+      "examples": [
+        {
+          "caption_excerpt": "THA.",
+          "time": 5.245,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        },
+        {
+          "caption_excerpt": "SEEKHA...",
+          "time": 6.922,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": true
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 3,
+          "time": 3,
+          "note_excerpt": "Mãos segurando prato com comida."
+        },
+        {
+          "frame": 4,
+          "time": 4.5,
+          "note_excerpt": "Mãos segurando prato com comida."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "2697ba4acddc",
+      "delivered_at": "2026-10-22 15:37:12.647036+00",
+      "scored_at": "2026-10-22 16:04:41.158226+00",
+      "language": "pt",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Léo acena para a câmera, saudando os amigos."
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "note_excerpt": "Léo fala sobre descobrir as cores."
+        },
+        {
+          "frame": 5,
+          "time": 9.4,
+          "note_excerpt": "Léo com arco-íris ao fundo, fala sobre cores."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "a67a345fc6ed",
+      "delivered_at": "2026-10-22 15:47:34.87185+00",
+      "scored_at": "2026-10-22 15:49:42.923798+00",
+      "language": "pt",
+      "pixel_score": 87,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 12,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 12,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 1,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: candidatos no RenderScript; origem exata DESCONHECIDA sem ASR/sentenceEnd bruto",
+      "examples": [
+        {
+          "caption_excerpt": "CUIDADO",
+          "time": 3.72,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": null
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Tela de computador com código, legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Tela de computador com código, legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "note_excerpt": "Tela de computador com código, legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "5f1f96171736",
+      "delivered_at": "2026-10-23 02:40:44.290742+00",
+      "scored_at": "2026-10-23 02:49:31.112521+00",
+      "language": "en",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 14,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 14,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Silhueta em um poço com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2.5,
+          "note_excerpt": "Silhueta em um poço com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 5,
+          "note_excerpt": "Silhueta em um poço com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "9a221cd3e4c9",
+      "delivered_at": "2026-10-24 15:59:48.399052+00",
+      "scored_at": "2026-10-24 16:04:26.878168+00",
+      "language": "es",
+      "pixel_score": 79,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 12,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": null,
+      "observed_rules": {
+        "one_word_candidates": 3,
+        "connector_end_candidates": 2,
+        "over_five_words": 0
+      },
+      "attribution": "EVIDÊNCIA DE PRODUÇÃO: candidatos no RenderScript; origem exata DESCONHECIDA sem ASR/sentenceEnd bruto",
+      "examples": [
+        {
+          "caption_excerpt": "DESATA",
+          "time": 3.23,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": null
+        },
+        {
+          "caption_excerpt": "PIES",
+          "time": 10.61,
+          "rule": "one_word_candidate",
+          "canonical_sentence_end": null
+        }
+      ],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Cena de mar tempestuoso à noite."
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "note_excerpt": "Cena de mar tempestuoso à noite."
+        },
+        {
+          "frame": 3,
+          "time": 3.8,
+          "note_excerpt": "Cena de mar tempestuoso à noite."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "bead07d1c13f",
+      "delivered_at": "2026-10-24 16:36:26.733506+00",
+      "scored_at": "2026-10-24 16:49:34.832749+00",
+      "language": "en",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 11,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 11,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Alien verde com olhos grandes, legenda cortada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Alien verde com olhos grandes, legenda cortada."
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "note_excerpt": "Alien verde com olhos grandes, legenda cortada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "f39be0f1a1cd",
+      "delivered_at": "2026-10-24 19:30:17.739499+00",
+      "scored_at": "2026-10-24 19:34:32.81503+00",
+      "language": "en",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Legenda cortada no final."
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "note_excerpt": "Legenda cortada no final."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "2cc3154856a2",
+      "delivered_at": "2026-10-24 22:25:32.90548+00",
+      "scored_at": "2026-10-24 22:34:31.599011+00",
+      "language": "en",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Urso de pelúcia na cama com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Urso de pelúcia na cama com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "note_excerpt": "Urso de pelúcia na cama com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "7e71cc07fc9d",
+      "delivered_at": "2026-10-25 02:30:11.876505+00",
+      "scored_at": "2026-10-25 02:34:32.643109+00",
+      "language": "en",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 11,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 11,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Legenda cortada: 'E SE A TETSUKURI'"
+        },
+        {
+          "frame": 2,
+          "time": 1.9,
+          "note_excerpt": "Legenda cortada: 'POR CINCO SEGUNDOS A TÁBUA'"
+        },
+        {
+          "frame": 3,
+          "time": 3.8,
+          "note_excerpt": "Legenda cortada: 'MARGEM É DE MAIS'"
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "6e7e47e27025",
+      "delivered_at": "2026-10-25 13:29:11.19573+00",
+      "scored_at": "2026-10-25 13:34:31.781816+00",
+      "language": "en",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Coelho branco com lenço amarelo, texto cortado."
+        },
+        {
+          "frame": 2,
+          "time": 1.8,
+          "note_excerpt": "Coelho e pássaro, texto cortado."
+        },
+        {
+          "frame": 3,
+          "time": 3.5,
+          "note_excerpt": "Coelho e pássaro, texto cortado."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "4f616b23d47b",
+      "delivered_at": "2026-10-25 15:15:12.245432+00",
+      "scored_at": "2026-10-25 15:19:32.859178+00",
+      "language": "en",
+      "pixel_score": 90,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Legs de dançarino com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2,
+          "note_excerpt": "Legs de dançarino com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 4,
+          "note_excerpt": "Frame repetido com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "f648734729fe",
+      "delivered_at": "2026-10-25 19:10:11.83276+00",
+      "scored_at": "2026-10-25 19:19:27.281481+00",
+      "language": "pt",
+      "pixel_score": 70,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 9,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 9,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Crianças brincando com ônibus de brinquedo."
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "note_excerpt": "Crianças brincando com ônibus de brinquedo."
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "note_excerpt": "Crianças brincando com ônibus de brinquedo."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "b65594b79a4f",
+      "delivered_at": "2026-10-25 19:59:35.439192+00",
+      "scored_at": "2026-10-25 21:19:23.001865+00",
+      "language": "en",
+      "pixel_score": 87,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Filhote de cachorro fofo com ovo, legenda cortada."
+        },
+        {
+          "frame": 2,
+          "time": 2.3,
+          "note_excerpt": "Filhote de cachorro fofo com ovo, legenda cortada."
+        },
+        {
+          "frame": 3,
+          "time": 4.5,
+          "note_excerpt": "Filhote de cachorro fofo com ovo, legenda cortada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "47fe64d0aa97",
+      "delivered_at": "2026-10-25 21:19:17.697892+00",
+      "scored_at": "2026-10-25 21:34:31.256757+00",
+      "language": "pt",
+      "pixel_score": 88,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 9,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 9,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Dois personagens de anime se enfrentando."
+        },
+        {
+          "frame": 2,
+          "time": 2.1,
+          "note_excerpt": "Dois personagens de anime se enfrentando."
+        },
+        {
+          "frame": 3,
+          "time": 4.3,
+          "note_excerpt": "Dois personagens de anime se enfrentando."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "8da074c197bc",
+      "delivered_at": "2026-10-25 23:11:11.863015+00",
+      "scored_at": "2026-10-25 23:19:25.475357+00",
+      "language": "en",
+      "pixel_score": 85,
+      "pixel_evidence_status": "legacy_not_recorded",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": true,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [
+        {
+          "frame": 1,
+          "time": 0,
+          "note_excerpt": "Ruínas em floresta com legenda quebrada."
+        },
+        {
+          "frame": 2,
+          "time": 2.4,
+          "note_excerpt": "Ruínas em floresta com legenda quebrada."
+        },
+        {
+          "frame": 3,
+          "time": 4.8,
+          "note_excerpt": "Ruínas em floresta com legenda quebrada."
+        }
+      ],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    },
+    {
+      "case_key": "92a421df48d2",
+      "delivered_at": "2026-10-26 14:36:47.031296+00",
+      "scored_at": "2026-10-26 14:49:36.050539+00",
+      "language": "en",
+      "pixel_score": 80,
+      "pixel_evidence_status": "complete",
+      "source_available": true,
+      "source_blocks": 10,
+      "caption_text_exactly_matches_script": false,
+      "faceless_trace": {
+        "chunker": "whisper",
+        "chunks": 10,
+        "max_words": 5
+      },
+      "observed_rules": {
+        "one_word_candidates": 0,
+        "connector_end_candidates": 0,
+        "over_five_words": 0
+      },
+      "attribution": "DESCONHECIDO: teto pixel sem violação lexical simples; confirmar geometria/semântica nos quadros",
+      "examples": [],
+      "broken_frames": [],
+      "raw_asr_availability": "DESCONHECIDO: não obtido nos eventos/tabelas inspecionados; elementos de karaokê não são ASR bruto",
+      "rules_language_calibrated": true
+    }
+  ]
+}

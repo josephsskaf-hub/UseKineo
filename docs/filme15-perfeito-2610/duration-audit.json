@@ -1,0 +1,479 @@
+{
+  "task": "KINEO-FILME15-PERFEITO-2610",
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — SELECT somente leitura; FATO CONFIRMADO no código histórico",
+  "audited_at_utc": "2026-10-26T17:57:16Z",
+  "window": {
+    "start_inclusive": "2026-10-19T15:12:00Z",
+    "end_exclusive": "2026-10-26T15:12:00Z",
+    "basis": "Mesma coorte de entregas do caption-audit e text-audit; fontes e claims anteriores ao fim da mesma janela."
+  },
+  "cohort": {
+    "films": 170,
+    "distinct_people": 170,
+    "source_available": 162,
+    "source_missing": 8,
+    "internal_accounts": "Excluídas por lista exata e todos os padrões de lib/internalAccounts.ts; perfil vinculado com e-mail não nulo."
+  },
+  "measurements": {
+    "stored_video_duration_under_14": 13,
+    "render_script_duration_under_14": 20,
+    "render_script_under_14_with_stored_video_equal_14": 9,
+    "stored_video_under_14_without_source": 2,
+    "under_14_indicator_union": 22,
+    "source_under_14_with_narration_track_end_under_14": 20,
+    "source_under_14_with_last_video_segment_end_under_14": 20,
+    "source_under_14_with_accepted_footage_at_least_18": 20
+  },
+  "supplied_baseline": {
+    "films": 208,
+    "below_14": 25,
+    "reproduced": false,
+    "classification": "CONTRADIÇÃO DE COORTE / DESCONHECIDO: 25 de 208 não reproduz na coorte fixa de 170. Não se substitui duração real do MP4 por source.duration nem se usa a coluna arredondada como medida precisa."
+  },
+  "confirmed_findings": [
+    {
+      "classification": "FATO CONFIRMADO",
+      "commit": "b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d",
+      "source": "lib/compose.ts:2104",
+      "finding": "masterDuration usa realAudioDuration válida; duração pedida só é fallback. totalDuration arredonda para cima em décimos e tinha piso de 5 s nos filmes sem avatar."
+    },
+    {
+      "classification": "FATO CONFIRMADO",
+      "commit": "b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d",
+      "source": "lib/compose.ts:2810",
+      "finding": "A duração da faixa de narração é masterDuration; o comentário declara preservação do áudio sem truncar ou preencher o arquivo."
+    },
+    {
+      "classification": "FATO CONFIRMADO",
+      "commit": "b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d",
+      "source": "app/api/compose/status/[renderId]/route.ts:599",
+      "finding": "duration = Math.round(state.durationSeconds) antes da persistência. A coluna videos.duration esconde valores abaixo de 14 s ao arredondar para 14."
+    },
+    {
+      "classification": "EVIDÊNCIA DE PRODUÇÃO",
+      "finding": "Nos 20 RenderScripts abaixo de 14 s, a faixa de narração já termina abaixo de 14 s, o último segmento visual também termina abaixo de 14 s, e o claim contém 18 ou 21 s de clipes aceitos.",
+      "consequence": "A falta de material visual de 3×6 s não explica esses casos. A montagem acompanhou uma faixa de narração já curta no plano registrado."
+    },
+    {
+      "classification": "HIPÓTESE APOIADA POR CÓDIGO E DADOS",
+      "finding": "A escrita/orçamento de fala produziu narração curta e o compose, ao usar áudio como relógio, encerrou o filme cedo.",
+      "limit": "Não foi ouvido nem medido novamente o MP3; o RenderScript não prova qual etapa anterior encurtou o roteiro, nem que alguma fala tenha sido amputada."
+    }
+  ],
+  "recommendations": [
+    {
+      "classification": "SUGESTÃO",
+      "action": "No 15 s assinado, ampliar a escrita antes do TTS quando o plano não cobre o piso, preservando a fala aprovada; não cortar nem acelerar para caber."
+    },
+    {
+      "classification": "SUGESTÃO",
+      "action": "Usar duração bruta do fornecedor no portão <14, sem arredondamento; manter fonte/áudio separados da medida real do arquivo."
+    }
+  ],
+  "limitations": [
+    "video_duration_stored_seconds é valor persistido arredondado; render_script_duration_seconds é duração solicitada ao montador; narration_track_end_seconds é o término da faixa no plano. São medidas diferentes, não certificados intercambiáveis de MP4 ou de áudio.",
+    "Sem GET/ffprobe de MP4, nova extração, novo TTS ou render pago. Nenhum arquivo .env foi lido e nenhum dado de banco foi escrito.",
+    "Os oito filmes sem RenderScript não permitem atribuição ao plano de áudio; dois deles têm videos.duration=10. Não foram inventadas durações para preencher essa lacuna.",
+    "narration_whitespace_tokens conta separações por espaço no claim; não é contagem linguística calibrada nem estimativa de duração. Não serve para diagnosticar idiomas sem separação por espaços.",
+    "A união de 22 indicadores é apenas inventário de casos da mesma coorte; não significa 22 durações reais de MP4 medidas com precisão."
+  ],
+  "query": "WITH cc AS (\n  SELECT DISTINCT ON (metadata->>'render_id') metadata, created_at\n  FROM public.events\n  WHERE name='compose_submission_claim'\n    AND created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND metadata->>'render_id' IS NOT NULL\n  ORDER BY metadata->>'render_id', created_at DESC\n), cohort AS (\n  SELECT v.id, v.user_id, v.render_id, v.created_at\n  FROM public.videos v\n  JOIN public.profiles p ON p.id=v.user_id\n  JOIN cc ON cc.metadata->>'render_id'=v.render_id AND cc.metadata->>'duration'='15'\n  WHERE v.status='completed' AND v.quality_mode='cinematic_ai'\n    AND v.created_at >= '2026-10-19T15:12:00Z'::timestamptz\n    AND v.created_at < '2026-10-26T15:12:00Z'::timestamptz\n    AND p.email IS NOT NULL\n    AND NOT (lower(p.email) IN ('josephsskaf@gmail.com','josephskaf@hotmail.com','victoriaskaf96@gmail.com','joseph+teste01@gmail.com','teste01@shortsforgeai.com')\n      OR lower(p.email) LIKE 'josephsskaf+%@gmail.com' OR lower(p.email) LIKE 'joseph+%@gmail.com'\n      OR lower(p.email) LIKE 'joseph+%' OR lower(p.email) LIKE 'victoriaskaf%'\n      OR lower(p.email) LIKE '%@theresanaiforthat.com' OR lower(p.email) LIKE 'josephsskaf%'\n      OR lower(p.email) LIKE 'josephskaf%' OR lower(p.email) LIKE '%@shortsforgeai.com'\n      OR lower(p.email) LIKE 'test%' OR lower(p.email) LIKE '%mailinator%' OR lower(p.email) LIKE 'smoketest%')\n)\nSELECT left(md5(c.id::text),12) AS case_key,c.created_at AS delivered_at,v.duration AS video_duration_seconds,\n src.metadata->'source'->'duration' AS source_duration_seconds,\n (SELECT jsonb_agg(jsonb_build_object('time',el->'time','duration',el->'duration','track',el->'track')) FROM jsonb_array_elements(coalesce(src.metadata->'source'->'elements','[]'::jsonb)) el WHERE el->>'type'='audio' AND el->>'track'='4') AS narration_elements,\n (SELECT jsonb_agg(jsonb_build_object('time',el->'time','duration',el->'duration','track',el->'track')) FROM jsonb_array_elements(coalesce(src.metadata->'source'->'elements','[]'::jsonb)) el WHERE el->>'type'='video') AS video_elements,\n birth.metadata->'response'->'clip_seconds' AS accepted_clip_seconds,\n length(coalesce(cc.metadata->>'narration','')) AS narration_character_count,\n CASE WHEN trim(coalesce(cc.metadata->>'narration',''))<>'' THEN array_length(regexp_split_to_array(trim(cc.metadata->>'narration'),'\\s+'),1) ELSE 0 END AS narration_whitespace_tokens,\n src.created_at AS source_recorded_at\nFROM cohort c\nJOIN public.videos v ON v.id=c.id\nJOIN cc ON cc.metadata->>'render_id'=c.render_id\nLEFT JOIN LATERAL (\n SELECT e.metadata,e.created_at FROM public.events e WHERE e.name='free_redo_film_source'\n AND e.metadata->>'render_id'=c.render_id AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n ORDER BY e.created_at DESC LIMIT 1\n) src ON true\nLEFT JOIN LATERAL (\n SELECT e.metadata FROM public.events e WHERE e.name='cinematic_submission_claim' AND e.user_id=c.user_id\n AND e.session_id=cc.metadata->>'generation_id' AND e.created_at < '2026-10-26T15:12:00Z'::timestamptz\n ORDER BY e.created_at DESC LIMIT 1\n) birth ON true\nORDER BY c.created_at;",
+  "cases": [
+    {
+      "case_key": "440b3e974acf",
+      "delivered_at": "2026-10-19 18:14:13.998756+00",
+      "video_duration_stored_seconds": 10,
+      "source_available": false,
+      "render_script_duration_seconds": null,
+      "narration_track_end_seconds": null,
+      "last_video_segment_end_seconds": null,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 30,
+      "narration_character_count": 160,
+      "classification": "DESCONHECIDO: duração armazenada abaixo do piso, mas RenderScript/áudio indisponíveis."
+    },
+    {
+      "case_key": "95fbdf1593d4",
+      "delivered_at": "2026-10-19 21:38:56.662562+00",
+      "video_duration_stored_seconds": 10,
+      "source_available": false,
+      "render_script_duration_seconds": null,
+      "narration_track_end_seconds": null,
+      "last_video_segment_end_seconds": null,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 32,
+      "narration_character_count": 159,
+      "classification": "DESCONHECIDO: duração armazenada abaixo do piso, mas RenderScript/áudio indisponíveis."
+    },
+    {
+      "case_key": "678337041b16",
+      "delivered_at": "2026-10-20 23:11:11.145239+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.9,
+      "narration_track_end_seconds": 13.896,
+      "last_video_segment_end_seconds": 13.96,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 39,
+      "narration_character_count": 215,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "422d58a95c8e",
+      "delivered_at": "2026-10-21 02:27:08.588805+00",
+      "video_duration_stored_seconds": 11,
+      "source_available": true,
+      "render_script_duration_seconds": 10.6,
+      "narration_track_end_seconds": 10.512,
+      "last_video_segment_end_seconds": 10.66,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 28,
+      "narration_character_count": 168,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "e8bdf7576872",
+      "delivered_at": "2026-10-21 08:43:01.780442+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 13,
+      "narration_track_end_seconds": 12.96,
+      "last_video_segment_end_seconds": 13.06,
+      "provider_accepted_clip_seconds": [
+        7,
+        7,
+        7
+      ],
+      "provider_accepted_footage_total_seconds": 21,
+      "narration_whitespace_tokens": 36,
+      "narration_character_count": 181,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "4809baa68135",
+      "delivered_at": "2026-10-21 17:29:12.909592+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.8,
+      "narration_track_end_seconds": 13.8,
+      "last_video_segment_end_seconds": 13.86,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 37,
+      "narration_character_count": 217,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "d50a8338214d",
+      "delivered_at": "2026-10-21 20:32:16.192271+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.7,
+      "narration_track_end_seconds": 13.632,
+      "last_video_segment_end_seconds": 13.76,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 33,
+      "narration_character_count": 216,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "2ad709ad50f0",
+      "delivered_at": "2026-10-22 01:06:12.168599+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.8,
+      "narration_track_end_seconds": 13.752,
+      "last_video_segment_end_seconds": 13.86,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 39,
+      "narration_character_count": 210,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "085fcd7f5d73",
+      "delivered_at": "2026-10-22 04:50:12.192519+00",
+      "video_duration_stored_seconds": 12,
+      "source_available": true,
+      "render_script_duration_seconds": 12.1,
+      "narration_track_end_seconds": 12.072,
+      "last_video_segment_end_seconds": 12.16,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 36,
+      "narration_character_count": 190,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "77f3b45dacc5",
+      "delivered_at": "2026-10-22 12:29:12.929769+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 13.2,
+      "narration_track_end_seconds": 13.2,
+      "last_video_segment_end_seconds": 13.26,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 33,
+      "narration_character_count": 194,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "bd7e3ae21e0f",
+      "delivered_at": "2026-10-22 18:37:34.369012+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.8,
+      "narration_track_end_seconds": 13.752,
+      "last_video_segment_end_seconds": 13.86,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 40,
+      "narration_character_count": 223,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "d3b99e53ab26",
+      "delivered_at": "2026-10-22 22:41:14.467458+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.9,
+      "narration_track_end_seconds": 13.824,
+      "last_video_segment_end_seconds": 13.96,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 41,
+      "narration_character_count": 214,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "ddad3cc0905f",
+      "delivered_at": "2026-10-23 20:10:15.825258+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 12.8,
+      "narration_track_end_seconds": 12.72,
+      "last_video_segment_end_seconds": 12.86,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 32,
+      "narration_character_count": 170,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "7976df6dc52a",
+      "delivered_at": "2026-10-24 03:32:46.311827+00",
+      "video_duration_stored_seconds": 11,
+      "source_available": true,
+      "render_script_duration_seconds": 10.5,
+      "narration_track_end_seconds": 10.488,
+      "last_video_segment_end_seconds": 10.56,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 25,
+      "narration_character_count": 164,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "bc11aa101d9a",
+      "delivered_at": "2026-10-24 16:23:11.592745+00",
+      "video_duration_stored_seconds": 11,
+      "source_available": true,
+      "render_script_duration_seconds": 11,
+      "narration_track_end_seconds": 10.992,
+      "last_video_segment_end_seconds": 11.06,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 24,
+      "narration_character_count": 177,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "3b40758fdb46",
+      "delivered_at": "2026-10-24 19:22:22.65838+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 13.2,
+      "narration_track_end_seconds": 13.104,
+      "last_video_segment_end_seconds": 13.26,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 38,
+      "narration_character_count": 205,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "8599967b9c2c",
+      "delivered_at": "2026-10-24 19:27:44.147516+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.9,
+      "narration_track_end_seconds": 13.872,
+      "last_video_segment_end_seconds": 13.96,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 36,
+      "narration_character_count": 204,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "88076ca8d6a1",
+      "delivered_at": "2026-10-24 20:51:20.419002+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.5,
+      "narration_track_end_seconds": 13.464,
+      "last_video_segment_end_seconds": 13.56,
+      "provider_accepted_clip_seconds": [
+        7,
+        7,
+        7
+      ],
+      "provider_accepted_footage_total_seconds": 21,
+      "narration_whitespace_tokens": 39,
+      "narration_character_count": 198,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "4343cbe9268a",
+      "delivered_at": "2026-10-25 07:41:50.33347+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 12.8,
+      "narration_track_end_seconds": 12.72,
+      "last_video_segment_end_seconds": 12.86,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 37,
+      "narration_character_count": 204,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "5fd34e6fde7b",
+      "delivered_at": "2026-10-25 19:22:15.411084+00",
+      "video_duration_stored_seconds": 11,
+      "source_available": true,
+      "render_script_duration_seconds": 10.7,
+      "narration_track_end_seconds": 10.68,
+      "last_video_segment_end_seconds": 10.76,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 28,
+      "narration_character_count": 165,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "48ff7db42364",
+      "delivered_at": "2026-10-26 02:37:11.77769+00",
+      "video_duration_stored_seconds": 14,
+      "source_available": true,
+      "render_script_duration_seconds": 13.5,
+      "narration_track_end_seconds": 13.488,
+      "last_video_segment_end_seconds": 13.56,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 38,
+      "narration_character_count": 214,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    },
+    {
+      "case_key": "8be2684940df",
+      "delivered_at": "2026-10-26 05:48:11.465298+00",
+      "video_duration_stored_seconds": 13,
+      "source_available": true,
+      "render_script_duration_seconds": 12.7,
+      "narration_track_end_seconds": 12.696,
+      "last_video_segment_end_seconds": 12.76,
+      "provider_accepted_clip_seconds": [
+        6,
+        6,
+        6
+      ],
+      "provider_accepted_footage_total_seconds": 18,
+      "narration_whitespace_tokens": 39,
+      "narration_character_count": 168,
+      "classification": "EVIDÊNCIA DE PRODUÇÃO: source/áudio planejados abaixo do piso; sem nova medida do MP4."
+    }
+  ]
+}
