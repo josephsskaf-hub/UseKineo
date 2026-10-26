@@ -1,7 +1,7 @@
 {
   "task": "KINEO-VITRINE-FILMES-2610",
   "base": "62213b008292f110117d1abbe20c157efdb55902",
-  "product": "4a43ef90cab84e2edb31f6c8b689697072bf30b0",
+  "product": "b3b6b49adb11bcbf4b0370ca7bc62256f5674b06",
   "scope": {
     "app/(dashboard)/generate/GenerateClient.tsx": {
       "kind": "modified",
@@ -164,7 +164,7 @@
     "app/v/[id]/opengraph-image.tsx": {
       "kind": "modified",
       "beforeSha256": "d125cad4792e2fd643c02918d32a7a9358d1359a2fa673d3512efae4175a9d2a",
-      "afterSha256": "fbd00b8e49d48ba89be217f25e136b1d2d4d9ce6f2c73c39f4a1211f323bd7ff",
+      "afterSha256": "8072aa860b6d7022e21a56a22a9efddab174bf42a468affe8e0c54cbca9bcdf9",
       "hunks": [
         {
           "before": "// não há permissão. O `published_at` vem na MESMA consulta do título (uma ida\n// ao banco só), e não é renderizado em lugar nenhum.\nexport const runtime = 'edge'\nexport const size = { width: 1200, height: 630 }\nexport const contentType = 'image/png'\nexport const alt = 'A viral Short made with Kineo'\n",
@@ -177,9 +177,13 @@
         {
           "before": "    const rawTopic = (data?.topic ?? '').toString()\n    const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title\n    const line =\n      raw\n        .split('\\n')\n        .map((s) => s.replace(/^#+\\s*/, '').trim())\n        .filter(Boolean)[0] ?? ''\n",
           "after": "    const rawTopic = (data?.topic ?? '').toString()\n    const raw = resolvePublicVideoTitle(rawTitle, rawTopic, rawTitle || rawTopic).title\n    const line =\n      // KINEO-VITRINE-FILMES-2610 — the bitmap must redact contact details too.\n      raw.replace(/\\b[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+\\b/g, '[redacted]')\n        .split('\\n')\n        .map((s) => s.replace(/^#+\\s*/, '').trim())\n        .filter(Boolean)[0] ?? ''\n"
+        },
+        {
+          "before": "        </div>\n      </div>\n    ),\n    { ...size },\n  )\n}\n",
+          "after": "        </div>\n      </div>\n    ),\n    { ...size, headers: { 'cache-control': 'private, no-store, max-age=0' } },\n  )\n}\n"
         }
       ],
-      "hunksSha256": "062271c23d2320e91d42fdde226824e067490bfff0ff3e5032547c306f3199c1"
+      "hunksSha256": "dab863a87dbacadd068c5e18ac1af9000d56287bdc1a811d2b0e165b1c3df9d6"
     },
     "components/MadeWithKineo.tsx": {
       "kind": "new",
