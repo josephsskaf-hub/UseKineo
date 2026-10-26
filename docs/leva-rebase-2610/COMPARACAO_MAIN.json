@@ -1,0 +1,678 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "dateUtc": "2026-10-26T21:03:36.526Z",
+  "main": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "totalCompared": 35,
+  "additionalCandidateFailures": 0,
+  "table": [
+    {
+      "file": "docs/qa/test-checkout-return-2026-09-08.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "ReferenceError: chargeCurrency is not defined"
+      ],
+      "mainReasons": [
+        "ReferenceError: chargeCurrency is not defined"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0005-docs__qa__test-checkout-return-2026-09-08.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0001-docs__qa__test-checkout-return-2026-09-08.mjs.log"
+    },
+    {
+      "file": "docs/qa/test-pista3-post-film.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "AssertionError [ERR_ASSERTION]: known never-paid free profile eligible"
+      ],
+      "mainReasons": [
+        "AssertionError [ERR_ASSERTION]: known never-paid free profile eligible"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0006-docs__qa__test-pista3-post-film.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0001-docs__qa__test-pista3-post-film.mjs.log"
+    },
+    {
+      "file": "scripts/test-activation-recovery-claim-settle.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: recovery_eligible carrega settle_probes e secs_after_first (para medir a corrida)"
+      ],
+      "mainReasons": [
+        "CHECK: recovery_eligible carrega settle_probes e secs_after_first (para medir a corrida)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0012-scripts__test-activation-recovery-claim-settle.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0002-scripts__test-activation-recovery-claim-settle.mjs.log"
+    },
+    {
+      "file": "scripts/test-activation-recovery-server-truth.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: o tick esta nas dependencias do effect"
+      ],
+      "mainReasons": [
+        "CHECK: o tick esta nas dependencias do effect"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0013-scripts__test-activation-recovery-server-truth.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0003-scripts__test-activation-recovery-server-truth.mjs.log"
+    },
+    {
+      "file": "scripts/test-another-short-shelf.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "FALHOU: ESCAPE HATCH: sem prateleira cai no handleReset de sempre",
+        "FALHOU: o return so acontece no ramo que roteou"
+      ],
+      "mainReasons": [
+        "FALHOU: ESCAPE HATCH: sem prateleira cai no handleReset de sempre",
+        "FALHOU: duas e SO duas linhas de onAnother mudaram",
+        "FALHOU: o diff tem linhas adicionadas",
+        "FALHOU: o return so acontece no ramo que roteou",
+        "FALHOU: so 2 arquivos de producao no diff"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "FALHOU: duas e SO duas linhas de onAnother mudaram",
+        "FALHOU: o diff tem linhas adicionadas",
+        "FALHOU: so 2 arquivos de producao no diff"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0064-scripts__test-another-short-shelf.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0004-scripts__test-another-short-shelf.mjs.log"
+    },
+    {
+      "file": "scripts/test-autopilot-pilot-resume.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "AssertionError [ERR_ASSERTION]: Pilot creation stores only a public boolean client hint"
+      ],
+      "mainReasons": [
+        "AssertionError [ERR_ASSERTION]: Pilot creation stores only a public boolean client hint"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0099-scripts__test-autopilot-pilot-resume.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0007-scripts__test-autopilot-pilot-resume.mjs.log"
+    },
+    {
+      "file": "scripts/test-chatgpt-quickstart.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "AssertionError [ERR_ASSERTION]: only the query-reading banner is wrapped in a null Suspense fallback"
+      ],
+      "mainReasons": [
+        "AssertionError [ERR_ASSERTION]: only the query-reading banner is wrapped in a null Suspense fallback"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0160-scripts__test-chatgpt-quickstart.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0009-scripts__test-chatgpt-quickstart.mjs.log"
+    },
+    {
+      "file": "scripts/test-coerencia-historia-2026-09-02.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "CHECK: duration=45 na URL vira 35",
+        "CHECK: onboarding: consulta /api/credits antes de escolher motor"
+      ],
+      "mainReasons": [
+        "CHECK: duration=45 na URL vira 35",
+        "CHECK: faceless de verdade: dialogue do planner vira support narrado",
+        "CHECK: onboarding: consulta /api/credits antes de escolher motor",
+        "CHECK: prompt do planner aceita alvo ate 100s (era 70)",
+        "CHECK: teto do planner acompanha o alvo (nao mais 60 chumbado)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "CHECK: faceless de verdade: dialogue do planner vira support narrado",
+        "CHECK: prompt do planner aceita alvo ate 100s (era 70)",
+        "CHECK: teto do planner acompanha o alvo (nao mais 60 chumbado)"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0223-scripts__test-coerencia-historia-2026-09-02.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0010-scripts__test-coerencia-historia-2026-09-02.mjs.log"
+    },
+    {
+      "file": "scripts/test-diretrizes-coladas-2026-09-04.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: o aviso é derivado de readPastedDirectives(prompt)"
+      ],
+      "mainReasons": [
+        "CHECK: o aviso é derivado de readPastedDirectives(prompt)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0269-scripts__test-diretrizes-coladas-2026-09-04.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0012-scripts__test-diretrizes-coladas-2026-09-04.mjs.log"
+    },
+    {
+      "file": "scripts/test-entrada-seedance15-2026-09-29.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: a rota do clique decide a entrada curta com a conta logada (flag, trial/paga, saldo paga o 15 e não o pedido)",
+        "FALHOU: a rota do clique decide a entrada curta com a conta logada (flag, trial/paga, saldo paga o 15 e não o pedido)"
+      ],
+      "mainReasons": [
+        "CHECK: a rota do clique decide a entrada curta com a conta logada (flag, trial/paga, saldo paga o 15 e não o pedido)",
+        "FALHOU: a rota do clique decide a entrada curta com a conta logada (flag, trial/paga, saldo paga o 15 e não o pedido)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0294-scripts__test-entrada-seedance15-2026-09-29.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0015-scripts__test-entrada-seedance15-2026-09-29.mjs.log"
+    },
+    {
+      "file": "scripts/test-escritor-monumento-1310.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: Versailles: o escritor ouve \"22-22 words\" + a regra do lugar",
+        "CHECK: Versailles: o escritor ouve \"22-22 words\" + a regra do lugar"
+      ],
+      "mainReasons": [
+        "CHECK: Versailles: o escritor ouve \"22-22 words\" + a regra do lugar",
+        "CHECK: Versailles: o escritor ouve \"22-22 words\" + a regra do lugar"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/delta-final\\logs\\0001-scripts__test-escritor-monumento-1310.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0016-scripts__test-escritor-monumento-1310.mjs.log"
+    },
+    {
+      "file": "scripts/test-espiral-recusa-2026-09-01.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "SyntaxError: Unexpected token 'export'"
+      ],
+      "mainReasons": [
+        "SyntaxError: Unexpected token 'export'"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0309-scripts__test-espiral-recusa-2026-09-01.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0017-scripts__test-espiral-recusa-2026-09-01.mjs.log"
+    },
+    {
+      "file": "scripts/test-failure-screen-40.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "CHECK: deps incluem failureScreenKind",
+        "CHECK: deps incluem scriptTooShort"
+      ],
+      "mainReasons": [
+        "CHECK: credito preso NAO e deterministico",
+        "CHECK: deps incluem failureScreenKind",
+        "CHECK: deps incluem scriptTooShort",
+        "CHECK: failureScreenKind e null fora de failed",
+        "CHECK: showGenericFailure intacto"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "CHECK: credito preso NAO e deterministico",
+        "CHECK: failureScreenKind e null fora de failed",
+        "CHECK: showGenericFailure intacto"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0331-scripts__test-failure-screen-40.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0018-scripts__test-failure-screen-40.mjs.log"
+    },
+    {
+      "file": "scripts/test-free-limit-wall.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "FALHOU: bloqueio NAO despacha render",
+        "FALHOU: bloqueio nao gasta credito nem toca preco",
+        "FALHOU: helper nao fala de preco/plano/upgrade",
+        "FALHOU: helper nao inventa copy propria (nenhuma string longa em ingles)"
+      ],
+      "mainReasons": [
+        "FALHOU: bloqueio NAO despacha render",
+        "FALHOU: bloqueio nao gasta credito nem toca preco",
+        "FALHOU: consegui ler as linhas novas do diff",
+        "FALHOU: helper nao fala de preco/plano/upgrade",
+        "FALHOU: helper nao inventa copy propria (nenhuma string longa em ingles)",
+        "FALHOU: o limite so aparece em comentario, citando producao",
+        "FALHOU: os dois ramos continuam pousando em options"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "FALHOU: consegui ler as linhas novas do diff",
+        "FALHOU: o limite so aparece em comentario, citando producao",
+        "FALHOU: os dois ramos continuam pousando em options"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0359-scripts__test-free-limit-wall.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0022-scripts__test-free-limit-wall.mjs.log"
+    },
+    {
+      "file": "scripts/test-gpt-handoff.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "Error: ENOENT: no such file or directory, open '<WORKTREE>\\lib\\gptHandoff.ts'"
+      ],
+      "mainReasons": [
+        "Error: ENOENT: no such file or directory, open '<WORKTREE>\\lib\\gptHandoff.ts'"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0373-scripts__test-gpt-handoff.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0023-scripts__test-gpt-handoff.mjs.log"
+    },
+    {
+      "file": "scripts/test-growth-space-intent.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "AssertionError [ERR_ASSERTION]: exact script constant is extractable"
+      ],
+      "mainReasons": [
+        "AssertionError [ERR_ASSERTION]: exact script constant is extractable"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0381-scripts__test-growth-space-intent.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0024-scripts__test-growth-space-intent.mjs.log"
+    },
+    {
+      "file": "scripts/test-leva-confiabilidade-2026-08-28.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "CHECK: servidor grava evento free_duration_clamped VIA composeAdmin (events e service_role-only)"
+      ],
+      "mainReasons": [
+        "CHECK: nenhum snapshot_time sobrou no CODIGO (a mencao no comentario-licao fica)",
+        "CHECK: o POST volta a mandar so { source }",
+        "CHECK: relinked aparece na resposta do cron",
+        "CHECK: servidor grava evento free_duration_clamped VIA composeAdmin (events e service_role-only)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "CHECK: nenhum snapshot_time sobrou no CODIGO (a mencao no comentario-licao fica)",
+        "CHECK: o POST volta a mandar so { source }",
+        "CHECK: relinked aparece na resposta do cron"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0470-scripts__test-leva-confiabilidade-2026-08-28.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0024-scripts__test-leva-confiabilidade-2026-08-28.mjs.log"
+    },
+    {
+      "file": "scripts/test-local-business-ad-brief.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "ASSERTION DETAIL: + actual - expected | + '/studio/create' | - '/generate'",
+        "AssertionError [ERR_ASSERTION]: approved draft reaches the editor, not checkout or render"
+      ],
+      "mainReasons": [
+        "ASSERTION DETAIL: + actual - expected | + '/studio/create' | - '/generate'",
+        "AssertionError [ERR_ASSERTION]: approved draft reaches the editor, not checkout or render"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0487-scripts__test-local-business-ad-brief.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0026-scripts__test-local-business-ad-brief.mjs.log"
+    },
+    {
+      "file": "scripts/test-logo-da-marca-2026-10-01.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: L10 lib/compose.ts (trava 8.2) não muda"
+      ],
+      "mainReasons": [
+        "CHECK: L10 lib/compose.ts (trava 8.2) não muda"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0494-scripts__test-logo-da-marca-2026-10-01.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0025-scripts__test-logo-da-marca-2026-10-01.mjs.log"
+    },
+    {
+      "file": "scripts/test-mcp-studio-ajuste-2010.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: (M1a) mutante aplicou",
+        "CHECK: (M1b) sem o reenvio do pending, o create desiste no 1º POST → (Ra9) vermelho"
+      ],
+      "mainReasons": [
+        "CHECK: (M1a) mutante aplicou",
+        "CHECK: (M1b) sem o reenvio do pending, o create desiste no 1º POST → (Ra9) vermelho"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0503-scripts__test-mcp-studio-ajuste-2010.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0028-scripts__test-mcp-studio-ajuste-2010.mjs.log"
+    },
+    {
+      "file": "scripts/test-meta95-ideia-1910.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: P1"
+      ],
+      "mainReasons": [
+        "CHECK: P1"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0509-scripts__test-meta95-ideia-1910.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0026-scripts__test-meta95-ideia-1910.mjs.log"
+    },
+    {
+      "file": "scripts/test-meta95-personagem-ajuste-2010.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: F5b DEPOIS: janela de undefined ms (≤ 40 s) → a foto nova sai, é julgada e escolhida; o evento diz regeracao_motivo \"ok\" elencoDoAjuste is not defined",
+        "CHECK: F5c o relato da folha (cinematic_character_sheet) lista cada refação com ok e motivo",
+        "CHECK: F5d foto nova recusada (fora do formato): o MOTIVO vai ao evento (\"formato_errado\") e a original segue",
+        "CHECK: R1 LIGADO (moto): 1 folha, edit nas cenas 1 e 2 (pela fala), prompt com o formato; a cena 2 veio fora do formato → FLUX; o relato conta elencoDoAjuste is not defined",
+        "CHECK: R2 LIGADO (Dino): as cenas 2 e 3 com folha, a cena 1 com o FLUX (sem gente); a reconferência entra no relato",
+        "CHECK: R3 LIGADO (Ravan): a folha do Ravan é a do rei de 10 cabeças; a cena com os 2 pede \"cada um uma vez, mesma cena, sem painéis\"",
+        "ReferenceError: elencoDoAjuste is not defined"
+      ],
+      "mainReasons": [
+        "CHECK: F5b DEPOIS: janela de undefined ms (≤ 40 s) → a foto nova sai, é julgada e escolhida; o evento diz regeracao_motivo \"ok\" elencoDoAjuste is not defined",
+        "CHECK: F5c o relato da folha (cinematic_character_sheet) lista cada refação com ok e motivo",
+        "CHECK: F5d foto nova recusada (fora do formato): o MOTIVO vai ao evento (\"formato_errado\") e a original segue",
+        "CHECK: R1 LIGADO (moto): 1 folha, edit nas cenas 1 e 2 (pela fala), prompt com o formato; a cena 2 veio fora do formato → FLUX; o relato conta elencoDoAjuste is not defined",
+        "CHECK: R2 LIGADO (Dino): as cenas 2 e 3 com folha, a cena 1 com o FLUX (sem gente); a reconferência entra no relato",
+        "CHECK: R3 LIGADO (Ravan): a folha do Ravan é a do rei de 10 cabeças; a cena com os 2 pede \"cada um uma vez, mesma cena, sem painéis\"",
+        "ReferenceError: elencoDoAjuste is not defined"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0511-scripts__test-meta95-personagem-ajuste-2010.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0027-scripts__test-meta95-personagem-ajuste-2010.mjs.log"
+    },
+    {
+      "file": "scripts/test-monumento-real-1310.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "SyntaxError: Illegal return statement"
+      ],
+      "mainReasons": [
+        "SyntaxError: Illegal return statement"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0528-scripts__test-monumento-real-1310.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0028-scripts__test-monumento-real-1310.mjs.log"
+    },
+    {
+      "file": "scripts/test-narracao-degrau.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: a chamada de autofitDown existe",
+        "CHECK: a descida so roda no caminho verbatim com narracao",
+        "CHECK: a trava de narracao continua existindo (rede para o que NAO desceu)",
+        "CHECK: dry_run reporta requested/effective/autofit_down",
+        "CHECK: hollywoodTarget ainda trava em Math.max(30, …) (justifica o piso hollywood de 30)",
+        "CHECK: importa autofitDown e os dois pisos",
+        "CHECK: parseUserScript(prompt) e chamado UMA vez",
+        "CHECK: requestedDuration e congelado ANTES de qualquer descida"
+      ],
+      "mainReasons": [
+        "CHECK: a chamada de autofitDown existe",
+        "CHECK: a descida so roda no caminho verbatim com narracao",
+        "CHECK: a trava de narracao continua existindo (rede para o que NAO desceu)",
+        "CHECK: dry_run reporta requested/effective/autofit_down",
+        "CHECK: hollywoodTarget ainda trava em Math.max(30, …) (justifica o piso hollywood de 30)",
+        "CHECK: importa autofitDown e os dois pisos",
+        "CHECK: parseUserScript(prompt) e chamado UMA vez",
+        "CHECK: requestedDuration e congelado ANTES de qualquer descida"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0550-scripts__test-narracao-degrau.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0032-scripts__test-narracao-degrau.mjs.log"
+    },
+    {
+      "file": "scripts/test-paginas-lote1-1210.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: sitemap: /free-ai-shorts/ancient-mysteries uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/cartoon uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/creepy-facts uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/disasters uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/nature uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/ocean uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/what-if uma vez, lastmod 2026-10-12"
+      ],
+      "mainReasons": [
+        "CHECK: sitemap: /free-ai-shorts/ancient-mysteries uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/cartoon uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/creepy-facts uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/disasters uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/nature uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/ocean uma vez, lastmod 2026-10-12",
+        "CHECK: sitemap: /free-ai-shorts/what-if uma vez, lastmod 2026-10-12"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0582-scripts__test-paginas-lote1-1210.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0030-scripts__test-paginas-lote1-1210.mjs.log"
+    },
+    {
+      "file": "scripts/test-parser-voice-1510.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "FALHOU desfeito o conserto, lib/scriptParser.ts == base 5980f218 (LF)"
+      ],
+      "mainReasons": [
+        "FALHOU desfeito o conserto, lib/scriptParser.ts == base 5980f218 (LF)"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0598-scripts__test-parser-voice-1510.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0035-scripts__test-parser-voice-1510.mjs.log"
+    },
+    {
+      "file": "scripts/test-porta-episodio2-2026-09-04.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "CHECK: a porta se chama pelo que ela faz"
+      ],
+      "mainReasons": [
+        "CHECK: 6.0c o import pre-existente da regua de narracao ficou byte a byte o de antes",
+        "CHECK: a porta se chama pelo que ela faz",
+        "CHECK: a porta so ganha peso de acao PRINCIPAL depois que o arquivo esta na mao",
+        "CHECK: o modulo do link nao decide motor caro nem prompt de cena"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "CHECK: 6.0c o import pre-existente da regua de narracao ficou byte a byte o de antes",
+        "CHECK: a porta so ganha peso de acao PRINCIPAL depois que o arquivo esta na mao",
+        "CHECK: o modulo do link nao decide motor caro nem prompt de cena"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0633-scripts__test-porta-episodio2-2026-09-04.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0031-scripts__test-porta-episodio2-2026-09-04.mjs.log"
+    },
+    {
+      "file": "scripts/test-primeiro-filme-1310.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: /api/generate-script: tiradas as linhas marcadas, a rota é byte a byte a da base"
+      ],
+      "mainReasons": [
+        "CHECK: /api/generate-script: tiradas as linhas marcadas, a rota é byte a byte a da base"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0674-scripts__test-primeiro-filme-1310.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0032-scripts__test-primeiro-filme-1310.mjs.log"
+    },
+    {
+      "file": "scripts/test-primeiro-filme-video-2026-09-17.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: bloco depois do Whisper e antes do montador; só Kineo 1 sem avatar"
+      ],
+      "mainReasons": [
+        "CHECK: bloco depois do Whisper e antes do montador; só Kineo 1 sem avatar"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0676-scripts__test-primeiro-filme-video-2026-09-17.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0033-scripts__test-primeiro-filme-video-2026-09-17.mjs.log"
+    },
+    {
+      "file": "scripts/test-recusa-com-nome-2026-08-31.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: analyze-idea: nenhuma saida de erro sem rastro, [422]"
+      ],
+      "mainReasons": [
+        "CHECK: analyze-idea: nenhuma saida de erro sem rastro, [422]"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0712-scripts__test-recusa-com-nome-2026-08-31.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0034-scripts__test-recusa-com-nome-2026-08-31.mjs.log"
+    },
+    {
+      "file": "scripts/test-resgate-402-2026-09-01.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: A22 `used`/`balance`/`needed` do evento nao mudaram",
+        "CHECK: A9 `needed` e `balance` continuam no payload"
+      ],
+      "mainReasons": [
+        "CHECK: A22 `used`/`balance`/`needed` do evento nao mudaram",
+        "CHECK: A9 `needed` e `balance` continuam no payload"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0728-scripts__test-resgate-402-2026-09-01.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0035-scripts__test-resgate-402-2026-09-01.mjs.log"
+    },
+    {
+      "file": "scripts/test-returning-seed-2026-09-01.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "SyntaxError: Cannot use import statement outside a module"
+      ],
+      "mainReasons": [
+        "SyntaxError: Cannot use import statement outside a module"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0740-scripts__test-returning-seed-2026-09-01.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0037-scripts__test-returning-seed-2026-09-01.mjs.log"
+    },
+    {
+      "file": "scripts/test-roteiro-perdido-2026-08-31.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "SyntaxError: Unexpected token 'export'"
+      ],
+      "mainReasons": [
+        "SyntaxError: Unexpected token 'export'"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0753-scripts__test-roteiro-perdido-2026-08-31.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0038-scripts__test-roteiro-perdido-2026-08-31.mjs.log"
+    },
+    {
+      "file": "scripts/test-stranded-extra-attempt-4xx.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "fewer-existing-failures",
+      "candidateReasons": [
+        "CHECK: extra é exatamente 1",
+        "CHECK: teto base continua 2"
+      ],
+      "mainReasons": [
+        "CHECK: extra é exatamente 1",
+        "CHECK: lote de marcadores passa a ler stranded_outcome",
+        "CHECK: teto base continua 2"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [
+        "CHECK: lote de marcadores passa a ler stranded_outcome"
+      ],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0817-scripts__test-stranded-extra-attempt-4xx.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0042-scripts__test-stranded-extra-attempt-4xx.mjs.log"
+    },
+    {
+      "file": "scripts/test-trial-watermark.mjs",
+      "candidateStatus": 1,
+      "mainStatus": 1,
+      "classification": "same-failure",
+      "candidateReasons": [
+        "CHECK: a decisao acontece ANTES do builder",
+        "FALHOU:"
+      ],
+      "mainReasons": [
+        "CHECK: a decisao acontece ANTES do builder",
+        "FALHOU:"
+      ],
+      "additionalCandidateReasons": [],
+      "removedMainReasons": [],
+      "candidateLog": "external/candidate/nonads-final\\logs\\0883-scripts__test-trial-watermark.mjs.log",
+      "mainLog": "external/baseline/comparison-final\\logs\\0044-scripts__test-trial-watermark.mjs.log"
+    }
+  ]
+}

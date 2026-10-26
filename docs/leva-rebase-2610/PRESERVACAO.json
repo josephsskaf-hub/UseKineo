@@ -1,0 +1,4073 @@
+{
+  "classification": "FATO CONFIRMADO — read-only git/index/physical-worktree audit; no guards run",
+  "checkedAtUtc": "2026-10-26T20:45:27.638Z",
+  "refs": {
+    "base": "3ec6c9d9b790e00c05650ccab7e9af426cd106d1",
+    "main": "62213b008292f110117d1abbe20c157efdb55902",
+    "leva": "07435f57b7e18d4d37c325e57134776d452db382",
+    "head": "047b41c34bbc1d83547492cb6ef2963ee731c1da",
+    "headParents": [
+      "38960b06e1e5c5fac04103ea9ea35ff25c790796",
+      "62213b008292f110117d1abbe20c157efdb55902"
+    ],
+    "mergeHead": null
+  },
+  "comparisonTarget": "index and physical worktree, verified identical for every product path",
+  "scope": [
+    "app",
+    "components",
+    "lib",
+    "public"
+  ],
+  "counts": {
+    "mainChangedPaths": 63,
+    "levaChangedPaths": 60,
+    "mainOnly": 62,
+    "levaOnly": 59,
+    "intersection": 1,
+    "currentProductChangedPaths": 122,
+    "expectedUnion": 122
+  },
+  "changeKinds": {
+    "main": {
+      "added": 31,
+      "modified": 32,
+      "deleted": 0,
+      "renamed": 0,
+      "copied": 0,
+      "other": 0
+    },
+    "leva": {
+      "added": 16,
+      "modified": 44,
+      "deleted": 0,
+      "renamed": 0,
+      "copied": 0,
+      "other": 0
+    },
+    "current": {
+      "added": 47,
+      "modified": 75,
+      "deleted": 0,
+      "renamed": 0,
+      "copied": 0,
+      "other": 0
+    }
+  },
+  "mainDiff": [
+    {
+      "status": "M",
+      "path": "app/(dashboard)/generate/GenerateClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/studio/StudioClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/admin/coerencia/page.tsx"
+    },
+    {
+      "status": "A",
+      "path": "app/api/admin/coerencia/canario/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/analyze-idea/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/compose/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/generate-video-cinematic/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/generate-video-fast/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/TrendingCard.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/trending.css"
+    },
+    {
+      "status": "A",
+      "path": "components/admin/QualityAssessment.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/admin/TaskCanaryControl.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/OwnIdeaStart.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/RecurringPlanValue.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/ResultScriptReview.tsx"
+    },
+    {
+      "status": "A",
+      "path": "lib/admin/qualityEvidence.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/admin/regua95Painel.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/admin/taskFulfillmentCanary.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/captionEvidenceGuard.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/criticoStill.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/sceneDescriptions.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/visualMode.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/visualPromptPolicy.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/filmes/filme15Elenco.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/filmes/filme15RostoFixo.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/ownIdeaStart.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/postVideoCapacity.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/hollywood/router.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/mcp/studioTools.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/meta95/ideiaNoEscritor.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/pastedDirectives.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/coherenceV2.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/coletar.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/contexto.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/regua95/evidence.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/pixelScore.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/regua95/taskFulfillmentCanary.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/ugcJudge.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/requestFidelity.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/runway.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/scriptParser.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/textLanguage.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/trending/topicCovers.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/trending/trendingNow.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/homeThreeCards.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/interfaceHindi.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/refinementCopy.json"
+    },
+    {
+      "status": "M",
+      "path": "lib/whisperNaEscrita.ts"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/ai.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/billionaire.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/country.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/crime.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/default.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/health.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/history.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/money.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/mystery.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/nature.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/psychology.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/science.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/space.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/technology.svg"
+    }
+  ],
+  "levaDiff": [
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Client.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Escolha.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Simple.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/api/admin/moderation-scan/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/api/admin/send-kids-launch/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/cena/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/start/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/status/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/compose/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/ads-v2-advance/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/placar-versao-b/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/rescue-vendor-assets/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/events/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/footage/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/next-action/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/shopify/auth/callback/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/shopify/products/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/api/stripe/checkout/item/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/stripe/checkout/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/stripe/webhook/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/checkout/item/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/pricing/PricingClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/shopify/open/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "components/OneTimeItemConfirmation.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/OneTimeItemOffer.tsx"
+    },
+    {
+      "status": "M",
+      "path": "components/PricingCards.tsx"
+    },
+    {
+      "status": "M",
+      "path": "components/kidsCartoon/KidsCartoonPages.tsx"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaCatalog.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaMedia.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaMontage.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaNotify.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaPersonalAccess.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaPlan.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSamplePolicy.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSampleServer.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSampleUpgrade.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaStills.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaVideo.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/internalEscolha.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/pipeline.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/presenters95.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/runtime.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterCandidates2410.json"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterCandidates2410.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterVoice2410.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/uploadFootage.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2Advance.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2PlanCore.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2Presenter.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2PresenterV2.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2StartCore.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/checkoutPricing.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/growth/checkoutSuccessFlow.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/kidsLaunchEmail.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/lifecycle/emailEvents.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/oneTimeItem.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/paypal.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/stripe/oneTimeItemCheckout.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/stripe/oneTimeItemFulfillment.ts"
+    }
+  ],
+  "currentDiff": [
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Client.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Escolha.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/AdsV2Simple.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/ads/v2/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/generate/GenerateClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/(dashboard)/studio/StudioClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/admin/coerencia/page.tsx"
+    },
+    {
+      "status": "A",
+      "path": "app/api/admin/coerencia/canario/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/admin/moderation-scan/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/api/admin/send-kids-launch/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/cena/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/start/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/ads/v2/status/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/analyze-idea/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/compose/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/ads-v2-advance/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/placar-versao-b/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/cron/rescue-vendor-assets/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/events/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/footage/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/generate-video-cinematic/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/generate-video-fast/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/next-action/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/shopify/auth/callback/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/shopify/products/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/api/stripe/checkout/item/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/stripe/checkout/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/api/stripe/webhook/route.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/checkout/item/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/pricing/PricingClient.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/shopify/open/route.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/TrendingCard.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/page.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/trending/trending.css"
+    },
+    {
+      "status": "A",
+      "path": "components/OneTimeItemConfirmation.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/OneTimeItemOffer.tsx"
+    },
+    {
+      "status": "M",
+      "path": "components/PricingCards.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/admin/QualityAssessment.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/admin/TaskCanaryControl.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/OwnIdeaStart.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/RecurringPlanValue.tsx"
+    },
+    {
+      "status": "A",
+      "path": "components/growth/ResultScriptReview.tsx"
+    },
+    {
+      "status": "M",
+      "path": "components/kidsCartoon/KidsCartoonPages.tsx"
+    },
+    {
+      "status": "A",
+      "path": "lib/admin/qualityEvidence.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/admin/regua95Painel.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/admin/taskFulfillmentCanary.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaCatalog.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaMedia.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaMontage.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaNotify.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaPersonalAccess.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaPlan.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSamplePolicy.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSampleServer.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/cena/escolhaSampleUpgrade.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaStills.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/escolhaVideo.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/internalEscolha.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/pipeline.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/presenters95.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/cena/runtime.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterCandidates2410.json"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterCandidates2410.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/ads/presenterVoice2410.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/uploadFootage.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2Advance.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2PlanCore.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2Presenter.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2PresenterV2.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ads/v2StartCore.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/captionEvidenceGuard.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/checkoutPricing.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/criticoStill.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/sceneDescriptions.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/visualMode.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/cinematic/visualPromptPolicy.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/filmes/filme15Elenco.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/filmes/filme15RostoFixo.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/growth/checkoutSuccessFlow.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/kidsLaunchEmail.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/ownIdeaStart.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/growth/postVideoCapacity.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/hollywood/router.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/lifecycle/emailEvents.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/mcp/studioTools.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/meta95/ideiaNoEscritor.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/oneTimeItem.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/pastedDirectives.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/paypal.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/coherenceV2.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/coletar.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/contexto.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/regua95/evidence.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/pixelScore.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/regua95/taskFulfillmentCanary.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/regua95/ugcJudge.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/requestFidelity.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/runway.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/scriptParser.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/stripe/oneTimeItemCheckout.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/stripe/oneTimeItemFulfillment.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/textLanguage.ts"
+    },
+    {
+      "status": "A",
+      "path": "lib/trending/topicCovers.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/trending/trendingNow.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/homeThreeCards.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/interfaceHindi.ts"
+    },
+    {
+      "status": "M",
+      "path": "lib/ui/refinementCopy.json"
+    },
+    {
+      "status": "M",
+      "path": "lib/whisperNaEscrita.ts"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/ai.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/billionaire.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/country.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/crime.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/default.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/health.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/history.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/money.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/mystery.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/nature.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/psychology.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/science.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/space.svg"
+    },
+    {
+      "status": "A",
+      "path": "public/trending/topics/technology.svg"
+    }
+  ],
+  "mainOnly": [
+    {
+      "file": "app/(dashboard)/generate/GenerateClient.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b986b680740e8a40e67b16b1bfa01a8a335ab3c0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b986b680740e8a40e67b16b1bfa01a8a335ab3c0"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/(dashboard)/studio/StudioClient.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "147375b4d02fa249823ba11276a2ff431b4befca"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "147375b4d02fa249823ba11276a2ff431b4befca"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/admin/coerencia/page.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e774236f3bd3f21591d181cb7499ad1e7dad32a4"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e774236f3bd3f21591d181cb7499ad1e7dad32a4"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/admin/coerencia/canario/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d61222a936472f7b9e09929c17657949caf8c9bf"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d61222a936472f7b9e09929c17657949caf8c9bf"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/analyze-idea/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "eef5040f089d46660f0b4de7f3f6bd0d46847249"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "eef5040f089d46660f0b4de7f3f6bd0d46847249"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/generate-video-cinematic/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50d9321f05e34ef7239513aefadc53137fb225b1"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50d9321f05e34ef7239513aefadc53137fb225b1"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/generate-video-fast/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9cce11d6018c6d9ce249bab01dcadd7164be2195"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9cce11d6018c6d9ce249bab01dcadd7164be2195"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/trending/TrendingCard.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "72b4067474b220bc8dd35783780ad5128f8be0ec"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "72b4067474b220bc8dd35783780ad5128f8be0ec"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/trending/page.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d63ccd88dfa24e2dc6f18dc2fc7cef5c43d8e61c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d63ccd88dfa24e2dc6f18dc2fc7cef5c43d8e61c"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/trending/trending.css",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "726167b0abe5a964b6b1ae484f0aafd69d0dccdb"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "726167b0abe5a964b6b1ae484f0aafd69d0dccdb"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/admin/QualityAssessment.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c34a5728bafa876ca5540f389b31d7e4472d7f10"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c34a5728bafa876ca5540f389b31d7e4472d7f10"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/admin/TaskCanaryControl.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "656aa6477fa2651aeaee627787c33a34ab5e38e6"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "656aa6477fa2651aeaee627787c33a34ab5e38e6"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/growth/OwnIdeaStart.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e36314f221aef96f186a41bd35c6c544b2284ab6"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e36314f221aef96f186a41bd35c6c544b2284ab6"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/growth/RecurringPlanValue.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4e466c23d001e337bd017f34f7969d131f12e8a3"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4e466c23d001e337bd017f34f7969d131f12e8a3"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/growth/ResultScriptReview.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a718f87e29e88707e7b793c56a8f7506d09f618c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a718f87e29e88707e7b793c56a8f7506d09f618c"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/admin/qualityEvidence.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "af1e6422e46ccfb0ab6b517956d1520a559fb0b9"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "af1e6422e46ccfb0ab6b517956d1520a559fb0b9"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/admin/regua95Painel.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "03739cb47d309e5bb09926f17e1caffadf05e4dc"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "03739cb47d309e5bb09926f17e1caffadf05e4dc"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/admin/taskFulfillmentCanary.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e257fa2b33e7e9a5a228140c197a0553cdd0fef5"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e257fa2b33e7e9a5a228140c197a0553cdd0fef5"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/captionEvidenceGuard.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9aa35a13640c1e777f080c5b6e2b84aacd84a967"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9aa35a13640c1e777f080c5b6e2b84aacd84a967"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/cinematic/criticoStill.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9f0352e78d18f9a27c67907fa962acd10d87c5f9"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9f0352e78d18f9a27c67907fa962acd10d87c5f9"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/cinematic/sceneDescriptions.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "733f6b118625f74ca41887481d96528e74392ba6"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "733f6b118625f74ca41887481d96528e74392ba6"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/cinematic/visualMode.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "982116792911df859423b737c12e17cdee0b8b28"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "982116792911df859423b737c12e17cdee0b8b28"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/cinematic/visualPromptPolicy.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "72045813371d5b0d8ebfa406bccff4a457ab1503"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "72045813371d5b0d8ebfa406bccff4a457ab1503"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/filmes/filme15Elenco.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "dc1f6252549908ac6e6f1eb39735e207ac128e1d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "dc1f6252549908ac6e6f1eb39735e207ac128e1d"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/filmes/filme15RostoFixo.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e231a8746f935b6a8bdb4b4d5a88e46462c157e3"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e231a8746f935b6a8bdb4b4d5a88e46462c157e3"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/growth/ownIdeaStart.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "82a2caf2833e32d8f68a14dd1dc85409b6a3c3e0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "82a2caf2833e32d8f68a14dd1dc85409b6a3c3e0"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/growth/postVideoCapacity.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "be49d5d8d39e3398363b11a4a781a9448355b139"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "be49d5d8d39e3398363b11a4a781a9448355b139"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/hollywood/router.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "88a9d2dde9c37eed1756f8a1b4b7dbd416d88c97"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "88a9d2dde9c37eed1756f8a1b4b7dbd416d88c97"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/mcp/studioTools.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "704b6872fc0ffc141b1da6534744dc6b39edaa89"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "704b6872fc0ffc141b1da6534744dc6b39edaa89"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/meta95/ideiaNoEscritor.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "7411ede748675cba19be473a080be2d7918eb031"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "7411ede748675cba19be473a080be2d7918eb031"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/pastedDirectives.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "410e7fae5d39f960e7cf44827d7a54d68ca48dfe"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "410e7fae5d39f960e7cf44827d7a54d68ca48dfe"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/coherenceV2.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "425742727e7437480f6b278f9507683f28f85bab"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "425742727e7437480f6b278f9507683f28f85bab"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/coletar.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f71ea6e4c2cf2561a05cceb8337c4369f6356338"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f71ea6e4c2cf2561a05cceb8337c4369f6356338"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/contexto.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "83983d17d07b59f59876c9fce71ec1d33becd605"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "83983d17d07b59f59876c9fce71ec1d33becd605"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/evidence.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c92688c65492337d6c9b108d84f824e3222e561d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c92688c65492337d6c9b108d84f824e3222e561d"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/pixelScore.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9e4965ab4d620c71465d821cb1a18debb3239b1b"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9e4965ab4d620c71465d821cb1a18debb3239b1b"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/taskFulfillmentCanary.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3589d2971195439840b1a745d81d737dcd92c997"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3589d2971195439840b1a745d81d737dcd92c997"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/regua95/ugcJudge.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a06dfaa9d87a0aaa3c1b4f5b86ac4e2224222698"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a06dfaa9d87a0aaa3c1b4f5b86ac4e2224222698"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/requestFidelity.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "41c10b944af2a1d9fabe9ab588c325d1761f1380"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "41c10b944af2a1d9fabe9ab588c325d1761f1380"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/runway.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3173917b629bbd2b667ffd4ae5eddbb10ef3ac4"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3173917b629bbd2b667ffd4ae5eddbb10ef3ac4"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/scriptParser.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6a218620ff734b7601360dd3b2d47b2f23cab5bd"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6a218620ff734b7601360dd3b2d47b2f23cab5bd"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/textLanguage.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "125bfbea06cb08d21002f8821e56ef186844818f"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "125bfbea06cb08d21002f8821e56ef186844818f"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/trending/topicCovers.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4b4076d66aa2bf9925922d65c6ae6594cf952a92"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4b4076d66aa2bf9925922d65c6ae6594cf952a92"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/trending/trendingNow.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "79cc5c0582af358abe2718132655ba5a65866198"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "79cc5c0582af358abe2718132655ba5a65866198"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ui/homeThreeCards.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15c882aed0d4518b3ce91678aac6ffeb43f18c31"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15c882aed0d4518b3ce91678aac6ffeb43f18c31"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ui/interfaceHindi.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "41c51a9208d27ca0a320f529080fbb38113c506d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "41c51a9208d27ca0a320f529080fbb38113c506d"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ui/refinementCopy.json",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15aebd0f44e486aeec222d3fcce55c02f917ff57"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15aebd0f44e486aeec222d3fcce55c02f917ff57"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/whisperNaEscrita.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f9d580ccfa420a50f8cf9eaf8fc57ec5740c3dfa"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f9d580ccfa420a50f8cf9eaf8fc57ec5740c3dfa"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/ai.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1b423ffdd54c1100b783c2778eb9432aff1b6ff7"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1b423ffdd54c1100b783c2778eb9432aff1b6ff7"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/billionaire.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4517f6589479c50c8c251736b6be74475885ccc0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4517f6589479c50c8c251736b6be74475885ccc0"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/country.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a13531e7a18978752d3f5dafb03c1f2f13d6ddf9"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a13531e7a18978752d3f5dafb03c1f2f13d6ddf9"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/crime.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "5151873ee3668bdd60dae3fec7504e59b66e3a2e"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "5151873ee3668bdd60dae3fec7504e59b66e3a2e"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/default.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6e46c6f5018dbadf1e4f5c47eda94781952ef6ca"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6e46c6f5018dbadf1e4f5c47eda94781952ef6ca"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/health.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bc38f9f1b51d18260e3385212bc1f2fb3e048f6b"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bc38f9f1b51d18260e3385212bc1f2fb3e048f6b"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/history.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "37f4a935946fcd306f073c8c1fb20eb97da29dc1"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "37f4a935946fcd306f073c8c1fb20eb97da29dc1"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/money.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2beee296e5dc750e105630ce39396dba6dbb6438"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2beee296e5dc750e105630ce39396dba6dbb6438"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/mystery.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "edf64e75678b37d757844792d5199ea2bb8f08fb"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "edf64e75678b37d757844792d5199ea2bb8f08fb"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/nature.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "de799d81a37451630d033b3adfb18e8eaeda5d95"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "de799d81a37451630d033b3adfb18e8eaeda5d95"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/psychology.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d0c60e3ed9ee92134fcbc676c59594d903679287"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d0c60e3ed9ee92134fcbc676c59594d903679287"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/science.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1398ced2749c97b2f7736be63d9607e68b16b20c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1398ced2749c97b2f7736be63d9607e68b16b20c"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/space.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "ed8fc82cb5a327c0f41f2aaa71869fe06272b1eb"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "ed8fc82cb5a327c0f41f2aaa71869fe06272b1eb"
+      },
+      "equal": true
+    },
+    {
+      "file": "public/trending/topics/technology.svg",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "8613da0d71479501e4d65c783f5aa30f4ec6eb71"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "8613da0d71479501e4d65c783f5aa30f4ec6eb71"
+      },
+      "equal": true
+    }
+  ],
+  "levaOnly": [
+    {
+      "file": "app/(dashboard)/ads/v2/AdsV2Client.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b0a8a77c03204a0450ccbc4b58d326b8cb4aaadb"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b0a8a77c03204a0450ccbc4b58d326b8cb4aaadb"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e3656c4701aea0c6fc87722fc1776b0357ecfc4a"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e3656c4701aea0c6fc87722fc1776b0357ecfc4a"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3a325196c6deb5dd6a6fa56b0c887ac47c0ac9bd"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3a325196c6deb5dd6a6fa56b0c887ac47c0ac9bd"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/(dashboard)/ads/v2/page.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15685f5ab191c065473476028cf5384700ac248d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "15685f5ab191c065473476028cf5384700ac248d"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/admin/moderation-scan/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "ccdf8d68f706dcef3add7a1109322355f02d55fc"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "ccdf8d68f706dcef3add7a1109322355f02d55fc"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/admin/send-kids-launch/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "66c5b4b3464d06e3d4cb95812c938435a9e83841"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "66c5b4b3464d06e3d4cb95812c938435a9e83841"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/ads/v2/cena/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "db441fd2aa4dc726cbfbbd841cba725724dca15c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "db441fd2aa4dc726cbfbbd841cba725724dca15c"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/ads/v2/start/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "734af9a7d9ebe72073f804a6c3c008f2fb370a82"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "734af9a7d9ebe72073f804a6c3c008f2fb370a82"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/ads/v2/status/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "04bc095dee12da3dfd9a09724786105eadbea53c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "04bc095dee12da3dfd9a09724786105eadbea53c"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/cron/ads-v2-advance/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "0a3bd7616d533e3d7f82fff8c330aaae49952b4d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "0a3bd7616d533e3d7f82fff8c330aaae49952b4d"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/cron/placar-versao-b/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f6b5073831fa0b37eb891fb2335b289583272dfe"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f6b5073831fa0b37eb891fb2335b289583272dfe"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/cron/rescue-vendor-assets/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50f65512bdc74d3bc82e0cf7b72d971f9673e162"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50f65512bdc74d3bc82e0cf7b72d971f9673e162"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/events/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c804daa3ce176d66c038b0785f9b739ab59d420f"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c804daa3ce176d66c038b0785f9b739ab59d420f"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/footage/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3c9b3c3942ac330d835294831245620b3b126340"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "3c9b3c3942ac330d835294831245620b3b126340"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/next-action/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d58120405fef1d447aa3024e321dfb0229932153"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d58120405fef1d447aa3024e321dfb0229932153"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/shopify/auth/callback/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4f23dca92d02f74161972aa0ec145a83c18054e5"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "4f23dca92d02f74161972aa0ec145a83c18054e5"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/shopify/products/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1360346e00ae4bef9c691fb3d1121d6223a9c862"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "1360346e00ae4bef9c691fb3d1121d6223a9c862"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/stripe/checkout/item/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "8727590b93138b616f5faf1074192b7781ea0dd4"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "8727590b93138b616f5faf1074192b7781ea0dd4"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/stripe/checkout/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "0f0605c694db07d22b41071f8c86c87e3f62bd90"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "0f0605c694db07d22b41071f8c86c87e3f62bd90"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/stripe/webhook/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "49597168c64f4c27f82c0e595da68b71f5f15588"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "49597168c64f4c27f82c0e595da68b71f5f15588"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/checkout/item/page.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c54696c1c7bd67e569c1bc64052dd7a53a5df66e"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c54696c1c7bd67e569c1bc64052dd7a53a5df66e"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/pricing/PricingClient.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a47c417e6611c51296f4191f5a1a002725daa121"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a47c417e6611c51296f4191f5a1a002725daa121"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/shopify/open/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9b4cdae433b6133f0fc4be1a218252be882dc186"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "9b4cdae433b6133f0fc4be1a218252be882dc186"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/OneTimeItemConfirmation.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b683b71c5a233b4580f46d3cb78904128b9b8a7e"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b683b71c5a233b4580f46d3cb78904128b9b8a7e"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/OneTimeItemOffer.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "adf75fcd68d8be550381a7ac7d55bfa2b8da335e"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "adf75fcd68d8be550381a7ac7d55bfa2b8da335e"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/PricingCards.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f4e551c8f08bcdd0c45b98dc4d5d60336447ba67"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f4e551c8f08bcdd0c45b98dc4d5d60336447ba67"
+      },
+      "equal": true
+    },
+    {
+      "file": "components/kidsCartoon/KidsCartoonPages.tsx",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a86e85ff56c8539f6a6458afc5c14c5689284355"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a86e85ff56c8539f6a6458afc5c14c5689284355"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaCatalog.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2cb5f833df79dc8d67a02cf9955f682866a546fb"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2cb5f833df79dc8d67a02cf9955f682866a546fb"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaMedia.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e3216530c24bc412cdf6ec219af10e7daa17626e"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e3216530c24bc412cdf6ec219af10e7daa17626e"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaMontage.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0771b7609698822e15b23f5e4b8029086c54896"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0771b7609698822e15b23f5e4b8029086c54896"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaNotify.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "78aca884e1b147bea7a441802615e10b5e4ebdb0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "78aca884e1b147bea7a441802615e10b5e4ebdb0"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaPersonalAccess.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "482912cd6597d6a6aedbad3447cdecc03216a6a0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "482912cd6597d6a6aedbad3447cdecc03216a6a0"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaPlan.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "790644d33e70e51bab8a4b1010d18443fc609df6"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "790644d33e70e51bab8a4b1010d18443fc609df6"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaSamplePolicy.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2507bd32de0eed26ac3461ecb88276acb09c28c7"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2507bd32de0eed26ac3461ecb88276acb09c28c7"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaSampleServer.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2afdd0d8e97b2efa0ff21fffdb919ae4ad3aeff3"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2afdd0d8e97b2efa0ff21fffdb919ae4ad3aeff3"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaSampleUpgrade.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d52712fdddea9141cf4ee72b351773ed6ce8b9b5"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d52712fdddea9141cf4ee72b351773ed6ce8b9b5"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaStills.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "381ba73665bc847cc0934960b53b3371ae2ab466"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "381ba73665bc847cc0934960b53b3371ae2ab466"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/escolhaVideo.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b7b26fb90577c1d00257d77ea99c6911460f8a8c"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b7b26fb90577c1d00257d77ea99c6911460f8a8c"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/internalEscolha.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "5bdf41e67bb198f3039d411681acd3a1244d30b1"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "5bdf41e67bb198f3039d411681acd3a1244d30b1"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/pipeline.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "53e6ebb6ae000f73450ab2f8ea39173a3cddbf2a"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "53e6ebb6ae000f73450ab2f8ea39173a3cddbf2a"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/presenters95.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "862e1c5a4fe3ad005e27211d98d75ba3961894d6"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "862e1c5a4fe3ad005e27211d98d75ba3961894d6"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/cena/runtime.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c372cfdb938bbb11628175e958a258a95125cb35"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "c372cfdb938bbb11628175e958a258a95125cb35"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/presenterCandidates2410.json",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3499d0792a6b37f376a95b77a75c2bbbb8db719"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3499d0792a6b37f376a95b77a75c2bbbb8db719"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/presenterCandidates2410.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0a92ae1c7d86948ab837bdb5669374104d5c241"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0a92ae1c7d86948ab837bdb5669374104d5c241"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/presenterVoice2410.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "560bd9835839fccc43735d02d8ed7a5a6146fa06"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "560bd9835839fccc43735d02d8ed7a5a6146fa06"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/uploadFootage.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b0d91d2c4151602e17f4d2f62f7437dfc15818e7"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b0d91d2c4151602e17f4d2f62f7437dfc15818e7"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/v2Advance.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bd55c6ecc26d48a3c470e6aa89c39d9b06710e55"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bd55c6ecc26d48a3c470e6aa89c39d9b06710e55"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/v2PlanCore.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e19bdbb7a445018ad44c364caae2b0dbfc318fe8"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e19bdbb7a445018ad44c364caae2b0dbfc318fe8"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/v2Presenter.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2caf8e8cafb12fd36eb5c8fafc5c737eb77c6e83"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "2caf8e8cafb12fd36eb5c8fafc5c737eb77c6e83"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/v2PresenterV2.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6bcbb139494b57d70af99e7a7040354a82f24c1f"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "6bcbb139494b57d70af99e7a7040354a82f24c1f"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/ads/v2StartCore.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d8fbf86fa0ab4c978d32d738e7222b33fd3801a0"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d8fbf86fa0ab4c978d32d738e7222b33fd3801a0"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/checkoutPricing.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e806c8f33602cce189fb8f63ed3dde5aac7c06ef"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e806c8f33602cce189fb8f63ed3dde5aac7c06ef"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/growth/checkoutSuccessFlow.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b2b8557b4f71e6898f56e5f4f46eec5ccfee1ca5"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b2b8557b4f71e6898f56e5f4f46eec5ccfee1ca5"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/growth/kidsLaunchEmail.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bc48da8d88ec94ad69343655115b7e54cf3834fe"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "bc48da8d88ec94ad69343655115b7e54cf3834fe"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/lifecycle/emailEvents.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0d714f051cff1f81aa83f927861b6d6152b6b93"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a0d714f051cff1f81aa83f927861b6d6152b6b93"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/oneTimeItem.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a6448c09e1ce10836e95e9adc34dfe5d3e7c6513"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "a6448c09e1ce10836e95e9adc34dfe5d3e7c6513"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/paypal.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "26546184470746e4f0d9b0a85c9b47353c1f42ab"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "26546184470746e4f0d9b0a85c9b47353c1f42ab"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/stripe/oneTimeItemCheckout.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d6a0ccc47587c7018e8fbff6c2c15624f2f44986"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d6a0ccc47587c7018e8fbff6c2c15624f2f44986"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/stripe/oneTimeItemFulfillment.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d306c9ba48db123e49e3814082c6c68afa0fe2cc"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "d306c9ba48db123e49e3814082c6c68afa0fe2cc"
+      },
+      "equal": true
+    }
+  ],
+  "intersection": [
+    "app/api/compose/route.ts"
+  ],
+  "protectedMain": [
+    {
+      "file": "lib/filmes/faceless15.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b515c2da8c2f12adb6fde1dead761e3236907865"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "b515c2da8c2f12adb6fde1dead761e3236907865"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/filmes/filme15Elenco.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "dc1f6252549908ac6e6f1eb39735e207ac128e1d"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "dc1f6252549908ac6e6f1eb39735e207ac128e1d"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/filmes/filme15RostoFixo.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e231a8746f935b6a8bdb4b4d5a88e46462c157e3"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "e231a8746f935b6a8bdb4b4d5a88e46462c157e3"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/textLanguage.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "125bfbea06cb08d21002f8821e56ef186844818f"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "125bfbea06cb08d21002f8821e56ef186844818f"
+      },
+      "equal": true
+    },
+    {
+      "file": "lib/runway.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3173917b629bbd2b667ffd4ae5eddbb10ef3ac4"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "f3173917b629bbd2b667ffd4ae5eddbb10ef3ac4"
+      },
+      "equal": true
+    },
+    {
+      "file": "app/api/generate-video-cinematic/route.ts",
+      "expected": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50d9321f05e34ef7239513aefadc53137fb225b1"
+      },
+      "actual": {
+        "mode": "100644",
+        "type": "blob",
+        "oid": "50d9321f05e34ef7239513aefadc53137fb225b1"
+      },
+      "equal": true
+    }
+  ],
+  "compose": {
+    "file": "app/api/compose/route.ts",
+    "main": {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "9314a5ed2a4c1736a46f7098cb605aa5c151a23a"
+    },
+    "leva": {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "42255373f4a14a507113bb1a319210e1379157e3"
+    },
+    "current": {
+      "mode": "100644",
+      "type": "blob",
+      "oid": "fa7411ab5aa326dd5f150a19df7958b5ab0d5d65"
+    },
+    "purchaseLineOccurrences": 1,
+    "everyMainBytePreserved": true
+  },
+  "workflow": {
+    "currentLines": 220,
+    "currentCommands": [
+      "node scripts/test-cards-giro-2410.mjs --mutants",
+      "node scripts/test-cards-giro-undo-2410.mjs",
+      "node scripts/test-leva-integration-2410.mjs",
+      "node scripts/test-leva-rebase-2610.mjs",
+      "node scripts/test-visual-ingles-2610.mjs",
+      "node scripts/test-ads-amostra-anuncio-2410.mjs",
+      "node scripts/test-ads-amostra-data-2410.mjs",
+      "node scripts/test-support/ads-escolha-sample-media-2410.mjs",
+      "node scripts/test-support/ads-amostra-race-2410.mjs",
+      "node scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
+      "node scripts/test-support/ads-amostra-entry-2410.mjs",
+      "node scripts/test-ads-amostra-undo-2410.mjs",
+      "node scripts/test-support/ads-amostra-data-sql-2410.cjs \"$RUNNER_TEMP/kineo-sample-sql/node_modules/@electric-sql/pglite\" supabase/migrations/20261024175246_ads_escolha_sample.sql --mutants",
+      "node scripts/test-apresentadores-2410.mjs",
+      "node scripts/test-apresentadores-admin-2410.mjs",
+      "node scripts/test-apresentadores-voice-2410.mjs",
+      "node scripts/test-apresentadores-legacy-voice-2410.mjs",
+      "node scripts/test-apresentadores-undo-2410.mjs",
+      "node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-delivery-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410",
+      "node scripts/test-idiomas-2410.mjs",
+      "node scripts/test-language-segmentation-2410.mjs",
+      "node scripts/test-ads-formatos-escolha-2410.mjs",
+      "node scripts/test-idiomas-formatos-undo-2410.mjs",
+      "node scripts/test-ads-escolha-publico-2410.mjs",
+      "node scripts/test-ads-escolha-2310.mjs",
+      "node scripts/test-ads-render-fix-2310.mjs",
+      "node scripts/test-trafego-pages-2310.mjs",
+      "node scripts/test-trafego-index-2310.mjs",
+      "node scripts/test-trafego-health-2310.mjs --mutants",
+      "node scripts/test-trafego-undo-2310.mjs",
+      "node scripts/test-admin-leve-2310.mjs --mutants",
+      "node scripts/test-admin-leve-undo-2310.mjs",
+      "node scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants",
+      "node scripts/test-roteiro-curto-undo-2210.mjs",
+      "node scripts/test-admin-truncamento-2026-10.mjs",
+      "node docs/video-fiel-2610/juiz-offline.mjs",
+      "node docs/video-fiel-2610/cenas-test.mjs",
+      "node docs/video-fiel-2610/pedido-test.mjs",
+      "node docs/video-fiel-2610/pedido-mcp-test.mjs",
+      "node docs/video-fiel-2610/canario-offline.mjs",
+      "node docs/video-fiel-2610/test-admin-quality.mjs",
+      "node scripts/test-meta95-regua-1910.mjs",
+      "node scripts/test-meta95-ugc-1910.mjs",
+      "node docs/video-fiel-2610/test-legacy-layer.mjs",
+      "node docs/free15-quality-v2/caption-test.mjs",
+      "node docs/free15-quality-v2/caption-legacy-test.mjs",
+      "node docs/compra-clareza-2610/test-recurring-plan-value.mjs",
+      "node docs/compra-clareza-2610/test-own-idea-start.mjs",
+      "node docs/compra-clareza-2610/test-result-script-review.mjs",
+      "node docs/compra-clareza-2610/test-legacy-layer.mjs",
+      "node scripts/test-afiliados-acordam.mjs",
+      "node scripts/test-coerencia-kineo1-2026-09-16.mjs",
+      "node scripts/test-juiz-still-2026-10-06.mjs",
+      "node scripts/test-carta-da-recusa.mjs",
+      "node scripts/test-momentum-topic.mjs",
+      "node scripts/test-stalled-frescor-2026-09-05.mjs",
+      "node scripts/test-hot-nudge-janela-campanhas.mjs",
+      "node \"scripts/test-gpt-5h-${item}-2026-09-24.mjs\"",
+      "node scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "node scripts/test-sharing-safety.mjs",
+      "node scripts/test-paid-video-citation-guidance-2026-09-28.mjs",
+      "node scripts/test-seedance-hero-plans-2026-09-28.mjs",
+      "node scripts/test-motores-geo-2026-10-06.mjs",
+      "node scripts/test-ads-aeo-2026-09-24.mjs",
+      "node scripts/test-five-improvements.mjs",
+      "node scripts/test-studio-entry-transition.mjs",
+      "node scripts/test-locale-readiness.mjs",
+      "node scripts/test-app-blue-layout.mjs",
+      "node scripts/test-home-curation.mjs",
+      "node scripts/test-home-blue-layout.mjs",
+      "node scripts/test-home-referral-bridge.mjs",
+      "node scripts/test-home-pricing-checkout.mjs",
+      "node scripts/test-showcase-premium.mjs",
+      "node scripts/test-cinematic-timeline-2026-09-11.mjs",
+      "node scripts/test-cinematic-speech-2026-09-11.mjs",
+      "node scripts/test-music-direction-2026-09-11.mjs",
+      "node scripts/test-visual-contract-2026-09-11.mjs",
+      "node scripts/test-quality-rejection-2026-09-11.mjs",
+      "node scripts/test-quality-route-integration-2026-09-11.mjs",
+      "node scripts/test-quality-failure-ui-2026-09-11.mjs",
+      "node scripts/test-active-quality-rejection-2026-09-11.mjs",
+      "node scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+      "node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "node scripts/test-scene-retry-mutex-2026-09-11.mjs",
+      "node scripts/test-cartoon-tracao.mjs --mutants"
+    ],
+    "newRebaseGuardOccurrences": 1,
+    "parents": [
+      {
+        "ref": "62213b008292f110117d1abbe20c157efdb55902",
+        "lineCount": 179,
+        "commandCount": 67,
+        "allLinesInOrder": true,
+        "allCommandsInOrder": true
+      },
+      {
+        "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+        "lineCount": 195,
+        "commandCount": 74,
+        "allLinesInOrder": true,
+        "allCommandsInOrder": true
+      }
+    ]
+  },
+  "unmerged": [],
+  "workingTreeVsIndex": [],
+  "untrackedProduct": [],
+  "extraPaths": [],
+  "omittedPaths": [],
+  "anomalies": [],
+  "status": "PASS",
+  "extendedAtUtc": "2026-10-26T20:48:29.660Z",
+  "decisionsPreservation": {
+    "file": "docs/DECISIONS.md",
+    "currentNonblankLines": 629,
+    "parents": [
+      {
+        "ref": "62213b008292f110117d1abbe20c157efdb55902",
+        "nonblankLines": 627,
+        "allNonblankLinesInParentOrder": true,
+        "uniqueSectionHeadings": [
+          {
+            "heading": "# 2026-10-26 — Compra com valor claro: três recomendações",
+            "currentLine": 923
+          },
+          {
+            "heading": "# 2026-10-26 — Primeiro filme de 15 segundos e avaliação com evidência",
+            "currentLine": 927
+          }
+        ]
+      },
+      {
+        "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+        "nonblankLines": 619,
+        "allNonblankLinesInParentOrder": true,
+        "uniqueSectionHeadings": [
+          {
+            "heading": "# 2026-10-24 — Amostra grátis do anúncio com apresentadora",
+            "currentLine": 943
+          }
+        ]
+      }
+    ],
+    "amostraSection": "# 2026-10-24 — Amostra grátis do anúncio com apresentadora"
+  },
+  "frozenJsonPreservation": {
+    "scope": "every tracked scripts/test-support/*.json supplied by either immutable parent",
+    "files": 67,
+    "rows": [
+      {
+        "file": "scripts/test-support/desfaz-ads-bola-2110-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob d0c5c425cbcbd46bf5ddef8a8b5bc0d6bbfac510"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob d0c5c425cbcbd46bf5ddef8a8b5bc0d6bbfac510"
+          }
+        ],
+        "actual": "100644 blob d0c5c425cbcbd46bf5ddef8a8b5bc0d6bbfac510",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-2110-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 5587e977dfd7cd9edb001b72aa3ece8b7cfec4b2"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 5587e977dfd7cd9edb001b72aa3ece8b7cfec4b2"
+          }
+        ],
+        "actual": "100644 blob 5587e977dfd7cd9edb001b72aa3ece8b7cfec4b2",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-95-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 059c6be9917ce82cd77892e25147d8d14829ba93"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 059c6be9917ce82cd77892e25147d8d14829ba93"
+          }
+        ],
+        "actual": "100644 blob 059c6be9917ce82cd77892e25147d8d14829ba93",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 48c8c4956fbe4315e9176b3e008d1d10cd8edba7"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 48c8c4956fbe4315e9176b3e008d1d10cd8edba7"
+          }
+        ],
+        "actual": "100644 blob 48c8c4956fbe4315e9176b3e008d1d10cd8edba7",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 20cea3089646e43315f94da33ed81362def9a3b9"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 20cea3089646e43315f94da33ed81362def9a3b9"
+          }
+        ],
+        "actual": "100644 blob 20cea3089646e43315f94da33ed81362def9a3b9",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-ajuste-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 86797743fc18bedf8dc39606cae9bff9eb17807a"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 86797743fc18bedf8dc39606cae9bff9eb17807a"
+          }
+        ],
+        "actual": "100644 blob 86797743fc18bedf8dc39606cae9bff9eb17807a",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-respaldo-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob cbc063dfacd100e0bf84036e9691c577c5c741c8"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob cbc063dfacd100e0bf84036e9691c577c5c741c8"
+          }
+        ],
+        "actual": "100644 blob cbc063dfacd100e0bf84036e9691c577c5c741c8",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-retomada-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 17fd05289f3818d18f135b5ddf49a1c9a65d1788"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 17fd05289f3818d18f135b5ddf49a1c9a65d1788"
+          }
+        ],
+        "actual": "100644 blob 17fd05289f3818d18f135b5ddf49a1c9a65d1788",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-segue-2110-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob f04da32e0c11e6811f3682953931b4e4896d5cda"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob f04da32e0c11e6811f3682953931b4e4896d5cda"
+          }
+        ],
+        "actual": "100644 blob f04da32e0c11e6811f3682953931b4e4896d5cda",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-cena-texto-2310-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 1fc3dbfc84141ca5a519a204fbb4f05f712169c2"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 1fc3dbfc84141ca5a519a204fbb4f05f712169c2"
+          }
+        ],
+        "actual": "100644 blob 1fc3dbfc84141ca5a519a204fbb4f05f712169c2",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-escolha-2310-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob e1c1c29552dca4d3ce96a4d7394715caaf9796ba"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob e1c1c29552dca4d3ce96a4d7394715caaf9796ba"
+          }
+        ],
+        "actual": "100644 blob e1c1c29552dca4d3ce96a4d7394715caaf9796ba",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-escolha-publico-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob bdd5099ac41c8f639e13bf7bb3f57669cc698343"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob bdd5099ac41c8f639e13bf7bb3f57669cc698343"
+          }
+        ],
+        "actual": "100644 blob bdd5099ac41c8f639e13bf7bb3f57669cc698343",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-nota9-2110-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 18e123d2991867c1d8ee6aef95ecb5538bb5b959"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 18e123d2991867c1d8ee6aef95ecb5538bb5b959"
+          }
+        ],
+        "actual": "100644 blob 18e123d2991867c1d8ee6aef95ecb5538bb5b959",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ads-qualidade-2110-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 693736b5531275bdf8e6d6659a33a8aedb2c3dbe"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 693736b5531275bdf8e6d6659a33a8aedb2c3dbe"
+          }
+        ],
+        "actual": "100644 blob 693736b5531275bdf8e6d6659a33a8aedb2c3dbe",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-amostra-anuncio-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 989554ef5f9c93b0fcff2f2115b3a516d5e66286"
+          }
+        ],
+        "actual": "100644 blob 989554ef5f9c93b0fcff2f2115b3a516d5e66286",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-apresentador-olhos-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob ec6f5707cbf4f7101b94c250d5a68be637dbc84f"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob ec6f5707cbf4f7101b94c250d5a68be637dbc84f"
+          }
+        ],
+        "actual": "100644 blob ec6f5707cbf4f7101b94c250d5a68be637dbc84f",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-apresentadores-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob beab4cb6ab97f3f6731b4688696c2c592a5557ad"
+          }
+        ],
+        "actual": "100644 blob beab4cb6ab97f3f6731b4688696c2c592a5557ad",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-avatar-estorno-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 830a76624b0e786150523fc4e67b5ec3d823d90d"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 830a76624b0e786150523fc4e67b5ec3d823d90d"
+          }
+        ],
+        "actual": "100644 blob 830a76624b0e786150523fc4e67b5ec3d823d90d",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-avatar-preso-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 59f69462fd2545c44990a9740bcbf7779126abfb"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 59f69462fd2545c44990a9740bcbf7779126abfb"
+          }
+        ],
+        "actual": "100644 blob 59f69462fd2545c44990a9740bcbf7779126abfb",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-bebe-que-fala-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 6ed65cb066659f1c8d99297b98b7b312086c82c8"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 6ed65cb066659f1c8d99297b98b7b312086c82c8"
+          }
+        ],
+        "actual": "100644 blob 6ed65cb066659f1c8d99297b98b7b312086c82c8",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-bing-seo-1510-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 9d13eb4ee8f2ad82fe86006c18cb99e3914af5b9"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 9d13eb4ee8f2ad82fe86006c18cb99e3914af5b9"
+          }
+        ],
+        "actual": "100644 blob 9d13eb4ee8f2ad82fe86006c18cb99e3914af5b9",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-caption-canonico-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 912d29001de233c5c22ab0fe244742fb41a93951"
+          }
+        ],
+        "actual": "100644 blob 912d29001de233c5c22ab0fe244742fb41a93951",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-cards-bordas-2410-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob c68664fa8fa7364fd670a56e7765f56316928eb3"
+          }
+        ],
+        "actual": "100644 blob c68664fa8fa7364fd670a56e7765f56316928eb3",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-cards-giro-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob a25d9baeed5f179a6f907988c25b62382ad4895b"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob a25d9baeed5f179a6f907988c25b62382ad4895b"
+          }
+        ],
+        "actual": "100644 blob a25d9baeed5f179a6f907988c25b62382ad4895b",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-cartoon-tracao-2210-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 661dad1dde0f4b520c44481d3c291b669486b8f6"
+          }
+        ],
+        "actual": "100644 blob 661dad1dde0f4b520c44481d3c291b669486b8f6",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-cartoon-tracao-2210-original-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob fe7486f1db3f4853e15665b06f1c256374898db1"
+          }
+        ],
+        "actual": "100644 blob fe7486f1db3f4853e15665b06f1c256374898db1",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-close-real-legenda-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 997a1bf72c6ff204d267ee35fc55afb67167a19d"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 997a1bf72c6ff204d267ee35fc55afb67167a19d"
+          }
+        ],
+        "actual": "100644 blob 997a1bf72c6ff204d267ee35fc55afb67167a19d",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-close-real-legenda-corte-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 814f1130b8b86f94beebd68340aa0dcdb0efc2b8"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 814f1130b8b86f94beebd68340aa0dcdb0efc2b8"
+          }
+        ],
+        "actual": "100644 blob 814f1130b8b86f94beebd68340aa0dcdb0efc2b8",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-close-real-legenda-pilula-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 0fd9ec42ceddf8e51bd5a89c36b8a862f60a7382"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 0fd9ec42ceddf8e51bd5a89c36b8a862f60a7382"
+          }
+        ],
+        "actual": "100644 blob 0fd9ec42ceddf8e51bd5a89c36b8a862f60a7382",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-compra-avulsa-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 44e04d6d56c9bd83ceb69f0c2921fb438dc1b9ed"
+          }
+        ],
+        "actual": "100644 blob 44e04d6d56c9bd83ceb69f0c2921fb438dc1b9ed",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-demo-sob-medida-1510-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 1dfed93b15784ce8408483fcd863e7668d1a4b08"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 1dfed93b15784ce8408483fcd863e7668d1a4b08"
+          }
+        ],
+        "actual": "100644 blob 1dfed93b15784ce8408483fcd863e7668d1a4b08",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filme15-elenco-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 109ab7fe16329d5cddebfd3d3486a2207ccefec9"
+          }
+        ],
+        "actual": "100644 blob 109ab7fe16329d5cddebfd3d3486a2207ccefec9",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filme15-fiel-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob b95a4c7092f42ed486a72ada957ba6b50257b70e"
+          }
+        ],
+        "actual": "100644 blob b95a4c7092f42ed486a72ada957ba6b50257b70e",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filme15-rosto-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 29ddfb5f4602c2d3c638f776221b351e98880dbd"
+          }
+        ],
+        "actual": "100644 blob 29ddfb5f4602c2d3c638f776221b351e98880dbd",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filmes-f1-virgula-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob e7a609e2a9da13f702f2241647104b6abcc15dec"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob e7a609e2a9da13f702f2241647104b6abcc15dec"
+          }
+        ],
+        "actual": "100644 blob e7a609e2a9da13f702f2241647104b6abcc15dec",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 48529777b6082c207fcc543650f9ad95d7c17d68"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 48529777b6082c207fcc543650f9ad95d7c17d68"
+          }
+        ],
+        "actual": "100644 blob 48529777b6082c207fcc543650f9ad95d7c17d68",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filmes-f1f3-publico-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob a4893208e213d69c3ee08ebe4ba17535ddcca969"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob a4893208e213d69c3ee08ebe4ba17535ddcca969"
+          }
+        ],
+        "actual": "100644 blob a4893208e213d69c3ee08ebe4ba17535ddcca969",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-filmes-f1f4-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 31add5f99aa4019c7dcafdc4a66235f95148ad79"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 31add5f99aa4019c7dcafdc4a66235f95148ad79"
+          }
+        ],
+        "actual": "100644 blob 31add5f99aa4019c7dcafdc4a66235f95148ad79",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-home-3-cards-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 23a6940477b7c397faec24b14cb0f5205a03fd65"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 23a6940477b7c397faec24b14cb0f5205a03fd65"
+          }
+        ],
+        "actual": "100644 blob 23a6940477b7c397faec24b14cb0f5205a03fd65",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-home-cards-botoes-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 53d8ba795a2769f8bdd7c46dc572b680bd3edb34"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 53d8ba795a2769f8bdd7c46dc572b680bd3edb34"
+          }
+        ],
+        "actual": "100644 blob 53d8ba795a2769f8bdd7c46dc572b680bd3edb34",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-home-cards-claros-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 4afe164f5a557e1b5ad5c294f4689c53d47022d2"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 4afe164f5a557e1b5ad5c294f4689c53d47022d2"
+          }
+        ],
+        "actual": "100644 blob 4afe164f5a557e1b5ad5c294f4689c53d47022d2",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-home-remodela-2010-acrescimos.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 1241546dc2b1f2ec5b390009399c9bc5db8e9bb7"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 1241546dc2b1f2ec5b390009399c9bc5db8e9bb7"
+          }
+        ],
+        "actual": "100644 blob 1241546dc2b1f2ec5b390009399c9bc5db8e9bb7",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-home-remodela-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob bce6bc2b21c53f2b2a68e06bce86eeb3ea2f5c0e"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob bce6bc2b21c53f2b2a68e06bce86eeb3ea2f5c0e"
+          }
+        ],
+        "actual": "100644 blob bce6bc2b21c53f2b2a68e06bce86eeb3ea2f5c0e",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-idiomas-formatos-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 83377bc3060b045b2cd5fb40819df6f1f1bc4265"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 83377bc3060b045b2cd5fb40819df6f1f1bc4265"
+          }
+        ],
+        "actual": "100644 blob 83377bc3060b045b2cd5fb40819df6f1f1bc4265",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-kids-venda-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob ad4e1e241a57ba923c6aa1aca96b850ef1de9f31"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob ad4e1e241a57ba923c6aa1aca96b850ef1de9f31"
+          }
+        ],
+        "actual": "100644 blob ad4e1e241a57ba923c6aa1aca96b850ef1de9f31",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-kit-bf-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob da032bf0d485d8f929f5fd4722281e28ac53d1b3"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob da032bf0d485d8f929f5fd4722281e28ac53d1b3"
+          }
+        ],
+        "actual": "100644 blob da032bf0d485d8f929f5fd4722281e28ac53d1b3",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-kit-bf-venda-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob f0d35c7ac76f4b724f5931bd13b55d1f4126a574"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob f0d35c7ac76f4b724f5931bd13b55d1f4126a574"
+          }
+        ],
+        "actual": "100644 blob f0d35c7ac76f4b724f5931bd13b55d1f4126a574",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-legenda-bengali-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 28013e4ef2ad96bb1c72f2ee12651c4286b3478b"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 28013e4ef2ad96bb1c72f2ee12651c4286b3478b"
+          }
+        ],
+        "actual": "100644 blob 28013e4ef2ad96bb1c72f2ee12651c4286b3478b",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-mcp-studio-ajuste-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 10cdc6115583e9b4be842949f8780bd5c33d0dc0"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 10cdc6115583e9b4be842949f8780bd5c33d0dc0"
+          }
+        ],
+        "actual": "100644 blob 10cdc6115583e9b4be842949f8780bd5c33d0dc0",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-menu-ugc-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 9152592198cfd4cc93d399c6d3b8abb5fd1af229"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 9152592198cfd4cc93d399c6d3b8abb5fd1af229"
+          }
+        ],
+        "actual": "100644 blob 9152592198cfd4cc93d399c6d3b8abb5fd1af229",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-meta95-assunto-1910-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 60ed78cbdd99dbdea793ceeb758a61f718337a2a"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 60ed78cbdd99dbdea793ceeb758a61f718337a2a"
+          }
+        ],
+        "actual": "100644 blob 60ed78cbdd99dbdea793ceeb758a61f718337a2a",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-meta95-escrita-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 8c3d06ddbf56e518a4e026826d1f00beaa806afd"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 8c3d06ddbf56e518a4e026826d1f00beaa806afd"
+          }
+        ],
+        "actual": "100644 blob 8c3d06ddbf56e518a4e026826d1f00beaa806afd",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-meta95-personagem-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 9770bebcb4107daa3bdb613ba089d3371aad1f70"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 9770bebcb4107daa3bdb613ba089d3371aad1f70"
+          }
+        ],
+        "actual": "100644 blob 9770bebcb4107daa3bdb613ba089d3371aad1f70",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob aed2845e3b7c517ff5120073eccf70d05df2ad00"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob aed2845e3b7c517ff5120073eccf70d05df2ad00"
+          }
+        ],
+        "actual": "100644 blob aed2845e3b7c517ff5120073eccf70d05df2ad00",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-paginas-ia-claras-2110-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob c73f7eed3256a3a86ea0ef9b57e6e8f19dbde84f"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob c73f7eed3256a3a86ea0ef9b57e6e8f19dbde84f"
+          }
+        ],
+        "actual": "100644 blob c73f7eed3256a3a86ea0ef9b57e6e8f19dbde84f",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-trafego-2310-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob aa65d1d6fdc6ceba61dce28e94c7daa576f58f92"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob aa65d1d6fdc6ceba61dce28e94c7daa576f58f92"
+          }
+        ],
+        "actual": "100644 blob aa65d1d6fdc6ceba61dce28e94c7daa576f58f92",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-trending-inventario-2510-troca.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob c52eaa387b3cc8869c100b779c5131309cfdbc2a"
+          }
+        ],
+        "actual": "100644 blob c52eaa387b3cc8869c100b779c5131309cfdbc2a",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-ugc-ajustes-2010-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 263e94bee4b02582da9af15e84c3838f3e26ee11"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 263e94bee4b02582da9af15e84c3838f3e26ee11"
+          }
+        ],
+        "actual": "100644 blob 263e94bee4b02582da9af15e84c3838f3e26ee11",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-video-fiel-2610-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 3c46ebbc6f0d10c1b8eb25141f35136fd360b8e3"
+          }
+        ],
+        "actual": "100644 blob 3c46ebbc6f0d10c1b8eb25141f35136fd360b8e3",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-visual-ingles-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 3ebea3a0bdd2f5dd51cd6bfd9c5e2bef6d7820d7"
+          }
+        ],
+        "actual": "100644 blob 3ebea3a0bdd2f5dd51cd6bfd9c5e2bef6d7820d7",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/desfaz-voz-nativa-2610-hunks.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 4545fdb90a435580fb8f4bcbd1a0e149c3a08772"
+          }
+        ],
+        "actual": "100644 blob 4545fdb90a435580fb8f4bcbd1a0e149c3a08772",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/fixture-whisper-carrington-1910.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob ce3f39f8e5a59877511e9aa9bcfb42afff1c5429"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob ce3f39f8e5a59877511e9aa9bcfb42afff1c5429"
+          }
+        ],
+        "actual": "100644 blob ce3f39f8e5a59877511e9aa9bcfb42afff1c5429",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/h3max-2026-10-13-trocas.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 2807f401153f053d25c5fcf777b90a12425bebc4"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 2807f401153f053d25c5fcf777b90a12425bebc4"
+          }
+        ],
+        "actual": "100644 blob 2807f401153f053d25c5fcf777b90a12425bebc4",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/legenda-grafia-2026-09-28.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 2476b754557693732ce524c4176e856afc8c3dc0"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 2476b754557693732ce524c4176e856afc8c3dc0"
+          }
+        ],
+        "actual": "100644 blob 2476b754557693732ce524c4176e856afc8c3dc0",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/leva-integration-2410-fontes.json",
+        "expectedParents": [
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob b15e04a17010a8111835855791ed415e73f7bb85"
+          }
+        ],
+        "actual": "100644 blob b15e04a17010a8111835855791ed415e73f7bb85",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/meta95-escrita-2010.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 107b350ffe09b2c0a2a5717e18d5af14334ea4bb"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 107b350ffe09b2c0a2a5717e18d5af14334ea4bb"
+          }
+        ],
+        "actual": "100644 blob 107b350ffe09b2c0a2a5717e18d5af14334ea4bb",
+        "unchangedFromEveryProvidingParent": true
+      },
+      {
+        "file": "scripts/test-support/trilha-15s-1610-roteiros.json",
+        "expectedParents": [
+          {
+            "ref": "62213b008292f110117d1abbe20c157efdb55902",
+            "modeTypeOid": "100644 blob 29567e81ce3e2f67d7cdf6fa595bfda16cb77bbb"
+          },
+          {
+            "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+            "modeTypeOid": "100644 blob 29567e81ce3e2f67d7cdf6fa595bfda16cb77bbb"
+          }
+        ],
+        "actual": "100644 blob 29567e81ce3e2f67d7cdf6fa595bfda16cb77bbb",
+        "unchangedFromEveryProvidingParent": true
+      }
+    ],
+    "fromParents": [
+      {
+        "ref": "62213b008292f110117d1abbe20c157efdb55902",
+        "all": [
+          "A\tscripts/test-support/desfaz-amostra-anuncio-2410-fontes.json",
+          "A\tscripts/test-support/desfaz-apresentadores-2410-fontes.json",
+          "A\tscripts/test-support/desfaz-cartoon-tracao-2210-hunks.json",
+          "A\tscripts/test-support/desfaz-cartoon-tracao-2210-original-hunks.json",
+          "A\tscripts/test-support/desfaz-compra-avulsa-2410-fontes.json",
+          "A\tscripts/test-support/leva-integration-2410-fontes.json",
+          "A\tscripts/test-support/leva-rebase-2610-fontes.json"
+        ],
+        "modifiedDeletedRenamed": []
+      },
+      {
+        "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+        "all": [
+          "A\tscripts/test-support/desfaz-caption-canonico-2610-hunks.json",
+          "A\tscripts/test-support/desfaz-cards-bordas-2410-trocas.json",
+          "A\tscripts/test-support/desfaz-filme15-elenco-2610-hunks.json",
+          "A\tscripts/test-support/desfaz-filme15-fiel-2610-hunks.json",
+          "A\tscripts/test-support/desfaz-filme15-rosto-2610-hunks.json",
+          "A\tscripts/test-support/desfaz-trending-inventario-2510-troca.json",
+          "A\tscripts/test-support/desfaz-video-fiel-2610-fontes.json",
+          "A\tscripts/test-support/desfaz-visual-ingles-2610-hunks.json",
+          "A\tscripts/test-support/desfaz-voz-nativa-2610-hunks.json",
+          "A\tscripts/test-support/leva-rebase-2610-fontes.json"
+        ],
+        "modifiedDeletedRenamed": []
+      }
+    ],
+    "workingTreeChangesToOldJson": [],
+    "newRebaseSealExcludedFromOldManifests": "scripts/test-support/leva-rebase-2610-fontes.json"
+  },
+  "ancestryAudit": {
+    "head": "047b41c34bbc1d83547492cb6ef2963ee731c1da",
+    "latestUniquePinnedRefs": 14,
+    "originalUniquePinnedRefs": 14,
+    "pureLevaPrefixRefs": 12,
+    "allOriginalPinsRemainAncestors": true,
+    "allLatestPinsAreAncestors": true,
+    "rows": [
+      {
+        "ref": "1c078ed013302ac47c42f783305df688c4e97cfd",
+        "sha": "1c078ed013302ac47c42f783305df688c4e97cfd",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "68c65670",
+        "sha": "68c65670bf47965f90d72a914414550608f894fa",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "3ec6c9d9",
+        "sha": "3ec6c9d9b790e00c05650ccab7e9af426cd106d1",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "618bed34",
+        "sha": "618bed341cc46fa628504ce17c5aba576ead057d",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "cfd30692",
+        "sha": "cfd3069226c7d9ca63feb58d2a20fce74c808615",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "17afd045d",
+        "sha": "17afd045d2729d8b71248835cdde18a286f69cee",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "418971fd",
+        "sha": "418971fdb59981ce1f448c82983917f452b8e2f3",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "3a4db3096",
+        "sha": "3a4db30967e81d76babb9f8697ffcb9e58834a52",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+        "sha": "7950e41134dd03388e67c131501d3e2bce61a3eb",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "51b6431ce",
+        "sha": "51b6431ce6fd4733d6dac8d644ac46ffaaa8ed73",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "c91476688",
+        "sha": "c914766880662742f83e56baca3417960d4d12fa",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+        "sha": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "62213b008292f110117d1abbe20c157efdb55902",
+        "sha": "62213b008292f110117d1abbe20c157efdb55902",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "07435f57b7e18d4d37c325e57134776d452db382",
+        "sha": "07435f57b7e18d4d37c325e57134776d452db382",
+        "isAncestorOfCurrentHead": true
+      },
+      {
+        "ref": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+        "sha": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+        "isAncestorOfCurrentHead": true
+      }
+    ]
+  }
+}

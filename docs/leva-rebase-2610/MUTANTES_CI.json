@@ -1,0 +1,259 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "dateUtc": "2026-10-26T21:09:35.419Z",
+  "earlierFiveVariants": {
+    "date": "2026-10-26T20:35:44.215Z",
+    "root": "checkout/codex-lrb-nonads-2610",
+    "base": "38960b06e1e5c5fac04103ea9ea35ff25c790796",
+    "timeout": 600000,
+    "concurrency": 1,
+    "statusBefore": "",
+    "commands": [
+      [
+        "scripts/test-compra-avulsa-2410.mjs",
+        "--mutants"
+      ],
+      [
+        "scripts/test-compra-avulsa-webhook-2410.mjs",
+        "--mutants"
+      ],
+      [
+        "scripts/test-compra-avulsa-delivery-2410.mjs",
+        "--mutants"
+      ],
+      [
+        "scripts/test-compra-avulsa-sql-2410.mjs",
+        "--mutants"
+      ],
+      [
+        "scripts/test-cartoon-tracao.mjs",
+        "--mutants"
+      ]
+    ],
+    "results": [
+      {
+        "args": [
+          "scripts/test-compra-avulsa-2410.mjs",
+          "--mutants"
+        ],
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 2576,
+        "log": "01-test-compra-avulsa-2410.mjs.log"
+      },
+      {
+        "args": [
+          "scripts/test-compra-avulsa-webhook-2410.mjs",
+          "--mutants"
+        ],
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 2024,
+        "log": "02-test-compra-avulsa-webhook-2410.mjs.log"
+      },
+      {
+        "args": [
+          "scripts/test-compra-avulsa-delivery-2410.mjs",
+          "--mutants"
+        ],
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 790,
+        "log": "03-test-compra-avulsa-delivery-2410.mjs.log"
+      },
+      {
+        "args": [
+          "scripts/test-compra-avulsa-sql-2410.mjs",
+          "--mutants"
+        ],
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 28569,
+        "log": "04-test-compra-avulsa-sql-2410.mjs.log"
+      },
+      {
+        "args": [
+          "scripts/test-cartoon-tracao.mjs",
+          "--mutants"
+        ],
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 50285,
+        "log": "05-test-cartoon-tracao.mjs.log"
+      }
+    ],
+    "statusAfter": "",
+    "finalHead": "38960b06e1e5c5fac04103ea9ea35ff25c790796",
+    "sourcesRestored": true,
+    "complete": true
+  },
+  "finalFourVariants": {
+    "startedAt": "2026-10-26T21:06:23.733Z",
+    "updatedAt": "2026-10-26T21:07:23.374Z",
+    "root": "checkout/codex-lrb-nonads-2610",
+    "head": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+    "refs": {
+      "latestMain": "62213b008292f110117d1abbe20c157efdb55902",
+      "leva": "07435f57b7e18d4d37c325e57134776d452db382"
+    },
+    "guard": "external/baseline/offline-guard.cjs",
+    "environmentKeys": [
+      "PATH",
+      "SystemRoot",
+      "WINDIR",
+      "TEMP",
+      "TMP",
+      "COMSPEC",
+      "PATHEXT",
+      "LOCALAPPDATA",
+      "USERPROFILE",
+      "NODE_OPTIONS",
+      "NO_COLOR",
+      "GIT_ALLOW_PROTOCOL",
+      "GIT_TERMINAL_PROMPT",
+      "KINEO_PGLITE_PATH"
+    ],
+    "timeoutMs": 600000,
+    "statusBefore": "",
+    "completed": 4,
+    "total": 4,
+    "allClean": true,
+    "results": [
+      {
+        "file": "scripts/test-cards-giro-2410.mjs",
+        "args": [
+          "scripts/test-cards-giro-2410.mjs",
+          "--mutants"
+        ],
+        "startedAt": "2026-10-26T21:06:23.828Z",
+        "finishedAt": "2026-10-26T21:06:36.426Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 12598,
+        "headAfter": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+        "statusBefore": "",
+        "statusAfter": "",
+        "restoredClean": true,
+        "newBlockedOperationsForEntry": [],
+        "log": "external/candidate/ci-flags-final\\logs\\test-cards-giro-2410.mjs.mutants.log",
+        "logSummary": {
+          "positive": "4 contract groups",
+          "mutantsRejected": 14,
+          "proof": "no source mutation"
+        }
+      },
+      {
+        "file": "scripts/test-trafego-health-2310.mjs",
+        "args": [
+          "scripts/test-trafego-health-2310.mjs",
+          "--mutants"
+        ],
+        "startedAt": "2026-10-26T21:06:36.580Z",
+        "finishedAt": "2026-10-26T21:06:41.019Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 4439,
+        "headAfter": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+        "statusBefore": "",
+        "statusAfter": "",
+        "restoredClean": true,
+        "newBlockedOperationsForEntry": [],
+        "log": "external/candidate/ci-flags-final\\logs\\test-trafego-health-2310.mjs.mutants.log",
+        "logSummary": {
+          "mutantsRejected": 8,
+          "mutantsSurvived": 0,
+          "proof": "mutants operate in a disposable temporary fixture; repository remained clean"
+        }
+      },
+      {
+        "file": "scripts/test-admin-leve-2310.mjs",
+        "args": [
+          "scripts/test-admin-leve-2310.mjs",
+          "--mutants"
+        ],
+        "startedAt": "2026-10-26T21:06:41.164Z",
+        "finishedAt": "2026-10-26T21:07:03.301Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 22137,
+        "headAfter": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+        "statusBefore": "",
+        "statusAfter": "",
+        "restoredClean": true,
+        "newBlockedOperationsForEntry": [],
+        "log": "external/candidate/ci-flags-final\\logs\\test-admin-leve-2310.mjs.mutants.log",
+        "logSummary": {
+          "positivePassed": 102,
+          "positiveFailed": 0,
+          "diskMutantsRejected": 17,
+          "diskMutantsTotal": 17,
+          "proof": "exact Buffer undo verified; positive control after exact undo passed"
+        }
+      },
+      {
+        "file": "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+        "args": [
+          "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+          "--mutants"
+        ],
+        "startedAt": "2026-10-26T21:07:03.444Z",
+        "finishedAt": "2026-10-26T21:07:23.327Z",
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "timedOut": false,
+        "ms": 19883,
+        "headAfter": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+        "statusBefore": "",
+        "statusAfter": "",
+        "restoredClean": true,
+        "newBlockedOperationsForEntry": [],
+        "log": "external/candidate/ci-flags-final\\logs\\test-roteiro-curto-sem-falha-2210.mjs.mutants.log",
+        "logSummary": {
+          "positivePassed": 90,
+          "positiveFailed": 0,
+          "diskMutantsRejected": 10,
+          "diskMutantsTotal": 10,
+          "proof": "exact Buffer undo verified; positive control after undo passed"
+        }
+      }
+    ],
+    "finishedAt": "2026-10-26T21:07:23.327Z",
+    "finalizedAt": "2026-10-26T21:08:36.781Z",
+    "allPassed": true,
+    "allGuardClean": true,
+    "finalVerification": {
+      "head": "0cb235275ca8a6d2e0401157a603c07c6667a87c",
+      "gitStatus": "",
+      "gitStatusExitCode": 0,
+      "detachedHead": true,
+      "symbolicRefExitCode": 1,
+      "runnerExitCode": 0,
+      "testChildrenAllReturned": true
+    },
+    "guardAudit": {
+      "path": "external/temp/kineo-leva-rebase-2610-guard-audit.jsonl",
+      "windowStart": "2026-10-26T21:06:23.733Z",
+      "windowEnd": "2026-10-26T21:07:23.327Z",
+      "totalLinesAtFinalization": 23,
+      "blockedOperationsDuringWindow": 0,
+      "blockedOperations": []
+    }
+  }
+}

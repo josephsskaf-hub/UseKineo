@@ -83,7 +83,13 @@
     "docs/free15-quality-v2/caption-owned-controls.json",
     "docs/free15-quality-v2/caption-owned-fixture.json",
     "docs/free15-quality-v2/caption-test.mjs",
+    "docs/leva-rebase-2610/COMPARACAO_MAIN.json",
+    "docs/leva-rebase-2610/DIAGNOSTICO_F1F3.json",
     "docs/leva-rebase-2610/ENTREGA.md",
+    "docs/leva-rebase-2610/ESCOPO_RETESTE.json",
+    "docs/leva-rebase-2610/MUTANTES_CI.json",
+    "docs/leva-rebase-2610/PRESERVACAO.json",
+    "docs/leva-rebase-2610/VALIDACAO.json",
     "docs/leva-rebase-2610/tools/offline-guard.cjs",
     "docs/leva-rebase-2610/tools/run-offline.mjs",
     "docs/ph/PH-TEXTOS-2026-09-10.md",
@@ -945,8 +951,26 @@
     "docs/free15-quality-v2/caption-test.mjs": {
       "hash": "92129a84da552d4bb4f67bc770848d09656b687e136faa1bf3ef8248e7c5d47f"
     },
+    "docs/leva-rebase-2610/COMPARACAO_MAIN.json": {
+      "hash": "6042e4ff61a458e840c51e9a2d82e63c10bfcea1a300ca3250e5d9270f85bd01"
+    },
+    "docs/leva-rebase-2610/DIAGNOSTICO_F1F3.json": {
+      "hash": "9751df8196f27693070c234658c71d4c4eebd0170261f865250a902d8b3b2966"
+    },
     "docs/leva-rebase-2610/ENTREGA.md": {
-      "hash": "e39fe5102e4687616675c9dfc02057276c7bc749390ead7357fe54dbca9e7a54"
+      "hash": "62d1d8b73b09ee0aa5a6238cb7d3ee23b2caf48ec93520fd9eb20aa400af35f6"
+    },
+    "docs/leva-rebase-2610/ESCOPO_RETESTE.json": {
+      "hash": "91be866185e537bdf467f322f4cd5153c5bfa4db66b9ae4e29384ab646418bb5"
+    },
+    "docs/leva-rebase-2610/MUTANTES_CI.json": {
+      "hash": "3ae4b7d3fb259214e816be56faae31c11f81b4d396c9fa47083543ce94050859"
+    },
+    "docs/leva-rebase-2610/PRESERVACAO.json": {
+      "hash": "9e8f9a6d02254639bead1d63ef8c7eedda403cb208c1a75c66d3d3fc0990a112"
+    },
+    "docs/leva-rebase-2610/VALIDACAO.json": {
+      "hash": "14893059ced50676401a885fe9f9fd5a004675576113b85679a84fedb29352bf"
     },
     "docs/leva-rebase-2610/tools/offline-guard.cjs": {
       "hash": "e17395ae0cfd328e485ee8894dfd67063a1d153b5d59f4cd2b6e0fe590baec39"
