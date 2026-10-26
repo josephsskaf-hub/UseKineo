@@ -38,7 +38,7 @@ export function repairGateCaptions(source: Record<string, unknown>, captions: un
 
 function culpritAt(source: Record<string, unknown>, seconds: number | null, scenes: CenaRefazivel[]): number | undefined {
   if (seconds === null || !Number.isFinite(seconds)) return undefined
-  const hits: number[] = []
+  const hits: Array<{ index: number; start: number }> = []
   const walk = (els: unknown, offset: number) => {
     if (!Array.isArray(els)) return
     for (const raw of els) {
@@ -48,13 +48,17 @@ function culpritAt(source: Record<string, unknown>, seconds: number | null, scen
       const duration = Number(el.duration)
       if (el.type === 'video' && Number.isFinite(duration) && seconds >= start && seconds < start + duration) {
         const scene = scenes.find(s => s.clipUrl === el.source)
-        if (scene) hits.push(scene.index)
+        if (scene) hits.push({ index: scene.index, start })
       }
       walk(el.elements, start)
     }
   }
   walk(source.elements, 0)
-  return hits.length ? hits[0] : undefined
+  // The signed classic builder overlaps each old shot by 0.06s. The next
+  // full-frame video is appended above it on the same track: a defect at a cut
+  // belongs to the newly visible shot, not the still-active tail underneath.
+  return hits.reduce<{ index: number; start: number } | undefined>((visible, hit) =>
+    !visible || hit.start >= visible.start ? hit : visible, undefined)?.index
 }
 
 /** Only complete pixel evidence can pass. Scores alone never trigger a scene reshoot. */
