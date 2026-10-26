@@ -218,9 +218,9 @@ const mutants = [
 ]
 for (const [label, before, after, checks] of mutants) {
   assert.equal(source.split(before).length, 2, 'unique mutation: ' + label)
-  await assert.rejects(checks({ [SERVER]: source.replace(before, after) }), undefined, 'guardian kills: ' + label)
+  await assert.rejects(checks({ [SERVER]: source.replace(before, after) }), error => error?.code === 'ERR_ASSERTION', 'guardian kills by behavioral assertion: ' + label)
 }
 const constants = read(CONSTANTS)
 assert.equal(constants.split('export const FILM_COMPLETE_TARGET_SECONDS = 35').length, 2)
-await assert.rejects(copyChecks({ [CONSTANTS]: constants.replace('export const FILM_COMPLETE_TARGET_SECONDS = 35', 'export const FILM_COMPLETE_TARGET_SECONDS = 60') }), undefined, 'guardian kills target duration drift')
+await assert.rejects(copyChecks({ [CONSTANTS]: constants.replace('export const FILM_COMPLETE_TARGET_SECONDS = 35', 'export const FILM_COMPLETE_TARGET_SECONDS = 60') }), error => error?.code === 'ERR_ASSERTION', 'guardian kills target duration drift by behavioral assertion')
 console.log(`upsell-filme15 runtime: owner snapshot, paid webhook, frozen launch+retry, no-browser rescue, auth routes, UI/email wiring; ${mutants.length + 1} source mutants killed; zero network`)
