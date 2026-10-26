@@ -139,6 +139,14 @@ export const FICHA_EXPLICITA_DE_PERSONAGEM = /(?:keep|keeping|mantenha|manter|ma
 // documentary_faceless porque os sinais são frases fixas ("a young woman"). Papel com adjetivo de idade/condição também é
 // personagem: "a young cartographer", "an old watchmaker", "a lone lighthouse keeper", "an elderly fisherman".
 export const PERSONAGEM_GENERICO_RE = /\ban?\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\s+(?:[a-z]+\s+)?(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard))\b/i
+// KINEO-FILME15-FIEL-2610 [TRAVA 8.2 — vai do fundador 26/10 "o ads de 15 está horrível… arrumasse para mim o mais rápido possível"] —
+// "Uma arqueóloga abre uma caixa…" (pena dourada, 26/10) e "Uma menina encontra… o avô" (chave azul) caíam em documentary_faceless:
+// os sinais acima são frases fixas em inglês e PERSONAGEM_GENERICO_RE exige adjetivo de idade ("a young…"). O apagão de pessoa do
+// faceless virava a arqueóloga em "mão com luva" e o filme perdia a protagonista; "An archaeologist opens a box" caía igual.
+// Agora: artigo + (até 2 palavras) + substantivo de PESSOA, em inglês, português e espanhol, no texto normalizado (minúsculo, sem
+// acento) = história com personagem (pessoa muda, narrador por cima — nunca apresentador). Sem artigo ou sem pessoa: nada muda.
+// "música"/"pastor alemão" não estão na lista de propósito (não são pessoas).
+export const PESSOA_DA_HISTORIA_RE = /\b(?:an?|the|um|uma|o|a|os|as|el|la|un|una)\s+(?:[a-z-]+\s+){0,2}(?:man|woman|boy|girl|child|kid|baby|grandfather|grandmother|grandpa|grandma|father|mother|dad|mom|son|daughter|brother|sister|king|queen|prince|princess|knight|soldier|sailor|pirate|explorer|archaeologist|scientist|doctor|nurse|teacher|student|farmer|fisherman|shepherd|hunter|detective|chef|baker|pilot|astronaut|engineer|artist|painter|musician|dancer|monk|priest|wizard|witch|hero|heroine|traveler|traveller|stranger|villager|merchant|blacksmith|carpenter|librarian|inventor|homem|mulher|menino|menina|garoto|garota|crianca|bebe|avo|pai|mae|filho|filha|irmao|irma|rei|rainha|principe|princesa|cavaleiro|soldado|marinheiro|pirata|explorador|exploradora|arqueologo|arqueologa|cientista|medico|medica|enfermeira|enfermeiro|professor|professora|estudante|fazendeiro|fazendeira|pescador|pescadora|cacador|cacadora|detetive|cozinheiro|cozinheira|padeiro|padeira|piloto|astronauta|engenheiro|engenheira|artista|pintor|pintora|bailarina|bailarino|monge|padre|mago|bruxa|bruxo|heroi|heroina|viajante|forasteiro|aldeao|mercador|ferreiro|carpinteiro|bibliotecaria|bibliotecario|inventora|nino|nina|chico|chica|hombre|mujer|abuelo|abuela|madre|hijo|hija|hermano|hermana|caballero|marinero|enfermera|maestro|maestra|granjero|granjera|cazador|cazadora|cocinero|cocinera|panadero|panadera|heroe|viajero|viajera|aldeano|mercader|herrero)\b/ // KINEO-FILME15-FIEL-2610
 export const SINAIS_DE_PERSONAGEM = [
   'his story', 'her story', 'he was born', 'she was born', 'grew up',
   'a young man', 'a young woman', 'the boy', 'the girl', 'his life', 'her life',
@@ -177,7 +185,7 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   if (NEGACAO_DE_APRESENTADOR.test(r)) {
     // KINEO-PERSONAGEM-SEM-APRESENTADOR-2026-09-15: "sem apresentador" + ficha/sinal
     // de personagem = historia com personagem MUDO (nunca falando para a lente).
-    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : (SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0])
+    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : (SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] ?? PESSOA_DA_HISTORIA_RE.exec(r)?.[0]) // KINEO-FILME15-FIEL-2610 — "sem apresentador" + pessoa em PT/ES/EN = personagem mudo
     if (personagemMudo) {
       return { modo: 'character_story', motivo: `o roteiro pede sem apresentador, mas conta a historia de alguem ("${personagemMudo.trim()}"): pessoa muda, narrador por cima`, apresentadorPedido: false }
     }
@@ -204,7 +212,7 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   }
 
   // 3. Historia com personagem — pessoas sim, falando para a lente nao.
-  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] // KINEO-PERSONAGEM-GENERICO
+  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] ?? PESSOA_DA_HISTORIA_RE.exec(r)?.[0] // KINEO-PERSONAGEM-GENERICO · KINEO-FILME15-FIEL-2610 — "uma arqueóloga", "a menina", "an archaeologist"
   if (personagem) {
     return {
       modo: 'character_story',

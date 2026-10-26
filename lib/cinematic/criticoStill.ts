@@ -54,12 +54,13 @@ export const STILL_CRITIC_USD_POR_TOKEN_SAIDA = 0.6 / 1_000_000
 export type ModoCriticoStill = 'off' | 'log_only' | 'enforce'
 
 /** STILL_CRITIC_MODE → modo. Vazio, ausente ou desconhecido = 'log_only' (o padrão seguro: mede, nunca regera). */
-export function modoDoCriticoDoStill(valor?: string | null): ModoCriticoStill {
+export function modoDoCriticoDoStill(valor?: string | null, padrao: ModoCriticoStill = 'log_only'): ModoCriticoStill { // KINEO-FILME15-FIEL-2610 — `padrao`: o que vale quando a env não decide (o filme grátis de 15 s pede 'enforce')
   const bruto = valor === undefined ? (typeof process !== 'undefined' ? process.env.STILL_CRITIC_MODE : undefined) : valor
   const v = String(bruto ?? '').trim().toLowerCase().replace(/-/g, '_')
   if (v === 'off' || v === '0' || v === 'false' || v === 'no') return 'off'
   if (v === 'enforce') return 'enforce'
-  return 'log_only'
+  if (v === 'log_only') return 'log_only' // KINEO-FILME15-FIEL-2610 — env explícita continua mandando
+  return padrao // KINEO-FILME15-FIEL-2610 — era 'log_only' fixo; sem env, quem chama escolhe (pena dourada 26/10: porta nota 20 FAIL seguiu para o clipe)
 }
 
 /** O crítico roda nesta família hollywood? Nunca no s25 (já tem o juiz da foto-base, KINEO-JUIZ-STILL-2026-10-06). */

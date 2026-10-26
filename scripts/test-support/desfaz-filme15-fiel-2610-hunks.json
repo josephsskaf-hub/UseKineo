@@ -1,0 +1,96 @@
+{
+ "marca": "KINEO-FILME15-FIEL-2610",
+ "base": "b0d4e093ace5b6efb7069b70a58f97ce5e9d9e9d",
+ "scope": {
+  "app/api/compose/route.ts": {
+   "beforeSha256": "1385d2d013f0b457fdd5895887963880d0ebaa88d6f21c5ec324c8f2c2f0f9f3",
+   "afterSha256": "c338eb6daaea8ffefea2ab8f494c1d9c3fda2629e5f39782a5780c142664f102",
+   "hunks": [
+    {
+     "before": "import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)\nimport { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)\nimport { selectPersonaForScript } from '@/lib/narration/niche-mapping'",
+     "after": "import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)\nimport { transcreverNoIdiomaDoFilme } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 · KINEO-FILME15-FIEL-2610 — Whisper com o idioma que a escrita do roteiro diz (linha própria)\nimport { selectPersonaForScript } from '@/lib/narration/niche-mapping'"
+    },
+    {
+     "before": "import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'\nimport { narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17\n",
+     "after": "import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'\nimport { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 · KINEO-FILME15-FIEL-2610\n"
+    },
+    {
+     "before": "    // Push #316 — output language. OpenAI TTS auto-detects from the script text.\n    const language = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15: qualquer código do catálogo\n    const rawGenerationId = typeof body.generationId === 'string' ? body.generationId.trim() : ''",
+     "after": "    // Push #316 — output language. OpenAI TTS auto-detects from the script text.\n    const idiomaDoFilme = resolveNarrationLanguage(body.language, voiceoverScript) // KINEO-FILME15-FIEL-2610 — a MESMA regra da rota de geração: escolha explícita vence; \"en\" (a interface) cede ao idioma claro do roteiro. Pena dourada (26/10): roteiro em português, interface em inglês → voz inglesa, Whisper sem idioma, legenda em outra língua\n    let language = idiomaDoFilme.language // KINEO-IDIOMAS-15: qualquer código do catálogo · KINEO-FILME15-FIEL-2610 (era const narrationLanguage(body.language) ?? 'en'; o claim assinado pode corrigir logo abaixo)\n    if (idiomaDoFilme.switched) console.warn(`[compose] KINEO-FILME15-FIEL-2610: interface pediu ${String(body.language ?? 'en')}, o roteiro está em ${language} (confiança ${idiomaDoFilme.confidence}) — o filme segue o roteiro`) // KINEO-FILME15-FIEL-2610\n    const rawGenerationId = typeof body.generationId === 'string' ? body.generationId.trim() : ''"
+    },
+    {
+     "before": "    cinematicBirthClaim = cinematicClaimLoad.claim\n    const qualityFailureResponse = (facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({\n      ...facts, qualityCheckFailed: true, generationId, retryable: false,",
+     "after": "    cinematicBirthClaim = cinematicClaimLoad.claim\n    { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu viaja no claim assinado e VENCE o da interface (pena dourada 26/10: rota pt, compose 'en' → voz inglesa, Whisper sem idioma, legenda errada)\n      const idiomaDoClaim = narrationLanguage((cinematicBirthClaim?.response as { language?: unknown } | undefined)?.language) // KINEO-FILME15-FIEL-2610\n      if (idiomaDoClaim && idiomaDoClaim !== language) { // KINEO-FILME15-FIEL-2610\n        console.warn(`[compose] KINEO-FILME15-FIEL-2610: idioma do claim ${idiomaDoClaim} vence ${language} (interface ${String(body.language ?? 'en')})`) // KINEO-FILME15-FIEL-2610\n        language = idiomaDoClaim // KINEO-FILME15-FIEL-2610\n      } // KINEO-FILME15-FIEL-2610\n    } // KINEO-FILME15-FIEL-2610\n    const qualityFailureResponse =(facts: Record<string, unknown>, message?: string): NextResponse => NextResponse.json({\n      ...facts, qualityCheckFailed: true, generationId, retryable: false,"
+    },
+    {
+     "before": "      const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer\n        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn…\n            .then((words) => {\n",
+     "after": "      const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer\n        ? transcreverNoIdiomaDoFilme(audioBuffer, scaledScript, language) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn… · KINEO-FILME15-FIEL-2610 — escrita latina fora do inglês: Whisper com o idioma do filme (pena dourada 26/10: legenda em outra língua)\n            .then((words) => {\n"
+    }
+   ]
+  },
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "1052add039840c0e2c0924d004d03a885e76e572d034e566b2736fd2152d1d7d",
+   "afterSha256": "93c1632aa63b9c7720a81152921de82a246a352e7413674e9456cf48258205d3",
+   "hunks": [
+    {
+     "before": "        voiceover_script: hVoiceoverScript,\n        fal_request_ids: hRequestIds, // null for failed submissions",
+     "after": "        voiceover_script: hVoiceoverScript,\n        language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — o idioma que a rota resolveu (texto > interface) viaja no claim: o compose não pode mais narrar em outra língua\n        fal_request_ids: hRequestIds, // null for failed submissions"
+    },
+    {
+     "before": "      // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410\n      const criticoModo = modoDoCriticoDoStill() // KINEO-JUIZ-STILL-1410\n      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410",
+     "after": "      // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410\n      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm ? 'enforce' : 'log_only') // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: \"porta não aparece\", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando\n      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410"
+    },
+    {
+     "before": "      voiceover_script: voiceoverScript,\n      fal_request_ids: falRequestIds, // null for failed submissions\n",
+     "after": "      voiceover_script: voiceoverScript,\n      language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — pena dourada (26/10): a rota escreveu em pt, o compose recebeu 'en' da interface e narrou com voz inglesa; o idioma resolvido agora viaja no claim\n      fal_request_ids: falRequestIds, // null for failed submissions\n"
+    }
+   ]
+  },
+  "lib/cinematic/visualMode.ts": {
+   "beforeSha256": "52fa223ac55ec161c2ea69d5f56948d2aa49caa0a6b6dc98138df909590697ad",
+   "afterSha256": "1b647faa92a2d0eedc99c9653ad71b239850cccc1c714d0cdb031a34b8d5fb93",
+   "hunks": [
+    {
+     "before": "export const PERSONAGEM_GENERICO_RE = /\\ban?\\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\\s+(?:[a-z]+\\s+)?(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard))\\b/i\nexport const SINAIS_DE_PERSONAGEM = [",
+     "after": "export const PERSONAGEM_GENERICO_RE = /\\ban?\\s+(?:young|old|elderly|middle-aged|lone|little|tired|retired|veteran|aging|teenage)\\s+(?:[a-z]+\\s+)?(?:man|woman|boy|girl|[a-z]+(?:er|or|ist|ian|eer|ant|ess|ard))\\b/i\n// KINEO-FILME15-FIEL-2610 [TRAVA 8.2 — vai do fundador 26/10 \"o ads de 15 está horrível… arrumasse para mim o mais rápido possível\"] —\n// \"Uma arqueóloga abre uma caixa…\" (pena dourada, 26/10) e \"Uma menina encontra… o avô\" (chave azul) caíam em documentary_faceless:\n// os sinais acima são frases fixas em inglês e PERSONAGEM_GENERICO_RE exige adjetivo de idade (\"a young…\"). O apagão de pessoa do\n// faceless virava a arqueóloga em \"mão com luva\" e o filme perdia a protagonista; \"An archaeologist opens a box\" caía igual.\n// Agora: artigo + (até 2 palavras) + substantivo de PESSOA, em inglês, português e espanhol, no texto normalizado (minúsculo, sem\n// acento) = história com personagem (pessoa muda, narrador por cima — nunca apresentador). Sem artigo ou sem pessoa: nada muda.\n// \"música\"/\"pastor alemão\" não estão na lista de propósito (não são pessoas).\nexport const PESSOA_DA_HISTORIA_RE = /\\b(?:an?|the|um|uma|o|a|os|as|el|la|un|una)\\s+(?:[a-z-]+\\s+){0,2}(?:man|woman|boy|girl|child|kid|baby|grandfather|grandmother|grandpa|grandma|father|mother|dad|mom|son|daughter|brother|sister|king|queen|prince|princess|knight|soldier|sailor|pirate|explorer|archaeologist|scientist|doctor|nurse|teacher|student|farmer|fisherman|shepherd|hunter|detective|chef|baker|pilot|astronaut|engineer|artist|painter|musician|dancer|monk|priest|wizard|witch|hero|heroine|traveler|traveller|stranger|villager|merchant|blacksmith|carpenter|librarian|inventor|homem|mulher|menino|menina|garoto|garota|crianca|bebe|avo|pai|mae|filho|filha|irmao|irma|rei|rainha|principe|princesa|cavaleiro|soldado|marinheiro|pirata|explorador|exploradora|arqueologo|arqueologa|cientista|medico|medica|enfermeira|enfermeiro|professor|professora|estudante|fazendeiro|fazendeira|pescador|pescadora|cacador|cacadora|detetive|cozinheiro|cozinheira|padeiro|padeira|piloto|astronauta|engenheiro|engenheira|artista|pintor|pintora|bailarina|bailarino|monge|padre|mago|bruxa|bruxo|heroi|heroina|viajante|forasteiro|aldeao|mercador|ferreiro|carpinteiro|bibliotecaria|bibliotecario|inventora|nino|nina|chico|chica|hombre|mujer|abuelo|abuela|madre|hijo|hija|hermano|hermana|caballero|marinero|enfermera|maestro|maestra|granjero|granjera|cazador|cazadora|cocinero|cocinera|panadero|panadera|heroe|viajero|viajera|aldeano|mercader|herrero)\\b/ // KINEO-FILME15-FIEL-2610\nexport const SINAIS_DE_PERSONAGEM = ["
+    },
+    {
+     "before": "    // de personagem = historia com personagem MUDO (nunca falando para a lente).\n    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : (SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0])\n    if (personagemMudo) {",
+     "after": "    // de personagem = historia com personagem MUDO (nunca falando para a lente).\n    const personagemMudo = FICHA_EXPLICITA_DE_PERSONAGEM.test(roteiro) ? 'ficha explicita' : (SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] ?? PESSOA_DA_HISTORIA_RE.exec(r)?.[0]) // KINEO-FILME15-FIEL-2610 — \"sem apresentador\" + pessoa em PT/ES/EN = personagem mudo\n    if (personagemMudo) {"
+    },
+    {
+     "before": "  // 3. Historia com personagem — pessoas sim, falando para a lente nao.\n  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] // KINEO-PERSONAGEM-GENERICO\n  if (personagem) {\n",
+     "after": "  // 3. Historia com personagem — pessoas sim, falando para a lente nao.\n  const personagem = SINAIS_DE_PERSONAGEM.find((s) => r.includes(normalizar(s))) ?? PERSONAGEM_GENERICO_RE.exec(roteiro)?.[0] ?? PESSOA_DA_HISTORIA_RE.exec(r)?.[0] // KINEO-PERSONAGEM-GENERICO · KINEO-FILME15-FIEL-2610 — \"uma arqueóloga\", \"a menina\", \"an archaeologist\"\n  if (personagem) {\n"
+    }
+   ]
+  },
+  "lib/cinematic/criticoStill.ts": {
+   "beforeSha256": "48ea3861e99ed6ff4edd89fa0d5b6b8a240b1d1214d434651939c352abf18a1c",
+   "afterSha256": "fe615d41a11f8b7e33ef208ecf28425bfe15b974dd848bc1ca04b8e44e530bb4",
+   "hunks": [
+    {
+     "before": "/** STILL_CRITIC_MODE → modo. Vazio, ausente ou desconhecido = 'log_only' (o padrão seguro: mede, nunca regera). */\nexport function modoDoCriticoDoStill(valor?: string | null): ModoCriticoStill {\n  const bruto = valor === undefined ? (typeof process !== 'undefined' ? process.env.STILL_CRITIC_MODE : undefined) : valor",
+     "after": "/** STILL_CRITIC_MODE → modo. Vazio, ausente ou desconhecido = 'log_only' (o padrão seguro: mede, nunca regera). */\nexport function modoDoCriticoDoStill(valor?: string | null, padrao: ModoCriticoStill = 'log_only'): ModoCriticoStill { // KINEO-FILME15-FIEL-2610 — `padrao`: o que vale quando a env não decide (o filme grátis de 15 s pede 'enforce')\n  const bruto = valor === undefined ? (typeof process !== 'undefined' ? process.env.STILL_CRITIC_MODE : undefined) : valor"
+    },
+    {
+     "before": "  if (v === 'enforce') return 'enforce'\n  return 'log_only'\n}\n",
+     "after": "  if (v === 'enforce') return 'enforce'\n  if (v === 'log_only') return 'log_only' // KINEO-FILME15-FIEL-2610 — env explícita continua mandando\n  return padrao // KINEO-FILME15-FIEL-2610 — era 'log_only' fixo; sem env, quem chama escolhe (pena dourada 26/10: porta nota 20 FAIL seguiu para o clipe)\n}\n"
+    }
+   ]
+  },
+  "lib/whisperNaEscrita.ts": {
+   "beforeSha256": "9720f6f254ed899e6086144cad86fbc32b51c248dd5650961df2a5872bc107d7",
+   "afterSha256": "c2f0a3d0213ec25b07de78778fee3585d68ff3d7c94cc89e43b06a0c794567c7",
+   "hunks": [
+    {
+     "before": "import { AI_TRANSCRIPTION_MODEL } from '@/lib/aiModels'\nimport { transcreverNaEscritaCom } from '@/lib/escritaDaLegenda'\n",
+     "after": "import { AI_TRANSCRIPTION_MODEL } from '@/lib/aiModels'\nimport { transcreverNaEscritaCom, idiomaWhisperDaEscrita } from '@/lib/escritaDaLegenda' // KINEO-FILME15-FIEL-2610: + idiomaWhisperDaEscrita\n"
+    },
+    {
+     "before": "}\n",
+     "after": "}\n\n// ═══ KINEO-FILME15-FIEL-2610 [TRAVA 8.2 — vai do fundador 26/10 \"o ads de 15 está horrível… arrumasse para mim o mais rápido possível\"] ═══\n// Whisper no IDIOMA DO FILME quando a escrita não diz nada (latim). Pena dourada (26/10, be296327): roteiro em português, interface\n// em inglês → o compose chamava o Whisper sem `language` e a legenda saiu em outra língua (\"legenda na língua/escrita errada\" no\n// juiz de pixel). Regra pura (testável sem rede): escrita que já diz o idioma (devanágari, árabe…) → o caminho de sempre; idioma\n// vazio ou 'en' → o caminho de sempre, byte a byte; outro idioma → Whisper com `language`; vazio ou erro → o caminho de sempre.\nexport type DecisaoDoIdiomaDoFilme = 'escrita' | 'padrao' | 'idioma_do_filme'\nexport function decidirTranscricaoDoFilme(roteiro: string, idioma: string | null | undefined): { decisao: DecisaoDoIdiomaDoFilme; idioma: string | null } {\n  if (idiomaWhisperDaEscrita(roteiro)) return { decisao: 'escrita', idioma: null }\n  const code = String(idioma ?? '').trim().toLowerCase()\n  if (!code || code === 'en') return { decisao: 'padrao', idioma: null }\n  return { decisao: 'idioma_do_filme', idioma: code }\n}\nexport async function transcreverNoIdiomaCom<T>(roteiro: string, idioma: string | null | undefined, t: { padrao: () => Promise<T[]>; comIdioma: (idioma: string) => Promise<T[]> }): Promise<T[]> {\n  const d = decidirTranscricaoDoFilme(roteiro, idioma)\n  if (d.decisao !== 'idioma_do_filme' || !d.idioma) return t.padrao()\n  try {\n    const words = await t.comIdioma(d.idioma)\n    if (Array.isArray(words) && words.length > 0) return words\n    console.warn(`[legenda-escrita] KINEO-FILME15-FIEL-2610: Whisper com language=${d.idioma} voltou vazio — transcrição de sempre`)\n  } catch (err) {\n    console.warn(`[legenda-escrita] KINEO-FILME15-FIEL-2610: Whisper com language=${d.idioma} falhou — transcrição de sempre:`, err instanceof Error ? err.message : String(err))\n  }\n  return t.padrao()\n}\n/** Mesmo contrato de transcreverNaEscritaDoRoteiro (nunca lança; [] = plano B proporcional). `idioma` = o idioma resolvido pelo compose. */\nexport async function transcreverNoIdiomaDoFilme(buffer: Buffer, roteiro: string, idioma: string | null | undefined): Promise<WhisperWord[]> {\n  try {\n    return await transcreverNoIdiomaCom<WhisperWord>(roteiro, idioma, {\n      padrao: () => transcreverNaEscritaDoRoteiro(buffer, roteiro),\n      comIdioma: (code) => whisperComIdioma(buffer, code),\n    })\n  } catch {\n    return []\n  }\n}\n"
+    }
+   ]
+  }
+ }
+}

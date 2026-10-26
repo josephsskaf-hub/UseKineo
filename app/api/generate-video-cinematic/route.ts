@@ -6401,6 +6401,7 @@ async function manipularPost(req: NextRequest) {
         scenes: plan.scenes.map((s) => s.prompt),
         scene_captions: plan.scenes.map((s) => s.caption),
         voiceover_script: hVoiceoverScript,
+        language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — o idioma que a rota resolveu (texto > interface) viaja no claim: o compose não pode mais narrar em outra língua
         fal_request_ids: hRequestIds, // null for failed submissions
         fal_model: hModels[0] ?? HOLLYWOOD_MODELS.dialogue, // back-compat: scene-1 model
         fal_models: hModels, // parallel to fal_request_ids
@@ -6918,7 +6919,7 @@ async function manipularPost(req: NextRequest) {
       // STILL_CRITIC_MODE: off = nada roda (byte a byte o de antes) · log_only (PADRÃO) = só o evento cinematic_still_critic, nunca // KINEO-JUIZ-STILL-1410
       // regera · enforce = FAIL refaz o still UMA vez (máx. 3 por filme) e segue o melhor. A escolha só entra em sceneStills depois // KINEO-JUIZ-STILL-1410
       // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410
-      const criticoModo = modoDoCriticoDoStill() // KINEO-JUIZ-STILL-1410
+      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm ? 'enforce' : 'log_only') // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: "porta não aparece", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando
       const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410
       const criticoTarefas: Promise<{ idx: number; url: string }>[] = [] // KINEO-JUIZ-STILL-1410
       const criticoEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
@@ -7420,6 +7421,7 @@ async function manipularPost(req: NextRequest) {
       scenes: scenes.map((s) => s.description),
       scene_captions: scenes.map((s) => s.caption),
       voiceover_script: voiceoverScript,
+      language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — pena dourada (26/10): a rota escreveu em pt, o compose recebeu 'en' da interface e narrou com voz inglesa; o idioma resolvido agora viaja no claim
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)
       // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models (i2v for anchored
