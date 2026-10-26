@@ -60,6 +60,7 @@ function legacyWatch(event, personEvents) {
 
 function currentWatch(event) {
   return event.name === 'film15_free_film_watched' && currentVersion(event) && filmId(event)
+    && Number.isFinite(Number(meta(event, 'threshold_seconds'))) && Number(meta(event, 'threshold_seconds')) >= 5
     ? { ...event, sourceVideoId: filmId(event), evidence: 'free_film_5s_playback_with_source_id' }
     : null
 }

@@ -71,6 +71,8 @@ function checks(build = buildFilm15UpsellReport) {
     ['late payment', 3, e => { e.created_at = iso(deployment + hour + FILM15_PAYMENT_WINDOW_MS + 1); return e }],
     ['payment before checkout', 3, e => { e.created_at = iso(deployment + 2 * hour); return e }],
     ['missing source id', 0, e => { delete e.metadata.source_video_id; return e }],
+    ['missing watched seconds', 0, e => { delete e.metadata.threshold_seconds; return e }],
+    ['insufficient watched seconds', 0, e => { e.metadata.threshold_seconds = 0; return e }],
   ]) assert.equal(r(change(index, rewrite)).after.paidWithin48hPeople, 0, label)
   const exact48 = change(3, e => { e.created_at = iso(deployment + hour + FILM15_PAYMENT_WINDOW_MS); return e })
   assert.equal(r(exact48).after.paidWithin48hPeople, 1, 'inclusive 48h deadline')
