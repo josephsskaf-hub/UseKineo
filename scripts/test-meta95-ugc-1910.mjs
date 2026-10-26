@@ -152,12 +152,20 @@ async function provas(L) {
     const P = L.pixel
     const fr = (n) => Array.from({ length: n }, (_, i) => ({ url: `https://f/${i}.jpg`, t: i, bytes: 90000 }))
     const base = { via: 'nth_frame', model: 'gpt-4o', usdFrames: 0, usdVision: 0, ms: 0 }
-    const quadros = { frames: [{ i: 1, score: 96, issues: ['caption_broken'] }, { i: 2, score: 96, issues: ['caption_broken'] }], caption_present: true, caption_legible: true }
-    const ugc = P.normalizePixel(quadros, { ...base, product: 'ugc', frames: fr(2) })
-    const filme = P.normalizePixel(quadros, { ...base, product: 'filme', frames: fr(2) })
-    const ilegivelUgc = P.normalizePixel({ ...quadros, caption_legible: false }, { ...base, product: 'ugc', frames: fr(2) })
+    const quadros = { frames: fr(8).map((_, i) => ({ i: i + 1, score: 96, subject: 'presenter holding the product', issues: i < 2 ? ['caption_broken'] : [], note: i < 2 ? 'Frase curta em dois blocos no alto.' : 'Pequena imperfeição de composição.' })), caption_present: true, caption_legible: true }
+    const ugc = P.normalizePixel(quadros, { ...base, product: 'ugc', frames: fr(8) })
+    const filme = P.normalizePixel(quadros, { ...base, product: 'filme', frames: fr(8) })
+    const ilegivelUgc = P.normalizePixel({ ...quadros, caption_legible: false }, { ...base, product: 'ugc', frames: fr(8) })
     const prompt = P.buildPixelMessages({ product: 'ugc', asked: 'x' }, fr(1))[0].content
     return ugc.score === 96 && ugc.caps.length === 0 && filme.score === 88 && ilegivelUgc.score === 85 && /never caption_broken|it is never caption_broken/.test(prompt)
+  })
+  await tenta('U9', () => {
+    const frames = Array.from({ length: 12 }, (_, i) => ({ url: `https://f/${i}.jpg`, t: i * 0.5, zone: i < 6 ? 'gancho' : 'fala' }))
+    const ctx = { frames, hasReference: true, hasPauses: false, speechSeconds: 8, via: 'local', model: 'offline', usdFrames: 0, usdVision: 0, ms: 0 }
+    return [{}, { frames: [] }, { frames: frames.map((_, i) => ({ i: i + 1 })) }].every((p) => {
+      const r = U.normalizeUgc(p, ctx)
+      return r.score === null && r.evidence_status === 'incomplete' && r.coverage.judged_frames === 0
+    })
   })
 
   await tenta('U6', async () => {
@@ -222,6 +230,7 @@ const NOMES = {
   U6: 'U6 juiz: 1 leitura gpt-4o low, foto do produto 1ª imagem, perguntas objetivas, 1 vídeo ≤ US$ 0,01',
   U7: 'U7 coletor: UGC (apresentador + avatar) ganha o juiz com voice_seconds; evento ugc_score só em events, idempotente; outros produtos não',
   U8: 'U8 painel: ugc_score na versão vigente, nota UGC = menor entre pixel e juiz UGC, coluna e motivos no /admin/coerencia',
+  U9: 'U9 JSON vazio ou quadros sem leitura não recebem 100: nota desconhecida',
 }
 for (const [k, m] of Object.entries(NOMES)) { if (real[k]) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
 
@@ -235,6 +244,7 @@ const MUTANTES = [
   ['M7 painel ignora o juiz UGC na nota', 'U8', F.painel, 'n.nota = notaRegua(n.coerencia, notaRegua(n.pixel, n.ugc))', 'n.nota = notaRegua(n.coerencia, n.pixel)'],
   ['M8 juiz com detail high', 'U6', F.ugc, "messages: buildUgcMessages(ctx, frames, opts?.detail ?? 'low')", "messages: buildUgcMessages(ctx, frames, opts?.detail ?? 'high')"],
   ['M9 painel aceita versão velha do juiz UGC', 'U8', F.painel, 'const ehUgc = e.name === UGC_SCORE_EVENT && m.version === UGC_SCORE_VERSION', 'const ehUgc = e.name === UGC_SCORE_EVENT'],
+  ['M11 JSON vazio volta a receber 100', 'U9', F.ugc, "score: evidence.evidence_status === 'complete' ? score : null,", 'score,'],
 ]
 for (const [nome, prova, arquivo, de, para] of MUTANTES) {
   let aplicou = false

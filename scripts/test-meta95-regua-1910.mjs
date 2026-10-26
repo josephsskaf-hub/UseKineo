@@ -66,6 +66,9 @@ function fetchFalso(respostas) {
   return f
 }
 const respOpenAi = (obj, usage = { prompt_tokens: 1500, completion_tokens: 300 }) => ({ choices: [{ message: { content: JSON.stringify(obj) } }], usage })
+// 26/10: complete judge responses; missing evidence has its own negative tests below.
+const leituraCompleta = (extra = {}) => ({ idea_fidelity: 100, narration_vs_scenes: 100, problems: [], worst_scene: null, summary: 'Narração e cenas correspondem ao pedido.', ...extra })
+const quadrosCompletos = (score = 100) => Array.from({ length: 8 }, (_, i) => ({ i: i + 1, score, subject: 'person holding the requested cup', issues: [], note: score < 100 ? 'Pequena imperfeição de composição neste quadro.' : '' }))
 
 async function provas(L) {
   const r = {}
@@ -86,17 +89,18 @@ async function provas(L) {
     const s = msgs[0].content, u = msgs[1].content
     const semTeto = !/at most 90|never 100|GENERATED FOOTAGE RULE/i.test(s) && /NO cap/.test(s) && /give 100/.test(s)
     const ideia = u.startsWith('ORIGINAL IDEA (script_written)') && u.includes('conte o evento Carrington') && /ORIGINAL IDEA the customer typed BEFORE any AI rewrote it/.test(s)
-    const lido = L.coer.normalizeReadingV2({ idea_fidelity: 100, narration_vs_scenes: 100 }, true)
+    const lido = L.coer.normalizeReadingV2(leituraCompleta(), true)
     const roteiro = L.coer.buildCoherenceV2Messages({ ...entrada, ideaSource: 'roteiro' })[0].content.includes('original idea was NOT recorded')
     return semTeto && ideia && lido.score === 100 && roteiro
   })
   await tenta('C3', async () => {
-    const f = fetchFalso([respOpenAi({ idea_fidelity: 100, narration_vs_scenes: 90, problems: ['a'], worst_scene: 2 }), respOpenAi({ idea_fidelity: 100, narration_vs_scenes: 100, problems: [] })])
+    const defeito = 'Cena 2 mostra um objeto incompatível com a fala.'
+    const f = fetchFalso([respOpenAi(leituraCompleta({ narration_vs_scenes: 90, problems: [defeito], worst_scene: 2, summary: defeito })), respOpenAi(leituraCompleta())])
     const res = await L.coer.scoreCoherenceV2(entrada, { fetchImpl: f, apiKey: 'k' })
     const corpos = f.chamadas.map((c) => c.body)
     const doisTemp0 = f.chamadas.length === 2 && corpos.every((b) => b.temperature === 0 && b.model === 'gpt-4o-mini')
-    const media = res && res.score === 98 && res.readings.join(',') === '95,100' && res.spread === 5 && res.problems[0] === 'a' && res.idea_is_script === false && res.version === 'regua95_coerencia_v2'
-    const cortado = L.coer.combineReadingsV2([L.coer.normalizeReadingV2({ idea_fidelity: 100, narration_vs_scenes: 100 }, true)], { ideaSource: 'roteiro', narration: Array(120).fill('w').join(' '), filmSeconds: 15, model: 'x', usd: 0, ms: 0 })
+    const media = res && res.score === 98 && res.readings.join(',') === '95,100' && res.spread === 5 && res.problems[0] === defeito && res.idea_is_script === false && res.version === 'regua95_coerencia_v2'
+    const cortado = L.coer.combineReadingsV2([L.coer.normalizeReadingV2(leituraCompleta(), true), L.coer.normalizeReadingV2(leituraCompleta(), true)], { ideaSource: 'roteiro', narration: Array(120).fill('w').join(' '), filmSeconds: 15, model: 'x', usd: 0, ms: 0 })
     const f2 = fetchFalso([respOpenAi({})])
     const recusa = await L.coer.scoreCoherenceV2({ ...entrada, narration: "I'm sorry, but I can't assist with that request." }, { fetchImpl: f2, apiKey: 'k' })
     return doisTemp0 && media && cortado.score === 40 && cortado.narration_cut === true && recusa && recusa.score === 0 && f2.chamadas.length === 0
@@ -145,23 +149,38 @@ async function provas(L) {
     const P = L.pixel
     const fr = (n, bytes = 90000) => Array.from({ length: n }, (_, i) => ({ url: `https://f/${i}.jpg`, t: i, bytes }))
     const base = { via: 'nth_frame', model: 'gpt-4o', usdFrames: 0, usdVision: 0, ms: 0 }
-    const limpo = P.normalizePixel({ frames: [{ i: 1, score: 100, issues: [] }, { i: 2, score: 90, issues: [] }], identity_consistent: true }, { ...base, product: 'filme', frames: fr(2) })
-    const preto = P.normalizePixel({ frames: [{ i: 1, score: 100 }, { i: 2, score: 100 }] }, { ...base, product: 'filme', frames: [{ url: 'https://f/a.jpg', t: 0, bytes: 3000 }, { url: 'https://f/b.jpg', t: 1, bytes: 90000 }] })
-    const troca = P.normalizePixel({ frames: [{ i: 1, score: 100, subject: 'purple cartoon dinosaur' }, { i: 2, score: 100, subject: 'human child' }], identity_consistent: true, identity_changes: [{ from: 1, to: 2, what: 'dino vira menino' }] }, { ...base, product: 'filme', frames: fr(2) })
-    const texto = P.normalizePixel({ frames: [{ i: 1, score: 100, issues: ['invented_text'] }, { i: 2, score: 100 }] }, { ...base, product: 'ads', frames: fr(2) })
-    const produtoFilme = P.normalizePixel({ frames: [{ i: 1, score: 100 }], product_faithful: false }, { ...base, product: 'filme', frames: fr(1) })
-    const produtoAds = P.normalizePixel({ frames: [{ i: 1, score: 100 }], product_faithful: false }, { ...base, product: 'ads', frames: fr(1) })
+    const limpos = quadrosCompletos().map((q, i) => i < 4 ? q : { ...q, score: 90, note: 'Pequena imperfeição de composição neste quadro.' })
+    const limpo = P.normalizePixel({ frames: limpos, identity_consistent: true }, { ...base, product: 'filme', frames: fr(8) })
+    const imagensPreto = fr(8); imagensPreto[0].bytes = 3000
+    const preto = P.normalizePixel({ frames: quadrosCompletos() }, { ...base, product: 'filme', frames: imagensPreto })
+    const sujeitos = quadrosCompletos().map((q, i) => ({ ...q, subject: i === 0 ? 'purple cartoon dinosaur' : 'human child' }))
+    const troca = P.normalizePixel({ frames: sujeitos, identity_consistent: true, identity_changes: [{ from: 1, to: 2, what: 'dino vira menino' }] }, { ...base, product: 'filme', frames: fr(8) })
+    const comTexto = quadrosCompletos(); comTexto[0].issues = ['invented_text']; comTexto[0].note = 'Texto inventado aparece na embalagem.'
+    const texto = P.normalizePixel({ frames: comTexto }, { ...base, product: 'ads', frames: fr(8) })
+    const produto = quadrosCompletos(); produto[0].issues = ['product_unfaithful']; produto[0].note = 'A embalagem difere da foto de referência.'
+    const produtoFilme = P.normalizePixel({ frames: produto, product_faithful: false }, { ...base, product: 'filme', frames: fr(8) })
+    const produtoAds = P.normalizePixel({ frames: produto, product_faithful: false }, { ...base, product: 'ads', frames: fr(8) })
     return limpo.score === 95 && limpo.caps.length === 0 && preto.score === 60 && preto.frames[0].issues.includes('near_black') && troca.score === 70 && troca.identity_consistent === false && troca.frames[1].subject === 'human child' && texto.score === 85 && produtoFilme.score === 100 && produtoFilme.product_faithful === null && produtoAds.score === 70
   })
   await tenta('P3', async () => {
     const P = L.pixel
     const frames = Array.from({ length: 8 }, (_, i) => ({ url: `https://f/${i}.jpg`, t: i, bytes: 90000 }))
-    const f = fetchFalso([respOpenAi({ frames: frames.map((_, i) => ({ i: i + 1, score: 100 })) }, { prompt_tokens: 1900, completion_tokens: 400 }), respOpenAi({ frames: frames.map((_, i) => ({ i: i + 1, score: 90 })) }, { prompt_tokens: 1900, completion_tokens: 400 })])
+    const f = fetchFalso([respOpenAi({ frames: quadrosCompletos(100) }, { prompt_tokens: 1900, completion_tokens: 400 }), respOpenAi({ frames: quadrosCompletos(90) }, { prompt_tokens: 1900, completion_tokens: 400 })])
     const res = await P.judgeFrames({ product: 'filme', asked: 'x' }, frames, { fetchImpl: f, apiKey: 'k', usdFrames: 0.005 })
     const corpos = f.chamadas.map((c) => c.body)
     const imagens = corpos[0].messages[1].content.filter((c) => c.type === 'image_url')
     const okCall = f.chamadas.length === 2 && corpos.every((b) => b.model === 'gpt-4o' && b.temperature === 0) && imagens.length === 8 && imagens.every((c) => c.image_url.detail === 'low')
     return okCall && res && res.score === 95 && [...res.readings].sort().join(',') === '100,90' && res.usd <= 0.03 && res.usd > 0.005 && P.PIXEL_MODEL_DEFAULT === 'gpt-4o'
+  })
+  await tenta('E1', () => {
+    const C = L.coer, P = L.pixel
+    const text = C.normalizeReadingV2(leituraCompleta(), true)
+    const textCtx = { ideaSource: 'pedido_direto', narration: 'Uma história curta.', model: 'offline', usd: 0, ms: 0 }
+    const pixCtx = { product: 'filme', via: 'local', model: 'offline', usdFrames: 0, usdVision: 0, ms: 0, frames: Array.from({ length: 8 }, (_, i) => ({ url: `https://f/${i}.jpg`, t: i, bytes: 90000 })) }
+    const pixel = P.normalizePixel({ frames: quadrosCompletos() }, pixCtx)
+    const emptyText = C.normalizeReadingV2({}, true), emptyPixel = P.normalizePixel({}, pixCtx)
+    const oneText = C.combineReadingsV2([text], textCtx), onePixel = P.combinePixelReadings([pixel], { usdFrames: 0, ms: 0 })
+    return emptyText.score === null && emptyPixel.score === null && emptyPixel.evidence_status === 'incomplete' && oneText.score === null && oneText.coverage.valid_readings === 1 && onePixel.score === null && onePixel.coverage.valid_readings === 1
   })
 
   // ── coletor, cron, rota de roteiro ──
@@ -262,6 +281,7 @@ const NOMES = {
   P1: 'P1 quadros pela fal extract-nth-frame (passo duração×24/8, até 10, 8 espaçados) + reserva first/middle/last; sem chave = null',
   P2: 'P2 nota de pixel nasce no código: preto pelo tamanho 60, troca de personagem 70, texto inventado 85, produto só em Ads/UGC',
   P3: 'P3 visão: 2 leituras (média), gpt-4o detail low, 1 vídeo ≤ US$ 0,03',
+  E1: 'E1 resposta vazia e leitura única são incompletas, nunca aprovação',
   R1: 'R1 coletor só escreve em events (coherence_v2/pixel_score), grava a evidência inteira e não toca em rota de render',
   R2: 'R2 cron com Bearer CRON_SECRET + force-no-store + agenda no vercel.json; botão admin com portão antes do serviço',
   R3: 'R3 /api/generate-script grava original_idea + script_head ([TRAVA 8.2]) e a resposta não mudou',
@@ -276,7 +296,7 @@ for (const [k, m] of Object.entries(NOMES)) { if (real[k]) { pass++; console.log
 const MUTANTES = [
   ['M1 sem tirar o prefixo da cena', 'C1', F.coer, 'const prompt = stripFixedPrefix(s.prompt).replace', 'const prompt = String(s.prompt).replace'],
   ['M2 corte de 240 de volta', 'C1', F.coer, 'export const COHERENCE_V2_SCENE_CHARS = 1500', 'export const COHERENCE_V2_SCENE_CHARS = 240'],
-  ['M3 teto de 90 de volta', 'C2', F.coer, "score: nvs == null ? idea : Math.round((idea + nvs) / 2),", "score: nvs == null ? idea : Math.min(95, Math.round((idea + Math.min(90, nvs)) / 2)),"],
+  ['M3 teto de 90 de volta', 'C2', F.coer, "score: reasons.length || idea == null || nvs == null ? null : Math.round((idea + nvs) / 2),", "score: reasons.length || idea == null || nvs == null ? null : Math.min(95, Math.round((idea + Math.min(90, nvs)) / 2)),"],
   ['M4 uma leitura só', 'C3', F.coer, 'export const COHERENCE_V2_READINGS = 2', 'export const COHERENCE_V2_READINGS = 1'],
   ['M5 fala pela dica de busca antes do clip_word_starts', 'C4', F.coer, "const spoken = (narr[i] ?? '').trim() || (byCws[i] ?? '').trim() || (legacy[i] ?? '').trim()", "const spoken = (narr[i] ?? '').trim() || (legacy[i] ?? '').trim() || (byCws[i] ?? '').trim()"],
   ['M6 ideia = roteiro sempre', 'C5', F.ctx, "if (casado) return { idea: casado.original_idea, source: 'script_written' }", "if (casado) return { idea: prompt, source: 'roteiro' }"],
@@ -289,6 +309,7 @@ const MUTANTES = [
   ['M13 falha volta a cada giro (sem a espera)', 'A1', F.coletar, 'if (f.n >= REGUA95_MAX_FALHAS || agora - f.ultima < REGUA95_ESPERA_FALHA_MS) done.add(marca)', 'if (f.n >= REGUA95_MAX_FALHAS) done.add(marca)'],
   ['M14 janela de 6 h de volta', 'A2', F.coletar, 'export const REGUA95_JANELA_HORAS = 168', 'export const REGUA95_JANELA_HORAS = 6'],
   ['M15 resumo sem as contagens por produto', 'A2', F.coletar, '    por_produto: r.porProduto ?? {},\n', ''],
+  ['M16 leitura única vira nota completa', 'E1', F.pixel, 'const expectedReadings = ctx.expectedReadings ?? PIXEL_READINGS', 'const expectedReadings = 1'],
 ]
 for (const [nome, prova, arquivo, de, para] of MUTANTES) {
   let aplicou = false
