@@ -114,20 +114,27 @@ export function filmCompleteCheckoutMetadata(intent: FilmCompleteIntent): Record
 export async function filmCompleteStatus(db: SupabaseClient, intent: FilmCompleteIntent): Promise<Record<string, unknown>> {
   const base = { intentId: intent.id, sourceVideoId: intent.sourceVideoId, sourceVideoUrl: /^https:\/\//.test(text(intent.metadata.source_video_url)) ? text(intent.metadata.source_video_url) : null, generationId: intent.generationId, targetSeconds: FILM_COMPLETE_TARGET_SECONDS, retryHref: `/api/film-complete/checkout?intent=${intent.id}` }
   if (!text(intent.metadata.paid_session_id)) return { ...base, state: 'awaiting_payment' }
-  const { data: compose, error: ce } = await db.from('events').select('metadata').eq('user_id', intent.userId).eq('name', COMPOSE_CLAIM_EVENT)
-    .eq('session_id', intent.generationId).order('created_at', { ascending: false }).limit(1).maybeSingle()
-  if (ce) throw new Error('film_complete_status_unavailable')
+  const [composeResult, birthResult] = await Promise.all([
+    db.from('events').select('metadata').eq('user_id', intent.userId).eq('name', COMPOSE_CLAIM_EVENT)
+      .eq('session_id', intent.generationId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('events').select('metadata').eq('id', cinematicClaimId(intent.userId, intent.generationId))
+      .eq('user_id', intent.userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle(),
+  ])
+  if (composeResult.error || birthResult.error) throw new Error('film_complete_status_unavailable')
+  const compose = composeResult.data
+  const claim = birthResult.data
   const renderId = text(compose?.metadata?.render_id)
   if (renderId) {
     const { data: video, error } = await db.from('videos').select('id, status, video_url').eq('user_id', intent.userId).eq('render_id', renderId).maybeSingle()
     if (error) throw new Error('film_complete_status_unavailable')
     if (video?.status === 'completed' && text(video.video_url)) return { ...base, state: 'completed', videoId: video.id, videoUrl: video.video_url }
-    if (video?.status === 'failed') return { ...base, state: 'failed' }
+    if (video?.status === 'failed' || claim?.metadata?.status === 'released') return { ...base, state: 'failed' }
+    const { data: debit, error: de } = await db.from('credit_debits').select('refunded_at').eq('user_id', intent.userId)
+      .eq('render_id', `cinematic-${cinematicClaimId(intent.userId, intent.generationId)}`).maybeSingle()
+    if (de) throw new Error('film_complete_status_unavailable')
+    if (text(debit?.refunded_at)) return { ...base, state: 'failed' }
     return { ...base, state: 'processing' }
   }
-  const { data: claim, error } = await db.from('events').select('metadata').eq('id', cinematicClaimId(intent.userId, intent.generationId))
-    .eq('user_id', intent.userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle()
-  if (error) throw new Error('film_complete_status_unavailable')
   if (claim?.metadata?.status === 'released') return { ...base, state: 'failed' }
   if (claim?.metadata?.status === 'settled' || claim?.metadata?.status === 'done') {
     // A rescue that exhausted compose attempts is an explicit delivery failure, not an endless spinner.
@@ -137,7 +144,9 @@ export async function filmCompleteStatus(db: SupabaseClient, intent: FilmComplet
     const result = text(outcome?.metadata?.outcome)
     if (['compose_gave_up', 'rescue_email_sent', 'rescue_already_sent_direct', 'pending_stale', 'no_request_ids'].includes(result) || result.startsWith('pending_stale:')) return { ...base, state: 'failed' }
   }
-  if (claim?.metadata?.status === 'settled' || claim?.metadata?.status === 'done') return { ...base, state: 'processing' }
+  if (claim?.metadata?.status === 'settled') return { ...base, state: 'processing' }
+  // 'done' still needs deterministic debit settlement; the rescue cron only takes 'settled'.
+  if (claim?.metadata?.status === 'done') return { ...base, state: 'starting' }
   const state: FilmCompleteState = intent.metadata.state === 'failed' ? 'failed' : intent.metadata.state === 'waiting_entitlement' ? 'waiting_entitlement' : 'starting'
   return { ...base, state }
 }
