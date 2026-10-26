@@ -52,6 +52,8 @@ async function getRow(id: string): Promise<OgRow | null> {
     if (!url || !key) return null
     const admin = createAdminClient(url, key, {
       auth: { autoRefreshToken: false, persistSession: false },
+      // KINEO-VITRINE-FILMES-2610 — do not serve consent from the Data Cache.
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
     })
     const { data, error } = await admin
       .from('videos')

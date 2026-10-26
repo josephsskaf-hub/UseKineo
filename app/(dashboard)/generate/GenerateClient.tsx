@@ -1,5 +1,7 @@
 'use client'
 
+import ShowcaseConsent from '@/components/ShowcaseConsent'
+
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
 import { hasStudioCreateIntent, studioEntryView } from '@/lib/navigation/studioEntry'
 
@@ -2447,6 +2449,7 @@ export default function GenerateClient({
   // contaminaria a série que mede a pressão do watermark. Este significa só
   // "os bytes chegaram", para qualquer export — que é o fato que faltava.
   const [downloadDelivered, setDownloadDelivered] = useState(false)
+  const [downloadedShowcaseVideoId, setDownloadedShowcaseVideoId] = useState<string | null>(null)
   // Uma vez por VÍDEO, não por clique: quem clica em baixar duas vezes (comum
   // quando o primeiro clique cai no fallback de aba) não pode virar duas
   // observações. Mesma lição que já inflou um denominador desta casa para 437
@@ -10988,6 +10991,7 @@ export default function GenerateClient({
     // arquivo, e nada aqui pode impedir, adiar ou condicionar o download.
     if (delivered) {
       setDownloadDelivered(true)
+      setDownloadedShowcaseVideoId(publicVideoId)
       // O `reason` é gravado mesmo quando a resposta é "não havia nada a
       // dizer" (`no_surface`). É o denominador que nunca existiu: sem ele,
       // silêncio e ausência de gente são indistinguíveis — exatamente a
@@ -18905,6 +18909,9 @@ export default function GenerateClient({
                     </p>
                   </div>
                 )}
+
+                {/* KINEO-VITRINE-FILMES-2610 — consent only after an actual delivered download. */}
+                {downloadDelivered && publicVideoId && downloadedShowcaseVideoId === publicVideoId ? <ShowcaseConsent key={publicVideoId} videoId={publicVideoId} onPublishedChange={setPublicPagePublished} /> : null}
 
                 {/* Keep the revenue/export decision first. Free users see this
                     after the clean-vs-watermarked choice; paid users see it after

@@ -117,6 +117,8 @@ const STATE_STUDY_LAST_MODIFIED = new Date(STATE_HEADLINE.measuredAt)
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
     { path: '', priority: 1.0, freq: 'daily' },
+    // KINEO-VITRINE-FILMES-2610 — per-film consent checked in /made-with-kineo/sitemap.xml.
+    ...['/made-with-kineo', '/pt/made-with-kineo', '/es/made-with-kineo'].map(path => ({ path, priority: 0.8, freq: 'daily' as const })),
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/business-video-ads', priority: 0.9, freq: 'weekly' },
     { path: '/business', priority: 0.9, freq: 'weekly' }, // KINEO-BUSINESS-84-2026-10-09 — plano Business (anúncios de produto)
@@ -334,7 +336,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ])
   const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
-    lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
+    lastModified: r.path.endsWith('/made-with-kineo') ? new Date('2026-10-26T00:00:00.000Z') : r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative'].includes(r.path)
       ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : geoRodada3Revised.has(r.path) ? GEO_RODADA3_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,

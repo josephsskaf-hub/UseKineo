@@ -21,7 +21,7 @@ const submit = process.argv.includes('--submit')
 // O caminho AUTOMÁTICO para vídeos novos é o cron diário
 // `app/api/cron/submit-indexnow` (só a janela recente). Este script continua
 // existindo para o backfill manual e para uma auditoria completa da superfície.
-const SITEMAPS = ['/sitemap.xml', '/video-sitemap.xml']
+const SITEMAPS = ['/sitemap.xml', '/video-sitemap.xml', '/made-with-kineo/sitemap.xml'] // KINEO-VITRINE-FILMES-2610
 
 const collected = []
 for (const path of SITEMAPS) {

@@ -91,7 +91,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: DISALLOW,
       },
     ],
-    sitemap: [`${BASE}/sitemap.xml`, `${BASE}/video-sitemap.xml`],
+    sitemap: [`${BASE}/sitemap.xml`, `${BASE}/video-sitemap.xml`, `${BASE}/made-with-kineo/sitemap.xml`],
     host: HOST_WITH_LLMS_POINTER,
   }
 }
