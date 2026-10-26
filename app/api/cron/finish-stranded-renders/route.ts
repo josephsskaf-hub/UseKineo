@@ -1,4 +1,5 @@
 import { readAll } from '@/lib/supabase/readAll'
+import { retryPaidFilmCompleteIntents } from '@/lib/filmComplete/server'
 // KINEO-STRANDED-2026-08-18/19 — "o vídeo continua renderizando mesmo com a
 // aba fechada" (ordem do fundador, noite de 18/08). Duas gerações do mesmo
 // arquivo na mesma noite:
@@ -590,6 +591,10 @@ export async function GET(req: NextRequest) { // KINEO-FILME-RAPIDO-1710 — a t
     return NextResponse.json({ skipped: vez.motivo }) // KINEO-FILME-RAPIDO-1710
   } // KINEO-FILME-RAPIDO-1710
   try { // KINEO-FILME-RAPIDO-1710
+    // An acknowledged paid intent can predate its first cinematic claim. Retry it even when the buyer closed the tab.
+    // Bounded to one leased launch; its frozen screenplay/generation id prevent another film or another scene charge.
+    try { await retryPaidFilmCompleteIntents(trava, req.nextUrl.origin) }
+    catch { console.warn('[stranded] complete-film retry deferred until the next run') }
     return await rodadaDoResgate(req) // KINEO-FILME-RAPIDO-1710
   } finally { // KINEO-FILME-RAPIDO-1710
     await vez.liberar() // KINEO-FILME-RAPIDO-1710

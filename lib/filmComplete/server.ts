@@ -251,3 +251,31 @@ export async function settleFilmComplete(db: SupabaseClient, session: Stripe.Che
   const task = async () => { await startFilmComplete(db, paidIntent, origin) }
   if (!depoisDaResposta('film-complete-start', task)) await task()
 }
+
+/** Existing minute cron retries one paid launch that never reached a cinematic claim (for example, a closed return tab). */
+export async function retryPaidFilmCompleteIntents(
+  db: SupabaseClient, origin: string, now = Date.now(),
+  launch: typeof startFilmComplete = startFilmComplete,
+): Promise<{ scanned: number; scheduled: number }> {
+  const { data: rows, error } = await db.from('events').select('id, user_id, metadata')
+    .eq('name', FILM_COMPLETE_INTENT_EVENT).eq('metadata->>version', FILM_COMPLETE_VERSION)
+    .in('metadata->>state', ['starting', 'waiting_entitlement']).not('metadata->>paid_session_id', 'is', null)
+    .gte('metadata->>paid_at', new Date(now - 48 * 60 * 60_000).toISOString())
+    .order('created_at', { ascending: true }).limit(10)
+  if (error) throw new Error('film_complete_retry_unavailable')
+  let scanned = 0
+  for (const row of rows ?? []) {
+    scanned++
+    if (!FILM_COMPLETE_UUID.test(text(row.user_id)) || !FILM_COMPLETE_UUID.test(text(row.id))) continue
+    const intent = await loadFilmCompleteIntent(db, text(row.user_id), text(row.id))
+    if (!intent || !text(intent.metadata.paid_session_id)) continue
+    const paidAt = Date.parse(text(intent.metadata.paid_at))
+    if (!Number.isFinite(paidAt) || paidAt > now) continue
+    const leaseAt = Date.parse(text(intent.metadata.launch_at))
+    if (Number.isFinite(leaseAt) && now - leaseAt < 5 * 60_000) continue
+    const task = async () => { await launch(db, intent, origin) }
+    if (!depoisDaResposta('film-complete-retry', task)) await task()
+    return { scanned, scheduled: 1 }
+  }
+  return { scanned, scheduled: 0 }
+}
