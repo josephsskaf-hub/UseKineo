@@ -64,7 +64,7 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
       return scorePixel(media.url, media.durationSeconds, {
       product: 'filme', engine: a.claim.engine, asked: state.context?.asked ?? '',
       narration: state.context?.narration ?? '', language: state.context?.language ?? '',
-      }, { timeoutMs: 15_000 })
+      }, { timeoutMs: 15_000, fps: typeof state.source.frame_rate === 'number' ? state.source.frame_rate : undefined, exactFrameTimes: true })
     },
     scenes: source => cenasDoFilme(a.claim, a.userId, source),
     submitScene: scene => {

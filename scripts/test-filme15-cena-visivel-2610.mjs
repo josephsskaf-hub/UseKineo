@@ -44,4 +44,40 @@ assert.equal(raw.split(before).length, 2, 'mutant replaces exactly the productio
 const mutant = raw.replace(before, 'return hits[0]?.index')
 const mutatedGate = createOfflineLoader({ source: (name, text) => name === file ? mutant : text })(file)
 assert.throws(() => contract(mutatedGate), assert.AssertionError, 'old first-hit policy must fail the same cut contract')
-console.log('PASS actual builder cut/overlap visibility; old first-hit mutant rejected')
+
+// A rounded timestamp can still select the wrong shot even after fixing overlap.
+// 24fps: actual frame 135 is 5.625s; 5.6s labels it before a real 5.61s cut.
+const pixel = createOfflineLoader({ globals: { AbortController, setTimeout, clearTimeout } })('@/lib/regua95/pixelScore')
+const nthFixture = () => {
+  const requests = []
+  const fetchImpl = async (url, opts) => {
+    requests.push({ url, body: JSON.parse(opts.body) })
+    return { ok: true, json: async () => ({ images: Array.from({ length: 8 }, (_, i) => ({ url: `https://fixture.invalid/frame-${i}.jpg` })) }) }
+  }
+  return { requests, fetchImpl }
+}
+for (const [fps, interval, cut] of [[24, 45, 5.61], [30, 56, 5.59]]) {
+  const f = nthFixture()
+  const extracted = await pixel.extractFramesFal(media.url, 15, { fetchImpl: f.fetchImpl, falKey: 'offline-only', fps, exactFrameTimes: true })
+  assert.equal(f.requests[0].body.frame_interval, interval)
+  assert.equal(extracted.frames[3].t, 3 * interval / fps, 'sample position is unrounded and uses source frame rate')
+  // The existing anchor anticipates the next word by 0.15s into its pause.
+  const threeWords = [{ word: 'First.', start: 0, end: 1, sentenceEnd: true }, { word: 'Second.', start: cut + 0.15, end: cut + 1, sentenceEnd: true }, { word: 'Third.', start: 10.5, end: 12, sentenceEnd: true }]
+  const timedSource = compose.buildCreatomateSource({
+    clipUrls: urls, clipSeconds: [6, 6, 6], voiceoverUrl: 'https://fixture.invalid/voice.mp3', voiceoverScript: 'First. Second. Third.',
+    sceneCaptions: [], duration: 15, realAudioDuration: 15, quality: 'cinematic_ai', seedanceShortFilm: true, musicUrl: null, watermark: false, endCard: false,
+    clipSpeech: { narrationWords: ['First.', 'Second.', 'Third.'], wordStarts: [0, 1, 2] }, whisperWords: threeWords,
+  })
+  assert.equal(timedSource.elements.find(e => e.type === 'video' && e.source === urls[1]).time, cut, 'real builder follows signed speech cut')
+  const timedState = { ...state, source: timedSource }
+  assert.equal(gate.decideFree15Gate(timedState, media, verdict(extracted.frames[3].t), scenes).sceneIndex, 1)
+  if (fps === 24) assert.equal(gate.decideFree15Gate(timedState, media, verdict(5.6), scenes).sceneIndex, 0, 'legacy rounded time reproduces the wrong culprit')
+}
+const legacyFixture = nthFixture()
+const legacy = await pixel.extractFramesFal(media.url, 15, { fetchImpl: legacyFixture.fetchImpl, falKey: 'offline-only' })
+assert.equal(legacyFixture.requests[0].body.frame_interval, 45)
+assert.equal(legacy.frames[3].t, 5.6, '35/60/90 and historical callers retain legacy sampling/timing without options')
+const forwardFixture = nthFixture()
+await pixel.scorePixel(media.url, 15, { product: 'filme', asked: 'Offline fixture' }, { fetchImpl: forwardFixture.fetchImpl, falKey: 'offline-only', apiKey: 'offline-only', fps: 30, exactFrameTimes: true })
+assert.equal(forwardFixture.requests[0].body.frame_interval, 56, 'scorePixel forwards source frame rate to extraction')
+console.log('PASS actual builder overlap and exact 24/30fps culprit; defaults preserved; first-hit mutant rejected')

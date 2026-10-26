@@ -16,7 +16,7 @@ const badPixel = { ...goodPixel, score: 85, cap_limit: 85, caps: ['invented text
 
 function fixture(transform = null) {
   let gateRow = null, sceneDone = false, renderDone = false
-  const saved = new Map(), calls = { scenes: [], renders: [], judgments: 0 }
+  const saved = new Map(), calls = { scenes: [], renders: [], judgments: 0, judgeOptions: [] }
   const db = { from(table) {
     assert.equal(table, 'events')
     let patch = null; const filters = []
@@ -46,11 +46,11 @@ function fixture(transform = null) {
       submitCreatomateRender: async source => { calls.renders.push(clone(source)); return 'repair-render-1' },
       pollCreatomateRender: async () => ({ status: renderDone ? 'succeeded' : 'processing', url: renderDone ? 'https://fixture.invalid/approved.mp4' : null, snapshotUrl: null, exactDurationSeconds: 15.1, durationSeconds: 15 }),
     },
-    '@/lib/regua95/pixelScore': { scorePixel: async () => clone(++calls.judgments === 1 ? badPixel : goodPixel) },
+    '@/lib/regua95/pixelScore': { scorePixel: async (...args) => { calls.judgeOptions.push(clone(args[3])); return clone(++calls.judgments === 1 ? badPixel : goodPixel) } },
     '@/lib/credits/refund': { refundRenderCredits: forbidden },
   } })
   const core = load('@/lib/freeRedo/core'), classic = load('@/lib/classicSceneRetry')
-  const source = { duration: 15, elements: [
+  const source = { duration: 15, frame_rate: 30, elements: [
     ...[0, 1, 2].map(index => ({ type: 'video', track: 2, source: `https://fixture.invalid/scene-${index}.mp4`, time: index * 5, duration: 5 })),
     { type: 'audio', track: 4, source: 'https://fixture.invalid/narration.mp3', time: 0, duration: 15 },
     { type: 'text', track: 5, text: 'The canonical spoken words.', time: 0, duration: 15 },
@@ -97,6 +97,7 @@ function assertSignedInput(h) {
   assert.equal(h.calls.scenes.length, 1)
   assert.equal(h.calls.renders.length, 1)
   assert.equal(h.calls.judgments, 2)
+  assert.ok(h.calls.judgeOptions.every(options => options.fps === h.source.frame_rate && options.exactFrameTimes === true), 'gate uses the signed output frame rate and unrounded sample times')
 }
 function assertApprovedSource(h) {
   const saved = [...h.saved.values()].filter(row => row.name === h.core.FILM_SOURCE_EVENT)

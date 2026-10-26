@@ -70,7 +70,7 @@ type FalImage = { url?: unknown; file_size?: unknown }
 export async function extractFramesFal(
   videoUrl: string,
   seconds: number | null | undefined,
-  opts?: { fetchImpl?: typeof fetch; falKey?: string; timeoutMs?: number },
+  opts?: { fetchImpl?: typeof fetch; falKey?: string; timeoutMs?: number; fps?: number; exactFrameTimes?: boolean },
 ): Promise<{ frames: Frame[]; via: 'nth_frame' | 'extract_frame'; ms: number; usd: number } | null> {
   const key = opts?.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
   if (!key || !videoUrl) return null
@@ -95,14 +95,17 @@ export async function extractFramesFal(
       clearTimeout(timer)
     }
   }
-  const interval = frameIntervalFor(seconds)
+  // The free15 delivery gate knows the signed composition's frame rate. Keep
+  // legacy sampling/timestamps unchanged when these optional fields are absent.
+  const fps = typeof opts?.fps === 'number' && Number.isFinite(opts.fps) && opts.fps > 0 ? opts.fps : PIXEL_FPS_ASSUMED
+  const interval = frameIntervalFor(seconds, fps)
   const nth = await call(FAL_NTH_FRAME_MODEL, { video_url: videoUrl, frame_interval: interval, max_frames: PIXEL_FRAMES + 2, output_format: 'jpg', quality: 80 })
   const asFrames = (imgs: FalImage[], tOf: (i: number) => number | null): Frame[] =>
     imgs
       .map((im, i) => ({ url: typeof im?.url === 'string' ? im.url : '', t: tOf(i), bytes: typeof im?.file_size === 'number' ? im.file_size : null }))
       .filter((f) => f.url)
   if (nth && nth.length > 0) {
-    const all = asFrames(nth, (i) => Math.round(((i * interval) / PIXEL_FPS_ASSUMED) * 10) / 10)
+    const all = asFrames(nth, (i) => opts?.exactFrameTimes ? (i * interval) / fps : Math.round(((i * interval) / fps) * 10) / 10)
     const ms = Date.now() - started
     return { frames: pickEvenly(all, PIXEL_FRAMES), via: 'nth_frame', ms, usd: (ms / 1000) * FAL_USD_PER_COMPUTE_SECOND }
   }
@@ -113,7 +116,7 @@ export async function extractFramesFal(
   const frames: Frame[] = []
   res3.forEach((imgs, i) => {
     const im = imgs?.[0]
-    if (im && typeof im.url === 'string') frames.push({ url: im.url, t: s == null ? null : i === 0 ? 0 : i === 1 ? Math.round(s * 5) / 10 : s, bytes: typeof im.file_size === 'number' ? im.file_size : null })
+    if (im && typeof im.url === 'string') frames.push({ url: im.url, t: s == null ? null : i === 0 ? 0 : i === 1 ? opts?.exactFrameTimes ? s / 2 : Math.round(s * 5) / 10 : opts?.exactFrameTimes ? Math.max(0, Math.ceil(s * fps) - 1) / fps : s, bytes: typeof im.file_size === 'number' ? im.file_size : null })
   })
   if (frames.length === 0) return null
   const ms = Date.now() - started
@@ -392,10 +395,10 @@ export async function scorePixel(
   videoUrl: string,
   seconds: number | null | undefined,
   ctx: PixelContext,
-  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string; timeoutMs?: number },
+  opts?: { fetchImpl?: typeof fetch; falKey?: string; apiKey?: string; model?: string; timeoutMs?: number; fps?: number; exactFrameTimes?: boolean },
 ): Promise<PixelResult | null> {
   const started = Date.now()
-  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey, timeoutMs: opts?.timeoutMs })
+  const ex = await extractFramesFal(videoUrl, seconds, { fetchImpl: opts?.fetchImpl, falKey: opts?.falKey, timeoutMs: opts?.timeoutMs, fps: opts?.fps, exactFrameTimes: opts?.exactFrameTimes })
   if (!ex) return null
   return judgeFrames(ctx, ex.frames, { fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, model: opts?.model, via: ex.via, usdFrames: ex.usd, startedAt: started, timeoutMs: opts?.timeoutMs })
 }
