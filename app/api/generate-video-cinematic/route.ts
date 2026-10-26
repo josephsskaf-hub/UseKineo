@@ -76,6 +76,7 @@ import { veoMaxShots, veoMarkedBeats, veoMarkedPlan } from '@/lib/cinematic/veoS
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
+import { sanitizarObjetos15 } from '@/lib/cinematic/objetosSemTexto15' // KINEO-FILME15-PERFEITO-2610
 import { planoDeAcrescimo15, aceitarAcrescimo15 } from '@/lib/cinematic/filme15Perfeito' // KINEO-FILME15-PERFEITO-2610
 import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
 import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
@@ -6778,6 +6779,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — visual perde o "characters act naturally" e ganha "No people…" (o homem adulto da cena 1 do Dino). Desligada: o vetor fica byte a byte.
     const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: personagemElenco.elenco }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
     if (personagemCenas) { for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = personagemCenas.prompts[i]; console.log(`[personagem] gen=${generationId} cenas pela fala=${personagemCenas.cenas.filter((c) => c.pelaFala.length > 0).map((c) => c.indice + 1).join(',') || '-'} ficha no prompt=${personagemCenas.comFicha.join(',') || '-'} sem gente=${personagemCenas.semGente.join(',') || '-'}`) } // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     // ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — a moderação lê o TEXTO FINAL das cenas antes do still e do POST pago ═══
     // KINEO-ROMANCE-ADULTO-2026-10-13 — Só em pedido romântico (o risco do caso d.hein.0): omni-moderation é gratuito, 1 chamada de até 8 s,
     // KINEO-ROMANCE-ADULTO-2026-10-13 — superfície 'clip' (a do /api/generate-clip, mesma régua). O nosso sufixo de adultos sai do texto
