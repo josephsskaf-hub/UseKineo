@@ -33,9 +33,11 @@ import {
 // em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte (H); o
 // comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
+import { semAfiliado50_2610, AFILIADO50_2610_BASE, AFILIADO50_2610_ARQUIVOS } from './test-support/desfaz-afiliado50-2610.mjs'
 
 const root = process.cwd()
-const read = (file) => semCloseReal1910(fs.readFileSync(path.join(root, file), 'utf8'), file).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+// Reverse the exact later offer layer before the older delivery helpers.
+const read = (file) => semCloseReal1910(semAfiliado50_2610(file, fs.readFileSync(path.join(root, file), 'utf8')), file).replace(/\r\n/g, '\n')
 
 function compile(source, imports = {}, env = {}) {
   const box = { exports: {} }
@@ -486,6 +488,21 @@ assert.equal(failed, 0, `${failed} mutante(s) sobreviveram ou não se aplicaram`
 // ── H. desfaz: byte a byte à base; mudança alheia dentro de um trecho lança ──
 {
   const git = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  // The compatibility layer itself must undo precisely the new task, preserving
+  // foreign edits and rejecting a changed hunk. It never substitutes a base file.
+  for (const f of AFILIADO50_2610_ARQUIVOS) {
+    const actual = fs.readFileSync(path.join(root, f), 'utf8').replace(/\r\n/g, '\n')
+    const base = git('show', `${AFILIADO50_2610_BASE}:${f}`).replace(/\r\n/g, '\n')
+    assert.equal(semAfiliado50_2610(f, actual), base, `50% undo: ${f} is not exactly the task base`)
+    assert.equal(semAfiliado50_2610(f, base), base, `50% undo: a prior tree was changed (${f})`)
+  }
+  const firstClickPath = 'lib/affiliateFirstClick.ts'
+  const firstClick = fs.readFileSync(path.join(root, firstClickPath), 'utf8').replace(/\r\n/g, '\n')
+  const changedOffer = firstClick.replace('for 50% off the first month', 'for 51% off the first month')
+  assert.notEqual(changedOffer, firstClick, '50% undo probe must change the source')
+  assert.throws(() => semAfiliado50_2610(firstClickPath, changedOffer), /mudou fora deste conserto/, '50% undo swallowed a changed task hunk')
+  const foreign = '\n// unrelated change outside the task hunks\n'
+  assert.equal(semAfiliado50_2610(firstClickPath, firstClick + foreign), git('show', `${AFILIADO50_2610_BASE}:${firstClickPath}`).replace(/\r\n/g, '\n') + foreign, '50% undo discarded a foreign edit')
   let anc = true
   try { git('merge-base', '--is-ancestor', AFILIADO_POR_POST_1610_BASE, 'HEAD') } catch { anc = false }
   assert.ok(anc, 'a base do desfaz não é ancestral de HEAD')

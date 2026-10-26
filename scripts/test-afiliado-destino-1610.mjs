@@ -30,7 +30,9 @@ import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-
 // em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte abaixo; o
 // comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
-const read = (file) => semAfiliadoPorPost1610(file, semCloseReal1910(fs.readFileSync(path.join(root, file), 'utf8'), file).replace(/\r\n/g, '\n')) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+// The authorized 50% offer is a later, independent layer; reverse its exact hunks first.
+const read = (file) => semAfiliadoPorPost1610(file, semCloseReal1910(semAfiliado50_2610(file, fs.readFileSync(path.join(root, file), 'utf8')), file).replace(/\r\n/g, '\n'))
 
 function compile(source, imports = {}, env = {}) {
   const box = { exports: {} }
