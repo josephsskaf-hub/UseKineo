@@ -1,0 +1,36 @@
+{
+  "checkpoint": "a3c4f6dfda556a5a7a103c403d5f9cd8c6f58f81",
+  "sourceCheckpoint": "0a51ca9c5542013142fbac91e03f6bab318c9fdd",
+  "rows": [
+    {
+      "file": "scripts/test-filmes-f1-virgula-1910.mjs",
+      "selectorCalls": 1,
+      "sourceReads": 1,
+      "originalExecutableASTPreserved": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+      "selectorCalls": 2,
+      "sourceReads": 2,
+      "originalExecutableASTPreserved": true
+    },
+    {
+      "file": "scripts/test-filmes-f1f4-1910.mjs",
+      "selectorCalls": 1,
+      "sourceReads": 1,
+      "originalExecutableASTPreserved": true
+    },
+    {
+      "file": "scripts/test-verbatim-intocavel-2010.mjs",
+      "selectorCalls": 5,
+      "sourceReads": 5,
+      "originalExecutableASTPreserved": true
+    },
+    {
+      "file": "scripts/test-kids-venda-2010.mjs",
+      "selectorCalls": 0,
+      "sourceReads": 0,
+      "originalExecutableASTPreserved": true
+    }
+  ]
+}

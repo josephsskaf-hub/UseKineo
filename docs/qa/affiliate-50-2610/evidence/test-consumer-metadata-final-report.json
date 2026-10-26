@@ -1,0 +1,2041 @@
+{
+  "base": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "head": "0a51ca9c5542013142fbac91e03f6bab318c9fdd",
+  "modifiedExistingTests": [
+    "scripts/test-admin-leve-undo-2310.mjs",
+    "scripts/test-ads-cena-2110.mjs",
+    "scripts/test-ads-cena-95-2110.mjs",
+    "scripts/test-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+    "scripts/test-ads-cena-ajuste-2110.mjs",
+    "scripts/test-ads-cena-respaldo-2110.mjs",
+    "scripts/test-ads-cena-retomada-2110.mjs",
+    "scripts/test-ads-cena-segue-2110.mjs",
+    "scripts/test-ads-cena-texto-2310.mjs",
+    "scripts/test-ads-escolha-2310.mjs",
+    "scripts/test-ads-escolha-publico-2410.mjs",
+    "scripts/test-ads-nota9-2110.mjs",
+    "scripts/test-ads-qualidade-2110.mjs",
+    "scripts/test-affiliate-destinations.mjs",
+    "scripts/test-affiliate-me-currency-contract.mjs",
+    "scripts/test-affiliate-payment-chain.mjs",
+    "scripts/test-afiliado-destino-1610.mjs",
+    "scripts/test-afiliado-por-post-1610.mjs",
+    "scripts/test-afiliados-atribuicao-2026-10-03.mjs",
+    "scripts/test-apresentador-olhos-1910.mjs",
+    "scripts/test-avatar-estorno-2010.mjs",
+    "scripts/test-avatar-preso-2010.mjs",
+    "scripts/test-bebe-que-fala-2010.mjs",
+    "scripts/test-business-84-2026-10-09.mjs",
+    "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-checkout-clareza-1610.mjs",
+    "scripts/test-close-real-1910.mjs",
+    "scripts/test-close-real-ajuste-1910.mjs",
+    "scripts/test-close-real-legenda-1910.mjs",
+    "scripts/test-close-real-legenda-corte-1910.mjs",
+    "scripts/test-close-real-legenda-pilula-1910.mjs",
+    "scripts/test-close-real-v3-1910.mjs",
+    "scripts/test-consentimento-1610.mjs",
+    "scripts/test-desenho-nota9-2110.mjs",
+    "scripts/test-desenho-som-2110.mjs",
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+    "scripts/test-filmes-f1f3-publico-2010.mjs",
+    "scripts/test-filmes-f1f4-1910.mjs",
+    "scripts/test-home-3-cards-1910.mjs",
+    "scripts/test-home-cards-botoes-2010.mjs",
+    "scripts/test-home-cards-claros-2010.mjs",
+    "scripts/test-home-remodela-2010.mjs",
+    "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-kids-venda-2010.mjs",
+    "scripts/test-kit-bf-1910.mjs",
+    "scripts/test-kit-bf-venda-2010.mjs",
+    "scripts/test-legenda-bengali-2010.mjs",
+    "scripts/test-mcp-studio-2010.mjs",
+    "scripts/test-mcp-studio-ajuste-2010.mjs",
+    "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-meta95-escrita-2010.mjs",
+    "scripts/test-meta95-personagem-2010.mjs",
+    "scripts/test-meta95-personagem-ajuste-2010.mjs",
+    "scripts/test-mrr-1-3-2026-09-16.mjs",
+    "scripts/test-pacote2-precos-2026-10-05.mjs",
+    "scripts/test-paginas-ia-claras-2110.mjs",
+    "scripts/test-partners-criadores-1610.mjs",
+    "scripts/test-precos-cartao-valor-2026-10-09.mjs",
+    "scripts/test-pricing-monthly-campaign.mjs",
+    "scripts/test-roteiro-curto-undo-2210.mjs",
+    "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-ugc-ajustes-2010.mjs",
+    "scripts/test-verbatim-intocavel-2010.mjs",
+    "scripts/test-welcome20-onde-anuncia.mjs"
+  ],
+  "newTests": [
+    "scripts/test-affiliate-coupon-50.mjs",
+    "scripts/test-affiliate-link-50.mjs"
+  ],
+  "consumerTests": [
+    "scripts/test-admin-leve-undo-2310.mjs",
+    "scripts/test-ads-cena-2110.mjs",
+    "scripts/test-ads-cena-95-2110.mjs",
+    "scripts/test-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+    "scripts/test-ads-cena-ajuste-2110.mjs",
+    "scripts/test-ads-cena-respaldo-2110.mjs",
+    "scripts/test-ads-cena-retomada-2110.mjs",
+    "scripts/test-ads-cena-segue-2110.mjs",
+    "scripts/test-ads-cena-texto-2310.mjs",
+    "scripts/test-ads-escolha-2310.mjs",
+    "scripts/test-ads-escolha-publico-2410.mjs",
+    "scripts/test-ads-nota9-2110.mjs",
+    "scripts/test-ads-qualidade-2110.mjs",
+    "scripts/test-apresentador-olhos-1910.mjs",
+    "scripts/test-avatar-estorno-2010.mjs",
+    "scripts/test-avatar-preso-2010.mjs",
+    "scripts/test-bebe-que-fala-2010.mjs",
+    "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-close-real-1910.mjs",
+    "scripts/test-close-real-ajuste-1910.mjs",
+    "scripts/test-close-real-legenda-1910.mjs",
+    "scripts/test-close-real-legenda-corte-1910.mjs",
+    "scripts/test-close-real-legenda-pilula-1910.mjs",
+    "scripts/test-close-real-v3-1910.mjs",
+    "scripts/test-desenho-nota9-2110.mjs",
+    "scripts/test-desenho-som-2110.mjs",
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+    "scripts/test-filmes-f1f3-publico-2010.mjs",
+    "scripts/test-filmes-f1f4-1910.mjs",
+    "scripts/test-home-3-cards-1910.mjs",
+    "scripts/test-home-cards-botoes-2010.mjs",
+    "scripts/test-home-cards-claros-2010.mjs",
+    "scripts/test-home-remodela-2010.mjs",
+    "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-kids-venda-2010.mjs",
+    "scripts/test-kit-bf-1910.mjs",
+    "scripts/test-kit-bf-venda-2010.mjs",
+    "scripts/test-legenda-bengali-2010.mjs",
+    "scripts/test-mcp-studio-2010.mjs",
+    "scripts/test-mcp-studio-ajuste-2010.mjs",
+    "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-meta95-escrita-2010.mjs",
+    "scripts/test-meta95-personagem-2010.mjs",
+    "scripts/test-meta95-personagem-ajuste-2010.mjs",
+    "scripts/test-paginas-ia-claras-2110.mjs",
+    "scripts/test-roteiro-curto-undo-2210.mjs",
+    "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-ugc-ajustes-2010.mjs",
+    "scripts/test-verbatim-intocavel-2010.mjs"
+  ],
+  "finalSelection": [
+    "scripts/test-admin-leve-undo-2310.mjs",
+    "scripts/test-ads-cena-2110.mjs",
+    "scripts/test-ads-cena-95-2110.mjs",
+    "scripts/test-ads-cena-95-pacing-2110.mjs",
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+    "scripts/test-ads-cena-ajuste-2110.mjs",
+    "scripts/test-ads-cena-respaldo-2110.mjs",
+    "scripts/test-ads-cena-retomada-2110.mjs",
+    "scripts/test-ads-cena-segue-2110.mjs",
+    "scripts/test-ads-cena-texto-2310.mjs",
+    "scripts/test-ads-escolha-2310.mjs",
+    "scripts/test-ads-escolha-publico-2410.mjs",
+    "scripts/test-ads-nota9-2110.mjs",
+    "scripts/test-ads-qualidade-2110.mjs",
+    "scripts/test-affiliate-coupon-50.mjs",
+    "scripts/test-affiliate-destinations.mjs",
+    "scripts/test-affiliate-link-50.mjs",
+    "scripts/test-affiliate-me-currency-contract.mjs",
+    "scripts/test-affiliate-payment-chain.mjs",
+    "scripts/test-afiliado-destino-1610.mjs",
+    "scripts/test-afiliado-por-post-1610.mjs",
+    "scripts/test-afiliados-atribuicao-2026-10-03.mjs",
+    "scripts/test-apresentador-olhos-1910.mjs",
+    "scripts/test-avatar-estorno-2010.mjs",
+    "scripts/test-avatar-preso-2010.mjs",
+    "scripts/test-bebe-que-fala-2010.mjs",
+    "scripts/test-business-84-2026-10-09.mjs",
+    "scripts/test-cards-giro-undo-2410.mjs",
+    "scripts/test-checkout-clareza-1610.mjs",
+    "scripts/test-close-real-1910.mjs",
+    "scripts/test-close-real-ajuste-1910.mjs",
+    "scripts/test-close-real-legenda-1910.mjs",
+    "scripts/test-close-real-legenda-corte-1910.mjs",
+    "scripts/test-close-real-legenda-pilula-1910.mjs",
+    "scripts/test-close-real-v3-1910.mjs",
+    "scripts/test-consentimento-1610.mjs",
+    "scripts/test-desenho-nota9-2110.mjs",
+    "scripts/test-desenho-som-2110.mjs",
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-filmes-f1-virgula-1910.mjs",
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+    "scripts/test-filmes-f1f3-publico-2010.mjs",
+    "scripts/test-filmes-f1f4-1910.mjs",
+    "scripts/test-home-3-cards-1910.mjs",
+    "scripts/test-home-cards-botoes-2010.mjs",
+    "scripts/test-home-cards-claros-2010.mjs",
+    "scripts/test-home-remodela-2010.mjs",
+    "scripts/test-idiomas-formatos-undo-2410.mjs",
+    "scripts/test-kids-venda-2010.mjs",
+    "scripts/test-kit-bf-1910.mjs",
+    "scripts/test-kit-bf-venda-2010.mjs",
+    "scripts/test-legenda-bengali-2010.mjs",
+    "scripts/test-mcp-studio-2010.mjs",
+    "scripts/test-mcp-studio-ajuste-2010.mjs",
+    "scripts/test-menu-ugc-2010.mjs",
+    "scripts/test-meta95-escrita-2010.mjs",
+    "scripts/test-meta95-personagem-2010.mjs",
+    "scripts/test-meta95-personagem-ajuste-2010.mjs",
+    "scripts/test-mrr-1-3-2026-09-16.mjs",
+    "scripts/test-pacote2-precos-2026-10-05.mjs",
+    "scripts/test-paginas-ia-claras-2110.mjs",
+    "scripts/test-partners-criadores-1610.mjs",
+    "scripts/test-precos-cartao-valor-2026-10-09.mjs",
+    "scripts/test-pricing-monthly-campaign.mjs",
+    "scripts/test-roteiro-curto-undo-2210.mjs",
+    "scripts/test-trafego-undo-2310.mjs",
+    "scripts/test-ugc-ajustes-2010.mjs",
+    "scripts/test-verbatim-intocavel-2010.mjs",
+    "scripts/test-welcome20-onde-anuncia.mjs"
+  ],
+  "reasons": {
+    "scripts/test-admin-leve-undo-2310.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-admin-leve-2310.mjs",
+        "export": "ADMIN_LEVE_2310_HUNKS",
+        "targets": [
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-ads-cena-segue-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-2110.mjs",
+        "export": "ADS_CENA_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-qualidade-2110.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-95-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-95-2110.mjs",
+        "export": "ADS_CENA_95_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-95-pacing-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs",
+        "export": "CENA95_PACING_FILES",
+        "targets": [
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-95-plan-failed-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs",
+        "export": "ADS_CENA_95_PLAN_FAILED_FILES",
+        "targets": [
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-ajuste-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs",
+        "export": "ADS_CENA_AJUSTE_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-respaldo-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-respaldo-2110.mjs",
+        "export": "CENA_RESPALDO_FILES",
+        "targets": [
+          "scripts/test-ads-cena-retomada-2110.mjs",
+          "scripts/test-paginas-ia-claras-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-retomada-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-retomada-2110.mjs",
+        "export": "CENA_RETOMADA_FILES",
+        "targets": [
+          "scripts/test-ads-cena-95-pacing-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-segue-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-segue-2110.mjs",
+        "export": "CENA_SEGUE_FILES",
+        "targets": [
+          "scripts/test-ads-cena-respaldo-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-cena-texto-2310.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-texto-2310.mjs",
+        "export": "CENA_TEXTO_FILES",
+        "targets": [
+          "scripts/test-ads-cena-segue-2110.mjs",
+          "scripts/test-admin-leve-undo-2310.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-texto-2310.mjs",
+        "export": "CENA_TEXTO_FILES",
+        "targets": [
+          "scripts/test-ads-cena-segue-2110.mjs",
+          "scripts/test-admin-leve-undo-2310.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-admin-leve-2310.mjs",
+        "export": "ADMIN_LEVE_2310_HUNKS",
+        "targets": [
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-ads-cena-segue-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-escolha-2310.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-escolha-2310.mjs",
+        "export": "ADS_ESCOLHA_FILES",
+        "targets": [
+          "scripts/test-ads-cena-texto-2310.mjs",
+          "scripts/test-ads-nota9-2110.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-escolha-publico-2410.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-escolha-publico-2410.mjs",
+        "export": "ADS_ESCOLHA_PUBLICO_FILES",
+        "targets": [
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-escolha-2310.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-ads-escolha-2310.mjs"
+      }
+    ],
+    "scripts/test-ads-nota9-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-nota9-2110.mjs",
+        "export": "ADS_NOTA9_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-kit-bf-venda-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-nota9-2110.mjs",
+        "export": "TROCAS_ADS_NOTA9_2110",
+        "targets": [
+          "scripts/test-kit-bf-venda-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-nota9-2110.mjs",
+        "export": "ACRESCIMOS_ADS_NOTA9_2110",
+        "targets": [
+          "scripts/test-kit-bf-venda-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ads-qualidade-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-qualidade-2110.mjs",
+        "export": "ADS_QUALIDADE_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-nota9-2110.mjs",
+          "scripts/test-close-real-1910.mjs",
+          "scripts/test-kit-bf-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-apresentador-olhos-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-apresentador-olhos-1910.mjs",
+        "export": "APRESENTADOR_OLHOS_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-apresentador-olhos-1910.mjs",
+        "export": "ACRESCIMOS_APRESENTADOR_OLHOS_1910",
+        "targets": [
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-avatar-estorno-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-estorno-2010.mjs",
+        "export": "REGRAS_AVATAR_ESTORNO_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-avatar-preso-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+        "export": "AVATAR_PRESO_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+        "export": "ACRESCIMOS_AVATAR_PRESO_2010",
+        "targets": [
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+        "export": "TROCAS_AVATAR_PRESO_2010",
+        "targets": [
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-bebe-que-fala-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "BEBE_QUE_FALA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "ACRESCIMOS_BEBE_QUE_FALA_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "TROCAS_BEBE_QUE_FALA_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-cards-giro-undo-2410.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-cards-giro-2410.mjs",
+        "export": "CARDS_GIRO_2410_MANIFEST",
+        "targets": [
+          "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "scripts/test-paginas-ia-claras-2110.mjs",
+          "scripts/test-cards-giro-undo-2410.mjs"
+        ]
+      }
+    ],
+    "scripts/test-close-real-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-1910.mjs",
+        "export": "CLOSE_REAL_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-afiliado-destino-1610.mjs",
+          "scripts/test-afiliado-por-post-1610.mjs",
+          "scripts/test-checkout-clareza-1610.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_1910",
+        "targets": [
+          "scripts/test-afiliado-destino-1610.mjs",
+          "scripts/test-afiliado-por-post-1610.mjs",
+          "scripts/test-checkout-clareza-1610.mjs"
+        ]
+      }
+    ],
+    "scripts/test-close-real-ajuste-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-ajuste-1910.mjs",
+        "export": "CLOSE_REAL_AJUSTE_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-ajuste-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_AJUSTE_1910",
+        "targets": [
+          "scripts/test-close-real-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-close-real-legenda-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-1910.mjs",
+        "export": "CLOSE_REAL_LEGENDA_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_LEGENDA_1910",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-1910.mjs",
+        "export": "ACRESCIMOS_CLOSE_REAL_LEGENDA_1910",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-v3-1910.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-filmes-f1-virgula-1910.mjs"
+      }
+    ],
+    "scripts/test-close-real-legenda-corte-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs",
+        "export": "CLOSE_REAL_LEGENDA_CORTE_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-legenda-pilula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_LEGENDA_CORTE_1910",
+        "targets": [
+          "scripts/test-close-real-legenda-pilula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs",
+        "export": "ACRESCIMOS_CLOSE_REAL_LEGENDA_CORTE_1910",
+        "targets": [
+          "scripts/test-close-real-legenda-pilula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-legenda-pilula-1910.mjs"
+      }
+    ],
+    "scripts/test-close-real-legenda-pilula-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-pilula-1910.mjs",
+        "export": "CLOSE_REAL_LEGENDA_PILULA_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-legenda-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-pilula-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_LEGENDA_PILULA_1910",
+        "targets": [
+          "scripts/test-close-real-legenda-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-legenda-pilula-1910.mjs",
+        "export": "ACRESCIMOS_CLOSE_REAL_LEGENDA_PILULA_1910",
+        "targets": [
+          "scripts/test-close-real-legenda-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-legenda-1910.mjs"
+      }
+    ],
+    "scripts/test-close-real-v3-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-1910.mjs",
+        "export": "KIT_BF_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-v3-1910.mjs",
+        "export": "CLOSE_REAL_V3_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-close-real-v3-1910.mjs",
+        "export": "TROCAS_CLOSE_REAL_V3_1910",
+        "targets": [
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-ajuste-1910.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-ajuste-1910.mjs"
+      }
+    ],
+    "scripts/test-desenho-nota9-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-nota9-2110.mjs",
+        "export": "DESENHO_NOTA9_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-nota9-2110.mjs",
+        "export": "TROCAS_DESENHO_NOTA9_2110",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-home-cards-claros-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-desenho-som-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-som-2110.mjs",
+        "export": "DESENHO_SOM_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-som-2110.mjs",
+        "export": "TROCAS_DESENHO_SOM_2110",
+        "targets": [
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs"
+        ]
+      }
+    ],
+    "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "TROCAS_KIDS_VENDA_2010",
+        "targets": [
+          "scripts/test-home-cards-claros-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-filmes-f1-virgula-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs",
+        "export": "ACRESCIMOS_FILMES_F1_VIRGULA_1910",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-close-real-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs",
+        "export": "TROCAS_FILMES_F1_VIRGULA_1910",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-close-real-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs",
+        "export": "ARQUIVOS_FILMES_F1_VIRGULA_1910",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-close-real-ajuste-1910.mjs",
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-close-real-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs",
+        "export": "TROCAS_FILMES_F1F3_AJUSTE_1910",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-close-real-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs",
+        "export": "ACRESCIMOS_FILMES_F1F3_AJUSTE_1910",
+        "targets": [
+          "scripts/test-close-real-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs",
+        "export": "ARQUIVOS_FILMES_F1F3_AJUSTE_1910",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-close-real-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-ajuste-1910.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-filmes-f1f4-1910.mjs"
+      }
+    ],
+    "scripts/test-filmes-f1f3-publico-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs",
+        "export": "FILMES_F1F3_PUBLICO_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs",
+        "export": "ACRESCIMOS_FILMES_F1F3_PUBLICO_2010",
+        "targets": [
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-filmes-f1f4-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-filmes-f1f4-1910.mjs",
+        "export": "TROCAS_FILMES_F1F4_1910",
+        "targets": [
+          "scripts/test-close-real-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-home-3-cards-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-3-cards-1910.mjs",
+        "export": "HOME_3_CARDS_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-kit-bf-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-home-cards-botoes-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-botoes-2010.mjs",
+        "export": "HOME_CARDS_BOTOES_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-apresentador-olhos-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-botoes-2010.mjs",
+        "export": "ACRESCIMOS_HOME_CARDS_BOTOES_2010",
+        "targets": [
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-apresentador-olhos-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-home-cards-claros-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-claros-2010.mjs",
+        "export": "HOME_CARDS_CLAROS_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-claros-2010.mjs",
+        "export": "TROCAS_HOME_CARDS_CLAROS_2010",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-claros-2010.mjs",
+        "export": "ACRESCIMOS_HOME_CARDS_CLAROS_2010",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-desenho-nota9-2110.mjs"
+      }
+    ],
+    "scripts/test-home-remodela-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "BEBE_QUE_FALA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-remodela-2010.mjs",
+        "export": "HOME_REMODELA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-idiomas-formatos-undo-2410.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-cards-giro-2410.mjs",
+        "export": "CARDS_GIRO_2410_MANIFEST",
+        "targets": [
+          "scripts/test-idiomas-formatos-undo-2410.mjs",
+          "scripts/test-paginas-ia-claras-2110.mjs",
+          "scripts/test-cards-giro-undo-2410.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
+        "export": "IDIOMAS_FORMATOS_2410_MANIFEST",
+        "targets": [
+          "scripts/test-ads-cena-respaldo-2110.mjs",
+          "scripts/test-ads-escolha-publico-2410.mjs",
+          "scripts/test-legenda-bengali-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-trafego-undo-2310.mjs",
+          "scripts/test-idiomas-formatos-undo-2410.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-ads-escolha-publico-2410.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-trafego-undo-2310.mjs"
+      }
+    ],
+    "scripts/test-kids-venda-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "ACRESCIMOS_KIDS_VENDA_2010",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "TROCAS_KIDS_VENDA_2010",
+        "targets": [
+          "scripts/test-home-cards-claros-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-kit-bf-1910.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-1910.mjs",
+        "export": "KIT_BF_1910_ARQUIVOS",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-1910.mjs",
+        "export": "ACRESCIMOS_KIT_BF_1910",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-1910.mjs",
+        "export": "TROCAS_KIT_BF_1910",
+        "targets": [
+          "scripts/test-close-real-v3-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-close-real-v3-1910.mjs"
+      }
+    ],
+    "scripts/test-kit-bf-venda-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
+        "export": "KIT_BF_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-consentimento-1610.mjs",
+          "scripts/test-home-cards-botoes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
+        "export": "ACRESCIMOS_KIT_BF_VENDA_2010",
+        "targets": [
+          "scripts/test-consentimento-1610.mjs",
+          "scripts/test-home-cards-botoes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kit-bf-venda-2010.mjs",
+        "export": "TROCAS_KIT_BF_VENDA_2010",
+        "targets": [
+          "scripts/test-consentimento-1610.mjs",
+          "scripts/test-home-cards-botoes-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-legenda-bengali-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-estorno-2010.mjs",
+        "export": "REGRAS_AVATAR_ESTORNO_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-mcp-studio-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-mcp-studio-ajuste-2010.mjs",
+        "export": "MCP_STUDIO_AJUSTE_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-preso-2010.mjs",
+        "export": "AVATAR_PRESO_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-estorno-2010.mjs",
+        "export": "REGRAS_AVATAR_ESTORNO_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "BEBE_QUE_FALA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-claros-2010.mjs",
+        "export": "HOME_CARDS_CLAROS_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-som-2110.mjs",
+        "export": "DESENHO_SOM_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-2010.mjs",
+        "export": "META95_PERSONAGEM_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+        "export": "META95_ESCRITA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-publico-2010.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-remodela-2010.mjs",
+        "export": "HOME_REMODELA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs",
+        "export": "META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-nota9-2110.mjs",
+        "export": "ADS_NOTA9_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-kit-bf-venda-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-2110.mjs",
+        "export": "ADS_CENA_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-qualidade-2110.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-qualidade-2110.mjs",
+        "export": "ADS_QUALIDADE_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-nota9-2110.mjs",
+          "scripts/test-close-real-1910.mjs",
+          "scripts/test-kit-bf-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-mcp-studio-ajuste-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-2110.mjs",
+        "export": "ADS_CENA_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-qualidade-2110.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-bebe-que-fala-2010.mjs",
+        "export": "BEBE_QUE_FALA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-home-remodela-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-escrita-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-cards-claros-2010.mjs",
+        "export": "HOME_CARDS_CLAROS_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-nota9-2110.mjs",
+        "export": "DESENHO_NOTA9_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs",
+        "export": "META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-nota9-2110.mjs",
+        "export": "ADS_NOTA9_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-kit-bf-venda-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-desenho-som-2110.mjs",
+        "export": "DESENHO_SOM_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-avatar-estorno-2010.mjs",
+        "export": "REGRAS_AVATAR_ESTORNO_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-remodela-2010.mjs",
+        "export": "HOME_REMODELA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-qualidade-2110.mjs",
+        "export": "ADS_QUALIDADE_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-nota9-2110.mjs",
+          "scripts/test-close-real-1910.mjs",
+          "scripts/test-kit-bf-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-mcp-studio-ajuste-2010.mjs",
+        "export": "MCP_STUDIO_AJUSTE_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-mcp-studio-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-avatar-estorno-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-legenda-bengali-2010.mjs"
+      }
+    ],
+    "scripts/test-menu-ugc-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-menu-ugc-2010.mjs",
+        "export": "MENU_UGC_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-menu-ugc-2010.mjs",
+        "export": "ACRESCIMOS_MENU_UGC_2010",
+        "targets": [
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-menu-ugc-2010.mjs",
+        "export": "TROCAS_MENU_UGC_2010",
+        "targets": [
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ugc-ajustes-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-meta95-escrita-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+        "export": "META95_ESCRITA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-publico-2010.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+        "export": "TROCAS_META95_ESCRITA_2010",
+        "targets": [
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-publico-2010.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+        "export": "ACRESCIMOS_META95_ESCRITA_2010",
+        "targets": [
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-publico-2010.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-meta95-personagem-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-remodela-2010.mjs",
+        "export": "HOME_REMODELA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-2010.mjs",
+        "export": "META95_PERSONAGEM_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-2010.mjs",
+        "export": "ACRESCIMOS_META95_PERSONAGEM_2010",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-2010.mjs",
+        "export": "TROCAS_META95_PERSONAGEM_2010",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-escrita-2010.mjs",
+        "export": "META95_ESCRITA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-filmes-f1-virgula-1910.mjs",
+          "scripts/test-filmes-f1f3-ajuste-1910.mjs",
+          "scripts/test-filmes-f1f3-publico-2010.mjs",
+          "scripts/test-filmes-f1f4-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-meta95-personagem-ajuste-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs",
+        "export": "META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs",
+        "export": "ACRESCIMOS_META95_PERSONAGEM_AJUSTE_2010",
+        "targets": [
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs",
+        "export": "TROCAS_META95_PERSONAGEM_AJUSTE_2010",
+        "targets": [
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-desenho-som-2110.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-paginas-ia-claras-2110.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+        "export": "PAGINAS_IA_CLARAS_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-95-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-bebe-que-fala-2010.mjs",
+          "scripts/test-checkout-clareza-1610.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-roteiro-curto-undo-2210.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-desenho-nota9-2110.mjs",
+          "scripts/test-ads-cena-95-plan-failed-2110.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-ads-cena-retomada-2110.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ads-cena-95-2110.mjs",
+        "export": "ADS_CENA_95_2110_ARQUIVOS",
+        "targets": [
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-kids-venda-2010.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-kids-venda-2010.mjs",
+        "export": "KIDS_VENDA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-ads-cena-2110.mjs",
+          "scripts/test-ads-cena-ajuste-2110.mjs",
+          "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+          "scripts/test-home-cards-claros-2010.mjs",
+          "scripts/test-meta95-personagem-ajuste-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs"
+        ]
+      }
+    ],
+    "scripts/test-roteiro-curto-undo-2210.mjs": [
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-ads-cena-2110.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-ads-cena-95-2110.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-ads-cena-ajuste-2110.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-bebe-que-fala-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-desenho-nota9-2110.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-kids-venda-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-mcp-studio-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-mcp-studio-ajuste-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-meta95-personagem-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-meta95-personagem-ajuste-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-verbatim-intocavel-2010.mjs"
+      }
+    ],
+    "scripts/test-trafego-undo-2310.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-trafego-2310.mjs",
+        "export": "TRAFEGO_2310_HUNKS",
+        "targets": [
+          "scripts/test-ads-escolha-publico-2410.mjs"
+        ]
+      }
+    ],
+    "scripts/test-ugc-ajustes-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+        "export": "UGC_AJUSTES_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-apresentador-olhos-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+        "export": "ACRESCIMOS_UGC_AJUSTES_2010",
+        "targets": [
+          "scripts/test-apresentador-olhos-1910.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-ugc-ajustes-2010.mjs",
+        "export": "TROCAS_UGC_AJUSTES_2010",
+        "targets": [
+          "scripts/test-apresentador-olhos-1910.mjs"
+        ]
+      }
+    ],
+    "scripts/test-verbatim-intocavel-2010.mjs": [
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-verbatim-intocavel-2010.mjs",
+        "export": "REANCORAS_VERBATIM_INTOCAVEL_2010",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-avatar-preso-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-verbatim-intocavel-2010.mjs",
+        "export": "ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010",
+        "targets": [
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-avatar-preso-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-verbatim-intocavel-2010.mjs",
+        "export": "TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs"
+        ]
+      },
+      {
+        "kind": "immutable_inventory",
+        "module": "scripts/test-support/desfaz-home-remodela-2010.mjs",
+        "export": "HOME_REMODELA_2010_ARQUIVOS",
+        "targets": [
+          "scripts/test-avatar-preso-2010.mjs",
+          "scripts/test-home-3-cards-1910.mjs",
+          "scripts/test-mcp-studio-2010.mjs",
+          "scripts/test-mcp-studio-ajuste-2010.mjs",
+          "scripts/test-menu-ugc-2010.mjs",
+          "scripts/test-meta95-personagem-2010.mjs",
+          "scripts/test-verbatim-intocavel-2010.mjs"
+        ]
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-meta95-personagem-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-avatar-preso-2010.mjs"
+      },
+      {
+        "kind": "direct_literal_input",
+        "target": "scripts/test-mcp-studio-2010.mjs"
+      }
+    ]
+  },
+  "loadedHelpers": 131,
+  "note": "Fresh AST scan of actual source: immutable inventory exports and literal source-read inputs; excludes comments, embedded full-code strings, later affiliate projection inventory and pinned metadata-only Git reads."
+}

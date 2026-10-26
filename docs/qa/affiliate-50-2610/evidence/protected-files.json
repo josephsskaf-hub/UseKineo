@@ -1,0 +1,32 @@
+{
+  "label": "FATO CONFIRMADO — TESTADO LOCALMENTE",
+  "base_sha": "46fa10e58fced6430e0a2ba7bb445bb8905bd2e7",
+  "final_source_sha": "b4de47939a5111aae002de56ce80d986efa6af66",
+  "files": [
+    {
+      "file": "app/api/stripe/webhook/route.ts",
+      "baseline_git_blob": "a995f8284e9a88f1d8f6c37b6033d72a604693a9",
+      "final_git_blob": "a995f8284e9a88f1d8f6c37b6033d72a604693a9",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateCommission.ts",
+      "baseline_git_blob": "2272a9878fabf84c6fd6401da09b6a1afc24af41",
+      "final_git_blob": "2272a9878fabf84c6fd6401da09b6a1afc24af41",
+      "identical": true
+    },
+    {
+      "file": "lib/affiliateLedger.ts",
+      "baseline_git_blob": "32d255bee42c57148ee4012b98242fc672a4182a",
+      "final_git_blob": "32d255bee42c57148ee4012b98242fc672a4182a",
+      "identical": true
+    },
+    {
+      "file": "lib/checkoutPricing.ts",
+      "baseline_git_blob": "cd3f8c8b35c132a56fbf6db8fa8591fe35b9f82e",
+      "final_git_blob": "cd3f8c8b35c132a56fbf6db8fa8591fe35b9f82e",
+      "identical": true
+    }
+  ],
+  "production_validation": false
+}
