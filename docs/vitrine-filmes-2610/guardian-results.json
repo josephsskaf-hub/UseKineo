@@ -1,0 +1,63 @@
+{
+  "task": "KINEO-VITRINE-FILMES-2610",
+  "classification": "FATO CONFIRMADO — TESTADO LOCALMENTE",
+  "recordedAt": "2026-10-26T20:22:10.000Z",
+  "base": "62213b008292f110117d1abbe20c157efdb55902",
+  "product": "f915e3b751166d4d72d0dd545ab6684747ca0bc2",
+  "guardianCommit": "a786d703bc73509d22443c74c9c653c1a23bbae8",
+  "behavior": {
+    "command": "node --max-old-space-size=512 scripts/test-vitrine-filmes-2610.mjs --mutants",
+    "checksPassed": 191,
+    "checksFailed": 0,
+    "result": "KINEO-VITRINE-FILMES-2610: 191 passed, 0 failed (real sources, offline).",
+    "scope": [
+      "explicit showcase consent distinct from legacy public links",
+      "owner authentication, same-origin mutation and compare-and-set",
+      "allowlisted public DTO, internal account badge and missing-profile fail-closed",
+      "durable media, canonical slugs and truthful unknown measurements",
+      "real localized SSR, metadata, VideoObject and script escaping",
+      "consent hook mount performs GET only; owner click performs POST",
+      "per-film confirmed download gate and revoked /v privacy cache",
+      "live sitemap projection and scheduled IndexNow exercised with simulated I/O"
+    ]
+  },
+  "mutants": {
+    "method": "Each mutation was written into temporary source files. A subprocess executed the current guardian against those files. A nonzero exit caused by AssertionError was required; loader failures and timeouts did not count as kills.",
+    "killed": 17,
+    "survived": 0,
+    "names": [
+      "legacy-consent-is-not-showcase",
+      "incomplete-video",
+      "temporary-or-untrusted-playback",
+      "internal-film-without-label",
+      "identity-leak",
+      "missing-db-consent-filter",
+      "write-owner-bypass",
+      "cross-origin-consent",
+      "revocation-retains-public-page",
+      "publish-on-mount-default",
+      "missing-film-soft-200",
+      "missing-video-schema",
+      "sitemap-cached-after-revocation",
+      "indexnow-forgets-film-feed",
+      "download-from-another-film",
+      "revoked-v-page-cached",
+      "revoked-preview-cached"
+    ],
+    "result": "KINEO-VITRINE-FILMES-2610-MUTANTS: 17 killed, 0 survived."
+  },
+  "exactUndo": {
+    "command": "node scripts/test-vitrine-filmes-undo-2610.mjs",
+    "checksPassed": 249,
+    "checksFailed": 0,
+    "productFiles": 24,
+    "manifest": "scripts/test-support/desfaz-vitrine-filmes-2610-hunks.json",
+    "method": "Modified files return exactly to immutable base, preserving unrelated prefix/suffix bytes, mixed EOL, CRLF and Windows paths. Corrupted or repeated task hunks are rejected. Exact new files project to absence; a later-modified new file is retained by refusing deletion.",
+    "result": "KINEO-VITRINE-FILMES-2610-UNDO: 249 passed, 0 failed (exact, in memory)."
+  },
+  "limits": [
+    "No env files, live credentials, live database, real network submission or paid render were used.",
+    "This receipt covers the focused guardian and exact undo; the complete historical suite and tsc have separate receipts.",
+    "Local simulated execution does not prove deployment, actual indexing or commercial conversion."
+  ]
+}
