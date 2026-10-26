@@ -57,6 +57,7 @@ export function ehIdeiaSolta(args: { prompt: string; scriptMode?: unknown }): bo
   if (!prompt.trim()) return false
   const parsed = parseUserScript(prompt)
   const userSaysVerbatim = (typeof args.scriptMode === 'string' ? args.scriptMode : '').toLowerCase() === 'verbatim'
+  if (userSaysVerbatim) return false // PEDIDO-FIEL-2610 — a brief requires review at intake, never silent rewriting.
   const brief = userSaysVerbatim && !parsed.hasMarkers && looksLikeBrief(prompt)
   const verbatim = (parsed.hasMarkers && parsed.segments.length > 0) || (userSaysVerbatim && !brief)
   return !verbatim

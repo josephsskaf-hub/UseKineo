@@ -97,7 +97,7 @@ const RE_SEM_BANCO = /\b(no\s+stock\s+footage|do\s*not\s+use\s+stock|all\s+visua
 // o caminho da série já a trata. Sem essa exclusão, 43 filmes legítimos da
 // porta de continuação entrariam na coorte e sujariam toda medição.
 const RE_SEMENTE_DA_CASA = /^create the next episode in the same short series\b/i
-const RE_COMECO_DE_ORDEM = /^(create|make|generate|write|produce|give me|i want|i need|please|absolutely|sure|certainly|of course|below is|okay|ok\b)/i
+const RE_COMECO_DE_ORDEM = /^(?:create|make|generate|write|produce|give me|i want|i need|please|absolutely|sure|certainly|of course|below is|okay|ok|crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i // PEDIDO-FIEL-2610
 const RE_ROTULO = /^[A-Z][A-Z /&-]{2,}:/
 const RE_MARKDOWN = /(\*\*|^#{1,6}\s|^---)/
 
@@ -189,15 +189,22 @@ export function readPastedDirectives(raw: string | null | undefined, duracoes: r
  * A frase honesta para a tela. Devolve null quando não há NADA comprovado a
  * dizer — silêncio é melhor que aviso genérico, e `unknown` nunca vira recusa.
  */
-export function fraseDoQueNaoDamosConta(leitura: PastedDirectivesReading): string | null {
+export function fraseDoQueNaoDamosConta(leitura: PastedDirectivesReading, language = 'en'): string | null {
+  const locale = language.toLowerCase().split(/[-_]/)[0] // PEDIDO-FIEL-2610 — caller chooses the interface language.
   const partes = leitura.unsupported.map((d) => {
     if (d.kind === 'duration') {
       const pedido = d.askedSeconds ?? 0
+      if (locale === 'pt') return `${pedido >= 120 ? `${Math.round(pedido / 60)} minutos` : `${pedido} segundos`} (a maior duração aqui é 90 segundos)`
+      if (locale === 'es') return `${pedido >= 120 ? `${Math.round(pedido / 60)} minutos` : `${pedido} segundos`} (la duración máxima aquí es de 90 segundos)`
       const label = pedido >= 120 ? `${Math.round(pedido / 60)} minutes` : `${pedido} seconds`
       return `${label} (the longest film here is 90 seconds)`
     }
+    if (locale === 'pt') return `${d.raw} (revise o formato selecionado antes de continuar)`
+    if (locale === 'es') return `${d.raw} (revisa el formato seleccionado antes de continuar)`
     return `${d.raw} (every film here is vertical 9:16)`
   })
   if (!partes.length) return null
+  if (locale === 'pt') return `Seu texto pede ${partes.join(' e ')}.`
+  if (locale === 'es') return `Tu texto pide ${partes.join(' y ')}.`
   return `Your text asks for ${partes.join(' and ')}.`
 }

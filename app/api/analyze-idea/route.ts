@@ -1,5 +1,6 @@
 import { ESTRELA_REAL_PEOPLE_EXCEPTION, regraDePessoasReais } from '@/lib/estrelaDoFilme' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29
 import { NextRequest, NextResponse } from 'next/server'
+import { reviewRequestFidelity } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -658,6 +659,8 @@ export async function POST(req: NextRequest) {
     // exceção estreita da regra REAL PEOPLE para o protagonista sem nome; pessoa real nomeada segue a regra de sempre.
     const estrelaNoPedido = body.estrela === true
     const promptRaw = (body.prompt ?? '').trim()
+    const requestReview = reviewRequestFidelity({ prompt: promptRaw, scriptMode: body.scriptMode, duration: Number(body.duration) || 35, language: body.language }) // PEDIDO-FIEL-2610 — before moderation or any writer call.
+    if (requestReview) return NextResponse.json(requestReview, { status: 422 })
     if (!promptRaw) {
       // KINEO-PRIMEIRA-PORTA-2026-09-01 — a unica recusa de porta que um
       // auto-start dispara sozinho. Medido em 31/08: 4 cliques identicos em
