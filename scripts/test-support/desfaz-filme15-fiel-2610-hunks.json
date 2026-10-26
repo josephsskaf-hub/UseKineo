@@ -101,6 +101,20 @@
      "after": "  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', (depois.includes('transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)') || depois.includes('transcreverNoIdiomaDoFilme(audioBuffer, scaledScript, language)') /* reancorado KINEO-FILME15-FIEL-2610 — mesmo buffer, agora com o idioma do filme */) && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)')) // KINEO-META95-ESCRITA-2010 — reancorado: o mesmo buffer corrigido, agora pelo Whisper na escrita do roteiro"
     }
    ]
+  },
+  "scripts/test-support/desfaz-meta95-escrita-2010.mjs": {
+   "beforeSha256": "69a1c07ea83f98207f5ed51a9bc04f0e16a37c13e2d9360d26f236e28c56184c",
+   "afterSha256": "43cb5969cff358f7b38a796e967a96f4aa51f360e519ec1e0f18f872ce4dbe74",
+   "hunks": [
+    {
+     "before": "// O guardião scripts/test-meta95-escrita-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_ESCRITA_2010_BASE).\nimport { readFileSync } from 'node:fs'",
+     "after": "// O guardião scripts/test-meta95-escrita-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_ESCRITA_2010_BASE).\nimport { semFilme15Fiel2610 } from './desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-FIEL-2610\nimport { readFileSync } from 'node:fs'"
+    },
+    {
+     "before": "export function semMeta95Escrita2010(texto, p) {\n  texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro (texto sem a marca passa igual)",
+     "after": "export function semMeta95Escrita2010(texto, p) {\n  texto = semFilme15Fiel2610(texto, p) // KINEO-FILME15-FIEL-2610 — a camada mais nova (re-âncora do guardião do Kling) sai primeiro\n  texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro (texto sem a marca passa igual)"
+    }
+   ]
   }
  }
 }
