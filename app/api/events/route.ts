@@ -20,6 +20,10 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // KINEO-FILME15-PERFEITO-2610 — quality facts and the signed delivery lock are server-owned.
+  'free15_delivery_gate',
+  'free15_gate_failed',
+  'free15_identity_anchor',
   // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.
   'ads_escolha_plan',
   'ads_escolha_stills_ready',

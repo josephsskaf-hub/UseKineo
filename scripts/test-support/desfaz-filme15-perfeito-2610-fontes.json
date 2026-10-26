@@ -52,6 +52,17 @@
         }
       ]
     },
+    "app/api/events/route.ts": {
+      "beforeSha256": "460f1a31a985bc61f7752b0acb149391b97a22892993d5466309a3409703049a",
+      "afterSha256": "d43d7813c039fbc84b7f53fc5ff2e90698c3c6b4495aaea663d85281319a18fe",
+      "hunksSha256": "8918eb08a5491b834c38180abb5473c859ab70f440de6f90c073ce5ae8d8dd0d",
+      "hunks": [
+        {
+          "before": "// duas cópias da mesma regra divergem e a que ninguém audita passa a mentir\n// (memória `a-regra-vive-em-varios-arquivos`).\nimport { clientIp, hashIp, isLikelyBot } from '@/lib/requestIdentity'\nimport { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'\n\nexport const dynamic = 'force-dynamic'\n\nconst SERVER_ONLY_EVENTS = new Set([\n  // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.\n  'ads_escolha_plan',\n  'ads_escolha_stills_ready',\n  'ads_escolha_chosen',\n  'ads_escolha_render_started',\n  'ads_escolha_delivered',\n  'ads_escolha_failed',\n  'ads_escolha_ready_email_sent',\n",
+          "after": "// duas cópias da mesma regra divergem e a que ninguém audita passa a mentir\n// (memória `a-regra-vive-em-varios-arquivos`).\nimport { clientIp, hashIp, isLikelyBot } from '@/lib/requestIdentity'\nimport { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'\n\nexport const dynamic = 'force-dynamic'\n\nconst SERVER_ONLY_EVENTS = new Set([\n  // KINEO-FILME15-PERFEITO-2610 — quality facts and the signed delivery lock are server-owned.\n  'free15_delivery_gate',\n  'free15_gate_failed',\n  'free15_identity_anchor',\n  // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.\n  'ads_escolha_plan',\n  'ads_escolha_stills_ready',\n  'ads_escolha_chosen',\n  'ads_escolha_render_started',\n  'ads_escolha_delivered',\n  'ads_escolha_failed',\n  'ads_escolha_ready_email_sent',\n"
+        }
+      ]
+    },
     "app/api/generate-video-cinematic/route.ts": {
       "beforeSha256": "1052add039840c0e2c0924d004d03a885e76e572d034e566b2736fd2152d1d7d",
       "afterSha256": "95928449c223a91a1d15ddca1938ff789b3746ae47bb2f2ba28925d16d2b7e33",
@@ -257,11 +268,11 @@
     "lib/free15CanonicalCaptions.ts": "e21d3983edf1204aaf433fe0b4f45819cdcf2d03917d7909c953e155848543df",
     "lib/free15Gate.ts": "94f5aaaed267e461f087d7603b63484ffa4ec9955133a023e008a8d410994e1e",
     "lib/free15GateServer.ts": "71b55087a0a3c6ca2025269c8c372d5b60beeeddc58b34c409a271eebda02583",
-    "scripts/test-filme15-gate-integration-2610.mjs": "57d427303889a9756615473fb34f816ce588fe2782130529eaef3a1b5c6782af",
+    "scripts/test-filme15-gate-integration-2610.mjs": "9fded1dcb3d66b6a602904b6392ae0cbb834ed1d976d2890267773fc42dd4b85",
     "scripts/test-filme15-legenda-canonica-2610.mjs": "2fbcd77c3b0d7b433ac15f8d9a394605420f37db0e36932c6df7e0fafcc3058d",
     "scripts/test-filme15-legenda-inteira-2610.mjs": "8afc0c4b8c0fce9ecf09521fdcf8568e8344ad01477f7ba1f949c80133b652b0",
     "scripts/test-filme15-perfeito-2610.mjs": "69375ad77ecced66d3043418d317ce1f1eb30d3f5119c98678a428c0c00d1569",
-    "scripts/test-filme15-perfeito-undo-2610.mjs": "7a6f4232dc329fae159be37b4d4dbd5df8df9b1796d6ff9a9b7c223bee1da9c9",
+    "scripts/test-filme15-perfeito-undo-2610.mjs": "ab5bd3fbe30c74a03a4e60456a102da9248ca101847769d9e3aa1902185d851e",
     "scripts/test-filme15-portao-fonte-2610.mjs": "db1180fc021c41044a50ad3b46b22d958da781ed46b4a9f4bc1a94e70ffe0c54",
     "scripts/test-filme15-rosto-duracao-2610.mjs": "5cb818960a26b75e7c0be1b412fd429d8448040cabcf416b70a49b455656a04c",
     "scripts/test-support/desfaz-filme15-fiel-2610.mjs": "3057afcc38f4fa748fc42f7e416cac42d07a35a8485e78e8ad9a6bb7cd506479",

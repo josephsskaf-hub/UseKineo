@@ -144,4 +144,29 @@ await check('gate precedes status asset persistence/settlement and compose inten
   assert.match(statusCode, /creditsDeducted: free15GateFailure \? false : creditsDeducted/)
   assert.match(statusCode, /free15_gate_failed: true/)
 })
+await check('browser cannot mint delivery locks, gate failures or identity-cost evidence', async () => {
+  const names = ['free15_delivery_gate', 'free15_gate_failed', 'free15_identity_anchor']
+  const makeSink = removed => {
+    let attempts = 0
+    const unsafe = () => { attempts++; throw Error('Must not reach storage/auth') }
+    const load = createOfflineLoader({ env: { VERCEL_ENV: 'production' }, mocks: {
+      'next/server': { NextResponse: { json: value => value } },
+      '@/lib/supabase/server': { createClient: unsafe },
+      '@supabase/supabase-js': { createClient: unsafe },
+      '@/lib/requestIdentity': { clientIp: unsafe, hashIp: unsafe, isLikelyBot: unsafe },
+      '@/lib/growth/businessAdsAttribution': { businessAdsStamp: () => null },
+    }, source: (file, text) => removed && file === 'app/api/events/route.ts' ? text.replace(`  '${removed}',\n`, '') : text })
+    const api = load('app/api/events/route.ts')
+    return { attempts: () => attempts, post: name => api.POST({ nextUrl: { hostname: 'www.usekineo.com' }, headers: { get: () => null }, json: async () => ({ name, metadata: { credits_refunded: 999 } }) }) }
+  }
+  const sink = makeSink(null)
+  for (const name of names) assert.deepEqual(clone(await sink.post(name)), { ok: true, ignored: true, stored: false })
+  assert.equal(sink.attempts(), 0, 'forged gate facts never reach storage/auth')
+  await sink.post('ordinary_browser_event'); assert.ok(sink.attempts() > 0, 'ordinary browser sink remains active')
+  for (const name of names) {
+    const mutant = makeSink(name)
+    await mutant.post(name)
+    assert.ok(mutant.attempts() > 0, 'real removed-protection mutant is detected: ' + name)
+  }
+})
 console.log(JSON.stringify({ status: 'PASS', checks, adapters: 'real', statusSlice: 'real', paidRenders: 0, realRefunds: 0, environmentFiles: 0, network: 0 }))
