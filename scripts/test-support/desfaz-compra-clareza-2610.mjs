@@ -1,5 +1,6 @@
 // COMPRA-CLAREZA-2610 — exact later UI layer, only for historical guardians.
 // Frozen against 563d7f30064cb0e7ee392490d0e9e48e95c4e1bc. Does not replace current behavioral checks.
+import { semVideoFiel2610 } from './desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: preserve this task's original hunks and hashes.
 export const COMPRA_CLAREZA_MANIFEST = {
   "base": "563d7f30064cb0e7ee392490d0e9e48e95c4e1bc",
   "scope": {
@@ -175,6 +176,7 @@ export const COMPRA_CLAREZA_HUNKS = {
   ]
 }
 export function semCompraClareza2610(source, file) {
+  source = semVideoFiel2610(source, file)
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
   const hunks = COMPRA_CLAREZA_HUNKS[relative]
   if (typeof source !== 'string' || !hunks || !source.includes('COMPRA-CLAREZA-2610')) return source

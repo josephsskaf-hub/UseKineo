@@ -200,7 +200,9 @@ async function provas(L) {
 
   await tenta('U8', () => {
     const P = L.painel
-    const ev = (name, key, md) => ({ name, created_at: '2026-10-19T20:00:00Z', session_id: key, user_id: 'u', metadata: { delivered_at: '2026-10-19T19:00:00Z', ...md } })
+    // VIDEO-FIEL-2610: execute the current panel, with real mandatory coverage in
+    // positive fixtures; historical-only scores are separately asserted below.
+    const ev = (name, key, md) => ({ name, created_at: '2026-10-19T20:00:00Z', session_id: key, user_id: 'u', metadata: { video_id: key, generation_id: 'fixture-generation-' + key, delivered_at: '2026-10-19T19:00:00Z', evidence_validation: '2026-10-26', evidence_status: 'complete', evidence_reasons: [], coverage: { expected_frames: name === 'ugc_score' ? 12 : 8, judged_frames: name === 'ugc_score' ? 12 : 8, unique_frames: name === 'ugc_score' ? 12 : 8, expected_readings: name === 'ugc_score' ? 1 : 2, valid_readings: name === 'ugc_score' ? 1 : 2, readings_identical: false, independent_readings: false, audio_evaluated: false }, ...md } })
     const notas = P.juntarNotasRegua([
       ev('pixel_score', 'u1', { version: 'regua95_pixel_v1', score: 96, product: 'ugc', engine: 'ads_v2', video_url: 'https://x/u1.mp4' }),
       ev('ugc_score', 'u1', { version: 'regua95_ugc_v1', score: 75, product: 'ugc', engine: 'ads_v2', caps: ['olhos fechados em 2 quadros seguidos do gancho (0–3 s) (teto 75)'], motivos: ['0,5 s gancho: olhos fechados'] }),
@@ -209,13 +211,15 @@ async function provas(L) {
       ev('ugc_score', 'u3', { version: 'regua95_ugc_v1', score: 100, product: 'ugc', engine: 'avatar' }),
     ], '2026-10-19T00:00:00Z')
     const u1 = notas.find((n) => n.key === 'u1'), u3 = notas.find((n) => n.key === 'u3')
-    const okNotas = notas.length === 2 && u1.ugc === 75 && u1.pixel === 96 && u1.nota === 75 && u1.ugc_motivos[0] === '0,5 s gancho: olhos fechados' && u3.nota === 90
+    const okNotas = notas.length === 2 && u1.ugc === 75 && u1.pixel === 96 && u1.nota === 75 && u1.quality.state === 'complete' && u1.ugc_motivos[0] === '0,5 s gancho: olhos fechados' && u3.nota === 90
+    const historical = P.juntarNotasRegua([ev('pixel_score', 'old', { version: 'regua95_pixel_v1', score: 96, product: 'ugc', evidence_validation: undefined }), ev('ugc_score', 'old', { version: 'regua95_ugc_v1', score: 75, product: 'ugc', evidence_validation: undefined })], '2026-10-19T00:00:00Z')[0]
+    const okHistorical = historical.nota === null && historical.nota_historica === 75 && historical.quality.state === 'historical'
     const linha = P.placarRegua(notas, (n) => n.product)[0]
     const okPlacar = linha.ugc.n === 2 && linha.ugc.media === 88 && linha.nota.media === 83
     const pg = rd(F.pagina)
-    const okTela = pg.includes('<CelulaPlacar l={l.ugc} />') && pg.includes('>juiz UGC</th>') && pg.includes('data-kineo="regua95-ugc-motivos"') && pg.includes('colSpan={6}')
+    const okTela = pg.includes('<CelulaPlacar l={l.ugc} />') && pg.includes('>apresentador</th>') && pg.includes('data-kineo="regua95-ugc-motivos"') && pg.includes('colSpan={7}') && pg.includes('l.incompletas')
     const okLeitura = /\.in\('name', \[COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT/.test(rd(F.painel))
-    return okNotas && okPlacar && okTela && okLeitura
+    return okNotas && okHistorical && okPlacar && okTela && okLeitura
   })
   return r
 }
@@ -241,7 +245,7 @@ const MUTANTES = [
   ['M4 duplicação ignorada', 'U3', F.ugc, 'if (dup >= 1) cap(60,', 'if (dup >= 99) cap(60,'],
   ['M5 rótulo diferente sem foto conta', 'U3', F.ugc, "label: !ctx.hasReference && label === 'different' ? 'na' : label,", 'label,'],
   ['M6 legenda partida volta a pesar no UGC', 'U5', F.pixel, "if (ctx.product !== 'ugc' && count('caption_broken') >= 2)", "if (count('caption_broken') >= 2)"],
-  ['M7 painel ignora o juiz UGC na nota', 'U8', F.painel, 'n.nota = notaRegua(n.coerencia, notaRegua(n.pixel, n.ugc))', 'n.nota = notaRegua(n.coerencia, n.pixel)'],
+  ['M7 painel ignora o juiz UGC na nota', 'U8', F.painel, 'n.nota = n.quality.score\n    if (!conflicting', 'n.nota = n.pixel\n    if (!conflicting'], // VIDEO-FIEL-2610: final assignment after identity validation, not the intermediate accumulator.
   ['M8 juiz com detail high', 'U6', F.ugc, "messages: buildUgcMessages(ctx, frames, opts?.detail ?? 'low')", "messages: buildUgcMessages(ctx, frames, opts?.detail ?? 'high')"],
   ['M9 painel aceita versão velha do juiz UGC', 'U8', F.painel, 'const ehUgc = e.name === UGC_SCORE_EVENT && m.version === UGC_SCORE_VERSION', 'const ehUgc = e.name === UGC_SCORE_EVENT'],
   ['M11 JSON vazio volta a receber 100', 'U9', F.ugc, "score: evidence.evidence_status === 'complete' ? score : null,", 'score,'],

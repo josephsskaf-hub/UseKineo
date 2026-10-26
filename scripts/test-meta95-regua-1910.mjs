@@ -216,7 +216,9 @@ async function provas(L) {
   // ── painel ──
   await tenta('R4', () => {
     const P = L.painel
-    const ev = (name, key, created, md) => ({ name, created_at: created, session_id: key, user_id: 'u', metadata: md })
+    // VIDEO-FIEL-2610: historical values alone are not validated evidence. Keep the
+    // current panel raw and supply the mandatory coverage for these positive cases.
+    const ev = (name, key, created, md) => ({ name, created_at: created, session_id: key, user_id: 'u', metadata: { video_id: key, generation_id: 'fixture-generation-' + key, evidence_validation: '2026-10-26', evidence_status: 'complete', evidence_reasons: [], coverage: { expected_frames: name === 'coherence_v2' ? null : 8, judged_frames: name === 'coherence_v2' ? null : 8, unique_frames: name === 'coherence_v2' ? null : 8, expected_readings: 2, valid_readings: 2, readings_identical: false, independent_readings: false, audio_evaluated: false }, ...md } })
     const eventos = [
       ev('coherence_v2', 'v1', '2026-10-19T12:00:00Z', { version: 'regua95_coerencia_v2', score: 80, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z' }),
       ev('coherence_v2', 'v1', '2026-10-19T13:00:00Z', { version: 'regua95_coerencia_v2', score: 97, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z' }),
@@ -227,7 +229,9 @@ async function provas(L) {
     ]
     const notas = P.juntarNotasRegua(eventos, '2026-10-19T00:00:00Z')
     const v1 = notas.find((n) => n.key === 'v1')
-    const okNotas = notas.length === 2 && v1.coerencia === 97 && v1.pixel === 96 && v1.nota === 96 && v1.video_url === 'https://x/v1.mp4' && notas.find((n) => n.key === 'a1').nota === 70
+    const okNotas = notas.length === 2 && v1.coerencia === 97 && v1.pixel === 96 && v1.nota === 96 && v1.nota_historica === 96 && v1.quality.state === 'complete' && v1.video_url === 'https://x/v1.mp4' && notas.find((n) => n.key === 'a1').nota === 70
+    const historical = P.juntarNotasRegua(eventos.map((e) => ({ ...e, metadata: { ...e.metadata, evidence_validation: undefined } })), '2026-10-19T00:00:00Z')
+    const okHistorical = historical.every((n) => n.nota === null && n.quality.state === 'historical') && historical.find((n) => n.key === 'v1').nota_historica === 96
     const placar = P.placarRegua(notas, (n) => n.product)
     const filme = placar.find((l) => l.rotulo === 'filme'), ads = placar.find((l) => l.rotulo === 'ads')
     const okPlacar = filme.nota.pct95 === 100 && filme.nota.media === 96 && ads.nota.pct95 === 0 && ads.coerencia.n === 0 && ads.coerencia.pct95 === null
@@ -235,7 +239,7 @@ async function provas(L) {
     const okTela = /lerRegua95\(admin, \{ desde: desdeIso, incluirCasa \}, readAll\)/.test(pg) && pg.includes('data-kineo={dataKineo}') && pg.includes('dataKineo="regua95-por-produto"') && pg.includes('dataKineo="regua95-por-motor"') && /maxCompute: 0/.test(pg)
     const okPessoa = /\.in\('name', \[COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT\]\)\.order\('created_at', \{ ascending: false \}\)\.limit\(NOTAS_MAX \* 2\)/.test(pe) && /regua95: reguaPorChave\.get\(v\.id\) \?\? null/.test(pe) && /regua95: reguaPorChave\.get\(c\.id\) \?\? null/.test(pe) && pt.includes('data-kineo="nota-regua95"')
     const v5 = /export const FAST_COHERENCE_VERSION = 'k1_coerencia_v5_honesto'/.test(rd(F.v5)) && /a scene list made ONLY of generated footage can score at most 90/.test(rd(F.v5))
-    return okNotas && okPlacar && okTela && okPessoa && v5
+    return okNotas && okHistorical && okPlacar && okTela && okPessoa && v5
   })
   // ── KINEO-META95-REGUA-AJUSTE-1910 — o 1º giro pós-deploy não deixou rastro nenhum ──
   await tenta('A1', async () => {

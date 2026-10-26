@@ -5,6 +5,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semVideoFiel2610 } from '../../scripts/test-support/desfaz-video-fiel-2610.mjs' // VIDEO-FIEL-2610: before frozen source comparison, never in current behavior tests.
 import { COMPRA_CLAREZA_HUNKS, COMPRA_CLAREZA_MANIFEST, semCompraClareza2610 } from '../../scripts/test-support/desfaz-compra-clareza-2610.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -14,7 +15,7 @@ let assertions = 0, mutants = 0
 function check(run) { run(); assertions++ }
 assert.deepEqual(Object.keys(COMPRA_CLAREZA_HUNKS).sort(), ['.github/workflows/guardiao.yml', 'app/(dashboard)/generate/GenerateClient.tsx', 'app/(dashboard)/studio/StudioClient.tsx', 'scripts/test-support/desfaz-roteiro-curto-2210.mjs', 'scripts/test-support/desfaz-trending-inventario-2510.mjs', 'scripts/test-roteiro-curto-undo-2210.mjs'].sort())
 for (const [file, hunks] of Object.entries(COMPRA_CLAREZA_HUNKS)) {
-  const candidate = flat(fs.readFileSync(path.join(ROOT, file), 'utf8'))
+  const candidate = flat(semVideoFiel2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file))
   const base = flat(execFileSync('git', ['show', `${COMPRA_CLAREZA_MANIFEST.base}:${file}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }))
   const meta = COMPRA_CLAREZA_MANIFEST.scope[file]
   check(() => assert.equal(sha(base), meta.beforeSha256))
