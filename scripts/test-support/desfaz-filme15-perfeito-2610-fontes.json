@@ -302,13 +302,15 @@
     }
   },
   "addedSources": {
-    "docs/filme15-perfeito-2610/README.md": "dc711505fd91c0a496150fce883eb217de1f610fbe9ec63fa80b6eb77008d7ab",
+    "docs/filme15-perfeito-2610/README.md": "a9c7c5a9f83e80cf4f2140bb0126ac4933938ad1a19f779d6fc91b3bb1b54866",
     "docs/filme15-perfeito-2610/caption-audit.json": "00e2bbdef86a502111c451731bae496fcb6bedc6c6dc769e1868691bac4aea0b",
     "docs/filme15-perfeito-2610/caption-unit-rules.md": "f9fea28dcebadf6e507624c1bc23cce091930fbafd034def4960f391f1e08918",
     "docs/filme15-perfeito-2610/caption-visual-audit.json": "c5ddcf63065953de04af1e826094c83d12acf95b719d94ae78cb9b773ce1df7e",
     "docs/filme15-perfeito-2610/duration-audit.json": "b199669dc6f7bfabf2e7c0dca4f87ad2d91f456b41ca19f2d0326651354cd741",
     "docs/filme15-perfeito-2610/freeze-undo.mjs": "5c21472466a3e3c682cdfda70fead82ab8d6f72a67e3e7d6b06496d919eeb920",
     "docs/filme15-perfeito-2610/offline-guard.cjs": "6c526c046285b294193012359dce823dde08bf7955b962b18c2770a0afb53d77",
+    "docs/filme15-perfeito-2610/qa-results.json": "34fd6799d677cc297e5873daa6f78cfdc1782c26ec09b983ba249874a20921dc",
+    "docs/filme15-perfeito-2610/qa-summary.json": "569e475010a6ca6e3b5b4b763da2945c57dac464faa07559ac9f602d8f6d931c",
     "docs/filme15-perfeito-2610/run-offline-tests.mjs": "cf5dc1f2893417198693e4512801e141e1a78a9f41d2690a4ee38525fff86137",
     "docs/filme15-perfeito-2610/text-audit.json": "6b2b3fb1067d92e67f80771d8488a5498189ecf395389f9f12f9a4b9ec200e59",
     "lib/cinematic/filme15Perfeito.ts": "3aa53809b1818554e62d67fc14394e1a94638b3d5ccc5ff16ada1a0e6c16f5fb",
