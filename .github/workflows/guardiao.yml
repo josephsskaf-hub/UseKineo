@@ -72,6 +72,10 @@ jobs:
           node scripts/test-meta95-regua-1910.mjs
           node scripts/test-meta95-ugc-1910.mjs
           node docs/video-fiel-2610/test-legacy-layer.mjs
+      - name: Legendas do primeiro filme — evidência medida e histórico exato
+        run: | # CAPTION-CANONICO-2610: actual raw ASR evidence; no providers or credentials.
+          node docs/free15-quality-v2/caption-test.mjs
+          node docs/free15-quality-v2/caption-legacy-test.mjs
       - name: Compra — capacidade real, ideia própria e revisão sem gerar
         run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
           node docs/compra-clareza-2610/test-recurring-plan-value.mjs

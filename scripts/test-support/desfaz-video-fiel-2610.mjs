@@ -2,6 +2,7 @@
 // Current behavior tests must never import this projection. No product module uses it.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semCaptionCanonico2610 } from './desfaz-caption-canonico-2610.mjs'
 
 export const VIDEO_FIEL_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-video-fiel-2610-fontes.json', import.meta.url), 'utf8'))
 export const VIDEO_FIEL_BASE = VIDEO_FIEL_MANIFEST.base
@@ -34,5 +35,5 @@ function project(source, file, direction) {
   return source.includes('\r\n') ? result.replace(/\n/g, '\r\n') : result
 }
 
-export const semVideoFiel2610 = (source, file) => project(source, file, 'reverse')
+export const semVideoFiel2610 = (source, file) => project(semCaptionCanonico2610(source, file), file, 'reverse')
 export const comVideoFiel2610 = (source, file) => project(source, file, 'forward')

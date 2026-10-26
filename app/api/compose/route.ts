@@ -47,6 +47,7 @@ import {
   storeCachedVoiceover,
   predictTtsSecondsFromWords,
   type CachedVoiceoverEntry,
+  type ComposeInputs,
   type HollywoodClipInput,
   type HollywoodNarrationBlock,
   type WhisperWord,
@@ -65,6 +66,7 @@ import { esperarLyria, LYRIA_WAIT_BUDGET_MS } from '@/lib/lyriaMusic' // KINEO-F
 import { COMPOSE_STAGE_TIMING_EVENT, cronometroDaMontagem } from '@/lib/tempoDaMontagem' // KINEO-FILME-RAPIDO-1710 · tempo — tempo por etapa da montagem (linha própria)
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
+import { assessOwnTtsCaptionEvidence, selectOwnTtsCaptionSource } from '@/lib/captionEvidenceGuard'
 import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)
 import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
@@ -3346,6 +3348,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // FREE15-CAPTION-2610: compare raw ASR before spelling repair; cache hits too.
+    // Founder approved C's voice/images after listening: mismatch is a caption fallback,
+    // NOT a rejected film. Missing evidence stays unverified; never overwrite the ASR.
+    const captionEvidence = assessOwnTtsCaptionEvidence({
+      quality, duration, ownTts: !avatarMode && !hasUserVoice && !isServiceFinish,
+      language, script: scaledScript, words: whisperWords,
+    })
+    if (captionEvidence.status !== 'not_applicable') console.log('[compose-caption-evidence]', captionEvidence)
+
     // Phase 5 — Detect persona for response metadata (observability + future UI).
     const detectedPersonaId: string | undefined = vertical
       ? selectPersonaForScript(scaledScript, vertical, narrationTier, language).id
@@ -3464,9 +3475,10 @@ export async function POST(req: NextRequest) {
       isFreePlanCinematic ||
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     let source: Record<string, unknown>
+    let composeInputs: ComposeInputs
     try {
       setActiveCaptionFont(language) // KINEO-IDIOMAS-15
-      source = buildCreatomateSource({
+      composeInputs = {
         clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
         clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, // KINEO-KLING25-PLANOS-5S-2026-09-28 — plano de 5 s nunca ocupa mais de 5 s
         // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa
@@ -3512,7 +3524,8 @@ export async function POST(req: NextRequest) {
         endCard:
           withEndCard ||
           FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase()),
-      })
+      }
+      source = buildCreatomateSource(composeInputs)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[compose] source build failed:', msg)
@@ -3525,6 +3538,17 @@ export async function POST(req: NextRequest) {
     }
     const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality, duration, aspect: aspectRequested, avatar: avatarMode, studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-FILMES-F1-F4-1910 — só Seedance 1.5 de 15 s em 9:16; fase pública (FACELESS15_PUBLIC) ou pedida por conta interna (formatFlags); cliente que manda o campo é ignorado
     const faceless15Relato = aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
+    // FREE15-CAPTION-TEXT-2610: rebuild only caption text with measured audio duration.
+    // Preserve the original assembled film, including ASR-guided cuts, music and voice.
+    const captionSelection = selectOwnTtsCaptionSource({
+      source, compose: composeInputs, evidence: captionEvidence, build: buildCreatomateSource,
+      decorate: canonical => {
+        const relato = aplicarFaceless15(canonical, faceless15, { whisperWords: null, clipSeconds: composeInputs.clipSeconds, font: captionFontFor(language) })
+        if (relato.f1) faceless15Relato.f1 = relato.f1
+      },
+    })
+    source = captionSelection.source
+    if (captionSelection.alignment) console.log('[compose-caption-alignment]', captionSelection.alignment)
     if (faceless15.ativo) console.log(`[compose] KINEO-FILMES-F1-F4-1910 fases=${faceless15.fases.join(',')} ${JSON.stringify(faceless15Relato)}`) // KINEO-FILMES-F1-F4-1910
     // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
     withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
@@ -3573,7 +3597,7 @@ export async function POST(req: NextRequest) {
       tempo.inicio('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
       renderId = await submitCreatomateOnce(source, submissionKey)
       tempo.fim('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
-      void writeServerEvent({ name: COMPOSE_STAGE_TIMING_EVENT, userId: authenticatedUserId, path: '/api/compose', metadata: tempo.metadados({ generation_id: generationId, render_id: renderId, quality, family: 'classic', service: isServiceFinish, audio_do_clique: audioDoClique.relato }) }) // KINEO-FILME-RAPIDO-1710 · tempo
+      void writeServerEvent({ name: COMPOSE_STAGE_TIMING_EVENT, userId: authenticatedUserId, path: '/api/compose', metadata: tempo.metadados({ generation_id: generationId, render_id: renderId, quality, family: 'classic', service: isServiceFinish, audio_do_clique: audioDoClique.relato, caption_alignment: captionSelection.alignment }) }) // KINEO-FILME-RAPIDO-1710 · tempo
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[compose] Creatomate submit failed:', msg)
@@ -3724,6 +3748,7 @@ export async function POST(req: NextRequest) {
       duration,
       voiceover_url: voiceoverUrl,
       persona_id: detectedPersonaId,
+      ...(captionSelection.alignment ? { caption_alignment: captionSelection.alignment } : {}),
       // KINEO-TRIAL-WATERMARK-2026-09-07 — a tela para de adivinhar.
       watermark: watermarkApplied,
       // KINEO-CLAMP-FALADO-2026-08-28 — presente = o free cortou a duração;

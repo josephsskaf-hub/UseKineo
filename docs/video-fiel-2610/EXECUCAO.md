@@ -42,4 +42,10 @@
 
 ## Fecho de integração
 
-**PENDENTE:** preencher após revisão final, testes e merge. Merge, deploy confirmado, validação de cliente e pagamento devem ser registrados separadamente.
+**PUBLICADO / VALIDADO EM PRODUÇÃO — 26/10/2026:** primeira integração `464bc9d19dbc23a34b08092b7db6c0f5128b7619`, deploy `dpl_7hrLjgaAG6kU8EAPASxyCCcTiTiq`, confirmado no domínio `www.usekineo.com` às 06:51:57 UTC. [Guardião remoto aprovado](https://github.com/josephsskaf-hub/UseKineo/actions/runs/40281798077), 43 etapas de sucesso. O painel autenticado mostrou as novas classificações e o canário desligado. Isto comprova publicação e funcionamento da página, não qualidade editorial nem venda.
+
+**EVIDÊNCIA DE PRODUÇÃO — testes próprios:** A/B/C concluíram, com 9 créditos registrados por criação (27 no total). Durações medidas do MP4: 13,792 s, 18,708 s e 15,417 s. A mudou objeto/aparência; B mostrou os assuntos pedidos; C apresentou palavras ilegíveis nas legendas. O áudio de C foi aprovado por Joseph; ele também aprovou as imagens. O agente não ouviu o áudio. A transcrição em cache de C foi recuperada por GET, sem novo ASR: 41 palavras, apenas 58,5% de alinhamento em cada lado da comparação com o texto esperado. Não afirmar que uma boa voz é uma boa transcrição, nem que a discordância prova TTS errado.
+
+**TESTADO LOCALMENTE — correção específica de C:** `docs/free15-quality-v2/caption-entrega.md` registra o builder real com fallback canônico, preservando todos os elementos não textuais e ASR/cache. Os controles A/B permanecem iguais. Workflow local: 73/73 resultados esperados; TypeScript limpo; 21 grupos e 9 mutantes de legenda. Publicação desta segunda correção e MP4 corrigido ainda devem ser confirmados separadamente. O limite dos três renders não foi ampliado.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** meta editorial de 9,5–10 para novas pessoas, custo real dos fornecedores, qualidade geral de áudio e movimento, aplicação do novo critério semântico desligado e impacto em pagamento. A correção de legenda é concreta; não equivale à conclusão de todos esses objetivos. A referência visual compartilhada foi preparada e testada localmente em branch própria, permanece desligada e sem chamador de produção.
