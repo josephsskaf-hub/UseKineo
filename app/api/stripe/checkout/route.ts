@@ -6,6 +6,8 @@ import { headers as requestHeaders } from 'next/headers' // KINEO-CHECKOUT-HONES
 import { clientIp, hashIp } from '@/lib/requestIdentity' // KINEO-CHECKOUT-HONESTO-2026-10-07 — o MESMO ip_hash do sink /api/events
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
+import { filmCompleteAdmin, loadFilmCompleteIntent, filmCompleteCheckoutMetadata, type FilmCompleteIntent } from '@/lib/filmComplete/server'
+import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_UUID } from '@/lib/growth/filmComplete'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
@@ -1365,6 +1367,12 @@ async function buildAndRedirect(
   await recordCheckoutEvent('checkout_attempted', user?.id ?? null, checkoutMetadata, browserSessionId ?? undefined)
 
   if (authError || !user) {
+    // The saved film belongs to an account: never turn this opt-in into a guest purchase.
+    if (req.nextUrl.searchParams.has('film_complete')) {
+      if (!isGet) return jsonError('Sign in to continue this film.', 401)
+      const redirect = `${req.nextUrl.pathname}${req.nextUrl.search}`
+      return NextResponse.redirect(`${appUrl}/login?redirect=${encodeURIComponent(redirect)}`)
+    }
     // ═══ KINEO-COMPRA-SEM-LOGIN-2026-10-06 — quem não tem conta paga primeiro ═══════════════════════════════════
     // Com GUEST_CHECKOUT_LIVE=false a régua devolve 'switch_off' sem olhar mais nada e TUDO abaixo segue byte a byte
     // como antes (mesmo evento, mesma metadata, mesmo redirect). Ligada, só a compra que não depende de saber QUEM
@@ -1463,6 +1471,19 @@ async function buildAndRedirect(
   // would work after the row settled, but the buyer had already been sent back
   // to pricing. Retry only this read, with a 2s total ceiling. Every ownership,
   // existing-subscription and customer check below remains unchanged.
+  let filmCompleteIntent: FilmCompleteIntent | null = null
+  const filmCompleteRequested = req.nextUrl.searchParams.get('film_complete')
+  if (filmCompleteRequested !== null) {
+    if (!FILM_COMPLETE_UUID.test(filmCompleteRequested) || tier !== 'basic' || billing !== 'monthly' || intro || wantsTrial || intentCampaign !== FILM_COMPLETE_CAMPAIGN) {
+      return jsonError('This saved film needs the Creator monthly checkout.', 400)
+    }
+    try {
+      const filmDb = filmCompleteAdmin()
+      filmCompleteIntent = filmDb ? await loadFilmCompleteIntent(filmDb, user.id, filmCompleteRequested) : null
+    } catch { return jsonError('Your saved film is temporarily unavailable. Please try again.', 503) }
+    if (!filmCompleteIntent) return jsonError('This saved film is unavailable in this account.', 404)
+    if (filmCompleteIntent.metadata.paid_session_id) return NextResponse.redirect(`${appUrl}/film-complete?intent=${filmCompleteIntent.id}`)
+  }
   const profileLookup = await readCheckoutProfileWithRetry(async () => {
     const result = await supabase
       .from('profiles')
@@ -2708,6 +2729,16 @@ async function buildAndRedirect(
   // re-composition. Apply this last so intro/promo branches cannot overwrite it.
   if (returnToWatermark) {
     sessionParams.success_url = `${appUrl}/generate?wm_unlock=1&session_id={CHECKOUT_SESSION_ID}`
+  }
+
+  // Apply last: promotion/intro branches cannot discard the person's saved story or return path.
+  if (filmCompleteIntent) {
+    const filmMetadata = filmCompleteCheckoutMetadata(filmCompleteIntent)
+    Object.assign(sessionParams.metadata!, filmMetadata)
+    Object.assign(sessionParams.subscription_data!.metadata!, filmMetadata)
+    Object.assign(checkoutMetadata, filmMetadata)
+    sessionParams.success_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&session_id={CHECKOUT_SESSION_ID}`
+    sessionParams.cancel_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&cancelled=1`
   }
 
   // #481 — Rewardful affiliate attribution. The rewardful_referral cookie is set

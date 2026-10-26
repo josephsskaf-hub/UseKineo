@@ -20,6 +20,7 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'film15_full_intent', // private saved story + paid launch ledger; never browser-writable
   // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.
   'ads_escolha_plan',
   'ads_escolha_stills_ready',
