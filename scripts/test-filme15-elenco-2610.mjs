@@ -13,6 +13,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semFilme15Elenco2610, FILME15_ELENCO_2610, MARCA_FILME15_ELENCO_2610 as MARCA } from './test-support/desfaz-filme15-elenco-2610.mjs'
+import { semFilme15Perfeito2610 } from './test-support/desfaz-filme15-perfeito-2610.mjs' // KINEO-LEVA-PERFEITO-2610
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (t) => t.replace(/\r\n/g, '\n')
@@ -86,8 +87,8 @@ const baseSha = git('rev-parse', base).trim()
 const f = 'app/api/generate-video-cinematic/route.ts'
 const baseTxt = lf(git('show', `${baseSha}:${f}`))
 checa(`D1 base da tabela = base real (${baseSha.slice(0, 9)})`, FILME15_ELENCO_2610.base === baseSha)
-checa('D2 sem a camada a rota é byte a byte a base', semFilme15Elenco2610(rota, f) === baseTxt)
-checa('D3 idempotente e preserva CRLF', semFilme15Elenco2610(baseTxt, f) === baseTxt && semFilme15Elenco2610(rota.replace(/\n/g, '\r\n'), f) === baseTxt.replace(/\n/g, '\r\n'))
+checa('D2 sem a camada a rota é byte a byte a base', semFilme15Elenco2610(semFilme15Perfeito2610(rota, f), f) === baseTxt) // KINEO-LEVA-PERFEITO-2610 — a camada irmã do Codex (merge posterior) sai antes
+checa('D3 idempotente e preserva CRLF', semFilme15Elenco2610(baseTxt, f) === baseTxt && semFilme15Elenco2610(semFilme15Perfeito2610(rota.replace(/\n/g, '\r\n'), f), f) === baseTxt.replace(/\n/g, '\r\n')) // KINEO-LEVA-PERFEITO-2610
 checa('D4 todo trecho novo leva a marca', FILME15_ELENCO_2610.scope[f].hunks.every((h) => h.after.includes(MARCA)))
 
 console.log('== mutantes ==')

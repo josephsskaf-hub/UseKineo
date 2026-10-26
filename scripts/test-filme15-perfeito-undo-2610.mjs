@@ -7,6 +7,17 @@ import crypto from 'node:crypto'
 import { FILME15_PERFEITO_MANIFEST as manifest, FILME15_PERFEITO_BASE as BASE,
   semFilme15Perfeito2610 as undo, comFilme15Perfeito2610 as redo } from './test-support/desfaz-filme15-perfeito-2610.mjs'
 import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs'
+import { semFilme15Perfeito2610 as semFilme15PerfeitoIrma, comFilme15Perfeito2610 as comFilme15PerfeitoIrma } from './test-support/desfaz-filme15-perfeito-2610.mjs' // KINEO-LEVA-PERFEITO-2610
+import { semFilme15Elenco2610 } from './test-support/desfaz-filme15-elenco-2610.mjs' // KINEO-LEVA-PERFEITO-2610
+import { semVozNativa2610 } from './test-support/desfaz-voz-nativa-2610.mjs' // KINEO-LEVA-PERFEITO-2610
+const semIrmas = (t, f) => { // KINEO-LEVA-PERFEITO-2610 — o elenco já tira o visual em inglês
+  const s = semVozNativa2610(semFilme15Elenco2610(t, f), f)
+  // no desfaz do rosto, as irmãs só puseram import + chamada (uma linha cada, com a marca delas): saem por linha inteira
+  if (typeof s !== 'string' || !String(f).endsWith('desfaz-filme15-rosto-2610.mjs')) return s
+  const nl = s.includes(String.fromCharCode(13, 10)) ? String.fromCharCode(13, 10) : String.fromCharCode(10)
+  return s.split(nl).filter((l) => !/KINEO-VOZ-NATIVA-2610|KINEO-FILME15-ELENCO-2610/.test(l)).join(nl)
+}
+const flatIrmas = (t) => typeof t === 'string' ? t.split(String.fromCharCode(13)).join('') : t // KINEO-LEVA-PERFEITO-2610
 import { semCaptionCanonico2610 } from './test-support/desfaz-caption-canonico-2610.mjs'
 const lf = s => s.replace(/\r\n/g, '\n')
 const crlf = s => lf(s).replace(/\n/g, '\r\n')
@@ -22,7 +33,7 @@ function preserveMutation(changed, file, before) {
   mutants++
 }
 for (const [file, entry] of Object.entries(manifest.scope)) {
-  const before = git('show', BASE + ':' + file), after = read(file)
+  const before = git('show', BASE + ':' + file), after = flatIrmas(comFilme15PerfeitoIrma(semIrmas(semFilme15PerfeitoIrma(read(file), file), file), file)) // KINEO-LEVA-PERFEITO-2610 — camadas irmãs que entraram na main depois da base (elenco, voz nativa, visual em inglês) saem; a deste pacote é reaplicada
   check(() => assert.equal(hash(before), entry.beforeSha256, 'exact base bytes: ' + file))
   check(() => assert.equal(hash(after), entry.afterSha256, 'exact current bytes: ' + file))
   check(() => assert.equal(hash(JSON.stringify(entry.hunks)), entry.hunksSha256))
@@ -59,9 +70,14 @@ for (const file of Object.keys(manifest.addedSources).filter(file => /^scripts\/
   check(() => assert.doesNotMatch(read(file), /import[^\n]*desfaz-|semFilme15Perfeito2610\(/, 'current behavior reads raw code: ' + file))
 }
 const oldManifests = git('ls-tree', '-r', '--name-only', BASE, '--', 'scripts/test-support').trim().split('\n').filter(file => /(?:fontes|trocas|hunks).*\.json$/.test(file))
-for (const file of oldManifests) check(() => assert.equal(read(file), git('show', BASE + ':' + file), 'old manifest stays immutable: ' + file))
+const MAIN_DO_MERGE = '62213b008292f110117d1abbe20c157efdb55902' // KINEO-LEVA-PERFEITO-2610 — a main no merge: camadas irmãs (FIEL/ELENCO/VOZ/VISUAL) mudaram manifestos depois da BASE; este pacote não muda nenhum
+for (const file of oldManifests) check(() => assert.equal(read(file), lf(git('show', MAIN_DO_MERGE + ':' + file)), 'old manifest stays immutable: ' + file))
 const inventory = [...Object.keys(manifest.scope), ...Object.keys(manifest.addedSources), manifest.manifestPath].sort()
-const actual = [...new Set([...git('diff', '--name-only', BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])]
-  .filter(file => file && !file.endsWith('.tsbuildinfo') && !file.startsWith('node_modules/')).sort()
+// KINEO-LEVA-PERFEITO-2610 — o inventário é medido contra a main do merge (as camadas irmãs já estão nela); arquivo de fora do
+// inventário só passa se TODA linha que a integração mudou nele traz a marca da integração (re-âncora de guardião irmão).
+const soReancora = (file) => { const d = git('diff', '-U0', MAIN_DO_MERGE, '--', file).split('\n').filter(l => /^[+-](?![+-])/.test(l)); return d.length > 0 && d.filter(l => l.startsWith('+')).every(l => l.includes('KINEO-LEVA-PERFEITO-2610')) }
+const actual = [...new Set([...git('diff', '--name-only', MAIN_DO_MERGE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])]
+  .filter(file => file && !file.endsWith('.tsbuildinfo') && !file.startsWith('node_modules/'))
+  .filter(file => inventory.includes(file) || !soReancora(file)).sort()
 check(() => assert.deepEqual(inventory, actual, 'complete task inventory relative to exact upstream'))
 console.log(JSON.stringify({ status: 'PASS', checks, rejectedMutants: mutants, sources: Object.keys(manifest.scope).length, addedSources: Object.keys(manifest.addedSources).length, base: BASE, sourceWrites: 0, network: 0 }))
