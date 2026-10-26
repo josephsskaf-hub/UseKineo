@@ -92,9 +92,21 @@ async function findReplacement(client: AffiliateCouponStripe, old: Stripe.Promot
   return codes.find(code => code.coupon.id === couponId && customerId(code) === customerId(old)) ?? null
 }
 
+async function finishMigration(client: AffiliateCouponStripe, legacyId: string): Promise<void> {
+  try {
+    // A completed code must not look interrupted on every serverless cold start.
+    await client.promotionCodes.update(legacyId, { metadata: { [MIGRATION_MARKER]: '' } })
+  } catch {
+    // The replacement is valid. A later request can safely retry marker cleanup.
+  }
+}
+
 async function replacePromotionCode(client: AffiliateCouponStripe, old: Stripe.PromotionCode, couponId: string) {
   const replacement = await findReplacement(client, old, couponId)
-  if (replacement) return replacement
+  if (replacement) {
+    await finishMigration(client, old.id)
+    return replacement
+  }
   const remaining = old.max_redemptions == null ? null : old.max_redemptions - old.times_redeemed
   if (remaining !== null && remaining <= 0) throw new Error('Affiliate promotion code exhausted')
   const restrictions: Stripe.PromotionCodeCreateParams.Restrictions = {
@@ -108,7 +120,7 @@ async function replacePromotionCode(client: AffiliateCouponStripe, old: Stripe.P
       active: false,
       metadata: { ...old.metadata, [MIGRATION_MARKER]: couponId },
     })
-    return await client.promotionCodes.create({
+    const created = await client.promotionCodes.create({
       coupon: couponId,
       code: old.code,
       ...(customerId(old) ? { customer: customerId(old)! } : {}),
@@ -117,12 +129,17 @@ async function replacePromotionCode(client: AffiliateCouponStripe, old: Stripe.P
       ...(old.metadata ? { metadata: Object.fromEntries(Object.entries(old.metadata).filter(([key]) => key !== MIGRATION_MARKER)) } : {}),
       restrictions,
     })
+    await finishMigration(client, old.id)
+    return created
   } catch (error) {
     // Lost response / competing process: reconcile before rolling back. An
     // explicitly archived code can be reactivated while it is still redeemable.
     try {
       const raced = await findReplacement(client, old, couponId)
-      if (raced) return raced
+      if (raced) {
+        await finishMigration(client, old.id)
+        return raced
+      }
     } catch {
       // A failed lookup is not proof that the replacement was created.
     }

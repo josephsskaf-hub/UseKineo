@@ -50,7 +50,7 @@ function mock({ coupons = [], codes = [], pageSize = 100 } = {}) {
       async update(key, value) {
         state.calls.push(['promo.update', key, clone(value)])
         if (value.active && state.failures.rollback) throw new Error('rollback failed')
-        const found = state.codes.find(c => c.id === key); found.active = value.active
+        const found = state.codes.find(c => c.id === key); if (value.active !== undefined) found.active = value.active
         if (value.metadata) for (const [k, v] of Object.entries(value.metadata)) { if (v === '') delete found.metadata[k]; else found.metadata[k] = v }
         if (!value.active && state.failures.lostDeactivate) { state.failures.lostDeactivate = false; throw new Error('deactivate response lost') }
         return clone(found)
@@ -87,6 +87,10 @@ for (const invalid of [{ duration: 'forever' }, { percent_off: 20 }, { valid: fa
   equal(state.codes.filter(c => c.active && c.coupon.id === id).length, 3, 'three migrated codes')
   equal(state.codes.find(c => c.id === 'old_4').active, false, 'historical inactive code not resurrected')
   deep(state.codes.filter(c => c.active).map(c => c.code), ['KINEOPARTNER1', 'KINEOPARTNER2', 'KINEOPARTNER3'], 'customer facing strings unchanged')
+  equal(state.codes.filter(c => c.metadata?.kineo_affiliate_50_migration).length, 0, 'completed migration clears interruption markers')
+  const at = state.calls.length
+  equal(await ensureAffiliateBaseCoupon({ coupons: client.coupons, promotionCodes: client.promotionCodes }), id, 'fresh process reuses completed replacement codes')
+  equal(state.calls.slice(at).filter(([op, filter]) => op === 'promo.list' && filter.code).length, 0, 'cold start does not individually recheck every completed code')
 }
 {
   const source = legacy(1, { customer: { id: 'cus_1' }, expires_at: 1999999999, max_redemptions: 10, times_redeemed: 3, metadata: { affiliate_id: 'a1', custom: 'keep' }, restrictions: { first_time_transaction: true, minimum_amount: 100, minimum_amount_currency: 'usd', currency_options: { brl: { minimum_amount: 500 } } } })
