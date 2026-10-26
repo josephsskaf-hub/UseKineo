@@ -495,7 +495,8 @@ export function looksLikeBrief(raw: string): boolean {
     // Parsing is pure and does not call looksLikeBrief. Keep legitimate
     // labelled/quoted speech when the existing parser isolated it correctly.
     const spokenOpening = parseUserScript(raw).narration.replace(/^(?:please|por favor)[,\s]+/i, '')
-    return spokenOpening.startsWith(opening)
+    const spokenRequest = spokenOpening.split(/[.!?]\s+/)[0]
+    return creation.test(spokenRequest) && isInstructionLine(spokenRequest.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest)
   }
   if (startsWithRequest) return true
   let ficha = 0

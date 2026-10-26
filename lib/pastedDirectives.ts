@@ -132,7 +132,7 @@ function primeiraDuracaoPedida(texto: string): { raw: string; seconds: number; i
     const before = texto.slice(Math.max(0, m.index - 80), m.index)
     const after = texto.slice(m.index + m[0].length, m.index + m[0].length + 80)
     const explicit = /\b(?:dura[çc][ãa]o|duraci[oó]n|duration|length)\s*(?:(?::|=|de|of)\s*)?$/i.test(before)
-      || /^\s*(?:(?:de|of)\s+)?(?:dura[çc][ãa]o|duraci[oó]n|duration|long)\b/i.test(after)
+      || /^\s*(?:(?:de|of)\s+)?(?:dura[çc][ãa]o|duraci[oó]n|duration)\b/i.test(after)
     const film = /\b(?:v[íi]deo|filme|film|movie|short|reel|clip)\s+(?:(?:de|com|of|lasting|tenha|dure|lasts)\s*)?$/i.test(before)
       || /^\s*(?:-\s*)?(?:v[íi]deo|filme|film|movie|short|reel|clip)\b/i.test(after)
     if (!explicit && (!film || m[0] === '9:16')) continue

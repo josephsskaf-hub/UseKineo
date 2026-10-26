@@ -77,6 +77,7 @@ check('story clock times, aspect ratios and invalid clock values are not request
   for (const prompt of [
     'Crie um vídeo sobre uma porta que abre às 3:00 da manhã.',
     'Create a video about an alarm that rings at 3:00 every night.',
+    'Create a video about a lighthouse where the keeper arrived at 3:00 long before sunrise.',
     'Crie um vídeo de 9:16 sobre um farol.',
     'Crie um vídeo vertical 9:16 sobre um farol.',
     'Crie um vídeo de 1:99 sobre um farol.',
@@ -92,6 +93,7 @@ check('mixed instruction cannot hide behind later HOOK/Pexels labels', () => {
   for (const prompt of [
     'Crie um vídeo de60segundos. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
     'Crie um vídeo de 1:00. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
+    'Crie um vídeo de 60 segundos HOOK: [Pexels: mountains] Os alpinistas partiram cedo.',
     'Create a 60-second video. HOOK: [Pexels: mountains] The climbers left early.',
   ]) {
     assert.equal(parser.looksLikeBrief(prompt), true, prompt)
@@ -211,7 +213,7 @@ check('mutant that bypasses explicit-mode review is caught behaviorally', () => 
 check('mutants that ignore clocks or exempt all marked requests are caught', () => {
   const noClock = createOfflineLoader({ source: (rel, source) => rel === 'lib/pastedDirectives.ts' ? source.replace('if (!explicit && (!film', 'if (true || !explicit && (!film') : source })('lib/requestFidelity.ts')
   assert.equal(noClock.reviewRequestFidelity({ ...base, scriptMode: 'ai', prompt: 'Crie um vídeo de1:00 sobre montanhas.' }), null)
-  const allMarked = createOfflineLoader({ source: (rel, source) => rel === 'lib/scriptParser.ts' ? source.replace('return spokenOpening.startsWith(opening)', 'return false') : source })('lib/requestFidelity.ts')
+  const allMarked = createOfflineLoader({ source: (rel, source) => rel === 'lib/scriptParser.ts' ? source.replace('return creation.test(spokenRequest)', 'return false && creation.test(spokenRequest)') : source })('lib/requestFidelity.ts')
   assert.equal(allMarked.reviewRequestFidelity({ ...base, prompt: 'Crie um vídeo de60segundos. HOOK: [Pexels: mountains] Os alpinistas partiram cedo.' }), null)
 })
 console.log(`PEDIDO-FIEL-2610 PASS: ${checks} behavioral checks, actual route AST guards, no external operations.`)
