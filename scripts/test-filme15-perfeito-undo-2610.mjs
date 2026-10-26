@@ -55,8 +55,8 @@ for (const [file, expected] of Object.entries(manifest.addedSources)) {
 const captionHelper = read('scripts/test-support/desfaz-caption-canonico-2610.mjs')
 check(() => assert.match(captionHelper, /project\(semFilme15Fiel2610\(source, file\), file, 'reverse'\)/, 'actual canonical historical chain strips perfeito through FIEL first'))
 check(() => assert.equal(semCaptionCanonico2610('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n'))
-for (const file of ['scripts/test-filme15-perfeito-2610.mjs', 'scripts/test-filme15-gate-integration-2610.mjs', 'scripts/test-filme15-portao-fonte-2610.mjs', 'scripts/test-filme15-duracao-2610.mjs', 'scripts/test-filme15-legenda-inteira-2610.mjs', 'scripts/test-filme15-legenda-canonica-2610.mjs']) {
-  if (fs.existsSync(file)) check(() => assert.doesNotMatch(read(file), /import[^\n]*desfaz-|semFilme15Perfeito2610\(/, 'current behavior reads raw code: ' + file))
+for (const file of Object.keys(manifest.addedSources).filter(file => /^scripts\/test-filme15-.*\.mjs$/.test(file) && !file.endsWith('perfeito-undo-2610.mjs'))) {
+  check(() => assert.doesNotMatch(read(file), /import[^\n]*desfaz-|semFilme15Perfeito2610\(/, 'current behavior reads raw code: ' + file))
 }
 const oldManifests = git('ls-tree', '-r', '--name-only', BASE, '--', 'scripts/test-support').trim().split('\n').filter(file => /(?:fontes|trocas|hunks).*\.json$/.test(file))
 for (const file of oldManifests) check(() => assert.equal(read(file), git('show', BASE + ':' + file), 'old manifest stays immutable: ' + file))

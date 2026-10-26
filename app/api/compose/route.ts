@@ -1,3 +1,4 @@
+import { FREE15_GATE_VERSION } from '@/lib/free15Gate' // KINEO-FILME15-PERFEITO-2610
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
@@ -3732,9 +3733,8 @@ export async function POST(req: NextRequest) {
     let free15ContextStored = true
     // KINEO-FILME15-PERFEITO-2610: bind the final source and raw narration evidence
     // to the owner/render before status can expose the final MP4.
-    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response)) {
+    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response) && cinematicBirthClaim?.response?.free15_gate_version === FREE15_GATE_VERSION) {
       const { storeFree15Gate } = await import('@/lib/free15GateServer')
-      const { FREE15_GATE_VERSION } = await import('@/lib/free15Gate')
       const { buildFree15CanonicalCaptions, FREE15_CANONICAL_CAPTION_TIMING } = await import('@/lib/free15CanonicalCaptions')
       const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
       const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {

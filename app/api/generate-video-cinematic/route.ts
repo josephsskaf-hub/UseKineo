@@ -76,6 +76,7 @@ import { veoMaxShots, veoMarkedBeats, veoMarkedPlan } from '@/lib/cinematic/veoS
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
+import { FREE15_GATE_VERSION } from '@/lib/free15Gate' // KINEO-FILME15-PERFEITO-2610 — signed birth opt-in; old films never trigger retroactive refunds
 import { sanitizarObjetos15 } from '@/lib/cinematic/objetosSemTexto15' // KINEO-FILME15-PERFEITO-2610
 import { planoDeAcrescimo15, aceitarAcrescimo15 } from '@/lib/cinematic/filme15Perfeito' // KINEO-FILME15-PERFEITO-2610
 import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
@@ -6779,7 +6780,6 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — visual perde o "characters act naturally" e ganha "No people…" (o homem adulto da cena 1 do Dino). Desligada: o vetor fica byte a byte.
     const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: personagemElenco.elenco }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
     if (personagemCenas) { for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = personagemCenas.prompts[i]; console.log(`[personagem] gen=${generationId} cenas pela fala=${personagemCenas.cenas.filter((c) => c.pelaFala.length > 0).map((c) => c.indice + 1).join(',') || '-'} ficha no prompt=${personagemCenas.comFicha.join(',') || '-'} sem gente=${personagemCenas.semGente.join(',') || '-'}`) } // KINEO-META95-PERSONAGEM-AJUSTE-2010
-    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     // ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — a moderação lê o TEXTO FINAL das cenas antes do still e do POST pago ═══
     // KINEO-ROMANCE-ADULTO-2026-10-13 — Só em pedido romântico (o risco do caso d.hein.0): omni-moderation é gratuito, 1 chamada de até 8 s,
     // KINEO-ROMANCE-ADULTO-2026-10-13 — superfície 'clip' (a do /api/generate-clip, mesma régua). O nosso sufixo de adultos sai do texto
@@ -6793,6 +6793,8 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: moderationRefusalMessage(moderacaoRomance.reason), reason: `content_moderation_${moderacaoRomance.reason}`, retryable: moderacaoRomance.reason === 'unavailable', charged: false, refunded: devolvido }, { status: moderationRefusalStatus(moderacaoRomance.reason) }) // KINEO-ROMANCE-ADULTO-2026-10-13
       } // KINEO-ROMANCE-ADULTO-2026-10-13
     } // KINEO-ROMANCE-ADULTO-2026-10-13
+
+    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -7444,6 +7446,7 @@ async function manipularPost(req: NextRequest) {
       scenes: scenes.map((s) => s.description),
       scene_captions: scenes.map((s) => s.caption),
       voiceover_script: voiceoverScript,
+      ...(seedanceShortFilm ? { free15_gate_version: FREE15_GATE_VERSION } : {}), // KINEO-FILME15-PERFEITO-2610 — inside the hashed/signed birth response
       language: narrationLanguage.language, // KINEO-FILME15-FIEL-2610 — pena dourada (26/10): a rota escreveu em pt, o compose recebeu 'en' da interface e narrou com voz inglesa; o idioma resolvido agora viaja no claim
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)

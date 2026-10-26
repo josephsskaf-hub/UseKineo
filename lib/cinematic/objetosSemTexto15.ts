@@ -18,9 +18,8 @@ export function sanitizarObjetos15(prompt: string, seedanceShortFilm: boolean): 
   if (paper) {
     safe = trocarObjetoPresente(safe, /\bbank\s+fee\s+paperwork\b/gi, 'plain bank envelope with its unmarked reverse facing the camera')
     safe = trocarObjetoPresente(safe, /\bpaperwork\b/gi, 'plain closed envelope with its unmarked reverse facing the camera')
-    safe = trocarObjetoPresente(safe, /\b(?:document|invoice|receipt|manuscript)\b(?!\s+(?:editor|writer|specialist|examiner)\b)/gi, 'sheet of paper turned so its blank reverse faces the camera')
-    safe = trocarObjetoPresente(safe, /\bwith\s+intricate\s+patterns\b/gi, 'with natural paper fibers and irregular stains')
-    safe = trocarObjetoPresente(safe, /\b(?:revealing|displaying|showing|bearing)\s+(?:(?:a|an|the|cryptic|written|printed|handwritten|legible|readable|mysterious)\s+)*(?:text|writing|letters|words|numbers|symbols)\b/gi, 'revealing only natural paper fibers and irregular stains')
+    safe = trocarObjetoPresente(safe, /\b(?:document|invoice|receipt|manuscript)\b(?!\s+(?:editor|writer|specialist|examiner)\b)(?:\s+with\s+intricate\s+patterns\b)?/gi, 'sheet of paper turned so its blank reverse faces the camera')
+    if (safe !== prompt) safe = trocarObjetoPresente(safe, /\b(?:revealing|displaying|showing|bearing)\s+(?:(?:a|an|the|cryptic|written|printed|handwritten|legible|readable|mysterious)\s+)*(?:text|writing|letters|words|numbers|symbols)\b/gi, 'revealing only natural paper fibers and irregular stains')
   }
   safe = trocarObjetoPresente(safe, /\b((?:phone|smartphone|mobile\s+phone)\s+(?:screen|display))\b(?!\s+filled\s+with\s+abstract\s+defocused\s+color\s+shapes)(?:\s+(?:displaying|showing|revealing|with)\s+(?:(?:a|an|the|dramatic|urgent|cryptic|glowing|incoming|written)\s+)*(?:text(?:\s+message)?|messages?|notifications?)\b(?:\s*(?:["“][^"”\r\n]*["”]|'[^'\r\n]*'))?)?/gi,
     '$1 filled with abstract defocused color shapes')

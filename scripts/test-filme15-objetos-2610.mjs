@@ -37,6 +37,8 @@ function contract(lib) {
     assert.equal(lib.sanitizarObjetos15(negative, true), negative, 'preserve negative object contracts: ' + negative)
   }
   assert.equal(lib.sanitizarObjetos15('A document editor in a red coat runs through a quiet garden.', true), 'A document editor in a red coat runs through a quiet garden.', 'profession is not a physical document')
+  for (const prompt of ['No document. A woman in a dress with intricate patterns walks.', 'A document editor wearing a coat with intricate patterns walks.']) assert.equal(lib.sanitizarObjetos15(prompt, true), prompt, 'a negated prop/profession cannot change character clothing')
+  assert.match(lib.sanitizarObjetos15('A woman in a dress with intricate patterns holds a document with intricate patterns.', true), /dress with intricate patterns holds a sheet of paper/, 'only the object modifier is rewritten')
   assert.ok(lib.sanitizarObjetos15(cases[3][1], true).startsWith('A woman snatching a bright '), 'preserve pizza actor and action')
   assert.ok(lib.sanitizarObjetos15(cases[4][1], true).startsWith('A man checking emergency supplies on a table, with '), 'preserve supplies actor and action')
 }

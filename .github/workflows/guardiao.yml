@@ -84,6 +84,9 @@ jobs:
           node scripts/test-filme15-duracao-2610.mjs
           node scripts/test-filme15-legenda-inteira-2610.mjs
           node scripts/test-filme15-legenda-canonica-2610.mjs
+          node scripts/test-filme15-numero-unidade-2610.mjs
+          node scripts/test-filme15-cena-visivel-2610.mjs
+          node scripts/test-filme15-objetos-2610.mjs
           node scripts/test-filme15-perfeito-undo-2610.mjs
       - name: Compra — capacidade real, ideia própria e revisão sem gerar
         run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.

@@ -592,12 +592,25 @@ export async function GET(
     }
 
     if (state.status === 'succeeded' && state.url) {
+      if (prepaidCinematicClaim?.status === 'released') {
+        return NextResponse.json({
+          phase: 'failed',
+          // KINEO-FAILURE-REASON-2026-07-30 — see the note on the client's
+          // failure tracking: `phase:'failed'` has three unrelated causes and
+          // they used to be indistinguishable in the events table.
+          failure_reason: 'cinematic_claim_released',
+          error: 'This cinematic generation was closed and its credits were refunded.',
+          creditsRefunded: prepaidCinematicClaim.creditCost,
+          progress: 0,
+        })
+      }
       // KINEO-FILME15-PERFEITO-2610: authoritative birth, never ?duration or ?quality.
       // This runs BEFORE any settlement, history insert, ready email or URL response.
       let free15GateFailure: { reason: string; creditsRefunded: number } | null = null
       if (quality === 'cinematic_ai' && prepaidCinematicClaim?.response?.duration === 15) {
         const { isSeedanceShortClaim } = await import('@/lib/durationByEngine')
-        if (isSeedanceShortClaim(prepaidCinematicClaim.response) && cinematicAdmin) {
+        const { FREE15_GATE_VERSION } = await import('@/lib/free15Gate')
+        if (isSeedanceShortClaim(prepaidCinematicClaim.response) && prepaidCinematicClaim.response.free15_gate_version === FREE15_GATE_VERSION && cinematicAdmin) {
           const { runFree15Gate, refundFailedFree15Gate } = await import('@/lib/free15GateServer')
           const ctx = { db: cinematicAdmin, secret: cinematicSecret, userId: user.id, renderId, claim: prepaidCinematicClaim }
           const gate = await runFree15Gate({ ...ctx, media: { url: state.url, snapshotUrl: state.snapshotUrl, durationSeconds: state.exactDurationSeconds ?? null } })
@@ -616,18 +629,6 @@ export async function GET(
       // valor pedido só sobrevive se o fornecedor não devolver a medida.
       if (typeof state.durationSeconds === 'number' && state.durationSeconds > 0) {
         duration = Math.round(state.durationSeconds)
-      }
-      if (prepaidCinematicClaim?.status === 'released') {
-        return NextResponse.json({
-          phase: 'failed',
-          // KINEO-FAILURE-REASON-2026-07-30 — see the note on the client's
-          // failure tracking: `phase:'failed'` has three unrelated causes and
-          // they used to be indistinguishable in the events table.
-          failure_reason: 'cinematic_claim_released',
-          error: 'This cinematic generation was closed and its credits were refunded.',
-          creditsRefunded: prepaidCinematicClaim.creditCost,
-          progress: 0,
-        })
       }
       let creditsDeducted = prepaidCinematicClaim !== null || prepaidAvatarClaim !== null
       let creditsRemaining: number | null = null

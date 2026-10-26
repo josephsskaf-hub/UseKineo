@@ -87,6 +87,14 @@ async function completeRepair(transform = null) {
 
 let checks = 0
 const check = async (name, fn) => { await fn(); checks++; console.log('PASS ' + name) }
+await check('legacy signed text-bearing prop is made blank before the single repair submit', async () => {
+  const h = fixture(); h.inputs[1].prompt = 'A woman in a red coat holds a phone screen displaying a dramatic message.'
+  await h.seed(); await h.run()
+  const sent = h.calls.scenes[0].input
+  assert.match(sent.prompt, /woman in a red coat holds a phone screen filled with abstract/)
+  assert.doesNotMatch(sent.prompt, /displaying a dramatic message/)
+  assert.equal(sent.image_url, h.inputs[1].image_url); assert.equal(sent.duration, h.inputs[1].duration)
+})
 function assertSignedInput(h) {
   assert.equal(h.calls.scenes[0].model, h.claim.falModels[1])
   const { prompt, ...sent } = h.calls.scenes[0].input

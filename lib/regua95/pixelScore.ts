@@ -17,7 +17,8 @@
 //   3. regras de CÓDIGO por cima do modelo (a nota nasce aqui, não da confiança no modelo): quadro quase preto pelo tamanho
 //      do JPEG, rosto/mão deformada em 2+ quadros, personagem que troca, produto infiel (Ads), legenda ilegível.
 // Custo alvo ≤ US$ 0,03 por vídeo: ~US$ 0,015 da visão + ~US$ 0,002–0,005 da fal (estimado pelo tempo; docs/REGUA-95-2026-10-19.md). Roda DEPOIS da entrega
-// (cron /api/cron/regua-95); nunca no caminho do cliente; falha aberta (erro = sem nota, nunca exceção).
+// (cron /api/cron/regua-95); erro = sem nota, nunca exceção. KINEO-FILME15-PERFEITO-2610: o portão Seedance15 também
+// chama esta régua antes de entregar; o chamador exige evidência completa e trata erro como falha com estorno.
 import type { ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
@@ -137,6 +138,8 @@ export type PixelContext = {
   productPhotoUrls?: string[] | null
   /** língua da fala/legenda esperada (ex.: "pt", "en", "hi") */
   language?: string | null
+  /** Opt-in from the free15 signed RenderScript, never inferred from the image. */
+  expectedKineoWatermark?: boolean
 }
 
 export const PIXEL_ISSUES = ['subject_missing', 'deformed_face_or_hand', 'invented_text', 'near_black', 'repeated', 'caption_illegible', 'caption_broken', 'product_unfaithful', 'ugc_eyes_mouth_hands', 'off_topic'] as const
@@ -205,6 +208,7 @@ export function buildPixelMessages(ctx: PixelContext, frames: Frame[], detail: P
   if (ctx.narration) lines.push(`NARRATION:\n"""${String(ctx.narration).slice(0, 1500)}"""`)
   if (ctx.spokenByScene && ctx.spokenByScene.length) lines.push(`SPOKEN LINE PER SCENE (in order): ${ctx.spokenByScene.map((s, i) => `[${i + 1}] ${String(s).replace(/\s+/g, ' ').slice(0, 200)}`).join(' ')}`)
   if (ctx.language) lines.push(`EXPECTED LANGUAGE: ${ctx.language}`)
+  if (ctx.product === 'filme' && ctx.expectedKineoWatermark === true) lines.push('EXPECTED EDITOR OVERLAY: the signed montage places the exact watermark "usekineo.com/free" at the TOP of the frame. This matching top watermark is intentional, not invented_text or a spoken caption. Continue flagging letters/gibberish generated INSIDE objects, screens, documents and signs; this exception applies only to the matching editor watermark.')
   lines.push(`FRAMES (${frames.length}, in time order${frames.some((f) => f.t != null) ? `: ${frames.map((f, i) => `#${i + 1}@${f.t ?? '?'}s`).join(' ')}` : ''}).${refs.length ? ` The FIRST ${refs.length} image(s) are REFERENCE PRODUCT PHOTOS uploaded by the customer (not frames); the product in the video is faithful when it matches ANY of them (a cropped or zoomed real photo is faithful).` : ''}`)
   const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: PixelDetail } }> = [{ type: 'text', text: lines.join('\n\n') }]
   for (const u of refs) content.push({ type: 'image_url', image_url: { url: u, detail } })

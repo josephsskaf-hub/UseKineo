@@ -102,19 +102,22 @@ const statusPath = 'app/api/compose/status/[renderId]/route.ts', statusCode = re
 const gateStart = statusCode.indexOf('let free15GateFailure:')
 const gateEnd = statusCode.indexOf('if (!state.url)', gateStart)
 assert.ok(gateStart > 0 && gateEnd > gateStart)
-const gateSlice = statusCode.slice(gateStart, gateEnd)
-async function statusGate(outcome, refund, extra = {}) {
+const releaseStart = statusCode.lastIndexOf("if (prepaidCinematicClaim?.status === 'released')", gateStart)
+assert.ok(releaseStart > 0 && releaseStart < gateStart)
+const gateSlice = statusCode.slice(releaseStart, gateEnd)
+async function statusGate(outcome, refund, extra = {}, source = gateSlice) {
   const calls = []
   const ctx = { state: { status: 'succeeded', url: media.url, snapshotUrl: null, durationSeconds: 14, exactDurationSeconds: 13.96 },
-    quality: 'cinematic_ai', prepaidCinematicClaim: { response: { duration: 15, fal_model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' } },
+    quality: 'cinematic_ai', prepaidCinematicClaim: { response: { duration: 15, fal_model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', free15_gate_version: 'free15-gate-v1' } },
     cinematicAdmin: {}, cinematicSecret: 'offline', user: { id: 'owner-a' }, renderId: 'render-a',
     NextResponse: { json: body => ({ body }) },
     require: id => {
+      if (id === '@/lib/free15Gate') return { FREE15_GATE_VERSION: 'free15-gate-v1' }
       if (id === '@/lib/durationByEngine') return { isSeedanceShortClaim: response => response.duration === 15 && response.fal_model.includes('/seedance/') }
       if (id === '@/lib/free15GateServer') return { runFree15Gate: async args => { calls.push(['gate', args.media]); return outcome }, refundFailedFree15Gate: async () => { calls.push(['refund']); return refund } }
       throw Error('Unexpected dependency ' + id)
     }, ...extra }
-  const code = '(async function(){' + gateSlice + '\nreturn { state, free15GateFailure };})()'
+  const code = '(async function(){' + source + '\nreturn { state, free15GateFailure };})()'
   const result = await vm.runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText, ctx, { timeout: 2000 })
   return { result: clone(result), calls }
 }
@@ -131,6 +134,38 @@ await check('actual status gate emits no URL for pending/unconfirmed refunds and
   assert.equal(otherEngine.calls.length, 0)
   const otherDuration = await statusGate({ status: 'pending' }, null, { prepaidCinematicClaim: { response: { duration: 35 } } })
   assert.equal(otherDuration.calls.length, 0)
+  const legacyBirth = { response: { duration: 15, fal_model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' }, status: 'settled' }
+  const historic = await statusGate({ status: 'failed', reason: 'gate_context_missing', media }, 10, { prepaidCinematicClaim: legacyBirth })
+  assert.equal(historic.calls.length, 0, 'old signed birth cannot trigger a retroactive refund')
+  const released = await statusGate({ status: 'pending' }, null, { prepaidCinematicClaim: { ...legacyBirth, status: 'released', creditCost: 7, response: { ...legacyBirth.response, free15_gate_version: 'free15-gate-v1' } } })
+  assert.equal(released.calls.length, 0, 'closed birth cannot buy judging or repair')
+  assert.equal(released.result.body.failure_reason, 'cinematic_claim_released')
+  const retroactive = gateSlice.replace(' && prepaidCinematicClaim.response.free15_gate_version === FREE15_GATE_VERSION', '')
+  assert.notEqual(retroactive, gateSlice)
+  const wronglyRefunded = await statusGate({ status: 'failed', reason: 'gate_context_missing', media }, 10, { prepaidCinematicClaim: legacyBirth }, retroactive)
+  assert.ok(wronglyRefunded.calls.some(call => call[0] === 'refund'), 'mutant that refunds old films is detected')
+})
+await check('gate enrollment is emitted only for Seedance15 and bound by the real birth HMAC', async () => {
+  const route = read('app/api/generate-video-cinematic/route.ts')
+  const ast = ts.createSourceFile('route.ts', route, ts.ScriptTarget.Latest, true)
+  let enrollment
+  const visit = node => { if (ts.isSpreadAssignment(node) && node.getText(ast).includes('free15_gate_version:')) enrollment = node.expression.getText(ast); ts.forEachChild(node, visit) }
+  visit(ast); assert.ok(enrollment)
+  for (const active of [false, true]) {
+    const result = vm.runInNewContext(ts.transpileModule('(' + enrollment + ')', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, { seedanceShortFilm: active, FREE15_GATE_VERSION: 'free15-gate-v1' })
+    assert.deepEqual(clone(result), active ? { free15_gate_version: 'free15-gate-v1' } : {})
+  }
+  const C = createOfflineLoader()('@/lib/cinematic/claim'), secret = 'offline-key', userId = 'owner-a', generationId = 'generation-gate-hmac-2610'
+  const id = C.cinematicClaimId(userId, generationId)
+  const response = { generationId, quality: 'cinematic_ai', fal_request_ids: [], fal_models: [], duration: 15, free15_gate_version: 'free15-gate-v1' }
+  const metadata = { generation_id: generationId, status: 'done', fingerprint: 'a'.repeat(64), credit_cost: 7, quality: 'cinematic_ai', engine: 'seedance', fal_request_ids: [], fal_models: [], authorized_completed_urls: [], response, response_hash: C.cinematicValueHash(response) }
+  metadata.authority = C.signCinematicClaim(secret, { claimId: id, userId, generationId, status: metadata.status, fingerprint: metadata.fingerprint, creditCost: 7, quality: metadata.quality, engine: metadata.engine, falRequestIds: [], falModels: [], authorizedCompletedUrls: [], responseHash: metadata.response_hash })
+  const row = { id, user_id: userId, session_id: generationId, path: C.CINEMATIC_CLAIM_PATH, name: C.CINEMATIC_CLAIM_EVENT, metadata }
+  assert.equal(C.verifyCinematicClaimRow({ row, secret, userId, generationId }).ok, true)
+  const removed = clone(row); delete removed.metadata.response.free15_gate_version
+  assert.equal(C.verifyCinematicClaimRow({ row: removed, secret, userId, generationId }).ok, false, 'browser cannot remove gate enrollment')
+  const forgedHash = clone(removed); forgedHash.metadata.response_hash = C.cinematicValueHash(forgedHash.metadata.response)
+  assert.equal(C.verifyCinematicClaimRow({ row: forgedHash, secret, userId, generationId }).ok, false, 'recomputing a hash is not a server signature')
 })
 await check('gate precedes status asset persistence/settlement and compose intent/completion', async () => {
   const tail = statusCode.slice(gateStart)
@@ -144,7 +179,7 @@ await check('gate precedes status asset persistence/settlement and compose inten
   assert.match(statusCode, /creditsDeducted: free15GateFailure \? false : creditsDeducted/)
   assert.match(statusCode, /free15_gate_failed: true/)
 })
-await check('browser cannot mint delivery locks, gate failures or identity-cost evidence', async () => {
+await check('browser cannot mint delivery locks or gate failures', async () => {
   const names = ['free15_delivery_gate', 'free15_gate_failed']
   const makeSink = removed => {
     let attempts = 0
@@ -168,5 +203,28 @@ await check('browser cannot mint delivery locks, gate failures or identity-cost 
     await mutant.post(name)
     assert.ok(mutant.attempts() > 0, 'real removed-protection mutant is detected: ' + name)
   }
+})
+await check('only an exact signed editor watermark is disclosed to the pixel reviewer', async () => {
+  const pixel = createOfflineLoader()('@/lib/regua95/pixelScore')
+  const messages = flag => pixel.buildPixelMessages({ product: 'filme', asked: 'A document and a phone', ...(flag === undefined ? {} : { expectedKineoWatermark: flag }) }, [])
+  const defaultMessages = clone(messages(undefined))
+  assert.deepEqual(clone(messages(false)), defaultMessages, 'default/historical prompt remains byte-identical')
+  assert.match(messages(true)[1].content[0].text, /EXPECTED EDITOR OVERLAY/)
+  assert.match(messages(true)[1].content[0].text, /INSIDE objects, screens, documents and signs/)
+  for (const [element, expected] of [
+    [{ type: 'text', track: 9, text: 'usekineo.com/free' }, true],
+    [{ type: 'text', track: 5, text: 'usekineo.com/free' }, undefined],
+    [{ type: 'text', track: 9, text: 'invented screen text' }, undefined],
+  ]) {
+    const h = adapters(), state = initial(); state.source.elements.push(element)
+    await h.seed(state); await h.run()
+    assert.equal(h.calls.judged[0][2].expectedKineoWatermark, expected)
+  }
+  const changed = adapters({ sourceTransform: (file, text) => file === 'lib/free15GateServer.ts' ? text.replace("el.text === 'usekineo.com/free'", 'true') : text })
+  const state = initial(); state.source.elements.push({ type: 'text', track: 9, text: 'invented screen text' })
+  await changed.seed(state); await changed.run()
+  assert.notEqual(changed.calls.judged[0][2].expectedKineoWatermark, undefined, 'mutant that exempts arbitrary text is detected')
+  const noDisclosure = createOfflineLoader({ source: (file, text) => file === 'lib/regua95/pixelScore.ts' ? text.replace("ctx.expectedKineoWatermark === true", 'false') : text })('@/lib/regua95/pixelScore')
+  assert.doesNotMatch(noDisclosure.buildPixelMessages({ product: 'filme', asked: '', expectedKineoWatermark: true }, [])[1].content[0].text, /EXPECTED EDITOR OVERLAY/, 'mutant that loses the measured watermark cause is detected')
 })
 console.log(JSON.stringify({ status: 'PASS', checks, adapters: 'real', statusSlice: 'real', paidRenders: 0, realRefunds: 0, environmentFiles: 0, network: 0 }))
