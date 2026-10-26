@@ -5,7 +5,9 @@ import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { semVitrine2610, VITRINE_2610_BASE, VITRINE_2610_MANIFEST } from './test-support/desfaz-vitrine-filmes-2610.mjs'
-import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs'
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
+import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs'
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs'
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
 const lf = value => value.replace(/\r\n/g, '\n')
@@ -45,7 +47,7 @@ for (const [file, entry] of Object.entries(manifest.scope)) {
   }
 }
 check(manifest.testScopeBase === VITRINE_2610_BASE, 'historical-script preimages use the same immutable main base')
-check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
+check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-ads-reteste-1510.mjs', 'scripts/test-equipe-business-2026-10-10.mjs', 'scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
 for (const [file, entry] of Object.entries(manifest.testScope)) {
   const current = lf(fs.readFileSync(file, 'utf8')), base = lf(git('show', `${manifest.testScopeBase}:${file}`))
   check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
@@ -60,9 +62,10 @@ for (const [file, entry] of Object.entries(manifest.testScope)) {
   }
 }
 const newLegacyFile = 'components/MadeWithKineo.tsx', newLegacySource = fs.readFileSync(newLegacyFile, 'utf8')
-check(semPaginasIaClaras2110(newLegacySource, newLegacyFile) === '', 'legacy string scanner receives empty source for a verified exact new file')
-check(semPaginasIaClaras2110(null, newLegacyFile) === null, 'legacy adapter preserves an originally absent source as null')
-rejects(() => semPaginasIaClaras2110(newLegacySource + '\n// altered new file\n', newLegacyFile), /modified new file; refusing deletion/, 'legacy adapter never hides an altered new source as empty')
+const legacySourceChain = (source) => { const closed = semCloseReal1910(source, newLegacyFile); return closed === null ? null : semMarcas1510(newLegacyFile, semLista1510(newLegacyFile, closed.replace(/\r\n/g, '\n'))) }
+check(legacySourceChain(newLegacySource) === null && legacySourceChain(null) === null, 'verified new-file removal remains null through Close/Lista/Marcas and repeated entry')
+check((legacySourceChain(newLegacySource) ?? '').replace(/\r\n/g, '\n') === '', 'only the outer legacy scanner converts removed source to empty text')
+rejects(() => legacySourceChain(newLegacySource + '\n// altered new file\n'), /modified new file; refusing deletion/, 'historical chain never hides an altered new source as empty')
 for (const file of ['lib/checkoutPricing.ts', 'lib/settlementCurrency.ts', 'lib/publicSurfacePolicy.ts', 'vercel.json']) {
   check(lf(fs.readFileSync(file, 'utf8')) === lf(git('show', `${VITRINE_2610_BASE}:${file}`)), file + ': unrelated pricing, privacy flag and cron schedule untouched')
 }

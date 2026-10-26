@@ -50,7 +50,7 @@ for (const [kind, file] of status) {
 // and neither the projector nor this manifest is included in its own delta.
 const refreshTestScope = process.argv.includes('--refresh-test-scope') || !previous.testScope
 const testScope = refreshTestScope ? {} : previous.testScope
-if (refreshTestScope) for (const file of ['scripts/test-trafego-undo-2310.mjs', 'scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs']) {
+if (refreshTestScope) for (const file of ['scripts/test-trafego-undo-2310.mjs', 'scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-ads-reteste-1510.mjs', 'scripts/test-equipe-business-2026-10-10.mjs']) {
   const before = lf(git('show', `${BASE}:${file}`)), after = lf(fs.readFileSync(file, 'utf8'))
   const diff = git('diff', '--no-color', '--unified=3', BASE, '--', file)
   const hunks = []

@@ -32,9 +32,7 @@ const rel = (p) => String(p ?? '').replace(/\\/g, '/')
 
 /** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */
 export function semPaginasIaClaras2110(texto, p) {
-  const tinhaFonte = typeof texto === 'string' // KINEO-VITRINE-FILMES-2610 — legacy scanners consume source strings.
   texto = semVitrine2610(texto, p) // KINEO-VITRINE-FILMES-2610 — preserve all historical assertions, mutation anchors and frozen snapshots below.
-  if (tinhaFonte && texto === null) return '' // KINEO-VITRINE-FILMES-2610 — only a verified exact new file becomes an empty legacy source; original null remains null and tampering still throws.
   texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.
   const r = rel(p)
   if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto
