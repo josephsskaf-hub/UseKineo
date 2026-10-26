@@ -1,4 +1,5 @@
 import { TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — pares exatos da camada posterior, sem ampliar a permissão do status
+import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs' // KINEO-UPSELL-FILME15-2610 — strict in-memory projection of the later delivery-email layer.
 // KINEO-E4-SAIDA-B-2026-09-29 — guardião da E4 [TRAVA 8.2 — aguarda "vai E4" do fundador].
 // Decisões do fundador (29/09): (a) SAÍDA B — o filme grátis só para país rico; (b) cota grátis semanal vira 1 Seedance
 // 1.5 de 15 s por semana, com marca d'água, só país rico; (c) Kineo 1 fora do jogo — conta nova não recebe Kineo 1
@@ -524,11 +525,18 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   const realCota = await provaCota(extraiCota(src))
   checa(`compose (bloco real executado): casa e Autopilot em plano grátis tomam o claim de custo 0 sem a contagem da cota; os demais seguem na cota${realCota.length ? ' — ' + realCota.join(' | ') : ''}`, realCota.length === 0)
   checa('mutante (casa volta para a cota 0) → vermelho', (await provaCota(trocar(extraiCota(src), "          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {", '          if (false) {'))).length > 0)
+  const statusPath = 'app/api/compose/status/[renderId]/route.ts'
+  // Outside the legacy try/catch: a missing/ambiguous hunk or unknown changed byte must fail closed.
+  const statusWithoutUpsell = semUpsellFilme152610(rd(statusPath), statusPath)
   let intocados = false
   try {
     // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o unlock ganhou só linhas ACRESCENTADAS e marcadas (import + chamada do gancho
     // escrito, depois do logo). A prova continua: nenhuma linha removida e toda linha nova carrega o marcador — qualquer outra mudança segue vermelha.
-    const d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
+    let d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
+    const statusAtMain = execFileSync('git', ['show', `origin/main:${statusPath}`], { cwd: root, encoding: 'utf8' }).replace(/\r\n/g, '\n')
+    // Remove only this route's diff after the exact projection equals main byte-for-byte.
+    // Unlock and every other changed path keep the original assertions below.
+    if (statusWithoutUpsell === statusAtMain) d = d.split(/(?=^diff --git )/m).filter(chunk => !chunk.startsWith(`diff --git a/${statusPath} b/${statusPath}\n`)).join('')
     const mudadas = d.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
     // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): o compose/status ganhou só linhas ACRESCENTADAS e marcadas (o Enhance
     // automático da conta da casa deixa de rodar no Seedance 2.5, pedido do fundador). Mesma prova: nada removido, tudo marcado.
