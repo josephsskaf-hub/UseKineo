@@ -20,6 +20,7 @@
 // Grava o evento `coherence_v2` (session_id = chave da entrega) sem tocar no fast_coherence antigo (para comparar).
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { knownCoherenceCase, narrationCutSeconds, verdictFor, type CoherenceVerdict } from '@/lib/fastCoherence'
+import { assessEvidence, isScore, objectRecord, type EvidenceAssessment } from '@/lib/regua95/evidence'
 
 export const COHERENCE_V2_EVENT = 'coherence_v2'
 export const COHERENCE_V2_VERSION = 'regua95_coerencia_v2'
@@ -61,19 +62,22 @@ export type CoherenceV2Input = {
 }
 
 export type CoherenceV2Reading = {
-  idea_fidelity: number
+  idea_fidelity: number | null
   narration_vs_scenes: number | null
-  score: number
+  score: number | null
+  evidence_reasons: string[]
   problems: string[]
   worst_scene: number | null
   summary: string
 }
 
-export type CoherenceV2Result = {
+export type CoherenceV2Result = EvidenceAssessment & {
   version: string
-  score: number
-  verdict: CoherenceVerdict
-  idea_fidelity: number
+  score: number | null
+  verdict: CoherenceVerdict | null
+  idea_fidelity: number | null
+  fidelity_basis: 'original_request' | 'supplied_script' | 'unverified_window'
+  evidence_limits: string[]
   narration_vs_scenes: number | null
   /** as leituras individuais (média = score); spread = maior − menor */
   readings: number[]
@@ -82,7 +86,7 @@ export type CoherenceV2Result = {
   worst_scene: number | null
   summary: string
   idea_source: IdeaSource
-  /** true = a ideia original não existe; a metade "ideia" foi julgada contra o próprio roteiro e NÃO prova fidelidade */
+  /** true = supplied script; fidelity to an earlier original idea is unavailable, not a perfect self-comparison. */
   idea_is_script: boolean
   narration_cut: boolean
   model: string | null
@@ -174,18 +178,27 @@ export function buildCoherenceV2Messages(input: CoherenceV2Input) {
 }
 
 /** Uma leitura do JSON do modelo → números. A NOTA nasce aqui (código): média simples das duas metades, SEM teto. */
-export function normalizeReadingV2(parsed: Record<string, unknown>, hasScenes: boolean): CoherenceV2Reading {
-  const idea = clamp(parsed.idea_fidelity)
+export function normalizeReadingV2(parsed: Record<string, unknown>, hasScenes: boolean, sceneNumbers?: number[]): CoherenceV2Reading {
+  parsed = objectRecord(parsed)
+  const idea = isScore(parsed.idea_fidelity) ? clamp(parsed.idea_fidelity) : null
   const nvsRaw = parsed.narration_vs_scenes
-  const nvs = hasScenes && nvsRaw != null && Number.isFinite(Number(nvsRaw)) ? clamp(nvsRaw) : null
+  const nvs = hasScenes && isScore(nvsRaw) ? clamp(nvsRaw) : null
+  const reasons: string[] = []
+  if (idea == null) reasons.push('idea_response_missing')
+  if (!hasScenes) reasons.push('scene_evidence_missing')
+  else if (nvs == null) reasons.push('scene_response_missing')
+  if (!Array.isArray(parsed.problems) || typeof parsed.summary !== 'string' || !parsed.summary.trim()) reasons.push('explanation_missing')
   const problems = Array.isArray(parsed.problems)
     ? (parsed.problems as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim().length > 0).map((p) => p.trim().slice(0, 220)).slice(0, 4)
     : []
   const ws = parsed.worst_scene
+  if ((idea != null && idea < 100 || nvs != null && nvs < 100) && !problems.length) reasons.push('defect_without_explanation')
+  if (nvs != null && nvs < 100 && (!Number.isInteger(ws) || Number(ws) < 1 || sceneNumbers && !sceneNumbers.includes(Number(ws)))) reasons.push('scene_defect_not_located')
   return {
     idea_fidelity: idea,
     narration_vs_scenes: nvs,
-    score: nvs == null ? idea : Math.round((idea + nvs) / 2),
+    score: reasons.length || idea == null || nvs == null ? null : Math.round((idea + nvs) / 2),
+    evidence_reasons: reasons,
     problems,
     worst_scene: typeof ws === 'number' && Number.isFinite(ws) && ws > 0 ? Math.round(ws) : null,
     summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',
@@ -195,15 +208,22 @@ export function normalizeReadingV2(parsed: Record<string, unknown>, hasScenes: b
 /** Junta as leituras: nota = média (arredondada); flags de código por cima (narração cortada = teto 40, como na v5). */
 export function combineReadingsV2(
   readings: CoherenceV2Reading[],
-  ctx: { ideaSource: IdeaSource; narration: string; filmSeconds?: number | null; model: string | null; usd: number; ms: number },
+  ctx: { ideaSource: IdeaSource; narration: string; filmSeconds?: number | null; model: string | null; usd: number; ms: number; expectedReadings?: number },
 ): CoherenceV2Result | null {
   if (readings.length === 0) return null
   const mean = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) / xs.length)
-  const scores = readings.map((r) => r.score)
+  const originalKnown = ctx.ideaSource === 'pedido_direto' || ctx.ideaSource === 'script_written'
+  const valid = readings.filter((r): r is CoherenceV2Reading & { score: number; idea_fidelity: number; narration_vs_scenes: number } => isScore(r.score) && isScore(r.idea_fidelity) && isScore(r.narration_vs_scenes))
+  const scores = valid.map((r) => originalKnown ? r.score : r.narration_vs_scenes)
+  const reasons = readings.flatMap((r) => r.evidence_reasons)
+  const expected = ctx.expectedReadings ?? COHERENCE_V2_READINGS
+  if (valid.length < expected) reasons.push('readings_below_plan')
+  const signatures = valid.map((r) => JSON.stringify(r))
+  const evidence = assessEvidence(reasons, { expected_frames: null, judged_frames: null, unique_frames: null, expected_readings: expected, valid_readings: valid.length, readings_identical: signatures.length > 1 && new Set(signatures).size === 1 })
   const nvsList = readings.map((r) => r.narration_vs_scenes).filter((x): x is number => x != null)
-  let score = mean(scores)
+  let score = scores.length ? mean(scores) : 0
   // a leitura de nota mais baixa explica o problema (é a que viu o defeito); empate = a primeira.
-  const worst = readings.reduce((a, b) => (b.score < a.score ? b : a), readings[0])
+  const worst = valid.length ? valid.reduce((a, b) => ((originalKnown ? b.score : b.narration_vs_scenes) < (originalKnown ? a.score : a.narration_vs_scenes) ? b : a), valid[0]) : readings[0]
   let problems = worst.problems
   const words = String(ctx.narration ?? '').trim() ? String(ctx.narration).trim().split(/\s+/).length : 0
   const corte = narrationCutSeconds({ words, filmSeconds: ctx.filmSeconds ?? null })
@@ -212,13 +232,16 @@ export function combineReadingsV2(
     problems = [`narração cortada: ~${corte.speechSeconds} s de fala para um filme de ${corte.filmSeconds} s — a história termina no meio`, ...problems].slice(0, 4)
   }
   return {
+    ...evidence,
     version: COHERENCE_V2_VERSION,
-    score,
-    verdict: verdictFor(score),
-    idea_fidelity: mean(readings.map((r) => r.idea_fidelity)),
+    score: evidence.evidence_status === 'complete' ? score : null,
+    verdict: evidence.evidence_status === 'complete' ? verdictFor(score) : null,
+    idea_fidelity: originalKnown && valid.length ? mean(valid.map((r) => r.idea_fidelity)) : null,
+    fidelity_basis: originalKnown ? 'original_request' : ctx.ideaSource === 'roteiro' ? 'supplied_script' : 'unverified_window',
+    evidence_limits: ['audio_not_evaluated', 'scene_prompts_are_not_rendered_frames', ...(!originalKnown ? ['original_request_not_verified'] : [])],
     narration_vs_scenes: nvsList.length ? mean(nvsList) : null,
     readings: scores,
-    spread: Math.max(...scores) - Math.min(...scores),
+    spread: scores.length ? Math.max(...scores) - Math.min(...scores) : 0,
     problems,
     worst_scene: worst.worst_scene,
     summary: worst.summary,
@@ -249,7 +272,10 @@ export async function scoreCoherenceV2(
   const known = knownCoherenceCase(input.idea, input.narration)
   if (known) {
     return {
+      ...assessEvidence([], { expected_frames: null, judged_frames: null, unique_frames: null, expected_readings: 0, valid_readings: 0, readings_identical: false }),
       version: COHERENCE_V2_VERSION, score: 0, verdict: 'off', idea_fidelity: 0, narration_vs_scenes: null, readings: [0], spread: 0,
+      fidelity_basis: input.ideaSource === 'roteiro' ? 'supplied_script' : input.ideaSource === 'script_written_janela' ? 'unverified_window' : 'original_request',
+      evidence_limits: ['deterministic_known_failure', 'audio_not_evaluated'],
       problems: known.result.problems, worst_scene: null, summary: known.result.summary, idea_source: input.ideaSource,
       idea_is_script: input.ideaSource === 'roteiro', narration_cut: false, model: null, usd: 0, ms: Date.now() - started,
     }
@@ -261,7 +287,7 @@ export async function scoreCoherenceV2(
   const doFetch = opts?.fetchImpl ?? fetch
   const n = Math.max(1, Math.min(3, opts?.readings ?? COHERENCE_V2_READINGS))
   const messages = buildCoherenceV2Messages(input)
-  const hasScenes = input.scenes.length > 0
+  const hasScenes = input.scenes.length > 0 && input.scenes.every((s) => s.prompt.trim() && s.spoken.trim())
   let usd = 0
   const one = async (): Promise<CoherenceV2Reading | null> => {
     const ctrl = new AbortController()
@@ -277,7 +303,7 @@ export async function scoreCoherenceV2(
       const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
       usd += usdFromUsage(data.usage)
       try {
-        return normalizeReadingV2(JSON.parse(data.choices?.[0]?.message?.content ?? '') as Record<string, unknown>, hasScenes)
+        return normalizeReadingV2(JSON.parse(data.choices?.[0]?.message?.content ?? '') as Record<string, unknown>, hasScenes, input.scenes.map((s) => s.scene))
       } catch {
         return null
       }
@@ -289,7 +315,7 @@ export async function scoreCoherenceV2(
   }
   try {
     const readings = (await Promise.all(Array.from({ length: n }, () => one()))).filter((r): r is CoherenceV2Reading => r !== null)
-    return combineReadingsV2(readings, { ideaSource: input.ideaSource, narration: input.narration, filmSeconds: input.filmSeconds ?? null, model, usd, ms: Date.now() - started })
+    return combineReadingsV2(readings, { ideaSource: input.ideaSource, narration: input.narration, filmSeconds: input.filmSeconds ?? null, model, usd, ms: Date.now() - started, expectedReadings: Math.max(n, COHERENCE_V2_READINGS) })
   } catch {
     return null
   }
