@@ -90,7 +90,7 @@ async function contract(gate) {
   assert.equal(caps.calls.render.length, 1)
   assert.deepEqual(caps.calls.render[0].elements.filter(e => e.type === 'audio'), source.elements.filter(e => e.type === 'audio'))
   assert.deepEqual(caps.get().captionEvidence, mismatch, 'raw evidence is retained after repair')
-  const delivered = await caps.advance(); assert.equal(delivered.status, 'passed'); assert.equal(delivered.media.url, repaired.url)
+  const delivered = await caps.advance(); assert.equal(delivered.status, 'failed'); assert.equal(delivered.reason, 'caption_evidence_unresolved_after_repair'); assert.equal(delivered.media.url, repaired.url)
   assert.equal(caps.calls.render.length, 1)
 
   const failed = harness(gate, { judgments: [captionBad(), captionBad()] })
@@ -129,6 +129,7 @@ async function contract(gate) {
 
 await contract(load(raw))
 const mutants = [
+  ['visual repair cannot erase unresolved audio evidence', "if (state.captionEvidence?.status === 'mismatch' && state.captionsRepaired) return", 'if (false) return'],
   ['duration floor drops below 14', 'media.durationSeconds < 14', 'media.durationSeconds < 13'],
   ['incomplete pixel evidence passes', "pixel.evidence_status !== 'complete'", 'false'],
   ['caption repair erases approved audio', 'source.elements.filter(el => !isCaptionElement(el))', 'source.elements.filter(el => isCaptionElement(el))'],

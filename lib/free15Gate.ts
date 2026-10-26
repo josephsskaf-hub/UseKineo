@@ -65,6 +65,9 @@ function culpritAt(source: Record<string, unknown>, seconds: number | null, scen
 export function decideFree15Gate(state: GateState, media: GateMedia, pixel: PixelResult | null, scenes: CenaRefazivel[]): GateDecision {
   if (media.durationSeconds === null || !Number.isFinite(media.durationSeconds)) return { kind: 'fail', reason: 'duration_unverified' }
   if (media.durationSeconds < 14) return { kind: 'fail', reason: 'duration_below_14' }
+  // Replacing visual text does not create new evidence of the unchanged audio.
+  // Preserve the disagreement without asserting whether TTS or ASR was wrong.
+  if (state.captionEvidence?.status === 'mismatch' && state.captionsRepaired) return { kind: 'fail', reason: 'caption_evidence_unresolved_after_repair' }
   if (!pixel || pixel.evidence_status !== 'complete' || pixel.score === null) {
     // A known caption mismatch still gets its one local repair when vision is
     // unavailable. Missing pixel evidence can never certify the repaired film.
