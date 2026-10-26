@@ -121,8 +121,13 @@ async function verify() {
       equal(p.affiliateDiscountEligible({ ...BASE, tier, isAnnual }), ['basic', 'pro'].includes(tier) && !isAnnual, `eligibility ${tier}/${isAnnual}`)
     }
   }
-  for (const [key, value] of [['affiliatePresent', false], ['discountApplied', true], ['wantsTrial', true], ['intro', true], ['checkoutRecovery', true], ['promoRequested', true]]) {
+  for (const [key, value] of [['affiliatePresent', false], ['discountApplied', true], ['wantsTrial', true], ['checkoutRecovery', true], ['promoRequested', true]]) {
     equal(p.affiliateDiscountEligible({ ...BASE, [key]: value }), false, `policy excludes ${key}`)
+  }
+  equal(p.affiliateDiscountEligible({ ...BASE, intro: true }), true, 'ineffective intro flag alone does not hide partner offer')
+  equal(p.affiliateDiscountEligible({ ...BASE, intro: true, discountApplied: true }), false, 'real posted intro discount blocks partner offer')
+  for (const tier of ['starter', 'basic', 'pro', 'business', 'autopilot', 'autopilot_lite']) {
+    for (const isAnnual of [true, false]) equal(p.subscriptionAcceptsManualPromotions(tier, isAnnual), ['basic', 'pro'].includes(tier) && !isAnnual, `manual promotion scope ${tier}/${isAnnual}`)
   }
   check(!planAcceptsPromotions('business'), 'Business real plan policy refuses promotions')
   await offerResolverChecks()
@@ -139,7 +144,7 @@ async function verify() {
   for (const shape of [
     { tier: 'business' }, { isAnnual: true }, { affiliateOffer: null },
     { sessionParams: { discounts: existing } }, { discountApplied: true },
-    { rawPromo: 'EXPLICIT' }, { intro: true }, { checkoutRecovery: {} }, { wantsTrial: true },
+    { rawPromo: 'EXPLICIT' }, { intro: true, discountApplied: true }, { checkoutRecovery: {} }, { wantsTrial: true },
   ]) {
     const denied = await authenticated(shape)
     equal(denied.affiliateDiscountApplied, false, `route excludes ${JSON.stringify(shape)}`)
