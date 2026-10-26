@@ -22,6 +22,7 @@ import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-EST
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { rostoFixoNoFilme15 } from '@/lib/filmes/filme15RostoFixo' // KINEO-FILME15-ROSTO-2610
+import { elencoDoFilme15, protagonistaEmTodaCena, ORDEM_DO_PROTAGONISTA } from '@/lib/filmes/filme15Elenco' // KINEO-FILME15-ELENCO-2610
 import { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29
 import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 — "vai" do 3x6] preço por segundo do Seedance 720p sem áudio (só o ensaio de $0 o mostra)
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
@@ -6757,8 +6758,13 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — com a folha ligada, depois do último toque no prompt (contrato, eixos, monumento) e ANTES do dry-run, do still FLUX e do clipe:
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a cena cujo visual mostra alguém e cuja FALA cita o personagem ganha a ficha (o menino da moto); a cena sem personagem e sem ninguém no
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — visual perde o "characters act naturally" e ganha "No people…" (o homem adulto da cena 1 do Dino). Desligada: o vetor fica byte a byte.
-    const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: personagemElenco.elenco }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const visuaisDoPlano15 = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-FILME15-ELENCO-2610
+    const elencoFilme15 = filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas
+    const elencoDoAjuste = elencoFilme15 && elencoFilme15.elenco.length > 0 ? elencoFilme15.elenco : personagemElenco.elenco // KINEO-FILME15-ELENCO-2610
+    const protagonista15 = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco }) : null // KINEO-FILME15-ELENCO-2610 — cena sem ninguém do elenco mostra o protagonista
+    const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && elencoDoAjuste.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: protagonista15 ? protagonista15.visuals : scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: elencoDoAjuste }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
     if (personagemCenas) { for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = personagemCenas.prompts[i]; console.log(`[personagem] gen=${generationId} cenas pela fala=${personagemCenas.cenas.filter((c) => c.pelaFala.length > 0).map((c) => c.indice + 1).join(',') || '-'} ficha no prompt=${personagemCenas.comFicha.join(',') || '-'} sem gente=${personagemCenas.semGente.join(',') || '-'}`) } // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    if (personagemCenas && protagonista15 && elencoFilme15) { const p15 = elencoFilme15.elenco.find((f) => f.protagonista) ?? elencoFilme15.elenco[0]; for (const i of protagonista15.forcadas) if (classicScenePrompts[i] && p15) classicScenePrompts[i] = ORDEM_DO_PROTAGONISTA(p15.canonica) + classicScenePrompts[i]; console.log(`[personagem] gen=${generationId} filme15 elenco=${elencoFilme15.origem}:${elencoFilme15.elenco.map((f) => f.nome).join('+')} protagonista forçado nas cenas=${protagonista15.forcadas.map((i) => i + 1).join(',') || '-'}`) } // KINEO-FILME15-ELENCO-2610
     // ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — a moderação lê o TEXTO FINAL das cenas antes do still e do POST pago ═══
     // KINEO-ROMANCE-ADULTO-2026-10-13 — Só em pedido romântico (o risco do caso d.hein.0): omni-moderation é gratuito, 1 chamada de até 8 s,
     // KINEO-ROMANCE-ADULTO-2026-10-13 — superfície 'clip' (a do /api/generate-clip, mesma régua). O nosso sufixo de adultos sai do texto
@@ -7092,11 +7098,11 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
-    if (personagem.ativo && anchorActive && !estrelaAtiva && personagemElenco.elenco.length > 0) { // KINEO-META95-PERSONAGEM-2010
+    if (personagem.ativo && anchorActive && !estrelaAtiva && elencoDoAjuste.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
       const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
       providerSubmissionMayExist = true // folha e stills com folha são trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-META95-PERSONAGEM-2010
       const personagemMotor = wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-META95-PERSONAGEM-2010
-      const elencoP = personagemElenco.elenco // KINEO-META95-PERSONAGEM-2010
+      const elencoP = elencoDoAjuste // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
       const visuaisP = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-META95-PERSONAGEM-2010 — a decisão "quem está na cena" lê o plano cru, como a Estrela
       const cenasP = (personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP)).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP)
       const motivosP: Partial<Record<MotivoStillComFolha, number>> = {} // KINEO-META95-PERSONAGEM-AJUSTE-2010
