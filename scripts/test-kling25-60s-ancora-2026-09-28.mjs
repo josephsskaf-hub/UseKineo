@@ -19,6 +19,7 @@
 //   (e) mutantes: cada peça central fica vermelha quando desfeita (teto 6 de volta; orçamento 30 s de volta com 14 planos;
 //       um teto de 64 s enfiado no compose clássico; anchorEngine trocado).
 import { readFileSync } from 'node:fs'
+import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact newer layer before the historical anchor sandbox and snapshots; current identity tests read raw source.
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
@@ -29,7 +30,7 @@ import ts from 'typescript'
 const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFilme15Fiel2610(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-FILME15-PERFEITO-2610
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
