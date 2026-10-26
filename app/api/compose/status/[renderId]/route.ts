@@ -35,6 +35,9 @@ import { getRenderIntent } from '@/lib/credits/renderIntent'
 // = 8. Quantidade e preco agora vem das MESMAS funcoes que cobram, e o link
 // leva campanha fechada para a origem ser distinguivel no pricing/checkout.
 import { videoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
+import { film60UpsellEligible } from '@/lib/growth/filmReady60s'
+import { filmCompleteEmail } from '@/lib/growth/filmCompleteCopy'
+import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import {
@@ -1223,6 +1226,13 @@ export async function GET(
             // é null e o bloco é string vazia — o e-mail sai byte a byte como
             // saía antes desta peça.
             const shareVideoId = persistedVideoId ?? (await findCompletedVideoId(user.id, renderId))
+            // KINEO-UPSELL-FILME15-2610 — the real delivery email carries the same film id as the result CTA.
+            // Its checkout saves the owner's persisted script; no browser storage, title-only fallback or script URL.
+            const film15Offer = shareVideoId && film60UpsellEligible({
+              plan: readyEmailPlan, hasPaid: readyEmailHasPaid, quality, seconds: duration, delivered: true,
+            }) ? filmCompleteEmail({
+              appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', videoId: shareVideoId, dark: true,
+            }) : null
             const shareHref = shareVideoId
               ? publishHref(shareVideoId, process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', 'video_ready_delivery')
               : null
@@ -1331,9 +1341,10 @@ export async function GET(
               <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
                 <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
                 <p style="color:#94a3b8;margin:0 0 24px">Your AI-generated YouTube Short about "<strong style="color:#fff">${safeTopic}</strong>" is ready to download.</p>
-                <a href="${safeVideoUrl}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
+                <a href="${safeVideoUrl}" style="display:inline-block;background:${film15Offer ? 'transparent' : '#2997ff'};color:${film15Offer ? '#b9dcff' : '#fff'};border:${film15Offer ? '1px solid #475569' : 'none'};text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
                   ⬇ Download Your Short
                 </a>
+                ${film15Offer?.html ?? ''}
                 ${readyFooter.html}
                 ${shareHtml}
                 ${packHtml}
@@ -1379,6 +1390,9 @@ export async function GET(
                       path: '/api/compose/status',
                       metadata: {
                         render_id: renderId,
+                        film15_full_offer: Boolean(film15Offer),
+                        film15_offer_version: film15Offer ? FILM_COMPLETE_VERSION : null,
+                        source_video_id: film15Offer ? shareVideoId : null,
                         footer: readyFooter.kind,
                         // va-r5 — a porta de $1 entrou NESTE e-mail? O `footer`
                         // sozinho nao separa a versao com porta da sem: os dois

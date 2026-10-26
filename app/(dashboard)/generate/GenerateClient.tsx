@@ -266,7 +266,8 @@ import SubscriberUpgradeNudge, { SUBSCRIBER_UPGRADE_ENABLED } from '@/components
 import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
-import FilmReady60sUpsell from '@/components/FilmReady60sUpsell' // KINEO-VERSAO-60S-2026-10-13 — "Make the 60-second version of this film"
+import FilmReadyFullVersionUpsell from '@/components/FilmReadyFullVersionUpsell'
+import { FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
 import { AUTOANALYZE_SESSION_PREFIX, autoanalyzeSessionKey, jaConsumidoNaAba, enderecoSemAutoanalyze, decidirAutoanalyze, decidirAindaNoForno, filmeDoAvisoChegou, CHECKING_CREDITS_COPY, CREDITS_READ_FAILED_COPY, STILL_RENDERING_COPY, STILL_RENDERING_POLL_MAX_MS, STILL_RENDERING_POLL_EVERY_MS } from '@/lib/growth/studioFantasma' // KINEO-STUDIO-FANTASMA-1510
 import { BUY_CREATOR_FILM_SECONDS, buyCreatorPrice } from '@/lib/growth/buyCreatorOffer' // KINEO-PRIMEIRO-FILME-2026-10-13 — o preço da nota (o mesmo do bloco pós-filme)
@@ -5800,9 +5801,14 @@ export default function GenerateClient({
       ? serverWatermark
       : planTier === 'free' && !hasPaid && quality === 'fast' &&
         !falUsedRef.current && Boolean(lastFastRenderRef.current)
+  // KINEO-UPSELL-FILME15-2610 — one personalized primary offer replaces generic clean-export checkouts for this cohort.
+  const fullVersionOfferEligible = Boolean(publicVideoId) && film60UpsellEligible({
+    plan: commercialPlan, hasPaid, engine: mode === 'cinematic_ai' ? aiEngine : null,
+    seconds: duration, delivered: phase === 'done' && Boolean(finalVideoUrl),
+  })
   const showPostVideoExportChoice =
     phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
-    !trialActive && !wmUnlocking && trialPostVideoPhase === null
+    !trialActive && !wmUnlocking && trialPostVideoPhase === null && !fullVersionOfferEligible
   // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 (jogada 7, fundador: "pode ir") — ver
   // lib/growth/cleanDownloadTwin.ts. Diferente da caixa acima, NÃO exclui o
   // trial: 34 das 38 leituras recentes do pós-download eram de trial, e é lá
@@ -5984,6 +5990,13 @@ export default function GenerateClient({
   // five cumulative seconds of real, visible playback before judging whether
   // an offer was shown before value was perceived. No player or offer behavior
   // changes; this is an invisible measurement gate.
+  // KINEO-UPSELL-FILME15-2610 — read current ownership/eligibility when actual playback reaches five seconds.
+  // An offer impression alone never becomes evidence that someone watched their free film.
+  const film15WatchContextRef = useRef({ videoId: publicVideoId, eligible: false })
+  film15WatchContextRef.current = {
+    videoId: publicVideoId,
+    eligible: fullVersionOfferEligible,
+  }
   const resultVideoValueContextRef = useRef<ResultVideoValueContext>({
     attemptId: generationAttemptRef.current ?? '',
     quality: planFitNormalizedQuality,
@@ -6022,7 +6035,17 @@ export default function GenerateClient({
       readLatch: (key) => localStorage.getItem(key),
       writeLatch: (key, value) => localStorage.setItem(key, value),
       removeLatch: (key) => localStorage.removeItem(key),
-      emit: (metadata) => trackClosedEvent(RESULT_VIDEO_VALUE_SAMPLED_EVENT, metadata),
+      emit: async (metadata) => {
+        const watchedFilm = film15WatchContextRef.current
+        const recorded = await trackClosedEvent(RESULT_VIDEO_VALUE_SAMPLED_EVENT, metadata)
+        if (recorded === 'stored' && watchedFilm.eligible && watchedFilm.videoId) {
+          await trackClosedEvent('film15_free_film_watched', {
+            ...metadata, version: FILM_COMPLETE_VERSION, source_video_id: watchedFilm.videoId,
+            video_id: watchedFilm.videoId, surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
+          })
+        }
+        return recorded
+      },
     })
     const sampler = createResultVideoValueSampler({
       attemptId,
@@ -13222,7 +13245,7 @@ export default function GenerateClient({
   // abaixo do download nos DOIS ramos irmãos (caixa de export limpo e download
   // simples do trial) — eles nunca renderizam juntos, então o ref é um só.
   const cleanDownloadTwinCopy = cleanDownloadTwinLabel(postVideoRenewalPrice, TIER_CREDITS.starter)
-  const cleanDownloadTwinButton = cleanDownloadTwin.visible ? (
+  const cleanDownloadTwinButton = cleanDownloadTwin.visible && !fullVersionOfferEligible ? (
     <button
       ref={cleanDownloadTwinRef}
       type="button"
@@ -17253,7 +17276,7 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'done' && finalVideoUrl && primeiroFilmeEntregue && (
+          {phase === 'done' && finalVideoUrl && primeiroFilmeEntregue && !fullVersionOfferEligible && (
             <section className="gv-card rounded-2xl px-5 sm:px-8 py-6 mb-4" style={{ background: '#0f1a2a', border: '1px solid #2997ff' }} data-primeiro-filme="entregue">
               <div className="text-xs" style={{ color: '#2997ff', letterSpacing: '0.08em', fontWeight: 700 }}>YOUR FIRST FILM IS DONE</div>
               <h3 className="mt-1" style={{ color: 'var(--text)', fontSize: '1.15rem', fontWeight: 600, lineHeight: 1.25 }}>Continue this series → Episode 2</h3>
@@ -17301,7 +17324,7 @@ export default function GenerateClient({
                   data-testid="done-download-top"
                   aria-label="Download MP4"
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg mt-3 py-2 px-4 text-sm font-bold"
-                  style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}
+                  style={{ background: fullVersionOfferEligible ? 'transparent' : 'var(--accent)', color: fullVersionOfferEligible ? 'var(--accent)' : 'var(--on-accent)', border: fullVersionOfferEligible ? '1px solid var(--border)' : undefined, textDecoration: 'none' }}
                 >
                   <span aria-hidden="true">⬇</span> Download MP4
                 </a>
@@ -17982,7 +18005,9 @@ export default function GenerateClient({
                         : 'Download clean MP4'}
                     className="flex items-center justify-center gap-2 w-full rounded-2xl py-4 text-base font-black text-white"
                     style={{
-                      background: 'var(--accent)', color: 'var(--on-accent)',
+                      background: fullVersionOfferEligible ? 'transparent' : 'var(--accent)',
+                      color: fullVersionOfferEligible ? 'var(--text)' : 'var(--on-accent)',
+                      border: fullVersionOfferEligible ? '1px solid var(--border)' : undefined,
                       textDecoration: 'none',
                       boxShadow: 'var(--sh-card)',
                       letterSpacing: '-0.01em',
@@ -18025,19 +18050,10 @@ export default function GenerateClient({
                 {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, no ramo onde o trial cai. */}
                 {!showPostVideoExportChoice && cleanDownloadTwinButton}
 
-                {/* KINEO-VERSAO-60S-2026-10-13 — a versão de 60 s DESTE filme, logo abaixo do download nos DOIS ramos (com a
-                    caixa de export limpo o ramo de cima já mostrou o download; sem ela, o download está logo acima). Só para
-                    conta que não paga (has_paid=false + plano lido que não é assinatura) com o filme curto do Seedance 1.5
-                    entregue — decisão em lib/growth/filmReady60s.ts. O texto do filme vai no bilhete da sessionStorage, nunca
-                    na URL; o clique leva ao checkout do Creator mensal (WELCOME20 automático no servidor). Nada é gerado. */}
-                {film60UpsellEligible({
-                  plan: commercialPlan,
-                  hasPaid,
-                  engine: mode === 'cinematic_ai' ? aiEngine : null,
-                  seconds: duration,
-                  delivered: phase === 'done' && Boolean(finalVideoUrl),
-                }) && (
-                  <FilmReady60sUpsell videoId={publicVideoId} plan={commercialPlan} seconds={finalVideoSeconds ?? duration} prompt={prompt} />
+                {/* KINEO-UPSELL-FILME15-2610 — same delivered free film, full 35 s version. This shared position follows
+                    both download branches. The authenticated checkout route persists the saved script before Stripe. */}
+                {fullVersionOfferEligible && (
+                  <FilmReadyFullVersionUpsell videoId={publicVideoId} />
                 )}
 
                 {/* sprint-retencao #11 (2026-09-05) — A MESMA PORTA, NO RAMO
@@ -18076,13 +18092,13 @@ export default function GenerateClient({
                     onClick={() => handleContinueSeries(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine)}
                     className="flex w-full flex-col items-center justify-center rounded-xl px-5 py-3.5 text-center font-black"
                     style={{
-                      background: watermarkedDownloadConfirmed
+                      background: watermarkedDownloadConfirmed && !fullVersionOfferEligible
                         ? 'var(--accent)'
                         : 'var(--accent-soft)',
                       border: watermarkedDownloadConfirmed
                         ? '1px solid var(--border)'
                         : '1px solid var(--border)',
-                      color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
+                      color: watermarkedDownloadConfirmed && !fullVersionOfferEligible ? 'var(--on-accent)' : 'var(--accent)',
                       cursor: 'pointer',
                       boxShadow: watermarkedDownloadConfirmed
                         ? 'var(--sh-card)'
@@ -18096,7 +18112,7 @@ export default function GenerateClient({
                         marginTop: 4,
                         fontSize: '0.7rem',
                         fontWeight: 650,
-                        color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
+                        color: watermarkedDownloadConfirmed && !fullVersionOfferEligible ? 'var(--on-accent)' : 'var(--accent)',
                         lineHeight: 1.4,
                       }}
                     >

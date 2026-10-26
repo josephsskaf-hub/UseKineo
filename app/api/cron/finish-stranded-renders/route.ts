@@ -35,6 +35,9 @@ import { STRANDED_MIN_AGE_MS, CINEMATIC_CLIENT_POLL_EVENT, clientStillAlive } fr
 import { tomarVezDoCron } from '@/lib/cronLease' // KINEO-FILME-RAPIDO-1710 — uma rodada por vez com o cron de 1 min
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
+import { film60UpsellEligible } from '@/lib/growth/filmReady60s'
+import { filmCompleteEmail } from '@/lib/growth/filmCompleteCopy'
+import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
@@ -393,12 +396,13 @@ async function statusRouteAlreadyEmailed(admin: SupabaseClient, userId: string, 
   return (data ?? []).length > 0 ? 'sent' : 'none'
 }
 
-function readyText(videoUrl: string): string {
+function readyText(videoUrl: string, fullFilm: { text: string } | null = null): string {
   return `Your video is ready. 🎬
 
 You started a film on Kineo and we finished it for you — scenes, voiceover, captions and music, all assembled. Watch and download it here:
 
 ${videoUrl}
+${fullFilm?.text ?? ''}
 
 Ready for the next one? ${APP_URL}/studio
 
@@ -407,12 +411,13 @@ Post it somewhere? Paste the link in the app afterwards and you get +3 credits b
 — Kineo`
 }
 
-function readyHtml(videoUrl: string, userId: string, footer: VideoReadyFooter): string {
+function readyHtml(videoUrl: string, userId: string, footer: VideoReadyFooter, fullFilm: { html: string } | null = null): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p style="font-size:18px"><b>Your video is ready 🎬</b></p>
   <p>You started a film on Kineo and we finished it for you — scenes, voiceover, captions and music, all assembled.</p>
-  <p style="margin:26px 0"><a href="${videoUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Watch my video &rarr;</a></p>
+  <p style="margin:26px 0"><a href="${videoUrl}" style="background:${fullFilm ? 'transparent' : '#2997ff'};color:${fullFilm ? '#176dbb' : '#ffffff'};border:${fullFilm ? '1px solid #cbd5e1' : 'none'};padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Watch my video &rarr;</a></p>
+  ${fullFilm?.html ?? ''}
   <!-- rodapé do #24 foi desenhado para fundo escuro (strong em #fff): cartão escuro aqui, senão o saldo some no branco -->
   <div style="background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px;margin:0 0 6px">${footer.html}</div>
   <p style="color:#64748b;font-size:13px;margin-top:18px">Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.</p>
@@ -770,7 +775,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       }
       const { data: vid } = await admin
         .from('videos')
-        .select('id, status, video_url, final_video_url, title, topic, credits_used, duration')
+        .select('id, status, video_url, final_video_url, title, topic, credits_used, duration, quality_mode')
         .eq('user_id', userId)
         .eq('render_id', renderId)
         .maybeSingle()
@@ -791,9 +796,12 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
             continue
           }
           const footer = readyFooterFor(prof, vid)
-          const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId, footer))
+          const fullFilm = typeof vid.id === 'string' && film60UpsellEligible({
+            plan: prof?.plan, hasPaid: prof?.has_paid, quality: vid.quality_mode, seconds: vid.duration, delivered: true,
+          }) ? filmCompleteEmail({ appUrl: APP_URL, videoId: vid.id }) : null
+          const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`, fullFilm), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId, footer, fullFilm))
           if (ok) {
-            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, trial_door: footer.trialDoor, has_paid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null, ads_line: footer.adsLine } })
+            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, footer: footer.kind, trial_door: footer.trialDoor, has_paid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null, subscriber: readyIsSubscriber(prof), cost: vid?.credits_used ?? null, credits_remaining: prof?.video_credits ?? null, ads_line: footer.adsLine, film15_full_offer: Boolean(fullFilm), film15_offer_version: fullFilm ? FILM_COMPLETE_VERSION : null, source_video_id: fullFilm ? vid.id : null } })
             ready++
             results.push({ generation: gen8, outcome: 'ready_email_sent' })
           } else results.push({ generation: gen8, outcome: 'ready_email_failed' })
