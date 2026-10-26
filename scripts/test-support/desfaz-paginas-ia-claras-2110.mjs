@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semAdminLeve2310 } from './desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove the exact later layer before this complete historical snapshot.
+import { semVitrine2610 } from './desfaz-vitrine-filmes-2610.mjs' // KINEO-VITRINE-FILMES-2610 — historical consumers remove the exact later showcase delta before complete source snapshots; current showcase guardians execute unprojected sources.
 
 export const MARCA_PAGINAS_IA_CLARAS_2110 = 'KINEO-PAGINAS-IA-CLARAS-2110'
 export const PAGINAS_IA_CLARAS_2110_TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]'
@@ -31,6 +32,7 @@ const rel = (p) => String(p ?? '').replace(/\\/g, '/')
 
 /** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */
 export function semPaginasIaClaras2110(texto, p) {
+  texto = semVitrine2610(texto, p) // KINEO-VITRINE-FILMES-2610 — preserve all historical assertions, mutation anchors and frozen snapshots below.
   texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.
   const r = rel(p)
   if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto
