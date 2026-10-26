@@ -312,6 +312,26 @@
         }
       ],
       "hunksSha256": "b1a4e2bca5f4a4c41d03eb113e20bdc3c0587a7341b3ca7039c6058d8f2dcc30"
+    },
+    "scripts/test-geo-rodada2-2026-10-08.mjs": {
+      "kind": "modified",
+      "beforeSha256": "2fe6663570eafacd2ad3aba9e43759986a21421e2a1b1b77e1033e34290fea3e",
+      "afterSha256": "080330f360c9e8ae728ab4fede0de921451cf3cd915ae73a9398d6de10493bf6",
+      "hunks": [
+        {
+          "before": "  'lib/growth/citationAnswers.ts': { CITATION_ANSWER_LINKS: [], CITATION_REVIEW_DATE: '2026-09-27' },\n  'lib/seo/freeShortsGeneratorLangs.ts': { FREE_SHORTS_LANGS: [] },\n})\nconst listaPasta = (world) => world.dir ?? readdirSync(join(ROOT, DATA_DIR))\nconst jsonVigente = () => JSON.parse(rd(`${DATA_DIR}/${edicaoImportada({})}.json`))\nfunction edicaoImportada(rep) {\n",
+          "after": "  'lib/growth/citationAnswers.ts': { CITATION_ANSWER_LINKS: [], CITATION_REVIEW_DATE: '2026-09-27' },\n  'lib/seo/freeShortsGeneratorLangs.ts': { FREE_SHORTS_LANGS: [] },\n})\n// KINEO-VITRINE-FILMES-2610 — create historical sitemap mutants only after the\n// exact Vitrine/Pages/Bing projections; a mutated source must not be undone again.\nconst sitemapBeforeMutations = () => semBingSeo1510(SITEMAP, rd(SITEMAP))\nconst listaPasta = (world) => world.dir ?? readdirSync(join(ROOT, DATA_DIR))\nconst jsonVigente = () => JSON.parse(rd(`${DATA_DIR}/${edicaoImportada({})}.json`))\nfunction edicaoImportada(rep) {\n"
+        },
+        {
+          "before": "// mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do\n// Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por\n// scripts/test-bing-seo-1510.mjs.\n  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: semBingSeo1510(SITEMAP, rep[SITEMAP] ?? rd(SITEMAP)) }, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()\n  const lm = (path) => { const e = sm.find((x) => x.url === `${BASE}${path}`); return e ? new Date(e.lastModified).toISOString() : null }\n  const r2 = new Date(`${RODADA2_ISO}T12:00:00.000Z`).toISOString()\n  if (ideas.GEO_RODADA2_REVIEWED_ISO !== RODADA2_ISO) p.push('D: GEO_RODADA2_REVIEWED_ISO ≠ 2026-10-08')\n",
+          "after": "// mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do\n// Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por\n// scripts/test-bing-seo-1510.mjs.\n  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: rep[SITEMAP] ?? sitemapBeforeMutations() }, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()\n  const lm = (path) => { const e = sm.find((x) => x.url === `${BASE}${path}`); return e ? new Date(e.lastModified).toISOString() : null }\n  const r2 = new Date(`${RODADA2_ISO}T12:00:00.000Z`).toISOString()\n  if (ideas.GEO_RODADA2_REVIEWED_ISO !== RODADA2_ISO) p.push('D: GEO_RODADA2_REVIEWED_ISO ≠ 2026-10-08')\n"
+        },
+        {
+          "before": "\n// ── mutantes e controles ───────────────────────────────────────────────────────────────────────────────────────────────\nconst troca = (rel, de, para, extra = {}) => {\n  const src = Object.hasOwn(extra, rel) ? extra[rel] : rd(rel)\n  if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)\n  return { ...extra, [rel]: src.split(de).join(para) }\n}\n",
+          "after": "\n// ── mutantes e controles ───────────────────────────────────────────────────────────────────────────────────────────────\nconst troca = (rel, de, para, extra = {}) => {\n  const src = Object.hasOwn(extra, rel) ? extra[rel] : rel === SITEMAP ? sitemapBeforeMutations() : rd(rel)\n  if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)\n  return { ...extra, [rel]: src.split(de).join(para) }\n}\n"
+        }
+      ],
+      "hunksSha256": "91fc4da76c7a749bbad4bba7d58aff33a58b834140da363056e5e68929b0c997"
     }
   }
 }
