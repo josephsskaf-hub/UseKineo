@@ -38,13 +38,15 @@ export const dynamic = 'force-dynamic'
 const PATH = '/api/kids-cartoon/story'
 
 /** A faixa de palavras do Seedance 1.5 na duração e na língua (a mesma conta do /api/generate-script para 'cinematic_ai'). */
-function kidsStoryWordBand(duration: number, language: string, idea: string): { min: number; max: number } {
+function kidsStoryWordBand(duration: number, language: string, idea: string): { min: number; max: number; aceita: number } { // KINEO-DESENHO-15S-ACEITA-2710
   const regua = writerRateFor('cinematic_ai', idea, language)
   const idioma = duration === SEEDANCE_SHORT_SECONDS ? language : undefined
   const min = minWordsFor(duration, regua.wordsPerSecond, regua.coverage, idioma)
   const teto = maxWordsFor(duration, regua.wordsPerSecond, regua.coverage, idioma)
   const max = duration === SEEDANCE_SHORT_SECONDS ? Math.min(teto, maxWordsForShortFilm(duration, language)) : teto
-  return { min: Math.min(min, max), max }
+  // o pedido ao escritor segue min–max; a conferência aceita até o teto que o cinematic aceita no 15 s (56 em inglês) — passar do alvo é bom, recusar a história não é // KINEO-DESENHO-15S-ACEITA-2710 [TRAVA 8.2 — fundador 27/10 "puxa o sha": 3 das 5 amostras e 5 pedidos de 22/10 morreram em writer_too_long com 36–41]
+  const aceita = duration === SEEDANCE_SHORT_SECONDS ? Math.max(max, maxWordsForShortFilm(duration, language)) : max // KINEO-DESENHO-15S-ACEITA-2710
+  return { min: Math.min(min, max), max, aceita } // KINEO-DESENHO-15S-ACEITA-2710
 }
 
 export async function POST(req: NextRequest) {
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
       console.warn('[kids-cartoon/story] escritor falhou:', err instanceof Error ? err.message : String(err))
       return recusa(503, lang === 'pt' ? 'O escritor está ocupado agora. Nada foi cobrado — tente de novo em um minuto.' : 'The story writer is busy right now. Nothing was charged — try again in a minute.', 'writer_unavailable')
     }
-    const conferida = kidsStoryCheck(texto, { character: request.character, minWords: band.min, maxWords: band.max })
+    const conferida = kidsStoryCheck(texto, { character: request.character, minWords: band.min, maxWords: band.aceita }) // KINEO-DESENHO-15S-ACEITA-2710
     if (conferida.ok) { script = conferida.script; break }
     motivo = conferida.reason
     if (conferida.reason === 'not_innocent' || conferida.reason === 'empty') break
