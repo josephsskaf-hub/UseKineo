@@ -5,11 +5,13 @@
 // Camada mais nova sobre o giro: semCardsGiro2410 chama isto PRIMEIRO. Fim de linha: o do próprio texto. Idempotente.
 import { readFileSync } from 'node:fs'
 import { semTrendingInventario2510 } from './desfaz-trending-inventario-2510.mjs'
+import { semCronOrigem2610 } from './desfaz-cron-origem-2610.mjs' // KINEO-CRON-ORIGEM-2610
 import { semCardsNovos2610 } from './desfaz-cards-novos-2610.mjs' // KINEO-CARDS-NOVOS-2610 — camada mais nova dos cards
 export const MARCA_CARDS_BORDAS_2410 = 'KINEO-CARDS-BORDAS-2410'
 export const CARDS_BORDAS_2410 = JSON.parse(readFileSync(new URL('./desfaz-cards-bordas-2410-trocas.json', import.meta.url), 'utf8'))
 
 export function semCardsBordas2410(texto, p) {
+  texto = semCronOrigem2610(texto, p) // KINEO-CRON-ORIGEM-2610 — o guardião das páginas reancorado sai antes
   texto = semCardsNovos2610(texto, p) // KINEO-CARDS-NOVOS-2610 — os vídeos novos dos 3 cards saem antes de tudo
   texto = semTrendingInventario2510(texto, p) // KINEO-TRENDING-INVENTARIO-2510 — newer exact inventory line comes off first.
   const rel = String(p ?? '').split(String.fromCharCode(92)).join('/')
