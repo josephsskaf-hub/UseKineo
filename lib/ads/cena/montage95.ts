@@ -3,6 +3,7 @@ import { ADS_V2_FRAME_RATE } from '../adV2Montage'
 import { cenaFinalTextElements } from './montage'
 import { cenaVoiceModeOf, type CenaPlan } from './plan'
 import { cena95Captions, cena95DefaultWindows, type Cena95Word, type Cena95SpeechWindow } from './captions95'
+import { textDirectionOf } from '@/lib/textLanguage' // KINEO-LEGENDA-RTL-2710
 export interface Cena95SelectedClip {
   url: string; kind: 'hook' | 'use' | 'close'; seconds: number; keepSeconds: number; start: number;
   trimStart?: number; hasSpeech: boolean; photoReference?: string;
@@ -40,7 +41,8 @@ function pagedFinal95(plan: Final95Plan, words: Cena95Word[]): Record<string, un
       const end = edges[k + 1], mid = (start + end) / 2, active = row.track === 46 ? spoken.findIndex(w => mid >= w.start && mid < w.end) : -1
       const candidates = active < 0 ? [] : pages.filter(p => p.some(t => t.index === active))
       const page = candidates.length ? candidates[Math.min(candidates.length - 1, Math.floor((mid - spoken[active].start) / (spoken[active].end - spoken[active].start) * candidates.length))] : pages[Math.min(pages.length - 1, Math.floor((mid - 13) / 2 * pages.length))]
-      return { type: 'text', track: row.track, time: r6(start), duration: r6(end - start), text: page.map(p => p.index === active ? `[color #FFD400]${p.text}[/color]` : p.text).join(' '), x: '50%', y: row.y, x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: 84, text_wrap: false, text_clip: true, clip: true, font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: 7 }
+      const rtl = textDirectionOf(row.text) === true // KINEO-LEGENDA-RTL-2710 — rótulo RTL: sem span (o Creatomate embaralha as corridas) e text_direction 'rtl'
+      return { type: 'text', track: row.track, time: r6(start), duration: r6(end - start), text: page.map(p => p.index === active && !rtl ? `[color #FFD400]${p.text}[/color]` : p.text).join(' '), ...(rtl ? { text_direction: 'rtl' } : {}), x: '50%', y: row.y, x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: 84, text_wrap: false, text_clip: true, clip: true, font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: 7 } // KINEO-LEGENDA-RTL-2710
     })
   })
 }
@@ -83,8 +85,9 @@ export function cena95FinalTextElements(plan: Final95Plan, words: Cena95Word[]):
     if (end <= start) return []
     const selected = spoken.findIndex(w => mid >= w.start && mid < w.end)
     let index = 0
-    const text = String(cta.text).split(/(\s+)/u).map(part => /\S/u.test(part) ? index++ === selected ? `[color #FFD400]${part}[/color]` : part : part).join('')
-    return [{ ...cta, time: start, duration: r6(end - start), text, ...(k > 0 ? { enter_transition: undefined } : {}) }]
+    const rtl = textDirectionOf(cta.text) === true // KINEO-LEGENDA-RTL-2710 — CTA RTL: sem palavra pintada (o span embaralha as corridas) e text_direction 'rtl'
+    const text = String(cta.text).split(/(\s+)/u).map(part => /\S/u.test(part) ? index++ === selected && !rtl ? `[color #FFD400]${part}[/color]` : part : part).join('') // KINEO-LEGENDA-RTL-2710
+    return [{ ...cta, time: start, duration: r6(end - start), text, ...(rtl ? { text_direction: 'rtl' } : {}), ...(k > 0 ? { enter_transition: undefined } : {}) }] // KINEO-LEGENDA-RTL-2710
   })
   return [...base.filter(e => e.track !== 46), ...active]
 }

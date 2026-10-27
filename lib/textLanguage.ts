@@ -204,6 +204,26 @@ export function narrationWordCount(text: string, language?: unknown): number { r
 export function joinNarrationTokens(tokens: readonly string[], language?: unknown): string {
   return tokens.join(['zh', 'yue', 'ja', 'th'].includes(narrationLanguage(language) ?? '') || tokens.some(t => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|^\s|\s$/u.test(t)) ? '' : ' ')
 }
+// KINEO-LEGENDA-RTL-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — escrita da direita para a esquerda.
+// Render c5e68914 (urdu, 27/10 17:42Z): o karaokê de lib/compose embrulha a palavra corrente em [color]…[/color]; o Creatomate // KINEO-LEGENDA-RTL-2710
+// parte o texto em corridas nessa fronteira e dispõe as corridas da ESQUERDA para a direita — "ایک چھوٹا سا راز" saiu na tela // KINEO-LEGENDA-RTL-2710
+// como "چھوٹا سا راز ایک" e trocava de ordem a cada palavra pintada (a 3ª legenda, "آمنہ کو ملا ایک جادوئی", bate exatamente // KINEO-LEGENDA-RTL-2710
+// com esse modelo). Hebraico 0590–05FF · árabe/persa/urdu/pashto/sindi/curdo/uigur 0600–06FF, 0750–077F, 08A0–08FF · formas // KINEO-LEGENDA-RTL-2710
+// de apresentação FB1D–FDFF, FE70–FEFF. A PRIMEIRA letra forte decide (UAX #9, P2/P3); sem letra forte (só dígitos, // KINEO-LEGENDA-RTL-2710
+// pontuação) devolve null e quem chama cai no idioma do filme (`rtl` do catálogo acima). // KINEO-LEGENDA-RTL-2710
+const RTL_SCRIPT_RE = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/u // KINEO-LEGENDA-RTL-2710
+export function hasRtlScript(text: unknown): boolean { return RTL_SCRIPT_RE.test(String(text ?? '')) } // KINEO-LEGENDA-RTL-2710
+export function isRtlLanguage(raw: unknown): boolean { const code = narrationLanguage(raw); return code != null && NARRATION_LANGUAGES.some((l) => l.code === code && l.rtl === true) } // KINEO-LEGENDA-RTL-2710
+/** true = RTL · false = LTR · null = sem letra forte (só dígitos/pontuação/espaços). Nunca lança. */ // KINEO-LEGENDA-RTL-2710
+export function textDirectionOf(text: unknown): boolean | null { // KINEO-LEGENDA-RTL-2710
+  for (const ch of String(text ?? '')) { // KINEO-LEGENDA-RTL-2710
+    if (RTL_SCRIPT_RE.test(ch)) return true // KINEO-LEGENDA-RTL-2710
+    if (/\p{L}/u.test(ch)) return false // KINEO-LEGENDA-RTL-2710
+  } // KINEO-LEGENDA-RTL-2710
+  return null // KINEO-LEGENDA-RTL-2710
+} // KINEO-LEGENDA-RTL-2710
+/** A legenda deste texto é RTL? O texto decide; sem letra forte, o idioma do filme. */ // KINEO-LEGENDA-RTL-2710
+export function isRtlCaption(text: unknown, language?: unknown): boolean { return textDirectionOf(text) ?? isRtlLanguage(language) } // KINEO-LEGENDA-RTL-2710
 export function narrationSentences(text: string, language?: unknown): string[] {
   const value = String(text ?? '').trim()
   if (!value) return []

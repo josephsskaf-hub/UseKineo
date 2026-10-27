@@ -6,7 +6,7 @@ import { narrationWordCount, narrationTokens, joinNarrationTokens } from '@/lib/
 // dynamically import it below.
 
 import { createHash } from 'node:crypto'
-import { captionFontFor, DEFAULT_CAPTION_FONT, usesMiniMaxNarration, minimaxVoiceFor, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { captionFontFor, DEFAULT_CAPTION_FONT, usesMiniMaxNarration, minimaxVoiceFor, isRtlLanguage, textDirectionOf, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 // KINEO-LEGENDA-RTL-2710
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
@@ -138,8 +138,11 @@ let ACTIVE_ASPECT: AspectSpec = aspectSpec('9:16')
 // urdu sairiam como caixas. Mesmo padrão do ACTIVE_ASPECT: a rota chama setActiveCaptionFont(language) logo antes de
 // montar a fonte do Creatomate (síncrono, na mesma request). A marca d'água continua em Montserrat (texto latino).
 let ACTIVE_CAPTION_FONT: string = DEFAULT_CAPTION_FONT
+// KINEO-LEGENDA-RTL-2710 — idioma RTL do filme (ar/ur/he do catálogo): só decide quando o chunk não tem letra forte ("2024!"); texto com letra decide sozinho.
+let ACTIVE_CAPTION_RTL = false // KINEO-LEGENDA-RTL-2710
 export function setActiveCaptionFont(language?: unknown): string {
   ACTIVE_CAPTION_FONT = captionFontFor(language)
+  ACTIVE_CAPTION_RTL = isRtlLanguage(language) // KINEO-LEGENDA-RTL-2710 — mesma chamada, mesmo instante, mesma request
   return ACTIVE_CAPTION_FONT
 }
 function setActiveAspect(raw?: unknown): AspectSpec {
@@ -1655,6 +1658,7 @@ interface CreatomateElement {
   font_family?: string
   font_size?: number
   font_weight?: string
+  text_direction?: 'ltr' | 'rtl' // KINEO-LEGENDA-RTL-2710 — propriedade documentada do Creatomate (creatomate.com/llms/text.md); só entra em legenda RTL
   // PUSH #93 — safe-zone layout. `y_anchor: '100%'` pins the element by its
   // BOTTOM edge, so a caption that wraps to 2–3 lines grows upward into empty
   // footage instead of downward into YouTube's bottom chrome. `line_height`
@@ -1781,12 +1785,18 @@ export function buildCaptionElements({
   // grows upward into empty footage, narrow it to 78% so it clears the right
   // ~90px chrome, and drop the font 70→62 with an explicit line_height so the
   // worst-case height is predictable (see the SHORTS SAFE-ZONE LAYOUT block).
+  // KINEO-LEGENDA-RTL-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — urdu/árabe/persa/hebraico:
+  // o texto fica na ORDEM LÓGICA (nunca invertido), o elemento declara text_direction 'rtl' e fica centralizado; o karaokê // KINEO-LEGENDA-RTL-2710
+  // por [color] é DESLIGADO (abaixo), porque é a fronteira do span que o Creatomate dispõe LTR e embaralha as palavras // KINEO-LEGENDA-RTL-2710
+  // (render c5e68914). Texto LTR: `rtl` é false e o elemento sai byte a byte como antes. // KINEO-LEGENDA-RTL-2710
+  const rtl = textDirectionOf(text) ?? ACTIVE_CAPTION_RTL // KINEO-LEGENDA-RTL-2710
   const baseCaption: CreatomateElement = {
     type: 'text',
     track: 5,
     time,
     duration,
     text: (text ?? '').toUpperCase(),
+    ...(rtl ? { text_direction: 'rtl' as const } : {}), // KINEO-LEGENDA-RTL-2710 — o centro (x_alignment 50 %) já vem do formato em todos os aspectos desde 14/10 (lib/aspect.ts)
     x: '50%',
     // KINEO-MULTIFORMATO-2026-09-02 — em 9:16 estes valores são idênticos aos
     // constantes acima (78%/78%/62/76); nos outros formatos vêm de aspect.ts.
@@ -1850,7 +1860,7 @@ export function buildCaptionElements({
   // SIMULTÂNEOS empilhados (linha branca + palavra amarela flutuante); aqui é
   // sempre UM elemento visível por vez, no mesmo track 5.
   try {
-    if (Array.isArray(karaokeWords) && karaokeWords.length > 1 && duration > 0.3) {
+    if (Array.isArray(karaokeWords) && karaokeWords.length > 1 && duration > 0.3 && !rtl) { // KINEO-LEGENDA-RTL-2710 — RTL: um elemento inteiro por chunk, sem span (ordem certa vale mais que a palavra amarela)
       const chunkEnd = round3(time + duration)
       // Fronteiras de exibição: palavra i fica amarela de b[i] até b[i+1].
       // Clampadas ao intervalo do chunk e forçadas monotônicas (Whisper pode

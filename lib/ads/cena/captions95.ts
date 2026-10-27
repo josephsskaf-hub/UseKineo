@@ -1,4 +1,4 @@
-import { narrationTokens, joinNarrationTokens, captionFontFor, DEFAULT_CAPTION_FONT } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
+import { narrationTokens, joinNarrationTokens, captionFontFor, DEFAULT_CAPTION_FONT, isRtlCaption } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410 // KINEO-LEGENDA-RTL-2710
 // KINEO-ADS-CENA-95-2110 — pure karaoke layout; supplied alignment or an explicitly labelled syllable estimate.
 export interface Cena95Word { word: string; start: number; end: number }
 export interface Cena95SpeechWindow { start: number; end: number; text?: string }
@@ -134,7 +134,8 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
   const captionHeight = Math.floor(2 * (height * 1480 / 1920 - height * 0.67 - stroke))
   if (captionHeight <= 0) throw new Error('cena95_caption_bad_frame')
   // Fixed dimensions and documented element clipping enforce the lower bound even on unexpected font metrics.
-  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: captionHeight, text_wrap: false, text_clip: true, clip: true, font_family: captionFontFor(i.language) === DEFAULT_CAPTION_FONT ? 'Inter' : captionFontFor(i.language), font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
+  const rtl = isRtlCaption(words.map(w => w.word).join(' '), i.language) // KINEO-LEGENDA-RTL-2710 — árabe/urdu/hebraico: sem span [color] (o Creatomate dispõe as corridas LTR e embaralha as palavras — render c5e68914) e text_direction 'rtl'
+  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: captionHeight, text_wrap: false, text_clip: true, clip: true, font_family: captionFontFor(i.language) === DEFAULT_CAPTION_FONT ? 'Inter' : captionFontFor(i.language), font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke, ...(rtl ? { text_direction: 'rtl' } : {}) } // KINEO-LEGENDA-RTL-2710
   const elements: Record<string, unknown>[] = []
   // Keep blocks inside speech windows, including the explicit pre-CTA pause. Very short beats may have <3 words truthfully.
   const runs: Cena95Word[][] = []
@@ -148,12 +149,12 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
     if (run.length === 1 && captionLines(run, font, width * .84 - stroke * 2) === null) {
       const w = run[0], maxLines = Math.max(1, Math.floor((captionHeight - stroke * 2) / (font * 1.1)))
       const pages = longWordPages(w.word, font, width * .84 - stroke * 2, maxLines)
-      for (const [k, text] of pages.entries()) elements.push({ ...base, time: r6(w.start + (w.end - w.start) * k / pages.length), duration: r6((w.end - w.start) / pages.length), text: `[color #FFD400]${text}[/color]` })
+      for (const [k, text] of pages.entries()) elements.push({ ...base, time: r6(w.start + (w.end - w.start) * k / pages.length), duration: r6((w.end - w.start) / pages.length), text: rtl ? text : `[color #FFD400]${text}[/color]` }) // KINEO-LEGENDA-RTL-2710
       continue
     }
     for (const lines of balancedBlocks(run, font, width * 0.84 - stroke * 2, captionHeight, stroke)) {
     const block = lines.flat()
-    const text = (active?: Cena95Word): string => lines.map(line => joinNarrationTokens(line.map(x => x === active ? `[color #FFD400]${displayWord(x.word)}[/color]` : displayWord(x.word)), i.language)).join('\n')
+    const text = (active?: Cena95Word): string => lines.map(line => joinNarrationTokens(line.map(x => x === active && !rtl ? `[color #FFD400]${displayWord(x.word)}[/color]` : displayWord(x.word)), i.language)).join('\n') // KINEO-LEGENDA-RTL-2710 — RTL: bloco inteiro sem palavra pintada
     for (let k = 0; k < block.length; k++) {
       const w = block[k]
       elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: text(w) })
