@@ -1,0 +1,403 @@
+{
+  "versao": "banco_prova_v1",
+  "nota": "KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"aprovo banco\"]. Pedidos REAIS e difíceis de clientes (os 8 primeiros, verbatim) + 22 pedidos plausíveis que cobrem idiomas, desenho infantil, animais, dinheiro, história, terror, produto, texto em objeto e multidão. Cada caso roda em dry_run:'stills' (só até o still, sem vídeo, sem débito). `espera` = o que a chamada de visão confere nos stills. `limiar` = nota mínima (padrão 60); `script_mode` padrão 'ai' (o mesmo do cliente no filme grátis).",
+  "padrao": { "duracao": 15, "motor": "seedance", "script_mode": "ai", "limiar": 60 },
+  "casos": [
+    {
+      "id": "krishna-vishwaroop",
+      "idioma": "en",
+      "texto": "Under a deep indigo sky... a tiny blue-skinned Lord Krishna emerges.\n\nA glowing red-orange mandala... Sanskrit-style runes spinning behind him.\n\nColossal Vishwaroop rises... multiple serene faces and ornate armor.\n\nThe mandala flares brilliantly... Krishna stands small against the vast cosmic form.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real — saiu um mascote, não Krishna",
+      "espera": [
+        "Krishna has blue skin",
+        "Krishna is a human-like deity figure, never a cartoon mascot, toy or animal",
+        "a glowing red-orange mandala is visible behind him",
+        "the colossal Vishwaroop form shows multiple faces and ornate armor"
+      ]
+    },
+    {
+      "id": "frutas-3d",
+      "idioma": "en",
+      "texto": "Cute 3D animated fruit characters with human bodies. A beautiful strawberry girl wearing a pink dress, a tall banana boy wearing a black suit, a cherry girl in a red dress, and a pineapple boy in a beige outfit. Full body, colorful cinematic animation, expressive faces, high quality, vertical 9:16.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real",
+      "espera": [
+        "a strawberry character with a human body wearing a pink dress",
+        "a banana character wearing a black suit",
+        "at least one shot shows several distinct fruit characters together",
+        "the look is 3D animation, not a photograph of real fruit"
+      ]
+    },
+    {
+      "id": "urdu-amna-estrela",
+      "idioma": "ur",
+      "texto": "ایک چھوٹا سا راز... جادوئی ستارے کا!\n\nآمنہ کو ملا ایک جادوئی ستارہ، چمکدار اور پراسرار۔\n\nمشو، ننھا ڈریگن، ستارے کی طاقت کو سمجھنے کی کوشش کرتا ہے۔\n\nبابا نور کی مدد سے... آمنہ نے ستارے کو دوبارہ آسمان پر سجایا۔",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real — Amna e Baba Noor não apareciam",
+      "espera": [
+        "Amna, a young girl, is clearly visible",
+        "Baba Noor, an old man, is clearly visible",
+        "Mishu, a small dragon, appears",
+        "a glowing magical star is shown"
+      ]
+    },
+    {
+      "id": "james-turner-1953",
+      "idioma": "en",
+      "texto": "A 70-year-old mystery... still unsolved today!\n\nIn 1953, James Turner vanished without a trace.\n\nHis car was found running, but he was gone.\n\nThe most accepted theory? A secret Cold War mission... led him to disappear.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real — saiu carro e roupa modernos",
+      "espera": [
+        "the scenes look like the 1950s (cars, clothes and props of the era), not the present day",
+        "a vintage 1950s car is visible",
+        "no modern smartphones, LED screens or modern cars appear"
+      ]
+    },
+    {
+      "id": "ploc-alienigena",
+      "idioma": "pt",
+      "texto": "Ploc, um alienígena laranja, aperta um botão misterioso!\n\nCada espirro... um novo Ploc surge, clonando-se sem parar!\n\nGeli, a geleia roxa, tenta impedir o desastre com urgência.\n\nBip, o robô verde, acidentalmente ativa outra alavanca... aumentando o caos!",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real — a geleia virou água-viva",
+      "espera": [
+        "Ploc is an orange alien",
+        "Geli is a purple jelly blob character, not a jellyfish or any sea creature",
+        "Bip is a green robot",
+        "more than one Ploc appears in the cloning scene"
+      ]
+    },
+    {
+      "id": "the-last-train",
+      "idioma": "en",
+      "texto": "Create a 15second vertical cinematic horror Short titled The Last Train. A commuter boards an empty last train. A distorted announcement says his full name and tells him to leave at the next station, but that station does not exist on the route map. The train stops in a dark tunnel. Dozens of silent passengers stand outside the windows, staring at him. The doors open; cut to black before he steps out.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "cliente real — o passageiro não aparecia",
+      "espera": [
+        "a male commuter is clearly visible inside the train",
+        "the train carriage is empty apart from him in the opening shot",
+        "silent passengers stand outside the windows staring in",
+        "a dark tunnel"
+      ]
+    },
+    {
+      "id": "pakistan-flag-rooftop",
+      "idioma": "en",
+      "texto": "A proud young woman waves the green and white Pakistan flag on a rooftop at sunset as fireworks burst over Lahore.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "mão deve segurar o mastro",
+      "espera": [
+        "the young woman is holding the flag pole in her hand(s)",
+        "the flag is green and white with a crescent and star",
+        "fireworks over a city at sunset",
+        "her hands have five fingers each and grip the pole naturally"
+      ]
+    },
+    {
+      "id": "sarajevo-1914",
+      "idioma": "en",
+      "texto": "28 June 1914, Sarajevo: Archduke Franz Ferdinand and his wife Sophie ride in an open car before the shots that started World War I.",
+      "duracao": 15,
+      "motor": "seedance",
+      "origem": "Sophie (uma mulher) deve aparecer",
+      "espera": [
+        "a woman (Sophie) is visible in the open car beside the Archduke",
+        "an open-top early-1900s automobile",
+        "1914 period clothing (military uniform with plumed hat, long dress and wide-brimmed hat)",
+        "no modern vehicles or buildings"
+      ]
+    },
+    {
+      "id": "ko-hanok-chuseok",
+      "idioma": "ko",
+      "texto": "추석 아침, 한옥 마당에서 할머니가 손녀에게 송편 빚는 법을 가르친다. 손녀는 처음엔 실패하지만, 마지막엔 예쁜 송편을 완성하고 둘은 함께 웃는다.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an elderly Korean woman and a young girl appear together",
+        "they are shaping rice cakes (songpyeon) with their hands",
+        "a traditional Korean hanok courtyard",
+        "hands have five fingers and hold the dough naturally"
+      ]
+    },
+    {
+      "id": "hi-chaiwala-mumbai",
+      "idioma": "hi",
+      "texto": "मुंबई की बारिश में एक चायवाला अपनी छोटी सी दुकान पर गरम चाय बनाता है। एक थका हुआ ऑफिस कर्मचारी आता है, चाय पीता है, और उसकी मुस्कान लौट आती है।",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a tea vendor at a small street stall",
+        "a tired office worker drinking tea",
+        "heavy rain on a Mumbai street",
+        "the glass of tea is held naturally in a hand with five fingers"
+      ]
+    },
+    {
+      "id": "ar-cairo-khan-khalili",
+      "idioma": "ar",
+      "texto": "في أزقة خان الخليلي بالقاهرة، يصنع نجار عجوز صندوقاً خشبياً مطعّماً بالصدف لحفيدته. في النهاية تفتح الحفيدة الصندوق وتجد فيه رسالة من جدها.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an elderly carpenter working on a wooden box",
+        "a young girl (the granddaughter) appears",
+        "an old Cairo bazaar alley",
+        "any visible writing is plain or unreadable, never garbled fake Arabic letters"
+      ]
+    },
+    {
+      "id": "es-abuela-paella",
+      "idioma": "es",
+      "texto": "Una abuela valenciana enseña a su nieto a hacer paella en el campo. El niño se quema un dedo, la abuela sopla, y al final toda la familia come junta al atardecer.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an elderly woman and a young boy cooking together",
+        "a large paella pan over a fire",
+        "a family eating together at sunset",
+        "no deformed hands or extra fingers"
+      ]
+    },
+    {
+      "id": "ro-castelul-bran-1897",
+      "idioma": "ro",
+      "texto": "Castelul Bran, Transilvania, 1897. Un călător englez ajunge noaptea la poartă. Un servitor tăcut îl conduce pe scări. În vârf, contele îl așteaptă cu un zâmbet rece.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a castle on a rocky hill at night",
+        "a Victorian-era traveller in late-1800s clothing",
+        "a pale count figure at the top of the stairs",
+        "no modern objects, lights or clothing"
+      ]
+    },
+    {
+      "id": "kids-rex-dentista",
+      "idioma": "en",
+      "texto": "Kids cartoon: Rex the little green T-rex is scared of the dentist. His best friend Pip, a yellow bird, holds his claw. The dentist is a kind hippo. Rex is brave and gets a sticker.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "Rex is a small green T-rex in every shot where he appears",
+        "Pip is a yellow bird",
+        "the dentist is a hippo",
+        "bright kids-cartoon style, consistent across shots"
+      ]
+    },
+    {
+      "id": "kids-leticia-faisca",
+      "idioma": "pt",
+      "texto": "Desenho infantil: a Letícia, uma menina de 6 anos de cabelo cacheado, encontra um dragãozinho azul chamado Faísca no quintal. Eles aprendem a dividir o lanche.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "Letícia is a young girl with curly hair",
+        "Faísca is a small blue dragon",
+        "the same girl and the same dragon look alike across shots",
+        "a backyard setting"
+      ]
+    },
+    {
+      "id": "animais-lobo-yellowstone",
+      "idioma": "en",
+      "texto": "A lone grey wolf tracks an elk herd through deep snow in Yellowstone. Three facts about how wolves changed the rivers.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a grey wolf",
+        "an elk herd in deep snow",
+        "no deformed animal legs, extra limbs or fused bodies",
+        "a winter landscape with a river or valley"
+      ]
+    },
+    {
+      "id": "animais-polvo-recife",
+      "idioma": "en",
+      "texto": "An octopus changes colour to hide from a reef shark on a coral reef, then escapes in a cloud of ink.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an octopus with eight arms",
+        "a shark",
+        "an underwater coral reef",
+        "the octopus is a separate body, not fused with the coral"
+      ]
+    },
+    {
+      "id": "dinheiro-latte-factor",
+      "idioma": "en",
+      "texto": "The latte factor: how a $5 coffee every day becomes $75,000 in 30 years. Show the coffee, the calendar, the growing stack of money.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a cup of coffee",
+        "a growing pile or stack of money",
+        "any numbers or words on screen are legible real text, or absent — never garbled",
+        "no invented logos or nonsense letters"
+      ]
+    },
+    {
+      "id": "dinheiro-pt-juros-compostos",
+      "idioma": "pt",
+      "texto": "Por que 1.000 reais investidos a 1% ao mês viram quase 3.300 em 10 anos? O poder dos juros compostos explicado em 15 segundos.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "money, coins or banknotes visible",
+        "no garbled numbers or invented letters on screen",
+        "a chart, graph or growth metaphor"
+      ]
+    },
+    {
+      "id": "negocios-ronald-read",
+      "idioma": "en",
+      "texto": "The janitor who secretly built an $8 million fortune: Ronald Read, Vermont, gas station attendant, frugal, index funds, left it all to the library.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an elderly man in modest working clothes",
+        "a small-town gas station or a library",
+        "no modern smartphones in the mid-century flashback shots",
+        "no garbled text on signs or newspapers"
+      ]
+    },
+    {
+      "id": "historia-pompeia-79",
+      "idioma": "en",
+      "texto": "79 AD, Pompeii. A baker pulls bread from the oven as the ground shakes. Ash falls. A family runs toward the harbor. Two thousand years later, the loaf is still there.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a Roman baker and a stone oven",
+        "falling ash and an erupting volcano",
+        "Roman-era clothing, no modern objects",
+        "a carbonised loaf of bread"
+      ]
+    },
+    {
+      "id": "historia-apollo-11",
+      "idioma": "en",
+      "texto": "July 20 1969: Neil Armstrong steps onto the Moon. The flag, the footprint, the Earth rising. Why the footprint will last a million years.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "an astronaut in a white spacesuit on the lunar surface",
+        "a boot print in lunar dust",
+        "the Earth visible in the black sky",
+        "no garbled text on the flag, suit or lander"
+      ]
+    },
+    {
+      "id": "terror-boneca-sotao",
+      "idioma": "pt",
+      "texto": "Terror: uma menina encontra uma boneca de porcelana no sótão da casa nova. Toda noite a boneca aparece um degrau mais perto do quarto dela. Na última noite, a boneca está na cama.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a porcelain doll",
+        "a young girl",
+        "a dark attic and a staircase",
+        "the doll's face is intact, not melted or duplicated"
+      ]
+    },
+    {
+      "id": "terror-elevador-1987",
+      "idioma": "en",
+      "texto": "Horror: a night-shift nurse takes the hospital elevator. In the mirror her reflection blinks a second too late. The doors open on a floor that was demolished in 1987.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a nurse inside a hospital elevator",
+        "a mirror reflection of the nurse",
+        "an abandoned, ruined hospital corridor",
+        "the reflection's face is coherent, not distorted or doubled"
+      ]
+    },
+    {
+      "id": "produto-garrafa-termica",
+      "idioma": "en",
+      "texto": "Product video: the Nordic Peak 750 ml insulated steel bottle keeps coffee hot for 12 hours. Show it on a hiking trail at dawn, steam rising, a hand holding it.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a steel insulated bottle held in a hand with five fingers",
+        "a mountain trail at dawn",
+        "steam rising from the bottle",
+        "any label on the bottle is clean and readable or blank, never garbled"
+      ]
+    },
+    {
+      "id": "produto-tenis-es",
+      "idioma": "es",
+      "texto": "Anuncio: las zapatillas AeroFlex Run son ligeras y amortiguadas. Un corredor cruza un puente al amanecer, primer plano de la suela, salpicadura de agua.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a runner wearing running shoes",
+        "a close-up of a shoe sole",
+        "a bridge at dawn",
+        "shoe text or logos are clean or absent, never garbled letters"
+      ]
+    },
+    {
+      "id": "texto-neon-open-diner",
+      "idioma": "en",
+      "texto": "A neon sign that says OPEN flickers above a 1950s diner at midnight while a waitress pours coffee for the last customer.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "the neon sign spells exactly OPEN, or shows no readable letters at all — never a garbled word",
+        "a 1950s diner interior",
+        "a waitress pouring coffee for a customer",
+        "1950s props only, no modern phones or screens"
+      ]
+    },
+    {
+      "id": "texto-jornal-1929",
+      "idioma": "en",
+      "texto": "A newsboy on a 1929 New York street waves a newspaper whose headline announces the stock market crash. Crowds gather under the ticker.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a newspaper headline with legible real words, or blurred — never garbled nonsense letters",
+        "a 1929 street crowd in period clothing",
+        "a boy holding a newspaper naturally with normal hands",
+        "no modern cars or buildings"
+      ]
+    },
+    {
+      "id": "multidao-maracana-penalti",
+      "idioma": "pt",
+      "texto": "A final da Copa no Maracanã: 80 mil torcedores cantam, o atacante bate o pênalti decisivo, a bola entra, a arquibancada explode.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a packed football stadium crowd",
+        "a football player taking a penalty kick",
+        "faces and bodies in the crowd are not melted, duplicated or fused",
+        "a goal and a ball visible"
+      ]
+    },
+    {
+      "id": "multidao-marrakech-jemaa",
+      "idioma": "ar",
+      "texto": "سوق جامع الفنا في مراكش عند الغروب: حشود، بائع توابل، راقص نار، وطفل يتبع صوت الناي حتى يعثر على جده.",
+      "duracao": 15,
+      "motor": "seedance",
+      "espera": [
+        "a crowded market square at sunset",
+        "a spice seller with pyramids of spices",
+        "a child and an elderly man (the grandfather)",
+        "crowd bodies and hands are coherent, no fused figures"
+      ]
+    }
+  ]
+}

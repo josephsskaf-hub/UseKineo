@@ -91,6 +91,7 @@ import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, ty
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
+import { ehPedidoDeStills, lerPedidoDoBanco, verificarExpectativas, pontuarCaso, custoDoCasoUsd, BANCO_PROVA_EVENTO, BANCO_PROVA_VERSAO, BANCO_PROVA_MOTIVO_ESTORNO } from '@/lib/cinematic/bancoProva' // KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — dry_run:'stills': o banco de pedidos-prova para no still
 import { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
@@ -1452,7 +1453,7 @@ async function manipularPost(req: NextRequest) {
     // user's own clips.
     // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
     // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
-    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
+    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean | 'stills'; /* KINEO-BANCO-PROVA-2710 — 'stills' = o banco de pedidos-prova (para no still, só conta do ensaio) */ brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
     try {
       body = await req.json()
     } catch {
@@ -1622,10 +1623,17 @@ async function manipularPost(req: NextRequest) {
     // (50 cr); anything else = AI Generated (Seedance, 20 cr).
     // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado aqui,
     // antes de qualquer reserva de crédito — nunca vira geração real em silêncio.
-    if (body.dry_run === true && !isDryRunAccount(user.email)) {
-      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false } })
+    if ((body.dry_run === true || ehPedidoDeStills(body.dry_run)) && !isDryRunAccount(user.email)) { // KINEO-BANCO-PROVA-2710 — 'stills' de conta não autorizada: o mesmo 403, antes de qualquer reserva; era: body.dry_run === true && !isDryRunAccount(user.email)
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false, stills: ehPedidoDeStills(body.dry_run) } }) // KINEO-BANCO-PROVA-2710
       return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
     }
+    // ═══ KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — dry_run:'stills' = o banco de pedidos-prova ═══
+    // Só conta do ensaio de $0 (gate acima). O pedido segue o caminho REAL do cliente (planner, prompts por cena, still FLUX, // KINEO-BANCO-PROVA-2710
+    // crítico, folha do 15 s) e para no último ponto antes do 1º POST de clipe (bloco no fim do caminho clássico), com estorno. // KINEO-BANCO-PROVA-2710
+    // `body.dry_run === true` segue byte a byte: 'stills' é false em todas as comparações de sempre. // KINEO-BANCO-PROVA-2710
+    const bancoProvaStills = ehPedidoDeStills(body.dry_run) && isDryRunAccount(user.email) // KINEO-BANCO-PROVA-2710
+    const bancoProvaPedido = lerPedidoDoBanco((body as { banco_prova?: unknown }).banco_prova) // KINEO-BANCO-PROVA-2710 — { caso, espera[], seed? }
+    const bancoProvaT0 = Date.now() // KINEO-BANCO-PROVA-2710
     const wantsKling = body.engine === 'kling'
     const wantsVeo = body.engine === 'veo'
     const wantsSora = body.engine === 'sora'
@@ -3997,7 +4005,7 @@ async function manipularPost(req: NextRequest) {
     // from the same latent neighborhood and look connected instead of like
     // unrelated shots. Derived from billingReference (stable per user+generation)
     // so retrying the SAME generationId reuses the SAME seed — no re-dicing.
-    const generationSeed = deterministicSeed(billingReference)
+    const generationSeed = bancoProvaStills && bancoProvaPedido.seed !== null ? bancoProvaPedido.seed : deterministicSeed(billingReference) // KINEO-BANCO-PROVA-2710 — o banco fixa a semente por caso (mesmo caso = mesmos stills entre rodadas; só muda o que o pipeline mudou); era: deterministicSeed(billingReference)
 
     // KINEO-ERA-LOCK-2026-07-09 — era detected ONCE from the full narration +
     // topic, then appended to EVERY scene prompt below (code-enforced; survives
@@ -6902,6 +6910,9 @@ async function manipularPost(req: NextRequest) {
     // nem o seed. Gravado ANTES de cada POST — a despachante para no primeiro aceite, então o último payload gravado é o
     // aceito, no modelo de usedModels[i]; sem aceite, é o da última tentativa (mesmo modelo que o claim grava).
     const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)
+    let bancoProvaCriticoFlux: RelatoCriticoStill[] = [] // KINEO-BANCO-PROVA-2710 — os relatos do crítico do still FLUX, içados do bloco para o relato do caso
+    let bancoProvaStillsFlux = 0 // KINEO-BANCO-PROVA-2710
+    let bancoProvaFolha: { folhas: number; stills: number; urls: string[]; relatos: RelatoCriticoStill[] } | null = null // KINEO-BANCO-PROVA-2710 — idem para a folha de personagem (filme de 15 s)
     if (anchorActive) {
       // FLUX stills are paid Fal work: once we start them, an unexpected throw
       // must keep the deterministic claim PENDING (never release + let a new
@@ -6992,7 +7003,9 @@ async function manipularPost(req: NextRequest) {
       if (criticoFilme) { // KINEO-JUIZ-STILL-1410 — espera o crítico só até o prazo dos stills; quem não terminou fica com a foto original
         for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.url // KINEO-JUIZ-STILL-1410 — log_only devolve sempre a original
         await esperarCriticos(criticoEventos, 1_500) // KINEO-JUIZ-STILL-1410 — os eventos já gravados em paralelo; teto de 1,5 s para não segurar o despacho
+        bancoProvaCriticoFlux = criticoFilme.relatos // KINEO-BANCO-PROVA-2710
       } // KINEO-JUIZ-STILL-1410
+      bancoProvaStillsFlux = stillsMade // KINEO-BANCO-PROVA-2710
       // Cost logging only — the USER credit price is unchanged (kling stays 50cr).
       // Account the extra provider cost the same conservative way Hollywood does
       // (ANCHORS_USD per generated still).
@@ -7152,11 +7165,40 @@ async function manipularPost(req: NextRequest) {
         void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010
       })) // KINEO-META95-PERSONAGEM-2010
       for (let i = 0; i < scenes.length; i++) if (stillsP[i]) sceneStills[i] = stillsP[i] // KINEO-META95-PERSONAGEM-2010 — o still com folha vence o FLUX daquela cena
+      bancoProvaFolha = { folhas: folhaDe.size, stills: stillsP.filter(Boolean).length, urls: Array.from(folhaDe.values()), relatos: relatosP } // KINEO-BANCO-PROVA-2710
       personagemRelatoFinal = { ...relatoDoPersonagem({ engine: personagemMotor, elenco: elencoP, casting: personagemElenco.casting, folhas: folhaDe.size, folhasFalhadas: elencoP.length - folhaDe.size, cenas: scenes.length, cenasComPersonagem: cenasP.length, stillsOk: stillsP.filter(Boolean).length, critico: relatosP.map((r) => ({ cena: r.cena, veredito: r.veredito, problemas: r.problemas, regerou: r.regerou, escolhida: r.escolhida })), ms: Date.now() - t0Personagem }), ...relatoDoAjuste({ motivos: motivosP, reconferidas: reconferidasP, cenas: personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP), comFicha: personagemCenas?.comFicha ?? [], semGente: personagemCenas?.semGente ?? [], regeracoes: relatosP, elenco: elencoP }) } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — + os motivos de cada still, a reconferência, as cenas pela fala/sem gente e o motivo de cada refação; era: personagemRelatoFinal = relatoDoPersonagem({ … })
       console.log(`[personagem] gen=${generationId} engine=${personagemMotor} elenco=${elencoP.length} folhas=${folhaDe.size}/${elencoP.length} cenas_com_personagem=${cenasP.length}/${scenes.length} stills_ok=${personagemRelatoFinal.stills_ok} fallback=${personagemRelatoFinal.fallback} critico=${relatosP.map((r) => `${r.cena}:${r.veredito}${r.regerou ? '→' + r.escolhida : ''}`).join(' ')} extra_usd=${personagemRelatoFinal.extra_usd.toFixed(3)} ${personagemRelatoFinal.ms} ms`) // KINEO-META95-PERSONAGEM-2010
       void writeServerEvent({ name: PERSONAGEM_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...personagemRelatoFinal } }) // KINEO-META95-PERSONAGEM-2010
     } // KINEO-META95-PERSONAGEM-2010
     // <<< KINEO-META95-PERSONAGEM-2010 bloco
+
+    // ═══ KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — O BANCO DE PEDIDOS-PROVA PARA AQUI ═══
+    // dry_run:'stills' (gate lá em cima: só conta do ensaio de $0). O pedido real do cliente já percorreu planner → prompts por // KINEO-BANCO-PROVA-2710
+    // cena → still FLUX por cena → crítico do still (e a folha de personagem do filme de 15 s). Este é o ÚLTIMO ponto antes do // KINEO-BANCO-PROVA-2710
+    // 1º POST de clipe (submitAllScenes, logo abaixo): nada de vídeo, voz, música ou compose; o débito de nascimento é // KINEO-BANCO-PROVA-2710
+    // estornado pelo mesmo caminho do dry_run (releaseBirthClaim); nenhuma linha em `videos` nasce (ela só nasce no compose). // KINEO-BANCO-PROVA-2710
+    // Sai: a nota do caso (metade crítico, metade expectativas do caso conferidas numa chamada de visão com todos os stills), // KINEO-BANCO-PROVA-2710
+    // as falhas por tipo (identidade/sujeito/anatomia/texto/artefato/sem_still/expectativa) e o detalhe cena a cena. // KINEO-BANCO-PROVA-2710
+    // Um evento banco_prova_caso por caso (session_id = generation_id). Custo real ≈ US$ 0,05-0,45 por caso (stills + visão). // KINEO-BANCO-PROVA-2710
+    if (bancoProvaStills) { // KINEO-BANCO-PROVA-2710
+      const bancoEngine = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance' // KINEO-BANCO-PROVA-2710
+      const bancoFalas = scenes.map((s) => s.voiceover ?? '') // KINEO-BANCO-PROVA-2710
+      const bancoVisuais = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-BANCO-PROVA-2710
+      const bancoExpectativas = await verificarExpectativas({ stills: sceneStills, espera: bancoProvaPedido.espera, falas: bancoFalas, visuais: bancoVisuais }) // KINEO-BANCO-PROVA-2710 — UMA chamada de visão com todos os stills; sem `espera` = nada chamado
+      const bancoNota = pontuarCaso({ cenas: scenes.length, stills: sceneStills, relatosClassico: bancoProvaCriticoFlux, relatosFolha: bancoProvaFolha?.relatos ?? [], expectativas: bancoExpectativas.itens }) // KINEO-BANCO-PROVA-2710
+      const bancoCustoUsd = custoDoCasoUsd({ stillsFlux: bancoProvaStillsFlux, folhas: bancoProvaFolha?.folhas ?? 0, stillsComFolha: bancoProvaFolha?.stills ?? 0, relatos: [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], expectativasUsd: bancoExpectativas.custo_usd }) // KINEO-BANCO-PROVA-2710
+      const bancoRefunded = await releaseBirthClaim(BANCO_PROVA_MOTIVO_ESTORNO) // KINEO-BANCO-PROVA-2710 — o estorno do dry_run, com motivo próprio
+      const bancoRelato = { // KINEO-BANCO-PROVA-2710
+        versao: BANCO_PROVA_VERSAO, caso: bancoProvaPedido.caso, generation_id: generationId, engine: bancoEngine, duration, language: narrationLanguage.language, verbatim, visual_mode: classicVisualMode, seed: generationSeed, anchor_active: anchorActive, // KINEO-BANCO-PROVA-2710
+        cenas: scenes.length, stills_flux: bancoProvaStillsFlux, folha: bancoProvaFolha ? { folhas: bancoProvaFolha.folhas, stills: bancoProvaFolha.stills, urls: bancoProvaFolha.urls } : null, // KINEO-BANCO-PROVA-2710
+        nota: bancoNota.nota, nota_critico: bancoNota.nota_critico, taxa_expectativas: bancoNota.taxa_expectativas, expectativas_cumpridas: bancoNota.expectativas_cumpridas, expectativas_aplicaveis: bancoNota.expectativas_aplicaveis, falhas: bancoNota.falhas, cenas_com_still: bancoNota.cenas_com_still, cenas_julgadas: bancoNota.cenas_julgadas, // KINEO-BANCO-PROVA-2710
+        detalhe: bancoNota.detalhe.map((c, i) => ({ ...c, fala: bancoFalas[i]?.slice(0, 300) ?? '', visual: bancoVisuais[i]?.slice(0, 300) ?? '', prompt: (classicScenePrompts[i] ?? '').slice(0, 600) })), // KINEO-BANCO-PROVA-2710
+        expectativas: bancoExpectativas.itens, expectativas_erro: bancoExpectativas.erro, custo_usd: bancoCustoUsd, ms: Date.now() - bancoProvaT0, refunded: bancoRefunded, charged: false, // KINEO-BANCO-PROVA-2710
+      } // KINEO-BANCO-PROVA-2710
+      console.log(`[banco-prova] caso=${bancoRelato.caso} gen=${generationId} engine=${bancoEngine} cenas=${scenes.length} stills=${bancoNota.cenas_com_still} nota=${bancoNota.nota ?? 'null'} critico=${bancoNota.nota_critico ?? 'null'} expectativas=${bancoNota.expectativas_cumpridas}/${bancoNota.expectativas_aplicaveis} falhas=${JSON.stringify(bancoNota.falhas)} US$ ${bancoCustoUsd.toFixed(3)} refunded=${bancoRefunded} ${bancoRelato.ms} ms`) // KINEO-BANCO-PROVA-2710
+      await esperarCriticos([writeServerEvent({ name: BANCO_PROVA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...bancoRelato, detalhe: bancoNota.detalhe } })], 2_500) // KINEO-BANCO-PROVA-2710 — o evento guarda o detalhe compacto (sem prompts); teto de 2,5 s
+      return NextResponse.json({ dry_run: 'stills', family: 'classic', refunded: bancoRefunded, charged: false, banco_prova: bancoRelato }) // KINEO-BANCO-PROVA-2710
+    } // KINEO-BANCO-PROVA-2710
 
     // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
     // each scene actually ran on (i2v for anchored scenes, t2v otherwise), both
