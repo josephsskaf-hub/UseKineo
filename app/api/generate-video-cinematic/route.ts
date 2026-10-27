@@ -1623,10 +1623,14 @@ async function manipularPost(req: NextRequest) {
     // (50 cr); anything else = AI Generated (Seedance, 20 cr).
     // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado aqui,
     // antes de qualquer reserva de crédito — nunca vira geração real em silêncio.
-    if ((body.dry_run === true || ehPedidoDeStills(body.dry_run)) && !isDryRunAccount(user.email)) { // KINEO-BANCO-PROVA-2710 — 'stills' de conta não autorizada: o mesmo 403, antes de qualquer reserva; era: body.dry_run === true && !isDryRunAccount(user.email)
-      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false, stills: ehPedidoDeStills(body.dry_run) } }) // KINEO-BANCO-PROVA-2710
+    if (body.dry_run === true && !isDryRunAccount(user.email)) {
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false } })
       return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 })
     }
+    if (ehPedidoDeStills(body.dry_run) && !isDryRunAccount(user.email)) { // KINEO-BANCO-PROVA-2710 — 'stills' de conta não autorizada: o mesmo 403 do dry_run, antes de qualquer reserva (gate à parte: a linha do dry_run de sempre é âncora de guardiões)
+      void writeServerEvent({ name: 'dry_run_not_authorized', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine ?? 'seedance', charged: false, stills: true } }) // KINEO-BANCO-PROVA-2710
+      return NextResponse.json({ error: 'Dry-run is only available to internal accounts. Send the request without dry_run to generate a video.', reason: 'dry_run_not_authorized', retryable: false }, { status: 403 }) // KINEO-BANCO-PROVA-2710
+    } // KINEO-BANCO-PROVA-2710
     // ═══ KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — dry_run:'stills' = o banco de pedidos-prova ═══
     // Só conta do ensaio de $0 (gate acima). O pedido segue o caminho REAL do cliente (planner, prompts por cena, still FLUX, // KINEO-BANCO-PROVA-2710
     // crítico, folha do 15 s) e para no último ponto antes do 1º POST de clipe (bloco no fim do caminho clássico), com estorno. // KINEO-BANCO-PROVA-2710
@@ -7003,9 +7007,9 @@ async function manipularPost(req: NextRequest) {
       if (criticoFilme) { // KINEO-JUIZ-STILL-1410 — espera o crítico só até o prazo dos stills; quem não terminou fica com a foto original
         for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.url // KINEO-JUIZ-STILL-1410 — log_only devolve sempre a original
         await esperarCriticos(criticoEventos, 1_500) // KINEO-JUIZ-STILL-1410 — os eventos já gravados em paralelo; teto de 1,5 s para não segurar o despacho
-        bancoProvaCriticoFlux = criticoFilme.relatos // KINEO-BANCO-PROVA-2710
+        if (typeof bancoProvaCriticoFlux !== 'undefined' && criticoFilme) bancoProvaCriticoFlux = criticoFilme.relatos // KINEO-BANCO-PROVA-2710 — guarda por typeof: guardiões executam este bloco isolado (sem a variável içada e sem o crítico)
       } // KINEO-JUIZ-STILL-1410
-      bancoProvaStillsFlux = stillsMade // KINEO-BANCO-PROVA-2710
+      if (typeof bancoProvaStillsFlux !== 'undefined') bancoProvaStillsFlux = stillsMade // KINEO-BANCO-PROVA-2710 — idem: o bloco roda isolado em guardiões
       // Cost logging only — the USER credit price is unchanged (kling stays 50cr).
       // Account the extra provider cost the same conservative way Hollywood does
       // (ANCHORS_USD per generated still).

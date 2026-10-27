@@ -41,14 +41,14 @@ function provasDaRota(rota) {
   const p = []
   const iGate = rota.indexOf("const bancoProvaStills = ehPedidoDeStills(body.dry_run) && isDryRunAccount(user.email)")
   p.push(['A1 bancoProvaStills = pedido de stills E conta do ensaio (isDryRunAccount)', iGate > 0])
-  p.push(['A2 conta de fora com dry_run:\'stills\' leva o mesmo 403 do dry_run, antes de qualquer reserva', /if \(\(body\.dry_run === true \|\| ehPedidoDeStills\(body\.dry_run\)\) && !isDryRunAccount\(user\.email\)\) \{[\s\S]{0,1200}?status: 403/.test(rota)])
+  p.push(['A2 conta de fora com dry_run:\'stills\' leva o mesmo 403 do dry_run, antes de qualquer reserva', /if \(ehPedidoDeStills\(body\.dry_run\) && !isDryRunAccount\(user\.email\)\) \{[\s\S]{0,1200}?status: 403/.test(rota) && rota.includes("if (body.dry_run === true && !isDryRunAccount(user.email)) {")])
   const iBloco = rota.indexOf('if (bancoProvaStills) { // ' + MARCA)
   const iFimBloco = rota.indexOf('\n    } // ' + MARCA + '\n', iBloco) // o fecho do `if` (4 espaços); o objeto do relato fecha com 6
   const bloco = iBloco > 0 && iFimBloco > iBloco ? rota.slice(iBloco, iFimBloco) : ''
   const iPersonagem = rota.indexOf('// <<< KINEO-META95-PERSONAGEM-2010 bloco')
   const iSubmitDef = rota.indexOf('async function submitAllScenes(')
   const iSubmitCall = rota.indexOf('await submitAllScenes(usedModel)')
-  const iRelatos = rota.indexOf('bancoProvaCriticoFlux = criticoFilme.relatos')
+  const iRelatos = rota.indexOf('&& criticoFilme) bancoProvaCriticoFlux = criticoFilme.relatos')
   const iFolha = rota.indexOf('bancoProvaFolha = { folhas: folhaDe.size')
   p.push(['A3 o bloco do banco existe e fecha com a marca', bloco.length > 200])
   p.push(['A4 o bloco vem DEPOIS do crítico do still FLUX e da folha de personagem', iRelatos > 0 && iFolha > 0 && iPersonagem > 0 && iBloco > iRelatos && iBloco > iFolha && iBloco > iPersonagem])
