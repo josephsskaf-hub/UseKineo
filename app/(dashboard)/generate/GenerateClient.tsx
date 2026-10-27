@@ -274,6 +274,7 @@ import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILM
 import { AUTOANALYZE_SESSION_PREFIX, autoanalyzeSessionKey, jaConsumidoNaAba, enderecoSemAutoanalyze, decidirAutoanalyze, decidirAindaNoForno, filmeDoAvisoChegou, CHECKING_CREDITS_COPY, CREDITS_READ_FAILED_COPY, STILL_RENDERING_COPY, STILL_RENDERING_POLL_MAX_MS, STILL_RENDERING_POLL_EVERY_MS } from '@/lib/growth/studioFantasma' // KINEO-STUDIO-FANTASMA-1510
 import { BUY_CREATOR_FILM_SECONDS, buyCreatorPrice } from '@/lib/growth/buyCreatorOffer' // KINEO-PRIMEIRO-FILME-2026-10-13 — o preço da nota (o mesmo do bloco pós-filme)
 import { film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
+import { limparPreviaDoRoteiro, temaDoDespacho } from '@/lib/pedidoCerto' // KINEO-PEDIDO-CERTO-2710 — [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"]
 // KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
 // frente (ver lib/growth/wallV1.ts para o dado que motivou). `filmsCoveredByTier`
 // é a MESMA conta que a caixa de recarga já faz — nenhum número novo.
@@ -4957,10 +4958,15 @@ export default function GenerateClient({
   useEffect(() => {
     if (firstRunPrefilledRef.current) return
     if (recentVideos === null) return          // still loading
+    // KINEO-PEDIDO-CERTO-2710 — decide UMA vez, na primeira leitura do histórico. Antes a trava só fechava quando o exemplo era
+    // KINEO-PEDIDO-CERTO-2710 — escrito: cada foco/volta à aba recarrega o histórico (array novo) e reabria a decisão — com a caixa
+    // KINEO-PEDIDO-CERTO-2710 — vazia no meio de um render, "5 morning habits Jeff Bezos…" entrava e virava o título do filme.
+    firstRunPrefilledRef.current = true // KINEO-PEDIDO-CERTO-2710
     if (recentVideos.length > 0) return         // returning user
     if (fromHome) return                        // arrived with a topic already
     if (prompt.trim().length > 0) return        // user already typing
-    firstRunPrefilledRef.current = true
+    if (initialPrompt.trim() || structuredScriptRef.current || dispatchedPromptRef.current !== null) return // KINEO-PEDIDO-CERTO-2710 — chegou com pedido (URL) ou já há roteiro/despacho nesta tela
+    if (phase !== 'idle') return // KINEO-PEDIDO-CERTO-2710 — exemplo só na caixa ociosa, nunca no meio de análise/render
     const ex = (NICHE_EXAMPLES[pickedNiche] ?? NICHE_EXAMPLES.billionaire)[0]
     if (ex) setPrompt(ex)
     trackEvent('activation_generate_firstrun', {})
@@ -6909,7 +6915,10 @@ export default function GenerateClient({
         // Push #050 — pass duration + topic so the server can record them
         // in the videos history row when the render finishes.
         params.set('duration', String(duration))
-        if (prompt.trim()) params.set('topic', prompt.trim().slice(0, 500))
+        // KINEO-PEDIDO-CERTO-2710 — o tema do polling é a FOTOGRAFIA do despacho, não a caixa viva: a caixa pode mudar no meio do
+        // KINEO-PEDIDO-CERTO-2710 — render (pré-preenchimento, próxima ideia) e o servidor gravava isso como título do filme.
+        const temaDoPolling = (dispatchedPromptRef.current ?? prompt).trim() // KINEO-PEDIDO-CERTO-2710
+        if (temaDoPolling) params.set('topic', temaDoPolling.slice(0, 500)) // KINEO-PEDIDO-CERTO-2710
         // PUSH #100 — forward the ready-to-paste description so the history row
         // (and the public /v/[id] watch page) is born with the branded caption
         // instead of an empty "Video description" block. Read from the closure
@@ -7092,33 +7101,12 @@ export default function GenerateClient({
   // sentence. (The old version dropped the whole line — and since header + voiceover
   // share one line, it erased the entire script, showing an empty preview box.)
   // Display-only: the full marked script stays in structuredScriptRef for the API.
-  function cleanScriptPreview(text: string): string {
-    const HEADER_LABEL =
-      /^\s*(HOOK|GANCHO|MICRO REWARD|MICRO RECOMPENSA|ESCALATION|ESCALADA|RHYTHM|RITMO|PAYOFF|PAGAMENTO|RECOMPENSA FINAL)\b\s*\d*\s*(\([^)]*\))?\s*[:\-–]?\s*/i
-    return text
-      .split('\n')
-      .map(line => {
-        let t = line.trim()
-        if (!t) return ''
-        // Remove a leading section-header label, keeping the voiceover after it.
-        t = t.replace(HEADER_LABEL, '')
-        // Remove every bracketed footage cue / marker ([Pexels: ...], [Scene 2], ...).
-        t = t.replace(/\[[^\]]*\]/g, '').trim()
-        return t
-      })
-      .filter(t => {
-        if (!t) return false
-        // Drop YouTube Short format spec lines.
-        if (/\b9\s*:\s*16\b|youtube\s+shorts?\s+format/i.test(t)) return false
-        // Drop bullet / editing-note lines.
-        if (/^\s*-\s+(Total|ZERO|Cut|Hold|One legend|Voice|Editing)/i.test(t)) return false
-        // Drop residual ALL-CAPS stage directions that have no real sentence.
-        const noSpecial = t.replace(/[^a-zA-Z]/g, '')
-        if (noSpecial.length > 0 && noSpecial === noSpecial.toUpperCase() && noSpecial.length < 40) return false
-        return true
-      })
-      .join('\n\n')
-  }
+  // KINEO-PEDIDO-CERTO-2710 — a regra mora em lib/pedidoCerto.ts (limparPreviaDoRoteiro). A antiga apagava a LINHA inteira que
+  // KINEO-PEDIDO-CERTO-2710 — citava 9:16; num roteiro de um parágrafo só ("…photorealistic visuals, vertical 9:16 format.") isso era
+  // KINEO-PEDIDO-CERTO-2710 — o roteiro inteiro, a caixa ficava vazia e o tema do filme virava o exemplo da casa (caso a8a74417, 27/10).
+  function cleanScriptPreview(text: string): string { // KINEO-PEDIDO-CERTO-2710
+    return limparPreviaDoRoteiro(text) // KINEO-PEDIDO-CERTO-2710
+  } // KINEO-PEDIDO-CERTO-2710
 
   // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — mirrors the discard rules the
   // restore effect already applies (see the `stored.userId !== user.id ||
@@ -9784,6 +9772,9 @@ export default function GenerateClient({
       trackGenerationFailure('idle', 'generate_empty_prompt')
       return
     }
+    // KINEO-PEDIDO-CERTO-2710 — a fotografia do tema passa a ser tirada do texto que VAI ao servidor (`trimmed`), não só da caixa:
+    // KINEO-PEDIDO-CERTO-2710 — caixa vazia (prévia que sumiu) ou de outro assunto não pode mais virar o tema do filme despachado.
+    dispatchedPromptRef.current = temaDoDespacho(prompt, trimmed) // KINEO-PEDIDO-CERTO-2710
     // KINEO-S25-RECUSA-NA-TELA-2026-09-14 (R6) — repetição INALTERADA do pedido
     // que o motor recusou para este formato: 0 fetch, o mesmo cartão volta
     // (mesma referência, mesmo desfecho financeiro já confirmado). Qualquer

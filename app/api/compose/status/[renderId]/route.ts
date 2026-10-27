@@ -40,6 +40,7 @@ import { filmCompleteEmail } from '@/lib/growth/filmCompleteCopy'
 import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
+import { escolherTemaDoFilme, limparPreviaDoRoteiro } from '@/lib/pedidoCerto' // KINEO-PEDIDO-CERTO-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"]
 import {
   loadPrepaidAvatarClaimForRender,
   settleAvatarCreditHoldForRender,
@@ -116,7 +117,10 @@ async function persistCompletedVideo(args: {
   // sprint-retencao #4 (2026-09-04) — a narração REAL do filme. Vazio/ausente
   // = coluna omitida, exatamente como hoje. Ver lib/episodeMemory.ts.
   narration?: string | null
-}): Promise<{ ok: boolean; id?: string; error?: string; duplicate?: boolean }> {
+  // [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] KINEO-PEDIDO-CERTO-2710 — os candidatos a tema em ordem de autoridade, lidos DEPOIS da narração (a mesma leitura do
+  // KINEO-PEDIDO-CERTO-2710 — claim traz o tema dele de carona). Ausente = [topic], o comportamento de antes.
+  temasCandidatos?: () => Array<string | null | undefined> // KINEO-PEDIDO-CERTO-2710
+}): Promise<{ ok: boolean; id?: string; error?: string; duplicate?: boolean; topic?: string }> { // KINEO-PEDIDO-CERTO-2710
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceKey) {
@@ -141,8 +145,14 @@ async function persistCompletedVideo(args: {
 
   // Derive a short, human-readable title from the topic/script: first
   // non-empty line, with any [Pexels: ...] / bracketed directives stripped.
+  // KINEO-PEDIDO-CERTO-2710 — o tema gravado é o PEDIDO deste filme: o 1º candidato que divide ao menos uma palavra de conteúdo
+  // KINEO-PEDIDO-CERTO-2710 — com a fala real; se nenhum divide (caso a8a74417, 27/10: "5 morning habits Jeff Bezos…" num filme do
+  // KINEO-PEDIDO-CERTO-2710 — Ethan Cole), o tema nasce da própria fala. Sem fala, o 1º candidato não vazio, como sempre.
+  const temaEscolhido = escolherTemaDoFilme({ candidatos: args.temasCandidatos ? args.temasCandidatos() : [args.topic], fala: args.narration ?? '' }) // KINEO-PEDIDO-CERTO-2710
+  if (temaEscolhido.descartados > 0) console.warn('[history] KINEO-PEDIDO-CERTO-2710 tema descartado por discordar da fala', JSON.stringify({ render_id: args.renderId, fonte: temaEscolhido.fonte, descartados: temaEscolhido.descartados })) // KINEO-PEDIDO-CERTO-2710
+  const temaDoFilme = (temaEscolhido.tema || args.topic).slice(0, 1000) // KINEO-PEDIDO-CERTO-2710
   const derivedTitle =
-    (args.topic.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? args.topic)
+    (temaDoFilme.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? temaDoFilme) // KINEO-PEDIDO-CERTO-2710
       .replace(/\[[^\]]*\]/g, '')
       .trim()
       .slice(0, 120) || null
@@ -157,7 +167,7 @@ async function persistCompletedVideo(args: {
     video_url: args.videoUrl,
     thumbnail_url: args.snapshotUrl ?? null,
     render_id: args.renderId, // never null for a success row → keeps unique index ACTIVE
-    topic: args.topic,
+    topic: temaDoFilme, // KINEO-PEDIDO-CERTO-2710
     title: derivedTitle,
     platform: 'YouTube Shorts',
     duration: args.duration,
@@ -196,7 +206,7 @@ async function persistCompletedVideo(args: {
   if (!error) {
     const id = data?.id ?? '?'
     console.log(`[history] insert OK id=${id} render_id=${args.renderId}`)
-    return { ok: true, id: String(id) }
+    return { ok: true, id: String(id), topic: temaDoFilme } // KINEO-PEDIDO-CERTO-2710
   }
 
   // Idempotency: 23505 on videos_render_id_unique means this render was already
@@ -210,7 +220,7 @@ async function persistCompletedVideo(args: {
       .eq('render_id', args.renderId)
       .eq('user_id', args.userId)
       .maybeSingle()
-    return { ok: true, duplicate: true, id: existing?.id ? String(existing.id) : undefined }
+    return { ok: true, duplicate: true, id: existing?.id ? String(existing.id) : undefined, topic: temaDoFilme } // KINEO-PEDIDO-CERTO-2710
   }
 
   // Real failure — never swallow silently. Surface the full PostgREST error.
@@ -539,7 +549,7 @@ export async function GET(
         console.warn('[compose/status] claim lookup for topic failed:', e instanceof Error ? e.message : String(e))
       }
     }
-    const topicFinal = topic || topicFromClaim
+    let topicFinal = topic || topicFromClaim // KINEO-PEDIDO-CERTO-2710 — let: o tema escolhido contra a fala (persistCompletedVideo) volta para cá
 
     /**
      * sprint-retencao #4 — lê a narração real do filme no claim de submissão.
@@ -565,6 +575,7 @@ export async function GET(
           .limit(1)
           .maybeSingle()
         const nMd = (nRow?.metadata ?? {}) as Record<string, unknown>
+        if (!topicFromClaim && typeof nMd.topic === 'string') topicFromClaim = nMd.topic.slice(0, 1000) // KINEO-PEDIDO-CERTO-2710 — de carona: o tema do claim vem na mesma leitura
         if (typeof nMd.narration === 'string') {
           claimNarration = nMd.narration.slice(0, MAX_EPISODE_MEMORY_CHARS)
           return claimNarration
@@ -1137,8 +1148,16 @@ export async function GET(
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
             narration: await lerNarracaoDoEpisodio(),
+            // KINEO-PEDIDO-CERTO-2710 — autoridade: o tema do claim do compose (gravado no envio) → o pedido que a rota cinematográfica
+            // KINEO-PEDIDO-CERTO-2710 — RECEBEU (claim assinado, limpo de marcadores) → o ?topic= da aba. Conferidos contra a fala.
+            temasCandidatos: () => [ // KINEO-PEDIDO-CERTO-2710
+              topicFromClaim, // KINEO-PEDIDO-CERTO-2710
+              typeof prepaidCinematicClaim?.response?.prompt === 'string' ? limparPreviaDoRoteiro(prepaidCinematicClaim.response.prompt) : '', // KINEO-PEDIDO-CERTO-2710
+              topic, // KINEO-PEDIDO-CERTO-2710
+            ], // KINEO-PEDIDO-CERTO-2710
           })
           if (result.id) persistedVideoId = result.id
+          if (result.topic) topicFinal = result.topic // KINEO-PEDIDO-CERTO-2710 — e-mail, pacote e push dizem o mesmo tema que a linha de videos gravou
           console.log('[history] persist result:', JSON.stringify(result))
           // KINEO-FILME-RAPIDO-1710 — a medida do ARQUIVO vem da cópia: com a entrega adiada, o evento sai depois dela (o
           // bloco abaixo é o de sempre, só embrulhado para poder rodar agora ou depois da resposta).
@@ -1214,7 +1233,7 @@ export async function GET(
           const RESEND_API_KEY = process.env.RESEND_API_KEY
           const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
           if (RESEND_API_KEY && user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010 — episódio do desenho infantil vendido (geração kids-<run>): quem avisa é o passe do cron ("seu vídeo de hoje está pronto", na língua do pedido, com a contagem e a oferta); este e-mail genérico não sai
-            const safeTopic = (topic || 'your topic').replace(/[<>]/g, '')
+            const safeTopic = (topicFinal || 'your topic').replace(/[<>]/g, '') // KINEO-PEDIDO-CERTO-2710 — o e-mail diz o tema conferido, nunca o ?topic= cru
             const safeVideoUrl = finalVideoUrl.replace(/"/g, '')
             // sprint-assinaturas #24 — rodape por situacao (ver
             // lib/lifecycle/videoReadyFooter.ts). Antes: "Starter is $7" para

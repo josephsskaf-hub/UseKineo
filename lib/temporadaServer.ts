@@ -21,6 +21,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeSeriesSeed } from '@/lib/seriesContinuation'
+import { escolherTemaDoFilme, temaDiscordaDaFala } from '@/lib/pedidoCerto' // KINEO-PEDIDO-CERTO-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"]
 import {
   TEMPORADA_EVENT,
   TOTAL_EPISODIOS,
@@ -34,6 +35,7 @@ export type FilmeDaTemporada = {
   id?: unknown
   title?: unknown
   topic?: unknown
+  script?: unknown // KINEO-PEDIDO-CERTO-2710 — a fala real do filme (videos.script); ausente = lida aqui pelo id
   quality_mode?: unknown
   duration_seconds?: unknown
 }
@@ -138,10 +140,23 @@ export async function garantirTemporada(
 
   // O conteúdo real do filme 1 mora em `topic` — `videos.script` está vazio em
   // 774 de 774 filmes de 30 dias (achado do #14, não re-investigar).
-  const semente = normalizeSeriesSeed(
-    (typeof filme.topic === 'string' && filme.topic) || (typeof filme.title === 'string' && filme.title) || '',
-  )
+  // KINEO-PEDIDO-CERTO-2710 — o tema da temporada é conferido contra a FALA do filme 1 (videos.script, gravado desde 04/09). Caso
+  // KINEO-PEDIDO-CERTO-2710 — a8a74417 (27/10): topic "5 morning habits Jeff Bezos…" num filme de terror do Ethan Cole gerou uma
+  // KINEO-PEDIDO-CERTO-2710 — temporada sobre Elon Musk. Tema que não divide uma palavra de conteúdo com a fala perde para a fala.
+  let falaDoFilme = typeof filme.script === 'string' ? filme.script.trim() : '' // KINEO-PEDIDO-CERTO-2710
+  if (!falaDoFilme) { // KINEO-PEDIDO-CERTO-2710
+    try { // KINEO-PEDIDO-CERTO-2710
+      const { data: linhaFala } = await admin.from('videos').select('script').eq('id', videoId).maybeSingle() // KINEO-PEDIDO-CERTO-2710
+      falaDoFilme = typeof linhaFala?.script === 'string' ? linhaFala.script.trim() : '' // KINEO-PEDIDO-CERTO-2710
+    } catch { /* falha aberta: sem fala, o tema de sempre */ } // KINEO-PEDIDO-CERTO-2710
+  } // KINEO-PEDIDO-CERTO-2710
+  const temaDoFilme = escolherTemaDoFilme({ // KINEO-PEDIDO-CERTO-2710
+    candidatos: [typeof filme.topic === 'string' ? filme.topic : '', typeof filme.title === 'string' ? filme.title : ''], // KINEO-PEDIDO-CERTO-2710
+    fala: falaDoFilme, // KINEO-PEDIDO-CERTO-2710
+  }).tema // KINEO-PEDIDO-CERTO-2710
+  const semente = normalizeSeriesSeed(temaDoFilme) // KINEO-PEDIDO-CERTO-2710
   if (!semente) return null
+  const tituloDaSerie = typeof filme.title === 'string' && filme.title.trim() && !(falaDoFilme && temaDiscordaDaFala(filme.title, falaDoFilme)) ? filme.title : semente // KINEO-PEDIDO-CERTO-2710
 
   let bruto = ''
   try {
@@ -179,7 +194,7 @@ export async function garantirTemporada(
     return null
   }
 
-  const t = prepararTemporada(parsed, typeof filme.title === 'string' ? filme.title : semente)
+  const t = prepararTemporada(parsed, tituloDaSerie) // KINEO-PEDIDO-CERTO-2710
   // Temporada incompleta NÃO é gravada nem devolvida (ou os cinco, ou nenhum —
   // ver lib/temporada.ts).
   if (!t) return null
