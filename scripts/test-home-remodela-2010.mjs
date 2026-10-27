@@ -32,6 +32,7 @@ const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-HOME-REMODELA-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
+const { semHomeGatoCarro2610 } = await import('./test-support/desfaz-home-gato-carro-2610.mjs') // KINEO-HOME-GATO-CARRO-2610
 const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${HOME_REMODELA_2010_BASE}:${rel}`)) } catch { return null } }
@@ -147,7 +148,7 @@ function checaClipes(src, land) {
     if (!m || m[1] === 'null' || !fs.existsSync(path.join(ROOT, 'public', m[2]))) e.push(`efeito sem prévia no disco: ${key}`)
   }
   for (const t of textos) for (const f of [t[3], t[4]]) if (!fs.existsSync(path.join(ROOT, 'public', f))) e.push(`clipe de texto sem arquivo: ${f}`)
-  if (!/\{HOME_TEXT_CLIPS\.map\(\(c\) => \(/.test(src)) e.push('os clipes de texto não são desenhados')
+  if (!/\{(?:HOME_TEXT_CLIPS|textClips)\.map\(\(c\) => \(/.test(src)) e.push('os clipes de texto não são desenhados') // KINEO-HOME-GATO-CARRO-2610 — a lista desenhada pode ser a filtrada (gato e carro no lugar de 2)
   if (!/grid-auto-rows:var\(--film-height\)/.test(src)) e.push('grade de 2 fileiras sumiu')
   if (!/\{showClips && <HomeClipsStrip signedIn=\{isSignedIn\} \/>\}/.test(land)) e.push('a faixa não aparece nos 2 braços (showClips)')
   if (/\{clipsFirst && <HomeClipsStrip/.test(land)) e.push('a faixa ainda só no braço clips_first')
@@ -221,10 +222,10 @@ function checaDesfaz() {
     const b = base(rel)
     if (b == null) { e.push(`${rel} não existe na base`); continue }
     const atual = rd(rel)
-    const volta = tenta(() => semHomeRemodela2010(atual, rel))
+    const volta = tenta(() => semHomeRemodela2010(semHomeGatoCarro2610(atual, rel), rel)) // KINEO-HOME-GATO-CARRO-2610 — a camada mais nova sai antes
     if (Array.isArray(volta)) { e.push(`${rel}: ${volta[0]}`); continue }
     if (lf(volta) !== b) e.push(`${rel}: desfeito ≠ base`)
-    if (lf(semHomeRemodela2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`)
+    if (lf(semHomeRemodela2010(semHomeGatoCarro2610(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`)
   }
   for (const n of HOME_REMODELA_2010_NOVOS) if (!fs.existsSync(path.join(ROOT, n))) e.push(`novo ausente: ${n}`)
   const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010
