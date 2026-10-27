@@ -108,8 +108,9 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
   films: { default: [
     // Preserve the original top-anchored crop: the burned-in bottom caption stays outside the card.
     { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
-    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 12%', mobileObjectPosition: '50% 12%', scale: 1.36 }, // KINEO-CARDS-BORDAS-2410 — zoom esconde a marca usekineo.com/free (topo) e a legenda (baixo)
-    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 30%', mobileObjectPosition: '50% 30%', scale: 1.32 }, // KINEO-CARDS-BORDAS-2410 — idem
+    preview('home-card-novo-film_pompeii', '50% 30%'), // KINEO-CARDS-NOVOS-2610 — os 2 filmes de antes tinham a marca "usekineo.com/free" gravada (fundador 26/10: "tá com erro esse vídeo")
+    preview('home-card-novo-film_shipwreck', '50% 45%'), // KINEO-CARDS-NOVOS-2610
+    preview('home-card-novo-film_mars_door', '50% 45%'), // KINEO-CARDS-NOVOS-2610
   ] },
   product_ads: { default: [ // KINEO-CARDS-NOVOS-2610 — fundador 26/10: "quero coisas novas… o que as pessoas estão postando" (tendências: floating ads, gigante na cidade, splash, vista explodida, partículas da Higgsfield)
     preview('home-card-novo-giant_perfume', '50% 40%'), // KINEO-CARDS-NOVOS-2610
