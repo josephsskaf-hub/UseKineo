@@ -257,7 +257,7 @@ const MUTANTES = [
   ['rota: look volta a ler o plano do GPT', ROTA, '      prompt, // KINEO-ROMANCE-ADULTO-2026-10-13 — o look vem SÓ', "      `${prompt} ${planScenes.map((s) => s.brollPrompt || '').join(' ')}`, // KINEO-ROMANCE-ADULTO-2026-10-13 — o look vem SÓ"],
   ['rota: prompts finais sem romance', ROTA, '.map((promptDaCena) => (romanceAdulto.ativo ? aplicarRomanceAdulto(promptDaCena, romanceAdulto) : promptDaCena))', '.map((promptDaCena) => promptDaCena)'],
   ['rota: negative sem romance', ROTA, 'input.negative_prompt = negativoRomanceAdulto(input.negative_prompt)', 'void negativoRomanceAdulto'],
-  ['rota: still sem adultSuffix', ROTA, '...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}),', ''],
+  ['rota: still sem adultSuffix', ROTA, '...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13', '// KINEO-ROMANCE-ADULTO-2026-10-13'], // KINEO-CONSERTOS-2710 — reancorado: o juiz da ficha (27/10) repete o sufixo nas linhas dele; o mutante corta SÓ a linha desta leva (a do still clássico)
   ['rota: moderação removida', ROTA, "const moderacaoRomance = await moderateContent({ surface: 'clip'", "const moderacaoRomance = { ok: true } as const; void ({ surface: 'clip'"],
 ]
 let mortos = 0
