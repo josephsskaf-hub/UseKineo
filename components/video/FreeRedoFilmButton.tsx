@@ -86,7 +86,7 @@ export default function FreeRedoFilmButton({ videoId, qualityMode, createdAt }: 
     setOcupado(false)
   }, [escolhida, videoId, aplicar, t.failed])
 
-  if (!coberto || estado === null || estado === 'used' || estado === 'unavailable') return null
+  if (!coberto || estado === null || estado === 'unavailable') return null // KINEO-REFAZER-CENA-2710 — "usada" deixa de sumir: a tela diz "Free redo used"
 
   const chip = {
     gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38,
@@ -94,10 +94,13 @@ export default function FreeRedoFilmButton({ videoId, qualityMode, createdAt }: 
     color: 'var(--text2)', fontSize: '0.66rem', fontWeight: 700, cursor: ocupado ? 'wait' : 'pointer',
   } as const
 
+  if (estado === 'used') { // KINEO-REFAZER-CENA-2710 — a vez acabou (2 tentativas gastas): dizer, em vez de sumir
+    return <div style={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: 'var(--text2)', lineHeight: 1.35 }} role="status">{t.used}</div> // KINEO-REFAZER-CENA-2710
+  } // KINEO-REFAZER-CENA-2710
   if (estado === 'done') {
     return (
       <div style={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: 'var(--text2)', lineHeight: 1.35 }} role="status">
-        <b style={{ color: '#34d399' }}>{t.done}</b>{novaUrl ? <> · <a href={novaUrl} target="_blank" rel="noreferrer" style={{ color: '#a78bfa' }}>{t.open}</a></> : null}
+        <b style={{ color: '#34d399' }}>{t.done}</b> · {t.used}{novaUrl ? <> · <a href={novaUrl} target="_blank" rel="noreferrer" style={{ color: '#a78bfa' }}>{t.open}</a></> : null}{/* KINEO-REFAZER-CENA-2710 — "Free redo used" ao lado */}
         <div style={{ opacity: 0.8 }}>{t.previous}</div>
       </div>
     )

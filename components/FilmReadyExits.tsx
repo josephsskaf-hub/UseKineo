@@ -10,6 +10,7 @@ import Link from 'next/link'
 import CreditsTopupModal from '@/components/CreditsTopupModal'
 import { createPortal } from 'react-dom'
 import { trackEvent } from '@/lib/analytics'
+import SceneRedoPanel from '@/components/video/SceneRedoPanel' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — "Redo this scene — free" na tela do filme pronto (fora do grupo das 3 saídas)
 import {
   FILM_READY_TOPUP_SURFACE,
   filmReadyCreditsExit,
@@ -65,6 +66,9 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
 
   return (
     <>
+    {/* KINEO-REFAZER-CENA-2710 — a garantia de qualidade ANTES das saídas: o filme já foi entregue (deliver-first intacto);
+        quem não gostou de uma cena refaz uma de graça aqui mesmo. O servidor decide se cabe; sem direito, nada é pintado. */}
+    {videoId ? <SceneRedoPanel videoId={videoId} /> : null}{/* KINEO-REFAZER-CENA-2710 */}
     <div
       ref={rootRef}
       data-kineo="film-ready-exits"

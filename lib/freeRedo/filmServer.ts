@@ -35,6 +35,7 @@ import {
   type FreeRedoStatus,
 } from '@/lib/freeRedo/core'
 import { reservarVagaDoDia } from '@/lib/freeRedo/cap'
+import { espelhoSceneRedo } from '@/lib/cinematic/refazerCena' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — scene_redo_* espelham os free_redo_* (controle de qualidade diário)
 
 type Meta = Record<string, unknown>
 
@@ -182,6 +183,10 @@ async function evento(d: FreeRedoFilmDeps, userId: string, videoId: string, name
   try {
     await d.event({ name, userId, path: FREE_REDO_FILM_PATH, sessionId: videoId, metadata: { marca: MARCA_REFAZER_1910, product: 'film', video_id: videoId, ...metadata } })
   } catch { /* evento nunca derruba a refação */ }
+  try { // KINEO-REFAZER-CENA-2710 — o espelho scene_redo_{requested,delivered,failed} (video_id, scene_index, ms, reason) no MESMO ponto, só pelo servidor
+    const espelho = espelhoSceneRedo({ name, videoId, metadata, nowMs: d.now() }) // KINEO-REFAZER-CENA-2710
+    if (espelho) await d.event({ name: espelho.name, userId, path: FREE_REDO_FILM_PATH, sessionId: videoId, metadata: espelho.metadata }) // KINEO-REFAZER-CENA-2710
+  } catch { /* idem: o espelho nunca derruba a refação */ } // KINEO-REFAZER-CENA-2710
 }
 
 /**
@@ -224,6 +229,7 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
     estimated_usd: custoEstimadoUsd(cena.model, cena.seconds),
     owner,
     status: 'pending' as FreeRedoStatus,
+    requested_at: agora, // KINEO-REFAZER-CENA-2710 — a hora deste pedido (o `ms` do scene_redo_delivered mede a partir daqui; na retomada é a hora nova)
     gastas: tentativasGastas(lido.meta),
     error: null,
     fal_request_id: null,
@@ -427,6 +433,7 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
     await evento(d, userId, videoId, FREE_REDO_EVENTS.delivered, {
       engine: meta.model ?? null, quality: meta.quality ?? null, scene_index: meta.scene_index ?? null,
       estimated_usd: meta.estimated_usd ?? null, new_video_id: novoId, render_id: renderId, previous_video_url: meta.previous_video_url ?? null,
+      requested_at: meta.requested_at ?? meta.created_at ?? null, // KINEO-REFAZER-CENA-2710 — o espelho scene_redo_delivered calcula `ms` daqui
     })
   }
   return r(200, corpoDoPedido({ ...meta, ...done }, true))

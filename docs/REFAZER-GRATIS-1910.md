@@ -63,3 +63,23 @@ Por que ficou para a próxima rodada: `v2Billing.ts`, `v2Tiers.ts`, `v2PlanCore.
 rota do start são vigiados por 6+ guardiões que proíbem mexer neles (close-real D2, close-real-ajuste R2, close-real-v3,
 apresentador-v2-libera, juiz-grade) e `AdsV2Simple.tsx`/`events.ts` comparam byte a byte com contagem fixa
 (`ADS_EVENTS.length === 58`). Fazer direito pede reancorar essa cadeia numa entrega dedicada.
+
+## 27/10 — "Redo this scene — free" na tela do filme pronto (KINEO-REFAZER-CENA-2710)
+
+Decisão do fundador (27/10): "refazer essa cena liberado". Por cima do mecanismo de 19/10 (mesma rota `/api/free-redo/film`, mesma
+trava 1× por filme, débito zero, só o dono, só filme concluído, cena validada no claim assinado):
+
+- **Tela do Studio**: `components/video/SceneRedoPanel.tsx`, montado por `components/FilmReadyExits.tsx` FORA do grupo das 3 saídas
+  (o GenerateClient não foi tocado: 20+ guardiões o comparam byte a byte). Miniaturas das cenas (o clipe de cada cena, do claim),
+  botão "Redo this scene — free", confirmação "Redo scene N — free", progresso, e ao terminar: "New version ready · Free redo used".
+  Pronto → evento DOM `kineo:scene-redo-delivered` → `lib/useTrocaDoLink.ts` troca o player do Studio pela versão nova (mesmo
+  caminho da troca pelo link do bucket; o ponto e o mudo são retomados). A versão original continua na biblioteca.
+- **Biblioteca** (`FreeRedoFilmButton`): depois de usada, diz "Free redo used" em vez de sumir.
+- **Eventos do controle de qualidade** (só pelo servidor, em `lib/freeRedo/filmServer.ts`, espelhando os free_redo_*):
+  `scene_redo_requested {video_id, scene_index}` · `scene_redo_delivered {video_id, scene_index, ms}` · `scene_redo_failed {reason}`.
+  Quais cenas o cliente refaz = o que a esteira erra.
+- **Custo por uso**: ~US$0,15-0,70 (uma cena Seedance/Kling de 5-10 s + remontagem no Creatomate); Veo até ~US$1,50. Teto
+  global de 200/dia continua.
+- **Fora**: Kineo 1 e família hollywood (voz dentro do clipe) continuam fora — o servidor responde `unavailable` e o painel não
+  aparece. Migration: nenhuma.
+- Guardião: `scripts/test-refazer-cena-2710.mjs` (17 provas, 8 mutantes). Lib pura: `lib/cinematic/refazerCena.ts`.
