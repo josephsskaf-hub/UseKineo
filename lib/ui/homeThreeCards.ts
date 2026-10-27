@@ -128,7 +128,6 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
     preview('home-card-novo-penguin', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
     preview('home-card-novo-skatedog', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
     preview('home-card-novo-fox', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-puddle', '50% 55%', '50% 55%'), // KINEO-CARDS-NOVOS-2610
   ] }, // KINEO-CARDS-NOVOS-2610
 }
 
