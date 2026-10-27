@@ -96,6 +96,7 @@ const creditLabel = (quality: Parameters<typeof creditCostFor>[0]) =>
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (destino pela língua)
+import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — item "Made with Kineo" do topo
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-POUSO-VITRINE-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
@@ -528,6 +529,9 @@ html{scroll-behavior:smooth}
 .klp .nav-links>.nd>summary{white-space:nowrap} /* KINEO-HOME-REMODELA-2010 */
 @media(max-width:1390px) and (min-width:1201px){.klp .nav-links{gap:18px}} /* KINEO-HOME-REMODELA-2010 */
 @media(max-width:1300px) and (min-width:1201px){.klp .nav-links{gap:14px;font-size:14px}} /* KINEO-HOME-REMODELA-2010 */
+/* KINEO-GALERIA-HOME-2710 — 8 itens no topo ("Made with Kineo" entrou): medido no navegador, a fileira encostava no logo e no seletor de língua abaixo de ~1320px. Mesma regra do KINEO-GROWTH-TOOLS-NAV: o menu compacto entra ANTES de encostar (1201–1320 = o compacto de ≤1200, igualzinho); 1321–1390 aperta o espaço. */
+@media(max-width:1390px) and (min-width:1321px){.klp .nav-links{gap:13px;font-size:14px}} /* KINEO-GALERIA-HOME-2710 */
+@media(max-width:1320px) and (min-width:1201px){.klp .nav-links{display:none}.klp .nav-login{display:none}.klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}.klp .nav-in{display:flex;justify-content:space-between;height:78px}.klp .nav-right{margin-inline-start:auto}.klp .nav-mobile-menu{position:fixed;top:78px;left:0;right:0;flex-direction:column;background:var(--s0);border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100dvh - 78px);overflow-y:auto;z-index:49}.klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}.klp .nav-mobile-menu a:last-child{border-bottom:none}.klp .nav-mobile-menu a:hover,.klp .nav-mobile-menu a:focus-visible{color:var(--blue)}.klp .nav-mobile-menu a.btn{margin-top:12px;min-height:48px;justify-content:center;border-bottom:none;font-weight:600}} /* KINEO-GALERIA-HOME-2710 */
 @media(max-width:1200px){
 /* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o oitavo destino público ultrapassava
    o espaço disponível em tablets. A navegação compacta entra antes que os
@@ -955,6 +959,8 @@ export default function KineoLanding({
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
             <Link href="/ads/new" data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
             <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
+            {/* KINEO-GALERIA-HOME-2710 — [TRAVA 8.2 — pedido do fundador 27/10 "uma seção no início onde a gente mostra todos os nossos clips, imagens, tudo junto"]: item "Made with Kineo" (nome exato dele) logo depois dos itens de filme e de anúncio; nada saiu nem mudou de ordem */}
+            <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 */}
             {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar". */}
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
             <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
@@ -984,6 +990,7 @@ export default function KineoLanding({
               <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
               <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
+              <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>{/* KINEO-TRENDING-2026-10-13 — par do topo */}

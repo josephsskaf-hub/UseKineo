@@ -30,12 +30,13 @@ import { createRequire } from 'node:module'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o 4º card (kidsCard) veio depois
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs' // reancorado KINEO-APRESENTADOR-OLHOS-1910: a cabeça da corrente do Close real é lida sem a camada dos olhos abertos (a mais nova, que sai antes desta)
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o item "Made with Kineo" (27/10) sai em memória antes das provas históricas
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
-const read = (rel) => semPaginasIaClaras2110(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel).replace(/\r\n/g, '\n') // KINEO-PAGINAS-IA-CLARAS-2110 — retirar a ordem por origem antes das asserções e dos mutantes históricos.
+const read = (rel) => semPaginasIaClaras2110(affiliateRaw(rel, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)), rel).replace(/\r\n/g, '\n') // KINEO-PAGINAS-IA-CLARAS-2110 — retirar a ordem por origem antes das asserções e dos mutantes históricos.
 let pass = 0
 let fail = 0
 function ok(cond, msg) {

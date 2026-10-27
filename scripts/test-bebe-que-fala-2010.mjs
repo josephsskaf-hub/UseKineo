@@ -33,6 +33,7 @@ import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu dos cards ficou mais claro depois (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje"); a faixa e as linhas são conferidas sem aquela camada
 import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho infantil (21/10) mexe na rota do filme, só com desenhoInfantil.ativo
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
+import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o item "Made with Kineo" (27/10) sai em memória antes das provas históricas
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -42,7 +43,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-BEBE-QUE-FALA-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
-const rd = (rel) => lf(semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel), rel))
+const rd = (rel) => lf(semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(rel, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)), rel), rel))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${BEBE_QUE_FALA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -421,7 +422,7 @@ console.log('\nK. desfaz exato, encadeamento, diff, commits')
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
     let out
-    try { out = semBebeQueFala2010(semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f), f), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }
+    try { out = semBebeQueFala2010(semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(f, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)), f), f), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }
     if (lf(out) !== b) difs.push(f)
   }
   ok(difs.length === 0, `K1 ${BEBE_QUE_FALA_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${BEBE_QUE_FALA_2010_BASE.slice(0, 9)} (${difs.join('; ') || 'ok'})`)
@@ -430,7 +431,7 @@ console.log('\nK. desfaz exato, encadeamento, diff, commits')
   ok(trocasOk && Object.values(ACRESCIMOS_BEBE_QUE_FALA_2010).every((n) => Number.isInteger(n) && n >= 0), 'K3 trocas: linha nova com a marca, linha da base sem; contagens inteiras')
   const MENU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
   const cadeia = /export function semMenuUgc2010\(texto, p\) \{\n  texto = semBebeQueFala2010\(texto, p\)/.test(MENU)
-  const igual = BEBE_QUE_FALA_2010_ARQUIVOS.every((f) => { const raw = semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f), f), semEste = semBebeQueFala2010(raw, f); return semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f) })
+  const igual = BEBE_QUE_FALA_2010_ARQUIVOS.every((f) => { const raw = semRoteiroCurto2210(semPaginasIaClaras2110(affiliateRaw(f, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)), f), f), semEste = semBebeQueFala2010(raw, f); return semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f) })
   ok(cadeia && igual, 'K4 encadeamento: semMenuUgc2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; ugc-ajustes e as de baixo herdam')
   let lancou = false
   try { semBebeQueFala2010(rd(F.land) + `\n// linha nova ${MARCA}`, F.land) } catch { lancou = true }

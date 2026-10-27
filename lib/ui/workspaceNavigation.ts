@@ -10,6 +10,9 @@
 export const WORKSPACE_NAV = [
   { href: '/studio', label: 'Make a film', icon: 'generate' },
   { href: '/ads/new', label: 'Product ads', icon: 'ads' },
+  // KINEO-GALERIA-HOME-2710 — fundador 27/10: "Made with Kineo" (galeria de clipes, imagens e filmes) logo depois das 2 portas,
+  // par do topo do site. No celular abre o "More" logo depois do 🔥 Trending (a barra segue com as 5 vagas de sempre).
+  { href: '/made-with-kineo', label: 'Made with Kineo', icon: 'made' }, // KINEO-GALERIA-HOME-2710
   { href: '/library', label: 'Library', icon: 'videos' },
   // KINEO-TRENDING-2026-10-13 — fundador 13/10: a página "🔥 Trending now" (vídeos reais feitos na Kineo + "Make mine") entra logo
   // antes de Pricing, sem tirar nada. Par: topo do site (app/KineoLanding.tsx), /examples, Sidebar e o "More" do MobileNav.

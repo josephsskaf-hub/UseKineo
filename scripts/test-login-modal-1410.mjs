@@ -28,12 +28,13 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o item "Made with Kineo" (27/10) sai em memória antes das provas históricas
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const BASE = '8e3bcfd4'
-const readRaw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+const readRaw = (rel) => semGaleriaHome2710(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)
 const read = (rel) => readRaw(rel).replace(/\r\n/g, '\n')
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 function baseFile(rel) {

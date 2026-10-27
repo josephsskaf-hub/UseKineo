@@ -28,6 +28,7 @@ import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCar
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restoredClipEffect } from '@/lib/clips/clipRotateHint' // KINEO-CLIPE360-AMOSTRA-1410
 import { CLIP_TRENDS, CLIP_TRENDS_PUBLIC, clipTrendByKey, trendTarget, type ClipTrend } from '@/lib/clips/clipTrends' // KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana"
+import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — ?prompt= do Made with Kineo
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
@@ -260,6 +261,17 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (wanted) applyTrend(wanted)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engines])
+  // KINEO-GALERIA-HOME-2710 — "Make one like this" do Made with Kineo: ?prompt= só PREENCHE a ideia (o motor vem do ?engine= de
+  // sempre). Nada é gerado nem cobrado sem a pessoa apertar Gerar; ?trend= e ?effect= vencem.
+  const promptFromUrlRef = useRef(false) // KINEO-GALERIA-HOME-2710
+  useEffect(() => { // KINEO-GALERIA-HOME-2710
+    if (promptFromUrlRef.current || engines.length === 0) return // KINEO-GALERIA-HOME-2710
+    promptFromUrlRef.current = true // KINEO-GALERIA-HOME-2710
+    const sp = new URLSearchParams(window.location.search) // KINEO-GALERIA-HOME-2710
+    if (sp.get('trend') || sp.get('effect')) return // KINEO-GALERIA-HOME-2710
+    const p = galeriaPromptFromUrl(sp.get('prompt')) // KINEO-GALERIA-HOME-2710
+    if (p) setPrompt(p) // KINEO-GALERIA-HOME-2710
+  }, [engines]) // KINEO-GALERIA-HOME-2710
 
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null

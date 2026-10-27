@@ -17,6 +17,7 @@ import { HOME_4TH_CARD_LIVE } from '@/lib/ui/homeKidsCard'
 import { KINEO_LANDING_THEME_CSS } from '@/app/kineoLandingTheme'
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import ShowcaseGrid from '@/app/claude-connector/ShowcaseGrid'
 import { PAGINA_CLARA, PAGINA_CLARA_CSS, VITRINE_LINHA, VITRINE_TITULO } from '@/lib/seo/paginasIaClaras2110'
 
@@ -37,6 +38,7 @@ export function PaginaClaraTopo() {
           <Link href="/studio" className="kpn-primary" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
           <Link href="/ads/new" className="kpn-primary" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
           <NavUgcAdsLink data-nav-item="more:ugc" />
+          <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo da home */}
           <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
           <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
           <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>
@@ -53,6 +55,7 @@ export function PaginaClaraTopo() {
               <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
               <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <NavUgcAdsLink data-nav-item="more:ugc" />
+              <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
               <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>
