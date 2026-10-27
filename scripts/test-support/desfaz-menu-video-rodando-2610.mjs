@@ -1,0 +1,22 @@
+// KINEO-MENU-VIDEO-RODANDO-2610 — DESFAZ, em memória, esta entrega nos arquivos que ela MODIFICOU, para guardiões que conferem arquivos BYTE A BYTE
+// contra uma base anterior. Diff REVERSO exato (contexto 3): cada bloco de AGORA aparece UMA vez e volta a ser o de ANTES.
+// Arquivo fora da lista ou sem a marca volta igual. É a camada mais nova destes arquivos — desfaça ESTA primeiro.
+export const MARCA = 'KINEO-MENU-VIDEO-RODANDO-2610'
+export const BASE = 'ffe52785608c868cdc9215ec878f7de6f841a2e6'
+const DESFAZ = {"components/NavEngineItem.tsx":[{"before":["import { UiLabel } from '@/components/InterfaceLanguage'","import { useRef } from 'react'","import { navThumbAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — alt descritivo na miniatura do menu","","export default function NavEngineItem({","  href,"],"now":["import { UiLabel } from '@/components/InterfaceLanguage'","import { useRef } from 'react'","import { navThumbAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — alt descritivo na miniatura do menu","// KINEO-MENU-VIDEO-RODANDO-2610 — fundador 26/10: \"onde estão os motores, no menu, eu quero vídeos rodando, não fotos paradas…","// KINEO-MENU-VIDEO-RODANDO-2610 — dá sinal de que os nossos vídeos são bons\". Miniatura com mp4 irmão (public/nav-thumbs/<motor>.mp4,","// KINEO-MENU-VIDEO-RODANDO-2610 — 96 px, 4 s, ~10 KB, cortado do MESMO clipe real do motor que deu a foto) roda sozinha em loop; a foto vira o pôster.","const NAV_THUMB_VIDEOS = new Set(['seedance', 'kling', 'veo', 'kling3', 'h3', 's25']) // KINEO-MENU-VIDEO-RODANDO-2610","const NAV_THUMB_VIDEO_STYLE = { width: '100%', height: '100%', objectFit: 'cover' as const, display: 'block' } // KINEO-MENU-VIDEO-RODANDO-2610","function navThumbVideo(thumb?: string): string | null { // KINEO-MENU-VIDEO-RODANDO-2610","  const m = /^\\/nav-thumbs\\/([a-z0-9]+)\\.webp$/.exec(thumb ?? '') // KINEO-MENU-VIDEO-RODANDO-2610","  return m && NAV_THUMB_VIDEOS.has(m[1]) ? `/nav-thumbs/${m[1]}.mp4` : null // KINEO-MENU-VIDEO-RODANDO-2610","} // KINEO-MENU-VIDEO-RODANDO-2610","","export default function NavEngineItem({","  href,"]},{"before":["  thumb?: string","}) {","  const ref = useRef<HTMLVideoElement | null>(null)","  return (","    <Link","      href={href}"],"now":["  thumb?: string","}) {","  const ref = useRef<HTMLVideoElement | null>(null)","  const thumbVideo = navThumbVideo(thumb) // KINEO-MENU-VIDEO-RODANDO-2610","  return (","    <Link","      href={href}"]},{"before":["      }}","      onMouseLeave={() => ref.current?.pause()}","    >","      {thumb ? <span className=\"nm-th\" aria-hidden=\"true\"><img src={thumb} alt={navThumbAlt1510(name)} width={40} height={40} loading=\"lazy\" decoding=\"async\" /></span> : icon ? <span className=\"nm-ic\" aria-hidden=\"true\"><KineoBoltText>{icon}</KineoBoltText></span> : null}","      <span className=\"nm-tx\">","        <b>","          {translateName ? <UiLabel>{name}</UiLabel> : name}"],"now":["      }}","      onMouseLeave={() => ref.current?.pause()}","    >","      {thumb ? <span className=\"nm-th\" aria-hidden=\"true\">{thumbVideo ? <video src={thumbVideo} poster={thumb} width={40} height={40} autoPlay muted loop playsInline preload=\"metadata\" style={NAV_THUMB_VIDEO_STYLE} /> : <img src={thumb} alt={navThumbAlt1510(name)} width={40} height={40} loading=\"lazy\" decoding=\"async\" />}</span> : icon ? <span className=\"nm-ic\" aria-hidden=\"true\"><KineoBoltText>{icon}</KineoBoltText></span> : null}","      <span className=\"nm-tx\">","        <b>","          {translateName ? <UiLabel>{name}</UiLabel> : name}"]}]}
+export function semMenuVideoRodando2610(text, rel) {
+  if (typeof text !== 'string') return text
+  const original = text
+  const crlf = original.includes('\r\n')
+  let s = original.replace(/\r\n/g, '\n')
+  const hunks = DESFAZ[String(rel).replace(/\\/g, '/')]
+  if (!hunks || !s.includes(MARCA)) return original
+  for (const h of hunks) {
+    const parts = s.split(h.now.join('\n'))
+    if (parts.length !== 2) throw new Error('semMenuVideoRodando2610: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')
+    s = parts.join(h.before.join('\n'))
+  }
+  if (s.includes(MARCA)) throw new Error('semMenuVideoRodando2610: sobrou linha marcada em ' + rel)
+  return crlf ? s.replace(/\n/g, '\r\n') : s
+}
+export const ARQUIVOS = Object.keys(DESFAZ)
