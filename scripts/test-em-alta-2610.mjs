@@ -6,6 +6,7 @@
 //   E. mutantes.
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { semIntegracaoSobreMain2372610 } from './test-support/leva-rebase-2610.mjs' // Exact sealed integration only; unknown source bytes are never projected.
 
 const lf = (t) => t.replace(/\r\n/g, '\n')
 const rd = (p) => lf(fs.readFileSync(p, 'utf8'))
@@ -35,9 +36,65 @@ checa('C4 ?trend= aplica uma vez só', /trendFromUrlRef\.current = true/.test(ui
 checa('C5 card só aparece se a conta tem motor que serve', /const target = trendTarget\(tr, engines\)\s*\n\s*if \(!target\) return null/.test(ui))
 checa('C6 vitrine vem antes da galeria de efeitos', ui.indexOf('clip-trends-title') > 0 && ui.indexOf('clip-trends-title') < ui.indexOf('aria-labelledby="clip-effects-title"'))
 
-const base = lf(execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' })).trim()
-const mudou = lf(execFileSync('git', ['diff', '--name-only', base], { encoding: 'utf8' })).trim().split('\n').filter(Boolean)
+// This task's own immutable delta remains free of API/event edits. The final
+// branch also contains four separately approved deliveries, whose API sources
+// are certified below rather than mistaken for changes made by this UI task.
+const OWN_BASE = '237b14fb186655e448e9d2e5e80b5b904a8e9863'
+const OWN_PRODUCT = 'f9216bf8728cb86adac67c59c9b8ca47c06521f9'
+const APPROVED_INTEGRATION = '917d1f8728b0d73d6ffb518e2e16051fbd3d9f9a'
+const LATEST_MAIN = 'ffe52785608c868cdc9215ec878f7de6f841a2e6'
+const git = (...args) => lf(execFileSync('git', args, { encoding: 'utf8', windowsHide: true, maxBuffer: 16 << 20, stdio: ['ignore', 'pipe', 'ignore'] }))
+const list = value => value.trim().split('\n').filter(Boolean)
+const mudou = list(git('diff', '--name-only', OWN_BASE, OWN_PRODUCT))
 checa('D1 nenhum evento novo nem rota mexida', !mudou.some((f) => f.startsWith('app/api/')))
+
+const expectedApi = list(git('diff', '--name-only', OWN_BASE, APPROVED_INTEGRATION, '--', 'app/api')).sort()
+const currentApi = [...new Set([
+  ...list(git('diff', '--name-only', LATEST_MAIN, '--', 'app/api')),
+  ...list(git('ls-files', '--others', '--exclude-standard', '--', 'app/api')),
+])].sort()
+const immutable = new Map()
+function blob(ref, file) {
+  const key = ref + ':' + file
+  if (!immutable.has(key)) {
+    let value = null
+    try { value = git('cat-file', 'blob', key) } catch { /* Missing historical files remain missing; no HEAD fallback. */ }
+    immutable.set(key, value)
+  }
+  return immutable.get(key)
+}
+function apiBoundary(overrides = {}) {
+  const failures = []
+  const files = [...new Set([...currentApi, ...Object.keys(overrides)])].sort()
+  if (JSON.stringify(files) !== JSON.stringify(expectedApi)) failures.push('API inventory differs from the approved four-wave delta')
+  for (const file of files) {
+    let raw
+    try { raw = Object.hasOwn(overrides, file) ? overrides[file] : rd(file) }
+    catch { failures.push('API source missing: ' + file); continue }
+    const before = blob(OWN_BASE, file)
+    if (before !== null) {
+      if (lf(semIntegracaoSobreMain2372610(raw, file)) !== before) failures.push('Unknown API bytes: ' + file)
+    } else {
+      const reviewed = blob(APPROVED_INTEGRATION, file)
+      if (reviewed === null || lf(raw) !== reviewed) failures.push('New API differs from its immutable approved source: ' + file)
+    }
+  }
+  return failures
+}
+checa('D2 API delta keeps every exact approved source, with no extra path', apiBoundary().length === 0)
+const crlfApi = Object.fromEntries(currentApi.map(file => [file, rd(file).replace(/\n/g, '\r\n')]))
+checa('D3 exact API boundary accepts CRLF without changing meaning', apiBoundary(crlfApi).length === 0)
+checa('D4 historical projection is idempotent for each approved API', currentApi.every(file => {
+  const first = semIntegracaoSobreMain2372610(rd(file), file)
+  return semIntegracaoSobreMain2372610(first, file) === first
+}))
+const apiMutation = 'app/api/events/route.ts'
+checa('M2 unknown API edit cannot escape the exact sealed boundary', currentApi.includes(apiMutation)
+  && apiBoundary({ [apiMutation]: rd(apiMutation) + '\n// unknown API edit must remain visible\n' }).length > 0)
+const newApiMutation = currentApi.find(file => blob(OWN_BASE, file) === null)
+checa('M3 an edited API absent from the original main also stays red', Boolean(newApiMutation)
+  && apiBoundary({ [newApiMutation]: rd(newApiMutation) + '\n// unknown new-API edit must remain visible\n' }).length > 0)
+
 
 const mut = apply.replace('setPrompt(trend.prompt)', '')
 checa('M1 mutante (sem preencher a ideia) seria vermelho em C1', !['setPrompt(trend.prompt)'].every((s) => mut.includes(s)))
