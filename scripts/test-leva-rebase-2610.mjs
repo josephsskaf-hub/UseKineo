@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs'
 import {
   REBASE, REBASE_MAIN, REBASE_LEVA, REBASE_BASE, REBASE_MANIFEST_PATH, FINAL_PRE_LEVA_2610, FINAL_MAIN_2610,
   REBASE_LEGACY_MANIFEST, rebaseLf, rebaseHash, rebaseGit, rebaseTextFile,
-  rebaseCurrentInventory, verifyRebaseManifest, verifyRebaseCurrentTree,
+  rebaseCurrentInventory, verifyRebaseManifest, verifyRebaseCurrentTree, rebaseLaterFiles, // KINEO-INTEGRA-2710
   semLevaSobreMain2610, semMainSobreLeva2610, semLevaSobreIntegracao2610, semIntegracaoSobreMain2372610, preloadRebaseBlobs2610, rebaseImmutableSource2610,
 } from './test-support/leva-rebase-2610.mjs'
 let checks = 0, mutants = 0
@@ -98,8 +98,9 @@ check(() => assert.equal(semCloseReal1910(null, newShowcaseFile), null, 're-ente
 check(() => assert.throws(() => semCloseReal1910(newShowcaseSource + '\n// changed new route\n', newShowcaseFile), /modified new file; refusing deletion/, 'changed new route cannot be erased by the legacy chain'))
 
 preloadRebaseBlobs2610()
+const LATER_2710 = rebaseLaterFiles() // KINEO-INTEGRA-2710
 for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610], [FINAL_PRE_LEVA_2610, semLevaSobreIntegracao2610], [FINAL_MAIN_2610, semIntegracaoSobreMain2372610]]) {
-  for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile)) {
+  for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile).filter(file => !LATER_2710.has(file))) { // KINEO-INTEGRA-2710 — arquivo com entrega posterior responde ao guardião dela
     const raw = readFileSync(file, 'utf8'), current = rebaseLf(raw)
     check(() => assert.equal(rebaseHash(current), REBASE.sources[file].hash, 'physical full-source seal: ' + file))
     let expected

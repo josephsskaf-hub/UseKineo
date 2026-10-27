@@ -97,18 +97,18 @@ function project(text, file, target) {
   return crlfBlobs.get(blobKey)
 }
 
-export const semLevaSobreMain2610 = (text, file) => project(text, file, REBASE_MAIN)
+export const semLevaSobreMain2610 = (text, file) => project(semPosterioresAoSelo2710(text, file), file, REBASE_MAIN) // KINEO-INTEGRA-2710
 // Camadas publicadas DEPOIS da entrega selada (main 33fab0c97 e o desenho de 15 s) saem antes da projeção; só onde a camada é mais nova. // KINEO-INTEGRA-2710
 function semPosterioresAoSelo2710(text, file) { // KINEO-INTEGRA-2710
   const p = pathOf(file) // KINEO-INTEGRA-2710
   if (p === 'scripts/test-paginas-ia-claras-2110.mjs') text = semCronOrigem2610(text, p) // KINEO-INTEGRA-2710
-  if (p === 'scripts/test-roteiro-curto-undo-2210.mjs') text = semEmAlta2610(text, p) // KINEO-INTEGRA-2710
+  if (p === 'scripts/test-roteiro-curto-undo-2210.mjs' || p === 'docs/compra-clareza-2610/test-legacy-layer.mjs') text = semEmAlta2610(text, p) // KINEO-INTEGRA-2710
   return semDesenho15s2710(semCardsNovos2610(text, p), p) // KINEO-INTEGRA-2710
 } // KINEO-INTEGRA-2710
 export const semMainSobreLeva2610 = (text, file) => project(semPosterioresAoSelo2710(text, file), file, REBASE_LEVA) // KINEO-INTEGRA-2710
 // Final sealed composition leaves before each earlier exact layer; unknown bytes stay visible.
-export const semLevaSobreIntegracao2610 = (text, file) => project(text, file, FINAL_PRE_LEVA_2610)
-export const semIntegracaoSobreMain2372610 = (text, file) => project(text, file, FINAL_MAIN_2610)
+export const semLevaSobreIntegracao2610 = (text, file) => project(semPosterioresAoSelo2710(text, file), file, FINAL_PRE_LEVA_2610) // KINEO-INTEGRA-2710
+export const semIntegracaoSobreMain2372610 = (text, file) => project(semPosterioresAoSelo2710(text, file), file, FINAL_MAIN_2610) // KINEO-INTEGRA-2710
 
 export function rebaseCurrentInventory(base = REBASE_BASE) {
   return [...new Set([...rebaseGit('diff', '--name-only', base).trim().split('\n'), ...rebaseGit('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
