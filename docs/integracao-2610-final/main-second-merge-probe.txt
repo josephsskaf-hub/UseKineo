@@ -1,0 +1,17 @@
+a8de38d8a8ec0987d6a4027629fc265b4efb4d4f
+100644 f33aeda7cf7cf4cb9a7e69991a5f397f7599fff9 1	docs/compra-clareza-2610/test-legacy-layer.mjs
+100644 2f8dfc2ed58e861f7935541ebe8147a2d822d2ee 2	docs/compra-clareza-2610/test-legacy-layer.mjs
+100644 9fb48f5041a8f78e8761ee003e6810d53aebe4fd 3	docs/compra-clareza-2610/test-legacy-layer.mjs
+100644 37e051d59e75932c1bb742078313e7ece4f20336 1	scripts/test-paginas-ia-claras-2110.mjs
+100644 0ff37e1ec568e176ecbc6861679f40d1cf2c01bd 2	scripts/test-paginas-ia-claras-2110.mjs
+100644 cf81f8a3d0859f749698e5c964fc64ac2637e1a6 3	scripts/test-paginas-ia-claras-2110.mjs
+100644 0a196b72270f3d8e55e07bc1728adf5f2a523024 1	scripts/test-roteiro-curto-undo-2210.mjs
+100644 5c5bef9125aa32f211ee9ea61af2ed07a8f6ee4b 2	scripts/test-roteiro-curto-undo-2210.mjs
+100644 87de1d9c5c13bdccc1b69f9bd4032c0c4bada6dd 3	scripts/test-roteiro-curto-undo-2210.mjs
+
+Auto-merging docs/compra-clareza-2610/test-legacy-layer.mjs
+CONFLICT (content): Merge conflict in docs/compra-clareza-2610/test-legacy-layer.mjs
+Auto-merging scripts/test-paginas-ia-claras-2110.mjs
+CONFLICT (content): Merge conflict in scripts/test-paginas-ia-claras-2110.mjs
+Auto-merging scripts/test-roteiro-curto-undo-2210.mjs
+CONFLICT (content): Merge conflict in scripts/test-roteiro-curto-undo-2210.mjs

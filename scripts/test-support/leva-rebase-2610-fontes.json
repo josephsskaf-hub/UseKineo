@@ -135,10 +135,12 @@
     "docs/integracao-2610-final/RELATORIO.md",
     "docs/integracao-2610-final/comparison-final.json",
     "docs/integracao-2610-final/comparison-latest-8461529a1.json",
+    "docs/integracao-2610-final/comparison-requested-237-final.json",
     "docs/integracao-2610-final/comparison.json",
     "docs/integracao-2610-final/execution-latest-logs.zip",
     "docs/integracao-2610-final/execution-logs.zip",
     "docs/integracao-2610-final/latest-final-audit.json",
+    "docs/integracao-2610-final/main-second-merge-probe.txt",
     "docs/leva-rebase-2610/COMPARACAO_MAIN.json",
     "docs/leva-rebase-2610/DIAGNOSTICO_F1F3.json",
     "docs/leva-rebase-2610/ENTREGA.md",
@@ -1360,13 +1362,16 @@
       "hash": "e863a69bdeb09f9e53b713c3487f6ed845de2147a56373e46679dba73dd3220d"
     },
     "docs/integracao-2610-final/RELATORIO.md": {
-      "hash": "5cb9c8ba454dc92a90211a2ad034b23fdf55872abc38dd35dde31a88a4ac8fc3"
+      "hash": "390b4c410a65c85a5136d3fd8ee39622a4e33964686d819e22e24b26cd1af151"
     },
     "docs/integracao-2610-final/comparison-final.json": {
       "hash": "5e9923c94a409b8f8fcddd4263edc5e626317063869512db4e729d08a2c94fb1"
     },
     "docs/integracao-2610-final/comparison-latest-8461529a1.json": {
       "hash": "03307a64415d6ce5a22f5bccaf2123522f690c55189415350a6a19b8a78a2f71"
+    },
+    "docs/integracao-2610-final/comparison-requested-237-final.json": {
+      "hash": "9e60a6671642902e7d644eaa0c9614a8f0e1bbad4623c7c8203dd005ea47595c"
     },
     "docs/integracao-2610-final/comparison.json": {
       "hash": "5e9923c94a409b8f8fcddd4263edc5e626317063869512db4e729d08a2c94fb1"
@@ -1379,6 +1384,9 @@
     },
     "docs/integracao-2610-final/latest-final-audit.json": {
       "hash": "6e9aedad1fb292c1b81f8446bf9f5c4c763af2323abe4c5cc8d71754ee775aa6"
+    },
+    "docs/integracao-2610-final/main-second-merge-probe.txt": {
+      "hash": "d7a5a262722fd992dcecb00bc4c002d4aee5bb2a955c34c1d71517a748c94af4"
     },
     "docs/leva-rebase-2610/COMPARACAO_MAIN.json": {
       "hash": "6042e4ff61a458e840c51e9a2d82e63c10bfcea1a300ca3250e5d9270f85bd01"

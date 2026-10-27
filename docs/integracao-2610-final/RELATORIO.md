@@ -9,6 +9,10 @@
 
 **FATO CONFIRMADO — evidências entregues:** os resultados, inventários, logs e verificações de tipos desta rodada estão em [execution-latest-logs.zip](execution-latest-logs.zip). A rodada original contra main237 permanece em [execution-logs.zip](execution-logs.zip) e [comparison.json](comparison.json). As janelas e os SHAs de cada rodada são identificados separadamente; nenhum resultado foi usado para completar a outra execução.
 
+**FATO CONFIRMADO — referência remota posterior:** a main avançou externamente outra vez para `33fab0c97c2a043e67ae1c8358de4368d58b4c58`, com 14 commits posteriores à FFE escolhida para esta entrega. A simulação de merge do candidato documentado `48b8421621f275b62cb3196bc5c442098adc306d` com essa main encontrou conflitos em `docs/compra-clareza-2610/test-legacy-layer.mjs`, `scripts/test-paginas-ia-claras-2110.mjs` e `scripts/test-roteiro-curto-undo-2210.mjs`. Fonte: [main-second-merge-probe.txt](main-second-merge-probe.txt), gravada em 2026-10-27T02:52:49.119Z. A comparação deste relatório aplica-se à base FFE incorporada; não valida a composição com esses 14 commits posteriores.
+
+**SUGESTÃO — próximo passo recomendado:** fixar o SHA da próxima publicação, integrar os commits posteriores e validar essa composição antes de fazer merge na main atual. A branch desta entrega permanece separada da main.
+
 ## Comparação mais recente: FFE × integração
 
 **TESTADO LOCALMENTE:** Windows, Node.js `v24.18.0`, TypeScript `5.9.3`. Ambos executaram todos os arquivos dos padrões `scripts/test-*.mjs`, `docs/**/test*.mjs` e `tests/*.test.mjs`. O inventário de cada execução foi confrontado com sua árvore Git imutável. As janelas abaixo pertencem somente a esse par.
@@ -27,6 +31,197 @@
 | TypeScript direto --noEmit | saída 0 | saída 0 |
 
 **TESTADO LOCALMENTE — diferença por arquivo:** 39 vermelhos herdados, 136 vermelhos da main que ficaram verdes, 25 testes acrescentados verdes e zero vermelho novo. Dados completos: [comparison-latest-8461529a1.json](comparison-latest-8461529a1.json).
+
+## Comparação solicitada: main 237 × código final 846
+
+**TESTADO LOCALMENTE:** esta comparação usa a execução completa original da main `237b14fb1` e a execução completa do código final `8461529a1`, sem preencher resultados com outro SHA. Cada janela está registrada no JSON; os períodos não foram somados.
+
+| Resultado | Main 237 | Código final 846 |
+|---|---:|---:|
+| Arquivos executados | 1.035 | 1.062 |
+| Verdes | 865 | 1.023 |
+| Vermelhos | 170 | 39 herdados |
+| npx e compilador TypeScript direto | saída 0 | saída 0 |
+
+**TESTADO LOCALMENTE:** zero vermelho novo, nenhum teste removido e 27 testes acrescentados verdes em relação à main237. Matriz completa e fontes dos resultados: [comparison-requested-237-final.json](comparison-requested-237-final.json).
+
+<details>
+<summary>Abrir a lista completa de vermelhos: main 237 × código final 846</summary>
+
+| Arquivo | Main 237 | Código final 846 |
+|---|---|---|
+| `docs/qa/test-checkout-return-2026-09-08.mjs` | VERMELHO | VERMELHO herdado |
+| `docs/qa/test-pista3-post-film.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-activation-recovery-claim-settle.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-activation-recovery-server-truth.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-ads-ia-faz-2026-09-26.mjs` | VERMELHO | VERDE |
+| `scripts/test-aeo-business-offer.mjs` | VERMELHO | VERDE |
+| `scripts/test-affiliate-activation.mjs` | VERMELHO | VERDE |
+| `scripts/test-affiliate-destinations.mjs` | VERMELHO | VERDE |
+| `scripts/test-afiliado-ref-2026-09-08.mjs` | VERMELHO | VERDE |
+| `scripts/test-agency-appearance.mjs` | VERMELHO | VERDE |
+| `scripts/test-alvo-fantasma-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-another-short-shelf.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-aparar-expansao-2026-09-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-apresentador-v2-1710.mjs` | VERMELHO | VERDE |
+| `scripts/test-archive-studio-review.mjs` | VERMELHO | VERDE |
+| `scripts/test-assistant-deep-link.mjs` | VERMELHO | VERDE |
+| `scripts/test-autopilot-case-study-path.mjs` | VERMELHO | VERDE |
+| `scripts/test-autopilot-pilot-resume.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-b2c-subscription-truth-report.mjs` | VERMELHO | VERDE |
+| `scripts/test-carta-episodio-gatilho-2026-09-06.mjs` | VERMELHO | VERDE |
+| `scripts/test-causa-sempre-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-chatgpt-paste-page.mjs` | VERMELHO | VERDE |
+| `scripts/test-chatgpt-quickstart.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-checkout-currency-truth.mjs` | VERMELHO | VERDE |
+| `scripts/test-client-short-brief.mjs` | VERMELHO | VERDE |
+| `scripts/test-clique-perdido.mjs` | VERMELHO | VERDE |
+| `scripts/test-close-real-1910.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-coerencia-historia-2026-09-02.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-consentimento-superficie.mjs` | VERMELHO | VERDE |
+| `scripts/test-convite-na-hora-certa-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-credit-minutes-ui.mjs` | VERMELHO | VERDE |
+| `scripts/test-credits-held-waitroom.mjs` | VERMELHO | VERDE |
+| `scripts/test-cta-composer-2026-09-06.mjs` | VERMELHO | VERDE |
+| `scripts/test-data-cache-no-store.mjs` | VERMELHO | VERDE |
+| `scripts/test-demo-sob-medida-1510.mjs` | VERMELHO | VERDE |
+| `scripts/test-diretor-kineo-2026-09-23.mjs` | VERMELHO | VERDE |
+| `scripts/test-diretrizes-coladas-2026-09-04.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-done-footer-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-done-workspace.mjs` | VERMELHO | VERDE |
+| `scripts/test-dunning-grace.mjs` | VERMELHO | VERDE |
+| `scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs` | VERMELHO | VERDE |
+| `scripts/test-enterprise-alternative-business-path.mjs` | VERMELHO | VERDE |
+| `scripts/test-entrada-seedance15-2026-09-29.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-entrega-noite-r6-2026-09-09.mjs` | VERMELHO | VERDE |
+| `scripts/test-episodio2-ending-2026-09-01.mjs` | VERMELHO | VERDE |
+| `scripts/test-escritor-monumento-1310.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-espiral-recusa-2026-09-01.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-example-remix.mjs` | VERMELHO | VERDE |
+| `scripts/test-failure-cause-38.mjs` | VERMELHO | VERDE |
+| `scripts/test-failure-recovery-honest.mjs` | VERMELHO | VERDE |
+| `scripts/test-failure-recovery-latest-wins.mjs` | VERMELHO | VERDE |
+| `scripts/test-failure-screen-40.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-faixa-continuar.mjs` | VERMELHO | VERDE |
+| `scripts/test-fal-saldo-alerta-2026-09-28.mjs` | VERMELHO | VERDE |
+| `scripts/test-fila-global-pilula-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-filmes-f1-virgula-1910.mjs` | VERMELHO | VERDE |
+| `scripts/test-filmes-f1f4-1910.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-first-film-free-offer.mjs` | VERMELHO | VERDE |
+| `scripts/test-free-limit-wall.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-go-auto-forward.mjs` | VERMELHO | VERDE |
+| `scripts/test-gpt-handoff-verdade.mjs` | VERMELHO | VERDE |
+| `scripts/test-gpt-handoff.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-growth-candidate-2026-09-01.mjs` | VERMELHO | VERDE |
+| `scripts/test-growth-roundup-search-intent.mjs` | VERMELHO | VERDE |
+| `scripts/test-growth-space-intent.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-guardiao-2026-08-28.mjs` | VERMELHO | VERDE |
+| `scripts/test-guardiao-yaml-2026-09-03.mjs` | VERMELHO | VERDE |
+| `scripts/test-history-second-video-milestone.mjs` | VERMELHO | VERDE |
+| `scripts/test-home-curation-restore.mjs` | VERMELHO | VERDE |
+| `scripts/test-home-remodela-2010.mjs` | VERMELHO | VERDE |
+| `scripts/test-home-welcome-goal-router.mjs` | VERMELHO | VERDE |
+| `scripts/test-hora-da-volta-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-imagem-para-video-2026-09-25.mjs` | VERMELHO | VERDE |
+| `scripts/test-interface-16-linguas-2026-09-21.mjs` | VERMELHO | VERDE |
+| `scripts/test-kit-bf-venda-2010.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-last-setup-memory.mjs` | VERMELHO | VERDE |
+| `scripts/test-leva-confiabilidade-2026-08-28.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-library-search.mjs` | VERMELHO | VERDE |
+| `scripts/test-library-visual-gallery.mjs` | VERMELHO | VERDE |
+| `scripts/test-limit-purchase-fit.mjs` | VERMELHO | VERDE |
+| `scripts/test-llms-engine-availability.mjs` | VERMELHO | VERDE |
+| `scripts/test-local-business-ad-brief.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-local-business-tool-discovery.mjs` | VERMELHO | VERDE |
+| `scripts/test-logo-da-marca-2026-10-01.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-manrope-system.mjs` | VERMELHO | VERDE |
+| `scripts/test-marcador-da-casa.mjs` | VERMELHO | VERDE |
+| `scripts/test-mcp-claude-2026-09-29.mjs` | VERMELHO | VERDE |
+| `scripts/test-mcp-pagina-2026-09-30.mjs` | VERMELHO | VERDE |
+| `scripts/test-mcp-studio-ajuste-2010.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-menu-ugc-2010.mjs` | VERMELHO | VERDE |
+| `scripts/test-meta95-ideia-1910.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-meta95-personagem-ajuste-2010.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-momentum-motor-gratis.mjs` | VERMELHO | VERDE |
+| `scripts/test-money-truth-contract.mjs` | VERMELHO | VERDE |
+| `scripts/test-monumento-real-1310.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-motores-d1-2026-09-01.mjs` | VERMELHO | VERDE |
+| `scripts/test-multiformato-2026-09-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-narracao-degrau.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-next-episode-visibility.mjs` | VERMELHO | VERDE |
+| `scripts/test-next-episode-wall-2026-09-06.mjs` | VERMELHO | VERDE |
+| `scripts/test-next-idea-wait-45.mjs` | VERMELHO | VERDE |
+| `scripts/test-next-shorts-affordance-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-pacote-no-email-de-entrega.mjs` | VERMELHO | VERDE |
+| `scripts/test-paginas-lote1-1210.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-painel-verdade.mjs` | VERMELHO | VERDE |
+| `scripts/test-parser-voice-1510.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-paypal-canonical-catalog.mjs` | VERMELHO | VERDE |
+| `scripts/test-paypal-idempotencia.mjs` | VERMELHO | VERDE |
+| `scripts/test-ph-kit-2026-09-09.mjs` | VERMELHO | VERDE |
+| `scripts/test-plan-film-language.mjs` | VERMELHO | VERDE |
+| `scripts/test-ponte-com-preco-2026-09-07.mjs` | VERMELHO | VERDE |
+| `scripts/test-porta-email-2026-09-06.mjs` | VERMELHO | VERDE |
+| `scripts/test-porta-episodio2-2026-09-04.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-preco-para-saldo-cheio-2026-09-07.mjs` | VERMELHO | VERDE |
+| `scripts/test-preco-visivel-2026-09-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-precos-clipes-kling25-1610.mjs` | VERMELHO | VERDE |
+| `scripts/test-pricing-monthly-campaign.mjs` | VERMELHO | VERDE |
+| `scripts/test-primeiro-filme-1310.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-primeiro-filme-video-2026-09-17.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-private-file-share.mjs` | VERMELHO | VERDE |
+| `scripts/test-product-surface-intent.mjs` | VERMELHO | VERDE |
+| `scripts/test-public-video-privacy.mjs` | VERMELHO | VERDE |
+| `scripts/test-publicador-refspec-2026-09-05.mjs` | VERMELHO | VERDE |
+| `scripts/test-publish-kit-business-path.mjs` | VERMELHO | VERDE |
+| `scripts/test-quadro-real-2026-09-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-ready-notice-studio-review.mjs` | VERMELHO | VERDE |
+| `scripts/test-recusa-analyze-copy-2026-09-01.mjs` | VERMELHO | VERDE |
+| `scripts/test-recusa-com-nome-2026-08-31.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-recusa-nao-e-tente-de-novo-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-render-morto.mjs` | VERMELHO | VERDE |
+| `scripts/test-resgate-402-2026-09-01.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-resgate-filme-do-fornecedor-2026-09-08.mjs` | VERMELHO | VERDE |
+| `scripts/test-returning-seed-2026-09-01.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-rodape-saldo-desconhecido-2026-09-05.mjs` | VERMELHO | VERDE |
+| `scripts/test-rodape-segmentos-2026-09-27.mjs` | VERMELHO | VERDE |
+| `scripts/test-roteiro-perdido-2026-08-31.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-runway.mjs` | VERMELHO | VERDE |
+| `scripts/test-scene-disposition.mjs` | VERMELHO | VERDE |
+| `scripts/test-script-preflight.mjs` | VERMELHO | VERDE |
+| `scripts/test-season-strip.mjs` | VERMELHO | VERDE |
+| `scripts/test-segunda-tentativa-1usd.mjs` | VERMELHO | VERDE |
+| `scripts/test-sem-porteiro-2026-09-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-serie-memoria-2026-09-04.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-showcase-2026-10-02.mjs` | VERMELHO | VERDE |
+| `scripts/test-signup-product-destination.mjs` | VERMELHO | VERDE |
+| `scripts/test-silencio-na-cena-2026-09-11.mjs` | VERMELHO | VERDE |
+| `scripts/test-sistema-de-compra-2026-09-08.mjs` | VERMELHO | VERDE |
+| `scripts/test-stranded-email-dedupe.mjs` | VERMELHO | VERDE |
+| `scripts/test-stranded-extra-attempt-4xx.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-studio-hierarchy-runtime.mjs` | VERMELHO | VERDE |
+| `scripts/test-studio-prompt-limit.mjs` | VERMELHO | VERDE |
+| `scripts/test-studio-tile-episode2-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-temporada.mjs` | VERMELHO | VERDE |
+| `scripts/test-teto-no-prompt.mjs` | VERMELHO | VERDE |
+| `scripts/test-text-to-video-intent-router.mjs` | VERMELHO | VERDE |
+| `scripts/test-trial-watermark.mjs` | VERMELHO | VERMELHO herdado |
+| `scripts/test-troca-de-plano-2026-09-09.mjs` | VERMELHO | VERDE |
+| `scripts/test-ux-complete.mjs` | VERMELHO | VERDE |
+| `scripts/test-ux-mobile-navigation.mjs` | VERMELHO | VERDE |
+| `scripts/test-verbatim-order-warning.mjs` | VERMELHO | VERDE |
+| `scripts/test-video-editing.mjs` | VERMELHO | VERDE |
+| `scripts/test-video-ready-nudge.mjs` | VERMELHO | VERDE |
+| `scripts/test-video-share-consent.mjs` | VERMELHO | VERDE |
+| `scripts/test-videos-search.mjs` | VERMELHO | VERDE |
+| `scripts/test-vigia-cenario-inventado-2026-09-11.mjs` | VERMELHO | VERDE |
+| `scripts/test-viralnow-search-intent.mjs` | VERMELHO | VERDE |
+| `scripts/test-visibilidade-chatgpt-2026-10-06.mjs` | VERMELHO | VERDE |
+| `scripts/test-vitrine-em-alta-2026-08-31.mjs` | VERMELHO | VERDE |
+| `scripts/test-works-with-claude-2026-09-30.mjs` | VERMELHO | VERDE |
+| `scripts/test-workspace-spanish.mjs` | VERMELHO | VERDE |
+
+</details>
 
 ## Evidência original preservada: main 237 × cb0
 
