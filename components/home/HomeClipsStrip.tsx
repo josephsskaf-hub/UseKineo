@@ -13,6 +13,7 @@ import WallMedia from '@/components/WallMedia'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { clipsFirstEffectCards } from '@/components/home/ClipsFirstHome'
 import type { ClipEffectKey } from '@/lib/clips/clipEffects'
+import { CLIP_TRENDS } from '@/lib/clips/clipTrends' // KINEO-HOME-GATO-CARRO-2610
 
 /** Os 4 da vitrine, na ordem (o 1º é o cartão grande). O fundador escolheu a explosão de cor e o tênis girando; os outros
  *  dois são os efeitos novos que viralizam (bolsa que é bolo e despertador que derrete). */
@@ -25,6 +26,12 @@ export const HOME_TEXT_CLIPS: readonly { id: string; title: string; video: strin
   { id: 'glacier', title: 'Glacier river', video: '/previews/promo-clips-glacier.mp4', poster: '/posters/promo-clips-glacier.webp', focus: '50% 50%' }, // KINEO-HOME-REMODELA-2010
   { id: 'surf', title: 'Surfer on a wave', video: '/previews/promo-clips-surf.mp4', poster: '/posters/promo-clips-surf.webp', focus: '50% 50%' }, // KINEO-HOME-REMODELA-2010
 ] // KINEO-HOME-REMODELA-2010
+// KINEO-HOME-GATO-CARRO-2610 — fundador 26/10: "põe o gato e a ferrari, gostei bastante desses 2 na tela inicial". Os dois
+// KINEO-HOME-GATO-CARRO-2610 — clipes REAIS da vitrine "Trending this week" (lib/clips/clipTrends.ts, Kling 3) abrem a faixa e
+// KINEO-HOME-GATO-CARRO-2610 — levam ao /clips com a ideia pronta (?trend=). Selo honesto: o motor que os fez.
+export const HOME_TREND_CLIP_KEYS: readonly string[] = ['pet_dance', 'toy_to_real_car'] // KINEO-HOME-GATO-CARRO-2610
+const HOME_TEXT_CLIPS_FORA: readonly string[] = ['glacier', 'surf'] // KINEO-HOME-GATO-CARRO-2610 — o gato e o carro entram no lugar deles
+const HOME_TREND_FOCUS: Record<string, string> = { pet_dance: '50% 30%', toy_to_real_car: '50% 55%' } // KINEO-HOME-GATO-CARRO-2610
 /** KINEO-HOME-REMODELA-2010 — selo honesto dos 3 clipes de texto: o motor que de fato os fez. */
 export const HOME_TEXT_CLIP_ENGINE = 'Seedance 1.5' // KINEO-HOME-REMODELA-2010
 
@@ -75,6 +82,8 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
   // Cartão de um efeito fora do catálogo (ou sem prévia) simplesmente não entra — nunca um quadro vazio.
   const cards = HOME_CLIP_KEYS.map((key) => all.find((c) => c.effect.key === key)).filter((c): c is (typeof all)[number] => Boolean(c))
   const clipsHref = signedIn ? '/clips' : `/signup?redirect=${encodeURIComponent('/clips')}`
+  const textClips = HOME_TEXT_CLIPS.filter((c) => !HOME_TEXT_CLIPS_FORA.includes(c.id)) // KINEO-HOME-GATO-CARRO-2610 — 8 cartões (2 fileiras de 4)
+  const trends = HOME_TREND_CLIP_KEYS.map((k) => CLIP_TRENDS.find((t) => t.key === k)).filter((t): t is (typeof CLIP_TRENDS)[number] => Boolean(t)) // KINEO-HOME-GATO-CARRO-2610
   return (
     <section className="kcs" aria-labelledby="home-clips-heading" data-home-section="clips">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -85,6 +94,17 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
         </div>
         <p className="kcs-sub"><UiLabel>Short clips from a photo or one line — ready in about a minute.</UiLabel></p>
         <div className="kcs-grid">
+          {trends.map((tr) => { // KINEO-HOME-GATO-CARRO-2610
+            const dest = `/clips?trend=${tr.key}` // KINEO-HOME-GATO-CARRO-2610
+            const href = signedIn ? dest : `/signup?redirect=${encodeURIComponent(dest)}` // KINEO-HOME-GATO-CARRO-2610
+            return ( // KINEO-HOME-GATO-CARRO-2610
+              <Link key={tr.key} href={href} className="kcs-card" data-clip-trend={tr.key} data-home-cta="clip_trend" aria-label={`${tr.title} — Kling 3`}>{/* KINEO-HOME-GATO-CARRO-2610 */}
+                <div className="kcs-md" style={mediaStyle(tr.preview.poster, HOME_TREND_FOCUS[tr.key])}><WallMedia src={tr.preview.video} /></div>{/* KINEO-HOME-GATO-CARRO-2610 */}
+                <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-GATO-CARRO-2610 */}
+                <span className="kcs-copy"><i>Kling 3</i><b><UiLabel>{tr.title}</UiLabel></b></span>{/* KINEO-HOME-GATO-CARRO-2610 */}
+              </Link> // KINEO-HOME-GATO-CARRO-2610
+            ) // KINEO-HOME-GATO-CARRO-2610
+          })}{/* KINEO-HOME-GATO-CARRO-2610 */}
           {cards.map((c) => (
             <Link
               key={c.effect.key}
@@ -109,7 +129,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
               </span>
             </Link>
           ))}
-          {HOME_TEXT_CLIPS.map((c) => ( // KINEO-HOME-REMODELA-2010
+          {textClips.map((c) => ( // KINEO-HOME-REMODELA-2010 · KINEO-HOME-GATO-CARRO-2610
             <Link key={c.id} href={clipsHref} className="kcs-card" data-clip-text={c.id} data-home-cta="clip_text" aria-label={`${c.title} — ${HOME_TEXT_CLIP_ENGINE}`}>{/* KINEO-HOME-REMODELA-2010 */}
               <div className="kcs-md" style={mediaStyle(c.poster, c.focus)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-REMODELA-2010 */}
               <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-REMODELA-2010 */}
