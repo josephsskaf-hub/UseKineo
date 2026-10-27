@@ -113,14 +113,16 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
   ] },
   product_ads: { default: [
     { ...preview('home-card-close-real-en', '50% 35%') }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta); 35% mantém rosto e tênis (conferido no navegador)
+    preview('home-card-pulse', '50% 30%'), // KINEO-CARDS-HOME-2610 — anúncio real da casa (relógio Pulse, corredora), 0–10,5 s antes da tela final
     preview('efeito-product_360', '50% 50%'),
     preview('promo-images-1', '50% 50%'),
   ], pt: [
     { ...preview('home-card-close-real-pt', '50% 35%') }, // KINEO-CARDS-BORDAS-2410
+    preview('home-card-pulse', '50% 30%'), // KINEO-CARDS-HOME-2610
     preview('efeito-product_360', '50% 50%'),
     preview('promo-images-1', '50% 50%'),
   ] },
-  ugc_ads: { default: [preview('home-card-ugc-presenter', '50% 0%', '50% 0%')] },
+  ugc_ads: { default: [preview('home-card-ugc-presenter', '50% 0%', '50% 0%'), preview('home-card-glow_a', '50% 10%', '50% 10%'), preview('home-card-lume_gift', '50% 35%', '50% 35%')], pt: [preview('home-card-ugc2', '50% 20%', '50% 20%'), preview('home-card-ugc-presenter', '50% 0%', '50% 0%')] }, // KINEO-CARDS-HOME-2610 — fundador 26/10: "mais loopings de mais opções nos 3 cards da direita"
   kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 70%', '50% 100%') }] }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta), o enquadramento de antes do giro
 }
 
