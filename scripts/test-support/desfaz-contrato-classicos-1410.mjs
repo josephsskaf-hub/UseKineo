@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-CONTRATO-CLASSICOS-1410 [TRAVA 8.2 — vai do fundador 14/10] — DESFAZ, em memória, o conserto do Contrato de Cena no
 // caminho clássico (Seedance 1.5, Kling 2.5, Veo 3.1, Sora) para os guardiões que conferem a rota do cinematic (ou o
 // sceneTruth) BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -67,6 +68,7 @@ export const FORMA_CONTRATO_CLASSICOS_1410 = {
  * Acréscimos repetidos (o "} // marca" e o "palavraInteira?: boolean // marca" aparecem 2×) são consumidos na ordem.
  */
 export function semContratoClassicos1410(s, p = ROTA) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   const texto = String(s)
   const crlf = texto.includes('\r\n')

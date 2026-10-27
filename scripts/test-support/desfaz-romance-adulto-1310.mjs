@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ROMANCE-ADULTO-2026-10-13 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim' (romance adulto e realista)] — desfaz, EM
 // MEMÓRIA, o conserto do romance adulto nos arquivos que ele tocou, para os guardiões "byte a byte igual à base" e para o
 // próprio guardião (scripts/test-romance-adulto-1310.mjs) reconstruírem a base sem git:
@@ -32,6 +33,7 @@ export const TROCADAS_ROMANCE_ADULTO = [
 
 /** O arquivo `p` (caminho relativo à raiz, com '/') sem o conserto do romance adulto; null/undefined passam direto. */
 export function desfazRomanceAdulto(p, s) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   const crlf = s.includes('\r\n')
   const trocas = TROCADAS_ROMANCE_ADULTO.filter(([arq]) => arq === p)

@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-STUDIO-FANTASMA-1510 — DESFAZ, em memória, os 4 consertos da tela do Studio em app/(dashboard)/generate/GenerateClient.tsx
 // (filme fantasma do ?autoanalyze, trava de saldo, "failed" falso, download à vista), para os guardiões que conferem esse arquivo
 // BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-). Cada bloco tem de aparecer
@@ -100,6 +101,7 @@ const BLOCOS = [
 
 /** Tira os consertos do GenerateClient (em memória). Arquivo sem a marca = volta igual (o conserto ainda não está nesta árvore). */
 export function desfazStudioFantasma1510(rel, src) {
+  src = semConsertos2710(src, rel) // KINEO-CONSERTOS-2710
   if (rel !== GEN || typeof src !== 'string' || !src.includes(MARCA_STUDIO_FANTASMA_1510)) return src
   const crlf = src.includes('\r\n')
   let s = crlf ? src.replace(/\r\n/g, '\n') : src

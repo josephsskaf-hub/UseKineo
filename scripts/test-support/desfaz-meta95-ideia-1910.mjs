@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-IDEIA-1910 — DESFAZ, em memória, a alavanca A2 da
 // meta 95 (ideia solta → escritor marcado do /api/generate-script → fala verbatim) nos arquivos que guardiões conferem BYTE
 // A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -59,6 +60,7 @@ export const PREFIXOS_META95_IDEIA_1910 = ACRESCIMOS_META95_IDEIA_1910[ROTA_META
 
 /** O texto de `rel` sem a alavanca A2 da meta 95 (padrão: a rota do cinematic). */
 export function semMeta95Ideia1910(texto, rel = ROTA_META95_IDEIA_1910) {
+  texto = semConsertos2710(texto, rel) // KINEO-CONSERTOS-2710
   texto = semMeta95Personagem2010(texto, rel) // KINEO-META95-PERSONAGEM-2010 — a camada mais nova da rota do cinematic sai primeiro
   texto = semHome3Cards1910(texto, rel) // KINEO-HOME-3-CARDS-1910
   texto = semKitBf1910(texto, rel) // KINEO-KIT-BF-1910 — a camada mais nova sai primeiro

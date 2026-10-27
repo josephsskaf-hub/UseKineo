@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semLevaSobreIntegracao2610 } from './leva-rebase-2610.mjs' // final integration: newest sealed source first.
 import { semUpsellFilme152610 } from './desfaz-upsell-filme15-2610.mjs'
 // KINEO-VITRINE-FILMES-2610 — exact task-only projection, in memory.
@@ -53,6 +54,7 @@ const positions = (text, needle) => {
 }
 
 export function semVitrine2610(source, file) {
+  source = semConsertos2710(source, file) // KINEO-CONSERTOS-2710
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
   const entry = VITRINE_2610_MANIFEST.scope[relative] ?? VITRINE_2610_MANIFEST.testScope?.[relative] ?? VITRINE_2610_GUARDIAN_ADAPTERS.scope[relative]
   if (!entry || source === null) return source

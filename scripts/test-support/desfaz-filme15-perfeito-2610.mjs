@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-FILME15-PERFEITO-2610: exact, reversible historical projection only.
 // Current product tests must read the raw source. Never import this from product code.
 import { readFileSync } from 'node:fs'
@@ -29,5 +30,5 @@ function project(source, file, reverse) {
   for (const item of ordered) result = result.slice(0, item.at) + item.replacement + result.slice(item.at + item.length)
   return source.includes('\r\n') ? result.replace(/\n/g, '\r\n') : result
 }
-export const semFilme15Perfeito2610 = (source, file) => project(source, file, true)
+export const semFilme15Perfeito2610 = (source, file) => project(semConsertos2710(source, file), file, true) // KINEO-CONSERTOS-2710
 export const comFilme15Perfeito2610 = (source, file) => project(source, file, false)

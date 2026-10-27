@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-PARCEIRO-EYEBIBLE-2-1410 — DESFAZ, em memória, a 2ª leva do conserto do filme do parceiro Robert/EyeBible (14/10) para
 // os guardiões que conferem estes arquivos BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa
 // com test-).
@@ -48,6 +49,7 @@ export const FORMA_PARCEIRO_EYEBIBLE_2_1410 = Object.fromEntries(
 
 /** O texto do arquivo `p` de ANTES desta leva. Preserva CRLF. Idempotente: sem linha marcada, devolve igual. */
 export function semParceiroEyebible2_1410(p, s) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   const spec = ARQUIVOS[p]
   const bruto = String(s)
   if (!spec) return bruto

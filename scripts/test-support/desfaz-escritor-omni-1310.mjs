@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13 — desfaz, EM MEMÓRIA, as duas mudanças de 13/10 (pauta
 // do dia, "tudo sim" do fundador) nos arquivos que os guardiões "byte a byte igual à base" comparam:
 //   · lib/runway.ts — UMA linha da base ganhou, no meio, a inserção `${…placeRule…}` e um comentário no fim (ambos saem
@@ -15,6 +16,7 @@ const COMENTARIO_RUNWAY = ' · placeRule: KINEO-ESCRITOR-MONUMENTO-2026-10-13 (a
 
 /** O arquivo `p` (caminho relativo à raiz, com '/') sem as mudanças de 13/10 do escritor e do Omni; null/undefined passam direto. */
 export function desfazEscritorOmni(p, s) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   s = desfazRomanceAdulto(p, s) // KINEO-ROMANCE-ADULTO-2026-10-13 — a leva do romance adulto (13/10, 'tudo sim') também sai, em memória
   const crlf = s.includes('\r\n')
@@ -48,6 +50,7 @@ function desfazEstornoNarracaoLf(p, t) {
 }
 /** O arquivo `p` sem o conserto da narração de 13/10 (só ele); null/undefined passam direto. */
 export function desfazEstornoNarracao(p, s) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   const crlf = s.includes('\r\n')
   const t = desfazEstornoNarracaoLf(p, crlf ? s.replace(/\r\n/g, '\n') : s)

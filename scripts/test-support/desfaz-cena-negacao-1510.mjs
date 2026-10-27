@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10 "vai, vamos fazer isso rápido"] — DESFAZ, em memória, o conserto
 // da negação no Contrato de Cena, para os guardiões que conferem a rota do cinematic (ou o sceneTruth) BYTE A BYTE contra
 // uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -73,6 +74,7 @@ export function linhasTrocadasCenaNegacao1510(p) {
  * Idempotente: sem nada marcado, devolve o texto igual. Arquivo que o conserto não tocou: linha marcada nele = lança.
  */
 export function semCenaNegacao1510(s, p = ROTA) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   const texto = String(s)
   const crlf = texto.includes('\r\n')

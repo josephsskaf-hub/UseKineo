@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semLevaSobreMain2610 } from './leva-rebase-2610.mjs' // KINEO-LEVA-REBASE-2610: newest merged source leaves before exact main hashes.
 // [TRAVA 8.2 — vai do fundador 26/10 "o ads de 15 está horrível… arrumasse para mim o mais rápido possível"] KINEO-FILME15-FIEL-2610 —
 // desfaz EXATO, em memória, da camada "filme de 15 s fiel": idioma do filme pelo roteiro (compose), Whisper no idioma do filme
@@ -24,6 +25,7 @@ const MAIN_REBASE_OVERLAPS_2610 = new Set([
   'scripts/test-support/desfaz-idiomas-formatos-2410.mjs',
 ])
 export function semFilme15Fiel2610(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   if (MAIN_REBASE_OVERLAPS_2610.has(String(p ?? '').replace(/\\/g, '/'))) texto = semLevaSobreMain2610(texto, p)
   texto = semFilme15Perfeito2610(texto, p) // KINEO-FILME15-PERFEITO-2610
   texto = semFilme15Rosto2610(texto, p) // KINEO-FILME15-ROSTO-2610

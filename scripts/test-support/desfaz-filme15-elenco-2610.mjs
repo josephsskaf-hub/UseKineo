@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // [TRAVA 8.2 — vai do fundador 26/10 "tinha que seguir o menino depressivo"] KINEO-FILME15-ELENCO-2610 — desfaz EXATO, em memória, do
 // elenco do filme de 15 s na rota (import, elenco pelos visuais das cenas, protagonista em toda cena, bloco da folha com o elenco do
 // ajuste). Arquivo novo da camada: lib/filmes/filme15Elenco.ts. Sem a marca = intocado; trecho ausente/ambíguo ou resultado
@@ -11,6 +12,7 @@ export const FILME15_ELENCO_2610_NOVOS = Object.freeze(['lib/filmes/filme15Elenc
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 
 export function semFilme15Elenco2610(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semVisualIngles2610(texto, p) // KINEO-VISUAL-INGLES-2610
   const rel = String(p ?? '').split(String.fromCharCode(92)).join('/')
   const entry = FILME15_ELENCO_2610.scope[rel]

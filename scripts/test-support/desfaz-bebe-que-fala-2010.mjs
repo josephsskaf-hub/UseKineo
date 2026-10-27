@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-BEBE-QUE-FALA-2010 — DESFAZ, em memória, o "AI Kids Cartoon Stories" (template /kids-cartoon, `kids_cartoon` na rota do filme e no
 // /generate, 4º card da home, páginas no sitemap e no /llms.txt) para os guardiões que conferem arquivos BYTE A BYTE contra uma base antiga.
 // Módulo auxiliar; não é teste.
@@ -92,6 +93,7 @@ export const BEBE_QUE_FALA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semBebeQueFala2010(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semKidsVenda2010(texto, p) // KINEO-KIDS-VENDA-2010 — a camada mais nova sai primeiro
   texto = semHomeCardsClaros2010(texto, p) // KINEO-HOME-CARDS-CLAROS-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')

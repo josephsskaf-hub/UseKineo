@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // [TRAVA 8.2 — vai do fundador 26/10 "1A"] KINEO-FILME15-ROSTO-2610 — desfaz EXATO, em memória, da camada "rosto fixo no filme de
 // 15 s" na rota (3 trechos: import, pedido implícito, decisão da folha). Arquivo novo da camada: lib/filmes/filme15RostoFixo.ts.
 // Tabela em desfaz-filme15-rosto-2610-hunks.json (before/after com 1 linha de contexto). Sem a marca = intocado. Trecho ausente,
@@ -13,6 +14,7 @@ export const FILME15_ROSTO_2610_NOVOS = Object.freeze(['lib/filmes/filme15RostoF
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 
 export function semFilme15Rosto2610(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semFilme15Perfeito2610(texto, p) // KINEO-FILME15-PERFEITO-2610
   texto = semVozNativa2610(texto, p) // KINEO-VOZ-NATIVA-2610
   texto = semFilme15Elenco2610(texto, p) // KINEO-FILME15-ELENCO-2610

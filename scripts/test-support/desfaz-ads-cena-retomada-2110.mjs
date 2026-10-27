@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ADS-CENA-RETOMADA-2110 — camada mais nova, snapshot exato; usado só pelos guardiões históricos.
 import { semPaginasIaClaras2110 } from './desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { readFileSync } from 'node:fs'
@@ -24,6 +25,7 @@ export const CENA_RETOMADA_NEW = Object.freeze([
   "scripts/test-support/desfaz-ads-cena-retomada-2110.mjs"
 ])
 export function semAdsCenaRetomada2110(texto, file) {
+  texto = semConsertos2710(texto, file) // KINEO-CONSERTOS-2710
   texto = semAdsCenaRespaldo2110(texto, file) // KINEO-ADS-CENA-RESPALDO-2110 — antes das demais camadas e do hash da retomada.
   texto = semPaginasIaClaras2110(texto, file) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — antes das camadas Ads e do hash integral.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]

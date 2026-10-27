@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] — DESFAZ, em memória, a entrega "filme mais
 // rápido" para os guardiões que conferem rotas e telas BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o
 // nome não começa com test-).
@@ -420,6 +421,7 @@ export function linhasTrocadasFilmeRapido1710(p) {
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual. */
 export function semFilmeRapido1710(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semMeta95Assunto1910(texto, p) // KINEO-META95-ASSUNTO-1910 — a camada mais nova na rota do cinematic sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_FILME_RAPIDO_1710)) return texto
   const crlf = texto.includes('\r\n')

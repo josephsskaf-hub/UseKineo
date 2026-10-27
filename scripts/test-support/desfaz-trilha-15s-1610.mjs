@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"] — DESFAZ, em memória, o conserto da trilha do Seedance de
 // 15 s (e da estrada clássica inteira), para os guardiões que conferem a rota do cinematic ou o visualPromptPolicy BYTE A
 // BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -72,6 +73,7 @@ export function linhasTrocadasTrilha15s1610(p) {
  * Idempotente: sem nada marcado, devolve o texto igual. Arquivo que o conserto não tocou: linha marcada nele = lança.
  */
 export function semTrilha15s1610(s, p = ROTA) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   if (s == null) return s
   s = semMeta95Assunto1910(s, p) // KINEO-META95-ASSUNTO-1910 — a camada mais nova no visualPromptPolicy (e na rota) sai primeiro
   const texto = String(s)

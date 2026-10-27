@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-UPSELL-FILME15-2610 — exact newest layer for historical guardians only.
 // Current behavior is tested raw by test-upsell-filme15-2610.mjs. No source file is changed here.
 import { readFileSync } from 'node:fs'
@@ -21,6 +22,7 @@ function integrationEntry(rel) {
   return entry
 }
 export function semUpsellFilme152610(source, file) {
+  source = semConsertos2710(source, file) // KINEO-CONSERTOS-2710
   const rel = String(file ?? '').replace(/\\/g, '/')
   const original = UPSELL_FILME15_2610.scope[rel] ?? UPSELL_FILME15_2610.readerScope?.[rel]
   if (!original || typeof source !== 'string') return source

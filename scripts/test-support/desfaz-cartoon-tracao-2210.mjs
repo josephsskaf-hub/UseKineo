@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semAmostraAnuncio2410 } from './desfaz-amostra-anuncio-2410.mjs' // KINEO-LEVA-2410 — newest siblings first.
 import { levaUndoPrefix, semLevaIntegration2410, levaBlob, levaHash } from './leva-integration-2410.mjs' // KINEO-LEVA-2410
 // KINEO-CARTOON-TRACAO-2210 — exact, in-memory historical adapter; the new guardian reads real source.
@@ -13,6 +14,7 @@ export const CARTOON_TRACAO_HUNKS = Object.freeze(JSON.parse(readFileSync(join(d
 
 export const CARTOON_TRACAO_INTEGRATED_HUNKS = Object.freeze(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-cartoon-tracao-2210-hunks.json'), 'utf8')))
 export function reverseCartoonIntegrated2410(text, file) {
+  text = semConsertos2710(text, file) // KINEO-CONSERTOS-2710
   const rel = String(file ?? '').replace(/\\/g, '/'), hunks = CARTOON_TRACAO_INTEGRATED_HUNKS[rel]
   if (typeof text !== 'string' || !hunks) return text
   let result = text.replace(/\r\n/g, '\n')
@@ -26,6 +28,7 @@ export function reverseCartoonIntegrated2410(text, file) {
 }
 
 export function semCartoonTracao2210(text, file) {
+  text = semConsertos2710(text, file) // KINEO-CONSERTOS-2710
   text = semAmostraAnuncio2410(semLevaIntegration2410(text, file), file) // KINEO-LEVA-2410 — exact reviewed integration edits only.
   const integratedRel = String(file ?? '').replace(/\\/g, '/')
   if (typeof text === 'string' && CARTOON_TRACAO_INTEGRATED_HUNKS[integratedRel] && levaHash(text) === levaHash(levaBlob('618bed34', integratedRel))) return reverseCartoonIntegrated2410(text, integratedRel) // KINEO-LEVA-2410 — actually reverse recorded integrated context, never a prefix-pair shortcut.

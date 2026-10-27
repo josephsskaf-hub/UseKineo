@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-LEGENDA-BENGALI-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]
 // Camada mais nova: somente acréscimos marcados e trocas EXATAS para a base.
 // Sem marca/fora da lista: identidade. Incompleto: falha fechada. Preserva CRLF.
@@ -8,6 +9,7 @@ export const MARCA_LEGENDA_BENGALI_2010 = 'KINEO-LEGENDA-BENGALI-2010'
 export const LEGENDA_BENGALI_2010_BASE = 'ed429b6073c7d8c436b1dd51da150a4acc1c65ca'
 export const REGRAS_LEGENDA_BENGALI_2010 = JSON.parse(readFileSync(new URL('./desfaz-legenda-bengali-2010-trocas.json', import.meta.url), 'utf8'))
 export function semLegendaBengali2010(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semIdiomasFormatos2410(texto, p) // KINEO-IDIOMAS-FORMATOS-2410
   texto = semAdsBola2110(texto, p) // KINEO-ADS-BOLA-2110 — merge da fila 21/10: o anúncio da bola (e a qualidade, que ele chama primeiro) é a camada mais nova: sai PRIMEIRO
   const rel = String(p ?? '').replace(/\\/g, '/')

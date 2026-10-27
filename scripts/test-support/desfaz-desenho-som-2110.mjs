@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-DESENHO-SOM-2110 — DESFAZ, em memória, a entrega "o som do desenho infantil" (fundador 21/10, nota 9,5 aos curtas do Ollie: "o que
 // KINEO-DESENHO-SOM-2110 — me incomodou foi a trilha, tem que ser diferente"): narrador contador de histórias, trilha de programa infantil
 // KINEO-DESENHO-SOM-2110 — mais baixa e o botão de legenda — só para o filme com kids_cartoon. Módulo auxiliar; não é teste.
@@ -114,6 +115,7 @@ export const DESENHO_SOM_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semDesenhoSom2110(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro (encadeado: semAdsNota92110 → semDesenhoSom2110 → o ajuste da folha)
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_DESENHO_SOM_2110) || !DESENHO_SOM_2110_ARQUIVOS.includes(rel)) return texto

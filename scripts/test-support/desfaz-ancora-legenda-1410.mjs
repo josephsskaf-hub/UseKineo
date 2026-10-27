@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ANCORA-LEGENDA-1410 — DESFAZ, em memória, os dois ajustes aprovados pelo fundador em 14/10 ("1 sim, 3 sim") para os
 // guardiões que conferem estes arquivos BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa
 // com test-).
@@ -35,6 +36,7 @@ export const FORMA_ANCORA_LEGENDA_1410 = Object.fromEntries(
 
 /** O texto do arquivo `p` de ANTES do ajuste. Preserva CRLF. Idempotente: sem linha marcada, devolve igual. */
 export function semAncoraLegenda1410(p, s) {
+  s = semConsertos2710(s, p) // KINEO-CONSERTOS-2710
   const spec = ARQUIVOS[p]
   const bruto = String(s)
   if (!spec) return bruto
@@ -72,6 +74,7 @@ export function desfazAncoraLegenda1410(p, s) {
 /** Desfaz pelo CONTEÚDO, para guardiões que leem a rota sem saber o caminho (ler(...) de um só arquivo): tenta cada arquivo
  *  do ajuste cuja forma bate. Texto sem a marca passa igual. */
 export function desfazAncoraLegenda1410Texto(s) {
+  s = semConsertos2710(s, 'app/api/generate-video-cinematic/route.ts') // KINEO-CONSERTOS-2710
   if (s == null) return s
   const bruto = String(s)
   if (!bruto.includes(MARCA_ANCORA_LEGENDA_1410)) return bruto

@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // VIDEO-FIEL-2610 — frozen, reversible compatibility for historical guardians only.
 // Current behavior tests must never import this projection. No product module uses it.
 import { readFileSync } from 'node:fs'
@@ -36,5 +37,5 @@ function project(source, file, direction) {
   return source.includes('\r\n') ? result.replace(/\n/g, '\r\n') : result
 }
 
-export const semVideoFiel2610 = (source, file) => project(semCaptionCanonico2610(semUpsellFilme152610(source, file), file), file, 'reverse')
+export const semVideoFiel2610 = (source, file) => project(semCaptionCanonico2610(semUpsellFilme152610(semConsertos2710(source, file), file), file), file, 'reverse') // KINEO-CONSERTOS-2710
 export const comVideoFiel2610 = (source, file) => project(source, file, 'forward')

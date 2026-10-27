@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ADS-CENA-95-PACING-2110 — camada mais nova, snapshot exato; usado só pelos guardiões históricos.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -22,6 +23,7 @@ export const CENA95_PACING_NEW = Object.freeze([
   "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs"
 ])
 export function semAdsCena95Pacing2110(texto, file) {
+  texto = semConsertos2710(texto, file) // KINEO-CONSERTOS-2710
   texto = semCartoonTracao2210(texto, file) // KINEO-CARTOON-TRACAO-2210 — newest exact delta before historical adapters/hashes.
   texto = semAdsCenaRetomada2110(texto, file) // KINEO-ADS-CENA-RETOMADA-2110 — antes da marca e do hash da camada anterior.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]

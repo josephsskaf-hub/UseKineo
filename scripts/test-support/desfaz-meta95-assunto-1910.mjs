@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — DESFAZ, em memória, o conserto "o filtro anti-invenção não
 // apaga o assunto" (pedido traduzido no contexto do filtro, comparação sem acento/plural, fala frase a frase sem buraco, restos do apagão de pessoa)
 // para os guardiões que conferem a rota do cinematic, o visualPromptPolicy ou os desfaz anteriores BYTE A BYTE contra uma base antiga. Módulo
@@ -66,6 +67,7 @@ export const META95_ASSUNTO_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Assunto1910(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semMeta95Ideia1910(texto, p) // KINEO-META95-IDEIA-1910: encadeado no ponto único (outro arquivo passa igual)
   if (typeof texto !== 'string' || !texto.includes(MARCA_META95_ASSUNTO_1910) || !META95_ASSUNTO_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')

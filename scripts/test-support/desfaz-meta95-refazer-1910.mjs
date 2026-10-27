@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-META95-REFAZER-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — DESFAZ, em memória, a entrega
 // "Refazer uma cena (grátis, 1×)" para os guardiões que conferem arquivos BYTE A BYTE contra uma base antiga. Módulo
 // auxiliar; não é teste (o nome não começa com test-).
@@ -27,6 +28,7 @@ export function linhaDoRefazer1910(l) {
 
 /** O texto do arquivo sem a entrega (acréscimos marcados fora). Sem a marca, ou arquivo fora da lista = devolve igual. */
 export function semMeta95Refazer1910(texto, p) {
+  texto = semConsertos2710(texto, p) // KINEO-CONSERTOS-2710
   texto = semAvatarPreso2010(texto, p) // KINEO-AVATAR-PRESO-2010 — o conserto do avatar preso (20/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
   if (typeof texto !== 'string' || !Object.prototype.hasOwnProperty.call(ACRESCIMOS_META95_REFAZER_1910, p) || !texto.includes(MARCA_META95_REFAZER_1910)) return texto
   const crlf = texto.includes('\r\n')

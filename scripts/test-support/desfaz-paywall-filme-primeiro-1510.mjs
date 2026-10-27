@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-PAYWALL-FILME-PRIMEIRO-1510 — DESFAZ, em memória, a fiação do filme grátis no topo da caixa de planos em
 // app/(dashboard)/generate/GenerateClient.tsx, para os guardiões que conferem esse arquivo BYTE A BYTE contra uma base antiga.
 // Módulo auxiliar; não é teste (o nome não começa com test-). Cada bloco tem de aparecer EXATAMENTE uma vez (senão lança: conserto
@@ -50,6 +51,7 @@ const BLOCOS = [
 
 /** Tira a fiação do GenerateClient (em memória). Arquivo sem a marca = volta igual (o conserto ainda não está nesta árvore). */
 export function desfazPaywallFilmePrimeiro1510(rel, src) {
+  src = semConsertos2710(src, rel) // KINEO-CONSERTOS-2710
   if (rel !== GEN || typeof src !== 'string' || !src.includes(MARCA_PAYWALL_FILME_PRIMEIRO_1510)) return src
   let s = src
   for (const [antes, depois] of BLOCOS) {

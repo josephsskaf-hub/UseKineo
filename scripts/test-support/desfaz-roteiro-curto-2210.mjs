@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — exact historical adapter for legacy guardians only.
 // Generated from git diff --unified=3 f3532d7d2 WORKTREE at 27b0d613ac0c7d4ed53c6c6bed9de66eb571ce95 for existing task sources below.
 // Restores only this task IN MEMORY to the merged main, preserving Cartoon and Cena95 layers.
@@ -752,6 +753,7 @@ function offsets(text, needle) {
 }
 
 export function semRoteiroCurto2210(source, file) {
+  source = semConsertos2710(source, file) // KINEO-CONSERTOS-2710
   source = semCompraClareza2610(source, file) // COMPRA-CLAREZA-2610 — current behavior is tested separately, never projected.
   source = semAdminLeve2310(source, file) // KINEO-ADMIN-LEVE-2310 — cache/polling precedes every older hunk, hash and marker check.
   source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.

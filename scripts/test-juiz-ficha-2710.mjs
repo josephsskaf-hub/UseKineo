@@ -16,6 +16,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
+import { semElencoEpoca2710, semJuizFicha2710 } from './test-support/desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as irmãs de 27/10 saem em memória para isolar esta camada
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MARCA = 'KINEO-JUIZ-FICHA-2710'
@@ -189,13 +190,12 @@ const linhasMarcadas = rota.split('\n').filter((l) => l.includes(MARCA))
   checa('D8 a folha errada é decidida depois do laço do crítico e ANTES de aplicar stillsP em sceneStills, com o FLUX de antes guardado', i('const folhaDescartada = folhaErrada(juizFichaEstado.resultados.map((r) => r.decisao))') > i('const semFolha = await julgarSemFolha') && i('const folhaDescartada = ') < i('for (let i = 0; i < scenes.length; i++) if (stillsP[i]) sceneStills[i] = stillsP[i]') && i('const fluxAntesP = sceneStills.slice()') < i('const trabalhadorP = async () =>') === false && i('const fluxAntesP = sceneStills.slice()') < i('const folhaDescartada = ') && rota.includes('stillsFinaisDaFolha({ comFolha: stillsP, semFolha: semFolhaP, flux: fluxAntesP, folhaDescartada })'))
   checa('D9 o relato do filme ganha o relato do juiz antes do evento da folha', i('personagemRelatoFinal = { ...personagemRelatoFinal, ...relatoJuizFicha(juizFichaEstado, folhaDescartada') > i('personagemRelatoFinal = { ...relatoDoPersonagem({') && i('personagemRelatoFinal = { ...personagemRelatoFinal, ...relatoJuizFicha(') < i('void writeServerEvent({ name: PERSONAGEM_EVENTO'))
   checa('D10 toda linha nova leva a marca e NENHUMA carrega marca de camada antiga (as projeções por linha das outras camadas não a contam)', linhasMarcadas.length >= 18 && linhasMarcadas.every((l) => !/KINEO-META95-PERSONAGEM|KINEO-FILME15-|KINEO-JUIZ-STILL-1410|KINEO-ROMANCE-ADULTO|KINEO-ESTRELA/.test(l)))
-  // só acréscimos: diff contra a base (o pai do 1º commit marcado; antes do commit, HEAD)
-  const commits = git('log', '--format=%H', `--grep=${MARCA}`).trim().split('\n').filter(Boolean)
-  const base = commits.length ? `${commits[commits.length - 1]}^` : 'HEAD'
-  const diff = git('diff', '--ignore-cr-at-eol', '--unified=0', base, '--', ROTA)
-  const mais = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  const menos = diff.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'))
-  checa(`D11 a rota só ACRESCENTA linhas (nenhuma linha da base mudou) e cada uma leva a marca (+${mais.length} / -${menos.length})`, menos.length === 0 && mais.length === linhasMarcadas.length && mais.every((l) => l.includes(MARCA)))
+  // só acréscimos: a rota SÓ com esta camada (as irmãs de 27/10 mais novas saem em memória) menos as linhas marcadas
+  // tem de ser byte a byte a camada de baixo (a rota sem esta entrega) — nenhuma linha preexistente mudou. // KINEO-CONSERTOS-2710
+  const soEsta = lf(semElencoEpoca2710(rota, ROTA)), abaixo = lf(semJuizFicha2710(rota, ROTA)) // KINEO-CONSERTOS-2710
+  const mais = soEsta.split('\n').filter((l) => l.includes(MARCA)) // KINEO-CONSERTOS-2710
+  const menos = abaixo.split('\n').filter((l) => !soEsta.includes(l)) // KINEO-CONSERTOS-2710
+  checa(`D11 a rota só ACRESCENTA linhas (nenhuma linha da base mudou) e cada uma leva a marca (+${mais.length} / -${menos.length})`, soEsta.split('\n').filter((l) => !l.includes(MARCA)).join('\n') === abaixo && mais.length === linhasMarcadas.length && soEsta !== abaixo) // KINEO-CONSERTOS-2710
   checa('D12 a lib nova leva o selo da trava no cabeçalho', SRC.juiz.startsWith(`// ═══ ${MARCA} [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"]`))
 }
 

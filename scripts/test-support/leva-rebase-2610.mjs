@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-LEVA-REBASE-2610 — exact, offline integration boundary for historical guardians.
 // Current product tests read raw sources. Unknown input bytes are NEVER projected.
 import { readFileSync, existsSync } from 'node:fs'
@@ -101,6 +102,7 @@ export const semLevaSobreMain2610 = (text, file) => project(semPosterioresAoSelo
 // Camadas publicadas DEPOIS da entrega selada (main 33fab0c97 e o desenho de 15 s) saem antes da projeção; só onde a camada é mais nova. // KINEO-INTEGRA-2710
 function semPosterioresAoSelo2710(text, file) { // KINEO-INTEGRA-2710
   const p = pathOf(file) // KINEO-INTEGRA-2710
+  text = semConsertos2710(text, p) // KINEO-CONSERTOS-2710
   if (p === 'scripts/test-paginas-ia-claras-2110.mjs') text = semCronOrigem2610(text, p) // KINEO-INTEGRA-2710
   if (p === 'scripts/test-roteiro-curto-undo-2210.mjs' || p === 'docs/compra-clareza-2610/test-legacy-layer.mjs') text = semEmAlta2610(text, p) // KINEO-INTEGRA-2710
   return semDesenho15s2710(semCardsNovos2610(text, p), p) // KINEO-INTEGRA-2710

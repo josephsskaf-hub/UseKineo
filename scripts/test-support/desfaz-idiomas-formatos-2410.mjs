@@ -1,3 +1,4 @@
+import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semApresentadores2410 } from './desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
 // KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
 import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
@@ -20,6 +21,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semConsertos2710(text, file) // KINEO-CONSERTOS-2710
   text = semDesenho15s2710(text, file) // KINEO-DESENHO-15S-ACEITA-2710 — camada mais nova sai primeiro
   text = semVideoFiel2610(text, file)
   text = semCardsGiro2410(text, file) // KINEO-CARDS-GIRO-2410 — leaf has no older imports, so this creates no cycle.
