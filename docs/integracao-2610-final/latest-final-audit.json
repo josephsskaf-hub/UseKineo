@@ -1,0 +1,738 @@
+{
+  "date": "2026-10-27T01:33:56.649Z",
+  "head": "8461529a1bbbc53b46e8f31c10bd489d3b6ea524",
+  "parents": [
+    "2111b1668c6f57359e3f0c17e1491a7ed4c19ade"
+  ],
+  "ancestry": [
+    {
+      "ref": "917d1f8728b0d73d6ffb518e2e16051fbd3d9f9a",
+      "ancestor": true
+    },
+    {
+      "ref": "ffe52785608c868cdc9215ec878f7de6f841a2e6",
+      "ancestor": true
+    },
+    {
+      "ref": "2111b1668c6f57359e3f0c17e1491a7ed4c19ade",
+      "ancestor": true
+    },
+    {
+      "ref": "237b14fb186655e448e9d2e5e80b5b904a8e9863",
+      "ancestor": true
+    },
+    {
+      "ref": "f48762a61ea0c80052a0cf6bca715b1552e92ee1",
+      "ancestor": true
+    },
+    {
+      "ref": "908cdad7a8e36b3b16a0c60e3f9ef72a0b385121",
+      "ancestor": true
+    },
+    {
+      "ref": "f1e45b29a88a2f7dfdf942afb6c9b5c27c566de5",
+      "ancestor": true
+    }
+  ],
+  "incomingCount": 23,
+  "incoming": [
+    {
+      "file": "app/(dashboard)/clips/ClipsClient.tsx",
+      "latestObject": "fd62b2ddd62cb887400ec25b3a89f704e984287f",
+      "mergedObject": "fd62b2ddd62cb887400ec25b3a89f704e984287f",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "app/api/cron/autopilot-generate/route.ts",
+      "latestObject": "ff645a62c9bd71837b297145f14cae89149e3132",
+      "mergedObject": "ff645a62c9bd71837b297145f14cae89149e3132",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "components/home/HomeClipsStrip.tsx",
+      "latestObject": "f67918c3c52a3badd387abf8bcb10ac96ce7cdbe",
+      "mergedObject": "f67918c3c52a3badd387abf8bcb10ac96ce7cdbe",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "lib/clips/clipTrends.ts",
+      "latestObject": "008adc3e6cecea73282a9474ea6d03c8795c6fe1",
+      "mergedObject": "008adc3e6cecea73282a9474ea6d03c8795c6fe1",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "lib/cronSelfOrigin.ts",
+      "latestObject": "32213a7ab2dfc1f62b5794902e369e094e139e85",
+      "mergedObject": "32213a7ab2dfc1f62b5794902e369e094e139e85",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/posters/em-alta-fruit_babies.webp",
+      "latestObject": "c2463e3bf8fb9e33752dd53048297b535b353f0b",
+      "mergedObject": "c2463e3bf8fb9e33752dd53048297b535b353f0b",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/posters/em-alta-golden_dribble.webp",
+      "latestObject": "f1dc5f1b8f889cfbe172b355ea3549164b718d48",
+      "mergedObject": "f1dc5f1b8f889cfbe172b355ea3549164b718d48",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/posters/em-alta-pet_dance.webp",
+      "latestObject": "20509aabb8bef40f9fb07a486f73d2166d95d6cf",
+      "mergedObject": "20509aabb8bef40f9fb07a486f73d2166d95d6cf",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/posters/em-alta-toy_to_real_car.webp",
+      "latestObject": "03a71d5c5e21d94c66c5e2f2aa122136d80df03b",
+      "mergedObject": "03a71d5c5e21d94c66c5e2f2aa122136d80df03b",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/posters/em-alta-zoo_cctv.webp",
+      "latestObject": "aec76d6dd1542caa5df6aeaf100a986aa6fa897a",
+      "mergedObject": "aec76d6dd1542caa5df6aeaf100a986aa6fa897a",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/previews/em-alta-fruit_babies.mp4",
+      "latestObject": "ca38783d9dcfb65e73e43a4f6b0196e0968df7b9",
+      "mergedObject": "ca38783d9dcfb65e73e43a4f6b0196e0968df7b9",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/previews/em-alta-golden_dribble.mp4",
+      "latestObject": "1ca44220f4071c42905c5d40824f31bc432781d2",
+      "mergedObject": "1ca44220f4071c42905c5d40824f31bc432781d2",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/previews/em-alta-pet_dance.mp4",
+      "latestObject": "86794c2300b20c9a7b812eac0836f062dfdc98ed",
+      "mergedObject": "86794c2300b20c9a7b812eac0836f062dfdc98ed",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/previews/em-alta-toy_to_real_car.mp4",
+      "latestObject": "39dab76c0c64cbc055094e7f968363c6290041b4",
+      "mergedObject": "39dab76c0c64cbc055094e7f968363c6290041b4",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "public/previews/em-alta-zoo_cctv.mp4",
+      "latestObject": "8474fa428fa8fce9a216a341f6722da9484600a6",
+      "mergedObject": "8474fa428fa8fce9a216a341f6722da9484600a6",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "scripts/test-cron-origem-2610.mjs",
+      "latestObject": "59de2b320dc8376890a6bcd552ef3a32260b2e8b",
+      "mergedObject": "59de2b320dc8376890a6bcd552ef3a32260b2e8b",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "scripts/test-em-alta-2610.mjs",
+      "latestObject": "f9c86d218b90bf085f14cf40561b2476c2ae6dd0",
+      "mergedObject": "bc508f2a84a2e8b97eb20497f0a3c1dd8d8def8a",
+      "identical": false,
+      "expectedGuardianAdaptation": true
+    },
+    {
+      "file": "scripts/test-filme-rapido-1710.mjs",
+      "latestObject": "6bc5fa9296a7563393c2c2fe2a630eae6e9ac6f2",
+      "mergedObject": "6bc5fa9296a7563393c2c2fe2a630eae6e9ac6f2",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "scripts/test-home-remodela-2010.mjs",
+      "latestObject": "332e8f36778b4e248f3e4950c858a85902e0c5fe",
+      "mergedObject": "33e9079a637f2e1d33be2fe7deb4c9a48abf97da",
+      "identical": false,
+      "expectedGuardianAdaptation": true
+    },
+    {
+      "file": "scripts/test-kids-venda-2010.mjs",
+      "latestObject": "cb0dd7d1849174d217392da6512d5e4e70303a06",
+      "mergedObject": "7c32b8bed81635f82be508080c861b46527b85bc",
+      "identical": false,
+      "expectedGuardianAdaptation": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-cron-origem-2610.mjs",
+      "latestObject": "5db27f62c329ebcaf122202b59c0c8cff97145bc",
+      "mergedObject": "5db27f62c329ebcaf122202b59c0c8cff97145bc",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "scripts/test-support/desfaz-em-alta-2610.mjs",
+      "latestObject": "8388c08e91dc53b5384bd5968b3d38e08ca9390d",
+      "mergedObject": "8388c08e91dc53b5384bd5968b3d38e08ca9390d",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    },
+    {
+      "file": "scripts/test-support/desfaz-home-gato-carro-2610.mjs",
+      "latestObject": "e999bbffbfbaa0e95c1efdebe44f482e99d52e6f",
+      "mergedObject": "e999bbffbfbaa0e95c1efdebe44f482e99d52e6f",
+      "identical": true,
+      "expectedGuardianAdaptation": false
+    }
+  ],
+  "unexpectedChangedPaths": [],
+  "serverEvents": {
+    "unchangedBlob": true,
+    "previousCount": 190,
+    "currentCount": 190,
+    "missing": []
+  },
+  "preservedThreeLayers": [
+    {
+      "file": ".github/workflows/guardiao.yml",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/api/compose/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/api/compose/status/[renderId]/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/api/events/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/api/generate-video-cinematic/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/free15-quality-v2/caption-legacy-test.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/video-fiel-2610/test-legacy-layer.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/compose.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/filmes/faceless15.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/regua95/pixelScore.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-ancora-legenda-1410.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-cena-classica-retentativa-2026-09-28.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-despacho-vazio-2026-09-04.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-dryrun-classico-2026-09-12.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-estrela-do-filme-2026-09-29.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-kling25-60s-ancora-2026-09-28.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-filme15-fiel-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-filme15-rosto-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/README.md",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/caption-audit.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/caption-unit-rules.md",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/caption-visual-audit.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/duration-audit.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/freeze-undo.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/offline-guard.cjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/qa-results.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/qa-summary.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/run-offline-tests.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/filme15-perfeito-2610/text-audit.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/cinematic/filme15Perfeito.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/cinematic/objetosSemTexto15.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/free15CanonicalCaptions.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/free15Gate.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/free15GateServer.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-cena-visivel-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-duracao-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-gate-integration-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-legenda-canonica-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-legenda-inteira-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-numero-unidade-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-objetos-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-perfeito-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-perfeito-undo-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-filme15-portao-fonte-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-filme15-perfeito-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-filme15-perfeito-2610-fontes.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/privacy/page.tsx",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-support/desfaz-privacidade-plugin-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-privacidade-plugin-2610.mjs",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/.well-known/oauth-protected-resource/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/.well-known/oauth-protected-resource/api/mcp/studio/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/mcp/studioLaunch.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "lib/mcp/chatgptContract.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "app/api/mcp/chatgpt/route.ts",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "docs/chatgpt-plugin/package/plugin.json",
+      "identicalToPrevious": true
+    },
+    {
+      "file": "scripts/test-mcp-raiz-2610.mjs",
+      "identicalToPrevious": true
+    }
+  ],
+  "tests": {
+    "latestCount": 1037,
+    "mergeCount": 1062,
+    "newFromLatest": [
+      "scripts/test-cron-origem-2610.mjs",
+      "scripts/test-em-alta-2610.mjs"
+    ],
+    "removedFromPrevious": [],
+    "missingFromLatest": []
+  },
+  "seal": {
+    "inventory": 965,
+    "sources": 964
+  },
+  "emAltaBoundary": {
+    "ownBase": "237b14fb186655e448e9d2e5e80b5b904a8e9863",
+    "ownProduct": "f9216bf8728cb86adac67c59c9b8ca47c06521f9",
+    "ownDelta": [
+      "app/(dashboard)/clips/ClipsClient.tsx",
+      "lib/clips/clipTrends.ts",
+      "public/posters/em-alta-fruit_babies.webp",
+      "public/posters/em-alta-golden_dribble.webp",
+      "public/posters/em-alta-pet_dance.webp",
+      "public/posters/em-alta-toy_to_real_car.webp",
+      "public/posters/em-alta-zoo_cctv.webp",
+      "public/previews/em-alta-fruit_babies.mp4",
+      "public/previews/em-alta-golden_dribble.mp4",
+      "public/previews/em-alta-pet_dance.mp4",
+      "public/previews/em-alta-toy_to_real_car.mp4",
+      "public/previews/em-alta-zoo_cctv.mp4",
+      "scripts/test-em-alta-2610.mjs"
+    ],
+    "ownApiEdits": [],
+    "approvedIntegration": "917d1f8728b0d73d6ffb518e2e16051fbd3d9f9a",
+    "latestMain": "ffe52785608c868cdc9215ec878f7de6f841a2e6",
+    "expectedApi": [
+      "app/api/admin/moderation-scan/route.ts",
+      "app/api/admin/send-kids-launch/route.ts",
+      "app/api/ads/v2/cena/route.ts",
+      "app/api/ads/v2/start/route.ts",
+      "app/api/ads/v2/status/route.ts",
+      "app/api/affiliate/me/route.ts",
+      "app/api/affiliate/offer/route.ts",
+      "app/api/compose/route.ts",
+      "app/api/compose/status/[renderId]/route.ts",
+      "app/api/cron/ads-v2-advance/route.ts",
+      "app/api/cron/finish-stranded-renders/route.ts",
+      "app/api/cron/placar-versao-b/route.ts",
+      "app/api/cron/rescue-vendor-assets/route.ts",
+      "app/api/cron/send-video-ready/route.ts",
+      "app/api/cron/submit-indexnow/route.ts",
+      "app/api/events/route.ts",
+      "app/api/film-complete/checkout/route.ts",
+      "app/api/film-complete/start/route.ts",
+      "app/api/film-complete/status/route.ts",
+      "app/api/footage/route.ts",
+      "app/api/next-action/route.ts",
+      "app/api/shopify/auth/callback/route.ts",
+      "app/api/shopify/products/route.ts",
+      "app/api/stripe/checkout/item/route.ts",
+      "app/api/stripe/checkout/route.ts",
+      "app/api/stripe/webhook/route.ts",
+      "app/api/video/publish/route.ts",
+      "app/api/video/showcase/route.ts"
+    ],
+    "currentApi": [
+      "app/api/admin/moderation-scan/route.ts",
+      "app/api/admin/send-kids-launch/route.ts",
+      "app/api/ads/v2/cena/route.ts",
+      "app/api/ads/v2/start/route.ts",
+      "app/api/ads/v2/status/route.ts",
+      "app/api/affiliate/me/route.ts",
+      "app/api/affiliate/offer/route.ts",
+      "app/api/compose/route.ts",
+      "app/api/compose/status/[renderId]/route.ts",
+      "app/api/cron/ads-v2-advance/route.ts",
+      "app/api/cron/finish-stranded-renders/route.ts",
+      "app/api/cron/placar-versao-b/route.ts",
+      "app/api/cron/rescue-vendor-assets/route.ts",
+      "app/api/cron/send-video-ready/route.ts",
+      "app/api/cron/submit-indexnow/route.ts",
+      "app/api/events/route.ts",
+      "app/api/film-complete/checkout/route.ts",
+      "app/api/film-complete/start/route.ts",
+      "app/api/film-complete/status/route.ts",
+      "app/api/footage/route.ts",
+      "app/api/next-action/route.ts",
+      "app/api/shopify/auth/callback/route.ts",
+      "app/api/shopify/products/route.ts",
+      "app/api/stripe/checkout/item/route.ts",
+      "app/api/stripe/checkout/route.ts",
+      "app/api/stripe/webhook/route.ts",
+      "app/api/video/publish/route.ts",
+      "app/api/video/showcase/route.ts"
+    ],
+    "inventoryExact": true,
+    "sources": [
+      {
+        "file": "app/api/admin/moderation-scan/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/admin/send-kids-launch/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/ads/v2/cena/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/ads/v2/start/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/ads/v2/status/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/affiliate/me/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/affiliate/offer/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/compose/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/compose/status/[renderId]/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/ads-v2-advance/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/finish-stranded-renders/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/placar-versao-b/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/rescue-vendor-assets/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/send-video-ready/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/cron/submit-indexnow/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/events/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/film-complete/checkout/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/film-complete/start/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/film-complete/status/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/footage/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/next-action/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/shopify/auth/callback/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/shopify/products/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/stripe/checkout/item/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/stripe/checkout/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/stripe/webhook/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/video/publish/route.ts",
+        "presentOnOriginalMain": true,
+        "identicalToApproved917": true
+      },
+      {
+        "file": "app/api/video/showcase/route.ts",
+        "presentOnOriginalMain": false,
+        "identicalToApproved917": true
+      }
+    ]
+  },
+  "worktreeStatus": "",
+  "guardianReview": {
+    "file": "scripts/test-em-alta-2610.mjs",
+    "preservedRawABC": true,
+    "preservedM1": true,
+    "D1": {
+      "lines": [
+        42,
+        49
+      ],
+      "frozenOwnDeltaApiEdits": []
+    },
+    "D2": {
+      "lines": [
+        51,
+        84
+      ],
+      "exactApiInventory": true,
+      "allRawApiBlobsMatch917": true,
+      "existingApiUsesSealedProjectionTo237": true,
+      "newApiUsesRawEqualityTo917": true
+    },
+    "D3": {
+      "line": 86,
+      "checks": "CRLF across complete API set"
+    },
+    "D4": {
+      "line": 87,
+      "checks": "projection idempotence for every approved API"
+    },
+    "M2": {
+      "line": 92,
+      "checks": "unknown mutation in existing events API remains red"
+    },
+    "M3": {
+      "line": 95,
+      "checks": "unknown mutation in API absent from original main remains red"
+    }
+  },
+  "runEvidence": {
+    "focused": {
+      "head": "8461529a1bbbc53b46e8f31c10bd489d3b6ea524",
+      "log": "latest-emalta-846.log",
+      "logLastWrittenUtc": "2026-10-27T01:34:56.497Z",
+      "summaryMatches23Passed0Failed": true,
+      "exitCode": 0,
+      "exitCodeSource": "primary agent execution record accompanying captured log"
+    },
+    "fullIntegration": {
+      "head": "8461529a1bbbc53b46e8f31c10bd489d3b6ea524",
+      "started": "2026-10-27T01:29:22.507Z",
+      "concurrency": 1,
+      "total": 1062,
+      "source": "integration-latest/manifest.json",
+      "completionNotClaimed": true
+    },
+    "oldLatestSmoke": {
+      "head": "2111b1668c6f57359e3f0c17e1491a7ed4c19ade",
+      "status": "incomplete diagnostic only; not evidence for latest validation"
+    }
+  }
+}
