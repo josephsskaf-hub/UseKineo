@@ -27,6 +27,7 @@ import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEng
 import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCard' // KINEO-CLIPES-CARTAO-MOTOR-2026-10-09
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restoredClipEffect } from '@/lib/clips/clipRotateHint' // KINEO-CLIPE360-AMOSTRA-1410
+import { CLIP_TRENDS, CLIP_TRENDS_PUBLIC, clipTrendByKey, trendTarget, type ClipTrend } from '@/lib/clips/clipTrends' // KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana"
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
@@ -235,6 +236,30 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     freeClipOriginRef.current = true
     freeClipFocusRef.current = true
   }, [freeClipPending, engines])
+
+  // KINEO-EM-ALTA-2610 — "Fazer este": só PREENCHE motor, duração, formato e ideia (clipe por texto, sem foto). Nada é gerado
+  // nem cobrado sem a pessoa apertar Gerar. ?trend=<chave> (link da home/redes) aplica o mesmo, uma vez, quando os motores chegam.
+  function applyTrend(trend: ClipTrend) {
+    const target = trendTarget(trend, engines)
+    if (!target) return
+    setEffectKey(null)
+    rememberClipEffect(null)
+    setPhotoUrl(null)
+    setEngineKey(target.key)
+    setSeconds(trend.seconds)
+    setAspect(trend.aspect)
+    setPrompt(trend.prompt)
+    setError(null)
+    requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.creation-input textarea')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  }
+  const trendFromUrlRef = useRef(false)
+  useEffect(() => {
+    if (trendFromUrlRef.current || engines.length === 0 || !CLIP_TRENDS_PUBLIC) return
+    trendFromUrlRef.current = true
+    const wanted = clipTrendByKey(new URLSearchParams(window.location.search).get('trend'))
+    if (wanted) applyTrend(wanted)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engines])
 
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
@@ -599,6 +624,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .fx-foot .tag{font-size:10px;color:var(--muted2);border:1px solid var(--border);border-radius:6px;padding:1px 6px}
         .stu.clips-workspace .fx-foot .pr{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
         .stu.clips-workspace .fx-note{font-size:10.5px;color:var(--muted2);padding:0 4px}
+        .stu.clips-workspace .trend-sec{margin-bottom:22px}
+        .stu.clips-workspace .trend-card .trend-go{color:var(--accent,#2997ff)}
         .stu.clips-workspace .film-upsell{text-decoration:none;font-weight:700}
         @container clips-studio (max-width:700px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.clips-workspace .creation-input{padding:16px}}
         @media(max-width:900px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}}
@@ -606,6 +633,33 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
 
       <h1>{t('title')}</h1>
       <p className="sub">{t('sub')}</p>
+
+      {/* KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana": clipes REAIS feitos com a mesma ideia e o mesmo motor (selo honesto). */}
+      {CLIP_TRENDS_PUBLIC && engines.length > 0 && (
+        <section aria-labelledby="clip-trends-title" className="trend-sec">
+          <div className="lab" id="clip-trends-title"><UiLabel>🔥 Trending this week</UiLabel></div>
+          <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}><UiLabel>The AI videos blowing up on TikTok and Reels right now. Tap one and Kineo fills in the idea for you.</UiLabel></p>
+          <div className="fx-grid" role="group" aria-labelledby="clip-trends-title">
+            {CLIP_TRENDS.map((tr) => {
+              const target = trendTarget(tr, engines)
+              if (!target) return null
+              return (
+                <button key={tr.key} type="button" className="fx-card trend-card" data-clip-action="select_trend" data-clip-trend={tr.key} onClick={() => applyTrend(tr)}>
+                  <span className="fx-media">
+                    <video src={tr.preview.video} poster={tr.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                  </span>
+                  <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
+                  <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
+                  <span className="fx-foot">
+                    <span className="tag">{target.label}</span>
+                    <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {effects.length > 0 && (
         <section aria-labelledby="clip-effects-title">

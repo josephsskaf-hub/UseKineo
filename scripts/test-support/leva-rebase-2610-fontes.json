@@ -10,6 +10,7 @@
     "app/(dashboard)/ads/v2/AdsV2Simple.tsx",
     "app/(dashboard)/ads/v2/page.tsx",
     "app/(dashboard)/affiliate/page.tsx",
+    "app/(dashboard)/clips/ClipsClient.tsx",
     "app/(dashboard)/generate/GenerateClient.tsx",
     "app/(dashboard)/my-videos/MyVideosClient.tsx",
     "app/(dashboard)/studio/StudioClient.tsx",
@@ -27,6 +28,7 @@
     "app/api/compose/route.ts",
     "app/api/compose/status/[renderId]/route.ts",
     "app/api/cron/ads-v2-advance/route.ts",
+    "app/api/cron/autopilot-generate/route.ts",
     "app/api/cron/finish-stranded-renders/route.ts",
     "app/api/cron/placar-versao-b/route.ts",
     "app/api/cron/rescue-vendor-assets/route.ts",
@@ -82,6 +84,7 @@
     "components/growth/RecurringPlanValue.tsx",
     "components/growth/ResultScriptReview.tsx",
     "components/home/HomeCardCycleMedia.tsx",
+    "components/home/HomeClipsStrip.tsx",
     "components/home/HomeKidsCard.tsx",
     "components/home/HomeProductAdsReel.tsx",
     "components/home/HomeThreeCards.tsx",
@@ -524,7 +527,9 @@
     "lib/cinematic/sceneDescriptions.ts",
     "lib/cinematic/visualMode.ts",
     "lib/cinematic/visualPromptPolicy.ts",
+    "lib/clips/clipTrends.ts",
     "lib/compose.ts",
+    "lib/cronSelfOrigin.ts",
     "lib/filmComplete/server.ts",
     "lib/filmes/faceless15.ts",
     "lib/filmes/filme15Elenco.ts",
@@ -572,6 +577,16 @@
     "migrations_pending/2026-10-24_one_time_items.sql",
     "package-lock.json",
     "package.json",
+    "public/posters/em-alta-fruit_babies.webp",
+    "public/posters/em-alta-golden_dribble.webp",
+    "public/posters/em-alta-pet_dance.webp",
+    "public/posters/em-alta-toy_to_real_car.webp",
+    "public/posters/em-alta-zoo_cctv.webp",
+    "public/previews/em-alta-fruit_babies.mp4",
+    "public/previews/em-alta-golden_dribble.mp4",
+    "public/previews/em-alta-pet_dance.mp4",
+    "public/previews/em-alta-toy_to_real_car.mp4",
+    "public/previews/em-alta-zoo_cctv.mp4",
     "public/trending/topics/ai.svg",
     "public/trending/topics/billionaire.svg",
     "public/trending/topics/country.svg",
@@ -683,6 +698,7 @@
     "scripts/test-copy-filme-gratis-15s-2026-09-29.mjs",
     "scripts/test-credit-minutes-ui.mjs",
     "scripts/test-credits-held-waitroom.mjs",
+    "scripts/test-cron-origem-2610.mjs",
     "scripts/test-cta-composer-2026-09-06.mjs",
     "scripts/test-data-cache-no-store.mjs",
     "scripts/test-demo-sob-medida-1510.mjs",
@@ -695,6 +711,7 @@
     "scripts/test-dryrun-classico-2026-09-12.mjs",
     "scripts/test-dunning-grace.mjs",
     "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "scripts/test-em-alta-2610.mjs",
     "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs",
     "scripts/test-enterprise-alternative-business-path.mjs",
     "scripts/test-entrega-noite-r6-2026-09-09.mjs",
@@ -709,6 +726,7 @@
     "scripts/test-faixa-continuar.mjs",
     "scripts/test-fal-saldo-alerta-2026-09-28.mjs",
     "scripts/test-fila-global-pilula-2026-08-31.mjs",
+    "scripts/test-filme-rapido-1710.mjs",
     "scripts/test-filme15-cena-visivel-2610.mjs",
     "scripts/test-filme15-duracao-2610.mjs",
     "scripts/test-filme15-elenco-2610.mjs",
@@ -873,6 +891,8 @@
     "scripts/test-support/desfaz-compra-avulsa-2410-fontes.json",
     "scripts/test-support/desfaz-compra-avulsa-2410.mjs",
     "scripts/test-support/desfaz-compra-clareza-2610.mjs",
+    "scripts/test-support/desfaz-cron-origem-2610.mjs",
+    "scripts/test-support/desfaz-em-alta-2610.mjs",
     "scripts/test-support/desfaz-filme15-elenco-2610-hunks.json",
     "scripts/test-support/desfaz-filme15-elenco-2610.mjs",
     "scripts/test-support/desfaz-filme15-fiel-2610-hunks.json",
@@ -881,6 +901,7 @@
     "scripts/test-support/desfaz-filme15-perfeito-2610.mjs",
     "scripts/test-support/desfaz-filme15-rosto-2610-hunks.json",
     "scripts/test-support/desfaz-filme15-rosto-2610.mjs",
+    "scripts/test-support/desfaz-home-gato-carro-2610.mjs",
     "scripts/test-support/desfaz-idiomas-formatos-2410.mjs",
     "scripts/test-support/desfaz-kids-venda-2010.mjs",
     "scripts/test-support/desfaz-kit-bf-1910.mjs",
@@ -968,6 +989,9 @@
     "app/(dashboard)/affiliate/page.tsx": {
       "hash": "dadc582c6c4edecc5c34fd6d38bcd0d48d07ad1835d83d244b20e5346d72a5e1"
     },
+    "app/(dashboard)/clips/ClipsClient.tsx": {
+      "hash": "7efeecc9c65f52ac9675abc3666e91ac2713f75ef8f299464a789b246c10e811"
+    },
     "app/(dashboard)/generate/GenerateClient.tsx": {
       "hash": "5513d8843230ce9274d8652ad39143d4ec01aeaf75a7479a4c042c0c9ce218c7"
     },
@@ -1018,6 +1042,9 @@
     },
     "app/api/cron/ads-v2-advance/route.ts": {
       "hash": "2a28551a21d1798bf2c6aa7e5cd9f89553ae5463335e64521f4e23671db133e3"
+    },
+    "app/api/cron/autopilot-generate/route.ts": {
+      "hash": "01b70d7bb9e6f97a3f8acbefd3e60a386f9c74246e103d414c5a618406ff47ab"
     },
     "app/api/cron/finish-stranded-renders/route.ts": {
       "hash": "3a1d16d621cc30c899ba6c108d4392fda278caf5139305661d36de829f92deb3"
@@ -1183,6 +1210,9 @@
     },
     "components/home/HomeCardCycleMedia.tsx": {
       "hash": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87"
+    },
+    "components/home/HomeClipsStrip.tsx": {
+      "hash": "81b65b76881107498ae2d57a2fffd70297b51a06f51d9eb561a4ec09477c70f5"
     },
     "components/home/HomeKidsCard.tsx": {
       "hash": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4"
@@ -2510,8 +2540,14 @@
     "lib/cinematic/visualPromptPolicy.ts": {
       "hash": "128061b33d9e0fd1af9c110ec29761d0d21deb5a5b629f86fed7708074ae41ef"
     },
+    "lib/clips/clipTrends.ts": {
+      "hash": "38161f9fc168c4866727279b9bfbe24fc5cd124967d740ba0fe9d8bfb83e070c"
+    },
     "lib/compose.ts": {
       "hash": "c108e1b55a82158b16c0784699c77394a7443d2d28b7c03df5d7021d204ab2ea"
+    },
+    "lib/cronSelfOrigin.ts": {
+      "hash": "e05408bea6b00d2dee687c79b28149975573f4894ec64c1c37484f35875a014f"
     },
     "lib/filmComplete/server.ts": {
       "hash": "eb1486093ec1cac4d30be5b348b6f0dd3453f4ff9b2d4df9c51d8af3c9276993"
@@ -2653,6 +2689,36 @@
     },
     "package.json": {
       "hash": "4bbfb87a85aa67879519a1f50d9cc90dffddcf36f65a2ee921eda0d7d6c89a49"
+    },
+    "public/posters/em-alta-fruit_babies.webp": {
+      "hash": "558ef710fdbb25a43a67f9733f56ee8770649dc4f90114eed24d0df2f7e53e68"
+    },
+    "public/posters/em-alta-golden_dribble.webp": {
+      "hash": "ec40dddce62c04263dbf2687bebae081ed100135cbbf5b1f4a0bc52caae1b6ba"
+    },
+    "public/posters/em-alta-pet_dance.webp": {
+      "hash": "1ff44c1bc746e796f714ca670c426eb9da529990f921528a22d8b18302e70014"
+    },
+    "public/posters/em-alta-toy_to_real_car.webp": {
+      "hash": "9787c5ea57ba04e0425491cc990968b89a341951812beadceed61f4f3acaecae"
+    },
+    "public/posters/em-alta-zoo_cctv.webp": {
+      "hash": "0e9f8da8b5c2ce9f36352d1e8934c8aa7a69645a4516beb5816c18e2777510f5"
+    },
+    "public/previews/em-alta-fruit_babies.mp4": {
+      "hash": "cbc7f21e25fb5d93ce64a6282f6dd14fb6973b9eba3cd49e9586a316bdf2360b"
+    },
+    "public/previews/em-alta-golden_dribble.mp4": {
+      "hash": "c43ce04ac7447f0b4b49ac62ef66d06b3858e3ab245d07cbd3e5102074deaa4e"
+    },
+    "public/previews/em-alta-pet_dance.mp4": {
+      "hash": "cb50cf4e1f020b3aa2dd1442240d34424e338c8f356bee3270d5f41e5ce4c170"
+    },
+    "public/previews/em-alta-toy_to_real_car.mp4": {
+      "hash": "7b757adb532ba1a67cc874353395734728c1e3e450ab50bc329ffc5e471caea9"
+    },
+    "public/previews/em-alta-zoo_cctv.mp4": {
+      "hash": "83814057046645573597491100dcf942c851e64a9ede34bdda2634b5f170e63b"
     },
     "public/trending/topics/ai.svg": {
       "hash": "279f7ca236fdfc6185421765974698061846da9d9da3253ebfb0f47fd25b27e0"
@@ -2987,6 +3053,9 @@
     "scripts/test-credits-held-waitroom.mjs": {
       "hash": "8c8807e9bff539dff4bb522409ba3fd97a439f54674a82d1661b4554c81a8638"
     },
+    "scripts/test-cron-origem-2610.mjs": {
+      "hash": "578220842136c5bc8042ed3a88200b40cfd1933ffc802cb96603c4268ecf851d"
+    },
     "scripts/test-cta-composer-2026-09-06.mjs": {
       "hash": "99e7873ad21bcf3f195f00ef976640da281f16dac2a4b34197041374a1ec5f19"
     },
@@ -3022,6 +3091,9 @@
     },
     "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": {
       "hash": "db98e8f4e6563e5af33bff893f71ecaa03809959e99a005c16d95a0fc05bfd34"
+    },
+    "scripts/test-em-alta-2610.mjs": {
+      "hash": "c0ef26321cdfa11b36efedee400d9cb87b818e83ade5c8c268682d9271b43c68"
     },
     "scripts/test-empresas-pagamento-tardio-2026-09-24.mjs": {
       "hash": "4268c1390213cd3fff4299214c2d43fcd01d05ad60bef372559aa84801190c29"
@@ -3064,6 +3136,9 @@
     },
     "scripts/test-fila-global-pilula-2026-08-31.mjs": {
       "hash": "cd8cc02ec15ed3d9e50e7bb2328df7661455e76c47306abdc1ca060a80db0bf5"
+    },
+    "scripts/test-filme-rapido-1710.mjs": {
+      "hash": "0e98b79a1e80b2d88389bc1bf5f2ab00642f5594c89f04d29678b292c9ae52f0"
     },
     "scripts/test-filme15-cena-visivel-2610.mjs": {
       "hash": "3cbfff31abf358a38bfa64bd0f7e40c7a9e7599347ddec79cc19e3fba03d4346"
@@ -3162,7 +3237,7 @@
       "hash": "d25802f99cc6d2e55e700b9ca13bc862c639a7419590b0ebcad73019f5efc1b3"
     },
     "scripts/test-home-remodela-2010.mjs": {
-      "hash": "02f7379842fc881c7ac1ece6c890addd7342a5b1b71c88d2903c264c6185d2f3"
+      "hash": "fb3b0d2dd380fbf6b8beb3d980f2bddf014ae3f84c6627951deeb8e583caf972"
     },
     "scripts/test-home-welcome-goal-router.mjs": {
       "hash": "02d4104b53325f909db58648ddd8f139739f3f494178b589ad62bbb14fb519fa"
@@ -3186,7 +3261,7 @@
       "hash": "19cb1e6f46d2e3252f04d09cbaedbe1133a96809e317790c8fb667edbba0b90c"
     },
     "scripts/test-kids-venda-2010.mjs": {
-      "hash": "e942b13ad82012b50fea9c9539143e41110e628d7e5b27ced71cd2fcdbacbac2"
+      "hash": "c99f6b41fbc88aa9379add1ea77f52d4ccd5e30d0b66ea135195f30134f78a6c"
     },
     "scripts/test-kit-bf-1910.mjs": {
       "hash": "64dc442b77c3721318ffedb195075c746cd42258fa6c06e1be17fe75c8d75a77"
@@ -3557,6 +3632,12 @@
     "scripts/test-support/desfaz-compra-clareza-2610.mjs": {
       "hash": "82472f2d1159083c675c649a16966dce5c406cf19b5bb0f85ed08c08f13d9df7"
     },
+    "scripts/test-support/desfaz-cron-origem-2610.mjs": {
+      "hash": "5d5544a1050ca20f0779527d23e83a8951102f96f60bd0581fd2b9b2f21737d3"
+    },
+    "scripts/test-support/desfaz-em-alta-2610.mjs": {
+      "hash": "c331cabda81b6795b3ac7bff66abd5fc0042ced29de008a554f29a4aa23a7fd4"
+    },
     "scripts/test-support/desfaz-filme15-elenco-2610-hunks.json": {
       "hash": "09aa1ac6b9e41b9150bf58a7a25510a3bd0ed3df22d7a69ec23c9e817f99e5e9"
     },
@@ -3580,6 +3661,9 @@
     },
     "scripts/test-support/desfaz-filme15-rosto-2610.mjs": {
       "hash": "b50183ab2d471111505fa8df45ae33ce1b8eddb5ec01f5f213b2b7c4ad4aa009"
+    },
+    "scripts/test-support/desfaz-home-gato-carro-2610.mjs": {
+      "hash": "e78f7ff181efb78b0e8eb37ecfdbd87d6cf14ad06b8cf87838cc9c96f79a8553"
     },
     "scripts/test-support/desfaz-idiomas-formatos-2410.mjs": {
       "hash": "b2097324904fdcb88beaff21e94838ffab0d5ef83cad9ac0435c40851d8d5072"
