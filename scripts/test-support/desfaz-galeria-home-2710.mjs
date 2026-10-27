@@ -18,7 +18,8 @@ export const GALERIA_HOME_2710_NOVOS = [
 ]
 
 export function semGaleriaHome2710(text, rel) {
-  const original = String(text)
+  if (typeof text !== 'string') return text // null (arquivo ausente) e não-texto passam como vieram
+  const original = text
   const hunks = MANIFESTO.files[String(rel ?? '').replace(/\\/g, '/').replace(/^\.\//, '')]
   if (!hunks || !original.includes(GALERIA_HOME_2710_MARCA)) return original
   const crlf = original.includes('\r\n')
