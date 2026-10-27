@@ -262,7 +262,15 @@ function generoDe(texto: string): 'man' | 'woman' | null { // KINEO-ELENCO-EPOCA
 } // KINEO-ELENCO-EPOCA-2710
 
 /** Descrição curta e fixa (mesmo nome → mesma cara); com época, a roupa é a da década. */ // KINEO-ELENCO-EPOCA-2710
-function descrever(nome: string, tipo: TipoNomeado, especie: string | null, papel: string, contexto: string, titulos: string[], epoca: Epoca | null, usados: Set<string>): { descricao: string; genero: 'man' | 'woman' | null } { // KINEO-ELENCO-EPOCA-2710
+/** Conto infantil: o template kids_cartoon, ou pistas do texto (estrela mágica, dragãozinho, fada, "era uma vez", ننھا/پری em urdu, menino/menina pequeno). */ // KINEO-ELENCO-EPOCA-2710
+const INFANTIL_EN_RE = /\b(?:magic(?:al)?\s+(?:star|wand|forest|garden|kingdom|key|seed|stone|tree|cloud|kite|balloon)|(?:little|tiny|baby)\s+(?:dragon|star|cloud|bunny|rabbit|bear|fox|kitten|puppy|duck|bird|owl|mouse|elephant|whale|monster|robot|unicorn|fairy|princess|prince)|fairy|fairies|unicorns?|talking\s+(?:[a-z]+\s+)?(?:animal|star|cloud|tree|toy|teddy|cat|dog)|once\s+upon\s+a\s+time|bedtime\s+story|teddy\s+bear|lullaby|kindergarten|nursery|playground|tooth\s+fairy|(?:little|young|small)\s+(?:girl|boy|child|kid))\b/i // KINEO-ELENCO-EPOCA-2710
+const INFANTIL_ORIGINAL_RE = /(?:ننھ[اےی]|چھوٹ[اےی]\s*(?:سا|سی)|پری\b|جادوئی|एक\s+था|छोट[ाीे]\s+(?:बच्च|लड़क)|\b(?:pequen[ao]\s+(?:menin[ao]|drag[aã]o|estrel[ai]nha|fad[ai]nha)|menininh[ao]|dragãozinho|estrelinha\s+mágica|fad[ai]nha|era\s+uma\s+vez|hadita|dragoncito|estrellita\s+mágica|niñ[ao]\s+pequeñ[ao]|érase\s+una\s+vez|había\s+una\s+vez)\b)/iu // KINEO-ELENCO-EPOCA-2710
+export function historiaInfantil(contextoOriginal: string, textoIngles: string | null | undefined, kidsCartoon = false): boolean { // KINEO-ELENCO-EPOCA-2710
+  if (kidsCartoon) return true // KINEO-ELENCO-EPOCA-2710
+  return INFANTIL_EN_RE.test(String(textoIngles ?? '')) || INFANTIL_ORIGINAL_RE.test(String(contextoOriginal ?? '')) || INFANTIL_EN_RE.test(String(contextoOriginal ?? '')) // KINEO-ELENCO-EPOCA-2710
+} // KINEO-ELENCO-EPOCA-2710
+const ADULTO_RE = /\b(?:man|woman|men|women|father|mother|dad|mom|mum|papa|mama|husband|wife|uncle|aunt|king|queen|teacher|doctor|nurse|farmer|fisherman|soldier|worker|driver|shopkeeper|merchant|officer|knight|wizard|witch|captain|pilot|chef|baker|lady|gentleman|adult|parent)\b/i // KINEO-ELENCO-EPOCA-2710 — papel ou título adulto explícito: o conto infantil não o rejuvenesce
+function descrever(nome: string, tipo: TipoNomeado, especie: string | null, papel: string, contexto: string, titulos: string[], epoca: Epoca | null, usados: Set<string>, infantil = false): { descricao: string; genero: 'man' | 'woman' | null } { // KINEO-ELENCO-EPOCA-2710
   const h = hash(normaliza(nome)) // KINEO-ELENCO-EPOCA-2710
   if (tipo !== 'humano') { // KINEO-ELENCO-EPOCA-2710
     const corDita = new RegExp(`\\b(${CORES})\\b`, 'i').exec(papel)?.[1]?.toLowerCase() ?? null // KINEO-ELENCO-EPOCA-2710
@@ -274,9 +282,11 @@ function descrever(nome: string, tipo: TipoNomeado, especie: string | null, pape
   } // KINEO-ELENCO-EPOCA-2710
   const titulo = titulos[0] ?? '' // KINEO-ELENCO-EPOCA-2710
   const genero = FEM_TITULO_RE.test(titulo) ? 'woman' : MASC_TITULO_RE.test(titulo) ? 'man' : generoDe(papel) ?? generoDe(contexto) // KINEO-ELENCO-EPOCA-2710
-  const crianca = /\b(?:boy|girl|kid|child|baby|toddler|little|tiny|orphan)\b/i.test(papel) || (!titulo && /\b(?:little|young)\s+(?:girl|boy|child|kid)\b/i.test(contexto)) // KINEO-ELENCO-EPOCA-2710
   const adolescente = /\b(?:teen|teenager|student)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
   const velho = VELHO_TITULO_RE.test(titulo) || /\b(?:old|elderly|grandfather|grandmother|grandpa|grandma|elder|widow|widower)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
+  // conto infantil (kids_cartoon, estrela mágica, dragãozinho, ننھا…): nome humano SEM pista de idade é criança (~9 anos), nunca "a woman in her thirties" (a Amna do conto urdu) // KINEO-ELENCO-EPOCA-2710
+  const semPistaDeIdade = !titulo && !velho && !adolescente && !ADULTO_RE.test(papel) && !/\b(?:young|younger|middle-aged|adult|grown)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
+  const crianca = /\b(?:boy|girl|kid|child|baby|toddler|little|tiny|orphan)\b/i.test(papel) || (!titulo && /\b(?:little|young)\s+(?:girl|boy|child|kid)\b/i.test(contexto)) || (infantil && semPistaDeIdade) // KINEO-ELENCO-EPOCA-2710
   const jovem = /\b(?:young|younger)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
   const pron = genero === 'woman' ? 'her' : genero === 'man' ? 'his' : 'their' // KINEO-ELENCO-EPOCA-2710
   const idade = crianca ? 'about nine years old' : adolescente ? 'about sixteen years old' : velho ? `in ${pron} late sixties with a lined face` : jovem ? `in ${pron} early twenties` : `in ${pron} thirties` // KINEO-ELENCO-EPOCA-2710
@@ -308,7 +318,7 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
 } // KINEO-ELENCO-EPOCA-2710
 
 /** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710
-export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
+export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
   const texto = limpa(sanitizeRealPeople(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ').replace(/\b(?:HOOK|MICRO REWARD|ESCALATION|RHYTHM|PAYOFF|CTA)\b[^:\n]*:/g, ' '))).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
   const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710
@@ -316,21 +326,21 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
   return lista.map((c, i) => { // KINEO-ELENCO-EPOCA-2710
     const frases = frasesCom(texto, c.nome).join(' ') // KINEO-ELENCO-EPOCA-2710
     const { tipo, especie } = tipoDe(c.nome, c.aposto, frases, c.titulos) // KINEO-ELENCO-EPOCA-2710
-    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados) // KINEO-ELENCO-EPOCA-2710
+    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil) // KINEO-ELENCO-EPOCA-2710
     return { nome: c.nome, nomeado: true, tipo, genero: d.genero, descricao: d.descricao, protagonista: i === 0, ocorrencias: c.total, posicoes: c.posicoes.sort((x, y) => x - y) } // KINEO-ELENCO-EPOCA-2710
   }) // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 const SEM_NOME_RE = new RegExp(String.raw`\b(?:a|an|the)\s+((?:(?:sad|happy|young|little|tiny|small|big|old|elderly|teenage|brave|clever|lonely|curious|shy|kind|poor|rich|tall|short|scared|sleepy|tired|exhausted|weary|nervous|quiet|lost|late|lone|lonely|middle-aged|cheerful|grumpy|mysterious|friendly|wise|night-shift|night)\s+){0,3}(?:${PESSOAS}))\b`, 'i') // KINEO-ELENCO-EPOCA-2710
 /** Protagonista SEM nome ("a tired commuter", "a young man"): o 1º papel humano do texto em inglês. */ // KINEO-ELENCO-EPOCA-2710
-export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710
+export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710
   const texto = limpa(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710
   const m = SEM_NOME_RE.exec(texto) // KINEO-ELENCO-EPOCA-2710
   if (!m) return null // KINEO-ELENCO-EPOCA-2710
   const papel = limpa(m[1]) // KINEO-ELENCO-EPOCA-2710
   const nucleo = papel.split(' ').pop() ?? papel // KINEO-ELENCO-EPOCA-2710
   const frases = frasesCom(texto, nucleo).join(' ') // KINEO-ELENCO-EPOCA-2710
-  const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set()) // KINEO-ELENCO-EPOCA-2710
+  const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set(), infantil) // KINEO-ELENCO-EPOCA-2710
   return { nome: `the ${papel.toLowerCase()}`, nomeado: false, tipo: 'humano', genero: d.genero, descricao: d.descricao.replace(/^the\s+[^,(]+(?:\s\([^)]*\))?,\s*/i, `the ${papel.toLowerCase()}, `), protagonista: true, ocorrencias: 1, posicoes: [(m.index ?? 0) / Math.max(1, texto.length)] } // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
@@ -373,6 +383,8 @@ export interface RelatoElencoEpoca { // KINEO-ELENCO-EPOCA-2710
   falsos_amigos: string[] // KINEO-ELENCO-EPOCA-2710
   modernidades: string[] // KINEO-ELENCO-EPOCA-2710
   motivo_sem_elenco: string | null // KINEO-ELENCO-EPOCA-2710
+  /** Conto infantil (kids_cartoon ou pistas do texto): nome humano sem idade dita vira criança de ~9 anos. */ // KINEO-ELENCO-EPOCA-2710
+  historia_infantil: boolean // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 const ORDEM_PROTAGONISTA_RE = /^The only person in this shot is the same main character \((?:[^()]|\([^()]*\))*\); any other person described below is replaced by this same character\. /u // KINEO-ELENCO-EPOCA-2710 — lib/filmes/filme15Elenco ORDEM_DO_PROTAGONISTA
@@ -416,12 +428,15 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   contextoFiltro: string | null | undefined // KINEO-ELENCO-EPOCA-2710
   modo: ModoVisualDoElenco // KINEO-ELENCO-EPOCA-2710
   tagFaceless: boolean // KINEO-ELENCO-EPOCA-2710
+  /** O template /kids-cartoon está ativo no pedido: conto infantil sem precisar de pista no texto. */ // KINEO-ELENCO-EPOCA-2710
+  kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710
 }): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710
   const prompts = args.prompts.map((p) => String(p ?? '')) // KINEO-ELENCO-EPOCA-2710
   const n = prompts.length // KINEO-ELENCO-EPOCA-2710
   const { texto, origem } = textoInglesDe(args.contextoOriginal, args.contextoFiltro) // KINEO-ELENCO-EPOCA-2710
   const epoca = epocaDaHistoria(args.contextoOriginal) // KINEO-ELENCO-EPOCA-2710
-  const relato: RelatoElencoEpoca = { versao: ELENCO_EPOCA_VERSAO, texto: origem, epoca: epoca ? { ano: epoca.ano, decada: epoca.decada, rotulo: epoca.rotulo, origem: epoca.origem } : null, cenas_com_epoca: [], elenco: [], ordem_removida: [], falsos_amigos: [], modernidades: [], motivo_sem_elenco: null } // KINEO-ELENCO-EPOCA-2710
+  const infantil = historiaInfantil(args.contextoOriginal, texto, args.kidsCartoon === true) // KINEO-ELENCO-EPOCA-2710 — a Amna do conto urdu é menina, não "a woman in her thirties"
+  const relato: RelatoElencoEpoca = { versao: ELENCO_EPOCA_VERSAO, texto: origem, epoca: epoca ? { ano: epoca.ano, decada: epoca.decada, rotulo: epoca.rotulo, origem: epoca.origem } : null, cenas_com_epoca: [], elenco: [], ordem_removida: [], falsos_amigos: [], modernidades: [], motivo_sem_elenco: null, historia_infantil: infantil } // KINEO-ELENCO-EPOCA-2710
   if (n === 0) return { prompts, relato } // KINEO-ELENCO-EPOCA-2710
   // C. falsos amigos (antes do elenco: a descrição da Geli já nasce certa; o prompt que dizia jellyfish é consertado) // KINEO-ELENCO-EPOCA-2710
   for (let i = 0; i < n; i++) { const r = corrigirFalsosAmigos(prompts[i], args.contextoOriginal); prompts[i] = r.prompt; for (const t of r.trocas) if (!relato.falsos_amigos.includes(t)) relato.falsos_amigos.push(t) } // KINEO-ELENCO-EPOCA-2710
@@ -431,9 +446,9 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   else if (texto === null) relato.motivo_sem_elenco = 'sem_traducao' // KINEO-ELENCO-EPOCA-2710
   else { // KINEO-ELENCO-EPOCA-2710
     const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710
-    let elenco = personagensNomeados(texto, epoca) // KINEO-ELENCO-EPOCA-2710
+    let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
-      const semNome = protagonistaSemNome(texto, epoca) // KINEO-ELENCO-EPOCA-2710
+      const semNome = protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
       if (semNome && !prompts.some((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, '')))) elenco = [semNome] // KINEO-ELENCO-EPOCA-2710
       else relato.motivo_sem_elenco = semNome ? 'protagonista_sem_nome_ja_em_cena' : 'sem_personagem' // KINEO-ELENCO-EPOCA-2710

@@ -88,6 +88,14 @@ console.log('== A. urdu: Amna e Baba Noor entram, o dragão fica ==')
   checa('A7 a ordem "só o protagonista" (Mishu) sai de toda cena que recebe gente nova', r.relato.ordem_removida.length > 0 && r.prompts.every((p, i) => !(/Named character/.test(p) && /The only person in this shot/.test(p))))
   checa('A8 a inserção é só prefixo: o plano original de cada cena segue inteiro no fim do prompt', r.prompts.every((p, i) => p.endsWith(URDU_PROMPTS[i].replace(ORDEM(MISHU), ''))))
   checa('A9 texto marcado como traduzido', r.relato.texto === 'traduzido')
+  // conto infantil (estrela mágica, dragãozinho, ننھا): nome humano sem idade dita é CRIANÇA, nunca "a woman in her thirties" (caso real: a Amna, 27/10) // KINEO-ELENCO-EPOCA-2710
+  const amna = r.relato.elenco.find((e) => e.nome === 'Amna')?.descricao ?? ''
+  checa(`A10 conto infantil reconhecido e Amna é uma menina de ~9 anos, não uma mulher de trinta (${amna.slice(0, 60)})`, r.relato.historia_infantil === true && /^Amna, a girl about nine years old/.test(amna) && !/thirties|woman/.test(amna))
+  checa('A11 o título ainda manda: Baba Noor segue um homem velho no mesmo conto', /Baba Noor, an elderly man/.test(r.relato.elenco.find((e) => e.nome === 'Baba Noor')?.descricao ?? ''))
+  const LENA_FALAS = ['Lena found the key.', 'Lena opened the door and smiled.']
+  const lena = (kidsCartoon) => E.aplicarElencoEEpoca({ prompts: ['A key on a table, 9:16 vertical', 'A door opening, 9:16 vertical'], falas: LENA_FALAS, contextoOriginal: LENA_FALAS.join(' '), contextoFiltro: LENA_FALAS.join(' '), modo: 'character_story', tagFaceless: false, kidsCartoon })
+  checa('A12 o template kids_cartoon sozinho (texto sem pista) faz Lena menina; sem o template e sem pista, Lena segue adulta', /^Lena, a (?:girl|child) about nine years old/.test(lena(true).relato.elenco[0]?.descricao ?? '') && lena(true).relato.historia_infantil === true && /thirties/.test(lena(false).relato.elenco[0]?.descricao ?? '') && lena(false).relato.historia_infantil === false)
+  checa('A13 pistas em urdu (ننھا) e em inglês (magical star / little dragon) bastam por si; 1953/James Turner não é conto', E.historiaInfantil('مشو، ننھا ڈریگن', null) && E.historiaInfantil('', 'Amna found a magical star') && E.historiaInfantil('', 'Mishu, the little dragon, became her friend') && !E.historiaInfantil('In 1953, James Turner vanished without a trace.', 'In 1953, James Turner vanished without a trace.'))
 }
 
 console.log('== B. 1953: a época entra em toda cena ==')
@@ -175,6 +183,9 @@ console.log('== H. mutantes ==')
   checa('H6 sem tirar a ordem "só o protagonista", Amna e a ordem do Mishu coexistem no mesmo prompt (o defeito)', urdu(semOrdem).prompts.some((p) => /Named character/.test(p) && /The only person in this shot/.test(p)))
   const rotaSem = rd('app/api/generate-video-cinematic/route.ts').replace('classicScenePrompts[i] = elencoEpoca.prompts[i]', 'classicScenePrompts[i] = classicScenePrompts[i]')
   checa('H7 rota sem devolver o vetor: a verificação G4 fica vermelha', !/classicScenePrompts\[i\] = elencoEpoca\.prompts\[i\]/.test(rotaSem))
+  const semInfantil = roda(troca(SRC, '|| (infantil && semPistaDeIdade) // KINEO-ELENCO-EPOCA-2710', '|| false // KINEO-ELENCO-EPOCA-2710'), mocks) // KINEO-ELENCO-EPOCA-2710
+  checa('H8 sem a regra do conto infantil, Amna volta a ser "a woman in her thirties" (A10 vermelho)', /thirties/.test(urdu(semInfantil).relato.elenco.find((e) => e.nome === 'Amna')?.descricao ?? ''))
+  checa('H9 a rota passa o template infantil (kidsCartoon: desenhoInfantil.ativo) na chamada marcada', /kidsCartoon: desenhoInfantil\.ativo \}\) \/\/ KINEO-ELENCO-EPOCA-2710/.test(rd('app/api/generate-video-cinematic/route.ts')))
 }
 
 console.log(`\n${ok} ok, ${falhas.length} falha(s)${falhas.length ? ':\n  - ' + falhas.join('\n  - ') : ''}`)
