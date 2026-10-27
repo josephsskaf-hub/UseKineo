@@ -219,6 +219,7 @@ import { gerarStillDaEstrela } from '@/lib/estrelaServer' // KINEO-META95-PERSON
 import { elencoDoRoteiro, elencoComCastingAjuste, cenasDoElenco, ajustarPromptsDoElenco, promptDoStillComFolhaAjuste, relatoDoAjuste, ensaioDoPersonagemAjuste, PERSONAGEM_CRITICO_TETO_CENA_MS, PERSONAGEM_REGERACAO_JANELA_MS, PERSONAGEM_REGERACAO_MIN_MS, PERSONAGEM_CRITICO_PRAZO_MS, type MotivoStillComFolha } from '@/lib/cinematic/personagemAjuste' // KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os 6 consertos da folha (formato, moderação, figura conhecida, fala, refação, cena sem gente)
 import { gerarStillComFolha } from '@/lib/cinematic/personagemAjusteServer' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o still com folha: edit + formato conferido + moderação com a reconferência da criatura
 import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+import { aplicarElencoEEpoca, type RelatoElencoEpoca } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — elenco nomeado em cena, época nas roupas/carros, geleia ≠ jellyfish (estrada clássica)
 import { tomDoRoteiro } from '@/lib/musicDirection' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy' // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -377,7 +378,8 @@ interface DispatchContext {
   /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
   cenarioRemovido: string[]
   assuntoTraduzido?: { precisou: boolean; ok: boolean; ms: number | null; nomes: string[]; filtro_pulado: boolean } | null // KINEO-META95-ASSUNTO-1910 — o pedido traduzido que o filtro anti-invenção leu (null = não precisou)
-  monumento?: { lugar: string; curado: boolean; cenas: number; com_nome: number; reparadas: number[] } | null // KINEO-MONUMENTO-2026-10-13 — lugar real ancorado (cenas com o nome / reparadas pela verificação)
+  monumento?: { lugar: string; curado: boolean; cenas: number; com_nome: number; reparadas: number[] } | null // KINEO-MONUMENTO-2026-10-13
+  elencoEpoca?: RelatoElencoEpoca | null // KINEO-ELENCO-EPOCA-2710 — quem entrou em que cena, a época aplicada, os falsos amigos trocados (null = não rodou) — lugar real ancorado (cenas com o nome / reparadas pela verificação)
   /** KINEO-MOTIVO-REAL-2026-09-16 — a última recusa EXPLÍCITA classificada por submitToFal (status + classe). O laço
    *  hollywood lê isto logo depois de um `null` para o ledger dizer "balance_quota 403" em vez de "unknown null". */
   ultimaRecusa: { model: string; status: number | null; reason_class: ReasonClass; message: string } | null
@@ -472,6 +474,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         setting_scrubbed: ctx.cenarioRemovido.map((x) => x.slice(0, 160)),
         subject_translation: ctx.assuntoTraduzido ?? null, // KINEO-META95-ASSUNTO-1910 — medição: precisou? deu certo? o filtro foi pulado por falta de tradução?
         monument: ctx.monumento ?? null, // KINEO-MONUMENTO-2026-10-13
+        named_cast_era: ctx.elencoEpoca ?? null, // KINEO-ELENCO-EPOCA-2710 — medição: elenco inserido por cena, época, falsos amigos
       },
     })
   } catch (e) {
@@ -6808,6 +6811,18 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ROMANCE-ADULTO-2026-10-13 — superfície 'clip' (a do /api/generate-clip, mesma régua). O nosso sufixo de adultos sai do texto
     // KINEO-ROMANCE-ADULTO-2026-10-13 — conferido ("no children" é termo de menor e barraria romance adulto legítimo). Falha FECHADA, como
     // KINEO-ROMANCE-ADULTO-2026-10-13 — toda porta da casa: barrado ou fora do ar = claim liberado, crédito devolvido, nada gerado.
+    // KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — depois do último toque da rota no prompt (contrato, eixos, monumento, folha, ordem do protagonista)
+    // KINEO-ELENCO-EPOCA-2710 — e ANTES da moderação do romance (logo abaixo), do dry-run, do still FLUX e do clipe: quem a história NOMEIA e não está em prompt nenhum entra na cena cuja fala o cita
+    // KINEO-ELENCO-EPOCA-2710 — (Amna, Baba Noor, Sofia, o passageiro do último trem); ano/década da história (1953) vira figurino/carros/objetos da década em toda cena; "geleia" não vira jellyfish.
+    // KINEO-ELENCO-EPOCA-2710 — O texto em inglês é o original ou a tradução que contextoDoFiltro já memoiza (zero chamada nova quando o alinhamento fala×imagem já a pediu). Falha aberta: o vetor fica.
+    let elencoEpocaRelato: RelatoElencoEpoca | null = null // KINEO-ELENCO-EPOCA-2710
+    try { // KINEO-ELENCO-EPOCA-2710
+      const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710
+      const elencoEpoca = aplicarElencoEEpoca({ prompts: classicScenePrompts, falas: scenes.map((s) => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente }) // KINEO-ELENCO-EPOCA-2710
+      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710
+      elencoEpocaRelato = elencoEpoca.relato; ctxDespacho().elencoEpoca = elencoEpoca.relato // KINEO-ELENCO-EPOCA-2710
+      if (elencoEpoca.relato.elenco.some((e) => e.cenas_inseridas.length > 0) || elencoEpoca.relato.epoca || elencoEpoca.relato.falsos_amigos.length) console.log(`[cinematic] KINEO-ELENCO-EPOCA: texto=${elencoEpoca.relato.texto} elenco=${elencoEpoca.relato.elenco.map((e) => `${e.nome}→cenas ${e.cenas_inseridas.join(',') || (e.ja_presente ? 'já presente' : '-')}`).join(' · ') || '-'} época=${elencoEpoca.relato.epoca?.rotulo ?? '-'} (${elencoEpoca.relato.cenas_com_epoca.length} cena(s)) modernidades=${elencoEpoca.relato.modernidades.join(',') || '-'} falsos_amigos=${elencoEpoca.relato.falsos_amigos.join(',') || '-'} ordem_removida=${elencoEpoca.relato.ordem_removida.join(',') || '-'}`) // KINEO-ELENCO-EPOCA-2710
+    } catch (e) { console.warn('[cinematic] KINEO-ELENCO-EPOCA falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-ELENCO-EPOCA-2710
     if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13
       const moderacaoRomance = await moderateContent({ surface: 'clip', stage: 'input', userId: user.id, text: textoParaModeracao(classicScenePrompts), meta: { route: 'generate-video-cinematic', check: 'final_scene_text', romance: true, version: ROMANCE_ADULTO_VERSAO, scenes: classicScenePrompts.length } }) // KINEO-ROMANCE-ADULTO-2026-10-13
       void writeServerEvent({ name: 'romance_adult_guard', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { version: ROMANCE_ADULTO_VERSAO, motivo: romanceAdulto.motivo, elenco: romanceAdulto.elenco, visual_mode: classicVisualMode, look: styleAnchor.look, scenes: classicScenePrompts.length, scenes_with_adult_suffix: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length, moderation: moderacaoRomance.ok ? 'ok' : moderacaoRomance.reason, dry_run: body.dry_run === true } }) // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -6869,6 +6884,7 @@ async function manipularPost(req: NextRequest) {
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
         broll_plan: { aplicado: planoDeBrollAplicado, ...decisaoPlanoDeBroll }, // KINEO-TRILHA-15S — o ensaio mostra se o plano de b-roll do Studio foi usado ou ignorado, e por quê
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
+        ...(elencoEpocaRelato ? { elenco_epoca: elencoEpocaRelato } : {}), // KINEO-ELENCO-EPOCA-2710 — o ensaio de $0 mostra quem entrou em que cena, a época e os falsos amigos
         ...(romanceAdulto.ativo ? { romance_adulto: { motivo: romanceAdulto.motivo, elenco: romanceAdulto.elencoFrase, look: styleAnchor.look, cenas_com_sufixo: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length } } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13
         ...(seedanceCoberturaRelato ? { cobertura_da_fala: seedanceCoberturaRelato } : {}), // KINEO-MONUMENTO-2026-10-13 (duração)
         // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)

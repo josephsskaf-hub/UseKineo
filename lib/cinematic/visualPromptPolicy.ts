@@ -53,6 +53,13 @@ export const SCENE_FIDELITY_DIRECTION =
   'Carry established states forward until the spoken story changes them; the final shot must retain the final stated state. For a state change, seed the shot in the resulting state rather than relying on an unfinished transformation. ' +
   'Reusing the same subjects is correct when their action advances. Vary framing and camera distance around those subjects, never replace them to create variety. If an input leaves a detail unknown, keep it unspecified; do not import objects or facts from examples or another scene. These are directing rules, not words or objects to depict.'
 
+// KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — o pedido ao escritor de cenas e ao descritor: elenco nomeado em cena, época nas roupas/carros, nome inventado não se traduz. // KINEO-ELENCO-EPOCA-2710
+// A garantia em código (quem não apareceu entra; 1953 ganha figurino; geleia ≠ jellyfish) é lib/cinematic/elencoEpoca.ts, na rota, depois do último toque no prompt. // KINEO-ELENCO-EPOCA-2710
+export const ELENCO_EPOCA_DIRECTION = // KINEO-ELENCO-EPOCA-2710
+  'NAMED CAST AND ERA: every person or creature the idea names (or clearly treats as its protagonist) must appear, identified by that same name and one short consistent look, in the description of at least one scene — preferably the scene whose narration mentions them; the protagonist is visible in scene 1 and is never replaced by a side character or an animal companion. ' + // KINEO-ELENCO-EPOCA-2710
+  'When the idea states a year, decade or historical period, every scene with people, vehicles or interiors shows period-accurate clothing, cars, phones and props for that time (1953 means 1950s hats, coats and chrome sedans — never hoodies or smartphones). ' + // KINEO-ELENCO-EPOCA-2710
+  'Invented character names stay as names, never translated; describe what the character IS by the meaning of the source-language word (Portuguese "geleia" is a jelly/gelatin blob creature, never a jellyfish).' // KINEO-ELENCO-EPOCA-2710
+
 /** Shared direction for the existing description call; no additional LLM call. */
 export function visualDescriptionDirection(policy: VisualPromptPolicy): string {
   const mode = policy.mode === 'documentary_faceless'
@@ -60,7 +67,7 @@ export function visualDescriptionDirection(policy: VisualPromptPolicy): string {
     : policy.mode === 'character_story'
       ? 'Show the described characters and actions. Preserve their identity and design; they do not address the camera.'
       : 'Preserve the explicitly requested on-screen presenter and setting; do not replace the subject with an empty landscape.'
-  return `${mode} ${policy.style.lookPhrase}. ${policy.style.suffix}. ${aspectSpec(policy.aspect).promptFraming}. ${SCENE_FIDELITY_DIRECTION}`
+  return `${mode} ${policy.style.lookPhrase}. ${policy.style.suffix}. ${aspectSpec(policy.aspect).promptFraming}. ${SCENE_FIDELITY_DIRECTION} ${ELENCO_EPOCA_DIRECTION}` // KINEO-ELENCO-EPOCA-2710 — era: …${SCENE_FIDELITY_DIRECTION}`
 }
 
 // KINEO-VIGIA-CENARIO-2026-09-11 — a metade determinística do VISUAL-DRIFT-11.
