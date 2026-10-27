@@ -35,7 +35,7 @@ function blob(ref, path) {
   const key = ref + ':' + path
   if (!blobs.has(key)) {
     let value = null
-    try { value = rebaseGit('show', key) } catch { /* A new source has no historical counterpart. */ }
+    try { value = rebaseGit('cat-file', 'blob', key) } catch { /* A new source has no historical counterpart. */ }
     blobs.set(key, value)
   }
   return blobs.get(key)

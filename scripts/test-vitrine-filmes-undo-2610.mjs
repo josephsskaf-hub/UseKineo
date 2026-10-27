@@ -53,7 +53,7 @@ check(manifest.testScopeBase === VITRINE_2610_BASE, 'historical-script preimages
 check(JSON.stringify(Object.keys(manifest.testScope).sort()) === JSON.stringify(['scripts/test-ads-reteste-1510.mjs', 'scripts/test-equipe-business-2026-10-10.mjs', 'scripts/test-geo-rodada2-2026-10-08.mjs', 'scripts/test-motores-geo-2026-10-06.mjs', 'scripts/test-support/desfaz-paginas-ia-claras-2110.mjs', 'scripts/test-trafego-undo-2310.mjs']), 'separate historical-script scope is exact and excludes product/projector/manifest')
 check(JSON.stringify(Object.keys(adapters.scope).sort()) === JSON.stringify(['scripts/test-admin-leve-undo-2310.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs']), 'integration adapter scope is exact')
 for (const [file, entry] of Object.entries({ ...manifest.testScope, ...adapters.scope })) {
-  const current = semAfiliado50_2610(file, lf(fs.readFileSync(file, 'utf8'))), base = lf(git('show', `${adapters.scope[file] ? adapters.base : manifest.testScopeBase}:${file}`))
+  const current = semAfiliado50_2610(file, lf(semUpsellFilme152610(semLevaSobreIntegracao2610(fs.readFileSync(file, 'utf8'), file), file))), base = lf(git('show', `${adapters.scope[file] ? adapters.base : manifest.testScopeBase}:${file}`))
   if (adapters.scope[file]) check(current === lf(git('show', `${adapters.product}:${file}`)), file + ': adapter tied to immutable product commit')
   check(hash(current) === entry.afterSha256 && hash(base) === entry.beforeSha256, file + ': historical before/after hashes are exact')
   check(semVitrine2610(current, file) === base, file + ': later test adaptation returns exactly to main preimage')

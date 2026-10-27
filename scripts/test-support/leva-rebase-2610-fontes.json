@@ -3204,7 +3204,7 @@
       "hash": "497c7ffaaf6190bece0b97a59ce1fbe867e8f61aad5eb543981876a1aaaed3cb"
     },
     "scripts/test-leva-rebase-2610.mjs": {
-      "hash": "1e21d6783fdb7ef84e53a0068eb693a06b9d170197ae835e9a5f4cb623d50457"
+      "hash": "2c5ac223a44b8963cfbbdc38b1ac09b4ff7d68d0226cd78dabcef9549620619d"
     },
     "scripts/test-library-search.mjs": {
       "hash": "c57b6b7f02130f46260d058725379ef28b3e733f066bad50f80d49ed4d2f9557"
@@ -3648,7 +3648,7 @@
       "hash": "ea95ff8cd120fe254fd52ffaf6233409fc1d78148a74529244a267ddc7fbe85e"
     },
     "scripts/test-support/leva-rebase-2610.mjs": {
-      "hash": "dada83208d4802cd55b20bdaf2d843bc9525f3b7c79b74ca1a028182d7551147"
+      "hash": "d19ba437169f83580228ca945e5d7ff83173dbf1cd53603143d078372cd63df3"
     },
     "scripts/test-support/offline-ts-loader.mjs": {
       "hash": "8713a25e9b200f4b0d30f91c9809dc29b140a9dbec1933eb6a202040cebee239"
@@ -3747,7 +3747,7 @@
       "hash": "10241a2acffb97fa4b753f218715a34123dfa4d072ed38bce1d9d8ca67407607"
     },
     "scripts/test-vitrine-filmes-undo-2610.mjs": {
-      "hash": "19edd6af328bf71aa0625441c7912db345c73d622d06df929c7b5f264e5559d1"
+      "hash": "e4aa70601bf3d89cc85699765c4693571af57d3ee3711ff020fb5f1d286922a7"
     },
     "scripts/test-voz-nativa-2610.mjs": {
       "hash": "ef0ab0240fdd050069ac8d021b035ca0ece8fdbf923128b3edca89f43110bd1d"

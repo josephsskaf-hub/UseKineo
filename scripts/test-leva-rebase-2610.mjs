@@ -1,3 +1,4 @@
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
 // KINEO-LEVA-REBASE-2610 — physical source seals plus both complete immutable chains.
 // No environment, network, database, paid render or source mutation.
 import assert from 'node:assert/strict'
@@ -86,6 +87,16 @@ const unrelatedSourceFile = 'app/api/ads/v2/cena/route.ts', unrelatedSource = re
 check(() => assert.equal(semAfiliado50_2610(unrelatedSourceFile, unrelatedSource), rebaseLf(unrelatedSource)))
 check(() => assert.equal(semVitrine2610(unrelatedSource, unrelatedSourceFile), unrelatedSource))
 check(() => assert.equal(semUpsellFilme152610(unrelatedSource, unrelatedSourceFile), unrelatedSource))
+// An absent immutable blob must not resolve to Git's default HEAD display for a bracketed route.
+const newShowcaseFile = 'app/es/made-with-kineo/[slug]/page.tsx'
+const newShowcaseSource = readFileSync(newShowcaseFile, 'utf8')
+check(() => assert.throws(() => rebaseImmutableSource2610(REBASE_LEVA, newShowcaseFile), /absent immutable source/))
+check(() => assert.equal(semMainSobreLeva2610(newShowcaseSource, newShowcaseFile), newShowcaseSource, 'absence never fabricates a historical blob'))
+check(() => assert.equal(semVitrine2610(newShowcaseSource, newShowcaseFile), null, 'exact new Vitrine route returns to absence'))
+check(() => assert.equal(semCloseReal1910(newShowcaseSource, newShowcaseFile), null, 'the complete legacy chain preserves removed-source null'))
+check(() => assert.equal(semCloseReal1910(null, newShowcaseFile), null, 're-entering the complete legacy chain preserves null'))
+check(() => assert.throws(() => semCloseReal1910(newShowcaseSource + '\n// changed new route\n', newShowcaseFile), /modified new file; refusing deletion/, 'changed new route cannot be erased by the legacy chain'))
+
 preloadRebaseBlobs2610()
 for (const [target, undo] of [[REBASE_MAIN, semLevaSobreMain2610], [REBASE_LEVA, semMainSobreLeva2610], [FINAL_PRE_LEVA_2610, semLevaSobreIntegracao2610], [FINAL_MAIN_2610, semIntegracaoSobreMain2372610]]) {
   for (const file of Object.keys(REBASE.sources).filter(rebaseTextFile)) {
