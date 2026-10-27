@@ -1,5 +1,6 @@
 import { TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — pares exatos da camada posterior, sem ampliar a permissão do status
 import { semUpsellFilme152610 } from './test-support/desfaz-upsell-filme15-2610.mjs' // KINEO-UPSELL-FILME15-2610 — strict in-memory projection of the later delivery-email layer.
+import { semConsertos2710 } from './test-support/desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as entregas de 27/10 (pedido certo no compose/status) saem por hunks exatos antes da asserção
 // KINEO-E4-SAIDA-B-2026-09-29 — guardião da E4 [TRAVA 8.2 — aguarda "vai E4" do fundador].
 // Decisões do fundador (29/09): (a) SAÍDA B — o filme grátis só para país rico; (b) cota grátis semanal vira 1 Seedance
 // 1.5 de 15 s por semana, com marca d'água, só país rico; (c) Kineo 1 fora do jogo — conta nova não recebe Kineo 1
@@ -550,6 +551,7 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
     const statusFile = 'app/api/compose/status/[renderId]/route.ts' // KINEO-FILME15-PERFEITO-2610
     const upstreamStatus = execFileSync('git', ['show', `origin/main:${statusFile}`], { cwd: root, encoding: 'utf8' }).replace(/\r\n/g, '\n') // KINEO-FILME15-PERFEITO-2610
     if (semFilme15Perfeito2610(rd(statusFile), statusFile) === upstreamStatus) d = d.split(/(?=^diff --git )/m).filter(chunk => !chunk.startsWith(`diff --git a/${statusFile} b/${statusFile}`)).join('') // KINEO-FILME15-PERFEITO-2610
+    if (semConsertos2710(rd(statusFile), statusFile) === upstreamStatus) d = d.split(/(?=^diff --git )/m).filter(chunk => !chunk.startsWith(`diff --git a/${statusFile} b/${statusFile}`)).join('') // KINEO-CONSERTOS-2710 — omite SÓ o delta exato de 27/10 (pedido certo) quando a projeção por hunks volta à main byte a byte; unlock e bytes desconhecidos seguem na asserção
     const statusAtMain = execFileSync('git', ['show', `origin/main:${statusPath}`], { cwd: root, encoding: 'utf8' }).replace(/\r\n/g, '\n')
     // Remove only this route's diff after the exact projection equals main byte-for-byte.
     // Unlock and every other changed path keep the original assertions below.
