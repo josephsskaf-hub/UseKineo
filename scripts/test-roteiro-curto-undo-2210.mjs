@@ -60,7 +60,7 @@ const SCOPE = {
   "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs": 2,
   "scripts/test-verbatim-intocavel-2010.mjs": 1
 }
-const affiliateRaw = file => { const source=semEmAlta2610(fs.readFileSync(path.join(ROOT,file),'utf8'),file), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?projected.replace(/\n/g,'\r\n'):projected }
+const affiliateRaw = file => { const source=semEmAlta2610(fs.readFileSync(path.join(ROOT,file),'utf8'),file), projected=semAfiliado50_2610(file,source); return source.includes('\r\n')?projected.replace(/\n/g,'\r\n'):projected } // KINEO-EM-ALTA-2610
 const read = (file) => semAdminLeve2310(semPaginasIaClaras2110(semCompraClareza2610(affiliateRaw(file), file), file), file) // COMPRA-CLAREZA-2610 — exact presentation layer first; preserve every historical comparison and mutant.
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
 let passed = 0

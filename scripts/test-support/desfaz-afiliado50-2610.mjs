@@ -1,3 +1,5 @@
+import { semCronOrigem2610 } from './desfaz-cron-origem-2610.mjs' // KINEO-CRON-ORIGEM-2610
+import { semEmAlta2610 } from './desfaz-em-alta-2610.mjs' // KINEO-EM-ALTA-2610
 import { semLevaSobreIntegracao2610 } from './leva-rebase-2610.mjs' // final integration: newest sealed source first.
 import { semUpsellFilme152610 } from './desfaz-upsell-filme15-2610.mjs'
 // KINEO-AFILIADO-50-2610: exact inverse of this task's hunks, in memory only.
@@ -773,6 +775,7 @@ const LAYERS = {
 export const AFILIADO50_2610_ARQUIVOS = Object.keys(LAYERS)
 
 export function semAfiliado50_2610(rel, text) {
+  if (rel === 'scripts/test-paginas-ia-claras-2110.mjs' || rel === 'scripts/test-roteiro-curto-undo-2210.mjs') text = semEmAlta2610(semCronOrigem2610(text, rel), rel) // KINEO-CRON-ORIGEM-2610 · KINEO-EM-ALTA-2610 — camadas da main posteriores à leva saem antes (idempotente: sem a marca, volta igual)
   const hunks = LAYERS[rel]
   if (!hunks) return String(text).replace(/\r\n/g, '\n')
   text = semUpsellFilme152610(semLevaSobreIntegracao2610(text, rel), rel)
