@@ -21,7 +21,7 @@ function tira(c, text, rel) {
 function desde(idx, text, rel) {
   if (typeof text !== 'string') return text
   rel = String(rel ?? '').replace(/\\/g, '/')
-  if (!CAMADAS.some((c, i) => i >= idx && c.desfaz[rel])) return text
+  if (!CAMADAS.some((c, i) => i >= idx && c.desfaz[rel] && text.includes(c.marca))) return text // sem marca de camada que cubra o arquivo: volta igual (bytes e fim de linha intactos)
   const crlf = text.includes('\r\n')
   let s = text.replace(/\r\n/g, '\n')
   for (let j = CAMADAS.length - 1; j >= idx; j--) s = tira(CAMADAS[j], s, rel)

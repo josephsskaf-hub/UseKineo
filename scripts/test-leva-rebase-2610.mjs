@@ -12,6 +12,7 @@ import {
   rebaseCurrentInventory, verifyRebaseManifest, verifyRebaseCurrentTree, rebaseLaterFiles, // KINEO-INTEGRA-2710
   semLevaSobreMain2610, semMainSobreLeva2610, semLevaSobreIntegracao2610, semIntegracaoSobreMain2372610, preloadRebaseBlobs2610, rebaseImmutableSource2610,
 } from './test-support/leva-rebase-2610.mjs'
+import { semConsertos2710 } from './test-support/desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as camadas de 27/10 saem (hunks exatos) antes do selo físico dos arquivos com entrega posterior
 let checks = 0, mutants = 0
 const check = fn => { fn(); checks++ }
 const crlf = text => rebaseLf(text).replace(/\n/g, '\r\n')
@@ -28,7 +29,10 @@ const protectedMain = [
   ...rebaseGit('ls-tree', '-r', '--name-only', FINAL_MAIN_2610, '--', 'lib/filmes').trim().split('\n').filter(Boolean),
   'lib/textLanguage.ts', 'app/api/generate-video-cinematic/route.ts',
 ]
-for (const file of protectedMain) check(() => assert.equal(rebaseLf(readFileSync(file, 'utf8')), rebaseGit('show', FINAL_MAIN_2610 + ':' + file), 'complete current main product survives byte-exact: ' + file))
+// Arquivo com entrega POSTERIOR ao selo (27/10: legenda RTL no textLanguage; banco de prova, juiz da ficha e elenco de época na rota): o produto de 26/10 // KINEO-CONSERTOS-2710
+// tem de sobreviver byte a byte DEBAIXO das camadas marcadas de 27/10 — tiradas por hunks exatos (desfaz-consertos-2710), nunca por projeção da leva. // KINEO-CONSERTOS-2710
+const LATER_PROTEGIDOS_2710 = rebaseLaterFiles() // KINEO-CONSERTOS-2710
+for (const file of protectedMain) check(() => assert.equal(rebaseLf(LATER_PROTEGIDOS_2710.has(file) ? semConsertos2710(readFileSync(file, 'utf8'), file) : readFileSync(file, 'utf8')), rebaseGit('show', FINAL_MAIN_2610 + ':' + file), 'complete current main product survives byte-exact' + (LATER_PROTEGIDOS_2710.has(file) ? ' beneath the exact 27/10 layers' : '') + ': ' + file)) // KINEO-CONSERTOS-2710
 const composeFile = 'app/api/compose/route.ts'
 const purchaseLines = rebaseGit('show', REBASE_LEVA + ':' + composeFile).split('\n').filter(line => line.includes('KINEO-COMPRA-AVULSA-2410') && line.includes('hasPaid && cinematicUpstreamDebited'))
 check(() => assert.equal(purchaseLines.length, 1, 'the exact one-line purchase delta comes from immutable LEVA'))
