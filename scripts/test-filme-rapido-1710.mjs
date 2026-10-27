@@ -34,9 +34,10 @@ import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
+import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o ?prompt= do /clips (27/10) sai em memória antes das camadas antigas
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p, historico2210 = false) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910((historico2210 ? semRoteiroCurto2210 : (s) => s)(semEmAlta2610(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p), p), p).replace(/\r\n/g, '\n') /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only historical snapshots opt in, before the older reversals. */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
+const rd = (p, historico2210 = false) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910((historico2210 ? semRoteiroCurto2210 : (s) => s)(semEmAlta2610(semGaleriaHome2710(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p), p), p), p).replace(/\r\n/g, '\n') /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only historical snapshots opt in, before the older reversals. */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []

@@ -27,6 +27,7 @@ const FILES = [
   'scripts/test-paginas-ia-claras-2110.mjs',
   'scripts/test-ux-complete.mjs',
   'scripts/test-ux-mobile-navigation.mjs',
+  'scripts/test-filme-rapido-1710.mjs',
 ]
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', windowsHide: true, maxBuffer: 64 << 20 })
 const lf = (s) => s.replace(/\r\n/g, '\n')
