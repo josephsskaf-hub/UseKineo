@@ -1,5 +1,6 @@
 // Offline source-integrity proof; current behavioral tests never use this adapter.
 import assert from 'node:assert/strict'
+import { semEmAlta2610 } from '../../scripts/test-support/desfaz-em-alta-2610.mjs' // KINEO-EM-ALTA-2610
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -15,7 +16,7 @@ let assertions = 0, mutants = 0
 function check(run) { run(); assertions++ }
 assert.deepEqual(Object.keys(COMPRA_CLAREZA_HUNKS).sort(), ['.github/workflows/guardiao.yml', 'app/(dashboard)/generate/GenerateClient.tsx', 'app/(dashboard)/studio/StudioClient.tsx', 'scripts/test-support/desfaz-roteiro-curto-2210.mjs', 'scripts/test-support/desfaz-trending-inventario-2510.mjs', 'scripts/test-roteiro-curto-undo-2210.mjs'].sort())
 for (const [file, hunks] of Object.entries(COMPRA_CLAREZA_HUNKS)) {
-  const candidate = flat(semVideoFiel2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file))
+  const candidate = flat(semVideoFiel2610(semEmAlta2610(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file)) // KINEO-EM-ALTA-2610 — reancora do guardião do roteiro curto sai antes
   const base = flat(execFileSync('git', ['show', `${COMPRA_CLAREZA_MANIFEST.base}:${file}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 }))
   const meta = COMPRA_CLAREZA_MANIFEST.scope[file]
   check(() => assert.equal(sha(base), meta.beforeSha256))
