@@ -3,7 +3,6 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { semDesenho15s2710 } from './desfaz-desenho-15s-aceita-2710.mjs' // KINEO-DESENHO-15S-ACEITA-2710 — camada mais nova sai primeiro
 import { semMainSobreLeva2610, verifyRebaseCurrentTree } from './leva-rebase-2610.mjs' // KINEO-LEVA-REBASE-2610 — sealed current integration, immutable original LEVA remains below.
 export const LEVA_MANIFEST_PATH = 'scripts/test-support/leva-integration-2410-fontes.json'
 export const LEVA = JSON.parse(readFileSync(new URL('./leva-integration-2410-fontes.json', import.meta.url), 'utf8'))
@@ -127,7 +126,6 @@ export function levaUndoPrefix(text, file, task) {
 // The old proofs still check their exact original branch source, SHA and baseline.
 // Projection is allowed only after the live physical source passes its sealed hash.
 export function levaTaskSource(text, file, task) {
-  text = semDesenho15s2710(text, file) // KINEO-DESENHO-15S-ACEITA-2710 — camada mais nova sai primeiro
   text = semMainSobreLeva2610(text, file) // KINEO-LEVA-REBASE-2610 — before every original current-source hash.
   if (typeof text !== 'string') return text
   const path = rel(file), known = LEVA.sources[path]

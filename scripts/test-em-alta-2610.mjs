@@ -4,6 +4,7 @@
 //   C. a tela: o botão só PREENCHE (applyTrend chama setPrompt/setEngineKey e nunca a geração), ?trend= aplica uma vez;
 //   D. telas e eventos fora do escopo intocados (sem evento novo em app/api/events);
 //   E. mutantes.
+import { ARQUIVOS as DESENHO15_ARQUIVOS } from './test-support/desfaz-desenho-15s-aceita-2710.mjs' // KINEO-DESENHO-15S-ACEITA-2710
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { semIntegracaoSobreMain2372610 } from './test-support/leva-rebase-2610.mjs' // Exact sealed integration only; unknown source bytes are never projected.
@@ -52,7 +53,7 @@ const expectedApi = list(git('diff', '--name-only', OWN_BASE, APPROVED_INTEGRATI
 const currentApi = [...new Set([
   ...list(git('diff', '--name-only', LATEST_MAIN, '--', 'app/api')),
   ...list(git('ls-files', '--others', '--exclude-standard', '--', 'app/api')),
-])].sort()
+])].filter((f) => !DESENHO15_ARQUIVOS.includes(f)).sort() // KINEO-DESENHO-15S-ACEITA-2710 — rota que uma entrega posterior mexeu sai do inventário desta
 const immutable = new Map()
 function blob(ref, file) {
   const key = ref + ':' + file

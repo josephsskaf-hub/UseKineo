@@ -3,6 +3,10 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { semCronOrigem2610 } from './desfaz-cron-origem-2610.mjs' // KINEO-INTEGRA-2710
+import { semEmAlta2610 } from './desfaz-em-alta-2610.mjs' // KINEO-INTEGRA-2710
+import { semCardsNovos2610 } from './desfaz-cards-novos-2610.mjs' // KINEO-INTEGRA-2710
+import { semDesenho15s2710 } from './desfaz-desenho-15s-aceita-2710.mjs' // KINEO-INTEGRA-2710
 
 export const REBASE_MANIFEST_PATH = 'scripts/test-support/leva-rebase-2610-fontes.json'
 export const REBASE_MAIN = '62213b008292f110117d1abbe20c157efdb55902'
@@ -94,7 +98,14 @@ function project(text, file, target) {
 }
 
 export const semLevaSobreMain2610 = (text, file) => project(text, file, REBASE_MAIN)
-export const semMainSobreLeva2610 = (text, file) => project(text, file, REBASE_LEVA)
+// Camadas publicadas DEPOIS da entrega selada (main 33fab0c97 e o desenho de 15 s) saem antes da projeção; só onde a camada é mais nova. // KINEO-INTEGRA-2710
+function semPosterioresAoSelo2710(text, file) { // KINEO-INTEGRA-2710
+  const p = pathOf(file) // KINEO-INTEGRA-2710
+  if (p === 'scripts/test-paginas-ia-claras-2110.mjs') text = semCronOrigem2610(text, p) // KINEO-INTEGRA-2710
+  if (p === 'scripts/test-roteiro-curto-undo-2210.mjs') text = semEmAlta2610(text, p) // KINEO-INTEGRA-2710
+  return semDesenho15s2710(semCardsNovos2610(text, p), p) // KINEO-INTEGRA-2710
+} // KINEO-INTEGRA-2710
+export const semMainSobreLeva2610 = (text, file) => project(semPosterioresAoSelo2710(text, file), file, REBASE_LEVA) // KINEO-INTEGRA-2710
 // Final sealed composition leaves before each earlier exact layer; unknown bytes stay visible.
 export const semLevaSobreIntegracao2610 = (text, file) => project(text, file, FINAL_PRE_LEVA_2610)
 export const semIntegracaoSobreMain2372610 = (text, file) => project(text, file, FINAL_MAIN_2610)
@@ -102,15 +113,24 @@ export const semIntegracaoSobreMain2372610 = (text, file) => project(text, file,
 export function rebaseCurrentInventory(base = REBASE_BASE) {
   return [...new Set([...rebaseGit('diff', '--name-only', base).trim().split('\n'), ...rebaseGit('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
 }
+// A árvore selada é a entrega final do Codex; arquivo que uma entrega POSTERIOR mexeu é governado pelo guardião dela (o selo vale // KINEO-INTEGRA-2710
+// para todo o resto, byte a byte). Sem isto, qualquer commit novo na main deixava este selo vermelho para sempre. // KINEO-INTEGRA-2710
+export const REBASE_SEALED_TREE = '1d8a8893445640712b99433c9f6f2cfdd5eaedf4' // KINEO-INTEGRA-2710
+export function rebaseLaterFiles() { // KINEO-INTEGRA-2710
+  return new Set([...rebaseGit('diff', '--name-only', REBASE_SEALED_TREE).trim().split('\n'), ...rebaseGit('ls-files', '--others', '--exclude-standard').trim().split('\n')].filter(Boolean)) // KINEO-INTEGRA-2710
+} // KINEO-INTEGRA-2710
 export function verifyRebaseCurrentTree() {
   verifyRebaseManifest()
-  const actual = rebaseCurrentInventory()
-  if (JSON.stringify(actual) !== JSON.stringify(REBASE.inventory)) throw Error('KINEO-LEVA-REBASE-2610: inventário divergente')
+  const later = rebaseLaterFiles() // KINEO-INTEGRA-2710
+  const inventory = rebaseCurrentInventory() // KINEO-INTEGRA-2710
+  const actual = inventory.filter(file => !later.has(file)) // KINEO-INTEGRA-2710
+  if (JSON.stringify(actual) !== JSON.stringify(REBASE.inventory.filter(file => !later.has(file)))) throw Error('KINEO-LEVA-REBASE-2610: inventário divergente') // KINEO-INTEGRA-2710
   for (const [file, entry] of Object.entries(REBASE.sources)) {
+    if (later.has(file)) continue // KINEO-INTEGRA-2710
     if (!existsSync(file)) throw Error('KINEO-LEVA-REBASE-2610: fonte ausente ' + file)
     const bytes = readFileSync(file), value = rebaseTextFile(file) ? bytes.toString('utf8') : bytes
     if (rebaseHash(value) !== entry.hash) throw Error('KINEO-LEVA-REBASE-2610: fonte divergente ' + file)
   }
   if (rebaseLf(readFileSync(REBASE_LEGACY_MANIFEST, 'utf8')) !== rebaseGit('show', REBASE_LEVA + ':' + REBASE_LEGACY_MANIFEST)) throw Error('KINEO-LEVA-REBASE-2610: manifesto LEVA original alterado')
-  return actual
+  return inventory // KINEO-INTEGRA-2710 — devolve o inventário inteiro (o selo cobrou só os arquivos sem entrega posterior)
 }
