@@ -36,11 +36,41 @@ export const GALERIA_FILTERS: readonly { key: GaleriaFilter; label: string }[] =
   { key: 'film', label: 'Films' },
 ]
 
-/** Quantos cartões a página mostra de cara e a cada "See more" (20 fecha fileiras de 5, 4 e 2 colunas). */
-export const GALERIA_PAGE_SIZE = 20
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — fundador 28/10, olhando o /made-with-kineo no ar: TUDO aparece de cara (o "See more" que escondia cartão saiu) e a
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — última fileira NUNCA fica pela metade (regra de 05/10: "grade sempre cheia, nem que a gente repita um"). A grade é
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — responsiva (2→6 colunas): a página desenha, no fim, os cartões de enchimento — repetidos do COMEÇO do filtro atual — e o
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — CSS mostra só os que fecham a fileira da largura da tela. Vídeo continua só nascendo na tela (WallMedia, preload none).
+/** As colunas da grade por largura mínima da tela (a MESMA régua do CSS de components/KineoHouseGallery.tsx). */ // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+export const GALERIA_COLUNAS: readonly { min: number; cols: number }[] = [{ min: 0, cols: 2 }, { min: 700, cols: 3 }, { min: 1000, cols: 4 }, { min: 1300, cols: 5 }, { min: 1700, cols: 6 }] // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+/** Cartões de enchimento para `n` cartões: o i-ésimo repete o cartão `idx` (do começo da lista) e aparece nas colunas `cols`. */ // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+export function galeriaPreenchimento(n: number): { idx: number; cols: number[] }[] { // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  if (!Number.isInteger(n) || n <= 0) return [] // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  const falta = (c: number) => (c - (n % c)) % c // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  const max = Math.max(...GALERIA_COLUNAS.map((g) => falta(g.cols))) // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  return Array.from({ length: max }, (_, i) => ({ idx: i % n, cols: GALERIA_COLUNAS.filter((g) => i < falta(g.cols)).map((g) => g.cols) })) // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+} // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+/** O CSS que mostra, em cada largura, só os enchimentos daquela contagem de colunas (classe mwk-f<colunas>). */ // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+export function galeriaPreenchimentoCss(): string { // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  const todos = GALERIA_COLUNAS.map((g) => g.cols) // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  return '.mwk-fill{display:none}' + GALERIA_COLUNAS.map((g) => { // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+    const regra = todos.filter((c) => c !== g.cols).map((c) => `.mwk-fill.mwk-f${c}`).join(',') + `{display:none}.mwk-fill.mwk-f${g.cols}{display:block}` // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+    return g.min > 0 ? `@media(min-width:${g.min}px){${regra}}` : regra // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  }).join('') // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+} // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
 
 /** O ritmo do "All": 2 clipes, 1 imagem, 1 filme, repetindo (o feed misto do Explore). Tipo esgotado = pula. */
 export const GALERIA_MIX: readonly GaleriaKind[] = ['clip', 'clip', 'image', 'film']
+
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — regra da casa: vídeo com a marca "usekineo.com/free" gravada NUNCA entra na vitrine. Conferido quadro a quadro em 28/10
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — (ffmpeg, 3 quadros de cada prévia public/previews/ex-<id>.mp4): os 16 filmes da lista abaixo têm a marca no canto de cima —
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — não só os 5 que o fundador viu (Maracaibo, Dyatlov, rio que ferve, Pompeia, o homem que pulou). Não há master limpo deles em
+// KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — public/previews; o filme volta quando sair uma prévia sem a marca (é só tirá-lo desta lista).
+export const GALERIA_FILMES_COM_MARCA: readonly string[] = [ // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  '4b12925e-16e6-4b56-af5a-7047f9ae7a28', 'f3de57b0-3486-4400-ba72-c9390774d426', 'c1f80b50-1de6-4140-9ce4-b4cfbeb185c3', 'b8c50f61-2843-41f3-a803-ac5a4bb509f5', // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — Maracaibo, Dyatlov, rio que ferve, Pompeia
+  '16742e11-a2fc-4e0a-a49a-2862e0ee36b0', 'c53789d3-a1af-46a7-a2c6-7114204316de', '7efd12b8-925b-46d2-b68e-c6095cd3e92e', '692a6e98-6ed5-4c8d-8fa5-89ab21fbbcff', // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — o homem que pulou, costa azul, navio, lago
+  'b1b69c57-0ed7-4ecf-a4fa-dbd4508fa451', '83db8b63-b654-491e-a0aa-86ce1bc1f3d7', 'fbc5d391-316f-4757-aa54-0565f698cb9f', 'a09706da-a79f-4029-b213-69f43d6a2775', // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — Krakatoa, Lituya, jantar, Ilha de Páscoa
+  '397fa32a-2f35-4e09-950c-9f7d00e23c50', 'ad6cb185-a0a2-46cf-a148-ea7503dfe6d3', 'cbd676d0-340a-4728-8a5f-439fd9dd64c5', '99818ab0-0960-4089-a784-12b241736868', // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — barco 1955, Golfo, Mary Celeste, Tunguska
+] // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
 
 /** Fora da galeria, sempre (fundador 27/10: o clipe do cachorro com celular saiu com defeito). */
 export const GALERIA_EXCLUDED: readonly string[] = ['dog_phone']

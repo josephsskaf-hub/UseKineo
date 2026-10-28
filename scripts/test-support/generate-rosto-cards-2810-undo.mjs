@@ -8,6 +8,14 @@ import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 export const CAMADAS = {
+  'galeria-cheia-2810': {
+    fn: 'semGaleriaCheia2810',
+    marca: 'KINEO-GALERIA-CHEIA-2810',
+    o_que: 'a galeria Made with Kineo cheia (tudo de cara, última fileira completa) e sem os filmes com usekineo.com/free',
+    base: '49aa28d2c',
+    tip: null,
+    arquivos: ['lib/homeGaleria.ts', 'lib/homeGaleriaItems.ts', 'components/KineoHouseGallery.tsx'],
+  },
   'cards-rosto-2810': {
     fn: 'semCardsRosto2810',
     marca: 'KINEO-CARDS-ROSTO-2810',

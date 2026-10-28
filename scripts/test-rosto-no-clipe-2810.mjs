@@ -130,7 +130,7 @@ function checa(over = {}) {
 
   // (F) telas
   const gallery = src('gallery')
-  if (!/\{it\.faceHref \? <Link href=\{it\.faceHref\} className="mwk-face"/.test(gallery)) e.push('galeria não condiciona o botão a faceHref')
+  if (!/\{it\.faceHref \? <Link (?:tabIndex=\{fill \? -1 : undefined\} )?href=\{it\.faceHref\} className="mwk-face"/.test(gallery)) e.push('galeria não condiciona o botão a faceHref')
   if (!/\.\.\.\(hasFaceRemix\(c\.id\) \? \{ faceHref: faceRemixHref\(c\.id, signedIn\) \} : \{\}\)/.test(src('items'))) e.push('cartões da galeria não perguntam ao catálogo do remix')
   const strip = src('strip')
   if (!/return hasFaceRemix\(c\.id\) \? \(/.test(strip) || !/href=\{faceRemixHref\(c\.id, signedIn\)\}/.test(strip)) e.push('faixa da home não condiciona o botão ao catálogo')
@@ -164,7 +164,7 @@ const mutantes = [
   ['sem a regra da identidade', mut(F.remix, '`${FACE_REMIX_PREFIX}${scene}. ${FACE_REMIX_SUFFIX}`', '`${scene}. ${FACE_REMIX_SUFFIX}`')],
   ['Golden Ball sai do catálogo', mut(F.galeria, "{ id: 'golden-ball',", "{ id: 'golden-ball-x',")],
   ['rota esquece o consentimento', mut(F.route, 'consent: body.consent })', 'consent: true })')],
-  ['botão na galeria para todos', mut(F.gallery, '{it.faceHref ? <Link href={it.faceHref}', '{true ? <Link href={it.faceHref}')],
+  ['botão na galeria para todos', mut(F.gallery, '{it.faceHref ? <Link ', '{true ? <Link ')],
   ['tela manda o prompt', mut(F.client, 'await send({ remix: remix.id, image_url: photoUrl, consent: true })', 'await send({ remix: remix.id, image_url: photoUrl, consent: true, prompt })')],
   ['evento em todo pedido', mut(F.route, 'if (remix && result.ok && !result.replay) {', 'if (remix) {')],
 ]

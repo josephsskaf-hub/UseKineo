@@ -1,7 +1,7 @@
 'use client'
 
 // KINEO-GALERIA-HOME-2710 — a grade do "Made with Kineo" (/made-with-kineo): clipes, imagens e filmes narrados misturados,
-// filtro All · Clips · Images · Films, "See more" de 18 em 18. Curadoria em lib/homeGaleria.ts; cartões montados no servidor
+// filtro All · Clips · Images · Films, tudo de cara e a última fileira sempre cheia (KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810). Curadoria em lib/homeGaleria.ts; cartões montados no servidor
 // (lib/homeGaleriaItems.ts) — aqui só tela e medição.
 //
 // Peso: a página não toca nada antes de aparecer. Vídeo = WallMedia (o mesmo da vitrine da home: o <video> só nasce quando o
@@ -13,7 +13,7 @@ import Link from 'next/link'
 import WallMedia from '@/components/WallMedia'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { GALERIA_CLICK_EVENT, GALERIA_FILTERS, GALERIA_PAGE_SIZE, galeriaFiltered, type GaleriaFilter, type GaleriaItem } from '@/lib/homeGaleria'
+import { GALERIA_CLICK_EVENT, GALERIA_FILTERS, galeriaFiltered, galeriaPreenchimento, galeriaPreenchimentoCss, type GaleriaFilter, type GaleriaItem } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
 
 const CSS = `
 .mwk{--mwk-gap:12px}
@@ -47,7 +47,7 @@ const CSS = `
 .mwk-face:focus-visible{outline:3px solid #06b6d4;outline-offset:2px} /* KINEO-ROSTO-NO-CLIPE-2810 */
 @media(max-width:560px){.mwk-face{top:8px;left:8px;min-height:28px;padding:5px 9px;font-size:11px}} /* KINEO-ROSTO-NO-CLIPE-2810 */
 .mwk-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;margin:26px 0 0}
-.mwk-more-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 26px;border:0;border-radius:999px;background:var(--accent,#1766d3);color:var(--on-accent,#fff);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — .mwk-more-btn sem uso desde 28/10 (o "See more" saiu) */ .mwk-more-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 26px;border:0;border-radius:999px;background:var(--accent,#1766d3);color:var(--on-accent,#fff);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 .mwk-more-btn:hover{filter:brightness(1.07)}
 .mwk-more a{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border:1px solid var(--border,#d5e0ec);border-radius:999px;color:var(--text,#17273b);font-size:13px;font-weight:600;text-decoration:none}
 .mwk-more a:hover{border-color:var(--accent,#1766d3)}
@@ -62,26 +62,27 @@ function mediaStyle(focus: string | undefined): CSSProperties | undefined {
 
 export default function KineoHouseGallery({ items, surface = 'page' }: { items: readonly GaleriaItem[]; surface?: 'page' | 'home' }) {
   const [filter, setFilter] = useState<GaleriaFilter>('all')
-  const [shown, setShown] = useState(GALERIA_PAGE_SIZE)
   const list = useMemo(() => galeriaFiltered(items, filter), [items, filter])
-  const visible = list.slice(0, shown)
-  const left = list.length - visible.length
+  // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — tudo de cara; no fim, os enchimentos (do começo do filtro atual) que fecham a última fileira em cada largura
+  const enche = useMemo(() => galeriaPreenchimento(list.length), [list.length]) // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+  const filtros = GALERIA_FILTERS.filter((f) => f.key === 'all' || items.some((i) => i.kind === f.key)) // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — tipo sem cartão (ex.: filmes, todos com marca) não vira botão vazio
 
   return (
     <div className="mwk" data-galeria={surface}>
-      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CSS + galeriaPreenchimentoCss() }} />{/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 */}
       <div className="mwk-chips" role="group" aria-label="Filter">
-        {GALERIA_FILTERS.map((f) => (
+        {filtros.map((f) => ( // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
           <button key={f.key} type="button" className="mwk-chip" aria-pressed={filter === f.key} data-galeria-filter={f.key}
-            onClick={() => { setFilter(f.key); setShown(GALERIA_PAGE_SIZE) }}>
+            onClick={() => { setFilter(f.key) }}>{/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 */}
             <UiLabel>{f.label}</UiLabel>
           </button>
         ))}
       </div>
       <div className="mwk-grid">
-        {visible.map((it) => (
-          <div key={it.id} className="mwk-cell">{/* KINEO-ROSTO-NO-CLIPE-2810 — o cartão e o botão do rosto lado a lado (link dentro de link não existe) */}
+        {[...list.map((it) => ({ it, fill: null as number[] | null })), ...enche.map((e) => ({ it: list[e.idx], fill: e.cols }))].map(({ it, fill }, k) => ( // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
+          <div key={fill ? `fill-${k}` : it.id} className={fill ? `mwk-cell mwk-fill ${fill.map((c) => `mwk-f${c}`).join(' ')}` : 'mwk-cell'} aria-hidden={fill ? true : undefined} data-galeria-fill={fill ? it.id : undefined}>{/* KINEO-ROSTO-NO-CLIPE-2810 — o cartão e o botão do rosto lado a lado (link dentro de link não existe) · KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — enchimento repetido: fora do leitor de tela e do Tab */}
           <Link
+            tabIndex={fill ? -1 : undefined} /* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 */
             href={it.href}
             className={`mwk-card mwk-${it.kind}`}
             data-galeria-kind={it.kind}
@@ -98,22 +99,14 @@ export default function KineoHouseGallery({ items, surface = 'page' }: { items: 
             <span className="mwk-copy"><i>{it.engine}</i><b><UiLabel>{it.title}</UiLabel></b></span>
             <span className="mwk-cta" aria-hidden="true"><UiLabel>Make one like this</UiLabel> →</span>
           </Link>
-          {it.faceHref ? <Link href={it.faceHref} className="mwk-face" data-face-remix={it.id} aria-label={`Put your face in it — ${it.title}`}><UiLabel>Put your face in it</UiLabel></Link> : null}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+          {it.faceHref ? <Link tabIndex={fill ? -1 : undefined} href={it.faceHref} className="mwk-face" data-face-remix={it.id} aria-label={`Put your face in it — ${it.title}`}><UiLabel>Put your face in it</UiLabel></Link> : null}{/* KINEO-ROSTO-NO-CLIPE-2810 · KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 */}
           </div> // KINEO-ROSTO-NO-CLIPE-2810
         ))}
       </div>
-      <div className="mwk-more">
-        {left > 0 ? (
-          <button type="button" className="mwk-more-btn" data-galeria-more onClick={() => setShown((n) => n + GALERIA_PAGE_SIZE)}>
-            <UiLabel>See more</UiLabel>
-          </button>
-        ) : (
-          <>
+      <div className="mwk-more">{/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — só a fileira de links no fim; nenhum botão revela cartão escondido */}
             <Link href="/clips" data-galeria-link="clips"><UiLabel>Open Clips</UiLabel> ↗</Link>
             <Link href="/images" data-galeria-link="images"><UiLabel>Open Images</UiLabel> ↗</Link>
             <Link href="/examples" data-galeria-link="examples"><UiLabel>All films</UiLabel> ↗</Link>
-          </>
-        )}
       </div>
     </div>
   )

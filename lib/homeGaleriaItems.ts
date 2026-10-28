@@ -19,6 +19,7 @@ import { HOME_GALLERY_DIR, HOME_GALLERY_IMAGES } from '@/components/home/HomeIma
 import {
   GALERIA_EFFECT_KEYS,
   GALERIA_FILM_IDS,
+  GALERIA_FILMES_COM_MARCA, // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810
   GALERIA_IMAGE_ENGINE_LABEL,
   GALERIA_IMAGES,
   GALERIA_NEW_CLIPS,
@@ -75,7 +76,7 @@ function imageItems(signedIn: boolean): GaleriaItem[] {
 }
 
 function filmItems(): GaleriaItem[] {
-  return GALERIA_FILM_IDS.flatMap((id) => {
+  return GALERIA_FILM_IDS.filter((id) => !GALERIA_FILMES_COM_MARCA.includes(id)).flatMap((id) => { // KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — filme com "usekineo.com/free" gravado nunca entra
     const f = FOUNDER_SHOWCASE.find((x) => x.id === id)
     const label = f ? engineLabelFor(f.engine) : null
     if (!f || !label) return []
