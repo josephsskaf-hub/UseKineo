@@ -38,6 +38,9 @@ html[data-theme=dark] .klp {
    do topo (links e menus) usam a MESMA cor de texto; só o item atual ganha peso e o sublinhado azul. */
 .klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }
 .klp .nav-links .nav-primary::after { content:''; position:absolute; inset:auto 0 4px; height:2px; border-radius:2px; background:var(--home-action); }
+/* KINEO-MENU-UNIFORME-2810 — fundador 28/10: os itens do menu do topo são IGUAIS, só o nome. "Make a film" e "Product ads" perdem a barra azul embaixo e o peso extra: mesma cor, mesmo peso (550), nenhum sublinhado; a seta do menu suspenso de "Make a film" fica. */
+.klp .nav-links .nav-primary { font-weight:550; } /* KINEO-MENU-UNIFORME-2810 */
+.klp .nav-links .nav-primary::after, html:not([data-theme=dark]) .klp .nav-links .nav-primary::after { content:none; display:none; } /* KINEO-MENU-UNIFORME-2810 */
 .klp .nav-right { justify-self:end; gap:12px; min-width:0; }
 .klp .nav-right .kineo-interface-language { color:var(--txt)!important; background:var(--card)!important; border-color:var(--line)!important; color-scheme:inherit!important; border-radius:8px!important; }
 .klp .nav-right .btn-w { border-radius:9px; }

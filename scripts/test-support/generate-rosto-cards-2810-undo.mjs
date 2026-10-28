@@ -8,6 +8,14 @@ import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 export const CAMADAS = {
+  'menu-uniforme-2810': {
+    fn: 'semMenuUniforme2810',
+    marca: 'KINEO-MENU-UNIFORME-2810',
+    o_que: 'o menu do topo uniforme (home sem sublinhado/peso extra; cabeçalho claro sem cinza nem azul)',
+    base: '1293fcb9f',
+    tip: null,
+    arquivos: ['app/kineoLandingTheme.ts', 'app/examples/ExamplesGallery.module.css'],
+  },
   'galeria-cheia-2810': {
     fn: 'semGaleriaCheia2810',
     marca: 'KINEO-GALERIA-CHEIA-2810',
