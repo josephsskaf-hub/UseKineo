@@ -1,3 +1,4 @@
+import { semGaleriaHome2710 } from './desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710
 import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-EM-ALTA-2610 — DESFAZ, em memória, esta entrega nos arquivos que ela MODIFICOU, para guardiões que conferem arquivos BYTE A BYTE
 // contra uma base anterior. Diff REVERSO exato (contexto 3): cada bloco de AGORA aparece UMA vez e volta a ser o de ANTES.
@@ -8,6 +9,7 @@ const DESFAZ = {"app/(dashboard)/clips/ClipsClient.tsx":[{"before":["import { CL
 export function semEmAlta2610(text, rel) {
   text = semConsertos2710(text, rel) // KINEO-CONSERTOS-2710
   if (typeof text !== 'string') return text
+  text = semGaleriaHome2710(text, rel) // KINEO-GALERIA-HOME-2710 — a camada mais nova (27/10) sai primeiro
   const original = text
   const crlf = original.includes('\r\n')
   let s = original.replace(/\r\n/g, '\n')

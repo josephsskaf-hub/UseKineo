@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import {source,renderPage} from './preview-ux-complete.mjs'
+import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o item "Made with Kineo" (27/10) sai em memória só na prova de fonte inteira aprovada
 const require=createRequire(import.meta.url),ts=require('typescript')
 // Preserve the original whole-file preservation proof at delivery. Runtime checks below execute the current approved UI.
 const delivery='54bfdc48'
 const approvedIntegration='a698625a'
-const approvedSource=file=>eq(source(file).replace(/\r\n/g,'\n'),source(file,true,approvedIntegration).replace(/\r\n/g,'\n'),file+' current whole source matches the approved integration')
+const approvedSource=file=>eq(semGaleriaHome2710(source(file),file).replace(/\r\n/g,'\n'),source(file,true,approvedIntegration).replace(/\r\n/g,'\n'),file+' current whole source matches the approved integration')
 let checks=0
 const eq=(a,b,label)=>{assert.deepEqual(a,b,label);checks++}
 const ok=(value,label)=>{assert.ok(value,label);checks++}

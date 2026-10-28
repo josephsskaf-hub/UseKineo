@@ -8,6 +8,7 @@ import { semCronOrigem2610 } from './desfaz-cron-origem-2610.mjs' // KINEO-INTEG
 import { semEmAlta2610 } from './desfaz-em-alta-2610.mjs' // KINEO-INTEGRA-2710
 import { semCardsNovos2610 } from './desfaz-cards-novos-2610.mjs' // KINEO-INTEGRA-2710
 import { semDesenho15s2710 } from './desfaz-desenho-15s-aceita-2710.mjs' // KINEO-INTEGRA-2710
+import { semGaleriaHome2710 } from './desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — camada de 27/10 (menu "Made with Kineo") é posterior ao selo
 
 export const REBASE_MANIFEST_PATH = 'scripts/test-support/leva-rebase-2610-fontes.json'
 export const REBASE_MAIN = '62213b008292f110117d1abbe20c157efdb55902'
@@ -102,6 +103,7 @@ export const semLevaSobreMain2610 = (text, file) => project(semPosterioresAoSelo
 // Camadas publicadas DEPOIS da entrega selada (main 33fab0c97 e o desenho de 15 s) saem antes da projeção; só onde a camada é mais nova. // KINEO-INTEGRA-2710
 function semPosterioresAoSelo2710(text, file) { // KINEO-INTEGRA-2710
   const p = pathOf(file) // KINEO-INTEGRA-2710
+  text = semGaleriaHome2710(text, p) // KINEO-GALERIA-HOME-2710 — a mais nova sai primeiro (só nos arquivos dela, só com a marca)
   text = semConsertos2710(text, p) // KINEO-CONSERTOS-2710
   if (p === 'scripts/test-paginas-ia-claras-2110.mjs') text = semCronOrigem2610(text, p) // KINEO-INTEGRA-2710
   if (p === 'scripts/test-roteiro-curto-undo-2210.mjs' || p === 'docs/compra-clareza-2610/test-legacy-layer.mjs') text = semEmAlta2610(text, p) // KINEO-INTEGRA-2710

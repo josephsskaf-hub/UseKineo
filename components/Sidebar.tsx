@@ -189,6 +189,15 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="M15 7h6v6" />
     </svg>
   ),
+  // KINEO-GALERIA-HOME-2710 — "Made with Kineo" (/made-with-kineo): grade de mosaico (clipes, imagens e filmes juntos).
+  made: ( // KINEO-GALERIA-HOME-2710
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7" height="10" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="6" rx="1.5" />
+      <rect x="3.5" y="16.5" width="7" height="4" rx="1.5" />
+      <rect x="13.5" y="12.5" width="7" height="8" rx="1.5" />
+    </svg>
+  ), // KINEO-GALERIA-HOME-2710
   ads: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />

@@ -68,8 +68,9 @@ const render = (route = '/studio', signedIn = true) => {
 const tree = render()
 const links = nodes(tree).filter((n) => n.type === Link)
 // Founder 09/10 menu-enxuto + 13/10 duas-portas/trending: removed menu items retain their direct routes.
-const expected = ['/studio', '/ads/new', '/library', '/pricing', '/trending', '/images', '/clips', '/spaces', '/affiliate', '/account']
-check('all 10 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.sort()))
+// KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: item "Made with Kineo" no menu): /made-with-kineo entra no "More" do celular, logo depois do Trending.
+const expected = ['/studio', '/ads/new', '/library', '/pricing', '/trending', '/made-with-kineo', '/images', '/clips', '/spaces', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710
+check('all 11 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.sort()))
 for (const href of expected) {
   check('existing route ' + href, () => assert.ok(
     ['app', 'app/(dashboard)'].some((base) => fs.existsSync(path.join(root, base, href.slice(1), 'page.tsx'))),
