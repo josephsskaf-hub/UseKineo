@@ -414,6 +414,7 @@ import CardEntryDoor from '@/components/CardEntryDoor'
 import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { intervaloDePoll, POLL_RAPIDO_FILME_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — cenas e montagem a cada 2,5 s nos 2 primeiros minutos (linha própria)
 import { useTrocaDoLinkDoBucket } from '@/lib/useTrocaDoLink' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — "pronto" na hora; o link troca para o bucket depois (linha própria)
+import FirstFilmRedoHint from '@/components/video/FirstFilmRedoHint' // KINEO-REFAZER-GRATIS-2810 — "Something off? Redo any scene for free on your first film." acima do player (só no primeiro filme)
 import { isKidsCharacterId } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — ?kids_cartoon=<personagem> do template /kids-cartoon viaja ao filme (o servidor decide)
 import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
@@ -17505,6 +17506,7 @@ export default function GenerateClient({
                   vertical — o recurso novo pareceria defeito. `-wide` dá ao
                   filme deitado a largura que ele merece (460px de largura em
                   16:9 renderiam uma tarja de 259px de altura). */}
+              <FirstFilmRedoHint videoId={publicVideoId} />{/* KINEO-REFAZER-GRATIS-2810 — a linha do primeiro filme, acima do player; o servidor decide se aparece */}
               <div className="done-result-preview">
               <div
                 className="gv-done-frame rounded-2xl overflow-hidden mt-6"

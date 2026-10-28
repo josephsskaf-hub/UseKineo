@@ -111,6 +111,7 @@ export function filmSourceMetadata(a: {
   generationId: string | null
   quality: string | null
   source: unknown
+  chain?: FilmChain | null // KINEO-REFAZER-GRATIS-2810 — elo assinado da versão nova do PRIMEIRO filme (a refação grátis nº 2)
 }): Record<string, unknown> | null {
   if (!a.secret || !a.userId || !a.renderId || !a.generationId || !filmQualityCovered(a.quality)) return null
   const src = a.source
@@ -120,7 +121,10 @@ export function filmSourceMetadata(a: {
   const json = JSON.stringify(src)
   if (json.length > FILM_SOURCE_MAX_CHARS) return null
   const sourceHash = sha256(json)
+  const elo = a.chain ? chainMetadata(a.secret, { userId: a.userId, renderId: a.renderId, sourceHash, chain: a.chain }) : null // KINEO-REFAZER-GRATIS-2810
+  if (a.chain && !elo) return null // KINEO-REFAZER-GRATIS-2810 — elo pedido e inválido: não guarda nada (nunca uma fonte sem o elo que a limita)
   return {
+    ...(elo ?? {}), // KINEO-REFAZER-GRATIS-2810
     marca: MARCA_REFAZER_1910,
     render_id: a.renderId,
     generation_id: a.generationId,
@@ -152,6 +156,56 @@ export function verifyFilmSource(secret: string | null | undefined, userId: stri
   const a = Buffer.from(esperado, 'utf8'), b = Buffer.from(authority, 'utf8')
   if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, motivo: 'assinatura_invalida' }
   return { ok: true, source: source as Record<string, unknown>, generationId, quality }
+}
+
+// KINEO-REFAZER-GRATIS-2810 — o ELO DE CADEIA: a versão nova do PRIMEIRO filme guarda, junto do RenderScript assinado,
+// quem é o filme raiz, qual refação grátis ela concede (seq 2) e qual cena foi trocada (com o clipe novo, para a mesma cena
+// poder ser refeita de novo). Assinado com o mesmo segredo, sobre o dono, o render e o hash da fonte: o navegador (que
+// escreve em `events` pelo /api/events) não fabrica nem reaproveita um elo. Elo presente e inválido = recusa.
+export interface FilmChain {
+  seq: number
+  parentVideoId: string
+  rootVideoId: string
+  sceneIndex: number
+  clipUrl: string
+}
+
+function chainSignature(secret: string, a: { userId: string; renderId: string; sourceHash: string; chain: FilmChain }): string {
+  const c = a.chain
+  return createHmac('sha256', secret)
+    .update(JSON.stringify(['kineo:free-redo-film-chain:v1', a.userId, a.renderId, a.sourceHash, c.seq, c.parentVideoId, c.rootVideoId, c.sceneIndex, c.clipUrl]))
+    .digest('hex')
+}
+
+function chainValido(c: unknown): c is FilmChain {
+  if (!c || typeof c !== 'object') return false
+  const x = c as Record<string, unknown>
+  return Number.isInteger(x.seq) && (x.seq as number) >= 2 && typeof x.parentVideoId === 'string' && !!x.parentVideoId &&
+    typeof x.rootVideoId === 'string' && !!x.rootVideoId && Number.isInteger(x.sceneIndex) && (x.sceneIndex as number) >= 0 &&
+    typeof x.clipUrl === 'string' && x.clipUrl.startsWith('https://')
+}
+
+function chainMetadata(secret: string, a: { userId: string; renderId: string; sourceHash: string; chain: FilmChain }): Record<string, unknown> | null {
+  if (!chainValido(a.chain)) return null
+  const c = a.chain
+  return {
+    chain: { seq: c.seq, parent_video_id: c.parentVideoId, root_video_id: c.rootVideoId, scene_index: c.sceneIndex, clip_url: c.clipUrl },
+    chain_authority: chainSignature(secret, a),
+  }
+}
+
+/** O elo da fonte: { ok, chain: null } = fonte sem elo (filme original); { ok: false } = elo presente e inválido. */
+export function verifyFilmChain(secret: string | null | undefined, userId: string, renderId: string, metadata: unknown): { ok: true; chain: FilmChain | null } | { ok: false } {
+  const m = metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : null
+  if (!m || (m.chain === undefined && m.chain_authority === undefined)) return { ok: true, chain: null }
+  if (!secret || !m.chain || typeof m.chain !== 'object' || typeof m.chain_authority !== 'string' || !m.source || typeof m.source !== 'object') return { ok: false }
+  const raw = m.chain as Record<string, unknown>
+  const chain = { seq: raw.seq, parentVideoId: raw.parent_video_id, rootVideoId: raw.root_video_id, sceneIndex: raw.scene_index, clipUrl: raw.clip_url }
+  if (!chainValido(chain)) return { ok: false }
+  const esperado = chainSignature(secret, { userId, renderId, sourceHash: sha256(JSON.stringify(m.source)), chain })
+  const a = Buffer.from(esperado, 'utf8'), b = Buffer.from(m.chain_authority, 'utf8')
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false }
+  return { ok: true, chain }
 }
 
 /** As URLs de vídeo do RenderScript (os clipes), sem repetição, na ordem em que aparecem. */
@@ -234,7 +288,7 @@ export function entradaAssinadaValida(model: string, raw: unknown): raw is Recor
  * As cenas que podem ser refeitas: claim do DONO, liquidado (ou estornado entregável), motor clássico, clipe pronto e
  * presente no RenderScript, payload assinado válido. Qualquer coisa fora disso simplesmente não aparece na lista.
  */
-export function cenasDoFilme(claim: ClaimParaRefazer | null | undefined, userId: string, source: unknown): CenaRefazivel[] {
+export function cenasDoFilme(claim: ClaimParaRefazer | null | undefined, userId: string, source: unknown, trocadas?: Readonly<Record<number, string>> | null): CenaRefazivel[] { // KINEO-REFAZER-GRATIS-2810 — `trocadas`: na versão nova, a cena já refeita aponta para o clipe novo (do elo assinado)
   if (!claim || claim.userId !== userId || (claim.status !== 'settled' && claim.status !== 'released')) return []
   const response = claim.response && typeof claim.response === 'object' ? claim.response : null
   if (!response) return []
@@ -244,7 +298,7 @@ export function cenasDoFilme(claim: ClaimParaRefazer | null | undefined, userId:
   const models = Array.isArray(claim.falModels) ? claim.falModels : []
   for (let i = 0; i < models.length; i++) {
     const model = models[i]
-    const clipUrl = claim.authorizedCompletedUrls?.[i]
+    const clipUrl = (trocadas && typeof trocadas[i] === 'string' ? trocadas[i] : undefined) ?? claim.authorizedCompletedUrls?.[i] // KINEO-REFAZER-GRATIS-2810
     if (typeof model !== 'string' || !CLASSIC.has(model)) continue
     if (typeof clipUrl !== 'string' || !clipUrl.startsWith('https://') || !urls.has(clipUrl)) continue
     const raw = inputs[i]

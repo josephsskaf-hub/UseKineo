@@ -24,17 +24,22 @@ import {
   estadoPublico,
   etapaParada,
   filmOrderId,
+  filmSourceMetadata, // KINEO-REFAZER-GRATIS-2810
   mediaUrlsOf,
   tentativasGastas,
   tituloDaVersaoNova,
   trocarClipe,
+  uuidFrom, // KINEO-REFAZER-GRATIS-2810
   variarEntrada,
+  verifyFilmChain, // KINEO-REFAZER-GRATIS-2810
   verifyFilmSource,
   type CenaRefazivel,
   type ClaimParaRefazer,
+  type FilmChain, // KINEO-REFAZER-GRATIS-2810
   type FreeRedoStatus,
 } from '@/lib/freeRedo/core'
 import { reservarVagaDoDia } from '@/lib/freeRedo/cap'
+import { SCENE_REDO_FUNNEL_EVENTS, FREE_REDO_FIRST_FILM_TOTAL, saldoGratis, versaoNovaGanhaRefacao } from '@/lib/cinematic/refazerGratis2810' // KINEO-REFAZER-GRATIS-2810 — 2 refações grátis no PRIMEIRO filme (o elo assinado da versão nova), saldo na resposta, scene_redo_free_used
 import { espelhoSceneRedo } from '@/lib/cinematic/refazerCena' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — scene_redo_* espelham os free_redo_* (controle de qualidade diário)
 
 type Meta = Record<string, unknown>
@@ -137,10 +142,52 @@ async function lerFonte(d: FreeRedoFilmDeps, userId: string, renderId: string) {
     .limit(1)
     .maybeSingle()
   if (error) return 'erro' as const
-  return verifyFilmSource(d.secret, userId, renderId, data?.metadata ?? null)
+  const v = verifyFilmSource(d.secret, userId, renderId, data?.metadata ?? null)
+  if (!v.ok) return v // KINEO-REFAZER-GRATIS-2810
+  const elo = verifyFilmChain(d.secret, userId, renderId, data?.metadata ?? null) // KINEO-REFAZER-GRATIS-2810 — elo presente e inválido = sem fonte
+  if (!elo.ok) return { ok: false as const, motivo: 'elo_invalido' } // KINEO-REFAZER-GRATIS-2810
+  return { ...v, chain: elo.chain } // KINEO-REFAZER-GRATIS-2810
 }
 
-type Contexto = { video: VideoRow; source: Record<string, unknown>; generationId: string; quality: string; cenas: CenaRefazivel[] }
+// KINEO-REFAZER-GRATIS-2810 — o PRIMEIRO filme da conta: o vídeo concluído mais antigo dela é este. Leitura que falha =
+// "não é o primeiro" (fecha para o lado do custo: a regra de 1 refação de 19/10 continua valendo).
+async function primeiroFilme(d: FreeRedoFilmDeps, userId: string, videoId: string): Promise<boolean> {
+  try {
+    const { data, error } = await d.db
+      .from('videos')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    return !error && !!data && (data as { id?: unknown }).id === videoId
+  } catch {
+    return false
+  }
+}
+
+// KINEO-REFAZER-GRATIS-2810 — a linha-trava da refação de OUTRA versão já foi entregue? (para o saldo do filme raiz)
+async function pedidoEntregue(d: FreeRedoFilmDeps, userId: string, videoId: unknown): Promise<boolean> {
+  if (typeof videoId !== 'string' || !UUID.test(videoId)) return false
+  try {
+    const lido = await lerPedido(d, userId, videoId)
+    return lido !== 'erro' && String(lido.meta?.status ?? '') === 'done'
+  } catch {
+    return false
+  }
+}
+
+// KINEO-REFAZER-GRATIS-2810 — o saldo de refações grátis desta versão (o servidor calcula; a tela só mostra).
+async function saldoDaVersao(d: FreeRedoFilmDeps, userId: string, videoId: string, meta: Meta | null, chain: FilmChain | null) {
+  const usadaAqui = String(meta?.status ?? '') === 'done'
+  if (chain) return saldoGratis({ primeiroFilme: true, seq: chain.seq, usadaAqui })
+  const primeiro = await primeiroFilme(d, userId, videoId)
+  const usadaNaSeguinte = primeiro && usadaAqui ? await pedidoEntregue(d, userId, meta?.new_video_id) : false
+  return saldoGratis({ primeiroFilme: primeiro, seq: 1, usadaAqui, usadaNaSeguinte })
+}
+
+type Contexto = { video: VideoRow; source: Record<string, unknown>; generationId: string; quality: string; cenas: CenaRefazivel[]; chain: FilmChain | null } // KINEO-REFAZER-GRATIS-2810 — chain
 
 /** Dono → filme pronto → render → RenderScript assinado → claim assinado → cenas refazíveis. */
 async function contexto(d: FreeRedoFilmDeps, userId: string, videoId: string): Promise<{ ok: true; ctx: Contexto } | { ok: false; resp: FreeRedoResposta }> {
@@ -153,11 +200,13 @@ async function contexto(d: FreeRedoFilmDeps, userId: string, videoId: string): P
   const fonte = await lerFonte(d, userId, video.render_id)
   if (fonte === 'erro') return { ok: false, resp: r(503, { ok: false, motivo: 'banco_indisponivel' }) }
   if (!fonte.ok) return { ok: false, resp: r(409, { ok: false, motivo: 'sem_fonte', detalhe: fonte.motivo, estado: 'unavailable' }) }
+  const chain = fonte.chain ?? null // KINEO-REFAZER-GRATIS-2810
+  if (chain && (chain.seq > FREE_REDO_FIRST_FILM_TOTAL || chain.parentVideoId === videoId)) return { ok: false, resp: r(409, { ok: false, motivo: 'teto_da_cadeia', estado: 'unavailable' }) } // KINEO-REFAZER-GRATIS-2810 — a 3ª refação grátis não existe
   const claim = await d.loadClaim({ userId, generationId: fonte.generationId })
   if (!claim.ok) return { ok: false, resp: r(503, { ok: false, motivo: 'claim_indisponivel' }) }
-  const cenas = cenasDoFilme(claim.claim, userId, fonte.source)
+  const cenas = cenasDoFilme(claim.claim, userId, fonte.source, chain ? { [chain.sceneIndex]: chain.clipUrl } : null) // KINEO-REFAZER-GRATIS-2810 — a cena já refeita pode ser refeita de novo
   if (cenas.length === 0) return { ok: false, resp: r(409, { ok: false, motivo: 'sem_cena_refazivel', estado: 'unavailable' }) }
-  return { ok: true, ctx: { video, source: fonte.source, generationId: fonte.generationId, quality: fonte.quality, cenas } }
+  return { ok: true, ctx: { video, source: fonte.source, generationId: fonte.generationId, quality: fonte.quality, cenas, chain } } // KINEO-REFAZER-GRATIS-2810 — chain
 }
 
 function cenasPublicas(cenas: CenaRefazivel[]) {
@@ -199,7 +248,7 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
   const sceneIndex = a.sceneIndex as number
   const c = await contexto(d, a.userId, videoId)
   if (!c.ok) return c.resp
-  const { video, source, quality, cenas } = c.ctx
+  const { video, source, quality, cenas, chain } = c.ctx // KINEO-REFAZER-GRATIS-2810 — chain
   const cena = cenas.find((x) => x.index === sceneIndex)
   if (!cena) return r(400, { ok: false, motivo: 'cena_invalida', scenes: cenasPublicas(cenas) })
 
@@ -213,6 +262,7 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
   const mortas = await d.deadUrls(mediaUrlsOf(source).filter((u) => u !== cena.clipUrl))
   if (mortas.length > 0) return r(409, { ok: false, motivo: 'arquivo_expirou', estado: 'unavailable' })
 
+  const primeiro = chain ? true : await primeiroFilme(d, a.userId, videoId) // KINEO-REFAZER-GRATIS-2810 — gravado na linha-trava: a entrega decide por ele se a versão nova ganha a refação nº 2
   const owner = d.newOwner()
   const agora = new Date(d.now()).toISOString()
   const base: Meta = {
@@ -229,6 +279,9 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
     estimated_usd: custoEstimadoUsd(cena.model, cena.seconds),
     owner,
     status: 'pending' as FreeRedoStatus,
+    free_seq: chain ? chain.seq : 1, // KINEO-REFAZER-GRATIS-2810
+    root_video_id: chain ? chain.rootVideoId : video.id, // KINEO-REFAZER-GRATIS-2810
+    first_film: primeiro, // KINEO-REFAZER-GRATIS-2810
     requested_at: agora, // KINEO-REFAZER-CENA-2710 — a hora deste pedido (o `ms` do scene_redo_delivered mede a partir daqui; na retomada é a hora nova)
     gastas: tentativasGastas(lido.meta),
     error: null,
@@ -287,7 +340,23 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
  * segundos): cena pronta → monta; montagem pronta → copia para o bucket e cria a versão nova. `lite` = só o estado
  * (para os cartões da biblioteca), sem ler o claim.
  */
-export async function acompanharRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: string; videoId: unknown; lite?: boolean }): Promise<FreeRedoResposta> {
+export async function acompanharRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: string; videoId: unknown; lite?: boolean }): Promise<FreeRedoResposta> { // KINEO-REFAZER-GRATIS-2810 — a resposta ganha o saldo de refações grátis (first_film, free_left…)
+  const resp = await acompanharSemSaldo(d, a) // KINEO-REFAZER-GRATIS-2810
+  if (!resp.body || resp.body.ok !== true || typeof a.videoId !== 'string' || resp.body.estado === 'working' || resp.body.estado === 'unavailable') return resp // KINEO-REFAZER-GRATIS-2810 — em andamento (a consulta de 7 em 7 s) ou sem refação: não relê a fonte
+  try { // KINEO-REFAZER-GRATIS-2810
+    const videoId = a.videoId.trim() // KINEO-REFAZER-GRATIS-2810
+    const lido = await lerPedido(d, a.userId, videoId) // KINEO-REFAZER-GRATIS-2810
+    const meta = lido === 'erro' ? null : lido.meta // KINEO-REFAZER-GRATIS-2810
+    const video = await lerVideo(d, a.userId, videoId) // KINEO-REFAZER-GRATIS-2810
+    const fonte = video && video !== 'erro' && video.render_id ? await lerFonte(d, a.userId, video.render_id) : null // KINEO-REFAZER-GRATIS-2810
+    const chain = fonte && fonte !== 'erro' && fonte.ok ? fonte.chain ?? null : null // KINEO-REFAZER-GRATIS-2810
+    return { status: resp.status, body: { ...resp.body, ...(await saldoDaVersao(d, a.userId, videoId, meta, chain)) } } // KINEO-REFAZER-GRATIS-2810
+  } catch { // KINEO-REFAZER-GRATIS-2810
+    return resp // KINEO-REFAZER-GRATIS-2810 — o saldo nunca derruba a consulta
+  } // KINEO-REFAZER-GRATIS-2810
+} // KINEO-REFAZER-GRATIS-2810
+
+async function acompanharSemSaldo(d: FreeRedoFilmDeps, a: { userId: string; videoId: unknown; lite?: boolean }): Promise<FreeRedoResposta> { // KINEO-REFAZER-GRATIS-2810
   const videoId = typeof a.videoId === 'string' ? a.videoId.trim() : ''
   if (!UUID.test(videoId)) return r(400, { ok: false, motivo: 'video_id_invalido' })
   const lido = await lerPedido(d, a.userId, videoId)
@@ -435,6 +504,43 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
       estimated_usd: meta.estimated_usd ?? null, new_video_id: novoId, render_id: renderId, previous_video_url: meta.previous_video_url ?? null,
       requested_at: meta.requested_at ?? meta.created_at ?? null, // KINEO-REFAZER-CENA-2710 — o espelho scene_redo_delivered calcula `ms` daqui
     })
+    const ganhou = await guardarElo(d, userId, videoId, meta, renderId) // KINEO-REFAZER-GRATIS-2810
+    await evento(d, userId, videoId, SCENE_REDO_FUNNEL_EVENTS.freeUsed, { // KINEO-REFAZER-GRATIS-2810
+      film_id: typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId, scene_index: meta.scene_index ?? null, // KINEO-REFAZER-GRATIS-2810
+      free_seq: typeof meta.free_seq === 'number' ? meta.free_seq : 1, first_film: meta.first_film === true, new_video_id: novoId, next_free_redo: ganhou, // KINEO-REFAZER-GRATIS-2810
+    }) // KINEO-REFAZER-GRATIS-2810
   }
   return r(200, corpoDoPedido({ ...meta, ...done }, true))
+}
+
+/**
+ * KINEO-REFAZER-GRATIS-2810 — refação nº 1 do PRIMEIRO filme entregue: a versão nova ganha o RenderScript assinado (o
+ * mesmo que foi ao Creatomate) com o elo de cadeia (seq 2). É isto — e só isto — que dá à versão nova a sua linha-trava de
+ * refação grátis. Id DETERMINÍSTICO pelo render novo: duas entregas concorrentes = uma linha (23505). Qualquer falha = a
+ * versão nova fica sem a refação nº 2 (fecha para o lado do custo); nada aqui toca crédito.
+ */
+async function guardarElo(d: FreeRedoFilmDeps, userId: string, videoId: string, meta: Meta, renderId: string): Promise<boolean> {
+  try {
+    if (!versaoNovaGanhaRefacao({ primeiroFilme: meta.first_film === true, seq: meta.free_seq })) return false
+    const sceneIndex = meta.scene_index
+    const novoClipe = String(meta.new_clip_url ?? '')
+    if (typeof sceneIndex !== 'number' || !Number.isInteger(sceneIndex) || !novoClipe.startsWith('https://')) return false
+    const fonte = await lerFonte(d, userId, String(meta.original_render_id ?? ''))
+    if (fonte === 'erro' || !fonte.ok) return false
+    const troca = trocarClipe(fonte.source, String(meta.old_clip_url ?? ''), novoClipe)
+    if (troca.trocados === 0) return false
+    const seq = (typeof meta.free_seq === 'number' && Number.isInteger(meta.free_seq) && meta.free_seq > 0 ? meta.free_seq : 1) + 1
+    const metadata = filmSourceMetadata({
+      secret: d.secret, userId, renderId, generationId: fonte.generationId, quality: fonte.quality, source: troca.source,
+      chain: { seq, parentVideoId: videoId, rootVideoId: typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId, sceneIndex, clipUrl: novoClipe },
+    })
+    if (!metadata) return false
+    const { error } = await d.db.from('events').insert({
+      id: uuidFrom(`kineo:free-redo:film-chain:v1:${renderId}`), user_id: userId, name: FILM_SOURCE_EVENT, path: FREE_REDO_FILM_PATH,
+      session_id: fonte.generationId, metadata,
+    })
+    return !error || (error as { code?: string }).code === '23505'
+  } catch {
+    return false
+  }
 }
