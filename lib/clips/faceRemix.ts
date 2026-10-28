@@ -21,7 +21,10 @@ import { clipCreditCost } from './clipPricing'
 export const FACE_REMIX_MARK = 'KINEO-ROSTO-NO-CLIPE-2810'
 
 /** Interruptor. false = só as contas da casa usam (a rota devolve 404 para o resto, sem ler nada nem cobrar). */
-export const FACE_REMIX_PUBLIC = true // fundador 28/10: "A"
+// Desligado em 28/10: teste pago em produção (Kling 3 image-to-video, foto + faceScene da Golden Ball) perdeu a identidade (o rosto
+// na festa é outra pessoa) e abriu na própria foto (parque) com corte seco para a festa — o i2v usa a foto como 1º quadro. Volta a
+// true só depois da etapa de quadro-chave (ramo separado). As contas da casa seguem com /clips?remix=<id> (faceRemixVisible).
+export const FACE_REMIX_PUBLIC = false // era true (fundador 28/10: "A")
 
 /** Abre o prompt de todo remix: a identidade vem da foto, sempre. */
 export const FACE_REMIX_PREFIX = "Keep the person's face, skin tone, hair and identity exactly as in the photo; the person from the photo is the main character. "
@@ -68,9 +71,9 @@ export function faceRemixById(id: unknown): FaceRemixItem | null {
   return faceRemixItems().find((i) => i.id === id) ?? null
 }
 
-/** O item tem botão? (a galeria e a faixa perguntam aqui — nunca decidem sozinhas). */
-export function hasFaceRemix(id: string): boolean {
-  return faceRemixById(id) !== null
+/** O item tem botão? (a galeria e a faixa perguntam aqui — nunca decidem sozinhas). Interruptor desligado = nenhum botão público. */
+export function hasFaceRemix(id: string, publicFlag: boolean = FACE_REMIX_PUBLIC): boolean {
+  return publicFlag === true && faceRemixById(id) !== null
 }
 
 /** O prompt que vai para o motor — montado SÓ aqui, no servidor. */

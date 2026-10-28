@@ -7,13 +7,15 @@ import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
+// KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
+// neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
   'rosto-ajuste-2810': {
     fn: 'semRostoAjuste2810',
     marca: 'KINEO-ROSTO-AJUSTE-2810',
     o_que: 'o ajuste do remix no /clips: foto obrigatória dita na tela',
     base: '563542621',
-    tip: null,
+    tip: '85dcf23db',
     arquivos: ['app/(dashboard)/clips/ClipsClient.tsx'],
   },
   'menu-uniforme-2810': {

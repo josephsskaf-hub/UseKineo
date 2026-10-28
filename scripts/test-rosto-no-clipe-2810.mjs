@@ -4,7 +4,8 @@
 // catálogo — prompt/motor/duração/formato do navegador são ignorados; (D) foto e consentimento obrigatórios, interruptor antes de
 // tudo; (E) o pedido resolvido é um clipe comum (validateClipRequest: image-to-video do Kling 3, foto da própria conta) e segue o
 // ÚNICO submitClip da rota (mesmo débito/estorno/moderação), com o evento só no pedido aceito e novo; (F) a tela manda só id + foto
-// + consentimento e o preço mora só no botão; (M) mutantes ficam vermelhos.
+// + consentimento e o preço mora só no botão; (P) interruptor DESLIGADO desde 28/10 (teste pago: identidade perdida e 1º quadro =
+// a foto) — nenhum botão público, a casa segue com /clips?remix=<id>; (M) mutantes ficam vermelhos.
 // Rodar: node scripts/test-rosto-no-clipe-2810.mjs
 import fs from 'node:fs'
 import path from 'node:path'
@@ -82,8 +83,21 @@ function checa(over = {}) {
   const items = fr.faceRemixItems?.() ?? []
   const pessoas = gal.GALERIA_NEW_CLIPS.filter((c) => c.person === true && !gal.GALERIA_EXCLUDED.includes(c.id)).map((c) => c.id)
   if (JSON.stringify(items.map((i) => i.id)) !== JSON.stringify(pessoas)) e.push(`itens do remix ≠ itens de pessoa: ${items.map((i) => i.id)}`)
-  for (const c of gal.GALERIA_NEW_CLIPS) if (c.person !== true && fr.hasFaceRemix(c.id)) e.push(`${c.id}: sem pessoa e com botão`)
-  if (!fr.hasFaceRemix('golden-ball')) e.push('Golden Ball sem botão')
+  for (const c of gal.GALERIA_NEW_CLIPS) if (c.person !== true && fr.hasFaceRemix(c.id, true)) e.push(`${c.id}: sem pessoa e com botão (interruptor ligado)`)
+  if (!fr.hasFaceRemix('golden-ball', true)) e.push('Golden Ball sem botão com o interruptor ligado')
+
+  // (P) KINEO-ROSTO-NO-CLIPE-2810 — interruptor DESLIGADO (teste pago 28/10: rosto de outra pessoa na festa + abre na foto do
+  // parque com corte seco). Nenhum botão público (galeria e faixa perguntam a hasFaceRemix); a casa segue com /clips?remix=<id>.
+  if (fr.FACE_REMIX_PUBLIC !== false) e.push('FACE_REMIX_PUBLIC ligado antes da etapa de quadro-chave')
+  for (const c of gal.GALERIA_NEW_CLIPS) if (fr.hasFaceRemix(c.id)) e.push(`${c.id}: botão público com o interruptor desligado`)
+  if (fr.faceRemixVisible(false) !== false) e.push('conta comum/visitante vê o remix com o interruptor desligado')
+  if (fr.faceRemixVisible(true) !== true) e.push('conta da casa perdeu o remix')
+  if (fr.faceRemixVisible(false, true) !== true) e.push('interruptor ligado não abriria o remix para todos')
+  const casa = fr.resolveFaceRemixRequest('golden-ball', { visible: fr.faceRemixVisible(true), imageUrl: PHOTO, consent: true })
+  if (!casa.ok || casa.item.id !== 'golden-ball') e.push('conta da casa não resolve /clips?remix=golden-ball: ' + (casa.code ?? '?'))
+  if (fr.resolveFaceRemixRequest('golden-ball', { visible: fr.faceRemixVisible(false), imageUrl: PHOTO, consent: true }).status !== 404) e.push('conta comum não leva 404 no remix')
+  if (!fr.publicFaceRemixes(() => true).some((p) => p.id === 'golden-ball')) e.push('GET da casa sem o cartão da Golden Ball')
+  if (fr.faceRemixById('golden-ball')?.id !== 'golden-ball') e.push('catálogo da casa não acha a Golden Ball')
   if (fr.faceRemixHref('golden-ball', true) !== '/clips?remix=golden-ball') e.push('destino do botão ≠ /clips?remix=<id>')
   if (fr.faceRemixHref('golden-ball', false) !== '/signup?redirect=%2Fclips%3Fremix%3Dgolden-ball') e.push('visitante não passa pelo cadastro')
   const pub = fr.publicFaceRemixes(() => true)
@@ -126,6 +140,8 @@ function checa(over = {}) {
   if ((route.match(/await submitClip\(/g) ?? []).length !== 1) e.push('mais de um caminho de débito na rota')
   if (!/if \(remix && result\.ok && !result\.replay\) \{/.test(route) || !route.includes('name: FACE_REMIX_EVENTS.submitted')) e.push('evento face_remix_submitted fora do pedido aceito e novo')
   if (!/face_remixes/.test(route)) e.push('GET sem face_remixes')
+  if (!route.includes('const guestRemixes = faceRemixVisible(false) ? publicFaceRemixes(')) e.push('GET do visitante não pergunta ao interruptor')
+  if (!route.includes('const face_remixes = faceRemixVisible(isInternalEmail(user.email)) ? publicFaceRemixes(')) e.push('GET da conta não separa casa de cliente')
   if (fr.FACE_REMIX_EVENTS.opened !== 'face_remix_opened' || fr.FACE_REMIX_EVENTS.submitted !== 'face_remix_submitted') e.push('nomes dos eventos mudaram')
 
   // (F) telas
@@ -168,6 +184,13 @@ const mutantes = [
   ['botão na galeria para todos', mut(F.gallery, '{it.faceHref ? <Link ', '{true ? <Link ')],
   ['tela manda o prompt', mut(F.client, 'await send({ remix: remix.id, image_url: photoUrl, consent: true })', 'await send({ remix: remix.id, image_url: photoUrl, consent: true, prompt })')],
   ['evento em todo pedido', mut(F.route, 'if (remix && result.ok && !result.replay) {', 'if (remix) {')],
+  // (P) interruptor desligado: forçar ligado / ignorar o interruptor / tirar a casa fica vermelho
+  ['interruptor forçado ligado', mut(F.remix, 'export const FACE_REMIX_PUBLIC = false', 'export const FACE_REMIX_PUBLIC = true')],
+  ['botão ignora o interruptor', mut(F.remix, 'return publicFlag === true && faceRemixById(id) !== null', 'return faceRemixById(id) !== null')],
+  ['casa perde o remix', mut(F.remix, 'return publicFlag === true || isInternal === true', 'return publicFlag === true')],
+  ['GET abre o remix para toda conta', mut(F.route, 'faceRemixVisible(isInternalEmail(user.email)) ? publicFaceRemixes(', 'faceRemixVisible(true) ? publicFaceRemixes(')],
+  ['galeria dá botão sem perguntar', mut(F.items, '...(hasFaceRemix(c.id) ? {', '...(true ? {')],
+  ['faixa da home dá botão sem perguntar', mut(F.strip, 'return hasFaceRemix(c.id) ? (', 'return true ? (')],
 ]
 for (const [nome, over] of mutantes) ok(checa(over).length > 0, `mutante fica vermelho: ${nome}`)
 
