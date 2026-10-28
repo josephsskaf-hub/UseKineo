@@ -188,5 +188,28 @@ console.log('== H. mutantes ==')
   checa('H9 a rota passa o template infantil (kidsCartoon: desenhoInfantil.ativo) na chamada marcada', /kidsCartoon: desenhoInfantil\.ativo \}\) \/\/ KINEO-ELENCO-EPOCA-2710/.test(rd('app/api/generate-video-cinematic/route.ts')))
 }
 
+console.log('== I. nome feminino/masculino quando o pronome não diz (28/10) ==') // KINEO-ELENCO-EPOCA-2710
+{ // KINEO-ELENCO-EPOCA-2710 — caso real 28/10: a tradução urdu→inglês da Amna (آمنہ) sem pronome nenhum; ela saiu menino
+  const SEM_PRONOME = 'Amna found a magical star in the garden. Amna and Baba Noor climbed the hill. Amna put the star back in the sky.' // KINEO-ELENCO-EPOCA-2710
+  const COM_HE = 'Amna found a magical star in the garden. Amna walked with Baba Noor and he told a story. Amna put the star back in the sky.' // KINEO-ELENCO-EPOCA-2710
+  const ficha = (lib, txt, nome, infantil = true) => lib.personagensNomeados(txt, null, infantil).find((p) => p.nome === nome) // KINEO-ELENCO-EPOCA-2710
+  const a1 = ficha(E, SEM_PRONOME, 'Amna') // KINEO-ELENCO-EPOCA-2710
+  checa(`I1 conto infantil sem pronome: Amna é menina de ~9 anos (${a1?.descricao.slice(0, 50)})`, a1?.genero === 'woman' && /^Amna, a girl about nine years old/.test(a1?.descricao ?? '')) // KINEO-ELENCO-EPOCA-2710
+  const a2 = ficha(E, COM_HE, 'Amna') // KINEO-ELENCO-EPOCA-2710
+  checa('I2 o "he" do Baba Noor na mesma frase não transforma a Amna em menino', a2?.genero === 'woman' && /^Amna, a girl/.test(a2?.descricao ?? '')) // KINEO-ELENCO-EPOCA-2710
+  const ali = ficha(E, 'Ali found a kite in the market. Ali ran to the river with the kite.', 'Ali') // KINEO-ELENCO-EPOCA-2710
+  checa('I3 nome masculino sem pronome: Ali é menino', ali?.genero === 'man' && /^Ali, a boy about nine years old/.test(ali?.descricao ?? '')) // KINEO-ELENCO-EPOCA-2710
+  const maria = ficha(E, 'Maria opened the old bakery at dawn. Maria counted the coins twice.', 'Maria', false) // KINEO-ELENCO-EPOCA-2710
+  checa('I4 fora do conto infantil, nome feminino é mulher adulta (não "a person")', maria?.genero === 'woman' && /^Maria, a woman in her thirties/.test(maria?.descricao ?? '')) // KINEO-ELENCO-EPOCA-2710
+  checa('I5 tabela: escrita original e variações (آمنہ, عائشہ, فاطمہ, مریم, زارا; "Fatima Khan"; "Amna\'s") = feminino; Pedro, João, علی = masculino', ['آمنہ', 'عائشہ', 'فاطمہ', 'مریم', 'زارا', 'Fatima Khan', "Amna's", 'Priya', 'Sofia', 'Seo-yeon'].every((n) => E.generoDoNome(n) === 'woman') && ['Pedro', 'João', 'علی', 'Arjun', 'James', 'Min-jun'].every((n) => E.generoDoNome(n) === 'man')) // KINEO-ELENCO-EPOCA-2710
+  checa('I6 unissex e desconhecido não decidem (Alex, Noor, Kim, Mishu → null)', ['Alex', 'Noor', 'Kim', 'Mishu', ''].every((n) => E.generoDoNome(n) === null)) // KINEO-ELENCO-EPOCA-2710
+  checa('I7 título continua mandando: Baba Noor segue homem velho', /Baba Noor, an elderly man/.test(ficha(E, COM_HE, 'Baba Noor')?.descricao ?? '')) // KINEO-ELENCO-EPOCA-2710
+  checa('I8 papel explícito continua vencendo o nome ("the boy Maria" = menino)', ficha(E, 'Once upon a time the boy Maria found a kite. Maria ran home.', 'Maria')?.genero === 'man') // KINEO-ELENCO-EPOCA-2710
+  checa('I11 menina/mulher nunca sai com cabelo curto de menino (Amna, Maria, Priya, Sofia)', [a1, a2, maria, ficha(E, 'Priya found a kite. Priya ran home.', 'Priya'), ficha(E, 'Sofia found a kite. Sofia ran home.', 'Sofia')].every((x) => x && !/short dark hair|short reddish hair|neatly combed brown hair/.test(x.descricao))) // KINEO-ELENCO-EPOCA-2710
+  const semNome = roda(troca(SRC, 'generoDe(papel) ?? generoDoNome(nome) ?? generoDe(contexto)', 'generoDe(papel) ?? generoDe(contexto)'), mocks) // KINEO-ELENCO-EPOCA-2710
+  checa('I9 mutante: sem a tabela de nomes, a Amna sem pronome volta a não ser menina (I1 vermelho)', ficha(semNome, SEM_PRONOME, 'Amna')?.genero !== 'woman') // KINEO-ELENCO-EPOCA-2710
+  checa('I10 mutante: o nome depois dos pronomes, o "he" do Baba Noor vence de novo (I2 vermelho)', ficha(roda(troca(SRC, 'generoDe(papel) ?? generoDoNome(nome) ?? generoDe(contexto)', 'generoDe(papel) ?? generoDe(contexto) ?? generoDoNome(nome)'), mocks), COM_HE, 'Amna')?.genero !== 'woman') // KINEO-ELENCO-EPOCA-2710
+} // KINEO-ELENCO-EPOCA-2710
+
 console.log(`\n${ok} ok, ${falhas.length} falha(s)${falhas.length ? ':\n  - ' + falhas.join('\n  - ') : ''}`)
 if (falhas.length) process.exit(1)

@@ -249,6 +249,7 @@ function candidatos(texto: string): Candidato[] { // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 const CABELO = ['short dark hair', 'long dark braided hair', 'curly black hair', 'straight sandy-blond hair', 'wavy chestnut hair', 'short reddish hair', 'neatly combed brown hair'] // KINEO-ELENCO-EPOCA-2710
+const CABELO_FEMININO = ['long dark braided hair', 'long straight black hair in a ponytail', 'curly black hair tied with a ribbon', 'long wavy chestnut hair', 'shoulder-length dark hair with a hair clip', 'long sandy-blond hair in two braids'] // KINEO-ELENCO-EPOCA-2710 — 28/10
 const ROSTO = ['round face and big expressive eyes', 'narrow face and sharp eyes', 'freckles and a small nose', 'thick eyebrows and a warm smile', 'high cheekbones and dark eyes', 'a square jaw and tired eyes'] // KINEO-ELENCO-EPOCA-2710
 const ROUPA_CRIANCA = ['a red tunic and blue trousers', 'a yellow dress with a small embroidered collar', 'a green striped shirt and khaki shorts', 'a blue jacket over a white shirt', 'a purple sweater and grey trousers'] // KINEO-ELENCO-EPOCA-2710
 const ROUPA_ADULTO = ['a dark blue jacket over a grey shirt', 'a brown coat and dark trousers', 'a white shirt with rolled sleeves and dark trousers', 'an olive jacket and plain trousers', 'a grey wool coat and a dark scarf'] // KINEO-ELENCO-EPOCA-2710
@@ -259,6 +260,36 @@ function generoDe(texto: string): 'man' | 'woman' | null { // KINEO-ELENCO-EPOCA
   const f = (texto.match(/\b(?:she|her|hers|herself|girl|woman|sister|daughter|mother|queen|princess|lady|aunt|grandmother|grandma|wife|widow|bride)\b/gi) ?? []).length // KINEO-ELENCO-EPOCA-2710
   const m = (texto.match(/\b(?:he|him|his|himself|boy|man|brother|son|father|king|prince|uncle|grandfather|grandpa|husband|widower|groom)\b/gi) ?? []).length // KINEO-ELENCO-EPOCA-2710
   return f > m ? 'woman' : m > f ? 'man' : null // KINEO-ELENCO-EPOCA-2710
+} // KINEO-ELENCO-EPOCA-2710
+
+// KINEO-ELENCO-EPOCA-2710 — 28/10: o PRIMEIRO NOME comum diz o gênero quando o papel não diz. Caso real (render de 28/10): a menina urdu
+// KINEO-ELENCO-EPOCA-2710 — "Amna" (آمنہ) saiu com cara de menino — o gênero só vinha de pronome, e a tradução urdu→inglês não tinha
+// KINEO-ELENCO-EPOCA-2710 — nenhum ("Amna found a magical star…"); quando tinha, era o "he" do Baba Noor na mesma frase. Tabela fixa
+// KINEO-ELENCO-EPOCA-2710 — (determinística, sem rede), só nomes INEQUÍVOCOS — unissex (Alex, Noor, Ji-woo, Kim…) fica fora e cai nos pronomes.
+// KINEO-ELENCO-EPOCA-2710 — Ordem em descrever(): título (Dadi, Baba) → papel ("a girl") → NOME → pronomes das frases do nome.
+const NOMES_FEMININOS = new Set([ // KINEO-ELENCO-EPOCA-2710
+  'amna', 'aamna', 'amina', 'aminah', 'aisha', 'ayesha', 'aysha', 'aishah', 'fatima', 'fatimah', 'fatma', 'maryam', 'mariam', 'zara', 'zahra', 'sana', 'hira', 'khadija', 'khadijah', 'zainab', 'zaynab', 'mahnoor', 'iqra', 'rabia', 'saima', 'hina', 'nadia', 'laila', 'layla', 'leila', 'yasmin', 'yasmeen', 'huda', 'mehwish', 'anaya', 'inaya', 'alina', 'aliya', 'aaliya', 'samina', 'rukhsana', 'shabnam', 'farah', 'mariyam', 'safiya', 'hafsa', 'noura', 'salma', // KINEO-ELENCO-EPOCA-2710 — urdu/árabe romanizados
+  'priya', 'ananya', 'aditi', 'kavya', 'diya', 'isha', 'pooja', 'puja', 'neha', 'anjali', 'lakshmi', 'sita', 'radha', 'meera', 'riya', 'shreya', 'sunita', 'geeta', 'gita', 'divya', 'nisha', // KINEO-ELENCO-EPOCA-2710 — hindi
+  'ana', 'anna', 'maria', 'mariana', 'sofia', 'sophia', 'sophie', 'emma', 'olivia', 'ava', 'mia', 'isabella', 'isabela', 'isabel', 'julia', 'beatriz', 'camila', 'valentina', 'lucia', 'carmen', 'gabriela', 'laura', 'alice', 'helena', 'manuela', 'luiza', 'luisa', 'larissa', 'fernanda', 'juliana', 'patricia', 'rosa', 'elena', 'paula', 'clara', 'marta', 'joana', 'leticia', 'bianca', 'vitoria', 'giovanna', 'lara', 'alicia', 'ximena', 'daniela', 'catalina', // KINEO-ELENCO-EPOCA-2710 — português/espanhol
+  'lily', 'emily', 'chloe', 'grace', 'ella', 'charlotte', 'amelia', 'hannah', 'jennifer', 'jessica', 'elizabeth', 'mary', 'lucy', 'sarah', 'sara', 'rachel', 'rebecca', 'susan', 'margaret', 'abigail', 'zoe', 'ruby', 'rose', 'daisy', 'matilda', 'wendy', // KINEO-ELENCO-EPOCA-2710 — inglês
+  'seo-yeon', 'seoyeon', 'min-ji', 'minji', 'ha-eun', 'haeun', 'ji-yeon', 'jiyeon', 'soo-ah', 'sooah', 'yuna', 'seo-yun', 'hye-jin', 'eun-ji', 'soo-jin', 'ji-eun', 'jieun', 'su-bin', // KINEO-ELENCO-EPOCA-2710 — coreano romanizado
+  'آمنہ', 'آمنه', 'امنہ', 'عائشہ', 'عائشة', 'عائشه', 'فاطمہ', 'فاطمة', 'فاطمه', 'مریم', 'مريم', 'زارا', 'زهرا', 'زہرا', 'ثنا', 'حرا', 'خدیجہ', 'خديجة', 'زینب', 'زينب', 'سارہ', 'سارة', 'ماہنور', 'لیلیٰ', 'ليلى', 'یاسمین', 'ياسمين', 'آمنة', 'أمينة', 'امینہ', // KINEO-ELENCO-EPOCA-2710 — escrita original (urdu/árabe)
+  'प्रिया', 'सीता', 'राधा', 'आयशा', 'अनन्या', 'लक्ष्मी', 'मीरा', // KINEO-ELENCO-EPOCA-2710 — devanágari
+].map(normaliza)) // KINEO-ELENCO-EPOCA-2710
+const NOMES_MASCULINOS = new Set([ // KINEO-ELENCO-EPOCA-2710
+  'ali', 'ahmed', 'ahmad', 'omar', 'umar', 'hassan', 'hasan', 'hussain', 'husain', 'hussein', 'bilal', 'hamza', 'usman', 'osman', 'ibrahim', 'yusuf', 'yousuf', 'yousef', 'muhammad', 'mohammed', 'mohammad', 'imran', 'faisal', 'tariq', 'zain', 'saad', 'salman', 'kareem', 'karim', 'khalid', 'ayaan', 'rayyan', 'hamid', 'rashid', 'adnan', 'asad', 'junaid', 'waqar', 'mustafa', 'abdullah', // KINEO-ELENCO-EPOCA-2710 — urdu/árabe romanizados
+  'arjun', 'rahul', 'rohan', 'aarav', 'vivaan', 'aditya', 'ravi', 'raj', 'vikram', 'krishna', 'ram', 'amit', 'sanjay', 'suresh', 'ramesh', 'anil', 'vijay', 'arnav', // KINEO-ELENCO-EPOCA-2710 — hindi
+  'joao', 'pedro', 'lucas', 'gabriel', 'rafael', 'mateus', 'matheus', 'gustavo', 'felipe', 'bruno', 'thiago', 'tiago', 'diego', 'carlos', 'juan', 'jose', 'luis', 'miguel', 'javier', 'alejandro', 'pablo', 'antonio', 'francisco', 'manuel', 'paulo', 'marcos', 'enzo', 'davi', 'arthur', 'heitor', 'bernardo', 'santiago', 'mateo', // KINEO-ELENCO-EPOCA-2710 — português/espanhol
+  'james', 'john', 'michael', 'david', 'william', 'thomas', 'daniel', 'matthew', 'jack', 'oliver', 'harry', 'noah', 'liam', 'ethan', 'benjamin', 'samuel', 'joseph', 'henry', 'george', 'charles', 'edward', 'peter', 'robert', 'richard', 'jacob', 'max', 'tom', 'ben', // KINEO-ELENCO-EPOCA-2710 — inglês
+  'min-jun', 'minjun', 'ji-ho', 'jiho', 'seo-jun', 'seojun', 'do-yun', 'doyun', 'jun-ho', 'junho', 'hyun-woo', 'hyunwoo', 'joon', 'tae-yang', // KINEO-ELENCO-EPOCA-2710 — coreano romanizado
+  'علی', 'علي', 'احمد', 'أحمد', 'عمر', 'حسن', 'حسین', 'حسين', 'بلال', 'حمزہ', 'حمزة', 'یوسف', 'يوسف', 'محمد', 'ابراہیم', 'إبراهيم', 'عثمان', 'خالد', // KINEO-ELENCO-EPOCA-2710 — escrita original (urdu/árabe)
+  'राम', 'अर्जुन', 'राहुल', 'रवि', 'कृष्ण', // KINEO-ELENCO-EPOCA-2710 — devanágari
+].map(normaliza)) // KINEO-ELENCO-EPOCA-2710
+/** O gênero que o PRIMEIRO nome diz (tabela fixa); nome fora da tabela ou unissex → null (decide o pronome). */ // KINEO-ELENCO-EPOCA-2710
+export function generoDoNome(nome: string): 'man' | 'woman' | null { // KINEO-ELENCO-EPOCA-2710
+  const primeiro = normaliza(String(nome ?? '').trim().split(/\s+/)[0] ?? '').replace(/['’]s$/, '').replace(/[.,!?;:"“”]+$/u, '') // KINEO-ELENCO-EPOCA-2710
+  if (!primeiro) return null // KINEO-ELENCO-EPOCA-2710
+  return NOMES_FEMININOS.has(primeiro) ? 'woman' : NOMES_MASCULINOS.has(primeiro) ? 'man' : null // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 /** Descrição curta e fixa (mesmo nome → mesma cara); com época, a roupa é a da década. */ // KINEO-ELENCO-EPOCA-2710
@@ -281,7 +312,7 @@ function descrever(nome: string, tipo: TipoNomeado, especie: string | null, pape
     return { descricao: `${nome}, a ${pequeno ? 'small and chubby' : 'medium-sized'} ${cor} ${oQue} with big round friendly eyes and a short tail, no clothes`, genero: null } // KINEO-ELENCO-EPOCA-2710
   } // KINEO-ELENCO-EPOCA-2710
   const titulo = titulos[0] ?? '' // KINEO-ELENCO-EPOCA-2710
-  const genero = FEM_TITULO_RE.test(titulo) ? 'woman' : MASC_TITULO_RE.test(titulo) ? 'man' : generoDe(papel) ?? generoDe(contexto) // KINEO-ELENCO-EPOCA-2710
+  const genero = FEM_TITULO_RE.test(titulo) ? 'woman' : MASC_TITULO_RE.test(titulo) ? 'man' : generoDe(papel) ?? generoDoNome(nome) ?? generoDe(contexto) // KINEO-ELENCO-EPOCA-2710 — 28/10: o nome vem antes dos pronomes da frase (o "he" do Baba Noor não vira a Amna em menino)
   const adolescente = /\b(?:teen|teenager|student)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
   const velho = VELHO_TITULO_RE.test(titulo) || /\b(?:old|elderly|grandfather|grandmother|grandpa|grandma|elder|widow|widower)\b/i.test(papel) // KINEO-ELENCO-EPOCA-2710
   // conto infantil (kids_cartoon, estrela mágica, dragãozinho, ننھا…): nome humano SEM pista de idade é criança (~9 anos), nunca "a woman in her thirties" (a Amna do conto urdu) // KINEO-ELENCO-EPOCA-2710
@@ -291,7 +322,7 @@ function descrever(nome: string, tipo: TipoNomeado, especie: string | null, pape
   const pron = genero === 'woman' ? 'her' : genero === 'man' ? 'his' : 'their' // KINEO-ELENCO-EPOCA-2710
   const idade = crianca ? 'about nine years old' : adolescente ? 'about sixteen years old' : velho ? `in ${pron} late sixties with a lined face` : jovem ? `in ${pron} early twenties` : `in ${pron} thirties` // KINEO-ELENCO-EPOCA-2710
   const pessoa = genero === 'woman' ? (crianca ? 'girl' : velho ? 'elderly woman' : 'woman') : genero === 'man' ? (crianca ? 'boy' : velho ? 'elderly man' : 'man') : crianca ? 'child' : 'person' // KINEO-ELENCO-EPOCA-2710
-  const cabelo = velho ? (genero === 'man' ? 'short white hair and a white beard' : 'white hair tied back') : escolhe(CABELO, h, usados) // KINEO-ELENCO-EPOCA-2710
+  const cabelo = velho ? (genero === 'man' ? 'short white hair and a white beard' : 'white hair tied back') : escolhe(genero === 'woman' ? CABELO_FEMININO : CABELO, h, usados) // KINEO-ELENCO-EPOCA-2710 — 28/10: menina/mulher nunca sai com cabelo curto de menino
   const rosto = escolhe(ROSTO, h >>> 2, usados) // KINEO-ELENCO-EPOCA-2710
   const roupa = epoca ? `period-accurate ${epoca.rotulo} clothing` : escolhe(crianca ? ROUPA_CRIANCA : velho ? ROUPA_VELHO : ROUPA_ADULTO, h >>> 4, usados) // KINEO-ELENCO-EPOCA-2710
   const papelTxt = papel && !/\b(?:man|woman|boy|girl|person|child)\b/i.test(papel) && PESSOA_RE.test(papel) ? ` (the ${papel.toLowerCase().replace(/^(?:a|an|the)\s+/, '')})` : '' // KINEO-ELENCO-EPOCA-2710 — "the commuter", "the lighthouse keeper"
