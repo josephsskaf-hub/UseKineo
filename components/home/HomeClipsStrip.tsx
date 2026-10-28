@@ -115,7 +115,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
           {HOME_NEW_CLIPS.map((c) => { // KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-ROSTO-NO-CLIPE-2810
             const card = ( // KINEO-ROSTO-NO-CLIPE-2810
             <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kcs-card" data-clip-new={c.id} data-home-cta="clip_new" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
-              <div className="kcs-md" style={mediaStyle(c.poster, undefined)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+              <div className="kcs-md" style={mediaStyle(c.poster, c.focus)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-HOME-FOCO-2810 — o vídeo 9:16 no cartão mais baixo: o foco do clipe (lib/homeGaleria.ts) mantém cabeça e assunto dentro */}
               <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
               <span className="kcs-copy"><i>{CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
             </Link> // KINEO-HOME-CLIPES-NOVOS-2810
