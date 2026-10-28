@@ -4,6 +4,7 @@
 //   C. a tela: o botão só PREENCHE (applyTrend chama setPrompt/setEngineKey e nunca a geração), ?trend= aplica uma vez;
 //   D. telas e eventos fora do escopo intocados (sem evento novo em app/api/events);
 //   E. mutantes.
+import { semRostoCards2810, ARQUIVOS_ROSTO_CARDS_2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import { ARQUIVOS as DESENHO15_ARQUIVOS } from './test-support/desfaz-desenho-15s-aceita-2710.mjs' // KINEO-DESENHO-15S-ACEITA-2710
 import { ARQUIVOS as CONSERTOS_ARQUIVOS } from './test-support/desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710
 import fs from 'node:fs'
@@ -11,7 +12,7 @@ import { execFileSync } from 'node:child_process'
 import { semIntegracaoSobreMain2372610 } from './test-support/leva-rebase-2610.mjs' // Exact sealed integration only; unknown source bytes are never projected.
 
 const lf = (t) => t.replace(/\r\n/g, '\n')
-const rd = (p) => lf(fs.readFileSync(p, 'utf8'))
+const rd = (p) => lf(semRostoCards2810(fs.readFileSync(p, 'utf8'), p))
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
@@ -54,7 +55,7 @@ const expectedApi = list(git('diff', '--name-only', OWN_BASE, APPROVED_INTEGRATI
 const currentApi = [...new Set([
   ...list(git('diff', '--name-only', LATEST_MAIN, '--', 'app/api')),
   ...list(git('ls-files', '--others', '--exclude-standard', '--', 'app/api')),
-])].filter((f) => !DESENHO15_ARQUIVOS.includes(f) && !(CONSERTOS_ARQUIVOS.includes(f) && !expectedApi.includes(f))).sort() // KINEO-CONSERTOS-2710 — rota que SÓ uma entrega de 27/10 mexeu (cinematic) sai do inventário desta; a do status (aprovada aqui) fica e é projetada // KINEO-DESENHO-15S-ACEITA-2710 — rota que uma entrega posterior mexeu sai do inventário desta
+])].filter((f) => !DESENHO15_ARQUIVOS.includes(f) && !(CONSERTOS_ARQUIVOS.includes(f) && !expectedApi.includes(f)) && !(ARQUIVOS_ROSTO_CARDS_2810.includes(f) && !expectedApi.includes(f))).sort() /* KINEO-ROSTO-NO-CLIPE-2810 — rota que só as entregas de 28/10 mexeram sai do inventário desta */ // KINEO-CONSERTOS-2710 — rota que SÓ uma entrega de 27/10 mexeu (cinematic) sai do inventário desta; a do status (aprovada aqui) fica e é projetada // KINEO-DESENHO-15S-ACEITA-2710 — rota que uma entrega posterior mexeu sai do inventário desta
 const immutable = new Map()
 function blob(ref, file) {
   const key = ref + ':' + file

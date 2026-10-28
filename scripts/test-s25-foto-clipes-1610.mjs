@@ -16,6 +16,7 @@
 //   [limpeza]  nada gravado/logado carrega URL, a FAL_KEY, token ou o eco do pedido; ≤300 caracteres; failure_reason curto;
 //   [tela]     motor sem foto esconde o "Add photo" e sugere Kling 3 / Seedance 1.5 (texto noPhoto + botões);
 //   mutantes   cada um aplicado (âncora achada 1×, texto mudou) e VERMELHO no grupo certo.
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,7 +24,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
-const readRaw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const readRaw = (rel) => semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 
 let pass = 0
 let fail = 0

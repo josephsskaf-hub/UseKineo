@@ -14,6 +14,7 @@ import { publicEffectPages } from '@/lib/clips/clipEffectPages'
 import { clipEffectEngineLabel } from '@/lib/clips/clipEffects'
 import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
+import { faceRemixHref, hasFaceRemix } from '@/lib/clips/faceRemix' // KINEO-ROSTO-NO-CLIPE-2810
 import { HOME_GALLERY_DIR, HOME_GALLERY_IMAGES } from '@/components/home/HomeImageGallery'
 import {
   GALERIA_EFFECT_KEYS,
@@ -37,6 +38,7 @@ function clipItems(signedIn: boolean): GaleriaItem[] {
   const fresh: GaleriaItem[] = GALERIA_NEW_CLIPS.map((c) => ({
     id: c.id, kind: 'clip', title: c.title, engine: CLIP_ENGINES[c.engine].label, video: c.video, poster: c.poster,
     href: galeriaClipPromptHref(c.engine, c.prompt, signedIn),
+    ...(hasFaceRemix(c.id) ? { faceHref: faceRemixHref(c.id, signedIn) } : {}), // KINEO-ROSTO-NO-CLIPE-2810 — clipe de pessoa: botão "Put your face in it"
   }))
   const trends: GaleriaItem[] = CLIP_TRENDS_PUBLIC
     ? GALERIA_TREND_KEYS.flatMap((key) => {

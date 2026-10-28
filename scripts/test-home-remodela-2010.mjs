@@ -16,6 +16,7 @@
 //   I. intocados: HomeThreeCards/homeThreeCards (sessão dos 4 cards), engineWall, homeVideoCuration;
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova (semMenuUgc2010 chama este primeiro);
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
 import path from 'node:path'
@@ -37,7 +38,7 @@ const MARCA = 'KINEO-HOME-REMODELA-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const { semHomeGatoCarro2610 } = await import('./test-support/desfaz-home-gato-carro-2610.mjs') // KINEO-HOME-GATO-CARRO-2610
 const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
-const rd = (rel) => lf(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel))) // KINEO-HOME-CLIPES-NOVOS-2810 — a faixa com os clipes novos (28/10) sai primeiro
+const rd = (rel) => lf(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel), rel))) // KINEO-HOME-CLIPES-NOVOS-2810 — a faixa com os clipes novos (28/10) sai primeiro
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${HOME_REMODELA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -229,7 +230,7 @@ function checaDesfaz() {
     const volta = tenta(() => semHomeRemodela2010(semHomeGatoCarro2610(atual, rel), rel)) // KINEO-HOME-GATO-CARRO-2610 — a camada mais nova sai antes
     if (Array.isArray(volta)) { e.push(`${rel}: ${volta[0]}`); continue }
     if (lf(volta) !== b) e.push(`${rel}: desfeito ≠ base`)
-    if (lf(semHomeRemodela2010(semHomeGatoCarro2610(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel)), rel), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`) // KINEO-HOME-CLIPES-NOVOS-2810
+    if (lf(semHomeRemodela2010(semHomeGatoCarro2610(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel), rel)), rel), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`) // KINEO-HOME-CLIPES-NOVOS-2810
   }
   for (const n of HOME_REMODELA_2010_NOVOS) if (!fs.existsSync(path.join(ROOT, n))) e.push(`novo ausente: ${n}`)
   const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010

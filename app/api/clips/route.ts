@@ -29,6 +29,9 @@ import type { ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { CLIP_MEASUREMENT_ENABLED, clipOriginMetadata } from '@/lib/clips/clipMeasurement'
 import { isLikelyBot } from '@/lib/requestIdentity'
 import { FREE_CLIP_NOTICE_EVENTS, FREE_CLIP_NOTICE_VERSION } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
+// KINEO-ROSTO-NO-CLIPE-2810 — "Put your face in it": o corpo traz só `remix` (id do clipe da casa) + a foto + `consent`; o servidor monta o
+// KINEO-ROSTO-NO-CLIPE-2810 — prompt pelo catálogo (lib/clips/faceRemix.ts) e o pedido segue o MESMO submitClip (moderação, débito, estorno).
+import { FACE_REMIX_EVENTS, faceRemixEventMetadata, faceRemixVisible, publicFaceRemixes, resolveFaceRemixRequest, wantsFaceRemix, type FaceRemixItem } from '@/lib/clips/faceRemix' // KINEO-ROSTO-NO-CLIPE-2810
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -46,8 +49,9 @@ export async function GET() {
     if (!clipsVisible(null)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
     const guest = engineAccessFor({ email: null, plan: null, createdAt: CLIP_GUEST_AS_NEW_ACCOUNT ? new Date().toISOString() : null })
     const guestEffects = clipEffectsVisible(false) ? publicClipEffects((engine) => guest(engine).ok) : []
+    const guestRemixes = faceRemixVisible(false) ? publicFaceRemixes((engine) => guest(engine).ok) : [] // KINEO-ROSTO-NO-CLIPE-2810
     // KINEO-S25-CLIPES-2026-10-06 — `locked_engines`: o que a conta VÊ mas só usa pagando (card "NEW · paid plans" → planos).
-    return NextResponse.json({ engines: clipCatalogFor(guest), locked_engines: lockedClipEnginesFor(guest), effects: guestEffects, clips: [], balance: null, signed_in: false }, { headers: NO_STORE })
+    return NextResponse.json({ engines: clipCatalogFor(guest), locked_engines: lockedClipEnginesFor(guest), effects: guestEffects, face_remixes: guestRemixes, clips: [], balance: null, signed_in: false }, { headers: NO_STORE }) // KINEO-ROSTO-NO-CLIPE-2810
   }
   // Interruptor de lançamento (lib/clips/clipLaunch.ts): antes do "vai" do fundador, só a casa.
   if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
@@ -60,15 +64,16 @@ export async function GET() {
   const access = engineAccessFor(account)
   // Galeria de efeitos: só com o interruptor ligado ou para a casa, e só com motores que esta conta pode apertar.
   const effects = clipEffectsVisible(isInternalEmail(user.email)) ? publicClipEffects((engine) => access(engine).ok) : []
+  const face_remixes = faceRemixVisible(isInternalEmail(user.email)) ? publicFaceRemixes((engine) => access(engine).ok) : [] // KINEO-ROSTO-NO-CLIPE-2810
   // Falha de leitura não se disfarça de lista vazia (lição do incidente JWT-skew, 28/08).
   if (rows === null) {
     return NextResponse.json(
-      { error: 'Could not load your clips right now.', engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, clips: [], balance: account.balance },
+      { error: 'Could not load your clips right now.', engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, face_remixes, clips: [], balance: account.balance }, // KINEO-ROSTO-NO-CLIPE-2810
       { status: 503, headers: NO_STORE },
     )
   }
   return NextResponse.json(
-    { engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, clips: await publicClipsForViewer(admin, user.id, rows), balance: account.balance },
+    { engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, face_remixes, clips: await publicClipsForViewer(admin, user.id, rows), balance: account.balance }, // KINEO-ROSTO-NO-CLIPE-2810
     { headers: NO_STORE },
   )
 }
@@ -110,6 +115,17 @@ export async function POST(req: NextRequest) {
     effect = resolved.effect
     clipBody = resolved.body
   }
+  // KINEO-ROSTO-NO-CLIPE-2810 — pedido de REMIX ("Put your face in it"): interruptor → id do catálogo → foto → consentimento, ANTES de ler
+  // KINEO-ROSTO-NO-CLIPE-2810 — conta ou saldo. O prompt é montado no servidor a partir do catálogo; prompt/motor/duração/formato do corpo
+  // KINEO-ROSTO-NO-CLIPE-2810 — são ignorados. Efeito e remix no mesmo pedido = recusado (um pedido, uma origem).
+  let remix: FaceRemixItem | null = null // KINEO-ROSTO-NO-CLIPE-2810
+  if (wantsFaceRemix(body.remix)) { // KINEO-ROSTO-NO-CLIPE-2810
+    if (effect) return NextResponse.json({ error: 'Choose one: an effect or a clip remix.', code: 'remix' }, { status: 400, headers: NO_STORE }) // KINEO-ROSTO-NO-CLIPE-2810
+    const resolved = resolveFaceRemixRequest(body.remix, { visible: faceRemixVisible(isInternalEmail(user.email)), imageUrl: body.image_url ?? body.imageUrl, consent: body.consent }) // KINEO-ROSTO-NO-CLIPE-2810
+    if (!resolved.ok) return NextResponse.json({ error: resolved.error, code: resolved.code }, { status: resolved.status, headers: NO_STORE }) // KINEO-ROSTO-NO-CLIPE-2810
+    remix = resolved.item // KINEO-ROSTO-NO-CLIPE-2810
+    clipBody = resolved.body // KINEO-ROSTO-NO-CLIPE-2810
+  } // KINEO-ROSTO-NO-CLIPE-2810
 
   const account = await loadClipAccount(supabase, user)
   const admin = clipsAdmin()
@@ -139,7 +155,16 @@ export async function POST(req: NextRequest) {
     // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — o clipe saiu da ideia pronta do aviso "Você tem 1 clipe grátis" (lib/clips/
     // freeClipNotice.ts). O navegador só diz de onde veio; o servidor grava o fato com o id do clipe ACEITO e novo (replay não
     // conta) — funil aviso → clique → pedido → clip_delivered, ligado pelo clip_id. Nada muda no pedido nem no débito.
-    if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {
+    // KINEO-ROSTO-NO-CLIPE-2810 — remix ACEITO (pedido novo, já na fila da fal): um evento por pedido; o replay da mesma chave não conta de novo.
+    if (remix && result.ok && !result.replay) { // KINEO-ROSTO-NO-CLIPE-2810
+      await writeServerEvent({ // KINEO-ROSTO-NO-CLIPE-2810
+        name: FACE_REMIX_EVENTS.submitted, // KINEO-ROSTO-NO-CLIPE-2810
+        userId: user.id, // KINEO-ROSTO-NO-CLIPE-2810
+        path: '/api/clips', // KINEO-ROSTO-NO-CLIPE-2810
+        metadata: { ...faceRemixEventMetadata(remix, result.clip), ...(CLIP_MEASUREMENT_ENABLED ? { is_bot: isLikelyBot(req.headers.get('user-agent')) } : {}) }, // KINEO-ROSTO-NO-CLIPE-2810
+      }).catch(() => false) // KINEO-ROSTO-NO-CLIPE-2810
+    } // KINEO-ROSTO-NO-CLIPE-2810
+    if (!effect && !remix && body.free_clip_notice === true && result.ok && !result.replay) { // KINEO-ROSTO-NO-CLIPE-2810
       await writeServerEvent({
         name: FREE_CLIP_NOTICE_EVENTS.requested,
         userId: user.id,

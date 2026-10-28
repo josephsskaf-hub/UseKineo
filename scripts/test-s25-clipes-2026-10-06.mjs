@@ -18,6 +18,7 @@
 // põem ou tiram o 's25' de PAUSED_ENGINE_KEYS só em memória — valha o que valer no arquivo — e conferem que a troca aplicou.
 // Uma régua só para o clipe: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC (a trava s25ClipVisible do s25-abre virou este
 // interruptor); quem paga = lib/s25Access.ts s25AccessFor, a MESMA função do filme.
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,7 +26,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 
 let pass = 0
 let fail = 0
@@ -90,7 +91,7 @@ function setPause(text, paused) {
 /** Um mundo = um carregador novo (cache próprio) com o interruptor, a pausa e o mutante pedidos. */
 function world({ on, unpaused, over = {} }) {
   const transform = (rel, text) => {
-    let t = over[rel] ? over[rel](text) : text
+    let t = over[rel] ? over[rel](semRostoCards2810(text, rel)) : text // KINEO-ROSTO-NO-CLIPE-2810 — o mutante parte da fonte sem as entregas de 28/10
     if (rel === LAUNCH) t = setSwitch(t, on)
     if (rel === ENGINE_LAUNCH) t = setPause(t, !unpaused)
     return t
@@ -346,7 +347,7 @@ async function problems(over = {}) {
         '@/lib/growth/homeClipsFirstServer': { homeVariantStamp: forbidden('home variant') },
       },
       source: (rel, raw) => {
-        const text = over[rel] ? over[rel](raw) : raw
+        const text = over[rel] ? over[rel](semRostoCards2810(raw, rel)) : raw // KINEO-ROSTO-NO-CLIPE-2810
         return rel === LAUNCH ? setSwitch(text, w.launch.CLIP_S25_PUBLIC) : rel === ENGINE_LAUNCH ? setPause(text, w.engineLaunch.enginePaused('s25') !== null) : text
       },
       env: { NEXT_PUBLIC_SUPABASE_URL: SUPA },

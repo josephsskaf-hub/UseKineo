@@ -12,6 +12,7 @@
 // Estilo da casa: readFileSync + ts.transpileModule para os módulos puros (imports relativos) e o carregador offline da casa
 // (scripts/test-support/offline-ts-loader.mjs) para EXECUTAR a rota com banco, fal e eventos falsos. Nada de rede, nada de
 // crédito. Mutantes no fim: cada regra quebrada fica vermelha (só conta o vermelho NOVO).
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,7 +23,7 @@ process.chdir(ROOT)
 const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const { createOfflineLoader } = await import('./test-support/offline-ts-loader.mjs')
-const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const raw = (rel) => semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

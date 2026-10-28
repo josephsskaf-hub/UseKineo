@@ -22,6 +22,7 @@
 //      do montador); cron novo com trava; settleClip para todo clipe em andamento.
 //   G  desfaz (scripts/test-support/desfaz-filme-rapido-1710.mjs): cada arquivo protegido, desfeito, é EXATAMENTE a base.
 //   M  mutantes: cada um é aplicado (provado por diferença de texto) e deixa a verificação-alvo VERMELHA.
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import { semEmAlta2610 } from './test-support/desfaz-em-alta-2610.mjs' // KINEO-EM-ALTA-2610 — a vitrine dos Clipes (camada mais nova) sai antes, em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical byte comparisons undo this delta first; feature checks keep the actual source.
@@ -37,7 +38,7 @@ import ts from 'typescript'
 import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o ?prompt= do /clips (27/10) sai em memória antes das camadas antigas
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p, historico2210 = false) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910((historico2210 ? semRoteiroCurto2210 : (s) => s)(semEmAlta2610(semGaleriaHome2710(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p), p), p), p).replace(/\r\n/g, '\n') /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only historical snapshots opt in, before the older reversals. */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
+const rd = (p, historico2210 = false) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910((historico2210 ? semRoteiroCurto2210 : (s) => s)(semEmAlta2610(semGaleriaHome2710(semRostoCards2810(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p), p), p), p), p).replace(/\r\n/g, '\n') /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only historical snapshots opt in, before the older reversals. */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []

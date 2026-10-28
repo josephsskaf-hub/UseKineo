@@ -16,12 +16,16 @@ import type { ClipEffectKey } from '@/lib/clips/clipEffects'
 import { CLIP_TRENDS } from '@/lib/clips/clipTrends' // KINEO-HOME-GATO-CARRO-2610
 import { GALERIA_EXCLUDED, GALERIA_NEW_CLIPS, viaSignup } from '@/lib/homeGaleria' // KINEO-HOME-CLIPES-NOVOS-2810
 import { CLIP_ENGINES } from '@/lib/clips/clipCatalog' // KINEO-HOME-CLIPES-NOVOS-2810
+import { faceRemixHref, hasFaceRemix } from '@/lib/clips/faceRemix' // KINEO-ROSTO-NO-CLIPE-2810
 
 // KINEO-HOME-CLIPES-NOVOS-2810 — [TRAVA 8.2 — pedido do fundador 27/10 "colocar os clipes novos na parte inicial"]. A faixa passa a
 // KINEO-HOME-CLIPES-NOVOS-2810 — mostrar os 8 clipes de tendência de 27/10 (os mesmos da galeria "Made with Kineo": prévia, pôster, prompt e
 // KINEO-HOME-CLIPES-NOVOS-2810 — motor vêm de lib/homeGaleria.ts, nada duplicado), melhor primeiro. Cartão = o mesmo de sempre; o clique abre o
 // KINEO-HOME-CLIPES-NOVOS-2810 — /clips com motor e ideia preenchidos (?engine= &prompt=). O clipe do cachorro com celular (defeito) nunca entra.
-export const HOME_NEW_CLIP_IDS: readonly string[] = ['lion', 'cake-kitten', 'pebble-castle', 'knight-cat', 'werewolf', 'capybara', 'wizard-cat', 'kungfu-cat'] // KINEO-HOME-CLIPES-NOVOS-2810
+// KINEO-ROSTO-NO-CLIPE-2810 — [TRAVA 8.2 — vai do fundador 28/10 "A" (botão geral "coloque seu rosto neste clipe")]: a Golden Ball Dance (1º clipe de
+// KINEO-ROSTO-NO-CLIPE-2810 — pessoa com o botão "Put your face in it") entra em 2º, logo depois do leão; o kung fu cat (o último da ordem "melhor
+// KINEO-ROSTO-NO-CLIPE-2810 — primeiro") sai da faixa para a grade seguir com 2 fileiras de 4 — ele continua na galeria "Made with Kineo".
+export const HOME_NEW_CLIP_IDS: readonly string[] = ['lion', 'golden-ball', 'cake-kitten', 'pebble-castle', 'knight-cat', 'werewolf', 'capybara', 'wizard-cat'] // KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-ROSTO-NO-CLIPE-2810
 export const HOME_NEW_CLIPS = HOME_NEW_CLIP_IDS.filter((id) => !GALERIA_EXCLUDED.includes(id)).flatMap((id) => GALERIA_NEW_CLIPS.filter((c) => c.id === id)) // KINEO-HOME-CLIPES-NOVOS-2810
 
 /** Os 4 da vitrine, na ordem (o 1º é o cartão grande). O fundador escolheu a explosão de cor e o tênis girando; os outros
@@ -76,6 +80,11 @@ const CSS = `
 @media(max-width:700px){.klp .kcs{padding-top:16px}.klp .kcs-sub{font-size:14px;margin-bottom:12px}.klp .kcs-copy{left:10px;right:10px;bottom:10px}.klp .kcs-copy b,.klp .kcs-card:first-child .kcs-copy b{font-size:13px;line-height:1.25}.klp .kcs-copy i,.klp .kcs-card:first-child .kcs-copy i{font-size:7px;letter-spacing:.3px}.klp .kcs-card:first-child .kcs-copy{left:10px;bottom:10px}}
 @media(max-width:800px){.klp .kcs-grid{grid-auto-rows:auto}} /* KINEO-HOME-REMODELA-2010 */
 @media(max-width:560px){.klp .kcs-grid{gap:12px}.klp .kcs-card{height:clamp(200px,58vw,290px);border-radius:12px}} /* KINEO-HOME-REMODELA-2010 — 8 cartões: um pouco mais baixos no celular */
+.klp .kcs-cell{position:relative;min-width:0} /* KINEO-ROSTO-NO-CLIPE-2810 */
+@media(min-width:801px){.klp .kcs-cell>.kcs-card{height:100%}} /* KINEO-ROSTO-NO-CLIPE-2810 */
+.klp .kcs-face{position:absolute;top:12px;left:12px;z-index:4;display:inline-flex;align-items:center;min-height:34px;padding:7px 14px;border-radius:999px;background:#fff;color:#0b1119;font-size:13px;font-weight:700;line-height:1.1;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.28)} /* KINEO-ROSTO-NO-CLIPE-2810 */
+.klp .kcs-face:hover{background:#eaf3ff}.klp .kcs-face:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:3px} /* KINEO-ROSTO-NO-CLIPE-2810 */
+@media(max-width:700px){.klp .kcs-face{top:8px;left:8px;min-height:28px;padding:5px 10px;font-size:11px}} /* KINEO-ROSTO-NO-CLIPE-2810 */
 `
 
 function mediaStyle(poster: string | undefined, focus: string | undefined): CSSProperties | undefined {
@@ -103,13 +112,22 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
         </div>
         <p className="kcs-sub"><UiLabel>Short clips from a photo or one line — ready in about a minute.</UiLabel></p>
         <div className="kcs-grid">
-          {HOME_NEW_CLIPS.map((c) => ( // KINEO-HOME-CLIPES-NOVOS-2810
+          {HOME_NEW_CLIPS.map((c) => { // KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-ROSTO-NO-CLIPE-2810
+            const card = ( // KINEO-ROSTO-NO-CLIPE-2810
             <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kcs-card" data-clip-new={c.id} data-home-cta="clip_new" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
               <div className="kcs-md" style={mediaStyle(c.poster, undefined)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
               <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
               <span className="kcs-copy"><i>{CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
             </Link> // KINEO-HOME-CLIPES-NOVOS-2810
-          ))}{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+            ) // KINEO-ROSTO-NO-CLIPE-2810
+            // KINEO-ROSTO-NO-CLIPE-2810 — clipe de pessoa: o cartão e o botão "Put your face in it" (/clips?remix=<id>) lado a lado; sem preço no cartão.
+            return hasFaceRemix(c.id) ? ( // KINEO-ROSTO-NO-CLIPE-2810
+              <div key={c.id} className="kcs-cell">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <Link href={faceRemixHref(c.id, signedIn)} className="kcs-face" data-face-remix={c.id} data-home-cta="face_remix" aria-label={`Put your face in it — ${c.title}`}><UiLabel>Put your face in it</UiLabel></Link>{/* KINEO-ROSTO-NO-CLIPE-2810 — antes do cartão no DOM: o cartão do 1º lugar (:first-child) tem título grande */}
+                {card}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              </div> // KINEO-ROSTO-NO-CLIPE-2810
+            ) : card // KINEO-ROSTO-NO-CLIPE-2810
+          })}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
           {HOME_NEW_CLIPS.length === 0 && trends.map((tr) => { // KINEO-HOME-GATO-CARRO-2610 · KINEO-HOME-CLIPES-NOVOS-2810 — a faixa antiga só volta se a lista nova sumir (nunca grade vazia)
             const dest = `/clips?trend=${tr.key}` // KINEO-HOME-GATO-CARRO-2610
             const href = signedIn ? dest : `/signup?redirect=${encodeURIComponent(dest)}` // KINEO-HOME-GATO-CARRO-2610

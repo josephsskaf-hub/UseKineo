@@ -83,6 +83,9 @@ type Clip = {
   branded?: boolean
 }
 
+// KINEO-ROSTO-NO-CLIPE-2810 — "Put your face in it" (lib/clips/faceRemix.ts): o clipe da casa refeito a partir da foto da pessoa.
+type FaceRemixCard = { id: string; title: string; engine: string; engine_label: string; seconds: number; credits: number; video: string; poster: string } // KINEO-ROSTO-NO-CLIPE-2810
+
 type EffectCard = {
   key: string
   title: string
@@ -145,6 +148,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [lockedEngines, setLockedEngines] = useState<LockedEngine[]>([]) // KINEO-S25-CLIPES-2026-10-06
   const [effects, setEffects] = useState<EffectCard[]>([])
   const [effectKey, setEffectKey] = useState<string | null>(null)
+  const [faceRemixes, setFaceRemixes] = useState<FaceRemixCard[]>([]) // KINEO-ROSTO-NO-CLIPE-2810
+  const [remixId, setRemixId] = useState<string | null>(null) // KINEO-ROSTO-NO-CLIPE-2810
+  const [remixConsent, setRemixConsent] = useState(false) // KINEO-ROSTO-NO-CLIPE-2810 — a foto é da pessoa ou de alguém que concordou (o servidor exige)
   const [clips, setClips] = useState<Clip[]>([])
   const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -172,6 +178,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         if (Array.isArray(d?.engines)) setEngines(d.engines)
         if (Array.isArray(d?.locked_engines)) setLockedEngines(d.locked_engines)
         if (Array.isArray(d?.effects)) setEffects(d.effects)
+        if (Array.isArray(d?.face_remixes)) setFaceRemixes(d.face_remixes) // KINEO-ROSTO-NO-CLIPE-2810
         if (typeof d?.balance === 'number') setBalance(d.balance)
         if (!r.ok) { setLoadFailed(true); return }
         if (Array.isArray(d?.clips)) setClips(d.clips)
@@ -273,6 +280,22 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (p) setPrompt(p) // KINEO-GALERIA-HOME-2710
   }, [engines]) // KINEO-GALERIA-HOME-2710
 
+  // KINEO-ROSTO-NO-CLIPE-2810 — ?remix=<id> (botão "Put your face in it" da galeria e da home) abre o modo foto com a cena, uma vez,
+  // KINEO-ROSTO-NO-CLIPE-2810 — quando o catálogo chega; só se o servidor trouxe o item para esta conta. Nada é gerado sem o clique.
+  const remixFromUrlRef = useRef(false) // KINEO-ROSTO-NO-CLIPE-2810
+  useEffect(() => { // KINEO-ROSTO-NO-CLIPE-2810
+    if (remixFromUrlRef.current || faceRemixes.length === 0) return // KINEO-ROSTO-NO-CLIPE-2810
+    remixFromUrlRef.current = true // KINEO-ROSTO-NO-CLIPE-2810
+    const wanted = new URLSearchParams(window.location.search).get('remix') // KINEO-ROSTO-NO-CLIPE-2810
+    const found = faceRemixes.find((r) => r.id === wanted) // KINEO-ROSTO-NO-CLIPE-2810
+    if (!found) return // KINEO-ROSTO-NO-CLIPE-2810
+    setRemixId(found.id) // KINEO-ROSTO-NO-CLIPE-2810
+    setEffectKey(null) // KINEO-ROSTO-NO-CLIPE-2810
+    rememberClipEffect(null) // KINEO-ROSTO-NO-CLIPE-2810
+    void trackClosedEvent('face_remix_opened', { id: found.id }) // KINEO-ROSTO-NO-CLIPE-2810
+  }, [faceRemixes]) // KINEO-ROSTO-NO-CLIPE-2810
+  const remix = faceRemixes.find((r) => r.id === remixId) ?? null // KINEO-ROSTO-NO-CLIPE-2810
+
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
 
@@ -297,7 +320,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const alternatives = engines.filter((e) => e.key !== engineKey && e.seconds.includes(seconds) && (withPhoto ? e.photo : e.text))
   // KINEO-S25-FOTO-CLIPES-1610 — motor sem foto (hoje só o Seedance 2.5): o "Add photo" some e no lugar vem a frase noPhoto com
   // os motores que animam foto — Kling 3 e Seedance 1.5 primeiro (os dois animaram as fotos que o 2.5 recusou em 16/10).
-  const photoBlocked = !effect && !!engine && !engine.photo
+  const photoBlocked = !effect && !remix && !!engine && !engine.photo // KINEO-ROSTO-NO-CLIPE-2810
   const photoPicks = photoBlocked
     ? (() => {
         const withPhotoEngines = engines.filter((e) => e.photo && e.key !== engineKey)
@@ -379,6 +402,12 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (!effect || !photoUrl || busy || uploading) return
     await send({ effect: effect.key, image_url: photoUrl })
   }
+
+  // KINEO-ROSTO-NO-CLIPE-2810 — remix: só o id, a foto e o consentimento. Prompt, motor, duração e formato quem monta é o servidor.
+  async function generateRemix() { // KINEO-ROSTO-NO-CLIPE-2810
+    if (!remix || !photoUrl || !remixConsent || busy || uploading) return // KINEO-ROSTO-NO-CLIPE-2810
+    await send({ remix: remix.id, image_url: photoUrl, consent: true }) // KINEO-ROSTO-NO-CLIPE-2810
+  } // KINEO-ROSTO-NO-CLIPE-2810
 
   async function send(payload: Record<string, unknown>) {
     setBusy(true)
@@ -639,6 +668,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .trend-sec{margin-bottom:22px}
         .stu.clips-workspace .trend-card .trend-go{color:var(--accent,#2997ff)}
         .stu.clips-workspace .film-upsell{text-decoration:none;font-weight:700}
+        .stu.clips-workspace .remix-scene{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr);gap:14px;align-items:center;margin-top:10px} /* KINEO-ROSTO-NO-CLIPE-2810 */
+        .stu.clips-workspace .remix-consent{display:flex;gap:10px;align-items:flex-start;cursor:pointer} /* KINEO-ROSTO-NO-CLIPE-2810 */
+        .stu.clips-workspace .remix-consent input{margin-top:2px;width:18px;height:18px;flex:none} /* KINEO-ROSTO-NO-CLIPE-2810 */
         @container clips-studio (max-width:700px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.clips-workspace .creation-input{padding:16px}}
         @media(max-width:900px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}}
       `}</style>
@@ -647,7 +679,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       <p className="sub">{t('sub')}</p>
 
       {/* KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana": clipes REAIS feitos com a mesma ideia e o mesmo motor (selo honesto). */}
-      {CLIP_TRENDS_PUBLIC && engines.length > 0 && (
+      {!remix && CLIP_TRENDS_PUBLIC && engines.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
         <section aria-labelledby="clip-trends-title" className="trend-sec">
           <div className="lab" id="clip-trends-title"><UiLabel>🔥 Trending this week</UiLabel></div>
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}><UiLabel>The AI videos blowing up on TikTok and Reels right now. Tap one and Kineo fills in the idea for you.</UiLabel></p>
@@ -673,7 +705,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         </section>
       )}
 
-      {effects.length > 0 && (
+      {!remix && effects.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
         <section aria-labelledby="clip-effects-title">
           <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
@@ -697,8 +729,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         </section>
       )}
 
-      {!effect && <div className="lab"><span className="n">1</span>{t('engine')}</div>}
-      {!effect && <div className="clip-engines" role="group" aria-label={t('engine')}>
+      {!effect && !remix && <div className="lab"><span className="n">1</span>{t('engine')}</div>}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+      {!effect && !remix && <div className="clip-engines" role="group" aria-label={t('engine')}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
         {/* KINEO-FAROL-VITRINE-2026-10-06 — card com vitrine (lib/clips/clipEngineShowcase.ts, hoje só o 2.5): o clipe REAL do
             motor cobre o card por baixo do texto, com o selo "Feito com <motor> · N s". Os outros cards seguem iguais. */}
         {engines.map((e) => {
@@ -735,7 +767,38 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       </div>}
 
       <div className="grid creation-grid">
-        {effect ? (
+        {remix ? ( // KINEO-ROSTO-NO-CLIPE-2810
+          <>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+            <div className="card creation-input" id="clip-remix-panel" data-face-remix={remix.id}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <div className="lab"><span className="n">1</span><UiLabel>Put your face in it</UiLabel> · <UiLabel>{remix.title}</UiLabel></div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <div className="remix-scene">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <span className="fx-media"><video src={remix.video} poster={remix.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <p className="clip-meta" style={{ marginTop: 0 }}><UiLabel>Upload one clear photo of a face. Kineo makes this same scene with that person as the star.</UiLabel></p>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <div className="lab" style={{ marginTop: 14 }}><span className="n">2</span><UiLabel>Add a photo of a face</UiLabel></div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              {photoRow}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <label className="notice remix-consent">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <input type="checkbox" checked={remixConsent} onChange={(e) => setRemixConsent(e.target.checked)} data-face-remix-consent="" />{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <span>{t('effectPersonHint')}</span>{/* KINEO-ROSTO-NO-CLIPE-2810 — a mesma regra de foto de pessoa dos efeitos, agora obrigatória */}
+              </label>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              {errorBlock}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <div className="row" style={{ marginTop: 14 }}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <button type="button" className="pill" onClick={() => { setRemixId(null); setError(null) }}>← {t('effectBack')}</button>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+            </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+            <div className="rail creation-settings">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              <div className="cost" id="clip-remix-review" tabIndex={-1}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <div className="sum"><UiLabel>{remix.title}</UiLabel> · {t('madeWith', { engine: remix.engine_label })} · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <button type="button" disabled={busy || uploading || (!!photoUrl && !remixConsent)} className={`go ${busy || uploading || (!!photoUrl && !remixConsent) ? 'no' : 'ok'}`}
+                  data-clip-action={photoUrl ? 'generate' : 'upload'} data-face-remix={remix.id}
+                  onClick={() => (photoUrl ? void generateRemix() : fileRef.current?.click())}>{/* KINEO-ROSTO-NO-CLIPE-2810 — o preço mora SÓ neste botão */}
+                  {busy ? t('creating') : uploading ? t('uploading') : <>{photoUrl ? t('generate') : <UiLabel>Add a photo of a face</UiLabel>} · {remix.credits} {t('credits')}</>}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                </button>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+              </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+            </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+          </> // KINEO-ROSTO-NO-CLIPE-2810
+        ) : effect ? ( // KINEO-ROSTO-NO-CLIPE-2810
           <>
             <div className="card creation-input" id="clip-effect-panel">
               <div className="lab"><span className="n">1</span>{t('effectLabel')} · <UiLabel>{effect.title}</UiLabel></div>

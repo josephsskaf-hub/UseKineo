@@ -41,6 +41,11 @@ const CSS = `
 .mwk-card:hover .mwk-cta,.mwk-card:focus-visible .mwk-cta{opacity:1;transform:none}
 .mwk-card:hover .mwk-copy,.mwk-card:focus-visible .mwk-copy{transform:translateY(-48px)}
 @media(hover:none){.mwk-cta{opacity:1;transform:none;min-height:32px;font-size:12px;left:8px;right:8px;bottom:8px}.mwk-copy{bottom:48px;left:10px;right:10px}.mwk-card:hover .mwk-copy{transform:none}}
+.mwk-cell{position:relative;min-width:0} /* KINEO-ROSTO-NO-CLIPE-2810 */
+.mwk-face{position:absolute;top:10px;left:10px;z-index:4;display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:6px 12px;border-radius:999px;background:#fff;color:#0b1119;font-size:12px;font-weight:700;line-height:1.1;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.28)} /* KINEO-ROSTO-NO-CLIPE-2810 */
+.mwk-face:hover{background:#eaf3ff} /* KINEO-ROSTO-NO-CLIPE-2810 */
+.mwk-face:focus-visible{outline:3px solid #06b6d4;outline-offset:2px} /* KINEO-ROSTO-NO-CLIPE-2810 */
+@media(max-width:560px){.mwk-face{top:8px;left:8px;min-height:28px;padding:5px 9px;font-size:11px}} /* KINEO-ROSTO-NO-CLIPE-2810 */
 .mwk-more{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 14px;margin:26px 0 0}
 .mwk-more-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 26px;border:0;border-radius:999px;background:var(--accent,#1766d3);color:var(--on-accent,#fff);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 .mwk-more-btn:hover{filter:brightness(1.07)}
@@ -75,8 +80,8 @@ export default function KineoHouseGallery({ items, surface = 'page' }: { items: 
       </div>
       <div className="mwk-grid">
         {visible.map((it) => (
+          <div key={it.id} className="mwk-cell">{/* KINEO-ROSTO-NO-CLIPE-2810 — o cartão e o botão do rosto lado a lado (link dentro de link não existe) */}
           <Link
-            key={it.id}
             href={it.href}
             className={`mwk-card mwk-${it.kind}`}
             data-galeria-kind={it.kind}
@@ -93,6 +98,8 @@ export default function KineoHouseGallery({ items, surface = 'page' }: { items: 
             <span className="mwk-copy"><i>{it.engine}</i><b><UiLabel>{it.title}</UiLabel></b></span>
             <span className="mwk-cta" aria-hidden="true"><UiLabel>Make one like this</UiLabel> →</span>
           </Link>
+          {it.faceHref ? <Link href={it.faceHref} className="mwk-face" data-face-remix={it.id} aria-label={`Put your face in it — ${it.title}`}><UiLabel>Put your face in it</UiLabel></Link> : null}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+          </div> // KINEO-ROSTO-NO-CLIPE-2810
         ))}
       </div>
       <div className="mwk-more">

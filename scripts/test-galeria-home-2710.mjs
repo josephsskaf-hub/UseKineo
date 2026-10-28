@@ -17,6 +17,7 @@
 //   C. prefill: /clips lê ?prompt= só para PREENCHER (trend/effect vencem); /images (fonte congelada) fica intocado e abre no motor;
 //   I. intocados: curadoria da home (lib/engineWall.ts, PromoCards) sem a marca;
 //   M. mutantes: cada regra acima fica vermelha quando quebrada de propósito.
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -28,7 +29,7 @@ const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-GALERIA-HOME-2710'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))
 let pass = 0
 let fail = 0
 function ok(cond, msg) { if (cond) { pass++; console.log('  ok  ', msg) } else { fail++; console.log('  FALHA', msg) } }

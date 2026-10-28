@@ -5,6 +5,7 @@
 // desfazendo esta camada a fonte volta BYTE A BYTE à base, e toda linha nova leva a marca; (E) a camada está ligada PRIMEIRO no
 // guardião que confere a faixa byte a byte; (M) mutantes ficam vermelhos.
 // Rodar: node scripts/test-home-clipes-novos-2810.mjs
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -21,7 +22,7 @@ const MARCA = 'KINEO-HOME-CLIPES-NOVOS-2810'
 const STRIP = 'components/home/HomeClipsStrip.tsx'
 const ORDEM = ['lion', 'cake-kitten', 'pebble-castle', 'knight-cat', 'werewolf', 'capybara', 'wizard-cat', 'kungfu-cat']
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semRostoCards2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))
 const base = (rel) => lf(execFileSync('git', ['-C', ROOT, 'show', `${HOME_CLIPES_NOVOS_2810_BASE}:${rel}`], { encoding: 'utf8', maxBuffer: 1 << 26 }))
 let pass = 0
 let fail = 0
@@ -87,7 +88,7 @@ ok(erros.length === 0, `A-D faixa com os 8 clipes novos, na ordem, sem dog_phone
 ok(HOME_CLIPES_NOVOS_2810_MARCA === MARCA && HOME_CLIPES_NOVOS_2810_ARQUIVOS.join() === STRIP, 'E1 a camada cobre só a faixa e usa a marca desta entrega')
 ok(HOME_CLIPES_NOVOS_2810_NOVOS.every((n) => fs.existsSync(path.join(ROOT, n))), 'E2 arquivos novos presentes')
 const remodela = rd('scripts/test-home-remodela-2010.mjs')
-ok(/const rd = \(rel\) => lf\(affiliateRaw\(rel, semGaleriaHome2710\(semHomeClipesNovos2810\(fs\.readFileSync/.test(remodela), 'E3 test-home-remodela-2010 desfaz esta camada PRIMEIRO ao ler a faixa')
+ok(/const rd = \(rel\) => lf\(affiliateRaw\(rel, semGaleriaHome2710\(semHomeClipesNovos2810\((?:semRostoCards2810\()?fs\.readFileSync/.test(remodela), 'E3 test-home-remodela-2010 desfaz esta camada PRIMEIRO ao ler a faixa')
 ok(rd('lib/engineWall.ts') === base('lib/engineWall.ts') && rd('app/KineoLanding.tsx') === base('app/KineoLanding.tsx'), 'E4 curadoria dos cards (engineWall) e a home/menu (KineoLanding) intocados')
 
 // M. mutantes
