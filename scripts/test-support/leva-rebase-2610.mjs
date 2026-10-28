@@ -1,3 +1,4 @@
+import { semRostoCards2810 } from './desfaz-rosto-cards-2810.mjs' // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 (rosto no clipe, cards, elenco, galeria cheia, menu) saem em memória ANTES de todas as camadas
 import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 // KINEO-LEVA-REBASE-2610 — exact, offline integration boundary for historical guardians.
 // Current product tests read raw sources. Unknown input bytes are NEVER projected.
@@ -103,6 +104,7 @@ export const semLevaSobreMain2610 = (text, file) => project(semPosterioresAoSelo
 // Camadas publicadas DEPOIS da entrega selada (main 33fab0c97 e o desenho de 15 s) saem antes da projeção; só onde a camada é mais nova. // KINEO-INTEGRA-2710
 function semPosterioresAoSelo2710(text, file) { // KINEO-INTEGRA-2710
   const p = pathOf(file) // KINEO-INTEGRA-2710
+  text = semRostoCards2810(text, p) // KINEO-ROSTO-NO-CLIPE-2810 — as entregas de 28/10 saem antes de todas
   text = semGaleriaHome2710(text, p) // KINEO-GALERIA-HOME-2710 — a mais nova sai primeiro (só nos arquivos dela, só com a marca)
   text = semConsertos2710(text, p) // KINEO-CONSERTOS-2710
   if (p === 'scripts/test-paginas-ia-claras-2110.mjs') text = semCronOrigem2610(text, p) // KINEO-INTEGRA-2710

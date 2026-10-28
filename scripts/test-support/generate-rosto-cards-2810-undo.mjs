@@ -8,6 +8,14 @@ import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 export const CAMADAS = {
+  'cards-rosto-2810': {
+    fn: 'semCardsRosto2810',
+    marca: 'KINEO-CARDS-ROSTO-2810',
+    o_que: 'os cards 1, 2 e 4 da home: lobisomem, relógio no lugar do perfume, 3 desenhos de Halloween',
+    base: '24ebecdcea27bf2896856d412e417211c39eed6b',
+    tip: null,
+    arquivos: ['lib/ui/homeThreeCards.ts'],
+  },
   'rosto-no-clipe-2810': {
     fn: 'semRostoNoClipe2810',
     marca: 'KINEO-ROSTO-NO-CLIPE-2810',

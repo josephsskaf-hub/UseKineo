@@ -110,10 +110,10 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
     { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
     preview('home-card-novo-film_pompeii', '50% 30%'), // KINEO-CARDS-NOVOS-2610 — os 2 filmes de antes tinham a marca "usekineo.com/free" gravada (fundador 26/10: "tá com erro esse vídeo")
     preview('home-card-novo-film_shipwreck', '50% 45%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-film_mars_door', '50% 45%'), // KINEO-CARDS-NOVOS-2610
+    preview('galeria/werewolf', '50% 40%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: o lobisomem sob a lua cheia (clipe Kling 3 da galeria "Made with Kineo") no lugar da porta em Marte
   ] },
   product_ads: { default: [ // KINEO-CARDS-NOVOS-2610 — fundador 26/10: "quero coisas novas… o que as pessoas estão postando" (tendências: floating ads, gigante na cidade, splash, vista explodida, partículas da Higgsfield)
-    preview('home-card-novo-giant_perfume', '50% 40%'), // KINEO-CARDS-NOVOS-2610
+    preview('home-card-novo-smartwatch', '50% 45%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: o perfume gigante SAI; entra o relógio que se monta no ar (clipe Kling 3 50cd72c7, sem marca)
     preview('home-card-novo-iced_coffee', '50% 45%'), // KINEO-CARDS-NOVOS-2610
     preview('home-card-novo-headphones', '50% 45%'), // KINEO-CARDS-NOVOS-2610
     preview('home-card-novo-floating_sneaker2', '50% 45%'), // KINEO-CARDS-NOVOS-2610 — tênis liso, sem listras nem marca (o 1º saiu com as 3 listras de outra marca)
@@ -126,9 +126,9 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
   ] }, // KINEO-CARDS-NOVOS-2610
   kids_cartoon: { default: [ // KINEO-CARDS-NOVOS-2610 — 3D estilo Pixar: bebê+bicho, bichinho aprendendo, Skatedog (Higgsfield)
     preview('home-card-novo-baby_puppy', '50% 55%', '50% 55%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-penguin', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-skatedog', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-fox', '50% 50%', '50% 50%'), // KINEO-CARDS-NOVOS-2610
+    preview('home-card-novo-pumpkin', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: 3 desenhos 3D de Halloween (Kling 3, conferidos quadro a quadro: sem defeito, sem marca)
+    preview('home-card-novo-knight_kitten', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — começa em 2,3 s (a ponte vazia do início ficou fora do laço)
+    preview('home-card-novo-werewolf_pup', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — saem pinguim, skatedog e raposa; o bebê com o cachorrinho fica em 1º
   ] }, // KINEO-CARDS-NOVOS-2610
 }
 

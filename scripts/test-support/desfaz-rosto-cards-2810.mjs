@@ -4,12 +4,13 @@
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
 import { semRostoNoClipe2810, ARQUIVOS as ROSTO_NO_CLIPE_ARQUIVOS } from './desfaz-rosto-no-clipe-2810.mjs'
+import { semCardsRosto2810, ARQUIVOS as CARDS_ROSTO_ARQUIVOS } from './desfaz-cards-rosto-2810.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semRostoNoClipe2810]
+const CAMADAS = [semCardsRosto2810, semRostoNoClipe2810]
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
-export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...ROSTO_NO_CLIPE_ARQUIVOS])]
+export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])]
 
 export function relDe(p) {
   const s = String(p ?? '')
