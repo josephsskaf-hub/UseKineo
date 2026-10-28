@@ -133,7 +133,7 @@ import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thi
 // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — jogada 7: "baixar limpo" ao lado de "baixar grátis", na hora do download.
 import { decideCleanDownloadTwin, cleanDownloadTwinLabel } from '@/lib/growth/cleanDownloadTwin'
 // KINEO-DOWNLOAD-OFERTA-2810 — "Remove watermark + HD" no instante do download; "Make it HD" para filme limpo pago.
-import { decideDownloadUpsell, decideMakeItHd, downloadUpsellCopy, rememberRebuildInputs } from '@/lib/growth/downloadUpsell'
+import { decideDownloadUpsell, decideMakeItHd, downloadUpsellCopy, rememberRebuildInputs, type DownloadUpsellOption } from '@/lib/growth/downloadUpsell'
 import { DownloadUpsellCard, MakeItHdButton } from '@/components/growth/DownloadUpsell'
 // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — o pedido do Kineo 1 sobrevive à aba fechada (lib/renderJobs.ts).
 import { RENDER_JOB_VERSION } from '@/lib/renderJobs'
@@ -11835,10 +11835,14 @@ export default function GenerateClient({
 
   // KINEO-DOWNLOAD-OFERTA-2810 — o clique na oferta do download é o MESMO checkout do remove-watermark (Starter,
   // return=wm, remonta ESTE filme limpo). Evento próprio para medir a peça separada do gêmeo e da caixa antiga.
-  function handleDownloadUpsellBuy(anchor: 'top' | 'main') {
+  // KINEO-AVULSO-GARANTIA-2810 — duas opções no cartão: o plano (handleRemoveWatermark, como antes) e o avulso de um
+  // filme (handleBuyThisVideoOnly — o MESMO "Just this video": ?pack=starter&return=wm, remonta ESTE filme limpo).
+  // `option` no evento separa as duas.
+  function handleDownloadUpsellBuy(anchor: 'top' | 'main', option: DownloadUpsellOption = 'plan') {
     void trackEvent('download_upsell_clicked', {
       version: downloadUpsell.version,
       surface: anchor === 'top' ? 'done_screen_top' : 'done_screen_main',
+      option,
       video_id: publicVideoId ?? null,
       this_film: Boolean(lastFastRenderRef.current),
       trial_phase: trialPostVideoPhase,
@@ -11846,7 +11850,8 @@ export default function GenerateClient({
       ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     })
-    handleRemoveWatermark()
+    if (option === 'one_time') handleBuyThisVideoOnly()
+    else handleRemoveWatermark()
   }
 
   function handleRemoveWatermark() {
@@ -13327,6 +13332,10 @@ export default function GenerateClient({
     priceLabel: postVideoRenewalPrice,
     monthlyCredits: TIER_CREDITS.starter,
     thisFilm: Boolean(lastFastRenderRef.current),
+    // KINEO-AVULSO-GARANTIA-2810 — o avulso com o preço da fonte única (PACK_PRICE_MINOR via packPriceLabel, o mesmo
+    // número que a Stripe cobra no ?pack=starter) e os créditos que ele concede.
+    oneTimePriceLabel: packPriceLabel(),
+    oneTimeCredits: PACK_CREDITS.starter,
   })
   const renderDownloadUpsell = (anchor: 'top' | 'main') =>
     downloadUpsell.visible && downloadUpsellClick?.anchor === anchor ? (
@@ -13336,8 +13345,10 @@ export default function GenerateClient({
         videoId={publicVideoId}
         thisFilm={Boolean(lastFastRenderRef.current)}
         pending={wmCheckout.pending !== null}
+        pendingOption={wmCheckout.pending === 'starter_pack_wm' ? 'one_time' : wmCheckout.pending ? 'plan' : null}
         error={wmCheckout.error}
-        onBuy={() => handleDownloadUpsellBuy(anchor)}
+        onBuy={() => handleDownloadUpsellBuy(anchor, 'plan')}
+        onBuyOneTime={() => handleDownloadUpsellBuy(anchor, 'one_time')}
         onDismiss={() => setDownloadUpsellDismissedKey(downloadUpsellKey)}
         extra={{ trial_phase: trialPostVideoPhase, full_version_offer: fullVersionOfferEligible, ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}) }}
       />

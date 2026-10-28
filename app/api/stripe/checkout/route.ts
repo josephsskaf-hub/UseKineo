@@ -171,6 +171,7 @@ import {
 import { WELCOME20_DEADLINE_ENDED_NOTICE, WELCOME20_DEADLINE_UNKNOWN, readWelcome20Deadline, startWelcome20Deadline, welcome20CheckoutDecision, welcome20DeadlineIdSeed, welcome20DeadlineUuid, type Welcome20DeadlineDb } from '@/lib/growth/welcome20Deadline'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
+import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" no custom_text do passe avulso
 import {
   AUTOPILOT_PILOT_DISMISSED_COOKIE,
   AUTOPILOT_PILOT_RESUME_HINT_COOKIE,
@@ -3423,6 +3424,9 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
     client_reference_id: user.id,
     success_url: packSuccessUrl,
     cancel_url: `${appUrl}/generate`,
+    // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob o botão de pagar da Stripe (copy que o suporte honra à
+    // mão; preço, crédito e webhook intocados). Entra na chave de idempotência abaixo: parâmetro novo ⇒ chave nova.
+    custom_text: { submit: { message: FIRST_FILM_GUARANTEE.en } },
     metadata: {
       supabase_user_id: user.id,
       pack: 'starter10',
@@ -3444,6 +3448,7 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
     unit_amount: chargeAmount,
     success_url: sessionParams.success_url,
     customer: sessionParams.customer ?? null,
+    custom_text: sessionParams.custom_text, // KINEO-AVULSO-GARANTIA-2810
   })
 
   let session: Stripe.Checkout.Session

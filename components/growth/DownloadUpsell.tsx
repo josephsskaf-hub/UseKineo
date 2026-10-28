@@ -7,8 +7,11 @@ import {
   DOWNLOAD_UPSELL_VERSION,
   MAKE_IT_HD_COST,
   type DownloadUpsellCopy,
+  type DownloadUpsellOption,
   type DownloadUpsellSurface,
 } from '@/lib/growth/downloadUpsell'
+// KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob os botões de compra (fonte única, pt/es onde a tela localiza).
+import { firstFilmGuarantee } from '@/lib/growth/firstFilmGuarantee'
 
 // Uma impressão por filme+superfície por carregamento de página (remontar o nó não conta de novo).
 const viewedKeys = new Set<string>()
@@ -19,20 +22,29 @@ export function DownloadUpsellCard({
   videoId,
   thisFilm,
   pending,
+  pendingOption,
   error,
   onBuy,
+  onBuyOneTime,
   onDismiss,
   extra,
+  lang,
 }: {
   copy: DownloadUpsellCopy
   surface: DownloadUpsellSurface
   videoId: string | null
   thisFilm: boolean
   pending: boolean
+  /** KINEO-AVULSO-GARANTIA-2810 — qual dos dois botões está abrindo a Stripe (o texto de espera vai só nele). */
+  pendingOption?: DownloadUpsellOption | null
   error?: string | null
   onBuy: () => void
+  /** KINEO-AVULSO-GARANTIA-2810 — o passe avulso (?pack=starter&return=wm). */
+  onBuyOneTime: () => void
   onDismiss: () => void
   extra?: Record<string, unknown>
+  /** Língua da tela, só para a frase da garantia (a copy já chega localizada). */
+  lang?: string
 }) {
   useEffect(() => {
     const key = `${surface}:${videoId ?? 'sem-id'}`
@@ -71,17 +83,36 @@ export function DownloadUpsellCard({
         type="button"
         onClick={onBuy}
         disabled={pending}
-        data-download-upsell-cta="1"
+        data-download-upsell-cta="plan"
         style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          width: '100%', marginTop: 9, padding: '11px 12px', borderRadius: 11, border: 'none',
+          width: '100%', marginTop: 9, padding: '11px 12px', borderRadius: 11, border: '2px solid var(--accent)',
           background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 900, fontSize: '0.9rem',
           cursor: pending ? 'wait' : 'pointer', opacity: pending ? 0.7 : 1,
         }}
       >
-        <span>{pending ? copy.pending : copy.button}</span>
+        <span>{pending && pendingOption !== 'one_time' ? copy.pending : copy.button}</span>
         <span style={{ marginTop: 3, fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.4 }}>{copy.sub}</span>
       </button>
+      {/* KINEO-AVULSO-GARANTIA-2810 — a segunda opção, do MESMO tamanho e peso: só este filme, pagamento único. */}
+      <button
+        type="button"
+        onClick={onBuyOneTime}
+        disabled={pending}
+        data-download-upsell-cta="one_time"
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          width: '100%', marginTop: 8, padding: '11px 12px', borderRadius: 11, border: '2px solid var(--accent)',
+          background: 'transparent', color: 'var(--text)', fontWeight: 900, fontSize: '0.9rem',
+          cursor: pending ? 'wait' : 'pointer', opacity: pending ? 0.7 : 1,
+        }}
+      >
+        <span>{pending && pendingOption === 'one_time' ? copy.pending : copy.oneTimeButton}</span>
+        <span style={{ marginTop: 3, fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.4, color: 'var(--muted)' }}>{copy.oneTimeSub}</span>
+      </button>
+      <p data-first-film-guarantee="1" style={{ margin: '7px 0 0', fontSize: '0.68rem', fontWeight: 600, lineHeight: 1.4, color: 'var(--muted)' }}>
+        {firstFilmGuarantee(lang)}
+      </p>
       {error ? (
         <p role="alert" style={{ margin: '6px 0 0', fontSize: '0.72rem', fontWeight: 600, color: 'var(--danger)' }}>{error}</p>
       ) : null}

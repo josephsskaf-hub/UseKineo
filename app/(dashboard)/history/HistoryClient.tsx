@@ -6,11 +6,13 @@ import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/Interface
 import { DownloadUpsellCard } from '@/components/growth/DownloadUpsell'
 import {
   DOWNLOAD_UPSELL_CHECKOUT_PATH,
+  DOWNLOAD_UPSELL_ONE_TIME_CHECKOUT_PATH,
   DOWNLOAD_UPSELL_VERSION,
   decideDownloadUpsell,
   downloadUpsellCopy,
   libraryFilmCarriesWatermark,
   recallRebuildInputs,
+  type DownloadUpsellOption,
   type DownloadUpsellSurface,
 } from '@/lib/growth/downloadUpsell'
 import { FavoriteButton, LibraryOrganization, libraryFormat, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
@@ -55,7 +57,7 @@ import { resolveHistoryMilestoneMode } from '@/lib/growth/historyMilestone'
 // "60 credits" DIGITADOS em três lugares, e os três estavam errados no dia
 // seguinte ao reprice. USD fixo aqui (o checkout re-resolve a moeda pelo IP no
 // servidor), mas nunca mais um dígito à mão.
-import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { PACK_CREDITS, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney, packPriceLabel } from '@/lib/checkoutPricing'
 import {
   HISTORY_REFERRAL_MISSION_VARIANT,
   historyReferralMissionCopy,
@@ -746,7 +748,10 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   function rebuildInputsFor(videoId: string): Record<string, unknown> | null {
     try { return recallRebuildInputs(window.localStorage, videoId) } catch { return null }
   }
-  function handleDownloadUpsellBuy(video: Video, surface: DownloadUpsellSurface) {
+  // KINEO-AVULSO-GARANTIA-2810 — `option`: o plano (como antes) ou o passe avulso (?pack=starter&return=wm, o MESMO SKU
+  // do "Just this video" da tela do filme). Os dois usam o mesmo handoff `kineo_wm_unlock` e voltam pelo mesmo
+  // /generate?wm_unlock=1 — o compose/unlock aceita os dois. A chave do lançador separa qual botão está esperando.
+  function handleDownloadUpsellBuy(video: Video, surface: DownloadUpsellSurface, option: DownloadUpsellOption = 'plan') {
     const inputs = rebuildInputsFor(video.id)
     // Mesmo handoff do handleRemoveWatermark da tela do filme. Sem insumos, limpa um handoff velho de OUTRO filme
     // para a volta não remontar o filme errado (sem insumos o unlock só confirma o plano: render_id null).
@@ -754,16 +759,23 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
       if (inputs) window.localStorage.setItem('kineo_wm_unlock', JSON.stringify(inputs))
       else window.localStorage.removeItem('kineo_wm_unlock')
     } catch { /* storage bloqueado: o plano ativa do mesmo jeito */ }
-    const started = downloadUpsellCheckout.launch(surface, DOWNLOAD_UPSELL_CHECKOUT_PATH, {
-      tier: 'starter',
-      intro: true,
-      return_to: 'watermark_unlock',
-      pricing_surface: surface,
-    })
+    const started = option === 'one_time'
+      ? downloadUpsellCheckout.launch(`${surface}:one_time`, DOWNLOAD_UPSELL_ONE_TIME_CHECKOUT_PATH, {
+          pack: 'starter',
+          return_to: 'watermark_unlock',
+          pricing_surface: surface,
+        })
+      : downloadUpsellCheckout.launch(surface, DOWNLOAD_UPSELL_CHECKOUT_PATH, {
+          tier: 'starter',
+          intro: true,
+          return_to: 'watermark_unlock',
+          pricing_surface: surface,
+        })
     if (!started) return
     void trackEvent('download_upsell_clicked', {
       version: DOWNLOAD_UPSELL_VERSION,
       surface,
+      option,
       video_id: video.id,
       this_film: Boolean(inputs),
       quality_mode: video.quality_mode ?? null,
@@ -775,15 +787,18 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
     const thisFilm = Boolean(rebuildInputsFor(video.id))
     return (
       <DownloadUpsellCard
-        copy={downloadUpsellCopy({ priceLabel: null, monthlyCredits: TIER_CREDITS.starter, thisFilm, lang: interfaceLanguage })}
+        copy={downloadUpsellCopy({ priceLabel: null, monthlyCredits: TIER_CREDITS.starter, thisFilm, lang: interfaceLanguage, oneTimePriceLabel: packPriceLabel(), oneTimeCredits: PACK_CREDITS.starter })}
         surface={surface}
         videoId={video.id}
         thisFilm={thisFilm}
         pending={downloadUpsellCheckout.pending !== null}
+        pendingOption={downloadUpsellCheckout.pending?.endsWith(':one_time') ? 'one_time' : downloadUpsellCheckout.pending ? 'plan' : null}
         error={downloadUpsellCheckout.error}
-        onBuy={() => handleDownloadUpsellBuy(video, surface)}
+        onBuy={() => handleDownloadUpsellBuy(video, surface, 'plan')}
+        onBuyOneTime={() => handleDownloadUpsellBuy(video, surface, 'one_time')}
         onDismiss={() => setDownloadUpsellDismissed(prev => ({ ...prev, [video.id]: true }))}
         extra={{ quality_mode: video.quality_mode ?? null }}
+        lang={interfaceLanguage}
       />
     )
   }

@@ -22,6 +22,8 @@ import { planValueCardLines, planValueFor, type PlanValue } from '@/lib/pricingP
 // KINEO-CHECKOUT-CLAREZA-1610 — o custo por filme (mesma régua da linha de filmes do cartão) e a garantia única sob o botão.
 import { planValuePerFilm, planValuePerFilmLine } from '@/lib/pricingPlanValue'
 import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing'
+// KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob o botão de compra (copy que o suporte honra à mão).
+import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee'
 
 export type PlanValueTier = 'starter' | 'basic' | 'pro'
 
@@ -254,6 +256,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
         </button>
         {props.save ? <p className="pv-save">{props.save}</p> : null}
         <p className="pv-guarantee" data-testid="plan-guarantee">{MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 — sob o botão de pagar */}
+        <p className="pv-guarantee" data-testid="plan-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>{/* KINEO-AVULSO-GARANTIA-2810 */}
         {props.extra ? <div className="pv-extra">{props.extra}</div> : null}
       </div>
 

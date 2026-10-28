@@ -103,7 +103,8 @@ check(!/Fast|priority queue/.test(studio.lineItemDescription), 'Studio promises 
 
 equal(
   creatorBridge.submitMessage,
-  'Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee.',
+  // KINEO-AVULSO-GARANTIA-2810 — o mensal fecha com "refazemos ou devolvemos" (fundador 28/10).
+  "Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee. Not happy with your first film? We'll redo it or refund you — just reply to your receipt.",
   'monthly settlement, renewal, cancellation and guarantee are explicit',
 )
 const annual = policy.buildCheckoutValueContext({ billing: 'annual', credits: 90, intentCampaign: undefined, tier: 'basic' })

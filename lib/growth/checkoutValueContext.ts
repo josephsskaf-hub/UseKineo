@@ -16,6 +16,15 @@ export const CHECKOUT_VALUE_CONTEXT_VERSION = 'checkout_value_context_v3' as con
 export const CHECKOUT_ANNUAL_REFUND_SENTENCE =
   'Annual plans are refundable in full within 14 days of purchase; after that, no refund.'
 
+/**
+ * KINEO-AVULSO-GARANTIA-2810 — espelho LITERAL de FIRST_FILM_GUARANTEE.en (lib/growth/firstFilmGuarantee.ts), pelo
+ * mesmo motivo da frase do anual acima (os guardiões executam este módulo com mocks fechados). Fecha o texto do botão
+ * de pagar da Stripe no MENSAL; o anual fica de fora porque a política dele diz "depois de 14 dias, nenhum reembolso".
+ * scripts/test-avulso-garantia-2810.mjs confere que as duas frases são idênticas.
+ */
+export const CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE =
+  "Not happy with your first film? We'll redo it or refund you — just reply to your receipt."
+
 export type CheckoutValueContextInput = {
   billing: 'monthly' | 'annual'
   credits: number
@@ -93,7 +102,7 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
     ? `Credits are added after payment succeeds and arrive month by month. Renews ${renewal} at the price shown. ` +
       `Cancel anytime from Account. ${CHECKOUT_ANNUAL_REFUND_SENTENCE}`
     : `Credits are added after payment succeeds. Renews ${renewal} at the price shown. ` +
-      'Cancel anytime from Account. 7-day money-back guarantee.'
+      'Cancel anytime from Account. 7-day money-back guarantee.' + ` ${CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE}` // KINEO-AVULSO-GARANTIA-2810
 
   const bridgeEligibleTier = input.tier === 'basic' || input.tier === 'pro'
   const bridgeContext =

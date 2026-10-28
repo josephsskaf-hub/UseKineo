@@ -32,6 +32,8 @@
 // Módulo PURO (sem Next, sem rede): roda no edge do middleware e no guardião scripts/test-checkout-robo-1510.mjs.
 
 import { affiliateBotReason } from '../affiliateDestinations'
+// KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob o botão de continuar (módulo puro, sem imports: cabe no edge).
+import { FIRST_FILM_GUARANTEE } from './firstFilmGuarantee'
 
 export const CHECKOUT_ROBOT_GATE_VERSION = 'checkout_robot_gate_v1' as const
 export const CHECKOUT_GATE_PATH = '/api/stripe/checkout'
@@ -126,6 +128,7 @@ button[disabled]{opacity:.7;cursor:progress}a{color:#2997ff}
 <h1>Continue to secure checkout</h1>
 <p>You’ll finish on Stripe — no account needed. Your account is created after payment.</p>
 <button id="kineo-checkout-continue" type="button">Continue to secure checkout</button>
+<p style="margin:14px 0 0;font-size:.85rem">${FIRST_FILM_GUARANTEE.en}</p>
 <p style="margin-top:18px;font-size:.85rem">or <a href="/pricing">see all plans</a></p>
 </main>
 <script>

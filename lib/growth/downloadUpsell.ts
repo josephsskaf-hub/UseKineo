@@ -19,6 +19,16 @@ export const DOWNLOAD_UPSELL_VERSION = 'download_upsell_v1'
 /** O MESMO checkout do "remove watermark" da tela do filme (handleRemoveWatermark). Nada de preço novo. */
 export const DOWNLOAD_UPSELL_CHECKOUT_PATH = '/api/stripe/checkout?tier=starter&intro=1&return=wm'
 
+// KINEO-AVULSO-GARANTIA-2810 — a SEGUNDA opção do cartão, tão visível quanto a do plano: "só este filme, sem marca,
+// pagamento único". É o MESMO passe avulso que a tela do filme já vende ("Just this video", handleBuyThisVideoOnly):
+// `?pack=starter&return=wm` → sessão `metadata.pack='starter10'` (aceita por /api/compose/unlock) → volta para
+// /generate?wm_unlock=1, que remonta ESTE filme limpo com os insumos de `kineo_wm_unlock`. Preço e créditos vêm do
+// chamador (packPriceLabel / PACK_CREDITS.starter de lib/checkoutPricing.ts) — esta lib não crava número nenhum.
+export const DOWNLOAD_UPSELL_ONE_TIME_CHECKOUT_PATH = '/api/stripe/checkout?pack=starter&return=wm'
+
+/** Qual botão do cartão foi apertado (vai no `download_upsell_clicked`). */
+export type DownloadUpsellOption = 'plan' | 'one_time'
+
 /** Custo do ✨ Enhance HD (app/api/enhance/route.ts ENHANCE_COST). O guardião confere que os dois não divergem. */
 export const MAKE_IT_HD_COST = 10
 
@@ -78,8 +88,42 @@ export interface DownloadUpsellCopy {
   title: string
   button: string
   sub: string
+  /** KINEO-AVULSO-GARANTIA-2810 — o botão do pagamento único (o passe avulso). */
+  oneTimeButton: string
+  oneTimeSub: string
   dismiss: string
   pending: string
+}
+
+/**
+ * KINEO-AVULSO-GARANTIA-2810 — a copy do avulso. "this film" só com os insumos da remontagem na mão (tela do filme ou
+ * estante com `kineo_wm_rebuild_v1`); sem eles o pagamento vale para o PRÓXIMO filme (o passe concede créditos e
+ * has_paid — o próximo sai limpo), então a promessa é "your next film", igual à opção do plano. Sem preço, sem número.
+ */
+function oneTimeCopy(lang: string | undefined, thisFilm: boolean, price: string | null, credits: number | null): { oneTimeButton: string; oneTimeSub: string } {
+  const cr = typeof credits === 'number' && credits > 0 ? credits : null
+  if (lang === 'pt') {
+    return {
+      oneTimeButton: `${thisFilm ? 'Só este filme' : 'Só o seu próximo filme'} — sem marca d’água · ${price ? `${price} pagamento único` : 'pagamento único'}`,
+      oneTimeSub: thisFilm
+        ? `Este mesmo filme, refeito limpo · sem assinatura${cr ? ` · ${cr} créditos` : ''}`
+        : `Sem assinatura${cr ? ` · ${cr} créditos para o próximo filme` : ''}`,
+    }
+  }
+  if (lang === 'es') {
+    return {
+      oneTimeButton: `${thisFilm ? 'Solo esta película' : 'Solo tu próxima película'} — sin marca de agua · ${price ? `${price} pago único` : 'pago único'}`,
+      oneTimeSub: thisFilm
+        ? `Esta misma película, rehecha limpia · sin suscripción${cr ? ` · ${cr} créditos` : ''}`
+        : `Sin suscripción${cr ? ` · ${cr} créditos para tu próxima película` : ''}`,
+    }
+  }
+  return {
+    oneTimeButton: `${thisFilm ? 'Just this film' : 'Just your next film'} — no watermark · ${price ? `${price} one-time` : 'one-time'}`,
+    oneTimeSub: thisFilm
+      ? `This same film, re-made clean · no subscription${cr ? ` · ${cr} credits` : ''}`
+      : `No subscription${cr ? ` · ${cr} credits for your next film` : ''}`,
+  }
 }
 
 /**
@@ -87,12 +131,23 @@ export interface DownloadUpsellCopy {
  * insumos da remontagem estão na mão: só então a promessa é "este filme limpo". Sem preço resolvido, sem número —
  * nunca um preço errado.
  */
-export function downloadUpsellCopy(input: { priceLabel: string | null; monthlyCredits: number; thisFilm: boolean; lang?: string }): DownloadUpsellCopy {
+export function downloadUpsellCopy(input: {
+  priceLabel: string | null
+  monthlyCredits: number
+  thisFilm: boolean
+  lang?: string
+  /** KINEO-AVULSO-GARANTIA-2810 — preço do passe avulso (packPriceLabel()); null = botão sem número. */
+  oneTimePriceLabel?: string | null
+  /** Créditos que o passe concede (PACK_CREDITS.starter). */
+  oneTimeCredits?: number | null
+}): DownloadUpsellCopy {
   const hd = MAKE_IT_HD_COST
   const cr = input.monthlyCredits
   const p = input.priceLabel
+  const oneTime = oneTimeCopy(input.lang, input.thisFilm, input.oneTimePriceLabel ?? null, input.oneTimeCredits ?? null)
   if (input.lang === 'pt') {
     return {
+      ...oneTime,
       eyebrow: '✓ Sua cópia grátis está baixando (com marca d’água)',
       title: input.thisFilm ? 'Quer este filme sem marca d’água — e em HD?' : 'Quer seus filmes sem marca d’água — e em HD?',
       button: `✨ Tirar a marca + HD${p ? ` — Starter ${p}/mês` : ' — plano Starter'}`,
@@ -105,6 +160,7 @@ export function downloadUpsellCopy(input: { priceLabel: string | null; monthlyCr
   }
   if (input.lang === 'es') {
     return {
+      ...oneTime,
       eyebrow: '✓ Tu copia gratis se está descargando (con marca de agua)',
       title: input.thisFilm ? '¿Quieres esta película sin marca de agua — y en HD?' : '¿Quieres tus películas sin marca de agua — y en HD?',
       button: `✨ Quitar la marca + HD${p ? ` — Starter ${p}/mes` : ' — plan Starter'}`,
@@ -116,6 +172,7 @@ export function downloadUpsellCopy(input: { priceLabel: string | null; monthlyCr
     }
   }
   return {
+    ...oneTime,
     eyebrow: '✓ Your free copy is downloading (with watermark)',
     title: input.thisFilm ? 'Want this film without the watermark — and in HD?' : 'Want your films without the watermark — and in HD?',
     button: `✨ Remove watermark + HD${p ? ` — Starter ${p}/mo` : ' — Starter plan'}`,
