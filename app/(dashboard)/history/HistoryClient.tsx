@@ -1,7 +1,18 @@
 'use client'
 
 import { KineoBoltText } from '@/components/KineoBolt'
-import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
+// KINEO-DOWNLOAD-OFERTA-2810 — "Remove watermark + HD" no instante do download, também na estante (/library, /history).
+import { DownloadUpsellCard } from '@/components/growth/DownloadUpsell'
+import {
+  DOWNLOAD_UPSELL_CHECKOUT_PATH,
+  DOWNLOAD_UPSELL_VERSION,
+  decideDownloadUpsell,
+  downloadUpsellCopy,
+  libraryFilmCarriesWatermark,
+  recallRebuildInputs,
+  type DownloadUpsellSurface,
+} from '@/lib/growth/downloadUpsell'
 import { FavoriteButton, LibraryOrganization, libraryFormat, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
 import ControlIcon from '@/components/ControlIcon'
 import { FilmVersionPicker, ExpandableFilmTitle, ManualCopyDialog } from '@/components/DeliveryControls'
@@ -389,6 +400,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // window.location.href: no latch (repeat taps = repeat Stripe sessions), no
   // pending state and no error if the redirect never landed.
   const checkout = useCheckoutLaunch('history_starter_upgrade')
+  // KINEO-DOWNLOAD-OFERTA-2810 — conta que não paga (lida de /api/credits; null = não lida → sem oferta), o filme cujo
+  // download acabou de ser apertado (e onde), e os que a pessoa fechou.
+  const interfaceLanguage = useInterfaceLanguage()
+  const downloadUpsellCheckout = useCheckoutLaunch('library_download_upsell')
+  const [accountNonPaying, setAccountNonPaying] = useState<boolean | null>(null)
+  const [downloadUpsellOpen, setDownloadUpsellOpen] = useState<Record<string, DownloadUpsellSurface>>({})
+  const [downloadUpsellDismissed, setDownloadUpsellDismissed] = useState<Record<string, true>>({})
   // #459 — share the public /v/[id] page (native share on mobile, copy on desktop)
   const [sharedId, setSharedId] = useState<string | null>(null)
   // KINEO-LACO-VIRAL-2026-09-17 — publicar/despublicar a página do filme AQUI (antes: só pelo link assinado do e-mail).
@@ -455,6 +473,9 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           d.trialActive === true ||
           (d.hasPaid === true && balance > 0)
         setCleanExportLocked(!cleanAccess)
+        // KINEO-DOWNLOAD-OFERTA-2810 — "não paga" é o contrário de prova de pagamento, não o `cleanAccess` acima (que
+        // ainda trata trial como limpo; desde 07/09 o Seedance do trial sai marcado).
+        setAccountNonPaying(d.hasPaid !== true && d.isStarter !== true && d.isCreator !== true && d.isStudio !== true)
         setSubscriptionOfferEligible(isHistorySubscriptionOfferEligible({
           completedVideoCount: completedVideos.length,
           isStarter: d.isStarter === true,
@@ -711,6 +732,71 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // implementação de download do produto. O que muda: o clique agora é contado
   // (`video_download_clicked`), a falha do blob deixa de ser muda e o fallback
   // deixa de ser mudo (a ENTREGA continua idêntica à de produção).
+  // KINEO-DOWNLOAD-OFERTA-2810 — a oferta do instante do download, por filme. "Este filme limpo" só quando os insumos
+  // da remontagem daquele vídeo estão neste navegador (a tela do filme os guarda); senão a promessa é dos próximos.
+  function downloadUpsellVisible(video: Video): boolean {
+    return decideDownloadUpsell({
+      downloadClicked: Boolean(downloadUpsellOpen[video.id]),
+      hasWatermark: libraryFilmCarriesWatermark({ qualityMode: video.quality_mode, accountNonPaying }),
+      hasPaid: accountNonPaying === null ? null : !accountNonPaying,
+      unlocking: false,
+      dismissed: Boolean(downloadUpsellDismissed[video.id]),
+    }).visible
+  }
+  function rebuildInputsFor(videoId: string): Record<string, unknown> | null {
+    try { return recallRebuildInputs(window.localStorage, videoId) } catch { return null }
+  }
+  function handleDownloadUpsellBuy(video: Video, surface: DownloadUpsellSurface) {
+    const inputs = rebuildInputsFor(video.id)
+    // Mesmo handoff do handleRemoveWatermark da tela do filme. Sem insumos, limpa um handoff velho de OUTRO filme
+    // para a volta não remontar o filme errado (sem insumos o unlock só confirma o plano: render_id null).
+    try {
+      if (inputs) window.localStorage.setItem('kineo_wm_unlock', JSON.stringify(inputs))
+      else window.localStorage.removeItem('kineo_wm_unlock')
+    } catch { /* storage bloqueado: o plano ativa do mesmo jeito */ }
+    const started = downloadUpsellCheckout.launch(surface, DOWNLOAD_UPSELL_CHECKOUT_PATH, {
+      tier: 'starter',
+      intro: true,
+      return_to: 'watermark_unlock',
+      pricing_surface: surface,
+    })
+    if (!started) return
+    void trackEvent('download_upsell_clicked', {
+      version: DOWNLOAD_UPSELL_VERSION,
+      surface,
+      video_id: video.id,
+      this_film: Boolean(inputs),
+      quality_mode: video.quality_mode ?? null,
+    })
+    trackCheckoutClick('starter')
+  }
+  function renderDownloadUpsell(video: Video, surface: DownloadUpsellSurface) {
+    if (downloadUpsellOpen[video.id] !== surface || !downloadUpsellVisible(video)) return null
+    const thisFilm = Boolean(rebuildInputsFor(video.id))
+    return (
+      <DownloadUpsellCard
+        copy={downloadUpsellCopy({ priceLabel: null, monthlyCredits: TIER_CREDITS.starter, thisFilm, lang: interfaceLanguage })}
+        surface={surface}
+        videoId={video.id}
+        thisFilm={thisFilm}
+        pending={downloadUpsellCheckout.pending !== null}
+        error={downloadUpsellCheckout.error}
+        onBuy={() => handleDownloadUpsellBuy(video, surface)}
+        onDismiss={() => setDownloadUpsellDismissed(prev => ({ ...prev, [video.id]: true }))}
+        extra={{ quality_mode: video.quality_mode ?? null }}
+      />
+    )
+  }
+
+  // KINEO-DOWNLOAD-OFERTA-2810 — o instante: abre a oferta ao lado do botão apertado e entrega o arquivo pelo
+  // handleDownload de sempre, intocado (mesmo caminho, mesma mensagem, mesmo evento).
+  function handleDownloadWithUpsell(video: Video, surface: DownloadUpsellSurface) {
+    if (video.video_url && !downloadingId && libraryFilmCarriesWatermark({ qualityMode: video.quality_mode, accountNonPaying })) {
+      setDownloadUpsellOpen(prev => ({ ...prev, [video.id]: surface }))
+    }
+    void handleDownload(video)
+  }
+
   async function handleDownload(video: Video) {
     if (!video.video_url || downloadingId) return
     setDownloadingId(video.id)
@@ -1689,7 +1775,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
                   <button
                     className="kc-btn kc-primary"
-                    onClick={() => handleDownload(video)}
+                    onClick={() => handleDownloadWithUpsell(video, 'library_card')}
                     disabled={downloadingId === video.id}
                     title={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
                     aria-label={isWatermarkedFastAsset(video) ? 'Download MP4 with Kineo watermark' : 'Download saved MP4'}
@@ -1707,6 +1793,10 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     <IcoDown />
                     <span>{downloadingId === video.id ? 'Preparing…' : isWatermarkedFastAsset(video) ? 'Download · watermark' : 'Download MP4'}</span>
                   </button>
+                  {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce colada no download apertado, largura inteira do card. */}
+                  {downloadUpsellOpen[video.id] === 'library_card' && downloadUpsellVisible(video) && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: -4 }}>{renderDownloadUpsell(video, 'library_card')}</div>
+                  )}
                   {/* KINEO-ENHANCE-2026-08-17 — Topaz film polish, 10 cr */}
                   <button
                     className="kc-btn"
@@ -2126,7 +2216,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             downloadLabel={downloadingId === v.id ? 'Downloading…' : isWatermarkedFastAsset(v) ? 'Download with Kineo watermark (MP4)' : 'Download saved MP4'}
             downloadNote={downloadNotes[v.id]} copied={copiedKey === 'film-title-' + v.id}
             onVersionChange={version => setFileVersions(prev => ({ ...prev, [v.id]: version }))}
-            onDownload={() => handleDownload(v)}
+            onDownload={() => handleDownloadWithUpsell(v, 'library_lightbox')}
             onCopyTitle={() => { void copyToClipboard('film-title-' + v.id, extractTitle(v.topic)) }}
             onMetadata={player => {
               if (player.videoWidth && player.videoHeight) setFileResolutions(prev => ({ ...prev, [player.currentSrc]: `${player.videoWidth} × ${player.videoHeight}` }))
@@ -2137,6 +2227,8 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               {v.status === 'completed' && Boolean(v.video_url) && (
                 <PostFilmCreatorOffer key={v.id} surface="history_film" eligible={creatorTrialEligible} videoId={v.id} pending={checkout.pending !== null} onLaunch={checkout.launch} error={checkout.error} />
               )}
+              {/* KINEO-DOWNLOAD-OFERTA-2810 — no preview também; some se o botão antigo de export limpo já está aqui. */}
+              {!(isWatermarkedFastAsset(v) && cleanExportLocked === true) && renderDownloadUpsell(v, 'library_lightbox')}
               {isWatermarkedFastAsset(v) && cleanExportLocked === true && (
                 <button
                   onClick={() => handleStarterCheckout('history_lightbox')}

@@ -132,6 +132,9 @@ import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
 // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — jogada 7: "baixar limpo" ao lado de "baixar grátis", na hora do download.
 import { decideCleanDownloadTwin, cleanDownloadTwinLabel } from '@/lib/growth/cleanDownloadTwin'
+// KINEO-DOWNLOAD-OFERTA-2810 — "Remove watermark + HD" no instante do download; "Make it HD" para filme limpo pago.
+import { decideDownloadUpsell, decideMakeItHd, downloadUpsellCopy, rememberRebuildInputs } from '@/lib/growth/downloadUpsell'
+import { DownloadUpsellCard, MakeItHdButton } from '@/components/growth/DownloadUpsell'
 // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — o pedido do Kineo 1 sobrevive à aba fechada (lib/renderJobs.ts).
 import { RENDER_JOB_VERSION } from '@/lib/renderJobs'
 import { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
@@ -2623,6 +2626,10 @@ export default function GenerateClient({
   // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — impressão do botão gêmeo, uma vez por asset.
   const cleanDownloadTwinRef = useRef<HTMLButtonElement | null>(null)
   const cleanDownloadTwinTrackedKeyRef = useRef<string | null>(null)
+  // KINEO-DOWNLOAD-OFERTA-2810 — qual botão de download foi apertado NESTE filme (chave = id/URL do asset) e se a
+  // pessoa fechou a oferta. Chaveado pelo asset: filme novo nasce sem oferta aberta, sem precisar de reset.
+  const [downloadUpsellClick, setDownloadUpsellClick] = useState<{ key: string; anchor: 'top' | 'main' } | null>(null)
+  const [downloadUpsellDismissedKey, setDownloadUpsellDismissedKey] = useState<string | null>(null)
   const thirdFilmDoorSeenRef = useRef<string | null>(null)
   const urgencyCheckout = useCheckoutLaunch('generate_urgency_modal')
   const exitIntentCheckout = useCheckoutLaunch('generate_exit_intent_upgrade')
@@ -5830,6 +5837,29 @@ export default function GenerateClient({
     unlocking: wmUnlocking,
     rebuildReady: Boolean(lastFastRenderRef.current),
   })
+  // KINEO-DOWNLOAD-OFERTA-2810 — ver lib/growth/downloadUpsell.ts. O gatilho é o CLIQUE no download deste filme; o
+  // download não espera por nada daqui. Vale para trial e para a coorte do Filme15 (o bloco da versão completa segue
+  // no lugar dele, abaixo).
+  const downloadUpsellKey = publicVideoId || finalVideoUrl || null
+  const downloadUpsell = decideDownloadUpsell({
+    downloadClicked: Boolean(downloadUpsellKey) && phase === 'done' && downloadUpsellClick?.key === downloadUpsellKey,
+    hasWatermark: currentResultHasWatermark,
+    hasPaid,
+    unlocking: wmUnlocking,
+    dismissed: Boolean(downloadUpsellKey) && downloadUpsellDismissedKey === downloadUpsellKey,
+  })
+  const showMakeItHd = decideMakeItHd({
+    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    hasWatermark: currentResultHasWatermark,
+    hasPaid,
+    videoId: publicVideoId,
+  })
+  // A estante (/library, /history) só promete "este filme limpo" se tiver os insumos da remontagem. Todo filme marcado
+  // entregue deixa os seus guardados aqui (5 mais recentes, 14 dias) — ver rememberRebuildInputs.
+  useEffect(() => {
+    if (phase !== 'done' || !publicVideoId || !currentResultHasWatermark || !lastFastRenderRef.current) return
+    try { rememberRebuildInputs(window.localStorage, publicVideoId, lastFastRenderRef.current) } catch { /* storage bloqueado */ }
+  }, [phase, publicVideoId, currentResultHasWatermark])
   useEffect(() => {
     const element = cleanDownloadTwinRef.current
     const offerKey = publicVideoId || finalVideoUrl
@@ -10989,6 +11019,12 @@ export default function GenerateClient({
   //      tamanho do problema.
   async function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
     if (!finalVideoUrl) return
+    // KINEO-DOWNLOAD-OFERTA-2810 — o instante do download: abre a oferta ao lado do botão apertado. Só estado de tela;
+    // o arquivo segue exatamente o mesmo caminho logo abaixo.
+    if (currentResultHasWatermark && !hasPaid && downloadUpsellKey) {
+      const anchor: 'top' | 'main' = e.currentTarget?.dataset?.testid === 'done-download-top' ? 'top' : 'main'
+      setDownloadUpsellClick({ key: downloadUpsellKey, anchor })
+    }
     const slug = slugifyTitle(analysis?.title)
     const filename = slug ? `${slug}.mp4` : `kineo-${finalVideoSeconds ?? duration}s.mp4`
     // O tipo descreve o ASSET entregue, não o estado atual da conta. Um trial
@@ -11790,6 +11826,22 @@ export default function GenerateClient({
       trial_phase: trialPostVideoPhase,
       host: showPostVideoExportChoice ? 'export_choice_card' : 'plain_download',
       watermarked_downloaded: watermarkedDownloadConfirmed,
+      ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+      ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+    })
+    handleRemoveWatermark()
+  }
+
+  // KINEO-DOWNLOAD-OFERTA-2810 — o clique na oferta do download é o MESMO checkout do remove-watermark (Starter,
+  // return=wm, remonta ESTE filme limpo). Evento próprio para medir a peça separada do gêmeo e da caixa antiga.
+  function handleDownloadUpsellBuy(anchor: 'top' | 'main') {
+    void trackEvent('download_upsell_clicked', {
+      version: downloadUpsell.version,
+      surface: anchor === 'top' ? 'done_screen_top' : 'done_screen_main',
+      video_id: publicVideoId ?? null,
+      this_film: Boolean(lastFastRenderRef.current),
+      trial_phase: trialPostVideoPhase,
+      full_version_offer: fullVersionOfferEligible,
       ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     })
@@ -13268,7 +13320,28 @@ export default function GenerateClient({
   // abaixo do download nos DOIS ramos irmãos (caixa de export limpo e download
   // simples do trial) — eles nunca renderizam juntos, então o ref é um só.
   const cleanDownloadTwinCopy = cleanDownloadTwinLabel(postVideoRenewalPrice, TIER_CREDITS.starter)
-  const cleanDownloadTwinButton = cleanDownloadTwin.visible && !fullVersionOfferEligible ? (
+  // KINEO-DOWNLOAD-OFERTA-2810 — o cartão do instante do download. Um nó por âncora (topo ou botão principal); quando
+  // ele está aberto o gêmeo some (mesma oferta duas vezes na mesma tela é ruído).
+  const downloadUpsellCopyNow = downloadUpsellCopy({
+    priceLabel: postVideoRenewalPrice,
+    monthlyCredits: TIER_CREDITS.starter,
+    thisFilm: Boolean(lastFastRenderRef.current),
+  })
+  const renderDownloadUpsell = (anchor: 'top' | 'main') =>
+    downloadUpsell.visible && downloadUpsellClick?.anchor === anchor ? (
+      <DownloadUpsellCard
+        copy={downloadUpsellCopyNow}
+        surface={anchor === 'top' ? 'done_screen_top' : 'done_screen_main'}
+        videoId={publicVideoId}
+        thisFilm={Boolean(lastFastRenderRef.current)}
+        pending={wmCheckout.pending !== null}
+        error={wmCheckout.error}
+        onBuy={() => handleDownloadUpsellBuy(anchor)}
+        onDismiss={() => setDownloadUpsellDismissedKey(downloadUpsellKey)}
+        extra={{ trial_phase: trialPostVideoPhase, full_version_offer: fullVersionOfferEligible, ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}) }}
+      />
+    ) : null
+  const cleanDownloadTwinButton = cleanDownloadTwin.visible && !fullVersionOfferEligible && !downloadUpsell.visible ? (
     <button
       ref={cleanDownloadTwinRef}
       type="button"
@@ -17351,6 +17424,9 @@ export default function GenerateClient({
                 >
                   <span aria-hidden="true">⬇</span> Download MP4
                 </a>
+                {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
+                {renderDownloadUpsell('top')}
+                {showMakeItHd && publicVideoId && <MakeItHdButton videoId={publicVideoId} surface="done_screen_top" />}
                 {/* KINEO-CLAMP-FALADO-2026-08-28 — a verdade sobre o corte do
                     free, dita NO momento em que a pessoa perceberia a duração
                     menor e culparia o produto. Honesta e vendedora: diz o
@@ -17726,6 +17802,7 @@ export default function GenerateClient({
                   </a>
                   {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, colado no download. */}
                   {cleanDownloadTwinButton}
+                  {renderDownloadUpsell('main')}
                   {/* sprint-retencao #2 — a porta do episodio 2, no primeiro
                       viewport. Ver o bloco de comentario em episode2Engine:
                       so 12% das pessoas chegavam a VER esta oferta no rodape,
@@ -18072,6 +18149,7 @@ export default function GenerateClient({
                 )}
                 {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, no ramo onde o trial cai. */}
                 {!showPostVideoExportChoice && cleanDownloadTwinButton}
+                {!showPostVideoExportChoice && renderDownloadUpsell('main')}
 
                 {/* KINEO-UPSELL-FILME15-2610 — same delivered free film, full 35 s version. This shared position follows
                     both download branches. The authenticated checkout route persists the saved script before Stripe. */}
