@@ -16,7 +16,7 @@ import { TIER_CREDITS, monthlyPriceMinor, type CheckoutPlanTier } from '@/lib/ch
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
 import { ONE_TIME_ITEMS_LIVE } from '@/lib/oneTimeItem' // KINEO-COMPRA-AVULSA-2410
 import { adsV2RefusalFor, type AdsRefusalNext } from '@/lib/ads/eligibilityPure' // KINEO-ADS-SIMPLES-2810 — toda recusa de /api/ads/v2/* vira frase com próximo passo (lib pura)
-import { bfCampaignFromQuery, bfTemplate, bfTemplateReady, type BfCampaign } from '@/lib/ads/bfCampaign'
+import { bfCampaignFromQuery, bfDraftStorageKey, bfTemplate, bfTemplateReady, type BfCampaign } from '@/lib/ads/bfCampaign'
 
 type Stage = 'edit' | 'planned' | 'stills' | 'choose' | 'rendering' | 'delivered' | 'failed'
 type Still = { id: string; url: string; score?: number; reasons?: string[] }
@@ -62,7 +62,9 @@ export default function AdsV2Escolha({ lang, entry, ownerKey, resume = true, pre
   const [bfCampaign, setBfCampaign] = useState<BfCampaign | null>(null)
   const needsOneTime = ONE_TIME_ITEMS_LIVE && (creditBlocked || balance !== null && balance < renderCredits) // KINEO-COMPRA-AVULSA-2410
   const alive = useRef(true), inFlight = useRef(false), controller = useRef<AbortController | null>(null)
-  const key = `kineo:ads-escolha:v1:${ownerKey}`, route = sampleMode ? 'kling3' : orderId && orderEngine ? orderEngine : internalControls ? form.rota || (form.voice_mode === 'talking' ? 'veo31' : kling4Availability?.paidLive ? 'kling4' : 'kling3') : kling4Availability?.paidLive ? 'kling4' : 'kling3', person = escolhaPresenter(form.presenter_id), scene = escolhaScenario(form.scenario_id), chosen = stills.find(s => s.id === stillId), locked = !!orderId || !!busy || sessionDenied
+  let key = `kineo:ads-escolha:v1:${ownerKey}`
+  try { key = bfDraftStorageKey(ownerKey, new URLSearchParams(window.location.search)) } catch { /* The ordinary draft remains available without browser location. */ }
+  const route = sampleMode ? 'kling3' : orderId && orderEngine ? orderEngine : internalControls ? form.rota || (form.voice_mode === 'talking' ? 'veo31' : kling4Availability?.paidLive ? 'kling4' : 'kling3') : kling4Availability?.paidLive ? 'kling4' : 'kling3', person = escolhaPresenter(form.presenter_id), scene = escolhaScenario(form.scenario_id), chosen = stills.find(s => s.id === stillId), locked = !!orderId || !!busy || sessionDenied
   const benefits = form.beneficios.split('\n').map(s => s.trim()).filter(Boolean), benefitsValid = benefits.length <= 6 && benefits.every(b => b.length <= 160)
   const incompatible = !sampleMode && internalControls && route === 'kling3' && form.voice_mode === 'talking' && !['en', 'zh'].includes(form.language)
   const canPlan = https(form.foto) && !!form.frase.trim() && !!person && !!scene && scene.category === form.category && !incompatible && benefitsValid && !busy && !sessionDenied && bfTemplateReady(bfCampaign, form)

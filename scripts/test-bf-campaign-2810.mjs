@@ -16,6 +16,8 @@ for (const lang of ['en', 'pt', 'es']) for (const id of C.BF_TEMPLATE_IDS) {
   assert.deepEqual(plain(parsed), { id, lang })
   const t = C.bfTemplate(lang, id)
   assert.ok(t.title && t.description && t.cta && t.hint && t.frase)
+  assert.ok(/final visual text|texto visual final/.test(t.frase), 'offer belongs in final visual text, not speech')
+  assert.ok(/not the voiceover|nunca na narração|nunca en la voz/.test(t.frase), 'template explicitly excludes offer from speech')
   assert.equal(/\d+\s*%|last \d+|últimas unidades|últimas unidades/i.test(t.frase + t.cta), false, 'no discount or scarcity preselected')
   assert.equal(C.bfTemplateReady(parsed, { frase: t.frase, oferta: 'Real offer', beneficios: '', cta: t.cta }), false)
   assert.equal(C.bfTemplateReady(parsed, { frase: 'My real product', oferta: '', beneficios: '', cta: t.cta }), false)
@@ -77,7 +79,7 @@ function client({ q = '', saved = null, raw = readFileSync(UI, 'utf8') } = {}) {
     for (let n = 0; n < 10; n++) { changed = false; si = ri = ei = 0; pending = []; tree = mod.exports.default({ lang: 'en', ownerKey: 'u:o', initialSample: false, sampleAvailable: false }); pending.forEach(f => f()); if (!changed) return }
     throw Error('hooks did not settle')
   }
-  return { state, requests, render, nodes: () => nodes(tree) }
+  return { state, requests, storage, render, nodes: () => nodes(tree) }
 }
 for (const lang of ['en', 'pt', 'es']) for (const id of C.BF_TEMPLATE_IDS) {
   const ui = client({ q: query(lang, id) }); ui.render()
@@ -95,7 +97,13 @@ for (const lang of ['en', 'pt', 'es']) for (const id of C.BF_TEMPLATE_IDS) {
   assert.equal(ui.requests.length, 1); assert.equal(ui.requests[0].body.frase, 'Real product'); assert.equal(ui.requests[0].body.language, lang)
 }
 const saved = { version: catalog.CENA_ESCOLHA_MARK, form: FORM, order_id: '00000000-0000-4000-8000-000000000001', stage: 'choose', stills: [], still_id: '', narration_used: '', quality_notes: [], credits: 41 }
-for (const settings of [{ saved, q: query('pt', 'countdown') }, { q: query('es', 'flash-sale') + '&order=00000000-0000-4000-8000-000000000002' }]) {
+const returning = client({ saved, q: query('pt', 'countdown') }); returning.render()
+assert.equal(returning.state[0].frase, C.bfTemplate('pt', 'countdown').frase, 'explicit template opens a separate draft for returning users')
+assert.equal(returning.storage.get('kineo:ads-escolha:v1:u:o'), JSON.stringify(saved), 'previous order storage remains byte-for-byte intact')
+assert.equal(returning.requests.length, 0)
+assert.equal(C.bfDraftStorageKey('u:o', new URLSearchParams(query('pt', 'countdown'))), 'kineo:ads-escolha:v1:u:o:bf:countdown:pt')
+for (const settings of [{ saved }, { saved, q: query('es', 'flash-sale') + '&order=00000000-0000-4000-8000-000000000001' }]) {
   const ui = client(settings); ui.render(); assert.equal(ui.state[0].frase, FORM.frase); assert.equal(ui.nodes().some(n => n.props['data-kineo'] === 'bf-template-loaded'), false); assert.equal(ui.requests.length, 0)
 }
-console.log('ok — 9 localized templates; enums; no invented offers; login round-trip; raw editor prefill, explicit plan, placeholder guard and resume priority; no network')
+assert.equal(C.bfDraftStorageKey('u:o', new URLSearchParams(query('pt', 'countdown') + '&order=00000000-0000-4000-8000-000000000001')), 'kineo:ads-escolha:v1:u:o')
+console.log('ok — 9 localized templates; visual-only offers; enums; login round-trip; raw editor prefill, explicit plan, placeholder guard, independent returning-user draft and explicit-order priority; no network')

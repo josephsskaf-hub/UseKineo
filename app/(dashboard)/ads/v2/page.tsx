@@ -85,7 +85,7 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   const elegibilidade = await loadAdsEligibility(admin, { id: user.id }, reason, { requestCountry: paisDoRequest(headers()) }) // KINEO-ADS-SIMPLES-2810
   const sampleAvailable = gate !== 'ok' && elegibilidade.state === 'free_sample_available' // KINEO-ADS-SIMPLES-2810 — a amostra ainda aberta para ESTA pessoa
   const sample = gate !== 'ok' // KINEO-ADS-SIMPLES-2810 — era: gate !== 'ok' && (ADS_ESCOLHA_SAMPLE_LIVE || personalResume || gate === 'no_access' && await adsSampleOpen(admin, uid, reason)) — a tela da conta sem plano é sempre a da amostra (sem variações/Produção/lote)
-  if (gate !== 'ok' && !personalResume && elegibilidade.state === 'free_sample_used' && elegibilidade.sampleOrderId && await isEscolhaPersonalOrder(admin, user.id, elegibilidade.sampleOrderId)) { // KINEO-ADS-SIMPLES-2810 — amostra já usada: reabre o resultado dela (vídeo + "versão completa · N créditos" + planos)
+  if (gate !== 'ok' && !personalResume && !bfCampaign && elegibilidade.state === 'free_sample_used' && elegibilidade.sampleOrderId && await isEscolhaPersonalOrder(admin, user.id, elegibilidade.sampleOrderId)) { // KINEO-BF-CAMPAIGN-2810 — explicit template keeps its draft and eligibility notice; an old sample remains linked, never granted again.
     await writeServerEvent({ name: 'ads_door_state', userId: user.id, path: '/ads/v2', metadata: { state: elegibilidade.state, reason: elegibilidade.reason, redirect: 'own_sample', ...(entry ? { entry } : {}) } }) // KINEO-ADS-SIMPLES-2810
     redirect(`/ads/v2?order=${elegibilidade.sampleOrderId}${entry ? `&entry=${entry}` : ''}`) // KINEO-ADS-SIMPLES-2810
   }
