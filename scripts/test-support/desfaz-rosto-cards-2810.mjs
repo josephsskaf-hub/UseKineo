@@ -7,12 +7,13 @@ import { semRostoNoClipe2810, ARQUIVOS as ROSTO_NO_CLIPE_ARQUIVOS } from './desf
 import { semCardsRosto2810, ARQUIVOS as CARDS_ROSTO_ARQUIVOS } from './desfaz-cards-rosto-2810.mjs'
 import { semGaleriaCheia2810, ARQUIVOS as GALERIA_CHEIA_ARQUIVOS } from './desfaz-galeria-cheia-2810.mjs'
 import { semMenuUniforme2810, ARQUIVOS as MENU_UNIFORME_ARQUIVOS } from './desfaz-menu-uniforme-2810.mjs'
+import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-rosto-ajuste-2810.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810]
+const CAMADAS = [semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810]
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
-export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])]
+export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])]
 
 export function relDe(p) {
   const s = String(p ?? '')

@@ -8,12 +8,20 @@ import path from 'node:path'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 export const CAMADAS = {
+  'rosto-ajuste-2810': {
+    fn: 'semRostoAjuste2810',
+    marca: 'KINEO-ROSTO-AJUSTE-2810',
+    o_que: 'o ajuste do remix no /clips: foto obrigatória dita na tela',
+    base: '563542621',
+    tip: null,
+    arquivos: ['app/(dashboard)/clips/ClipsClient.tsx'],
+  },
   'menu-uniforme-2810': {
     fn: 'semMenuUniforme2810',
     marca: 'KINEO-MENU-UNIFORME-2810',
     o_que: 'o menu do topo uniforme (home sem sublinhado/peso extra; cabeçalho claro sem cinza nem azul)',
     base: '1293fcb9f',
-    tip: null,
+    tip: '563542621',
     arquivos: ['app/kineoLandingTheme.ts', 'app/examples/ExamplesGallery.module.css'],
   },
   'galeria-cheia-2810': {
@@ -21,7 +29,7 @@ export const CAMADAS = {
     marca: 'KINEO-GALERIA-CHEIA-2810',
     o_que: 'a galeria Made with Kineo cheia (tudo de cara, última fileira completa) e sem os filmes com usekineo.com/free',
     base: '49aa28d2c',
-    tip: null,
+    tip: '1293fcb9f',
     arquivos: ['lib/homeGaleria.ts', 'lib/homeGaleriaItems.ts', 'components/KineoHouseGallery.tsx'],
   },
   'cards-rosto-2810': {
@@ -29,7 +37,7 @@ export const CAMADAS = {
     marca: 'KINEO-CARDS-ROSTO-2810',
     o_que: 'os cards 1, 2 e 4 da home: lobisomem, relógio no lugar do perfume, 3 desenhos de Halloween',
     base: '24ebecdcea27bf2896856d412e417211c39eed6b',
-    tip: null,
+    tip: 'd22214ddf',
     arquivos: ['lib/ui/homeThreeCards.ts'],
   },
   'rosto-no-clipe-2810': {
@@ -37,7 +45,7 @@ export const CAMADAS = {
     marca: 'KINEO-ROSTO-NO-CLIPE-2810',
     o_que: 'o botão "Put your face in it" (remix do clipe da casa com a foto da pessoa)',
     base: '24ebecdcea27bf2896856d412e417211c39eed6b',
-    tip: null,
+    tip: 'b7018237a',
     arquivos: ['lib/homeGaleria.ts', 'lib/homeGaleriaItems.ts', 'app/api/clips/route.ts', 'components/KineoHouseGallery.tsx', 'components/home/HomeClipsStrip.tsx', 'app/(dashboard)/clips/ClipsClient.tsx'],
   },
 }

@@ -591,7 +591,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         // eslint-disable-next-line @next/next/no-img-element
         ? <><img src={photoUrl} alt="" /><button type="button" className="pill" onClick={() => setPhotoUrl(null)}>{t('removePhoto')}</button></>
         : <button type="button" className="pill" disabled={uploading} onClick={() => fileRef.current?.click()}><ControlIcon name="image" /> {uploading ? t('uploading') : t('addPhoto')}</button>}
-      <span className="clip-meta" style={{ marginTop: 0 }}>{effect ? t('effectPhoto') : <>{t('photo')} · {t('photoHint')}</>}</span>
+      <span className="clip-meta" style={{ marginTop: 0 }}>{effect ? t('effectPhoto') : remix ? <UiLabel>Required — one clear photo where the face is easy to see. It becomes the first frame.</UiLabel> : <>{t('photo')} · {t('photoHint')}</>}</span>{/* KINEO-ROSTO-AJUSTE-2810 — no remix a foto é obrigatória (o "Photo (optional)" do clipe livre enganava) */}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => void onPhoto(e.target.files?.[0] ?? null)} />
     </div>
   )

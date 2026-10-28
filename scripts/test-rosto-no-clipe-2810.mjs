@@ -142,6 +142,7 @@ function checa(over = {}) {
   if (!client.includes("await send({ remix: remix.id, image_url: photoUrl, consent: true })")) e.push('tela não manda só id + foto + consentimento')
   if (!/if \(!remix \|\| !photoUrl \|\| !remixConsent \|\| busy \|\| uploading\) return/.test(client)) e.push('tela gera sem consentimento')
   if (!client.includes('data-face-remix-consent')) e.push('tela sem a caixa de consentimento')
+  if (!client.includes("remix ? <UiLabel>Required — one clear photo where the face is easy to see.")) e.push('no remix a tela ainda diz que a foto é opcional') // KINEO-ROSTO-AJUSTE-2810
   if (!client.includes("void trackClosedEvent('face_remix_opened', { id: found.id })")) e.push('face_remix_opened ausente')
   if (!/\{remix\.credits\} \{t\('credits'\)\}/.test(client)) e.push('preço fora do botão do remix')
 
