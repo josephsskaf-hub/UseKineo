@@ -84,6 +84,7 @@ type Clip = {
   effect?: string | null
   film_href?: string | null
   branded?: boolean
+  stage?: 'keyframe' | 'video' | null // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix em andamento: colocando na cena / filmando
 }
 
 // KINEO-ROSTO-NO-CLIPE-2810 — "Put your face in it" (lib/clips/faceRemix.ts): o clipe da casa refeito a partir da foto da pessoa.
@@ -122,19 +123,22 @@ function newKey(markTest = false): string {
   try { return `${prefix}${crypto.randomUUID()}` } catch { return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 10)}` }
 }
 
-async function compressPhoto(file: File): Promise<File> {
+async function compressPhoto(file: File, remix = false): Promise<File> { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + remix: a foto do rosto SEMPRE é normalizada
   // Mesmo tratamento do /animate: o upload aceita JPG/PNG ≤ 8 MB; webp ou foto grande vira JPEG ≤ 1600 px.
-  const needs = file.size >= 2 * 1024 * 1024 || !/^image\/(jpeg|png)$/.test(file.type)
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — no remix ("Put your face in it") a foto passa SEMPRE pelo canvas: selfie de celular (7,5 MB PNG,
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — barras pretas em cima e embaixo) vira JPEG ≤ 1600 px sem o letterbox — é o que a fal recebe.
+  const needs = remix || file.size >= 2 * 1024 * 1024 || !/^image\/(jpeg|png)$/.test(file.type) // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (!needs) return file
   try {
     const bitmap = await createImageBitmap(file)
-    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const box = remix ? letterboxCrop(bitmap) : { x: 0, y: 0, w: bitmap.width, h: bitmap.height } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const scale = Math.min(1, 1600 / Math.max(box.w, box.h)) // KINEO-ROSTO-QUADRO-CHAVE-2810 — era bitmap.width/height
     const canvas = document.createElement('canvas')
-    canvas.width = Math.round(bitmap.width * scale)
-    canvas.height = Math.round(bitmap.height * scale)
+    canvas.width = Math.round(box.w * scale) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    canvas.height = Math.round(box.h * scale) // KINEO-ROSTO-QUADRO-CHAVE-2810
     const ctx = canvas.getContext('2d')
     if (!ctx) return file
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    ctx.drawImage(bitmap, box.x, box.y, box.w, box.h, 0, 0, canvas.width, canvas.height) // KINEO-ROSTO-QUADRO-CHAVE-2810 — recorte de origem
     const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
     return blob ? new File([blob], 'photo.jpg', { type: 'image/jpeg' }) : file
   } catch {
@@ -153,6 +157,62 @@ function trendRowEffects<E extends { key: string; preview: unknown }>(effects: r
   return [...seasonal, ...newest].slice(0, Math.max(0, TREND_ROW_TOTAL - ideas))
 }
 
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — tira as barras PRETAS de cima e de baixo (letterbox de selfie/print de celular). Lê uma amostra
+// reduzida (≤ 256 px de largura) e considera "barra" a faixa contígua de linhas quase pretas (média < 18, sem variação). Só corta
+// se a barra tem entre 2% e 45% da altura — foto escura de verdade não é barra (tem variação) e nunca some mais da metade.
+function letterboxCrop(bitmap: ImageBitmap): { x: number; y: number; w: number; h: number } { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const full = { x: 0, y: 0, w: bitmap.width, h: bitmap.height } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  try { // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const sw = Math.min(256, bitmap.width), sh = Math.max(1, Math.round(bitmap.height * (sw / bitmap.width))) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const c = document.createElement('canvas'); c.width = sw; c.height = sh // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const ctx = c.getContext('2d', { willReadFrequently: true }); if (!ctx) return full // KINEO-ROSTO-QUADRO-CHAVE-2810
+    ctx.drawImage(bitmap, 0, 0, sw, sh) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const px = ctx.getImageData(0, 0, sw, sh).data // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const dark = (row: number) => { // KINEO-ROSTO-QUADRO-CHAVE-2810
+      let sum = 0, max = 0 // KINEO-ROSTO-QUADRO-CHAVE-2810
+      for (let x = 0; x < sw; x++) { const i = (row * sw + x) * 4; const l = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000; sum += l; if (l > max) max = l } // KINEO-ROSTO-QUADRO-CHAVE-2810
+      return sum / sw < 18 && max < 40 // KINEO-ROSTO-QUADRO-CHAVE-2810
+    } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    let top = 0; while (top < sh && dark(top)) top++ // KINEO-ROSTO-QUADRO-CHAVE-2810
+    let bottom = 0; while (bottom < sh - top && dark(sh - 1 - bottom)) bottom++ // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const ok = (n: number) => n >= sh * 0.02 && n <= sh * 0.45 // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const t = ok(top) ? top : 0, b = ok(bottom) ? bottom : 0 // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!t && !b) return full // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const k = bitmap.height / sh // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const y = Math.round(t * k), h = Math.max(1, Math.round(bitmap.height - (t + b) * k)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    return { x: 0, y, w: bitmap.width, h } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  } catch { return full } // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — o RECORTE DO ROSTO (2ª referência do quadro-chave; o 2º quadro-chave do fundador provou que ajuda).
+// No servidor não há decodificador de imagem (sem sharp/canvas — CLAUDE.md), então o recorte nasce aqui, no navegador, a partir da
+// foto JÁ normalizada: com o FaceDetector do navegador quando existe (Chrome Android/macOS), senão a heurística de selfie — quadrado
+// centrado, lado = min(largura, 55% da altura), topo a 4% (a cabeça de um retrato de celular vive no terço de cima). Sai JPEG ≤ 768 px.
+// Falhou = null, e o pedido segue só com a foto inteira (o servidor aceita as duas formas).
+async function cropFace(file: File): Promise<File | null> { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  try { // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const bitmap = await createImageBitmap(file) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const W = bitmap.width, H = bitmap.height // KINEO-ROSTO-QUADRO-CHAVE-2810
+    let side = Math.round(Math.min(W, H * 0.55)), cx = W / 2, cy = Math.round(H * 0.04) + side / 2 // KINEO-ROSTO-QUADRO-CHAVE-2810 — heurística de selfie
+    const FD = (window as unknown as { FaceDetector?: new (o: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect(i: ImageBitmap): Promise<Array<{ boundingBox: { x: number; y: number; width: number; height: number } }>> } }).FaceDetector // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (FD) { // KINEO-ROSTO-QUADRO-CHAVE-2810
+      try { // KINEO-ROSTO-QUADRO-CHAVE-2810
+        const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(bitmap) // KINEO-ROSTO-QUADRO-CHAVE-2810
+        const f = faces?.[0]?.boundingBox // KINEO-ROSTO-QUADRO-CHAVE-2810
+        if (f && f.width > 24 && f.height > 24) { side = Math.round(Math.max(f.width, f.height) * 1.9); cx = f.x + f.width / 2; cy = f.y + f.height / 2 + f.height * 0.12 } // KINEO-ROSTO-QUADRO-CHAVE-2810 — 1,9× cobre cabelo e barba
+      } catch {} // KINEO-ROSTO-QUADRO-CHAVE-2810 — detector indisponível/negado: fica a heurística
+    } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    side = Math.max(64, Math.min(side, W, H)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const x = Math.round(Math.min(Math.max(0, cx - side / 2), W - side)), y = Math.round(Math.min(Math.max(0, cy - side / 2), H - side)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const out = Math.min(768, side) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const canvas = document.createElement('canvas'); canvas.width = out; canvas.height = out // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const ctx = canvas.getContext('2d'); if (!ctx) return null // KINEO-ROSTO-QUADRO-CHAVE-2810
+    ctx.drawImage(bitmap, x, y, side, side, 0, 0, out, out) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    return blob ? new File([blob], 'face.jpg', { type: 'image/jpeg' }) : null // KINEO-ROSTO-QUADRO-CHAVE-2810
+  } catch { return null } // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
 export default function ClipsClient({ measurementActor = null }: { measurementActor?: string | null }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
@@ -165,6 +225,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [faceRemixes, setFaceRemixes] = useState<FaceRemixCard[]>([]) // KINEO-ROSTO-NO-CLIPE-2810
   const [remixId, setRemixId] = useState<string | null>(null) // KINEO-ROSTO-NO-CLIPE-2810
   const [remixConsent, setRemixConsent] = useState(false) // KINEO-ROSTO-NO-CLIPE-2810 — a foto é da pessoa ou de alguém que concordou (o servidor exige)
+  const [faceUrl, setFaceUrl] = useState<string | null>(null) // KINEO-ROSTO-QUADRO-CHAVE-2810 — o recorte do rosto (2ª referência do quadro-chave), subido junto com a foto no remix
   const [clips, setClips] = useState<Clip[]>([])
   const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -391,15 +452,26 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (!file) return
     setError(null)
     setUploading(true)
+    setFaceUrl(null) // KINEO-ROSTO-QUADRO-CHAVE-2810
     try {
-      const fd = new FormData()
-      fd.append('file', await compressPhoto(file))
-      fd.append('rights', 'true')
-      fd.append('purpose', 'animate')
-      const res = await fetch('/api/avatar/upload', { method: 'POST', body: fd })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || typeof data?.url !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'Upload failed. Please try again.')
-      setPhotoUrl(data.url)
+      const normalized = await compressPhoto(file, !!remix) // KINEO-ROSTO-QUADRO-CHAVE-2810 — no remix: sempre JPEG ≤ 1600 px, sem barras pretas
+      const upload = async (f: File) => { // KINEO-ROSTO-QUADRO-CHAVE-2810
+        const fd = new FormData() // KINEO-ROSTO-QUADRO-CHAVE-2810
+        fd.append('file', f) // KINEO-ROSTO-QUADRO-CHAVE-2810
+        fd.append('rights', 'true')
+        fd.append('purpose', 'animate')
+        const res = await fetch('/api/avatar/upload', { method: 'POST', body: fd })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || typeof data?.url !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'Upload failed. Please try again.')
+        return data.url as string // KINEO-ROSTO-QUADRO-CHAVE-2810
+      } // KINEO-ROSTO-QUADRO-CHAVE-2810
+      const url = await upload(normalized) // KINEO-ROSTO-QUADRO-CHAVE-2810
+      setPhotoUrl(url) // KINEO-ROSTO-QUADRO-CHAVE-2810
+      // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: o recorte do rosto sobe como 2ª foto (moderada no upload como a 1ª). Falhou = segue só com a foto.
+      if (remix) { // KINEO-ROSTO-QUADRO-CHAVE-2810
+        const face = await cropFace(normalized) // KINEO-ROSTO-QUADRO-CHAVE-2810
+        if (face) setFaceUrl(await upload(face).catch(() => null)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+      } // KINEO-ROSTO-QUADRO-CHAVE-2810
     } catch (e) {
       setError({ text: e instanceof Error ? e.message : 'Upload failed. Please try again.', credits: false })
     } finally {
@@ -440,7 +512,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   // KINEO-ROSTO-NO-CLIPE-2810 — remix: só o id, a foto e o consentimento. Prompt, motor, duração e formato quem monta é o servidor.
   async function generateRemix() { // KINEO-ROSTO-NO-CLIPE-2810
     if (!remix || !photoUrl || !remixConsent || busy || uploading) return // KINEO-ROSTO-NO-CLIPE-2810
-    await send({ remix: remix.id, image_url: photoUrl, consent: true }) // KINEO-ROSTO-NO-CLIPE-2810
+    await send({ remix: remix.id, image_url: photoUrl, consent: true, ...(faceUrl ? { face_image_url: faceUrl } : {}) }) // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-ROSTO-QUADRO-CHAVE-2810 — + o recorte do rosto, quando o navegador o fez
   } // KINEO-ROSTO-NO-CLIPE-2810
 
   async function send(payload: Record<string, unknown>) {
@@ -612,9 +684,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     <div className="photo-row" data-clip-action="upload">
       {photoUrl
         // eslint-disable-next-line @next/next/no-img-element
-        ? <><img src={photoUrl} alt="" /><button type="button" className="pill" onClick={() => setPhotoUrl(null)}>{t('removePhoto')}</button></>
+        ? <><img src={photoUrl} alt="" /><button type="button" className="pill" onClick={() => { setPhotoUrl(null); setFaceUrl(null) }}>{t('removePhoto')}</button>{/* KINEO-ROSTO-QUADRO-CHAVE-2810 — tirar a foto tira o recorte junto */}</>
         : <button type="button" className="pill" disabled={uploading} onClick={() => fileRef.current?.click()}><ControlIcon name="image" /> {uploading ? t('uploading') : t('addPhoto')}</button>}
-      <span className="clip-meta" style={{ marginTop: 0 }}>{effect ? t('effectPhoto') : remix ? <UiLabel>Required — one clear photo where the face is easy to see. It becomes the first frame.</UiLabel> : <>{t('photo')} · {t('photoHint')}</>}</span>{/* KINEO-ROSTO-AJUSTE-2810 — no remix a foto é obrigatória (o "Photo (optional)" do clipe livre enganava) */}
+      <span className="clip-meta" style={{ marginTop: 0 }}>{effect ? t('effectPhoto') : remix ? <UiLabel>Required — one clear photo where the face is easy to see. Kineo first places you in the scene, then films it.</UiLabel> : <>{t('photo')} · {t('photoHint')}</>}</span>{/* KINEO-ROSTO-AJUSTE-2810 — no remix a foto é obrigatória (o "Photo (optional)" do clipe livre enganava) · KINEO-ROSTO-QUADRO-CHAVE-2810 — era "It becomes the first frame." (agora o 1º quadro é a cena) */}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => void onPhoto(e.target.files?.[0] ?? null)} />
     </div>
   )
@@ -970,7 +1042,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
               <div key={c.id} className="card clip-card" style={{ padding: 10 }}>
                 {c.status === 'done' && c.video_url
                   ? <video src={c.video_url} controls playsInline preload="metadata" />
-                  : <div className="clip-wait">{c.status === 'failed' ? (c.credits_refunded > 0 ? t('failedRefunded', { n: c.credits_refunded }) : t('failed')) : t('inProgress')}</div>}
+                  : <div className="clip-wait">{c.status === 'failed' ? (c.credits_refunded > 0 ? t('failedRefunded', { n: c.credits_refunded }) : t('failed')) : c.stage === 'keyframe' ? <UiLabel>Placing you in the scene…</UiLabel> : c.stage === 'video' ? <UiLabel>Filming your scene…</UiLabel> : t('inProgress')}</div>}{/* KINEO-ROSTO-QUADRO-CHAVE-2810 — as duas etapas do remix com nome */}
                 <div className="clip-meta">{c.label} · {c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect} · {c.credits} cr</div>
                 {c.effect
                   ? <div className="clip-meta" style={{ marginTop: 4 }}>{t('effectLabel')} · {effects.find((fx) => fx.key === c.effect)?.title ?? c.effect}</div>

@@ -75,6 +75,7 @@ for (const [label, opts, b] of [
   const res = await submitClip(d, { userId: USER, idempotencyKey: 'key-auto-0004', body: body('hollywood') as never })
   ok(!res.ok && log.submits.length === 2 && live.size === 0 && log.failed[0] === 'provider_rejected', '(4) Seedance também recusa → estorno integral e o erro de sempre')
 }
+ok(/!template && !remix && deps.switchEngine/.test((await import('node:fs')).readFileSync('lib/clips/clipFlow.ts', 'utf8')), '(3) sem troca: remix do rosto (a etapa 1 é o quadro-chave)')
 ok(clipFallbackRequest({ engine: 'seedance', mode: 't2v', model: 'm', seconds: 5, aspect: '9:16', prompt: 'x', imageUrl: null }) === null, '(3) clipFallbackRequest não troca Seedance por Seedance')
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)

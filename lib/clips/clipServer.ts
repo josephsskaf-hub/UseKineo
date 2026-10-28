@@ -35,6 +35,10 @@ import {
 } from '@/lib/clips/clipCatalog'
 import { clipCreditCost } from '@/lib/clips/clipPricing'
 import { clipEffectFilmHref, clipEffectForRow, type ClipEffectKey } from '@/lib/clips/clipEffects'
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do "Put your face in it": o quadro-chave (PNG do Nano Banana) vai para o NOSSO bucket em
+// caminho determinístico e o vídeo (i2v do motor) parte dele. A ORDEM mora em lib/clips/clipFlow.ts settleClip; aqui só os fios.
+import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
+import { buildClipFalInput } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
 import {
   CLIP_EXPIRE_MS,
   CLIP_PENDING_STALE_MS,
@@ -217,11 +221,14 @@ export interface PublicClip {
   film_href: string | null
   /** KINEO-CLIPE-MARCA-2026-10-06 — o arquivo entregue leva a marca usekineo.com (clipe de quem não paga). */
   branded: boolean
+  /** KINEO-ROSTO-QUADRO-CHAVE-2810 — remix em andamento: 'keyframe' (colocando a pessoa na cena) ou 'video' (filmando); null = não é remix. */
+  stage: 'keyframe' | 'video' | null // KINEO-ROSTO-QUADRO-CHAVE-2810
 }
 
 export function toPublicClip(row: ClipRow): PublicClip {
   const effect = clipEffectForRow(row)
   return {
+    stage: faceRemixStageForRow(row), // KINEO-ROSTO-QUADRO-CHAVE-2810
     id: row.id,
     engine: row.engine,
     label: effect?.template?.label ?? CLIP_ENGINES[row.engine]?.label ?? row.engine, // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real
@@ -347,9 +354,11 @@ async function pollFal(model: string, requestId: string): Promise<ProviderState>
     if (s === 'IN_PROGRESS') return { state: 'running' }
     if (s !== 'COMPLETED') return { state: 'unknown' }
     const res = await fal.queue.result(model, { requestId })
-    const data = ((res as { data?: unknown }).data ?? res) as { video?: { url?: string }; output?: { video?: { url?: string } } }
+    const data = ((res as { data?: unknown }).data ?? res) as { video?: { url?: string }; output?: { video?: { url?: string } }; images?: Array<{ url?: string }> } // KINEO-ROSTO-QUADRO-CHAVE-2810 — + images (o quadro-chave do Nano Banana edit)
     const url = data?.video?.url ?? data?.output?.video?.url ?? null
-    return url ? { state: 'done', url } : { state: 'failed', error: 'completed without video url' }
+    const imageUrl = Array.isArray(data?.images) ? data.images[0]?.url ?? null : null // KINEO-ROSTO-QUADRO-CHAVE-2810 — a saída do edit (etapa 1 do remix) é images[0].url
+    const out = url ?? imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
+    return out ? { state: 'done', url: out } : { state: 'failed', error: 'completed without video url' } // KINEO-ROSTO-QUADRO-CHAVE-2810 — era `url ? { state: 'done', url }`
   } catch (err) {
     const status = typeof (err as { status?: unknown })?.status === 'number' ? (err as { status: number }).status : null
     const msg = err instanceof Error ? err.message : String(err)
@@ -389,6 +398,58 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
   if (!data?.publicUrl) throw new Error('no public url')
   return data.publicUrl
 }
+
+// ─── KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix ────────────────────────
+const MAX_KEYFRAME_BYTES = 20 * 1024 * 1024 // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+/** O quadro-chave (PNG da fal, URL que expira) vai para o nosso bucket em caminho determinístico (upsert: dois atores, o MESMO arquivo). */
+async function persistClipKeyframe(admin: SupabaseClient, row: ClipRow, providerUrl: string): Promise<string> { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const res = await fetch(providerUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (!res.ok) throw new Error(`keyframe download ${res.status}`) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const buf = await res.arrayBuffer() // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (buf.byteLength === 0 || buf.byteLength > MAX_KEYFRAME_BYTES) throw new Error(`keyframe bad size ${buf.byteLength}`) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const ct = res.headers.get('content-type') ?? '' // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const contentType = /image\/(png|jpeg|webp)/.test(ct) ? (ct.match(/image\/(?:png|jpeg|webp)/) as RegExpMatchArray)[0] : 'image/png' // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const path = faceRemixKeyframePath(row.user_id, row.id) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const { error } = await admin.storage.from(CLIPS_BUCKET).upload(path, buf, { contentType, upsert: true }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (error) throw new Error(error.message) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const { data } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(path) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (!data?.publicUrl) throw new Error('keyframe: no public url') // KINEO-ROSTO-QUADRO-CHAVE-2810
+  return data.publicUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+/** Reserva a etapa 2: troca o modelo para o i2v e ZERA o request_id, condicionado ao modelo da etapa 1 + ao request_id do quadro-chave.
+ *  Só um ator move a linha (o outro vê 0 linhas). Enquanto o request_id está nulo, a rede de 10 min (submit_lost) cobre o envio perdido. */
+async function claimRemixVideoStage(admin: SupabaseClient, row: ClipRow, videoModel: string): Promise<boolean> { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const { data, error } = await admin // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .from(CLIPS_TABLE) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .update({ model: videoModel, fal_request_id: null }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('id', row.id) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('status', 'processing') // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('model', row.model) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('fal_request_id', row.fal_request_id) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .select('id') // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (error) { console.error(`[clips] remix claim failed clip=${row.id}:`, error.message); return false } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  return (data ?? []).length > 0 // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+async function markRemixVideoSubmitted(admin: SupabaseClient, id: string, videoModel: string, requestId: string): Promise<boolean> { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const { data, error } = await admin // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .from(CLIPS_TABLE) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .update({ fal_request_id: requestId, submitted_at: new Date().toISOString() }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('id', id) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('status', 'processing') // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .eq('model', videoModel) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .is('fal_request_id', null) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    .select('id') // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (error) console.error(`[clips] remix markVideoSubmitted failed clip=${id} request=${requestId}:`, error.message) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  return !error && (data ?? []).length > 0 // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+/** O vídeo da etapa 2: a MESMA entrada do i2v do clipe comum (buildClipFalInput), com o quadro-chave NOSSO como 1º quadro. */
+function submitRemixVideo(row: ClipRow, videoModel: string, keyframeUrl: string) { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  return submitToFalOnce(videoModel, buildClipFalInput({ engine: row.engine, mode: 'i2v', model: videoModel, seconds: row.seconds, aspect: 'image', prompt: row.prompt, imageUrl: keyframeUrl })) // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
 
 // ─── Transições condicionais ─────────────────────────────────────────────────
 async function markFailed(admin: SupabaseClient, id: string, reason: string, refunded: number): Promise<boolean> {
@@ -435,6 +496,14 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
     markFailed: (id, reason, refunded) => markFailed(admin, id, reason, refunded),
     event: clipEvent(userId),
     now: () => Date.now(),
+    // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix (persistir o quadro-chave → reservar → enviar o vídeo → gravar o request_id).
+    keyframe: { // KINEO-ROSTO-QUADRO-CHAVE-2810
+      persist: (row, url) => persistClipKeyframe(admin, row, url), // KINEO-ROSTO-QUADRO-CHAVE-2810
+      claim: (row, videoModel) => claimRemixVideoStage(admin, row, videoModel), // KINEO-ROSTO-QUADRO-CHAVE-2810
+      submitVideo: (row, videoModel, keyframeUrl) => submitRemixVideo(row, videoModel, keyframeUrl), // KINEO-ROSTO-QUADRO-CHAVE-2810
+      markVideoSubmitted: (id, videoModel, requestId) => markRemixVideoSubmitted(admin, id, videoModel, requestId), // KINEO-ROSTO-QUADRO-CHAVE-2810
+      videoModel: (row) => { const item = faceRemixForRow(row); if (!item) throw new Error('remix: row is not a face remix'); return faceRemixVideoModel(item) }, // KINEO-ROSTO-QUADRO-CHAVE-2810
+    }, // KINEO-ROSTO-QUADRO-CHAVE-2810
   }
 }
 

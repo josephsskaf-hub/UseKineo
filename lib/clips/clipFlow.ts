@@ -36,6 +36,13 @@ import {
 } from './clipCatalog'
 import { clipCreditCost, clipFalUsd } from './clipPricing'
 import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTemplateForRequest } from './clipEffects'
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — "Put your face in it" em DUAS etapas (lib/clips/faceRemix.ts): o submitClip confere o `remix` do
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — pedido no catálogo, cobra os 10 e manda a etapa 1 (quadro-chave, Nano Banana edit) no lugar do i2v;
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — o settleClip, quando o quadro-chave fica pronto, persiste-o no NOSSO bucket, reserva a etapa 2
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — (condicional: um ator só) e envia o vídeo (Kling i2v) partindo do quadro-chave. Falha em qualquer
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa estorna o débito INTEIRO; a etapa 1 falhando, o motor de vídeo nunca é chamado.
+import { FACE_REMIX_EVENTS, FACE_REMIX_KEYFRAME_FAILED, FACE_REMIX_KEYFRAME_MODEL, faceRemixCredits, faceRemixEventMetadata, faceRemixFalUsd, faceRemixForRequest, faceRemixForRow, faceRemixKeyframeInput, faceRemixStageForRow } from './faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
+import { ownedClipImageUrl } from './clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a posse do recorte do rosto (2ª referência do quadro-chave), a mesma régua da foto
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
 export const CLIP_PENDING_STALE_MS = 10 * 60 * 1000
@@ -192,6 +199,19 @@ export async function submitClip(
   const tpl = clipTemplateForRequest(args.body.effect, req)
   if (!tpl.ok) return { ok: false, status: 400, code: 'effect', error: 'Choose one of the listed effects.' }
   const template = tpl.effect?.template ?? null
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix ("Put your face in it"): conferido no catálogo ANTES de qualquer custo, como o efeito-modelo.
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — Com remix, a etapa 1 (quadro-chave) substitui o i2v no envio; preço e custo fal são os do remix.
+  const rawBody = args.body as ClipRequestInput & { remix?: unknown; faceImageUrl?: unknown } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const rx = faceRemixForRequest(rawBody.remix, req) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (!rx.ok) return { ok: false, status: 400, code: 'remix', error: 'Choose one of the listed clips.' } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const remix = rx.item // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (remix && template) return { ok: false, status: 400, code: 'remix', error: 'Choose one: an effect or a clip remix.' } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — o recorte do rosto (2ª referência, opcional): só da própria conta, como a foto; fora disso, 403 sem custo.
+  let faceImageUrl: string | null = null // KINEO-ROSTO-QUADRO-CHAVE-2810
+  if (remix && typeof rawBody.faceImageUrl === 'string' && rawBody.faceImageUrl.trim()) { // KINEO-ROSTO-QUADRO-CHAVE-2810
+    faceImageUrl = ownedClipImageUrl(rawBody.faceImageUrl.trim(), args.userId, deps.supabaseUrl) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!faceImageUrl) return { ok: false, status: 403, code: 'image', error: 'Upload your photo again — only photos uploaded to your own account can be used.' } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  } // KINEO-ROSTO-QUADRO-CHAVE-2810
 
   const access = deps.engineAccess(req.engine)
   if (!access.ok) {
@@ -223,17 +243,18 @@ export async function submitClip(
   if (req.imageUrl) {
     try {
       await deps.verifyImage(req.imageUrl)
+      if (faceImageUrl) await deps.verifyImage(faceImageUrl) // KINEO-ROSTO-QUADRO-CHAVE-2810 — o recorte também tem de ser JPG/PNG de verdade
     } catch {
       return { ok: false, status: 400, code: 'image', error: 'We could not read your photo. Upload a JPG or PNG again.' }
     }
   }
 
-  const safety = await deps.moderate({ text: req.prompt, imageUrls: req.imageUrl ? [req.imageUrl] : [] })
+  const safety = await deps.moderate({ text: req.prompt, imageUrls: [...(req.imageUrl ? [req.imageUrl] : []), ...(faceImageUrl ? [faceImageUrl] : [])] }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + recorte do rosto
   if (!safety.ok) {
     return { ok: false, status: safety.status, code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, error: safety.message }
   }
 
-  const credits = tpl.effect && template ? clipEffectCredits(tpl.effect) : clipCreditCost(req.engine, req.seconds, req.mode === 'i2v') // KINEO-EFEITOS-NOVOS-2026-10-13
+  const credits = remix ? faceRemixCredits(remix) : tpl.effect && template ? clipEffectCredits(tpl.effect) : clipCreditCost(req.engine, req.seconds, req.mode === 'i2v') // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: os 10 do fundador (as duas etapas)
   const balance = await deps.getBalance(args.userId)
   if (balance < credits) {
     return { ok: false, status: 402, code: 'credits', error: `This clip costs ${credits} credits. You have ${balance}. Not enough credits.`, balance }
@@ -248,13 +269,13 @@ export async function submitClip(
     billing_reference: `clips-${id}`,
     engine: req.engine,
     mode: req.mode === 'i2v' ? 'image' : 'text',
-    model: template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo
+    model: remix ? FACE_REMIX_KEYFRAME_MODEL : template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix nasce na etapa 1 (quadro-chave); o settleClip troca para o i2v
     seconds: req.seconds,
     aspect: req.aspect,
     prompt: req.prompt,
     image_url: req.imageUrl,
     credits,
-    fal_usd: template ? template.usd : clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'), // KINEO-EFEITOS-NOVOS-2026-10-13
+    fal_usd: remix ? faceRemixFalUsd(remix) : template ? template.usd : clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'), // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: quadro-chave + vídeo
     status: 'pending',
     fal_request_id: null,
     video_url: null,
@@ -295,11 +316,15 @@ export async function submitClip(
   }
 
   // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: endpoint e entrada do catálogo; a foto é a já conferida (posse + bytes + moderação).
-  const sent = template && req.imageUrl
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: a etapa 1 vai ao edit do Nano Banana com a foto (e o recorte do rosto primeiro, quando veio);
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — o motor de vídeo NÃO é chamado aqui — só no settleClip, com o quadro-chave nosso pronto.
+  const sent = remix && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
+    ? await deps.submit(FACE_REMIX_KEYFRAME_MODEL, faceRemixKeyframeInput(remix, req.imageUrl, faceImageUrl)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    : template && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
     ? await deps.submit(template.model, template.input(req.imageUrl))
     : await deps.submit(req.model, buildClipFalInput(req))
   // KINEO-CLIPE-AUTO-3110 — a fal recusou no envio: uma tentativa no Seedance 1.5 antes de devolver erro ao cliente.
-  if (!sent.ok && !sent.ambiguous && !template && deps.switchEngine) {
+  if (!sent.ok && !sent.ambiguous && !template && !remix && deps.switchEngine) { // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix fora: a etapa 1 é o quadro-chave, não um clipe
     const fb = clipFallbackRequest(req)
     if (fb && deps.engineAccess(fb.engine).ok) {
       const second = await deps.submit(fb.model, buildClipFalInput(fb))
@@ -345,6 +370,20 @@ export type ProviderState =
   | { state: 'done'; url: string }
   | { state: 'failed'; error: string }
 
+/** KINEO-ROSTO-QUADRO-CHAVE-2810 — os fios da etapa 2 do remix (a ORDEM mora no settleClip; o clipServer só liga). */
+export interface ClipKeyframeDeps { // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** Copia o quadro-chave (PNG da fal) para o NOSSO bucket, em caminho determinístico; devolve a URL pública NOSSA. Lança se falhar. */
+  persist(row: ClipRow, providerUrl: string): Promise<string> // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** Reserva a etapa 2 — UPDATE condicional (modelo da etapa 1 + o request_id do quadro-chave): só UM ator ganha; o outro vê false. */
+  claim(row: ClipRow, videoModel: string): Promise<boolean> // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** Envia o vídeo (i2v do motor) partindo do quadro-chave NOSSO. Um POST, sem retry do POST pago. */
+  submitVideo(row: ClipRow, videoModel: string, keyframeUrl: string): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }> // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** Grava o request_id da etapa 2 (condicional: linha reservada, sem request_id). */
+  markVideoSubmitted(id: string, videoModel: string, requestId: string): Promise<boolean> // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** O modelo de vídeo do remix desta linha (o i2v do motor). */
+  videoModel(row: ClipRow): string // KINEO-ROSTO-QUADRO-CHAVE-2810
+} // KINEO-ROSTO-QUADRO-CHAVE-2810
+
 export interface ClipSettleDeps {
   poll(model: string, requestId: string): Promise<ProviderState>
   /** Copia o MP4 para o nosso bucket e devolve a URL pública NOSSA. Lança se falhar. */
@@ -352,20 +391,26 @@ export interface ClipSettleDeps {
   refund(billingReference: string): Promise<number>
   markDone(id: string, videoUrl: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready', metadata: Record<string, unknown>): Promise<void>
+  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready' | 'face_remix_keyframe' | 'face_remix_ready', metadata: Record<string, unknown>): Promise<void> // KINEO-ROSTO-QUADRO-CHAVE-2810 — + os dois eventos do remix
   now(): number
+  /** KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix. Ausente (guardiões antigos, caminhos sem remix) = linha de remix espera. */
+  keyframe?: ClipKeyframeDeps // KINEO-ROSTO-QUADRO-CHAVE-2810
 }
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   if (row.status === 'done' || row.status === 'failed') return row
   const age = deps.now() - Date.parse(row.created_at)
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — é remix? Em que etapa? (pelo prompt fixo + modelo da linha; nenhuma coluna nova.)
+  const remixStage = faceRemixStageForRow(row) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const remixMeta = (video: 'skipped' | 'rejected' | 'failed') => (remixStage ? { remix: faceRemixForRow(row)?.id ?? null, keyframe: remixStage === 'keyframe' ? 'failed' : 'done', video } : {}) // KINEO-ROSTO-QUADRO-CHAVE-2810 — as DUAS etapas no clip_failed
 
-  const fail = async (reason: string, providerError: string | null = null): Promise<ClipRow> => {
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — `meta`: as duas etapas do remix no clip_failed (padrão pela etapa da linha; a recusa do Kling na etapa 2 passa a sua).
+  const fail = async (reason: string, providerError: string | null = null, meta: Record<string, unknown> = remixMeta(remixStage === 'keyframe' ? 'skipped' : 'failed')): Promise<ClipRow> => { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta
     const refunded = await deps.refund(row.billing_reference)
     const moved = await deps.markFailed(row.id, reason, refunded)
     // KINEO-S25-FOTO-CLIPES-1610 — só quem MOVEU a linha grava (o evento e o warn): duas abas + o cron nunca repetem.
     if (moved && providerError) console.warn(`[clips] clip_failed stage=settle reason=${reason} engine=${row.engine} clip=${row.id} request=${row.fal_request_id}: ${providerError}`)
-    if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', ...(providerError ? { provider_error: providerError } : {}) })
+    if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', ...(providerError ? { provider_error: providerError } : {}), ...meta }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta (remix/keyframe/video)
     return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded }
   }
 
@@ -374,6 +419,31 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   }
 
   const state = await deps.poll(row.model, row.fal_request_id)
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — ETAPA 1 do remix (quadro-chave): falhou → estorna os 10 e o motor de vídeo NUNCA é chamado;
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — pronto → persiste no nosso bucket (a URL da fal expira) → reserva a etapa 2 (um ator só) →
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — envia o vídeo partindo do quadro-chave NOSSO → grava o request_id → evento com as duas etapas.
+  if (remixStage === 'keyframe') { // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (state.state === 'failed') return fail(FACE_REMIX_KEYFRAME_FAILED, cleanProviderError(state.error)) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (state.state !== 'done') return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired') : row // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!deps.keyframe) return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired') : row // KINEO-ROSTO-QUADRO-CHAVE-2810 — sem os fios da etapa 2, espera (nunca marca pronto com o quadro-chave)
+    let keyframeUrl: string // KINEO-ROSTO-QUADRO-CHAVE-2810
+    try { // KINEO-ROSTO-QUADRO-CHAVE-2810
+      keyframeUrl = await deps.keyframe.persist(row, state.url) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    } catch { // KINEO-ROSTO-QUADRO-CHAVE-2810
+      return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('persist_failed') : row // KINEO-ROSTO-QUADRO-CHAVE-2810 — tenta de novo no próximo poll
+    } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const videoModel = deps.keyframe.videoModel(row) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!(await deps.keyframe.claim(row, videoModel))) return row // KINEO-ROSTO-QUADRO-CHAVE-2810 — outro ator (outra aba, o cron) já reservou a etapa 2
+    const sent = await deps.keyframe.submitVideo(row, videoModel, keyframeUrl) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!sent.ok) { // KINEO-ROSTO-QUADRO-CHAVE-2810 — o Kling recusou a etapa 2: estorna os 10; o evento diz keyframe:'done', video:'rejected'
+      const closed = await fail(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', cleanProviderError(sent.error), { ...remixMeta('rejected'), keyframe: 'done' }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+      return { ...closed, model: videoModel, fal_request_id: null } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    let saved = await deps.keyframe.markVideoSubmitted(row.id, videoModel, sent.requestId) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    if (!saved) saved = await deps.keyframe.markVideoSubmitted(row.id, videoModel, sent.requestId) // KINEO-ROSTO-QUADRO-CHAVE-2810 — como o markSubmitted do pedido: 2 tentativas; perdido, a rede de 10 min estorna (submit_lost)
+    await deps.event(FACE_REMIX_EVENTS.keyframe, { ...faceRemixEventMetadata(faceRemixForRow(row)!, row), keyframe: 'done', video: 'submitted', keyframe_ms: Math.max(0, age), request_id: sent.requestId, tracking_saved: saved }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    return { ...row, model: videoModel, fal_request_id: saved ? sent.requestId : null } // KINEO-ROSTO-QUADRO-CHAVE-2810
+  } // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (state.state === 'failed') return fail('provider_failed', cleanProviderError(state.error)) // KINEO-S25-FOTO-CLIPES-1610
   if (state.state === 'done') {
     let ours: string
@@ -390,6 +460,9 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
       // clip_delivered (só quem MOVEU a linha para `done` grava): duas abas + o cron nunca contam o mesmo clipe duas vezes.
       const effect = clipEffectForRow(row)
       if (effect) await deps.event('clip_effect_ready', { ...clipEffectEventMetadata(effect, row), age_ms: Math.max(0, age) })
+      // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix entregue: as DUAS etapas fecharam (mesmo ponto e condição do clip_delivered).
+      const remixItem = remixStage === 'video' ? faceRemixForRow(row) : null // KINEO-ROSTO-QUADRO-CHAVE-2810
+      if (remixItem) await deps.event(FACE_REMIX_EVENTS.ready, { ...faceRemixEventMetadata(remixItem, row), keyframe: 'done', video: 'delivered', age_ms: Math.max(0, age) }) // KINEO-ROSTO-QUADRO-CHAVE-2810
     }
     return { ...row, status: 'done', video_url: ours }
   }

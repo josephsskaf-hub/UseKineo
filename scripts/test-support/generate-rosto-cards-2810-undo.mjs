@@ -10,6 +10,16 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-ROSTO-QUADRO-CHAVE-2810 — a camada MAIS NOVA: as duas etapas do remix (quadro-chave Nano Banana + Kling a partir dele), 10 cr,
+  // recorte do rosto, /images lendo o 403 da fal. Só os arquivos que já existiam em 24ebecdce (faceRemix.ts e o guardião nasceram no ramo).
+  'rosto-quadro-chave-2810': {
+    fn: 'semRostoQuadroChave2810',
+    marca: 'KINEO-ROSTO-QUADRO-CHAVE-2810',
+    o_que: 'o remix do rosto em duas etapas (quadro-chave + vídeo), 10 créditos, recorte do rosto e o /images lendo o erro real da fal',
+    base: '796bb74d88379e2ad6c8f17faa6ea80fa4b6675f', // reaplicada em 30/10 sobre a main de então
+    tip: null,
+    arquivos: ['lib/homeGaleria.ts', 'app/api/clips/route.ts', 'app/(dashboard)/clips/ClipsClient.tsx', 'lib/clips/clipFlow.ts', 'lib/clips/clipServer.ts'] // o /images já está na main desde 28/10,
+  },
   // KINEO-FILA-QUEDA-FAL-2810 (ramo codex/fila-queda-fal-2810, base = origin/main 9d6dd2e77): só os arquivos PRÉ-EXISTENTES que a
   // entrega modificou e carregam a marca (a rota cinematic e o cron de resgate); lib/filaQuedaFal*.ts, o cron novo e o guardião
   // nasceram no ramo (sem camada); vercel.json não carrega marca (JSON) e não é selado por guardião algum.
