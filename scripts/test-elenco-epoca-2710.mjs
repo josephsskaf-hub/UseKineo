@@ -29,7 +29,7 @@ const roda = (src, mods = {}) => {
 const MARCA = 'KINEO-ELENCO-EPOCA-2710'
 const LIB = 'lib/cinematic/elencoEpoca.ts'
 const SRC = rd(LIB)
-const mocks = { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t } }
+const mocks = { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t }, '@/lib/cinematic/seresFieis': roda(rd('lib/cinematic/seresFieis.ts')) } // KINEO-JUIZ-REFAZ-2810 — a lib importa a tabela de seres/figuras (módulo puro, carregado de verdade)
 const E = roda(SRC, mocks)
 const troca = (src, de, para) => { if (!src.includes(de)) throw new Error('mutante: trecho ausente — ' + de.slice(0, 60)); return src.replace(de, para) }
 

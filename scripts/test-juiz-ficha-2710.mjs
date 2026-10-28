@@ -39,11 +39,12 @@ function carrega(src, mapa = {}) {
 }
 const SRC = { juiz: rd(LIB), critico: rd('lib/cinematic/criticoStill.ts'), folha: rd('lib/cinematic/folhaDePersonagem.ts'), ajuste: rd('lib/cinematic/personagemAjuste.ts'), elenco15: rd('lib/filmes/filme15Elenco.ts') }
 function biblioteca(over = {}) {
+  const seres = carrega(rd('lib/cinematic/seresFieis.ts'), {}) // KINEO-JUIZ-REFAZ-2810 — a tabela única de seres/figuras (módulo puro) que folha, ajuste e juiz importam
   const critico = carrega(over.critico ?? SRC.critico, { '@/lib/hollywood/juizStill': { JUIZ_STILL_MODELO: 'gpt-4o-mini' } })
-  const folha = carrega(over.folha ?? SRC.folha, { '@/lib/cinematic/sceneStyle': { deriveExplicitCharacter: () => null }, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) }, '@/lib/aiModels': { AI_TEXT_MODELS: { scenePlannerLight: 'gpt-4o-mini' } } })
-  const ajuste = carrega(over.ajuste ?? SRC.ajuste, { '@/lib/cinematic/folhaDePersonagem': folha, '@/lib/safety/moderationPolicy': { mentionsMinor: () => false } })
+  const folha = carrega(over.folha ?? SRC.folha, { '@/lib/cinematic/sceneStyle': { deriveExplicitCharacter: () => null }, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) }, '@/lib/aiModels': { AI_TEXT_MODELS: { scenePlannerLight: 'gpt-4o-mini' } }, '@/lib/cinematic/seresFieis': seres }) // KINEO-JUIZ-REFAZ-2810
+  const ajuste = carrega(over.ajuste ?? SRC.ajuste, { '@/lib/cinematic/folhaDePersonagem': folha, '@/lib/safety/moderationPolicy': { mentionsMinor: () => false }, '@/lib/cinematic/seresFieis': seres }) // KINEO-JUIZ-REFAZ-2810
   const elenco15 = carrega(SRC.elenco15, {})
-  const juiz = carrega(over.juiz ?? SRC.juiz, { '@/lib/cinematic/criticoStill': critico, '@/lib/cinematic/folhaDePersonagem': folha })
+  const juiz = carrega(over.juiz ?? SRC.juiz, { '@/lib/cinematic/criticoStill': critico, '@/lib/cinematic/folhaDePersonagem': folha, '@/lib/cinematic/seresFieis': seres }) // KINEO-JUIZ-REFAZ-2810
   return { critico, folha, ajuste, elenco15, juiz }
 }
 const B = biblioteca()
@@ -60,7 +61,7 @@ console.log('== A. a ficha literal ==')
   const elencoK = B.ajuste.elencoDoRoteiro(KRISHNA)
   checa('A1 o elenco REAL do pedido do Krishna tem o Krishna', elencoK.length >= 1 && elencoK[0].nome === 'Krishna')
   const antes = elencoK[0]?.canonica ?? ''
-  checa('A2 a canônica REAL de antes é o mascote sorteado ("a small and chubby <cor> demon with a cream belly…"), sem "blue-skinned" — o defeito de 27/10 reproduzido', /a small and chubby .* with a cream belly|cream belly|big round friendly eyes/.test(antes) && !/blue-skinned/i.test(antes))
+  checa('A2 a canônica REAL de antes já NÃO é o mascote sorteado (KINEO-JUIZ-REFAZ-2810: o Krishna cai na tabela de figuras — pele azul — antes de qualquer ficha literal; "cream belly"/"big round friendly eyes" morreram)', !/cream belly|big round friendly eyes|short tail/.test(antes) && /deep blue skin/.test(antes)) // KINEO-JUIZ-REFAZ-2810 — era: exigia o mascote ("o defeito de 27/10 reproduzido")
   const lit = B.juiz.elencoComFichaLiteral(KRISHNA, elencoK)
   const k = lit.elenco[0]
   checa('A3 a canônica literal leva as palavras do cliente verbatim: "tiny blue-skinned Lord Krishna"', lit.literais.includes('Krishna') && k.canonica.includes('exactly as the author wrote: "tiny blue-skinned Lord Krishna"'))

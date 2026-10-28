@@ -203,14 +203,20 @@ async function verificacoes(over = {}) {
     v('enforce: o evento conta regerou, regeracao_ok, veredito da nova e a escolha', m?.regerou === true && m?.regeracao_ok === true && m?.veredito_regerada === 'PASS' && m?.escolhida === 'regerada' && m?.url_final === 'still://5' && m?.modo === 'enforce')
   }
   {
+    // KINEO-JUIZ-REFAZ-2810 — era "FAIL de novo na foto nova = NÃO regera outra vez (6 FLUX) e segue a de nota maior"; agora o laço refaz a 2ª vez e julga de novo
     const r = await roda('enforce', { respostas: { 'still://2': FAIL(['subject'], 40), 'still://5': FAIL(['subject'], 25) } })
-    v('enforce: FAIL de novo na foto nova = NÃO regera outra vez (6 chamadas ao FLUX) e segue a de nota maior (a original, 40 > 25)', r.stills.length === 6 && r.res.sceneStills[2] === 'still://2' && r.relatos.find((x) => x.cena === 3)?.escolhida === 'original')
-    const r2 = await roda('enforce', { respostas: { 'still://2': FAIL(['subject'], 25), 'still://5': FAIL(['artifact'], 60) } })
-    v('enforce: as duas recusadas, a nova com nota maior segue', r2.res.sceneStills[2] === 'still://5')
+    v('enforce: FAIL de novo na foto nova = 2ª foto nova (7 chamadas ao FLUX), julgada de novo e, aprovada, segue', r.stills.length === 7 && r.res.sceneStills[2] === 'still://6' && r.relatos.find((x) => x.cena === 3)?.escolhida === 'regerada' && r.relatos.find((x) => x.cena === 3)?.regeracoes === 2 && r.relatos.find((x) => x.cena === 3)?.chamadas === 3) // KINEO-JUIZ-REFAZ-2810
+    const r3 = await roda('enforce', { respostas: { 'still://2': FAIL(['subject'], 40), 'still://5': FAIL(['subject'], 25), 'still://6': FAIL(['subject'], 35) } })
+    v('enforce: as três recusadas = nunca uma 3ª foto nova (7 FLUX) e segue a de nota maior (a original, 40 > 35 > 25)', r3.stills.length === 7 && r3.res.sceneStills[2] === 'still://2' && r3.relatos.find((x) => x.cena === 3)?.escolhida === 'original' && JSON.stringify(r3.relatos.find((x) => x.cena === 3)?.notas) === '[40,25,35]') // KINEO-JUIZ-REFAZ-2810
+    const r2 = await roda('enforce', { respostas: { 'still://2': FAIL(['subject'], 25), 'still://5': FAIL(['artifact'], 60), 'still://6': FAIL(['artifact'], 50) } })
+    v('enforce: as três recusadas, a foto nova com nota maior segue (a 1ª, 60)', r2.res.sceneStills[2] === 'still://5' && r2.relatos.find((x) => x.cena === 3)?.escolhida_tentativa === 1) // KINEO-JUIZ-REFAZ-2810
   }
   {
-    const r = await roda('enforce', { respostas: { 'still://0': FAIL(['text']), 'still://1': FAIL(['text']), 'still://2': FAIL(['text']), 'still://3': FAIL(['text']), 'still://4': FAIL(['text']) } })
-    v('enforce: 5 FAIL no filme = no máximo 3 fotos novas (teto por filme), as outras seguem com a original e registram o teto', r.stills.length === 8 && r.relatos.filter((m) => m.regerou).length === 3 && r.relatos.filter((m) => m.pulado_por === 'teto_regeracoes').length === 2)
+    // KINEO-JUIZ-REFAZ-2810 — era "5 FAIL = no máximo 3 fotos novas"; o teto por filme é STILL_CRITIC_MAX_REGERACOES_FILME (6): 5 cenas reprovadas cujas fotos novas também reprovam pedem 10 e recebem 6
+    const todasFail = Object.fromEntries(Array.from({ length: 16 }, (_, i) => [`still://${i}`, FAIL(['text'])]))
+    const r = await roda('enforce', { respostas: todasFail })
+    const novas = r.relatos.reduce((s, m) => s + (m.regeracoes ?? 0), 0)
+    v(`enforce: 5 FAIL (e fotos novas também FAIL) = no máximo ${6} fotos novas no filme (teto por filme), nenhuma cena passa de 2`, r.stills.length === 5 + 6 && novas === 6 && r.relatos.every((m) => (m.regeracoes ?? 0) <= 2)) // KINEO-JUIZ-REFAZ-2810
   }
   {
     const r = await roda('enforce', { respostas: { 'still://1': FAIL(['anatomy']) }, stillFalha: new Set([5]) })
@@ -308,7 +314,7 @@ async function verificacoes(over = {}) {
     const todas = L.instrucaoDoCritico(['artefato', 'texto', 'anatomia', 'sujeito'])
     v('instrução: uma frase por problema (sujeito → anatomia → texto → artefato), sem negação e sem nomear o defeito', todas.startsWith('The main subject') && todas.split('. ').length >= 4 && !/\b(?:no|not|without|never|avoid|extra|deformed|garbled|watermark|letters?|text)\b/i.test(todas) && L.instrucaoDoCritico([]) === '')
     v('semente da foto nova: determinística e diferente da do filme', L.seedDaRegeracaoCritico(SEED, 1) === L.seedDaRegeracaoCritico(SEED, 1) && L.seedDaRegeracaoCritico(SEED, 1) !== SEED && L.seedDaRegeracaoCritico(SEED, 1) !== L.seedDaRegeracaoCritico(SEED, 2))
-    v('esperaMaxima: com prazo = até o prazo (teto de uma cena); sem prazo = teto de uma cena', L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 1_030_000 }), 1_000_000) === 20_000 && L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 1_005_000 }), 1_000_000) === 5_000 && L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 900_000 }), 1_000_000) === 0 && L.esperaMaximaDoCritico(L.novoFilmeDoCritico('enforce', {}), 1) === 20_000)
+    v('esperaMaxima: com prazo = até o prazo (teto de uma cena); sem prazo = teto de uma cena', L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 1_030_000 }), 1_000_000) === L.STILL_CRITIC_TETO_CENA_MS && L.STILL_CRITIC_TETO_CENA_MS === 30_000 && /* KINEO-JUIZ-REFAZ-2810 — era 20_000 fixo; o teto da cena subiu para 30 s (2 fotos novas) */ L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 1_005_000 }), 1_000_000) === 5_000 && L.esperaMaximaDoCritico(L.novoFilmeDoCritico('log_only', { prazo: 900_000 }), 1_000_000) === 0 && L.esperaMaximaDoCritico(L.novoFilmeDoCritico('enforce', {}), 1) === L.STILL_CRITIC_TETO_CENA_MS) // KINEO-JUIZ-REFAZ-2810 — era === 20_000
     const offR = await L.criticarStill({ indice: 0, url: 'u', mostra: 'x', fala: 'y', prompt: 'z', seed: 1 }, { filme: L.novoFilmeDoCritico('off'), gerarStill: async () => 'nova', fetchImpl: async () => { throw new Error('não devia chamar') } })
     v('lib: modo off não chama nada e devolve a mesma foto', offR.url === 'u' && offR.relato.chamadas === 0 && offR.relato.veredito === 'PULADO')
   }

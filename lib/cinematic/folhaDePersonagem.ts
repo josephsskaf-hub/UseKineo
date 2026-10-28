@@ -35,6 +35,7 @@
 import { deriveExplicitCharacter, type PapelDoElenco, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
 export const PERSONAGEM_VERSAO = 'personagem_v1'
@@ -190,11 +191,12 @@ function tipoDoNome(texto: string, nome: string): { tipo: TipoDePersonagem; espe
 function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {
   const h = hash(nome.toLowerCase())
   if (tipo !== 'humano') {
+    // KINEO-JUIZ-REFAZ-2810 — era o MASCOTE: `${nome}, a ${porte} ${cor} ${especieTxt} with ${barriga}, big round friendly eyes and a short tail, no clothes` — o Krishna "small and chubby soft purple demon with a cream belly" de 27/10 era literalmente este texto. Agora a anatomia da espécie (lib/cinematic/seresFieis); o fofo só quando o roteiro é de criança (a mesma pista que decidia o porte).
     const cor = escolhe(CORES, h, usados)
-    const barriga = escolhe(BARRIGA, h >>> 3, usados)
-    const porte = CRIANCA_RE.test(contexto) || /\b(?:tiny|little|small|baby)\b/i.test(contexto) ? 'small and chubby' : 'medium-sized'
-    const especieTxt = especie ?? (tipo === 'animal' ? 'animal' : 'creature')
-    return `${nome}, a ${porte} ${cor} ${especieTxt} with ${barriga}, big round friendly eyes and a short tail, no clothes`
+    void BARRIGA // KINEO-JUIZ-REFAZ-2810 — a barriga de cor fazia parte do mascote; a lista fica para o casting (lerCasting a reconhece), a ficha não a usa mais
+    const infantil = CRIANCA_RE.test(contexto) || /\b(?:tiny|little|small|baby)\b/i.test(contexto) // KINEO-JUIZ-REFAZ-2810
+    const corDita = new RegExp(`\\b(red|blue|green|yellow|purple|violet|orange|pink|brown|black|white|gray|grey|golden|gold|silver|teal|turquoise|lilac|crimson|scarlet|indigo|magenta)\\s+(?:[a-z-]+\\s+)?(?:${especie ? escapaRe(especie) + '|' : ''}${escapaRe(nome)})\\b`, 'i').exec(contexto)?.[1]?.toLowerCase() ?? null // KINEO-JUIZ-REFAZ-2810 — só a cor colada ao ser ("the blue dragon Mishu"), nunca a da "golden light" da frase
+    return descricaoFielDoSer({ nome, tipo, especie, corDita, corSorteada: cor, pequeno: infantil, infantil }) // KINEO-JUIZ-REFAZ-2810
   }
   // idade e gênero vêm do PRÓPRIO papel ("young man", "little girl") ou, no nome, das palavras coladas a ele — nunca de
   // outra pessoa da mesma frase (o Ravan não vira menino porque "a sad Indian boy" está na frase dele)

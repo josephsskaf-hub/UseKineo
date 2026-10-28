@@ -27,7 +27,9 @@
 import {
   elencoDeterministico, cenasComPersonagem, promptDoStillComFolha, mensagensDoCasting, lerCasting, ensaioDoPersonagem, custoDoPersonagemUsd, PERSONAGEM_MAX_STILLS,
   PERSONAGEM_CASTING_MODELO, PERSONAGEM_CASTING_PRAZO_MS, type FichaDePersonagem,
+  PERSONAGEM_MAX_PERSONAGENS, // KINEO-JUIZ-REFAZ-2810
 } from '@/lib/cinematic/folhaDePersonagem'
+import { figuraFiel, figuraFielNoTexto, figurasCompostasNoTexto } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras conhecidas, consultada depois da tabela da casa
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { mentionsMinor } from '@/lib/safety/moderationPolicy'
 
@@ -62,7 +64,7 @@ export type OrigemDaFicha = FichaDePersonagem['origem'] | 'mitica'
 
 export function figuraConhecida(nome: string): (typeof FIGURAS_CONHECIDAS)[number] | null {
   const n = limpa(nome).toLowerCase().replace(/^the\s+/, '')
-  return FIGURAS_CONHECIDAS.find((f) => f.nomes.includes(n)) ?? null
+  return FIGURAS_CONHECIDAS.find((f) => f.nomes.includes(n)) ?? figuraFiel(nome) ?? null // KINEO-JUIZ-REFAZ-2810 — depois da tabela da casa, a tabela única (lib/cinematic/seresFieis: Lucifer, Ghost Rider, Krishna, Shiva, Rama, Durga, Buddha…): "Krishna emerges" sem adjetivo deixa de cair na ficha determinística (o mascote roxo de 27/10)
 }
 
 /** As frases do roteiro (sem tags) que citam o nome. */
@@ -77,9 +79,9 @@ function frasesDoNome(script: string, nome: string): string {
  * "como a lenda o mostra", sem cabelo/rosto/roupa inventados. Ficha do autor ('autor') nunca é trocada.
  */
 export function elencoDoRoteiro(script: string): FichaDePersonagem[] {
-  return elencoDeterministico(script).map((f) => {
+  const elenco: FichaDePersonagem[] = elencoDeterministico(script).map((f): FichaDePersonagem => { // KINEO-JUIZ-REFAZ-2810 — tipado: o laço abaixo acrescenta fichas
     if (f.origem === 'autor' || f.nome.toLowerCase().startsWith('the ')) return f
-    const conhecida = figuraConhecida(f.nome)
+    const conhecida = figuraConhecida(f.nome) ?? figuraFielNoTexto(script, f.nome) // KINEO-JUIZ-REFAZ-2810 — nome composto no texto ("the Ghost Rider appears" chega aqui como "Ghost" ou "Rider": o extrator da folha só lê uma palavra)
     if (conhecida) return { ...f, tipo: 'criatura', canonica: `${f.nome}, ${conhecida.descricao}`, origem: 'mitica' as FichaDePersonagem['origem'], genero: conhecida.genero }
     const frases = frasesDoNome(script, f.nome)
     if (CONTEXTO_MITICO_RE.test(frases)) {
@@ -90,6 +92,16 @@ export function elencoDoRoteiro(script: string): FichaDePersonagem[] {
     }
     return f
   })
+  // KINEO-JUIZ-REFAZ-2810 — figura de nome COMPOSTO citada no texto ("That's how the Ghost Rider appears", 27/10) que o extrator de uma palavra nunca
+  // KINEO-JUIZ-REFAZ-2810 — achou (via "Ghost" + "Rider"): entra como coadjuvante com a cara fiel, dentro do teto de fichas (sai o último coadjuvante)
+  for (const { figura, nome } of figurasCompostasNoTexto(script)) { // KINEO-JUIZ-REFAZ-2810
+    const nomeBaixo = nome.toLowerCase() // KINEO-JUIZ-REFAZ-2810
+    if (elenco.some((e) => e.canonica.includes(figura.descricao) || (nomeBaixo.split(' ').includes(e.nome.toLowerCase()) && (e.origem as OrigemDaFicha) === 'mitica'))) continue // KINEO-JUIZ-REFAZ-2810 — já está (pelo nome simples ou pela tabela)
+    const ficha: FichaDePersonagem = { nome, nucleo: nome.split(' ').pop() ?? nome, tipo: figura.tipo, canonica: `${nome}, ${figura.descricao}`, origem: 'mitica' as FichaDePersonagem['origem'], protagonista: elenco.length === 0, genero: figura.genero } // KINEO-JUIZ-REFAZ-2810
+    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) { const i = elenco.map((e) => e.protagonista).lastIndexOf(false); if (i < 0) continue; elenco.splice(i, 1) } // KINEO-JUIZ-REFAZ-2810 — teto: sai o último coadjuvante; só protagonistas = nada entra
+    elenco.push(ficha) // KINEO-JUIZ-REFAZ-2810
+  } // KINEO-JUIZ-REFAZ-2810
+  return elenco // KINEO-JUIZ-REFAZ-2810
 }
 
 const REGRA_MITICA = ' If a character is a known figure of mythology, religion, folklore or history (for example Ravana, Hanuman, Zeus, Anubis), describe their TRADITIONAL, recognizable iconography from that culture (number of heads or arms, animal head, crown, weapons, period costume); never turn them into an ordinary modern person and never give them modern clothes. If you do not know who a named character is, return the draft unchanged.'

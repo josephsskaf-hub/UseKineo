@@ -30,8 +30,9 @@ const roda = (src, mods = {}) => {
 }
 const modelos = new Proxy({}, { get: () => 'modelo-falso' })
 const sceneStyle = roda(rd('lib/cinematic/sceneStyle.ts'), new Proxy({}, { get: () => ({}) }))
-const FOLHA = roda(rd('lib/cinematic/folhaDePersonagem.ts'), { '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': sceneStyle, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) } })
-const AJUSTE = roda(rd('lib/cinematic/personagemAjuste.ts'), { '@/lib/cinematic/folhaDePersonagem': FOLHA, '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': sceneStyle })
+const SERES = roda(rd('lib/cinematic/seresFieis.ts')) // KINEO-JUIZ-REFAZ-2810 — a tabela única de seres/figuras que a folha e o ajuste importam
+const FOLHA = roda(rd('lib/cinematic/folhaDePersonagem.ts'), { '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': sceneStyle, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) }, '@/lib/cinematic/seresFieis': SERES }) // KINEO-JUIZ-REFAZ-2810
+const AJUSTE = roda(rd('lib/cinematic/personagemAjuste.ts'), { '@/lib/cinematic/folhaDePersonagem': FOLHA, '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': sceneStyle, '@/lib/cinematic/seresFieis': SERES }) // KINEO-JUIZ-REFAZ-2810
 const E_SRC = rd('lib/filmes/filme15Elenco.ts')
 const E = roda(E_SRC)
 const extrair = AJUSTE.elencoDoRoteiro

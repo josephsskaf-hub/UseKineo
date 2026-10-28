@@ -51,7 +51,7 @@ checa('B5 as outras portas continuam iguais (âncora, Estrela, [faceless])', /an
 
 console.log('== C. decidirPersonagem REAL ==')
 const modelos = new Proxy({}, { get: () => 'modelo-falso' })
-const F = roda(rd('lib/cinematic/folhaDePersonagem.ts'), { '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': { deriveExplicitCharacter: () => null }, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) } })
+const F = roda(rd('lib/cinematic/folhaDePersonagem.ts'), { '@/lib/aiModels': { AI_TEXT_MODELS: modelos }, '@/lib/cinematic/sceneStyle': { deriveExplicitCharacter: () => null }, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) }, '@/lib/cinematic/seresFieis': roda(rd('lib/cinematic/seresFieis.ts')) }) // KINEO-JUIZ-REFAZ-2810 — a folha importa a tabela de seres/figuras
 const dec = (o) => F.decidirPersonagem({ interna: true, pedido: ['personagem'], engine: 'seedance', anchorEnabled: true, estrelaAtiva: false, tagFaceless: false, ...o })
 if (typeof F.decidirPersonagem === 'function') {
   checa('C1 pedido implícito no Seedance → ativo', dec({}).ativo === true)

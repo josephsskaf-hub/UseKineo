@@ -37,6 +37,7 @@ import {
   type ChamadaDoCritico, type EntradaCritico, type ProblemaStill, type RelatoCriticoStill, type VereditoCritico,
 } from '@/lib/cinematic/criticoStill'
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import { FIGURAS_FIEIS, figuraFiel } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras (as 5 hindus daqui mudaram para lá, com Lucifer, Ghost Rider…)
 
 export const MARCA_JUIZ_FICHA = 'KINEO-JUIZ-FICHA-2710'
 export const JUIZ_FICHA_VERSAO = 'juiz_ficha_v1'
@@ -57,16 +58,10 @@ const palavraRe = (w: string, flags = 'iu') => new RegExp(`(?<![\\p{L}\\p{N}-])$
 
 // ═══ A. A FICHA LITERAL — as palavras do cliente, verbatim ══════════════════════════════════════════════════════════
 /** Figuras conhecidas que a tabela da casa não tinha em 27/10 (o Krishna do filme 695d4e46). Iconografia de domínio público. */
-export const FIGURAS_CONHECIDAS_JUIZ: ReadonlyArray<{ nomes: readonly string[]; descricao: string; genero: 'man' | 'woman' }> = [
-  { nomes: ['krishna', 'krishn', 'kanha', 'kanhaiya', 'gopal', 'govinda', 'shri krishna', 'sri krishna', 'lord krishna'], genero: 'man', descricao: 'the Hindu god Krishna: a graceful figure with deep blue skin, a golden crown with a peacock feather, long dark curly hair, large calm eyes, a yellow silk dhoti, flower garlands and gold jewellery, holding a bamboo flute' },
-  { nomes: ['shiva', 'shiv', 'mahadev', 'lord shiva'], genero: 'man', descricao: 'the Hindu god Shiva: an ascetic with pale blue-grey skin, matted hair piled high with a crescent moon, a third eye on the forehead, a cobra around the neck, a tiger skin around the waist, holding a trident' },
-  { nomes: ['rama', 'ram', 'shri ram', 'lord rama'], genero: 'man', descricao: 'the Hindu god Rama: a noble prince with blue skin, a golden crown, long dark hair, yellow and orange silk garments, gold jewellery, carrying a tall bow and a quiver of arrows' },
-  { nomes: ['durga', 'maa durga', 'goddess durga'], genero: 'woman', descricao: 'the Hindu goddess Durga: a radiant woman with golden skin, ten arms each holding a weapon, a tall golden crown, a red and gold sari, riding a lion' },
-  { nomes: ['buddha', 'gautama buddha', 'the buddha', 'siddhartha'], genero: 'man', descricao: 'the Buddha: a serene seated monk with a shaved head of tight curls, a topknot, long earlobes, a saffron robe draped over one shoulder, hands resting in meditation' },
-]
+export const FIGURAS_CONHECIDAS_JUIZ: ReadonlyArray<{ nomes: readonly string[]; descricao: string; genero: 'man' | 'woman' }> = FIGURAS_FIEIS // KINEO-JUIZ-REFAZ-2810 — era a lista local (Krishna, Shiva, Rama, Durga, Buddha); a tabela única vive em lib/cinematic/seresFieis
 export function figuraConhecidaJuiz(nome: string): (typeof FIGURAS_CONHECIDAS_JUIZ)[number] | null {
   const n = limpa(nome).toLowerCase().replace(/^the\s+/, '')
-  return FIGURAS_CONHECIDAS_JUIZ.find((f) => f.nomes.includes(n)) ?? null
+  return FIGURAS_CONHECIDAS_JUIZ.find((f) => f.nomes.includes(n)) ?? figuraFiel(nome) ?? null // KINEO-JUIZ-REFAZ-2810 — "Lord Krishna" também cai (o título sai em figuraFiel)
 }
 
 /** Artigos e determinantes que abrem o sintagma ("a tiny blue-skinned Lord Krishna", "uma menina de vestido rosa"). */

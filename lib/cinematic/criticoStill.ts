@@ -14,6 +14,12 @@
 // evento cinematic_still_critic com veredito e motivos, mas NUNCA regera e a foto original segue sempre — para medir o falso
 // positivo no tráfego real antes de ligar; 'enforce' = FAIL pede UMA foto nova (semente nova, instrução POSITIVA que não nomeia
 // o defeito: "no X" desenha X), julga de novo se houver tempo e segue a melhor; no máximo 3 regerações por filme.
+// KINEO-JUIZ-REFAZ-2810 [TRAVA 8.2 — vai do fundador 28/10 "o juiz tem de refazer até ficar bom"]: 'enforce' agora é um LAÇO —
+// FAIL → foto nova → JULGA DE NOVO → ainda FAIL → segunda foto nova (instrução mais forte, derivada do MOTIVO do crítico e da cena
+// inteira) → julga de novo. Até 2 fotos novas por cena (3 vereditos), 6 por filme, e segue a de MAIOR NOTA (aprovada > sem veredito >
+// nota maior; empate = a original). Caso real: Gênesis 28/10 (dc4ac291) — original nota 20 "Main subject is not a cosmic galaxy", foto
+// nova nota 30 FAIL, e a 30 FOI ENTREGUE porque 30 > 20 e não havia terceiro caminho. Com a folha (edit de US$ 0,15) fica em 1 foto nova.
+// A rubrica ganhou o FAIL explícito para "mascote fofo no lugar do personagem pedido" e "personagem nomeado ausente".
 // O crítico NUNCA segura o filme: teto por chamada (6 s), por cena (20 s), prazo absoluto do lote de stills (os 60 s do caminho
 // clássico) ou orçamento por filme (45 s no hollywood), falha aberta em qualquer erro (a foto de antes segue), disjuntor depois
 // de 2 erros. Timeout = a foto segue.
@@ -31,8 +37,8 @@ export const STILL_CRITIC_EVENTO = 'cinematic_still_critic'
 export const STILL_CRITIC_MODELO: string = JUIZ_STILL_MODELO
 /** Teto de UMA chamada ao crítico (típico 1,5-3,5 s). */
 export const STILL_CRITIC_TIMEOUT_MS = 6_000
-/** Teto do crítico numa cena: julgar + regerar + julgar de novo. */
-export const STILL_CRITIC_TETO_CENA_MS = 20_000
+/** Teto do crítico numa cena: julgar + regerar + julgar de novo (+ regerar + julgar). */
+export const STILL_CRITIC_TETO_CENA_MS = 30_000 // KINEO-JUIZ-REFAZ-2810 — era 20 s (1 foto nova); 2 fotos novas = 3 vereditos (≈3 s) + 2 FLUX (≈5 s) ≈ 19-25 s
 /** Orçamento do crítico no filme inteiro quando o laço é SERIAL (hollywood). No clássico vale o prazo absoluto dos stills. */
 export const STILL_CRITIC_ORCAMENTO_SERIAL_MS = 45_000
 /** Janela de espera da foto nova. */
@@ -44,7 +50,10 @@ export const STILL_CRITIC_MIN_REGERACAO_MS = 8_000
 /** Erros do crítico (timeout, HTTP, resposta ilegível) que desligam o crítico no resto do filme. */
 export const STILL_CRITIC_ERROS_PARA_DESLIGAR = 2
 /** Teto de regerações por filme (só 'enforce'): limita o custo no pior caso. */
-export const STILL_CRITIC_MAX_REGERACOES_FILME = 3
+export const STILL_CRITIC_MAX_REGERACOES_FILME = 6 // KINEO-JUIZ-REFAZ-2810 — era 3; 2 por cena × 3 cenas do filme grátis de 15 s (pior caso ≈ US$ 0,09 de FLUX + US$ 0,005 de crítico)
+/** KINEO-JUIZ-REFAZ-2810 — fotos novas por CENA: 2 sem folha (FLUX, US$ 0,015 cada); 1 com folha (edit com referência, US$ 0,15). */
+export const STILL_CRITIC_MAX_REGERACOES_CENA = 2 // KINEO-JUIZ-REFAZ-2810
+export const STILL_CRITIC_MAX_REGERACOES_CENA_COM_FOLHA = 1 // KINEO-JUIZ-REFAZ-2810
 /** Uma foto nova FLUX dev 9:16 (576×1024 ≈ 0,59 MP × US$ 0,025/MP). */
 export const STILL_CRITIC_REGERACAO_USD = 0.015
 export const STILL_CRITIC_TOKENS_POR_IMAGEM = 2833
@@ -69,7 +78,7 @@ export function criticoNaFamiliaHollywood(family: string | null | undefined): bo
 }
 
 export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato' | 'identidade' // KINEO-META95-PERSONAGEM-2010 — 'identidade' só existe quando o pedido levou a folha (referencia)
-const PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato' }
+const PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato', mascot: 'sujeito', missing: 'sujeito', missing_character: 'sujeito' } // KINEO-JUIZ-REFAZ-2810 — "mascot"/"missing" (se o modelo os escrever) são SUJEITO errado; era: só os 4
 const PROBLEMA_IDENTIDADE: Record<string, ProblemaStill> = { identity: 'identidade' } // KINEO-META95-PERSONAGEM-2010 — lido SÓ com referência; sem ela "identity" segue ignorado (gosto), byte a byte o de antes
 export type VereditoCritico = 'PASS' | 'FAIL' | 'ERRO' | 'PULADO'
 
@@ -104,6 +113,8 @@ export const STILL_CRITIC_SISTEMA =
   '(1) ANATOMY — a deformed human or animal body: extra, missing, fused or twisted fingers or limbs; a melted, duplicated or distorted face; impossible joints (small, distant or blurred figures are fine); ' +
   '(2) TEXT — garbled, misspelled, nonsense or invented letters, words, numbers or logos anywhere in the frame (blurred texture with no readable glyphs is fine); ' +
   '(3) SUBJECT — the main subject of the image is clearly not what the shot must show, judged against the description and the narration (another plausible angle of the same subject is fine); ' +
+  // KINEO-JUIZ-REFAZ-2810 — o FAIL explícito do mascote e do personagem ausente (27-28/10: Krishna, Ghost Rider e Lucifer viraram o mesmo bichinho fofo; Amna e Baba Noor nunca apareceram)
+  'this includes (3a) a requested named character, person, god, angel, demon, hero, animal or creature who is MISSING from the frame, and (3b) a cute cartoon mascot, plush toy, chibi or generic smiling creature standing in for the requested person, deity, mythical figure or named character (flag both as "subject"); ' + // KINEO-JUIZ-REFAZ-2810
   '(4) ARTIFACT — an obvious generation artifact: objects merged into each other, broken or impossible geometry, a split screen, collage or several panels, a border, a watermark, heavy smearing or noise, a blank or corrupted image. ' +
   'Otherwise answer PASS. When unsure, answer PASS. ' +
   'Reply ONLY with JSON: {"verdict":"PASS"|"FAIL","issues":[zero or more of "anatomy","text","subject","artifact"; empty when PASS],' +
@@ -115,10 +126,17 @@ export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
   ' When a CHARACTER REFERENCE image is given, also apply (5) IDENTITY — the named character in the still is CLEARLY a different character from the reference: another species or kind of creature, a different sex or apparent age group, a clearly different body shape, different fur/skin/scale colour, different hair or a different outfit (a different pose, angle, expression, lighting or background is fine; the reference is a design sheet, not the shot). ' + // KINEO-META95-PERSONAGEM-2010
   'For (5) use the issue name "identity". Deliberate anatomy of a creature or mythical figure shown in the reference, such as the demon king Ravan with ten heads, is its identity and is not an anatomy defect.' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — integração 21/10 (ideia da versão Codex): as 10 cabeças do Ravan não são defeito de anatomia; era: 'For (5) use the issue name "identity".'
 /** O pedido ao crítico: a foto + o que a cena deve mostrar + a narração. Uma imagem só, detail 'low'. */
+/** KINEO-JUIZ-REFAZ-2810 — o elenco nomeado que a rota pôs na frente do prompt (lib/cinematic/elencoEpoca CLAUSULA_ELENCO): o crítico precisa saber quem DEVE aparecer para reprovar "personagem ausente"/"mascote no lugar". '' = sem elenco no prompt. */
+export function elencoNoPrompt(prompt: string): string { // KINEO-JUIZ-REFAZ-2810
+  const m = /Named characters? in this shot: (.+?) — clearly visible in frame/u.exec(String(prompt ?? '')) // KINEO-JUIZ-REFAZ-2810
+  return m ? limpa(m[1]).slice(0, 320) : '' // KINEO-JUIZ-REFAZ-2810
+} // KINEO-JUIZ-REFAZ-2810
 export function montarPedidoAoCritico(e: EntradaCritico, url: string): { messages: MensagemDoCritico[]; imagens: number; caracteres: number } {
+  const elenco = elencoNoPrompt(e.prompt) // KINEO-JUIZ-REFAZ-2810
   const texto = [
     `SHOT ${e.indice + 1}`,
     `What the shot must show: ${limpa(e.mostra || e.prompt).slice(0, 420)}`,
+    ...(elenco ? [`Named character(s) who MUST appear in this shot, exactly as described: ${elenco}`] : []), // KINEO-JUIZ-REFAZ-2810 — sem elenco no prompt: o texto de sempre, byte a byte
     `Narration heard during the shot: "${limpa(e.fala).slice(0, 300)}"`,
   ].join('\n')
   const parts: ParteDoPedidoCritico[] = [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }]
@@ -225,6 +243,45 @@ export function instrucaoDoCritico(problemas: readonly ProblemaStill[]): string 
   return ORDEM.filter((p) => problemas.includes(p)).map((p) => INSTRUCAO[p]).join(' ')
 }
 
+// ═══ KINEO-JUIZ-REFAZ-2810 — a instrução MAIS FORTE da 2ª foto nova, derivada do MOTIVO do crítico (sempre positiva) ═══
+// O crítico diz "Main subject is not a cosmic galaxy" / "The character is a lion, not a bear" / "Image does not depict Mishu, the tiny
+// dragon" / "Missing charcoal and bones as described". Dali sai a EXIGÊNCIA ("a cosmic galaxy", "a bear", "Mishu, the tiny dragon") e
+// ela entra como ordem positiva ("Required, large and unmistakable in frame: …"). Nunca "no X" — o motor não tem negative e desenha X.
+// Só para SUJEITO/IDENTIDADE (num TEXTO embaralhado, "instead of 'Fjord'" pediria letreiro). Motivo sem padrão → só a instrução de sempre.
+const EXIGENCIA_RES: ReadonlyArray<RegExp> = [ // KINEO-JUIZ-REFAZ-2810 — o artigo fica ("a cosmic galaxy"); só "the required/described" sai
+  /,\s*not\s+([^.;:]+)/i, // KINEO-JUIZ-REFAZ-2810 — "is a lion, not a bear" / "shows arches, not stone foundations"
+  /\b(?:is|are|was|were)\s+not\s+([^.;:]+)/i, // KINEO-JUIZ-REFAZ-2810 — "Main subject is not a cosmic galaxy"
+  /\binstead of\s+([^.;:]+)/i, // KINEO-JUIZ-REFAZ-2810 — "shows a person instead of an aerial view"
+  /\b(?:does|do|did)\s+not\s+(?:show|depict|include|contain|have|display|feature|present)\s+(?:the\s+(?:required|described|requested)\s+)?([^.;:]+)/i, // KINEO-JUIZ-REFAZ-2810 — "does not depict Mishu, the tiny dragon"
+  /\b(?:missing|lacks?|lacking|without)\s+(?:the\s+(?:required|described|requested)\s+)?([^.;:]+)/i, // KINEO-JUIZ-REFAZ-2810 — "Missing charcoal and bones as described"
+] // KINEO-JUIZ-REFAZ-2810
+const EXIGENCIA_LIXO_RE = /^(?:description|the description|reference|the reference|character reference|required|as described|what the shot must show|the shot|the scene|the image|match(?:ing)?\b.*)$/i // KINEO-JUIZ-REFAZ-2810
+/** A exigência positiva que o motivo do crítico carrega ("a cosmic galaxy"); null = o motivo não diz o que falta. */ // KINEO-JUIZ-REFAZ-2810
+export function exigenciaDoMotivo(motivo: string | null | undefined): string | null { // KINEO-JUIZ-REFAZ-2810
+  const m = limpa(motivo) // KINEO-JUIZ-REFAZ-2810
+  if (!m) return null // KINEO-JUIZ-REFAZ-2810
+  for (const re of EXIGENCIA_RES) { // KINEO-JUIZ-REFAZ-2810
+    const x = re.exec(m)?.[1] // KINEO-JUIZ-REFAZ-2810
+    if (!x) continue // KINEO-JUIZ-REFAZ-2810
+    const alvo = limpa(x.replace(/\s+(?:as|like)\s+(?:described|required|requested|specified|in the (?:description|narration|shot|reference)).*$/i, '').replace(/\s+(?:in|from) the (?:image|frame|picture|still|shot)\b.*$/i, '').replace(/[.,;:!?]+$/, '')) // KINEO-JUIZ-REFAZ-2810
+    if (alvo.length < 3 || alvo.length > 90) continue // KINEO-JUIZ-REFAZ-2810
+    if (EXIGENCIA_LIXO_RE.test(alvo)) continue // KINEO-JUIZ-REFAZ-2810
+    if (/\b(?:no|not|without|never|none|nothing)\b/i.test(alvo)) continue // KINEO-JUIZ-REFAZ-2810 — positiva sempre
+    return alvo // KINEO-JUIZ-REFAZ-2810
+  } // KINEO-JUIZ-REFAZ-2810
+  return null // KINEO-JUIZ-REFAZ-2810
+} // KINEO-JUIZ-REFAZ-2810
+/** A instrução da tentativa N: a de sempre (1ª) + a exigência do motivo (sujeito/identidade); na 2ª também a cena inteira ditada. '' = nada a refazer. */ // KINEO-JUIZ-REFAZ-2810
+export function instrucaoDaTentativa(problemas: readonly ProblemaStill[], motivo: string | null | undefined, mostra: string | null | undefined, tentativa: number): string { // KINEO-JUIZ-REFAZ-2810
+  const base = instrucaoDoCritico(problemas) // KINEO-JUIZ-REFAZ-2810
+  if (!base) return '' // KINEO-JUIZ-REFAZ-2810
+  const partes = [base] // KINEO-JUIZ-REFAZ-2810
+  const exig = problemas.includes('sujeito') || problemas.includes('identidade') ? exigenciaDoMotivo(motivo) : null // KINEO-JUIZ-REFAZ-2810
+  if (exig) partes.push(`Required, large and unmistakable in frame: ${exig}.`) // KINEO-JUIZ-REFAZ-2810
+  if (tentativa >= 2) { const cena = limpa(mostra).replace(/[.\s]+$/, '').slice(0, 220); if (cena) partes.push(`This frame shows exactly this and nothing else: ${cena}.`) } // KINEO-JUIZ-REFAZ-2810 — 2ª foto nova: a cena inteira ditada (a 1ª só reforçou o sujeito e não bastou)
+  return partes.join(' ') // KINEO-JUIZ-REFAZ-2810
+} // KINEO-JUIZ-REFAZ-2810
+
 /** O prompt da foto nova: a 1ª frase da cena (o visual) primeiro, a instrução logo depois, o resto em seguida. */
 export function promptDaRegeracaoCritico(prompt: string, instrucao: string): string {
   const p = limpa(prompt)
@@ -236,9 +293,10 @@ export function promptDaRegeracaoCritico(prompt: string, instrucao: string): str
 }
 
 /** Semente da foto nova: determinística (retentativa do mesmo filme refaz a mesma foto) e diferente da do filme. */
-export function seedDaRegeracaoCritico(seed: number, indice: number): number {
+export function seedDaRegeracaoCritico(seed: number, indice: number, tentativa: number = 1): number { // KINEO-JUIZ-REFAZ-2810 — `tentativa` (1 = a de sempre, byte a byte; 2 = outra semente)
   const s = Number.isFinite(seed) ? Math.floor(Math.abs(seed)) : 0
-  return (s + 7_919 * (Math.max(0, Math.floor(indice)) + 1)) % 2_147_483_647
+  const t = Math.max(1, Math.floor(Number.isFinite(tentativa) ? tentativa : 1)) // KINEO-JUIZ-REFAZ-2810
+  return (s + 7_919 * (Math.max(0, Math.floor(indice)) + 1) + 15_485_863 * (t - 1)) % 2_147_483_647 // KINEO-JUIZ-REFAZ-2810 — era: (s + 7_919·(i+1)) % p
 }
 
 /** Qual foto segue: sem foto nova → a original; nova sem 2º veredito ou aprovada → a nova; as duas recusadas → nota maior
@@ -248,6 +306,36 @@ export function escolherFotoCritico(v1: ChamadaDoCritico, v2: ChamadaDoCritico |
   if (!v2 || v2.veredito !== 'FAIL') return 'regerada'
   return (v2.nota ?? 0) > (v1.nota ?? 0) ? 'regerada' : 'original'
 }
+
+// ═══ KINEO-JUIZ-REFAZ-2810 — as TENTATIVAS de uma cena (original + até 2 fotos novas) e a escolha da melhor ═══
+export type TentativaCritico = { // KINEO-JUIZ-REFAZ-2810
+  /** 0 = original, 1 = 1ª foto nova, 2 = 2ª */ // KINEO-JUIZ-REFAZ-2810
+  n: number // KINEO-JUIZ-REFAZ-2810
+  origem: 'original' | 'regerada' // KINEO-JUIZ-REFAZ-2810
+  /** null = a foto nova não saiu */ // KINEO-JUIZ-REFAZ-2810
+  url: string | null // KINEO-JUIZ-REFAZ-2810
+  veredito: VereditoCritico // KINEO-JUIZ-REFAZ-2810
+  problemas: ProblemaStill[] // KINEO-JUIZ-REFAZ-2810
+  motivo: string // KINEO-JUIZ-REFAZ-2810
+  nota: number | null // KINEO-JUIZ-REFAZ-2810
+  instrucao: string | null // KINEO-JUIZ-REFAZ-2810
+} // KINEO-JUIZ-REFAZ-2810
+/**
+ * Qual tentativa segue (índice n): uma APROVADA (a última, que é a mais recente); senão uma foto nova SEM veredito (timeout/erro do
+ * crítico — a regra de antes: foto desconhecida vence a reprovada); senão a de MAIOR NOTA entre as que existem; empate = a mais antiga
+ * (a original tem a semente e a paleta do filme). Nunca devolve uma tentativa sem foto.
+ */ // KINEO-JUIZ-REFAZ-2810
+export function escolherTentativaCritico(tentativas: ReadonlyArray<TentativaCritico>): number { // KINEO-JUIZ-REFAZ-2810
+  const comFoto = tentativas.filter((t) => typeof t.url === 'string' && t.url.length > 0) // KINEO-JUIZ-REFAZ-2810
+  if (comFoto.length === 0) return 0 // KINEO-JUIZ-REFAZ-2810
+  const aprovadas = comFoto.filter((t) => t.veredito === 'PASS') // KINEO-JUIZ-REFAZ-2810
+  if (aprovadas.length > 0) return aprovadas[aprovadas.length - 1].n // KINEO-JUIZ-REFAZ-2810
+  const semVeredito = comFoto.filter((t) => t.n > 0 && t.veredito !== 'FAIL') // KINEO-JUIZ-REFAZ-2810
+  if (semVeredito.length > 0) return semVeredito[semVeredito.length - 1].n // KINEO-JUIZ-REFAZ-2810
+  let melhor = comFoto[0] // KINEO-JUIZ-REFAZ-2810
+  for (const t of comFoto) if ((t.nota ?? 0) > (melhor.nota ?? 0)) melhor = t // KINEO-JUIZ-REFAZ-2810 — `>` estrito: empate fica com a mais antiga
+  return melhor.n // KINEO-JUIZ-REFAZ-2810
+} // KINEO-JUIZ-REFAZ-2810
 
 // ── 4. O JULGAMENTO DE UM STILL (orquestra; nunca lança) ──
 export type PuladoPor = 'prazo' | 'teto_cena' | 'orcamento_filme' | 'disjuntor' | 'teto_regeracoes' | 'modo_log_only' | null
@@ -278,6 +366,13 @@ export type RelatoCriticoStill = {
   pulado_por: PuladoPor
   url_original: string
   url_final: string
+  // KINEO-JUIZ-REFAZ-2810 — o laço: cada tentativa (original + fotos novas), as notas, quantas fotos novas saíram, qual seguiu e o que as fotos novas custaram
+  regeracoes: number // KINEO-JUIZ-REFAZ-2810
+  custo_regeracoes_usd: number // KINEO-JUIZ-REFAZ-2810
+  tentativas: TentativaCritico[] // KINEO-JUIZ-REFAZ-2810
+  notas: Array<number | null> // KINEO-JUIZ-REFAZ-2810
+  /** 0 = a original seguiu; 1/2 = a 1ª/2ª foto nova */ // KINEO-JUIZ-REFAZ-2810
+  escolhida_tentativa: number // KINEO-JUIZ-REFAZ-2810
 }
 export type FilmeDoCritico = {
   modo: ModoCriticoStill
@@ -313,6 +408,8 @@ export type DepsCritico = {
   minRegeracaoMs?: number // KINEO-META95-PERSONAGEM-AJUSTE-2010
   /** KINEO-META95-PERSONAGEM-AJUSTE-2010 — grava `regeracao_motivo` no relato (só a folha pede; sem isto o relato é byte a byte o de antes). */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
   relatarMotivo?: boolean // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  /** KINEO-JUIZ-REFAZ-2810 — fotos novas por cena. Ausente: 2 sem folha (FLUX), 1 com folha (edit de US$ 0,15). 0 = julga e nunca refaz. */ // KINEO-JUIZ-REFAZ-2810
+  maxRegeracoesCena?: number // KINEO-JUIZ-REFAZ-2810
   fetchImpl?: typeof fetch
   apiKey?: string
   agora?: () => number
@@ -332,6 +429,7 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     regeraria: false, regerou: false, regeracao_ok: null, instrucao: null, veredito_regerada: null, problemas_regerada: null, nota_regerada: null,
     escolhida: 'original', custo_usd: 0, ms: 0, chamadas: 0, modelo: STILL_CRITIC_MODELO, erro: null, pulado_por: null,
     url_original: e.url, url_final: e.url,
+    regeracoes: 0, custo_regeracoes_usd: 0, tentativas: [], notas: [], escolhida_tentativa: 0, // KINEO-JUIZ-REFAZ-2810
   }
   let url = e.url
   if (filme.modo === 'off') return { url, relato: r }
@@ -356,6 +454,8 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     r.motivo = v1.motivo
     r.nota = v1.nota
     r.erro = v1.erro
+    r.tentativas.push({ n: 0, origem: 'original', url: e.url, veredito: v1.veredito, problemas: v1.problemas, motivo: v1.motivo, nota: v1.nota, instrucao: null }) // KINEO-JUIZ-REFAZ-2810
+    r.notas.push(v1.nota) // KINEO-JUIZ-REFAZ-2810
     if (v1.veredito === 'ERRO') {
       filme.erros += 1
       if (filme.erros >= STILL_CRITIC_ERROS_PARA_DESLIGAR) filme.desligado = true
@@ -369,32 +469,47 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     if (restante() < (typeof d.minRegeracaoMs === 'number' && d.minRegeracaoMs > 0 ? d.minRegeracaoMs : STILL_CRITIC_MIN_REGERACAO_MS)) { r.pulado_por = quemLimita(); if (d.relatarMotivo) r.regeracao_motivo = `sem_tempo:${r.pulado_por}`; return { url, relato: r } } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: restante() < STILL_CRITIC_MIN_REGERACAO_MS
     const instrucao = instrucaoDoCritico(v1.problemas)
     if (!instrucao) return { url, relato: r }
-    filme.regeracoesRestantes -= 1 // reservado ANTES do await: tarefas paralelas do mesmo filme não passam do teto
-    r.regerou = true
-    r.instrucao = instrucao.slice(0, 240)
-    r.custo_usd = arred(r.custo_usd + STILL_CRITIC_REGERACAO_USD)
-    let urlNova: string | null = null
-    try {
-      const saida = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(typeof d.janelaRegeracaoMs === 'number' && d.janelaRegeracaoMs > 0 ? d.janelaRegeracaoMs : STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: urlNova = await d.gerarStill(…, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, …))
-      urlNova = typeof saida === 'string' ? saida : saida && typeof saida === 'object' && typeof saida.url === 'string' ? saida.url : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
-      if (d.relatarMotivo) r.regeracao_motivo = saida && typeof saida === 'object' && typeof saida.motivo === 'string' && saida.motivo ? saida.motivo.slice(0, 60) : urlNova ? 'ok' : 'sem_url' // KINEO-META95-PERSONAGEM-AJUSTE-2010
-    } catch {
-      urlNova = null
-      if (d.relatarMotivo) r.regeracao_motivo = 'lancou' // KINEO-META95-PERSONAGEM-AJUSTE-2010
-    }
-    r.regeracao_ok = typeof urlNova === 'string' && urlNova.length > 0
-    if (!urlNova) return { url, relato: r }
-    let v2: ChamadaDoCritico | null = null
-    if (restante() >= STILL_CRITIC_MIN_CHAMADA_MS) {
-      v2 = await chamarCritico(e, urlNova, { timeoutMs: Math.min(STILL_CRITIC_TIMEOUT_MS, restante()), fetchImpl: d.fetchImpl, apiKey: d.apiKey, agora })
+    // ═══ KINEO-JUIZ-REFAZ-2810 — O LAÇO: foto nova → julga de novo → ainda FAIL → 2ª foto nova (instrução mais forte) → julga de novo ═══
+    // Antes: UMA foto nova e "a melhor das duas" — a melhor de duas reprovadas ainda era o mascote (Gênesis 28/10: 20 → 30 FAIL, a 30 foi entregue).
+    const maxCena = Math.max(0, Math.floor(typeof d.maxRegeracoesCena === 'number' && Number.isFinite(d.maxRegeracoesCena) ? d.maxRegeracoesCena : e.referencia ? STILL_CRITIC_MAX_REGERACOES_CENA_COM_FOLHA : STILL_CRITIC_MAX_REGERACOES_CENA)) // KINEO-JUIZ-REFAZ-2810
+    const minRegeracaoMs = typeof d.minRegeracaoMs === 'number' && d.minRegeracaoMs > 0 ? d.minRegeracaoMs : STILL_CRITIC_MIN_REGERACAO_MS // KINEO-JUIZ-REFAZ-2810
+    const janelaMs = typeof d.janelaRegeracaoMs === 'number' && d.janelaRegeracaoMs > 0 ? d.janelaRegeracaoMs : STILL_CRITIC_JANELA_REGERACAO_MS // KINEO-JUIZ-REFAZ-2810
+    let atual: ChamadaDoCritico = v1 // KINEO-JUIZ-REFAZ-2810 — o último veredito; o laço só continua enquanto for FAIL
+    for (let n = 1; n <= maxCena && atual.veredito === 'FAIL'; n++) { // KINEO-JUIZ-REFAZ-2810
+      if (n > 1 && (filme.regeracoesRestantes <= 0 || restante() < minRegeracaoMs)) break // KINEO-JUIZ-REFAZ-2810 — a 1ª já foi conferida acima (teto e folga); a 2ª confere de novo e para em silêncio
+      const instrucaoN = instrucaoDaTentativa(atual.problemas, atual.motivo, e.mostra || e.prompt, n) // KINEO-JUIZ-REFAZ-2810 — 1ª: a de sempre (+ exigência do motivo); 2ª: + a cena inteira ditada
+      if (!instrucaoN) break // KINEO-JUIZ-REFAZ-2810
+      filme.regeracoesRestantes -= 1 // reservado ANTES do await: tarefas paralelas do mesmo filme não passam do teto
+      r.regerou = true
+      if (n === 1) { r.instrucao = instrucaoN.slice(0, 240); r.regeracao_ok = false } // KINEO-JUIZ-REFAZ-2810 — `instrucao` do relato = a da 1ª foto nova (como antes); as demais ficam em `tentativas`
+      r.regeracoes = n // KINEO-JUIZ-REFAZ-2810
+      r.custo_usd = arred(r.custo_usd + STILL_CRITIC_REGERACAO_USD)
+      r.custo_regeracoes_usd = arred(r.custo_regeracoes_usd + STILL_CRITIC_REGERACAO_USD) // KINEO-JUIZ-REFAZ-2810
+      let urlNova: string | null = null
+      try {
+        const saida = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucaoN), seedDaRegeracaoCritico(e.seed, e.indice, n), Math.max(1_000, Math.min(janelaMs, restante() - STILL_CRITIC_MIN_CHAMADA_MS))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 · KINEO-JUIZ-REFAZ-2810 — semente própria por tentativa
+        urlNova = typeof saida === 'string' ? saida : saida && typeof saida === 'object' && typeof saida.url === 'string' ? saida.url : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+        if (d.relatarMotivo) r.regeracao_motivo = saida && typeof saida === 'object' && typeof saida.motivo === 'string' && saida.motivo ? saida.motivo.slice(0, 60) : urlNova ? 'ok' : 'sem_url' // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      } catch {
+        urlNova = null
+        if (d.relatarMotivo) r.regeracao_motivo = 'lancou' // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      }
+      if (!urlNova) { r.tentativas.push({ n, origem: 'regerada', url: null, veredito: 'PULADO', problemas: [], motivo: 'foto nova não saiu', nota: null, instrucao: instrucaoN.slice(0, 240) }); r.notas.push(null); break } // KINEO-JUIZ-REFAZ-2810 — gerador falhou/estourou a janela: não insiste (a 2ª falharia igual e o prazo acabaria)
+      r.regeracao_ok = true // KINEO-JUIZ-REFAZ-2810 — ao menos uma foto nova saiu
+      if (restante() < STILL_CRITIC_MIN_CHAMADA_MS) { r.tentativas.push({ n, origem: 'regerada', url: urlNova, veredito: 'PULADO', problemas: [], motivo: 'sem tempo para julgar', nota: null, instrucao: instrucaoN.slice(0, 240) }); r.notas.push(null); break } // KINEO-JUIZ-REFAZ-2810 — foto nova sem 2º veredito: segue (regra de antes), o laço para
+      const vN = await chamarCritico(e, urlNova, { timeoutMs: Math.min(STILL_CRITIC_TIMEOUT_MS, restante()), fetchImpl: d.fetchImpl, apiKey: d.apiKey, agora }) // KINEO-JUIZ-REFAZ-2810 — JULGA DE NOVO, sempre que há tempo
       r.chamadas += 1
-      r.custo_usd = arred(r.custo_usd + v2.custoUsd)
-      r.veredito_regerada = v2.veredito
-      r.problemas_regerada = v2.problemas
-      r.nota_regerada = v2.nota
-    }
-    r.escolhida = escolherFotoCritico(v1, v2, true)
-    if (r.escolhida === 'regerada') url = urlNova
+      r.custo_usd = arred(r.custo_usd + vN.custoUsd)
+      r.tentativas.push({ n, origem: 'regerada', url: urlNova, veredito: vN.veredito, problemas: vN.problemas, motivo: vN.motivo, nota: vN.nota, instrucao: instrucaoN.slice(0, 240) }) // KINEO-JUIZ-REFAZ-2810
+      r.notas.push(vN.nota) // KINEO-JUIZ-REFAZ-2810
+      if (vN.veredito === 'ERRO') { filme.erros += 1; if (filme.erros >= STILL_CRITIC_ERROS_PARA_DESLIGAR) filme.desligado = true; break } // KINEO-JUIZ-REFAZ-2810 — crítico caiu na foto nova: ela segue sem veredito (regra de antes) e o laço para
+      atual = vN // KINEO-JUIZ-REFAZ-2810
+    } // KINEO-JUIZ-REFAZ-2810
+    r.escolhida_tentativa = escolherTentativaCritico(r.tentativas) // KINEO-JUIZ-REFAZ-2810 — aprovada > foto nova sem veredito > maior nota (empate = original)
+    r.escolhida = r.escolhida_tentativa === 0 ? 'original' : 'regerada' // KINEO-JUIZ-REFAZ-2810
+    const ref = (r.escolhida_tentativa > 0 ? r.tentativas[r.escolhida_tentativa] : [...r.tentativas].reverse().find((t) => t.n > 0 && t.url)) ?? null // KINEO-JUIZ-REFAZ-2810 — os campos antigos (veredito_regerada…) descrevem a foto nova que SEGUIU; sem escolha, a última que saiu
+    if (ref) { r.veredito_regerada = ref.veredito === 'PULADO' ? null : ref.veredito; r.problemas_regerada = ref.veredito === 'PULADO' ? null : ref.problemas; r.nota_regerada = ref.nota } // KINEO-JUIZ-REFAZ-2810 — PULADO = sem 2º veredito (null, como antes)
+    if (r.escolhida_tentativa > 0) url = r.tentativas[r.escolhida_tentativa].url as string // KINEO-JUIZ-REFAZ-2810
     return { url, relato: r }
   } catch (err) {
     r.erro = `critico_lancou: ${limpa(err instanceof Error ? err.message : String(err)).slice(0, 100)}`
