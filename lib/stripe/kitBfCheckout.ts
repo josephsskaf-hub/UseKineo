@@ -6,7 +6,7 @@
 // O QUE ESTE ARQUIVO DECIDE NO SERVIDOR (nada vem do navegador além do ?currency= da liquidação, que a casa já aceita):
 //   · o valor = KIT_BF_USD_MINOR (lib/ads/kitBfSale.ts) — query string com preço/créditos é ignorada;
 //   · a janela: depois de 30/11 (KIT_BF_SALE_ENDS_AT, relógio do servidor) recusa com erro visível, nunca abre sessão;
-//   · o Business NÃO compra: o kit já está incluído (os 500 créditos do mês cobrem os 10 anúncios) — recusa com a frase certa;
+//   · o Business NÃO compra: o kit já está incluído (os créditos mensais cobrem o saldo do kit) — recusa com a frase certa;
 //   · a coluna do acesso tem de existir (mesma sonda do passe): sem ela o webhook falharia e a pessoa ficaria cobrada sem acesso.
 // As funções de evento/idempotência são as da rota (injetadas): os eventos saem com os MESMOS nomes do checkout de sempre.
 import { NextRequest, NextResponse } from 'next/server'
@@ -16,7 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
-import { KIT_BF_ACCESS_UNTIL, KIT_BF_ADS, KIT_BF_CREDITS, KIT_BF_PACK_ID, KIT_BF_USD_MINOR, KIT_BF_VERSION, kitBfIncludedInPlan, kitBfSaleOpen } from '@/lib/ads/kitBfSale'
+import { KIT_BF_ACCESS_UNTIL, KIT_BF_ADS, KIT_BF_AD_CREDITS, KIT_BF_REMAINING_CREDITS, KIT_BF_CREDITS, KIT_BF_PACK_ID, KIT_BF_USD_MINOR, KIT_BF_VERSION, kitBfIncludedInPlan, kitBfSaleOpen } from '@/lib/ads/kitBfSale'
 
 type CheckoutEventName = 'checkout_attempted' | 'checkout_auth_required' | 'checkout_started' | 'checkout_failed'
 
@@ -81,7 +81,7 @@ export async function buildKitBfAndRedirect(req: NextRequest, deps: KitBfCheckou
   }
 
   const { data: profile } = await supabase.from('profiles').select('email, stripe_customer_id, plan').eq('id', user.id).single()
-  // O Business já tem o kit: os 500 créditos do mês cobrem os 10 anúncios. Vender de novo seria cobrar duas vezes.
+  // O Business já tem o kit: os créditos mensais cobrem o saldo do kit. Vender de novo seria cobrar duas vezes.
   if (kitBfIncludedInPlan((profile as { plan?: unknown } | null)?.plan)) {
     skuContext.blocked = 'included_in_business'
     return redirectError(KIT_BF_MSG.included)
@@ -99,7 +99,7 @@ export async function buildKitBfAndRedirect(req: NextRequest, deps: KitBfCheckou
     }
   }
 
-  const description = `${KIT_BF_CREDITS} credits (${KIT_BF_ADS} Real product close-up ads with your offer at the Photo motion level) and Studio Ads until Dec 31, 2026. One-time payment, no subscription.`
+  const description = `${KIT_BF_CREDITS} credits (${KIT_BF_ADS} full 15-second ads at ${KIT_BF_AD_CREDITS} credits each, with ${KIT_BF_REMAINING_CREDITS} credits left) and Studio Ads until Dec 31, 2026. One-time payment, no subscription.`
   const p = profile as { email?: string | null; stripe_customer_id?: string | null } | null
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
