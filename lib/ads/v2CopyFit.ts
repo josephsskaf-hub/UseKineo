@@ -23,6 +23,7 @@
 //    certa. A 1ª frase de tela ("Perfume — Fragrâncias") e o cartão final podem manter o nome do produto como título.
 import { countWords } from '@/lib/ads/scriptPrompt'
 import { ADS_V2_PRODUCT_WORDS, isProductSentence, simpleNames, simpleTitle } from '@/lib/ads/v2Simple'
+import { adsV2StripUrls } from '@/lib/ads/v2Simple' // KINEO-ADS-FONTE-LINK-2810
 import { adsV2SentenceReady } from '@/lib/ads/v2AutoPlan'
 
 // ═══ 1. piso de fala ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -279,7 +280,7 @@ export function adsV2GenericWhy(label: string, g: AdsV2GenericProduct, uses: rea
  * de sempre). Pura.
  */
 export function adsV2BusinessFallback(sentence: string | undefined, productPhoto: boolean | undefined): string | null {
-  const s = String(sentence ?? '').replace(/\s+/g, ' ').trim()
+  const s = adsV2StripUrls(String(sentence ?? '').replace(/\s+/g, ' ').trim()) // KINEO-ADS-FONTE-LINK-2810 — frase que é só o link = sem nome (nunca "https")
   if (!adsV2SentenceReady(s)) return null
   if (!isProductSentence(s) && productPhoto !== true) return null
   const title = simpleTitle(s)

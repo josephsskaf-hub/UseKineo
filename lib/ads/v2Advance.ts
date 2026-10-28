@@ -88,6 +88,7 @@ import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, 
 import { adsV2LockBoxRound } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — o evento registra se a conferência devolveu caixa "redonda"
 import { adsV2LockCheckTry } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-6-1610 — 1ª conferência da cena ou a de depois da refação
 import { ajusteReviewOf, type AjusteQualityNote } from '@/lib/ads/cena/ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
+import { adsV2ScriptSafeFonts } from '@/lib/ads/v2FonteTexto' // KINEO-ADS-FONTE-LINK-2810 — a fonte segue a escrita de CADA texto (cartão, botão e marca-d'água latinos num pedido em hindi/árabe saíam □□□□)
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -1386,7 +1387,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   if (stamp.error || !stamp.data) return
   let renderId: string
   try {
-    renderId = await submitCreatomateRender(source)
+    renderId = await submitCreatomateRender(adsV2ScriptSafeFonts(source)) // KINEO-ADS-FONTE-LINK-2810
   } catch (e) {
     if (e instanceof CreatomateSubmitError && e.ambiguous) {
       console.warn(`[ads-v2] Creatomate ambíguo order=${order.id} — sem reenvio; o prazo decide`)

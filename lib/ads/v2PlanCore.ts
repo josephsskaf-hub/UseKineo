@@ -45,6 +45,7 @@ import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/a
 import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-1410 — produto sem a cena da frase
 import { adsV2KindWithProductPhoto } from '@/lib/ads/v2Scene' // KINEO-ADS-BOLA-2110 — "lugar" num texto-instrução com foto de produto volta a produto
 import { adsV2InstructionNarrationFits, adsV2ReadInstruction, simpleInstructionTitle } from '@/lib/ads/v2Simple' // KINEO-ADS-BOLA-2110 — o texto-instrução (produto + narração entre aspas)
+import { adsV2LinkFromSentence, adsV2NeutralProductText, adsV2StripUrls } from '@/lib/ads/v2Simple' // KINEO-ADS-FONTE-LINK-2810 — o link colado na FRASE vira o link (nunca o nome)
 import { ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED, adsV2MeasureImage, adsV2ProductPhotoSmall, adsV2ProductPhotoSmallText } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — a foto do produto pequena
 import { ADS_V2_LIFESTYLE_CONFIRM_REQUIRED, adsV2LifestylePhoto, adsV2LifestylePhotoText } from '@/lib/ads/v2LifestylePhoto' // KINEO-ADS-QUALIDADE-2110 — a foto de estilo de vida (mão/pessoa domina, produto pequeno): aviso suave com 1 visão barata
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
@@ -178,8 +179,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ADS-CONSERTOS-1410 — pedido de produto com cena na frase: o texto do negócio é só o produto (a cena vai pelo brief.scene).
     const sentenceFull = typeof brief0.sentence === 'string' ? brief0.sentence.trim() : '' // KINEO-ADS-CONSERTOS-1410 — a frase INTEIRA (moderação)
     const instruction = simple ? adsV2ReadInstruction(sentenceFull) : null // KINEO-ADS-BOLA-2110 — a pessoa colou um PROMPT ("Crie uma propaganda … para a bola de futebol da foto … Narração: “…”")
-    const sentenceCopy = instruction ? instruction.product ?? (simpleInstructionTitle(sentenceFull) || adsV2SentenceForCopy(brief0, input.sector)) : adsV2SentenceForCopy(brief0, input.sector) // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração · KINEO-ADS-BOLA-2110 — texto-instrução = só o PRODUTO que ela nomeia
+    const sentenceCopy = adsV2StripUrls(instruction ? instruction.product ?? (simpleInstructionTitle(sentenceFull) || adsV2SentenceForCopy(brief0, input.sector)) : adsV2SentenceForCopy(brief0, input.sector)) // KINEO-ADS-FONTE-LINK-2810 — sem endereço/"https" (pedido 8e8f7ad9: a frase era só o link da Shopee e virou "Conheça a https") // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração · KINEO-ADS-BOLA-2110 — texto-instrução = só o PRODUTO que ela nomeia
     let text = sentenceCopy // KINEO-ADS-CONSERTOS-1410
+    const link = typeof brief0.link === 'string' && brief0.link ? brief0.link : simple ? adsV2LinkFromSentence(sentenceFull) : '' // KINEO-ADS-FONTE-LINK-2810 — sem link no campo próprio, o endereço da frase é lido como o link (a página dá o nome do produto)
     if (simple && text) {
       const price = typeof brief0.price === 'string' ? brief0.price.trim() : ''
       const contact = typeof brief0.contact === 'string' ? brief0.contact.trim() : ''
@@ -194,18 +196,21 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ADS-1FOTO-LINK-2026-10-10 — modo simples com o link do produto colado (/api/ads/v2/link-import): a frase da
     // pessoa continua mandando; o que a página DIZ (nome, descrição, preço, site) entra embaixo como fonte do roteiro. Página
     // que não abre agora = segue só com a frase (nunca derruba o plano). Sem link, o texto é o de antes.
-    if (simple && text && typeof brief0.link === 'string' && brief0.link) {
-      const page = await adsV2LinkText(brief0.link).catch(() => null)
+    if (simple && text && link) { // KINEO-ADS-FONTE-LINK-2810
+      const page = await adsV2LinkText(link).catch(() => null) // KINEO-ADS-FONTE-LINK-2810
       if (page) {
         text = `${text}\nFrom the product page: ${adsV2PageTextForBrief(page.text, { factsOffered: known.length > 0 })}` // KINEO-ADS-FIEL-2-1510 — com fatos oferecidos, a descrição da página não entra (só o que foi marcado)
         pageLang = page.lang
       }
     }
-    if (!text && typeof brief0.link === 'string' && brief0.link) {
-      const read = await adsV2LinkText(brief0.link)
+    if (!text && link) { // KINEO-ADS-FONTE-LINK-2810
+      const read = await adsV2LinkText(link).catch(() => null) // KINEO-ADS-FONTE-LINK-2810
+      const neutral = !read && simple && link !== brief0.link && photos.length > 0 ? adsV2NeutralProductText(order.language) : '' // KINEO-ADS-FONTE-LINK-2810 — só o link na frase, página fechada (Shopee só-JS), com foto: texto neutro ("este produto"), nunca o endereço
+      if (neutral) { text = neutral } else { // KINEO-ADS-FONTE-LINK-2810
       if (!read) return v2Fail('link_unreachable', 422)
       text = adsV2PageTextForBrief(read.text, { factsOffered: known.length > 0 }) // KINEO-ADS-FIEL-2-1510 — sem frase institucional (franquia, vagas, investidores)
       pageLang = read.lang
+      } // KINEO-ADS-FONTE-LINK-2810
     }
     if (!text) return v2Fail('sentence_or_link_required', 400)
     if (kitBf.offer) text = adsV2KitBfTextWithOffer(text, kitBf.offer) // KINEO-KIT-BF-1910 — só o link (sem frase): a oferta entra também (já presente = o mesmo texto)

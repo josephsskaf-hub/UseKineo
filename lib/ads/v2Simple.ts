@@ -111,9 +111,76 @@ export function simpleProductAd(sentence: string, hasProductPhoto: boolean): boo
   return hasProductPhoto === true && inferSector(sentence) === 'other'
 }
 
+// ── KINEO-ADS-FONTE-LINK-2810 — o LINK nunca vira nome ───────────────────────────────────────────────────────────────── // KINEO-ADS-FONTE-LINK-2810
+// KINEO-ADS-FONTE-LINK-2810 — pedido 8e8f7ad9 (27/10): a pessoa colou "https://s.shopee.com.br/5VWQgkqrbC" na FRASE (não no campo do link). O título cortou no ":"
+// KINEO-ADS-FONTE-LINK-2810 — ("https"), o brief virou business "https", a fala disse "Conheça a https" e o cartão final imprimiu o endereço cru. Estas funções
+// KINEO-ADS-FONTE-LINK-2810 — (puras, sem import) tiram endereço, pedaço de endereço ("https", "www") e encurtador (s.shopee, amzn.to, bit.ly…) de qualquer texto.
+/** Encurtadores e hosts de link de afiliado/compartilhamento: nunca são a marca nem o site da pessoa. */ // KINEO-ADS-FONTE-LINK-2810
+export const ADS_V2_SHORT_LINK_HOST_RE = /^(?:s\.shopee\.[a-z.]{2,8}|shope\.ee|shp\.ee|amzn\.(?:to|eu|asia|com)|a\.co|bit\.ly|bitly\.com|tinyurl\.com|t\.co|t\.ly|goo\.gl|g\.co|cutt\.ly|is\.gd|ow\.ly|buff\.ly|rebrand\.ly|rb\.gy|shorturl\.at|tiny\.cc|linktr\.ee|lnkd\.in|meli\.la|mercadolivre\.com|s\.click\.aliexpress\.com|a\.aliexpress\.com|wa\.me|m\.me|fb\.me|pin\.it|youtu\.be|vm\.tiktok\.com|vt\.tiktok\.com|l\.instagram\.com|tidd\.ly|bit\.do|qr\.ae)$/i // KINEO-ADS-FONTE-LINK-2810
+/** Um endereço dentro de um texto: com esquema, com www., domínio + caminho, ou encurtador solto. */ // KINEO-ADS-FONTE-LINK-2810
+const URL_IN_TEXT_RE = /(?:\b[a-z][a-z0-9+.-]*:\/\/|\bwww\.)[^\s<>"'“”]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s<>"'“”]*|\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/giu // KINEO-ADS-FONTE-LINK-2810
+/** O pedaço de endereço que sobra sozinho ("https", "http:", "www", "://"). */ // KINEO-ADS-FONTE-LINK-2810
+const URL_FRAGMENT_RE = /(^|[\s(\[{"'“])(?:https?|www|ftp)(?::\/{0,2})?(?=[\s)\]}"'”.,;:!?]|$)/giu // KINEO-ADS-FONTE-LINK-2810 — sem lookbehind (Safari antigo não compila)
+/** O host (sem www.) de um endereço; '' se não parecer endereço. Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2UrlHost(raw: unknown): string { // KINEO-ADS-FONTE-LINK-2810
+  const s = String(raw ?? '').trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/^www\./i, '') // KINEO-ADS-FONTE-LINK-2810
+  const m = /^((?:[a-z0-9-]+\.)+[a-z]{2,})(?::\d+)?(?:[/?#]|$)/i.exec(s) // KINEO-ADS-FONTE-LINK-2810
+  return m ? m[1].toLowerCase() : '' // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** Cada pedaço do texto que é um endereço (com esquema, www., domínio+caminho) ou um encurtador solto. Domínio solto sem caminho ("Amazon.com", "Booking.com") NÃO conta: pode ser marca. Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2UrlsIn(text: unknown): string[] { // KINEO-ADS-FONTE-LINK-2810
+  const out: string[] = [] // KINEO-ADS-FONTE-LINK-2810
+  for (const m of String(text ?? '').matchAll(URL_IN_TEXT_RE)) { // KINEO-ADS-FONTE-LINK-2810
+    const u = m[0].replace(/[).,;:!?\]}]+$/u, '') // KINEO-ADS-FONTE-LINK-2810 — a pontuação da frase não é do endereço
+    const bare = !/[/:]/.test(u) && !/^www\./i.test(u) // KINEO-ADS-FONTE-LINK-2810 — "Amazon.com" sem caminho
+    if (bare && !ADS_V2_SHORT_LINK_HOST_RE.test(u)) continue // KINEO-ADS-FONTE-LINK-2810
+    out.push(u) // KINEO-ADS-FONTE-LINK-2810
+  } // KINEO-ADS-FONTE-LINK-2810
+  return out // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** O texto SEM endereço e sem pedaço de endereço ("https", "www"); espaços e pontuação solta das pontas arrumados. Texto sem endereço volta igual. Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2StripUrls(text: unknown): string { // KINEO-ADS-FONTE-LINK-2810
+  const t = String(text ?? '') // KINEO-ADS-FONTE-LINK-2810
+  const urls = adsV2UrlsIn(t) // KINEO-ADS-FONTE-LINK-2810
+  if (!urls.length && !new RegExp(URL_FRAGMENT_RE.source, 'iu').test(t) && !t.includes('://')) return t // KINEO-ADS-FONTE-LINK-2810
+  let s = t // KINEO-ADS-FONTE-LINK-2810
+  for (const u of urls) s = s.split(u).join(' ') // KINEO-ADS-FONTE-LINK-2810
+  s = s.replace(URL_FRAGMENT_RE, '$1 ').split('://').join(' ') // KINEO-ADS-FONTE-LINK-2810
+  return s.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/^[\s:;,|·•\-–—/]+|[\s:;,|·•\-–—/]+$/gu, '').trim() // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** O texto é só endereço (ou pedaço de endereço, ou encurtador)? Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2IsUrlish(text: unknown): boolean { // KINEO-ADS-FONTE-LINK-2810
+  const t = String(text ?? '').trim() // KINEO-ADS-FONTE-LINK-2810
+  if (!t) return false // KINEO-ADS-FONTE-LINK-2810
+  return !/[\p{L}\p{N}]/u.test(adsV2StripUrls(t)) // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** O link colado na FRASE (o 1º endereço com esquema, www. ou encurtador), pronto para ler (https:// na frente quando falta); '' = a frase não tem link. Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2LinkFromSentence(sentence: unknown): string { // KINEO-ADS-FONTE-LINK-2810
+  const u = adsV2UrlsIn(sentence).find((x) => /^[a-z][a-z0-9+.-]*:\/\//i.test(x) || /^www\./i.test(x) || ADS_V2_SHORT_LINK_HOST_RE.test(adsV2UrlHost(x))) ?? '' // KINEO-ADS-FONTE-LINK-2810
+  if (!u || (/^[a-z][a-z0-9+.-]*:\/\//i.test(u) && !/^https?:\/\//i.test(u))) return '' // KINEO-ADS-FONTE-LINK-2810 — só http(s)
+  return /^https?:\/\//i.test(u) ? u : `https://${u}` // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** O texto NEUTRO do produto quando a pessoa só colou um link e a página não abre: "este produto" na língua do pedido (desconhecida = inglês). Nunca o endereço. */ // KINEO-ADS-FONTE-LINK-2810
+export const ADS_V2_NEUTRAL_PRODUCT: Readonly<Record<string, string>> = { en: 'this product', pt: 'este produto', es: 'este producto', fr: 'ce produit', de: 'dieses Produkt', it: 'questo prodotto', nl: 'dit product', pl: 'ten produkt', tr: 'bu ürün', ru: 'этот товар', uk: 'цей товар', ar: 'هذا المنتج', ur: 'یہ پروڈکٹ', hi: 'यह उत्पाद', bn: 'এই পণ্য', id: 'produk ini', ms: 'produk ini', vi: 'sản phẩm này', th: 'สินค้านี้', ja: 'この商品', ko: '이 제품', zh: '这款产品', he: 'המוצר הזה', ro: 'acest produs', el: 'αυτό το προϊόν' } // KINEO-ADS-FONTE-LINK-2810
+export function adsV2NeutralProductText(lang: unknown): string { // KINEO-ADS-FONTE-LINK-2810
+  const k = String(lang ?? '').trim().toLowerCase() // KINEO-ADS-FONTE-LINK-2810
+  return ADS_V2_NEUTRAL_PRODUCT[k] ?? ADS_V2_NEUTRAL_PRODUCT[k.slice(0, 2)] ?? ADS_V2_NEUTRAL_PRODUCT.en // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** O contato que o cartão final pode mostrar: telefone/e-mail/@ seguem iguais; endereço vira só o domínio limpo ("lojadamaria.com.br"), e encurtador ou loja de terceiros (s.shopee, amzn.to, shopee.com.br) não aparece (''). Nunca o endereço cru. Pura. */ // KINEO-ADS-FONTE-LINK-2810
+export function adsV2CardContact(raw: unknown): string { // KINEO-ADS-FONTE-LINK-2810
+  const t = String(raw ?? '').replace(/\s+/g, ' ').trim() // KINEO-ADS-FONTE-LINK-2810
+  if (!t || /@/.test(t) && !/:\/\//.test(t)) return t // KINEO-ADS-FONTE-LINK-2810 — e-mail e @perfil seguem
+  const urls = adsV2UrlsIn(t) // KINEO-ADS-FONTE-LINK-2810
+  const rest = adsV2StripUrls(t) // KINEO-ADS-FONTE-LINK-2810
+  if (!urls.length) return rest === t ? t : rest // KINEO-ADS-FONTE-LINK-2810
+  if (/[\p{L}\p{N}]/u.test(rest)) return rest // KINEO-ADS-FONTE-LINK-2810 — "WhatsApp 11 9999-0000 https://wa.me/…" → o telefone
+  const host = adsV2UrlHost(urls[0]) // KINEO-ADS-FONTE-LINK-2810
+  if (!host || ADS_V2_SHORT_LINK_HOST_RE.test(host) || /^(?:m\.|web\.|api\.)?(?:instagram|facebook|tiktok|youtube|twitter|x|whatsapp|linktr|pinterest|kwai|threads)\.(?:com|net|ee)$/i.test(host) || adsV2IsMarketplace(host) || adsV2IsMarketplace(host.replace(/^(?:[a-z0-9-]+\.)(?=(?:[a-z0-9-]+\.)+[a-z]{2,}$)/i, ''))) return '' // KINEO-ADS-FONTE-LINK-2810 — a loja de terceiros não é o site da pessoa
+  return host // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
 /** Título curto do cartão final: a 1ª oração (até vírgula, ponto, travessão ou quebra), no máximo 40 caracteres. */
 export function simpleTitle(text: string): string {
-  const first = simpleInstructionTitle(text) ?? adsV2StripMarketplacePrefix(String(text ?? '')).replace(/\s+/g, ' ').trim().split(/[,.;:!?\n]|\s[—–-]\s/)[0]?.trim() ?? '' // KINEO-ADS-BOLA-2110 — texto-instrução = o PRODUTO ("Crie uma propaganda de 15 segundos…" → "Bola de futebol"); "Amazon.com : mini printer" → "mini printer"
+  const first = simpleInstructionTitle(adsV2StripUrls(text)) ?? adsV2StripMarketplacePrefix(adsV2StripUrls(text)).replace(/\s+/g, ' ').trim().split(/[,.;:!?\n]|\s[—–-]\s/)[0]?.trim() ?? '' // KINEO-ADS-BOLA-2110 — texto-instrução = o PRODUTO ("Crie uma propaganda de 15 segundos…" → "Bola de futebol"); "Amazon.com : mini printer" → "mini printer" · KINEO-ADS-FONTE-LINK-2810 — sem endereço ("https://s.shopee…" → '', nunca "https")
   if (first.length <= 40) return first
   const cut = first.slice(0, 40)
   const sp = cut.lastIndexOf(' ')

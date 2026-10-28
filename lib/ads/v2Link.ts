@@ -14,6 +14,7 @@ import { isPrivateHost, linkSentence, productImageCandidates, readLinkFacts, saf
 // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a foto DO PRODUTO primeiro (JSON-LD/og:type product/Shopify), WebP aceito e o porquê da falha.
 import { imageFileKey, isShopifyHtml, preferJpegUrl, productPageImages, shopifyProductFromJson, shopifyProductJsonUrl, type LinkFacts, type ShopifyProduct } from '@/lib/ads/linkReader'
 // KINEO-ADS-LINK-LOJAS-1510 — o leitor de todas as plataformas: charset da página, .js do Shopify, busca da VTEX, página de robô/login/só-JS.
+import { ADS_V2_SHORT_LINK_HOP_TIMEOUT_MS, adsV2ResolveShortLink, type AdsV2ShortLinkStep } from '@/lib/ads/v2ShortLink' // KINEO-ADS-FONTE-LINK-2810 — o encurtador seguido antes da leitura
 import { decodeHtmlBytes, detectLinkBlock, detectLinkPlatform, linkBlockMessage, shopifyProductFromJs, vtexProductFromSearch, type LinkBlockKind, type LinkConfidence, type LinkPlatform } from '@/lib/ads/linkReader'
 import {
   ADS_V2_LINK_FETCH_TIMEOUT_MS,
@@ -87,6 +88,21 @@ async function safeGet(start: URL, accept: string, maxBytes: number, truncate: b
   return null
 }
 
+/** KINEO-ADS-FONTE-LINK-2810 — um salto do encurtador: GET sem seguir, host público conferido, tempo curto, só o começo do corpo (64 KB). */
+const shortLinkStep: AdsV2ShortLinkStep = async (url) => { // KINEO-ADS-FONTE-LINK-2810
+  if (!(await publicHost(url))) return null // KINEO-ADS-FONTE-LINK-2810
+  const res = await fetch(url, { redirect: 'manual', headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' }, signal: AbortSignal.timeout(Math.min(FETCH_TIMEOUT_MS, ADS_V2_SHORT_LINK_HOP_TIMEOUT_MS)), cache: 'no-store' }) // KINEO-ADS-FONTE-LINK-2810
+  let body = '' // KINEO-ADS-FONTE-LINK-2810
+  if (res.body && res.status >= 200 && res.status < 300) { const r = res.body.getReader(); const chunks: Uint8Array[] = []; let n = 0; for (;;) { const { value, done } = await r.read(); if (done) break; chunks.push(value); n += value.byteLength; if (n > 65536) { await r.cancel().catch(() => {}); break } } body = new TextDecoder('utf-8').decode(Buffer.concat(chunks.map((c) => Buffer.from(c))).subarray(0, 65536)) } else await res.body?.cancel().catch(() => {}) // KINEO-ADS-FONTE-LINK-2810
+  return { status: res.status, location: res.headers.get('location'), body } // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
+/** KINEO-ADS-FONTE-LINK-2810 — o endereço que a leitura usa: encurtador seguido até a página do produto (e limpo); o resto, igual. Cada destino passa pelo safeLinkUrl. */
+async function readableTarget(raw: string): Promise<URL | null> { // KINEO-ADS-FONTE-LINK-2810
+  const start = safeLinkUrl(raw) // KINEO-ADS-FONTE-LINK-2810
+  if (!start) return null // KINEO-ADS-FONTE-LINK-2810
+  const end = await adsV2ResolveShortLink(start, shortLinkStep).catch(() => start) // KINEO-ADS-FONTE-LINK-2810
+  return safeLinkUrl(end.toString()) ?? start // KINEO-ADS-FONTE-LINK-2810
+} // KINEO-ADS-FONTE-LINK-2810
 async function safeGetPage(start: URL, seen?: { status: number | null }): Promise<{ url: URL; type: string; body: Uint8Array } | null> {
   return safeGet(start, 'text/html,application/xhtml+xml', PAGE_MAX_BYTES, true, seen)
 }
@@ -123,7 +139,7 @@ async function vtexSearch(pageUrl: URL): Promise<ReturnType<typeof vtexProductFr
 
 /** A frase do negócio lida do link (null = página inacessível ou não-HTML). */
 export async function adsV2LinkText(raw: string): Promise<{ text: string; lang: string | null; host: string } | null> {
-  const target = safeLinkUrl(raw)
+  const target = await readableTarget(raw) // KINEO-ADS-FONTE-LINK-2810 — era: safeLinkUrl(raw) (o s.shopee caía na página de afiliado só-JS)
   if (!target) return null
   const page = await safeGetPage(target).catch(() => null)
   if (!page || !/html|xml/.test(page.type)) {
@@ -181,7 +197,7 @@ export interface AdsV2LinkFail { value?: AdsV2LinkFailWhy; detail?: LinkBlockKin
  * recusado (interno, porta estranha, credencial) ou página que não abre/não é HTML. Nada é gravado aqui.
  */
 export async function adsV2LinkImport(raw: string, opts: { max?: number; roomBytes?: number; why?: AdsV2LinkFail } = {}): Promise<AdsV2LinkImportResult | null> { // KINEO-ADS-LINK-LOJAS-1510 — why ganhou detalhe/plataforma/aviso
-  const target = safeLinkUrl(raw)
+  const target = await readableTarget(raw) // KINEO-ADS-FONTE-LINK-2810 — era: safeLinkUrl(raw)
   if (!target) return null
   const seen = { status: null as number | null }
   const page = await safeGetPage(target, seen).catch(() => null)

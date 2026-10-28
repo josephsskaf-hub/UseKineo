@@ -14,6 +14,7 @@ import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRend
 import { submitShotOnce, pollFalJob, persistShotClip } from '../v2Shots'
 import { persistSceneImage } from '../v2Images'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { adsV2ScriptSafeFonts } from '@/lib/ads/v2FonteTexto' // KINEO-ADS-FONTE-LINK-2810 — a fonte segue a escrita de CADA texto (cartão, botão e marca-d'água latinos num pedido em hindi/árabe saíam □□□□)
 export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2OrderRow, d: { json: CenaJson; fail(reason: string): Promise<void>; deadlineMs?: number }): Promise<void> {
   const outer = (order.plan as unknown as { cena?: { score95?: Cena95State } }).cena
   const s = outer?.score95
@@ -90,7 +91,7 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
     const stamp = await admin.from('ads_v2_orders').update({ status: 'assembling', assembly_submit_at: new Date().toISOString() }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).is('assembly_submit_at', null).select('id').maybeSingle()
     if (stamp.error || !stamp.data) return
     try {
-      const id = await submitCreatomateRender(source)
+      const id = await submitCreatomateRender(adsV2ScriptSafeFonts(source)) // KINEO-ADS-FONTE-LINK-2810
       const write = () => admin.from('ads_v2_orders').update({ creatomate_render_id: id }).eq('id', order.id).eq('status', 'assembling').is('creatomate_render_id', null)
       let r = await write(); if (r.error) r = await write()
       await event('ads_cena95_assembling', { creatomate_render_id: id, seconds: 15, reservedUsd: s.reservedUsd, budgetMaxUsd: s.budgetMaxUsd, actualTotalUsd: null, captionTimingSource: s.captionTimingSource })

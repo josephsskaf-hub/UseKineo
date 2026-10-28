@@ -41,6 +41,7 @@ import {
   type AdsV2EditResolved,
 } from '@/lib/ads/v2PostDelivery'
 import { posErr } from '@/lib/ads/v2PostDelivery'
+import { adsV2ScriptSafeFonts } from '@/lib/ads/v2FonteTexto' // KINEO-ADS-FONTE-LINK-2810 — a fonte segue a escrita de CADA texto (cartão, botão e marca-d'água latinos num pedido em hindi/árabe saíam □□□□)
 
 export const ADS_V2_VERSION_COLS = 'id, order_id, user_id, version, kind, format, base_version_id, batch_id, edits, status, credits_charged, creatomate_render_id, submit_at, video_id, video_url, error, created_at, updated_at, delivered_at, failed_at'
 export const ADS_V2_APPROVAL_COLS = 'id, order_id, user_id, version_id, video_id, brand_name, lang, status, comment, created_at, decided_at, viewed_at, revoked_at, expires_at'
@@ -196,7 +197,7 @@ export async function submitAdsV2Version(
   if (!row) throw new Error('version_insert_failed:conflict')
   let renderId: string
   try {
-    renderId = await submitCreatomateRender(args.source)
+    renderId = await submitCreatomateRender(adsV2ScriptSafeFonts(args.source)) // KINEO-ADS-FONTE-LINK-2810
   } catch (e) {
     if (e instanceof CreatomateSubmitError && e.ambiguous) return row // sem reenvio: o prazo decide (advanceAdsV2Versions)
     const msg = `creatomate_rejected:${posErr(e).slice(0, 160)}`

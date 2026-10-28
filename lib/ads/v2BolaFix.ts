@@ -14,6 +14,7 @@
 //   4. O LIMITE DO TEXTO: a caixa cortava em silêncio no caractere 400; o servidor recusa (sentence_too_long) e o texto do aviso mora aqui.
 
 import { adsV2IsMarketplace } from './v2Simple'
+import { adsV2StripUrls } from './v2Simple' // KINEO-ADS-FONTE-LINK-2810 — o link colado nunca vira o nome (pedido 8e8f7ad9: business "https")
 
 // ── 1. o nome do negócio ─────────────────────────────────────────────────────────────────────────────────────────────────
 const EDGE_JUNK = /^[\s—–\-−‐‒―:;,|·•/\\]+|[\s—–\-−‐‒―:;,|·•/\\]+$/gu
@@ -24,7 +25,7 @@ const SPLIT_PARTS = /\s+[—–\-−‒―|]\s+/u
  * nenhuma letra/número = ''. O travessão do MEIO ("Perfume LUME — fragrâncias") fica: é o formato que brandName quebra.
  */
 export function adsV2CleanBusiness(raw: unknown): string {
-  let s = String(raw ?? '').replace(/\s+/g, ' ').trim().replace(EDGE_JUNK, '')
+  let s = adsV2StripUrls(String(raw ?? '').replace(/\s+/g, ' ').trim()).replace(EDGE_JUNK, '') // KINEO-ADS-FONTE-LINK-2810 — endereço, "https"/"www" e encurtador saem antes de tudo ("https" → '' = sem nome)
   const parts = s.split(SPLIT_PARTS)
   if (parts.length > 1 && adsV2IsMarketplace(parts[0])) s = parts.slice(1).join(' — ').replace(EDGE_JUNK, '')
   if (adsV2IsMarketplace(s)) return ''

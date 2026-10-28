@@ -10,6 +10,7 @@
 //   4. O ROTEIRO do Product Ads: todo benefício/oferta digitado aparece na fala; frase genérica ("stunning design", "elevate your style", "X, for you") volta.
 
 import { adsV2BusinessName, adsV2CleanBusiness } from '@/lib/ads/v2BolaFix'
+import { adsV2CardContact } from '@/lib/ads/v2Simple' // KINEO-ADS-FONTE-LINK-2810
 
 export const MARCA_ADS_QUALIDADE_2110 = 'KINEO-ADS-QUALIDADE-2110'
 
@@ -107,7 +108,7 @@ export function adsV2EndCardV3Of(i: { business: unknown; offer: unknown; ctaKind
   const lang = String(i.language ?? 'en').toLowerCase().slice(0, 2)
   const kind = typeof i.ctaKind === 'string' ? i.ctaKind : 'buy'
   const cta = kind !== 'buy' && CTA_KIND[kind] ? CTA_KIND[kind][lang] ?? CTA_KIND[kind].en : clean(i.buyLabel) || 'Shop now'
-  const contact = clean(i.contact).slice(0, 40)
+  const contact = adsV2CardContact(clean(i.contact)).slice(0, 40) // KINEO-ADS-FONTE-LINK-2810 — nunca o endereço cru (pedido 8e8f7ad9 imprimiu https://s.shopee.com.br/… sob "Compre agora"); site próprio = só o domínio
   return { title, offer: adsV2EndCardOffer(i.offer), cta, contact }
 }
 /** KINEO-ADS-QUALIDADE-2110 — o desenho do cartão v3 (frações do quadro). Tudo acima de 80% (a interface do TikTok/Reels mora embaixo). */
@@ -130,7 +131,7 @@ export function adsV2EndCardV3Elements(i: { productUrl: string; card: AdsV2EndCa
   if (offer) els.push(text(i.track + 5, slots[0], offer, Math.round(L.offerFont * H), { fill_color: L.offerFill, background_color: L.offerBg, background_x_padding: '5%', background_y_padding: '2%', border_radius: 18 }))
   const cta = clean(i.card.cta)
   if (cta) els.push(text(i.track + 6, offer ? slots[1] : slots[0], cta, Math.round(L.ctaFont * H), { fill_color: L.ctaFill, background_color: L.ctaBg, background_x_padding: '9%', background_y_padding: '2.4%', border_radius: 60 }))
-  const contact = clean(i.card.contact)
+  const contact = adsV2CardContact(clean(i.card.contact)) // KINEO-ADS-FONTE-LINK-2810
   if (contact) els.push(text(i.track + 7, offer ? slots[2] : slots[1], contact, Math.round(L.contactFont * H), { fill_color: 'rgba(255,255,255,0.85)', font_weight: '600' }))
   return els
 }

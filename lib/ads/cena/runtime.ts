@@ -18,6 +18,7 @@ import { synthesizeTtsFallback } from '@/lib/ttsFallback'
 import type { AjusteState, CenaAjusteLive } from './ajusteMedia' // KINEO-ADS-CENA-RETOMADA-2110
 import { addAjusteQuality } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 import { isEscolhaSamplePlan } from './escolhaSamplePolicy'
+import { adsV2ScriptSafeFonts } from '@/lib/ads/v2FonteTexto' // KINEO-ADS-FONTE-LINK-2810 — a fonte segue a escrita de CADA texto (cartão, botão e marca-d'água latinos num pedido em hindi/árabe saíam □□□□)
 export const cenaJson: CenaJson = async c => {
   const measured = c as typeof c & { maxOutputTokens?: number; onUsage?: (u: { prompt_tokens?: number; completion_tokens?: number }) => void }
   const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: measured.maxOutputTokens ?? 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
@@ -165,7 +166,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     const stamp = await admin.from('ads_v2_orders').update({ status: 'assembling', assembly_submit_at: new Date().toISOString() }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).is('assembly_submit_at', null).select('id').maybeSingle()
     if (stamp.error || !stamp.data) return
     try {
-      const id = await submitCreatomateRender(source)
+      const id = await submitCreatomateRender(adsV2ScriptSafeFonts(source)) // KINEO-ADS-FONTE-LINK-2810
       const write = () => admin.from('ads_v2_orders').update({ creatomate_render_id: id }).eq('id', order.id).eq('status', 'assembling').is('creatomate_render_id', null)
       let r = await write(); if (r.error) r = await write()
       await writeServerEvent({ name: 'ads_cena_assembling', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: state.route, video_attempt: state.videoAttempt, image_round: state.imageRound, creatomate_render_id: id, seconds: ajusteLive ? Number(source.duration) : 15 } }) // KINEO-ADS-CENA-SEGUE-2110
