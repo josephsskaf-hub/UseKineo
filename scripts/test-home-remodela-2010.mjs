@@ -28,6 +28,7 @@ import {
 } from './test-support/desfaz-home-remodela-2010.mjs'
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { semGaleriaHome2710 } from './test-support/desfaz-galeria-home-2710.mjs' // KINEO-GALERIA-HOME-2710 — o item "Made with Kineo" (27/10) sai em memória antes das provas históricas
+import { semHomeClipesNovos2810 } from './test-support/desfaz-home-clipes-novos-2810.mjs' // KINEO-HOME-CLIPES-NOVOS-2810 — camada mais nova da faixa de Clipes: sai antes de todas
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -36,7 +37,7 @@ const MARCA = 'KINEO-HOME-REMODELA-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const { semHomeGatoCarro2610 } = await import('./test-support/desfaz-home-gato-carro-2610.mjs') // KINEO-HOME-GATO-CARRO-2610
 const affiliateRaw = (file, source) => { const projected = semAfiliado50_2610(file, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
-const rd = (rel) => lf(affiliateRaw(rel, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)))
+const rd = (rel) => lf(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel))) // KINEO-HOME-CLIPES-NOVOS-2810 — a faixa com os clipes novos (28/10) sai primeiro
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${HOME_REMODELA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -228,7 +229,7 @@ function checaDesfaz() {
     const volta = tenta(() => semHomeRemodela2010(semHomeGatoCarro2610(atual, rel), rel)) // KINEO-HOME-GATO-CARRO-2610 — a camada mais nova sai antes
     if (Array.isArray(volta)) { e.push(`${rel}: ${volta[0]}`); continue }
     if (lf(volta) !== b) e.push(`${rel}: desfeito ≠ base`)
-    if (lf(semHomeRemodela2010(semHomeGatoCarro2610(affiliateRaw(rel, semGaleriaHome2710(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)), rel), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`)
+    if (lf(semHomeRemodela2010(semHomeGatoCarro2610(affiliateRaw(rel, semGaleriaHome2710(semHomeClipesNovos2810(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel)), rel), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`) // KINEO-HOME-CLIPES-NOVOS-2810
   }
   for (const n of HOME_REMODELA_2010_NOVOS) if (!fs.existsSync(path.join(ROOT, n))) e.push(`novo ausente: ${n}`)
   const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010

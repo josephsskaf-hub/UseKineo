@@ -14,6 +14,15 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import { clipsFirstEffectCards } from '@/components/home/ClipsFirstHome'
 import type { ClipEffectKey } from '@/lib/clips/clipEffects'
 import { CLIP_TRENDS } from '@/lib/clips/clipTrends' // KINEO-HOME-GATO-CARRO-2610
+import { GALERIA_EXCLUDED, GALERIA_NEW_CLIPS, viaSignup } from '@/lib/homeGaleria' // KINEO-HOME-CLIPES-NOVOS-2810
+import { CLIP_ENGINES } from '@/lib/clips/clipCatalog' // KINEO-HOME-CLIPES-NOVOS-2810
+
+// KINEO-HOME-CLIPES-NOVOS-2810 — [TRAVA 8.2 — pedido do fundador 27/10 "colocar os clipes novos na parte inicial"]. A faixa passa a
+// KINEO-HOME-CLIPES-NOVOS-2810 — mostrar os 8 clipes de tendência de 27/10 (os mesmos da galeria "Made with Kineo": prévia, pôster, prompt e
+// KINEO-HOME-CLIPES-NOVOS-2810 — motor vêm de lib/homeGaleria.ts, nada duplicado), melhor primeiro. Cartão = o mesmo de sempre; o clique abre o
+// KINEO-HOME-CLIPES-NOVOS-2810 — /clips com motor e ideia preenchidos (?engine= &prompt=). O clipe do cachorro com celular (defeito) nunca entra.
+export const HOME_NEW_CLIP_IDS: readonly string[] = ['lion', 'cake-kitten', 'pebble-castle', 'knight-cat', 'werewolf', 'capybara', 'wizard-cat', 'kungfu-cat'] // KINEO-HOME-CLIPES-NOVOS-2810
+export const HOME_NEW_CLIPS = HOME_NEW_CLIP_IDS.filter((id) => !GALERIA_EXCLUDED.includes(id)).flatMap((id) => GALERIA_NEW_CLIPS.filter((c) => c.id === id)) // KINEO-HOME-CLIPES-NOVOS-2810
 
 /** Os 4 da vitrine, na ordem (o 1º é o cartão grande). O fundador escolheu a explosão de cor e o tênis girando; os outros
  *  dois são os efeitos novos que viralizam (bolsa que é bolo e despertador que derrete). */
@@ -94,7 +103,14 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
         </div>
         <p className="kcs-sub"><UiLabel>Short clips from a photo or one line — ready in about a minute.</UiLabel></p>
         <div className="kcs-grid">
-          {trends.map((tr) => { // KINEO-HOME-GATO-CARRO-2610
+          {HOME_NEW_CLIPS.map((c) => ( // KINEO-HOME-CLIPES-NOVOS-2810
+            <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kcs-card" data-clip-new={c.id} data-home-cta="clip_new" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+              <div className="kcs-md" style={mediaStyle(c.poster, undefined)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+              <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+              <span className="kcs-copy"><i>{CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+            </Link> // KINEO-HOME-CLIPES-NOVOS-2810
+          ))}{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+          {HOME_NEW_CLIPS.length === 0 && trends.map((tr) => { // KINEO-HOME-GATO-CARRO-2610 · KINEO-HOME-CLIPES-NOVOS-2810 — a faixa antiga só volta se a lista nova sumir (nunca grade vazia)
             const dest = `/clips?trend=${tr.key}` // KINEO-HOME-GATO-CARRO-2610
             const href = signedIn ? dest : `/signup?redirect=${encodeURIComponent(dest)}` // KINEO-HOME-GATO-CARRO-2610
             return ( // KINEO-HOME-GATO-CARRO-2610
@@ -105,7 +121,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
               </Link> // KINEO-HOME-GATO-CARRO-2610
             ) // KINEO-HOME-GATO-CARRO-2610
           })}{/* KINEO-HOME-GATO-CARRO-2610 */}
-          {cards.map((c) => (
+          {HOME_NEW_CLIPS.length === 0 && cards.map((c) => ( // KINEO-HOME-CLIPES-NOVOS-2810
             <Link
               key={c.effect.key}
               href={c.href}
@@ -129,7 +145,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
               </span>
             </Link>
           ))}
-          {textClips.map((c) => ( // KINEO-HOME-REMODELA-2010 · KINEO-HOME-GATO-CARRO-2610
+          {HOME_NEW_CLIPS.length === 0 && textClips.map((c) => ( // KINEO-HOME-REMODELA-2010 · KINEO-HOME-GATO-CARRO-2610 · KINEO-HOME-CLIPES-NOVOS-2810
             <Link key={c.id} href={clipsHref} className="kcs-card" data-clip-text={c.id} data-home-cta="clip_text" aria-label={`${c.title} — ${HOME_TEXT_CLIP_ENGINE}`}>{/* KINEO-HOME-REMODELA-2010 */}
               <div className="kcs-md" style={mediaStyle(c.poster, c.focus)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-REMODELA-2010 */}
               <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-REMODELA-2010 */}
