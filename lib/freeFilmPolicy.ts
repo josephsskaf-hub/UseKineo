@@ -120,7 +120,8 @@ export const REGION_PAID_ONLY_REFUSAL = `${REGION_PAID_ONLY_NOTICE.en.title}. ${
 // ou no Kling 2.5 (US$ 0,35, o teto). O filme narrado continua recusado para essas contas (REGION_PAID_ONLY_REFUSAL,
 // intacto). O guardião scripts/test-clipe-gratis-regiao-2026-10-05.mjs confere que o número bate com
 // clipCreditCost('seedance', 5) de lib/clips/clipPricing.ts (espelho, sem import: este módulo também roda no navegador).
-export const REGION_FREE_CLIP_PUBLIC = true
+// KINEO-REGIAO-SEM-GRATIS-2810 — fundador 28/10 ("sim, tirar"): país fora da lista não ganha crédito grátis no cadastro (0 pagantes PK na história, 0 IN em 60 dias; ~40% dos cadastros, ~US$ 13/dia). Quem já ganhou fica com o saldo.
+export const REGION_FREE_CLIP_PUBLIC = false
 export const REGION_FREE_CLIP_CREDITS = 5
 export const REGION_FREE_CLIP_GRANTED_EVENT = 'region_free_clip_granted'
 export const REGION_FREE_CLIP_HREF = '/clips'
@@ -171,7 +172,8 @@ export function paisDoRequest(h: { get(name: string): string | null } | null | u
 //   (b) REGION_PASS_OFFER_LIVE — o passe avulso (?pack=starter) na moeda local, na parede e logo depois do filme grátis
 //       (lib/regionPass.ts, app/api/region-pass, components/RegionPassOffer.tsx).
 // false = o comportamento de hoje, byte a byte (scripts/test-saida-regiao-2026-10-07.mjs prova executando).
-export const REGION_FREE_FILM_LIVE = true
+// KINEO-REGIAO-SEM-GRATIS-2810 — fundador 28/10: sem filme grátis para país fora da lista; segue o passe pago (REGION_PASS_OFFER_LIVE) e os planos.
+export const REGION_FREE_FILM_LIVE = false
 export const REGION_PASS_OFFER_LIVE = true
 
 /** O filme grátis de região é o MESMO filme da cota semanal (lib/freeWeeklyFilm.ts FREE_WEEKLY_FILM_QUALITY/SECONDS). */
