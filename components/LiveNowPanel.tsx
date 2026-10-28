@@ -147,6 +147,8 @@ export default function LiveNowPanel() {
                 <tr key={v.user_id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                     {/* KINEO-ADMIN-PESSOA-1910 — o e-mail abre a TELA DA PESSOA; escrever e-mail virou o ✉ pequeno ao lado. */}
+                    {/* KINEO-ADM-PAIS-2810 — fundador 28/10 no celular: o país na frente do e-mail (a coluna From fica fora da tela). */}
+                    <span title={v.country ?? 'país desconhecido'} style={{ marginRight: 6, fontSize: '0.8rem' }}>{flag(v.country)} <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', fontWeight: 700 }}>{v.country ?? '??'}</span></span>
                     <PessoaLink id={v.user_id} email={v.email} style={{ color: '#8DB4FF', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8rem' }}>
                       {v.email}
                     </PessoaLink>
