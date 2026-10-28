@@ -3,6 +3,7 @@
 //   semRostoCards2810(fs.readFileSync(p, 'utf8'), p)
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
+import { semFilaQuedaFal2810, ARQUIVOS as FILA_QUEDA_FAL_ARQUIVOS } from './desfaz-fila-queda-fal-2810.mjs' // KINEO-FILA-QUEDA-FAL-2810 — a mais nova (28/10, sobre 9d6dd2e77): sai primeiro
 import { semRostoNoClipe2810, ARQUIVOS as ROSTO_NO_CLIPE_ARQUIVOS } from './desfaz-rosto-no-clipe-2810.mjs'
 import { semCardsRosto2810, ARQUIVOS as CARDS_ROSTO_ARQUIVOS } from './desfaz-cards-rosto-2810.mjs'
 import { semGaleriaCheia2810, ARQUIVOS as GALERIA_CHEIA_ARQUIVOS } from './desfaz-galeria-cheia-2810.mjs'
@@ -11,9 +12,9 @@ import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810]
+const CAMADAS = [semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-FILA-QUEDA-FAL-2810 — a camada da fila entra no topo
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
-export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])]
+export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])] // KINEO-FILA-QUEDA-FAL-2810
 
 export function relDe(p) {
   const s = String(p ?? '')

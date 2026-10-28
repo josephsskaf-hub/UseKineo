@@ -5,6 +5,7 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { maxWordsForShortFilm, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { RECOVERY_PROVIDER_WINDOW_MS, recusaDeFornecedor, ultimaFalhaFoiFornecedor } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal fora não é "bug consertado"
 
 // ═══ KINEO-RESGATE-FALHA-2026-08-21 — QUEM TENTOU E NÃO CONSEGUIU ════════
 //
@@ -111,6 +112,16 @@ const NAO_E_BUG = [
   // fora, como já estava, agora com a segunda redação da mesma coisa.
   'full capacity',
   'high demand right now',
+  // KINEO-FILA-QUEDA-FAL-2810 — 28/10, fal sem saldo das 06:40 às ~16:30 UTC: 2 pessoas receberam "a bug on our side, and it
+  // is fixed now" às 08:00 porque a ÚLTIMA frase delas foi o resfriamento de 15 min ("Two AI attempts were just refunded…"),
+  // que nada na lista reconhecia. É regra anti-abuso disparada pelas próprias recusas da fal — não é defeito nosso.
+  'just refunded',
+  // KINEO-FILA-QUEDA-FAL-2810 — o filme ESTACIONADO (fal sem saldo/capacidade): a pessoa leu que ele foi salvo e vai começar
+  // sozinho; o cron resume-parked-renders cuida dela. Desculpa "consertado" aqui seria mentira duas vezes. Literais de
+  // propósito (= PARKED_MESSAGE_FRAGMENTS de lib/filaQuedaFal, conferido pelo guardião): este bloco é recortado e compilado
+  // sozinho por scripts/test-resgate-defeito.mjs.
+  'Your film is saved',
+  'engine is paused',
   // teto diário do plano free: regra, não defeito
   'daily_free_limit',
   'daily free limit',
@@ -625,6 +636,26 @@ export async function GET(req: NextRequest) {
   }
 
   const ids = [...porPessoa.keys()]
+  // ═══ KINEO-FILA-QUEDA-FAL-2810 — A FAL FORA DO AR CALA O "IT IS FIXED NOW" ═══
+  // 28/10 (06:40 → ~16:30 UTC, fal sem saldo): às 08:00 este cron mandou "a bug on our side, and it is fixed now" para 3
+  // pessoas com a fal AINDA recusando. Duas regras, as duas no servidor (cinematic_dispatch_result é a verdade do despacho,
+  // não a frase da aba): (1) houve recusa de saldo/capacidade nas últimas 2 h → NENHUM e-mail de defeito ('bug') sai nesta
+  // passada (os de roteiro não prometem conserto e seguem); (2) a pessoa cuja ÚLTIMA falha foi essa recusa sai da lista —
+  // o filme dela está estacionado (render_parked) e o cron resume-parked-renders responde por ela. Leitura que falha = sem
+  // supressão (comportamento de antes), e o DRY_RUN mostra os dois números.
+  const desdeFornecedor = new Date(Date.now() - RECOVERY_PROVIDER_WINDOW_MS).toISOString() // KINEO-FILA-QUEDA-FAL-2810
+  const [{ data: despachos }, { data: saldoFal }] = await Promise.all([ // KINEO-FILA-QUEDA-FAL-2810
+    admin.from('events').select('user_id, created_at, metadata').eq('name', 'cinematic_dispatch_result').gte('created_at', desdeFornecedor).limit(500), // KINEO-FILA-QUEDA-FAL-2810
+    admin.from('events').select('user_id, created_at').eq('name', 'fal_balance_exhausted').gte('created_at', desdeFornecedor).limit(500), // KINEO-FILA-QUEDA-FAL-2810
+  ]) // KINEO-FILA-QUEDA-FAL-2810
+  const recusasFornecedor = [ // KINEO-FILA-QUEDA-FAL-2810
+    ...((despachos ?? []) as Falha[]).filter((d) => recusaDeFornecedor(d.metadata)), // KINEO-FILA-QUEDA-FAL-2810
+    ...((saldoFal ?? []) as Array<{ user_id: string | null; created_at: string }>), // KINEO-FILA-QUEDA-FAL-2810
+  ] // KINEO-FILA-QUEDA-FAL-2810
+  const fornecedorCaiu = recusasFornecedor.length > 0 // KINEO-FILA-QUEDA-FAL-2810
+  const ultimaRecusaPorPessoa = new Map<string, number>() // KINEO-FILA-QUEDA-FAL-2810
+  for (const r of recusasFornecedor) { const t = Date.parse(String(r.created_at)); if (r.user_id && Number.isFinite(t)) ultimaRecusaPorPessoa.set(r.user_id, Math.max(ultimaRecusaPorPessoa.get(r.user_id) ?? 0, t)) } // KINEO-FILA-QUEDA-FAL-2810
+  let caladosPeloFornecedor = 0 // KINEO-FILA-QUEDA-FAL-2810
   const [{ data: profs }, { data: stamps }, { data: comVideo }] = await Promise.all([
     readAll(() => admin.from('profiles').select('id, email, email_opted_out, video_credits').in('id', ids), { route: '/api/cron/send-failure-recovery', table: 'profiles' }),
     readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', ids), { route: '/api/cron/send-failure-recovery', table: 'events' }),
@@ -645,6 +676,8 @@ export async function GET(req: NextRequest) {
     const info = porPessoa.get(id)!
     const cls = classifyFailure(info.erro, info.meta)
     const ms = Date.parse(info.ultima)
+    // KINEO-FILA-QUEDA-FAL-2810 — última falha = recusa da fal (saldo/capacidade) → fora; fal fora nas últimas 2 h → nenhum 'bug'.
+    if (ultimaFalhaFoiFornecedor({ lastFailureMs: ms, lastProviderRefusalMs: ultimaRecusaPorPessoa.get(id) ?? null }) || (fornecedorCaiu && cls.kind === 'bug')) { caladosPeloFornecedor += 1; continue } // KINEO-FILA-QUEDA-FAL-2810
     // KINEO-PAREDE-15S-EMAIL-2026-10-09 — bateu na parede há menos de 30 min: pode estar refazendo agora; fica para a próxima passada.
     if (cls.kind === 'film_long' && Number.isFinite(ms) && Date.now() - ms < MIN_IDADE_MS) continue
     const staleDays = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86_400_000)) : 0
@@ -682,6 +715,8 @@ export async function GET(req: NextRequest) {
         servidor: alvos.filter((a) => a.fonte === 'servidor').length,
       },
       stale_over_7d: alvos.filter((a) => a.staleDays > 7).length,
+      provider_down_2h: fornecedorCaiu, // KINEO-FILA-QUEDA-FAL-2810
+      silenced_by_provider: caladosPeloFornecedor, // KINEO-FILA-QUEDA-FAL-2810
       sample: alvos.slice(0, 15).map((a) => `${a.email} (${a.kind}/${a.fonte} · ${a.falhas}x · ${a.credits}cr · ${a.staleDays}d · ${a.erro})`),
       hint: 'Append &confirm=SEND to send. &hours=N (max 720) alarga a janela.',
     })
@@ -736,6 +771,6 @@ export async function GET(req: NextRequest) {
     await new Promise((r) => setTimeout(r, 500))
   }
 
-  console.log(`[failure-recovery] sent=${sent} of ${alvos.length}`)
-  return NextResponse.json({ mode: 'SENT', sent, eligible: alvos.length, results })
+  console.log(`[failure-recovery] sent=${sent} of ${alvos.length} (silenced_by_provider=${caladosPeloFornecedor})`)
+  return NextResponse.json({ mode: 'SENT', sent, eligible: alvos.length, provider_down_2h: fornecedorCaiu, silenced_by_provider: caladosPeloFornecedor, results }) // KINEO-FILA-QUEDA-FAL-2810
 }

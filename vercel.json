@@ -113,6 +113,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/resume-parked-renders?confirm=SEND",
+      "schedule": "3,8,18,28,33,38,43,48,53,58 * * * *"
+    },
+    {
       "path": "/api/cron/quality-radar",
       "schedule": "4,19,34,49 * * * *"
     },

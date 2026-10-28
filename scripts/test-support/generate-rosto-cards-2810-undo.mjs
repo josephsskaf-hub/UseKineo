@@ -10,6 +10,21 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-FILA-QUEDA-FAL-2810 (ramo codex/fila-queda-fal-2810, base = origin/main 9d6dd2e77): só os arquivos PRÉ-EXISTENTES que a
+  // entrega modificou e carregam a marca (a rota cinematic e o cron de resgate); lib/filaQuedaFal*.ts, o cron novo e o guardião
+  // nasceram no ramo (sem camada); vercel.json não carrega marca (JSON) e não é selado por guardião algum.
+  'fila-queda-fal-2810': {
+    fn: 'semFilaQuedaFal2810',
+    marca: 'KINEO-FILA-QUEDA-FAL-2810',
+    o_que: 'a fila da queda da fal: estacionar em vez de perder, modo serviço na rota, alarme horário, resgate honesto',
+    base: '9d6dd2e7708d088724a6c7a0880bd45212f8ee40',
+    tip: null,
+    arquivos: ['app/api/generate-video-cinematic/route.ts', 'app/api/cron/send-failure-recovery/route.ts', 'vercel.json'],
+    // vercel.json é JSON (não carrega a marca): o bloco do cron novo é a própria prova — presente, sai; ausente, volta igual.
+    semMarca: ['vercel.json'],
+    // Nascidos no ramo: entram em ARQUIVOS (inventários de guardiões antigos, ex. a fronteira de API do test-em-alta-2610) sem hunk.
+    novos: ['app/api/cron/resume-parked-renders/route.ts', 'lib/filaQuedaFal.ts', 'lib/filaQuedaFalServer.ts', 'scripts/test-fila-queda-fal-2810.mjs', 'scripts/test-support/desfaz-fila-queda-fal-2810.mjs'],
+  },
   'rosto-ajuste-2810': {
     fn: 'semRostoAjuste2810',
     marca: 'KINEO-ROSTO-AJUSTE-2810',
@@ -80,12 +95,18 @@ const out = `// ${c.marca} — DESFAZ, em memória, esta entrega (${c.o_que}) no
 export const MARCA = '${c.marca}'
 export const BASE = '${c.base}'
 const DESFAZ = ${JSON.stringify(files)}
-export const ARQUIVOS = Object.keys(DESFAZ)
+/** Arquivos sem lugar para a marca (JSON): o 1º bloco de AGORA presente = a camada está lá; ausente = volta igual. */
+const SEM_MARCA = new Set(${JSON.stringify(c.semMarca ?? [])})
+/** Nascidos nesta entrega (sem hunk): listados para inventários de guardiões antigos; o desfaz devolve o texto intacto. */
+export const NOVOS = ${JSON.stringify(c.novos ?? [])}
+export const ARQUIVOS = [...Object.keys(DESFAZ), ...NOVOS]
 export function ${K}(text, rel) {
   if (typeof text !== 'string') return text
   const original = text
-  const hunks = DESFAZ[String(rel ?? '').replace(/\\\\/g, '/').replace(/^\\.\\//, '')]
-  if (!hunks || !original.includes(MARCA)) return original
+  const chave = String(rel ?? '').replace(/\\\\/g, '/').replace(/^\\.\\//, '')
+  const hunks = DESFAZ[chave]
+  if (!hunks) return original
+  if (SEM_MARCA.has(chave) ? !original.replace(/\\r\\n/g, '\\n').includes(hunks[0].now) : !original.includes(MARCA)) return original
   const crlf = original.includes('\\r\\n')
   let s = '\\n' + original.replace(/\\r\\n/g, '\\n') + '\\n'
   for (const h of hunks) {

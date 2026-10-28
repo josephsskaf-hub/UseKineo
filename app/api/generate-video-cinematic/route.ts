@@ -43,6 +43,8 @@ import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 �
 import { planoDeResgate } from '@/lib/engineAffordability'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+import { PARKED_EVENT, PARKED_MESSAGE, PARKED_VERSION, decidirEstacionamento, pedidoEstacionavel } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal sem saldo/capacidade: o filme é estacionado, não perdido
+import { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-FILA-QUEDA-FAL-2810 — alarme horário do fundador (fora do finalizador: ele tem guardião próprio)
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
 // guardadas (mesmo padrão do cinematic-clip-status).
 import { createHash } from 'crypto'
@@ -1407,6 +1409,7 @@ export async function POST(req: NextRequest) {
     const res = await manipularPost(req)
     // A Response REAL — inclusive 402/409/503 vindos do publish/settlement.
     await finalizarDespacho(ctx, res)
+    if (ctx.balanceExhausted) await alertarFundadorFalSemSaldo({ engine: ctx.engine }) // KINEO-FILA-QUEDA-FAL-2810 — 1 e-mail/hora em PT com o placar (teto 3 s, nunca lança); o de 6 h do falAlert segue no finalizador
     return res
   })
 }
@@ -1449,8 +1452,30 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // KINEO-FILA-QUEDA-FAL-2810 — modo serviço: o cron resume-parked-renders retoma o filme estacionado (fal sem saldo/capacidade)
+    // com o MESMO contrato do finish-orphan-jobs → generate-video-fast: Bearer CRON_SECRET + x-kineo-service-user. O e-mail vem
+    // do auth (autoritativo), nunca de profiles (editável). Sem os dois cabeçalhos, o caminho é o de sempre, byte a byte.
+    const serviceUserHeader = (req.headers.get('x-kineo-service-user') ?? '').trim() // KINEO-FILA-QUEDA-FAL-2810
+    const isServiceJob = !!process.env.CRON_SECRET && req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}` && /^[0-9a-f-]{36}$/i.test(serviceUserHeader) // KINEO-FILA-QUEDA-FAL-2810
+    let supabase: SupabaseClient // KINEO-FILA-QUEDA-FAL-2810
+    let user: { id: string; email?: string | null } | null // KINEO-FILA-QUEDA-FAL-2810
+    if (isServiceJob) { // KINEO-FILA-QUEDA-FAL-2810
+      const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL // KINEO-FILA-QUEDA-FAL-2810
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY // KINEO-FILA-QUEDA-FAL-2810
+      if (!svcUrl || !svcKey) return NextResponse.json({ error: 'Service mode unavailable.' }, { status: 503 }) // KINEO-FILA-QUEDA-FAL-2810
+      supabase = createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } }) // KINEO-FILA-QUEDA-FAL-2810 — as leituras abaixo filtram por user.id
+      const { data: svcUser } = await supabase.auth.admin.getUserById(serviceUserHeader) // KINEO-FILA-QUEDA-FAL-2810
+      user = svcUser?.user ? { id: svcUser.user.id, email: svcUser.user.email ?? null } : null // KINEO-FILA-QUEDA-FAL-2810
+      // O país do CLIQUE (gravado no render_parked) volta como x-vercel-ip-country: a Vercel reescreve esse cabeçalho pelo IP de quem
+      // chama (a lambda do cron), e a cota grátis por país (lib/freeFilmPolicy paisDoRequest, 5 leituras nesta rota) decidiria errado.
+      const svcCountry = (req.headers.get('x-kineo-service-country') ?? '').trim().toUpperCase() // KINEO-FILA-QUEDA-FAL-2810
+      if (/^[A-Z]{2}$/.test(svcCountry)) { const h = new Headers(req.headers); h.set('x-vercel-ip-country', svcCountry); req = new NextRequest(req.url, { method: req.method, headers: h, body: await req.text() }) } // KINEO-FILA-QUEDA-FAL-2810
+      console.log(`[cinematic] service-job mode for user=${serviceUserHeader.slice(0, 8)} country=${svcCountry || '-'}`) // KINEO-FILA-QUEDA-FAL-2810
+    } else { // KINEO-FILA-QUEDA-FAL-2810
+      supabase = createClient() // KINEO-FILA-QUEDA-FAL-2810 — era: const supabase = createClient()
+      const { data: { user: cookieUser } } = await supabase.auth.getUser() // KINEO-FILA-QUEDA-FAL-2810
+      user = cookieUser // KINEO-FILA-QUEDA-FAL-2810
+    } // KINEO-FILA-QUEDA-FAL-2810
     if (!user) {
       return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
     }
@@ -1474,6 +1499,7 @@ async function manipularPost(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
+    const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
     // desliga a conversão HOOK/PAYOFF-on-camera no planner. A tag é REMOVIDA
@@ -3095,6 +3121,24 @@ async function manipularPost(req: NextRequest) {
       return true
     }
     releaseActiveBirthClaim = releaseBirthClaim
+    // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══
+    // Chamado nas DUAS saídas de "nenhuma cena aceita" (Hollywood FAILFAST e clássico zero aceitas), DEPOIS do estorno
+    // confirmado. Só estaciona quando toda recusa explícita é saldo (balance_quota) ou capacidade (rate_limit/429) e nenhuma
+    // cena pode ter gerado gasto (lib/filaQuedaFal decidirEstacionamento). Grava o pedido fechado em `render_parked`
+    // (session_id = generationId) para o cron resume-parked-renders retomar mais velho primeiro; o crédito já voltou pelo
+    // releaseBirthClaim e é debitado de novo só quando o filme começa. Linha não gravada = resposta de sempre (nada prometido).
+    const estacionarSePossivel = async (): Promise<NextResponse | null> => { // KINEO-FILA-QUEDA-FAL-2810
+      const c = ctxDespacho() // KINEO-FILA-QUEDA-FAL-2810
+      const decisao = decidirEstacionamento({ outcomes: c.outcomes, totalPosts: c.totalPosts, released: c.claimAction === 'released' && c.refundConfirmed === true }) // KINEO-FILA-QUEDA-FAL-2810
+      if (!decisao.park || !pedidoEstacionado) return null // KINEO-FILA-QUEDA-FAL-2810
+      const { error: parkErr } = await cinematicAdmin.from('events').insert({ // KINEO-FILA-QUEDA-FAL-2810
+        user_id: user.id, name: PARKED_EVENT, path: '/api/generate-video-cinematic', session_id: generationId, // KINEO-FILA-QUEDA-FAL-2810
+        metadata: { version: PARKED_VERSION, reason: decisao.reason, why: decisao.why, engine: c.engine, quality: c.quality, credits: cost, refunded: true, claim_id: c.claimId, planned: c.planned, posts: c.totalPosts, request: pedidoEstacionado, country: paisDoRequest(req.headers), deploy_sha: process.env.VERCEL_GIT_COMMIT_SHA ?? 'local' }, // KINEO-FILA-QUEDA-FAL-2810 — `country` = o x-vercel-ip-country do clique: a retomada repete o cabeçalho para a cota grátis por país decidir igual
+      }) // KINEO-FILA-QUEDA-FAL-2810
+      if (parkErr) { console.error('[cinematic] KINEO-FILA-QUEDA-FAL-2810: render_parked não gravado (resposta de sempre):', parkErr.message); return null } // KINEO-FILA-QUEDA-FAL-2810
+      console.warn(`[cinematic] KINEO-FILA-QUEDA-FAL-2810: filme estacionado user=${user.id.slice(0, 8)} gen=${generationId} reason=${decisao.reason} posts=${c.totalPosts}`) // KINEO-FILA-QUEDA-FAL-2810
+      return NextResponse.json({ queued: true, parked: true, error: PARKED_MESSAGE, reason: decisao.reason, retryable: false, charged: false, refunded: true }, { status: 503 }) // KINEO-FILA-QUEDA-FAL-2810
+    } // KINEO-FILA-QUEDA-FAL-2810
 
     // Every concurrent generation inserts first and then audits all signed
     // holds. The last request necessarily sees the earlier reservations.
@@ -6544,6 +6588,7 @@ async function manipularPost(req: NextRequest) {
             { status: 503 },
           )
         }
+        { const estacionado = hValid.length === 0 ? await estacionarSePossivel() : null; if (estacionado) return estacionado } // KINEO-FILA-QUEDA-FAL-2810 — zero aceitas por saldo/capacidade: estaciona (cena aceita = gasto possível, segue o caminho de sempre)
         if (ctxDespacho().balanceExhausted) {
           // KINEO-FAL-SALDO-ALERTA-2026-09-28 — o fundador é avisado pelo finalizador único (finalizarDespacho).
           return NextResponse.json(
@@ -7622,6 +7667,7 @@ async function manipularPost(req: NextRequest) {
           { status: 503 },
         )
       }
+      { const estacionado = await estacionarSePossivel(); if (estacionado) return estacionado } // KINEO-FILA-QUEDA-FAL-2810 — zero aceitas por saldo/capacidade: estaciona (plano vazio e outras classes seguem o caminho de sempre)
       // KINEO-FAL-ALARM-2026-07-06 — if the failure was an exhausted fal balance,
       // don't show a dead error: return a soft "queued" message so the user waits
       // calmly instead of thinking the product broke. The deterministic upfront
