@@ -19,8 +19,9 @@ import { adsGate, type AdsAccessLoad } from '../serverAccess'
 import { escolhaPhotoEligibility, reserveEscolhaPhotos } from './escolhaQuota'
 import { writeEscolhaEvent } from './escolhaEvents'
 import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_MARK, isEscolhaSamplePlan } from './escolhaSamplePolicy'
-import { escolhaSampleAccountOk, reserveEscolhaSample } from './escolhaSampleServer'
+import { escolhaSampleAccountOk as escolhaSampleAccountOkPais, reserveEscolhaSample as reserveEscolhaSamplePais } from './escolhaSampleServer' // KINEO-ADS-SIMPLES-2810 — as versões com o país do pedido (os nomes de sempre viram fechos locais abaixo)
 import { upgradeEscolhaSample } from './escolhaSampleUpgrade'
+import type { SupabaseClient } from '@supabase/supabase-js' // KINEO-ADS-SIMPLES-2810 — o tipo dos fechos locais acima
 
 export type EscolhaEffects = Pick<EscolhaStillDeps, 'submit' | 'poll' | 'persist'>
 export interface EscolhaInternalDeps extends CenaInternalDeps {
@@ -29,10 +30,15 @@ export interface EscolhaInternalDeps extends CenaInternalDeps {
   now?(): number;
   /** Server-resolved personal sample order; never inherited from a workspace. */
   sampleMode?: boolean;
+  /** KINEO-ADS-SIMPLES-2810 — o país do PEDIDO (x-vercel-ip-country), lido pela rota; a amostra só abre para a lista de países do filme grátis. */
+  sampleCountry?: string | null;
 }
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d: EscolhaInternalDeps): Promise<Response> {
   const sampleMode = d.sampleMode === true
+  // KINEO-ADS-SIMPLES-2810 — os nomes de sempre, com o país do pedido por baixo (a régua de país mora em escolhaSampleServer.verifiedAccount).
+  const escolhaSampleAccountOk = (admin: SupabaseClient, actorId: string) => escolhaSampleAccountOkPais(admin, actorId, d.sampleCountry ?? null) // KINEO-ADS-SIMPLES-2810
+  const reserveEscolhaSample = (admin: SupabaseClient, i: Parameters<typeof reserveEscolhaSamplePais>[1]) => reserveEscolhaSamplePais(admin, { ...i, country: d.sampleCountry ?? null }) // KINEO-ADS-SIMPLES-2810
   if (sampleMode && !ADS_ESCOLHA_SAMPLE_LIVE && !(record(body) && body.stage === 'upgrade')) return v2Fail('ads_sample_disabled', 403)
   if (!sampleMode && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403)
   const internal = isAdsInternalEmail(user.email)

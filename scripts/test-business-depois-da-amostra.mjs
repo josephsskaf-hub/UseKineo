@@ -10,6 +10,7 @@
 //       app/api/admin/_shared/sales.ts conta checkout + renovação + troca de plano + anual + Business, UMA venda por fatura/sessão.
 // Estilo da casa: readFileSync + asserts; os módulos PUROS (sem import de valor) são importados pelo caminho (.ts, Node 24).
 // Nenhum import com alias @/ roda aqui.
+import { semAdsSimples2810 } from './test-support/desfaz-ads-simples-2810.mjs' // reancorado KINEO-ADS-SIMPLES-2810
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -195,7 +196,7 @@ const START_V2 = `${rd(F.start)}
 ${rd('lib/ads/v2StartCore.ts')}`
 ok(!/businessAdsOffer|POS-AMOSTRA|AfterSample/.test(START_V2) && /return v2Fail\(gate === 'closed' \? 'closed' : 'no_access', 403\)/.test(START_V2) && /if \(!\(balance >= cost\)\) return v2Fail\('out_of_credits', 402, \{ needed: cost, balance \}\)/.test(START_V2),'1q /api/ads/v2/start intocado (o 403 no_access e o caminho pago seguem iguais no servidor)')
 // a porta /ads: amostra usada → oferta no lugar do convite
-const door = codigo(rd(F.door))
+const door = codigo(semAdsSimples2810(rd(F.door), F.door)) // reancorado KINEO-ADS-SIMPLES-2810 — a porta passou a perguntar à régua única (lib/ads/eligibility.ts); a camada sai em memória antes da leitura histórica
 ok(/const afterSample: AdsSampleUsedAd \| null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer\.signedIn && viewer\.gate === 'no_access' && viewer\.userId\n\s+\? await withTimeout\(loadAdsSampleUsedAd\(footageAdminClient\(\), viewer\.userId\), null\)\.then\(\(r\) => \(r && r\.used && r\.delivered \? r : null\)\)\n\s+: null/.test(door),
   '1r porta /ads: oferta só para logado barrado, sem amostra aberta e com a amostra USADA e ENTREGUE; timeout = porta de antes')
 const iS = door.indexOf('{sampleHref ? ('), iA = door.indexOf('{afterSample ? ('), iP = door.indexOf('{paywallOffer ? (')

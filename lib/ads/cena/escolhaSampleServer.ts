@@ -2,6 +2,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS } from './escolhaSamplePolicy'
+import { adsSampleCountryAllowed } from '../eligibilityPure' // KINEO-ADS-SIMPLES-2810 — só países do filme grátis; país desconhecido = fechado
 
 const TABLE = 'ads_escolha_samples'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
@@ -10,26 +11,30 @@ type SampleResult = { ok: true } | { ok: false; error: string; status: number; r
 const unavailable = (): SampleResult => ({ ok: false, error: 'ads_sample_unavailable', status: 503 })
 const personal = (i: Identity): boolean => [i.orderId, i.actorId, i.ownerId].every(id => UUID.test(id)) && i.actorId === i.ownerId
 
-async function verifiedAccount(admin: SupabaseClient, actorId: string) {
+// KINEO-ADS-SIMPLES-2810 — `country` = o país do PEDIDO (x-vercel-ip-country, lido pela rota); o perfil completa (last/signup). Nenhum sinal = sem amostra.
+async function verifiedAccount(admin: SupabaseClient, actorId: string, country?: string | null) {
   try {
     const auth = await admin.auth.admin.getUserById(actorId)
     const user = auth.error ? null : auth.data?.user
     if (!user?.email || typeof user.email_confirmed_at !== 'string' || !Number.isFinite(Date.parse(user.email_confirmed_at))) return null
     // Same disposable-email/trial antifarm as Close real. Imported only at this boundary, never in unrelated render tests.
     const { adsSampleAccountOk } = await import('../serverAccess')
-    return await adsSampleAccountOk(admin, actorId) ? user : null
+    if (!await adsSampleAccountOk(admin, actorId)) return null
+    const { loadAdsSampleCountry } = await import('../eligibility') // KINEO-ADS-SIMPLES-2810 — pedido atual → last_country → signup_country (import dinâmico, como o de cima)
+    if (!adsSampleCountryAllowed(await loadAdsSampleCountry(admin, actorId, country))) return null // KINEO-ADS-SIMPLES-2810 — fundador 28/10: amostra só na lista de países; desconhecido = NÃO
+    return user
   } catch { return null }
 }
 
 /** Every logged-in account can qualify; paid entitlement is deliberately unrelated to this one personal sample. */
-export async function escolhaSampleAccountOk(admin: SupabaseClient, actorId: string): Promise<boolean> {
-  return ADS_ESCOLHA_SAMPLE_LIVE && UUID.test(actorId) && !!await verifiedAccount(admin, actorId)
+export async function escolhaSampleAccountOk(admin: SupabaseClient, actorId: string, country?: string | null): Promise<boolean> { // KINEO-ADS-SIMPLES-2810 — + country (opcional)
+  return ADS_ESCOLHA_SAMPLE_LIVE && UUID.test(actorId) && !!await verifiedAccount(admin, actorId, country)
 }
 
 /** The database fixes cost at150c, locks the person and UTC day, and commits claim+counter+started event together. */
-export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & { leaseAt: string }): Promise<SampleResult> {
+export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & { leaseAt: string; country?: string | null }): Promise<SampleResult> { // KINEO-ADS-SIMPLES-2810 — + country (opcional)
   if (!ADS_ESCOLHA_SAMPLE_LIVE || ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS !== 150 || !personal(i)) return unavailable()
-  const user = await verifiedAccount(admin, i.actorId)
+  const user = await verifiedAccount(admin, i.actorId, i.country)
   if (!user) return { ok: false, error: 'ads_sample_account_required', status: 403 }
   try {
     const result = await admin.rpc('reserve_ads_escolha_sample', {

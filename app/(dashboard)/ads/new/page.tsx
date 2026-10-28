@@ -16,6 +16,7 @@ import { ADS_V2_PUBLIC } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09
 import { cookies } from 'next/headers' // KINEO-ADS-PAREDE-2026-10-06 — a sessão do navegador na negação do visitante
 import { EVENT_SESSION_COOKIE, normalizeEventSessionId } from '@/lib/growth/checkoutAuthSessionBridge' // KINEO-ADS-PAREDE-2026-10-06
 import AdsWizardClient from './AdsWizardClient'
+import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-ADS-SIMPLES-2810 — o clássico só para a casa
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -56,7 +57,10 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
   // fazer o produto dela". Com o v2 público, /ads/new é só a PORTA para o montador v2; o assistente antigo (anúncio
   // narrado de 35/60 s) continua inteiro em /ads/new?classic=1. Exceção: ?resume=pass (o success_url do passe cai aqui
   // e o webhook pode atrasar) fica no assistente, que espera o acesso chegar e SÓ ENTÃO leva ao v2 (prop v2Href).
-  const classic = first(searchParams?.classic) === '1'
+  // KINEO-ADS-SIMPLES-2810 — fundador 28/10 ("um caminho só"): o assistente clássico (?classic=1) fica SÓ para a casa; cliente com o link antigo
+  // KINEO-ADS-SIMPLES-2810 — (e-mails/tile do Studio) cai no montador de sempre (/ads/v2). Escondido, não apagado. ?resume=pass segue igual.
+  const classicAsked = first(searchParams?.classic) === '1' // KINEO-ADS-SIMPLES-2810
+  const classic = classicAsked && (classicAsked ? isAdsInternalEmail((await createClient().auth.getUser()).data.user?.email) : false) // KINEO-ADS-SIMPLES-2810 — era: const classic = first(searchParams?.classic) === '1'
   if (ADS_V2_PUBLIC && !classic && !resumingPass) {
     // Logado vai direto ao montador; anônimo vai à porta pública /ads (o montador exige conta, e uma tela de login sem
     // contexto é parede: a decisão de 27/09 era "o visitante vê antes de entrar").

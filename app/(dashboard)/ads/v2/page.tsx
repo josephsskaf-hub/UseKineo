@@ -33,6 +33,11 @@ import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-ESCOLHA-2310 �
 import { ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
 import { isUuid } from '@/lib/ads/v2Contract'
+import { headers } from 'next/headers' // KINEO-ADS-SIMPLES-2810 — o país do pedido (x-vercel-ip-country)
+import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
+import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA: paid · free_sample_available · free_sample_used · not_eligible
+import AdsEligibilityNotice from '@/components/ads/AdsEligibilityNotice' // KINEO-ADS-SIMPLES-2810 — o aviso honesto no lugar da parede (componente de navegador: a língua da interface mora no localStorage)
+import { adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-SIMPLES-2810 — o preço do anúncio completo no aviso (a mesma conta do débito)
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -65,14 +70,18 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   const gate = adsGate(reason)
   const rawOrder = searchParams?.order
   const personalResume = await isEscolhaPersonalOrder(admin, user.id, Array.isArray(rawOrder) ? rawOrder[0] : rawOrder)
-  const sample = gate !== 'ok' && (ADS_ESCOLHA_SAMPLE_LIVE || personalResume || gate === 'no_access' && await adsSampleOpen(admin, uid, reason)) // KINEO-AMOSTRA-ANUNCIO-2410 — this sample has one admission switch; paid access retains its own gate.
-  if (gate !== 'ok') {
-    // KINEO-ADS-AMOSTRA-2026-10-09 — quem entra pela amostra grátis passa SEM rastro de negação; o resto, como antes.
-    if (!sample) {
-      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2', ...(entry ? { entry } : {}) } }) // KINEO-HOME-3-CARDS-1910 — + a entrada do card (a porta explica e oferece o plano)
-      redirect('/ads?from=v2')
-    }
+  // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA (lib/ads/eligibility.ts): paid · free_sample_available · free_sample_used · not_eligible(+motivo).
+  // KINEO-ADS-SIMPLES-2810 — NINGUÉM logado é devolvido à parede /ads?from=v2 (26-27/10: 15 pessoas de fora batiam aqui e sumiam): quem pode criar
+  // KINEO-ADS-SIMPLES-2810 — cria; quem já usou a amostra reabre o resultado dela (+ a versão completa com plano); quem não é elegível vê o motivo
+  // KINEO-ADS-SIMPLES-2810 — e o preço em créditos (AdsEligibilityNotice) na própria tela de criação. O rastro ads_access_denied do /ads/v2 morreu com a parede.
+  const elegibilidade = await loadAdsEligibility(admin, { id: user.id }, reason, { requestCountry: paisDoRequest(headers()) }) // KINEO-ADS-SIMPLES-2810
+  const sampleAvailable = gate !== 'ok' && elegibilidade.state === 'free_sample_available' // KINEO-ADS-SIMPLES-2810 — a amostra ainda aberta para ESTA pessoa
+  const sample = gate !== 'ok' // KINEO-ADS-SIMPLES-2810 — era: gate !== 'ok' && (ADS_ESCOLHA_SAMPLE_LIVE || personalResume || gate === 'no_access' && await adsSampleOpen(admin, uid, reason)) — a tela da conta sem plano é sempre a da amostra (sem variações/Produção/lote)
+  if (gate !== 'ok' && !personalResume && elegibilidade.state === 'free_sample_used' && elegibilidade.sampleOrderId && await isEscolhaPersonalOrder(admin, user.id, elegibilidade.sampleOrderId)) { // KINEO-ADS-SIMPLES-2810 — amostra já usada: reabre o resultado dela (vídeo + "versão completa · N créditos" + planos)
+    await writeServerEvent({ name: 'ads_door_state', userId: user.id, path: '/ads/v2', metadata: { state: elegibilidade.state, reason: elegibilidade.reason, redirect: 'own_sample', ...(entry ? { entry } : {}) } }) // KINEO-ADS-SIMPLES-2810
+    redirect(`/ads/v2?order=${elegibilidade.sampleOrderId}${entry ? `&entry=${entry}` : ''}`) // KINEO-ADS-SIMPLES-2810
   }
+  if (gate !== 'ok') await writeServerEvent({ name: 'ads_door_state', userId: user.id, path: '/ads/v2', metadata: { state: elegibilidade.state, reason: elegibilidade.reason, country: elegibilidade.country, resume: personalResume, ...(entry ? { entry } : {}) } }) // KINEO-ADS-SIMPLES-2810 — a medição que substitui a negação: quem entrou sem plano, em que estado
   if (!adsV2Visible(user.email) && !ADS_ESCOLHA_SAMPLE_LIVE && !personalResume) redirect('/ads/new')
 
   let balance: number | null = null
@@ -94,5 +103,7 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} escolhaInternal={gate === 'ok' && !sample && cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaSample={ADS_ESCOLHA_SAMPLE_LIVE || personalResume} escolhaTestControls={isAdsInternalEmail(user.email) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} /></AdsPresenterAllProvider> // KINEO-ADS-ESCOLHA-PUBLICO-2410 — existing access/paywall gate first; free sample remains on its original path, internal test controls stay internal. Storage is scoped to authenticated user and workspace owner.
+  // KINEO-ADS-SIMPLES-2810 — o aviso honesto só para quem entrou sem plano e sem a amostra aberta (e não está reabrindo um pedido próprio).
+  const aviso = gate !== 'ok' && !sampleAvailable && !personalResume ? <AdsEligibilityNotice decision={{ state: elegibilidade.state, reason: elegibilidade.reason }} credits={adsV2Credits('commercial', 15)} resetIso={elegibilidade.resetAt} sampleOrderId={elegibilidade.sampleOrderId} /> : null // KINEO-ADS-SIMPLES-2810
+  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}>{aviso}<AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} escolhaInternal={gate === 'ok' && !sample && cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaSample={ADS_ESCOLHA_SAMPLE_LIVE || personalResume} escolhaSampleAvailable={sampleAvailable} advancedModes={isAdsInternalEmail(user.email) && !sampleProbe} escolhaTestControls={isAdsInternalEmail(user.email) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} /></AdsPresenterAllProvider> // KINEO-ADS-ESCOLHA-PUBLICO-2410 — existing access/paywall gate first; free sample remains on its original path, internal test controls stay internal. Storage is scoped to authenticated user and workspace owner. // KINEO-ADS-SIMPLES-2810 — + {aviso} antes do montador, escolhaSampleAvailable (a amostra desta pessoa) e advancedModes (lote/completo/clássico só para a casa)
 }

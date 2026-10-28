@@ -510,7 +510,9 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
 // KINEO-HOME-3-CARDS-1910 — entry: a entrada do card da home (page.tsx validou ?entry=product|ugc; tipo espelhado de lib/ads/sampleEntry.ts sem importar) — vai à
 // KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate.
+// KINEO-ADS-SIMPLES-2810 — escolhaSampleAvailable: a amostra grátis ainda aberta para ESTA pessoa (régua única, page.tsx); advancedModes: ?mode=full, ?mode=batch, as abas
+// KINEO-ADS-SIMPLES-2810 — e os atalhos para eles só para a casa (fundador 28/10: um caminho só para o cliente). Sem a prop = o cliente vê só o modo simples (Escolha).
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false, escolhaSampleAvailable = false, advancedModes = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; escolhaSampleAvailable?: boolean; advancedModes?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate. // KINEO-ADS-SIMPLES-2810 — + escolhaSampleAvailable, advancedModes
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -550,8 +552,9 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
     } catch {
       m = 'simple'
     }
+    if (!advancedModes) { m = 'simple'; batch = false } // KINEO-ADS-SIMPLES-2810 — cliente: ?mode=full e ?mode=batch caem no modo simples (os modos secundários ficam escondidos, não apagados)
     setMode(batch ? 'batch' : m)
-  }, [])
+  }, [advancedModes]) // KINEO-ADS-SIMPLES-2810 — era: [] (a prop vem do servidor e não muda; a dependência só calada o lint)
 
   // KINEO-ADS-3-VARIACOES-2026-09-30 — retomar o painel das 3: ?group=<id>, ou (sem ?order=) o grupo em andamento mais novo.
   useEffect(() => {
@@ -643,15 +646,15 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           <h1>{n9Head ? n9Head.title : shell.title}</h1>{/* KINEO-ADS-NOTA9-2110 — era: <h1>{shell.title}</h1> */}
           <p className="sub">{n9Head ? n9Head.sub : mode === 'full' ? shell.sub : shell.subSimple}</p>{/* KINEO-ADS-NOTA9-2110 */}
           {/* KINEO-ADS-FLUXO-2026-10-13 — as abas do topo: Um anúncio (simples) · Lote (?mode=batch) · Produção (?mode=full). */}
-          {mode && !n9Head ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco as abas moram no "Avançado" */}
+          {mode && !n9Head && advancedModes ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco as abas moram no "Avançado" */}{/* KINEO-ADS-SIMPLES-2810 — abas Lote/Produção só para a casa */}
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
           {/* KINEO-ADS-AMOSTRA-2026-10-09 — o clássico é pago: a amostra não mostra o atalho. */}
-          {!sample && classicCredits !== null && mode === 'full' ? (
+          {!sample && classicCredits !== null && mode === 'full' && advancedModes ? (/* KINEO-ADS-SIMPLES-2810 — o clássico só para a casa */
             <p className="adv2-classic">
               <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
             </p>
           ) : null}
-          {mode && !n9Head ? (/* KINEO-ADS-NOTA9-2110 — "I prefer to fill in everything myself" também vai para o "Avançado" na tela foco */
+          {mode && !n9Head && advancedModes ? (/* KINEO-ADS-NOTA9-2110 — "I prefer to fill in everything myself" também vai para o "Avançado" na tela foco */ /* KINEO-ADS-SIMPLES-2810 — o atalho do construtor completo só para a casa */
             <p className="adv2-classic">
               <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
             </p>
@@ -727,6 +730,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           resume={session === 0}
           escolhaInternal={escolhaInternal} escolhaSample={escolhaSample} escolhaOwnerKey={escolhaOwnerKey} escolhaTestControls={escolhaTestControls} /* KINEO-ADS-ESCOLHA-2310 */
+          escolhaSampleAvailable={escolhaSampleAvailable} /* KINEO-ADS-SIMPLES-2810 — a amostra desta pessoa (régua única), não o interruptor geral */
           oneTimeMember={workspace?.role === 'member'} /* KINEO-COMPRA-AVULSA-2410 — a member uses the owner's credits and must not buy for their own account here. */
           lang={lang}
           balance={balance}

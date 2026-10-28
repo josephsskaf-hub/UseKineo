@@ -31,6 +31,8 @@ import { ADS_V2_LINK_WEBP_INLINE_MAX_BYTES, ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES,
 import { ADS_SAMPLE_FOOTAGE_MAX_BYTES } from '@/lib/ads/sample'
 import { ensureFootageBucket, FOOTAGE_PUBLIC_PREFIX, FOOTAGE_QUOTA_PAID, totalFootageBytes, USER_FOOTAGE_BUCKET } from '@/lib/userFootage'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua única
+import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,7 +50,9 @@ export async function POST(req: NextRequest) {
     const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
     const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason)
+    // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA (lib/ads/eligibility.ts): quem tem a amostra da Escolha aberta lê o link (o "link → vídeo" do fundador dentro do caminho
+    // KINEO-ADS-SIMPLES-2810 — único); a amostra antiga (adsSampleOpen) continua valendo só para o caminho legado. Era: const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason)
+    const sample = gate === 'no_access' && ((await loadAdsEligibility(admin, { id: user.id }, reason, { requestCountry: paisDoRequest(req.headers) })).state === 'free_sample_available' || await adsSampleOpen(admin, uid, reason)) // KINEO-ADS-SIMPLES-2810
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: PATH, metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)

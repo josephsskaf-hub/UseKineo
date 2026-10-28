@@ -219,7 +219,8 @@ export async function POST(req: NextRequest) {
     if (body.ads_sample_escolha === true && body.purpose === 'ads' && ['upload-url', 'confirm'].includes(body.action ?? '')) {
       const { escolhaSampleAccountOk, escolhaSampleUsed } = await import('@/lib/ads/cena/escolhaSampleServer')
       const acc = await loadAdsAccess(user.id, user.email)
-      sampleUpload = await escolhaSampleAccountOk(acc.admin, user.id) && !await escolhaSampleUsed(acc.admin, user.id)
+      const { paisDoRequest } = await import('@/lib/freeFilmPolicy') // KINEO-ADS-SIMPLES-2810 — o país do pedido entra na régua da amostra (lista de países; desconhecido = fechado)
+      sampleUpload = await escolhaSampleAccountOk(acc.admin, user.id, paisDoRequest(req.headers)) && !await escolhaSampleUsed(acc.admin, user.id) // KINEO-ADS-SIMPLES-2810 — era: sem o país
       if (!sampleUpload) return NextResponse.json({ error: 'A confirmed eligible account with an unused sample is required.' }, { status: 403 })
     }
     if (body.ads_sample_escolha !== true && !teamOwnerId && !entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {

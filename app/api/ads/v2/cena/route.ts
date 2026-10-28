@@ -13,6 +13,7 @@ import { memoCena95Moderation } from '@/lib/ads/cena/moderation95'
 import { v2Fail } from '@/lib/ads/v2Server'
 import { ADS_ESCOLHA_SAMPLE_LIVE, isEscolhaSamplePlan } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
+import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810 — o país do pedido (x-vercel-ip-country) para a régua de país da amostra
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   if (gate !== 'ok' && !sampleMode) return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
   const moderate = memoCena95Moderation(moderateContent)
   return internalCenaEscolhaFor(user, body, {
-    json: cenaJson, admin: access.admin, access, sampleMode,
+    json: cenaJson, admin: access.admin, access, sampleMode, sampleCountry: paisDoRequest(req.headers), // KINEO-ADS-SIMPLES-2810 — amostra só para a lista de países (fundador 28/10); desconhecido = fechado
     moderate: text => moderate({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { cena: true, escolha: true } }),
     start: orderId => adsV2StartFor(user, access, async () => ({ order_id: orderId }), Date.now(), { moderate, escolhaPersonal: personal }),
   })

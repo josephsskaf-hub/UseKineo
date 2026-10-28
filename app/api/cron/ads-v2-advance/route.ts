@@ -16,6 +16,7 @@ import { checkEscolhaSampleConversionAlert } from '@/lib/ads/cena/escolhaSampleS
 // cada lote começa pelo /start de sempre (adsV2StartFor). Nunca lança; sem fila, uma leitura só.
 import { drainAdsV2Batches } from '@/lib/ads/v2Batch'
 import { advanceDemosSobMedida } from '@/lib/ads/demoSobMedidaServer' // KINEO-DEMO-SOB-MEDIDA-1510 — demo entregue: 4:5 + 1:1 dos mesmos clipes e o link de aprovação da marca
+import { sweepAbandonedAdsV2Orders } from '@/lib/ads/v2Sweep' // KINEO-ADS-SIMPLES-2810 — rascunho/plano largado há ≥ 48 h → 'cancelled' (sem dinheiro, sem tocar na amostra), idempotente
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,7 @@ export async function GET(req: NextRequest) {
   const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310
   await retryEscolhaNotices(admin, started + TOTAL_BUDGET_MS) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — retry the authorized transactional notice.
   const demos = await advanceDemosSobMedida(admin, { deadlineMs: started + TOTAL_BUDGET_MS + 40_000, secret: process.env.SUPABASE_SERVICE_ROLE_KEY }) // KINEO-DEMO-SOB-MEDIDA-1510 — nunca lança; sem demo, duas leituras
-  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, demos, ms: Date.now() - started })) // KINEO-DEMO-SOB-MEDIDA-1510 — + demos
-  return NextResponse.json({ ok: true, scanned: results.length, results, batches })
+  const swept = await sweepAbandonedAdsV2Orders(admin, { deadlineMs: started + TOTAL_BUDGET_MS + 50_000 }) // KINEO-ADS-SIMPLES-2810 — por último, com o que sobrar do prazo; nunca lança
+  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, demos, swept, ms: Date.now() - started })) // KINEO-DEMO-SOB-MEDIDA-1510 — + demos // KINEO-ADS-SIMPLES-2810 — + swept
+  return NextResponse.json({ ok: true, scanned: results.length, results, batches, swept }) // KINEO-ADS-SIMPLES-2810 — + swept
 }

@@ -114,7 +114,7 @@ function tela({ entry = null, balance = 1000, sample = false, over = {} } = {}) 
   }
   const load = carregador(o)
   const Client = load(F.client).default
-  return renderToStaticMarkup(React.createElement(Client, { initialBalance: balance, classicCredits: 5, variations: false, producao: true, sample, workspace: null, business: null, entry }))
+  return renderToStaticMarkup(React.createElement(Client, { initialBalance: balance, classicCredits: 5, variations: false, producao: true, sample, workspace: null, business: null, entry, advancedModes: true })) // reancorado KINEO-ADS-SIMPLES-2810 — a "tela de sempre" (abas Lote/Produção, atalho do completo) é agora a da CASA (advancedModes); o cliente vê só o modo simples
 }
 const ordem = (s, ...marcos) => { let i = -1; for (const m of marcos) { const j = s.indexOf(m, i + 1); if (j < 0) return false; i = j } return true }
 

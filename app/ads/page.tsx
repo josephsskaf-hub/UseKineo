@@ -86,6 +86,10 @@ import { BF_EN_PATH, UGC_PILLAR_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-
 // montador). Timeout/erro de leitura = sem botão (falha fechada). Studio Ads fechado (adsPassLive false) = sem botão.
 import { adsSampleOpen } from '@/lib/ads/serverAccess'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
+import { headers } from 'next/headers' // KINEO-ADS-SIMPLES-2810 — o país do pedido para a régua única
+import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
+import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA da amostra (a mesma do /ads/v2 e dos cards)
+import { ADS_ESCOLHA_SAMPLE_PHOTOS, ADS_ESCOLHA_SAMPLE_SECONDS } from '@/lib/ads/cena/escolhaSamplePolicy' // KINEO-ADS-SIMPLES-2810 — a copy da amostra nasce dos números reais (8 s, 2 fotos)
 // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — amostra JÁ usada: a porta troca o convite pela oferta do Business, com o anúncio dela.
 import { loadAdsSampleUsedAd, type AdsSampleUsedAd } from '@/lib/ads/serverAccess'
 import { adsAfterSampleCopy, fillAfterSample } from '@/lib/ads/afterSample'
@@ -319,17 +323,21 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
   const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
   // KINEO-ADS-AMOSTRA-2026-10-09 — quem vê o botão da amostra grátis e para onde ele leva.
+  // KINEO-ADS-SIMPLES-2810 — a porta pergunta à régua ÚNICA (lib/ads/eligibility.ts), não mais ao adsSampleOpen do caminho antigo: a amostra de hoje é a da
+  // KINEO-ADS-SIMPLES-2810 — Escolha (8 s, apresentador, 2 fotos, marca). Timeout/erro = null (sem botão, falha fechada). Era: adsSampleOpen(footageAdminClient(), viewer.userId, 'none')
+  const elegibilidadePorta = live && ADS_V2_PUBLIC && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId ? await withTimeout(loadAdsEligibility(footageAdminClient(), { id: viewer.userId }, 'none', { requestCountry: paisDoRequest(headers()) }), null) : null // KINEO-ADS-SIMPLES-2810
   const sampleHref: string | null = !ADS_SAMPLE_LIVE || !live || !ADS_V2_PUBLIC
     ? null
     : viewer.signedIn && viewer.gate === 'no_access' && viewer.userId
-    ? ((await withTimeout(adsSampleOpen(footageAdminClient(), viewer.userId, 'none'), false)) ? MAKER_HREF : null)
+    ? (elegibilidadePorta?.state === 'free_sample_available' ? MAKER_HREF : null) // KINEO-ADS-SIMPLES-2810
     : !viewer.signedIn && viewer.noSession
     ? SAMPLE_SIGNUP_HREF
     : null
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — logado, barrado pelo gate, SEM amostra aberta e com a amostra USADA → a oferta do
   // Business no lugar do convite (o mesmo lugar, antes da oferta paga). Timeout/erro de leitura = null (a porta de antes).
-  const afterSample: AdsSampleUsedAd | null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId
+  // KINEO-ADS-SIMPLES-2810 — "usada" agora é o livro-razão da Escolha (state 'free_sample_used'); o vídeo mostrado continua vindo de loadAdsSampleUsedAd (a chave 'adssample-escolha-…' casa com o prefixo).
+  const afterSample: AdsSampleUsedAd | null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId && elegibilidadePorta?.state === 'free_sample_used'
     ? await withTimeout(loadAdsSampleUsedAd(footageAdminClient(), viewer.userId), null).then((r) => (r && r.used && r.delivered ? r : null))
     : null
   const business = businessAdsOffer()
@@ -363,7 +371,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <div className="ads-banner ads-sample" role="region" aria-label="Free first ad" data-kineo="ads-door-sample">
             <p>
               {/* KINEO-CLIPE360-AMOSTRA-1410 — a amostra passou para o nível Commercial (lib/ads/sample.ts ADS_SAMPLE_TIER). */}
-              <b>Your first ad is free.</b> One ad per account in the Real product close-up format: about {ADS_V2_SCREEN_SECONDS} seconds, only your own photos with camera moves, your label 100% faithful, with a small watermark. No card needed.{/* KINEO-CLOSE-REAL-1910 — a amostra é o Close do produto real; era: One ad per account at the Commercial level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed. */}
+              <b>Your first ad is free.</b> One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product in the scene you choose, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, a short voice-over and music, with a small usekineo.com watermark. No card needed.{/* KINEO-ADS-SIMPLES-2810 — a amostra de hoje é a da Escolha (8 s, apresentador, 2 fotos); era: One ad per account in the Real product close-up format: about {ADS_V2_SCREEN_SECONDS} seconds, only your own photos with camera moves, your label 100% faithful, with a small watermark. No card needed. */}{/* KINEO-CLOSE-REAL-1910 — a amostra é o Close do produto real; era: One ad per account at the Commercial level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed. */}
             </p>
             <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
           </div>

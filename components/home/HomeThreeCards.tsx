@@ -31,6 +31,8 @@ import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' /
 import { vemDoChatgpt } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
 import HomeCardCycleMedia, { HOME_CARD_CYCLE_CSS } from '@/components/home/HomeCardCycleMedia' // KINEO-CARDS-GIRO-2410
+import { useAdsEligibility } from '@/components/ads/useAdsEligibility' // KINEO-ADS-SIMPLES-2810 — logado: o rótulo "grátis" só quando a amostra está aberta para ESTA pessoa
+import { adsDoorSaysFree } from '@/lib/ads/eligibilityPure' // KINEO-ADS-SIMPLES-2810 — lib pura
 
 export const HOME_THREE_CARDS_CSS = `
 .klp .k3c{position:relative;z-index:1;padding:26px 0 8px}
@@ -102,7 +104,8 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
     : HOME_CARD_ORDER // KINEO-PAGINAS-IA-CLARAS-2110 — interruptor desligado mantém os três cards de sempre.
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
   const track = (card: HomeCardId, position: number) => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(card, signedIn), position }) } // KINEO-PAGINAS-IA-CLARAS-2110 — posição real, inclusive quando o Cartoon vem primeiro.
-  const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10)
+  const elegibilidade = useAdsEligibility(signedIn) // KINEO-ADS-SIMPLES-2810 — null até responder (ou sem sessão): o rótulo de antes
+  const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE && (elegibilidade === null || adsDoorSaysFree(signedIn, elegibilidade.state))) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10) // KINEO-ADS-SIMPLES-2810 — porta honesta: "grátis" só para visitante ou amostra aberta; era: homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
