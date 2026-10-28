@@ -38,6 +38,7 @@ import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
 import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA: paid · free_sample_available · free_sample_used · not_eligible
 import AdsEligibilityNotice from '@/components/ads/AdsEligibilityNotice' // KINEO-ADS-SIMPLES-2810 — o aviso honesto no lugar da parede (componente de navegador: a língua da interface mora no localStorage)
 import { adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-SIMPLES-2810 — o preço do anúncio completo no aviso (a mesma conta do débito)
+import { bfCampaignFromQuery } from '@/lib/ads/bfCampaign'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -53,6 +54,13 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   const resumeOrder = Array.isArray(rawResume) ? rawResume[0] : rawResume
   const resumeQuery = new URLSearchParams()
   if (entry) resumeQuery.set('entry', entry)
+  const bfQuery = new URLSearchParams()
+  for (const key of ['bf_template', 'bf_lang']) {
+    const value = searchParams?.[key]
+    if (typeof value === 'string') bfQuery.set(key, value)
+  }
+  const bfCampaign = bfCampaignFromQuery(bfQuery)
+  if (bfCampaign) { resumeQuery.set('bf_template', bfCampaign.id); resumeQuery.set('bf_lang', bfCampaign.lang) }
   if (isUuid(resumeOrder)) { resumeQuery.set('order', resumeOrder.toLowerCase()); if (searchParams?.upgrade === '1') resumeQuery.set('upgrade', '1') }
   const loginTarget = `/ads/v2${resumeQuery.size ? `?${resumeQuery}` : ''}`
   const supabase = createClient()

@@ -69,7 +69,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
           : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id === '@/components/OneTimeItemOffer' ? id + '.tsx' : id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
-          : id === '@/lib/textLanguage' || id.includes('escolhaShots') || id.includes('checkoutPricing') ? pure(id) // KINEO-AMOSTRA-ANUNCIO-2410 — execute the real single price source for result purchase.
+          : id === '@/lib/ads/bfCampaign' || id === '@/lib/textLanguage' || id.includes('escolhaShots') || id.includes('checkoutPricing') ? pure(id) // KINEO-BF-CAMPAIGN-2810 — execute the pure template contract in the current editor.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
               : require(id)
