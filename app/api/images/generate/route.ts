@@ -17,6 +17,12 @@ import { persistImage, signReferencePhotos } from '@/lib/imageStore'
 // custo de hoje. Sem referência, nada muda. A régua mora em lib/imageReference.ts (pura, com guardião).
 import { NANO_BANANA_EDIT_SLUG, REFERENCE_SIGNED_URL_SECONDS, buildNanoBananaEditInput, decideReferenceRequest } from '@/lib/imageReference'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-ROSTO-QUADRO-CHAVE-2810 — 28/10 04:32 UTC: duas fotos de referência voltaram 502 "Image generation failed" quando a fal
+// respondeu 403 (conta trancada por saldo: a fal nem baixou a foto — o log de storage mostra um único GET, o da moderação; o
+// último gasto antes foi o clipe Kling das 04:31). A rota só logava err.message ("Forbidden"), nunca o `detail` do corpo, e não
+// acordava o alarme de saldo (acordou só às 06:40, no próximo pedido pago que sabia ler). Agora: o texto REAL da fal vai ao log e
+// ao evento (limpo), saldo/acesso vira 503 "motor pausado, créditos devolvidos" e dispara alertFalExhausted, como /clips e o filme.
+import { alertFalExhausted, falErrorText, looksExhausted } from '@/lib/falAlert' // KINEO-ROSTO-QUADRO-CHAVE-2810
 // KINEO-MODERACAO-2026-09-25 — pedidos graves envolvendo menores foram gerados e guardados aqui (03/09 e 17/09, 2 contas
 // suspensas em 25/09). Só schnell/dev ligavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim. Agora TODO
 // modelo passa por duas portas: o texto antes de cobrar e a imagem pronta antes de guardar. Falha fechada.
@@ -106,8 +112,8 @@ export async function POST(req: NextRequest) {
   const withReference = referenceUrls.length > 0
   const falSlug = withReference ? NANO_BANANA_EDIT_SLUG : model.slug
   const falInput = withReference ? buildNanoBananaEditInput(prompt, size, referenceUrls) : model.input(prompt, size)
-  const referenceEvent = (outcome: string) => withReference
-    ? writeServerEvent({ name: 'images_reference_used', userId: user.id, path: '/images', metadata: { count: referenceUrls.length, model: modelKey, outcome } }).catch(() => false)
+  const referenceEvent = (outcome: string, extra: Record<string, unknown> = {}) => withReference // KINEO-ROSTO-QUADRO-CHAVE-2810 — + extra (provider_error/status)
+    ? writeServerEvent({ name: 'images_reference_used', userId: user.id, path: '/images', metadata: { count: referenceUrls.length, model: modelKey, outcome, ...extra } }).catch(() => false)
     : Promise.resolve(false)
 
   const inputCheck = await moderateContent({ surface: 'images', stage: 'input', userId: user.id, text: prompt, imageUrls: referenceUrls, meta: { model: modelKey, reference_count: referenceUrls.length } })
@@ -150,12 +156,20 @@ export async function POST(req: NextRequest) {
     await referenceEvent('delivered')
     return NextResponse.json({ url: stored.url, id: stored.id, model: modelKey, balance: debit.data - 0 })
   } catch (e) {
-    console.error('[images] provider failed — refunding:', e instanceof Error ? e.message : String(e))
+    // KINEO-ROSTO-QUADRO-CHAVE-2810 — o que a fal DISSE (status + detail), limpo de URL/credencial, no log e no evento; saldo = alarme + 503.
+    const falErr = (e && typeof e === 'object' ? e : {}) as { status?: number | null; message?: string; body?: unknown } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const status = typeof falErr.status === 'number' ? falErr.status : null // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const detail = falErrorText(falErr).replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>()\]]+/gi, '[url]').replace(/[A-Za-z0-9_+/=:-]{32,}/g, '[redacted]').slice(0, 200) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    const exhausted = looksExhausted(falErr) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    console.error(`[images] provider failed — refunding: fal ${status ?? '?'} ${detail || (e instanceof Error ? e.message : String(e))}`) // KINEO-ROSTO-QUADRO-CHAVE-2810 — era só e.message ("Forbidden")
     await refundRenderCredits(renderId).catch(() => {})
-    await referenceEvent('provider_failed')
-    return NextResponse.json(
-      { error: 'Image generation failed. Your credits were refunded — try again.' },
-      { status: 502 },
+    if (exhausted) await alertFalExhausted({ source: 'clips', engine: falSlug, context: `images generate http=${status ?? '?'}` }).catch(() => 'error' as const) // KINEO-ROSTO-QUADRO-CHAVE-2810 — mesma fonte 'clips' (um POST pago na fal); o alarme é deduplicado por janela de 6 h
+    await referenceEvent('provider_failed', { provider_status: status, provider_error: detail || null, exhausted }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+    return NextResponse.json( // KINEO-ROSTO-QUADRO-CHAVE-2810
+      exhausted // KINEO-ROSTO-QUADRO-CHAVE-2810
+        ? { error: 'The image engine is paused for a few minutes (provider account). Your credits were refunded — please try again shortly.', code: 'provider_paused' } // KINEO-ROSTO-QUADRO-CHAVE-2810
+        : { error: 'Image generation failed. Your credits were refunded — try again.', code: 'provider_failed' }, // KINEO-ROSTO-QUADRO-CHAVE-2810
+      { status: exhausted ? 503 : 502, headers: exhausted ? { 'Retry-After': '300' } : undefined }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     )
   }
 }

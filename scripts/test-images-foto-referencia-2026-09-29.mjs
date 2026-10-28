@@ -69,6 +69,8 @@ function mundo(opts = {}) {
     },
     '@/lib/imageReference': roda(src.lib),
     '@/lib/serverEvents': { writeServerEvent: async (e) => { w.events.push(e); return true } },
+    // KINEO-ROSTO-QUADRO-CHAVE-2810 — a rota passou a ler o erro REAL da fal (403 de saldo = alarme + 503); aqui a fal nunca está sem saldo.
+    '@/lib/falAlert': { alertFalExhausted: async () => { log.push('fal_alert'); return 'sent' }, falErrorText: (e) => String(e?.message ?? ''), looksExhausted: () => false }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     '@/lib/safety/contentModeration': { moderateContent: async (a) => {
       log.push(`mod:${a.stage}`); w.mods.push(a)
       const v = opts.mod?.[a.stage]
@@ -214,7 +216,7 @@ const MUTANTES = [
   ['custo diferente com foto', 'custo', mut('gen', 'cost: model.cost })', 'cost: withReference ? model.cost + 1 : model.cost })')],
   ['custo do Nano Banana Pro mudado', 'custo', mut('gen', "slug: 'fal-ai/nano-banana-pro',\n    cost: 5,", "slug: 'fal-ai/nano-banana-pro',\n    cost: 6,")],
   ['upload sem moderação', 'uploadModerado', mut('up', 'if (!safety.ok) {', 'if (false) {')],
-  ['falha sem estorno', 'estorno', mut('gen', "    console.error('[images] provider failed — refunding:', e instanceof Error ? e.message : String(e))\n    await refundRenderCredits(renderId).catch(() => {})", "    console.error('[images] provider failed — refunding:', e instanceof Error ? e.message : String(e))")],
+  ['falha sem estorno', 'estorno', mut('gen', "    await refundRenderCredits(renderId).catch(() => {})\n    if (exhausted) await alertFalExhausted(", "    if (exhausted) await alertFalExhausted(")], // reancorado KINEO-ROSTO-QUADRO-CHAVE-2810 — a rota passou a logar o erro REAL da fal (status + detail) antes de estornar; o estorno é a linha seguinte
   ['/edit sempre', 'endpoint', mut('gen', 'const falSlug = withReference ? NANO_BANANA_EDIT_SLUG : model.slug', 'const falSlug = modelKey === \'nanobanana\' ? NANO_BANANA_EDIT_SLUG : model.slug')],
 ]
 for (const [nome, qual, src] of MUTANTES) {
