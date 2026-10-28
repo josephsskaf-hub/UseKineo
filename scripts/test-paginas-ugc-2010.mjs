@@ -11,7 +11,7 @@ import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mj
 //   G4  sitemap REAL (executado) traz cada URL nova uma vez com o lastmod da revisão, carimba as páginas que ganharam link, e o
 //       IndexNow do cron (changedSinceSnapshot) envia as URLs novas na 1ª execução;
 //   G5  /llms.txt REAL (executado) cita cada URL nova e os 3 carros-chefes com o nome do mercado;
-//   G6  botão certo: UGC = /signup?redirect=/ads/v2?entry=ugc&…utm_campaign=<página> (logado = direto); Black Friday = /ads?…&go=maker;
+//   G6  botão certo: UGC = /signup?redirect=/ads/v2?entry=ugc&…utm_campaign=<página> (logado = direto); Black Friday = three direct /ads/v2 template links + the existing credit pack;
 //   G7  nenhum preço/crédito dentro de cartão de vídeo, de rosto ou de nicho;
 //   G8  conteúdo único por nicho: campos completos, roteiro de 17–21 palavras com apresentador aprovado, cada campo longo com
 //       similaridade (Jaccard de trigramas) < 0,5 contra o mesmo campo dos outros nichos, texto do nicho inteiro < 0,12, página
@@ -38,6 +38,7 @@ const F = {
   content: 'lib/growth/paginasUgc2010Content.ts',
   facts: 'lib/growth/paginasUgc2010Facts.ts',
   comp: 'components/ugc/UgcPages.tsx',
+  bfComp: 'components/ads/BlackFridayCampaignPage.tsx',
   niche: 'app/ai-ugc-ads/for/[niche]/page.tsx',
   sitemap: 'app/sitemap.ts',
   llms: 'app/llms.txt/route.ts',
@@ -108,6 +109,7 @@ async function audit(rep = {}, groups = null) {
     { kind: 'generator', path: P.UGC_GENERATOR_PATH, file: 'app/ai-ugc-video-generator/page.tsx', props: {}, campaign: P.PAGINAS_UGC_CAMPAIGN.generator, cta: 'ugc' },
     { kind: 'bf', path: P.BF_EN_PATH, file: 'app/ai-black-friday-video-ads/page.tsx', props: {}, campaign: P.PAGINAS_UGC_CAMPAIGN.bf, cta: 'bf' },
     { kind: 'bf', path: P.BF_PT_PATH, file: 'app/anuncios-black-friday-com-ia/page.tsx', props: {}, campaign: P.PAGINAS_UGC_CAMPAIGN.bfPt, cta: 'bf' },
+    { kind: 'bf', path: P.BF_ES_PATH, file: 'app/anuncios-black-friday-con-ia/page.tsx', props: {}, campaign: 'black_friday_kit_es', cta: 'bf' },
     ...P.UGC_NICHE_SLUGS.map((slug) => ({ kind: 'niche', slug, path: P.ugcNichePath(slug), file: F.niche, props: { params: { niche: slug } }, campaign: P.PAGINAS_UGC_CAMPAIGN.niche(slug), cta: 'ugc' })),
   ]
   if (JSON.stringify([...P.PAGINAS_UGC_PATHS].sort()) !== JSON.stringify(pages.map((p) => p.path).sort())) fail('G1', 'PAGINAS_UGC_PATHS ≠ páginas do lote')
@@ -144,12 +146,12 @@ async function audit(rep = {}, groups = null) {
       if (titles.has(t)) fail('G2', `título repetido: ${t}`); titles.add(t)
       if (descs.has(d)) fail('G2', `description repetida em ${p.path}`); descs.add(d)
       if (p.meta.alternates?.canonical !== BASE + p.path) fail('G2', `${p.path}: canonical ${p.meta.alternates?.canonical}`)
-      const pair = P.PAGINAS_UGC_PAIRS.find((x) => x.en === p.path || x.pt === p.path)
+      const pair = P.PAGINAS_UGC_PAIRS.find((x) => x.en === p.path || x.pt === p.path || x.es === p.path)
       const langs = p.meta.alternates?.languages
       if (pair) {
-        const want = { en: BASE + pair.en, 'pt-BR': BASE + pair.pt, 'x-default': BASE + pair.en }
+        const want = { en: BASE + pair.en, 'pt-BR': BASE + pair.pt, ...(pair.es ? { es: BASE + pair.es } : {}), 'x-default': BASE + pair.en }
         if (JSON.stringify(langs) !== JSON.stringify(want)) fail('G2', `${p.path}: hreflang ${JSON.stringify(langs)}`)
-        const lang = p.path === pair.pt ? 'pt-BR' : 'en'
+        const lang = p.path === pair.pt ? 'pt-BR' : p.path === pair.es ? 'es' : 'en'
         if (!p.html.includes(`lang="${lang}"`)) fail('G2', `${p.path}: <main lang> ≠ ${lang}`)
       } else if (langs) fail('G2', `${p.path}: hreflang numa página sem par`)
     }
@@ -240,16 +242,17 @@ async function audit(rep = {}, groups = null) {
         const n = p.html.split(`href="${href.replace(/&/g, '&amp;')}"`).length - 1
         if (n < need) fail('G6', `${p.path}: botão do 1º anúncio UGC ×${n} (esperado ≥${need})`)
       } else {
-        const href = P.bfCtaHref(p.campaign)
-        if (!href.startsWith('/ads?') || !href.endsWith('&go=maker') || !href.includes(`utm_campaign=${p.campaign}`)) fail('G6', `${p.path}: destino do kit ${href}`)
-        const n = p.html.split(`href="${href.replace(/&/g, '&amp;')}"`).length - 1
+        const B = load('lib/ads/bfCampaign.ts')
+        const lang = p.path === P.BF_PT_PATH ? 'pt' : p.path === P.BF_ES_PATH ? 'es' : 'en'
+        for (const id of B.BF_TEMPLATE_IDS) {
+          const href = B.bfTemplateHref(lang, id)
+          if (!p.html.includes('href="' + href.replace(/&/g, '&amp;') + '"')) fail('G6', p.path + ': template sem destino direto ' + id)
+        }
         const K = load('lib/ads/kitBfSale.ts')
         if (facts.kitSale) {
-          // KINEO-KIT-BF-VENDA-2010 no ar: o kit à venda é o botão principal (herói + fecho) e o Studio Ads fica para quem já assina
-          const k = p.html.split(`href="${K.KIT_BF_CHECKOUT_HREF.replace(/&/g, '&amp;')}"`).length - 1
-          if (k !== 2 || n !== 1) fail('G6', `${p.path}: compra do kit ×${k} (esperado 2) e Studio Ads ×${n} (esperado 1)`)
-          if (!p.text.includes(K.kitBfPriceLabel())) fail('G6', `${p.path}: preço do kit ausente`)
-        } else if (n !== 2) fail('G6', `${p.path}: botão do Studio Ads ×${n} (esperado 2)`)
+          const k = p.html.split('href="' + K.KIT_BF_CHECKOUT_HREF.replace(/&/g, '&amp;') + '"').length - 1
+          if (k !== 1 || !p.text.includes(K.kitBfPriceLabel())) fail('G6', p.path + ': pack vigente ausente ou duplicado')
+        }
       }
     }
   }
@@ -334,10 +337,10 @@ async function audit(rep = {}, groups = null) {
     const pil = ok.find((p) => p.path === P.UGC_PILLAR_PATH)
     if (pil && !pil.text.includes(`${c15} credits (15 s), ${c20} (20 s) or ${c30} (30 s)`)) fail('G11', 'a pilar não mostra os créditos calculados')
     const bf = ok.find((p) => p.path === P.BF_EN_PATH)
-    if (bf && !bf.text.includes(`from ${facts.minAdCredits15} credits (15 s)`)) fail('G11', 'a página do kit não mostra o crédito calculado')
+    if (bf && !bf.text.includes(`${T.adsV2Credits('commercial', 15)} credits`)) fail('G11', 'a página do kit não mostra o crédito calculado')
     const K = load('lib/ads/kitBfSale.ts')
-    if (facts.kitSale && (facts.kitSale.credits !== K.KIT_BF_CREDITS || facts.kitSale.perAd !== T.adsV2Credits('photo_motion', 15) || facts.kitSale.price !== K.kitBfPriceLabel())) fail('G11', 'números do kit ≠ lib/ads/kitBfSale.ts / adsV2Credits')
-    if (bf && facts.kitSale && !bf.text.includes(`It adds ${K.KIT_BF_CREDITS} credits`)) fail('G11', 'a página do kit não mostra os créditos do kit')
+    if (facts.kitSale && (facts.kitSale.credits !== K.KIT_BF_CREDITS || facts.kitSale.perAd !== T.adsV2Credits('commercial', 15) || facts.kitSale.price !== K.kitBfPriceLabel())) fail('G11', 'números do kit ≠ lib/ads/kitBfSale.ts / adsV2Credits')
+    if (bf && facts.kitSale && !bf.text.includes(`${K.KIT_BF_CREDITS} credits`)) fail('G11', 'a página do kit não mostra os créditos do kit')
     if (!src(F.facts).includes("from '@/lib/ads/kitBfSale'")) fail('G11', 'fatos não leem lib/ads/kitBfSale')
     const fs = src(F.facts)
     for (const imp of ["from '@/lib/ads/v2Tiers'", "from '@/lib/checkoutPricing'", "from '@/lib/ads/ugcComparison'", "from '@/lib/ads/v2KitBf'"]) if (!fs.includes(imp)) fail('G11', `fatos não leem ${imp}`)
@@ -374,7 +377,7 @@ async function audit(rep = {}, groups = null) {
 // ── Real: verde ────────────────────────────────────────────────────────────────────────────────────────────────────
 const realFails = await audit()
 assert.deepEqual(realFails, [], `guardião vermelho no código real:\n${realFails.join('\n')}`)
-console.log(`ok — 17 páginas renderizadas: rotas, metadata/hreflang, schema, sitemap+IndexNow, /llms.txt, botões, sem preço em cartão, nichos únicos (máx. ${audit.stats.maxWhole.toFixed(3)} texto, ${audit.stats.maxPage.toFixed(3)} página; gerador × pilar ${audit.stats.gen.toFixed(3)}), honestidade, links, números calculados, rostos aprovados, desfaz exato`)
+console.log(`ok — 18 páginas renderizadas: rotas, metadata/hreflang, schema, sitemap+IndexNow, /llms.txt, botões, sem preço em cartão, nichos únicos (máx. ${audit.stats.maxWhole.toFixed(3)} texto, ${audit.stats.maxPage.toFixed(3)} página; gerador × pilar ${audit.stats.gen.toFixed(3)}), honestidade, links, números calculados, rostos aprovados, desfaz exato`)
 
 // ── Mutantes: cada um TEM de ficar vermelho na regra certa ─────────────────────────────────────────────────────────
 const MUTANTS = [
@@ -389,7 +392,7 @@ const MUTANTS = [
   ['G5', F.llms, 'STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) :', "STUDIO_ADS_FACT ? '' :"],
   ['G5', F.paths, "{ name: 'AI Product Ads', path: '/ads',", "{ name: 'Product Ads', path: '/ads',"],
   ['G6', F.paths, 'return `/ads/v2?entry=ugc&utm_source=seo', 'return `/ads/v2?entry=product&utm_source=seo'],
-  ['G6', F.comp, 'href={primaryHref} source={campaign} placement="hero"', 'href="/pricing" source={campaign} placement="hero"'],
+  ['G6', F.bfComp, 'href={bfTemplateHref(lang, id)}', 'href="/pricing"'],
   ['G11', F.facts, 'credits: KIT_BF_CREDITS,', 'credits: 300,'],
   ['G7', F.comp, '<span>{tag[p.tag] ?? p.tag} · {p.ageMin}–{p.ageMax}</span>', '<span>{tag[p.tag] ?? p.tag} · 41 credits</span>'],
   ['G8', F.content, "photos: 'The bottle upright with the cap on and the name readable, plus the box. A photo on a dressing table or in a hand helps the presenter shot get the scale right.',", "photos: 'The bottle or jar with the label readable, one photo of the texture on a clean surface, and the box if it carries the brand.',"],

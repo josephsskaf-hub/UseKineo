@@ -1,0 +1,53 @@
+P / T / B / I / N — no disco
+  ok  P1_preco
+  ok  P2_creditos
+  ok  P3_margem_pior_caso
+  ok  P4_checkout_valor_servidor
+  ok  P11_checkout_contrato_atual
+  ok  P12_versao_antiga_reconhecida
+  ok  P5_checkout_brl_formula
+  ok  P6_anual_hoje_igual
+  ok  P7_anual_maior_desconto_sem_somar
+  ok  P8_anual_checkout_servidor
+  ok  P9_checkout_despacho_antes_do_fallback
+  ok  P10_kit_sem_preco_do_pedido
+  ok  T1_venda_fecha_30_11
+  ok  T2_checkout_recusa_depois
+  ok  T3_anual_desliga_21_11
+  ok  T4_acesso_31_12_nunca_encurta
+  ok  T5_rota_relogio_servidor
+  ok  B1_checkout_recusa_business
+  ok  B2_rota_incluido
+  ok  B3_500_cobre_o_kit
+  ok  B4_sem_login_e_sem_coluna_nao_cobram
+  ok  I1_concessao_entre_guard_e_update
+  ok  I2_leitura_falha_retenta
+  ok  I3_evento_depois_da_concessao
+  ok  I4_so_metadata_nunca_valor
+  ok  I5_mesmo_update_creditos_e_acesso
+  ok  I6_evento_server_only
+  ok  N1_recarga_anual_igual_a_base
+  ok  N2_cartao_sem_preco_na_url
+  ok  N3_cartao_16_linguas_numeros_do_servidor
+M — mutantes
+  ok  M1 preço 4900→4800 → P1_preco VERMELHO
+  ok  M2 rendimento vira 10 anúncios → P2_creditos VERMELHO
+  ok  M3 venda até 31/12 → T2_checkout_recusa_depois VERMELHO
+  ok  M4 valor vindo da URL → P4_checkout_valor_servidor VERMELHO
+  ok  M5 Business compra → B1_checkout_recusa_business VERMELHO
+  ok  M6 checkout ignora a janela → T2_checkout_recusa_depois VERMELHO
+  ok  M7 descontos somados → P6_anual_hoje_igual VERMELHO
+  ok  M8 anual sem prazo → T3_anual_desliga_21_11 VERMELHO
+  ok  M9 leitura do acesso engole erro → I2_leitura_falha_retenta VERMELHO
+  ok  M10 evento antes da concessão → I3_evento_depois_da_concessao VERMELHO
+  ok  M11 concessão antes do guard → I1_concessao_entre_guard_e_update VERMELHO
+  ok  M12 rota: Business vira compra → B2_rota_incluido VERMELHO
+  ok  M13 recarga anual muda → N1_recarga_anual_igual_a_base VERMELHO
+  ok  M14 anual lê o pedido → P8_anual_checkout_servidor VERMELHO
+  ok  M15 preço na URL do cartão → N2_cartao_sem_preco_na_url VERMELHO
+  ok  M16 reconhece pelo valor → I4_so_metadata_nunca_valor VERMELHO
+  ok  M17 acesso fora do UPDATE → I5_mesmo_update_creditos_e_acesso VERMELHO
+  ok  M19 descrição antiga → P11_checkout_contrato_atual VERMELHO
+  ok  M18 acesso encurta → T4_acesso_31_12_nunca_encurta VERMELHO
+
+49 ok, 0 falha(s)

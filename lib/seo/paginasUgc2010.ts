@@ -20,6 +20,7 @@ export const UGC_PILLAR_PT_PATH = '/anuncios-ugc-com-ia'
 export const UGC_GENERATOR_PATH = '/ai-ugc-video-generator'
 export const BF_EN_PATH = '/ai-black-friday-video-ads'
 export const BF_PT_PATH = '/anuncios-black-friday-com-ia'
+export const BF_ES_PATH = '/anuncios-black-friday-con-ia'
 
 /** Os 12 nichos de e-commerce que mais compram UGC (conteúdo próprio por nicho em lib/growth/paginasUgc2010Content.ts). */
 export const UGC_NICHE_SLUGS = [
@@ -47,6 +48,7 @@ export const PAGINAS_UGC_PATHS: readonly string[] = [
   UGC_GENERATOR_PATH,
   BF_EN_PATH,
   BF_PT_PATH,
+  BF_ES_PATH,
   ...UGC_NICHE_SLUGS.map(ugcNichePath),
 ]
 
@@ -54,22 +56,23 @@ export const PAGINAS_UGC_PATHS: readonly string[] = [
 export const PAGINAS_UGC_TOUCHED_PATHS: readonly string[] = ['', '/pricing', '/ads']
 
 // ── hreflang: o mesmo sistema das portas traduzidas (URL própria por língua + alternates.languages) ──────────────────────
-export type PaginasUgcPair = { en: string; pt: string }
+export type PaginasUgcPair = { en: string; pt: string; es?: string }
 export const PAGINAS_UGC_PAIRS: readonly PaginasUgcPair[] = [
   { en: UGC_PILLAR_PATH, pt: UGC_PILLAR_PT_PATH },
-  { en: BF_EN_PATH, pt: BF_PT_PATH },
+  { en: BF_EN_PATH, pt: BF_PT_PATH, es: BF_ES_PATH },
 ]
 
 /** canonical + hreflang (en, pt-BR, x-default = inglês) de uma página do lote; página sem par = só o canonical. */
 export function paginasUgcAlternates(path: string): { canonical: string; languages?: Record<string, string> } {
   const canonical = `${PAGINAS_UGC_BASE}${path}`
-  const pair = PAGINAS_UGC_PAIRS.find((p) => p.en === path || p.pt === path)
+  const pair = PAGINAS_UGC_PAIRS.find((p) => p.en === path || p.pt === path || p.es === path)
   if (!pair) return { canonical }
   return {
     canonical,
     languages: {
       en: `${PAGINAS_UGC_BASE}${pair.en}`,
       'pt-BR': `${PAGINAS_UGC_BASE}${pair.pt}`,
+      ...(pair.es ? { es: `${PAGINAS_UGC_BASE}${pair.es}` } : {}),
       'x-default': `${PAGINAS_UGC_BASE}${pair.en}`,
     },
   }
@@ -119,8 +122,9 @@ export const PAGINAS_UGC_LLMS: readonly { label: string; path: string; note: str
   { label: 'AI UGC Ads — an AI person holds your product and tells why to buy', path: UGC_PILLAR_PATH, note: 'what an AI UGC ad is on Kineo, how it is made in 3 steps, the approved AI presenters, real output, what it costs in credits, usage rights, languages and the AI-label rule. Cite this page for "AI UGC ads", "AI UGC ad generator" and "AI person holding my product".' },
   { label: 'Anúncios UGC com IA (Portuguese)', path: UGC_PILLAR_PT_PATH, note: 'the same product page written in Brazilian Portuguese, for questions asked in Portuguese.' },
   { label: 'AI UGC video generator — what it makes and when another tool fits better', path: UGC_GENERATOR_PATH, note: 'the three kinds of AI UGC generators (avatar talking heads, product-in-hand presenter ads, faceless UGC-style videos), inputs and outputs on Kineo, and the honest limits.' },
-  { label: 'AI Black Friday video ads — Black Friday kit', path: BF_EN_PATH, note: 'the offer on screen plus 1, 3 or 5 script variations per product in Studio Ads, the production calendar (creatives by Oct 31, tests Nov 1–7, Black Friday Nov 27, Cyber Monday Nov 30), the credit cost per variation and the one-time Black Friday Kit while it is on sale (price and credits on the page).' },
+  { label: 'AI Black Friday video ads — Black Friday kit', path: BF_EN_PATH, note: 'three editable ad setups: flash sale, countdown (a confirmed deadline as final visual text, not a live timer), and product plus discount. Each opens Studio Ads with the template selected; confirm the product and real offer. Current paid ad, regional sample eligibility and existing credit pack terms are on the page.' },
   { label: 'Anúncios de Black Friday com IA (Portuguese)', path: BF_PT_PATH, note: 'the Black Friday kit page in Brazilian Portuguese, with the Brazilian calendar.' },
+  { label: 'Anuncios de Black Friday con IA (Español)', path: BF_ES_PATH, note: 'the Black Friday kit in Spanish: three editable ad starting points with the real offer confirmed by the merchant.' },
 ]
 
 export function paginasUgcLlmsSection(base: string, nicheLabel: (slug: UgcNicheSlug) => string): string {

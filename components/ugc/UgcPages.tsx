@@ -18,7 +18,7 @@ import { ADS_V2_PRESENTER_V2_APPROVED, adsV2PresenterV2Visible } from '@/lib/ads
 import { HOME_CARD_BADGE, HOME_CARD_CLIPS } from '@/lib/ui/homeThreeCards'
 import { KIT_BF_CHECKOUT_HREF } from '@/lib/ads/kitBfSale'
 import { paginasUgcFacts } from '@/lib/growth/paginasUgc2010Facts'
-import { UGC_NICHES, bfCopy, ugcGeneratorCopy, ugcPillarCopy, ugcScriptWords, type UgcFacts, type UgcLang, type UgcQa } from '@/lib/growth/paginasUgc2010Content'
+import { UGC_NICHES, ugcGeneratorCopy, ugcPillarCopy, ugcScriptWords, type UgcFacts, type UgcLang, type UgcQa } from '@/lib/growth/paginasUgc2010Content'
 import {
   BF_EN_PATH, BF_PT_PATH, PAGINAS_UGC_BASE, PAGINAS_UGC_CAMPAIGN, PAGINAS_UGC_MARK, PAGINAS_UGC_REVIEWED_ISO, UGC_GENERATOR_PATH,
   UGC_NICHE_SLUGS, UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH, bfCtaHref, paginasUgcAlternates, ugcNichePath, type UgcNicheSlug,
@@ -520,81 +520,5 @@ export function UgcGeneratorPage() {
   )
 }
 
-// ── Kit Black Friday (EN e PT) ───────────────────────────────────────────────────────────────────────────────────
-export function bfMetadata(lang: UgcLang): Metadata {
-  const c = bfCopy(lang, paginasUgcFacts())
-  return ugcMetadata(lang === 'pt' ? BF_PT_PATH : BF_EN_PATH, c.title, c.description, lang === 'pt' ? 'pt_BR' : 'en_US')
-}
-
-export function BlackFridayPage({ lang }: { lang: UgcLang }) {
-  const f = paginasUgcFacts()
-  const c = bfCopy(lang, f)
-  const pt = lang === 'pt'
-  const path = pt ? BF_PT_PATH : BF_EN_PATH
-  const campaign = pt ? PAGINAS_UGC_CAMPAIGN.bfPt : PAGINAS_UGC_CAMPAIGN.bf
-  // KINEO-KIT-BF-VENDA-2010 no ar: o botão principal compra o kit (GET; sem sessão o checkout leva ao login e retoma); o Studio Ads vira o link de quem já assina.
-  const primaryHref = f.kitSale ? KIT_BF_CHECKOUT_HREF : bfCtaHref(campaign)
-  const related = pt
-    ? [{ href: UGC_PILLAR_PT_PATH, label: 'Anúncios UGC com IA' }, { href: BF_EN_PATH, label: 'Black Friday video ads (English)' }, { href: '/ads', label: 'Studio Ads' }, { href: '/pricing', label: 'Preços' }]
-    : [{ href: UGC_PILLAR_PATH, label: 'AI UGC Ads' }, { href: '/ads', label: 'AI Product Ads (Studio Ads)' }, { href: ugcNichePath('beauty-skincare'), label: 'AI UGC ads for skincare' }, { href: ugcNichePath('electronics-gadgets'), label: 'AI UGC ads for gadgets' }, { href: BF_PT_PATH, label: 'Anúncios de Black Friday (Português)' }, { href: '/pricing', label: 'Pricing' }]
-  return (
-    <Shell lang={lang} mark={pt ? 'bf-pt' : 'bf'}>
-      {ld(faqLd(c.faqs))}{ld(crumbsLd([{ name: 'Kineo', path: '/' }, { name: c.eyebrow, path }]))}
-      <div className="kug-wrap">
-        <header className="kug-hero">
-          <div>
-            <p className="kug-eyebrow">{c.eyebrow}</p>
-            <h1>{c.h1}</h1>
-            <p className="kug-lead">{c.lead}</p>
-            <div className="kug-actions">
-              <OrganicCtaLink className="kug-cta" href={primaryHref} source={campaign} placement="hero">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
-              {c.studioLink ? <OrganicCtaLink className="kug-link" href={bfCtaHref(campaign)} source={campaign} placement="hero_studio">{c.studioLink}</OrganicCtaLink> : null}
-              {c.sampleLink ? <UgcCtaLink className="kug-link" campaign={campaign} placement="hero_sample">{c.sampleLink}</UgcCtaLink> : null}
-            </div>
-            <p className="kug-note">{c.ctaNote}</p>
-            <p className="kug-reviewed">{c.reviewed} {PAGINAS_UGC_REVIEWED_ISO}</p>
-          </div>
-          <figure className="kug-media" style={{ margin: 0 }}>
-            <UgcVideo src={HOME_CARD_CLIPS.product_ads[pt ? 'pt' : 'default']?.src ?? HOME_CARD_CLIPS.product_ads.default.src} poster={HOME_CARD_CLIPS.product_ads[pt ? 'pt' : 'default']?.poster ?? HOME_CARD_CLIPS.product_ads.default.poster} label={pt ? 'Anúncio de produto real do Studio Ads' : 'Real Studio Ads product ad'} />
-            <span className="kug-shade" aria-hidden="true" />
-            <span className="kug-badge" aria-hidden="true">{HOME_CARD_BADGE.product_ads}</span>
-            <figcaption className="kug-cap">{pt ? 'Resultado real do Studio Ads no formato close do produto real (19/10/2026), sem som aqui.' : 'Real Studio Ads output in the close-up-of-your-real-product format (October 19, 2026), muted here.'}</figcaption>
-          </figure>
-        </header>
-      </div>
-      <section className="kug-sec" aria-labelledby="kug-cal">
-        <div className="kug-wrap">
-          <h2 id="kug-cal">{c.calendarHeading}</h2>
-          <ol className="kug-cal">{c.calendar.map((d) => <li key={d.date}><b>{d.date}</b><span>{d.what}</span></li>)}</ol>
-          <p className="kug-src">{c.calendarSource}</p>
-        </div>
-      </section>
-      <section className="kug-sec" aria-labelledby="kug-kit">
-        <div className="kug-wrap">
-          <h2 id="kug-kit">{c.kitHeading}</h2>
-          <div className="kug-grid3">{c.kit.map((k) => <div className="kug-card" key={k.title}><h3>{k.title}</h3><p>{k.body}</p></div>)}</div>
-        </div>
-      </section>
-      <section className="kug-sec" aria-labelledby="kug-bfprice">
-        <div className="kug-wrap">
-          <h2 id="kug-bfprice">{c.priceHeading}</h2>
-          <div className="kug-cost">{c.price.map((p) => <p key={p}>{p}</p>)}</div>
-        </div>
-      </section>
-      <section className="kug-sec" aria-labelledby="kug-bflimits">
-        <div className="kug-wrap">
-          <h2 id="kug-bflimits">{c.limitsHeading}</h2>
-          <ul className="kug-rules">{c.limits.map((r) => <li key={r}>{r}</li>)}</ul>
-        </div>
-      </section>
-      <Faq heading={pt ? 'Perguntas frequentes' : 'Frequently asked questions'} faqs={c.faqs} />
-      <Related heading={c.relatedHeading} links={related} />
-      <div className="kug-wrap">
-        <div className="kug-closing">
-          <div><h2>{c.closingHeading}</h2><p>{c.closingText}</p></div>
-          <OrganicCtaLink className="kug-cta" href={primaryHref} source={campaign} placement="closing">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
-        </div>
-      </div>
-    </Shell>
-  )
-}
+// KINEO-KIT-BF-2810 — current campaign; legacy UGC pages keep their existing implementation.
+export { BlackFridayPage, bfMetadata } from '@/components/ads/BlackFridayCampaignPage'

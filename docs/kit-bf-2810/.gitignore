@@ -1,0 +1,4 @@
+# Intermediate document renders. Deliverable PNGs and HTML are tracked.
+*.pdf
+*-render.log
+render.log

@@ -1,0 +1,34 @@
+D — desfaz / novos / marca
+       (desfaz-compra-avulsa-2410: fonte divergente app/(dashboard)/ads/v2/AdsV2Client.tsx)
+  FAIL D1 desfaz exato = base: app/(dashboard)/ads/v2/AdsV2Client.tsx
+  ok  D1 desfaz exato = base: app/api/events/route.ts
+  ok  D1 desfaz exato = base: app/api/stripe/checkout/route.ts
+  ok  D1 desfaz exato = base: app/api/stripe/webhook/route.ts
+  ok  D1 desfaz exato = base: app/pricing/PricingClient.tsx
+  ok  D1 desfaz exato = base: lib/billing/annualRefill.ts
+  ok  D1 desfaz exato = base: scripts/test-support/desfaz-apresentador-olhos-1910.mjs
+  ok  D1 desfaz exato = base: scripts/test-ads-lote-1310.mjs
+  ok  D1 desfaz exato = base: scripts/test-ads-servidor-2026-09-25.mjs
+  ok  D1 desfaz exato = base: scripts/test-anual-recarga-mensal-2026-09-24.mjs
+  ok  D1 desfaz exato = base: scripts/test-saida-regiao-2026-10-07.mjs
+       (desfaz-kit-bf-venda-2010: scripts/test-consentimento-1610.mjs tem 2 acréscimo(s) marcado(s), esperava 1)
+  FAIL D1 desfaz exato = base: scripts/test-consentimento-1610.mjs
+  ok  D1 desfaz exato = base: scripts/test-home-cards-botoes-2010.mjs
+  ok  D2 os arquivos novos existem e não estavam na base
+  ok  D3 todo arquivo novo carrega a marca
+  ok  D4 trocas só em arquivos declarados
+file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-support/desfaz-compra-avulsa-2410.mjs:21
+    throw new Error('desfaz-compra-avulsa-2410: fonte divergente ' + rel)
+          ^
+
+Error: desfaz-compra-avulsa-2410: fonte divergente app/(dashboard)/ads/v2/AdsV2Client.tsx
+    at semCompraAvulsa2410 (file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-support/desfaz-compra-avulsa-2410.mjs:21:11)
+    at disco (file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-kit-bf-venda-2010.mjs:34:41)
+    at file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-kit-bf-venda-2010.mjs:199:56
+    at Array.every (<anonymous>)
+    at file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-kit-bf-venda-2010.mjs:199:31
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

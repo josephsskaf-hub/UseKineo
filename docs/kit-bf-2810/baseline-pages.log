@@ -1,0 +1,28 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: guardião vermelho no código real:
+G13: app/ads/page.tsx: desfeito ≠ base
+G13: desfaz-cards-giro-2410: fonte divergente components/home/HomeThreeCards.tsx
++ actual - expected
+
++ [
++   'G13: app/ads/page.tsx: desfeito ≠ base',
++   'G13: desfaz-cards-giro-2410: fonte divergente components/home/HomeThreeCards.tsx'
++ ]
+- []
+
+    at file:///C:/kineo/.claude/worktrees/kit-bf-20261028/scripts/test-paginas-ugc-2010.mjs:376:8 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [
+    'G13: app/ads/page.tsx: desfeito ≠ base',
+    'G13: desfaz-cards-giro-2410: fonte divergente components/home/HomeThreeCards.tsx'
+  ],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.18.0
