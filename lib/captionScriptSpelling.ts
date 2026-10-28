@@ -49,6 +49,8 @@ export interface PalavraComTempo {
   start: number
   end: number
   sentenceEnd?: boolean
+  /** KINEO-LEGENDA-LINGUAS-2810 — o texto veio do roteiro que o TTS leu, não do ouvido do Whisper (repetição ali é fala real). */
+  doRoteiro?: boolean
 }
 
 /** Fração mínima das palavras do roteiro que precisa virar âncora para a troca valer. */
@@ -386,5 +388,242 @@ export function alinharGrafiaDoRoteiro(words: PalavraComTempo[], roteiro: string
 
 /** A troca pedida: as palavras do Whisper com a grafia do roteiro (ou intactas, quando a trava manda). */
 export function grafiaDoRoteiro(words: PalavraComTempo[], roteiro: string): PalavraComTempo[] {
-  return alinharGrafiaDoRoteiro(words, roteiro).words
+  return roteiroInteiroNaLegenda(alinharGrafiaDoRoteiro(words, roteiro).words, roteiro).words // KINEO-LEGENDA-LINGUAS-2810 — e nenhuma palavra do roteiro fica de fora
+}
+
+// ═══ KINEO-LEGENDA-LINGUAS-2810 — a legenda leva o roteiro INTEIRO, em qualquer escrita ═══════════════════════════
+// O defeito (filme grátis Seedance 15 s em hindi, 28/10, vídeo 25999984): o roteiro dizia "रात के ठीक 3 बजे, …" e a
+// legenda queimou "रात के ठी बजे". O Whisper (cache de voz 4f37c871…) transcreveu de ouvido "रात के ठी बजे" — o "क"
+// de "ठीक" e o "3" nunca existiram na transcrição. A grafia do roteiro (acima) deveria consertar, mas o whisper-1 em
+// devanágari erra muito ("दर्वाजा" × "दरवाज़ा", "आयी" × "आई", "फुस्फुस आया" × "फुसफुसाया"): 28 âncoras de 45 (62 %) →
+// TRAVA 1 → as palavras do Whisper iam para a tela SEM MUDANÇA. Toda língua em que o Whisper erra mais de 30 % das
+// palavras (hindi, bengali, tâmil, tailandês, chinês, japonês…) e todo número que o Whisper engole caíam aí.
+// O conserto, SÓ quando o áudio é o TTS do próprio roteiro (mesmo predicado da grafia, no chamador): se a legenda não
+// carrega todas as letras, marcas e dígitos do roteiro, as palavras passam a ser os tokens do roteiro, com o TEMPO do
+// Whisper: as frases do Whisper ficam (mesmos inícios de frase = mesmos cortes do montador, mesma janela do gancho);
+// cada frase do Whisper recebe o trecho do roteiro que cai nela (âncoras da LCS + fim de frase do roteiro) e o tempo se
+// reparte pelas âncoras e pelo tamanho das palavras. Nada do roteiro some; nada que o Whisper inventou entra.
+// Travas: Whisper que não parece o roteiro (menos de 50 % das letras em comum) ou tempos inválidos → intacto (como antes).
+
+/** Escritas sem espaço entre palavras: o roteiro é partido por Intl.Segmenter (mesma regra de narrationTokens). */
+const ESCRITA_COMPACTA = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u
+/** Fim de frase do roteiro em qualquer escrita: . ! ? … · danda ।॥ · ؟ árabe · ۔ urdu · ። etíope · 。！？ CJK. */
+const FIM_DE_FRASE_DO_ROTEIRO = /[.!?…।॥؟۔።。！？]["'”’»)\]」』]*$/u
+/** Fração mínima das letras do roteiro que precisa aparecer, em ordem, no que o Whisper ouviu. */
+export const ROTEIRO_INTEIRO_SEMELHANCA_MINIMA = 0.5
+
+export type MotivoRoteiroInteiro =
+  | 'ja_inteiro'
+  | 'roteiro_inteiro'
+  | 'sem_palavras'
+  | 'roteiro_vazio'
+  | 'tempo_invalido'
+  | 'nao_parece_o_roteiro'
+  | 'frases_demais'
+  | 'cortes_mudariam'
+  | 'erro'
+
+export interface ResultadoRoteiroInteiro {
+  words: PalavraComTempo[]
+  /** true = as palavras saíram do roteiro (tempo do Whisper). */
+  aplicada: boolean
+  motivo: MotivoRoteiroInteiro
+}
+
+/** O que a legenda precisa carregar: letras, marcas combinantes (vogal do devanágari, harakat) e dígitos de qualquer escrita. */
+export function letrasDaLegenda(texto: string): string {
+  return String(texto ?? '').normalize('NFC').toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, '')
+}
+
+/** O roteiro em palavras: espaço e travessão separam; escrita compacta (chinês, japonês, tailandês) por Intl.Segmenter. */
+export function tokensDoRoteiro(roteiro: string): string[] {
+  const out: string[] = []
+  for (const peca of String(roteiro ?? '').split(/[\s–—]+/u)) {
+    if (!peca) continue
+    const Seg = (Intl as unknown as { Segmenter?: new (l: string, o: { granularity: 'word' }) => { segment(t: string): Iterable<{ segment: string; isWordLike?: boolean }> } }).Segmenter
+    if (!ESCRITA_COMPACTA.test(peca) || typeof Seg !== 'function') {
+      out.push(peca)
+      continue
+    }
+    const locale = /\p{Script=Thai}/u.test(peca) ? 'th' : /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(peca) ? 'ja' : 'zh'
+    const partes: string[] = []
+    let prefixo = ''
+    for (const s of new Seg(locale, { granularity: 'word' }).segment(peca)) {
+      if (s.isWordLike) {
+        partes.push(prefixo + s.segment)
+        prefixo = ''
+      } else if (partes.length) partes[partes.length - 1] += s.segment
+      else prefixo += s.segment
+    }
+    if (prefixo) {
+      if (partes.length) partes[partes.length - 1] += prefixo
+      else partes.push(prefixo)
+    }
+    out.push(...partes)
+  }
+  return out
+}
+
+/** Chave para âncora: tira acento latino, nukta e virama (o Whisper troca "ज़"/"ज", "र्व"/"रव"); a vogal do devanágari fica. */
+function chaveDeAncora(token: string): string {
+  return String(token ?? '')
+    .normalize('NFKD')
+    .replace(/(\p{Script=Latin})\p{M}+/gu, '$1')
+    .replace(/[़়਼઼಼्্੍્்్್്]/gu, '')
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}]/gu, '')
+}
+
+/** Tamanho da maior sequência comum de caracteres (duas linhas; teto de custo → null = não medido). */
+function semelhancaDeLetras(a: string, b: string): number | null {
+  const x = Array.from(a)
+  const y = Array.from(b)
+  if (x.length === 0) return 0
+  if (x.length * y.length > 9_000_000) return null
+  let anterior = new Uint16Array(y.length + 1)
+  let atual = new Uint16Array(y.length + 1)
+  for (let i = 1; i <= x.length; i++) {
+    for (let j = 1; j <= y.length; j++) {
+      atual[j] = x[i - 1] === y[j - 1] ? anterior[j - 1] + 1 : Math.max(anterior[j], atual[j - 1])
+    }
+    ;[anterior, atual] = [atual, anterior]
+  }
+  return anterior[y.length] / x.length
+}
+
+/**
+ * Garante que a legenda leva o roteiro inteiro. `words` são as palavras que iriam para a tela (Whisper, já com a grafia
+ * do roteiro quando ela valeu); `roteiro` é o texto que o TTS leu para gerar ESSE áudio. Nunca lança; na dúvida devolve
+ * `words` intacto. Só chamar quando o áudio é TTS do roteiro (nunca voz gravada pela pessoa, nunca avatar).
+ */
+export function roteiroInteiroNaLegenda(words: PalavraComTempo[], roteiro: string): ResultadoRoteiroInteiro {
+  const sem = (motivo: MotivoRoteiroInteiro): ResultadoRoteiroInteiro => ({ words, aplicada: false, motivo })
+  try {
+    if (!Array.isArray(words) || words.length === 0) return sem('sem_palavras')
+    const brutos = tokensDoRoteiro(roteiro)
+    const toks = brutos.map((bruto) => ({ bruto, exibida: grafiaExibida(bruto) })).filter((t) => t.exibida !== '')
+    const letrasDoRoteiro = letrasDaLegenda(roteiro) // o roteiro CRU: se a grafia exibida perdesse letra/marca, a trava abaixo pega
+    if (toks.length === 0 || letrasDoRoteiro === '') return sem('roteiro_vazio')
+    const letrasDaTela = letrasDaLegenda(words.map((w) => String(w?.word ?? '')).join(''))
+    if (letrasDaTela === letrasDoRoteiro) return sem('ja_inteiro')
+
+    let ultimoInicio = -Infinity
+    for (const w of words) {
+      if (!w || !Number.isFinite(w.start) || !Number.isFinite(w.end) || w.end < w.start || w.start < ultimoInicio) return sem('tempo_invalido')
+      ultimoInicio = w.start
+    }
+    const parecido = semelhancaDeLetras(letrasDoRoteiro, letrasDaTela)
+    if (parecido !== null && parecido < ROTEIRO_INTEIRO_SEMELHANCA_MINIMA) return sem('nao_parece_o_roteiro')
+
+    // 1) As frases do Whisper: o corte do montador nasce no início de cada uma (iniciosDeFrase) — ficam como estão.
+    const frases: Array<[number, number]> = []
+    let a = 0
+    for (let i = 1; i < words.length; i++) {
+      if (fechaFrase(words[i - 1])) {
+        frases.push([a, i - 1])
+        a = i
+      }
+    }
+    frases.push([a, words.length - 1])
+    const S = frases.length
+    const T = toks.length
+    if (T < S) return sem('frases_demais')
+
+    // 2) Âncoras: LCS entre as palavras do roteiro e as do Whisper (chave sem acento latino, nukta e virama).
+    const chavesW = words.map((w) => chaveDeAncora(String(w.word ?? '')))
+    const falados = chavesW.map((c, i) => ({ i, c })).filter((x) => x.c !== '')
+    const ancoraDoToken: Array<number | undefined> = new Array(T)
+    if (falados.length > 0 && T * falados.length <= GRAFIA_CELULAS_MAXIMAS) {
+      for (const [ri, fi] of maiorSequenciaComum(toks.map((t) => chaveDeAncora(t.exibida)), falados.map((f) => f.c))) ancoraDoToken[ri] = falados[fi].i
+    }
+
+    // 3) Onde cada frase do Whisper começa no roteiro: entre as âncoras vizinhas, no fim de frase do roteiro mais perto da
+    //    posição proporcional; sem fim de frase, na proporção. Cada frase recebe pelo menos uma palavra.
+    const corte: number[] = [0]
+    for (let s = 1; s < S; s++) {
+      const inicioW = frases[s][0]
+      let rLo = 0
+      let wLo = 0
+      let rHi = T
+      let wHi = words.length
+      for (let r = 0; r < T; r++) {
+        const w = ancoraDoToken[r]
+        if (w === undefined) continue
+        if (w < inicioW) { rLo = r + 1; wLo = w + 1 } else { rHi = r; wHi = w; break }
+      }
+      const frac = wHi > wLo ? Math.min(1, Math.max(0, (inicioW - wLo) / (wHi - wLo))) : 0
+      const estimado = rLo + frac * (rHi - rLo)
+      let p = Math.round(estimado)
+      let melhor = Infinity
+      for (let c = Math.max(1, rLo); c <= rHi; c++) {
+        if (!FIM_DE_FRASE_DO_ROTEIRO.test(toks[c - 1].bruto)) continue
+        const d = Math.abs(c - estimado)
+        if (d < melhor) { melhor = d; p = c }
+      }
+      corte.push(Math.min(T - (S - s), Math.max(corte[s - 1] + 1, p)))
+    }
+    corte.push(T)
+    for (let s = 1; s <= S; s++) if (corte[s] <= corte[s - 1]) return sem('frases_demais')
+
+    // 4) O tempo dentro de cada frase: as âncoras dão o tempo medido; o resto se reparte pelo tamanho das palavras.
+    const out: PalavraComTempo[] = []
+    for (let s = 0; s < S; s++) {
+      const [ia, ib] = frases[s]
+      const ini = words[ia].start
+      const fim = Math.max(ini, words[ib].end)
+      let maiorInicio = ini
+      for (let i = ia; i <= ib; i++) maiorInicio = Math.max(maiorInicio, words[i].start)
+      maiorInicio = Math.min(maiorInicio, fim)
+      const meus = toks.slice(corte[s], corte[s + 1])
+      const pesos = meus.map((t) => Math.max(1, Array.from(letrasDaLegenda(t.exibida)).length))
+      const acumulado: number[] = [0]
+      for (const p of pesos) acumulado.push(acumulado[acumulado.length - 1] + p)
+      const total = acumulado[acumulado.length - 1]
+      const pontos: Array<[number, number]> = [[0, ini]]
+      meus.forEach((_, k) => {
+        const w = ancoraDoToken[corte[s] + k]
+        if (w === undefined || w < ia || w > ib) return
+        const t0 = Math.min(fim, Math.max(ini, words[w].start))
+        const t1 = Math.min(fim, Math.max(t0, words[w].end))
+        for (const [pos, t] of [[acumulado[k], t0], [acumulado[k + 1], t1]] as Array<[number, number]>) {
+          const ult = pontos[pontos.length - 1]
+          if (pos > ult[0] && t >= ult[1]) pontos.push([pos, t])
+        }
+      })
+      if (total > pontos[pontos.length - 1][0]) pontos.push([total, Math.max(fim, pontos[pontos.length - 1][1])])
+      const tempoEm = (pos: number): number => {
+        for (let k = 1; k < pontos.length; k++) {
+          const [p0, t0] = pontos[k - 1]
+          const [p1, t1] = pontos[k]
+          if (pos <= p1) return p1 > p0 ? t0 + ((pos - p0) / (p1 - p0)) * (t1 - t0) : t1
+        }
+        return pontos[pontos.length - 1][1]
+      }
+      const inicios = meus.map((_, k) => (k === 0 ? ini : Math.min(maiorInicio, r3(tempoEm(acumulado[k])))))
+      for (let k = 1; k < inicios.length; k++) inicios[k] = Math.max(inicios[k], inicios[k - 1])
+      const fecha = words[ib]
+      const pontuacaoQueFecha = fecha.sentenceEnd === true ? '' : (String(fecha.word ?? '').trim().match(FECHA_POR_PONTUACAO)?.[0] ?? '')
+      meus.forEach((t, k) => {
+        const ultima = k === meus.length - 1
+        out.push({
+          word: ultima ? t.exibida + pontuacaoQueFecha : t.exibida,
+          start: inicios[k],
+          end: ultima ? fim : inicios[k + 1],
+          ...(ultima && fecha.sentenceEnd === true ? { sentenceEnd: true } : {}),
+          doRoteiro: true,
+        })
+      })
+    }
+
+    // 5) TRAVA — os cortes, a janela do gancho e o roteiro inteiro têm de bater; senão, intacto.
+    const antes = iniciosDeFrase(words)
+    const depois = iniciosDeFrase(out)
+    const mesmosCortes = antes.length === depois.length && antes.every((t, k) => t === depois[k])
+    if (!mesmosCortes || fimDaPrimeiraFrase(words) !== fimDaPrimeiraFrase(out)) return sem('cortes_mudariam')
+    if (letrasDaLegenda(out.map((w) => w.word).join('')) !== letrasDoRoteiro) return sem('erro')
+    return { words: out, aplicada: true, motivo: 'roteiro_inteiro' }
+  } catch {
+    return sem('erro')
+  }
 }

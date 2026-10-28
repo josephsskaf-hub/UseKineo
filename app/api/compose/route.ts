@@ -67,6 +67,7 @@ import { esperarLyria, LYRIA_WAIT_BUDGET_MS } from '@/lib/lyriaMusic' // KINEO-F
 import { COMPOSE_STAGE_TIMING_EVENT, cronometroDaMontagem } from '@/lib/tempoDaMontagem' // KINEO-FILME-RAPIDO-1710 · tempo — tempo por etapa da montagem (linha própria)
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
+import { roteiroInteiroNaLegenda } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-LINGUAS-2810
 import { assessOwnTtsCaptionEvidence, selectOwnTtsCaptionSource } from '@/lib/captionEvidenceGuard'
 import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)
 import { transcreverNoIdiomaDoFilme } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 · KINEO-FILME15-FIEL-2610 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
@@ -3473,6 +3474,7 @@ export async function POST(req: NextRequest) {
     if (grafia) {
       console.log(`[compose] legenda com a grafia do roteiro: ${grafia.motivo} ancoras=${grafia.ancoras}/${grafia.palavrasDoRoteiro} trocadas=${grafia.trocadas} mantidos=${grafia.trechosMantidos}`)
     }
+    if (grafia) { const inteiro = roteiroInteiroNaLegenda(grafia.words, scaledScript); if (inteiro.aplicada) grafia.words = inteiro.words; if (inteiro.motivo !== 'ja_inteiro') console.log(`[compose] KINEO-LEGENDA-LINGUAS-2810 roteiro inteiro na legenda: ${inteiro.motivo} palavras=${grafia.words.length}`) } // KINEO-LEGENDA-LINGUAS-2810 — filme hindi 25999984 (28/10): o Whisper ouviu "रात के ठी बजे" e a trava da grafia (62% de âncoras) mandava isso para a tela; agora, quando a legenda não carrega todas as letras/marcas/dígitos do roteiro que o TTS leu, as palavras são as do roteiro no tempo do Whisper (mesmos cortes)
     const legendaWords: WhisperWord[] | undefined = legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript) // KINEO-META95-ESCRITA-2010 — rede final: Whisper em outra escrita não vai para a tela (plano B: o texto do roteiro no tempo do áudio)
     if (whisperWords && whisperWords.length > 0 && !legendaWords) console.warn('[compose] KINEO-META95-ESCRITA-2010: Whisper em outra escrita que o roteiro — legenda pelo texto do roteiro (plano B)') // KINEO-META95-ESCRITA-2010
 
