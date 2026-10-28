@@ -67,6 +67,7 @@ function client({ q = '', saved = null, raw = readFileSync(UI, 'utf8') } = {}) {
     if (id === 'react-dom') return { createPortal: x => x }
     if (id === '@/components/OneTimeItemOffer') return { __esModule: true, default: () => null }
     if (id === '@/lib/oneTimeItem') return { ONE_TIME_ITEMS_LIVE: false }
+    if (id === '@/components/Kling4PaidNotice') return { __esModule: true, default: () => null, useKling4PaidAvailability: () => null } // KINEO-INTEGRA-2910 — aviso do Kling 4 pago entrou no editor depois deste guardião; offline = motor pago desligado
     if (id === '@/lib/ads/uploadFootage') return { AdsUploadError: class extends Error {}, uploadFootage() { throw Error('offline upload forbidden') } }
     if (id.startsWith('@/')) return pure(id)
     throw Error('offline dependency forbidden:' + id)
