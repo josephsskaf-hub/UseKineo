@@ -132,6 +132,11 @@ const nextConfig = {
         permanent: true,
       },
       { source: '/auth.html', destination: '/login', permanent: true },
+      // KINEO-LINKS-BIO-2910 — links curtos da bio (fundador 29/10: rastrear sem 'nome feio'). 302 para poder trocar o destino;
+      // a home grava utm_source/utm_medium no cadastro (signup_utm_source), como já faz com o ChatGPT.
+      { source: '/ig', destination: '/?utm_source=instagram&utm_medium=bio', permanent: false },
+      { source: '/tt', destination: '/?utm_source=tiktok&utm_medium=bio', permanent: false },
+      { source: '/yt', destination: '/?utm_source=youtube&utm_medium=bio', permanent: false },
       // Retire the remaining paths from the pre-Next static site. These are
       // exact compatibility redirects, not indexable duplicate pages.
       { source: '/signup.html', destination: '/signup?intent_campaign=push34_legacy_auth', permanent: true },
