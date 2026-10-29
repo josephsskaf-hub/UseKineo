@@ -216,6 +216,9 @@ export async function POST(req: NextRequest) {
   if (!loaded.ok || !loaded.claim || !retryableSlot(loaded.claim, slot)) return refused()
   // The async trial coordinator already froze all three Seedance attempts. This route cannot spend on a fourth.
   if (kling4TrialReplacement(loaded.claim.response, args.generationId)) return refused()
+  // Paid Kling4 owns its once-only backup in the signed paid queue ledger.
+  // Browser retries must never buy a second, unbudgeted inference request.
+  if ((loaded.claim.response?.kling4_paid as { version?: unknown } | undefined)?.version === 'kling4_paid_2810') return refused()
   // KINEO-CENA-CLASSICA-2026-09-28 — motor clássico: o payload assinado; família hollywood: a cena assinada, como sempre.
   const classic = CLASSIC.has(slot.model)
   // KINEO-RETENTAR-CENA-1410 — em modo serviço a família hollywood segue a regra da clássica na DÚVIDA: registro antes do gasto,

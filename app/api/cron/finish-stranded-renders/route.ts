@@ -56,6 +56,7 @@ import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-RETENT
 import { POST as sceneRetryPost } from '@/app/api/retry-hollywood-scene/route' // KINEO-RETENTAR-CENA-1410
 import { kling4TrialEngineFromClaim, kling4TrialReplacement } from '@/lib/kling4TrialClaim'
 import { advanceKling4TrialStatus, type Kling4TrialAdvance } from '@/lib/kling4TrialAsyncStatus'
+import { advanceKling4PaidStatus, kling4PaidMarker, type Kling4PaidAdvance } from '@/lib/kling4PaidAsyncStatus'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -859,6 +860,15 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     }
     if (composed >= MAX_COMPOSE_PER_RUN) { results.push({ generation: gen8, outcome: 'deferred_budget' }); continue }
 
+    let paidAdvance: Kling4PaidAdvance | null = null
+    if ((md.response as Record<string, unknown> | null)?.kling4_paid) {
+      const verifiedPaid = await loadVerifiedCinematicClaim({ db: admin, secret, userId, generationId: genId })
+      if (!verifiedPaid.ok || !verifiedPaid.claim || verifiedPaid.claim.status !== 'settled' || !kling4PaidMarker(verifiedPaid.claim)) {
+        results.push({ generation: gen8, outcome: 'kling4_paid_claim_unavailable' }); continue
+      }
+      paidAdvance = await advanceKling4PaidStatus({ db: admin, secret, userId, generationId: genId, claim: verifiedPaid.claim })
+      if (paidAdvance.kind === 'pending') { results.push({ generation: gen8, outcome: 'kling4_paid_pending' }); continue }
+    }
     let trialAdvance: Kling4TrialAdvance | null = null
     const trialEngine = kling4TrialEngineFromClaim(md.response as Record<string, unknown> | null)
     const trialMarker = (md.response as Record<string, unknown> | null)?.kling4_trial as Record<string, unknown> | undefined
@@ -872,24 +882,34 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
         results.push({ generation: gen8, outcome: 'kling4_trial_pending' }); continue
       }
     }
-    const requestIds = trialAdvance?.claim.falRequestIds ?? (Array.isArray(md.fal_request_ids) ? (md.fal_request_ids as Array<string | null>) : [])
-    const models = trialAdvance?.claim.falModels ?? (Array.isArray(md.fal_models) ? (md.fal_models as string[]) : [])
+    const requestIds = paidAdvance?.claim.falRequestIds ?? trialAdvance?.claim.falRequestIds ?? (Array.isArray(md.fal_request_ids) ? (md.fal_request_ids as Array<string | null>) : [])
+    const models = paidAdvance?.claim.falModels ?? trialAdvance?.claim.falModels ?? (Array.isArray(md.fal_models) ? (md.fal_models as string[]) : [])
     const frozenTrialFallback = kling4TrialReplacement(trialAdvance?.claim.response ?? md.response, genId) !== null
+    const frozenPaidFallback = paidAdvance ? kling4PaidMarker(paidAdvance.claim)?.fallback_finalized === true : false
     if (requestIds.length === 0) { results.push({ generation: gen8, outcome: 'no_request_ids' }); continue }
 
     // KINEO-CENA-MORTA-2026-09-12 — a idade do claim viaja para o coletor
     // (cena na fila com 2 h+ é morta) e 'pending' velho vira rastro no banco.
     const claimAgeMin = typeof claim.created_at === 'string' ? Math.max(0, (Date.now() - new Date(claim.created_at).getTime()) / 60_000) : 0
     const rastroDaColeta: RastroDaColeta = { falhas: [], prontas: [] } // KINEO-RETENTAR-CENA-1410
-    let collected: ClipCollect = trialAdvance?.kind === 'kling_done'
+    let collected: ClipCollect = paidAdvance?.kind === 'ready' && paidAdvance.clips
+      ? { state: 'ready', clips: paidAdvance.clips.map((c, i) => ({ requestId: c.id!, model: models[i], url: c.url! })), dead: 0 }
+      : paidAdvance?.kind === 'fallback_empty'
+        ? { state: 'too_few', done: 0, total: requestIds.length, dead: requestIds.length }
+      : trialAdvance?.kind === 'kling_done'
       ? { state: 'ready', clips: [{ requestId: requestIds[0]!, model: models[0], url: trialAdvance.url! }], dead: 0 }
       : trialAdvance?.kind === 'fallback_empty'
         ? { state: 'too_few', done: 0, total: requestIds.length, dead: requestIds.length }
-        : await collectFinishedClips(requestIds, models, claimAgeMin, rastroDaColeta, frozenTrialFallback) // KINEO-RETENTAR-CENA-1410
-    if (frozenTrialFallback && rastroDaColeta.falhas.length > 0) {
+        : await collectFinishedClips(requestIds, models, claimAgeMin, rastroDaColeta, frozenTrialFallback || frozenPaidFallback) // KINEO-RETENTAR-CENA-1410
+    if ((frozenTrialFallback || frozenPaidFallback) && rastroDaColeta.falhas.length > 0) {
       const failures = await authorizeCinematicTerminalFailures({ db: admin, secret, userId, generationId: genId,
         failed: rastroDaColeta.falhas.map(f => ({ requestId: f.requestId, model: f.model })) })
       if (!failures.ok) { results.push({ generation: gen8, outcome: 'fallback_failure_binding_pending' }); continue }
+    }
+    // Paid films keep every spoken word: a missing or terminal backup slot cannot drop its narration.
+    if (frozenPaidFallback && (requestIds.some(id => !id) || rastroDaColeta.falhas.length > 0)) {
+      collected = { state: 'too_few', done: rastroDaColeta.prontas.length, total: requestIds.length,
+        dead: requestIds.length - rastroDaColeta.prontas.length }
     }
     // One surviving fallback scene can fill the 15s timeline. Pending jobs still wait, and no fourth POST is allowed.
     if (frozenTrialFallback && collected.state === 'too_few' && rastroDaColeta.prontas.length > 0) {
@@ -897,7 +917,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     }
     if (collected.dead > 0) console.log(`[stranded] gen=${gen8} dead_scenes=${collected.dead} age=${Math.round(claimAgeMin)}min`)
     // KINEO-RETENTAR-CENA-1410 — cena terminada com erro retentável: refaz ANTES de decidir too_few (estorno) ou montar com N-1.
-    if (rastroDaColeta.falhas.length > 0 && !frozenTrialFallback) { // KINEO-RETENTAR-CENA-1410
+    if (rastroDaColeta.falhas.length > 0 && !frozenTrialFallback && !paidAdvance) { // KINEO-RETENTAR-CENA-1410
       const retentativa = await retentarCenasDoFilme({ admin, secret, userId, genId, claimCreatedAt: claim.created_at, claimAgeMin, rastro: rastroDaColeta }) // KINEO-RETENTAR-CENA-1410
       if (retentativa.segurar) { results.push({ generation: gen8, outcome: `scene_retry_wait:${retentativa.reenviadas}/${requestIds.length}` }); continue } // KINEO-RETENTAR-CENA-1410
     } // KINEO-RETENTAR-CENA-1410
@@ -914,8 +934,10 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     if (collected.state === 'too_few') {
       if (trialAdvance?.kind === 'fallback_empty') console.warn('[kling4-trial]', { generation_id: genId, reason: 'fallback_no_accepted_scenes' })
       const billingReference = typeof md.resolution_reference === 'string' ? md.resolution_reference : ''
-      const refunded = billingReference ? await refundRenderCredits(billingReference) : 0
-      let refundConfirmed = refunded > 0
+      const paidPromo = paidAdvance?.claim.creditCost === 0 && paidAdvance.claim.engine === 'kling4-promo-v1' &&
+        kling4PaidMarker(paidAdvance.claim)?.promo === true
+      const refunded = paidPromo ? 0 : billingReference ? await refundRenderCredits(billingReference) : 0
+      let refundConfirmed = paidPromo || refunded > 0
       if (!refundConfirmed && billingReference) {
         const { data: debit } = await admin.from('credit_debits').select('refunded_at').eq('render_id', billingReference).maybeSingle()
         refundConfirmed = typeof debit?.refunded_at === 'string' && debit.refunded_at.length > 0
@@ -939,12 +961,12 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       }
       if (refunded > 0 || released.ok) {
         await admin.from('events').insert({
-          user_id: userId, name: 'credits_refunded', path: '/api/cron/finish-stranded-renders', session_id: genId,
+          user_id: userId, name: paidPromo ? 'kling4_promo_film_failed' : 'credits_refunded', path: '/api/cron/finish-stranded-renders', session_id: genId,
           metadata: { render_id: billingReference, amount: refunded, reason: 'provider_failed_refunded', why: 'too_few', done: collected.done, total: collected.total, dead: collected.dead, released: released.ok },
         })
       }
       console.log(`[stranded] gen=${gen8} too_few ${collected.done}/${collected.total} → refunded ${refunded} cr, claim released=${released.ok}`)
-      results.push({ generation: gen8, outcome: `too_few_refunded:${collected.done}/${collected.total}` })
+      results.push({ generation: gen8, outcome: `${paidPromo ? 'too_few_no_credits_charged' : 'too_few_refunded'}:${collected.done}/${collected.total}` })
       continue
     }
     if (collected.state !== 'ready') {      // KINEO-STRANDED-DIAG-2026-08-19 — antes esta saída era MUDA: o render

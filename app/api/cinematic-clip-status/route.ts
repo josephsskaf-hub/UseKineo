@@ -20,6 +20,7 @@ import { refundRenderCredits } from '@/lib/credits/refund'
 import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import { KLING4_T2V_MODEL, KLING4_I2V_MODEL } from '@/lib/kling4Trial'
 import { advanceKling4TrialStatus, kling4TrialPollIdsMatch } from '@/lib/kling4TrialAsyncStatus'
+import { advanceKling4PaidStatus, kling4PaidMarker, kling4PaidPollIdsMatch } from '@/lib/kling4PaidAsyncStatus'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120 // Queue GETs and at most one durable Seedance fallback dispatch; never wait for a render.
@@ -270,7 +271,17 @@ export async function GET(req: NextRequest) {
         { status: 409 },
       )
     }
-    if (!kling4TrialPollIdsMatch(requestedIds, claim)) {
+    const paidMarker = kling4PaidMarker(claim)
+    let paidAdvance: Awaited<ReturnType<typeof advanceKling4PaidStatus>> | null = null
+    if (paidMarker) {
+      if (!kling4PaidPollIdsMatch(requestedIds, claim)) return NextResponse.json({ error: 'Generation not found.' }, { status: 404 })
+      paidAdvance = await advanceKling4PaidStatus({ db: admin, secret, userId: user.id, generationId, claim })
+      claim = paidAdvance.claim
+      if (paidAdvance.kind === 'pending') return NextResponse.json({ pending: true, clips: [], allDone: false,
+        anyDone: false, done: 0, total: claim.falRequestIds.length, failed: 0, retry_after_ms: 3000,
+        ...(!sameArray(requestedIds, claim.falRequestIds) ? { replacement: claim.response } : {}) })
+    }
+    if (!paidMarker && !kling4TrialPollIdsMatch(requestedIds, claim)) {
       return NextResponse.json({ error: 'Generation not found.' }, { status: 404 })
     }
     const trial = await advanceKling4TrialStatus({ db: admin, secret, userId: user.id, generationId, claim })
@@ -287,7 +298,9 @@ export async function GET(req: NextRequest) {
     }
 
     const knownFailures = Array.isArray(claim.response?.terminal_failed_jobs) ? claim.response.terminal_failed_jobs : []
-    const clips: ClipStatus[] = trial.kind === 'kling_done'
+    const clips: ClipStatus[] = paidAdvance?.kind === 'ready' && paidAdvance.clips
+      ? paidAdvance.clips
+      : trial.kind === 'kling_done'
       ? [{ id: claim.falRequestIds[0], status: 'done', url: trial.url! }]
       : await Promise.all(
       claim.falRequestIds.map((id, index) => {
@@ -305,7 +318,7 @@ export async function GET(req: NextRequest) {
     // ressubmetia. Regra pura em lib/stuckScene: ≥ 12 min com alguma cena pronta (ou ≥ 20 min sem nenhuma) →
     // pendente/processando vira recusada (stuck); o claim registra a recusa como terminal e o cliente re-submete a
     // cena (duas rodadas, /api/retry-hollywood-scene), que reinicia o relógio.
-    if (trial.kind !== 'kling_done') {
+    if (!paidMarker && trial.kind !== 'kling_done') {
       const lastRetry = await lastSceneRetryAt(admin, generationId)
       const clock = stuckClockStart(claim.completedAt, claim.startedAt, lastRetry)
       const elapsedMin = clock > 0 ? (Date.now() - clock) / 60000 : 0
@@ -350,14 +363,16 @@ export async function GET(req: NextRequest) {
       }
       durableClaim = authorized.claim
     }
-    const allDone = trial.kind === 'fallback_empty' || cinematicJobsAreTerminal(durableClaim) &&
+    const allDone = paidAdvance?.kind === 'fallback_empty' || trial.kind === 'fallback_empty' || cinematicJobsAreTerminal(durableClaim) &&
       clips.every((clip) => clip.status === 'done' || clip.status === 'failed')
     const failedCount = clips.filter((clip) => clip.status === 'failed').length
-    if (allDone && failedCount === clips.length) {
+    const paidFallbackIncomplete = Boolean(paidMarker && kling4PaidMarker(durableClaim)?.fallback_finalized && failedCount > 0)
+    if (allDone && (failedCount === clips.length || paidFallbackIncomplete)) {
       if (trial.kind === 'fallback_empty') console.warn('[kling4-trial]', { generation_id: generationId, reason: 'fallback_no_accepted_scenes' })
       const billingReference = claim.resolutionReference
-      const refunded = await refundRenderCredits(billingReference)
-      let refundConfirmed = refunded > 0
+      const paidPromo = paidMarker?.promo === true && claim.creditCost === 0 && claim.engine === 'kling4-promo-v1'
+      const refunded = paidPromo ? 0 : await refundRenderCredits(billingReference)
+      let refundConfirmed = paidPromo || refunded > 0
       if (!refundConfirmed) {
         const { data: debit } = await admin
           .from('credit_debits')
@@ -382,7 +397,7 @@ export async function GET(req: NextRequest) {
       })
       if (!released.ok) console.error('[cinematic-status] refunded claim release failed:', released.error)
       return NextResponse.json(
-        { error: 'All AI clips failed. Your credits were refunded automatically.', clips },
+        { error: paidPromo ? 'All AI clips failed. No credits were charged.' : 'All AI clips failed. Your credits were refunded automatically.', clips },
         { status: 502 },
       )
     }
