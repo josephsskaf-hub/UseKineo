@@ -16,6 +16,7 @@ const C = load('lib/freeRedo/core.ts')
 const F = load('lib/freeRedo/filmServer.ts')
 const B = load('lib/cinematic/claim.ts')
 const R = load('lib/cinematic/refazerGratis2810.ts')
+const G = load('lib/free15Gate.ts')
 
 const SECRET = 'offline-kling4-redo-signature-key'
 const OWNER = '11111111-1111-4111-8111-111111111111'
@@ -52,7 +53,7 @@ function source() {
 
 // Adapted from the repository's existing first-film redo fixture: PK, owner/status CAS and render uniqueness are real constraints.
 function fakeDb(seed) {
-  const tables = { events: clone(seed.events), videos: clone(seed.videos) }, touched = new Set()
+  const tables = { events: clone(seed.events), videos: clone(seed.videos) }, touched = new Set(), hooks = { beforeInsert: null }
   let seq = 0
   const field = (row, key) => {
     const match = /^(\w+)->>(\w+)$/.exec(key)
@@ -60,7 +61,7 @@ function fakeDb(seed) {
     const value = row[match[1]]?.[match[2]]
     return value === undefined || value === null ? null : String(value)
   }
-  return { tables, touched, from(table) {
+  return { tables, touched, hooks, from(table) {
     touched.add(table)
     assert.ok(['events', 'videos'].includes(table), 'free redo never touches credits or another table')
     const st = { operation: 'select', filters: [], row: null, patch: null, single: false, selecting: false, order: null, ascending: false, limit: null }
@@ -71,6 +72,7 @@ function fakeDb(seed) {
       if (st.operation === 'insert') {
         const row = clone(st.row)
         if (!row.id) row.id = table === 'videos' ? `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}` : `event-${++seq}`
+        hooks.beforeInsert?.(table, row, tables)
         if (rows.some(other => other.id === row.id || table === 'videos' && row.render_id && other.render_id === row.render_id)) return { data: null, error: { code: '23505' } }
         row.created_at ??= new Date(Date.parse('2026-10-29T12:00:00Z') + (++seq) * 1000).toISOString()
         rows.push(row)
@@ -286,6 +288,125 @@ await check('concurrent scene clicks and completion polls create one submit, one
   assert.equal(w.db.tables.videos.length, 2)
   assert.equal(sourceRows(w, 'redo-render-1').length, 1)
 })
+
+for (const { time, index, textOnly } of [{ time: 10, index: 1, textOnly: false }, { time: 13, index: 2, textOnly: true }]) {
+  await check(`automatic pixel repair locates virtual Kling scene ${index + 1} at ${time}s and preserves other intervals`, async () => {
+    const w = world({ seconds: [9, 3, 3], stills: textOnly ? [STILLS[0], STILLS[1], null] : STILLS })
+    const verified = await w.d.loadClaim({ userId: OWNER, generationId: GEN })
+    assert.equal(verified.ok, true)
+    const scenes = src => C.cenasDoFilme(verified.claim, OWNER, src)
+    const original = { url: 'https://render.example.invalid/pre-gate.mp4', snapshotUrl: null, durationSeconds: 16.3 }
+    const clean = { score: 95, cap_limit: 100, caps: [], evidence_status: 'complete', caption_language_ok: true,
+      caption_legible: true, identity_consistent: true, frames: [{ i: 0, t: time, score: 95, issues: [] }] }
+    const defective = { ...clean, score: 50, cap_limit: 50, caps: ['invented_text'], frames: [{ i: 0, t: time, score: 50, issues: ['invented_text'] }] }
+    let state = { version: G.FREE15_GATE_VERSION, status: 'ready', source: clone(w.originalSource),
+      captionElements: source().elements.filter(el => el.type === 'text' && el.track === 5), captionEvidence: null,
+      minimumSeconds: 15, attempted: false, reason: 'awaiting_delivery', updatedAt: w.d.now() }
+    assert.equal(G.decideFree15Gate(state, original, defective, scenes(state.source)).sceneIndex, index,
+      'a shared Kling URL must not cause the first virtual scene to win')
+    let judgments = 0
+    const deps = {
+      now: w.d.now,
+      read: async () => clone(state),
+      move: async (before, after) => {
+        if (JSON.stringify(before) !== JSON.stringify(state)) return false
+        state = clone(after)
+        return true
+      },
+      judge: async () => clone(judgments++ === 0 ? defective : clean), scenes,
+      submitScene: scene => w.d.submitScene(scene.model, scene.input),
+      pollScene: (scene, requestId) => w.d.pollScene(scene.model, requestId),
+      submitRender: w.d.submitRender,
+      pollRender: async id => ({ ...await w.d.pollRender(id), durationSeconds: 16.3 }),
+    }
+    assert.equal((await G.advanceFree15Gate(deps, original)).status, 'pending')
+    assert.equal(w.log.submits.length, 1)
+    assert.equal(w.log.submits[0].model, textOnly ? T2V : SMODEL)
+    assert.equal(w.log.submits[0].input.image_url, textOnly ? undefined : STILLS[index])
+    assert.equal(Number(w.log.submits[0].input.duration), 4)
+    assert.equal(w.log.submits[0].input.generate_audio, false)
+    await Promise.all([G.advanceFree15Gate(deps, original), G.advanceFree15Gate(deps, original)])
+    assert.equal(w.log.renders.length, 1)
+    exactWindow(w.log.renders[0], index === 1 ? 9 : 12, 3, 'https://media.example.invalid/seedance-redo-1.mp4')
+    const done = await G.advanceFree15Gate(deps, original)
+    assert.equal(done.status, 'passed')
+    assert.equal(done.media.durationSeconds, 16.3)
+    assert.deepEqual(clone(done.source), w.log.renders[0])
+    assert.equal((await G.advanceFree15Gate(deps, original)).status, 'passed')
+    assert.equal(w.log.submits.length, 1, 'the automatic repair remains one paid scene across concurrent/replayed polls')
+    assert.deepEqual(w.originalSource, source())
+  })
+}
+
+await check('done replay restores a missing v2 signed chain without another scene or render', async () => {
+  const w = world(), first = await redo(w, VIDEO, 1)
+  const saved = clone(sourceRows(w, 'redo-render-1')[0])
+  const rowIndex = w.db.tables.events.findIndex(row => row.id === saved.id)
+  w.db.tables.events.splice(rowIndex, 1)
+  assert.equal((await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: first.id })).status, 409)
+  const replay = await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: VIDEO })
+  assert.equal(replay.body.new_video_id, first.id)
+  const restored = sourceRows(w, 'redo-render-1')
+  assert.equal(restored.length, 1)
+  assert.deepEqual(restored[0].metadata, saved.metadata, 'recovery signs exactly the same v2 source and chain')
+  assert.equal(C.verifyFilmSource(SECRET, OWNER, 'redo-render-1', restored[0].metadata).ok, true)
+  assert.equal(C.verifyFilmChain(SECRET, OWNER, 'redo-render-1', restored[0].metadata).chain.seq, 2)
+  const available = await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: first.id })
+  assert.equal(available.status, 200)
+  assert.equal(available.body.free_left, 1)
+  assert.equal(available.body.scenes.length, 3)
+  assert.equal(w.log.submits.length, 1)
+  assert.equal(w.log.renders.length, 1)
+  assert.equal(w.db.tables.videos.length, 2)
+  const second = await redo(w, first.id, 0)
+  assert.ok(second.id, 'the recovered chain really permits the second free redo')
+  assert.equal(w.log.submits.length, 2)
+})
+
+for (const collision of ['invalid_hmac', 'matching_signed_source', 'wrong_signed_source']) {
+  await check(`source insert 23505 collision ${collision} is checked before v2 delivery`, async () => {
+    const w = world()
+    assert.equal((await F.iniciarRefacaoFilme(w.d, { userId: OWNER, videoId: VIDEO, sceneIndex: 1 })).status, 202)
+    await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: VIDEO })
+    let collisions = 0
+    w.db.hooks.beforeInsert = (table, inserted, tables) => {
+      if (table !== 'events' || inserted.name !== C.FILM_SOURCE_EVENT || inserted.metadata.render_id !== 'redo-render-1') return
+      w.db.hooks.beforeInsert = null
+      const competing = clone(inserted)
+      if (collision === 'invalid_hmac') competing.metadata.source.elements[0].duration = 1
+      if (collision === 'wrong_signed_source') {
+        const wrong = clone(competing.metadata.source)
+        wrong.elements = wrong.elements.filter(el => el.type !== 'audio')
+        const expectedChain = C.verifyFilmChain(SECRET, OWNER, 'redo-render-1', competing.metadata).chain
+        competing.metadata = C.filmSourceMetadata({ secret: SECRET, userId: OWNER, renderId: 'redo-render-1',
+          generationId: GEN, quality: 'cinematic_ai', source: wrong, chain: expectedChain })
+        assert.equal(C.verifyFilmSource(SECRET, OWNER, 'redo-render-1', competing.metadata).ok, true, 'wrong-content fixture really has valid source HMAC')
+      }
+      tables.events.push(competing)
+      collisions++
+    }
+    const delivered = await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: VIDEO })
+    assert.equal(collisions, 1, 'the race injects a unique-key conflict after the initial read')
+    assert.equal(w.log.submits.length, 1)
+    assert.equal(w.log.renders.length, 1)
+    if (collision === 'matching_signed_source') {
+      assert.ok(delivered.body.new_video_id)
+      assert.equal(w.db.tables.videos.length, 2)
+      const next = await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: delivered.body.new_video_id })
+      assert.equal(next.status, 200)
+      assert.equal(next.body.free_left, 1)
+    } else {
+      assert.ok(!delivered.body.new_video_id, 'a conflicting source cannot be delivered as completed')
+      assert.equal(w.db.tables.videos.length, 1, 'no completed v2 may exist before its exact source is durable')
+      assert.ok(!w.log.events.some(event => event.name === 'scene_redo_free_used'))
+      const order = w.db.tables.events.find(row => row.id === C.filmOrderId(VIDEO))
+      assert.equal(order.metadata.status, 'rendering')
+      const replay = await F.acompanharRefacaoFilme(w.d, { userId: OWNER, videoId: VIDEO })
+      assert.ok(!replay.body.new_video_id)
+      assert.equal(w.log.submits.length, 1)
+    }
+  })
+}
 
 await check('owner, source HMAC, scene-plan HMAC and forged chain all fail before provider work', async () => {
   const stranger = world()
