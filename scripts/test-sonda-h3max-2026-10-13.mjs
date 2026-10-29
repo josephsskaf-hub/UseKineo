@@ -150,9 +150,16 @@ const HALLOWEEN_EXPECTED = {
   fx_witch: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'witch_transform', input_image_urls: [VIRAL_IMG], duration: '5' } },
   fx_zombie: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'zombie_transform', input_image_urls: [VIRAL_IMG], duration: '5' } },
 }
-const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash'])
+// KINEO-SONDA-HYPE-2910 — fundador (29/10, "A"): 4 efeitos em alta na mesma sonda fechada (enums lidos no OpenAPI da fal em 29/10).
+const HYPE_EXPECTED = {
+  fx_baby_face: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Baby Face', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_dust_me_away: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Dust Me Away', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_subject3: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'subject_3_dance', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_figurine: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: '3D Figurine Factory', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+}
+const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash', 'subject_3_dance'])
 /** Todas as chaves fx_* que o catálogo pode ter, na ordem: as 6 virais e as 2 de Halloween. */
-const FX_EXPECTED = { ...VIRAL_EXPECTED, ...HALLOWEEN_EXPECTED }
+const FX_EXPECTED = { ...VIRAL_EXPECTED, ...HALLOWEEN_EXPECTED, ...HYPE_EXPECTED }
 const MODEL_CONSTS = {
   PIXVERSE: 'fal-ai/pixverse/v5/effects', KLING: 'fal-ai/kling-video/v1.6/standard/effects',
   VIDU: 'fal-ai/vidu/template-to-video', PIXVERSE_55: 'fal-ai/pixverse/v5.5/effects',
