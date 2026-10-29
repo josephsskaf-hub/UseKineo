@@ -138,11 +138,11 @@ export async function reserveKling4Promo(admin: SupabaseClient, i: PromoIdentity
  * subscription cancellation, promotion expiry or a rollback. Never replenish the old reservation on rejection.
  */
 export async function validateKling4PromoStart(admin: SupabaseClient,
-  i: { userId: string; jobId: string; kind?: 'ad'; seconds?: number }, options: ServerOptions = {}):
+  i: { userId: string; jobId: string; kind?: 'ad' | 'film'; seconds?: number }, options: ServerOptions = {}):
   Promise<{ isFree: boolean; reason: Kling4PromoReason; expiresAt: string | null; hadFreeReservation: boolean }> {
   let hadFreeReservation = false
   const deny = (reason: Kling4PromoReason, expiresAt: string | null = null) => ({ isFree: false, reason, expiresAt, hadFreeReservation })
-  if (!validIdentity(i) || i.kind !== undefined && i.kind !== 'ad'
+  if (!validIdentity(i) || i.kind !== undefined && !['ad', 'film'].includes(i.kind)
     || i.seconds !== undefined && (!Number.isSafeInteger(i.seconds) || i.seconds < 1 || i.seconds > 60)) return deny('invalid_request')
   const now = options.now ?? Date.now(), policy = options.policy ?? kling4PromoPolicy()
   const policyReason = kling4PromoPolicyReason(policy, now)
@@ -154,7 +154,7 @@ export async function validateKling4PromoStart(admin: SupabaseClient,
     hadFreeReservation = r?.is_free === true
     if (policyReason !== 'ok') return deny(policyReason)
     if (result.error || !r) return deny('unavailable')
-    if (r.kind !== 'ad' || i.seconds !== undefined && r.seconds !== i.seconds) return deny('identity_conflict')
+    if (r.kind !== (i.kind ?? 'ad') || i.seconds !== undefined && r.seconds !== i.seconds) return deny('identity_conflict')
     if (r.is_free !== true) return deny(['daily_limit','daily_cap'].includes(r.reason) ? r.reason : 'unavailable')
     if (r.reason !== 'ok' || !UUID.test(r.reservation_id) || !Number.isSafeInteger(r.seconds)
       || r.seconds < 1 || r.seconds > 60 || !Number.isSafeInteger(r.reserved_milliusd)

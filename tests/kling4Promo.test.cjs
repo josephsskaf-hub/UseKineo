@@ -128,6 +128,10 @@ test('a prepared ad needs same-UTC-day live paid authority for its FIRST start; 
   const opts={policy:on,now,resolveSubscription:async()=>subscription}
   const db=patch=>fakeDb({kling4_promo_uses:{data:{...row,...patch}}})
   assert.equal((await server.validateKling4PromoStart(db({}),input,opts)).isFree,true)
+  const filmInput={...input,jobId:'prepared-film',kind:'film'}
+  assert.equal((await server.validateKling4PromoStart(db({kind:'film'}),filmInput,opts)).isFree,true)
+  assert.equal((await server.validateKling4PromoStart(db({kind:'film',request_day:'2026-10-28'}),filmInput,opts)).reason,'reservation_expired')
+  assert.equal((await server.validateKling4PromoStart(db({kind:'film'}),filmInput,{...opts,resolveSubscription:async()=>null})).isFree,false)
   const old=await server.validateKling4PromoStart(db({request_day:'2026-10-28'}),input,opts)
   assert.equal(old.reason,'reservation_expired'); assert.equal(old.hadFreeReservation,true)
   assert.equal((await server.validateKling4PromoStart(db({expires_at:new Date(now).toISOString()}),input,opts)).reason,'expired')
