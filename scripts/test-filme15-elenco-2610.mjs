@@ -25,7 +25,7 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falh
 const roda = (src, mods = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : {}), console, process: { env: {} }, Intl })
+  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : {}), console, process: { env: {} }, Intl }) // KINEO-ELENCO-MARCADOR-2910 — carrega a dependência pura real da ficha.
   return exp
 }
 const modelos = new Proxy({}, { get: () => 'modelo-falso' })

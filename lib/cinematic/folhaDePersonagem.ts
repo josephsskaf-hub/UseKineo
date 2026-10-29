@@ -36,6 +36,7 @@ import { deriveExplicitCharacter, type PapelDoElenco, type StyleAnchor } from '@
 import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
+import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
 export const PERSONAGEM_VERSAO = 'personagem_v1'
@@ -216,12 +217,12 @@ function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: s
 
 /** Candidatos a nome: maiúscula fora de início de frase OU com papel de sujeito/possessivo/fala. */
 function nomesDoRoteiro(script: string): string[] {
-  const texto = script.replace(/\[[^\]]*\]/g, ' ').replace(/\b(?:HOOK|MICRO REWARD|ESCALATION|RHYTHM|PAYOFF|CTA)\b[^:\n]*:/g, ' ')
+  const texto = semRotulosDeSecao(script.replace(/\[[^\]]*\]/g, ' ')) // KINEO-ELENCO-MARCADOR-2910
   const contagem = new Map<string, { atua: number; total: number }>()
   const re = /(^|[^\p{L}\p{N}'’])(\p{Lu}[\p{Ll}]{2,})(?:'s|’s)?(?=($|[^\p{L}\p{N}]))/gu
   for (const m of texto.matchAll(re)) {
     const nome = m[2]
-    if (NAO_NOME.has(nome.toLowerCase())) continue
+    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910
     const fim = (m.index ?? 0) + m[0].length
     const depois = texto.slice(fim, fim + 40).replace(/^[\s]+/, '')
     const possessivo = /(?:'s|’s)$/.test(m[0])
@@ -242,7 +243,7 @@ function nomesDoRoteiro(script: string): string[] {
  * canônica do protagonista. Roteiro sem personagem → [].
  */
 export function elencoDeterministico(script: string): FichaDePersonagem[] {
-  const bruto = limpa(String(script ?? '')).slice(0, 8000)
+  const bruto = limpa(semRotulosDeSecao(String(script ?? ''))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910 — limpa antes de perder as quebras que delimitam seções.
   if (!bruto) return []
   // as janelas e as frases leem o texto SEM as tags [Pexels: …] (a tag "cartoon boy shock" colada ao "Ravan:" fazia o Ravan virar menino);
   // o tipo ainda lê o texto inteiro (a tag "dinosaur blanket" é a única pista de espécie do Dino)
@@ -273,6 +274,12 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
         if (elenco[0] && (m.index ?? 0) < primeiroNomeado) { elenco[0].protagonista = false; ficha.protagonista = true; elenco.unshift(ficha) } else elenco.push(ficha)
       }
     }
+  }
+  // KINEO-ELENCO-MARCADOR-2910 — "the little girl's teddy bear" inclui a menina na ficha; mantém o teto de folhas existente.
+  for (const pessoa of pessoasPossessivas(semTags)) {
+    if (elenco.some((f) => f.nucleo === pessoa.nucleo)) continue
+    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
+    elenco.push({ nome: `the ${pessoa.papel}`, nucleo: pessoa.nucleo, tipo: 'humano', canonica: pessoa.descricao, origem: 'deterministica', protagonista: elenco.length === 0, genero: pessoa.genero })
   }
   const autor = deriveExplicitCharacter(bruto)
   if (autor && elenco[0]) {
