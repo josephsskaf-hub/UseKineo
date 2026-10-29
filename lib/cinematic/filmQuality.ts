@@ -1,0 +1,144 @@
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
+import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
+import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
+import { elencoComFichaLiteral } from '@/lib/cinematic/juizFicha'
+import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
+import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
+import { applyStyleAnchor, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
+import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
+
+export const FILM_QUALITY_VERSION = 'film_quality_2910_v1' as const
+
+/** Text quality is universal. Paid reference generation retains its existing budget/eligibility. */
+export function decidirQualidadeDoFilme(args: { tagFaceless: boolean; estrelaAtiva: boolean; folhaLegada: boolean }) {
+  return { ficha: !args.tagFaceless && !args.estrelaAtiva, elenco: !args.tagFaceless,
+    estilo: true, contrato: true, seresFieis: true, stillCritic: true, juizFicha: true,
+    gerarFolha: args.folhaLegada && !args.tagFaceless && !args.estrelaAtiva }
+}
+
+/** Lock at the front as well as the tail: provider prompt truncation must not drop the medium. */
+export function travarEstiloDoFilme(prompt: string, style: StyleAnchor): string {
+  let p = prompt
+  const lock = `Film visual medium: ${style.lookPhrase}. `
+  if (p.startsWith(lock)) p = p.slice(lock.length)
+  const negated = (offset: number) => /(?:not|no|never mix with|never|without)\s+(?:[\w-]+\s+or\s+)?$/i.test(p.slice(Math.max(0, offset - 45), offset))
+  if (style.look !== 'photoreal' && style.look !== 'noir') {
+    p = p.replace(/\b(?:photorealistic|photoreal|live[- ]action|documentary realism)\b/gi,
+      (word, offset: number) => negated(offset) ? word : style.lookPhrase)
+  } else {
+    p = p.replace(/\b(?:(?:stylized\s+)?3[dD]\s+(?:animated|animation|cartoon)(?:\s+(?:film\s+)?(?:look|style))?|(?:hand[- ]drawn\s+)?anime(?:\s+style)?|(?:storybook\s+)?illustration(?:\s+style)?|cartoon(?:\s+style)?|cel shading)\b/gi,
+      (word, offset: number) => negated(offset) ? word : style.lookPhrase)
+  }
+  const anchored = p.includes(style.suffix) ? p : applyStyleAnchor(p, style)
+  return lock + anchored
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — compact multi-shot adapters retain their existing provider character budget.
+export function travarEstiloCompactoDoFilme(prompt: string, style: StyleAnchor): string {
+  const medium = { photoreal: 'photoreal', animated3d: '3D animated', anime: 'anime', illustration: 'illustrated', noir: 'noir' }[style.look]
+  if (prompt.startsWith(`Chosen ${medium} still:`)) return prompt
+  if (/^Chosen still:/i.test(prompt)) return prompt.replace(/^Chosen still:/i, `Chosen ${medium} still:`)
+  return prompt.startsWith(`Style: ${medium}. `) ? prompt : `Style: ${medium}. ${prompt}`
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — leave room for Kling's keyframe directive inside its 512-code-point limit.
+export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): string {
+  const medium = { photoreal: 'Photoreal film', animated3d: '3D animated film', anime: 'Anime film', illustration: 'Illustrated film', noir: 'Black and white noir film' }[style.look]
+  const take = (s: string, limit: number) => Array.from(s).slice(0, limit).join('')
+  const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame/i.exec(prompt)
+  const identity = /The same main character appears in this scene, consistent design: ([^\n]+)/i.exec(prompt)
+  const period = /Period setting: [^.]+/i.exec(prompt)?.[0]
+  let action = prompt.replace(/^Film visual medium: .+?\. /, '').replace(style.suffix, '')
+  if (cast) action = action.replace(cast[0], '').replace(/^[,.\s]+/, '')
+  action = action.replace(/The same main character appears in this scene, consistent design:[\s\S]*/i, '').trim()
+  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — a long inherited costume must not displace the person/object action.
+  const visible = cast?.[1].split('; ').map((person, _, people) => {
+    const relation = /holding the (?:glowing )?teddy bear|beside the bicycle|with the hat/i.exec(person)?.[0]
+    const budget = Math.floor(178 / people.length)
+    if (!relation || person.length <= budget) return take(person, budget)
+    const description = take(person.replace(relation, '').trim(), Math.max(20, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
+    return `${description}, ${relation}`
+  }).join('; ')
+  const who = cast ? `Visible: ${visible}. ` : identity ? `Identity: ${take(identity[1], 140)}. ` : ''
+  return `${take(`${medium}. ${period ? take(period, 60) + '. ' : ''}${who}${action}`, 410)} Mouth closed, no speaking.`
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — retain complete tail sentences, including "Mouth closed, no speaking".
+function compactarTextoDoFilme(prompt: string, max: number, tailChars: number): string {
+  if (prompt.length <= max) return prompt
+  const text = prompt.replace(/\s+/g, ' ').trim()
+  if (text.length <= max) return text
+  const tailOffset = Math.max(0, text.length - tailChars)
+  const nextSentence = /[.!?] /.exec(text.slice(tailOffset))
+  const tailStart = nextSentence ? tailOffset + nextSentence.index + 2 : tailOffset
+  const tail = text.slice(tailStart)
+  const prefix = text.slice(0, Math.max(0, max - tail.length - 1))
+  const end = Math.max(prefix.lastIndexOf('. '), prefix.lastIndexOf('! '), prefix.lastIndexOf('? '))
+  return `${end >= 0 ? prefix.slice(0, end + 1) + ' ' : ''}${tail}`
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — quality runs after the old 2.5 limit; enforce it once more on the final vector.
+export function limitarPromptDoFilmeKling25(prompt: string, index: number): string {
+  if (prompt.length <= 2500) return prompt
+  const axis = kling25ShotAxis(index)
+  let body = prompt.replace(`${axis}. `, '')
+  const period = /Period setting: [^.]+\./i.exec(body)?.[0]
+  if (period) body = `${period} ${body.replace(period, '')}`
+  return `${axis}. ${compactarTextoDoFilme(body, 2500 - axis.length - 2, 900)}`
+}
+
+export function prepararQualidadeDoFilme(args: {
+  prompts: ReadonlyArray<string>; falas: ReadonlyArray<string>; contextoOriginal: string
+  contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
+  style: StyleAnchor; elenco?: ReadonlyArray<FichaDePersonagem>; preservarElenco?: boolean
+  kidsCartoon?: boolean; aplicarContrato?: boolean
+}) {
+  const elenco = args.tagFaceless ? [] : args.preservarElenco
+    ? [...(args.elenco ?? [])]
+    : elencoComFichaLiteral(args.contextoOriginal, args.elenco ?? elencoDoRoteiro(args.contextoOriginal)).elenco
+  const contracted = args.prompts.map((prompt, indice) => args.aplicarContrato === false ? prompt
+    : aplicarContrato(montarContrato({ indice, falaFinal: args.falas[indice] ?? '', promptFinal: prompt, palavraInteira: true })).promptCorrigido)
+  // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.
+  const varied = contracted.map((p, i) => i > 0 && p === contracted[i - 1] && args.falas[i] !== args.falas[i - 1]
+    ? aplicarEixoVisual(p, '', 'medium detail shot of the action described in this scene') : p)
+  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate.
+  const withRoom = args.modo === 'presenter' || args.tagFaceless ? varied : varied.map(p => compactarTextoDoFilme(p, 1800, 650))
+  const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom })
+  const cenas = cenasDoElenco(cast.prompts, args.falas, elenco)
+  const prompts = cast.prompts.map((prompt, i) => {
+    let p = prompt
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — an incomplete old snapshot authorizes a role/name, never a newly invented design.
+    if (args.preservarElenco) for (const detected of cast.relato.elenco) {
+      const frozen = elenco.find(f => f.nome.toLowerCase() === detected.nome.toLowerCase())
+      if (detected.nomeado || frozen) p = p.split(detected.descricao).join(frozen?.canonica ?? detected.nome)
+    }
+    // Reuse the canonical source description, never cast the continuation again.
+    for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {
+      const detected = cast.relato.elenco.find(e => e.nome.toLowerCase() === ficha.nome.toLowerCase())
+      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)
+      if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(ficha.canonica)
+    }
+    return travarEstiloDoFilme(p, args.style)
+  })
+  return { prompts, elenco, style: args.style, cenas, relato: cast.relato }
+}
+
+/** Reuse a source still only for matching speech/action, not merely because the same person appears. */
+export function stillHerdadoDaCena(source: FilmQualitySnapshot | null, fala: string, prompt: string): string | null {
+  const normalized = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+  const speech = normalized(fala), visual = normalized(prompt)
+  return source?.approvedStills.find(s => (speech.length > 12 && normalized(s.voiceover) === speech)
+    || (visual.length > 30 && normalized(s.prompt) === visual))?.url ?? null
+}
+
+/** A reference is selected by character identity; a girl's sheet cannot judge a robot scene. */
+export function referenciaDaCena(source: FilmQualitySnapshot | null, fichas: ReadonlyArray<FichaDePersonagem>) {
+  for (const ficha of fichas) {
+    const url = source?.characterReferences.find(r => r.nome === ficha.nome)?.url
+      ?? source?.approvedStills.find(s => s.characterNames.includes(ficha.nome))?.url
+    if (url) return { url, descricao: ficha.canonica }
+  }
+  return undefined
+}

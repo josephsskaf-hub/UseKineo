@@ -23,7 +23,7 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falh
 const roda = (src, mods = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : {}), console, process: { env: {} }, Intl }) // KINEO-ELENCO-MARCADOR-2910 — também nas execuções com sanitizeRealPeople mutado.
+  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/hollywood/realPeople' ? mods['@/lib/hollywood/router'] ?? roda(rd('lib/hollywood/realPeople.ts')) : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : {}), console, process: { env: {} }, Intl }) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — mantém a injeção do sanitizador no teste F6, agora importado do módulo puro.
   return exp
 }
 const MARCA = 'KINEO-ELENCO-EPOCA-2710'
@@ -156,15 +156,15 @@ console.log('== G. a rota e a diretriz ==')
 {
   const rota = rd('app/api/generate-video-cinematic/route.ts')
   const policy = rd('lib/cinematic/visualPromptPolicy.ts')
-  checa('G1 a rota importa aplicarElencoEEpoca de lib/cinematic/elencoEpoca', /import \{ aplicarElencoEEpoca, type RelatoElencoEpoca \} from '@\/lib\/cinematic\/elencoEpoca'/.test(rota))
-  const chamada = rota.indexOf('aplicarElencoEEpoca({ prompts: classicScenePrompts')
+  checa('G1 a rota usa a camada comum, que importa e executa aplicarElencoEEpoca', /prepararQualidadeDoFilme/.test(rota) && /import \{ aplicarElencoEEpoca, type ModoVisualDoElenco \} from '@\/lib\/cinematic\/elencoEpoca'/.test(rd('lib/cinematic/filmQuality.ts')) && /const cast = aplicarElencoEEpoca\(\{ \.\.\.args, prompts: withRoom \}\)/.test(rd('lib/cinematic/filmQuality.ts'))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+  const chamada = rota.indexOf('prepararQualidadeDoFilme({ prompts: classicScenePrompts') // KINEO-QUALIDADE-TODOS-MOTORES-2910 — o elenco agora é executado dentro do contrato comum.
   checa('G2 a chamada usa o vetor final das cenas, a fala por cena, o contexto traduzido (contextoDoFiltro), o modo e a tag', chamada > 0 && /contextoFiltro: await contextoDoFiltro\(contextoElencoEpoca\), modo: classicVisualMode, tagFaceless: tagFacelessPresente/.test(rota))
   checa('G3 roda DEPOIS da ordem do protagonista do 15 s e ANTES da moderação do texto final (if romanceAdulto.ativo) e do sanitizador do 15 s', chamada > rota.indexOf('classicScenePrompts[i] = ORDEM_DO_PROTAGONISTA(p15.canonica) + classicScenePrompts[i]') && chamada < rota.indexOf('if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13') && chamada < rota.indexOf('classicScenePrompts[i] = sanitizarObjetos15('))
   checa('G4 o resultado volta para classicScenePrompts (still FLUX e clipe)', /classicScenePrompts\[i\] = elencoEpoca\.prompts\[i\]/.test(rota))
   checa('G5 relato vai ao despacho (named_cast_era) e ao ensaio de $0 (elenco_epoca)', /named_cast_era: ctx\.elencoEpoca \?\? null/.test(rota) && /elenco_epoca: elencoEpocaRelato/.test(rota))
   checa('G6 falha aberta: try/catch em volta', /catch \(e\) \{ console\.warn\('\[cinematic\] KINEO-ELENCO-EPOCA falhou/.test(rota))
   checa('G7 a diretriz do elenco/época/falso amigo entra em visualDescriptionDirection (escritor de cenas + descritor)', /ELENCO_EPOCA_DIRECTION/.test(policy) && /\$\{SCENE_FIDELITY_DIRECTION\} \$\{ELENCO_EPOCA_DIRECTION\}/.test(policy) && /never a jellyfish/.test(policy) && /1953 means 1950s/.test(policy))
-  checa('G8 toda linha nova leva a marca', [LIB, 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/visualPromptPolicy.ts'].every((f) => rd(f).split('\n').filter((l) => /ELENCO-EPOCA|elencoEpoca|ElencoEpoca|ELENCO_EPOCA/.test(l)).every((l) => l.includes(MARCA) || l.includes('KINEO-ELENCO-MARCADOR-2910')))) // KINEO-ELENCO-MARCADOR-2910 — aceita a marca do conserto atual, mantendo a exigência de marca.
+  checa('G8 toda linha nova leva a marca', [LIB, 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/visualPromptPolicy.ts'].every((f) => rd(f).split('\n').filter((l) => /ELENCO-EPOCA|elencoEpoca|ElencoEpoca|ELENCO_EPOCA/.test(l)).every((l) => l.includes(MARCA) || l.includes('KINEO-ELENCO-MARCADOR-2910') || l.includes('KINEO-QUALIDADE-TODOS-MOTORES-2910')))) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — aceita marcas das camadas sucessoras, mantendo a exigência de marca.
 }
 
 console.log('== H. mutantes ==')
@@ -185,7 +185,7 @@ console.log('== H. mutantes ==')
   checa('H7 rota sem devolver o vetor: a verificação G4 fica vermelha', !/classicScenePrompts\[i\] = elencoEpoca\.prompts\[i\]/.test(rotaSem))
   const semInfantil = roda(troca(SRC, '|| (infantil && semPistaDeIdade) // KINEO-ELENCO-EPOCA-2710', '|| false // KINEO-ELENCO-EPOCA-2710'), mocks) // KINEO-ELENCO-EPOCA-2710
   checa('H8 sem a regra do conto infantil, Amna volta a ser "a woman in her thirties" (A10 vermelho)', /thirties/.test(urdu(semInfantil).relato.elenco.find((e) => e.nome === 'Amna')?.descricao ?? ''))
-  checa('H9 a rota passa o template infantil (kidsCartoon: desenhoInfantil.ativo) na chamada marcada', /kidsCartoon: desenhoInfantil\.ativo \}\) \/\/ KINEO-ELENCO-EPOCA-2710/.test(rd('app/api/generate-video-cinematic/route.ts')))
+  checa('H9 a rota passa o template infantil (kidsCartoon: desenhoInfantil.ativo) na chamada comum', /prepararQualidadeDoFilme\(\{[^\n]*kidsCartoon: desenhoInfantil\.ativo/.test(rd('app/api/generate-video-cinematic/route.ts'))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
 }
 
 console.log('== I. nome feminino/masculino quando o pronome não diz (28/10) ==') // KINEO-ELENCO-EPOCA-2710

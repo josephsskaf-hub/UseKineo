@@ -15,12 +15,14 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { ajusteScriptPrompt, naturalAjusteScript, ajustePlanComposition } from './ajustePlan' // KINEO-ADS-CENA-RETOMADA-2110
 import { writeAjusteScript } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
 import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
+import { aplicarQualidadeDoAnuncio, type AdsFilmQuality } from './filmQuality' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 
 export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; cta?: string; language?: string; formato?: CenaEscolhaFormat; actorUrl?: string; voice_mode?: CenaVoiceMode } // KINEO-ADS-CENA-95-PACING-2110
 export interface CenaJsonCall { model: typeof AI_TEXT_MODELS.ads | typeof AI_TEXT_MODELS.adsRetry; system: string; text: string; images: string[] }
 export type CenaJson = (call: CenaJsonCall) => Promise<unknown>
 export interface CenaScript { hooks: [string, string, string]; hook: string; use: string; benefit: string; cta: string; narration: string }
 export interface CenaPlan {
+  filmQuality?: AdsFilmQuality; // KINEO-QUALIDADE-TODOS-MOTORES-2910 — canonical selected actor/style; no new image budget.
   escolha?: import('./escolhaPlan').CenaEscolhaSelection; // KINEO-ADS-ESCOLHA-2310 — only new, explicitly selected scenes.
   marker: 'KINEO-ADS-CENA-2110'; input: CenaInput; category: CenaCategory; product: string; format: string; setting: string; actor: string; interaction: string;
   script: CenaScript; keyframePrompts: [string, string]; videoPrompt: string; segmentPrompts: [string, string]; audioMode: 'native' | 'voiceover';
@@ -121,7 +123,7 @@ export async function planCena(input: CenaInput, route: string, call: CenaJson, 
     segmentPrompts,
     keyframePrompts: [`${base} OPENING KEYFRAME: before the action, natural posture, person and whole product in context. ${voiceMode === 'talking' ? 'Face and mouth fully visible, ready to speak.' : 'Mouth closed, not speaking.'}`, `${base} USE KEYFRAME: the same referenced person in the exact locked wardrobe actively using the product; whole product clearly visible. ${voiceMode === 'talking' ? 'Face and mouth fully visible while using the product.' : 'Mouth closed, not speaking.'}`],
     videoPrompt: `${base} Full scene in video for all 15 seconds, continuous natural movement, no frozen photograph. Timed visual action: 0–3s begin a natural movement with the product; 3–10s ${row.interaction}; 10–13s ${voiceMode === 'talking' ? 'keep a medium face-to-camera frame with the product clearly visible, never a product-only closeup' : 'show a close clear view of the same product in use without invented properties'}; 13–15s continue the same live interaction and natural movement until the final frame. ${voice}` }
-  return options.retomada ? ajustePlanComposition({ ...plan, quality_notes: quality.quality_notes ?? [] }) : plan // KINEO-ADS-CENA-RETOMADA-2110 KINEO-ADS-CENA-SEGUE-2110 — legacy/default contract stays identical.
+  return aplicarQualidadeDoAnuncio(options.retomada ? ajustePlanComposition({ ...plan, quality_notes: quality.quality_notes ?? [] }) : plan) // KINEO-QUALIDADE-TODOS-MOTORES-2910
 }
 
 export interface CenaVerdict { approved: boolean; score: number; reasons: string[] }

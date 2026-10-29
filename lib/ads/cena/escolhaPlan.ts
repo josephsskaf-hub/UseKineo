@@ -15,6 +15,7 @@ import { narrationWordCount, narrationTokens, narrationSentences, joinNarrationT
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import type { EscolhaCaptionGrounding } from './escolhaCaptionLayout'
 import { ADS_ESCOLHA_SAMPLE_MARK, ADS_ESCOLHA_SAMPLE_WORDS, isEscolhaSamplePlan, escolhaSeconds } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
+import { aplicarQualidadeDoAnuncio } from './filmQuality' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 
 export interface CenaEscolhaSelection {
   marker: 'KINEO-ADS-ESCOLHA-2310'; presenterId: string; scenarioId: string; category: CenaCategory;
@@ -174,7 +175,7 @@ export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: 
   if (sample) choice.sample = ADS_ESCOLHA_SAMPLE_MARK // KINEO-AMOSTRA-ANUNCIO-2410
   const plan: CenaEscolhaPlan = { marker: 'KINEO-ADS-CENA-2110', input, product, category, format: '', setting: scenario.setting, interaction: scenario.interaction, actor: '', script: fitCenaEscolhaScript(draft, input, product), keyframePrompts: ['', ''], videoPrompt: '', segmentPrompts: ['', ''], voice_mode: input.voice_mode, audioMode: input.voice_mode === 'talking' ? 'native' : 'voiceover', continuity: { actorUrl, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, ajusteLive: { version: 'KINEO-ADS-CENA-RETOMADA-2110', music: true }, escolha: choice, quality_notes: quality.quality_notes }
   if (sample) plan.script = fitCenaEscolhaScript(draft, input, product, maxWords) // KINEO-AMOSTRA-ANUNCIO-2410
-  prompts(plan); preflightCenaEscolha(plan, route)
+  prompts(plan); aplicarQualidadeDoAnuncio(plan); preflightCenaEscolha(plan, route) // KINEO-QUALIDADE-TODOS-MOTORES-2910
   return plan
 }
 /** KINEO-AMOSTRA-ANUNCIO-2410 — upgrade reuses the exact saved person, scenario, product and complete spoken script; no new planning or image effect. */
@@ -182,6 +183,6 @@ export function fullEscolhaPlan(samplePlan: CenaPlan): CenaPlan { // KINEO-AMOST
   if (!isEscolhaSamplePlan(samplePlan)) throw new Error('escolha_sample_plan_required') // KINEO-AMOSTRA-ANUNCIO-2410
   const plan = JSON.parse(JSON.stringify(samplePlan)) as CenaEscolhaPlan // KINEO-AMOSTRA-ANUNCIO-2410
   delete plan.escolha.sample // KINEO-AMOSTRA-ANUNCIO-2410
-  prompts(plan); preflightCenaEscolha(plan, 'kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  prompts(plan); aplicarQualidadeDoAnuncio(plan); preflightCenaEscolha(plan, 'kling3') // KINEO-QUALIDADE-TODOS-MOTORES-2910
   return plan // KINEO-AMOSTRA-ANUNCIO-2410
 } // KINEO-AMOSTRA-ANUNCIO-2410
