@@ -26,6 +26,7 @@ function load(path) {
 }
 const { prepareKling4PaidFilm: prepare, submitKling4PaidFilm: submit } = load('lib/kling4PaidFilm.ts')
 const pricing = load('lib/kling4PaidPricing.ts')
+const { kling4PaidReplacement } = load('lib/kling4PaidClaim.ts')
 const narration = 'The captain opens the blue cabin door. He finds a red map beside the lamp. Outside the ship a silver bird lands.'
 const scenes = [
   { prompt: 'Captain opening the blue cabin door.', seconds: 5, approvedStillUrl: 'https://test.invalid/approved-captain.png' },
@@ -52,6 +53,26 @@ test('paid switch off preserves Kling3 prices; paid switch on uses the same expl
     vm.runInNewContext(code, { exports, require: name => name.endsWith('kling4PaidPolicy') ? { KLING4_PAID_LIVE: live } : pricing })
     assert.deepEqual([15, 30, 60].map(s => exports.creditCostForDuration('cinematic_hollywood', true, s)), live ? [45, 80, 150] : [38, 75, 150])
     assert.equal(exports.creditCostForDuration('cinematic_ai', true, 60), 35)
+  }
+})
+
+test('paid browser replacement restores only a frozen complete fallback of the same generation and spoken script', () => {
+  for (const seconds of [15, 30, 60]) {
+    const count = seconds / 5
+    const words = narration.split(/\s+/)
+    const lines = Array.from({ length: count }, (_, i) => words.slice(Math.round(i * words.length / count), Math.round((i + 1) * words.length / count)).join(' '))
+    const response = { generationId: 'paid-same-generation', quality: 'cinematic_hollywood', duration: seconds, voiceover_script: narration,
+      kling4_paid: { version: 'kling4_paid_2810', promo: true, seconds, engine_used: 'seedance15_fallback',
+        fallback_finalized: true, fallback_budget_reserved: true, original_request_ids: Array.from({ length: seconds / 15 }, (_, i) => `original-${i}`) },
+      fal_request_ids: Array.from({ length: count }, (_, i) => `backup-${i}`), fal_models: Array(count).fill('fal-ai/bytedance/seedance/v1.5/pro/text-to-video'),
+      scenes: Array(count).fill('A directed shot.'), scene_captions: lines, scene_narrations: lines,
+      scene_seconds: Array(count).fill(5), scene_engines: Array(count).fill('cinematic'), scene_dialogues: Array(count).fill(null) }
+    assert.equal(kling4PaidReplacement(response, 'paid-same-generation'), response)
+    assert.equal(kling4PaidReplacement(response, 'another-generation'), null)
+    assert.equal(kling4PaidReplacement({ ...response, duration: 90 }, 'paid-same-generation'), null)
+    assert.equal(kling4PaidReplacement({ ...response, scene_narrations: lines.map(() => 'Changed speech') }, 'paid-same-generation'), null)
+    assert.equal(kling4PaidReplacement({ ...response, fal_models: Array(count).fill('kling/v4/text-to-video') }, 'paid-same-generation'), null)
+    assert.equal(kling4PaidReplacement({ ...response, kling4_paid: { ...response.kling4_paid, fallback_finalized: false } }, 'paid-same-generation'), null)
   }
 })
 

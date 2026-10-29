@@ -14,6 +14,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const cache = new Map()
 let proof = false
 let proofCalls = []
+let freshStart = true
+let freshCalls = []
 function load(path) {
   if (cache.has(path)) return cache.get(path)
   const exports = {}
@@ -24,7 +26,9 @@ function load(path) {
   vm.runInNewContext(code, { exports, Buffer, console,
     require(specifier) {
       if (specifier === 'node:crypto') return crypto
-      if (specifier === '@/lib/kling4PromoServer') return { verifyKling4PromoReservation: async (_db, identity) => {
+      if (specifier === '@/lib/kling4PromoServer') return { validateKling4PromoStart: async (_db, identity) => {
+        freshCalls.push(identity); return { isFree: freshStart, reason: freshStart ? 'ok' : 'expired' }
+      }, verifyKling4PromoReservation: async (_db, identity) => {
         proofCalls.push(identity)
         if (proof === 'unavailable') throw new Error('offline')
         return proof
@@ -43,11 +47,12 @@ function database() {
   let row = null
   let writes = 0
   let update = null
+  let error = null
   const query = {
-    insert(value) { row = value; writes++; return query },
+    insert(value) { if (row) error = { code: '23505' }; else row = value; writes++; return query },
     update(value) { update = value; writes++; return query },
     select() { return query }, eq() { return query },
-    maybeSingle: async () => { if (update && row) { row = { ...row, ...update }; update = null } return { data: row, error: null } },
+    maybeSingle: async () => { if (error) { const prior = error; error = null; return { data: null, error: prior } } if (update && row) { row = { ...row, ...update }; update = null } return { data: row, error: null } },
   }
   return { from: () => query, row: () => row, writes: () => writes }
 }
@@ -91,6 +96,22 @@ test('approved promotion acquires a verifiable zero claim; another engine cannot
   const changed = JSON.parse(JSON.stringify(db.row()))
   changed.metadata.engine = 'hollywood'
   assert.equal(lib.verifyCinematicClaimRow({ ...identity, row: changed }).ok, false)
+})
+
+test('a saved reservation cannot start a new free birth after expiry; an existing signed birth remains recoverable', async () => {
+  proof = true; freshStart = false; freshCalls = []
+  const empty = database()
+  assert.equal((await lib.acquireCinematicClaim({ ...identity, ...intent, db: empty })).kind, 'error')
+  assert.equal(empty.writes(), 0)
+  assert.equal(freshCalls.length, 1)
+  assert.equal(freshCalls[0].kind, 'film')
+  freshStart = true
+  const existing = database()
+  assert.equal((await lib.acquireCinematicClaim({ ...identity, ...intent, db: existing })).kind, 'acquired')
+  freshStart = false; freshCalls = []
+  assert.equal((await lib.acquireCinematicClaim({ ...identity, ...intent, db: existing })).kind, 'pending')
+  assert.equal(freshCalls.length, 0)
+  freshStart = true
 })
 
 test('zero response must prove promotion, requested seconds and only real Kling4 models', async () => {

@@ -2762,6 +2762,7 @@ export async function POST(req: NextRequest) {
       tempo.inicio('musica') // KINEO-FILME-RAPIDO-1710 · tempo
       try {
         hollywoodMusicUrl = await selectMusicForScript({
+          allowGeneration: !paidKling4EngineUsed,
           script: voiceoverScript,
           rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
           vertical,

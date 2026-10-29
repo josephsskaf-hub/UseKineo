@@ -22,7 +22,7 @@ function load(path) {
   vm.runInNewContext(code, { exports, Buffer, console, URL, AbortSignal, fetch: forbidden, process: { env: {} },
     require(specifier) {
       if (specifier === 'node:crypto') return crypto
-      if (specifier === '@/lib/kling4PromoServer') return { verifyKling4PromoReservation: async () => true }
+      if (specifier === '@/lib/kling4PromoServer') return { verifyKling4PromoReservation: async () => true, validateKling4PromoStart: async () => ({ isFree: true }) }
       if (specifier.startsWith('@/')) return load(specifier.slice(2) + '.ts')
       return forbidden()
     },

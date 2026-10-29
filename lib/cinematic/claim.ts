@@ -658,9 +658,16 @@ export async function acquireCinematicClaim(args: {
   if (args.creditCost === 0) {
     if (![15, 30, 60].includes(args.promoSeconds ?? 0)) return { kind: 'error', error: 'invalid Kling4 promotion duration' }
     try {
-      const { verifyKling4PromoReservation } = await import('@/lib/kling4PromoServer')
+      const { verifyKling4PromoReservation, validateKling4PromoStart } = await import('@/lib/kling4PromoServer')
       if (!await verifyKling4PromoReservation(args.db, { userId: args.userId, jobId: args.generationId,
         kind: 'film', seconds: args.promoSeconds })) return { kind: 'error', error: 'Kling4 promotion reservation is not authorized' }
+      const prior = await loadVerifiedCinematicClaim(args)
+      if (!prior.ok) return { kind: 'error', error: prior.error }
+      if (!prior.claim) {
+        const start = await validateKling4PromoStart(args.db, { userId: args.userId, jobId: args.generationId,
+          kind: 'film', seconds: args.promoSeconds })
+        if (!start.isFree) return { kind: 'error', error: 'Kling4 promotion first start is no longer authorized' }
+      }
     } catch { return { kind: 'error', error: 'Kling4 promotion verification is unavailable' } }
   }
 

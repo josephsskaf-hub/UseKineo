@@ -2851,7 +2851,8 @@ async function manipularPost(req: NextRequest) {
       return typeof data?.refunded_at === 'string' && data.refunded_at.length > 0
     }
 
-    const audioNoClique = (resp: Record<string, unknown>) => (body.dry_run === true ? Promise.resolve(false) : agendarAudioNoClique({ generationId, userId: user.id, quality: claimQuality, response: resp, bodyVertical: body.vertical, bodyLanguage: body.language })) // KINEO-FILME-RAPIDO-1710 — despacho aceito: trilha, voz clássica e vozes por cena começam depois da resposta, enquanto a fal gera as cenas (1 reserva por geração; sem waitUntil = nada muda)
+    const audioNoClique = (resp: Record<string, unknown>) => (body.dry_run === true || (resp.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810'
+      ? Promise.resolve(false) : agendarAudioNoClique({ generationId, userId: user.id, quality: claimQuality, response: resp, bodyVertical: body.vertical, bodyLanguage: body.language })) // Paid films synthesize their pinned OpenAI voice at compose; no unreserved fal music prewarm.
     const settleDebitAndRespond = async (
       claim: CinematicClaim,
       response: Record<string, unknown>,
@@ -2934,6 +2935,10 @@ async function manipularPost(req: NextRequest) {
       return NextResponse.json({ error: acquired.error }, { status: 409 })
     }
     if (acquired.kind === 'error') {
+      if (acquired.error === 'Kling4 promotion first start is no longer authorized') {
+        return NextResponse.json({ error: 'The saved free allowance expired before this film started. Refresh and review the current credit price.',
+          reason: 'kling4_promo_start_expired', charged: false }, { status: 409 })
+      }
       console.error('[cinematic] birth claim unavailable:', acquired.error)
       return NextResponse.json(
         { error: 'AI generation safety is temporarily unavailable. Nothing was submitted.' },

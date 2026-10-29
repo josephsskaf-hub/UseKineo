@@ -10,6 +10,10 @@
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** the 330 milliUSD non-video provision is a declared budget, not a measured invoice or proof of actual margin. Canaries must reconcile realized provider costs before enabling the launch. The paid branch bounds fal image work to one still, with no image regeneration; only a PASS-selected keyframe can reach the Kling input, otherwise generation is text-directed. Native video audio is muted and the approved narrator/captions are retained.
 
+**FATO CONFIRMADO / IMPLEMENTADO:** paid film narration uses `synthesizeHostSpeech` (OpenAI `tts-1-hd`, no fal TTS route), including recovery after the Seedance fallback. Paid film music uses the existing mood catalog with `allowGeneration:false`; its audio prewarm is skipped so Lyria cannot spend outside the reserved fal budget. Other film families and the free trial keep their existing audio behavior.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** a new zero-credit birth must revalidate current subscription, promotion switches, its original UTC reservation day and expiry. A stored reservation alone cannot stockpile a new free render after cancellation or expiry. Existing signed births remain recoverable with their original billing decision. Browser fallback replacement has a separate pure paid validator; no trial helper is changed.
+
 **IMPLEMENTADO / FATO CONFIRMADO:** `videos.engine_used` stores the actual provider from the signed claim. The promotion fallback is labeled Seedance 1.5. Historical rows remain null because their engine is unknown. A database trigger prevents clients assigning or changing this badge field. Apply the new local migration before canaries; this work did not apply it.
 
 **TESTADO LOCALMENTE:** offline guards cover the prices and rollback switch, script preservation, 15/30/60 chunks, single POST, uncertain receipts, zero-claim authorization, signed fallback transitions, and SQL queue slots. The final integrated test counts and typecheck result belong to the root handoff.
