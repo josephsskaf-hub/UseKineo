@@ -1,6 +1,7 @@
 // Budgeted Kling4 ads use one accepted queue POST per voice attempt, not SDK submission retries.
 import { fal } from '@fal-ai/client'
 import { submitFalQueueOnce } from '@/lib/falQueue'
+import { Kling4PromoBudgetWait } from '@/lib/ads/kling4Paid'
 export const KLING4_AD_VOICE_MAX_CHARS = 1000
 export const KLING4_AD_VOICE_MAX_ATTEMPTS = 2
 // fal.ai/models/fal-ai/minimax/speech-2.8-hd, public price checked 2026-10-29: $0.10/1000 chars.
@@ -10,12 +11,13 @@ export function assertKling4AdVoiceText(text: string): void {
   if (!text.trim() || text.length > KLING4_AD_VOICE_MAX_CHARS) throw new Error('kling4_ad_voice_text_exceeds_budget')
 }
 
-export async function synthesizeKling4AdVoice(model: string, input: Record<string, unknown>): Promise<Buffer> {
+export async function synthesizeKling4AdVoice(model: string, input: Record<string, unknown>, beforeSubmit?: () => Promise<boolean>): Promise<Buffer> {
   if (!['fal-ai/minimax/speech-2.8-hd', 'fal-ai/minimax/speech-02-hd'].includes(model)) throw new Error('kling4_ad_voice_model_not_budgeted')
   assertKling4AdVoiceText(String(input.prompt ?? input.text ?? ''))
   const key = process.env.FAL_KEY
   if (!key) throw new Error('kling4_ad_voice_unavailable')
   fal.config({ credentials: key })
+  if (beforeSubmit && !await beforeSubmit()) throw new Kling4PromoBudgetWait('voice')
   const id = await submitFalQueueOnce(model, input)
   const deadline = Date.now() + 45_000
   while (Date.now() < deadline) {

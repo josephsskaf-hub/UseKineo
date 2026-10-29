@@ -6,7 +6,7 @@ const path = require('node:path')
 const vm = require('node:vm')
 const ts = require('typescript')
 const root = path.resolve(__dirname, '..')
-function modules(live) {
+function modules(live, extraEnv = {}) {
   const cache = new Map()
   const forbidden = () => { throw new Error('Network/provider access forbidden in offline guard') }
   function load(file) {
@@ -15,10 +15,10 @@ function modules(live) {
     const code = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
     }).outputText
-    vm.runInNewContext(code, { exports, console, URL, process: { env: { KLING4_PAID_LIVE: live ? 'true' : 'false' } },
+    vm.runInNewContext(code, { exports, console, URL, process: { env: { KLING4_PAID_LIVE: live ? 'true' : 'false', ...extraEnv } },
       fetch: forbidden, setTimeout: forbidden,
       require(specifier) {
-        if (specifier === '@fal-ai/client') return { fal: { config: forbidden } }
+        if (specifier === '@fal-ai/client') return { fal: { config() {} } }
         if (specifier.startsWith('@/')) return load(specifier.slice(2) + '.ts')
         if (specifier.startsWith('.')) return load(path.join(path.dirname(file), specifier) + '.ts')
         throw new Error('Unmocked external module: ' + specifier)
@@ -48,6 +48,11 @@ test('voice tariff allowance bounds both complete syntheses without trimming Uni
   assert.doesNotThrow(() => voice.assertKling4AdVoiceText('a'.repeat(1000)))
   assert.throws(() => voice.assertKling4AdVoiceText('a'.repeat(1001)))
   assert.throws(() => voice.assertKling4AdVoiceText('😀'.repeat(501)))
+})
+test('a voice budget refusal occurs before the queue POST and is explicitly safe to retry', async () => {
+  const voice = modules(true, { FAL_KEY: 'offline-placeholder' })('lib/ads/kling4Voice.ts')
+  await assert.rejects(voice.synthesizeKling4AdVoice('fal-ai/minimax/speech-2.8-hd', { prompt: 'Short original narration.' }, async () => false),
+    error => error.name === 'Kling4PromoBudgetWait' && error.effect === 'voice')
 })
 test('a second status winner reloads the first winners saved state under its own lease before dispatch', async () => {
   const source = fs.readFileSync(path.join(root, 'lib/ads/cena/runtime.ts'), 'utf8')

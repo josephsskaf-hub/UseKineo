@@ -13,7 +13,8 @@ import { failAdsV2Order } from '../v2Billing'
 import { submitShotOnce, pollFalJob, persistShotClip } from '../v2Shots'
 import { persistSceneImage } from '../v2Images'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { isKling4AdPromoRef } from '@/lib/ads/kling4Paid'
+import { isKling4AdPromoRef, kling4AdMaySpend, Kling4PromoBudgetWait } from '@/lib/ads/kling4Paid'
+import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
 import { assertKling4AdVoiceText, synthesizeKling4AdVoice } from '@/lib/ads/kling4Voice'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
@@ -79,7 +80,14 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       Object.assign(state, latest)
       order.plan = fresh.data!.plan
     }
+    const canSpendToday = async () => {
+      if (!isKling4AdPromoRef(order.billing_ref) || !kling4AdMaySpend(state) ||
+          await ensureKling4PromoBudgetToday(admin, { userId: order.user_id, jobId: order.id })) return true
+      addAjusteQuality(state, { stage: 'voice', code: 'kling4_promo_budget_wait', message: 'This accepted free ad is waiting for the shared daily budget. No additional credits will be charged.' })
+      await save(state); return false
+    }
     const advanceEscolhaMedia = async () => { // KINEO-ADS-ESCOLHA-2310 — injected effects share the existing winner lease and save, never a second billing path.
+      if (!await canSpendToday()) return 'pending' as const
       const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
       return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
         synthesize: async text => { // KINEO-APRESENTADORES-2410 — new candidates use an explicit age/gender voice; the six existing choices retain their call.
@@ -90,7 +98,8 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
             const { voiceInputFor, TTS_28_MODEL } = await import('@/lib/avatar/voice')
             const voice = candidate ? (await import('../presenterVoice2410')).presenterCandidateVoice2410(candidate, state.plan.input.language) : null
             const input = voice ? voiceInputFor({ text, ...voice }) : (await import('@/lib/ttsFallback')).ttsFallbackInput(text, state.plan.input.language)
-            const audio = await synthesizeKling4AdVoice(voice?.model ?? TTS_28_MODEL, input)
+            const audio = await synthesizeKling4AdVoice(voice?.model ?? TTS_28_MODEL, input,
+              async () => !isKling4AdPromoRef(order.billing_ref) || await ensureKling4PromoBudgetToday(admin, { userId: order.user_id, jobId: order.id }))
             return { audio, seconds: estimateMp3DurationSeconds(audio) }
           }
           const { presenterCandidateById2410 } = await import('../presenterCandidates2410') // KINEO-APRESENTADORES-2410
@@ -101,7 +110,10 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
           return { audio, seconds: estimateMp3DurationSeconds(audio) } // KINEO-APRESENTADORES-2410
         }, // KINEO-APRESENTADORES-2410
         upload: audio => uploadVoiceoverToSupabase(order.user_id, audio), // KINEO-ADS-ESCOLHA-2310
-        submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-ESCOLHA-2310
+        submitMusic: async mood => {
+          if (isKling4AdPromoRef(order.billing_ref) && !await ensureKling4PromoBudgetToday(admin, { userId: order.user_id, jobId: order.id })) throw new Kling4PromoBudgetWait('music')
+          const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood))
+        },
         pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-ESCOLHA-2310
       }) // KINEO-ADS-ESCOLHA-2310
     } // KINEO-ADS-ESCOLHA-2310
@@ -122,8 +134,11 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       if (nativePrompts) Object.assign(state.plan, nativePrompts) // KINEO-ADS-CENA-SEGUE-2110 — all remaining native segments retain the wording contracted with the first submitted segment.
       for (const note of state.plan.quality_notes ?? []) addAjusteQuality(state, note); await save(state) // KINEO-ADS-CENA-SEGUE-2110 — lease loss stays outside the input-error handler.
     }
+    if (!await canSpendToday()) return
     await stepCena(state, { now: Date.now, save, json: cenaJson,
       submit: async j => {
+        if (state.route === 'kling4' && isKling4AdPromoRef(order.billing_ref) &&
+            !await ensureKling4PromoBudgetToday(admin, { userId: order.user_id, jobId: order.id })) throw new Kling4PromoBudgetWait('video', j.index)
         const r = await submitShotOnce(j.endpoint, j.input, context)
         if (r.kind === 'accepted') {
           if (state.route === 'kling4' && j.kind === 'video') await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
@@ -196,6 +211,17 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       if (!(e instanceof CreatomateSubmitError && e.ambiguous)) await failCenaOrder(admin, order, 'cena_montage_rejected')
     }
   } catch (e) {
+    if (state.route === 'kling4' && e instanceof Kling4PromoBudgetWait) {
+      // This error is thrown ONLY before POST. An actual ambiguous submit keeps its irrevocable intention.
+      if (e.effect === 'video') {
+        const job = state.jobs.find(j => j.kind === 'video' && j.index === e.index)
+        if (job && job.status === 'submitting' && !job.requestId) { job.status = 'new'; delete job.claimedAt }
+      } else if (e.effect === 'voice') {
+        const media = state as import('./escolhaMedia').CenaEscolhaState
+        if (media.escolhaMedia?.voice.status === 'submitting') { media.escolhaMedia.voice.status = 'new'; delete media.escolhaMedia.voice.claimedAt; delete state.voiceClaimedAt }
+      }
+      await save(state); return
+    }
     if (e instanceof Error && e.message === 'cena_lease_lost') return
     if (escolhaLive || state.phase === 'ready') await failCenaOrder(admin, order, escolhaLive && e instanceof Error ? e.message : 'cena_montage_or_voice_failed') // KINEO-ADS-ESCOLHA-2310 — technical media failure retains the existing winner-only refund.
     else throw e
