@@ -17,8 +17,19 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 // Omni Flash (#1, Aug 2026)" na tabela: contagem errada (duas vezes, diferente em cada lugar) e um motor pausado
 // desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
+import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910
+import { CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE } from '@/lib/growth/checkoutValueContext' // KINEO-VENDER-3-2910
 import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05 · KINEO-MOTORES-GEO-2026-10-06 (país)
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
+// KINEO-VENDER-3-2910 — quem procura "Higgsfield alternative" já paga por vídeo com IA e mora onde se paga. A página falava
+// de Kling 3 (substituído pelo Kling 4.0 no plano pago em 29/10) e não tocava em cobrança, a reclamação mais comum sobre
+// eles. Tudo derivado dos interruptores; os fatos sobre o Higgsfield vêm da central de ajuda deles (out/2026).
+const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY
+const FREE_IS_K4 = FREE_FILM_ENGINE_NAME === 'Kling 4.0'
+const PROMO_ON = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'
+const PROMO_UNTIL = new Date(Date.parse(KLING4_PROMO_SIGNUP_CUTOFF) - 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const BILLING_ANSWER = 'On Kineo the price on the plan card is the price charged, it renews at that price, you cancel from Account in one click, and monthly plans carry a 7-day money-back guarantee. ' + CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE + " Higgsfield's help centre says there is no trial period, and refunds apply only to an initial purchase within 7 days when no credits have been used (as of October 2026)."
 
 export const dynamic = 'force-static'
 
@@ -27,8 +38,9 @@ const usd = (cents: number) => `$${cents % 100 === 0 ? cents / 100 : (cents / 10
 
 export const metadata: Metadata = {
   title: 'Kineo vs Higgsfield — clips or a finished film? (2026 honest comparison)',
-  description:
-    'Higgsfield sells AI generations; Kineo delivers the finished vertical film — script, scenes, voiceover, karaoke captions and soundtrack in one render. Same engines, different output. Honest side-by-side with real renders.',
+  description: KLING4_PAID_LIVE // KINEO-VENDER-3-2910
+    ? 'Higgsfield sells AI generations; Kineo delivers the finished vertical film with Kling 4.0 — scenes, voiceover, captions and soundtrack in one render. Plain billing: the price shown is the price charged, cancel in one click, 7-day money-back.'
+    : 'Higgsfield sells AI generations; Kineo delivers the finished vertical film — script, scenes, voiceover, karaoke captions and soundtrack in one render. Same engines, different output. Honest side-by-side with real renders.',
   alternates: { canonical: `${BASE}/kineo-vs-higgsfield` },
   openGraph: {
     title: 'Kineo vs Higgsfield — clips or a finished film?',
@@ -63,8 +75,25 @@ const FAQ_JSONLD = {
       name: 'Does Kineo have the same AI models?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo runs ${ENGINE_COUNT} engines you can use today — ${VIDEO_ENGINE_LIST_COPY}, with Kling 3 adding native voice and lip sync — all inside one subscription, selectable per video.`, // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
+        text: KLING4_PAID_LIVE // KINEO-VENDER-3-2910
+          ? `Kineo runs ${ENGINE_COUNT} engines you can use today — ${ENGINE_LIST} — all inside one subscription, selectable per video.`
+          : `Kineo runs ${ENGINE_COUNT} engines you can use today — ${VIDEO_ENGINE_LIST_COPY}, with Kling 3 adding native voice and lip sync — all inside one subscription, selectable per video.`, // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
       },
+    },
+    // KINEO-VENDER-3-2910 — as duas perguntas de quem está saindo de lá.
+    ...(FREE_IS_K4 ? [{
+      '@type': 'Question',
+      name: 'Can I try Kling 4.0 for free?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film made with Kling 4.0 free, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` +
+          (PROMO_ON ? ` Any paid plan bought by ${PROMO_UNTIL} includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),
+      },
+    }] : []),
+    {
+      '@type': 'Question',
+      name: 'How does billing work, and can I get a refund?',
+      acceptedAnswer: { '@type': 'Answer', text: BILLING_ANSWER },
     },
   ],
 }
@@ -76,9 +105,12 @@ const ROWS: Array<[string, string, string]> = [
   ['Captions', 'Add them yourself', 'Included — karaoke word-by-word'],
   ['Soundtrack', 'Add it yourself', 'Included — mood-matched per genre'],
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
-  ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${VIDEO_ENGINE_LIST_COPY}`],
-  ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
-  ['Entry', 'Limited free tier', `Free trial${GRANT_COUNTRY_CLAUSE}: ${TRIAL_FIRST_FILM_SHORT}, no card`],
+  ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${ENGINE_LIST}`],
+  KLING4_PAID_LIVE // KINEO-VENDER-3-2910 — o Kling 4.0 entrou no lugar do Kling 3 no plano pago
+    ? ['Kling 4.0', 'Clips you edit', PROMO_ON ? `Finished Kling 4.0 films — free for 30 days with any plan (up to 3 a day)` : 'Finished Kling 4.0 films with narration, captions and music']
+    : ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
+  ['Entry', 'No trial period; limited free tier', FREE_IS_K4 ? `Free first film${GRANT_COUNTRY_CLAUSE} made with Kling 4.0, no card` : `Free trial${GRANT_COUNTRY_CLAUSE}: ${TRIAL_FIRST_FILM_SHORT}, no card`], // KINEO-VENDER-3-2910
+  ['Refunds', 'Initial purchase only, within 7 days, if no credits used', '7-day money-back on monthly plans + first-film redo or refund'], // KINEO-VENDER-3-2910
 ]
 
 export default function VsHiggsfieldPage() {
@@ -129,6 +161,10 @@ export default function VsHiggsfieldPage() {
         on a generation platform a finished Short is several generations plus the hour you spend assembling it. Here
         the credits already include the narration, the captions, the music and the master.
       </p>
+
+      {/* KINEO-VENDER-3-2910 */}
+      <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>Billing, without surprises</h2>
+      <p style={{ color: '#c7c7cc' }}>{BILLING_ANSWER}</p>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>Judge it by output, not by table</h2>
       <p style={{ color: '#c7c7cc' }}>

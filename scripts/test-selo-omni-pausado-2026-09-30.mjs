@@ -161,7 +161,7 @@ mutant('/ph: lista digitada com Omni', 'ph',
 mutant('/ph: plano Studio com Omni', 'ph',
   "`Kling 3, Veo 3.1, MiniMax H3${AVATAR_PUBLIC", "`Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC")
 mutant('/kineo-vs-higgsfield: "seven, incl. Omni Flash (#1)"', 'higgsfield',
-  '`Yes — ${ENGINE_COUNT}: ${VIDEO_ENGINE_LIST_COPY}`', "'Yes — seven, incl. Omni Flash (#1, Aug 2026)'")
+  '`Yes — ${ENGINE_COUNT}: ${ENGINE_LIST}`', "'Yes — seven, incl. Omni Flash (#1, Aug 2026)'") // REANCORADO KINEO-VENDER-3-2910: a linha passou a ler ENGINE_LIST (Kling 4.0 no lugar do Kling 3); mesmo mutante
 mutant('/ai-robot: custo do plano cravado no Omni', 'robot',
   "videosPerMonth('pro', PLAN_ENGINE.quality)", "videosPerMonth('pro', 'cinematic_omni')")
 mutant('/ai-robot: interruptor do Omni de volta', 'robot',
