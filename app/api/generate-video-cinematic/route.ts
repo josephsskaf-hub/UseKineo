@@ -4,6 +4,10 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 // Client polls /api/cinematic-clip-status until all clips are ready, then
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
+import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
+import { generateKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, type Kling4TrialResult } from '@/lib/kling4Trial'
+import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
+import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
@@ -45,6 +49,7 @@ import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITO
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
   classifyProviderFailure,
+  accepted as acceptedScene,
   providerSpendPossible,
   safeLogFields,
   type ReasonClass,
@@ -1401,6 +1406,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function manipularPost(req: NextRequest) {
+  const kling4RouteStartedAt = Date.now()
   let activeBirthClaim: {
     db: SupabaseClient
     secret: string
@@ -1580,7 +1586,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido. Ausente = '9:16'
     // (todo o comportamento anterior). Viaja para: payload da fal
     // (`aspect_ratio`), prompt do planner e geometria do compose.
-    const aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
+    let aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
     let duration = Number(body.duration) || 45
     // Runtime-validate optional director data before any OpenAI/Fal work. A TS
     // annotation is not a JSON boundary: null/malformed scene entries used to
@@ -2815,6 +2821,13 @@ async function manipularPost(req: NextRequest) {
       claim: CinematicClaim,
       response: Record<string, unknown>,
     ): Promise<NextResponse> => {
+      // The signed response is durable before settlement. Replays repair an interrupted event write.
+      const trialEngine = kling4TrialEngineFromClaim(response)
+      if (trialEngine && (claim.status === 'done' || claim.status === 'settled')) {
+        const marker = response.kling4_trial as { country?: string | null; cost_usd: number }
+        await recordKling4TrialFilm(cinematicAdmin, { jobId: generationId, userId: user.id,
+          country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
+      }
       if (claim.status === 'released') {
         return NextResponse.json(
           { error: 'This AI generation was safely closed. Please start a new one.' },
@@ -3577,6 +3590,26 @@ async function manipularPost(req: NextRequest) {
     // todo outro motor a 15 s já foi recusado com 422), e nunca Kling/Veo/Sora: 35/60/90 e os outros motores não passam aqui.
     const seedanceShortFilm = duration === SEEDANCE_SHORT_SECONDS && isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora
     if (seedanceShortFilm) clipCount = SEEDANCE_SHORT_CLIPS
+
+    // Admission and countries have ALREADY passed the existing gates. Count lifetime films/debits,
+    // excluding this birth's own prepaid debit; a weekly repeat or a paid film never enters the experiment.
+    let kling4TrialCandidate = false
+    if (KLING4_TRIAL_LIVE && seedanceShortFilm && !isPaidUser && currentProfile.has_paid !== true &&
+        !PAID_PLANS.has(currentPlan) && !kidsPedidoAdmitido &&
+        (trialActive || regionFreeFilmAdmitted || freeWeeklyAdmitted) && !body.dry_run) {
+      try {
+        const [films, debits] = await Promise.all([
+          cinematicAdmin.from('videos').select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id).neq('status', 'failed'),
+          cinematicAdmin.from('credit_debits').select('render_id', { count: 'exact', head: true })
+            .eq('user_id', user.id).like('render_id', 'cinematic-%').is('refunded_at', null)
+            .neq('render_id', billingReference),
+        ])
+        kling4TrialCandidate = kling4TrialEligible({ paid: isPaidUser, admitted: true, shortFilm: seedanceShortFilm,
+          priorFilms: films.error ? null : films.count, priorDebits: debits.error ? null : debits.count })
+      } catch { /* Unproven first film keeps Seedance, with no paid Kling request. */ }
+      if (kling4TrialCandidate) aspectRequested = '9:16'
+    }
 
     // ═══ KINEO-ESCRITOR-CLASSICO-SABE-A-DURACAO-2026-09-12 — o pente fino de $0
     // (12/09) mostrou o Seedance em modo IA nascendo com 74 palavras para 60 s
@@ -7338,7 +7371,37 @@ async function manipularPost(req: NextRequest) {
       c.quality = String(claimQuality)
       c.planned = scenes.length
     }
-    const submittedScenes = await submitAllScenes(usedModel)
+    let kling4Trial: Kling4TrialResult | null = null
+    let kling4Posts = 0
+    if (kling4TrialCandidate) {
+      kling4Trial = await orchestrateKling4Trial({
+        reserve: () => kling4RouteStartedAt + 250_000 - Date.now() < 20_000
+          ? Promise.resolve({ allowed: false, reason: 'unavailable' })
+          : reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
+        generate: () => generateKling4TrialVideo({
+          prompts: classicScenePrompts, firstFrame: sceneStills[0],
+          // maxDuration=300. Keep at least 50s for the existing Seedance fallback and claim publication.
+          deadline: Math.min(Date.now() + 120_000, kling4RouteStartedAt + 250_000),
+        }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }),
+      })
+    }
+    const submittedScenes = kling4Trial?.video
+      ? { ids: [kling4Trial.video.requestId], models: [kling4Trial.video.model] }
+      : await submitAllScenes(usedModel)
+    if (kling4Trial?.video) {
+      providerSubmissionMayExist = true
+      const c = ctxDespacho()
+      c.engine = kling4Trial.video.model
+      c.planned = 1
+      c.outcomes = [acceptedScene(0, kling4Trial.video.model)]
+      c.attempts = [[{ model: kling4Trial.video.model, status: 200, ambiguous: false, accepted: true }]]
+      c.submittedPrompts = [classicScenePrompts.join(' ').slice(0, 240)]
+    } else if (kling4Posts && ctxDespacho().attempts[0]) {
+      // The abandoned Kling attempt is still a real POST; do not erase it from dispatch accounting.
+      ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(classicScenePrompts, sceneStills[0]).model,
+        status: null, ambiguous: true, accepted: false })
+      ctxDespacho().outcomes[0].attempt_count++
+    }
     const falRequestIds = submittedScenes.ids
     const usedModels = submittedScenes.models
     let validIds = falRequestIds.filter((id): id is string => id !== null)
@@ -7579,6 +7642,22 @@ async function manipularPost(req: NextRequest) {
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o filme de 15 s do Kling 2.5 e do Veo 3.1 fala a MESMA voz
     // [KINEO-DURACOES-CURTAS-2026-09-29] do 15 s (lib/vozDoFilmeCurto — o portão acima mediu nela): vai assinada no claim do mesmo jeito, e o /api/compose a usa.
     if (vozCurta && (wantsKling || wantsVeo)) response.narration_voice = campoDaVozAssinada(vozCurta) // KINEO-DURACOES-CURTAS-2026-09-29
+    if (kling4Trial) {
+      response.kling4_trial = {
+        version: 'kling4_trial_2810', engine_used: kling4Trial.engineUsed,
+        cost_usd: kling4Trial.costUsd, country: paisDoRequest(req.headers),
+        ...(kling4Trial.video ? { video_url: kling4Trial.video.url } : {}),
+      }
+      if (kling4Trial.video) {
+        // One multi-shot source, not three repetitions of the same 15s video.
+        Object.assign(response, {
+          fal_model: kling4Trial.video.model, scenes: [scenes.map(s => s.description).join(' ')],
+          scene_captions: [''], scene_prompts: [classicScenePrompts.join(' ')],
+          scene_fal_inputs: [buildKling4TrialInput(classicScenePrompts, sceneStills[0]).input],
+          clip_seconds: [15], clip_word_starts: [0],
+        })
+      }
+    }
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
     // `falRequestIds.map(() => usedModel)`.

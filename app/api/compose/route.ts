@@ -97,6 +97,7 @@ import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' //
 import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
+import { recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -738,7 +739,7 @@ export async function POST(req: NextRequest) {
     // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master. Ausente ou
     // inválido = '9:16': todo render existente, todo cron de resgate e todo
     // retry antigo continuam byte-a-byte iguais.
-    const aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
+    let aspectRequested = normalizeAspect((body as { aspect?: unknown }).aspect)
     const requestedDuration = Number(body.duration) || 45
     // Avatar duration fix (02/07, TAAFT reviewer bug) — avatar renders follow
     // the REAL narration length (a 4s verbatim line is a ~4s video), so the
@@ -826,6 +827,14 @@ export async function POST(req: NextRequest) {
       )
     }
     cinematicBirthClaim = cinematicClaimLoad.claim
+    const trialEngine = kling4TrialEngineFromClaim(cinematicBirthClaim?.response)
+    if (trialEngine !== null) {
+      aspectRequested = '9:16'
+      // Recovery can reach compose without replaying birth; restore its one-per-film event too.
+      const marker = cinematicBirthClaim!.response!.kling4_trial as { country?: string | null; cost_usd: number }
+      await recordKling4TrialFilm(composeAdmin, { jobId: generationId, userId: authenticatedUserId,
+        country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
+    }
     { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu viaja no claim assinado e VENCE o da interface (pena dourada 26/10: rota pt, compose 'en' → voz inglesa, Whisper sem idioma, legenda errada)
       const idiomaDoClaim = narrationLanguage((cinematicBirthClaim?.response as { language?: unknown } | undefined)?.language) // KINEO-FILME15-FIEL-2610
       if (idiomaDoClaim && idiomaDoClaim !== language) { // KINEO-FILME15-FIEL-2610

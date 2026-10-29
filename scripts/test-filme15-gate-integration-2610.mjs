@@ -156,7 +156,7 @@ await check('actual status gate emits no URL for pending/unconfirmed refunds and
   const wronglyRefunded = await statusGate({ status: 'failed', reason: 'gate_context_missing', media }, 10, { prepaidCinematicClaim: legacyBirth }, retroactive)
   assert.ok(wronglyRefunded.calls.some(call => call[0] === 'refund'), 'mutant that refunds old films is detected')
 })
-await check('gate enrollment is emitted only for Seedance15 and bound by the real birth HMAC', async () => {
+await check('gate enrollment accepts Seedance15 and signed Kling4 trial, bound by the real birth HMAC', async () => {
   const route = read('app/api/generate-video-cinematic/route.ts')
   const ast = ts.createSourceFile('route.ts', route, ts.ScriptTarget.Latest, true)
   let enrollment
