@@ -15,6 +15,8 @@
 //             Falha terminal → failAdsV2Order (UPDATE condicional →failed; só o vencedor estorna).
 //   Creatomate ambíguo (carimbo sem id) NUNCA é reenviado: passado o prazo, falha com estorno.
 import { randomUUID } from 'node:crypto'
+import { qualidadeDoPlanoAdsV2 } from './v2FilmQuality' // KINEO-QUALIDADE-TODOS-MOTORES-2910
+import { julgarStillAdsV2 } from './v2FilmQualityJudge' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { cenaApplyCaptions, cenaUgcFailureAction, cenaUgcAttemptDeadline, cenaUgcAttemptExpired } from '@/lib/ads/v2CenaQuality' // KINEO-ADS-CENA-2110
 import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o título da Biblioteca sem travessão solto
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -663,7 +665,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   let outcome
   if (inHand && ihLib && row.reason === ihLib.ADS_V2_IN_HAND_NO_LABEL_REASON) sendPrompt = `${ihLib.adsV2InHandScenePrompt({ frame: 'no_label', settingLine: ihLib.adsV2InHandSettingFrom(planned?.scenePrompt), format: adsV2PlanFormat(order.plan), extraRefs: (planned?.referenceUrls?.length ?? 0) > 1, singleProduct: typeof planned?.scenePrompt === 'string' && planned.scenePrompt.includes(ihLib.ADS_V2_IN_HAND_SINGLE_PRODUCT), object: inHand.object })}${anchorUrl ? ` ${ADS_V2_SAME_PERSON_LINE}` : ''}` // KINEO-ADS-PRODUTO-NA-MAO-1610 — o juiz reprovou 2 vezes: o enquadramento sem o rótulo de frente · KINEO-ADS-MAO-AJUSTE-1610 — + um produto só (como no pedido gravado) · KINEO-ADS-MAO-AJUSTE-3-1610 — + o objeto único do plano
   try {
-    outcome = await submitSceneImage({ prompt: sendPrompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs || inHand ? { outputFormat: 'png' as const } : {}), ...(pv ? { numImages: 4 as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-APRESENTADOR-V2-1710 — + as 4 opções do apresentador // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG · KINEO-ADS-MAO-JUIZ-1610 — + o produto na mão em PNG (o juiz recorta o produto gerado)
+    outcome = await submitSceneImage({ prompt: qualidadeDoPlanoAdsV2(order.plan, row.kind, sendPrompt).prompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs || inHand ? { outputFormat: 'png' as const } : {}), ...(pv ? { numImages: 4 as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-APRESENTADOR-V2-1710 — + as 4 opções do apresentador // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG · KINEO-ADS-MAO-JUIZ-1610 — + o produto na mão em PNG (o juiz recorta o produto gerado) // KINEO-QUALIDADE-TODOS-MOTORES-2910
   } catch (e) {
     // buildSceneImageInput recusou (nada saiu daqui): recusa NOSSA, não refazer.
     await failShot(admin, row, ['pending'], `scene_input_invalid:${e instanceof Error ? e.message : String(e)}`, 'local_policy_gate')
@@ -688,15 +690,21 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const engine = row.engine
   const claimed = await markShot(admin, row, ['pending', 'image_done'], { submit_claimed_at: nowIso() }, 'submit_claimed_at')
   if (!claimed) return
+  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — conditional video claim owns one observation; no retry or new fal image.
+  if (row.image_url) {
+    const expected = order.plan?.shots.find(s => s.idx === row.idx)?.scenePrompt || videoPromptOf(order, row)
+    const judged = await julgarStillAdsV2({ plan: order.plan, kind: row.kind, indice: row.idx, url: row.image_url, prompt: expected })
+    await writeServerEvent({ name: 'ads_v2_film_quality', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, ...judged.relato } }).catch(() => null)
+  }
   const pv = engine === 'kling_avatar' && row.kind === ADS_V2_PRESENTER_KIND ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2: a atuação dele e o motor PRO
   const tail = pv ? await presenterV2TailVoice(order, pv) : null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o áudio do motor com ~0,6 s de silêncio no fim (null = a voz de sempre)
   let input: Record<string, unknown>
   try {
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: pv ? pv.lib.adsV2PresenterV2PerformanceOf(row.prompt) : videoPromptOf(order, row), audioUrl: tail ? tail.url : order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — tail = a voz com o silêncio do fim (só o v2) · KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 nunca leva a atuação de 09/10 ("upbeat… visible-hand gestures")
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: qualidadeDoPlanoAdsV2(order.plan, row.kind, pv ? pv.lib.adsV2PresenterV2PerformanceOf(row.prompt) : videoPromptOf(order, row), true).prompt, audioUrl: tail ? tail.url : order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — tail = a voz com o silêncio do fim (só o v2) · KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 nunca leva a atuação de 09/10 ("upbeat… visible-hand gestures") // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (pv) input = pv.lib.adsV2PresenterV2AvatarInput(input) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — negative prompt só se o motor aceitar (hoje não: o mesmo corpo)
-    if (engine === 'kling_o3' && inHandTagOf(order, row.idx)) { const ih = await inHandLib(); if (ih) input = ih.adsV2InHandKlingInput({ imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), cutStart: num(row.cut_start), cutSeconds: num(row.cut_seconds) }) as unknown as Record<string, unknown> } // KINEO-ADS-PRODUTO-NA-MAO-1610 — plano novo: 3 s · KINEO-ADS-MAO-AJUSTE-1610 — SEM quadro final (o end_image_url congelava a pessoa) · KINEO-ADS-MAO-AJUSTE-3-1610 — a duração pelo trecho (3 s; 4 s nos planos de 3,1 s)
+    if (engine === 'kling_o3' && inHandTagOf(order, row.idx)) { const ih = await inHandLib(); if (ih) input = ih.adsV2InHandKlingInput({ imageUrl: row.image_url ?? '', prompt: qualidadeDoPlanoAdsV2(order.plan, row.kind, videoPromptOf(order, row), true).prompt, cutStart: num(row.cut_start), cutSeconds: num(row.cut_seconds) }) as unknown as Record<string, unknown> } // KINEO-ADS-PRODUTO-NA-MAO-1610 — plano novo: 3 s · KINEO-ADS-MAO-AJUSTE-1610 — SEM quadro final (o end_image_url congelava a pessoa) · KINEO-ADS-MAO-AJUSTE-3-1610 — a duração pelo trecho (3 s; 4 s nos planos de 3,1 s) // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
   } catch (e) {
     // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a

@@ -128,7 +128,7 @@ export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
 /** O pedido ao crítico: a foto + o que a cena deve mostrar + a narração. Uma imagem só, detail 'low'. */
 /** KINEO-JUIZ-REFAZ-2810 — o elenco nomeado que a rota pôs na frente do prompt (lib/cinematic/elencoEpoca CLAUSULA_ELENCO): o crítico precisa saber quem DEVE aparecer para reprovar "personagem ausente"/"mascote no lugar". '' = sem elenco no prompt. */
 export function elencoNoPrompt(prompt: string): string { // KINEO-JUIZ-REFAZ-2810
-  const m = /Named characters? in this shot: (.+?) — clearly visible in frame/u.exec(String(prompt ?? '')) // KINEO-JUIZ-REFAZ-2810
+  const m = /(?:Named )?[Cc]haracters? in this shot: (.+?) — clearly visible in frame/u.exec(String(prompt ?? '')) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — unnamed possessive cast must reach the existing judge too.
   return m ? limpa(m[1]).slice(0, 320) : '' // KINEO-JUIZ-REFAZ-2810
 } // KINEO-JUIZ-REFAZ-2810
 export function montarPedidoAoCritico(e: EntradaCritico, url: string): { messages: MensagemDoCritico[]; imagens: number; caracteres: number } {

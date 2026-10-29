@@ -75,7 +75,7 @@ if (typeof extrair === 'function' && typeof AJUSTE.cenasDoElenco === 'function')
 console.log('== C. rota ==')
 const rota = rd('app/api/generate-video-cinematic/route.ts')
 checa('C1 import do módulo', rota.includes("import { elencoDoFilme15, protagonistaEmTodaCena, ORDEM_DO_PROTAGONISTA } from '@/lib/filmes/filme15Elenco' " + '// ' + MARCA))
-checa('C2 só no 15 s com a folha e história com personagem', rota.includes("const elencoFilme15 = filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15("))
+checa('C2 só no 15 s novo com a folha e história com personagem; continuação conserva a ficha herdada', rota.includes("const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15(")) // KINEO-QUALIDADE-TODOS-MOTORES-2910
 checa('C3 o ajuste dos prompts usa os visuais forçados e o elenco do ajuste', rota.includes('visuals: protagonista15 ? protagonista15.visuals : ') && rota.includes('elenco: elencoDoAjuste }) : null'))
 checa('C4 o bloco da folha usa o elenco do ajuste', rota.includes('!estrelaAtiva && elencoDoAjuste.length > 0) {') && rota.includes('const elencoP = elencoDoAjuste '))
 checa('C5 as cenas forçadas ganham ORDEM_DO_PROTAGONISTA antes do still e do clipe', rota.includes('classicScenePrompts[i] = ORDEM_DO_PROTAGONISTA(p15.canonica) + classicScenePrompts[i]'))

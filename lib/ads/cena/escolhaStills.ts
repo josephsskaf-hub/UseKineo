@@ -8,6 +8,8 @@ import { CENA_AMBIGUOUS_MS, CENA_JOB_MS, type CenaJob, type CenaState } from './
 import { parseEscolhaGrounding, type EscolhaCaptionGrounding } from './escolhaCaptionLayout'
 import { escolhaStory } from './escolhaShots'
 import { ADS_ESCOLHA_SAMPLE_PHOTOS, isEscolhaSamplePlan, escolhaSeconds } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANUNCIO-2410
+import { qualidadeDoAnuncioParaJuiz } from './filmQuality' // KINEO-QUALIDADE-TODOS-MOTORES-2910
+import { STILL_CRITIC_IDENTIDADE } from '@/lib/cinematic/criticoStill' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 
 export const ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
 export interface EscolhaStill extends CenaJob { id: string; attempt: number; falUrl?: string; copyStartedAt?: number; grounding?: EscolhaCaptionGrounding }
@@ -62,6 +64,7 @@ function verdict(raw: unknown) {
     if (bad.length) { score = Math.min(score, Math.max(0, 25 - bad.length * 5)); reasons.push(...bad.map(k => `anatomy:${k}:false`)) }
     if (unknown.length) reasons.push(`anatomy:unassessed:${unknown.join(',')}`)
     if (r?.same_face === false || r?.same_outfit === false) { score = Math.min(score, 20); reasons.push('Selected face or outfit differs; review before choosing.') }
+    if (r?.same_visual_medium === false) { score = Math.min(score, 20); reasons.push('Rendering style differs from the approved photographic presenter; review before choosing.') } // KINEO-QUALIDADE-TODOS-MOTORES-2910
     return { approved: true, score, reasons }
   } catch { return { approved: true, score: 0, reasons: ['Judge response unavailable; review visually.'] } }
 }
@@ -117,7 +120,7 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
     }
     if (j.status === 'done' && j.url && !j.verdict) {
       let raw: unknown
-      try { raw = await d.json({ model: AI_TEXT_MODELS.adsRetry, system: ESCOLHA_JUDGE, text: JSON.stringify({ category: plan.category, format: plan.input.formato, openingState: escolhaStory(plan.category, plan.input.formato).opening, voice_mode: plan.voice_mode, scenario: plan.setting, captionLane: plan.escolha.captionLane }), images: [plan.input.foto, plan.escolha.actorUrl, j.url] }) }
+      try { raw = await d.json({ model: AI_TEXT_MODELS.adsRetry, system: `${ESCOLHA_JUDGE} ${STILL_CRITIC_IDENTIDADE} ${qualidadeDoAnuncioParaJuiz(plan)}`, text: JSON.stringify({ category: plan.category, format: plan.input.formato, openingState: escolhaStory(plan.category, plan.input.formato).opening, voice_mode: plan.voice_mode, scenario: plan.setting, captionLane: plan.escolha.captionLane }), images: [plan.input.foto, plan.escolha.actorUrl, j.url] }) } // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one existing vision request; human selection and image retry budget unchanged.
       catch { raw = null }
       j.verdict = verdict(raw)
       j.grounding = parseEscolhaGrounding(raw, j.url)

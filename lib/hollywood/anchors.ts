@@ -164,16 +164,16 @@ export async function generateHollywoodAnchors(args: {
     // Without real sheets the anchors would anchor nothing — fall back.
     if (character.length < 15 || environment.length < 10) return null
 
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — the shared style/character sheets already decide medium and species.
     const portraitPrompt =
       `${character}. Standing in: ${environment}. Cinematography: ${style}. ` +
       `vertical 9:16 portrait, medium shot, looking directly at the camera. ` +
-      `Shot on 85mm portrait lens, natural window light, real human skin with visible pores and fine texture, ` +
-      `subtle facial asymmetry and imperfections, filmic color, shallow depth of field, ` +
-      `photorealistic like a still from an A24 film — NOT smooth CGI skin, no beauty filter, ` +
+      `Natural window light, material texture and anatomy exactly as described in the character sheet, ` +
+      `same rendering medium as the style sheet, filmic color, shallow depth of field, no beauty filter, ` +
       `sharp focus on the face, ${ONE_FRAME_RULE}, no text, no watermark, no logo`
     const stillPrompt =
       `${environment}. Cinematography: ${style}. ` +
-      `vertical 9:16, empty scene, no people, no human figures, photorealistic, ` +
+      `vertical 9:16, empty scene, no people, no human figures, same rendering medium as the style sheet, ` +
       `establishing shot, ${ONE_FRAME_RULE}, no text, no watermark, no logo`
 
     // flux/schnell has no shared-alias concurrency limit (that's the Kling

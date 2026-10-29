@@ -4,6 +4,13 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 // Client polls /api/cinematic-clip-status until all clips are ready, then
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — shared quality and owner-bound continuation.
+import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'
+import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
+import { julgarStillDoFilme, stillFoiAprovado } from '@/lib/cinematic/filmQualityJudge'
+import { loadFilmCompleteQuality } from '@/lib/filmComplete/server'
+import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
+import { readFilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
@@ -1542,7 +1549,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-2010 — a folha de personagem pedida (conta interna + formatFlags "personagem"; PERSONAGEM_PUBLIC=false) e um roteiro COM personagem: o filme mostra o personagem
     // KINEO-META95-PERSONAGEM-2010 — (character_story, como a Estrela e o romance fazem) — o faceless apagava o protagonista (C5 do diagnóstico). Cliente que manda o campo: nada muda.
     const filme15RostoFixo = rostoFixoNoFilme15({ duration: body.duration, engine: body.engine, interna: isInternalEmail(user.email) }) // KINEO-FILME15-ROSTO-2610 — o filme grátis de 15 s pede a folha de personagem sozinho (fase 1: só conta interna)
-    const personagemPedido = PERSONAGEM_PUBLIC || filme15RostoFixo || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010
+    const personagemPedido = decidirQualidadeDoFilme({ tagFaceless: tagFacelessPresente, estrelaAtiva: false, folhaLegada: false }).ficha // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (personagemPedido && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless' && elencoDeterministico(prompt).length > 0) Object.assign(formatoVisual, { modo: 'character_story', motivo: `folha de personagem: o roteiro tem personagem nomeado ou protagonista (antes: ${formatoVisual.motivo})` }) // KINEO-META95-PERSONAGEM-2010
     const facelessRequested = !permiteApresentador(formatoVisual.modo)
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
@@ -1783,7 +1790,9 @@ async function manipularPost(req: NextRequest) {
     /** A sobretaxa da estrela nesta duração (0 sem estrela). A MESMA função que a tela do /studio soma ao preço. [KINEO-ESTRELA-DO-FILME-2026-09-29] */
     const estrelaSobretaxaDe = (segundos: number): number => (estrelaAtiva ? estrelaSobretaxa(body.engine, segundos) : 0) // KINEO-ESTRELA-DO-FILME-2026-09-29
     // KINEO-META95-PERSONAGEM-2010 — a decisão da folha (lib/cinematic/folhaDePersonagem decidirPersonagem): pedido interno (ou público), motor clássico com still por cena, âncora ligada, sem Estrela, sem [faceless]
-    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email) || filme15RostoFixo, pedido: filme15RostoFixo ? ['personagem'] : (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, /* KINEO-FILME15-ROSTO-2610 — filme de 15 s: pedido implícito da folha */ anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010
+    const personagemLegado = decidirPersonagem({ interna: isInternalEmail(user.email) || filme15RostoFixo, pedido: filme15RostoFixo ? ['personagem'] : (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, /* KINEO-FILME15-ROSTO-2610 — filme de 15 s: pedido implícito da folha */ anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010 // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const qualidadeFilme = decidirQualidadeDoFilme({ tagFaceless: tagFacelessPresente, estrelaAtiva, folhaLegada: personagemLegado.ativo }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const personagem = { ativo: qualidadeFilme.ficha, motivo: "qualidade_comum" } // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (personagemPedido) console.log(`[personagem] gen=${generationId} folha ${personagem.ativo ? 'LIGADA' : `desligada (${personagem.motivo})`}`) // KINEO-META95-PERSONAGEM-2010
     // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" nominal do fundador para o 15 s] ═══
     // 15 s é só do Seedance 1.5. Nos outros motores um alvo abaixo de 35 é RECUSADO aqui — antes do custo (mais abaixo,
@@ -3284,13 +3293,23 @@ async function manipularPost(req: NextRequest) {
     // `narration_guard_blocked` com `refunded:true`. O claim continua sendo
     // liberado pelo mesmo caminho de sempre.
 
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — load only from the paid intent owned by this user.
+    const filmCompleteId = (body as unknown as Record<string, unknown>).film_complete_id
+    const qualidadeHerdada = typeof filmCompleteId === 'string' ? await loadFilmCompleteQuality(cinematicAdmin, user.id, filmCompleteId, generationId) : null
+    if (typeof filmCompleteId === 'string' && !qualidadeHerdada) {
+      await releaseBirthClaim('film_complete_quality_unavailable')
+      return NextResponse.json({ error: 'The original film references could not be loaded. Please retry this same film.', reason: 'film_complete_quality_unavailable', charged: false }, { status: 409 })
+    }
+    let qualitySnapshot: FilmQualitySnapshot | null = null
     let personagemRelatoFinal: RelatoPersonagem | null = null // KINEO-META95-PERSONAGEM-2010 — o relato da folha (contagens, vereditos, custo), preenchido no bloco da folha; null = nada entra na resposta
     const publishCinematicResponse = async (
       response: Record<string, unknown>,
       requestIds: CinematicRequestId[],
       models: string[],
     ): Promise<NextResponse> => {
-      response = { ...response, submission_uncertain: cinematicSubmissionUncertain }
+      // KINEO-QUALIDADE-TODOS-MOTORES-2910 — resume keeps its actual snapshot; detach arrays before signing while judges finish.
+      const snapshot = readFilmQualitySnapshot(response.quality_snapshot) ?? readFilmQualitySnapshot(qualitySnapshot)
+      response = { ...response, submission_uncertain: cinematicSubmissionUncertain, ...(snapshot ? { quality_snapshot: snapshot } : {}) }
       if (personagemRelatoFinal) response = { ...response, personagem: personagemRelatoFinal } // KINEO-META95-PERSONAGEM-2010 — só com a folha ligada (sem ela, resposta e hash de sempre)
       // [TRAVA 8.2 — Tarefa 0 do pedido de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a sobretaxa que o `cost` somou vai ASSINADA na resposta do claim (hash + assinatura):
       // o /api/compose confere filme + ESTE número, sem recalcular. Sem estrela, nada entra (resposta e hash de sempre). [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
@@ -3749,8 +3768,9 @@ async function manipularPost(req: NextRequest) {
     )
     if (romanceAdulto.ativo) Object.assign(styleAnchor, forcePhotorealAnchor(styleAnchor, styleSuffix)) // KINEO-ROMANCE-ADULTO-2026-10-13 — romance é sempre fotorreal
     if (desenhoInfantil.ativo) Object.assign(styleAnchor, desenhoInfantil.estilo) // KINEO-BEBE-QUE-FALA-2010 — desenho infantil: o look 3D fixo (vence o texto) e, por ser desenhado, a estrada vira character_story
+    if (qualidadeHerdada?.style) Object.assign(styleAnchor, qualidadeHerdada.style) // KINEO-QUALIDADE-TODOS-MOTORES-2910
     const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
-    const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
+    const storyCharacter = qualidadeHerdada ? qualidadeHerdada.characterSheet : storyMode ? deriveStoryCharacter(prompt) : null // KINEO-QUALIDADE-TODOS-MOTORES-2910
     const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
       : formatoVisual.modo === 'presenter' ? 'presenter'
         : storyMode ? 'character_story' : 'documentary_faceless'
@@ -3768,12 +3788,29 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-2010 — com a folha ligada: o elenco do roteiro (determinístico + 1 chamada de casting ao gpt-4o-mini, 6 s, falha = o determinístico) vira a ficha de TODA cena que cita o
     // KINEO-META95-PERSONAGEM-2010 — personagem — o protagonista pela trilha de KINEO-SEEDANCE-FICHA (policy.character), os outros pela de PARCEIRO-EYEBIBLE-2 (policy.elenco). O escritor de cenas e o
     // KINEO-META95-PERSONAGEM-2010 — prompt do still/clipe passam a dizer o que o Dino É. A Estrela (fotos reais) continua vencendo; o faceless (tag) continua sem personagem.
-    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = personagem.ativo ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt)) : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — figura conhecida (Ravan) com a iconografia tradicional; era: elencoComCasting(prompt, elencoDeterministico(prompt))
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — existing paid casting only where it already ran; inherited cards win.
+    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada
+      ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }
+      : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt))
+        : { elenco: elencoDoRoteiro(prompt), casting: 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 }
     if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0) { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundarios = elencoSecundario(personagemElenco.elenco); if (secundarios.length > 0) classicVisualPolicy.elenco = secundarios; console.log(`[personagem] gen=${generationId} elenco=${personagemElenco.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem})`).join(', ')} casting=${personagemElenco.casting} ${personagemElenco.ms} ms`) } // KINEO-META95-PERSONAGEM-2010
     // KINEO-JUIZ-FICHA-2710 — item 2: a ficha leva as PALAVRAS DO CLIENTE (lib/cinematic/juizFicha elencoComFichaLiteral). Em 27/10 "a tiny blue-skinned Lord Krishna" virou "a small and chubby soft purple creature" (a canônica determinística sorteia cor e corpo) e a folha, o still e o clipe nasceram do mascote;
     // KINEO-JUIZ-FICHA-2710 — "a beautiful strawberry girl wearing a pink dress" virou "a girl about nine years old … red t-shirt". Agora o sintagma do cliente entra verbatim na canônica (origem 'autor': o casting nunca a troca), figura conhecida (Krishna…) ganha a iconografia DEPOIS das palavras dele, e a política de cena (protagonista + elenco) é refeita com a literal.
-    const fichaLiteral = personagem.ativo && personagemElenco.elenco.length > 0 ? elencoComFichaLiteral(prompt, personagemElenco.elenco) : null // KINEO-JUIZ-FICHA-2710
+    const fichaLiteral = !qualidadeHerdada && personagem.ativo && personagemElenco.elenco.length > 0 ? elencoComFichaLiteral(prompt, personagemElenco.elenco) : null // KINEO-JUIZ-FICHA-2710 // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (fichaLiteral && fichaLiteral.literais.length > 0) { personagemElenco.elenco = fichaLiteral.elenco; personagemElenco.casting = `${personagemElenco.casting}+literal`; if (!estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(fichaLiteral.elenco); const secundariosLiterais = elencoSecundario(fichaLiteral.elenco); if (secundariosLiterais.length > 0) classicVisualPolicy.elenco = secundariosLiterais }; console.log(`[juiz-ficha] gen=${generationId} fichas literais=${fichaLiteral.literais.join('+')} natureza=${fichaLiteral.natureza ? 'sim' : 'nao'}`) } // KINEO-JUIZ-FICHA-2710
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — signed snapshot shared by both engine branches.
+    qualitySnapshot = { version: FILM_QUALITY_VERSION, sourceGenerationId: generationId, characters: personagemElenco.elenco,
+      style: { ...styleAnchor }, characterReferences: [...(qualidadeHerdada?.characterReferences ?? [])], approvedStills: [...(qualidadeHerdada?.approvedStills ?? [])],
+      characterSheet: qualidadeHerdada?.characterSheet ?? fichaDoProtagonista(personagemElenco.elenco), styleSheet: styleAnchor.lookPhrase + styleAnchor.suffix,
+      environmentSheet: qualidadeHerdada?.environmentSheet ?? null, portraitUrl: qualidadeHerdada?.portraitUrl ?? null,
+      environmentUrl: qualidadeHerdada?.environmentUrl ?? null, provenance: 'snapshot', missing: [...(qualidadeHerdada?.missing ?? [])] }
+    const registrarStillAprovado = (url: string, scenePrompt: string, voiceover: string, characterNames: string[]) => {
+      const original = qualidadeHerdada?.approvedStills.find(s => s.url === url) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+      if (original) { if (qualitySnapshot && !qualitySnapshot.approvedStills.some(s => s.url === url)) qualitySnapshot.approvedStills.push(original); return }
+      if (qualitySnapshot && !qualitySnapshot.approvedStills.some(s => s.url === url))
+        qualitySnapshot.approvedStills.push({ url, prompt: scenePrompt, voiceover, characterNames })
+    }
+    const fichasDaQualidade = (scenePrompt: string, fala: string) => personagemElenco.elenco.filter(f => cenasDoElenco([scenePrompt], [fala], personagemElenco.elenco)[0]?.nomes.includes(f.nome))
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
@@ -4378,7 +4415,7 @@ async function manipularPost(req: NextRequest) {
 
       // KINEO-FICHA-DO-PEDIDO-2026-09-15 — ensaio do Omni no deploy 0833bdd2: a ficha ia só na 1ª chamada e o plano final
       // vinha de um REPLAN (coerência/duração) sem ela → "25 years old, Hispanic descent". Uma constante, todas as chamadas.
-      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt) ?? (estrelaAtiva ? fichaDaEstrela(prompt, null) : null) // KINEO-ESTRELA-DO-FILME-2026-09-29: sem ficha do autor, a da estrela (figurino + continuidade) vai ao planejador
+      const fichaDoPedidoTexto = qualidadeHerdada ? qualidadeHerdada.characterSheet : fichaDoProtagonista(personagemElenco.elenco) ?? deriveExplicitCharacter(prompt) ?? (estrelaAtiva ? fichaDaEstrela(prompt, null) : null) // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-ESTRELA-DO-FILME-2026-09-29: sem ficha do autor, a da estrela (figurino + continuidade) vai ao planejador
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
@@ -5564,6 +5601,25 @@ async function manipularPost(req: NextRequest) {
       // never dies because of anchors.
       // All final cap/split passes have run. Never spend on video scenes for
       // a plan already known to be shorter than the user's selected duration.
+      // KINEO-QUALIDADE-TODOS-MOTORES-2910 — common contract before paid K4 and ordinary Hollywood dispatch.
+      const aplicarQualidadeHollywood = async () => {
+        const falas = plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '')
+        const contexto = prompt + ' ' + falas.join(' ')
+        const quality = prepararQualidadeDoFilme({ prompts: plan.scenes.map(s => s.prompt), falas,
+          contextoOriginal: contexto, contextoFiltro: await contextoDoFiltro(contexto), modo: classicVisualMode,
+          tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor,
+          elenco: personagemElenco.elenco, preservarElenco: !!qualidadeHerdada })
+        plan.scenes.forEach((scene, i) => { scene.prompt = quality.prompts[i] })
+        plan.styleSheet = styleAnchor.lookPhrase + styleAnchor.suffix
+        plan.stylized = isStylizedLook(styleAnchor)
+        if (qualidadeHerdada) {
+          plan.characterSheet = qualidadeHerdada.characterSheet ?? qualidadeHerdada.characters.map(f => f.canonica).join('; ')
+          if (qualidadeHerdada.environmentSheet) plan.environmentSheet = qualidadeHerdada.environmentSheet
+        } else if (quality.elenco.length) plan.characterSheet = quality.elenco.map(f => f.canonica).join('; ')
+        if (qualitySnapshot) { qualitySnapshot.characters = quality.elenco; qualitySnapshot.characterSheet = plan.characterSheet; qualitySnapshot.environmentSheet = plan.environmentSheet }
+        return quality
+      }
+      await aplicarQualidadeHollywood()
       const finalPlannedSeconds = plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
       if (finalPlannedSeconds < duration) {
         const refunded = await confirmCinematicRefund()
@@ -5598,7 +5654,7 @@ async function manipularPost(req: NextRequest) {
       if (paidKling4) {
         // The approved plan and speech guards above are shared. Only the paid queue dispatch changes.
         const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')
-        const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: null as string | null }))
+        const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: ancoraHerdadaDaCena(qualidadeHerdada, s.dialogueLine ?? s.voiceover ?? '', s.prompt, fichasDaQualidade(s.prompt, s.dialogueLine ?? s.voiceover ?? '')) }))
         if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {
           await releaseBirthClaim('promo_current_day_budget_unavailable')
           return NextResponse.json({ error: 'The free Kling 4.0 budget is unavailable today. No film was submitted and no credits were charged.',
@@ -5606,17 +5662,23 @@ async function manipularPost(req: NextRequest) {
         }
         // One keyframe maximum. Failed or unapproved images select text-to-video; no image retry can exceed the quote.
         providerSubmissionMayExist = true
-        const firstStill = await generateCinematicSceneStill({ scenePrompt: paidScenes[0].prompt, styleSuffix: plan.styleSheet ?? '', seed: generationSeed,
+        const firstStill = paidScenes[0].approvedStillUrl ?? await generateCinematicSceneStill({ scenePrompt: paidScenes[0].prompt, styleSuffix: plan.styleSheet ?? '', seed: generationSeed,
           pollWindowMs: 9_000, aspect: '9:16' })
         if (firstStill) {
-          const critic = await criticarStill({ indice: 0, url: firstStill, mostra: paidScenes[0].prompt, fala: narration,
+          const critic = await julgarStillDoFilme({ indice: 0, url: firstStill, mostra: paidScenes[0].prompt, fala: plan.scenes[0].voiceover ?? '',
+            referencia: referenciaDaCena(qualidadeHerdada ?? qualitySnapshot, fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '')), // KINEO-QUALIDADE-TODOS-MOTORES-2910
             prompt: paidScenes[0].prompt, seed: generationSeed }, { filme: novoFilmeDoCritico('log_only', { prazo: Date.now() + 8_000 }),
-            gerarStill: async () => null, maxRegeracoesCena: 0 })
-          if (critic.relato.veredito === 'PASS') paidScenes[0].approvedStillUrl = firstStill
+            gerarStill: async () => null, maxRegeracoesCena: 0, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === firstStill), fichas: fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '') }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+          paidScenes[0].approvedStillUrl = null // KINEO-QUALIDADE-TODOS-MOTORES-2910 — revoked if rejudged FAIL.
+          if (stillFoiAprovado(critic.relato, firstStill)) { paidScenes[0].approvedStillUrl = firstStill; registrarStillAprovado(firstStill, paidScenes[0].prompt, plan.scenes[0].voiceover ?? '', fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '').map(f => f.nome)) } // KINEO-QUALIDADE-TODOS-MOTORES-2910
           await writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId,
             metadata: { generation_id: generationId, engine: 'kling4', path_kind: 'paid', ...critic.relato } })
         }
-        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes })
+        // KINEO-QUALIDADE-TODOS-MOTORES-2910 — preserve matching approved source shots without new fal work.
+        for (let i = 0; i < paidScenes.length; i++) {
+          if (paidScenes[i].approvedStillUrl) registrarStillAprovado(paidScenes[i].approvedStillUrl!, paidScenes[i].prompt, plan.scenes[i].voiceover ?? '', fichasDaQualidade(paidScenes[i].prompt, plan.scenes[i].voiceover ?? '').map(f => f.nome))
+        }
+        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes.map(s => ({ ...s, prompt: promptCurtoDoFilmeKling4(s.prompt, styleAnchor) })) }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
         const ids: (string | null)[] = chunks.map(() => null)
         const models = chunks.map(chunk => chunk.model)
         const submittedAt = new Date().toISOString()
@@ -5744,7 +5806,8 @@ async function manipularPost(req: NextRequest) {
         // unexpected exception must keep the deterministic claim pending; it
         // must never release and let a new generationId repeat provider spend.
         providerSubmissionMayExist = true
-        anchors = await generateHollywoodAnchors({
+        anchors = qualidadeHerdada ? (qualidadeHerdada.portraitUrl && qualidadeHerdada.environmentUrl
+          ? { portraitUrl: qualidadeHerdada.portraitUrl, environmentUrl: qualidadeHerdada.environmentUrl } : null) : await generateHollywoodAnchors({ // KINEO-QUALIDADE-TODOS-MOTORES-2910
           characterSheet: plan.characterSheet,
           environmentSheet: plan.environmentSheet,
           // KINEO-S25-NOTA95-2026-10-06 — no S25 a âncora de ambiente nasce com a época do filme ("London, 1952: period clothing…"); antes era a
@@ -5953,16 +6016,21 @@ async function manipularPost(req: NextRequest) {
       // no s25, que já tem o juiz da foto-base acima. O laço é serial: em log_only (PADRÃO) o crítico corre ao lado das cenas // KINEO-JUIZ-STILL-1410
       // seguintes e a foto original segue sempre (o laço não espera); em enforce a cena espera o veredito (6 s por chamada, 20 s // KINEO-JUIZ-STILL-1410
       // por cena, 45 s por filme) e um FAIL refaz o still UMA vez. off = nada roda. // KINEO-JUIZ-STILL-1410
-      const criticoHModo = criticoNaFamiliaHollywood(family) ? modoDoCriticoDoStill() : 'off' // KINEO-JUIZ-STILL-1410
+      const criticoHModo = modoDoCriticoDoStill() // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-JUIZ-STILL-1410
       const criticoHFilme = criticoHModo === 'off' ? null : novoFilmeDoCritico(criticoHModo, { orcamentoMs: STILL_CRITIC_ORCAMENTO_SERIAL_MS }) // KINEO-JUIZ-STILL-1410
       const criticoHTarefas: Promise<string>[] = [] // KINEO-JUIZ-STILL-1410
       const criticoHEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
       const criticoHCena = criticoHFilme // KINEO-JUIZ-STILL-1410
-        ? async (idx: number, url: string, hsC: { prompt: string; voiceover?: string | null }): Promise<string> => { // KINEO-JUIZ-STILL-1410
-          const tarefa = criticarStill({ indice: idx, url, mostra: hsC.prompt, fala: hsC.voiceover ?? '', prompt: hsC.prompt, seed: generationSeed }, { // KINEO-JUIZ-STILL-1410
-            filme: criticoHFilme, // KINEO-JUIZ-STILL-1410
+        ? async (idx: number, url: string, hsC: { prompt: string; voiceover?: string | null }, existingAnchor = false): Promise<string> => { // KINEO-JUIZ-STILL-1410 // KINEO-QUALIDADE-TODOS-MOTORES-2910
+          const tarefa = julgarStillDoFilme({ indice: idx, url, mostra: hsC.prompt, fala: hsC.voiceover ?? '', prompt: hsC.prompt, seed: generationSeed, referencia: referenciaDaCena(qualidadeHerdada ?? qualitySnapshot, fichasDaQualidade(hsC.prompt, hsC.voiceover ?? '')) }, { // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-JUIZ-STILL-1410
+            filme: criticoHFilme, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === url), ...(!criticoNaFamiliaHollywood(family) || existingAnchor ? { maxRegeracoesCena: 0 } : {}), fichas: fichasDaQualidade(hsC.prompt, hsC.voiceover ?? ''), // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-JUIZ-STILL-1410
             gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: plan.styleSheet ?? '', seed, pollWindowMs }), // KINEO-JUIZ-STILL-1410
           }).then((julgado) => { // KINEO-JUIZ-STILL-1410
+            if (stillFoiAprovado(julgado.relato, julgado.url)) registrarStillAprovado(julgado.url, hsC.prompt, hsC.voiceover ?? '', fichasDaQualidade(hsC.prompt, hsC.voiceover ?? '').map(f => f.nome)) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+            if (qualitySnapshot && stillFoiAprovado(julgado.relato, julgado.url)) { // KINEO-QUALIDADE-TODOS-MOTORES-2910
+              if (julgado.url === anchors?.portraitUrl) qualitySnapshot.portraitUrl = julgado.url
+              if (julgado.url === anchors?.environmentUrl) qualitySnapshot.environmentUrl = julgado.url
+            }
             const rh: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
             console.log(`[still-critic] cena ${rh.cena} (${family}, ${rh.modo}): ${rh.veredito}${rh.problemas.length ? ` ${rh.problemas.join('+')}` : ''}${rh.motivo ? ` — ${rh.motivo}` : ''}${rh.regerou ? ` → foto nova ${rh.regeracao_ok ? (rh.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rh.escolhida}` : ''} · US$ ${rh.custo_usd.toFixed(4)} · ${rh.ms} ms`) // KINEO-JUIZ-STILL-1410
             criticoHEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: family, path_kind: 'hollywood', ...rh } })) // KINEO-JUIZ-STILL-1410
@@ -6040,6 +6108,7 @@ async function manipularPost(req: NextRequest) {
         console.log(`[cinematic] KINEO-S25-NOTA95: ${s25Plano.relato.cenas_s25} cena(s), ${s25Plano.relato.abstratas} abstrata(s) → imagem concreta, ${s25Plano.relato.trocas} troca(s) de plano, época "${s25Plano.relato.epoca_base}"`) // KINEO-S25-NOTA95-2026-10-06
         await writeServerEvent({ name: S25_CENA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...s25Plano.relato } }) // KINEO-S25-NOTA95-2026-10-06
       } // KINEO-S25-NOTA95-2026-10-06
+      await aplicarQualidadeHollywood() // KINEO-QUALIDADE-TODOS-MOTORES-2910
       for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
@@ -6187,11 +6256,11 @@ async function manipularPost(req: NextRequest) {
           } // KINEO-JUIZ-STILL-2026-10-06
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — cena com protagonista e still da estrela pronto: a estrela é a âncora (vence a de
           // ambiente e dispensa o still FLUX). Sem estrela, estrelaHollywood é todo null e a escolha é a de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
-          const anchorUrl = estrelaHollywood[idx] ? estrelaHollywood[idx] : anchors // KINEO-ESTRELA-DO-FILME-2026-09-29
+          let anchorUrl = ancoraHerdadaDaCena(qualidadeHerdada, hs.dialogueLine ?? hs.voiceover ?? '', hs.prompt, fichasDaQualidade(hs.prompt, hs.dialogueLine ?? hs.voiceover ?? '')) ?? (estrelaHollywood[idx] ? estrelaHollywood[idx] : anchors // KINEO-ESTRELA-DO-FILME-2026-09-29 // KINEO-QUALIDADE-TODOS-MOTORES-2910
             ? hs.type === 'dialogue'
               ? anchors.portraitUrl
               : inNarratorWorld ? anchors.environmentUrl : undefined
-            : undefined
+            : undefined) // KINEO-QUALIDADE-TODOS-MOTORES-2910
           // KINEO-IMAGEFIRST-2026-08-17 — fundador pegou a SEGUNDA cena deitada
           // (Londres 1908 inteira de lado, mesmo com a ordem de horizonte no
           // prompt). Pedir por favor nao resolve rotacao: agora cena de apoio
@@ -6199,6 +6268,7 @@ async function manipularPost(req: NextRequest) {
           // anima por i2v — com o primeiro frame vertical, o clipe NAO TEM
           // como sair deitado. E o modo image-first do PROJETO-PISO. Fail-open:
           // still falhou → t2v como antes (com o prefixo upright abaixo).
+          if (criticoHCena && anchorUrl) anchorUrl = await criticoHCena(idx, anchorUrl, hs, true) // KINEO-QUALIDADE-TODOS-MOTORES-2910
           let sceneStillUrl: string | null = null
           // KINEO-CONTRATO-SHARP-2026-08-18 — a cena BORRADA do render
           // ef2d09bf era exatamente este caminho: cinematic sem ancora caia
@@ -6311,7 +6381,7 @@ async function manipularPost(req: NextRequest) {
           // dentro do quadro 9:16. Ordem explicita de composicao vertical +
           // horizonte nivelado em toda cena nao-dialogo.
           const spectacleSuffix = hs.type !== 'dialogue'
-            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur.'
+            ? ' Ultra sharp focus, crisp fine detail, ' + styleAnchor.lookPhrase + ', volumetric light, high dynamic range, no blur.'
             : ''
           // KINEO-UPRIGHT-B-2026-08-17 — a ordem de composicao vertical sai do
           // FIM do prompt (onde o modelo menos pesa) e vira PREFIXO: tokens
@@ -6383,7 +6453,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-SCENE-STYLE-2026-09-09 — bilhete/jornal/tela: letras ilegíveis de
           // propósito (o motor escrevia "Dan Copper"). Cena sem objeto de texto
           // fica byte a byte igual.
-          scenePrompt = scenePrompt + textSafetySuffix(scenePrompt)
+          scenePrompt = travarEstiloDoFilme(scenePrompt + textSafetySuffix(scenePrompt), styleAnchor) // KINEO-QUALIDADE-TODOS-MOTORES-2910
           submittedPrompt = scenePrompt
           try {
             // KINEO-KLING3-RETRY-2026-09-09 — 503/429/timeout numa cena matava o
@@ -6711,6 +6781,7 @@ async function manipularPost(req: NextRequest) {
       // reaproveitar (best-effort: falha aqui nunca afeta o render).
       if (salvageDb) {
         try {
+          if (qualitySnapshot) response.quality_snapshot = readFilmQualitySnapshot(qualitySnapshot) // KINEO-QUALIDADE-TODOS-MOTORES-2910
           await salvageDb.from('hollywood_resume').upsert({
             user_id: user.id,
             fingerprint: salvageFp,
@@ -7006,7 +7077,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a cena cujo visual mostra alguém e cuja FALA cita o personagem ganha a ficha (o menino da moto); a cena sem personagem e sem ninguém no
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — visual perde o "characters act naturally" e ganha "No people…" (o homem adulto da cena 1 do Dino). Desligada: o vetor fica byte a byte.
     const visuaisDoPlano15 = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-FILME15-ELENCO-2610
-    const elencoFilme15 = filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas
+    const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas // KINEO-QUALIDADE-TODOS-MOTORES-2910
     const elencoDoAjuste = elencoFilme15 && elencoFilme15.elenco.length > 0 ? elencoFilme15.elenco : personagemElenco.elenco // KINEO-FILME15-ELENCO-2610
     const protagonista15 = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco }) : null // KINEO-FILME15-ELENCO-2610 — cena sem ninguém do elenco mostra o protagonista
     const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && elencoDoAjuste.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: protagonista15 ? protagonista15.visuals : scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: elencoDoAjuste }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
@@ -7024,9 +7095,10 @@ async function manipularPost(req: NextRequest) {
     let elencoEpocaRelato: RelatoElencoEpoca | null = null // KINEO-ELENCO-EPOCA-2710
     try { // KINEO-ELENCO-EPOCA-2710
       const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710
-      const elencoEpoca = aplicarElencoEEpoca({ prompts: classicScenePrompts, falas: scenes.map((s) => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo }) // KINEO-ELENCO-EPOCA-2710
+      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710
       elencoEpocaRelato = elencoEpoca.relato; ctxDespacho().elencoEpoca = elencoEpoca.relato // KINEO-ELENCO-EPOCA-2710
+      if (personagemCenas) personagemCenas.cenas = cenasDoElenco(classicScenePrompts, scenes.map(s => s.voiceover ?? ''), elencoDoAjuste) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — final cast determines the sheet/critic targets.
       if (elencoEpoca.relato.elenco.some((e) => e.cenas_inseridas.length > 0) || elencoEpoca.relato.epoca || elencoEpoca.relato.falsos_amigos.length) console.log(`[cinematic] KINEO-ELENCO-EPOCA: texto=${elencoEpoca.relato.texto} elenco=${elencoEpoca.relato.elenco.map((e) => `${e.nome}→cenas ${e.cenas_inseridas.join(',') || (e.ja_presente ? 'já presente' : '-')}`).join(' · ') || '-'} época=${elencoEpoca.relato.epoca?.rotulo ?? '-'} (${elencoEpoca.relato.cenas_com_epoca.length} cena(s)) modernidades=${elencoEpoca.relato.modernidades.join(',') || '-'} falsos_amigos=${elencoEpoca.relato.falsos_amigos.join(',') || '-'} ordem_removida=${elencoEpoca.relato.ordem_removida.join(',') || '-'}`) // KINEO-ELENCO-EPOCA-2710
     } catch (e) { console.warn('[cinematic] KINEO-ELENCO-EPOCA falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-ELENCO-EPOCA-2710
     if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -7051,8 +7123,9 @@ async function manipularPost(req: NextRequest) {
     // O relatório traz a régua clássica (3,1 pal/s) e o risco que o vigia
     // mediu em 11/09: o compose reescreve o corpo fora de ±15%.
     // KINEO-JUIZ-FICHA-2710 — item 2 (filme de 15 s): o papel que veio dos VISUAIS das cenas ("the girl") também ganha as palavras do cliente, e os prompts já escritos com a canônica inventada (cláusula da ficha, ordem do protagonista) passam a dizer a literal — antes do dry-run, do still FLUX e do clipe.
-    const fichaLiteral15 = personagem.ativo && elencoDoAjuste.length > 0 ? elencoComFichaLiteral(prompt, elencoDoAjuste) : null // KINEO-JUIZ-FICHA-2710 — idempotente: ficha já literal não muda
+    const fichaLiteral15 = !qualidadeHerdada && personagem.ativo && elencoDoAjuste.length > 0 ? elencoComFichaLiteral(prompt, elencoDoAjuste) : null // KINEO-JUIZ-FICHA-2710 — idempotente: ficha já literal não muda // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (fichaLiteral15 && fichaLiteral15.trocas.length > 0) { elencoDoAjuste.splice(0, elencoDoAjuste.length, ...fichaLiteral15.elenco); for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = trocarFichaNoPrompt(classicScenePrompts[i], fichaLiteral15.trocas); console.log(`[juiz-ficha] gen=${generationId} fichas literais (cenas)=${fichaLiteral15.literais.join('+')}`) } // KINEO-JUIZ-FICHA-2710
+    if (wantsKling) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = limitarPromptDoFilmeKling25(classicScenePrompts[i], i) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — final still and clip share the provider-safe prompt.
     if (body.dry_run === true && isDryRunAccount(user.email)) {
       const classicReport = classicDryRunReport({
         scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })),
@@ -7203,10 +7276,11 @@ async function manipularPost(req: NextRequest) {
       const criticarStillClassico = async (idx: number, url: string): Promise<{ idx: number; url: string }> => { // KINEO-JUIZ-STILL-1410
         if (!criticoFilme) return { idx, url } // KINEO-JUIZ-STILL-1410
         const cenaC = scenes[idx] // KINEO-JUIZ-STILL-1410
-        const julgado = await criticarStill({ indice: idx, url, mostra: cenaC.aiPrompt || cenaC.stockSearchQuery || cenaC.description, fala: cenaC.voiceover ?? '', prompt: classicScenePrompts[idx], seed: generationSeed }, { // KINEO-JUIZ-STILL-1410
-          filme: criticoFilme, // KINEO-JUIZ-STILL-1410
+        const julgado = await julgarStillDoFilme({ indice: idx, url, referencia: referenciaDaCena(qualidadeHerdada ?? qualitySnapshot, fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '')), mostra: cenaC.aiPrompt || cenaC.stockSearchQuery || cenaC.description, fala: cenaC.voiceover ?? '', prompt: classicScenePrompts[idx], seed: generationSeed }, { // KINEO-JUIZ-STILL-1410 // KINEO-QUALIDADE-TODOS-MOTORES-2910
+          filme: criticoFilme, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === url), fichas: fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? ''), // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-JUIZ-STILL-1410
           gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }), // KINEO-JUIZ-STILL-1410
         }) // KINEO-JUIZ-STILL-1410
+        if (stillFoiAprovado(julgado.relato, julgado.url)) registrarStillAprovado(julgado.url, classicScenePrompts[idx], cenaC.voiceover ?? '', fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '').map(f => f.nome)) // KINEO-QUALIDADE-TODOS-MOTORES-2910
         const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
         console.log(`[still-critic] cena ${rc.cena} (${anchorEngine}, ${rc.modo}): ${rc.veredito}${rc.problemas.length ? ` ${rc.problemas.join('+')}` : ''}${rc.motivo ? ` — ${rc.motivo}` : ''}${rc.regerou ? ` → foto nova ${rc.regeracao_ok ? (rc.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rc.escolhida}` : ''} · US$ ${rc.custo_usd.toFixed(4)} · ${rc.ms} ms`) // KINEO-JUIZ-STILL-1410
         criticoEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: anchorEngine, path_kind: 'classico', ...rc } })) // KINEO-JUIZ-STILL-1410
@@ -7218,7 +7292,8 @@ async function manipularPost(req: NextRequest) {
         const results = await Promise.all(
           batch.map(async (idx) => {
             const scenePrompt = classicScenePrompts[idx]
-            const url = await generateCinematicSceneStill({
+            const inheritedUrl = ancoraHerdadaDaCena(qualidadeHerdada, scenes[idx].voiceover ?? '', scenePrompt, fichasDaQualidade(scenePrompt, scenes[idx].voiceover ?? '')) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+            const url = inheritedUrl ?? await generateCinematicSceneStill({ // KINEO-QUALIDADE-TODOS-MOTORES-2910
               scenePrompt,
               styleSuffix: '', // Already applied once in classicScenePrompts.
               ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13 — o still garante o sufixo mesmo se a cena perdeu a cauda
@@ -7227,12 +7302,12 @@ async function manipularPost(req: NextRequest) {
               aspect: aspectRequested,
             })
             if (criticoFilme && url) criticoTarefas.push(criticarStillClassico(idx, url)) // KINEO-JUIZ-STILL-1410 — não espera: o crítico corre ao lado do lote seguinte
-            return { idx, url }
+            return { idx, url, generated: !inheritedUrl } // KINEO-QUALIDADE-TODOS-MOTORES-2910
           }),
         )
-        for (const { idx, url } of results) {
+        for (const { idx, url, generated } of results) {
           sceneStills[idx] = url
-          if (url) stillsMade++
+          if (url && generated) stillsMade++ // KINEO-QUALIDADE-TODOS-MOTORES-2910
         }
       }
       if (criticoFilme) { // KINEO-JUIZ-STILL-1410 — espera o crítico só até o prazo dos stills; quem não terminou fica com a foto original
@@ -7369,17 +7444,18 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
-    if (personagem.ativo && anchorActive && !estrelaAtiva && elencoDoAjuste.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
+    if (qualidadeFilme.gerarFolha && anchorActive && !estrelaAtiva && elencoDoAjuste.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
       providerSubmissionMayExist = true // folha e stills com folha são trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-META95-PERSONAGEM-2010
       const personagemMotor = wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-META95-PERSONAGEM-2010
       const elencoP = elencoDoAjuste // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
       const visuaisP = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-META95-PERSONAGEM-2010 — a decisão "quem está na cena" lê o plano cru, como a Estrela
-      const cenasP = (personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP)).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP)
+      const cenasP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? ''), elencoP).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const motivosP: Partial<Record<MotivoStillComFolha, number>> = {} // KINEO-META95-PERSONAGEM-AJUSTE-2010
       let reconferidasP = 0 // KINEO-META95-PERSONAGEM-AJUSTE-2010
-      const folhasP = await Promise.all(elencoP.map((f, i) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-META95-PERSONAGEM-2010 — a folha: FLUX dev (o gerador do still de hoje), semente derivada da do filme (retentativa = a mesma folha)
+      const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const folhaDe = new Map<string, string>(elencoP.flatMap((f, i): Array<[string, string]> => (folhasP[i] ? [[f.nome, folhasP[i] as string]] : []))) // KINEO-META95-PERSONAGEM-2010
+      if (qualitySnapshot) qualitySnapshot.characterReferences = Array.from(folhaDe, ([nome, url]) => ({ nome, url })) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const stillsP: (string | null)[] = new Array(scenes.length).fill(null) // KINEO-META95-PERSONAGEM-2010
       const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje
       const prazoP = Date.now() + 60_000 // KINEO-META95-PERSONAGEM-2010
@@ -7414,6 +7490,17 @@ async function manipularPost(req: NextRequest) {
       const folhaDescartada = folhaErrada(juizFichaEstado.resultados.map((r) => r.decisao)) // KINEO-JUIZ-FICHA-2710 — a mesma reprovação de identidade em 2+ cenas: a folha está errada
       if (folhaDescartada) { const finais = stillsFinaisDaFolha({ comFolha: stillsP, semFolha: semFolhaP, flux: fluxAntesP, folhaDescartada }); for (let i = 0; i < scenes.length; i++) stillsP[i] = finais[i]; console.warn(`[juiz-ficha] gen=${generationId} FOLHA DESCARTADA: identidade reprovada em ${juizFichaEstado.resultados.filter((r) => r.decisao.precisa).length} cenas; o filme volta ao texto puro (sem folha: ${semFolhaP.filter(Boolean).length}, FLUX: ${fluxAntesP.filter(Boolean).length})`) } // KINEO-JUIZ-FICHA-2710 — texto puro quando existe, senão o FLUX original (null = o laço abaixo deixa o FLUX)
       for (let i = 0; i < scenes.length; i++) if (stillsP[i]) sceneStills[i] = stillsP[i] // KINEO-META95-PERSONAGEM-2010 — o still com folha vence o FLUX daquela cena
+      // KINEO-QUALIDADE-TODOS-MOTORES-2910 — save final approved stills, not rejected intermediate frames.
+      if (qualitySnapshot) {
+        qualitySnapshot.characters = [...elencoP]
+        qualitySnapshot.characterReferences = folhaDescartada ? [] : qualitySnapshot.characterReferences.filter(ref => cenasP.some(c => c.nomes.includes(ref.nome) && relatosP.some(r => r.cena === c.indice + 1 && !!stillsP[c.indice] && stillFoiAprovado(r, stillsP[c.indice]!)))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+        qualitySnapshot.approvedStills = qualitySnapshot.approvedStills.filter(s => sceneStills.includes(s.url))
+        for (const r of relatosP) {
+          const i = r.cena - 1
+          if (stillsP[i] && sceneStills[i] === stillsP[i] && stillFoiAprovado(r, stillsP[i]!))
+            registrarStillAprovado(stillsP[i]!, classicScenePrompts[i], scenes[i].voiceover ?? '', cenasP.find(c => c.indice === i)?.nomes ?? [])
+        }
+      }
       bancoProvaFolha = { folhas: folhaDe.size, stills: stillsP.filter(Boolean).length, urls: Array.from(folhaDe.values()), relatos: relatosP } // KINEO-BANCO-PROVA-2710
       personagemRelatoFinal = { ...relatoDoPersonagem({ engine: personagemMotor, elenco: elencoP, casting: personagemElenco.casting, folhas: folhaDe.size, folhasFalhadas: elencoP.length - folhaDe.size, cenas: scenes.length, cenasComPersonagem: cenasP.length, stillsOk: stillsP.filter(Boolean).length, critico: relatosP.map((r) => ({ cena: r.cena, veredito: r.veredito, problemas: r.problemas, regerou: r.regerou, escolhida: r.escolhida })), ms: Date.now() - t0Personagem }), ...relatoDoAjuste({ motivos: motivosP, reconferidas: reconferidasP, cenas: personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP), comFicha: personagemCenas?.comFicha ?? [], semGente: personagemCenas?.semGente ?? [], regeracoes: relatosP, elenco: elencoP }) } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — + os motivos de cada still, a reconferência, as cenas pela fala/sem gente e o motivo de cada refação; era: personagemRelatoFinal = relatoDoPersonagem({ … })
       if (personagemRelatoFinal) personagemRelatoFinal = { ...personagemRelatoFinal, ...relatoJuizFicha(juizFichaEstado, folhaDescartada, [...(fichaLiteral?.literais ?? []), ...(fichaLiteral15?.literais ?? [])]) } // KINEO-JUIZ-FICHA-2710 — folha_descartada, cenas sem folha, fichas literais
@@ -7551,7 +7638,7 @@ async function manipularPost(req: NextRequest) {
     const kling4ApprovedStills = approvedKling4TrialStills(sceneStills,
       [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], kling4ExtraStillApprovals)
     // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.
-    const kling4Prompts = scenes.map((s, i) => `${s.aiPrompt || s.description}. ${classicScenePrompts[i]}`)
+    const kling4Prompts = classicScenePrompts.map(p => promptCurtoDoFilmeKling4(p, styleAnchor)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit.
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
     const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }
     let kling4Trial: Kling4TrialResult | null = null

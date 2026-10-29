@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, posix } from 'node:path' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
@@ -19,8 +19,8 @@ function load(path) {
   const code = ts.transpileModule(readFileSync(join(root, path), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
-  vm.runInNewContext(code, { exports, fetch: forbidden, AbortSignal, URL, Date,
-    require: specifier => specifier.startsWith('@/') ? load(specifier.slice(2) + '.ts') : forbidden(),
+  vm.runInNewContext(code, { exports, fetch: forbidden, AbortSignal, AbortController, setTimeout, clearTimeout, URL, Date, process: { env: {} }, console, // KINEO-QUALIDADE-TODOS-MOTORES-2910 — crítico real com fetch injetado.
+    require: specifier => specifier.startsWith('@/') ? load(specifier.slice(2) + '.ts') : specifier.startsWith('.') ? load(posix.join(posix.dirname(path), specifier) + '.ts') : forbidden(), // KINEO-QUALIDADE-TODOS-MOTORES-2910 — imports relativos continuam lendo código real, nunca SDK remoto.
   }, { filename: path, timeout: 5000 })
   return exports
 }
@@ -183,6 +183,13 @@ function paidRouteFixture({ seconds = 30, free = false, uncertain = false, exist
     ${source.slice(start, end)} } exports.run=run;`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
   const counts = { image: 0, critique: 0, post: 0, accepted: 0, bound: 0, released: 0 }
   const dispatch = { totalPosts: 0 }
+  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — a fixture executa a política, referência e juiz reais; só I/O é falso.
+  const common = load('lib/cinematic/filmQuality.ts')
+  const judge = load('lib/cinematic/filmQualityJudge.ts')
+  const critic = load('lib/cinematic/criticoStill.ts')
+  const adjustment = load('lib/cinematic/personagemAjuste.ts')
+  const characters = adjustment.elencoDoRoteiro(narration)
+  const qualitySnapshot = { approvedStills: [], characterReferences: [], characters }
   const expectedModels = prepare({ seconds, narration, scenes: scenes.map((scene, i) => ({ ...scene, approvedStillUrl: i === 0 ? 'https://test.invalid/approved.png' : null })) }).map(chunk => chunk.model)
   const box = { exports: {}, paidKling4: true, verbatim: true, parsedScript: { narration, speed: 1 }, plan: { scenes, styleSheet: 'Natural light.' },
     eraSuffix: '', generationSeed: 42, user: { id: '00000000-0000-4000-8000-000000000001' }, generationId: 'paid-route-test',
@@ -191,8 +198,18 @@ function paidRouteFixture({ seconds = 30, free = false, uncertain = false, exist
     paidKling4Promo: { isFree: free, reason: free ? 'ok' : 'cap' }, process: { env: { FAL_KEY: 'offline-test' } },
     silenciarFalaNoPrompt: value => value, prepareKling4PaidFilm: prepare, kling4PaidBudget: pricing.kling4PaidBudget, kling4PaidFallbackPrompts,
     generateCinematicSceneStill: async () => { counts.image++; return 'https://test.invalid/approved.png' },
-    novoFilmeDoCritico: () => ({}),
-    criticarStill: async (_args, deps) => { counts.critique++; assert.equal(deps.maxRegeracoesCena, 0); return { relato: { veredito: 'PASS' } } },
+    ...common, ...load('lib/cinematic/filmQualityReference.ts'), // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    styleAnchor: load('lib/cinematic/sceneStyle.ts').deriveStyleAnchor('photorealistic film'), qualidadeHerdada: null, qualitySnapshot, // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    fichasDaQualidade: (visual, speech) => characters.filter(f => adjustment.cenasDoElenco([visual], [speech], characters)[0]?.nomes.includes(f.nome)), // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    registrarStillAprovado: (url, prompt, voiceover, characterNames) => qualitySnapshot.approvedStills.push({ url, prompt, voiceover, characterNames }), // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    novoFilmeDoCritico: critic.novoFilmeDoCritico, stillFoiAprovado: judge.stillFoiAprovado, // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    julgarStillDoFilme: async (entry, deps) => { // KINEO-QUALIDADE-TODOS-MOTORES-2910
+      assert.equal(deps.maxRegeracoesCena, 0)
+      return judge.julgarStillDoFilme(entry, { ...deps, apiKey: 'offline-judge', fetchImpl: async (_url, init) => {
+        counts.critique++; assert.match(JSON.parse(init.body).messages[0].content, /judge|critic/i)
+        return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ verdict: 'PASS', issues: [], reason: '', score: 100 }) } }] }) }
+      } })
+    },
     writeServerEvent: async () => true, STILL_CRITIC_EVENTO: 'cinematic_still_critic', ctxDespacho: () => dispatch,
     ensureKling4PromoBudgetToday: async () => carry,
     releaseBirthClaim: async () => { counts.released++; return true }, NextResponse: { json: (body, init) => ({ body, status: init.status }) },

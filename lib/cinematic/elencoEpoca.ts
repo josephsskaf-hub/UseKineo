@@ -22,7 +22,7 @@
 //   · corrigirFalsosAmigos: história em PT/ES/FR/IT com "geleia/gelatina/jalea/gelée" e sem água-viva → "jellyfish" no prompt vira // KINEO-ELENCO-EPOCA-2710
 //     criatura de gelatina. Tabela pequena, só casos conhecidos. // KINEO-ELENCO-EPOCA-2710
 // Sem nome, sem época e sem falso amigo: os prompts voltam byte a byte. Guardião: scripts/test-elenco-epoca-2710.mjs. // KINEO-ELENCO-EPOCA-2710
-import { sanitizeRealPeople } from '@/lib/hollywood/router' // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
+import { sanitizeRealPeople } from '@/lib/hollywood/realPeople' // KINEO-QUALIDADE-TODOS-MOTORES-2910 — pure sanitization, including Ads client. // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
 import { figuraFiel, descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 

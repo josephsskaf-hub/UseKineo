@@ -147,7 +147,12 @@ test('actual birth wiring signs the same narration timing and intervals while pr
     ${markerBlock}
     return { response, timing: kling4Timing }
   }`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  vm.runInNewContext(code, { exports, kling4TrialSceneDurations: lib.kling4TrialSceneDurations, buildKling4TrialInput: lib.buildKling4TrialInput }, { timeout: 5000 })
+  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — execute the actual compact quality helper and its real dependency graph; only I/O is forbidden.
+  vm.runInNewContext(code, {
+    exports, kling4TrialSceneDurations: lib.kling4TrialSceneDurations, buildKling4TrialInput: lib.buildKling4TrialInput,
+    promptCurtoDoFilmeKling4: load('lib/cinematic/filmQuality.ts').promptCurtoDoFilmeKling4,
+    styleAnchor: load('lib/cinematic/sceneStyle.ts').deriveStyleAnchor('stylized 3D animated film'),
+  }, { timeout: 5000 })
   const scenes = voiceovers.map((voiceover, i) => ({ voiceover, aiPrompt: prompts[i], description: 'Description ' + i, clipSeconds: 6 + i }))
   const images = ['https://fal.media/test/first.png', null, 'https://fal.media/test/third.png']
   const result = json(exports.birth(scenes, prompts.map(prompt => prompt + ' Style-only boilerplate unrelated to spoken word count.'), images, 1.98))

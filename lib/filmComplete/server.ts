@@ -13,6 +13,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 import { promptComRoteiro } from '@/lib/meta95/ideiaNoEscritor'
 import { readKling4PaidAvailability } from '@/lib/kling4PromoServer' // KINEO-VERSAO-COMPLETA-K4-2910
 import { kling4PaidFalExtrasMilliUsd } from '@/lib/kling4PaidPricing' // KINEO-VERSAO-COMPLETA-K4-2910
+import { filmQualityFromBirth, filmQualityWriterDirection, readFilmQualitySnapshot, type FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 
 type Meta = Record<string, unknown>
 export interface FilmCompleteIntent {
@@ -39,6 +40,43 @@ export function filmCompleteId(userId: string, videoId: string): string {
 }
 
 function text(value: unknown): string { return typeof value === 'string' ? value.trim() : '' }
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — private, owner-bound birth data is the only source of inherited identity and image URLs.
+async function qualityFromStoredBirth(db: SupabaseClient, userId: string, sourceGenerationId: string, response: Meta): Promise<FilmQualitySnapshot> {
+  const saved = readFilmQualitySnapshot(response.quality_snapshot)
+  if (saved && saved.sourceGenerationId === sourceGenerationId) return saved
+  const { data, error } = await db.from('events').select('name, metadata').eq('user_id', userId).eq('session_id', sourceGenerationId)
+    .in('name', ['cinematic_character_sheet', 'cinematic_still_critic']).order('created_at', { ascending: false }).limit(100)
+  if (error) throw new Error('film_complete_source_quality_unavailable')
+  const values = (name: string) => (data ?? []).filter(row => row.name === name).map(row => row.metadata && typeof row.metadata === 'object' ? row.metadata as Meta : {})
+  return filmQualityFromBirth({ sourceGenerationId, response, sheetEvents: values('cinematic_character_sheet'), criticEvents: values('cinematic_still_critic') })
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — old paid intents are recovered from their original owned film, never from caller-supplied sheets/URLs.
+async function sourceQualityForIntent(db: SupabaseClient, intent: FilmCompleteIntent): Promise<FilmQualitySnapshot | null> {
+  const saved = readFilmQualitySnapshot(intent.metadata.source_quality)
+  if (saved && saved.sourceGenerationId === text(intent.metadata.source_generation_id)) return saved
+  const { data: video, error: ve } = await db.from('videos').select('id, user_id, render_id, status').eq('id', intent.sourceVideoId).eq('user_id', intent.userId).maybeSingle()
+  if (ve) throw new Error('film_complete_source_quality_unavailable')
+  if (!video || video.user_id !== intent.userId || video.status !== 'completed' || !text(video.render_id)) return null
+  const { data: compose, error: ce } = await db.from('events').select('session_id, metadata').eq('user_id', intent.userId).eq('name', COMPOSE_CLAIM_EVENT)
+    .eq('metadata->>render_id', video.render_id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (ce) throw new Error('film_complete_source_quality_unavailable')
+  const sourceGenerationId = text(compose?.metadata?.generation_id) || text(compose?.session_id)
+  if (!sourceGenerationId) return null
+  const { data: birth, error: be } = await db.from('events').select('metadata').eq('user_id', intent.userId).eq('name', CINEMATIC_CLAIM_EVENT)
+    .eq('id', cinematicClaimId(intent.userId, sourceGenerationId)).maybeSingle()
+  if (be) throw new Error('film_complete_source_quality_unavailable')
+  const response = birth?.metadata?.response && typeof birth.metadata.response === 'object' ? birth.metadata.response as Meta : {}
+  return qualityFromStoredBirth(db, intent.userId, sourceGenerationId, response)
+}
+
+// KINEO-QUALIDADE-TODOS-MOTORES-2910 — renderer resolves the paid intent on the server; identity cannot be injected through the request body.
+export async function loadFilmCompleteQuality(db: SupabaseClient, userId: string, id: string, generationId: string): Promise<FilmQualitySnapshot | null> {
+  const intent = await loadFilmCompleteIntent(db, userId, id)
+  if (!intent || intent.generationId !== generationId || !text(intent.metadata.paid_session_id)) return null
+  return sourceQualityForIntent(db, intent)
+}
 
 export async function loadFilmCompleteIntent(db: SupabaseClient, userId: string, id: string): Promise<FilmCompleteIntent | null> {
   if (!FILM_COMPLETE_UUID.test(id)) return null
@@ -71,6 +109,7 @@ export async function createFilmCompleteIntent(db: SupabaseClient, userId: strin
   let birthPrompt = ''
   let sourceAspect = '9:16'
   let sourceVisualMode = ''
+  let sourceQuality: FilmQualitySnapshot | null = null // KINEO-QUALIDADE-TODOS-MOTORES-2910
   if (text(video.render_id)) {
     const { data: claim, error } = await db.from('events').select('session_id, metadata').eq('user_id', userId).eq('name', COMPOSE_CLAIM_EVENT)
       .eq('metadata->>render_id', video.render_id).order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -89,6 +128,7 @@ export async function createFilmCompleteIntent(db: SupabaseClient, userId: strin
       birthPrompt = text(response.prompt)
       sourceAspect = ['9:16', '16:9', '1:1', '4:5'].includes(text(response.aspect)) ? text(response.aspect) : '9:16'
       sourceVisualMode = text(response.visual_mode)
+      sourceQuality = await qualityFromStoredBirth(db, userId, sourceGenerationId, response) // KINEO-QUALIDADE-TODOS-MOTORES-2910
     }
   }
   language = resolveNarrationLanguage(narrationLanguage(language) ?? 'en', script).language
@@ -101,6 +141,7 @@ export async function createFilmCompleteIntent(db: SupabaseClient, userId: strin
     version: FILM_COMPLETE_VERSION, source_video_id: videoId, source_script: script, source_topic: topic,
     prompt, language, generation_id: `filmcomplete-${id}`, target_seconds: FILM_COMPLETE_TARGET_SECONDS,
     source_aspect: sourceAspect, source_visual_mode: sourceVisualMode,
+    source_generation_id: sourceQuality?.sourceGenerationId ?? null, source_quality: sourceQuality, // KINEO-QUALIDADE-TODOS-MOTORES-2910 — frozen before checkout
     engine: FILM_COMPLETE_ENGINE, script_mode: 'ai', surface: surface === 'email' ? 'email' : 'film_ready', source_video_url: text(video.video_url),
     state: 'awaiting_payment', paid_session_id: null, created_at: new Date().toISOString(),
   }
@@ -193,6 +234,13 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
   }
   let minted: Awaited<ReturnType<typeof mintUserSession>> | null = null
   try {
+    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — freeze legacy recovery before screenplay/provider work; both dispatch engines reuse it.
+    const sourceQuality = await sourceQualityForIntent(db, intent)
+    if (sourceQuality && !readFilmQualitySnapshot(next.source_quality)) {
+      next.source_quality = sourceQuality
+      next.source_generation_id = sourceQuality.sourceGenerationId
+      await update({ state: 'starting' })
+    }
     minted = await io.mint(intent.userId, text(profile.email))
     if (!minted.ok) { await update({ launch_at: null }); return { ...status, state: 'starting' } }
     let dispatchPrompt = text(intent.metadata.dispatch_prompt)
@@ -204,7 +252,7 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     if (!dispatchPrompt) {
       // The normal cinematic AI writer runs BEFORE its fingerprint. Freeze its expanded screenplay first,
       // otherwise a retry could rewrite the text and conflict with the same generation's original claim.
-      const context = intent.prompt.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim()
+      const context = `${intent.prompt}\n${filmQualityWriterDirection(sourceQuality)}`.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim() // KINEO-QUALIDADE-TODOS-MOTORES-2910 — keep source style and cast in the existing writer call
       const writer = await io.fetch(`${origin}/api/generate-script`, {
         method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
         body: JSON.stringify({ topic: `Expand the same story into a ${seconds}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events. Original story and direction: [${context}]`, language: intent.language, targetSeconds: seconds, engine, forceAuthoring: true }), // KINEO-VERSAO-COMPLETA-K4-2910
@@ -229,7 +277,7 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     }
     const response = await io.fetch(`${origin}/api/generate-video-cinematic`, {
       method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
-      body: JSON.stringify({ generationId: intent.generationId, prompt: dispatchPrompt, language: intent.language, engine, duration: seconds, ...(useKling4 ? { kling4_expect_promo: true } : {}), script_mode: 'verbatim', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16' }),
+      body: JSON.stringify({ generationId: intent.generationId, prompt: dispatchPrompt, language: intent.language, engine, duration: seconds, ...(useKling4 ? { kling4_expect_promo: true } : {}), script_mode: 'verbatim', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16', film_complete_id: intent.id }), // KINEO-QUALIDADE-TODOS-MOTORES-2910 — renderer loads private source_quality by paid, owner-bound intent
       signal: AbortSignal.timeout(240_000),
     })
     const result = await response.json().catch(() => ({})) as Meta
