@@ -133,6 +133,7 @@ export default function LiveNowPanel() {
             Nobody signed-in on the site in the last 5 minutes.
           </div>
         )}
+        <style>{'.lnp-cel{display:none}@media (max-width:760px){.lnp-cel{display:block}}'}</style>
         {data && data.online.length > 0 && (
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
@@ -167,6 +168,12 @@ export default function LiveNowPanel() {
                     {v.is_courtesy && !v.is_affiliate && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="cortesia ativa que não é de parceiro (cliente, revisor)" style={{ background: 'rgba(255,255,255,.06)', color: 'var(--muted2)', border: '1px solid var(--border)' }}>cortesia</span>
                     )}
+                    {/* KINEO-ADM-SALDO-CELULAR-2810 — fundador 29/10 no celular: o saldo e o extrato ficavam fora da tela; repetidos sob o e-mail só em tela estreita. */}
+                    <div className="lnp-cel" style={{ fontSize: '0.7rem', marginTop: 3, whiteSpace: 'normal', maxWidth: 300 }}>
+                      <span style={{ fontWeight: 700, color: (v.credits ?? 0) <= 5 ? '#FB923C' : 'var(--text)' }}>{v.credits ?? '—'}{v.credits !== null && v.credits !== undefined ? ' cr' : ''}</span>
+                      {(v.ledger || v.creditsUsedLabel) && <span style={{ color: 'var(--muted2)', marginLeft: 6 }}>{v.ledger || v.creditsUsedLabel}</span>}
+                      {v.spentOn && <div style={{ color: '#C4B5FD', marginTop: 1 }}>{v.spentOn}</div>}
+                    </div>
                   </td>
                   <td style={{ padding: '9px 12px', color: heatColor(v.heat), fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                     {v.did.join(' · ')}
