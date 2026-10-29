@@ -84,6 +84,18 @@ test('approved per-scene stills select image-to-video using only documented imag
   assert.equal('aspect_ratio' in input, false, 'I2V orientation is inherited from the approved portrait frame')
 })
 
+test('middle keyframes preserve scene order and never exceed the eight-image schema limit', () => {
+  const visuals = Array.from({ length: 12 }, (_, i) => `Scene ${i + 1}: the same explorer crosses a new landscape.`)
+  const frames = visuals.map((_, i) => `https://fal.media/test/approved-${i + 1}.png`)
+  const { input } = lib.buildKling4TrialInput(visuals, frames)
+  assert.equal(input.start_image_url, frames[0])
+  assert.deepEqual(json(input.middle_image_urls), frames.slice(1, 9))
+  assert.equal(input.multi_prompt.length, visuals.length)
+  assert.equal(input.multi_prompt.reduce((sum, shot) => sum + shot.duration, 0), 15)
+  assert.match(input.multi_prompt[8].prompt, /middle keyframe\s*8/i)
+  assert.match(input.multi_prompt[9].prompt, /no(?: new)? keyframe/i)
+})
+
 test('missing approved stills stay text-directed without fabricated array placeholders or changed scene order', () => {
   const stills = ['https://fal.media/test/frame1.png', null, 'https://fal.media/test/frame3.png']
   const { input } = lib.buildKling4TrialInput(prompts, stills)

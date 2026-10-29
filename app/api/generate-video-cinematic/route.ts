@@ -5,7 +5,7 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
-import { generateKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, type Kling4TrialResult } from '@/lib/kling4Trial'
+import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
@@ -1406,7 +1406,6 @@ export async function POST(req: NextRequest) {
 }
 
 async function manipularPost(req: NextRequest) {
-  const kling4RouteStartedAt = Date.now()
   let activeBirthClaim: {
     db: SupabaseClient
     secret: string
@@ -6964,6 +6963,7 @@ async function manipularPost(req: NextRequest) {
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
+    const kling4ExtraStillApprovals: Array<{ cena: number; url: string | null; veredito: string | null }> = []
     // ═══ KINEO-CENA-CLASSICA-2026-09-28 — o payload que foi ao fal, cena a cena ═══
     // 3ab8128c (externa, Seedance 60 s, 16/09): 1 de 7 cenas nunca voltou e o filme morreu no prazo; d6e8e8b3 (fundador,
     // 15/09) saiu com 6 de 7, sem retentativa. A família hollywood refaz a cena em 2 rodadas via /api/retry-hollywood-scene;
@@ -7230,6 +7230,9 @@ async function manipularPost(req: NextRequest) {
         stillsP[c.indice] = julgado.url // KINEO-META95-PERSONAGEM-2010
         const semFolha = await julgarSemFolha(juizFichaEstado, { indice: c.indice, relato: julgado.relato, scenePrompt: classicScenePrompts[c.indice], visual: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', fichas, seed: generationSeed }, { gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }) }) // KINEO-JUIZ-FICHA-2710 — o still de texto puro sai do MESMO gerador do still clássico (FLUX), sem folha
         if (semFolha.url) semFolhaP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710
+        if (kling4TrialCandidate && semFolha.url && semFolha.veredito === 'PASS') {
+          kling4ExtraStillApprovals.push({ cena: c.indice + 1, url: semFolha.url, veredito: semFolha.veredito })
+        }
         if (semFolha.url && semFolha.escolha === 'sem_folha') stillsP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710 — a cena segue o texto puro
         Object.assign(julgado.relato, metadadoSemFolha(semFolha)) // KINEO-JUIZ-FICHA-2710 — a decisão entra no evento cinematic_still_critic desta cena (fallback: 'sem_folha' | 'folha' | null), que a linha abaixo espalha
         void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010
@@ -7371,34 +7374,36 @@ async function manipularPost(req: NextRequest) {
       c.quality = String(claimQuality)
       c.planned = scenes.length
     }
+    const kling4ApprovedStills = approvedKling4TrialStills(sceneStills,
+      [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], kling4ExtraStillApprovals)
+    // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.
+    const kling4Prompts = scenes.map((s, i) => `${s.aiPrompt || s.description}. ${classicScenePrompts[i]}`)
     let kling4Trial: Kling4TrialResult | null = null
     let kling4Posts = 0
-    if (kling4TrialCandidate) {
+    if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6))) {
       kling4Trial = await orchestrateKling4Trial({
-        reserve: () => kling4RouteStartedAt + 250_000 - Date.now() < 20_000
-          ? Promise.resolve({ allowed: false, reason: 'unavailable' })
-          : reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
-        generate: () => generateKling4TrialVideo({
-          prompts: classicScenePrompts, firstFrame: sceneStills[0],
-          // maxDuration=300. Keep at least 50s for the existing Seedance fallback and claim publication.
-          deadline: Math.min(Date.now() + 120_000, kling4RouteStartedAt + 250_000),
+        reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
+        submit: () => submitKling4TrialVideo({
+          prompts: kling4Prompts, approvedStills: kling4ApprovedStills,
         }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }),
       })
+    } else if (kling4TrialCandidate) {
+      kling4Trial = { engineUsed: 'seedance15_fallback', costUsd: 0, reason: 'fallback_plan_unavailable' }
     }
-    const submittedScenes = kling4Trial?.video
-      ? { ids: [kling4Trial.video.requestId], models: [kling4Trial.video.model] }
+    const submittedScenes = kling4Trial?.job
+      ? { ids: [kling4Trial.job.requestId], models: [kling4Trial.job.model] }
       : await submitAllScenes(usedModel)
-    if (kling4Trial?.video) {
+    if (kling4Trial?.job) {
       providerSubmissionMayExist = true
       const c = ctxDespacho()
-      c.engine = kling4Trial.video.model
+      c.engine = kling4Trial.job.model
       c.planned = 1
-      c.outcomes = [acceptedScene(0, kling4Trial.video.model)]
-      c.attempts = [[{ model: kling4Trial.video.model, status: 200, ambiguous: false, accepted: true }]]
+      c.outcomes = [acceptedScene(0, kling4Trial.job.model)]
+      c.attempts = [[{ model: kling4Trial.job.model, status: 200, ambiguous: false, accepted: true }]]
       c.submittedPrompts = [classicScenePrompts.join(' ').slice(0, 240)]
     } else if (kling4Posts && ctxDespacho().attempts[0]) {
       // The abandoned Kling attempt is still a real POST; do not erase it from dispatch accounting.
-      ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(classicScenePrompts, sceneStills[0]).model,
+      ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(kling4Prompts, kling4ApprovedStills).model,
         status: null, ambiguous: true, accepted: false })
       ctxDespacho().outcomes[0].attempt_count++
     }
@@ -7646,14 +7651,22 @@ async function manipularPost(req: NextRequest) {
       response.kling4_trial = {
         version: 'kling4_trial_2810', engine_used: kling4Trial.engineUsed,
         cost_usd: kling4Trial.costUsd, country: paisDoRequest(req.headers),
-        ...(kling4Trial.video ? { video_url: kling4Trial.video.url } : {}),
+        ...(kling4Trial.job ? {
+          original_request_id: kling4Trial.job.requestId, submitted_at: kling4Trial.job.submittedAt,
+          fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),
+          fallback_response: {
+            scenes: response.scenes, scene_captions: response.scene_captions,
+            scene_prompts: classicScenePrompts, clip_seconds: response.clip_seconds,
+            clip_word_starts: response.clip_word_starts,
+          },
+        } : {}),
       }
-      if (kling4Trial.video) {
+      if (kling4Trial.job) {
         // One multi-shot source, not three repetitions of the same 15s video.
         Object.assign(response, {
-          fal_model: kling4Trial.video.model, scenes: [scenes.map(s => s.description).join(' ')],
+          fal_model: kling4Trial.job.model, scenes: [scenes.map(s => s.description).join(' ')],
           scene_captions: [''], scene_prompts: [classicScenePrompts.join(' ')],
-          scene_fal_inputs: [buildKling4TrialInput(classicScenePrompts, sceneStills[0]).input],
+          scene_fal_inputs: [buildKling4TrialInput(kling4Prompts, kling4ApprovedStills).input],
           clip_seconds: [15], clip_word_starts: [0],
         })
       }
