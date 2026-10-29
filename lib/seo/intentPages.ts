@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — o catálogo das páginas de intenção.
 //
 // Fundador (17/09/2026 00:40 BRT): "os concorrentes pagam o Google?" — pouco; Fliki tem ~1 milhão de
@@ -140,7 +141,7 @@ const KINEO_TRUTHS = {
   finished: 'Kineo delivers a finished MP4: script, AI voice, matched scenes, captions and music, from one idea or a pasted script.',
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 deixou de caber no trial de conta nova (fora do catálogo público); o filme
   // grátis é o Seedance 1.5 de 15 s. O motor padrão das páginas (engine) é decisão da E2b — aqui só o texto.
-  engines: 'You choose the engine per film: Seedance 1.5 (a new account\'s trial pays for one free 15-second film), Veo 3.1, Kling 2.5 or Kling 3.',
+  engines: `You choose the engine per film: Seedance 1.5, Veo 3.1, Kling 2.5 or Kling 3. A new account's trial pays for one free 15-second film made with ${FREE_FILM_ENGINE_NAME}.`, // KINEO-LLMS-K4-2910
   noCard: 'The free trial needs no card; the trial size and every price on this page are read live from the same source as the pricing page.',
   series: 'Every finished film comes with a written next episode, so a channel becomes a series instead of one-off videos.',
 }

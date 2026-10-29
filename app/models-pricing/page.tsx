@@ -24,6 +24,7 @@ import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 // digitado à mão, enquanto a tabela — derivada do código — mostrava 5. A página
 // se contradizia em duas linhas de distância.
 import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { KINEO1_PUBLIC, S25_PUBLIC } from '@/lib/engineLaunch'
 import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { qualityPaused, PAUSED_ENGINES_COPY } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
@@ -142,7 +143,8 @@ export default function ModelsPricingPage() {
                     </td>
                   ))}
                   <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap', color: free >= 1 || freeShort ? '#7ee2a8' : '#8f8f9c' }}>
-                    {r.quality === 'cinematic_s25' ? 'Paid plans only' /* KINEO-S25-ABRE-2026-10-06: o trial não abre o 2.5 */ : free >= 1 ? `${free} film${free === 1 ? '' : 's'}` : freeShort ? `${TRIAL_SEEDANCE15_FILMS} free ${TRIAL_FREE_FILM_SECONDS}s film` : 'part of one'}
+                    {/* KINEO-LLMS-K4-2910 — a linha de referência Seedance identifica o motor real do primeiro filme. */}
+                    {r.quality === 'cinematic_s25' ? 'Paid plans only' /* KINEO-S25-ABRE-2026-10-06: o trial não abre o 2.5 */ : free >= 1 ? `${free} film${free === 1 ? '' : 's'}` : freeShort ? `${TRIAL_SEEDANCE15_FILMS} free ${TRIAL_FREE_FILM_SECONDS}s film on ${FREE_FILM_ENGINE_NAME}` : 'part of one'}
                   </td>
                 </tr>
               )

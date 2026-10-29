@@ -30,6 +30,7 @@
 // $1 nasceu quebrada. Volta o trial GRÁTIS (30 créditos = 1 Seedance de 60 s +
 // 1 Kineo 1 de 60 s, ver lib/reverseTrial.ts) com todo motor aberto. O $1 morreu
 // inteiro (lib/checkoutPricing.ts CARD_TRIAL_LIVE = false).
+import { FREE_FILM_ENGINE_NAME } from './freeFilmEngine' // KINEO-LLMS-K4-2910 — módulo continua puro, sem env/rede.
 export const CARD_ENTRY_ONLY = false
 
 /** Créditos do trial grátis — espelho de TRIAL_CREDIT_CAP (lib/reverseTrial.ts); guardião confere. */
@@ -73,7 +74,7 @@ export const CARD_ENTRY_COPY_V_B = {
 // KINEO-RESTAURACAO-2026-09-09 — a copy da ENTRADA GRÁTIS. Mantém as mesmas
 // chaves porque ~25 páginas públicas leem `CARD_ENTRY_COPY.ctaLong/ctaShort`
 // no botão principal: trocar aqui troca todas de uma vez, sem redigitar.
-// KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — espelho LITERAL (módulo PURO, sem import) de
+// KINEO-LLMS-K4-2910 · KINEO-E4-CONSERTO-2026-09-29 — espelho LITERAL da cláusula de país de
 // FREE_FILM_COUNTRY_CLAUSE (lib/freeFilmPolicy.ts, política 'pais_rico'): conta de país fora da lista nasce com 0 crédito,
 // então a frase do grant diz onde ele vale. Os botões (ctaShort/ctaLong) ficam curtos. O guardião
 // scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs executa os dois módulos e exige igualdade — virar a política para
@@ -91,10 +92,9 @@ export const FREE_ENTRY_COPY = {
     // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
     // KINEO-PRECO-TESTE-2026-10-08 — o espelho agora é "$9.90" (Starter do teste de 7 dias); guardião:
     // scripts/test-preco-teste-2026-10-08.mjs.
-    // KINEO-FILME-GRATIS-15S-2026-09-29 — "one free 15-second film (Seedance 1.5)" é espelho literal (módulo PURO) de
-    // lib/freeTierOffer.ts FREE_FILM_LABEL/TRIAL_SEEDANCE15_FILMS (1 × 7 cr ≤ 10); o guardião
-    // scripts/test-copy-filme-gratis-15s-2026-09-29.mjs executa os dois e confere. Era "two Kineo 1 films of 60 seconds".
-    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (Seedance 1.5) — with no card required. Kling and Veo come with any paid plan. Plans start at $9.90/month when you want more.`,
+    // KINEO-LLMS-K4-2910 — o motor vem de freeFilmEngine; o guardião confere a frase contra FREE_FILM_LABEL.
+    // KINEO-LLMS-K4-2910 — mesmo nome canônico usado por FREE_FILM_LABEL, sem ciclo com freeTierOffer.
+    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (${FREE_FILM_ENGINE_NAME}) — with no card required. Longer films and other engines come with any paid plan. Plans start at $9.90/month when you want more.`,
   noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, no card.`,
 } as const
 export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY ? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY

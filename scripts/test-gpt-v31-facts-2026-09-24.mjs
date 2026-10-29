@@ -4,6 +4,10 @@ process.env.KINEO_REVERSE_TRIAL_ENABLED = 'true'
 const { check, finish } = checks()
 const { getKineoFacts, FREE_TIER, TRIAL_ACCESS, RECURRING_FREE_ACCESS, START_HERE_FACT, ENGINE_FACTS } = await moduleAt('lib/kineoFacts.ts')
 const { getFreeTierOffer } = await moduleAt('lib/freeTierOffer.ts')
+// KINEO-LLMS-K4-2910 — expectativa vem da política, para detectar divergência na copy.
+const { KLING4_TRIAL_LIVE } = await moduleAt('lib/kling4TrialPolicy.ts')
+const expectedEngine = KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+const expectedFreeFilm = `free 15-second film (${expectedEngine})`
 const { buildRecurringFreeAccessFact } = await moduleAt('lib/growth/trialAccessFacts.ts')
 const { estimateHandoff, HANDOFF_ENGINES, engineFamily } = await moduleAt('lib/gptHandoff.ts')
 const schema = JSON.parse(source('public/gpt/openapi.json'))
@@ -12,11 +16,11 @@ let allowance = FREE_TIER.allowance
 if (process.argv.includes('--mutant')) allowance = '10 free credits on signup with every engine unlocked'
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial passou a pagar o Seedance 1.5 de 15 s (decisão do fundador) e o Kineo 1
 // saiu do catálogo; a frase ainda separa saldo de acesso (não cobre 60 s em motor nenhum). O --mutant segue vermelho.
-check('trial copy separates balance from access in same statement', allowance.includes('free 15-second film (Seedance 1.5)') && allowance.includes('does not cover a 60-second film on any engine') && allowance.includes('Engine access and sufficient credits are separate') && allowance.includes('watermark'))
+check('trial copy separates balance from access in same statement', allowance.includes(expectedFreeFilm) && allowance.includes('does not cover a 60-second film on any engine') && allowance.includes('Engine access and sufficient credits are separate') && allowance.includes('watermark')) // KINEO-LLMS-K4-2910
 check('access entitlement preserved rather than falsely disabling engines', TRIAL_ACCESS.everyEngineUnlocked === true)
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: com o Kineo 1 fora do catálogo nenhum motor cabe a 60 s; o que o saldo paga é o
 // filme de 15 s, publicado em trialAccess.freeFilm.
-check('current balance covers no 60-second reference film, and the 15-second Seedance film instead', TRIAL_ACCESS.engineCoverage.filter(e=>e.wholeReferenceVideosCovered>0).length === 0 && TRIAL_ACCESS.freeFilm?.engine === 'Seedance 1.5' && TRIAL_ACCESS.freeFilm?.seconds === 15 && TRIAL_ACCESS.freeFilm?.filmsCovered === 1)
+check('current balance covers no 60-second reference film, and the derived 15-second trial film instead', TRIAL_ACCESS.engineCoverage.filter(e=>e.wholeReferenceVideosCovered>0).length === 0 && TRIAL_ACCESS.freeFilm?.engine === expectedEngine && TRIAL_ACCESS.freeFilm?.seconds === 15 && TRIAL_ACCESS.freeFilm?.filmsCovered === 1) // KINEO-LLMS-K4-2910
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a cota semanal deixou de ser anunciada: o fato recorrente é null no módulo e no payload.
 check('recurring free access is not announced (module and facts payload)', RECURRING_FREE_ACCESS === null && getKineoFacts().recurringFreeAccess === null && getFreeTierOffer().maxFreeFastSeconds === 15)
 check('legacy helper caller explicitly exposes unknown/no cap as null', buildRecurringFreeAccessFact({engine:'Kineo 1',videosPerWindow:1,rollingWindowHours:168}).maxSeconds===null)
@@ -25,9 +29,9 @@ try { buildRecurringFreeAccessFact({engine:'Kineo 1',videosPerWindow:1,rollingWi
 check('invalid recurring duration is rejected',invalidCapRejected)
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o not-a-fit diz o filme grátis de 15 s e que não há filme grátis recorrente.
 // Reancorado 29/09 (revisão da E2b, texto achado 5): não anunciar a cota ≠ negar que ela existe; a frase afirma só o anunciado.
-check('not-a-fit copy names the free 15-second film as the only advertised free film', getKineoFacts().notAFit.some(f=>f.useInstead.includes('free 15-second film (Seedance 1.5)') && f.useInstead.includes('the only free film Kineo advertises') && !f.useInstead.includes('no recurring free films')))
+check('not-a-fit copy names the free 15-second film as the only advertised free film', getKineoFacts().notAFit.some(f=>f.useInstead.includes(expectedFreeFilm) && f.useInstead.includes('the only free film Kineo advertises') && !f.useInstead.includes('no recurring free films'))) // KINEO-LLMS-K4-2910
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial cobre o Seedance de 15 s, não mais o Kineo 1.
-check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes('free 15-second film (Seedance 1.5)') && START_HERE_FACT.action.includes('Existing accounts'))
+check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes(expectedFreeFilm) && START_HERE_FACT.action.includes('Existing accounts')) // KINEO-LLMS-K4-2910
 // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta (fundador 12/10) e da lista de motores dos
 // fatos. Mais forte que "pausado sem #1": não aparece de jeito nenhum (nem selo de ranking, nem como pausado).
 check('Omni (fora da oferta) is not advertised at all', !ENGINE_FACTS.some(e=>/omni/i.test(e.name)) && !ENGINE_FACTS.some(e=>/#1/.test(e.what)))

@@ -21,6 +21,7 @@
 //    marca — pior do que um fato ausente.
 
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { FREE_FILM_ENGINE_NAME } from './freeFilmEngine' // KINEO-LLMS-K4-2910
 import { kling4PaidCitation } from '@/lib/growth/kling4PaidCitation'
 // KINEO-MARCA-2026-10-06 — nome e desambiguação no topo do /api/facts (módulo puro, sem import).
 import { BRAND_DISAMBIGUATION, BRAND_WITH_DOMAIN } from './brandIdentity'
@@ -673,7 +674,8 @@ const TRIAL_CREDIT_CAP = TRIAL_GRANT_CREDITS_COPY
 // KINEO-FILME-GRATIS-15S-2026-09-29 — derivado do filme de 15 s: com o Kineo 1 fora do catálogo, nenhum motor cabe
 // no trial a 60 s e a lista antiga sairia em BRANCO. O que o saldo cobre é o Seedance 1.5 de 15 s (custo e contagem
 // de lib/freeTierOffer, que lê creditCostForDuration). Se o saldo deixar de pagar o 15 s, a frase some (vazia).
-export const TRIAL_COVERED_ENGINE_NAMES = TRIAL_SEEDANCE15_FILMS >= 1 ? `Seedance 1.5 (${TRIAL_SEEDANCE15_FILMS} ${TRIAL_FREE_FILM_SECONDS}-second film at ${TRIAL_FREE_FILM_CREDITS} credits)` : ''
+// KINEO-LLMS-K4-2910 — cobertura e contagem preservadas; o motor anunciado segue o interruptor.
+export const TRIAL_COVERED_ENGINE_NAMES = TRIAL_SEEDANCE15_FILMS >= 1 ? `${FREE_FILM_ENGINE_NAME} (${TRIAL_SEEDANCE15_FILMS} ${TRIAL_FREE_FILM_SECONDS}-second film at ${TRIAL_FREE_FILM_CREDITS} credits)` : ''
 
 // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal (1 Kineo 1 grátis por semana) deixou de ser ANUNCIADA: o
 // mecanismo no /api/compose fica até a E4, mas nenhum fato público o oferece. Virar true só se o fundador reabrir.
@@ -782,7 +784,7 @@ export const TRIAL_ACCESS = buildTrialAccessFact({
   credits: CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_CREDIT_CAP,
   engines: CARD_ENTRY_ONLY ? ENGINE_FACTS.filter((e) => e.name === 'Seedance 1.5') : ENGINE_FACTS,
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o filme que o trial PAGA, publicado à parte da cobertura de 60 s (que dá 0).
-  freeFilm: { engine: 'Seedance 1.5', seconds: TRIAL_FREE_FILM_SECONDS, credits: TRIAL_FREE_FILM_CREDITS, availableIn: FREE_FILM_COUNTRY_CLAUSE.trim().replace(/^in /, '') || null }, // KINEO-E4-SAIDA-B
+  freeFilm: { engine: FREE_FILM_ENGINE_NAME, seconds: TRIAL_FREE_FILM_SECONDS, credits: TRIAL_FREE_FILM_CREDITS, availableIn: FREE_FILM_COUNTRY_CLAUSE.trim().replace(/^in /, '') || null }, // KINEO-LLMS-K4-2910 · KINEO-E4-SAIDA-B
   noCardRequired: !CARD_ENTRY_ONLY,
   everyEngineUnlocked: !CARD_ENTRY_ONLY,
   entryFeeUsdMinor: CARD_ENTRY_ONLY ? CARD_TRIAL_ENTRY_FEE_MINOR : null,

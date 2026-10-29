@@ -35,6 +35,7 @@ import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import nodeCrypto from 'node:crypto'
 import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
+import { semLlmsFilmeGratisKling42910 } from './test-support/desfaz-llms-filme-gratis-kling4-2910.mjs' // KINEO-LLMS-K4-2910 - exact copy projection before historical contracts; the new guardian runs raw sources.
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -45,7 +46,7 @@ const React = requireRepo('react')
 const jsxRuntime = requireRepo('react/jsx-runtime')
 const { renderToStaticMarkup } = requireRepo('react-dom/server')
 const CR = new RegExp(String.fromCharCode(13), 'g')
-const rd = (rel) => semPaginasIaClaras2110(readFileSync(join(ROOT, rel), 'utf8').replace(CR, ''), rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+const rd = (rel) => semPaginasIaClaras2110(semLlmsFilmeGratisKling42910(rel, readFileSync(join(ROOT, rel), 'utf8').replace(CR, '')), rel) /* KINEO-LLMS-K4-2910 */ // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k)
 
 let pass = 0
@@ -799,7 +800,9 @@ async function regraR10(world = {}) {
   if (OLD.trial.test(t)) p.push('R10 /facts: ainda promete que o teste libera todo motor')
   const faq = ldBlocos(html).map((b) => { try { return JSON.parse(b) } catch { return null } }).find((x) => x && x['@type'] === 'FAQPage')
   const resp = (faq?.mainEntity ?? []).find((x) => x.name === 'Can I try every Kineo video engine for free?')?.acceptedAnswer?.text ?? (t.match(/Can I try every Kineo video engine for free\? (.{0,600})/) ?? [])[1] ?? ''
-  if (!resp.startsWith('No.') || !resp.includes(`free ${offer.TRIAL_FREE_FILM_SECONDS}-second film (Seedance 1.5)`)) p.push('R10 /facts: a resposta "Can I try every engine for free?" não diz "No." com o filme que o teste paga')
+  // KINEO-LLMS-K4-2910 — R10 continua exigindo o motor correto, agora do interruptor.
+  const engine = load('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+  if (!resp.startsWith('No.') || !resp.includes(`free ${offer.TRIAL_FREE_FILM_SECONDS}-second film (${engine})`)) p.push('R10 /facts: a resposta "Can I try every engine for free?" não diz "No." com o filme que o teste paga')
   if (!llms.includes('- Trial engine access: the trial balance pays for the free film below')) p.push('R10 llms.txt: a linha do acesso do teste não diz o que o saldo paga')
   return p
 }

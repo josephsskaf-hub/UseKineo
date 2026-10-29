@@ -257,7 +257,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
           ({kling?.films ?? 0}) are chosen far less often — they cost {veo?.credits60 ?? '—'} and {kling?.credits60 ?? '—'} credits
           per 60-second film, and at that size of sample the honest reading is &ldquo;rarely picked&rdquo;, not &ldquo;worse&rdquo;.
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público e desta tabela (ENGINE_SLUGS). */}
-          {` The free way to try it is Seedance itself: a new account’s trial credits${GRANT_COUNTRY_CLAUSE} pay for one 15-second Seedance film.`}
+          {/* KINEO-LLMS-K4-2910 */}
+          {` The free way to try Kineo: a new account’s trial credits${GRANT_COUNTRY_CLAUSE} pay for one 15-second film made with ${FREE_FILM_ENGINE_NAME}.`}
         </p>
 
         <CompetitorTable1610 />{/* KINEO-PAGINAS-MOTOR-1610 — fora da Kineo, com fonte oficial e data */}
