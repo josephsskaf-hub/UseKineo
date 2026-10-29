@@ -86,7 +86,7 @@ export function buildCenaEscolhaMontage(s: CenaEscolhaState): Record<string, unk
     const time = k === 0 ? 0 : 8, duration = clips.length === 1 ? seconds : k === 0 ? 8 : 7, available = j.measuredSeconds ?? j.seconds // KINEO-AMOSTRA-ANUNCIO-2410
     if (!(Number.isFinite(available) && available > 0)) throw new Error('escolha_video_unusable')
     const base = { type: 'video', time, source: j.url!, fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', color_filter: 'contrast', color_filter_value: 5 }
-    elements.push({ ...base, track: 2, duration, volume: mode === 'narrated' && !sample ? ESCOLHA_AMBIENT_VOLUME : '0%', ...(available < duration ? { loop: true } : { loop: false, trim_start: 0 }) }) // KINEO-AMOSTRA-ANUNCIO-2410 — sample video has no native audio; paid ambient volume is preserved.
+    elements.push({ ...base, track: 2, duration, volume: mode === 'narrated' && !sample && s.route !== 'kling4' ? ESCOLHA_AMBIENT_VOLUME : '0%', ...(available < duration ? { loop: true } : { loop: false, trim_start: 0 }) }) // Narrated Kling4 always mutes unverified native speech; existing Kling3 ambience remains.
     if (mode === 'talking') elements.push({ ...base, track: 1, duration: Math.min(duration, available), volume: '100%', loop: false, trim_start: 0 })
   })
   elements.push(...captions(s), ...escolhaFinalTextElements(s.plan, s.keyframe))

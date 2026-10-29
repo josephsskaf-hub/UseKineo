@@ -38,6 +38,6 @@ export async function POST(req: NextRequest) {
   return internalCenaEscolhaFor(user, body, {
     json: cenaJson, admin: access.admin, access, sampleMode, sampleCountry: paisDoRequest(req.headers), // KINEO-ADS-SIMPLES-2810 — amostra só para a lista de países (fundador 28/10); desconhecido = fechado
     moderate: text => moderate({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { cena: true, escolha: true } }),
-    start: orderId => adsV2StartFor(user, access, async () => ({ order_id: orderId }), Date.now(), { moderate, escolhaPersonal: personal }),
+    start: orderId => adsV2StartFor(user, access, async () => ({ order_id: orderId, kling4_expect_promo: body?.kling4_expect_promo, kling4_expected_engine: body?.kling4_expected_engine }), Date.now(), { moderate, escolhaPersonal: personal }),
   })
 }

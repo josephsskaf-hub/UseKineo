@@ -13,6 +13,9 @@ import { failAdsV2Order } from '../v2Billing'
 import { submitShotOnce, pollFalJob, persistShotClip } from '../v2Shots'
 import { persistSceneImage } from '../v2Images'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isKling4AdPromoRef } from '@/lib/ads/kling4Paid'
+import { verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
+import { assertKling4AdVoiceText, synthesizeKling4AdVoice } from '@/lib/ads/kling4Voice'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
 import { synthesizeTtsFallback } from '@/lib/ttsFallback'
 import type { AjusteState, CenaAjusteLive } from './ajusteMedia' // KINEO-ADS-CENA-RETOMADA-2110
@@ -32,6 +35,12 @@ export async function failCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow,
 export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs = Date.now() + 60_000): Promise<void> {
   const state = cenaOf(order.plan)
   if (!state || order.status !== 'generating') return
+  if (isKling4AdPromoRef(order.billing_ref) && (state.route !== 'kling4' || order.credits_charged !== 0 ||
+      !await verifyKling4PromoReservation(admin, { userId: order.user_id, jobId: order.id, kind: 'ad', seconds: 15 }))) {
+    await failCenaOrder(admin, order, 'kling4_promo_authority_unavailable'); return
+  }
+  if (state.route === 'kling4' && state.jobs.some(j => j.kind === 'video' && !!j.requestId))
+    await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
   const auth = await admin.auth.admin.getUserById(order.user_id)
   if (auth.error || !isEscolhaSamplePlan(state.plan) && !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
   if (!state.plan.escolha && !isAdsInternalEmail(auth.data.user?.email)) { await failCenaOrder(admin, order, 'cena_internal_only'); return } // KINEO-ADS-ESCOLHA-PUBLICO-2410
@@ -62,10 +71,10 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   try {
     // KINEO-AMOSTRA-ANUNCIO-2410 — a contender can acquire a released NULL lease with an old snapshot.
     // Read the winner's durable state under our lease before TTS, video or montage; never overwrite it with stale intents.
-    if (isEscolhaSamplePlan(state.plan)) {
+    if (isEscolhaSamplePlan(state.plan) || state.route === 'kling4') {
       const fresh = await admin.from('ads_v2_orders').select('plan').eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).maybeSingle()
       const latest = !fresh.error && fresh.data ? cenaOf(fresh.data.plan) : null
-      if (!latest || !isEscolhaSamplePlan(latest.plan)) return
+      if (!latest || latest.route !== state.route || (isEscolhaSamplePlan(state.plan) && !isEscolhaSamplePlan(latest.plan))) return
       for (const key of Object.keys(state)) delete (state as unknown as Record<string, unknown>)[key]
       Object.assign(state, latest)
       order.plan = fresh.data!.plan
@@ -74,6 +83,16 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
       return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
         synthesize: async text => { // KINEO-APRESENTADORES-2410 — new candidates use an explicit age/gender voice; the six existing choices retain their call.
+          if (state.route === 'kling4') {
+            assertKling4AdVoiceText(text)
+            const { presenterCandidateById2410 } = await import('../presenterCandidates2410')
+            const candidate = presenterCandidateById2410(state.plan.escolha?.presenterId)
+            const { voiceInputFor, TTS_28_MODEL } = await import('@/lib/avatar/voice')
+            const voice = candidate ? (await import('../presenterVoice2410')).presenterCandidateVoice2410(candidate, state.plan.input.language) : null
+            const input = voice ? voiceInputFor({ text, ...voice }) : (await import('@/lib/ttsFallback')).ttsFallbackInput(text, state.plan.input.language)
+            const audio = await synthesizeKling4AdVoice(voice?.model ?? TTS_28_MODEL, input)
+            return { audio, seconds: estimateMp3DurationSeconds(audio) }
+          }
           const { presenterCandidateById2410 } = await import('../presenterCandidates2410') // KINEO-APRESENTADORES-2410
           const candidate = presenterCandidateById2410(state.plan.escolha?.presenterId) // KINEO-APRESENTADORES-2410
           const audio = candidate // KINEO-APRESENTADORES-2410
@@ -106,7 +125,10 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     await stepCena(state, { now: Date.now, save, json: cenaJson,
       submit: async j => {
         const r = await submitShotOnce(j.endpoint, j.input, context)
-        if (r.kind === 'accepted') return { kind: 'accepted', requestId: r.requestId }
+        if (r.kind === 'accepted') {
+          if (state.route === 'kling4' && j.kind === 'video') await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
+          return { kind: 'accepted', requestId: r.requestId }
+        }
         if (r.kind === 'ambiguous') {
           let timer: ReturnType<typeof setTimeout> | undefined
           try { const id = await Promise.race([r.late, new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 5000) })]); if (id) return { kind: 'accepted', requestId: id } }

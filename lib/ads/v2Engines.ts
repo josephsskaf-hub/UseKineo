@@ -22,7 +22,7 @@
 //
 // LIB PURA (nenhum import): tipos copiados de lib/ads/v2Tiers.ts; o guardião confere que os ids batem.
 
-export type AdsV2EngineId = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
+export type AdsV2EngineId = 'kling_o3' | 'kling4' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
 
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — fal-ai/pixverse/v5/effects (o endpoint da sonda app/api/admin/effect-probe/route.ts,
 // testado com render real em 09/10): effect (enum EXATO da fal) · image_url · resolution '720p' · duration '5'. Sem
@@ -58,6 +58,12 @@ export interface KlingO3I2vInput {
   duration: '3'
   generate_audio: false
 }
+export interface Kling4I2vInput {
+  prompt: string
+  start_image_url: string
+  duration: number
+  resolution: '720p'
+}
 export interface Seedance20FastI2vInput {
   prompt: string
   image_url: string
@@ -90,7 +96,7 @@ export interface KlingAvatarInput {
   audio_url: string
   prompt: string
 }
-export type AdsV2ShotInput = KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput | PixverseEffectInput | KlingAvatarInput
+export type AdsV2ShotInput = Kling4I2vInput | KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput | PixverseEffectInput | KlingAvatarInput
 
 /** Kling O3 aceita prompt de até 2500 caracteres; o teto vale para os três motores (o prompt é de 1 movimento). */
 export const ADS_V2_PROMPT_MAX_CHARS = 2500
@@ -129,6 +135,7 @@ export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; 
     return input
   }
   const prompt = requirePrompt(shot?.prompt)
+  if (engine === 'kling4') return { prompt: Array.from(prompt).slice(0, 512).join(''), start_image_url: image_url, duration: 3, resolution: '720p' }
   if (engine === 'kling_o3') {
     const input: KlingO3I2vInput = { prompt, image_url, duration: '3', generate_audio: false }
     return input

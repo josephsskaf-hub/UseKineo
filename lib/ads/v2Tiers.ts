@@ -15,6 +15,8 @@
 // pública de /ads e /ads/for fala do anúncio de ~15 s, e os guardiões foram reancorados. Desligar = reverter o commit
 // inteiro (só voltar a false deixa a copy de /ads vendendo o v2 para quem não consegue abri-lo).
 
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
+
 export const ADS_V2_PUBLIC = true
 
 export type AdsV2Tier = 'photo_motion' | 'commercial' | 'cinema'
@@ -27,14 +29,14 @@ export type AdsV2ShotSource = 'client_photo' | 'generated_scene'
 // efeito da PixVerse em vez do motor normal. Só entra pela rota com `styled` (routeShot); sem estilo, nada muda.
 // KINEO-ATOR-ANUNCIO-2026-10-09 — 'kling_avatar': o ATOR de IA que segura o produto e fala a narração (lib/ads/v2Presenter.ts).
 // Só a linha do ator (kind 'presenter', fora dos planos) usa este motor; routeShot NUNCA o devolve para um plano.
-export type AdsV2Engine = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
+export type AdsV2Engine = 'kling_o3' | 'kling4' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
 
 export const ADS_V2_TIER_IDS: readonly AdsV2Tier[] = ['photo_motion', 'commercial', 'cinema']
 export const ADS_V2_SECONDS: readonly AdsV2Seconds[] = [15, 20, 30]
 export const ADS_V2_SHOT_KINDS: readonly AdsV2ShotKind[] = ['people', 'place', 'product', 'product_hero', 'text', 'user_video']
 /** Tipos de plano que NUNCA passam por IA de vídeo (sem motor, sem request_id, em nenhuma tentativa). */
 export const ADS_V2_NO_AI_KINDS: readonly AdsV2ShotKind[] = ['text', 'user_video']
-export const ADS_V2_ENGINE_IDS: readonly AdsV2Engine[] = ['kling_o3', 'seedance_20_fast', 'h3', 'pixverse_effect', 'kling_avatar']
+export const ADS_V2_ENGINE_IDS: readonly AdsV2Engine[] = ['kling_o3', 'kling4', 'seedance_20_fast', 'h3', 'pixverse_effect', 'kling_avatar']
 
 export interface AdsV2TierSpec {
   id: AdsV2Tier
@@ -62,18 +64,24 @@ export function isAdsV2Seconds(raw: unknown): raw is AdsV2Seconds {
 }
 
 /** Créditos do anúncio: ceil(base de 15 s × segundos/15). 15 s = 34/41/51; 20 s = 46/55/68; 30 s = 68/82/102. */
-export function adsV2Credits(tier: AdsV2Tier, seconds: AdsV2Seconds): number {
+export function adsV2Credits(tier: AdsV2Tier, seconds: AdsV2Seconds, kling4Live = KLING4_PAID_LIVE): number {
   const spec = ADS_V2_TIERS[tier]
   if (!spec) throw new Error(`ads_v2_unknown_tier:${String(tier)}`)
   if (!isAdsV2Seconds(seconds)) throw new Error(`ads_v2_unknown_seconds:${String(seconds)}`)
   // Conta inteira antes da divisão: 34 × 20 / 15 em ponto flutuante não pode virar 45,33… + ruído e subir um degrau.
-  return Math.ceil((spec.credits15 * seconds) / 15)
+  // The founder's 40% floor uses Creator's $0.133 credit. Public tariff model, not an invoice.
+  const heroes = spec.heroCloseups
+  const videoUsd = (spec.shots - heroes) * 3 * 0.157 + heroes * 4 * 0.2419
+  const floor15 = Math.ceil((videoUsd + spec.generatedScenes * 0.15 + ADS_V2_FIXED_USD) / (0.133 * 0.6))
+  const credits15 = kling4Live ? Math.max(spec.credits15, floor15) : spec.credits15
+  return Math.ceil((credits15 * seconds) / 15)
 }
 
 // ── Refação por plano (cobrada à parte, valor mostrado ANTES do clique) ────────────────────────────────────────────
 // ⚠ PROVISÓRIO: proposta do CEO-executor (especificação, seções 1 e 9). O fundador confirma na virada pública.
 export const ADS_V2_RETAKE_PROVISIONAL = true
 export const ADS_V2_RETAKE_CREDITS: Readonly<Record<AdsV2Engine, number>> = {
+  kling4: 6,
   kling_o3: 5,
   h3: 5,
   seedance_20_fast: 12,
@@ -118,6 +126,7 @@ export const ADS_V2_PIXVERSE_EFFECTS_SLUG = 'fal-ai/pixverse/v5/effects'
 export const ADS_V2_KLING_AVATAR_SLUG = 'fal-ai/kling-video/ai-avatar/v2/standard'
 
 export const ADS_V2_ENGINES: Readonly<Record<AdsV2Engine, AdsV2EngineSpec>> = {
+  kling4: { id: 'kling4', slug: 'kling/v4/image-to-video', usdPerSecond: 0.157, genSeconds: 3, audioAlwaysOn: true },
   // fal: "$0.112 (audio off) or $0.14 (audio on)" por segundo · duração aceita '3'..'15' → 3 s = US$ 0,336.
   kling_o3: { id: 'kling_o3', slug: ADS_V2_KLING_O3_I2V_SLUG, usdPerSecond: 0.112, genSeconds: 3, audioAlwaysOn: false },
   // fal: "Fast tier $0.2419 / sec" a 720p, áudio sem custo extra · duração mínima '4' → 4 s = US$ 0,9676.
@@ -180,7 +189,7 @@ export function routeShot(kind: AdsV2ShotKind, tier: AdsV2Tier, attempt: number,
   if (attempt >= ADS_V2_FALLBACK_FROM_ATTEMPT) return 'h3'
   if (styled === true && (kind === 'product' || kind === 'product_hero')) return 'pixverse_effect'
   if (kind === 'product_hero' && tier === 'cinema') return 'seedance_20_fast'
-  return 'kling_o3'
+  return KLING4_PAID_LIVE ? 'kling4' : 'kling_o3'
 }
 
 export interface AdsV2CostShot {

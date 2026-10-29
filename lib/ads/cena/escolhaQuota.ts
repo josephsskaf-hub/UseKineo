@@ -5,13 +5,14 @@ import { ADS_SUBSCRIBER_PLANS } from '../access'
 import { adsV2Credits } from '../v2Tiers'
 
 export const ESCOLHA_DAILY_PHOTO_ORDERS = 6
-export async function escolhaPhotoEligibility(admin: SupabaseClient, ownerId: string, access?: AdsAccessLoad) {
-  const needed = adsV2Credits('commercial', 15)
-  if (access && (ADS_SUBSCRIBER_PLANS.includes(access.ownerPlan ?? '') || access.reason === 'partner')) return { ok: true as const, needed }
+export async function escolhaPhotoEligibility(admin: SupabaseClient, ownerId: string, access?: AdsAccessLoad,
+  options: { needed?: number; requireCredits?: boolean } = {}) {
+  const needed = options.needed ?? adsV2Credits('commercial', 15)
+  if (!options.requireCredits && access && (ADS_SUBSCRIBER_PLANS.includes(access.ownerPlan ?? '') || access.reason === 'partner')) return { ok: true as const, needed }
   const r = await admin.from('profiles').select('video_credits, plan').eq('id', ownerId).maybeSingle()
   if (r.error || !r.data) return { ok: false as const, error: 'cena_photo_quota_unavailable', status: 503, needed }
   const balance = Number(r.data.video_credits)
-  return ADS_SUBSCRIBER_PLANS.includes(String(r.data.plan ?? '').trim().toLowerCase()) || Number.isFinite(balance) && balance >= needed
+  return !options.requireCredits && ADS_SUBSCRIBER_PLANS.includes(String(r.data.plan ?? '').trim().toLowerCase()) || Number.isFinite(balance) && balance >= needed
     ? { ok: true as const, needed }
     : { ok: false as const, error: 'cena_photo_credits_required', status: 402, needed, balance: Number.isFinite(balance) ? balance : 0 }
 }

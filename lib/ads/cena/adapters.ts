@@ -2,7 +2,7 @@
 // [TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]
 // KINEO-ADS-CENA-AJUSTE-2110 — modos explícitos de voz; ausência preserva contratos dos pedidos anteriores.
 
-export type CenaRoute = 'kling3' | 'seedance2' | 'veo31'
+export type CenaRoute = 'kling3' | 'kling4' | 'seedance2' | 'veo31'
 export type CenaVoiceMode = 'narrated' | 'talking'
 
 export const CENA_CONTRACTS_CHECKED_AT = '2026-10-21'
@@ -25,6 +25,16 @@ export type CenaRouteInfo = {
 
 /** Tarifa pública da rota exata, sem elements extras, vídeo de entrada, 4K ou voice control. Não é cotação/fatura. */
 export const CENA_ROUTES: Readonly<Record<CenaRoute, CenaRouteInfo>> = {
+  kling4: {
+    endpoint: 'kling/v4/image-to-video',
+    docs: 'https://fal.ai/models/kling/v4/image-to-video/api',
+    pricing: 'https://fal.ai/models/kling/v4/image-to-video',
+    secondsPerRequest: 15, requestsFor15Seconds: 1,
+    videoUsdPerSecond: 0.157, silentVideoUsdPerSecond: 0.157,
+    nativeAudio: true, nativeSpeechLanguages: ['en', 'zh'],
+    notes: ['Kling 4.0, 720p. The image determines framing. Native audio is muted in narrated exports.',
+      'Public rate supplied by the founder on 2026-10-28; actual invoice and native speech quality require a canary.'],
+  },
   kling3: {
     endpoint: 'fal-ai/kling-video/v3/pro/image-to-video',
     docs: 'https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video/api',
@@ -110,7 +120,7 @@ function requiredPrompt(value: unknown): string {
 }
 
 export function isCenaRoute(value: unknown): value is CenaRoute {
-  return value === 'kling3' || value === 'seedance2' || value === 'veo31'
+  return value === 'kling3' || value === 'kling4' || value === 'seedance2' || value === 'veo31'
 }
 
 export function isCenaVoiceMode(value: unknown): value is CenaVoiceMode { return value === 'narrated' || value === 'talking' }
@@ -122,7 +132,7 @@ export function cenaResolveRoute(voiceMode: CenaVoiceMode, route?: unknown): Cen
 /** Recusa antes do planejamento pago e novamente antes do vídeo; nunca troca o modo solicitado. */
 export function cenaAssertVoiceRoute(route: CenaRoute, voiceMode: CenaVoiceMode, language = 'en'): void {
   if (!isCenaVoiceMode(voiceMode)) throw new Error('cena_bad_voice_mode')
-  if (route === 'kling3' && voiceMode === 'talking' && !CENA_ROUTES.kling3.nativeSpeechLanguages!.includes(language.toLowerCase().split(/[-_]/)[0])) throw new Error('cena_kling_native_speech_unsupported')
+  if ((route === 'kling3' || route === 'kling4') && voiceMode === 'talking' && !CENA_ROUTES[route].nativeSpeechLanguages!.includes(language.toLowerCase().split(/[-_]/)[0])) throw new Error('cena_kling_native_speech_unsupported')
 }
 
 /** Só constrói requisições. O chamador injeta transporte e só chama depois do juiz aprovar o keyframe. */
@@ -140,6 +150,13 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
   if (data.voiceMode !== undefined) cenaAssertVoiceRoute(route, data.voiceMode, language)
   const generateAudio = data.voiceMode !== 'narrated'
   const silentRule = data.voiceMode === 'narrated' ? '\nSILENT SCENE: no speech, no dialogue, no narration, no lip-sync. Lips remain closed throughout all shots. Voiceover will be added separately in editing.' : ''
+
+  if (route === 'kling4') return [{
+    endpoint: info.endpoint,
+    input: { start_image_url: keyframeUrl, ...(endKeyframeUrl ? { end_image_url: endKeyframeUrl } : {}),
+      prompt: Array.from(`${prompt}${silentRule}`).slice(0, 512).join(''), duration: 15, resolution: '720p' },
+    seconds: 15, keepSeconds: 15, offsetSeconds: 0, nativeSpeechSupported, warnings,
+  }]
 
   if (route === 'kling3') {
     const speechRule = data.voiceMode === 'narrated' ? silentRule : nativeSpeechSupported ? '' : '\nAUDIO RULE: ambient sound and product interaction sound only. No spoken dialogue, no narration and no mouth speaking; a separate voiceover will be added in editing. Do not translate the supplied script into English.'
@@ -234,5 +251,5 @@ export function cenaCosts(route?: CenaRoute, voiceMode?: CenaVoiceMode): CenaCos
     if (!isCenaRoute(route)) throw new Error('cena_route_invalid')
     return costFor(route, voiceMode)
   }
-  return { kling3: costFor('kling3', voiceMode), seedance2: costFor('seedance2', voiceMode), veo31: costFor('veo31', voiceMode) }
+  return { kling3: costFor('kling3', voiceMode), kling4: costFor('kling4', voiceMode), seedance2: costFor('seedance2', voiceMode), veo31: costFor('veo31', voiceMode) }
 }

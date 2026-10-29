@@ -52,6 +52,9 @@ import { preflightCenaEscolha } from '@/lib/ads/cena/escolhaPlan' // KINEO-ADS-E
 import { writeEscolhaEvent } from '@/lib/ads/cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 import { ADS_ESCOLHA_SAMPLE_LIVE, isEscolhaSamplePlan } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { escolhaSampleAccountOk, hasEscolhaSampleReservation } from '@/lib/ads/cena/escolhaSampleServer'
+import { KLING4_AD_CREDITS, KLING4_AD_FAL_EXTRAS_MILLIUSD, kling4AdBillingRef } from '@/lib/ads/kling4Paid'
+import { reserveKling4Promo, validateKling4PromoStart } from '@/lib/kling4PromoServer'
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -75,7 +78,9 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     // interna (gate 'ok') NUNCA caem aqui: o caminho pago deles fica idêntico.
     let sampleRun = gate !== 'ok' && sample
 
-    const parsed = sanitizeStartBody(await readBody())
+    const rawBody = await readBody()
+    const expectsPromo = !!rawBody && typeof rawBody === 'object' && (rawBody as Record<string, unknown>).kling4_expect_promo === true
+    const parsed = sanitizeStartBody(rawBody)
     if (!parsed.ok) return v2Fail(parsed.error, 400)
     const { order_id: orderId, dry_run: dryRun } = parsed.value
 
@@ -85,6 +90,11 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
     const cena = cenaOf(plan)
+    if (cena?.route === 'kling4' && !cena.plan.escolha) return v2Fail('kling4_replan_required', 409, { message: 'Create a new Kling 4.0 ad with the current scene selector before starting.' })
+    if (cena?.route === 'kling4' && !KLING4_PAID_LIVE) return v2Fail('kling4_paid_disabled', 409, { engine_used: 'kling3', message: 'Kling 4.0 is unavailable. Create a new Kling 3 plan to continue.' })
+    const expectedEngine = rawBody && typeof rawBody === 'object' ? (rawBody as Record<string, unknown>).kling4_expected_engine : undefined
+    if (expectedEngine && cena && expectedEngine !== (cena.route === 'kling4' ? 'kling4' : 'kling3')) return v2Fail('kling4_engine_changed', 409, { engine_used: cena.route })
+    if (expectedEngine && !cena && expectedEngine !== (KLING4_PAID_LIVE ? 'kling4' : 'kling3')) return v2Fail('kling4_engine_changed', 409, { message: 'The engine changed. Refresh the plan and review its current credit price.' })
     const escolhaSample = !!cena && isEscolhaSamplePlan(cena.plan)
     const escolhaUpgrade = !!plan?.escolhaSampleSource && dependencies.escolhaPersonal === true && uid === user.id
     if (dependencies.escolhaPersonal && !escolhaSample && !escolhaUpgrade) return v2Fail('no_access', 403)
@@ -114,7 +124,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     const safety = await (dependencies.moderate ?? moderateContent)({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { order_id: orderId, v2: true } }) // KINEO-ADS-CENA-95-PACING-2110 — default always moderates; internal request reuses the same verdict.
     if (!safety.ok) return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
 
-    const cost = escolhaSample ? 0 : adsV2Credits(order.tier, order.seconds)
+    let cost = escolhaSample ? 0 : cena?.route === 'kling4' ? KLING4_AD_CREDITS : adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
     if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()) }) // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — o ensaio também respeita o modo salvo; legado sem modo conserva estimativa antiga.
 
@@ -134,11 +144,23 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
       })
     }
 
+    let kling4Promo = false
+    let kling4PromoReason = ''
+    if (!sampleRun && cena?.route === 'kling4') {
+      const promo = await reserveKling4Promo(admin, { userId: uid, jobId: orderId, kind: 'ad', seconds: 15, falExtrasMilliUsd: KLING4_AD_FAL_EXTRAS_MILLIUSD })
+      if (promo.isFree) {
+        const start = await validateKling4PromoStart(admin, { userId: uid, jobId: orderId, kind: 'ad', seconds: 15 })
+        if (!start.isFree) return v2Fail('kling4_promo_replan_required', 409, { credits: cost, reason: start.reason, message: 'This preview reservation has expired. Create a new plan and review the current price.' })
+      }
+      kling4Promo = promo.isFree; kling4PromoReason = promo.reason
+      if (expectsPromo && !promo.isFree) return v2Fail('kling4_promo_unavailable', 409, { credits: cost, reason: promo.reason, message: 'The free allowance is unavailable. Review the normal credit price before continuing.' })
+      if (promo.isFree) cost = 0
+    }
     if (sampleRun && !escolhaSample) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — teto GLOBAL do dia ANTES da trava (o custo da amostra é nosso). Sem saldo: não cobra.
       if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
       if (samplePresenter && await adsSamplePresenterCapReached(admin)) return v2Fail(ADS_SAMPLE_PRESENTER_CAP_CODE, 429) // KINEO-UGC-AJUSTES-2010 — o plano com a pessoa chegou depois do sub-teto de 10/dia: ANTES da trava, sem débito; a tela refaz o plano (sai no Close real)
-    } else if (!sampleRun) {
+    } else if (!sampleRun && !kling4Promo) {
       // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
       const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()
       const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
@@ -148,7 +170,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     // Trava condicional: só um início por pedido; o índice único parcial deixa só UM anúncio ativo por conta.
     const generationId = randomUUID()
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra trava com a chave 'adssample-…' (sem débito) e credits_charged 0.
-    const billingRef = escolhaSample ? `adssample-escolha-${orderId}-${generationId}` : sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
+    const billingRef = kling4Promo ? kling4AdBillingRef(orderId, generationId) : escolhaSample ? `adssample-escolha-${orderId}-${generationId}` : sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
     const lock = await admin
       .from('ads_v2_orders')
       .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null, ...(cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' ? { plan } : {}) }) // KINEO-ADS-CENA-SEGUE-2110 — persist corrected copy/notes in the existing atomic start claim.
@@ -162,7 +184,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     locked = { id: orderId, user_id: uid, billing_ref: billingRef }
 
     // Débito com o padrão confiável (intenção → saldo → débito → releitura do ledger). A amostra NÃO debita (KINEO-ADS-AMOSTRA-2026-10-09).
-    const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: uid, billingRef, cost })
+    const charge: AdsV2ChargeResult = sampleRun || kling4Promo ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: uid, billingRef, cost })
     if (!charge.ok) {
       if (!charge.debitPossible) {
         // Provado que nada foi debitado: o pedido volta a 'planned' (só esta geração).
@@ -181,8 +203,8 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
-    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeEscolhaEvent('render_started', uid, orderId, plan, { credits: cost }); await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
-    const rows = buildInitialShotRows(orderId, order.tier, plan)
+    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeEscolhaEvent('render_started', uid, orderId, plan, { credits: cost }); await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, engine_used: cena.route, kling4_promo: kling4Promo, promo_reason: kling4PromoReason, ...(cena.route === 'kling4' && !kling4Promo ? { notice: 'The promotion is unavailable for this request. Normal credits apply.' } : {}), status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
+    const rows = buildInitialShotRows(orderId, order.tier, plan).map(row => sampleRun && row.engine === 'kling4' ? { ...row, engine: 'kling_o3' } : row)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {
       await failAdsV2Order(admin, locked, 'shots_insert_failed', '/api/ads/v2/start')

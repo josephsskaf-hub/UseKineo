@@ -14,6 +14,7 @@
 // da fal expira. Se a cópia devolver a própria URL da fal, a cópia FALHOU (não é sucesso). Duração MEDIDA no mvhd do
 // MP4 (lib/mp4Duration.ts): o montador recusa trecho que passe do clipe medido.
 import { fal } from '@fal-ai/client'
+import { pollKling4TrialVideo, KLING4_I2V_MODEL, KLING4_T2V_MODEL } from '@/lib/kling4Trial'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import { classifyProviderFailure, type ReasonClass } from '@/lib/cinematic/sceneDisposition'
 import { persistRenderAssets } from '@/lib/renderAssets'
@@ -93,6 +94,10 @@ function pollMessageSignal(detail: unknown): 'explicit_exhausted_balance' | 'oth
 export async function pollFalJob(model: string, requestId: string, pick: 'video' | 'image', ctx: { userId: string; orderId: string }): Promise<AdsV2Poll> {
   const falKey = process.env.FAL_KEY
   if (!falKey) return { state: 'processing', url: null }
+  if (pick === 'video' && (model === KLING4_I2V_MODEL || model === KLING4_T2V_MODEL)) {
+    const result = await pollKling4TrialVideo(requestId, { apiKey: falKey })
+    return { state: result.status, url: result.url }
+  }
   let stage: 'status' | 'result' = 'status'
   let idMatches = false
   try {

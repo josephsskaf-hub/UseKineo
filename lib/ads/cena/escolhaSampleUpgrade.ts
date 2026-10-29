@@ -1,5 +1,7 @@
 // KINEO-AMOSTRA-ANUNCIO-2410 — one idempotent paid order from the exact customer-approved sample reference.
 import { createHash } from 'node:crypto'
+import { newPaidCenaRoute, isKling4AdPromoRef } from '@/lib/ads/kling4Paid'
+import { verifyKling4PromoReservation } from '@/lib/kling4PromoServer'
 import type { AdsV2Caller } from '../v2PlanCore'
 import type { AdsV2OrderRow } from '../v2Advance'
 import type { EscolhaInternalDeps } from './internalEscolha'
@@ -8,7 +10,6 @@ import { escolhaReadyForStart } from './escolhaStills'
 import { isEscolhaSamplePlan } from './escolhaSamplePolicy'
 import { fullEscolhaPlan } from './escolhaPlan'
 import { newCenaState } from './pipeline'
-import { adsV2Credits } from '../v2Tiers'
 import { adsV2BillingRef, confirmAdsV2Debit } from '../v2Billing'
 import { v2Fail, v2Json } from '../v2Server'
 import { hasEscolhaSampleReservation, markEscolhaSampleUpsell } from './escolhaSampleServer'
@@ -22,7 +23,6 @@ export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderR
   const args = { orderId: order.id, actorId: user.id, ownerId: user.id }
   if (!await hasEscolhaSampleReservation(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
   if (!await markEscolhaSampleUpsell(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
-  const needed = adsV2Credits('commercial', 15)
   let id = escolhaUpgradeId(order.id)
   const readAttempt = () => d.admin.from('ads_v2_orders').select('*').eq('id', id).eq('user_id', user.id).maybeSingle()
   let found = await readAttempt()
@@ -30,11 +30,15 @@ export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderR
   // then fail closed; a damaged/long history cannot create an unbounded request or new charge.
   for (let depth = 0; !found.error && found.data && ['failed', 'cancelled'].includes(found.data.status); depth++) {
     const previous = found.data
-    if (depth >= 8 || previous.plan?.escolhaSampleSource !== order.id || previous.video_id || !previous.generation_id || !previous.billing_ref || Number(previous.credits_charged) !== needed) return v2Fail('ads_sample_retry_unavailable', 503)
+    if (depth >= 8 || previous.plan?.escolhaSampleSource !== order.id || previous.video_id || !previous.generation_id || !previous.billing_ref) return v2Fail('ads_sample_retry_unavailable', 503)
     try {
+      if (isKling4AdPromoRef(previous.billing_ref)) {
+        if (Number(previous.credits_charged) !== 0 || !await verifyKling4PromoReservation(d.admin, { userId: user.id, jobId: previous.id, kind: 'ad', seconds: 15 })) return v2Fail('ads_sample_retry_unavailable', 503)
+      } else {
       if (previous.billing_ref !== adsV2BillingRef(previous.id, previous.generation_id)) return v2Fail('ads_sample_retry_unavailable', 503)
-      const debit = await confirmAdsV2Debit(d.admin, { userId: user.id, billingRef: previous.billing_ref, cost: needed })
+      const debit = await confirmAdsV2Debit(d.admin, { userId: user.id, billingRef: previous.billing_ref, cost: Number(previous.credits_charged) })
       if (!debit.ok || !debit.refunded) return v2Fail('ads_sample_retry_unavailable', 503)
+      }
     } catch { return v2Fail('ads_sample_retry_unavailable', 503) }
     // Every concurrent click derives the same successor from the same settled generation.
     id = escolhaUpgradeId(`retry:${previous.id}:${previous.generation_id}:${previous.billing_ref}`)
@@ -43,15 +47,12 @@ export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderR
   if (found.error) return v2Fail('cena_order_failed', 503)
   if (found.data && ['generating', 'assembling', 'delivered'].includes(found.data.status)) return v2Json({ order_id: id, status: found.data.status, sample: false, status_url: `/api/ads/v2/status?order_id=${id}` }, 202)
   if (found.data && !['draft', 'planned'].includes(found.data.status)) return v2Fail('ads_sample_retry_unavailable', 503)
-  const profile = await d.admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
-  if (profile.error || !profile.data) return v2Fail('credits_unavailable', 503)
-  const balance = Number(profile.data.video_credits)
-  if (!Number.isFinite(balance) || balance < needed) return v2Fail('out_of_credits', 402, { needed, balance: Number.isFinite(balance) ? balance : 0 })
+  // The existing atomic start validates the promotion or the full credit balance before any new media.
   if (!found.data) {
     const plan = fullEscolhaPlan(stored.cena.plan)
     const chosen = stored.escolhaFlow.stills.find(j => j.id === stored.escolhaFlow.selectedStillId && j.status === 'done' && j.url)
     if (!chosen) return v2Fail('cena_still_choice_required', 409)
-    const paid = { ...JSON.parse(JSON.stringify(order.plan)), cena: newCenaState(plan, 'kling3'), escolhaSampleSource: order.id }
+    const paid = { ...JSON.parse(JSON.stringify(order.plan)), cena: newCenaState(plan, newPaidCenaRoute('kling3', false)), escolhaSampleSource: order.id }
     paid.totalSeconds = 15
     paid.cena.keyframe = chosen.url; paid.cena.keyframes = [chosen.url, chosen.url]; paid.cena.phase = 'video'; paid.cena.jobs = []
     paid.narration = plan.script.narration

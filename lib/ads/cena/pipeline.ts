@@ -26,7 +26,7 @@ export interface CenaDeps {
 export function newCenaState(plan: CenaPlan, route: CenaRoute): CenaState { const state: CenaState = { plan, route, phase: 'images', imageRound: 1, videoAttempt: 1, jobs: [] }; if (plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') for (const note of plan.quality_notes ?? []) addAjusteQuality(state, note); return state } // KINEO-ADS-CENA-SEGUE-2110
 export function cenaOf(plan: unknown): CenaState | null {
   const c = plan && typeof plan === 'object' ? (plan as { cena?: CenaState }).cena : null
-  return c?.plan?.marker === 'KINEO-ADS-CENA-2110' && ['kling3', 'seedance2', 'veo31'].includes(c.route) ? c : null
+  return c?.plan?.marker === 'KINEO-ADS-CENA-2110' && ['kling3', 'kling4', 'seedance2', 'veo31'].includes(c.route) ? c : null
 }
 function images(s: CenaState): CenaJob[] {
   return s.plan.keyframePrompts.flatMap((prompt, slot) => [0, 1].map(candidate => ({ ...cenaKeyframeRequest({ productUrl: s.plan.input.foto, prompt: `${prompt} Composition candidate ${candidate + 1}.`, actorUrl: s.plan.input.actorUrl, attempt: s.imageRound }), index: slot * 2 + candidate, kind: 'image' as const, seconds: 0, keepSeconds: 0, status: 'new' as const })))
@@ -34,7 +34,7 @@ function images(s: CenaState): CenaJob[] {
 function ajusteVerdictReason(verdict: CenaJob['verdict']): string { return [verdict?.quality_reason, verdict?.category_reason].filter((reason): reason is string => typeof reason === 'string' && !!reason.trim()).join(' ') } // KINEO-ADS-CENA-SEGUE-2110 — retain the judge's actual reservations without replacing the established reason codes.
 async function failed(s: CenaState, reason: string, d: CenaDeps): Promise<void> {
   if (isEscolhaSamplePlan(s.plan)) { s.phase = 'failed'; s.reason = reason; await d.save(s); return } // KINEO-AMOSTRA-ANUNCIO-2410 — no second paid photo/video attempt on a budgeted sample.
-  if (s.phase === 'video' && s.videoAttempt < CENA_VIDEO_ATTEMPTS) {
+  if (s.phase === 'video' && s.route !== 'kling4' && s.videoAttempt < CENA_VIDEO_ATTEMPTS) {
     s.videoAttempt++; s.jobs = s.jobs.filter(j => j.kind === 'image');
     await d.event('ads_cena_video_retry', { attempt: s.videoAttempt, reason })
   } else if ((s.phase === 'images' || s.phase === 'judge') && s.imageRound < CENA_KEYFRAME_ROUNDS) {

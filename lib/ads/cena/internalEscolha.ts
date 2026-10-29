@@ -1,6 +1,8 @@
 // KINEO-ADS-ESCOLHA-2310 — plan → four persisted stills → explicit choice → existing v2 debit/start.
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — same access gate, reserved photo allowance and server transition funnel.
 import type { CenaInternalDeps } from './internal'
+import { newPaidCenaRoute, KLING4_AD_CREDITS, KLING4_AD_FAL_EXTRAS_MILLIUSD } from '@/lib/ads/kling4Paid'
+import { reserveKling4Promo, validateKling4PromoStart } from '@/lib/kling4PromoServer'
 import type { AdsV2Caller } from '../v2PlanCore'
 import { isAdsInternalEmail } from '../access'
 import { cenaEnabled } from './catalog'
@@ -60,7 +62,8 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       if (!scenario || body.category !== undefined && body.category !== scenario.category) return v2Fail('cena_scenario_required', 400)
       // A browser cannot substitute an unapproved reference URL for the selected library presenter.
       const input = cenaInput({ ...body, ...(!internal || sampleMode ? { voice_mode: 'narrated' } : {}), actorUrl: `https://www.usekineo.com${presenter.portrait}` })
-      const route = cenaResolveRoute(input.voice_mode!, internal && !sampleMode ? body.rota : 'kling3')
+      const requestedRoute = cenaResolveRoute(input.voice_mode!, internal && !sampleMode ? body.rota : 'kling3')
+      const route = newPaidCenaRoute(requestedRoute, sampleMode)
       cenaAssertVoiceRoute(route, input.voice_mode!, input.language)
       // Sample reservation precedes ALL paid effects, including text planning/moderation, not merely the photos.
       let sampleOrder: string | null = null
@@ -79,7 +82,7 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       preflightCenaEscolha(plan, route)
       const safety = cena95ModerationFailure(await d.moderate(plan.script.narration))
       if (safety) return v2Fail(safety.error, safety.status)
-      const response = { engine: 'KINEO-ADS-ESCOLHA-2310', stage: 'planned', charged: false, plan, narration_used: plan.script.narration, quality_notes: plan.quality_notes ?? [], credits: sampleMode ? 0 : adsV2Credits('commercial', 15), ...(sampleMode ? { sample: true, seconds: 8, max_photo_rounds: 1 } : {}) }
+      const response = { engine: 'KINEO-ADS-ESCOLHA-2310', engine_used: route, stage: 'planned', charged: false, plan, narration_used: plan.script.narration, quality_notes: plan.quality_notes ?? [], credits: sampleMode ? 0 : route === 'kling4' ? KLING4_AD_CREDITS : adsV2Credits('commercial', 15), ...(sampleMode ? { sample: true, seconds: 8, max_photo_rounds: 1 } : {}) }
       if (body.dry_run === true) return v2Json({ ...response, dry_run: true })
       const skeleton = { ...planShots({ sector: 'store', tier: 'commercial', seconds: 15, photos: [{ id: '00000000-0000-4000-8000-000000000001', url: input.foto, kind: 'text' }] }), ...(sampleMode ? { totalSeconds: 8 } : {}) }
       const stored = { ...skeleton, overlays: [], narration: plan.script.narration, cena: newCenaState(plan, route), escolhaFlow: newEscolhaFlow(), escolhaActorId: user.id }
@@ -136,8 +139,22 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
         if (body.regenerate === true && escolhaPhotoRound(stored.escolhaFlow) >= 2) return v2Fail('cena_photo_round_limit', 429, { limit: 2 })
         const needsPhoto = body.regenerate === true || !stored.escolhaFlow.stills.length || stored.escolhaFlow.stills.some(j => j.status === 'new' || j.status === 'failed' && j.attempt < 2)
         if (needsPhoto) {
+          let kling4FreePreview = false
+          if (!sampleMode && stored.cena.route === 'kling4') {
+            // A single server ledger decision covers the bounded photos and video of this order.
+            const promo = await reserveKling4Promo(d.admin, { userId: uid, jobId: order.id, kind: 'ad', seconds: 15, falExtrasMilliUsd: KLING4_AD_FAL_EXTRAS_MILLIUSD })
+            if (promo.isFree) {
+              const start = await validateKling4PromoStart(d.admin, { userId: uid, jobId: order.id, kind: 'ad', seconds: 15 })
+              if (!start.isFree) return v2Fail('kling4_promo_replan_required', 409, { credits: KLING4_AD_CREDITS, reason: start.reason, message: 'This preview reservation has expired. Create a new plan and review the current price.' })
+            }
+            stored.kling4Promo = { free: promo.isFree, reason: promo.reason }
+            kling4FreePreview = promo.isFree
+            if (body.kling4_expect_promo === true && !promo.isFree) return v2Fail('kling4_promo_unavailable', 409, { credits: KLING4_AD_CREDITS, reason: promo.reason, message: 'The free allowance is unavailable. Review the normal credit price before continuing.' })
+            await save()
+          }
           if (!sampleMode) {
-            const eligible = await escolhaPhotoEligibility(d.admin, uid, d.access)
+            const eligible = await escolhaPhotoEligibility(d.admin, uid, d.access,
+              stored.cena.route === 'kling4' && !kling4FreePreview ? { needed: KLING4_AD_CREDITS, requireCredits: true } : {})
             if (!eligible.ok) return v2Fail(eligible.error, eligible.status, { needed: eligible.needed, ...('balance' in eligible ? { balance: eligible.balance } : {}) })
           } else if (!await escolhaSampleAccountOk(d.admin, user.id)) return v2Fail('ads_sample_account_blocked', 403)
           const reserved = sampleMode

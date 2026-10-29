@@ -27,6 +27,7 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+import { isKling4AdPromoRef } from '@/lib/ads/kling4Paid'
 
 /** quality gravado em render_jobs e em videos.quality_mode (selo 'Studio Ads' em lib/engineLabel.ts). */
 export const ADS_V2_QUALITY = 'ads_v2'
@@ -162,7 +163,7 @@ export async function failAdsV2Order(
   let amount = 0
   // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis ('adssample-…') nunca foi debitada: marca failed e grava o evento,
   // mas NUNCA chama o estorno (refund 'skipped', 0) — estornar uma chave sem débito não pode virar crédito de presente.
-  if (order.billing_ref && !isAdsSampleRef(order.billing_ref)) {
+  if (order.billing_ref && !isAdsSampleRef(order.billing_ref) && !isKling4AdPromoRef(order.billing_ref)) {
     const r = await refundAdsV2Confirmed(admin, { userId: order.user_id, billingRef: order.billing_ref })
     refund = r.state
     amount = r.amount

@@ -753,8 +753,8 @@ export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2Orde
   } // KINEO-ADS-FIEL-2-1510
   const videos = latest.filter(needsVideo).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || adsV2PresenterVoiceReady(order))
     .filter((r) => !closed.has(r.idx)) // KINEO-ADS-FIEL-2-1510 — o close já virou a foto real
-  const kling = videos.filter((r) => r.engine === 'kling_o3')
-  const others = videos.filter((r) => r.engine !== 'kling_o3')
+  const kling = videos.filter((r) => r.engine === 'kling_o3' || r.engine === 'kling4')
+  const others = videos.filter((r) => r.engine !== 'kling_o3' && r.engine !== 'kling4')
   let sent = 0
   const batch = async (list: AdsV2ShotRow[], fn: (r: AdsV2ShotRow) => Promise<void>) => {
     for (let i = 0; i < list.length; i += ADS_V2_BATCH_SIZE) {
@@ -884,7 +884,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
         if (p.state === 'failed') { await failShot(admin, row, ['submitted'], 'provider_failed', 'unknown'); return }
         if (p.state !== 'done' || !p.url) {
           const ihLate = inHandTagOf(order, row.idx) // KINEO-ADS-MAO-AJUSTE-1610 — o plano "produto na mão" tem prazo próprio no Kling
-          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min // KINEO-ADS-CENA-2110
+          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : row.engine === 'kling4' ? 8 * 60_000 : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min // KINEO-ADS-CENA-2110
           const again = late && ihLate ? await pollFalJob(ADS_V2_ENGINES[row.engine].slug, row.request_id, 'video', ctx) : null // KINEO-ADS-MAO-AJUSTE-1610 — ANTES do "travado", a fal de novo: COMPLETED = usa o clipe (no T1 pagamos 5 e usamos 1)
           if (again?.state === 'failed') { await failShot(admin, row, ['submitted'], 'provider_failed', 'unknown'); return } // KINEO-ADS-MAO-AJUSTE-1610
           if (again?.state !== 'done' || !again.url) { // KINEO-ADS-MAO-AJUSTE-1610 — nem pronto na 2ª consulta: o travado de sempre
@@ -1444,6 +1444,7 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
     duration: Math.round(Number(seconds) || order.seconds),
     quality_mode: ADS_V2_QUALITY,
     credits_used: order.credits_charged,
+    ...(order.plan?.cena?.route === 'kling4' ? { engine_used: 'kling4' } : {}),
     ...(order.plan?.narration ? { script: order.plan.narration } : {}),
   }
   // REVISÃO 28/09 (dinheiro): o id do vídeo é RESERVADO no pedido ANTES da linha em videos. failAdsV2Order (prazo do
@@ -1527,6 +1528,7 @@ async function stepAssembly(admin: SupabaseClient, order: AdsV2OrderRow, justCla
 
 // ── avanço do pedido ──────────────────────────────────────────────────────────────────────────────────────────────
 export interface AdsV2ShotView {
+  engine_used?: string | null
   idx: number
   kind: string
   source: string
@@ -1541,6 +1543,7 @@ export interface AdsV2ShotView {
   ai_person?: true // KINEO-ADS-REFACAO-ATOR-1410
 }
 export interface AdsV2OrderView {
+  engine_used?: string | null
   narration_used?: string; quality_notes?: AjusteQualityNote[] // KINEO-ADS-CENA-SEGUE-2110 — only the AJUSTE scene engine.
   order_id: string
   status: AdsV2OrderRow['status']
@@ -1557,6 +1560,7 @@ export interface AdsV2OrderView {
 
 export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]): AdsV2OrderView {
   return {
+    engine_used: order.plan?.cena?.route ?? null,
     ...ajusteReviewOf(order.plan), // KINEO-ADS-CENA-SEGUE-2110 — status and order GETs share the persisted evidence.
     order_id: order.id,
     status: order.status,
@@ -1568,6 +1572,7 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
     parent_order_id: order.parent_order_id,
     ...presenterView(shots),
     shots: latestShots(shots).filter(isAdsV2PlanShotRow).map((r) => ({
+      engine_used: r.engine,
       idx: r.idx,
       kind: r.kind,
       source: r.source,

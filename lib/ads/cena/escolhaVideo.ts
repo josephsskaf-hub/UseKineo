@@ -9,6 +9,11 @@ export function escolhaVideoRequests(plan: CenaPlan, route: CenaRoute, keyframeU
   const selected = plan.escolha && { ...plan.escolha, shotPrompts: plan.escolha.shotPrompts.map(p => escolhaShotPromptFit(p)) as [string, string, string] } // KINEO-ADS-RENDER-FIX-2310 — each Kling3 shot prompt fits the provider's 2500-char limit
   if (selected?.marker !== 'KINEO-ADS-ESCOLHA-2310' || selected.shotPrompts.length !== 3 || selected.shotPrompts.some(p => !p.trim())) throw new Error('escolha_three_shots_required')
   const requests = cenaVideoRequests(route, { keyframeUrl, productUrl: plan.input.foto, prompt: plan.videoPrompt, segmentPrompts: plan.segmentPrompts, language: plan.input.language, voiceMode: plan.voice_mode })
+  if (route === 'kling4') {
+    if (sample) throw new Error('escolha_sample_requires_silent_kling3')
+    return [{ ...requests[0], input: { start_image_url: keyframeUrl, duration: 15, resolution: '720p',
+      multi_prompt: selected.shotPrompts.map(prompt => ({ prompt: Array.from(prompt).slice(0, 512).join(''), duration: 5 })) } }]
+  }
   if (route !== 'kling3') return requests
   // Do not send an ending wide reference: the final take is the close of the real product in this same scene.
   const { prompt: _singlePrompt, end_image_url: _endImage, ...input } = requests[0].input
