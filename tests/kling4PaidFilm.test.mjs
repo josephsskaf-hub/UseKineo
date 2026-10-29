@@ -24,7 +24,7 @@ function load(path) {
   }, { filename: path, timeout: 5000 })
   return exports
 }
-const { prepareKling4PaidFilm: prepare, submitKling4PaidFilm: submit } = load('lib/kling4PaidFilm.ts')
+const { prepareKling4PaidFilm: prepare, submitKling4PaidFilm: submit, kling4PaidFallbackPrompts } = load('lib/kling4PaidFilm.ts')
 const pricing = load('lib/kling4PaidPricing.ts')
 const { kling4PaidReplacement } = load('lib/kling4PaidClaim.ts')
 const narration = 'The captain opens the blue cabin door. He finds a red map beside the lamp. Outside the ship a silver bird lands.'
@@ -89,6 +89,44 @@ test('15/30/60 preserve all spoken words and exact paid provider seconds', () =>
   }
 })
 
+test('fallback has a distinct chronological five-second visual plan rather than triplicated chunk prompts', () => {
+  for (const seconds of [15, 30, 60]) {
+    const storyboard = Array.from({ length: seconds / 5 }, (_, i) => ({ prompt: `Visual beat number ${i}.`, seconds: 5 }))
+    const prompts = kling4PaidFallbackPrompts({ seconds, scenes: storyboard })
+    assert.equal(prompts.length, storyboard.length)
+    assert.equal(new Set(prompts).size, storyboard.length)
+    prompts.forEach((prompt, i) => {
+      assert.ok(prompt.includes(storyboard[i].prompt))
+      assert.equal(prompt.includes(storyboard[(i + 1) % storyboard.length].prompt), false)
+    })
+  }
+})
+
+test('actual paid preflight rejects a 35-second own-script requested at 60 before quote, reservation, debit or still', async () => {
+  const speech = load('lib/speechRate.ts')
+  const source = readFileSync(join(root, 'app/api/generate-video-cinematic/route.ts'), 'utf8').replace(/\r\n/g, '\n')
+  const start = source.indexOf('    // Paid Kling4 fixes the offered duration before quote/reservation/claim.')
+  const end = source.indexOf('    const baseCost = ', start)
+  assert.ok(start > 0 && end > start && end < source.indexOf('    let cost = ', end))
+  const lateGuard = source.indexOf('    if (verbatim && parsedScript.narration && !paidKling4) {', end)
+  assert.ok(lateGuard > end)
+  const box = { exports: {}, paidKling4: true, verbatim: true, parsedScript: { narration: Array(80).fill('word').join(' ') },
+    narrationRate: speech.speechRateFor({ family: 'hollywood' }), narrationFitAt: speech.narrationFitAt,
+    isKling4PaidFilmSeconds: value => [15, 30, 60].includes(value),
+    NextResponse: { json: (body, init) => ({ body, status: init.status }) } }
+  vm.runInNewContext(ts.transpileModule(`async function run(seconds){let duration=seconds;${source.slice(start, end)};return {status:200,duration};}exports.run=run;`, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText, box, { timeout: 5000 })
+  const rejected = await box.exports.run(60)
+  assert.equal(rejected.status, 422)
+  assert.equal(rejected.body.reason, 'kling4_paid_script_duration_mismatch')
+  assert.equal(rejected.body.requested_seconds, 60)
+  assert.equal(rejected.body.charged, false)
+  assert.equal((await box.exports.run(35)).body.reason, 'kling4_paid_duration_not_offered')
+  box.paidKling4 = false
+  assert.equal((await box.exports.run(60)).status, 200)
+})
+
 test('unsupported duration, empty narration, invalid scene or excessively fragmented chunks are refused', () => {
   for (const seconds of [0, 14, 16, 35, 90, NaN, Infinity]) assert.throws(() => prepare({ seconds, narration, scenes }))
   assert.throws(() => prepare({ seconds: 15, narration: '', scenes }))
@@ -136,14 +174,14 @@ test('tampered later input or missing API configuration fails before any provide
   assert.equal(posts, 0)
 })
 
-function paidRouteFixture({ seconds = 30, free = false, uncertain = false, existing = false } = {}) {
+function paidRouteFixture({ seconds = 30, free = false, uncertain = false, existing = false, carry = true } = {}) {
   const source = readFileSync(join(root, 'app/api/generate-video-cinematic/route.ts'), 'utf8').replace(/\r\n/g, '\n')
   const start = source.indexOf('      if (paidKling4) {\n        // The approved plan')
   const end = source.indexOf('      // ═══ KINEO-VOZ-NA-BOCA-2026-09-11 — LIGADO POR PADRÃO', start)
   assert.ok(start > 0 && end > start)
   const code = ts.transpileModule(`async function run() { let providerSubmissionMayExist=false; let cinematicSubmissionUncertain=false;
     ${source.slice(start, end)} } exports.run=run;`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  const counts = { image: 0, critique: 0, post: 0, accepted: 0, bound: 0 }
+  const counts = { image: 0, critique: 0, post: 0, accepted: 0, bound: 0, released: 0 }
   const dispatch = { totalPosts: 0 }
   const expectedModels = prepare({ seconds, narration, scenes: scenes.map((scene, i) => ({ ...scene, approvedStillUrl: i === 0 ? 'https://test.invalid/approved.png' : null })) }).map(chunk => chunk.model)
   const box = { exports: {}, paidKling4: true, verbatim: true, parsedScript: { narration, speed: 1 }, plan: { scenes, styleSheet: 'Natural light.' },
@@ -151,11 +189,13 @@ function paidRouteFixture({ seconds = 30, free = false, uncertain = false, exist
     cinematicAdmin: {}, duration: seconds, requestedDuration: seconds, narrationLanguage: { language: 'en' },
     prompt: 'An adventure at sea.', claimQuality: 'cinematic_hollywood', cost: free ? 0 : pricing.kling4PaidCredits(seconds),
     paidKling4Promo: { isFree: free, reason: free ? 'ok' : 'cap' }, process: { env: { FAL_KEY: 'offline-test' } },
-    silenciarFalaNoPrompt: value => value, prepareKling4PaidFilm: prepare, kling4PaidBudget: pricing.kling4PaidBudget,
+    silenciarFalaNoPrompt: value => value, prepareKling4PaidFilm: prepare, kling4PaidBudget: pricing.kling4PaidBudget, kling4PaidFallbackPrompts,
     generateCinematicSceneStill: async () => { counts.image++; return 'https://test.invalid/approved.png' },
     novoFilmeDoCritico: () => ({}),
     criticarStill: async (_args, deps) => { counts.critique++; assert.equal(deps.maxRegeracoesCena, 0); return { relato: { veredito: 'PASS' } } },
     writeServerEvent: async () => true, STILL_CRITIC_EVENTO: 'cinematic_still_critic', ctxDespacho: () => dispatch,
+    ensureKling4PromoBudgetToday: async () => carry,
+    releaseBirthClaim: async () => { counts.released++; return true }, NextResponse: { json: (body, init) => ({ body, status: init.status }) },
     claimKling4PaidSlot: async (_db, i) => existing ? { code: 'existing', state: 'accepted', requestId: `existing-${i.index}`, model: expectedModels[i.index] } : { code: 'claimed', token: 'offline-token' },
     finishKling4PaidSlot: async () => { counts.bound++; return true },
     recordKling4PaidUse: async () => { counts.accepted++; return true },
@@ -198,4 +238,15 @@ test('real paid route preserves uncertain first receipts and reuses durable rece
   const again = await replay.run()
   assert.equal(replay.counts.post, 0)
   assert.deepEqual(JSON.parse(JSON.stringify(again.ids)), ['existing-0', 'existing-1', 'existing-2', 'existing-3'])
+})
+
+test('real paid birth refuses a free request before stills or queue slots if the current UTC day budget cannot be held', async () => {
+  const fixture = paidRouteFixture({ seconds: 60, free: true, carry: false })
+  const result = await fixture.run()
+  assert.equal(result.status, 409)
+  assert.equal(result.body.charged, false)
+  assert.equal(fixture.counts.image, 0)
+  assert.equal(fixture.counts.post, 0)
+  assert.equal(fixture.counts.bound, 0)
+  assert.equal(fixture.counts.released, 1)
 })

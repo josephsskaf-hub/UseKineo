@@ -1,6 +1,6 @@
 # Kling 4.0 paid film — local handoff, 2026-10-29
 
-**IMPLEMENTADO / FATO CONFIRMADO:** `engine='hollywood'` selects the paid Kling4 branch only with `KLING4_PAID_LIVE=true`. With the flag off the original Kling3 branch remains. The first-free-film modules and their daily budget are unchanged.
+**IMPLEMENTADO / FATO CONFIRMADO:** `engine='hollywood'` selects the paid Kling4 branch only with `KLING4_PAID_LIVE=true`. With the flag off the original Kling3 branch remains. The first-free-film modules and their daily budget are unchanged. Source: `app/api/generate-video-cinematic/route.ts:1661`; the final diff against `e60fc31b1` contains no `lib/kling4Trial*.ts` changes.
 
 **IMPLEMENTADO / FATO CONFIRMADO:** paid films offer 15/30/60 seconds. The approved plan, script fidelity and speech guards run before the new dispatch. The film queues one/two/four 15-second chunks through the trial's `buildKling4TrialInput` and `submitKling4TrialVideo`. Polling and Seedance fallback import the trial transports, with separate paid queue slots and budget. A lost receipt cannot authorize a second POST. All fallback clips must complete before delivery; no part of the script is discarded.
 
@@ -14,8 +14,14 @@
 
 **FATO CONFIRMADO / IMPLEMENTADO:** a new zero-credit birth must revalidate current subscription, promotion switches, its original UTC reservation day and expiry. A stored reservation alone cannot stockpile a new free render after cancellation or expiry. Existing signed births remain recoverable with their original billing decision. Browser fallback replacement has a separate pure paid validator; no trial helper is changed.
 
+**FATO CONFIRMADO / IMPLEMENTADO:** paid own-scripts that do not fill the selected 15/30/60-second duration are rejected before the price, promotion reservation, claim or provider call. The later legacy duration descent is disabled only for paid Kling4, so a 60-second reservation cannot silently become an unsupported 35-second dispatch. Backup visuals follow the original storyboard in chronological five-second intervals rather than repeating each 15-second description three times. Sources: `app/api/generate-video-cinematic/route.ts:2158`, `app/api/generate-video-cinematic/route.ts:3313`, `app/api/generate-video-cinematic/route.ts:5607`.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** every new free fal dispatch reconfirms today's UTC budget through the promotion carry helper, before claiming a once-only provider slot. A reservation from another day must fit a new full current-day upper bound; polling and delivery of accepted jobs need no new spend. An unavailable current-day budget cannot retroactively debit the subscriber's credits. A first film with no provider submission is safely closed without charging; accepted work keeps waiting for authorized recovery.
+
 **IMPLEMENTADO / FATO CONFIRMADO:** `videos.engine_used` stores the actual provider from the signed claim. The promotion fallback is labeled Seedance 1.5. Historical rows remain null because their engine is unknown. A database trigger prevents clients assigning or changing this badge field. Apply the new local migration before canaries; this work did not apply it.
 
 **TESTADO LOCALMENTE:** offline guards cover the prices and rollback switch, script preservation, 15/30/60 chunks, single POST, uncertain receipts, zero-claim authorization, signed fallback transitions, and SQL queue slots. The final integrated test counts and typecheck result belong to the root handoff.
+
+**FATO CONFIRMADO — code references for review:** the queue dispatch is `app/api/generate-video-cinematic/route.ts:5555`; zero-cost first-start proof is `lib/cinematic/claim.ts:661`; signed compose price and zero-credit reservation are `app/api/compose/route.ts:909` and `app/api/compose/route.ts:2144`; explicit price/cost arithmetic is `lib/kling4PaidPricing.ts:4` and `lib/kling4PaidPricing.ts:20`; paid music/prewarm guards are `app/api/compose/route.ts:2765` and `app/api/generate-video-cinematic/route.ts:2866`; actual-engine persistence is `app/api/compose/status/[renderId]/route.ts:177` and `app/api/compose/status/[renderId]/route.ts:1152`.
 
 **NÃO VALIDADO EM PRODUÇÃO:** no paid render, build or deploy was run. Claude owns canaries and publication. Prepared code and offline tests are not customer activation, paid revenue or production validation.

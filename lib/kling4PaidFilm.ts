@@ -44,6 +44,25 @@ export function prepareKling4PaidFilm(args: {
   })
 }
 
+/** Five-second backup beats retain the original storyboard order instead of repeating each 15s chunk. */
+export function kling4PaidFallbackPrompts(args: { seconds: number; scenes: readonly Kling4PaidScene[] }): string[] {
+  if (!isKling4PaidFilmSeconds(args.seconds) || !args.scenes.length || args.scenes.some(scene =>
+    !scene.prompt.trim() || !Number.isFinite(scene.seconds) || scene.seconds <= 0)) throw new Error('kling4_paid_invalid_fallback_plan')
+  const total = args.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
+  let cursor = 0
+  const timeline = args.scenes.map(scene => {
+    const start = cursor
+    cursor += scene.seconds * args.seconds / total
+    return { ...scene, start, end: cursor }
+  })
+  return Array.from({ length: args.seconds / 5 }, (_, index) => {
+    const start = index * 5
+    const beats = timeline.filter(scene => scene.end > start + 0.000001 && scene.start < start + 5 - 0.000001)
+    if (!beats.length) throw new Error('kling4_paid_invalid_fallback_plan')
+    return `Chronological shot ${index + 1}. ${beats.map(scene => scene.prompt.trim()).join(' Then the next planned beat: ')}`
+  })
+}
+
 /** Submit once per signed slot. A lost receipt must stop the film, never buy that chunk twice. */
 export async function submitKling4PaidFilm(
   chunks: readonly Kling4PaidChunk[],

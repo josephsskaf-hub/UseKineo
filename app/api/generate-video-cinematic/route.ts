@@ -10,9 +10,10 @@ import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudg
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
-import { isKling4PaidFilmSeconds, prepareKling4PaidFilm } from '@/lib/kling4PaidFilm'
+import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
 import { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
 import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue'
+import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
@@ -2154,6 +2155,17 @@ async function manipularPost(req: NextRequest) {
     // Push #402 — per-engine cost. KINEO-PRICING-V3B-2026-07-10: Hollywood 150,
     // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20 — valores de REFERÊNCIA
     // para 60s. A cobrança real escala com a duração (abaixo).
+    // Paid Kling4 fixes the offered duration before quote/reservation/claim. A short own-script must never
+    // descend later to the legacy 35-second option after its 60-second promotion budget was reserved.
+    if (paidKling4) {
+      if (!isKling4PaidFilmSeconds(duration)) return NextResponse.json({ error: 'Choose 15, 30 or 60 seconds for Kling 4.0.', reason: 'kling4_paid_duration_not_offered', charged: false }, { status: 422 })
+      if (verbatim && parsedScript.narration) {
+        const paidFit = narrationFitAt(parsedScript.narration, duration, narrationRate)
+        if (!paidFit.ok) return NextResponse.json({ error: `This script does not fill the selected ${duration}-second Kling 4.0 film. Choose a shorter offered duration or add about ${paidFit.missingWords} words.`,
+          reason: 'kling4_paid_script_duration_mismatch', requested_seconds: duration, missing_words: paidFit.missingWords,
+          offered_seconds: [15, 30, 60], charged: false }, { status: 422 })
+      }
+    }
     const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsH3Max ? H3MAX_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST // KINEO-H3MAX-2026-10-13
     // ═══ KINEO-DURACAO-2026-08-20 — O SERVIDOR COBRA O QUE A TELA MOSTROU ═══
     // O /studio calcula o "Estimated cost" com creditCostForDuration; se esta
@@ -3299,7 +3311,7 @@ async function manipularPost(req: NextRequest) {
     // honesta é ele decidir — escrever mais, ou aceitar um vídeo mais curto. No
     // caminho automático quem escreve é o nosso gerador, e a correção certa lá
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
-    if (verbatim && parsedScript.narration) {
+    if (verbatim && parsedScript.narration && !paidKling4) {
       let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
       // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — a duração curta que o MOTOR oferece (15 s; 30 s na
       // [KINEO-DURACOES-CURTAS-2026-09-29] hollywood — lib/durationByEngine supportedDurationsFor) não é "alvo fantasma": sem isto o resgate/aterrissagem abaixo trocava o
@@ -5543,6 +5555,11 @@ async function manipularPost(req: NextRequest) {
         // The approved plan and speech guards above are shared. Only the paid queue dispatch changes.
         const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')
         const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: null as string | null }))
+        if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {
+          await releaseBirthClaim('promo_current_day_budget_unavailable')
+          return NextResponse.json({ error: 'The free Kling 4.0 budget is unavailable today. No film was submitted and no credits were charged.',
+            reason: 'kling4_promo_daily_cap', charged: false }, { status: 409 })
+        }
         // One keyframe maximum. Failed or unapproved images select text-to-video; no image retry can exceed the quote.
         providerSubmissionMayExist = true
         const firstStill = await generateCinematicSceneStill({ scenePrompt: paidScenes[0].prompt, styleSuffix: plan.styleSheet ?? '', seed: generationSeed,
@@ -5562,6 +5579,9 @@ async function manipularPost(req: NextRequest) {
         let uncertain = false
         for (const chunk of chunks) {
           const identity = { userId: user.id, jobId: generationId, phase: 'kling4' as const, index: chunk.index }
+          if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {
+            uncertain = true; break
+          }
           const slot = await claimKling4PaidSlot(cinematicAdmin, identity)
           if (slot.code === 'existing') {
             if (slot.state === 'accepted' && slot.requestId && slot.model === chunk.model) { ids[chunk.index] = slot.requestId; continue }
@@ -5584,6 +5604,7 @@ async function manipularPost(req: NextRequest) {
         cinematicSubmissionUncertain = uncertain
         const marker = { version: 'kling4_paid_2810', promo: cost === 0, seconds: duration, engine_used: 'kling4', submitted_at: submittedAt,
           fallback_budget_reserved: true, chunk_scenes: chunks.map(chunk => ({ prompt: chunk.prompts.join(' '), duration: 15 })),
+          fallback_prompts: kling4PaidFallbackPrompts({ seconds: duration, scenes: paidScenes }),
           cost_basis: 'reserved_upper_bound', cost_usd: kling4PaidBudget(duration).falMilliUsd / 1000,
           promo_reason: paidKling4Promo?.reason ?? 'disabled' }
         const response: Record<string, unknown> = {
@@ -5596,7 +5617,7 @@ async function manipularPost(req: NextRequest) {
           scene_prompts: chunks.map(chunk => chunk.prompts.join(' ')), scene_anchor_urls: chunks.map(chunk => chunk.approvedStills[0] ?? null),
           scene_fal_inputs: chunks.map(chunk => chunk.input), kling4_paid: marker,
           engine_used: 'kling4', engine_label: 'Kling 4.0', credits_charged: cost,
-          ...(!paidKling4Promo?.isFree && ['cap', 'daily_limit'].includes(paidKling4Promo?.reason ?? '') ? {
+          ...(!paidKling4Promo?.isFree && ['daily_cap', 'daily_limit'].includes(paidKling4Promo?.reason ?? '') ? {
             kling4_promo_notice: 'The free daily Kling 4.0 allowance is used up. This film uses the regular credit price.',
           } : {}),
         }
