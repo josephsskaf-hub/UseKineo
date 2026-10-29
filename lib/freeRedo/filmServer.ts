@@ -28,7 +28,7 @@ import {
   mediaUrlsOf,
   tentativasGastas,
   tituloDaVersaoNova,
-  trocarClipe,
+  trocarCena,
   uuidFrom, // KINEO-REFAZER-GRATIS-2810
   variarEntrada,
   verifyFilmChain, // KINEO-REFAZER-GRATIS-2810
@@ -55,7 +55,7 @@ export interface FreeRedoFilmDeps {
   submitScene: (model: string, input: Record<string, unknown>) => Promise<string>
   pollScene: (model: string, requestId: string) => Promise<{ status: 'pending' | 'done' | 'failed'; url: string | null; error?: string | null }>
   submitRender: (source: Record<string, unknown>) => Promise<string>
-  pollRender: (renderId: string) => Promise<{ status: string; url: string | null; snapshotUrl: string | null; error: string | null; durationSeconds?: number | null }>
+  pollRender: (renderId: string) => Promise<{ status: string; url: string | null; snapshotUrl: string | null; error: string | null; durationSeconds?: number | null; exactDurationSeconds?: number | null }>
   persist: (a: { userId: string; renderId: string; videoUrl: string; snapshotUrl: string | null }) => Promise<{ videoUrl: string; thumbnailUrl: string | null; measuredSeconds: number | null }>
   deadUrls: (urls: string[]) => Promise<string[]>
   event: (e: { name: string; userId: string; path: string; sessionId: string | null; metadata: Record<string, unknown> }) => Promise<boolean>
@@ -210,7 +210,18 @@ async function contexto(d: FreeRedoFilmDeps, userId: string, videoId: string): P
 }
 
 function cenasPublicas(cenas: CenaRefazivel[]) {
-  return cenas.map((c) => ({ index: c.index, number: c.index + 1, text: c.text, clip_url: c.clipUrl, seconds: c.seconds }))
+  return cenas.map((c) => ({ index: c.index, number: c.index + 1, text: c.text, clip_url: c.clipUrl, seconds: c.interval?.duration ?? c.seconds,
+    ...(c.previewStart !== undefined ? { preview_start: c.previewStart } : {}),
+  }))
+}
+
+/** Re-derive the selected interval from the HMAC birth/source/chain, never from mutable order timing fields. */
+async function cenaAssinadaDoPedido(d: FreeRedoFilmDeps, userId: string, fonte: { source: Record<string, unknown>; generationId: string; chain: FilmChain | null }, meta: Meta): Promise<CenaRefazivel | null | 'erro'> {
+  let loaded: Awaited<ReturnType<FreeRedoFilmDeps['loadClaim']>>
+  try { loaded = await d.loadClaim({ userId, generationId: fonte.generationId }) } catch { return 'erro' }
+  if (!loaded.ok) return 'erro'
+  const cenas = cenasDoFilme(loaded.claim, userId, fonte.source, fonte.chain ? { [fonte.chain.sceneIndex]: fonte.chain.clipUrl } : null)
+  return cenas.find(c => c.index === meta.scene_index && c.clipUrl === meta.old_clip_url && c.model === meta.model) ?? null
 }
 
 function corpoDoPedido(meta: Meta | null, temFonte: boolean): Record<string, unknown> {
@@ -259,7 +270,7 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
   if (decisao === 'usada') return r(409, { ...corpoDoPedido(lido.meta, true), ok: false, motivo: 'ja_usada' })
 
   // Antes de gastar qualquer coisa: o resto do filme ainda existe no fornecedor? (clipe expirado = a remontagem falharia)
-  const mortas = await d.deadUrls(mediaUrlsOf(source).filter((u) => u !== cena.clipUrl))
+  const mortas = await d.deadUrls(mediaUrlsOf(source).filter((u) => cena.interval || u !== cena.clipUrl))
   if (mortas.length > 0) return r(409, { ok: false, motivo: 'arquivo_expirou', estado: 'unavailable' })
 
   const primeiro = chain ? true : await primeiroFilme(d, a.userId, videoId) // KINEO-REFAZER-GRATIS-2810 — gravado na linha-trava: a entrega decide por ele se a versão nova ganha a refação nº 2
@@ -378,7 +389,12 @@ async function acompanharSemSaldo(d: FreeRedoFilmDeps, a: { userId: string; vide
   }
 
   const status = String(meta.status ?? '') as FreeRedoStatus
-  if (status === 'done' || status === 'failed') return r(200, corpoDoPedido(meta, true))
+  if (status === 'done') {
+    // Repair a prior worker stopping after delivery but before saving the promised second redo.
+    await guardarElo(d, a.userId, videoId, meta, String(meta.render_id ?? ''))
+    return r(200, corpoDoPedido(meta, true))
+  }
+  if (status === 'failed') return r(200, corpoDoPedido(meta, true))
   if (a.lite && !etapaParada(meta, d.now()) && status === 'pending') return r(200, corpoDoPedido(meta, true))
 
   if (status === 'pending') {
@@ -451,7 +467,10 @@ async function montar(d: FreeRedoFilmDeps, userId: string, videoId: string, meta
   }
   if (fonte === 'erro') return r(200, corpoDoPedido(meta, true)) // banco piscou: a próxima consulta retoma (etapa parada)
   if (!fonte.ok) return falha('source_invalid')
-  const troca = trocarClipe(fonte.source, String(meta.old_clip_url ?? ''), String(meta.new_clip_url ?? ''))
+  const cena = await cenaAssinadaDoPedido(d, userId, fonte, meta)
+  if (cena === 'erro') return r(200, corpoDoPedido(meta, true))
+  if (!cena) return falha('scene_authority_invalid')
+  const troca = trocarCena(fonte.source, cena, String(meta.new_clip_url ?? ''))
   if (troca.trocados === 0) return falha('scene_not_in_source')
   let renderId: string
   try {
@@ -465,7 +484,12 @@ async function montar(d: FreeRedoFilmDeps, userId: string, videoId: string, meta
 }
 
 /** Montagem pronta: copia o MP4 para o bucket, cria a versão NOVA em `videos` (0 crédito) e fecha o pedido. */
-async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, meta: Meta, est: { url: string | null; snapshotUrl: string | null; durationSeconds?: number | null }): Promise<FreeRedoResposta> {
+async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, meta: Meta, est: { url: string | null; snapshotUrl: string | null; durationSeconds?: number | null; exactDurationSeconds?: number | null }): Promise<FreeRedoResposta> {
+  const fail = async (error: string) => {
+    const failed = { status: 'failed', error }
+    if (await mover(d, userId, videoId, meta, failed)) await falhou(d, userId, videoId, meta, error)
+    return r(200, corpoDoPedido({ ...meta, ...failed }, true))
+  }
   const renderId = String(meta.render_id)
   const { data: origData } = await d.db
     .from('videos')
@@ -473,6 +497,23 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
     .eq('id', videoId).eq('user_id', userId).maybeSingle()
   const orig = (origData ?? {}) as Partial<VideoRow>
   const assets = await d.persist({ userId, renderId, videoUrl: String(est.url), snapshotUrl: est.snapshotUrl })
+  const fonte = await lerFonte(d, userId, String(meta.original_render_id ?? ''))
+  if (fonte === 'erro') return r(200, corpoDoPedido(meta, true))
+  if (!fonte.ok) return fail('source_invalid')
+  const cena = await cenaAssinadaDoPedido(d, userId, fonte, meta)
+  if (cena === 'erro') return r(200, corpoDoPedido(meta, true))
+  if (!cena) return fail('scene_authority_invalid')
+  if (cena.interval) {
+    const measured = [assets.measuredSeconds, est.exactDurationSeconds].find(n => typeof n === 'number' && Number.isFinite(n) && n > 0)
+    if (typeof measured !== 'number' || measured < 15) {
+      const failed = { status: 'failed', error: typeof measured === 'number' ? 'render_duration_below_15' : 'render_duration_unverified' }
+      if (await mover(d, userId, videoId, meta, failed)) await falhou(d, userId, videoId, meta, failed.error)
+      return r(200, corpoDoPedido({ ...meta, ...failed }, true))
+    }
+  }
+  const shouldGain = versaoNovaGanhaRefacao({ primeiroFilme: meta.first_film === true, seq: meta.free_seq })
+  const ganhou = shouldGain ? await guardarElo(d, userId, videoId, meta, renderId) : false
+  if (shouldGain && !ganhou) return r(200, corpoDoPedido(meta, true))
   const segundos = [assets.measuredSeconds, est.durationSeconds, orig.duration].find((n) => typeof n === 'number' && Number.isFinite(n) && n > 0)
   const row: Record<string, unknown> = {
     user_id: userId,
@@ -504,7 +545,6 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
       estimated_usd: meta.estimated_usd ?? null, new_video_id: novoId, render_id: renderId, previous_video_url: meta.previous_video_url ?? null,
       requested_at: meta.requested_at ?? meta.created_at ?? null, // KINEO-REFAZER-CENA-2710 — o espelho scene_redo_delivered calcula `ms` daqui
     })
-    const ganhou = await guardarElo(d, userId, videoId, meta, renderId) // KINEO-REFAZER-GRATIS-2810
     await evento(d, userId, videoId, SCENE_REDO_FUNNEL_EVENTS.freeUsed, { // KINEO-REFAZER-GRATIS-2810
       film_id: typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId, scene_index: meta.scene_index ?? null, // KINEO-REFAZER-GRATIS-2810
       free_seq: typeof meta.free_seq === 'number' ? meta.free_seq : 1, first_film: meta.first_film === true, new_video_id: novoId, next_free_redo: ganhou, // KINEO-REFAZER-GRATIS-2810
@@ -517,7 +557,7 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
  * KINEO-REFAZER-GRATIS-2810 — refação nº 1 do PRIMEIRO filme entregue: a versão nova ganha o RenderScript assinado (o
  * mesmo que foi ao Creatomate) com o elo de cadeia (seq 2). É isto — e só isto — que dá à versão nova a sua linha-trava de
  * refação grátis. Id DETERMINÍSTICO pelo render novo: duas entregas concorrentes = uma linha (23505). Qualquer falha = a
- * versão nova fica sem a refação nº 2 (fecha para o lado do custo); nada aqui toca crédito.
+ * entrega espera uma nova consulta para reparar a gravação antes de expor a versão; nada aqui toca crédito.
  */
 async function guardarElo(d: FreeRedoFilmDeps, userId: string, videoId: string, meta: Meta, renderId: string): Promise<boolean> {
   try {
@@ -525,21 +565,30 @@ async function guardarElo(d: FreeRedoFilmDeps, userId: string, videoId: string, 
     const sceneIndex = meta.scene_index
     const novoClipe = String(meta.new_clip_url ?? '')
     if (typeof sceneIndex !== 'number' || !Number.isInteger(sceneIndex) || !novoClipe.startsWith('https://')) return false
+    const seq = (typeof meta.free_seq === 'number' && Number.isInteger(meta.free_seq) && meta.free_seq > 0 ? meta.free_seq : 1) + 1
+    const rootVideoId = typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId
+    const matches = (saved: Awaited<ReturnType<typeof lerFonte>>) => saved !== 'erro' && saved.ok &&
+      saved.chain?.parentVideoId === videoId && saved.chain.sceneIndex === sceneIndex && saved.chain.clipUrl === novoClipe && saved.chain.seq === seq && saved.chain.rootVideoId === rootVideoId
+    const existing = await lerFonte(d, userId, renderId)
+    if (existing !== 'erro' && existing.ok) return matches(existing)
     const fonte = await lerFonte(d, userId, String(meta.original_render_id ?? ''))
     if (fonte === 'erro' || !fonte.ok) return false
-    const troca = trocarClipe(fonte.source, String(meta.old_clip_url ?? ''), novoClipe)
+    const cena = await cenaAssinadaDoPedido(d, userId, fonte, meta)
+    if (cena === 'erro' || !cena) return false
+    const troca = trocarCena(fonte.source, cena, novoClipe)
     if (troca.trocados === 0) return false
-    const seq = (typeof meta.free_seq === 'number' && Number.isInteger(meta.free_seq) && meta.free_seq > 0 ? meta.free_seq : 1) + 1
     const metadata = filmSourceMetadata({
       secret: d.secret, userId, renderId, generationId: fonte.generationId, quality: fonte.quality, source: troca.source,
-      chain: { seq, parentVideoId: videoId, rootVideoId: typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId, sceneIndex, clipUrl: novoClipe },
+      chain: { seq, parentVideoId: videoId, rootVideoId, sceneIndex, clipUrl: novoClipe },
     })
     if (!metadata) return false
     const { error } = await d.db.from('events').insert({
       id: uuidFrom(`kineo:free-redo:film-chain:v1:${renderId}`), user_id: userId, name: FILM_SOURCE_EVENT, path: FREE_REDO_FILM_PATH,
       session_id: fonte.generationId, metadata,
     })
-    return !error || (error as { code?: string }).code === '23505'
+    if (!error) return true
+    if ((error as { code?: string }).code !== '23505') return false
+    return matches(await lerFonte(d, userId, renderId))
   } catch {
     return false
   }

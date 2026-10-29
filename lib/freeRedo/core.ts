@@ -23,6 +23,8 @@
 // LIB PURA (só node:crypto + constantes de lib/classicSceneRetry): o guardião scripts/test-meta95-refazer-1910.mjs a executa.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { CLASSIC, CLASSIC_I2V, SEEDANCE_MODEL, SEEDANCE_I2V_MODEL, KLING_MODEL, KLING_I2V_MODEL, VEO_MODEL, VEO_I2V_MODEL } from '@/lib/classicSceneRetry'
+import { cenasKling4ParaRefazer, emendarCenaKling4 } from '@/lib/freeRedo/kling4Scene'
+import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { FREE_REDO_FILM_PATH, FREE_REDO_FILM_QUALITIES, filmQualityCovered } from '@/lib/freeRedo/public'
 
 export const MARCA_REFAZER_1910 = 'KINEO-META95-REFAZER-1910'
@@ -257,6 +259,8 @@ export interface CenaRefazivel {
   text: string
   clipUrl: string
   input: Record<string, unknown>
+  interval?: { start: number; duration: number; originalUrl: string; originalSeconds: 15 }
+  previewStart?: number
 }
 
 function textoDaCena(response: Record<string, unknown>, i: number): string {
@@ -292,6 +296,7 @@ export function cenasDoFilme(claim: ClaimParaRefazer | null | undefined, userId:
   if (!claim || claim.userId !== userId || (claim.status !== 'settled' && claim.status !== 'released')) return []
   const response = claim.response && typeof claim.response === 'object' ? claim.response : null
   if (!response) return []
+  if (kling4TrialEngineFromClaim(response) === 'kling4') return cenasKling4ParaRefazer(claim, source, trocadas)
   const inputs = Array.isArray(response.scene_fal_inputs) ? (response.scene_fal_inputs as unknown[]) : []
   const urls = new Set(videoUrlsOf(source))
   const out: CenaRefazivel[] = []
@@ -333,6 +338,10 @@ export function trocarClipe(source: Record<string, unknown>, oldUrl: string, new
   }
   walk(copia.elements)
   return { source: copia, trocados }
+}
+
+export function trocarCena(source: Record<string, unknown>, scene: CenaRefazivel, newUrl: string) {
+  return scene.interval ? emendarCenaKling4(source, scene, newUrl) : trocarClipe(source, scene.clipUrl, newUrl)
 }
 
 export function custoEstimadoUsd(model: string, seconds: number | null | undefined): number {

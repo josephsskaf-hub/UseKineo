@@ -232,6 +232,11 @@ function PainelDaVersao({ videoId, filmId, saldo, aoResponder, aoSumir, aoTrocar
                   muted
                   playsInline
                   preload="metadata"
+                  onLoadedMetadata={event => {
+                    if (c.preview_start !== undefined) {
+                      try { event.currentTarget.currentTime = c.preview_start } catch { /* The same existing preview remains usable if seeking is unavailable. */ }
+                    }
+                  }}
                   style={{ width: 84, height: 150, objectFit: 'cover', borderRadius: 8, border: ativa ? '2px solid var(--indigo)' : '2px solid transparent', boxSizing: 'border-box' }}
                 />
                 <span>{freeRedoFill(t.scene, c.number)}</span>

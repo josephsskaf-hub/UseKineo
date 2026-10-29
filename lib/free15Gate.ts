@@ -1,7 +1,7 @@
 // KINEO-FILME15-PERFEITO-2610. Durable pre-delivery gate; no providers or database here.
 import type { PixelResult } from '@/lib/regua95/pixelScore'
 import type { CaptionEvidenceAssessment } from '@/lib/captionEvidenceGuard'
-import { trocarClipe, type CenaRefazivel } from '@/lib/freeRedo/core'
+import { trocarCena, type CenaRefazivel } from '@/lib/freeRedo/core'
 
 export const FREE15_GATE_EVENT = 'free15_delivery_gate'
 export const FREE15_GATE_FAILED_EVENT = 'free15_gate_failed'
@@ -49,8 +49,9 @@ function culpritAt(source: Record<string, unknown>, seconds: number | null, scen
       const start = offset + (typeof el.time === 'number' ? el.time : 0)
       const duration = Number(el.duration)
       if (el.type === 'video' && Number.isFinite(duration) && seconds >= start && seconds < start + duration) {
-        const scene = scenes.find(s => s.clipUrl === el.source)
-        if (scene) hits.push({ index: scene.index, start })
+        const scene = scenes.find(s => s.clipUrl === el.source && (!s.interval ||
+          seconds >= s.interval.start && seconds < s.interval.start + s.interval.duration))
+        if (scene) hits.push({ index: scene.index, start: Math.max(start, scene.interval?.start ?? start) })
       }
       walk(el.elements, start)
     }
@@ -138,7 +139,7 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
     try { result = await d.pollScene(scene, state.requestId) } catch { return age > PROVIDER_STALE ? finish('failed', 'scene_poll_timeout') : pending }
     if (result.status === 'pending') return age > PROVIDER_STALE ? finish('failed', 'scene_timeout') : pending
     if (result.status !== 'done' || !result.url) return finish('failed', 'scene_repair_failed')
-    const swapped = trocarClipe(state.source, scene.clipUrl, result.url)
+    const swapped = trocarCena(state.source, scene, result.url)
     if (!swapped.trocados) return finish('failed', 'scene_not_in_source')
     if (!await move({ status: 'render_submitting', source: swapped.source })) return pending
     try {

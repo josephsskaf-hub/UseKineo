@@ -24,6 +24,12 @@ export const FREE_REDO_FIRST_FILM_TOTAL = 2
 /** Refações grátis de qualquer outro filme (a regra de 19/10, intacta). */
 export const FREE_REDO_OTHER_FILM_TOTAL = 1
 
+/** Seedance 1.5 accepts 4..12s. A shorter Kling shot buys 4s and uses only its signed interval. */
+export function seedanceSecondsForFreeKlingScene(seconds: unknown): number | null {
+  return typeof seconds === 'number' && Number.isFinite(seconds) && seconds >= 3 && seconds <= 9
+    ? Math.max(4, Math.ceil(seconds)) : null
+}
+
 export const SCENE_REDO_FUNNEL_EVENTS = {
   offerViewed: 'scene_redo_offer_viewed',
   clicked: 'scene_redo_clicked',

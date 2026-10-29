@@ -85,6 +85,7 @@ export interface SceneRedoCena {
   text: string
   clip_url: string
   seconds: number | null
+  preview_start?: number
 }
 
 export interface SceneRedoResposta {
@@ -119,7 +120,9 @@ export function cenasDoPainel(r: SceneRedoResposta | null | undefined): SceneRed
     const index = inteiroOuNull((c as SceneRedoCena).index)
     const clip = (c as SceneRedoCena).clip_url
     if (index === null || typeof clip !== 'string' || !clip.startsWith('https://')) continue
-    out.push({ index, number: index + 1, text: typeof c.text === 'string' ? c.text : '', clip_url: clip, seconds: typeof c.seconds === 'number' ? c.seconds : null })
+    out.push({ index, number: index + 1, text: typeof c.text === 'string' ? c.text : '', clip_url: clip, seconds: typeof c.seconds === 'number' ? c.seconds : null,
+      ...(typeof c.preview_start === 'number' && Number.isFinite(c.preview_start) && c.preview_start >= 0 && c.preview_start < 90 ? { preview_start: c.preview_start } : {}),
+    })
   }
   return out
 }
