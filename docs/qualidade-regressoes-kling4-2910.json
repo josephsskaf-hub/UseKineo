@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-29T21:31:17.690Z",
+  "results": [
+    {
+      "test": "tests/kling4PaidFilm.test.mjs",
+      "exit": 0,
+      "output": "✔ central credit quotes meet 40% against the explicit full fallback and extras budget (1.4731ms)\n✔ paid switch off preserves Kling3 prices; paid switch on uses the same explicit UI quote (6.761ms)\n✔ paid browser replacement restores only a frozen complete fallback of the same generation and spoken script (0.8572ms)\n✔ 15/30/60 preserve all spoken words and exact paid provider seconds (1.3863ms)\n✔ fallback has a distinct chronological five-second visual plan rather than triplicated chunk prompts (0.4674ms)\n✔ actual paid preflight rejects a 35-second own-script requested at 60 before quote, reservation, debit or still (53.0876ms)\n✔ unsupported duration, empty narration, invalid scene or excessively fragmented chunks are refused (0.4971ms)\n✔ queue submission returns receipts without polling and binds each one before next POST (0.6898ms)\n✔ uncertain POST and durable-binding errors stop without retry or later paid chunks (0.5774ms)\n✔ tampered later input or missing API configuration fails before any provider submission (0.4237ms)\n✔ real paid route branch queues the signed full 15/30/60 film and one approved still only (359.083ms)\n✔ real paid route preserves uncertain first receipts and reuses durable receipts without reposting (25.6549ms)\n✔ real paid birth refuses a free request before stills or queue slots if the current UTC day budget cannot be held (9.6686ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 467.8829\n"
+    },
+    {
+      "test": "tests/kling4TrialTiming.test.mjs",
+      "exit": 0,
+      "output": "✔ one long spoken scene receives nine seconds and two short scenes retain three each (2.2281ms)\n✔ all valid scene-count and narration shapes produce whole seconds, a three-second floor and exactly 15 total (1.1433ms)\n✔ balanced and entirely empty narration have deterministic rounding without adding or dropping scenes (0.279ms)\n✔ timing uses spoken words rather than English character length and accepts the resolved short-voice rate (0.439ms)\n✔ impossible scene counts and invalid voice rates fail before any paid submission (0.5359ms)\n✔ builder preserves scene, narration and still order while passing the 9/3/3 timing plan to multi_prompt (1.6243ms)\n✔ actual birth submit sends narration timing in a single POST, and malformed timing sends nothing (3.9183ms)\n✔ actual birth wiring signs the same narration timing and intervals while preserving the separate Seedance fallback plan (381.133ms)\nℹ tests 8\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 397.6401\n"
+    }
+  ]
+}

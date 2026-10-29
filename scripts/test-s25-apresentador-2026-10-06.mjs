@@ -20,6 +20,7 @@ import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { FILMES, ESTILO } from './s25-nota95-filmes-2026-10-06.mjs'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -277,7 +278,13 @@ async function verificacoes(over = {}) {
     return chamadas.length >= 6 && chamadas.every(([, i]) => L.slice(Math.max(0, i - 20), i + 1).some((x) => x.includes("family === 's25'") || (juizSoS25 && x.includes('juizStillLigado(family)'))))
   })
   const corpoEnsaio = fatia(R, '          let s25Ensaio: Record<string, unknown> | null = null', "          await releaseBirthClaim('dry_run_no_charge')")
-  const corpoPre = fatia(R, '      // ═══ KINEO-S25-NOTA95-2026-10-06 — a ÚLTIMA passada no plano visual do Seedance 2.5, antes de still e POST ═══', '      for (const [idx, hs] of plan.scenes.entries()) {')
+  // KINEO-QUALIDADE-REGRESSOES-2910 (a): o fim antigo englobava a NOVA passada universal.
+  // A prova S25 continua executando integralmente sua passada e comparando H3 byte a byte,
+  // encerrando antes da camada comum (não a substituímos por um stub que esconderia regressões).
+  const fimPre = '      await aplicarQualidadeHollywood() // KINEO-QUALIDADE-TODOS-MOTORES-2910'
+  const corpoPre = fatia(R, '      // ═══ KINEO-S25-NOTA95-2026-10-06 — a ÚLTIMA passada no plano visual do Seedance 2.5, antes de still e POST ═══', fimPre)
+  v('a passada universal continua imediatamente depois da passada S25 e antes dos submits por cena', () => R.includes(fimPre + '\n      for (const [idx, hs] of plan.scenes.entries()) {'))
+  const corpoQualidade = fatia(R, '      const aplicarQualidadeHollywood = async () => {', '      await aplicarQualidadeHollywood()')
   const linhaAnc = R.split('\n').find((l) => l.includes("...(family === 's25' ? { environmentSheet: ambienteComEpoca("))
   const exprAnc = linhaAnc ? linhaAnc.trim().replace(/^\.\.\./, '').replace(/,\s*\/\/.*$/, '') : null
   let ensaio = null, pre = null, anc = null
@@ -301,6 +308,22 @@ async function verificacoes(over = {}) {
     const s25Plano = await pre({ family: 's25', planejarCenasS25: S.planejarCenasS25, plan, prompt: ROTEIRO_T, hollywoodLanguage: 'en', console: silencioso, writeServerEvent: async (e) => { eventos.push(e); return true }, S25_CENA_EVENTO: S.S25_CENA_EVENTO, user: { id: 'u' }, generationId: 'g-tambora' })
     v('render pago (fatia real da passada) Tambora: plan.scenes[0].prompt sem o historiador, abre com o vulcão', () => Boolean(s25Plano) && plan.scenes[0].prompt.startsWith('Wide shot of Mount Tambora in Indonesia erupting') && !/historian/i.test(plan.scenes[0].prompt))
     v('render pago: o evento s25_cena_plano leva apresentador_fora=1 e o motivo da cena 1', () => { const ev = eventos.find((e) => e.name === S.S25_CENA_EVENTO); return Boolean(ev) && ev.metadata.generation_id === 'g-tambora' && ev.metadata.apresentador_fora === 1 && ev.metadata.cenas[0].motivo === 'apresentador fora da história → imagem da fala' })
+    // A nova fronteira não pode esconder uma regressão posterior: executa a closure
+    // REAL com a biblioteca REAL e mantém a imagem da fala até o despacho.
+    if (corpoQualidade) {
+      const load = createOfflineLoader()
+      const Q = load('@/lib/cinematic/filmQuality')
+      const styleAnchor = load('@/lib/cinematic/sceneStyle').deriveStyleAnchor('photoreal documentary')
+      const { isStylizedLook } = load('@/lib/cinematic/visualPromptPolicy')
+      const aplicarFinal = carrega(`export async function aplicarFinal(ctx: any) {\n  const { plan, prompt, prepararQualidadeDoFilme, contextoDoFiltro, classicVisualMode, tagFacelessPresente, desenhoInfantil, styleAnchor, personagemElenco, qualidadeHerdada, qualitySnapshot, isStylizedLook } = ctx\n${corpoQualidade}\n  return aplicarQualidadeHollywood()\n}`).aplicarFinal
+      const falaETempo = JSON.stringify(plan.scenes.map(({ voiceover, seconds }) => ({ voiceover, seconds })))
+      await aplicarFinal({ plan, prompt: ROTEIRO_T, prepararQualidadeDoFilme: Q.prepararQualidadeDoFilme,
+        contextoDoFiltro: async (contexto) => contexto, classicVisualMode: 'documentary_faceless', tagFacelessPresente: false,
+        desenhoInfantil: { ativo: false }, styleAnchor, personagemElenco: { elenco: [] }, qualidadeHerdada: null, qualitySnapshot: null, isStylizedLook })
+      const final = plan.scenes[0].prompt
+      v('S25 + qualidade comum real: Tambora continua vulcão em erupção, sem historiador/escritório/olhar para a lente', () => final.includes('Wide shot of Mount Tambora in Indonesia erupting') && !/historian|bookshel/i.test(final) && !OLHAR_LENTE_RE.test(final))
+      v('S25 + qualidade comum real: mantém fala e segundos, e aplica a trava do estilo', () => JSON.stringify(plan.scenes.map(({ voiceover, seconds }) => ({ voiceover, seconds }))) === falaETempo && final.startsWith(`Film visual medium: ${styleAnchor.lookPhrase}. `))
+    } else V.push(['closure real de qualidade foi encontrada', false])
     const planH3 = planT()
     const h3 = await pre({ family: 'h3', planejarCenasS25: S.planejarCenasS25, plan: planH3, prompt: ROTEIRO_T, hollywoodLanguage: 'en', console: silencioso, writeServerEvent: async () => true, S25_CENA_EVENTO: S.S25_CENA_EVENTO, user: { id: 'u' }, generationId: 'g' })
     v('render pago H3: a passada não roda; o prompt do planejador fica como estava', () => h3 === null && planH3.scenes[0].prompt === TAMBORA[0].prompt)

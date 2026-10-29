@@ -9,6 +9,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { hollywoodSafetyChecks, storyModeChecks, sensitiveMutationChecks, kling4TextSafetyChecks } from './test-support/qualidade-sensitive-2910.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -70,7 +71,13 @@ checa('rota cinemática: âncora decidida UMA vez por filme ANTES de descriçõe
 const visualPolicy = rd('lib/cinematic/visualPromptPolicy.ts')
 checa('caminho clássico: política compartilhada aplica look, era e proteção de texto antes do still', /const cinematicBruto = buildClassicVisualPrompt\(visualPrompt,/.test(cin) && /textSafetySuffix\(visual\)/.test(visualPolicy) && /applyStyleAnchor\(/.test(visualPolicy))
 checa('caminho clássico: fecho repetido ganha variação antes de submeter', /const closer = closingSceneVariation\(visuals\)/.test(cin) && cin.indexOf('const closer = closingSceneVariation(visuals)') < cin.indexOf('const submitScene = async ('))
-checa('caminho hollywood (Kling 3/H3/Omni): textSafetySuffix antes de submeter', /scenePrompt = scenePrompt \+ textSafetySuffix\(scenePrompt\)\n\s+submittedPrompt = scenePrompt/.test(cin))
+// KINEO-QUALIDADE-REGRESSOES-2910 (a): the style lock now wraps the protected
+// prompt. Execute the actual loop + retry, including host/Omni fallbacks, instead
+// of requiring the old unwrapped assignment. The exact supplier argument matters.
+await hollywoodSafetyChecks(cin)
+checa('caminho hollywood (Kling 3/H3/H3max/Omni/S25): textSafetySuffix em todo submit visual, fallback e retry; salvo intacto para retomada', true)
+kling4TextSafetyChecks(cin)
+checa('Kling4 pago: compactador mantém proteção de texto do main, inclusive legenda/marca d’água/tela desfocada, dentro do payload final de 512', true)
 
 console.log('== item 3b: modo história (medido no render 2141336f "Benny") ==')
 {
@@ -80,7 +87,10 @@ console.log('== item 3b: modo história (medido no render 2141336f "Benny") ==')
   const an = st.deriveStyleAnchor('Create a cute, colourful 3D animated nursery rhyme about a happy little train')
   const sp = st.buildStoryScenePrompt('Aerial drone shot of a vibrant cartoon train chugging through the sunlit savannah, photorealistic', an, 'a happy little train')
   checa('buildStoryScenePrompt: look no INÍCIO, personagem fixo, sem "no people"/"empty scene", sem "photorealistic" da cena', sp.startsWith(an.lookPhrase + '. ') && /The same main character appears in this scene, consistent design: a happy little train/.test(sp) && !/no people|empty scene|no human faces/.test(sp) && !/photorealistic/.test(sp.slice(an.lookPhrase.length).replace(an.suffix, '')) && /never mix with live-action/.test(sp))
-  checa('rota: storyMode = look animado OU character_story OU ficção; noir não vira personagem por si só', /const storyMode = isStylizedLook\(styleAnchor\) \|\| formatoVisual\.modo === 'character_story' \|\| classifyEngineFit\(prompt\)\.verdict === 'stock_cannot_tell'/.test(cin) && /const storyCharacter = storyMode \? deriveStoryCharacter\(prompt\) : null/.test(cin))
+  // (a): source-film inheritance precedes the original deriveStoryCharacter
+  // branch; the ordinary-film rule is unchanged. Run all independent OR inputs.
+  storyModeChecks(cin)
+  checa('rota: storyMode = look animado OU character_story OU ficção; noir não vira personagem por si só; ficha chega à policy', true)
   checa('rota: em história/presenter a política compartilhada preserva o personagem', /buildClassicVisualPrompt\(visualPrompt,/.test(cin) && /policy\.mode !== 'documentary_faceless'/.test(visualPolicy) && /buildStoryScenePrompt\(visual, policy\.style, policy\.character/.test(visualPolicy))
   checa('rota: o contrato de cena usa o mesmo modo do prompt e do payload', /proibidosPorModo\(classicVisualMode\)/.test(cin) && /isStylizedLook\(styleAnchor\), aspectRequested, classicVisualMode\)/.test(cin))
   checa('telemetria: o prompt FINAL por cena vai para cinematic_dispatch_result (clássico e hollywood)', /submitted_prompts: ctx\.submittedPrompts\.map/.test(cin) && /c\.submittedPrompts\[sceneIndex\] = \(wantsKling \? kling25StripShotAxis\(cinematic\) : cinematic\)\.slice\(0, 240\)/.test(cin) && (cin.match(/ctxDespacho\(\)\.submittedPrompts\[hs\.index - 1\] = submittedPrompt\.slice\(0, 240\)/g) || []).length === 3) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz e scene_index são 0-based · GUARDIOES-EIXO-KLING25-2026-09-29: no clássico a cópia do juiz é o prompt FINAL sem o eixo de variedade do Kling 2.5 (kling25StripShotAxis, 7b2838d5); Seedance/Veo/Sora seguem no ramo ': cinematic'
@@ -99,6 +109,8 @@ checa('a submissão hollywood passa pelo retry', /id = await submitToFalWithOneR
 }
 
 console.log('== item 6: H3 visível para quem paga ==')
+await sensitiveMutationChecks(cin) // proves removal of safety/character or noir-as-story makes the guard red
+checa('mutantes: remover sufixo, ligar noir sozinho, remover derivação ou desligar character da policy falha', true)
 const sc = rd('app/(dashboard)/studio/StudioClient.tsx')
 // MOTORES-EM-MANUTENCAO (15/09): a entrada do H3 ganhou o campo `paused: Boolean(enginePaused('h3'))` antes do ícone
 // (o card fica desabilitado com selo Maintenance enquanto o motor está pausado). A posição e o selo "Fits your plan"
