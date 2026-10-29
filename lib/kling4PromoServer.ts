@@ -32,8 +32,8 @@ export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (
       verifiedAt: new Date(now).toISOString() }
   }
   // No SDK/provider response, IDs, email, error bodies or credentials leave this helper.
-  if (typeof p.stripe_subscription_id === 'string' && p.stripe_subscription_id) {
-    if (!process.env.STRIPE_SECRET_KEY) return null
+  const verifyStripe = async (): Promise<Kling4PaidSubscription | null> => {
+    if (typeof p.stripe_subscription_id !== 'string' || !p.stripe_subscription_id || !process.env.STRIPE_SECRET_KEY) return null
     const { stripe } = await import('./stripe')
     const sub = await stripe.subscriptions.retrieve(p.stripe_subscription_id, { expand: ['latest_invoice'] }, { timeout: 8_000, maxNetworkRetries: 0 })
     const invoice = typeof sub.latest_invoice === 'object' ? sub.latest_invoice : null
@@ -45,8 +45,9 @@ export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (
       || !Number.isFinite(through)) return null
     return evidence('stripe', sub.id, new Date(sub.start_date * 1000).toISOString(), new Date(through! * 1000).toISOString())
   }
-  if (typeof p.paypal_subscription_id === 'string' && p.paypal_subscription_id) {
-    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_ENV === 'sandbox') return null
+  const verifyPaypal = async (): Promise<Kling4PaidSubscription | null> => {
+    if (typeof p.paypal_subscription_id !== 'string' || !p.paypal_subscription_id
+      || !process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_ENV === 'sandbox') return null
     const { paypalFetch, tierFromPlanId } = await import('./paypal')
     const sub = await paypalFetch(`/v1/billing/subscriptions/${encodeURIComponent(p.paypal_subscription_id)}`,
       { signal: AbortSignal.timeout(8_000) })
@@ -58,7 +59,8 @@ export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (
     if (!mapped || normalizeKling4PaidPlan(mapped.tier) !== normalizeKling4PaidPlan(plan)) return null
     return evidence('paypal', p.paypal_subscription_id, sub.start_time, billing.next_billing_time)
   }
-  if (typeof p.dodo_subscription_id === 'string' && p.dodo_subscription_id) {
+  const verifyDodo = async (): Promise<Kling4PaidSubscription | null> => {
+    if (typeof p.dodo_subscription_id !== 'string' || !p.dodo_subscription_id) return null
     const { dodoMode, dodoApiKey, dodoBaseUrl } = await import('./dodo')
     if (dodoMode() !== 'live' || !dodoApiKey()) return null
     const response = await fetch(`${dodoBaseUrl()}/subscriptions/${encodeURIComponent(p.dodo_subscription_id)}`, {
@@ -73,6 +75,14 @@ export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (payment.error || !(Number(payment.data?.metadata?.amount_total) > 0)) return null
     return evidence('dodo', p.dodo_subscription_id, sub.created_at, sub.next_billing_date)
+  }
+  // Old provider IDs can remain after a rail change. A cancelled/unavailable old rail must not
+  // mask another currently linked, independently verified paid subscription.
+  for (const verify of [verifyStripe, verifyPaypal, verifyDodo]) {
+    try {
+      const active = await verify()
+      if (active) return active
+    } catch { /* No inference from a failed rail; independently verify the next linked provider. */ }
   }
   return null
 }

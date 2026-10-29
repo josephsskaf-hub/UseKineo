@@ -199,6 +199,39 @@ test('runtime Dodo source requires live active ownership plus a positive server-
   }
 })
 
+test('a cancelled, unavailable or unconfigured old provider ID never masks another verified active rail',async()=>{
+  const profile={id:userId,plan:'basic',has_paid:true,is_pro:true,stripe_customer_id:'cus_old',
+    stripe_subscription_id:'sub_old',paypal_subscription_id:'I_current',dodo_subscription_id:'sub_dodo'}
+  const paypal={id:'I_current',status:'ACTIVE',custom_id:userId,start_time:subscription.startedAt,plan_id:'P_live',
+    billing_info:{next_billing_time:subscription.paidThrough,last_payment:{time:subscription.startedAt,amount:{value:'19.90'}}}}
+  const dodo={subscription_id:'sub_dodo',status:'active',metadata:{supabase_user_id:userId},
+    created_at:subscription.startedAt,next_billing_date:subscription.paidThrough}
+  const env={STRIPE_SECRET_KEY:'offline',PAYPAL_CLIENT_ID:'offline',PAYPAL_CLIENT_SECRET:'offline'}
+  for (const stripeFailure of ['cancelled','unavailable','unconfigured']) {
+    let paypalReads=0
+    const s=load('kling4PromoServer',{
+      './stripe':{stripe:{subscriptions:{retrieve:async()=>{
+        if(stripeFailure==='unavailable')throw Error('offline provider failure')
+        return {id:'sub_old',livemode:true,status:'canceled',customer:'cus_old',metadata:{supabase_user_id:userId}}
+      }}}},
+      './paypal':{paypalFetch:async()=>{paypalReads++;return paypal},tierFromPlanId:async()=>({tier:'basic'})},
+    },{...env,...(stripeFailure==='unconfigured'?{STRIPE_SECRET_KEY:undefined}:{})})
+    const result=await s.resolveKling4PaidSubscription(fakeDb({profiles:{data:profile}}),userId,now)
+    assert.equal(result.provider,'paypal');assert.equal(result.subscriptionId,'I_current');assert.equal(paypalReads,1)
+  }
+  for (const paypalStatus of ['CANCELLED','ACTIVE']) {
+    const s=load('kling4PromoServer',{
+      './stripe':{stripe:{subscriptions:{retrieve:async()=>{throw Error('offline old rail')}}}},
+      './paypal':{paypalFetch:async()=>({...paypal,status:paypalStatus,custom_id:paypalStatus==='ACTIVE'?'other':userId}),tierFromPlanId:async()=>({tier:'basic'})},
+      './dodo':{dodoMode:()=> 'live',dodoApiKey:()=> 'offline',dodoBaseUrl:()=> 'https://offline.invalid'},
+      __fetch:async()=>({ok:true,json:async()=>dodo}),
+    },env)
+    const result=await s.resolveKling4PaidSubscription(fakeDb({profiles:{data:profile},events:{data:{metadata:{amount_total:1990}}}}),userId,now)
+    assert.equal(result.provider,'dodo');assert.equal(result.subscriptionId,'sub_dodo')
+    assert.equal(await s.resolveKling4PaidSubscription(fakeDb({profiles:{data:profile},events:{data:{metadata:{amount_total:0}}}}),userId,now),null)
+  }
+})
+
 test('availability GET is private/no-store; auth is server derived; all failure paths hide promotional copy',async()=>{
   const route=fs.readFileSync(path.resolve(__dirname,'../app/api/kling4-paid/availability/route.ts'),'utf8')
   assert.match(route,/auth\.getUser\(\)/); assert.match(route,/Vary: 'Cookie, Authorization'/)
