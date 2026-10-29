@@ -105,6 +105,7 @@ assert.ok(gateStart > 0 && gateEnd > gateStart)
 const releaseStart = statusCode.lastIndexOf("if (prepaidCinematicClaim?.status === 'released')", gateStart)
 assert.ok(releaseStart > 0 && releaseStart < gateStart)
 const gateSlice = statusCode.slice(releaseStart, gateEnd)
+const trialClaimReader = createOfflineLoader()('lib/kling4TrialClaim.ts')
 async function statusGate(outcome, refund, extra = {}, source = gateSlice) {
   const calls = []
   const ctx = { state: { status: 'succeeded', url: media.url, snapshotUrl: null, durationSeconds: 14, exactDurationSeconds: 13.96 },
@@ -113,6 +114,7 @@ async function statusGate(outcome, refund, extra = {}, source = gateSlice) {
     NextResponse: { json: body => ({ body }) },
     require: id => {
       if (id === '@/lib/free15Gate') return { FREE15_GATE_VERSION: 'free15-gate-v1' }
+      if (id === '@/lib/kling4TrialClaim') return trialClaimReader
       if (id === '@/lib/durationByEngine') return { isSeedanceShortClaim: response => response.duration === 15 && response.fal_model.includes('/seedance/') }
       if (id === '@/lib/free15GateServer') return { runFree15Gate: async args => { calls.push(['gate', args.media]); return outcome }, refundFailedFree15Gate: async () => { calls.push(['refund']); return refund } }
       throw Error('Unexpected dependency ' + id)
@@ -134,6 +136,15 @@ await check('actual status gate emits no URL for pending/unconfirmed refunds and
   assert.equal(otherEngine.calls.length, 0)
   const otherDuration = await statusGate({ status: 'pending' }, null, { prepaidCinematicClaim: { response: { duration: 35 } } })
   assert.equal(otherDuration.calls.length, 0)
+  const klingBirth = { response: { duration: 15, quality: 'cinematic_ai', aspect: '9:16', fal_model: 'kling/v4/image-to-video',
+    free15_gate_version: 'free15-gate-v1', kling4_trial: { version: 'kling4_trial_2810', engine_used: 'kling4' } }, status: 'settled' }
+  const klingPending = await statusGate({ status: 'pending' }, null, { prepaidCinematicClaim: klingBirth })
+  assert.equal(klingPending.result.body.quality_review, true, 'signed trial uses the same pre-delivery gate')
+  assert.equal(klingPending.calls[0][0], 'gate')
+  assert.equal(klingPending.calls[0][1].durationSeconds, 13.96, 'trial output is checked without legacy rounding')
+  const invalidTrial = clone(klingBirth); invalidTrial.response.kling4_trial.version = 'unknown'
+  const invalid = await statusGate({ status: 'pending' }, null, { prepaidCinematicClaim: invalidTrial })
+  assert.equal(invalid.calls.length, 0, 'unrecognized marker cannot enroll an unrelated model')
   const legacyBirth = { response: { duration: 15, fal_model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' }, status: 'settled' }
   const historic = await statusGate({ status: 'failed', reason: 'gate_context_missing', media }, 10, { prepaidCinematicClaim: legacyBirth })
   assert.equal(historic.calls.length, 0, 'old signed birth cannot trigger a retroactive refund')

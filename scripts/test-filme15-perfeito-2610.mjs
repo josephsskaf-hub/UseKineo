@@ -55,6 +55,8 @@ async function contract(gate) {
   assert.equal(assess().kind, 'pass')
   for (const seconds of [10.3, 13.9, 13.999]) assert.equal(assess(state(), { ...original, durationSeconds: seconds }).reason, 'duration_below_14')
   for (const seconds of [14, 15, 18, 24]) assert.equal(assess(state(), { ...original, durationSeconds: seconds }).kind, 'pass')
+  for (const seconds of [10.3, 13.999, 14, 14.96, 14.999]) assert.equal(assess(state({ minimumSeconds: 15 }), { ...original, durationSeconds: seconds }).reason, 'duration_below_15')
+  for (const seconds of [15, 15.001, 18, 24]) assert.equal(assess(state({ minimumSeconds: 15 }), { ...original, durationSeconds: seconds }).kind, 'pass')
   for (const seconds of [null, NaN, Infinity]) assert.equal(assess(state(), { ...original, durationSeconds: seconds }).kind, 'fail')
   for (const p of [null, pixel({ evidence_status: 'partial' }), pixel({ score: null })]) assert.equal(assess(state(), original, p).kind, 'fail')
   assert.equal(assess(state(), original, captionBad()).kind, 'caption')
@@ -130,7 +132,8 @@ async function contract(gate) {
 await contract(load(raw))
 const mutants = [
   ['visual repair cannot erase unresolved audio evidence', "if (state.captionEvidence?.status === 'mismatch' && state.captionsRepaired) return", 'if (false) return'],
-  ['duration floor drops below 14', 'media.durationSeconds < 14', 'media.durationSeconds < 13'],
+  ['legacy duration floor drops below 14', 'state.minimumSeconds === 15 ? 15 : 14', 'state.minimumSeconds === 15 ? 15 : 13'],
+  ['trial duration floor drops below 15', 'state.minimumSeconds === 15 ? 15 : 14', 'state.minimumSeconds === 15 ? 14 : 14'],
   ['incomplete pixel evidence passes', "pixel.evidence_status !== 'complete'", 'false'],
   ['caption repair erases approved audio', 'source.elements.filter(el => !isCaptionElement(el))', 'source.elements.filter(el => isCaptionElement(el))'],
   ['second repair is allowed', 'if (state.attempted || decision.kind', 'if (false || decision.kind'],
