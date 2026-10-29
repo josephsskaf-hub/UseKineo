@@ -11,6 +11,7 @@
 // CUSTO: uma cena na fal + uma montagem no Creatomate. Crédito: zero, sempre — nada aqui chama débito, intenção de
 // cobrança (render_jobs) ou claim do /api/compose.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { cinematicValueHash } from '@/lib/cinematic/claim'
 import {
   FILM_ORDER_EVENT,
   FILM_SOURCE_EVENT,
@@ -567,16 +568,18 @@ async function guardarElo(d: FreeRedoFilmDeps, userId: string, videoId: string, 
     if (typeof sceneIndex !== 'number' || !Number.isInteger(sceneIndex) || !novoClipe.startsWith('https://')) return false
     const seq = (typeof meta.free_seq === 'number' && Number.isInteger(meta.free_seq) && meta.free_seq > 0 ? meta.free_seq : 1) + 1
     const rootVideoId = typeof meta.root_video_id === 'string' ? meta.root_video_id : videoId
-    const matches = (saved: Awaited<ReturnType<typeof lerFonte>>) => saved !== 'erro' && saved.ok &&
-      saved.chain?.parentVideoId === videoId && saved.chain.sceneIndex === sceneIndex && saved.chain.clipUrl === novoClipe && saved.chain.seq === seq && saved.chain.rootVideoId === rootVideoId
     const existing = await lerFonte(d, userId, renderId)
-    if (existing !== 'erro' && existing.ok) return matches(existing)
     const fonte = await lerFonte(d, userId, String(meta.original_render_id ?? ''))
     if (fonte === 'erro' || !fonte.ok) return false
     const cena = await cenaAssinadaDoPedido(d, userId, fonte, meta)
     if (cena === 'erro' || !cena) return false
     const troca = trocarCena(fonte.source, cena, novoClipe)
     if (troca.trocados === 0) return false
+    const matches = (saved: Awaited<ReturnType<typeof lerFonte>>) => saved !== 'erro' && saved.ok &&
+      saved.generationId === fonte.generationId && saved.quality === fonte.quality &&
+      cinematicValueHash(saved.source) === cinematicValueHash(troca.source) &&
+      saved.chain?.parentVideoId === videoId && saved.chain.sceneIndex === sceneIndex && saved.chain.clipUrl === novoClipe && saved.chain.seq === seq && saved.chain.rootVideoId === rootVideoId
+    if (existing !== 'erro' && existing.ok) return matches(existing)
     const metadata = filmSourceMetadata({
       secret: d.secret, userId, renderId, generationId: fonte.generationId, quality: fonte.quality, source: troca.source,
       chain: { seq, parentVideoId: videoId, rootVideoId, sceneIndex, clipUrl: novoClipe },
