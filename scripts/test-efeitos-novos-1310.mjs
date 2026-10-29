@@ -111,7 +111,8 @@ async function problems(M) {
   const keys = fx.CLIP_EFFECTS.map((e) => e.key)
 
   // (1) catálogo
-  if (!same(keys.slice(-3), Object.keys(EXPECTED))) p.push(`os 3 efeitos-modelo não estão no fim do catálogo (${keys.join(',')})`)
+  // REANCORADO KINEO-HALLOWEEN-FX-2910: witch/zombie (efeitos-modelo de 29/10, guardião próprio) vêm depois; os 3 de 13/10 seguem logo após secret_cake.
+  if (!same(keys.slice(keys.indexOf('secret_cake') + 1, keys.indexOf('secret_cake') + 4), Object.keys(EXPECTED))) p.push(`os 3 efeitos-modelo não vêm logo depois de secret_cake (${keys.join(',')})`)
   if (!same([...fx.CLIP_TEMPLATE_MODELS], [KLING16, PIX55])) p.push('CLIP_TEMPLATE_MODELS não é a lista fechada (Kling 1.6 standard effects, PixVerse 5.5 effects)')
   for (const [key, want] of Object.entries(EXPECTED)) {
     const e = fx.clipEffectByKey(key)

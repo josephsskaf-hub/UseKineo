@@ -47,6 +47,8 @@ export type ClipEffectKey =
   | 'wings' // KINEO-EFEITOS-NOVOS-2026-10-13
   | 'dollar_rain' // KINEO-EFEITOS-NOVOS-2026-10-13
   | 'muscle_surge' // KINEO-EFEITOS-NOVOS-2026-10-13
+  | 'witch' // KINEO-HALLOWEEN-FX-2910
+  | 'zombie' // KINEO-HALLOWEEN-FX-2910
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -278,6 +280,44 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
       input: (photoUrl) => ({ effect: 'Muscle Surge', image_url: photoUrl, resolution: '720p', duration: '5' }),
       usd: 0.2,
       label: 'PixVerse 5.5',
+    },
+  },
+  // KINEO-HALLOWEEN-FX-2910 — pacote de Halloween (fundador 29/10, "A"): 2 transformações prontas do Kling 1.6 (enum do OpenAPI
+  // da fal), testadas pela sonda fx_witch/fx_zombie a partir de uma foto gerada antes de entrar (vampire_transform saiu como
+  // demônio com chifres e fogo — nome não bate com o resultado, ficou de fora). Mesmo endpoint,
+  // mesmo preço (US$ 0,28) e mesmo caminho de dinheiro dos efeitos-modelo de 13/10.
+  {
+    key: 'witch',
+    title: 'Witch transformation',
+    sub: 'Your photo turns into a witch — hat, cloak and a spell.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('witch'),
+    filmIdea: 'The night this person became a witch — a 60-second Halloween story',
+    person: true,
+    preview: { video: '/previews/efeito-witch.mp4', poster: '/posters/efeito-witch.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'witch_transform', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
+    },
+  },
+  {
+    key: 'zombie',
+    title: 'Zombie transformation',
+    sub: 'You slowly turn into a zombie, right in your photo.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('zombie'),
+    filmIdea: 'The night the town turned — a 60-second zombie story',
+    person: true,
+    preview: { video: '/previews/efeito-zombie.mp4', poster: '/posters/efeito-zombie.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'zombie_transform', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
     },
   },
 ]
