@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { CITATION_PLANS, CITATION_TRIAL, CITATION_WATERMARK, CITATION_REFERENCE_SECONDS } from '@/lib/growth/citationAnswers'
@@ -34,7 +35,7 @@ export default function CitationComparisonDecision() {
         <caption>Kineo and four alternatives · sources and limits checked {COMPARISON_REVIEW_DATE}</caption>
         <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
         <tbody>
-          <tr><th scope="row">Kineo<small>Text to a finished narrated video</small><small><Link href="/llms.txt">Public fact sheet</Link> ({COMPARISON_REVIEW_DATE})</small></th><td>{CITATION_PLANS[0].price}<div className="kc-source">{CITATION_PLANS[0].name} · <Link href="/pricing">Current plans</Link></div></td><td>{CITATION_TRIAL}</td><td>Seedance 1.5 generated scenes (the trial pays for a 15-second one); further engines available subject to sufficient credits</td><td>Up to {KINEO_MAX_SECONDS} seconds per video on Seedance 1.5<br />A {CITATION_REFERENCE_SECONDS}-second cost reference is used for prices.</td><td>{CITATION_WATERMARK}</td></tr>
+          <tr><th scope="row">Kineo<small>Text to a finished narrated video</small><small><Link href="/llms.txt">Public fact sheet</Link> ({COMPARISON_REVIEW_DATE})</small></th><td>{CITATION_PLANS[0].price}<div className="kc-source">{CITATION_PLANS[0].name} · <Link href="/pricing">Current plans</Link></div></td><td>{CITATION_TRIAL}</td><td>{/* KINEO-LLMS-K4-2910 */}{FREE_FILM_ENGINE_NAME} generated scenes for the free first 15-second film; further engines available subject to sufficient credits</td><td>Up to {KINEO_MAX_SECONDS} seconds per video on Seedance 1.5<br />A {CITATION_REFERENCE_SECONDS}-second cost reference is used for prices.</td><td>{CITATION_WATERMARK}</td></tr>
           {COMPARISON_PROVIDERS.map((provider) => <tr key={provider.name}>
             <th scope="row">{provider.name}<small><SourcedFact fact={provider.workflow} /></small></th>
             {(['price', 'trial', 'engines', 'duration', 'watermark'] as const).map((field) => <td key={field}><SourcedFact fact={provider[field]} /></td>)}

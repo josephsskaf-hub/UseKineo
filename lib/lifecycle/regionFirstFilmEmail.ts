@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // ═══ KINEO-EMAILS-REGIAO-2026-10-13 — o 1º filme por e-mail para as contas 'region_paid_only' (fundador 13/10, aprovado) ══
 //
 // O DADO (Supabase, só SELECT, 13/10): 108 contas 'region_paid_only' nunca fizeram filme.
@@ -166,7 +167,7 @@ const COPY = {
     example: 'See what one looks like — a real Kineo film:',
     reply: 'Questions? Just reply — a real person reads every message.',
     freeSubject: 'Your free film is waiting',
-    freeIntro: `Your first film on Kineo is still waiting: a ${REGION_FREE_FILM_SECONDS}-second Seedance 1.5 film from your own idea, on us (with a small Kineo watermark).`,
+    freeIntro: `Your first film on Kineo is still waiting: a ${REGION_FREE_FILM_SECONDS}-second ${FREE_FILM_ENGINE_NAME} film from your own idea, on us (with a small Kineo watermark).`, // KINEO-LLMS-K4-2910
     ideasLead: `Three ideas ready to go — each one opens the studio with the idea already in the box, set up as a ${REGION_FREE_FILM_SECONDS}-second film:`,
     makeThis: 'Make this one',
     own: 'Or type your own idea',
@@ -178,7 +179,7 @@ const COPY = {
     example: 'Veja como fica — um filme real feito na Kineo:',
     reply: 'Alguma dúvida? É só responder — uma pessoa de verdade lê cada mensagem.',
     freeSubject: 'Seu filme grátis está esperando',
-    freeIntro: `Seu primeiro filme na Kineo ainda está esperando: um filme de ${REGION_FREE_FILM_SECONDS} segundos no Seedance 1.5, a partir da sua ideia, por nossa conta (com uma pequena marca d’água da Kineo).`,
+    freeIntro: `Seu primeiro filme na Kineo ainda está esperando: um filme de ${REGION_FREE_FILM_SECONDS} segundos no ${FREE_FILM_ENGINE_NAME}, a partir da sua ideia, por nossa conta (com uma pequena marca d’água da Kineo).`, // KINEO-LLMS-K4-2910
     ideasLead: `Três ideias prontas — cada uma abre o estúdio com a ideia já na caixa, como um filme de ${REGION_FREE_FILM_SECONDS} segundos:`,
     makeThis: 'Fazer este',
     own: 'Ou escreva a sua ideia',
@@ -190,7 +191,7 @@ const COPY = {
     example: 'Mira cómo queda — una película real hecha en Kineo:',
     reply: '¿Dudas? Solo responde — una persona real lee cada mensaje.',
     freeSubject: 'Tu película gratis te está esperando',
-    freeIntro: `Tu primera película en Kineo todavía te está esperando: una película de ${REGION_FREE_FILM_SECONDS} segundos en Seedance 1.5, a partir de tu idea, por nuestra cuenta (con una pequeña marca de agua de Kineo).`,
+    freeIntro: `Tu primera película en Kineo todavía te está esperando: una película de ${REGION_FREE_FILM_SECONDS} segundos en ${FREE_FILM_ENGINE_NAME}, a partir de tu idea, por nuestra cuenta (con una pequeña marca de agua de Kineo).`, // KINEO-LLMS-K4-2910
     ideasLead: `Tres ideas listas — cada una abre el estudio con la idea ya en la caja, como una película de ${REGION_FREE_FILM_SECONDS} segundos:`,
     makeThis: 'Hacer esta',
     own: 'O escribe tu propia idea',

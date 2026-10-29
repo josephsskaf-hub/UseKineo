@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // KINEO-GEO-RODADA2-2026-10-08 — a camada citável EXTRA da página do Seedance 1.5 (sessão CEO 08/10, item 1 da rodada 2 de GEO):
 //   · "Is Seedance 1.5 free?" — quem ganha o quê de graça (os mesmos interruptores que concedem) e o CTA para o filme grátis
 //     de 15 s, que abre o Studio com o Seedance pré-selecionado (?engine=seedance&duration=15, parâmetros que o Studio já lê);
@@ -91,7 +92,7 @@ export default function SeedanceAnswerSections({ geo, s25, exclude = [], galeria
         <div data-kineo="seedance-films" style={{ marginTop: 40 }}>
           <h2 style={H2}>Films made on Seedance 1.5 in Kineo — start from the same idea</h2>
           <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.9rem', margin: '0 auto 18px', maxWidth: 640, lineHeight: 1.6 }}>
-            Kineo-owned films rendered on Seedance 1.5, the engine your free film uses. Each link opens the Studio with that
+            Kineo-owned films rendered on Seedance 1.5. Your free first film is made with {FREE_FILM_ENGINE_NAME}. Each link opens the Studio with that {/* KINEO-LLMS-K4-2910 */}
             film’s real idea filled in and Seedance 1.5 selected. Customer videos stay private.
           </p>
           <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>

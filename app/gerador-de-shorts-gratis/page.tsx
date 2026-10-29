@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // AQUISICAO 5 (14/08) — [KINEO-PORTAS-INTL-2026-08-14]
 // A porta que converte 41% em ingles, agora em PT-BR: "gerador de shorts
 // gratis" e busca real no Brasil e o produto JA gera video em portugues
@@ -22,7 +23,7 @@ import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 import BuyCreatorCta from '@/components/BuyCreatorCta'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 
-const FILME_GRATIS = `1 filme grátis de ${TRIAL_FREE_FILM_SECONDS} s no Seedance 1.5, com marca d’água, sem cartão`
+const FILME_GRATIS = `1 filme grátis de ${TRIAL_FREE_FILM_SECONDS} s no ${FREE_FILM_ENGINE_NAME}, com marca d’água, sem cartão` // KINEO-LLMS-K4-2910
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'seo_gerador_pt'

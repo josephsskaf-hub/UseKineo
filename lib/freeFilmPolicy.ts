@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29 — o interruptor da "saída B" do fundador (29/09: "vou sair na saída B").
 //
 // A decisão: o filme grátis (o trial de 10 créditos) passa a ser SÓ para país rico. O dado que sustenta: em 30 dias,
@@ -249,8 +250,8 @@ export function regionFreeFilmAvailable(
 }
 
 /** Recusa de servidor com o filme ligado: o filme de região EXISTE, esta conta só não pode usá-lo neste pedido. */
-export const REGION_FREE_FILM_REFUSAL =
-  'Your free film is one 15-second Seedance 1.5 film per account. Plans work normally here: pick one and every engine is yours, with clean downloads. Nothing was charged.'
+export const REGION_FREE_FILM_REFUSAL = // KINEO-LLMS-K4-2910
+  `Your free film is one 15-second ${FREE_FILM_ENGINE_NAME} film per account. Plans work normally here: pick one and every engine is yours, with clean downloads. Nothing was charged.`
 /** Recusa da trava de simultâneos (só chega a quem a admissão deixou passar). Sem prometer data. */
 export const REGION_FREE_FILM_IN_USE_MESSAGE =
   'Your free film is already in progress or done. Nothing was charged — see the plans to keep creating.'
@@ -259,17 +260,17 @@ export const REGION_FREE_FILM_IN_USE_MESSAGE =
 export const REGION_FREE_FILM_NOTICE: { en: RegionPaidOnlyNoticeCopy; pt: RegionPaidOnlyNoticeCopy; es: RegionPaidOnlyNoticeCopy } = {
   en: {
     title: 'Your first film is free',
-    body: 'A 15-second Seedance 1.5 film from your own idea, on us (with a small Kineo watermark). Plans unlock every engine, with clean downloads.',
+    body: `A 15-second ${FREE_FILM_ENGINE_NAME} film from your own idea, on us (with a small Kineo watermark). Plans unlock every engine, with clean downloads.`, // KINEO-LLMS-K4-2910
     cta: 'Make my free film',
   },
   pt: {
     title: 'Seu primeiro filme é grátis',
-    body: 'Um filme de 15 segundos no Seedance 1.5, a partir da sua ideia, por nossa conta (com uma pequena marca d’água da Kineo). Os planos liberam todos os motores, com download sem marca d’água.',
+    body: `Um filme de 15 segundos no ${FREE_FILM_ENGINE_NAME}, a partir da sua ideia, por nossa conta (com uma pequena marca d’água da Kineo). Os planos liberam todos os motores, com download sem marca d’água.`, // KINEO-LLMS-K4-2910
     cta: 'Fazer meu filme grátis',
   },
   es: {
     title: 'Tu primera película es gratis',
-    body: 'Una película de 15 segundos en Seedance 1.5, a partir de tu idea, por nuestra cuenta (con una pequeña marca de agua de Kineo). Los planes desbloquean todos los motores, con descargas sin marca de agua.',
+    body: `Una película de 15 segundos en ${FREE_FILM_ENGINE_NAME}, a partir de tu idea, por nuestra cuenta (con una pequeña marca de agua de Kineo). Los planes desbloquean todos los motores, con descargas sin marca de agua.`, // KINEO-LLMS-K4-2910
     cta: 'Hacer mi película gratis',
   },
 }
