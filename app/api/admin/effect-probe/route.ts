@@ -74,6 +74,8 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   fx_dust_me_away: { model: PIXVERSE_55, input: (image) => ({ effect: 'Dust Me Away', image_url: image, resolution: '720p', duration: '5' }) },
   fx_subject3: { model: KLING, input: (image) => ({ effect_scene: 'subject_3_dance', input_image_urls: [image], duration: '5' }) },
   fx_figurine: { model: PIXVERSE_55, input: (image) => ({ effect: '3D Figurine Factory', image_url: image, resolution: '720p', duration: '5' }) },
+  // KINEO-SONDA-HYPE-2910 — o hug do Vidu só aceita 16:9 (erro real da fal em 29/10); o abraço vertical vem da PixVerse 5.5.
+  fx_hug_together: { model: PIXVERSE_55, input: (image) => ({ effect: 'Hug Together', image_url: image, resolution: '720p', duration: '5' }) },
   // KINEO-ESTILOS-DIA1-2026-10-13 — fundador (13/10): +10 estilos de anúncio NOVOS por dia, testados. Lote do dia 1: 10 efeitos
   // da MESMA PixVerse v5 (mesmo endpoint e preço dos 15 estilos no ar; o sistema de estilos não precisa de motor novo), só
   // (image), 720p, 5 s. Enum conferido no OpenAPI vivo da fal em 13/10 (154 valores):
