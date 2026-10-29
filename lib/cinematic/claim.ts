@@ -189,8 +189,16 @@ function isHash(value: unknown): value is string {
   return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value)
 }
 
-function validCreditCost(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 1000
+export const KLING4_PROMO_CLAIM_ENGINE = 'kling4-promo-v1'
+
+/** Zero is reserved for a service-authorized, signed Kling4 promotion claim. */
+export function isKling4PromoCinematicClaim(claim: { creditCost: unknown; quality: unknown; engine: unknown }): boolean {
+  return claim.creditCost === 0 && claim.quality === 'cinematic_hollywood' && claim.engine === KLING4_PROMO_CLAIM_ENGINE
+}
+
+function validCreditCost(value: unknown, quality?: unknown, engine?: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value <= 1000 &&
+    (value > 0 || isKling4PromoCinematicClaim({ creditCost: value, quality, engine }))
 }
 
 function validQuality(value: unknown): value is string {
@@ -261,6 +269,20 @@ function terminalFailures(value: unknown): CinematicTerminalFailure[] | null {
 
 function validResponseBinding(claim: CinematicClaim): boolean {
   if (!claim.response) return claim.responseHash === ''
+  if (isKling4PromoCinematicClaim(claim)) {
+    const marker = claim.response.kling4_paid as Record<string, unknown> | undefined
+    if (!marker || marker.version !== 'kling4_paid_2810' || marker.promo !== true ||
+      ![15, 30, 60].includes(Number(marker.seconds)) || marker.seconds !== claim.response.duration) return false
+    if (marker.engine_used === 'kling4') {
+      if (claim.falModels.length !== Number(marker.seconds) / 15 ||
+        claim.falModels.some(model => model !== 'kling/v4/text-to-video' && model !== 'kling/v4/image-to-video')) return false
+    } else if (marker.engine_used === 'seedance15_fallback') {
+      if (marker.fallback_finalized !== true || marker.fallback_budget_reserved !== true ||
+        !Array.isArray(marker.original_request_ids) || marker.original_request_ids.length !== Number(marker.seconds) / 15 ||
+        claim.falModels.length !== Number(marker.seconds) / 5 ||
+        claim.falModels.some(model => model !== 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video')) return false
+    } else return false
+  }
   if (cinematicValueHash(claim.response) !== claim.responseHash) return false
   if (claim.response.generationId !== claim.generationId || claim.response.quality !== claim.quality) return false
 
@@ -347,7 +369,7 @@ export function verifyCinematicClaimRow(args: {
   const resolutionReference = stringValue(metadata.resolution_reference)
 
   if (
-    !status || !isHash(fingerprint) || !validCreditCost(creditCost) ||
+    !status || !isHash(fingerprint) || !validCreditCost(creditCost, quality, engine) ||
     !validQuality(quality) || !validEngine(engine) ||
     !Array.isArray(requestIds) || !requestIds.every(validRequestId) ||
     !Array.isArray(models) || !models.every(validModel) ||
@@ -456,7 +478,7 @@ export async function loadSettledCinematicClaimForRender(args: {
     : null
   const composeId = typeof compose.id === 'string' ? compose.id : ''
   if (
-    !validComposeGenerationId(generationId) || !quality || cost === null || cost <= 0 ||
+    !validComposeGenerationId(generationId) || !quality || cost === null || cost < 0 ||
     composeId !== composeClaimId(args.userId, generationId) ||
     compose.name !== COMPOSE_CLAIM_EVENT || compose.user_id !== args.userId ||
     compose.path !== COMPOSE_CLAIM_PATH || metadata.generation_id !== generationId ||
@@ -480,10 +502,16 @@ export async function loadSettledCinematicClaimForRender(args: {
     generationId,
   })
   if (!birth.ok) return birth
-  if (!birth.claim) return { ok: true, claim: null }
+  if (!birth.claim) return cost === 0
+    ? { ok: false, error: 'zero-cost cinematic render is missing its promotion birth' }
+    : { ok: true, claim: null }
+  if (cost === 0 && !isKling4PromoCinematicClaim(birth.claim)) {
+    return { ok: false, error: 'zero-cost cinematic render requires a signed Kling4 promotion claim' }
+  }
   const isDebited =
     birth.claim.status === 'settled' &&
-    birth.claim.resolutionReason === 'provider_submitted_and_debited'
+    (birth.claim.resolutionReason === 'provider_submitted_and_debited' ||
+      (isKling4PromoCinematicClaim(birth.claim) && birth.claim.resolutionReason === 'provider_submitted_promo'))
   const isRefunded =
     birth.claim.status === 'released' &&
     // KINEO-CREDIT-INTEGRITY-2026-08-05 — `abandoned` joins the terminal
@@ -617,12 +645,23 @@ export async function acquireCinematicClaim(args: {
   creditCost: number
   quality: string
   engine: string
+  /** Required only for the zero-credit promotion. Never derive this proof from request metadata. */
+  promoSeconds?: number
 }): Promise<CinematicClaimAcquire> {
   if (
     !args.secret || !validCinematicGenerationId(args.generationId) || !isHash(args.fingerprint) ||
-    !validCreditCost(args.creditCost) || !validQuality(args.quality) || !validEngine(args.engine)
+    !validCreditCost(args.creditCost, args.quality, args.engine) || !validQuality(args.quality) || !validEngine(args.engine)
   ) {
     return { kind: 'error', error: 'invalid cinematic claim input' }
+  }
+
+  if (args.creditCost === 0) {
+    if (![15, 30, 60].includes(args.promoSeconds ?? 0)) return { kind: 'error', error: 'invalid Kling4 promotion duration' }
+    try {
+      const { verifyKling4PromoReservation } = await import('@/lib/kling4PromoServer')
+      if (!await verifyKling4PromoReservation(args.db, { userId: args.userId, jobId: args.generationId,
+        kind: 'film', seconds: args.promoSeconds })) return { kind: 'error', error: 'Kling4 promotion reservation is not authorized' }
+    } catch { return { kind: 'error', error: 'Kling4 promotion verification is unavailable' } }
   }
 
   const now = new Date().toISOString()
@@ -732,9 +771,12 @@ export async function completeCinematicClaim(args: {
   if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
   const current = loaded.claim
   if (!sameIntent(current, args)) return { ok: false, error: 'claim intent mismatch', conflict: true }
+  const paidMarker = args.response.kling4_paid as Record<string, unknown> | undefined
+  const paidQueueBirth = current.quality === 'cinematic_hollywood' && ['kling4-paid-v1', KLING4_PROMO_CLAIM_ENGINE].includes(current.engine) &&
+    paidMarker?.version === 'kling4_paid_2810' && paidMarker.engine_used === 'kling4' && paidMarker.fallback_budget_reserved === true
   if (
     !args.falRequestIds.every(validRequestId) || !args.falModels.every(validModel) ||
-    args.falRequestIds.length !== args.falModels.length || !args.falRequestIds.some(Boolean)
+    args.falRequestIds.length !== args.falModels.length || (!args.falRequestIds.some(Boolean) && !paidQueueBirth)
   ) {
     return { ok: false, error: 'invalid provider binding' }
   }
@@ -769,6 +811,34 @@ export async function completeCinematicClaim(args: {
       ? { ok: true, claim: current }
       : { ok: false, error: `cannot complete ${current.status} claim`, conflict: true }
   }
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+
+/** Service-only paid queue transition; never changes ownership, credit cost or the trial state. */
+export async function replaceKling4PaidBinding(args: {
+  db: SupabaseClient; secret: string; userId: string; generationId: string; expectedAuthority: string
+  response: Record<string, unknown>; falRequestIds: CinematicRequestId[]; falModels: string[]
+  authorizedCompletedUrls: CinematicCompletedUrl[]; reason: string
+}): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const before = current.response?.kling4_paid as Record<string, unknown> | undefined
+  const response = normalizeResponse(args.response)
+  const after = response?.kling4_paid as Record<string, unknown> | undefined
+  if (current.authority !== args.expectedAuthority || current.status !== 'settled' || current.quality !== 'cinematic_hollywood' ||
+    !before || before.version !== 'kling4_paid_2810' || !response || !after || after.version !== before.version ||
+    before.seconds !== after.seconds || before.promo !== after.promo || !args.reason.trim() ||
+    args.falRequestIds.length !== args.falModels.length || args.falRequestIds.length !== args.authorizedCompletedUrls.length ||
+    !args.falRequestIds.every(validRequestId) || !args.falModels.every(validModel) ||
+    !args.authorizedCompletedUrls.every(validCompletedUrl)) return { ok: false, error: 'invalid paid queue transition', conflict: true }
+  if (after.engine_used === 'seedance15_fallback' && before.engine_used === 'kling4') {
+    if (current.authorizedCompletedUrls.some(Boolean) || !Array.isArray(after.original_request_ids) ||
+      !sameArray(after.original_request_ids, current.falRequestIds)) return { ok: false, error: 'paid fallback source changed', conflict: true }
+  }
+  const candidate = withSignature(args.secret, { ...current, response, responseHash: cinematicValueHash(response),
+    falRequestIds: [...args.falRequestIds], falModels: [...args.falModels], authorizedCompletedUrls: [...args.authorizedCompletedUrls] })
+  if (!validResponseBinding(candidate)) return { ok: false, error: 'invalid paid fallback response binding' }
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }
 
@@ -945,6 +1015,11 @@ export async function authorizeCinematicCompletedUrls(args: {
   if (trial?.version === 'kling4_trial_2810' && trial.fallback_started === true &&
       args.completed.some(item => item.requestId === trial.original_request_id)) {
     return { ok: false, error: 'Kling source excluded by started fallback', conflict: true }
+  }
+  const paid = current.response?.kling4_paid as Record<string, unknown> | undefined
+  if (paid?.version === 'kling4_paid_2810' && paid.fallback_started === true && Array.isArray(paid.original_request_ids) &&
+    args.completed.some(item => (paid.original_request_ids as unknown[]).includes(item.requestId))) {
+    return { ok: false, error: 'Paid Kling source excluded by started fallback', conflict: true }
   }
   const urls = [...current.authorizedCompletedUrls]
   for (const completed of args.completed) {

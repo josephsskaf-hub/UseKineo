@@ -9,6 +9,9 @@
 // trusted source. Keeping the cost table here, imported by every biller, is the
 // structural guard against that.
 
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
+import { kling4PaidCredits } from '@/lib/kling4PaidPricing'
+
 export type Quality =
   | 'fast'
   | 'basic'
@@ -224,6 +227,7 @@ export function creditCostForDuration(
   isPaidUser: boolean,
   seconds: number,
 ): number {
+  if (quality === 'cinematic_hollywood' && KLING4_PAID_LIVE && [15, 30, 60].includes(seconds)) return kling4PaidCredits(seconds)
   const base = creditCostFor(quality, isPaidUser)
   if (base <= 0) return base // free tier segue 0 — a escala não cria cobrança onde não havia
   const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : DURATION_REFERENCE_SECONDS
