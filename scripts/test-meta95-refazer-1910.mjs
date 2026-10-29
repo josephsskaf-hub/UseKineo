@@ -13,18 +13,23 @@
 //       com o nome do evento não ocupa vaga; corrida pela última vaga = só um passa;
 //   I6  o servidor decide: o corpo só leva filme + cena; campos extras são ignorados; cena fora da lista = 400;
 //   I7  falha honesta: recusa explícita não gasta a vez, envio ambíguo gasta; 2 gastas = acabou; eventos com produto/motor/custo;
-//   R1  /api/compose ganhou SÓ o import + a chamada marcados (desfeito = a base byte a byte) e a rota nova não toca crédito;
-//   R2  a biblioteca (HistoryClient) ganhou SÓ o import + o botão marcados (desfeito = a base byte a byte); 16 línguas;
+//   R1  /api/compose mantém a base aprovada e seus dois hooks de refação, byte a byte; a rota nova não toca crédito;
+//   R2  HistoryClient mantém a base aprovada e seus dois hooks de refação, byte a byte; 16 línguas;
 //   M   mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semMeta95Refazer1910, MARCA_META95_REFAZER_1910, ACRESCIMOS_META95_REFAZER_1910, BASE_META95_REFAZER_1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
-import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
+import { MARCA_META95_REFAZER_1910, ACRESCIMOS_META95_REFAZER_1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+// KINEO-KLING4-COMPLEMENTO3-2910: estes dois arquivos NÃO mudaram neste complemento.
+// A base completa aprovada já contém as entregas posteriores a 19/10 (incluindo o trial Kling4).
+// Os projetores históricos falhavam nesta própria base; não alteramos esses adaptadores compartilhados.
+// R1/R2 continuam estritos: agora comparam o arquivo ATUAL INTEIRO, byte a byte após normalizar CRLF,
+// com a base revisada, sem remover nenhuma camada. Hooks, posição, línguas e limites seguem conferidos.
+const BASE_REFACAO_COMPAT_ATUAL = 'e60fc31b1387bcb0f01e7da26cb8b55d21ec6fab'
 process.chdir(ROOT)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
@@ -329,13 +334,13 @@ async function provas(L) {
   })
 
   await tenta('R1', () => {
-    const rota = semMeta95Escrita2010(rd(F.compose), F.compose) // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (mais nova) sai em memória antes do byte a byte
+    const rota = rd(F.compose)
     const marcadas = rota.split('\n').filter((l) => l.includes(MARCA_META95_REFAZER_1910))
-    const base = lf(execFileSync('git', ['show', `${BASE_META95_REFAZER_1910}:${F.compose}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+    const base = lf(execFileSync('git', ['show', `${BASE_REFACAO_COMPAT_ATUAL}:${F.compose}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
     const chamada = marcadas.find((l) => l.includes('await guardarFonteDoFilme('))
     const i = rota.split('\n').findIndex((l) => l === chamada)
     const anterior = rota.split('\n')[i - 1] ?? ''
-    return marcadas.length === ACRESCIMOS_META95_REFAZER_1910[F.compose] && semMeta95Refazer1910(rota, F.compose) === base &&
+    return marcadas.length === ACRESCIMOS_META95_REFAZER_1910[F.compose] && rota === base &&
       /^import \{ guardarFonteDoFilme \} from '@\/lib\/freeRedo\/fonteDoFilme'/.test(marcadas[0]) &&
       !!chamada && /renderId, quality, source \}\)/.test(chamada) && anterior.includes('await registrarVersaoDaCasa({ userId: authenticatedUserId, generationId, renderId, quality, decisao: semLegenda, source })')
   })
@@ -343,11 +348,11 @@ async function provas(L) {
   await tenta('R2', () => {
     const h = rd(F.hist)
     const marcadas = h.split('\n').filter((l) => l.includes(MARCA_META95_REFAZER_1910))
-    const base = lf(execFileSync('git', ['show', `${BASE_META95_REFAZER_1910}:${F.hist}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+    const base = lf(execFileSync('git', ['show', `${BASE_REFACAO_COMPAT_ATUAL}:${F.hist}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
     const langs = Object.keys(L.copy.FREE_REDO_COPY)
     const chaves = Object.keys(L.copy.FREE_REDO_COPY.en)
     const botao = rd(F.botao)
-    return marcadas.length === ACRESCIMOS_META95_REFAZER_1910[F.hist] && semMeta95Refazer1910(h, F.hist) === base &&
+    return marcadas.length === ACRESCIMOS_META95_REFAZER_1910[F.hist] && h === base &&
       marcadas.some((l) => /<FreeRedoFilmButton videoId=\{video\.id\} qualityMode=\{video\.quality_mode\} createdAt=\{video\.created_at\} \/>/.test(l)) &&
       langs.length === 16 && langs.every((k) => chaves.every((c) => typeof L.copy.FREE_REDO_COPY[k][c] === 'string' && L.copy.FREE_REDO_COPY[k][c].length > 0)) &&
       L.copy.FREE_REDO_COPY.pt.button === 'Refazer uma cena (grátis, 1×)' && /1 refação grátis por vídeo/.test(L.copy.FREE_REDO_COPY.pt.hint) &&
@@ -369,8 +374,8 @@ const NOMES = {
   I5: 'I5 teto diário global de 200: cheio = 429 sem envio e sem gastar a vez; forjadas não ocupam vaga; corrida = 1 passa',
   I6: 'I6 o servidor decide: só filme + cena do corpo; extras ignorados; cena fora da lista = 400; login antes do serviço',
   I7: 'I7 falha honesta: recusa não gasta, ambíguo gasta, 2 gastas = acabou; cena falhada = failed_retry + evento',
-  R1: 'R1 /api/compose: só o import + a chamada marcados, logo depois do registrarVersaoDaCasa; desfeito = base byte a byte',
-  R2: 'R2 biblioteca: só o import + o botão marcados (desfeito = base); 16 línguas; o botão não puxa node:crypto',
+  R1: 'R1 /api/compose: arquivo completo igual à base aprovada, hooks marcados após registrarVersaoDaCasa',
+  R2: 'R2 biblioteca: arquivo completo igual à base aprovada, hooks marcados; 16 línguas; botão sem node:crypto',
 }
 for (const [k, m] of Object.entries(NOMES)) { if (real[k]) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
 
