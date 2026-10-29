@@ -11,6 +11,8 @@ import { depoisDaResposta } from '@/lib/posResposta'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage'
 import { parseUserScript } from '@/lib/scriptParser'
 import { promptComRoteiro } from '@/lib/meta95/ideiaNoEscritor'
+import { readKling4PaidAvailability } from '@/lib/kling4PromoServer' // KINEO-VERSAO-COMPLETA-K4-2910
+import { kling4PaidFalExtrasMilliUsd } from '@/lib/kling4PaidPricing' // KINEO-VERSAO-COMPLETA-K4-2910
 
 type Meta = Record<string, unknown>
 export interface FilmCompleteIntent {
@@ -155,8 +157,16 @@ export interface FilmCompleteIo {
   now: () => number
   mint: typeof mintUserSession
   fetch: typeof fetch
+  /** KINEO-VERSAO-COMPLETA-K4-2910 — true só com a promo do Kling 4.0 confirmada no servidor para este usuário. Ausente = Seedance. */
+  kling4Free?: (db: SupabaseClient, userId: string) => Promise<boolean>
 }
-const REAL_IO: FilmCompleteIo = { now: () => Date.now(), mint: mintUserSession, fetch: (...args) => fetch(...args) }
+// KINEO-VERSAO-COMPLETA-K4-2910 — a versão completa sai em Kling 4.0 quando o servidor confirma a promo do assinante (0 crédito).
+// Medido 29/10: o 1º comprador vindo do filme grátis em Kling 4.0 recebeu a versão completa em Seedance, pagou 35 cr e viu o estilo
+// mudar. O Kling 4.0 pago só aceita 15/30/60 s: a versão completa vira 30 s nele. Sem promo confirmada, segue Seedance 35 s.
+export const FILM_COMPLETE_KLING4_ENGINE = 'hollywood' as const
+export const FILM_COMPLETE_KLING4_SECONDS = 30
+const REAL_IO: FilmCompleteIo = { now: () => Date.now(), mint: mintUserSession, fetch: (...args) => fetch(...args),
+  kling4Free: async (db, userId) => { try { const a = await readKling4PaidAvailability(db, { userId, seconds: FILM_COMPLETE_KLING4_SECONDS, falExtrasMilliUsd: kling4PaidFalExtrasMilliUsd(FILM_COMPLETE_KLING4_SECONDS) }); return a.paidLive && a.promoAvailable } catch { return false } } }
 
 /** A leased launch, plus the cinematic route's existing signed claim, reuse ONE deterministic generation on every retry. */
 export async function startFilmComplete(db: SupabaseClient, intent: FilmCompleteIntent, origin: string, io: FilmCompleteIo = REAL_IO): Promise<Record<string, unknown>> {
@@ -186,19 +196,24 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     minted = await io.mint(intent.userId, text(profile.email))
     if (!minted.ok) { await update({ launch_at: null }); return { ...status, state: 'starting' } }
     let dispatchPrompt = text(intent.metadata.dispatch_prompt)
+    // KINEO-VERSAO-COMPLETA-K4-2910 — motor e duração decididos UMA vez, antes do roteiro, e gravados; toda nova tentativa reusa os mesmos.
+    const savedEngine = text(intent.metadata.dispatch_engine)
+    const useKling4 = savedEngine ? savedEngine === FILM_COMPLETE_KLING4_ENGINE : !dispatchPrompt && io.kling4Free ? await io.kling4Free(db, intent.userId) : false
+    const engine = useKling4 ? FILM_COMPLETE_KLING4_ENGINE : FILM_COMPLETE_ENGINE
+    const seconds = useKling4 ? FILM_COMPLETE_KLING4_SECONDS : FILM_COMPLETE_TARGET_SECONDS
     if (!dispatchPrompt) {
       // The normal cinematic AI writer runs BEFORE its fingerprint. Freeze its expanded screenplay first,
       // otherwise a retry could rewrite the text and conflict with the same generation's original claim.
       const context = intent.prompt.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim()
       const writer = await io.fetch(`${origin}/api/generate-script`, {
         method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
-        body: JSON.stringify({ topic: `Expand the same story into a ${FILM_COMPLETE_TARGET_SECONDS}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events. Original story and direction: [${context}]`, language: intent.language, targetSeconds: FILM_COMPLETE_TARGET_SECONDS, engine: FILM_COMPLETE_ENGINE, forceAuthoring: true }),
+        body: JSON.stringify({ topic: `Expand the same story into a ${seconds}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events. Original story and direction: [${context}]`, language: intent.language, targetSeconds: seconds, engine, forceAuthoring: true }), // KINEO-VERSAO-COMPLETA-K4-2910
         signal: AbortSignal.timeout(60_000),
       })
       const written = await writer.json().catch(() => ({})) as Meta
       const script = text(written.script)
       const parsed = parseUserScript(script)
-      if (!writer.ok || written.stillShort === true || !parsed.hasMarkers || !parsed.segments.length || Number(written.targetSeconds) !== FILM_COMPLETE_TARGET_SECONDS) {
+      if (!writer.ok || written.stillShort === true || !parsed.hasMarkers || !parsed.segments.length || Number(written.targetSeconds) !== seconds) {
         const state = writer.status >= 500 || writer.status === 429 ? 'starting' : 'failed'
         await update({ state, launch_at: null, writer_http_status: writer.status })
         return { ...status, state }
@@ -208,14 +223,22 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
       // Persist and confirm the exact bytes before any paid scene can start. Every later launch reuses them.
       next.dispatch_prompt = dispatchPrompt
       next.dispatch_script_mode = 'verbatim'
+      next.dispatch_engine = engine // KINEO-VERSAO-COMPLETA-K4-2910
+      next.dispatch_seconds = seconds // KINEO-VERSAO-COMPLETA-K4-2910
       await update({ state: 'starting' })
     }
     const response = await io.fetch(`${origin}/api/generate-video-cinematic`, {
       method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
-      body: JSON.stringify({ generationId: intent.generationId, prompt: dispatchPrompt, language: intent.language, engine: FILM_COMPLETE_ENGINE, duration: FILM_COMPLETE_TARGET_SECONDS, script_mode: 'verbatim', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16' }),
+      body: JSON.stringify({ generationId: intent.generationId, prompt: dispatchPrompt, language: intent.language, engine, duration: seconds, ...(useKling4 ? { kling4_expect_promo: true } : {}), script_mode: 'verbatim', allow_shorter_duration: false, aspect: text(intent.metadata.source_aspect) || '9:16' }),
       signal: AbortSignal.timeout(240_000),
     })
     const result = await response.json().catch(() => ({})) as Meta
+    // KINEO-VERSAO-COMPLETA-K4-2910 — promo do Kling 4.0 acabou entre a leitura e o envio: a rota recusa com 409 SEM cobrar. A próxima
+    // tentativa reescreve o roteiro e sai em Seedance (o roteiro do Kling 4.0 tem outra régua de voz).
+    if (useKling4 && response.status === 409 && result.charged === false) {
+      await update({ state: 'starting', launch_at: null, dispatch_prompt: '', dispatch_engine: FILM_COMPLETE_ENGINE, dispatch_seconds: FILM_COMPLETE_TARGET_SECONDS, kling4_promo_refused: text(result.reason) || 'promo_unavailable' })
+      return { ...status, state: 'starting' }
+    }
     const state = response.ok ? 'processing' : response.status === 402 ? 'waiting_entitlement' : response.status >= 400 && response.status < 500 && result.pending !== true ? 'failed' : 'starting'
     await update({ state, http_status: response.status, ...(response.status === 402 ? { launch_at: null } : {}) })
     return { ...status, state }
