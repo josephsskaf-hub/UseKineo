@@ -37,6 +37,7 @@ import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-LIMPA-1410 — galeria Nano Banana dentro de "More tools"
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
+import HomeNewEffects from '@/components/home/HomeNewEffects' // KINEO-HOME-NOVOS-EFEITOS-2910
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
 // KINEO-HOME-REMODELA-2010 — a fileira PromoCards saiu da home (o componente e as rotas seguem no ar)
@@ -1046,6 +1047,8 @@ export default function KineoLanding({
           </div>
         </div>
       </header>
+
+      <HomeNewEffects />{/* KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it
