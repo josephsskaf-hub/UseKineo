@@ -173,7 +173,7 @@ const COPY: Record<string, Film60Template> = {
 
 export const FILM60_LANGUAGES = Object.keys(COPY)
 
-// KINEO-VENDER-3-2910 — a promo do Kling 4.0 (qualquer plano até 30/11: 30 dias, até 3 filmes/dia) entra na frase do
+// KINEO-VENDER-3-2910 — a promo do Kling 4.0 (Creator para cima até 30/11 — o bloco leva ao Creator: 30 dias, até 3 filmes/dia) entra na frase do
 // bloco SÓ quando a disponibilidade do servidor diz que ela está visível (kling4PromoVisible). Medido 29/10: 154 viram o
 // bloco em 14 d, 15 clicaram, e nenhuma linha falava do motor que o plano destrava de graça.
 export const FILM60_KLING4_PROMO_LINE: Record<string, string> = {

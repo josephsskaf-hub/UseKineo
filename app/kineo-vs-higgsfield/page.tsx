@@ -87,7 +87,7 @@ const FAQ_JSONLD = {
       acceptedAnswer: {
         '@type': 'Answer',
         text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film made with Kling 4.0 free, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` +
-          (PROMO_ON ? ` Any paid plan bought by ${PROMO_UNTIL} includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),
+          (PROMO_ON ? ` Creator or above, bought by ${PROMO_UNTIL}, includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),
       },
     }] : []),
     {
@@ -107,7 +107,7 @@ const ROWS: Array<[string, string, string]> = [
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
   ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${ENGINE_LIST}`],
   KLING4_PAID_LIVE // KINEO-VENDER-3-2910 — o Kling 4.0 entrou no lugar do Kling 3 no plano pago
-    ? ['Kling 4.0', 'Clips you edit', PROMO_ON ? `Finished Kling 4.0 films — free for 30 days with any plan (up to 3 a day)` : 'Finished Kling 4.0 films with narration, captions and music']
+    ? ['Kling 4.0', 'Clips you edit', PROMO_ON ? `Finished Kling 4.0 films — free for 30 days with Creator or above (up to 3 a day)` : 'Finished Kling 4.0 films with narration, captions and music']
     : ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
   ['Entry', 'No trial period; limited free tier', FREE_IS_K4 ? `Free first film${GRANT_COUNTRY_CLAUSE} made with Kling 4.0, no card` : `Free trial${GRANT_COUNTRY_CLAUSE}: ${TRIAL_FIRST_FILM_SHORT}, no card`], // KINEO-VENDER-3-2910
   ['Refunds', 'Initial purchase only, within 7 days, if no credits used', '7-day money-back on monthly plans + first-film redo or refund'], // KINEO-VENDER-3-2910

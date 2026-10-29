@@ -40,12 +40,12 @@ const faq: Array<{ q: string; a: string }> = [
       ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film made with Kling 4.0 for free${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `
       : '') +
       `After that, a Kling 4.0 film costs ${credits(15)} credits (15 s), ${credits(30)} (30 s) or ${credits(60)} (60 s).` +
-      (promoOn ? ` Subscribe to any plan by ${promoUntil} and Kling 4.0 is free for 30 days — up to 3 films or ads a day, up to 60 seconds each, with no credits used.` : ''),
+      (promoOn ? ` Subscribe to Creator or above by ${promoUntil} and Kling 4.0 is free for 30 days — up to 3 films or ads a day, up to 60 seconds each, with no credits used.` : ''),
   },
   {
     q: 'How much does Kling 4.0 cost on Kineo?',
     a: `${credits(15)} credits for a 15-second film, ${credits(30)} for 30 seconds and ${credits(60)} for 60 seconds. Plans start at ${starterPrice}/month` +
-      (promoOn ? `, and every plan includes Kling 4.0 free for 30 days (up to 3 films a day) when you subscribe by ${promoUntil}.` : '.'),
+      (promoOn ? `, and Creator or above includes Kling 4.0 free for 30 days (up to 3 films a day) when you subscribe by ${promoUntil}.` : '.'),
   },
   {
     q: 'What does Kineo add on top of Kling 4.0?',

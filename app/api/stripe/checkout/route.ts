@@ -1231,7 +1231,7 @@ async function buildAndRedirect(
     intentCampaign,
     tier,
     // KINEO-VENDER-3-2910 — a promo do Kling 4.0 aparece na página da Stripe onde a pessoa decide (só copy).
-    kling4Promo: kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok' && Date.now() < Date.parse(KLING4_PROMO_SIGNUP_CUTOFF),
+    kling4Promo: tier !== 'starter' && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok' && Date.now() < Date.parse(KLING4_PROMO_SIGNUP_CUTOFF), // KINEO-PROMO-CREATOR-2910: Creator para cima
     kling4Paid: KLING4_PAID_LIVE,
   })
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'

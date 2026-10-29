@@ -19,6 +19,7 @@ export type Kling4PaidSubscription = {
 export type Kling4PromoReason = 'ok' | 'paid_off' | 'promo_off' | 'launch_unconfigured' | 'not_launched'
   | 'not_subscribed' | 'subscription_unverified' | 'signup_closed' | 'expired' | 'daily_limit'
   | 'daily_cap' | 'unavailable' | 'invalid_request' | 'identity_conflict' | 'reservation_expired'
+  | 'plan_not_included' // KINEO-PROMO-CREATOR-2910
 
 export const isKling4PaidPlan = (value: unknown): value is Kling4PaidPlan =>
   typeof value === 'string' && (KLING4_PAID_PLANS as readonly string[]).includes(value)
@@ -53,6 +54,17 @@ export function kling4PromoPolicyReason(policy: Kling4PromoPolicy, now = Date.no
   return 'ok'
 }
 
+// KINEO-PROMO-CREATOR-2910 — decisão do fundador (29/10, "A"): a promo de 30 dias vale do Creator para cima. No Starter
+// (US$ 9,90) um único filme de 60 s (~US$ 9,40 de fal) já come a assinatura. O Starter continua com Kling 4.0 pagando
+// créditos (isKling4PaidPlan intocado). Starter que já assinava antes da virada mantém a promo prometida.
+export const KLING4_PROMO_STARTER_GRANDFATHER_BEFORE = '2026-10-29T18:21:35.000Z'
+export function kling4PromoPlanIncluded(plan: unknown, startedAt: unknown): boolean {
+  if (!isKling4PaidPlan(plan)) return false
+  if (plan !== 'starter') return true
+  const started = typeof startedAt === 'string' ? Date.parse(startedAt) : NaN
+  return Number.isFinite(started) && started < Date.parse(KLING4_PROMO_STARTER_GRANDFATHER_BEFORE)
+}
+
 /** A real active paid subscription, not a previous pack purchase, grants a single 30-day window. */
 export function kling4PromoWindow(subscription: Kling4PaidSubscription | null, policy: Kling4PromoPolicy,
   now = Date.now()): { eligible: boolean; reason: Kling4PromoReason; expiresAt: string | null; startsAt: string | null } {
@@ -68,6 +80,7 @@ export function kling4PromoWindow(subscription: Kling4PaidSubscription | null, p
     return { ...empty, reason: 'subscription_unverified' }
   }
   if (started >= Date.parse(KLING4_PROMO_SIGNUP_CUTOFF)) return { ...empty, reason: 'signup_closed' }
+  if (!kling4PromoPlanIncluded(subscription.plan, subscription.startedAt)) return { ...empty, reason: 'plan_not_included' } // KINEO-PROMO-CREATOR-2910
   const starts = Math.max(started, Date.parse(policy.launchAt!))
   const expiresAt = new Date(starts + KLING4_PROMO_DAYS * 86_400_000).toISOString()
   return { eligible: now < Date.parse(expiresAt), reason: now < Date.parse(expiresAt) ? 'ok' : 'expired',

@@ -38,7 +38,7 @@ export type CheckoutValueContextInput = {
 
 /**
  * KINEO-VENDER-3-2910 — a frase da promo no checkout da Stripe. Medido 29/10: 86 pessoas abriram o checkout em 14 d e 1
- * pagou; a promo (qualquer plano até 30/11 → Kling 4.0 grátis 30 dias, até 3 filmes/dia) não aparecia na página onde a
+ * pagou; a promo (Creator para cima até 30/11 → Kling 4.0 grátis 30 dias, até 3 filmes/dia; KINEO-PROMO-CREATOR-2910) não aparecia na página onde a
  * pessoa decide. Espelha KLING4_PAID_COPY.offer/terms (lib/kling4PaidPresentation.ts) sem importar de lá (guardiões
  * executam este módulo com mocks fechados).
  */
