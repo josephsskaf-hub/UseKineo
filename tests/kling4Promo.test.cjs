@@ -144,6 +144,15 @@ test('runtime PayPal source requires ACTIVE verified subscription and a real pos
       {PAYPAL_CLIENT_ID:'offline',PAYPAL_CLIENT_SECRET:'offline'})
     assert.equal(!!await s.resolveKling4PaidSubscription(fakeDb({profiles:{data:p}}),userId,now),Object.keys(patch).length===0)
   }
+  for (const [legacy,tier] of [['creator','basic'],['studio','pro']]) {
+    assert.equal(policy.normalizeKling4PaidPlan(legacy),tier)
+    const mocks={'./paypal':{paypalFetch:async()=>sub,tierFromPlanId:async()=>({tier})}}
+    const s=load('kling4PromoServer',mocks,{PAYPAL_CLIENT_ID:'offline',PAYPAL_CLIENT_SECRET:'offline'})
+    assert.equal((await s.resolveKling4PaidSubscription(fakeDb({profiles:{data:{...p,plan:legacy}}}),userId,now)).plan,legacy)
+    const unpaid=load('kling4PromoServer',{'./paypal':{...mocks['./paypal'],paypalFetch:async()=>({...sub,status:'SUSPENDED'})}},
+      {PAYPAL_CLIENT_ID:'offline',PAYPAL_CLIENT_SECRET:'offline'})
+    assert.equal(await unpaid.resolveKling4PaidSubscription(fakeDb({profiles:{data:{...p,plan:legacy}}}),userId,now),null)
+  }
 })
 
 test('runtime Dodo source requires live active ownership plus a positive server-only live payment', async () => {

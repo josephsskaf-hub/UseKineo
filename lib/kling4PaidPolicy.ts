@@ -8,7 +8,7 @@ export const KLING4_FAL_MILLIUSD_PER_SECOND = 157
 // Inclusive 30 November, using the same UTC calendar as the daily counters.
 export const KLING4_PROMO_SIGNUP_CUTOFF = '2026-12-01T00:00:00.000Z'
 export const KLING4_PROMO_DAYS = 30
-export const KLING4_PAID_PLANS = ['starter', 'basic', 'pro', 'business', 'autopilot', 'autopilot_lite'] as const
+export const KLING4_PAID_PLANS = ['starter', 'basic', 'creator', 'pro', 'studio', 'business', 'autopilot', 'autopilot_lite'] as const
 
 export type Kling4PaidPlan = typeof KLING4_PAID_PLANS[number]
 export type Kling4PromoPolicy = { paidLive: boolean; promoLive: boolean; launchAt: string | null }
@@ -22,6 +22,13 @@ export type Kling4PromoReason = 'ok' | 'paid_off' | 'promo_off' | 'launch_unconf
 
 export const isKling4PaidPlan = (value: unknown): value is Kling4PaidPlan =>
   typeof value === 'string' && (KLING4_PAID_PLANS as readonly string[]).includes(value)
+
+/** Preserve the stored legacy label in measurement, but compare billing plans by their canonical tier. */
+export function normalizeKling4PaidPlan(value: unknown): Exclude<Kling4PaidPlan, 'creator' | 'studio'> | null {
+  if (value === 'creator') return 'basic'
+  if (value === 'studio') return 'pro'
+  return isKling4PaidPlan(value) ? value as Exclude<Kling4PaidPlan, 'creator' | 'studio'> : null
+}
 
 /** Require an explicit UTC ISO timestamp; never turn an absent launch date into "today". */
 export function kling4PromoLaunchAt(value: unknown): string | null {

@@ -1,7 +1,7 @@
 // Server-only. Provider clients are loaded lazily; offline tests inject a verified subscription resolver.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildKling4PromoAvailability, type Kling4PromoAvailability } from './kling4Promo'
-import { KLING4_PROMO_DAILY_CAP_MILLIUSD, isKling4PaidPlan, kling4PromoPolicy,
+import { KLING4_PROMO_DAILY_CAP_MILLIUSD, isKling4PaidPlan, normalizeKling4PaidPlan, kling4PromoPolicy,
   kling4PromoPolicyReason, kling4PromoReservedMilliUsd, kling4PromoWindow,
   type Kling4PaidSubscription, type Kling4PromoPolicy, type Kling4PromoReason } from './kling4PaidPolicy'
 
@@ -55,7 +55,7 @@ export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (
       || !billing?.last_payment?.time || Date.parse(billing.last_payment.time) > now
       || !(Number(billing.last_payment.amount?.value) > 0)) return null
     const mapped = await tierFromPlanId(admin, String(sub.plan_id ?? ''))
-    if (!mapped || mapped.tier !== plan) return null
+    if (!mapped || normalizeKling4PaidPlan(mapped.tier) !== normalizeKling4PaidPlan(plan)) return null
     return evidence('paypal', p.paypal_subscription_id, sub.start_time, billing.next_billing_time)
   }
   if (typeof p.dodo_subscription_id === 'string' && p.dodo_subscription_id) {

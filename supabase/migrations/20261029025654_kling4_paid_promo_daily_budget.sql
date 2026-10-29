@@ -95,7 +95,7 @@ begin
   if p_launch_at is null or p_launch_at >= '2026-12-01T00:00:00Z'::timestamptz then
     return jsonb_build_object('reason','launch_unconfigured','is_free',false,'duplicate',false); end if;
   if p_launch_at>v_now then return jsonb_build_object('reason','not_launched','is_free',false,'duplicate',false); end if;
-  if p_plan is null or p_plan not in ('starter','basic','pro','business','autopilot','autopilot_lite')
+  if p_plan is null or p_plan not in ('starter','basic','creator','pro','studio','business','autopilot','autopilot_lite')
     or p_provider is null or p_provider not in ('stripe','paypal','dodo')
     or p_subscription_id is null or length(p_subscription_id) not between 3 and 200
     or p_started_at is null or p_started_at>v_now or p_paid_through is null or p_paid_through<=v_now

@@ -72,6 +72,15 @@ async function main(){
   assert.equal((await db.query('select count(*)::int n from public.kling4_promo_enrollments where user_id=$1',[id(60)])).rows[0].n,0)
   await db.exec('reset role;alter table public.events_unavailable rename to events;set role service_role')
   assert.equal((await call(60,'rollback',{verified:'2026-10-30T00:00:00Z'})).is_free,true)
+  await db.exec('reset role')
+  for(const [n,plan] of [[61,'creator'],[62,'studio']]){
+   await db.query('update public.profiles set plan=$1 where id=$2',[plan,id(n)])
+   await db.exec('set role service_role')
+   assert.equal((await call(n,'legacy',{plan,verified:'2026-10-30T00:00:00Z'})).is_free,true)
+   assert.equal((await call(n,'bad-provider',{plan,subscription:'sub_wrong',verified:'2026-10-30T00:00:00Z'})).reason,'subscription_unverified')
+   await db.exec('reset role')
+  }
+  await db.exec('set role service_role')
   // Exact 30-day expiry for existing subscribers, no window reset when they buy another subscription.
   await db.exec('reset role');await db.exec("update public.kling4_test_clock set t='2026-11-27T00:00:00Z'")
   await db.exec('set role service_role')
