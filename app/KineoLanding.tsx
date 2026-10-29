@@ -38,6 +38,7 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-LIMPA-1410 — galeria Nano Banana dentro de "More tools"
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import HomeNewEffects from '@/components/home/HomeNewEffects' // KINEO-HOME-NOVOS-EFEITOS-2910
+import HalloweenSkin from '@/components/home/HalloweenSkin' // KINEO-HALLOWEEN-SKIN-2910
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
 // KINEO-HOME-REMODELA-2010 — a fileira PromoCards saiu da home (o componente e as rotas seguem no ar)
@@ -870,6 +871,7 @@ export default function KineoLanding({
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />
       {/* KINEO-FAIXA-S25-2026-10-09 — o motor novo na manchete, como 7 dos 14 concorrentes fazem (fecha e não volta). */}
+      <HalloweenSkin />{/* KINEO-HALLOWEEN-SKIN-2910 — faixa + morcegos discretos até 1º/11 (prévia: ?halloween=preview) */}
       <EngineNewsBar />
 
       {/* KINEO-FAIXA-CONTINUAR-2026-09-01 — so aparece para quem esta LOGADO e ja tem um
