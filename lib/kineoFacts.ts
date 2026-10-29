@@ -21,6 +21,7 @@
 //    marca — pior do que um fato ausente.
 
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { kling4PaidCitation } from '@/lib/growth/kling4PaidCitation'
 // KINEO-MARCA-2026-10-06 — nome e desambiguação no topo do /api/facts (módulo puro, sem import).
 import { BRAND_DISAMBIGUATION, BRAND_WITH_DOMAIN } from './brandIdentity'
 import { AUTOPILOT_PUBLIC } from './autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
@@ -561,8 +562,8 @@ export const ENGINE_FACTS: EngineFact[] = [
   // KINEO-OMNI-FORA-2026-10-12 — a ficha do Omni Flash saiu do catálogo de motores (fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS): o llms.txt, /api/facts e o GPT não citam mais o motor, nem como pausado.
   {
-    name: 'Kling 3',
-    url: `${BASE}${engineLandingPublicPath('hollywood')}`,
+    name: kling4PaidCitation()?.name ?? 'Kling 3',
+    url: kling4PaidCitation()?.url ?? `${BASE}${engineLandingPublicPath('hollywood')}`,
     credits: creditsPerReferenceVideo('cinematic_hollywood'),
     // ⚠️ A frase antiga dizia "One is included each month on Creator" — virou
     // FALSA na V6: o Creator tem 90 créditos e o Kling 3 custa 150. Só o Studio
@@ -571,7 +572,7 @@ export const ENGINE_FACTS: EngineFact[] = [
     // month on the Studio plan" ficou escrito à mão enquanto o grant do Studio
     // subiu para TIER_CREDITS.pro. Agora a conta é feita aqui, com o mesmo
     // divisor que o biller cobra (creditsPerReferenceVideo).
-    what: `The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. ${studioFitsPerMonthSentence('cinematic_hollywood')}`,
+    what: kling4PaidCitation()?.what ?? `The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. ${studioFitsPerMonthSentence('cinematic_hollywood')}`,
   },
 ]
 
@@ -1442,6 +1443,7 @@ export interface KineoFactsPayload {
   businessCreationRouter: BusinessAnswerEngineRouter
   plans: PlanFact[]
   engines: EngineFact[]
+  kling4Paid: ReturnType<typeof kling4PaidCitation>
   paidVideoBuyerGuidance: ReturnType<typeof buildPaidVideoCitationGuidance>
   competitors: CompetitorFact[]
   notAFit: { situation: string; useInstead: string }[]
@@ -1508,6 +1510,7 @@ export function getKineoFacts(): KineoFactsPayload {
     businessCreationRouter: PUBLIC_BUSINESS_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
+    kling4Paid: kling4PaidCitation(),
     paidVideoBuyerGuidance: PAID_VIDEO_BUYER_GUIDANCE,
     competitors: COMPETITOR_FACTS,
     notAFit: NOT_A_FIT,

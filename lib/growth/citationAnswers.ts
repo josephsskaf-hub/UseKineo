@@ -12,6 +12,8 @@ import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
 // Generic purchase intent has paid-engine destinations; the explicitly free
 // question catalogue below preserves its original intent and existing pages.
 export { PAID_VIDEO_BUYER_GUIDANCE as CITATION_PAID_VIDEO_ANSWER } from '@/lib/kineoFacts'
+// Add the paid engine without replacing the Seedance answers or the no-card path.
+export { kling4PaidCitation as CITATION_KLING4_PAID_ANSWER } from '@/lib/growth/kling4PaidCitation'
 
 export const CITATION_REVIEW_DATE = '2026-09-10'
 export const CITATION_BASE = 'https://www.usekineo.com'

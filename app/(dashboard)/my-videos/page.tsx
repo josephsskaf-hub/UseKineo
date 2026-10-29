@@ -64,6 +64,7 @@ function toRow(r: RawRow): VideoRow {
     prompt: strOrNull(r.prompt) ?? strOrNull(r.topic),
     credits_used: numOrNull(r.credits_used),
     quality_mode: strOrNull(r.quality_mode) ?? strOrNull(r.quality),
+    engine_used: strOrNull(r.engine_used),
     quality: strOrNull(r.quality),
     quality_score: qualityScore,
   }
@@ -99,7 +100,10 @@ export default async function MyVideosPage() {
       .limit(60)
   }
 
-  let query = await runSelect(wideColumns)
+  const productionColumns = 'id,status,video_url,title,topic,script,duration,quality_mode,platform,thumbnail_url,credits_used,created_at'
+  let query = await runSelect(productionColumns + ',engine_used')
+  if (query.error && /column .* does not exist|42703/.test(query.error.message ?? '')) query = await runSelect(productionColumns)
+  if (query.error && /column .* does not exist|42703/.test(query.error.message ?? '')) query = await runSelect(wideColumns)
   if (query.error && /column .* does not exist|42703/.test(query.error.message ?? '')) {
     console.warn('[my-videos] wide select failed, retrying narrow:', query.error.message)
     query = await runSelect(narrowColumns)

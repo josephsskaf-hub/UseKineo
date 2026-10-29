@@ -85,6 +85,7 @@ interface Video {
   hashtags: string[] | null
   status: string
   quality_mode: string | null
+  engine_used?: string | null
   credits_used: number | null
   created_at: string
   // KINEO-ENHANCE-VISIVEL-2026-08-17 (fundador: "como eu sei que virou HD?")
@@ -1777,7 +1778,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       {/* KINEO-CARD-COM-MOTOR-2026-09-16 — pedido do fundador (16/09): "sempre tem que falar qual motor a pessoa usou".
                           O /library e o /my-videos já usavam engineLabelFor; o card do /history (o "My Videos" do menu) mostrava
                           só "✨ AI"/"⚡". Fonte única do selo: lib/engineLabel.ts. */}
-                      <KineoBoltText>{engineLabelFor(video.quality_mode) ?? (video.quality_mode === 'cinematic' ? '✨ AI' : '⚡')}</KineoBoltText>
+                      <KineoBoltText>{engineLabelFor(video.quality_mode, video.engine_used) ?? (video.quality_mode === 'cinematic' ? '✨ AI' : '⚡')}</KineoBoltText>
                     </span>
                   )}
                 </div>

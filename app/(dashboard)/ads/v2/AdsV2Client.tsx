@@ -1,5 +1,7 @@
 'use client'
 
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+
 import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
 
 // KINEO-ADS-V2-2026-09-28 — ETAPA 3: a tela do anúncio v2 (/ads/v2). O montador em primeiro plano, numa página só.
@@ -809,6 +811,7 @@ function AdsV2Session({
   }
   const failText = (r: { code: string; body: Record<string, unknown> }): string | null => (sampleGone(r.code) ? null : apiError(r))
   const uploadGone = (e: unknown): boolean => (e instanceof AdsUploadError && e.reason === 'paid_feature' ? sampleGone('no_access') : false)
+  const kling4Availability = useKling4PaidAvailability()
   const [sampleCap, setSampleCap] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
@@ -883,7 +886,7 @@ function AdsV2Session({
     }
   }, [])
 
-  const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
+  const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true) : null
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — sugestão pelo setor escolhido (sem setor = sem efeito); o efeito vai na foto marcada
   // como Product (sem foto de produto, o servidor ignora o estilo e o anúncio sai como antes).
   const styleSuggested: AdsV2StyleChoice = sector ? adsV2SuggestedStyle(sector) : 'none'
@@ -1445,7 +1448,7 @@ function AdsV2Session({
     setCheckNote(null)
     try {
       if (!(await syncCard(plan))) return
-      const r = await api<{ credits: number; shots: unknown[] }>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, dry_run: true } }) // KINEO-UGC-AJUSTES-2010 — + o probe
+      const r = await api<{ credits: number; shots: unknown[] }>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, dry_run: true, ...(sample ? {} : { kling4_expected_engine: kling4Availability?.paidLive ? 'kling4' : 'kling3' }) } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         setPlanError(failText(r))
@@ -1476,7 +1479,7 @@ function AdsV2Session({
       setBusyNote('Starting your ad…')
       // Daqui em diante o servidor pode cobrar e começar mesmo que a pessoa aperte "Start over": a confirmação avisa.
       onActive(true)
-      const r = await api<StatusView>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe
+      const r = await api<StatusView>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, ...(sample ? {} : { kling4_expected_engine: kling4Availability?.paidLive ? 'kling4' : 'kling3' }) } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         onActive(false)
@@ -1624,7 +1627,7 @@ function AdsV2Session({
               <fieldset className="adv2-tiers">
                 <legend className="adv2-sr">Level</legend>
                 {ADS_V2_TIER_IDS.map((t) => {
-                  const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS)
+                  const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true)
                   const copy = ADS_V2_TIER_COPY[t]
                   // KINEO-ADS-AMOSTRA-2026-10-09 — na amostra só o nível dela abre, sem preço e sem "faltam créditos".
                   const sampleOff = !!scopy && t !== ADS_SAMPLE_TIER

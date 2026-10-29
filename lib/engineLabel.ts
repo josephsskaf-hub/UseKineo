@@ -33,7 +33,16 @@ const MAPA: Record<string, string> = {
 }
 
 /** Nome público do motor para um quality_mode; null = não inventar selo. */
-export function engineLabelFor(qualityMode: string | null | undefined): string | null {
+export function engineLabelFor(qualityMode: string | null | undefined, engineUsed?: string | null): string | null {
+  if (engineUsed) {
+    const actual: Record<string, string> = {
+      kling4: 'Kling 4.0', kling3: 'Kling 3',
+      seedance15_fallback: 'Seedance 1.5', seedance15_cap: 'Seedance 1.5',
+      seedance: 'Seedance 1.5', seedance2: 'Seedance 2', veo31: 'Veo 3.1',
+    }
+    // A new or unknown supplier value must not inherit the catalogue's label.
+    return actual[engineUsed.trim().toLowerCase()] ?? null
+  }
   if (!qualityMode) return null
   return MAPA[qualityMode.toLowerCase().trim()] ?? null
 }

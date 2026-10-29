@@ -21,7 +21,7 @@ import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
 type Tab = 'all' | 'videos' | 'images' | 'audio'
 
-type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null }
+type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null; engine_used?: string | null }
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 // KINEO-CLIPES-2026-09-29 — clipe avulso do /clips (tabela `clips`, MP4 no nosso bucket). Só os prontos aparecem aqui.
@@ -268,8 +268,8 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
                   )}
                   {/* KINEO-SELO-MOTOR-2026-08-28 — o motor real do vídeo,
                       mapa único em lib/engineLabel.ts (pedido do fundador). */}
-                  {engineLabelFor(v.quality_mode) && (
-                    <span style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.2)', border: '1px solid rgba(41,151,255,0.5)', color: '#7cc0ff' }}>{engineLabelFor(v.quality_mode)}</span>
+                  {engineLabelFor(v.quality_mode, v.engine_used) && (
+                    <span style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.2)', border: '1px solid rgba(41,151,255,0.5)', color: '#7cc0ff' }}>{engineLabelFor(v.quality_mode, v.engine_used)}</span>
                   )}
                   {v.video_url ? <video
                     src={v.enhanced_url ?? v.video_url ?? undefined}

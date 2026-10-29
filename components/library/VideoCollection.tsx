@@ -31,9 +31,9 @@ export default async function VideoCollection({ embedded = false }: { embedded?:
   // page IGNORAVA o `error` do select, entao falha de leitura virava lista
   // vazia e o cliente via "No videos yet" com o acervo intacto (o fundador
   // viu isso com 327 videos). O erro agora chega na tela como erro.
-  const { data: videos, error: loadError } = await supabase
+  let collection = await supabase
     .from('videos')
-    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at') // KINEO-LACO-VIRAL-2026-09-17: publicar/despublicar pelo My Videos // KINEO-CARD-QUADRANTE-2026-09-16: duração e enquadramento no card
+    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at, engine_used') // KINEO-LACO-VIRAL-2026-09-17: publicar/despublicar pelo My Videos // KINEO-CARD-QUADRANTE-2026-09-16: duração e enquadramento no card
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     // KINEO-HISTORICO-300-2026-08-21 — 100 → 300 (pedido do fundador: "estou
@@ -50,6 +50,14 @@ export default async function VideoCollection({ embedded = false }: { embedded?:
     // ⚠️ PAR: se alguém reverter a virtualização/poster do HistoryClient, este
     // 300 volta a doer três vezes mais que o 100 doía. Mexeu num, olha o outro.
     .limit(300)
+
+  // A pending engine-used migration must not hide the owner's older films.
+  if (collection.error && /column .* does not exist|42703/.test(collection.error.message ?? '')) {
+    const legacy = await supabase.from('videos').select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(300)
+    if (legacy.error) collection = legacy
+    else collection = { ...legacy, data: legacy.data.map(video => ({ ...video, engine_used: null })) }
+  }
+  const { data: videos, error: loadError } = collection
 
   if (loadError) {
     console.warn('[history] videos read failed; rendering safety notice instead of empty:', loadError.message)

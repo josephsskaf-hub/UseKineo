@@ -11,6 +11,37 @@
     }
   ],
   "paths": {
+    "/api/kling4-paid/availability": {
+      "get": {
+        "operationId": "getKling4Availability",
+        "summary": "Read current Kling 4.0 engine and subscriber promotion availability",
+        "description": "Read before recommending Kling 4.0 or its subscriber promotion. This read-only endpoint never renders, reserves a free use or charges credits. paidLive=false means the hollywood key uses Kling 3. Only advertise the signup offer when publicOfferLive=true; promoAvailable is this signed-in subscriber’s current free-use availability. Respect checkedAt and validUntil and include all returned limits. The atomic check at confirmation can change availability. The Seedance first-film path remains separate. Current product page: https://www.usekineo.com/ai-video-generator/kling-4. Read getKineoFacts for the normal credit cost.",
+        "responses": {
+          "200": {
+            "description": "Private no-store availability with a short validity lease.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "paidLive": { "type": "boolean" },
+                    "promoLive": { "type": "boolean" },
+                    "publicOfferLive": { "type": "boolean" },
+                    "promoAvailable": { "type": "boolean" },
+                    "reason": { "type": "string" },
+                    "checkedAt": { "type": "string", "format": "date-time" },
+                    "validUntil": { "type": "string", "format": "date-time" },
+                    "expiresAt": { "type": ["string", "null"], "format": "date-time" },
+                    "remainingToday": { "type": ["integer", "null"], "minimum": 0, "maximum": 3 }
+                  },
+                  "required": ["paidLive", "promoLive", "publicOfferLive", "promoAvailable", "reason", "checkedAt", "validUntil"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/facts": {
       "get": {
         "operationId": "getKineoFacts",

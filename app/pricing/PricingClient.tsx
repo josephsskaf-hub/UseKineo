@@ -1,5 +1,8 @@
 'use client'
 
+import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
+
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
@@ -159,7 +162,7 @@ import {
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
-import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
 
@@ -377,6 +380,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 } = {}) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
+  const kling4Availability = useKling4PaidAvailability()
+  const klingPaidName = kling4PaidName(kling4Availability)
   const interfaceLanguage = useInterfaceLanguage()
   const [affiliateOffer, setAffiliateOffer] = useState<{ code: string; partnerName: string | null } | null>(null)
   const [affiliateOfferChecked, setAffiliateOfferChecked] = useState(false)
@@ -396,7 +401,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     return () => controller.abort()
   }, [])
 
-  const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q))
+  const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q)).map((f) => ({ ...f, q: f.q.replaceAll('Kling 3', klingPaidName), a: f.a.replaceAll('Kling 3', klingPaidName) }))
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
   // question is open by default so the section reads as scannable, not empty.
@@ -1095,6 +1100,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             {MRR_CONVERSION_ENABLED ? 'Make your next film or clip.' : displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
           <Kling4TrialNotice surface="pricing" />
+          <Kling4PaidNotice surface="pricing" availability={kling4Availability} />
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
 
@@ -1432,7 +1438,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 ) : null}
                 {'outcome' in p && p.outcome ? (
                   <p className="mt-1.5 mb-3 text-[13px] leading-relaxed text-[var(--muted)]">
-                    {p.outcome}
+                    {p.outcome.replaceAll('Kling 3', klingPaidName)}
                   </p>
                 ) : null}
                 {/* ═══ KINEO-CARD-QUANTIDADES-2026-08-25 (pedido do fundador,
@@ -1467,7 +1473,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
                     ...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),
                     { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
-                    { ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+                    { ic: '🏆', name: klingPaidName, cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
                   ]
                   return (
                     <details className="plan-detail-breakdown">
@@ -1507,7 +1513,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                       <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[var(--muted)]">
                         <span>✓ 1080×1920 Full HD master on every film</span>
                         <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
-                        <span>✓ Characters that speak your lines with lip sync (Kling 3)</span>
+                        <span>✓ <UiLabel>{kling4Availability?.paidLive ? KLING4_PAID_COPY.directed : 'Characters that speak your lines with lip sync (Kling 3)'}</UiLabel></span>
                         {/* KINEO-AVATAR-FORA-2026-09-28 — Character Lock é vendido como ferramenta do Avatar Studio; sai junto com o Avatar. */}
                         {AVATAR_PUBLIC && <span>✓ Character Lock — same face in every video</span>}
                         <span>✓ Animate a Photo · AI Thumbnails · Viral Now topics</span>
@@ -1747,7 +1753,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             <span>🎬 Film (Seedance) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
             <span>🎥 Kling 2.5 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_kling')} cr</b></span>
             <span>🌐 Veo 3.1 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_veo')} cr</b></span>
-            <span>🎞 Kling 3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
+            <span>🎞 {klingPaidName} — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
             <span>🖼 Image — <b className="text-[var(--text)]">1-5 cr</b></span>
             <span>🎙 Voiceover — <b className="text-[var(--text)]">1-2 cr</b></span>
             <span>✨ HD Enhance — <b className="text-[var(--text)]">10 cr</b></span>

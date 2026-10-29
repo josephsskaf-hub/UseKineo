@@ -1,5 +1,7 @@
 'use client'
 
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+
 // KINEO-ADS-LOTE-1310 — o MODO LOTE do /ads/v2 (?mode=batch). Fundador 13/10: "manda fazer … lote agora".
 //
 // O anunciante põe vários anúncios na fila de uma vez — vários produtos (foto ou link) ou o mesmo produto em vários
@@ -199,7 +201,7 @@ async function cropCenter(p: BatchPhoto): Promise<File> {
 function emptyRow(): BatchRow {
   return { key: newKey(), text: '', link: '', linkRead: null, linkBusy: false, linkNote: null, photos: [], tier: DEFAULT_TIER, style: 'none', presenter: false, orderId: null, planSig: null, plan: null, error: null }
 }
-const rowCost = (r: Pick<BatchRow, 'tier'>) => adsV2Credits(r.tier, ADS_V2_SCREEN_SECONDS)
+const batchRowCost = (r: Pick<BatchRow, 'tier'>, paidLive: boolean) => adsV2Credits(r.tier, ADS_V2_SCREEN_SECONDS, paidLive)
 const rowSig = (r: BatchRow) => JSON.stringify({ t: r.text.replace(/\s+/g, ' ').trim(), l: r.linkRead, tier: r.tier, s: r.style, p: r.presenter, ph: r.photos.map((p) => p.key) })
 const rowTitle = (text: string) => simpleTitle(text.replace(/\s+/g, ' ').trim()) || 'Product'
 
@@ -241,6 +243,8 @@ export function AdsBatchUpsell({ business }: { business: AdsBusinessOffer | null
 // ─── a sessão do lote ─────────────────────────────────────────────────────────────────────────
 
 export function AdsV2BatchSession({ balance, onBalance, sample = false, business = null, brandId = null }: { balance: number | null; onBalance: () => void | Promise<void>; sample?: boolean; business?: AdsBusinessOffer | null; brandId?: string | null }) { // KINEO-ADS-MARCAS-1510 — brandId: a marca escolhida no topo (todas as linhas do lote)
+  const kling4Availability = useKling4PaidAvailability()
+  const rowCost = (r: Pick<BatchRow, 'tier'>) => batchRowCost(r, kling4Availability?.paidLive === true)
   const [phase, setPhase] = useState<'loading' | 'build' | 'progress'>('loading')
   const [rows, setRows] = useState<BatchRow[]>(() => [emptyRow()])
   const [busy, setBusy] = useState<null | 'plan' | 'start'>(null)
@@ -307,7 +311,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
   const total = rows.reduce((s, r) => s + rowCost(r), 0)
   const planned = rows.filter((r) => r.plan?.ok && r.orderId && r.planSig === rowSig(r))
   const plannedTotal = planned.reduce((s, r) => s + (r.plan?.credits ?? rowCost(r)), 0)
-  const canAdd = rows.length < ADS_V2_BATCH_MAX_ROWS && (balance === null || total + adsV2Credits(DEFAULT_TIER, ADS_V2_SCREEN_SECONDS) <= balance)
+  const canAdd = rows.length < ADS_V2_BATCH_MAX_ROWS && (balance === null || total + adsV2Credits(DEFAULT_TIER, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true) <= balance)
   const overBalance = balance !== null && total > balance
   const allPlanned = rows.length > 0 && planned.length === rows.length
   // KINEO-ADS-FLUXO-2026-10-13 — a conta do lote antes de gerar ("3 products × 2 styles = 6 ads · N credits"): produtos = textos/links
@@ -511,7 +515,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
     setError(null)
     try {
       const orderIds = planned.map((r) => r.orderId as string)
-      const r = await api<{ batch_id: string; credits_total: number; tick?: { state: string; code?: string } }>('/api/ads/v2/batch', { method: 'POST', body: { action: 'start', batch_id: batchId, order_ids: orderIds, expected_credits: plannedTotal } })
+      const r = await api<{ batch_id: string; credits_total: number; tick?: { state: string; code?: string } }>('/api/ads/v2/batch', { method: 'POST', body: { action: 'start', kling4_expected_engine: kling4Availability?.paidLive ? 'kling4' : 'kling3', batch_id: batchId, order_ids: orderIds, expected_credits: plannedTotal } })
       if (!aliveRef.current) return
       void onBalance()
       if (!r.ok) {
@@ -588,7 +592,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
     const left = view.rows.filter((r) => r.status === 'planned')
     if (!left.length) return
     const credits = left.reduce((s, r) => s + (r.credits ?? 0), 0)
-    const r = await api<{ batch_id: string }>('/api/ads/v2/batch', { method: 'POST', body: { action: 'start', batch_id: batchId, order_ids: left.map((x) => x.order_id), expected_credits: credits } })
+    const r = await api<{ batch_id: string }>('/api/ads/v2/batch', { method: 'POST', body: { action: 'start', kling4_expected_engine: kling4Availability?.paidLive ? 'kling4' : 'kling3', batch_id: batchId, order_ids: left.map((x) => x.order_id), expected_credits: credits } })
     void onBalance()
     if (!r.ok) {
       setProgressNote(errText(r))
@@ -729,7 +733,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
                 <label>
                   Level
                   <select value={r.tier} disabled={busy !== null} onChange={(e) => updateRow(r.key, { tier: e.target.value as AdsV2Tier })}>
-                    {ADS_V2_TIER_IDS.map((t) => <option key={t} value={t}>{TIER_NAMES[t].name} · {adsV2Credits(t, ADS_V2_SCREEN_SECONDS)} credits</option>)}
+                    {ADS_V2_TIER_IDS.map((t) => <option key={t} value={t}>{TIER_NAMES[t].name} · {adsV2Credits(t, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true)} credits</option>)}
                   </select>
                 </label>
                 {ADS_V2_STYLES_PUBLIC ? (

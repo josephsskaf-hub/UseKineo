@@ -1,5 +1,11 @@
 'use client'
 
+import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+import { kling4PaidReplacement } from '@/lib/kling4PaidClaim'
+import { engineLabelFor } from '@/lib/engineLabel'
+import { kling4PaidCredits } from '@/lib/kling4PaidPricing'
+import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
+
 import ShowcaseConsent from '@/components/ShowcaseConsent'
 
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
@@ -1198,6 +1204,7 @@ export default function GenerateClient({
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
+  const kling4DispatchAvailability = useKling4PaidAvailability()
   const router = useRouter()
   const searchParams = useSearchParams()
   // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 — a "Estrela do filme" escolhida no /studio ═══
@@ -2018,7 +2025,8 @@ export default function GenerateClient({
   // plan loads below.
   const [mode, setMode] = useState<GenerationMode>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15-2026-09-29
   // KINEO-SEEDANCE-15S-2026-09-29 — os botões de duração do motor escolhido (15 s só no Seedance, só com o interruptor).
-  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration, curtasOk) // KINEO-DURACOES-CURTAS-2026-09-29: + curtasOk
+  const opcoesDeDuracao = mode === 'cinematic_ai' && aiEngine === 'hollywood' && kling4DispatchAvailability?.paidLive ? [15, 30, 60].map(d => ({ value: d as Duration, label: `${d}s` })) : durationOptionsFor(mode, aiEngine, seedance15Ok, duration, curtasOk) // KINEO-DURACOES-CURTAS-2026-09-29: + curtasOk
+  useEffect(() => { if (mode === 'cinematic_ai' && aiEngine === 'hollywood' && kling4DispatchAvailability?.paidLive && ![15, 30, 60].includes(duration)) setDuration(60) }, [mode, aiEngine, duration, kling4DispatchAvailability?.paidLive])
   // Trocar de motor estando em 15 s volta para 35 s: o 15 não existe fora do Seedance e o servidor recusaria (422).
   // KINEO-DURACOES-CURTAS-2026-09-29 — agora: volta para 35 s quando o motor novo NÃO oferece a duração curta atual (tabela do servidor).
   const motorDaDuracaoRef = useRef<string>('')
@@ -2175,6 +2183,7 @@ export default function GenerateClient({
   const [brollPlanRevision, setBrollPlanRevision] = useState(0)
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
+  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const [linkParaTrocar, setLinkParaTrocar] = useState<string | null>(null) // KINEO-FILME-RAPIDO-1710 — render cujo link do Creatomate ainda vai virar o do bucket
   const retomarPlayerEmRef = useRef<{ t: number; muted: boolean } | null>(null) // KINEO-FILME-RAPIDO-1710 — onde o player estava na hora da troca do link
@@ -5167,12 +5176,14 @@ export default function GenerateClient({
         // The server alone can replace a failed/timed-out Kling trial with Seedance.
         // Restore every parallel scene vector before restarting polling with its signed IDs.
         if (data.replacement !== undefined) {
-          const replacement = kling4TrialReplacement(data.replacement, generationId!)
+          const replacement = kling4PaidReplacement(data.replacement, generationId!) ?? kling4TrialReplacement(data.replacement, generationId!)
           if (!replacement) { scheduleNextPoll(6000); return }
           const nextIds = replacement.fal_request_ids as (string | null)[]
           falModelRef.current = typeof replacement.fal_model === 'string' ? replacement.fal_model : ''
           falModelsRef.current = replacement.fal_models as string[]
-          falQualityRef.current = 'cinematic_ai'
+          falQualityRef.current = replacement.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : 'cinematic_ai'
+          if (typeof replacement.engine_used === 'string') setActualEngineUsed(replacement.engine_used)
+          else setActualEngineUsed('seedance15_fallback')
           sceneEnginesRef.current = []
           scenePromptsRef.current = Array.isArray(replacement.scene_prompts) ? replacement.scene_prompts.map(x => typeof x === 'string' ? x : '') : []
           sceneAnchorsRef.current = Array.isArray(replacement.scene_anchor_urls) ? replacement.scene_anchor_urls.map(x => typeof x === 'string' ? x : null) : []
@@ -7032,6 +7043,7 @@ export default function GenerateClient({
             try { window.dispatchEvent(new Event('creditsChanged')) } catch {}
           }
           setRenderProgress(100)
+          if (typeof data.engine_used === 'string') setActualEngineUsed(data.engine_used)
           setFinalVideoUrl(url)
           setLinkParaTrocar(data.asset_pending === true ? (renderId as string) : null) // KINEO-FILME-RAPIDO-1710
           if (typeof data.video_id === 'string' && data.video_id) setPublicVideoId(data.video_id)
@@ -8673,6 +8685,7 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
+    setActualEngineUsed(null)
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -9965,6 +9978,7 @@ export default function GenerateClient({
     setFalClipsDone({ done: 0, total: 0 })
     setRenderId(null)
     setFinalVideoUrl(null)
+    setActualEngineUsed(null)
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -10074,6 +10088,7 @@ export default function GenerateClient({
           script_mode: scriptMode,
           vertical: analysis?.niche ?? undefined,
           engine: aiEngine,
+          ...(aiEngine === 'hollywood' ? { kling4_expect_promo: kling4PromoZeroCredits(kling4DispatchAvailability, duration), kling4_expected_engine: kling4DispatchAvailability?.paidLive ? 'kling4' : 'kling3' } : {}),
           brollScenes: cineBrollScenes,
           globalStyle: cineUsable ? cinePlan!.globalStyle : undefined,
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
@@ -10358,7 +10373,7 @@ export default function GenerateClient({
         sceneEnginesRef.current = Array.isArray(data.scene_engines) ? data.scene_engines.filter((e: unknown): e is string => typeof e === 'string') : []
         scenePromptsRef.current = Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x: unknown) => (typeof x === 'string' ? x : '')) : []
         sceneAnchorsRef.current = Array.isArray(data.scene_anchor_urls) ? data.scene_anchor_urls.map((x: unknown) => (typeof x === 'string' ? x : null)) : []
-        hollyRetriedRef.current = kling4TrialReplacement(data, cinematicGenerationId) ? 2 : 0 // Async trial fallback is already finalized; never buy these scenes again.
+        hollyRetriedRef.current = (kling4PaidReplacement(data, cinematicGenerationId) ?? kling4TrialReplacement(data, cinematicGenerationId)) ? 2 : 0 // Async trial fallback is already finalized; never buy these scenes again.
         sceneNarrationsRef.current = Array.isArray(data.scene_narrations) ? data.scene_narrations.map((n: unknown) => (typeof n === 'string' ? n : null)) : []
         sceneSecondsRef.current = Array.isArray(data.scene_seconds) ? data.scene_seconds.map((s: unknown) => (typeof s === 'number' ? s : 10)) : []
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real dialogue line per scene.
@@ -11509,6 +11524,7 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
+    setActualEngineUsed(null)
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -12450,7 +12466,9 @@ export default function GenerateClient({
       is_first_video: true,
     })
   }, [showInlineFirstVideo, prompt])
-  const selectedCost = mode === 'creator' || mode === 'fast'
+  const selectedCost = mode === 'cinematic_ai' && aiEngine === 'hollywood' && kling4DispatchAvailability?.paidLive
+    ? (kling4PromoZeroCredits(kling4DispatchAvailability, duration) ? 0 : kling4PaidCredits([15, 30, 60].includes(duration) ? duration : 60))
+    : mode === 'creator' || mode === 'fast'
     ? creditCostForDuration('fast', isPaidAccount, duration)
     // ⚠️ KINEO-H3-2026-08-19 — ESTA LINHA ERA UM ESPELHO CHUMBADO DA TABELA DE
     // CUSTO, e já estava mentindo: dizia `fast = 1` depois de o Kineo 1 subir
@@ -12532,7 +12550,7 @@ export default function GenerateClient({
         : aiEngine === 'h3max' ? 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
         : aiEngine === 's25' ? 'cinematic_s25'
         : 'cinematic_ai'
-      return creditCostForDuration(q, isPaidAccount, d)
+      return q === 'cinematic_hollywood' && kling4DispatchAvailability?.paidLive ? (kling4PromoZeroCredits(kling4DispatchAvailability, d) ? 0 : kling4PaidCredits(d)) : creditCostForDuration(q, isPaidAccount, d)
     }
     return QUALITY_OPTIONS.find((qq) => qq.key === quality)?.credits ?? 8
   }
@@ -17443,6 +17461,7 @@ export default function GenerateClient({
                 </svg>
                 <h2 className="tracking-tight" style={{ fontSize: '1.5rem', color: 'var(--text)', lineHeight: 1.2, fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600 }}>
                   Your video is ready
+                  {engineLabelFor(null, actualEngineUsed) ? <span data-kling4-actual-engine style={{ display: 'block', fontSize: 12, marginTop: 6 }}>{engineLabelFor(null, actualEngineUsed)}</span> : null}
                 </h2>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
                   {finalVideoSeconds ?? duration}s · MP4
@@ -21801,10 +21820,11 @@ function ModeSelector({
   // A MESMA função que o servidor usa para cobrar — nunca uma tabela local.
   // (a lição do "Generate · 20 credits" que debitava 30).
   const custoDoMotor = (m: string, d: number): number =>
-    creditCostForDuration(CUSTO_POR_MOTOR[m] ?? 'cinematic_ai', true, d)
+    m === 'hollywood' && kling4Availability?.paidLive ? (kling4PromoZeroCredits(kling4Availability, d) ? 0 : kling4PaidCredits([15, 30, 60].includes(d) ? d : 60)) : creditCostForDuration(CUSTO_POR_MOTOR[m] ?? 'cinematic_ai', true, d)
+  const kling4Availability = useKling4PaidAvailability()
   const NOME_DO_MOTOR: Record<string, string> = {
     seedance: 'AI Generated', kling: 'Kling', veo: 'Veo 3.1',
-    hollywood: 'Kling 3', h3: 'MiniMax H3', h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',
+    hollywood: kling4PaidName(kling4Availability), h3: 'MiniMax H3', h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',
   }
   // Só entram no resgate os motores que o PLANO já liberou. O cadeado de plano
   // é do Codex e tem precedência: nunca ofereço como saída algo que ele tranca.
@@ -21814,7 +21834,7 @@ function ModeSelector({
   ]
   // KINEO-SEEDANCE-15S-2026-09-29 (B10) — espelho de `duracoesDoResgate` na rota do cinematic: 15 s só no Seedance e só
   // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
-  const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok
+  const duracoesDoSeletor: Duration[] = aiEngine === 'hollywood' && kling4Availability?.paidLive ? [15, 30, 60] : aiEngine === 'seedance' && seedance15Ok
     ? (supportedDurationsFor('seedance') as readonly number[]).map((d) => d as Duration)
     : aiEngine !== 'seedance' && curtasOk ? (supportedDurationsFor(aiEngine) as readonly number[]).map((d) => d as Duration) // KINEO-DURACOES-CURTAS-2026-09-29: espelho de duracoesDoResgateCurtas na rota
     : DURATION_OPTIONS.map((o) => o.value)
@@ -21832,6 +21852,8 @@ function ModeSelector({
 
   return (
     <div className="mt-5">
+      <Kling4PaidNotice surface="generate" availability={kling4Availability} />
+      {aiEngine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
       <div
         className="text-xs font-black uppercase tracking-widest mb-3"
         style={{ color: 'var(--muted)' }}
@@ -21926,7 +21948,7 @@ function ModeSelector({
               // native voice). KINEO-REBASE-2026-07-10 — costs halved (Hollywood
               // 150 = preço FINAL aprovado 10/07) + engines unlocked for ANY
               // paying user (universal gates — no more Studio-only lock).
-              { key: 'hollywood', label: 'Kling 3', sub: 'ultra-realistic people & voice', cr: creditCostForDuration('cinematic_hollywood', true, duration) },
+              { key: 'hollywood', label: kling4PaidName(kling4Availability), sub: kling4Availability?.paidLive ? KLING4_PAID_COPY.directed : 'ultra-realistic people & voice', cr: kling4PromoZeroCredits(kling4Availability, duration) ? 0 : kling4Availability?.paidLive ? kling4PaidCredits([15, 30, 60].includes(duration) ? duration : 60) : creditCostForDuration('cinematic_hollywood', true, duration) },
               // KINEO-H3-2026-08-19 — MiniMax H3. Entra LOGO ABAIXO do Kling 3 e
               // acima do Veo de proposito: e o filme carro-chefe que CABE no
               // plano. Depois do corte de grants da V6 o Creator (90cr) nao faz
@@ -21963,7 +21985,7 @@ function ModeSelector({
                 >
                   <span className="text-left">
                     <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}{pausa ? ' · Maintenance' : ''}{trancadoS25 && <> · <UiLabel>{S25_PAID_BADGE}</UiLabel></>}</span>
-                    <span className="block text-[10px]" style={{ color: trancadoS25 ? '#7cc0ff' : 'var(--muted)' }}>{pausa ? `Temporarily paused · use ${pausa.alternative.label} meanwhile` : trancadoS25 ? <UiLabel>{S25_PAID_HINT}</UiLabel> : m.sub}</span>
+                    <span className="block text-[10px]" style={{ color: trancadoS25 ? '#7cc0ff' : 'var(--muted)' }}>{pausa ? `Temporarily paused · use ${pausa.alternative.label} meanwhile` : trancadoS25 ? <UiLabel>{S25_PAID_HINT}</UiLabel> : m.key === 'hollywood' && kling4Availability?.paidLive ? <UiLabel>{KLING4_PAID_COPY.directed}</UiLabel> : m.sub}</span>
                   </span>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: naoCabe ? 'rgba(255,180,84,.14)' : 'rgba(41,151,255,.18)', color: naoCabe ? '#ffb454' : '#7cc0ff', border: `1px solid rgba(${naoCabe ? '255,180,84' : '41,151,255'},.3)` }}>
                     {trancadoS25 ? `🔒 ${m.cr} cr` : !cinematicUnlocked

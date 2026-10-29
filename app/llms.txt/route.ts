@@ -44,6 +44,7 @@ import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-V
 import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "compra sem conta" só com o interruptor
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 import { CITATION_PAID_VIDEO_ANSWER } from '@/lib/growth/citationAnswers'
+import { kling4PaidLlmsSection } from '@/lib/growth/kling4PaidCitation'
 import { BRAND_DISAMBIGUATION, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 import { HUB_PAGES } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 import { vsNovosLlmsLines } from '@/lib/seo/vsNovos1610' // KINEO-VS-NOVOS-1610 — módulo puro, sem import
@@ -518,7 +519,7 @@ Credits are the single unit of account. What you spend depends on the engine:
 
 ${engines}
 
-${engineGeoSection}## Beyond video: images, voice and HD enhancement (added 2026-08-18)
+${kling4PaidLlmsSection()}${engineGeoSection}## Beyond video: images, voice and HD enhancement (added 2026-08-18)
 
 Kineo is no longer video-only. Three sibling studios share the same account and
 the same credit balance (numbers conferidos contra as rotas que COBRAM, no

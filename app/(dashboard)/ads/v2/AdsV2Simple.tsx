@@ -1,5 +1,7 @@
 'use client'
 
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+
 import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
 import dynamic from 'next/dynamic' // KINEO-ADS-ESCOLHA-2310
 import type { ComponentProps } from 'react' // KINEO-ADS-ESCOLHA-2310
@@ -649,6 +651,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
   const sampleFormat: AdsV2AdFormat = adsSampleFormatFor(entry, ADS_V2_PRESENTER_PUBLIC) // KINEO-HOME-3-CARDS-1910 — o formato que a amostra abre (o servidor decide igual pela mesma lib)
   const samplePresenter = sample && sampleFormat === 'presenter' // KINEO-HOME-3-CARDS-1910
   const scopy: AdsSampleCopy | null = sample ? (samplePresenter ? { ...adsSampleCopy(lang), note: adsSamplePresenterNote(lang) } : ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — + a linha da amostra com a pessoa — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
+  const kling4Availability = useKling4PaidAvailability()
   const [sampleCap, setSampleCap] = useState(false)
   const [presenterCapNote, setPresenterCapNote] = useState(false) // KINEO-UGC-AJUSTES-2010 — o aviso honesto do sub-teto da amostra com a pessoa
   const [three, setThree] = useState(false)
@@ -926,7 +929,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
   const foreignWord = narrationOn ? adsV2ForeignName(pronWord.trim() || cardTitleFinal, spoken) : null // KINEO-ADS-FIEL-2-1510 — nome que a voz da língua escolhida tende a ler errado
   const pronWordDefault = adsV2PronounceDefaultWord(cardTitleFinal) // KINEO-ADS-DEMO-UNIVERSO-1410
   const pronounce = narrationOn ? sanitizeAdsV2Pronounce({ word: pronWord.trim() || pronWordDefault, say: pronSay }) : null // KINEO-ADS-DEMO-UNIVERSO-1410 — só com voz; null = narração de sempre
-  const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
+  const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true) : null
   const inAd = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD)
   const priceT = price.replace(/\s+/g, ' ').trim()
   const contactT = contact.replace(/\s+/g, ' ').trim()
@@ -2151,7 +2154,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
       if (!(await syncCard(plan))) return
       setBusyNote(copy.plan.starting)
       onActive(true)
-      const r = await api<StatusView>(adsSampleProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe
+      const r = await api<StatusView>(adsSampleProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, ...(sample ? {} : { kling4_expected_engine: kling4Availability?.paidLive ? 'kling4' : 'kling3' }) } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         onActive(false)
@@ -2699,7 +2702,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
               <fieldset className="adv2-tiers">
                 <legend className="adv2-sr">{copy.tiers.title}</legend>
                 {ADS_V2_TIER_IDS.map((t) => {
-                  const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS)
+                  const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS, kling4Availability?.paidLive === true)
                   const tc = copy.tiers[t]
                   // KINEO-ADS-AMOSTRA-2026-10-09 — na amostra só o nível dela abre; os outros mostram "planos pagos".
                   const sampleOff = !!scopy && t !== ADS_SAMPLE_TIER

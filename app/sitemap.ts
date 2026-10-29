@@ -317,6 +317,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of INTENT_SLUGS) {
     routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })
   }
+  routes.push({ path: '/ai-video-generator/kling-4', priority: 0.8, freq: 'weekly' })
   const engineNoIndex = ENGINE_SLUGS.filter((slug) => !isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`)
   const engineGeoRevised = new Set([
     ...ENGINE_GEO_REVISED_PAGES,

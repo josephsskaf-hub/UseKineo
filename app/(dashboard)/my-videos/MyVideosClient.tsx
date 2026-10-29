@@ -44,6 +44,7 @@ export interface VideoRow {
   prompt: string | null
   credits_used: number | null
   quality_mode: string | null
+  engine_used?: string | null
   // Push #082 — quality text (e.g. "HD", "4K") + optional numeric
   // quality_score (e.g. 4.2 → ★★★★☆). Either can be null on staging.
   quality: string | null
@@ -502,7 +503,7 @@ function VideoCard({
   // Cinematic), derived from credits_used. Distinct from the quality badge
   // above: this answers "which engine made it", not "how good is it".
   // Renders nothing when credits_used is null/0/unrecognized.
-  const engineText = engineLabelFor(v.quality_mode)
+  const engineText = engineLabelFor(v.quality_mode, v.engine_used)
 
   const isActive = hovered || isPinned
 
@@ -688,7 +689,7 @@ function VideoCard({
             vídeo, do mapa único em lib/engineLabel.ts. Pedido do fundador:
             "hoje a pessoa tem que adivinhar". Selo honesto é ativo de marca:
             sem quality_mode conhecido, nenhum selo — nunca chutar. */}
-        {engineLabelFor(v.quality_mode) && (
+        {engineLabelFor(v.quality_mode, v.engine_used) && (
           <span
             className="absolute"
             style={{
@@ -705,7 +706,7 @@ function VideoCard({
               backdropFilter: 'blur(8px)',
             }}
           >
-            {engineLabelFor(v.quality_mode)}
+            {engineLabelFor(v.quality_mode, v.engine_used)}
           </span>
         )}
 

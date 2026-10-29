@@ -1,4 +1,8 @@
 'use client'
+
+import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
+import { kling4PaidCredits } from '@/lib/kling4PaidPricing'
+import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import StudioNearIdeaAction from '@/components/StudioNearIdeaAction'
 import MrrFirstFilm from '@/components/MrrFirstFilm'
@@ -609,7 +613,12 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     return () => window.cancelAnimationFrame(frame)
   }, [searchSignature])
 
-  const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
+  const kling4Availability = useKling4PaidAvailability()
+  const eng = useMemo(() => {
+    const selected = ENGINES.find((e) => e.key === engine)!
+    return selected.key === 'hollywood' ? { ...selected, name: kling4PaidName(kling4Availability), icon: kling4Availability?.paidLive ? 'K4' : 'K3', desc: kling4Availability?.paidLive ? KLING4_PAID_COPY.directed : selected.desc } : selected
+  }, [engine, kling4Availability])
+  useEffect(() => { if (engine === 'hollywood' && kling4Availability?.paidLive && ![15, 30, 60].includes(duration)) setDuration(60) }, [engine, duration, kling4Availability?.paidLive])
   // KINEO1-AVISO-DESENHO-2026-09-18 — ver lib/growth/kineo1FitNotice.ts. A decisão é pura; a tela só a executa.
   const kineo1Fit = useMemo(() => decideKineo1FitNotice({ engine, text: prompt }), [engine, prompt])
   // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — decisão pura (lib/contentPolicy/sexualContent.ts); a tela só a executa.
@@ -631,7 +640,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const estrelaLigada = estrelaOk && scriptMode !== 'clip' && estrelaNoMotor && estrelaConsent && estrelaFotosProntas.length > 0
   const estrelaCr = estrelaLigada ? estrelaSobretaxa(eng.key, duration) : 0
   const estrelaEnviando = estrelaFotos.some((f) => f.uploading)
-  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration) + estrelaCr
+  const cost = engine === 'hollywood' && kling4Availability?.paidLive ? (estrelaCr === 0 && kling4PromoZeroCredits(kling4Availability, duration) ? 0 : kling4PaidCredits([15, 30, 60].includes(duration) ? duration : 60) + estrelaCr) : creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration) + estrelaCr
 
   // ═══ KINEO-PRECO-VISIVEL-2026-09-02 — O SALDO EM FILMES ═══════════════════
   // O buraco que nenhum dos nove concorrentes auditados preenche: Higgsfield e
@@ -645,14 +654,14 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // KINEO-DURACOES-CURTAS-2026-09-29 — as durações CURTAS (abaixo de 35) que este card oferece: o Seedance com o interruptor dele
   // (SEEDANCE_15S_PUBLIC), os outros pela tabela do servidor (lib/durationByEngine supportedDurationsFor) com DURACOES_CURTAS_PUBLIC.
   const curtasDoMotor = (key: EngineKey): number[] =>
-    (key === 'seedance' ? (seedance15Ok ? [...supportedDurationsFor('seedance')] : []) : [...supportedDurationsFor(key, { curtas: curtasOk })]).filter((d) => d < MIN_DURATION_ALL_ENGINES)
+    key === 'hollywood' && kling4Availability?.paidLive ? [15, 30] : (key === 'seedance' ? (seedance15Ok ? [...supportedDurationsFor('seedance')] : []) : [...supportedDurationsFor(key, { curtas: curtasOk })]).filter((d) => d < MIN_DURATION_ALL_ENGINES)
   // KINEO-DURACOES-CURTAS-2026-09-29 — o card precifica na duração que o motor vai de fato receber: a curta que ele oferece, ou 35+.
   const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' || curtasDoMotor(key).includes(duration) ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
   const engineCost = (key: EngineKey) =>
-    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
+    key === 'hollywood' && kling4Availability?.paidLive ? kling4PaidCredits([15, 30, 60].includes(duracaoDoCard(key)) ? duracaoDoCard(key) : 60) : creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
   const engineCostLabel = (key: EngineKey) => {
-    const c = engineCost(key)
-    return c <= 0 ? 'free' : `${c} cr`
+    const c = key === 'hollywood' && kling4PromoZeroCredits(kling4Availability, duracaoDoCard(key)) ? 0 : engineCost(key)
+    return c <= 0 ? '0 cr' : `${c} cr`
   }
   // ═══ KINEO-DEGRAU-35S-2026-09-22 — o melhor motor não cabia no bolso de quem chega ═══
   // Medido 21/09 (30 d): Veo 3.1 = nota 90 do juiz e 1 pessoa externa; a 60 s custa 100 cr num Starter de 60 e num
@@ -666,10 +675,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (c <= 0 || balance >= c) return null
     // KINEO-DURACOES-CURTAS-2026-09-29 — o degrau desce até as curtas que o card oferece (Seedance 15 com o interruptor dele;
     // Kling 2.5/Veo 15 e hollywood 30/15 com DURACOES_CURTAS_PUBLIC), da maior para a menor.
-    const degraus: readonly StudioDuration[] = [60, 35, ...curtasDoMotor(key).sort((a, b) => b - a)] as StudioDuration[]
+    const degraus: readonly StudioDuration[] = key === 'hollywood' && kling4Availability?.paidLive ? [60, 30, 15] : [60, 35, ...curtasDoMotor(key).sort((a, b) => b - a)] as StudioDuration[]
     for (const d of degraus) {
       if (d >= duracaoDoCard(key)) continue
-      const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
+      const cost = key === 'hollywood' && kling4Availability?.paidLive ? kling4PaidCredits(d) : creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
       if (cost > 0 && cost <= balance) return { seconds: d, cost }
     }
     return null
@@ -703,7 +712,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (!flagsProntas || scriptMode === 'clip' || estrelaLigada) return
     const r = duracaoQueOSaldoPaga({
       atual: duration,
-      opcoes: [...curtasDoMotor(engine), MIN_DURATION_ALL_ENGINES, 60, 90],
+      opcoes: engine === 'hollywood' && kling4Availability?.paidLive ? [15, 30, 60] : [...curtasDoMotor(engine), MIN_DURATION_ALL_ENGINES, 60, 90],
       saldo: balance,
       paga: contaPaga,
       escolhaExplicita: duracaoExplicitaRef.current === engine,
@@ -1007,7 +1016,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   // normal (abaixo) segue byte a byte o de sempre, com o handler da base.
                   <button key={e.key} type="button" className="pk" data-kineo="s25-trancado"
                     onClick={() => { void trackEvent(S25_PAID_CLICK_EVENT, { surface: 'studio', balance }); setPickerOpen(false); router.push(s25UpgradeHref('studio')) }}>
-                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
+                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.key === 'hollywood' && kling4Availability?.paidLive ? 'K4' : e.icon}</KineoBoltText></span>
                     <span className="pk-tx">
                       <span className="t">
                         <b>{e.name}<span className="tag" style={{ background: 'rgba(41,151,255,.16)', color: '#7cc0ff' }}><UiLabel>{S25_PAID_BADGE}</UiLabel></span></b>
@@ -1020,7 +1029,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 ) : (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
+                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.key === 'hollywood' && kling4Availability?.paidLive ? 'K4' : e.icon}</KineoBoltText></span>
                     <span className="pk-tx">
                       {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
                           A nota antiga aqui dizia "preço não mora no seletor — só no
@@ -1035,10 +1044,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
+                        <b>{e.key === 'hollywood' ? kling4PaidName(kling4Availability) : e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
-                      <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
+                      <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.key === 'hollywood' && kling4Availability?.paidLive ? KLING4_PAID_COPY.directed : e.desc}</UiLabel></span>
                       <span className="d" style={{ color: e.key === 'fast' ? 'var(--accent)' : undefined, marginTop: 2 }}>
                         {filmsLabel(e.key)}
                       </span>
@@ -1215,6 +1224,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 </button>
               </div>
             )}
+            <Kling4PaidNotice surface="studio" availability={kling4Availability} />
+            {engine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
             {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": o mesmo desenho da foto de referência do /images (caixa de
                 autorização antes de subir, até 3 miniaturas com X). Só com a flag `estrela` e fora do modo clipe; em motor sem âncora
@@ -1226,7 +1237,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   <>
                     <p className="val" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45 }}>{estrelaCopy(idiomaDaTela, 'help')}</p>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, fontSize: 12.5, lineHeight: 1.45, color: 'var(--text2)', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={estrelaConsent} onChange={(e) => setEstrelaConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                      <input type="checkbox" checked={estrelaConsent} disabled={engine === 'hollywood' && kling4Availability?.paidLive} onChange={(e) => setEstrelaConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
                       <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
                     </label>
                     <div className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1238,7 +1249,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                         </div>
                       ))}
                       {estrelaFotos.length < 3 && (
-                        <label className="pill" aria-disabled={!estrelaConsent} style={{ cursor: estrelaConsent ? 'pointer' : 'not-allowed', opacity: estrelaConsent ? 1 : 0.5 }}>
+                        <label className="pill" aria-disabled={!estrelaConsent || engine === 'hollywood' && kling4Availability?.paidLive} style={{ cursor: estrelaConsent ? 'pointer' : 'not-allowed', opacity: estrelaConsent ? 1 : 0.5 }}>
                           <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden disabled={!estrelaConsent}
                             onChange={(e) => { void addEstrelaFotos(e.target.files); e.target.value = '' }} />
                           + <UiLabel>Add photo</UiLabel>
@@ -1283,9 +1294,9 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
               {engine !== 'seedance' && [...new Set([...curtasDoMotor(engine), ...(duration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(engine).includes(duration) ? [duration] : [])])].sort((a, b) => a - b).map((d) => (
                 <button key={`curta-${d}`} type="button" className={`pill${duration === d ? ' on' : ''}`} onClick={() => setDuration(d as StudioDuration)} onClickCapture={marcarEscolhaDeDuracao} title="A short film on this engine">{d}s</button>
               ))}
-              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)} onClickCapture={marcarEscolhaDeDuracao}>35s</button>
+              {!(engine === 'hollywood' && kling4Availability?.paidLive) && <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)} onClickCapture={marcarEscolhaDeDuracao}>35s</button>}
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)} onClickCapture={marcarEscolhaDeDuracao}>60s ⭐</button>
-              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} onClickCapture={marcarEscolhaDeDuracao} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
+              {!(engine === 'hollywood' && kling4Availability?.paidLive) && <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} onClickCapture={marcarEscolhaDeDuracao} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>}
             </div>
             {/* KINEO-STUDIO-DURACAO-SALDO-1510 ▼ — a nota honesta da descida pelo saldo; o caminho do plano continua na tela. */}
             {notaDuracaoAjustada && (
@@ -1316,6 +1327,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   key={a.value}
                   type="button"
                   className={`pill${aspect === a.value ? ' on' : ''}`}
+                  disabled={engine === 'hollywood' && kling4Availability?.paidLive && a.value !== '9:16'}
                   onClick={() => setAspect(a.value)}
                   title={a.where}
                 >
@@ -1475,7 +1487,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
             <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
             {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — links cannot dispatch from the final review button either. */}
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over || linkOnlyInput} className={`go ${prompt.trim() && !limit.over && !linkOnlyInput ? 'ok' : 'no'}`}
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over || linkOnlyInput || engine === 'hollywood' && kling4Availability?.paidLive && (aspect !== '9:16' || estrelaLigada)} className={`go ${prompt.trim() && !limit.over && !linkOnlyInput ? 'ok' : 'no'}`}
               onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked') }}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate
@@ -1506,7 +1518,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
             primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
         <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
-          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : ENGINES.find((e) => e.key === engine)!.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
         </aside>
       </div>
         {/* KINEO-STUDIO-MELHORES-2026-09-30 — fundador: "na parte de baixo sempre tem que ser os melhores vídeos… uns oito,

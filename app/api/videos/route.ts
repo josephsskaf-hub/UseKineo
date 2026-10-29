@@ -42,6 +42,7 @@ interface VideoListItem {
   platform: string
   created_at: string
   quality_mode: string | null
+  engine_used: string | null
 }
 
 function strOrNull(v: unknown): string | null {
@@ -112,6 +113,7 @@ function toListItem(row: RawRow): VideoListItem {
     // KINEO-SELO-MOTOR-2026-08-28 — o motor real vai junto: /library e
     // /my-videos mostram o selo via lib/engineLabel.ts (pedido do fundador).
     quality_mode: strOrNull(row.quality_mode),
+    engine_used: strOrNull(row.engine_used),
     platform:
       strOrNull(row.platform) ?? 'YouTube Shorts',
     created_at: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),
@@ -201,9 +203,11 @@ export async function GET(request?: Request) {
 
     // Production uses midColumns. Starting with wideColumns deliberately sent
     // one known-invalid query before every successful production response.
-    let query = await runSelect(midColumns)
+    let query = await runSelect(midColumns + ',engine_used')
     const colMissing = (q: typeof query) =>
       !!q.error && /column .* does not exist|42703/.test(q.error.message ?? '')
+    if (colMissing(query)) query = await runSelect(midColumns)
+    if (colMissing(query)) query = await runSelect(wideColumns + ',engine_used')
     if (colMissing(query)) query = await runSelect(wideColumns)
     if (colMissing(query)) query = await runSelect(narrowColumns)
     const completedCountResult = await completedCountPromise
