@@ -13,6 +13,7 @@ export function kling4PromoMessage(reason: Kling4PromoReason): string {
   if (reason === 'daily_cap') return 'Today’s shared Kling 4.0 promotion budget is used up. Normal credit prices apply today.'
   if (reason === 'daily_limit') return 'You have used your 3 included Kling 4.0 videos today. Normal credit prices apply until the next UTC day.'
   if (reason === 'expired') return 'Your 30-day Kling 4.0 promotion has ended. Normal credit prices apply.'
+  if (reason === 'reservation_expired') return 'This prepared ad’s promotion reservation has expired. Review the normal credit price before starting, or create a new eligible ad.'
   return 'Normal credit prices apply. Your generation request checks promotion eligibility again before charging.'
 }
 

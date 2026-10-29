@@ -18,7 +18,7 @@ export type Kling4PaidSubscription = {
 }
 export type Kling4PromoReason = 'ok' | 'paid_off' | 'promo_off' | 'launch_unconfigured' | 'not_launched'
   | 'not_subscribed' | 'subscription_unverified' | 'signup_closed' | 'expired' | 'daily_limit'
-  | 'daily_cap' | 'unavailable' | 'invalid_request' | 'identity_conflict'
+  | 'daily_cap' | 'unavailable' | 'invalid_request' | 'identity_conflict' | 'reservation_expired'
 
 export const isKling4PaidPlan = (value: unknown): value is Kling4PaidPlan =>
   typeof value === 'string' && (KLING4_PAID_PLANS as readonly string[]).includes(value)

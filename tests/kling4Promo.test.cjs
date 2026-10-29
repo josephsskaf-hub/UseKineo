@@ -120,6 +120,35 @@ test('reservation ignores client proof, validates RPC outcome, and retains immut
   assert.equal(await server.verifyKling4PromoReservation(fakeDb({kling4_promo_uses:{data:prior}}),{userId,jobId:'film-1',kind:'ad',seconds:15}),false)
 })
 
+test('a prepared ad needs same-UTC-day live paid authority for its FIRST start; in-flight recovery proof remains immutable',async()=>{
+  const row={kind:'ad',seconds:15,is_free:true,reason:'ok',reservation_id:userId,request_day:'2026-10-29',
+    expires_at:'2026-11-27T00:00:00Z',estimated_milliusd:3635,reserved_milliusd:3635,submitted_at:null,
+    subscription_started_at:subscription.startedAt}
+  const input={userId,jobId:'prepared-ad',kind:'ad',seconds:15}
+  const opts={policy:on,now,resolveSubscription:async()=>subscription}
+  const db=patch=>fakeDb({kling4_promo_uses:{data:{...row,...patch}}})
+  assert.equal((await server.validateKling4PromoStart(db({}),input,opts)).isFree,true)
+  const old=await server.validateKling4PromoStart(db({request_day:'2026-10-28'}),input,opts)
+  assert.equal(old.reason,'reservation_expired'); assert.equal(old.hadFreeReservation,true)
+  assert.equal((await server.validateKling4PromoStart(db({expires_at:new Date(now).toISOString()}),input,opts)).reason,'expired')
+  assert.equal((await server.validateKling4PromoStart(db({}),input,{...opts,resolveSubscription:async()=>null})).reason,'not_subscribed')
+  for(const patch of [{paidLive:false},{promoLive:false}]) {
+    const result=await server.validateKling4PromoStart(db({}),input,{...opts,policy:{...on,...patch}})
+    assert.equal(result.isFree,false); assert.equal(result.hadFreeReservation,true)
+  }
+  for(const patch of [{kind:'film'},{seconds:30},{reserved_milliusd:0},{submitted_at:new Date(now).toISOString()}])
+    assert.equal((await server.validateKling4PromoStart(db(patch),input,opts)).isFree,false)
+  assert.equal((await server.validateKling4PromoStart(db({}),input,{...opts,resolveSubscription:async()=>({...subscription,status:'past_due'})})).isFree,false)
+  // An already accepted job can still prove its original zero charge after midnight/expiry/cancellation.
+  assert.equal(await server.verifyKling4PromoReservation(db({request_day:'2026-10-28',submitted_at:'2026-10-28T12:00:00Z'}),input),true)
+  // Same person switches billing subscription in December; the old enrollment end remains authoritative.
+  const december=Date.parse('2026-12-02T12:00:00Z')
+  const decemberRow={...row,request_day:'2026-12-02',expires_at:'2026-12-20T00:00:00Z',subscription_started_at:'2026-11-20T00:00:00Z'}
+  const replacement={...subscription,startedAt:'2026-12-01T12:00:00Z',paidThrough:'2027-01-01T00:00:00Z',verifiedAt:new Date(december).toISOString()}
+  assert.equal((await server.validateKling4PromoStart(fakeDb({kling4_promo_uses:{data:decemberRow}}),input,
+    {...opts,now:december,resolveSubscription:async()=>replacement})).isFree,true)
+})
+
 test('runtime Stripe source checks active LIVE status, paid invoice, customer and metadata owner, not has_paid/is_pro', async () => {
   const profile={id:userId,plan:'basic',has_paid:true,is_pro:true,stripe_customer_id:'cus_owner',stripe_subscription_id:'sub_verified'}
   const sub={id:'sub_verified',livemode:true,status:'active',metadata:{supabase_user_id:userId},customer:'cus_owner',

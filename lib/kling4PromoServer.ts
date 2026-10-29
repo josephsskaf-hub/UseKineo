@@ -123,6 +123,47 @@ export async function reserveKling4Promo(admin: SupabaseClient, i: PromoIdentity
   } catch { return noReservation('unavailable') }
 }
 
+/** FIRST ad start only, while the order is still planned. A prepared photo set is not an accepted video job.
+ * Frozen prior decisions are safe for in-flight recovery, but must not stockpile free starts across UTC days,
+ * subscription cancellation, promotion expiry or a rollback. Never replenish the old reservation on rejection.
+ */
+export async function validateKling4PromoStart(admin: SupabaseClient,
+  i: { userId: string; jobId: string; kind?: 'ad'; seconds?: number }, options: ServerOptions = {}):
+  Promise<{ isFree: boolean; reason: Kling4PromoReason; expiresAt: string | null; hadFreeReservation: boolean }> {
+  let hadFreeReservation = false
+  const deny = (reason: Kling4PromoReason, expiresAt: string | null = null) => ({ isFree: false, reason, expiresAt, hadFreeReservation })
+  if (!validIdentity(i) || i.kind !== undefined && i.kind !== 'ad'
+    || i.seconds !== undefined && (!Number.isSafeInteger(i.seconds) || i.seconds < 1 || i.seconds > 60)) return deny('invalid_request')
+  const now = options.now ?? Date.now(), policy = options.policy ?? kling4PromoPolicy()
+  const policyReason = kling4PromoPolicyReason(policy, now)
+  try {
+    const result = await admin.from('kling4_promo_uses')
+      .select('kind,seconds,is_free,reason,reservation_id,request_day,expires_at,reserved_milliusd,estimated_milliusd,submitted_at,subscription_started_at')
+      .eq('user_id', i.userId).eq('job_id', i.jobId).maybeSingle()
+    const r = result.data
+    hadFreeReservation = r?.is_free === true
+    if (policyReason !== 'ok') return deny(policyReason)
+    if (result.error || !r) return deny('unavailable')
+    if (r.kind !== 'ad' || i.seconds !== undefined && r.seconds !== i.seconds) return deny('identity_conflict')
+    if (r.is_free !== true) return deny(['daily_limit','daily_cap'].includes(r.reason) ? r.reason : 'unavailable')
+    if (r.reason !== 'ok' || !UUID.test(r.reservation_id) || !Number.isSafeInteger(r.seconds)
+      || r.seconds < 1 || r.seconds > 60 || !Number.isSafeInteger(r.reserved_milliusd)
+      || r.reserved_milliusd !== r.estimated_milliusd || r.reserved_milliusd < r.seconds * 157) return deny('unavailable')
+    const expiresAt = typeof r.expires_at === 'string' && Number.isFinite(Date.parse(r.expires_at)) ? r.expires_at : null
+    if (!expiresAt) return deny('unavailable')
+    if (r.submitted_at) return deny('identity_conflict', expiresAt)
+    if (r.request_day !== new Date(now).toISOString().slice(0, 10)) return deny('reservation_expired', expiresAt)
+    if (Date.parse(expiresAt) <= now) return deny('expired', expiresAt)
+    const subscription = await (options.resolveSubscription ?? resolveKling4PaidSubscription)(admin, i.userId, now)
+    if (!subscription || subscription.userId !== i.userId) return deny('not_subscribed', expiresAt)
+    // The ledger already proved the enrollment start/cutoff. A verified subscription replacement must not
+    // reset that window, nor revoke its remaining days merely because the replacement started in December.
+    const window = kling4PromoWindow({ ...subscription, startedAt: r.subscription_started_at }, policy, now)
+    if (!window.eligible) return deny(window.reason, expiresAt)
+    return { isFree: true, reason: 'ok', expiresAt, hadFreeReservation }
+  } catch { return deny('unavailable') }
+}
+
 /** Used by shared credit settlement. Only a server ledger row can authorize a zero-credit birth. */
 export async function verifyKling4PromoReservation(admin: SupabaseClient,
   i: { userId: string; jobId: string; kind?: 'film' | 'ad'; seconds?: number }): Promise<boolean> {
