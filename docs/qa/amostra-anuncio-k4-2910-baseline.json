@@ -1,0 +1,80 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "date": "2026-10-29",
+  "base": "e61951b5a658361466709d6fa96927976d3fa30c",
+  "note": "Historical guards fail before completing their suites; same logs are not full regression approval.",
+  "tests": [
+    {
+      "command": "node scripts/test-ads-amostra-anuncio-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "7ec07d1687444746108b31a867967302ddd2c31307cfbe687444dcb558acea70",
+      "candidateSha256": "7ec07d1687444746108b31a867967302ddd2c31307cfbe687444dcb558acea70",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-ads-amostra-data-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "112dc02a3f28ff380b76546b0dec45b337b9e6b334ed42ef7b216d23206ef2b1",
+      "candidateSha256": "112dc02a3f28ff380b76546b0dec45b337b9e6b334ed42ef7b216d23206ef2b1",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-ads-amostra-undo-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "fc76c1ad322ed60a7de1c63e74860798dac99fa76df37a808968085c0338640b",
+      "candidateSha256": "fc76c1ad322ed60a7de1c63e74860798dac99fa76df37a808968085c0338640b",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-support/ads-escolha-sample-media-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "c22b124e4e2232e35c3c8492efdd1ea34f1cb0d403118bc3d4030d156fd666d5",
+      "candidateSha256": "c22b124e4e2232e35c3c8492efdd1ea34f1cb0d403118bc3d4030d156fd666d5",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-support/ads-amostra-race-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "612c8f1fdfc42eb7ed7cd12b1c6844e5f1c517c39d82e05acec8fc71c9a11471",
+      "candidateSha256": "612c8f1fdfc42eb7ed7cd12b1c6844e5f1c517c39d82e05acec8fc71c9a11471",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-support/ads-amostra-entry-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "e2e67bdc8732604c38cbc1dfd421b01325ac33d61c010bb910f7a1fe4d02abb3",
+      "candidateSha256": "e2e67bdc8732604c38cbc1dfd421b01325ac33d61c010bb910f7a1fe4d02abb3",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "f2b4296dc25ffec607958c3c63f6b96fe834c1e0dda57a0ad1a893a000f30bf7",
+      "candidateSha256": "f2b4296dc25ffec607958c3c63f6b96fe834c1e0dda57a0ad1a893a000f30bf7",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-ads-simples-2810.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "d95d75fc39b6d992f028b4e9b377ae734b6ce723ce7f7e464cc87eafdf2166f6",
+      "candidateSha256": "d95d75fc39b6d992f028b4e9b377ae734b6ce723ce7f7e464cc87eafdf2166f6",
+      "identical": true
+    },
+    {
+      "command": "node scripts/test-ads-escolha-publico-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineSha256": "a1fecd99513c57af6aec037165a6380b98caba6ebadca133f88fc2cf627c680d",
+      "candidateSha256": "a1fecd99513c57af6aec037165a6380b98caba6ebadca133f88fc2cf627c680d",
+      "identical": true
+    }
+  ]
+}
