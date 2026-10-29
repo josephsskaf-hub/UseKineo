@@ -37,7 +37,7 @@ export default function HomeNewEffects() {
               style={{ position: 'relative', display: 'block', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)', color: 'inherit', textDecoration: 'none' }}
             >
               <video
-                src={effect.preview!.video}
+                src={`${effect.preview!.video}#t=1.6`} // KINEO-HOME-NOVOS-EFEITOS-2910 — os 4 clipes nascem da MESMA foto: começar já na transformação para os cartões não parecerem iguais
                 poster={effect.preview!.poster}
                 autoPlay
                 muted
