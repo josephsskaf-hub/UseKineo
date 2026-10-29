@@ -69,7 +69,11 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
         const el = raw as Record<string, unknown> | null
         return el?.type === 'text' && Number(el.track) === 9 && el.text === 'usekineo.com/free'
       }) ? { expectedKineoWatermark: true } : {}),
-      }, { timeoutMs: 15_000, fps: typeof state.source.frame_rate === 'number' ? state.source.frame_rate : undefined, exactFrameTimes: true })
+      // KINEO-PORTAO-FREE15-2910 — causa do 'pixel_evidence_unverified' (22x desde 27/10): com 15 s o extrator de 8 quadros da fal
+      // (nth-frame) estourava em vídeo mais pesado (Kling 4.0/1080p, ~20 s); caía na reserva de 3 quadros e o juiz não fechava as
+      // 2 leituras (evidência 'incomplete', judged_frames 3/8, valid_readings 0/2, 22-32 s). Os completos levam 12-19 s. 25 s por etapa
+      // (extração + juiz = no máximo 50 s) cabe no maxDuration 60 da rota de entrega.
+      }, { timeoutMs: 25_000, fps: typeof state.source.frame_rate === 'number' ? state.source.frame_rate : undefined, exactFrameTimes: true })
     },
     scenes: source => cenasDoFilme(a.claim, a.userId, source),
     submitScene: scene => {
