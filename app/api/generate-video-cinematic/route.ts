@@ -5,7 +5,7 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
-import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
+import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
@@ -7378,13 +7378,15 @@ async function manipularPost(req: NextRequest) {
       [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], kling4ExtraStillApprovals)
     // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.
     const kling4Prompts = scenes.map((s, i) => `${s.aiPrompt || s.description}. ${classicScenePrompts[i]}`)
+    // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
+    const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }
     let kling4Trial: Kling4TrialResult | null = null
     let kling4Posts = 0
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6))) {
       kling4Trial = await orchestrateKling4Trial({
         reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
         submit: () => submitKling4TrialVideo({
-          prompts: kling4Prompts, approvedStills: kling4ApprovedStills,
+          prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing,
         }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }),
       })
     } else if (kling4TrialCandidate) {
@@ -7403,7 +7405,7 @@ async function manipularPost(req: NextRequest) {
       c.submittedPrompts = [classicScenePrompts.join(' ').slice(0, 240)]
     } else if (kling4Posts && ctxDespacho().attempts[0]) {
       // The abandoned Kling attempt is still a real POST; do not erase it from dispatch accounting.
-      ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(kling4Prompts, kling4ApprovedStills).model,
+      ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).model,
         status: null, ambiguous: true, accepted: false })
       ctxDespacho().outcomes[0].attempt_count++
     }
@@ -7662,11 +7664,24 @@ async function manipularPost(req: NextRequest) {
         } : {}),
       }
       if (kling4Trial.job) {
+        const shotSeconds = kling4TrialSceneDurations(kling4Timing.voiceovers, kling4Timing.wordsPerSecond)
+        let shotStart = 0
+        const scenePlan = scenes.map((s, i) => {
+          const shot = { prompt: classicScenePrompts[i], text: kling4Timing.voiceovers[i], description: s.description,
+            still_url: kling4ApprovedStills[i] ?? null, start_seconds: shotStart, duration_seconds: shotSeconds[i] }
+          shotStart += shotSeconds[i]
+          return shot
+        })
+        // Redo uses these exact signed intervals/stills, never the independent 6|7|8s fallback dispatch plan.
+        Object.assign(response.kling4_trial as Record<string, unknown>, {
+          scene_plan: scenePlan, voice_words_per_second: kling4Timing.wordsPerSecond,
+          timing_basis: 'narration_words_per_voice_pace',
+        })
         // One multi-shot source, not three repetitions of the same 15s video.
         Object.assign(response, {
           fal_model: kling4Trial.job.model, scenes: [scenes.map(s => s.description).join(' ')],
           scene_captions: [''], scene_prompts: [classicScenePrompts.join(' ')],
-          scene_fal_inputs: [buildKling4TrialInput(kling4Prompts, kling4ApprovedStills).input],
+          scene_fal_inputs: [buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input],
           clip_seconds: [15], clip_word_starts: [0],
         })
       }

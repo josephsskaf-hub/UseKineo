@@ -1,5 +1,6 @@
 // Trial only. Submit once and return the queue receipt; status polls rendering, never birth.
 import { KLING4_TRIAL_COST_USD } from '@/lib/kling4TrialBudget'
+import { narrationWordCount } from '@/lib/textLanguage'
 
 export const KLING4_T2V_MODEL = 'kling/v4/text-to-video'
 export const KLING4_I2V_MODEL = 'kling/v4/image-to-video'
@@ -24,10 +25,46 @@ export function approvedKling4TrialStills(
   })
 }
 
-export function buildKling4TrialInput(prompts: readonly string[], approvedStills: readonly (string | null)[] = []) {
-  const shots = prompts.slice(0, 15).map(p => p.trim())
+export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number }
+
+/** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */
+export function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number): number[] {
+  const n = voiceovers.length
+  if (!n || n > 5 || !Number.isFinite(wordsPerSecond) || wordsPerSecond <= 0) {
+    throw new Kling4TrialPreflightError('kling4_invalid_timing')
+  }
+  const speech = voiceovers.map(text => narrationWordCount(text) / wordsPerSecond)
+  const target = new Array<number>(n).fill(3)
+  let remaining = 15
+  let active = speech.map((_, i) => i)
+  // Water-fill: a floor-bound shot stays at three seconds; other shots share time by their actual speech weight.
+  while (active.length) {
+    const sum = active.reduce((total, i) => total + speech[i], 0)
+    const proposed = active.map(i => sum > 0 ? remaining * speech[i] / sum : remaining / active.length)
+    const floorBound = active.filter((_, k) => proposed[k] < 3)
+    if (!floorBound.length) {
+      active.forEach((i, k) => { target[i] = proposed[k] })
+      break
+    }
+    for (const i of floorBound) { target[i] = 3; remaining -= 3 }
+    active = active.filter(i => !floorBound.includes(i))
+  }
+  const seconds = target.map(s => Math.max(3, Math.floor(s)))
+  const order = target.map((s, i) => ({ i, fraction: s - seconds[i] }))
+    .sort((a, b) => b.fraction - a.fraction || a.i - b.i)
+  const spare = 15 - seconds.reduce((sum, s) => sum + s, 0)
+  for (let k = 0; k < spare; k++) seconds[order[k].i]++
+  return seconds
+}
+
+export function buildKling4TrialInput(
+  prompts: readonly string[], approvedStills: readonly (string | null)[] = [], timing?: Kling4TrialTiming,
+) {
+  const shots = prompts.map(p => p.trim())
   if (!shots.length || shots.some(p => !p)) throw new Kling4TrialPreflightError('kling4_empty_plan')
-  const seconds = Math.floor(15 / shots.length)
+  if (timing && timing.voiceovers.length !== shots.length) throw new Kling4TrialPreflightError('kling4_mismatched_timing')
+  // Empty narration is the only balanced fallback. Birth always supplies its final scene voiceovers and resolved voice pace.
+  const seconds = kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1)
   const first = approvedStills[0] || null
   const middle: string[] = []
   const multiPrompt = shots.map((prompt, i) => {
@@ -41,7 +78,7 @@ export function buildKling4TrialInput(prompts: readonly string[], approvedStills
     }
     // KlingV4Shot.prompt has maxLength=512; count Unicode code points as the schema does.
     const bounded = Array.from(reference + prompt).slice(0, 512).join('')
-    return { prompt: bounded, duration: seconds + (i === shots.length - 1 ? 15 - seconds * shots.length : 0) }
+    return { prompt: bounded, duration: seconds[i] }
   })
   return {
     model: first ? KLING4_I2V_MODEL : KLING4_T2V_MODEL,
@@ -58,10 +95,10 @@ type NetworkDeps = { apiKey: string; fetchImpl?: typeof fetch; now?: () => numbe
 
 /** Exactly one POST. No status GET, rendering wait or provider retry. */
 export async function submitKling4TrialVideo(
-  args: { prompts: readonly string[]; approvedStills?: readonly (string | null)[] }, deps: NetworkDeps,
+  args: { prompts: readonly string[]; approvedStills?: readonly (string | null)[]; timing?: Kling4TrialTiming }, deps: NetworkDeps,
 ): Promise<Kling4TrialJob> {
   if (!deps.apiKey) throw new Kling4TrialPreflightError('kling4_unavailable')
-  const { model, input } = buildKling4TrialInput(args.prompts, args.approvedStills)
+  const { model, input } = buildKling4TrialInput(args.prompts, args.approvedStills, args.timing)
   const submittedAt = new Date((deps.now ?? Date.now)()).toISOString()
   deps.onPost?.()
   const response = await (deps.fetchImpl ?? fetch)(`https://queue.fal.run/${model}`, {
