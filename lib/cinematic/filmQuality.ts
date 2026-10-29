@@ -4,7 +4,7 @@ import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/
 import { elencoComFichaLiteral } from '@/lib/cinematic/juizFicha'
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
-import { applyStyleAnchor, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
@@ -50,19 +50,57 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame/i.exec(prompt)
   const identity = /The same main character appears in this scene, consistent design: ([^\n]+)/i.exec(prompt)
   const period = /Period setting: [^.]+/i.exec(prompt)?.[0]
+  const objectSafety = textSafetySuffix(prompt).replace(/^,\s*/, '')
+  const noReadableText = NO_READABLE_TEXT_SUFFIX.replace(/^,\s*/, '')
+  const originalTextDirections = [
+    /\bNo readable text (?:anywhere in the scene:|or lettering anywhere in the frame;)[^.]+\.(?: If a phone appears,[^.]+\.)?/i.exec(prompt)?.[0],
+    prompt.includes(noReadableText) ? noReadableText : '',
+    objectSafety && prompt.includes(objectSafety) ? objectSafety : '',
+  ].filter((s): s is string => !!s)
   let action = prompt.replace(/^Film visual medium: .+?\. /, '').replace(style.suffix, '')
   if (cast) action = action.replace(cast[0], '').replace(/^[,.\s]+/, '')
   action = action.replace(/The same main character appears in this scene, consistent design:[\s\S]*/i, '').trim()
+  for (const direction of originalTextDirections) action = action.replace(direction, '').trim()
   // KINEO-QUALIDADE-TODOS-MOTORES-2910 — a long inherited costume must not displace the person/object action.
-  const visible = cast?.[1].split('; ').map((person, _, people) => {
+  const visible = (totalBudget: number) => cast?.[1].split('; ').map((person, _, people) => {
     const relation = /holding the (?:glowing )?teddy bear|beside the bicycle|with the hat/i.exec(person)?.[0]
-    const budget = Math.floor(178 / people.length)
+    const budget = Math.max(0, Math.floor((totalBudget - 2 * (people.length - 1)) / people.length))
     if (!relation || person.length <= budget) return take(person, budget)
-    const description = take(person.replace(relation, '').trim(), Math.max(20, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
+    const description = take(person.replace(relation, '').trim(), Math.max(0, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
     return `${description}, ${relation}`
   }).join('; ')
-  const who = cast ? `Visible: ${visible}. ` : identity ? `Identity: ${take(identity[1], 140)}. ` : ''
-  return `${take(`${medium}. ${period ? take(period, 60) + '. ' : ''}${who}${action}`, 410)} Mouth closed, no speaking.`
+  const who = (budget: number) => cast ? `Visible: ${visible(budget)}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : ''
+  const identityBudget = cast ? 178 : 140
+  // KINEO-QUALIDADE-REGRESSOES-2910 — identity compaction removes the old tail.
+  // Reserve space for text protection already present, just as for closed mouths;
+  // otherwise a previously protected ticket can lose its direction at the provider.
+  const compactTextProtection = /no readable text|no legible words/i.test(prompt)
+    ? NO_READABLE_TEXT_SUFFIX.replace(' anywhere in the frame', '')
+      + (/\bno subtitles\b/i.test(prompt) ? ', no subtitles' : '')
+      + (/\bno watermarks?\b/i.test(prompt) ? ', no watermarks' : '')
+      + (/screen is off or blurred/i.test(prompt) ? ', phone screen off or blurred' : '')
+      + (/out of focus and unreadable/i.test(prompt) ? ', writing out of focus and unreadable' : '') : ''
+  // The era is already at the front. Repeating it before the action consumes
+  // the room reserved for the original text guard, especially with long casts.
+  if (compactTextProtection && period) action = action.replace(period, '').replace(/^[,.\s]+/, '')
+  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}`
+  let core = prefix + who(identityBudget) + action
+  const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
+  const textProtection = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
+    ? fullTextProtection : compactTextProtection
+  const coreBudget = 410 - Array.from(textProtection).length
+  if (textProtection && Array.from(core).length > coreBudget) {
+    // Restore safety without displacing the action that the old 410-char core
+    // retained: trim verbose costume first, keeping the subject and relation.
+    const firstAction = /^[\s\S]*?[.!?](?:\s|$)/.exec(action)?.[0] ?? action
+    const actionBudget = Math.min(Array.from(firstAction).length, 150)
+    const whoLabel = cast ? 'Visible: . ' : identity ? 'Identity: . ' : ''
+    const reducedIdentity = Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - actionBudget))
+    // Action comes before the shortened costume on overflow; even a relation
+    // clause that exceeds its nominal share cannot cut away the action's object.
+    core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
+  }
+  return `${take(core, coreBudget)}${textProtection} Mouth closed, no speaking.`
 }
 
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — retain complete tail sentences, including "Mouth closed, no speaking".

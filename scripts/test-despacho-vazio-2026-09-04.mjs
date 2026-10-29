@@ -37,6 +37,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact, separately verified newer task before this historical queue guard.
 import { FILME15_PERFEITO_MANIFEST } from './test-support/desfaz-filme15-perfeito-2610.mjs'
+import { QUALIDADE_ELENCO_2910, deltaQualidadeElenco2910Exato } from './test-support/desfaz-qualidade-elenco-2910.mjs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -211,7 +212,18 @@ const deltaFilme15Exato = (file) => {
   const upstream = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
   return !upstream && createHash('sha256').update(current).digest('hex') === addedHash
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaFilme15Exato(file))
+// KINEO-QUALIDADE-REGRESSOES-2910 — the founder explicitly requested the newer
+// cast/quality layer. Recognize its exact reviewed delta before older ElencoEpoca
+// anchors: no path-wide/marker-only exemption, no unknown additions or edits.
+// Empty-dispatch/refund/telemetry assertions above still inspect today's raw route.
+const deltaQualidadeExato = (file) => {
+  if (!QUALIDADE_ELENCO_2910.scope[file] && !QUALIDADE_ELENCO_2910.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaQualidadeElenco2910Exato(current, upstream, file)
+}
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o

@@ -18,6 +18,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -30,6 +31,9 @@ const F = roda(libSrc)
 const ST = roda(rd('lib/cinematic/sceneTruth.ts'))
 const VM = roda(rd('lib/cinematic/visualMode.ts'))
 const SS = roda(rd('lib/cinematic/sceneStyle.ts'))
+// KINEO-QUALIDADE-REGRESSOES-2910 (a): estilo saiu do literal para a camada comum; executa a implementação real.
+const Q = createOfflineLoader()('@/lib/cinematic/filmQuality')
+const styleAnchor = SS.deriveStyleAnchor('photoreal documentary')
 
 // ── o plano real do H3 (claim de 14/09 13:48 UTC) ──
 const ficha = 'A rugged fisherman in his late 40s, weathered tan skin, short salt-and-pepper beard, dark wool cap, faded orange oilskin jacket over a grey sweater, heavy rubber boots'
@@ -164,8 +168,8 @@ const linhaFim = '          submittedPrompt = scenePrompt'
 const iFim = rota.indexOf(linhaFim, iIni)
 checa('a fatia da montagem final existe na rota (mouthSuffix … scenePromptBruto … contrato … submittedPrompt)', iIni > 0 && iFim > iIni)
 const fatia = rota.slice(iIni, iFim + linhaFim.length)
-checa('a fatia chama garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), voiceover, ficha) e declara cobertura + conversão + identidade no relato', fatia.includes("const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '', family === 'hollywood' ? 'fim' : 'inicio')") && fatia.includes('fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo, conversao: hsFid.conversao ?? null, identidade: hsFid.identidade ?? null })') && fatia.includes('scenePrompt = scenePrompt + textSafetySuffix(scenePrompt)'))
-const montagem = roda(`export function montar(hs: any, idx: number, sceneAnchor: any, eraSuffix: string, plan: any, fidelidadeRelato: any[], garantirAcaoCentral: any, silenciarFalaNoPrompt: any, montarContrato: any, aplicarContrato: any, severidadeDe: any, proibidosPorModo: any, formatoVisual: any, contratoRelato: any[], textSafetySuffix: any, console: any, family: any = 'h3') {\n  let submittedPrompt = ''\n${fatia}\n  return submittedPrompt\n}`).montar
+checa('a fatia chama garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), voiceover, ficha) e declara cobertura + conversão + identidade no relato', fatia.includes("const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '', family === 'hollywood' ? 'fim' : 'inicio')") && fatia.includes('fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo, conversao: hsFid.conversao ?? null, identidade: hsFid.identidade ?? null })') && fatia.includes('scenePrompt = travarEstiloDoFilme(scenePrompt + textSafetySuffix(scenePrompt), styleAnchor)'))
+const montagem = roda(`export function montar(hs: any, idx: number, sceneAnchor: any, eraSuffix: string, plan: any, fidelidadeRelato: any[], garantirAcaoCentral: any, silenciarFalaNoPrompt: any, montarContrato: any, aplicarContrato: any, severidadeDe: any, proibidosPorModo: any, formatoVisual: any, contratoRelato: any[], textSafetySuffix: any, console: any, family: any = 'h3') {\n  let submittedPrompt = ''\n${fatia}\n  return submittedPrompt\n}`, { styleAnchor, travarEstiloDoFilme: Q.travarEstiloDoFilme }).montar
 const silencioso = { log: () => {}, warn: () => {} }
 const enviar = (hs, idx, relato = [], contrato = []) => montagem(hs, idx, undefined, '', { characterSheet: ficha }, relato, F.garantirAcaoCentral, F.silenciarFalaNoPrompt, ST.montarContrato, ST.aplicarContrato, ST.severidadeDe, VM.proibidosPorModo, { modo: 'documentary_faceless' }, contrato, SS.textSafetySuffix, silencioso)
 const plano = planoReal()
@@ -176,7 +180,7 @@ const relato = []
 const enviados = plano.map((hs, idx) => enviar(hs, idx, relato))
 checa('submittedPrompt: nenhuma cena leva aspas — nem a frase da narração vai entre aspas', enviados.every((p) => !/["“”]/.test(p)))
 checa('submittedPrompt: nenhuma instrução contraditória de fala (says / speaking / talking to camera / into the lens / turns to the camera)', enviados.every((p) => !/the person says|begins speaking|speaking about|talks to the camera|into the lens|turns to the camera/i.test(p)))
-checa('submittedPrompt: toda cena abre com "No one talks on camera" (prefixo de silêncio da rota) e leva o mouthSuffix', enviados.every((p) => p.startsWith('Nobody addresses the camera and nobody poses for it:') && p.includes('mouth closed, not speaking, no lip movement, no talking.'))) // KINEO-PREFIXO-SEM-PESSOA-2026-09-22: o prefixo deixou de presumir "every visible person"
+checa('submittedPrompt: após a trava de estilo, toda cena abre com o prefixo de silêncio da rota e leva o mouthSuffix', enviados.every((p) => p.startsWith(`Film visual medium: ${styleAnchor.lookPhrase}. Nobody addresses the camera and nobody poses for it:`) && p.includes('mouth closed, not speaking, no lip movement, no talking.'))) // KINEO-PREFIXO-SEM-PESSOA-2026-09-22: o prefixo deixou de presumir "every visible person"
 checa('submittedPrompt cena 1: sem "Here is something…", sem Howard Ulrich, COM a ficha completa no lugar do papel', !/Here is something/.test(enviados[0]) && !/Howard Ulrich/.test(enviados[0]) && enviados[0].includes(`${ficha} looks away from the camera`))
 checa('submittedPrompt cena 5: "My son and I" NÃO volta ao prompt de imagem; a ficha vira away from camera', !/My son and I/.test(enviados[4]) && enviados[4].includes(`${ficha} turns away from the camera, mouth closed`))
 checa('submittedPrompt cena 2: o tsunami abre o pedido visual e "still" saiu', /Shows exactly this moment, as the narration describes it: On July 9, 1958, Lituya Bay, Alaska, experienced a catastrophic tsunami/.test(enviados[1]) && !/\bstill\b/.test(enviados[1]))

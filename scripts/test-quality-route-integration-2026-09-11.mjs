@@ -181,10 +181,17 @@ function findPublisher(node){if(ts.isVariableDeclaration(node)&&node.name.getTex
 findPublisher(generationAst);assert.ok(publishNode)
 // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — reancorado: o publicador ganhou a linha que assina a sobretaxa da estrela
 // (só com estrela). O contexto da execução recebe estrelaAtiva/estrelaSobretaxaDe/duracaoCobrada e as duas posições são provadas.
+// KINEO-QUALIDADE-REGRESSOES-2910 (a): o publicador passou a sanear/copiar o snapshot.
+// Injeta o leitor REAL e prova publicação/cache/claim com e sem identidade herdada.
+const { readFilmQualitySnapshot } = load('@/lib/filmComplete/qualityInheritance')
+for(const snapshotMode of ['none', 'current', 'resume'])
 for(const estrelaAtiva of [false,true])
 for(const uncertain of [true,false]){
+  const snapshot = readFilmQualitySnapshot({ version: 'film_quality_2910_v1', sourceGenerationId: 'fixture-source', characters: [], missing: ['characters'] })
+  const qualitySnapshot = snapshotMode === 'current' ? snapshot : null
   const cached=[],signed=[]
   const module=evaluate(`export const publish=${publishNode.getText(generationAst)}`,{
+    qualitySnapshot,readFilmQualitySnapshot,
     estrelaAtiva,estrelaSobretaxaDe:(s)=>(s===15?6:0),duracaoCobrada:15,
     personagemRelatoFinal:null, // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o publicador ganhou a linha da folha de personagem (só com o relato; null = resposta de sempre)
     cinematicSubmissionUncertain:uncertain,cinematicSubmissionCache:{set:(k,v)=>cached.push(v)},cacheKey:'fixture-cache',
@@ -193,8 +200,10 @@ for(const uncertain of [true,false]){
     completeCinematicClaim:async value=>{signed.push(value);return {ok:true,claim:{}}},
     settleDebitAndRespond:async (_,response)=>json(response),NextResponse:next,
   })
-  const response=await module.publish({submission_uncertain:!uncertain},['fixture-request',null],['fixture-model','fixture-model'])
-  eq((await response.json()).submission_uncertain,uncertain)
+  const response=await module.publish({submission_uncertain:!uncertain,...(snapshotMode === 'resume' ? { quality_snapshot: snapshot } : {})},['fixture-request',null],['fixture-model','fixture-model'])
+  const published = await response.json()
+  eq(published.submission_uncertain,uncertain)
+  for (const value of [published, cached[0].response, signed[0].response]) eq(value.quality_snapshot, snapshotMode === 'none' ? undefined : JSON.parse(JSON.stringify(snapshot)))
   eq(cached[0].response.submission_uncertain,uncertain);eq(signed[0].response.submission_uncertain,uncertain)
   eq(signed[0].response.estrela_sobretaxa_cr,estrelaAtiva?6:undefined);eq(cached[0].response.estrela_sobretaxa_cr,estrelaAtiva?6:undefined)
   eq(Object.prototype.hasOwnProperty.call(signed[0].response,'estrela_sobretaxa_cr'),estrelaAtiva)

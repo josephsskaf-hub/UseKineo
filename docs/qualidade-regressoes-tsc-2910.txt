@@ -1,0 +1,7 @@
+TESTADO LOCALMENTE — 2026-10-29
+Command: npx tsc --noEmit --incremental false
+Worktree: codex/elenco-qualidade-2910
+Base tested: 76dcccc08c27b1cf9bc42bd6234a6479dbf8460b
+Exit: 0
+Output: empty (no TypeScript errors)
+Note: preliminary check before regression code restoration; final result recorded in final validation JSON.

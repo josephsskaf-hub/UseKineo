@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -24,6 +25,12 @@ const FID = roda(rd('lib/hollywood/fidelidade.ts'))
 // KINEO-MONUMENTO-2026-10-13 — reancorado: a varredura final da fala (hollywood) passa o contexto por comVocabularioDoLugar
 // (lib/cinematic/monumentoReal, sem imports). Entra a função REAL: os roteiros daqui não citam lugar curado → a MESMA string.
 const MON = roda(rd('lib/cinematic/monumentoReal.ts'))
+// KINEO-QUALIDADE-REGRESSOES-2910 (a): a fatia agora inclui aplicarQualidadeHollywood.
+// Executa a camada REAL (rede/SDK bloqueados), sem retirar a chamada nem afrouxar a régua de voz.
+const loadQuality = createOfflineLoader()
+const Q = loadQuality('@/lib/cinematic/filmQuality')
+const qualityStyle = loadQuality('@/lib/cinematic/sceneStyle')
+const { isStylizedLook } = loadQuality('@/lib/cinematic/visualPromptPolicy')
 const rota = rd('app/api/generate-video-cinematic/route.ts')
 const runway = rd('lib/runway.ts')
 const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
@@ -46,6 +53,7 @@ checa('a linha aceita fica intacta: só entra continuação que começa pela lin
 checa('rota importa appendNarrationToTargets de @/lib/runway', rota.includes("expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'"))
 
 const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'scrubInventedSetting' /* 15/09 R9 */, 'filtrarFalaSemBuraco' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+params.push('prepararQualidadeDoFilme', 'contextoDoFiltro', 'classicVisualMode', 'tagFacelessPresente', 'desenhoInfantil', 'styleAnchor', 'personagemElenco', 'qualidadeHerdada', 'qualitySnapshot', 'isStylizedLook')
 const montar = (fatiaSrc) => roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatiaSrc}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
 const executar = montar(fatia)
 const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
@@ -59,6 +67,10 @@ const ctxBase = (plan, extra = {}) => ({
   SILENCE_SCENE_MAX_SECONDS: 1.5, SILENCE_TOTAL_MAX_SECONDS: 8, fitCinematicPlanFloor: TL.fitCinematicPlanFloor, console: { log: () => {}, warn: () => {} },
   // KINEO-RITMO-DA-VOZ-2026-09-15: persona neutra (1,0) → ritmo 2,3; o caso (f) troca pela persona idosa
   resolveHollywoodVoice: () => ({ personaId: 'dark-mystery', voice: 'onyx', defaultSpeed: 1.0 }), hollywoodVertical: 'history', sceneNarrationsForPlan: (scenes) => scenes.map((sc) => sc.voiceover ?? null),
+  prepararQualidadeDoFilme: Q.prepararQualidadeDoFilme, contextoDoFiltro: async (contexto) => contexto,
+  classicVisualMode: 'documentary_faceless', tagFacelessPresente: false, desenhoInfantil: { ativo: false },
+  styleAnchor: qualityStyle.deriveStyleAnchor('documentary photoreal'), personagemElenco: { elenco: [] },
+  qualidadeHerdada: null, qualitySnapshot: null, isStylizedLook,
   ...extra,
 })
 // o planejador de ontem: 7 cenas de apoio, 103 palavras, 55 s

@@ -8,6 +8,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { policyFromRoute, loadSensitivePure } from './test-support/qualidade-sensitive-2910.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -95,7 +96,14 @@ checa('a ficha vai em toda cena EM QUE o protagonista aparece, e só nelas (4 ce
 console.log('== ligação: rota e política usam a mesma função ==')
 const rota = rd('app/api/generate-video-cinematic/route.ts')
 const pol = rd('lib/cinematic/visualPromptPolicy.ts')
-checa('rota: storyCharacter = deriveStoryCharacter(prompt) no modo história, e entra na policy como character', rota.includes('const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null') && rota.includes('character: storyCharacter'))
+// KINEO-QUALIDADE-REGRESSOES-2910 (a): inheritance now precedes the original
+// derivation. Execute the actual declarations and assert the author's sheet in
+// the policy; matching a disconnected deriveStoryCharacter call is insufficient.
+const visualMode = loadSensitivePure('lib/cinematic/visualMode.ts')
+const policyFarol = policyFromRoute(rota, { prompt: farol, mode: visualMode.decidirFormato(farol, false).modo })
+const policyTrem = policyFromRoute(rota, { prompt: trem, mode: visualMode.decidirFormato(trem, false).modo })
+checa('rota: storyCharacter = deriveStoryCharacter(prompt) no modo história, e entra na policy como character', policyFarol.storyMode && policyFarol.storyCharacter === f1 && policyFarol.policy.character === f1 && policyTrem.storyCharacter === t1 && policyTrem.policy.character === t1)
+checa('continuação: a ficha aprovada do filme-fonte vence a nova derivação', policyFromRoute(rota, { prompt: farol, inherited: { characterSheet: 'approved keeper in a blue coat' } }).policy.character === 'approved keeper in a blue coat')
 checa('policy: fora do documentário sem rosto, buildStoryScenePrompt(visual, style, policy.character)', pol.includes("if (policy.mode !== 'documentary_faceless') {\n    prompt = buildStoryScenePrompt(visual, policy.style, policy.character ?? null)"))
 checa('rota: modo história liga por look estilizado, character_story ou stock_cannot_tell (o faroleiro foi look estilizado)', rota.includes("const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'"))
 
