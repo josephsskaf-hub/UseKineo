@@ -29,7 +29,7 @@ const troca = (src, de, para) => { if (!src.includes(de)) throw new Error('mutan
 const roda = (src, mods = {}, escopo = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => { if (id in mods) return mods[id]; throw new Error(`import inesperado ${id}`) }, console, process: { env: { OPENAI_API_KEY: 'k' } }, Intl, Date, setTimeout, clearTimeout, AbortController, JSON, Math, Promise, Error, Number, String, Array, Object, Set, Map, RegExp, ...escopo })
+  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => { if (id in mods) return mods[id]; if (id === '@/lib/cinematic/pessoasDaNarracao') return roda(rd('lib/cinematic/pessoasDaNarracao.ts')); throw new Error(`import inesperado ${id}`) }, console, process: { env: { OPENAI_API_KEY: 'k' } }, Intl, Date, setTimeout, clearTimeout, AbortController, JSON, Math, Promise, Error, Number, String, Array, Object, Set, Map, RegExp, ...escopo }) // KINEO-ELENCO-MARCADOR-2910 — nova dependência pura real, asserções preservadas.
   return exp
 }
 const ARQ = { seres: 'lib/cinematic/seresFieis.ts', elenco: 'lib/cinematic/elencoEpoca.ts', folha: 'lib/cinematic/folhaDePersonagem.ts', ajuste: 'lib/cinematic/personagemAjuste.ts', critico: 'lib/cinematic/criticoStill.ts' }

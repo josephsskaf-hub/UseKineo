@@ -23,13 +23,13 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falh
 const roda = (src, mods = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : {}), console, process: { env: {} }, Intl })
+  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : {}), console, process: { env: {} }, Intl }) // KINEO-ELENCO-MARCADOR-2910 — também nas execuções com sanitizeRealPeople mutado.
   return exp
 }
 const MARCA = 'KINEO-ELENCO-EPOCA-2710'
 const LIB = 'lib/cinematic/elencoEpoca.ts'
 const SRC = rd(LIB)
-const mocks = { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t }, '@/lib/cinematic/seresFieis': roda(rd('lib/cinematic/seresFieis.ts')) } // KINEO-JUIZ-REFAZ-2810 — a lib importa a tabela de seres/figuras (módulo puro, carregado de verdade)
+const mocks = { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t }, '@/lib/cinematic/seresFieis': roda(rd('lib/cinematic/seresFieis.ts')), '@/lib/cinematic/pessoasDaNarracao': roda(rd('lib/cinematic/pessoasDaNarracao.ts')) } // KINEO-ELENCO-MARCADOR-2910 — dependência pura real; as asserções anteriores continuam iguais.
 const E = roda(SRC, mocks)
 const troca = (src, de, para) => { if (!src.includes(de)) throw new Error('mutante: trecho ausente — ' + de.slice(0, 60)); return src.replace(de, para) }
 
@@ -164,7 +164,7 @@ console.log('== G. a rota e a diretriz ==')
   checa('G5 relato vai ao despacho (named_cast_era) e ao ensaio de $0 (elenco_epoca)', /named_cast_era: ctx\.elencoEpoca \?\? null/.test(rota) && /elenco_epoca: elencoEpocaRelato/.test(rota))
   checa('G6 falha aberta: try/catch em volta', /catch \(e\) \{ console\.warn\('\[cinematic\] KINEO-ELENCO-EPOCA falhou/.test(rota))
   checa('G7 a diretriz do elenco/época/falso amigo entra em visualDescriptionDirection (escritor de cenas + descritor)', /ELENCO_EPOCA_DIRECTION/.test(policy) && /\$\{SCENE_FIDELITY_DIRECTION\} \$\{ELENCO_EPOCA_DIRECTION\}/.test(policy) && /never a jellyfish/.test(policy) && /1953 means 1950s/.test(policy))
-  checa('G8 toda linha nova leva a marca', [LIB, 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/visualPromptPolicy.ts'].every((f) => rd(f).split('\n').filter((l) => /ELENCO-EPOCA|elencoEpoca|ElencoEpoca|ELENCO_EPOCA/.test(l)).every((l) => l.includes(MARCA))))
+  checa('G8 toda linha nova leva a marca', [LIB, 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/visualPromptPolicy.ts'].every((f) => rd(f).split('\n').filter((l) => /ELENCO-EPOCA|elencoEpoca|ElencoEpoca|ELENCO_EPOCA/.test(l)).every((l) => l.includes(MARCA) || l.includes('KINEO-ELENCO-MARCADOR-2910')))) // KINEO-ELENCO-MARCADOR-2910 — aceita a marca do conserto atual, mantendo a exigência de marca.
 }
 
 console.log('== H. mutantes ==')

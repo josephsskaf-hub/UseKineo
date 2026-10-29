@@ -33,7 +33,7 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falh
 function carrega(src, mapa = {}) {
   const js = ts.transpileModule(src, { fileName: 'm.ts', compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
   const mod = { exports: {} }
-  const req = (n) => { if (n in mapa) return mapa[n]; throw new Error(`import inesperado ${n}`) }
+  const req = (n) => { if (n in mapa) return mapa[n]; if (n === '@/lib/cinematic/pessoasDaNarracao') return carrega(rd('lib/cinematic/pessoasDaNarracao.ts')); throw new Error(`import inesperado ${n}`) } // KINEO-ELENCO-MARCADOR-2910 — dependência pura real, sem mudar asserções.
   new Function('module', 'exports', 'require', 'process', js)(mod, mod.exports, req, { env: { OPENAI_API_KEY: 'k' } })
   return mod.exports
 }

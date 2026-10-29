@@ -24,6 +24,7 @@
 // Sem nome, sem época e sem falso amigo: os prompts voltam byte a byte. Guardião: scripts/test-elenco-epoca-2710.mjs. // KINEO-ELENCO-EPOCA-2710
 import { sanitizeRealPeople } from '@/lib/hollywood/router' // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
 import { figuraFiel, descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
+import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 
 export const MARCA_ELENCO_EPOCA = 'KINEO-ELENCO-EPOCA-2710' // KINEO-ELENCO-EPOCA-2710
 export const ELENCO_EPOCA_VERSAO = 'elenco_epoca_v1' // KINEO-ELENCO-EPOCA-2710
@@ -143,6 +144,7 @@ export interface PersonagemNomeado { // KINEO-ELENCO-EPOCA-2710
   ocorrencias: number // KINEO-ELENCO-EPOCA-2710
   /** Posições (0..1) das ocorrências no texto em inglês — a cena por posição quando a fala não casa o nome. */ // KINEO-ELENCO-EPOCA-2710
   posicoes: number[] // KINEO-ELENCO-EPOCA-2710
+  possessivo?: { nucleo: string; objeto: string | null } // KINEO-ELENCO-MARCADOR-2910 — papel sem nome: somente a fala pode colocá-lo na cena.
 } // KINEO-ELENCO-EPOCA-2710
 
 const PESSOAS = 'boy|girl|man|woman|kid|child|baby|toddler|teen|teenager|student|commuter|passenger|traveler|traveller|worker|clerk|waiter|waitress|nurse|doctor|teacher|scientist|detective|explorer|astronaut|pirate|cowboy|monk|priest|keeper|stranger|hunter|climber|miner|engineer|chef|artist|painter|writer|singer|dancer|player|runner|driver|rider|nomad|shepherd|merchant|thief|widow|bride|groom|captain|soldier|knight|king|queen|prince|princess|farmer|fisherman|sailor|pilot|mother|father|grandmother|grandfather|grandpa|grandma|sister|brother|son|daughter|friend|neighbor|neighbour|villager|warrior|hero|heroine|librarian|guard|officer|lady|gentleman|guy|person|elder|uncle|aunt|wizard|witch|archaeologist|journalist|reporter|photographer|mechanic|baker|tailor|shopkeeper|cashier|banker|lawyer|judge|mayor|janitor|gardener|postman|mailman|firefighter|policeman|cop|sheriff|salesman|accountant|secretary|housewife|widower|orphan|prisoner|refugee|immigrant|survivor|witness|victim' // KINEO-ELENCO-EPOCA-2710
@@ -179,6 +181,7 @@ const PALAVRA_NOME = String.raw`\p{Lu}[\p{Ll}'’]{1,}(?:-\p{Lu}?[\p{Ll}]+)?` //
 const NOME_RUN_RE = new RegExp(String.raw`(?<![\p{L}\p{N}'’])((?:\p{Lu}[\p{Ll}]{0,3}\. )?${PALAVRA_NOME}(?:(?: (?:${[...PARTICULAS].join('|')}))? ${PALAVRA_NOME}){0,2})(?![\p{L}\p{N}])`, 'gu') // KINEO-ELENCO-EPOCA-2710
 
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim() // KINEO-ELENCO-EPOCA-2710
+for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINEO-ELENCO-EPOCA-2710
 const normaliza = (s: string) => s.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '') // KINEO-ELENCO-EPOCA-2710
 function hash(texto: string): number { let h = 0x811c9dc5; for (let i = 0; i < texto.length; i++) { h ^= texto.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 } return h >>> 0 } // KINEO-ELENCO-EPOCA-2710 — FNV-1a, como elencoDaHistoria
@@ -355,7 +358,7 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
 
 /** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710
 export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
-  const texto = limpa(sanitizeRealPeople(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ').replace(/\b(?:HOOK|MICRO REWARD|ESCALATION|RHYTHM|PAYOFF|CTA)\b[^:\n]*:/g, ' '))).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710
+  const texto = limpa(sanitizeRealPeople(semRotulosDeSecao(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
   const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710
   const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710
@@ -448,6 +451,7 @@ function semListaDeNomes(ingles: string): string { // KINEO-ELENCO-EPOCA-2710
 
 /** As cenas do personagem: as cuja FALA (original) cita uma palavra do nome; senão, as da posição das ocorrências no texto. */ // KINEO-ELENCO-EPOCA-2710
 export function cenasDoPersonagem(p: PersonagemNomeado, falas: ReadonlyArray<string>): { pelaFala: number[]; porPosicao: number[] } { // KINEO-ELENCO-EPOCA-2710
+  if (p.possessivo) return { pelaFala: falas.map((f, i) => falaCitaPessoa(f, p.possessivo!.nucleo) ? i : -1).filter((i) => i >= 0), porPosicao: [] } // KINEO-ELENCO-MARCADOR-2910
   const n = falas.length // KINEO-ELENCO-EPOCA-2710
   const palavras = p.nome.split(' ').filter((w) => !PARTICULAS.has(w.toLowerCase()) && !TITULO_RE.test(w) && w.replace(/[^\p{L}]/gu, '').length >= 3) // KINEO-ELENCO-EPOCA-2710
   const pelaFala = p.nomeado ? falas.map((f, i) => (palavras.some((w) => citaPalavra(f, w)) ? i : -1)).filter((i) => i >= 0) : [] // KINEO-ELENCO-EPOCA-2710
@@ -488,6 +492,11 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   else { // KINEO-ELENCO-EPOCA-2710
     const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710
     let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
+    // KINEO-ELENCO-MARCADOR-2910 — dono sem nome entra mesmo quando já existe outro personagem (ou outra pessoa nos visuais).
+    for (const pessoa of pessoasPossessivas(texto)) {
+      if (elenco.some((p) => p.possessivo?.nucleo === pessoa.nucleo)) continue
+      elenco.push({ nome: `the ${pessoa.papel}`, nomeado: false, tipo: 'humano', genero: pessoa.genero, descricao: pessoa.descricao, protagonista: false, ocorrencias: 1, posicoes: [pessoa.posicao], possessivo: { nucleo: pessoa.nucleo, objeto: pessoa.objeto } })
+    }
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
       const semNome = protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
@@ -496,13 +505,16 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     } // KINEO-ELENCO-EPOCA-2710
     const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710
     for (const p of elenco) { // KINEO-ELENCO-EPOCA-2710
-      const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-EPOCA-2710
+      const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : p.possessivo ? cenaMostraPessoa(pr, p.possessivo.nucleo) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-MARCADOR-2910 — "girl's teddy" no prompt não prova menina visível.
       const { pelaFala, porPosicao } = cenasDoPersonagem(p, args.falas) // KINEO-ELENCO-EPOCA-2710
-      const alvo = pelaFala.length > 0 ? pelaFala : porPosicao.length > 0 ? porPosicao : [0] // KINEO-ELENCO-EPOCA-2710
+      const alvo = p.possessivo ? pelaFala : pelaFala.length > 0 ? pelaFala : porPosicao.length > 0 ? porPosicao : [0] // KINEO-ELENCO-MARCADOR-2910
       const jaPresente = presente.some(Boolean) // KINEO-ELENCO-EPOCA-2710
       const inseridas: number[] = [] // KINEO-ELENCO-EPOCA-2710
       // protagonista ausente de TODO prompt: entra em todas as cenas-alvo; coadjuvante: nas cenas-alvo em que não está // KINEO-ELENCO-EPOCA-2710
-      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { porCena[i].push(p.descricao); inseridas.push(i) } // KINEO-ELENCO-EPOCA-2710
+      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { // KINEO-ELENCO-MARCADOR-2910
+        const objeto = p.possessivo ? pessoasPossessivas(args.falas[i]).find((dono) => dono.nucleo === p.possessivo!.nucleo)?.objeto : null // KINEO-ELENCO-MARCADOR-2910
+        porCena[i].push(`${p.descricao}${objeto ? ` ${objeto}` : ''}`); inseridas.push(i) // KINEO-ELENCO-MARCADOR-2910
+      } // KINEO-ELENCO-MARCADOR-2910
       if (p.protagonista && inseridas.length === 0 && !jaPresente && porCena[0].length < ELENCO_EPOCA_MAX_POR_CENA) { porCena[0].push(p.descricao); inseridas.push(0) } // KINEO-ELENCO-EPOCA-2710
       relato.elenco.push({ nome: p.nome, nomeado: p.nomeado, tipo: p.tipo, protagonista: p.protagonista, descricao: p.descricao, cenas_pela_fala: pelaFala.map((i) => i + 1), cenas_inseridas: inseridas.map((i) => i + 1), ja_presente: jaPresente }) // KINEO-ELENCO-EPOCA-2710
     } // KINEO-ELENCO-EPOCA-2710
@@ -511,7 +523,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       let p = prompts[i] // KINEO-ELENCO-EPOCA-2710
       if (ORDEM_PROTAGONISTA_RE.test(p)) { p = p.replace(ORDEM_PROTAGONISTA_RE, ''); relato.ordem_removida.push(i + 1) } // KINEO-ELENCO-EPOCA-2710 — "qualquer outra pessoa vira o protagonista" expulsaria quem entra agora
       p = p.replace(CLAUSULA_SEM_GENTE_RE, '') // KINEO-ELENCO-EPOCA-2710
-      const clausula = CLAUSULA_ELENCO(porCena[i], faceless) // KINEO-ELENCO-EPOCA-2710
+      const clausula = porCena[i].some((d) => /^(?:a|an)\s/.test(d)) ? CLAUSULA_ELENCO(porCena[i], faceless).replace(/^Named character/, 'Character') : CLAUSULA_ELENCO(porCena[i], faceless) // KINEO-ELENCO-MARCADOR-2910 — papel sem nome nunca recebe o rótulo "Named".
       if (p.length + clausula.length <= ELENCO_EPOCA_TETO_PROMPT) prompts[i] = clausula + p // KINEO-ELENCO-EPOCA-2710
       else { prompts[i] = p; for (const e of relato.elenco) e.cenas_inseridas = e.cenas_inseridas.filter((c) => c !== i + 1) } // KINEO-ELENCO-EPOCA-2710 — sem espaço: nada entra, o relato diz
     } // KINEO-ELENCO-EPOCA-2710
