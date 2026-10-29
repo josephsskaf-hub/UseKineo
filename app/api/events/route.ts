@@ -20,6 +20,9 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // Paid Kling promotion admissions and provider acceptance are server facts, never browser analytics.
+  'kling4_promo_use_reserved',
+  'kling4_paid_engine_used',
   // KINEO-FILME15-PERFEITO-2610 — quality facts and the signed delivery lock are server-owned.
   'free15_delivery_gate',
   'free15_gate_failed',
