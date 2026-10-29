@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 import { isStandaloneHttpUrl, CHATGPT_LINK_MESSAGE, originalIdeaFromArrival, usableOriginalIdea, ORIGINAL_IDEA_SESSION_KEY } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { normalizeAspect } from '@/lib/aspect'
+import { kling4TrialReplacement } from '@/lib/kling4TrialClaim'
 import { fitFrameToVideo } from '@/lib/frameFit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
@@ -5162,6 +5163,33 @@ export default function GenerateClient({
           return
         }
         falPollErrorsRef.current = 0
+
+        // The server alone can replace a failed/timed-out Kling trial with Seedance.
+        // Restore every parallel scene vector before restarting polling with its signed IDs.
+        if (data.replacement !== undefined) {
+          const replacement = kling4TrialReplacement(data.replacement, generationId!)
+          if (!replacement) { scheduleNextPoll(6000); return }
+          const nextIds = replacement.fal_request_ids as (string | null)[]
+          falModelRef.current = typeof replacement.fal_model === 'string' ? replacement.fal_model : ''
+          falModelsRef.current = replacement.fal_models as string[]
+          falQualityRef.current = 'cinematic_ai'
+          sceneEnginesRef.current = []
+          scenePromptsRef.current = Array.isArray(replacement.scene_prompts) ? replacement.scene_prompts.map(x => typeof x === 'string' ? x : '') : []
+          sceneAnchorsRef.current = Array.isArray(replacement.scene_anchor_urls) ? replacement.scene_anchor_urls.map(x => typeof x === 'string' ? x : null) : []
+          sceneNarrationsRef.current = Array.isArray(replacement.scene_narrations) ? replacement.scene_narrations.map(x => typeof x === 'string' ? x : null) : []
+          sceneSecondsRef.current = Array.isArray(replacement.scene_seconds) ? replacement.scene_seconds.map(x => typeof x === 'number' ? x : 6) : []
+          sceneDialoguesRef.current = []
+          hollyRetriedRef.current = 2 // The three durable fallback slots already own every allowed replacement POST.
+          setScenes(Array.isArray(replacement.scenes) ? replacement.scenes.filter((x): x is string => typeof x === 'string') : [])
+          setFastCaptions(Array.isArray(replacement.scene_captions) ? replacement.scene_captions.map(x => typeof x === 'string' ? x : '') : null)
+          if (typeof replacement.voiceover_script === 'string') setFastVoiceover(replacement.voiceover_script)
+          if (typeof replacement.speed === 'number') setTtsSpeed(replacement.speed)
+          narracaoVerbatimRef.current = replacement.verbatim === true
+          if (nextIds.length !== falRequestIds.length || nextIds.some((id, i) => id !== falRequestIds[i])) {
+            setFalRequestIds(nextIds)
+            return
+          }
+        }
 
         const done = typeof data.done === 'number' ? data.done : 0
         const total = typeof data.total === 'number' ? data.total : falRequestIds.length
@@ -10330,7 +10358,7 @@ export default function GenerateClient({
         sceneEnginesRef.current = Array.isArray(data.scene_engines) ? data.scene_engines.filter((e: unknown): e is string => typeof e === 'string') : []
         scenePromptsRef.current = Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x: unknown) => (typeof x === 'string' ? x : '')) : []
         sceneAnchorsRef.current = Array.isArray(data.scene_anchor_urls) ? data.scene_anchor_urls.map((x: unknown) => (typeof x === 'string' ? x : null)) : []
-        hollyRetriedRef.current = 0 // KINEO-CENA-SUAVIZADA — contador, era boolean
+        hollyRetriedRef.current = kling4TrialReplacement(data, cinematicGenerationId) ? 2 : 0 // Async trial fallback is already finalized; never buy these scenes again.
         sceneNarrationsRef.current = Array.isArray(data.scene_narrations) ? data.scene_narrations.map((n: unknown) => (typeof n === 'string' ? n : null)) : []
         sceneSecondsRef.current = Array.isArray(data.scene_seconds) ? data.scene_seconds.map((s: unknown) => (typeof s === 'number' ? s : 10)) : []
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real dialogue line per scene.

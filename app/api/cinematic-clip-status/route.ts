@@ -19,9 +19,10 @@ import {
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import { KLING4_T2V_MODEL, KLING4_I2V_MODEL } from '@/lib/kling4Trial'
-import { kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'
+import { advanceKling4TrialStatus, kling4TrialPollIdsMatch } from '@/lib/kling4TrialAsyncStatus'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 120 // Queue GETs and at most one durable Seedance fallback dispatch; never wait for a render.
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -259,7 +260,7 @@ export async function GET(req: NextRequest) {
       console.error('[cinematic-status] claim lookup failed:', loaded.error)
       return NextResponse.json({ error: 'Clip ownership check is temporarily unavailable.' }, { status: 503 })
     }
-    const claim = loaded.claim
+    let claim = loaded.claim
     if (!claim || claim.status === 'released') {
       return NextResponse.json({ error: 'Generation not found.' }, { status: 404 })
     }
@@ -269,8 +270,16 @@ export async function GET(req: NextRequest) {
         { status: 409 },
       )
     }
-    if (!sameArray(requestedIds, claim.falRequestIds)) {
+    if (!kling4TrialPollIdsMatch(requestedIds, claim)) {
       return NextResponse.json({ error: 'Generation not found.' }, { status: 404 })
+    }
+    const trial = await advanceKling4TrialStatus({ db: admin, secret, userId: user.id, generationId, claim })
+    claim = trial.claim
+    if (trial.kind === 'pending') {
+      return NextResponse.json({ pending: true, clips: [], allDone: false, anyDone: false, done: 0,
+        total: claim.falRequestIds.length, failed: 0, retry_after_ms: 3000,
+        ...(!sameArray(requestedIds, claim.falRequestIds) ? { replacement: claim.response } : {}),
+      })
     }
     if (!claim.falModels.every((model) => ALLOWED_MODELS.has(model))) {
       console.error('[cinematic-status] signed claim contains an unsupported model')
@@ -278,15 +287,13 @@ export async function GET(req: NextRequest) {
     }
 
     const knownFailures = Array.isArray(claim.response?.terminal_failed_jobs) ? claim.response.terminal_failed_jobs : []
-    const completedTrialUrl = claim.falRequestIds.length === 1 &&
-      [KLING4_T2V_MODEL, KLING4_I2V_MODEL].includes(claim.falModels[0])
-        ? kling4TrialVideoUrlFromClaim(claim.response) : null
-    const clips = await Promise.all(
+    const clips: ClipStatus[] = trial.kind === 'kling_done'
+      ? [{ id: claim.falRequestIds[0], status: 'done', url: trial.url! }]
+      : await Promise.all(
       claim.falRequestIds.map((id, index) => {
         if (!id) return Promise.resolve({ id: null, status: 'failed' as const, url: null })
         const knownUrl = claim.authorizedCompletedUrls[index]
         if (knownUrl) return Promise.resolve({ id, status: 'done' as const, url: knownUrl })
-        if (completedTrialUrl) return Promise.resolve({ id, status: 'done' as const, url: completedTrialUrl })
         if (knownFailures.some(job => job.requestId === id && job.model === claim.falModels[index])) {
           return Promise.resolve({ id, status: 'failed' as const, url: null })
         }
@@ -298,7 +305,7 @@ export async function GET(req: NextRequest) {
     // ressubmetia. Regra pura em lib/stuckScene: ≥ 12 min com alguma cena pronta (ou ≥ 20 min sem nenhuma) →
     // pendente/processando vira recusada (stuck); o claim registra a recusa como terminal e o cliente re-submete a
     // cena (duas rodadas, /api/retry-hollywood-scene), que reinicia o relógio.
-    {
+    if (trial.kind !== 'kling_done') {
       const lastRetry = await lastSceneRetryAt(admin, generationId)
       const clock = stuckClockStart(claim.completedAt, claim.startedAt, lastRetry)
       const elapsedMin = clock > 0 ? (Date.now() - clock) / 60000 : 0
@@ -343,10 +350,11 @@ export async function GET(req: NextRequest) {
       }
       durableClaim = authorized.claim
     }
-    const allDone = sameArray(requestedIds, durableClaim.falRequestIds) && cinematicJobsAreTerminal(durableClaim) &&
+    const allDone = trial.kind === 'fallback_empty' || cinematicJobsAreTerminal(durableClaim) &&
       clips.every((clip) => clip.status === 'done' || clip.status === 'failed')
     const failedCount = clips.filter((clip) => clip.status === 'failed').length
     if (allDone && failedCount === clips.length) {
+      if (trial.kind === 'fallback_empty') console.warn('[kling4-trial]', { generation_id: generationId, reason: 'fallback_no_accepted_scenes' })
       const billingReference = claim.resolutionReference
       const refunded = await refundRenderCredits(billingReference)
       let refundConfirmed = refunded > 0
@@ -386,6 +394,7 @@ export async function GET(req: NextRequest) {
       done: clips.filter((clip) => clip.status === 'done').length,
       total: clips.length,
       failed: failedCount,
+      ...(!sameArray(requestedIds, durableClaim.falRequestIds) ? { replacement: durableClaim.response } : {}),
     })
   } catch (error) {
     console.error('[cinematic-status] unexpected error:', error instanceof Error ? error.message : String(error))

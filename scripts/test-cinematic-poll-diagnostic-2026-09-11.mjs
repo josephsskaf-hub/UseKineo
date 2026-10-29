@@ -4,6 +4,17 @@ import fs from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import assert from 'node:assert/strict'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+
+const forbiddenTrialWork = () => { throw Error('Trial provider work is forbidden in classic diagnostic fixtures') }
+const trialProvider = {
+  KLING4_T2V_MODEL: 'kling/v4/text-to-video', KLING4_I2V_MODEL: 'kling/v4/image-to-video', KLING4_TRIAL_TIMEOUT_MS: 480000,
+  pollKling4TrialVideo: forbiddenTrialWork,
+}
+const trialStatus = createOfflineLoader({ mocks: {
+  '@/lib/kling4Trial': trialProvider,
+  '@/lib/kling4TrialFallback': { ensureKling4TrialFallback: forbiddenTrialWork },
+} })('lib/kling4TrialAsyncStatus.ts')
 
 let checks = 0
 const eq = (a, b, label) => { assert.deepEqual(a, b, label); checks++ }
@@ -27,6 +38,8 @@ async function run({ stage = 'status', status = 403, detail = 'Forbidden', recov
     falModels: allFailed ? [model] : ids.map(() => model), resolutionReference: 'billing-existing',
     authorizedCompletedUrls: (allFailed ? [ids[6]] : ids).map(() => null), response: {} }
   const imports = {
+    '@/lib/kling4Trial': trialProvider,
+    '@/lib/kling4TrialAsyncStatus': trialStatus,
   '@/lib/stuckScene': { stuckSceneIndexes: () => [], stuckClockStart: () => 0, lastSceneRetryAt: async () => null, CINEMATIC_SCENE_STUCK_EVENT: 'cinematic_scene_stuck' }, // KINEO-CENA-PRESA-2026-09-22: cena presa fora do cenário destes guardiões
 
     'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },

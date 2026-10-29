@@ -11,6 +11,7 @@ import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-CENA-PRESA-2026-09-22
 import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-CENA-PRESA-2026-09-22
 import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
+import { kling4TrialReplacement } from '@/lib/kling4TrialClaim'
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
 import { H3MAX_MODELS, H3MAX_I2V_MODEL, H3MAX_RESOLUTION, H3_PROMPT_EXPANSION } from '@/lib/hollywood/router' // KINEO-H3MAX-2026-10-13
@@ -213,6 +214,8 @@ export async function POST(req: NextRequest) {
   try { loaded = await loadVerifiedCinematicClaim(args) }
   catch { return NextResponse.json({ error: 'Generation verification unavailable', retryable: false }, { status: 503 }) }
   if (!loaded.ok || !loaded.claim || !retryableSlot(loaded.claim, slot)) return refused()
+  // The async trial coordinator already froze all three Seedance attempts. This route cannot spend on a fourth.
+  if (kling4TrialReplacement(loaded.claim.response, args.generationId)) return refused()
   // KINEO-CENA-CLASSICA-2026-09-28 — motor clássico: o payload assinado; família hollywood: a cena assinada, como sempre.
   const classic = CLASSIC.has(slot.model)
   // KINEO-RETENTAR-CENA-1410 — em modo serviço a família hollywood segue a regra da clássica na DÚVIDA: registro antes do gasto,
