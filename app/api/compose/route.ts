@@ -96,6 +96,7 @@ import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING2
 import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
 import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
+import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -3504,6 +3505,7 @@ export async function POST(req: NextRequest) {
         quality,
         realAudioDuration,
         seedanceShortFilm: quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response),
+        kling4TrialEngine: kling4TrialEngineFromClaim(cinematicBirthClaim?.response),
         whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
@@ -3551,6 +3553,7 @@ export async function POST(req: NextRequest) {
       )
     }
     const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality, duration, aspect: aspectRequested, avatar: avatarMode, studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-FILMES-F1-F4-1910 — só Seedance 1.5 de 15 s em 9:16; fase pública (FACELESS15_PUBLIC) ou pedida por conta interna (formatFlags); cliente que manda o campo é ignorado
+    if (composeInputs.kling4TrialEngine === 'kling4') faceless15.fases = faceless15.fases.filter(f => f !== 'f4' && f !== 'cta')
     const faceless15Relato = aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
     // FREE15-CAPTION-TEXT-2610: rebuild only caption text with measured audio duration.
     // Preserve the original assembled film, including ASR-guided cuts, music and voice.
@@ -3565,7 +3568,7 @@ export async function POST(req: NextRequest) {
     // KINEO-FILME15-PERFEITO-2610: production caption audit found blind 4-word
     // proportional fallbacks ending on connectors. Group canonical text before
     // the FIRST assembly too; only replace captions, never the approved voice/cuts.
-    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response) &&
+    if (quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) &&
       (!legendaWords?.length || captionSelection.alignment?.source === 'canonical_tts_script')) {
       const { buildFree15CanonicalCaptions } = await import('@/lib/free15CanonicalCaptions')
       const { repairGateCaptions } = await import('@/lib/free15Gate')
@@ -3736,12 +3739,13 @@ export async function POST(req: NextRequest) {
     let free15ContextStored = true
     // KINEO-FILME15-PERFEITO-2610: bind the final source and raw narration evidence
     // to the owner/render before status can expose the final MP4.
-    if (quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response) && cinematicBirthClaim?.response?.free15_gate_version === FREE15_GATE_VERSION) {
+    if (quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) && cinematicBirthClaim?.response?.free15_gate_version === FREE15_GATE_VERSION) {
       const { storeFree15Gate } = await import('@/lib/free15GateServer')
       const { buildFree15CanonicalCaptions, FREE15_CANONICAL_CAPTION_TIMING } = await import('@/lib/free15CanonicalCaptions')
       const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
       const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {
         version: FREE15_GATE_VERSION, status: 'ready', source, captionElements, captionTiming: FREE15_CANONICAL_CAPTION_TIMING,
+        ...(kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null ? { minimumSeconds: 15 as const } : {}),
         captionEvidence, attempted: false, reason: 'awaiting_final_assembly', updatedAt: Date.now(),
         context: { asked: String(cinematicBirthClaim?.response?.prompt ?? body.topic ?? ''), narration: scaledScript, language },
       } })

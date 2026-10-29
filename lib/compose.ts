@@ -20,6 +20,7 @@ import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
 import { verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 import { probeMp4DurationSeconds } from '@/lib/mp4Duration'
+import type { Kling4TrialEngine } from '@/lib/kling4TrialClaim'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -292,6 +293,8 @@ export interface ComposeInputs {
   realAudioDuration?: number
   /** Server verified Seedance 1.5 / 15s claim only (FILME15-PERFEITO-2610). */
   seedanceShortFilm?: boolean
+  /** Verified first-free-film trial only; never read from request body. */
+  kling4TrialEngine?: Kling4TrialEngine | null
   /**
    * Push #175 — optional pre-computed word-level timing from Whisper
    * transcription. Each entry aligns with the corresponding caption segment
@@ -2087,6 +2090,7 @@ export function buildCreatomateSource({
   quality,
   realAudioDuration,
   seedanceShortFilm,
+  kling4TrialEngine,
   whisperTimings,
   whisperWords,
   musicUrl,
@@ -2124,6 +2128,8 @@ export function buildCreatomateSource({
   // Three 6s clips supply enough image; short measured TTS used to shrink the film.
   // Preserve all speech and hold the existing final shot/music through the 14s floor.
   if (seedanceShortFilm === true && quality === 'cinematic_ai' && duration === 15 && !hasAvatar) totalDuration = Math.max(14, totalDuration)
+  const kling4TrialFilm = !!kling4TrialEngine && quality === 'cinematic_ai' && duration === 15 && frame.aspect === '9:16' && !hasAvatar
+  if (kling4TrialFilm) totalDuration = Math.max(15, totalDuration)
   const cleanClips = clipUrls.filter((u) => typeof u === 'string' && u.trim().length > 0)
   // Avatar tail fix (13/06) — in avatar mode the narration IS the master
   // clock: the lip-synced face and the mp3 are the same length, so the
@@ -2435,6 +2441,14 @@ export function buildCreatomateSource({
     console.log(
       `[compose] avatar mode v2 (sequential): ${cutStarts.length} cutaway(s), ${cleanClips.length} clip(s), total ${totalDuration}s`,
     )
+  } else if (kling4TrialFilm && kling4TrialEngine === 'kling4' && cleanClips.length === 1) {
+    // Kling multi_prompt already contains every shot. Preserve its entire 15s sequence,
+    // starting at frame zero. Longer narration may loop only after the complete film.
+    elements.push({
+      type: 'video', track: 2, time: 0, duration: totalDuration,
+      source: cleanClips[0], fit: 'cover', loop: true, trim_start: 0,
+      x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%',
+    })
   } else if (signedClipSeconds) {
     // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — clipes com comprimento assinado (Kling 2.5: 5 s; 10 s acima do teto) ═══
     // planCappedClipTimeline garante trim_start + duração ≤ segundos do clipe em todo trecho; por isso loop:false — o

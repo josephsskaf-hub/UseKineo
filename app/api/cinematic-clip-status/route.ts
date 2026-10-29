@@ -18,6 +18,8 @@ import {
 } from '@/lib/cinematic/claim'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
+import { KLING4_T2V_MODEL, KLING4_I2V_MODEL } from '@/lib/kling4Trial'
+import { kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -71,6 +73,8 @@ const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
 const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
 const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 const ALLOWED_MODELS = new Set([
+  KLING4_T2V_MODEL,
+  KLING4_I2V_MODEL,
   H3_T2V_MODEL,
   H3_I2V_MODEL,
   H3MAX_T2V_MODEL, // KINEO-H3MAX-2026-10-13
@@ -274,11 +278,15 @@ export async function GET(req: NextRequest) {
     }
 
     const knownFailures = Array.isArray(claim.response?.terminal_failed_jobs) ? claim.response.terminal_failed_jobs : []
+    const completedTrialUrl = claim.falRequestIds.length === 1 &&
+      [KLING4_T2V_MODEL, KLING4_I2V_MODEL].includes(claim.falModels[0])
+        ? kling4TrialVideoUrlFromClaim(claim.response) : null
     const clips = await Promise.all(
       claim.falRequestIds.map((id, index) => {
         if (!id) return Promise.resolve({ id: null, status: 'failed' as const, url: null })
         const knownUrl = claim.authorizedCompletedUrls[index]
         if (knownUrl) return Promise.resolve({ id, status: 'done' as const, url: knownUrl })
+        if (completedTrialUrl) return Promise.resolve({ id, status: 'done' as const, url: completedTrialUrl })
         if (knownFailures.some(job => job.requestId === id && job.model === claim.falModels[index])) {
           return Promise.resolve({ id, status: 'failed' as const, url: null })
         }

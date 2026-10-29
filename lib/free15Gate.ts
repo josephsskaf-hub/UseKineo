@@ -14,6 +14,8 @@ export type GateState = {
   captionElements: unknown[]
   captionTiming?: 'approximate'
   captionEvidence: CaptionEvidenceAssessment | null
+  /** Only signed first-free-film Kling4 trial claims opt into the 15s output contract. */
+  minimumSeconds?: 15
   context?: { asked: string; narration: string; language: string }
   attempted: boolean
   captionsRepaired?: boolean
@@ -64,7 +66,8 @@ function culpritAt(source: Record<string, unknown>, seconds: number | null, scen
 /** Only complete pixel evidence can pass. Scores alone never trigger a scene reshoot. */
 export function decideFree15Gate(state: GateState, media: GateMedia, pixel: PixelResult | null, scenes: CenaRefazivel[]): GateDecision {
   if (media.durationSeconds === null || !Number.isFinite(media.durationSeconds)) return { kind: 'fail', reason: 'duration_unverified' }
-  if (media.durationSeconds < 14) return { kind: 'fail', reason: 'duration_below_14' }
+  const minimumSeconds = state.minimumSeconds === 15 ? 15 : 14
+  if (media.durationSeconds < minimumSeconds) return { kind: 'fail', reason: `duration_below_${minimumSeconds}` }
   // Replacing visual text does not create new evidence of the unchanged audio.
   // Preserve the disagreement without asserting whether TTS or ASR was wrong.
   if (state.captionEvidence?.status === 'mismatch' && state.captionsRepaired) return { kind: 'fail', reason: 'caption_evidence_unresolved_after_repair' }

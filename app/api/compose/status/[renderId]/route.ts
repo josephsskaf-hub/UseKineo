@@ -623,8 +623,9 @@ export async function GET(
       let free15GateFailure: { reason: string; creditsRefunded: number } | null = null
       if (quality === 'cinematic_ai' && prepaidCinematicClaim?.response?.duration === 15) {
         const { isSeedanceShortClaim } = await import('@/lib/durationByEngine')
+        const { kling4TrialEngineFromClaim } = await import('@/lib/kling4TrialClaim')
         const { FREE15_GATE_VERSION } = await import('@/lib/free15Gate')
-        if (isSeedanceShortClaim(prepaidCinematicClaim.response) && prepaidCinematicClaim.response.free15_gate_version === FREE15_GATE_VERSION && cinematicAdmin) {
+        if ((isSeedanceShortClaim(prepaidCinematicClaim.response) || kling4TrialEngineFromClaim(prepaidCinematicClaim.response) !== null) && prepaidCinematicClaim.response.free15_gate_version === FREE15_GATE_VERSION && cinematicAdmin) {
           const { runFree15Gate, refundFailedFree15Gate } = await import('@/lib/free15GateServer')
           const ctx = { db: cinematicAdmin, secret: cinematicSecret, userId: user.id, renderId, claim: prepaidCinematicClaim }
           const gate = await runFree15Gate({ ...ctx, media: { url: state.url, snapshotUrl: state.snapshotUrl, durationSeconds: state.exactDurationSeconds ?? null } })
