@@ -27,6 +27,8 @@ import KineoBolt from '@/components/KineoBolt'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice' // KINEO-POPUP-KLING4-2910
+import { KLING4_PAID_COPY, kling4PromoVisible } from '@/lib/kling4PaidPresentation' // KINEO-POPUP-KLING4-2910
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
@@ -117,6 +119,9 @@ export default function WelcomeOfferModal({
   const [nativePending, setNativePending] = useState<'basic' | 'pro' | null>(null)
   const [deadline, setDeadline] = useState<Welcome20Deadline | null>(null) // KINEO-CHECKOUT-CLAREZA-1610
   const checkout = useCheckoutLaunch(`welcome_offer_${surface}`)
+  // KINEO-POPUP-KLING4-2910 — fundador 29/10 ("Pop-up A"): o pop-up mais visto (537 pessoas em 14 d) não falava da melhor oferta.
+  // Com a promo viva no servidor, o 1º item do Creator e do Studio é "Kling 4.0 free for 30 days with Creator or above".
+  const kling4Promo = kling4PromoVisible(useKling4PaidAvailability())
   const pending = checkout.pending ?? nativePending
 
   useEffect(() => {
@@ -293,6 +298,8 @@ export default function WelcomeOfferModal({
       highlight: true,
     },
   ]
+  // KINEO-POPUP-KLING4-2910 — com a promo viva, o 1º item vira a oferta do Kling 4.0 (sai a linha antiga do Kling 3 e o "Every engine").
+  if (kling4Promo) for (const plan of plans) plan.perks = [KLING4_PAID_COPY.offer, ...plan.perks.filter((perk) => !perk.startsWith('Kling 3 film scenes') && perk !== 'Every engine incl. MiniMax H3')]
 
   return (
     <div
