@@ -1150,6 +1150,12 @@ export async function GET(
             ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' &&
               ['kling4', 'seedance15_fallback'].includes(String((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown>).engine_used))
               ? { engineUsed: (prepaidCinematicClaim!.response!.kling4_paid as { engine_used: 'kling4' | 'seedance15_fallback' }).engine_used } : {}),
+            // KINEO-TRIAL-ENGINE-2910 — o filme grátis em Kling 4.0 (marcador kling4_trial do claim assinado) nascia com engine_used
+            // NULO e o /admin mostrava "Seedance 1.5" (1º filme orgânico, 29/10 19:45Z). Sem marcador pago, o do trial decide;
+            // reserva por teto (seedance15_cap) é Seedance de fato e grava como seedance15_fallback (mesmo selo).
+            ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version !== 'kling4_paid_2810' &&
+              await import('@/lib/kling4TrialClaim').then((m) => m.kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined))
+              ? { engineUsed: (await import('@/lib/kling4TrialClaim')).kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined) === 'kling4' ? 'kling4' as const : 'seedance15_fallback' as const } : {}),
             youtubeDescription: historyDescription,
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
