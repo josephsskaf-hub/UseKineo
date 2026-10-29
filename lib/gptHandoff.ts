@@ -49,6 +49,7 @@ import { createHash } from 'node:crypto'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24 · KINEO-PONTAS-15S-IDIOMA: a língua da fala do 15 s
 import { parseUserScript } from '@/lib/scriptParser' // revisão E2b: a régua de fala da guarda do filme curto
 import { maxWordsForShortFilm } from '@/lib/durationByEngine' // revisão E2b: o teto de 15 s (puro)
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-CONECTOR-K4-2910
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
  *  continuam, a fonte mudou. */
@@ -134,6 +135,10 @@ export const ENGINE_ALIASES: Readonly<Record<string, HandoffEngine>> = {
   'kling2.5': 'kling',
   kling3: 'hollywood',
   'kling-3': 'hollywood',
+  kling4: 'hollywood', // KINEO-CONECTOR-K4-2910
+  'kling-4': 'hollywood',
+  'kling4.0': 'hollywood',
+  'kling-4.0': 'hollywood',
   minimax: 'h3',
   'minimax-h3': 'h3',
   'omni-flash': 'omni',
@@ -146,7 +151,7 @@ export const ENGINE_LABELS: Readonly<Record<HandoffEngine, string>> = {
   seedance: 'Seedance 1.5',
   kling: 'Kling 2.5',
   veo: 'Veo 3.1',
-  hollywood: 'Kling 3',
+  hollywood: KLING4_PAID_LIVE ? 'Kling 4.0' : 'Kling 3', // KINEO-CONECTOR-K4-2910 — com o interruptor ligado a rota hollywood renderiza Kling 4.0; selo honesto nos dois conectores
   h3: 'MiniMax H3',
   omni: 'Omni Flash',
 }

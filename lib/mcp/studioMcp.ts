@@ -17,6 +17,8 @@
 import { ENGINE_LABELS } from '@/lib/gptHandoff'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { supportedDurationsFor } from '@/lib/durationByEngine'
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-CONECTOR-K4-2910
+import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing' // KINEO-CONECTOR-K4-2910
 import { NARRATION_LANGUAGE_CODES } from '@/lib/textLanguage'
 import {
   JSONRPC_INVALID_PARAMS,
@@ -67,6 +69,8 @@ export function activeStudioEngines(pausedEngines: readonly string[]): StudioEng
 }
 
 export function durationsFor(engine: StudioEngine): number[] {
+  // KINEO-CONECTOR-K4-2910 — Kling 4.0 pago só oferece 15/30/60; 35/90 a rota recusa (kling4_paid_duration_not_offered).
+  if (engine === 'hollywood' && KLING4_PAID_LIVE) return Object.keys(KLING4_PAID_CREDITS).map(Number)
   const allowed = supportedDurationsFor(engine)
   return STUDIO_DURATIONS.filter((d) => allowed.includes(d))
 }

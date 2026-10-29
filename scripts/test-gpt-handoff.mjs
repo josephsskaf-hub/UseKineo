@@ -85,10 +85,10 @@ console.log('\n(A) lib/gptHandoff.ts executada')
   // Reancorado 29/09 (revisão da E2b, achado 3): @/lib/scriptParser (parseUserScript, a régua de fala da guarda do
   // filme curto) e @/lib/durationByEngine (maxWordsForShortFilm, o teto de 15 s) entraram — as DUAS folhas puras,
   // zero import (conferido logo abaixo, como aspect/narrationFit). A lista continua FECHADA.
-  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage', '@/lib/scriptParser', '@/lib/durationByEngine']
+  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage', '@/lib/scriptParser', '@/lib/durationByEngine', '@/lib/kling4PaidPolicy'] // KINEO-CONECTOR-K4-2910: o selo do hollywood segue o interruptor KLING4_PAID_LIVE (folha pura, só process.env)
   const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   const projectImports = libImports.filter((s) => !s.startsWith('node:'))
-  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser e @/lib/durationByEngine do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser, @/lib/durationByEngine e @/lib/kling4PaidPolicy do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
   ok(!/^\s*import\s/m.test(read('lib/scriptParser.ts')), '(A0) lib/scriptParser.ts é pura: zero import')
   ok(!/^\s*import\s/m.test(read('lib/durationByEngine.ts')), '(A0) lib/durationByEngine.ts é pura: zero import')
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
