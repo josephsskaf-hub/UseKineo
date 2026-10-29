@@ -632,7 +632,12 @@ export async function GET(
           const ctx = { db: cinematicAdmin, secret: cinematicSecret, userId: user.id, renderId, claim: prepaidCinematicClaim }
           const gate = await runFree15Gate({ ...ctx, media: { url: state.url, snapshotUrl: state.snapshotUrl, durationSeconds: state.exactDurationSeconds ?? null } })
           if (gate.status === 'pending') return NextResponse.json({ phase: 'processing', progress: 97, quality_review: true })
-          if (gate.status === 'failed') {
+          // KINEO-PORTAO-FREE15-2910 — fundador 29/10 ("A"): crédito só volta com defeito ENCONTRADO. "Não consegui confirmar" a
+          // evidência (pixel_evidence_unverified: 22 vezes desde 27/10, 6 de 10 filmes grátis em 24 h, com o juiz respondendo) entrega e
+          // cobra normal — antes estornava os 9 cr e o trial virava 2-3 filmes grátis. A causa do "unverified" segue com o GPT.
+          if (gate.status === 'failed' && gate.reason === 'pixel_evidence_unverified') {
+            await writeServerEvent({ name: 'free15_gate_unverified_charged', userId: user.id, path: '/api/compose/status', metadata: { render_id: renderId, reason: gate.reason } }).catch(() => false)
+          } else if (gate.status === 'failed') {
             const creditsRefunded = await refundFailedFree15Gate({ ...ctx, reason: gate.reason })
             if (creditsRefunded === null) return NextResponse.json({ phase: 'processing', progress: 98, reconcile: true, quality_review: true })
             free15GateFailure = { reason: gate.reason, creditsRefunded }
