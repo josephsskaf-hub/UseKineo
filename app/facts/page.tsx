@@ -49,6 +49,7 @@ import { TOOLS } from '@/lib/comparisons'
 import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
 import { ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS } from '@/lib/seo/enginePageLangs'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
+import { kling4PaidCitation } from '@/lib/growth/kling4PaidCitation' // KINEO-KLING4-FACTS-2910
 
 const LAST_VERIFIED = LAST_VERIFIED_HUMAN
 const VERIFIED_YEAR = LAST_VERIFIED_ISO.slice(0, 4)
@@ -81,7 +82,8 @@ function plan(id: PlanFact['id']): PlanFact {
 // dezenas de vezes abaixo; quem muda é o RÓTULO PUBLICADO, não a variável.
 const SEEDANCE = engine('Seedance 1.5')
 const KLING = engine('Kling 2.5')
-const HOLLYWOOD = engine('Kling 3')
+// KINEO-KLING4-FACTS-2910 — com KLING4_PAID_LIVE o motor premium publica como "Kling 4.0" (lib/growth/kling4PaidCitation.ts); a busca segue o mesmo nome, senão o build de /facts quebra.
+const HOLLYWOOD = engine(kling4PaidCitation()?.name ?? 'Kling 3')
 
 const STARTER = plan('starter')
 const CREATOR = plan('basic')
