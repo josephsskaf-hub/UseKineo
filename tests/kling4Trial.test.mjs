@@ -45,6 +45,7 @@ const lib = load('lib/kling4Trial.ts')
 const policy = load('lib/kling4TrialPolicy.ts')
 const prompts = ['The same astronaut enters the red room.', 'The astronaut opens a blue box.', 'The astronaut holds the glowing map.']
 const clip = { requestId: 'kling4-test-id', model: 'kling/v4/text-to-video', url: 'https://fal.media/test/movie.mp4' }
+const job = { requestId: clip.requestId, model: clip.model, submittedAt: '2026-10-28T12:00:00.000Z' }
 const json = value => JSON.parse(JSON.stringify(value))
 
 test('one policy switch gates only the admitted first unpaid 15-second film', () => {
@@ -66,26 +67,76 @@ test('Kling4 payload is always multi-shot, 15s, 720p and portrait', () => {
   assert.equal(input.resolution, '720p')
   assert.equal(input.aspect_ratio, '9:16')
   assert.equal(input.multi_prompt.length, 3)
-  assert.deepEqual(json(input.multi_prompt.map(shot => shot.prompt)), prompts)
+  assert.equal(input.multi_prompt.every((shot, i) => shot.prompt.includes(prompts[i])), true)
   assert.equal(input.multi_prompt.reduce((sum, shot) => sum + shot.duration, 0), 15)
   assert.equal(input.multi_prompt.every(shot => Number.isInteger(shot.duration) && shot.duration > 0), true)
   assert.equal('prompt' in input, false, 'prompt and multi_prompt must not be sent together')
 })
 
-test('an existing first-frame still selects image-to-video using the real required field', () => {
-  const { model, input } = lib.buildKling4TrialInput(prompts, 'https://fal.media/test/frame.png')
+test('approved per-scene stills select image-to-video using only documented image fields', () => {
+  const stills = ['https://fal.media/test/frame1.png', 'https://fal.media/test/frame2.png', 'https://fal.media/test/frame3.png']
+  const { model, input } = lib.buildKling4TrialInput(prompts, stills)
   assert.equal(model, lib.KLING4_I2V_MODEL)
-  assert.equal(input.start_image_url, 'https://fal.media/test/frame.png')
+  assert.equal(input.start_image_url, stills[0])
+  assert.deepEqual(json(input.middle_image_urls), stills.slice(1))
   assert.equal(input.image_url, undefined)
   assert.equal(input.resolution, '720p')
-  assert.equal(input.aspect_ratio, '9:16')
+  assert.equal('aspect_ratio' in input, false, 'I2V orientation is inherited from the approved portrait frame')
+})
+
+test('missing approved stills stay text-directed without fabricated array placeholders or changed scene order', () => {
+  const stills = ['https://fal.media/test/frame1.png', null, 'https://fal.media/test/frame3.png']
+  const { input } = lib.buildKling4TrialInput(prompts, stills)
+  assert.deepEqual(json(input.middle_image_urls), [stills[2]])
+  assert.equal(input.multi_prompt.length, 3)
+  assert.match(input.multi_prompt[1].prompt, /no(?: new)? keyframe/i)
+  assert.match(input.multi_prompt[2].prompt, /middle keyframe\s*1/i)
+  for (let i = 0; i < 3; i++) assert.equal(input.multi_prompt[i].prompt.includes(prompts[i]), true)
+  const textOnly = lib.buildKling4TrialInput(prompts, [null, stills[0], stills[2]])
+  assert.equal(textOnly.model, lib.KLING4_T2V_MODEL, 'without scene one there is no valid I2V start frame')
+  assert.equal(textOnly.input.aspect_ratio, '9:16')
+  assert.equal('start_image_url' in textOnly.input, false)
+  assert.equal('middle_image_urls' in textOnly.input, false, 'T2V schema has no optional image fields')
+})
+
+test('per-shot prompts fit the official 512-character schema including keyframe direction', () => {
+  const result = lib.buildKling4TrialInput(prompts.map(prompt => prompt + ' A coherent camera movement.'.repeat(80)), ['https://fal.media/test/frame1.png', null, 'https://fal.media/test/frame3.png'])
+  assert.equal(result.input.multi_prompt.every(shot => shot.prompt.length > 0 && shot.prompt.length <= 512), true)
+  assert.match(result.input.multi_prompt[1].prompt, /no(?: new)? keyframe/i)
+  assert.match(result.input.multi_prompt[2].prompt, /middle keyframe\s*1/i)
+  const unicode = lib.buildKling4TrialInput(['Astronaut ' + '🌌'.repeat(600)])
+  assert.equal(Array.from(unicode.input.multi_prompt[0].prompt).length, 512)
+  assert.equal(/\uD800(?![\uDC00-\uDFFF])|[\uD800-\uDBFF]$/.test(unicode.input.multi_prompt[0].prompt), false, 'truncate at Unicode code-point boundaries')
+})
+
+test('only the exact selected still with a PASS verdict can enter Kling image inputs', () => {
+  const urls = ['https://fal.media/test/approved-original.png', 'https://fal.media/test/approved-remade.png', 'https://fal.media/test/unjudged.png']
+  const reports = [
+    { cena: 1, url_original: urls[0], url_final: urls[0], veredito: 'PASS', escolhida: 'original', escolhida_tentativa: 0,
+      tentativas: [{ n: 0, url: urls[0], veredito: 'PASS' }] },
+    { cena: 2, url_original: 'https://fal.media/test/bad-original.png', url_final: urls[1], veredito: 'FAIL', escolhida: 'regerada', escolhida_tentativa: 1, veredito_regerada: 'PASS',
+      tentativas: [{ n: 0, url: 'https://fal.media/test/bad-original.png', veredito: 'FAIL' }, { n: 1, url: urls[1], veredito: 'PASS' }] },
+    { cena: 3, url_original: urls[2], url_final: urls[2], veredito: 'ERRO', escolhida: 'original', escolhida_tentativa: 0,
+      tentativas: [{ n: 0, url: urls[2], veredito: 'ERRO' }] },
+  ]
+  assert.deepEqual(json(lib.approvedKling4TrialStills(urls, reports)), [urls[0], urls[1], null])
+  assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0], 'https://fal.media/test/replaced-after-judgment.png', urls[2]], reports)), [urls[0], null, null])
+  for (const veredito of ['FAIL', 'ERRO', 'PULADO', null]) {
+    const bad = { ...reports[0], veredito, tentativas: [{ n: 0, url: urls[0], veredito }] }
+    assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0]], [bad])), [null], String(veredito))
+  }
+  assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0]], [])), [null], 'a still URL alone does not prove approval')
+  const wrongFinal = { ...reports[0], escolhida_tentativa: 1, tentativas: [{ n: 0, url: 'https://fal.media/test/earlier-pass.png', veredito: 'PASS' }, { n: 1, url: urls[0], veredito: 'FAIL' }] }
+  assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0]], [wrongFinal])), [null], 'an earlier PASS never approves a failed selected still')
+  assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0]], [], [{ cena: 1, url: urls[0], veredito: 'PASS' }])), [urls[0]], 'a separately judged no-sheet replacement carries its own URL approval')
+  assert.deepEqual(json(lib.approvedKling4TrialStills([urls[0]], [], [{ cena: 2, url: urls[0], veredito: 'PASS' }])), [null], 'a different scene cannot approve this image')
 })
 
 test('daily cap sends Seedance without a single paid Kling call', async () => {
   let paidCalls = 0
   const out = await lib.orchestrateKling4Trial({
     reserve: async () => ({ allowed: false, reason: 'cap' }),
-    generate: async () => { paidCalls++; return clip },
+    submit: async () => { paidCalls++; return job },
   })
   assert.equal(paidCalls, 0)
   assert.equal(out.engineUsed, 'seedance15_cap')
@@ -95,25 +146,25 @@ test('daily cap sends Seedance without a single paid Kling call', async () => {
 test('unreadable or duplicate budget never authorizes a paid call', async () => {
   for (const reserve of [async () => { throw new Error('database unavailable') }, async () => ({ allowed: false, reason: 'unavailable' }), async () => ({ allowed: false, reason: 'duplicate' })]) {
     let paidCalls = 0
-    const out = await lib.orchestrateKling4Trial({ reserve, generate: async () => { paidCalls++; return clip } })
+    const out = await lib.orchestrateKling4Trial({ reserve, submit: async () => { paidCalls++; return job } })
     assert.equal(paidCalls, 0)
     assert.equal(out.engineUsed, 'seedance15_fallback')
     assert.equal(out.costUsd, 0)
   }
 })
 
-test('reserved success records Kling4; all provider failures keep the reserve and select Seedance', async () => {
-  const success = await lib.orchestrateKling4Trial({ reserve: async () => ({ allowed: true, reservedUsd: 2.355 }), generate: async () => clip })
+test('queue acceptance records Kling4 immediately; failed submissions keep the reserve and select Seedance', async () => {
+  const success = await lib.orchestrateKling4Trial({ reserve: async () => ({ allowed: true, reservedUsd: 2.355 }), submit: async () => job })
   assert.equal(success.engineUsed, 'kling4')
   assert.equal(success.costUsd, 2.355)
-  assert.deepEqual(json(success.video), clip)
-  for (const reason of ['503', '422 content refusal', 'network timeout', 'completed without video']) {
+  assert.deepEqual(json(success.job), job)
+  for (const reason of ['503', '422 content refusal', 'network timeout', 'missing accepted request ID']) {
     let calls = 0
-    const out = await lib.orchestrateKling4Trial({ reserve: async () => ({ allowed: true, reservedUsd: 2.355 }), generate: async () => { calls++; throw new Error(reason) } })
+    const out = await lib.orchestrateKling4Trial({ reserve: async () => ({ allowed: true, reservedUsd: 2.355 }), submit: async () => { calls++; throw new Error(reason) } })
     assert.equal(calls, 1, 'no repeated Kling submission')
     assert.equal(out.engineUsed, 'seedance15_fallback')
     assert.equal(out.costUsd, 2.355, 'ambiguous costs stay reserved')
-    assert.equal(out.video, undefined)
+    assert.equal(out.job, undefined)
   }
 })
 
@@ -122,7 +173,7 @@ function world({ submitStatus = 200, status = { status: 'COMPLETED', request_id:
   const calls = []
   return {
     calls,
-    args: { prompts, deadline: 1000 },
+    args: { prompts },
     deps: {
       apiKey: 'offline-placeholder', now: () => clock,
       sleep: async ms => { clock += ms },
@@ -136,12 +187,14 @@ function world({ submitStatus = 200, status = { status: 'COMPLETED', request_id:
   }
 }
 
-test('paid generator validates successful queue completion and video result', async () => {
+test('birth performs exactly one POST and returns the accepted job without polling or waiting', async () => {
   const w = world()
-  const result = await lib.generateKling4TrialVideo(w.args, w.deps)
+  const result = await lib.submitKling4TrialVideo(w.args, w.deps)
   assert.equal(result.requestId, clip.requestId)
   assert.equal(result.model, clip.model)
-  assert.equal(result.url, clip.url)
+  assert.ok(result.submittedAt !== undefined)
+  assert.equal(result.url, undefined, 'an accepted asynchronous job does not pretend the video is already finished')
+  assert.equal(w.calls.length, 1, 'birth must not make even one GET or invoke its sleep dependency')
   assert.equal(w.calls.filter(call => call.options.method === 'POST').length, 1)
   const posted = JSON.parse(w.calls[0].options.body)
   assert.equal(posted.resolution, '720p')
@@ -149,42 +202,46 @@ test('paid generator validates successful queue completion and video result', as
   assert.equal(posted.duration, 15)
 })
 
-test('503, refusal, terminal queue error and malformed result all reject once for fallback', async () => {
-  for (const options of [{ submitStatus: 503 }, { submitStatus: 422 }, { status: { status: 'COMPLETED', request_id: clip.requestId, error: 'content rejected' } }, { result: {} }, { resultStatus: 503 }]) {
+test('503 or submit refusal reject exactly once for fallback without a repeated paid POST', async () => {
+  for (const options of [{ submitStatus: 503 }, { submitStatus: 422 }]) {
     const w = world(options)
-    await assert.rejects(() => lib.generateKling4TrialVideo(w.args, w.deps))
+    await assert.rejects(() => lib.submitKling4TrialVideo(w.args, w.deps))
     assert.equal(w.calls.filter(call => call.options.method === 'POST').length, 1)
   }
 })
 
-test('queue wait has a hard deadline and never submits Kling twice', async () => {
-  const w = world({ status: { status: 'IN_PROGRESS', request_id: clip.requestId } })
-  await assert.rejects(() => lib.generateKling4TrialVideo(w.args, w.deps))
-  assert.equal(w.calls.filter(call => call.options.method === 'POST').length, 1)
+test('a polling cycle performs only status GETs and a completed job fetches its video once', async () => {
+  const w = world()
+  const result = await lib.pollKling4TrialVideo(clip.requestId, w.deps)
+  assert.equal(result.status, 'done')
+  assert.equal(result.url, clip.url)
+  assert.equal(w.calls.length, 2)
+  assert.equal(w.calls.some(call => call.options.method === 'POST'), false)
 })
 
-test('an exhausted route deadline skips provider submission', async () => {
-  const w = world()
-  w.args.deadline = 0
-  await assert.rejects(() => lib.generateKling4TrialVideo(w.args, w.deps))
-  assert.equal(w.calls.length, 0)
+test('pending queue states remain Kling while a completed provider error is terminal', async () => {
+  for (const [status, expected] of [['IN_QUEUE', 'pending'], ['IN_PROGRESS', 'processing']]) {
+    const w = world({ status: { status, request_id: clip.requestId } })
+    const result = await lib.pollKling4TrialVideo(clip.requestId, w.deps)
+    assert.equal(result.status, expected)
+    assert.equal(result.url, null)
+    assert.equal(w.calls.length, 1)
+  }
+  const w = world({ status: { status: 'COMPLETED', request_id: clip.requestId, error: 'content refused' } })
+  assert.equal((await lib.pollKling4TrialVideo(clip.requestId, w.deps)).status, 'failed')
+  assert.equal(w.calls.length, 1, 'a known terminal job error must not fetch or retry video')
 })
 
 test('preflight failures report zero Kling cost through the real orchestrator and never send HTTP', async () => {
-  for (const failure of ['missing_key', 'empty_plan', 'deadline_expired', 'deadline_between_preflight_and_post']) {
+  for (const failure of ['missing_key', 'empty_plan']) {
     const w = world()
     let posts = 0
     w.deps.onPost = () => { posts++ }
     if (failure === 'missing_key') w.deps.apiKey = ''
     if (failure === 'empty_plan') w.args.prompts = [' ', '']
-    if (failure === 'deadline_expired') w.args.deadline = 0
-    if (failure === 'deadline_between_preflight_and_post') {
-      let reads = 0
-      w.deps.now = () => reads++ === 0 ? 0 : 2000
-    }
     const out = await lib.orchestrateKling4Trial({
       reserve: async () => ({ allowed: true }),
-      generate: () => lib.generateKling4TrialVideo(w.args, w.deps),
+      submit: () => lib.submitKling4TrialVideo(w.args, w.deps),
     })
     assert.equal(out.engineUsed, 'seedance15_fallback', failure)
     assert.equal(out.costUsd, 0, failure)
