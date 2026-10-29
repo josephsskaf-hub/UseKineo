@@ -20,6 +20,8 @@ import {
 } from '@/lib/growth/filmReady60s'
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-CHECKOUT-CLAREZA-1610
 import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice' // KINEO-VENDER-3-2910
+import { kling4PromoVisible } from '@/lib/kling4PaidPresentation' // KINEO-VENDER-3-2910
 
 export default function FilmReady60sUpsell({
   videoId,
@@ -36,7 +38,9 @@ export default function FilmReady60sUpsell({
   const language = useInterfaceLanguage()
   // KINEO-CHECKOUT-CLAREZA-1610 — prazo de 48 h vencido nesta conta = a cópia sem os 20% (o checkout já cobra o cheio).
   const welcomeLive = useWelcome20OfferLive(WELCOME20_SITE_OFFER_LIVE)
-  const copy = film60Copy(language, welcomeLive)
+  // KINEO-VENDER-3-2910 — a linha do Kling 4.0 só aparece com a promo viva no servidor (interruptor, teto, prazo).
+  const kling4Promo = kling4PromoVisible(useKling4PaidAvailability())
+  const copy = film60Copy(language, welcomeLive, kling4Promo)
   const href = film60CheckoutHref()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const shownForRef = useRef<string | null>(null)
@@ -49,7 +53,7 @@ export default function FilmReady60sUpsell({
     const emit = () => {
       if (shownForRef.current === key) return
       shownForRef.current = key
-      void trackEvent(FILM60_SHOWN_EVENT, film60ShownMetadata({ videoId, plan, surface: 'film_ready', seconds }))
+      void trackEvent(FILM60_SHOWN_EVENT, film60ShownMetadata({ videoId, plan, surface: 'film_ready', seconds, kling4Promo }))
     }
     if (typeof IntersectionObserver === 'undefined') {
       emit()
@@ -63,14 +67,14 @@ export default function FilmReady60sUpsell({
     }, { threshold: 0.5 })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [videoId, plan, seconds])
+  }, [videoId, plan, seconds, kling4Promo])
 
   const onClick = () => {
     try {
       sessionStorage.setItem(FILM60_HANDOFF_KEY, serializeFilm60Handoff({ prompt, videoId, surface: 'film_ready', at: Date.now() }))
     } catch { /* storage bloqueado: a compra segue; a volta abre o Studio em 60 s sem o texto */ }
     void trackEvent(FILM60_CLICKED_EVENT, {
-      ...film60ShownMetadata({ videoId, plan, surface: 'film_ready', seconds }),
+      ...film60ShownMetadata({ videoId, plan, surface: 'film_ready', seconds, kling4Promo }),
       prompt_words: prompt.trim() ? prompt.trim().split(/\s+/).length : 0,
     })
   }

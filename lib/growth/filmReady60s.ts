@@ -173,12 +173,34 @@ const COPY: Record<string, Film60Template> = {
 
 export const FILM60_LANGUAGES = Object.keys(COPY)
 
+// KINEO-VENDER-3-2910 — a promo do Kling 4.0 (qualquer plano até 30/11: 30 dias, até 3 filmes/dia) entra na frase do
+// bloco SÓ quando a disponibilidade do servidor diz que ela está visível (kling4PromoVisible). Medido 29/10: 154 viram o
+// bloco em 14 d, 15 clicaram, e nenhuma linha falava do motor que o plano destrava de graça.
+export const FILM60_KLING4_PROMO_LINE: Record<string, string> = {
+  en: 'Includes Kling 4.0 free for 30 days (up to 3 films a day)',
+  pt: 'Inclui Kling 4.0 grátis por 30 dias (até 3 filmes por dia)',
+  es: 'Incluye Kling 4.0 gratis durante 30 días (hasta 3 películas al día)',
+  fr: 'Kling 4.0 inclus gratuitement pendant 30 jours (jusqu’à 3 films par jour)',
+  de: 'Inklusive Kling 4.0 30 Tage gratis (bis zu 3 Filme pro Tag)',
+  it: 'Include Kling 4.0 gratis per 30 giorni (fino a 3 film al giorno)',
+  nl: 'Inclusief Kling 4.0 30 dagen gratis (tot 3 films per dag)',
+  pl: 'Kling 4.0 za darmo przez 30 dni (do 3 filmów dziennie)',
+  tr: '30 gün ücretsiz Kling 4.0 dahil (günde 3 filme kadar)',
+  ru: 'Kling 4.0 бесплатно 30 дней (до 3 фильмов в день)',
+  uk: 'Kling 4.0 безкоштовно 30 днів (до 3 фільмів на день)',
+  ar: 'يشمل Kling 4.0 مجانًا لمدة 30 يومًا (حتى 3 أفلام يوميًا)',
+  ur: 'Kling 4.0 تیس دن مفت (روزانہ 3 فلموں تک)',
+  hi: '30 दिन मुफ़्त Kling 4.0 शामिल (रोज़ 3 फ़िल्मों तक)',
+  id: 'Termasuk Kling 4.0 gratis 30 hari (hingga 3 film per hari)',
+  vi: 'Kèm Kling 4.0 miễn phí 30 ngày (tối đa 3 phim mỗi ngày)',
+}
+
 function fill(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))
 }
 
 /** As frases do bloco, montadas da fonte única (buyCreatorPrice + creatorSeedanceFilms). Língua desconhecida = inglês. */
-export function film60Copy(language: unknown = 'en', live: boolean = WELCOME20_SITE_OFFER_LIVE): Film60Copy {
+export function film60Copy(language: unknown = 'en', live: boolean = WELCOME20_SITE_OFFER_LIVE, kling4Promo: boolean = false): Film60Copy {
   const key = typeof language === 'string' && COPY[language] ? language : 'en'
   const t = COPY[key]
   const price = buyCreatorPrice(live)
@@ -191,12 +213,12 @@ export function film60Copy(language: unknown = 'en', live: boolean = WELCOME20_S
   }
   return {
     title: fill(t.title, vars),
-    subtitle: fill(price.firstMonth ? t.offer : t.plain, vars),
+    subtitle: fill(price.firstMonth ? t.offer : t.plain, vars) + (kling4Promo ? ` · ${FILM60_KLING4_PROMO_LINE[key] ?? FILM60_KLING4_PROMO_LINE.en}` : ''), // KINEO-VENDER-3-2910
     button: fill(t.button, vars),
   }
 }
 
-export function film60ShownMetadata(input: { videoId: unknown; plan: unknown; surface: Film60Surface; seconds: unknown }) {
+export function film60ShownMetadata(input: { videoId: unknown; plan: unknown; surface: Film60Surface; seconds: unknown; kling4Promo?: boolean }) {
   const price = buyCreatorPrice()
   return {
     version: FILM60_VERSION,
@@ -208,5 +230,6 @@ export function film60ShownMetadata(input: { videoId: unknown; plan: unknown; su
     full_price: price.full,
     films: creatorSeedanceFilms(),
     intent_campaign: input.surface === 'email' ? FILM60_EMAIL_CAMPAIGN : FILM60_CAMPAIGN,
+    kling4_promo: input.kling4Promo === true, // KINEO-VENDER-3-2910
   }
 }

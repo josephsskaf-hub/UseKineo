@@ -171,6 +171,7 @@ import {
 import { WELCOME20_DEADLINE_ENDED_NOTICE, WELCOME20_DEADLINE_UNKNOWN, readWelcome20Deadline, startWelcome20Deadline, welcome20CheckoutDecision, welcome20DeadlineIdSeed, welcome20DeadlineUuid, type Welcome20DeadlineDb } from '@/lib/growth/welcome20Deadline'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
+import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910
 import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" no custom_text do passe avulso
 import {
   AUTOPILOT_PILOT_DISMISSED_COOKIE,
@@ -1229,6 +1230,9 @@ async function buildAndRedirect(
     credits: plan.credits,
     intentCampaign,
     tier,
+    // KINEO-VENDER-3-2910 — a promo do Kling 4.0 aparece na página da Stripe onde a pessoa decide (só copy).
+    kling4Promo: kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok' && Date.now() < Date.parse(KLING4_PROMO_SIGNUP_CUTOFF),
+    kling4Paid: KLING4_PAID_LIVE,
   })
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'

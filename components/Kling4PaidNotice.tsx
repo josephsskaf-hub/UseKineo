@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { KLING4_PAID_COPY, kling4PromoVisible, validKling4PaidAvailability, type Kling4PaidAvailability } from '@/lib/kling4PaidPresentation'
+import { trackEvent } from '@/lib/analytics' // KINEO-VENDER-3-2910
 
 export function useKling4PaidAvailability(enabled = true): Kling4PaidAvailability | null {
   const [state, setState] = useState<Kling4PaidAvailability | null>(null)
@@ -48,6 +49,14 @@ export default function Kling4PaidNotice({ surface, availability }: {
   const visible = kling4PromoVisible(a)
   const limited = validKling4PaidAvailability(a) && a.paidLive && a.promoLive &&
     ['global_cap', 'daily_cap', 'user_cap', 'cap', 'daily_limit', 'budget_exhausted'].includes(a.reason) && (!a.expiresAt || Date.parse(a.expiresAt) > Date.now())
+  // KINEO-VENDER-3-2910 — a promo foi ao ar em 29/10 sem nenhuma medição: zero eventos em 12 h. Uma impressão por
+  // superfície e estado por montagem; o evento não carrega nada da pessoa além da superfície.
+  const shownState = visible ? 'offer' : limited ? 'daily_cap' : null
+  useEffect(() => {
+    if (!shownState) return
+    void trackEvent('kling4_promo_notice_shown', { surface, state: shownState, reason: validKling4PaidAvailability(a) ? a.reason : null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [surface, shownState])
   if (!visible && !limited) return null
   return <aside data-kling4-paid-notice={surface} style={{ margin: '14px 0', padding: '14px 16px', border: '1px solid var(--line, var(--border))', borderRadius: 14, background: 'var(--card2, #f5f7fb)', color: 'var(--txt, var(--text))', fontSize: 12, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
     {limited ? <p role="status" style={{ margin: 0, fontWeight: 600 }}><UiLabel>{KLING4_PAID_COPY.dailyCap}</UiLabel></p> : <>

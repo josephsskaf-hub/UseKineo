@@ -30,7 +30,21 @@ export type CheckoutValueContextInput = {
   credits: number
   intentCampaign: string | undefined
   tier: CheckoutPlanTier
+  /** KINEO-VENDER-3-2910 — promo do Kling 4.0 viva no servidor (kling4PromoPolicyReason === 'ok'). Só copy. */
+  kling4Promo?: boolean
+  /** KINEO-VENDER-3-2910 — Kling 4.0 substituiu o Kling 3 no plano pago (KLING4_PAID_LIVE). Só o nome muda. */
+  kling4Paid?: boolean
 }
+
+/**
+ * KINEO-VENDER-3-2910 — a frase da promo no checkout da Stripe. Medido 29/10: 86 pessoas abriram o checkout em 14 d e 1
+ * pagou; a promo (qualquer plano até 30/11 → Kling 4.0 grátis 30 dias, até 3 filmes/dia) não aparecia na página onde a
+ * pessoa decide. Espelha KLING4_PAID_COPY.offer/terms (lib/kling4PaidPresentation.ts) sem importar de lá (guardiões
+ * executam este módulo com mocks fechados).
+ */
+export const CHECKOUT_KLING4_PROMO_SENTENCE =
+  'Includes Kling 4.0 free for 30 days — up to 3 films or ads a day, up to 60 s each.'
+export const CHECKOUT_KLING4_PROMO_LINE = 'Kling 4.0 free for 30 days (up to 3 films a day)'
 
 export type CheckoutValueContext = {
   lineItemDescription: string | null
@@ -81,7 +95,7 @@ function resultCountDescription(input: CheckoutValueContextInput): {
     const seedanceFilms = Math.floor(input.credits / seedanceCost)
     return {
       lineItemDescription:
-        `${input.credits} credits / month — ${klingFilms} Kling 3 60s film` +
+        `${input.credits} credits / month — ${klingFilms} ${input.kling4Paid ? 'Kling 4.0' : 'Kling 3'} 60s film` + // KINEO-VENDER-3-2910
         `${klingFilms === 1 ? '' : 's'} or up to ${seedanceFilms} Seedance 60s AI films, with voiceover, captions and no watermark`,
       outputCount: klingFilms,
     }
@@ -104,6 +118,10 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
     : `Credits are added after payment succeeds. Renews ${renewal} at the price shown. ` +
       'Cancel anytime from Account. 7-day money-back guarantee.' + ` ${CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE}` // KINEO-AVULSO-GARANTIA-2810
 
+  // KINEO-VENDER-3-2910 — a promo abre a frase do botão de pagar e fecha a linha do produto (quando há linha).
+  const promoSubmit = input.kling4Promo ? `${CHECKOUT_KLING4_PROMO_SENTENCE} ${submitMessage}` : submitMessage
+  const withPromoLine = (line: string | null) => (line && input.kling4Promo ? `${line} · ${CHECKOUT_KLING4_PROMO_LINE}` : line)
+
   const bridgeEligibleTier = input.tier === 'basic' || input.tier === 'pro'
   const bridgeContext =
     input.intentCampaign === TRIAL_BALANCE_BRIDGE_VERSION &&
@@ -113,9 +131,9 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
   if (!bridgeContext) {
     const standard = resultCountDescription(input)
     return {
-      lineItemDescription: standard.lineItemDescription,
+      lineItemDescription: withPromoLine(standard.lineItemDescription),
       outputCount: standard.outputCount,
-      submitMessage,
+      submitMessage: promoSubmit,
       variant: 'standard_result_count',
       version: CHECKOUT_VALUE_CONTEXT_VERSION,
     }
@@ -123,11 +141,11 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
 
   const outputCount = Math.floor(input.credits / TRIAL_BALANCE_BRIDGE_COST)
   return {
-    lineItemDescription:
+    lineItemDescription: withPromoLine(
       `${input.credits} credits / month — up to ${outputCount} Seedance ${TRIAL_BALANCE_BRIDGE_DURATION}s films ` +
-      `(${TRIAL_BALANCE_BRIDGE_COST} credits each), watermark-free`,
+      `(${TRIAL_BALANCE_BRIDGE_COST} credits each), watermark-free`),
     outputCount,
-    submitMessage,
+    submitMessage: promoSubmit,
     variant: 'trial_balance_seedance',
     version: CHECKOUT_VALUE_CONTEXT_VERSION,
   }
