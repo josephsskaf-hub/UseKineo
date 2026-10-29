@@ -8,6 +8,11 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
+import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
+import { isKling4PaidFilmSeconds, prepareKling4PaidFilm } from '@/lib/kling4PaidFilm'
+import { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
+import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
@@ -1652,6 +1657,11 @@ async function manipularPost(req: NextRequest) {
     const wantsSora = body.engine === 'sora'
     // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0 (per-scene engine routing).
     const wantsHollywood = body.engine === 'hollywood'
+    const paidKling4 = wantsHollywood && KLING4_PAID_LIVE
+    const expectedKlingEngine = (body as unknown as Record<string, unknown>).kling4_expected_engine
+    if (wantsHollywood && typeof expectedKlingEngine === 'string' && expectedKlingEngine !== (paidKling4 ? 'kling4' : 'kling3')) {
+      return NextResponse.json({ error: 'The film engine changed. Refresh the engine card before generating.', reason: 'kling4_engine_changed', charged: false }, { status: 409 })
+    }
     // KINEO-H3-2026-08-19 — o H3 é uma FAMÍLIA do caminho Hollywood, não um
     // caminho novo: `hollywoodPath` é o que liga o planner, o Contrato de
     // duração, a narração verbatim e a variedade determinística. `family` só
@@ -2169,7 +2179,9 @@ async function manipularPost(req: NextRequest) {
           : wantsVeo
             ? 'cinematic_veo'
             : 'cinematic_ai'
-    const cost = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29: + a sobretaxa da estrela (0 sem estrela), ANTES do claim e do débito
+    let cost = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29: + a sobretaxa da estrela (0 sem estrela), ANTES do claim e do débito
+    let paidKling4Promo: Awaited<ReturnType<typeof reserveKling4Promo>> | null = null
+    let paidKling4Admin: SupabaseClient | null = null
     const duracaoCobrada = duration // V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23: a duração que o `cost` precifica
     void baseCost // mantido para leitura: é o valor de referência a 60s
     // KINEO-ESTRELA-DO-FILME-2026-09-29 — o pedido aceito, com a sobretaxa já dentro do `cost` (contagens; nunca caminho ou URL).
@@ -2185,6 +2197,25 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: scriptTooLongForShortFilmMessageDoMotor(falaCurtaDoMotor, duration, creditCostForDuration(costQuality, true, falaCurtaDoMotor.sugestao)), reason: falaCurtaDoMotor.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaDoMotor.estSeconds), suggested_seconds: falaCurtaDoMotor.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
       } // KINEO-DURACOES-CURTAS-2026-09-29
     } // KINEO-DURACOES-CURTAS-2026-09-29
+
+    if (paidKling4) {
+      if (!isKling4PaidFilmSeconds(duration) || !kling4PaidBudget(duration).marginFloorMet) {
+        return NextResponse.json({ error: 'Kling 4.0 films are available at 15, 30 or 60 seconds.', reason: 'kling4_paid_duration_not_offered', charged: false }, { status: 422 })
+      }
+      // Identity edit is separately priced and cannot silently spend the promotion's bounded fal budget.
+      if (estrelaAtiva) return NextResponse.json({ error: 'Use the regular character workflow for reference-face films.', reason: 'kling4_reference_workflow_unavailable', charged: false }, { status: 422 })
+      if (aspectRequested !== '9:16') return NextResponse.json({ error: 'Kling 4.0 currently produces vertical 9:16 films.', reason: 'kling4_paid_portrait_only', charged: false }, { status: 422 })
+      const paidUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const paidKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!paidUrl || !paidKey) return NextResponse.json({ error: 'Film safety is temporarily unavailable.', charged: false }, { status: 503 })
+      paidKling4Admin = createAdminClient(paidUrl, paidKey, { auth: { persistSession: false, autoRefreshToken: false } })
+      if (!body.dry_run) paidKling4Promo = await reserveKling4Promo(paidKling4Admin, { userId: user.id, jobId: generationId,
+        kind: 'film', seconds: duration, falExtrasMilliUsd: kling4PaidFalExtrasMilliUsd(duration) })
+      if ((body as unknown as Record<string, unknown>).kling4_expect_promo === true && !paidKling4Promo?.isFree) {
+        return NextResponse.json({ error: 'The free Kling 4.0 allowance is unavailable. Review the credit price before generating.', reason: paidKling4Promo?.reason ?? 'promo_unavailable', charged: false, credits_required: kling4PaidCredits(duration) }, { status: 409 })
+      }
+      cost = paidKling4Promo?.isFree ? 0 : kling4PaidCredits(duration)
+    }
 
     // ═══ KINEO-SAIDA-REGIAO-2026-10-07 (a) [TRAVA 8.2 — "vai pra tudo" do fundador 07/10] — ADMISSÃO DO FILME GRÁTIS DE REGIÃO ═══
     // [KINEO-SAIDA-REGIAO-2026-10-07] UM Seedance 1.5 de 15 s por conta 'region_paid_only' (lib/freeFilmPolicy.ts, interruptor REGION_FREE_FILM_LIVE):
@@ -2622,7 +2653,7 @@ async function manipularPost(req: NextRequest) {
       : wantsH3Max // KINEO-H3MAX-2026-10-13
       ? 'h3max' // KINEO-H3MAX-2026-10-13
       : wantsHollywood
-      ? 'hollywood'
+      ? paidKling4Promo?.isFree ? 'kling4-promo-v1' : paidKling4 ? 'kling4-paid-v1' : 'hollywood'
       : wantsKling
         ? 'kling'
         : wantsVeo
@@ -2646,7 +2677,7 @@ async function manipularPost(req: NextRequest) {
         { status: 503 },
       )
     }
-    const cinematicAdmin: SupabaseClient = createAdminClient(supabaseUrl, serviceRoleKey, {
+    const cinematicAdmin: SupabaseClient = paidKling4Admin ?? createAdminClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     // sprint-assinaturas #14 — a caixa-preta abre aqui. O campo session_id
@@ -2783,6 +2814,10 @@ async function manipularPost(req: NextRequest) {
       insufficient: boolean
       error: string
     }> => {
+      if (creditCost === 0 && paidKling4Promo?.isFree) {
+        const authorized = await verifyKling4PromoReservation(cinematicAdmin, { userId: user.id, jobId: generationId, kind: 'film', seconds: duration })
+        return { ok: authorized, balance, insufficient: false, error: authorized ? '' : 'promotion reservation unavailable' }
+      }
       const { data, error } = await debitVideoCredits(supabase, {
         userId: user.id,
         renderId: billingReference,
@@ -2801,6 +2836,7 @@ async function manipularPost(req: NextRequest) {
     }
 
     const confirmCinematicRefund = async (): Promise<boolean> => {
+      if (cost === 0 && paidKling4Promo?.isFree) return true
       const refunded = await refundRenderCredits(billingReference)
       if (refunded > 0) return true
       const { data, error } = await cinematicAdmin
@@ -2867,7 +2903,7 @@ async function manipularPost(req: NextRequest) {
         secret: serviceRoleKey,
         userId: user.id,
         generationId,
-        reason: 'provider_submitted_and_debited',
+        reason: claim.creditCost === 0 && paidKling4Promo?.isFree ? 'provider_submitted_promo' : 'provider_submitted_and_debited',
         renderId: billingReference,
       })
       if (!settled.ok) {
@@ -2892,6 +2928,7 @@ async function manipularPost(req: NextRequest) {
       creditCost: cost,
       quality: claimQuality,
       engine: claimEngine,
+      ...(paidKling4Promo?.isFree ? { promoSeconds: duration } : {}),
     })
     if (acquired.kind === 'conflict') {
       return NextResponse.json({ error: acquired.error }, { status: 409 })
@@ -3050,7 +3087,7 @@ async function manipularPost(req: NextRequest) {
       userId: user.id,
       currentClaimId: acquired.claim.id,
     })
-    if (!holds.ok || !holds.currentSeen) {
+    if (!holds.ok || (!holds.currentSeen && !(cost === 0 && paidKling4Promo?.isFree))) {
       console.error('[cinematic] credit hold audit failed:', holds.ok ? 'current claim missing' : holds.error)
       await releaseBirthClaim('hold_audit_failed')
       return NextResponse.json(
@@ -3084,6 +3121,7 @@ async function manipularPost(req: NextRequest) {
     // pelo gate Kling/Veo/Hollywood, que exige `isPaidUser` de verdade.
     // Flag OFF ⇒ termo false ⇒ predicado idêntico ao anterior.
     const currentPaid =
+      paidKling4Promo?.isFree === true ||
       currentProfile.has_paid === true ||
       PAID_PLANS.has(currentPlan) ||
       freeWeeklyAdmitted || // KINEO-E4-SAIDA-B-2026-09-29: admitido acima pela cota semanal (15 s, Seedance, país da lista); o saldo abaixo segue cobrando
@@ -3092,7 +3130,7 @@ async function manipularPost(req: NextRequest) {
       isTrialActive(currentProfile)
     const currentBalance = Math.max(0, currentProfile.video_credits)
     const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)
-    if (!currentPaid || holds.totalHeld > currentBalance) {
+    if (!currentPaid || (cost > 0 && holds.totalHeld > currentBalance)) {
       await releaseBirthClaim('insufficient_available_credits')
       return NextResponse.json(
         {
@@ -5496,6 +5534,71 @@ async function manipularPost(req: NextRequest) {
           }, { status: 422 })
         }
       }
+      if (paidKling4) {
+        // The approved plan and speech guards above are shared. Only the paid queue dispatch changes.
+        const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')
+        const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: null as string | null }))
+        // One keyframe maximum. Failed or unapproved images select text-to-video; no image retry can exceed the quote.
+        providerSubmissionMayExist = true
+        const firstStill = await generateCinematicSceneStill({ scenePrompt: paidScenes[0].prompt, styleSuffix: plan.styleSheet ?? '', seed: generationSeed,
+          pollWindowMs: 9_000, aspect: '9:16' })
+        if (firstStill) {
+          const critic = await criticarStill({ indice: 0, url: firstStill, mostra: paidScenes[0].prompt, fala: narration,
+            prompt: paidScenes[0].prompt, seed: generationSeed }, { filme: novoFilmeDoCritico('log_only', { prazo: Date.now() + 8_000 }),
+            gerarStill: async () => null, maxRegeracoesCena: 0 })
+          if (critic.relato.veredito === 'PASS') paidScenes[0].approvedStillUrl = firstStill
+          await writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId,
+            metadata: { generation_id: generationId, engine: 'kling4', path_kind: 'paid', ...critic.relato } })
+        }
+        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes })
+        const ids: (string | null)[] = chunks.map(() => null)
+        const models = chunks.map(chunk => chunk.model)
+        const submittedAt = new Date().toISOString()
+        let uncertain = false
+        for (const chunk of chunks) {
+          const identity = { userId: user.id, jobId: generationId, phase: 'kling4' as const, index: chunk.index }
+          const slot = await claimKling4PaidSlot(cinematicAdmin, identity)
+          if (slot.code === 'existing') {
+            if (slot.state === 'accepted' && slot.requestId && slot.model === chunk.model) { ids[chunk.index] = slot.requestId; continue }
+            uncertain = slot.state !== 'rejected'; break
+          }
+          if (slot.code !== 'claimed') { uncertain = true; break }
+          let state: 'accepted' | 'ambiguous' = 'ambiguous'
+          try {
+            const job = await submitKling4TrialVideo({ prompts: chunk.prompts, approvedStills: chunk.approvedStills }, {
+              apiKey: process.env.FAL_KEY ?? '', onPost: () => { ctxDespacho().totalPosts++ },
+            })
+            ids[chunk.index] = job.requestId
+            state = 'accepted'
+            await recordKling4PaidUse(cinematicAdmin, { userId: user.id, jobId: generationId })
+          } catch { uncertain = true }
+          const saved = await finishKling4PaidSlot(cinematicAdmin, { ...identity, token: slot.token, state,
+            requestId: ids[chunk.index], model: chunk.model })
+          if (!saved || state !== 'accepted') { uncertain = true; break }
+        }
+        cinematicSubmissionUncertain = uncertain
+        const marker = { version: 'kling4_paid_2810', promo: cost === 0, seconds: duration, engine_used: 'kling4', submitted_at: submittedAt,
+          fallback_budget_reserved: true, chunk_scenes: chunks.map(chunk => ({ prompt: chunk.prompts.join(' '), duration: 15 })),
+          cost_basis: 'reserved_upper_bound', cost_usd: kling4PaidBudget(duration).falMilliUsd / 1000,
+          promo_reason: paidKling4Promo?.reason ?? 'disabled' }
+        const response: Record<string, unknown> = {
+          mode: 'cinematic_ai', freeTrial: false, generationId, prompt, duration, requested_duration: requestedDuration, aspect: '9:16',
+          language: narrationLanguage.language, quality: claimQuality, verbatim, speed: parsedScript.speed,
+          fal_request_ids: ids, fal_models: models, fal_model: models[0],
+          scenes: chunks.map(chunk => chunk.prompts.join(' ')), scene_captions: chunks.map(chunk => chunk.narration),
+          voiceover_script: narration, scene_narrations: chunks.map(chunk => chunk.narration), scene_seconds: chunks.map(() => 15),
+          scene_engines: chunks.map(() => 'cinematic'), scene_dialogues: chunks.map(() => null),
+          scene_prompts: chunks.map(chunk => chunk.prompts.join(' ')), scene_anchor_urls: chunks.map(chunk => chunk.approvedStills[0] ?? null),
+          scene_fal_inputs: chunks.map(chunk => chunk.input), kling4_paid: marker,
+          engine_used: 'kling4', engine_label: 'Kling 4.0', credits_charged: cost,
+          ...(!paidKling4Promo?.isFree && ['cap', 'daily_limit'].includes(paidKling4Promo?.reason ?? '') ? {
+            kling4_promo_notice: 'The free daily Kling 4.0 allowance is used up. This film uses the regular credit price.',
+          } : {}),
+        }
+        { const c = ctxDespacho(); c.engine = models[0]; c.planned = chunks.length; c.quality = claimQuality }
+        return publishCinematicResponse(response, ids, models)
+      }
+
       // ═══ KINEO-VOZ-NA-BOCA-2026-09-11 — LIGADO POR PADRÃO ═══════════════════
       // Ordem do fundador (11/09): "a gente vai colocar a voz na boca do avatar".
       // Toda cena de diálogo com retrato-âncora sai com a NOSSA voz (TTS, gênero

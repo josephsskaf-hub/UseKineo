@@ -87,7 +87,9 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 // cota é o único modo de falha do render que é 100% previsível.
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
-import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
+import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, isKling4PromoCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
+import { kling4PaidCredits } from '@/lib/kling4PaidPricing'
+import { verifyKling4PromoReservation } from '@/lib/kling4PromoServer'
 import { duracaoDoFilmeAssinada } from '@/lib/cinematic/duracaoDoFilme' // KINEO-PARCEIRO-EYEBIBLE-1410
 import { sobretaxaAssinadaDaEstrela } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
@@ -808,6 +810,9 @@ export async function POST(req: NextRequest) {
     const tempo = cronometroDaMontagem() // KINEO-FILME-RAPIDO-1710 · tempo — voz, transcrição, música e envio ao Creatomate, em ms (evento compose_stage_timing)
     const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre
     let cinematicBirthClaim: CinematicClaim | null = null
+    let paidKling4PriceVerified = false
+    let paidKling4PromoVerified = false
+    let paidKling4EngineUsed: string | null = null
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
     // (nunca do corpo): null = montagem de hoje
     let signedClipPlan: ReturnType<typeof alignSignedClipPlan> = null
@@ -890,6 +895,22 @@ export async function POST(req: NextRequest) {
       // (38 + 6 = 44) e assina a sobretaxa na resposta do claim; as duas conferências de preço abaixo somam ESSE número (lido [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
       // do claim assinado, nunca do corpo). Sem estrela ou claim antigo = 0 → as linhas de sempre decidem. [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
       const estrelaSobretaxaAssinada = sobretaxaAssinadaDaEstrela(cinematicBirthClaim.response, cinematicBirthClaim.creditCost) // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
+      const paidMarker = cinematicBirthClaim.response?.kling4_paid as Record<string, unknown> | undefined
+      if (paidMarker?.version === 'kling4_paid_2810' && trustedQuality === 'cinematic_hollywood') {
+        const paidDuration = Number(cinematicBirthClaim.response?.duration)
+        if (![15, 30, 60].includes(paidDuration) || paidMarker.seconds !== paidDuration ||
+          !['kling4', 'seedance15_fallback'].includes(String(paidMarker.engine_used)) ||
+          cinematicBirthClaim.falRequestIds.length !== clipUrls.length ||
+          cinematicBirthClaim.authorizedCompletedUrls.some((url, i) => !url || url !== clipUrls[i])) {
+          return NextResponse.json({ error: 'The complete signed Kling 4.0 film is required.' }, { status: 400 })
+        }
+        paidKling4PromoVerified = isKling4PromoCinematicClaim(cinematicBirthClaim) && await verifyKling4PromoReservation(composeAdmin,
+          { userId: authenticatedUserId, jobId: generationId, kind: 'film', seconds: paidDuration })
+        paidKling4PriceVerified = paidKling4PromoVerified || cinematicBirthClaim.creditCost === kling4PaidCredits(paidDuration)
+        if (!paidKling4PriceVerified) return NextResponse.json({ error: 'Kling 4.0 billing could not be verified.' }, { status: 503 })
+        paidKling4EngineUsed = String(paidMarker.engine_used)
+        duration = paidDuration
+      }
       {
         const claimDurationRaw = Number(cinematicBirthClaim.response?.duration)
         const claimDuration = Number.isFinite(claimDurationRaw) && claimDurationRaw > 0 ? claimDurationRaw : null
@@ -929,9 +950,9 @@ export async function POST(req: NextRequest) {
         // passaram. Em modo de resgate o custo de confianca e o DO CLAIM (ja
         // debitado, assinado) — recalcular pela duracao aqui nao protege
         // ninguem, so nega a entrega. Cliente comum continua na regra dura.
-        (!isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration) + estrelaSobretaxaAssinada) || // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
+        (!paidKling4PriceVerified && !isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration) + estrelaSobretaxaAssinada) || // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
         estrelaSobretaxaAssinada === 0 && // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
-        (!isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration)) ||
+        (!paidKling4PriceVerified && !isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration)) ||
         !inputsMatch
       ) {
         return NextResponse.json(
@@ -1915,6 +1936,7 @@ export async function POST(req: NextRequest) {
       // exato de hoje. Registrado como dívida em
       // docs/QA-REVERSE-TRIAL-2026-08-07.md para o fundador decidir.
       const hasPaidCreditAccess =
+        paidKling4PromoVerified ||
         !isFreePlan ||
         (hasPaid && creditBalance > 0) ||
         ent.isTrial ||
@@ -2119,7 +2141,7 @@ export async function POST(req: NextRequest) {
         // créditos presos (dois holds de 27). Ela se cadastrou às 04:35,
         // tentou três vezes e foi embora sem UM vídeo.
         // Toda reserva/cobrança tem de sair da MESMA função que criou o claim.
-        const prepaidReservation = await claimGenerationSubmission(avatarPrepaidCost ?? creditCostForDuration(quality, true, duration), false) // KINEO-AVATAR-PRESO-2010 — avatar: o custo do nascimento; cinematic: a linha de sempre
+        const prepaidReservation = await claimGenerationSubmission(cinematicPrepaidCost ?? avatarPrepaidCost ?? creditCostForDuration(quality, true, duration), false) // KINEO-AVATAR-PRESO-2010 — avatar: o custo do nascimento; cinematic: o custo assinado, inclusive promoção de custo zero
         if (prepaidReservation.kind !== 'acquired') return prepaidReservation.response
       } else {
         const paidReservation = await reservePaidCreditSlot(creditCostForDuration(quality, true, duration))
@@ -2763,7 +2785,7 @@ export async function POST(req: NextRequest) {
           musicUrl: hollywoodMusicUrl,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         // KINEO-H3-AUDIO-2026-08-20 — ver o comentário no builder.
-        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
+        muteClipAudio: Boolean(paidKling4EngineUsed) || quality === 'cinematic_h3' || quality === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || quality === 'cinematic_omni' || quality === 'cinematic_s25', // Paid Kling4 uses the approved narrator, like the trial; never mix provider speech underneath.
         })
       } catch (err) {
         if (err instanceof CinematicTimelineError) {
@@ -2886,6 +2908,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         render_id: hollywoodRenderId,
         quality,
+        ...(paidKling4EngineUsed ? { engine_used: paidKling4EngineUsed, engine_label: paidKling4EngineUsed === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5' } : {}),
         duration,
         voiceover_url: narrationBlocks[0]?.url ?? '',
         // KINEO-TRIAL-WATERMARK-2026-09-07 — o caminho hollywood marca APENAS

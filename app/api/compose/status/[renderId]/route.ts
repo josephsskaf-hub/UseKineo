@@ -111,6 +111,7 @@ async function persistCompletedVideo(args: {
   duration: number
   topic: string
   creditsUsed: number
+  engineUsed?: 'kling4' | 'seedance15_fallback'
   // PUSH #100 — descrição já BRANDED (helper aplicado pelo caller). Vazio =
   // não escreve a coluna, deixando o /api/video-summary preencher depois.
   youtubeDescription?: string
@@ -173,6 +174,7 @@ async function persistCompletedVideo(args: {
     duration: args.duration,
     quality_mode: args.quality,
     credits_used: args.creditsUsed,
+    ...(args.engineUsed ? { engine_used: args.engineUsed } : {}),
   }
   const brandedDescription = (args.youtubeDescription ?? '').trim()
   if (brandedDescription) row.youtube_description = brandedDescription
@@ -1145,6 +1147,9 @@ export async function GET(
             // 21/08. `topicFinal` cai no claim quando a URL não traz nada.
             topic: topicFinal,
             creditsUsed: free15GateFailure ? 0 : cost,
+            ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' &&
+              ['kling4', 'seedance15_fallback'].includes(String((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown>).engine_used))
+              ? { engineUsed: (prepaidCinematicClaim!.response!.kling4_paid as { engine_used: 'kling4' | 'seedance15_fallback' }).engine_used } : {}),
             youtubeDescription: historyDescription,
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
@@ -1589,6 +1594,10 @@ export async function GET(
 
       return NextResponse.json({
         phase: 'done',
+        ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' ? {
+          engine_used: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used,
+          engine_label: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5',
+        } : {}),
         final_video_url: responseVideoUrl,
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,

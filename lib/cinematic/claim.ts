@@ -836,6 +836,9 @@ export async function replaceKling4PaidBinding(args: {
     if (current.authorizedCompletedUrls.some(Boolean) || !Array.isArray(after.original_request_ids) ||
       !sameArray(after.original_request_ids, current.falRequestIds)) return { ok: false, error: 'paid fallback source changed', conflict: true }
   }
+  if (after.fallback_started === true && before.fallback_started !== true && current.authorizedCompletedUrls.some(Boolean)) {
+    return { ok: false, error: 'paid source already completed', conflict: true }
+  }
   const candidate = withSignature(args.secret, { ...current, response, responseHash: cinematicValueHash(response),
     falRequestIds: [...args.falRequestIds], falModels: [...args.falModels], authorizedCompletedUrls: [...args.authorizedCompletedUrls] })
   if (!validResponseBinding(candidate)) return { ok: false, error: 'invalid paid fallback response binding' }

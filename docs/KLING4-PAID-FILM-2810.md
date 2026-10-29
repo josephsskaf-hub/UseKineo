@@ -1,0 +1,17 @@
+# Kling 4.0 paid film — local handoff, 2026-10-29
+
+**IMPLEMENTADO / FATO CONFIRMADO:** `engine='hollywood'` selects the paid Kling4 branch only with `KLING4_PAID_LIVE=true`. With the flag off the original Kling3 branch remains. The first-free-film modules and their daily budget are unchanged.
+
+**IMPLEMENTADO / FATO CONFIRMADO:** paid films offer 15/30/60 seconds. The approved plan, script fidelity and speech guards run before the new dispatch. The film queues one/two/four 15-second chunks through the trial's `buildKling4TrialInput` and `submitKling4TrialVideo`. Polling and Seedance fallback import the trial transports, with separate paid queue slots and budget. A lost receipt cannot authorize a second POST. All fallback clips must complete before delivery; no part of the script is discarded.
+
+**IMPLEMENTADO / FATO CONFIRMADO:** a promotion claim costs zero only with the `kling4-promo-v1` engine marker, Hollywood quality, service ledger proof for the same user/job/duration, and an HMAC-signed response. No credit debit runs for that claim. Compose verifies the ledger and full signed clip set, and honors the original signed price after a flag rollback. A browser that expected the promotion receives 409 if it is unavailable; it must review the credit price before a paid request. A changed engine also requires refreshing the card before submission.
+
+**IMPLEMENTADO / FATO CONFIRMADO — price arithmetic:** the central quotes are 45/80/150 credits, in `lib/kling4PaidPricing.ts`. The founder's approximate 35/65 short-film suggestions were subordinate to a 40% floor. A full fallback already makes 35 credits insufficient for 15 seconds before any other extra. Budgeted totals include Kling4 at 157 milliUSD/second, one still at 100 milliUSD, one full fallback at 468 milliUSD per 15-second chunk, and a 330 milliUSD provision for other costs. The resulting cost budgets are 3,253/6,076/11,722 milliUSD versus Creator credit revenue 5,985/10,640/19,950 milliUSD. All meet the floor arithmetically. The 60-second quote remains 150 credits.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** the 330 milliUSD non-video provision is a declared budget, not a measured invoice or proof of actual margin. Canaries must reconcile realized provider costs before enabling the launch. The paid branch bounds fal image work to one still, with no image regeneration; only a PASS-selected keyframe can reach the Kling input, otherwise generation is text-directed. Native video audio is muted and the approved narrator/captions are retained.
+
+**IMPLEMENTADO / FATO CONFIRMADO:** `videos.engine_used` stores the actual provider from the signed claim. The promotion fallback is labeled Seedance 1.5. Historical rows remain null because their engine is unknown. A database trigger prevents clients assigning or changing this badge field. Apply the new local migration before canaries; this work did not apply it.
+
+**TESTADO LOCALMENTE:** offline guards cover the prices and rollback switch, script preservation, 15/30/60 chunks, single POST, uncertain receipts, zero-claim authorization, signed fallback transitions, and SQL queue slots. The final integrated test counts and typecheck result belong to the root handoff.
+
+**NÃO VALIDADO EM PRODUÇÃO:** no paid render, build or deploy was run. Claude owns canaries and publication. Prepared code and offline tests are not customer activation, paid revenue or production validation.
