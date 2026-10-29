@@ -5176,14 +5176,15 @@ export default function GenerateClient({
         // The server alone can replace a failed/timed-out Kling trial with Seedance.
         // Restore every parallel scene vector before restarting polling with its signed IDs.
         if (data.replacement !== undefined) {
-          const replacement = kling4PaidReplacement(data.replacement, generationId!) ?? kling4TrialReplacement(data.replacement, generationId!)
+          const replacement = data.replacement?.quality === 'cinematic_hollywood'
+            ? kling4PaidReplacement(data.replacement, generationId!)
+            : kling4TrialReplacement(data.replacement, generationId!)
           if (!replacement) { scheduleNextPoll(6000); return }
           const nextIds = replacement.fal_request_ids as (string | null)[]
           falModelRef.current = typeof replacement.fal_model === 'string' ? replacement.fal_model : ''
           falModelsRef.current = replacement.fal_models as string[]
           falQualityRef.current = replacement.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : 'cinematic_ai'
-          if (typeof replacement.engine_used === 'string') setActualEngineUsed(replacement.engine_used)
-          else setActualEngineUsed('seedance15_fallback')
+          if (replacement.quality === 'cinematic_hollywood' && typeof replacement.engine_used === 'string') setActualEngineUsed(replacement.engine_used)
           sceneEnginesRef.current = []
           scenePromptsRef.current = Array.isArray(replacement.scene_prompts) ? replacement.scene_prompts.map(x => typeof x === 'string' ? x : '') : []
           sceneAnchorsRef.current = Array.isArray(replacement.scene_anchor_urls) ? replacement.scene_anchor_urls.map(x => typeof x === 'string' ? x : null) : []

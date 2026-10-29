@@ -32,6 +32,7 @@ export function kling4AdActualEngine(plan: unknown): 'kling4' | null {
 
 /** Gate before durable provider intentions; read-only polls and completed jobs need no new budget. */
 export function kling4AdMaySpend(state: CenaEscolhaState): boolean {
+  if (state.phase !== 'video' && state.phase !== 'ready') return false
   const media = state.escolhaMedia
   const narrated = state.plan.voice_mode === 'narrated' || !state.plan.voice_mode && state.plan.audioMode === 'voiceover'
   const voice = narrated && !state.voiceUrl && (!media || media.voice.status === 'new')

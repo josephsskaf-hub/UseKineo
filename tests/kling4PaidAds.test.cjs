@@ -39,6 +39,7 @@ test('new paid ads use the real engine while samples and rollback retain Kling3'
     assert.equal(tiers.routeShot('text', 'commercial', 1), null)
     assert.equal(tiers.routeShot('user_video', 'commercial', 1), null)
     assert.equal(tiers.routeShot('product_hero', 'cinema', 1), 'seedance_20_fast')
+    assert.equal(paid.kling4AdMaySpend({ phase: 'failed', plan: { voice_mode: 'narrated' }, jobs: [] }), false)
   }
 })
 test('voice tariff allowance bounds both complete syntheses without trimming Unicode text', () => {
