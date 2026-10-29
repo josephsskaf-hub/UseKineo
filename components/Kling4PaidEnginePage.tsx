@@ -8,18 +8,26 @@ import { KLING4_PAID_COPY } from '@/lib/kling4PaidPresentation'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 
 /** No sample is labelled Kling 4 until a real Kling 4 sample has been approved. */
-export default function Kling4PaidEnginePage() {
+// KINEO-VENDER-3-2910 — serverPaidLive vem do interruptor do servidor: o HTML que robôs e ChatGPT leem deixa de dizer
+// "currently unavailable" enquanto a disponibilidade ainda não chegou ao navegador. A leitura ao vivo continua mandando.
+export default function Kling4PaidEnginePage({ serverPaidLive = false, freeFilmIsKling4 = false, freeLine = null }: {
+  serverPaidLive?: boolean
+  freeFilmIsKling4?: boolean
+  freeLine?: string | null
+} = {}) {
   const a = useKling4PaidAvailability()
+  const paidLive = a ? a.paidLive : serverPaidLive
   const href = buildEngineLandingSignupHref({ engine: 'hollywood', campaign: 'seo_engine_kling4' })
   return <main style={{ maxWidth: 900, margin: '0 auto', padding: '64px 22px 80px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
     <p style={{ color: 'var(--muted)', fontSize: 13 }}>Kineo · Kling 4.0</p>
-    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{KLING4_PAID_COPY.try}</UiLabel></h1>
+    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{freeFilmIsKling4 ? 'Try Kling 4.0 free' : KLING4_PAID_COPY.try}</UiLabel></h1>
+    {freeLine ? <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, fontWeight: 600, margin: '0 0 8px' }}>{freeLine}</p> : null}
     <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, color: 'var(--muted2)' }}><UiLabel>{KLING4_PAID_COPY.directed}</UiLabel></p>
     <Kling4PaidNotice surface="engine" availability={a} />
-    {a?.paidLive ? <p style={{ fontSize: 13 }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
-    {a?.paidLive ? <>
+    {paidLive ? <p style={{ fontSize: 13 }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
+    {paidLive ? <>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '24px 0' }}>
-        <Link href={href} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}><UiLabel>{KLING4_PAID_COPY.try}</UiLabel></Link>
+        <Link href={href} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}><UiLabel>{freeFilmIsKling4 ? 'Make your free Kling 4.0 film' : KLING4_PAID_COPY.try}</UiLabel></Link>
         <Link href="/pricing" style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 22px', color: 'inherit' }}><UiLabel>See plans</UiLabel></Link>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 28 }}>
