@@ -851,6 +851,32 @@ export async function retargetCinematicRequestId(args: {
  * Bind provider-completed URLs to their signed request id/model slots. Once a
  * slot is authorized, it cannot be changed to a different URL.
  */
+/** Select the fallback before any paid Seedance POST. URL authorization and this transition use the SAME authority CAS:
+ * a completed Kling source wins without fallback spend, or fallback wins and later Kling receipts are excluded. */
+export async function startKling4TrialFallback(args: {
+  db: SupabaseClient; secret: string; userId: string; generationId: string; originalRequestId: string
+  reason: 'provider_failed' | 'timeout'
+}): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const response = current.response
+  const marker = response?.kling4_trial as Record<string, unknown> | undefined
+  if ((current.status !== 'done' && current.status !== 'settled') || current.quality !== 'cinematic_ai' ||
+      response?.duration !== 15 || response.aspect !== '9:16' || !marker || marker.version !== 'kling4_trial_2810' ||
+      marker.original_request_id !== args.originalRequestId || !['provider_failed','timeout'].includes(args.reason)) {
+    return { ok: false, error: 'not an async Kling trial' }
+  }
+  if (marker.engine_used === 'seedance15_fallback' || (marker.engine_used === 'kling4' && marker.fallback_started === true)) return { ok: true, claim: current }
+  if (marker.engine_used !== 'kling4' || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
+      !['kling/v4/text-to-video','kling/v4/image-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+    return { ok: false, error: 'original source changed or already authorized', conflict: true }
+  }
+  const nextResponse = { ...response, kling4_trial: { ...marker, fallback_started: true, fallback_reason: args.reason } }
+  const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+
 /** Only the signed free-film Kling experiment may replace its one unresolved source with the frozen Seedance fallback.
  * This never changes paid intent/cost, never replaces an authorized URL, and uses the existing authority CAS. */
 export async function switchKling4TrialToSeedanceFallback(args: {
@@ -869,7 +895,7 @@ export async function switchKling4TrialToSeedanceFallback(args: {
   if (marker.engine_used === 'seedance15_fallback') {
     return sameArray(current.falRequestIds, args.requestIds) ? { ok: true, claim: current } : { ok: false, error: 'fallback already frozen', conflict: true }
   }
-  if (marker.engine_used !== 'kling4' || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
+  if (marker.engine_used !== 'kling4' || marker.fallback_started !== true || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
       !['kling/v4/text-to-video','kling/v4/image-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
@@ -914,6 +940,11 @@ export async function authorizeCinematicCompletedUrls(args: {
   const current = loaded.claim
   if (current.status !== 'done' && current.status !== 'settled') {
     return { ok: false, error: `cannot authorize URLs for ${current.status} claim`, conflict: true }
+  }
+  const trial = current.response?.kling4_trial as Record<string, unknown> | undefined
+  if (trial?.version === 'kling4_trial_2810' && trial.fallback_started === true &&
+      args.completed.some(item => item.requestId === trial.original_request_id)) {
+    return { ok: false, error: 'Kling source excluded by started fallback', conflict: true }
   }
   const urls = [...current.authorizedCompletedUrls]
   for (const completed of args.completed) {

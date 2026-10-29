@@ -26,7 +26,7 @@ export async function reserveKling4Trial(admin: SupabaseClient, i: Identity): Pr
   return { allowed: false, reason: 'unavailable' }
 }
 
-/** One immutable result and event per film. costUsd is the reserved upper bound on ambiguous provider failures. */
+/** One result/event per film; only the terminal async Kling-to-Seedance transition may correct its engine. */
 export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity & { engineUsed: Kling4TrialEngineUsed; costUsd: number }): Promise<boolean> {
   if (!validIdentity(i) || !['kling4', 'seedance15_fallback', 'seedance15_cap'].includes(i.engineUsed)
       || ![0, KLING4_TRIAL_COST_USD].includes(i.costUsd)) return false
@@ -36,6 +36,14 @@ export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity &
       p_engine_used: i.engineUsed, p_cost_milliusd: Math.round(i.costUsd * 1000),
     })
     const row = Array.isArray(r.data) ? r.data[0] : r.data
-    return !r.error && (row?.code === 'ok' || row?.code === 'unchanged')
+    if (r.error || (row?.code !== 'ok' && row?.code !== 'unchanged')) return false
+    // A lambda may die after the fallback authority CAS and before correcting its initial Kling event.
+    // Common birth/compose replays repair that one-way transition without changing cost or country.
+    if (row.code === 'unchanged' && i.engineUsed === 'seedance15_fallback' && i.costUsd === KLING4_TRIAL_COST_USD) {
+      const transitioned = await admin.rpc('transition_kling4_trial_fallback', { p_job_id: i.jobId, p_user_id: i.userId })
+      const terminal = Array.isArray(transitioned.data) ? transitioned.data[0] : transitioned.data
+      return !transitioned.error && (terminal?.code === 'ok' || terminal?.code === 'unchanged')
+    }
+    return true
   } catch { return false }
 }

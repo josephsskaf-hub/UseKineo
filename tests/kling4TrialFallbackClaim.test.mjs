@@ -47,9 +47,11 @@ function fixture({quality='cinematic_ai',url=null,conflict=false}={}){
   return{db,get row(){return row}}
 }
 const switchArgs={secret,userId:user,generationId:generation,originalRequestId:'kling-original',requestIds:['seedance-0',null,'seedance-2'],ambiguous:true,reason:'timeout'}
+const startArgs={secret,userId:user,generationId:generation,originalRequestId:'kling-original',reason:'timeout'}
 
 test('real HMAC mutation freezes fallback vectors and restores original scene metadata',async()=>{
   const f=fixture(),oldAuthority=f.row.metadata.authority
+  assert.equal((await lib.startKling4TrialFallback({...startArgs,db:f.db})).ok,true)
   const result=await lib.switchKling4TrialToSeedanceFallback({...switchArgs,db:f.db})
   assert.equal(result.ok,true)
   const claim=result.claim
@@ -92,9 +94,42 @@ test('paid claims, wrong original id, completed Kling source, malformed vectors 
 
 test('zero accepted fallback has valid signed state for the explicit refund path',async()=>{
   const f=fixture()
+  assert.equal((await lib.startKling4TrialFallback({...startArgs,db:f.db})).ok,true)
   const result=await lib.switchKling4TrialToSeedanceFallback({...switchArgs,db:f.db,requestIds:[null,null,null]})
   assert.equal(result.ok,true)
   assert.equal(result.claim.falRequestIds.some(Boolean),false)
   assert.equal(lib.verifyCinematicClaimRow({row:f.row,secret,userId:user,generationId:generation}).ok,true)
   assert.equal(lib.cinematicJobsAreTerminal(result.claim),false,'caller must explicitly refund zero acceptance, not fabricate terminal provider evidence')
+})
+
+test('fallback start and completed Kling URL authorization have one CAS winner',async()=>{
+  const completed={secret,userId:user,generationId:generation,completed:[{requestId:'kling-original',model,url:'https://offline.invalid/kling-done.mp4'}]}
+  for(const authorizationFirst of [true,false]) {
+    const f=fixture()
+    const tasks=authorizationFirst
+      ? [lib.authorizeCinematicCompletedUrls({...completed,db:f.db}),lib.startKling4TrialFallback({...startArgs,db:f.db})]
+      : [lib.startKling4TrialFallback({...startArgs,db:f.db}),lib.authorizeCinematicCompletedUrls({...completed,db:f.db})]
+    const results=await Promise.all(tasks)
+    assert.equal(results.filter(result=>result.ok).length,1,'one source wins before any fallback paid POST')
+    const fallbackWon=f.row.metadata.response.kling4_trial.fallback_started===true
+    if(fallbackWon){
+      assert.equal(f.row.metadata.authorized_completed_urls[0],null)
+      assert.equal((await lib.authorizeCinematicCompletedUrls({...completed,db:f.db})).ok,false,'late original Kling receipt remains excluded')
+    } else {
+      assert.equal(f.row.metadata.authorized_completed_urls[0],completed.completed[0].url)
+      assert.equal((await lib.startKling4TrialFallback({...startArgs,db:f.db})).ok,false,'completed source prevents fallback spend')
+    }
+  }
+})
+
+test('common record replay repairs a lost terminal event transition without changing zero-cost fallbacks',async()=>{
+  const budget=load('lib/kling4TrialBudget.ts')
+  const identity={userId:user,jobId:generation,country:'BR',engineUsed:'seedance15_fallback',costUsd:2.355}
+  const calls=[]
+  const db={async rpc(name){calls.push(name);return{data:{code:name==='record_kling4_trial_film'?'unchanged':'ok'},error:null}}}
+  assert.equal(await budget.recordKling4TrialFilm(db,identity),true)
+  assert.deepEqual(calls,['record_kling4_trial_film','transition_kling4_trial_fallback'])
+  calls.length=0
+  assert.equal(await budget.recordKling4TrialFilm(db,{...identity,costUsd:0}),true)
+  assert.deepEqual(calls,['record_kling4_trial_film'])
 })

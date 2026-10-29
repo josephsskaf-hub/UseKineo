@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { loadVerifiedCinematicClaim, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
+import { loadVerifiedCinematicClaim, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
 export const KLING4_TRIAL_FALLBACK_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 export type Kling4FallbackInput = { prompt: string; duration: number; resolution: '720p'; aspect_ratio: '9:16'; generate_audio: false }
@@ -39,9 +39,10 @@ export async function ensureKling4TrialFallback(args: {
   submit?: (input: Kling4FallbackInput) => Promise<string>
 }): Promise<Kling4FallbackResult> {
   const pending = (claim = args.claim): Kling4FallbackResult => ({ ok: false, claim, pending: true, ambiguous: false, noAccepted: false })
-  const loaded = await loadVerifiedCinematicClaim(args)
+  let loaded: Awaited<ReturnType<typeof loadVerifiedCinematicClaim>>
+  try { loaded = await loadVerifiedCinematicClaim(args) } catch { return pending() }
   if (!loaded.ok || !loaded.claim) return pending()
-  const claim = loaded.claim
+  let claim = loaded.claim
   const marker = claim.response?.kling4_trial as Record<string, unknown> | undefined
   if (!marker || marker.version !== 'kling4_trial_2810' || !['kling4','seedance15_fallback'].includes(String(marker.engine_used)) ||
       claim.quality !== 'cinematic_ai' || claim.response?.duration !== 15 || claim.response.aspect !== '9:16') return pending(claim)
@@ -57,6 +58,11 @@ export async function ensureKling4TrialFallback(args: {
   if (typeof original !== 'string' || !original || claim.falRequestIds.length !== 1 || claim.falRequestIds[0] !== original ||
       !Array.isArray(shots) || shots.length !== 3 || !fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
       shots.some(s => !s || typeof s.prompt !== 'string' || !s.prompt.trim() || ![6,7,8].includes(Number(s.duration)))) return pending(claim)
+  try {
+    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason })
+    if (!started.ok) return pending(claim)
+    claim = started.claim
+  } catch { return pending(claim) }
   const submit = args.submit ?? submitKling4TrialSeedanceFallback
   await Promise.all(shots.map(async (shot, index) => {
     const identity = { p_job_id: args.generationId, p_user_id: args.userId, p_original_request_id: original }
