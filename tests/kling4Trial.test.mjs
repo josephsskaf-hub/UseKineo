@@ -170,6 +170,30 @@ test('an exhausted route deadline skips provider submission', async () => {
   assert.equal(w.calls.length, 0)
 })
 
+test('preflight failures report zero Kling cost through the real orchestrator and never send HTTP', async () => {
+  for (const failure of ['missing_key', 'empty_plan', 'deadline_expired', 'deadline_between_preflight_and_post']) {
+    const w = world()
+    let posts = 0
+    w.deps.onPost = () => { posts++ }
+    if (failure === 'missing_key') w.deps.apiKey = ''
+    if (failure === 'empty_plan') w.args.prompts = [' ', '']
+    if (failure === 'deadline_expired') w.args.deadline = 0
+    if (failure === 'deadline_between_preflight_and_post') {
+      let reads = 0
+      w.deps.now = () => reads++ === 0 ? 0 : 2000
+    }
+    const out = await lib.orchestrateKling4Trial({
+      reserve: async () => ({ allowed: true }),
+      generate: () => lib.generateKling4TrialVideo(w.args, w.deps),
+    })
+    assert.equal(out.engineUsed, 'seedance15_fallback', failure)
+    assert.equal(out.costUsd, 0, failure)
+    assert.equal(out.reason, 'provider_not_submitted', failure)
+    assert.equal(w.calls.length, 0, failure)
+    assert.equal(posts, 0, failure)
+  }
+})
+
 test('signed claim reader rejects fabricated rollout markers and unrelated film families', () => {
   const { kling4TrialEngineFromClaim: engineFrom, kling4TrialVideoUrlFromClaim: urlFrom } = load('lib/kling4TrialClaim.ts')
   const claim = { duration: 15, quality: 'cinematic_ai', aspect: '9:16', kling4_trial: { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355, country: 'BR' } }
@@ -223,4 +247,43 @@ test('delivery gate rejects an observed film below 15 seconds for the trial', ()
   assert.equal(decideFree15Gate(state, { durationSeconds: null }, null, []).reason, 'duration_unverified')
   assert.equal(decideFree15Gate(state, { durationSeconds: 15 }, null, []).reason, 'pixel_evidence_unverified', '15 seconds passes duration guard and continues visual QA')
   assert.equal(decideFree15Gate({ ...state, minimumSeconds: undefined }, { durationSeconds: 14.9 }, null, []).reason, 'pixel_evidence_unverified', 'existing unrelated 14-second contract remains unchanged')
+})
+
+test('actual compose route makes the verified trial aspect authoritative over a square browser request', async () => {
+  const route = read('app/api/compose/route.ts')
+  const from = route.indexOf('const cinematicClaimLoad = await loadVerifiedCinematicClaim({')
+  const to = route.indexOf('{ // KINEO-FILME15-FIEL-2610', from)
+  assert.ok(from >= 0 && to > from, 'verified claim-to-aspect route slice must exist')
+  const slice = route.slice(from, to)
+  const exports = {}
+  const code = ts.transpileModule(`export async function apply(body, verified) {
+    const composeAdmin = {}, serviceRoleKey = 'offline-placeholder', authenticatedUserId = 'offline-user', generationId = 'offline-film'
+    let cinematicBirthClaim = null
+    let aspectRequested = normalizeAspect(body.aspect)
+    const recorded = []
+    const loadVerifiedCinematicClaim = async () => verified
+    const recordKling4TrialFilm = async (_db, input) => { recorded.push(input) }
+    const NextResponse = { json: value => value }
+    ${slice}
+    return { aspectRequested, recorded }
+  }`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+  vm.runInNewContext(code, { exports, console, normalizeAspect: load('lib/aspect.ts').normalizeAspect,
+    kling4TrialEngineFromClaim: load('lib/kling4TrialClaim.ts').kling4TrialEngineFromClaim }, { timeout: 5000 })
+  const claim = { response: { duration: 15, quality: 'cinematic_ai', aspect: '9:16', kling4_trial: { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355, country: 'BR' } } }
+  for (const engine of ['kling4', 'seedance15_fallback', 'seedance15_cap']) {
+    const current = { ...claim, response: { ...claim.response, kling4_trial: { ...claim.response.kling4_trial, engine_used: engine } } }
+    for (const aspect of ['1:1', '16:9']) {
+      const result = await exports.apply({ aspect }, { ok: true, claim: current })
+      assert.equal(result.aspectRequested, '9:16', engine + '/' + aspect)
+      assert.equal(result.recorded.length, 1, 'recovery restores the one-per-film record')
+      assert.equal(result.recorded[0].engineUsed, engine)
+    }
+  }
+  for (const response of [{}, { ...claim.response, kling4_trial: { ...claim.response.kling4_trial, version: 'forged' } }]) {
+    const result = await exports.apply({ aspect: '1:1', kling4_trial: claim.response.kling4_trial }, { ok: true, claim: { response } })
+    assert.equal(result.aspectRequested, '1:1', 'body markers and invalid claim markers cannot alter unrelated films')
+    assert.equal(result.recorded.length, 0)
+  }
+  const rejected = await exports.apply({ aspect: '1:1' }, { ok: false, claim, error: 'invalid signature' })
+  assert.equal(rejected.error, 'AI clip ownership could not be verified. Nothing was submitted.')
 })
