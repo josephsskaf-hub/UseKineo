@@ -20,7 +20,7 @@ export function escolhaUpgradeId(sampleId: string): string {
 }
 export async function upgradeEscolhaSample(user: AdsV2Caller, order: AdsV2OrderRow, stored: EscolhaStored, d: EscolhaInternalDeps): Promise<Response> {
   if (order.user_id !== user.id || !isEscolhaSamplePlan(stored.cena.plan) || order.status !== 'delivered') return v2Fail('ads_sample_result_required', 409)
-  const args = { orderId: order.id, actorId: user.id, ownerId: user.id }
+  const args = { orderId: order.id, actorId: user.id, ownerId: user.id, route: stored.cena.route }
   if (!await hasEscolhaSampleReservation(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
   if (!await markEscolhaSampleUpsell(d.admin, args)) return v2Fail('ads_sample_unavailable', 503)
   let id = escolhaUpgradeId(order.id)

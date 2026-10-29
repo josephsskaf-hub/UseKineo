@@ -8,7 +8,8 @@ import { adsGate } from '@/lib/ads/serverAccess'
 import type { AdsAccessReason } from '@/lib/ads/access'
 import { adsSampleTrialStatusBlocked } from '@/lib/ads/sample'
 import { isDisposableEmail } from '@/lib/emailValidation'
-import { ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
+import { ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { adsEligibilityDecide, adsSampleCapResetIso, adsSampleCountry, type AdsEligibilityDecision } from '@/lib/ads/eligibilityPure'
 
 export interface AdsEligibility extends AdsEligibilityDecision {
@@ -38,6 +39,7 @@ export async function loadAdsSampleCountry(admin: SupabaseClient, userId: string
 
 export async function loadAdsEligibility(admin: SupabaseClient, user: { id: string }, access: AdsAccessReason, opts: { requestCountry?: string | null } = {}): Promise<AdsEligibility> {
   const gate = adsGate(access)
+  const estimateCents = KLING4_PAID_LIVE ? ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS : ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS
   const base = { gate, access, sampleOrderId: null as string | null, sampleDelivered: false, resetAt: null as string | null, country: null as string | null }
   if (gate === 'ok') return { state: 'paid', reason: null, ...base }
   if (!UUID.test(user.id)) return { state: 'not_eligible', reason: 'ledger_unavailable', ...base }
@@ -51,7 +53,7 @@ export async function loadAdsEligibility(admin: SupabaseClient, user: { id: stri
       base.sampleDelivered = !!row && typeof row.delivered_at === 'string'
     }
   } catch { used = null }
-  if (used !== false) return { ...adsEligibilityDecide({ gate, sampleLive: ADS_ESCOLHA_SAMPLE_LIVE, used, emailConfirmed: true, disposable: false, trialBlocked: false, country: null, reservedCentsToday: 0, dailyCapCents: ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, estimateCents: ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS }), ...base }
+  if (used !== false) return { ...adsEligibilityDecide({ gate, sampleLive: ADS_ESCOLHA_SAMPLE_LIVE, used, emailConfirmed: true, disposable: false, trialBlocked: false, country: null, reservedCentsToday: 0, dailyCapCents: ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, estimateCents }), ...base }
 
   let emailConfirmed = false, disposable = true, trialBlocked = true
   try {
@@ -71,6 +73,6 @@ export async function loadAdsEligibility(admin: SupabaseClient, user: { id: stri
     if (!d.error) { const n = Number((d.data as { reserved_cents?: unknown } | null)?.reserved_cents ?? 0); reservedCentsToday = Number.isFinite(n) ? n : null }
   } catch { reservedCentsToday = null }
 
-  const decision = adsEligibilityDecide({ gate, sampleLive: ADS_ESCOLHA_SAMPLE_LIVE, used, emailConfirmed, disposable, trialBlocked, country: base.country, reservedCentsToday, dailyCapCents: ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, estimateCents: ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS })
+  const decision = adsEligibilityDecide({ gate, sampleLive: ADS_ESCOLHA_SAMPLE_LIVE, used, emailConfirmed, disposable, trialBlocked, country: base.country, reservedCentsToday, dailyCapCents: ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, estimateCents })
   return { ...decision, ...base, resetAt: decision.reason === 'budget_exhausted_today' ? adsSampleCapResetIso() : null }
 }

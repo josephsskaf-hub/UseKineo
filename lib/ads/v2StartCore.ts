@@ -101,7 +101,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (escolhaSample) {
       if (!ADS_ESCOLHA_SAMPLE_LIVE) return v2Fail('ads_sample_disabled', 403)
       if (uid !== user.id || !await escolhaSampleAccountOk(admin, user.id)) return v2Fail('ads_sample_account_blocked', 403)
-      if (!await hasEscolhaSampleReservation(admin, { orderId, actorId: user.id, ownerId: uid })) return v2Fail('ads_sample_unavailable', 503)
+      if (!await hasEscolhaSampleReservation(admin, { orderId, actorId: user.id, ownerId: uid, route: cena!.route })) return v2Fail('ads_sample_unavailable', 503)
     }
     sampleRun = escolhaSample || sampleRun && !escolhaUpgrade
     if (cena && !escolhaSample && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
@@ -203,7 +203,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
-    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeEscolhaEvent('render_started', uid, orderId, plan, { credits: cost }); await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, engine_used: cena.route, kling4_promo: kling4Promo, promo_reason: kling4PromoReason, ...(cena.route === 'kling4' && !kling4Promo ? { notice: 'The promotion is unavailable for this request. Normal credits apply.' } : {}), status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
+    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeEscolhaEvent('render_started', uid, orderId, plan, { credits: cost }); await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, engine_used: cena.route, kling4_promo: kling4Promo, promo_reason: kling4PromoReason, ...(!sampleRun && cena.route === 'kling4' && !kling4Promo ? { notice: 'The promotion is unavailable for this request. Normal credits apply.' } : {}), status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
     const rows = buildInitialShotRows(orderId, order.tier, plan).map(row => sampleRun && row.engine === 'kling4' ? { ...row, engine: 'kling_o3' } : row)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {

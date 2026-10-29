@@ -5,14 +5,16 @@ import { isEscolhaSamplePlan } from './escolhaSamplePolicy' // KINEO-AMOSTRA-ANU
 /** fal Kling3 schema checked 23/10/2026: multi_prompt replaces prompt, customize, three 5s shots. */
 export function escolhaVideoRequests(plan: CenaPlan, route: CenaRoute, keyframeUrl: string): CenaVideoRequest[] {
   const sample = isEscolhaSamplePlan(plan) // KINEO-AMOSTRA-ANUNCIO-2410
-  if (sample && (route !== 'kling3' || plan.voice_mode !== 'narrated' || plan.input.voice_mode !== 'narrated')) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (!['kling3', 'kling4'].includes(route) || plan.voice_mode !== 'narrated' || plan.input.voice_mode !== 'narrated')) throw new Error('escolha_sample_requires_narrated_kling')
   const selected = plan.escolha && { ...plan.escolha, shotPrompts: plan.escolha.shotPrompts.map(p => escolhaShotPromptFit(p)) as [string, string, string] } // KINEO-ADS-RENDER-FIX-2310 — each Kling3 shot prompt fits the provider's 2500-char limit
   if (selected?.marker !== 'KINEO-ADS-ESCOLHA-2310' || selected.shotPrompts.length !== 3 || selected.shotPrompts.some(p => !p.trim())) throw new Error('escolha_three_shots_required')
   const requests = cenaVideoRequests(route, { keyframeUrl, productUrl: plan.input.foto, prompt: plan.videoPrompt, segmentPrompts: plan.segmentPrompts, language: plan.input.language, voiceMode: plan.voice_mode })
   if (route === 'kling4') {
-    if (sample) throw new Error('escolha_sample_requires_silent_kling3')
-    return [{ ...requests[0], input: { start_image_url: keyframeUrl, duration: 15, resolution: '720p',
-      multi_prompt: selected.shotPrompts.map(prompt => ({ prompt: Array.from(prompt).slice(0, 512).join(''), duration: 5 })) } }]
+    // Same image-to-video contract as paid ads; the approved 9:16 still defines framing.
+    // fal schema checked 2026-10-29: integer durations, 720p, no generate_audio switch.
+    const seconds = sample ? 8 : 15
+    return [{ ...requests[0], seconds, keepSeconds: seconds, input: { start_image_url: keyframeUrl, duration: seconds, resolution: '720p',
+      multi_prompt: selected.shotPrompts.map((prompt, index) => ({ prompt: Array.from(prompt).slice(0, 512).join(''), duration: sample ? index === 2 ? 2 : 3 : 5 })) } }]
   }
   if (route !== 'kling3') return requests
   // Do not send an ending wide reference: the final take is the close of the real product in this same scene.
