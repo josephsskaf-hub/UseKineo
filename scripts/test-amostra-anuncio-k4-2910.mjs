@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { createEscolhaWorld, escolhaFixture } from './test-ads-escolha-2310.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { createRequire } from 'node:module'
+import ts from 'typescript'
 
 const workspaceArg = process.argv.indexOf('--workspace')
 if (workspaceArg >= 0) process.chdir(process.argv[workspaceArg + 1])
@@ -235,6 +236,44 @@ async function admissionProof() {
   }
 }
 
+async function eligibilityAndUiProof() {
+  for (const live of [false, true]) {
+    const boundary = live ? 2314 : 2350
+    for (const reserved of [boundary, boundary + 1]) {
+      const reads = []
+      const admin = {
+        auth: { admin: { getUserById: async () => ({ data: { user: { email: USER.email, email_confirmed_at: '2026-10-01T12:00:00Z' } } }) } },
+        from(table) {
+          reads.push(table)
+          const data = table === 'ads_escolha_samples' ? null : table === 'profiles' ? { trial_status: 'active', signup_country: 'BR' } : table === 'ads_escolha_sample_days' ? { reserved_cents: reserved } : assert.fail('Unexpected eligibility table: ' + table)
+          const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data, error: null }) }; return q
+        },
+      }
+      // Real loadAdsEligibility, real policy/constants and real pure decision; only DB/auth/access boundaries are injected.
+      const load = createOfflineLoader({ env: { KLING4_PAID_LIVE: String(live) }, mocks: { '@/lib/ads/serverAccess': { adsGate: () => 'no_access' } } })
+      const eligibility = await load('lib/ads/eligibility.ts').loadAdsEligibility(admin, USER, 'none')
+      assert.equal(eligibility.state, reserved === boundary ? 'free_sample_available' : 'not_eligible', `real eligibility: live=${live}, reserved=${reserved}`)
+      assert.equal(eligibility.reason, reserved === boundary ? null : 'budget_exhausted_today')
+      assert.equal(eligibility.resetAt !== null, reserved > boundary)
+      same(reads, ['ads_escolha_samples', 'profiles', 'ads_escolha_sample_days'])
+    }
+  }
+  // Execute the actual TSX route initializer, avoiding a duplicate implementation of the UI decision.
+  const uiFile = 'app/(dashboard)/ads/v2/AdsV2Escolha.tsx', source = readFileSync(uiFile, 'utf8')
+  const ast = ts.createSourceFile(uiFile, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX), declarations = []
+  const visit = node => { if (ts.isVariableDeclaration(node) && node.name.getText(ast) === 'route') declarations.push(node); ts.forEachChild(node, visit) }
+  visit(ast); assert.equal(declarations.length, 1, 'one real client route decision')
+  const choose = new Function('orderId', 'orderEngine', 'sampleMode', 'kling4Availability', 'internalControls', 'form', `return (${declarations[0].initializer.getText(ast)})`)
+  const form = { rota: 'veo31', voice_mode: 'talking' }
+  assert.equal(choose('', null, true, { paidLive: true }, true, form), 'kling4', 'new sample ignores internal route selection')
+  assert.equal(choose('', null, true, { paidLive: false }, true, form), 'kling3')
+  assert.equal(choose('', null, true, null, false, form), 'kling3', 'unavailable flag retains fallback')
+  assert.equal(choose('saved', 'kling3', true, { paidLive: true }, false, form), 'kling3', 'legacy sample keeps actual engine')
+  assert.equal(choose('saved', 'kling4', true, { paidLive: false }, false, form), 'kling4', 'in-flight K4 keeps actual engine')
+  assert.match(source, /data-kineo="ads-sample-engine"/)
+  assert.match(source, /route === 'kling4' \? 'Kling 4\.0' : 'Kling 3'/)
+}
+
 const pure = createOfflineLoader()('lib/ads/kling4Paid.ts')
 for (const input of ['kling3', 'kling4', 'seedance2', 'veo31']) {
   assert.equal(pure.newPaidCenaRoute(input, true, true), 'kling4')
@@ -244,5 +283,6 @@ for (const live of [false, true]) {
   for (const reason of ['none', 'subscriber']) { const { order } = await controller(live, reason); await mediaAndRuntime(order) }
 }
 await admissionProof()
+await eligibilityAndUiProof()
 await sqlProof()
-console.log('PASS KINEO-AMOSTRA-ANUNCIO-K4-2910: real routes on/off; 8s 720p approved still; 9:16 watermark; no credit/promo use on start/submit/poll/failure; one voice/video; lifetime claim and engine-aware daily cap in embedded PostgreSQL. No network or render.')
+console.log('PASS KINEO-AMOSTRA-ANUNCIO-K4-2910: real routes on/off and saved-engine UI; 8s 720p approved still; 9:16 watermark; no credit/promo use on start/submit/poll/failure; one voice/video; admission and real eligibility cost boundaries; lifetime claim and engine-aware daily cap in embedded PostgreSQL. No network or render.')
