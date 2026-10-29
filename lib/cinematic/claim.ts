@@ -851,6 +851,57 @@ export async function retargetCinematicRequestId(args: {
  * Bind provider-completed URLs to their signed request id/model slots. Once a
  * slot is authorized, it cannot be changed to a different URL.
  */
+/** Only the signed free-film Kling experiment may replace its one unresolved source with the frozen Seedance fallback.
+ * This never changes paid intent/cost, never replaces an authorized URL, and uses the existing authority CAS. */
+export async function switchKling4TrialToSeedanceFallback(args: {
+  db: SupabaseClient; secret: string; userId: string; generationId: string
+  originalRequestId: string; requestIds: CinematicRequestId[]; ambiguous: boolean; reason: string
+}): Promise<CinematicClaimMutation> {
+  if (args.requestIds.length !== 3 || !args.requestIds.every(validRequestId)) return { ok: false, error: 'invalid fallback vector' }
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const response = current.response
+  const marker = response?.kling4_trial as Record<string, unknown> | undefined
+  if ((current.status !== 'done' && current.status !== 'settled') || current.quality !== 'cinematic_ai' ||
+      response?.duration !== 15 || response.aspect !== '9:16' || !marker || marker.version !== 'kling4_trial_2810' ||
+      marker.original_request_id !== args.originalRequestId) return { ok: false, error: 'not an async Kling trial' }
+  if (marker.engine_used === 'seedance15_fallback') {
+    return sameArray(current.falRequestIds, args.requestIds) ? { ok: true, claim: current } : { ok: false, error: 'fallback already frozen', conflict: true }
+  }
+  if (marker.engine_used !== 'kling4' || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
+      !['kling/v4/text-to-video','kling/v4/image-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+    return { ok: false, error: 'original source changed or already authorized', conflict: true }
+  }
+  const fallback = marker.fallback_response as Record<string, unknown> | undefined
+  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown }> | undefined
+  if (!fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
+      !fallback.scenes.every(s => typeof s === 'string') || !Array.isArray(shots) || shots.length !== 3 ||
+      shots.some(s => !s || typeof s.prompt !== 'string' || !s.prompt.trim() || ![6,7,8].includes(Number(s.duration)))) {
+    return { ok: false, error: 'signed fallback plan missing' }
+  }
+  const model = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+  const nextResponse = { ...response, scenes: fallback.scenes,
+    scene_captions: Array.isArray(fallback.scene_captions) ? fallback.scene_captions : ['', '', ''],
+    clip_word_starts: Array.isArray(fallback.clip_word_starts) ? fallback.clip_word_starts : [0, 0, 0],
+    fal_request_ids: [...args.requestIds], fal_models: args.requestIds.map(() => model), fal_model: model,
+    scene_prompts: shots.map(s => s.prompt),
+    scene_fal_inputs: shots.map(s => ({ prompt: s.prompt, duration: String(s.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })),
+    clip_seconds: shots.map(s => Number(s.duration)),
+    // Null slots are deliberately excluded after the three once-only attempts finish. They are never retried.
+    submission_uncertain: false, terminal_failed_jobs: [],
+    kling4_trial: { ...marker, engine_used: 'seedance15_fallback', fallback_finalized: true,
+      fallback_ambiguous: args.ambiguous, fallback_reason: args.reason, video_url: undefined },
+  }
+  const normalized = normalizeResponse(nextResponse)
+  if (!normalized) return { ok: false, error: 'invalid fallback response' }
+  const candidate = withSignature(args.secret, { ...current, falRequestIds: [...args.requestIds],
+    falModels: args.requestIds.map(() => model), authorizedCompletedUrls: args.requestIds.map(() => null),
+    response: normalized, responseHash: cinematicValueHash(normalized) })
+  if (!validResponseBinding(candidate)) return { ok: false, error: 'invalid fallback binding' }
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+
 export async function authorizeCinematicCompletedUrls(args: {
   db: SupabaseClient
   secret: string
