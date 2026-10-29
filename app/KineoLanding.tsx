@@ -1,4 +1,5 @@
 import PublicNavDropdown from '@/components/PublicNavDropdown'
+import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
@@ -1039,6 +1040,7 @@ export default function KineoLanding({
           {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
           <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
           <CitationDirectAnswer page="home" />
+          <Kling4TrialNotice surface="home" />
           <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
           </div>

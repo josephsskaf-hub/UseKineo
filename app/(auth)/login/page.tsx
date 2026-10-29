@@ -1,6 +1,7 @@
 'use client'
 
 import { KineoBrandIcon } from '@/components/KineoBolt'
+import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -258,6 +259,7 @@ export default function LoginPage() {
                 ? 'Sign in and continue without starting over.'
                 : 'Sign in to keep creating Shorts.'}
             </p>
+            <Kling4TrialNotice surface="login" />
 
             {/* KINEO-CHECKOUT-RESUME-2026-07-07 — buyer bounced off checkout */}
             {checkoutResume && (

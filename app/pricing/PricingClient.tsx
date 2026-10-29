@@ -1,5 +1,7 @@
 'use client'
 
+import Kling4TrialNotice from '@/components/Kling4TrialNotice'
+
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
@@ -1092,6 +1094,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[var(--text)]">
             {MRR_CONVERSION_ENABLED ? 'Make your next film or clip.' : displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
+          <Kling4TrialNotice surface="pricing" />
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
+import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -679,6 +680,7 @@ export default function SignupPage() {
                         ? 'Create a free account and continue without starting over.'
                         : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
+                <Kling4TrialNotice surface="signup" />
 
                 {/* KINEO-SPRINT-FRIO-2026-09-09 r3 — selo proprio: a promessa
                     que pagou o clique vem ANTES do selo do plano, sem apagar

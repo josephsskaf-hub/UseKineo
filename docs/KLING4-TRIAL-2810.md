@@ -56,3 +56,25 @@ git diff --check
 **O que pode melhorar — QUESTÃO PENDENTE:** latência real do Kling de 15 s neste pipeline. O prazo síncrono pode reservar/custear um Kling que termina depois do fallback. O canário deve conferir tempo, motor e livro antes da publicação.
 
 **Próximo passo recomendado — SUGESTÃO:** Claude revisar o SHA, aplicar a migração, fazer o único render real de canário autorizado e conferir: primeira conta elegível, payload 720p/9:16, cenas contínuas, ausência de áudio Kling, voz/música presentes, duração MP4 observada ≥15 s, débito sem duplicação, evento e reserva únicos. Publicar após essa prova; no D+7 medir entrega/download/checkout e decidir desligamento ou continuação.
+
+## Complemento 2 — anúncio honesto do trial
+
+**DECISÃO APROVADA — complemento direto de Joseph, 28/10/2026:** anunciar “First film free — made with Kling 4.0” na home atual, cadastro/login e preços, pelas 16 línguas do sistema de tradução da interface. A frase depende do mesmo `KLING4_TRIAL_LIVE` e do teto diário; sem capacidade, fica oculta. Fonte canônica: `docs/DECISIONS.md`, complemento de 28/10.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** `components/Kling4TrialNotice.tsx:9` é o único componente de anúncio, usado uma vez em cada uma das quatro superfícies (cadastro/login também cobrem o modal da home). `lib/ui/refinementCopy.json:3` contém o inglês e as 15 traduções, lidas pelo `UiLabel` existente. A faixa usa as variáveis de cor e o desenho atuais; a home mantém sua estrutura.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** `lib/kling4TrialAvailability.ts:17` lê `kling4_trial_days.reserved_milliusd` do mesmo dia UTC, o interruptor de política e os mesmos custo/teto usados na reserva. Só anuncia quando o próximo filme inteiro cabe no teto. Assim, US$ 58,875 já impede a frase: os US$ 1,125 restantes não pagam outro filme. A política atual de países é respeitada; país conhecido sem filme grátis não recebe a faixa. Leitura ou configuração inválida oculta, sem escrita ou reserva.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** `app/api/kling4-trial/availability/route.ts:11` serve apenas disponibilidade e datas, com `no-store` no navegador e CDNs. A resposta positiva tem validade máxima de 15 s, limitada à virada UTC. `lib/kling4TrialNotice.ts:7` recusa estado vencido, futuro ou malformado. O cliente começa oculto, expira a faixa, consulta novamente e oculta em erro/aba inativa; respostas atrasadas não ressuscitam a frase.
+
+**QUESTÃO PENDENTE / limite de consistência:** o anúncio é uma leitura pontual, não uma reserva de vaga. Uma aba já aberta revalida em até 15 s; se outro pedido consumir a última capacidade nesse intervalo, a faixa some na revalidação. A geração continua consultando a reserva atômica antes de qualquer gasto. Não há afirmação de atualização instantânea entre navegadores.
+
+**TESTADO LOCALMENTE — 28/10/2026:** `tests/kling4TrialAvailability.test.mjs` (sete verificações) e `tests/kling4TrialNotice.test.mjs` (12 verificações) aprovados. Incluem limite efetivo, interruptor, países, erro/migração ausente, cache, virada UTC, respostas atrasadas, limpeza de efeitos, presença nas quatro telas e renderização das 16 traduções pelo sistema real. Typecheck completo aprovado. Nenhum acesso a produção, render pago ou deploy.
+
+**TESTADO LOCALMENTE / comparação visual:** `docs/kling4-trial-2810/preview.html` é o antes/depois autocontido de home, cadastro, login e preços, em desktop/mobile. É uma reprodução estática das áreas alteradas, não prova de publicação. Os controles permitem conferir a faixa disponível/oculta e as traduções.
+
+**Próximo passo recomendado — SUGESTÃO:** Claude incluir a faixa na revisão do mesmo canário: ligar/desligar o interruptor; conferir dia com capacidade, dia sem saldo para outro filme e falha de leitura; conferir as quatro telas e uma língua RTL. Publicar apenas após a migração e a prova já previstas para o trial.
+
+**TESTADO LOCALMENTE / QA visual — 28/10/2026:** imagens inspecionadas em `docs/kling4-trial-2810/`: home, cadastro, login e preços, cada uma em desktop/mobile; também `home-cap-mobile.png` (sem anúncio) e `signup-ar-mobile.png` (RTL). Renderização de HTML estático local pelo Edge em modo headless; nenhuma consulta à aplicação ou produção. A comparação inclui apenas as áreas tocadas, identificadas como ilustrativas.
+
+**SUGESTÃO / conferir o complemento localmente:** `node --test tests/kling4TrialAvailability.test.mjs tests/kling4TrialNotice.test.mjs`, seguido de `npx tsc --noEmit --incremental false`. O resultado nesta entrega foi 19 testes aprovados e typecheck exit 0.
