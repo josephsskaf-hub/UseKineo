@@ -1,12 +1,12 @@
 // KINEO-AMOSTRA-ANUNCIO-2410 — personal, irrevocable sample allowance and authoritative person-level measurement.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS } from './escolhaSamplePolicy'
+import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS, escolhaSampleEstimateCents } from './escolhaSamplePolicy'
 import { adsSampleCountryAllowed } from '../eligibilityPure' // KINEO-ADS-SIMPLES-2810 — só países do filme grátis; país desconhecido = fechado
 
 const TABLE = 'ads_escolha_samples'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
-type Identity = { orderId: string; actorId: string; ownerId: string }
+type Identity = { orderId: string; actorId: string; ownerId: string; route?: string }
 type SampleResult = { ok: true } | { ok: false; error: string; status: number; reset_at?: string }
 const unavailable = (): SampleResult => ({ ok: false, error: 'ads_sample_unavailable', status: 503 })
 const personal = (i: Identity): boolean => [i.orderId, i.actorId, i.ownerId].every(id => UUID.test(id)) && i.actorId === i.ownerId
@@ -31,9 +31,11 @@ export async function escolhaSampleAccountOk(admin: SupabaseClient, actorId: str
   return ADS_ESCOLHA_SAMPLE_LIVE && UUID.test(actorId) && !!await verifiedAccount(admin, actorId, country)
 }
 
-/** The database fixes cost at150c, locks the person and UTC day, and commits claim+counter+started event together. */
+/** The database fixes cost from its persisted route (150c Kling3 / 186c Kling4), locks the person and UTC day,
+ * and commits claim+counter+started event together. Never send a caller-supplied amount to the RPC. */
 export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & { leaseAt: string; country?: string | null }): Promise<SampleResult> { // KINEO-ADS-SIMPLES-2810 — + country (opcional)
-  if (!ADS_ESCOLHA_SAMPLE_LIVE || ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS !== 150 || !personal(i)) return unavailable()
+  const estimate = escolhaSampleEstimateCents(i.route)
+  if (!ADS_ESCOLHA_SAMPLE_LIVE || ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS !== 150 || ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS !== 186 || estimate === null || !personal(i)) return unavailable()
   const user = await verifiedAccount(admin, i.actorId, i.country)
   if (!user) return { ok: false, error: 'ads_sample_account_required', status: 403 }
   try {
@@ -42,7 +44,7 @@ export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & 
     })
     const row = Array.isArray(result.data) ? result.data[0] : result.data
     if (result.error || !row) return unavailable()
-    if (row.code === 'ok' && row.estimate_cents === ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS) return { ok: true }
+    if (row.code === 'ok' && row.estimate_cents === estimate) return { ok: true }
     if (row.code === 'ads_sample_used') return { ok: false, error: row.code, status: 409 }
     if (row.code === 'ads_sample_cap') return { ok: false, error: row.code, status: 429, ...(typeof row.reset_at === 'string' ? { reset_at: row.reset_at } : {}) }
     return unavailable()
@@ -51,10 +53,11 @@ export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & 
 
 /** A draft cannot bypass reservation by posting directly to the paid-render start endpoint. */
 export async function hasEscolhaSampleReservation(admin: SupabaseClient, i: Identity): Promise<boolean> {
-  if (!personal(i)) return false
+  const estimate = escolhaSampleEstimateCents(i.route)
+  if (!personal(i) || estimate === null) return false
   try {
     const r = await admin.from(TABLE).select('order_id,estimate_cents').eq('actor_id', i.actorId).eq('owner_id', i.ownerId).eq('order_id', i.orderId).maybeSingle()
-    return !r.error && r.data?.order_id === i.orderId && r.data.estimate_cents === ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS
+    return !r.error && r.data?.order_id === i.orderId && r.data.estimate_cents === estimate
   } catch { return false }
 }
 
