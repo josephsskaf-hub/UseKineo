@@ -11,6 +11,8 @@ const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const modules = new Map()
+let carryAllowed = true
+let carryCalls = 0
 const forbidden = () => { throw new Error('Offline guard forbids network or unmocked dependencies') }
 function load(path) {
   if (modules.has(path)) return modules.get(path)
@@ -23,6 +25,7 @@ function load(path) {
     require(specifier) {
       if (specifier === 'node:crypto') return crypto
       if (specifier === '@/lib/kling4PromoServer') return { verifyKling4PromoReservation: async () => true, validateKling4PromoStart: async () => ({ isFree: true }) }
+      if (specifier === '@/lib/kling4PromoCarry') return { ensureKling4PromoBudgetToday: async () => { carryCalls++; return carryAllowed } }
       if (specifier.startsWith('@/')) return load(specifier.slice(2) + '.ts')
       return forbidden()
     },
@@ -90,7 +93,8 @@ async function fixture({ seconds = 15, promo = false, reserve = true } = {}) {
     voiceover_script: spoken, fal_request_ids: ids, fal_models: models,
     kling4_paid: { version: 'kling4_paid_2810', promo, seconds, engine_used: 'kling4',
       submitted_at: '2026-10-28T12:00:00.000Z', fallback_budget_reserved: reserve,
-      chunk_scenes: ids.map((_, i) => ({ prompt: `Captain in cabin, story beat ${i}.`, duration: 15 })) } }
+      chunk_scenes: ids.map((_, i) => ({ prompt: `Captain in cabin, story beat ${i}.`, duration: 15 })),
+      fallback_prompts: Array.from({ length: seconds / 5 }, (_, i) => `Captain story, original five-second scene ${i + 1}.`) } }
   assert.equal((await claims.completeCinematicClaim({ ...intent, response, falRequestIds: ids, falModels: models })).ok, true)
   const settled = await claims.settleCinematicClaim({ ...identity, db, reason: promo ? 'provider_submitted_promo' : 'provider_submitted_and_debited',
     renderId: `cinematic-${claims.cinematicClaimId(identity.userId, identity.generationId)}` })
@@ -114,12 +118,18 @@ test('paid 60s waits for all four clips before exposing completion, then returns
 test('provider failure freezes a once-only Seedance backup without debiting or losing spoken words', async () => {
   const f = await fixture()
   let posts = 0
+  const submittedPrompts = []
   const result = await status.advanceKling4PaidStatus(f, { poll: async () => ({ status: 'failed', url: null }),
-    submit: async input => { posts++; assert.equal(input.duration, 6); return `backup-${posts}` } })
+    submit: async input => { posts++; submittedPrompts.push(input.prompt); assert.equal(input.duration, 6); return `backup-${posts}` } })
   assert.equal(result.kind, 'ordinary')
   assert.equal(posts, 3)
   assert.equal(result.claim.creditCost, 45)
   assert.equal(result.claim.response.scene_narrations.join(' '), spoken)
+  const expectedPrompts = JSON.parse(JSON.stringify(f.claim.response.kling4_paid.fallback_prompts))
+  assert.deepEqual(submittedPrompts, expectedPrompts)
+  assert.equal(new Set(submittedPrompts).size, 3, 'three original five-second scenes must not repeat the combined 15-second prompt')
+  assert.deepEqual(JSON.parse(JSON.stringify(result.claim.response.scenes)), expectedPrompts)
+  assert.deepEqual(JSON.parse(JSON.stringify(result.claim.response.scene_fal_inputs.map(input => input.prompt))), expectedPrompts)
   assert.equal(result.claim.response.engine_label, 'Seedance 1.5')
   assert.equal(result.claim.falModels.every(x => x === fallbackModel), true)
   assert.equal(status.kling4PaidPollIdsMatch(['original-0'], result.claim), true)
@@ -127,6 +137,17 @@ test('provider failure freezes a once-only Seedance backup without debiting or l
   const replay = await status.advanceKling4PaidStatus(await current(f), { submit: async () => { posts++; throw new Error('must not repeat') } })
   assert.equal(replay.kind, 'ordinary')
   assert.equal(posts, 3)
+})
+
+test('fallback marker requires exactly one nonempty prompt per original five-second interval', async () => {
+  for (const seconds of [15, 30, 60]) {
+    const f = await fixture({ seconds })
+    assert.equal(status.kling4PaidMarker(f.claim).fallback_prompts.length, seconds / 5)
+    for (const fallback_prompts of [undefined, [], ['one'], Array(seconds / 5).fill(''), Array(seconds / 5).fill(null)]) {
+      const bad = { ...f.claim, response: { ...f.claim.response, kling4_paid: { ...f.claim.response.kling4_paid, fallback_prompts } } }
+      assert.equal(status.kling4PaidMarker(bad), null)
+    }
+  }
 })
 
 test('subscriber promo remains zero-credit through real signed fallback binding', async () => {
@@ -138,6 +159,40 @@ test('subscriber promo remains zero-credit through real signed fallback binding'
   assert.equal(result.claim.creditCost, 0)
   assert.equal(result.claim.resolutionReason, 'provider_submitted_promo')
   assert.equal(claims.verifyCinematicClaimRow({ ...identity, row: f.db.row() }).ok, true)
+})
+
+test('current-day promo cap refusal leaves zero new POSTs and can resume the same free fallback later', async () => {
+  const f = await fixture({ promo: true })
+  let posts = 0
+  carryAllowed = false; carryCalls = 0
+  const deps = { poll: async () => ({ status: 'failed', url: null }), submit: async () => `backup-${++posts}` }
+  const blocked = await status.advanceKling4PaidStatus(f, deps)
+  assert.equal(blocked.kind, 'pending')
+  assert.equal(posts, 0)
+  assert.equal(f.db.slots.size, 0, 'a denied day must not freeze a never-posted slot')
+  carryAllowed = true; carryCalls = 0
+  const resumed = await status.advanceKling4PaidStatus(await current(f), deps)
+  assert.equal(resumed.kind, 'ordinary')
+  assert.equal(posts, 3)
+  assert.equal(carryCalls, 3, 'each potential POST rechecks the current UTC day')
+  assert.equal(resumed.claim.creditCost, 0)
+  assert.equal(resumed.claim.resolutionReason, 'provider_submitted_promo')
+})
+
+test('durable accepted promo backup receipts remain deliverable after the current-day cap is exhausted', async () => {
+  const f = await fixture({ promo: true })
+  const started = await claims.replaceKling4PaidBinding({ ...f, expectedAuthority: f.claim.authority,
+    response: { ...f.claim.response, kling4_paid: { ...f.claim.response.kling4_paid,
+      fallback_started: true, fallback_reason: 'provider_failed', original_request_ids: [...f.claim.falRequestIds] } },
+    falRequestIds: f.claim.falRequestIds, falModels: f.claim.falModels, authorizedCompletedUrls: [null], reason: 'start_fallback' })
+  assert.equal(started.ok, true)
+  for (let i = 0; i < 3; i++) f.db.slots.set(`fallback:${i}`, { state: 'accepted', request_id: `durable-${i}`, model: fallbackModel })
+  carryAllowed = false; carryCalls = 0
+  const repaired = await status.advanceKling4PaidStatus({ ...f, claim: started.claim }, { submit: forbidden })
+  assert.equal(repaired.kind, 'ordinary')
+  assert.equal(carryCalls, 0, 'existing receipts incur no new provider cost')
+  assert.equal(repaired.claim.creditCost, 0)
+  carryAllowed = true
 })
 
 test('timeout uses the same eight-minute trial deadline and requires prepaid fallback budget', async () => {
