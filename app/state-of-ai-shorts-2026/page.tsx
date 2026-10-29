@@ -278,7 +278,8 @@ export default function StateOfAiShortsPage() {
             {/* KINEO-BENCHMARK-MOTORES-2026-09-23 — liga a página de dados irmã (sem link interno ela nasce órfã). */}
             Choosing an engine? <Link href="/seedance-vs-veo-vs-kling" style={{ color: ACCENT, fontWeight: 700 }}>Seedance vs Veo vs Kling, measured</Link>
             {' · '}
-            <Link href="/ai-video-generator/seedance" style={{ color: ACCENT, fontWeight: 700 }}>Seedance 1.5: price per video and the free film</Link>
+            {/* KINEO-LLMS-K4-2910 */}
+            <Link href="/ai-video-generator/seedance" style={{ color: ACCENT, fontWeight: 700 }}>Seedance 1.5: price per video and trial options</Link>
           </p>
         </div>
 

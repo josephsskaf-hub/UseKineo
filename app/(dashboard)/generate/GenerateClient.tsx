@@ -23128,7 +23128,8 @@ function UpgradeModal({
               BEFORE YOU DECIDE
             </span>
             <strong style={{ display: 'block', color: '#fff', fontSize: '0.95rem', lineHeight: 1.35, marginBottom: 3 }}>
-              Your {trialSeedance15.credits} trial credits already make a film — a {trialSeedance15.seconds}-second Seedance 1.5 film.
+              {/* KINEO-LLMS-K4-2910 — convite também pode aparecer em nova tentativa; não fixa motor. */}
+              Your {trialSeedance15.credits} trial credits already make a film — a {trialSeedance15.seconds}-second AI film.
             </strong>
             <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
               It costs {trialSeedance15.cost} of your {trialSeedance15.credits} credits: AI-generated scenes, voice, captions and soundtrack, watermarked. Make it now, then decide.

@@ -2,6 +2,7 @@
 // free tier + copy, decidida por UMA flag.
 
 import { creditCostForDuration, DURATION_REFERENCE_SECONDS } from './credits/engineCost'
+import { FREE_FILM_ENGINE_NAME } from './freeFilmEngine' // KINEO-LLMS-K4-2910
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS, FREE_ENTRY_COUNTRY_CLAUSE_MIRROR } from './entryPolicy'
 // KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — com a saída B ligada, conta de país fora da lista
 // nasce com 0 crédito: "every new account gets 10 free credits" virou mentira para ela. A cláusula ' in supported
@@ -235,8 +236,8 @@ export const TRIAL_KINEO1_FILMS = trialFilmsForEngine(
 export const TRIAL_FREE_FILM_SECONDS = 15
 export const TRIAL_FREE_FILM_CREDITS = creditCostForDuration('cinematic_ai', true, TRIAL_FREE_FILM_SECONDS)
 export const TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine(TRIAL_FREE_FILM_CREDITS)
-/** "free 15-second film (Seedance 1.5)" — a frase única do filme grátis. */
-export const FREE_FILM_LABEL = `free ${TRIAL_FREE_FILM_SECONDS}-second film (Seedance 1.5)`
+// KINEO-LLMS-K4-2910 — duração e crédito preservados; só o nome acompanha o interruptor do motor.
+export const FREE_FILM_LABEL = `free ${TRIAL_FREE_FILM_SECONDS}-second film (${FREE_FILM_ENGINE_NAME})`
 
 // ═══ KINEO-VERDADE-TRIAL-2026-10-05 — a promessa "todos os motores liberados" no trial MORREU (fundador 05/10).
 // A frase era verdade de ACESSO e mentira de SALDO: com o grant do trial ninguém paga um Kling/Veo, e conta grátis sem

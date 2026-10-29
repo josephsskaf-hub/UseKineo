@@ -29,6 +29,7 @@ import { ANNUAL_REFUND_DAYS } from '../checkoutPricing'
 // KINEO-CHECKOUT-CLAREZA-1610), que o FAQ, a faixa de confiança, os cartões do /pricing e o modal de upgrade mostram.
 import { MONTHLY_REFUND_DAYS } from '../checkoutPricing'
 import { TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '../freeTierOffer'
+import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 import { CARD_ENTRY_ONLY } from '../entryPolicy'
 import { isTrialActive, trialCapFor, trialCreditsUsed } from '../reverseTrial'
 import { ideiaDoCartao } from '../growth/paywallFilmePrimeiro'
@@ -227,21 +228,21 @@ export const ABANDONO_RAPIDO_COPY: Record<RegionEmailLang, CopyRapido> = {
   en: {
     garantiaMensal: (p, d) => `${p} comes with a ${d}-day money-back guarantee: if it is not for you, email ${SUPORTE_EMAIL} within ${d} days of your first charge and we refund 100%.`,
     garantiaAnual: (p, d) => `The annual ${p} plan is refundable in full within ${d} days of purchase.`,
-    convite: (s) => `Before you pay for anything: your trial still covers one free ${s}-second film (Seedance 1.5), and you have not made it yet. Watch Kineo make your own idea first, then decide.`,
+    convite: (s) => `Before you pay for anything: your trial still covers one free ${s}-second film (${FREE_FILM_ENGINE_NAME}), and you have not made it yet. Watch Kineo make your own idea first, then decide.`, // KINEO-LLMS-K4-2910
     conviteIdeia: (i) => `Your last idea is ready to go: “${i}”`,
     conviteBotao: (s) => `Make my free ${s}-second film`,
   },
   pt: {
     garantiaMensal: (p, d) => `O ${p} tem garantia de ${d} dias: se não for para você, escreva para ${SUPORTE_EMAIL} em até ${d} dias da primeira cobrança e devolvemos 100%.`,
     garantiaAnual: (p, d) => `O plano ${p} anual é reembolsável integralmente em até ${d} dias da compra.`,
-    convite: (s) => `Antes de pagar qualquer coisa: o seu teste ainda cobre um filme grátis de ${s} segundos (Seedance 1.5), e você ainda não o fez. Veja a Kineo fazer a sua própria ideia primeiro e depois decida.`,
+    convite: (s) => `Antes de pagar qualquer coisa: o seu teste ainda cobre um filme grátis de ${s} segundos (${FREE_FILM_ENGINE_NAME}), e você ainda não o fez. Veja a Kineo fazer a sua própria ideia primeiro e depois decida.`, // KINEO-LLMS-K4-2910
     conviteIdeia: (i) => `Sua última ideia está pronta: “${i}”`,
     conviteBotao: (s) => `Fazer meu filme grátis de ${s} s`,
   },
   es: {
     garantiaMensal: (p, d) => `${p} tiene garantía de devolución de ${d} días: si no es para ti, escribe a ${SUPORTE_EMAIL} dentro de los ${d} días del primer cobro y te devolvemos el 100%.`,
     garantiaAnual: (p, d) => `El plan ${p} anual es reembolsable por completo dentro de los ${d} días de la compra.`,
-    convite: (s) => `Antes de pagar nada: tu prueba todavía cubre una película gratis de ${s} segundos (Seedance 1.5), y aún no la hiciste. Mira a Kineo hacer tu propia idea primero y luego decide.`,
+    convite: (s) => `Antes de pagar nada: tu prueba todavía cubre una película gratis de ${s} segundos (${FREE_FILM_ENGINE_NAME}), y aún no la hiciste. Mira a Kineo hacer tu propia idea primero y luego decide.`, // KINEO-LLMS-K4-2910
     conviteIdeia: (i) => `Tu última idea está lista: “${i}”`,
     conviteBotao: (s) => `Hacer mi película gratis de ${s} s`,
   },

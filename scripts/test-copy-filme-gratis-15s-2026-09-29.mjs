@@ -149,13 +149,16 @@ function problemasPublicos({ L, llms, facts }) {
   const p = []
   const custo = L('lib/credits/engineCost.ts').creditCostForDuration('cinematic_ai', true, L('lib/durationByEngine.ts').SEEDANCE_SHORT_SECONDS)
   const trial = L('lib/freeTierOffer.ts').TRIAL_GRANT_CREDITS_COPY
-  const frase = `free ${L('lib/durationByEngine.ts').SEEDANCE_SHORT_SECONDS}-second film (Seedance 1.5)`
+  // KINEO-LLMS-K4-2910 — expectativa independente do rótulo, derivada do interruptor real.
+  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+  const frase = `free ${L('lib/durationByEngine.ts').SEEDANCE_SHORT_SECONDS}-second film (${engine})`
   if (!(custo <= trial)) p.push(`custo do 15 s (${custo}) não cabe no trial (${trial})`)
   if (!llms.includes(frase)) p.push('llms.txt sem a frase do filme grátis de 15 s')
   const json = JSON.stringify(facts)
   if (!json.includes(frase)) p.push('/api/facts sem a frase do filme grátis de 15 s')
   const ff = facts.trialAccess?.freeFilm
-  if (!ff || ff.engine !== 'Seedance 1.5' || ff.seconds !== 15 || ff.creditsPerFilm !== custo || ff.filmsCovered !== Math.floor(trial / custo)) p.push('trialAccess.freeFilm não é o Seedance de 15 s derivado: ' + JSON.stringify(ff))
+  // KINEO-LLMS-K4-2910
+  if (!ff || ff.engine !== engine || ff.seconds !== 15 || ff.creditsPerFilm !== custo || ff.filmsCovered !== Math.floor(trial / custo)) p.push('trialAccess.freeFilm diverge do motor e do 15 s derivados: ' + JSON.stringify(ff))
   if (facts.recurringFreeAccess !== null) p.push('recurringFreeAccess anunciado: ' + JSON.stringify(facts.recurringFreeAccess))
   if (facts.freeTier?.freeVideosPerWindow !== 0 || facts.freeTier?.engineCanonicalName !== null) p.push('freeTier ainda anuncia cota recorrente')
   if (facts.offerEffectiveSince !== '2026-09-29') p.push('vigência não é 29/09: ' + facts.offerEffectiveSince)
@@ -165,11 +168,11 @@ function problemasPublicos({ L, llms, facts }) {
   return p
 }
 
-console.log('== 1. /llms.txt e /api/facts executados: filme grátis = Seedance 1.5 de 15 s, sem Kineo 1 grátis ==')
+console.log('== 1. /llms.txt e /api/facts executados: motor grátis derivado do interruptor, 15 s ==') // KINEO-LLMS-K4-2910
 {
   const real = await publica()
   const probs = problemasPublicos(real)
-  checa(`llms.txt (${real.llms.length} caracteres) e /api/facts dizem "free 15-second film (Seedance 1.5)", derivado, sem cota recorrente${probs.length ? ' — ' + probs.join(' | ') : ''}`, probs.length === 0)
+  checa(`llms.txt e /api/facts dizem "${real.L('lib/freeTierOffer.ts').FREE_FILM_LABEL}", derivado, sem cota recorrente${probs.length ? ' — ' + probs.join(' | ') : ''}`, probs.length === 0) // KINEO-LLMS-K4-2910
   const m1 = problemasPublicos(await publica(muta('lib/freeTierOffer.ts', 'export const TRIAL_FREE_FILM_SECONDS = 15', 'export const TRIAL_FREE_FILM_SECONDS = 35')))
   checa(`mutante (filme grátis de 35 s) → vermelho (${m1.length} problemas)`, m1.length > 0)
   const m2 = problemasPublicos(await publica(muta('lib/kineoFacts.ts', 'const RECURRING_FREE_ANNOUNCED: boolean = false', 'const RECURRING_FREE_ANNOUNCED: boolean = true')))
@@ -189,7 +192,9 @@ console.log('== 2. números derivados e espelhos batem com lib/durationByEngine 
   const custo = ec.creditCostForDuration('cinematic_ai', true, S)
   checa(`freeTierOffer: ${fto.TRIAL_FREE_FILM_SECONDS} s = ${S} s; custo ${fto.TRIAL_FREE_FILM_CREDITS} = creditCostForDuration (${custo}); filmes ${fto.TRIAL_SEEDANCE15_FILMS} = ⌊${fto.TRIAL_GRANT_CREDITS_COPY}/${custo}⌋`,
     fto.TRIAL_FREE_FILM_SECONDS === S && fto.TRIAL_FREE_FILM_CREDITS === custo && fto.TRIAL_SEEDANCE15_FILMS === Math.floor(fto.TRIAL_GRANT_CREDITS_COPY / custo) && fto.TRIAL_SEEDANCE15_FILMS >= 1)
-  checa(`FREE_FILM_LABEL = "${fto.FREE_FILM_LABEL}"`, fto.FREE_FILM_LABEL === `free ${S}-second film (Seedance 1.5)`)
+  // KINEO-LLMS-K4-2910 — trocar o rótulo sem obedecer ao interruptor continua ficando vermelho.
+  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+  checa(`FREE_FILM_LABEL = "${fto.FREE_FILM_LABEL}"`, fto.FREE_FILM_LABEL === `free ${S}-second film (${engine})`)
   checa(`marketingPrice: ${mp.SEEDANCE_SHORT_FILM_SECONDS} s e ${mp.SEEDANCE_SHORT_FILM_CREDITS} cr espelham o 15 s`, mp.SEEDANCE_SHORT_FILM_SECONDS === S && mp.SEEDANCE_SHORT_FILM_CREDITS === custo)
   checa('videoReadyFooter: o piso do próximo filme é o custo do 15 s (import, não número)', /^export const NEXT_VIDEO_MIN_CREDITS = SEEDANCE_SHORT_FILM_CREDITS$/m.test(rd('lib/lifecycle/videoReadyFooter.ts')))
   const momentum = rd('app/api/cron/send-momentum-nudge/route.ts')
@@ -243,7 +248,8 @@ console.log('== 4. openapi do GPT, página do Kineo 1 (301) e sitemap ==')
   const res = oa.components.schemas.HandoffResponse.properties.durationSec.enum
   const d200 = oa.paths['/api/gpt/handoff'].post.responses['200'].description
   checa(`openapi: durationSec aceita 15 (pedido [${req}] e resposta [${res}]); o 200 cita o filme grátis de 15 s e não diz que o trial cobre o fast`,
-    req.includes(15) && res.includes(15) && d200.includes('free 15-second film (Seedance 1.5)') && !/covers films on `fast`/.test(d200))
+    // KINEO-LLMS-K4-2910 — JSON estático manda ler o motor atual em getKineoFacts; não congela o nome.
+    req.includes(15) && res.includes(15) && d200.includes('free 15-second film') && d200.includes('trialAccess.freeFilm.engine') && !/free 15-second film \(Seedance 1\.5\)|covers films on `fast`/.test(d200))
   const semQuinze = JSON.parse(rd('public/gpt/openapi.json').replace('"enum": [\n              15,', '"enum": ['))
   checa('mutante (openapi sem o 15) → vermelho', !semQuinze.components.schemas.HandoffRequest.properties.durationSec.enum.includes(15))
   const cfg = require(join(root, 'next.config.js'))
@@ -306,4 +312,4 @@ console.log('== 5. revisão da E2b: telas logadas com portão, carta da cota e a
 
 console.log(`\n${ok}/${ok + falhas.length} verificações`)
 if (falhas.length) { for (const f of falhas) console.log('FALHOU:', f); process.exit(1) }
-console.log('PASS — o texto público diz: o filme grátis é o Seedance 1.5 de 15 s; nada de Kineo 1 grátis nem cota semanal.')
+console.log('PASS — o motor do filme grátis acompanha o interruptor; 15 s, sem Kineo 1 grátis nem cota semanal.') // KINEO-LLMS-K4-2910
