@@ -318,6 +318,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })
   }
   routes.push({ path: '/ai-video-generator/kling-4', priority: 0.8, freq: 'weekly' })
+  routes.push({ path: '/ai-halloween-video', priority: 0.8, freq: 'weekly' }) // KINEO-HALLOWEEN-PAGE-2910
   const engineNoIndex = ENGINE_SLUGS.filter((slug) => !isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`)
   const engineGeoRevised = new Set([
     ...ENGINE_GEO_REVISED_PAGES,
