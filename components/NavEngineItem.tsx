@@ -63,6 +63,7 @@ export default function NavEngineItem({
     io.observe(v) // KINEO-MENU-VIDEO-RODANDO-2610
     return () => io.disconnect() // KINEO-MENU-VIDEO-RODANDO-2610
   }, [thumbVideo]) // KINEO-MENU-VIDEO-RODANDO-2610
+  // KINEO-CARDS-TRAVA-2810 — sem autoPlay: no celular o autoplay vencia o 1º aviso do observador e os 6 vídeos do menu FECHADO rodavam em loop, disputando o decodificador com os cards da home. Só o observador acima dá play.
   return (
     <Link
       href={href}
@@ -75,7 +76,7 @@ export default function NavEngineItem({
       }}
       onMouseLeave={() => ref.current?.pause()}
     >
-      {thumb ? <span className="nm-th" aria-hidden="true">{thumbVideo ? <video ref={thumbRef} src={thumbVideo} poster={thumb} width={40} height={40} autoPlay muted loop playsInline preload="metadata" style={NAV_THUMB_VIDEO_STYLE} /> : <img src={thumb} alt={navThumbAlt1510(name)} width={40} height={40} loading="lazy" decoding="async" />}</span> : icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
+      {thumb ? <span className="nm-th" aria-hidden="true">{thumbVideo ? <video ref={thumbRef} src={thumbVideo} poster={thumb} width={40} height={40} muted loop playsInline preload="metadata" style={NAV_THUMB_VIDEO_STYLE} /> : <img src={thumb} alt={navThumbAlt1510(name)} width={40} height={40} loading="lazy" decoding="async" />}</span> : icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
       <span className="nm-tx">
         <b>
           {translateName ? <UiLabel>{name}</UiLabel> : name}

@@ -129,9 +129,9 @@ export function attachHomeCardPlayback(root: HTMLElement, clips: readonly HomeCa
     }
   })
   const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver((entries) => {
-    visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.3)
+    visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.6)
     sync()
-  }, { threshold: 0.3 })
+  }, { threshold: 0.6 }) // KINEO-CARDS-TRAVA-2810 — 0.3→0.6: no celular o card espiando na borda do carrossel não decodifica junto
   if (observer) observer.observe(root)
   else { visible = true; sync() }
   motion?.addEventListener?.('change', sync)
