@@ -17,9 +17,10 @@ export function halloweenSkinOn(now: number, search: string, publicFlag: boolean
 const CSS = `
 .kh-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 16px;background:linear-gradient(90deg,#3b1255,#6b2a0f 55%,#3b1255);color:#fff;font-size:14px;font-weight:700;text-align:center;text-decoration:none;line-height:1.3}
 .kh-bar:hover{filter:brightness(1.12)}
-.kh-bar .kh-cta{color:#ffb347;white-space:nowrap}
+.kh-bar,.kh-bar:visited,.kh-bar span{color:#fff !important;text-decoration:none !important}
+.kh-bar .kh-cta{color:#ffb347 !important;white-space:nowrap}
 .kh-bats{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
-.kh-bat{position:absolute;width:34px;height:18px;opacity:.55;animation:kh-fly 26s linear infinite}
+.kh-bat{position:absolute;width:34px;height:18px;opacity:.45;animation:kh-fly 26s linear infinite}
 .kh-bat svg{width:100%;height:100%;fill:#2a1a3a;animation:kh-flap .35s ease-in-out infinite alternate;transform-origin:center}
 .kh-bat:nth-child(2){top:14%;animation-duration:34s;animation-delay:-12s;width:26px;height:14px}
 .kh-bat:nth-child(3){top:22%;animation-duration:41s;animation-delay:-25s;width:22px;height:12px;opacity:.4}
