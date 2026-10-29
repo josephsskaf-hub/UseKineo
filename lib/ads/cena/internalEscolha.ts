@@ -70,10 +70,10 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       const planLease = new Date(now()).toISOString()
       if (sampleMode) {
         if (body.dry_run === true) return v2Json({ dry_run: true, charged: false, sample: true, seconds: 8, credits: 0, stage: 'edit' })
-        const seed = await d.admin.from('ads_v2_orders').insert({ user_id: uid, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, assembly_lease_at: planLease, plan: { cena: { plan: { escolha: { marker: 'KINEO-ADS-ESCOLHA-2310', sample: ADS_ESCOLHA_SAMPLE_MARK } } } } }).select('id').maybeSingle()
+        const seed = await d.admin.from('ads_v2_orders').insert({ user_id: uid, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, assembly_lease_at: planLease, plan: { cena: { route, plan: { escolha: { marker: 'KINEO-ADS-ESCOLHA-2310', sample: ADS_ESCOLHA_SAMPLE_MARK } } } } }).select('id').maybeSingle()
         if (seed.error || !seed.data) return v2Fail('cena_order_failed', 503)
         sampleOrder = String(seed.data.id)
-        const reservation = await reserveEscolhaSample(d.admin, { orderId: sampleOrder, actorId: user.id, ownerId: uid, leaseAt: planLease })
+        const reservation = await reserveEscolhaSample(d.admin, { orderId: sampleOrder, actorId: user.id, ownerId: uid, leaseAt: planLease, route })
         if (!reservation.ok) return v2Fail(reservation.error, reservation.status)
       }
       const first = cena95ModerationFailure(await d.moderate([input.frase, input.oferta, input.cta, ...(input.beneficios ?? [])].filter(Boolean).join('\n')))
@@ -158,7 +158,7 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
             if (!eligible.ok) return v2Fail(eligible.error, eligible.status, { needed: eligible.needed, ...('balance' in eligible ? { balance: eligible.balance } : {}) })
           } else if (!await escolhaSampleAccountOk(d.admin, user.id)) return v2Fail('ads_sample_account_blocked', 403)
           const reserved = sampleMode
-            ? await reserveEscolhaSample(d.admin, { orderId: order.id, ownerId: uid, actorId: user.id, leaseAt: token })
+            ? await reserveEscolhaSample(d.admin, { orderId: order.id, ownerId: uid, actorId: user.id, leaseAt: token, route: stored.cena.route })
             : await reserveEscolhaPhotos(d.admin, { orderId: order.id, ownerId: uid, actorId: user.id, leaseAt: token })
           if (!reserved.ok) return v2Fail(reserved.error, reserved.status, { ...('limit' in reserved ? { limit: reserved.limit, reset_at: reserved.reset_at } : {}) })
         }

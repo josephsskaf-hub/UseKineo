@@ -40,7 +40,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       !await verifyKling4PromoReservation(admin, { userId: order.user_id, jobId: order.id, kind: 'ad', seconds: 15 }))) {
     await failCenaOrder(admin, order, 'kling4_promo_authority_unavailable'); return
   }
-  if (state.route === 'kling4' && state.jobs.some(j => j.kind === 'video' && !!j.requestId))
+  if (state.route === 'kling4' && !isEscolhaSamplePlan(state.plan) && state.jobs.some(j => j.kind === 'video' && !!j.requestId))
     await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
   const auth = await admin.auth.admin.getUserById(order.user_id)
   if (auth.error || !isEscolhaSamplePlan(state.plan) && !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
@@ -141,7 +141,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
             !await ensureKling4PromoBudgetToday(admin, { userId: order.user_id, jobId: order.id })) throw new Kling4PromoBudgetWait('video', j.index)
         const r = await submitShotOnce(j.endpoint, j.input, context)
         if (r.kind === 'accepted') {
-          if (state.route === 'kling4' && j.kind === 'video') await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
+          if (state.route === 'kling4' && !isEscolhaSamplePlan(state.plan) && j.kind === 'video') await recordKling4PaidUse(admin, { userId: order.user_id, jobId: order.id })
           return { kind: 'accepted', requestId: r.requestId }
         }
         if (r.kind === 'ambiguous') {

@@ -14,7 +14,7 @@ export class Kling4PromoBudgetWait extends Error {
 export const KLING4_AD_CREDITS = Math.max(35, Math.ceil((15 * 157 + KLING4_AD_FAL_EXTRAS_MILLIUSD + KLING4_AD_OTHER_EXTRAS_MILLIUSD) / (133 * 0.6)))
 
 export function newPaidCenaRoute(route: 'kling3' | 'kling4' | 'seedance2' | 'veo31', sample: boolean, live = KLING4_PAID_LIVE) {
-  if (sample) return 'kling3' as const
+  if (sample) return live ? 'kling4' as const : 'kling3' as const
   return route === 'kling3' || route === 'kling4' ? live ? 'kling4' as const : 'kling3' as const : route
 }
 

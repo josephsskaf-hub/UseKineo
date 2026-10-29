@@ -29,12 +29,12 @@ function modules(live, extraEnv = {}) {
   return load
 }
 const json = value => JSON.parse(JSON.stringify(value))
-test('new paid ads use the real engine while samples and rollback retain Kling3', () => {
+test('new paid ads and samples use Kling4 with the switch on and Kling3 on rollback', () => {
   for (const live of [false, true]) {
     const load = modules(live), paid = load('lib/ads/kling4Paid.ts'), tiers = load('lib/ads/v2Tiers.ts')
     assert.equal(paid.newPaidCenaRoute('kling3', false), live ? 'kling4' : 'kling3')
     assert.equal(paid.newPaidCenaRoute('kling4', false), live ? 'kling4' : 'kling3')
-    assert.equal(paid.newPaidCenaRoute('kling3', true), 'kling3')
+    assert.equal(paid.newPaidCenaRoute('kling3', true), live ? 'kling4' : 'kling3')
     assert.equal(tiers.routeShot('product', 'commercial', 1), live ? 'kling4' : 'kling_o3')
     assert.equal(tiers.routeShot('text', 'commercial', 1), null)
     assert.equal(tiers.routeShot('user_video', 'commercial', 1), null)

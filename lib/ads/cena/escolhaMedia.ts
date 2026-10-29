@@ -41,7 +41,7 @@ export async function stepCenaEscolhaMedia<Audio>(s: CenaEscolhaState, d: Escolh
   if (!escolhaOf(s.plan)) throw new Error('escolha_plan_required')
   const narrated = cenaVoiceModeOf(s.plan) === 'narrated'
   const sample = isEscolhaSamplePlan(s.plan), outputSeconds = escolhaSeconds(s.plan) // KINEO-AMOSTRA-ANUNCIO-2410
-  if (sample && (s.route !== 'kling3' || !narrated)) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (!['kling3', 'kling4'].includes(s.route) || !narrated)) throw new Error('escolha_sample_requires_narrated_kling')
   if (!s.escolhaMedia) {
     s.escolhaMedia = { marker: 'KINEO-ADS-ESCOLHA-2310', voice: { status: narrated ? 'new' : 'done', attempt: 1 }, music: { status: s.plan.ajusteLive?.music === true ? 'new' : 'skipped' } }
     await d.save(s)

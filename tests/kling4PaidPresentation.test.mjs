@@ -149,7 +149,7 @@ test('every authored Kling 4 phrase renders through the actual UiLabel dictionar
 test('all touched product surfaces use verified promotion copy and old film heroes keep their recorded engine',()=>{
  for(const p of ['app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/generate/GenerateClient.tsx','app/pricing/PricingClient.tsx','app/(dashboard)/ads/v2/AdsV2Escolha.tsx','components/Kling4PaidEnginePage.tsx'])assert.match(read(p),/Kling4PaidNotice/);
  const studio=read('app/(dashboard)/studio/StudioClient.tsx');assert.match(studio,/name=\{scriptMode === 'clip' \? 'Seedance 1.5' : ENGINES.find/);
- const ads=read('app/(dashboard)/ads/v2/AdsV2Escolha.tsx');assert.match(ads,/route = sampleMode \? 'kling3'/);
+ const ads=read('app/(dashboard)/ads/v2/AdsV2Escolha.tsx');assert.match(ads,/route = orderId && orderEngine \? orderEngine : sampleMode \? kling4Availability\?\.paidLive \? 'kling4' : 'kling3'/);assert.match(ads,/data-kineo="ads-sample-engine"/);
  const schema=JSON.parse(read('public/gpt/openapi.json'));assert.equal(schema.paths['/api/kling4-paid/availability'].get.operationId,'getKling4Availability');
  assert.match(read('lib/growth/citationAnswers.ts'),/CITATION_KLING4_PAID_ANSWER/);
  assert.match(read('lib/kineoFacts.ts'),/kling4Paid: kling4PaidCitation\(\)/);

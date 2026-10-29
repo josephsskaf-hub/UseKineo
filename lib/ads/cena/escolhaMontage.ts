@@ -77,7 +77,7 @@ export function escolhaMusicElements(url: string | undefined, speechSeconds: num
 export function buildCenaEscolhaMontage(s: CenaEscolhaState): Record<string, unknown> {
   const clips = s.jobs.filter(j => j.kind === 'video' && j.status === 'done').sort((a, b) => a.index - b.index), mode = cenaVoiceModeOf(s.plan)
   const sample = isEscolhaSamplePlan(s.plan), seconds = escolhaSeconds(s.plan) // KINEO-AMOSTRA-ANUNCIO-2410
-  if (sample && (s.route !== 'kling3' || mode !== 'narrated')) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (!['kling3', 'kling4'].includes(s.route) || mode !== 'narrated')) throw new Error('escolha_sample_requires_narrated_kling')
   if (!escolhaOf(s.plan) || s.phase !== 'ready' || clips.length !== (s.route === 'veo31' ? 2 : 1) || clips.some(j => !cenaHttps(j.url))) throw new Error('escolha_video_not_ready')
   if (mode === 'narrated' && (!cenaHttps(s.voiceUrl) || s.escolhaMedia?.voice.status !== 'done' || !(s.escolhaMedia.voice.seconds! > 0 && s.escolhaMedia.voice.seconds! <= seconds))) throw new Error('escolha_voice_unusable') // KINEO-AMOSTRA-ANUNCIO-2410
   if (mode === 'talking' && s.voiceUrl) throw new Error('cena_talking_voiceover_forbidden')

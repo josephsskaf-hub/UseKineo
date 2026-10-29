@@ -140,7 +140,7 @@ function prompts(plan: CenaEscolhaPlan): void {
 /** Same pure safety and provider contracts for dry-run, start and runtime; no legacy composition/copy rewrite. */
 export function preflightCenaEscolha(plan: CenaPlan, route: CenaRoute): void {
   const sample = isEscolhaSamplePlan(plan) // KINEO-AMOSTRA-ANUNCIO-2410
-  if (sample && (route !== 'kling3' || cenaVoiceModeOf(plan) !== 'narrated' || plan.input.voice_mode !== 'narrated')) throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && (!['kling3', 'kling4'].includes(route) || cenaVoiceModeOf(plan) !== 'narrated' || plan.input.voice_mode !== 'narrated')) throw new Error('escolha_sample_requires_narrated_kling')
   const choice = escolhaOf(plan), presenter = choice && escolhaPresenter(choice.presenterId), scenario = choice && escolhaScenario(choice.scenarioId)
   if (!escolhaFormat(plan.input.formato ?? 'product')) throw new Error('escolha_invalid_format')
   if (!choice || !presenter || !scenario || !cenaCategory(choice.category) || scenario.category !== choice.category || !cenaHttps(plan.input.foto)) throw new Error('escolha_invalid_selection')
@@ -154,7 +154,7 @@ export function preflightCenaEscolha(plan: CenaPlan, route: CenaRoute): void {
 }
 export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: CenaJson, selection: CenaEscolhaRequestSelection): Promise<CenaPlan> {
   const sample = selection.sample === true, maxWords = sample ? ADS_ESCOLHA_SAMPLE_WORDS : 30 // KINEO-AMOSTRA-ANUNCIO-2410
-  if (sample && route !== 'kling3') throw new Error('escolha_sample_requires_silent_kling3') // KINEO-AMOSTRA-ANUNCIO-2410
+  if (sample && !['kling3', 'kling4'].includes(route)) throw new Error('escolha_sample_requires_narrated_kling')
   const candidate2410 = presenterCandidateById2410(selection.presenter_id) // KINEO-APRESENTADORES-2410
   if (candidate2410) presenterCandidateVoice2410(candidate2410, input.language ?? 'en') // KINEO-APRESENTADORES-2410 — unsupported legacy languages stop before planning or media spending
   const presenter = escolhaPresenter(selection.presenter_id), scenario = escolhaScenario(selection.scenario_id)
