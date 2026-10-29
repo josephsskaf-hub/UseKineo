@@ -1,4 +1,5 @@
 'use client'
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -31,7 +32,7 @@ export default function MrrFirstFilm(facts: FirstFilmFacts) {
     <p style={{ margin: '6px 0', fontSize: 12, color: 'var(--muted2)', lineHeight: 1.5 }}>
       <UiLabel>A paper boat crosses a rainy city and reaches the sea at sunrise.</UiLabel>
     </p>
-    <p style={{ margin: '6px 0', fontSize: 11 }}><UiLabel>Seedance 1.5</UiLabel> · {offer.seconds}s · {offer.cost} cr · <UiLabel>Uses your trial credits. Starts generating when you click.</UiLabel></p>
+    <p style={{ margin: '6px 0', fontSize: 11 }}>{/* KINEO-LLMS-K4-2910 */}{FREE_FILM_ENGINE_NAME} · {offer.seconds}s · {offer.cost} cr · <UiLabel>Uses your trial credits. Starts generating when you click.</UiLabel></p>
     <button type="button" className="pill" disabled={starting} onClick={() => {
       if (committed.current || !firstFilmOffer(facts)) return
       committed.current = true

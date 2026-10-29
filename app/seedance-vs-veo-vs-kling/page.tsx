@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // KINEO-BENCHMARK-MOTORES-2026-09-23 — "Seedance vs Veo vs Kling", medido nos renders reais da casa.
 //
 // POR QUE ESTA PÁGINA EXISTE (medido 23/09): o ChatGPT manda ~200 sessões/semana; a /state-of-ai-shorts-2026 é a 2ª
@@ -151,7 +152,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
       q: 'Can I paste a script I wrote with ChatGPT?',
       a:
         'Yes. Paste the script into Kineo, choose "Use my script as is", and the engine you pick narrates it word for ' +
-        `word — Seedance 1.5 generates every scene with AI, and a new account${GRANT_COUNTRY_CLAUSE} can try it free with one 15-second film.`,
+        `word — Seedance 1.5 generates every scene with AI. A new account${GRANT_COUNTRY_CLAUSE} gets one free 15-second film made with ${FREE_FILM_ENGINE_NAME}.`, // KINEO-LLMS-K4-2910
     },
     ...extras1610.faq, // KINEO-PAGINAS-MOTOR-1610
   ]

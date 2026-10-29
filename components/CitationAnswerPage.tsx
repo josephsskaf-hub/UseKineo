@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import Image from 'next/image'
@@ -83,7 +84,7 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
               <caption>Four competitors and Kineo · unknown limits are stated explicitly</caption>
               <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>Seedance 1.5 generated scenes (the trial pays for a 15-second one); further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
+                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>{/* KINEO-LLMS-K4-2910 */}{FREE_FILM_ENGINE_NAME} generated scenes for the free first 15-second film; further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
                 {competitors.map((competitor) => <tr key={competitor.name}>
                   <th scope="row"><a href={competitor.source} rel="noopener noreferrer">{competitor.name}</a><small>{competitor.kind}</small></th>
                   {['price', 'trial', 'engines', 'duration', 'watermark'].map((field) => <td key={field}><span className="kc-unknown">[CONFIRMAR]</span></td>)}

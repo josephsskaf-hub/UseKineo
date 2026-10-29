@@ -1,4 +1,5 @@
 'use client'
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 
 // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a faixa honesta para quem chega pelo link antigo do Kineo 1.
 //
@@ -16,7 +17,7 @@ import { BUY_CREATOR_FILM_SECONDS, creatorSeedanceFilms } from '@/lib/growth/buy
 export const KINEO1_RETIRED_FROM = 'kineo-1'
 
 export function kineo1RetiredNoticeText(): string {
-  return `Kineo 1 was retired — your free film is now ${TRIAL_FREE_FILM_SECONDS} s on Seedance 1.5 (AI-generated scenes). Creator = ${creatorSeedanceFilms()} films of ${BUY_CREATOR_FILM_SECONDS} s.`
+  return `Kineo 1 was retired — your free film is now ${TRIAL_FREE_FILM_SECONDS} s on ${FREE_FILM_ENGINE_NAME} (AI-generated scenes). Creator = ${creatorSeedanceFilms()} films of ${BUY_CREATOR_FILM_SECONDS} s.` // KINEO-LLMS-K4-2910
 }
 
 export default function Kineo1RetiredNotice() {

@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // KINEO-VS-ALTERNATIVAS-1310 — o texto das 4 páginas /vs "alternativa a X", no MESMO tipo (CitationAnswer) da página do
 // InVideo que converteu (2 cadastros → 1 Creator em 4,5 min). Um ângulo honesto por concorrente: o material com que a
 // pessoa começa (artigo, apresentador, edição manual, vídeo longo) contra "uma ideia → filme pronto".
@@ -21,7 +22,7 @@ const creator = buyCreatorCopy('en')
 /** "Kineo Creator is <1º mês> for the first month, then <cheio>/month for N credits…" — só o cheio com o WELCOME20 desligado. */
 const CREATOR_LINE = `Kineo Creator is ${creator.priceLine} for ${CITATION_PLANS[1].credits} credits a month (${CITATION_PLANS[1].films} films of ${CITATION_REFERENCE_SECONDS} seconds on Seedance 1.5)`
 const FIRST_FILM = `the first one is a ${FREE_FILM_LABEL}`
-const SEEDANCE_STEP = `Seedance 1.5 generates the scenes: ${CITATION_FREE_FILM_CREDITS} credits for a 15-second film (the free one) or ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds.`
+const SEEDANCE_STEP = `The free first film is made with ${FREE_FILM_ENGINE_NAME}: ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds. The paid Seedance 1.5 reference uses ${CITATION_SEEDANCE_CREDITS} credits for ${CITATION_REFERENCE_SECONDS} seconds.` // KINEO-LLMS-K4-2910
 const REVIEW_STEP = 'Kineo writes or keeps the narration, voices it, cuts the scenes and burns in captions; watch the MP4 before you publish it.'
 const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1)
 
@@ -34,7 +35,7 @@ function base(id: VsAlternativeId) {
 // de anúncio para lojas. Só o href: as páginas são de outras sessões.
 const VEO_OFFERED = engineOffered('veo') && !enginePaused('veo')
 const ENGINE_LINKS: { href: string; label: string }[] = [
-  { href: '/ai-video-generator/seedance', label: 'Seedance 1.5 on Kineo: the engine of the free film' },
+  { href: '/ai-video-generator/seedance', label: 'Seedance 1.5 on Kineo: generated scenes and paid reference costs' }, // KINEO-LLMS-K4-2910
   ...(VEO_OFFERED ? [{ href: '/ai-video-generator/veo', label: 'Veo 3.1 on Kineo: Google’s model inside a finished film' }] : []),
   ...(S25_PUBLIC ? [{ href: '/ai-video-generator/seedance-2-5', label: 'Seedance 2.5 on Kineo (paid plans)' }] : []),
 ]
@@ -65,7 +66,7 @@ export const VS_ALTERNATIVE_ANSWERS: Record<VsAlternativeId, CitationAnswer> = {
       answer: 'Not as a URL or document import. Kineo starts from an idea or a script you paste. If repurposing a long article is the job, Pictory is built for it and Kineo is not.',
     }, {
       question: 'Does Kineo use stock footage like Pictory?',
-      answer: 'The free film and the reference costs on this page use Seedance 1.5, which generates the scenes from the narration instead of matching stock clips. Generated scenes can still differ from what you pictured, so watch the film before publishing.',
+      answer: `The free first film is made with ${FREE_FILM_ENGINE_NAME}; the paid reference costs on this page use Seedance 1.5. Both generate scenes instead of matching stock clips. Generated scenes can still differ from what you pictured, so watch the film before publishing.`, // KINEO-LLMS-K4-2910
     }, CITATION_TRIAL_FAQ, CITATION_WATERMARK_FAQ, CITATION_CURRENCY_FAQ],
     links: [
       { href: '/vs/kineo-vs-pictory', label: 'Read the Kineo vs Pictory comparison' },
@@ -217,8 +218,8 @@ export const VS_NOVOS_ANSWERS: Record<VsNovoId, CitationAnswer> = {
     }, {
       question: 'Does Kineo use Veo like Google Flow?',
       answer: VEO_OFFERED
-        ? 'Yes, as one engine among several. Inside Kineo you choose the engine by name before rendering, and Veo 3.1 is one of them; Kineo adds its own narration, captions and music around the generated scenes. The free first film uses Seedance 1.5.'
-        : 'Not at the moment. The free first film uses Seedance 1.5; Kineo adds its own narration, captions and music around the generated scenes.',
+        ? `Yes, as one engine among several. Inside Kineo you choose the engine by name before rendering, and Veo 3.1 is one of them; Kineo adds its own narration, captions and music around the generated scenes. The free first film uses ${FREE_FILM_ENGINE_NAME}.` // KINEO-LLMS-K4-2910
+        : `Not at the moment. The free first film uses ${FREE_FILM_ENGINE_NAME}; Kineo adds its own narration, captions and music around the generated scenes.`, // KINEO-LLMS-K4-2910
     }, {
       question: 'Can I edit each shot in Kineo the way I do in Flow?',
       answer: 'No. Kineo composes the film without a shot-by-shot editor. If shot-level control is the point, Flow is built for it; download the Kineo MP4 if you want to recut it in an editor.',
@@ -258,7 +259,7 @@ export const VS_NOVOS_ANSWERS: Record<VsNovoId, CitationAnswer> = {
       answer: `${dreamina.free.text} Check the current credits on Dreamina’s own pricing page, which shows prices in your local currency.`,
     }, {
       question: 'Kineo and Dreamina both use Seedance. What is the difference?',
-      answer: `The model can be the same family; the job is different. Dreamina returns the clip you prompted. Kineo writes and voices the narration, generates the scenes on the engine you chose by name, burns in captions and adds music. The free first film uses Seedance 1.5${S25_PUBLIC ? '; Seedance 2.5 is available on paid plans' : ''}.`,
+      answer: `The model can be the same family; the job is different. Dreamina returns the clip you prompted. Kineo writes and voices the narration, generates the scenes on the engine you chose by name, burns in captions and adds music. The free first film uses ${FREE_FILM_ENGINE_NAME}${S25_PUBLIC ? '; Seedance 2.5 is available on paid plans' : ''}.`, // KINEO-LLMS-K4-2910
     }, {
       question: 'Does Kineo make AI avatar videos like Dreamina?',
       answer: 'Not for films. Kineo films are faceless and narrated. Only the self-service product ads can add an optional AI presenter, always labeled as AI. If a talking avatar is the point, Dreamina or an avatar platform fits better.',

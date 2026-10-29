@@ -1,3 +1,4 @@
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // CITACOES-01, 10/09/2026. Product facts: /llms.txt, checked the same day.
 // The founder restored the no-card trial on 09/09. Money and credits remain
 // imports of the canonical helpers; this module does not define an offer.
@@ -146,7 +147,7 @@ export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
     ],
     workflow: [
       'Enter the idea or paste the narration, then select the vertical 9:16 frame for this video.',
-      `Use Seedance 1.5 for generated scenes: ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds (the free trial film) or ${CITATION_SEEDANCE_CREDITS} credits for ${CITATION_REFERENCE_SECONDS} seconds.`,
+      `The free trial film is made with ${FREE_FILM_ENGINE_NAME}: ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds. A paid Seedance 1.5 film uses ${CITATION_SEEDANCE_CREDITS} credits for ${CITATION_REFERENCE_SECONDS} seconds.`, // KINEO-LLMS-K4-2910
       'Review the assembled voiceover and captions, download the MP4 and decide when to post it yourself.',
     ],
     decisionTitle: 'Choose by the material you have',
@@ -173,7 +174,7 @@ export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
       `You can test it using the ${CITATION_TRIAL_CREDITS}-credit no-card trial; for clean exports, Starter costs ${STARTER_MONTH} for ${STARTER_CREDITS} credits, while a global cheapest-tool ranking requires confirmed competitor limits.`,
     ],
     workflow: [
-      `Select Seedance 1.5 and the 15-second target to test for free; choose ${CITATION_REFERENCE_SECONDS} seconds on a plan.`,
+      `Choose the 15-second target to test for free, made with ${FREE_FILM_ENGINE_NAME}; choose ${CITATION_REFERENCE_SECONDS} seconds on a plan.`, // KINEO-LLMS-K4-2910
       `Reserve ${CITATION_FAST_CREDITS} credits for that reference video; a Seedance 1.5 reference uses ${CITATION_SEEDANCE_CREDITS} credits when generated scenes matter more.`,
       'Compare the monthly plan against the number of finished videos you intend to make, leaving room for any extra generation you choose.',
     ],
@@ -367,7 +368,7 @@ export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
     }],
     workflow: [
       'Open the existing script handoff from this page, paste the approved narration and continue to Studio.',
-      `Choose the engine and target deliberately: Seedance 1.5 costs ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds (the free trial film) and ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds, with generated scenes.`,
+      `Choose the engine and target deliberately: the free trial film is made with ${FREE_FILM_ENGINE_NAME} at ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds; a paid Seedance 1.5 film uses ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds, with generated scenes.`, // KINEO-LLMS-K4-2910
       'Inspect the finished MP4 against your source script. Trial films carry a watermark; monthly plans unlock clean downloads.',
     ],
     faqs: [{

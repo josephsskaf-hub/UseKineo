@@ -24,6 +24,7 @@
 // isolado. A política vem por '@/lib/freeFilmPolicy' — a forma que a trava "interruptores num lugar só" de
 // scripts/test-saida-regiao-2026-10-07.mjs exige de quem usa REGION_FREE_FILM_LIVE.
 import { money, usd, type EngineCitation } from './engineCitation'
+import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 import { GRANT_COUNTRY_CLAUSE, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '../freeTierOffer'
 import {
   FREE_FILM_POLICY,
@@ -103,7 +104,7 @@ export function seedanceFreeFacts(clip: { seconds: number; credits: number } | n
 export function regionFreeOfferSentence(f: FreeFilmFacts): string {
   if (!f.countryClause) return ''
   // A marca d'água vale para o FILME grátis (o plano grátis de sempre); a do clipe grátis nasceu desligada — não se promete.
-  if (f.regionFilm) return `Outside those countries, a new account gets one free ${f.filmSeconds}-second Seedance 1.5 film (watermarked)${f.regionClipSeconds ? ` and one free ${f.regionClipSeconds}-second clip` : ''} instead of the trial credits.`
+  if (f.regionFilm) return `Outside those countries, a new account gets one free ${f.filmSeconds}-second ${FREE_FILM_ENGINE_NAME} film (watermarked)${f.regionClipSeconds ? ` and one free ${f.regionClipSeconds}-second clip` : ''} instead of the trial credits.` // KINEO-LLMS-K4-2910
   if (f.regionClipSeconds) return `Outside those countries, a new account gets one free ${f.regionClipSeconds}-second clip; films need a paid plan.`
   return ''
 }
@@ -112,7 +113,7 @@ export function regionFreeOfferSentence(f: FreeFilmFacts): string {
 export function freeFilmShortLine(f: FreeFilmFacts): string | null {
   if (!f.trialCoversFilm) return null
   const everyone = f.countryClause === '' || f.regionFilm
-  return `${everyone ? 'Every new account' : 'Every new account in a supported country'} gets one free ${f.filmSeconds}-second Seedance 1.5 film, watermarked, no card.`
+  return `${everyone ? 'Every new account' : 'Every new account in a supported country'} gets one free ${f.filmSeconds}-second ${FREE_FILM_ENGINE_NAME} film, watermarked, no card.` // KINEO-LLMS-K4-2910
 }
 
 export interface SeedanceFreeAnswer {
@@ -133,12 +134,12 @@ export function seedanceFreeAnswer(geo: EngineCitation, f: FreeFilmFacts): Seeda
   const n35 = per(geo.rows.film35)
   const n60 = per(geo.rows.film60)
   const everyone = f.countryClause === '' || f.regionFilm
-  const filme = `${f.filmSeconds}-second Seedance 1.5 film`
+  const filme = `${f.filmSeconds}-second ${FREE_FILM_ENGINE_NAME} film` // KINEO-LLMS-K4-2910
   const lead = !f.trialCoversFilm
     ? `Not as a film: new accounts${f.countryClause} start with ${f.trialCredits} free credits, and a Seedance 1.5 film needs a plan.`
     : everyone
-      ? `Yes — one free ${filme} for every new account, watermarked, no card. Longer films and clean downloads need a plan.`
-      : `Yes, in supported countries — one free ${filme} for every new account there, watermarked, no card. Longer films and clean downloads need a plan.`
+      ? `The new-account offer is one free ${filme} for every new account, watermarked, no card. Longer films and clean downloads need a plan.` // KINEO-LLMS-K4-2910
+      : `The new-account offer in supported countries is one free ${filme} for every new account there, watermarked, no card. Longer films and clean downloads need a plan.` // KINEO-LLMS-K4-2910
   const bullets: string[] = []
   if (f.trialCoversFilm) {
     bullets.push(`New account${f.countryClause ? ' in a supported country' : ''}: ${f.trialCredits} free credits on signup — your free ${filme} uses ${f.filmCredits}.`)
@@ -152,7 +153,7 @@ export function seedanceFreeAnswer(geo: EngineCitation, f: FreeFilmFacts): Seeda
     const cobre = [n35 > 0 ? `${n35} ${plural(n35, 'film', 'films')} of 35 seconds` : '', n60 > 0 ? `${n60} of 60 seconds` : ''].filter(Boolean).join(' or ')
     bullets.push(`Seedance films of 35 and 60 seconds need a plan: ${starter.label} (${money(starter.usdCents)}/month, ${starter.credits} credits) covers ${cobre}.`)
   }
-  const faqLead = !f.trialCoversFilm ? lead : everyone ? `Yes, for one short film: every new account gets one free ${filme}, watermarked, no card.` : `Yes, once in supported countries: every new account there gets one free ${filme}, watermarked, no card.`
+  const faqLead = !f.trialCoversFilm ? lead : everyone ? `Every new account gets one free ${filme}, watermarked, no card.` : `In supported countries, every new account gets one free ${filme}, watermarked, no card.` // KINEO-LLMS-K4-2910
   const como = f.trialCoversFilm && f.countryClause
     ? ` In supported countries it comes from the ${f.trialCredits} free credits every new account gets (the film uses ${f.filmCredits})${f.regionFilm ? `; elsewhere it is granted as one free film${f.regionClipSeconds ? `, plus one free ${f.regionClipSeconds}-second clip` : ''}` : ''}.`
     : f.trialCoversFilm ? ` It comes from the ${f.trialCredits} free credits every new account gets (the film uses ${f.filmCredits}).` : ''
@@ -164,7 +165,7 @@ export function seedanceFreeAnswer(geo: EngineCitation, f: FreeFilmFacts): Seeda
     heading: 'Is Seedance 1.5 free?',
     lead,
     bullets,
-    ctaLabel: f.trialCoversFilm ? `Make your free ${f.filmSeconds}-second Seedance film →` : 'See the plans that include Seedance →',
+    ctaLabel: f.trialCoversFilm ? `Make your free ${f.filmSeconds}-second ${FREE_FILM_ENGINE_NAME} film →` : 'See the plans that include Seedance →', // KINEO-LLMS-K4-2910
     ctaHref: f.trialCoversFilm ? seedanceStudioSignupHref({ duration: f.filmSeconds }) : '/pricing',
     ctaNote: 'You type your idea in the Studio and press Generate — nothing renders on its own.',
     faq,
@@ -210,7 +211,7 @@ export function seedanceVs25(s15: EngineCitation, s25: EngineCitation | null, f:
     link: { href: SEEDANCE_25_PATH, label: 'Seedance 2.5: price per video and what it is for →' },
     faq: {
       q: SEEDANCE_VS_25_QUESTION,
-      a: `Both are ByteDance video models that Kineo turns into a finished, narrated film. Seedance 1.5 is the everyday engine: ${s15.rows.film35.credits} credits for 35 seconds and ${s15.rows.film60.credits} for 60${f.trialCoversFilm ? `, and new accounts get one free ${f.filmSeconds}-second film` : ''}. Seedance 2.5 is the newer, heavier model for spectacle: ${s25.rows.film35.credits} credits for 35 seconds and ${s25.rows.film60.credits} for 60${s25.paidPlansOnly ? ', on paid plans only' : ''}. At the ${ref.label} plan’s credit price, a 60-second film is about ${usd(s15.rows.film60.usdCents)} on 1.5 and ${usd(s25.rows.film60.usdCents)} on 2.5.`,
+      a: `Both are ByteDance video models that Kineo turns into a finished, narrated film. Seedance 1.5 is the everyday engine: ${s15.rows.film35.credits} credits for 35 seconds and ${s15.rows.film60.credits} for 60${f.trialCoversFilm ? `. New accounts get one free ${f.filmSeconds}-second film made with ${FREE_FILM_ENGINE_NAME}` : ''}. Seedance 2.5 is the newer, heavier model for spectacle: ${s25.rows.film35.credits} credits for 35 seconds and ${s25.rows.film60.credits} for 60${s25.paidPlansOnly ? ', on paid plans only' : ''}. At the ${ref.label} plan’s credit price, a 60-second film is about ${usd(s15.rows.film60.usdCents)} on 1.5 and ${usd(s25.rows.film60.usdCents)} on 2.5.`, // KINEO-LLMS-K4-2910
     },
   }
 }
