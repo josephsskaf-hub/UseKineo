@@ -22,6 +22,7 @@
 //     aposentado/pausado nem promessa de "sem limite" ou "para sempre".
 import { buyCreatorPrice, creatorSeedanceFilms } from '@/lib/growth/buyCreatorOffer'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { FREE_ENTRY_COUNTRY_CLAUSE_MIRROR } from '@/lib/entryPolicy'
 import { STARTER_PRICE, STUDIO_PRICE, STUDIO_HOLLYWOOD_FILMS, CREATOR_CINEMATIC_FILMS } from '@/lib/marketingPrice'
 import { resolveHouseFilm, type HouseFilm, type HouseFilmEngine, type IdeaSource } from '@/lib/seo/houseFilmIdeas'
@@ -81,7 +82,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     label: '3D Cartoon Stories',
     h1: 'Free AI 3D Cartoon Shorts Generator',
     metaTitle: 'AI 3D Cartoon Story Video Generator for Shorts — Kineo',
-    metaDescription: `Describe a character and a tiny plot; Kineo writes, narrates and generates every 3D-style scene of a vertical cartoon Short. First ${FREE_S}-second film free on Seedance 1.5 (watermarked).`,
+    metaDescription: `Describe a character and a tiny plot; Kineo writes, narrates and generates every 3D-style scene of a vertical cartoon Short. First ${FREE_S}-second film free on ${FREE_FILM_ENGINE_NAME} (watermarked).`, // KINEO-LLMS-K4-2910
     intro:
       'Type a little story — a dinosaur who cannot stop dancing, a cat who works the night shift — and get back a narrated vertical cartoon with captions. The AI writes the scenes, voices the narrator and renders each shot in a soft 3D animated look. No animation software, no keyframes, no drawing.',
     ideas: [
@@ -118,7 +119,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     faq: [
       {
         q: 'Can I make a cartoon Short for free?',
-        a: `Yes, once: a new account${WHERE} gets one ${FREE_S}-second film on Seedance 1.5 with a watermark and no card. That is enough to see whether your character and style come out the way you pictured before paying anything.`,
+        a: `Yes, once: a new account${WHERE} gets one ${FREE_S}-second film on ${FREE_FILM_ENGINE_NAME} with a watermark and no card. That is enough to see whether your character and style come out the way you pictured before paying anything.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'Will my character look exactly the same in every scene?',
@@ -151,7 +152,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     label: 'What If Scenarios',
     h1: 'Free AI "What If" Shorts Generator',
     metaTitle: 'AI "What If" Video Generator — Hypothetical Shorts | Kineo',
-    metaDescription: `Type a hypothetical ("what if the Moon disappeared?") and get a narrated vertical Short that walks through the consequences, scene by scene. One ${FREE_S}-second Seedance 1.5 film free.`,
+    metaDescription: `Type a hypothetical ("what if the Moon disappeared?") and get a narrated vertical Short that walks through the consequences, scene by scene. One ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film free.`, // KINEO-LLMS-K4-2910
     intro:
       'Type one hypothetical — what if gravity switched off for ten seconds, what if you swallowed a LEGO brick — and get a narrated vertical Short that walks through the consequences in order: the first second, the first minute, the end of the day. Every scene is generated to match the line being spoken.',
     ideas: [
@@ -187,7 +188,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     faq: [
       {
         q: 'Is there a free way to try a what-if video?',
-        a: `Yes. Your first ${FREE_S}-second film on Seedance 1.5 is free${WHERE}, watermarked, with no card — enough for a premise and two consequences.`,
+        a: `Yes. Your first ${FREE_S}-second film on ${FREE_FILM_ENGINE_NAME} is free${WHERE}, watermarked, with no card — enough for a premise and two consequences.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'Does the AI check the science?',
@@ -253,7 +254,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     faq: [
       {
         q: 'Can I make an ocean mystery Short for free?',
-        a: `One ${FREE_S}-second Seedance 1.5 film is free for new accounts${WHERE}, watermarked, no card. The film on this page was made on the same engine.`,
+        a: `One ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film is free for new accounts${WHERE}, watermarked, no card. The example on this page was made on Seedance 1.5.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'How long should an ocean mystery Short be?',
@@ -378,11 +379,11 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     faq: [
       {
         q: 'Which engine made the storm film on this page?',
-        a: 'Kling 3, a premium engine available on paid plans. The free film runs on Seedance 1.5, which is strong on landscapes, water and light.',
+        a: `Kling 3, a premium engine available on paid plans. The free film runs on ${FREE_FILM_ENGINE_NAME}.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'How do I start for free?',
-        a: `Create an account${WHERE} and your first ${FREE_S}-second Seedance 1.5 film is free with a watermark — no card.`,
+        a: `Create an account${WHERE} and your first ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film is free with a watermark — no card.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'Which plan covers premium engines like Kling 3?',
@@ -444,7 +445,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
       },
       {
         q: 'Can I test an ancient mystery Short for free?',
-        a: `Yes: one ${FREE_S}-second Seedance 1.5 film${WHERE}, with a watermark, no card required.`,
+        a: `Yes: one ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film${WHERE}, with a watermark, no card required.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'What do I get if I subscribe?',
@@ -504,11 +505,11 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     faq: [
       {
         q: 'Which engine made the Dyatlov Pass film?',
-        a: 'Kling 2.5, a paid engine. Your free film uses Seedance 1.5, which handles fog, snow and night scenes well.',
+        a: `Kling 2.5, a paid engine. Your free film uses ${FREE_FILM_ENGINE_NAME}.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'What is free?',
-        a: `New accounts${WHERE} get one ${FREE_S}-second Seedance 1.5 film with a watermark, without entering a card.`,
+        a: `New accounts${WHERE} get one ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film with a watermark, without entering a card.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'How much does a creepy facts channel cost to run?',
@@ -622,7 +623,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
     faq: [
       {
         q: 'Is Kineo free with no watermark?',
-        a: `No. New accounts${WHERE} get one free ${FREE_S}-second film on Seedance 1.5, and it is watermarked. Any paid plan removes the watermark from every export.`,
+        a: `No. New accounts${WHERE} get one free ${FREE_S}-second film on ${FREE_FILM_ENGINE_NAME}, and it is watermarked. Any paid plan removes the watermark from every export.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'What is the cheapest plan without a watermark?',
@@ -702,14 +703,14 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       {
         h2: 'Choosing the engine for your film',
         paragraphs: [
-          'Seedance 1.5 is the everyday engine: generated scenes at the lowest cost per film, and the one used for the free test. Kling 2.5 and Kling 3 bring heavier cinematic light and motion for hero moments, and Veo 3.1 is strong on realistic lighting. Mixing is not required — most creators pick one engine per film and keep it.',
+          `Seedance 1.5 is the everyday engine: generated scenes at the lowest cost per film, while the first free film uses ${FREE_FILM_ENGINE_NAME}. Kling 2.5 and Kling 3 bring heavier cinematic light and motion for hero moments, and Veo 3.1 is strong on realistic lighting. Mixing is not required — most creators pick one engine per film and keep it.`, // KINEO-LLMS-K4-2910
         ],
       },
     ],
     faq: [
       {
         q: 'Can I make an AI short film for free?',
-        a: `You can make one: new accounts${WHERE} get a free ${FREE_S}-second Seedance 1.5 film with a watermark, no card. Full-length clean films need a paid plan.`,
+        a: `You can make one: new accounts${WHERE} get a free ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film with a watermark, no card. Full-length clean films need a paid plan.`, // KINEO-LLMS-K4-2910
       },
       {
         q: 'Which engine made the film on this page, and what does it cost?',
@@ -760,7 +761,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       placeholder: 'Escribe la idea o pega tu guion completo',
       submit: 'Crear mi video de terror',
       examplesLabel: 'Ideas de miedo',
-      note: `Tu idea pasa al registro. El primer video (${FREE_S} s, Seedance 1.5) es gratis${WHERE_ES}, con marca de agua y sin tarjeta.`,
+      note: `Tu idea pasa al registro. El primer video (${FREE_S} s, ${FREE_FILM_ENGINE_NAME}) es gratis${WHERE_ES}, con marca de agua y sin tarjeta.`, // KINEO-LLMS-K4-2910
     },
     examples: [
       'Si te despiertas a las 3:17 y alguien toca la puerta de tu cuarto, no abras',
@@ -797,7 +798,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
     faq: [
       {
         q: '¿Puedo crear un video de terror gratis?',
-        a: `Sí, uno: las cuentas nuevas${WHERE_ES} reciben un video de ${FREE_S} segundos en Seedance 1.5, con marca de agua y sin tarjeta.`,
+        a: `Sí, uno: las cuentas nuevas${WHERE_ES} reciben un video de ${FREE_S} segundos en ${FREE_FILM_ENGINE_NAME}, con marca de agua y sin tarjeta.`, // KINEO-LLMS-K4-2910
       },
       {
         q: '¿La narración sale en español?',
@@ -818,7 +819,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       source: 'exact_prompt',
       idea: 'The ship was found sailing perfectly. Dinner still warm on the table. But every single person on board was gone.',
       kind: 'una historia de barco fantasma (Kling 2.5)',
-      honestNote: 'Nota honesta: este video de la casa fue narrado en inglés y hecho en Kling 2.5, un motor de pago. Tu video gratis sale en Seedance 1.5 y puede narrarse en español.',
+      honestNote: `Nota honesta: este video de la casa fue narrado en inglés y hecho en Kling 2.5, un motor de pago. Tu video gratis sale en ${FREE_FILM_ENGINE_NAME} y puede narrarse en español.`, // KINEO-LLMS-K4-2910
     },
     related: [
       { href: '/generador-de-shorts-gratis', label: 'Generador de Shorts gratis' },
