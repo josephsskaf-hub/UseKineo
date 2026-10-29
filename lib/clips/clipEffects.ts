@@ -49,6 +49,8 @@ export type ClipEffectKey =
   | 'muscle_surge' // KINEO-EFEITOS-NOVOS-2026-10-13
   | 'witch' // KINEO-HALLOWEEN-FX-2910
   | 'zombie' // KINEO-HALLOWEEN-FX-2910
+  | 'dust_away' // KINEO-EFEITOS-HYPE-2910
+  | 'figurine_3d' // KINEO-EFEITOS-HYPE-2910
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -318,6 +320,43 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
       input: (photoUrl) => ({ effect_scene: 'zombie_transform', input_image_urls: [photoUrl], duration: '5' }),
       usd: 0.28,
       label: 'Kling 1.6',
+    },
+  },
+  // KINEO-EFEITOS-HYPE-2910 — efeitos em alta (fundador 29/10): testados pela sonda fx_dust_me_away / fx_figurine com foto gerada.
+  // Reprovados no mesmo teste: Liquid Metal (bloqueio de conteúdo da fal), Mint in Box (logo PixVerse na caixa), Baby Face (vira
+  // adolescente), dança Subject 3 (mãos cortadas no quadro com foto da cintura para cima).
+  {
+    key: 'dust_away',
+    title: 'Turn to dust',
+    sub: 'You crumble into dust and blow away, the snap effect.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('dust_away'),
+    filmIdea: 'The day this person vanished — a 60-second mystery',
+    person: true,
+    preview: { video: '/previews/efeito-dust_away.mp4', poster: '/posters/efeito-dust_away.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Dust Me Away', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'figurine_3d',
+    title: '3D figurine of you',
+    sub: 'You become a collectible 3D figurine, boxed on a desk.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('figurine_3d'),
+    filmIdea: 'How this person became a collectible toy — a 60-second story',
+    person: true,
+    preview: { video: '/previews/efeito-figurine_3d.mp4', poster: '/posters/efeito-figurine_3d.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: '3D Figurine Factory', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
     },
   },
 ]

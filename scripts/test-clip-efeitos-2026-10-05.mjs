@@ -113,7 +113,7 @@ async function problems(M) {
   // foi testado e NÃO entrou (o motor faz um balão em volta do objeto). cartoon_3d segue fora (o motor não estiliza a foto).
   // Reancorado 13/10 (KINEO-EFEITOS-NOVOS-2026-10-13): +3 efeitos-modelo aprovados pelo fundador depois do render real (wings,
   // dollar_rain, muscle_surge — scripts/test-efeitos-novos-1310.mjs prova o ramo do template). 9 → 12.
-  if (effects.length !== 14) p.push(`catálogo com ${effects.length} efeitos (esperado 14 — melt e secret_cake entraram em 05/10, wings/dollar_rain/muscle_surge em 13/10, witch/zombie em 29/10 (KINEO-HALLOWEEN-FX-2910); cartoon_3d e inflate ficaram fora: o motor não faz o que o nome promete)`)
+  if (effects.length !== 16) p.push(`catálogo com ${effects.length} efeitos (esperado 16 — dust_away/figurine_3d em 29/10 (KINEO-EFEITOS-HYPE-2910); melt e secret_cake entraram em 05/10, wings/dollar_rain/muscle_surge em 13/10, witch/zombie em 29/10 (KINEO-HALLOWEEN-FX-2910); cartoon_3d e inflate ficaram fora: o motor não faz o que o nome promete)`)
   if (new Set(effects.map((e) => e.key)).size !== effects.length) p.push('chave de efeito repetida')
   for (const e of effects) {
     const v = cat.validateClipRequest({ engine: e.engine, seconds: e.seconds, aspect: null, prompt: e.prompt, imageUrl: PHOTO }, { userId: U, supabaseUrl: SUPA })
