@@ -2419,7 +2419,7 @@ const MUTANTS = [
   ['webhook: payment_success do convidado nunca gravado', { [WEBHOOK]: [replaceOnce("          try {\n            await recordPaymentSuccess(supabase, event.id, session, event.created) // KINEO-AMOSTRA-ANUNCIO-2410\n          } catch (trackingError) {\n            console.error('[stripe webhook] guest payment_success tracking threw:', trackingError)\n          }\n", '', 'sem o payment_success do convidado')] }, sNewAccount, true],
   ['webhook: conflito concede', { [WEBHOOK]: [replaceOnce('          if (guestOwner.conflict) {', '          if (false) {', 'sem ramo de conflito')] }, sConflict, true],
   ['webhook: convidado ignorado', { [WEBHOOK]: [replaceOnce('        if (isGuestCheckoutSession(session)) {\n          entitlementPending = true', '        if (false) {\n          entitlementPending = true', 'sem resolver')] }, sNewAccount, true],
-  ['checkout: cupom não desvia', { [CHECKOUT]: [replaceOnce('      promoRequested: rawPromo.length > 0,', '      promoRequested: false,', 'cupom fora da régua')] }, sFallbacks, true],
+  ['checkout: cupom não desvia', { [CHECKOUT]: [replaceOnce('      promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,', '      promoRequested: false,', 'cupom fora da régua')] }, sFallbacks, true],
   ['checkout: interruptor forçado', { [CHECKOUT]: [replaceOnce('      live: GUEST_CHECKOUT_LIVE,\n      isGet,', '      live: true,\n      isGet,', 'interruptor forçado na rota')] }, sSwitchOff, false],
   ['checkout: cookie do navegador some', { [CHECKOUT]: [replaceOnce('    name: GUEST_CHECKOUT_NONCE_COOKIE,\n    value: nonce,', "    name: 'outro_cookie',\n    value: nonce,", 'cookie com outro nome')] }, sNewAccount, true],
   // ── leva 2: nunca pior que hoje ──

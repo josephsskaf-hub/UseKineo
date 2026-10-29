@@ -25,3 +25,25 @@ export function affiliateDiscountEligible(input: {
     !input.isAnnual && !input.discountApplied && !input.wantsTrial &&
     !input.checkoutRecovery && !input.promoRequested
 }
+
+// KINEO-PARCEIRO-50-VENCE-20-2910 — an explicit WELCOME20 (20%) never blocks the partner's 50%: when the visitor came
+// through a live partner link and the checkout would otherwise qualify, the welcome request is dropped so the bigger
+// first-month offer applies. Any other requested promo (private packs, recovery, codes) keeps today's behaviour.
+export function partnerOfferBeatsWelcome(input: {
+  tier: string
+  isAnnual: boolean
+  affiliatePresent: boolean
+  welcomeRequested: boolean
+  wantsTrial?: boolean
+  checkoutRecovery?: boolean
+}): boolean {
+  return input.welcomeRequested && affiliateDiscountEligible({
+    tier: input.tier,
+    isAnnual: input.isAnnual,
+    affiliatePresent: input.affiliatePresent,
+    discountApplied: false,
+    wantsTrial: input.wantsTrial,
+    checkoutRecovery: input.checkoutRecovery,
+    promoRequested: false,
+  })
+}

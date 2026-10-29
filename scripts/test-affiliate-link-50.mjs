@@ -80,7 +80,7 @@ async function authenticated(input = {}, route = read(ROUTE), source = read(POLI
   let calls = 0
   const deps = {
     tier: 'basic', isAnnual: false, affiliateOffer: partner, discountApplied: false,
-    wantsTrial: false, intro: false, checkoutRecovery: null, rawPromo: '',
+    wantsTrial: false, intro: false, checkoutRecovery: null, rawPromo: '', welcomeYieldedToPartner: false,
     autoWelcome20: true, checkoutMetadata: {}, checkoutValueContext: { submitMessage: 'Clean MP4 after payment' }, failureContext: {}, appUrl: 'https://example.invalid', chargeCurrency: 'usd', chargeAmount: 2490,
     ...input, sessionParams,
     ...p, ensureAffiliateBaseCoupon: async () => { calls++; return input.couponUnavailable ? null : 'KINEO_AFFILIATE_50' },
@@ -94,6 +94,21 @@ async function authenticated(input = {}, route = read(ROUTE), source = read(POLI
   const result = await vm.runInNewContext(compile(wrapper) + '\nrun', { URL, Boolean, Object, Math, console })(...Object.values(deps))
   return { ...result, calls }
 }
+// KINEO-PARCEIRO-50-VENCE-20-2910 — the real yield block from the route, executed offline.
+function yieldBlock(input = {}, route = read(ROUTE), source = read(POLICY)) {
+  const begin = route.indexOf('  const welcomeYieldedToPartner = partnerOfferBeatsWelcome(')
+  const end = route.indexOf('  const supabase = createClient()', begin)
+  assert.ok(begin > 0 && end > begin, 'yield block exists')
+  const deps = {
+    tier: 'pro', isAnnual: false, affiliateOffer: partner, wantsTrial: false, checkoutRecovery: false,
+    promisedPublicPromo: 'welcome_first_month_20', requestedPromo: 'WELCOME20', failureContext: {},
+    checkoutMetadata: { public_promo_truth_version: 'v1', public_promo_kind: 'welcome_first_month_20', public_promo_state: 'requested' },
+    ...input, ...policy(source),
+  }
+  const wrapper = `function run(${Object.keys(deps).join(',')}) { ${route.slice(begin, end)}; return { welcomeYieldedToPartner, promisedPublicPromo, requestedPromo, checkoutMetadata, failureContext }; }`
+  return vm.runInNewContext(compile(wrapper) + '\nrun', { Object, Boolean })(...Object.values(deps))
+}
+
 async function guest(input = {}, route = read(ROUTE)) {
   const fnAt = route.indexOf('async function buildGuestSubscriptionAndRedirect(')
   const begin = route.indexOf('  let affiliateDiscountApplied = false', fnAt)
@@ -171,6 +186,39 @@ async function verify() {
     for (const isAnnual of [true, false]) equal(p.subscriptionAcceptsManualPromotions(tier, isAnnual), ['basic', 'pro'].includes(tier) && !isAnnual, `manual promotion scope ${tier}/${isAnnual}`)
   }
   check(!planAcceptsPromotions('business'), 'Business real plan policy refuses promotions')
+
+  // KINEO-PARCEIRO-50-VENCE-20-2910 — WELCOME20 (20%) never blocks the partner's 50%.
+  const W = { tier: 'pro', isAnnual: false, affiliatePresent: true, welcomeRequested: true }
+  equal(p.partnerOfferBeatsWelcome(W), true, 'partner link + WELCOME20 request: partner wins')
+  equal(p.partnerOfferBeatsWelcome({ ...W, tier: 'basic' }), true, 'Creator too')
+  for (const [key, value] of [['welcomeRequested', false], ['affiliatePresent', false], ['isAnnual', true], ['wantsTrial', true], ['checkoutRecovery', true]]) {
+    equal(p.partnerOfferBeatsWelcome({ ...W, [key]: value }), false, `yield excludes ${key}`)
+  }
+  for (const tier of ['starter', 'business', 'autopilot']) equal(p.partnerOfferBeatsWelcome({ ...W, tier }), false, `yield excludes ${tier}`)
+  const y = yieldBlock()
+  equal([y.welcomeYieldedToPartner, y.promisedPublicPromo, y.requestedPromo], [true, null, undefined], 'route drops the WELCOME20 request for a partner visitor')
+  equal(y.checkoutMetadata, { public_promo_auto: 'partner_beats_welcome20' }, 'event says why the 20% was replaced')
+  equal(y.failureContext, y.checkoutMetadata, 'failure context follows')
+  for (const shape of [{ affiliateOffer: null }, { isAnnual: true }, { tier: 'starter' }, { promisedPublicPromo: null }, { wantsTrial: true }, { checkoutRecovery: {} }]) {
+    const kept = yieldBlock(shape)
+    equal(kept.welcomeYieldedToPartner, false, `route keeps the request for ${JSON.stringify(shape)}`)
+    equal(kept.requestedPromo, 'WELCOME20', 'request untouched')
+  }
+  const won = await authenticated({ rawPromo: 'WELCOME20', welcomeYieldedToPartner: true })
+  equal(won.sessionParams.discounts, [{ coupon: 'KINEO_AFFILIATE_50' }], 'yielded WELCOME20 request gets the 50% coupon (28/10 case)')
+  equal(won.affiliateDiscountApplied, true, 'applied flag after yield')
+  const fallback = await authenticated({ rawPromo: 'WELCOME20', welcomeYieldedToPartner: true, couponUnavailable: true, autoWelcome20: false })
+  equal(fallback.autoWelcome20, true, 'partner coupon unavailable: the 20% comes back automatically')
+  const noYield = await authenticated({ rawPromo: 'WELCOME20', autoWelcome20: false })
+  equal([noYield.affiliateDiscountApplied, noYield.autoWelcome20], [false, false], "other requested promos keep today's behaviour")
+  const r = read(ROUTE)
+  check(r.indexOf('  const welcomeYieldedToPartner = partnerOfferBeatsWelcome(') < r.indexOf('const guestFallback = guestCheckoutFallbackReason('), 'yield decided before the guest branch')
+  const lostAt = r.indexOf('  if (welcomeYieldedToPartner && affiliateOffer === null) {')
+  check(r.indexOf("affiliateOffer = await resolveAffiliateDisplayOffer(user.id") < lostAt && lostAt < r.indexOf("if (autoWelcome20 || promisedPublicPromo === 'welcome_first_month_20')"), 'account read without partner restores the automatic 20% before the deadline check')
+  check(r.slice(lostAt, r.indexOf('\n  }', lostAt)).includes('autoWelcome20 = true'), 'lost partner never means full price after a clicked offer')
+  check(r.includes('promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,\n      // KINEO-CUPOM-CONVIDADO'), 'guest path sees the yielded request as not requested')
+  const modal = read('components/WelcomeOfferModal.tsx')
+  check(modal.includes("fetch('/api/affiliate/offer'") && modal.includes('if (partner?.offer) return'), 'partner visitor never sees the 20% modal')
   await offerResolverChecks()
   const positive = await authenticated()
   equal(positive.sessionParams.discounts, [{ coupon: 'KINEO_AFFILIATE_50' }], 'real authenticated route sets one50 coupon')
@@ -249,6 +297,7 @@ if (process.argv.includes('--mutants')) {
     ['annual', '!input.isAnnual && ', ''],
     ['Business', "(input.tier === 'basic' || input.tier === 'pro')", "(input.tier === 'basic' || input.tier === 'pro' || input.tier === 'business')"],
     ['no cookie or account attribution', 'input.affiliatePresent &&', 'true &&'],
+    ['WELCOME20 not required to yield', 'return input.welcomeRequested && affiliateDiscountEligible', 'return affiliateDiscountEligible'],
   ]
   try {
     for (const [name, from, to] of mutants) {

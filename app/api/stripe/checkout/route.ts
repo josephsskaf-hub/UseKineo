@@ -7,7 +7,7 @@ import { clientIp, hashIp } from '@/lib/requestIdentity' // KINEO-CHECKOUT-HONES
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { ensureAffiliateBaseCoupon } from '@/lib/affiliateCoupon'
-import { AFFILIATE_LINK_PROMO_SOURCE, affiliateDiscountEligible, subscriptionAcceptsManualPromotions } from '@/lib/affiliateDiscount'
+import { AFFILIATE_LINK_PROMO_SOURCE, affiliateDiscountEligible, partnerOfferBeatsWelcome, subscriptionAcceptsManualPromotions } from '@/lib/affiliateDiscount'
 import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, readAffiliateOfferById, type AffiliateLinkOffer } from '@/lib/affiliateLinkOffer'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { filmCompleteAdmin, loadFilmCompleteIntent, filmCompleteCheckoutMetadata, type FilmCompleteIntent } from '@/lib/filmComplete/server'
@@ -1377,6 +1377,23 @@ async function buildAndRedirect(
     req.cookies.get('sf_aff')?.value,
     req.cookies.get('sf_aff_click')?.value,
   )
+  // KINEO-PARCEIRO-50-VENCE-20-2910 — o WELCOME20 pedido (modal/cartão de 20%) não pode tirar de quem veio por parceiro
+  // os 50% do 1º mês. Caso real 28/10: link do Robert, Studio mensal, a sessão saiu com 20% e a pessoa abandonou.
+  // O pedido sai de TODO o resto da rota (igual ao prazo vencido) e o bloco do parceiro aplica os 50%.
+  const welcomeYieldedToPartner = partnerOfferBeatsWelcome({
+    tier, isAnnual, affiliatePresent: affiliateOffer !== null,
+    welcomeRequested: promisedPublicPromo === 'welcome_first_month_20',
+    wantsTrial, checkoutRecovery,
+  })
+  if (welcomeYieldedToPartner) {
+    promisedPublicPromo = null
+    requestedPromo = undefined
+    delete checkoutMetadata.public_promo_truth_version
+    delete checkoutMetadata.public_promo_kind
+    delete checkoutMetadata.public_promo_state
+    checkoutMetadata.public_promo_auto = 'partner_beats_welcome20'
+    failureContext = { ...checkoutMetadata }
+  }
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   failureUserId = user?.id ?? null
@@ -1401,7 +1418,7 @@ async function buildAndRedirect(
       planFit: Boolean(requestedPlanFitContext),
       returnToWatermark,
       checkoutRecovery,
-      promoRequested: rawPromo.length > 0,
+      promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,
       // KINEO-CUPOM-CONVIDADO-2026-10-07 — o único cupom que pode nascer sem conta: a oferta de boas-vindas (WELCOME20, a
       // mesma promessa que promisedPublicPromoKind reconhece no caminho logado), e só com o interruptor ligado.
       welcomePromoLive: GUEST_WELCOME_PROMO_LIVE,
@@ -1543,6 +1560,13 @@ async function buildAndRedirect(
   if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {
     autoWelcome20 = false
     checkoutMetadata.public_promo_auto = 'affiliate'
+    failureContext = { ...checkoutMetadata }
+  }
+  // KINEO-PARCEIRO-50-VENCE-20-2910 — os 20% saíram pelo parceiro e a leitura da conta não confirmou parceiro nenhum:
+  // os 20% voltam pelo automático (nunca preço cheio para quem clicou numa oferta).
+  if (welcomeYieldedToPartner && affiliateOffer === null) {
+    autoWelcome20 = true
+    checkoutMetadata.public_promo_auto = 'partner_offer_lost'
     failureContext = { ...checkoutMetadata }
   }
   // ═══ KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h do WELCOME20 é decidido AQUI, no servidor ═══════════════════════
@@ -2704,7 +2728,7 @@ async function buildAndRedirect(
   if (affiliateDiscountEligible({
     tier, isAnnual, affiliatePresent: affiliateOffer !== null,
     discountApplied: discountApplied || Boolean(sessionParams.discounts?.length),
-    wantsTrial, intro, checkoutRecovery: Boolean(checkoutRecovery), promoRequested: rawPromo.length > 0,
+    wantsTrial, intro, checkoutRecovery: Boolean(checkoutRecovery), promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,
   })) {
     const coupon = await ensureAffiliateBaseCoupon()
     if (coupon && affiliateOffer) {
@@ -2730,6 +2754,8 @@ async function buildAndRedirect(
     } else {
       checkoutMetadata.affiliate_discount_applied = false
       checkoutMetadata.affiliate_discount_failure = 'coupon_unavailable'
+      // KINEO-PARCEIRO-50-VENCE-20-2910 — sem o cupom do parceiro, quem pediu os 20% não fica a preço cheio.
+      if (welcomeYieldedToPartner) autoWelcome20 = true
     }
   }
   let autoWelcome20Applied = false

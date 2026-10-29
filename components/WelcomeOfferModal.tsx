@@ -163,15 +163,22 @@ export default function WelcomeOfferModal({
             })
             .catch(() => null)
         : Promise.resolve(null)
+      // KINEO-PARCEIRO-50-VENCE-20-2910 — quem chegou por link de parceiro tem 50% no 1º mês; o convite de 20% só o
+      // desviaria para um desconto menor (caso real 28/10, link do Robert, Studio a 20% e abandono).
+      const partnerPromise = fetch('/api/affiliate/offer', { credentials: 'same-origin', cache: 'no-store' })
+        .then(async (response) => response.ok ? (await response.json()) as { offer?: unknown } : null)
+        .catch(() => null)
       const [planInfo, userResult, history] = await Promise.all([
         planPromise,
         userPromise,
         historyPromise,
       ])
+      const partner = await partnerPromise // já corre em paralelo desde antes do Promise.all
 
       // Assinante pagante nunca vê oferta de 1º mês — já pagou o 1º mês.
       // Se a rede falhar, mantém o comportamento anterior e segue com a oferta.
       if (planInfo?.isPro || (planInfo?.plan && planInfo.plan !== 'free')) return
+      if (partner?.offer) return
 
       // CAIXA R17 — K1 already makes delivery the primary action in the trial
       // banner, but this global modal still covered the dashboard seconds after
