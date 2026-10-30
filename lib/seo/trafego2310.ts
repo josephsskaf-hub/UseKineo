@@ -48,6 +48,7 @@ Published plan amounts are reference prices in USD. Customers in Brazil pay in B
 - [Seedance 1.5](${base}/ai-video-generator/seedance): a narrated reference film uses ${film15Credits} credits at 15 seconds or ${film60Credits} credits at 60 seconds. Raw clips are a separate product with different costs.
 - [Horror Shorts](${base}/free-ai-shorts/horror): narrated scary stories; current trial, eligibility and watermark limits apply.
 - [Urdu videos](${base}/ai-video-generator/for/urdu): Urdu narration and captions; engine language support varies.
+- Narrated videos in more languages, each with its own page: [Hebrew](${base}/ai-video-generator/for/hebrew), [Swedish](${base}/ai-video-generator/for/swedish), [Danish](${base}/ai-video-generator/for/danish), [Finnish](${base}/ai-video-generator/for/finnish), [Czech](${base}/ai-video-generator/for/czech), [Greek](${base}/ai-video-generator/for/greek), [Romanian](${base}/ai-video-generator/for/romanian), [Malay](${base}/ai-video-generator/for/malay), [Bulgarian](${base}/ai-video-generator/for/bulgarian).
 - [Portuguese free-trial guide](${base}/gerador-de-shorts-gratis): a limited watermarked test, with Brazilian checkout in reais.
 - [Pricing](${base}/pricing): current plans, reference credit costs, trial eligibility and annual billing terms.
 

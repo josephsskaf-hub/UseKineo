@@ -133,6 +133,18 @@ const LANGUAGES: LangSeed[] = [
   { name: 'Russian', code: 'ru', prompt: 'Почему Тунгусский метеорит до сих пор загадка', note: 'Russian narration and captions from a Russian prompt.' },
   { name: 'Polish', code: 'pl', prompt: 'Latająca szkoła z potworami: historia dla dzieci na dobranoc', note: 'Polish narration and captions from a Polish prompt.' },
   { name: 'Dutch', code: 'nl', prompt: 'Waarom Nederland onder de zeespiegel bouwt en het toch droog blijft', note: 'Dutch narration and captions from a Dutch prompt.' },
+  // KINEO-IDIOMAS-IA-3010 — o ChatGPT manda gente para página de língua (/for/urdu: 93 visitas em 14 d) e o país rico paga ~9× mais;
+  // entram as línguas que o produto já narra e legenda (lib/textLanguage, com voz) e ainda não tinham página. Japonês, coreano, chinês e
+  // tailandês seguem fora pelo mesmo motivo de KINEO-IDIOMAS-15 (a régua de duração conta palavras); bengali, sem voz confirmada.
+  { name: 'Hebrew', code: 'he', prompt: 'הסוד של מצדה שלא מספרים בטיול השנתי', note: 'Hebrew narration and right-to-left captions from a Hebrew prompt.' },
+  { name: 'Swedish', code: 'sv', prompt: 'Varför Vasaskeppet sjönk efter bara 1 300 meter', note: 'Swedish narration and captions from a Swedish prompt.' },
+  { name: 'Danish', code: 'da', prompt: 'Hvorfor Danmark har verdens ældste flag, og legenden bag det', note: 'Danish narration and captions from a Danish prompt.' },
+  { name: 'Finnish', code: 'fi', prompt: 'Miksi suomalaiset rakastavat saunaa: tarina tuhansien vuosien takaa', note: 'Finnish narration and captions from a Finnish prompt.' },
+  { name: 'Czech', code: 'cs', prompt: 'Tajemství pražského orloje, který tiká už přes 600 let', note: 'Czech narration and captions from a Czech prompt.' },
+  { name: 'Greek', code: 'el', prompt: 'Ο μηχανισμός των Αντικυθήρων: ο αρχαίος υπολογιστής που κανείς δεν εξηγεί', note: 'Greek narration and captions from a Greek prompt.' },
+  { name: 'Romanian', code: 'ro', prompt: 'Adevărata poveste a lui Vlad Țepeș, dincolo de legenda lui Dracula', note: 'Romanian narration and captions from a Romanian prompt.' },
+  { name: 'Malay', code: 'ms', prompt: 'Misteri Gua Niah: rumah manusia purba 40,000 tahun dahulu', note: 'Malay narration and captions from a Malay prompt.' },
+  { name: 'Bulgarian', code: 'bg', prompt: 'Варненското злато: най-старото обработено злато в света', note: 'Bulgarian narration and captions from a Bulgarian prompt.' },
 ]
 
 // ── ALTERNATIVA: em vez de quem (só o que é verdade sobre a Kineo) ───────────────────────────────
