@@ -106,7 +106,7 @@ const preview = (name: string, objectPosition = '50% 0%', mobileObjectPosition =
 // KINEO-CARDS-GIRO-2410 — edit only these lists to replace approved local previews; framing belongs to each clip.
 export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPlaylist; pt?: HomeCardPlaylist }> = {
   films: { default: [
-    preview('home-card-novo-film_mars_door', '50% 45%'), // KINEO-CARDS-HALLOWEEN-2910 — fundador 29/10: "eu gostava da porta de Marte, parecia ter bastante efeito no card 1, vamos voltar" (abre o card)
+    preview('home-card-novo-film_mars_door', '50% 58%'), // KINEO-CARDS-HALLOWEEN-2910 — fundador 29/10: "eu gostava da porta de Marte, parecia ter bastante efeito no card 1, vamos voltar" (abre o card) · KINEO-ENQUADRA-2910 — fundador 29/10 ("o bebê sai de cena… consegue verificar todos?"): conferido quadro a quadro na janela 5:6 do card: o astronauta perdia as pernas no fim
     // Preserve the original top-anchored crop: the burned-in bottom caption stays outside the card.
     { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
     preview('home-card-novo-film_pompeii', '50% 30%'), // KINEO-CARDS-NOVOS-2610 — os 2 filmes de antes tinham a marca "usekineo.com/free" gravada (fundador 26/10: "tá com erro esse vídeo")
@@ -115,7 +115,7 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
   product_ads: { default: [ // KINEO-CARDS-NOVOS-2610 — fundador 26/10: "quero coisas novas… o que as pessoas estão postando" (tendências: floating ads, gigante na cidade, splash, vista explodida, partículas da Higgsfield)
     preview('home-card-novo-smartwatch', '50% 45%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: o perfume gigante SAI; entra o relógio que se monta no ar (clipe Kling 3 50cd72c7, sem marca)
     preview('home-card-novo-iced_coffee', '50% 45%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-headphones', '50% 45%'), // KINEO-CARDS-NOVOS-2610
+    preview('home-card-novo-headphones', '50% 30%'), // KINEO-CARDS-NOVOS-2610 · KINEO-ENQUADRA-2910 — fundador 29/10 ("o bebê sai de cena… consegue verificar todos?"): conferido quadro a quadro na janela 5:6 do card: o arco do fone saía por cima ao desmontar
     // KINEO-CARDS-HALLOWEEN-2910 — fundador 29/10: "tira esse, não gosto desse ads": o tênis flutuando saiu (o produto gigante NÃO entra: é o perfume gigante que ele tirou em 27/10)
   ] }, // KINEO-CARDS-NOVOS-2610
   ugc_ads: { default: [ // KINEO-CARDS-NOVOS-2610 — criador sintético: selfie, podcast, academia, unboxing
@@ -125,9 +125,9 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
     preview('home-card-novo-ugc_unboxing', '50% 30%', '50% 30%'), // KINEO-CARDS-NOVOS-2610
   ] }, // KINEO-CARDS-NOVOS-2610
   kids_cartoon: { default: [ // KINEO-CARDS-NOVOS-2610 — 3D estilo Pixar: bebê+bicho, bichinho aprendendo, Skatedog (Higgsfield)
-    preview('home-card-novo-baby_puppy', '50% 55%', '50% 55%'), // KINEO-CARDS-NOVOS-2610
-    preview('home-card-novo-pumpkin', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: 3 desenhos 3D de Halloween (Kling 3, conferidos quadro a quadro: sem defeito, sem marca)
-    preview('home-card-novo-knight_kitten', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — começa em 2,3 s (a ponte vazia do início ficou fora do laço)
+    preview('home-card-novo-baby_puppy', '50% 12%', '50% 12%'), // KINEO-CARDS-NOVOS-2610 · KINEO-ENQUADRA-2910 — fundador 29/10 ("o bebê sai de cena… consegue verificar todos?"): conferido quadro a quadro na janela 5:6 do card: a cabeça do bebê saía por cima quando ele pula
+    preview('home-card-novo-pumpkin', '50% 20%', '50% 20%'), // KINEO-CARDS-ROSTO-2810 — fundador 27/10: 3 desenhos 3D de Halloween (Kling 3, conferidos quadro a quadro: sem defeito, sem marca) · KINEO-ENQUADRA-2910 — fundador 29/10 ("o bebê sai de cena… consegue verificar todos?"): conferido quadro a quadro na janela 5:6 do card: o chapéu da abóbora saía por cima
+    preview('home-card-novo-knight_kitten', '50% 25%', '50% 25%'), // KINEO-CARDS-ROSTO-2810 — começa em 2,3 s (a ponte vazia do início ficou fora do laço) · KINEO-ENQUADRA-2910 — fundador 29/10 ("o bebê sai de cena… consegue verificar todos?"): conferido quadro a quadro na janela 5:6 do card: a espada do gatinho saía por cima
     preview('home-card-novo-werewolf_pup', '50% 50%', '50% 50%'), // KINEO-CARDS-ROSTO-2810 — saem pinguim, skatedog e raposa; o bebê com o cachorrinho fica em 1º
   ] }, // KINEO-CARDS-NOVOS-2610
 }

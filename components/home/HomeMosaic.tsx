@@ -44,6 +44,13 @@ export const HOME_MOSAIC_EXTRA_IMAGES: readonly HomeGalleryImage[] = [
   { file: 'canoe.webp', w: 640, h: 1138, alt: 'A wooden canoe on a misty mountain lake at dawn' },
 ]
 
+// KINEO-ENQUADRA-2910 — fundador 29/10 ("tem outros que estão saindo do quadro, consegue verificar todos?"): cada vídeo da vitrine
+// conferido quadro a quadro na janela do cartão (~5:6). Só os que perdiam cabeça, chapéu, estrela ou espada ganham foco próprio.
+export const MOSAIC_CLIP_FOCUS: Record<string, string> = { 'pebble-castle': '50% 25%', 'knight-cat': '50% 15%', capybara: '50% 45%', 'wizard-cat': '50% 25%' }
+export const MOSAIC_FILM_FOCUS: Record<string, string> = { 'robot-action': '50% 35%', 'volcano-scene': '50% 35%' }
+export const MOSAIC_EFFECT_FOCUS: Record<string, string> = { witch: '50% 30%', pet_lion: '50% 25%', pet_xmas_tree: '50% 25%', pet_xmas_angel: '50% 30%', santa_cartoon: '50% 25%', snow_globe: '50% 35%' }
+const assetOf = (url: string) => url.split('/').pop()?.replace(/\.mp4$/, '') ?? ''
+
 type MosaicImage = HomeGalleryImage & { dir: string }
 
 type Tile =
@@ -76,7 +83,7 @@ export function homeMosaicFilms() {
 export function homeMosaicTiles(now: number = Date.now()): Tile[] {
   const big: Tile[] = []
   const clips = HOME_NEW_CLIPS.map((clip): Tile => ({ kind: 'clip', clip }))
-  const films = homeMosaicFilms().map((f): Tile => ({ kind: 'film', title: f.title, badge: f.badge, video: f.previewUrl ?? f.videoUrl, poster: f.posterUrl, focus: f.focalPoint }))
+  const films = homeMosaicFilms().map((f): Tile => ({ kind: 'film', title: f.title, badge: f.badge, video: f.previewUrl ?? f.videoUrl, poster: f.posterUrl, focus: MOSAIC_FILM_FOCUS[assetOf(f.previewUrl ?? f.videoUrl)] ?? f.focalPoint }))
   while (clips.length || films.length) {
     const c = clips.shift(); if (c) big.push(c)
     const f = films.shift(); if (f) big.push(f)
@@ -140,7 +147,7 @@ export default function HomeMosaic({ signedIn }: { signedIn: boolean }) {
               const c = t.clip
               const card = (
                 <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>
-                  <div className="kmz-md" style={focusStyle(c.poster, c.focus)}><WallMedia src={c.video} /></div>
+                  <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
                   <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>
                 </Link>
@@ -163,7 +170,7 @@ export default function HomeMosaic({ signedIn }: { signedIn: boolean }) {
               const e = t.effect
               return (
                 <Link key={e.key} href={effectPagePath(effectSlug(e))} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
-                  <div className="kmz-md" style={focusStyle(e.preview?.poster, '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
+                  <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
                   <span className="kmz-new">NEW</span>
                   <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b></span>

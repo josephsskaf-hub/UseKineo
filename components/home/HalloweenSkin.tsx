@@ -3,7 +3,6 @@
 // KINEO-HALLOWEEN-SKIN-2910 — fundador 29/10 ("A"): enfeite de Halloween na home, na medida. Faixa fina no topo levando
 // à página de Halloween + 3 morcegos discretos (só tela grande, sem animação para quem pede menos movimento). Some sozinho
 // em 1º/11 00:00 BRT (03:00 UTC). Prévia antes de ligar: ?halloween=preview mostra mesmo com o interruptor desligado.
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export const HALLOWEEN_SKIN_PUBLIC = true // fundador 29/10: "gostei desse Halloween, tá bonito"
@@ -42,11 +41,7 @@ export default function HalloweenSkin() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <Link href="/ai-halloween-video" className="kh-bar" data-home-cta="halloween_bar">
-        <span aria-hidden="true">🎃</span>
-        <span>Halloween: turn 1 photo into a witch or a zombie</span>
-        <span className="kh-cta">Try it →</span>
-      </Link>
+      {/* KINEO-FAIXA-UNICA-2910 — fundador 29/10 ("melhora as letras… não gostei muito"): a faixa de Halloween entrou na faixa única do topo (components/home/EngineNewsBar.tsx); aqui ficam só os morcegos */}
       <div className="kh-bats" aria-hidden="true">
         <div className="kh-bat"><Bat /></div>
         <div className="kh-bat"><Bat /></div>
