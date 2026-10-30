@@ -911,9 +911,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <div className="sum">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</div>
             {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
             {roteiroDeFilme && !busy ? (<>{/* KINEO-CLIPE-OU-FILME-3010 — o Filme narrado é o botão principal; o clipe, a opção pequena */}
-              <a className="go ok" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film_main"
+              <a className="go ok" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film_main" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}
                 onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.film, { surface: 'main_button', chars: prompt.trim().length }) }}>{t('longScriptCta')} →</a>
-              <button type="button" className="pill" data-clip-action="generate" disabled={!canGenerate} style={{ marginTop: 8 }}
+              <button type="button" className="pill" data-clip-action="generate" disabled={!canGenerate} style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}
                 onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.clipAnyway, { chars: prompt.trim().length, seconds, engine: engine?.key ?? null }); void generate() }}>
                 {t('clipAnyway', { s: seconds })} · {cost ?? '—'} {t('credits')}
               </button>
