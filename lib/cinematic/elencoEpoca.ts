@@ -174,7 +174,7 @@ const NAO_NOME = new Set(('the|a|an|it|its|he|she|they|we|you|i|his|her|their|ou
 for (const w of 'among|amongst|between|beyond|beneath|below|above|across|through|throughout|during|despite|without|within|under|underneath|over|into|onto|upon|toward|towards|against|along|around|behind|beside|besides|inside|outside|until|unless|whether|either|neither|nor|except|unlike|near|past|since|per|via|versus|amid|amidst|deep|far|high|legend|legends|story|stories|chapter|episode|beginning|imagine|picture|listen|remember|welcome|meet|enter|introducing|watch|discover|year|years|century|centuries|decade|decades|ago|million|billion|thousand|hundred|according|actually|apparently|basically|honestly|somehow|elsewhere|anywhere|whenever|wherever|whoever|whatever|whichever|otherwise|therefore|moreover|furthermore|nevertheless|nonetheless|consequently|eventually|ultimately|immediately|slowly|quickly|quietly|silently|gently|carefully|sadly|happily|luckily|unfortunately|fortunately|surprisingly|strangely|behold|alas|verily|wherein|whereupon|hence'.split('|')) NAO_NOME.add(w) // KINEO-JUIZ-REFAZ-2810
 /** Coisa que só vira personagem em conto infantil (estrela, nuvem, pedra…): fora dele é cenário, nunca "named character". Geleia/blob ficam de fora (só existem como personagem). */ // KINEO-JUIZ-REFAZ-2810
 const COISA_DE_CENARIO_RE = /^(?:star|cloud|moon|sun|wave|bubble|rock|stone|pebble|leaf|raindrop|snowflake|seed|acorn|flower|tree|mushroom|egg|apple|banana|carrot|potato|candle|lantern|kite|balloon|car|train|truck|boat|plane|rocket|lamp|book|clock|umbrella|pencil|crayon|sock|teapot|cookie|cupcake|pumpkin|doll|puppet|teddy|toy|snowman)s?$/i // KINEO-JUIZ-REFAZ-2810
-const VERBO_RE = /^(?:is|was|has|had|does|did|can|could|will|would|says|said|took|ran|sat|saw|went|got|felt|came|heard|opened|stood|looked|stares?|rolls?|smiles?|cries|screams?|laughs?|turns?|walks?|runs?|finds?|found|knows|knew|wants|loves|hates|lives|lived|sees|hears|thinks|thought|feels|holds|held|takes|gives|gave|makes|made|asks|asked|answers|whispers|shouts|jumps|flies|flew|swims|hides|hid|waits|sleeps|wakes|woke|vanished|disappeared|died|left|met|fell|began|kept|put|set|cut|let|read|hit|lost|won|wore|drove|rode|ate|drank|sang|told|spoke|wrote|caught|bought|brought|taught|fought|sought|built|sent|spent|lent|meant|stole|chose|broke|froze|hung|swung|flung|struck|shook|shone|grew|threw|knelt|slept|wept|crept|bent|lit|slid|bled|fled|sped|leapt|dreamt|[a-z]{3,}(?:ed|s))\b/ // KINEO-ELENCO-EPOCA-2710
+const VERBO_RE = /^(?:is|was|are|were|has|had|does|did|can|could|will|would|says|said|took|ran|sat|saw|went|got|felt|came|heard|opened|stood|looked|stares?|rolls?|smiles?|cries|screams?|laughs?|turns?|walks?|runs?|finds?|found|knows|knew|wants|loves|hates|lives|lived|sees|hears|thinks|thought|feels|holds|held|takes|gives|gave|makes|made|asks|asked|answers|whispers|shouts|jumps|flies|flew|swims|hides|hid|waits|sleeps|wakes|woke|vanished|disappeared|died|left|met|fell|began|kept|put|set|cut|let|read|hit|lost|won|wore|drove|rode|ate|drank|sang|told|spoke|wrote|caught|bought|brought|taught|fought|sought|built|sent|spent|lent|meant|stole|chose|broke|froze|hung|swung|flung|struck|shook|shone|grew|threw|knelt|slept|wept|crept|bent|lit|slid|bled|fled|sped|leapt|dreamt|[a-z]{3,}(?:ed|s))\b/ // KINEO-ELENCO-EPOCA-2710
 const LUGAR_ANTES_RE = /\b(?:in|at|from|near|into|across|through|toward|towards|around|outside|inside|within|via|along|beyond|beneath|under|above|behind|over)\s+(?:the\s+|a\s+|an\s+)?$/i // KINEO-ELENCO-EPOCA-2710
 const NOMEADO_ANTES_RE = /\b(?:named|called|known\s+as|nicknamed|chamad[oa]|llamad[oa]|nombrad[oa]|appelé[e]?|chiamat[oa]|numit[ăa]?)\s+$/i // KINEO-ELENCO-EPOCA-2710
 const PALAVRA_NOME = String.raw`\p{Lu}[\p{Ll}'’]{1,}(?:-\p{Lu}?[\p{Ll}]+)?` // KINEO-ELENCO-EPOCA-2710
@@ -304,12 +304,36 @@ export function generoDoNome(nome: string): 'man' | 'woman' | null { // KINEO-EL
 /** Conto infantil: o template kids_cartoon, ou pistas do texto (estrela mágica, dragãozinho, fada, "era uma vez", ننھا/پری em urdu, menino/menina pequeno). */ // KINEO-ELENCO-EPOCA-2710
 const INFANTIL_EN_RE = /\b(?:magic(?:al)?\s+(?:star|wand|forest|garden|kingdom|key|seed|stone|tree|cloud|kite|balloon)|(?:little|tiny|baby)\s+(?:dragon|star|cloud|bunny|rabbit|bear|fox|kitten|puppy|duck|bird|owl|mouse|elephant|whale|monster|robot|unicorn|fairy|princess|prince)|fairy|fairies|unicorns?|talking\s+(?:[a-z]+\s+)?(?:animal|star|cloud|tree|toy|teddy|cat|dog)|once\s+upon\s+a\s+time|bedtime\s+story|teddy\s+bear|lullaby|kindergarten|nursery|playground|tooth\s+fairy|(?:little|young|small)\s+(?:girl|boy|child|kid))\b/i // KINEO-ELENCO-EPOCA-2710
 const INFANTIL_ORIGINAL_RE = /(?:ننھ[اےی]|چھوٹ[اےی]\s*(?:سا|سی)|پری\b|جادوئی|एक\s+था|छोट[ाीे]\s+(?:बच्च|लड़क)|\b(?:pequen[ao]\s+(?:menin[ao]|drag[aã]o|estrel[ai]nha|fad[ai]nha)|menininh[ao]|dragãozinho|estrelinha\s+mágica|fad[ai]nha|era\s+uma\s+vez|hadita|dragoncito|estrellita\s+mágica|niñ[ao]\s+pequeñ[ao]|érase\s+una\s+vez|había\s+una\s+vez)\b)/iu // KINEO-ELENCO-EPOCA-2710
+// KINEO-REVISOR-RESTO-3010 — "Kali swoops her toy plane above the play table" (30/10): brinquedo e mesa de brincar são história de criança; sem isto o Kameron saiu "a woman in her thirties"
+const BRINCADEIRA_RE = /\b(?:toy\s+(?:planes?|boats?|trains?|cars?|blocks?|trucks?|robots?|soldiers?|kitchen|dolls?)|play\s*table|playroom|playtime|playdate|ready\s+to\s+play|hide\s+and\s+seek)\b/i // KINEO-REVISOR-RESTO-3010
 export function historiaInfantil(contextoOriginal: string, textoIngles: string | null | undefined, kidsCartoon = false): boolean { // KINEO-ELENCO-EPOCA-2710
   if (kidsCartoon) return true // KINEO-ELENCO-EPOCA-2710
+  if (BRINCADEIRA_RE.test(String(textoIngles ?? '')) || BRINCADEIRA_RE.test(String(contextoOriginal ?? ''))) return true // KINEO-REVISOR-RESTO-3010
   return INFANTIL_EN_RE.test(String(textoIngles ?? '')) || INFANTIL_ORIGINAL_RE.test(String(contextoOriginal ?? '')) || INFANTIL_EN_RE.test(String(contextoOriginal ?? '')) // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 const ADULTO_RE = /\b(?:man|woman|men|women|father|mother|dad|mom|mum|papa|mama|husband|wife|uncle|aunt|king|queen|teacher|doctor|nurse|farmer|fisherman|soldier|worker|driver|shopkeeper|merchant|officer|knight|wizard|witch|captain|pilot|chef|baker|lady|gentleman|adult|parent)\b/i // KINEO-ELENCO-EPOCA-2710 — papel ou título adulto explícito: o conto infantil não o rejuvenesce
-function descrever(nome: string, tipo: TipoNomeado, especie: string | null, papel: string, contexto: string, titulos: string[], epoca: Epoca | null, usados: Set<string>, infantil = false): { descricao: string; genero: 'man' | 'woman' | null } { // KINEO-ELENCO-EPOCA-2710
+// KINEO-REVISOR-RESTO-3010 — "Tsutomu Yamaguchi… Hiroshima… Nagasaki" (30/10) saiu galã ocidental de cabelo castanho: a ficha não dizia o povo.
+// Só quando o texto cita UM povo desta tabela e nenhum povo ocidental (soldado americano em Hiroshima não vira japonês).
+const POVOS: ReadonlyArray<{ re: RegExp; povo: string; cabelo: string; cabeloF: string }> = [ // KINEO-REVISOR-RESTO-3010
+  { re: /\b(?:japan|japanese|hiroshima|nagasaki|tokyo|osaka|kyoto|okinawa|edo)\b/i, povo: 'Japanese', cabelo: 'short straight black hair', cabeloF: 'long straight black hair' },
+  { re: /\b(?:china|chinese|beijing|peking|shanghai|nanjing|wuhan)\b/i, povo: 'Chinese', cabelo: 'short straight black hair', cabeloF: 'long straight black hair' },
+  { re: /\b(?:korea|korean|seoul|busan|pyongyang)\b/i, povo: 'Korean', cabelo: 'short straight black hair', cabeloF: 'long straight black hair' },
+  { re: /\b(?:vietnam|vietnamese|hanoi|saigon)\b/i, povo: 'Vietnamese', cabelo: 'short straight black hair', cabeloF: 'long straight black hair' },
+  { re: /\b(?:india|indian|mumbai|bombay|delhi|kolkata|calcutta|chennai|madras|bengal)\b/i, povo: 'Indian', cabelo: 'short black hair', cabeloF: 'long black braided hair' },
+  { re: /\b(?:pakistan|pakistani|lahore|karachi|islamabad)\b/i, povo: 'Pakistani', cabelo: 'short black hair', cabeloF: 'long black braided hair' },
+  { re: /\b(?:nigeria|nigerian|lagos)\b/i, povo: 'Nigerian', cabelo: 'short black coily hair', cabeloF: 'braided black hair' },
+  { re: /\b(?:kenya|kenyan|nairobi)\b/i, povo: 'Kenyan', cabelo: 'short black coily hair', cabeloF: 'braided black hair' },
+  { re: /\b(?:ghana|ghanaian|accra)\b/i, povo: 'Ghanaian', cabelo: 'short black coily hair', cabeloF: 'braided black hair' },
+  { re: /\b(?:egypt|egyptian|cairo)\b/i, povo: 'Egyptian', cabelo: 'short dark curly hair', cabeloF: 'long dark wavy hair' },
+  { re: /\b(?:mexico|mexican)\b/i, povo: 'Mexican', cabelo: 'short dark hair', cabeloF: 'long dark wavy hair' },
+] // KINEO-REVISOR-RESTO-3010
+const POVO_OCIDENTAL_RE = /\b(?:american|americans|british|english|german|germans|french|russian|russians|italian|spanish|european|western|australian|canadian|soldiers?\s+from\s+the\s+us)\b/i // KINEO-REVISOR-RESTO-3010
+export function povoDaHistoria(texto: string): { povo: string; cabelo: string; cabeloF: string } | null { // KINEO-REVISOR-RESTO-3010
+  const t = String(texto ?? '')
+  const achados = POVOS.filter((p) => p.re.test(t))
+  return achados.length === 1 && !POVO_OCIDENTAL_RE.test(t) ? achados[0] : null
+} // KINEO-REVISOR-RESTO-3010
+function descrever(nome: string, tipo: TipoNomeado, especie: string | null, papel: string, contexto: string, titulos: string[], epoca: Epoca | null, usados: Set<string>, infantil = false, povo: ReturnType<typeof povoDaHistoria> = null): { descricao: string; genero: 'man' | 'woman' | null } { // KINEO-ELENCO-EPOCA-2710
   const h = hash(normaliza(nome)) // KINEO-ELENCO-EPOCA-2710
   if (tipo !== 'humano') { // KINEO-ELENCO-EPOCA-2710
     const corDita = new RegExp(`\\b(${CORES})\\b`, 'i').exec(papel)?.[1]?.toLowerCase() ?? null // KINEO-ELENCO-EPOCA-2710
@@ -330,11 +354,11 @@ function descrever(nome: string, tipo: TipoNomeado, especie: string | null, pape
   const pron = genero === 'woman' ? 'her' : genero === 'man' ? 'his' : 'their' // KINEO-ELENCO-EPOCA-2710
   const idade = crianca ? 'about nine years old' : adolescente ? 'about sixteen years old' : velho ? `in ${pron} late sixties with a lined face` : jovem ? `in ${pron} early twenties` : `in ${pron} thirties` // KINEO-ELENCO-EPOCA-2710
   const pessoa = genero === 'woman' ? (crianca ? 'girl' : velho ? 'elderly woman' : 'woman') : genero === 'man' ? (crianca ? 'boy' : velho ? 'elderly man' : 'man') : crianca ? 'child' : 'person' // KINEO-ELENCO-EPOCA-2710
-  const cabelo = velho ? (genero === 'man' ? 'short white hair and a white beard' : 'white hair tied back') : escolhe(genero === 'woman' ? CABELO_FEMININO : CABELO, h, usados) // KINEO-ELENCO-EPOCA-2710 — 28/10: menina/mulher nunca sai com cabelo curto de menino
+  const cabelo = velho ? (genero === 'man' ? 'short white hair and a white beard' : 'white hair tied back') : povo ? (genero === 'woman' ? povo.cabeloF : povo.cabelo) /* KINEO-REVISOR-RESTO-3010 */ : escolhe(genero === 'woman' ? CABELO_FEMININO : CABELO, h, usados) // KINEO-ELENCO-EPOCA-2710 — 28/10: menina/mulher nunca sai com cabelo curto de menino
   const rosto = escolhe(ROSTO, h >>> 2, usados) // KINEO-ELENCO-EPOCA-2710
   const roupa = epoca ? `period-accurate ${epoca.rotulo} clothing` : escolhe(crianca ? ROUPA_CRIANCA : velho ? ROUPA_VELHO : ROUPA_ADULTO, h >>> 4, usados) // KINEO-ELENCO-EPOCA-2710
   const papelTxt = papel && !/\b(?:man|woman|boy|girl|person|child)\b/i.test(papel) && PESSOA_RE.test(papel) ? ` (the ${papel.toLowerCase().replace(/^(?:a|an|the)\s+/, '')})` : '' // KINEO-ELENCO-EPOCA-2710 — "the commuter", "the lighthouse keeper"
-  return { descricao: `${nome}${papelTxt}, ${/^[aeiou]/i.test(pessoa) ? 'an' : 'a'} ${pessoa} ${idade} with ${cabelo}, ${rosto}, wearing ${roupa}`, genero } // KINEO-ELENCO-EPOCA-2710
+  return { descricao: `${nome}${papelTxt}, ${/^[aeiou]/i.test(povo ? povo.povo : pessoa) ? 'an' : 'a'} ${povo ? `${povo.povo} ` : ''}${pessoa} ${idade} with ${cabelo}, ${rosto}, wearing ${roupa}`, genero } // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 function tipoDe(nome: string, aposto: string | null, frases: string, titulos: string[]): { tipo: TipoNomeado; especie: string | null } { // KINEO-ELENCO-EPOCA-2710
@@ -372,7 +396,7 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
     if (fig) return [{ nome: c.nome, nomeado: true, tipo: fig.tipo, genero: fig.genero, descricao: `${c.nome}, ${fig.descricao}`, protagonista: false, ocorrencias: c.total, posicoes: c.posicoes.sort((x, y) => x - y) }] // KINEO-JUIZ-REFAZ-2810
     const { tipo, especie } = tipoDe(c.nome, c.aposto, frases, c.titulos) // KINEO-ELENCO-EPOCA-2710
     if (!infantil && tipo === 'criatura' && especie !== null && COISA_DE_CENARIO_RE.test(especie)) return [] // KINEO-JUIZ-REFAZ-2810 — fora do conto infantil, estrela/nuvem/pedra é cenário, não "named character"
-    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil) // KINEO-ELENCO-EPOCA-2710
+    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010
     return [{ nome: c.nome, nomeado: true, tipo, genero: d.genero, descricao: d.descricao, protagonista: false, ocorrencias: c.total, posicoes: c.posicoes.sort((x, y) => x - y) }] // KINEO-ELENCO-EPOCA-2710 · KINEO-JUIZ-REFAZ-2810 — protagonista decidido abaixo
   }) // KINEO-ELENCO-EPOCA-2710
   return saida.map((p, i) => ({ ...p, protagonista: i === 0 })) // KINEO-JUIZ-REFAZ-2810 — quem mais age entre os que FICARAM é o protagonista (era `i === 0` do mapa, antes do filtro)
@@ -387,7 +411,7 @@ export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = n
   const papel = limpa(m[1]) // KINEO-ELENCO-EPOCA-2710
   const nucleo = papel.split(' ').pop() ?? papel // KINEO-ELENCO-EPOCA-2710
   const frases = frasesCom(texto, nucleo).join(' ') // KINEO-ELENCO-EPOCA-2710
-  const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set(), infantil) // KINEO-ELENCO-EPOCA-2710
+  const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set(), infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010
   return { nome: `the ${papel.toLowerCase()}`, nomeado: false, tipo: 'humano', genero: d.genero, descricao: d.descricao.replace(/^the\s+[^,(]+(?:\s\([^)]*\))?,\s*/i, `the ${papel.toLowerCase()}, `), protagonista: true, ocorrencias: 1, posicoes: [(m.index ?? 0) / Math.max(1, texto.length)] } // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
