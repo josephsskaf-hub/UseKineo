@@ -35,7 +35,7 @@
 import { deriveExplicitCharacter, type PapelDoElenco, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
-import { descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
+import { descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
@@ -250,8 +250,11 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
   const semTags = limpa(bruto.replace(/\[[^\]]*\]/g, ' '))
   const usados = new Set<string>()
   const elenco: FichaDePersonagem[] = []
+  const personificados = nomesPersonificados(semTags) // KINEO-SERES-PERSONIFICADOS-3010
   for (const nome of nomesDoRoteiro(bruto)) {
     if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
+    // KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli opens his eyes": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado
+    if (personificados.has(nome.toLowerCase())) { elenco.push({ nome, nucleo: nome, tipo: 'criatura', canonica: descricaoDoSerPersonificado(nome, nome), origem: 'deterministica', protagonista: elenco.length === 0, genero: null }); continue }
     const { tipo, especie } = tipoDoNome(bruto, nome)
     const contexto = `${janelasDoNome(semTags, nome)} | ${frasesCom(semTags, nome).join(' ')}`
     const canonica = canonicaDeterministica(nome, tipo, especie, contexto, usados)

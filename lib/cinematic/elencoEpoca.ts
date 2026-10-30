@@ -23,7 +23,7 @@
 //     criatura de gelatina. Tabela pequena, só casos conhecidos. // KINEO-ELENCO-EPOCA-2710
 // Sem nome, sem época e sem falso amigo: os prompts voltam byte a byte. Guardião: scripts/test-elenco-epoca-2710.mjs. // KINEO-ELENCO-EPOCA-2710
 import { sanitizeRealPeople } from '@/lib/hollywood/realPeople' // KINEO-QUALIDADE-TODOS-MOTORES-2910 — pure sanitization, including Ads client. // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
-import { figuraFiel, descricaoFielDoSer } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
+import { figuraFiel, descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 
 export const MARCA_ELENCO_EPOCA = 'KINEO-ELENCO-EPOCA-2710' // KINEO-ELENCO-EPOCA-2710
@@ -362,7 +362,10 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
   const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710
   const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710
+  const personificados = nomesPersonificados(texto) // KINEO-SERES-PERSONIFICADOS-3010
   const saida = lista.flatMap((c): PersonagemNomeado[] => { // KINEO-ELENCO-EPOCA-2710 · KINEO-JUIZ-REFAZ-2810 — flatMap: a coisa de cenário sai sem deixar buraco; o protagonista é decidido depois
+    // KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli looks angrily at Avocado": o legume com rosto, nunca "a man in his thirties"
+    if (personificados.has(c.nome.toLowerCase())) return [{ nome: c.nome, nomeado: true, tipo: 'criatura', genero: null, descricao: descricaoDoSerPersonificado(c.nome, c.nome), protagonista: false, ocorrencias: c.total, posicoes: c.posicoes.sort((x, y) => x - y) }] // KINEO-SERES-PERSONIFICADOS-3010
     const frases = frasesCom(texto, c.nome).join(' ') // KINEO-ELENCO-EPOCA-2710
     // KINEO-JUIZ-REFAZ-2810 — figura conhecida (Lucifer, Ghost Rider, Krishna…) tem a cara que o mundo reconhece ANTES de qualquer dedução de espécie: "Lucifer, the brightest angel" não é "a bright green angel with a short tail"
     const fig = figuraFiel(c.nome) // KINEO-JUIZ-REFAZ-2810

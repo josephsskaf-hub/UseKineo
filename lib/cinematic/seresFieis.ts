@@ -186,3 +186,62 @@ export function figuraFiel(nome: string | null | undefined): FiguraFiel | null {
   const ultima = palavras[palavras.length - 1] // KINEO-JUIZ-REFAZ-2810
   return FIGURAS_FIEIS.find((f) => f.nomes.includes(ultima)) ?? null // KINEO-JUIZ-REFAZ-2810 — só quando a última palavra é, sozinha, um nome da tabela (Krishna, Vishwaroop, Lucifer); "Rider" sozinho não é o Ghost Rider
 } // KINEO-JUIZ-REFAZ-2810
+
+// KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli", "Avocado", "Banana" e "Tomato" como NOME de personagem são o próprio
+// legume/fruta falando. Caso real 30/10 (nikolmishukov, IL, assinante): "The Secret Lives of Vegetables" saiu com casais
+// humanos no supermercado — o elenco determinístico (lib/cinematic/elencoEpoca personagensNomeados e
+// lib/cinematic/folhaDePersonagem elencoDeterministico) lia "Broccoli opens his eyes" como nome de gente e mandava ao
+// motor "Broccoli, a man in his thirties with curly black hair…". Puro e determinístico; guardião sem rede:
+// scripts/test-seres-personificados-3010.mts.
+
+/** Comida e objetos de cozinha que viram personagem. Fora: nomes que também são de gente ou de bicho (Olive, Pepper, Cherry, Peach, Honey, Ginger, Coco, Mango). */
+const COMIDA = [
+  'broccoli', 'avocado', 'banana', 'tomato', 'carrot', 'potato', 'cabbage', 'lettuce', 'onion', 'garlic', 'cucumber', 'eggplant',
+  'aubergine', 'zucchini', 'courgette', 'corn', 'pea', 'peas', 'bean', 'pumpkin', 'apple', 'lemon', 'lime', 'grape', 'strawberry',
+  'pear', 'pineapple', 'watermelon', 'melon', 'coconut', 'kiwi', 'blueberry', 'raspberry', 'celery', 'spinach', 'radish', 'beet',
+  'beetroot', 'cauliflower', 'asparagus', 'artichoke', 'mushroom', 'egg', 'bread', 'toast', 'donut', 'doughnut', 'cookie', 'cupcake',
+  'pizza', 'burger', 'hamburger', 'taco', 'sushi', 'cheese', 'muffin', 'croissant', 'pancake', 'waffle', 'noodle', 'dumpling',
+  'popcorn', 'lollipop', 'marshmallow', 'pickle', 'peanut', 'almond', 'chili', 'jalapeno', 'sausage', 'hotdog', 'fries', 'nugget',
+] as const
+const COMIDA_SET = new Set<string>(COMIDA)
+
+/** O cenário que confirma que o nome é a comida (e não um apelido): supermercado, cozinha, geladeira, prato, horta… */
+const CONTEXTO_DE_COMIDA_RE = /\b(?:vegetables?|veggies?|fruits?|supermarket|grocery|groceries|produce|aisle|kitchen|fridge|refrigerator|pantry|plate|dinner|lunch|breakfast|salad|garden|farm(?:ers)? market|market stall|lunchbox|cutting board|frying pan|oven|bakery)\b/i
+
+const limpaNome = (nome: string) => String(nome ?? '').trim().toLowerCase().replace(/^the\s+/, '')
+
+/** A espécie quando o próprio nome é a comida ("Broccoli" → "broccoli"); senão null. Não olha o texto: use nomesPersonificados. */
+export function especieDoNome(nome: string): string | null {
+  const n = limpaNome(nome)
+  return COMIDA_SET.has(n) ? n : null
+}
+
+/** Os nomes de comida usados como personagem: Nome + fala ("Broccoli:"), ou Nome com verbo/pronome de gente. */
+function nomesQueAgem(texto: string): string[] {
+  const achados = new Set<string>()
+  const re = /(?<![\p{L}\p{N}])(\p{Lu}[\p{Ll}]+)(?=\s*:|\s+(?:\p{Ll}+ly\s+)?(?:is|was|looks?|looked|opens?|opened|says?|said|whispers?|whispered|shouts?|shouted|throws?|threw|turns?|turned|jumps?|jumped|smiles?|smiled|cries|cried|laughs?|laughed|runs?|ran|walks?|walked|picks?|picked|reads?|drops?|dropped|gets?|got|decides?|decided|freezes|froze|wants?|wanted|feels?|felt|knows?|knew|thinks?|thought|sits?|sat|stands?|stood|rolls?|rolled|has|had|can|will|would)\b|['’]s\s)/gu
+  for (const m of texto.matchAll(re)) if (especieDoNome(m[1])) achados.add(m[1])
+  return [...achados]
+}
+
+/**
+ * Nomes de comida que são PERSONAGEM neste texto. Exige prova: 2+ comidas diferentes agindo ("Broccoli looks at Avocado"),
+ * ou 1 comida agindo num cenário de comida (supermercado, cozinha, prato). "Apple announced" sem cozinha não vira maçã.
+ */
+export function nomesPersonificados(texto: string): Set<string> {
+  const t = String(texto ?? '').slice(0, 8000)
+  const nomes = nomesQueAgem(t)
+  if (nomes.length >= 2 || (nomes.length === 1 && CONTEXTO_DE_COMIDA_RE.test(t))) return new Set(nomes.map(limpaNome))
+  return new Set()
+}
+
+/** O texto conta uma história de comida/objeto que fala ou age (vira desenho 3D quando o cliente não pediu estilo). */
+export function historiaDeSeresPersonificados(texto: string): boolean {
+  return nomesPersonificados(texto).size > 0
+}
+
+/** A ficha do personagem-comida: a forma e a textura da coisa, com rosto — nunca um corpo humano. */
+export function descricaoDoSerPersonificado(nome: string, especie: string): string {
+  const esp = limpaNome(especie)
+  return `${nome}, an anthropomorphic ${esp} character: a ${esp} with big expressive cartoon eyes, eyebrows and a mouth, small arms and legs, still clearly shaped and textured like a real ${esp}, not a human, no human body or human face`
+}

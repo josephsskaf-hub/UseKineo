@@ -148,7 +148,7 @@ console.log('== F. nada a fazer = byte a byte ==')
   checa('F3 época mista (1985 + 2024) não trava nenhuma', E.epocaDaHistoria('Founded in 1985, the brand sells today in 2024.') === null)
   checa('F4 tag [faceless] = sem elenco (época continua)', (() => { const x = E.aplicarElencoEEpoca({ prompts: T_PROMPTS, falas: T_FALAS, contextoOriginal: T_CTX, contextoFiltro: T_CTX, modo: 'documentary_faceless', tagFaceless: true }); return x.relato.motivo_sem_elenco === 'tag_faceless' && x.relato.elenco.length === 0 && x.relato.cenas_com_epoca.length === 3 })())
   checa('F5 tradução que falhou (null) em língua não latina = sem elenco, motivo registrado', (() => { const x = E.aplicarElencoEEpoca({ prompts: URDU_PROMPTS, falas: URDU_FALAS, contextoOriginal: URDU_CTX, contextoFiltro: null, modo: 'character_story', tagFaceless: false }); return x.relato.motivo_sem_elenco === 'sem_traducao' && JSON.stringify(x.prompts) === JSON.stringify(URDU_PROMPTS) })())
-  checa('F6 pessoa real famosa passa pelo sanitizador antes de virar elenco', (() => { const lib = roda(SRC, { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t.replace(/Napoleon/g, 'a fictional period-accurate figure') } }); return lib.personagensNomeados('Napoleon marched. Napoleon lost.').length === 0 })())
+  checa('F6 pessoa real famosa passa pelo sanitizador antes de virar elenco', (() => { const lib = roda(SRC, { ...mocks, '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t.replace(/Napoleon/g, 'a fictional period-accurate figure') } }); return lib.personagensNomeados('Napoleon marched. Napoleon lost.').length === 0 })())
   checa('F7 determinístico: o mesmo texto dá a mesma ficha', JSON.stringify(urdu().relato) === JSON.stringify(urdu().relato))
 }
 
