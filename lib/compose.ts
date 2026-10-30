@@ -183,6 +183,27 @@ function setActiveAspect(raw?: unknown): AspectSpec {
 // A ênfase amarela (FAST_EMPHASIS_RE) volta a valer POR LINHA curta — uma linha
 // com "$40,000" inteira em amarelo, o padrão pré-#94 que funcionava bem.
 const CAPTION_WORDS_PER_CHUNK = 4
+// KINEO-LEGENDA-LARGURA-3010 [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"] — revisor 29/10: "palavra longa
+// sai da tela" (Seedance 1.5, b32f79f6). O tamanho da fonte era fixo (62; gancho 76) e o Creatomate não quebra DENTRO de uma
+// palavra: em caixa alta ExtraBold cada letra ocupa ~0,72 em, então a 76 px uma palavra de 15+ letras passa dos 842 px da
+// caixa de 9:16. Agora a fonte desce só o bastante para a MAIOR palavra do chunk caber (piso 36); o resto fica igual.
+const LEGENDA_LETRA_EM = 0.72
+const LEGENDA_FONTE_MINIMA = 36
+export function fonteDaLegendaQueCabe(texto: string, tamanho: number, larguraQuadro: number, larguraCaixa: string): number {
+  const maior = Math.max(0, ...String(texto ?? '').toUpperCase().split(/\s+/).map((p) => Array.from(p).length))
+  const caixa = larguraQuadro * ((parseFloat(larguraCaixa) || 78) / 100) * 0.92 // a pílula tem respiro dos dois lados
+  if (!maior || !Number.isFinite(caixa) || caixa <= 0) return tamanho
+  const cabe = Math.floor(caixa / (maior * LEGENDA_LETRA_EM))
+  return cabe >= tamanho ? tamanho : Math.max(Math.min(tamanho, LEGENDA_FONTE_MINIMA), cabe)
+}
+// KINEO-LEGENDA-FRASE-3010 — revisor 29/10: "frases partidas no meio" (0184481e). O teto de 4 palavras fechava o chunk em
+// artigo/preposição ("THE MAN WALKED INTO | THE ROOM"): a palavra-função passa para o chunk seguinte, junto do que ela rege.
+const LEGENDA_PALAVRA_FUNCAO = new Set(['the', 'a', 'an', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'and', 'or', 'but', 'from', 'by', 'into', 'his', 'her', 'their', 'my', 'your', 'its', 'our',
+  'o', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'e', 'ou', 'mas', 'por', 'para', 'com', 'seu', 'sua', 'meu', 'minha',
+  'el', 'la', 'los', 'las', 'un', 'una', 'del', 'en', 'y', 'con', 'su', 'mi', 'al', 'le', 'les', 'des', 'du', 'et', 'der', 'die', 'das', 'und'])
+export function terminaEmPalavraFuncao(palavra: string): boolean {
+  return LEGENDA_PALAVRA_FUNCAO.has((palavra ?? '').toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, ''))
+}
 // PUSH #94 — font sizes retuned for the one-word line. At 62 a lone word looked
 // small and lost the "punch" the effect depends on; a single word also has ~3x
 // the horizontal room a 3-word line had, so it can afford the size. Safe zone
@@ -1226,13 +1247,19 @@ export function buildCaptionsFromWhisperWords(
       current.push(w)
       const next = windowWords[i + 1]
       const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY
+      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha
       const boundary =
         current.length >= maxWords ||
-        w.sentenceEnd === true ||
-        (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS)
+        natural
       if (boundary) {
-        groups.push(current)
-        current = []
+        // KINEO-LEGENDA-FRASE-3010 — fechou só pelo teto e a última palavra é artigo/preposição: ela abre o próximo chunk.
+        if (!natural && next && current.length > 1 && terminaEmPalavraFuncao(w.word)) {
+          groups.push(current.slice(0, -1))
+          current = [w]
+        } else {
+          groups.push(current)
+          current = []
+        }
       }
     }
     if (current.length) groups.push(current)
@@ -1811,7 +1838,7 @@ export function buildCaptionElements({
     // PUSH #93 (FIX 4) — the opening chunk is rendered larger so the hook lands
     // with weight. Still bottom-anchored, so the extra height grows upward and
     // the safe-zone floor is unchanged.
-    font_size: hook ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize,
+    font_size: fonteDaLegendaQueCabe(text, hook ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize, ACTIVE_ASPECT.width, ACTIVE_ASPECT.captionWidth), // KINEO-LEGENDA-LARGURA-3010
     font_weight: '800',
     line_height: '105%',
     // Fast Mode v2 (d) — emphasized chunks go whole-line yellow (mobile-safe:

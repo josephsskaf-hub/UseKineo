@@ -56,6 +56,7 @@ import {
   INSTRUCTION_PASTE_NOTICE_VERSION,
   verbatimOpeningLine,
 } from '@/lib/growth/instructionPasteNotice'
+import { pedeVideoMudo, hrefDoClipeComTexto, pedidoMudoCopy, PEDIDO_MUDO_EVENTOS } from '@/lib/growth/pedidoMudo' // KINEO-PEDIDO-MUDO-3010
 
 // ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
 //
@@ -2040,6 +2041,7 @@ export default function GenerateClient({
   // the language promised by localized acquisition pages through auth.
   const [language, setLanguage] = useState<NarrationLanguage>(initialLanguage)
   const capacityLocale = useInterfaceLanguage() // PEDIDO-FIEL-2610 — the notice follows the interface, not the narration language.
+  const pedidoMudoVistoRef = useRef(false) // KINEO-PEDIDO-MUDO-3010 — o aviso do vídeo mudo conta uma vez por tela
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
   const qualityFailureRef = useRef<VideoQualityFailure | null>(null)
@@ -15394,6 +15396,16 @@ export default function GenerateClient({
           >
             2 · Your idea
           </label>
+          {mode === 'cinematic_ai' && pedeVideoMudo(prompt) && ( /* KINEO-PEDIDO-MUDO-3010 — o Filme sempre narra; vídeo sem voz é o Clipe */
+            <div role="status" aria-live="polite" className="rounded-xl px-4 py-3 mb-3" data-film-silent-request=""
+              ref={(el) => { if (el && !pedidoMudoVistoRef.current) { pedidoMudoVistoRef.current = true; void trackEvent(PEDIDO_MUDO_EVENTOS.shown, { engine: aiEngine, prompt_length: prompt.length }) } }}
+              style={{ maxWidth: 830, background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.38)', color: '#d9ecff' }}>
+              <div className="text-sm font-black mb-1">{pedidoMudoCopy(capacityLocale).title}</div>
+              <div className="text-xs leading-relaxed" style={{ color: '#9dccf7' }}>{pedidoMudoCopy(capacityLocale).body}</div>
+              <a href={hrefDoClipeComTexto(prompt)} className="text-xs font-black mt-2 inline-block" style={{ color: '#d9ecff', textDecoration: 'underline' }}
+                onClick={() => { void trackEvent(PEDIDO_MUDO_EVENTOS.clicked, { engine: aiEngine, prompt_length: prompt.length }) }}>{pedidoMudoCopy(capacityLocale).cta} →</a>
+            </div>
+          )}
           {showInstructionPasteNotice && prompt.trim() && (
             <div
               role="status"

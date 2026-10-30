@@ -164,9 +164,21 @@ export function prepararQualidadeDoFilme(args: {
     if (args.modo !== 'presenter') p = comSujeitoDaFala(p, args.falas[i] ?? '', [...elenco.map(f => f.nome), ...cast.relato.elenco.map(e => e.nome)])
     // KINEO-DESFECHO-3010 — a ÚLTIMA cena mostra o último acontecimento da fala (a festa do pijama), nunca volta ao começo
     if (args.modo !== 'presenter' && i === cast.prompts.length - 1) p = comDesfechoDaFala(p, args.falas[i] ?? '')
+    p = comUniformeSemMarca(p, args.contextoOriginal) // KINEO-SEM-MARCA-3010
     return travarEstiloDoFilme(p, args.style)
   })
   return { prompts, elenco, style: args.style, cenas, relato: cast.relato }
+}
+
+// KINEO-SEM-MARCA-3010 [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"] — revisor 29/10 (Seedance 1.5): "Did
+// Guardiola invent the false 9?" saiu com escudo do Barcelona, Rakuten e Adidas nas camisas — marca de terceiro no vídeo do
+// cliente. O motor não tem negative_prompt ("no logo" desenha logo): a frase é POSITIVA e curta (cabe no orçamento do Kling 4),
+// e só entra quando o pedido fala de clube/uniforme. Marca do PRÓPRIO cliente (anúncio) não dispara: a lista é de futebol/kit.
+const CLUBE_OU_UNIFORME_RE = /\b(?:barcelona|bar[çc]a|real madrid|atl[eé]tico de madrid|manchester (?:united|city)|liverpool|chelsea|arsenal|tottenham|juventus|inter de mil[aã]o|milan|psg|paris saint-germain|bayern|borussia|flamengo|corinthians|palmeiras|s[aã]o paulo fc|santos fc|boca juniors|river plate|al[- ]nassr|al[- ]hilal|inter miami|messi|ronaldo|neymar|mbapp[eé]|guardiola|jerseys?|football kits?|soccer kits?|team kits?|camisas? d[eo] (?:time|clube)|camisetas? del (?:equipo|club))\b/i
+export const UNIFORME_SEM_MARCA = ' Plain unbranded shirts and kits in solid team colours.'
+export function comUniformeSemMarca(prompt: string, contexto: string): string {
+  if (prompt.includes(UNIFORME_SEM_MARCA.trim())) return prompt
+  return CLUBE_OU_UNIFORME_RE.test(`${contexto ?? ''} ${prompt}`) ? `${prompt.replace(/\s+$/, '')}${UNIFORME_SEM_MARCA}` : prompt
 }
 
 // KINEO-SUJEITO-DA-FALA-3010 — revisão de 30/10 (Kling 4, 1º filme, BR): "On Venus, the year ends before a single day does!" saiu

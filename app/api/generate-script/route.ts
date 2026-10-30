@@ -17,7 +17,7 @@ import {
 import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 + KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 (fundador: "Vai no 4 e no não engordar")
 import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'
-import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/lib/pastedScript'
+import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE, PRODUCTION_BRIEF_RULE, semPreambuloDeChat } from '@/lib/pastedScript' // KINEO-BRIEF-NAO-E-FALA-3010: + regra do pedido de produção
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
@@ -429,6 +429,8 @@ export async function POST(req: NextRequest) {
 
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
+      + (colado.reason === 'production_brief' ? `\n\n${PRODUCTION_BRIEF_RULE}` : '') // KINEO-BRIEF-NAO-E-FALA-3010 [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"]: pedido de produção vira história, nunca a narração do pedido
+    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) : topic // KINEO-BRIEF-NAO-E-FALA-3010: sem o "aqui está prontinho pra copiar:" do chat
 
     const completion = await openai.chat.completions.create(
       {
@@ -439,7 +441,7 @@ export async function POST(req: NextRequest) {
           { role: 'system', content: SYSTEM_PROMPT },
           {
             role: 'user',
-            content: 'Write a viral YouTube Short script about this topic:\n\n' + topic,
+            content: 'Write a viral YouTube Short script about this topic:\n\n' + temaDoEscritor, // KINEO-BRIEF-NAO-E-FALA-3010
           },
         ],
       },
@@ -564,7 +566,7 @@ export async function POST(req: NextRequest) {
           max_tokens: 700,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + topic },
+            { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + temaDoEscritor }, // KINEO-BRIEF-NAO-E-FALA-3010
             { role: 'assistant', content: script },
             {
               role: 'user',
