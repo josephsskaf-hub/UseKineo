@@ -76,6 +76,22 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   fx_figurine: { model: PIXVERSE_55, input: (image) => ({ effect: '3D Figurine Factory', image_url: image, resolution: '720p', duration: '5' }) },
   // KINEO-SONDA-HYPE-2910 — o hug do Vidu só aceita 16:9 (erro real da fal em 29/10); o abraço vertical vem da PixVerse 5.5.
   fx_hug_together: { model: PIXVERSE_55, input: (image) => ({ effect: 'Hug Together', image_url: image, resolution: '720p', duration: '5' }) },
+  // KINEO-SONDA-15-2910 — fundador 29/10 ("pode testar os 15"): Natal, pets e anúncio de produto (enums do OpenAPI da fal de 29/10).
+  fx_snow_globe: { model: PIXVERSE_55, input: (image) => ({ effect: 'Snow Globe Maker', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_pet_xmas_outfit: { model: PIXVERSE_55, input: (image) => ({ effect: 'Pet Christmas Outfit', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_grinch: { model: PIXVERSE_55, input: (image) => ({ effect: "Grinch's Xmas Hijack", image_url: image, resolution: '720p', duration: '5' }) },
+  fx_gift_box: { model: PIXVERSE_55, input: (image) => ({ effect: 'Starlight Gift Box', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_pet_xmas_tree: { model: PIXVERSE_55, input: (image) => ({ effect: 'Pet Christmas Tree', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_pet_editorial: { model: PIXVERSE_55, input: (image) => ({ effect: 'Pet Editorial', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_cat_xmas_box: { model: PIXVERSE_55, input: (image) => ({ effect: 'Cat Christmas Box', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_giant_product: { model: PIXVERSE_55, input: (image) => ({ effect: 'Giant Product', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_package_explosion: { model: PIXVERSE_55, input: (image) => ({ effect: 'Package Explosion', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_billboard: { model: PIXVERSE_55, input: (image) => ({ effect: 'Billboard AD', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_naked_eye_3d: { model: PIXVERSE_55, input: (image) => ({ effect: '3D Naked-Eye AD', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_santa_pic: { model: KLING, input: (image) => ({ effect_scene: 'my_santa_pic', input_image_urls: [image], duration: '5' }) },
+  fx_pet_dance: { model: KLING, input: (image) => ({ effect_scene: 'drunk_dance_pet', input_image_urls: [image], duration: '5' }) },
+  fx_pet_lion: { model: KLING, input: (image) => ({ effect_scene: 'pet_lion_pro', input_image_urls: [image], duration: '5' }) },
+  fx_pet_bee: { model: KLING, input: (image) => ({ effect_scene: 'pet_bee_pro', input_image_urls: [image], duration: '5' }) },
   // KINEO-ESTILOS-DIA1-2026-10-13 — fundador (13/10): +10 estilos de anúncio NOVOS por dia, testados. Lote do dia 1: 10 efeitos
   // da MESMA PixVerse v5 (mesmo endpoint e preço dos 15 estilos no ar; o sistema de estilos não precisa de motor novo), só
   // (image), 720p, 5 s. Enum conferido no OpenAPI vivo da fal em 13/10 (154 valores):

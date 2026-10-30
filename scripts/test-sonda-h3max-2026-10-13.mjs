@@ -157,8 +157,23 @@ const HYPE_EXPECTED = {
   fx_subject3: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'subject_3_dance', input_image_urls: [VIRAL_IMG], duration: '5' } },
   fx_figurine: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: '3D Figurine Factory', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
   fx_hug_together: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Hug Together', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_snow_globe: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Snow Globe Maker', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_pet_xmas_outfit: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Pet Christmas Outfit', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_grinch: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: "Grinch's Xmas Hijack", image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_gift_box: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Starlight Gift Box', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_pet_xmas_tree: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Pet Christmas Tree', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_pet_editorial: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Pet Editorial', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_cat_xmas_box: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Cat Christmas Box', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_giant_product: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Giant Product', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_package_explosion: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Package Explosion', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_billboard: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Billboard AD', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_naked_eye_3d: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: '3D Naked-Eye AD', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_santa_pic: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'my_santa_pic', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_pet_dance: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'drunk_dance_pet', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_pet_lion: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'pet_lion_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_pet_bee: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'pet_bee_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
 }
-const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash', 'subject_3_dance'])
+const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash', 'subject_3_dance', 'my_santa_pic', 'drunk_dance_pet', 'pet_lion_pro', 'pet_bee_pro'])
 /** Todas as chaves fx_* que o catálogo pode ter, na ordem: as 6 virais e as 2 de Halloween. */
 const FX_EXPECTED = { ...VIRAL_EXPECTED, ...HALLOWEEN_EXPECTED, ...HYPE_EXPECTED }
 const MODEL_CONSTS = {
