@@ -11,8 +11,16 @@ export function pareceRoteiroDeFilme(texto: string): boolean {
   const t = String(texto ?? '').trim()
   if (!t) return false
   if (t.split(/\s+/).filter(Boolean).length > CLIP_ROTEIRO_PALAVRAS) return true
+  if (PEDE_FALA_RE.test(t) || PEDE_DURACAO_LONGA_RE.test(t) || FALA_DE_PERSONAGEM_RE.test(t)) return true // KINEO-REVISOR-RESTO-3010
   return /\b(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF|CENA \d|SCENE \d|Cena \d|Scene \d)\b|\[Pexels:/.test(t)
 }
+
+// KINEO-REVISOR-RESTO-3010 — revisões de 30/10: 6 de 19 filmes eram clipe MUDO para quem pediu fala (urdu, espanhol, PT),
+// e um anúncio de 30 s virou clipe de 10 s. Texto curto também é roteiro quando pede voz, fala ou mais tempo do que o clipe tem.
+const PEDE_FALA_RE = /\b(?:narrat(?:or|ion|ed)|voice[\s-]?over|voiceover|dialogues?|speaking|talking to (?:the )?camera|says to the camera|narrador|narra[çc][aã]o|narrado|locu[çc][aã]o|locutor|di[aá]logos?|falando|fala para a c[aâ]mera|hablando|voz en off|narraci[oó]n)\b/i
+const PEDE_DURACAO_LONGA_RE = /\b(?:1[3-9]|[2-9]\d|1\d\d)\s*(?:s|sec|secs|seconds?|segundos?)\b|\b(?:1|2|3)\s*(?:min|mins|minutes?|minutos?)\b/i
+/** Fala de personagem no formato de roteiro: `Nome: "…"` numa linha. */
+const FALA_DE_PERSONAGEM_RE = /(?:^|\n)\s*\p{Lu}[\p{L}'’ -]{0,30}:\s*["“«]/u
 
 /** O link do Studio com o texto do cliente preenchido (o Studio lê ?prompt=). */
 export function hrefDoFilmeComTexto(texto: string): string {
