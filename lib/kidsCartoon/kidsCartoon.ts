@@ -57,7 +57,7 @@ export function isKidsCartoonDuration(raw: unknown): raw is KidsCartoonDuration 
 }
 
 // ── os 6 personagens fixos (descrição canônica em inglês: é ela que vai em TODA cena) ─────────────────────────────
-export type KidsCharacterId = 'leo' | 'mia' | 'dino' | 'pip' | 'bibi' | 'ollie'
+export type KidsCharacterId = 'leo' | 'mia' | 'dino' | 'pip' | 'bibi' | 'ollie' | 'preta' | 'guilhermina' | 'amora' // KINEO-BULDOGUES-PERSONAGENS-3010
 export interface KidsCharacter {
   id: KidsCharacterId
   /** O nome (igual em toda língua: é ele que o escritor usa e que a cena reconhece). */
@@ -81,6 +81,14 @@ export const KIDS_CHARACTERS: readonly KidsCharacter[] = [
     sheet: 'Bibi, a little white bunny 3D cartoon character with long pink-lined ears, a round fluffy tail, big violet eyes and a tiny yellow scarf' },
   { id: 'ollie', name: 'Ollie', kind: { en: 'Baby elephant', pt: 'Elefantinho', es: 'Elefantito' }, portrait: '/kids-cartoon/ollie.webp',
     sheet: 'Ollie, a baby elephant 3D cartoon character with soft grey skin, big flappy ears with pink insides, a short curly trunk and a tiny green cap' },
+  // KINEO-BULDOGUES-PERSONAGENS-3010 — as 3 buldogues da série do canal (fundador 30/10: "coloca eles como personagens normais").
+  // Retratos recortados das fichas 3D aprovadas (C:\kineo-wt\_buldogues\front-*.png). Amora usa cadeirinha de rodas rosa em toda cena de corpo inteiro.
+  { id: 'preta', name: 'Preta', kind: { en: 'French bulldog', pt: 'Buldogue francês', es: 'Bulldog francés' }, portrait: '/kids-cartoon/preta.webp',
+    sheet: 'Preta, a charcoal blue-grey French bulldog 3D cartoon character with a white chest patch, big honey-amber eyes, upright bat ears and a playful, loving, kissy personality' },
+  { id: 'guilhermina', name: 'Guilhermina', kind: { en: 'French bulldog', pt: 'Buldogue francês', es: 'Bulldog francés' }, portrait: '/kids-cartoon/guilhermina.webp',
+    sheet: 'Guilhermina, a strong white French bulldog 3D cartoon character with grey patches, a grey mask around both eyes, a white stripe on her forehead, upright bat ears and a sturdy, confident build' },
+  { id: 'amora', name: 'Amora', kind: { en: 'French bulldog', pt: 'Buldogue francês', es: 'Bulldog francés' }, portrait: '/kids-cartoon/amora.webp',
+    sheet: 'Amora, a small cream French bulldog 3D cartoon character with a light patch over one eye, huge pink-lined bat ears, big brown eyes and a pink dog wheelchair supporting her back legs' },
 ]
 export const KIDS_CHARACTER_IDS: readonly KidsCharacterId[] = KIDS_CHARACTERS.map((c) => c.id)
 export function isKidsCharacterId(raw: unknown): raw is KidsCharacterId {
