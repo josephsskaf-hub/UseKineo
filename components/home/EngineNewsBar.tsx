@@ -7,9 +7,14 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { UiLabel } from '@/components/InterfaceLanguage'
+import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice' // KINEO-FAIXA-OFERTA-2910
+import { kling4PromoVisible } from '@/lib/kling4PaidPresentation' // KINEO-FAIXA-OFERTA-2910
+import { WELCOME20_PERCENT_OFF, WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-FAIXA-OFERTA-2910
 
-const DISMISS_KEY = 'kineo:home-news-bar:s25:v1'
-export const ENGINE_NEWS_BAR_HREF = '/ai-video-generator/seedance-2-5?intent_campaign=home_news_bar_s25'
+// KINEO-FAIXA-OFERTA-2910 — fundador 29/10: a faixa azul passa a vender a oferta (Kling 4.0 grátis 30 dias no Creator + o desconto do
+// 1º mês que o servidor já aplica). Chave nova: quem fechou a faixa do Seedance volta a ver esta uma vez.
+const DISMISS_KEY = 'kineo:home-news-bar:oferta-k4:v1'
+export const ENGINE_NEWS_BAR_HREF = '/pricing?intent_campaign=home_news_bar_k4'
 
 const CSS = `
 .knb{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 48px 8px 16px;
@@ -30,13 +35,14 @@ export default function EngineNewsBar() {
   useEffect(() => {
     try { if (localStorage.getItem(DISMISS_KEY) === '1') setHidden(true) } catch { /* sem storage: a faixa fica */ }
   }, [])
+  const kling4Promo = kling4PromoVisible(useKling4PaidAvailability()) // KINEO-FAIXA-OFERTA-2910
   if (hidden) return null
   return (
-    <div className="knb" role="region" aria-label="New engine">
+    <div className="knb" role="region" aria-label="Offer">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <span className="knb-tag">NEW</span>
-      <span className="knb-text"><b>Seedance 2.5</b> <UiLabel>is live on Kineo.</UiLabel><span className="knb-sub"> <UiLabel>ByteDance’s newest video model.</UiLabel></span></span>
-      <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>See what it makes</UiLabel></Link>
+      <span className="knb-tag">OFFER</span>
+      <span className="knb-text">{kling4Promo ? <><b>Kling 4.0 free for 30 days</b> <UiLabel>with Creator</UiLabel></> : <b>Kling 4.0 is live</b>}{WELCOME20_SITE_OFFER_LIVE ? <span className="knb-sub"> · {WELCOME20_PERCENT_OFF}% off your first month</span> : null}</span>
+      <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>See plans</UiLabel></Link>
       <button
         type="button"
         className="knb-x"

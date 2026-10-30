@@ -6,7 +6,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-export const HALLOWEEN_SKIN_PUBLIC = false
+export const HALLOWEEN_SKIN_PUBLIC = true // fundador 29/10: "gostei desse Halloween, tá bonito"
 export const HALLOWEEN_SKIN_ENDS_AT = '2026-11-01T03:00:00.000Z'
 
 export function halloweenSkinOn(now: number, search: string, publicFlag: boolean = HALLOWEEN_SKIN_PUBLIC): boolean {
