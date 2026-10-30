@@ -6,6 +6,8 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 import { NextRequest, NextResponse } from 'next/server'
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — shared quality and owner-bound continuation.
 import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'
+import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010
+import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
 import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { julgarStillDoFilme, stillFoiAprovado } from '@/lib/cinematic/filmQualityJudge'
 import { loadFilmCompleteQuality } from '@/lib/filmComplete/server'
@@ -5678,7 +5680,7 @@ async function manipularPost(req: NextRequest) {
         for (let i = 0; i < paidScenes.length; i++) {
           if (paidScenes[i].approvedStillUrl) registrarStillAprovado(paidScenes[i].approvedStillUrl!, paidScenes[i].prompt, plan.scenes[i].voiceover ?? '', fichasDaQualidade(paidScenes[i].prompt, plan.scenes[i].voiceover ?? '').map(f => f.nome))
         }
-        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes.map(s => ({ ...s, prompt: promptCurtoDoFilmeKling4(s.prompt, styleAnchor) })) }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes.map((s, i) => ({ ...s, prompt: promptDaCenaKling4(s.prompt, styleAnchor, i) })) }) // KINEO-QUALIDADE-TODOS-MOTORES-2910 · KINEO-CENA-PEDIDO-3010 — sem a moldura que não é cena + eixo de câmera por cena
         const ids: (string | null)[] = chunks.map(() => null)
         const models = chunks.map(chunk => chunk.model)
         const submittedAt = new Date().toISOString()
@@ -7111,6 +7113,7 @@ async function manipularPost(req: NextRequest) {
     } // KINEO-ROMANCE-ADULTO-2026-10-13
 
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
+    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -7638,7 +7641,7 @@ async function manipularPost(req: NextRequest) {
     const kling4ApprovedStills = approvedKling4TrialStills(sceneStills,
       [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], kling4ExtraStillApprovals)
     // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.
-    const kling4Prompts = classicScenePrompts.map(p => promptCurtoDoFilmeKling4(p, styleAnchor)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit.
+    const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, "characters act naturally") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
     const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }
     let kling4Trial: Kling4TrialResult | null = null

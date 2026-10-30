@@ -38,6 +38,7 @@ import { createHash } from 'node:crypto'
 import { semFilme15Fiel2610 } from './test-support/desfaz-filme15-fiel-2610.mjs' // KINEO-FILME15-PERFEITO-2610 — exact, separately verified newer task before this historical queue guard.
 import { FILME15_PERFEITO_MANIFEST } from './test-support/desfaz-filme15-perfeito-2610.mjs'
 import { QUALIDADE_ELENCO_2910, deltaQualidadeElenco2910Exato } from './test-support/desfaz-qualidade-elenco-2910.mjs'
+import { CENA_PEDIDO_3010, deltaCenaPedido3010Exato } from './test-support/desfaz-cena-pedido-3010.mjs' // KINEO-CENA-PEDIDO-3010 — [TRAVA 8.2 — vai do fundador 30/10]
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -223,7 +224,16 @@ const deltaQualidadeExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaQualidadeElenco2910Exato(current, upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+// KINEO-CENA-PEDIDO-3010 — [TRAVA 8.2 — vai do fundador 30/10 "faz tudo junto, publica tudo junto"]: o recibo exato desta entrega
+// (scripts/test-support/desfaz-cena-pedido-3010-fontes.json) vem antes das camadas antigas; edição fora do recibo continua reprovando.
+const deltaCenaPedidoExato = (file) => {
+  if (!CENA_PEDIDO_3010.scope[file] && !CENA_PEDIDO_3010.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaCenaPedido3010Exato(current, upstream, file)
+}
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaCenaPedidoExato(file) && !deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o

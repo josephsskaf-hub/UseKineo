@@ -118,8 +118,8 @@ await test('payload final Kling4 de 512 caracteres conserva menina, ursinho, est
   assert.match(final[2], /little girl[^.]*holding the glowing teddy bear/)
   assert(final.slice(0, 2).every(p => !/little girl/.test(p)))
   assert.equal(input.multi_prompt.reduce((n, s) => n + s.duration, 0), 15)
-  assert.match(route, /classicScenePrompts\.map\(p => promptCurtoDoFilmeKling4\(p, styleAnchor\)\)/)
-  assert.match(route, /scenes: paidScenes\.map\(s => \(\{ \.\.\.s, prompt: promptCurtoDoFilmeKling4\(s\.prompt, styleAnchor\) \}\)\)/)
+  assert.match(route, /classicScenePrompts\.map\(\(p, i\) => promptDaCenaKling4\(p, styleAnchor, i\)\)/) // reancorado KINEO-CENA-PEDIDO-3010 — o Kling 4 passa por promptDaCenaKling4 (sem a moldura que comia os 512 + eixo de câmera), que chama promptCurtoDoFilmeKling4 por dentro
+  assert.match(route, /scenes: paidScenes\.map\(\(s, i\) => \(\{ \.\.\.s, prompt: promptDaCenaKling4\(s\.prompt, styleAnchor, i\) \}\)\)/) // reancorado KINEO-CENA-PEDIDO-3010 — o Kling 4 passa por promptDaCenaKling4 (sem a moldura que comia os 512 + eixo de câmera), que chama promptCurtoDoFilmeKling4 por dentro
 })
 await test('continuação conserva a canônica original, sem recasting', () => {
   const characters = prepared.elenco.map((f) => ({ ...f, canonica: f.nucleo === 'girl' ? 'the little girl, a small animated girl with a yellow raincoat and red boots' : 'the robot, a tiny weathered brass robot with a heart-shaped red LED', origem: 'autor' }))
@@ -183,7 +183,7 @@ await test('15s Kling4 e fallback Seedance: prompt comum e juiz antes do despach
   assert(common > 0 && common < dispatch)
   assert.match(route.slice(common, dispatch), /classicScenePrompts\[i\] = elencoEpoca\.prompts\[i\]/)
   assert.match(route.slice(common, dispatch), /julgarStillDoFilme\(/)
-  assert.match(route.slice(common, dispatch), /const kling4Prompts = classicScenePrompts\.map\(p => promptCurtoDoFilmeKling4\(p, styleAnchor\)\)/)
+  assert.match(route.slice(common, dispatch), /const kling4Prompts = classicScenePrompts\.map\(\(p, i\) => promptDaCenaKling4\(p, styleAnchor, i\)\)/) // reancorado KINEO-CENA-PEDIDO-3010 — o Kling 4 passa por promptDaCenaKling4 (sem a moldura que comia os 512 + eixo de câmera), que chama promptCurtoDoFilmeKling4 por dentro
   assert.match(route.slice(dispatch, dispatch + 1500), /prompts: kling4Prompts/)
   assert.match(route.slice(dispatch, dispatch + 1700), /seedance15_fallback|submitClassicScenes/)
 })

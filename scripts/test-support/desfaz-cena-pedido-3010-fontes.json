@@ -1,0 +1,31 @@
+{
+ "base": "3b9274c64fb8c409a97d3943cecba72ed385eefd",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "2dcec7ff6a46ef416817fbdeb4d92659edcda7b8bd83690a2d7e63783d0a549d",
+   "afterSha256": "9570ccd4c5a5fe9e912755e462b96bae37aad3e25d00336614b85b017df3ad6f",
+   "hunks": [
+    {
+     "before": "import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'\nimport { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910",
+     "after": "import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'\nimport { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010\nimport { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010\nimport { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910"
+    },
+    {
+     "before": "        }\n        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes.map(s => ({ ...s, prompt: promptCurtoDoFilmeKling4(s.prompt, styleAnchor) })) }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n        const ids: (string | null)[] = chunks.map(() => null)",
+     "after": "        }\n        const chunks = prepareKling4PaidFilm({ seconds: duration, narration, scenes: paidScenes.map((s, i) => ({ ...s, prompt: promptDaCenaKling4(s.prompt, styleAnchor, i) })) }) // KINEO-QUALIDADE-TODOS-MOTORES-2910 · KINEO-CENA-PEDIDO-3010 — sem a moldura que não é cena + eixo de câmera por cena\n        const ids: (string | null)[] = chunks.map(() => null)"
+    },
+    {
+     "before": "    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact\n",
+     "after": "    if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact\n    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)\n"
+    },
+    {
+     "before": "    // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.\n    const kling4Prompts = classicScenePrompts.map(p => promptCurtoDoFilmeKling4(p, styleAnchor)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit.\n    // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.",
+     "after": "    // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.\n    const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, \"characters act naturally\") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera\n    // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose."
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/cenaKling4.ts": "96b232f26556837fac9d1db071b3863bc16b4c24b7215ca2cc35d38686bdddad",
+  "lib/cinematic/superficieSemTexto.ts": "1a5cee91e6402919c7dbeebdc7f9b3834b96acd908855e4ad0ca4eb4cd23cb44"
+ }
+}

@@ -188,6 +188,7 @@ export function kling4TextSafetyChecks(route, compact = loadSensitivePure('lib/c
   const scene = `${speech} The same main character appears in this scene, consistent design: ${identity}.${noText}`
   const chunks = (src, prompt, approved = false) => {
     const globals = { ...F, ...K, promptCurtoDoFilmeKling4: compact, styleAnchor,
+      promptDaCenaKling4: (p, st, i) => loadSensitivePure('lib/cinematic/cenaKling4.ts').promptDaCenaKling4Com(compact, p, st, i), // KINEO-CENA-PEDIDO-3010 — a rota passa pelo invólucro; o adaptador (inclusive o mutante) continua sendo o injetado
       plan: { scenes: [{ prompt, seconds: 15, voiceover: speech }], styleSheet: '' }, eraSuffix: '',
       duration: 15, narration: speech, qualidadeHerdada: null, fichasDaQualidade: () => [],
       ancoraHerdadaDaCena: () => approved ? 'https://example.test/keeper.png' : null }
