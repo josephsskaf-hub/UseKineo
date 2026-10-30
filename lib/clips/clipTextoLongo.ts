@@ -57,3 +57,23 @@ export function promptDoClipeComEstilo(texto: string, max = 1000): string {
   const sufixo = ` Visual style: ${estilo}.`
   return `${Array.from(t).slice(0, Math.max(0, max - sufixo.length - 1)).join('').replace(/[\s.]+$/, '')}.${sufixo}`
 }
+
+// KINEO-CLIPE-OU-FILME-3010 [vai do fundador 30/10 "A, B, C e D … estão todos autorizados"] — o aviso de roteiro longo
+// existia desde 29/10, mas o botão principal seguia "Gerar": na rodada de 30/10 (15:45) 4 de 6 vídeos eram CONTOS colados no
+// Clipe (o colombiano fez 7), 0 downloads. Agora, com texto de filme, o botão principal é o Filme narrado e o clipe vira a
+// opção pequena. E o aviso passa a ser MEDIDO (antes não gravava nada): visto, clicou no filme, fez o clipe mesmo assim.
+export const CLIPE_ROTEIRO_EVENTOS = {
+  shown: 'clip_long_script_shown',
+  film: 'clip_long_script_film_clicked',
+  clipAnyway: 'clip_long_script_clip_anyway',
+} as const
+
+// KINEO-CLIPE-LOGO-3010 [vai do fundador 30/10] — revisor 30/10: anúncio da Trans Web Internet ("young guy wearing your
+// company shirt") saiu com camisa sem marca e nada de internet: sem foto/logo o motor não tem como pôr a marca. A tela pede o
+// logo quando o texto cita marca/empresa e não há foto. Nota, nunca bloqueio.
+const CITA_MARCA_RE = /\b(?:company|brand|logo|business|store|shop|our (?:product|service)|empresa|marca|logotipo|loja|neg[oó]cio|nosso produto|tienda|negocio|compa[ñn][ií]a|nuestra (?:marca|tienda)|unternehmen|firma|entreprise|marque|azienda|negozio|şirket|marka)\b/i
+/** O texto cita marca/empresa (o motor precisa do logo ou da foto do produto para mostrá-la). */
+export function citaMarcaNoClipe(texto: string): boolean {
+  return CITA_MARCA_RE.test(String(texto ?? ''))
+}
+export const CLIPE_LOGO_EVENTOS = { shown: 'clip_logo_hint_shown', clicked: 'clip_logo_hint_clicked' } as const

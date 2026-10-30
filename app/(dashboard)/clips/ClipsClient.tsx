@@ -17,7 +17,7 @@ import CreditsTopupModal from '@/components/CreditsTopupModal'
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
-import { pareceRoteiroDeFilme, hrefDoFilmeComTexto, promptDoClipeComEstilo } from '@/lib/clips/clipTextoLongo' // KINEO-CENA-PEDIDO-3010
+import { pareceRoteiroDeFilme, hrefDoFilmeComTexto, promptDoClipeComEstilo, CLIPE_ROTEIRO_EVENTOS, citaMarcaNoClipe, CLIPE_LOGO_EVENTOS } from '@/lib/clips/clipTextoLongo' // KINEO-CENA-PEDIDO-3010 · KINEO-CLIPE-OU-FILME-3010 · KINEO-CLIPE-LOGO-3010
 import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
 import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
 import { trackClosedEvent } from '@/lib/analytics'
@@ -332,6 +332,23 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     : []
   const textOk = withPhoto ? prompt.trim().length === 0 || prompt.trim().length >= 3 : prompt.trim().length >= 3
   const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && cost !== null
+  // KINEO-CLIPE-OU-FILME-3010 — texto de filme sem foto: o botão principal leva ao Filme narrado; o clipe fica como opção pequena.
+  const roteiroDeFilme = !withPhoto && pareceRoteiroDeFilme(prompt)
+  const roteiroVistoRef = useRef(false)
+  useEffect(() => {
+    if (!roteiroDeFilme) { roteiroVistoRef.current = false; return }
+    if (roteiroVistoRef.current) return
+    roteiroVistoRef.current = true
+    void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.shown, { chars: prompt.trim().length, seconds, engine: engine?.key ?? null })
+  }, [roteiroDeFilme]) // eslint-disable-line react-hooks/exhaustive-deps
+  // KINEO-CLIPE-LOGO-3010 — cita marca/empresa e não tem foto: a nota pede o logo (nunca bloqueia).
+  const pedeLogo = !withPhoto && !effect && !remix && !photoBlocked && citaMarcaNoClipe(prompt)
+  const logoVistoRef = useRef(false)
+  useEffect(() => {
+    if (!pedeLogo || logoVistoRef.current) return
+    logoVistoRef.current = true
+    void trackClosedEvent(CLIPE_LOGO_EVENTOS.shown, { chars: prompt.trim().length })
+  }, [pedeLogo]) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-CLIPE360-AMOSTRA-1410 — a nota do giro (lib/clips/clipRotateHint.ts). Fora do canGenerate de propósito: nunca bloqueia.
   const rotateHint = clipRotateHint({ prompt, withPhoto, effectChosen: !!effect, effectKeys: effects.map((fx) => fx.key) })
 
@@ -820,10 +837,18 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
           {photoRow}
-          {pareceRoteiroDeFilme(prompt) && ( /* KINEO-CENA-PEDIDO-3010 — roteiro de filme na tela do Clipe: aviso honesto + a porta do Filme narrado com o texto preenchido */
+          {roteiroDeFilme && ( /* KINEO-CENA-PEDIDO-3010 — roteiro de filme na tela do Clipe: aviso honesto + a porta do Filme narrado com o texto preenchido */
             <div className="notice" role="note" data-clip-long-script="">
               {t('longScript', { s: seconds })}
-              <div className="row"><a className="pill on" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film">{t('longScriptCta')} →</a></div>
+              <div className="row"><a className="pill on" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film"
+                onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.film, { surface: 'notice', chars: prompt.trim().length }) }}>{t('longScriptCta')} →</a></div>
+            </div>
+          )}
+          {pedeLogo && ( /* KINEO-CLIPE-LOGO-3010 */
+            <div className="notice" role="note" data-clip-logo-hint="">
+              {t('logoHint')}
+              <div className="row"><button type="button" className="pill on" disabled={uploading} data-clip-action="logo_hint_upload"
+                onClick={() => { void trackClosedEvent(CLIPE_LOGO_EVENTOS.clicked, {}); fileRef.current?.click() }}><ControlIcon name="image" /> {t('logoHintCta')}</button></div>
             </div>
           )}
           {/* KINEO-CLIPE360-AMOSTRA-1410 — pedido de giro com UMA foto: nota honesta + troca de 1 clique para o Produto 360° (ou,
@@ -885,9 +910,17 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           <div className="cost" id="clip-generation-review" tabIndex={-1}>
             <div className="sum">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</div>
             {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
+            {roteiroDeFilme && !busy ? (<>{/* KINEO-CLIPE-OU-FILME-3010 — o Filme narrado é o botão principal; o clipe, a opção pequena */}
+              <a className="go ok" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film_main"
+                onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.film, { surface: 'main_button', chars: prompt.trim().length }) }}>{t('longScriptCta')} →</a>
+              <button type="button" className="pill" data-clip-action="generate" disabled={!canGenerate} style={{ marginTop: 8 }}
+                onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.clipAnyway, { chars: prompt.trim().length, seconds, engine: engine?.key ?? null }); void generate() }}>
+                {t('clipAnyway', { s: seconds })} · {cost ?? '—'} {t('credits')}
+              </button>
+            </>) : (
             <button type="button" data-clip-action="generate" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
               {busy ? t('creating') : (withPhoto || prompt.trim().length >= 3) ? <>{t('generate')} · {cost ?? '—'} {t('credits')}</> : t('describeFirst')}
-            </button>
+            </button>)}
           </div>
         </div>
         </>)}

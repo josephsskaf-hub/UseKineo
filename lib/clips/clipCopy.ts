@@ -69,6 +69,9 @@ export const CLIP_COPY_EN = {
   rotateOrbit: 'A single photo can’t show the back of your product, so a full spin usually comes out barely moving. Ask instead for a slow camera orbit or a slow push-in.',
   longScript: 'This makes one short clip of up to {s} s — not your whole story. For the full script, make a narrated film.', // KINEO-CENA-PEDIDO-3010
   longScriptCta: 'Make it a narrated film', // KINEO-CENA-PEDIDO-3010
+  clipAnyway: 'Make a {s} s clip anyway', // KINEO-CLIPE-OU-FILME-3010
+  logoHint: 'Your text mentions a brand or company. Add the logo or a product photo so it shows up in the clip.', // KINEO-CLIPE-LOGO-3010
+  logoHintCta: 'Add logo or photo', // KINEO-CLIPE-LOGO-3010
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -134,6 +137,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Uma foto só não mostra a parte de trás do produto, então um giro completo costuma sair quase parado. Peça uma órbita lenta da câmera ou uma aproximação lenta.',
     longScript: 'Isto vira um clipe curto de até {s} s — não a história inteira. Para o roteiro completo, faça um filme narrado.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Fazer como filme narrado', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Fazer clipe de {s} s mesmo assim', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Seu texto cita uma marca ou empresa. Envie o logo ou uma foto do produto para ele aparecer no clipe.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Enviar logo ou foto', // KINEO-CLIPE-LOGO-3010
   },
   es: {
     title: 'Clips',
@@ -194,6 +200,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Una sola foto no muestra la parte de atrás del producto, así que un giro completo suele salir casi quieto. Pide mejor una órbita lenta de la cámara o un acercamiento lento.',
     longScript: 'Esto crea un clip corto de hasta {s} s, no toda tu historia. Para el guion completo, haz una película narrada.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Hacer una película narrada', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Hacer un clip de {s} s de todos modos', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Tu texto menciona una marca o empresa. Sube el logo o una foto del producto para que aparezca en el clip.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Subir logo o foto', // KINEO-CLIPE-LOGO-3010
   },
   fr: {
     title: 'Clips',
@@ -254,6 +263,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Une seule photo ne montre pas l’arrière du produit : un tour complet ressort souvent presque immobile. Demandez plutôt un lent mouvement de caméra autour du produit ou un lent zoom avant.',
     longScript: 'Ceci crée un clip court de {s} s maximum, pas toute votre histoire. Pour le script complet, faites un film narré.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'En faire un film narré', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Faire quand même un clip de {s} s', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Votre texte cite une marque ou une entreprise. Ajoutez le logo ou une photo du produit pour qu’il apparaisse dans le clip.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Ajouter logo ou photo', // KINEO-CLIPE-LOGO-3010
   },
   de: {
     title: 'Clips',
@@ -314,6 +326,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Ein einzelnes Foto zeigt die Rückseite des Produkts nicht, daher wirkt eine volle Drehung meist fast starr. Bitte lieber um eine langsame Kamerafahrt um das Produkt oder ein langsames Heranfahren.',
     longScript: 'Daraus wird ein kurzer Clip von bis zu {s} s – nicht deine ganze Geschichte. Für das ganze Skript mach einen erzählten Film.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Als erzählten Film machen', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Trotzdem einen {s}-s-Clip machen', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Dein Text nennt eine Marke oder Firma. Lade das Logo oder ein Produktfoto hoch, damit es im Clip erscheint.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Logo oder Foto hinzufügen', // KINEO-CLIPE-LOGO-3010
   },
   it: {
     title: 'Clip',
@@ -374,6 +389,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Una sola foto non mostra il retro del prodotto, quindi una rotazione completa di solito resta quasi ferma. Chiedi piuttosto una lenta orbita della camera o un lento avvicinamento.',
     longScript: 'Questo crea una clip breve fino a {s} s, non tutta la tua storia. Per il copione completo, fai un film narrato.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Fanne un film narrato', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Fai comunque un clip di {s} s', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Il testo cita un marchio o un’azienda. Aggiungi il logo o una foto del prodotto perché compaia nel clip.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Aggiungi logo o foto', // KINEO-CLIPE-LOGO-3010
   },
   nl: {
     title: 'Clips',
@@ -434,6 +452,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Eén foto laat de achterkant van het product niet zien, dus een volledige draai beweegt meestal nauwelijks. Vraag liever om een langzame camerabeweging rond het product of een langzame inzoom.',
     longScript: 'Dit maakt één korte clip van maximaal {s} s, niet je hele verhaal. Maak voor het volledige script een vertelde film.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Maak er een vertelde film van', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Toch een clip van {s} s maken', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Je tekst noemt een merk of bedrijf. Voeg het logo of een productfoto toe zodat het in de clip verschijnt.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Logo of foto toevoegen', // KINEO-CLIPE-LOGO-3010
   },
   pl: {
     title: 'Klipy',
@@ -494,6 +515,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Jedno zdjęcie nie pokazuje tyłu produktu, więc pełny obrót zwykle wychodzi prawie nieruchomo. Poproś raczej o powolny ruch kamery wokół produktu albo powolne zbliżenie.',
     longScript: 'To da jeden krótki klip do {s} s, a nie całą historię. Dla pełnego scenariusza zrób film z narracją.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Zrób film z narracją', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Mimo to zrób klip {s} s', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Tekst wspomina markę lub firmę. Dodaj logo albo zdjęcie produktu, żeby pojawiło się w klipie.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Dodaj logo lub zdjęcie', // KINEO-CLIPE-LOGO-3010
   },
   tr: {
     title: 'Klipler',
@@ -554,6 +578,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Tek bir fotoğraf ürünün arkasını göstermez, bu yüzden tam bir dönüş genelde neredeyse hareketsiz çıkar. Bunun yerine kameranın ürün etrafında yavaşça dönmesini ya da yavaş bir yaklaşmayı isteyin.',
     longScript: 'Bu, tüm hikâyen değil, en fazla {s} sn’lik tek bir kısa klip olur. Senaryonun tamamı için anlatımlı bir film yap.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Anlatımlı film yap', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Yine de {s} sn klip yap', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Metnin bir marka veya şirketten bahsediyor. Klipte görünmesi için logoyu ya da ürün fotoğrafını ekle.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Logo veya fotoğraf ekle', // KINEO-CLIPE-LOGO-3010
   },
   ru: {
     title: 'Клипы',
@@ -614,6 +641,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Одно фото не показывает обратную сторону товара, поэтому полный оборот обычно выходит почти неподвижным. Лучше попросите медленный облёт камерой или медленный наезд.',
     longScript: 'Получится один короткий клип до {s} с, а не вся история. Для полного сценария сделайте фильм с озвучкой.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Сделать фильм с озвучкой', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Всё равно сделать клип на {s} с', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'В тексте упомянут бренд или компания. Добавьте логотип или фото товара, чтобы он появился в клипе.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Добавить логотип или фото', // KINEO-CLIPE-LOGO-3010
   },
   uk: {
     title: 'Кліпи',
@@ -674,6 +704,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Одне фото не показує зворотний бік товару, тому повний оберт зазвичай виходить майже нерухомим. Краще попросіть повільний обліт камерою або повільний наїзд.',
     longScript: 'Вийде один короткий кліп до {s} с, а не вся історія. Для повного сценарію зробіть фільм з озвученням.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Зробити фільм з озвученням', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Усе одно зробити кліп на {s} с', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'У тексті згадано бренд або компанію. Додайте логотип чи фото товару, щоб він з’явився в кліпі.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Додати логотип або фото', // KINEO-CLIPE-LOGO-3010
   },
   ar: {
     title: 'مقاطع',
@@ -734,6 +767,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'صورة واحدة لا تُظهر الجهة الخلفية للمنتج، لذلك يخرج الدوران الكامل غالبًا شبه ثابت. اطلب بدلًا من ذلك دورانًا بطيئًا للكاميرا حول المنتج أو اقترابًا بطيئًا.',
     longScript: 'سينتج هذا مقطعًا قصيرًا واحدًا حتى {s} ث، وليس قصتك كاملة. للنص الكامل، اصنع فيلمًا مرويًا.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'اصنعه فيلمًا مرويًا', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'اصنع مقطعًا مدته {s} ث على أي حال', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'نصك يذكر علامة تجارية أو شركة. أضف الشعار أو صورة المنتج ليظهر في المقطع.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'أضف الشعار أو صورة', // KINEO-CLIPE-LOGO-3010
   },
   ur: {
     title: 'کلپس',
@@ -794,6 +830,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'ایک تصویر پروڈکٹ کا پچھلا حصہ نہیں دکھاتی، اس لیے پورا چکر عموماً تقریباً ساکن نکلتا ہے۔ اس کے بجائے کیمرے کا آہستہ چکر یا آہستہ قریب آنا مانگیں۔',
     longScript: 'اس سے {s} سیکنڈ تک کا ایک مختصر کلپ بنے گا، پوری کہانی نہیں۔ پورے اسکرپٹ کے لیے بیانیہ فلم بنائیں۔', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'بیانیہ فلم بنائیں', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'پھر بھی {s} سیکنڈ کا کلپ بنائیں', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'آپ کے متن میں کسی برانڈ یا کمپنی کا ذکر ہے۔ لوگو یا پروڈکٹ کی تصویر شامل کریں تاکہ وہ کلپ میں نظر آئے۔', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'لوگو یا تصویر شامل کریں', // KINEO-CLIPE-LOGO-3010
   },
   hi: {
     title: 'क्लिप्स',
@@ -854,6 +893,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'एक फ़ोटो से प्रोडक्ट का पिछला हिस्सा नहीं दिखता, इसलिए पूरा घुमाव अक्सर लगभग स्थिर निकलता है। इसकी जगह कैमरे का धीमा चक्कर या धीमा ज़ूम-इन माँगें।',
     longScript: 'इससे {s} सेकंड तक की एक छोटी क्लिप बनेगी, पूरी कहानी नहीं। पूरी स्क्रिप्ट के लिए नैरेटेड फ़िल्म बनाएँ।', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'नैरेटेड फ़िल्म बनाएँ', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'फिर भी {s} सेकंड की क्लिप बनाएं', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'आपके टेक्स्ट में किसी ब्रांड या कंपनी का ज़िक्र है। लोगो या प्रोडक्ट की फ़ोटो जोड़ें ताकि वह क्लिप में दिखे।', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'लोगो या फ़ोटो जोड़ें', // KINEO-CLIPE-LOGO-3010
   },
   id: {
     title: 'Klip',
@@ -914,6 +956,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Satu foto tidak menunjukkan bagian belakang produk, jadi putaran penuh biasanya hampir tidak bergerak. Mintalah kamera mengitari produk perlahan atau mendekat perlahan.',
     longScript: 'Ini membuat satu klip pendek hingga {s} dtk, bukan seluruh ceritamu. Untuk naskah lengkap, buat film bernarasi.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Jadikan film bernarasi', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Tetap buat klip {s} dtk', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Teksmu menyebut merek atau perusahaan. Tambahkan logo atau foto produk agar muncul di klip.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Tambah logo atau foto', // KINEO-CLIPE-LOGO-3010
   },
   vi: {
     title: 'Clip',
@@ -974,6 +1019,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateOrbit: 'Một ảnh không cho thấy mặt sau của sản phẩm, nên xoay trọn vòng thường gần như đứng yên. Hãy yêu cầu camera bay vòng quanh chậm hoặc tiến lại gần chậm.',
     longScript: 'Thao tác này tạo một clip ngắn tối đa {s} giây, không phải cả câu chuyện. Với kịch bản đầy đủ, hãy làm phim có lời dẫn.', // KINEO-CENA-PEDIDO-3010
     longScriptCta: 'Làm phim có lời dẫn', // KINEO-CENA-PEDIDO-3010
+    clipAnyway: 'Vẫn làm clip {s} giây', // KINEO-CLIPE-OU-FILME-3010
+    logoHint: 'Văn bản của bạn nhắc đến một thương hiệu hoặc công ty. Hãy thêm logo hoặc ảnh sản phẩm để nó xuất hiện trong clip.', // KINEO-CLIPE-LOGO-3010
+    logoHintCta: 'Thêm logo hoặc ảnh', // KINEO-CLIPE-LOGO-3010
   },
 }
 
