@@ -51,6 +51,13 @@ export type ClipEffectKey =
   | 'zombie' // KINEO-HALLOWEEN-FX-2910
   | 'dust_away' // KINEO-EFEITOS-HYPE-2910
   | 'figurine_3d' // KINEO-EFEITOS-HYPE-2910
+  | 'snow_globe' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'santa_cartoon' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'giant_product' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'pet_xmas_angel' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'pet_xmas_tree' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'pet_lion' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'pet_bee' // KINEO-EFEITOS-NATAL-PETS-2910
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -357,6 +364,129 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
       input: (photoUrl) => ({ effect: '3D Figurine Factory', image_url: photoUrl, resolution: '720p', duration: '5' }),
       usd: 0.2,
       label: 'PixVerse 5.5',
+    },
+  },
+  // KINEO-EFEITOS-NATAL-PETS-2910 — fundador 29/10 ("A"): testados pela sonda (fx_snow_globe, fx_santa_pic, fx_giant_product,
+  // fx_pet_xmas_outfit, fx_pet_xmas_tree, fx_pet_lion, fx_pet_bee) com foto gerada, aprovados no quadro a quadro. Reprovados no
+  // mesmo teste: Grinch e Cat Christmas Box (personagem/obra de terceiros), Package Explosion (o produto vira outro), Starlight
+  // Gift Box, Billboard e 3D Naked-Eye (quase nada acontece), Pet Editorial (sai em 560 px).
+  {
+    key: 'snow_globe',
+    title: 'Snow globe of you',
+    sub: 'You shrink into a snow globe with falling snow.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('snow_globe'),
+    filmIdea: 'The night this person woke up inside a snow globe — a 60-second Christmas story',
+    person: true,
+    preview: { video: '/previews/efeito-snow_globe.mp4', poster: '/posters/efeito-snow_globe.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Snow Globe Maker', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'santa_cartoon',
+    title: 'Christmas cartoon of you',
+    sub: 'Your photo becomes a festive cartoon with a Santa hat.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('santa_cartoon'),
+    filmIdea: 'The Christmas this person turned into a cartoon — a 60-second holiday story',
+    person: true,
+    preview: { video: '/previews/efeito-santa_cartoon.mp4', poster: '/posters/efeito-santa_cartoon.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'my_santa_pic', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
+    },
+  },
+  {
+    key: 'giant_product',
+    title: 'Giant product in the city',
+    sub: 'Your product towers over a city street like a monument.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('giant_product'),
+    filmIdea: 'The day this product took over the city — a 60-second ad film',
+    person: false,
+    preview: { video: '/previews/efeito-giant_product.mp4', poster: '/posters/efeito-giant_product.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Giant Product', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'pet_xmas_angel',
+    title: 'Pet Christmas angel',
+    sub: 'Your pet gets wings, a magic wand and a Santa hat.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('pet_xmas_angel'),
+    filmIdea: 'The Christmas angel who lives in our house — a 60-second pet story',
+    person: false,
+    preview: { video: '/previews/efeito-pet_xmas_angel.mp4', poster: '/posters/efeito-pet_xmas_angel.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Pet Christmas Outfit', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'pet_xmas_tree',
+    title: 'Pet Christmas tree',
+    sub: 'Your pet turns into a glowing Christmas tree.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('pet_xmas_tree'),
+    filmIdea: 'The pet who became the family Christmas tree — a 60-second holiday story',
+    person: false,
+    preview: { video: '/previews/efeito-pet_xmas_tree.mp4', poster: '/posters/efeito-pet_xmas_tree.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Pet Christmas Tree', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'pet_lion',
+    title: 'Pet meets a lion',
+    sub: 'A lion walks in and cuddles your pet.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('pet_lion'),
+    filmIdea: 'The day a lion became my pet\'s best friend — a 60-second story',
+    person: false,
+    preview: { video: '/previews/efeito-pet_lion.mp4', poster: '/posters/efeito-pet_lion.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'pet_lion_pro', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
+    },
+  },
+  {
+    key: 'pet_bee',
+    title: 'Pet becomes a bee',
+    sub: 'Your pet gets bee stripes and wings and starts to fly.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('pet_bee'),
+    filmIdea: 'The pet who learned to fly like a bee — a 60-second story',
+    person: false,
+    preview: { video: '/previews/efeito-pet_bee.mp4', poster: '/posters/efeito-pet_bee.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'pet_bee_pro', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
     },
   },
 ]

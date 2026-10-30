@@ -28,6 +28,10 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 
+// KINEO-SEM-FAIXA-CONTINUAR-2910 — fundador 29/10: "tira essa parte do cel e do web tb, não gosto". Desligada aqui, no
+// componente, para sumir nas duas homes (KineoLanding e ClipsFirstHome) de uma vez; true traz de volta sem mexer em nada.
+export const RESUME_STRIP_PUBLIC = false
+
 type Props = {
   title: string
   episode: number
@@ -37,7 +41,7 @@ type Props = {
 export default function ResumeStrip({ title, episode, videoId = null }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const seenRef = useRef(false)
-  const limpo = (title ?? '').trim()
+  const limpo = RESUME_STRIP_PUBLIC ? (title ?? '').trim() : ''
   const ep = Number.isFinite(episode) && episode > 1 ? Math.floor(episode) : 2
 
   // LICAO DA RODADA #9: `shown` disparado no fetch mede o SERVIDOR, nao o olho.
