@@ -160,9 +160,61 @@ export function prepararQualidadeDoFilme(args: {
       if (ficha.tipo !== 'humano') p = p.split(ficha.canonica).map((trecho) => semDescricaoConcorrente(trecho, ficha.nucleo)).join(ficha.canonica)
       if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(canonicaComDesenhoFixo(ficha))
     }
+    // KINEO-SUJEITO-DA-FALA-3010 — o assunto que a fala nomeia (Vênus) entra na cena que não o mostra; gente do elenco fica com a ficha
+    if (args.modo !== 'presenter') p = comSujeitoDaFala(p, args.falas[i] ?? '', [...elenco.map(f => f.nome), ...cast.relato.elenco.map(e => e.nome)])
+    // KINEO-DESFECHO-3010 — a ÚLTIMA cena mostra o último acontecimento da fala (a festa do pijama), nunca volta ao começo
+    if (args.modo !== 'presenter' && i === cast.prompts.length - 1) p = comDesfechoDaFala(p, args.falas[i] ?? '')
     return travarEstiloDoFilme(p, args.style)
   })
   return { prompts, elenco, style: args.style, cenas, relato: cast.relato }
+}
+
+// KINEO-SUJEITO-DA-FALA-3010 — revisão de 30/10 (Kling 4, 1º filme, BR): "On Venus, the year ends before a single day does!" saiu
+// sobre a etiqueta do cliente "[Pexels: stars and galaxy view]" — galáxia genérica, e Vênus some justo no fecho (FINAL_FRACO).
+// Palavra comum que abre frase, pronome e quem já tem ficha não entram; fala com pronome de gente (he/she…) fica de fora
+// (pessoa real não ganha "clearly visible" aqui — essa é a regra do elenco).
+const NAO_SUJEITO = new Set(['The', 'And', 'But', 'This', 'That', 'These', 'Those', 'Its', 'You', 'Did', 'Does', 'What', 'Why', 'How', 'Who', 'Where', 'When', 'Then', 'Yes', 'Now', 'Here', 'There', 'Just', 'Even', 'Every', 'One', 'Our', 'Your', 'His', 'Her', 'Their', 'Today', 'Tomorrow', 'Yesterday', 'Wow', 'Imagine', 'Meet', 'Look', 'Watch', 'Follow', 'Subscribe', 'Fun', 'Fact', 'Day', 'Year'])
+/** Até 2 nomes próprios que a fala cita no meio da frase ("On Venus", "is Venus!"). */
+export function sujeitosDaFala(fala: string): string[] {
+  const t = String(fala ?? '')
+  if (/\b(?:he|she|his|her|him|hers)\b/i.test(t)) return []
+  const out = new Set<string>()
+  for (const m of t.matchAll(/(?<![\p{L}\p{N}'’])(\p{Lu}[\p{Ll}]{2,})(?![\p{L}'’])/gu)) {
+    const antes = t.slice(0, m.index ?? 0).trimEnd()
+    if (NAO_SUJEITO.has(m[1]) || !antes || /[.!?…:"“]$/.test(antes)) continue
+    out.add(m[1])
+  }
+  return [...out].slice(0, 2)
+}
+// KINEO-DESFECHO-3010 — revisão de 30/10 (Kling 4, 1º filme, US, nota 7): "At the mall, she buys a puppy and more... then a slumber
+// party!" — a última cena seguiu a etiqueta "[Pexels: shopping mall puppy store]" e o filme acabou de volta na cozinha; a festa nunca
+// apareceu. Regra do revisor: a última cena mostra o desfecho do pedido, não repete a anterior nem cai em paisagem genérica.
+const PALAVRA_VAZIA = new Set(['then', 'that', 'this', 'with', 'from', 'into', 'more', 'some', 'they', 'them', 'their', 'there', 'what', 'when', 'where', 'which', 'while', 'very', 'really', 'just', 'even', 'only', 'also', 'before', 'after', 'does', 'have', 'been', 'will', 'your', 'ends', 'single', 'depois', 'quando', 'muito', 'mais', 'para', 'pela', 'pelo', 'como', 'entonces', 'luego', 'despues', 'después'])
+/** O último acontecimento da fala: o trecho depois do último "then / finally / and then / … / depois / então / luego". */
+export function desfechoDaFala(fala: string): string | null {
+  const frases = String(fala ?? '').split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
+  const ultima = frases[frases.length - 1] ?? ''
+  const partes = ultima.split(/\.{3}|…|\b(?:and then|then|finally|at last|in the end|e então|então|depois|por fim|no fim|y luego|luego|al final|finalmente)\b/i)
+  if (partes.length < 2) return null
+  const trecho = partes[partes.length - 1].replace(/^[\s,;:—-]+|[\s.!?…]+$/g, '').trim()
+  const palavras = trecho.split(/\s+/).filter(Boolean)
+  return palavras.length >= 1 && palavras.length <= 10 ? trecho : null
+}
+/** A última cena que não mostra o desfecho ganha "Final moment of the story, clearly shown: <desfecho>." na frente. */
+export function comDesfechoDaFala(prompt: string, fala: string): string {
+  const desfecho = desfechoDaFala(fala)
+  if (!desfecho) return prompt
+  const chave = desfecho.toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length >= 4 && !PALAVRA_VAZIA.has(w))
+  if (chave.length === 0 || chave.some((w) => new RegExp(`\\b${w}`, 'i').test(prompt))) return prompt
+  return `Final moment of the story, clearly shown: ${desfecho}. ${prompt}`
+}
+/** A cena que não mostra o assunto nomeado pela fala ganha "<assunto> clearly visible as the subject of this shot." na frente. */
+export function comSujeitoDaFala(prompt: string, fala: string, ignorar: ReadonlyArray<string>): string {
+  const ign = new Set(ignorar.flatMap((n) => String(n).split(/\s+/)).map((w) => w.toLowerCase()))
+  const sujeitos = sujeitosDaFala(fala).filter((s) => !ign.has(s.toLowerCase()))
+  const faltando = sujeitos.filter((s) => !new RegExp(`\\b${s}\\b`, 'i').test(prompt))
+  // a cena já mostra um dos assuntos ("A close-up of Venus" com fala "…orbit the Sun"): fica como está
+  return faltando.length && faltando.length === sujeitos.length ?`${faltando.join(' and ')} clearly visible as the subject of this shot. ${prompt}` : prompt
 }
 
 /** Reuse a source still only for matching speech/action, not merely because the same person appears. */

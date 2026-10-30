@@ -24,6 +24,12 @@ const MOLDURAS: ReadonlyArray<RegExp> = [
   /,?\s*\b(?:9:16|16:9|1:1|4:5)\s+\w+\s+(?:framing|composition)\b[^.]*?\bno logo\b/i,
   /,?\s*characters act naturally within the scene without addressing the viewer/i,
   /,\s*\b(?:9:16|16:9|1:1|4:5)\s+\w+\s+(?:framing|composition)\b(?!,)/i,
+  // KINEO-K4-SEM-MOLDURA-3010 — revisão de 30/10 (Kling 4, 1º filme): a moldura do documentário enchia os 512 e o eixo da cena e a tela
+  // descrita em positivo não cabiam — 2 cenas com o MESMO prompt (REPETICAO) e tela de site com letras falsas (TEXTO_INVENTADO, grego).
+  /,?\s*faceless cinematic b-roll, focus on the described subject and its environment, no foreground human faces/i,
+  /,?\s*subject clearly framed with the lower third clear for captions/i,
+  /,?\s*energetic, natural, documentary, consistent color grade across all scenes/i,
+  /,\s*no watermark, no logo(?=,)/i,
 ]
 
 /** O prompt clássico sem a moldura que não é cena; meio ("Film visual medium: …"), elenco, época e proteções ficam. */
