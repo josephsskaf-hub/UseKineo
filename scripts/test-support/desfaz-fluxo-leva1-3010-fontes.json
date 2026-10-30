@@ -1,0 +1,64 @@
+{
+ "base": "2428537cceb2a6d0b2e273b4a4af71a25e638904",
+ "scope": {
+  "lib/compose.ts": {
+   "beforeSha256": "800994ed96514551c0c5bf90b48c4d2667348de34aa6871d090877f97d4d1dc1",
+   "afterSha256": "dd323d957d19ee868b829969727419f8a80366f5f09e161c1037b135ae53f2b8",
+   "hunks": [
+    {
+     "before": "const CAPTION_WORDS_PER_CHUNK = 4\n// PUSH #94 — font sizes retuned for the one-word line. At 62 a lone word looked",
+     "after": "const CAPTION_WORDS_PER_CHUNK = 4\n// KINEO-LEGENDA-LARGURA-3010 [TRAVA 8.2 — vai do fundador 30/10 \"estão todos autorizados\"] — revisor 29/10: \"palavra longa\n// sai da tela\" (Seedance 1.5, b32f79f6). O tamanho da fonte era fixo (62; gancho 76) e o Creatomate não quebra DENTRO de uma\n// palavra: em caixa alta ExtraBold cada letra ocupa ~0,72 em, então a 76 px uma palavra de 15+ letras passa dos 842 px da\n// caixa de 9:16. Agora a fonte desce só o bastante para a MAIOR palavra do chunk caber (piso 36); o resto fica igual.\nconst LEGENDA_LETRA_EM = 0.72\nconst LEGENDA_FONTE_MINIMA = 36\nexport function fonteDaLegendaQueCabe(texto: string, tamanho: number, larguraQuadro: number, larguraCaixa: string): number {\n  const maior = Math.max(0, ...String(texto ?? '').toUpperCase().split(/\\s+/).map((p) => Array.from(p).length))\n  const caixa = larguraQuadro * ((parseFloat(larguraCaixa) || 78) / 100) * 0.92 // a pílula tem respiro dos dois lados\n  if (!maior || !Number.isFinite(caixa) || caixa <= 0) return tamanho\n  const cabe = Math.floor(caixa / (maior * LEGENDA_LETRA_EM))\n  return cabe >= tamanho ? tamanho : Math.max(Math.min(tamanho, LEGENDA_FONTE_MINIMA), cabe)\n}\n// KINEO-LEGENDA-FRASE-3010 — revisor 29/10: \"frases partidas no meio\" (0184481e). O teto de 4 palavras fechava o chunk em\n// artigo/preposição (\"THE MAN WALKED INTO | THE ROOM\"): a palavra-função passa para o chunk seguinte, junto do que ela rege.\nconst LEGENDA_PALAVRA_FUNCAO = new Set(['the', 'a', 'an', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'and', 'or', 'but', 'from', 'by', 'into', 'his', 'her', 'their', 'my', 'your', 'its', 'our',\n  'o', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'e', 'ou', 'mas', 'por', 'para', 'com', 'seu', 'sua', 'meu', 'minha',\n  'el', 'la', 'los', 'las', 'un', 'una', 'del', 'en', 'y', 'con', 'su', 'mi', 'al', 'le', 'les', 'des', 'du', 'et', 'der', 'die', 'das', 'und'])\nexport function terminaEmPalavraFuncao(palavra: string): boolean {\n  return LEGENDA_PALAVRA_FUNCAO.has((palavra ?? '').toLowerCase().replace(/^[^\\p{L}\\p{N}']+|[^\\p{L}\\p{N}']+$/gu, ''))\n}\n// PUSH #94 — font sizes retuned for the one-word line. At 62 a lone word looked"
+    },
+    {
+     "before": "      const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY\n      const boundary =",
+     "after": "      const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY\n      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha\n      const boundary ="
+    },
+    {
+     "before": "        current.length >= maxWords ||\n        w.sentenceEnd === true ||\n        (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS)\n      if (boundary) {\n        groups.push(current)\n        current = []\n      }",
+     "after": "        current.length >= maxWords ||\n        natural\n      if (boundary) {\n        // KINEO-LEGENDA-FRASE-3010 — fechou só pelo teto e a última palavra é artigo/preposição: ela abre o próximo chunk.\n        if (!natural && next && current.length > 1 && terminaEmPalavraFuncao(w.word)) {\n          groups.push(current.slice(0, -1))\n          current = [w]\n        } else {\n          groups.push(current)\n          current = []\n        }\n      }"
+    },
+    {
+     "before": "    // the safe-zone floor is unchanged.\n    font_size: hook ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize,\n    font_weight: '800',",
+     "after": "    // the safe-zone floor is unchanged.\n    font_size: fonteDaLegendaQueCabe(text, hook ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize, ACTIVE_ASPECT.width, ACTIVE_ASPECT.captionWidth), // KINEO-LEGENDA-LARGURA-3010\n    font_weight: '800',"
+    }
+   ]
+  },
+  "app/api/generate-script/route.ts": {
+   "beforeSha256": "845869f9cba48a0d39e5ae724eb1d93592160161f622decaf37069ca5e6083e4",
+   "afterSha256": "2e7f6a163fa8c9e0cabadabfee0dc66ecf1ce4f5df6fcbec019c017297279caf",
+   "hunks": [
+    {
+     "before": "import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'\nimport { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/lib/pastedScript'\n// KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.",
+     "after": "import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'\nimport { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE, PRODUCTION_BRIEF_RULE, semPreambuloDeChat } from '@/lib/pastedScript' // KINEO-BRIEF-NAO-E-FALA-3010: + regra do pedido de produção\n// KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador."
+    },
+    {
+     "before": "      + (colado.pasted ? `\\n\\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA\n",
+     "after": "      + (colado.pasted ? `\\n\\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA\n      + (colado.reason === 'production_brief' ? `\\n\\n${PRODUCTION_BRIEF_RULE}` : '') // KINEO-BRIEF-NAO-E-FALA-3010 [TRAVA 8.2 — vai do fundador 30/10 \"estão todos autorizados\"]: pedido de produção vira história, nunca a narração do pedido\n    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) : topic // KINEO-BRIEF-NAO-E-FALA-3010: sem o \"aqui está prontinho pra copiar:\" do chat\n"
+    },
+    {
+     "before": "            role: 'user',\n            content: 'Write a viral YouTube Short script about this topic:\\n\\n' + topic,\n          },",
+     "after": "            role: 'user',\n            content: 'Write a viral YouTube Short script about this topic:\\n\\n' + temaDoEscritor, // KINEO-BRIEF-NAO-E-FALA-3010\n          },"
+    },
+    {
+     "before": "            { role: 'system', content: SYSTEM_PROMPT },\n            { role: 'user', content: 'Write a viral YouTube Short script about this topic:\\n\\n' + topic },\n            { role: 'assistant', content: script },",
+     "after": "            { role: 'system', content: SYSTEM_PROMPT },\n            { role: 'user', content: 'Write a viral YouTube Short script about this topic:\\n\\n' + temaDoEscritor }, // KINEO-BRIEF-NAO-E-FALA-3010\n            { role: 'assistant', content: script },"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "d8f3697a5771012a53bbdd917be4c3aedcf7901d5e78ab958acbd670a66393ab",
+   "afterSha256": "7e38b0e4444c2072360bd164ed12ab17542cfedc33ac0e055a8ad43d05dc9a7e",
+   "hunks": [
+    {
+     "before": "    if (args.modo !== 'presenter' && i === cast.prompts.length - 1) p = comDesfechoDaFala(p, args.falas[i] ?? '')\n    return travarEstiloDoFilme(p, args.style)",
+     "after": "    if (args.modo !== 'presenter' && i === cast.prompts.length - 1) p = comDesfechoDaFala(p, args.falas[i] ?? '')\n    p = comUniformeSemMarca(p, args.contextoOriginal) // KINEO-SEM-MARCA-3010\n    return travarEstiloDoFilme(p, args.style)"
+    },
+    {
+     "before": "\n// KINEO-SUJEITO-DA-FALA-3010 — revisão de 30/10 (Kling 4, 1º filme, BR): \"On Venus, the year ends before a single day does!\" saiu",
+     "after": "\n// KINEO-SEM-MARCA-3010 [TRAVA 8.2 — vai do fundador 30/10 \"estão todos autorizados\"] — revisor 29/10 (Seedance 1.5): \"Did\n// Guardiola invent the false 9?\" saiu com escudo do Barcelona, Rakuten e Adidas nas camisas — marca de terceiro no vídeo do\n// cliente. O motor não tem negative_prompt (\"no logo\" desenha logo): a frase é POSITIVA e curta (cabe no orçamento do Kling 4),\n// e só entra quando o pedido fala de clube/uniforme. Marca do PRÓPRIO cliente (anúncio) não dispara: a lista é de futebol/kit.\nconst CLUBE_OU_UNIFORME_RE = /\\b(?:barcelona|bar[çc]a|real madrid|atl[eé]tico de madrid|manchester (?:united|city)|liverpool|chelsea|arsenal|tottenham|juventus|inter de mil[aã]o|milan|psg|paris saint-germain|bayern|borussia|flamengo|corinthians|palmeiras|s[aã]o paulo fc|santos fc|boca juniors|river plate|al[- ]nassr|al[- ]hilal|inter miami|messi|ronaldo|neymar|mbapp[eé]|guardiola|jerseys?|football kits?|soccer kits?|team kits?|camisas? d[eo] (?:time|clube)|camisetas? del (?:equipo|club))\\b/i\nexport const UNIFORME_SEM_MARCA = ' Plain unbranded shirts and kits in solid team colours.'\nexport function comUniformeSemMarca(prompt: string, contexto: string): string {\n  if (prompt.includes(UNIFORME_SEM_MARCA.trim())) return prompt\n  return CLUBE_OU_UNIFORME_RE.test(`${contexto ?? ''} ${prompt}`) ? `${prompt.replace(/\\s+$/, '')}${UNIFORME_SEM_MARCA}` : prompt\n}\n\n// KINEO-SUJEITO-DA-FALA-3010 — revisão de 30/10 (Kling 4, 1º filme, BR): \"On Venus, the year ends before a single day does!\" saiu"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

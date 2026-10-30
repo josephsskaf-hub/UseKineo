@@ -71,7 +71,7 @@ ok(/const kling4Prompts = classicScenePrompts\.map\(\(p, i\) => promptDaCenaKlin
 ok(rota.includes("classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i])"), 'rota: superfícies em positivo no vetor final de TODOS os motores (still e clipe)')
 ok(/scenes: paidScenes\.map\(\(s, i\) => \(\{ \.\.\.s, prompt: promptDaCenaKling4\(s\.prompt, styleAnchor, i\) \}\)\)/.test(rota), 'rota: filme pago Kling 4 usa promptDaCenaKling4')
 const tela = readFileSync('app/(dashboard)/clips/ClipsClient.tsx', 'utf8')
-ok(tela.includes('{pareceRoteiroDeFilme(prompt) && (') && tela.includes("t('longScript', { s: seconds })") && tela.includes('href={hrefDoFilmeComTexto(prompt)}') && tela.includes('prompt: promptDoClipeComEstilo(prompt)'), 'tela do Clipe: aviso, porta do Filme e estilo no envio')
+ok((tela.includes('{pareceRoteiroDeFilme(prompt) && (') || (tela.includes('{roteiroDeFilme && (') && tela.includes('const roteiroDeFilme = !withPhoto && pareceRoteiroDeFilme(prompt)'))) /* reancorado 30/10 KINEO-CLIPE-OU-FILME-3010 */ && tela.includes("t('longScript', { s: seconds })") && tela.includes('href={hrefDoFilmeComTexto(prompt)}') && tela.includes('prompt: promptDoClipeComEstilo(prompt)'), 'tela do Clipe: aviso, porta do Filme e estilo no envio')
 const langs = Object.keys(CLIP_COPY) as Array<keyof typeof CLIP_COPY>
 const ruins = langs.filter((l) => { const d = CLIP_COPY[l] as Record<string, string>; return !d.longScript || !d.longScriptCta || d.longScript === CLIP_COPY_EN.longScript || !d.longScript.includes('{s}') })
 ok(langs.length === 15 && ruins.length === 0 && CLIP_COPY_EN.longScript.includes('{s}'), `textos novos nas 16 línguas, traduzidos, com {s}${ruins.length ? ': ' + ruins.join(',') : ''}`)

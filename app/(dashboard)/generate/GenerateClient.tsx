@@ -57,6 +57,7 @@ import {
   verbatimOpeningLine,
 } from '@/lib/growth/instructionPasteNotice'
 import { pedeVideoMudo, hrefDoClipeComTexto, pedidoMudoCopy, PEDIDO_MUDO_EVENTOS } from '@/lib/growth/pedidoMudo' // KINEO-PEDIDO-MUDO-3010
+import { cenasDoPlano, planoCopy, PLANO_EVENTOS } from '@/lib/growth/planoDoFilme' // KINEO-PLANO-ANTES-DE-GASTAR-3010
 
 // ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
 //
@@ -388,6 +389,7 @@ import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 // BEGIN COMPRA-CLAREZA-2610 imports
 import RecurringPlanValue from '@/components/growth/RecurringPlanValue'
 import ResultScriptReview from '@/components/growth/ResultScriptReview'
+import FirstFilmRedo from '@/components/growth/FirstFilmRedo' // KINEO-REFAZER-1O-FILME-3010
 import { getPostVideoCapacity, POST_VIDEO_CAPACITY_VERSION } from '@/lib/growth/postVideoCapacity'
 // END COMPRA-CLAREZA-2610 imports
 import VideoQualityFailurePanel from '@/components/VideoQualityFailurePanel'
@@ -2042,6 +2044,8 @@ export default function GenerateClient({
   const [language, setLanguage] = useState<NarrationLanguage>(initialLanguage)
   const capacityLocale = useInterfaceLanguage() // PEDIDO-FIEL-2610 — the notice follows the interface, not the narration language.
   const pedidoMudoVistoRef = useRef(false) // KINEO-PEDIDO-MUDO-3010 — o aviso do vídeo mudo conta uma vez por tela
+  const planoVistoRef = useRef(false) // KINEO-PLANO-ANTES-DE-GASTAR-3010
+  const ideiaDoPlanoRef = useRef<string | null>(null) // KINEO-PLANO-ANTES-DE-GASTAR-3010 — a ideia crua, para "Mudar minha ideia" não apagar nada
   const [generationId, setGenerationId] = useState<string | null>(null)
   const [qualityFailure, setQualityFailure] = useState<VideoQualityFailure | null>(null)
   const qualityFailureRef = useRef<VideoQualityFailure | null>(null)
@@ -8837,6 +8841,8 @@ export default function GenerateClient({
       // Push #311 — show script preview for manual flow unless caller requests
       // skip (autoanalyze from Viral Now cards, where the script is pre-written).
       if (!opts?.skipPreview && source !== rawSource) {
+        ideiaDoPlanoRef.current = rawSource // KINEO-PLANO-ANTES-DE-GASTAR-3010
+        planoVistoRef.current = false
         setPhase('script_preview')
         return // GenerateClient will wait for user to click "Looks good, generate"
       }
@@ -9449,7 +9455,9 @@ export default function GenerateClient({
       handleAnalyze(sp, { fromTopic: true, skipPreview: true, structureFirst: true, scriptModeOverride: 'ai' })
       return
     }
-    handleAnalyze(sp, { fromTopic: true, skipPreview: true })
+    // KINEO-PLANO-ANTES-DE-GASTAR-3010 [vai do fundador 30/10] — filme com ideia (modo IA): o roteiro nasce aqui e a pessoa vê o plano antes de gastar;
+    // roteiro "como está" e as estradas hollywood seguem direto (needsStructuring decide). Fora do Filme, como antes.
+    handleAnalyze(sp, mode === 'cinematic_ai' ? { fromTopic: true, structureFirst: true } : { fromTopic: true, skipPreview: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick, creditsLoading]) // KINEO-STUDIO-FANTASMA-1510: + creditsLoading (a leitura do saldo terminou)
 
@@ -16144,6 +16152,22 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
+          {cenasDoPlano(structuredScriptRef.current).length > 1 ? (<>{/* KINEO-PLANO-ANTES-DE-GASTAR-3010 — o plano cena a cena, o final em destaque */}
+          <div className="mb-4" ref={(el) => { if (el && !planoVistoRef.current) { planoVistoRef.current = true; void trackEvent(PLANO_EVENTOS.shown, { engine: aiEngine, mode, scenes: cenasDoPlano(structuredScriptRef.current).length, duration }) } }}>
+            <div className="font-black text-base" style={{ color: 'var(--text)' }}>🎬 {planoCopy(capacityLocale).title}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{planoCopy(capacityLocale).sub}</div>
+          </div>
+          <ol className="mb-3" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }} data-film-scenes="">
+            {cenasDoPlano(structuredScriptRef.current).map((c) => (
+              <li key={c.n} className="rounded-xl px-4 py-3 text-sm leading-relaxed" data-film-ending={c.final ? '' : undefined}
+                style={{ background: c.final ? 'rgba(41,151,255,.12)' : 'rgba(255,255,255,.03)', border: c.final ? '1px solid rgba(41,151,255,.55)' : '1px solid var(--border)', color: 'var(--text)' }}>
+                <span className="text-xs font-black" style={{ color: c.final ? '#5cb3ff' : 'var(--muted)', marginRight: 8 }}>{c.final ? planoCopy(capacityLocale).ending : `${planoCopy(capacityLocale).scene} ${c.n}`}</span>
+                {c.texto}
+              </li>
+            ))}
+          </ol>
+          <div className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{planoCopy(capacityLocale).missing}</div>
+          </>) : (<>
           <div className="flex items-center gap-2 mb-4">
             <span style={{ fontSize: 20 }}>✍️</span>
             <span className="font-black text-sm" style={{ color: 'var(--text)' }}>
@@ -16169,6 +16193,7 @@ export default function GenerateClient({
               lineHeight: 1.7,
             }}
           />
+          </>)}
           <div className="flex gap-3 flex-wrap">
             <button
               type="button"
@@ -16178,7 +16203,7 @@ export default function GenerateClient({
               // `undefined`: o evento passava, e o modal escolhia a cópia pelo
               // objeto do clique. Chamar explicitamente devolve a mensagem
               // certa na tela que decide se o usuário compra ou desiste.
-              onClick={outOfCredits() ? () => openOutOfCreditsModal('credits') : handleConfirmScript}
+              onClick={outOfCredits() ? () => openOutOfCreditsModal('credits') : () => { void trackEvent(PLANO_EVENTOS.confirmed, { engine: aiEngine, mode, duration }); void handleConfirmScript() }} // KINEO-PLANO-ANTES-DE-GASTAR-3010: medido
               className="rounded-xl px-6 py-3 font-black text-sm"
               style={{
                 // ONDA5 #5 (14/08) — mesmo peso do CTA gemeo do Step 1.
@@ -16189,11 +16214,12 @@ export default function GenerateClient({
                 boxShadow: '0 10px 34px rgba(41,151,255,.45)',
               }}
             >
-              Looks good — create my Short
+              {cenasDoPlano(structuredScriptRef.current).length > 1 ? planoCopy(capacityLocale).confirm : 'Looks good — create my Short'}
             </button>
             <button
               type="button"
-              onClick={() => { setPhase('idle'); setPrompt(''); structuredScriptRef.current = null }}
+              // KINEO-PLANO-ANTES-DE-GASTAR-3010 — "Start over" apagava a ideia; agora volta com a ideia da pessoa no campo, para corrigir
+              onClick={() => { void trackEvent(PLANO_EVENTOS.edit, { engine: aiEngine, mode }); setPhase('idle'); setPrompt(ideiaDoPlanoRef.current ?? ''); structuredScriptRef.current = null; planoVistoRef.current = false }}
               className="rounded-xl px-4 py-3 font-bold text-sm"
               style={{
                 background: 'rgba(255,255,255,.05)',
@@ -16202,7 +16228,7 @@ export default function GenerateClient({
                 cursor: 'pointer',
               }}
             >
-              Start over
+              {cenasDoPlano(structuredScriptRef.current).length > 1 ? planoCopy(capacityLocale).edit : 'Start over'}
             </button>
           </div>
         </section>
@@ -18309,6 +18335,7 @@ export default function GenerateClient({
                     assinar). Depois do download e da porta do episódio 2, nunca antes: deliver-first intacto. Fora do
                     <details> fechado para ficar no primeiro olhar. Decisões em lib/growth/filmReadyExits.ts. */}
                 {/* BEGIN COMPRA-CLAREZA-2610 result-review */}
+                <FirstFilmRedo videoId={publicVideoId} />{/* KINEO-REFAZER-1O-FILME-3010 — o 1º vídeo da conta ganha 1 refação grátis */}
                 <ResultScriptReview key={publicVideoId ?? finalVideoUrl ?? 'result'} initialScript={prompt} onReview={handleReviewResultScript} />
                 {/* END COMPRA-CLAREZA-2610 result-review */}
                 <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
