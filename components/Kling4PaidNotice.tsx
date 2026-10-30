@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { UiLabel } from '@/components/InterfaceLanguage'
-import { KLING4_PAID_COPY, kling4PromoVisible, validKling4PaidAvailability, type Kling4PaidAvailability } from '@/lib/kling4PaidPresentation'
+import { KLING4_PAID_COPY, kling4PromoVisible, rebaseKling4Lease, validKling4PaidAvailability, type Kling4PaidAvailability } from '@/lib/kling4PaidPresentation'
 import { trackEvent } from '@/lib/analytics' // KINEO-VENDER-3-2910
 
 export function useKling4PaidAvailability(enabled = true): Kling4PaidAvailability | null {
@@ -20,7 +20,7 @@ export function useKling4PaidAvailability(enabled = true): Kling4PaidAvailabilit
       const timeout = setTimeout(() => controller.abort(), 5_000)
       try {
         const response = await fetch('/api/kling4-paid/availability', { cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
-        const next: unknown = response.ok ? await response.json() : null
+        const next: unknown = rebaseKling4Lease(response.ok ? await response.json() : null, Date.now()) // KINEO-KLING4-RELOGIO-2910
         if (disposed || current !== version) return
         const valid = validKling4PaidAvailability(next)
         setState(valid ? next : null)

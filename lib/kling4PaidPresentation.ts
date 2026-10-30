@@ -35,6 +35,22 @@ export function validKling4PaidAvailability(value: unknown, now = Date.now()): v
   return Number.isFinite(at) && Number.isFinite(until) && at <= now && until > now && until > at && until - at <= 16_000
 }
 
+/**
+ * KINEO-KLING4-RELOGIO-2910 — o servidor manda uma janela curta (checkedAt→validUntil, ≤16 s) no relógio DELE. Comparar com o
+ * relógio do visitante escondia a oferta de quem tem o relógio adiantado/atrasado mais de 15 s (medido 29/10: PC do fundador
+ * 2 min 20 s adiantado → "Kling 4.0 is live" no lugar de "free for 30 days" na faixa, no pop-up e no /pricing). Aqui a janela é
+ * reancorada no instante em que a resposta chegou, mantendo a mesma duração (e o expiresAt na mesma distância).
+ */
+export function rebaseKling4Lease(value: unknown, receivedAt: number): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+  const a = value as Partial<Kling4PaidAvailability>
+  const at = Date.parse(String(a.checkedAt ?? '')), until = Date.parse(String(a.validUntil ?? ''))
+  if (!Number.isFinite(at) || !Number.isFinite(until) || until <= at || until - at > 16_000 || !Number.isFinite(receivedAt)) return value
+  const exp = a.expiresAt ? Date.parse(a.expiresAt) : NaN
+  return { ...a, checkedAt: new Date(receivedAt).toISOString(), validUntil: new Date(receivedAt + (until - at)).toISOString(),
+    ...(Number.isFinite(exp) ? { expiresAt: new Date(receivedAt + (exp - at)).toISOString() } : {}) }
+}
+
 export function kling4PaidName(a: unknown, now = Date.now()): string {
   return validKling4PaidAvailability(a, now) && a.paidLive ? 'Kling 4.0' : 'Kling 3'
 }
