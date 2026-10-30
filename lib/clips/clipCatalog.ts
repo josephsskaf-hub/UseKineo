@@ -297,6 +297,18 @@ export function validateClipRequest(input: ClipRequestInput, ctx: { userId: stri
   }
 }
 
+// KINEO-CLIPE-LETRAS-3010 — revisão de 30/10: espelho e camiseta riscados "VioeAloXoD" (conto do espelho, ES) e tela de celular
+// com letras falsas (conto das 3:33, BR). Os motores não escrevem: quando o pedido tem superfície que carrega texto (espelho,
+// tela, celular, placa, camiseta, papel), o prompt que vai à fal ganha a ordem de deixar tudo ilegível. O texto do cliente não muda.
+const SUPERFICIE_DE_TEXTO_RE = /\b(?:mirrors?|reflections?|phones?|smartphones?|cell ?phones?|screens?|monitors?|laptops?|tablets?|tv|television|signs?|billboards?|posters?|shirts?|t-shirts?|hoodies?|notes?|letters?|books?|newspapers?|papers?|walls? writing|espelhos?|reflexos?|celular(?:es)?|telas?|televis[aã]o|placas?|cartaz(?:es)?|camisetas?|camisas?|bilhetes?|cartas?|livros?|jornal|pap[eé]is|espejos?|reflejos?|tel[eé]fonos?|m[oó]vil(?:es)?|pantallas?|letreros?|carteles?|camisetas?|notas?|libros?|peri[oó]dicos?)\b/i
+export const CLIPE_SEM_LETRAS = ' No readable text, letters, numbers or words anywhere in the frame: any writing, screen, reflection or print stays blurred and unreadable.'
+/** O prompt do clipe para a fal: igual ao do cliente, mais a ordem de texto ilegível quando há superfície que carrega texto. */
+export function promptDoClipeSemLetras(prompt: string): string {
+  const p = String(prompt ?? '')
+  // prompt que já proíbe texto (os efeitos do catálogo trazem "No text, no captions…") fica byte a byte igual
+  return SUPERFICIE_DE_TEXTO_RE.test(p) && !/\bno (?:readable )?(?:text|letters|words|writing)\b/i.test(p) ? `${p.replace(/\s+$/, '')}${CLIPE_SEM_LETRAS}` : p
+}
+
 // ─── Payload da fal ──────────────────────────────────────────────────────────
 // Só campos conferidos no schema oficial (ver o cabeçalho). Nada de negative_prompt/cfg herdados do filme: o clipe é o
 // pedido do cliente, não o plano de cena da casa.
@@ -304,19 +316,20 @@ export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
   const s = req.seconds
   const image = req.mode === 'i2v' ? { image_url: req.imageUrl } : {}
   const aspect = req.aspect === 'image' ? null : req.aspect
+  const prompt = promptDoClipeSemLetras(req.prompt) // KINEO-CLIPE-LETRAS-3010 — espelho/tela/placa: texto ilegível (o pedido do cliente não muda)
   switch (req.engine) {
     case 'hollywood':
-      return { prompt: req.prompt, ...image, duration: String(s), generate_audio: false, ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
+      return { prompt, ...image, duration: String(s), generate_audio: false, ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'kling':
-      return { prompt: req.prompt, ...image, duration: String(s), ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
+      return { prompt, ...image, duration: String(s), ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'seedance':
-      return { prompt: req.prompt, ...image, duration: String(s), resolution: '720p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
+      return { prompt, ...image, duration: String(s), resolution: '720p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
     case 'veo':
-      return { prompt: req.prompt, ...image, duration: `${s}s`, resolution: '1080p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
+      return { prompt, ...image, duration: `${s}s`, resolution: '1080p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
     case 'h3':
-      return { prompt: req.prompt, ...image, duration: s, resolution: '768P', ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
+      return { prompt, ...image, duration: s, resolution: '768P', ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'omni':
-      return { prompt: req.prompt, ...image, duration: s, aspect_ratio: aspect ?? '9:16' }
+      return { prompt, ...image, duration: s, aspect_ratio: aspect ?? '9:16' }
     // KINEO-S25-CLIPES-2026-10-06 — 480p de propósito (custo × qualidade, conferido em 06/10 na fal): o 2.5 cobra por TOKEN
     // (US$ 0,0214/1.000 a 480p e 720p; ~US$ 0,0234 a 1080p) e o token cresce com os pixels — por segundo, ~US$ 0,22 a 480p,
     // ~0,47 a 720p (2,1×) e ~1,16 a 1080p (5,3×). A 720p, o clipe de 5 s custaria ~US$ 2,37 só de fal: acima do que o
@@ -324,6 +337,6 @@ export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
     // 2.5 e a mesma do filme da casa (lib/hollywood/router.ts S25_RESOLUTION). Sem áudio (o clipe é mudo; na fal o preço é o
     // mesmo com ou sem). Endpoint = o do filme (S25_T2V_MODEL/S25_I2V_MODEL), que a casa já roda em produção.
     case 's25':
-      return { prompt: req.prompt, ...image, duration: String(s), resolution: '480p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
+      return { prompt, ...image, duration: String(s), resolution: '480p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
   }
 }

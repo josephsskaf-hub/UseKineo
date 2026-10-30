@@ -12,6 +12,7 @@ export function pareceRoteiroDeFilme(texto: string): boolean {
   if (!t) return false
   if (t.split(/\s+/).filter(Boolean).length > CLIP_ROTEIRO_PALAVRAS) return true
   if (PEDE_FALA_RE.test(t) || PEDE_DURACAO_LONGA_RE.test(t) || FALA_DE_PERSONAGEM_RE.test(t)) return true // KINEO-REVISOR-RESTO-3010
+  if (frasesDoTexto(t) >= CLIP_CONTO_FRASES) return true // KINEO-CLIPE-CONTO-3010
   return /\b(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF|CENA \d|SCENE \d|Cena \d|Scene \d)\b|\[Pexels:/.test(t)
 }
 
@@ -19,6 +20,15 @@ export function pareceRoteiroDeFilme(texto: string): boolean {
 // e um anúncio de 30 s virou clipe de 10 s. Texto curto também é roteiro quando pede voz, fala ou mais tempo do que o clipe tem.
 const PEDE_FALA_RE = /\b(?:narrat(?:or|ion|ed)|voice[\s-]?over|voiceover|dialogues?|speaking|talking to (?:the )?camera|says to the camera|narrador|narra[çc][aã]o|narrado|locu[çc][aã]o|locutor|di[aá]logos?|falando|fala para a c[aâ]mera|hablando|voz en off|narraci[oó]n)\b/i
 const PEDE_DURACAO_LONGA_RE = /\b(?:1[3-9]|[2-9]\d|1\d\d)\s*(?:s|sec|secs|seconds?|segundos?)\b|\b(?:1|2|3)\s*(?:min|mins|minutes?|minutos?)\b/i
+// KINEO-CLIPE-CONTO-3010 — revisão de 30/10 (15:45): o conto das 3:33 (~12 frases, BR) e 7 contos de espelho/porta do mesmo
+// cliente (ES) viraram clipe que acaba no susto, 0 downloads — prosa curta sem as palavras de fala passava sem aviso.
+/** Com tantas frases, o texto é um conto (começo, meio e fim), não um plano de 5–12 s. */
+export const CLIP_CONTO_FRASES = 5
+/** Frases do texto: termina em . ! ? … (reticências contam uma vez); linha não vazia sem pontuação também conta. */
+export function frasesDoTexto(texto: string): number {
+  return String(texto ?? '').split(/\n+/).map((l) => l.trim()).filter(Boolean)
+    .reduce((n, linha) => n + Math.max(1, (linha.match(/[.!?…]+(?=\s|$)/g) ?? []).length), 0)
+}
 /** Fala de personagem no formato de roteiro: `Nome: "…"` numa linha. */
 const FALA_DE_PERSONAGEM_RE = /(?:^|\n)\s*\p{Lu}[\p{L}'’ -]{0,30}:\s*["“«]/u
 
