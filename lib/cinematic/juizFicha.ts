@@ -37,7 +37,7 @@ import {
   type ChamadaDoCritico, type EntradaCritico, type ProblemaStill, type RelatoCriticoStill, type VereditoCritico,
 } from '@/lib/cinematic/criticoStill'
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
-import { FIGURAS_FIEIS, figuraFiel } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras (as 5 hindus daqui mudaram para lá, com Lucifer, Ghost Rider…)
+import { FIGURAS_FIEIS, figuraFiel, ANATOMIA_DO_SER, especieCanonica } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras (as 5 hindus daqui mudaram para lá, com Lucifer, Ghost Rider…)
 
 export const MARCA_JUIZ_FICHA = 'KINEO-JUIZ-FICHA-2710'
 export const JUIZ_FICHA_VERSAO = 'juiz_ficha_v1'
@@ -151,6 +151,23 @@ export function naturezaDoElenco(pedido: string): string | null {
 /** A canônica literal: nome, as palavras do cliente entre aspas, a natureza do elenco e (figura conhecida) a iconografia canônica. */
 export function canonicaLiteral(ficha: Pick<FichaDePersonagem, 'nome'>, literal: string, natureza: string | null, canon: string | null): string {
   return `${ficha.nome}, exactly as the author wrote: "${literal}"${natureza ? `, one of the ${natureza}` : ''}${canon ? `; ${canon}` : ''}`
+}
+
+// KINEO-CONSISTENCIA-SER-3010 — "The Robot Who Learned to Love" (nikolmishukov, 29/10): o robô mudava de modelo a cada cena. A ficha literal
+// dizia só "tiny discarded robot" e cada cena trazia outra descrição ("a small rusty robot", "a shiny silver humanoid robot") brigando com ela.
+const TRACOS_DE_DESENHO = 'small|tiny|little|big|large|giant|huge|old|new|rusty|rusted|shiny|silver|metal|metallic|humanoid|cute|friendly|broken|discarded|abandoned|lonely|sad|happy|white|black|red|blue|green|yellow|orange|pink|purple|grey|gray|golden|gold|bronze|copper|chrome|round|rounded|boxy|futuristic|retro|vintage|toy|mechanical|robotic|glowing|tall|short|dusty|dirty|battered|worn|sleek|modern|cartoon|realistic|wooden|plastic|fluffy|furry|scaly|spotted|striped|baby|young|elderly|adorable|tiny-eyed|big-eyed'
+/** Ficha literal de ser não humano ganha a anatomia fixa da espécie e a ordem de manter o mesmo desenho; gente e ficha comum ficam iguais. */
+export function canonicaComDesenhoFixo(ficha: Pick<FichaDePersonagem, 'tipo' | 'nucleo' | 'canonica'>): string {
+  if (ficha.tipo === 'humano' || !literalDaCanonica(ficha.canonica)) return ficha.canonica
+  const esp = especieCanonica(ficha.nucleo)
+  const anatomia = esp ? ANATOMIA_DO_SER[esp] : undefined
+  return `${ficha.canonica}${anatomia ? `; ${anatomia}` : ''}, with the exact same design, size and colours in every scene`
+}
+/** Tira da cena a descrição concorrente do mesmo ser ("a shiny silver humanoid robot" → "the robot"): quem diz como ele é, é a ficha. */
+export function semDescricaoConcorrente(prompt: string, nucleo: string): string {
+  const n = String(nucleo ?? '').trim()
+  if (!n || /[^\p{L}-]/u.test(n)) return prompt
+  return String(prompt ?? '').replace(new RegExp(String.raw`\b(?:a|an|the)\s+(?:(?:${TRACOS_DE_DESENHO}),?\s+){1,4}${n}\b`, 'gi'), `the ${n}`)
 }
 
 /** Lê de volta as palavras do cliente de uma canônica literal (para o still sem folha e para o crítico). null = canônica comum. */

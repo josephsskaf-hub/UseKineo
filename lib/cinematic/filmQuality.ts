@@ -1,7 +1,7 @@
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
 import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
 import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
-import { elencoComFichaLiteral } from '@/lib/cinematic/juizFicha'
+import { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente } from '@/lib/cinematic/juizFicha' // KINEO-CONSISTENCIA-SER-3010
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
@@ -156,7 +156,9 @@ export function prepararQualidadeDoFilme(args: {
     for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {
       const detected = cast.relato.elenco.find(e => e.nome.toLowerCase() === ficha.nome.toLowerCase())
       if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)
-      if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(ficha.canonica)
+      // KINEO-CONSISTENCIA-SER-3010 — ser não humano: a cena perde a descrição concorrente (fora do texto da ficha) e a ficha literal ganha o desenho fixo
+      if (ficha.tipo !== 'humano') p = p.split(ficha.canonica).map((trecho) => semDescricaoConcorrente(trecho, ficha.nucleo)).join(ficha.canonica)
+      if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(canonicaComDesenhoFixo(ficha))
     }
     return travarEstiloDoFilme(p, args.style)
   })

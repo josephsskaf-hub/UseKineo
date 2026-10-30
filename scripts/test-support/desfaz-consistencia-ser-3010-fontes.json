@@ -1,0 +1,34 @@
+{
+ "base": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+ "scope": {
+  "lib/cinematic/juizFicha.ts": {
+   "beforeSha256": "39cd058e18f013bdd68b9e6d06001cda03eff6a8040d6a56228e3c767755de44",
+   "afterSha256": "df8c0dd5b6debc8225021b4a138ddd0e53ec84b505e74a41f6bcf8459a006c04",
+   "hunks": [
+    {
+     "before": "import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'\nimport { FIGURAS_FIEIS, figuraFiel } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras (as 5 hindus daqui mudaram para lá, com Lucifer, Ghost Rider…)\n",
+     "after": "import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'\nimport { FIGURAS_FIEIS, figuraFiel, ANATOMIA_DO_SER, especieCanonica } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras (as 5 hindus daqui mudaram para lá, com Lucifer, Ghost Rider…)\n"
+    },
+    {
+     "before": "\n/** Lê de volta as palavras do cliente de uma canônica literal (para o still sem folha e para o crítico). null = canônica comum. */",
+     "after": "\n// KINEO-CONSISTENCIA-SER-3010 — \"The Robot Who Learned to Love\" (nikolmishukov, 29/10): o robô mudava de modelo a cada cena. A ficha literal\n// dizia só \"tiny discarded robot\" e cada cena trazia outra descrição (\"a small rusty robot\", \"a shiny silver humanoid robot\") brigando com ela.\nconst TRACOS_DE_DESENHO = 'small|tiny|little|big|large|giant|huge|old|new|rusty|rusted|shiny|silver|metal|metallic|humanoid|cute|friendly|broken|discarded|abandoned|lonely|sad|happy|white|black|red|blue|green|yellow|orange|pink|purple|grey|gray|golden|gold|bronze|copper|chrome|round|rounded|boxy|futuristic|retro|vintage|toy|mechanical|robotic|glowing|tall|short|dusty|dirty|battered|worn|sleek|modern|cartoon|realistic|wooden|plastic|fluffy|furry|scaly|spotted|striped|baby|young|elderly|adorable|tiny-eyed|big-eyed'\n/** Ficha literal de ser não humano ganha a anatomia fixa da espécie e a ordem de manter o mesmo desenho; gente e ficha comum ficam iguais. */\nexport function canonicaComDesenhoFixo(ficha: Pick<FichaDePersonagem, 'tipo' | 'nucleo' | 'canonica'>): string {\n  if (ficha.tipo === 'humano' || !literalDaCanonica(ficha.canonica)) return ficha.canonica\n  const esp = especieCanonica(ficha.nucleo)\n  const anatomia = esp ? ANATOMIA_DO_SER[esp] : undefined\n  return `${ficha.canonica}${anatomia ? `; ${anatomia}` : ''}, with the exact same design, size and colours in every scene`\n}\n/** Tira da cena a descrição concorrente do mesmo ser (\"a shiny silver humanoid robot\" → \"the robot\"): quem diz como ele é, é a ficha. */\nexport function semDescricaoConcorrente(prompt: string, nucleo: string): string {\n  const n = String(nucleo ?? '').trim()\n  if (!n || /[^\\p{L}-]/u.test(n)) return prompt\n  return String(prompt ?? '').replace(new RegExp(String.raw`\\b(?:a|an|the)\\s+(?:(?:${TRACOS_DE_DESENHO}),?\\s+){1,4}${n}\\b`, 'gi'), `the ${n}`)\n}\n\n/** Lê de volta as palavras do cliente de uma canônica literal (para o still sem folha e para o crítico). null = canônica comum. */"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "85343d2d05318413e27878be7afe6e29edea028266ddf41a26f0e0c87f17d1bf",
+   "afterSha256": "e60cd3c09b23494bea54cccac3e62b8dd4d2fe3434573d48efefa9c66e4bb3a8",
+   "hunks": [
+    {
+     "before": "import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'\nimport { elencoComFichaLiteral } from '@/lib/cinematic/juizFicha'\nimport { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'",
+     "after": "import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'\nimport { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente } from '@/lib/cinematic/juizFicha' // KINEO-CONSISTENCIA-SER-3010\nimport { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'"
+    },
+    {
+     "before": "      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)\n      if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(ficha.canonica)\n    }",
+     "after": "      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)\n      // KINEO-CONSISTENCIA-SER-3010 — ser não humano: a cena perde a descrição concorrente (fora do texto da ficha) e a ficha literal ganha o desenho fixo\n      if (ficha.tipo !== 'humano') p = p.split(ficha.canonica).map((trecho) => semDescricaoConcorrente(trecho, ficha.nucleo)).join(ficha.canonica)\n      if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(canonicaComDesenhoFixo(ficha))\n    }"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

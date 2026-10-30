@@ -41,6 +41,7 @@ import { QUALIDADE_ELENCO_2910, deltaQualidadeElenco2910Exato } from './test-sup
 import { CENA_PEDIDO_3010, deltaCenaPedido3010Exato } from './test-support/desfaz-cena-pedido-3010.mjs' // KINEO-CENA-PEDIDO-3010 — [TRAVA 8.2 — vai do fundador 30/10]
 import { SERES_PERSONIFICADOS_3010, deltaSeresPersonificados3010Exato } from './test-support/desfaz-seres-personificados-3010.mjs' // KINEO-SERES-PERSONIFICADOS-3010 — [TRAVA 8.2 — vai do fundador 30/10]
 import { REVISOR_RESTO_3010, deltaRevisorResto3010Exato } from './test-support/desfaz-revisor-resto-3010.mjs' // KINEO-REVISOR-RESTO-3010 — [TRAVA 8.2 — vai do fundador 30/10]
+import { CONSISTENCIA_SER_3010, deltaConsistenciaSer3010Exato } from './test-support/desfaz-consistencia-ser-3010.mjs' // KINEO-CONSISTENCIA-SER-3010 — [TRAVA 8.2 — vai do fundador 30/10]
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -253,7 +254,16 @@ const deltaRevisorRestoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaRevisorResto3010Exato(current, upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+// KINEO-CONSISTENCIA-SER-3010 — [TRAVA 8.2 — vai do fundador 30/10 "vamos fazer já essas entregas que você quer deixar para depois"]:
+// recibo exato (scripts/test-support/desfaz-consistencia-ser-3010-fontes.json) do ser não humano com desenho fixo; edição fora dele continua reprovando.
+const deltaConsistenciaSerExato = (file) => {
+  if (!CONSISTENCIA_SER_3010.scope[file] && !CONSISTENCIA_SER_3010.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaConsistenciaSer3010Exato(current, upstream, file)
+}
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o
