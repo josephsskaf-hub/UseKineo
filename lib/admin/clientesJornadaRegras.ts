@@ -93,7 +93,9 @@ export const REGUA: readonly DefPasso[] = [
   { chave: 'studio', rotulo: 'abriu o Studio', eventos: ['mrr_studio_viewed', 'generate_page_view', 'ads_page_viewed'] },
   { chave: 'gerar', rotulo: 'ideia / gerar', eventos: ['mrr_idea_entered', 'mrr_generate_clicked', 'analyze_idea_clicked', 'generate_started', 'video_generation_started', 'ads_v2_order_created', 'clip_generate_clicked'] },
   { chave: 'pronto', rotulo: 'filme/anúncio pronto', eventos: ['generate_completed', 'video_generation_completed', 'ads_v2_delivered', 'clip_completed'] },
-  { chave: 'baixou', rotulo: 'baixou', eventos: ['video_downloaded', 'video_download_clicked'] },
+  // KINEO-DOWNLOAD-CLIPE-3010 — só bytes recebidos contam (video_downloaded). Era também video_download_clicked: clique não é download
+  // (o painel somava os dois). A partir de 30/10 o Clipe também emite video_downloaded; antes disso a ausência não prova que ninguém baixou.
+  { chave: 'baixou', rotulo: 'baixou', eventos: ['video_downloaded'] },
   { chave: 'planos', rotulo: 'viu planos/upgrade', eventos: ['pricing_view', 'upgrade_modal_opened', 'conversion_offer_viewed', 'ads_paywall_viewed'] },
   { chave: 'checkout', rotulo: 'abriu checkout', eventos: ['checkout_started', 'checkout_attempted'] },
   { chave: 'pagou', rotulo: 'pagou', eventos: ['payment_success'] },

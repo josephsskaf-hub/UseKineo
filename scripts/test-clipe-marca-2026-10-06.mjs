@@ -426,7 +426,7 @@ async function problems(over = {}) {
     "const sheet = touch && typeof navigator.share === 'function' && typeof navigator.canShare === 'function'",
     'if (navigator.canShare({ files: [file] })) {',
     'navigator.share({ files: [file], text: CLIP_SHARE_CAPTION })',
-    'await download(url, name)',
+    'await download(url, name', // KINEO-DOWNLOAD-CLIPE-3010 — agora com o id do clipe para o evento de download
     "void trackClosedEvent(CLIP_POST_EVENTS.clicked, { ...meta, method: sheet ? 'share_sheet' : 'download_copy' })",
     "void trackClosedEvent(CLIP_POST_EVENTS.shared, { ...meta, method: 'share_sheet' })",
     "void trackClosedEvent(CLIP_POST_EVENTS.fallback, { ...meta, method: 'download_copy', caption_copied: copied })",

@@ -31,6 +31,7 @@ import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restore
 import { CLIP_TRENDS, CLIP_TRENDS_PUBLIC, clipTrendByKey, trendTarget, type ClipTrend } from '@/lib/clips/clipTrends' // KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana"
 import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — ?prompt= do Made with Kineo
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
+import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
 // Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
@@ -470,21 +471,10 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     return () => window.clearTimeout(timer) // KINEO-FILME-RAPIDO-1710 · polling — era: window.clearInterval(timer)
   }, [inFlight])
 
-  async function download(url: string, name: string) {
-    try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('fetch')
-      const blob = await res.blob()
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = name
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
-    } catch {
-      window.open(url, '_blank', 'noopener')
-    }
+  // KINEO-DOWNLOAD-CLIPE-3010 — era um fetch+blob próprio, sem evento: o Clipe nunca contou video_downloaded e a régua
+  // "download = gostou" lia zero. Agora o helper comum: clique, bytes, falha e link manual com a mesma semântica das outras telas.
+  async function download(url: string, name: string, clipId?: string) {
+    await downloadVideoFile({ url, filename: name, exportType: 'current_asset', surface: 'clips', videoId: clipId ?? null, extra: { product: 'clip' } })
   }
 
   // KINEO-CLIPE-MARCA-2026-10-06 — "Post it" (todas as contas). No celular: a folha de compartilhar com o ARQUIVO (TikTok e
@@ -543,7 +533,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         }
       }
     }
-    await download(url, name)
+    await download(url, name, c.id)
     const copied = await copying
     setPostNote({ id: c.id, kind: copied ? 'downloaded' : 'manual' })
     void trackClosedEvent(CLIP_POST_EVENTS.fallback, { ...meta, method: 'download_copy', caption_copied: copied })
@@ -924,7 +914,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                   : c.prompt && <div className="clip-meta" style={{ marginTop: 4 }}>{c.prompt.slice(0, 120)}</div>}
                 {c.status === 'done' && c.video_url && (
                   <div className="row" style={{ marginTop: 8 }}>
-                    <button type="button" className="pill" onClick={() => void download(c.video_url!, `kineo-clip-${c.id.slice(0, 8)}.mp4`)}><ControlIcon name="download" /> {t('download')}</button>
+                    <button type="button" className="pill" onClick={() => void download(c.video_url!, `kineo-clip-${c.id.slice(0, 8)}.mp4`, c.id)}><ControlIcon name="download" /> {t('download')}</button>
                     <button type="button" className="pill on" data-clip-post={c.id} disabled={postBusy === c.id} aria-busy={postBusy === c.id} onClick={() => void post(c)}>
                       ↗ <UiLabel>{postBusy === c.id ? CLIP_POST_COPY.preparing : CLIP_POST_COPY.button}</UiLabel>
                     </button>
