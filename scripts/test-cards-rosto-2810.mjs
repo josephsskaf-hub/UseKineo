@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { semCardsRosto2810, BASE, MARCA } from './test-support/desfaz-cards-rosto-2810.mjs'
+import { semCardsHalloween2910 } from './test-support/desfaz-cards-halloween-2910.mjs' // KINEO-CARDS-HALLOWEEN-2910 — camada mais nova sai ANTES
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const ARQ = 'lib/ui/homeThreeCards.ts'
@@ -55,7 +56,7 @@ function checa(src) {
 }
 
 console.log('KINEO-CARDS-ROSTO-2810 — cards 1, 2 e 4 da home')
-const SRC = rd(ARQ)
+const SRC = semCardsHalloween2910(rd(ARQ), ARQ) // KINEO-CARDS-HALLOWEEN-2910 — fundador 29/10: porta de Marte de volta no card 1, tênis fora do card 2
 const erros = checa(SRC)
 for (const x of erros) console.log('   ·', x)
 ok(erros.length === 0, `A-E cards trocados, card 3 e o resto intactos (${erros.length} erro[s])`)

@@ -136,7 +136,7 @@ function fileProblems(list, readFile, listDir, sizeOf) {
 function homeRenderProblems(html, signedIn) {
   const p = []
   for (const t of GONE_TEXT) if (html.includes(t)) p.push(`render ainda mostra "${t}"`)
-  const more = html.indexOf('class="home-more-tools"')
+  const more = html.indexOf('class="home-more-tools"') >= 0 ? html.indexOf('class="home-more-tools"') : html.indexOf('<div id="samples">') // reancorado KINEO-HOME-MOSAICO-2910 — fundador 29/10 "sem separações": a galeria entra na vitrine contínua (components/home/HomeMosaic.tsx), ainda antes da prova
   if (more < 0 || more > html.indexOf('class="home-proof"')) p.push('More tools sumiu ou desceu para depois da prova')
   const nav = html.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0] ?? ''
   const items = [...nav.matchAll(/data-nav-item="([^"]+)"/g)].map((m) => m[1])

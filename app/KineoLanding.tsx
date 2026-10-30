@@ -39,6 +39,7 @@ import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import HomeNewEffects from '@/components/home/HomeNewEffects' // KINEO-HOME-NOVOS-EFEITOS-2910
 import HalloweenSkin from '@/components/home/HalloweenSkin' // KINEO-HALLOWEEN-SKIN-2910
+import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic' // KINEO-HOME-MOSAICO-2910
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
 // KINEO-HOME-REMODELA-2010 — a fileira PromoCards saiu da home (o componente e as rotas seguem no ar)
@@ -1026,12 +1027,12 @@ export default function KineoLanding({
       {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} kidsCard={showKidsCard} /> : ( // KINEO-HOME-3-CARDS-1910 · KINEO-BEBE-QUE-FALA-2010 — + kidsCard (false = o componente de sempre)
       <HomeTwoDoors signedIn={isSignedIn} filmOffer={filmDoorOffer} adsOffer={adsDoorOffer} />
       ) /* KINEO-HOME-3-CARDS-1910 */}
-      {showClips && <HomeClipsStrip signedIn={isSignedIn} />}{/* KINEO-HOME-REMODELA-2010 — fundador 20/10 "dobrar o número de clips": 8 clipes, nos DOIS braços do A/B, logo depois dos cards do topo */}
+      {!HOME_MOSAIC_LIVE && showClips && <HomeClipsStrip signedIn={isSignedIn} />}{/* KINEO-HOME-MOSAICO-2910 — com a vitrine contínua ligada, os clipes entram nela */}{/* KINEO-HOME-REMODELA-2010 — fundador 20/10 "dobrar o número de clips": 8 clipes, nos DOIS braços do A/B, logo depois dos cards do topo */}
 
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          {(clipsFirst || showClips) && ( // KINEO-HOME-REMODELA-2010 — a faixa de Clipes agora abre a página nos 2 braços: o título "Narrated films" separa os filmes dela
+          {!HOME_MOSAIC_LIVE && (clipsFirst || showClips) && ( // KINEO-HOME-MOSAICO-2910 (sem título entre blocos) · KINEO-HOME-REMODELA-2010 — a faixa de Clipes agora abre a página nos 2 braços: o título "Narrated films" separa os filmes dela
             <>
               <div className="home-business-heading" style={{ marginBottom: 6 }}>
                 <h2><UiLabel>Narrated films</UiLabel></h2>
@@ -1042,15 +1043,14 @@ export default function KineoLanding({
           )}
           {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
           <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
-          <CitationDirectAnswer page="home" />
           <Kling4TrialNotice surface="home" />
-          <div id="samples" aria-label="Films made with Kineo">
+          {!HOME_MOSAIC_LIVE && <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
-          </div>
+          </div>}{/* KINEO-HOME-MOSAICO-2910 — os filmes narrados (6) entram na vitrine contínua */}
         </div>
       </header>
 
-      <HomeNewEffects />{/* KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
+      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} /></div> : <HomeNewEffects />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it
@@ -1087,11 +1087,11 @@ export default function KineoLanding({
 
       {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": a fileira de 4 cards (Claude · Ads · Clips · Nano Banana Pro) que abria a
           página, agora DEPOIS dos filmes. Os 4 ficam (grade sempre cheia, regra do fundador), mesmo o de Ads repetindo a porta. */}
-      <section className="home-more-tools" aria-label={HOME_GALLERY_TITLE}>{/* KINEO-HOME-REMODELA-2010 — "More tools" virou "Images made by Kineo" */}
+      {!HOME_MOSAIC_LIVE && <section className="home-more-tools" aria-label={HOME_GALLERY_TITLE}>{/* KINEO-HOME-REMODELA-2010 — "More tools" virou "Images made by Kineo" */}
         <div className="wrap"><div className="home-business-heading" style={{ margin: '34px 0 0' }}><h2><UiLabel>{HOME_GALLERY_TITLE}</UiLabel></h2></div></div>{/* KINEO-HOME-REMODELA-2010 */}
         {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "no More Tools, eu quero extinguir esses cards"; os exemplos foram para a faixa de Clipes e para a galeria */}
         <HomeImageGallery />{/* KINEO-HOME-LIMPA-1410 */}
-      </section>
+      </section>}{/* KINEO-HOME-MOSAICO-2910 — a galeria de imagens vai até o fim da vitrine contínua */}
 
       {/* KINEO-HOME-LIMPA-1410 — fundador 14/10 ("coisas velhas"): sairam daqui o bloco do kit de ferramentas (texto do
           grant + botão + 3 cards Video/Image/For businesses) e a seção de empresas. A oferta grátis segue dita no Pricing e no FAQ. */}
@@ -1155,7 +1155,7 @@ export default function KineoLanding({
       {/* Quando o catálogo de clientes está fechado, esta fileira recebe só a
           allowlist estática de renders cuja exibição o fundador autorizou. Não a
           chame de "Trending": ela não muda conforme clientes geram. */}
-      {trending.length >= 6 && (
+      {!HOME_MOSAIC_LIVE && trending.length >= 6 && ( // KINEO-HOME-MOSAICO-2910 — fundador 29/10: "eu tiraria essa parte" (Made with Kineo — every engine)
         <section id="trending" style={{ paddingTop: 10 }}>
           <div className="ew-wrap">
             <div className="tr-head">
