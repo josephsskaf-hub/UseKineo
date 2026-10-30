@@ -14,6 +14,7 @@ import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SAMPLE_DAILY_CAP, ADS_SAMPLE_LIVE, ADS_SAMPLE_PREFIX, ADS_SAMPLE_TIER } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen' // KINEO-ADS-AMOSTRA-2026-10-09
 import { adsSampleTrialStatusBlocked } from '@/lib/ads/sample' // KINEO-CLOSE-REAL-1910 — o antifarm da amostra (trial_status barrado)
+import { amostraLiberadaNominal, trialStatusLiberavelPelaLista } from '@/lib/ads/sampleGrant' // KINEO-ADS-LIBERA-3010
 import { ADS_SAMPLE_PRESENTER_DAILY_CAP, ADS_SAMPLE_PRESENTER_MARK } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — o sub-teto da amostra com a pessoa (lib pura)
 import { isDisposableEmail } from '@/lib/emailValidation' // KINEO-CLOSE-REAL-1910 — a lista de descartáveis da tela de cadastro (pura)
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
@@ -106,7 +107,8 @@ export async function adsSampleAccountOk(admin: ReturnType<typeof footageAdminCl
   try { // KINEO-CLOSE-REAL-1910
     const prof = await admin.from('profiles').select('trial_status').eq('id', userId).maybeSingle() // KINEO-CLOSE-REAL-1910
     if (prof.error) return false // KINEO-CLOSE-REAL-1910
-    if (adsSampleTrialStatusBlocked((prof.data as { trial_status?: unknown } | null)?.trial_status)) return false // KINEO-CLOSE-REAL-1910
+    const status = (prof.data as { trial_status?: unknown } | null)?.trial_status // KINEO-ADS-LIBERA-3010
+    if (adsSampleTrialStatusBlocked(status) && !(trialStatusLiberavelPelaLista(status) && await amostraLiberadaNominal(admin, userId))) return false // KINEO-CLOSE-REAL-1910 · KINEO-ADS-LIBERA-3010 — região liberada à mão passa
     const u = await admin.auth.admin.getUserById(userId) // KINEO-CLOSE-REAL-1910
     const email = u.error ? null : u.data?.user?.email ?? null // KINEO-CLOSE-REAL-1910
     if (!email) return false // KINEO-CLOSE-REAL-1910

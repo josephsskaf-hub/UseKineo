@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { adsGate } from '@/lib/ads/serverAccess'
 import type { AdsAccessReason } from '@/lib/ads/access'
 import { adsSampleTrialStatusBlocked } from '@/lib/ads/sample'
+import { amostraLiberadaNominal, trialStatusLiberavelPelaLista } from '@/lib/ads/sampleGrant' // KINEO-ADS-LIBERA-3010
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
@@ -63,6 +64,7 @@ export async function loadAdsEligibility(admin: SupabaseClient, user: { id: stri
     disposable = !u?.email || isDisposableEmail(u.email)
     const row = (prof.data as { trial_status?: unknown; signup_country?: unknown; last_country?: unknown } | null) ?? null
     trialBlocked = !!prof.error || adsSampleTrialStatusBlocked(row?.trial_status)
+    if (trialBlocked && !prof.error && trialStatusLiberavelPelaLista(row?.trial_status) && await amostraLiberadaNominal(admin, user.id)) trialBlocked = false // KINEO-ADS-LIBERA-3010 — região liberada à mão (tabela ads_sample_grants)
     base.country = adsSampleCountry([opts.requestCountry, prof.error ? null : row?.last_country, prof.error ? null : row?.signup_country])
   } catch { /* falha fechada: os padrões acima já barram */ }
 
