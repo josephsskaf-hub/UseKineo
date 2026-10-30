@@ -17,6 +17,7 @@ import CreditsTopupModal from '@/components/CreditsTopupModal'
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
+import { pareceRoteiroDeFilme, hrefDoFilmeComTexto, promptDoClipeComEstilo } from '@/lib/clips/clipTextoLongo' // KINEO-CENA-PEDIDO-3010
 import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
 import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
 import { trackClosedEvent } from '@/lib/analytics'
@@ -394,7 +395,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
 
   async function generate() {
     if (!engine || !canGenerate) return
-    await send({ engine: engine.key, seconds, aspect: effectiveAspect === 'image' ? null : effectiveAspect, prompt: prompt.trim(), image_url: photoUrl })
+    await send({ engine: engine.key, seconds, aspect: effectiveAspect === 'image' ? null : effectiveAspect, prompt: promptDoClipeComEstilo(prompt), image_url: photoUrl }) // KINEO-CENA-PEDIDO-3010 — "animado" do pedido chega ao motor
   }
 
   // Efeito: só a chave e a foto. Prompt, motor, duração e formato quem decide é o servidor (pelo catálogo).
@@ -829,6 +830,12 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
           {photoRow}
+          {pareceRoteiroDeFilme(prompt) && ( /* KINEO-CENA-PEDIDO-3010 — roteiro de filme na tela do Clipe: aviso honesto + a porta do Filme narrado com o texto preenchido */
+            <div className="notice" role="note" data-clip-long-script="">
+              {t('longScript', { s: seconds })}
+              <div className="row"><a className="pill on" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film">{t('longScriptCta')} →</a></div>
+            </div>
+          )}
           {/* KINEO-CLIPE360-AMOSTRA-1410 — pedido de giro com UMA foto: nota honesta + troca de 1 clique para o Produto 360° (ou,
               sem o efeito na galeria desta conta, a sugestão de órbita/aproximação). Não bloqueia: gerar segue igual. */}
           {rotateHint && (

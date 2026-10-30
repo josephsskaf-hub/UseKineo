@@ -67,6 +67,8 @@ export const CLIP_COPY_EN = {
   rotateNote: 'A single photo can’t show the back of your product — to turn it, use the Product 360° effect.',
   rotateSwitch: 'Switch to Product 360°',
   rotateOrbit: 'A single photo can’t show the back of your product, so a full spin usually comes out barely moving. Ask instead for a slow camera orbit or a slow push-in.',
+  longScript: 'This makes one short clip of up to {s} s — not your whole story. For the full script, make a narrated film.', // KINEO-CENA-PEDIDO-3010
+  longScriptCta: 'Make it a narrated film', // KINEO-CENA-PEDIDO-3010
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -130,6 +132,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Uma foto só não mostra a parte de trás do produto — para girar o produto, use o efeito Produto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Trocar para Produto 360°',
     rotateOrbit: 'Uma foto só não mostra a parte de trás do produto, então um giro completo costuma sair quase parado. Peça uma órbita lenta da câmera ou uma aproximação lenta.',
+    longScript: 'Isto vira um clipe curto de até {s} s — não a história inteira. Para o roteiro completo, faça um filme narrado.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Fazer como filme narrado', // KINEO-CENA-PEDIDO-3010
   },
   es: {
     title: 'Clips',
@@ -188,6 +192,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Una sola foto no muestra la parte de atrás del producto — para girarlo, usa el efecto Producto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Cambiar a Producto 360°',
     rotateOrbit: 'Una sola foto no muestra la parte de atrás del producto, así que un giro completo suele salir casi quieto. Pide mejor una órbita lenta de la cámara o un acercamiento lento.',
+    longScript: 'Esto crea un clip corto de hasta {s} s, no toda tu historia. Para el guion completo, haz una película narrada.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Hacer una película narrada', // KINEO-CENA-PEDIDO-3010
   },
   fr: {
     title: 'Clips',
@@ -246,6 +252,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Une seule photo ne montre pas l’arrière du produit — pour le faire tourner, utilisez l’effet Produit 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Passer à Produit 360°',
     rotateOrbit: 'Une seule photo ne montre pas l’arrière du produit : un tour complet ressort souvent presque immobile. Demandez plutôt un lent mouvement de caméra autour du produit ou un lent zoom avant.',
+    longScript: 'Ceci crée un clip court de {s} s maximum, pas toute votre histoire. Pour le script complet, faites un film narré.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'En faire un film narré', // KINEO-CENA-PEDIDO-3010
   },
   de: {
     title: 'Clips',
@@ -304,6 +312,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Ein einzelnes Foto zeigt die Rückseite des Produkts nicht — zum Drehen nutze den Effekt Produkt 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Zu Produkt 360° wechseln',
     rotateOrbit: 'Ein einzelnes Foto zeigt die Rückseite des Produkts nicht, daher wirkt eine volle Drehung meist fast starr. Bitte lieber um eine langsame Kamerafahrt um das Produkt oder ein langsames Heranfahren.',
+    longScript: 'Daraus wird ein kurzer Clip von bis zu {s} s – nicht deine ganze Geschichte. Für das ganze Skript mach einen erzählten Film.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Als erzählten Film machen', // KINEO-CENA-PEDIDO-3010
   },
   it: {
     title: 'Clip',
@@ -362,6 +372,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Una sola foto non mostra il retro del prodotto — per farlo ruotare usa l’effetto Prodotto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Passa a Prodotto 360°',
     rotateOrbit: 'Una sola foto non mostra il retro del prodotto, quindi una rotazione completa di solito resta quasi ferma. Chiedi piuttosto una lenta orbita della camera o un lento avvicinamento.',
+    longScript: 'Questo crea una clip breve fino a {s} s, non tutta la tua storia. Per il copione completo, fai un film narrato.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Fanne un film narrato', // KINEO-CENA-PEDIDO-3010
   },
   nl: {
     title: 'Clips',
@@ -420,6 +432,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Eén foto laat de achterkant van het product niet zien — gebruik het effect Product 360° om het te laten draaien.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Overschakelen naar Product 360°',
     rotateOrbit: 'Eén foto laat de achterkant van het product niet zien, dus een volledige draai beweegt meestal nauwelijks. Vraag liever om een langzame camerabeweging rond het product of een langzame inzoom.',
+    longScript: 'Dit maakt één korte clip van maximaal {s} s, niet je hele verhaal. Maak voor het volledige script een vertelde film.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Maak er een vertelde film van', // KINEO-CENA-PEDIDO-3010
   },
   pl: {
     title: 'Klipy',
@@ -478,6 +492,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Jedno zdjęcie nie pokazuje tyłu produktu — aby go obrócić, użyj efektu Produkt 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Przełącz na Produkt 360°',
     rotateOrbit: 'Jedno zdjęcie nie pokazuje tyłu produktu, więc pełny obrót zwykle wychodzi prawie nieruchomo. Poproś raczej o powolny ruch kamery wokół produktu albo powolne zbliżenie.',
+    longScript: 'To da jeden krótki klip do {s} s, a nie całą historię. Dla pełnego scenariusza zrób film z narracją.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Zrób film z narracją', // KINEO-CENA-PEDIDO-3010
   },
   tr: {
     title: 'Klipler',
@@ -536,6 +552,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Tek bir fotoğraf ürünün arkasını göstermez — ürünü döndürmek için Ürün 360° efektini kullanın.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Ürün 360° efektine geç',
     rotateOrbit: 'Tek bir fotoğraf ürünün arkasını göstermez, bu yüzden tam bir dönüş genelde neredeyse hareketsiz çıkar. Bunun yerine kameranın ürün etrafında yavaşça dönmesini ya da yavaş bir yaklaşmayı isteyin.',
+    longScript: 'Bu, tüm hikâyen değil, en fazla {s} sn’lik tek bir kısa klip olur. Senaryonun tamamı için anlatımlı bir film yap.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Anlatımlı film yap', // KINEO-CENA-PEDIDO-3010
   },
   ru: {
     title: 'Клипы',
@@ -594,6 +612,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Одно фото не показывает обратную сторону товара — чтобы повернуть его, используйте эффект «Товар 360°».', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Перейти на «Товар 360°»',
     rotateOrbit: 'Одно фото не показывает обратную сторону товара, поэтому полный оборот обычно выходит почти неподвижным. Лучше попросите медленный облёт камерой или медленный наезд.',
+    longScript: 'Получится один короткий клип до {s} с, а не вся история. Для полного сценария сделайте фильм с озвучкой.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Сделать фильм с озвучкой', // KINEO-CENA-PEDIDO-3010
   },
   uk: {
     title: 'Кліпи',
@@ -652,6 +672,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Одне фото не показує зворотний бік товару — щоб повернути його, скористайтеся ефектом «Товар 360°».', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Перейти на «Товар 360°»',
     rotateOrbit: 'Одне фото не показує зворотний бік товару, тому повний оберт зазвичай виходить майже нерухомим. Краще попросіть повільний обліт камерою або повільний наїзд.',
+    longScript: 'Вийде один короткий кліп до {s} с, а не вся історія. Для повного сценарію зробіть фільм з озвученням.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Зробити фільм з озвученням', // KINEO-CENA-PEDIDO-3010
   },
   ar: {
     title: 'مقاطع',
@@ -710,6 +732,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'صورة واحدة لا تُظهر الجهة الخلفية للمنتج — لتدويره استخدم تأثير «المنتج 360°».', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'التبديل إلى «المنتج 360°»',
     rotateOrbit: 'صورة واحدة لا تُظهر الجهة الخلفية للمنتج، لذلك يخرج الدوران الكامل غالبًا شبه ثابت. اطلب بدلًا من ذلك دورانًا بطيئًا للكاميرا حول المنتج أو اقترابًا بطيئًا.',
+    longScript: 'سينتج هذا مقطعًا قصيرًا واحدًا حتى {s} ث، وليس قصتك كاملة. للنص الكامل، اصنع فيلمًا مرويًا.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'اصنعه فيلمًا مرويًا', // KINEO-CENA-PEDIDO-3010
   },
   ur: {
     title: 'کلپس',
@@ -768,6 +792,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'ایک تصویر پروڈکٹ کا پچھلا حصہ نہیں دکھاتی — اسے گھمانے کے لیے «پروڈکٹ 360°» ایفیکٹ استعمال کریں۔', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: '«پروڈکٹ 360°» پر جائیں',
     rotateOrbit: 'ایک تصویر پروڈکٹ کا پچھلا حصہ نہیں دکھاتی، اس لیے پورا چکر عموماً تقریباً ساکن نکلتا ہے۔ اس کے بجائے کیمرے کا آہستہ چکر یا آہستہ قریب آنا مانگیں۔',
+    longScript: 'اس سے {s} سیکنڈ تک کا ایک مختصر کلپ بنے گا، پوری کہانی نہیں۔ پورے اسکرپٹ کے لیے بیانیہ فلم بنائیں۔', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'بیانیہ فلم بنائیں', // KINEO-CENA-PEDIDO-3010
   },
   hi: {
     title: 'क्लिप्स',
@@ -826,6 +852,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'एक फ़ोटो से प्रोडक्ट का पिछला हिस्सा नहीं दिखता — उसे घुमाने के लिए «प्रोडक्ट 360°» इफ़ेक्ट इस्तेमाल करें।', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: '«प्रोडक्ट 360°» पर जाएँ',
     rotateOrbit: 'एक फ़ोटो से प्रोडक्ट का पिछला हिस्सा नहीं दिखता, इसलिए पूरा घुमाव अक्सर लगभग स्थिर निकलता है। इसकी जगह कैमरे का धीमा चक्कर या धीमा ज़ूम-इन माँगें।',
+    longScript: 'इससे {s} सेकंड तक की एक छोटी क्लिप बनेगी, पूरी कहानी नहीं। पूरी स्क्रिप्ट के लिए नैरेटेड फ़िल्म बनाएँ।', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'नैरेटेड फ़िल्म बनाएँ', // KINEO-CENA-PEDIDO-3010
   },
   id: {
     title: 'Klip',
@@ -884,6 +912,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Satu foto tidak menunjukkan bagian belakang produk — untuk memutarnya, gunakan efek Produk 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Ganti ke Produk 360°',
     rotateOrbit: 'Satu foto tidak menunjukkan bagian belakang produk, jadi putaran penuh biasanya hampir tidak bergerak. Mintalah kamera mengitari produk perlahan atau mendekat perlahan.',
+    longScript: 'Ini membuat satu klip pendek hingga {s} dtk, bukan seluruh ceritamu. Untuk naskah lengkap, buat film bernarasi.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Jadikan film bernarasi', // KINEO-CENA-PEDIDO-3010
   },
   vi: {
     title: 'Clip',
@@ -942,6 +972,8 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     rotateNote: 'Một ảnh không cho thấy mặt sau của sản phẩm — để xoay sản phẩm, hãy dùng hiệu ứng Sản phẩm 360°.', // KINEO-CLIPE360-AMOSTRA-1410
     rotateSwitch: 'Chuyển sang Sản phẩm 360°',
     rotateOrbit: 'Một ảnh không cho thấy mặt sau của sản phẩm, nên xoay trọn vòng thường gần như đứng yên. Hãy yêu cầu camera bay vòng quanh chậm hoặc tiến lại gần chậm.',
+    longScript: 'Thao tác này tạo một clip ngắn tối đa {s} giây, không phải cả câu chuyện. Với kịch bản đầy đủ, hãy làm phim có lời dẫn.', // KINEO-CENA-PEDIDO-3010
+    longScriptCta: 'Làm phim có lời dẫn', // KINEO-CENA-PEDIDO-3010
   },
 }
 
