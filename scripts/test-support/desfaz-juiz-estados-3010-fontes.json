@@ -1,0 +1,104 @@
+{
+ "base": "8d7fc92fb568630c3813d8db7ed7ce037f808ec0",
+ "scope": {
+  "lib/cinematic/criticoStill.ts": {
+   "beforeSha256": "0eaab4a50a20080abfd2703115d0420a1a32419c79b09eaa7677bb1c6bae2859",
+   "afterSha256": "9e8d26ee3f6351b3a9747f04323e8cddcd21c3d573caab3fc73fb57d3510c522",
+   "hunks": [
+    {
+     "before": "\n// ── 4. O JULGAMENTO DE UM STILL (orquestra; nunca lança) ──",
+     "after": "\n// KINEO-JUIZ-ESTADOS-3010 — score ranks rejected candidates; it never grants approval.\nexport type EstadoFinalStill = 'PASS' | 'BEST_FAIL' | 'UNVERIFIED'\nexport type DecisaoFinalStill = {\n  estado_final: EstadoFinalStill\n  veredito_final: VereditoCritico\n  nota_final: number | null\n  aprovado_final: boolean\n  regra_seguimento: 'animate_approved' | 'animate_degraded' | 'animate_unverified'\n}\n/** Preserve today's fail-open delivery policy until visual calibration supports a new gate.\n * Only PASS can become an approved reference. A higher FAIL score stays BEST_FAIL;\n * off/timeouts/skips stay UNVERIFIED. Neither changes the financial finalizer. */\nexport function decisaoFinalStill(veredito: VereditoCritico, nota: number | null): DecisaoFinalStill {\n  const estado = veredito === 'PASS' ? 'PASS' : veredito === 'FAIL' ? 'BEST_FAIL' : 'UNVERIFIED'\n  return { estado_final: estado, veredito_final: veredito, nota_final: nota, aprovado_final: estado === 'PASS',\n    regra_seguimento: estado === 'PASS' ? 'animate_approved' : estado === 'BEST_FAIL' ? 'animate_degraded' : 'animate_unverified' }\n}\n/** Exact selected URL and attempt, including early returns (off, no budget, timeout). */\nexport function decisaoDaEscolhaCritico(r: Pick<RelatoCriticoStill, 'tentativas' | 'escolhida_tentativa' | 'url_final' | 'veredito'>): DecisaoFinalStill {\n  const t = r.tentativas.find(t => t.n === r.escolhida_tentativa && t.url === r.url_final)\n  return decisaoFinalStill(t?.veredito ?? (r.veredito === 'ERRO' ? 'ERRO' : 'PULADO'), t?.nota ?? null)\n}\n\nexport type EvidenciaStillFinal = { cena: number; url: string | null; veredito: string | null; nota?: number | null }\n/** The signed claim describes the frames actually dispatched, including a discarded sheet,\n * a late judge whose replacement was not used, or a text-to-video fallback. No new calls. */\nexport function relatoStillNoClaim(response: Record<string, unknown>, relatos: readonly RelatoCriticoStill[], extras: readonly EvidenciaStillFinal[] = []) {\n  const obj = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {}\n  const arr = (v: unknown): unknown[] => Array.isArray(v) ? v : []\n  const trial = arr(obj(response.kling4_trial).scene_plan)\n  const anchors = arr(response.scene_anchor_urls), inputs = arr(response.scene_fal_inputs)\n  const urls = trial.length ? trial.map(s => obj(s).still_url)\n    : Array.from({ length: Math.max(anchors.length, inputs.length, arr(response.scenes).length) }, (_, i) => {\n      const input = inputs[i]\n      // An exact t2v payload overrides a stale planned anchor too: no image was sent.\n      if (input && typeof input === 'object' && !Array.isArray(input)) return obj(input).image_url ?? obj(input).start_image_url ?? null\n      return anchors[i] ?? null // Historical claims without a recorded input retain their anchor evidence.\n    })\n  return { versao: 'still_decision_3010_v1', politica: 'preserve_delivery_only_pass_is_approved',\n    cenas: urls.map((value, i) => {\n      const url = typeof value === 'string' && value ? value : null\n      const extra = [...extras].reverse().find(e => e.cena === i + 1 && e.url === url && url)\n      const tentativa = [...relatos].reverse().filter(r => r.cena === i + 1).flatMap(r => [...r.tentativas].reverse()).find(t => t.url === url && url)\n      const raw = (extra ? extra.veredito : tentativa?.veredito) ?? 'PULADO'\n      const veredito = raw === 'PASS' || raw === 'FAIL' || raw === 'ERRO' ? raw : 'PULADO'\n      return { cena: i + 1, url_final: url, ...decisaoFinalStill(veredito, (extra ? extra.nota : tentativa?.nota) ?? null),\n        motivo_seguimento: !url ? 'no_still_text_to_video' : veredito === 'PASS' ? 'exact_frame_pass'\n          : veredito === 'FAIL' ? 'best_available_fail_not_approved' : 'judge_unavailable_or_not_finished' }\n    }),\n  }\n}\n\n// ── 4. O JULGAMENTO DE UM STILL (orquestra; nunca lança) ──"
+    },
+    {
+     "before": "export type PuladoPor = 'prazo' | 'teto_cena' | 'orcamento_filme' | 'disjuntor' | 'teto_regeracoes' | 'modo_log_only' | null\nexport type RelatoCriticoStill = {\n  versao: string",
+     "after": "export type PuladoPor = 'prazo' | 'teto_cena' | 'orcamento_filme' | 'disjuntor' | 'teto_regeracoes' | 'modo_log_only' | null\nexport type RelatoCriticoStill = DecisaoFinalStill & {\n  versao: string"
+    },
+    {
+     "before": "  const r: RelatoCriticoStill = {\n    versao: STILL_CRITIC_VERSAO, modo: filme.modo, cena: e.indice + 1, veredito: 'PULADO', problemas: [], motivo: '', nota: null,",
+     "after": "  const r: RelatoCriticoStill = {\n    ...decisaoFinalStill('PULADO', null),\n    versao: STILL_CRITIC_VERSAO, modo: filme.modo, cena: e.indice + 1, veredito: 'PULADO', problemas: [], motivo: '', nota: null,"
+    },
+    {
+     "before": "    r.escolhida = 'original'\n    url = e.url",
+     "after": "    r.escolhida = 'original'\n    r.escolhida_tentativa = 0 // KINEO-JUIZ-ESTADOS-3010 — catch returns the original, never a stale selected index.\n    url = e.url"
+    },
+    {
+     "before": "    r.url_final = url\n    filme.gastoMs += r.ms",
+     "after": "    r.url_final = url\n    Object.assign(r, decisaoDaEscolhaCritico(r)) // KINEO-JUIZ-ESTADOS-3010\n    filme.gastoMs += r.ms"
+    }
+   ]
+  },
+  "lib/cinematic/juizFicha.ts": {
+   "beforeSha256": "df8c0dd5b6debc8225021b4a138ddd0e53ec84b505e74a41f6bcf8459a006c04",
+   "afterSha256": "9e4c4c05c534ad544a35d3e7dab2a0bc1136506da06edb4da6d423fa6cac6fb6",
+   "hunks": [
+    {
+     "before": "  if (!identidade) return { precisa: false, motivo: 'falha_de_outro_tipo', notaFolha }\n  if (r.regerou && r.regeracao_ok && r.veredito_regerada !== 'FAIL') return { precisa: false, motivo: 'aprovado', notaFolha } // a refação passou (ou ficou sem 2º julgamento) e foi a escolhida\n  if (r.regerou && r.regeracao_ok) return { precisa: true, motivo: 'reprovado_2x', notaFolha }",
+     "after": "  if (!identidade) return { precisa: false, motivo: 'falha_de_outro_tipo', notaFolha }\n  if (r.regerou && r.regeracao_ok && r.veredito_regerada === 'PASS') return { precisa: false, motivo: 'aprovado', notaFolha }\n  if (r.regerou && r.regeracao_ok && r.veredito_regerada !== 'FAIL') return { precisa: false, motivo: 'nao_julgado', notaFolha } // KINEO-JUIZ-ESTADOS-3010 — same continuation policy; unknown is never approval.\n  if (r.regerou && r.regeracao_ok) return { precisa: true, motivo: 'reprovado_2x', notaFolha }"
+    }
+   ]
+  },
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "9570ccd4c5a5fe9e912755e462b96bae37aad3e25d00336614b85b017df3ad6f",
+   "afterSha256": "4479df718e237e8e82dc05eb14baf7bc796b91a248f1f2b3386d0ee6888a96ae",
+   "hunks": [
+    {
+     "before": "import { ehPedidoDeStills, lerPedidoDoBanco, verificarExpectativas, pontuarCaso, custoDoCasoUsd, BANCO_PROVA_EVENTO, BANCO_PROVA_VERSAO, BANCO_PROVA_MOTIVO_ESTORNO } from '@/lib/cinematic/bancoProva' // KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"aprovo banco\"] — dry_run:'stills': o banco de pedidos-prova para no still\nimport { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410\nimport { elencoComFichaLiteral, trocarFichaNoPrompt, novoJuizFicha, julgarSemFolha, folhaErrada, metadadoSemFolha, relatoJuizFicha, stillsFinaisDaFolha } from '@/lib/cinematic/juizFicha' // KINEO-JUIZ-FICHA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"faz todos esses consertos de 1 a 6\"] — itens 1 e 2: a ficha leva as palavras do cliente; still reprovado 2x em identidade não segue (texto puro sem folha)",
+     "after": "import { ehPedidoDeStills, lerPedidoDoBanco, verificarExpectativas, pontuarCaso, custoDoCasoUsd, BANCO_PROVA_EVENTO, BANCO_PROVA_VERSAO, BANCO_PROVA_MOTIVO_ESTORNO } from '@/lib/cinematic/bancoProva' // KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"aprovo banco\"] — dry_run:'stills': o banco de pedidos-prova para no still\nimport { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill, relatoStillNoClaim, decisaoFinalStill, type EvidenciaStillFinal } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410\nimport { elencoComFichaLiteral, trocarFichaNoPrompt, novoJuizFicha, julgarSemFolha, folhaErrada, metadadoSemFolha, relatoJuizFicha, stillsFinaisDaFolha } from '@/lib/cinematic/juizFicha' // KINEO-JUIZ-FICHA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"faz todos esses consertos de 1 a 6\"] — itens 1 e 2: a ficha leva as palavras do cliente; still reprovado 2x em identidade não segue (texto puro sem folha)"
+    },
+    {
+     "before": "\nasync function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null): Promise<string | null> {\n  try {\n    const id = await submitFalQueueOnce(",
+     "after": "\nasync function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null, recordInput?: (input: Record<string, unknown>) => void): Promise<string | null> {\n  try {\n    const input = buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect)\n    recordInput?.(input) // KINEO-CENA-RETRY-3010 — exact replay, including any seed; never re-plan a failed scene.\n    const id = await submitFalQueueOnce("
+    },
+    {
+     "before": "      model,\n      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect),\n    )",
+     "after": "      model,\n      input,\n    )"
+    },
+    {
+     "before": "    }\n    let qualitySnapshot: FilmQualitySnapshot | null = null",
+     "after": "    }\n    // KINEO-JUIZ-ESTADOS-3010 — evidence is frozen into the existing signed response; no financial change.\n    const stillDecisionReports: RelatoCriticoStill[] = []\n    const stillDecisionExtras: EvidenciaStillFinal[] = []\n    let qualitySnapshot: FilmQualitySnapshot | null = null"
+    },
+    {
+     "before": "      response = { ...response, submission_uncertain: cinematicSubmissionUncertain, ...(snapshot ? { quality_snapshot: snapshot } : {}) }\n      if (personagemRelatoFinal) response = { ...response, personagem: personagemRelatoFinal } // KINEO-META95-PERSONAGEM-2010 — só com a folha ligada (sem ela, resposta e hash de sempre)",
+     "after": "      response = { ...response, submission_uncertain: cinematicSubmissionUncertain, ...(snapshot ? { quality_snapshot: snapshot } : {}) }\n      // KINEO-JUIZ-ESTADOS-3010 — the actual dispatched URL wins over a late replacement or discarded sheet.\n      response = { ...response, still_critic: relatoStillNoClaim(response, stillDecisionReports, stillDecisionExtras) }\n      if (snapshot) snapshot.approvedStills = snapshot.approvedStills.filter(s => {\n        const judged = [...stillDecisionReports].reverse().flatMap(r => [...r.tentativas].reverse()).find(t => t.url === s.url)\n        return !judged || judged.veredito === 'PASS'\n      })\n      if (personagemRelatoFinal) response = { ...response, personagem: personagemRelatoFinal } // KINEO-META95-PERSONAGEM-2010 — só com a folha ligada (sem ela, resposta e hash de sempre)"
+    },
+    {
+     "before": "            gerarStill: async () => null, maxRegeracoesCena: 0, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === firstStill), fichas: fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '') }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n          paidScenes[0].approvedStillUrl = null // KINEO-QUALIDADE-TODOS-MOTORES-2910 — revoked if rejudged FAIL.",
+     "after": "            gerarStill: async () => null, maxRegeracoesCena: 0, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === firstStill), fichas: fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '') }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n          stillDecisionReports.push(critic.relato) // KINEO-JUIZ-ESTADOS-3010\n          paidScenes[0].approvedStillUrl = null // KINEO-QUALIDADE-TODOS-MOTORES-2910 — revoked if rejudged FAIL."
+    },
+    {
+     "before": "      const hSubmittedPrompts: string[] = []\n      // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído).",
+     "after": "      const hSubmittedPrompts: string[] = []\n      const hSceneFalInputs: Array<Record<string, unknown> | null> = plan.scenes.map(() => null) // KINEO-CENA-RETRY-3010\n      // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído)."
+    },
+    {
+     "before": "            }\n            const rh: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410",
+     "after": "            }\n            stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010\n            const rh: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410"
+    },
+    {
+     "before": "            id = await submitToFalWithOneRetry(\n              () => submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized),\n              `hollywood scene ${hs.index}`,",
+     "after": "            id = await submitToFalWithOneRetry(\n              () => submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized, undefined,\n                input => { hSceneFalInputs[idx] = input }),\n              `hollywood scene ${hs.index}`,"
+    },
+    {
+     "before": "        scene_prompts: hSubmittedPrompts, // prompt EXATO submetido (upright+era+mouth+spectacle) — retry/salvage fiéis\n        // Contrato Cena Verdadeira: so as cenas que NAO passaram limpas.",
+     "after": "        scene_prompts: hSubmittedPrompts, // prompt EXATO submetido (upright+era+mouth+spectacle) — retry/salvage fiéis\n        scene_fal_inputs: hSceneFalInputs, // KINEO-CENA-RETRY-3010 — signed exact inputs; approved scenes never change.\n        // Contrato Cena Verdadeira: so as cenas que NAO passaram limpas."
+    },
+    {
+     "before": "        if (stillFoiAprovado(julgado.relato, julgado.url)) registrarStillAprovado(julgado.url, classicScenePrompts[idx], cenaC.voiceover ?? '', fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '').map(f => f.nome)) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n        const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410",
+     "after": "        if (stillFoiAprovado(julgado.relato, julgado.url)) registrarStillAprovado(julgado.url, classicScenePrompts[idx], cenaC.voiceover ?? '', fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '').map(f => f.nome)) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n        stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010\n        const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410"
+    },
+    {
+     "before": "        }) // KINEO-META95-PERSONAGEM-2010\n        relatosP.push(julgado.relato) // KINEO-META95-PERSONAGEM-2010",
+     "after": "        }) // KINEO-META95-PERSONAGEM-2010\n        stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010\n        relatosP.push(julgado.relato) // KINEO-META95-PERSONAGEM-2010"
+    },
+    {
+     "before": "        const semFolha = await julgarSemFolha(juizFichaEstado, { indice: c.indice, relato: julgado.relato, scenePrompt: classicScenePrompts[c.indice], visual: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', fichas, seed: generationSeed }, { gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }) }) // KINEO-JUIZ-FICHA-2710 — o still de texto puro sai do MESMO gerador do still clássico (FLUX), sem folha\n        if (semFolha.url) semFolhaP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710",
+     "after": "        const semFolha = await julgarSemFolha(juizFichaEstado, { indice: c.indice, relato: julgado.relato, scenePrompt: classicScenePrompts[c.indice], visual: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', fichas, seed: generationSeed }, { gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }) }) // KINEO-JUIZ-FICHA-2710 — o still de texto puro sai do MESMO gerador do still clássico (FLUX), sem folha\n        if (semFolha.url) stillDecisionExtras.push({ cena: c.indice + 1, url: semFolha.url, veredito: semFolha.veredito, nota: semFolha.nota }) // KINEO-JUIZ-ESTADOS-3010\n        if (semFolha.url) semFolhaP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710"
+    },
+    {
+     "before": "        if (semFolha.url && semFolha.escolha === 'sem_folha') stillsP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710 — a cena segue o texto puro\n        Object.assign(julgado.relato, metadadoSemFolha(semFolha)) // KINEO-JUIZ-FICHA-2710 — a decisão entra no evento cinematic_still_critic desta cena (fallback: 'sem_folha' | 'folha' | null), que a linha abaixo espalha\n        void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010",
+     "after": "        if (semFolha.url && semFolha.escolha === 'sem_folha') stillsP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710 — a cena segue o texto puro\n        Object.assign(julgado.relato, metadadoSemFolha(semFolha), semFolha.url && semFolha.escolha === 'sem_folha'\n          ? { decisao_final_fallback: { url_final: semFolha.url, ...decisaoFinalStill(semFolha.veredito === 'PASS' || semFolha.veredito === 'FAIL' || semFolha.veredito === 'ERRO' ? semFolha.veredito : 'PULADO', semFolha.nota) } } : {}) // KINEO-JUIZ-FICHA-2710 — a decisão entra no evento cinematic_still_critic desta cena (fallback: 'sem_folha' | 'folha' | null), que a linha abaixo espalha\n        void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

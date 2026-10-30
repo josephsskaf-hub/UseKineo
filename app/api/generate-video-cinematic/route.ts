@@ -114,7 +114,7 @@ import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerData
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import { ehPedidoDeStills, lerPedidoDoBanco, verificarExpectativas, pontuarCaso, custoDoCasoUsd, BANCO_PROVA_EVENTO, BANCO_PROVA_VERSAO, BANCO_PROVA_MOTIVO_ESTORNO } from '@/lib/cinematic/bancoProva' // KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — dry_run:'stills': o banco de pedidos-prova para no still
-import { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410
+import { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill, relatoStillNoClaim, decisaoFinalStill, type EvidenciaStillFinal } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410
 import { elencoComFichaLiteral, trocarFichaNoPrompt, novoJuizFicha, julgarSemFolha, folhaErrada, metadadoSemFolha, relatoJuizFicha, stillsFinaisDaFolha } from '@/lib/cinematic/juizFicha' // KINEO-JUIZ-FICHA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — itens 1 e 2: a ficha leva as palavras do cliente; still reprovado 2x em identidade não segue (texto puro sem folha)
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
@@ -1080,11 +1080,13 @@ async function submitToFalWithOneRetry(run: () => Promise<string | null>, label:
   }
 }
 
-async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null): Promise<string | null> {
+async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean, aspect?: string | null, recordInput?: (input: Record<string, unknown>) => void): Promise<string | null> {
   try {
+    const input = buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect)
+    recordInput?.(input) // KINEO-CENA-RETRY-3010 — exact replay, including any seed; never re-plan a failed scene.
     const id = await submitFalQueueOnce(
       model,
-      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized, aspect),
+      input,
     )
     // KINEO-353A.1 — NAO empurra mais nada no vetor de cenas aqui.
     // O #353A fazia `outcomes.push(cenaAceita(outcomes.length, ...))`, e
@@ -3302,6 +3304,9 @@ async function manipularPost(req: NextRequest) {
       await releaseBirthClaim('film_complete_quality_unavailable')
       return NextResponse.json({ error: 'The original film references could not be loaded. Please retry this same film.', reason: 'film_complete_quality_unavailable', charged: false }, { status: 409 })
     }
+    // KINEO-JUIZ-ESTADOS-3010 — evidence is frozen into the existing signed response; no financial change.
+    const stillDecisionReports: RelatoCriticoStill[] = []
+    const stillDecisionExtras: EvidenciaStillFinal[] = []
     let qualitySnapshot: FilmQualitySnapshot | null = null
     let personagemRelatoFinal: RelatoPersonagem | null = null // KINEO-META95-PERSONAGEM-2010 — o relato da folha (contagens, vereditos, custo), preenchido no bloco da folha; null = nada entra na resposta
     const publishCinematicResponse = async (
@@ -3312,6 +3317,12 @@ async function manipularPost(req: NextRequest) {
       // KINEO-QUALIDADE-TODOS-MOTORES-2910 — resume keeps its actual snapshot; detach arrays before signing while judges finish.
       const snapshot = readFilmQualitySnapshot(response.quality_snapshot) ?? readFilmQualitySnapshot(qualitySnapshot)
       response = { ...response, submission_uncertain: cinematicSubmissionUncertain, ...(snapshot ? { quality_snapshot: snapshot } : {}) }
+      // KINEO-JUIZ-ESTADOS-3010 — the actual dispatched URL wins over a late replacement or discarded sheet.
+      response = { ...response, still_critic: relatoStillNoClaim(response, stillDecisionReports, stillDecisionExtras) }
+      if (snapshot) snapshot.approvedStills = snapshot.approvedStills.filter(s => {
+        const judged = [...stillDecisionReports].reverse().flatMap(r => [...r.tentativas].reverse()).find(t => t.url === s.url)
+        return !judged || judged.veredito === 'PASS'
+      })
       if (personagemRelatoFinal) response = { ...response, personagem: personagemRelatoFinal } // KINEO-META95-PERSONAGEM-2010 — só com a folha ligada (sem ela, resposta e hash de sempre)
       // [TRAVA 8.2 — Tarefa 0 do pedido de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a sobretaxa que o `cost` somou vai ASSINADA na resposta do claim (hash + assinatura):
       // o /api/compose confere filme + ESTE número, sem recalcular. Sem estrela, nada entra (resposta e hash de sempre). [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
@@ -5671,6 +5682,7 @@ async function manipularPost(req: NextRequest) {
             referencia: referenciaDaCena(qualidadeHerdada ?? qualitySnapshot, fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '')), // KINEO-QUALIDADE-TODOS-MOTORES-2910
             prompt: paidScenes[0].prompt, seed: generationSeed }, { filme: novoFilmeDoCritico('log_only', { prazo: Date.now() + 8_000 }),
             gerarStill: async () => null, maxRegeracoesCena: 0, herdado: qualidadeHerdada?.approvedStills.find(s => s.url === firstStill), fichas: fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '') }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+          stillDecisionReports.push(critic.relato) // KINEO-JUIZ-ESTADOS-3010
           paidScenes[0].approvedStillUrl = null // KINEO-QUALIDADE-TODOS-MOTORES-2910 — revoked if rejudged FAIL.
           if (stillFoiAprovado(critic.relato, firstStill)) { paidScenes[0].approvedStillUrl = firstStill; registrarStillAprovado(firstStill, paidScenes[0].prompt, plan.scenes[0].voiceover ?? '', fichasDaQualidade(paidScenes[0].prompt, plan.scenes[0].voiceover ?? '').map(f => f.nome)) } // KINEO-QUALIDADE-TODOS-MOTORES-2910
           await writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId,
@@ -5971,6 +5983,7 @@ async function manipularPost(req: NextRequest) {
       // terror que o fundador viu DUAS vezes), o DNA de nitidez e o horizonte
       // em pé. Agora guardamos o prompt EXATO que foi pro fal, cena a cena.
       const hSubmittedPrompts: string[] = []
+      const hSceneFalInputs: Array<Record<string, unknown> | null> = plan.scenes.map(() => null) // KINEO-CENA-RETRY-3010
       // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído).
       const hSceneAnchors: (string | null)[] = []
       // KINEO-OMNI-ANCORA-2026-09-28 — teto de tempo das 2ªs chances de still no filme inteiro (o laço é serial e a rota
@@ -6033,6 +6046,7 @@ async function manipularPost(req: NextRequest) {
               if (julgado.url === anchors?.portraitUrl) qualitySnapshot.portraitUrl = julgado.url
               if (julgado.url === anchors?.environmentUrl) qualitySnapshot.environmentUrl = julgado.url
             }
+            stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010
             const rh: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
             console.log(`[still-critic] cena ${rh.cena} (${family}, ${rh.modo}): ${rh.veredito}${rh.problemas.length ? ` ${rh.problemas.join('+')}` : ''}${rh.motivo ? ` — ${rh.motivo}` : ''}${rh.regerou ? ` → foto nova ${rh.regeracao_ok ? (rh.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rh.escolhida}` : ''} · US$ ${rh.custo_usd.toFixed(4)} · ${rh.ms} ms`) // KINEO-JUIZ-STILL-1410
             criticoHEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: family, path_kind: 'hollywood', ...rh } })) // KINEO-JUIZ-STILL-1410
@@ -6462,7 +6476,8 @@ async function manipularPost(req: NextRequest) {
             // filme inteiro (too_few → estorno). Uma retentativa após 2,5 s, só em
             // erro transitório e nunca em erro ambíguo (o job pode existir).
             id = await submitToFalWithOneRetry(
-              () => submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized),
+              () => submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized, undefined,
+                input => { hSceneFalInputs[idx] = input }),
               `hollywood scene ${hs.index}`,
             )
           } catch (e) {
@@ -6722,6 +6737,7 @@ async function manipularPost(req: NextRequest) {
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
         scene_prompts: hSubmittedPrompts, // prompt EXATO submetido (upright+era+mouth+spectacle) — retry/salvage fiéis
+        scene_fal_inputs: hSceneFalInputs, // KINEO-CENA-RETRY-3010 — signed exact inputs; approved scenes never change.
         // Contrato Cena Verdadeira: so as cenas que NAO passaram limpas.
         // Vazio = todas passaram. Sem este campo o gate corrigiria no
         // escuro, e a auditoria nao teria como saber se ele ajudou ou
@@ -7284,6 +7300,7 @@ async function manipularPost(req: NextRequest) {
           gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }), // KINEO-JUIZ-STILL-1410
         }) // KINEO-JUIZ-STILL-1410
         if (stillFoiAprovado(julgado.relato, julgado.url)) registrarStillAprovado(julgado.url, classicScenePrompts[idx], cenaC.voiceover ?? '', fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '').map(f => f.nome)) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+        stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010
         const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
         console.log(`[still-critic] cena ${rc.cena} (${anchorEngine}, ${rc.modo}): ${rc.veredito}${rc.problemas.length ? ` ${rc.problemas.join('+')}` : ''}${rc.motivo ? ` — ${rc.motivo}` : ''}${rc.regerou ? ` → foto nova ${rc.regeracao_ok ? (rc.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rc.escolhida}` : ''} · US$ ${rc.custo_usd.toFixed(4)} · ${rc.ms} ms`) // KINEO-JUIZ-STILL-1410
         criticoEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: anchorEngine, path_kind: 'classico', ...rc } })) // KINEO-JUIZ-STILL-1410
@@ -7479,15 +7496,18 @@ async function manipularPost(req: NextRequest) {
           filme: criticoP, tetoCenaMs: PERSONAGEM_CRITICO_TETO_CENA_MS, janelaRegeracaoMs: PERSONAGEM_REGERACAO_JANELA_MS, minRegeracaoMs: PERSONAGEM_REGERACAO_MIN_MS, relatarMotivo: true, // KINEO-META95-PERSONAGEM-AJUSTE-2010 — CAUSA da refação que não saía (regeracao_ok=false): o crítico esperava a foto nova 9 s (janela do FLUX) e o edit leva 15-40 s → provider_timeout; era: filme: criticoP,
           gerarStill: async (promptNovo, _seed, pollWindowMs) => { const r = await gerarStillComFolha({ prompt: promptNovo, imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs, fichas }); return { url: r.url, motivo: r.motivo } }, // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a foto nova também sai do edit com a folha, com formato e moderação conferidos, e o MOTIVO vai ao relato; era: (await gerarStillDaEstrela({ … })).url
         }) // KINEO-META95-PERSONAGEM-2010
+        stillDecisionReports.push(julgado.relato) // KINEO-JUIZ-ESTADOS-3010
         relatosP.push(julgado.relato) // KINEO-META95-PERSONAGEM-2010
         stillsP[c.indice] = julgado.url // KINEO-META95-PERSONAGEM-2010
         const semFolha = await julgarSemFolha(juizFichaEstado, { indice: c.indice, relato: julgado.relato, scenePrompt: classicScenePrompts[c.indice], visual: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', fichas, seed: generationSeed }, { gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }) }) // KINEO-JUIZ-FICHA-2710 — o still de texto puro sai do MESMO gerador do still clássico (FLUX), sem folha
+        if (semFolha.url) stillDecisionExtras.push({ cena: c.indice + 1, url: semFolha.url, veredito: semFolha.veredito, nota: semFolha.nota }) // KINEO-JUIZ-ESTADOS-3010
         if (semFolha.url) semFolhaP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710
         if (kling4TrialCandidate && semFolha.url && semFolha.veredito === 'PASS') {
           kling4ExtraStillApprovals.push({ cena: c.indice + 1, url: semFolha.url, veredito: semFolha.veredito })
         }
         if (semFolha.url && semFolha.escolha === 'sem_folha') stillsP[c.indice] = semFolha.url // KINEO-JUIZ-FICHA-2710 — a cena segue o texto puro
-        Object.assign(julgado.relato, metadadoSemFolha(semFolha)) // KINEO-JUIZ-FICHA-2710 — a decisão entra no evento cinematic_still_critic desta cena (fallback: 'sem_folha' | 'folha' | null), que a linha abaixo espalha
+        Object.assign(julgado.relato, metadadoSemFolha(semFolha), semFolha.url && semFolha.escolha === 'sem_folha'
+          ? { decisao_final_fallback: { url_final: semFolha.url, ...decisaoFinalStill(semFolha.veredito === 'PASS' || semFolha.veredito === 'FAIL' || semFolha.veredito === 'ERRO' ? semFolha.veredito : 'PULADO', semFolha.nota) } } : {}) // KINEO-JUIZ-FICHA-2710 — a decisão entra no evento cinematic_still_critic desta cena (fallback: 'sem_folha' | 'folha' | null), que a linha abaixo espalha
         void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010
       })) // KINEO-META95-PERSONAGEM-2010
       const folhaDescartada = folhaErrada(juizFichaEstado.resultados.map((r) => r.decisao)) // KINEO-JUIZ-FICHA-2710 — a mesma reprovação de identidade em 2+ cenas: a folha está errada

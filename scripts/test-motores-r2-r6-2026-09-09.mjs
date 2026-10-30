@@ -98,7 +98,7 @@ console.log('== item 3b: modo história (medido no render 2141336f "Benny") ==')
 
 console.log('== item 4: Kling 3 retenta a cena em erro transitório ==')
 checa('submitToFalWithOneRetry existe, retenta só transitório e nunca ambíguo', /function isTransientSubmitError\(e: unknown\): boolean/.test(cin) && /if \(e\.ambiguous\) return false/.test(cin) && /async function submitToFalWithOneRetry\(/.test(cin) && /setTimeout\(r, 2500\)/.test(cin))
-checa('a submissão hollywood passa pelo retry', /id = await submitToFalWithOneRetry\(\n\s+\(\) => submitToFal\(scenePrompt, sceneModel, false, true, hs\.seconds, sceneAnchor, undefined, plan\.stylized\),/.test(cin))
+checa('a submissão hollywood passa pelo retry', /id = await submitToFalWithOneRetry\(\n\s+\(\) => submitToFal\(scenePrompt, sceneModel, false, true, hs\.seconds, sceneAnchor, undefined, plan\.stylized(?:\)|, undefined,\s*input => \{ hSceneFalInputs\[idx\] = input \}\)),/.test(cin)) // KINEO-CENA-RETRY-3010 — a submissão guarda o payload assinado para retentar a cena
 {
   // executa o predicado com um erro falso da fal (classe mínima com o mesmo shape)
   const src = "class FalQueueSubmitError extends Error { ambiguous: boolean; status: number | null; constructor(m: string, o: { ambiguous: boolean; status?: number | null }) { super(m); this.ambiguous = o.ambiguous; this.status = o.status ?? null } }\n" +

@@ -77,6 +77,8 @@ export function planejarRetentativas(args: {
   agora: number
   inicioMs: number
   idadeMin: number
+  /** Zero pronta só é recuperável quando TODOS os jobs terminaram, sem envio ambíguo. */
+  allTerminal?: boolean
 }): PlanoDaCena[] {
   const plano: PlanoDaCena[] = []
   const vistas = new Set<number>()
@@ -90,7 +92,7 @@ export function planejarRetentativas(args: {
     let decisao: DecisaoDaCena
     if (classe !== 'retentavel') decisao = 'nao_retentavel'
     else if (usadas >= RETENTAR_CENA_MAX) decisao = 'esgotada'
-    else if (args.prontas < 1) decisao = 'sem_cena_pronta' // a retomada exige ≥1 cena autorizada; 0 de N = estorno de sempre
+    else if (args.prontas < 1 && args.allTerminal !== true) decisao = 'sem_cena_pronta'
     else if (!(args.idadeMin < RETENTAR_CENA_IDADE_MAX_MIN)) decisao = 'tarde_demais'
     else {
       const referencia = usadas === 0 ? args.inicioMs : Math.max(...daCena.map((r) => r.at))
@@ -136,7 +138,9 @@ export async function executarRetentativas(args: {
   agora: number
   inicioMs: number
   idadeMin: number
+  allTerminal?: boolean
   deps: DepsDaRetentativa
+  maxPerRound?: number
 }): Promise<{ reenviadas: number; segurar: boolean; plano: PlanoDaCena[]; resultados: Array<{ index: number; desfecho: string }> }> {
   const plano = planejarRetentativas(args)
   const resultados: Array<{ index: number; desfecho: string }> = []
@@ -148,8 +152,9 @@ export async function executarRetentativas(args: {
     resultados.push({ index: p.falha.index, desfecho: p.decisao })
   }
   const todas = plano.filter((p) => p.decisao === 'retentar')
-  const aRetentar = todas.slice(0, RETENTAR_CENA_MAX_POR_RODADA)
-  for (const p of todas.slice(RETENTAR_CENA_MAX_POR_RODADA)) resultados.push({ index: p.falha.index, desfecho: 'proxima_rodada' })
+  const limit = Math.max(1, Math.min(RETENTAR_CENA_MAX_POR_RODADA, args.maxPerRound ?? RETENTAR_CENA_MAX_POR_RODADA))
+  const aRetentar = todas.slice(0, limit)
+  for (const p of todas.slice(limit)) resultados.push({ index: p.falha.index, desfecho: 'proxima_rodada' })
   for (const p of plano) if (p.decisao === 'esperar') resultados.push({ index: p.falha.index, desfecho: 'esperar' })
   const esperando = resultados.some((r) => r.desfecho === 'esperar' || r.desfecho === 'proxima_rodada')
   if (aRetentar.length === 0) return { reenviadas: 0, segurar: esperando, plano, resultados }

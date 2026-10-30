@@ -247,7 +247,8 @@ export function decidirSemFolha(r: RelatoParaDecisao): DecisaoSemFolha {
   if (r.veredito !== 'FAIL') return { precisa: false, motivo: 'nao_julgado', notaFolha }
   const identidade = falhouNaIdentidade(r.problemas) || (r.veredito_regerada === 'FAIL' && falhouNaIdentidade(r.problemas_regerada))
   if (!identidade) return { precisa: false, motivo: 'falha_de_outro_tipo', notaFolha }
-  if (r.regerou && r.regeracao_ok && r.veredito_regerada !== 'FAIL') return { precisa: false, motivo: 'aprovado', notaFolha } // a refação passou (ou ficou sem 2º julgamento) e foi a escolhida
+  if (r.regerou && r.regeracao_ok && r.veredito_regerada === 'PASS') return { precisa: false, motivo: 'aprovado', notaFolha }
+  if (r.regerou && r.regeracao_ok && r.veredito_regerada !== 'FAIL') return { precisa: false, motivo: 'nao_julgado', notaFolha } // KINEO-JUIZ-ESTADOS-3010 — same continuation policy; unknown is never approval.
   if (r.regerou && r.regeracao_ok) return { precisa: true, motivo: 'reprovado_2x', notaFolha }
   return { precisa: true, motivo: 'reprovado_sem_refacao', notaFolha }
 }

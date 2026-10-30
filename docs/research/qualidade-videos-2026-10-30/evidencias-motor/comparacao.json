@@ -1,0 +1,329 @@
+{
+  "date": "2026-10-30T18:48:49.326Z",
+  "baselineHead": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "candidateHead": "9648f04c507bd956752374b7bdefd44578e97714",
+  "originMain": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "total": 33,
+  "baselineGreen": 19,
+  "candidateGreen": 21,
+  "newRedScripts": [],
+  "newIssues": [],
+  "improvements": [
+    {
+      "script": "test-saldo-parcial-2026-09-21.mjs",
+      "baselineExit": 1,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [
+        "  ✗ rastro credits_refunded com why too_few e done/total/dead"
+      ],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-stranded-extra-attempt-4xx.mjs",
+      "baselineExit": 1,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [
+        "  FAIL 1. teto base continua 2",
+        "  FAIL 2. extra é exatamente 1"
+      ],
+      "unchangedIssues": []
+    }
+  ],
+  "byScript": [
+    {
+      "script": "test-retentar-cena-1410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "  FALHOU: fatias do cron existem (coleta+desvio; laço até const clips)",
+        "ReferenceError: collected is not defined"
+      ]
+    },
+    {
+      "script": "test-cena-classica-retentativa-2026-09-28.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: FILME15-PERFEITO-2610: partial or ambiguous source app/api/compose/route.ts"
+      ]
+    },
+    {
+      "script": "test-scene-retry-mutex-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: Unexpected import: @/lib/kling4Trial"
+      ]
+    },
+    {
+      "script": "test-saldo-parcial-2026-09-21.mjs",
+      "baselineExit": 1,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [
+        "  ✗ rastro credits_refunded com why too_few e done/total/dead"
+      ],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-salvage-estorno-2026-09-15.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-dispatch-contract.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-dispatch-entry-2026-09-05.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-scene-disposition.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-despacho-vazio-2026-09-04.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-juiz-still-1410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-still-2026-10-06.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-ficha-2710.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-refaz-2810.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-refazer-cena-2710.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-refazer-gratis-2810.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-kineo1-juiz-honesto-2026-09-21.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-credits-held-waitroom.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-billing-drift.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-credito-preso.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-failure-recovery-honest.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-stranded-authorized-urls-fallback.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-stranded-own-generation.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-stranded-extra-attempt-4xx.mjs",
+      "baselineExit": 1,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [
+        "  FAIL 1. teto base continua 2",
+        "  FAIL 2. extra é exatamente 1"
+      ],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-stranded-ready-footer.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: lib/credits/engineCost.ts: unexpected import @/lib/kling4PaidPolicy"
+      ]
+    },
+    {
+      "script": "test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-resgate-defeito.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-zero-cenas-fallback-2026-09-04.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    },
+    {
+      "script": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: Unexpected import: @/lib/kling4PaidAsyncStatus"
+      ]
+    },
+    {
+      "script": "test-cobertura-15s-2026-09-30.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-filme15-fiel-2610.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "Error: FILME15-PERFEITO-2610: partial or ambiguous source app/api/compose/route.ts"
+      ]
+    },
+    {
+      "script": "test-meta95-refazer-1910.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": [
+        "  FAIL R1 /api/compose: arquivo completo igual à base aprovada, hooks marcados após registrarVersaoDaCasa",
+        "  FAIL R2 biblioteca: arquivo completo igual à base aprovada, hooks marcados; 16 línguas; botão sem node:crypto"
+      ]
+    },
+    {
+      "script": "test-scene-truth.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "newIssues": [],
+      "resolvedIssues": [],
+      "unchangedIssues": []
+    }
+  ]
+}

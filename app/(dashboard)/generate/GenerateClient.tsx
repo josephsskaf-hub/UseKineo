@@ -5173,6 +5173,14 @@ export default function GenerateClient({
         }
         falPollErrorsRef.current = 0
 
+        // The server retargets only failed slots. Adopt its signed current ids without restarting the film or its debit.
+        if (Array.isArray(data.sceneRetryIds) && data.sceneRetryIds.length === falRequestIds.length &&
+          data.sceneRetryIds.every((id: unknown) => id === null || typeof id === 'string' && id.length > 0) &&
+          data.sceneRetryIds.some((id: string | null, i: number) => id !== falRequestIds[i])) {
+          setFalRequestIds(data.sceneRetryIds as (string | null)[])
+          return
+        }
+
         // The server alone can replace a failed/timed-out Kling trial with Seedance.
         // Restore every parallel scene vector before restarting polling with its signed IDs.
         if (data.replacement !== undefined) {

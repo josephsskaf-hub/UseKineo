@@ -10,7 +10,7 @@ import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-CENA-PRESA-2026-09-22
 import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-CENA-PRESA-2026-09-22
-import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
+import { cinematicJobsAreTerminal, loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
 import { kling4TrialReplacement } from '@/lib/kling4TrialClaim'
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
@@ -18,6 +18,7 @@ import { H3MAX_MODELS, H3MAX_I2V_MODEL, H3MAX_RESOLUTION, H3_PROMPT_EXPANSION } 
 import { openai } from '@/lib/openai'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { CLASSIC, CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
+import { reserveSceneRetryBudget, sceneRetryBudgetOpen } from '@/lib/sceneRetryBudget' // KINEO-RETRY-BUDGET-3010
 
 // KINEO-CENA-CLASSICA-2026-09-28 — teto EXPLÍCITO de 60 s (antes a rota herdava o padrão da plataforma). O marcador
 // 'submitting' do mutex vale 120 s no compose, no /api/compose/active e aqui: com a OpenAI a 20 s sem retentativa e o POST
@@ -61,9 +62,11 @@ type Slot = { index: number; oldRequestId: string | null; model: string }
 function retryableSlot(claim: CinematicClaim, slot: Slot): boolean {
   if (claim.status !== 'settled' || slot.index >= claim.falRequestIds.length ||
     claim.falRequestIds[slot.index] !== slot.oldRequestId || claim.falModels[slot.index] !== slot.model ||
-    claim.authorizedCompletedUrls[slot.index] || !claim.authorizedCompletedUrls.some(Boolean)) return false
-  // The client aborts all-failed generations. At least one signed completed
-  // clip also excludes this retry from the all-failed refund path.
+    claim.authorizedCompletedUrls[slot.index]) return false
+  // KINEO-RETRY-BUDGET-3010 — a whole terminal batch may be retried before refund.
+  // No ready sibling permits ONLY real, terminal provider IDs, never an empty or ambiguous slot.
+  if (!claim.authorizedCompletedUrls.some(Boolean) &&
+      (!slot.oldRequestId || !cinematicJobsAreTerminal(claim))) return false
   // An ambiguous submit can ALSO leave a null id. Only the signed explicit
   // absence-of-uncertainty flag permits this slot; legacy absence is unknown.
   if (slot.oldRequestId === null) return claim.response?.submission_uncertain === false
@@ -74,6 +77,18 @@ function retryableSlot(claim: CinematicClaim, slot: Slot): boolean {
 
 function signedScene(claim: CinematicClaim, slot: Slot) {
   const response = claim.response
+  // KINEO-RETRY-BUDGET-3010 — newly recorded Hollywood inputs are replayed exactly,
+  // including seed/duration/negative prompt. Missing legacy input uses the existing reconstruction.
+  const inputs = response?.scene_fal_inputs
+  const raw = Array.isArray(inputs) ? inputs[slot.index] : null
+  if (raw !== null && raw !== undefined) {
+    if (typeof raw !== 'object' || Array.isArray(raw)) return null
+    const input = raw as Record<string, unknown>, prompt = input.prompt
+    const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, H3MAX_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)
+    if (typeof prompt !== 'string' || prompt.trim().length < 20 || prompt.length > 6000 ||
+        (requiresAnchor ? typeof input.image_url !== 'string' || !input.image_url.startsWith('https://') : input.image_url !== undefined)) return null
+    return { input, prompt, seconds: 0, anchor: requiresAnchor ? input.image_url as string : null, aspect: normalizeAspect(response?.aspect) }
+  }
   const prompt = Array.isArray(response?.scene_prompts) ? response.scene_prompts[slot.index] : null
   const seconds = Array.isArray(response?.scene_seconds) ? response.scene_seconds[slot.index] : null
   const anchor = Array.isArray(response?.scene_anchor_urls) ? response.scene_anchor_urls[slot.index] : null
@@ -82,7 +97,7 @@ function signedScene(claim: CinematicClaim, slot: Slot) {
   const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, H3MAX_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model) // KINEO-H3MAX-2026-10-13
   if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
   // LOTE2-RESGATE-FIEL-2026-09-23 — o formato do filme vem do claim assinado; a cena refeita usa o MESMO que o render original.
-  return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null, aspect: normalizeAspect(response?.aspect) }
+  return { input: null, prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null, aspect: normalizeAspect(response?.aspect) }
 }
 
 // KINEO-CENA-CLASSICA-2026-09-28 — o payload clássico assinado, conferido antes de qualquer gasto: objeto, prompt de 20 a
@@ -228,6 +243,7 @@ export async function POST(req: NextRequest) {
   const signedNow = (claim: CinematicClaim) => classic ? signedClassic(claim, slot) : signedScene(claim, slot)
   const birth = loaded.claim, scene = classic ? null : signedScene(birth, slot), classicScene = classic ? signedClassic(birth, slot) : null
   if (!scene && !classicScene) return refused()
+  if (!sceneRetryBudgetOpen(birth.startedAt, Date.now())) return NextResponse.json({ error: 'Scene retry time limit reached.', reason: 'scene_retry_expired', retryable: false }, { status: 409 }) // KINEO-RETRY-BUDGET-3010
   const signedAtBirth = JSON.stringify(signedNow(birth))
   const acquired = await acquireSceneRetryMutex({ ...args, quality: birth.quality, cost: birth.creditCost,
     sceneIndex: slot.index, oldRequestId: slot.oldRequestId, model: slot.model })
@@ -239,6 +255,7 @@ export async function POST(req: NextRequest) {
   }
   const mutex = acquired.mutex
   let falPosted = false, accepted = false, acceptedRequestId: string | null = null, classicClaimed = false
+  let retryBudgetSlot: number | null = null // KINEO-RETRY-BUDGET-3010
   const revalidate = async () => {
     const current = await loadVerifiedCinematicClaim(args)
     return current.ok && current.claim && retryableSlot(current.claim, slot) &&
@@ -270,13 +287,27 @@ export async function POST(req: NextRequest) {
       if (tentativa !== 'claimed') return await soltaClassica(tentativa === 'used' ? refused : notSubmitted, 'ambiguous', null)
       classicClaimed = true
     }
+    // KINEO-RETRY-BUDGET-3010 — reserve BEFORE either paid service, independent of
+    // oldRequestId and best-effort success analytics. Never return a consumed slot.
+    const budget = await reserveSceneRetryBudget({ ...args, sceneIndex: slot.index, oldRequestId: slot.oldRequestId,
+      model: slot.model, startedAt: birth.startedAt, now: Date.now() })
+    if (budget.kind !== 'reserved') {
+      if (classicClaimed) await returnClassicAttempt(args, slot)
+      const reply = () => NextResponse.json({ error: 'Scene retry limit reached or unavailable.', reason: `scene_retry_${budget.kind}`, retryable: false }, { status: budget.kind === 'unavailable' ? 503 : 409 })
+      return soltaNaDuvida ? await soltaClassica(reply, 'ambiguous', null) : await releaseSceneRetryMutex(args, mutex) ? reply() : support()
+    }
+    retryBudgetSlot = budget.slot
     const sourcePrompt = classicScene ? classicScene.prompt : scene!.prompt
     const prompt = body.sanitize === true ? await softenPromptForModeration(sourcePrompt) : sourcePrompt
     if (!await revalidate()) {
       if (soltaNaDuvida) { await returnClassicAttempt(args, slot); return await soltaClassica(refused, 'ambiguous', null) } // KINEO-RETENTAR-CENA-1410
       return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
     }
-    const input = classicScene ? { ...classicScene.input, prompt } : sceneInput(slot.model, scene!, prompt)
+    const input = classicScene ? { ...classicScene.input, prompt } : scene!.input ? { ...scene!.input, prompt } : sceneInput(slot.model, scene!, prompt) // KINEO-RETRY-BUDGET-3010
+    if (!sceneRetryBudgetOpen(birth.startedAt, Date.now())) { // KINEO-RETRY-BUDGET-3010 — rewriting must not cross the time cap
+      if (classicClaimed) await returnClassicAttempt(args, slot)
+      return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
+    }
     const requestId = soltaNaDuvida // KINEO-RETENTAR-CENA-1410
       ? await submitClassicWithDeadline(slot.model, input, () => { falPosted = true })
       : await submitFalQueueOnce(slot.model, input, () => { falPosted = true })
@@ -301,7 +332,7 @@ export async function POST(req: NextRequest) {
     }
     // KINEO-CENA-PRESA-2026-09-22 — carimbo da ressubmissão: o relógio da "cena presa" (/api/cinematic-clip-status)
     // reinicia aqui, senão a cena nova seria declarada presa no poll seguinte. ESPERADO (void antes do return morre na Vercel).
-    await writeServerEvent({ name: HOLLYWOOD_SCENE_RETRIED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, sanitize: body.sanitize === true, family: classic ? 'classic' : 'hollywood' } })
+    await writeServerEvent({ name: HOLLYWOOD_SCENE_RETRIED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, sanitize: body.sanitize === true, family: classic ? 'classic' : 'hollywood', retry_budget_slot: retryBudgetSlot } }) // KINEO-RETRY-BUDGET-3010
     return NextResponse.json({ requestId, model: slot.model })
   } catch (error) {
     // Generic exceptions after the POST, 408, 5xx, transport failures and a

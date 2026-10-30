@@ -317,6 +317,9 @@ const SERVER_ONLY_EVENTS = new Set([
   'llm_fallback_used', // lib/llmFallback — plano B de texto salvou a chamada
   'tts_fallback_used', // lib/ttsFallback — voz reserva MiniMax no compose
   'classic_scene_retry_attempt', // app/api/retry-hollywood-scene — registro de id determinístico da retomada clássica
+  'cinematic_scene_retry_budget', // KINEO-CENA-RETRY-3010 — only the server reserves paid retry slots
+  'cinematic_scene_retry', // KINEO-CENA-RETRY-3010 — terminal failure classification/coordination is server evidence
+  'hollywood_scene_retried', // KINEO-CENA-RETRY-3010 — browser cannot forge legacy attempt history
   'classic_scene_retry_unconfirmed', // app/api/retry-hollywood-scene — retomada clássica que não confirmou
   'classic_scene_retry_hold_cleared', // app/api/compose — hold clássico desfeito
   'omni_scene_kling_fallback', // app/api/generate-video-cinematic — cena Omni que caiu no Kling

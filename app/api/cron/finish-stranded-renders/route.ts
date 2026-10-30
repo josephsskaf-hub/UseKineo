@@ -49,11 +49,11 @@ import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { resolveNarrationLanguage } from '@/lib/textLanguage' // LOTE2-RESGATE-FIEL-2026-09-23
 import { classicSceneRetryHoldRow } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
-import { createHash } from 'node:crypto' // KINEO-RETENTAR-CENA-1410
 import { authorizeCinematicTerminalFailures } from '@/lib/cinematic/claim' // KINEO-RETENTAR-CENA-1410
-import { CENA_RETRY_EVENT, executarRetentativas, type FalhaDeCena, type PlanoDaCena } from '@/lib/cinematic/sceneRetryPolicy' // KINEO-RETENTAR-CENA-1410
-import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-RETENTAR-CENA-1410
-import { POST as sceneRetryPost } from '@/app/api/retry-hollywood-scene/route' // KINEO-RETENTAR-CENA-1410
+import { type FalhaDeCena } from '@/lib/cinematic/sceneRetryPolicy' // KINEO-RETENTAR-CENA-1410
+import { recoverSceneFailures } from '@/lib/cinematic/sceneRecovery' // KINEO-CENA-RETRY-3010 [TRAVA 8.2 — pedido do fundador 30/10]
+import { finalizeSceneFailure } from '@/lib/cinematic/sceneFailureFinalizer'
+import { writeServerEvent } from '@/lib/serverEvents'
 import { kling4TrialEngineFromClaim, kling4TrialReplacement } from '@/lib/kling4TrialClaim'
 import { advanceKling4TrialStatus, type Kling4TrialAdvance } from '@/lib/kling4TrialAsyncStatus'
 import { advanceKling4PaidStatus, kling4PaidMarker, type Kling4PaidAdvance } from '@/lib/kling4PaidAsyncStatus'
@@ -183,6 +183,7 @@ async function collectFinishedClips(
   claimAgeMinutes = 0,
   rastro?: RastroDaColeta, // KINEO-RETENTAR-CENA-1410 — falhas TERMINAIS provadas pela fila + cenas prontas, para a retomada
   frozenTrialFallback = false,
+  authorizedUrls: Array<string | null> = [],
 ): Promise<ClipCollect> {
   const staleClaim = claimAgeMinutes >= STALE_SCENE_MINUTES
   let dead = 0
@@ -197,6 +198,12 @@ async function collectFinishedClips(
     const model = models[i]
     if (!id || !model) continue
     submitted++
+    const approved = authorizedUrls[i]
+    if (approved) {
+      const clip = { requestId: id, model, url: approved }
+      out.push(clip); rastro?.prontas.push(clip)
+      continue // Once authorized, a temporary provider outage cannot erase a good scene.
+    }
     try {
       const st = await fal.queue.status(model, { requestId: id })
       const status = (st as { status?: string }).status
@@ -213,10 +220,13 @@ async function collectFinishedClips(
         stillRunning++
         continue
       }
-      if (status !== 'COMPLETED' && erroDaFila) rastro?.falhas.push({ index: i, requestId: id, model, http: null, message: erroDaFila.message, errorType: erroDaFila.type }) // KINEO-RETENTAR-CENA-1410
-      if (status !== 'COMPLETED') { dead++; continue } // FAILED → pula, como o cliente faz
-      // KINEO-CENA-MORTA — daqui em diante o status é terminal: qualquer
-      // falha do result() (403, 500, sem URL) é cena morta, nunca "rodando".
+      if (fimDaFila.request_id !== id) { stillRunning++; continue }
+      if ((status === 'COMPLETED' && erroDaFila) || status === 'FAILED') {
+        rastro?.falhas.push({ index: i, requestId: id, model, http: null, message: erroDaFila?.message, errorType: erroDaFila?.type })
+        dead++; continue
+      }
+      if (status !== 'COMPLETED') { stillRunning++; continue }
+      // COMPLETED without a job error still needs a readable result. A failed GET is not a failed inference.
       try {
         const res = await fal.queue.result(model, { requestId: id })
         const data = ((res as { data?: unknown }).data ?? res) as {
@@ -225,21 +235,24 @@ async function collectFinishedClips(
         }
         const url = data?.video?.url ?? data?.output?.video?.url ?? null
         if (url) out.push({ requestId: id, model, url })
-        else dead++
+        else if (staleClaim) dead++
+        else stillRunning++
         if (url) rastro?.prontas.push({ requestId: id, model, url }) // KINEO-RETENTAR-CENA-1410
         else if (erroDaFila) rastro?.falhas.push({ index: i, requestId: id, model, http: null, message: erroDaFila.message, errorType: erroDaFila.type }) // KINEO-RETENTAR-CENA-1410
       } catch (e) {
         const httpStatus = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
-        console.warn(`[stranded] scene ${i + 1} COMPLETED but result() failed (http=${httpStatus ?? 'none'}) — counted as dead`)
-        if (erroDaFila) rastro?.falhas.push({ index: i, requestId: id, model, http: httpStatus, message: erroDaFila.message, errorType: erroDaFila.type }) // KINEO-RETENTAR-CENA-1410 — sem erro na fila, result() falho NÃO prova job morto: não reenvia
-        dead++
+        console.warn(`[stranded] scene ${i + 1} result lookup unavailable (http=${httpStatus ?? 'none'})`)
+        if (httpStatus === 400 || httpStatus === 422) {
+          rastro?.falhas.push({ index: i, requestId: id, model, http: httpStatus })
+          dead++
+        } else if (staleClaim) dead++
+        else stillRunning++
       }
     } catch (e) {
       // Falha do PRÓPRIO status(): 422/400 = clipe morto no provedor → pula.
       // Erro de transporte cai aqui; a próxima rodada re-checa (o clipe fica
       // de fora só se continuar inacessível, e o piso de 60% protege o filme).
       const status = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
-      if (status === 422 || status === 400) { dead++; continue }
       if (staleClaim) { dead++; continue }
       stillRunning++
     }
@@ -257,47 +270,14 @@ async function collectFinishedClips(
 // KINEO-RETENTAR-CENA-1410 — retomada assinada em modo serviço. Nenhum crédito se move aqui: débito e estorno seguem nos donos
 // KINEO-RETENTAR-CENA-1410 — de sempre (geração e too_few). Regra pura e testada em lib/cinematic/sceneRetryPolicy.ts.
 type RastroDaColeta = { falhas: FalhaDeCena[]; prontas: ClipResult[] } // KINEO-RETENTAR-CENA-1410
-function idDaRetentativa(userId: string, genId: string, p: PlanoDaCena, tipo: string): string { // KINEO-RETENTAR-CENA-1410
-  const hex = createHash('sha256').update(JSON.stringify(['kineo:cena-retry-cron:v1', userId, genId, p.falha.index, p.falha.requestId, tipo])).digest('hex').slice(0, 32) // KINEO-RETENTAR-CENA-1410
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}` // KINEO-RETENTAR-CENA-1410
-} // KINEO-RETENTAR-CENA-1410
 async function retentarCenasDoFilme(a: { admin: SupabaseClient; secret: string; userId: string; genId: string; claimCreatedAt: unknown; claimAgeMin: number; rastro: RastroDaColeta }): Promise<{ reenviadas: number; segurar: boolean }> { // KINEO-RETENTAR-CENA-1410
-  try { // KINEO-RETENTAR-CENA-1410
-    const { data: feitas, error: erroDoHistorico } = await a.admin.from('events').select('created_at, metadata').eq('name', HOLLYWOOD_SCENE_RETRIED_EVENT).eq('session_id', a.genId).limit(200) // KINEO-RETENTAR-CENA-1410
-    if (erroDoHistorico) return { reenviadas: 0, segurar: false } // KINEO-RETENTAR-CENA-1410 — sem histórico não há contagem: nunca arrisca a 3ª
-    const anteriores = (feitas ?? []).map((r) => ({ index: Number((r.metadata as { scene_index?: unknown } | null)?.scene_index), at: Date.parse(String(r.created_at ?? '')) })).filter((r) => Number.isInteger(r.index) && Number.isFinite(r.at)) // KINEO-RETENTAR-CENA-1410
-    const base = { user_id: a.userId, name: CENA_RETRY_EVENT, path: '/api/cron/finish-stranded-renders', session_id: a.genId } // KINEO-RETENTAR-CENA-1410
-    const r = await executarRetentativas({ // KINEO-RETENTAR-CENA-1410
-      falhas: a.rastro.falhas, anteriores, prontas: a.rastro.prontas.length, agora: Date.now(), idadeMin: a.claimAgeMin, // KINEO-RETENTAR-CENA-1410
-      inicioMs: typeof a.claimCreatedAt === 'string' ? Date.parse(a.claimCreatedAt) : NaN, // KINEO-RETENTAR-CENA-1410
-      deps: { // KINEO-RETENTAR-CENA-1410
-        marcar: async (tipo, p, metadata) => { // KINEO-RETENTAR-CENA-1410
-          const { error } = await a.admin.from('events').insert({ ...base, id: idDaRetentativa(a.userId, a.genId, p, tipo), metadata: { ...metadata, via: 'cron' } }) // KINEO-RETENTAR-CENA-1410
-          return !error ? 'nova' : (error as { code?: string }).code === '23505' ? 'repetida' : 'erro' // KINEO-RETENTAR-CENA-1410
-        }, // KINEO-RETENTAR-CENA-1410
-        provar: async (falhas) => { // KINEO-RETENTAR-CENA-1410
-          const prova = { db: a.admin, secret: a.secret, userId: a.userId, generationId: a.genId } // KINEO-RETENTAR-CENA-1410
-          if (a.rastro.prontas.length > 0 && !(await authorizeCinematicCompletedUrls({ ...prova, completed: a.rastro.prontas })).ok) return false // KINEO-RETENTAR-CENA-1410
-          return (await authorizeCinematicTerminalFailures({ ...prova, failed: falhas.map((f) => ({ requestId: f.requestId, model: f.model })) })).ok // KINEO-RETENTAR-CENA-1410
-        }, // KINEO-RETENTAR-CENA-1410
-        reenviar: async (f) => { // KINEO-RETENTAR-CENA-1410
-          try { // KINEO-RETENTAR-CENA-1410
-            const res = await sceneRetryPost(new NextRequest(`${APP_URL}/api/retry-hollywood-scene`, { method: 'POST', headers: serviceHeaders(a.userId), body: JSON.stringify({ generationId: a.genId, sceneIndex: f.index, model: f.model, oldRequestId: f.requestId, sanitize: false }) })) // KINEO-RETENTAR-CENA-1410
-            const j = (await res.json().catch(() => null)) as { requestId?: unknown } | null // KINEO-RETENTAR-CENA-1410
-            return { status: res.status, requestId: typeof j?.requestId === 'string' ? j.requestId : null } // KINEO-RETENTAR-CENA-1410
-          } catch { return { status: 0 } } // KINEO-RETENTAR-CENA-1410
-        }, // KINEO-RETENTAR-CENA-1410
-        registrar: async (_p, metadata) => { // KINEO-RETENTAR-CENA-1410
-          try { await a.admin.from('events').insert({ ...base, metadata: { ...metadata, via: 'cron' } }) } catch { /* rastro nunca derruba a rodada */ } // KINEO-RETENTAR-CENA-1410
-        }, // KINEO-RETENTAR-CENA-1410
-      }, // KINEO-RETENTAR-CENA-1410
-    }) // KINEO-RETENTAR-CENA-1410
-    console.log(`[stranded] gen=${a.genId.slice(0, 8)} scene_retry ${r.resultados.map((x) => `${x.index + 1}:${x.desfecho}`).join(' ')}`) // KINEO-RETENTAR-CENA-1410
-    return { reenviadas: r.reenviadas, segurar: r.segurar } // KINEO-RETENTAR-CENA-1410
-  } catch (e) { // KINEO-RETENTAR-CENA-1410
-    console.warn(`[stranded] gen=${a.genId.slice(0, 8)} scene_retry threw:`, e instanceof Error ? e.message : String(e)) // KINEO-RETENTAR-CENA-1410
-    return { reenviadas: 0, segurar: false } // KINEO-RETENTAR-CENA-1410
-  } // KINEO-RETENTAR-CENA-1410
+  try {
+    return await recoverSceneFailures({ db: a.admin, secret: a.secret, userId: a.userId, generationId: a.genId,
+      failures: a.rastro.falhas, completed: a.rastro.prontas, via: 'cron' })
+  } catch {
+    // Reconciliation outage cannot refund under a live retry. The 70-minute limit still ends recovery.
+    return { reenviadas: 0, segurar: a.claimAgeMin < 70 }
+  }
 } // KINEO-RETENTAR-CENA-1410
 
 function serviceHeaders(userId: string): Record<string, string> {
@@ -769,7 +749,8 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       // soltar (liberação falhou duas vezes, ou a lambda morreu). Nenhum render final nasceu sob ela; lida como "a pessoa
       // compôs sozinha", o filme ficava sem entrega e sem estorno para sempre (revisão adversarial de 27/09). Não conta:
       // o compose que chamamos abaixo desfaz esse hold (409 pendente) e a rodada seguinte monta.
-      if ((ownCompose ?? []).some((row) => !classicSceneRetryHoldRow((row as { metadata?: unknown }).metadata))) {
+      if ((ownCompose ?? []).some((row) => !classicSceneRetryHoldRow((row as { metadata?: unknown }).metadata) &&
+        !(row as { metadata?: { scene_failure_finalizer?: unknown } }).metadata?.scene_failure_finalizer)) {
         results.push({ generation: gen8, outcome: 'user_finished_themselves' })
         continue
       }
@@ -887,6 +868,12 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     const frozenTrialFallback = kling4TrialReplacement(trialAdvance?.claim.response ?? md.response, genId) !== null
     const frozenPaidFallback = paidAdvance ? kling4PaidMarker(paidAdvance.claim)?.fallback_finalized === true : false
     if (requestIds.length === 0) { results.push({ generation: gen8, outcome: 'no_request_ids' }); continue }
+    const sourceClaim = await loadVerifiedCinematicClaim({ db: admin, secret, userId, generationId: genId })
+    if (!sourceClaim.ok || !sourceClaim.claim || sourceClaim.claim.status !== 'settled' ||
+      requestIds.length !== sourceClaim.claim.falRequestIds.length || requestIds.some((id, i) =>
+        id !== sourceClaim.claim!.falRequestIds[i] || models[i] !== sourceClaim.claim!.falModels[i])) {
+      results.push({ generation: gen8, outcome: 'scene_snapshot_changed' }); continue
+    }
 
     // KINEO-CENA-MORTA-2026-09-12 — a idade do claim viaja para o coletor
     // (cena na fila com 2 h+ é morta) e 'pending' velho vira rastro no banco.
@@ -900,7 +887,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       ? { state: 'ready', clips: [{ requestId: requestIds[0]!, model: models[0], url: trialAdvance.url! }], dead: 0 }
       : trialAdvance?.kind === 'fallback_empty'
         ? { state: 'too_few', done: 0, total: requestIds.length, dead: requestIds.length }
-        : await collectFinishedClips(requestIds, models, claimAgeMin, rastroDaColeta, frozenTrialFallback || frozenPaidFallback) // KINEO-RETENTAR-CENA-1410
+        : await collectFinishedClips(requestIds, models, claimAgeMin, rastroDaColeta, frozenTrialFallback || frozenPaidFallback, sourceClaim.claim.authorizedCompletedUrls) // KINEO-RETENTAR-CENA-1410
     if ((frozenTrialFallback || frozenPaidFallback) && rastroDaColeta.falhas.length > 0) {
       const failures = await authorizeCinematicTerminalFailures({ db: admin, secret, userId, generationId: genId,
         failed: rastroDaColeta.falhas.map(f => ({ requestId: f.requestId, model: f.model })) })
@@ -932,6 +919,16 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     // "gerando". Agora: mesmo estorno idempotente do clip-status (refundRenderCredits + releaseCinematicClaim com
     // 'provider_too_few_refunded'); o claim vira 'released', o poller da aba recebe 404 e mostra "créditos devolvidos".
     if (collected.state === 'too_few') {
+      if (!frozenTrialFallback && !paidAdvance) {
+        const finalized = await finalizeSceneFailure({ db: admin, secret, userId, generationId: genId,
+          ids: requestIds, models, allFailed: false, completed: rastroDaColeta.prontas,
+          failed: rastroDaColeta.falhas.map(f => ({ requestId: f.requestId, model: f.model })) })
+        results.push({ generation: gen8, outcome: finalized.closed ? `too_few_refunded:${collected.done}/${collected.total}` : 'scene_finalization_pending' })
+        if (finalized.closed && finalized.refunded > 0) await writeServerEvent({ name: 'credits_refunded', userId,
+          path: '/api/cron/finish-stranded-renders', sessionId: genId,
+          metadata: { render_id: sourceClaim.claim.resolutionReference, amount: finalized.refunded, reason: 'provider_failed_refunded', why: 'too_few', done: collected.done, total: collected.total, dead: collected.dead, released: true } })
+        continue
+      }
       if (trialAdvance?.kind === 'fallback_empty') console.warn('[kling4-trial]', { generation_id: genId, reason: 'fallback_no_accepted_scenes' })
       const billingReference = typeof md.resolution_reference === 'string' ? md.resolution_reference : ''
       const paidPromo = paidAdvance?.claim.creditCost === 0 && paidAdvance.claim.engine === 'kling4-promo-v1' &&

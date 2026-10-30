@@ -1,0 +1,403 @@
+{
+  "label": "final-candidate",
+  "root": "C:/kineo/.claude/worktrees/video-cena-retry-3010",
+  "date": "2026-10-30T18:48:13.728Z",
+  "head": "9648f04c507bd956752374b7bdefd44578e97714",
+  "originMain": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "scripts": [
+    {
+      "script": "test-retentar-cena-1410.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 617,
+      "failLines": [
+        "  FALHOU: fatias do cron existem (coleta+desvio; laço até const clips)",
+        "ReferenceError: collected is not defined"
+      ]
+    },
+    {
+      "script": "test-cena-classica-retentativa-2026-09-28.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 620,
+      "failLines": [
+        "Error: FILME15-PERFEITO-2610: partial or ambiguous source app/api/compose/route.ts"
+      ]
+    },
+    {
+      "script": "test-scene-retry-mutex-2026-09-11.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 1168,
+      "failLines": [
+        "scene-retry-mutex: 258 passed; actual POST/Fal queue/HMAC/active/compose-lock callers; synthetic DB only"
+      ]
+    },
+    {
+      "script": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 413,
+      "failLines": [
+        "Error: Unexpected import: @/lib/kling4Trial"
+      ]
+    },
+    {
+      "script": "test-saldo-parcial-2026-09-21.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 84,
+      "failLines": [
+        "═══ 19 passaram, 0 falharam ═══"
+      ]
+    },
+    {
+      "script": "test-salvage-estorno-2026-09-15.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 401,
+      "failLines": [
+        "9 ok · 0 falhas"
+      ]
+    },
+    {
+      "script": "test-dispatch-contract.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 881,
+      "failLines": [
+        "  ✓ telemetria é failure-isolated"
+      ]
+    },
+    {
+      "script": "test-dispatch-entry-2026-09-05.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 79,
+      "failLines": [
+        "24 ok, 0 fail"
+      ]
+    },
+    {
+      "script": "test-scene-disposition.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 1098,
+      "failLines": [
+        "  ✓ o log de falha continua redigido (classificação, não corpo)",
+        "  ✓ FAILFAST clássico só libera a claim quando nenhum ID é renderizável",
+        "  ✓ FAILFAST hollywood ainda libera a claim e estorna"
+      ]
+    },
+    {
+      "script": "test-despacho-vazio-2026-09-04.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 15690,
+      "failLines": [
+        "✅ 51 verdes, 0 vermelhas"
+      ]
+    },
+    {
+      "script": "test-juiz-still-1410.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 1173,
+      "failLines": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-still-2026-10-06.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 525,
+      "failLines": [
+        "TESTE juiz da foto-base (Seedance 2.5) — só s25, teto de tempo, falha aberta, 1 regeração, instrução sem o objeto, eventos, aba — 06/10",
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-ficha-2710.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 571,
+      "failLines": [
+        "  ok  B1 Krishna cena 1 (30 → 20 FAIL, seguiu a original): precisa, reprovado_2x, nota da folha 30",
+        "  ok  B2 Krishna cena 2 (30 → 40 FAIL, seguiu a REFEITA): precisa — a \"melhor das duas\" ainda é o personagem errado; nota 40",
+        "  ok  B7 FAIL de anatomia/texto/artefato duas vezes NÃO é caso de folha (falha_de_outro_tipo)",
+        "  ok  B8 identidade reprovada e refação APROVADA e escolhida: não precisa",
+        "  ok  B11 escolha: texto puro aprovado → sem_folha; sem 2º julgamento → sem_folha; texto 55 FAIL vs folha 40 → sem_folha; texto 35 FAIL vs folha 40 → folha; empate → sem_folha; sem texto → folha",
+        "  ok  C4 aprovado → a cena segue o texto puro",
+        "  ok  C8 still de texto puro falhou → a folha segue (nunca \"sem foto\"), motivo still_falhou",
+        "  ok  C12 still com folha aprovado → nada muda (nenhum still extra, fallback null no evento)",
+        "  ok  C13 refação com folha aprovada → o fluxo de sempre (segue a refeita, nenhum still extra)",
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-juiz-refaz-2810.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 1961,
+      "failLines": [
+        "  ok  D1 Gênesis: a foto nova reprovada NÃO é entregue — sai a 2ª foto nova, julgada de novo, aprovada, e é ela que segue",
+        "  ok  D9 aprovada na 1ª foto nova = para ali (1 foto nova, 2 vereditos)",
+        "  ok  D18 escolherTentativaCritico: aprovada > nova sem veredito > maior nota > original",
+        "  ok  E1 a rubrica tem o FAIL explícito do mascote no lugar do personagem",
+        "  ok  E2 a rubrica tem o FAIL explícito do personagem nomeado AUSENTE",
+        "  ok  M1 o laço some (só 1 foto nova): aplicou e ficou vermelho (3: laço: 2 fotos novas, 3 vereditos, a 2ª segue)",
+        "  ok  M2 a 2ª foto nova não é julgada de novo: aplicou e ficou vermelho (2: laço: 2 fotos novas, 3 vereditos, a 2ª segue)",
+        "  ok  M3 escolhe a última em vez da de maior nota: aplicou e ficou vermelho (1: 3 reprovadas: maior nota, nunca 3ª foto)",
+        "  ok  M4 3 fotos novas por cena: aplicou e ficou vermelho (1: 3 reprovadas: maior nota, nunca 3ª foto)",
+        "  ok  M5 a rubrica perde o mascote/ausente: aplicou e ficou vermelho (1: rubrica mascote/ausente)",
+        "  ok  M6 o elenco não chega ao crítico: aplicou e ficou vermelho (1: elenco chega ao crítico)",
+        "  ok  M7 a instrução da 2ª não é mais forte: aplicou e ficou vermelho (1: 2ª instrução mais forte)",
+        "  ok  M8 o mascote volta ao elenco: aplicou e ficou vermelho (1: anjo genérico sem mascote)",
+        "  ok  M9 preposição de abertura (\"Beyond the dragon lair\") volta a poder ser nome: aplicou e ficou vermelho (1: \"Beyond the dragon lair\" não faz de \"Beyond\" um dragão)",
+        "  ok  M10 figura conhecida ignorada no elenco: aplicou e ficou vermelho (1: Gênesis: sem Among, Lucifer anjo caído)",
+        "  ok  M11 coisa de cenário volta a ser personagem: aplicou e ficou vermelho (1: Nova the star é cenário)",
+        "  ok  M12 aposto \"the stars\" (plural) volta: aplicou e ficou vermelho (1: <Nome> the stars não é aposto)",
+        "  ok  M13 o mascote volta à folha: aplicou e ficou vermelho (1: folha sem mascote)",
+        "  ok  M14 a tabela de figuras some do ajuste (Krishna nu volta à ficha sorteada): aplicou e ficou vermelho (1: Krishna nu na tabela)",
+        "  ok  M15 anjo ganha o estilo fofo no conto infantil: aplicou e ficou vermelho (1: anjo nunca fofo)",
+        "75 ok, 0 falha(s)"
+      ]
+    },
+    {
+      "script": "test-refazer-cena-2710.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 852,
+      "failLines": [
+        "  ok  B1 servidor grava scene_redo_requested / delivered (ms ≥ 0) / failed (reason) pelo d.event",
+        "  ok  M1 espelho esquece o delivered: aplicou e B1 ficou vermelho",
+        "  ok  M2 servidor deixa de gravar o espelho: aplicou e B1 ficou vermelho",
+        "  ok  M3 entrega sem a hora do pedido (ms some): aplicou e B1 ficou vermelho",
+        "  ok  M4 corpo do POST leva campo a mais: aplicou e A2 ficou vermelho",
+        "  ok  M5 troca aceita link de outro filme: aplicou e A2 ficou vermelho",
+        "  ok  M6 painel pinta sem direito: aplicou e A2 ficou vermelho",
+        "  ok  M7 painel dentro das 3 saídas: aplicou e C1 ficou vermelho",
+        "  ok  M8 gancho ouve fora da fase done: aplicou e C1 ficou vermelho",
+        "17 ok · 0 falha(s)"
+      ]
+    },
+    {
+      "script": "test-refazer-gratis-2810.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 1057,
+      "failLines": [
+        "  ok  M1 versão nova ganha refação em qualquer filme: aplicou e S2 ficou vermelho",
+        "  ok  M2 teto do primeiro filme vira 3: aplicou e S1 ficou vermelho",
+        "  ok  M3 servidor não confere o teto da cadeia: aplicou e S4 ficou vermelho",
+        "  ok  M4 fonte da versão nova com id aleatório: aplicou e S1 ficou vermelho",
+        "  ok  M5 servidor esquece o scene_redo_free_used: aplicou e S6 ficou vermelho",
+        "  ok  M6 elo sem conferência de assinatura: aplicou e S4 ficou vermelho",
+        "  ok  M7 a cena refeita não pode ser refeita de novo: aplicou e S1 ficou vermelho",
+        "  ok  M8 primeiro filme decidido sem olhar o histórico: aplicou e S2 ficou vermelho",
+        "17 ok · 0 falha(s)"
+      ]
+    },
+    {
+      "script": "test-kineo1-juiz-honesto-2026-09-21.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 376,
+      "failLines": [
+        "15 ok · 0 falhas"
+      ]
+    },
+    {
+      "script": "test-credits-held-waitroom.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 81,
+      "failLines": [
+        "38 verificacoes passaram"
+      ]
+    },
+    {
+      "script": "test-billing-drift.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 1033,
+      "failLines": []
+    },
+    {
+      "script": "test-credito-preso.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 770,
+      "failLines": [
+        "OK — 115 verificacoes, 0 falhas."
+      ]
+    },
+    {
+      "script": "test-failure-recovery-honest.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 74,
+      "failLines": [
+        "  ✓ defeito real continua bug: \"Voiceover generation failed. Please try \"",
+        "  ✓ classifyFailure devolve script_short com os 3 numeros",
+        "  ✓ classifyFailure NAO e export (route.ts so exporta handlers)",
+        "  ✓ utm_campaign separado (failure_recovery_script) via compositor canônico",
+        "  ✓ carimbo grava a fonte da falha (#6)",
+        "  ✓ carimbo continua sendo failure_recovery_sent (1x por pessoa)",
+        "  ✓ classifyFailure devolve script_short para o codigo sem numeros",
+        "40 ok, 0 falhas"
+      ]
+    },
+    {
+      "script": "test-stranded-authorized-urls-fallback.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 74,
+      "failLines": []
+    },
+    {
+      "script": "test-stranded-own-generation.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 75,
+      "failLines": []
+    },
+    {
+      "script": "test-stranded-extra-attempt-4xx.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 80,
+      "failLines": [
+        "17 verificações, 0 falhas."
+      ]
+    },
+    {
+      "script": "test-stranded-ready-footer.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 307,
+      "failLines": [
+        "Error: lib/credits/engineCost.ts: unexpected import @/lib/kling4PaidPolicy"
+      ]
+    },
+    {
+      "script": "test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 77,
+      "failLines": [
+        "35 verificações OK, 0 falhas"
+      ]
+    },
+    {
+      "script": "test-resgate-defeito.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 777,
+      "failLines": [
+        "6) FALHA VELHA PERDE A FRASE \"it is fixed now\"",
+        "78 ok, 0 falhas"
+      ]
+    },
+    {
+      "script": "test-zero-cenas-fallback-2026-09-04.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 87,
+      "failLines": [
+        "  verificacoes: 22 · falhas: 0"
+      ]
+    },
+    {
+      "script": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 392,
+      "failLines": [
+        "Error: Unexpected import: @/lib/kling4PaidAsyncStatus"
+      ]
+    },
+    {
+      "script": "test-cobertura-15s-2026-09-30.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 363,
+      "failLines": [
+        "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "script": "test-filme15-fiel-2610.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 361,
+      "failLines": [
+        "Error: FILME15-PERFEITO-2610: partial or ambiguous source app/api/compose/route.ts"
+      ]
+    },
+    {
+      "script": "test-meta95-refazer-1910.mjs",
+      "exit": 1,
+      "signal": null,
+      "error": null,
+      "ms": 2446,
+      "failLines": [
+        "  ok  I7 falha honesta: recusa não gasta, ambíguo gasta, 2 gastas = acabou; cena falhada = failed_retry + evento",
+        "  FAIL R1 /api/compose: arquivo completo igual à base aprovada, hooks marcados após registrarVersaoDaCasa",
+        "  FAIL R2 biblioteca: arquivo completo igual à base aprovada, hooks marcados; 16 línguas; botão sem node:crypto",
+        "  ok  M1 trava por clique (id aleatório): aplicou e I1 ficou vermelho",
+        "  ok  M2 sem conferir o dono do vídeo: aplicou e I2 ficou vermelho",
+        "  ok  M3 assinatura da fonte ignorada: aplicou e I2 ficou vermelho",
+        "  ok  M4 refação já entregue volta a ser grátis: aplicou e I3 ficou vermelho",
+        "  ok  M5 débito escondido na entrega: aplicou e I4 ficou vermelho",
+        "  ok  M6 teto diário furado: aplicou e I5 ficou vermelho",
+        "  ok  M7 teto contado pelo nome (forjada ocupa vaga): aplicou e I5 ficou vermelho",
+        "  ok  M8 cena fora da lista vira a 1ª: aplicou e I6 ficou vermelho",
+        "  ok  M9 recusa explícita gasta a vez: aplicou e I7 ficou vermelho",
+        "  ok  M10 troca só a 1ª ocorrência do clipe: aplicou e F3 ficou vermelho",
+        "  ok  M11 Kling 3 entra na lista: aplicou e F2 ficou vermelho",
+        "21 ok · 2 falha(s)"
+      ]
+    },
+    {
+      "script": "test-scene-truth.mjs",
+      "exit": 0,
+      "signal": null,
+      "error": null,
+      "ms": 848,
+      "failLines": []
+    }
+  ]
+}

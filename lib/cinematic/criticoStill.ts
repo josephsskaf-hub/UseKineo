@@ -337,9 +337,61 @@ export function escolherTentativaCritico(tentativas: ReadonlyArray<TentativaCrit
   return melhor.n // KINEO-JUIZ-REFAZ-2810
 } // KINEO-JUIZ-REFAZ-2810
 
+// KINEO-JUIZ-ESTADOS-3010 — score ranks rejected candidates; it never grants approval.
+export type EstadoFinalStill = 'PASS' | 'BEST_FAIL' | 'UNVERIFIED'
+export type DecisaoFinalStill = {
+  estado_final: EstadoFinalStill
+  veredito_final: VereditoCritico
+  nota_final: number | null
+  aprovado_final: boolean
+  regra_seguimento: 'animate_approved' | 'animate_degraded' | 'animate_unverified'
+}
+/** Preserve today's fail-open delivery policy until visual calibration supports a new gate.
+ * Only PASS can become an approved reference. A higher FAIL score stays BEST_FAIL;
+ * off/timeouts/skips stay UNVERIFIED. Neither changes the financial finalizer. */
+export function decisaoFinalStill(veredito: VereditoCritico, nota: number | null): DecisaoFinalStill {
+  const estado = veredito === 'PASS' ? 'PASS' : veredito === 'FAIL' ? 'BEST_FAIL' : 'UNVERIFIED'
+  return { estado_final: estado, veredito_final: veredito, nota_final: nota, aprovado_final: estado === 'PASS',
+    regra_seguimento: estado === 'PASS' ? 'animate_approved' : estado === 'BEST_FAIL' ? 'animate_degraded' : 'animate_unverified' }
+}
+/** Exact selected URL and attempt, including early returns (off, no budget, timeout). */
+export function decisaoDaEscolhaCritico(r: Pick<RelatoCriticoStill, 'tentativas' | 'escolhida_tentativa' | 'url_final' | 'veredito'>): DecisaoFinalStill {
+  const t = r.tentativas.find(t => t.n === r.escolhida_tentativa && t.url === r.url_final)
+  return decisaoFinalStill(t?.veredito ?? (r.veredito === 'ERRO' ? 'ERRO' : 'PULADO'), t?.nota ?? null)
+}
+
+export type EvidenciaStillFinal = { cena: number; url: string | null; veredito: string | null; nota?: number | null }
+/** The signed claim describes the frames actually dispatched, including a discarded sheet,
+ * a late judge whose replacement was not used, or a text-to-video fallback. No new calls. */
+export function relatoStillNoClaim(response: Record<string, unknown>, relatos: readonly RelatoCriticoStill[], extras: readonly EvidenciaStillFinal[] = []) {
+  const obj = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {}
+  const arr = (v: unknown): unknown[] => Array.isArray(v) ? v : []
+  const trial = arr(obj(response.kling4_trial).scene_plan)
+  const anchors = arr(response.scene_anchor_urls), inputs = arr(response.scene_fal_inputs)
+  const urls = trial.length ? trial.map(s => obj(s).still_url)
+    : Array.from({ length: Math.max(anchors.length, inputs.length, arr(response.scenes).length) }, (_, i) => {
+      const input = inputs[i]
+      // An exact t2v payload overrides a stale planned anchor too: no image was sent.
+      if (input && typeof input === 'object' && !Array.isArray(input)) return obj(input).image_url ?? obj(input).start_image_url ?? null
+      return anchors[i] ?? null // Historical claims without a recorded input retain their anchor evidence.
+    })
+  return { versao: 'still_decision_3010_v1', politica: 'preserve_delivery_only_pass_is_approved',
+    cenas: urls.map((value, i) => {
+      const url = typeof value === 'string' && value ? value : null
+      const extra = [...extras].reverse().find(e => e.cena === i + 1 && e.url === url && url)
+      const tentativa = [...relatos].reverse().filter(r => r.cena === i + 1).flatMap(r => [...r.tentativas].reverse()).find(t => t.url === url && url)
+      const raw = (extra ? extra.veredito : tentativa?.veredito) ?? 'PULADO'
+      const veredito = raw === 'PASS' || raw === 'FAIL' || raw === 'ERRO' ? raw : 'PULADO'
+      return { cena: i + 1, url_final: url, ...decisaoFinalStill(veredito, (extra ? extra.nota : tentativa?.nota) ?? null),
+        motivo_seguimento: !url ? 'no_still_text_to_video' : veredito === 'PASS' ? 'exact_frame_pass'
+          : veredito === 'FAIL' ? 'best_available_fail_not_approved' : 'judge_unavailable_or_not_finished' }
+    }),
+  }
+}
+
 // ── 4. O JULGAMENTO DE UM STILL (orquestra; nunca lança) ──
 export type PuladoPor = 'prazo' | 'teto_cena' | 'orcamento_filme' | 'disjuntor' | 'teto_regeracoes' | 'modo_log_only' | null
-export type RelatoCriticoStill = {
+export type RelatoCriticoStill = DecisaoFinalStill & {
   versao: string
   modo: ModoCriticoStill
   cena: number
@@ -425,6 +477,7 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
   const t0 = agora()
   const filme = d.filme
   const r: RelatoCriticoStill = {
+    ...decisaoFinalStill('PULADO', null),
     versao: STILL_CRITIC_VERSAO, modo: filme.modo, cena: e.indice + 1, veredito: 'PULADO', problemas: [], motivo: '', nota: null,
     regeraria: false, regerou: false, regeracao_ok: null, instrucao: null, veredito_regerada: null, problemas_regerada: null, nota_regerada: null,
     escolhida: 'original', custo_usd: 0, ms: 0, chamadas: 0, modelo: STILL_CRITIC_MODELO, erro: null, pulado_por: null,
@@ -515,11 +568,13 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     r.erro = `critico_lancou: ${limpa(err instanceof Error ? err.message : String(err)).slice(0, 100)}`
     if (r.veredito === 'PULADO') r.veredito = 'ERRO'
     r.escolhida = 'original'
+    r.escolhida_tentativa = 0 // KINEO-JUIZ-ESTADOS-3010 — catch returns the original, never a stale selected index.
     url = e.url
     return { url, relato: r }
   } finally {
     r.ms = Math.max(0, agora() - t0)
     r.url_final = url
+    Object.assign(r, decisaoDaEscolhaCritico(r)) // KINEO-JUIZ-ESTADOS-3010
     filme.gastoMs += r.ms
     filme.relatos.push(r)
   }

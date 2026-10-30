@@ -21,6 +21,9 @@ import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-202
 import { KLING4_T2V_MODEL, KLING4_I2V_MODEL } from '@/lib/kling4Trial'
 import { advanceKling4TrialStatus, kling4TrialPollIdsMatch } from '@/lib/kling4TrialAsyncStatus'
 import { advanceKling4PaidStatus, kling4PaidMarker, kling4PaidPollIdsMatch } from '@/lib/kling4PaidAsyncStatus'
+import { recoverSceneFailures, sceneRetryPollIdsMatch } from '@/lib/cinematic/sceneRecovery' // KINEO-CENA-RETRY-3010 [TRAVA 8.2 — pedido do fundador 30/10]
+import type { FalhaDeCena } from '@/lib/cinematic/sceneRetryPolicy'
+import { finalizeSceneFailure } from '@/lib/cinematic/sceneFailureFinalizer'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120 // Queue GETs and at most one durable Seedance fallback dispatch; never wait for a render.
@@ -116,7 +119,7 @@ function pollMessageSignal(error: unknown): string {
   return 'unclassified'
 }
 
-async function checkFalClip(requestId: string, model: string, generationId: string, sceneIndex: number): Promise<ClipStatus> {
+async function checkFalClip(requestId: string, model: string, generationId: string, sceneIndex: number, failures?: FalhaDeCena[]): Promise<ClipStatus> {
   const falKey = process.env.FAL_KEY
   if (!falKey) return { id: requestId, status: 'processing', url: null }
 
@@ -138,6 +141,7 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
       // https://fal.ai/docs/documentation/model-apis/inference/queue#check-status
       hasQueueError = typeof finished.error === 'string' && finished.error.trim().length > 0
       if (queueIdMatches && hasQueueError) {
+        failures?.push({ index: sceneIndex, requestId, model, http: null, message: String(finished.error).slice(0, 400) })
         const messageSignal = pollMessageSignal({ body: { error: finished.error } })
         console.warn('[cinematic-job-terminal]', {
           generation_id: generationId,
@@ -281,7 +285,7 @@ export async function GET(req: NextRequest) {
         anyDone: false, done: 0, total: claim.falRequestIds.length, failed: 0, retry_after_ms: 3000,
         ...(!sameArray(requestedIds, claim.falRequestIds) ? { replacement: claim.response } : {}) })
     }
-    if (!paidMarker && !kling4TrialPollIdsMatch(requestedIds, claim)) {
+    if (!paidMarker && !kling4TrialPollIdsMatch(requestedIds, claim) && !sceneRetryPollIdsMatch(requestedIds, claim)) {
       return NextResponse.json({ error: 'Generation not found.' }, { status: 404 })
     }
     const trial = await advanceKling4TrialStatus({ db: admin, secret, userId: user.id, generationId, claim })
@@ -298,6 +302,7 @@ export async function GET(req: NextRequest) {
     }
 
     const knownFailures = Array.isArray(claim.response?.terminal_failed_jobs) ? claim.response.terminal_failed_jobs : []
+    const recoveryFailures: FalhaDeCena[] = []
     const clips: ClipStatus[] = paidAdvance?.kind === 'ready' && paidAdvance.clips
       ? paidAdvance.clips
       : trial.kind === 'kling_done'
@@ -307,10 +312,12 @@ export async function GET(req: NextRequest) {
         if (!id) return Promise.resolve({ id: null, status: 'failed' as const, url: null })
         const knownUrl = claim.authorizedCompletedUrls[index]
         if (knownUrl) return Promise.resolve({ id, status: 'done' as const, url: knownUrl })
-        if (knownFailures.some(job => job.requestId === id && job.model === claim.falModels[index])) {
-          return Promise.resolve({ id, status: 'failed' as const, url: null })
-        }
-        return checkFalClip(id, claim.falModels[index], generationId, index)
+        // Re-read failed jobs to classify a retry after backoff; never resurrect a previously signed terminal failure.
+        return checkFalClip(id, claim.falModels[index], generationId, index, recoveryFailures).then(clip => {
+          if (!knownFailures.some(job => job.requestId === id && job.model === claim.falModels[index])) return clip
+          if (!recoveryFailures.some(f => f.index === index)) recoveryFailures.push({ index, requestId: id, model: claim.falModels[index], http: null })
+          return { id, status: 'failed' as const, url: null }
+        })
       }),
     )
     // ═══ KINEO-CENA-PRESA-2026-09-22 — a cena que não volta do fornecedor vira `failed` e entra no retry que já existe ═══
@@ -363,11 +370,28 @@ export async function GET(req: NextRequest) {
       }
       durableClaim = authorized.claim
     }
+    if (recoveryFailures.length > 0 && !paidMarker && !durableClaim.response?.kling4_trial) {
+      const recovery = await recoverSceneFailures({ db: admin, secret, userId: user.id, generationId,
+        failures: recoveryFailures, completed, via: 'poll' })
+      if (recovery.segurar) {
+        return NextResponse.json({ clips: clips.map(c => c.status === 'failed' ? { ...c, status: 'processing', url: null } : c),
+          allDone: false, anyDone: completed.length > 0, done: completed.length, total: clips.length, failed: 0,
+          sceneRetryIds: recovery.claim?.falRequestIds ?? durableClaim.falRequestIds, retry_after_ms: 6000 })
+      }
+      if (recovery.claim) durableClaim = recovery.claim
+    }
     const allDone = paidAdvance?.kind === 'fallback_empty' || trial.kind === 'fallback_empty' || cinematicJobsAreTerminal(durableClaim) &&
       clips.every((clip) => clip.status === 'done' || clip.status === 'failed')
     const failedCount = clips.filter((clip) => clip.status === 'failed').length
     const paidFallbackIncomplete = Boolean(paidMarker && kling4PaidMarker(durableClaim)?.fallback_finalized && failedCount > 0)
     if (allDone && (failedCount === clips.length || paidFallbackIncomplete)) {
+      if (!paidMarker && !durableClaim.response?.kling4_trial) {
+        const finalized = await finalizeSceneFailure({ db: admin, secret, userId: user.id, generationId,
+          ids: durableClaim.falRequestIds, models: durableClaim.falModels, allFailed: true })
+        return finalized.closed
+          ? NextResponse.json({ error: 'All AI clips failed. Your credits were refunded automatically.', clips }, { status: 502 })
+          : NextResponse.json({ pending: true, clips, allDone: false, anyDone: false, done: 0, total: clips.length, failed: failedCount, retry_after_ms: 6000 })
+      }
       if (trial.kind === 'fallback_empty') console.warn('[kling4-trial]', { generation_id: generationId, reason: 'fallback_no_accepted_scenes' })
       const billingReference = claim.resolutionReference
       const paidPromo = paidMarker?.promo === true && claim.creditCost === 0 && claim.engine === 'kling4-promo-v1'
@@ -409,7 +433,8 @@ export async function GET(req: NextRequest) {
       done: clips.filter((clip) => clip.status === 'done').length,
       total: clips.length,
       failed: failedCount,
-      ...(!sameArray(requestedIds, durableClaim.falRequestIds) ? { replacement: durableClaim.response } : {}),
+      ...(!sameArray(requestedIds, durableClaim.falRequestIds) ? durableClaim.response?.kling4_trial || paidMarker
+        ? { replacement: durableClaim.response } : { sceneRetryIds: durableClaim.falRequestIds } : {}),
     })
   } catch (error) {
     console.error('[cinematic-status] unexpected error:', error instanceof Error ? error.message : String(error))

@@ -914,7 +914,10 @@ export async function retargetCinematicRequestId(args: {
       return { ok: false, error: 'response request id mismatch', conflict: true }
     }
     respIds[index] = args.newRequestId
-    response = { ...response, fal_request_ids: respIds }
+    const replacements = Array.isArray(response.scene_retry_replacements) ? response.scene_retry_replacements : []
+    // Signed slot lineage lets an authenticated old poll adopt a server retry; never trust arbitrary request ids.
+    response = { ...response, fal_request_ids: respIds, scene_retry_replacements: [...replacements,
+      { index, old_request_id: args.oldRequestId, new_request_id: args.newRequestId, model: args.model }].slice(-2 * respIds.length) }
     // A replacement starts unresolved. Never transfer the old job's terminal
     // evidence to its slot (or keep stale proofs that could later be reused).
     if (response.terminal_failed_jobs !== undefined) {

@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-30T18:49:49.300Z",
+  "codeHead": "9648f04c507bd956752374b7bdefd44578e97714",
+  "baselineHead": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "originMainPinned": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "suite33": {
+    "baselineGreen": 19,
+    "candidateGreen": 21,
+    "total": 33,
+    "newRedScripts": [],
+    "newIssues": [],
+    "redScripts": [
+      "test-retentar-cena-1410.mjs",
+      "test-cena-classica-retentativa-2026-09-28.mjs",
+      "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "test-juiz-still-1410.mjs",
+      "test-juiz-still-2026-10-06.mjs",
+      "test-juiz-ficha-2710.mjs",
+      "test-billing-drift.mjs",
+      "test-stranded-ready-footer.mjs",
+      "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "test-cobertura-15s-2026-09-30.mjs",
+      "test-filme15-fiel-2610.mjs",
+      "test-meta95-refazer-1910.mjs"
+    ]
+  },
+  "gates": {
+    "head": "9648f04c507bd956752374b7bdefd44578e97714",
+    "allPassed": true,
+    "scripts": [
+      {
+        "script": "test-cena-recovery-3010.mjs",
+        "exit": 0,
+        "summary": [
+          "cena-recovery-3010: 32 passed; real HMAC/POST/retarget/refund coordinator, synthetic providers; cost $0"
+        ]
+      },
+      {
+        "script": "test-retry-budget-3010.mjs",
+        "exit": 0,
+        "summary": [
+          "retry-budget-3010: 19 passed; actual POST, HMAC, CAS, synthetic providers; cost $0"
+        ]
+      },
+      {
+        "script": "test-juiz-estados-3010.mjs",
+        "exit": 0,
+        "summary": [
+          "14 checks passed; providers=0, paid renders=0. Visual model accuracy was not remeasured."
+        ]
+      },
+      {
+        "script": "test-qualidade-todos-motores-2910.mjs",
+        "exit": 0,
+        "summary": [
+          "17 testes de qualidade passaram; 0 falha(s)."
+        ]
+      },
+      {
+        "script": "test-despacho-vazio-2026-09-04.mjs",
+        "exit": 0,
+        "summary": [
+          "✅ 51 verdes, 0 vermelhas"
+        ]
+      }
+    ]
+  },
+  "tsc": {
+    "command": "npx --offline tsc --noEmit --incremental false",
+    "codeHead": "9648f04c507bd956752374b7bdefd44578e97714",
+    "exit": 0,
+    "logBytes": 0,
+    "log": "final-candidate-tsc-9648.log"
+  },
+  "network": "Real network blocked in suites; no production credentials or environment files read; no paid render",
+  "files": {
+    "suite": "final-candidate.json",
+    "comparison": "final-candidate-comparison.json",
+    "gates": "final-candidate-gates.json",
+    "baseline": "baseline-pinned.json"
+  }
+}

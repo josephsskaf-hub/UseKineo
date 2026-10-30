@@ -68,8 +68,10 @@ const retryReplay=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast)==='meta
 // KINEO-CENA-CLASSICA-2026-09-28 — re-ancorado: o ramo ganhou a régua do hold CLÁSSICO (lib/classicSceneRetry, real aqui),
 // que o compose desfaz. A intenção deste bloco não muda e fica mais estrita: hold sem modelo clássico assinado (vazio OU
 // hollywood) nunca é apagado pelo compose (releaseSceneRetryMutex/writeServerEvent lançam se chamados) nem vira 2ª submissão.
+// KINEO-JUIZ-ESTADOS-3010 — a retomada agora grava o relato do juiz (PASS/BEST_FAIL/UNVERIFIED) no claim
+const stillScope={relatoStillNoClaim:load('@/lib/cinematic/criticoStill').relatoStillNoClaim,stillDecisionReports:[],stillDecisionExtras:[]}
 const classicScope={classicSceneRetryHoldResolvable:load('@/lib/classicSceneRetry').classicSceneRetryHoldResolvable,claimId:'fixture-claim',
-  releaseSceneRetryMutex:async()=>{throw Error('Non-classic hold must never be released by compose')},writeServerEvent:async()=>{throw Error('Non-classic hold must never be cleared')}}
+  releaseSceneRetryMutex:async()=>{throw Error('Non-classic hold must never be released by compose')},writeServerEvent:async()=>{throw Error('Non-classic hold must never be cleared')},...stillScope}
 for(const marker of [{},{model:'minimax/h3/text-to-video'}])
 for(const phase of ['submitting','ambiguous','retarget_failed','release_unconfirmed']){
   for(const age of [30_000,180_000]){
@@ -89,7 +91,7 @@ for(const phase of ['submitting','ambiguous','retarget_failed','release_unconfir
 }
 const invalidRetry=evaluate(`export async function run(){${retryReplay.getText(ast)} throw Error('Unsafe retry fallthrough')}`,{
   NextResponse:next,metadata:{scene_retry:{}},composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',
-  readVerifiedSceneRetryHold:async()=>null,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),
+  readVerifiedSceneRetryHold:async()=>null,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),...stillScope,
 })
 eq((await invalidRetry.run()).status,503)
 eq(retryReplay.pos<terminalGuard.pos,true)
@@ -198,7 +200,7 @@ for(const uncertain of [true,false]){
     claimFingerprint:'fixture-fingerprint',cost:25,claimQuality:'cinematic_ai',claimEngine:'fixture-engine',
     cinematicAdmin:{},serviceRoleKey:'fixture',user:{id:'fixture-user'},generationId:'fixture-generation',
     completeCinematicClaim:async value=>{signed.push(value);return {ok:true,claim:{}}},
-    settleDebitAndRespond:async (_,response)=>json(response),NextResponse:next,
+    settleDebitAndRespond:async (_,response)=>json(response),NextResponse:next,...stillScope, // KINEO-JUIZ-ESTADOS-3010
   })
   const response=await module.publish({submission_uncertain:!uncertain,...(snapshotMode === 'resume' ? { quality_snapshot: snapshot } : {})},['fixture-request',null],['fixture-model','fixture-model'])
   const published = await response.json()

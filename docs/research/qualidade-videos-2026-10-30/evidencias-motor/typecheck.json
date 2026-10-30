@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-30T18:49:49.300Z",
+  "codeHead": "9648f04c507bd956752374b7bdefd44578e97714",
+  "baselineHead": "1b81ff33c824f128a6e3550bf2412d7a21240201",
+  "tsc": {
+    "command": "npx --offline tsc --noEmit --incremental false",
+    "codeHead": "9648f04c507bd956752374b7bdefd44578e97714",
+    "exit": 0,
+    "logBytes": 0,
+    "log": "final-candidate-tsc-9648.log"
+  },
+  "diffCheck": {
+    "exit": 0,
+    "command": "git diff --check 1b81ff33c..00120a0f9",
+    "head": "00120a0f9166aba980efab0848d75377929e354c"
+  },
+  "scope": "offline only; no build, no deployment, no production or paid render",
+  "postValidationChanges": "Documentation/evidence and LF-only fixture normalization; no TypeScript source differs from validated codeHead. Recovery32 and budget19 repeated after LF normalization."
+}
