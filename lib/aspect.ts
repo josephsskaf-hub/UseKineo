@@ -97,8 +97,11 @@ const SPECS: Record<Aspect, AspectSpec> = {
     captionBottomY: '78%',
     captionWidth: '78%',
     captionXAlignment: '50%', // KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10 "3 sim"] — 9:16 também centralizado (a caixa de 78% já é centrada em x 50%: o texto não sai da zona segura)
-    captionFontSize: 62,
-    hookFontSize: 76,
+    // KINEO-LEGENDA-MENOR-3110 — fundador 31/10: "a legenda está muito no meio e atrapalha ver o vídeo; mais embaixo e um pouco menor".
+    // O piso (78%) já é o limite da zona segura (abaixo disso o TikTok/Reels/Shorts cobrem com nome, legenda do post e barra); então
+    // a legenda fica menor (62→54, gancho 76→64, ~13-16%): a caixa ancorada no piso sobe menos e o topo dela desce para ~73%.
+    captionFontSize: 54,
+    hookFontSize: 64,
     letterboxPct: 6,
     watermarkY: '5%',
     falAspectRatio: '9:16',
