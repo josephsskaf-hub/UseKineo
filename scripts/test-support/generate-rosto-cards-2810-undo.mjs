@@ -10,6 +10,21 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-PUBLICAR-GANHAR-3110 — a camada MAIS NOVA (31/10, [TRAVA 8.2 — vai do fundador 31/10 "vai publicar"]): a tela de filme pronto
+  // oferece "Publish your film — get 10 credits each time someone makes their own version" (publica só no clique) e o cron
+  // /api/cron/remix-reward paga o dono quando a conta indicada termina o 1º filme. Base = a main de então (8584ab8e9), tip = árvore
+  // de trabalho até o commit.
+  'publicar-ganhar-3110': {
+    fn: 'semPublicarGanhar3110',
+    marca: 'KINEO-PUBLICAR-GANHAR-3110',
+    o_que: 'o "Publish & earn" (cartão de publicar na tela de pronto + crédito ao dono quando alguém faz a própria versão)',
+    base: '8584ab8e9',
+    tip: null,
+    arquivos: ['app/(dashboard)/generate/GenerateClient.tsx', 'app/api/video/visibility/route.ts', 'app/api/events/route.ts', 'lib/admin/ledgerGrants.ts', 'vercel.json'],
+    semMarca: ['vercel.json'],
+    novos: ['lib/publicarGanhar3110.ts', 'lib/publicarGanhar3110Server.ts', 'components/PublishEarnCta.tsx', 'app/api/cron/remix-reward/route.ts',
+      'scripts/test-publicar-ganhar-3110.mjs', 'scripts/test-support/desfaz-publicar-ganhar-3110.mjs'],
+  },
   // KINEO-DANCA-PUBLICA-3110 — a camada MAIS NOVA (31/10, vai do fundador "3A"): o Friday Groove lançado — cartão do modelo da casa na
   // grade de efeitos do /clips. lib/clips/faceRemix.ts e o guardião nasceram no ramo (sem camada). Base = a main de então (e5f152dfe).
   'danca-publica-3110': {

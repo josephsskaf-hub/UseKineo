@@ -13,6 +13,7 @@
 //   · business_upgrade_credits_granted — lib/billing/trocaBusiness.ts: `credits_delta` só com `credits_granted === true`.
 //   · admin_credit_granted       — concessão antiga (jul/2026, antes do botão): `amount` com `status === 'completed'`.
 //   · admin_credits_revoked      — revogação manual: `credits_revoked` SAI do saldo.
+//   · remix_reward_granted       — KINEO-PUBLICAR-GANHAR-3110, cron /api/cron/remix-reward: `credits` quando `granted === true`.
 // Fora de propósito: admin_br_trial_recredited (o recrédito grava trial_credits_granted, que a equação já soma como
 // "trial" — somar de novo contaria duas vezes) e admin_credits_granted (já é o termo "bônus").
 
@@ -27,6 +28,7 @@ export const LEDGER_GRANT_EVENTS = [
   'business_upgrade_credits_granted',
   'admin_credit_granted',
   'admin_credits_revoked',
+  'remix_reward_granted', // KINEO-PUBLICAR-GANHAR-3110
 ] as const
 
 export type LedgerGrantEvent = { user_id: string | null; name: string; created_at?: string | null; metadata?: Record<string, unknown> | null }
@@ -42,6 +44,7 @@ export const LEDGER_GRANT_LABEL: Record<string, string> = {
   business_upgrade_credits_granted: 'Business upgrade',
   admin_credit_granted: 'Admin grant (old)',
   admin_credits_revoked: 'Revoked',
+  remix_reward_granted: 'Remix reward', // KINEO-PUBLICAR-GANHAR-3110
 }
 
 const num = (v: unknown): number => {
@@ -55,6 +58,7 @@ export function ledgerGrantDelta(name: string, md: Record<string, unknown> | nul
   switch (name) {
     case 'region_free_clip_granted':
     case 'region_free_film_granted':
+    case 'remix_reward_granted': // KINEO-PUBLICAR-GANHAR-3110
       return m.granted === true ? Math.max(0, num(m.credits)) : 0
     case 'free_weekly_film_granted':
       return typeof m.granted === 'number' ? Math.max(0, num(m.granted)) : 0

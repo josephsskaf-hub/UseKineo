@@ -5,6 +5,10 @@
       "schedule": "29 13 * * *"
     },
     {
+      "path": "/api/cron/remix-reward?confirm=SEND",
+      "schedule": "43 * * * *"
+    },
+    {
       "path": "/api/admin/send-card-entry-d1?confirm=SEND&limit=30",
       "schedule": "30 12 * * *"
     },

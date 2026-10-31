@@ -349,6 +349,7 @@ import {
 } from '@/lib/proximoEpisodioFila'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
 import { PremiereStage, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
+import PublishEarnCta from '@/components/PublishEarnCta' // KINEO-PUBLICAR-GANHAR-3110 — "Publish your film — get 10 credits each time someone makes their own version"
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
@@ -19241,6 +19242,9 @@ export default function GenerateClient({
                 {/* KINEO-VITRINE-FILMES-2610 — consent only after an actual delivered download. */}
                 {downloadDelivered && publicVideoId && downloadedShowcaseVideoId === publicVideoId ? <ShowcaseConsent key={publicVideoId} videoId={publicVideoId} onPublishedChange={setPublicPagePublished} /> : null}
 
+                {/* KINEO-PUBLICAR-GANHAR-3110 — o cartão "Publish & earn": publica só no clique (POST /api/video/visibility) e, publicado, mostra o link /v/ com Copiar/Compartilhar. */}
+                {publicVideoId ? <PublishEarnCta key={publicVideoId} videoId={publicVideoId} published={publicPagePublished} referralCode={shareReferralCode} onPublished={() => setPublicPagePublished(true)} /> : null}
+
                 {/* Keep the revenue/export decision first. Free users see this
                     after the clean-vs-watermarked choice; paid users see it after
                     their primary download. Sharing stays opt-in and uses the
@@ -19432,32 +19436,7 @@ export default function GenerateClient({
                               : 'Your video was shared; no Kineo watch page was created.'
                             : 'Nothing is sent until you choose a recipient.'}
                     </p>
-                    {/* KINEO-LACO-VIRAL-2026-09-17 — a decisão explícita de visibilidade, na tela, com um clique. Antes esta
-                        linha dizia "temporarily paused" e a única forma de publicar era o link assinado do e-mail:
-                        716 filmes em 30 dias, 1 página publicada. A página pública é onde mora o "faça o seu". */}
-                    {publicVideoId && (
-                      <button
-                        type="button"
-                        onClick={handlePublishWatchPage}
-                        disabled={publishPageState === 'publishing'}
-                        data-viral-loop={VIRAL_LOOP_VERSION}
-                        className="w-full rounded-xl mt-3 py-2.5 text-sm font-black"
-                        style={{
-                          background: 'var(--accent-soft)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--accent)',
-                          cursor: publishPageState === 'publishing' ? 'wait' : 'pointer',
-                          opacity: publishPageState === 'publishing' ? 0.7 : 1,
-                        }}
-                      >
-                        {publishPageState === 'publishing' ? 'Creating your public watch page…' : 'Create a public watch page & share it →'}
-                      </button>
-                    )}
-                    <p className="mt-2 text-center" style={{ color: 'var(--muted)', fontSize: '0.64rem', lineHeight: 1.4 }}>
-                      {publishPageState === 'error'
-                        ? 'The page could not be created. Nothing was published — try again in a moment.'
-                        : 'Nothing is public until you press it. The page shows this film with a "make your own" button for whoever you send it to.'}
-                    </p>
+                    {/* KINEO-PUBLICAR-GANHAR-3110 — o botão "Create a public watch page" daqui virou o cartão "Publish & earn" (PublishEarnCta), acima: um único botão de publicar na tela. */}
                   </div>
                 )}
 

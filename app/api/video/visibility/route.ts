@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export const VISIBILITY_SOURCES = ['done_screen', 'my_videos'] as const
+export const VISIBILITY_SOURCES = ['done_screen', 'my_videos', 'publish_earn'] as const // KINEO-PUBLICAR-GANHAR-3110 — 'publish_earn' = o cartão "Publish & earn" da tela de pronto
 type VisibilitySource = (typeof VISIBILITY_SOURCES)[number]
 type VisibilityAction = 'publish' | 'unpublish'
 
