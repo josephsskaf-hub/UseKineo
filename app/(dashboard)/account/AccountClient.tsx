@@ -27,6 +27,9 @@ import { trackEvent } from '@/lib/analytics'
 // KINEO-ANUAL-2o-MES-2026-10-08 — a oferta do anual (30%) no 2º mês: a peça pergunta ao servidor se a assinatura é
 // elegível e só pinta com o interruptor MONTH2_ANNUAL_OFFER_LIVE ligado (lib/billing/month2AnnualOffer.ts).
 import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer'
+// KINEO-SALVA-CANCELAMENTO-3110 — "Cancel subscription" abre a tela "Before you go" (motivo + 1 oferta honesta) antes do
+// portal; "Continue to cancel" segue em todos os passos. Regra em lib/billing/salvaCancelamento.ts.
+import CancelSaveFlow from '@/components/billing/CancelSaveFlow'
 
 interface AccountClientProps {
   email: string
@@ -150,6 +153,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
   const [signingOut, setSigningOut] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
+  const [cancelSaveOpen, setCancelSaveOpen] = useState(false) // KINEO-SALVA-CANCELAMENTO-3110
   // Settings v3 — editable display name (saved to supabase user_metadata).
   const [savingName, setSavingName] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
@@ -522,11 +526,23 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                       opacity: portalLoading ? 0.7 : 1,
                     }}
                   >
-                    {portalLoading ? 'Opening…' : 'Manage billing — payment method, invoices, cancel'}
+                    {portalLoading ? 'Opening…' : 'Manage billing — payment method, invoices'}
                   </button>
                   {portalError && (
                     <p className="text-xs mt-2" style={{ color: '#f87171' }} role="alert">{portalError}</p>
                   )}
+                  {/* KINEO-SALVA-CANCELAMENTO-3110 — cancelar tem botão próprio, visível, que passa pela tela "Before
+                      you go" (motivo + 1 oferta) e termina no portal da Stripe já na tela de cancelar. */}
+                  <button
+                    type="button"
+                    onClick={() => setCancelSaveOpen(true)}
+                    className="block w-full text-center text-xs font-semibold mt-3 underline"
+                    style={{ color: 'var(--muted2)', background: 'none', border: 0, cursor: 'pointer' }}
+                    data-testid="account-cancel-subscription"
+                  >
+                    Cancel subscription
+                  </button>
+                  {cancelSaveOpen && <CancelSaveFlow onClose={() => setCancelSaveOpen(false)} />}
                 </>
               ) : (
                 <Link
