@@ -29,6 +29,7 @@ import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCar
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restoredClipEffect } from '@/lib/clips/clipRotateHint' // KINEO-CLIPE360-AMOSTRA-1410
 import { CLIP_TRENDS, CLIP_TRENDS_PUBLIC, clipTrendByKey, trendTarget, type ClipTrend } from '@/lib/clips/clipTrends' // KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana"
+import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110 — efeitos da estação no "Trending this week"
 import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — ?prompt= do Made with Kineo
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
@@ -212,6 +213,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     // KINEO-CLIPE360-AMOSTRA-1410 — ?effect= vence; senão volta o efeito que a pessoa escolheu nesta aba (só se a galeria o trouxe).
     const restored = restoredClipEffect({ fromUrl: wanted, remembered: rememberedClipEffect(), effectKeys: effects.map((fx) => fx.key) })
     if (restored) setEffectKey(restored)
+    // KINEO-EFEITO-ROLA-3110 — fundador 30/10: vindo do Trending/home com ?effect=, a pessoa caía no topo e tinha de rolar para achar
+    // "Adicionar foto". Agora a tela desce sozinha até o painel do efeito (só quando o efeito veio do link, não ao restaurar a aba).
+    if (restored && wanted === restored) window.setTimeout(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 350)
   }, [effects])
 
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — a ideia pronta do aviso "Você tem 1 clipe grátis" (lib/clips/freeClipNotice.ts):
@@ -398,7 +402,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     setEffectKey(next)
     rememberClipEffect(next)
     setError(null)
-    window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+    window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) // KINEO-EFEITO-ROLA-3110 — o painel aparece inteiro, não só a borda
   }
 
   // KINEO-CLIPE360-AMOSTRA-1410 — a troca de 1 clique da nota do giro: o efeito Produto 360° com a MESMA foto (o texto fica
@@ -709,6 +713,21 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 </button>
               )
             })}
+            {/* KINEO-VITRINE-ESTACAO-3110 — fundador 30/10: "lotar o Trending this week com os de Natal" — os efeitos da estação
+                (Halloween → Día de Muertos → Natal, lib/clips/clipSeason.ts) entram depois das ideias; o clique escolhe o efeito. */}
+            {seasonalEffectKeys(Date.now()).map((k) => effects.find((fx) => fx.key === k)).filter((fx): fx is NonNullable<typeof fx> => !!fx && !!fx.preview).map((fx) => (
+              <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
+                <span className="fx-media">
+                  <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                </span>
+                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
+                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
+                <span className="fx-foot">
+                  <span className="tag">{fx.engine_label}</span>
+                  <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
+                </span>
+              </button>
+            ))}
           </div>
         </section>
       )}

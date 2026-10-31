@@ -18,7 +18,7 @@ import type { ClipEffect } from '@/lib/clips/clipEffects'
 import { publicEffectPages, effectPagePath, effectSlug } from '@/lib/clips/clipEffectPages'
 import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalleryImage } from '@/components/home/HomeImageGallery'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { HALLOWEEN_SKIN_ENDS_AT } from '@/components/home/HalloweenSkin'
+import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -59,21 +59,7 @@ type Tile =
   | { kind: 'effect'; effect: ClipEffect }
   | { kind: 'image'; img: MosaicImage }
 
-// KINEO-VITRINE-ESTACAO-3110 — fundador 30/10 ("o que importa é o efeito do momento: Halloween, Natal, os 2 meses que faltam"):
-// a vitrine abre com os efeitos da ESTAÇÃO e completa com os mais novos. Halloween até 1º/11 00:00 BRT; Día de Muertos
-// (1º e 2/11) até 3/11 00:00 BRT; Natal até 26/12 00:00 BRT. Chave que não está no catálogo público é ignorada.
-export const DIA_DE_MUERTOS_ENDS_AT = '2026-11-03T03:00:00.000Z'
-export const NATAL_ENDS_AT = '2026-12-26T03:00:00.000Z'
-export const NATAL_EFFECT_KEYS = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel'] as const
-export const DIA_DE_MUERTOS_EFFECT_KEYS = ['catrina', 'catrina_pet'] as const
-
-export function seasonalEffectKeys(now: number): readonly string[] {
-  if (now < Date.parse(HALLOWEEN_SKIN_ENDS_AT)) return ['witch', 'zombie']
-  if (now < Date.parse(DIA_DE_MUERTOS_ENDS_AT)) return [...DIA_DE_MUERTOS_EFFECT_KEYS, ...NATAL_EFFECT_KEYS]
-  if (now < Date.parse(NATAL_ENDS_AT)) return NATAL_EFFECT_KEYS
-  return []
-}
-
+// KINEO-VITRINE-ESTACAO-3110 — a lista da estação mora em lib/clips/clipSeason.ts (a mesma do "Trending this week" do Clipe).
 /** Os efeitos da vitrine: os da estação primeiro, depois os mais novos do catálogo, alternando quem pede pessoa e quem não. */
 export function homeMosaicEffects(now: number = Date.now()): ClipEffect[] {
   const pages = publicEffectPages()
