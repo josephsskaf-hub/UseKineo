@@ -19,9 +19,13 @@ import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
-type Tab = 'all' | 'videos' | 'images' | 'audio'
+type Tab = 'all' | 'videos' | 'ads' | 'clips' | 'images' | 'audio' // KINEO-LIBRARY-TUDO-3110 — anúncios e clipes ganham aba própria
 
-type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null; engine_used?: string | null }
+type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null; engine_used?: string | null; platform?: string | null }
+// KINEO-LIBRARY-TUDO-3110 — fundador 30/10: "tem que colocar ali os ads também, os clips, tem que colocar tudo em library". O anúncio
+// já é uma linha de `videos` com platform 'Studio Ads' (113 de 113 pedidos do /ads conferidos no banco em 30/10).
+const AD_PLATFORM = 'Studio Ads'
+const isAdVideo = (v: Vid) => v.platform === AD_PLATFORM
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 // KINEO-CLIPES-2026-09-29 — clipe avulso do /clips (tabela `clips`, MP4 no nosso bucket). Só os prontos aparecem aqui.
@@ -77,7 +81,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       .then((d) => { if (Array.isArray(d?.clips)) setClps((d.clips as Clp[]).filter((c) => c.status === 'done' && !!c.video_url)) })
       .catch(() => {})
     Promise.all([
-      fetch('/api/videos?limit=300', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/videos?limit=1000', { cache: 'no-store' }) /* KINEO-LIBRARY-TUDO-3110 — o teto de 300 escondia o acervo de quem mais produz */.then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/images', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([v, i, a]) => {
@@ -99,6 +103,8 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: vids.length + imgs.length + auds.length },
     { key: 'videos', label: 'Videos', count: vids.length },
+    { key: 'ads', label: 'Ads', count: vids.filter(isAdVideo).length }, // KINEO-LIBRARY-TUDO-3110
+    { key: 'clips', label: 'Clips', count: clps.length }, // KINEO-LIBRARY-TUDO-3110
     { key: 'images', label: 'Images', count: imgs.length },
     { key: 'audio', label: 'Audio', count: auds.length },
   ]
@@ -114,7 +120,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
   const fVids = organizeAssets(needle ? vids.filter((v) => (v.title ?? '').toLowerCase().includes(needle)) : vids, organization.favorites, organization.favoritesOnly, organization.sort, v => v.title ?? '')
   const fImgs = organizeAssets(needle ? imgs.filter((im) => (im.model ?? '').toLowerCase().includes(needle)) : imgs, organization.favorites, organization.favoritesOnly, organization.sort, im => im.model ?? '')
   const fAuds = organizeAssets(needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds, organization.favorites, organization.favoritesOnly, organization.sort, a => a.text ?? a.model ?? '')
-  const activeCount = tab === 'all' ? vids.length + imgs.length + auds.length : tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
+  const activeCount = tab === 'all' ? vids.length + imgs.length + auds.length : tab === 'videos' ? vids.length : tab === 'ads' ? vids.filter(isAdVideo).length : tab === 'clips' ? clps.length : tab === 'images' ? imgs.length : auds.length
   const clearBtn = (
     <button type="button" className="pill" onClick={() => { setQ(''); organization.setFavoritesOnly(false) }} style={{ color: 'var(--accent)', borderColor: 'var(--border)' }}><UiLabel>
       Reset filters
@@ -199,7 +205,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
         ))}
       </div>
 
-      {!(unifiedGallery && tab === 'videos') && loaded && activeCount > 0 && (
+      {!(unifiedGallery && tab === 'videos') && tab !== 'ads' && tab !== 'clips' && loaded && activeCount > 0 && (
         <div className="library-search">
           <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}><ControlIcon name="search" /></span>
           <input
@@ -216,7 +222,29 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       </div>
 
       {unifiedGallery && tab === 'videos' && videoCollection}
-      {tab === 'videos' && clps.length > 0 && (
+      {tab === 'ads' && (() => { /* KINEO-LIBRARY-TUDO-3110 — aba Anúncios: os vídeos do /ads (platform 'Studio Ads'), mais novos primeiro */
+        const ads = vids.filter(isAdVideo).filter((v) => !!(v.enhanced_url || v.video_url))
+        if (loaded && ads.length === 0) return <p className="sub"><UiLabel>No ads yet.</UiLabel> <Link href="/ads/new"><UiLabel>Make a product ad</UiLabel> →</Link></p>
+        return (
+          <div className="library-asset-section"><div className="library-collection">
+            {ads.map((v) => {
+              const src = v.enhanced_url || v.video_url
+              return (
+                <div key={v.id} className="card library-organized-card" style={{ padding: 8 }}>
+                  <video src={src ?? undefined} poster={v.thumbnail_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
+                  <p className="library-asset-model">{v.title ?? 'Product ad'}</p>
+                  <div className="row library-asset-actions" style={{ marginTop: 8 }}>
+                    <button type="button" className="pill" onClick={() => dl(src!, `kineo-ad-${v.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                    <Link className="pill" style={{ textDecoration: 'none' }} href="/ads/new"><UiLabel>Product ads</UiLabel> ↗</Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div></div>
+        )
+      })()}
+      {tab === 'clips' && loaded && clps.length === 0 && <p className="sub"><UiLabel>No clips yet.</UiLabel> <Link href="/clips"><UiLabel>Make a clip</UiLabel> →</Link></p>}
+      {tab === 'clips' && clps.length > 0 && ( /* KINEO-LIBRARY-TUDO-3110 — os clipes saem do fim da aba Vídeos (ficavam depois de 300 filmes) para a aba deles */
         <div className="library-asset-section"><h2><UiLabel>Clips</UiLabel></h2><div className="library-collection">
           {clps.map((c) => (
             <div key={c.id} className="card library-organized-card" style={{ padding: 8 }}>
@@ -230,7 +258,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           ))}
         </div></div>
       )}
-      {!(unifiedGallery && tab === 'videos') && <LibraryOrganization state={organization} />}
+      {!(unifiedGallery && tab === 'videos') && tab !== 'ads' && tab !== 'clips' && <LibraryOrganization state={organization} />}
 
       {!(unifiedGallery && tab === 'videos') && !loaded && (
         <div className="library-loading" aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>

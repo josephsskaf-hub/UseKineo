@@ -80,9 +80,9 @@ pricing.click('AnnualSAVE 30%');html=pricing.render();equal(pricing.state.billin
 // mensal 7 dias do 1º pagamento, anual 14), a mesma da faixa de confiança e de cada cartão; a frase velha do anual saiu.
 ok(html.includes('$83.00 billed yearly')&&html.includes('Save <b>$35.80</b> a year compared to monthly')&&html.includes('SAVE 30%')&&html.includes('Full refund if you email us within 7 days of your first monthly payment (14 days on annual plans).'),'annual payment disclosure retained (yearly total, saving, 30% and refund policy)')
 pricing.click('Monthly');html=pricing.render();equal(pricing.state.billing,'monthly','real monthly switch')
-for(const [value,want] of [[null,48],['300',300],['9999',300],['0',1],['-1',48],['oops',48]])equal(load('@/lib/ui/libraryListing').videoListLimit(value),want,'bounded video list')
+for(const [value,want] of [[null,48],['300',300],['9999',1000],['0',1],['-1',48],['oops',48]])equal(load('@/lib/ui/libraryListing').videoListLimit(value),want,'bounded video list')
 // Run the real GET route. Authenticated owner predicate must survive all limits.
-for(const [limit,want] of [['300',300],['9999',300],[null,48]]){
+for(const [limit,want] of [['300',300],['9999',1000],[null,48]]){
  const queries=[]
  const client={auth:{getUser:async()=>({data:{user:{id:'synthetic-owner'}}})},from:table=>{
   const q={table,filters:[],head:false,limit:null};queries.push(q)

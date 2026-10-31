@@ -36,6 +36,7 @@ export default async function VideoCollection({ embedded = false }: { embedded?:
     .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at, engine_used') // KINEO-LACO-VIRAL-2026-09-17: publicar/despublicar pelo My Videos // KINEO-CARD-QUADRANTE-2026-09-16: duração e enquadramento no card
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    // KINEO-LIBRARY-TUDO-3110 — 300 → 1000 (fundador 30/10: "a library só está indo até 300"; a conta dele tem mais).
     // KINEO-HISTORICO-300-2026-08-21 — 100 → 300 (pedido do fundador: "estou
     // com limitação de cem vídeos, eu sei que na minha conta eu tenho mais").
     // O teto de 100 cortava o acervo antigo justamente de quem mais produz, e
@@ -49,11 +50,11 @@ export default async function VideoCollection({ embedded = false }: { embedded?:
     // montagem sob demanda), então subir o teto aqui não recria o problema.
     // ⚠️ PAR: se alguém reverter a virtualização/poster do HistoryClient, este
     // 300 volta a doer três vezes mais que o 100 doía. Mexeu num, olha o outro.
-    .limit(300)
+    .limit(1000)
 
   // A pending engine-used migration must not hide the owner's older films.
   if (collection.error && /column .* does not exist|42703/.test(collection.error.message ?? '')) {
-    const legacy = await supabase.from('videos').select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(300)
+    const legacy = await supabase.from('videos').select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id, duration, platform, published_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1000)
     if (legacy.error) collection = legacy
     else collection = { ...legacy, data: legacy.data.map(video => ({ ...video, engine_used: null })) }
   }

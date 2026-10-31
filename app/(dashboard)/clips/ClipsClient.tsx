@@ -142,6 +142,17 @@ async function compressPhoto(file: File): Promise<File> {
   }
 }
 
+// KINEO-TRENDING-CHEIO-3110 — fundador 30/10: "encher essa página de novidades… para ficar uma página completa". O "Trending this
+// week" fecha 2 fileiras cheias (TREND_ROW_TOTAL cartões): as ideias, depois os efeitos da estação (lib/clips/clipSeason.ts) e,
+// completando, os efeitos mais novos do catálogo. Só efeito com prévia feita pelo próprio efeito (selo honesto).
+const TREND_ROW_TOTAL = 24
+function trendRowEffects<E extends { key: string; preview: unknown }>(effects: readonly E[], ideas: number): E[] {
+  const withPreview = effects.filter((fx) => !!fx.preview)
+  const seasonal = seasonalEffectKeys(Date.now()).map((k) => withPreview.find((fx) => fx.key === k)).filter((fx): fx is E => !!fx)
+  const newest = [...withPreview].reverse().filter((fx) => !seasonal.includes(fx))
+  return [...seasonal, ...newest].slice(0, Math.max(0, TREND_ROW_TOTAL - ideas))
+}
+
 export default function ClipsClient({ measurementActor = null }: { measurementActor?: string | null }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
@@ -715,7 +726,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             })}
             {/* KINEO-VITRINE-ESTACAO-3110 — fundador 30/10: "lotar o Trending this week com os de Natal" — os efeitos da estação
                 (Halloween → Día de Muertos → Natal, lib/clips/clipSeason.ts) entram depois das ideias; o clique escolhe o efeito. */}
-            {seasonalEffectKeys(Date.now()).map((k) => effects.find((fx) => fx.key === k)).filter((fx): fx is NonNullable<typeof fx> => !!fx && !!fx.preview).map((fx) => (
+            {trendRowEffects(effects, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (
               <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
                 <span className="fx-media">
                   <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
