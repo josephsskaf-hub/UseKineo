@@ -17,13 +17,11 @@ import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-GALERIA-HOME-271
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy' // KINEO-GALERIA-HOME-2710
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
-import { galeriaItems } from '@/lib/homeGaleriaItems' // KINEO-GALERIA-HOME-2710
-import KineoHouseGallery from '@/components/KineoHouseGallery' // KINEO-GALERIA-HOME-2710
 import styles from '../examples/ExamplesGallery.module.css' // KINEO-GALERIA-HOME-2710
 import '../trending/trending.css' // KINEO-GALERIA-HOME-2710
 import fs from 'node:fs' // KINEO-JUNTA-TRENDING-3110
 import path from 'node:path' // KINEO-JUNTA-TRENDING-3110
-import TrendingCard from '../trending/TrendingCard' // KINEO-JUNTA-TRENDING-3110
+import HomeMosaic, { type MosaicStyle } from '@/components/home/HomeMosaic' // KINEO-MWK-MOSAICO-3110
 import { trendingBlocks, parseTrendingToday, TRENDING_TODAY_FILE } from '@/lib/trending/trendingNow' // KINEO-JUNTA-TRENDING-3110
 
 // KINEO-JUNTA-TRENDING-3110 — fundador 30/10 ("juntar sim"): Trending e Made with Kineo viram UMA página. Em cima, o que é NOVO
@@ -45,6 +43,11 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
   const [{ data: { user } }, { films, hasNext }] = await Promise.all([createClient().auth.getUser(), getShowcaseFilms(page)]) // KINEO-GALERIA-HOME-2710
   const signedIn = Boolean(user) // KINEO-GALERIA-HOME-2710
   const newBlocks = trendingBlocks({ now: new Date(), signedIn, today: readTrendingToday(new Date()) }) // KINEO-JUNTA-TRENDING-3110
+  // KINEO-MWK-MOSAICO-3110 — fundador 30/10: "tudo junto, uma mistura igual na Home… vídeos menores, os mais recentes em cima, o
+  // tracinho do raio nos novos, sem o bloco Ad styles". Uma grade só (o mosaico da home em modo completo): clipes, filmes, TODOS os
+  // efeitos (estação e mais novos primeiro, "⚡ NEW" honesto), estilos de anúncio e imagens. Temas de filme (ilustrações, não vídeo
+  // feito na Kineo) saem desta página — seguem no Viral Now e no Studio.
+  const adStyles: MosaicStyle[] = (newBlocks.find((b) => b.id === 'ad-styles')?.cards ?? []).filter((c) => !!c.video).map((c) => ({ key: c.key, title: c.title, engine: c.engine, video: c.video as string, poster: c.poster, href: c.href }))
   const copy = SHOWCASE_COPY.en // KINEO-GALERIA-HOME-2710
   return ( // KINEO-GALERIA-HOME-2710
     <main className={`${styles.page} trending-page`} data-galeria-page="KINEO-GALERIA-HOME-2710">
@@ -77,23 +80,10 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
         <section className="tr-hero" aria-labelledby="mwk-title">
           <p className="tr-eyebrow"><UiLabel>Real renders from the Kineo team</UiLabel></p>
           <h1 id="mwk-title">{MADE_WITH_KINEO_LABEL}</h1>
-          <p className="tr-lead"><UiLabel>Clips, images and narrated films, each from one idea. Tap one to make yours in the same style.</UiLabel></p>
+          <p className="tr-lead"><UiLabel>Clips, effects, images and narrated films, newest first. Tap one to make yours in the same style.</UiLabel></p>
         </section>
-        {/* KINEO-JUNTA-TRENDING-3110 — o novo primeiro: os blocos do antigo Trending, depois a galeria e os filmes compartilhados. */}
-        {newBlocks.map((block) => (
-          <section key={block.id} id={block.id} className="tr-block" data-trending-block={block.id} aria-labelledby={`${block.id}-title`}>
-            <div className="tr-block-head">
-              <h2 id={`${block.id}-title`}><UiLabel>{block.title}</UiLabel></h2>
-              <p><UiLabel>{block.sub}</UiLabel></p>
-            </div>
-            <div className="tr-grid">
-              {block.cards.map((card) => <TrendingCard key={card.key} block={block.id} card={card} />)}
-            </div>
-          </section>
-        ))}
-        <section aria-label={MADE_WITH_KINEO_LABEL} style={{ paddingTop: 18 }}>
-          <KineoHouseGallery items={galeriaItems(signedIn)} surface="page" />
-        </section>
+        {/* KINEO-MWK-MOSAICO-3110 — uma grade só, misturada, o mais novo em cima (o mosaico da home em modo completo). */}
+        <div className="klp" style={{ paddingTop: 6 }}><HomeMosaic signedIn={signedIn} full styles={adStyles} /></div>
 
         {/* KINEO-VITRINE-FILMES-2610 — a vitrine de filmes dos donos (consentimento explícito), mesma leitura e mesmas regras. */}
         <section id="shared" className="tr-block" aria-labelledby="mwk-shared-title" lang="en">

@@ -53,18 +53,28 @@ const assetOf = (url: string) => url.split('/').pop()?.replace(/\.mp4$/, '') ?? 
 
 type MosaicImage = HomeGalleryImage & { dir: string }
 
+/** KINEO-MWK-MOSAICO-3110 — um estilo de anúncio no mosaico da página Made with Kineo (dados do antigo bloco do /trending). */
+export interface MosaicStyle { key: string; title: string; engine: string | null; video: string; poster: string | null; href: string }
+
 type Tile =
   | { kind: 'clip'; clip: (typeof HOME_NEW_CLIPS)[number] }
   | { kind: 'film'; title: string; badge: string; video: string; poster?: string; focus?: string }
   | { kind: 'effect'; effect: ClipEffect }
   | { kind: 'image'; img: MosaicImage }
+  | { kind: 'style'; style: MosaicStyle } // KINEO-MWK-MOSAICO-3110 — estilo de anúncio (prévia feita pelo próprio estilo)
 
 // KINEO-VITRINE-ESTACAO-3110 — a lista da estação mora em lib/clips/clipSeason.ts (a mesma do "Trending this week" do Clipe).
+// KINEO-MWK-MOSAICO-3110 — o selo "⚡ NEW" é honesto: só os efeitos da estação e os 8 mais novos do catálogo o recebem.
+export function mosaicNewEffectKeys(now: number = Date.now()): Set<string> {
+  const pages = publicEffectPages()
+  return new Set([...seasonalEffectKeys(now), ...pages.slice(-HOME_MOSAIC_EFFECTS).map((e) => e.key)])
+}
+
 /** Os efeitos da vitrine: os da estação primeiro, depois os mais novos do catálogo, alternando quem pede pessoa e quem não. */
-export function homeMosaicEffects(now: number = Date.now()): ClipEffect[] {
+export function homeMosaicEffects(now: number = Date.now(), limit: number = HOME_MOSAIC_EFFECTS): ClipEffect[] { // KINEO-MWK-MOSAICO-3110 — limit: a página Made with Kineo mostra TODOS
   const pages = publicEffectPages()
   const seasonal = seasonalEffectKeys(now).map((k) => pages.find((e) => e.key === k) ?? null)
-  const newest = pages.slice(-HOME_MOSAIC_EFFECTS).reverse()
+  const newest = pages.slice(-Math.max(0, Math.min(limit, pages.length))).reverse()
   const pool = [...seasonal.filter((e): e is ClipEffect => !!e), ...newest].filter((e, i, all) => all.findIndex((x) => x.key === e.key) === i)
   const people = pool.filter((e) => e.person)
   const others = pool.filter((e) => !e.person)
@@ -81,7 +91,7 @@ export function homeMosaicFilms() {
 }
 
 /** Ordem da vitrine: um clipe ou filme grande a cada 5 blocos, efeitos e imagens preenchendo; o que sobra de imagem vai até o fim. */
-export function homeMosaicTiles(now: number = Date.now()): Tile[] {
+export function homeMosaicTiles(now: number = Date.now(), opts: { full?: boolean; styles?: readonly MosaicStyle[] } = {}): Tile[] { // KINEO-MWK-MOSAICO-3110 — full = página Made with Kineo (todos os efeitos + estilos de anúncio)
   const big: Tile[] = []
   const clips = HOME_NEW_CLIPS.map((clip): Tile => ({ kind: 'clip', clip }))
   const films = homeMosaicFilms().map((f): Tile => ({ kind: 'film', title: f.title, badge: f.badge, video: f.previewUrl ?? f.videoUrl, poster: f.posterUrl, focus: MOSAIC_FILM_FOCUS[assetOf(f.previewUrl ?? f.videoUrl)] ?? f.focalPoint }))
@@ -89,7 +99,10 @@ export function homeMosaicTiles(now: number = Date.now()): Tile[] {
     const c = clips.shift(); if (c) big.push(c)
     const f = films.shift(); if (f) big.push(f)
   }
-  const effects = homeMosaicEffects(now).map((effect): Tile => ({ kind: 'effect', effect }))
+  const fx = homeMosaicEffects(now, opts.full ? Number.MAX_SAFE_INTEGER : HOME_MOSAIC_EFFECTS).map((effect): Tile => ({ kind: 'effect', effect }))
+  const st = (opts.styles ?? []).map((style): Tile => ({ kind: 'style', style }))
+  const effects: Tile[] = [] // KINEO-MWK-MOSAICO-3110 — efeitos e estilos se alternam (2 efeitos, 1 estilo) para a grade não virar blocos
+  while (fx.length || st.length) { for (let i = 0; i < 2; i++) { const e = fx.shift(); if (e) effects.push(e) } const s = st.shift(); if (s) effects.push(s) }
   const images = [...HOME_GALLERY_IMAGES.map((i) => ({ ...i, dir: HOME_GALLERY_DIR })), ...HOME_MOSAIC_EXTRA_IMAGES.map((i) => ({ ...i, dir: HOME_MOSAIC_DIR }))].map((img): Tile => ({ kind: 'image', img }))
   const out: Tile[] = []
   while (big.length || effects.length || images.length) {
@@ -103,8 +116,8 @@ export function homeMosaicTiles(now: number = Date.now()): Tile[] {
 const CSS = `
 .klp .kmz{padding:22px 0 10px}
 .klp .kmz-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:clamp(92px,8.6vw,138px);grid-auto-flow:row dense;gap:12px}
-.klp .kmz-t{position:relative;display:block;min-width:0;grid-row:span 2;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#101821;color:#fff;text-decoration:none;isolation:isolate}
-.klp .kmz-t:hover{border-color:var(--blue)}
+.klp .kmz-t{position:relative;display:block;min-width:0;grid-row:span 2;overflow:hidden;border:1px solid var(--line,rgba(127,140,160,.25));border-radius:14px;background:#101821;color:#fff;text-decoration:none;isolation:isolate}
+.klp .kmz-t:hover{border-color:var(--blue,#2f7cff)}
 .klp .kmz-t:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:3px}
 .klp .kmz-big{grid-column:span 2;grid-row:span 4}
 .klp .kmz-wide{grid-column:span 2}
@@ -135,8 +148,9 @@ function focusStyle(poster: string | undefined, focus: string | undefined): CSSP
   return Object.keys(style).length ? (style as CSSProperties) : undefined
 }
 
-export default function HomeMosaic({ signedIn }: { signedIn: boolean }) {
-  const tiles = homeMosaicTiles()
+export default function HomeMosaic({ signedIn, full = false, styles = [] }: { signedIn: boolean; full?: boolean; styles?: readonly MosaicStyle[] }) {
+  const tiles = homeMosaicTiles(Date.now(), { full, styles })
+  const newKeys = mosaicNewEffectKeys()
   const filmHref = clipsFirstFilmHref(signedIn)
   return (
     <section className="kmz" aria-label="Made with Kineo" data-home-section="mosaic">
@@ -172,9 +186,19 @@ export default function HomeMosaic({ signedIn }: { signedIn: boolean }) {
               return (
                 <Link key={e.key} href={effectPagePath(effectSlug(e))} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
                   <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
-                  <span className="kmz-new">NEW</span>
+                  {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
                   <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b></span>
+                </Link>
+              )
+            }
+            if (t.kind === 'style') { // KINEO-MWK-MOSAICO-3110
+              const st = t.style
+              return (
+                <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
+                  <div className="kmz-md" style={focusStyle(st.poster ?? undefined, '50% 45%')}><WallMedia src={st.video} /></div>
+                  <span className="kmz-shade" aria-hidden="true" />
+                  <span className="kmz-copy"><i><UiLabel>Ad style</UiLabel>{st.engine ? ` · ${st.engine}` : ''}</i><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
               )
             }
