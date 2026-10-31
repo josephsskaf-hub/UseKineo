@@ -11,11 +11,22 @@ import { useKling4PaidAvailability } from '@/components/Kling4PaidNotice' // KIN
 import { kling4PromoVisible } from '@/lib/kling4PaidPresentation' // KINEO-FAIXA-OFERTA-2910
 import { WELCOME20_PERCENT_OFF, WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-FAIXA-OFERTA-2910
 import { halloweenSkinOn } from '@/components/home/HalloweenSkin' // KINEO-FAIXA-UNICA-2910
+import { useKling4TrialNoticeVisible } from '@/components/Kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
+import { KLING4_TRIAL_NOTICE_COPY } from '@/lib/kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
 
 // KINEO-FAIXA-OFERTA-2910 — fundador 29/10: a faixa azul passa a vender a oferta (Kling 4.0 grátis 30 dias no Creator + o desconto do
 // 1º mês que o servidor já aplica). Chave nova: quem fechou a faixa do Seedance volta a ver esta uma vez.
 const DISMISS_KEY = 'kineo:home-news-bar:oferta-k4:v1'
 export const ENGINE_NEWS_BAR_HREF = '/pricing?intent_campaign=home_news_bar_k4'
+
+// KINEO-FAIXA-COERENTE-3110 — fundador 31/10 no celular: "em cima fala free por 30 dias, embaixo first video". As duas eram
+// verdade (30 dias é do Creator pago; o 1º filme é de quem chega), mas lidas juntas pareciam brigar. Enquanto o servidor
+// confirma o 1º filme grátis, a faixa conta a escada inteira — "seu 1º filme é grátis · depois 30 dias com Creator" — e o
+// botão leva a fazer o filme, não aos planos. Sem o 1º filme, volta a oferta do Creator de sempre.
+export function engineNewsBarTrialHref(signedIn: boolean): string {
+  const studio = '/studio?intent_campaign=home_news_bar_k4_trial'
+  return signedIn ? studio : `/signup?redirect=${encodeURIComponent(studio)}`
+}
 
 // KINEO-FAIXA-UNICA-2910 — fundador 29/10 ("melhora as letras… Kling 4.0 e Halloween, não gostei muito"): as 2 faixas empilhadas viraram UMA,
 // escura e discreta, com letra mais leve (500), o destaque em cor em vez de negrito em tudo e os botões em pílula. Halloween entra
@@ -42,12 +53,13 @@ const CSS = `
 @media (max-width:640px){.knb-sub{display:none}.knb{justify-content:flex-start;gap:8px;padding:8px 44px 8px 12px;font-size:12.5px}.knb-part{gap:8px}}
 `
 
-export default function EngineNewsBar() {
+export default function EngineNewsBar({ signedIn = false }: { signedIn?: boolean }) {
   const [hidden, setHidden] = useState(false)
   useEffect(() => {
     try { if (localStorage.getItem(DISMISS_KEY) === '1') setHidden(true) } catch { /* sem storage: a faixa fica */ }
   }, [])
   const kling4Promo = kling4PromoVisible(useKling4PaidAvailability()) // KINEO-FAIXA-OFERTA-2910
+  const firstFilmFree = useKling4TrialNoticeVisible() // KINEO-FAIXA-COERENTE-3110
   const [halloween, setHalloween] = useState(false) // KINEO-FAIXA-UNICA-2910
   useEffect(() => { setHalloween(halloweenSkinOn(Date.now(), window.location.search)) }, [])
   if (hidden) return null
@@ -63,8 +75,13 @@ export default function EngineNewsBar() {
       </> : null}
       <span className="knb-part">
         {halloween ? <Link className="knb-emoji" href="/ai-halloween-video" data-home-cta="halloween_bar" aria-label="Halloween effects">🎃</Link> : null}
-        <span className="knb-text">{kling4Promo ? <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>free for 30 days with Creator</UiLabel></> : <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>is live</UiLabel></>}{WELCOME20_SITE_OFFER_LIVE ? <span className="knb-sub"> · <span className="knb-hi">{WELCOME20_PERCENT_OFF}% off</span> <UiLabel>your first month</UiLabel></span> : null}</span>
-        <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>See plans</UiLabel> →</Link>
+        {firstFilmFree ? <>{/* KINEO-FAIXA-COERENTE-3110 — a mesma frase do selo da página, e o Creator vem como o passo seguinte */}
+          <span className="knb-text"><UiLabel>{KLING4_TRIAL_NOTICE_COPY}</UiLabel>{kling4Promo ? <span className="knb-sub"> · <UiLabel>then 30 days free with Creator</UiLabel></span> : null}</span>
+          <Link className="knb-cta" href={engineNewsBarTrialHref(signedIn)} data-home-cta="news_bar_first_film"><UiLabel>Make mine</UiLabel> →</Link>
+        </> : <>
+          <span className="knb-text">{kling4Promo ? <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>free for 30 days with Creator</UiLabel></> : <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>is live</UiLabel></>}{WELCOME20_SITE_OFFER_LIVE ? <span className="knb-sub"> · <span className="knb-hi">{WELCOME20_PERCENT_OFF}% off</span> <UiLabel>your first month</UiLabel></span> : null}</span>
+          <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>See plans</UiLabel> →</Link>
+        </>}
       </span>
       <button
         type="button"

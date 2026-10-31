@@ -873,7 +873,7 @@ export default function KineoLanding({
       <PhWelcomeBanner />
       {/* KINEO-FAIXA-S25-2026-10-09 — o motor novo na manchete, como 7 dos 14 concorrentes fazem (fecha e não volta). */}
       <HalloweenSkin />{/* KINEO-HALLOWEEN-SKIN-2910 — faixa + morcegos discretos até 1º/11 (prévia: ?halloween=preview) */}
-      <EngineNewsBar />
+      <EngineNewsBar signedIn={isSignedIn} />
 
       {/* KINEO-FAIXA-CONTINUAR-2026-09-01 — so aparece para quem esta LOGADO e ja tem um
           Short pronto. Visitante anonimo ve a home exatamente como antes.

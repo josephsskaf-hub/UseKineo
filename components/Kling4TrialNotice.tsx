@@ -5,8 +5,12 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import { KLING4_TRIAL_LIVE } from '@/lib/kling4TrialPolicy'
 import { KLING4_TRIAL_NOTICE_COPY, KLING4_TRIAL_NOTICE_REFRESH_MS, kling4TrialNoticeVisible } from '@/lib/kling4TrialNotice'
 
-/** Shared by home, auth (including its modal) and pricing. Never show an unverified or stale engine claim. */
-export default function Kling4TrialNotice({ surface }: { surface: 'home' | 'signup' | 'login' | 'pricing' }) {
+/**
+ * KINEO-FAIXA-COERENTE-3110 — o mesmo lease curto do servidor, também lido pela faixa do topo da home: as duas ofertas
+ * (1º filme grátis × 30 dias com Creator) contam UMA escada em vez de parecerem brigar (fundador 31/10).
+ * true só enquanto o servidor confirma; desconhecido, vencido ou malformado = false.
+ */
+export function useKling4TrialNoticeVisible(): boolean {
   const [state, setState] = useState<unknown>(null)
   useEffect(() => {
     if (!KLING4_TRIAL_LIVE) return
@@ -62,7 +66,12 @@ export default function Kling4TrialNotice({ surface }: { surface: 'home' | 'sign
       document.removeEventListener('visibilitychange', visibility)
     }
   }, [])
-  if (!kling4TrialNoticeVisible(state, Date.now())) return null
+  return kling4TrialNoticeVisible(state, Date.now())
+}
+
+/** Shared by home, auth (including its modal) and pricing. Never show an unverified or stale engine claim. */
+export default function Kling4TrialNotice({ surface }: { surface: 'home' | 'signup' | 'login' | 'pricing' }) {
+  if (!useKling4TrialNoticeVisible()) return null
   return (
     <aside data-kling4-trial-notice={surface} style={{
       display: 'flex', width: 'fit-content', maxWidth: '100%', boxSizing: 'border-box', alignItems: 'center', gap: 8,
