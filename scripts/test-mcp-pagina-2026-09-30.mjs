@@ -201,7 +201,7 @@ ok(/export const dynamic = 'force-static'/.test(SRC.page) && SRC.page.includes('
 {
   const m = SRC.page.replace("    engine: 'kling',", "    clip: 'c4e4fbab-0978-4daa-9fcf-119096370210',\n    engine: 'kling',") // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
   ok(m !== SRC.page && clipProblems(m, SRC.wall).length > 0, '(M7) clipe velho de volta num cartão de pedido → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010
-  const m2 = SRC.grid.replace('/previews/home-card-film-flannan.mp4', '/previews/nao-existe.mp4') // KINEO-MCP-STUDIO-AJUSTE-2010
+  const m2 = SRC.grid.replace('/previews/studio-kling4-werewolf-kid.mp4', '/previews/nao-existe.mp4') // KINEO-MCP-STUDIO-AJUSTE-2010 · KINEO-CONECTOR-VITRINE-3110 — reancorado: o Flannan saiu da vitrine em 30/10
   ok(m2 !== SRC.grid && clipProblems(SRC.page, SRC.wall, m2).length > 0, '(M8) vídeo da vitrine que não existe em public/ → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010
 }
 {

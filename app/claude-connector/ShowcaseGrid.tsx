@@ -24,8 +24,9 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
     href: '/ads',
     clips: [
       { src: '/previews/home-card-ugc-presenter.mp4', poster: '/posters/home-card-ugc-presenter.webp', title: 'Perfume, told by an AI presenter', badge: 'Kling Avatar' },
-      { src: '/ads/presenters/sofia.mp4', poster: '/ads/presenters/sofia.webp', title: 'Sofia, UGC presenter', badge: 'Studio Ads' },
-      { src: '/ads/presenters/amara.mp4', poster: '/ads/presenters/amara.webp', title: 'Amara, UGC in the snow', badge: 'Studio Ads' },
+      // KINEO-CONECTOR-VITRINE-3110 — fundador 30/10 ("melhora os vídeos, coloca os mais atualizados"): os clipes de criador de 27/10 (Kling 3).
+      { src: '/previews/home-card-novo-ugc_serum.mp4', poster: '/posters/home-card-novo-ugc_serum.webp', title: 'Serum selfie review', badge: 'Kling 3' },
+      { src: '/previews/home-card-novo-ugc_unboxing.mp4', poster: '/posters/home-card-novo-ugc_unboxing.webp', title: 'Kitchen unboxing', badge: 'Kling 3' },
     ],
   },
   {
@@ -34,9 +35,10 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
     line: 'Real product photos become a ready-to-run ad.',
     href: '/ads',
     clips: [
-      { src: '/previews/home-card-close-real-en.mp4', poster: '/posters/home-card-close-real-en.webp', title: 'LUME perfume, real product close-up', badge: 'Studio Ads' },
-      { src: '/ads-styles/product_closeup.mp4', poster: '/ads-styles/product_closeup.jpg', title: 'Product close-up in the rain', badge: 'Studio Ads' },
-      { src: '/ads-styles/giant_product.mp4', poster: '/ads-styles/giant_product.jpg', title: 'Giant product in neon', badge: 'Studio Ads' },
+      // KINEO-CONECTOR-VITRINE-3110 — os anúncios de produto de 27/10 (os mesmos do card da home; clipes Kling 3 conferidos no banco).
+      { src: '/previews/home-card-novo-smartwatch.mp4', poster: '/posters/home-card-novo-smartwatch.webp', title: 'Smartwatch builds itself in the air', badge: 'Kling 3' },
+      { src: '/previews/home-card-novo-iced_coffee.mp4', poster: '/posters/home-card-novo-iced_coffee.webp', title: 'Iced coffee in slow motion', badge: 'Kling 3' },
+      { src: '/previews/home-card-novo-headphones.mp4', poster: '/posters/home-card-novo-headphones.webp', title: 'Headphones, exploded view', badge: 'Kling 3' },
     ],
   },
   {
@@ -45,8 +47,9 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
     line: 'Type an idea, get a narrated Short in minutes.',
     href: '/studio',
     clips: [
-      { src: '/previews/home-card-film-flannan.mp4', poster: '/posters/home-card-film-flannan.webp', title: 'The Flannan Isles lighthouse', badge: 'Seedance 1.5' },
-      { src: '/previews/door-07252598-1392-4226-b5d5-d02bd892d69b.mp4', poster: '/posters/door-07252598-1392-4226-b5d5-d02bd892d69b.webp', title: 'The deep-sea robot', badge: 'Kling 3' },
+      // KINEO-CONECTOR-VITRINE-3110 — o filme mais novo da casa (Kling 4.0, 30/10) e o lobisomem da galeria (Kling 3) na frente; o Titanic fica.
+      { src: '/previews/studio-kling4-werewolf-kid.mp4', poster: '/posters/studio-kling4-werewolf-kid.webp', title: 'The werewolf kid at the last door', badge: 'Kling 4.0' },
+      { src: '/previews/galeria/werewolf.mp4', poster: '/posters/galeria/werewolf.webp', title: 'Werewolf under the full moon', badge: 'Kling 3' },
       { src: '/previews/door-d16781b8-0557-4c7e-b339-3bf048ff700c.mp4', poster: '/posters/door-d16781b8-0557-4c7e-b339-3bf048ff700c.webp', title: 'Titanic', badge: 'Veo 3.1' },
     ],
   },

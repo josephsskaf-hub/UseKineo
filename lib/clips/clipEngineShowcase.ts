@@ -12,7 +12,9 @@
 // para public/previews BYTE A BYTE (já vem com o moov na frente: toca enquanto baixa) e o pôster WebP do quadro do raio
 // (n = 21) em public/posters, gerado com ffmpeg (-c:v libwebp -quality 82). Nome = id do render, como os outros motores.
 //
-// CURADORIA DO FUNDADOR: só o 2.5 tem vitrine aqui. Acrescentar outro motor é decisão dele.
+// CURADORIA DO FUNDADOR: em 06/10 só o 2.5; em 30/10 o fundador pediu "alguma coisa legal dentro dos cards pequenininhos" dos motores —
+// KINEO-MOTOR-CARD-VIDEO-3110: cada card ganha um vídeo REAL feito naquele motor (clipe da casa; Veo 3.1 e MiniMax H3 = trecho do filme
+// da casa feito no motor, que é o que existe deles). Nenhum render novo.
 // Módulo PURO (só `import type`, apagado na transpilação): a tela e o guardião scripts/test-clipes-tres-2026-10-06.mjs.
 import type { ClipEngineKey } from './clipCatalog'
 
@@ -30,6 +32,16 @@ export interface ClipEngineShowcase {
 }
 
 export const CLIP_ENGINE_SHOWCASE: Readonly<Partial<Record<ClipEngineKey, ClipEngineShowcase>>> = {
+  // KINEO-MOTOR-CARD-VIDEO-3110 — Seedance 1.5: o surfista da galeria (clipe de texto da conta da casa, lib/homeGaleria.ts GALERIA_TEXT_CLIPS).
+  seedance: { video: '/previews/promo-clips-surf.mp4', poster: '/posters/promo-clips-surf.webp', seconds: 5, clipId: 'galeria-text-surf', focus: '50% 50%' },
+  // KINEO-MOTOR-CARD-VIDEO-3110 — Kling 2.5: a tempestade atrás da pessoa (clipe 8d9a0bde, o mesmo da prévia do efeito Storm).
+  kling: { video: '/previews/efeito-storm_behind.mp4', poster: '/posters/efeito-storm_behind.webp', seconds: 5, clipId: '8d9a0bde-012a-4fe7-b1d9-488964b6c587', focus: '50% 45%' },
+  // KINEO-MOTOR-CARD-VIDEO-3110 — Kling 3: o leão que anda até a câmera (clipe f9c85460, galeria Made with Kineo).
+  hollywood: { video: '/previews/galeria/lion.mp4', poster: '/posters/galeria/lion.webp', seconds: 5, clipId: 'f9c85460-3cff-4512-a115-4c1852cb8a4a', focus: '50% 45%' },
+  // KINEO-MOTOR-CARD-VIDEO-3110 — Veo 3.1: trecho do filme da casa "Titanic" (videos d16781b8, Veo 3.1).
+  veo: { video: '/previews/door-d16781b8-0557-4c7e-b339-3bf048ff700c.mp4', poster: '/posters/door-d16781b8-0557-4c7e-b339-3bf048ff700c.webp', seconds: 7, clipId: 'd16781b8-0557-4c7e-b339-3bf048ff700c', focus: '50% 40%' },
+  // KINEO-MOTOR-CARD-VIDEO-3110 — MiniMax H3: trecho do filme da casa "Shazam over the city" (videos 8aabb05a, MiniMax H3).
+  h3: { video: '/previews/8aabb05a-2492-48de-a96a-0a7875c0c8d3.mp4', poster: '/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg', seconds: 8, clipId: '8aabb05a-2492-48de-a96a-0a7875c0c8d3', focus: '50% 40%' },
   s25: {
     video: '/previews/fb1eeb41-48ca-4835-a93a-01d422a17aa4.mp4',
     poster: '/posters/fb1eeb41-48ca-4835-a93a-01d422a17aa4.webp',
