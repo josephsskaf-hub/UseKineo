@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { firstFilmDetourAllowed } from '@/lib/growth/primeiroFilmeNaTela' // KINEO-PRIMEIRO-FILME-3110
 import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
@@ -107,6 +108,9 @@ function RegionFreeFilmStrip() {
   const plansCta = pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language).cta
   const path = usePathname()
   const onStudio = typeof path === 'string' && path.replace(/\/+$/, '') === '/studio'
+  // KINEO-PRIMEIRO-FILME-3110 — na tela de geração o filme grátis JÁ está sendo feito: "Make my free film" voltava ao /studio e abandonava
+  // KINEO-PRIMEIRO-FILME-3110 — a preparação (34 contas em 30 dias, 16 sem vídeo). Os planos continuam ao lado, nas duas telas.
+  const freeFilmCtaShown = !onStudio && firstFilmDetourAllowed(path) // KINEO-PRIMEIRO-FILME-3110
   const shownRef = useRef(false)
 
   useEffect(() => {
@@ -137,7 +141,7 @@ function RegionFreeFilmStrip() {
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{copy.title}</div>
         <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'var(--text2)' }}>{copy.body}</div>
       </div>
-      {!onStudio ? (
+      {freeFilmCtaShown ? ( // KINEO-PRIMEIRO-FILME-3110 — era `!onStudio`
         <Link
           href={REGION_FREE_FILM_HREF}
           data-testid="region-free-film"

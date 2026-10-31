@@ -66,6 +66,8 @@
 // ao modal de downgrade. Falha de rede não vira upsell.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation' // KINEO-PRIMEIRO-FILME-3110 — a tela de geração não mostra o atalho que abandona o filme
+import { firstFilmDetourAllowed } from '@/lib/growth/primeiroFilmeNaTela' // KINEO-PRIMEIRO-FILME-3110
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 // A porta de $1 para quem AINDA NÃO gastou um crédito é peça própria: a caixa
@@ -227,6 +229,11 @@ export default function TrialActiveBanner({ userKey, reserve = false }: { userKe
   const dismissKey = `${DISMISSED_PREFIX}:${userKey}:${dayRef.current}`
   const shownKey = `${SHOWN_PREFIX}:${userKey}:${dayRef.current}`
   const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used, shortFilm: ENTRADA_CURTA })
+  // KINEO-PRIMEIRO-FILME-3110 — na tela de geração (/studio/create) o 1º filme JÁ está sendo feito: o botão verde "Build my 15s Seedance
+  // KINEO-PRIMEIRO-FILME-3110 — episode" levava de volta ao /studio com o roteiro padrão e abandonava a preparação em andamento (14 contas
+  // KINEO-PRIMEIRO-FILME-3110 — em 30 dias, 7 sem vídeo nenhum). Só o atalho some lá; preço, plano e o resto da faixa ficam como estão.
+  const pathname = usePathname() // KINEO-PRIMEIRO-FILME-3110 — chamado sempre (regra dos hooks), nunca dentro do &&
+  const firstDeliveryDetourShown = firstDelivery.eligible && firstFilmDetourAllowed(pathname) // KINEO-PRIMEIRO-FILME-3110
   const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits, shortFilm: ENTRADA_CURTA, kineo1Allowed: ENTRADA_CURTA ? false : undefined })
   // A mesma pessoa pode atravessar Seedance → Kineo 1 no mesmo dia. A chave
   // inclui o degrau real para cada ação humana ter seu próprio denominador.
@@ -637,7 +644,7 @@ export default function TrialActiveBanner({ userKey, reserve = false }: { userKe
   // of 40" é a própria oferta lembrando que ainda sobra muito.
   const counterRendered = granted > 0 && used !== null && used * 2 >= granted
   const startFirstPremiumDelivery = () => {
-    if (!firstDelivery.eligible) return
+    if (!firstDeliveryDetourShown) return // KINEO-PRIMEIRO-FILME-3110 — era `!firstDelivery.eligible`; agora também não sai da tela de geração
     void trackEvent('trial_first_delivery_clicked', {
       source: 'trial_active_banner',
       version: firstDelivery.version,
@@ -721,7 +728,7 @@ export default function TrialActiveBanner({ userKey, reserve = false }: { userKe
           ×
         </button>
       </div>
-      {firstDelivery.eligible && (
+      {firstDeliveryDetourShown && ( // KINEO-PRIMEIRO-FILME-3110 — era `firstDelivery.eligible`
         <div
           data-trial-first-delivery={firstDelivery.version}
           className="mt-3 rounded-xl px-3 py-3"
