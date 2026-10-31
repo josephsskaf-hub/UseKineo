@@ -338,7 +338,7 @@ async function checa(over = {}) {
   const iRemix = route.indexOf('resolveFaceRemixRequest(body.remix, {')
   const iConta = route.indexOf('const account = await loadClipAccount(supabase, user)', route.indexOf('export async function POST'))
   if (iRemix < 0 || iConta < 0 || iRemix > iConta) e.push('rota não resolve o remix antes de ler conta/saldo')
-  if (!/resolveFaceRemixRequest\(body\.remix, \{ visible: faceRemixVisible\(isInternalEmail\(user\.email\)\), imageUrl: body\.image_url \?\? body\.imageUrl, consent: body\.consent, faceImageUrl: body\.face_image_url \}\)/.test(route)) e.push('rota não passa interruptor/foto/consentimento/recorte ao resolvedor') // KINEO-ROSTO-QUADRO-CHAVE-2810 — + face_image_url
+  if (!/resolveFaceRemixRequest\(body\.remix, \{ visible: faceRemixVisible\(isInternalEmail\(user\.email\)\), imageUrl: body\.image_url \?\? body\.imageUrl, (?:house: isInternalEmail\(user\.email\), )?consent: body\.consent, faceImageUrl: body\.face_image_url \}\)/.test(route)) e.push('rota não passa interruptor/foto/consentimento/recorte ao resolvedor') // KINEO-ROSTO-QUADRO-CHAVE-2810 — + face_image_url · reancorado KINEO-DANCA-SEXTOU-3110 — + house (modelos da casa)
   if ((route.match(/await submitClip\(/g) ?? []).length !== 1) e.push('mais de um caminho de débito na rota')
   if (!/if \(remix && result\.ok && !result\.replay\) \{/.test(route) || !route.includes('name: FACE_REMIX_EVENTS.submitted')) e.push('evento face_remix_submitted fora do pedido aceito e novo')
   if (!/face_remixes/.test(route)) e.push('GET sem face_remixes')

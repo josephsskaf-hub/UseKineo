@@ -68,8 +68,12 @@ export interface FaceRemixItem {
   video: string
   poster: string
   /** KINEO-ROSTO-QUADRO-CHAVE-2810 — o MODELO do catálogo (era `scene`, um texto só): still, movimento, plano, figurantes, pessoas. */
-  template: FaceTemplate // KINEO-ROSTO-QUADRO-CHAVE-2810
+  template: FaceRemixTemplate // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-DANCA-SEXTOU-3110 — era FaceTemplate (+ o plano 'dance' dos modelos da casa)
 }
+
+/** KINEO-DANCA-SEXTOU-3110 — o modelo do remix aceita, além dos planos da galeria, o plano de DANÇA ('dance'): joelhos para cima, braços
+ *  e mãos inteiros dentro do quadro. A galeria (lib/homeGaleria.ts FaceTemplate) não muda. */
+export type FaceRemixTemplate = Omit<FaceTemplate, 'framing'> & { framing: FaceTemplate['framing'] | 'dance' } // KINEO-DANCA-SEXTOU-3110
 
 /** Segundos do remix: os do clipe da casa (os de tendência são 5 s). */
 const FACE_REMIX_SECONDS = 5
@@ -95,6 +99,66 @@ export function faceRemixById(id: unknown): FaceRemixItem | null {
   return faceRemixItems().find((i) => i.id === id) ?? null
 }
 
+// ═══ KINEO-DANCA-SEXTOU-3110 — modelos DA CASA [TRAVA 8.2 — vai do fundador 31/10 "quero colocar essa dança nos clips"] ═══════════
+// A dança do Reel da sexta (aula de dança em grupo num salão, groove do tipo "dance for me": dois passos de lado, ombro no tempo,
+// quadril, mão aberta para a câmera). Coreografia NOSSA, descrita em texto: nenhum vídeo nem rosto do criador entra, e o clipe sai
+// MUDO (a música é da pessoa — nada de faixa com direito autoral dentro do clipe).
+// Caminho escolhido (pesquisa de 31/10 nos OpenAPI da fal): o MESMO remix de 2 etapas do "Put your face in it" (quadro-chave Nano
+// Banana Pro + Kling 3 i2v), com o plano de dança. Por que não os outros:
+//   · dança pronta da Kling 1.6 (effect_scene subject_3_dance/bouncy_dance/swing_swing…, US$ 0,056/s): coreografia fixa da Kling (não
+//     é este groove) e a subject_3 já foi REPROVADA em 29/10 (mãos cortadas a partir de selfie);
+//   · motion control com um vídeo-referência NOSSO (fal-ai/kling-video/v2.6/standard/motion-control US$ 0,07/s; v3/standard US$ 0,126/s;
+//     image_url + video_url 3–30 s + character_orientation 'image'|'video'): é a 2ª versão natural (mesma coreografia para todo mundo),
+//     mas exige um estágio novo no settleClip e não tem como ser testado em produção sem publicar — fica para depois do canário.
+// TESTADO em produção em 31/10 pelas rotas do site (conta do fundador, selfie GERADA por IA de peito para cima, as 2 etapas à mão:
+// /images Nano Banana Pro com a foto de referência + /clips Kling 3 i2v 5 s): clipes 58222917 e 12501432 — o quadro-chave já abre no
+// salão, corpo inteiro com as duas mãos, mesmo rosto/cabelo/barba do início ao fim, figurantes diferentes seguindo o passo, sem texto,
+// sem som. Correções que vieram dos testes: "stays centered" (no 1º saiu para a borda no fim; no 2º ficou no centro) e "beside the face,
+// never covering it" (no 2º a mão aberta tapou meio rosto no último meio segundo — esta frase ainda não teve render próprio).
+// Item da casa NÃO entra na galeria nem na faixa da home (hasFaceRemix só olha faceRemixItems). Abre por /clips?remix=friday-groove para as
+// contas da casa; `launched: true` abre o cartão para todos no GET do /clips (decisão do fundador depois do render aprovado).
+export const DANCA_SEXTOU_MARK = 'KINEO-DANCA-SEXTOU-3110'
+export type FaceRemixHouseItem = FaceRemixItem & { launched: boolean } // KINEO-DANCA-SEXTOU-3110
+export const FACE_REMIX_HOUSE_ITEMS: readonly FaceRemixHouseItem[] = [ // KINEO-DANCA-SEXTOU-3110
+  {
+    id: 'friday-groove',
+    title: 'Friday Groove',
+    engine: 'hollywood',
+    seconds: FACE_REMIX_SECONDS,
+    video: '/previews/galeria/friday-groove.mp4',
+    poster: '/posters/galeria/friday-groove.webp',
+    launched: false, // KINEO-DANCA-SEXTOU-3110 — só a casa até o "vai" do fundador
+    template: {
+      keyframeScene: 'Friday night group dance class in a warm, lively dance hall with a colorful patterned tile floor, string lights and a mirror wall: the person from the photo, in a bright short-sleeve patterned party shirt and dark trousers, stands in front of the class mid-groove, knees soft, one hand raised palm-out toward the camera, big carefree smile. Handheld phone video look, realistic, joyful',
+      motionPrompt: 'The person from the photo leads the class in a feel-good groove right on the beat: a relaxed side-to-side two-step, shoulders bouncing, hips swaying, arms swinging loose, then one hand waves out palm-forward to the camera beside the face, never covering it, with a big confident smile, while the dancers behind follow the exact same moves in sync. The person from the photo stays centered in the frame the whole time. Steady camera at chest height with a slight handheld sway, realistic, joyful',
+      framing: 'dance',
+      extras: 'four dancers in a loose row behind, all in plain black outfits, copying the same moves — an older person with short grey hair, a tall young person with a shaved head, a person with long braids and a short person with curly hair and glasses',
+      maxPeople: 1,
+    },
+  },
+]
+
+/** KINEO-DANCA-SEXTOU-3110 — um modelo da casa por id (para conferir pedido e linha; NÃO decide quem vê — isso é faceRemixHouseFor). */
+export function faceRemixHouseById(id: unknown): FaceRemixHouseItem | null { // KINEO-DANCA-SEXTOU-3110
+  if (typeof id !== 'string' || !id) return null // KINEO-DANCA-SEXTOU-3110
+  return FACE_REMIX_HOUSE_ITEMS.find((i) => i.id === id) ?? null // KINEO-DANCA-SEXTOU-3110
+} // KINEO-DANCA-SEXTOU-3110
+
+/** KINEO-DANCA-SEXTOU-3110 — os modelos da casa que ESTA conta vê: a casa vê todos; o resto, só os lançados. */
+export function faceRemixHouseItems(isInternal: boolean): FaceRemixItem[] { // KINEO-DANCA-SEXTOU-3110
+  return FACE_REMIX_HOUSE_ITEMS.filter((i) => i.launched === true || isInternal === true).map(({ launched: _launched, ...item }) => item) // KINEO-DANCA-SEXTOU-3110
+} // KINEO-DANCA-SEXTOU-3110
+
+/** KINEO-DANCA-SEXTOU-3110 — o modelo da casa para o pedido desta conta (null = não existe ou não é para ela). */
+export function faceRemixHouseFor(id: unknown, isInternal: boolean): FaceRemixItem | null { // KINEO-DANCA-SEXTOU-3110
+  return faceRemixHouseItems(isInternal).find((i) => i.id === id) ?? null // KINEO-DANCA-SEXTOU-3110
+} // KINEO-DANCA-SEXTOU-3110
+
+/** KINEO-DANCA-SEXTOU-3110 — catálogo inteiro (galeria + casa) para o submitClip e o settleClip conferirem pedido e linha. */
+function faceRemixAnyById(id: unknown): FaceRemixItem | null { // KINEO-DANCA-SEXTOU-3110
+  return faceRemixById(id) ?? faceRemixHouseById(id) // KINEO-DANCA-SEXTOU-3110
+} // KINEO-DANCA-SEXTOU-3110
+
 /** O item tem botão? (a galeria e a faixa perguntam aqui — nunca decidem sozinhas). Interruptor desligado = nenhum botão público. */
 export function hasFaceRemix(id: string, publicFlag: boolean = FACE_REMIX_PUBLIC): boolean {
   return publicFlag === true && faceRemixById(id) !== null
@@ -116,7 +180,11 @@ export function faceRemixPrompt(item: FaceRemixItem): string {
 // menores e fora de foco; (5) o Nano Banana ainda envelhece/agrisalha um pouco — o prompt pede a mesma idade aparente.
 export const FACE_REMIX_FRAMING = 'MEDIUM SHOT from the waist up, the main character large in the frame, face big, sharp and clearly visible, looking at the camera' // KINEO-ROSTO-QUADRO-CHAVE-2810
 export const FACE_REMIX_FRAMING_GROUP = 'KNEES-UP SHOT, the people from the photos side by side filling the frame, every face large, sharp and clearly visible, looking at the camera' // KINEO-ROSTO-QUADRO-CHAVE-2810 — framing 'knees-up' (grupos)
-export function faceRemixFraming(framing: FaceTemplate['framing']): string { return framing === 'knees-up' ? FACE_REMIX_FRAMING_GROUP : FACE_REMIX_FRAMING } // KINEO-ROSTO-QUADRO-CHAVE-2810
+// KINEO-DANCA-SEXTOU-3110 — plano de DANÇA. A dança pronta da Kling (subject_3_dance) foi REPROVADA em 29/10 por cortar as mãos quando a foto é
+// selfie; aqui o quadro-chave REDESENHA o corpo, então o plano exige braços e mãos inteiros e espaço dos lados. Joelhos para cima (não corpo
+// inteiro): o rosto continua grande — plano aberto deixa o rosto minúsculo e a identidade escapa (lição de 28/10).
+export const FACE_REMIX_FRAMING_DANCE = 'KNEES-UP SHOT of the main character dancing, centered and filling most of the frame height, both arms and both hands fully inside the frame with empty space on each side, face large, sharp and clearly visible, looking at the camera' // KINEO-DANCA-SEXTOU-3110
+export function faceRemixFraming(framing: FaceRemixTemplate['framing']): string { return framing === 'dance' ? FACE_REMIX_FRAMING_DANCE : framing === 'knees-up' ? FACE_REMIX_FRAMING_GROUP : FACE_REMIX_FRAMING } // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-DANCA-SEXTOU-3110 — + 'dance'
 // A frase de identidade GENÉRICA (o cliente não tem a linha de traços pessoais do fundador) — validada nos 3 testes; sem gênero.
 export const FACE_REMIX_IDENTITY = 'Keep their real face exactly: same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture; same age; do not beautify or change any feature' // KINEO-ROSTO-QUADRO-CHAVE-2810
 export const FACE_REMIX_NO_CLONES = 'Every other person in the image is a visibly DIFFERENT person with a clearly different face, hair, age and build — never a copy of the main character — smaller, behind and slightly out of focus. Each person has exactly two arms and two hands' // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -184,7 +252,7 @@ export function faceRemixForRequest( // KINEO-ROSTO-QUADRO-CHAVE-2810
   req: { engine: string; mode: string; seconds: number; prompt: string; imageUrl: string | null }, // KINEO-ROSTO-QUADRO-CHAVE-2810
 ): { ok: true; item: FaceRemixItem | null } | { ok: false } { // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (raw === undefined) return { ok: true, item: null } // KINEO-ROSTO-QUADRO-CHAVE-2810
-  const item = faceRemixById(raw) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const item = faceRemixAnyById(raw) // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-DANCA-SEXTOU-3110 — + modelos da casa (a rota já decidiu quem pode)
   if (!item) return { ok: false } // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (req.mode !== 'i2v' || !req.imageUrl || req.engine !== item.engine || req.seconds !== item.seconds || req.prompt !== faceRemixPrompt(item)) return { ok: false } // KINEO-ROSTO-QUADRO-CHAVE-2810
   return { ok: true, item } // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -208,8 +276,8 @@ export interface PublicFaceRemix {
 }
 
 /** Cartões de remix que esta conta pode apertar (a rota recusa o resto com a mesma régua de motor). */
-export function publicFaceRemixes(engineOk: (engine: ClipEngineKey) => boolean): PublicFaceRemix[] {
-  return faceRemixItems().filter((i) => engineOk(i.engine)).map((i) => ({
+export function publicFaceRemixes(engineOk: (engine: ClipEngineKey) => boolean, isInternal: boolean = false): PublicFaceRemix[] { // KINEO-DANCA-SEXTOU-3110 — + isInternal (modelos da casa)
+  return [...faceRemixItems(), ...faceRemixHouseItems(isInternal)].filter((i) => engineOk(i.engine)).map((i) => ({ // KINEO-DANCA-SEXTOU-3110 — era faceRemixItems()
     id: i.id,
     title: i.title,
     engine: i.engine,
@@ -250,9 +318,9 @@ export type FaceRemixResolution =
  * KINEO-ROSTO-QUADRO-CHAVE-2810: o pedido leva `remix: item.id` — o submitClip confere (faceRemixForRequest), cobra os 10 e manda a
  * etapa 1 (quadro-chave) no lugar do i2v; a etapa 2 nasce no settleClip quando o quadro-chave fica pronto.
  */
-export function resolveFaceRemixRequest(raw: unknown, ctx: { visible: boolean; imageUrl: unknown; consent: unknown; faceImageUrl?: unknown }): FaceRemixResolution { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + faceImageUrl
+export function resolveFaceRemixRequest(raw: unknown, ctx: { visible: boolean; imageUrl: unknown; consent: unknown; faceImageUrl?: unknown; house?: boolean }): FaceRemixResolution { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + faceImageUrl · KINEO-DANCA-SEXTOU-3110 — + house
   if (ctx.visible !== true) return { ok: false, status: 404, code: 'not_found', error: 'Not found.' }
-  const item = faceRemixById(raw)
+  const item = faceRemixById(raw) ?? faceRemixHouseFor(raw, ctx.house === true) // KINEO-DANCA-SEXTOU-3110 — modelo da casa só para a casa (ou lançado); conta comum leva o mesmo 400 de id desconhecido
   if (!item) return { ok: false, status: 400, code: 'remix', error: 'Choose one of the listed clips.' }
   const imageUrl = typeof ctx.imageUrl === 'string' ? ctx.imageUrl.trim() : ''
   if (!imageUrl) return { ok: false, status: 400, code: 'remix_photo', error: 'This starts from a photo of a face. Add a photo first.' }
@@ -264,7 +332,7 @@ export function resolveFaceRemixRequest(raw: unknown, ctx: { visible: boolean; i
 /** Qual remix gerou esta linha de `clips`? (o prompt é fixo e só o servidor o escreve — sem coluna nova.) */
 export function faceRemixForRow(row: { prompt: string; engine: string; seconds: number; mode: string }): FaceRemixItem | null {
   if (row.mode !== 'image') return null
-  return faceRemixItems().find((i) => faceRemixPrompt(i) === row.prompt && i.engine === row.engine && i.seconds === row.seconds) ?? null
+  return [...faceRemixItems(), ...faceRemixHouseItems(true)].find((i) => faceRemixPrompt(i) === row.prompt && i.engine === row.engine && i.seconds === row.seconds) ?? null // KINEO-DANCA-SEXTOU-3110 — + modelos da casa (a linha já foi aceita)
 }
 
 /** Metadata dos eventos do remix: só a forma do pedido (sem foto, texto ou e-mail). */

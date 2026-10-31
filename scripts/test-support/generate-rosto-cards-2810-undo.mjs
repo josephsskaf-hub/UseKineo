@@ -10,6 +10,17 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-DANCA-SEXTOU-3110 — a camada MAIS NOVA (31/10): o Friday Groove (modelo de dança só da casa no remix de rosto) — a rota do /clips
+  // passa `house` ao resolvedor e ao GET. lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs nasceram no ramo (sem camada).
+  // Base = a main de então (255b655e3), tip = árvore de trabalho até o commit.
+  'danca-sextou-3110': {
+    fn: 'semDancaSextou3110',
+    marca: 'KINEO-DANCA-SEXTOU-3110',
+    o_que: 'o Friday Groove (dança só da casa no remix de rosto) na rota do /clips',
+    base: '255b655e3',
+    tip: null,
+    arquivos: ['app/api/clips/route.ts'],
+  },
   // KINEO-RECUSA-BOTAO-3110 — a camada MAIS NOVA (31/10): a recusa do gerador de filme vira botão de 1 clique (rota anexa `fix`,
   // /generate renderiza o botão nas duas telas de erro). Base = a main de então (086255b47), tip = árvore de trabalho até o commit.
   'recusa-botao-3110': {

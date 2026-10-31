@@ -64,7 +64,7 @@ export async function GET() {
   const access = engineAccessFor(account)
   // Galeria de efeitos: só com o interruptor ligado ou para a casa, e só com motores que esta conta pode apertar.
   const effects = clipEffectsVisible(isInternalEmail(user.email)) ? publicClipEffects((engine) => access(engine).ok) : []
-  const face_remixes = faceRemixVisible(isInternalEmail(user.email)) ? publicFaceRemixes((engine) => access(engine).ok) : [] // KINEO-ROSTO-NO-CLIPE-2810
+  const face_remixes = faceRemixVisible(isInternalEmail(user.email)) ? publicFaceRemixes((engine) => access(engine).ok, isInternalEmail(user.email)) : [] // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-SEXTOU-3110 — + modelos da casa (Friday Groove) só para a casa
   // Falha de leitura não se disfarça de lista vazia (lição do incidente JWT-skew, 28/08).
   if (rows === null) {
     return NextResponse.json(
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   let remix: FaceRemixItem | null = null // KINEO-ROSTO-NO-CLIPE-2810
   if (wantsFaceRemix(body.remix)) { // KINEO-ROSTO-NO-CLIPE-2810
     if (effect) return NextResponse.json({ error: 'Choose one: an effect or a clip remix.', code: 'remix' }, { status: 400, headers: NO_STORE }) // KINEO-ROSTO-NO-CLIPE-2810
-    const resolved = resolveFaceRemixRequest(body.remix, { visible: faceRemixVisible(isInternalEmail(user.email)), imageUrl: body.image_url ?? body.imageUrl, consent: body.consent, faceImageUrl: body.face_image_url }) // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-ROSTO-QUADRO-CHAVE-2810 — + o recorte do rosto (2ª referência do quadro-chave; posse conferida no submitClip)
+    const resolved = resolveFaceRemixRequest(body.remix, { visible: faceRemixVisible(isInternalEmail(user.email)), imageUrl: body.image_url ?? body.imageUrl, house: isInternalEmail(user.email), consent: body.consent, faceImageUrl: body.face_image_url }) // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-SEXTOU-3110 — + house (modelos da casa) · KINEO-ROSTO-QUADRO-CHAVE-2810 — + o recorte do rosto (2ª referência do quadro-chave; posse conferida no submitClip)
     if (!resolved.ok) return NextResponse.json({ error: resolved.error, code: resolved.code }, { status: resolved.status, headers: NO_STORE }) // KINEO-ROSTO-NO-CLIPE-2810
     remix = resolved.item // KINEO-ROSTO-NO-CLIPE-2810
     clipBody = resolved.body // KINEO-ROSTO-NO-CLIPE-2810
