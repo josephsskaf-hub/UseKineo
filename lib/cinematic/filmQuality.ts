@@ -127,6 +127,22 @@ export function limitarPromptDoFilmeKling25(prompt: string, index: number): stri
   return `${axis}. ${compactarTextoDoFilme(body, 2500 - axis.length - 2, 900)}`
 }
 
+// KINEO-CENA-ACAO-LADO-3110 — "quase igual": as palavras de conteúdo (≥ 4 letras, fora a moldura comum) de uma cena cobrem ≥ 60%
+// das da outra. Plano de abertura e de fecho com o mesmo cenário e o mesmo sujeito = a repetição que o revisor marca.
+const MOLDURA_COMUM = new Set(['shot', 'camera', 'slow', 'push', 'tracking', 'cinematic', 'light', 'lighting', 'mood', 'scene', 'frame', 'framing', 'with', 'from', 'into', 'that', 'this', 'their', 'over', 'under', 'film', 'visual', 'medium', 'photorealistic', 'realistic', 'detailed', 'ultra', 'mouth', 'closed', 'speaking', 'lower', 'third', 'clear', 'captions', 'text', 'logo', 'logos', 'vertical'])
+function palavrasDoPlano(p: string): Set<string> {
+  return new Set(String(p ?? '').toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length >= 4 && !MOLDURA_COMUM.has(w)))
+}
+export function cenaQuaseIgual(a: string, b: string, ignorar: ReadonlyArray<string> = []): boolean {
+  const fora = new Set(ignorar)
+  const A = new Set([...palavrasDoPlano(a)].filter((w) => !fora.has(w))), B = new Set([...palavrasDoPlano(b)].filter((w) => !fora.has(w)))
+  if (A.size < 4 || B.size < 4) return false
+  let comuns = 0
+  for (const w of A) if (B.has(w)) comuns++
+  return comuns / Math.min(A.size, B.size) >= 0.6
+}
+export const FINAL_DIFERENTE_DA_ABERTURA = 'final moment of the story, a different place and angle from the opening shot, showing how it ends'
+
 export function prepararQualidadeDoFilme(args: {
   prompts: ReadonlyArray<string>; falas: ReadonlyArray<string>; contextoOriginal: string
   contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
@@ -139,8 +155,15 @@ export function prepararQualidadeDoFilme(args: {
   const contracted = args.prompts.map((prompt, indice) => args.aplicarContrato === false ? prompt
     : aplicarContrato(montarContrato({ indice, falaFinal: args.falas[indice] ?? '', promptFinal: prompt, palavraInteira: true })).promptCorrigido)
   // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.
-  const varied = contracted.map((p, i) => i > 0 && p === contracted[i - 1] && args.falas[i] !== args.falas[i - 1]
+  const variedAdj = contracted.map((p, i) => i > 0 && p === contracted[i - 1] && args.falas[i] !== args.falas[i - 1]
     ? aplicarEixoVisual(p, '', 'medium detail shot of the action described in this scene') : p)
+  // KINEO-CENA-ACAO-LADO-3110 — revisor 30/10 (fd0a408e, Kling 4, árabe): a ÚLTIMA cena saiu o mesmo plano da primeira (homem na
+  // escotilha) e o desfecho ficou só na legenda. A regra do desfecho (comDesfechoDaFala) só lê then/finally/depois — em árabe não
+  // dispara. Aqui, em qualquer língua: a última cena quase igual à 1ª (mesmas palavras do plano) ganha o eixo do desfecho.
+  // a moldura que TODAS as cenas carregam (estilo, ficha, época) não conta como repetição: só o que é próprio de cada cena (com ≥ 3 cenas).
+  const molduraDoFilme = variedAdj.length >= 3 ? [...palavrasDoPlano(variedAdj[0])].filter((w) => variedAdj.every((q) => palavrasDoPlano(q).has(w))) : []
+  const varied = variedAdj.map((p, i) => i > 0 && i === variedAdj.length - 1 && args.falas[i] !== args.falas[0] && cenaQuaseIgual(p, variedAdj[0], molduraDoFilme)
+    ? aplicarEixoVisual(p, '', FINAL_DIFERENTE_DA_ABERTURA) : p)
   // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate.
   const withRoom = args.modo === 'presenter' || args.tagFaceless ? varied : varied.map(p => compactarTextoDoFilme(p, 1800, 650))
   const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom })

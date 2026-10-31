@@ -28,7 +28,7 @@ export function buildFree15CanonicalCaptions(input: { script: string; audioSecon
   if (!tokens.length || tokens.length > 250) return []
   const proportional = tokens.map((word, i) => ({
     word, start: r3(seconds * i / tokens.length), end: r3(seconds * (i + 1) / tokens.length),
-    sentenceEnd: /[.!?…]["'”’)\]]*$/.test(word),
+    sentenceEnd: /[.!?…؟۔।。！？]["'”’»)\]」』]*$/.test(word), // KINEO-LEGENDA-PONTO-ALFABETOS
   }))
   const blocks = agruparLegendaFaceless15(proportional, seconds)
   const styles = existing.filter(e => Number(e.track) === 5 && typeof e.time === 'number' && Number.isFinite(e.time))

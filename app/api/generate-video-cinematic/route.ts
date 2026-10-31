@@ -975,6 +975,8 @@ RULES:
 - Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.
 - In scene 1, immediately show the literal subject/event of the opening narration, not a generic establishing landscape. Do not add events or claims absent from the scene.
 - NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no "Winchester Mystery House", "Amityville", "1910 farmhouse", "Nokia 3310" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.
+- KINEO-CENA-ACAO-LADO-3110: show the ACTION the narration says (who does what to what), not only the subject or the setting, and put the camera on the side where that action is visible (a diver who knocks on a submarine window from outside = the diver outside in the dark water, knuckles on the glass). The narration can be in any language; always write the shot in English.
+- KINEO-CENA-ACAO-LADO-3110: the LAST scene shows how the story ends (the outcome the last narration line says), in a different place, moment or angle from scene 1 — never repeat the opening shot.
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
 - Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.

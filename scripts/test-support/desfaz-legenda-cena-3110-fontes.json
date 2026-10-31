@@ -1,0 +1,72 @@
+{
+ "base": "8566f2130b3a6a1efacf49722946d6bc8c14c37c",
+ "scope": {
+  "lib/compose.ts": {
+   "beforeSha256": "dd323d957d19ee868b829969727419f8a80366f5f09e161c1037b135ae53f2b8",
+   "afterSha256": "a8a25c4513d4813c7554a3cd30a400c0fcbd7e8867503326f9cb02a9a0ba59c7",
+   "hunks": [
+    {
+     "before": "    // the old regex in sentenceStartTimes tested for.\n    if (!/[.!?][\"'”’)\\]]?$/.test(text)) continue\n",
+     "after": "    // the old regex in sentenceStartTimes tested for.\n    if (!/[.!?…؟۔।。！？][\"'”’»)\\]」』]?$/.test(text)) continue // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase\n"
+    },
+    {
+     "before": "      const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY\n      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha\n      const boundary =",
+     "after": "      const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY\n      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha · KINEO-LEGENDA-PONTO-ALFABETOS: vírgula árabe/chinesa também\n      const boundary ="
+    },
+    {
+     "before": "    // every production render since the feature shipped.\n    if (prev?.sentenceEnd === true || /[.!?][\"'”’)\\]]?$/.test((prev?.word ?? '').trim())) {\n      starts.push(t)",
+     "after": "    // every production render since the feature shipped.\n    if (prev?.sentenceEnd === true || /[.!?…؟۔।。！？][\"'”’»)\\]」』]?$/.test((prev?.word ?? '').trim())) { // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase\n      starts.push(t)"
+    },
+    {
+     "before": "          const prev = ww[m - 1]\n          if (abreFrase && (prev.sentenceEnd === true || /[.!?][\"'”’)\\]]?$/.test(String(prev.word ?? '').trim()))) score -= 6\n          if (score < bestScore) { bestScore = score; best = m }",
+     "after": "          const prev = ww[m - 1]\n          if (abreFrase && (prev.sentenceEnd === true || /[.!?…؟۔।。！？][\"'”’»)\\]」』]?$/.test(String(prev.word ?? '').trim()))) score -= 6 // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase\n          if (score < bestScore) { bestScore = score; best = m }"
+    }
+   ]
+  },
+  "lib/captionScriptSpelling.ts": {
+   "beforeSha256": "9058b08e1a78f961216676464ee841ef5f8dbadd89cfaa0296301f0fa24bd994",
+   "afterSha256": "98b9279552bae05caad62030146b09f5852eaf44dcba48634f33ffa2891e8e93",
+   "hunks": [
+    {
+     "before": "// Espelho do teste de pontuação final de sentenceStartTimes (lib/compose.ts).\nconst FECHA_POR_PONTUACAO = /[.!?][\"'”’)\\]]?$/\n",
+     "after": "// Espelho do teste de pontuação final de sentenceStartTimes (lib/compose.ts).\nconst FECHA_POR_PONTUACAO = /[.!?…؟۔।。！？][\"'”’»)\\]」』]?$/ // KINEO-LEGENDA-PONTO-ALFABETOS — ؟ (árabe), ۔ (urdu), । (hindi), 。！？ (chinês/japonês) também fecham frase\n"
+    }
+   ]
+  },
+  "lib/free15CanonicalCaptions.ts": {
+   "beforeSha256": "e21d3983edf1204aaf433fe0b4f45819cdcf2d03917d7909c953e155848543df",
+   "afterSha256": "95ad57907343261ff8a0fe4c8bfacdb8b9e741927b4751aa8b0718ceea63d4ca",
+   "hunks": [
+    {
+     "before": "    word, start: r3(seconds * i / tokens.length), end: r3(seconds * (i + 1) / tokens.length),\n    sentenceEnd: /[.!?…][\"'”’)\\]]*$/.test(word),\n  }))",
+     "after": "    word, start: r3(seconds * i / tokens.length), end: r3(seconds * (i + 1) / tokens.length),\n    sentenceEnd: /[.!?…؟۔।。！？][\"'”’»)\\]」』]*$/.test(word), // KINEO-LEGENDA-PONTO-ALFABETOS\n  }))"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "7e38b0e4444c2072360bd164ed12ab17542cfedc33ac0e055a8ad43d05dc9a7e",
+   "afterSha256": "896df95a3911129a1dff6f8f77707ef6c7cb17ad1fa52bc5c082e18fef06db04",
+   "hunks": [
+    {
+     "before": "\nexport function prepararQualidadeDoFilme(args: {",
+     "after": "\n// KINEO-CENA-ACAO-LADO-3110 — \"quase igual\": as palavras de conteúdo (≥ 4 letras, fora a moldura comum) de uma cena cobrem ≥ 60%\n// das da outra. Plano de abertura e de fecho com o mesmo cenário e o mesmo sujeito = a repetição que o revisor marca.\nconst MOLDURA_COMUM = new Set(['shot', 'camera', 'slow', 'push', 'tracking', 'cinematic', 'light', 'lighting', 'mood', 'scene', 'frame', 'framing', 'with', 'from', 'into', 'that', 'this', 'their', 'over', 'under', 'film', 'visual', 'medium', 'photorealistic', 'realistic', 'detailed', 'ultra', 'mouth', 'closed', 'speaking', 'lower', 'third', 'clear', 'captions', 'text', 'logo', 'logos', 'vertical'])\nfunction palavrasDoPlano(p: string): Set<string> {\n  return new Set(String(p ?? '').toLowerCase().split(/[^\\p{L}]+/u).filter((w) => w.length >= 4 && !MOLDURA_COMUM.has(w)))\n}\nexport function cenaQuaseIgual(a: string, b: string, ignorar: ReadonlyArray<string> = []): boolean {\n  const fora = new Set(ignorar)\n  const A = new Set([...palavrasDoPlano(a)].filter((w) => !fora.has(w))), B = new Set([...palavrasDoPlano(b)].filter((w) => !fora.has(w)))\n  if (A.size < 4 || B.size < 4) return false\n  let comuns = 0\n  for (const w of A) if (B.has(w)) comuns++\n  return comuns / Math.min(A.size, B.size) >= 0.6\n}\nexport const FINAL_DIFERENTE_DA_ABERTURA = 'final moment of the story, a different place and angle from the opening shot, showing how it ends'\n\nexport function prepararQualidadeDoFilme(args: {"
+    },
+    {
+     "before": "  // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.\n  const varied = contracted.map((p, i) => i > 0 && p === contracted[i - 1] && args.falas[i] !== args.falas[i - 1]\n    ? aplicarEixoVisual(p, '', 'medium detail shot of the action described in this scene') : p)\n  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate.",
+     "after": "  // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.\n  const variedAdj = contracted.map((p, i) => i > 0 && p === contracted[i - 1] && args.falas[i] !== args.falas[i - 1]\n    ? aplicarEixoVisual(p, '', 'medium detail shot of the action described in this scene') : p)\n  // KINEO-CENA-ACAO-LADO-3110 — revisor 30/10 (fd0a408e, Kling 4, árabe): a ÚLTIMA cena saiu o mesmo plano da primeira (homem na\n  // escotilha) e o desfecho ficou só na legenda. A regra do desfecho (comDesfechoDaFala) só lê then/finally/depois — em árabe não\n  // dispara. Aqui, em qualquer língua: a última cena quase igual à 1ª (mesmas palavras do plano) ganha o eixo do desfecho.\n  // a moldura que TODAS as cenas carregam (estilo, ficha, época) não conta como repetição: só o que é próprio de cada cena (com ≥ 3 cenas).\n  const molduraDoFilme = variedAdj.length >= 3 ? [...palavrasDoPlano(variedAdj[0])].filter((w) => variedAdj.every((q) => palavrasDoPlano(q).has(w))) : []\n  const varied = variedAdj.map((p, i) => i > 0 && i === variedAdj.length - 1 && args.falas[i] !== args.falas[0] && cenaQuaseIgual(p, variedAdj[0], molduraDoFilme)\n    ? aplicarEixoVisual(p, '', FINAL_DIFERENTE_DA_ABERTURA) : p)\n  // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate."
+    }
+   ]
+  },
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "4479df718e237e8e82dc05eb14baf7bc796b91a248f1f2b3386d0ee6888a96ae",
+   "afterSha256": "ff87e879febbf3552efb3301902dfb23ce0b91a0766fbbbb6686d5d059f9539c",
+   "hunks": [
+    {
+     "before": "- NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no \"Winchester Mystery House\", \"Amityville\", \"1910 farmhouse\", \"Nokia 3310\" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.\n- Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.",
+     "after": "- NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no \"Winchester Mystery House\", \"Amityville\", \"1910 farmhouse\", \"Nokia 3310\" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.\n- KINEO-CENA-ACAO-LADO-3110: show the ACTION the narration says (who does what to what), not only the subject or the setting, and put the camera on the side where that action is visible (a diver who knocks on a submarine window from outside = the diver outside in the dark water, knuckles on the glass). The narration can be in any language; always write the shot in English.\n- KINEO-CENA-ACAO-LADO-3110: the LAST scene shows how the story ends (the outcome the last narration line says), in a different place, moment or angle from scene 1 — never repeat the opening shot.\n- Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood."
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

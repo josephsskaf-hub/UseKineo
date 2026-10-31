@@ -1,3 +1,4 @@
+import { semLegendaCena3110 } from './desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110 — camada mais nova (31/10) sai primeiro
 import { semFluxoLeva13010 } from './desfaz-fluxo-leva1-3010.mjs' // KINEO-FLUXO-LEVA1-3010 — camada mais nova (30/10) sai primeiro
 import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semApresentadores2410 } from './desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
@@ -22,6 +23,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semLegendaCena3110(text, file) // KINEO-LEGENDA-CENA-3110
   text = semFluxoLeva13010(text, file) // KINEO-FLUXO-LEVA1-3010
   text = semConsertos2710(text, file) // KINEO-CONSERTOS-2710
   text = semDesenho15s2710(text, file) // KINEO-DESENHO-15S-ACEITA-2710 — camada mais nova sai primeiro

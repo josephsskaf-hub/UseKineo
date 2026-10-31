@@ -87,7 +87,7 @@ export interface ResultadoGrafia {
 // apagava a vogal final e "है" saía "ह" na legenda (hi, ar e ur são idiomas da narração em lib/textLanguage.ts).
 const PONTAS = /^[^\p{L}\p{M}\p{N}\p{Sc}%#@&+°]+|[^\p{L}\p{M}\p{N}\p{Sc}%#@&+°]+$/gu
 // Espelho do teste de pontuação final de sentenceStartTimes (lib/compose.ts).
-const FECHA_POR_PONTUACAO = /[.!?]["'”’)\]]?$/
+const FECHA_POR_PONTUACAO = /[.!?…؟۔।。！？]["'”’»)\]」』]?$/ // KINEO-LEGENDA-PONTO-ALFABETOS — ؟ (árabe), ۔ (urdu), । (hindi), 。！？ (chinês/japonês) também fecham frase
 
 /** Grafia que a legenda mostra para um token do roteiro. */
 export function grafiaExibida(token: string): string {

@@ -900,7 +900,7 @@ export function markSentenceEnds(
     if (!text || typeof end !== 'number' || !Number.isFinite(end)) continue
     // Trailing closing quote/paren is allowed after the terminator, same shape
     // the old regex in sentenceStartTimes tested for.
-    if (!/[.!?]["'”’)\]]?$/.test(text)) continue
+    if (!/[.!?…؟۔।。！？]["'”’»)\]」』]?$/.test(text)) continue // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase
 
     // Last word that STARTS at or before this segment's end. A small epsilon
     // absorbs the sub-frame disagreement between the two streams.
@@ -1247,7 +1247,7 @@ export function buildCaptionsFromWhisperWords(
       current.push(w)
       const next = windowWords[i + 1]
       const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY
-      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha
+      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha · KINEO-LEGENDA-PONTO-ALFABETOS: vírgula árabe/chinesa também
       const boundary =
         current.length >= maxWords ||
         natural
@@ -1369,7 +1369,7 @@ export function sentenceStartTimes(words: WhisperWord[]): number[] {
     // change and for the proportional path, where word text may be punctuated.
     // Relying on the regex alone is what kept this function returning [] on
     // every production render since the feature shipped.
-    if (prev?.sentenceEnd === true || /[.!?]["'”’)\]]?$/.test((prev?.word ?? '').trim())) {
+    if (prev?.sentenceEnd === true || /[.!?…؟۔।。！？]["'”’»)\]」』]?$/.test((prev?.word ?? '').trim())) { // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase
       starts.push(t)
     }
   }
@@ -2087,7 +2087,7 @@ export function clipSpeechAnchors(input: {
           let score = Math.abs(m - guess)
           if (alvo && norm(ww[m].word) === alvo) score -= 10
           const prev = ww[m - 1]
-          if (abreFrase && (prev.sentenceEnd === true || /[.!?]["'”’)\]]?$/.test(String(prev.word ?? '').trim()))) score -= 6
+          if (abreFrase && (prev.sentenceEnd === true || /[.!?…؟۔।。！？]["'”’»)\]」』]?$/.test(String(prev.word ?? '').trim()))) score -= 6 // KINEO-LEGENDA-PONTO-ALFABETOS — revisor 30/10 (fd0a408e, árabe): ؟ ۔ । 。！？ também fecham frase
           if (score < bestScore) { bestScore = score; best = m }
         }
         t = Math.max(ww[best - 1].end, ww[best].start - 0.15)
