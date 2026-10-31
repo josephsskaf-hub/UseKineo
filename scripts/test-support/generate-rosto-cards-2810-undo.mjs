@@ -10,6 +10,16 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-ABRACO-BEIJO-3110 — a camada MAIS NOVA (30/10): Abraço/Beijo de 2 fotos na tela do /clips (junção lado a lado, um caminho só de
+  // upload) e a borda forte do motor escolhido com vídeo. Base = a main de então (2a0f0b016), tip = árvore de trabalho até o commit.
+  'abraco-beijo-3110': {
+    fn: 'semAbracoBeijo3110',
+    marca: 'KINEO-ABRACO-BEIJO-3110',
+    o_que: 'o Abraço/Beijo de 2 fotos no /clips (junção lado a lado) e a borda do motor escolhido',
+    base: '2a0f0b016830a4449089c597974c6a76fd6ffcd1',
+    tip: null,
+    arquivos: ['app/(dashboard)/clips/ClipsClient.tsx'],
+  },
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — a camada MAIS NOVA: as duas etapas do remix (quadro-chave Nano Banana + Kling a partir dele), 10 cr,
   // recorte do rosto, /images lendo o 403 da fal. Só os arquivos que já existiam em 24ebecdce (faceRemix.ts e o guardião nasceram no ramo).
   'rosto-quadro-chave-2810': {

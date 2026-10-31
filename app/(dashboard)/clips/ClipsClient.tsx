@@ -100,6 +100,7 @@ type EffectCard = {
   credits: number
   person: boolean
   preview: { video: string; poster?: string; note: string } | null
+  pair?: boolean // KINEO-ABRACO-BEIJO-3110 — 2 fotos (uma de cada pessoa)
 }
 
 const ASPECT_KEY: Record<string, ClipCopyKey> = { '9:16': 'vertical', '16:9': 'wide', '1:1': 'square' }
@@ -213,6 +214,24 @@ async function cropFace(file: File): Promise<File | null> { // KINEO-ROSTO-QUADR
   } catch { return null } // KINEO-ROSTO-QUADRO-CHAVE-2810
 } // KINEO-ROSTO-QUADRO-CHAVE-2810
 
+// KINEO-ABRACO-BEIJO-3110 — Abraço/Beijo de 2 pessoas: o modelo da fal recebe UMA foto, então as duas fotos viram uma só aqui, lado a lado
+// (720×1280, metade para cada, recorte central puxado para o terço de cima, onde mora o rosto). Formato testado em produção em 30/10.
+async function composePairPhoto(a: File, b: File): Promise<File> {
+  const W = 720, H = 1280
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d'); if (!ctx) throw new Error('canvas')
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H)
+  for (const [i, f] of [a, b].entries()) {
+    const im = await createImageBitmap(f)
+    const tw = W / 2, s = Math.max(tw / im.width, H / im.height), sw = tw / s, sh = H / s
+    const sx = (im.width - sw) / 2, sy = Math.max(0, Math.min(im.height - sh, (im.height - sh) * 0.2))
+    ctx.drawImage(im, sx, sy, sw, sh, i * tw, 0, tw, H)
+  }
+  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+  if (!blob) throw new Error('compose')
+  return new File([blob], 'pair.jpg', { type: 'image/jpeg' })
+}
+
 export default function ClipsClient({ measurementActor = null }: { measurementActor?: string | null }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
@@ -243,6 +262,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [error, setError] = useState<{ text: string; credits: boolean; upgrade?: string | null } | null>(null)
   const [showTopup, setShowTopup] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  // KINEO-ABRACO-BEIJO-3110 — as 2 fotos do Abraço/Beijo (a foto que vai ao servidor é a junção das duas).
+  const [pairFiles, setPairFiles] = useState<[File | null, File | null]>([null, null])
+  const pairRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
 
   const load = useCallback(() => {
     setLoading(true)
@@ -448,6 +470,17 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     }
   }
 
+  async function uploadClipPhoto(f: File): Promise<string> { // KINEO-ABRACO-BEIJO-3110 — um caminho só de upload (foto, rosto e par)
+    const fd = new FormData()
+    fd.append('file', f)
+    fd.append('rights', 'true')
+    fd.append('purpose', 'animate')
+    const res = await fetch('/api/avatar/upload', { method: 'POST', body: fd })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || typeof data?.url !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'Upload failed. Please try again.')
+    return data.url as string
+  }
+
   async function onPhoto(file: File | null) {
     if (!file) return
     setError(null)
@@ -455,16 +488,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     setFaceUrl(null) // KINEO-ROSTO-QUADRO-CHAVE-2810
     try {
       const normalized = await compressPhoto(file, !!remix) // KINEO-ROSTO-QUADRO-CHAVE-2810 — no remix: sempre JPEG ≤ 1600 px, sem barras pretas
-      const upload = async (f: File) => { // KINEO-ROSTO-QUADRO-CHAVE-2810
-        const fd = new FormData() // KINEO-ROSTO-QUADRO-CHAVE-2810
-        fd.append('file', f) // KINEO-ROSTO-QUADRO-CHAVE-2810
-        fd.append('rights', 'true')
-        fd.append('purpose', 'animate')
-        const res = await fetch('/api/avatar/upload', { method: 'POST', body: fd })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok || typeof data?.url !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : 'Upload failed. Please try again.')
-        return data.url as string // KINEO-ROSTO-QUADRO-CHAVE-2810
-      } // KINEO-ROSTO-QUADRO-CHAVE-2810
+      const upload = uploadClipPhoto // KINEO-ABRACO-BEIJO-3110 — o upload subiu para o componente (a foto comum, o rosto e as 2 fotos do Abraço/Beijo usam o mesmo)
       const url = await upload(normalized) // KINEO-ROSTO-QUADRO-CHAVE-2810
       setPhotoUrl(url) // KINEO-ROSTO-QUADRO-CHAVE-2810
       // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: o recorte do rosto sobe como 2ª foto (moderada no upload como a 1ª). Falhou = segue só com a foto.
@@ -504,6 +528,25 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   }
 
   // Efeito: só a chave e a foto. Prompt, motor, duração e formato quem decide é o servidor (pelo catálogo).
+  async function onPairPhoto(idx: 0 | 1, file: File | null) { // KINEO-ABRACO-BEIJO-3110
+    if (!file) return
+    setError(null)
+    const next: [File | null, File | null] = [...pairFiles] as [File | null, File | null]
+    next[idx] = file
+    setPairFiles(next)
+    setPhotoUrl(null)
+    if (!next[0] || !next[1]) return
+    setUploading(true)
+    try {
+      const joined = await composePairPhoto(next[0], next[1]) // KINEO-ABRACO-BEIJO-3110
+      setPhotoUrl(await uploadClipPhoto(joined)) // KINEO-ABRACO-BEIJO-3110 — o MESMO upload/termo de direitos da foto comum (um caminho só)
+    } catch (e) {
+      setError({ text: e instanceof Error ? e.message : 'Upload failed. Please try again.', credits: false })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   async function generateEffect() {
     if (!effect || !photoUrl || busy || uploading) return
     await send({ effect: effect.key, image_url: photoUrl })
@@ -727,6 +770,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .clip-engine .sec{margin-top:auto;align-self:flex-start;font-size:12px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums;border:1px solid var(--border);border-radius:999px;padding:2px 9px}
         .stu.clips-workspace .clip-engine.has-showcase .tl{color:rgba(255,255,255,.86);text-shadow:0 1px 2px rgba(0,0,0,.6)}
         .stu.clips-workspace .clip-engine.has-showcase .sec{border-color:rgba(255,255,255,.4)}
+        .stu.clips-workspace .clip-engine.has-showcase[aria-pressed="true"]{border-color:#0A5CFF;box-shadow:inset 0 0 0 3px #0A5CFF,0 0 0 3px rgba(10,92,255,.28)} /* KINEO-ABRACO-BEIJO-3110 — com vídeo no card, a borda fina do escolhido sumia */
         .stu.clips-workspace .clip-engine .pr{font-size:11px;color:var(--muted2)}
         .stu.clips-workspace .clip-engine .tag{font-size:10px;color:var(--muted2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;align-self:flex-start}
         .stu.clips-workspace .clip-engine.locked{text-decoration:none;border-style:dashed}
@@ -913,8 +957,27 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <div className="card creation-input" id="clip-effect-panel">
               <div className="lab"><span className="n">1</span>{t('effectLabel')} · <UiLabel>{effect.title}</UiLabel></div>
               <p className="clip-meta" style={{ marginTop: 0 }}><UiLabel>{effect.sub}</UiLabel></p>
-              <div className="lab" style={{ marginTop: 14 }}><span className="n">2</span>{t('effectAddPhoto')}</div>
-              {photoRow}
+              <div className="lab" style={{ marginTop: 14 }}><span className="n">2</span>{effect.pair ? <UiLabel>Add a photo of each person</UiLabel> : t('effectAddPhoto')}</div>
+              {effect.pair ? ( /* KINEO-ABRACO-BEIJO-3110 — 2 espaços de foto; a junção lado a lado acontece no navegador */
+                <div data-clip-pair="">
+                  <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    {([0, 1] as const).map((i) => (
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <span className="clip-meta" style={{ marginTop: 0 }}><UiLabel>{i === 0 ? 'Person 1' : 'Person 2'}</UiLabel></span>
+                        {pairFiles[i] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={URL.createObjectURL(pairFiles[i] as File)} alt="" style={{ width: 96, height: 128, objectFit: 'cover', borderRadius: 10, display: 'block' }} />
+                        ) : null}
+                        <button type="button" className="pill" disabled={uploading} data-clip-action={`pair_photo_${i + 1}`} onClick={() => pairRefs[i].current?.click()}>
+                          {pairFiles[i] ? <UiLabel>Change</UiLabel> : t('addPhoto')}
+                        </button>
+                        <input ref={pairRefs[i]} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { void onPairPhoto(i, e.target.files?.[0] ?? null); e.target.value = '' }} />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="clip-meta"><UiLabel>We put the two photos side by side, then the effect brings them together.</UiLabel></p>
+                </div>
+              ) : photoRow}
               {effect.person && <p className="notice" role="note">{t('effectPersonHint')}</p>}
               {errorBlock}
               <div className="row" style={{ marginTop: 14 }}>
@@ -927,7 +990,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-clip-effect={effect.key}
-                  onClick={() => (photoUrl ? void generateEffect() : fileRef.current?.click())}>
+                  onClick={() => (photoUrl ? void generateEffect() : effect.pair ? pairRefs[pairFiles[0] ? 1 : 0].current?.click() : fileRef.current?.click())}> {/* KINEO-ABRACO-BEIJO-3110 */}
                   {busy ? t('creating') : uploading ? t('uploading') : photoUrl ? <>{t('generate')} · {effect.credits} {t('credits')}</> : t('effectAddPhoto')}
                 </button>
               </div>

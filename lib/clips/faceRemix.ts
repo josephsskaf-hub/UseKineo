@@ -36,7 +36,7 @@ export const FACE_REMIX_MARK = 'KINEO-ROSTO-NO-CLIPE-2810'
 // Desligado em 28/10: teste pago em produção (Kling 3 image-to-video, foto + faceScene da Golden Ball) perdeu a identidade (o rosto
 // na festa é outra pessoa) e abriu na própria foto (parque) com corte seco para a festa — o i2v usa a foto como 1º quadro. Volta a
 // true só depois da etapa de quadro-chave (ramo separado). As contas da casa seguem com /clips?remix=<id> (faceRemixVisible).
-export const FACE_REMIX_PUBLIC = false // era true (fundador 28/10: "A")
+export const FACE_REMIX_PUBLIC = true // KINEO-ROSTO-PUBLICO-3110 — fundador 30/10 ("fazer os 2 consertos hoje e já matar isso"): as 2 etapas (quadro-chave + vídeo) testadas em produção no clipe 92c56313 — abre já na festa, mesmo rosto do início ao fim, figurantes diferentes
 
 /** Abre o prompt de MOVIMENTO (etapa 2, Kling 3 a partir do quadro-chave): a identidade do 1º quadro não muda. */
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — receita validada em 3 testes reais (fundador + 2 amigos, 28/10, clipes 004bbd4b/21c0008c/7b18efcb, ~8/10):

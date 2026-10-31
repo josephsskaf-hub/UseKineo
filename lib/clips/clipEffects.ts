@@ -61,6 +61,8 @@ export type ClipEffectKey =
   | 'catrina' // KINEO-DIA-DE-MUERTOS-3110
   | 'catrina_pet' // KINEO-DIA-DE-MUERTOS-3110
   | 'werewolf' // KINEO-LOBISOMEM-3110
+  | 'hug' // KINEO-ABRACO-BEIJO-3110
+  | 'kiss' // KINEO-ABRACO-BEIJO-3110
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -111,6 +113,8 @@ export interface ClipEffect {
   preview: ClipEffectPreview | null
   /** KINEO-EFEITOS-NOVOS-2026-10-13 — presente = efeito pronto do modelo (o `prompt` é só o sentinela da linha). */
   template?: ClipEffectTemplate
+  /** KINEO-ABRACO-BEIJO-3110 — o efeito pede DUAS fotos (uma de cada pessoa): a tela junta as duas lado a lado numa foto só antes de enviar. */
+  pair?: boolean
 }
 
 const NO_TEXT = 'No text, no captions, no logos, no watermark.'
@@ -538,6 +542,46 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
       label: 'PixVerse 5.5',
     },
   },
+  // KINEO-ABRACO-BEIJO-3110 — fundador 30/10 ("fazer hoje"): Abraço e Beijo com DUAS pessoas, os efeitos de casal mais usados do mercado o
+  // ano todo. Na fal, o Hug/Kiss da PixVerse 5.5 recebe UMA foto (o 'Hug Together' multi-imagem a fal recusa) — então a tela do /clips
+  // pede 2 fotos e junta as duas lado a lado (9:16, metade cada) antes de subir. Testado em 30/10: foto de casal (Hug e Kiss) e DUAS
+  // fotos separadas juntadas no navegador (Hug) — as duas pessoas se viram e se abraçam; aprovado quadro a quadro.
+  {
+    key: 'hug',
+    title: 'Hug',
+    sub: 'Two photos, one warm hug — add a photo of each person.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('hug'),
+    filmIdea: 'The day two people finally met again — a 60-second story',
+    person: true,
+    pair: true,
+    preview: { video: '/previews/efeito-hug.mp4', poster: '/posters/efeito-hug.webp', note: 'Made with this effect from two separate AI-generated photos (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Hug', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
+  {
+    key: 'kiss',
+    title: 'Kiss',
+    sub: 'Two people share a kiss — add a photo of each person.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('kiss'),
+    filmIdea: 'A love story told in 60 seconds',
+    person: true,
+    pair: true,
+    preview: { video: '/previews/efeito-kiss.mp4', poster: '/posters/efeito-kiss.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Kiss', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
 ]
 
 export function clipEffectByKey(key: unknown): ClipEffect | null {
@@ -595,6 +639,8 @@ export interface PublicClipEffect {
   credits: number
   person: boolean
   preview: ClipEffectPreview | null
+  /** KINEO-ABRACO-BEIJO-3110 — 2 fotos juntadas na tela. */
+  pair?: boolean
 }
 
 /** Cartões da galeria, só com os motores que a conta pode apertar (a rota recusa o resto com a mesma régua). */
@@ -609,6 +655,7 @@ export function publicClipEffects(engineOk: (engine: ClipEngineKey) => boolean):
     credits: clipEffectCredits(e),
     person: e.person,
     preview: e.preview,
+    ...(e.pair ? { pair: true } : {}), // KINEO-ABRACO-BEIJO-3110 — só nos efeitos de 2 fotos (os outros ficam byte a byte iguais)
   }))
 }
 

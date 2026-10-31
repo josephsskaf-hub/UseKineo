@@ -342,7 +342,16 @@
     "No ads yet.": "No ads yet.",
     "Make a product ad": "Make a product ad",
     "No clips yet.": "No clips yet.",
-    "Make a clip": "Make a clip"
+    "Make a clip": "Make a clip",
+    "Hug": "Hug",
+    "Two photos, one warm hug — add a photo of each person.": "Two photos, one warm hug — add a photo of each person.",
+    "Kiss": "Kiss",
+    "Two people share a kiss — add a photo of each person.": "Two people share a kiss — add a photo of each person.",
+    "Person 1": "Person 1",
+    "Person 2": "Person 2",
+    "Add a photo of each person": "Add a photo of each person",
+    "We put the two photos side by side, then the effect brings them together.": "We put the two photos side by side, then the effect brings them together.",
+    "Change": "Change"
   },
   "pt": {
     "First film free — made with Kling 4.0": "Primeiro filme grátis — feito com Kling 4.0",
@@ -686,7 +695,16 @@
     "No ads yet.": "Nenhum anúncio ainda.",
     "Make a product ad": "Criar um anúncio de produto",
     "No clips yet.": "Nenhum clipe ainda.",
-    "Make a clip": "Criar um clipe"
+    "Make a clip": "Criar um clipe",
+    "Hug": "Abraço",
+    "Two photos, one warm hug — add a photo of each person.": "Duas fotos, um abraço apertado — envie uma foto de cada pessoa.",
+    "Kiss": "Beijo",
+    "Two people share a kiss — add a photo of each person.": "Duas pessoas se beijam — envie uma foto de cada pessoa.",
+    "Person 1": "Pessoa 1",
+    "Person 2": "Pessoa 2",
+    "Add a photo of each person": "Envie uma foto de cada pessoa",
+    "We put the two photos side by side, then the effect brings them together.": "Colocamos as duas fotos lado a lado e o efeito junta as duas pessoas.",
+    "Change": "Trocar"
   },
   "es": {
     "First film free — made with Kling 4.0": "Primera película gratis — hecha con Kling 4.0",
@@ -1029,7 +1047,16 @@
     "No ads yet.": "Aún no hay anuncios.",
     "Make a product ad": "Crear un anuncio de producto",
     "No clips yet.": "Aún no hay clips.",
-    "Make a clip": "Crear un clip"
+    "Make a clip": "Crear un clip",
+    "Hug": "Abrazo",
+    "Two photos, one warm hug — add a photo of each person.": "Dos fotos, un abrazo cálido: sube una foto de cada persona.",
+    "Kiss": "Beso",
+    "Two people share a kiss — add a photo of each person.": "Dos personas se besan: sube una foto de cada persona.",
+    "Person 1": "Persona 1",
+    "Person 2": "Persona 2",
+    "Add a photo of each person": "Sube una foto de cada persona",
+    "We put the two photos side by side, then the effect brings them together.": "Ponemos las dos fotos lado a lado y el efecto las une.",
+    "Change": "Cambiar"
   },
   "fr": {
     "First film free — made with Kling 4.0": "Premier film gratuit — réalisé avec Kling 4.0",
@@ -1373,7 +1400,16 @@
     "No ads yet.": "Aucune pub pour l’instant.",
     "Make a product ad": "Créer une pub produit",
     "No clips yet.": "Aucun clip pour l’instant.",
-    "Make a clip": "Créer un clip"
+    "Make a clip": "Créer un clip",
+    "Hug": "Câlin",
+    "Two photos, one warm hug — add a photo of each person.": "Deux photos, un câlin chaleureux — ajoute une photo de chaque personne.",
+    "Kiss": "Bisou",
+    "Two people share a kiss — add a photo of each person.": "Deux personnes s’embrassent — ajoute une photo de chaque personne.",
+    "Person 1": "Personne 1",
+    "Person 2": "Personne 2",
+    "Add a photo of each person": "Ajoute une photo de chaque personne",
+    "We put the two photos side by side, then the effect brings them together.": "On place les deux photos côte à côte, puis l’effet les réunit.",
+    "Change": "Changer"
   },
   "de": {
     "First film free — made with Kling 4.0": "Erster Film kostenlos — erstellt mit Kling 4.0",
@@ -1717,7 +1753,16 @@
     "No ads yet.": "Noch keine Anzeigen.",
     "Make a product ad": "Produktanzeige erstellen",
     "No clips yet.": "Noch keine Clips.",
-    "Make a clip": "Clip erstellen"
+    "Make a clip": "Clip erstellen",
+    "Hug": "Umarmung",
+    "Two photos, one warm hug — add a photo of each person.": "Zwei Fotos, eine warme Umarmung — lade ein Foto von jeder Person hoch.",
+    "Kiss": "Kuss",
+    "Two people share a kiss — add a photo of each person.": "Zwei Menschen küssen sich — lade ein Foto von jeder Person hoch.",
+    "Person 1": "Person 1",
+    "Person 2": "Person 2",
+    "Add a photo of each person": "Lade ein Foto von jeder Person hoch",
+    "We put the two photos side by side, then the effect brings them together.": "Wir stellen beide Fotos nebeneinander, dann bringt der Effekt sie zusammen.",
+    "Change": "Ändern"
   },
   "it": {
     "First film free — made with Kling 4.0": "Primo film gratis — realizzato con Kling 4.0",
@@ -2061,7 +2106,16 @@
     "No ads yet.": "Ancora nessun annuncio.",
     "Make a product ad": "Crea un annuncio prodotto",
     "No clips yet.": "Ancora nessuna clip.",
-    "Make a clip": "Crea una clip"
+    "Make a clip": "Crea una clip",
+    "Hug": "Abbraccio",
+    "Two photos, one warm hug — add a photo of each person.": "Due foto, un abbraccio caloroso: aggiungi una foto di ogni persona.",
+    "Kiss": "Bacio",
+    "Two people share a kiss — add a photo of each person.": "Due persone si baciano: aggiungi una foto di ogni persona.",
+    "Person 1": "Persona 1",
+    "Person 2": "Persona 2",
+    "Add a photo of each person": "Aggiungi una foto di ogni persona",
+    "We put the two photos side by side, then the effect brings them together.": "Mettiamo le due foto una accanto all’altra, poi l’effetto le unisce.",
+    "Change": "Cambia"
   },
   "nl": {
     "First film free — made with Kling 4.0": "Eerste film gratis — gemaakt met Kling 4.0",
@@ -2405,7 +2459,16 @@
     "No ads yet.": "Nog geen advertenties.",
     "Make a product ad": "Maak een productadvertentie",
     "No clips yet.": "Nog geen clips.",
-    "Make a clip": "Maak een clip"
+    "Make a clip": "Maak een clip",
+    "Hug": "Knuffel",
+    "Two photos, one warm hug — add a photo of each person.": "Twee foto’s, één warme knuffel — voeg van elke persoon een foto toe.",
+    "Kiss": "Kus",
+    "Two people share a kiss — add a photo of each person.": "Twee mensen kussen — voeg van elke persoon een foto toe.",
+    "Person 1": "Persoon 1",
+    "Person 2": "Persoon 2",
+    "Add a photo of each person": "Voeg van elke persoon een foto toe",
+    "We put the two photos side by side, then the effect brings them together.": "We zetten de twee foto’s naast elkaar en het effect brengt ze samen.",
+    "Change": "Wijzigen"
   },
   "pl": {
     "First film free — made with Kling 4.0": "Pierwszy film za darmo — stworzony z Kling 4.0",
@@ -2749,7 +2812,16 @@
     "No ads yet.": "Brak reklam.",
     "Make a product ad": "Utwórz reklamę produktu",
     "No clips yet.": "Brak klipów.",
-    "Make a clip": "Utwórz klip"
+    "Make a clip": "Utwórz klip",
+    "Hug": "Przytulenie",
+    "Two photos, one warm hug — add a photo of each person.": "Dwa zdjęcia, jedno ciepłe przytulenie — dodaj zdjęcie każdej osoby.",
+    "Kiss": "Pocałunek",
+    "Two people share a kiss — add a photo of each person.": "Dwie osoby się całują — dodaj zdjęcie każdej osoby.",
+    "Person 1": "Osoba 1",
+    "Person 2": "Osoba 2",
+    "Add a photo of each person": "Dodaj zdjęcie każdej osoby",
+    "We put the two photos side by side, then the effect brings them together.": "Stawiamy oba zdjęcia obok siebie, a efekt łączy te osoby.",
+    "Change": "Zmień"
   },
   "tr": {
     "First film free — made with Kling 4.0": "İlk film ücretsiz — Kling 4.0 ile hazırlandı",
@@ -3093,7 +3165,16 @@
     "No ads yet.": "Henüz reklam yok.",
     "Make a product ad": "Ürün reklamı oluştur",
     "No clips yet.": "Henüz klip yok.",
-    "Make a clip": "Klip oluştur"
+    "Make a clip": "Klip oluştur",
+    "Hug": "Sarılma",
+    "Two photos, one warm hug — add a photo of each person.": "İki fotoğraf, sıcak bir sarılma — her kişinin bir fotoğrafını ekle.",
+    "Kiss": "Öpücük",
+    "Two people share a kiss — add a photo of each person.": "İki kişi öpüşüyor — her kişinin bir fotoğrafını ekle.",
+    "Person 1": "Kişi 1",
+    "Person 2": "Kişi 2",
+    "Add a photo of each person": "Her kişinin bir fotoğrafını ekle",
+    "We put the two photos side by side, then the effect brings them together.": "İki fotoğrafı yan yana koyuyoruz, efekt onları bir araya getiriyor.",
+    "Change": "Değiştir"
   },
   "ru": {
     "First film free — made with Kling 4.0": "Первый фильм бесплатно — создан с Kling 4.0",
@@ -3437,7 +3518,16 @@
     "No ads yet.": "Рекламы пока нет.",
     "Make a product ad": "Создать рекламу товара",
     "No clips yet.": "Клипов пока нет.",
-    "Make a clip": "Создать клип"
+    "Make a clip": "Создать клип",
+    "Hug": "Объятие",
+    "Two photos, one warm hug — add a photo of each person.": "Два фото — одно тёплое объятие: добавь фото каждого человека.",
+    "Kiss": "Поцелуй",
+    "Two people share a kiss — add a photo of each person.": "Двое целуются: добавь фото каждого человека.",
+    "Person 1": "Человек 1",
+    "Person 2": "Человек 2",
+    "Add a photo of each person": "Добавь фото каждого человека",
+    "We put the two photos side by side, then the effect brings them together.": "Ставим два фото рядом, а эффект соединяет людей.",
+    "Change": "Заменить"
   },
   "uk": {
     "First film free — made with Kling 4.0": "Перший фільм безкоштовно — створено з Kling 4.0",
@@ -3781,7 +3871,16 @@
     "No ads yet.": "Реклами поки немає.",
     "Make a product ad": "Створити рекламу товару",
     "No clips yet.": "Кліпів поки немає.",
-    "Make a clip": "Створити кліп"
+    "Make a clip": "Створити кліп",
+    "Hug": "Обійми",
+    "Two photos, one warm hug — add a photo of each person.": "Два фото — одні теплі обійми: додай фото кожної людини.",
+    "Kiss": "Поцілунок",
+    "Two people share a kiss — add a photo of each person.": "Двоє цілуються: додай фото кожної людини.",
+    "Person 1": "Людина 1",
+    "Person 2": "Людина 2",
+    "Add a photo of each person": "Додай фото кожної людини",
+    "We put the two photos side by side, then the effect brings them together.": "Ставимо два фото поруч, а ефект з’єднує людей.",
+    "Change": "Змінити"
   },
   "ar": {
     "First film free — made with Kling 4.0": "الفيلم الأول مجانًا — صُنع باستخدام Kling 4.0",
@@ -4125,7 +4224,16 @@
     "No ads yet.": "لا توجد إعلانات بعد.",
     "Make a product ad": "أنشئ إعلان منتج",
     "No clips yet.": "لا توجد مقاطع بعد.",
-    "Make a clip": "أنشئ مقطعًا"
+    "Make a clip": "أنشئ مقطعًا",
+    "Hug": "عناق",
+    "Two photos, one warm hug — add a photo of each person.": "صورتان وعناق دافئ — أضف صورة لكل شخص.",
+    "Kiss": "قبلة",
+    "Two people share a kiss — add a photo of each person.": "شخصان يتبادلان قبلة — أضف صورة لكل شخص.",
+    "Person 1": "الشخص 1",
+    "Person 2": "الشخص 2",
+    "Add a photo of each person": "أضف صورة لكل شخص",
+    "We put the two photos side by side, then the effect brings them together.": "نضع الصورتين جنبًا إلى جنب ثم يجمعهما التأثير.",
+    "Change": "تغيير"
   },
   "ur": {
     "First film free — made with Kling 4.0": "پہلی فلم مفت — Kling 4.0 سے بنائی گئی",
@@ -4469,7 +4577,16 @@
     "No ads yet.": "ابھی کوئی اشتہار نہیں۔",
     "Make a product ad": "پروڈکٹ اشتہار بنائیں",
     "No clips yet.": "ابھی کوئی کلپ نہیں۔",
-    "Make a clip": "کلپ بنائیں"
+    "Make a clip": "کلپ بنائیں",
+    "Hug": "گلے ملنا",
+    "Two photos, one warm hug — add a photo of each person.": "دو تصویریں، ایک گرم جوش گلے ملنا — ہر شخص کی ایک تصویر شامل کریں۔",
+    "Kiss": "بوسہ",
+    "Two people share a kiss — add a photo of each person.": "دو لوگ بوسہ لیتے ہیں — ہر شخص کی ایک تصویر شامل کریں۔",
+    "Person 1": "شخص 1",
+    "Person 2": "شخص 2",
+    "Add a photo of each person": "ہر شخص کی ایک تصویر شامل کریں",
+    "We put the two photos side by side, then the effect brings them together.": "ہم دونوں تصویریں ساتھ ساتھ رکھتے ہیں، پھر اثر انہیں ملا دیتا ہے۔",
+    "Change": "بدلیں"
   },
   "hi": {
     "First film free — made with Kling 4.0": "पहली फ़िल्म मुफ़्त — Kling 4.0 से बनाई गई",
@@ -4811,7 +4928,16 @@
     "No ads yet.": "अभी कोई विज्ञापन नहीं।",
     "Make a product ad": "प्रोडक्ट विज्ञापन बनाएँ",
     "No clips yet.": "अभी कोई क्लिप नहीं।",
-    "Make a clip": "क्लिप बनाएँ"
+    "Make a clip": "क्लिप बनाएँ",
+    "Hug": "गले मिलना",
+    "Two photos, one warm hug — add a photo of each person.": "दो फ़ोटो, एक प्यारी झप्पी — हर व्यक्ति की एक फ़ोटो जोड़ें।",
+    "Kiss": "चुंबन",
+    "Two people share a kiss — add a photo of each person.": "दो लोग चुंबन करते हैं — हर व्यक्ति की एक फ़ोटो जोड़ें।",
+    "Person 1": "व्यक्ति 1",
+    "Person 2": "व्यक्ति 2",
+    "Add a photo of each person": "हर व्यक्ति की एक फ़ोटो जोड़ें",
+    "We put the two photos side by side, then the effect brings them together.": "हम दोनों फ़ोटो साथ-साथ रखते हैं, फिर इफ़ेक्ट उन्हें मिला देता है।",
+    "Change": "बदलें"
   },
   "id": {
     "First film free — made with Kling 4.0": "Film pertama gratis — dibuat dengan Kling 4.0",
@@ -5155,7 +5281,16 @@
     "No ads yet.": "Belum ada iklan.",
     "Make a product ad": "Buat iklan produk",
     "No clips yet.": "Belum ada klip.",
-    "Make a clip": "Buat klip"
+    "Make a clip": "Buat klip",
+    "Hug": "Pelukan",
+    "Two photos, one warm hug — add a photo of each person.": "Dua foto, satu pelukan hangat — tambahkan foto tiap orang.",
+    "Kiss": "Ciuman",
+    "Two people share a kiss — add a photo of each person.": "Dua orang berciuman — tambahkan foto tiap orang.",
+    "Person 1": "Orang 1",
+    "Person 2": "Orang 2",
+    "Add a photo of each person": "Tambahkan foto tiap orang",
+    "We put the two photos side by side, then the effect brings them together.": "Kami taruh dua foto berdampingan, lalu efeknya menyatukan mereka.",
+    "Change": "Ganti"
   },
   "vi": {
     "First film free — made with Kling 4.0": "Phim đầu tiên miễn phí — được tạo bằng Kling 4.0",
@@ -5499,6 +5634,15 @@
     "No ads yet.": "Chưa có quảng cáo.",
     "Make a product ad": "Tạo quảng cáo sản phẩm",
     "No clips yet.": "Chưa có clip.",
-    "Make a clip": "Tạo clip"
+    "Make a clip": "Tạo clip",
+    "Hug": "Ôm",
+    "Two photos, one warm hug — add a photo of each person.": "Hai ảnh, một cái ôm ấm áp — thêm ảnh của từng người.",
+    "Kiss": "Hôn",
+    "Two people share a kiss — add a photo of each person.": "Hai người trao nhau nụ hôn — thêm ảnh của từng người.",
+    "Person 1": "Người 1",
+    "Person 2": "Người 2",
+    "Add a photo of each person": "Thêm ảnh của từng người",
+    "We put the two photos side by side, then the effect brings them together.": "Chúng tôi đặt hai ảnh cạnh nhau, rồi hiệu ứng đưa họ lại gần.",
+    "Change": "Đổi"
   }
 }
