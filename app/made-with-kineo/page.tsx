@@ -21,6 +21,17 @@ import { galeriaItems } from '@/lib/homeGaleriaItems' // KINEO-GALERIA-HOME-2710
 import KineoHouseGallery from '@/components/KineoHouseGallery' // KINEO-GALERIA-HOME-2710
 import styles from '../examples/ExamplesGallery.module.css' // KINEO-GALERIA-HOME-2710
 import '../trending/trending.css' // KINEO-GALERIA-HOME-2710
+import fs from 'node:fs' // KINEO-JUNTA-TRENDING-3110
+import path from 'node:path' // KINEO-JUNTA-TRENDING-3110
+import TrendingCard from '../trending/TrendingCard' // KINEO-JUNTA-TRENDING-3110
+import { trendingBlocks, parseTrendingToday, TRENDING_TODAY_FILE } from '@/lib/trending/trendingNow' // KINEO-JUNTA-TRENDING-3110
+
+// KINEO-JUNTA-TRENDING-3110 — fundador 30/10 ("juntar sim"): Trending e Made with Kineo viram UMA página. Em cima, o que é NOVO
+// (os blocos do antigo /trending: efeitos, estilos de anúncio, temas e motores, lançamentos mais novos primeiro); embaixo, a
+// galeria da casa e os filmes compartilhados pelos donos (mais antigos). /trending redireciona para cá.
+function readTrendingToday(now: Date) {
+  try { return parseTrendingToday(fs.readFileSync(path.join(process.cwd(), TRENDING_TODAY_FILE), 'utf8'), now) } catch { return null }
+}
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -33,6 +44,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
   const page = showcasePageNumber(searchParams.page) // KINEO-GALERIA-HOME-2710
   const [{ data: { user } }, { films, hasNext }] = await Promise.all([createClient().auth.getUser(), getShowcaseFilms(page)]) // KINEO-GALERIA-HOME-2710
   const signedIn = Boolean(user) // KINEO-GALERIA-HOME-2710
+  const newBlocks = trendingBlocks({ now: new Date(), signedIn, today: readTrendingToday(new Date()) }) // KINEO-JUNTA-TRENDING-3110
   const copy = SHOWCASE_COPY.en // KINEO-GALERIA-HOME-2710
   return ( // KINEO-GALERIA-HOME-2710
     <main className={`${styles.page} trending-page`} data-galeria-page="KINEO-GALERIA-HOME-2710">
@@ -49,7 +61,6 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM} aria-current="page">{MADE_WITH_KINEO_LABEL}</Link>
             <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
-            <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
           <div className={styles.headerTools}>
@@ -68,6 +79,18 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
           <h1 id="mwk-title">{MADE_WITH_KINEO_LABEL}</h1>
           <p className="tr-lead"><UiLabel>Clips, images and narrated films, each from one idea. Tap one to make yours in the same style.</UiLabel></p>
         </section>
+        {/* KINEO-JUNTA-TRENDING-3110 — o novo primeiro: os blocos do antigo Trending, depois a galeria e os filmes compartilhados. */}
+        {newBlocks.map((block) => (
+          <section key={block.id} id={block.id} className="tr-block" data-trending-block={block.id} aria-labelledby={`${block.id}-title`}>
+            <div className="tr-block-head">
+              <h2 id={`${block.id}-title`}><UiLabel>{block.title}</UiLabel></h2>
+              <p><UiLabel>{block.sub}</UiLabel></p>
+            </div>
+            <div className="tr-grid">
+              {block.cards.map((card) => <TrendingCard key={card.key} block={block.id} card={card} />)}
+            </div>
+          </section>
+        ))}
         <section aria-label={MADE_WITH_KINEO_LABEL} style={{ paddingTop: 18 }}>
           <KineoHouseGallery items={galeriaItems(signedIn)} surface="page" />
         </section>

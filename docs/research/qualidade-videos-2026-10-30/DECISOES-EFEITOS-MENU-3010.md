@@ -21,3 +21,15 @@ Princípios que o fundador fixou nesta conversa:
 - Clipe livre: proposta "Automático" (foto → Seedance, texto → Kling 3) + troca automática de motor quando a fal recusa —
   aguardando o sim do fundador.
 - Proposta em aberto: juntar Trending e Made with Kineo numa página só, mais novo primeiro.
+
+## Rodada 2 (30/10, 22h–23h) — fundador olhando o site ao vivo
+- Lobisomem (PixVerse 5.5 "Werewolf Rage") no catálogo (26 efeitos). Abraço no zumbi precisa de 2 fotos → adiado; fazer o
+  upload de 2 fotos pensando em Abraço/Beijo (evergreen), não no zumbi.
+- Trending this week do Clipe: estação + mais novos até fechar 24 cartões; ?effect= rola até "Adicionar foto".
+- Library: teto 300 → 1000; abas Ads (videos.platform = 'Studio Ads') e Clips.
+- Studio: com Kling 4.0 escolhido, o palco mostra "Kling 4.0" e o filme da casa feito no 4.0 (cff21e53).
+- Clipe Automático: recusa da fal no envio → 1 reenvio no Seedance 1.5, cobra o menor preço (evento clip_engine_fallback).
+- Trending + Made with Kineo = uma página (/made-with-kineo): o novo em cima, galeria e filmes compartilhados embaixo;
+  /trending redireciona (308); o item saiu dos menus (topo, lateral, celular, /examples, páginas claras).
+- Rosto do amigo no clipe da Bola de Ouro: causa conhecida (o Kling usa a foto como 1º quadro e o rosto deriva); o conserto de
+  2 etapas (quadro-chave) existe em codex/rosto-quadro-chave-2810, pausado pelo fundador em 28/10.

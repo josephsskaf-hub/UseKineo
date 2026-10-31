@@ -970,9 +970,8 @@ export default function KineoLanding({
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
             <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
-            {/* KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
+            {/* KINEO-JUNTA-TRENDING-3110 — o item saiu do topo: o Trending virou o topo da página Made with Kineo (fundador 30/10). Histórico: KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
-            <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
@@ -998,7 +997,6 @@ export default function KineoLanding({
               <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
-              <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>{/* KINEO-TRENDING-2026-10-13 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>

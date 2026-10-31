@@ -16,7 +16,7 @@ export const WORKSPACE_NAV = [
   { href: '/library', label: 'Library', icon: 'videos' },
   // KINEO-TRENDING-2026-10-13 — fundador 13/10: a página "🔥 Trending now" (vídeos reais feitos na Kineo + "Make mine") entra logo
   // antes de Pricing, sem tirar nada. Par: topo do site (app/KineoLanding.tsx), /examples, Sidebar e o "More" do MobileNav.
-  { href: '/trending', label: '🔥 Trending', icon: 'trending' },
+  // KINEO-JUNTA-TRENDING-3110 — fundador 30/10 ("juntar sim"): o Trending virou o topo do Made with Kineo; /trending redireciona.
   { href: '/pricing', label: 'Pricing', icon: 'pricing' },
 ] as const
 /** KINEO-DUAS-PORTAS-2026-10-13 — o que saiu do topo, na ordem: Imagem primeiro (fundador: "pode deixar Imagem no topo, os

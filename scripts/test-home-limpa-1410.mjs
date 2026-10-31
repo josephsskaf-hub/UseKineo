@@ -55,7 +55,8 @@ const PROVENANCE = {
 }
 
 // Sequência do menu do topo (data-nav-item, desktop + celular) medida na origin/main de 14/10 antes desta mudança.
-const NAV_ITEMS = ['video', 'video', 'examples', 'business', 'more:made-with-kineo', 'more:cartoon', 'more:mcp', 'more:trending', 'pricing', 'login', 'video', 'business', 'more:made-with-kineo', 'more:cartoon', 'more:mcp', 'more:trending', 'pricing', 'login'] // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: "Made with Kineo" no topo e no celular, depois dos itens de filme/anúncio; o "AI UGC Ads" é stub no render)
+// KINEO-JUNTA-TRENDING-3110 — reancorado 30/10 (fundador: "juntar sim"): o Trending virou o topo do Made with Kineo e saiu do menu.
+const NAV_ITEMS = ['video', 'video', 'examples', 'business', 'more:made-with-kineo', 'more:cartoon', 'more:mcp', 'pricing', 'login', 'video', 'business', 'more:made-with-kineo', 'more:cartoon', 'more:mcp', 'pricing', 'login'] // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: "Made with Kineo" no topo e no celular, depois dos itens de filme/anúncio; o "AI UGC Ads" é stub no render)
 // (lista anterior, 20/10:) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "Imagens feitas pelo Kineo. Eu quero mais 10 fotos feitas pelo Kineo. 10 fotos boas que lembrem de ads." + "more tools a gente vai cancelar"): o "More tools" (topo e celular) saiu; entraram "AI Cartoon Videos" e "Claude & ChatGPT" (o "AI UGC Ads" é componente — stub no render)
 
 // Frases dos 3 blocos removidos (como aparecem no render).

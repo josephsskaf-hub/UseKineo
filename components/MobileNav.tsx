@@ -154,10 +154,9 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 // KINEO-DUAS-PORTAS-2026-10-13 — Imagem, Clipes e Espaços saíram da barra e ABREM o "More" (mesma ordem da lateral).
 // KINEO-TRENDING-2026-10-13 — o "🔥 Trending" da lateral (WORKSPACE_NAV) abre o "More" do celular: a barra fica com as 5 vagas de
 // sempre (nada encolhe) e o item novo é o 1º da folha.
-const TRENDING_LINK = WORKSPACE_NAV.find(item => item.href === '/trending')
+// KINEO-JUNTA-TRENDING-3110 — o Trending virou o topo do Made with Kineo (fundador 30/10): o item saiu da folha "More".
 const MADE_WITH_KINEO_LINK = WORKSPACE_NAV.find(item => item.href === '/made-with-kineo') // KINEO-GALERIA-HOME-2710 — par da lateral, no "More"
 const MORE_LINKS = [
-  ...(TRENDING_LINK ? [{ href: TRENDING_LINK.href, label: TRENDING_LINK.label, signedIn: false }] : []),
   ...(MADE_WITH_KINEO_LINK ? [{ href: MADE_WITH_KINEO_LINK.href, label: MADE_WITH_KINEO_LINK.label, signedIn: false }] : []), // KINEO-GALERIA-HOME-2710
   ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
