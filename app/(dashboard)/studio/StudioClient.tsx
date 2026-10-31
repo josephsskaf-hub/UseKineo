@@ -232,6 +232,12 @@ const STAGE_TINT: Record<string, [string, string]> = {
   omni: ['#8B5CF6', '#22D3EE'],
   s25: ['#14B8A6', '#6366F1'],
 }
+// KINEO-STUDIO-KLING4-PALCO-3110 — fundador 30/10: com o Kling 4.0 escolhido, o palco da direita dizia "Kling 3" e mostrava filmes
+// do Kling 3 com o selo "Made with". Agora o nome segue o motor (kling4PaidName) e o vídeo é um filme da casa feito DE VERDADE no
+// Kling 4.0 (videos.cff21e53, engine_used kling4, 15 s) — selo honesto: nenhum filme do Kling 3 leva o selo do 4.0.
+const KLING4_STUDIO_HEROES: StudioHeroVideo[] = [
+  { src: '/previews/studio-kling4-werewolf-kid.mp4', poster: '/posters/studio-kling4-werewolf-kid.webp', title: 'The werewolf kid at the last door' },
+]
 /** KINEO-STUDIO-MELHORES-2026-09-30 — o filme clicado na vitrine vai para a frente da lista do palco (sem repetir). */
 function withPick(list: StudioHeroVideo[], pick: StudioBestFilm | null, key: string): StudioHeroVideo[] {
   if (!pick || pick.engine !== key) return list
@@ -1518,7 +1524,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
             primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
         <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
-          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : ENGINES.find((e) => e.key === engine)!.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : engine === 'hollywood' ? kling4PaidName(kling4Availability) : ENGINES.find((e) => e.key === engine)!.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={scriptMode !== 'clip' && engine === 'hollywood' && kling4Availability?.paidLive ? KLING4_STUDIO_HEROES : withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
         </aside>
       </div>
         {/* KINEO-STUDIO-MELHORES-2026-09-30 — fundador: "na parte de baixo sempre tem que ser os melhores vídeos… uns oito,
