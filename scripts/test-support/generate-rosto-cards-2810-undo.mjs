@@ -10,6 +10,17 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-RECUSA-BOTAO-3110 — a camada MAIS NOVA (31/10): a recusa do gerador de filme vira botão de 1 clique (rota anexa `fix`,
+  // /generate renderiza o botão nas duas telas de erro). Base = a main de então (086255b47), tip = árvore de trabalho até o commit.
+  'recusa-botao-3110': {
+    fn: 'semRecusaBotao3110',
+    marca: 'KINEO-RECUSA-BOTAO-3110',
+    o_que: 'o botão de 1 clique das recusas do gerador de filme (fix na resposta da rota + botão nas telas de erro do /generate)',
+    base: '086255b47',
+    tip: null,
+    arquivos: ['app/api/generate-video-cinematic/route.ts', 'app/(dashboard)/generate/GenerateClient.tsx'],
+    novos: ['lib/recusaBotao.ts', 'components/RecusaBotao.tsx', 'scripts/test-recusa-botao-3110.mjs', 'scripts/test-support/desfaz-recusa-botao-3110.mjs'],
+  },
   // KINEO-VALOR-NO-CHECKOUT-3110 — a camada MAIS NOVA (31/10): o valor na hora de pagar — "≈ N more films like this" na parede
   // de pagamento e no /pricing, "Which plan fits me?", a prova social real e a linha do anual na Stripe na régua de filmes.
   // Base = a main de então (086255b47), tip = árvore de trabalho até o commit.

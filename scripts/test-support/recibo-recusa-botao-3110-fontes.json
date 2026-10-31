@@ -1,0 +1,61 @@
+{
+ "base": "7b3fc458515ad8e88433511603c7b6d0bd895349",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "ff87e879febbf3552efb3301902dfb23ce0b91a0766fbbbb6686d5d059f9539c",
+   "afterSha256": "4dd6d88ddb7ca24fe7f47277d140c5922a6457778830aa72e68fa88e0676131b",
+   "hunks": [
+    {
+     "before": "import { PARKED_EVENT, PARKED_MESSAGE, PARKED_VERSION, decidirEstacionamento, pedidoEstacionavel } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal sem saldo/capacidade: o filme é estacionado, não perdido\nimport { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-FILA-QUEDA-FAL-2810 — alarme horário do fundador (fora do finalizador: ele tem guardião próprio)",
+     "after": "import { PARKED_EVENT, PARKED_MESSAGE, PARKED_VERSION, decidirEstacionamento, pedidoEstacionavel } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal sem saldo/capacidade: o filme é estacionado, não perdido\nimport { anexarFixDaRecusa } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão (lib pura, a mesma que o cliente lê)\nimport { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-FILA-QUEDA-FAL-2810 — alarme horário do fundador (fora do finalizador: ele tem guardião próprio)"
+    },
+    {
+     "before": "    if (ctx.balanceExhausted) await alertarFundadorFalSemSaldo({ engine: ctx.engine }) // KINEO-FILA-QUEDA-FAL-2810 — 1 e-mail/hora em PT com o placar (teto 3 s, nunca lança); o de 6 h do falAlert segue no finalizador\n    return res",
+     "after": "    if (ctx.balanceExhausted) await alertarFundadorFalSemSaldo({ engine: ctx.engine }) // KINEO-FILA-QUEDA-FAL-2810 — 1 e-mail/hora em PT com o placar (teto 3 s, nunca lança); o de 6 h do falAlert segue no finalizador\n    if (!res.ok) return await anexarFixDaRecusa(res) // KINEO-RECUSA-BOTAO-3110 — toda recusa com conserto conhecido leva `fix` (código + números) para o botão de 1 clique; o finalizador já leu a Response real acima\n    return res"
+    }
+   ]
+  },
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "3559c774ef5c2af67aea4585e41afa5a64aef605e432e12a35ab0c6e299372ce",
+   "afterSha256": "ec06a60a450099eed7af0bbdc94c8a1f6c9bad50ed41f752a140eb190a4f2595",
+   "hunks": [
+    {
+     "before": "import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'\n// BEGIN COMPRA-CLAREZA-2610 imports",
+     "after": "import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'\nimport RecusaBotao from '@/components/RecusaBotao' // KINEO-RECUSA-BOTAO-3110\nimport { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão\n// BEGIN COMPRA-CLAREZA-2610 imports"
+    },
+    {
+     "before": "  const [error, setError] = useState<string | null>(null)\n  const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)",
+     "after": "  const [error, setError] = useState<string | null>(null)\n  const [recusaResposta, setRecusaResposta] = useState<Record<string, unknown> | null>(null) // KINEO-RECUSA-BOTAO-3110 — o corpo da última recusa (o `fix` do servidor)\n  const recusaDespachoRef = useRef<{ at: number; started: boolean } | null>(null) // KINEO-RECUSA-BOTAO-3110 — o conserto reanalisou: despacha UMA vez quando a análise chegar em 'options'\n  const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)"
+    },
+    {
+     "before": "      const data = await res.json()\n      if (!res.ok) {",
+     "after": "      const data = await res.json()\n      if (!res.ok) setRecusaResposta(data && typeof data === 'object' ? data : null) // KINEO-RECUSA-BOTAO-3110\n      if (!res.ok) {"
+    },
+    {
+     "before": "        if (reconnectAttempt > 0 && res.ok) setError(null)\n        // PUSH #96 — the phase effect only records that an attempt reached",
+     "after": "        if (reconnectAttempt > 0 && res.ok) setError(null)\n        setRecusaResposta(!res.ok ? data : null) // KINEO-RECUSA-BOTAO-3110 — o corpo da recusa (com `fix`) para o botão de 1 clique\n        // PUSH #96 — the phase effect only records that an attempt reached"
+    },
+    {
+     "before": "\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened",
+     "after": "\n  // ═══ KINEO-RECUSA-BOTAO-3110 — o botão de 1 clique da recusa (lib/recusaBotao resolve o que cabe; aqui só se aplica) ═══\n  // Duração/modo/texto mudam AGORA e a análise roda de novo com os valores decididos (targetSeconds/scriptModeOverride: o estado\n  // do React só muda no próximo render). Texto que o escritor reescreve em modo IA passa pelo plano de sempre (script_preview,\n  // KINEO-PLANO-ANTES-DE-GASTAR-3010); sem plano, a análise chega em 'options' e o efeito abaixo despacha UMA vez, com o closure novo.\n  function aplicarConsertoDaRecusa(fix: RefusalFix) { // KINEO-RECUSA-BOTAO-3110\n    if (isProcessingPhase(phase)) return // KINEO-RECUSA-BOTAO-3110\n    void trackEvent('refusal_fix_clicked', { code: fix.code, reason: fix.reason, seconds: fix.seconds ?? null, from_seconds: duration, script_mode: scriptMode, version: RECUSA_BOTAO_VERSION }) // KINEO-RECUSA-BOTAO-3110\n    if (fix.code === 'retry_later') { setError(null); handleGenerateGuarded(); return } // KINEO-RECUSA-BOTAO-3110 — o mesmo Retry, agendado pelo relógio do botão\n    const texto = (structuredScriptRef.current ?? prompt).trim() // KINEO-RECUSA-BOTAO-3110 — o texto que a rota recebeu\n    const novoTexto = textoDoConserto(fix, texto) // KINEO-RECUSA-BOTAO-3110\n    if ((fix.code === 'match_text_duration' || fix.code === 'safer_angle') && !novoTexto) return // KINEO-RECUSA-BOTAO-3110\n    const segundos = (fix.code === 'switch_duration' && fix.seconds ? fix.seconds : duration) as Duration // KINEO-RECUSA-BOTAO-3110\n    const modoIa = fix.code === 'shorten_for_me' || fix.code === 'ai_structure' || fix.code === 'safer_angle' // KINEO-RECUSA-BOTAO-3110\n    const modo: 'ai' | 'verbatim' = modoIa ? 'ai' : scriptMode // KINEO-RECUSA-BOTAO-3110\n    if (segundos !== duration) setDuration(segundos) // KINEO-RECUSA-BOTAO-3110\n    if (modo !== scriptMode) setScriptMode(modo) // KINEO-RECUSA-BOTAO-3110\n    if (novoTexto) { // KINEO-RECUSA-BOTAO-3110\n      if (structuredScriptRef.current !== null && !modoIa) { // KINEO-RECUSA-BOTAO-3110 — roteiro marcado: troca nele e na prévia limpa\n        structuredScriptRef.current = novoTexto // KINEO-RECUSA-BOTAO-3110\n        const previa = fix.code === 'match_text_duration' && fix.askedSeconds && fix.seconds ? trocarDuracaoNoTexto(prompt, fix.askedSeconds, fix.seconds) : null // KINEO-RECUSA-BOTAO-3110\n        if (previa) setPrompt(previa) // KINEO-RECUSA-BOTAO-3110\n      } else { // KINEO-RECUSA-BOTAO-3110\n        structuredScriptRef.current = null // KINEO-RECUSA-BOTAO-3110\n        setPrompt(novoTexto) // KINEO-RECUSA-BOTAO-3110\n      } // KINEO-RECUSA-BOTAO-3110\n    } else if (modoIa) { // KINEO-RECUSA-BOTAO-3110 — o escritor parte do texto dela, não de um roteiro velho\n      structuredScriptRef.current = null // KINEO-RECUSA-BOTAO-3110\n    } // KINEO-RECUSA-BOTAO-3110\n    setError(null) // KINEO-RECUSA-BOTAO-3110\n    setRecusaResposta(null) // KINEO-RECUSA-BOTAO-3110\n    recusaDespachoRef.current = { at: Date.now(), started: false } // KINEO-RECUSA-BOTAO-3110\n    void handleAnalyze(novoTexto ?? texto, modoIa // KINEO-RECUSA-BOTAO-3110\n      ? { structureFirst: true, scriptModeOverride: 'ai', targetSeconds: segundos } // KINEO-RECUSA-BOTAO-3110 — escritor + plano antes do crédito\n      : { skipPreview: true, scriptModeOverride: modo, targetSeconds: segundos }) // KINEO-RECUSA-BOTAO-3110 — mesmo texto/modo: direto ao despacho\n  } // KINEO-RECUSA-BOTAO-3110\n  useEffect(() => { // KINEO-RECUSA-BOTAO-3110 — despacho único depois da reanálise do conserto\n    const p = recusaDespachoRef.current // KINEO-RECUSA-BOTAO-3110\n    if (!p) return // KINEO-RECUSA-BOTAO-3110\n    if (Date.now() - p.at > 180_000) { recusaDespachoRef.current = null; return } // KINEO-RECUSA-BOTAO-3110\n    if (isProcessingPhase(phase)) { p.started = true; return } // KINEO-RECUSA-BOTAO-3110\n    if (!p.started) return // KINEO-RECUSA-BOTAO-3110\n    recusaDespachoRef.current = null // KINEO-RECUSA-BOTAO-3110 — plano, recusa nova ou erro: o próximo clique é dela\n    if (phase === 'options' && !error) handleGenerateGuarded() // KINEO-RECUSA-BOTAO-3110\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [phase, error]) // KINEO-RECUSA-BOTAO-3110\n\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened"
+    },
+    {
+     "before": "  const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld\n  // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════",
+     "after": "  const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld\n  // KINEO-RECUSA-BOTAO-3110 — o conserto da recusa na tela: o `fix` do servidor quando o corpo é desta mesma frase; senão, a frase.\n  const recusaBotoes = error && !isProcessingPhase(phase) ? resolverBotoesDaRecusa(fixDaRecusa(recusaResposta && typeof recusaResposta.error === 'string' && recusaResposta.error.trim() === error.trim() ? recusaResposta : { error }), { // KINEO-RECUSA-BOTAO-3110\n    options: opcoesDeDuracao.map((o) => o.value), // KINEO-RECUSA-BOTAO-3110 — o seletor do motor atual\n    costFor: (d: number) => costForDurationOption(d as Duration), // KINEO-RECUSA-BOTAO-3110 — a função que cobra\n    credits, duration, scriptMode, // KINEO-RECUSA-BOTAO-3110\n    rawRoad: mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'h3max' || aiEngine === 'omni' || aiEngine === 's25'), // KINEO-RECUSA-BOTAO-3110 — espelho de isHollywoodRaw\n    text: structuredScriptRef.current ?? prompt, // KINEO-RECUSA-BOTAO-3110\n  }) : null // KINEO-RECUSA-BOTAO-3110\n  const recusaBotaoNaTela = recusaBotoes ? ( // KINEO-RECUSA-BOTAO-3110\n    <RecusaBotao // KINEO-RECUSA-BOTAO-3110\n      primary={recusaBotoes.primary} // KINEO-RECUSA-BOTAO-3110\n      secondary={recusaBotoes.secondary} // KINEO-RECUSA-BOTAO-3110\n      onApply={aplicarConsertoDaRecusa} // KINEO-RECUSA-BOTAO-3110\n      onShown={(fix) => { void trackEvent('refusal_fix_shown', { code: fix.code, reason: fix.reason, secondary: recusaBotoes.secondary?.fix.code ?? null, version: RECUSA_BOTAO_VERSION }) }} // KINEO-RECUSA-BOTAO-3110\n    /> // KINEO-RECUSA-BOTAO-3110\n  ) : null // KINEO-RECUSA-BOTAO-3110\n  // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════"
+    },
+    {
+     "before": "          {error}\n          {/* KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — the gate blocked on a",
+     "after": "          {error}\n          {recusaBotaoNaTela /* KINEO-RECUSA-BOTAO-3110 — recusa da análise (fase idle): o mesmo botão de 1 clique */}\n          {/* KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — the gate blocked on a"
+    },
+    {
+     "before": "              )}\n              <div className=\"text-sm mb-2\" style={{ color: '#fca5a5' }}>",
+     "after": "              )}\n              {recusaBotaoNaTela /* KINEO-RECUSA-BOTAO-3110 — a saída da recusa, em 1 clique, logo embaixo da frase */}\n              <div className=\"text-sm mb-2\" style={{ color: '#fca5a5' }}>"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/recusaBotao.ts": "3306e5685353264c800594844f2032bc1aa8d4c948cb8cb5cdb356a43cd89093",
+  "components/RecusaBotao.tsx": "7bb24af2842ea3c261764b510a098e68bfd9d328ba266db6af86ad891d8fa756"
+ }
+}

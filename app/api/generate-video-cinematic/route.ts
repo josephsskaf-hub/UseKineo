@@ -53,6 +53,7 @@ import { planoDeResgate } from '@/lib/engineAffordability'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { PARKED_EVENT, PARKED_MESSAGE, PARKED_VERSION, decidirEstacionamento, pedidoEstacionavel } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal sem saldo/capacidade: o filme é estacionado, não perdido
+import { anexarFixDaRecusa } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão (lib pura, a mesma que o cliente lê)
 import { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-FILA-QUEDA-FAL-2810 — alarme horário do fundador (fora do finalizador: ele tem guardião próprio)
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
 // guardadas (mesmo padrão do cinematic-clip-status).
@@ -1423,6 +1424,7 @@ export async function POST(req: NextRequest) {
     // A Response REAL — inclusive 402/409/503 vindos do publish/settlement.
     await finalizarDespacho(ctx, res)
     if (ctx.balanceExhausted) await alertarFundadorFalSemSaldo({ engine: ctx.engine }) // KINEO-FILA-QUEDA-FAL-2810 — 1 e-mail/hora em PT com o placar (teto 3 s, nunca lança); o de 6 h do falAlert segue no finalizador
+    if (!res.ok) return await anexarFixDaRecusa(res) // KINEO-RECUSA-BOTAO-3110 — toda recusa com conserto conhecido leva `fix` (código + números) para o botão de 1 clique; o finalizador já leu a Response real acima
     return res
   })
 }

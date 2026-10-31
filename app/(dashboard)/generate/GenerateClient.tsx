@@ -387,6 +387,8 @@ import {
 import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
 import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import RecusaBotao from '@/components/RecusaBotao' // KINEO-RECUSA-BOTAO-3110
+import { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão
 // BEGIN COMPRA-CLAREZA-2610 imports
 import RecurringPlanValue from '@/components/growth/RecurringPlanValue'
 import ResultScriptReview from '@/components/growth/ResultScriptReview'
@@ -2019,6 +2021,8 @@ export default function GenerateClient({
   const [tasks, setTasks] = useState<TaskHandle[]>([])
   const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({})
   const [error, setError] = useState<string | null>(null)
+  const [recusaResposta, setRecusaResposta] = useState<Record<string, unknown> | null>(null) // KINEO-RECUSA-BOTAO-3110 — o corpo da última recusa (o `fix` do servidor)
+  const recusaDespachoRef = useRef<{ at: number; started: boolean } | null>(null) // KINEO-RECUSA-BOTAO-3110 — o conserto reanalisou: despacha UMA vez quando a análise chegar em 'options'
   const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)
   const [quality, setQuality] = useState<Quality>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15: sem Kineo 1, a entrada é o Seedance
   // Push #084 — Fast Mode (Pexels + TTS, 1 credit, ~30s) is the new default.
@@ -8984,6 +8988,7 @@ export default function GenerateClient({
         return
       }
       const data = await res.json()
+      if (!res.ok) setRecusaResposta(data && typeof data === 'object' ? data : null) // KINEO-RECUSA-BOTAO-3110
       if (!res.ok) {
         console.error('[generate] analyze failed:', data?.error)
         // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — o servidor manda copy
@@ -10190,6 +10195,7 @@ export default function GenerateClient({
           break
         }
         if (reconnectAttempt > 0 && res.ok) setError(null)
+        setRecusaResposta(!res.ok ? data : null) // KINEO-RECUSA-BOTAO-3110 — o corpo da recusa (com `fix`) para o botão de 1 clique
         // PUSH #96 — the phase effect only records that an attempt reached
         // `failed`; it carries no HTTP status and no machine-readable reason,
         // and the 401 branch below leaves the page entirely without ever
@@ -11856,6 +11862,52 @@ export default function GenerateClient({
     }
     handleGenerate()
   }
+
+  // ═══ KINEO-RECUSA-BOTAO-3110 — o botão de 1 clique da recusa (lib/recusaBotao resolve o que cabe; aqui só se aplica) ═══
+  // Duração/modo/texto mudam AGORA e a análise roda de novo com os valores decididos (targetSeconds/scriptModeOverride: o estado
+  // do React só muda no próximo render). Texto que o escritor reescreve em modo IA passa pelo plano de sempre (script_preview,
+  // KINEO-PLANO-ANTES-DE-GASTAR-3010); sem plano, a análise chega em 'options' e o efeito abaixo despacha UMA vez, com o closure novo.
+  function aplicarConsertoDaRecusa(fix: RefusalFix) { // KINEO-RECUSA-BOTAO-3110
+    if (isProcessingPhase(phase)) return // KINEO-RECUSA-BOTAO-3110
+    void trackEvent('refusal_fix_clicked', { code: fix.code, reason: fix.reason, seconds: fix.seconds ?? null, from_seconds: duration, script_mode: scriptMode, version: RECUSA_BOTAO_VERSION }) // KINEO-RECUSA-BOTAO-3110
+    if (fix.code === 'retry_later') { setError(null); handleGenerateGuarded(); return } // KINEO-RECUSA-BOTAO-3110 — o mesmo Retry, agendado pelo relógio do botão
+    const texto = (structuredScriptRef.current ?? prompt).trim() // KINEO-RECUSA-BOTAO-3110 — o texto que a rota recebeu
+    const novoTexto = textoDoConserto(fix, texto) // KINEO-RECUSA-BOTAO-3110
+    if ((fix.code === 'match_text_duration' || fix.code === 'safer_angle') && !novoTexto) return // KINEO-RECUSA-BOTAO-3110
+    const segundos = (fix.code === 'switch_duration' && fix.seconds ? fix.seconds : duration) as Duration // KINEO-RECUSA-BOTAO-3110
+    const modoIa = fix.code === 'shorten_for_me' || fix.code === 'ai_structure' || fix.code === 'safer_angle' // KINEO-RECUSA-BOTAO-3110
+    const modo: 'ai' | 'verbatim' = modoIa ? 'ai' : scriptMode // KINEO-RECUSA-BOTAO-3110
+    if (segundos !== duration) setDuration(segundos) // KINEO-RECUSA-BOTAO-3110
+    if (modo !== scriptMode) setScriptMode(modo) // KINEO-RECUSA-BOTAO-3110
+    if (novoTexto) { // KINEO-RECUSA-BOTAO-3110
+      if (structuredScriptRef.current !== null && !modoIa) { // KINEO-RECUSA-BOTAO-3110 — roteiro marcado: troca nele e na prévia limpa
+        structuredScriptRef.current = novoTexto // KINEO-RECUSA-BOTAO-3110
+        const previa = fix.code === 'match_text_duration' && fix.askedSeconds && fix.seconds ? trocarDuracaoNoTexto(prompt, fix.askedSeconds, fix.seconds) : null // KINEO-RECUSA-BOTAO-3110
+        if (previa) setPrompt(previa) // KINEO-RECUSA-BOTAO-3110
+      } else { // KINEO-RECUSA-BOTAO-3110
+        structuredScriptRef.current = null // KINEO-RECUSA-BOTAO-3110
+        setPrompt(novoTexto) // KINEO-RECUSA-BOTAO-3110
+      } // KINEO-RECUSA-BOTAO-3110
+    } else if (modoIa) { // KINEO-RECUSA-BOTAO-3110 — o escritor parte do texto dela, não de um roteiro velho
+      structuredScriptRef.current = null // KINEO-RECUSA-BOTAO-3110
+    } // KINEO-RECUSA-BOTAO-3110
+    setError(null) // KINEO-RECUSA-BOTAO-3110
+    setRecusaResposta(null) // KINEO-RECUSA-BOTAO-3110
+    recusaDespachoRef.current = { at: Date.now(), started: false } // KINEO-RECUSA-BOTAO-3110
+    void handleAnalyze(novoTexto ?? texto, modoIa // KINEO-RECUSA-BOTAO-3110
+      ? { structureFirst: true, scriptModeOverride: 'ai', targetSeconds: segundos } // KINEO-RECUSA-BOTAO-3110 — escritor + plano antes do crédito
+      : { skipPreview: true, scriptModeOverride: modo, targetSeconds: segundos }) // KINEO-RECUSA-BOTAO-3110 — mesmo texto/modo: direto ao despacho
+  } // KINEO-RECUSA-BOTAO-3110
+  useEffect(() => { // KINEO-RECUSA-BOTAO-3110 — despacho único depois da reanálise do conserto
+    const p = recusaDespachoRef.current // KINEO-RECUSA-BOTAO-3110
+    if (!p) return // KINEO-RECUSA-BOTAO-3110
+    if (Date.now() - p.at > 180_000) { recusaDespachoRef.current = null; return } // KINEO-RECUSA-BOTAO-3110
+    if (isProcessingPhase(phase)) { p.started = true; return } // KINEO-RECUSA-BOTAO-3110
+    if (!p.started) return // KINEO-RECUSA-BOTAO-3110
+    recusaDespachoRef.current = null // KINEO-RECUSA-BOTAO-3110 — plano, recusa nova ou erro: o próximo clique é dela
+    if (phase === 'options' && !error) handleGenerateGuarded() // KINEO-RECUSA-BOTAO-3110
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, error]) // KINEO-RECUSA-BOTAO-3110
 
   // PUSH #38 — a live TAAFT signup reached /generate four times and opened
   // pricing, but never fired analyze_idea_clicked. The only primary CTA sat
@@ -13899,6 +13951,22 @@ export default function GenerateClient({
     failureCause === 'real_person_guard' ||
     failureCause === 'plan_or_credits'
   const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld
+  // KINEO-RECUSA-BOTAO-3110 — o conserto da recusa na tela: o `fix` do servidor quando o corpo é desta mesma frase; senão, a frase.
+  const recusaBotoes = error && !isProcessingPhase(phase) ? resolverBotoesDaRecusa(fixDaRecusa(recusaResposta && typeof recusaResposta.error === 'string' && recusaResposta.error.trim() === error.trim() ? recusaResposta : { error }), { // KINEO-RECUSA-BOTAO-3110
+    options: opcoesDeDuracao.map((o) => o.value), // KINEO-RECUSA-BOTAO-3110 — o seletor do motor atual
+    costFor: (d: number) => costForDurationOption(d as Duration), // KINEO-RECUSA-BOTAO-3110 — a função que cobra
+    credits, duration, scriptMode, // KINEO-RECUSA-BOTAO-3110
+    rawRoad: mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'h3max' || aiEngine === 'omni' || aiEngine === 's25'), // KINEO-RECUSA-BOTAO-3110 — espelho de isHollywoodRaw
+    text: structuredScriptRef.current ?? prompt, // KINEO-RECUSA-BOTAO-3110
+  }) : null // KINEO-RECUSA-BOTAO-3110
+  const recusaBotaoNaTela = recusaBotoes ? ( // KINEO-RECUSA-BOTAO-3110
+    <RecusaBotao // KINEO-RECUSA-BOTAO-3110
+      primary={recusaBotoes.primary} // KINEO-RECUSA-BOTAO-3110
+      secondary={recusaBotoes.secondary} // KINEO-RECUSA-BOTAO-3110
+      onApply={aplicarConsertoDaRecusa} // KINEO-RECUSA-BOTAO-3110
+      onShown={(fix) => { void trackEvent('refusal_fix_shown', { code: fix.code, reason: fix.reason, secondary: recusaBotoes.secondary?.fix.code ?? null, version: RECUSA_BOTAO_VERSION }) }} // KINEO-RECUSA-BOTAO-3110
+    /> // KINEO-RECUSA-BOTAO-3110
+  ) : null // KINEO-RECUSA-BOTAO-3110
   // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════
   // Medido em 01/09: 129 `generation_stage_error` de 33 pessoas externas em
   // 7 dias e `generation_failed_screen_shown` com ZERO eventos em TODA a
@@ -14479,6 +14547,7 @@ export default function GenerateClient({
           }}
         >
           {error}
+          {recusaBotaoNaTela /* KINEO-RECUSA-BOTAO-3110 — recusa da análise (fase idle): o mesmo botão de 1 clique */}
           {/* KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — the gate blocked on a
               snapshot we could not prove stale. Without this the page is a
               dead end: the only paying account burned 31 clicks over 3h23 on
@@ -17387,6 +17456,7 @@ export default function GenerateClient({
                   {error}
                 </div>
               )}
+              {recusaBotaoNaTela /* KINEO-RECUSA-BOTAO-3110 — a saída da recusa, em 1 clique, logo embaixo da frase */}
               <div className="text-sm mb-2" style={{ color: '#fca5a5' }}>
                 {selectedCost > 0
                   ? `Your ${selectedCost} credit${selectedCost === 1 ? '' : 's'} ${selectedCost === 1 ? 'has' : 'have'} been returned to your balance.`
