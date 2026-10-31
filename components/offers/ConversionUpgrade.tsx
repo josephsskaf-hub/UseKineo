@@ -28,6 +28,7 @@ import {
   FREE_FILM_CLICKED_EVENT, FREE_FILM_OFFERED_EVENT, PASS_FIRST_OFFERED_EVENT, PAYWALL_FILME_PRIMEIRO_VERSION,
   copyDoFilmePrimeiro, decidirFilmePrimeiro, type FilmeGratisVariante,
 } from '@/lib/growth/paywallFilmePrimeiro'
+import { FilmsLikeThisNote, FilmsMadeProof } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — o filme dela em "≈ N more films like this" + a prova social real
 
 const SAMPLE: { videoPath: string; arenaPosterPath?: string } | undefined = PUBLIC_ENGINE_EXAMPLES.find(v => v.engine === 'cinematic_ai' && 'arenaPosterPath' in v)
 const panel = { border: '1px solid var(--border)', borderRadius: 14, padding: 16, background: 'var(--card2)' }
@@ -69,26 +70,32 @@ export function ConversionPlanCapacity({ tier, billing, currency, region, surfac
   </div>
 }
 
+// KINEO-VALOR-NO-CHECKOUT-3110 — o filme da pessoa chega com título, miniatura, motor e duração: a parede diz quantos filmes
+// IGUAIS a esse cada plano paga por mês (lib/valorNoCheckout.ts, a função que cobra). Sem filme, a amostra da casa de sempre.
+type OwnFilm = { video_url: string; title: string | null; thumbnail_url: string | null; quality_mode: string | null; duration: number | null }
+
 export function ConversionProof() {
-  const [film, setFilm] = useState<string | null>(null)
+  const [film, setFilm] = useState<OwnFilm | null>(null)
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     let alive = true
     void fetch('/api/videos', { credentials: 'same-origin', cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
-      .then((d: { videos?: { status?: string; video_url?: string }[] } | null) => {
+      .then((d: { videos?: { status?: string; video_url?: string; title?: string | null; thumbnail_url?: string | null; quality_mode?: string | null; duration?: number | null }[] } | null) => {
         const own = d?.videos?.find(v => v.status === 'completed' && v.video_url?.startsWith('https://'))
-        if (alive && own?.video_url) setFilm(own.video_url)
+        if (alive && own?.video_url) setFilm({ video_url: own.video_url, title: typeof own.title === 'string' && own.title.trim() ? own.title.trim().slice(0, 80) : null, thumbnail_url: typeof own.thumbnail_url === 'string' && own.thumbnail_url.startsWith('https://') ? own.thumbnail_url : null, quality_mode: own.quality_mode ?? null, duration: typeof own.duration === 'number' ? own.duration : null })
       }).catch(() => {})
     return () => { alive = false }
   }, [])
   return <figure style={{ margin: '12px 0 18px' }}>
-    <video controls playsInline preload="none" src={failed ? SAMPLE?.videoPath : film ?? SAMPLE?.videoPath}
-      poster={!film || failed ? SAMPLE?.arenaPosterPath : undefined}
+    <video controls playsInline preload={film && !failed ? 'metadata' : 'none'} src={failed ? SAMPLE?.videoPath : film?.video_url ?? SAMPLE?.videoPath}
+      poster={film && !failed ? film.thumbnail_url ?? undefined : SAMPLE?.arenaPosterPath}
       onError={() => setFailed(true)}
       style={{ width: '100%', maxHeight: 200, borderRadius: 12, background: '#111' }} />
     <figcaption style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+      {film && !failed && film.title ? <strong style={{ display: 'block', fontSize: 13, color: 'var(--text)' }}>{film.title}</strong> : null}
       {film && !failed ? 'Your completed film — keep creating with your own ideas.' : 'A short excerpt from a Kineo founder film · Seedance 1.5. Your purchase creates your own film or clips.'}
+      {film && !failed ? <FilmsLikeThisNote qualityMode={film.quality_mode} seconds={film.duration} /> : null}
     </figcaption>
   </figure>
 }
@@ -241,6 +248,7 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
         </button>
       })}
       <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity uses Seedance 1.5, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>
+      <FilmsMadeProof surface="upgrade" />{/* KINEO-VALOR-NO-CHECKOUT-3110 — a prova social real, colada nos botões de pagar (muda abaixo do piso) */}
       {/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a mesma do /pricing), sob os botões de pagar, nos dois modos. */}
       <p data-testid="upgrade-guarantee" style={{ color: 'var(--muted)', fontSize: 12 }}>{MONEY_BACK_GUARANTEE} Cancel anytime. <a href="/terms">Terms</a></p>
       {/* KINEO-PACOTE-3-FILMES-1610 — saída discreta para quem não quer assinar: a equipe faz 3 filmes por US$ 19, único. */}

@@ -10,6 +10,18 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-VALOR-NO-CHECKOUT-3110 — a camada MAIS NOVA (31/10): o valor na hora de pagar — "≈ N more films like this" na parede
+  // de pagamento e no /pricing, "Which plan fits me?", a prova social real e a linha do anual na Stripe na régua de filmes.
+  // Base = a main de então (086255b47), tip = árvore de trabalho até o commit.
+  'valor-no-checkout-3110': {
+    fn: 'semValorNoCheckout3110',
+    marca: 'KINEO-VALOR-NO-CHECKOUT-3110',
+    o_que: 'o valor na hora de pagar (films like this, plan finder, prova social real, linha do anual na Stripe)',
+    base: '086255b4711c998049e7f990318f6ebf40c2abe6',
+    tip: null,
+    arquivos: ['components/offers/ConversionUpgrade.tsx', 'app/pricing/PricingClient.tsx', 'app/api/stripe/checkout/route.ts'],
+    novos: ['lib/valorNoCheckout.ts', 'components/checkout/ValorNoCheckout.tsx', 'app/api/films-made/route.ts', 'scripts/test-valor-no-checkout-3110.mjs'],
+  },
   // KINEO-ESTREIA-3110 — a camada MAIS NOVA (31/10): a espera vira a estreia (components/premiere) nas 12 telas de geração.
   // Base = a main de então (51fe3d0e7), tip = árvore de trabalho até o commit.
   'estreia-3110': {

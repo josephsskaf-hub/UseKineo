@@ -3,6 +3,7 @@
 //   semRostoCards2810(fs.readFileSync(p, 'utf8'), p)
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
+import { semValorNoCheckout3110 } from './desfaz-valor-no-checkout-3110.mjs' // KINEO-VALOR-NO-CHECKOUT-3110 — a mais nova (31/10, valor na hora de pagar): sai primeiro
 import { semEstreia3110 } from './desfaz-estreia-3110.mjs' // KINEO-ESTREIA-3110 — a mais nova (31/10): sai primeiro
 import { semAbracoBeijo3110, ARQUIVOS as ABRACO_BEIJO_ARQUIVOS } from './desfaz-abraco-beijo-3110.mjs' // KINEO-ABRACO-BEIJO-3110 — a mais nova (30/10): sai primeiro
 import { semRostoQuadroChave2810, ARQUIVOS as ROSTO_QUADRO_CHAVE_ARQUIVOS } from './desfaz-rosto-quadro-chave-2810.mjs' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a mais nova (duas etapas do remix)
@@ -15,7 +16,7 @@ import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
+const CAMADAS = [semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
 export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
 

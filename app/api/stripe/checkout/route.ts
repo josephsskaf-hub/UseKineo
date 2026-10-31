@@ -172,6 +172,7 @@ import { WELCOME20_DEADLINE_ENDED_NOTICE, WELCOME20_DEADLINE_UNKNOWN, readWelcom
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
 import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910
+import { annualLineItemDescription } from '@/lib/valorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — a linha do anual na régua de filmes (saem "Fast videos" e "priority render queue")
 import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" no custom_text do passe avulso
 import {
   AUTOPILOT_PILOT_DISMISSED_COOKIE,
@@ -1961,7 +1962,7 @@ async function buildAndRedirect(
             description: withCheckoutPaymentGuidance(
               planFitContext?.plan_fit_selected_tier_matches === '1'
                 ? `${plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
-                : checkoutValueContext.lineItemDescription ?? plan.description,
+                : checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing, tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description, // KINEO-VALOR-NO-CHECKOUT-3110
             ),
             // Stripe's hosted Checkout shows this beside the line item. Use a
             // public Kineo-owned asset, never customer footage or a signed URL.
@@ -3187,7 +3188,7 @@ async function buildGuestSubscriptionAndRedirect(
     ipCountry: ctx.country,
     planName: plan.name,
     lineItemDescription: withCheckoutPaymentGuidance(
-      ctx.checkoutValueContext.lineItemDescription ?? plan.description,
+      ctx.checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing: ctx.billing, tier: ctx.tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description, // KINEO-VALOR-NO-CHECKOUT-3110
     ),
     imageUrl: CHECKOUT_VISUAL_PROOF.imageUrl,
     planCredits: plan.credits,

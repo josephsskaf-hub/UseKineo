@@ -165,6 +165,7 @@ import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
+import { FilmsLikeThisNote, FilmsMadeProof, PlanFinder } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — "Which plan fits me?", prova social real e "≈ N more films like this"
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -427,18 +428,18 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   // KINEO-MRR-3-FILME-PROPRIO-2026-09-16 (fundador: "vai"): quem já fez um filme vê o PRÓPRIO filme acima dos
   // planos — a prova que convence não é a nossa vitrine, é o que a pessoa acabou de fazer. Lê /api/videos (as
   // últimas 6 linhas da própria conta), pega o primeiro concluído com URL. Falha aberta: sem filme, sem faixa.
-  const [latestFilm, setLatestFilm] = useState<{ url: string; title: string } | null>(null)
+  const [latestFilm, setLatestFilm] = useState<{ url: string; title: string; quality: string | null; seconds: number | null } | null>(null) // KINEO-VALOR-NO-CHECKOUT-3110: + motor e duração
   useEffect(() => {
     if (signedIn !== true) return
     let cancelled = false
     void fetch('/api/videos', { credentials: 'same-origin', cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { videos?: Array<{ status?: string; video_url?: string | null; title?: string | null; topic?: string | null }> } | null) => {
+      .then((d: { videos?: Array<{ status?: string; video_url?: string | null; title?: string | null; topic?: string | null; quality_mode?: string | null; duration?: number | null }> } | null) => {
         if (cancelled || !d || !Array.isArray(d.videos)) return
         const v = d.videos.find((x) => x && x.status === 'completed' && typeof x.video_url === 'string' && x.video_url.startsWith('https://'))
         if (!v || !v.video_url) return
         const title = ((v.title ?? v.topic ?? '') as string).split('\n')[0].trim().slice(0, 80)
-        setLatestFilm({ url: v.video_url, title: title || 'Your latest film' })
+        setLatestFilm({ url: v.video_url, title: title || 'Your latest film', quality: v.quality_mode ?? null, seconds: typeof v.duration === 'number' ? v.duration : null }) // KINEO-VALOR-NO-CHECKOUT-3110
       })
       .catch(() => {})
     return () => { cancelled = true }
@@ -1692,6 +1693,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         ) : null}
 
+        {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
+            recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
+        <FilmsMadeProof surface="pricing" />
+        <PlanFinder />
+
         <div className="pricing-secondary">
         {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
             grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
@@ -1735,6 +1741,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
               <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
               <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
+              <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
             </div>
           </div>
         )}
