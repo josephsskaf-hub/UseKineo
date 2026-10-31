@@ -3,6 +3,7 @@
 //   semRostoCards2810(fs.readFileSync(p, 'utf8'), p)
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
+import { semAvulsoUnico3110, ARQUIVOS as AVULSO_UNICO_ARQUIVOS } from './desfaz-avulso-unico-3110.mjs' // KINEO-AVULSO-UNICO-3110 — a mais nova (31/10, o passe de US$ 4,99 como avulso único de filme): sai primeiro
 import { semRemixPaginas3110, ARQUIVOS as REMIX_PAGINAS_ARQUIVOS } from './desfaz-remix-paginas-3110.mjs' // KINEO-REMIX-PAGINAS-3110 — a mais nova (31/10, Make your own version + 10 páginas): sai primeiro
 import { semEp2Painel3110, ARQUIVOS as EP2_PAINEL_ARQUIVOS } from './desfaz-ep2-painel-3110.mjs' // KINEO-EP2-PAINEL-3110 — a mais nova (31/10, carta do episódio 2 + cartão do /admin): sai primeiro
 import { semDecisoesPreco3110, ARQUIVOS as DECISOES_PRECO_ARQUIVOS } from './desfaz-decisoes-preco-3110.mjs' // KINEO-DECISOES-PRECO-3110 — a mais nova (31/10, decisões de preço): sai primeiro
@@ -21,9 +22,9 @@ import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semRemixPaginas3110, semEp2Painel3110, semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
+const CAMADAS = [semAvulsoUnico3110, semRemixPaginas3110,semEp2Painel3110, semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
-export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...REMIX_PAGINAS_ARQUIVOS, ...RECUSA_BOTAO_ARQUIVOS, ...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS, ...EP2_PAINEL_ARQUIVOS, ...DECISOES_PRECO_ARQUIVOS, ...DANCA_SEXTOU_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
+export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...AVULSO_UNICO_ARQUIVOS, ...REMIX_PAGINAS_ARQUIVOS,...RECUSA_BOTAO_ARQUIVOS, ...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS, ...EP2_PAINEL_ARQUIVOS, ...DECISOES_PRECO_ARQUIVOS, ...DANCA_SEXTOU_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
 
 export function relDe(p) {
   const s = String(p ?? '')

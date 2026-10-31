@@ -41,7 +41,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { ONE_TIME_ITEMS_LIVE, oneTimeItemCheckoutHref, oneTimeItemPriceLabel } from '@/lib/oneTimeItem' // KINEO-DECISOES-PRECO-3110
+import { AVULSO_UNICO_VERSION, FILM_PASS_SKU, filmPassCheckoutHref, filmPassOffer } from '@/lib/offers/avulsoUnico3110' // KINEO-AVULSO-UNICO-3110 [TRAVA 8.2 — vai do fundador 31/10 "2A"] — era o one_time_film35 (KINEO-DECISOES-PRECO-3110)
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
@@ -346,13 +346,14 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     trackEvent('exit_intent_intro_starter_clicked', variant)
   }
 
-  // KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("3 sim"): quem acha o plano caro tem a saída do pacote avulso aqui também — o MESMO
-  // one_time_film35 do /pricing (preço e créditos de lib/oneTimeItem.ts), o mesmo checkout servidor, pagamento único.
+  // KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("3 sim"): quem acha o plano caro tem a saída do pacote avulso aqui também.
+  // KINEO-AVULSO-UNICO-3110 — fundador 31/10 ("2A"): a saída é o passe de US$ 4,99 (?pack=starter, 1 filme de 60 s), a MESMA
+  // oferta avulsa de filme do /pricing, da parede de criação e da caixa de upgrade. Nada abre sessão nova do one_time_film35.
   function handleOneTimePack() {
     const started = checkout.launch(
-      'one_time_film35',
-      oneTimeItemCheckoutHref('one_time_film35', 'pricing'),
-      { sku: 'one_time_film35', pricing_surface: 'exit_intent_offer' },
+      'film_pass',
+      filmPassCheckoutHref('exit_intent'),
+      { sku: FILM_PASS_SKU, pack: 'starter', pricing_surface: 'exit_intent_offer', offer_version: AVULSO_UNICO_VERSION },
     )
     if (!started) return
     trackEvent('exit_intent_one_time_pack_clicked', variant)
@@ -677,19 +678,18 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           </div>
         </div>
 
-        {ONE_TIME_ITEMS_LIVE ? ( /* KINEO-DECISOES-PRECO-3110 — a saída discreta, embaixo dos dois planos */
-          <p className="mb-3 text-[12.5px] text-[var(--muted)]" data-kineo="exit-intent-one-time-pack">
-            Not ready for a plan?{' '}
-            <button
-              type="button"
-              onClick={handleOneTimePack}
-              disabled={buying !== null}
-              className="font-bold text-[var(--accent)] underline disabled:opacity-60"
-            >
-              {buying === 'one_time_film35' ? 'Loading…' : `One 35-second film for ${oneTimeItemPriceLabel('one_time_film35')}, once →`}
-            </button>
-          </p>
-        ) : null}
+        {/* KINEO-DECISOES-PRECO-3110 — a saída discreta, embaixo dos dois planos · KINEO-AVULSO-UNICO-3110: agora o passe de US$ 4,99 */}
+        <p className="mb-3 text-[12.5px] text-[var(--muted)]" data-kineo="exit-intent-one-time-pack">
+          Not ready for a plan?{' '}
+          <button
+            type="button"
+            onClick={handleOneTimePack}
+            disabled={buying !== null}
+            className="font-bold text-[var(--accent)] underline disabled:opacity-60"
+          >
+            {buying === 'film_pass' ? 'Loading…' : `${filmPassOffer().line} →`}
+          </button>
+        </p>
 
         {checkout.error && (
           <div

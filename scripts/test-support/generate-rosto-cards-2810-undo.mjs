@@ -10,6 +10,18 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-AVULSO-UNICO-3110 — a camada MAIS NOVA (31/10, [TRAVA 8.2 — vai do fundador 31/10 "2A"]): a oferta avulsa ÚNICA de filme é
+  // o passe de US$ 4,99 (?pack=starter, 1 filme de 60 s) no /pricing, na parede de criação e no exit-intent — o one_time_film35
+  // (US$ 5 / 35 s) sai das telas; o anúncio avulso fica. Base = a main de então (e5f152dfe), tip = árvore de trabalho até o commit.
+  'avulso-unico-3110': {
+    fn: 'semAvulsoUnico3110',
+    marca: 'KINEO-AVULSO-UNICO-3110',
+    o_que: 'a oferta avulsa única de filme (o passe de US$ 4,99 no lugar do pacote de US$ 5 no /pricing, na parede e no exit-intent)',
+    base: 'e5f152dfe',
+    tip: null,
+    arquivos: ['components/OneTimeItemOffer.tsx', 'components/ExitIntentOffer.tsx'],
+    novos: ['lib/offers/avulsoUnico3110.ts', 'scripts/test-avulso-unico-3110.mjs', 'scripts/test-support/desfaz-avulso-unico-3110.mjs'],
+  },
   // KINEO-REMIX-PAGINAS-3110 — a camada MAIS NOVA (31/10): o filme compartilhado (/v/<id>) vira "Make your own version" com o
   // Studio preenchido (ideia + motor + duração), placar share_page_viewed → remix_clicked → remix_signup, e 10 páginas novas no
   // catálogo que o ChatGPT/Bing citam. Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.

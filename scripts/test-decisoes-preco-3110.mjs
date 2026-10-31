@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { root, offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
+import { semAvulsoUnico3110 } from './test-support/desfaz-avulso-unico-3110.mjs' // KINEO-AVULSO-UNICO-3110 — a entrega mais nova sai primeiro
 
 const MARCA = 'KINEO-DECISOES-PRECO-3110'
 const POLICY = 'lib/freeFilmPolicy.ts'
@@ -33,7 +34,11 @@ const HANDOFF = 'lib/growth/pricingPlanChoiceAttribution.ts'
 const PRICES = 'lib/checkoutPricing.ts'
 const read = (rel) => readFileSync(resolve(root, rel), 'utf8').replace(/\r\n/g, '\n')
 const FILES = [POLICY, GRANT, ROUTE, LAYOUT, BANNER, REVERSE, OTI, OTI_LIB, FULFILL, WEBHOOK, SQL, EXIT, PRICING, PRICING_CARDS, MRR, UPGRADE, HANDOFF, PRICES]
-const SRC = Object.fromEntries(FILES.map((rel) => [rel, read(rel)]))
+// KINEO-AVULSO-UNICO-3110 [TRAVA 8.2 — vai do fundador 31/10 "2A"] — a entrega mais nova trocou o filme de US$ 5 pelo passe de
+// US$ 4,99 no pacote e no exit-intent; este guardião confere a decisão "3 sim" SEM ela (camada exata, desfeita primeiro). O passe tem
+// o guardião próprio: scripts/test-avulso-unico-3110.mjs.
+const SRC = Object.fromEntries(FILES.map((rel) => [rel, semAvulsoUnico3110(read(rel), rel)]))
+const SEM_AVULSO = { [OTI]: SRC[OTI], [EXIT]: SRC[EXIT] }
 // O helper de servidor importa o SDK do Supabase só para o caminho sem `db`; o guardião sempre passa um banco falso.
 const GRANT_OFFLINE = (src) => src.replace(/import \{ createClient as createAdminClient, type SupabaseClient \} from '@supabase\/supabase-js'\n/, "const createAdminClient = () => { throw new Error('rede proibida') }\ntype SupabaseClient = any\n")
 
@@ -61,7 +66,7 @@ async function problems(replacements = {}) {
   const src = (rel) => replacements[rel] ?? SRC[rel]
   let pol, grant, oti, otiLib, fulfill, mrr, handoff, prices
   try {
-    const load = offlineModules({ replacements: { ...replacements, [GRANT]: GRANT_OFFLINE(src(GRANT)) }, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
+    const load = offlineModules({ replacements: { ...SEM_AVULSO, ...replacements, [GRANT]: GRANT_OFFLINE(src(GRANT)) }, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
     pol = load(POLICY); grant = load(GRANT); oti = load(OTI); otiLib = load(OTI_LIB); fulfill = load(FULFILL); mrr = load(MRR); handoff = load(HANDOFF); prices = load(PRICES)
   } catch (e) {
     return ['módulos carregam: ' + String(e && e.stack || e)]

@@ -5,11 +5,13 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { ONE_TIME_ITEMS_LIVE, getOneTimeItem, oneTimeItemCheckoutHref, oneTimeItemPriceLabel } from '@/lib/oneTimeItem'
+import { AVULSO_UNICO_VERSION, FILM_PASS_SKU, filmPassCheckoutHref, filmPassOffer } from '@/lib/offers/avulsoUnico3110' // KINEO-AVULSO-UNICO-3110 [TRAVA 8.2 — vai do fundador 31/10 "2A"]
 
-type ItemId = 'one_time_ad' | 'one_time_film35'
+// KINEO-AVULSO-UNICO-3110 — o filme avulso é o passe de US$ 4,99 (?pack=starter); o one_time_film35 (US$ 5 / 35 s) saiu da vitrine.
+type ItemId = 'one_time_ad' | 'film_pass'
 type Surface = 'pricing' | 'generate_paywall' | 'ads_choice'
 type Launcher = Pick<ReturnType<typeof useCheckoutLaunch>, 'launch' | 'pending' | 'error'>
-const DEFAULT_ITEMS: readonly ItemId[] = ['one_time_ad', 'one_time_film35']
+const DEFAULT_ITEMS: readonly ItemId[] = ['film_pass', 'one_time_ad'] // KINEO-AVULSO-UNICO-3110 — o filme (a frase do título) primeiro
 const AD_ONLY: readonly ItemId[] = ['one_time_ad']
 const viewed = new Set<string>()
 const pendingViews = new Map<string, Promise<void>>()
@@ -22,7 +24,8 @@ export const ONE_TIME_ITEM_OFFER_CSS = `
 `
 
 /** Close the dedupe only once the event sink accepts the view; a pending map also covers Strict Mode remounts. */
-function recordView(surface: Surface, sku: ItemId): void {
+function recordView(surface: Surface, item: ItemId): void {
+  const sku = item === 'film_pass' ? FILM_PASS_SKU : item // KINEO-AVULSO-UNICO-3110 — o passe é medido pelo SKU que o checkout grava
   const key = `kineo:one-time-item:view:v1:${surface}:${sku}`
   if (viewed.has(key) || pendingViews.has(key)) return
   try { if (sessionStorage.getItem(key) === '1') { viewed.add(key); return } } catch { /* Memory dedupe remains available. */ }
@@ -52,17 +55,22 @@ export function OneTimeItemOfferView({ surface, lang = 'en', orderId, pending = 
     <style dangerouslySetInnerHTML={{ __html: ONE_TIME_ITEM_OFFER_CSS }} />
     {surface === 'ads_choice' ? <h3>{pt ? 'Só quero 1 agora' : 'I only want 1 now'}</h3> : <>{/* KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("3 sim"): no /pricing e na parede, o pacote avulso fala com quem acha o plano caro. */}
       <p className="oti-kicker" data-kineo="one-time-pack-kicker">{pt ? 'PACOTE AVULSO' : 'ONE-TIME PACK'}</p>
-      <h3>{pt ? 'Ainda não quer um plano? Compre só 1.' : 'Not ready for a plan? Buy just one.'}</h3></>}
+      <h3>{pt ? `Ainda não quer um plano? Um filme de ${filmPassOffer().seconds} s por ${filmPassOffer().price}, uma vez.` : `Not ready for a plan? ${filmPassOffer().line}.`}</h3></>}{/* KINEO-AVULSO-UNICO-3110 — a frase do passe de US$ 4,99 */}
     <p className="oti-sub">{pt ? 'Pagamento único. Sem assinatura ou renovação automática.' : 'One payment. No subscription or automatic renewal.'}</p>
     <div className="oti-grid">{items.map(sku => {
-      const item = getOneTimeItem(sku), label = oneTimeItemPriceLabel(sku), waiting = pending === sku
-      const title = pt ? (sku === 'one_time_ad' ? '1 anúncio sem marca' : '1 filme de 35 s sem marca') : item.label
-      const description = pt ? (sku === 'one_time_ad' ? 'Um anúncio de 15 s no Studio Ads, nível Commercial. Créditos para um anúncio e acesso ao Studio Ads.' : 'Um filme de 35 s com Seedance 1.5. Créditos para um filme.') : item.description
+      const waiting = pending === sku
+      // KINEO-AVULSO-UNICO-3110 — o cartão do filme é o passe (preço, créditos e segundos de lib/checkoutPricing.ts via filmPassOffer).
+      const pass = filmPassOffer(), ad = getOneTimeItem('one_time_ad'), isPass = sku === 'film_pass'
+      const label = isPass ? pass.price : oneTimeItemPriceLabel('one_time_ad')
+      const title = isPass ? (pt ? `1 filme de ${pass.seconds} s` : `1 film of ${pass.seconds} s`) : pt ? '1 anúncio sem marca' : ad.label
+      const description = isPass
+        ? (pt ? `${pass.credits} créditos: um filme de ${pass.seconds} s com Seedance 1.5, a partir da sua ideia. Pagamento único, sem assinatura.` : `${pass.credits} credits: one ${pass.seconds}-second Seedance 1.5 film from your own idea. One-time payment, no subscription.`)
+        : pt ? 'Um anúncio de 15 s no Studio Ads, nível Commercial. Créditos para um anúncio e acesso ao Studio Ads.' : ad.description
       const cta = waiting ? (pt ? 'Abrindo pagamento…' : 'Opening checkout…') : (pt ? 'Comprar só 1' : 'Buy just 1')
       return <article className="oti-item" key={sku} data-sku={sku}>
         <h4>{title}</h4><div className="oti-price">{label}<small>{pt ? 'uma vez' : 'once'}</small></div>
         <p className="oti-desc">{description}</p>
-        {newTab ? <a className="oti-buy" href={oneTimeItemCheckoutHref(sku, surface, orderId)} target="_blank" rel="noopener noreferrer" aria-disabled={busy || pending !== null} onClick={event => onBuy?.(sku, event)}>{cta}<span className="sr-only">{pt ? ' (abre em outra aba)' : ' (opens in a new tab)'}</span></a> : <button className="oti-buy" type="button" disabled={busy || pending !== null} onClick={event => onBuy?.(sku, event)}>{cta}</button>}
+        {newTab ? <a className="oti-buy" href={isPass ? filmPassCheckoutHref(surface === 'generate_paywall' ? 'generate_paywall' : 'pricing') : oneTimeItemCheckoutHref('one_time_ad', surface, orderId)} target="_blank" rel="noopener noreferrer" aria-disabled={busy || pending !== null} onClick={event => onBuy?.(sku, event)}>{cta}<span className="sr-only">{pt ? ' (abre em outra aba)' : ' (opens in a new tab)'}</span></a> : <button className="oti-buy" type="button" disabled={busy || pending !== null} onClick={event => onBuy?.(sku, event)}>{cta}</button>}
       </article>
     })}</div>
     <p className="oti-note">{newTab ? orderId ? (pt ? 'O pagamento abre em outra aba. Volte aqui: seu pedido e suas fotos ficam guardados.' : 'Checkout opens in another tab. Return here: your order and stills stay saved.') : (pt ? 'O pagamento abre em outra aba. Mantenha esta página aberta e volte para continuar com suas escolhas.' : 'Checkout opens in another tab. Keep this page open and return to continue with your choices.') : (pt ? 'Brasil: pagamento em reais no checkout. Confira o total antes de pagar.' : 'Brazil: checkout charges in reais. Review the total before paying.')}</p>
@@ -105,6 +113,8 @@ function BoundOffer(props: Props & { checkout: Launcher }) {
       void trackEvent('checkout_cta_clicked', { sku, surface: props.surface, selection: sku, order_id: props.orderId ?? null })
       return
     }
+    // KINEO-AVULSO-UNICO-3110 — o filme abre o checkout do passe (?pack=starter&return=studio); o anúncio segue no one_time_ad.
+    if (sku === 'film_pass') { checkout.launch('film_pass', filmPassCheckoutHref(props.surface === 'generate_paywall' ? 'generate_paywall' : 'pricing'), { sku: FILM_PASS_SKU, pack: 'starter', pricing_surface: props.surface, offer_version: AVULSO_UNICO_VERSION }); return }
     checkout.launch(sku, oneTimeItemCheckoutHref(sku, props.surface, props.orderId), { sku, pricing_surface: props.surface })
   }
   return <div ref={host}><OneTimeItemOfferView {...props} pending={checkout.pending} error={checkout.error} opened={opened} onBuy={buy} /></div>

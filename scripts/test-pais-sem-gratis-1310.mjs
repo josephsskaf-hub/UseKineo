@@ -19,12 +19,13 @@ import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semDecisoesPreco3110 } from './test-support/desfaz-decisoes-preco-3110.mjs' // KINEO-DECISOES-PRECO-3110 — a faixa dos já premiados (31/10) sai em memória antes de comparar com a régua de 13/10
+import { semAvulsoUnico3110 } from './test-support/desfaz-avulso-unico-3110.mjs' // KINEO-AVULSO-UNICO-3110 — o passe como avulso único (31/10, a mais nova) sai primeiro
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => semDecisoesPreco3110(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-DECISOES-PRECO-3110
+const rd = (p) => semDecisoesPreco3110(semAvulsoUnico3110(readFileSync(join(root, p), 'utf8'), p), p).replace(/\r\n/g, '\n') // KINEO-DECISOES-PRECO-3110 · KINEO-AVULSO-UNICO-3110 (a mais nova) sai antes
 const transpila = (src) => ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText
 
 let falhas = 0
@@ -46,7 +47,7 @@ const LAY = 'app/(dashboard)/layout.tsx'
 const OFERTA = 'components/RegionPassOffer.tsx'
 
 function carrega({ over = {}, mocks = {} } = {}) {
-  return createOfflineLoader({ mocks, source: (rel, text) => over[rel] ?? semDecisoesPreco3110(text, rel) }) // KINEO-DECISOES-PRECO-3110
+  return createOfflineLoader({ mocks, source: (rel, text) => over[rel] ?? semDecisoesPreco3110(semAvulsoUnico3110(text, rel), rel) }) // KINEO-DECISOES-PRECO-3110 · KINEO-AVULSO-UNICO-3110
 }
 const s = (over, f) => over[f] ?? rd(f)
 
