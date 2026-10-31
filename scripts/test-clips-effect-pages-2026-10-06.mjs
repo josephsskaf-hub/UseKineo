@@ -18,9 +18,9 @@ function load(mutation=null,off=false,paused=false){
 }
 function check(data) {
   const effects=data.publicEffectPages(),entries=data.effectSitemapEntries()
-  assert.equal(effects.length,23) // KINEO-EFEITOS-NATAL-PETS-2910: +7 (16 → 23) · KINEO-EFEITOS-HYPE-2910: +dust_away, figurine_3d (14 → 16) · KINEO-EFEITOS-NOVOS-2026-10-13: +wings, dollar_rain, muscle_surge (9 → 12) · KINEO-HALLOWEEN-FX-2910: +witch, zombie (12 → 14)
-  assert.equal(entries.length,368) // 23 efeitos × 16 línguas
-  assert.equal(new Set(entries.map(e=>e.url)).size,368)
+  assert.equal(effects.length,25) // KINEO-DIA-DE-MUERTOS-3110: +catrina, catrina_pet (23 → 25) · KINEO-EFEITOS-NATAL-PETS-2910: +7 (16 → 23) · KINEO-EFEITOS-HYPE-2910: +dust_away, figurine_3d (14 → 16) · KINEO-EFEITOS-NOVOS-2026-10-13: +wings, dollar_rain, muscle_surge (9 → 12) · KINEO-HALLOWEEN-FX-2910: +witch, zombie (12 → 14)
+  assert.equal(entries.length,400) // 25 efeitos × 16 línguas
+  assert.equal(new Set(entries.map(e=>e.url)).size,400)
   assert.equal(data.effectPage('product_360'),null)
   assert.equal(data.effectPage('cartoon-3d'),null)
   assert.equal(data.effectLanguage('invalid'),null)

@@ -58,6 +58,8 @@ export type ClipEffectKey =
   | 'pet_xmas_tree' // KINEO-EFEITOS-NATAL-PETS-2910
   | 'pet_lion' // KINEO-EFEITOS-NATAL-PETS-2910
   | 'pet_bee' // KINEO-EFEITOS-NATAL-PETS-2910
+  | 'catrina' // KINEO-DIA-DE-MUERTOS-3110
+  | 'catrina_pet' // KINEO-DIA-DE-MUERTOS-3110
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -488,6 +490,32 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
       usd: 0.28,
       label: 'Kling 1.6',
     },
+  },
+  // KINEO-DIA-DE-MUERTOS-3110 — fundador 30/10 ("sim, sim e sim"): Día de Muertos (1º e 2/11) era a tendência da semana no
+  // TikTok/Reels (Catrina em pessoa e em pet) e nenhum modelo pronto da fal tem esse efeito — então é prompt no Kling 2.5 (o
+  // mesmo caminho do Storm). Testado em 30/10 com foto gerada (clipes 2bb5b28a e ab1175b7) e aprovado quadro a quadro: pintura
+  // de Catrina nítida, coroa de cravos, velas e papel picado; o pet mantém raça e pose. "Not scary" no texto: é festa, não terror.
+  {
+    key: 'catrina',
+    title: 'Day of the Dead Catrina',
+    sub: 'Catrina face paint and a marigold crown bloom on your photo.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: `Keep the same person, face, hair and pose from the photo. Day of the Dead transformation: elegant La Catrina face paint appears softly on their face — white base, dark painted eye circles, colorful flower and swirl details on cheeks and forehead — and a crown of orange marigolds and red roses blooms in their hair. Warm candlelight, marigold petals drifting through the air, glowing papel picado banners behind. They smile gently and look into the camera. Festive and beautiful, not scary. ${NO_TEXT}`,
+    filmIdea: 'The night of the Day of the Dead, when the marigolds lit the way home — a 60-second story',
+    person: true,
+    preview: { video: '/previews/efeito-catrina.mp4', poster: '/posters/efeito-catrina.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
+  },
+  {
+    key: 'catrina_pet',
+    title: 'Day of the Dead pet',
+    sub: 'Your pet gets a marigold crown, candles and festive face paint.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: `Keep the same animal from the photo, same breed, fur and pose. Day of the Dead celebration: a crown of orange marigolds settles on the pet's head and delicate colorful sugar-skull flower patterns appear painted on the fur of its face. Candles glow around it, marigold petals drift down, colorful papel picado banners hang behind. The pet wags happily and looks at the camera. Festive and cute, not scary. ${NO_TEXT}`,
+    filmIdea: 'The pet who guided the family home on the Day of the Dead — a 60-second story',
+    person: false,
+    preview: { video: '/previews/efeito-catrina_pet.mp4', poster: '/posters/efeito-catrina_pet.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
   },
 ]
 

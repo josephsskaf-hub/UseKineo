@@ -29,6 +29,16 @@ export const MORE_TOOLS_NAV = [
   // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços (espaço vazio → pronto, vídeo antes → depois); par no MobileNav e no mega-menu.
   { href: '/spaces', label: 'Spaces', icon: 'spaces' },
 ] as const
+// KINEO-MENU-LATERAL-3110 — fundador 30/10: a lateral vira UMA lista, sem o título "More tools": Make a film, Product ads,
+// Made with Kineo, 🔥 Trending, Images, Clips — e por último Library e Pricing (coisas de conta). Spaces sai só da lateral
+// (/spaces segue no ar, no topo do site e no "More" do celular). O celular (MobileNav) não muda.
+const SIDEBAR_LAST = new Set(['/library', '/pricing'])
+export function sidebarNavItems(clipsOn: boolean): readonly { href: string; label: string; icon: string }[] {
+  const doors = WORKSPACE_NAV.filter(item => !SIDEBAR_LAST.has(item.href))
+  const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces' && (item.href !== '/clips' || clipsOn))
+  const last = WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))
+  return [...doors, ...tools, ...last]
+}
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 // KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0
 // assinantes) e Channel Builder (0) saem do menu; as páginas continuam no ar (links e Google). O "More" vira só "Earn 30%" (era 40% até 13/10).

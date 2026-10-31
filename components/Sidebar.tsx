@@ -3,7 +3,7 @@
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
-import { WORKSPACE_NAV, MORE_NAV, MORE_TOOLS_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
@@ -651,11 +651,9 @@ export default function Sidebar({
               Afiliados vao para "More". Par: MobileNav.tsx (mesmos destinos). */}
           {/* KINEO-DUAS-PORTAS-2026-10-13 — as 2 portas (Make a film · Product ads) + Library + Pricing; logo abaixo, o grupo
               "More tools" SEMPRE ABERTO (Imagem, Clipes, Espaços — 1 clique, como antes). Par: MobileNav.tsx e o topo do site. */}
-          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
-          <div className="workspace-nav-group" role="group" aria-label="More tools">
-            <div className="workspace-nav-kicker"><UiLabel>More tools</UiLabel></div>
-            {MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
-          </div>
+          {/* KINEO-MENU-LATERAL-3110 — fundador 30/10: sem o grupo "More tools"; uma lista só de Make a film até Clips, Spaces sai da
+              lateral (a página segue no ar e no topo do site) e Library + Pricing descem para o fim (são de conta/configuração). */}
+          {sidebarNavItems(clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
               Invite & Earn + Affiliate viraram um item só, "Earn 30%" (o programa de afiliados; 30% para quem entra desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13). */}
           {isLoggedIn && (

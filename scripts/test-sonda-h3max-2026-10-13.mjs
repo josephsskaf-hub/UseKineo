@@ -172,6 +172,9 @@ const HYPE_EXPECTED = {
   fx_pet_dance: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'drunk_dance_pet', input_image_urls: [VIRAL_IMG], duration: '5' } },
   fx_pet_lion: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'pet_lion_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
   fx_pet_bee: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'pet_bee_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  // KINEO-DIA-DE-MUERTOS-3110 — abraço no zumbi e lobisomem (tendências de outubro), enums do OpenAPI da fal lidos em 30/10.
+  fx_final_hug: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'The Final Hug', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+  fx_werewolf: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Werewolf Rage', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
 }
 const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash', 'subject_3_dance', 'my_santa_pic', 'drunk_dance_pet', 'pet_lion_pro', 'pet_bee_pro'])
 /** Todas as chaves fx_* que o catálogo pode ter, na ordem: as 6 virais e as 2 de Halloween. */

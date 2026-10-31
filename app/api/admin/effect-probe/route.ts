@@ -92,6 +92,10 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   fx_pet_dance: { model: KLING, input: (image) => ({ effect_scene: 'drunk_dance_pet', input_image_urls: [image], duration: '5' }) },
   fx_pet_lion: { model: KLING, input: (image) => ({ effect_scene: 'pet_lion_pro', input_image_urls: [image], duration: '5' }) },
   fx_pet_bee: { model: KLING, input: (image) => ({ effect_scene: 'pet_bee_pro', input_image_urls: [image], duration: '5' }) },
+  // KINEO-DIA-DE-MUERTOS-3110 — abraço no zumbi (tendência de outubro): o texto livre no Kling 2.5 abraçou sem virar zumbi (clipe 1d07bd9d,
+  // reprovado 30/10); testa o modelo pronto da PixVerse 5.5 com a foto do casal. Lobisomem entra junto (tendência da mesma lista).
+  fx_final_hug: { model: PIXVERSE_55, input: (image) => ({ effect: 'The Final Hug', image_url: image, resolution: '720p', duration: '5' }) },
+  fx_werewolf: { model: PIXVERSE_55, input: (image) => ({ effect: 'Werewolf Rage', image_url: image, resolution: '720p', duration: '5' }) },
   // KINEO-ESTILOS-DIA1-2026-10-13 — fundador (13/10): +10 estilos de anúncio NOVOS por dia, testados. Lote do dia 1: 10 efeitos
   // da MESMA PixVerse v5 (mesmo endpoint e preço dos 15 estilos no ar; o sistema de estilos não precisa de motor novo), só
   // (image), 720p, 5 s. Enum conferido no OpenAPI vivo da fal em 13/10 (154 valores):

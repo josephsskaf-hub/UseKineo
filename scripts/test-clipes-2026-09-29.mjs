@@ -428,7 +428,10 @@ ok(read('lib/ui/workspaceNavigation.ts').includes("{ href: '/clips', label: 'Cli
 // Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): Clipes saiu do topo da lateral e da barra
 // do celular para o grupo "More tools" (MORE_TOOLS_NAV) — continua a 1 clique na lateral e no "More" do celular, atrás do
 // MESMO interruptor.
-ok(sidebar.includes("MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail))"), 'Sidebar respeita o interruptor do clipe')
+// Reancorado 30/10 (KINEO-MENU-LATERAL-3110, fundador): a lateral virou uma lista só (sidebarNavItems); o Clipes continua atrás do
+// MESMO interruptor — a lateral passa clipsVisible(userEmail) e a lista só inclui /clips quando ele é verdadeiro.
+const navCfg3110 = read('lib/ui/workspaceNavigation.ts')
+ok(sidebar.includes('sidebarNavItems(clipsVisible(userEmail))') && navCfg3110.includes("item.href !== '/clips' || clipsOn"), 'Sidebar respeita o interruptor do clipe')
 const mobile = read('components/MobileNav.tsx')
 ok(mobile.includes("href: '/clips'") && mobile.includes("...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC)"), 'MobileNav tem Clipes (par) atrás do interruptor')
 const landing = read('app/KineoLanding.tsx')
