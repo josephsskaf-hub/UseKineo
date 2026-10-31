@@ -19,6 +19,15 @@ import {
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { publicVideoRemixHref } from '@/lib/publicVideoRemix'
+// KINEO-REMIX-PAGINAS-3110 — "faça a sua versão" abre o Studio já preenchido (ideia + motor + duração) e liga a conta nova ao filme.
+import {
+  buildRemixHref,
+  remixDurationFrom,
+  remixEngineFromEngineUsed,
+  remixEngineLabel,
+} from '@/lib/remixPaginas3110'
+import { getPublicVideoEngineUsed } from '@/lib/remixPaginas3110Server'
+import SharePageBeacon from './SharePageBeacon'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -174,6 +183,13 @@ export default async function PublicVideoPage({ params }: { params: { id: string
   // existing no-signup script tool; signup happens only after a useful script
   // exists and is carried into Studio.
   const remixHref = publicVideoRemixHref(v?.title ?? title, params.id)
+  // KINEO-REMIX-PAGINAS-3110 — o motor só é lido depois do consentimento (result 'ok'); sem ele, ideia + duração.
+  const engineUsed = v ? await getPublicVideoEngineUsed(params.id) : null
+  const remixEngine = remixEngineFromEngineUsed(engineUsed)
+  const remixDuration = remixDurationFrom(v?.durationSeconds ?? null, remixEngine)
+  const engineLabel = remixEngineLabel(engineUsed)
+  const remixFilmHref = buildRemixHref({ title, sourceVideoId: params.id, engineUsed, durationSeconds: v?.durationSeconds ?? null })
+  const remixMeta = { engine: remixEngine, duration: remixDuration }
 
   // KINEO-SCRIPT-LIBRARY-2026-08-03 — sibling scripts. Only members of the
   // library are returned and every member has already cleared the quality gate
@@ -193,6 +209,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif',
       }}
     >
+      {v && <SharePageBeacon videoId={params.id} engine={remixEngine} duration={remixDuration} />}
       {v?.isIndexable && (
         <>
           <script
@@ -290,6 +307,28 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               </PublicVideoCtaLink>
             </div>
           )}
+          {/* KINEO-REMIX-PAGINAS-3110 — a assinatura do filme: quem recebe o link vê de onde ele veio (e o motor real,
+              quando a linha o registra — selo honesto, nunca chute). */}
+          <Link
+            href="/?utm_source=public_video&utm_medium=attribution&utm_campaign=made_with_kineo"
+            data-remix-attribution="made-with-kineo"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 10,
+              padding: '6px 12px',
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'rgba(255,255,255,0.05)',
+              color: '#e5e7eb',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            🎬 Made with Kineo{engineLabel ? ` · ${engineLabel}` : ''}
+          </Link>
         </div>
 
         <div
@@ -313,11 +352,15 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           {/* KINEO-LACO-VIRAL-2026-09-17 — o modelo CapCut: "refaça este filme com o seu tema". O botão principal
               leva ao cadastro com o tema deste filme já na caixa (mesmo contrato /signup?prompt=…&create_intent=fast
               das outras vitrines); o remix sem cadastro (7 cliques/30 d, 0 contas) vira o caminho secundário. */}
+          {/* KINEO-REMIX-PAGINAS-3110 — o mesmo botão, agora com o filme inteiro: a ideia, o motor e a duração abrem o
+              Studio já preenchidos (sem conta: cadastro → Studio; com conta: direto no Studio), e o filme de origem viaja
+              junto até o cadastro (remix_signup). Antes: /signup?prompt=<título> — o logado caía no /dashboard sem a ideia. */}
           <PublicVideoCtaLink
-            href={generateFromScriptHref(title, 'public_video_remake')}
+            href={remixFilmHref}
             videoId={params.id}
             placement="under_player"
-            destination="/signup"
+            destination="/studio"
+            remix={remixMeta}
             style={{
               display: 'inline-block',
               background: BLUE,
@@ -538,11 +581,14 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           justifyContent: 'center',
         }}
       >
+        {/* KINEO-REMIX-PAGINAS-3110 — a barra fixa acompanha a página inteira; ela agora é a MESMA porta do botão
+            principal (Studio preenchido). O remix só de roteiro, sem cadastro, segue logo abaixo do player. */}
         <PublicVideoCtaLink
-          href={remixHref}
+          href={remixFilmHref}
           videoId={params.id}
           placement="sticky_bar"
-          destination="/free-script-generator"
+          destination="/studio"
+          remix={remixMeta}
           style={{
             display: 'block',
             width: 'min(420px, 100%)',
@@ -556,7 +602,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             fontSize: '1rem',
           }}
         >
-          Remix this topic free →
+          Make your own version →
         </PublicVideoCtaLink>
       </div>
 

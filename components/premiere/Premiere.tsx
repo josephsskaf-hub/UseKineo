@@ -254,7 +254,10 @@ export function PremiereResult(props: {
   const share = async () => {
     void trackEvent('premiere_share_clicked', { surface })
     try {
-      if (navigator.share) { await navigator.share({ title: props.title ?? 'Made with Kineo', url: props.url }); return }
+      // KINEO-REMIX-PAGINAS-3110 — esta estreia compartilha o arquivo (clipe, imagem, áudio não têm página pública /v/);
+      // a assinatura vai junto no texto do compartilhamento, para quem recebe saber de onde veio. O filme narrado tem
+      // a página pública com "Make your own version" (tela de pronto do /generate → "Create a public watch page").
+      if (navigator.share) { await navigator.share({ title: props.title ?? 'Made with Kineo', text: 'Made with Kineo — usekineo.com', url: props.url }); return }
       await navigator.clipboard.writeText(props.url)
       setShared(true)
       setTimeout(() => setShared(false), 2200)

@@ -10,6 +10,20 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-REMIX-PAGINAS-3110 — a camada MAIS NOVA (31/10): o filme compartilhado (/v/<id>) vira "Make your own version" com o
+  // Studio preenchido (ideia + motor + duração), placar share_page_viewed → remix_clicked → remix_signup, e 10 páginas novas no
+  // catálogo que o ChatGPT/Bing citam. Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.
+  'remix-paginas-3110': {
+    fn: 'semRemixPaginas3110',
+    marca: 'KINEO-REMIX-PAGINAS-3110',
+    o_que: 'o "Make your own version" do filme compartilhado (Studio preenchido + placar do laço) e as 10 páginas novas que a IA cita',
+    base: 'b2b859801',
+    tip: null,
+    arquivos: ['app/v/[id]/page.tsx', 'components/PublicVideoCtaLink.tsx', 'components/premiere/Premiere.tsx', 'components/StudioIdeaArrival.tsx',
+      'app/api/events/route.ts', 'lib/seo/intentPages.ts', 'lib/seo/trafego2310.ts'],
+    novos: ['lib/remixPaginas3110.ts', 'lib/remixPaginas3110Server.ts', 'app/v/[id]/SharePageBeacon.tsx', 'components/RemixSignupArrival.tsx',
+      'app/api/remix/signup/route.ts', 'scripts/test-remix-paginas-3110.mjs', 'scripts/test-support/desfaz-remix-paginas-3110.mjs'],
+  },
   // KINEO-EP2-PAINEL-3110 — a camada MAIS NOVA (31/10): a carta do episódio 2 do dia seguinte (cron novo, carimbo na supressão da
   // casa e na season_letter, fonte nova da porta de e-mail) e o cartão do /admin com o placar das mudanças do dia.
   // Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.

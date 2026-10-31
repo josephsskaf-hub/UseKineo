@@ -59,6 +59,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'region_first_film_emailed',
   'video_published_v1',
   'video_unpublished_v1',
+  'remix_signup', // KINEO-REMIX-PAGINAS-3110 — conta nova nascida de um filme compartilhado; só o /auth/callback grava
   'compose_submission_claim',
   'avatar_submission_claim',
   // ═══ KINEO-353A-2026-08-26 ═══════════════════════════════════════════════

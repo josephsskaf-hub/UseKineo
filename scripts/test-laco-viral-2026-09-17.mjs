@@ -3,8 +3,11 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // reancorado KINEO-REMIX-PAGINAS-3110
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+// reancorado KINEO-REMIX-PAGINAS-3110 — o 'Make your own version' com Studio preenchido (31/10) sai em memória antes desta prova
+// histórica (a prova nova mora em scripts/test-remix-paginas-3110.mjs).
+const rd = (p) => semRostoCards2810(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
 

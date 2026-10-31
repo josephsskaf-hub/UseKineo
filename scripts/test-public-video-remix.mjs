@@ -4,11 +4,14 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // reancorado KINEO-REMIX-PAGINAS-3110
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
-const source = (rel) => readFileSync(join(root, rel), 'utf8')
+// reancorado KINEO-REMIX-PAGINAS-3110 — o 'Make your own version' com Studio preenchido (31/10) sai em memória antes desta prova
+// histórica (a prova nova mora em scripts/test-remix-paginas-3110.mjs).
+const source = (rel) => semRostoCards2810(readFileSync(join(root, rel), 'utf8'), rel)
 
 function loadTs(rel) {
   const output = ts.transpileModule(source(rel), {

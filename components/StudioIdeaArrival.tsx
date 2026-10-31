@@ -14,6 +14,7 @@
 // Nada aqui inicia render, analisa texto ou gasta crédito.
 import { useEffect } from 'react'
 import SignupConversionTracker from '@/components/SignupConversionTracker'
+import RemixSignupArrival from '@/components/RemixSignupArrival' // KINEO-REMIX-PAGINAS-3110
 import { trackEvent, trackSignupSource } from '@/lib/analytics'
 import { IDEIA_POUSA_NO_STUDIO_VERSION } from '@/lib/growth/ideiaPousaNoStudio'
 
@@ -38,5 +39,11 @@ export default function StudioIdeaArrival() {
       intent_campaign: (params.get('intent_campaign') ?? '').slice(0, 100) || null,
     })
   }, [])
-  return <SignupConversionTracker />
+  // KINEO-REMIX-PAGINAS-3110 — a chegada pelo "Make your own version" de um filme compartilhado (placar do laço viral).
+  return (
+    <>
+      <SignupConversionTracker />
+      <RemixSignupArrival />
+    </>
+  )
 }

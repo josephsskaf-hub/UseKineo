@@ -14,6 +14,8 @@ type PublicVideoCtaLinkProps = {
   placement?: string
   /** Real next step. The CTA may now deliver value before asking for signup. */
   destination?: string
+  /** KINEO-REMIX-PAGINAS-3110 — CTA de "faça a sua versão": o clique também vira `remix_clicked`, atribuído ao filme. */
+  remix?: { engine: string | null; duration: number | null }
 }
 
 // KINEO-SHARE-LANDING-CEGA-2026-08-17 — POR QUE ESTE ARQUIVO GANHOU UM OBSERVER.
@@ -51,6 +53,7 @@ export default function PublicVideoCtaLink({
   style,
   placement = 'unknown',
   destination = '/signup',
+  remix,
 }: PublicVideoCtaLinkProps) {
   const ref = useRef<HTMLAnchorElement | null>(null)
 
@@ -94,6 +97,16 @@ export default function PublicVideoCtaLink({
           placement,
           destination,
         })
+        // KINEO-REMIX-PAGINAS-3110 — o placar do laço: share_page_viewed → remix_clicked → remix_signup (servidor).
+        if (remix) {
+          void trackEvent('remix_clicked', {
+            source_video_id: videoId,
+            placement,
+            engine: remix.engine,
+            duration: remix.duration,
+            version: 'remix_paginas_3110',
+          })
+        }
       }}
     >
       {children}

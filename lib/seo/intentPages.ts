@@ -83,6 +83,11 @@ const NICHES: NicheSeed[] = [
   { name: 'teachers and classrooms', who: 'teachers making short lesson videos for students', prompt: 'How the water cycle works, for a 10-year-old, in one minute' },
   { name: 'affiliate marketers', who: 'creators reviewing products with a narrated video', prompt: 'Three things this budget microphone does better than one that costs four times more' },
   { name: 'agencies', who: 'agencies producing weekly videos for several clients', prompt: 'Why a dental clinic should post one 60-second video a week, with three topic ideas' },
+  // KINEO-REMIX-PAGINAS-3110 — negócios locais de país rico que perguntam ao ChatGPT "AI video for my <business>" (o canal que paga:
+  // 8 de 11 pagantes vieram de citação). Vídeo educativo narrado, sem filmar; nada de promessa de resultado.
+  { name: 'dental clinics', who: 'clinics posting short patient-education videos without filming in the chair', prompt: 'Why your gums bleed when you floss, and what it usually means, explained in 60 seconds' },
+  { name: 'law firms', who: 'firms explaining one common legal question a week in plain language', prompt: 'What a power of attorney actually lets someone do, explained in plain English in 60 seconds' },
+  { name: 'hotels and vacation rentals', who: 'properties that want a narrated destination video for every season', prompt: 'Three things to do within walking distance of a seaside hotel on a rainy day' },
 ]
 
 // ── FORMATO: que vídeo ───────────────────────────────────────────────────────────────────────────
@@ -145,6 +150,16 @@ const LANGUAGES: LangSeed[] = [
   { name: 'Romanian', code: 'ro', prompt: 'Adevărata poveste a lui Vlad Țepeș, dincolo de legenda lui Dracula', note: 'Romanian narration and captions from a Romanian prompt.' },
   { name: 'Malay', code: 'ms', prompt: 'Misteri Gua Niah: rumah manusia purba 40,000 tahun dahulu', note: 'Malay narration and captions from a Malay prompt.' },
   { name: 'Bulgarian', code: 'bg', prompt: 'Варненското злато: най-старото обработено злато в света', note: 'Bulgarian narration and captions from a Bulgarian prompt.' },
+  // KINEO-REMIX-PAGINAS-3110 — as últimas línguas do catálogo com voz (lib/textLanguage, minimaxBoost) que ainda não tinham
+  // página: Norway, Hungary, Slovakia, Croatia, Slovenia, Catalonia e South Africa são mercados de país rico/médio que o ChatGPT
+  // cita pela página da língua (/for/urdu: 93 visitas em 14 d). Nynorsk fica de fora (o bokmål cobre a busca norueguesa).
+  { name: 'Norwegian', code: 'no', prompt: 'Hvordan isen formet de norske fjordene, og hvorfor de er så dype', note: 'Norwegian (Bokmål) narration and captions from a Norwegian prompt.' },
+  { name: 'Hungarian', code: 'hu', prompt: 'A Rubik-kocka titka: hogyan talált fel egy magyar építész egy világhírű játékot', note: 'Hungarian narration and captions from a Hungarian prompt.' },
+  { name: 'Slovak', code: 'sk', prompt: 'Tajomstvo Spišského hradu, jedného z najväčších hradov v strednej Európe', note: 'Slovak narration and captions from a Slovak prompt.' },
+  { name: 'Croatian', code: 'hr', prompt: 'Zašto je Dubrovnik 1377. godine uveo jednu od prvih karantena na svijetu', note: 'Croatian narration and captions from a Croatian prompt.' },
+  { name: 'Slovenian', code: 'sl', prompt: 'Skrivnost Postojnske jame in človeške ribice, ki lahko živi več kot sto let', note: 'Slovenian narration and captions from a Slovenian prompt.' },
+  { name: 'Catalan', code: 'ca', prompt: 'Per què la Sagrada Família porta més de 140 anys en construcció', note: 'Catalan narration and captions from a Catalan prompt.' },
+  { name: 'Afrikaans', code: 'af', prompt: 'Die geheim van Tafelberg se tafeldoek: waarom die wolk elke somer terugkom', note: 'Afrikaans narration and captions from an Afrikaans prompt.' },
 ]
 
 // ── ALTERNATIVA: em vez de quem (só o que é verdade sobre a Kineo) ───────────────────────────────
