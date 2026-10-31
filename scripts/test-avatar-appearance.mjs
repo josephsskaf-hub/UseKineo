@@ -3,6 +3,9 @@ import assert from 'node:assert/strict'
 import ts from 'typescript'
 import postcss from 'postcss'
 import {renderPage, source} from './preview-ux-complete.mjs'
+import {setCurrentFilter} from './preview-ux-complete.mjs'
+import {semEstreia3110} from './test-support/desfaz-estreia-3110.mjs'
+setCurrentFilter(semEstreia3110) // KINEO-ESTREIA-3110 — a estreia (31/10) sai em memória antes de comparar com a base congelada
 import {createOfflineLoader} from './test-support/offline-ts-loader.mjs'
 const base='b0f4a293',file='app/(dashboard)/avatar/AvatarStudioClient.tsx'
 let checks=0

@@ -11,8 +11,11 @@ const ts = require('typescript')
 const { renderToStaticMarkup } = require('react-dom/server')
 export const BASE = '28e7a163'
 const root = path.resolve(import.meta.dirname, '..')
+// KINEO-ESTREIA-3110 — guardião antigo que congela uma tela pode pedir a árvore SEM as entregas novas (camadas desfaz-*), em memória.
+let currentFilter = (text) => text
+export function setCurrentFilter(fn) { currentFilter = fn }
 export function source(file, before = false, comparisonBase = BASE) {
-  return before ? execFileSync('git', ['show', `${comparisonBase}:${file}`], {cwd:root,encoding:'utf8'}) : fs.readFileSync(path.join(root,file),'utf8')
+  return before ? execFileSync('git', ['show', `${comparisonBase}:${file}`], {cwd:root,encoding:'utf8'}) : currentFilter(fs.readFileSync(path.join(root,file),'utf8'), file)
 }
 export function renderPage(entry, before = false, fixture = {}, props = {}, comparisonBase = BASE) {
   const cache = new Map()

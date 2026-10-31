@@ -89,7 +89,7 @@
 import { trackEvent } from '@/lib/analytics'
 import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
 
-export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded
+export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
 
 /**
  * Desfecho do download. Só `blob` conta como `video_downloaded` — é o único em

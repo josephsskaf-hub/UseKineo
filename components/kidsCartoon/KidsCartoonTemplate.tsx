@@ -18,6 +18,7 @@ import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage'
 import { useEffect, useRef, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
+import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import {
   KIDS_CARTOON_DEFAULT_DURATION,
@@ -169,7 +170,11 @@ export default function KidsCartoonTemplate() {
   const [clips, setClips] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   const [composePct, setComposePct] = useState(0)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  // KINEO-ESTREIA-3110 — o status de CADA cena que o poll já recebia (só tela) + a fala de cada cena para a linha "agora".
+  const [sceneClips, setSceneClips] = useState<{ status: string; url: string | null }[]>([])
+  const [sceneLines, setSceneLines] = useState<string[]>([])
   const alive = useRef(true)
+  usePremiereBeacon(stage === 'done' && Boolean(videoUrl), 'cartoon') // KINEO-ESTREIA-3110
 
   const cost = kidsCartoonCost(duration)
   const costLine = kidsCostLine(ui, { seconds: duration, cost, balance })
@@ -253,6 +258,7 @@ export default function KidsCartoonTemplate() {
     if (!texto || kidsContentRefusal(texto)) return
     const generationId = newGenerationId()
     setStage('starting'); setError(null); setNeedPlans(false); setVideoUrl(null); setClips({ done: 0, total: 0 }); setComposePct(0)
+    setSceneClips([]); setSceneLines([]) // KINEO-ESTREIA-3110 — filme novo começa com a sala vazia
     void trackEvent('kids_cartoon_make_clicked', { character, language, duration, credits: cost, balance, captions })
     try {
       const { res, data } = await postJson('/api/generate-video-cinematic', kidsCinematicPayload({ generationId, script: texto, request: { character, language, duration }, captions }))
@@ -290,6 +296,7 @@ export default function KidsCartoonTemplate() {
   /** Acompanha o filme até o fim: cenas → montagem → pronto. Mesmos endpoints, parâmetros e saídas do /generate. */
   async function follow(r0: KidsRender) {
     let r = { ...r0 }
+    setSceneLines(r.captions) // KINEO-ESTREIA-3110
     try {
       if (!r.renderId) {
         setStage('clips')
@@ -309,6 +316,7 @@ export default function KidsCartoonTemplate() {
           const list = Array.isArray(s.data.clips) ? s.data.clips as { status?: string; url?: string | null }[] : []
           const total = typeof s.data.total === 'number' ? s.data.total : r.ids.length
           setClips({ done: typeof s.data.done === 'number' ? s.data.done : 0, total })
+          setSceneClips(list.map((c) => ({ status: typeof c?.status === 'string' ? c.status : 'processing', url: typeof c?.url === 'string' && c.url ? c.url : null }))) // KINEO-ESTREIA-3110
           if (s.data.allDone !== true) continue
           // A retomada de cena do /generate: 1ª rodada com o prompt original, 2ª suavizada no servidor (sanitize).
           const failedIdx = list.map((c, i) => (c.status === 'failed' ? i : -1)).filter((i) => i >= 0)
@@ -372,15 +380,38 @@ export default function KidsCartoonTemplate() {
   function restart() {
     save(null)
     setStage('idle'); setScript(''); setCaption(''); setVideoUrl(null); setError(null); setNeedPlans(false); setClips({ done: 0, total: 0 }); setComposePct(0)
+    setSceneClips([]); setSceneLines([]) // KINEO-ESTREIA-3110
+  }
+  // KINEO-ESTREIA-3110 — "o próximo episódio": o MESMO personagem, língua e duração; ideia em branco. Só preenche a tela —
+  // a história nova é revisada e o crédito só sai no "Make my cartoon".
+  function nextEpisode() {
+    restart(); setIdea(''); setIdeaId(null)
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* nada */ }
   }
 
   const progress = stage === 'starting' ? 4 : stage === 'clips' ? 6 + Math.round((clips.total > 0 ? clips.done / clips.total : 0) * 64) : stage === 'composing' ? 72 + Math.round(Math.min(100, composePct) * 0.26) : 100
   const reviewing = stage === 'review' || (stage === 'failed' && Boolean(script))
   const renderView = stage === 'starting' || stage === 'clips' || stage === 'composing' || stage === 'done'
-  const stepState = (n: 1 | 2 | 3): 'on' | 'ok' | 'off' => {
-    const cur = stage === 'done' ? 4 : stage === 'composing' ? 2 : 1
-    return n < cur ? 'ok' : n === cur ? 'on' : 'off'
-  }
+  // KINEO-ESTREIA-3110 — a sala ao vivo do desenho: um cartão por cena (com o rosto do personagem até a cena ficar pronta),
+  // que vira o clipe real no poll em que a cena fica pronta; a linha "agora" é a fala da próxima cena.
+  const premiereCount = sceneClips.length || clips.total || sceneLines.length
+  const premiereItems: PremiereItem[] = Array.from({ length: premiereCount }, (_, i) => {
+    const c = sceneClips[i]
+    const pronta = c?.status === 'done' && Boolean(c.url)
+    return {
+      key: `k${i}`,
+      label: `Scene ${i + 1}`,
+      status: pronta ? 'ready' as const : c?.status === 'failed' ? (stage === 'clips' ? 'failed' as const : 'waiting' as const) : stage === 'clips' ? 'working' as const : 'waiting' as const,
+      url: pronta ? c!.url : null,
+      posterUrl: char.portrait || null,
+    }
+  }).filter((it) => stage !== 'composing' || it.status === 'ready')
+  const premiereNext = premiereItems.findIndex((it) => it.status !== 'ready')
+  const premiereLine = stage === 'clips' && premiereNext >= 0 ? (sceneLines[premiereNext] ?? '').trim() : ''
+  const premiereNow = premiereLine
+    ? { label: `Scene ${premiereNext + 1} · the narrator says`, text: `“${premiereLine.length > 180 ? `${premiereLine.slice(0, 177)}…` : premiereLine}”` }
+    : { label: 'Now', text: stage === 'composing' ? t.stepVoice : t.stepScenes }
+  const premiereTitle = (() => { const first = (script.match(/^[^.!?。！？]*[.!?。！？]?/)?.[0] ?? '').trim(); return first ? (first.length > 110 ? `${first.slice(0, 107)}…` : first) : `${char.name}’s cartoon` })()
 
   return (
     <main className="kkc" data-kids-cartoon="template" data-stage={stage}>
@@ -389,37 +420,45 @@ export default function KidsCartoonTemplate() {
       <p className="kkc-lead">{t.lead}</p>
 
       {renderView ? (
-        <section className="kkc-sec" aria-live="polite" data-kids-render={stage}>
+        <section style={{ margin: '0 0 14px' }} data-kids-render={stage}>
           <div className="kkc-who"><img src={char.portrait} alt="" /><div><b>{char.name}</b><span>{kidsDurationChip(ui, duration, cost)} · {LANG_LABEL[language]}</span></div></div>
           {stage === 'done' && videoUrl ? (
-            <div className="kkc-done">
-              <video className="kkc-video" src={videoUrl} controls playsInline preload="metadata" />
-              <div>
-                <h2 className="kkc-ready">{t.stepReady}</h2>
-                <div className="kkc-actions">
-                  <a className="kkc-go kkc-big" href={videoUrl} download onClick={() => { void trackEvent('kids_cartoon_downloaded', { character, language, duration }) }}>{t.download} <span aria-hidden="true">↓</span></a>
-                  <Link className="kkc-ghost" href="/library">{t.library}</Link>
-                </div>
-                {caption ? (
-                  <div className="kkc-cap">
-                    <p><b>{t.caption}</b><br />{caption}<br /><small>{t.label}</small></p>
-                    <button type="button" className="kkc-ghost" onClick={() => { try { void navigator.clipboard.writeText(caption); setCopied(true) } catch { /* sem área de transferência */ } }}>{copied ? t.copied : t.copy}</button>
-                  </div>
-                ) : null}
-                <p className="kkc-note"><button type="button" className="kkc-ghost" onClick={restart}>{t.another}</button></p>
+            // KINEO-ESTREIA-3110 — a estreia: o desenho toca sozinho, Download grande (o mesmo kids_cartoon_downloaded), biblioteca e legenda logo abaixo.
+            <PremiereResult
+              surface="cartoon"
+              kind="video"
+              url={videoUrl}
+              posterUrl={char.portrait || null}
+              title={t.stepReady}
+              meta={`${duration} s · ${LANG_LABEL[language]}`}
+              downloadHref={videoUrl}
+              downloadLabel={t.download}
+              onDownload={() => { void trackEvent('kids_cartoon_downloaded', { character, language, duration }) }}
+              next={{ label: 'Next episode', title: `${char.name}’s next adventure`, hint: 'Same character, a new story — you review it before anything is charged.', cta: 'Make the next episode', onClick: nextEpisode }}
+            >
+              <div className="kkc-actions">
+                <Link className="kkc-ghost" href="/library">{t.library}</Link>
               </div>
-            </div>
+              {caption ? (
+                <div className="kkc-cap">
+                  <p><b>{t.caption}</b><br />{caption}<br /><small>{t.label}</small></p>
+                  <button type="button" className="kkc-ghost" onClick={() => { try { void navigator.clipboard.writeText(caption); setCopied(true) } catch { /* sem área de transferência */ } }}>{copied ? t.copied : t.copy}</button>
+                </div>
+              ) : null}
+            </PremiereResult>
           ) : (
-            <>
-              <ol className="kkc-steps">
-                <li data-s={stepState(1)}><b aria-hidden="true">{stepState(1) === 'ok' ? '✓' : stepState(1) === 'on' ? '' : '1'}</b>{t.stepScenes}{stage === 'clips' && clips.total > 0 ? ` · ${clips.done}/${clips.total}` : ''}</li>
-                <li data-s={stepState(2)}><b aria-hidden="true">{stepState(2) === 'ok' ? '✓' : stepState(2) === 'on' ? '' : '2'}</b>{t.stepVoice}</li>
-                <li data-s={stepState(3)}><b aria-hidden="true">3</b>{t.stepReady}</li>
-              </ol>
-              <div className="kkc-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><i style={{ width: `${progress}%` }} /></div>
+            // KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala de todas as telas de geração (components/premiere).
+            <PremiereStage
+              surface="cartoon"
+              title={premiereTitle}
+              items={premiereItems}
+              kind="video"
+              ratio="9 / 16"
+              now={premiereNow}
+              progress={progress}
+            >
               <p className="kkc-note">{t.wait}</p>
-              {script ? <p className="kkc-note kkc-quote">“{script}”</p> : null}
-            </>
+            </PremiereStage>
           )}
         </section>
       ) : (

@@ -24,6 +24,8 @@ import {
 } from '@/lib/spaces/spaces'
 import { spacesCopy, type SpacesCopyKey } from '@/lib/spaces/spacesCopy'
 import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
+import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
+import { downloadVideoFile } from '@/lib/videoDownload'
 
 type PhotoState = 'idle' | 'uploading' | 'staging' | 'staged' | 'animating' | 'clip' | 'failed'
 interface Photo {
@@ -333,6 +335,25 @@ export default function SpacesClient() {
       </div>
     </div>
   )
+  // KINEO-ESTREIA-3110 — a espera do vídeo vira a estreia: um cartão por foto pronta (o espaço montado como pôster) que
+  // vira o clipe real no instante em que ele fica pronto; depois a montagem com a barra de progresso que o poll já recebe.
+  // Só tela — clipOne/makeVideo, a cobrança e a montagem seguem iguais. Clipes e montagem NÃO mandam e-mail: a nota
+  // pede a aba aberta (a montagem é disparada e acompanhada daqui).
+  usePremiereBeacon(!!video?.url, 'spaces')
+  const premiereItems: PremiereItem[] = staged.map((p, i) => ({
+    key: p.key,
+    label: `Photo ${i + 1}`,
+    status: p.state === 'clip' && p.clipUrl ? 'ready' : p.state === 'failed' ? 'failed' : 'working',
+    url: p.state === 'clip' ? p.clipUrl : null,
+    posterUrl: p.stagedUrl,
+    kind: 'video',
+  }))
+  const stageAnother = () => {
+    setPhotos([])
+    setVideo(null)
+    setError(null)
+    fileRef.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const photosCost = photos.filter((p) => !p.stagedUrl).length * NANO_CREDITS
   const videoCost = staged.filter((p) => !p.clipUrl).length * clipCredits
   const canStage = !busy && rights && photos.length > 0 && description.trim().length >= 3 && photosCost > 0
@@ -462,10 +483,47 @@ export default function SpacesClient() {
           </button>
           {!allStaged ? <p style={{ fontSize: 12, color: C.muted, margin: '8px 0 0' }}>{t('needStaged')}</p> : null}
         </div>
+        {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração (components/premiere). */}
+        {busy === 'video' && video && !video.url && premiereItems.length ? (
+          <div style={{ marginTop: 16, maxWidth: premiereItems.length === 1 ? 320 : premiereItems.length === 2 ? 480 : undefined }}>
+            <PremiereStage
+              failedLabel="failed"
+              surface="spaces"
+              title={description.trim() || t('title')}
+              items={premiereItems}
+              now={{ label: 'Now', text: video.status === 'montage' ? t('montage', { n: Math.round((video.progress ?? 0) * 100) }) : t('makingClips') }}
+              progress={video.status === 'montage' ? (video.progress ?? 0) * 100 : null}
+              footnote="Takes a few minutes. Keep this tab open — your tour is edited right here."
+            />
+          </div>
+        ) : null}
         {video?.url ? (
-          <div style={{ display: 'grid', gap: 10, marginTop: 16, maxWidth: 360 }}>
-            <video src={video.url} controls playsInline style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 12, background: '#000' }} />
-            <a href={video.url} download target="_blank" rel="noreferrer" style={{ ...btn(true), textAlign: 'center', textDecoration: 'none' }}>{t('download')}</a>
+          <div style={{ marginTop: 16, maxWidth: 420 }}>
+            <PremiereResult
+              surface="spaces"
+              kind="video"
+              url={video.url}
+              posterUrl={staged[0]?.stagedUrl ?? null}
+              title={description.trim() || t('title')}
+              meta={`Ready · ${staged.length} ${staged.length === 1 ? 'photo' : 'photos'}`}
+              downloadLabel={t('download')}
+              onDownload={() => {
+                void downloadVideoFile({
+                  url: video.url!,
+                  filename: `kineo-spaces-tour-${Date.now()}.mp4`,
+                  exportType: 'current_asset',
+                  surface: 'spaces',
+                  extra: { product: 'spaces' },
+                })
+              }}
+              next={{
+                label: 'Another space?',
+                title: 'Start over with new photos — your description and brief stay filled in.',
+                cta: 'Stage another room',
+                onClick: stageAnother,
+                hint: 'Credits only when you press Generate.',
+              }}
+            />
           </div>
         ) : null}
       </section>

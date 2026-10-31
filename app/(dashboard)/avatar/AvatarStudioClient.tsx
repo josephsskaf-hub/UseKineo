@@ -19,6 +19,14 @@ import { createClient } from '@/lib/supabase/client'
 // KINEO-PRICING-V6-2026-08-19 — "get credits from $9.90" era o único preço
 // desta tela e estava chumbado. Vem da tabela que a Stripe cobra.
 import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+// KINEO-ESTREIA-3110 — a espera vira a estreia (a mesma sala de todas as telas) + o download pelo helper comum (conta video_downloaded).
+import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere'
+import { useUiCopy } from '@/components/InterfaceLanguage'
+import { downloadVideoFile, type DownloadSurface } from '@/lib/videoDownload'
+
+// KINEO-ESTREIA-3110 — o tipo DownloadSurface (lib/videoDownload.ts) ainda não lista 'avatar'; o valor só rotula o evento.
+// Quando o tipo ganhar 'avatar', trocar por 'avatar' puro.
+const AVATAR_DOWNLOAD_SURFACE = 'avatar' as string as DownloadSurface
 
 type Phase = 'idle' | 'uploading' | 'submitting' | 'animating' | 'composing' | 'rendering' | 'done' | 'failed'
 
@@ -1227,6 +1235,24 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
     ? videoUrl
     : (fidelity === 'scene' && sceneImageUrl) ? sceneImageUrl : faceUrl
 
+  // KINEO-ESTREIA-3110 — sala ao vivo do envio até o MP4 final; estreia quando chega. Só tela: envio, poll, compose e débito
+  // intocados. O "uploading" é o upload da foto/vídeo (antes de gerar) e segue no próprio quadro do celular.
+  const ui = useUiCopy()
+  const premiereLive = busy && phase !== 'uploading'
+  const premierePoster = sourceKind === 'photo' ? previewSrc : null
+  usePremiereBeacon(phase === 'done' && !!finalUrl, 'avatar')
+  function resetAvatarRun() {
+    clearAvatarRunSnapshot()
+    runRef.current = null
+    avatarRunStartedAtRef.current = 0
+    setPhase('idle')
+    setFinalUrl(null)
+    setProgress(0)
+  }
+  async function downloadAvatarVideo(url: string) {
+    await downloadVideoFile({ url, filename: 'kineo-avatar.mp4', exportType: 'current_asset', surface: AVATAR_DOWNLOAD_SURFACE, extra: { product: 'avatar' } })
+  }
+
   return (
     <div className="avatar-workspace px-4 sm:px-6 py-7 pb-20">
       <style dangerouslySetInnerHTML={{ __html: AVATAR_PRESENTATION_CSS }} />
@@ -1842,6 +1868,44 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
 
         {/* ── RIGHT: live phone preview + status ── */}
         <div id="avatar-preview" className="avatar-preview flex-col items-center gap-4 sticky top-20">
+          {/* KINEO-ESTREIA-3110 — a espera vira a estreia (components/premiere): o spinner por cima do celular virou a sala ao
+              vivo (a foto é o pôster, a barra é o MESMO progresso) e o vídeo cru + link virou a estreia com Download contado. */}
+          {phase === 'done' && finalUrl ? (
+            <div data-avatar-premiere="result" style={{ width: '100%', maxWidth: 360 }}>
+              <PremiereResult
+                surface="avatar"
+                kind="video"
+                url={finalUrl}
+                posterUrl={premierePoster}
+                title={script.trim().slice(0, 90) || ui('Your presenter video')}
+                meta={ui('Ready to post')}
+                downloadLabel="Download MP4"
+                onDownload={() => void downloadAvatarVideo(finalUrl)}
+                next={{
+                  label: ui('Next video'),
+                  title: ui('Same face, a new script.'),
+                  hint: ui('Your face, voice and script stay loaded.'),
+                  cta: ui('↺ Make another'),
+                  onClick: resetAvatarRun,
+                }}
+              />
+            </div>
+          ) : premiereLive ? (
+            <div data-avatar-premiere="stage" style={{ width: '100%', maxWidth: 360 }}>
+              <PremiereStage
+                surface="avatar"
+                title={script.trim().slice(0, 90) || ui('Your presenter video')}
+                kind="video"
+                ratio="9 / 16"
+                items={[{ key: 'avatar', label: ui('Your presenter'), status: 'working', posterUrl: premierePoster }]}
+                now={{ label: ui('Now'), text: ui(PHASE_COPY[phase]) }}
+                progress={progress}
+                footnote={phase === 'rendering'
+                  ? ui("You can close this tab — we'll email you the link when it's ready.")
+                  : ui("Keep this tab open until the final render starts — after that you can close it and we'll email you the link.")}
+              />
+            </div>
+          ) : (
           <div
             className="avatar-preview-frame"
             style={{
@@ -1852,9 +1916,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
             }}
           >
             <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: 18, overflow: 'hidden', background: 'var(--card2)' }}>
-              {phase === 'done' && finalUrl ? (
-                <video src={finalUrl} controls autoPlay loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : previewSrc ? (
+              {previewSrc ? (
                 sourceKind === 'video' ? (
                   <video src={previewSrc} muted loop autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: busy ? 0.45 : 1 }} />
                 ) : (
@@ -1867,7 +1929,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   <span className="text-xs font-semibold"><UiLabel>Pick a face to preview</UiLabel></span>
                 </div>
               )}
-              {busy && (
+              {phase === 'uploading' && ( /* KINEO-ESTREIA-3110 — só o upload da foto/vídeo fica no quadro; a geração tem a sala */
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5" style={{ background: 'rgba(10,10,11,0.55)', backdropFilter: 'blur(2px)' }}>
                   <div className="spinner-sm" style={{ position: 'relative' }}><div className="spinner-sm-inner" /></div>
                   <p className="text-center text-[12px] font-bold" style={{ color: 'var(--avatar-overlay-text)' }}>{PHASE_COPY[phase]}</p>
@@ -1878,28 +1940,11 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               )}
             </div>
           </div>
-
-          {phase === 'done' && finalUrl && (
-            <a
-              href={finalUrl}
-              download
-              className="btn-neon w-full text-center px-5 py-3 text-sm"
-              style={{ textDecoration: 'none', maxWidth: 340 }}
-            ><UiLabel>
-              ⬇ Download MP4
-            </UiLabel></a>
           )}
-          {phase === 'done' && (
+          {phase === 'done' && !finalUrl && ( /* KINEO-ESTREIA-3110 — rede de segurança: pronto sem link não prende a tela */
             <button
               type="button"
-              onClick={() => {
-                clearAvatarRunSnapshot()
-                runRef.current = null
-                avatarRunStartedAtRef.current = 0
-                setPhase('idle')
-                setFinalUrl(null)
-                setProgress(0)
-              }}
+              onClick={resetAvatarRun}
               className="text-[12px] font-bold"
               style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
             ><UiLabel>

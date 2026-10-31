@@ -92,6 +92,7 @@ import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge'
 import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-ANUAL-2o-MES-2026-10-08 — aviso dispensável do anual (30%) para quem está no 2º mês
 import { FILM60_ARRIVED_EVENT, FILM60_HANDOFF_KEY, FILM60_VERSION, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff' // KINEO-VERSAO-60S-2026-10-13 — a volta da versão de 60 s
 import { CHATGPT_LINK_MESSAGE, ORIGINAL_IDEA_SESSION_KEY, isStandaloneHttpUrl, originalIdeaFromArrival, usableOriginalIdea } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera do clipe vira a estreia
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -442,6 +443,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const [clipSeconds, setClipSeconds] = useState<number>(10)
   const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; noCredits?: boolean; startedAt?: number }>({ phase: 'idle' })
   const clipPollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  usePremiereBeacon(clipState.phase === 'done' && !!clipState.url, 'clip') // KINEO-ESTREIA-3110 — aba escondida pisca quando o clipe fica pronto
   const [chatGptQuickstart, setChatGptQuickstart] = useState<ChatGptQuickstartChoice | null>(null)
   const promptRef = useRef<HTMLTextAreaElement | null>(null)
   const quickstartReadyTrackedRef = useRef(false)
@@ -1471,15 +1473,39 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             )}
             {scriptMode === 'clip' && clipState.phase !== 'idle' && (
               <div className="gnote" data-testid="clip-result" style={{ marginBottom: 10 }}>
-                {clipState.phase === 'submitting' && <UiLabel>Sending your shot to Seedance…</UiLabel>}
-                {clipState.phase === 'rendering' && <UiLabel>Rendering your clip — usually 1 to 3 minutes. You can keep this tab open.</UiLabel>}
+                {/* KINEO-ESTREIA-3110 — a espera vira a estreia (components/premiere, a mesma sala de todas as telas): o texto
+                    solto "Rendering your clip…" virou a sala ao vivo e o player cru virou a estreia com Download e o próximo. */}
+                {(clipState.phase === 'submitting' || clipState.phase === 'rendering') && (
+                  <PremiereStage
+                    surface="clip"
+                    title={prompt.trim().slice(0, 90) || t('Your shot')}
+                    kind="video"
+                    ratio={aspect.includes(':') ? aspect.replace(':', ' / ') : '9 / 16'}
+                    items={[{ key: clipState.renderId ?? 'studio-clip', label: t('Your shot'), status: clipState.phase === 'rendering' ? 'working' : 'waiting' }]}
+                    now={{ label: t('Now'), text: clipState.phase === 'submitting' ? t('Sending your shot to Seedance…') : t('Rendering your clip — usually 1 to 3 minutes.') }}
+                    progress={null}
+                    footnote={t('If you leave, your clip will appear in My Videos when it is ready.')}
+                  />
+                )}
                 {clipState.phase === 'failed' && <span style={{ color: '#fb923c' }}>{clipState.error}</span>}
                 {clipState.phase === 'failed' && clipState.noCredits && <SubscriberUpgradeNudge surface="studio_clip_402" topup onDone={(b) => { if (typeof b === 'number') setBalance(b); setClipState({ phase: 'idle' }) }} />}
                 {clipState.phase === 'done' && clipState.url && (
-                  <div>
-                    <video src={clipState.url} controls playsInline style={{ width: '100%', maxWidth: 360, borderRadius: 12, display: 'block', marginBottom: 8 }} />
-                    <a href={clipState.url} download className="pill on" style={{ fontSize: 12 }}><UiLabel>Download MP4</UiLabel></a>
-                  </div>
+                  <PremiereResult
+                    surface="clip"
+                    kind="video"
+                    url={clipState.url}
+                    title={prompt.trim().slice(0, 90) || t('Your shot')}
+                    meta={t('Ready')}
+                    downloadHref={clipState.url}
+                    downloadLabel="Download MP4"
+                    next={{
+                      label: t('Next shot'),
+                      title: t('Same idea from a new angle — or a whole new shot.'),
+                      hint: t('Your text stays in the box, ready to tweak.'),
+                      cta: t('Make another shot'),
+                      onClick: () => { setClipState({ phase: 'idle' }); promptRef.current?.focus() },
+                    }}
+                  />
                 )}
               </div>
             )}

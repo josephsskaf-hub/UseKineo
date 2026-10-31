@@ -51,7 +51,8 @@ import { useEffect, useRef } from 'react'
  *  para que uma re-renderização no meio do piscar não perca o original. */
 const INTERVALO_MS = 1200
 
-export function useReadyBeacon(pronto: boolean, titulo = '🎬 Your film is ready') {
+// KINEO-ESTREIA-3110 — `aviso`: o texto da notificação do sistema (cada tela diz o que ficou pronto; o padrão segue o do filme).
+export function useReadyBeacon(pronto: boolean, titulo = '🎬 Your film is ready', aviso = 'Your film is ready 🎬') {
   const originalRef = useRef<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // Uma notificação por render. Sem isto, um re-render do React durante o
@@ -80,8 +81,8 @@ export function useReadyBeacon(pronto: boolean, titulo = '🎬 Your film is read
     // pedir permissão aqui seria trocar um aviso útil por um popup irritante.
     try {
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Your film is ready 🎬', {
-          body: 'Kineo finished rendering. Click to watch and download.',
+        new Notification(aviso, {
+          body: 'Kineo finished. Click to watch and download.',
           // `tag` colapsa avisos: dois renders seguidos não empilham duas
           // notificações idênticas na bandeja.
           tag: 'kineo-render-ready',

@@ -33,6 +33,8 @@ import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-EST
 import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — ?prompt= do Made with Kineo
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
+import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera vira a estreia
+import { useUiCopy } from '@/components/InterfaceLanguage' // KINEO-ESTREIA-3110 — textos da estreia (props de texto) na língua da tela
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
 // Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
@@ -265,6 +267,11 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   // KINEO-ABRACO-BEIJO-3110 — as 2 fotos do Abraço/Beijo (a foto que vai ao servidor é a junção das duas).
   const [pairFiles, setPairFiles] = useState<[File | null, File | null]>([null, null])
   const pairRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  // KINEO-ESTREIA-3110 — o clipe pedido NESTA visita ganha a sala ao vivo e a estreia (os antigos ficam só na grade).
+  // poster = a foto enviada (vira o quadro da sala); pair = Abraço/Beijo (a foto carregada é a junção, não serve a outro efeito).
+  const [premiere, setPremiere] = useState<{ id: string; poster: string | null; title: string | null; pair: boolean } | null>(null)
+  const premiereRef = useRef<HTMLDivElement>(null)
+  const ui = useUiCopy()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -574,6 +581,11 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       })
       const data = await res.json().catch(() => ({}))
       if (data?.clip) setClips((xs) => [data.clip as Clip, ...xs.filter((c) => c.id !== data.clip.id)])
+      if (res.ok && data?.clip?.id) { // KINEO-ESTREIA-3110 — só a tela muda: guarda qual clipe é o desta visita
+        const fx = typeof payload.effect === 'string' ? effects.find((e) => e.key === payload.effect) ?? null : null
+        const rx = typeof payload.remix === 'string' ? faceRemixes.find((r) => r.id === payload.remix) ?? null : null
+        setPremiere({ id: String(data.clip.id), poster: typeof payload.image_url === 'string' ? payload.image_url : null, title: fx?.title ?? rx?.title ?? null, pair: fx?.pair === true })
+      }
       if (typeof data?.balance === 'number') setBalance(data.balance)
       if (res.ok && !payload.effect) freeClipOriginRef.current = false
       if (!res.ok) {
@@ -617,6 +629,18 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     perguntar() // KINEO-FILME-RAPIDO-1710 · polling
     return () => window.clearTimeout(timer) // KINEO-FILME-RAPIDO-1710 · polling — era: window.clearInterval(timer)
   }, [inFlight])
+
+  // KINEO-ESTREIA-3110 — a estreia lê o MESMO estado que o poll acima já atualiza (nada de rota nova). Falhou = sem estreia:
+  // o cartão da grade já diz o estorno. O próximo: outro efeito da estação/mais novo (com prévia), nunca o mesmo nem um de 2 fotos.
+  const premiereClip = premiere ? clips.find((c) => c.id === premiere.id) ?? null : null
+  const premiereReady = premiereClip?.status === 'done' && !!premiereClip.video_url
+  usePremiereBeacon(premiereReady, 'clip')
+  const premiereTitle = premiere?.title ? ui(premiere.title) : premiereClip?.prompt ? premiereClip.prompt.slice(0, 90) : ui('Your clip')
+  const premiereNextFx = premiereClip ? trendRowEffects(effects, 0).find((fx) => fx.key !== premiereClip.effect && !fx.pair) ?? null : null
+  useEffect(() => {
+    if (!premiere?.id) return
+    window.requestAnimationFrame(() => premiereRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+  }, [premiere?.id])
 
   // KINEO-DOWNLOAD-CLIPE-3010 — era um fetch+blob próprio, sem evento: o Clipe nunca contou video_downloaded e a régua
   // "download = gostou" lia zero. Agora o helper comum: clique, bytes, falha e link manual com a mesma semântica das outras telas.
@@ -1096,6 +1120,60 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
               <span style={{ fontSize: 13, fontWeight: 700 }}>{t('loadFailed')}</span>
               <button type="button" className="pill" onClick={load}>↻ {t('tryAgain')}</button>
+            </div>
+          )}
+          {/* KINEO-ESTREIA-3110 — a espera vira a estreia (a mesma sala de todas as telas, components/premiere): o clipe pedido
+              agora fica em cartaz aqui enquanto é feito e, pronto, estreia com Download, "Post it" e o próximo efeito já
+              sugerido (o clique só escolhe o efeito; o crédito sai no botão de sempre). A grade "Meus clipes" segue igual. */}
+          {premiereClip && premiereClip.status !== 'failed' && (
+            <div ref={premiereRef} data-clip-premiere={premiereClip.id} style={{ marginTop: 18, maxWidth: premiereClip.aspect === '16:9' ? 640 : 420 }}>
+              {premiereReady ? (
+                <PremiereResult
+                  surface="clip"
+                  kind="video"
+                  url={premiereClip.video_url!}
+                  posterUrl={premiere?.poster ?? null}
+                  title={premiereTitle}
+                  meta={`${ui('Ready')} · ${premiereClip.seconds} s`}
+                  downloadLabel={t('download')}
+                  onDownload={() => void download(premiereClip.video_url!, `kineo-clip-${premiereClip.id.slice(0, 8)}.mp4`, premiereClip.id)}
+                  next={premiereNextFx ? {
+                    label: ui('Try another effect'),
+                    title: ui(premiereNextFx.title),
+                    hint: photoUrl && !premiere?.pair ? ui('Your photo is still loaded.') : undefined,
+                    cta: `${ui('Make this')} →`,
+                    onClick: () => {
+                      if (remixId) setRemixId(null) // o painel do efeito só aparece fora do "Put your face in it"
+                      if (premiereNextFx.key !== effectKey) chooseEffect(premiereNextFx.key)
+                      else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    },
+                  } : null}
+                >
+                  <div className="row">
+                    <button type="button" className="pill on" data-clip-post={premiereClip.id} disabled={postBusy === premiereClip.id} aria-busy={postBusy === premiereClip.id} onClick={() => void post(premiereClip)}>
+                      ↗ <UiLabel>{postBusy === premiereClip.id ? CLIP_POST_COPY.preparing : CLIP_POST_COPY.button}</UiLabel>
+                    </button>
+                    {premiereClip.effect && premiereClip.film_href && (
+                      <a className="pill on film-upsell" href={premiereClip.film_href} onClick={(event) => filmClick(event, premiereClip)}>{t('filmUpsell')} →</a>
+                    )}
+                  </div>
+                  {/* o aviso do "Post it" (legenda copiada etc.) aparece no cartão deste mesmo clipe, logo abaixo na grade */}
+                </PremiereResult>
+              ) : (
+                <PremiereStage
+                  surface="clip"
+                  title={premiereTitle}
+                  kind="video"
+                  ratio={premiereClip.aspect.includes(':') ? premiereClip.aspect.replace(':', ' / ') : '9 / 16'}
+                  items={[{ key: premiereClip.id, label: ui('Your clip'), status: 'working', posterUrl: premiere?.poster ?? null }]}
+                  now={{
+                    label: ui('Now'),
+                    text: premiereClip.stage === 'keyframe' ? ui('Placing you in the scene…') : premiereClip.stage === 'video' ? ui('Filming your scene…') : ui('Filming your clip…'),
+                  }}
+                  progress={null}
+                  footnote={t('inProgress')}
+                />
+              )}
             </div>
           )}
           <div className="lab" style={{ marginTop: 18 }}>{t('myClips')}</div>

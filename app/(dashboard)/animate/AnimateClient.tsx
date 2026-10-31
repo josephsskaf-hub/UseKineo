@@ -24,6 +24,14 @@ import {
   animatePlanRows,
   isOutOfAnimateCredits,
 } from '@/lib/animate/paywall'
+// KINEO-ESTREIA-3110 — a espera vira a estreia (a mesma sala de todas as telas) + o download pelo helper comum (conta video_downloaded).
+import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere'
+import { useUiCopy } from '@/components/InterfaceLanguage'
+import { downloadVideoFile, type DownloadSurface } from '@/lib/videoDownload'
+
+// KINEO-ESTREIA-3110 — o tipo DownloadSurface (lib/videoDownload.ts) ainda não lista 'animate'; o valor só rotula o evento.
+// Quando o tipo ganhar 'animate', trocar por 'animate' puro.
+const ANIMATE_DOWNLOAD_SURFACE = 'animate' as string as DownloadSurface
 
 // KINEO-ANIMATE-ORFAO-2026-08-15 — ver o comentário grande em poll().
 const ANIMATE_POLL_DEADLINE_MS = 30 * 60 * 1000
@@ -266,6 +274,14 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   const busy = phase === 'uploading' || phase === 'submitting' || phase === 'animating'
   const hasImageSource = !!photoUrl || remoteImageUrl.trim().length > 0
   const canGenerate = isLoggedIn && hasImageSource && !busy
+  // KINEO-ESTREIA-3110 — sala ao vivo do envio até o clipe chegar; estreia quando chega. Só tela: envio, poll e parede intocados.
+  const ui = useUiCopy()
+  const premiereLive = phase === 'submitting' || phase === 'animating'
+  usePremiereBeacon(phase === 'done' && !!resultUrl, 'animate')
+  function animateAnother() { setPhase('idle'); setResultUrl(null) }
+  async function downloadAnimation(url: string) {
+    await downloadVideoFile({ url, filename: 'kineo-animation.mp4', exportType: 'current_asset', surface: ANIMATE_DOWNLOAD_SURFACE, extra: { product: 'animate' } })
+  }
 
   // sprint-assinaturas #12 — a parede aparece nos tres momentos em que a
   // pessoa nao consegue seguir: ao entrar ja sem saldo, quando o clipe que
@@ -725,6 +741,51 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
         </div>
 
         <div className="flex flex-col items-center gap-4 lg:sticky lg:top-20">
+          {/* KINEO-ESTREIA-3110 — a espera vira a estreia (components/premiere): o spinner por cima da foto virou a sala ao vivo
+              (a foto é o pôster) e o vídeo cru + link virou a estreia com Download contado, Share e "Animate another". */}
+          {phase === 'done' && resultUrl ? (
+            <div data-animate-premiere="result" style={{ width: '100%', maxWidth: 360 }}>
+              <PremiereResult
+                surface="animate"
+                kind="video"
+                url={resultUrl}
+                posterUrl={photoUrl}
+                title={ui('Your photo is alive')}
+                meta={ui('Ready')}
+                downloadLabel="Download MP4"
+                onDownload={() => void downloadAnimation(resultUrl)}
+                next={outOfCredits ? null : {
+                  label: ui('Next'),
+                  title: ui('Another photo, or the same one with a new motion.'),
+                  cta: ui('↺ Animate another'),
+                  onClick: animateAnother,
+                }}
+              >
+                {outOfCredits ? (
+                  <AnimateOutOfCredits
+                    destination={paywallDestination}
+                    credits={credits ?? 0}
+                    clipsThisSession={clipsThisSession}
+                    onCta={handlePaywallCta}
+                    compact
+                  />
+                ) : null}
+              </PremiereResult>
+            </div>
+          ) : premiereLive ? (
+            <div data-animate-premiere="stage" style={{ width: '100%', maxWidth: 360 }}>
+              <PremiereStage
+                surface="animate"
+                title={ui('Bringing your photo to life')}
+                kind="video"
+                ratio="2 / 3"
+                items={[{ key: 'animate', label: ui('Your photo'), status: phase === 'animating' ? 'working' : 'waiting', posterUrl: photoUrl }]}
+                now={{ label: ui('Now'), text: ui(PHASE_COPY[phase]) }}
+                progress={null}
+                footnote={ui('If you leave, come back to this page — it picks up the same animation, with no second charge.')}
+              />
+            </div>
+          ) : (
           <div
             style={{
               width: 280, height: 420, borderRadius: 18, overflow: 'hidden', position: 'relative',
@@ -732,9 +793,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
             }}
           >
-            {phase === 'done' && resultUrl ? (
-              <video src={resultUrl} controls autoPlay loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : photoUrl ? (
+            {photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photoUrl} alt="Your photo" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: busy ? 0.45 : 1 }} />
             ) : remoteImageUrl.trim() ? (
@@ -749,37 +808,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                 <span className="text-xs font-semibold"><UiLabel>Upload a photo to preview</UiLabel></span>
               </div>
             )}
-            {busy && phase === 'animating' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5" style={{ background: 'rgba(10,10,11,0.55)', backdropFilter: 'blur(2px)' }}>
-                <div className="spinner-sm" style={{ position: 'relative' }}><div className="spinner-sm-inner" /></div>
-                <p className="text-center text-[12px] font-bold" style={{ color: 'var(--text2)' }}><UiLabel>{PHASE_COPY[phase]}</UiLabel></p>
-              </div>
-            )}
           </div>
-          {phase === 'done' && resultUrl && (
-            <>
-              <a href={resultUrl} download className="go ok" style={{ textDecoration: 'none', maxWidth: 280, textAlign: 'center', display: 'block' }}><UiLabel>
-                ⬇ Download MP4
-              </UiLabel></a>
-              {outOfCredits ? (
-                <AnimateOutOfCredits
-                  destination={paywallDestination}
-                  credits={credits ?? 0}
-                  clipsThisSession={clipsThisSession}
-                  onCta={handlePaywallCta}
-                  compact
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => { setPhase('idle'); setResultUrl(null) }}
-                  className="text-[12px] font-bold"
-                  style={{ color: 'var(--muted2)', background: 'none', border: 'none', cursor: 'pointer' }}
-                ><UiLabel>
-                  ↺ Animate another
-                </UiLabel></button>
-              )}
-            </>
           )}
         </div>
       </div>

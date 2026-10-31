@@ -112,6 +112,8 @@ import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REF
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — o anúncio em andamento a cada 3 s nos 2 primeiros minutos (linha própria)
 import { KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o cartão "Kit Black Friday — US$ 49" (o servidor decide: venda aberta; Business = incluído)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
+import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a mesma sala de espera/estreia de todas as telas de geração
+import type { ReactNode } from 'react' // KINEO-ESTREIA-3110
 import { adsNota9Copy, adsNota9Focus } from '@/lib/ads/v2Nota9' // KINEO-ADS-NOTA9-2110 — o cabeçalho da tela foco (cards da home): título do produto, sem abas nem atalhos no topo
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
@@ -868,6 +870,7 @@ function AdsV2Session({
   const photoInputRef = useRef<HTMLInputElement | null>(null)
   const logoInputRef = useRef<HTMLInputElement | null>(null)
   const headingRef = useRef<HTMLHeadingElement | null>(null)
+  usePremiereBeacon(phase === 'delivered', 'ads') // KINEO-ESTREIA-3110 — título da aba / aviso quando o anúncio fica pronto com a aba escondida
   const planHeadingRef = useRef<HTMLHeadingElement | null>(null)
 
   // Desmontar (Start over ou sair da página): nada que chegue depois mexe na tela, na URL ou no saldo; o poll para.
@@ -1603,6 +1606,15 @@ function AdsV2Session({
   for (const p of photos) if (p.uploaded) photoByFootage.set(p.uploaded.footageId.toLowerCase(), p)
   const sectorSpec = sector ? ADS_V2_SECTOR_SPECS[sector] : ADS_V2_SECTOR_SPECS.other
   const locked = busy !== null
+  // KINEO-ESTREIA-3110 — a sala ao vivo do anúncio: um cartão por plano, que vira o clipe real no poll em que fica pronto.
+  const premiereShots: PremiereItem[] = (order?.shots ?? []).map((s, i) => ({
+    key: `shot-${s.idx}`,
+    label: s.ai_person === true ? `Shot ${i + 1} · ${adsV2AiPersonLabel('en')}` : `Shot ${i + 1}`,
+    status: s.state === 'ready' ? 'ready' as const : s.state === 'failed' ? 'failed' as const : 'working' as const,
+    url: s.state === 'ready' ? s.url : null,
+    kind: s.kind === 'text' ? 'image' as const : 'video' as const,
+  }))
+  const premiereShotsReady = premiereShots.filter((s) => s.status === 'ready').length
 
   return (
     <div className="adv2-layout">
@@ -1830,34 +1842,60 @@ function AdsV2Session({
         ) : null}
 
         {phase === 'progress' && order ? (
-          <section className="adv2-card" aria-labelledby="adv2-prog">
-            <h2 id="adv2-prog" ref={headingRef} tabIndex={-1}>Making your ad</h2>
-            <p className="adsw-lead">
-              {order.status === 'assembling'
-                ? 'Every shot is ready. Now adding the music, the voice-over and your last frame.'
-                : 'Your photos are being animated. Shots marked Still with zoom are already done.'}{' '}
-              You can leave this page: the ad keeps being made and lands in <Link className="adsw-link" href="/history">My Videos</Link>.
-            </p>
+          <section aria-labelledby="adv2-prog">
+            <h2 id="adv2-prog" ref={headingRef} tabIndex={-1} className="adv2-sr">Making your ad</h2>
             {redoNote ? <p className="adv2-note" role="status" style={{ marginTop: 0, marginBottom: 16 }}>{redoNote}</p> : null}
-            <ShotGrid shots={order.shots} orderStatus={order.status} />
-            {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+            {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala de todas as telas de geração (components/premiere). */}
+            <PremiereStage
+              surface="ads"
+              title={business.trim() ? `${business.trim().slice(0, 80)} — your ad` : 'Your ad'}
+              items={premiereShots}
+              kind="video"
+              ratio="9 / 16"
+              now={{
+                label: 'Now',
+                text: order.status === 'assembling'
+                  ? 'Every shot is ready. Editing the shots together with the music, the voice-over and your last frame…'
+                  : premiereShots.length
+                    ? 'Your photos are being animated — each shot appears here the moment it is ready.'
+                    : 'Preparing the shots…',
+              }}
+              progress={order.status === 'assembling' ? 92 : premiereShots.length ? (premiereShotsReady / premiereShots.length) * 85 : null}
+              footnote="You can leave this page: the ad keeps being made and lands in My Videos."
+            >
+              {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+            </PremiereStage>
           </section>
         ) : null}
 
         {phase === 'delivered' && order ? (
-          <section className="adv2-card" aria-labelledby="adv2-done">
-            <h2 id="adv2-done" ref={headingRef} tabIndex={-1}>Your ad is ready</h2>
-            {video?.video_url ? (
-              <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
+          <section className={video?.video_url ? undefined : 'adv2-card'} aria-labelledby="adv2-done">
+            <h2 id="adv2-done" ref={headingRef} tabIndex={-1} className={video?.video_url ? 'adv2-sr' : undefined}>Your ad is ready</h2>
+            {/* KINEO-ESTREIA-3110 — a estreia: o anúncio toca sozinho, Download grande (o mesmo downloadVideoFile), e o resto da entrega
+                (rótulo de IA, refazer plano, depois da entrega, My Videos) dentro dela; "Make another ad" vira o próximo sugerido. */}
+            {((extras: ReactNode) => video?.video_url ? (
+              <PremiereResult
+                surface="ads"
+                kind="video"
+                url={video.video_url}
+                posterUrl={video.thumbnail_url}
+                title={business.trim() ? `${business.trim().slice(0, 80)} — your ad` : 'Your ad is ready'}
+                downloadLabel={downloading ? 'Downloading…' : 'Download the ad'}
+                onDownload={() => void download()}
+                next={{ label: 'Next', title: 'Another product, or a new hook for this one?', hint: 'You see the plan and the price before anything is charged.', cta: 'Make another ad', onClick: onAskStartOver }}
+              >
+                {extras}
+              </PremiereResult>
             ) : (
-              <p className="adsw-lead">Your ad is in <Link className="adsw-link" href="/history">My Videos</Link>.</p>
-            )}
+              <>
+                <p className="adsw-lead">Your ad is in <Link className="adsw-link" href="/history">My Videos</Link>.</p>
+                {extras}
+                <div className="adv2-actions">
+                  <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>Make another ad</button>
+                </div>
+              </>
+            ))(<>
             <div className="adv2-actions">
-              {video?.video_url ? (
-                <button type="button" className="adsw-btn" disabled={downloading} onClick={() => void download()}>
-                  {downloading ? 'Downloading…' : 'Download the ad'}
-                </button>
-              ) : null}
               <Link className="adsw-link" href="/history">Open in My Videos</Link>
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
@@ -1882,9 +1920,7 @@ function AdsV2Session({
             />
             {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}
             {scopy ? null : <AdsV2AfterDelivery orderId={order.order_id} lang="en" />}{/* KINEO-ADS-POS-ENTREGA-1510 — editar sem gerar de novo · aprovação do cliente · 9:16 + 4:5 + 1:1 (a amostra grátis fica de fora) */}
-            <div className="adv2-actions">
-              <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>Make another ad</button>
-            </div>
+            </>)}
           </section>
         ) : null}
 

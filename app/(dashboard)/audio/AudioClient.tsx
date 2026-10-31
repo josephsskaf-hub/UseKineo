@@ -6,8 +6,10 @@
 // voz selecionavel onde o motor suporta, custo vivo por tamanho do texto,
 // player + download + galeria My Audio persistente (tabela audios + bucket).
 import { UiLabel } from '@/components/InterfaceLanguage'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
+import { trackEvent } from '@/lib/analytics'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 // sprint-assinaturas #13 — o 402 so abre o popup de recarga para quem PODE
 // comprar recarga (Creator/Studio, regra do checkout); trial/free/starter
@@ -69,6 +71,11 @@ export default function AudioClient() {
   // KINEO-SPRINT-UI7-2026-08-30 — mesma regra do /images: enquanto o acervo
   // carrega, mostrar a FORMA das fileiras (shimmer) em vez de nada.
   const [galleryLoading, setGalleryLoading] = useState(true)
+  // KINEO-ESTREIA-3110 — a espera vira a estreia: o texto em voo (congelado no clique) e, quando volta, a URL do áudio.
+  // Só tela — o POST, a cobrança e a lista "My Audio" seguem iguais.
+  const [premiere, setPremiere] = useState<{ text: string; engine: string; voice: string | null; url: string | null } | null>(null)
+  const textRef = useRef<HTMLTextAreaElement | null>(null)
+  const premiereRef = useRef<HTMLDivElement | null>(null)
 
   const eng = AUDIO_ENGINES.find((e) => e.key === model)!
   const credits = useMemo(() => Math.max(1, Math.ceil(Math.max(text.trim().length, 1) / 1000)) * eng.perK, [text, eng])
@@ -123,6 +130,7 @@ export default function AudioClient() {
     if (!text.trim() || busy) return
     setBusy(true)
     setError(null)
+    setPremiere({ text: text.trim(), engine: eng.name, voice: eng.voices.find((v) => v.id === voice)?.label ?? null, url: null }) // KINEO-ESTREIA-3110
     try {
       const res = await fetch('/api/audio/generate', {
         method: 'POST',
@@ -132,16 +140,20 @@ export default function AudioClient() {
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
       setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model, voice, text: text.trim() }, ...xs])
+      setPremiere((p) => (p ? { ...p, url: data.url as string } : p)) // KINEO-ESTREIA-3110
       setMadeThisSession((n) => n + 1)
       void refreshPlan()
     } catch (e) {
+      setPremiere(null) // KINEO-ESTREIA-3110 — falhou: a sala sai e o erro de sempre aparece
       { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) openCreditsWall() }
     } finally {
       setBusy(false)
     }
   }
 
-  async function download(url: string, idx: number) {
+  async function download(url: string, idx: number, from: 'grid' | 'premiere' = 'grid') {
+    // KINEO-ESTREIA-3110 — o download de áudio não emitia evento nenhum; agora conta (lista e estreia).
+    void trackEvent('audio_downloaded', { from, model: items[idx]?.model ?? null })
     try {
       const res = await fetch(url)
       if (!res.ok) throw new Error('fetch failed')
@@ -158,6 +170,18 @@ export default function AudioClient() {
     }
   }
 
+  // KINEO-ESTREIA-3110 — a sala aparece no clique e a estreia quando o áudio chega; leva a tela até elas.
+  usePremiereBeacon(!busy && !!premiere?.url, 'audio')
+  useEffect(() => {
+    if (!premiere) return
+    premiereRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [busy, premiere?.url]) // eslint-disable-line react-hooks/exhaustive-deps
+  const premiereIdx = premiere?.url ? items.findIndex((x) => x.url === premiere.url) : -1
+  const voiceAnother = () => {
+    textRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    textRef.current?.focus({ preventScroll: true })
+  }
+
   return (
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
@@ -168,7 +192,7 @@ export default function AudioClient() {
 <div className="grid creation-grid">
 <div className="card creation-input">
             <div className="lab"><span className="n">1</span><UiLabel>Your script</UiLabel></div>
-            <textarea aria-label="Your script" value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
+            <textarea ref={textRef} aria-label="Your script" value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
               placeholder={PLACEHOLDERS[model]} />
             {!text.trim() && (
               <div className="row" style={{ marginTop: 10 }}>
@@ -254,6 +278,44 @@ export default function AudioClient() {
           </div>
         </div>
 <div className="creation-results">
+{/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração (components/premiere).
+    O áudio novo continua entrando primeiro em "My Audio" logo abaixo. */}
+{premiere && (busy || premiere.url) ? (
+            <div ref={premiereRef} style={{ width: '100%', maxWidth: 720, marginBottom: 16, scrollMarginTop: 80 }}>
+              {busy ? (
+                <PremiereStage
+                  surface="audio"
+                  kind="audio"
+                  kicker="Your audio is being made"
+                  title={`${premiere.engine}${premiere.voice ? ` · ${premiere.voice}` : ''} is voicing it`}
+                  items={[{ key: 'audio', label: 'Your audio', status: 'working' }]}
+                  now={{ label: 'Voicing', text: premiere.text.length > 140 ? `${premiere.text.slice(0, 140).trimEnd()}…` : premiere.text }}
+                  notify={false}
+                  footnote="Usually ready in under a minute."
+                />
+              ) : premiere.url ? (
+                <PremiereResult
+                  surface="audio"
+                  kind="audio"
+                  url={premiere.url}
+                  title={premiere.text.length > 110 ? `${premiere.text.slice(0, 110).trimEnd()}…` : premiere.text}
+                  meta={`Ready · ${premiere.engine}${premiere.voice ? ` · ${premiere.voice}` : ''}`}
+                  onDownload={() => { void download(premiere.url!, premiereIdx >= 0 ? premiereIdx : 0, 'premiere') }}
+                  next={{
+                    label: 'Make it a film',
+                    title: 'The Studio builds the whole film around this script — visuals, captions and score.',
+                    cta: 'Make a film from this script',
+                    href: `/studio?prompt=${encodeURIComponent(premiere.text.slice(0, 500))}`,
+                    hint: 'Opens the Studio filled in — credits only when you press Generate.',
+                  }}
+                >
+                  <div className="row">
+                    <button type="button" className="pill" onClick={voiceAnother}><UiLabel>Voice another line</UiLabel></button>
+                  </div>
+                </PremiereResult>
+              ) : null}
+            </div>
+          ) : null}
 {galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
               <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load your audio right now.</UiLabel></span>

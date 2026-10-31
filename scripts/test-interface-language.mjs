@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import {createRequire} from 'node:module'
 import vm from 'node:vm'
 import {source,renderPage} from './preview-ux-complete.mjs'
+import {setCurrentFilter} from './preview-ux-complete.mjs'
+import {semEstreia3110} from './test-support/desfaz-estreia-3110.mjs'
+setCurrentFilter(semEstreia3110) // KINEO-ESTREIA-3110 — a estreia (31/10) sai em memória antes de comparar com a base congelada
 const require=createRequire(import.meta.url),ts=require('typescript')
 let checks=0
 const check=(value,message)=>{assert.ok(value,message);checks++}

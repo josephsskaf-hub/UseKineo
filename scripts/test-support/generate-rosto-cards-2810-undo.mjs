@@ -10,6 +10,22 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-ESTREIA-3110 — a camada MAIS NOVA (31/10): a espera vira a estreia (components/premiere) nas 12 telas de geração.
+  // Base = a main de então (51fe3d0e7), tip = árvore de trabalho até o commit.
+  'estreia-3110': {
+    fn: 'semEstreia3110',
+    marca: 'KINEO-ESTREIA-3110',
+    o_que: 'a estreia ao vivo (sala de espera + estreia final) nas 12 telas de geração',
+    base: '51fe3d0e7e497a46750fb9f468f06dfc0d4b74f1',
+    tip: null,
+    arquivos: ['app/(dashboard)/ads/v2/AdsV2Client.tsx', 'app/(dashboard)/ads/v2/AdsV2Simple.tsx', 'app/(dashboard)/animate/AnimateClient.tsx',
+      'app/(dashboard)/audio/AudioClient.tsx', 'app/(dashboard)/avatar/AvatarStudioClient.tsx', 'app/(dashboard)/clips/ClipsClient.tsx',
+      'app/(dashboard)/generate/GenerateClient.tsx', 'app/(dashboard)/images/ImagesClient.tsx', 'app/(dashboard)/spaces/SpacesClient.tsx',
+      'app/(dashboard)/studio/StudioClient.tsx', 'app/(dashboard)/thumbnail-generator/ThumbnailGeneratorClient.tsx',
+      'components/kidsCartoon/BabyPodcastTemplate.tsx', 'components/kidsCartoon/KidsCartoonTemplate.tsx', 'components/video/useReadyBeacon.ts',
+      'lib/videoDownload.ts'],
+    novos: ['components/premiere/Premiere.tsx', 'components/premiere/premiere.module.css'],
+  },
   // KINEO-ABRACO-BEIJO-3110 — a camada MAIS NOVA (30/10): Abraço/Beijo de 2 fotos na tela do /clips (junção lado a lado, um caminho só de
   // upload) e a borda forte do motor escolhido com vídeo. Base = a main de então (2a0f0b016), tip = árvore de trabalho até o commit.
   'abraco-beijo-3110': {

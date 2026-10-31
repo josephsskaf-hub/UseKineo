@@ -1,0 +1,59 @@
+/* KINEO-ESTREIA-3110 — a mesma sala de espera/estreia em todas as telas de geração. Só tokens do tema (appearance.css). */
+.stage { display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: var(--r-lg, 22px); background: var(--card); border: 1px solid var(--border); color: var(--text); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.kicker { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted2); margin: 0 0 2px; }
+.title { font-size: 18px; font-weight: 600; margin: 0; line-height: 1.3; text-wrap: balance; }
+.count { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.countReady { background: color-mix(in srgb, #22c55e 18%, transparent); color: #16a34a; }
+.grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.gridWide { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.item { container-type: inline-size; position: relative; border-radius: 12px; overflow: hidden; background: var(--card2); border: 1px solid var(--border); aspect-ratio: var(--premiere-ratio, 9 / 16); max-width: 100%; display: flex; }
+.item video, .item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.itemWaiting { opacity: .55; }
+.itemWorking { border: 1px dashed var(--accent); }
+.itemWorking::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, color-mix(in srgb, var(--accent) 16%, transparent) 50%, transparent 70%); background-size: 220% 100%; animation: sweep 1.6s linear infinite; }
+.itemReady { border-color: color-mix(in srgb, #22c55e 55%, var(--border)); animation: reveal .45s var(--ease-out-expo, ease-out); }
+.itemFailed { border-color: color-mix(in srgb, #ef4444 50%, var(--border)); }
+.poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(.6) brightness(.7); }
+.badge { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; line-height: 1.25; padding: 4px 6px; border-radius: 8px; background: rgba(0, 0, 0, .62); color: #fff; z-index: 1; }
+.badgeText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* tiles estreitos (5-6 cenas num card pequeno ou no celular): só o nome, depois só a bolinha */
+.badgeShort { display: none; }
+@container (max-width: 150px) { .badgeWord { display: none; } }
+@container (max-width: 110px) { .badgeFull { display: none; } .badgeShort { display: inline; } .badge { right: auto; } }
+@container (max-width: 64px) { .badgeText { display: none; } .badge { left: auto; right: 5px; bottom: 5px; padding: 4px; } }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: #9ca3af; }
+.dotWorking { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.dotReady { background: #22c55e; }
+.dotFailed { background: #ef4444; }
+.audioItem { aspect-ratio: auto; min-height: 64px; align-items: center; padding: 10px 12px; }
+.now { border-radius: 12px; padding: 10px 12px; background: var(--card2); border: 1px solid var(--border); }
+.nowLabel { font-size: 11px; color: var(--muted2); margin: 0 0 3px; }
+.nowText { font-size: 14px; line-height: 1.5; margin: 0; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; border: 1px solid var(--border2, var(--border)); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; }
+.btn:hover { background: var(--card2); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btnOn { border-color: color-mix(in srgb, #22c55e 55%, var(--border)); color: #16a34a; cursor: default; }
+.btnPrimary { background: var(--text); color: var(--card); border-color: transparent; min-height: 48px; font-size: 15px; }
+.btnPrimary:hover { background: var(--text); opacity: .9; }
+.btnAccent { background: var(--accent); color: var(--on-accent, #fff); border-color: transparent; }
+.btnAccent:hover { background: var(--accent); opacity: .9; }
+.bar { height: 5px; border-radius: 999px; background: var(--card2); overflow: hidden; }
+.barFill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .6s var(--ease-swift, ease); }
+.foot { font-size: 12px; color: var(--muted2); margin: 0; }
+
+.result { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--r-lg, 22px); background: var(--card); border: 1px solid var(--border); color: var(--text); }
+.screen { border-radius: 14px; overflow: hidden; background: #000; max-width: 100%; }
+.screen video, .screen img { width: 100%; max-height: 72vh; object-fit: contain; display: block; }
+.next { border-radius: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); display: flex; flex-direction: column; gap: 8px; }
+.nextLabel { font-size: 12px; color: var(--accent); margin: 0; font-weight: 600; }
+.nextTitle { font-size: 15px; line-height: 1.45; margin: 0; }
+.nextHint { font-size: 12px; color: var(--muted2); margin: 0; }
+
+@keyframes sweep { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes reveal { from { transform: scale(.94); opacity: .2; } to { transform: none; opacity: 1; } }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  .itemWorking::after, .itemReady, .dotWorking { animation: none; }
+}

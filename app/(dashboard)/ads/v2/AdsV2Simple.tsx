@@ -153,6 +153,8 @@ import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REF
 import { adsPalcoVoltarCopy, brandKitConflict, brandKitRetract, type AdsKitFilled } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — "✕ Fechar estilos" e o kit que sai quando o anúncio é de outra marca
 import { adBrandConflict, adBrandCopy, adBrandFill, adBrandForEvidence, adBrandFromScreen, adBrandToKit, adBrandVoice, type AdBrandFields, type AdBrandView } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510 — a marca escolhida no topo preenche o kit (mesma regra de conflito)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
+import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a mesma sala de espera/estreia de todas as telas de geração
+import type { ReactNode } from 'react' // KINEO-ESTREIA-3110
 import { ADS_NOTA9_CSS, AdsNota9Faces, AdsNota9Stage, type AdsNota9StageData } from '@/components/ads/AdsNota9' // KINEO-ADS-NOTA9-2110 — a tela FOCO dos cards da home: quem apresenta, o palco do apresentador e o "Avançado" recolhido
 import { adsNota9Copy, adsNota9Cost, adsNota9Fill, adsNota9Focus, adsNota9Step, adsNota9TinyPhoto } from '@/lib/ads/v2Nota9' // KINEO-ADS-NOTA9-2110 — modo foco, número do passo, linha única de custo e as frases (lib pura)
 import { homeCardClip } from '@/lib/ui/homeThreeCards' // KINEO-ADS-NOTA9-2110 — o anúncio real da casa no formato do card (o mesmo vídeo do card da home), no palco sem escolha/foto
@@ -855,6 +857,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const logoInputRef = useRef<HTMLInputElement | null>(null)
   const headingRef = useRef<HTMLHeadingElement | null>(null)
+  usePremiereBeacon(phase === 'delivered', 'ads') // KINEO-ESTREIA-3110 — título da aba / aviso quando o anúncio fica pronto com a aba escondida
   const planHeadingRef = useRef<HTMLHeadingElement | null>(null)
 
   // Desmontar ("Recomeçar", troca de modo ou sair): nada que chegue depois mexe na tela; o poll para.
@@ -2396,6 +2399,20 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
   const photoWarnCard = photoWarnList.length ? <div id="adv2-photo-warn" className="adsw-warn" role="alert" data-kineo="ads-photo-warn" style={{ display: 'grid', gap: 10 }}>{photoWarnList.map((w) => <div key={w.kind} data-kind={w.kind}><b>{w.title}</b><p style={{ margin: '4px 0 8px' }}>{w.body}</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><button type="button" className="adsw-btn small" disabled={busy !== null} onClick={replacePhoto}>{w.replace}</button><button type="button" className="adsw-btn ghost small" disabled={busy !== null} onClick={() => continuePhoto(w.kind)}>{w.confirm}</button></div></div>)}</div> : null // KINEO-ADS-QUALIDADE-2110 — o cartão claro: "Trocar a foto" / "Continuar assim"
   const orderHasPerson = !!order && (order.shots.some((s) => s.ai_person === true || s.kind === 'presenter' || s.kind === 'people') || (plan ? plan.presenter === true : false)) // KINEO-ADS-QUALIDADE-2110 — o aviso de "pessoas realistas de IA" só no anúncio COM pessoa (UGC/apresentador); Product Ads (só o produto) não
   const runCopy = RUNNING_ORDER_COPY[(lang === 'pt' || lang === 'es' ? lang : 'en') as 'en' | 'pt' | 'es'] // KINEO-ADS-QUALIDADE-2110
+  // KINEO-ESTREIA-3110 — a sala ao vivo do anúncio: um cartão por plano (na língua da tela), que vira o clipe real no poll em que fica pronto.
+  const premiereShots: PremiereItem[] = (order?.shots ?? []).map((s, i) => ({
+    key: `shot-${s.idx}`,
+    label: s.ai_person === true ? `${fill(copy.progress.shot, { n: i + 1 })} · ${adsV2AiPersonLabel(lang)}` : fill(copy.progress.shot, { n: i + 1 }),
+    status: s.state === 'ready' ? 'ready' as const : s.state === 'failed' ? 'failed' as const : 'working' as const,
+    url: s.state === 'ready' ? s.url : null,
+    kind: s.kind === 'text' ? 'image' as const : 'video' as const,
+  }))
+  const premiereShotsReady = premiereShots.filter((s) => s.status === 'ready').length
+  const premiereNext = ({
+    en: { label: 'Next', title: 'Another product, or a new hook for this one?', hint: 'You see the plan and the price before anything is charged.' },
+    pt: { label: 'Próximo', title: 'Outro produto, ou um gancho novo para este?', hint: 'Você vê o plano e o preço antes de qualquer cobrança.' },
+    es: { label: 'Siguiente', title: '¿Otro producto, o un gancho nuevo para este?', hint: 'Ves el plan y el precio antes de cualquier cobro.' },
+  } as const)[(lang === 'pt' || lang === 'es' ? lang : 'en') as 'en' | 'pt' | 'es']
 
   return (
     <div className="adv2-layout" data-nota9={focus ?? undefined} data-adv={focus ? (advOpen ? 'open' : 'closed') : undefined}>{/* KINEO-ADS-NOTA9-2110 — na tela foco o "Avançado" recolhe o resto da tela de sempre (CSS em ADS_NOTA9_CSS); era: <div className="adv2-layout"> */}
@@ -3017,38 +3034,59 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
         ) : null}
 
         {phase === 'progress' && order ? (
-          <section className="adv2-card" aria-labelledby="adv2s-prog">
-            <h2 id="adv2s-prog" ref={headingRef} tabIndex={-1}>{copy.progress.title}</h2>
-            <p className="adsw-lead">
-              {order.status === 'assembling' ? copy.progress.assembling : copy.progress.animating}{' '}
-              {copy.progress.leave} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.
-            </p>
+          <section aria-labelledby="adv2s-prog">
+            <h2 id="adv2s-prog" ref={headingRef} tabIndex={-1} className="adv2-sr">{copy.progress.title}</h2>
             {redoNote ? <p className="adv2-note" role="status" style={{ marginTop: 0, marginBottom: 16 }}>{redoNote}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
-            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} packshotLabel={adsV2PackshotCopy(lang).label} aiPersonLabel={adsV2AiPersonLabel(lang)} />{/* KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA: rótulo de IA também no progresso */}
-            {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+            {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala de todas as telas de geração (components/premiere), nas palavras da tela. */}
+            <PremiereStage
+              surface="ads"
+              kicker={copy.progress.title}
+              title={order.status === 'assembling' ? copy.progress.assembling : premiereShots.length ? copy.progress.animating : copy.progress.preparing}
+              items={premiereShots}
+              kind="video"
+              ratio="9 / 16"
+              now={null}
+              progress={order.status === 'assembling' ? 92 : premiereShots.length ? (premiereShotsReady / premiereShots.length) * 85 : null}
+              footnote={`${copy.progress.leave} ${copy.progress.myVideos}.`}
+            >
+              {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+            </PremiereStage>
           </section>
         ) : null}
 
         {phase === 'delivered' && order ? (
-          <section className="adv2-card adv2s-result" aria-labelledby="adv2s-done">
-            <h2 id="adv2s-done" ref={headingRef} tabIndex={-1}>{copy.done.title}</h2>
-            {/* KINEO-ADS-CONSERTOS-TELA-1410 — Baixar/Abrir ACIMA do player: no celular (390 px) ficavam 2 telas abaixo do anúncio pronto. */}
+          <section className={video?.video_url ? 'adv2s-result' : 'adv2-card adv2s-result'} aria-labelledby="adv2s-done">
+            <h2 id="adv2s-done" ref={headingRef} tabIndex={-1} className={video?.video_url ? 'adv2-sr' : undefined}>{copy.done.title}</h2>
+            {/* KINEO-ESTREIA-3110 — a estreia: o anúncio toca sozinho com Download grande no topo (o mesmo downloadVideoFile; no celular
+                continua acima da dobra, como o KINEO-ADS-CONSERTOS-TELA-1410 pediu) e o resto da entrega dentro dela; "fazer outro" vira o próximo. */}
+            {((extras: ReactNode) => video?.video_url ? (
+              <PremiereResult
+                surface="ads"
+                kind="video"
+                url={video.video_url}
+                posterUrl={video.thumbnail_url}
+                title={copy.done.title}
+                downloadLabel={downloading ? copy.done.downloading : copy.done.download}
+                onDownload={() => void download()}
+                next={{ label: premiereNext.label, title: premiereNext.title, hint: premiereNext.hint, cta: copy.done.another, onClick: onAskStartOver }}
+              >
+                {extras}
+              </PremiereResult>
+            ) : (
+              <>
+                <p className="adsw-lead">{copy.done.inMyVideos} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.</p>
+                {extras}
+                <div className="adv2-actions" style={{ marginTop: 0 }}>
+                  <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
+                </div>
+              </>
+            ))(<>
             <div className="adv2-actions adv2s-done-actions" data-kineo="ads-done-actions">
-              {video?.video_url ? (
-                <button type="button" className="adsw-btn" disabled={downloading} onClick={() => void download()}>
-                  {downloading ? copy.done.downloading : copy.done.download}
-                </button>
-              ) : null}
               <Link className="adsw-link" href="/history">{copy.done.open}</Link>
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}{orderHasPerson ? (<>{/* KINEO-ADS-QUALIDADE-2110 — o aviso de pessoas realistas de IA só no anúncio com pessoa */}
             <p className="adv2-note" role="note">{adsV2AiLabelNotice(lang)}</p>
             </>) : null}{/* KINEO-ADS-QUALIDADE-2110 */}
-            {video?.video_url ? (
-              <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
-            ) : (
-              <p className="adsw-lead">{copy.done.inMyVideos} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.</p>
-            )}
             {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue (o pico da alegria): a oferta do Business logo abaixo. */}
             {scopy && business ? <AdsAfterSampleOffer lang={lang} business={business} compact /> : null}
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
@@ -3067,9 +3105,7 @@ function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body 
             )}
             {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
             {scopy ? null : <AdsV2AfterDelivery orderId={order.order_id} lang={lang} />}{/* KINEO-ADS-POS-ENTREGA-1510 — editar sem gerar de novo · aprovação do cliente · 9:16 + 4:5 + 1:1 (a amostra grátis fica de fora) */}
-            <div className="adv2-actions" style={{ marginTop: 0 }}>
-              <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
-            </div>
+            </>)}
           </section>
         ) : null}
 

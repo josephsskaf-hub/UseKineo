@@ -5,6 +5,7 @@ import KineoBolt from '@/components/KineoBolt'
 // Push #080 — ThumbnailGenerator v2: homepage-quality header, glow style cards, blue gradient CTA
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 
 // KINEO-CHARLOCK-V2-2026-07-10 — saved characters (same face every image).
 interface CharacterChip {
@@ -58,47 +59,7 @@ function incrementDailyUsage(): number {
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────
-function Skeleton() {
-  return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '16/9',
-        borderRadius: 12,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        animation: 'pulse 1.5s ease-in-out infinite',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
-          animation: 'shimmer 2s infinite',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 12,
-        }}
-      >
-        <div style={{ fontSize: '2.5rem', opacity: 0.3 }}>🖼️</div>
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.82rem', fontWeight: 600 }}>
-          Generating thumbnail…
-        </p>
-      </div>
-    </div>
-  )
-}
+// KINEO-ESTREIA-3110 — o <Skeleton /> da espera saiu: a espera agora é a <PremiereStage> (um cartão 16:9 por variação).
 
 interface ThumbnailCardProps {
   url: string
@@ -285,6 +246,8 @@ export default function ThumbnailGeneratorClient({
   const [showOptimized, setShowOptimized] = useState(false)
   const [dailyUsed, setDailyUsed] = useState(() => getDailyUsage())
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // KINEO-ESTREIA-3110 — o pedido em voo (prompt/estilo/quantidade congelados no clique) para a sala e a estreia.
+  const [premiereAsk, setPremiereAsk] = useState<{ prompt: string; style: string; count: 1 | 3 } | null>(null)
 
   // KINEO-CHARLOCK-V2 — character lock state. Selecting a character NEVER
   // touches the prompt (the style buttons overwrite it — known trap; the
@@ -365,6 +328,7 @@ export default function ThumbnailGeneratorClient({
     setOptimizedPrompt('')
     setShowOptimized(false)
     setLoading(true)
+    setPremiereAsk({ prompt: prompt.trim(), style: STYLES.find((s) => s.id === selectedStyle)?.label ?? '', count: generateCount }) // KINEO-ESTREIA-3110
 
     try {
       const res = await fetch('/api/generate-thumbnail', {
@@ -416,6 +380,8 @@ export default function ThumbnailGeneratorClient({
   }
 
   const selectedImage = images[selectedIdx] ?? null
+  // KINEO-ESTREIA-3110 — título da aba / notificação quando as miniaturas chegam com a aba em segundo plano.
+  usePremiereBeacon(!loading && images.length > 0, 'thumbnail')
 
   return (
     <div style={{ padding: '28px 28px 48px', maxWidth: 1100, margin: '0 auto' }}>
@@ -876,118 +842,162 @@ export default function ThumbnailGeneratorClient({
             </div>
           )}
 
-          {/* Optimized prompt disclosure */}
-          {optimizedPrompt && !loading && (
-            <button
-              onClick={() => setShowOptimized((v) => !v)}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 9,
-                padding: '8px 14px',
-                color: 'var(--muted)',
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span>{showOptimized ? '▲' : '▼'}</span>
-              <span>AI-optimized prompt</span>
-            </button>
-          )}
-          {showOptimized && optimizedPrompt && (
-            <div
-              style={{
-                background: 'rgba(16, 185, 129,0.06)',
-                border: '1px solid rgba(16, 185, 129,0.18)',
-                borderRadius: 10,
-                padding: '12px 14px',
-                color: 'rgba(52, 211, 153,0.85)',
-                fontSize: '0.73rem',
-                lineHeight: 1.6,
-                fontStyle: 'italic',
-              }}
-            >
-              {optimizedPrompt}
-            </div>
-          )}
+          {/* KINEO-ESTREIA-3110 — a abertura do "AI-optimized prompt" mudou-se para dentro da estreia (coluna da direita),
+              junto da imagem que ele gerou. */}
         </div>
 
         {/* ── RIGHT: Preview panel ───────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          {/* Main preview area */}
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16,
-              padding: 20,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--muted2)', letterSpacing: '0.04em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 8 }}>
-                🖼️ Preview
+          {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração
+              (components/premiere). Espera = um cartão 16:9 por variação pedida; pronto = a estreia da miniatura
+              escolhida, com o seletor de variações, o selo do personagem e o prompt otimizado dentro dela. */}
+          {loading ? (
+            <PremiereStage
+              surface="thumbnail"
+              kind="image"
+              title={(premiereAsk?.prompt || prompt.trim() || 'Your thumbnail').slice(0, 120)}
+              items={Array.from({ length: premiereAsk?.count ?? generateCount }, (_, i) => ({
+                key: `v${i}`,
+                label: (premiereAsk?.count ?? generateCount) > 1 ? `Variation ${i + 1}` : 'Thumbnail',
+                status: 'working' as const,
+              }))}
+              ratio="16 / 9"
+              wide
+              now={premiereAsk?.style ? { label: 'Style', text: `${premiereAsk.style} — bold, readable, made for the feed.` } : null}
+              notify={false}
+              footnote="Usually ready in under a minute."
+            />
+          ) : selectedImage ? (
+            <PremiereResult
+              surface="thumbnail"
+              kind="image"
+              url={selectedImage}
+              title={(premiereAsk?.prompt || prompt.trim() || 'Your thumbnail').slice(0, 110)}
+              meta={images.length > 1 ? `Ready · ${images.length} variations` : 'Ready'}
+              onDownload={handleDownloadSelected}
+              downloadLabel="Download HD"
+              next={{
+                label: 'Make the video too',
+                title: 'Turn this idea into a Short — the Studio writes, narrates and edits it.',
+                cta: 'Make a Short about this',
+                href: `/studio?prompt=${encodeURIComponent((premiereAsk?.prompt || prompt.trim()).slice(0, 500))}`,
+                hint: 'Opens the Studio filled in — credits only when you press Generate.',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 {/* KINEO-CHARLOCK-V2 — identity badge on locked results. */}
-                {lockedName && images.length > 0 && !loading && (
-                  <span style={{ textTransform: 'none', letterSpacing: 0, fontSize: '0.68rem', fontWeight: 800, color: '#2997ff', background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.35)', borderRadius: 999, padding: '3px 10px' }}>
+                {lockedName && images.length > 0 && (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#2997ff', background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.35)', borderRadius: 999, padding: '3px 10px' }}>
                     🔒 Locked to {lockedName}
                   </span>
                 )}
-              </span>
-              {selectedImage && !loading && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {/* KINEO-CHARLOCK-V2 — save THIS result as a reusable character. */}
-                  <button
-                    onClick={handleSaveAsCharacter}
-                    disabled={charSaving}
-                    style={{
-                      background: 'rgba(41,151,255,0.12)',
-                      color: '#2997ff',
-                      border: '1px solid rgba(41,151,255,0.4)',
-                      borderRadius: 8,
-                      padding: '6px 14px',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: charSaving ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {charSaving ? '⭐ Saving…' : '⭐ Save as Character'}
-                  </button>
-                  <button
-                    onClick={handleDownloadSelected}
-                    style={{
-                      background: 'linear-gradient(135deg, #2997ff, #2997ff)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '6px 16px',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 0 14px rgba(41,151,255,0.35)',
-                    }}
-                  >
-                    ⬇ Download HD
-                  </button>
+                {/* KINEO-CHARLOCK-V2 — save THIS result as a reusable character. */}
+                <button
+                  onClick={handleSaveAsCharacter}
+                  disabled={charSaving}
+                  style={{
+                    background: 'rgba(41,151,255,0.12)',
+                    color: '#2997ff',
+                    border: '1px solid rgba(41,151,255,0.4)',
+                    borderRadius: 8,
+                    padding: '6px 14px',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: charSaving ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {charSaving ? '⭐ Saving…' : '⭐ Save as Character'}
+                </button>
+              </div>
+              {charMsg && (
+                <p style={{ fontSize: '0.74rem', fontWeight: 700, color: charMsg.startsWith('✓') ? '#5cb3ff' : '#f87171', margin: 0 }}>
+                  {charMsg}
+                </p>
+              )}
+
+              {/* Variations grid (if multiple) */}
+              {images.length > 1 && (
+                <div>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--muted2)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 12 }}>
+                    ✨ Variations — click to select
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${images.length}, 1fr)`, gap: 10 }}>
+                    {images.map((url, i) => (
+                      <ThumbnailCard
+                        key={url}
+                        url={url}
+                        index={i}
+                        selected={selectedIdx === i}
+                        onSelect={() => setSelectedIdx(i)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-            {charMsg && (
-              <p style={{ fontSize: '0.74rem', fontWeight: 700, color: charMsg.startsWith('✓') ? '#5cb3ff' : '#f87171', margin: '0 0 10px' }}>
-                {charMsg}
-              </p>
-            )}
 
-            {/* Loading skeleton */}
-            {loading && <Skeleton />}
+              {/* Optimized prompt disclosure */}
+              {optimizedPrompt && (
+                <button
+                  onClick={() => setShowOptimized((v) => !v)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 9,
+                    padding: '8px 14px',
+                    color: 'var(--muted)',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span>{showOptimized ? '▲' : '▼'}</span>
+                  <span>AI-optimized prompt</span>
+                </button>
+              )}
+              {showOptimized && optimizedPrompt && (
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129,0.06)',
+                    border: '1px solid rgba(16, 185, 129,0.18)',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    color: 'rgba(52, 211, 153,0.85)',
+                    fontSize: '0.73rem',
+                    lineHeight: 1.6,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {optimizedPrompt}
+                </div>
+              )}
+            </PremiereResult>
+          ) : (
+            /* Main preview area — empty state */
+            <div
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 16,
+                padding: 20,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--muted2)', letterSpacing: '0.04em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  🖼️ Preview
+                </span>
+              </div>
+              {charMsg && (
+                <p style={{ fontSize: '0.74rem', fontWeight: 700, color: charMsg.startsWith('✓') ? '#5cb3ff' : '#f87171', margin: '0 0 10px' }}>
+                  {charMsg}
+                </p>
+              )}
 
-            {/* Empty state */}
-            {!loading && images.length === 0 && (
+              {/* Empty state */}
               <div
                 style={{
                   aspectRatio: '16/9',
@@ -1008,45 +1018,6 @@ export default function ThumbnailGeneratorClient({
                 <p style={{ fontSize: '0.72rem', opacity: 0.7 }}>
                   Enter a prompt and click Generate
                 </p>
-              </div>
-            )}
-
-            {/* Selected image (large) */}
-            {!loading && selectedImage && (
-              <div style={{ borderRadius: 12, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.4)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedImage}
-                  alt="Generated thumbnail"
-                  style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Variations grid (if multiple) */}
-          {!loading && images.length > 1 && (
-            <div
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 14,
-                padding: 18,
-              }}
-            >
-              <p style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--muted2)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 12 }}>
-                ✨ Variations — click to select
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${images.length}, 1fr)`, gap: 10 }}>
-                {images.map((url, i) => (
-                  <ThumbnailCard
-                    key={url}
-                    url={url}
-                    index={i}
-                    selected={selectedIdx === i}
-                    onSelect={() => setSelectedIdx(i)}
-                  />
-                ))}
               </div>
             </div>
           )}

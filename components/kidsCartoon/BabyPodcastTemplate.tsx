@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
+import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { creditCostFor } from '@/lib/credits/engineCost'
 import {
   BABY_PODCAST_DURATION,
@@ -43,8 +44,13 @@ export default function BabyPodcastTemplate() {
   const [error, setError] = useState<string | null>(null)
   const [prep, setPrep] = useState<{ script: string; avatarImageUrl: string; caption: string } | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  // KINEO-ESTREIA-3110 — só tela: o vídeo do bebê falando (antes da legenda) aparece no cartão assim que o avatar-status entrega,
+  // e o progresso que o compose/status já devolvia.
+  const [talkingUrl, setTalkingUrl] = useState<string | null>(null)
+  const [composePct, setComposePct] = useState(0)
   const alive = useRef(true)
   const price = creditCostFor(BABY_PODCAST_QUALITY, true)
+  usePremiereBeacon(stage === 'done' && Boolean(videoUrl), 'podcast') // KINEO-ESTREIA-3110
 
   useEffect(() => {
     alive.current = true
@@ -88,6 +94,7 @@ export default function BabyPodcastTemplate() {
     const generationId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `baby-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
     const startedAt = Date.now()
     setStage('rendering'); setError(null)
+    setTalkingUrl(null); setComposePct(0) // KINEO-ESTREIA-3110
     void trackEvent('baby_podcast_make_clicked', { baby, language, engine: BABY_PODCAST_ENGINE })
     try {
       const { res, data } = await postJson('/api/generate-avatar', babyAvatarPayload({ generationId, script: prep.script, language, avatarImageUrl: prep.avatarImageUrl }))
@@ -105,6 +112,7 @@ export default function BabyPodcastTemplate() {
         else if (s.data.status === 'failed' || (!s.ok && s.status < 500 && s.status !== 408 && s.status !== 425 && s.status !== 429)) { setError(typeof s.data.error === 'string' ? s.data.error : 'The baby video failed. You were not charged.'); setStage('failed'); return }
       }
       if (!alive.current) return
+      setTalkingUrl(avatarUrl) // KINEO-ESTREIA-3110
       setStage('composing')
       const c = await postJson('/api/compose', {
         generationId, clip_urls: [], voiceover_script: prep.script, scene_captions: [], duration: BABY_PODCAST_DURATION, topic: prep.script.slice(0, 500),
@@ -125,6 +133,7 @@ export default function BabyPodcastTemplate() {
           return
         }
         if (!s.ok && (s.status === 400 || s.status === 403 || s.status === 404 || s.status === 410 || s.status === 422)) { setError(typeof s.data.error === 'string' ? s.data.error : 'This render can no longer be resumed.'); setStage('failed'); return }
+        if (s.ok && typeof s.data.progress === 'number') setComposePct(s.data.progress) // KINEO-ESTREIA-3110 — só a barra
       }
     } catch {
       setError('Network error. Any credits taken are returned automatically if the video fails.'); setStage('failed')
@@ -183,19 +192,53 @@ export default function BabyPodcastTemplate() {
                 </div>
               ) : null}
               {stage === 'ready' ? <p className="kkc-note">{t.note}</p> : null}
-              {stage === 'rendering' ? <p className="kkc-note" role="status">{t.rendering}</p> : null}
-              {stage === 'composing' ? <p className="kkc-note" role="status">{t.composing}</p> : null}
-              {stage === 'done' && videoUrl ? (
-                <div>
-                  <h2 style={{ marginTop: 14 }}>{t.done}</h2>
-                  <video src={videoUrl} controls playsInline style={{ width: '100%', maxWidth: 320, borderRadius: 16, display: 'block' }} />
-                  <p><a className="kkc-go" href={videoUrl} download>{t.download}</a></p>
-                </div>
-              ) : null}
               {stage === 'failed' && error ? <p className="kkc-err" role="alert">{error}</p> : null}
-              {prep?.caption ? <div className="kkc-cap"><p><b>{t.caption}</b><br />{prep.caption}<br /><small>{t.label}</small></p></div> : null}
+              {prep?.caption && stage !== 'done' ? <div className="kkc-cap"><p><b>{t.caption}</b><br />{prep.caption}<br /><small>{t.label}</small></p></div> : null}
             </section>
           )}
+          {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala de todas as telas de geração (components/premiere). */}
+          {stage === 'rendering' || stage === 'composing' ? (
+            <PremiereStage
+              surface="podcast"
+              title={(prep?.script ?? t.title).slice(0, 110)}
+              items={[{
+                key: 'baby',
+                label: babies.find((b) => b.id === baby)?.label[language] ?? 'Baby',
+                status: talkingUrl ? 'ready' : 'working',
+                url: talkingUrl,
+                posterUrl: prep?.avatarImageUrl ?? null,
+              }]}
+              kind="video"
+              ratio="9 / 16"
+              now={{ label: 'Now', text: stage === 'rendering' ? t.rendering : t.composing }}
+              progress={stage === 'composing' ? 70 + Math.round(Math.min(100, composePct) * 0.28) : null}
+              footnote="Usually a few minutes. Keep this tab open until your video is ready — switching tabs is fine."
+            />
+          ) : null}
+          {stage === 'done' && videoUrl ? (
+            <PremiereResult
+              surface="podcast"
+              kind="video"
+              url={videoUrl}
+              posterUrl={prep?.avatarImageUrl ?? null}
+              title={t.done}
+              downloadHref={videoUrl}
+              downloadLabel={t.download}
+              onDownload={() => { void trackEvent('baby_podcast_downloaded', { baby, language }) }}
+              next={{
+                label: 'Next episode',
+                title: 'Same baby, a new topic',
+                hint: 'You see the new script before anything is charged.',
+                cta: 'Make another episode',
+                onClick: () => {
+                  setStage('idle'); setPrep(null); setVideoUrl(null); setTalkingUrl(null); setComposePct(0); setTopic(''); setError(null)
+                  try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* nada */ }
+                },
+              }}
+            >
+              {prep?.caption ? <div className="kkc-cap"><p><b>{t.caption}</b><br />{prep.caption}<br /><small>{t.label}</small></p></div> : null}
+            </PremiereResult>
+          ) : null}
         </>
       )}
     </main>

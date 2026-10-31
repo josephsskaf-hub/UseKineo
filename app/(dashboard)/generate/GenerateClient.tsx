@@ -348,6 +348,7 @@ import {
   type IdeiaNaFila,
 } from '@/lib/proximoEpisodioFila'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
+import { PremiereStage, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
@@ -2171,6 +2172,8 @@ export default function GenerateClient({
   // Push #315 — fal.ai polling state for Cinematic AI mode.
   const [falRequestIds, setFalRequestIds] = useState<(string | null)[]>([])
   const [falClipsDone, setFalClipsDone] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
+  // KINEO-ESTREIA-3110 — o status de CADA cena que o poll já recebia e jogava fora: a sala ao vivo mostra a cena no segundo em que fica pronta.
+  const [premiereClips, setPremiereClips] = useState<{ status: string; url: string | null }[]>([])
   const [renderId, setRenderId] = useState<string | null>(null)
   // Phase 3 — B-roll Intelligence / Creator Mode
   const [brollPlan, setBrollPlan] = useState<BrollPlan | null>(null)
@@ -5096,6 +5099,8 @@ export default function GenerateClient({
     }
   }, [phase, tasks])
 
+  // KINEO-ESTREIA-3110 — filme novo começa com a sala vazia (sem isto, as cenas do filme anterior apareceriam até o 1º poll).
+  useEffect(() => { if (phase === 'generating') setPremiereClips([]) }, [phase])
   // ────────────────────────────────────────────────────────────────────────
   // PHASE: fal_polling  →  Push #315 — poll fal.ai clip status every 6s.
   // When all clips are done (or failed), collect URLs and move to clips_ready.
@@ -5220,6 +5225,7 @@ export default function GenerateClient({
         const done = typeof data.done === 'number' ? data.done : 0
         const total = typeof data.total === 'number' ? data.total : falRequestIds.length
         setFalClipsDone({ done, total })
+        if (Array.isArray(data.clips)) setPremiereClips(data.clips.map((c: { status?: unknown; url?: unknown }) => ({ status: typeof c?.status === 'string' ? c.status : 'processing', url: typeof c?.url === 'string' ? c.url : null }))) // KINEO-ESTREIA-3110
         setGenerateProgress(total > 0 ? Math.round((done / total) * 85) : 0)
 
         if (data.allDone) {
@@ -14215,6 +14221,30 @@ export default function GenerateClient({
   }
 
 
+  // KINEO-ESTREIA-3110 — a sala ao vivo do Filme: um cartão por cena, que vira o clipe real no poll em que a cena fica pronta.
+  // Antes da montagem: falRequestIds + o status de cada cena (premiereClips). Depois (clips_ready/composing): os clipes que sobreviveram.
+  const premiereMontando = phase === 'clips_ready' || phase === 'composing'
+  const premiereItems: PremiereItem[] = premiereMontando
+    ? clipUrls.map((url, i) => ({ key: `c${i}`, label: `Scene ${i + 1}`, status: 'ready' as const, url }))
+    : falRequestIds.map((_, i) => {
+        const c = premiereClips.length === falRequestIds.length ? premiereClips[i] : undefined
+        const pronta = c?.status === 'done' && Boolean(c.url)
+        return {
+          key: `s${i}`,
+          label: `Scene ${i + 1}`,
+          status: pronta ? 'ready' as const : c?.status === 'failed' ? 'failed' as const : phase === 'fal_polling' ? 'working' as const : 'waiting' as const,
+          url: pronta ? c!.url : null,
+          posterUrl: sceneAnchorsRef.current[i] ?? null,
+        }
+      })
+  const premiereProxima = premiereItems.findIndex((it) => it.status !== 'ready')
+  const premiereFala = premiereProxima >= 0 ? (sceneNarrationsRef.current[premiereProxima] ?? fastCaptions?.[premiereProxima] ?? '').trim() : ''
+  const premiereNow = phase === 'fal_polling' && premiereFala
+    ? { label: `Scene ${premiereProxima + 1} · the narrator says`, text: `“${premiereFala.length > 180 ? `${premiereFala.slice(0, 177)}…` : premiereFala}”` }
+    : premiereMontando
+      ? { label: 'Now', text: 'All scenes are filmed. Recording the voice, adding captions and music — your premiere is next.' }
+      : statusMessage ? { label: 'Now', text: statusMessage.replace(/^\p{Extended_Pictographic}\s*/u, '') } : null
+
   return (
     // KINEO-CONTENT-REDESIGN-2026-07-10 (Joseph) — the "miolo": wider canvas
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
@@ -17087,9 +17117,16 @@ export default function GenerateClient({
             >
               {/* PUSH #71 — show the real API phase instead of rotating
                   cosmetic steps after that work has already finished. */}
-              <RenderHeader
-                progress={Math.round(displayProgress)}
-                message={statusMessage}
+              {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala de todas as telas de geração (components/premiere). */}
+              <PremiereStage
+                surface="film"
+                title={(analysis?.title || prompt || 'Your film').slice(0, 120)}
+                items={premiereItems}
+                now={premiereNow}
+                progress={displayProgress}
+                footnote={(mode === 'fast' || mode === 'creator')
+                  ? "Typically ready in ~3 min. Keeping this tab open is fastest — if you close it, we finish the film and email you the link."
+                  : "Typically ready in ~3 min. You can close this tab — we'll email you the link when your premiere is ready."}
               />
 
 

@@ -5,8 +5,9 @@
 // Recraft V3 pra texto perfeito), aspecto, geracao em grade com Download e
 // Upscale 2x por imagem. Aprovado pra stage; sobe pra prod no ok do fundador.
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 // sprint-assinaturas #13 — o 402 so abre o popup de recarga para quem PODE
 // comprar recarga (Creator/Studio, regra do checkout); trial/free/starter
@@ -30,6 +31,11 @@ const SIZES: { key: ImgSize; label: string }[] = [
 ]
 
 type Item = { id?: string | null; url: string; model: ImgModelKey | string; upscaled?: string | null; upscaling?: boolean }
+
+// KINEO-ESTREIA-3110 — a sala/estreia usa o formato que a pessoa pediu (o cartão nasce no tamanho certo) e uma largura
+// máxima por formato: um 9:16 sozinho ocupando a largura toda viraria uma parede.
+const PREMIERE_RATIO: Record<ImgSize, string> = { portrait_16_9: '9 / 16', square_hd: '1 / 1', landscape_16_9: '16 / 9' }
+const PREMIERE_WIDTH: Record<ImgSize, number> = { portrait_16_9: 380, square_hd: 520, landscape_16_9: 760 }
 
 // KINEO-IMAGENS-FOTO-REFERENCIA-2026-09-29 — foto de referência no Nano Banana Pro (pedido do fundador: "meu amigo
 // lutando na guerra de Troia como Aquiles", com o rosto do amigo). A foto sobe para a pasta da conta (/api/images/
@@ -104,6 +110,11 @@ export default function ImagesClient() {
   // "My Images" nao existia ate o fetch voltar e POPava na tela. Agora o
   // load mostra a FORMA da grade (shimmer), igual library/my-videos.
   const [galleryLoading, setGalleryLoading] = useState(true)
+  // KINEO-ESTREIA-3110 — a espera vira a estreia: o pedido em voo (prompt/formato/motor congelados no clique) e, quando
+  // volta, a URL da imagem nova. Só tela — o POST, a cobrança e a grade "My Images" seguem iguais.
+  const [premiere, setPremiere] = useState<{ prompt: string; size: ImgSize; engine: string; url: string | null } | null>(null)
+  const promptRef = useRef<HTMLTextAreaElement | null>(null)
+  const premiereRef = useRef<HTMLDivElement | null>(null)
 
   // KINEO-IMAGES-PROD-2026-08-17 — o mega-menu Image aponta motores pra ca
   // (?engine=), igual ao padrao do Studio: chegada ja cai com o motor certo.
@@ -204,6 +215,7 @@ export default function ImagesClient() {
     if (!canGenerate) return
     setBusy(true)
     setError(null)
+    setPremiere({ prompt: prompt.trim(), size, engine: eng.name, url: null }) // KINEO-ESTREIA-3110
     try {
       const res = await fetch('/api/images/generate', {
         method: 'POST',
@@ -216,20 +228,31 @@ export default function ImagesClient() {
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
       setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model }, ...xs])
+      setPremiere((p) => (p ? { ...p, url: data.url as string } : p)) // KINEO-ESTREIA-3110
       setMadeThisSession((n) => n + 1)
       void refreshPlan()
     } catch (e) {
+      setPremiere(null) // KINEO-ESTREIA-3110 — falhou: a sala sai e o erro de sempre aparece
       { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) openCreditsWall() }
     } finally {
       setBusy(false)
     }
   }
 
+  // KINEO-ESTREIA-3110 — a sala aparece no clique e a estreia quando a imagem chega; leva a tela até elas.
+  usePremiereBeacon(!busy && !!premiere?.url, 'image')
+  useEffect(() => {
+    if (!premiere) return
+    premiereRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [busy, premiere?.url]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // KINEO-IMAGES-DL-2026-08-17 (fundador: 'assim e o melhor modelo de
   // entrega?' — nao): o link cru abria o PNG no dominio do fal. Agora o
   // Download busca o blob e salva direto como kineo-image-N.png, sem sair do
   // site. Fallback: se o CORS do CDN negar, abre em nova aba como antes.
-  async function downloadImage(url: string, idx: number) {
+  async function downloadImage(url: string, idx: number, from: 'grid' | 'premiere' = 'grid') {
+    // KINEO-ESTREIA-3110 — o download de imagem não emitia evento nenhum; agora conta (grade e estreia).
+    void trackEvent('image_downloaded', { from, model: items[idx]?.model ?? null, upscaled: !!items[idx]?.upscaled })
     try {
       const res = await fetch(url)
       if (!res.ok) throw new Error('fetch failed')
@@ -291,6 +314,41 @@ export default function ImagesClient() {
       { const m = e instanceof Error ? e.message : 'Upscale failed.'; setError(m); if (/not enough credits/i.test(m)) openCreditsWall() }
       setItems((xs) => xs.map((x, i) => (i === idx ? { ...x, upscaling: false } : x)))
     }
+  }
+
+  // KINEO-ESTREIA-3110 — Upscale/Edit de uma imagem, os MESMOS controles na grade e na estreia (um só lugar para mexer).
+  const enhanceControls = (it: Item, i: number) => (
+    <>
+                    <div className="row">
+                      <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
+                        {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : ui('Upscale 2x · 1 cr')}
+                      </button>
+                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><ControlIcon name="edit" /> <UiLabel>Edit · 3 cr</UiLabel></button>
+                    </div>
+                    {editIdx === i && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                        <input
+                          value={editTxt}
+                          onChange={(e) => setEditTxt(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') applyEdit(i) }}
+                          placeholder="make it sunset · teal palette · remove text…"
+                          style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, background: 'var(--card2)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 16 }}
+                        />
+                        <button type="button" className="pill on" disabled={editBusy || !editTxt.trim()} onClick={() => applyEdit(i)}>
+                          {editBusy ? '…' : 'Go'}
+                        </button>
+                      </div>
+                    )}
+    </>
+  )
+
+  // KINEO-ESTREIA-3110 — a imagem da estreia é a linha da grade com a URL que acabou de voltar (o Upscale atualiza as duas).
+  const premiereIdx = premiere?.url ? items.findIndex((x) => x.url === premiere.url) : -1
+  const premiereItem = premiereIdx >= 0 ? items[premiereIdx] : null
+  const makeVariation = () => {
+    if (premiere) setPrompt(premiere.prompt)
+    promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    promptRef.current?.focus({ preventScroll: true })
   }
 
   return (
@@ -399,7 +457,7 @@ export default function ImagesClient() {
 
 <div className="card creation-input">
             <div className="lab"><span className="n">2</span><UiLabel>Your image</UiLabel></div>
-            <textarea aria-label={ui('Your image')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7} maxLength={2000}
+            <textarea ref={promptRef} aria-label={ui('Your image')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
                 branco: um clique preenche o prompt. */}
@@ -494,6 +552,59 @@ export default function ImagesClient() {
 </div>
         <ProductStage name={eng.name} desc={eng.desc} meta={`${eng.credits} / ${ui('image')}`} items={stageItems} wide={!mine.length} />
 </div>
+      {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração (components/premiere).
+          A imagem nova continua entrando primeiro em "My Images" logo abaixo. */}
+      {premiere && (busy || premiere.url) ? (
+        <div ref={premiereRef} style={{ width: '100%', maxWidth: PREMIERE_WIDTH[premiere.size], margin: '8px auto 0', scrollMarginTop: 80 }}>
+          {busy ? (
+            <PremiereStage
+              surface="image"
+              kind="image"
+              kicker="Your image is being made"
+              title={`${premiere.engine} is painting it`}
+              items={[{ key: 'image', label: 'Your image', status: 'working' }]}
+              ratio={PREMIERE_RATIO[premiere.size]}
+              now={{ label: 'Painting', text: premiere.prompt.slice(0, 280) }}
+              notify={false}
+              footnote="Usually ready in under a minute."
+            />
+          ) : premiere.url ? (
+            <PremiereResult
+              surface="image"
+              kind="image"
+              url={premiereItem?.upscaled ?? premiere.url}
+              title={premiere.prompt.slice(0, 110)}
+              meta={`Ready · ${premiere.engine}`}
+              onDownload={() => { void downloadImage(premiereItem?.upscaled ?? premiere.url!, premiereIdx >= 0 ? premiereIdx : 0, 'premiere') }}
+              next={premiereItem?.id ? {
+                label: 'Bring it to life',
+                title: 'Turn this image into a moving clip.',
+                cta: 'Turn it into a video',
+                href: `/animate?from_image=${encodeURIComponent(premiereItem.id)}`,
+                onClick: () => { void trackEvent('image_to_video_clicked', { image_id: premiereItem.id, model: premiereItem.model, upscaled: !!premiereItem.upscaled, from: 'premiere' }) },
+                hint: 'Opens Animate with this image loaded — credits only when you press Generate.',
+              } : {
+                label: 'Try another take',
+                title: 'Same prompt, a fresh image.',
+                cta: 'Make a variation',
+                onClick: makeVariation,
+                hint: 'Fills the prompt back in — credits only when you press Generate.',
+              }}
+            >
+              {premiereItem ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {premiereItem.id ? (
+                    <div className="row">
+                      <button type="button" className="pill" onClick={makeVariation}><UiLabel>Make a variation</UiLabel></button>
+                    </div>
+                  ) : null}
+                  {enhanceControls(premiereItem, premiereIdx)}
+                </div>
+              ) : null}
+            </PremiereResult>
+          ) : null}
+        </div>
+      ) : null}
       <ProductRow title="Made on Kineo" sub="Real images from our engines — every one started as a sentence." items={HOUSE_ROW} />
 <div className="grid creation-grid">
 <div className="creation-results">
@@ -539,26 +650,7 @@ export default function ImagesClient() {
                       )}
                     </div>
                     <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary>
-                    <div className="row">
-                      <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
-                        {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : ui('Upscale 2x · 1 cr')}
-                      </button>
-                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><ControlIcon name="edit" /> <UiLabel>Edit · 3 cr</UiLabel></button>
-                    </div>
-                    {editIdx === i && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                        <input
-                          value={editTxt}
-                          onChange={(e) => setEditTxt(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') applyEdit(i) }}
-                          placeholder="make it sunset · teal palette · remove text…"
-                          style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, background: 'var(--card2)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 16 }}
-                        />
-                        <button type="button" className="pill on" disabled={editBusy || !editTxt.trim()} onClick={() => applyEdit(i)}>
-                          {editBusy ? '…' : 'Go'}
-                        </button>
-                      </div>
-                    )}
+                    {enhanceControls(it, i)}
                     </details>
                   </div>
                 ))}
