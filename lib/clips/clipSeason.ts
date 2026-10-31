@@ -5,7 +5,7 @@
 export const HALLOWEEN_ENDS_AT = '2026-11-01T03:00:00.000Z'
 export const DIA_DE_MUERTOS_ENDS_AT = '2026-11-03T03:00:00.000Z'
 export const NATAL_ENDS_AT = '2026-12-26T03:00:00.000Z'
-export const HALLOWEEN_EFFECT_KEYS = ['witch', 'zombie'] as const
+export const HALLOWEEN_EFFECT_KEYS = ['witch', 'zombie', 'werewolf'] as const
 export const DIA_DE_MUERTOS_EFFECT_KEYS = ['catrina', 'catrina_pet'] as const
 export const NATAL_EFFECT_KEYS = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel'] as const
 

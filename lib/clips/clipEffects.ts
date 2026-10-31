@@ -60,6 +60,7 @@ export type ClipEffectKey =
   | 'pet_bee' // KINEO-EFEITOS-NATAL-PETS-2910
   | 'catrina' // KINEO-DIA-DE-MUERTOS-3110
   | 'catrina_pet' // KINEO-DIA-DE-MUERTOS-3110
+  | 'werewolf' // KINEO-LOBISOMEM-3110
 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
@@ -516,6 +517,26 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     filmIdea: 'The pet who guided the family home on the Day of the Dead — a 60-second story',
     person: false,
     preview: { video: '/previews/efeito-catrina_pet.mp4', poster: '/posters/efeito-catrina_pet.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
+  },
+  // KINEO-LOBISOMEM-3110 — fundador 30/10 ("lobisomem entra também"): tendência de outubro, modelo pronto da PixVerse 5.5
+  // ('Werewolf Rage', enum do OpenAPI da fal). Testado pela sonda fx_werewolf com foto gerada (ruiva no alpendre) e aprovado quadro
+  // a quadro: vira lobisomem de verdade, sem fogo e sem chifre (o defeito que tirou o vampiro em 13/10 e 29/10).
+  {
+    key: 'werewolf',
+    title: 'Werewolf transformation',
+    sub: 'You turn into a werewolf — fur, fangs and glowing eyes.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('werewolf'),
+    filmIdea: 'The full moon night this person became a werewolf — a 60-second story',
+    person: true,
+    preview: { video: '/previews/efeito-werewolf.mp4', poster: '/posters/efeito-werewolf.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Werewolf Rage', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
   },
 ]
 
