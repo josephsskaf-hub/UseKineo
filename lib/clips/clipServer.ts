@@ -513,6 +513,12 @@ export function submitDepsFor(args: {
     markFailed: (id, reason, refunded) => markFailed(admin, id, reason, refunded),
     event: clipEvent(account.userId),
     now: () => Date.now(),
+    // KINEO-CLIPE-AUTO-3110 — só troca linha ainda 'pending' (antes do markSubmitted): o cron e o status leem o motor/modelo novos.
+    switchEngine: async (id, patch) => {
+      const { data, error } = await admin.from(CLIPS_TABLE).update(patch).eq('id', id).eq('status', 'pending').select('id')
+      if (error) console.error(`[clips] switchEngine failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
   }
 }
 

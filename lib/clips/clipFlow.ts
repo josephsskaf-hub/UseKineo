@@ -27,6 +27,8 @@ import {
   CLIP_ENGINES,
   validateClipRequest,
   buildClipFalInput,
+  offeredSecondsFor,
+  aspectsFor,
   type ClipEngineKey,
   type ClipEngineAccess,
   type ClipRequest,
@@ -84,8 +86,10 @@ export interface ClipSubmitDeps {
   submit(model: string, input: Record<string, unknown>): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
   markSubmitted(id: string, requestId: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_requested' | 'clip_failed', metadata: Record<string, unknown>): Promise<void>
+  event(name: 'clip_requested' | 'clip_failed' | 'clip_engine_fallback', metadata: Record<string, unknown>): Promise<void>
   now(): number
+  /** KINEO-CLIPE-AUTO-3110 — troca o motor da linha ainda 'pending' (motor, modelo, duração, formato, preço e referência de cobrança). Sem ela, não há troca. */
+  switchEngine?(id: string, patch: Pick<ClipRow, 'engine' | 'model' | 'seconds' | 'aspect' | 'credits' | 'fal_usd' | 'billing_reference'>): Promise<boolean>
 }
 
 export type ClipSubmitResult =
@@ -93,6 +97,25 @@ export type ClipSubmitResult =
   | { ok: false; status: number; code: string; error: string; balance?: number; clip?: ClipRow }
 
 export const VALID_CLIP_KEY = /^[A-Za-z0-9._:-]{8,100}$/
+
+// KINEO-CLIPE-AUTO-3110 — fundador 30/10 ("quando há alguma coisa errada o sistema escolhe um motor que vai entregar algo certo"):
+// em 30 dias, 15 das 21 falhas de clipe foram a fal RECUSANDO o pedido no envio (provider_rejected, quase todas no Kling 3); o
+// cliente via erro e ia embora. Agora a recusa no envio troca, uma vez, para o Seedance 1.5 (o motor que menos recusa: 1 em 45),
+// com o mesmo texto, a mesma foto e a duração mais próxima que ele faz. Cobrança: o MENOR dos dois preços (o Seedance é mais
+// barato que Kling 3/H3/Veo) — o débito do motor pedido é estornado e o novo entra com outra referência; nunca cobra duas vezes.
+// Fora da troca: efeito-modelo (o efeito é do fornecedor), resposta ambígua (pode ter sido aceita) e pedido que já era Seedance.
+export const CLIP_FALLBACK_ENGINE: ClipEngineKey = 'seedance'
+export function clipFallbackRequest(req: ClipRequest): ClipRequest | null {
+  if (req.engine === CLIP_FALLBACK_ENGINE) return null
+  const spec = CLIP_ENGINES[CLIP_FALLBACK_ENGINE]
+  const model = req.mode === 'i2v' ? spec.i2vModel : spec.t2vModel
+  const offered = offeredSecondsFor(CLIP_FALLBACK_ENGINE)
+  if (!model || offered.length === 0) return null
+  const seconds = offered.reduce((best, s) => (Math.abs(s - req.seconds) < Math.abs(best - req.seconds) ? s : best), offered[0])
+  const choices = aspectsFor(CLIP_FALLBACK_ENGINE, req.mode)
+  const aspect = choices.length === 0 ? 'image' : req.aspect !== 'image' && choices.includes(req.aspect) ? req.aspect : choices[0]
+  return { ...req, engine: CLIP_FALLBACK_ENGINE, model, seconds, aspect }
+}
 
 /** Impressão digital do pedido: mesma chave com outro conteúdo = conflito, não replay. */
 export function clipFingerprint(req: ClipRequest): string {
@@ -275,6 +298,36 @@ export async function submitClip(
   const sent = template && req.imageUrl
     ? await deps.submit(template.model, template.input(req.imageUrl))
     : await deps.submit(req.model, buildClipFalInput(req))
+  // KINEO-CLIPE-AUTO-3110 — a fal recusou no envio: uma tentativa no Seedance 1.5 antes de devolver erro ao cliente.
+  if (!sent.ok && !sent.ambiguous && !template && deps.switchEngine) {
+    const fb = clipFallbackRequest(req)
+    if (fb && deps.engineAccess(fb.engine).ok) {
+      const second = await deps.submit(fb.model, buildClipFalInput(fb))
+      if (second.ok) {
+        const fbCredits = Math.min(credits, clipCreditCost(fb.engine, fb.seconds, fb.mode === 'i2v'))
+        let billingReference = row.billing_reference
+        let charged = credits
+        let balance: number | null = debit.balance
+        if (fbCredits < credits) {
+          const back = await deps.refund(row.billing_reference)
+          if (back > 0) {
+            billingReference = `${row.billing_reference}-auto`
+            const d2 = await deps.debit(billingReference, fbCredits)
+            // a fal já aceitou o clipe: se o novo débito falhar, entrega assim mesmo (o custo fica com a casa) — nunca cobra em dobro
+            charged = d2.ok ? fbCredits : 0
+            balance = d2.ok ? d2.balance : null
+          }
+        }
+        const fbRow: ClipRow = { ...row, engine: fb.engine, model: fb.model, seconds: fb.seconds, aspect: fb.aspect, credits: charged, fal_usd: clipFalUsd(fb.engine, fb.seconds, fb.mode === 'i2v'), billing_reference: billingReference }
+        const switched = await deps.switchEngine(row.id, { engine: fbRow.engine, model: fbRow.model, seconds: fbRow.seconds, aspect: fbRow.aspect, credits: fbRow.credits, fal_usd: fbRow.fal_usd, billing_reference: fbRow.billing_reference })
+        let fbSaved = switched && await deps.markSubmitted(row.id, second.requestId)
+        if (switched && !fbSaved) fbSaved = await deps.markSubmitted(row.id, second.requestId)
+        await deps.event('clip_engine_fallback', { ...clipTelemetry(fbRow), from_engine: row.engine, to_engine: fb.engine, credits_before: credits, provider_error: cleanProviderError(sent.error), request_id: second.requestId, tracking_saved: fbSaved })
+        await deps.event('clip_requested', { ...clipTelemetry(fbRow), request_id: second.requestId, tracking_saved: fbSaved, fallback_from: row.engine })
+        return { ok: true, status: 202, clip: fbSaved ? { ...fbRow, status: 'processing', fal_request_id: second.requestId } : fbRow, replay: false, balance }
+      }
+    }
+  }
   if (!sent.ok) {
     return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', 502, 'The engine could not accept this clip.', cleanProviderError(sent.error)) // KINEO-S25-FOTO-CLIPES-1610
   }
