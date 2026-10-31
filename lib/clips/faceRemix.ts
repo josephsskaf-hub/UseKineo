@@ -115,6 +115,15 @@ export function faceRemixById(id: unknown): FaceRemixItem | null {
 // salão, corpo inteiro com as duas mãos, mesmo rosto/cabelo/barba do início ao fim, figurantes diferentes seguindo o passo, sem texto,
 // sem som. Correções que vieram dos testes: "stays centered" (no 1º saiu para a borda no fim; no 2º ficou no centro) e "beside the face,
 // never covering it" (no 2º a mão aberta tapou meio rosto no último meio segundo — esta frase ainda não teve render próprio).
+// KINEO-DANCA-PUBLICA-3110 [TRAVA 8.2 — vai do fundador 31/10 "3A"] — 3º render (clipe 71e83039, rota do site, selfie gerada por IA): abre no
+// salão, 2 braços/2 mãos, centrada, sem corte, mesmo rosto — mas a mão aberta VOLTOU a tapar meio rosto (olho e bochecha) de ~4,1 s a ~4,4 s:
+// "beside the face" sozinho não segura, o Kling empurra a mão para a lente e no 9:16 ela cai na frente do rosto. REPROVADO → segue só da
+// casa. Aperto (ainda sem render): a mão acena LONGE, para o lado, na altura do ombro e abaixo do queixo, nunca na frente do rosto nem
+// empurrada para a lente; o quadro-chave já abre com o braço esticado para o lado (no 2º e 3º a mão começava ao lado do rosto).
+// 4º render (clipe 011452f0, com o aperto, as 2 etapas à mão pelas rotas do site: /images Nano Banana Pro + /clips Kling 3 i2v 5 s):
+// APROVADO quadro a quadro (6 fps no rosto) — a mão nunca passa do queixo, rosto inteiro e igual à foto do início ao fim, 2 braços/2 mãos,
+// abre no salão, sem corte, no centro (a mão esticada encosta na borda do quadro por ~0,3 s num balanço de braço). → launched: true, 10 cr,
+// cartão na grade de efeitos do /clips (ClipsClient, `house`); prévia e pôster recortados deste render. A home não muda.
 // Item da casa NÃO entra na galeria nem na faixa da home (hasFaceRemix só olha faceRemixItems). Abre por /clips?remix=friday-groove para as
 // contas da casa; `launched: true` abre o cartão para todos no GET do /clips (decisão do fundador depois do render aprovado).
 export const DANCA_SEXTOU_MARK = 'KINEO-DANCA-SEXTOU-3110'
@@ -127,10 +136,10 @@ export const FACE_REMIX_HOUSE_ITEMS: readonly FaceRemixHouseItem[] = [ // KINEO-
     seconds: FACE_REMIX_SECONDS,
     video: '/previews/galeria/friday-groove.mp4',
     poster: '/posters/galeria/friday-groove.webp',
-    launched: false, // KINEO-DANCA-SEXTOU-3110 — só a casa até o "vai" do fundador
+    launched: true, // KINEO-DANCA-PUBLICA-3110 [TRAVA 8.2 — vai do fundador 31/10 "3A"] — aberto a todos depois do 4º render aprovado (011452f0); era false (só a casa)
     template: {
-      keyframeScene: 'Friday night group dance class in a warm, lively dance hall with a colorful patterned tile floor, string lights and a mirror wall: the person from the photo, in a bright short-sleeve patterned party shirt and dark trousers, stands in front of the class mid-groove, knees soft, one hand raised palm-out toward the camera, big carefree smile. Handheld phone video look, realistic, joyful',
-      motionPrompt: 'The person from the photo leads the class in a feel-good groove right on the beat: a relaxed side-to-side two-step, shoulders bouncing, hips swaying, arms swinging loose, then one hand waves out palm-forward to the camera beside the face, never covering it, with a big confident smile, while the dancers behind follow the exact same moves in sync. The person from the photo stays centered in the frame the whole time. Steady camera at chest height with a slight handheld sway, realistic, joyful',
+      keyframeScene: 'Friday night group dance class in a warm, lively dance hall with a colorful patterned tile floor, string lights and a mirror wall: the person from the photo, in a bright short-sleeve patterned party shirt and dark trousers, stands in front of the class mid-groove, knees soft, one arm stretched out to the side with the open hand at shoulder height, well away from the face, big carefree smile. Handheld phone video look, realistic, joyful',
+      motionPrompt: 'The person from the photo leads the class in a feel-good groove right on the beat: a relaxed side-to-side two-step, shoulders bouncing, hips swaying, arms swinging loose, then one arm swings out to the side and the open hand waves palm-forward at shoulder height, far out to the side and below the chin, never raised in front of the face and never pushed toward the lens, so the whole face stays uncovered from the first frame to the last, with a big confident smile, while the dancers behind follow the exact same moves in sync. The person from the photo stays centered in the frame the whole time. Steady camera at chest height with a slight handheld sway, realistic, joyful',
       framing: 'dance',
       extras: 'four dancers in a loose row behind, all in plain black outfits, copying the same moves — an older person with short grey hair, a tall young person with a shaved head, a person with long braids and a short person with curly hair and glasses',
       maxPeople: 1,
@@ -273,6 +282,8 @@ export interface PublicFaceRemix {
   credits: number
   video: string
   poster: string
+  /** KINEO-DANCA-PUBLICA-3110 — modelo da casa (Friday Groove): ganha cartão próprio na grade de efeitos do /clips (os da galeria seguem na home). */
+  house: boolean // KINEO-DANCA-PUBLICA-3110
 }
 
 /** Cartões de remix que esta conta pode apertar (a rota recusa o resto com a mesma régua de motor). */
@@ -286,6 +297,7 @@ export function publicFaceRemixes(engineOk: (engine: ClipEngineKey) => boolean, 
     credits: faceRemixCredits(i),
     video: i.video,
     poster: i.poster,
+    house: faceRemixHouseById(i.id) !== null, // KINEO-DANCA-PUBLICA-3110
   }))
 }
 

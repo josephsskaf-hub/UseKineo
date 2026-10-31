@@ -90,7 +90,7 @@ type Clip = {
 }
 
 // KINEO-ROSTO-NO-CLIPE-2810 — "Put your face in it" (lib/clips/faceRemix.ts): o clipe da casa refeito a partir da foto da pessoa.
-type FaceRemixCard = { id: string; title: string; engine: string; engine_label: string; seconds: number; credits: number; video: string; poster: string } // KINEO-ROSTO-NO-CLIPE-2810
+type FaceRemixCard = { id: string; title: string; engine: string; engine_label: string; seconds: number; credits: number; video: string; poster: string; house?: boolean } // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + house (cartão próprio na grade de efeitos)
 
 type EffectCard = {
   key: string
@@ -402,6 +402,17 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     void trackClosedEvent('face_remix_opened', { id: found.id }) // KINEO-ROSTO-NO-CLIPE-2810
   }, [faceRemixes]) // KINEO-ROSTO-NO-CLIPE-2810
   const remix = faceRemixes.find((r) => r.id === remixId) ?? null // KINEO-ROSTO-NO-CLIPE-2810
+  // KINEO-DANCA-PUBLICA-3110 [TRAVA 8.2 — vai do fundador 31/10 "3A"] — os modelos da casa (Friday Groove) ganham cartão na grade de
+  // efeitos do /clips: é onde a pessoa procura efeito. Os remixes da galeria seguem com o botão na home (curadoria do fundador, intocada).
+  const houseRemixes = faceRemixes.filter((r) => r.house === true) // KINEO-DANCA-PUBLICA-3110
+  function chooseHouseRemix(id: string) { // KINEO-DANCA-PUBLICA-3110 — o mesmo estado do ?remix=<id>; nada é gerado sem o clique no botão do painel
+    setRemixId(id) // KINEO-DANCA-PUBLICA-3110
+    setEffectKey(null) // KINEO-DANCA-PUBLICA-3110
+    rememberClipEffect(null) // KINEO-DANCA-PUBLICA-3110
+    setError(null) // KINEO-DANCA-PUBLICA-3110
+    void trackClosedEvent('face_remix_opened', { id, surface: 'clips_effects' }) // KINEO-DANCA-PUBLICA-3110
+    window.requestAnimationFrame(() => document.getElementById('clip-remix-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) // KINEO-DANCA-PUBLICA-3110
+  } // KINEO-DANCA-PUBLICA-3110
 
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
@@ -883,11 +894,19 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         </section>
       )}
 
-      {!remix && effects.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
+      {!remix && (effects.length > 0 || houseRemixes.length > 0) && ( // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + modelos da casa
         <section aria-labelledby="clip-effects-title">
           <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
           <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
+            {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
+              <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-foot"><span className="tag">{rx.engine_label}</span><span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+              </button>
+            ))}
             {effects.map((fx) => (
               <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
                 <span className="fx-media">

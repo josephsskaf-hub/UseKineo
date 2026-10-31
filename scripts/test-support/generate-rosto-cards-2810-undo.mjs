@@ -10,6 +10,16 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-DANCA-PUBLICA-3110 — a camada MAIS NOVA (31/10, vai do fundador "3A"): o Friday Groove lançado — cartão do modelo da casa na
+  // grade de efeitos do /clips. lib/clips/faceRemix.ts e o guardião nasceram no ramo (sem camada). Base = a main de então (e5f152dfe).
+  'danca-publica-3110': {
+    fn: 'semDancaPublica3110',
+    marca: 'KINEO-DANCA-PUBLICA-3110',
+    o_que: 'o cartão do Friday Groove (modelo da casa lançado) na grade de efeitos do /clips',
+    base: 'e5f152dfe',
+    tip: null,
+    arquivos: ['app/(dashboard)/clips/ClipsClient.tsx'],
+  },
   // KINEO-AVULSO-UNICO-3110 — a camada MAIS NOVA (31/10, [TRAVA 8.2 — vai do fundador 31/10 "2A"]): a oferta avulsa ÚNICA de filme é
   // o passe de US$ 4,99 (?pack=starter, 1 filme de 60 s) no /pricing, na parede de criação e no exit-intent — o one_time_film35
   // (US$ 5 / 35 s) sai das telas; o anúncio avulso fica. Base = a main de então (e5f152dfe), tip = árvore de trabalho até o commit.
