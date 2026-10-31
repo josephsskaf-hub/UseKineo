@@ -28,6 +28,7 @@ import { renderPage } from './preview-ux-complete.mjs'
 import { execFileSync } from 'node:child_process'
 import { semAdminJornada1510, ARQUIVOS_ADMIN_JORNADA_1510, MARCA_ADMIN_JORNADA_1510 } from './test-support/desfaz-admin-jornada-1510.mjs'
 import { semPacote3Filmes1610 } from './test-support/desfaz-pacote-3-filmes-1610.mjs' // KINEO-PACOTE-3-FILMES-1610
+import { semEp2Painel3110 } from './test-support/desfaz-ep2-painel-3110.mjs' // KINEO-EP2-PAINEL-3110 — o cartão do placar de 31/10 no /admin sai primeiro
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -255,6 +256,8 @@ async function provas(over = {}) {
       '@/app/(dashboard)/admin/ceo/CeoClient': { __esModule: true, default: (p) => React.createElement('div', { 'data-ceo': p.denied ? 'negado' : 'visao' }) },
       'next/navigation': { redirect: (u) => { espias.redirect = u; throw new Error('NEXT_REDIRECT') } },
       '@/components/admin/AdminAbas': { __esModule: true, default: (p) => React.createElement('nav', { 'data-aba': p.atual }) },
+      // reancorado KINEO-EP2-PAINEL-3110 — o cartão do placar de 31/10 entra depois do CeoClient, só no ramo do admin.
+      '@/components/admin/FunilDoDia3110': { __esModule: true, default: () => React.createElement('section', { 'data-funil': 'ep2' }) },
     }
     return { mod: carregarTsx(F.home, deps, over), espias }
   }
@@ -411,7 +414,7 @@ async function provas(over = {}) {
       const pai = lf(execFileSync('git', ['show', `${PAI}:${f}`], { cwd: ROOT, encoding: 'utf8' }))
       // reancorado KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" (+ "Pedidos 3 filmes" no grupo Operação, vizinho do atalho
       // Clientes) chegou depois: sai primeiro, pelo desfaz EXATO dele, e só então o desta aba roda contra o pai.
-      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, semPacote3Filmes1610(f, vivo))) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
+      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, semPacote3Filmes1610(f, semEp2Painel3110(vivo, f)))) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
     }) && lanca(() => semAdminJornada1510(F.shell, rd(F.shell).replace("['/admin/clientes', 'Clientes']", "['/admin/clientes', 'Clientes ']")))
   })
   return res

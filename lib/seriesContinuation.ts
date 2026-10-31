@@ -63,6 +63,7 @@ export type SeriesContinuationSource =
   //   `next_episode_wall`  → quem parou no filme 1 e NÃO tem saldo.
   | 'lifecycle_season_letter'
   | 'lifecycle_episode_wall'
+  | 'lifecycle_episode2_email' // KINEO-EP2-PAINEL-3110 — a carta do episódio 2 do dia seguinte (cron/send-episode2)
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.

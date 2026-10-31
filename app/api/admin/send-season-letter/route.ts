@@ -93,6 +93,7 @@ const OTHER_CAMPAIGNS = [
   'next_episode_wall_emailed_v1',
   'checkout_recovery_emailed_v1',
   'card_declined_emailed_v1',
+  'episode2_email_sent', // KINEO-EP2-PAINEL-3110 — quem recebeu a carta do episódio 2 do dia seguinte não recebe esta (mesma promessa)
 ]
 
 /** Colunas de carimbo em `profiles`, conferidas contra information_schema em

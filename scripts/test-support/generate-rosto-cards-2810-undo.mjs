@@ -10,6 +10,20 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-EP2-PAINEL-3110 — a camada MAIS NOVA (31/10): a carta do episódio 2 do dia seguinte (cron novo, carimbo na supressão da
+  // casa e na season_letter, fonte nova da porta de e-mail) e o cartão do /admin com o placar das mudanças do dia.
+  // Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.
+  'ep2-painel-3110': {
+    fn: 'semEp2Painel3110',
+    marca: 'KINEO-EP2-PAINEL-3110',
+    o_que: 'a carta do episódio 2 do dia seguinte e o cartão do /admin com o placar das mudanças de 31/10',
+    base: 'b2b859801c52740fdf5aaa2a710732796a6c95a1',
+    tip: null,
+    arquivos: ['app/admin/page.tsx', 'lib/lifecycle/emailEvents.ts', 'lib/seriesContinuation.ts', 'app/api/admin/send-season-letter/route.ts', 'vercel.json'],
+    semMarca: ['vercel.json'],
+    novos: ['lib/episode2Email.ts', 'app/api/cron/send-episode2/route.ts', 'lib/admin/funilDoDia3110.ts', 'components/admin/FunilDoDia3110.tsx',
+      'scripts/test-ep2-painel-3110.mjs', 'scripts/test-support/desfaz-ep2-painel-3110.mjs'],
+  },
   // KINEO-DECISOES-PRECO-3110 — a camada MAIS NOVA (31/10): as 4 decisões de preço do fundador ("1 sim, 2 não, 3 sim, 4 sim") —
   // o filme grátis de região só para quem JÁ ganhou (evento até o corte), o pacote avulso no /pricing/parede/exit-intent e o
   // "Save $X/yr" na parede. Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.

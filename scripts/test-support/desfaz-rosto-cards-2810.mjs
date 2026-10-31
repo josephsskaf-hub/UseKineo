@@ -3,6 +3,7 @@
 //   semRostoCards2810(fs.readFileSync(p, 'utf8'), p)
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
+import { semEp2Painel3110, ARQUIVOS as EP2_PAINEL_ARQUIVOS } from './desfaz-ep2-painel-3110.mjs' // KINEO-EP2-PAINEL-3110 — a mais nova (31/10, carta do episódio 2 + cartão do /admin): sai primeiro
 import { semDecisoesPreco3110, ARQUIVOS as DECISOES_PRECO_ARQUIVOS } from './desfaz-decisoes-preco-3110.mjs' // KINEO-DECISOES-PRECO-3110 — a mais nova (31/10, decisões de preço): sai primeiro
 import { semDancaSextou3110, ARQUIVOS as DANCA_SEXTOU_ARQUIVOS } from './desfaz-danca-sextou-3110.mjs' // KINEO-DANCA-SEXTOU-3110 — a mais nova (31/10, Friday Groove): sai primeiro
 import { semRecusaBotao3110, ARQUIVOS as RECUSA_BOTAO_ARQUIVOS } from './desfaz-recusa-botao-3110.mjs' // KINEO-RECUSA-BOTAO-3110 — a mais nova (31/10): sai primeiro
@@ -19,9 +20,9 @@ import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
+const CAMADAS = [semEp2Painel3110, semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
-export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...DECISOES_PRECO_ARQUIVOS, ...RECUSA_BOTAO_ARQUIVOS, ...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS, ...DANCA_SEXTOU_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
+export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...EP2_PAINEL_ARQUIVOS, ...RECUSA_BOTAO_ARQUIVOS, ...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS, ...DECISOES_PRECO_ARQUIVOS, ...DANCA_SEXTOU_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
 
 export function relDe(p) {
   const s = String(p ?? '')
