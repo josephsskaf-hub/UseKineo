@@ -249,6 +249,71 @@ export function regionFreeFilmAvailable(
   return typeof row?.video_credits === 'number' && row.video_credits >= REGION_FREE_FILM_CREDITS
 }
 
+// ═══ KINEO-DECISOES-PRECO-3110 — QUEM JÁ GANHOU O FILME DE REGIÃO PODE USÁ-LO (fundador 31/10: "1 sim, 2 não") ═══════════
+// O DADO (Supabase, só SELECT, 31/10): 350 contas receberam o filme grátis de região (evento region_free_film_granted,
+// granted:true, de 08/10 03:03 a 28/10 21:25 UTC); 151 seguem na região, sem pagar, sem vídeo e com saldo ≥ 1 filme — e hoje
+// ouviam "not available in your country" porque REGION_FREE_FILM_LIVE=false recusava o filme que elas já têm no saldo.
+// A DECISÃO: (1) sim — quem JÁ ganhou usa (a regra de 28/10 "quem já ganhou fica com o saldo"); (2) não — conta NOVA da região
+// segue só paga. Por isso REGION_FREE_FILM_LIVE continua false (o cadastro não concede nada, lib/reverseTrial.ts intocado) e a
+// admissão passa a aceitar SÓ a conta com o evento de concessão gravado ATÉ o corte. O evento é de servidor (app/api/events
+// recusa o nome vindo do navegador), então ninguém se auto-concede. Leitura que falha = não admite (é dinheiro).
+// false = o comportamento de antes, byte a byte.
+export const REGION_FREE_FILM_GRANTEES_LIVE = true
+/** Depois do último region_free_film_granted (28/10 21:25 UTC) e antes de qualquer concessão futura: nada depois disto conta. */
+export const REGION_FREE_FILM_GRANT_CUTOFF_ISO = '2026-10-29T00:00:00.000Z'
+/** A faixa "Seu primeiro filme é grátis" pode existir (o servidor ainda decide conta a conta, com a régua abaixo). */
+export const REGION_FREE_FILM_STRIP_LIVE: boolean = REGION_FREE_FILM_LIVE || REGION_FREE_FILM_GRANTEES_LIVE
+
+/** O evento de concessão (já lido pelo servidor) prova o filme? Concedeu de verdade e ATÉ o corte. */
+export function regionFreeFilmGrantOnRecord(
+  grant: { created_at?: string | null; granted?: unknown } | null | undefined,
+  cutoffIso: string = REGION_FREE_FILM_GRANT_CUTOFF_ISO,
+): boolean {
+  if (!grant || (grant.granted !== true && grant.granted !== 'true')) return false
+  const at = typeof grant.created_at === 'string' ? Date.parse(grant.created_at) : NaN
+  const cutoff = Date.parse(cutoffIso)
+  return Number.isFinite(at) && Number.isFinite(cutoff) && at <= cutoff
+}
+
+/**
+ * A elegibilidade que a rota e a faixa usam. Com REGION_FREE_FILM_LIVE ligado é a de sempre. Desligado, só a conta de região
+ * (sem pagar, plano grátis) cuja concessão está registrada ATÉ o corte: `grantOnRecord` null = não consegui ler → 'disabled'.
+ */
+export function regionFreeFilmEligibilityFor(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null | undefined,
+  grantOnRecord: boolean | null,
+  opts: { live?: boolean; granteesLive?: boolean } = {},
+): RegionFreeFilmReason {
+  const live = opts.live ?? REGION_FREE_FILM_LIVE
+  if (live) return regionFreeFilmEligibility(row, true)
+  if (!(opts.granteesLive ?? REGION_FREE_FILM_GRANTEES_LIVE)) return 'disabled'
+  const base = regionFreeFilmEligibility(row, true)
+  if (base !== 'eligible') return base
+  return grantOnRecord === true ? 'eligible' : 'disabled'
+}
+
+/** A faixa com a régua acima: elegível, nenhum vídeo e saldo ≥ 1 filme. */
+export function regionFreeFilmAvailableFor(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null | undefined,
+  videosCount: number | null | undefined,
+  grantOnRecord: boolean | null,
+  opts: { live?: boolean; granteesLive?: boolean } = {},
+): boolean {
+  if (regionFreeFilmEligibilityFor(row, grantOnRecord, opts) !== 'eligible') return false
+  if (videosCount !== 0) return false
+  return typeof row?.video_credits === 'number' && row.video_credits >= REGION_FREE_FILM_CREDITS
+}
+
+/** Vale a pena ler o evento de concessão? Só com o filme desligado, a régua dos já-premiados ligada e conta de região sem pagar. */
+export function regionFreeFilmNeedsGrantRead(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null | undefined,
+  opts: { live?: boolean; granteesLive?: boolean } = {},
+): boolean {
+  if (opts.live ?? REGION_FREE_FILM_LIVE) return false
+  if (!(opts.granteesLive ?? REGION_FREE_FILM_GRANTEES_LIVE)) return false
+  return regionFreeFilmEligibility(row, true) === 'eligible'
+}
+
 /** Recusa de servidor com o filme ligado: o filme de região EXISTE, esta conta só não pode usá-lo neste pedido. */
 export const REGION_FREE_FILM_REFUSAL = // KINEO-LLMS-K4-2910
   `Your free film is one 15-second ${FREE_FILM_ENGINE_NAME} film per account. Plans work normally here: pick one and every engine is yours, with clean downloads. Nothing was charged.`

@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { JUIZ_ESTADOS_3010, deltaJuizEstados3010Exato, semJuizEstados3010 } from './test-support/desfaz-juiz-estados-3010.mjs'
 import { semLegendaCena3110 } from './test-support/desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110
 import { semRecusaBotao3110Recibo } from './test-support/recibo-recusa-botao-3110.mjs' // KINEO-RECUSA-BOTAO-3110
+import { semDecisoesPreco3110Recibo } from './test-support/recibo-decisoes-preco-3110.mjs' // KINEO-DECISOES-PRECO-3110
 
 const root = new URL('../', import.meta.url)
 const read = p => readFileSync(new URL(p, root), 'utf8').replace(/\r\n/g, '\n')
@@ -127,7 +128,7 @@ await test('mutant promoting a high-score FAIL is caught', async () => {
 await test('exact TRAVA receipt restores the fixed baseline and rejects unknown edits', async () => {
   for (const path of Object.keys(JUIZ_ESTADOS_3010.scope)) {
     const before = execFileSync('git', ['show', `${JUIZ_ESTADOS_3010.base}:${path}`], { cwd: root, encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n')
-    const atual = semLegendaCena3110(semRecusaBotao3110Recibo(read(path), path), path) // KINEO-RECUSA-BOTAO-3110 — a entrega de 31/10 (botão da recusa) sai primeiro, pelo recibo exato · KINEO-LEGENDA-CENA-3110 — a camada mais nova sai antes da conferência deste recibo
+    const atual = semLegendaCena3110(semRecusaBotao3110Recibo(semDecisoesPreco3110Recibo(read(path), path), path), path) /* KINEO-DECISOES-PRECO-3110 — as decisões de preço (31/10) saem primeiro, pelo recibo exato */ // KINEO-RECUSA-BOTAO-3110 — a entrega de 31/10 (botão da recusa) sai primeiro, pelo recibo exato · KINEO-LEGENDA-CENA-3110 — a camada mais nova sai antes da conferência deste recibo
     assert.equal(semJuizEstados3010(atual, path), before)
     assert.equal(deltaJuizEstados3010Exato(atual, before, path), true)
     assert.equal(deltaJuizEstados3010Exato(atual + '\n// unknown edit\n', before, path), false)

@@ -10,6 +10,19 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-DECISOES-PRECO-3110 — a camada MAIS NOVA (31/10): as 4 decisões de preço do fundador ("1 sim, 2 não, 3 sim, 4 sim") —
+  // o filme grátis de região só para quem JÁ ganhou (evento até o corte), o pacote avulso no /pricing/parede/exit-intent e o
+  // "Save $X/yr" na parede. Base = a main de então (b2b859801), tip = árvore de trabalho até o commit.
+  'decisoes-preco-3110': {
+    fn: 'semDecisoesPreco3110',
+    marca: 'KINEO-DECISOES-PRECO-3110',
+    o_que: 'as decisões de preço de 31/10 (filme de região dos já premiados, pacote avulso à vista, Save $X do anual)',
+    base: 'b2b859801',
+    tip: null,
+    arquivos: ['app/api/generate-video-cinematic/route.ts', 'app/(dashboard)/layout.tsx', 'components/RegionPaidOnlyBanner.tsx', 'lib/freeFilmPolicy.ts',
+      'components/OneTimeItemOffer.tsx', 'components/ExitIntentOffer.tsx', 'components/offers/ConversionUpgrade.tsx', 'lib/offers/mrrConversion.ts'],
+    novos: ['lib/regionFreeFilmGrant.ts', 'scripts/test-decisoes-preco-3110.mjs', 'scripts/test-support/desfaz-decisoes-preco-3110.mjs'],
+  },
   // KINEO-DANCA-SEXTOU-3110 — a camada MAIS NOVA (31/10): o Friday Groove (modelo de dança só da casa no remix de rosto) — a rota do /clips
   // passa `house` ao resolvedor e ao GET. lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs nasceram no ramo (sem camada).
   // Base = a main de então (255b655e3), tip = árvore de trabalho até o commit.

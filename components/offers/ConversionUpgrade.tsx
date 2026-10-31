@@ -244,6 +244,7 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
         return <button type="button" key={tier} disabled={loading || !plan} onClick={() => onUpgrade(tier, billing)}
           style={{ ...button, display: 'block', width: '100%', textAlign: 'left', marginBottom: 10, opacity: loading ? 0.6 : 1 }}>
           <strong>{CONVERSION_NAMES[tier]} · {plan ? `${plan.price} ${plan.period}` : 'Loading price…'}</strong>
+          {plan?.annualSaving ? <span data-kineo="upgrade-annual-saving" style={{ marginLeft: 8, fontSize: 12, fontWeight: 800, color: 'var(--accent)' }}>Save {plan.annualSaving}/yr</span> : null}{/* KINEO-DECISOES-PRECO-3110 — a economia do anual em dinheiro, como InVideo/Runway/HeyGen */}
           <ConversionPlanCapacity key={`${tier}_${billing}`} tier={tier} billing={billing} currency={currency} region={region} surface="upgrade" />
         </button>
       })}

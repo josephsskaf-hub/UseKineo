@@ -63,6 +63,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
 import { REGION_FREE_FILM_IN_USE_MESSAGE, REGION_FREE_FILM_LIVE, REGION_FREE_FILM_QUALITY, REGION_FREE_FILM_REFUSAL, REGION_FREE_FILM_REFUSED_EVENT, REGION_FREE_FILM_SECONDS, REGION_FREE_FILM_USED_EVENT, regionFreeFilmAdmissible, regionFreeFilmEligibility, regionFreeFilmExclusive } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
+import { regionFreeFilmEligibilityFor, regionFreeFilmNeedsGrantRead } from '@/lib/freeFilmPolicy' // KINEO-DECISOES-PRECO-3110 [TRAVA 8.2 — vai do fundador 31/10 "1 sim, 2 não, 3 sim, 4 sim"]
+import { readRegionFreeFilmGrantOnRecord } from '@/lib/regionFreeFilmGrant' // KINEO-DECISOES-PRECO-3110
 import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
@@ -2279,9 +2281,11 @@ async function manipularPost(req: NextRequest) {
     // [KINEO-SAIDA-REGIAO-2026-10-07] débito é o de sempre (os créditos que o cadastro deu) e a trava de pedidos simultâneos reconfere depois do
     // [KINEO-SAIDA-REGIAO-2026-10-07] claim (mais abaixo). Motores Studio continuam pagos (gate acima). Desligado: false, sem consulta ao banco.
     // [KINEO-SAIDA-REGIAO-2026-10-07] Toda linha desta entrega na rota leva a marca; tiradas as marcadas, a rota volta à base byte a byte.
-    const regionFreeFilmAdmitted: boolean = REGION_FREE_FILM_LIVE && !isPaidUser && !trialActive && costQuality === REGION_FREE_FILM_QUALITY && duration === REGION_FREE_FILM_SECONDS // KINEO-SAIDA-REGIAO-2026-10-07
+    // KINEO-DECISOES-PRECO-3110 [TRAVA 8.2 — vai do fundador 31/10 "1 sim, 2 não, 3 sim, 4 sim"] — com o filme de região DESLIGADO para conta nova, quem JÁ ganhou (evento region_free_film_granted até o corte) usa o seu. Leitura que falha = null = não admite.
+    const regionGrantOnRecord3110: boolean | null = !isPaidUser && !trialActive && regionFreeFilmNeedsGrantRead(profile) ? await readRegionFreeFilmGrantOnRecord(user.id) : false // KINEO-DECISOES-PRECO-3110
+    const regionFreeFilmAdmitted: boolean = (REGION_FREE_FILM_LIVE || regionGrantOnRecord3110 === true) && !isPaidUser && !trialActive && costQuality === REGION_FREE_FILM_QUALITY && duration === REGION_FREE_FILM_SECONDS // KINEO-SAIDA-REGIAO-2026-10-07
       ? await (async (): Promise<boolean> => { // KINEO-SAIDA-REGIAO-2026-10-07
-        const elegivelRegiao = regionFreeFilmEligibility(profile) // KINEO-SAIDA-REGIAO-2026-10-07
+        const elegivelRegiao = regionFreeFilmEligibilityFor(profile, regionGrantOnRecord3110) // KINEO-SAIDA-REGIAO-2026-10-07 · KINEO-DECISOES-PRECO-3110: com REGION_FREE_FILM_LIVE é a régua de sempre
         let filmesAntes: number | null = null // KINEO-SAIDA-REGIAO-2026-10-07
         if (elegivelRegiao === 'eligible') { // KINEO-SAIDA-REGIAO-2026-10-07
           const { count: nFilmes, error: filmesErr } = await supabase // KINEO-SAIDA-REGIAO-2026-10-07
@@ -2346,7 +2350,7 @@ async function manipularPost(req: NextRequest) {
       if (!freeWeeklyAdmitted) {
       // [KINEO-SAIDA-REGIAO-2026-10-07] Com o filme grátis de região ligado, a conta da região que NÃO foi admitida (já usou o filme, outro motor
       // [KINEO-SAIDA-REGIAO-2026-10-07] ou outra duração) ouve a recusa nova — a de baixo diria "não disponível no seu país", que deixou de ser verdade.
-      if (REGION_FREE_FILM_LIVE && profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) return NextResponse.json({ error: REGION_FREE_FILM_REFUSAL, upsell: 'creator', reason: 'plan_ai_engine', region: REGION_PAID_ONLY_TRIAL_STATUS, balance }, { status: 402 }) // KINEO-SAIDA-REGIAO-2026-10-07
+      if ((REGION_FREE_FILM_LIVE || regionGrantOnRecord3110 === true) && profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) return NextResponse.json({ error: REGION_FREE_FILM_REFUSAL, upsell: 'creator', reason: 'plan_ai_engine', region: REGION_PAID_ONLY_TRIAL_STATUS, balance }, { status: 402 }) // KINEO-SAIDA-REGIAO-2026-10-07
       // KINEO-E4-SAIDA-B-2026-09-29 — conta que nasceu fora do filme grátis ouve a verdade, não "upgrade" seco.
       if (profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) {
         return NextResponse.json(

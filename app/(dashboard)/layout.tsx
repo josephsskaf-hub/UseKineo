@@ -75,6 +75,8 @@ import TrialContinueNowBanner from '@/components/TrialContinueNowBanner'
 import RegionPaidOnlyBanner from '@/components/RegionPaidOnlyBanner' // KINEO-E4-SAIDA-B-2026-09-29
 import { regionFreeClipAvailable, regionPaidOnlyNoticeVisible } from '@/lib/freeFilmPolicy'
 import { regionFreeFilmAvailable } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
+import { REGION_FREE_FILM_CREDITS, regionFreeFilmAvailableFor, regionFreeFilmNeedsGrantRead } from '@/lib/freeFilmPolicy' // KINEO-DECISOES-PRECO-3110
+import { readRegionFreeFilmGrantOnRecord } from '@/lib/regionFreeFilmGrant' // KINEO-DECISOES-PRECO-3110
 import { blockedNeutralNoticeVisible } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
 import BlockedNeutralNotice from '@/components/BlockedNeutralNotice'
 import ScenePreviewResumeBanner from '@/components/ScenePreviewResumeBanner' // KINEO-PREVIA-CENAS-2026-10-03
@@ -153,6 +155,11 @@ export default async function DashboardLayout({
       .eq('user_id', user.id)
     videosCount = count ?? 0
   }
+  // KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("1 sim, 2 não"): quem JÁ ganhou o filme de região (evento até o corte) vê "Seu primeiro filme é grátis".
+  // Só lê o evento para conta de região sem pagar, sem vídeo e com saldo de 1 filme; conta nova (sem evento) segue no aviso de sempre.
+  const regionProfile3110 = profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null // KINEO-DECISOES-PRECO-3110
+  const regionGrant3110: boolean | null = user && videosCount === 0 && (regionProfile3110?.video_credits ?? 0) >= REGION_FREE_FILM_CREDITS && regionFreeFilmNeedsGrantRead(regionProfile3110) ? await readRegionFreeFilmGrantOnRecord(user.id) : false // KINEO-DECISOES-PRECO-3110
+  const regionFilmOpen3110 = regionFreeFilmAvailable(regionProfile3110, videosCount) || regionFreeFilmAvailableFor(regionProfile3110, videosCount, regionGrant3110) // KINEO-DECISOES-PRECO-3110
 
   return (
     <DashboardShell
@@ -195,8 +202,8 @@ export default async function DashboardLayout({
       {/* KINEO-SAIDA-REGIAO-2026-10-07 (a) — com o filme grátis de região disponível (interruptor REGION_FREE_FILM_LIVE, saldo
           de 1 filme e nenhum vídeo ainda), a faixa anuncia o FILME primeiro; o clipe vem depois. Desligado: a linha de baixo,
           a de sempre. */}
-      {user && regionFreeFilmAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null, videosCount) && <RegionPaidOnlyBanner freeFilm freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
-      {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && !regionFreeFilmAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null, videosCount) && <RegionPaidOnlyBanner freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
+      {user && regionFilmOpen3110 /* KINEO-DECISOES-PRECO-3110 */ && <RegionPaidOnlyBanner freeFilm freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
+      {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && !regionFilmOpen3110 /* KINEO-DECISOES-PRECO-3110 */ && <RegionPaidOnlyBanner freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
       {/* KINEO-PAIS-SEM-GRATIS-2026-10-13 — conta 'blocked' (anti-abuso) lê um aviso neutro, sem oferta de compra. Exclusiva
           com as duas de cima: 'blocked' nunca é 'region_paid_only'. */}
       {user && blockedNeutralNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <BlockedNeutralNotice />}

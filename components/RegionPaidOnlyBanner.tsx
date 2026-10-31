@@ -21,6 +21,7 @@ import FreeClipNotice from '@/components/FreeClipNotice' // KINEO-AVISO-CLIPE-GR
 import { freeClipNoticeSurface, freeClipStillAvailable } from '@/lib/clips/freeClipNotice'
 import { REGION_FIRST_FILM_OFFER_LIVE } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
 import RegionFirstFilmStrip, { useRegionFirstFilmOffer } from '@/components/RegionFirstFilmStrip'
+import { REGION_FREE_FILM_STRIP_LIVE } from '@/lib/freeFilmPolicy' // KINEO-DECISOES-PRECO-3110 — quem JÁ ganhou o filme de região vê a faixa do filme (o servidor decide conta a conta)
 
 export const REGION_PAID_ONLY_BANNER_VERSION = 'region_paid_only_notice_v1' as const
 
@@ -33,12 +34,12 @@ export const REGION_PAID_ONLY_BANNER_VERSION = 'region_paid_only_notice_v1' as c
 // faixas de sempre trocam o texto por um que não diz "não disponível no seu país" (seria mentira).
 export default function RegionPaidOnlyBanner({ freeClip = false, freeFilm = false }: { freeClip?: boolean; freeFilm?: boolean }) {
   const gift = useFreeClipGift(freeClip)
-  const film = useRegionFilmGift(REGION_FREE_FILM_LIVE && freeFilm) // KINEO-SAIDA-REGIAO-2026-10-07
+  const film = useRegionFilmGift(REGION_FREE_FILM_STRIP_LIVE && freeFilm) // KINEO-SAIDA-REGIAO-2026-10-07 · KINEO-DECISOES-PRECO-3110
   const surface = freeClipNoticeSurface(usePathname(), gift)
   // KINEO-PAIS-SEM-GRATIS-2026-10-13 — sem o filme grátis ao alcance, a faixa vira o passe com o preço (o servidor decide).
   // Só pergunta quando a faixa PODE aparecer (o servidor grava region_paid_offer_shown a cada pergunta).
-  const firstFilmOffer = useRegionFirstFilmOffer(REGION_FIRST_FILM_OFFER_LIVE && !(REGION_FREE_FILM_LIVE && film) && surface !== 'clips')
-  if (REGION_FREE_FILM_LIVE && film) return <RegionFreeFilmStrip /> // KINEO-SAIDA-REGIAO-2026-10-07
+  const firstFilmOffer = useRegionFirstFilmOffer(REGION_FIRST_FILM_OFFER_LIVE && !(REGION_FREE_FILM_STRIP_LIVE && film) && surface !== 'clips') // KINEO-DECISOES-PRECO-3110
+  if (REGION_FREE_FILM_STRIP_LIVE && film) return <RegionFreeFilmStrip /> // KINEO-SAIDA-REGIAO-2026-10-07 · KINEO-DECISOES-PRECO-3110
   // KINEO-PAIS-SEM-GRATIS-2026-10-13 — no /clips com o clipe grátis, o aviso do clipe continua (ele preenche a tela ali
   // mesmo); no resto (o /studio incluído) a oferta. Esperando o servidor: nada (nunca duas faixas, nunca a troca na cara).
   // Servidor disse não ou falhou: a faixa de sempre, abaixo.

@@ -44,6 +44,12 @@ export function conversionCapacityLabel(credits: number) {
   return `${films} film${films === 1 ? '' : 's'} of ${PACK_ADVERTISED_SECONDS.starter}s OR ${clips} clips of ${CONVERSION_CLIP_SECONDS}s`
 }
 
+/** KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("4 sim"): a economia do anual EM DINHEIRO, por plano — 12 × o mensal − o anual, das tabelas
+ *  de lib/checkoutPricing.ts (nenhum número digitado). A MESMA conta do cartão do /pricing ("Save $X a year compared to monthly"). */
+export function annualSavingMinor(tier: ConversionTier, currency: CheckoutCurrency, region: PriceRegion = 'standard'): number {
+  return Math.max(0, getTierPrice(tier, currency, region) * 12 - getAnnualPrice(tier, currency, region))
+}
+
 export function conversionPlan(tier: ConversionTier, billing: ConversionBilling, currency: CheckoutCurrency, region: PriceRegion) {
   const monthly = getTierPrice(tier, currency, region)
   const annual = getAnnualPrice(tier, currency, region)
@@ -52,6 +58,8 @@ export function conversionPlan(tier: ConversionTier, billing: ConversionBilling,
   return {
     price: formatCheckoutMoney(currency, billing === 'annual' ? annual : intro ? getIntroPrice(tier, currency, region) : monthly),
     period: billing === 'annual' ? '/year' : intro ? 'first month' : '/month',
+    /** KINEO-DECISOES-PRECO-3110 — "$X" que o anual economiza contra 12 mensalidades; null no mensal ou sem economia. */
+    annualSaving: billing === 'annual' && annualSavingMinor(tier, currency, region) > 0 ? formatCheckoutMoney(currency, annualSavingMinor(tier, currency, region)) : null,
     capacity: `${conversionCapacityLabel(firstCredits)} ${billing === 'annual' ? 'each month' : 'this month'}`,
     renewal: billing === 'annual'
       ? `${formatCheckoutMoney(currency, Math.round(annual / 12))}/mo equivalent. Full year charged now; allowance arrives monthly.`

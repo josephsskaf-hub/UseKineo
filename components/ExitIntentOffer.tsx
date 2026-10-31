@@ -41,6 +41,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { ONE_TIME_ITEMS_LIVE, oneTimeItemCheckoutHref, oneTimeItemPriceLabel } from '@/lib/oneTimeItem' // KINEO-DECISOES-PRECO-3110
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
@@ -343,6 +344,18 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     if (!started) return
     trackEvent('starter_checkout_clicked', variant)
     trackEvent('exit_intent_intro_starter_clicked', variant)
+  }
+
+  // KINEO-DECISOES-PRECO-3110 — fundador 31/10 ("3 sim"): quem acha o plano caro tem a saída do pacote avulso aqui também — o MESMO
+  // one_time_film35 do /pricing (preço e créditos de lib/oneTimeItem.ts), o mesmo checkout servidor, pagamento único.
+  function handleOneTimePack() {
+    const started = checkout.launch(
+      'one_time_film35',
+      oneTimeItemCheckoutHref('one_time_film35', 'pricing'),
+      { sku: 'one_time_film35', pricing_surface: 'exit_intent_offer' },
+    )
+    if (!started) return
+    trackEvent('exit_intent_one_time_pack_clicked', variant)
   }
 
   function handleIntroCreator() {
@@ -663,6 +676,20 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             </button>
           </div>
         </div>
+
+        {ONE_TIME_ITEMS_LIVE ? ( /* KINEO-DECISOES-PRECO-3110 — a saída discreta, embaixo dos dois planos */
+          <p className="mb-3 text-[12.5px] text-[var(--muted)]" data-kineo="exit-intent-one-time-pack">
+            Not ready for a plan?{' '}
+            <button
+              type="button"
+              onClick={handleOneTimePack}
+              disabled={buying !== null}
+              className="font-bold text-[var(--accent)] underline disabled:opacity-60"
+            >
+              {buying === 'one_time_film35' ? 'Loading…' : `One 35-second film for ${oneTimeItemPriceLabel('one_time_film35')}, once →`}
+            </button>
+          </p>
+        ) : null}
 
         {checkout.error && (
           <div
