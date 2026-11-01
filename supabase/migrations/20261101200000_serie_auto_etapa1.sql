@@ -48,7 +48,8 @@ create table if not exists public.serie_auto_episodios (
   week_key text not null check (week_key ~ '^[0-9]{4}-W[0-9]{2}$'),
   seq integer not null,
   attempt smallint not null default 1 check (attempt between 1 and 10),
-  status text not null default 'pending' check (status in ('pending', 'dispatched', 'delivered', 'failed', 'skipped')),
+  -- 'stuck' = passou do prazo com o débito vivo: trava a semana (retentar cobraria o cliente duas vezes) e segue sendo conferido
+  status text not null default 'pending' check (status in ('pending', 'dispatched', 'stuck', 'delivered', 'failed', 'skipped')),
   generation_id text,
   idea text,
   credits_cost integer,
@@ -63,7 +64,7 @@ create table if not exists public.serie_auto_episodios (
   constraint serie_auto_episodios_semana_unique unique (serie_id, week_key, attempt)
 );
 create unique index if not exists serie_auto_episodios_generation_unique on public.serie_auto_episodios (generation_id) where generation_id is not null;
-create index if not exists serie_auto_episodios_open on public.serie_auto_episodios (status, started_at) where status in ('pending', 'dispatched');
+create index if not exists serie_auto_episodios_open on public.serie_auto_episodios (status, started_at) where status in ('pending', 'dispatched', 'stuck');
 create index if not exists serie_auto_episodios_serie on public.serie_auto_episodios (serie_id, week_key);
 
 alter table public.serie_auto enable row level security;

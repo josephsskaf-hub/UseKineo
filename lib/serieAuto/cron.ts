@@ -7,8 +7,11 @@
 // Ligado, só roda para os e-mails EXATOS das contas da casa (SERIE_AUTO_INTERNAL_EMAILS). Nenhuma tela de cliente nesta etapa.
 //
 // DOIS SUB-PASSES, nesta ordem (o que já está em voo liquida primeiro):
-//   A. LIQUIDAR — episódios 'pending'/'dispatched': filme montado e em `videos` = entregue (a série anda: último episódio, contagem);
-//      débito estornado = falhou (a rota já devolveu o crédito); 6 h sem filme = falhou; 'pending' velho sem débito = o POST morreu.
+//   A. LIQUIDAR — episódios 'pending'/'dispatched'/'stuck': filme montado (stranded_composed OU stranded_recovery_composed) e em
+//      `videos` = entregue (a série anda: último episódio, contagem); débito estornado = falhou (a rota já devolveu o crédito);
+//      débito ILEGÍVEL = não decide nada nesta passada; 6 h sem filme SEM débito = falhou (retenta); 6 h sem filme COM débito vivo =
+//      'stuck' (trava a semana: retentar cobraria o cliente duas vezes) e, 7 dias depois, falha terminal sem retentativa;
+//      'pending' velho SEM débito = o POST morreu (retenta).
 //   B. DESPACHAR — séries devidas (next_run_at ≤ agora): pausa inteira com fal_balance_exhausted nas últimas 2 h; a semana ISO já
 //      tem episódio vivo/entregue/pulado = no-op (a agenda só anda); sem crédito = linha 'skipped' + serie_skipped_no_credits (2 seguidas
 //      = pausa); senão a ficha é preservada, a ideia sai pela régua do motor, o episódio nasce 'pending' (unique (série, semana,
@@ -23,9 +26,12 @@ import { HOUSE_COMPOSED_EVENT } from '@/lib/kidsVenda/cron'
 import {
   SERIE_AUTO_CRON_PATH, SERIE_AUTO_ENABLED, SERIE_AUTO_EPISODES_TABLE, SERIE_AUTO_EVENTS, SERIE_AUTO_MAX_ATTEMPTS_PER_WEEK, SERIE_AUTO_MAX_STARTS_PER_PASS,
   SERIE_AUTO_PENDING_STALE_MS, SERIE_AUTO_RETRY_MS, SERIE_AUTO_RUN_TIMEOUT_MS, SERIE_AUTO_SKIPS_TO_PAUSE, SERIE_AUTO_TABLE, serieAutoAtivaPara,
+  SERIE_AUTO_STUCK_CLOSE_MS, SERIE_AUTO_ERRO_DEBITO_VIVO, serieEpisodioOcupaSemana,
   serieCorpoDoDespacho, serieDuration, serieEpisodeCost, serieFichaPreservada, serieGenerationId, serieIdeiaDoEpisodio, serieNextRunMs, serieWeekKey,
   type SerieFicha,
 } from '@/lib/serieAuto/serieAuto'
+/** A casa monta por dois caminhos em app/api/cron/finish-stranded-renders (COMPOSED_EVENT e RECOVERY_COMPOSED_EVENT): os dois provam o filme. */
+export const SERIE_COMPOSED_EVENTS: readonly string[] = [HOUSE_COMPOSED_EVENT, 'stranded_recovery_composed']
 
 export interface SerieRow {
   id: string
@@ -53,20 +59,21 @@ export interface SerieEpisodeRow {
   week_key: string
   seq: number
   attempt: number
-  status: 'pending' | 'dispatched' | 'delivered' | 'failed' | 'skipped'
+  status: 'pending' | 'dispatched' | 'stuck' | 'delivered' | 'failed' | 'skipped'
   generation_id: string | null
   render_id: string | null
   started_at: string
   dispatched_at: string | null
+  error?: string | null
 }
 export const SERIE_COLUMNS = 'id, user_id, status, theme, engine, duration, language, weekday, hour_utc, next_run_at, ficha, source_script, anchor, episodes_delivered, last_episode_seq, last_episode_idea, consecutive_skips'
-export const SERIE_EPISODE_COLUMNS = 'id, serie_id, user_id, week_key, seq, attempt, status, generation_id, render_id, started_at, dispatched_at'
+export const SERIE_EPISODE_COLUMNS = 'id, serie_id, user_id, week_key, seq, attempt, status, generation_id, render_id, started_at, dispatched_at, error'
 
 export interface SeriePassSummary {
   enabled: boolean
   ready: boolean
   paused: boolean
-  settled: { checked: number; delivered: number; failed: number; pending: number }
+  settled: { checked: number; delivered: number; failed: number; pending: number; stuck: number }
   dispatch: { due: number; started: number; failed: number; skipped: number; noCredits: number }
 }
 
@@ -103,7 +110,7 @@ export async function seriePass(args: {
   deps?: Partial<SerieDeps>
 }): Promise<SeriePassSummary> {
   const enabled = args.enabled ?? SERIE_AUTO_ENABLED
-  const empty: SeriePassSummary = { enabled, ready: true, paused: false, settled: { checked: 0, delivered: 0, failed: 0, pending: 0 }, dispatch: { due: 0, started: 0, failed: 0, skipped: 0, noCredits: 0 } }
+  const empty: SeriePassSummary = { enabled, ready: true, paused: false, settled: { checked: 0, delivered: 0, failed: 0, pending: 0, stuck: 0 }, dispatch: { due: 0, started: 0, failed: 0, skipped: 0, noCredits: 0 } }
   if (!enabled) return empty // interruptor desligado: nenhuma leitura, nenhum POST
   const deps: SerieDeps = { ...DEPS_REAIS, ...(args.deps ?? {}) }
   const { db } = args
@@ -123,8 +130,8 @@ export async function seriePass(args: {
     if (probe.error) return { ...empty, ready: !isMissingTable((probe.error as { code?: string }).code) }
 
     // ═══ A. LIQUIDAR ═════════════════════════════════════════════════════════════════════════════════════════════════
-    const settled = { checked: 0, delivered: 0, failed: 0, pending: 0 }
-    const openQ = await db.from(SERIE_AUTO_EPISODES_TABLE).select(SERIE_EPISODE_COLUMNS).in('status', ['pending', 'dispatched']).order('started_at', { ascending: true }).range(0, 99)
+    const settled = { checked: 0, delivered: 0, failed: 0, pending: 0, stuck: 0 }
+    const openQ = await db.from(SERIE_AUTO_EPISODES_TABLE).select(SERIE_EPISODE_COLUMNS).in('status', ['pending', 'dispatched', 'stuck']).order('started_at', { ascending: true }).range(0, 99)
     if (openQ.error) console.error('[serie] settle select failed:', openQ.error.message)
     for (const ep of ((openQ.data ?? []) as SerieEpisodeRow[])) {
       if (deps.now() > args.deadline) break
@@ -137,10 +144,13 @@ export async function seriePass(args: {
         settled.failed++
         await patchEp(ep.id, { status: 'failed', error: reason, finished_at: nowIso() })
         await ev({ name: SERIE_AUTO_EVENTS.failed, userId: ep.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: ep.generation_id, metadata: { serie_id: ep.serie_id, week_key: ep.week_key, seq: ep.seq, attempt: ep.attempt, reason, debit } })
-        // a semana volta para a fila na próxima passada (tentativa + 1, até o teto); o passe B decide
-        await patchSerie(ep.serie_id, { next_run_at: nowIso() })
+        // nada foi cobrado (débito ausente ou estornado): a semana volta para a fila (tentativa + 1, até o teto) — só se ainda for a
+        // semana DESTE episódio; semana passada não reabre (o horário da semana atual cuida dela)
+        if (ep.week_key === serieWeekKey(deps.now())) await patchSerie(ep.serie_id, { next_run_at: nowIso() })
       }
       if (ep.status === 'pending') {
+        // débito ilegível: não dá para saber se o cliente pagou — retentar poderia cobrar duas vezes. Nada muda; a próxima hora relê.
+        if (debit === 'unknown') { settled.pending++; continue }
         if (debit === 'live') { await patchEp(ep.id, { status: 'dispatched', dispatched_at: ep.dispatched_at ?? nowIso() }); settled.pending++; continue }
         if (ageMs > SERIE_AUTO_PENDING_STALE_MS) { await fail(debit === 'refunded' ? 'dispatch_refunded' : 'dispatch_lost'); continue }
         settled.pending++
@@ -149,7 +159,7 @@ export async function seriePass(args: {
       if (debit === 'refunded') { await fail('render_refunded'); continue }
       let renderId = ep.render_id
       if (!renderId) {
-        const c = await db.from('events').select('metadata').eq('name', HOUSE_COMPOSED_EVENT).eq('session_id', ep.generation_id).order('created_at', { ascending: false }).limit(1)
+        const c = await db.from('events').select('metadata').in('name', SERIE_COMPOSED_EVENTS as string[]).eq('session_id', ep.generation_id).order('created_at', { ascending: false }).limit(1)
         const rid = !c.error && Array.isArray(c.data) && c.data.length > 0 ? (c.data[0] as { metadata?: { render_id?: unknown } | null }).metadata?.render_id : null
         renderId = typeof rid === 'string' && rid ? rid : null
         if (renderId) await patchEp(ep.id, { render_id: renderId })
@@ -177,7 +187,29 @@ export async function seriePass(args: {
           continue
         }
       }
-      if (ageMs > SERIE_AUTO_RUN_TIMEOUT_MS) { await fail('render_timeout'); continue }
+      // débito ilegível: o filme ainda pode ser reconhecido acima, mas nenhuma falha/retentativa é decidida às cegas (cobraria 2x)
+      if (debit === 'unknown') { settled.pending++; continue }
+      if (ageMs > SERIE_AUTO_RUN_TIMEOUT_MS) {
+        if (debit === 'live') {
+          // o cliente JÁ PAGOU este episódio: nunca abrir outra tentativa (outro generation_id = outro débito)
+          if (ep.status !== 'stuck') {
+            settled.stuck++
+            await patchEp(ep.id, { status: 'stuck', error: 'render_timeout_debit_live' })
+            await ev({ name: SERIE_AUTO_EVENTS.stuck, userId: ep.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: ep.generation_id, metadata: { serie_id: ep.serie_id, week_key: ep.week_key, seq: ep.seq, attempt: ep.attempt, debit, phase: 'timeout' } })
+            continue
+          }
+          if (ageMs > SERIE_AUTO_STUCK_CLOSE_MS) {
+            settled.failed++
+            await patchEp(ep.id, { status: 'failed', error: SERIE_AUTO_ERRO_DEBITO_VIVO, finished_at: nowIso() })
+            await ev({ name: SERIE_AUTO_EVENTS.stuck, userId: ep.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: ep.generation_id, metadata: { serie_id: ep.serie_id, week_key: ep.week_key, seq: ep.seq, attempt: ep.attempt, debit, phase: 'closed_without_retry' } })
+            continue
+          }
+          settled.stuck++
+          continue
+        }
+        await fail('render_timeout') // débito ausente: nada cobrado, pode retentar
+        continue
+      }
       settled.pending++
     }
 
@@ -207,10 +239,10 @@ export async function seriePass(args: {
       if (prof.error || !p || !serieAutoAtivaPara({ enabled, email: p.email })) { dispatch.skipped++; continue }
       // ── a semana: já tem episódio vivo, entregue ou pulado? então só a agenda anda ──
       const weekKey = serieWeekKey(deps.now())
-      const semanaQ = await db.from(SERIE_AUTO_EPISODES_TABLE).select('attempt, status').eq('serie_id', serie.id).eq('week_key', weekKey).range(0, 49)
+      const semanaQ = await db.from(SERIE_AUTO_EPISODES_TABLE).select('attempt, status, error').eq('serie_id', serie.id).eq('week_key', weekKey).range(0, 49)
       if (semanaQ.error) { dispatch.skipped++; continue }
-      const semana = (semanaQ.data ?? []) as { attempt: number; status: string }[]
-      if (semana.some((r) => r.status !== 'failed')) { await patchSerie(serie.id, { next_run_at: proximaSemana }); dispatch.skipped++; continue }
+      const semana = (semanaQ.data ?? []) as { attempt: number; status: string; error?: string | null }[]
+      if (semana.some(serieEpisodioOcupaSemana)) { await patchSerie(serie.id, { next_run_at: proximaSemana }); dispatch.skipped++; continue }
       const attempt = 1 + semana.length
       if (attempt > SERIE_AUTO_MAX_ATTEMPTS_PER_WEEK) {
         await patchSerie(serie.id, { next_run_at: proximaSemana })
@@ -223,15 +255,19 @@ export async function seriePass(args: {
       const seq = Math.max(1, serie.last_episode_seq ?? 1) + 1
       // ── sem crédito: pula a semana (linha 'skipped' = a trava da semana) ──
       const saldo = typeof p.video_credits === 'number' ? p.video_credits : 0
-      if (saldo < cost) {
-        const ins = await db.from(SERIE_AUTO_EPISODES_TABLE).insert({ serie_id: serie.id, user_id: serie.user_id, week_key: weekKey, seq, attempt, status: 'skipped', credits_cost: cost, error: 'no_credits', finished_at: nowIso() }).select('id').maybeSingle()
-        if (ins.error) { dispatch.skipped++; continue } // 23505: outra passada já registrou a semana
+      // a semana pulada (pelo saldo aqui ou pela recusa 402 da rota): 1 evento, contagem de semanas seguidas, 2 = pausa; nunca retenta
+      const pularSemana = async (via: 'saldo' | 'rota', extra: Record<string, unknown> = {}) => {
         dispatch.noCredits++
         const skips = (serie.consecutive_skips ?? 0) + 1
         const pausa = skips >= SERIE_AUTO_SKIPS_TO_PAUSE
         await patchSerie(serie.id, pausa ? { consecutive_skips: skips, status: 'paused', pause_reason: 'no_credits_twice', next_run_at: null } : { consecutive_skips: skips, next_run_at: proximaSemana })
-        await ev({ name: SERIE_AUTO_EVENTS.skippedNoCredits, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, metadata: { serie_id: serie.id, week_key: weekKey, seq, credits: saldo, cost, duration, consecutive_skips: skips } })
+        await ev({ name: SERIE_AUTO_EVENTS.skippedNoCredits, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, metadata: { serie_id: serie.id, week_key: weekKey, seq, credits: saldo, cost, duration, consecutive_skips: skips, via, ...extra } })
         if (pausa) await ev({ name: SERIE_AUTO_EVENTS.paused, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, metadata: { serie_id: serie.id, reason: 'no_credits_twice' } })
+      }
+      if (saldo < cost) {
+        const ins = await db.from(SERIE_AUTO_EPISODES_TABLE).insert({ serie_id: serie.id, user_id: serie.user_id, week_key: weekKey, seq, attempt, status: 'skipped', credits_cost: cost, error: 'no_credits', finished_at: nowIso() }).select('id').maybeSingle()
+        if (ins.error) { dispatch.skipped++; continue } // 23505: outra passada já registrou a semana
+        await pularSemana('saldo')
         continue
       }
       // ── a ficha: a gravada vence sempre; sem ficha, deriva UMA vez do episódio 1 e grava (só onde ainda é nula) ──
@@ -267,6 +303,12 @@ export async function seriePass(args: {
         await ev({ name: SERIE_AUTO_EVENTS.dispatched, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: generationId, metadata: { serie_id: serie.id, week_key: weekKey, seq, attempt, http: 0, unconfirmed: true } })
       } else if (!res.ok) {
         const charged = res.body?.charged === true && res.body?.refunded !== true
+        if (!charged && res.status === 402) {
+          // a ROTA recusou por crédito/plano (402 = nada cobrado): é semana pulada, não falha — retentar 3x não muda o saldo
+          await patchEp(epId, { status: 'skipped', error: `route_402: ${String(res.body?.reason ?? res.body?.error ?? '').slice(0, 200)}`, finished_at: nowIso() })
+          await pularSemana('rota', { http: 402, reason_code: res.body?.reason ?? null })
+          continue
+        }
         if (!charged) { await failEp(`dispatch_${res.status}: ${res.body?.error ?? res.errorText ?? ''}`, { reason_code: res.body?.reason ?? null }); continue }
         dispatch.started++
         await patchEp(epId, { status: 'dispatched', dispatched_at: nowIso(), error: `http_${res.status}_charged` })

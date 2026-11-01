@@ -24,7 +24,26 @@ export const SERIE_AUTO_ENABLED = false
  * Quem pode ter série nesta etapa: SÓ os e-mails EXATOS das contas da casa (lib/internalAccounts INTERNAL_EXACT_EMAILS). Os padrões
  * LIKE de lá ("test%", "%mailinator%"…) ficam de fora de propósito: servem para limpar métrica, e casariam conta de cliente de verdade.
  */
-export const SERIE_AUTO_INTERNAL_EMAILS: readonly string[] = Object.freeze(INTERNAL_EXACT_EMAILS.map((e) => e.trim().toLowerCase()))
+export const SERIE_AUTO_INTERNAL_EMAILS: readonly string[] = Object.freeze(
+  INTERNAL_EXACT_EMAILS.map((e) => e.trim().toLowerCase()).filter((e) => !serieAutoEmailDeTerceiro(e)),
+)
+/** A caixa que de fato recebe um endereço do Gmail: sem a "+tag" e sem pontos (googlemail = gmail). Outro domínio volta igual. */
+function caixaReal(email: string): string {
+  const e = String(email ?? '').trim().toLowerCase()
+  const g = /^([^@]+)@(?:gmail|googlemail)\.com$/.exec(e)
+  return g ? `${g[1].split('+')[0].replace(/\./g, '')}@gmail.com` : e
+}
+/**
+ * Apelido "+tag" do Gmail entrega na caixa do endereço SEM a tag: joseph+teste01@gmail.com cai na caixa de joseph@gmail.com, que NÃO
+ * é da casa. Série nessa conta mandaria o "Your video is ready" para um estranho. Fica de fora quando a caixa real não é, ela mesma,
+ * a caixa de um e-mail exato da casa sem tag.
+ */
+export function serieAutoEmailDeTerceiro(email: string): boolean {
+  const e = String(email ?? '').trim().toLowerCase()
+  if (!/^[^@]+\+[^@]*@(?:gmail|googlemail)\.com$/.test(e)) return false
+  const casasSemTag = INTERNAL_EXACT_EMAILS.map((x) => x.trim().toLowerCase()).filter((x) => !x.split('@')[0].includes('+')).map(caixaReal)
+  return !casasSemTag.includes(caixaReal(e))
+}
 
 export const SERIE_AUTO_TABLE = 'serie_auto'
 export const SERIE_AUTO_EPISODES_TABLE = 'serie_auto_episodios'
@@ -41,6 +60,21 @@ export const SERIE_AUTO_MAX_ATTEMPTS_PER_WEEK = 3
 export const SERIE_AUTO_SKIPS_TO_PAUSE = 2
 /** 6 h sem filme depois do despacho = falha (render fantasma, desenho §4). */
 export const SERIE_AUTO_RUN_TIMEOUT_MS = 6 * 60 * 60 * 1000
+/**
+ * Render passou do prazo COM o débito vivo: o cliente já pagou. O episódio vira 'stuck' — trava a semana (nenhuma tentativa nova, que
+ * cobraria de novo), continua sendo conferido (filme tardio = entregue; estorno = falha que pode retentar) e, passado este prazo sem
+ * filme nem estorno, fecha como falha SEM retentativa (render_lost_debit_live) e o evento serie_auto_stuck avisa a casa.
+ */
+export const SERIE_AUTO_STUCK_CLOSE_MS = 7 * 24 * 60 * 60 * 1000
+/** Falha terminal com o débito vivo: nunca libera nova tentativa na semana (o cliente já pagou aquele episódio). */
+export const SERIE_AUTO_ERRO_DEBITO_VIVO = 'render_lost_debit_live'
+/**
+ * A semana já está ocupada por este episódio? Tudo que não é falha ocupa; a falha com débito vivo também (cobraria duas vezes).
+ * O passe B só abre uma tentativa nova quando TODAS as linhas da semana são falhas sem cobrança.
+ */
+export function serieEpisodioOcupaSemana(row: { status: string; error?: string | null }): boolean {
+  return row.status !== 'failed' || row.error === SERIE_AUTO_ERRO_DEBITO_VIVO
+}
 /** Episódio 'pending' sem débito na rota depois disto = o POST morreu antes de nascer. */
 export const SERIE_AUTO_PENDING_STALE_MS = 30 * 60 * 1000
 /** Retentativa depois de falha que não gastou nada. */
@@ -58,6 +92,7 @@ export const SERIE_AUTO_EVENTS = {
   weekExhausted: 'serie_auto_week_exhausted',
   paused: 'serie_auto_paused',
   passPaused: 'serie_auto_pass_paused',
+  stuck: 'serie_auto_stuck',
   fichaFixed: 'serie_auto_ficha_fixed',
 } as const
 

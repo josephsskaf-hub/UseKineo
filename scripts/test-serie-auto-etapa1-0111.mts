@@ -9,13 +9,19 @@
 //      nem contagem de palavras (temaParaOEscritor não ajusta nem condensa), e o corpo vai com engine 'seedance' e script_mode 'ai';
 //   E. sem crédito: pula a semana, grava serie_skipped_no_credits UMA vez, nenhum POST; 2 seguidas = pausa;
 //   F. sem ficha: deriva uma vez do episódio 1 e grava só onde é nula;
-//   G. o cron do Autopilot chama o passe 4 depois do passe 3, sem entrada nova no vercel.json; a migration tem a trava (série, semana).
+//   G. o cron do Autopilot chama o passe 4 depois do passe 3, sem entrada nova no vercel.json; a migration tem a trava (série, semana);
+//   H. COBRANÇA DUPLA (revisão de 01/11): prazo estourado COM débito vivo = 'stuck', nunca nova tentativa; débito ilegível não decide
+//      nada; filme montado pelo caminho de recuperação (stranded_recovery_composed) conta como entregue; sem débito pode retentar;
+//      402 da rota = semana pulada (não 3 falhas); falha de semana passada não reabre a agenda; apelido Gmail de terceiro fica de fora.
 // Rodar: npx tsx scripts/test-serie-auto-etapa1-0111.mts
 import fs from 'node:fs'
-import { seriePass, type SerieDeps, type SerieEvent } from '../lib/serieAuto/cron'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { seriePass, SERIE_COMPOSED_EVENTS, type SerieDeps, type SerieEvent } from '../lib/serieAuto/cron'
+import { cinematicClaimId } from '../lib/cinematic/claim'
 import {
   SERIE_AUTO_ENABLED, SERIE_AUTO_INTERNAL_EMAILS, SERIE_AUTO_EVENTS, SERIE_AUTO_MARCA, serieAutoAccountAllowed, serieEpisodeCost, serieGenerationId,
   serieIdeiaDoEpisodio, serieNextRunMs, serieReguaDoMotor, serieWeekKey, SERIE_AUTO_IDEA_MAX_CHARS,
+  serieAutoEmailDeTerceiro, serieEpisodioOcupaSemana, SERIE_AUTO_ERRO_DEBITO_VIVO, SERIE_AUTO_RUN_TIMEOUT_MS, SERIE_AUTO_STUCK_CLOSE_MS,
 } from '../lib/serieAuto/serieAuto'
 import { ehIdeiaSolta, temaParaOEscritor } from '../lib/meta95/ideiaNoEscritor'
 import { SPEECH_RATE_BASE } from '../lib/speechRate'
@@ -25,12 +31,15 @@ import { semSerieAuto0111 } from './test-support/desfaz-serie-auto-etapa1-0111.m
 let pass = 0, fail = 0
 const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 const rd = (p: string) => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const execGit = (a: string[]) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
 
 // ── banco em memória: o subconjunto do PostgREST que o passe usa ─────────────────────────────────────────────────────────
 type Row = Record<string, unknown>
 class FakeDb {
   tables: Record<string, Row[]> = {}
   calls = 0
+  /** Tabelas cuja LEITURA devolve erro (simula o banco instável: o débito vira 'unknown'). */
+  failSelect = new Set<string>()
   uniques: Record<string, string[][]> = { serie_auto_episodios: [['serie_id', 'week_key', 'attempt'], ['generation_id']] }
   private seq = 0
   from(table: string) { this.calls++; this.tables[table] ??= []; return new Q(this, table) }
@@ -68,6 +77,7 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
       t.push(row)
       return { data: this.single ? { id: row.id } : [{ id: row.id }], error: null }
     }
+    if (this.op === 'select' && this.db.failSelect.has(this.table)) return { data: null, error: { code: 'XX000', message: 'leitura falhou' } }
     const hit = t.filter((r) => this.filters.every((f) => f(r)))
     if (this.op === 'update') { for (const r of hit) Object.assign(r, this.payload); return { data: null, error: null } }
     let out = [...hit]
@@ -82,11 +92,12 @@ let clock = Date.UTC(2026, 10, 2, 10, 30) // segunda 02/11/2026 10:30 UTC — 30
 const posts: { path: string; body: Record<string, unknown> }[] = []
 const events: SerieEvent[] = []
 const fichaDerivadaChamadas: string[] = []
+const callOk: SerieDeps['callAsUser'] = async <T,>(a: { path: string; body?: unknown }) => { posts.push({ path: a.path, body: a.body as Record<string, unknown> }); return { ok: true, status: 200, body: { credits_charged: 35 } as T, errorText: null } }
 const deps: Partial<SerieDeps> = {
   now: () => clock,
   writeEvent: async (e) => { events.push(e) },
   mintUserSession: async (userId) => ({ userId, accessToken: 'fake', refreshToken: 'fake', expiresAt: clock + 3_600_000 } as never),
-  callAsUser: async <T,>(a: { path: string; body?: unknown }) => { posts.push({ path: a.path, body: a.body as Record<string, unknown> }); return { ok: true, status: 200, body: { credits_charged: 35 } as T, errorText: null } },
+  callAsUser: callOk,
   derivarFicha: (script) => { fichaDerivadaChamadas.push(script); return [{ nome: 'Milo', canonica: 'Milo, a small orange fox with a blue scarf', tipo: 'animal', protagonista: true }] },
 }
 const FUNDADOR = 'josephsskaf@gmail.com'
@@ -126,6 +137,14 @@ ok(SERIE_AUTO_INTERNAL_EMAILS.every((e) => !e.includes('%')), 'B3 a lista é só
   const db = new FakeDb(); semear(db, { credits: 500, email: 'cliente@gmail.com' })
   const r = await rodar(db, true)
   ok(r.dispatch.due === 1 && r.dispatch.started === 0 && posts.length === 0 && db.tables.serie_auto_episodios.length === 0, 'B4 ligado + conta de cliente: nada despacha, nenhum episódio nasce')
+}
+// exemplo da revisão: joseph+teste01@gmail.com entrega na caixa de joseph@gmail.com (estranho)
+ok(!serieAutoAccountAllowed('joseph+teste01@gmail.com') && !SERIE_AUTO_INTERNAL_EMAILS.includes('joseph+teste01@gmail.com') && serieAutoEmailDeTerceiro('joseph+teste01@gmail.com'), 'B5 apelido Gmail de terceiro (joseph+teste01@gmail.com → caixa joseph@gmail.com) NÃO passa')
+ok(serieAutoAccountAllowed('teste01@shortsforgeai.com') && serieAutoAccountAllowed('victoriaskaf96@gmail.com') && !serieAutoEmailDeTerceiro('josephsskaf@gmail.com') && !serieAutoEmailDeTerceiro('teste01@shortsforgeai.com'), 'B6 as contas exatas da casa sem apelido continuam passando')
+{
+  const db = new FakeDb(); semear(db, { credits: 500, email: 'joseph+teste01@gmail.com' })
+  const r = await rodar(db, true)
+  ok(r.dispatch.started === 0 && posts.length === 0 && db.tables.serie_auto_episodios.length === 0, 'B7 ligado + série na conta joseph+teste01@gmail.com: nada despacha (o e-mail iria para um estranho)')
 }
 
 console.log('C — ligado + conta interna: uma vez por semana, ficha preservada')
@@ -239,8 +258,163 @@ console.log('G — fiação, agenda e migration')
   let desfeito = ''
   try { desfeito = semSerieAuto0111(fs.readFileSync('app/api/cron/autopilot-generate/route.ts', 'utf8'), 'app/api/cron/autopilot-generate/route.ts') } catch (e) { console.log('       (' + (e as Error).message + ')') }
   ok(desfeito.length > 0 && !desfeito.includes(SERIE_AUTO_MARCA) && route.split('\n').filter((l) => l.includes(SERIE_AUTO_MARCA)).length === 4, 'G9 desfaz exato: o cron menos as 4 linhas marcadas = origin/main 2359bf434 (sha256)')
-  ok(rd('scripts/test-kids-venda-2010.mjs').includes('semCronOrigem2610(semSerieAuto0111(disco(p), p), p)'), 'G10 encadeado: o guardião dos desenhos tira esta camada antes da origem do cron')
+  // revisão 01/11: a linha nova no test-kids-venda-2010 quebrava o desfaz do afiliado50 (D3/D4 deixavam de rodar). O guardião dos
+  // desenhos volta a ser o da base; a camada sai DENTRO do desfaz da origem do cron (a mais nova primeiro, como a galeria de 27/10).
+  ok(rd('scripts/test-kids-venda-2010.mjs') === execGit(['show', '2359bf434288d0bf2b2727b994e3c374d23901ab:scripts/test-kids-venda-2010.mjs']) && !rd('scripts/test-kids-venda-2010.mjs').includes(SERIE_AUTO_MARCA), 'G10 o guardião dos desenhos (test-kids-venda-2010) ficou byte a byte como na base: nenhuma linha desta entrega')
+  const origem = rd('scripts/test-support/desfaz-cron-origem-2610.mjs')
+  ok(/^  text = semSerieAuto0111\(text, rel\) \/\/ KINEO-SERIE-AUTO-ETAPA1-0111/m.test(origem) && origem.indexOf('text = semSerieAuto0111(') < origem.indexOf('text = semGaleriaHome2710('), 'G10b encadeado: o desfaz da origem do cron tira esta camada antes de todas')
+  // @ts-ignore — módulo .mjs de apoio dos guardiões (sem tipos)
+  const { semCronOrigem2610 } = await import('./test-support/desfaz-cron-origem-2610.mjs')
+  const viaOrigem = semCronOrigem2610(fs.readFileSync('app/api/cron/autopilot-generate/route.ts', 'utf8'), 'app/api/cron/autopilot-generate/route.ts')
+  ok(!viaOrigem.includes(SERIE_AUTO_MARCA) && !viaOrigem.includes('KINEO-CRON-ORIGEM-2610'), 'G10c pela cadeia da origem do cron, o cron sai sem esta camada e sem a da origem')
+  const kids = spawnSync(process.execPath, ['scripts/test-kids-venda-2010.mjs'], { encoding: 'utf8', maxBuffer: 1 << 26 })
+  const kOut = String(kids.stdout ?? '') + String(kids.stderr ?? '')
+  ok(!/semAfiliado50_2610: scripts\/test-kids-venda-2010\.mjs mudou fora/.test(kOut) && /ok\s+D3 todo arquivo novo carrega a marca/.test(kOut) && /ok\s+D4 trocas só em arquivos declarados/.test(kOut) && /ok\s+D1 desfaz exato[^\n]*app\/api\/cron\/autopilot-generate\/route\.ts/.test(kOut), 'G10d o guardião dos desenhos roda D1 (cron) + D3 + D4 verdes, sem o crash do afiliado50 que a revisão achou')
   ok(!rd('lib/serieAuto/cron.ts').includes('fundCredits') && !/video_credits:\s*[^}]*\+/.test(rd('lib/serieAuto/cron.ts')), 'G11 o passe nunca financia nem soma crédito (só lê o saldo)')
+}
+
+// ── H. cobrança dupla e as menores da revisão de 01/11 ────────────────────────────────────────────────────────────────
+console.log('H — nunca cobrar o mesmo episódio duas vezes')
+const debitoDe = (genId: unknown, refunded: string | null = null) => ({ user_id: 'user-1', render_id: `cinematic-${cinematicClaimId('user-1', String(genId))}`, refunded_at: refunded })
+/** Monta o cenário: 1 episódio despachado na segunda 10:30; devolve o db e o episódio. */
+async function despachado(passe: typeof seriePass = seriePass) {
+  posts.length = 0; events.length = 0
+  clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  await passe({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+  return { db, ep: db.tables.serie_auto_episodios[0] }
+}
+async function cenarioTimeoutDebitoVivo(passe: typeof seriePass = seriePass) {
+  const { db, ep } = await despachado(passe)
+  db.tables.credit_debits.push(debitoDe(ep.generation_id)) // a rota cobrou
+  clock += SERIE_AUTO_RUN_TIMEOUT_MS + 60_000 // 6 h sem filme, ainda na mesma semana (segunda 16:31)
+  const r = await passe({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+  return { db, ep, r }
+}
+{
+  // exemplo da revisão: render_timeout com o débito vivo marcava falha e o passe B despachava outra tentativa (outro débito)
+  const { db, ep, r } = await cenarioTimeoutDebitoVivo()
+  ok(posts.length === 1 && db.tables.serie_auto_episodios.length === 1, 'H1 6 h sem filme COM débito vivo: nenhuma tentativa nova na mesma passada (1 POST, 1 episódio)')
+  ok(ep.status === 'stuck' && ep.error === 'render_timeout_debit_live' && r.settled.stuck === 1 && events.filter((e) => e.name === SERIE_AUTO_EVENTS.stuck).length === 1, 'H2 o episódio vira stuck (trava a semana) e serie_auto_stuck avisa uma vez')
+  for (let i = 0; i < 3; i++) { clock += 3_600_000; db.tables.serie_auto[0].next_run_at = null; await rodar(db, true) }
+  ok(posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && events.filter((e) => e.name === SERIE_AUTO_EVENTS.stuck).length === 1, 'H3 mais 3 passadas na semana (agenda forçada): nenhum POST novo e o aviso não repete')
+  // o render original termina TARDE pelo caminho de recuperação: entregue, sem segundo débito
+  db.tables.events.push({ name: 'stranded_recovery_composed', session_id: ep.generation_id, metadata: { render_id: 'r-tardio' }, created_at: new Date(clock).toISOString() })
+  db.tables.videos.push({ id: 'v-tardio', user_id: 'user-1', render_id: 'r-tardio', status: 'completed', video_url: 'https://x/t.mp4' })
+  const r2 = await rodar(db, true)
+  ok(r2.settled.delivered === 1 && ep.status === 'delivered' && db.tables.serie_auto[0].episodes_delivered === 1 && posts.length === 1, 'H4 filme tardio de um stuck = entregue; o cliente pagou UM episódio')
+}
+{
+  // stuck sem filme nem estorno por 7 dias: fecha sem retentativa
+  const { db, ep } = await cenarioTimeoutDebitoVivo()
+  clock = Date.parse(String(ep.dispatched_at)) + SERIE_AUTO_STUCK_CLOSE_MS + 60_000
+  db.tables.serie_auto[0].next_run_at = new Date(clock + 86_400_000).toISOString() // a série não está devida: isola o passe A
+  await rodar(db, true)
+  ok(ep.status === 'failed' && ep.error === SERIE_AUTO_ERRO_DEBITO_VIVO && db.tables.serie_auto[0].next_run_at !== new Date(clock).toISOString() && posts.length === 1, 'H5 7 dias stuck: fecha como render_lost_debit_live, sem reabrir a agenda e sem POST')
+  ok(serieEpisodioOcupaSemana({ status: 'failed', error: SERIE_AUTO_ERRO_DEBITO_VIVO }) && serieEpisodioOcupaSemana({ status: 'stuck' }) && !serieEpisodioOcupaSemana({ status: 'failed', error: 'render_timeout' }), 'H6 falha com débito vivo e stuck OCUPAM a semana; falha sem cobrança libera')
+  // a mesma linha terminal dentro da semana corrente nunca abre a tentativa 2
+  const db2 = new FakeDb(); const sid = semear(db2, { credits: 500 }); clock = Date.UTC(2026, 10, 2, 10, 30); posts.length = 0
+  db2.tables.serie_auto_episodios.push({ id: 'x1', serie_id: sid, user_id: 'user-1', week_key: serieWeekKey(clock), seq: 2, attempt: 1, status: 'failed', error: SERIE_AUTO_ERRO_DEBITO_VIVO, generation_id: 'serie-x-1', started_at: new Date(clock).toISOString() })
+  await rodar(db2, true)
+  ok(posts.length === 0 && db2.tables.serie_auto_episodios.length === 1, 'H7 semana com falha de débito vivo: o passe B não despacha outra tentativa')
+}
+{
+  // exemplo da revisão: dispatch_lost com a leitura do débito em erro ('unknown') marcava falha e retentava
+  posts.length = 0; events.length = 0
+  clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  deps.callAsUser = async <T,>(a: { path: string; body?: unknown }) => { posts.push({ path: a.path, body: a.body as Record<string, unknown> }); return { ok: false, status: 0, body: null as T, errorText: 'timeout' } }
+  await rodar(db, true)
+  deps.callAsUser = callOk
+  const ep = db.tables.serie_auto_episodios[0]
+  ok(ep.status === 'pending' && posts.length === 1, 'H8 POST sem resposta: o episódio fica pending (pode estar vivo na Vercel)')
+  db.failSelect.add('credit_debits')
+  clock += 2 * 3_600_000; db.tables.serie_auto[0].next_run_at = null
+  await rodar(db, true)
+  ok(ep.status === 'pending' && posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'H9 pending velho com débito ILEGÍVEL: não falha, não retenta (o cliente pode ter pago)')
+  // e um despachado que passa do prazo com débito ilegível também não decide nada
+  db.failSelect.delete('credit_debits'); db.tables.credit_debits.push(debitoDe(ep.generation_id))
+  await rodar(db, true)
+  ok(ep.status === 'dispatched', 'H10 o débito volta a ser legível e vivo: pending → dispatched')
+  db.failSelect.add('credit_debits')
+  clock += SERIE_AUTO_RUN_TIMEOUT_MS + 60_000; db.tables.serie_auto[0].next_run_at = null
+  await rodar(db, true)
+  ok(ep.status === 'dispatched' && posts.length === 1 && db.tables.serie_auto_episodios.length === 1, 'H11 6 h sem filme com débito ILEGÍVEL: segue dispatched, nenhum POST novo')
+  db.failSelect.delete('credit_debits')
+}
+{
+  // exemplo da revisão: filme montado pelo caminho stranded_recovery_composed nunca era visto e caía no timeout
+  const { db, ep } = await despachado()
+  db.tables.credit_debits.push(debitoDe(ep.generation_id))
+  clock += 40 * 60_000
+  db.tables.events.push({ name: 'stranded_recovery_composed', session_id: ep.generation_id, metadata: { render_id: 'r-rec' }, created_at: new Date(clock).toISOString() })
+  db.tables.videos.push({ id: 'v-rec', user_id: 'user-1', render_id: 'r-rec', status: 'completed', final_video_url: 'https://x/r.mp4' })
+  const r = await rodar(db, true)
+  ok(SERIE_COMPOSED_EVENTS.includes('stranded_composed') && SERIE_COMPOSED_EVENTS.includes('stranded_recovery_composed') && r.settled.delivered === 1 && ep.status === 'delivered' && ep.render_id === 'r-rec', 'H12 filme montado por stranded_recovery_composed = entregue')
+}
+{
+  // sem débito (nada cobrado) e 6 h sem filme: pode retentar com outro generation_id
+  const { db, ep } = await despachado()
+  clock += SERIE_AUTO_RUN_TIMEOUT_MS + 60_000
+  await rodar(db, true)
+  const eps = db.tables.serie_auto_episodios
+  ok(ep.status === 'failed' && ep.error === 'render_timeout' && posts.length === 2 && eps.length === 2 && eps[1].attempt === 2 && eps[1].generation_id !== ep.generation_id, 'H13 6 h sem filme SEM débito: falha e a tentativa 2 sai (nada foi cobrado)')
+}
+{
+  // falha de um episódio de semana PASSADA não reabre a agenda (o horário da semana atual cuida dela)
+  const { db, ep } = await despachado()
+  db.tables.credit_debits.push(debitoDe(ep.generation_id, new Date(clock).toISOString())) // estornado
+  clock = Date.UTC(2026, 10, 9, 8, 0) // segunda seguinte, antes do horário das 10:00
+  const proxima = db.tables.serie_auto[0].next_run_at
+  await rodar(db, true)
+  ok(ep.status === 'failed' && db.tables.serie_auto[0].next_run_at === proxima && posts.length === 1, 'H14 estorno visto na semana seguinte: falha registrada, agenda intacta, nenhum POST antes do horário')
+}
+{
+  // menor da revisão: a rota recusa com 402 (crédito/plano) — antes virava 3 falhas; agora é semana pulada
+  posts.length = 0; events.length = 0
+  clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  deps.callAsUser = async <T,>(a: { path: string; body?: unknown }) => { posts.push({ path: a.path, body: a.body as Record<string, unknown> }); return { ok: false, status: 402, body: { error: 'This generation needs 35 credits.', reason: undefined, charged: false } as T, errorText: null } }
+  const r = await rodar(db, true)
+  for (let i = 0; i < 3; i++) { clock += 3_600_000; db.tables.serie_auto[0].next_run_at = null; await rodar(db, true) }
+  deps.callAsUser = callOk
+  const ep = db.tables.serie_auto_episodios[0]
+  const skips = events.filter((e) => e.name === SERIE_AUTO_EVENTS.skippedNoCredits)
+  ok(r.dispatch.noCredits === 1 && ep.status === 'skipped' && String(ep.error).startsWith('route_402') && posts.length === 1 && db.tables.serie_auto_episodios.length === 1, 'H15 402 da rota: semana pulada (1 POST só, nenhuma retentativa nas passadas seguintes)')
+  ok(skips.length === 1 && skips[0].metadata.via === 'rota' && db.tables.serie_auto[0].consecutive_skips === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'H16 serie_skipped_no_credits UMA vez (via rota), conta como semana pulada, nenhuma falha')
+}
+{
+  // mutantes de CÓDIGO: o guardião reprova o conserto desfeito de propósito (cópia mutada do passe, apagada no fim)
+  const src = fs.readFileSync('lib/serieAuto/cron.ts', 'utf8').replace(/\r\n/g, '\n')
+  const mutar = async (nome: string, de: string, para: string) => {
+    if (!src.includes(de)) return null
+    const arq = `lib/serieAuto/__mutante_${nome}.ts`
+    fs.writeFileSync(arq, src.replace(de, para))
+    try { return (await import(`../${arq}`)).seriePass as typeof seriePass } finally { fs.unlinkSync(arq) }
+  }
+  const mA = await mutar('debito_vivo', "        if (debit === 'live') {\n          // o cliente JÁ PAGOU", "        if (false) {\n          // o cliente JÁ PAGOU")
+  if (mA) { const { db } = await cenarioTimeoutDebitoVivo(mA); ok(posts.length === 2 && db.tables.serie_auto_episodios.length === 2, 'M3 mutante (timeout ignora o débito vivo): a tentativa 2 sai e cobraria de novo — H1 reprova') } else ok(false, 'M3 mutante aplicado')
+  const mB = await mutar('recuperacao', "[HOUSE_COMPOSED_EVENT, 'stranded_recovery_composed']", '[HOUSE_COMPOSED_EVENT]')
+  if (mB) {
+    const { db, ep } = await despachado(mB)
+    db.tables.credit_debits.push(debitoDe(ep.generation_id)); clock += 40 * 60_000
+    db.tables.events.push({ name: 'stranded_recovery_composed', session_id: ep.generation_id, metadata: { render_id: 'r-rec' }, created_at: new Date(clock).toISOString() })
+    db.tables.videos.push({ id: 'v-rec', user_id: 'user-1', render_id: 'r-rec', status: 'completed', final_video_url: 'https://x/r.mp4' })
+    await mB({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+    ok(ep.status !== 'delivered', 'M4 mutante (só stranded_composed): o filme de recuperação não é visto — H12 reprova')
+  } else ok(false, 'M4 mutante aplicado')
+  const mC = await mutar('desconhecido', "        if (debit === 'unknown') { settled.pending++; continue }\n        if (debit === 'live')", "        if (debit === 'live')")
+  if (mC) {
+    posts.length = 0; events.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+    const db = new FakeDb(); semear(db, { credits: 500 })
+    deps.callAsUser = async <T,>(a: { path: string; body?: unknown }) => { posts.push({ path: a.path, body: a.body as Record<string, unknown> }); return { ok: false, status: 0, body: null as T, errorText: 'timeout' } }
+    await mC({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+    deps.callAsUser = callOk
+    db.failSelect.add('credit_debits'); clock += 2 * 3_600_000; db.tables.serie_auto[0].next_run_at = null
+    await mC({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+    ok(db.tables.serie_auto_episodios[0].status === 'failed', 'M5 mutante (débito ilegível decide): o pending falha às cegas — H9 reprova')
+  } else ok(false, 'M5 mutante aplicado')
+  ok(!fs.readdirSync('lib/serieAuto').some((f) => f.startsWith('__mutante_')), 'M6 nenhuma cópia mutada ficou no disco')
 }
 
 // ── mutantes: o guardião acusa o defeito que devia acusar ─────────────────────────────────────────────────────────────

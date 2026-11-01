@@ -84,3 +84,15 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
 - **Sem crédito:** linha `skipped` da semana + evento `serie_skipped_no_credits` (uma vez por semana); 2 semanas seguidas = pausa. O passe nunca financia crédito.
 - **Ainda falta (Etapa 1b/2):** e-mail próprio da série (hoje vale o "Your video is ready" da casa), e-mail de "episódio esperando" com a recarga, criação da série (nenhuma tela/rota cria linha ainda: o canário nasce por SQL na conta do fundador).
 - **Guardião:** `npx tsx scripts/test-serie-auto-etapa1-0111.mts` (banco em memória, sem rede, sem crédito, sem fal).
+- **Consertos da revisão (01/11, mesma entrega):**
+  - **Cobrança dupla fechada.** Render que passa de 6 h com o débito VIVO não falha mais: vira `stuck`, que trava a semana (outra tentativa = outro `generation_id` = outro débito). O `stuck` continua sendo conferido: filme tardio = entregue; estorno = falha que pode retentar. Depois de 7 dias sem filme nem estorno, fecha como `render_lost_debit_live` sem retentativa, e o evento `serie_auto_stuck` avisa a casa (o estorno, se couber, é decisão humana).
+  - **Débito ilegível não decide nada.** Se a leitura do débito dá erro, o episódio fica como está e a próxima hora relê. Antes, um `pending` velho virava `dispatch_lost` e retentava às cegas.
+  - **Os dois caminhos de montagem contam.** `stranded_composed` e `stranded_recovery_composed` (os dois do `finish-stranded-renders`) provam o filme.
+  - **402 da rota = semana pulada**, com `serie_skipped_no_credits` (`via: rota`), e não 3 falhas.
+  - **Falha de semana passada não reabre a agenda.**
+  - **`joseph+teste01@gmail.com` fora da lista da série.** É apelido do Gmail `joseph@gmail.com`, que não é da casa, e o "Your video is ready" iria para um estranho.
+  - **Guardião dos desenhos intacto.** `test-kids-venda-2010` volta a ser byte a byte o da base; esta camada sai dentro do `desfaz-cron-origem-2610` (a mais nova primeiro, como a galeria de 27/10).
+- **Ainda aberto (menores, antes da Etapa 2):**
+  - Plano pago e cancelamento não são conferidos: hoje só contas da casa entram.
+  - Um despacho atrasado que atravessa a virada da semana ISO cai na semana seguinte.
+  - A ficha só vai no texto da ideia (Etapa 3).
