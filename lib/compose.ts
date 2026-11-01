@@ -7,6 +7,7 @@ import { narrationWordCount, narrationTokens, joinNarrationTokens } from '@/lib/
 
 import { createHash } from 'node:crypto'
 import { captionFontFor, DEFAULT_CAPTION_FONT, usesMiniMaxNarration, minimaxVoiceFor, isRtlLanguage, textDirectionOf, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 // KINEO-LEGENDA-RTL-2710
+import { algarismosDaLegendaRtl, numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
@@ -1253,7 +1254,10 @@ export function buildCaptionsFromWhisperWords(
         natural
       if (boundary) {
         // KINEO-LEGENDA-FRASE-3010 — fechou só pelo teto e a última palavra é artigo/preposição: ela abre o próximo chunk.
-        if (!natural && next && current.length > 1 && terminaEmPalavraFuncao(w.word)) {
+        // KINEO-LEGENDA-NUMERO-RTL-0111 — idem quando o próximo token é um número preso a esta palavra em escrita RTL: o teto de 4
+        // partia "جريمة هزت ألمانيا عام | ١٩٢٢" (render 8d314182); "عام" desce e abre o pedaço junto com o ano. LTR: sempre false.
+        const numeroPreso = numeroPresoAPalavraRtl(w.word, next?.word) // KINEO-LEGENDA-NUMERO-RTL-0111
+        if (!natural && next && current.length > 1 && (terminaEmPalavraFuncao(w.word) || numeroPreso)) { // KINEO-LEGENDA-NUMERO-RTL-0111
           groups.push(current.slice(0, -1))
           current = [w]
         } else {
@@ -1872,6 +1876,9 @@ export function buildCaptionElements({
     // PUSH #93 (FIX 4) — stronger, slightly longer pop on the hook chunk.
     enter_transition: hook ? { type: 'pop', duration: 0.25 } : { type: 'pop', duration: 0.08 },
   }
+  // KINEO-LEGENDA-NUMERO-RTL-0111 — legenda RTL: algarismo arábico-índico/persa sai em ASCII (o Creatomate inverte a corrida
+  // ٠-٩ com text_direction 'rtl': "١٩٢٢" virou "٢٢٩١" no render 8d314182; ASCII sai na ordem — ver lib/textLanguage.ts).
+  if (rtl) baseCaption.text = algarismosDaLegendaRtl(baseCaption.text ?? '') // KINEO-LEGENDA-NUMERO-RTL-0111
 
   // Push #277 — remove yellow keyword pop (track 7). The two-layer approach
   // (white caption on track 5 + yellow word on track 7) was rendering as two

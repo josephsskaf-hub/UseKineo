@@ -224,6 +224,41 @@ export function textDirectionOf(text: unknown): boolean | null { // KINEO-LEGEND
 } // KINEO-LEGENDA-RTL-2710
 /** A legenda deste texto é RTL? O texto decide; sem letra forte, o idioma do filme. */ // KINEO-LEGENDA-RTL-2710
 export function isRtlCaption(text: unknown, language?: unknown): boolean { return textDirectionOf(text) ?? isRtlLanguage(language) } // KINEO-LEGENDA-RTL-2710
+// KINEO-LEGENDA-NUMERO-RTL-0111 [TRAVA 8.2 — vai do fundador 01/11] — número em legenda da direita para a esquerda.
+// Render 8d314182 (árabe, Kling 4 grátis, 31/10): o roteiro "جريمة هزت ألمانيا عام ١٩٢٢" saiu na tela como "٢٢٩١", e o ano // KINEO-LEGENDA-NUMERO-RTL-0111
+// caiu no pedaço seguinte. Nosso texto vai na ORDEM LÓGICA ("١٩٢٢", um token só — nenhum código nosso inverte nada); quem // KINEO-LEGENDA-NUMERO-RTL-0111
+// inverte é o Creatomate com text_direction 'rtl': ele dispõe os algarismos arábico-índicos (U+0660–0669, que moram no // KINEO-LEGENDA-NUMERO-RTL-0111
+// bloco árabe) como letras RTL. Pela regra do Unicode (UAX #9) eles são AN e saem da esquerda para a direita; um motor que // KINEO-LEGENDA-NUMERO-RTL-0111
+// seguisse o UAX #9 nunca inverteria uma corrida de AN — por isso isolador LRI…PDI (construção do próprio UAX #9) não // KINEO-LEGENDA-NUMERO-RTL-0111
+// resolve. Já os algarismos ASCII (EN) saem certos no mesmo motor: o filme árabe d3e87ab5 (Kling 4, 30/10, já com 'rtl') // KINEO-LEGENDA-NUMERO-RTL-0111
+// mostrou "100 متر في عام 2005" na ordem certa. Então, SÓ em legenda RTL, a corrida de algarismos arábico-índicos ou // KINEO-LEGENDA-NUMERO-RTL-0111
+// persas (U+06F0–06F9) vira ASCII (com ٫ → . e ٬ → , entre algarismos): é correto num motor que segue o UAX #9 e no que // KINEO-LEGENDA-NUMERO-RTL-0111
+// temos hoje. Legenda LTR (hindi ३, bengali ১ etc.) não passa por aqui. // KINEO-LEGENDA-NUMERO-RTL-0111
+const ALGARISMO_RTL_RE = /[٠-٩۰-۹]/u // KINEO-LEGENDA-NUMERO-RTL-0111
+const CORRIDA_NUMERICA_RTL_RE = /[0-9٠-٩۰-۹]+(?:[٫٬.,][0-9٠-٩۰-۹]+)*/gu // KINEO-LEGENDA-NUMERO-RTL-0111
+/** Legenda RTL: a corrida de algarismos arábico-índicos/persas sai em ASCII, na mesma ordem lógica. Sem algarismo desses, devolve o texto igual. */ // KINEO-LEGENDA-NUMERO-RTL-0111
+export function algarismosDaLegendaRtl(text: string): string { // KINEO-LEGENDA-NUMERO-RTL-0111
+  const value = String(text ?? '') // KINEO-LEGENDA-NUMERO-RTL-0111
+  if (!ALGARISMO_RTL_RE.test(value)) return value // KINEO-LEGENDA-NUMERO-RTL-0111
+  return value.replace(CORRIDA_NUMERICA_RTL_RE, (corrida) => corrida // KINEO-LEGENDA-NUMERO-RTL-0111
+    .replace(/[٠-٩]/gu, (d) => String(d.charCodeAt(0) - 0x0660)) // KINEO-LEGENDA-NUMERO-RTL-0111
+    .replace(/[۰-۹]/gu, (d) => String(d.charCodeAt(0) - 0x06F0)) // KINEO-LEGENDA-NUMERO-RTL-0111
+    .replace(/٫/gu, '.') // KINEO-LEGENDA-NUMERO-RTL-0111 — separador decimal árabe
+    .replace(/٬/gu, ',')) // KINEO-LEGENDA-NUMERO-RTL-0111 — separador de milhar árabe
+} // KINEO-LEGENDA-NUMERO-RTL-0111
+/** O token é um número (corrida de algarismos 0-9/٠-٩/۰-۹ com separadores internos; pontuação nas pontas vale: "١٩٢٢،", "$9.90", "٥٠٪"). */ // KINEO-LEGENDA-NUMERO-RTL-0111
+export function ehNumeroDaLegenda(token: unknown): boolean { // KINEO-LEGENDA-NUMERO-RTL-0111
+  return /^[^\p{L}\p{N}]*[0-9٠-٩۰-۹]+(?:[٫٬.,][0-9٠-٩۰-۹]+)*[^\p{L}\p{N}]*$/u.test(String(token ?? '').trim()) // KINEO-LEGENDA-NUMERO-RTL-0111
+} // KINEO-LEGENDA-NUMERO-RTL-0111
+/** Legenda RTL: cortar entre `antes` e `numero` separa o número da palavra que o rege ("عام | ١٩٢٢") — proibido, a não ser // KINEO-LEGENDA-NUMERO-RTL-0111
+ *  que `antes` feche frase/pedaço (ponto, vírgula). LTR devolve sempre false (comportamento de antes). */ // KINEO-LEGENDA-NUMERO-RTL-0111
+export function numeroPresoAPalavraRtl(antes: unknown, numero: unknown): boolean { // KINEO-LEGENDA-NUMERO-RTL-0111
+  const a = String(antes ?? '').trim() // KINEO-LEGENDA-NUMERO-RTL-0111
+  const n = String(numero ?? '').trim() // KINEO-LEGENDA-NUMERO-RTL-0111
+  if (!a || !ehNumeroDaLegenda(n) || ehNumeroDaLegenda(a)) return false // KINEO-LEGENDA-NUMERO-RTL-0111
+  if (/[.!?…؟۔।。！？,;:،؛，、；]["'”’»)\]」』]*$/u.test(a)) return false // KINEO-LEGENDA-NUMERO-RTL-0111 — fim de frase/vírgula: o corte ali é natural
+  return textDirectionOf(a) === true || ALGARISMO_RTL_RE.test(n) // KINEO-LEGENDA-NUMERO-RTL-0111 — só escrita RTL (palavra árabe/hebraica antes, ou algarismo árabe)
+} // KINEO-LEGENDA-NUMERO-RTL-0111
 export function narrationSentences(text: string, language?: unknown): string[] {
   const value = String(text ?? '').trim()
   if (!value) return []

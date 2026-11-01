@@ -33,6 +33,7 @@
 import { buildCaptionElements, buildCaptionsFromWhisperWords, sentenceStartTimes, type WhisperWord } from '@/lib/compose'
 import { pickHighlightWord } from '@/lib/openai'
 import { withHookFirstFrame, GANCHO_1Q_TRACK, type HookFirstFrameResult } from '@/lib/hookFirstFrame'
+import { numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111
 
 export type FaseFaceless15 = 'f1' | 'f2' | 'f3' | 'f4' | 'cta'
 export const FASES_FACELESS15: readonly FaseFaceless15[] = ['f1', 'f2', 'f3', 'f4', 'cta']
@@ -282,7 +283,7 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
     let ini = 0
     for (let i = 0; i < toks.length; i++) {
       const real = toks[i].sentenceEnd === true
-      const porPausa = !temPontuacao && Number.isFinite(gap(i)) && gap(i) >= PAUSA_FRASE_S && !numeroComUnidadeFaceless15(toks[i], toks[i + 1]) // KINEO-FILME15-PERFEITO-2610 — uma pausa não separa "50 segundos" sem fim de frase real
+      const porPausa = !temPontuacao && Number.isFinite(gap(i)) && gap(i) >= PAUSA_FRASE_S && !numeroComUnidadeFaceless15(toks[i], toks[i + 1]) && !numeroPresoAPalavraRtl(toks[i].word, toks[i + 1]?.word) // KINEO-FILME15-PERFEITO-2610 — uma pausa não separa "50 segundos" sem fim de frase real · KINEO-LEGENDA-NUMERO-RTL-0111 — nem "عام ١٩٢٢" em escrita RTL
       if (real || porPausa || i === toks.length - 1) { frases.push({ ini, fim: i + 1, real: real || i === toks.length - 1 }); ini = i + 1 }
     }
   }
@@ -299,6 +300,7 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
   for (const f of frases) {
     const ws = toks.slice(f.ini, f.fim)
     const naoCorta = ws.map((w, i) => numeroComUnidadeFaceless15(w, ws[i + 1])) // KINEO-FILME15-PERFEITO-2610 — não muda tokens, texto nem timestamps
+    ws.forEach((w, k) => { if (numeroPresoAPalavraRtl(w.word, ws[k + 1]?.word)) naoCorta[k] = true }) // KINEO-LEGENDA-NUMERO-RTL-0111 — RTL: nunca fecha bloco entre a palavra e o número que ela rege ("عام | ١٩٢٢", render 8d314182); LTR: nada muda
     const naoFecha = ws.map((w) => FACELESS15_PALAVRAS_QUE_NAO_FECHAM.has(normPalavra(w.word)))
     const virgula = ws.map((w, i) => (temVirgula(w) ? 6 : 0) + (gap(f.ini + i) >= PAUSA_FRASE_S ? 8 : gap(f.ini + i) >= PAUSA_VIRGULA_S ? 4 : 0))
     let i = 0
