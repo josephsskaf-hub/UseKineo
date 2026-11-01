@@ -1,344 +1,237 @@
-// KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — guardião das melhorias "vai tudo" do fundador (01/11), com os pedidos REAIS do revisor:
-// (1) Kling 4 grátis: o sujeito central do pedido ("o avião C-54 que sumiu", "criança com caneta 3D", "vida sob o gelo") aparece em
-//     pelo menos 1 cena do multi_prompt — checagem determinística antes do POST pago, corrige (não bloqueia), ≤ 512, relato no claim;
-// (2) FINAL_FRACO: o escritor (modo IA) reprova fim em pergunta/eco do HOOK/promessa sem fato; a última cena mostra a revelação da última fala.
-// v2 (revisão adversarial da leva 2): o sujeito sai SÓ do pedido original — no modo IA a rota recebe o ROTEIRO pronto (HOOK/PAYOFF com
-// pistas [Pexels: …]) e a ideia vem em `original_idea`; sem pedido confiável, nada muda. Cada exemplo da revisão é um caso abaixo,
-// com roteiros no FORMATO REAL do /api/generate-script ("HOOK (0-2s): [Pexels: …] fala").
-// Controles: pedido sem objeto central, pessoa real, romance, "Use my script as is" intocado.
+// KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — guardião da v4 (chamada semântica), SEM REDE: toda resposta do modelo é a
+// resposta CRUA gravada na calibração real (docs/calibracao/KINEO-K4-SUJEITO-0111.json) ou um mock de falha.
+// (1) o sujeito do Kling 4 sai de UMA leitura semântica do PEDIDO ORIGINAL (nunca do roteiro com [Pexels]) — validada (inglês, com
+//     substantivo comum, ancorada no pedido), com falha segura (erro, prazo, JSON inválido = nada injetado) e no máximo 1 tentativa extra;
+// (2) a checagem "já está em cena" e a escolha da cena seguem as da v3 (orçamento, imagem de abertura, imagem-chave do meio);
+// (3) o fim: detector estreito (pergunta / quase igual ao HOOK) + juiz semântico só no escritor e só no roteiro da IA; a injeção crua
+//     da revelação na última cena (comRevelacaoNoFim) SAIU; "Use my script as is" intocado.
 // Rodar: npx tsx scripts/test-k4-sujeito-final-0111.mts
 import { readFileSync } from 'node:fs'
 import { buildClassicVisualPrompt } from '@/lib/cinematic/visualPromptPolicy'
 import { deriveStyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { promptDaCenaKling4, KLING4_ORCAMENTO_DA_CAMADA, KLING4_PROMPT_MAX } from '@/lib/cinematic/cenaKling4'
 import { buildKling4TrialInput } from '@/lib/kling4Trial'
-import { sujeitoObrigatorio, exigirSujeitoNoKling4, promptMostraOSujeito, comSujeitoNaCena, pedidoOriginalDoSujeito, pedidoCurto } from '@/lib/cinematic/sujeitoObrigatorio'
-import { finalFracoDoRoteiro, ultimaFraseDoRoteiro, comRevelacaoNoFim, revelacaoDaFala, problemaDoFinal, revelacaoTemNomeDeGente } from '@/lib/cinematic/finalResposta'
+import * as sujeitoMod from '@/lib/cinematic/sujeitoObrigatorio'
+import { sujeitoObrigatorio, exigirSujeitoNoKling4, promptMostraOSujeito, comSujeitoNaCena, pedidoOriginalDoSujeito, pedidoCurto, lerSujeitoDoPedido, lerLeituraDoSujeito, perguntaSemantica, chavesDoSujeito, type ResultadoSemantico, type LeituraDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio'
+import * as finalMod from '@/lib/cinematic/finalResposta'
+import { finalFracoDoRoteiro, ultimaFraseDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, entradaDoJuizDoFinal, quaseIgualAoGancho } from '@/lib/cinematic/finalResposta'
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor'
 import { parseUserScript } from '@/lib/scriptParser'
+
+// rede proibida: qualquer fetch real derruba o guardião
+process.env.OPENAI_API_KEY = ''
+globalThis.fetch = (async () => { throw new Error('rede proibida no guardião') }) as typeof fetch
 
 let pass = 0, fail = 0
 const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 const len = (s: string) => Array.from(s).length
 const rd = (p: string) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const CAL = JSON.parse(rd('docs/calibracao/KINEO-K4-SUJEITO-0111.json'))
+
+/** fetch falso: devolve o conteúdo dado (como a OpenAI devolve) e conta as chamadas. */
+function mock(...respostas: Array<string | number | 'pendura'>) {
+  const m = { chamadas: 0, fetch: (async (_u: unknown, init?: RequestInit) => {
+    const r = respostas[Math.min(m.chamadas, respostas.length - 1)]
+    m.chamadas++
+    if (r === 'pendura') return new Promise<Response>((_, rej) => init?.signal?.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' }))))
+    if (typeof r === 'number') return new Response('{"error":"x"}', { status: r })
+    return new Response(JSON.stringify({ choices: [{ message: { content: r } }] }), { status: 200 })
+  }) as typeof fetch }
+  return m
+}
+const OPC = { apiKey: 'chave-de-teste' }
+const leituraDe = async (pedido: string, cru: string) => lerSujeitoDoPedido(pedido, { ...OPC, fetchImpl: mock(cru).fetch })
+const cruDe = (subject: string | null, kind: string, mention: string[] = [], real = false) => JSON.stringify({ subject, kind, real_person: real, mention_words: mention })
+
+// ═══ (0) a adivinhação por lista de palavras SAIU ═══
+const fonteSujeito = rd('lib/cinematic/sujeitoObrigatorio.ts')
+const fonteFinal = rd('lib/cinematic/finalResposta.ts')
+ok(!/const LEXICO\b/.test(fonteSujeito) && !/achadosDoLexico|modeloDoVeiculo|CONTEXTO_NAZISTA_RE/.test(fonteSujeito), '(0) sujeitoObrigatorio.ts não tem mais léxico de pedido (LEXICO/achados/contextos)')
+ok(!/const CLIMA\b|function (?:fatoAntesDoClima|temFatoNovo|comRevelacaoNoFim|revelacaoDaFala)/.test(fonteFinal), '(0) finalResposta.ts sem lista de bordões e sem injeção crua da revelação')
+ok(!('comRevelacaoNoFim' in finalMod) && !('revelacaoDaFala' in finalMod) && !('LEXICO' in sujeitoMod), '(0) exports antigos não existem mais')
+ok(/temperature: 0/.test(fonteSujeito) && /json_schema/.test(fonteSujeito) && /strict: true/.test(fonteSujeito), '(0) chamada: temperature 0, json_schema estrito')
+ok(/timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 8_500/.test(fonteSujeito), '(0) sujeito: prazo 4 s, no máximo 1 tentativa extra (8,5 s no total)')
+ok(/timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 5_500/.test(fonteFinal), '(0) fim: prazo 4 s, a tentativa extra só se couber em 5,5 s (escritor tem teto de 60 s)')
+
+// ═══ (1) FALHA SEGURA ═══
+const pedidoAviao = 'o avião C-54 que sumiu'
+const r500 = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mock(500, 500).fetch })
+ok(!r500.ok && r500.erro === 'http_500' && r500.tentativas === 2, `(1) HTTP 500 duas vezes: { ok: false, http_500 }, 2 tentativas (1 extra, nunca mais)`)
+const m3 = mock(500, 500, 500)
+await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: m3.fetch })
+ok(m3.chamadas === 2, '(1) no máximo 1 tentativa extra (3 falhas oferecidas, 2 chamadas feitas)')
+const mPrazo = mock('pendura', 'pendura')
+const rPrazo = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mPrazo.fetch, timeoutMs: 40, prazoTotalMs: 200 })
+ok(!rPrazo.ok && rPrazo.erro === 'prazo' && mPrazo.chamadas === 2, '(1) prazo estourado: abortado, { ok: false, prazo }')
+const mPrazoCurto = mock('pendura', cruDe('an airplane', 'vehicle', ['avião']))
+const rPrazoCurto = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mPrazoCurto.fetch, timeoutMs: 40, prazoTotalMs: 60 })
+ok(!rPrazoCurto.ok && mPrazoCurto.chamadas === 1, '(1) a tentativa extra não sai se não couber no prazo total')
+const rJson = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mock('isto não é json', '{"subject":').fetch })
+ok(!rJson.ok && rJson.erro === 'json_invalido', '(1) JSON inválido: { ok: false }')
+const rForma = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mock('{"subject":"an airplane","kind":"plane"}', '{"foo":1}').fetch })
+ok(!rForma.ok && rForma.erro === 'formato_invalido', '(1) JSON fora do formato (kind desconhecido, campos faltando): { ok: false }')
+const rRecupera = await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: mock(503, cruDe('an airplane that disappeared', 'vehicle', ['avião'])).fetch })
+ok(rRecupera.ok && rRecupera.tentativas === 2 && rRecupera.valor.subject === 'an airplane that disappeared', '(1) 1ª tentativa 503, 2ª responde: vale a 2ª')
+const rSemChave = await lerSujeitoDoPedido(pedidoAviao, { fetchImpl: mock(cruDe('an airplane', 'vehicle', ['avião'])).fetch })
+ok(!rSemChave.ok && rSemChave.erro === 'sem_chave', '(1) sem OPENAI_API_KEY: { ok: false } sem chamar nada')
+let lancou = false
+try { await lerSujeitoDoPedido(pedidoAviao, { ...OPC, fetchImpl: (async () => { throw new TypeError('fetch failed') }) as typeof fetch }) } catch { lancou = true }
+ok(!lancou, '(1) erro de rede nunca lança para a rota')
+const rFinalFalha = await finalTemRespostaConcreta('HOOK: x y z?\nPAYOFF: The answer was methane.', { ...OPC, fetchImpl: mock(500, 500).fetch })
+ok(!rFinalFalha.ok, '(1) juiz do fim com erro: { ok: false } (o escritor não pede nova tentativa)')
+const rFinalSemPontas = await finalTemRespostaConcreta('só uma frase sem seções', { ...OPC, fetchImpl: mock('{"ends_with_concrete_answer":false}').fetch })
+ok(!rFinalSemPontas.ok && rFinalSemPontas.erro === 'sem_hook_ou_payoff', '(1) roteiro sem HOOK/PAYOFF: o juiz nem é chamado')
+
+// ═══ (2) validação da leitura (inglês, substantivo comum, âncora no pedido, pessoa real) ═══
+const v = (pedido: string, o: Record<string, unknown>) => lerLeituraDoSujeito({ subject: null, kind: 'none', real_person: false, mention_words: [], ...o }, pedido)
+ok(v('The real story of Billy the Kid', { subject: 'a child', kind: 'person_generic', real_person: true, mention_words: ['Kid'] })?.descartado === 'pessoa_real', '(2) real_person=true: nada a injetar, mesmo com subject')
+ok(v('O que Lula disse', { subject: null, kind: 'none' })?.descartado === 'sem_sujeito', '(2) kind none: nada a injetar')
+ok(v('cara ou coroa: a matemática da moeda', { subject: 'a moeda', kind: 'object', mention_words: ['moeda'] })?.descartado === 'sujeito_sem_traducao', '(2) sujeito copiado sem traduzir ("a moeda", resposta real da calibração): descartado')
+ok(v('cara ou coroa: a matemática da moeda', { subject: 'a coin', kind: 'object', mention_words: ['moeda'] })?.subject === 'a coin', '(2) o mesmo pedido com "a coin": vale')
+ok(v('What really happened to Flight 19', { subject: 'Flight 19', kind: 'vehicle', mention_words: ['Flight 19'] })?.descartado === 'sem_substantivo_comum', '(2) só nome/número ("Flight 19", resposta real): descartado — o motor não sabe o que desenhar')
+ok(v('the SS St. Louis', { subject: 'the SS St. Louis', kind: 'vehicle', mention_words: ['the SS St. Louis'] })?.descartado === 'sem_substantivo_comum', '(2) "the SS St. Louis" sem "ship": descartado')
+ok(v('O que Lula disse sobre a economia', { subject: 'a giant squid', kind: 'creature', mention_words: ['lula gigante'] })?.descartado === 'sem_ancora_no_pedido', '(2) citação que não está inteira no pedido ("lula gigante") e sujeito fora do texto: descartado — anti-invenção')
+ok(v('How to train your brain', { subject: 'a train', kind: 'vehicle', mention_words: ['train'] })?.subject === 'a train', '(2) a âncora só prova que a palavra está no pedido, não o sentido — o sentido é do modelo (a resposta real aqui é kind none, seção 3)')
+ok(v('um cachorro', { subject: 'a dog: very big', kind: 'creature', mention_words: ['cachorro'] })?.descartado === 'sujeito_mal_formado', '(2) dois-pontos no sujeito: mal formado (nunca entra texto que possa virar instrução no prompt)')
+ok(v('um cachorro', { subject: 'a dog ' + 'very '.repeat(12), kind: 'creature', mention_words: ['cachorro'] })?.descartado === 'sujeito_mal_formado', '(2) sujeito com mais de 12 palavras: mal formado')
+ok(v('um cachorro', { subject: 'собака', kind: 'creature', mention_words: ['cachorro'] })?.descartado === 'sujeito_mal_formado', '(2) sujeito fora do alfabeto latino: mal formado')
+ok(v('a dragon guarding a castle', { subject: 'a dragon guarding a castle', kind: 'creature', mention_words: ['a dragon guarding a castle'] })?.subject === 'a dragon guarding a castle', '(2) pedido em inglês com o sujeito igual ao pedido: vale (a checagem de tradução só vale para pedido pt/es)')
+ok(lerLeituraDoSujeito('não é objeto', 'x') === null && lerLeituraDoSujeito({ subject: 1, kind: 'object', real_person: false, mention_words: [] }, 'x') === null, '(2) resposta fora do formato: null (falha segura)')
+const adulto = sujeitoObrigatorio({ leitura: await leituraDe('crianças brincando no parque', cruDe('children playing in the park', 'creature', ['crianças'])), pessoaPermitida: false })
+ok(adulto === null, '(2) criança com kind errado ("creature", visto na calibração) em pedido adulto: nunca vira sujeito')
+ok(sujeitoObrigatorio({ leitura: await leituraDe('crianças brincando no parque', cruDe('children playing in the park', 'creature', ['crianças'])) })?.tipo === 'pessoa', '(2) criança na frase é gente (tipo pessoa), seja qual for o kind')
+
+// ═══ (3) as respostas GRAVADAS da calibração real, sem rede ═══
+let graves = 0, posAcertos = 0, posTotal = 0, iguais = 0, total = 0
+for (const c of CAL.sujeito as Array<{ id: string; pedido: string; rotulo: string; aceita?: string; secundario?: string; passadas: Array<{ subject: string | null; cru: string }> }>) {
+  const aceita = c.aceita ? new RegExp(c.aceita, 'i') : null
+  let pior = 'ok'
+  for (const p of c.passadas) {
+    const s = sujeitoObrigatorio({ leitura: await leituraDe(c.pedido, p.cru) })
+    total++; if ((s?.frase ?? null) === p.subject) iguais++
+    const f = s?.frase ?? null
+    const vered = c.rotulo === 'neg' ? (f ? 'grave' : 'ok') : !f ? (c.rotulo === 'pos' ? 'perdeu' : 'ok') : aceita!.test(f) ? 'ok' : c.secundario && new RegExp(c.secundario, 'i').test(f) ? 'perdeu' : 'grave'
+    if (vered === 'grave') pior = 'grave'; else if (vered === 'perdeu' && pior === 'ok') pior = 'perdeu'
+  }
+  if (pior === 'grave') { graves++; console.log('    grave:', c.id) }
+  if (c.rotulo === 'pos') { posTotal++; if (pior === 'ok') posAcertos++ }
+}
+ok(iguais === total, `(3) a validação de hoje reproduz o sujeito gravado na calibração (${iguais}/${total})`)
+ok(graves === 0, `(3) 0 falso positivo grave nas ${CAL.sujeito.length} respostas gravadas (${CAL.placar.sujeito.origem.revisao} das revisões + ${CAL.placar.sujeito.origem.banco} do banco)`)
+ok(posAcertos / posTotal >= 0.85, `(3) positivos: ${posAcertos}/${posTotal} = ${(100 * posAcertos / posTotal).toFixed(1)}% (meta ≥ 85%)`)
+ok(CAL.sujeito.length >= 40 && CAL.placar.sujeito.origem.banco >= 20, '(3) conjunto rotulado ≥ 40 casos, ≥ 20 reais do banco')
+const gravado = (id: string) => (CAL.sujeito as Array<{ id: string; passadas: Array<{ cru: string }> }>).find((c) => c.id === id)!.passadas[0].cru
+for (const id of ['rev-robo-siglo', 'rev-planes-jubilarme', 'rev-sword-leverage', 'rev-ai-trains', 'rev-amazon-ships', 'rev-billy-kid', 'rev-el-nino', 'rev-lula-presidente', 'rev-tesouro-direto', 'rev-rocket-man', 'rev-ss-himmler']) {
+  const c = (CAL.sujeito as Array<{ id: string; pedido: string }>).find((x) => x.id === id)!
+  ok(sujeitoObrigatorio({ leitura: await leituraDe(c.pedido, gravado(id)) }) === null, `(3) "${c.pedido}" (reprovado nas rodadas 1-3): nada injetado`)
+}
+
+// ═══ (4) ponta a ponta no formato real (pedido original + falas + prompts do Kling 4), com a resposta gravada ═══
 const k4De = (pedido: string, visuais: string[]) => {
   const style = deriveStyleAnchor(pedido, 'cinematic_ai')
-  return visuais.map((v, i) => promptDaCenaKling4(buildClassicVisualPrompt(v, { mode: 'documentary_faceless', style, aspect: '9:16', opening: i === 0 } as never), style, i))
+  return visuais.map((vis, i) => promptDaCenaKling4(buildClassicVisualPrompt(vis, { mode: 'documentary_faceless', style, aspect: '9:16', opening: i === 0 } as never), style, i))
 }
-/** O que a ROTA faz: o pedido original a partir do body (prompt + script_mode + original_idea) e das falas finais. */
 const pedidoDaRota = (body: { prompt: string; script_mode?: string; original_idea?: string }, falas: string[]) =>
   pedidoOriginalDoSujeito({ prompt: body.prompt, ideiaSolta: ehIdeiaSolta({ prompt: body.prompt, scriptMode: body.script_mode }), scriptMode: body.script_mode, originalIdea: body.original_idea, falas })
-/** As falas como a rota as tem (o texto falado de cada seção, sem pistas). */
 const falasDoRoteiro = (roteiro: string) => parseUserScript(roteiro).segments.map((s: { text?: string; voiceover?: string }) => String(s.voiceover ?? s.text ?? ''))
-const sujeitoDaRota = (body: { prompt: string; script_mode?: string; original_idea?: string }, falas = falasDoRoteiro(body.prompt)) => {
-  const ped = pedidoDaRota(body, falas)
-  return ped.pedido ? sujeitoObrigatorio({ pedido: ped.pedido, falas }) : null
-}
-const idea = (texto: string, falas: string[] = []) => pedidoOriginalDoSujeito({ prompt: texto, ideiaSolta: true, scriptMode: 'ai', falas })
-
-// ═══ (0) O FORMATO REAL: no modo IA a rota recebe o ROTEIRO (ALTA 1 da revisão) ═══
-const roteiroCaneta = `HOOK (0-2s): [Pexels: 3d pen drawing plastic] This kid builds a car out of thin air.
-PAYOFF: [Pexels: child toy car desk] Layer by layer, a 3D pen turned melted plastic into a toy car that actually rolls... in 40 minutes.`
-const roteiroGelo = `HOOK (0-2s): [Pexels: antarctica ice sheet aerial] Under 3 kilometers of ice, something is moving.
-PAYOFF: [Pexels: dark ocean water] In Lake Whillans, scientists found 4,000 kinds of microbes living in total darkness.`
-const roteiroMarte = `HOOK (0-2s): [Pexels: mars surface rover] What did NASA never announce about Mars?
-MICRO REWARD 1: [Pexels: mars rover dust] In 2014, Curiosity's sensors spiked tenfold in a single crater.
-PAYOFF: [Pexels: red planet night] The spikes were methane... a gas that on Earth comes mostly from living things.`
-const roteiroDinheiro = `HOOK (0-2s): [Pexels: luxury cars money] Rich people never do these 5 things with money.
-MICRO REWARD 1: [Pexels: piggy bank coins] They pay themselves first, every single month.
-PAYOFF: [Pexels: stock market chart] And they invest 20% before they spend a cent.`
-const roteiroEinstein = `HOOK (0-2s): [Pexels: einstein portrait old photo] Einstein solved relativity by imagining a ride.
-MICRO REWARD 1: [Pexels: steam train moving] He pictured himself on a train moving at the speed of light.
-PAYOFF: [Pexels: clock tower] Time itself slowed down for the rider... that was special relativity.`
 const roteiroAviao = `HOOK (0-2s): [Pexels: snowy mountains aerial] Vanished into thin air—70 years, zero leads.
 PAYOFF: [Pexels: old airplane wreckage snow] In 1950, a C-54 Skymaster disappeared over the Yukon with 44 people aboard.`
-ok(parseUserScript(roteiroCaneta).hasMarkers && !ehIdeiaSolta({ prompt: roteiroCaneta, scriptMode: 'ai' }), '(0) o roteiro do formato real tem marcadores: não é ideia solta')
+ok(parseUserScript(roteiroAviao).hasMarkers && !ehIdeiaSolta({ prompt: roteiroAviao, scriptMode: 'ai' }), '(4) o roteiro do formato real tem marcadores: não é ideia solta')
+const semIdeia = pedidoDaRota({ prompt: roteiroAviao, script_mode: 'ai' }, falasDoRoteiro(roteiroAviao))
+ok(semIdeia.pedido === null && semIdeia.motivo === 'sem_pedido_original', '(4) roteiro SEM original_idea: sem pedido confiável — a chamada semântica nem sai (nunca lê as pistas [Pexels])')
+ok(pedidoDaRota({ prompt: roteiroAviao, script_mode: 'verbatim', original_idea: pedidoAviao }, falasDoRoteiro(roteiroAviao)).motivo === 'roteiro_da_pessoa', '(4) "Use my script as is": nada corrigido')
+ok(pedidoDaRota({ prompt: roteiroAviao, script_mode: 'ai', original_idea: roteiroAviao }, falasDoRoteiro(roteiroAviao)).motivo === 'ideia_original_invalida', '(4) original_idea que é roteiro: recusada')
+ok(pedidoDaRota({ prompt: 'criança com caneta 3D', script_mode: 'ai' }, []).fonte === 'ideia_solta', '(4) ideia crua sem marcadores: é o pedido original')
+ok(!pedidoCurto('HOOK: um avião') && !pedidoCurto('[Pexels: plane] o avião') && pedidoCurto(pedidoAviao), '(4) pedidoCurto: sem cabeçalho, sem colchete, ≤ 280 caracteres')
 
-// O DEFEITO: ler o roteiro como pedido (v1) tirava a criança, perdia o gelo e inventava rover/carro/trem. Agora sem original_idea: nada.
-for (const [nome, roteiro] of [['caneta 3D', roteiroCaneta], ['gelo', roteiroGelo], ['Marte', roteiroMarte], ['dinheiro', roteiroDinheiro], ['Einstein', roteiroEinstein], ['avião', roteiroAviao]] as const) {
-  const ped = pedidoDaRota({ prompt: roteiro, script_mode: 'ai' }, falasDoRoteiro(roteiro))
-  ok(ped.pedido === null && ped.motivo === 'sem_pedido_original' && sujeitoDaRota({ prompt: roteiro, script_mode: 'ai' }) === null, `(0) roteiro "${nome}" SEM original_idea: sem pedido confiável, nenhum sujeito (fail-safe; nunca das pistas [Pexels])`)
-}
-// Com a ideia original que o /studio/create manda junto: o sujeito sai DELA.
-ok(sujeitoDaRota({ prompt: roteiroCaneta, script_mode: 'ai', original_idea: 'criança com caneta 3D' })?.frase === 'a child holding a 3D printing pen', '(0) caneta 3D: com a ideia original, "a child holding a 3D printing pen" (a criança volta; a pista [Pexels: 3d pen] não manda)')
-ok(sujeitoDaRota({ prompt: roteiroGelo, script_mode: 'ai', original_idea: 'vida sob o gelo' })?.frase === 'living creatures swimming beneath the ice', '(0) gelo: com a ideia original, a vida debaixo do gelo (antes: null)')
-ok(sujeitoDaRota({ prompt: roteiroMarte, script_mode: 'ai', original_idea: 'O que a NASA nunca anunciou sobre Marte' }) === null, '(0) Marte: a pista [Pexels: mars surface rover] nunca vira "a rover" — o pedido não tem objeto central')
-ok(sujeitoDaRota({ prompt: roteiroDinheiro, script_mode: 'ai', original_idea: '5 coisas que os ricos nunca fazem com dinheiro' }) === null, '(0) dinheiro: [Pexels: luxury cars money] nunca exige "a car"')
-ok(sujeitoDaRota({ prompt: roteiroEinstein, script_mode: 'ai', original_idea: 'Como Albert Einstein descobriu a relatividade' }) === null, '(0) Einstein: o trem da fala/pista nunca vira "a train"')
-ok(/C-54/.test(sujeitoDaRota({ prompt: roteiroAviao, script_mode: 'ai', original_idea: 'o avião C-54 que sumiu' })?.frase ?? ''), '(0) avião: com a ideia original, o avião C-54')
-// Ideia solta crua (o servidor escreve o roteiro): ela mesma é o pedido.
-ok(pedidoDaRota({ prompt: 'criança com caneta 3D', script_mode: 'ai' }, []).fonte === 'ideia_solta', '(0) ideia crua que chega sem marcadores: é o pedido original (fonte ideia_solta)')
-// Fail-safes do pedido original
-ok(pedidoDaRota({ prompt: roteiroAviao, script_mode: 'verbatim', original_idea: 'o avião C-54 que sumiu' }, falasDoRoteiro(roteiroAviao)).motivo === 'roteiro_da_pessoa', '(0) "Use my script as is": o texto é da pessoa, sem pedido separado — nada corrigido')
-ok(pedidoDaRota({ prompt: roteiroCaneta, script_mode: 'ai', original_idea: roteiroCaneta }, falasDoRoteiro(roteiroCaneta)).motivo === 'ideia_original_invalida', '(0) original_idea que é um roteiro (marcadores/pistas): recusada')
-ok(!pedidoCurto('HOOK: um avião') && !pedidoCurto('[Pexels: plane] o avião') && !pedidoCurto('a '.repeat(150)) && pedidoCurto('o avião C-54 que sumiu'), '(0) pedidoCurto: sem cabeçalho, sem colchete, ≤ 280 caracteres')
-const falasVulcao = ['Mount Vesuvius erupted in the year 79 and buried Pompeii under meters of volcanic ash.', 'Thousands of Roman citizens were frozen in place, their bodies preserved as hollow molds.', 'Archaeologists poured plaster into the voids and recovered their final poses.']
-ok(pedidoDaRota({ prompt: 'HOOK: [Pexels: volcano] x\nPAYOFF: [Pexels: ash] y', script_mode: 'ai', original_idea: 'five morning habits of Jeff Bezos billionaire routine' }, falasVulcao).motivo === 'ideia_original_discorda_da_fala', '(0) caixa velha de outro assunto (Bezos × Pompeia): discorda da narração, recusada')
-const longaHistoria = 'Era uma vez um menino chamado Pipo que morava numa casa amarela perto do mar e todos os dias saía com o seu barco vermelho para pescar com o avô, até que numa manhã de neblina encontrou uma garrafa com um mapa antigo que apontava para uma ilha onde ninguém nunca tinha ido antes.'
-ok(pedidoDaRota({ prompt: longaHistoria, script_mode: 'ai' }, []).motivo === 'ideia_longa', '(0) história longa colada (ideia solta > 280 caracteres): não é pedido curto, nada corrigido')
-
-// ═══ (1a) o avião C-54 — narração real do filme (manobiayousaf, 1º filme, nota 5) ═══
-const falasAviao = [
-  'Vanished into thin air—70 years, zero leads. In 1950, a C-54 Skymaster disappeared over the Yukon wilderness.',
-  'All 44 passengers were never seen again in those icy peaks.',
-  'The mystery remains unsolved... a ghost flight... swallowed by time and nature.',
-]
-const visuaisAviao = [ // o que o descritor desenhou: 2 homens de terno, nenhum avião
-  'Two men in dark suits study an old map in a dim 1950s office, cigarette smoke curling',
-  'Snow-covered mountain peaks under a grey sky, slow aerial push-in',
-  'Two men in suits stand at a window looking out at falling snow, somber mood',
-]
-const k4Aviao = k4De('o avião C-54 que sumiu', visuaisAviao)
-for (const pedido of ['o avião C-54 que sumiu', 'A C-54 Skymaster disappeared over the Yukon wilderness in 1950']) {
-  const s = sujeitoObrigatorio({ pedido, falas: falasAviao })
-  ok(s?.tipo === 'veiculo' && /C-54/.test(s.frase) && /airplane/.test(s.frase), `(1a) "${pedido}" → sujeito veículo "${s?.frase}" (veículo, não pessoa)`)
-}
-ok(sujeitoObrigatorio({ pedido: 'A C-54 Skymaster disappeared over the Yukon wilderness in 1950', falas: falasAviao })?.frase === 'a C-54 Skymaster airplane', '(1a) o nome do modelo ("Skymaster") entra na frase')
-ok(sujeitoObrigatorio({ pedido: 'o avião que sumiu no Yukon', falas: falasAviao })?.frase === 'a C-54 Skymaster airplane', '(1a) a fala só ENRIQUECE o avião que o pedido já pede (modelo C-54 Skymaster)')
-ok(sujeitoObrigatorio({ pedido: 'o mistério do Yukon', falas: falasAviao }) === null, '(1a) modelo só na fala, pedido sem veículo: a fala nunca cria o sujeito')
-ok(k4Aviao.every((p) => !promptMostraOSujeito(p, sujeitoObrigatorio({ pedido: 'o avião C-54 que sumiu', falas: falasAviao })!)), '(1a) caso real: nenhum dos 3 prompts mostrava o avião')
+const falasAviao = ['Vanished into thin air—70 years, zero leads. In 1950, a C-54 Skymaster disappeared over the Yukon wilderness.', 'All 44 passengers were never seen again in those icy peaks.', 'The mystery remains unsolved... a ghost flight... swallowed by time and nature.']
+const k4Aviao = k4De(pedidoAviao, ['Two men in dark suits study an old map in a dim 1950s office, cigarette smoke curling', 'Snow-covered mountain peaks under a grey sky, slow aerial push-in', 'Two men in suits stand at a window looking out at falling snow, somber mood'])
+const leituraAviao = await leituraDe(pedidoAviao, gravado('rev-aviao-c54'))
+const sAviao = sujeitoObrigatorio({ leitura: leituraAviao })!
+ok(sAviao.tipo === 'veiculo' && /C-54/.test(sAviao.frase) && /airplane/.test(sAviao.frase) && sAviao.tokens.includes('C-54'), `(4) avião C-54 (resposta gravada): "${sAviao.frase}", ficha C-54`)
+ok(k4Aviao.every((q) => !promptMostraOSujeito(q, sAviao)), '(4) caso real: nenhum dos 3 prompts mostrava o avião (2 homens de terno)')
 const stillsAviao = ['https://x/s1.png', 'https://x/s2.png', 'https://x/s3.png']
-const corrAviao = exigirSujeitoNoKling4({ pedido: idea('o avião C-54 que sumiu', falasAviao), falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
-ok(corrAviao.relato.corrigido && corrAviao.relato.cena !== null && corrAviao.relato.fonte_do_pedido === 'ideia_solta', `(1a) corrigido na cena ${corrAviao.relato.cena} (pedido: ${corrAviao.relato.fonte_do_pedido})`)
-ok(corrAviao.relato.cena === 3, '(1a) a fala da cena 1 cita o avião mas ela tem imagem de abertura; a próxima que cita ("ghost flight") é a 3 — a abertura nunca perde a imagem')
-ok(corrAviao.prompts.some((p) => /Main subject clearly visible in frame: an? C-54 airplane\./.test(p)), '(1a) a cena leva "Main subject clearly visible in frame: a C-54 airplane."')
-ok(corrAviao.stills[0] === stillsAviao[0], '(1a) imagem de abertura intacta')
-ok(corrAviao.stills[2] === null && corrAviao.relato.keyframe_removido, '(1a) a imagem-chave do meio desenhada sem o avião sai da cena corrigida')
-ok(corrAviao.stills[1] === stillsAviao[1], '(1a) as outras imagens ficam')
-ok(corrAviao.prompts.every((p) => len(p) <= KLING4_ORCAMENTO_DA_CAMADA), `(1a) todas dentro do orçamento da camada (${corrAviao.prompts.map(len).join(', ')} ≤ ${KLING4_ORCAMENTO_DA_CAMADA})`)
-ok(corrAviao.prompts.every((p) => p.endsWith('Mouth closed, no speaking.')), '(1a) cauda "Mouth closed, no speaking." preservada')
-const entradaAviao = buildKling4TrialInput(corrAviao.prompts, corrAviao.stills, { voiceovers: falasAviao, wordsPerSecond: 2.5 })
-const shots = (entradaAviao.input.multi_prompt as Array<{ prompt: string }>)
-ok(shots.every((s) => len(s.prompt) <= KLING4_PROMPT_MAX) && shots.some((s) => /C-54 airplane/.test(s.prompt)), '(1a) no corpo do POST (multi_prompt) o avião chega e todo shot ≤ 512')
-ok(/text-directed shot/.test(shots[2].prompt) && !(entradaAviao.input.middle_image_urls as string[] | undefined)?.includes('https://x/s3.png'), '(1a) a cena corrigida vai dirigida por texto, sem a imagem antiga')
-const semStill = exigirSujeitoNoKling4({ pedido: idea('o avião C-54 que sumiu', falasAviao), falas: falasAviao, prompts: k4Aviao })
-ok(semStill.relato.cena === 1 && !semStill.relato.keyframe_removido, '(1a) sem imagens (texto puro): a cena cuja fala cita o avião (1) é a corrigida')
-const semPedido = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroAviao, script_mode: 'ai' }, falasAviao), falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
-ok(!semPedido.relato.corrigido && semPedido.relato.sujeito === null && semPedido.relato.motivo_do_pedido === 'sem_pedido_original' && semPedido.prompts.every((p, i) => p === k4Aviao[i]) && semPedido.stills.every((s, i) => s === stillsAviao[i]), '(1a) roteiro sem original_idea: prompts e imagens byte a byte, relato diz por quê')
-
-// ═══ (1b) a criança com a caneta 3D — pedido real (BG, 1º filme, nota 5) ═══
-const pedidoCaneta = 'A child skillfully and enthusiastically crafts a colorful 3D car with a 3D pen, layer by layer, on a wooden desk'
-const falasCaneta = ['Layer by layer, a tiny car is born from melted plastic.', 'Wheels, doors, a shiny roof — every line is drawn in the air.', 'And in the end, the little car is ready to roll!']
+const ped = pedidoDaRota({ prompt: pedidoAviao, script_mode: 'ai' }, falasAviao)
+const corr = exigirSujeitoNoKling4({ pedido: ped, leitura: leituraAviao, falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
+ok(corr.relato.corrigido && corr.relato.cena === 3, `(4) corrigido na cena ${corr.relato.cena}: a cena 1 cita o avião mas tem imagem de abertura (nunca sai); vai para a última`)
+ok(corr.prompts[2].includes(`Main subject clearly visible in frame: ${sAviao.frase}.`), '(4) a cena leva "Main subject clearly visible in frame: …"')
+ok(corr.stills[0] === stillsAviao[0] && corr.stills[1] === stillsAviao[1] && corr.stills[2] === null && corr.relato.keyframe_removido, '(4) abertura intacta; a imagem-chave do meio desenhada sem o avião sai')
+ok(corr.prompts.every((q) => len(q) <= KLING4_ORCAMENTO_DA_CAMADA) && corr.prompts.every((q) => q.endsWith('Mouth closed, no speaking.')), '(4) orçamento da camada e cauda preservados')
+ok(corr.relato.leitura?.ok === true && corr.relato.leitura.subject === sAviao.frase && corr.relato.leitura.model === 'gpt-4o-mini' && corr.relato.versao === 'k4_sujeito_0111_v4_semantico', '(4) o relato do claim guarda a leitura semântica crua (auditoria)')
+const shots = buildKling4TrialInput(corr.prompts, corr.stills, { voiceovers: falasAviao, wordsPerSecond: 2.5 }).input.multi_prompt as Array<{ prompt: string }>
+ok(shots.every((s) => len(s.prompt) <= KLING4_PROMPT_MAX) && shots.some((s) => /C-54/.test(s.prompt)), '(4) no corpo do POST (multi_prompt) o avião chega e todo shot ≤ 512')
+const semImagens = exigirSujeitoNoKling4({ pedido: ped, leitura: leituraAviao, falas: falasAviao, prompts: k4Aviao })
+ok(semImagens.relato.cena === 1, '(4) sem imagens: a cena cuja fala cita o avião (ficha "C-54") é a corrigida')
+// falha da chamada: prompts e imagens byte a byte
+const falhou: ResultadoSemantico<LeituraDoSujeito> = { ok: false, erro: 'prazo', ms: 4001, model: 'gpt-4o-mini', tentativas: 2 }
+const intacto = exigirSujeitoNoKling4({ pedido: ped, leitura: falhou, falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
+ok(!intacto.relato.corrigido && intacto.prompts.every((q, i) => q === k4Aviao[i]) && intacto.stills.every((s, i) => s === stillsAviao[i]) && intacto.relato.leitura?.erro === 'prazo', '(4) chamada falhou (prazo): prompts e imagens byte a byte, e o relato diz por quê')
+const nula = exigirSujeitoNoKling4({ pedido: ped, leitura: null, falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
+ok(!nula.relato.corrigido && nula.relato.leitura === null && nula.prompts.every((q, i) => q === k4Aviao[i]), '(4) leitura não chamada: nada muda')
+// criança com caneta 3D (resposta gravada) e vida sob o gelo (resposta gravada)
+const pedidoCaneta = 'criança com caneta 3D'
+const sCaneta = sujeitoObrigatorio({ leitura: await leituraDe(pedidoCaneta, gravado('rev-caneta-3d')) })!
+ok(sCaneta.tipo === 'pessoa' && sCaneta.chaves.length === 2, `(4) caneta 3D: "${sCaneta.frase}" exige criança E caneta`)
+ok(!promptMostraOSujeito('A child smiles at a toy car', sCaneta) && promptMostraOSujeito('A young child holds a 3D printing pen over a desk', sCaneta), '(4) só a criança sem a caneta não conta; criança com a caneta conta')
 const k4Caneta = k4De(pedidoCaneta, ['Macro shot of melted colorful plastic strands forming a tiny car shape on a wooden desk', 'Close-up of tiny plastic wheels and doors taking shape in the air', 'A finished colorful 3D-printed toy car rolling across a wooden desk'])
-const sCaneta = sujeitoObrigatorio({ pedido: pedidoCaneta, falas: falasCaneta })
-ok(sCaneta?.tipo === 'pessoa' && sCaneta.frase === 'a child holding a 3D printing pen', `(1b) sujeito = "${sCaneta?.frase}" (a criança COM a caneta; o carro 3D é o que ela faz, não o sujeito)`)
-ok(sujeitoObrigatorio({ pedido: 'criança com caneta 3D fazendo um carrinho', falas: [] })?.frase === 'a child holding a 3D printing pen', '(1b) o mesmo pedido em português')
-const corrCaneta = exigirSujeitoNoKling4({ pedido: idea(pedidoCaneta, falasCaneta), falas: falasCaneta, prompts: k4Caneta })
-ok(corrCaneta.relato.corrigido && corrCaneta.prompts.some((p) => promptMostraOSujeito(p, sCaneta!)), `(1b) a criança com a caneta entra (cena ${corrCaneta.relato.cena})`)
-ok(corrCaneta.relato.cena === 3, '(1b) nenhuma fala cita a criança: vai para a última cena (o desfecho)')
-ok(!promptMostraOSujeito('A child smiles at a toy car', sCaneta!), '(1b) só a criança sem a caneta não conta como presente')
-
-// ═══ (1c) vida sob o gelo — pedido real (victorr, BR, 1º filme, nota 6) ═══
-const falasGelo = ['Debaixo de três quilômetros de gelo, um oceano escuro espera.', 'Nenhuma luz chega lá embaixo, e a água nunca congela.', 'E mesmo assim, ali, a vida existe.']
-const k4Gelo = k4De('vida sob o gelo', ['Aerial shot of an endless white ice sheet under a pale sky', 'Dark blue water beneath a thick ice ceiling, faint light', 'Aerial shot of an endless white ice sheet at dusk'])
-const sGelo = sujeitoObrigatorio({ pedido: 'vida sob o gelo', falas: falasGelo })
-ok(sGelo?.tipo === 'criatura' && /creatures swimming beneath the ice/.test(sGelo.frase), `(1c) sujeito = "${sGelo?.frase}"`)
-const corrGelo = exigirSujeitoNoKling4({ pedido: idea('vida sob o gelo', falasGelo), falas: falasGelo, prompts: k4Gelo })
-ok(corrGelo.relato.cena === 3 && /living creatures swimming beneath the ice/.test(corrGelo.prompts[2]), '(1c) o desfecho (a vida debaixo do gelo) entra na última cena')
-
-// ═══ (1d) já presente / orçamento apertado ═══
+const corrCaneta = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: pedidoCaneta, script_mode: 'ai' }, []), leitura: await leituraDe(pedidoCaneta, gravado('rev-caneta-3d')), falas: ['Layer by layer, a tiny car is born.', 'Wheels, doors, a shiny roof.', 'And the little car is ready to roll!'], prompts: k4Caneta })
+ok(corrCaneta.relato.cena === 3 && promptMostraOSujeito(corrCaneta.prompts[2], sCaneta), '(4) nenhuma fala cita a criança: entra na última cena')
+const sGelo = sujeitoObrigatorio({ leitura: await leituraDe('vida sob o gelo', gravado('rev-vida-gelo')) })!
+ok(sGelo.tipo === 'criatura' && /ice/.test(sGelo.frase), `(4) vida sob o gelo (resposta gravada): "${sGelo.frase}"`)
+ok(promptMostraOSujeito('Small glowing creatures drift beneath a thick ice ceiling', sGelo) && !promptMostraOSujeito('Aerial shot of an endless white ice sheet', sGelo), '(4) "já está em cena": criaturas debaixo do gelo contam; só o gelo não')
+const falasGelo = ['Debaixo de três quilômetros de gelo, um oceano escuro espera.', 'Nenhuma luz chega lá embaixo.', 'E mesmo assim, ali, a vida existe sob o gelo.']
+const corrGelo = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: 'vida sob o gelo', script_mode: 'ai' }, falasGelo), leitura: await leituraDe('vida sob o gelo', gravado('rev-vida-gelo')), falas: falasGelo, prompts: k4De('vida sob o gelo', ['Aerial shot of an endless white ice sheet under a pale sky', 'Dark blue water beneath a thick ice ceiling, faint light', 'Aerial shot of an endless white ice sheet at dusk']) })
+ok(corrGelo.relato.cena === 3, '(4) a fala em português que cita "vida sob o gelo" (palavra do próprio pedido) escolhe a cena 3')
+// já presente / núcleo fora do dicionário
 const comAviao = ['Photoreal film. Low-angle shot. A silver C-54 airplane flies low over snowy peaks. Mouth closed, no speaking.', ...k4Aviao.slice(1)]
-const jaTem = exigirSujeitoNoKling4({ pedido: idea('o avião C-54 que sumiu', falasAviao), falas: falasAviao, prompts: comAviao })
-ok(jaTem.relato.ja_presente && !jaTem.relato.corrigido && jaTem.prompts.every((p, i) => p === comAviao[i]), '(1d) o avião já em cena: nada muda (só o relato)')
-const longo = `Photoreal film. ${'Two men in dark suits argue over a crumpled map beside a rain-streaked window, '.repeat(5)}no readable text, letters, numbers, labels or signage Mouth closed, no speaking.`
-const apertado = comSujeitoNaCena(longo, 'a C-54 Skymaster airplane', 0)
-ok(len(apertado) <= KLING4_ORCAMENTO_DA_CAMADA && apertado.includes('Main subject clearly visible in frame: a C-54 Skymaster airplane.') && apertado.endsWith('no readable text, letters, numbers, labels or signage Mouth closed, no speaking.'), `(1d) prompt cheio: o sujeito entra, o corpo encolhe e a cauda fica (${len(apertado)})`)
+const ja = exigirSujeitoNoKling4({ pedido: ped, leitura: leituraAviao, falas: falasAviao, prompts: comAviao, stills: stillsAviao })
+ok(ja.relato.ja_presente && !ja.relato.corrigido && ja.prompts.every((q, i) => q === comAviao[i]), '(4) o avião já está em cena: nada muda')
+ok(chavesDoSujeito('a plump raccoon on a windowsill')[0]?.test('A raccoon sneaks along the sill') === true, '(4) fora do dicionário: o núcleo do sintagma ("raccoon") prova presença')
+const apertado = comSujeitoNaCena('Photoreal film. ' + 'Very long descriptive scene text, '.repeat(20) + 'no readable text. Mouth closed, no speaking.', 'a child holding a 3D printing pen', 2)
+ok(len(apertado) <= KLING4_ORCAMENTO_DA_CAMADA && apertado.includes('Main subject clearly visible in frame: a child holding a 3D printing pen.') && apertado.endsWith('Mouth closed, no speaking.'), '(4) orçamento apertado: a cláusula entra, o corpo encolhe, a cauda fica')
+// romance adulto
+ok(sujeitoObrigatorio({ leitura: await leituraDe(pedidoCaneta, gravado('rev-caneta-3d')), pessoaPermitida: false }) === null, '(4) pedido adulto (pessoaPermitida=false): gente genérica nunca vira sujeito')
 
-// ═══ (1e) léxico: fronteira de palavra e desambiguação (ALTA 2, MÉDIA 3 e BAIXA 6 da revisão) ═══
-const nenhum: Array<[string, string]> = [
-  ['O que Lula disse na ONU', 'Lula é pessoa, nunca "a giant squid"'],
-  ['Como investir no Tesouro Direto', '"Tesouro Direto" é finanças, nunca "a treasure chest"'],
-  ['Tesouro Selic ou CDB: onde render mais', 'Tesouro Selic é finanças'],
-  ['Por que o corpo bebe tanta água', '"bebe" é o verbo beber, nunca "a child"'],
-  ['5 things rich parents teach their kids about money', '"their kids": a criança é de quem fala'],
-  ['5 things rich parents teach kids about money', 'conselho para pais: a criança não é a cena'],
-  ['How to train your brain', '"train" verbo, nunca "a train"'],
-  ['fight or flight response', '"fight or flight" não é avião'],
-  ['A história secreta da SS Heinrich Himmler', 'SS nazista, nunca "a SS Heinrich Himmler ship"'],
-  ['The SS Panzer divisions at Kursk', 'SS Panzer não é navio'],
-  ['The I-95 crash that changed highway law', '"crash" de estrada, nunca "an I-95 airplane"'],
-  ['Why loan sharks charge so much', 'loan shark não é tubarão'],
-  ['Crypto whales are moving bitcoin', 'baleia de cripto não é baleia'],
-  ['Rocket science explained simply', 'rocket science não é foguete'],
-  ['O que a NASA nunca anunciou sobre Marte', 'sem objeto central'],
-]
-for (const [pedido, porque] of nenhum) ok(sujeitoObrigatorio({ pedido, falas: [] }) === null, `(1e) "${pedido}" → nenhum sujeito (${porque})`)
-const certos: Array<[string, string]> = [
-  ['the giant squid caught on camera', 'a giant squid'],
-  ['a lula gigante filmada pela primeira vez', 'a giant squid'],
-  ['O tesouro perdido dos piratas do Caribe', 'a treasure chest'],
-  ['the ghost train of the Andes', 'a train'],
-  ['Flight 19 vanished over the Bermuda Triangle', 'an airplane'],
-  ['o bebê que fala', 'a child'],
-  ['The SS Ourang Medan, the ship whose whole crew died at sea', 'an SS Ourang Medan ship'],
-  ['The USS Thresher sank in 1963', 'a USS Thresher ship'],
-  ['How the HMS Terror got lost in the Arctic ice', 'an HMS Terror ship'],
-]
-for (const [pedido, frase] of certos) ok(sujeitoObrigatorio({ pedido, falas: [] })?.frase === frase, `(1e) "${pedido}" → "${frase}" (artigo certo na sigla)`)
-const sTesouro = sujeitoObrigatorio({ pedido: 'O tesouro perdido dos piratas do Caribe', falas: [] })!
-ok(!promptMostraOSujeito('A pirate stands with one hand on his chest, looking at the sea', sTesouro) && promptMostraOSujeito('A wooden chest full of gold coins on the sand', sTesouro), '(1e) "hand on chest" não é baú do tesouro; "chest full of gold coins" é')
-const sAviaoGen = sujeitoObrigatorio({ pedido: 'o avião que sumiu', falas: [] })!
-ok(!promptMostraOSujeito('Jets of water burst from the geyser', sAviaoGen) && promptMostraOSujeito('A fighter jet streaks over the desert', sAviaoGen), '(1e) "jets of water" não é avião; "fighter jet" é')
-ok(!promptMostraOSujeito('Two girls in their twenties laugh at a cafe', sCaneta!), '(1e) "girls" adultas não contam como a criança')
-
-// ═══ (1f) 2ª revisão adversarial: entradas novas no FORMATO REAL (roteiro com pistas + original_idea + falas) ═══
-const roteiroDe = (hook: string, meio: string, fim: string, pistas = ['ocean surface aerial', 'storm clouds', 'beach sunset']) =>
-  `HOOK (0-2s): [Pexels: ${pistas[0]}] ${hook}\nMICRO REWARD 1: [Pexels: ${pistas[1]}] ${meio}\nPAYOFF: [Pexels: ${pistas[2]}] ${fim}`
-type Caso = { ideia: string; roteiro: string; porque: string }
-const nadaExigido: Caso[] = [
-  { ideia: 'El Niño is coming back this winter', roteiro: roteiroDe('El Niño is coming back, and the Pacific is already warming.', 'Ocean temperatures off Peru jumped 2 degrees in a month.', 'Forecasters expect heavier rain across the southern US by January.'), porque: 'El Niño é clima, nunca "a child" (MÉDIO 1)' },
-  { ideia: 'Como o La Niña vai afetar o verão no Brasil', roteiro: roteiroDe('O La Niña voltou, e o verão vai mudar.', 'O Pacífico esfriou meio grau em três meses.', 'No Sul, a previsão é de seca; no Norte, chuva acima da média.'), porque: 'La Niña é clima, nunca "a child" (MÉDIO 1)' },
-  { ideia: 'The real story of Billy the Kid', roteiro: roteiroDe('Billy the Kid killed his first man at 17.', 'He escaped jail by slipping off his handcuffs.', 'Pat Garrett shot him in the dark at Fort Sumner in 1881.', ['old west town', 'desert horse', 'night ranch']), porque: '"Billy the Kid" é gente (MÉDIO 1)' },
-  { ideia: 'Karate Kid: the true story behind the movie', roteiro: roteiroDe('The Karate Kid was based on a real fight.', 'Screenwriter Robert Kamen was beaten up at 14.', 'He learned karate and wrote the film 20 years later.'), porque: '"Karate Kid" é título de filme (MÉDIO 1)' },
-  { ideia: 'Kid Rock first car', roteiro: roteiroDe('Kid Rock bought his first car at 16.', 'It was a rusted Pontiac with no reverse.', 'He still keeps it in his garage in Nashville.'), porque: '"Kid Rock" é gente, nunca "a child"; o carro dele é o objeto do pedido (MÉDIO 1)' },
-  { ideia: 'Why Komodo dragons are deadly', roteiro: roteiroDe('One bite from a Komodo dragon can kill a buffalo.', 'Their venom stops blood from clotting.', 'The buffalo dies days later, and the lizard follows it the whole way.', ['large lizard beach', 'lizard tongue', 'buffalo savanna']), porque: 'Komodo é lagarto, nunca o dragão de fantasia (MÉDIO 2)' },
-  { ideia: 'O dragão de Komodo é venenoso?', roteiro: roteiroDe('Uma mordida do dragão de Komodo derruba um búfalo.', 'O veneno impede o sangue de coagular.', 'O búfalo morre dias depois, e o lagarto segue o rastro.'), porque: 'dragão de Komodo em português (MÉDIO 2)' },
-  { ideia: 'SpaceX Dragon capsule splashdown', roteiro: roteiroDe('The Dragon capsule hits the ocean at 24 km/h.', 'Four parachutes open at 2 kilometers.', 'Recovery boats reach it in under 30 minutes.'), porque: 'a Dragon da SpaceX nunca vira dragão; "Dragon" com maiúscula é nome próprio, então fica sem sujeito (fail-safe) (MÉDIO 2)' },
-  { ideia: 'Can a bearded dragon recognize its owner?', roteiro: roteiroDe('Your bearded dragon knows your face.', 'Studies show they calm down near familiar people.', 'In tests, 7 of 10 lizards walked toward their owner first.'), porque: 'bearded dragon é lagarto de estimação (MÉDIO 2)' },
-  { ideia: 'Invasive alien species are taking over Florida', roteiro: roteiroDe('Florida has more invasive species than any other state.', 'Burmese pythons ate 90% of the mammals in the Everglades.', 'Hunters removed 19,000 of them since 2000.'), porque: 'espécie invasora não é extraterrestre (BAIXO 3)' },
-  { ideia: 'Coroa de 60 anos que voltou a estudar', roteiro: roteiroDe('Aos 60 anos, ela voltou para a sala de aula.', 'Passou no vestibular de medicina na primeira tentativa.', 'Hoje atende num posto de saúde em Recife.'), porque: '"coroa" é gíria de gente madura, nunca "a crown" (BAIXO 3)' },
-  { ideia: 'The rocket man Kim Jong Un', roteiro: roteiroDe('Kim Jong Un tested 90 missiles in one year.', 'Most of them landed in the Sea of Japan.', 'In 2017, one flew higher than the space station.'), porque: '"rocket man" é apelido de gente (BAIXO 3)' },
-]
-for (const c of nadaExigido) {
-  const falas = falasDoRoteiro(c.roteiro)
-  const ped = pedidoDaRota({ prompt: c.roteiro, script_mode: 'ai', original_idea: c.ideia }, falas)
-  const s = ped.pedido ? sujeitoObrigatorio({ pedido: ped.pedido, falas }) : null
-  const esperado = /komodo/i.test(c.ideia) ? 'a Komodo dragon lizard' : /Kid Rock/.test(c.ideia) ? 'a car' : null
-  ok((s?.frase ?? null) === esperado, `(1f) "${c.ideia}" → ${s ? `"${s.frase}"` : 'nenhum sujeito'} (${c.porque})`)
+// ═══ (5) o fim: detector estreito + juiz semântico ═══
+const r = (hook: string, payoff: string) => `HOOK (0-2s): [Pexels: x] ${hook}\nMICRO REWARD 1: [Pexels: y] In 2014, Curiosity's sensors spiked tenfold in a single crater.\nPAYOFF: [Pexels: z] ${payoff}`
+ok(finalFracoDoRoteiro(r('What did NASA never announce about Mars?', 'So what is NASA still hiding?')) === 'pergunta', '(5) estreito: termina em pergunta')
+ok(finalFracoDoRoteiro(r('What NASA never announced about Mars.', 'NASA never announced it about Mars.')) === 'repete_gancho', '(5) estreito: quase igual ao HOOK')
+ok(finalFracoDoRoteiro('HOOK: What NASA never announced about Mars.\nPAYOFF: ') === 'sem_revelacao', '(5) estreito: PAYOFF sem frase')
+ok(finalFracoDoRoteiro(r('What NASA never announced about Mars.', 'Late at night, engineers say the truth is still out there.')) === null, '(5) estreito NÃO julga clima (isso é do juiz semântico) — nada de lista de bordões')
+ok(finalFracoDoRoteiro(r('What NASA never announced about Mars.', 'Because methane spikes keep appearing, and NASA is still watching.')) === null && finalFracoDoRoteiro(r('What did NASA never announce about Mars?', 'The spikes were methane... a gas that on Earth comes mostly from living things.')) === null, '(5) estreito deixa passar fim concreto e fim ambíguo (o juiz decide)')
+ok(!quaseIgualAoGancho('Mars hides methane in a single crater.', 'What NASA never announced about Mars.'), '(5) frase com fatos novos não é eco do HOOK')
+ok(ultimaFraseDoRoteiro(`HOOK: x\nPAYOFF: The spikes were methane. Follow for more mysteries!`) === 'The spikes were methane.', '(5) o CTA de rede social não conta como última frase')
+ok(/does not state the concrete answer/.test(problemaDoFinal('sem_resposta')) && /question/.test(problemaDoFinal('pergunta')), '(5) problemaDoFinal tem o motivo do juiz semântico')
+const ent = entradaDoJuizDoFinal(r('What NASA never announced about Mars.', 'The spikes were methane. Follow for more!'))
+ok(ent?.hook === 'What NASA never announced about Mars.' && /spiked tenfold/.test(ent.meio) && ent.payoff === 'The spikes were methane.' && !/\[/.test(JSON.stringify(ent)), '(5) o juiz lê HOOK, meio e PAYOFF falados (sem pistas, sem CTA)')
+let finalIguais = 0, finalCertos = 0, finalContados = 0
+for (const c of CAL.final as Array<{ id: string; rotulo: boolean | 'amb'; roteiro: string; passadas: Array<{ ends_with_concrete_answer: boolean | null; cru: string }> }>) {
+  for (const p of c.passadas) {
+    const j = await finalTemRespostaConcreta(c.roteiro, { ...OPC, fetchImpl: mock(p.cru).fetch })
+    if (j.ok && j.valor.ends_with_concrete_answer === p.ends_with_concrete_answer) finalIguais++
+    if (c.rotulo !== 'amb') { finalContados++; const fraco = !!finalFracoDoRoteiro(c.roteiro) || (j.ok && !j.valor.ends_with_concrete_answer); if (fraco === !c.rotulo) finalCertos++ }
+  }
 }
-// Billy the Kid: no fluxo inteiro, nem a cena 3 muda nem a imagem-chave dela sai
-const roteiroBilly = nadaExigido[2].roteiro, falasBilly = falasDoRoteiro(roteiroBilly)
-const k4Billy = k4De('The real story of Billy the Kid', ['A dusty 1880s frontier town at dawn, wooden saloons', 'An empty jail cell with broken handcuffs on the floor', 'A dark ranch house at night, a single lamp in the window'])
-const stillsBilly = ['https://x/b1.png', 'https://x/b2.png', 'https://x/b3.png']
-const corrBilly = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroBilly, script_mode: 'ai', original_idea: 'The real story of Billy the Kid' }, falasBilly), falas: falasBilly, prompts: k4Billy, stills: stillsBilly })
-ok(!corrBilly.relato.corrigido && !corrBilly.relato.keyframe_removido && corrBilly.prompts.every((p, i) => p === k4Billy[i]) && corrBilly.stills.every((x, i) => x === stillsBilly[i]), '(1f) Billy the Kid: prompts e imagens byte a byte (a imagem-chave da cena 3 fica)')
-// El Niño: a cena do oceano não ganha "a child"
-const roteiroNino = nadaExigido[0].roteiro, falasNino = falasDoRoteiro(roteiroNino)
-const k4Nino = k4De('El Niño is coming back this winter', ['Aerial view of the open Pacific ocean surface, long swells', 'Storm clouds gathering over a coastline', 'Heavy rain on a southern US street at night'])
-const corrNino = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroNino, script_mode: 'ai', original_idea: 'El Niño is coming back this winter' }, falasNino), falas: falasNino, prompts: k4Nino })
-ok(!corrNino.relato.corrigido && corrNino.prompts.every((p) => !/Main subject clearly visible/.test(p)), '(1f) El Niño: nenhuma cena recebe "Main subject clearly visible in frame: a child."')
-// Komodo: a cena do lagarto na praia já mostra o sujeito — nada é injetado (nunca "a dragon")
-const roteiroKomodo = nadaExigido[5].roteiro, falasKomodo = falasDoRoteiro(roteiroKomodo)
-const k4Komodo = k4De('Why Komodo dragons are deadly', ['A large lizard walking slowly on a sunny beach, forked tongue flicking', 'Close-up of a wounded water buffalo in tall grass', 'The large lizard following tracks through dry savanna'])
-const corrKomodo = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroKomodo, script_mode: 'ai', original_idea: 'Why Komodo dragons are deadly' }, falasKomodo), falas: falasKomodo, prompts: k4Komodo })
-ok(corrKomodo.relato.sujeito === 'a Komodo dragon lizard' && corrKomodo.relato.ja_presente && !corrKomodo.relato.corrigido && corrKomodo.prompts.every((p) => !/\ba dragon\b/.test(p)), `(1f) Komodo: sujeito "${corrKomodo.relato.sujeito}", o lagarto já está em cena — nada injetado, nunca "a dragon"`)
-const k4KomodoSem = k4De('Why Komodo dragons are deadly', ['A sunny tropical beach, waves rolling in', 'Close-up of a wounded water buffalo in tall grass', 'Dry savanna at dusk'])
-const corrKomodoSem = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroKomodo, script_mode: 'ai', original_idea: 'Why Komodo dragons are deadly' }, falasKomodo), falas: falasKomodo, prompts: k4KomodoSem })
-ok(corrKomodoSem.relato.corrigido && corrKomodoSem.prompts.some((p) => /Main subject clearly visible in frame: a Komodo dragon lizard\./.test(p)), '(1f) Komodo sem o lagarto em cena: entra "a Komodo dragon lizard" (o lagarto real)')
-// O dragão de fantasia continua valendo quando é ele que o pedido pede
-ok(sujeitoObrigatorio({ pedido: 'a dragon guarding a castle', falas: [] })?.frase === 'a dragon' && sujeitoObrigatorio({ pedido: 'o dragão que protegia o castelo', falas: [] })?.frase === 'a dragon', '(1f) dragão de fantasia pedido de verdade continua "a dragon"')
-// O que a caixa NÃO pode estragar: nome do voo com número, Title Case, começo de frase
-ok(sujeitoObrigatorio({ pedido: 'Why Flight 19 vanished over the Bermuda Triangle', falas: [] })?.frase === 'an airplane', '(1f) "Flight 19" no meio da frase: o número diz que é o voo (avião)')
-ok(sujeitoObrigatorio({ pedido: 'The Giant Squid Caught On Camera', falas: [] })?.frase === 'a giant squid', '(1f) pedido em Title Case: a maiúscula não diz nada, a lula gigante continua')
-ok(sujeitoObrigatorio({ pedido: 'Kids who survived 40 days in the jungle', falas: [] })?.frase === 'a child', '(1f) "Kids" no começo da frase, seguido de minúscula: criança')
-ok(sujeitoObrigatorio({ pedido: 'a criança que sobreviveu 40 dias na selva', falas: [] })?.frase === 'a child' && sujeitoObrigatorio({ pedido: 'la niña que sobrevivió en la selva', falas: [] })?.frase === 'a child', '(1f) criança de verdade (pt, e "la niña" minúscula sem clima em es) continua "a child"')
-ok(sujeitoObrigatorio({ pedido: 'children affected by El Niño floods', falas: [] }) === null, '(1f) criança + El Niño no mesmo pedido: fail-safe (nada corrigido)')
-ok(sujeitoObrigatorio({ pedido: 'a coroa perdida do rei Arthur', falas: [] })?.frase === 'a crown' && sujeitoObrigatorio({ pedido: 'the stolen crown jewels', falas: [] })?.frase === 'a crown', '(1f) a coroa-objeto continua "a crown"')
-ok(sujeitoObrigatorio({ pedido: 'the first rocket to reach space', falas: [] })?.frase === 'a spacecraft', '(1f) foguete de verdade continua "a spacecraft"')
-ok(sujeitoObrigatorio({ pedido: 'aliens visiting Earth in 1947', falas: [] })?.frase === 'an alien', '(1f) extraterrestre de verdade continua "an alien"')
-// BAIXO 4: "SS St. Louis" — nome inteiro, nunca "an SS St ship"
-const sStLouis = sujeitoObrigatorio({ pedido: 'Inside the SS St. Louis refugee ship', falas: ['In 1939, the SS St. Louis sailed from Hamburg with 937 refugees.'] })
-ok(sStLouis?.frase === 'an SS St. Louis ship' && !/SS St ship/.test(sStLouis?.frase ?? ''), `(1f) "Inside the SS St. Louis refugee ship" → "${sStLouis?.frase}" (BAIXO 4)`)
-ok(promptMostraOSujeito('The SS St. Louis ocean liner at a pier in Havana, 1939', sStLouis!), '(1f) o nome inteiro "SS St. Louis" prova presença')
+const finalTotal = (CAL.final as Array<{ passadas: unknown[] }>).reduce((n, c) => n + c.passadas.length, 0)
+ok(finalIguais === finalTotal, `(5) o juiz do fim lê as ${finalTotal} respostas gravadas exatamente`)
+ok(finalCertos / finalContados >= 0.85, `(5) fim (respostas gravadas): ${finalCertos}/${finalContados} decisões certas, incluindo os 5 fins de clima que a v3 deixava passar`)
+const truthOutThere = (CAL.final as Array<{ id: string; passadas: Array<{ ends_with_concrete_answer: boolean }> }>).filter((c) => ['fim-truth-out-there', 'fim-something-waiting', 'fim-investigators', 'fim-ninguem-sabe', 'fim-nadie-sabe'].includes(c.id))
+ok(truthOutThere.length === 5 && truthOutThere.every((c) => c.passadas.every((p) => p.ends_with_concrete_answer === false)), '(5) os 5 fins que derrubaram a v3 ("Late at night, engineers say the truth is still out there." etc.) são reprovados pelo juiz')
 
-// ═══ controles ═══
-for (const pedido of ['5 dicas para economizar dinheiro', 'Por que o céu é azul?', 'O que a NASA nunca anunciou sobre Marte']) {
-  const c = exigirSujeitoNoKling4({ pedido: idea(pedido), falas: falasAviao.slice(0, 1).map(() => 'Some facts.'), prompts: k4Aviao })
-  ok(c.relato.sujeito === null && !c.relato.corrigido && c.prompts.every((p, i) => p === k4Aviao[i]), `(controle) pedido sem objeto central "${pedido}": nada muda`)
-}
-for (const pedido of ['Como Albert Einstein descobriu a relatividade', 'A vida de Napoleão Bonaparte em Waterloo', 'Amelia Earhart, the pilot who vanished']) {
-  ok(sujeitoObrigatorio({ pedido, falas: [] }) === null, `(controle) pessoa real "${pedido}": nunca vira "clearly visible" aqui (regra do elenco)`)
-}
-ok(sujeitoObrigatorio({ pedido: 'uma menina se apaixona por um vampiro', falas: [], pessoaPermitida: false }) === null, '(controle) romance (pessoaPermitida=false): criança nunca vira sujeito')
-ok(sujeitoObrigatorio({ pedido: 'a girl falls in love with her best friend', falas: [] }) === null, '(controle) "girl" num pedido adulto não vira "a child"')
-
-// ═══ (2) escritor: o fim entrega o que o gancho prometeu ═══
-const nasaFraco = `HOOK (0-2s): [Pexels: mars surface rover] What did NASA never announce about Mars?
-MICRO REWARD 1: [Pexels: mars rover dust] In 2014, Curiosity's sensors spiked tenfold in a single crater.
-MICRO REWARD 2: [Pexels: lab data screens] The readings vanished weeks later, and came back every Martian summer.
-PAYOFF: [Pexels: red planet night] Some secrets are bigger than one planet... and NASA is still watching.`
-const nasaPergunta = nasaFraco.replace('and NASA is still watching.', 'so what is NASA really hiding?')
-const nasaEco = nasaFraco.replace('Some secrets are bigger than one planet... and NASA is still watching.', "And that's what NASA never told you about Mars.")
-const nasaBom = nasaFraco.replace('Some secrets are bigger than one planet... and NASA is still watching.', 'The spikes were methane... a gas that on Earth comes mostly from living things.\nFollow for more space secrets!')
-const nasaCom = (fim: string) => nasaFraco.replace('Some secrets are bigger than one planet... and NASA is still watching.', fim)
-ok(finalFracoDoRoteiro(nasaFraco) === 'clima', '(2) "…and NASA is still watching." = promessa sem fato novo (o caso real do Seedance 62 s; NASA já estava no HOOK)')
-ok(finalFracoDoRoteiro(nasaPergunta) === 'pergunta', '(2) fim em pergunta solta reprova')
-ok(finalFracoDoRoteiro(nasaEco) === 'repete_gancho', '(2) fim que só repete o HOOK reprova')
-ok(finalFracoDoRoteiro(nasaBom) === null && /living things/.test(ultimaFraseDoRoteiro(nasaBom) ?? ''), '(2) revelação concreta passa; o CTA "Follow for more" depois dela não conta como última frase')
-// MÉDIA 4 da revisão: frase concreta com fato, número ou lugar passa (cada falso positivo custava uma chamada a mais ao gpt-4o)
-ok(finalFracoDoRoteiro(nasaCom('No one knew it then, but the spikes were methane, a gas made by living things.')) === null, '(2) "No one knew it then, but the spikes were methane…" passa (revelação depois do "but")')
-ok(finalFracoDoRoteiro(nasaCom('The gold is still waiting in the hull, 3,800 meters down.')) === null, '(2) "The gold is still waiting in the hull, 3,800 meters down." passa (número)')
-ok(finalFracoDoRoteiro(nasaCom('Buried in the Valley of the Kings, their tombs still remain unknown.')) === null, '(2) "…Valley of the Kings, their tombs still remain unknown" passa (lugar que o HOOK não tinha)')
-ok(finalFracoDoRoteiro(nasaCom('Their tombs still remain unknown.')) === 'clima', '(2) a mesma promessa SEM fato nenhum continua reprovando')
-ok(finalFracoDoRoteiro(nasaCom('The mystery remains unsolved... a ghost flight... swallowed by time and nature.')) === 'clima', '(2) a reticência é pausa: "The mystery remains unsolved… swallowed by time" é uma frase só e é clima')
-ok(finalFracoDoRoteiro('GANCHO: O que existe debaixo do gelo?\nPAYOFF: O mistério continua.') === 'clima', '(2) português: "O mistério continua." reprova')
-ok(finalFracoDoRoteiro('HOOK: ¿Qué hay bajo el hielo?\nPAYOFF: Bajo el hielo de Europa hay un océano con el doble de agua que la Tierra.') === null, '(2) espanhol com revelação concreta passa')
-// BAIXA 7 da revisão: linha de fala que começa com "Ritmo…"/"Escalada…"/"Pagamento…" não é cabeçalho
-const comRitmo = 'GANCHO: Por que o coração acelera no medo?\nPAYOFF: A adrenalina dispara em 2 segundos.\nRitmo de vida acelerado faz isso 40 vezes por dia.'
-ok(ultimaFraseDoRoteiro(comRitmo) === 'Ritmo de vida acelerado faz isso 40 vezes por dia.', '(2) "Ritmo de vida…" (sem dois-pontos, minúscula) é fala, não cabeçalho: a última frase lida é ela')
-ok(ultimaFraseDoRoteiro('HOOK: [Pexels: x] A pergunta.\nRITMO [Pexels: y] Rápido. Forte.\nPAYOFF: [Pexels: z] A resposta é 42.') === 'A resposta é 42.', '(2) "RITMO" em maiúsculas sem dois-pontos continua cabeçalho')
-ok(/LAST sentence of the PAYOFF/.test(problemaDoFinal('clima')), '(2) o pedido de correção diz o que falta')
-const escritor = rd('app/api/generate-script/route.ts')
-ok(/KINEO-FINAL-RESPOSTA-0111: the LAST spoken sentence of the PAYOFF IS the concrete answer itself/.test(escritor), '(2) o prompt do escritor exige a revelação como última frase')
-ok(/const finalFraco = colado\.pasted \? null : finalFracoDoRoteiro\(script\)/.test(escritor) && /\|\| leuADescricao\(script\) \|\| finalFraco\)/.test(escritor) && /problems\.push\(problemaDoFinal\(finalFraco\)\)/.test(escritor), '(2) fim fraco entra na MESMA nova tentativa do escritor (sem chamada a mais quando o roteiro é bom); roteiro colado da pessoa fica com o fim dela')
-ok(/!payoffIsEmpty\(t\) && \(colado\.pasted \|\| !finalFracoDoRoteiro\(t\)\)/.test(escritor), '(2) entre as duas versões do filme curto, a que revela vence')
-
-// ═══ (2) descritor: a última cena mostra a revelação ═══
-const fimPrompt = 'Film visual medium: photorealistic live-action. Slow push-in on a red desert at dusk, thin haze over distant hills. Mouth closed, no speaking.'
-const fim = comRevelacaoNoFim(fimPrompt, 'The spikes were methane... a gas that on Earth comes mostly from living things. Follow for more space secrets!', 'What did NASA never announce about Mars?')
-ok(fim.aplicada && fim.prompt.startsWith('Film visual medium: photorealistic live-action. Final moment of the story, clearly shown: a gas that on Earth comes mostly from living things. Slow push-in'), `(2) a revelação entra logo depois da trava do meio ("${fim.revelacao}")`)
-ok(revelacaoDaFala('Is it alive? The probe found water ice. Follow for more!') === 'The probe found water ice', '(2) a revelação ignora CTA e pergunta')
-ok(!comRevelacaoNoFim('Film visual medium: photoreal. Macro shot of methane gas bubbles rising from living microbes in red soil.', 'The spikes were methane from living microbes.').aplicada, '(2) cena que já mostra a revelação fica como está')
-ok(!comRevelacaoNoFim(fimPrompt, 'Os picos eram metano, um gás que na Terra vem de seres vivos.').aplicada, '(2) fala em outra língua: o código não mistura línguas no prompt (a regra do descritor cuida)')
-ok(!comRevelacaoNoFim('Film visual medium: x. Final moment of the story, clearly shown: a party. Kids dance.', 'Then a slumber party with all her friends at home.').aplicada, '(2) o eixo de desfecho já aplicado (then/finally) não é duplicado')
-// MÉDIA 5 da revisão: nunca crua com nome de gente, nunca frase de clima, sem o "And"
-const musk = comRevelacaoNoFim(fimPrompt, 'And the man behind it all was Elon Musk.')
-ok(!musk.aplicada && musk.motivo === 'nome_de_gente' && !musk.prompt.includes('Elon Musk'), '(2) "And the man behind it all was Elon Musk." NÃO entra no prompt (gente é do elenco/folha de personagem)')
-ok(revelacaoTemNomeDeGente('the man behind it all was Elon Musk') && revelacaoTemNomeDeGente('it was Napoleon all along') && revelacaoTemNomeDeGente('a letter signed by President Lincoln') && !revelacaoTemNomeDeGente('a gas that on Earth comes mostly from living things'), '(2) nome completo, "was X" e título + nome = gente; "on Earth" não')
-// 2ª revisão (BAIXO 5): parentesco + nome e título + "of" também são gente
-for (const fala of ['The culprit turned out to be his brother John.', 'She was the Queen of Sheba.', 'The letter was written by her friend Anna.', 'He was the King of Kings in Babylon.']) {
-  const r = comRevelacaoNoFim(fimPrompt, fala)
-  ok(!r.aplicada && r.motivo === 'nome_de_gente' && r.prompt === fimPrompt, `(2) "${fala}" NÃO entra crua no prompt da última cena (gente é do elenco)`)
-}
-ok(!revelacaoTemNomeDeGente('the treasure was buried in the Valley of the Kings') && !revelacaoTemNomeDeGente('the wreck lies off the coast of Iceland'), '(2) lugar ("Valley of the Kings", "coast of Iceland") não é gente')
-// 2ª revisão (BAIXO 6): fato ANTES do bordão passa e vira a revelação
-const metano = 'Because methane spikes keep appearing, and NASA is still watching.'
-ok(finalFracoDoRoteiro(nasaCom(metano)) === null, `(2) "${metano}" passa (o fato vem antes do bordão; sem tentativa a mais do gpt-4o)`)
-const fimMetano = comRevelacaoNoFim(fimPrompt, metano, 'What did NASA never announce about Mars?')
-ok(fimMetano.aplicada && fimMetano.revelacao === 'methane spikes keep appearing' && !fimMetano.prompt.includes('still watching'), `(2) a revelação é o fato, sem o bordão ("${fimMetano.revelacao}")`)
-ok(finalFracoDoRoteiro(nasaCom('Their tombs still remain unknown, and the search goes on.')) === 'clima' && finalFracoDoRoteiro(nasaCom('Some secrets run deeper than one planet, and NASA is still watching.')) === 'clima', '(2) bordão com frase vaga antes continua reprovando')
-const fantasma = comRevelacaoNoFim(fimPrompt, falasAviao[2])
-ok(!fantasma.aplicada && !fantasma.prompt.includes('swallowed by time'), '(2) fala fraca ("The mystery remains unsolved… swallowed by time and nature") não vira "clearly shown: swallowed by time and nature"')
-const comE = comRevelacaoNoFim(fimPrompt, 'And the wreck was found 3,800 meters down, split in two.')
-ok(comE.aplicada && comE.prompt.includes('clearly shown: the wreck was found 3,800 meters down, split in two.'), `(2) o "And" do começo sai da revelação ("${comE.revelacao}")`)
-ok(revelacaoDaFala('No one knew it then, but the spikes were methane.') === 'the spikes were methane', '(2) a revelação é o que vem depois do "but"')
-
-// ═══ a rota: descritor, última cena, checagem antes do POST e claim ═══
+// ═══ (6) as rotas ═══
 const rota = rd('app/api/generate-video-cinematic/route.ts')
-ok(/- KINEO-FINAL-RESPOSTA-0111: when the opening narration promises an answer/.test(rota) && /- KINEO-K4-SUJEITO-0111: the central subject the topic asks for/.test(rota), '(rota) o descritor de cenas recebe as 2 regras novas')
-const iFim = rota.indexOf('comRevelacaoNoFim(classicScenePrompts[ultima]'), iElenco = rota.indexOf('const elencoEpoca = prepararQualidadeDoFilme('), iRomance = rota.indexOf('if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13'), iK4 = rota.indexOf('const kling4Prompts = classicScenePrompts.map')
-ok(iFim > 0 && iFim < iElenco && iElenco < iRomance && iRomance < iK4, '(rota) a revelação entra ANTES do elenco/época (que a vê como qualquer cena), antes da moderação e dos prompts do Kling 4')
-ok(/comRevelacaoNoFim\(classicScenePrompts\[ultima\], scenes\[ultima\]\?\.voiceover \?\? '', scenes\[0\]\?\.voiceover \?\? ''\)/.test(rota), '(rota) a revelação recebe o HOOK (cena 1) para medir fato novo')
-const iSujeito = rota.indexOf('exigirSujeitoNoKling4({ pedido: pedidoOriginalDoSujeito('), iSubmit = rota.indexOf('submit: () => submitKling4TrialVideo({')
-ok(iSujeito > iK4 && iSujeito < iSubmit, '(rota) a checagem do sujeito roda depois dos prompts do Kling 4 e ANTES do POST pago')
-ok(!/exigirSujeitoNoKling4\(\{ pedido: intake\.text/.test(rota), '(rota) o roteiro (intake.text) nunca mais é passado como pedido')
-ok(/pedidoOriginalDoSujeito\(\{ prompt: intake\.text, ideiaSolta: ehIdeiaSolta\(\{ prompt: intake\.text, scriptMode: body\.script_mode \}\) && !isSeriesContinuationPrompt\(intake\.text\), scriptMode: body\.script_mode, originalIdea: body\.original_idea, falas: kling4Timing\.voiceovers \}\)/.test(rota), '(rota) o pedido original = ideia solta crua ou body.original_idea (com as falas finais para a checagem de assunto)')
-ok(/original_idea\?: string \}/.test(rota), '(rota) o contrato do body aceita original_idea (opcional; ausente = nada corrigido)')
-ok(/kling4Prompts\[i\] = kling4Sujeito\.prompts\[i\]/.test(rota) && /kling4ApprovedStills\[i\] = kling4Sujeito\.stills\[i\] \?\? null/.test(rota), '(rota) o POST, o plano assinado e o refazer leem os MESMOS prompts/imagens corrigidos')
-ok(/sujeito_obrigatorio: kling4Sujeito\?\.relato \?\? null/.test(rota), '(rota) o claim kling4_trial grava sujeito_obrigatorio (fonte do pedido e se foi corrigido)')
-ok(/pessoaPermitida: !romanceAdulto\.ativo/.test(rota) && /kling4TrialCandidate && !desenhoInfantil\.ativo \? exigirSujeitoNoKling4/.test(rota), '(rota) romance não ganha criança; desenho infantil (o Leo) fica com a regra dele')
-
-// ═══ o cliente: a ideia original só acompanha o roteiro que nasceu dela ═══
+const escritor = rd('app/api/generate-script/route.ts')
 const cliente = rd('app/(dashboard)/generate/GenerateClient.tsx')
-ok(/ideiaDoRoteiroRef\.current = \{ ideia: rawSource, roteiro: source \}/.test(cliente), '(cliente) o par ideia→roteiro é gravado quando o /api/generate-script devolve o roteiro')
-ok(/\.\.\.\(ideiaDoRoteiroRef\.current && ideiaDoRoteiroRef\.current\.roteiro === trimmed \? \{ original_idea: ideiaDoRoteiroRef\.current\.ideia\.slice\(0, 600\) \} : \{\}\)/.test(cliente), '(cliente) original_idea só vai quando o roteiro despachado é EXATAMENTE o que nasceu da ideia (editou/trocou = vai sem ela)')
+ok(!/comRevelacaoNoFim|finalResposta'/.test(rota), '(6) cinematic: a injeção crua da revelação na última cena SAIU (nem import)')
+ok(/KINEO-FINAL-RESPOSTA-0111: when the opening narration promises an answer/.test(rota), '(6) cinematic: fica só a instrução do descritor (a última cena MOSTRA a resposta)')
+ok(/await lerSujeitoDoPedido\(kling4PedidoSujeito\.pedido\)/.test(rota) && /kling4PedidoSujeito\?\.pedido \?/.test(rota), '(6) cinematic: a chamada semântica só sai quando há pedido original confiável')
+ok(/exigirSujeitoNoKling4\(\{ pedido: kling4PedidoSujeito, leitura: kling4LeituraSujeito/.test(rota) && /sujeito_obrigatorio: kling4Sujeito\?\.relato \?\? null/.test(rota), '(6) cinematic: a leitura vai para a checagem e o relato (com a leitura crua) vai no claim')
+ok(/kling4TrialCandidate && !desenhoInfantil\.ativo \? pedidoOriginalDoSujeito/.test(rota), '(6) cinematic: só no Kling 4 grátis, nunca no desenho infantil')
+ok(/if \(!colado\.pasted\) \{[\s\S]{0,400}finalTemRespostaConcreta\(script\)/.test(escritor), '(6) escritor: o juiz semântico só roda no roteiro da IA (roteiro colado da pessoa: o fim é dela)')
+ok(/if \(juiz\.ok && !juiz\.valor\.ends_with_concrete_answer\) finalFraco = 'sem_resposta'/.test(escritor), '(6) escritor: false = a MESMA nova tentativa; erro do juiz = nada muda')
+ok(/final_resposta: rastroDoFinal/.test(escritor), '(6) escritor: o resultado vai no script_written (auditoria)')
+ok(/\(colado\.pasted \|\| !finalFracoDoRoteiro\(t\)\)/.test(escritor), '(6) escritor: a escolha entre as duas versões do filme curto usa só o detector estreito (sem rede)')
+ok(/original_idea: ideiaDoRoteiroRef\.current\.ideia\.slice\(0, 600\)/.test(cliente) && /ideiaDoRoteiroRef\.current\.roteiro === trimmed/.test(cliente), '(6) cliente: a ideia original só acompanha o roteiro que nasceu dela')
 
-// ═══ "Use my script as is" continua literal ═══
-ok(!ehIdeiaSolta({ prompt: falasAviao.join(' '), scriptMode: 'verbatim' }), '(as is) roteiro com "Use my script as is" nunca passa pelo escritor (o fim é o da pessoa)')
-const antes = JSON.stringify(falasAviao)
-exigirSujeitoNoKling4({ pedido: idea('o avião C-54 que sumiu', falasAviao), falas: falasAviao, prompts: k4Aviao, stills: stillsAviao })
-comRevelacaoNoFim(fimPrompt, falasAviao[2])
-ok(JSON.stringify(falasAviao) === antes, '(as is) nenhuma das duas camadas toca a fala — só o prompt da imagem')
-
-console.log(`\n${pass} ok, ${fail} falha(s)`)
+console.log(`\n${pass}/${pass + fail} verificações`)
 if (fail) process.exit(1)

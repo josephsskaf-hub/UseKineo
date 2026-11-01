@@ -269,9 +269,8 @@ import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsC
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
-import { exigirSujeitoNoKling4, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]
+import { exigirSujeitoNoKling4, lerSujeitoDoPedido, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura)
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
-import { comRevelacaoNoFim } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última cena mostra a revelação da última fala
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -7129,10 +7128,6 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ELENCO-EPOCA-2710 — e ANTES da moderação do romance (logo abaixo), do dry-run, do still FLUX e do clipe: quem a história NOMEIA e não está em prompt nenhum entra na cena cuja fala o cita
     // KINEO-ELENCO-EPOCA-2710 — (Amna, Baba Noor, Sofia, o passageiro do último trem); ano/década da história (1953) vira figurino/carros/objetos da década em toda cena; "geleia" não vira jellyfish.
     // KINEO-ELENCO-EPOCA-2710 — O texto em inglês é o original ou a tradução que contextoDoFiltro já memoiza (zero chamada nova quando o alinhamento fala×imagem já a pediu). Falha aberta: o vetor fica.
-    // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, Seedance 62 s "o que a NASA nunca anunciou sobre Marte" sem revelar nada): a ÚLTIMA cena
-    // que não mostra a revelação da última fala ganha a frase do eixo de desfecho (a mesma de comDesfechoDaFala) depois da trava do meio. Só fala em inglês; presenter e desenho infantil: intocados.
-    // v2: ANTES do elenco/época (que vê a revelação como qualquer cena: figurino da década, modernidades, ordem); nunca com nome de gente nem frase de clima.
-    if (classicScenePrompts.length > 1 && classicVisualMode !== 'presenter' && !desenhoInfantil.ativo) { const ultima = classicScenePrompts.length - 1; const fim = comRevelacaoNoFim(classicScenePrompts[ultima], scenes[ultima]?.voiceover ?? '', scenes[0]?.voiceover ?? ''); if (fim.aplicada) { classicScenePrompts[ultima] = fim.prompt; console.log(`[cinematic] KINEO-FINAL-RESPOSTA: última cena mostra a revelação "${(fim.revelacao ?? '').slice(0, 80)}"`) } } // KINEO-FINAL-RESPOSTA-0111
     let elencoEpocaRelato: RelatoElencoEpoca | null = null // KINEO-ELENCO-EPOCA-2710
     try { // KINEO-ELENCO-EPOCA-2710
       const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710
@@ -7701,7 +7696,10 @@ async function manipularPost(req: NextRequest) {
     // sem a criança, "vida sob o gelo" sem o desfecho. Antes do POST pago: o sujeito central do PEDIDO tem de estar em pelo menos 1 cena do multi_prompt; se não está, a
     // cena cuja fala o cita (senão a última) ganha o sujeito no orçamento dos 512 e perde a imagem-chave do meio desenhada sem ele. Corrige, nunca bloqueia; a fala não muda.
     // v2: o sujeito sai SÓ do pedido original (ideia solta crua, ou a original_idea do roteiro estruturado pelo cliente) — nunca do roteiro com pistas [Pexels]; sem pedido confiável, nada muda.
-    const kling4Sujeito = kling4TrialCandidate && !desenhoInfantil.ativo ? exigirSujeitoNoKling4({ pedido: pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: kling4Timing.voiceovers }), falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }) : null // KINEO-K4-SUJEITO-0111
+    // v4: o sujeito vem de UMA chamada semântica ao gpt-4o-mini sobre esse pedido (prazo ~4 s, 1 tentativa extra no máximo); erro, prazo ou JSON inválido = nada muda.
+    const kling4PedidoSujeito = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: kling4Timing.voiceovers }) : null // KINEO-K4-SUJEITO-0111
+    const kling4LeituraSujeito = kling4PedidoSujeito?.pedido ? await lerSujeitoDoPedido(kling4PedidoSujeito.pedido) : null // KINEO-K4-SUJEITO-0111 — nunca lança: falha vira { ok: false }
+    const kling4Sujeito = kling4PedidoSujeito ? exigirSujeitoNoKling4({ pedido: kling4PedidoSujeito, leitura: kling4LeituraSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }) : null // KINEO-K4-SUJEITO-0111
     if (kling4Sujeito?.relato.corrigido) { for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = kling4Sujeito.prompts[i]; for (let i = 0; i < kling4ApprovedStills.length; i++) kling4ApprovedStills[i] = kling4Sujeito.stills[i] ?? null; console.log(`[cinematic] KINEO-K4-SUJEITO: "${kling4Sujeito.relato.sujeito}" (pedido: ${kling4Sujeito.relato.fonte_do_pedido}) entrou na cena ${kling4Sujeito.relato.cena}${kling4Sujeito.relato.keyframe_removido ? ' (imagem-chave do meio retirada)' : ''}`) } // KINEO-K4-SUJEITO-0111
     let kling4Trial: Kling4TrialResult | null = null
     let kling4Posts = 0
