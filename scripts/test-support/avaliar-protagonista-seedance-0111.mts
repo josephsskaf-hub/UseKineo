@@ -7,7 +7,8 @@ export interface Caso {
   /** nomes aceitos para o protagonista; null na lista = "sem protagonista nomeado" também vale; null = não pode haver protagonista nomeado */
   protagonista: Array<string | null> | null
   tipo: 'human' | 'animal' | 'creature' | 'object' | null
-  especie: string | null
+  /** a espécie em INGLÊS que a ficha deve dizer (PT/ES: a tradução; lista = qualquer uma vale) */
+  especie: string | string[] | null
   proib?: string[]; humanos?: string[]; animais?: Record<string, string>; especiesProibidas?: string[]
   proibTipo?: Record<string, string>; livre?: boolean; fallbackOk?: boolean
   /** só citados ("Lena is gone"): não podem entrar como coadjuvante em cena */
@@ -51,7 +52,8 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
     if (c.tipo === 'human') graves.push(`pessoa_virou_${p.kind}:${nomeado}`)
     else erros.push(`tipo:${nomeado}=${p.kind} (esperado ${c.tipo})`)
   }
-  if (nomeado && c.especie && p && !casaNome(p.species ?? '', c.especie) && !norm(p.species ?? '').includes(norm(c.especie))) erros.push(`especie:${nomeado}=${p.species} (esperado ${c.especie})`)
+  const especies = c.especie == null ? [] : Array.isArray(c.especie) ? c.especie : [c.especie]
+  if (nomeado && especies.length && p && !especies.some((esp) => casaNome(p.species ?? '', esp) || norm(p.species ?? '').includes(norm(esp)))) erros.push(`especie:${nomeado}=${p.species} (esperado ${especies.join('|')})`)
   const unicos = (xs: string[]) => [...new Set(xs)]
   const g = unicos(graves), er = unicos(erros)
   return { acerto: g.length === 0 && er.length === 0, graves: g, erros: er, protagonista: nomeado ?? (p?.role ? `the ${p.role}` : null), kind: p?.kind ?? null, species: p?.species ?? null, fallback }

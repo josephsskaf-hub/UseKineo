@@ -10,7 +10,7 @@
 //
 // O DESENHO (decisão de arquitetura de 01/11):
 //   1. UMA chamada curta ao gpt-4o-mini (o mesmo modelo e o mesmo caminho HTTP do casting da folha), JSON estrito,
-//      temperature 0, prazo ~4 s, 1 tentativa extra. Devolve {protagonist, supporting (≤3), places_and_orgs}.
+//      temperature 0, prazo ~4 s, 1 tentativa extra (só para erro de rede/HTTP/prazo). Devolve {protagonist, supporting (≤3), places_and_orgs}.
 //   2. O CÓDIGO confere a resposta contra o texto: nome tem de estar no texto; espécie de bicho/criatura tem de estar no texto;
 //      aparência só fica se as palavras dela estão no texto; lugar/empresa listado nunca vira personagem. Dúvida = descarta.
 //   3. FALHA SEGURA: sem chave, erro, prazo, JSON inválido, protagonista sem nome ou que não passa na conferência →
@@ -21,30 +21,49 @@
 //      que deixa de inserir nome que não é personagem (lugar, "Lena is gone").
 // Escopo: estrada clássica (Seedance/Kling 2.5/Veo) em character_story, incluindo o filme grátis de 15 s. Hollywood/Kling 4
 // não chamam (docs/calibracao/protagonista-seedance-0111.json). Módulo puro + uma função de rede com fetch injetável.
+//
+// REVISÃO 01/11 (rodada 5):
+//   · PORTUGUÊS/ESPANHOL: a conferência é no idioma do texto ("vira-lata", "gata", "pombo"), mas a ficha vai em inglês. O modelo devolve
+//     também species_en / role_en / appearance_en; o código só usa o inglês depois que a palavra original passou na conferência.
+//     Antes, "Thor, a vira-lata with realistic vira-lata anatomy" e "Luna, a gata" iam ao motor.
+//   · O 15 s volta a completar o elenco pelos visuais (inglês) — a fonte do pedido em PT/ES —, mas só com papel que o texto NÃO escreve:
+//     palavra que o texto escreve e a leitura semântica não chamou de personagem ("unicorn" da peruca do BRO) não entra.
+//   · A ficha literal do juiz (lib/cinematic/juizFicha elencoComFichaLiteral) não apaga mais a ficha semântica com lixo ("night Pip",
+//     "morning Toast", "and Emma"): para quem o elenco semântico leu, o trecho só entra se traz palavra da aparência ou da espécie lida.
 import { canonicaDeterministica, PERSONAGEM_CASTING_MODELO, PERSONAGEM_MAX_PERSONAGENS, type FichaDePersonagem, type TipoDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
+import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v1'
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v2'
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
 export const ELENCO_SEMANTICO_MAX_COADJUVANTES = 3
-/** Custo de log (US$): ~700 tokens de entrada + ~150 de saída no gpt-4o-mini. */
-export const ELENCO_SEMANTICO_USD = 0.0002
+/** Custo de log (US$): ~900 tokens de entrada + ~200 de saída no gpt-4o-mini. */
+export const ELENCO_SEMANTICO_USD = 0.0003
 
 export type KindSemantico = 'human' | 'animal' | 'creature' | 'object'
 export interface PersonagemSemantico {
   /** O nome como o texto escreve ("BRO", "Captain Ahab") ou null para papel sem nome. */
   name: string | null
-  /** Papel sem nome ("stray puppy", "old fisherman"); só quando name é null. */
+  /** Papel sem nome, em inglês ("stray puppy", "old fisherman"); só quando name é null. */
   role: string | null
+  /** O papel como o texto escreve ("velho pescador"), conferido no texto; só quando name é null. */
+  role_text: string | null
   kind: KindSemantico
-  /** O substantivo que o TEXTO usa para o que ele é ("pigeon", "golden retriever"); gente: o papel ou 'human'. */
+  /** O substantivo em inglês do que ele é ("pigeon", "dog"); gente: o papel ou 'human'. Vai na ficha. */
   species: string | null
+  /** O substantivo como o TEXTO escreve ("pombo", "vira-lata"), conferido no texto. */
+  species_text: string | null
+  /** As palavras do texto que dizem como ele é (no idioma do texto). */
   appearance_from_text: string
+  /** A mesma aparência em inglês, só quando o texto não é inglês (senão ""). */
+  appearance_en: string
   gender_if_stated: 'male' | 'female' | null
   age_if_stated: 'child' | 'teen' | 'adult' | 'elderly' | null
+  /** As palavras do texto que dizem a idade ("nineteen", "de oito anos"); "" sem idade. */
+  age_evidence: string
 }
 export interface ElencoSemantico {
   protagonist: PersonagemSemantico | null
@@ -55,23 +74,25 @@ export interface ElencoSemantico {
 const limpa = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const semTags = (t: string) => limpa(String(t ?? '').replace(/\[[^\]]*\]/g, ' ').replace(/\*\*/g, ' '))
+const semAcento = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const TEXTO_MAX = 4000
 
 const SISTEMA = [
-  'You read the narration script of a short film and return its CAST as strict JSON.',
+  'You read the narration script of a short film and return its CAST as strict JSON. The script may be in any language (English, Portuguese, Spanish, ...).',
   'RULES:',
   '1. A character is a being that has a name or a role (the boy, the old fisherman, the stray puppy) AND acts in the story (does, says, feels or is shown doing something). A named person the story is about is a character even when they are missing, dead, absent or only described (missing-person cases, true crime, history): in "Maura Murray vanished in 2004" Maura Murray is the protagonist.',
-  '2. NEVER a character: places (cities, towns, lakes, rivers, mountains, parks, streets, shops, stations) even when the place name contains an animal or creature word (Pigeon Forge, Swan Lake, Eagle Peak, Beaver Creek, Death Valley); companies, brands, apps, organizations, agencies, teams, bands; ships, planes, cars, trucks and other vehicles; titles of films, shows, ballets, books and songs; products; events; abstract ideas and metaphors; the narrator; the viewer ("you"); and imperative or opening words at the start of a sentence (Imagine, Picture, Watch, Meet, Wait, Stop, Run, Never, Only, POV, OMG, Later, Finally, Meanwhile, Not).',
+  '2. NEVER a character: places (cities, towns, lakes, rivers, mountains, parks, streets, shops, stations) even when the place name contains an animal or creature word (Pigeon Forge, Swan Lake, Eagle Peak, Beaver Creek, Death Valley); companies, brands, apps, organizations, agencies, teams, bands; ships, planes, cars, trucks and other vehicles; titles of films, shows, ballets, books and songs; products; events; abstract ideas and metaphors; the narrator; the viewer ("you"); and imperative or opening words at the start of a sentence in any language (Imagine, Picture, Watch, Meet, Wait, Stop, Run, Never, Only, POV, OMG, Later, Finally, Meanwhile, Not, Imagina, Olha, Veja, Conheça, Imagínate, Mira, Conoce).',
   '3. An animal or creature word used as an ADJECTIVE of a thing is not a character: "a unicorn mane", "a dragon-shaped cake", "a ghost flight", "a bear hug", "a dinosaur blanket".',
   '4. A named object, food or vehicle that talks or acts like a person (Broccoli opens his eyes; the fridge replies) IS a character with kind "object". A named real person, historical figure or celebrity is kind "human".',
-  '5. kind is one of "human", "animal", "creature" (fantasy, mythical, robot, alien, dinosaur, monster, ghost), "object". species is the exact noun the TEXT uses for what this character is ("pigeon", "golden retriever", "cat", "tiny robot", "baby elephant", "broccoli"); for a human use the role noun the text gives ("boy", "nurse", "old man") or "human". Never guess a species: if the text never says what a named being is, it is kind "human", species "human". A real-world species stays kind "animal" even in a cartoon (cockroach, panda, pigeon, dog). A named being stays human even when an animal appears near it: in "Max picks up a stray puppy" Max is a human and the puppy is a separate character.',
+  '5. kind is one of "human", "animal", "creature" (fantasy, mythical, robot, alien, dinosaur, monster, ghost), "object". species is the exact noun the TEXT uses for what this character is, copied word for word from the script and never translated: an English script gives an English word ("pigeon", "golden retriever", "cat", "tiny robot", "baby elephant", "broccoli", "strawberry"); only a script written in another language gives a word of that language. For a human use the role noun the text gives ("boy", "nurse", "old man") or "human". Never guess a species: if the text never says what a named being is, it is kind "human", species "human". Any real-world animal species is kind "animal", never "creature", even in a cartoon and even when it talks, has a name, muscles or human habits (cockroach, panda, pigeon, goldfish, cat, dog); "creature" is only for beings that do not exist in nature. A named being stays human even when an animal appears near it: in "Max picks up a stray puppy" Max is a human and the puppy is a separate character.',
   '6. A pet or animal that belongs to someone ("his cat Whiskers", "a rescue horse named Thunder", "my golden retriever Luna") has that species; its owner is a different character.',
-  '7. appearance_from_text: ONLY words the text itself uses to describe how THIS character LOOKS (visible physical traits: hair, clothes, colours, size, body), copied verbatim, at most 15 words; "" if the text gives none. Actions, places, poses and states are NOT appearance. Examples: "A stray puppy shivers in the rain" → ""; "Ahab stands on the deck in the storm" → ""; "Skoczuś, fast asleep, snoring" → ""; "Broccoli opens his eyes" → ""; "Mila, with her turquoise hair and star-shaped backpack" → "turquoise hair and star-shaped backpack"; "BRO the muscular pigeon is bald" → "muscular, bald"; "Avocado, wearing sunglasses" → "wearing sunglasses". Never invent; never write "none".',
-  '8. gender_if_stated: "male", "female" or null, only from pronouns or nouns that clearly refer to THIS character. age_if_stated: "child", "teen", "adult", "elderly" or null, and age_evidence: the exact words of the text that state that age ("a little girl", "an 18-year-old", "the old man", "baby elephant"); if the text does not state the age, age_if_stated is null and age_evidence is "". A name alone never tells the age.',
-  '9. protagonist: the character the story follows the most: the one who is the subject of the most sentences; a character introduced with "Meet X" is usually the protagonist. If the main character has no name, set name null and role to the role noun phrase ("old fisherman"). If the script has no character at all (pure facts, places, objects that do not act), protagonist is null.',
+  '7. appearance_from_text: ONLY words the text itself uses to describe how THIS character LOOKS (visible physical traits: hair, clothes, colours, size, body), copied verbatim in the text\'s language, at most 15 words; "" if the text gives none. Actions, places, poses and states are NOT appearance. Examples: "A stray puppy shivers in the rain" → ""; "Ahab stands on the deck in the storm" → ""; "Skoczuś, fast asleep, snoring" → ""; "Broccoli opens his eyes" → ""; "Mila, with her turquoise hair and star-shaped backpack" → "turquoise hair and star-shaped backpack"; "BRO the muscular pigeon is bald" → "muscular, bald"; "Avocado, wearing sunglasses" → "wearing sunglasses". Never invent; never write "none".',
+  '8. gender_if_stated: "male", "female" or null, only from pronouns or nouns that clearly refer to THIS character. age_if_stated: "child", "teen", "adult", "elderly" or null, and age_evidence: the exact words of the text that state that age ("a little girl", "an 18-year-old", "nineteen", "the old man", "baby elephant", "de oito anos"); if the text does not state the age, age_if_stated is null and age_evidence is "". A name alone never tells the age.',
+  '9. protagonist: the character the story follows the most: the one who is the subject of the most sentences; a character introduced with "Meet X" is usually the protagonist. If the main character has no name, set name null and role to the role noun phrase as the text writes it ("old fisherman", "velho pescador"). If the script has no character at all (pure facts, places, objects that do not act), protagonist is null.',
   '10. supporting: up to 3 other characters that are PRESENT and do something in the story, the most important first, with the same fields; someone only mentioned as absent, gone, dead, remembered or talked about ("Lena is gone") is not a supporting character. For every character also answer on_screen: true if the text shows them physically present doing something in the story, false if they are only mentioned (gone, missing, remembered, talked about). places_and_orgs: every capitalized name in the text that is NOT a character (places, organizations, vehicles, titles, products).',
   '11. name is a PROPER NAME only, copied exactly as written in the text (keep its capitalization; full name if the text gives it, e.g. "Sarah Collins"). A description such as "the old wolf" or "the soldier" is not a name: put it in role and set name to null.',
-  'Reply ONLY with JSON: {"protagonist":{"name":string|null,"role":string|null,"kind":"human"|"animal"|"creature"|"object","species":string|null,"appearance_from_text":string,"gender_if_stated":"male"|"female"|null,"age_if_stated":"child"|"teen"|"adult"|"elderly"|null,"age_evidence":string,"on_screen":boolean}|null,"supporting":[...same shape...],"places_and_orgs":[string]}',
+  '12. ENGLISH FIELDS, always filled. For an English script they repeat the same English words (species "cat" → species_en "cat"). For a script in another language (Portuguese, Spanish, ...) species, role, appearance_from_text and age_evidence stay in that language, copied from the script, and the _en fields translate them: species_en is the plain common English noun ("pombo" → "pigeon", "vira-lata" → "mixed-breed dog", "gata" → "cat", "dragão" → "dragon", "brócolis" → "broccoli"); role_en is role in plain English ("velho pescador" → "old fisherman"), or null when role is null; appearance_en is appearance_from_text in English ("negra de olhos verdes" → "black with green eyes"), "" when appearance_from_text is "".',
+  'Reply ONLY with JSON: {"protagonist":{"name":string|null,"role":string|null,"role_en":string|null,"kind":"human"|"animal"|"creature"|"object","species":string|null,"species_en":string|null,"appearance_from_text":string,"appearance_en":string,"gender_if_stated":"male"|"female"|null,"age_if_stated":"child"|"teen"|"adult"|"elderly"|null,"age_evidence":string,"on_screen":boolean}|null,"supporting":[...same shape...],"places_and_orgs":[string]}',
 ].join('\n')
 
 export function mensagensDoElencoSemantico(texto: string): Array<{ role: 'system' | 'user'; content: string }> {
@@ -83,12 +104,18 @@ export function mensagensDoElencoSemantico(texto: string): Array<{ role: 'system
 
 // ═══ A conferência contra o texto (o código decide se a leitura do modelo pode entrar) ═══════════════════════════
 const palavraNoTexto = (texto: string, w: string) => new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(w)}(?![\\p{L}\\p{N}])`, 'iu').test(texto)
-/** "pigeon" está no texto como "pigeon"/"pigeons"; "golden retriever" pela última palavra (o núcleo). */
+/** "pigeon" está no texto como "pigeon"/"pigeons"; "golden retriever" pela última palavra (o núcleo). Acento não importa ("dragao" = "dragão"). */
 function especieNoTexto(texto: string, especie: string): boolean {
-  const nucleo = limpa(especie).toLowerCase().split(' ').pop() ?? ''
+  const nucleo = semAcento(limpa(especie)).split(' ').pop() ?? ''
   if (nucleo.length < 2) return false
+  const t = semAcento(texto)
   const formas = [nucleo, `${nucleo}s`, `${nucleo}es`, nucleo.replace(/s$/, ''), nucleo.replace(/ies$/, 'y')]
-  return formas.some((f) => f.length >= 2 && palavraNoTexto(texto, f))
+  return formas.some((f) => f.length >= 2 && palavraNoTexto(t, f))
+}
+const frasesDe = (texto: string) => texto.split(/(?<=[.!?…])\s+|\n+/)
+/** O nome e a espécie na mesma frase. */
+function mesmaFrase(texto: string, nome: string, especie: string): boolean {
+  return frasesDe(texto).some((f) => palavraNoTexto(f, nome) && especieNoTexto(f, especie))
 }
 /** A aparência só fica quando ≥ 80% das palavras de conteúdo (≥ 3 letras) estão no texto — o modelo não inventa roupa. */
 function aparenciaDoTexto(texto: string, aparencia: string): string {
@@ -100,6 +127,19 @@ function aparenciaDoTexto(texto: string, aparencia: string): string {
   const achadas = palavras.filter((w) => t.includes(w)).length
   return achadas / palavras.length >= 0.8 ? a.split(' ').slice(0, 15).join(' ').replace(/[\s,;.]+$/, '') : ''
 }
+/** O campo em inglês: substantivo/sintagma curto só de letras latinas (≤ 4 palavras); fora disso, null (fica a palavra original). */
+function inglesCurto(v: unknown, maxPalavras = 4): string | null {
+  const s = limpa(v).toLowerCase().replace(/^(?:a|an|the)\s+/, '')
+  if (!s || s === 'null' || s.length > 48 || !/^[a-z][a-z' -]*$/.test(s) || s.split(' ').length > maxPalavras) return null
+  return s
+}
+/** A aparência em inglês: só quando a original passou e ela de fato traduz (difere da original); ≤ 20 palavras, sem aspas. */
+function aparenciaEmIngles(v: unknown, original: string): string {
+  if (!original) return ''
+  const s = limpa(v).replace(/["“”]/g, '').replace(/[\s,;.]+$/, '')
+  if (!s || /^(?:none|n\/a|null|unknown)$/i.test(s) || s.split(' ').length > 20 || !/^[\p{L}\p{N}' ,;-]+$/u.test(s)) return ''
+  return semAcento(s) === semAcento(original) ? '' : s
+}
 
 const KINDS: readonly KindSemantico[] = ['human', 'animal', 'creature', 'object']
 function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]): PersonagemSemantico | null {
@@ -109,28 +149,51 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   if (!kind || !KINDS.includes(kind)) return null
   const nomeBruto = typeof o.name === 'string' && limpa(o.name) && limpa(o.name).toLowerCase() !== 'null' ? limpa(o.name) : null
   // "the old wolf" no campo do nome é descrição, não nome próprio: vira papel (nome próprio começa com maiúscula e sem artigo)
-  const descricaoNoNome = !!nomeBruto && (/^(?:a|an|the)\s/i.test(nomeBruto) || !/^\p{Lu}/u.test(nomeBruto))
+  const descricaoNoNome = !!nomeBruto && (/^(?:a|an|the|o|os|as|um|uma|el|la|los|las|un|una)\s/i.test(nomeBruto) || !/^\p{Lu}/u.test(nomeBruto))
   const name = descricaoNoNome ? null : nomeBruto
   const roleBruto = descricaoNoNome ? nomeBruto : typeof o.role === 'string' && limpa(o.role) && limpa(o.role).toLowerCase() !== 'null' ? limpa(o.role) : null
-  const role = !name && roleBruto ? roleBruto.replace(/^(?:a|an|the)\s+/i, '').toLowerCase() : null
-  if (!name && !role) return null
+  let role_text = !name && roleBruto ? roleBruto.replace(/^(?:a|an|the|o|os|as|um|uma|el|la|los|las|un|una)\s+/i, '').toLowerCase() : null
+  if (!name && !role_text) return null
   if (name) {
     if (name.length > 40 || !palavraNoTexto(texto, name)) return null // nome que o texto não escreve = inventado
     if (lugares.some((l) => l.toLowerCase() === name.toLowerCase())) return null // o próprio modelo disse que é lugar/empresa
   }
-  if (role && !especieNoTexto(texto, role)) return null
+  if (role_text && !especieNoTexto(texto, role_text)) {
+    // o modelo às vezes traduz o papel de um texto em inglês para outra língua: vale o inglês, se É ele que o texto escreve
+    const roleEnNoTexto = inglesCurto(o.role_en)
+    if (!roleEnNoTexto || !especieNoTexto(texto, roleEnNoTexto)) return null
+    role_text = roleEnNoTexto
+  }
+  // o papel em inglês só substitui o original que passou na conferência ("velho pescador" → "old fisherman")
+  const role = role_text ? (inglesCurto(o.role_en) ?? role_text) : null
   const speciesBruta = typeof o.species === 'string' && limpa(o.species) ? limpa(o.species).toLowerCase() : null
-  let species: string | null = speciesBruta
-  if (kind === 'human') species = speciesBruta && speciesBruta !== 'human' && especieNoTexto(texto, speciesBruta) ? speciesBruta : 'human'
-  else if (kind === 'object') species = speciesBruta && especieNoTexto(texto, speciesBruta) ? speciesBruta : name ? name.toLowerCase() : role
-  else if (!speciesBruta || !especieNoTexto(texto, speciesBruta)) return null // bicho/criatura sem a espécie escrita no texto: não confiamos
+  const speciesEn = inglesCurto(o.species_en)
+  // a âncora no texto: a palavra original ("pombo") ou, se o texto é inglês e o modelo traduziu o campo original ("gata" para "cat"), a inglesa
+  const originalNoTexto = !!speciesBruta && especieNoTexto(texto, speciesBruta)
+  const inglesNoTexto = !originalNoTexto && !!speciesEn && especieNoTexto(texto, speciesEn)
+  const especieConferida = originalNoTexto || inglesNoTexto
+  let species: string | null
+  let species_text: string | null = originalNoTexto ? speciesBruta : inglesNoTexto ? speciesEn : null
+  if (kind === 'human') species = especieConferida && species_text !== 'human' ? (speciesEn && speciesEn !== 'human' ? speciesEn : species_text) : 'human'
+  else if (kind === 'object') species = especieConferida ? (speciesEn ?? species_text) : name ? name.toLowerCase() : role
+  else if (!especieConferida) return null // bicho/criatura sem a espécie escrita no texto: não confiamos
+  // bicho/criatura NOMEADO: a espécie tem de estar na MESMA frase que o nome ("Laika, a stray dog"; "his cat Whiskers"). A palavra estar em
+  // outro ponto do texto não prova que é dele — no "Mila" em português o Skoczuś virava a "flor gigante" da frase anterior
+  else if (name && !mesmaFrase(texto, name, species_text!)) return null
+  else species = speciesEn ?? species_text
+  if (kind === 'human' && species === 'human') species_text = null
   const g = o.gender_if_stated
   const gender = g === 'male' || g === 'female' ? g : null
   const a = o.age_if_stated
   // a idade só fica com a prova: as palavras do texto que a dizem (o modelo deu "child" ao Max sem o texto dizer)
   const prova = typeof o.age_evidence === 'string' ? limpa(o.age_evidence).replace(/^["']|["']$/g, '') : ''
   const age = (a === 'child' || a === 'teen' || a === 'adult' || a === 'elderly') && prova.length >= 3 && palavraNoTexto(texto, prova) ? a : null
-  return { name, role, kind, species, appearance_from_text: aparenciaDoTexto(texto, typeof o.appearance_from_text === 'string' ? o.appearance_from_text : ''), gender_if_stated: gender, age_if_stated: age }
+  const appearance_from_text = aparenciaDoTexto(texto, typeof o.appearance_from_text === 'string' ? o.appearance_from_text : '')
+  return {
+    name, role, role_text, kind, species, species_text, appearance_from_text,
+    appearance_en: aparenciaEmIngles(o.appearance_en, appearance_from_text),
+    gender_if_stated: gender, age_if_stated: age, age_evidence: age ? prova.slice(0, 60) : '',
+  }
 }
 
 /** Lê e confere a resposta. JSON inválido ou fora do formato → null (a rota segue o determinístico). */
@@ -154,7 +217,7 @@ export function lerElencoSemantico(raw: string, textoOriginal: string): ElencoSe
 }
 const chave = (p: PersonagemSemantico) => (p.name ?? p.role ?? '').toLowerCase()
 
-// ═══ A rede (uma chamada, 1 tentativa extra; nunca lança) ═════════════════════════════════════════════════════════
+// ═══ A rede (uma chamada, 1 tentativa extra só para falha de rede/HTTP/prazo; nunca lança) ═══════════════════════
 export type StatusElencoSemantico = 'ok' | 'sem_chave' | 'falhou' | 'json_invalido' | 'vazio'
 export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: number; tentativas?: number; fetchImpl?: typeof fetch; apiKey?: string }): Promise<{ elenco: ElencoSemantico | null; status: StatusElencoSemantico; tentativas: number; ms: number; raw: string | null }> {
   const t0 = Date.now()
@@ -174,14 +237,17 @@ export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: n
         method: 'POST',
         signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model: ELENCO_SEMANTICO_MODELO, temperature: 0, max_tokens: 500, response_format: { type: 'json_object' }, messages: mensagensDoElencoSemantico(texto) }),
+        body: JSON.stringify({ model: ELENCO_SEMANTICO_MODELO, temperature: 0, max_tokens: 700, response_format: { type: 'json_object' }, messages: mensagensDoElencoSemantico(texto) }),
       })
       if (!res.ok) { status = 'falhou'; continue }
       const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
       raw = data.choices?.[0]?.message?.content ?? ''
       const elenco = lerElencoSemantico(raw, texto)
       if (elenco) return { elenco, status: 'ok', tentativas: n + 1, ms: Date.now() - t0, raw }
+      // resposta que chegou e foi reprovada na conferência: a temperature 0 devolveria a mesma — repetir só dobraria a espera
       status = 'json_invalido'
+      n++
+      break
     } catch {
       status = 'falhou'
     } finally {
@@ -217,6 +283,18 @@ function papelSintetico(p: PersonagemSemantico): string {
     default: return f ? 'woman' : m ? 'man' : ''
   }
 }
+/** Quem é (gente com aparência do autor): a idade só como o texto a diz — sem número inventado ("nineteen" não vira "about sixteen") e,
+ *  sem idade no texto, sem idade na ficha (a Mila do conto infantil não vira "a woman"). */
+function quemEh(p: PersonagemSemantico): string {
+  const f = p.gender_if_stated === 'female', m = p.gender_if_stated === 'male'
+  const base = p.age_if_stated === 'child' ? (f ? 'a young girl' : m ? 'a young boy' : 'a young child')
+    : p.age_if_stated === 'teen' ? (f ? 'a teenage girl' : m ? 'a teenage boy' : 'a teenager')
+    : p.age_if_stated === 'elderly' ? (f ? 'an elderly woman' : m ? 'an elderly man' : 'an elderly person')
+    : p.age_if_stated === 'adult' ? (f ? 'an adult woman' : m ? 'an adult man' : 'an adult')
+    : f ? 'a female character' : m ? 'a male character' : 'a person'
+  return p.age_evidence ? `${base} (age as the author wrote: "${p.age_evidence.replace(/"/g, '')}")` : base
+}
+const glosa = (p: PersonagemSemantico) => (p.appearance_en ? ` (in English: ${p.appearance_en})` : '')
 
 function frasesDoNome(texto: string, nome: string): string {
   return texto.split(/(?<=[.!?…])\s+|\n+/).filter((f) => palavraNoTexto(f, nome)).join(' ')
@@ -235,22 +313,24 @@ function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, u
     const papel = papelSintetico(p)
     const genero = p.gender_if_stated === 'female' ? 'woman' : p.gender_if_stated === 'male' ? 'man' : null
     const nucleo = p.name ? nucleoDoNome(p.name, texto) : (p.role ?? '').split(' ').pop() ?? nome
-    if (aparencia) {
-      const quem = papel === 'girl' ? 'a girl about nine years old' : papel === 'boy' ? 'a boy about nine years old' : papel === 'child' ? 'a child about nine years old'
-        : papel.startsWith('teen') ? `a ${papel === 'teen woman' ? 'girl' : papel === 'teen man' ? 'boy' : 'teenager'} about sixteen years old`
-        : papel.startsWith('old') ? `an ${papel === 'old' ? 'elderly person' : papel.replace('old', 'elderly')}` : papel ? `a ${papel}` : 'a person'
-      return { nome, nucleo, tipo, canonica: `${nome}, exactly as the author wrote: "${aparencia}", ${quem}`, origem: 'autor', protagonista, genero }
-    }
-    return { nome, nucleo, tipo, canonica: canonicaDeterministica(nome, 'humano', null, `${papel} | `, usados), origem: 'deterministica', protagonista, genero }
+    if (aparencia) return { nome, nucleo, tipo, canonica: `${nome}, exactly as the author wrote: "${aparencia}"${glosa(p)}, ${quemEh(p)}`, origem: 'autor', protagonista, genero }
+    // a idade do gerador é uma faixa fixa ("about sixteen years old" para todo teen): com a prova no texto, vale a prova ("diecinueve años")
+    const canonica = canonicaDeterministica(nome, 'humano', null, `${papel} | `, usados)
+    const comIdade = p.age_evidence ? canonica.replace(/ (?:about nine years old|about sixteen years old|in their early twenties|in their late sixties|in their early thirties)(?= with )/, ` (age as the author wrote: "${p.age_evidence.replace(/"/g, '')}")`) : canonica
+    return { nome, nucleo, tipo, canonica: comIdade, origem: 'deterministica', protagonista, genero }
   }
   const especie = (p.species ?? '').toLowerCase()
   const nucleo = especie.split(' ').pop() ?? especie
-  if (aparencia) return { nome, nucleo, tipo, canonica: `${nome}, a ${especie}, exactly as the author wrote: "${aparencia}"`, origem: 'autor', protagonista, genero: null }
+  if (aparencia) return { nome, nucleo, tipo, canonica: `${nome}, a ${especie}, exactly as the author wrote: "${aparencia}"${glosa(p)}`, origem: 'autor', protagonista, genero: null }
   const contexto = `${p.age_if_stated === 'child' ? 'baby ' : ''}${especie} | ${frasesDoNome(texto, p.name ?? nucleo)}`
   return { nome, nucleo, tipo, canonica: canonicaDeterministica(nome, tipo, nucleo, contexto, usados), origem: 'deterministica', protagonista, genero: null }
 }
 
 const mesmoNome = (a: string, b: string) => a.toLowerCase().replace(/^the\s+/, '') === b.toLowerCase().replace(/^the\s+/, '')
+const palavrasDe = (s: string) => semAcento(String(s ?? '')).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3)
+
+/** O que a leitura semântica sabe de cada personagem do elenco: as palavras que podem descrevê-lo (aparência + espécie/papel lidos). */
+export interface LeituraDaFicha { nome: string; nomeProprio: boolean; aceita: string[] }
 
 export interface ElencoAplicado {
   elenco: FichaDePersonagem[]
@@ -261,11 +341,14 @@ export interface ElencoAplicado {
   /** fichas novas (o determinístico errava) e fichas mantidas (o determinístico já acertava) */
   novas: string[]
   mantidas: string[]
+  /** a guarda da ficha literal do juiz (conferirFichaLiteral) */
+  leitura: LeituraDaFicha[]
 }
 
 /**
  * O elenco do pedido com o semântico. Só age com protagonista NOMEADO (onde o defeito acontece); senão null = o elenco de
- * sempre. Quem o determinístico já acertou (mesmo nome + mesmo tipo + mesma espécie) e figura mítica ficam com a ficha de antes.
+ * sempre. Quem o determinístico já acertou (mesmo nome + mesmo tipo + mesma espécie) e figura mítica ficam com a ficha de antes —
+ * exceto quando o protagonista tem aparência no texto e a ficha de antes não é do autor (o "red scarf" da Hope não some).
  */
 export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, sem: ElencoSemantico | null, textoOriginal: string): ElencoAplicado | null {
   if (!sem || !sem.protagonist || !sem.protagonist.name) return null
@@ -274,15 +357,22 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
   const usados = new Set<string>()
   const novas: string[] = []
   const mantidas: string[] = []
-  const elenco = todos.slice(0, PERSONAGEM_MAX_PERSONAGENS).map((p, i): FichaDePersonagem => {
+  const noElenco = todos.slice(0, PERSONAGEM_MAX_PERSONAGENS)
+  const elenco = noElenco.map((p, i): FichaDePersonagem => {
     const nome = p.name ?? `the ${p.role}`
     const antes = base.find((f) => mesmoNome(f.nome, nome))
     const tipo = TIPO[p.kind]
     const especieBate = (f: FichaDePersonagem) => tipo === 'humano' || !p.species || f.canonica.toLowerCase().includes((p.species.split(' ').pop() ?? '').toLowerCase())
-    if (antes && ((antes.origem as string) === 'mitica' || (antes.tipo === tipo && especieBate(antes)))) { mantidas.push(antes.nome); return { ...antes, protagonista: i === 0 } }
+    const aparenciaPerdida = i === 0 && !!p.appearance_from_text && antes?.origem !== 'autor'
+    if (antes && ((antes.origem as string) === 'mitica' || (antes.tipo === tipo && especieBate(antes) && !aparenciaPerdida))) { mantidas.push(antes.nome); return { ...antes, protagonista: i === 0 } }
     novas.push(nome)
     return fichaDe(p, texto, i === 0, usados)
   })
+  const leitura = noElenco.map((p): LeituraDaFicha => ({
+    nome: p.name ?? `the ${p.role}`,
+    nomeProprio: !!p.name,
+    aceita: [...new Set([p.appearance_from_text, p.appearance_en, p.species_text ?? '', p.kind === 'human' && p.species === 'human' ? '' : p.species ?? '', p.role ?? '', p.role_text ?? ''].flatMap(palavrasDe))],
+  }))
   return {
     elenco,
     nomes: todos.map((p) => p.name ?? `the ${p.role}`),
@@ -290,7 +380,53 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
     naoPersonagens: [...sem.places_and_orgs],
     novas,
     mantidas,
+    leitura,
   }
+}
+
+/**
+ * A ficha literal do juiz para quem o elenco semântico leu. O trecho "literal" só substitui a ficha quando traz alguma palavra que a
+ * leitura semântica reconhece como desse personagem (aparência ou espécie/papel lidos no texto). "night Pip", "morning Toast", "and Emma",
+ * "year later Nina" não trazem nenhuma: a ficha semântica fica. Figura mítica e personagem fora do elenco semântico: igual ao juiz.
+ */
+export function conferirFichaLiteral(lit: ElencoLiteral, antes: ReadonlyArray<FichaDePersonagem>, sem: { leitura?: ReadonlyArray<LeituraDaFicha> } | null | undefined): ElencoLiteral {
+  if (!sem?.leitura?.length) return lit
+  const elenco = lit.elenco.map((f) => ({ ...f }))
+  const literais = [...lit.literais]
+  let trocas = [...lit.trocas]
+  lit.elenco.forEach((f, i) => {
+    const a = antes[i]
+    if (!a || a.canonica === f.canonica || (a.origem as string) === 'mitica') return
+    const leitura = sem.leitura!.find((l) => mesmoNome(l.nome, a.nome))
+    const literal = literalDaCanonica(f.canonica)
+    if (!leitura || !literal) return
+    const doNome = new Set(leitura.nomeProprio ? palavrasDe(leitura.nome) : [])
+    const aceita = new Set(leitura.aceita)
+    const traz = palavrasDe(literal).filter((w) => !doNome.has(w)).some((w) => aceita.has(w) || aceita.has(w.replace(/(?:es|s)$/, '')) || aceita.has(`${w}s`))
+    if (traz) return
+    elenco[i] = { ...a }
+    const k = literais.indexOf(f.nome)
+    if (k >= 0) literais.splice(k, 1)
+    trocas = trocas.filter(([x, y]) => !(x === a.canonica && y === f.canonica))
+  })
+  return { ...lit, elenco, literais, trocas }
+}
+
+/** elencoComFichaLiteral + a conferência acima (sem elenco semântico: exatamente o juiz). */
+export function fichaLiteralConferida(pedido: string, elenco: ReadonlyArray<FichaDePersonagem>, sem: { leitura?: ReadonlyArray<LeituraDaFicha> } | null | undefined): ElencoLiteral {
+  return conferirFichaLiteral(elencoComFichaLiteral(pedido, elenco), elenco, sem)
+}
+
+/**
+ * O 15 s completa o elenco pelos visuais (inglês) — a fonte do pedido em PT/ES ("the grandfather" de "o avô"). Com o elenco semântico:
+ *   · palavra que o TEXTO escreve e a leitura semântica não chamou de personagem já foi julgada — não entra ("unicorn" da peruca do BRO);
+ *   · bicho/criatura que o texto não escreve é invenção do escritor de cenas ou adjetivo traduzido ("unicorn" de "crina de unicórnio") —
+ *     a leitura semântica confere toda espécie no texto, então não entra;
+ *   · gente que o texto não escreve (o papel em inglês do pedido em PT/ES) entra pelas regras de sempre do 15 s.
+ */
+export function aceitaPapelDasCenas(textoOriginal: string): (ficha: Pick<FichaDePersonagem, 'tipo'>, chave: string) => boolean {
+  const texto = semTags(textoOriginal)
+  return (ficha, chave) => !!chave && ficha.tipo === 'humano' && !especieNoTexto(texto, chave)
 }
 
 /** Relato de log/evento: nomes e tipos (nunca o texto do cliente). */

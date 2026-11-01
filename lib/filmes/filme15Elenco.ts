@@ -59,13 +59,15 @@ export function elencoDoFilme15(args: {
   elencoDoPedido: ReadonlyArray<FichaDePersonagem>
   visuals: ReadonlyArray<string>
   extrair: (texto: string) => FichaDePersonagem[]
-  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — false quando o elenco do pedido veio do elenco SEMÂNTICO (quem é personagem já foi lido pelo
-   *  sentido): os visuais não acrescentam ninguém ("the bright pink unicorn" da peruca do BRO entrava como coadjuvante). Padrão: true. */
-  completar?: boolean
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — quem os visuais podem acrescentar ao elenco do pedido. Padrão (true): as regras de sempre. false:
+   *  ninguém. Função: com o elenco SEMÂNTICO (lib/cinematic/elencoSemantico aceitaPapelDasCenas), só o papel que ela aceita — "the bright
+   *  pink unicorn" da peruca do BRO não entra; "the grandfather" do pedido em português entra. */
+  completar?: boolean | ((ficha: FichaDePersonagem, chave: string) => boolean)
 }): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'pedido+cenas' | 'cenas' | 'nenhum' } {
   const doPedido = args.elencoDoPedido.slice(0, FILME15_ELENCO_MAX).map((f) => ({ ...f }))
   if (doPedido.length >= FILME15_ELENCO_MAX) return { elenco: doPedido, origem: 'pedido' }
   if (args.completar === false && doPedido.length > 0) return { elenco: doPedido.map((f, i) => ({ ...f, protagonista: i === 0 })), origem: 'pedido' } // KINEO-PROTAGONISTA-SEEDANCE-0111
+  const aceitaDasCenas = typeof args.completar === 'function' && doPedido.length > 0 ? args.completar : null // KINEO-PROTAGONISTA-SEEDANCE-0111
   // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo
   //    ("the girl hands the key to an elderly man" → girl, depois man).
   const porCena: Array<Array<{ chave: string; ficha: FichaDePersonagem }>> = args.visuals.map((visual) => {
@@ -96,6 +98,7 @@ export function elencoDoFilme15(args: {
     for (const a of c) {
       if (elenco.length >= FILME15_ELENCO_MAX) break
       if (a.chave === primeiro.chave || elenco.some((e) => nucleoDe(e) === a.chave) || citaPalavra(String(primeiro.ficha.nome ?? ''), a.chave)) continue
+      if (aceitaDasCenas && !aceitaDasCenas(a.ficha, a.chave)) continue // KINEO-PROTAGONISTA-SEEDANCE-0111
       const comOProtagonista = c.some((x) => x.chave === primeiro.chave || citaPalavra(String(primeiro.ficha.nome ?? ''), x.chave))
       if ((contagem.get(a.chave) ?? 0) >= 2 || comOProtagonista) elenco.push({ ...a.ficha, protagonista: false })
     }

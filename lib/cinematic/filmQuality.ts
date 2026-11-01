@@ -6,6 +6,7 @@ import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
 
@@ -149,11 +150,11 @@ export function prepararQualidadeDoFilme(args: {
   style: StyleAnchor; elenco?: ReadonlyArray<FichaDePersonagem>; preservarElenco?: boolean
   kidsCartoon?: boolean; aplicarContrato?: boolean
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — repassado à camada elencoEpoca (aplicarElencoEEpoca). */
-  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
+  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null
 }) {
   const elenco = args.tagFaceless ? [] : args.preservarElenco
     ? [...(args.elenco ?? [])]
-    : elencoComFichaLiteral(args.contextoOriginal, args.elenco ?? elencoDoRoteiro(args.contextoOriginal)).elenco
+    : (() => { const base = args.elenco ?? elencoDoRoteiro(args.contextoOriginal); return conferirFichaLiteral(elencoComFichaLiteral(args.contextoOriginal, base), base, args.elencoSemantico).elenco })() // KINEO-PROTAGONISTA-SEEDANCE-0111 — a ficha semântica não é apagada por "night Pip"; sem elenco semântico = o juiz
   const contracted = args.prompts.map((prompt, indice) => args.aplicarContrato === false ? prompt
     : aplicarContrato(montarContrato({ indice, falaFinal: args.falas[indice] ?? '', promptFinal: prompt, palavraInteira: true })).promptCorrigido)
   // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.

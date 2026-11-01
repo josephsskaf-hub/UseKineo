@@ -2012,5 +2012,518 @@
    "cat",
    "cats"
   ]
+ },
+ {
+  "id": "pt-bro",
+  "fonte": "pt-es",
+  "texto": "BRO, o pombo musculoso, voltou e continua careca. Hoje ele entra numa loja de perucas chique com exatamente cinco dólares. A única peruca que ele pode pagar é uma crina de unicórnio rosa-choque. Ele coloca, flexiona no espelho e sussurra uma palavra: Bro.",
+  "protagonista": [
+   "BRO"
+  ],
+  "tipo": "animal",
+  "especie": "pigeon",
+  "proib": [
+   "unicórnio",
+   "unicorn"
+  ]
+ },
+ {
+  "id": "pt-thor",
+  "fonte": "pt-es",
+  "texto": "Thor é um cachorro vira-lata caramelo que mora na rua da padaria. Toda manhã, Thor espera o padeiro abrir a porta. Hoje o padeiro não apareceu. Thor late, corre até a casa dele e encontra o homem caído no chão. Thor salvou a vida dele.",
+  "protagonista": [
+   "Thor"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "dog",
+   "mutt"
+  ]
+ },
+ {
+  "id": "pt-thor-curto",
+  "fonte": "pt-es",
+  "texto": "Thor, um vira-lata de rua, encontra uma carteira perdida na calçada. Thor leva a carteira na boca até a delegacia. O policial ri e devolve a carteira ao dono, que adota Thor na mesma hora.",
+  "protagonista": [
+   "Thor"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "dog",
+   "mutt"
+  ]
+ },
+ {
+  "id": "pt-luna",
+  "fonte": "pt-es",
+  "texto": "Luna, uma gata negra de olhos verdes, vive no telhado de um prédio em São Paulo. Toda noite ela observa as luzes da cidade. Numa noite de chuva, Luna ouve um miado fraco vindo do bueiro. Ela desce, encontra um filhote molhado e o leva para o telhado.",
+  "protagonista": [
+   "Luna"
+  ],
+  "tipo": "animal",
+  "especie": "cat",
+  "proib": [
+   "São Paulo"
+  ]
+ },
+ {
+  "id": "pt-faisca",
+  "fonte": "pt-es",
+  "texto": "Faísca é um dragão pequeno que não consegue cuspir fogo. Os outros dragões riem dele. Um dia, a vila congela no inverno, e Faísca descobre que seu sopro morno derrete o gelo. A vila inteira agradece a Faísca.",
+  "protagonista": [
+   "Faísca"
+  ],
+  "tipo": "creature",
+  "especie": "dragon"
+ },
+ {
+  "id": "pt-ana-avo",
+  "fonte": "pt-es",
+  "texto": "Ana, uma menina de oito anos, encontra uma chave antiga no sótão da casa do avô. Ela pergunta ao avô o que a chave abre. O avô sorri e a leva até um baú escondido no jardim. Dentro, há cartas que a avó escreveu há cinquenta anos.",
+  "protagonista": [
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana"
+  ]
+ },
+ {
+  "id": "pt-lucas-leao",
+  "fonte": "pt-es",
+  "texto": "Lucas trabalha como tratador no zoológico de Brasília. Todo dia, Lucas alimenta o velho leão Simba. Hoje Simba não quis comer. Lucas senta ao lado da jaula e canta a música que cantava quando Simba era filhote.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas"
+  ],
+  "animais": {
+   "Simba": "lion"
+  },
+  "proib": [
+   "Brasília"
+  ]
+ },
+ {
+  "id": "pt-mariana-lugar",
+  "fonte": "pt-es",
+  "texto": "Mariana dirigiu até a Serra do Urubu numa sexta-feira à noite. Ela parou num posto em Lagoa dos Patos para abastecer. O frentista foi a última pessoa a vê-la. Mariana nunca chegou ao destino.",
+  "protagonista": [
+   "Mariana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mariana"
+  ],
+  "proib": [
+   "Serra do Urubu",
+   "Lagoa dos Patos",
+   "Urubu",
+   "Patos"
+  ]
+ },
+ {
+  "id": "pt-imagina",
+  "fonte": "pt-es",
+  "texto": "Imagina acordar e descobrir que você é o último humano na Terra. Pedro abre a janela. As ruas estão vazias. Um cachorro passa correndo com uma coleira azul. Pedro corre atrás dele.",
+  "protagonista": [
+   "Pedro"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Pedro"
+  ],
+  "proib": [
+   "Imagina"
+  ]
+ },
+ {
+  "id": "pt-brocolis",
+  "fonte": "pt-es",
+  "texto": "Brócolis acordou na geladeira e percebeu que hoje era dia de sopa. Brócolis chamou a Cenoura e o Tomate para uma fuga. Os três pularam da prateleira e rolaram até a porta da cozinha.",
+  "protagonista": [
+   "Brócolis"
+  ],
+  "tipo": "object",
+  "especie": "broccoli"
+ },
+ {
+  "id": "pt-joana-pombos",
+  "fonte": "pt-es",
+  "texto": "Joana mora na Rua dos Pombos, em Lisboa. Todo dia ela alimenta os pombos da praça. Hoje um deles pousou no ombro dela com um bilhete amarrado na pata. Joana abre o bilhete e reconhece a letra do avô.",
+  "protagonista": [
+   "Joana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joana"
+  ],
+  "proib": [
+   "Rua dos Pombos",
+   "Lisboa"
+  ]
+ },
+ {
+  "id": "pt-max",
+  "fonte": "pt-es",
+  "texto": "Max acorda no mesmo banco da praça. O cronômetro acima da cabeça dele marca um minuto. Lena se foi. Um bilhete no bolso diz: ajude alguém que nunca poderá te pagar. Um filhote de cachorro treme na chuva. Max o pega no colo. O cronômetro fica dourado.",
+  "protagonista": [
+   "Max"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Max"
+  ],
+  "ausentes": [
+   "Lena"
+  ]
+ },
+ {
+  "id": "pt-mila",
+  "fonte": "pt-es",
+  "texto": "Mila, com seu cabelo turquesa e mochila em forma de estrela, volta ao Vale do Arco-Íris. Mas Skoczuś sumiu! Um rastro de pegadas brilhantes leva até uma flor gigante que canta. Mila cantarola junto, as pétalas se abrem, e lá está Skoczuś, dormindo e roncando bolhas de arco-íris.",
+  "protagonista": [
+   "Mila"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mila"
+  ],
+  "proib": [
+   "Vale do Arco-Íris"
+  ],
+  "especiesProibidas": [
+   "giant",
+   "flower"
+  ]
+ },
+ {
+  "id": "pt-tita",
+  "fonte": "pt-es",
+  "texto": "Tita é uma tartaruga marinha que nasceu numa praia da Bahia. Na primeira noite, Tita precisa chegar ao mar antes que as gaivotas a encontrem. Ela corre pela areia sob a lua cheia e mergulha nas ondas.",
+  "protagonista": [
+   "Tita"
+  ],
+  "tipo": "animal",
+  "especie": "turtle",
+  "proib": [
+   "Bahia"
+  ]
+ },
+ {
+  "id": "pt-dom-joao",
+  "fonte": "pt-es",
+  "texto": "Em 1808, Dom João VI chegou ao Rio de Janeiro fugindo de Napoleão. A corte inteira atravessou o oceano em navios lotados. Dom João transformou a cidade em capital do império e mudou o Brasil para sempre.",
+  "protagonista": [
+   "Dom João VI",
+   "Dom João",
+   "João"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "João",
+   "Napoleão"
+  ],
+  "proib": [
+   "Rio de Janeiro",
+   "Brasil"
+  ]
+ },
+ {
+  "id": "pt-zeca-robo",
+  "fonte": "pt-es",
+  "texto": "Zeca é um robozinho de lata que trabalha numa fábrica de brinquedos. Zeca sonha em ser brinquedo também. Na véspera de Natal, uma criança encontra Zeca no lixo e o leva para casa.",
+  "protagonista": [
+   "Zeca"
+  ],
+  "tipo": "creature",
+  "especie": "robot"
+ },
+ {
+  "id": "pt-antonio-trovao",
+  "fonte": "pt-es",
+  "texto": "Seu Antônio tem um cavalo chamado Trovão. Todo amanhecer, Seu Antônio sela Trovão e cavalga até o rio. Hoje Trovão parou no meio da ponte e se recusou a atravessar. Seu Antônio desceu e viu que a ponte estava rachada.",
+  "protagonista": [
+   "Antônio",
+   "Seu Antônio"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Antônio"
+  ],
+  "animais": {
+   "Trovão": "horse"
+  }
+ },
+ {
+  "id": "es-michi",
+  "fonte": "pt-es",
+  "texto": "Michi es una gata blanca que vive en una librería de Madrid. Cada noche, Michi duerme sobre los libros de poesía. Una noche, un ladrón entra en la librería. Michi salta sobre él y lo hace huir.",
+  "protagonista": [
+   "Michi"
+  ],
+  "tipo": "animal",
+  "especie": "cat",
+  "proib": [
+   "Madrid"
+  ]
+ },
+ {
+  "id": "es-rocky",
+  "fonte": "pt-es",
+  "texto": "Rocky, un perro callejero, recorre las calles de Buenos Aires buscando comida. Un día encuentra a una niña perdida llorando en la plaza. Rocky la acompaña hasta que su madre la encuentra.",
+  "protagonista": [
+   "Rocky"
+  ],
+  "tipo": "animal",
+  "especie": "dog",
+  "proib": [
+   "Buenos Aires"
+  ]
+ },
+ {
+  "id": "es-sofia",
+  "fonte": "pt-es",
+  "texto": "Sofía tiene diecinueve años y acaba de llegar a Ciudad de México. Sofía consigue trabajo en una cafetería. Su jefe, don Ramón, le enseña a preparar el mejor café de la ciudad.",
+  "protagonista": [
+   "Sofía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sofía",
+   "Ramón"
+  ],
+  "proib": [
+   "Ciudad de México"
+  ]
+ },
+ {
+  "id": "es-imaginate",
+  "fonte": "pt-es",
+  "texto": "Imagínate despertar en un barco en medio del océano. Carlos mira a su alrededor. No hay nadie. Solo un loro verde que repite su nombre una y otra vez.",
+  "protagonista": [
+   "Carlos"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Carlos"
+  ],
+  "proib": [
+   "Imagínate"
+  ]
+ },
+ {
+  "id": "es-chispa",
+  "fonte": "pt-es",
+  "texto": "Chispa es un pequeño dragón que vive en las montañas de los Andes. Chispa sueña con volar, pero sus alas son demasiado pequeñas. Un día, un cóndor le enseña a planear con el viento.",
+  "protagonista": [
+   "Chispa"
+  ],
+  "tipo": "creature",
+  "especie": "dragon",
+  "proib": [
+   "Andes"
+  ]
+ },
+ {
+  "id": "es-lucia-lugar",
+  "fonte": "pt-es",
+  "texto": "Lucía viajó a Puerto Lobos para visitar a su abuela. En el camino paró en una gasolinera de Villa Gesell. Nadie la volvió a ver desde esa noche.",
+  "protagonista": [
+   "Lucía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucía"
+  ],
+  "proib": [
+   "Puerto Lobos",
+   "Villa Gesell"
+  ],
+  "especiesProibidas": [
+   "wolf"
+  ]
+ },
+ {
+  "id": "fa-kangaroo-point",
+  "fonte": "fora-amostra",
+  "texto": "Dana jogged along Kangaroo Point every morning before work. One Tuesday she noticed a man watching her from the cliffs. Dana changed her route. The next morning he was there again.",
+  "protagonista": [
+   "Dana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Dana"
+  ],
+  "proib": [
+   "Kangaroo Point"
+  ],
+  "especiesProibidas": [
+   "kangaroo"
+  ]
+ },
+ {
+  "id": "fa-bear-mountain",
+  "fonte": "fora-amostra",
+  "texto": "Lucas hiked Bear Mountain alone in October 2019. Lucas sent his mother a photo from the summit at 4 p.m. It was the last anyone heard from him.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas"
+  ],
+  "proib": [
+   "Bear Mountain"
+  ],
+  "especiesProibidas": [
+   "bear"
+  ]
+ },
+ {
+  "id": "fa-pip",
+  "fonte": "fora-amostra",
+  "texto": "One night Pip, a tiny hedgehog, wandered out of the garden. Pip followed the smell of apples into the forest. An owl watched Pip from a branch. Pip curled into a ball and waited for morning.",
+  "protagonista": [
+   "Pip"
+  ],
+  "tipo": "animal",
+  "especie": "hedgehog"
+ },
+ {
+  "id": "fa-toast",
+  "fonte": "fora-amostra",
+  "texto": "Every morning Toast jumps out of the toaster and runs for his life. Toast hides behind the coffee machine. Today the butter knife finds him. Toast takes a deep breath and jumps off the counter.",
+  "protagonista": [
+   "Toast"
+  ],
+  "tipo": "object",
+  "especie": "toast"
+ },
+ {
+  "id": "fa-bubbles",
+  "fonte": "fora-amostra",
+  "texto": "Imagine a goldfish named Bubbles who dreams of the ocean. Bubbles swims circles in his tiny bowl. One day a crack appears in the glass. Bubbles sees his chance.",
+  "protagonista": [
+   "Bubbles"
+  ],
+  "tipo": "animal",
+  "especie": "goldfish",
+  "proib": [
+   "Imagine"
+  ]
+ },
+ {
+  "id": "fa-jaguar",
+  "fonte": "fora-amostra",
+  "texto": "Nina bought a 1967 Jaguar with her first paycheck. Nina drove it to the coast every weekend. One Sunday the Jaguar broke down in the middle of a storm, and Nina walked ten miles in the rain.",
+  "protagonista": [
+   "Nina"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Nina"
+  ],
+  "proib": [
+   "Jaguar"
+  ]
+ },
+ {
+  "id": "fa-fox-news",
+  "fonte": "fora-amostra",
+  "texto": "Mark watched Fox News every night until the night the anchor said his name. Mark froze. The anchor looked straight into the camera and said: Mark, run.",
+  "protagonista": [
+   "Mark"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mark"
+  ],
+  "proib": [
+   "Fox News"
+  ],
+  "especiesProibidas": [
+   "fox"
+  ]
+ },
+ {
+  "id": "fa-laika",
+  "fonte": "fora-amostra",
+  "texto": "In 1957, the Soviet Union launched Sputnik 2 with a passenger: Laika, a stray dog from the streets of Moscow. Laika became the first animal to orbit the Earth, and she never came home.",
+  "protagonista": [
+   "Laika"
+  ],
+  "tipo": "animal",
+  "especie": "dog",
+  "proib": [
+   "Sputnik",
+   "Moscow",
+   "Soviet Union"
+  ]
+ },
+ {
+  "id": "fa-hope",
+  "fonte": "fora-amostra",
+  "texto": "Hope, a seven-year-old girl in a red scarf, waits at the train station every Friday. Her father promised he would come back. This Friday, the train is late, and Hope refuses to leave.",
+  "protagonista": [
+   "Hope"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Hope"
+  ]
+ },
+ {
+  "id": "fa-dragon-bridge",
+  "fonte": "fora-amostra",
+  "texto": "Tomas walked across the Dragon Bridge in Ljubljana at midnight. Halfway across, the stone dragon above him turned its head. Tomas ran and never crossed that bridge again.",
+  "protagonista": [
+   "Tomas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Tomas"
+  ],
+  "proib": [
+   "Ljubljana"
+  ],
+  "nota": "a estátua de dragão vira a cabeça (age): pode entrar como coadjuvante; Tomas nunca é dragão"
+ },
+ {
+  "id": "fa-shackleton",
+  "fonte": "fora-amostra",
+  "texto": "In 1915, the Endurance was crushed by Antarctic ice. Ernest Shackleton led his 27 men across the frozen sea. Shackleton promised every one of them would get home, and he kept his word.",
+  "protagonista": [
+   "Ernest Shackleton",
+   "Shackleton"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Shackleton"
+  ],
+  "proib": [
+   "Endurance"
+  ]
  }
 ]

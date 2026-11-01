@@ -7,7 +7,7 @@
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
-import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
+import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro, ajustarPromptsDoElenco } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
 import { elencoDoFilme15, protagonistaEmTodaCena, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
@@ -62,6 +62,9 @@ console.log('== 2. Falha segura: qualquer falha = elenco de sempre ==')
   chamadas = 0
   const rede = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => { chamadas++; throw new Error('ECONNRESET') } })
   ok(rede.elenco === null && rede.status === 'falhou' && chamadas === 2, `erro de rede: 1 tentativa extra (${chamadas} chamadas), null`)
+  chamadas = 0
+  const reprovada = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => { chamadas++; return resposta({ choices: [{ message: { content: '{"protagonist":{"name":"Rex","kind":"human"},"supporting":[],"places_and_orgs":[]}' } }] }) } })
+  ok(reprovada.elenco === null && reprovada.status === 'json_invalido' && chamadas === 1, `resposta reprovada na conferência: sem 2ª chamada a temperature 0 (${chamadas} chamada)`)
   const http = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => resposta({ error: 'x' }, 500) })
   ok(http.elenco === null && http.status === 'falhou', 'HTTP 500 nas 2 tentativas: null')
   const lixo = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => resposta({ choices: [{ message: { content: 'not json {' } }] }) })
@@ -102,16 +105,16 @@ const PROD: Record<string, { falas: string[]; prompts: string[] }> = {
   },
 }
 const emTres = (texto: string) => { const fr = texto.split(/(?<=[.!?])\s+|\n+/).filter(Boolean); const falas = ['', '', '']; fr.forEach((x, i) => { const k = Math.min(2, Math.floor((i * 3) / fr.length)); falas[k] = `${falas[k]} ${x}`.trim() }); return { falas, prompts: falas.slice() } }
-/** route.ts: elencoDoRoteiro → elenco semântico → elencoComFichaLiteral → elencoDoFilme15 → protagonistaEmTodaCena → ajustarPromptsDoElenco → ORDEM → prepararQualidadeDoFilme (com os nomes do semântico) → ficha literal. */
+/** route.ts: elencoDoRoteiro → elenco semântico → elencoComFichaLiteral conferida (fichaLiteralConferida) → elencoDoFilme15 → protagonistaEmTodaCena → ajustarPromptsDoElenco → ORDEM → prepararQualidadeDoFilme (com os nomes do semântico) → ficha literal. */
 function caminho15(id: string, sem: ElencoSemantico | null) {
   const c = porId.get(id)!
   const { falas, prompts } = PROD[id] ?? emTres(c.texto)
   const base = elencoDoRoteiro(c.texto)
   const aplicado = aplicarElencoSemantico(base, sem, c.texto)
   let pedido: FichaDePersonagem[] = aplicado ? aplicado.elenco : base
-  const lit = elencoComFichaLiteral(c.texto, pedido)
+  const lit = fichaLiteralConferida(c.texto, pedido, aplicado)
   if (lit.literais.length > 0) pedido = lit.elenco
-  const e15 = elencoDoFilme15({ elencoDoPedido: pedido, visuals: prompts, extrair: elencoDoRoteiro, completar: !aplicado })
+  const e15 = elencoDoFilme15({ elencoDoPedido: pedido, visuals: prompts, extrair: elencoDoRoteiro, completar: aplicado ? aceitaPapelDasCenas(c.texto) : true })
   const elenco = e15.elenco.length > 0 ? e15.elenco : pedido
   const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco }) : null
   const aj = ajustarPromptsDoElenco({ prompts, visuals: p15 ? p15.visuals : prompts, falas, elenco })
@@ -119,9 +122,9 @@ function caminho15(id: string, sem: ElencoSemantico | null) {
   const pp = elenco.find((f) => f.protagonista) ?? elenco[0]
   if (p15 && pp) for (const i of p15.forcadas) out[i] = ORDEM_DO_PROTAGONISTA(pp.canonica) + out[i]
   const ctx = `${c.texto} ${falas.join(' ')}`
-  const q = prepararQualidadeDoFilme({ prompts: out, falas, contextoOriginal: ctx, contextoFiltro: ctx, modo: 'character_story', tagFaceless: false, style: deriveStyleAnchor(c.texto), elenco, aplicarContrato: false, elencoSemantico: aplicado ? { nomes: aplicado.nomes, protagonista: aplicado.protagonista } : null })
+  const q = prepararQualidadeDoFilme({ prompts: out, falas, contextoOriginal: ctx, contextoFiltro: ctx, modo: 'character_story', tagFaceless: false, style: deriveStyleAnchor(c.texto), elenco, aplicarContrato: false, elencoSemantico: aplicado ? { nomes: aplicado.nomes, protagonista: aplicado.protagonista, leitura: aplicado.leitura } : null })
   let fin = q.prompts
-  const lit2 = elencoComFichaLiteral(c.texto, elenco)
+  const lit2 = fichaLiteralConferida(c.texto, elenco, aplicado)
   if (lit2.trocas.length > 0) fin = fin.map((p) => trocarFichaNoPrompt(p, lit2.trocas))
   return { aplicado, elenco, forcadas: p15?.forcadas ?? [], fin, relato: q.relato }
 }
@@ -183,6 +186,109 @@ console.log('== 4. Conferência da resposta contra o texto (mutantes de resposta
   ok(lerElencoSemantico(j(ser({ name: 'Sarah', kind: 'giraffe' })), 'Sarah vanished.') === null, 'M6 kind fora do contrato: descartado')
   const sup = lerElencoSemantico(JSON.stringify({ protagonist: ser({ name: 'Kai' }), supporting: [ser({ name: 'Biscuit', kind: 'animal', species: 'wolf' }), ser({ name: 'Biscuit', kind: 'animal', species: 'dog' })], places_and_orgs: [] }), 'Kai and his dog Biscuit walk. Biscuit swims.')
   ok(sup?.supporting.length === 1 && sup.supporting[0].species === 'dog', 'M7 coadjuvante com espécie fora do texto sai; o certo fica')
+}
+
+// ═══ 5. Português e espanhol (revisão 01/11: a espécie no idioma do texto entrava no molde em inglês) ═══════════════
+console.log('== 5. Português e espanhol: conferência no idioma do texto, ficha em inglês ==')
+{
+  const fontes = calib.casos.filter((c) => c.fonte === 'pt-es')
+  ok(fontes.length >= 20, `${fontes.length} roteiros em português/espanhol na calibração (≥ 20)`)
+  let acertosPt = 0
+  for (const c of fontes) if (avaliar(c, gravado(c.id)).acerto) acertosPt++
+  ok(acertosPt / fontes.length >= 0.9, `PT/ES: acerto ${acertosPt}/${fontes.length} (≥ 90%)`)
+  const pt = (id: string) => { const c = porId.get(id)!; return aplicarElencoSemantico(elencoDoRoteiro(c.texto), gravado(id), c.texto) }
+  const fichaP = (id: string) => pt(id)?.elenco.find((f) => f.protagonista)
+  const thor = fichaP('pt-thor')
+  ok(!!thor && thor.tipo === 'animal' && /\bdog\b/.test(thor.canonica) && !/vira-lata (?:with|anatomy)|a vira-lata\b/i.test(thor.canonica), `Thor: a ficha diz cachorro em inglês (${thor?.canonica})`)
+  const luna = fichaP('pt-luna')
+  ok(!!luna && /\bcat\b/.test(luna.canonica) && !/a gata\b/.test(luna.canonica) && /in English: black/.test(luna.canonica), `Luna: gato em inglês + a aparência traduzida ao lado das palavras dela (${luna?.canonica})`)
+  const faisca = fichaP('pt-faisca')
+  ok(!!faisca && /\bdragon\b/.test(faisca.canonica) && !/dragao|dragão/.test(faisca.canonica.split('"')[0]), `Faísca: dragão em inglês (${faisca?.canonica})`)
+  const bro = pt('pt-bro')
+  ok(!!bro && bro.elenco[0].nome === 'BRO' && /pigeon/.test(bro.elenco[0].canonica) && bro.elenco.every((f) => !/unic/i.test(f.nome)), `BRO em português: aplicado, pombo, sem unicórnio (${bro?.elenco.map((f) => f.canonica).join(' | ')})`)
+  const mila = pt('pt-mila')
+  ok(!!mila && mila.elenco[0].nome === 'Mila' && mila.elenco[0].tipo === 'humano' && mila.elenco.every((f) => !/flower|flor|giant/i.test(f.canonica.split('"')[0])), `Mila em português: gente; o Skoczuś não vira a "flor gigante" da outra frase (${mila?.elenco.map((f) => f.nome).join(', ')})`)
+  ok(!!mila && !/\ba woman\b|an adult/.test(mila.elenco[0].canonica), `Mila sem idade no texto: a ficha não diz "a woman" (${mila?.elenco[0].canonica})`)
+  const ana = pt('pt-ana-avo')
+  ok(!!ana && ana.elenco[0].nome === 'Ana' && ana.elenco.some((f) => f.nome === 'the grandfather' && f.nucleo === 'grandfather'), `Ana: o avô entra pelo papel em inglês, que casa com os visuais (${ana?.elenco.map((f) => `${f.nome}/${f.nucleo}`).join(', ')})`)
+  const sofia = fichaP('es-sofia')
+  ok(!!sofia && !/sixteen/.test(sofia.canonica) && /diecinueve/.test(sofia.canonica), `Sofía (diecinueve años): a idade é a do texto, não "about sixteen" (${sofia?.canonica})`)
+  const lucas = pt('pt-lucas-leao')
+  ok(!!lucas && lucas.elenco[0].nome === 'Lucas' && lucas.elenco[0].tipo === 'humano' && lucas.elenco.some((f) => f.nome === 'Simba' && /\blion\b/.test(f.canonica)), `Lucas é gente; Simba é o leão (${lucas?.elenco.map((f) => `${f.nome}/${f.tipo}`).join(', ')})`)
+  // mutante: o modelo traduz o campo original num texto em português e o inglês também não está no texto → descartado (o determinístico cuida)
+  const PT = 'BRO, o pombo musculoso, entra numa loja de perucas.'
+  const j = (o: Record<string, unknown>) => JSON.stringify({ protagonist: { name: 'BRO', role: null, kind: 'animal', species: 'pigeon', species_en: 'pigeon', appearance_from_text: '', gender_if_stated: null, age_if_stated: null, ...o }, supporting: [], places_and_orgs: [] })
+  ok(lerElencoSemantico(j({}), PT) === null, 'espécie traduzida que o texto não escreve: descartada')
+  ok(lerElencoSemantico(j({ species: 'pombo', species_en: 'pigeon' }), PT)?.protagonist?.species === 'pigeon', 'espécie original no texto + inglês: a ficha usa o inglês')
+  ok(lerElencoSemantico(j({ species: 'pombo', species_en: 'pigeon!!<x>' }), PT)?.protagonist?.species === 'pombo', 'inglês fora do formato (≤ 4 palavras, só letras): fica a palavra original')
+  // texto em inglês e o modelo pôs o campo original em português ("gata"): vale o inglês que o texto escreve
+  const EN = 'Meet Biscuit, a grumpy orange cat. Biscuit demands tuna.'
+  ok(lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Biscuit', kind: 'animal', species: 'gata', species_en: 'cat', appearance_from_text: '' }, supporting: [], places_and_orgs: [] }), EN)?.protagonist?.species === 'cat', 'texto em inglês com o campo original traduzido: ancora no inglês do texto')
+}
+
+// ═══ 6. A ficha literal do juiz não apaga a ficha semântica com lixo ═══════════════════════════════════════════════
+console.log('== 6. Ficha literal conferida: "night Pip", "morning Toast", "and Emma" não entram ==')
+{
+  const pip = caminho15('fa-pip', gravado('fa-pip'))
+  const pp = pip.elenco.find((f) => f.protagonista)
+  ok(!!pp && pp.nome === 'Pip' && /hedgehog/.test(pp.canonica) && !/"night Pip"/.test(pp.canonica), `Pip continua ouriço (${pp?.canonica})`)
+  ok(pip.fin.every((q) => !/night Pip"/.test(q)), 'nenhuma cena leva "night Pip"')
+  const toast = caminho15('fa-toast', gravado('fa-toast'))
+  const pt = toast.elenco.find((f) => f.protagonista)
+  ok(!!pt && pt.nome === 'Toast' && /toast/.test(pt.canonica.replace(/^Toast/, '')) && !/morning Toast/.test(pt.canonica), `Toast continua o pão que age (${pt?.canonica})`)
+  ok(toast.fin.every((q) => !/morning Toast"/.test(q)), 'nenhuma cena leva "morning Toast"')
+  // o Toast da revisão ("One morning Toast…"): sem aparência, a ficha semântica é determinística; o mutante (juiz puro) a troca
+  const TOAST = 'One morning Toast jumped out of the toaster. Toast ran across the kitchen. Toast hid behind the kettle.'
+  const apT = aplicarElencoSemantico(elencoDoRoteiro(TOAST), lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Toast', role: null, kind: 'object', species: 'toast', species_en: 'toast', appearance_from_text: '', gender_if_stated: null, age_if_stated: null }, supporting: [], places_and_orgs: [] }), TOAST), TOAST)!
+  const mutT = elencoComFichaLiteral(TOAST, apT.elenco).elenco[0].canonica
+  const confT = fichaLiteralConferida(TOAST, apT.elenco, apT).elenco[0].canonica
+  ok(mutT !== apT.elenco[0].canonica ? confT === apT.elenco[0].canonica : confT === mutT, `"One morning Toast": a conferida mantém o pão que age (juiz puro: ${JSON.stringify(mutT.slice(0, 70))})`)
+  // o caso da revisão: ouriço SEM aparência no texto (a ficha é determinística, alvo da ficha literal). O mutante (juiz sem a conferência)
+  // prova que o defeito existe: ele troca a ficha por "night Pip"; a conferida mantém o ouriço.
+  const PIP = 'One night Pip, a hedgehog, wandered out of the garden. Pip followed the smell of apples. An owl watched Pip from a branch. Pip curled into a ball.'
+  const semPip = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Pip', role: null, kind: 'animal', species: 'hedgehog', species_en: 'hedgehog', appearance_from_text: '', appearance_en: '', gender_if_stated: null, age_if_stated: null, age_evidence: '', on_screen: true }, supporting: [], places_and_orgs: [] }), PIP)
+  const apPip = aplicarElencoSemantico(elencoDoRoteiro(PIP), semPip, PIP)!
+  ok(apPip.elenco[0].origem !== 'autor' && /hedgehog/.test(apPip.elenco[0].canonica), `Pip sem aparência: ficha semântica determinística de ouriço (${apPip.elenco[0].canonica.slice(0, 80)}…)`)
+  const mutante = elencoComFichaLiteral(PIP, apPip.elenco)
+  ok(/"night Pip"/.test(mutante.elenco[0].canonica), `mutante (juiz puro): a ficha vira ${JSON.stringify(mutante.elenco[0].canonica)}`)
+  const conferida = fichaLiteralConferida(PIP, apPip.elenco, apPip)
+  ok(conferida.elenco[0].canonica === apPip.elenco[0].canonica && conferida.trocas.length === 0, 'conferida: o ouriço fica e nenhum prompt é trocado')
+  const q = prepararQualidadeDoFilme({ prompts: ['Pip walks out of the garden at night.', 'Pip sniffs apples.', 'Pip curls into a ball under an owl.'], falas: PIP.split(/(?<=\.)\s+/).slice(0, 3), contextoOriginal: PIP, contextoFiltro: PIP, modo: 'character_story', tagFaceless: false, style: deriveStyleAnchor(PIP), elenco: apPip.elenco, aplicarContrato: false, elencoSemantico: { nomes: apPip.nomes, protagonista: apPip.protagonista, leitura: apPip.leitura } })
+  ok(q.prompts.every((p) => !/night Pip"/.test(p)) && q.prompts.some((p) => /hedgehog/.test(p)), 'a camada filmQuality (que também chama o juiz) não reintroduz "night Pip"')
+  const hope = caminho15('fa-hope', gravado('fa-hope'))
+  const ph = hope.elenco.find((f) => f.protagonista)
+  ok(!!ph && /red scarf/.test(ph.canonica) && /seven-year-old/.test(ph.canonica), `Hope: o "red scarf" e a idade do texto ficam (${ph?.canonica})`)
+  // unidade: o literal com palavra da leitura entra; sem nenhuma, a ficha de antes fica; sem elenco semântico = o juiz puro
+  const ficha = (nome: string, canonica: string): FichaDePersonagem => ({ nome, nucleo: nome, tipo: 'humano', canonica, origem: 'deterministica', protagonista: false, genero: null })
+  const antes = [ficha('Emma', 'Emma, a woman in their early thirties with short hair')]
+  const lixo = { elenco: [{ ...antes[0], canonica: 'Emma, exactly as the author wrote: "and Emma"', origem: 'autor' as const }], literais: ['Emma'], trocas: [[antes[0].canonica, 'Emma, exactly as the author wrote: "and Emma"'] as [string, string]], natureza: null }
+  const leitura = [{ nome: 'Emma', nomeProprio: true, aceita: ['tall', 'nurse', 'scrubs'] }]
+  const r1 = conferirFichaLiteral(lixo, antes, { leitura })
+  ok(r1.elenco[0].canonica === antes[0].canonica && r1.literais.length === 0 && r1.trocas.length === 0, '"and Emma": a ficha de antes fica, sem troca nos prompts')
+  const bom = { ...lixo, elenco: [{ ...lixo.elenco[0], canonica: 'Emma, exactly as the author wrote: "a tall nurse in scrubs"' }], trocas: [[antes[0].canonica, 'Emma, exactly as the author wrote: "a tall nurse in scrubs"'] as [string, string]] }
+  ok(conferirFichaLiteral(bom, antes, { leitura }).elenco[0].canonica.includes('tall nurse'), 'literal com palavras da leitura ("tall nurse in scrubs"): entra')
+  ok(conferirFichaLiteral(lixo, antes, null) === lixo, 'sem elenco semântico: exatamente o resultado do juiz')
+  const mitica = [{ ...antes[0], nome: 'Krishna', origem: 'mitica' as unknown as FichaDePersonagem['origem'] }]
+  ok(conferirFichaLiteral({ ...lixo, elenco: [{ ...lixo.elenco[0], nome: 'Krishna' }] }, mitica, { leitura: [{ nome: 'Krishna', nomeProprio: true, aceita: [] }] }).elenco[0].canonica.includes('and Emma'), 'figura mítica: o juiz decide como sempre')
+}
+
+// ═══ 7. O 15 s completa pelos visuais só com gente que o texto não escreve ═════════════════════════════════════════
+console.log('== 7. Completar pelos visuais com o elenco semântico ==')
+{
+  const fai = porId.get('pt-faisca')!
+  const ap = aplicarElencoSemantico(elencoDoRoteiro(fai.texto), gravado('pt-faisca'), fai.texto)!
+  ok(ap.elenco.length === 1, `Faísca: o elenco semântico tem só o dragão (${ap.elenco.map((f) => f.nome).join(', ')})`)
+  const visuais = ['Faísca the small dragon tries to breathe fire while a young girl laughs nearby.', 'A young girl and Faísca walk through the frozen village.', 'Faísca melts the ice as a giant unicorn statue glows.']
+  const e = elencoDoFilme15({ elencoDoPedido: ap.elenco, visuals: visuais, extrair: elencoDoRoteiro, completar: aceitaPapelDasCenas(fai.texto) })
+  ok(e.elenco[0].nome === 'Faísca' && e.elenco.some((f) => /girl/.test(f.nucleo)), `gente dos visuais que o texto (PT) não escreve entra: ${e.elenco.map((f) => f.nome).join(', ')}`)
+  ok(e.elenco.every((f) => !/unicorn/.test(f.nome + f.nucleo)), 'bicho/criatura dos visuais fora do texto não entra')
+  const bro = porId.get('pt-bro')!
+  const apb = aplicarElencoSemantico(elencoDoRoteiro(bro.texto), gravado('pt-bro'), bro.texto)!
+  const vb = ['BRO the muscular pigeon strides into a lavish wig shop.', 'A bright pink unicorn mane wig hangs on a display.', 'BRO dons the bright pink unicorn mane in front of a mirror.']
+  const eb = elencoDoFilme15({ elencoDoPedido: apb.elenco, visuals: vb, extrair: elencoDoRoteiro, completar: aceitaPapelDasCenas(bro.texto) })
+  ok(eb.elenco.length === 1 && eb.elenco[0].nome === 'BRO', `BRO em português: a "unicorn mane" dos visuais não vira coadjuvante (${eb.elenco.map((f) => f.nome).join(', ')})`)
+  const en = porId.get('prod-bro')!
+  ok(aceitaPapelDasCenas(en.texto)({ tipo: 'humano' }, 'pigeon') === false, 'palavra que o texto escreve e a leitura não chamou de personagem: não entra')
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
