@@ -34,7 +34,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { abrirProximoEpisodio, useProximoEpisodioVisto } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem, no mesmo motor/duração
+import { abrirProximoEpisodio, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem, no mesmo motor/duração
 import {
   buildPublicVideoSharePath,
   buildPublishedVideoSharePath, // KINEO-LACO-VIRAL-2026-09-17
@@ -371,6 +371,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // rows only, or it'll try to share/caption a video that doesn't exist yet.
   const completedVideos = videos.filter((v) => v.status === 'completed')
   useProximoEpisodioVisto(embedded ? 'library_card' : 'history_card', completedVideos.length) // KINEO-PROXIMO-EPISODIO-0111 — next_episode_shown, 1× por tela
+  const proximoEpisodioEmVoo = useProximoEpisodioEmVoo() // KINEO-PROXIMO-EPISODIO-0111 (revisão) — cartões desativados e "Writing the next episode…" no filme em espera
   const [expanded, setExpanded] = useState<string | null>(null)
   const [errors, setErrors] = useState<Set<string>>(new Set())
   // Push #421 — summary panel state
@@ -1944,7 +1945,11 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     // espécie + aparência) e devolve o Studio no MESMO motor e duração; falhou, segue o href de sempre.
                     void abrirProximoEpisodio({ surface: embedded ? 'library_card' : 'history_card', videoId: video.id, fallbackHref: buildStudioSeriesReviewHref(title, 'history_video_card'), engine: video.quality_mode ?? null, durationSeconds: video.duration ?? null }, e)
                   }}
+                  aria-disabled={proximoEpisodioEmVoo ? true : undefined}
+                  aria-busy={proximoEpisodioEmVoo === video.id ? true : undefined}
                   style={{
+                    cursor: proximoEpisodioEmVoo ? 'wait' : 'pointer',
+                    opacity: proximoEpisodioEmVoo && proximoEpisodioEmVoo !== video.id ? 0.55 : 1,
                     marginTop: 6,
                     display: 'flex',
                     alignItems: 'center',
@@ -1959,7 +1964,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     textDecoration: 'none',
                   }}
                 ><UiLabel>
-                  Next episode →
+                  {proximoEpisodioEmVoo === video.id ? ROTULO_ESPERANDO : 'Next episode →'}
                 </UiLabel></Link>
 
                 {isWatermarkedFastAsset(video) && (

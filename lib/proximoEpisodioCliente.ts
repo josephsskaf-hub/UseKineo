@@ -2,21 +2,37 @@
 
 // ═══ KINEO-PROXIMO-EPISODIO-0111 — o clique do botão "Next episode" (vai do fundador 01/11 "vai tudo") ═══
 // O mesmo comportamento nas duas telas que mostram filme pronto (tela de pronto do /generate e cartão da biblioteca):
-//   1. grava next_episode_clicked;
+//   1. grava next_episode_button_clicked (o next_episode_clicked é do cartão do episódio escrito);
 //   2. pede ao servidor (POST /api/next-episode/studio) a ideia do episódio seguinte com a ficha do personagem e o link do
 //      Studio no MESMO motor, duração e língua;
 //   3. abre o Studio preenchido. O servidor não respondeu? Abre o link de reserva que a tela já tinha (o de sempre) —
 //      o botão nunca vira erro em cima de um filme que deu certo.
 // Clique com Ctrl/Cmd/Shift/botão do meio segue o link de reserva do próprio <a> (nova aba), sem interceptar.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { NEXT_EPISODE_CLICKED_EVENT, NEXT_EPISODE_LINK_READY_EVENT, NEXT_EPISODE_SHOWN_EVENT } from '@/lib/proximoEpisodioLink'
+import { EPISODIO_DA_TELA_MAX_CHARS, NEXT_EPISODE_CLICKED_EVENT, NEXT_EPISODE_LINK_READY_EVENT, NEXT_EPISODE_SHOWN_EVENT } from '@/lib/proximoEpisodioLink'
 
 /** 'library_card' = cartão do /library (HistoryClient embutido); 'history_card' = o mesmo cartão no /history (My Videos). */
 export type SuperficieDoEpisodio = 'library_card' | 'history_card' | 'done_screen_top'
 
-// Um clique por filme de cada vez: o segundo clique, com o primeiro ainda buscando a ideia, não dispara outra chamada.
+// Um clique de cada vez: com uma ideia sendo escrita, outro clique (no mesmo filme ou em outro cartão) não dispara outra
+// chamada — e a tela MOSTRA isso: KINEO-PROXIMO-EPISODIO-0111 (revisão) — o escritor chama o GPT na hora para o filme de mais
+// de 14 dias (o assinante parado, público-alvo) e a espera chega a 12 s; sem indicador o clique parecia engolido.
+// `useProximoEpisodioEmVoo` dá à tela o filme em espera: botão desativado + "Writing the next episode…".
 const EM_VOO = new Set<string>()
+const OUVINTES = new Set<() => void>()
+let fotoEmVoo: string | null = null
+function mudouEmVoo() {
+  fotoEmVoo = EM_VOO.size ? [...EM_VOO][0] : null
+  for (const f of OUVINTES) f()
+}
+function assinarEmVoo(f: () => void) { OUVINTES.add(f); return () => { OUVINTES.delete(f) } }
+/** O id do filme cujo próximo episódio está sendo escrito agora (null = nenhum). Re-renderiza a tela ao começar e ao terminar. */
+export function useProximoEpisodioEmVoo(): string | null {
+  return useSyncExternalStore(assinarEmVoo, () => fotoEmVoo, () => null)
+}
+/** Rótulo do botão enquanto espera (o mesmo nas duas telas). */
+export const ROTULO_ESPERANDO = 'Writing the next episode…'
 
 export interface PedidoDoEpisodio {
   surface: SuperficieDoEpisodio
@@ -26,6 +42,9 @@ export interface PedidoDoEpisodio {
   language?: string | null
   engine?: string | null
   durationSeconds?: number | null
+  /** KINEO-PROXIMO-EPISODIO-0111 (revisão) — o episódio que a tela JÁ mostra (cartão da tela de pronto): vai junto para o
+   *  Studio receber o mesmo texto e o servidor não chamar um 2º escritor em paralelo. */
+  episodio?: { title?: string | null; script?: string | null } | null
   /** Como navegar (router.push da tela); sem ele, window.location.assign. */
   navegar?: (href: string) => void
 }
@@ -36,8 +55,9 @@ const PRAZO_MS = 12_000
 export async function abrirProximoEpisodio(p: PedidoDoEpisodio, ev?: { preventDefault(): void; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; button?: number }): Promise<string> {
   if (ev && (ev.metaKey || ev.ctrlKey || ev.shiftKey || (typeof ev.button === 'number' && ev.button !== 0))) return p.fallbackHref
   ev?.preventDefault()
-  if (EM_VOO.has(p.videoId)) return p.fallbackHref
+  if (EM_VOO.size) return p.fallbackHref // já há uma ideia sendo escrita: o botão está desativado e diz isso
   EM_VOO.add(p.videoId)
+  mudouEmVoo()
   void trackEvent(NEXT_EPISODE_CLICKED_EVENT, { surface: p.surface, video_id: p.videoId })
   let href = p.fallbackHref
   let via: 'server' | 'fallback' = 'fallback'
@@ -51,6 +71,9 @@ export async function abrirProximoEpisodio(p: PedidoDoEpisodio, ev?: { preventDe
         language: p.language ?? undefined,
         engine: p.engine ?? undefined,
         durationSeconds: typeof p.durationSeconds === 'number' && p.durationSeconds > 0 ? p.durationSeconds : undefined,
+        episode: p.episodio && typeof p.episodio.script === 'string' && p.episodio.script.trim()
+          ? { title: String(p.episodio.title ?? '').slice(0, 200), script: p.episodio.script.slice(0, EPISODIO_DA_TELA_MAX_CHARS) }
+          : undefined,
       }),
       signal: AbortSignal.timeout(PRAZO_MS),
     })
@@ -69,6 +92,7 @@ export async function abrirProximoEpisodio(p: PedidoDoEpisodio, ev?: { preventDe
   }
   void trackEvent(NEXT_EPISODE_LINK_READY_EVENT, { surface: p.surface, video_id: p.videoId, via, ...extras })
   EM_VOO.delete(p.videoId)
+  mudouEmVoo()
   if (p.navegar) p.navegar(href)
   else window.location.assign(href)
   return href

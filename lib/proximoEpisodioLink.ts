@@ -16,7 +16,8 @@ export const PROXIMO_EPISODIO_MARCA = 'KINEO-PROXIMO-EPISODIO-0111'
 /** O botão apareceu (uma vez por tela/filme). */
 export const NEXT_EPISODE_SHOWN_EVENT = 'next_episode_shown'
 /** A pessoa apertou "Next episode". */
-export const NEXT_EPISODE_CLICKED_EVENT = 'next_episode_clicked'
+// KINEO-PROXIMO-EPISODIO-0111 (revisão) — nome próprio: 'next_episode_clicked' já é do cartão do episódio escrito (GenerateClient).
+export const NEXT_EPISODE_CLICKED_EVENT = 'next_episode_button_clicked'
 /** O link ficou pronto — `via` 'server' (ideia escrita com a ficha) ou 'fallback' (servidor não respondeu). */
 export const NEXT_EPISODE_LINK_READY_EVENT = 'next_episode_link_ready'
 /** No Studio, a pessoa apertou Create num episódio que chegou por este botão (carrega series_parent_video_id). */
@@ -27,6 +28,8 @@ export const NEXT_EPISODE_SOURCE = 'next_episode_button'
 export const SERIES_PARENT_PARAM = 'series_parent'
 /** Teto da ideia na URL (o Studio aceita até 20.000 no modo IA; o teto aqui é de URL, não de produto). */
 export const IDEIA_MAX_CHARS = 1500
+/** Teto do episódio que a tela de pronto manda junto (o cartão já escrito). */
+export const EPISODIO_DA_TELA_MAX_CHARS = 6000
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Línguas que o seletor do Studio conhece (espelho do formato de código: 2-3 letras minúsculas). */
@@ -41,9 +44,19 @@ export function motorDoStudio(quality: string | null | undefined): string | null
   return Object.values(STUDIO_ENGINE_FOR_QUALITY).includes(q) ? q : null
 }
 
-/** A duração do botão do Studio mais perto do filme de origem (passar do alvo é bom; ficar abaixo, nunca). */
+/**
+ * O botão de duração do Studio que o filme de origem MIROU. KINEO-PROXIMO-EPISODIO-0111 (revisão): a duração MEDIDA passa do
+ * alvo (hollywood de 60 s sai com 75-85 s) e o arredondamento para cima de retryDurationFor abria o episódio em 90 s — mais
+ * caro e contra "o mesmo motor e duração". Aqui é o maior botão ≤ medida × 1,1 (a folga cobre o filme que ficou um pouco
+ * abaixo do alvo); a tela que SABE o alvo (o /generate) manda o alvo e ele cai exato. Sem duração: null (o Studio escolhe).
+ */
 export function duracaoDoStudio(engine: string | null, seconds: number | null | undefined): string | null {
-  return retryDurationFor(engine ?? 'fast', seconds)
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) return retryDurationFor(engine ?? 'fast', seconds)
+  const botoes = engine === 'seedance' ? [15, 35, 60, 90] : [35, 60, 90]
+  const teto = seconds * 1.1
+  let escolhido = botoes[0]
+  for (const b of botoes) if (b <= teto) escolhido = b
+  return String(escolhido)
 }
 
 export interface PedidoDeLink {

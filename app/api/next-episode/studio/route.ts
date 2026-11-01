@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { POST as escreverProximoEpisodio } from '@/app/api/next-episode/route'
 import { ideiaDoProximoEpisodio, linguaPelaEscrita } from '@/lib/proximoEpisodioStudio'
-import { duracaoDoStudio, linkDoProximoEpisodio, motorDoStudio, PROXIMO_EPISODIO_MARCA } from '@/lib/proximoEpisodioLink'
+import { duracaoDoStudio, EPISODIO_DA_TELA_MAX_CHARS, linkDoProximoEpisodio, motorDoStudio, PROXIMO_EPISODIO_MARCA } from '@/lib/proximoEpisodioLink'
 import { detectNarrationLanguage, narrationLanguage } from '@/lib/textLanguage'
 
 // ═══ KINEO-PROXIMO-EPISODIO-0111 — POST /api/next-episode/studio (vai do fundador 01/11 "vai tudo") ═══
@@ -29,8 +29,12 @@ interface Corpo {
   language?: string
   /** Motor que a tela quer no episódio (chave do Studio ou quality_mode). Sem ele, o do filme de origem. */
   engine?: string
-  /** Segundos do filme de origem, quando a tela sabe (o MP4 medido). */
+  /** Segundos do filme de origem, quando a tela sabe (o /generate manda o ALVO escolhido; a biblioteca, o MP4 medido). */
   durationSeconds?: number
+  /** KINEO-PROXIMO-EPISODIO-0111 (revisão) — o episódio que a tela de pronto JÁ mostra no cartão. Só texto que vai para a
+   *  caixa do Studio do próprio dono (nada é cobrado nem gravado); usá-lo evita um 2º escritor em paralelo com o do cartão
+   *  e garante o MESMO episódio no cartão e no Studio. Ainda passa pelo filtro de assunto. */
+  episode?: { title?: string; script?: string }
 }
 
 interface LinhaFilme {
@@ -76,8 +80,12 @@ export async function POST(req: NextRequest) {
 
     // (2) o escritor de sempre, em processo. Falha = segue sem o episódio escrito.
     let episodio: { title?: string; script?: string; episodeNumber?: number } | null = null
-    let escritor: number | 'erro' = 'erro'
-    try {
+    let escritor: number | 'erro' | 'tela' = 'erro'
+    const daTela = body.episode && typeof body.episode.script === 'string' && body.episode.script.trim()
+      ? { title: typeof body.episode.title === 'string' ? body.episode.title.slice(0, 200) : '', script: body.episode.script.slice(0, EPISODIO_DA_TELA_MAX_CHARS) }
+      : null
+    if (daTela) { episodio = daTela; escritor = 'tela' }
+    else try {
       const interno = new NextRequest(new URL('/api/next-episode', req.nextUrl.origin), {
         method: 'POST',
         // a sessão vem de next/headers (o mesmo pedido) — o escritor lê o dono pelo mesmo cookie, nada viaja aqui

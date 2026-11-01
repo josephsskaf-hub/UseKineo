@@ -16,7 +16,7 @@ import * as linkLib from '../lib/proximoEpisodioLink'
 import * as textLanguage from '../lib/textLanguage'
 import { deriveExplicitCharacter } from '../lib/cinematic/sceneStyle'
 
-const { fichasDoFilme, episodioFicaNoAssunto, ideiaDoProximoEpisodio, linguaPelaEscrita, ganchoDoEpisodio } = studioLib
+const { fichasDoFilme, fichasDoFilmeComModo, episodioFicaNoAssunto, ideiaDoProximoEpisodio, linguaPelaEscrita, ganchoDoEpisodio, nomeDaSerie } = studioLib
 const { linkDoProximoEpisodio, filmeDeOrigemDoLink, motorDoStudio, duracaoDoStudio, ideiaDeReserva, NEXT_EPISODE_SOURCE, SERIES_PARENT_PARAM } = linkLib
 
 let pass = 0, fail = 0
@@ -76,6 +76,78 @@ const ep3 = ideiaDoProximoEpisodio({ titulo: 'Episode 2 of my series "The Mailbo
 ok(ep3.numero === 3 && ep3.ideia.startsWith('Episode 3 of my series "The Mailbox".') && ep3.ideia.includes('Main character: Roland Pernicus Oznard, a gruff old man with shoulder-length gray-brown hair.'), '(2) episódio 3 nasce do 2: número da série, nome da série e a MESMA ficha (rótulo "Main character:" relido)')
 ok(fichasExplicitas('Meet Pip, a brave little mouse with a red scarf, and Luna, an old owl.').join(' | ') === 'Pip, a brave little mouse with a red scarf | Luna, an old owl', '(1) dois personagens no mesmo parágrafo, "Meet" fora do nome')
 ok(ganchoDoEpisodio(epBom.script) === 'Roland never expected the letter to answer back. The paper was warm. Roland read the first line twice.', '(2) gancho = HOOK + 2 frases do MICRO REWARD, sem rótulos')
+
+console.log('(5) revisão adversarial — cada exemplo vira caso')
+// (5.1) a reserva pelo elenco não inventa personagem em filme factual; nunca acrescenta gênero não escrito
+const PAQUISTAO = 'Pakistan has one of the lowest literacy rates in Asia. Literacy in Pakistan rose to 60 percent. Pakistan spends little on schools. Literacy matters.'
+const FATOS = [
+  PAQUISTAO,
+  'Rome was not built in a day. Rome had a million people. Rome fell in 476. The man who ruled Rome was Augustus.',
+  'The Moon pulls the oceans. Earth spins. The Moon is moving away from Earth every year. Earth has one moon.',
+  'Use this trick. Use it every day. Kineo makes videos. Kineo is fast. Video is the future. Video wins.',
+  'Ten years ago, nobody cared. Ten countries signed. Seventy percent of people agree. Talent matters. Talent wins. Son of a farmer, he worked.',
+  'China said on Monday it will cut tariffs. China says the economy grew. China has a plan. Inflation runs wild. Inflation hits the poor.',
+  'Helping others is good. Helping makes you happy. Friendship lasts. Friendship has rules.',
+]
+for (const t of FATOS) ok(fichasDoFilme(t).length === 0, `(5.1) factual sem personagem inventado: ${t.slice(0, 40)}… → ${JSON.stringify(fichasDoFilme(t))}`)
+const ideiaPk = ideiaDoProximoEpisodio({ titulo: 'Pakistan literacy', pedido: 'Explain Pakistan literacy', narracao: PAQUISTAO, episodio: null })
+ok(!/Main character|Also in the story/.test(ideiaPk.ideia) && /Stay on the same subject/.test(ideiaPk.ideia) && !/Keep the same characters/.test(ideiaPk.ideia), '(5.1) documentário do Paquistão: sem "Main character: Pakistan", mantém "Stay on the same subject"')
+ok(!fichasDoFilme('Rome was the center of the world. Rome had a million people. He ruled Rome.').some((f) => /, a (?:man|woman)\b/.test(f)), '(5.1) nunca "Rome, a man": gênero não escrito não entra')
+const dino = fichasDoFilmeComModo('Dino the dinosaur loved to dance. Dino danced all night. Dino smiled at the moon.')
+ok(dino.fichas[0] === 'Dino, the dinosaur' && dino.modo === 'ser_que_age', `(5.1) ser que age com espécie escrita no texto: ${JSON.stringify(dino)}`)
+const kaliModo = fichasDoFilmeComModo('Kali and Kameron are ready to play! Kali swoops her toy plane high above the play table. Kameron points to the toy boat. Kali laughs.')
+ok(kaliModo.fichas[0] === 'Kali' && kaliModo.modo === 'ser_que_age', `(5.1) nome que age sem espécie escrita: só o nome, sem gênero (${JSON.stringify(kaliModo)})`)
+ok(fichasDoFilmeComModo(ROLAND).modo === 'autor', '(5.1) ficha escrita pelo autor: modo autor')
+const ROBO = 'A tiny discarded robot collects broken toys and repairs them for lonely children. One day, the robot shuts down.'
+const roboModo = fichasDoFilmeComModo(ROBO)
+ok(roboModo.modo === 'papel' && /^Stay on the same subject/m.test(ideiaDoProximoEpisodio({ narracao: ROBO, episodio: null }).ideia), '(5.1) papel sem nome num filme sem sinal de história: ficha do papel, mas a ordem começa por "Stay on the same subject"')
+ok(fichasDoFilme('The king of France signed the treaty. The king died in 1715. Historians still debate it.').length === 0, '(5.1) papel humano em filme factual ("the king") não vira personagem')
+
+// (5.2) palavras de abertura nunca viram nome; "a scientist named Dr. Vega" = UMA ficha
+const ABERTURAS = [
+  'Meanwhile, a little girl watched the storm from her window.',
+  'Somewhere, a lonely fox waited in the snow.',
+  'However, a strange man appeared at the door.',
+  'Inside, a robot hummed quietly.',
+  'Look, a dragon is flying over the hills!',
+  'Elsewhere, a young boy ran home.',
+  'Later, a tired old man sat down.',
+  'Finally, a small bird landed on the roof.',
+  'Imagine, a world where a cat rules the city.',
+]
+for (const t of ABERTURAS) ok(fichasExplicitas(t).length === 0, `(5.2) abertura não é nome: ${t.slice(0, 32)}… → ${JSON.stringify(fichasExplicitas(t))}`)
+const VEGA = 'Elsewhere, a scientist named Dr. Vega studied the comet.'
+ok(JSON.stringify(fichasExplicitas(VEGA)) === '["Dr. Vega, a scientist"]', `(5.2) "a scientist named Dr. Vega" = uma ficha: ${JSON.stringify(fichasExplicitas(VEGA))}`)
+ok(JSON.stringify(fichasExplicitas('Mia, a little girl watched the storm from her window.')) === '["Mia, a little girl"]', '(5.2) a frase de ação depois do ser não vira descrição')
+ok(fichasExplicitas('Hisarlik, a hill where a farmer found gold, hides Troy. Qinngua, a place in Greenland where a hunter lived.').length === 0, '(5.2) lugar com ser no detalhe ("a hill where a farmer…") não é personagem')
+ok(!/MAIN CHARACTER/.test(blocoDeContinuidade({ anterior: 'Meanwhile, a little girl watched the storm from her window. The storm grew. The little girl was scared of the storm.' })), '(5.2) o escritor do episódio 2 não recebe MAIN CHARACTER "Meanwhile"')
+
+// (5.3) episodioFicaNoAssunto com fronteira de palavra e protagonista no centro
+const noAss = (t: string, sc: string, f: string[]) => episodioFicaNoAssunto({ title: t, script: sc }, { fichas: f, assunto: '' })
+ok(!noAss('Because of it', 'HOOK\nBecause nobody knew, the box stayed closed.', ['Use']), '(5.3) "Use" não casa com "because"')
+ok(!noAss('Often', 'HOOK\nIt happens often.', ['Ten']), '(5.3) "Ten" não casa com "often"')
+ok(!noAss('Season two', 'HOOK\nThe season began.', ['Son']), '(5.3) "Son" não casa com "season"')
+ok(!noAss('Moonlight', 'HOOK\nMoonlight fell on the lake.', ['Moon']), '(5.3) "Moon" não casa com "Moonlight"')
+const LUNA = 'HOOK\nLuna, a curious girl, finds Roland’s old mailbox.\nMICRO REWARD\nLuna opens it. Luna reads the letter aloud.\nPAYOFF\nLuna smiles.'
+ok(!noAss('The Girl Who Found the Box', LUNA, fichasDoFilme(ROLAND)), '(5.3) protagonista rebaixado a coadjuvante (Luna no centro) = fora')
+ok(noAss('The Letter', 'HOOK\nRoland never expected the letter to answer back.\nMICRO REWARD\nLuna, a curious girl, waves at him.', fichasDoFilme(ROLAND)), '(5.3) protagonista sujeito da 1ª frase, coadjuvante novo de passagem = no assunto')
+ok(!noAss('A Gift Beyond Time', 'HOOK\nWhat if a forgotten toy came to life?\nMICRO REWARD\nA teddy bear named Tofu wakes up. Tofu hugs the robot. Tofu runs away.', ['the tiny discarded robot']), '(5.3) o urso renomeado "Tofu" no centro e o robô de coadjuvante = fora')
+ok(noAss('A New Friend', 'HOOK\nThe tiny robot woke up early.', ['the tiny discarded robot']) && noAss('Vega returns', 'HOOK\nDr. Vega looked up at the sky.', ['Dr. Vega, a scientist']), '(5.3) papel ("The tiny robot") e título ("Dr. Vega") como sujeito = no assunto')
+
+// (5.4) espera com indicador, botão desativado, nenhum clique engolido; o episódio do cartão vai junto
+const cliente = rd('lib/proximoEpisodioCliente.ts')
+ok(/export function useProximoEpisodioEmVoo\(\)/.test(cliente) && /useSyncExternalStore\(/.test(cliente) && /mudouEmVoo\(\)\s*\n\s*if \(p\.navegar\)/.test(cliente), '(5.4) o cliente avisa a tela ao começar e ao terminar a espera')
+const gerar = rd('app/(dashboard)/generate/GenerateClient.tsx')
+ok((gerar.match(/disabled=\{proximoEpisodioEsperando\}/g) ?? []).length === 2 && (gerar.match(/proximoEpisodioEsperando \? ROTULO_ESPERANDO : 'Next episode →'/g) ?? []).length === 2, '(5.4) tela de pronto: os dois botões do topo desativam e mostram "Writing the next episode…"')
+ok(/durationSeconds: duration,/.test(gerar) && /episodio: nextEpisode,/.test(gerar), '(5.4/5.5) a tela de pronto manda o ALVO de duração e o episódio que o cartão já mostra')
+const hist = rd('app/(dashboard)/history/HistoryClient.tsx')
+ok(/aria-disabled=\{proximoEpisodioEmVoo \? true : undefined\}/.test(hist) && /proximoEpisodioEmVoo === video\.id \? ROTULO_ESPERANDO : 'Next episode →'/.test(hist), '(5.4) biblioteca: cartões desativados e o indicador no filme em espera')
+
+// (5.5) duração = a que o filme mirou; (5.6) evento próprio e nome de série limpo
+ok(linkLib.duracaoDoStudio('hollywood', 78) === '60' && linkLib.duracaoDoStudio('hollywood', 95) === '90' && linkLib.duracaoDoStudio('fast', 33) === '35', '(5.5) hollywood de 60 s que saiu com 78 s abre em 60 (não 90); 33 s abre em 35')
+ok(linkLib.NEXT_EPISODE_CLICKED_EVENT === 'next_episode_button_clicked', '(5.6) evento do botão separado do next_episode_clicked do cartão')
+ok(nomeDaSerie('HOOK:  Meet Tommy—the boy who', null) === 'Meet Tommy—the boy who' && nomeDaSerie('Create a 2D animated horror story inspired', null) === '' && nomeDaSerie('The Mailbox. Part one', null) === 'The Mailbox', '(5.6) nome da série sem rótulo, sem ordem de produção, sem ponto final')
+ok(!/Same story and characters/.test(gerar), '(5.6) a copy do botão não promete personagens a filme factual')
 
 console.log('(3) a URL é a que o Studio lê')
 const PAI = '0b8f2c1e-5d3a-4c7b-9e21-7a6f5d4c3b2a'
@@ -139,6 +211,11 @@ console.log('(3b) a rota nova, executada offline')
   ok(r3.body.episodeOffTopic === true && !/Mia/.test(new URL(r3.body.studioHref, 'https://x.y').searchParams.get('prompt')!), '(3b) escritor fora do assunto: descartado da ideia')
   ok((await chamar({ fromVideoId: '00000000-0000-4000-8000-000000000000' })).status === 404, '(3b) filme de outra pessoa / inexistente: 404')
   ok((await chamar({ fromVideoId: 'nope' })).status === 400, '(3b) id inválido: 400')
+  pedidoAoEscritor = null
+  const r5 = await chamar({ fromVideoId: VID, episode: { title: epBom.title, script: epBom.script } })
+  ok(pedidoAoEscritor === null && r5.body.usedEpisode === true && r5.body.writerStatus === 'tela' && new URL(r5.body.studioHref, 'https://x.y').searchParams.get('prompt')!.includes('This episode: The Letter With No Stamp.'), '(5.4) episódio que a tela já mostra: o Studio recebe o MESMO texto e nenhum 2º escritor roda')
+  const r6 = await chamar({ fromVideoId: VID, episode: epMia })
+  ok(pedidoAoEscritor === null && r6.body.episodeOffTopic === true, '(5.4) o episódio da tela ainda passa pelo filtro de assunto')
 }
 
 console.log('(4) nada de preço literal')

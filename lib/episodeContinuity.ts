@@ -143,7 +143,9 @@ export const MAX_FICHA_CHARS = 240
 const SER =
   '(?:man|woman|boy|girl|kid|child|baby|toddler|teen|teenager|lady|gentleman|guy|grandma|grandpa|grandmother|grandfather|mother|father|mom|dad|sister|brother|son|daughter|king|queen|prince|princess|knight|wizard|witch|pirate|captain|sailor|soldier|detective|doctor|nurse|farmer|fisherman|teacher|student|scientist|explorer|astronaut|keeper|hunter|warrior|hero|heroine|robot|android|cyborg|alien|dragon|dinosaur|monster|creature|ghost|fairy|elf|unicorn|mermaid|giant|troll|goblin|vampire|zombie|toy|doll|teddy|puppet|bear|bunny|rabbit|fox|wolf|dog|puppy|cat|kitten|mouse|rat|owl|pigeon|dove|crow|raven|sparrow|parrot|eagle|hawk|seagull|gull|duck|duckling|goose|swan|chicken|hen|rooster|penguin|bird|frog|turtle|tortoise|snake|lizard|horse|pony|donkey|cow|pig|sheep|goat|lion|tiger|elephant|giraffe|zebra|monkey|gorilla|panda|koala|squirrel|hedgehog|raccoon|otter|deer|whale|dolphin|shark|octopus|crab|bee|butterfly|spider|snail|fish|hamster|camel|homem|mulher|menino|menina|garoto|garota|velho|velha|cachorro|cachorra|gato|gata|pombo|coelho|urso|hombre|mujer|niño|niña|perro|paloma|conejo|oso)(?:e?s)?'
 const SER_RE = new RegExp(`(?<![\\p{L}])${SER}(?![\\p{L}])`, 'iu')
-const NOME = String.raw`\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}[\p{L}'’-]+){0,3}`
+// KINEO-PROXIMO-EPISODIO-0111 (revisão) — título com ponto ("Dr. Vega") é UM nome: antes virava "Dr" + uma 2ª ficha.
+const HONORIFICO = String.raw`(?:Dr|Dra|Mr|Mrs|Ms|Mx|Prof|Profa|Capt|Gen|Lt|Sgt|Col|St|Sr|Sra|Srta)\.\s+`
+const NOME = String.raw`(?:${HONORIFICO})?\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}[\p{L}'’-]+){0,3}`
 // "Nome, a/an descrição" (aposto). A descrição vai até o fim da frase; o corte fino é feito depois.
 const APOSTO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME}),\s+(a|an|um|uma|un|una|une)\s+(?=([^.!?;\n]{3,260}))`, 'gu') // a descrição em lookahead: "Pip, a mouse…, and Luna, an owl" acha os dois
 // "a/an descrição named/called Nome" — o nome dado já prova o personagem.
@@ -152,7 +154,14 @@ const NOMEADO_RE = new RegExp(String.raw`(?<![\p{L}])([Aa]n?|[Tt]he)\s+((?:${PAL
 // "Main character: …" / "Protagonist: …" — inclusive o rótulo que a ideia do botão escreve (o episódio 3 herda do 2).
 const ROTULO_FICHA_RE = /(?:^|\n|\.\s)\s*(?:main character|protagonist|personagem principal|protagonista)\s*:\s*([^\n]{8,260}?)(?=\.\s|\.$|\n|$)/giu
 /** Palavra com maiúscula que abre frase e NÃO é nome. */
-const NAO_E_NOME = new Set(('the|a|an|in|on|at|by|but|and|or|so|then|when|once|today|tonight|yesterday|tomorrow|meet|hook|micro|reward|escalation|payoff|rhythm|title|concept|episode|scene|chapter|part|story|also|now|here|there|this|that|every|each|after|before|era|uma|un|una|el|la|o|os|as|em|no|na|it|he|she|they|we|you|i|his|her|their|our|my|its|suddenly|finally|later|first|next|last|one|two|three|narrator|voiceover|cut|style|camera|visual|duration|format|sequence|create|make|generate').split('|'))
+const NAO_E_NOME = new Set(('the|a|an|in|on|at|by|but|and|or|so|then|when|once|today|tonight|yesterday|tomorrow|meet|hook|micro|reward|escalation|payoff|rhythm|title|concept|episode|scene|chapter|part|story|also|now|here|there|this|that|every|each|after|before|era|uma|un|una|el|la|o|os|as|em|no|na|it|he|she|they|we|you|i|his|her|their|our|my|its|suddenly|finally|later|first|next|last|one|two|three|narrator|voiceover|cut|style|camera|visual|duration|format|sequence|create|make|generate' +
+  // KINEO-PROXIMO-EPISODIO-0111 (revisão) — palavras que ABREM frase antes de vírgula: "Meanwhile, a little girl watched…" virava
+  // MAIN CHARACTER "Meanwhile". Nenhuma delas é nome de personagem; títulos soltos ("Dr" sem nome) também não.
+  '|meanwhile|somewhere|however|inside|outside|look|elsewhere|imagine|picture|listen|remember|behold|yet|still|soon|instead|nearby|above|below|beyond|behind|underneath|deep|far|long|years|centuries|decades|legend|legends|history|again|besides|moreover|therefore|thus|indeed|sometimes|often|usually|recently|eventually|ultimately|luckily|sadly|unfortunately|fortunately|surprisingly|amazingly|believe|guess|hey|oh|well|yes|no|okay|everywhere|nowhere|until|while|because|although|though|since|if|as|with|without|for|from|to|of|into|across|through|during|dear|welcome|hello|hi|kineo|youtube|tiktok|instagram|enquanto|depois|então|entao|porém|porem|agora|aqui|ali|lá|mientras|entonces|ahora|aquí|luego|después|despues|dr|dra|mr|mrs|ms|mx|prof|sr|sra|st').split('|'))
+/** KINEO-PROXIMO-EPISODIO-0111 (revisão) — palavra que abre frase / não é nome de personagem (usada também pela ideia do Studio). */
+export function naoEhNome(palavra: string): boolean {
+  return NAO_E_NOME.has(String(palavra ?? '').trim().toLowerCase())
+}
 
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim()
 /** Pedaço que continua descrevendo a aparência depois de uma vírgula ("…, with a torn wing", "…, wearing a cap"). */
@@ -183,7 +192,30 @@ function cortarDescricao(desc: string): string {
     if (!CONTINUA_APARENCIA.test(p)) break
     out.push(p)
   }
-  return out.join(', ').replace(/\s+(?:and|e|y)$/i, '').trim()
+  return semAcaoDepoisDoSer(out.join(', ').replace(/\s+(?:and|e|y)$/i, '').trim())
+}
+// KINEO-PROXIMO-EPISODIO-0111 (revisão) — o SER tem de ser o NÚCLEO da descrição (antes de "where/of/that…", nas 6 primeiras
+// palavras): "Hisarlik, a hill where a farmer…" e "Qinngua, a place in Greenland…" não são personagens.
+const FIM_DO_NUCLEO = /^(?:who|whom|whose|that|which|where|when|of|from|near|in|on|at|by|than|once|que|onde|de|do|da|dos|das|em|no|na|del|en|cuyo|cuya)$/i
+function serNoNucleo(desc: string): boolean {
+  const nucleo: string[] = []
+  for (const w of limpa(desc).split(' ')) {
+    if (FIM_DO_NUCLEO.test(w) || nucleo.length >= 6) break
+    nucleo.push(w)
+  }
+  return SER_RE.test(nucleo.join(' '))
+}
+// "Mia, a little girl watched the storm…": a frase de ação depois do SER não é aparência — corta no SER.
+const VERBO_DEPOIS_DO_SER = /^(?:is|was|were|are|has|had|have|does|did|can|could|will|would|sat|sits|stood|stands|ran|runs|went|goes|came|comes|saw|sees|found|finds|felt|feels|woke|wakes|said|says|lives|looks|hears|knew|knows|took|takes|gets|got|[\p{Ll}]{2,}ed)$/u
+const NAO_E_VERBO = /^(?:named|called|dressed|covered|armed|aged|tired|scared|winged|haired|eyed|legged|horned|tailed|shaped|colou?red|striped|spotted|feathered|furred|bearded|masked|hooded|cursed|beloved|bored|retired|talented|gifted|wicked|crooked|ragged|rugged|naked|sacred|learned|wretched)$/i
+function semAcaoDepoisDoSer(desc: string): string {
+  const re = new RegExp(`(?<![\\p{L}])${SER}(?![\\p{L}])`, 'giu')
+  for (const m of desc.matchAll(re)) {
+    const fim = (m.index ?? 0) + m[0].length
+    const seguinte = /^\s+([\p{L}'’-]+)/u.exec(desc.slice(fim))?.[1] ?? ''
+    if (seguinte && VERBO_DEPOIS_DO_SER.test(seguinte) && !NAO_E_VERBO.test(seguinte)) return desc.slice(0, fim).trim()
+  }
+  return desc
 }
 function cortarFicha(f: string): string {
   const t = limpa(f).replace(/[,;:\s]+$/, '')
@@ -222,7 +254,7 @@ export function fichasExplicitas(...fontes: Array<string | null | undefined>): s
       const nome = nomeLimpo(m[1])
       if (!nome) continue
       const desc = cortarDescricao(m[3])
-      if (desc.length < 3 || !SER_RE.test(desc)) continue
+      if (desc.length < 3 || !serNoNucleo(desc)) continue // KINEO-PROXIMO-EPISODIO-0111 (revisão) — o ser é o núcleo, não um detalhe
       const ap = aparenciaSeguinte(texto, (m.index ?? 0) + m[0].length + m[3].length)
       daFonte.push({ pos: m.index ?? 0, nome, ficha: `${nome}, ${m[2].toLowerCase()} ${desc}${ap ? `, with ${ap}` : ''}` })
     }
@@ -241,6 +273,25 @@ export function fichasExplicitas(...fontes: Array<string | null | undefined>): s
     if (achadas.length >= 2) break
   }
   return achadas.slice(0, 2).map((a) => a.ficha)
+}
+
+/**
+ * KINEO-PROXIMO-EPISODIO-0111 (revisão) — a espécie que o TEXTO cola no nome: "Dino the dinosaur", "Dino, the little
+ * dinosaur", "the little fox Rua" → "the little dinosaur" / "the little fox". '' quando o texto não disse — e aí ninguém
+ * acrescenta espécie nem gênero.
+ */
+export function especieJuntoDoNome(texto: string | null | undefined, nome: string): string {
+  const t = limpa(String(texto ?? '').replace(/\[[^\]]{0,160}\]/g, ' ')).slice(0, 8000)
+  const n = limpa(nome)
+  if (!t || !n) return ''
+  const esc = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // qualificadores só (nunca "where/of/the…": "Rome, a city where the man" não dá espécie a Rome)
+  const qual = String.raw`(?:(?!(?:who|whom|that|which|where|when|of|in|on|at|from|with|and|or|but|the|a|an|is|was|has|had)\s)[\p{Ll}'’-]+\s+){0,3}?`
+  const depois = new RegExp(String.raw`(?<![\p{L}\p{N}])${esc},?\s+(the|a|an|o|a|um|uma|el|la|un|una)\s+(${qual}${SER})(?![\p{L}])`, 'u').exec(t)
+  if (depois) return `${depois[1].toLowerCase()} ${limpa(depois[2])}`
+  const antes = new RegExp(String.raw`(?<![\p{L}])(the|a|an|our|my|o|um|uma|el|la|un|una)\s+(${qual}${SER})\s+${esc}(?![\p{L}\p{N}])`, 'iu').exec(t)
+  if (antes) return `${/^(?:our|my)$/i.test(antes[1]) ? 'the' : antes[1].toLowerCase()} ${limpa(antes[2])}`
+  return ''
 }
 
 /**

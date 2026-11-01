@@ -315,7 +315,7 @@ import {
   buildSeriesContinuationPrompt,
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
-import { abrirProximoEpisodio, useProximoEpisodioVisto } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem
+import { abrirProximoEpisodio, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
@@ -11422,7 +11422,10 @@ export default function GenerateClient({
         fallbackHref: href,
         language,
         engine: falUsedRef.current ? falQualityRef.current : quality,
-        durationSeconds: finalVideoSeconds ?? duration,
+        // KINEO-PROXIMO-EPISODIO-0111 (revisão) — o ALVO escolhido, não o MP4 medido (60 s que saiu com 78 s abria em 90 s)
+        durationSeconds: duration,
+        // o episódio que o cartão desta tela já mostra vai junto: o Studio recebe o MESMO texto, sem um 2º escritor em paralelo
+        episodio: nextEpisode,
         navegar: (destino) => {
           handleReset()
           if (destino !== href) { router.push(destino); return }
@@ -12705,6 +12708,8 @@ export default function GenerateClient({
   // ═══════════════════════════════════════════════════════════════════════
   const episode2Seed = buildSeriesContinuationPrompt(analysis?.title ?? prompt) ? (analysis?.title ?? prompt) : null
   useProximoEpisodioVisto('done_screen_top', phase === 'done' && episode2Seed && publicVideoId ? 1 : 0, publicVideoId) // KINEO-PROXIMO-EPISODIO-0111 — next_episode_shown, 1× por filme
+  const proximoEpisodioEmVoo = useProximoEpisodioEmVoo() // KINEO-PROXIMO-EPISODIO-0111 (revisão) — botão desativado + "Writing the next episode…" durante a espera
+  const proximoEpisodioEsperando = Boolean(proximoEpisodioEmVoo)
   const episode2InheritedCost = costForDurationOption(duration)
   const episode2FreeCost = creditCostForDuration('fast', isPaidAccount, duration)
   const episode2QuotaKnown = freeFastUsedInWindow !== null
@@ -18054,6 +18059,8 @@ export default function GenerateClient({
                       ref={nextEpisodeTopBtnRef}
                       type="button"
                       onClick={() => handleContinueSeries(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine)}
+                      disabled={proximoEpisodioEsperando}
+                      aria-busy={proximoEpisodioEsperando}
                       className="flex w-full flex-col items-center justify-center rounded-xl mt-2.5 px-5 py-3.5 text-center font-black"
                       style={{
                         background: watermarkedDownloadConfirmed
@@ -18063,14 +18070,15 @@ export default function GenerateClient({
                           ? '1px solid var(--border)'
                           : '1px solid var(--border)',
                         color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
-                        cursor: 'pointer',
+                        cursor: proximoEpisodioEsperando ? 'wait' : 'pointer',
+                        opacity: proximoEpisodioEsperando ? 0.75 : 1,
                         boxShadow: watermarkedDownloadConfirmed
                           ? 'var(--sh-card)'
                           : 'var(--sh-card)',
                       }}
                     >
                       {/* COMPRA-CLAREZA-2610 — existing continuation still opens review before a new render. */}
-                      <span style={{ fontSize: '0.92rem' }}>Next episode →</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série */}
+                      <span style={{ fontSize: '0.92rem' }}>{proximoEpisodioEsperando ? ROTULO_ESPERANDO : 'Next episode →'}</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série; durante a espera, o indicador */}
                       <span
                         style={{
                           marginTop: 4,
@@ -18082,7 +18090,7 @@ export default function GenerateClient({
                       >
                         {episode2Engine === 'fast'
                           ? 'Your balance won\u2019t cover the same engine \u00b7 this one renders on Kineo 1, free on your account, with our watermark'
-                          : 'Same story and characters, new hook · review the idea, engine and cost before generating'}
+                          : 'Same story, new hook · review the idea, engine and cost before generating'}
                       </span>
                     </button>
                   )}
@@ -18431,6 +18439,8 @@ export default function GenerateClient({
                     ref={nextEpisodeTopBtnRef}
                     type="button"
                     onClick={() => handleContinueSeries(episode2Seed, 'done_screen_top', publicVideoId, episode2Engine)}
+                    disabled={proximoEpisodioEsperando}
+                    aria-busy={proximoEpisodioEsperando}
                     className="flex w-full flex-col items-center justify-center rounded-xl px-5 py-3.5 text-center font-black"
                     style={{
                       background: watermarkedDownloadConfirmed && !fullVersionOfferEligible
@@ -18440,14 +18450,15 @@ export default function GenerateClient({
                         ? '1px solid var(--border)'
                         : '1px solid var(--border)',
                       color: watermarkedDownloadConfirmed && !fullVersionOfferEligible ? 'var(--on-accent)' : 'var(--accent)',
-                      cursor: 'pointer',
+                      cursor: proximoEpisodioEsperando ? 'wait' : 'pointer',
+                      opacity: proximoEpisodioEsperando ? 0.75 : 1,
                       boxShadow: watermarkedDownloadConfirmed
                         ? 'var(--sh-card)'
                         : 'var(--sh-card)',
                     }}
                   >
                     {/* COMPRA-CLAREZA-2610 — same copy in the sibling result branch. */}
-                    <span style={{ fontSize: '0.92rem' }}>Next episode →</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série */}
+                    <span style={{ fontSize: '0.92rem' }}>{proximoEpisodioEsperando ? ROTULO_ESPERANDO : 'Next episode →'}</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série; durante a espera, o indicador */}
                     <span
                       style={{
                         marginTop: 4,
@@ -18459,7 +18470,7 @@ export default function GenerateClient({
                     >
                       {episode2Engine === 'fast'
                         ? 'Your balance won’t cover the same engine · this one renders on Kineo 1, free on your account, with our watermark'
-                        : 'Same story and characters, new hook · review the idea, engine and cost before generating'}
+                        : 'Same story, new hook · review the idea, engine and cost before generating'}
                     </span>
                   </button>
                 )}
