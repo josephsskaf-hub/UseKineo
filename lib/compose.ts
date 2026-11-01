@@ -2470,12 +2470,24 @@ export function buildCreatomateSource({
     )
   } else if (kling4TrialFilm && kling4TrialEngine === 'kling4' && cleanClips.length === 1) {
     // Kling multi_prompt already contains every shot. Preserve its entire 15s sequence,
-    // starting at frame zero. Longer narration may loop only after the complete film.
-    elements.push({
-      type: 'video', track: 2, time: 0, duration: totalDuration,
-      source: cleanClips[0], fit: 'cover', loop: true, trim_start: 0,
-      x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%',
-    })
+    // starting at frame zero.
+    // KINEO-K4-FIM-SEM-VOLTA-0111 — revisor 01/11 (4 de 5 filmes Kling 4 grátis): com a narração mais longa que os 15 s
+    // (17,7 s no "planeta de gelo"), o laço ligado voltava ao quadro ZERO — o filme terminava na cena de ABERTURA e o
+    // desfecho narrado ("a vida sob o gelo", o avião sumido) passava sobre o começo. Agora o filme toca uma vez e a sobra
+    // fica no FIM: os últimos segundos da última cena (o piso de cena é 3 s) com um empurrão lento, nunca a abertura.
+    const K4_SEGUNDOS = 15 // KINEO-K4-FIM-SEM-VOLTA-0111
+    const K4_CAUDA = 3 // KINEO-K4-FIM-SEM-VOLTA-0111 — dentro da última cena (kling4TrialSceneDurations: piso de 3 s)
+    const k4Base = { type: 'video', track: 2, source: cleanClips[0], fit: 'cover', loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' } // KINEO-K4-FIM-SEM-VOLTA-0111
+    const k4Inteiro = round3(Math.min(totalDuration, K4_SEGUNDOS)) // KINEO-K4-FIM-SEM-VOLTA-0111
+    elements.push({ ...k4Base, time: 0, duration: k4Inteiro, trim_start: 0 }) // KINEO-K4-FIM-SEM-VOLTA-0111
+    for (let t = k4Inteiro, k = 0; totalDuration - t > 0.05; k++) { // KINEO-K4-FIM-SEM-VOLTA-0111
+      const len = round3(Math.min(K4_CAUDA, totalDuration - t)) // KINEO-K4-FIM-SEM-VOLTA-0111
+      elements.push({ // KINEO-K4-FIM-SEM-VOLTA-0111
+        ...k4Base, time: t, duration: len, trim_start: round3(K4_SEGUNDOS - len), // KINEO-K4-FIM-SEM-VOLTA-0111
+        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }], // KINEO-K4-FIM-SEM-VOLTA-0111
+      }) // KINEO-K4-FIM-SEM-VOLTA-0111
+      t = round3(t + len) // KINEO-K4-FIM-SEM-VOLTA-0111
+    } // KINEO-K4-FIM-SEM-VOLTA-0111
   } else if (signedClipSeconds) {
     // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — clipes com comprimento assinado (Kling 2.5: 5 s; 10 s acima do teto) ═══
     // planCappedClipTimeline garante trim_start + duração ≤ segundos do clipe em todo trecho; por isso loop:false — o
