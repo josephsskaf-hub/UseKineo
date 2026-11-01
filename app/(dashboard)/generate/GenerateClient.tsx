@@ -2948,6 +2948,9 @@ export default function GenerateClient({
   // editable textarea can show a CLEAN, marker-free preview while submission still
   // uses the marked-up version the verbatim pipeline needs. Cleared on manual edit.
   const structuredScriptRef = useRef<string | null>(null)
+  // KINEO-K4-SUJEITO-0111 — a ideia que a pessoa digitou e o roteiro que o /api/generate-script escreveu a partir DELA. Vai ao servidor
+  // (original_idea) só quando o roteiro despachado é exatamente esse: o sujeito obrigatório do Kling 4 sai do pedido, nunca do roteiro.
+  const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string } | null>(null)
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const autoAnalyzeKeyRef = useRef<string | null>(null)
@@ -8773,6 +8776,7 @@ export default function GenerateClient({
             source = sgData.script.trim()
             // #362 — keep the marked script for submission; show clean text.
             structuredScriptRef.current = source
+            ideiaDoRoteiroRef.current = { ideia: rawSource, roteiro: source } // KINEO-K4-SUJEITO-0111
             // ═══ KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9) ═════
             // A BASE IMUTAVEL do teto de 2,5x tinha ficado na IDEIA CRUA que a
             // pessoa digitou, enquanto o texto mandado para completar passava a
@@ -10123,6 +10127,8 @@ export default function GenerateClient({
           ...(aiEngine === 'hollywood' ? { kling4_expect_promo: kling4PromoZeroCredits(kling4DispatchAvailability, duration), kling4_expected_engine: kling4DispatchAvailability?.paidLive ? 'kling4' : 'kling3' } : {}),
           brollScenes: cineBrollScenes,
           globalStyle: cineUsable ? cinePlan!.globalStyle : undefined,
+          // KINEO-K4-SUJEITO-0111 — a ideia original só acompanha o roteiro que nasceu dela (par exato); qualquer outro texto vai sem ela.
+          ...(ideiaDoRoteiroRef.current && ideiaDoRoteiroRef.current.roteiro === trimmed ? { original_idea: ideiaDoRoteiroRef.current.ideia.slice(0, 600) } : {}),
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos da estrela (caminhos + autorização) só num motor com âncora.
           ...(estrelaRef.current && estrelaDisponivelNoMotor(aiEngine) ? { estrela: estrelaRef.current } : {}),

@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/finalResposta.ts', 'lib/cinematic/sujeitoObrigatorio.ts'] // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — sujeito obrigatório do Kling 4 e fim que revela (escritor + descritor)
+const ESCOPO = ['app/(dashboard)/generate/GenerateClient.tsx', 'app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/finalResposta.ts', 'lib/cinematic/sujeitoObrigatorio.ts'] // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — sujeito obrigatório do Kling 4 (v2: só do pedido original — original_idea do cliente) e fim que revela (escritor + descritor)
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {
