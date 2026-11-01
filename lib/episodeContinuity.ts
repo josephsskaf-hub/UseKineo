@@ -128,6 +128,121 @@ const LINHA_FORMATO: Record<FormatoDoFilme, string> = {
     'FORMAT: same as episode 1. If it is a story, continue the same characters in the same world; if it is factual, stay on the same theme with the next angle.',
 }
 
+// ═══ KINEO-PROXIMO-EPISODIO-0111 — a FICHA do personagem atravessa o episódio (vai do fundador 01/11 "vai tudo") ═══
+//
+// O DEFEITO QUE SOBROU DEPOIS DE 13/10 (medido em `events.next_episode_written`, 13/10 → 01/11): o assunto ficou, o
+// PERSONAGEM não. O robô que conserta brinquedos virou coadjuvante de uma "little girl, named Mia" (nome inventado, em dois
+// episódios); o urso de pelúcia ganhou o nome "Tofu". A ficha que o AUTOR escreveu ("Roland Pernicus Oznard, a gruff old man
+// with shoulder-length gray-brown hair"; "BRO, a muscular grey city pigeon"; "A tiny cute blue milk carton named MILO") não
+// era dita ao escritor como regra — e, quando o EPISODE 1 é a narração, a ficha do PEDIDO nem chegava a ele.
+// `fichasExplicitas` lê a ficha palavra por palavra (sem inventar nada) e `blocoDeContinuidade` a manda como MAIN CHARACTER.
+// Também usada pela ideia do botão "Next episode" (lib/proximoEpisodioStudio.ts). Continua pura, zero imports.
+
+/** Teto de uma ficha (nome + descrição + aparência). */
+export const MAX_FICHA_CHARS = 240
+const SER =
+  '(?:man|woman|boy|girl|kid|child|baby|toddler|teen|teenager|lady|gentleman|guy|grandma|grandpa|grandmother|grandfather|mother|father|mom|dad|sister|brother|son|daughter|king|queen|prince|princess|knight|wizard|witch|pirate|captain|sailor|soldier|detective|doctor|nurse|farmer|fisherman|teacher|student|scientist|explorer|astronaut|keeper|hunter|warrior|hero|heroine|robot|android|cyborg|alien|dragon|dinosaur|monster|creature|ghost|fairy|elf|unicorn|mermaid|giant|troll|goblin|vampire|zombie|toy|doll|teddy|puppet|bear|bunny|rabbit|fox|wolf|dog|puppy|cat|kitten|mouse|rat|owl|pigeon|dove|crow|raven|sparrow|parrot|eagle|hawk|seagull|gull|duck|duckling|goose|swan|chicken|hen|rooster|penguin|bird|frog|turtle|tortoise|snake|lizard|horse|pony|donkey|cow|pig|sheep|goat|lion|tiger|elephant|giraffe|zebra|monkey|gorilla|panda|koala|squirrel|hedgehog|raccoon|otter|deer|whale|dolphin|shark|octopus|crab|bee|butterfly|spider|snail|fish|hamster|camel|homem|mulher|menino|menina|garoto|garota|velho|velha|cachorro|cachorra|gato|gata|pombo|coelho|urso|hombre|mujer|niño|niña|perro|paloma|conejo|oso)(?:e?s)?'
+const SER_RE = new RegExp(`(?<![\\p{L}])${SER}(?![\\p{L}])`, 'iu')
+const NOME = String.raw`\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}[\p{L}'’-]+){0,3}`
+// "Nome, a/an descrição" (aposto). A descrição vai até o fim da frase; o corte fino é feito depois.
+const APOSTO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME}),\s+(a|an|um|uma|un|una|une)\s+(?=([^.!?;\n]{3,260}))`, 'gu') // a descrição em lookahead: "Pip, a mouse…, and Luna, an owl" acha os dois
+// "a/an descrição named/called Nome" — o nome dado já prova o personagem.
+const PALAVRA_DESC = String.raw`(?!(?:a|an|the|about|of|for|to|in|on|with|that|who|and|or|story|video|film|tale)(?![\p{L}]))[\p{L}'’-]+`
+const NOMEADO_RE = new RegExp(String.raw`(?<![\p{L}])([Aa]n?|[Tt]he)\s+((?:${PALAVRA_DESC}\s+){0,7}${PALAVRA_DESC})\s+(?:named|called)\s+(${NOME})`, 'gu')
+// "Main character: …" / "Protagonist: …" — inclusive o rótulo que a ideia do botão escreve (o episódio 3 herda do 2).
+const ROTULO_FICHA_RE = /(?:^|\n|\.\s)\s*(?:main character|protagonist|personagem principal|protagonista)\s*:\s*([^\n]{8,260}?)(?=\.\s|\.$|\n|$)/giu
+/** Palavra com maiúscula que abre frase e NÃO é nome. */
+const NAO_E_NOME = new Set(('the|a|an|in|on|at|by|but|and|or|so|then|when|once|today|tonight|yesterday|tomorrow|meet|hook|micro|reward|escalation|payoff|rhythm|title|concept|episode|scene|chapter|part|story|also|now|here|there|this|that|every|each|after|before|era|uma|un|una|el|la|o|os|as|em|no|na|it|he|she|they|we|you|i|his|her|their|our|my|its|suddenly|finally|later|first|next|last|one|two|three|narrator|voiceover|cut|style|camera|visual|duration|format|sequence|create|make|generate').split('|'))
+
+const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim()
+/** Pedaço que continua descrevendo a aparência depois de uma vírgula ("…, with a torn wing", "…, wearing a cap"). */
+const CONTINUA_APARENCIA = /^(?:with|wearing|in (?:a|an|his|her|their)|dressed|carrying|holding|missing|covered|whose)\b/i
+
+/** Tira do começo as palavras que abrem frase ("Meet Pip" → "Pip"); '' quando não sobra nome. */
+function nomeLimpo(nome: string): string {
+  const palavras = limpa(nome).split(' ')
+  while (palavras.length && NAO_E_NOME.has(palavras[0].toLowerCase())) palavras.shift()
+  return palavras.length && palavras.every((p) => p.length >= 2) ? palavras.join(' ') : ''
+}
+/** ", with turquoise hair and a star-shaped yellow backpack" logo depois do nome (padrão "a girl named Mila, with …"). */
+function apostoDepoisDoNome(texto: string, fim: number): string {
+  const m = /^,\s+([^.!?;\n]{3,220})/u.exec(texto.slice(fim))
+  if (!m) return ''
+  const out: string[] = []
+  for (const p of m[1].split(/,\s+/)) {
+    if (!CONTINUA_APARENCIA.test(p)) break
+    out.push(p)
+  }
+  return out.join(', ').replace(/\s+(?:and|e|y)$/i, '').trim()
+}
+/** Corta a descrição do aposto: 1º trecho até a vírgula + trechos que continuam a aparência. */
+function cortarDescricao(desc: string): string {
+  const partes = limpa(desc).split(/,\s+/)
+  const out = [partes[0]]
+  for (const p of partes.slice(1)) {
+    if (!CONTINUA_APARENCIA.test(p)) break
+    out.push(p)
+  }
+  return out.join(', ').replace(/\s+(?:and|e|y)$/i, '').trim()
+}
+function cortarFicha(f: string): string {
+  const t = limpa(f).replace(/[,;:\s]+$/, '')
+  if (t.length <= MAX_FICHA_CHARS) return t
+  const janela = t.slice(0, MAX_FICHA_CHARS)
+  return janela.slice(0, Math.max(0, janela.lastIndexOf(' '))).replace(/[,;:\s]+$/, '')
+}
+/** "He has small arms…" logo depois da ficha vira ", with small arms…" (a aparência que o autor escreveu). */
+function aparenciaSeguinte(texto: string, fim: number): string {
+  const resto = texto.slice(fim)
+  const m = /^[^.!?\n]*[.!?]?\s+(?:He|She|It|They)\s+(?:has|have|wears|is wearing|are wearing)\s+([^.!?\n]{6,200})/u.exec(resto)
+  return m ? limpa(m[1]) : ''
+}
+
+/**
+ * As fichas que o AUTOR escreveu, verbatim, na ordem em que aparecem (no máximo 2, uma por nome). Fontes em ordem de
+ * preferência (o pedido, a narração…). [] quando ninguém descreveu personagem — nada é inventado aqui.
+ */
+export function fichasExplicitas(...fontes: Array<string | null | undefined>): string[] {
+  const achadas: Array<{ nome: string; ficha: string }> = []
+  const junta = (nome: string, ficha: string) => {
+    const chave = limpa(nome).toLowerCase()
+    if (!chave || achadas.some((a) => a.nome === chave)) return
+    achadas.push({ nome: chave, ficha: cortarFicha(ficha) })
+  }
+  for (const fonte of fontes) {
+    if (typeof fonte !== 'string' || !fonte.trim()) continue
+    const texto = fonte.replace(/\r\n/g, '\n').replace(/\[[^\]]{0,160}\]/g, ' ').slice(0, 8000)
+    const daFonte: Array<{ pos: number; nome: string; ficha: string }> = []
+    for (const m of texto.matchAll(ROTULO_FICHA_RE)) {
+      const ficha = limpa(m[1])
+      if (!SER_RE.test(ficha) && !/\b(?:named|called)\b/i.test(ficha)) continue
+      daFonte.push({ pos: m.index ?? 0, nome: ficha.split(',')[0], ficha })
+    }
+    for (const m of texto.matchAll(APOSTO_RE)) {
+      const nome = nomeLimpo(m[1])
+      if (!nome) continue
+      const desc = cortarDescricao(m[3])
+      if (desc.length < 3 || !SER_RE.test(desc)) continue
+      const ap = aparenciaSeguinte(texto, (m.index ?? 0) + m[0].length + m[3].length)
+      daFonte.push({ pos: m.index ?? 0, nome, ficha: `${nome}, ${m[2].toLowerCase()} ${desc}${ap ? `, with ${ap}` : ''}` })
+    }
+    for (const m of texto.matchAll(NOMEADO_RE)) {
+      const nome = nomeLimpo(m[3])
+      if (!nome) continue
+      const desc = limpa(m[2])
+      const artigo = /^[aeiou]/i.test(desc) ? 'an' : 'a'
+      const fim = (m.index ?? 0) + m[0].length
+      const junto = apostoDepoisDoNome(texto, fim)
+      const ap = aparenciaSeguinte(texto, fim)
+      daFonte.push({ pos: m.index ?? 0, nome, ficha: `${nome}, ${artigo} ${desc}${junto ? `, ${junto}` : ''}${ap ? `, with ${ap}` : ''}` })
+    }
+    daFonte.sort((a, b) => a.pos - b.pos)
+    for (const f of daFonte) junta(f.nome, f.ficha)
+    if (achadas.length >= 2) break
+  }
+  return achadas.slice(0, 2).map((a) => a.ficha)
+}
+
 /**
  * As linhas de continuidade que a rota cola logo depois do EPISODE 1.
  * '' quando o filme não tem assunto utilizável: aí o prompt fica como antes.
@@ -137,9 +252,30 @@ export function blocoDeContinuidade(entrada: {
   anterior: string
   /** `videos.script` do filme de origem (a narração real), quando lida. */
   narracaoOrigem?: string | null
+  /** KINEO-PROXIMO-EPISODIO-0111 — `videos.topic` (o pedido do autor): é onde a ficha costuma estar escrita. */
+  pedidoOrigem?: string | null
 }): string {
   const assunto = assuntoDoFilme(entrada.narracaoOrigem, entrada.anterior)
   if (!assunto) return ''
   const formato = formatoDoFilme(entrada.anterior, entrada.narracaoOrigem)
-  return `SUBJECT TO CONTINUE (stay on it): ${assunto}\n${LINHA_FORMATO[formato]}`
+  // KINEO-PROXIMO-EPISODIO-0111 — a ficha escrita pelo autor vira regra do escritor (pedido primeiro, depois o EPISODE 1
+  // e a narração). Filme sem ficha escrita: nenhuma linha nova — o prompt de 13/10 fica igual.
+  const fichas = fichasExplicitas(entrada.pedidoOrigem, entrada.anterior, entrada.narracaoOrigem)
+  return `SUBJECT TO CONTINUE (stay on it): ${assunto}\n${LINHA_FORMATO[formato]}${linhasDaFicha(fichas)}`
+}
+
+const CABECA_FICHA = 'MAIN CHARACTER (keep exactly the same name, species and look; never rename or replace them, never invent a new protagonist): '
+/** KINEO-PROXIMO-EPISODIO-0111 — as linhas da ficha ('' sem ficha). */
+function linhasDaFicha(fichas: readonly string[]): string {
+  if (!fichas.length) return ''
+  return `\n${CABECA_FICHA}${fichas[0]}${fichas[1] ? `\nALSO IN THE STORY (same name and look): ${fichas[1]}` : ''}`
+}
+
+/**
+ * KINEO-PROXIMO-EPISODIO-0111 — a rota cola a ficha escrita no PEDIDO (`videos.topic`) num bloco já pronto. Bloco vazio
+ * (filme sem assunto) fica vazio — o prompt de antes, byte a byte; bloco que já tem a ficha (achada no EPISODE 1) fica igual.
+ */
+export function comFichaDoPedido(bloco: string, pedidoOrigem: string | null | undefined): string {
+  if (!bloco || bloco.includes(CABECA_FICHA)) return bloco
+  return `${bloco}${linhasDaFicha(fichasExplicitas(pedidoOrigem))}`
 }

@@ -34,6 +34,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
+import { abrirProximoEpisodio, useProximoEpisodioVisto } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem, no mesmo motor/duração
 import {
   buildPublicVideoSharePath,
   buildPublishedVideoSharePath, // KINEO-LACO-VIRAL-2026-09-17
@@ -369,6 +370,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // milestone copy, the repeat-creator upsell gate) must key off completed
   // rows only, or it'll try to share/caption a video that doesn't exist yet.
   const completedVideos = videos.filter((v) => v.status === 'completed')
+  useProximoEpisodioVisto(embedded ? 'library_card' : 'history_card', completedVideos.length) // KINEO-PROXIMO-EPISODIO-0111 — next_episode_shown, 1× por tela
   const [expanded, setExpanded] = useState<string | null>(null)
   const [errors, setErrors] = useState<Set<string>>(new Set())
   // Push #421 — summary panel state
@@ -1933,11 +1935,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     video_id: video.id,
                     completed_video_count: completedVideos.length,
                   })}
-                  onClick={() => {
+                  onClick={(e) => {
                     void trackEvent('series_continue_clicked', {
                       source: 'history_video_card',
                       video_id: video.id,
                     })
+                    // KINEO-PROXIMO-EPISODIO-0111 — o servidor escreve a ideia do episódio seguinte com a ficha (nome +
+                    // espécie + aparência) e devolve o Studio no MESMO motor e duração; falhou, segue o href de sempre.
+                    void abrirProximoEpisodio({ surface: embedded ? 'library_card' : 'history_card', videoId: video.id, fallbackHref: buildStudioSeriesReviewHref(title, 'history_video_card'), engine: video.quality_mode ?? null, durationSeconds: video.duration ?? null }, e)
                   }}
                   style={{
                     marginTop: 6,

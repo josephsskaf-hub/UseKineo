@@ -315,6 +315,7 @@ import {
   buildSeriesContinuationPrompt,
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
+import { abrirProximoEpisodio, useProximoEpisodioVisto } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
@@ -11410,6 +11411,29 @@ export default function GenerateClient({
       engine: engine ?? null,
     })
     const href = buildSeriesContinuationHref(seed, source, { engine })
+    // KINEO-PROXIMO-EPISODIO-0111 — no botão do topo da tela de pronto, com o filme salvo e o motor herdado (sem o desvio
+    // para o motor grátis), o servidor escreve a ideia do episódio seguinte com a FICHA do personagem (nome + espécie +
+    // aparência) e devolve o Studio no MESMO motor, duração e língua. A tela só troca depois do link pronto; se o servidor
+    // falhar, o caminho de sempre (abaixo) roda inteiro, byte a byte.
+    if (source === 'done_screen_top' && videoId && !engine) {
+      void abrirProximoEpisodio({
+        surface: 'done_screen_top',
+        videoId,
+        fallbackHref: href,
+        language,
+        engine: falUsedRef.current ? falQualityRef.current : quality,
+        durationSeconds: finalVideoSeconds ?? duration,
+        navegar: (destino) => {
+          handleReset()
+          if (destino !== href) { router.push(destino); return }
+          setPrompt(nextPrompt)
+          autoAnalyzeKeyRef.current = null
+          limparMarcasAutoanalyze()
+          router.push(href)
+        },
+      })
+      return
+    }
     handleReset()
     setPrompt(nextPrompt)
     autoAnalyzeKeyRef.current = null
@@ -12680,6 +12704,7 @@ export default function GenerateClient({
   // defeito que esta sprint ja matou cinco vezes.
   // ═══════════════════════════════════════════════════════════════════════
   const episode2Seed = buildSeriesContinuationPrompt(analysis?.title ?? prompt) ? (analysis?.title ?? prompt) : null
+  useProximoEpisodioVisto('done_screen_top', phase === 'done' && episode2Seed && publicVideoId ? 1 : 0, publicVideoId) // KINEO-PROXIMO-EPISODIO-0111 — next_episode_shown, 1× por filme
   const episode2InheritedCost = costForDurationOption(duration)
   const episode2FreeCost = creditCostForDuration('fast', isPaidAccount, duration)
   const episode2QuotaKnown = freeFastUsedInWindow !== null
@@ -18045,7 +18070,7 @@ export default function GenerateClient({
                       }}
                     >
                       {/* COMPRA-CLAREZA-2610 — existing continuation still opens review before a new render. */}
-                      <span style={{ fontSize: '0.92rem' }}>Plan episode 2 of this story →</span>
+                      <span style={{ fontSize: '0.92rem' }}>Next episode →</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série */}
                       <span
                         style={{
                           marginTop: 4,
@@ -18057,7 +18082,7 @@ export default function GenerateClient({
                       >
                         {episode2Engine === 'fast'
                           ? 'Your balance won\u2019t cover the same engine \u00b7 this one renders on Kineo 1, free on your account, with our watermark'
-                          : 'Review the idea, engine, duration and cost before generating'}
+                          : 'Same story and characters, new hook · review the idea, engine and cost before generating'}
                       </span>
                     </button>
                   )}
@@ -18422,7 +18447,7 @@ export default function GenerateClient({
                     }}
                   >
                     {/* COMPRA-CLAREZA-2610 — same copy in the sibling result branch. */}
-                    <span style={{ fontSize: '0.92rem' }}>Plan episode 2 of this story →</span>
+                    <span style={{ fontSize: '0.92rem' }}>Next episode →</span>{/* KINEO-PROXIMO-EPISODIO-0111 — rótulo do botão de continuar a série */}
                     <span
                       style={{
                         marginTop: 4,
@@ -18434,7 +18459,7 @@ export default function GenerateClient({
                     >
                       {episode2Engine === 'fast'
                         ? 'Your balance won’t cover the same engine · this one renders on Kineo 1, free on your account, with our watermark'
-                        : 'Review the idea, engine, duration and cost before generating'}
+                        : 'Same story and characters, new hook · review the idea, engine and cost before generating'}
                     </span>
                   </button>
                 )}

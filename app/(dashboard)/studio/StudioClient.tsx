@@ -72,6 +72,7 @@ import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 import { CLIP_ASPECTS } from '@/lib/analyzeLimits' // VARREDURA-LIMITES-2026-09-23
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
+import { filmeDeOrigemDoLink, NEXT_EPISODE_GENERATE_EVENT, NEXT_EPISODE_SOURCE, SERIES_PARENT_PARAM } from '@/lib/proximoEpisodioLink' // KINEO-PROXIMO-EPISODIO-0111
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
@@ -933,6 +934,16 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     const descida = estrelaLigada ? null : decidirDescidaFilmeGratis({ engine, requestedSeconds: duration, balance, paid: contaPaga, freeFilmEntitled: trialOn === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance }) // KINEO-PRIMEIRO-FILME-2026-10-13
     if (descida?.descer && descida.para !== null && descida.de !== null) { q.set('duration', String(descida.para)); q.set(DESCIDA_FILME_GRATIS_PARAM, String(descida.de)); void trackEvent(DESCIDA_FILME_GRATIS_EVENT, { surface: 'studio_button', requested_seconds: descida.de, to_seconds: descida.para, balance, requested_cost: descida.custoPedido, short_cost: descida.custoCurto, version: DESCIDA_FILME_GRATIS_VERSION }) } // KINEO-PRIMEIRO-FILME-2026-10-13
     carryStudioSeriesReview(new URLSearchParams(searchSignature), q)
+    { // KINEO-PROXIMO-EPISODIO-0111 — episódio que chegou pelo botão "Next episode": a atribuição atravessa até o /studio/create
+      // (series_continuation_landed e generate_completed já leem series/continuation_source) e o filme de origem vai no evento.
+      const filmeDeOrigem = filmeDeOrigemDoLink(new URLSearchParams(searchSignature))
+      if (filmeDeOrigem) {
+        q.set('series', '1')
+        q.set('continuation_source', NEXT_EPISODE_SOURCE)
+        q.set(SERIES_PARENT_PARAM, filmeDeOrigem)
+        void trackEvent(NEXT_EPISODE_GENERATE_EVENT, { series_parent_video_id: filmeDeOrigem, engine, duration, language })
+      }
+    }
     // KINEO-MULTIFORMATO-2026-09-02 — a escolha de enquadramento PASSA A
     // VIAJAR. Até hoje o estado `aspect` existia na tela e morria nela: não
     // entrava nesta querystring, então o servidor nunca soube. Só sai da URL
