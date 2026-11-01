@@ -93,6 +93,7 @@ import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-
 import { FILM60_ARRIVED_EVENT, FILM60_HANDOFF_KEY, FILM60_VERSION, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff' // KINEO-VERSAO-60S-2026-10-13 — a volta da versão de 60 s
 import { CHATGPT_LINK_MESSAGE, ORIGINAL_IDEA_SESSION_KEY, isStandaloneHttpUrl, originalIdeaFromArrival, usableOriginalIdea } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera do clipe vira a estreia
+import { subscriberOutOfCreditsVisible, SUBSCRIBER_OUT_OF_CREDITS_CLICKED_EVENT, SUBSCRIBER_OUT_OF_CREDITS_SHOWN_EVENT, SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE, SUBSCRIBER_OUT_OF_CREDITS_VERSION } from '@/lib/billing/subscriberOutOfCredits' // KINEO-RECARGA-PAGANTE-0111 — o assinante sem saldo vê a saída ANTES do clique
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -1518,6 +1519,20 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
                 cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
             <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
+            {/* KINEO-RECARGA-PAGANTE-0111 — o assinante cujo saldo não paga o filme escolhido via só "Need N more credits" aqui;
+                a troca de plano (pagando só a diferença) e a recarga moravam na parede do /studio/create, DEPOIS do clique.
+                Caso medido 01/11: Creator com 1 crédito abriu esta tela 4 vezes e saiu sem clicar, sem nunca ver a oferta.
+                O componente se cala para quem não é assinante Stripe (o servidor decide); a regra pura mora em
+                lib/billing/subscriberOutOfCredits.ts e usa o MESMO `cost` que o botão abaixo promete. */}
+            {subscriberOutOfCreditsVisible({ paid: contaPaga, balance, cost, mode: scriptMode }) && (
+              <SubscriberUpgradeNudge
+                surface={SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE}
+                topup
+                onDone={(b) => { if (typeof b === 'number') setBalance(b) }}
+                onShown={(i) => { void trackEvent(SUBSCRIBER_OUT_OF_CREDITS_SHOWN_EVENT, { surface: SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE, version: SUBSCRIBER_OUT_OF_CREDITS_VERSION, kind: i.kind, from: i.from, to: i.to, topup: i.topup, balance, cost, engine, duration }) }}
+                onChoice={(choice) => { void trackEvent(SUBSCRIBER_OUT_OF_CREDITS_CLICKED_EVENT, { surface: SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE, version: SUBSCRIBER_OUT_OF_CREDITS_VERSION, choice, balance, cost, engine, duration }) }}
+              />
+            )}
             {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — links cannot dispatch from the final review button either. */}
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over || linkOnlyInput || engine === 'hollywood' && kling4Availability?.paidLive && (aspect !== '9:16' || estrelaLigada)} className={`go ${prompt.trim() && !limit.over && !linkOnlyInput ? 'ok' : 'no'}`}
               onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked') }}>

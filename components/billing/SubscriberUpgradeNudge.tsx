@@ -48,6 +48,8 @@ export default function SubscriberUpgradeNudge({
   tone = 'theme',
   topup = false,
   onDone = null,
+  onShown = null,
+  onChoice = null,
 }: {
   /** Onde a parede mora, para a telemetria: 'generate_upgrade_modal' | 'studio_clip_402' … */
   surface: string
@@ -56,6 +58,11 @@ export default function SubscriberUpgradeNudge({
   topup?: boolean
   /** "Keep creating →" depois da troca: devolve o saldo novo (ou null) para a tela. */
   onDone?: ((balance: number | null) => void) | null
+  /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou que o empurrão PINTOU (1x por montagem): a parede mede a própria
+   *  impressão (subscriber_out_of_credits_offer_shown) sem adivinhar se o assinante tinha degrau ou recarga. */
+  onShown?: ((info: { kind: 'switch' | 'topup_only'; from: string | null; to: string | null; topup: boolean }) => void) | null
+  /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou o clique (switch | topup | plans), antes da confirmação. */
+  onChoice?: ((choice: 'switch' | 'topup' | 'plans') => void) | null
 }) {
   const ui = useUiCopy()
   const [state, setState] = useState<PlanSwitchState | null>(null)
@@ -100,6 +107,7 @@ export default function SubscriberUpgradeNudge({
         topup: topupHere,
       })
     } catch { /* telemetria nunca derruba a parede */ }
+    try { onShown?.({ kind: offer.kind, from: fromTier, to: toTier, topup: topupHere }) } catch { /* idem */ } // KINEO-RECARGA-PAGANTE-0111 — `visible` já estreitou para switch | topup_only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, offerKey])
 
@@ -113,6 +121,7 @@ export default function SubscriberUpgradeNudge({
         to: toTier,
       })
     } catch { /* ignore */ }
+    try { onChoice?.(choice) } catch { /* ignore */ } // KINEO-RECARGA-PAGANTE-0111
   }
 
   async function onSwitch() {

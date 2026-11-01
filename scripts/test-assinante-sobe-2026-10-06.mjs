@@ -171,7 +171,10 @@ function problems(over = {}) {
     p.push('clipe do /studio: a falha não marca o 402 (noCredits)')
   }
   const CLIP_LINE = "{clipState.phase === 'failed' && clipState.noCredits && <SubscriberUpgradeNudge surface=\"studio_clip_402\" topup onDone={(b) => { if (typeof b === 'number') setBalance(b); setClipState({ phase: 'idle' }) }} />}"
-  if (lineCount(studio, CLIP_LINE) !== 1 || (studio.match(/<SubscriberUpgradeNudge\b/g) || []).length !== 1) p.push('clipe do /studio: o empurrão não está (uma vez) preso ao 402')
+  // KINEO-RECARGA-PAGANTE-0111 — o cockpit ganhou o 2º empurrão (antes do Gerar, só quando o saldo não paga o filme e a conta
+  // pagou; guardião próprio scripts/test-recarga-pagante-0111.mts). O do clipe continua UM, preso ao 402.
+  const COCKPIT_NUDGE = (studio.match(/<SubscriberUpgradeNudge\s+surface=\{SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE\}/g) || []).length
+  if (lineCount(studio, CLIP_LINE) !== 1 || COCKPIT_NUDGE !== 1 || (studio.match(/<SubscriberUpgradeNudge\b/g) || []).length !== 2) p.push('clipe do /studio: o empurrão não está (uma vez) preso ao 402')
   else {
     const iResult = studio.indexOf('data-testid="clip-result"')
     const iClip = lineIndex(studio, CLIP_LINE)
