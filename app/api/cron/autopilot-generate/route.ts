@@ -62,6 +62,7 @@ import { buildAutopilotPrompt, pickTopic, recentTopicsForSchedule } from '@/lib/
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { cronSelfOrigin } from '@/lib/cronSelfOrigin' // KINEO-CRON-ORIGEM-2610
 import { kidsPass, type KidsPassSummary } from '@/lib/kidsVenda/cron' // KINEO-KIDS-VENDA-2010 — passe 3: os desenhos infantis vendidos (piloto/pack/amostra) no MESMO cron horário (nenhuma entrada nova de cron; mesma sessão-como-a-pessoa)
+import { seriePass, type SeriePassSummary } from '@/lib/serieAuto/cron' // KINEO-SERIE-AUTO-ETAPA1-0111 — passe 4: a série automática semanal (interruptor SERIE_AUTO_ENABLED=false; só contas da casa; nenhuma entrada nova de cron)
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -596,6 +597,8 @@ export async function GET(req: NextRequest) {
 
   let kids: KidsPassSummary | null = null // KINEO-KIDS-VENDA-2010
   try { kids = await kidsPass({ db, baseUrl, deadline, sessions }) } catch (e) { console.error('[autopilot] kids pass threw:', e instanceof Error ? e.message : String(e)) } // KINEO-KIDS-VENDA-2010 — depois dos dois passes do Autopilot (o que já está pago entrega primeiro); nunca derruba o resumo
+  let serie: SeriePassSummary | null = null // KINEO-SERIE-AUTO-ETAPA1-0111
+  try { serie = await seriePass({ db, baseUrl, deadline, sessions }) } catch (e) { console.error('[autopilot] serie pass threw:', e instanceof Error ? e.message : String(e)) } // KINEO-SERIE-AUTO-ETAPA1-0111 — depois dos desenhos; desligado = volta sem abrir o banco
   const summary = {
     ok: true,
     due: generate.due,
@@ -605,6 +608,7 @@ export async function GET(req: NextRequest) {
     failed: generate.failed + publish.failed,
     publish: publish,
     kids, // KINEO-KIDS-VENDA-2010
+    serie, // KINEO-SERIE-AUTO-ETAPA1-0111
     ran_at: new Date().toISOString(),
   }
   console.log('[autopilot]', JSON.stringify(summary))

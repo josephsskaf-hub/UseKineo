@@ -75,3 +75,12 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
 4. **Ligar para quem:** só por escolha do cliente (recomendado; ligar sozinho gastaria crédito sem pedir). **Jogada opcional:** seguindo a regra "a isca é o filme pronto", a casa paga o episódio 2 dos 9 parados (cerca de US$ 30 no total) e manda "seu episódio 2 está pronto, ligue a série para receber toda segunda".
 5. **Canário:** 2 semanas na conta dele antes de abrir.
 6. **TRAVA 8.2:** a Etapa 1 mexe em `/api/next-episode` (na extração do escritor) e no cron do Autopilot. A Etapa 3 mexe na rota cinematic.
+
+## 8. Estado da Etapa 1 (KINEO-SERIE-AUTO-ETAPA1-0111, 01/11, commit local, não publicado)
+
+- **Motor pronto e DESLIGADO:** `lib/serieAuto/serieAuto.ts` (regras puras, `SERIE_AUTO_ENABLED=false`, só os e-mails EXATOS da casa) e `lib/serieAuto/cron.ts` (passe 4 dentro de `/api/cron/autopilot-generate`, depois dos desenhos; nenhuma entrada nova no `vercel.json`). Desligado, o passe volta antes de abrir o banco.
+- **Migration escrita e NÃO aplicada:** `supabase/migrations/20261101200000_serie_auto_etapa1.sql` (`serie_auto` + `serie_auto_episodios`, unique (série, semana ISO, tentativa), RLS só leitura das próprias linhas). Aplicar antes de ligar o interruptor.
+- **Ideia, não roteiro:** o passe monta a IDEIA do episódio (ângulo + ficha preservada + âncora de `lib/episodeContinuity.ts`) e manda com `engine: seedance` e `script_mode: ai`; quem escreve o roteiro na régua do motor é o `escreverIdeiaNoServidor` da rota. O escritor de `/api/next-episode` NÃO foi extraído nesta etapa (fica para quando a série precisar de batidas escritas por modelo).
+- **Sem crédito:** linha `skipped` da semana + evento `serie_skipped_no_credits` (uma vez por semana); 2 semanas seguidas = pausa. O passe nunca financia crédito.
+- **Ainda falta (Etapa 1b/2):** e-mail próprio da série (hoje vale o "Your video is ready" da casa), e-mail de "episódio esperando" com a recarga, criação da série (nenhuma tela/rota cria linha ainda: o canário nasce por SQL na conta do fundador).
+- **Guardião:** `npx tsx scripts/test-serie-auto-etapa1-0111.mts` (banco em memória, sem rede, sem crédito, sem fal).

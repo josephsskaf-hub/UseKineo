@@ -21,6 +21,7 @@
 import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync, existsSync } from 'node:fs'
 import { semCronOrigem2610 } from './test-support/desfaz-cron-origem-2610.mjs' // KINEO-CRON-ORIGEM-2610 — a origem pública do cron (camada mais nova) sai antes, em memória
+import { semSerieAuto0111 } from './test-support/desfaz-serie-auto-etapa1-0111.mjs' // KINEO-SERIE-AUTO-ETAPA1-0111 — o passe 4 da série no cron do Autopilot (camada mais nova) sai antes de tudo, em memória
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -263,7 +264,7 @@ for (const p of KIDS_VENDA_2010_ARQUIVOS) {
   // KINEO-ADS-CENA-95-2110 — retira a camada posterior95 e depois a venda; tela clara, som e folha continuam na comparação.
   const b = base(p)
   let des = null
-  try { des = semKidsVenda2010(lf(semCronOrigem2610(disco(p), p)), p) } catch (e) { console.log('       (' + e.message + ')') }
+  try { des = semKidsVenda2010(lf(semCronOrigem2610(semSerieAuto0111(disco(p), p), p)), p) } catch (e) { console.log('       (' + e.message + ')') }
   ok(b !== null && des === b, `D1 desfaz exato = origin/main ${KIDS_VENDA_2010_BASE} (sem páginas claras, sem95 e sem venda): ${p}`) // KINEO-ADS-CENA-95-2110 // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
 }
