@@ -181,6 +181,66 @@ const sAviaoGen = sujeitoObrigatorio({ pedido: 'o avião que sumiu', falas: [] }
 ok(!promptMostraOSujeito('Jets of water burst from the geyser', sAviaoGen) && promptMostraOSujeito('A fighter jet streaks over the desert', sAviaoGen), '(1e) "jets of water" não é avião; "fighter jet" é')
 ok(!promptMostraOSujeito('Two girls in their twenties laugh at a cafe', sCaneta!), '(1e) "girls" adultas não contam como a criança')
 
+// ═══ (1f) 2ª revisão adversarial: entradas novas no FORMATO REAL (roteiro com pistas + original_idea + falas) ═══
+const roteiroDe = (hook: string, meio: string, fim: string, pistas = ['ocean surface aerial', 'storm clouds', 'beach sunset']) =>
+  `HOOK (0-2s): [Pexels: ${pistas[0]}] ${hook}\nMICRO REWARD 1: [Pexels: ${pistas[1]}] ${meio}\nPAYOFF: [Pexels: ${pistas[2]}] ${fim}`
+type Caso = { ideia: string; roteiro: string; porque: string }
+const nadaExigido: Caso[] = [
+  { ideia: 'El Niño is coming back this winter', roteiro: roteiroDe('El Niño is coming back, and the Pacific is already warming.', 'Ocean temperatures off Peru jumped 2 degrees in a month.', 'Forecasters expect heavier rain across the southern US by January.'), porque: 'El Niño é clima, nunca "a child" (MÉDIO 1)' },
+  { ideia: 'Como o La Niña vai afetar o verão no Brasil', roteiro: roteiroDe('O La Niña voltou, e o verão vai mudar.', 'O Pacífico esfriou meio grau em três meses.', 'No Sul, a previsão é de seca; no Norte, chuva acima da média.'), porque: 'La Niña é clima, nunca "a child" (MÉDIO 1)' },
+  { ideia: 'The real story of Billy the Kid', roteiro: roteiroDe('Billy the Kid killed his first man at 17.', 'He escaped jail by slipping off his handcuffs.', 'Pat Garrett shot him in the dark at Fort Sumner in 1881.', ['old west town', 'desert horse', 'night ranch']), porque: '"Billy the Kid" é gente (MÉDIO 1)' },
+  { ideia: 'Karate Kid: the true story behind the movie', roteiro: roteiroDe('The Karate Kid was based on a real fight.', 'Screenwriter Robert Kamen was beaten up at 14.', 'He learned karate and wrote the film 20 years later.'), porque: '"Karate Kid" é título de filme (MÉDIO 1)' },
+  { ideia: 'Kid Rock first car', roteiro: roteiroDe('Kid Rock bought his first car at 16.', 'It was a rusted Pontiac with no reverse.', 'He still keeps it in his garage in Nashville.'), porque: '"Kid Rock" é gente, nunca "a child"; o carro dele é o objeto do pedido (MÉDIO 1)' },
+  { ideia: 'Why Komodo dragons are deadly', roteiro: roteiroDe('One bite from a Komodo dragon can kill a buffalo.', 'Their venom stops blood from clotting.', 'The buffalo dies days later, and the lizard follows it the whole way.', ['large lizard beach', 'lizard tongue', 'buffalo savanna']), porque: 'Komodo é lagarto, nunca o dragão de fantasia (MÉDIO 2)' },
+  { ideia: 'O dragão de Komodo é venenoso?', roteiro: roteiroDe('Uma mordida do dragão de Komodo derruba um búfalo.', 'O veneno impede o sangue de coagular.', 'O búfalo morre dias depois, e o lagarto segue o rastro.'), porque: 'dragão de Komodo em português (MÉDIO 2)' },
+  { ideia: 'SpaceX Dragon capsule splashdown', roteiro: roteiroDe('The Dragon capsule hits the ocean at 24 km/h.', 'Four parachutes open at 2 kilometers.', 'Recovery boats reach it in under 30 minutes.'), porque: 'a Dragon da SpaceX nunca vira dragão; "Dragon" com maiúscula é nome próprio, então fica sem sujeito (fail-safe) (MÉDIO 2)' },
+  { ideia: 'Can a bearded dragon recognize its owner?', roteiro: roteiroDe('Your bearded dragon knows your face.', 'Studies show they calm down near familiar people.', 'In tests, 7 of 10 lizards walked toward their owner first.'), porque: 'bearded dragon é lagarto de estimação (MÉDIO 2)' },
+  { ideia: 'Invasive alien species are taking over Florida', roteiro: roteiroDe('Florida has more invasive species than any other state.', 'Burmese pythons ate 90% of the mammals in the Everglades.', 'Hunters removed 19,000 of them since 2000.'), porque: 'espécie invasora não é extraterrestre (BAIXO 3)' },
+  { ideia: 'Coroa de 60 anos que voltou a estudar', roteiro: roteiroDe('Aos 60 anos, ela voltou para a sala de aula.', 'Passou no vestibular de medicina na primeira tentativa.', 'Hoje atende num posto de saúde em Recife.'), porque: '"coroa" é gíria de gente madura, nunca "a crown" (BAIXO 3)' },
+  { ideia: 'The rocket man Kim Jong Un', roteiro: roteiroDe('Kim Jong Un tested 90 missiles in one year.', 'Most of them landed in the Sea of Japan.', 'In 2017, one flew higher than the space station.'), porque: '"rocket man" é apelido de gente (BAIXO 3)' },
+]
+for (const c of nadaExigido) {
+  const falas = falasDoRoteiro(c.roteiro)
+  const ped = pedidoDaRota({ prompt: c.roteiro, script_mode: 'ai', original_idea: c.ideia }, falas)
+  const s = ped.pedido ? sujeitoObrigatorio({ pedido: ped.pedido, falas }) : null
+  const esperado = /komodo/i.test(c.ideia) ? 'a Komodo dragon lizard' : /Kid Rock/.test(c.ideia) ? 'a car' : null
+  ok((s?.frase ?? null) === esperado, `(1f) "${c.ideia}" → ${s ? `"${s.frase}"` : 'nenhum sujeito'} (${c.porque})`)
+}
+// Billy the Kid: no fluxo inteiro, nem a cena 3 muda nem a imagem-chave dela sai
+const roteiroBilly = nadaExigido[2].roteiro, falasBilly = falasDoRoteiro(roteiroBilly)
+const k4Billy = k4De('The real story of Billy the Kid', ['A dusty 1880s frontier town at dawn, wooden saloons', 'An empty jail cell with broken handcuffs on the floor', 'A dark ranch house at night, a single lamp in the window'])
+const stillsBilly = ['https://x/b1.png', 'https://x/b2.png', 'https://x/b3.png']
+const corrBilly = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroBilly, script_mode: 'ai', original_idea: 'The real story of Billy the Kid' }, falasBilly), falas: falasBilly, prompts: k4Billy, stills: stillsBilly })
+ok(!corrBilly.relato.corrigido && !corrBilly.relato.keyframe_removido && corrBilly.prompts.every((p, i) => p === k4Billy[i]) && corrBilly.stills.every((x, i) => x === stillsBilly[i]), '(1f) Billy the Kid: prompts e imagens byte a byte (a imagem-chave da cena 3 fica)')
+// El Niño: a cena do oceano não ganha "a child"
+const roteiroNino = nadaExigido[0].roteiro, falasNino = falasDoRoteiro(roteiroNino)
+const k4Nino = k4De('El Niño is coming back this winter', ['Aerial view of the open Pacific ocean surface, long swells', 'Storm clouds gathering over a coastline', 'Heavy rain on a southern US street at night'])
+const corrNino = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroNino, script_mode: 'ai', original_idea: 'El Niño is coming back this winter' }, falasNino), falas: falasNino, prompts: k4Nino })
+ok(!corrNino.relato.corrigido && corrNino.prompts.every((p) => !/Main subject clearly visible/.test(p)), '(1f) El Niño: nenhuma cena recebe "Main subject clearly visible in frame: a child."')
+// Komodo: a cena do lagarto na praia já mostra o sujeito — nada é injetado (nunca "a dragon")
+const roteiroKomodo = nadaExigido[5].roteiro, falasKomodo = falasDoRoteiro(roteiroKomodo)
+const k4Komodo = k4De('Why Komodo dragons are deadly', ['A large lizard walking slowly on a sunny beach, forked tongue flicking', 'Close-up of a wounded water buffalo in tall grass', 'The large lizard following tracks through dry savanna'])
+const corrKomodo = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroKomodo, script_mode: 'ai', original_idea: 'Why Komodo dragons are deadly' }, falasKomodo), falas: falasKomodo, prompts: k4Komodo })
+ok(corrKomodo.relato.sujeito === 'a Komodo dragon lizard' && corrKomodo.relato.ja_presente && !corrKomodo.relato.corrigido && corrKomodo.prompts.every((p) => !/\ba dragon\b/.test(p)), `(1f) Komodo: sujeito "${corrKomodo.relato.sujeito}", o lagarto já está em cena — nada injetado, nunca "a dragon"`)
+const k4KomodoSem = k4De('Why Komodo dragons are deadly', ['A sunny tropical beach, waves rolling in', 'Close-up of a wounded water buffalo in tall grass', 'Dry savanna at dusk'])
+const corrKomodoSem = exigirSujeitoNoKling4({ pedido: pedidoDaRota({ prompt: roteiroKomodo, script_mode: 'ai', original_idea: 'Why Komodo dragons are deadly' }, falasKomodo), falas: falasKomodo, prompts: k4KomodoSem })
+ok(corrKomodoSem.relato.corrigido && corrKomodoSem.prompts.some((p) => /Main subject clearly visible in frame: a Komodo dragon lizard\./.test(p)), '(1f) Komodo sem o lagarto em cena: entra "a Komodo dragon lizard" (o lagarto real)')
+// O dragão de fantasia continua valendo quando é ele que o pedido pede
+ok(sujeitoObrigatorio({ pedido: 'a dragon guarding a castle', falas: [] })?.frase === 'a dragon' && sujeitoObrigatorio({ pedido: 'o dragão que protegia o castelo', falas: [] })?.frase === 'a dragon', '(1f) dragão de fantasia pedido de verdade continua "a dragon"')
+// O que a caixa NÃO pode estragar: nome do voo com número, Title Case, começo de frase
+ok(sujeitoObrigatorio({ pedido: 'Why Flight 19 vanished over the Bermuda Triangle', falas: [] })?.frase === 'an airplane', '(1f) "Flight 19" no meio da frase: o número diz que é o voo (avião)')
+ok(sujeitoObrigatorio({ pedido: 'The Giant Squid Caught On Camera', falas: [] })?.frase === 'a giant squid', '(1f) pedido em Title Case: a maiúscula não diz nada, a lula gigante continua')
+ok(sujeitoObrigatorio({ pedido: 'Kids who survived 40 days in the jungle', falas: [] })?.frase === 'a child', '(1f) "Kids" no começo da frase, seguido de minúscula: criança')
+ok(sujeitoObrigatorio({ pedido: 'a criança que sobreviveu 40 dias na selva', falas: [] })?.frase === 'a child' && sujeitoObrigatorio({ pedido: 'la niña que sobrevivió en la selva', falas: [] })?.frase === 'a child', '(1f) criança de verdade (pt, e "la niña" minúscula sem clima em es) continua "a child"')
+ok(sujeitoObrigatorio({ pedido: 'children affected by El Niño floods', falas: [] }) === null, '(1f) criança + El Niño no mesmo pedido: fail-safe (nada corrigido)')
+ok(sujeitoObrigatorio({ pedido: 'a coroa perdida do rei Arthur', falas: [] })?.frase === 'a crown' && sujeitoObrigatorio({ pedido: 'the stolen crown jewels', falas: [] })?.frase === 'a crown', '(1f) a coroa-objeto continua "a crown"')
+ok(sujeitoObrigatorio({ pedido: 'the first rocket to reach space', falas: [] })?.frase === 'a spacecraft', '(1f) foguete de verdade continua "a spacecraft"')
+ok(sujeitoObrigatorio({ pedido: 'aliens visiting Earth in 1947', falas: [] })?.frase === 'an alien', '(1f) extraterrestre de verdade continua "an alien"')
+// BAIXO 4: "SS St. Louis" — nome inteiro, nunca "an SS St ship"
+const sStLouis = sujeitoObrigatorio({ pedido: 'Inside the SS St. Louis refugee ship', falas: ['In 1939, the SS St. Louis sailed from Hamburg with 937 refugees.'] })
+ok(sStLouis?.frase === 'an SS St. Louis ship' && !/SS St ship/.test(sStLouis?.frase ?? ''), `(1f) "Inside the SS St. Louis refugee ship" → "${sStLouis?.frase}" (BAIXO 4)`)
+ok(promptMostraOSujeito('The SS St. Louis ocean liner at a pier in Havana, 1939', sStLouis!), '(1f) o nome inteiro "SS St. Louis" prova presença')
+
 // ═══ controles ═══
 for (const pedido of ['5 dicas para economizar dinheiro', 'Por que o céu é azul?', 'O que a NASA nunca anunciou sobre Marte']) {
   const c = exigirSujeitoNoKling4({ pedido: idea(pedido), falas: falasAviao.slice(0, 1).map(() => 'Some facts.'), prompts: k4Aviao })
@@ -235,6 +295,18 @@ ok(!comRevelacaoNoFim('Film visual medium: x. Final moment of the story, clearly
 const musk = comRevelacaoNoFim(fimPrompt, 'And the man behind it all was Elon Musk.')
 ok(!musk.aplicada && musk.motivo === 'nome_de_gente' && !musk.prompt.includes('Elon Musk'), '(2) "And the man behind it all was Elon Musk." NÃO entra no prompt (gente é do elenco/folha de personagem)')
 ok(revelacaoTemNomeDeGente('the man behind it all was Elon Musk') && revelacaoTemNomeDeGente('it was Napoleon all along') && revelacaoTemNomeDeGente('a letter signed by President Lincoln') && !revelacaoTemNomeDeGente('a gas that on Earth comes mostly from living things'), '(2) nome completo, "was X" e título + nome = gente; "on Earth" não')
+// 2ª revisão (BAIXO 5): parentesco + nome e título + "of" também são gente
+for (const fala of ['The culprit turned out to be his brother John.', 'She was the Queen of Sheba.', 'The letter was written by her friend Anna.', 'He was the King of Kings in Babylon.']) {
+  const r = comRevelacaoNoFim(fimPrompt, fala)
+  ok(!r.aplicada && r.motivo === 'nome_de_gente' && r.prompt === fimPrompt, `(2) "${fala}" NÃO entra crua no prompt da última cena (gente é do elenco)`)
+}
+ok(!revelacaoTemNomeDeGente('the treasure was buried in the Valley of the Kings') && !revelacaoTemNomeDeGente('the wreck lies off the coast of Iceland'), '(2) lugar ("Valley of the Kings", "coast of Iceland") não é gente')
+// 2ª revisão (BAIXO 6): fato ANTES do bordão passa e vira a revelação
+const metano = 'Because methane spikes keep appearing, and NASA is still watching.'
+ok(finalFracoDoRoteiro(nasaCom(metano)) === null, `(2) "${metano}" passa (o fato vem antes do bordão; sem tentativa a mais do gpt-4o)`)
+const fimMetano = comRevelacaoNoFim(fimPrompt, metano, 'What did NASA never announce about Mars?')
+ok(fimMetano.aplicada && fimMetano.revelacao === 'methane spikes keep appearing' && !fimMetano.prompt.includes('still watching'), `(2) a revelação é o fato, sem o bordão ("${fimMetano.revelacao}")`)
+ok(finalFracoDoRoteiro(nasaCom('Their tombs still remain unknown, and the search goes on.')) === 'clima' && finalFracoDoRoteiro(nasaCom('Some secrets run deeper than one planet, and NASA is still watching.')) === 'clima', '(2) bordão com frase vaga antes continua reprovando')
 const fantasma = comRevelacaoNoFim(fimPrompt, falasAviao[2])
 ok(!fantasma.aplicada && !fantasma.prompt.includes('swallowed by time'), '(2) fala fraca ("The mystery remains unsolved… swallowed by time and nature") não vira "clearly shown: swallowed by time and nature"')
 const comE = comRevelacaoNoFim(fimPrompt, 'And the wreck was found 3,800 meters down, split in two.')

@@ -13,9 +13,11 @@
 //      (KINEO-DESFECHO-3010 / be6d3af37 KINEO-LEGENDA-CENA-3110). Só fala em inglês. v2: nunca entra crua com nome de gente (nome
 //      completo, "was X", título + nome — gente é do elenco/folha de personagem), nunca entra frase fraca (clima/pergunta), o
 //      "And/But/So" do começo sai, e a rota aplica ANTES do elenco/época (que passa a ver a revelação como qualquer outra cena).
+//   v3 (2ª revisão adversarial): parentesco + nome ("his brother John") e título + "of" ("the Queen of Sheba") também são gente; o fato
+//      ANTES do bordão ("Because methane spikes keep appearing, and NASA is still watching.") salva a frase e vira a revelação.
 import { isSocialCta } from '@/lib/shortFilmScript'
 
-export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v2' as const
+export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v3' as const
 export type FinalFraco = 'pergunta' | 'clima' | 'repete_gancho' | 'sem_revelacao'
 
 // Cabeçalho de seção: com dois-pontos (qualquer caixa) ou em MAIÚSCULAS sem dois-pontos. "Ritmo de vida…" numa linha de fala não é cabeçalho.
@@ -58,14 +60,16 @@ const CLIMA: ReadonlyArray<RegExp> = [
   /nadie (?:sabe|lo sabe|supo)/i, /(?:sigue|contin[úu]a|permanece) (?:siendo )?un misterio/i, /quiz[áa]s? nunca lo sepamos/i,
   /la verdad (?:est[áa]|sigue) (?:ah[íi] fuera|oculta|escondida)/i, /s[óo]lo el tiempo lo dir[áa]/i, /el misterio contin[úu]a/i,
 ]
-const VAZIAS = new Set(['that', 'this', 'what', 'with', 'from', 'about', 'there', 'their', 'they', 'have', 'been', 'will', 'just', 'even', 'only', 'never', 'ever', 'still', 'thats', 'isso', 'esse', 'essa', 'isto', 'para', 'como', 'mais', 'muito', 'sobre', 'nunca', 'ainda', 'esto', 'pero', 'sobre'])
+const VAZIAS = new Set(['that', 'this', 'what', 'with', 'from', 'about', 'there', 'their', 'they', 'have', 'been', 'will', 'just', 'even', 'only', 'never', 'ever', 'still', 'thats', 'isso', 'esse', 'essa', 'isto', 'para', 'como', 'mais', 'muito', 'sobre', 'nunca', 'ainda', 'esto', 'pero', 'sobre', 'because', 'since', 'than', 'some', 'keep', 'keeps', 'kept', 'porque', 'pois', 'algo', 'algum', 'alguns'])
+// v3: palavras de clima que não contam como fato ("Some secrets are bigger than one planet" não é revelação)
+const VAGAS = new Set(['secret', 'secrets', 'mystery', 'mysteries', 'truth', 'answer', 'answers', 'thing', 'things', 'something', 'everything', 'nothing', 'story', 'stories', 'bigger', 'deeper', 'darker', 'stranger', 'world', 'universe', 'planet', 'time', 'nature', 'history', 'forever', 'question', 'questions', 'legend', 'legends', 'more', 'beyond', 'reason', 'segredo', 'segredos', 'misterio', 'verdade', 'resposta', 'coisa', 'coisas', 'historia', 'tempo', 'mundo', 'secreto', 'secretos', 'verdad', 'cosas'])
 const semAcento = (t: string) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')
 const palavrasDe = (t: string) => semAcento(String(t ?? '').toLowerCase()).replace(/['’]/g, '').split(/[^\p{L}\p{N}]+/u).filter((w) => (w.length >= 4 || /\d/.test(w)) && !VAZIAS.has(w))
 
 const NUMERO_POR_EXTENSO = /\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|hundreds?|thousands?|millions?|billions?|dois|duas|tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez|cem|mil|milh[õo]es|milh[ãa]o|bilh[õo]es|cuatro|siete|ocho|nueve|diez|cien|millones|mill[óo]n)\b/i
 const REVELACAO_DEPOIS_DO_MAS = /,?\s+(?:but|yet|mas|por[ée]m|pero|sin embargo)\s+/i
 const VERBO_DE_REVELACAO = /\b(?:was|were|is|are|came from|turned out|era|eram|foi|foram|[ée]|s[ãa]o|vinha|fue|fueron|es|son|ven[íi]a)\b/i
-const LIGACAO_INICIAL = /^(?:and|but|so|then|yet|or|e|mas|ent[ãa]o|y|pero|entonces)\s+/i
+const LIGACAO_INICIAL = /^(?:and|but|so|then|yet|or|because|since|e|mas|ent[ãa]o|porque|pois|y|pero|entonces)\s+/i
 // palavra com inicial maiúscula (ou sigla) que não é a 1ª da frase
 const nomesProprios = (frase: string): string[] => {
   const corpo = frase.replace(/^[^\p{L}\p{N}]+/u, '')
@@ -87,10 +91,24 @@ export function temFatoNovo(frase: string, gancho = ''): boolean {
   return false
 }
 
+/**
+ * v3: o fato que vem ANTES do clima ("Because methane spikes keep appearing, and NASA is still watching."): a oração antes do bordão,
+ * sem a ligação final ("…, and"), quando ela traz 2+ palavras de conteúdo que o HOOK não tinha e que não são vagas. '' = não há.
+ */
+export function fatoAntesDoClima(frase: string, gancho = ''): string {
+  const f = String(frase ?? '')
+  const ini = Math.min(...CLIMA.map((re) => re.exec(f)?.index ?? Infinity))
+  if (!Number.isFinite(ini) || ini <= 0) return ''
+  const antes = f.slice(0, ini).split(/(?:,\s*|\s+)(?:and|but|while|yet|so|e|mas|enquanto|y|pero|mientras)\s+|\.{3}|…|\s[—–]\s|[;:]\s/i)[0]
+  const limpo = antes.replace(/[\s,;:.!—–-]+$/g, '').replace(LIGACAO_INICIAL, '').trim()
+  const g = new Set(palavrasDe(gancho))
+  return palavrasDe(limpo).filter((w) => !g.has(w) && !VAGAS.has(w)).length >= 2 ? limpo : ''
+}
+
 const ehPergunta = (f: string) => /[?？؟]["'”’)\]]*$/.test(f)
-/** Pura promessa: frase de clima sem nenhum fato novo. */
+/** Pura promessa: frase de clima sem nenhum fato novo (nem antes do bordão). */
 export function ehClimaSemFato(frase: string, gancho = ''): boolean {
-  return CLIMA.some((re) => re.test(frase)) && !temFatoNovo(frase, gancho)
+  return CLIMA.some((re) => re.test(frase)) && !temFatoNovo(frase, gancho) && !fatoAntesDoClima(frase, gancho)
 }
 
 const corpoFinal = (script: string) => secoes(script).get('PAYOFF') ?? semPistas(semCabecalhos(script))
@@ -126,8 +144,10 @@ export function problemaDoFinal(motivo: FinalFraco): string {
 const MARCA_DESFECHO = 'Final moment of the story, clearly shown:'
 const INGLES_RE = /\b(?:the|is|was|are|were|it|of|and|to|in|has|had|that)\b/i
 const NAO_LATINA_RE = /[^\p{Script=Latin}\p{N}\p{P}\p{S}\s]/u
-const TITULO_RE = /\b(?:Mr|Mrs|Ms|Dr|Sir|Lady|Lord|King|Queen|Prince|Princess|President|General|Captain|Colonel|Saint|St|Pope|Emperor|Pharaoh)\.?\s+\p{Lu}/u
-const GENTE_ANTES_DO_NOME_RE = /\b(?:was|by|named|called|man|woman|boy|girl|who|whom|is|were)\s+\p{Lu}\p{Ll}+/u
+// v3: título + "of" + nome ("the Queen of Sheba", "King of Kings") também é gente
+const TITULO_RE = /\b(?:Mr|Mrs|Ms|Dr|Sir|Lady|Lord|King|Queen|Prince|Princess|President|General|Captain|Colonel|Saint|St|Pope|Emperor|Empress|Pharaoh|Duke|Duchess|Sultan|Tsar|Czar|Count|Countess|Baron|Baroness|Archduke|Shah|Khan|Caliph|Bishop|Governor|Mayor|Senator)\.?\s+(?:of\s+(?:the\s+)?)?\p{Lu}/u
+// v3: parentesco/relação + nome ("his brother John", "her friend Anna") também é gente
+const GENTE_ANTES_DO_NOME_RE = /\b(?:was|by|named|called|man|woman|boy|girl|who|whom|is|were|brother|sister|son|daughter|father|mother|dad|mom|wife|husband|uncle|aunt|cousin|nephew|niece|grandson|granddaughter|grandfather|grandmother|friend|partner|boss|neighbou?r|lover|fianc[ée]e?|widow|servant|maid|butler|apprentice|assistant|student|pupil|rival|twin|son-in-law|daughter-in-law)\s+\p{Lu}\p{Ll}+/u
 
 /** A revelação tem nome de GENTE? Nome completo (2 maiúsculas seguidas), título + nome, ou "was/by/named X". Gente é do elenco. */
 export function revelacaoTemNomeDeGente(revelacao: string): boolean {
@@ -148,6 +168,9 @@ export function revelacaoDaFala(fala: string, gancho = ''): string | null {
   // "No one knew it then, but the spikes were methane": a revelação é o que vem depois do "but"
   const aposMas = ultima.split(REVELACAO_DEPOIS_DO_MAS)
   if (aposMas.length > 1 && aposMas[aposMas.length - 1].split(/\s+/).filter(Boolean).length >= 2) ultima = aposMas[aposMas.length - 1]
+  // "Because methane spikes keep appearing, and NASA is still watching": a revelação é o fato antes do bordão
+  const antesDoClima = CLIMA.some((re) => re.test(ultima)) ? fatoAntesDoClima(ultima, gancho) : ''
+  if (antesDoClima) ultima = antesDoClima
   ultima = ultima.replace(/^[\s,;:—–-]+|[\s.!…]+$/g, '').replace(LIGACAO_INICIAL, '').trim()
   if (ehClimaSemFato(ultima, gancho)) return null
   const n = ultima.split(/\s+/).filter(Boolean).length
@@ -161,7 +184,9 @@ export function comRevelacaoNoFim(prompt: string, falaFinal: string, gancho = ''
   const nada = (motivo: string) => ({ prompt: p, revelacao, aplicada: false, motivo })
   if (!revelacao) return nada('sem_revelacao_forte')
   if (p.includes(MARCA_DESFECHO)) return nada('desfecho_ja_aplicado')
-  if (!INGLES_RE.test(revelacao) || NAO_LATINA_RE.test(revelacao)) return nada('fala_em_outra_lingua')
+  // v3: revelação curta sem palavra-função ("methane spikes keep appearing") vale se a fala inteira tem 2+ palavras-função do inglês
+  const ingles = INGLES_RE.test(revelacao) || (String(falaFinal ?? '').match(new RegExp(INGLES_RE.source, 'gi')) ?? []).length >= 2
+  if (!ingles || NAO_LATINA_RE.test(revelacao)) return nada('fala_em_outra_lingua')
   if (revelacaoTemNomeDeGente(revelacao)) return nada('nome_de_gente')
   const chave = palavrasDe(revelacao)
   const noPrompt = new Set(palavrasDe(p).map((w) => w.slice(0, 5)))

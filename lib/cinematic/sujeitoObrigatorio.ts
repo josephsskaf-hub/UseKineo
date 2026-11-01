@@ -29,11 +29,17 @@
 import { KLING4_ORCAMENTO_DA_CAMADA, eixoCurtoKling4 } from '@/lib/cinematic/cenaKling4'
 import { temaDiscordaDaFala } from '@/lib/pedidoCerto'
 
-export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v2' as const
+//   v3 (2ª revisão adversarial): nome próprio pego pela CAIXA — palavra do léxico com maiúscula no meio da frase, ou colada a outra
+//   maiúscula ("El Niño", "La Niña", "Billy the Kid", "Karate Kid", "Kid Rock", "SpaceX Dragon"), é nome de gente/coisa, nunca o
+//   sujeito (pedido todo em Title Case não conta: lá a caixa não diz nada, e só os vetos explícitos valem). Vetos novos: clima
+//   (El Niño/La Niña), dragão de Komodo/barbudo/cápsula (o Komodo ganha entrada própria: "a Komodo dragon lizard"), espécie
+//   invasora, "um coroa"/"coroa de 60 anos" (gíria de gente madura), "rocket man". "SS St. Louis" vira "an SS St. Louis ship".
+export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v3' as const
 
 export type TipoDoSujeito = 'veiculo' | 'criatura' | 'pessoa' | 'objeto'
-/** veto: lido no pedido inteiro — se casa, a entrada não vale (desambiguação). */
-interface Entrada { grupo: string; tipo: TipoDoSujeito; en: string; re: RegExp; veto?: RegExp }
+/** veto: lido no pedido inteiro — se casa (qualquer um), a entrada não vale (desambiguação). nomeProprioOk: a maiúscula faz parte do nome comum ("Komodo"). */
+interface Entrada { grupo: string; tipo: TipoDoSujeito; en: string; re: RegExp; veto?: RegExp | ReadonlyArray<RegExp>; nomeProprioOk?: boolean }
+const vetado = (e: Entrada, texto: string) => (Array.isArray(e.veto) ? e.veto : e.veto ? [e.veto] : []).some((v: RegExp) => v.test(texto))
 
 const p = (fonte: string) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${fonte})(?![\\p{L}\\p{N}])`, 'iu')
 // possessivo antes ("their kids", "seus filhos"): a criança é de quem fala, não o sujeito do filme
@@ -50,7 +56,9 @@ const LEXICO: ReadonlyArray<Entrada> = [
   { grupo: 'helicopter', tipo: 'veiculo', en: 'helicopter', re: p('helicopters?|helic[óo]pteros?'), veto: p(String.raw`helicopter\s+(?:parents?|parenting|money|mom|dad)|pais\s+helic[óo]ptero`) },
   { grupo: 'submarine', tipo: 'veiculo', en: 'submarine', re: p('submarines?|submarinos?') },
   { grupo: 'watercraft', tipo: 'veiculo', en: 'ship', re: p(String.raw`ships?|shipwrecks?|ocean liners?|galleons?|warships?|navios?|naufr[áa]gios?|gale[õo]es|buques?|barcos?|boats?|veleiros?|sailboats?|yachts?|iates?`) },
-  { grupo: 'spacecraft', tipo: 'veiculo', en: 'spacecraft', re: p(String.raw`rockets?|spacecraft|spaceships?|space probes?|foguetes?|naves? espaciais?|nave espacial|cohetes?|sondas? espaciais?|sondas? espaciales?`), veto: p(String.raw`rocket\s+scien\w*|(?:prices?|stocks?|sales|shares?|rents?)\s+rocket\w*`) },
+  { grupo: 'spacecraft', tipo: 'veiculo', en: 'spacecraft', re: p(String.raw`rockets?|spacecraft|spaceships?|space probes?|(?:space|crew|dragon|apollo|orion)\s+capsules?|foguetes?|naves? espaciais?|nave espacial|c[áa]psulas?\s+espacia(?:l|is|les)|cohetes?|sondas? espaciais?|sondas? espaciales?`),
+    // "rocket man" é apelido de gente (Kim Jong Un, Elton John); "Rocket League" é jogo
+    veto: p(String.raw`rocket\s+scien\w*|(?:prices?|stocks?|sales|shares?|rents?)\s+rocket\w*|(?:little\s+)?rocket\s*-?\s*m[ae]n|homem[- ]foguete|rocket\s+league|pocket\s+rockets?`) },
   { grupo: 'rover', tipo: 'veiculo', en: 'rover', re: p(String.raw`rovers?|jipe-rob[ôo]|veh[íi]culo explorador`), veto: p('land rover|range rover') },
   { grupo: 'train', tipo: 'veiculo', en: 'train',
     // "train" é verbo ("train your brain", "how to train"): o substantivo só com determinante/modificador antes ou substantivo depois
@@ -68,14 +76,28 @@ const LEXICO: ReadonlyArray<Entrada> = [
   { grupo: 'squid', tipo: 'criatura', en: 'giant squid', re: p(String.raw`giant squids?|colossal squids?|squids?|lulas?\s+gigantes?|lulas?\s+colossa(?:l|is)|calamar(?:es)?\s+gigantes?|calamar(?:es)?`), veto: p(String.raw`squid\s+game|round\s+6`) },
   { grupo: 'octopus', tipo: 'criatura', en: 'octopus', re: p(String.raw`octopus(?:es)?|octopi|polvos?|pulpos?`) },
   { grupo: 'dinosaur', tipo: 'criatura', en: 'dinosaur', re: p(String.raw`dinosaurs?|dinossauros?|dinosaurios?|t-?rex`) },
-  { grupo: 'dragon', tipo: 'criatura', en: 'dragon', re: p(String.raw`dragons?|drag[õo]es|drag[ãa]o|dragones|drag[óo]n`) },
+  // o dragão de Komodo é um LAGARTO de verdade: entrada própria, nunca "a dragon" (o motor desenharia o de fantasia)
+  { grupo: 'komodo', tipo: 'criatura', en: 'Komodo dragon lizard', nomeProprioOk: true, re: p(String.raw`komodo(?:\s+dragons?)?|drag[õo]es[- ]+de[- ]+komodo|drag[ãa]o[- ]+de[- ]+komodo|drag[óo]n(?:es)?\s+de\s+komodo`) },
+  { grupo: 'dragon', tipo: 'criatura', en: 'dragon', re: p(String.raw`dragons?|drag[õo]es|drag[ãa]o|dragones|drag[óo]n`),
+    // lagarto (Komodo, barbudo, d'água), dragão-marinho (peixe), cápsula da SpaceX, fruta, jogo/desenho: nunca o dragão de fantasia
+    veto: p(String.raw`komodo|bearded\s+dragons?|drag[ãa]o[- ]barbudo|drag[óo]n\s+barbudo|(?:water|sea|leafy|weedy|komodo|flying)\s+dragons?|drag[ãa]o[- ]marinho|drag[óo]n\s+de\s+mar|spacex|crew\s+dragon|dragon\s+(?:capsules?|spacecraft|fruit|ball|boat|dance|fly)|fruta[- ]d[oe][- ]drag[ãa]o|pitaya|lizards?|lagartos?`) },
   { grupo: 'robot', tipo: 'criatura', en: 'robot', re: p(String.raw`robots?|rob[ôo]s?`) },
-  { grupo: 'alien', tipo: 'criatura', en: 'alien', re: p(String.raw`aliens?|alien[íi]genas?|extraterrestres?`), veto: p(String.raw`illegal\s+aliens?`) },
+  // espécie invasora/exótica e "alien" jurídico (imigrante) não são extraterrestres
+  { grupo: 'alien', tipo: 'criatura', en: 'alien', re: p(String.raw`aliens?|alien[íi]genas?|extraterrestres?`),
+    veto: p(String.raw`(?:illegal|legal|resident|enemy|invasive|non-?resident|undocumented)\s+aliens?|aliens?\s+(?:species|plants?|weeds?|fish|trees?|invasive|registration|enemies|act|card)|esp[ée]cies?\s+(?:ex[óo]ticas?\s+)?(?:invasoras?|alien[íi]genas?)|(?:plantas?|peixes?)\s+alien[íi]genas?`) },
   // "boy/girl/garota/chica" ficam de fora: muitas vezes é gente adulta (romance) — nunca "a child" num pedido adulto. "bebe" sem acento é o verbo beber.
   { grupo: 'child', tipo: 'pessoa', en: 'child',
     re: p(String.raw`${SEM_POSSESSIVO}(?:child(?:ren)?|kids?|little\s+(?:boy|girl)s?|toddlers?|crian[çc]as?|menin[oa]s?|beb[êé]s?|ni[ñn][oa]s?|nen[ea]s?)`),
-    // conselho para pais ("what rich parents teach kids about money"): a criança é o público do conselho, não a cena
-    veto: p(String.raw`(?:teach|teaches|teaching|raise|raising|parenting|ensinar|ensinam|ensine|educar|enseñar|enseñan|criar\s+(?:os\s+)?filhos)[^.]{0,40}(?:kids?|children|crian[çc]as|filhos|ni[ñn]os|hijos)|(?:kids?|children|crian[çc]as|filhos|ni[ñn]os)[^.]{0,30}(?:about\s+money|sobre\s+dinheiro|sobre\s+dinero)`) },
+    veto: [
+      // conselho para pais ("what rich parents teach kids about money"): a criança é o público do conselho, não a cena
+      p(String.raw`(?:teach|teaches|teaching|raise|raising|parenting|ensinar|ensinam|ensine|educar|enseñar|enseñan|criar\s+(?:os\s+)?filhos)[^.]{0,40}(?:kids?|children|crian[çc]as|filhos|ni[ñn]os|hijos)|(?:kids?|children|crian[çc]as|filhos|ni[ñn]os)[^.]{0,30}(?:about\s+money|sobre\s+dinheiro|sobre\s+dinero)`),
+      // El Niño / La Niña: o fenômeno do clima, nunca "a child" — com maiúscula, com artigo português antes ("o La Niña") ou com clima perto
+      /(?<![\p{L}])(?:El|EL|La|LA)\s+(?:Ni[ñn][oa]|NI[ÑN][OA])(?![\p{L}])/u,
+      p(String.raw`(?:o|do|no|pelo|ao|of|the)\s+(?:el\s+ni[ñn]o|la\s+ni[ñn]a)|(?:el\s+ni[ñn]o|la\s+ni[ñn]a)[^.]{0,80}(?:climate|clima|weather|winter|inverno|invierno|summer|ver[ãa]o|verano|rain\w*|chuva\w*|lluvia\w*|drought|seca|sequ[íi]a|pacific|pac[íi]fico|oc(?:e|é)an\w*|storms?|hurricanes?|furac\w+|hurac\w+|temperatur\w*|forecast|previs\w+|pron[óo]stico|fen[ôo]meno|phenomenon|monsoon|warming|aquecimento|calentamiento|noaa)|(?:climate|clima|fen[ôo]meno|phenomenon|efeito|efecto|effect|weather|noaa)[^.]{0,40}(?:el\s+ni[ñn]o|la\s+ni[ñn]a)`),
+      // "the Kid" como apelido de gente ("Billy the Kid", "Karate Kid", "Kid Rock")
+      p(String.raw`billy\s+the\s+kid|karate\s+kid|sundance\s+kid|cisco\s+kid|kid\s+(?:rock|cudi|laroi|creole|flash|icarus|n\s+play)|the\s+kid\s+laroi`),
+      /\p{Lu}\p{Ll}+\s+the\s+Kids?(?![\p{L}])/u,
+    ] },
   { grupo: 'diver', tipo: 'pessoa', en: 'scuba diver', re: p(String.raw`divers?|scuba divers?|mergulhador(?:a|es)?|buceador(?:a|es)?|buzos?`) },
   { grupo: 'astronaut', tipo: 'pessoa', en: 'astronaut', re: p(String.raw`astronauts?|astronautas?|cosmonauts?`) },
   { grupo: 'pen3d', tipo: 'objeto', en: '3D printing pen', re: p(String.raw`3d pens?|3d printing pens?|caneta(?:s)? 3d|pluma(?:s)? 3d|bol[íi]grafo(?:s)? 3d|l[áa]piz 3d`) },
@@ -85,7 +107,9 @@ const LEXICO: ReadonlyArray<Entrada> = [
     veto: p(String.raw`tesouro\s+(?:direto|nacional|selic|ipca|prefixado)|t[íi]tulos?\s+do\s+tesouro|bonos?\s+del\s+tesoro|tesoro\s+p[úu]blico|letras\s+del\s+tesoro|national\s+treasure|${FINANCAS}`) },
   { grupo: 'meteorite', tipo: 'objeto', en: 'meteorite', re: p(String.raw`meteorites?|meteoritos?|asteroids?|aster[óo]ides?`) },
   { grupo: 'sword', tipo: 'objeto', en: 'sword', re: p('swords?|espadas?') },
-  { grupo: 'crown', tipo: 'objeto', en: 'crown', re: p('crowns?|coroas?|coronas?'), veto: p(String.raw`coroa\s+(?:dent[áa]ria|do\s+dente)|corona\s*virus|coronav[íi]rus`) },
+  // "coroa" é gíria de gente madura ("um coroa", "coroa de 60 anos", "namorar uma coroa"): a coroa-objeto é feminina e sem idade
+  { grupo: 'crown', tipo: 'objeto', en: 'crown', re: p('crowns?|coroas?|coronas?'),
+    veto: p(String.raw`coroa\s+(?:dent[áa]ria|do\s+dente)|corona\s*virus|coronav[íi]rus|(?:um|o|os|uns|dos|do|pro|pros|ao|aos|esse|este|aquele|meu|seu)\s+coroas?|coroas?\s+(?:de|com)\s+(?:\d+|mais\s+de\s+\d+)|coroas?\s+(?:enxut[ao]s?|gat[ao]s?|safad[ao]s?|solteir[ao]s?|ric[ao]s?|bonit[ao]s?|lind[ao]s?|sarad[ao]s?|vi[úu]v[ao]s?)|(?:namor\w*|peg\w*|casad[ao]\s+com|ficar\s+com)\s+(?:uma?\s+|com\s+uma?\s+)?coroas?|the\s+crown\s+(?:netflix|series|s[ée]rie|season|temporada)|crown\s+(?:royal|vic(?:toria)?|point)`) },
   { grupo: 'statue', tipo: 'objeto', en: 'statue', re: p(String.raw`statues?|est[áa]tuas?`) },
 ]
 
@@ -95,12 +119,12 @@ const CHAVES: Readonly<Record<string, RegExp>> = {
   aircraft: p(String.raw`airplanes?|aeroplanes?|planes?|aircraft|airliners?|jetliners?|fighter\s+jets?|jet\s+(?:planes?|aircraft|airliners?)|bombers?|seaplanes?|fuselage`),
   helicopter: p('helicopters?'), submarine: p('submarines?'),
   watercraft: p(String.raw`ships?|shipwrecks?|vessels?|ocean\s+liners?|galleons?|warships?|boats?|sailboats?|yachts?|hull`),
-  spacecraft: p(String.raw`rockets?|spacecraft|spaceships?|space\s+probes?`), rover: p('rovers?'),
+  spacecraft: p(String.raw`rockets?|spacecraft|spaceships?|space\s+probes?|(?:space|crew|dragon)\s+capsules?`), rover: p('rovers?'),
   train: p('trains?|locomotives?'), car: p('cars?|automobiles?'), truck: p('trucks?'), bus: p('bus(?:es)?'),
   motorcycle: p('motorcycles?|motorbikes?'), bicycle: p('bicycles?|bikes?'), balloon: p('balloons?|zeppelins?|airships?'),
   under_ice_life: p(String.raw`(?:creatures?|life|fish|animals?|organisms?|krill|jellyfish)\b[^.]{0,60}\b(?:beneath|under|below)\b[^.]{0,30}\bice`),
   whale: p('whales?'), shark: p('sharks?'), squid: p('squids?'), octopus: p('octopus(?:es)?|octopi'), dinosaur: p('dinosaurs?|t-?rex'),
-  dragon: p('dragons?'), robot: p('robots?|androids?'), alien: p('aliens?|extraterrestrials?'),
+  komodo: p(String.raw`komodo|monitor\s+lizards?|lizards?`), dragon: p('dragons?'), robot: p('robots?|androids?'), alien: p('aliens?|extraterrestrials?'),
   child: p(String.raw`child(?:ren)?|kids?|toddlers?|schoolchildren|(?:little|young|small)\s+(?:boys?|girls?)|(?:boys?|girls?),?\s+(?:aged\s+)?(?:[4-9]|1[0-2])(?:-year-old)?|(?:[4-9]|1[0-2])-year-old\s+(?:boys?|girls?)`),
   diver: p('divers?'), astronaut: p('astronauts?|cosmonauts?'),
   pen3d: p(String.raw`3d\s+(?:printing\s+)?pens?`),
@@ -109,7 +133,7 @@ const CHAVES: Readonly<Record<string, RegExp>> = {
 }
 
 // Modelo de veículo: "C-54 Skymaster", "B-29", "Boeing 747", "USS Thresher". Só vale com contexto de avião/navio no texto.
-const MODELO_RE = /(?<![\p{L}\p{N}-])((?:\p{Lu}{1,3}-\d{1,4}\p{Lu}?)|(?:Boeing|Airbus|Douglas|Lockheed|Cessna|Antonov|Tupolev|Ilyushin|Sikorsky|Junkers|Messerschmitt)\s+[\p{L}\d-]+|(?:USS|HMS|RMS|SS)\s+\p{Lu}\p{Ll}+)(?:\s+(\p{Lu}\p{Ll}{3,}))?/u
+const MODELO_RE = /(?<![\p{L}\p{N}-])((?:\p{Lu}{1,3}-\d{1,4}\p{Lu}?)|(?:Boeing|Airbus|Douglas|Lockheed|Cessna|Antonov|Tupolev|Ilyushin|Sikorsky|Junkers|Messerschmitt)\s+[\p{L}\d-]+|(?:USS|HMS|RMS|SS)\s+(?:(?:St|Ste|Mt)\.?\s+|(?:Saint|San|Santa|Santo|Sankt)\s+)?\p{Lu}\p{Ll}+)(?:\s+(\p{Lu}\p{Ll}{3,}))?/u
 // "crash" sozinho não é aviação (I-95 crash = estrada): só verbos/lugares de voo
 const CONTEXTO_AEREO_RE = p(String.raw`flights?|passengers?|pilots?|airfield|runway|airport|vanished over|disappeared over|cockpit|voo|passageiros|piloto|pista de pouso|aeroporto|vuelo|pasajeros|aeropuerto`)
 const CONTEXTO_NAVAL_RE = p(String.raw`sank|sunk|sinking|navy|crew|sea|ocean|ship|vessel|afundou|naufragou|marinha|tripula[çc][ãa]o|navio|hundi[óo]|armada|tripulaci[óo]n|buque`)
@@ -175,12 +199,31 @@ export function pedidoOriginalDoSujeito(args: { prompt: string; ideiaSolta: bool
   return { pedido: ideia, fonte: 'ideia_original', motivo: 'ideia_original' }
 }
 
+/** Pedido em Title Case ("The Giant Squid Caught On Camera"): a maiúscula não diz nada — só os vetos explícitos valem. */
+function emTitleCase(texto: string): boolean {
+  const ws = texto.match(/\p{L}{4,}/gu) ?? []
+  return ws.length >= 3 && ws.filter((w) => /^\p{Lu}/u.test(w)).length / ws.length >= 0.6
+}
+/**
+ * O achado é parte de NOME PRÓPRIO? Com maiúscula no meio da frase ("Billy the Kid", "El Niño", "SpaceX Dragon") ou, no começo da
+ * frase, colado a outra maiúscula ("Kid Rock …", "Dragon Ball …"). Número logo depois ("Flight 19", "Voo 447") é o nome do voo — vale.
+ */
+export function achadoEhNomeProprio(texto: string, pos: number, achado: string): boolean {
+  if (!/^\p{Lu}/u.test(achado) || emTitleCase(texto)) return false
+  const depois = texto.slice(pos + achado.length)
+  if (/^\s+(?:n[º°o.]\s*)?\d/.test(depois)) return false
+  const inicioDeFrase = /(?:^|[.!?…:;¿¡"“(\n])\s*$/u.test(texto.slice(0, pos))
+  const proxima = /^\s+(\p{L}[\p{L}'’-]*)/u.exec(depois)?.[1] ?? ''
+  return !inicioDeFrase || (/^\p{Lu}/u.test(proxima) && proxima !== 'I')
+}
+
 function achadosDoLexico(texto: string): Array<{ e: Entrada; pos: number }> {
   const achados: Array<{ e: Entrada; pos: number }> = []
   for (const e of LEXICO) {
-    if (e.veto?.test(texto)) continue
-    const m = e.re.exec(texto)
-    if (m) achados.push({ e, pos: m.index })
+    if (vetado(e, texto)) continue
+    // a 1ª ocorrência que não é nome próprio (nome próprio de gente/coisa nunca vira sujeito — regra do elenco)
+    const m = [...texto.matchAll(new RegExp(e.re.source, 'giu'))].find((x) => e.nomeProprioOk || !achadoEhNomeProprio(texto, x.index ?? 0, x[0]))
+    if (m) achados.push({ e, pos: m.index ?? 0 })
   }
   return achados.sort((a, b) => a.pos - b.pos)
 }
@@ -244,7 +287,7 @@ export function promptMostraOSujeito(prompt: string, s: SujeitoObrigatorio): boo
 function falaCita(fala: string, s: SujeitoObrigatorio): boolean {
   const t = String(fala ?? '')
   if (s.tokens.some((tk) => t.includes(tk))) return true
-  return LEXICO.some((e) => e.grupo === s.grupos[0] && !e.veto?.test(t) && e.re.test(t))
+  return LEXICO.some((e) => e.grupo === s.grupos[0] && !vetado(e, t) && e.re.test(t))
 }
 
 const TAIL_RE = /(?:,\s*|\s)(?:no readable text|No readable text)|\sMouth closed, no speaking\./
