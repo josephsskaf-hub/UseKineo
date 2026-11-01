@@ -35,6 +35,7 @@ import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
 import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
+import { finalFracoDoRoteiro, problemaDoFinal } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (nunca pergunta, clima ou eco do HOOK)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -166,6 +167,7 @@ PAYOFF RULES (NON-NEGOTIABLE — a Short without a real payoff feels like clickb
 - The PAYOFF must also be a fact the viewer did NOT already know (see FACT SELECTION RULES). Revealing something famous (e.g. "it was Zidane's headbutt") is a FAILED payoff even if it's concrete.
 - NEVER end on a question, a tease, or a promise. These endings are BANNED — do NOT write them: "what if I told you...", "no one knows / no one knew", "the truth remains a mystery", "we may never know", "stay to find out", "you won't believe what happened" (without then telling it), "or something worse?", "the answer will shock you" (without giving the answer).
 - UNSOLVED mysteries are NOT an excuse to skip the payoff: deliver the single most-accepted theory or the most concrete known fact as the reward (e.g. Mary Celeste -> "The leading theory: alcohol fumes from the cargo sparked a panicked evacuation."). The viewer must always leave with something concrete.
+- KINEO-FINAL-RESPOSTA-0111: the LAST spoken sentence of the PAYOFF IS the concrete answer itself — the specific fact, number, name, mechanism or outcome the HOOK promised (e.g. HOOK "What NASA never announced about Mars" -> last sentence names the actual finding). Never a mood line ("the truth is out there", "and they are still watching"), never a question, never a rephrase of the HOOK.${targetSeconds <= 20 ? '' : ' The follow CTA that comes after it is a short imperative statement, never a question.'}
 ${targetSeconds <= 20 ? '- SHORT FILM: no follow/save CTA at all — the payoff reveal is the last thing the viewer hears.' : '- The follow/save CTA is SEPARATE and comes AFTER the payoff reveal — it never replaces it.'}
 
 CINEMATIC NARRATION RULES (this is what separates premium from generic AI videos):
@@ -527,7 +529,7 @@ export async function POST(req: NextRequest) {
      */
     const notaDoFilmeCurto = (t: string): number[] => {
       const n = palavrasDoFilmeCurto(t)
-      const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) ? 1 : 0
+      const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) && !finalFracoDoRoteiro(t) ? 1 : 0 // KINEO-FINAL-RESPOSTA-0111 — entre as duas versões do filme curto, a que revela no fim vence
       return [estrutura, descricaoDeCena && leuADescricaoEmVozAlta(t, topic) ? 0 : 1, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n] // KINEO-NARRADOR-DESCRICAO-0111 — entre as duas versões, a que não lê a descrição vence (fora da descrição: 1 nas duas, nada muda)
     }
     const segundaEMelhor = (primeira: string, segunda: string): boolean => {
@@ -548,8 +550,10 @@ export async function POST(req: NextRequest) {
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
     const leuADescricao = (t: string) => descricaoDeCena && leuADescricaoEmVozAlta(t, topic) // KINEO-NARRADOR-DESCRICAO-0111
-    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script)) { // KINEO-NARRADOR-DESCRICAO-0111: + roteiro que leu a descrição
+    const finalFraco = finalFracoDoRoteiro(script) // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, "o que a NASA nunca anunciou sobre Marte" sem revelar nada): fim em pergunta, clima ou eco do HOOK entra na MESMA nova tentativa
+    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script) || finalFraco) { // KINEO-NARRADOR-DESCRICAO-0111: + roteiro que leu a descrição · KINEO-FINAL-RESPOSTA-0111: + fim que não revela
       const problems: string[] = []
+      if (finalFraco && !payoffIsEmpty(script)) problems.push(problemaDoFinal(finalFraco)) // KINEO-FINAL-RESPOSTA-0111
       // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o número vai no pedido, como no "curto": "escreva menos" não é instrução.
       if (longoParaOFilmeCurto(script)) problems.push(`the script has ${palavrasDoFilmeCurto(script)} spoken words — a ${alvoSegundos}-second film allows at most ${tetoFilmeCurto}`)
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
