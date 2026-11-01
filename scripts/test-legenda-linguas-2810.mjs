@@ -31,6 +31,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// KINEO-LEGENDA-NUMERO-RTL-0111 — o mesmo que algarismosDaLegendaRtl (lib/textLanguage.ts): árabe-índicos/persas viram ASCII na ordem lógica
+const asciiRtl0111 = (t) => String(t).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6F0)).replace(/(?<=d)٫(?=d)/g, '.').replace(/(?<=d)٬(?=d)/g, ',')
 
 process.chdir(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'))
 
@@ -119,7 +121,7 @@ function estradas(M, words, audio) {
     classic: classic.map((c) => c.text),
     karaokeOk: classic.every((c) => {
       const els = M.C.buildCaptionElements({ text: c.text, time: c.time, duration: c.duration, highlight: c.highlight, karaokeWords: c.words })
-      return els.length > 0 && els.every((e) => semCor(e.text) === c.text.toUpperCase())
+      return els.length > 0 && els.every((e) => semCor(e.text) === (e.text_direction === 'rtl' ? asciiRtl0111(c.text.toUpperCase()) : c.text.toUpperCase())) // KINEO-LEGENDA-NUMERO-RTL-0111 — legenda RTL leva algarismos ASCII
     }),
     karaoke,
     f1: f1.map((b) => b.text),
@@ -239,7 +241,7 @@ function provaRtl(M) {
     const caps = M.C.buildCaptionsFromWhisperWords(fix.words, ws.at(-1).end + 0.3, 0, CWPC)
     for (const c of caps) {
       const els = M.C.buildCaptionElements({ text: c.text, time: c.time, duration: c.duration, highlight: c.highlight, karaokeWords: c.words })
-      if (els.length !== 1 || els[0].text_direction !== 'rtl' || els[0].text !== c.text.toUpperCase() || /\[color/.test(els[0].text)) erros.push(`${lingua}: ${JSON.stringify(els.map((e) => [e.text, e.text_direction]))}`)
+      if (els.length !== 1 || els[0].text_direction !== 'rtl' || els[0].text !== asciiRtl0111(c.text.toUpperCase()) || /* KINEO-LEGENDA-NUMERO-RTL-0111 */ /\[color/.test(els[0].text)) erros.push(`${lingua}: ${JSON.stringify(els.map((e) => [e.text, e.text_direction]))}`)
     }
   }
   return erros
