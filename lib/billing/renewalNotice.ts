@@ -19,15 +19,19 @@ export interface RenewalNoticeInput {
   hasStripeSubscription: boolean
   /** `status` devolvido por /api/me/subscription (Stripe viva), ou null. */
   status: string | null
+  /** KINEO-CARTAO-RECUSADO-0111c — cancelamento agendado (cancel_at_period_end ou cancel_at), de /api/me/subscription. */
+  cancelScheduled?: boolean | null
 }
 
-export type RenewalNoticeReason = 'no_subscription' | 'status_unknown' | 'in_good_standing' | 'ok'
+export type RenewalNoticeReason = 'no_subscription' | 'status_unknown' | 'in_good_standing' | 'cancel_scheduled' | 'ok'
 
 export function decideRenewalNotice(input: RenewalNoticeInput): { visible: boolean; reason: RenewalNoticeReason; version: typeof RENEWAL_NOTICE_VERSION } {
   const version = RENEWAL_NOTICE_VERSION
   if (!input.hasStripeSubscription) return { visible: false, reason: 'no_subscription', version }
   if (!input.status) return { visible: false, reason: 'status_unknown', version }
   if (!RENEWAL_NOTICE_STATUSES.has(input.status)) return { visible: false, reason: 'in_good_standing', version }
+  // KINEO-CARTAO-RECUSADO-0111c — quem pediu para cancelar não é convidado a pagar o período que recusou (mesma regra dos 3 e-mails).
+  if (input.cancelScheduled === true) return { visible: false, reason: 'cancel_scheduled', version }
   return { visible: true, reason: 'ok', version }
 }
 

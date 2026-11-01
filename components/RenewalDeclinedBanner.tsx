@@ -14,6 +14,7 @@ import { CARD_UPDATE_BANNER_CLICKED_EVENT, CARD_UPDATE_BANNER_SHOWN_EVENT } from
 
 export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: { hasStripeSubscription: boolean; plan: string | null }) {
   const [status, setStatus] = useState<string | null>(null)
+  const [cancelScheduled, setCancelScheduled] = useState<boolean | null>(null) // KINEO-CARTAO-RECUSADO-0111c
   // KINEO-CARTAO-RECUSADO-1510 — fatura aberta da Stripe (1 clique, paga na hora). Sem ela, o portal de sempre.
   const [payUrl, setPayUrl] = useState<string | null>(null)
   const [portal, setPortal] = useState<'idle' | 'busy' | 'error'>('idle')
@@ -24,8 +25,9 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
     let cancelled = false
     void fetch('/api/me/subscription', { cache: 'no-store', credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { status?: string | null; payUrl?: string | null } | null) => {
+      .then((j: { status?: string | null; payUrl?: string | null; cancelsAtPeriodEnd?: boolean } | null) => {
         if (cancelled || !j) return
+        setCancelScheduled(j.cancelsAtPeriodEnd === true)
         if (typeof j.status === 'string') setStatus(j.status)
         if (typeof j.payUrl === 'string' && j.payUrl.startsWith('https://invoice.stripe.com/')) setPayUrl(j.payUrl)
       })
@@ -33,7 +35,7 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
     return () => { cancelled = true }
   }, [hasStripeSubscription])
 
-  const decision = decideRenewalNotice({ hasStripeSubscription, status })
+  const decision = decideRenewalNotice({ hasStripeSubscription, status, cancelScheduled })
   const planLabel = renewalNoticePlanLabel(plan)
 
   useEffect(() => {

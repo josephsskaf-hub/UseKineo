@@ -115,7 +115,8 @@ export async function GET() {
 
     const payload: MySubscription = {
       renewsAt: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-      cancelsAtPeriodEnd: Boolean(sub.cancel_at_period_end),
+      // KINEO-CARTAO-RECUSADO-0111c — cancel_at (data marcada pelo cliente no portal) também é cancelamento agendado.
+      cancelsAtPeriodEnd: Boolean(sub.cancel_at_period_end) || Boolean(sub.cancel_at),
       provider: 'stripe',
       amountMinor,
       status: sub.status ?? null,
