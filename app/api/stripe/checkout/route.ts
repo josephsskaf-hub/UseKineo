@@ -99,6 +99,7 @@ import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' /
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
+import { BF2026_CAMPAIGN, BF2026_COUPON_ID, BF2026_COUPON_REDEEM_BY_SECONDS, BF2026_EVENTS, BF2026_PERCENT_OFF, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, bf2026PriceMinor, bf2026State, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano do anual, só de 24/11 a 01/12 (America/New_York)
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -381,7 +382,9 @@ async function recordCheckoutEvent(
     // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — sessão Stripe aberta por quem ainda não tem conta, e o pedido que podia ser
     // de convidado mas voltou ao caminho de hoje, com o motivo (os dois SERVER_ONLY).
     | 'checkout_guest_started'
-    | 'guest_checkout_fallback',
+    | 'guest_checkout_fallback'
+    // KINEO-BLACK-FRIDAY-2026 — a sessão da Stripe com o cupom da Black Friday existe (SERVER_ONLY em app/api/events).
+    | 'bf2026_checkout_started',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -410,7 +413,7 @@ async function recordCheckoutEvent(
     const stripeSessionId = typeof metadata.stripe_session_id === 'string' ? metadata.stripe_session_id : null
     // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — o evento do convidado ganha o MESMO id determinístico (nome:sessão): dois
     // cliques na janela de idempotência devolvem a mesma sessão e não podem contar duas compras abertas.
-    const deterministicCheckoutEvent = name === 'checkout_started' || name === 'checkout_guest_started'
+    const deterministicCheckoutEvent = name === 'checkout_started' || name === 'checkout_guest_started' || name === 'bf2026_checkout_started' // KINEO-BLACK-FRIDAY-2026 — 1 por sessão da Stripe
     if (deterministicCheckoutEvent && stripeSessionId) {
       const hex = createHash('sha256').update(`${name}:${stripeSessionId}`).digest('hex').slice(0, 32)
       eventRow.id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
@@ -1432,7 +1435,11 @@ async function buildAndRedirect(
     // NUNCA PIOR QUE HOJE: se a sessão de convidado não abrir (exceção, 4xx da Stripe, sessão sem URL), o visitante
     // segue para o caminho de hoje logo abaixo — o mesmo checkout_auth_required e o mesmo redirect ao cadastro.
     let guestFailure: { reason: GuestCheckoutFailureReason; detail: Record<string, unknown> } | null = null
-    if (guestFallback === null) {
+    // KINEO-BLACK-FRIDAY-2026 — o anual na janela da Black Friday ganha o cupom no caminho logado: sem conta, ele volta ao
+    // cadastro (a compra inteira viaja na URL) em vez de virar convidado a preço cheio. Marca o motivo na telemetria.
+    const bf2026GuestNeedsAccount = guestFallback === null && !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual, wantsTrial })
+    if (bf2026GuestNeedsAccount) checkoutMetadata = { ...checkoutMetadata, guest_fallback_bf2026: true }
+    if (guestFallback === null && !bf2026GuestNeedsAccount) {
       failureContext = { ...checkoutMetadata, guest_checkout: true }
       try {
         const guest = await buildGuestSubscriptionAndRedirect(req, {
@@ -2409,6 +2416,74 @@ async function buildAndRedirect(
     }
   }
 
+  // ═══ KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano de qualquer plano ANUAL, só na janela (relógio do servidor) ═══════════
+  // Portão único: bf2026CheckoutEligible (lib/billing/blackFriday2026.ts) — anual · Starter/Creator/Studio ·
+  // planAcceptsPromotions (Business fora) · sem teste com cartão · 24/11 00:00 → 01/12 23:59 America/New_York.
+  // Dentro dele, TODO checkout anual recebe o cupom, venha ou não com ?promo=BF2026 (a frase "any annual plan" vale em
+  // qualquer porta: /black-friday, aba anual do /pricing, e-mail). Fora dele, o ?promo=BF2026 é ignorado (promoBlocked)
+  // e a compra segue a preço cheio — a página da Stripe mostra o valor real antes do pagamento. O mensal nunca ganha.
+  // O cupom KINEO_BF2026 nasce aqui no 1º uso (padrão do KINEO_FIRST50), percent_off vale em qualquer moeda, e ele NÃO
+  // tem promotion code: ninguém o digita no campo manual da Stripe. Quem clicou na oferta (?promo=BF2026) recebeu uma
+  // promessa: se o cupom não puder ser confirmado, a compra para com aviso honesto em vez de cobrar o preço cheio calada.
+  const bf2026Requested = isBf2026PromoCode(requestedPromo)
+  const bf2026Eligible = !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual, wantsTrial })
+  let bf2026Applied = false
+  if (bf2026Requested && !bf2026Eligible) {
+    console.warn(`[stripe/checkout] BF2026 ignorado (tier=${tier}, annual=${isAnnual}, janela=${bf2026State()}) — vale só no anual, de 24/11 a 01/12`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (bf2026Eligible && !discountApplied) {
+    let bfCouponOk = false
+    try {
+      let coupon: Stripe.Coupon | null = null
+      try {
+        coupon = await stripe.coupons.retrieve(BF2026_COUPON_ID)
+      } catch {
+        coupon = await stripe.coupons.create({
+          id: BF2026_COUPON_ID,
+          percent_off: BF2026_PERCENT_OFF,
+          duration: 'once',
+          redeem_by: BF2026_COUPON_REDEEM_BY_SECONDS,
+          name: `Black Friday: ${BF2026_PERCENT_OFF}% off first year`,
+          metadata: { campaign: BF2026_CAMPAIGN },
+        })
+      }
+      bfCouponOk = Boolean(coupon) && (coupon as { deleted?: boolean }).deleted !== true && coupon!.valid === true &&
+        coupon!.percent_off === BF2026_PERCENT_OFF && coupon!.duration === 'once' && !coupon!.applies_to?.products?.length
+    } catch (e) {
+      console.warn('[stripe/checkout] BF2026 cupom não confirmado:', e)
+    }
+    if (bfCouponOk) {
+      sessionParams.discounts = [{ coupon: BF2026_COUPON_ID }]
+      discountApplied = true
+      bf2026Applied = true
+      resolvedPromo = null
+      Object.assign(sessionParams.metadata!, { promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE })
+      Object.assign(sessionParams.subscription_data!.metadata!, { promo_campaign: BF2026_CAMPAIGN })
+      checkoutMetadata = { ...checkoutMetadata, promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE, bf2026_applied: true, bf2026_requested: bf2026Requested }
+      failureContext = { ...checkoutMetadata }
+      // A volta mostra o que a 1ª fatura cobrou de verdade (telemetria humana e valor da conversão), nunca a tabela.
+      sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+        adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
+        appUrl,
+        tier,
+        currency: chargeCurrency,
+        amount: bf2026PriceMinor(chargeAmount),
+      })
+    } else if (bf2026Requested) {
+      await recordCheckoutEvent(
+        'checkout_failed',
+        user.id,
+        { ...checkoutMetadata, failure_stage: 'bf2026_promo', failure_reason: 'coupon_unverified' },
+        browserSessionId ?? undefined,
+      )
+      const message = 'We could not apply the Black Friday discount right now. You have not been charged. Please try again in a minute.'
+      return isGet ? redirectError(message) : jsonError(message, 503)
+    }
+  }
+  // ═══ FIM KINEO-BLACK-FRIDAY-2026 ═══════════════════════════════════════════════════════════════════════════════════
+
   // KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês. Só monthly, só
   // starter/basic, 1 por cliente. Cede a vez a um ?promo= válido (ver acima).
   if (intro && !resolvedPromo && !isAnnual && (tier === 'starter' || tier === 'basic')) {
@@ -3048,6 +3123,25 @@ async function buildAndRedirect(
     },
     browserSessionId ?? undefined,
   )
+  // KINEO-BLACK-FRIDAY-2026 — o funil da Black Friday nomeado: só depois que a sessão da Stripe COM o cupom existe.
+  if (bf2026Applied) {
+    await recordCheckoutEvent(
+      BF2026_EVENTS.checkoutStarted,
+      user.id,
+      {
+        tier,
+        billing,
+        stripe_session_id: session.id,
+        requested: bf2026Requested,
+        percent_off: BF2026_PERCENT_OFF,
+        list_amount_minor: chargeAmount,
+        first_charge_minor: bf2026PriceMinor(chargeAmount),
+        currency: chargeCurrency,
+        intent_campaign: intentCampaign ?? null,
+      },
+      browserSessionId ?? undefined,
+    )
+  }
   // KINEO-CHECKOUT-CLAREZA-1610 — a sessão da Stripe com -20% existe: a pessoa está VENDO a oferta. Se o relógio dela
   // ainda não tinha começado (chegou por link direto, sem passar pela faixa/cartão/convite), começa agora. Falha = nada.
   if (welcome20DeadlineStart && (promisedPublicPromoVerified || autoWelcome20Applied)) {

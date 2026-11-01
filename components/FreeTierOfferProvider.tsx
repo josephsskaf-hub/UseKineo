@@ -15,6 +15,7 @@
 // despercebida em dev.
 
 import { createContext, useContext, type ReactNode } from 'react'
+import BlackFridayBanner from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
 import {
   buildFreeTierOffer,
   swapFreeTierCopy,
@@ -31,8 +32,11 @@ export function FreeTierOfferProvider({
   offer: FreeTierOffer
   children: ReactNode
 }) {
+  // KINEO-BLACK-FRIDAY-2026 — a faixa do topo do site mora aqui (o provider envolve todo o <body> do layout raiz, e a faixa
+  // vem antes de tudo): o app/layout.tsx não é tocado (as camadas desfaz-* conferem a linha do <body> byte a byte). Ela só
+  // pinta de 24/11 a 01/12, com o servidor dizendo 'open'; nas rotas do app quem pinta é o DashboardShell (placement="app").
   return (
-    <FreeTierOfferContext.Provider value={offer}>{children}</FreeTierOfferContext.Provider>
+    <FreeTierOfferContext.Provider value={offer}><BlackFridayBanner />{children}</FreeTierOfferContext.Provider>
   )
 }
 

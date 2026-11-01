@@ -272,6 +272,16 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
       ? { client_reference_id: input.rewardfulReferral }
       : {}),
   }
+  // KINEO-BLACK-FRIDAY-2026 — a brecha do cupom DIGITADO na compra sem conta: o campo manual da Stripe ficava aberto em
+  // TODO plano, e os promotion codes FIRST50/COMEBACK50 (e o WELCOME20) não têm restrição de produto nem de intervalo —
+  // digitados à mão no anual ou no Starter, valiam (50% num ANO inteiro). O caminho logado já fechava isso
+  // (subscriptionAcceptsManualPromotions em lib/affiliateDiscount.ts: só Creator/Studio mensal). Espelho literal aqui
+  // (o guardião da compra sem login carrega este módulo com imports fechados): anual ou Starter = sem campo manual, nem na
+  // sessão recuperada. A Black Friday não depende do campo: o cupom dela não tem código e só o servidor o aplica.
+  if (!guestSubscriptionAcceptsManualPromotions(input.tier, isAnnual)) {
+    delete params.allow_promotion_codes
+    params.after_expiration = { recovery: { enabled: true, allow_promotion_codes: false } }
+  }
   // KINEO-BUSINESS-84-2026-10-09 — Business: nenhum cupom (espelho de planAcceptsPromotions em lib/checkoutPricing.ts; literal aqui porque
   // o guardião da compra sem login carrega este módulo com imports fechados). Sem campo manual, nem na recuperação.
   if (input.tier === 'business') {
@@ -279,6 +289,15 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
     params.after_expiration = { recovery: { enabled: true, allow_promotion_codes: false } }
   }
   return { params, affiliateSystem }
+}
+
+/**
+ * KINEO-BLACK-FRIDAY-2026 — espelho literal de subscriptionAcceptsManualPromotions (lib/affiliateDiscount.ts): o campo
+ * "Add promotion code" só abre no Creator/Studio MENSAL. A Stripe não sabe restringir um código por intervalo de cobrança
+ * e o produto é inline (price_data), então o escopo seguro é este. O guardião confere que os dois dizem o mesmo.
+ */
+export function guestSubscriptionAcceptsManualPromotions(tier: string, isAnnual: boolean): boolean {
+  return tier !== 'business' && !isAnnual && (tier === 'basic' || tier === 'pro')
 }
 
 /** Um clique = uma sessão (mesmo desenho do kineo-sub-v6): mesma compra, mesmo navegador, mesma janela de 5 min. */

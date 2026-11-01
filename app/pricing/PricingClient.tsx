@@ -46,6 +46,7 @@ import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUX
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
+import { Bf2026PricingBadge } from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
 import { AnnualEarlyOfferBadge, KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { KidsVendaCards } from '@/components/kidsCartoon/KidsVendaCards' // KINEO-KIDS-VENDA-2010 — os planos do desenho infantil (piloto US$ 29/mês · pack US$ 49 · 1º grátis); nada com KIDS_SALES_LIVE=false
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
@@ -1194,6 +1195,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             </button>
           </div>
         </div>
+        {/* KINEO-BLACK-FRIDAY-2026 — o selo da aba anual: só de 24/11 a 01/12 (relógio do servidor), link para /black-friday. */}
+        {billing === 'annual' ? <Bf2026PricingBadge /> : null}
         {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
         <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">

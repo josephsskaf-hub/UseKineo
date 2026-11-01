@@ -215,6 +215,11 @@ const SERVER_ONLY_EVENTS = new Set([
   'dfy_brief_submitted',
   'founder_order_alerted',
   'bulk_purchase_completed',
+  // KINEO-BLACK-FRIDAY-2026 — o checkout com o cupom (só o servidor sabe que a sessão da Stripe existe) e a reserva/carimbo
+  // da carta da Black Friday (admin/send-black-friday-2026): um carimbo forjado tiraria a pessoa da onda para sempre.
+  'bf2026_checkout_started',
+  'bf2026_email_claimed',
+  'bf2026_emailed',
   // KINEO-DODO-2026-09-07 — o trilho UPI/Pix. Escritos só por
   // app/api/dodo/checkout e app/api/dodo/webhook; `payment_success` (com
   // metadata.rail='dodo') já está protegido acima. Se o browser pudesse cunhar
