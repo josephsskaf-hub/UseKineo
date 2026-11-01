@@ -19,6 +19,9 @@
 // do dia 7; a decisão mora em decideRenewalFollowUp). Cada envio ok grava o carimbo da etapa E `card_failed_email_sent`
 // com attempt 1/2/3. Cartão BR recusado em cobrança USD ganha a dica de liberar compra internacional (sem prometer Pix:
 // não existe trilho em reais para a fatura de renovação — ver isBrazilianCardInUsd).
+// KINEO-CARTAO-RECUSADO-0111b — `past_due` não basta: quem cancelou pelo portal no modo "fim do período" segue `past_due`
+// e a Stripe segue tentando. A assinatura listada (viva) passa `cancel_at_period_end`/`cancel_at` para a decisão, que pula
+// (cancel_scheduled) — mesma regra do send-trial-eve-notice.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
@@ -49,6 +52,7 @@ import {
   renewalEmailLanguage,
   renewalFailedEmailMessage,
   renewalPayUrl,
+  stripeSubscriptionCancelScheduled,
   type RenewalFollowUpDecision,
 } from '@/lib/billing/renewalFailedEmail'
 
@@ -196,6 +200,7 @@ export async function runRenewalFollowUp(params: {
       invoiceId,
       invoiceStatus: invoice?.status ?? null,
       subscriptionStatus: sub.status,
+      cancelScheduled: stripeSubscriptionCancelScheduled(sub),
       ownerId: typeof owner?.id === 'string' ? owner.id : null,
       ownerHasPaid: owner?.has_paid === true,
       internal: isInternalEmail(email),

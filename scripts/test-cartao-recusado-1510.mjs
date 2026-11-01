@@ -181,6 +181,7 @@ async function problems(over = {}) {
     live: true, billingReason: 'subscription_cycle', invoiceId: 'in_1', invoiceStatus: 'open', subscriptionStatus: 'past_due',
     ownerId: 'u1', ownerHasPaid: true, internal: false, dedupeReadable: true, firstSentAt: h(49), reminderSent: false, // reancorado KINEO-CARTAO-RECUSADO-0111 — era h(21)
     recipientEmail: 'a@example.com', nowMs: now,
+    cancelScheduled: false, // reancorado KINEO-CARTAO-RECUSADO-0111b — fato novo e obrigatório (ausente = não envia)
   }
   const casos = [
     // reancorado KINEO-CARTAO-RECUSADO-0111 — era 21/20/19 h (dia 2); a régua nova põe o lembrete no dia 3 (48 h).

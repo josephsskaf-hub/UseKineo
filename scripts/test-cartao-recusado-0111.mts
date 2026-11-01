@@ -15,6 +15,9 @@
 //   (5) ligações: webhook grava attempt 1 e chama o card_recovered; cron no vercel.json com confirm=SEND; carimbos fora
 //       do alcance do navegador; último lembrete na lista canônica; banner com a frase e os eventos novos;
 //   (6) mutantes: cada regra quebrada fica vermelha.
+//   (7) KINEO-CARTAO-RECUSADO-0111b — quem cancelou pelo portal no modo "fim do período" (cancel_at_period_end) ou com data
+//       marcada (cancel_at) segue past_due e a Stripe segue tentando: NENHUMA etapa sai (nem o 1º aviso do webhook), o
+//       relatório mostra cancel_scheduled, e o fato ausente fecha a porta.
 // Rodar: node scripts/test-cartao-recusado-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
@@ -79,6 +82,9 @@ function world(startIso: string) {
     sub_car: { id: 'u-car', email: 'carla@example.com', has_paid: true, plan: 'pro', signup_country: 'US', last_country: null },
     sub_cin: { id: 'u-cin', email: 'cintia@example.com', has_paid: true, plan: 'starter', signup_country: 'ES', last_country: null },
     sub_dan: { id: 'u-dan', email: 'dan@example.com', has_paid: true, plan: 'starter', signup_country: 'US', last_country: null },
+    // KINEO-CARTAO-RECUSADO-0111b — cancelaram pelo portal, mas a assinatura segue past_due (a Stripe segue tentando).
+    sub_eva: { id: 'u-eva', email: 'eva@example.com', has_paid: true, plan: 'starter', signup_country: 'US', last_country: null },
+    sub_fel: { id: 'u-fel', email: 'felipe@example.com', has_paid: true, plan: 'basic', signup_country: 'BR', last_country: null },
   }
   const subs: Record<string, any> = {
     sub_ana: { id: 'sub_ana', status: 'past_due', latest_invoice: 'in_ana', metadata: { tier: 'starter' } },
@@ -86,6 +92,9 @@ function world(startIso: string) {
     sub_car: { id: 'sub_car', status: 'canceled', latest_invoice: 'in_car', metadata: { tier: 'pro' } },
     sub_cin: { id: 'sub_cin', status: 'past_due', latest_invoice: 'in_cin', metadata: { tier: 'starter' } },
     sub_dan: { id: 'sub_dan', status: 'past_due', latest_invoice: 'in_dan', metadata: { tier: 'starter' } },
+    // Eva: "cancelar no fim do período" (cancel_at_period_end). Felipe: cancelamento com DATA marcada (cancel_at).
+    sub_eva: { id: 'sub_eva', status: 'past_due', latest_invoice: 'in_eva', metadata: { tier: 'starter' }, cancel_at_period_end: true, cancel_at: null },
+    sub_fel: { id: 'sub_fel', status: 'past_due', latest_invoice: 'in_fel', metadata: { tier: 'basic' }, cancel_at_period_end: false, cancel_at: 1_800_000_000 },
   }
   const inv = (id: string, extra: Record<string, unknown> = {}) => ({ id, status: 'open', billing_reason: 'subscription_cycle', currency: 'usd', hosted_invoice_url: HOSTED + id, attempt_count: 2, payment_intent: 'pi_' + id, ...extra })
   const invoices: Record<string, any> = {
@@ -94,8 +103,10 @@ function world(startIso: string) {
     in_car: inv('in_car'), // fatura ainda 'open', mas a assinatura foi CANCELADA
     in_cin: inv('in_cin', { attempt_count: 4 }),
     in_dan: inv('in_dan'),
+    in_eva: inv('in_eva'),
+    in_fel: inv('in_fel'),
   }
-  const cardCountry: Record<string, string> = { pi_in_bru: 'BR', pi_in_ana: 'US', pi_in_cin: 'ES', pi_in_dan: 'US', pi_in_car: 'US' }
+  const cardCountry: Record<string, string> = { pi_in_bru: 'BR', pi_in_ana: 'US', pi_in_cin: 'ES', pi_in_dan: 'US', pi_in_car: 'US', pi_in_eva: 'US', pi_in_fel: 'BR' }
   const stripeWrites: string[] = []
   const stripe = {
     subscriptions: {
@@ -222,7 +233,7 @@ async function problems(over: Over = {}): Promise<string[]> {
   const base = {
     live: true, billingReason: 'subscription_cycle', invoiceId: 'in_1', invoiceStatus: 'open', subscriptionStatus: 'past_due',
     ownerId: 'u1', ownerHasPaid: true, internal: false, dedupeReadable: true, firstSentAt: ago(2), reminderSent: false,
-    reminderSentAt: null, finalSent: false, recipientEmail: 'a@example.com', nowMs: now,
+    reminderSentAt: null, finalSent: false, recipientEmail: 'a@example.com', nowMs: now, cancelScheduled: false,
   }
   const casos: Array<[Record<string, unknown>, string | false, string]> = [
     [{ ...base, firstSentAt: null }, 'first', '1º aviso que faltou'],
@@ -238,6 +249,11 @@ async function problems(over: Over = {}): Promise<string[]> {
     [{ ...base, firstSentAt: ago(150), reminderSent: true, reminderSentAt: ago(96), invoiceStatus: 'paid' }, false, 'pagou → para'],
     [{ ...base, firstSentAt: ago(150), reminderSent: true, reminderSentAt: ago(96), subscriptionStatus: 'canceled' }, false, 'cancelou → para'],
     [{ ...base, firstSentAt: null, reminderSent: true }, false, 'lembrete sem 1º aviso (carimbo incoerente)'],
+    // KINEO-CARTAO-RECUSADO-0111b — cancelou pelo portal (fim do período / data marcada) e segue past_due: nenhuma etapa sai.
+    [{ ...base, firstSentAt: null, cancelScheduled: true }, false, 'cancelou no fim do período → sem 1º aviso que faltou'],
+    [{ ...base, firstSentAt: ago(48), cancelScheduled: true }, false, 'cancelou no fim do período → sem lembrete do dia 3'],
+    [{ ...base, firstSentAt: ago(144), reminderSent: true, reminderSentAt: ago(96), cancelScheduled: true }, false, 'cancelou no fim do período → sem último lembrete do dia 7'],
+    [{ ...base, firstSentAt: ago(48), cancelScheduled: undefined }, false, 'cancelamento desconhecido (fato ausente) → não envia (porta fechada)'],
   ]
   for (const [row, want, label] of casos) {
     const d = E.decideRenewalFollowUp(row)
@@ -245,6 +261,21 @@ async function problems(over: Over = {}): Promise<string[]> {
     if (got !== want) p.push(`régua errada: ${label} (deu ${got})`)
   }
   if (E.decideRenewalFollowUp({ ...base, firstSentAt: ago(150), reminderSent: true, reminderSentAt: ago(96), finalSent: true })?.reason !== 'sequence_done') p.push('motivo do fim da régua não é sequence_done')
+  if (E.decideRenewalFollowUp({ ...base, firstSentAt: ago(48), cancelScheduled: true })?.reason !== 'cancel_scheduled') p.push('motivo do pulo de quem cancelou não é cancel_scheduled')
+  // 1º aviso do webhook: a mesma porta.
+  const hookBase = { live: true, billingReason: 'subscription_cycle', invoiceId: 'in_1', ownerId: 'u1', ownerHasPaid: true, subscriptionStatus: 'past_due', alreadySentForInvoice: false, recipientEmail: 'a@example.com', marketingOptOut: false, cancelScheduled: false }
+  if (E.decideRenewalFailedEmail(hookBase)?.send !== true) p.push('webhook: 1º aviso normal deixou de sair')
+  if (E.decideRenewalFailedEmail({ ...hookBase, cancelScheduled: true })?.reason !== 'cancel_scheduled') p.push('webhook: quem cancelou no fim do período recebe o 1º aviso')
+  if (E.decideRenewalFailedEmail({ ...hookBase, cancelScheduled: undefined })?.send !== false) p.push('webhook: cancelamento desconhecido manda o 1º aviso (porta aberta)')
+  // Leitura da assinatura viva.
+  const cs = E.stripeSubscriptionCancelScheduled
+  if (typeof cs !== 'function') p.push('stripeSubscriptionCancelScheduled ausente')
+  else {
+    if (cs({ cancel_at_period_end: true, cancel_at: null }) !== true) p.push('cancel_at_period_end não conta como cancelamento')
+    if (cs({ cancel_at_period_end: false, cancel_at: 1_800_000_000 }) !== true) p.push('cancel_at (data marcada) não conta como cancelamento')
+    if (cs({ cancel_at_period_end: false, cancel_at: null }) !== false) p.push('assinatura sem cancelamento lida como cancelada')
+    if (cs({}) !== false || cs(null) !== false) p.push('assinatura sem os campos lida como cancelada')
+  }
   if (E.cardFailedEmailAttempt('first') !== 1 || E.cardFailedEmailAttempt('reminder') !== 2 || E.cardFailedEmailAttempt('final') !== 3) p.push('attempt 1/2/3 trocado')
   if (E.isBrazilianCardInUsd('usd', 'BR') !== true || E.isBrazilianCardInUsd('brl', 'BR') !== false || E.isBrazilianCardInUsd('usd', 'ES') !== false || E.isBrazilianCardInUsd(null, null) !== false) p.push('detecção do cartão BR em USD errada')
 
@@ -277,6 +308,8 @@ async function problems(over: Over = {}): Promise<string[]> {
     w.stamp(E.RENEWAL_FAILED_REMINDER_EVENT, 'in_cin', 'u-cin', 17 * 24)
     // Dan: o 1º aviso saiu agora pelo webhook (carimbo de 1 h).
     w.stamp(E.RENEWAL_FAILED_EMAIL_EVENT, 'in_dan', 'u-dan', 1)
+    // Felipe recebeu o 1º aviso há 1 h e DEPOIS cancelou no portal (data marcada): não pode ganhar o dia 3 nem o dia 7.
+    w.stamp(E.RENEWAL_FAILED_EMAIL_EVENT, 'in_fel', 'u-fel', 1)
     w.failFor.add('ana@example.com') // Resend recusa a Ana na 1ª rodada
     const before = w.events.length
 
@@ -289,6 +322,10 @@ async function problems(over: Over = {}): Promise<string[]> {
     if (w.sent.length !== 0 || w.events.length !== before) p.push(`dry-run enviou/carimbou (${w.sent.length} envios, ${w.events.length - before} eventos)`)
     if (dry.body?.would_send !== 2) p.push(`dry-run deveria apontar 2 envios (Ana e Bruno, 1º aviso), apontou ${dry.body?.would_send}`)
     if ((dry.body?.rows ?? []).some((r: any) => r.subscription_ref === 'sub_car')) p.push('assinatura cancelada entrou na rodada')
+    for (const ref of ['sub_eva', 'sub_fel']) {
+      const row = (dry.body?.rows ?? []).find((r: any) => r.subscription_ref === ref)
+      if (row?.decision !== 'cancel_scheduled') p.push(`dry-run: ${ref} (cancelou, segue past_due) não saiu como cancel_scheduled (${row?.decision})`)
+    }
 
     const r1 = await callRoute(over, w, ROUND)
     if (r1.body?.mode !== 'SENT') p.push('rodada com confirm=SEND não é SENT')
@@ -343,6 +380,10 @@ async function problems(over: Over = {}): Promise<string[]> {
     const after = await callRoute(over, w, ROUND)
     if (to('ana@example.com').length !== 3) p.push('depois do dia 7: Ana recebeu um 4º e-mail')
     if (!((after.body?.counts?.sequence_done ?? 0) >= 2)) p.push('relatório não mostra sequence_done para quem completou a régua')
+    if (to('eva@example.com').length) p.push(`cancelou no fim do período (Eva) e recebeu ${to('eva@example.com').length} e-mail(s)`)
+    if (to('felipe@example.com').length) p.push(`cancelou com data marcada (Felipe) e recebeu ${to('felipe@example.com').length} lembrete(s)`)
+    if ((after.body?.counts?.cancel_scheduled ?? 0) !== 2) p.push(`relatório não mostra cancel_scheduled para os 2 que cancelaram (${after.body?.counts?.cancel_scheduled})`)
+    if (w.events.some((e) => ['in_eva', 'in_fel'].includes(e.metadata?.invoice_id) && e.name === E.CARD_FAILED_EMAIL_SENT_EVENT)) p.push('card_failed_email_sent gravado para quem cancelou')
 
     // Uma linha de card_failed_email_sent por envio real.
     const okSends = w.sent.length
@@ -400,6 +441,8 @@ async function problems(over: Over = {}): Promise<string[]> {
   if (iCard < 0 || iStamp < 0 || iNotOk < 0 || !(iNotOk < iStamp && iStamp < iCard)) p.push('webhook: card_failed_email_sent não sai depois do Resend ok + carimbo')
   if (!helper.includes("        attempt: cardFailedEmailAttempt('first'),\n")) p.push('webhook: 1º aviso sem attempt 1')
   if (!helper.includes('      brazilianCardInUsd,\n')) p.push('webhook: 1º aviso sem a dica BR×USD')
+  if (!helper.includes('      cancelScheduled: input.cancelScheduled,\n')) p.push('webhook: decisão do 1º aviso não recebe o cancelamento marcado')
+  if (!hook.includes('              cancelScheduled: stripeSubscriptionCancelScheduled(failedSubscription),\n')) p.push('webhook: 1º aviso não lê cancel_at_period_end/cancel_at da assinatura viva')
   const ps = hook.indexOf("      case 'invoice.payment_succeeded': {")
   const psBlock = ps < 0 ? '' : hook.slice(ps, hook.indexOf("      case 'customer.subscription.trial_will_end': {", ps))
   const iPaid = psBlock.indexOf("          name: 'subscription_invoice_paid',\n")
@@ -452,6 +495,13 @@ const mutants: Array<[string, string, string, string]> = [
   ['M13 card_recovered fora do webhook', HOOK, '        await recordCardRecoveredIfAny(supabase, {\n', '        void (async (..._a: unknown[]) => {})(supabase, {\n'],
   ['M14 navegador forja card_recovered', EVENTS_ROUTE, "  'card_recovered',\n", ''],
   ['M15 cron sem confirm', VERCEL, '"/api/admin/send-renewal-declined?etapa=lembrete&confirm=SEND&limit=30"', '"/api/admin/send-renewal-declined?etapa=lembrete&limit=30"'],
+  // KINEO-CARTAO-RECUSADO-0111b — quem cancelou pelo portal (assinatura ainda past_due) não recebe "troque o cartão".
+  ['M16 régua ignora cancelamento marcado', EMAIL, "  if (x.cancelScheduled !== false) return { send: false, reason: 'cancel_scheduled' }\n", ''],
+  ['M17 1º aviso ignora cancelamento marcado', EMAIL, "  if (f.cancelScheduled !== false) return { send: false, reason: 'cancel_scheduled' }\n", ''],
+  ['M18 rodada não passa o cancelamento', FOLLOW, '      cancelScheduled: stripeSubscriptionCancelScheduled(sub),\n', '      cancelScheduled: false,\n'],
+  ['M19 webhook não passa o cancelamento', HOOK, '              cancelScheduled: stripeSubscriptionCancelScheduled(failedSubscription),\n', '              cancelScheduled: false,\n'],
+  ['M20 cancel_at (data marcada) ignorado', EMAIL, "  return typeof sub.cancel_at === 'number' && Number.isFinite(sub.cancel_at) && sub.cancel_at > 0\n", '  return false\n'],
+  ['M21 porta do cancelamento abre no desconhecido', EMAIL, "  if (x.cancelScheduled !== false) return { send: false, reason: 'cancel_scheduled' }\n", "  if (x.cancelScheduled === true) return { send: false, reason: 'cancel_scheduled' }\n"],
 ]
 for (const [label, file, from, to] of mutants) {
   const original = read(file)

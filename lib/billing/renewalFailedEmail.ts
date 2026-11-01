@@ -62,6 +62,7 @@ export type RenewalFailedEmailSkipReason =
   | 'no_owner'
   | 'never_paid'
   | 'not_dunning'
+  | 'cancel_scheduled' // KINEO-CARTAO-RECUSADO-0111b — pediu para cancelar (fim do período / data marcada)
   | 'dedupe_unavailable'
   | 'already_sent_for_invoice'
   | 'no_recipient'
@@ -80,11 +81,29 @@ export interface RenewalFailedEmailFacts {
   ownerHasPaid: boolean
   /** Status VIVO da assinatura (stripe.subscriptions.retrieve), não o do payload do evento. */
   subscriptionStatus: string | null | undefined
+  /** KINEO-CARTAO-RECUSADO-0111b — a assinatura VIVA tem cancelamento marcado (stripeSubscriptionCancelScheduled). */
+  cancelScheduled: boolean
   /** Já existe RENEWAL_FAILED_EMAIL_EVENT para esta fatura? null = a leitura falhou. */
   alreadySentForInvoice: boolean | null
   recipientEmail: string | null | undefined
   /** Lido e IGNORADO de propósito (regra 4): o opt-out é de marketing, este aviso é transacional. */
   marketingOptOut: boolean
+}
+
+// ═══ KINEO-CARTAO-RECUSADO-0111b — quem PEDIU para cancelar não recebe "troque o cartão" ═══
+// O cancelamento é pelo portal da Stripe (app/api/stripe/portal/route.ts, fluxo subscription_cancel). No modo "cancelar no
+// fim do período" a assinatura continua `past_due` e a Stripe continua tentando o cartão: sem esta porta, quem cancelou
+// recebia o lembrete do dia 3 e o último do dia 7 pedindo para atualizar o cartão — e, se atualizasse, pagava um período
+// que pediu para não pagar. A casa já pula esse caso em app/api/cron/send-trial-eve-notice/route.ts
+// (`if (sub.cancel_at_period_end) continue`). `cancel_at` cobre o cancelamento com DATA marcada (a casa nunca grava
+// `cancel_at` por conta própria — grep em app/ e lib/ —, então qualquer data ali é pedido de cancelamento). Puro.
+// Nas duas decisões a porta falha FECHADA: `cancelScheduled` diferente de `false` (ausente, desconhecido) = não envia.
+export function stripeSubscriptionCancelScheduled(
+  sub: { cancel_at_period_end?: boolean | null; cancel_at?: number | null } | null | undefined,
+): boolean {
+  if (!sub) return false
+  if (sub.cancel_at_period_end === true) return true
+  return typeof sub.cancel_at === 'number' && Number.isFinite(sub.cancel_at) && sub.cancel_at > 0
 }
 
 export function isDeliverableEmail(value: string | null | undefined): boolean {
@@ -98,6 +117,7 @@ export function decideRenewalFailedEmail(f: RenewalFailedEmailFacts): RenewalFai
   if (!f.ownerId) return { send: false, reason: 'no_owner' }
   if (f.ownerHasPaid !== true) return { send: false, reason: 'never_paid' }
   if (!stripeSubscriptionIsDunning(f.subscriptionStatus)) return { send: false, reason: 'not_dunning' }
+  if (f.cancelScheduled !== false) return { send: false, reason: 'cancel_scheduled' }
   if (f.alreadySentForInvoice === null) return { send: false, reason: 'dedupe_unavailable' }
   if (f.alreadySentForInvoice) return { send: false, reason: 'already_sent_for_invoice' }
   if (!isDeliverableEmail(f.recipientEmail)) return { send: false, reason: 'no_recipient' }
@@ -199,6 +219,7 @@ export type RenewalFollowUpSkipReason =
   | 'no_invoice'
   | 'invoice_not_open'
   | 'not_dunning'
+  | 'cancel_scheduled' // KINEO-CARTAO-RECUSADO-0111b — pediu para cancelar: nada de "troque o cartão"
   | 'no_owner'
   | 'never_paid'
   | 'internal'
@@ -223,6 +244,8 @@ export interface RenewalFollowUpFacts {
   invoiceStatus: string | null | undefined
   /** Status VIVO da assinatura. */
   subscriptionStatus: string | null | undefined
+  /** KINEO-CARTAO-RECUSADO-0111b — a assinatura VIVA tem cancelamento marcado (stripeSubscriptionCancelScheduled). */
+  cancelScheduled: boolean
   ownerId: string | null | undefined
   ownerHasPaid: boolean
   internal: boolean
@@ -250,6 +273,7 @@ export function decideRenewalFollowUp(x: RenewalFollowUpFacts): RenewalFollowUpD
   if (!x.invoiceId) return { send: false, reason: 'no_invoice' }
   if (x.invoiceStatus !== 'open') return { send: false, reason: 'invoice_not_open' }
   if (!stripeSubscriptionIsDunning(x.subscriptionStatus)) return { send: false, reason: 'not_dunning' }
+  if (x.cancelScheduled !== false) return { send: false, reason: 'cancel_scheduled' }
   if (!x.ownerId) return { send: false, reason: 'no_owner' }
   if (x.ownerHasPaid !== true) return { send: false, reason: 'never_paid' }
   if (x.internal) return { send: false, reason: 'internal' }

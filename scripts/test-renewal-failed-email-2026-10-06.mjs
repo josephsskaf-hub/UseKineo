@@ -64,6 +64,7 @@ function problems(over = {}) {
   const base = {
     live: true, billingReason: 'subscription_cycle', invoiceId: 'in_test_1', ownerId: 'user-1', ownerHasPaid: true,
     subscriptionStatus: 'past_due', alreadySentForInvoice: false, recipientEmail: 'cliente@example.com', marketingOptOut: false,
+    cancelScheduled: false, // reancorado KINEO-CARTAO-RECUSADO-0111b — fato novo e obrigatório (ausente = não envia)
   }
   const casos = [
     [base, true, 'renovação recusada, 1ª falha da fatura'],

@@ -90,6 +90,8 @@ import {
   CARD_FAILED_EMAIL_SENT_EVENT,
   cardFailedEmailAttempt,
   isBrazilianCardInUsd,
+  // KINEO-CARTAO-RECUSADO-0111b — quem cancelou (fim do período / data marcada) não recebe "troque o cartão".
+  stripeSubscriptionCancelScheduled,
 } from '@/lib/billing/renewalFailedEmail'
 // KINEO-CARTAO-RECUSADO-1510 — o motivo da recusa (só a categoria, nunca dado de cartão) para a carta dizer em 1 frase.
 // reancorado KINEO-CARTAO-RECUSADO-0111 — a mesma leitura devolve também o país do cartão (só para a dica BR×USD).
@@ -1389,6 +1391,8 @@ async function sendRenewalFailedEmailOnce(
     invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email' | 'hosted_invoice_url' | 'payment_intent' | 'currency'>
     subscriptionId: string
     subscriptionStatus: string
+    /** KINEO-CARTAO-RECUSADO-0111b — stripeSubscriptionCancelScheduled da assinatura VIVA. */
+    cancelScheduled: boolean
     owner: RenewalFailedEmailOwner | null
     tier: string | null
   },
@@ -1437,6 +1441,7 @@ async function sendRenewalFailedEmailOnce(
       ownerId,
       ownerHasPaid: input.owner?.has_paid === true,
       subscriptionStatus: input.subscriptionStatus,
+      cancelScheduled: input.cancelScheduled,
       alreadySentForInvoice,
       recipientEmail: recipient,
       marketingOptOut,
@@ -3465,6 +3470,7 @@ export async function POST(req: NextRequest) {
               invoice,
               subscriptionId: failedSubscriptionId,
               subscriptionStatus: failedSubscription.status,
+              cancelScheduled: stripeSubscriptionCancelScheduled(failedSubscription),
               owner: dunningOwner,
               tier: failedSubscription.metadata?.tier ?? null,
             })
