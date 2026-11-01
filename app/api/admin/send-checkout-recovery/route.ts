@@ -27,6 +27,9 @@ import { readAll } from '@/lib/supabase/readAll'
 // velhice, e hoje ninguém avisa a pessoa. A carta de 19/08 (`checkout-rescue`)
 // manda a pessoa para `/pricing`, ou seja, pede que ela **re-escolha o plano e
 // re-encare o preço do zero**. Esta manda de volta para o formulário.
+// ⚠ KINEO-RESGATE-CUPOM-RICO-0111 — desde 01/11 a carta de país rico ganha UMA oferta além da porta: o FIRST50 já
+// existente (metade da 1ª fatura, Creator/Studio mensal). A porta continua sendo o 1º link; o cupom é a resposta a "foi o
+// preço" — e o preço continua sendo a conclusão fechada do fundador. Régua em lib/lifecycle/checkoutRecoveryOffer.ts.
 //
 // ⛔ A PARADA, e ela é a regra central deste arquivo: **se a Stripe não
 // devolver `after_expiration.recovery.url` para uma pessoa, ela NÃO recebe a
@@ -47,6 +50,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
+// KINEO-RESGATE-CUPOM-RICO-0111 — 31 cartas em 14 d e quase nenhuma compra: a carta voltava a pessoa ao MESMO preço e não
+// oferecia nada. Agora quem é de país rico leva o FIRST50 (metade da 1ª fatura, só Creator/Studio mensal) junto da porta de
+// volta; os outros países seguem sem cupom (gancho do avulso no módulo). A régua mora no módulo puro abaixo.
+import { ofertaDoResgate, paisDoResgate, resgatePromoHtml, resgatePromoTexto, resgatePromoUrl, CHECKOUT_RECOVERY_OFFER_VERSION, type ResgateOferta } from '@/lib/lifecycle/checkoutRecoveryOffer'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
@@ -156,8 +163,9 @@ function assunto(filme: string | null): string {
  *   · "timed out" — o evento é `checkout.session.expired` da própria Stripe;
  *   · "same plan, same price" — é o que o link de recuperação reabre, e por
  *     isso ele é buscado na Stripe agora e não montado à mão aqui;
- *   · nenhum crédito, cupom ou desconto é prometido em lugar nenhum. */
-function corpoTexto(filme: string | null, recoveryUrl: string, userId: string, temFilme: boolean): string {
+ *   · nenhum crédito é prometido; o único cupom é o FIRST50, e SÓ para país rico (KINEO-RESGATE-CUPOM-RICO-0111): ele
+ *     existe na Stripe (a rota de checkout o auto-provisiona) e a copy diz o escopo real — Creator/Studio mensal. */
+function corpoTextoBase(filme: string | null, recoveryUrl: string, userId: string, temFilme: boolean): string {
   const feito = temFilme
     ? (filme
       ? `You already made "${filme}" with Kineo, so you know what comes out the other side.`
@@ -186,7 +194,7 @@ Kineo · usekineo.com
 ${emailFooterText(userId)}`
 }
 
-function corpoHtml(filme: string | null, recoveryUrl: string, userId: string, temFilme: boolean): string {
+function corpoHtmlBase(filme: string | null, recoveryUrl: string, userId: string, temFilme: boolean): string {
   const feito = temFilme
     ? (filme
       ? `You already made <strong>&ldquo;${escaparHtml(filme)}&rdquo;</strong> with Kineo, so you know what comes out the other side.`
@@ -207,6 +215,29 @@ function corpoHtml(filme: string | null, recoveryUrl: string, userId: string, te
 ${emailFooterHtml(userId)}</div>`
 }
 
+// KINEO-RESGATE-CUPOM-RICO-0111 — o cupom entra logo DEPOIS do parágrafo "if it was the price… hit reply" (é a resposta a
+// ele) e ANTES do link dos planos. Entra por ÂNCORA no texto pronto em vez de reescrever os blocos acima: eles são
+// conferidos byte a byte pelas camadas de desfazer de 15-16/10 (scripts/test-support/desfaz-pacote-3-filmes-1610.mjs).
+// Âncora ausente = carta sai SEM cupom, e o evento grava offer='none' (cartaComOferta devolve o que REALMENTE foi).
+const ANCORA_TEXTO = 'and I would rather know than guess.\n'
+const ANCORA_HTML = 'and I would rather know than guess.</p>\n'
+
+function cartaComOferta(c: { filme: string | null; recoveryUrl: string; id: string; temFilme: boolean; oferta: ResgateOferta }): { texto: string; html: string; offer: ResgateOferta['offer'] } {
+  const texto = corpoTextoBase(c.filme, c.recoveryUrl, c.id, c.temFilme)
+  const html = corpoHtmlBase(c.filme, c.recoveryUrl, c.id, c.temFilme)
+  if (c.oferta.offer !== 'FIRST50') return { texto, html, offer: 'none' }
+  const iT = texto.indexOf(ANCORA_TEXTO)
+  const iH = html.indexOf(ANCORA_HTML)
+  if (iT < 0 || iH < 0) return { texto, html, offer: 'none' }
+  const fimT = iT + ANCORA_TEXTO.length
+  const fimH = iH + ANCORA_HTML.length
+  return {
+    texto: `${texto.slice(0, fimT)}\n${resgatePromoTexto(SITE)}\n${texto.slice(fimT)}`,
+    html: `${html.slice(0, fimH)}${resgatePromoHtml(SITE)}\n${html.slice(fimH)}`,
+    offer: 'FIRST50',
+  }
+}
+
 type Candidato = {
   id: string
   email: string
@@ -216,6 +247,7 @@ type Candidato = {
   filme: string | null
   temFilme: boolean
   expiradoEm: string
+  oferta: ResgateOferta // KINEO-RESGATE-CUPOM-RICO-0111
 }
 
 /** A DECISÃO, isolada da rede de propósito: dado o objeto `recovery` que a
@@ -298,7 +330,7 @@ export async function GET(req: NextRequest) {
     // ── 2. quem sai da lista, e por quê ─────────────────────────────────────
     const { data: perfis, error: perfErr } = await readAll(() => admin
       .from('profiles')
-      .select('id, email, email_opted_out, has_paid')
+      .select('id, email, email_opted_out, has_paid, signup_country, last_country') // KINEO-RESGATE-CUPOM-RICO-0111 — o país decide o cupom
       .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-checkout-recovery', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
@@ -358,6 +390,12 @@ export async function GET(req: NextRequest) {
         filme: f ? tituloDoFilme(f.title, f.topic) : null,
         temFilme: Boolean(f),
         expiradoEm: sess.quando,
+        // KINEO-RESGATE-CUPOM-RICO-0111 — perfil (último → cadastro) e, sem ele, o país do IP da própria sessão expirada.
+        oferta: ofertaDoResgate(paisDoResgate({
+          lastCountry: p.last_country as string | null,
+          signupCountry: p.signup_country as string | null,
+          sessionCountry: sess.pais,
+        })),
       })
     }
 
@@ -398,7 +436,12 @@ export async function GET(req: NextRequest) {
         supressao_degradada: sup.degraded,
         excluidos,
         assunto_exemplo: assunto(comPorta[0]?.filme ?? null),
-        lista: comPorta.map((c) => `${c.email} · ${c.pais || '??'} · ${c.tier ?? '?'} · ${c.temFilme ? 'com filme' : 'SEM filme'} · ${c.filme ?? '(sem título)'} · expirou ${c.expiradoEm}`),
+        // KINEO-RESGATE-CUPOM-RICO-0111 — o dry-run mostra quem levaria o FIRST50 e em que faixa de país cada um caiu.
+        oferta_versao: CHECKOUT_RECOVERY_OFFER_VERSION,
+        com_cupom_first50: comPorta.filter((c) => cartaComOferta(c).offer === 'FIRST50').length,
+        por_faixa_de_pais: comPorta.reduce<Record<string, number>>((acc, c) => { acc[c.oferta.country_tier] = (acc[c.oferta.country_tier] ?? 0) + 1; return acc }, {}),
+        link_do_cupom: resgatePromoUrl(SITE),
+        lista: comPorta.map((c) => `${c.email} · ${c.pais || '??'} · ${c.tier ?? '?'} · ${c.temFilme ? 'com filme' : 'SEM filme'} · ${c.filme ?? '(sem título)'} · expirou ${c.expiradoEm} · ${c.oferta.country_tier}/${c.oferta.country ?? '??'} · oferta ${cartaComOferta(c).offer}`),
         from: FROM_EMAIL,
         hint: 'Acrescente &confirm=SEND (e opcionalmente &limit=N) para enviar.',
       })
@@ -409,6 +452,7 @@ export async function GET(req: NextRequest) {
     const resultados: Array<{ email: string; outcome: string }> = []
     for (const c of comPorta) {
       try {
+        const carta = cartaComOferta(c) // KINEO-RESGATE-CUPOM-RICO-0111 — texto, html e a oferta que REALMENTE entrou
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -417,8 +461,8 @@ export async function GET(req: NextRequest) {
             to: c.email,
             reply_to: REPLY_TO,
             subject: assunto(c.filme),
-            text: corpoTexto(c.filme, c.recoveryUrl, c.id, c.temFilme),
-            html: corpoHtml(c.filme, c.recoveryUrl, c.id, c.temFilme),
+            text: carta.texto,
+            html: carta.html,
             headers: unsubscribeHeaders(c.id),
           }),
         })
@@ -435,6 +479,12 @@ export async function GET(req: NextRequest) {
             stripe_session_id: c.sessionId,
             // O link NÃO é gravado: é uma porta de pagamento pessoal.
             recovery_url_used: true,
+            // KINEO-RESGATE-CUPOM-RICO-0111 — o painel separa carta com cupom de carta sem: offer=FIRST50|none, a faixa de
+            // país (rico/outro/desconhecido) e o país que decidiu (perfil antes do IP da sessão).
+            offer: carta.offer,
+            country_tier: c.oferta.country_tier,
+            offer_country: c.oferta.country,
+            offer_version: CHECKOUT_RECOVERY_OFFER_VERSION,
           },
         })
         enviados++
