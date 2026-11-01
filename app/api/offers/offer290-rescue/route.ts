@@ -4,11 +4,13 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { offer290RescueEligibility } from '@/lib/offers/offer290Rescue'
+import { PACK290_PRICE_MINOR } from '@/lib/checkoutPricing'
+import { formatSettlementMoney, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +20,10 @@ export async function GET() {
     if (!url || !svc) return NextResponse.json({ eligible: false, reason: 'no_user', checkoutStarts: 0 })
     const admin = createAdminClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } })
     const e = await offer290RescueEligibility(admin, user.id)
-    return NextResponse.json(e, { headers: { 'Cache-Control': 'private, no-store' } })
+    // O card diz o valor na moeda em que a Stripe VAI cobrar: mesma decisão do buildStarter290AndRedirect (IP + idioma).
+    const settlement = resolveSettlementCurrency({ ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US', acceptLanguage: req.headers.get('accept-language') })
+    const priceLabel = formatSettlementMoney(settlement.currency, settlementAmountMinor(PACK290_PRICE_MINOR.usd, settlement.currency))
+    return NextResponse.json({ ...e, priceLabel }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     // fail closed: sem oferta é melhor do que oferta para quem já paga
     return NextResponse.json({ eligible: false, reason: 'no_user', checkoutStarts: 0 })

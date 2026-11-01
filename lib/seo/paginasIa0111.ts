@@ -455,7 +455,7 @@ export const MONEY_ARTICLES_0111: Readonly<Record<string, MoneyArticle>> = {
   },
   '/youtube-shorts-revenue-sharing-explained': {
     path: '/youtube-shorts-revenue-sharing-explained',
-    title: 'YouTube Shorts Revenue Sharing Explained (45% Creator Pool)',
+    title: `YouTube Shorts Revenue Sharing Explained (Creators Keep ${F.creatorSharePercent}%)`,
     description: `How YouTube splits Shorts ad money: the monthly Creator Pool, music costs, engaged views and the ${F.creatorSharePercent}% creators keep, from YouTube's own policy.`,
     h1: 'YouTube Shorts revenue sharing, explained',
     answer: `YouTube does not pay a fixed amount per Short. Each month it pools the ad revenue from the Shorts feed, sets aside part of it to cover music licensing, and puts the rest in a Creator Pool. That pool is divided among monetizing creators by their share of engaged views, and each creator keeps ${F.creatorSharePercent}% of the revenue allocated to them — whether or not their Shorts used music.`,

@@ -40,7 +40,7 @@ export default function Offer290RescueCard({ surface }: { surface: Offer290Rescu
   }, [elig, surface])
 
   if (!elig?.eligible) return null
-  const copy = offer290RescueCopy()
+  const copy = offer290RescueCopy(elig.priceLabel)
   const pending = checkout.pending !== null
   return (
     <section

@@ -36,7 +36,7 @@ export type Offer290RescueReason =
   | 'used'
   | 'no_checkout_attempt'
 
-export type Offer290RescueEligibility = { eligible: boolean; reason: Offer290RescueReason; checkoutStarts: number }
+export type Offer290RescueEligibility = { eligible: boolean; reason: Offer290RescueReason; checkoutStarts: number; priceLabel?: string }
 
 /** Decisão PURA (o guardião scripts/test-avulso-290-resgate-0111.mts a roda crua). Ordem: interruptor → conta → pagou → usou → travou. */
 export function decideOffer290Rescue(input: {
@@ -85,10 +85,11 @@ export function offer290RescuePriceLabel(): string {
   return `$${(PACK290_PRICE_MINOR.usd / 100).toFixed(2)}`
 }
 
-/** Copy única da oferta (inglês). Segundos e créditos sempre das fontes; nunca literal. */
-export function offer290RescueCopy() {
+/** Copy única da oferta (inglês). Segundos e créditos sempre das fontes; nunca literal.
+ *  KINEO-AVULSO-290-2CHECKOUT-0111 — `priceLabel` vem do servidor na moeda em que a Stripe VAI cobrar (Brasil = reais); sem ele, o USD de lista. */
+export function offer290RescueCopy(priceLabel?: string) {
   const seconds = PACK_ADVERTISED_SECONDS.starter290
-  const price = offer290RescuePriceLabel()
+  const price = priceLabel || offer290RescuePriceLabel()
   return {
     eyebrow: 'No subscription needed',
     headline: 'Just want one film?',
