@@ -162,6 +162,7 @@ import {
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
+import Offer290RescueCard from '@/components/Offer290RescueCard' // KINEO-AVULSO-290-2CHECKOUT-0111
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
@@ -1228,6 +1229,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         )}
         {/* KINEO-STUDIO50-2026-09-22 — a oferta mora onde a pessoa volta sozinha; o servidor decide se ela existe. */}
         <Studio50OfferBanner surface="pricing" />
+        {/* KINEO-AVULSO-290-2CHECKOUT-0111 — quem já abriu um checkout e voltou aos planos (o 2º checkout) vê a saída de US$ 2,90. */}
+        <Offer290RescueCard surface="pricing" />
         {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
             a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
         {valueCards ? null : <MrrPricingProof />}

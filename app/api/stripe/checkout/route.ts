@@ -13,7 +13,8 @@ import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOffe
 import { filmCompleteAdmin, loadFilmCompleteIntent, filmCompleteCheckoutMetadata, type FilmCompleteIntent } from '@/lib/filmComplete/server'
 import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_UUID } from '@/lib/growth/filmComplete'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
-import { OFFER_290_ENABLED } from '@/lib/flags'
+import { OFFER_290_ENABLED, OFFER_290_RESGATE_ENABLED } from '@/lib/flags'
+import { offer290RescueEligibility } from '@/lib/offers/offer290Rescue' // KINEO-AVULSO-290-2CHECKOUT-0111 — a regra do resgate (a mesma da tela)
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
@@ -1024,10 +1025,11 @@ const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd }
 // payment, not to earn. Anything above 20 goes negative at $2.90.
 const STARTER290_PACK = {
   credits: PACK_CREDITS.starter290,
-  name: 'Kineo — First Pack (24h offer)',
+  // KINEO-AVULSO-290-2CHECKOUT-0111 — o nome na tela da Stripe dizia "(24h offer)": não há contagem nenhuma na saída de resgate.
+  name: 'Kineo — One film, no subscription',
   // KINEO-PASSE-AVULSO-2026-10-05 — com o Seedance a 35 cr, 25 cr não compram mais o filme de 60 s: o SKU anuncia o de
   // 35 s (PACK_ADVERTISED_SECONDS.starter290 = 21 cr), que é o que o invariante (2) prova.
-  description: `One-time launch offer: ${PACK_CREDITS.starter290} credits — one ${PACK_ADVERTISED_SECONDS.starter290}-second Seedance film. Limited to 1 per account.`,
+  description: `One-time payment: ${PACK_CREDITS.starter290} credits — one ${PACK_ADVERTISED_SECONDS.starter290}-second Seedance film. No subscription. Limited to 1 per account.`,
 }
 // KINEO-PASSE-AVULSO-2026-10-05 — lê a fonte única (o invariante de lib/checkoutPricing prova o mesmo número).
 const PACK290_PRICES: Record<Currency, number> = { usd: PACK290_PRICE_MINOR.usd }
@@ -3551,7 +3553,9 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   }
 
   // Feature flag OFF → SKU disabled (410 Gone). Nothing can be purchased.
-  if (!OFFER_290_ENABLED) {
+  // KINEO-AVULSO-290-2CHECKOUT-0111 — o SKU só morre com os DOIS interruptores desligados: o banner antigo das 24 h
+  // (OFFER_290_ENABLED) ou a saída de resgate para quem travou no checkout (OFFER_290_RESGATE_ENABLED, regra abaixo).
+  if (!OFFER_290_ENABLED && !OFFER_290_RESGATE_ENABLED) {
     return isGet
       ? redirectError('This offer is not available.')
       : jsonError('Offer disabled.', 410)
@@ -3606,6 +3610,25 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
     return isGet
       ? redirectError('You already claimed this one-time offer.')
       : jsonError('Offer already used.', 409)
+  }
+
+  // KINEO-AVULSO-290-2CHECKOUT-0111 — com o banner antigo desligado, o US$ 2,90 só existe como resgate: a MESMA regra que
+  // decide a tela (lib/offers/offer290Rescue) é conferida aqui, no servidor, antes de abrir a sessão — has_paid=false,
+  // plano não pago, offer290_used=false, nenhum payment_success e pelo menos 1 checkout_started anterior. Um link
+  // ?pack=starter290 colado por quem nunca abriu um checkout (ou por quem já paga) não vira venda.
+  if (!OFFER_290_ENABLED) {
+    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const rescue = svcUrl && svcKey
+      ? await offer290RescueEligibility(createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } }), user.id).catch(() => null)
+      : null
+    skuContext.offer290_rescue_reason = rescue?.reason ?? 'unreadable'
+    if (!rescue?.eligible) {
+      return isGet
+        ? redirectError('This offer is not available.')
+        : jsonError('Offer not available.', 403)
+    }
+    skuContext.offer290_rescue = true
   }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {

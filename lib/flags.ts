@@ -12,6 +12,13 @@
 // one-time conflitava e não gera MRR). Banner some, SKU volta 410.
 export const OFFER_290_ENABLED = false
 
+// KINEO-AVULSO-290-2CHECKOUT-0111 — a MESMA SKU (starter290, US$ 2,90, 1 por conta) volta, mas só como SAÍDA DE RESGATE
+// para quem já abandonou um checkout (fundador 01/11: "vai tudo, avulso 2,90"; 30 pessoas abriram o checkout 158 vezes
+// em 7 dias e 2 pagaram). Interruptor SEPARADO de propósito: o banner antigo das 24 h (OFFER_290_ENABLED) continua
+// desligado, e o avulso de vitrine continua sendo o passe de US$ 4,99. A regra de quem recebe mora em
+// lib/offers/offer290Rescue.ts (tela e caixa leem a mesma). false = card some e o SKU volta a 410.
+export const OFFER_290_RESGATE_ENABLED = true
+
 // KINEO-CINEMATIC-ANCHOR-2026-07-24 — gates the optional anchor + image-to-video
 // path for the CLASSIC Kling engine (cross-scene visual consistency: one FLUX
 // still per scene sharing the style sheet + per-generation seed, each scene then

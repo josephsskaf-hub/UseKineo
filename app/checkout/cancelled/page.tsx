@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
+import Offer290RescueCard from '@/components/Offer290RescueCard' // KINEO-AVULSO-290-2CHECKOUT-0111
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import {
   AUTOPILOT_PILOT_DAYS,
@@ -375,6 +376,9 @@ function CheckoutCancelledContent() {
           <p style={{ marginTop: 10, fontSize: '0.95rem', color: 'var(--muted2)', lineHeight: 1.55 }}>Your card was not charged if checkout was not completed.</p>
           {/* KINEO-STUDIO50-2026-09-22 — quem acabou de desistir do checkout é exatamente a coorte da oferta. */}
           <Studio50OfferBanner surface="cancelled" />
+          {/* KINEO-AVULSO-290-2CHECKOUT-0111 — quem acabou de voltar da Stripe sem pagar ganha a saída "só um filme, US$ 2,90,
+              sem assinatura". O servidor decide (pagou/usou/nunca abriu checkout = nada); fora do caso o card é null. */}
+          <Offer290RescueCard surface="cancelled" />
           <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#2997ff', fontWeight: 700 }}>
             {cancelledPrimary === 'first_delivery'
               ? `Your included ${TRIAL_FIRST_DELIVERY_DURATION}s Seedance episode is still available.`
