@@ -272,6 +272,7 @@ import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kids
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
 import { sujeitoNoKling4, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura); v5: só depois da reserva do teste
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
+import { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -3820,10 +3821,19 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-2010 — personagem — o protagonista pela trilha de KINEO-SEEDANCE-FICHA (policy.character), os outros pela de PARCEIRO-EYEBIBLE-2 (policy.elenco). O escritor de cenas e o
     // KINEO-META95-PERSONAGEM-2010 — prompt do still/clipe passam a dizer o que o Dino É. A Estrela (fotos reais) continua vencendo; o faceless (tag) continua sem personagem.
     // KINEO-QUALIDADE-TODOS-MOTORES-2910 — existing paid casting only where it already ran; inherited cards win.
+    // KINEO-PROTAGONISTA-SEEDANCE-0111 [TRAVA 8.2 — vai do fundador 01/11 "vai personagem"] — estrada clássica em character_story (Seedance/Kling 2.5/Veo, inclusive o 15 s): UMA leitura
+    // KINEO-PROTAGONISTA-SEEDANCE-0111 — semântica do elenco (gpt-4o-mini, ~4 s + 1 tentativa, lib/cinematic/elencoSemantico). Com protagonista NOMEADO conferido contra o texto, ele e o
+    // KINEO-PROTAGONISTA-SEEDANCE-0111 — coadjuvante viram o elenco do pedido (BRO é pombo; Mila é gente; Max não é o filhote). Erro/prazo/JSON inválido/sem nome = o elenco determinístico de sempre.
+    const elencoBaseDoPedido: FichaDePersonagem[] = !qualidadeHerdada && personagem.ativo ? elencoDoRoteiro(prompt) : [] // KINEO-PROTAGONISTA-SEEDANCE-0111
+    const usarElencoSemantico = !qualidadeHerdada && personagem.ativo && !hollywoodPath && !estrelaFicha && !desenhoInfantil.ativo && classicVisualMode === 'character_story' // KINEO-PROTAGONISTA-SEEDANCE-0111
+    const pedidoSemantico = usarElencoSemantico ? await pedirElencoSemantico(prompt) : null // KINEO-PROTAGONISTA-SEEDANCE-0111 — nunca lança
+    const elencoSemantico = pedidoSemantico ? aplicarElencoSemantico(elencoBaseDoPedido, pedidoSemantico.elenco, prompt) : null // KINEO-PROTAGONISTA-SEEDANCE-0111
+    if (pedidoSemantico) { const relatoSemantico = relatoDoElencoSemantico(pedidoSemantico, elencoSemantico); console.log(`[personagem] gen=${generationId} KINEO-PROTAGONISTA-SEEDANCE: status=${relatoSemantico.status} tentativas=${relatoSemantico.tentativas} ${relatoSemantico.ms} ms aplicado=${relatoSemantico.aplicado} elenco=${relatoSemantico.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem}${e.protagonista ? '/P' : ''})`).join(', ') || '-'} novas=${relatoSemantico.novas.join('+') || '-'}`) } // KINEO-PROTAGONISTA-SEEDANCE-0111
+    const elencoDoPedido: FichaDePersonagem[] = elencoSemantico ? elencoSemantico.elenco : elencoBaseDoPedido // KINEO-PROTAGONISTA-SEEDANCE-0111
     const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada
       ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }
-      : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt))
-        : { elenco: elencoDoRoteiro(prompt), casting: 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 }
+      : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoPedido) // KINEO-PROTAGONISTA-SEEDANCE-0111 — era elencoDoRoteiro(prompt)
+        : { elenco: elencoDoPedido, casting: elencoSemantico ? 'semantico' : 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-PROTAGONISTA-SEEDANCE-0111
     // KINEO-DESENHO-LEO-0111 — desenho infantil: o elenco lido do roteiro dizia "Leo, a squirrel…" (a espécie do coadjuvante na frase do nome) e
     // KINEO-DESENHO-LEO-0111 — a linha abaixo trocava a ficha do personagem escolhido por ela. Agora o escolhido é o protagonista (origem 'autor') + 1 coadjuvante.
     if (desenhoInfantil.ativo) { personagemElenco.elenco = elencoDoDesenho(desenhoInfantil.personagem, personagemElenco.elenco) as FichaDePersonagem[]; personagemElenco.casting = `${personagemElenco.casting}+desenho` } // KINEO-DESENHO-LEO-0111
@@ -7117,7 +7127,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a cena cujo visual mostra alguém e cuja FALA cita o personagem ganha a ficha (o menino da moto); a cena sem personagem e sem ninguém no
     // KINEO-META95-PERSONAGEM-AJUSTE-2010 — visual perde o "characters act naturally" e ganha "No people…" (o homem adulto da cena 1 do Dino). Desligada: o vetor fica byte a byte.
     const visuaisDoPlano15 = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-FILME15-ELENCO-2610
-    const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro, completar: !elencoSemantico /* KINEO-PROTAGONISTA-SEEDANCE-0111 — elenco lido pelo sentido: os visuais não acrescentam ninguém */ }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas // KINEO-QUALIDADE-TODOS-MOTORES-2910
     const elencoDoAjuste = elencoFilme15 && elencoFilme15.elenco.length > 0 ? elencoFilme15.elenco : personagemElenco.elenco // KINEO-FILME15-ELENCO-2610
     const protagonista15 = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco }) : null // KINEO-FILME15-ELENCO-2610 — cena sem ninguém do elenco mostra o protagonista
     const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && elencoDoAjuste.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: protagonista15 ? protagonista15.visuals : scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: elencoDoAjuste }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
@@ -7135,7 +7145,7 @@ async function manipularPost(req: NextRequest) {
     let elencoEpocaRelato: RelatoElencoEpoca | null = null // KINEO-ELENCO-EPOCA-2710
     try { // KINEO-ELENCO-EPOCA-2710
       const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710
-      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false, elencoSemantico: elencoSemantico ? { nomes: elencoSemantico.nomes, protagonista: elencoSemantico.protagonista } : null /* KINEO-PROTAGONISTA-SEEDANCE-0111 — nome que o elenco semântico não leu como personagem (lugar, "Lena is gone") não é inserido */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710
       elencoEpocaRelato = elencoEpoca.relato; ctxDespacho().elencoEpoca = elencoEpoca.relato // KINEO-ELENCO-EPOCA-2710
       if (personagemCenas) personagemCenas.cenas = cenasDoElenco(classicScenePrompts, scenes.map(s => s.voiceover ?? ''), elencoDoAjuste) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — final cast determines the sheet/critic targets.

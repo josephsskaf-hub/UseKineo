@@ -59,9 +59,13 @@ export function elencoDoFilme15(args: {
   elencoDoPedido: ReadonlyArray<FichaDePersonagem>
   visuals: ReadonlyArray<string>
   extrair: (texto: string) => FichaDePersonagem[]
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — false quando o elenco do pedido veio do elenco SEMÂNTICO (quem é personagem já foi lido pelo
+   *  sentido): os visuais não acrescentam ninguém ("the bright pink unicorn" da peruca do BRO entrava como coadjuvante). Padrão: true. */
+  completar?: boolean
 }): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'pedido+cenas' | 'cenas' | 'nenhum' } {
   const doPedido = args.elencoDoPedido.slice(0, FILME15_ELENCO_MAX).map((f) => ({ ...f }))
   if (doPedido.length >= FILME15_ELENCO_MAX) return { elenco: doPedido, origem: 'pedido' }
+  if (args.completar === false && doPedido.length > 0) return { elenco: doPedido.map((f, i) => ({ ...f, protagonista: i === 0 })), origem: 'pedido' } // KINEO-PROTAGONISTA-SEEDANCE-0111
   // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo
   //    ("the girl hands the key to an elderly man" → girl, depois man).
   const porCena: Array<Array<{ chave: string; ficha: FichaDePersonagem }>> = args.visuals.map((visual) => {
@@ -107,7 +111,8 @@ const citaPalavra = (t: string, w: string): boolean => !!w && palavras(t).includ
 const semPalavra = (t: string, w: string): string => String(t ?? '').split(/(\p{L}+)/u).map((p) => (p.toLowerCase() === w ? ' ' : p)).join('')
 /** A cena cita alguém do elenco? Só pela palavra do papel/nome inteira ("man" não casa "woman"). */
 export function cenaCitaElenco(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {
-  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)))
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 — também pelo NOME ("BRO dons…" cita o BRO, cujo núcleo é a espécie "pigeon"; "Captain Ahab" pela palavra "Ahab"). Ficha de nome de uma palavra: igual.
+  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)) || palavras(String(f.nome ?? '')).some((w) => w.length >= 3 && w !== 'the' && citaPalavra(visual, w)))
 }
 
 /** Ordem do prompt final da cena forçada (vai na frente do prompt do still e do clipe). */

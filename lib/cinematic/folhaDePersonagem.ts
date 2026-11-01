@@ -192,7 +192,8 @@ function tipoDoNome(texto: string, nome: string): { tipo: TipoDePersonagem; espe
 }
 
 /** A descrição canônica determinística de um personagem (mesmo roteiro → mesmo texto). */
-function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {
+/** KINEO-PROTAGONISTA-SEEDANCE-0111 — exportada: o elenco semântico (lib/cinematic/elencoSemantico) gera a ficha com o MESMO gerador. */
+export function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {
   const h = hash(nome.toLowerCase())
   if (tipo !== 'humano') {
     // KINEO-JUIZ-REFAZ-2810 — era o MASCOTE: `${nome}, a ${porte} ${cor} ${especieTxt} with ${barriga}, big round friendly eyes and a short tail, no clothes` — o Krishna "small and chubby soft purple demon with a cream belly" de 27/10 era literalmente este texto. Agora a anatomia da espécie (lib/cinematic/seresFieis); o fofo só quando o roteiro é de criança (a mesma pista que decidia o porte).

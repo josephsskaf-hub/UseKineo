@@ -148,6 +148,8 @@ export function prepararQualidadeDoFilme(args: {
   contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
   style: StyleAnchor; elenco?: ReadonlyArray<FichaDePersonagem>; preservarElenco?: boolean
   kidsCartoon?: boolean; aplicarContrato?: boolean
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — repassado à camada elencoEpoca (aplicarElencoEEpoca). */
+  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
 }) {
   const elenco = args.tagFaceless ? [] : args.preservarElenco
     ? [...(args.elenco ?? [])]

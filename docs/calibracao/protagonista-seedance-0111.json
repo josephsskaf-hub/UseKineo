@@ -1,0 +1,4642 @@
+{
+ "resumo": {
+  "marca": "KINEO-PROTAGONISTA-SEEDANCE-0111",
+  "versao": "elenco_semantico_v1",
+  "modelo": "gpt-4o-mini",
+  "prazo_ms": 4000,
+  "rodado_em": "2026-11-01T23:03:15.364Z",
+  "casos": 151,
+  "por_fonte": {
+   "revisao": 126,
+   "producao": 3,
+   "banco": 22
+  },
+  "acertos": 147,
+  "taxa": 97.4,
+  "erros_graves": 0,
+  "graves": [],
+  "erros_leves": [
+   {
+    "id": "prod-bro",
+    "erros": [
+     "tipo:BRO=creature (esperado animal)"
+    ]
+   },
+   {
+    "id": "rev-ravi",
+    "erros": [
+     "sem_protagonista_nomeado"
+    ]
+   },
+   {
+    "id": "banco-bob",
+    "erros": [
+     "tipo:Bob=creature (esperado animal)"
+    ]
+   },
+   {
+    "id": "banco-munch",
+    "erros": [
+     "especie_proibida:Munch=tiny cat"
+    ]
+   }
+  ],
+  "chamadas_sem_resposta_valida": 2,
+  "latencia_ms": {
+   "p50": 1638,
+   "p90": 2201,
+   "max": 6466
+  }
+ },
+ "casos": [
+  {
+   "id": "rev-000",
+   "fonte": "revisao",
+   "texto": "Imagine a world where Tom wakes up invisible. Tom runs to the mirror. Nothing stares back. Tom screams, but no one hears him.",
+   "protagonista": [
+    "Tom"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Imagine"
+   ],
+   "resposta": {
+    "id": "rev-000",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1450,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Tom\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Tom",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-001",
+   "fonte": "revisao",
+   "texto": "Picture this: Rosa walks into a bakery at midnight. Rosa orders bread. The baker hands her a loaf with her name carved in it. Rosa runs.",
+   "protagonista": [
+    "Rosa"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Picture"
+   ],
+   "resposta": {
+    "id": "rev-001",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2101,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Rosa\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"the baker\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"bakery\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Rosa",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-002",
+   "fonte": "revisao",
+   "texto": "What if your cat could talk? Meet Biscuit, a grumpy orange cat. Biscuit wakes his owner at 3 a.m. Biscuit demands tuna. Biscuit wins.",
+   "protagonista": [
+    "Biscuit"
+   ],
+   "tipo": "animal",
+   "especie": "cat",
+   "proib": [
+    "Meet",
+    "What"
+   ],
+   "resposta": {
+    "id": "rev-002",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1441,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Biscuit\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"cat\",\n    \"appearance_from_text\": \"grumpy orange\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Biscuit",
+     "kind": "animal",
+     "species": "cat",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-003",
+   "fonte": "revisao",
+   "texto": "In 1996, Kelly Rivers left her house in Ohio. Kelly Rivers was never seen again. Police found her car by a lake. Her keys were still inside.",
+   "protagonista": [
+    "Kelly Rivers"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Ohio"
+   ],
+   "resposta": {
+    "id": "rev-003",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1291,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kelly Rivers\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": false\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Ohio\", \"lake\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kelly Rivers",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-004",
+   "fonte": "revisao",
+   "texto": "Maura Murray crashed her car in New Hampshire in 2004. Maura Murray vanished minutes later. A bus driver saw her walking. Nobody has seen her since.",
+   "protagonista": [
+    "Maura Murray"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "New Hampshire"
+   ],
+   "resposta": {
+    "id": "rev-004",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1350,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Maura Murray\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": false\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"New Hampshire\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Maura Murray",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-005",
+   "fonte": "revisao",
+   "texto": "Brandon Swanson called his parents after crashing into a ditch. Brandon Swanson walked toward the lights of a town. His phone went dead. He was never found.",
+   "protagonista": [
+    "Brandon Swanson"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-005",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1446,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Brandon Swanson\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"town\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Brandon Swanson",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-006",
+   "fonte": "revisao",
+   "texto": "Once upon a time, a little girl named Ellie found a glittering key. Ellie opened a tiny door in a tree. Inside, a fluffy bunny named Bop was crying. Ellie hugged Bop, and the rainbow came back.",
+   "protagonista": [
+    "Ellie"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "animais": {
+    "Bop": "bunny"
+   },
+   "resposta": {
+    "id": "rev-006",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1873,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ellie\",\n    \"role\": \"little girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"little girl\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Bop\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"bunny\",\n      \"appearance_from_text\": \"fluffy\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ellie",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-007",
+   "fonte": "revisao",
+   "texto": "Our dog Rocky hates the mailman. Every morning Rocky waits at the door. Today the mailman brought Rocky a bone. Rocky wagged his tail for the first time.",
+   "protagonista": [
+    "Rocky"
+   ],
+   "tipo": "animal",
+   "especie": "dog",
+   "resposta": {
+    "id": "rev-007",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1720,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Rocky\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"dog\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"the mailman\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Rocky",
+     "kind": "animal",
+     "species": "dog",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-008",
+   "fonte": "revisao",
+   "texto": "My cat Luna knocked my coffee off the table. Luna stared at me. Then Luna did it again. Luna is a menace.",
+   "protagonista": [
+    "Luna"
+   ],
+   "tipo": "animal",
+   "especie": "cat",
+   "resposta": {
+    "id": "rev-008",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1174,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Luna\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"cat\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Luna",
+     "kind": "animal",
+     "species": "cat",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-009",
+   "fonte": "revisao",
+   "texto": "SPARKY the tiny robot rolls into the kitchen. SPARKY tries to make pancakes. Flour explodes everywhere. Sparky beeps proudly.",
+   "protagonista": [
+    "SPARKY",
+    "Sparky"
+   ],
+   "tipo": "creature",
+   "especie": "robot",
+   "resposta": {
+    "id": "rev-009",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1190,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"SPARKY\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"tiny robot\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"kitchen\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "SPARKY",
+     "kind": "creature",
+     "species": "tiny robot",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-010",
+   "fonte": "revisao",
+   "texto": "The Titanic sank in 1912. The Titanic hit an iceberg at night. More than 1,500 people died.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Titanic"
+   ],
+   "resposta": {
+    "id": "rev-010",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 663,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"Titanic\",\"1912\",\"iceberg\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-011",
+   "fonte": "revisao",
+   "texto": "Apollo 13 lifted off in 1970. Apollo 13 lost oxygen two days later. Jim Lovell said Houston, we have a problem. The crew came home alive.",
+   "protagonista": [
+    "Jim Lovell",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Apollo 13",
+    "Apollo",
+    "Houston"
+   ],
+   "resposta": {
+    "id": "rev-011",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 991,
+    "raw": "{\"protagonist\":{\"name\":\"Jim Lovell\",\"role\":\"crew member\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Apollo 13\",\"Houston\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jim Lovell",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-012",
+   "fonte": "revisao",
+   "texto": "Luna, my golden retriever, refuses to walk in the rain. Luna sits by the door. Luna sighs. Then the sun comes out and Luna sprints outside.",
+   "protagonista": [
+    "Luna"
+   ],
+   "tipo": "animal",
+   "especie": "retriever",
+   "resposta": {
+    "id": "rev-012",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1213,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Luna\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"golden retriever\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Luna",
+     "kind": "animal",
+     "species": "golden retriever",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-013",
+   "fonte": "revisao",
+   "texto": "Nina and her grandmother bake cookies every Sunday. Nina spills the flour. Grandma laughs. Nina laughs too.",
+   "protagonista": [
+    "Nina"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Nina"
+   ],
+   "resposta": {
+    "id": "rev-013",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1760,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Nina\",\n    \"role\": \"girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"girl\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Grandma\",\n      \"role\": \"grandmother\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": \"elderly\",\n      \"age_evidence\": \"grandmother\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Nina",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-014",
+   "fonte": "revisao",
+   "texto": "The Wright brothers flew at Kitty Hawk in 1903. Orville Wright flew first. Wilbur Wright watched from the sand. The flight lasted twelve seconds.",
+   "protagonista": [
+    "Orville Wright",
+    "Wilbur Wright",
+    "Wright",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Kitty Hawk"
+   ],
+   "humanos": [
+    "Orville",
+    "Wilbur",
+    "Wright"
+   ],
+   "resposta": {
+    "id": "rev-014",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1379,
+    "raw": "{\"protagonist\":{\"name\":\"Orville Wright\",\"role\":\"pilot\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[{\"name\":\"Wilbur Wright\",\"role\":\"observer\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true}],\"places_and_orgs\":[\"Kitty Hawk\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Orville Wright",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-015",
+   "fonte": "revisao",
+   "texto": "Ever wonder why flamingos are pink? Meet Rosie, a young flamingo. Rosie eats shrimp all day. Rosie turns bright pink.",
+   "protagonista": [
+    "Rosie"
+   ],
+   "tipo": "animal",
+   "especie": "flamingo",
+   "proib": [
+    "Meet"
+   ],
+   "resposta": {
+    "id": "rev-015",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1160,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Rosie\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"flamingo\",\n    \"appearance_from_text\": \"bright pink\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"young flamingo\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Rosie",
+     "kind": "animal",
+     "species": "flamingo",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-016",
+   "fonte": "revisao",
+   "texto": "CHAD the gym bro walks into the library. CHAD asks for a book about protein. The librarian sighs. Chad leaves with a dictionary.",
+   "protagonista": [
+    "CHAD",
+    "Chad"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-016",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1789,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"CHAD\",\n    \"role\": \"gym bro\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"librarian\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"library\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "CHAD",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-017",
+   "fonte": "revisao",
+   "texto": "Little Sam and his teddy bear Mr. Buttons go on a bedtime adventure. Sam climbs into a cloud. Mr. Buttons giggles. They float home together.",
+   "protagonista": [
+    "Sam",
+    "Little Sam"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Sam"
+   ],
+   "resposta": {
+    "id": "rev-017",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1688,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Sam\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"Little Sam\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Mr. Buttons\",\n      \"role\": \"teddy bear\",\n      \"kind\": \"object\",\n      \"species\": null,\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Sam",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-018",
+   "fonte": "revisao",
+   "texto": "Ava found a lost kitten in the snow. Ava named her Snow. Snow purred all night. Ava kept her forever.",
+   "protagonista": [
+    "Ava"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ava"
+   ],
+   "animais": {
+    "Snow": "kitten"
+   },
+   "resposta": {
+    "id": "rev-018",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1638,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ava\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Snow\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"kitten\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ava",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-019",
+   "fonte": "revisao",
+   "texto": "Police say Jake Harmon drove into the desert in 2019. Jake Harmon left a note. The note said do not look for me. His truck was found empty.",
+   "protagonista": [
+    "Jake Harmon"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-019",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1249,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Jake Harmon\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Police\", \"desert\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jake Harmon",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-020",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Emma wore her yellow dress to the enchanted garden. Liam giggled. Liam chased the fireflies. At bedtime Emma kissed Liam goodnight under the rainbow.",
+   "protagonista": [
+    "Emma",
+    "Liam"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Emma",
+    "Liam"
+   ],
+   "resposta": {
+    "id": "rev-020",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1880,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Emma\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"yellow dress\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Liam\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"enchanted garden\", \"rainbow\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Emma",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-021",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Mia put on her sparkly shoes. Noah giggled and pointed at the rainbow. Noah and Mia danced in the enchanted forest. At bedtime, Noah fell asleep first.",
+   "protagonista": [
+    "Mia",
+    "Noah"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Mia",
+    "Noah"
+   ],
+   "resposta": {
+    "id": "rev-021",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2194,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Mia\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"sparkly shoes\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"Once upon a time, Mia put on her sparkly shoes.\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Noah\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": \"child\",\n      \"age_evidence\": \"Noah giggled and pointed at the rainbow.\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"enchanted forest\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Mia",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-022",
+   "fonte": "revisao",
+   "texto": "Max found a tiny kitten in the alley. She was shivering and alone. Max wrapped her in a towel. Max named her Lucky.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max"
+   ],
+   "resposta": {
+    "id": "rev-022",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1993,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Lucky\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"kitten\",\n      \"appearance_from_text\": \"shivering and alone\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"alley\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-023",
+   "fonte": "revisao",
+   "texto": "Kai rescued a baby seal on the beach. She was tangled in a fishing net. Kai cut her free. Kai watched her swim away.",
+   "protagonista": [
+    "Kai"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Kai"
+   ],
+   "resposta": {
+    "id": "rev-023",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1792,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kai\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"baby seal\",\n      \"kind\": \"animal\",\n      \"species\": \"seal\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": \"child\",\n      \"age_evidence\": \"baby seal\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"beach\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kai",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-024",
+   "fonte": "revisao",
+   "texto": "Leo heard crying from the storm drain. A puppy was stuck inside. Leo pulled her out. Leo carried her home in the rain.",
+   "protagonista": [
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Leo"
+   ],
+   "resposta": {
+    "id": "rev-024",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1888,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"puppy\",\n      \"kind\": \"animal\",\n      \"species\": \"puppy\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-025",
+   "fonte": "revisao",
+   "texto": "In 2011, Sarah Collins drove to Pigeon Forge, Tennessee. Sarah Collins checked into a motel. Sarah Collins never checked out.",
+   "protagonista": [
+    "Sarah Collins"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Pigeon Forge",
+    "Pigeon",
+    "Tennessee"
+   ],
+   "humanos": [
+    "Sarah",
+    "Collins"
+   ],
+   "resposta": {
+    "id": "rev-025",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1441,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Sarah Collins\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"Pigeon Forge\",\n    \"Tennessee\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Sarah Collins",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-026",
+   "fonte": "revisao",
+   "texto": "Kelly drove to Swan Lake at dawn. Kelly parked by the water. Kelly was never seen again. Her car is still there.",
+   "protagonista": [
+    "Kelly"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Swan Lake",
+    "Swan"
+   ],
+   "resposta": {
+    "id": "rev-026",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1211,
+    "raw": "{\"protagonist\":{\"name\":\"Kelly\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Swan Lake\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kelly",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-027",
+   "fonte": "revisao",
+   "texto": "Mark Doyle flew to Goose Bay in 1998. Mark Doyle rented a cabin. Mark Doyle disappeared the next morning.",
+   "protagonista": [
+    "Mark Doyle"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Goose Bay",
+    "Goose"
+   ],
+   "resposta": {
+    "id": "rev-027",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1056,
+    "raw": "{\"protagonist\":{\"name\":\"Mark Doyle\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Goose Bay\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Mark Doyle",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-028",
+   "fonte": "revisao",
+   "texto": "Elena Ruiz is missing. Elena Ruiz was last seen leaving a bar in Austin. Elena Ruiz is still missing. Her family wants answers.",
+   "protagonista": [
+    "Elena Ruiz"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Austin"
+   ],
+   "resposta": {
+    "id": "rev-028",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1241,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Elena Ruiz\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": false\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Austin\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Elena Ruiz",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-029",
+   "fonte": "revisao",
+   "texto": "Tom is gone. Tom left his phone on the table. Tom has been missing for ten years.",
+   "protagonista": [
+    "Tom"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-029",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 995,
+    "raw": "{\"protagonist\":{\"name\":\"Tom\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":false},\"supporting\":[],\"places_and_orgs\":[]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Tom",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-030",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Zoe and her best friend Pip found a glittering egg. Pip giggled. Zoe hugged the egg. A baby dragon hatched at bedtime.",
+   "protagonista": [
+    "Zoe",
+    "Pip"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Zoe"
+   ],
+   "resposta": {
+    "id": "rev-030",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2288,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Zoe\",\n    \"role\": \"girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Pip\",\n      \"role\": \"best friend\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"baby dragon\",\n      \"kind\": \"creature\",\n      \"species\": \"dragon\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Zoe",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-031",
+   "fonte": "revisao",
+   "texto": "Daniel loved his old truck. Daniel drove the truck to work every day. Daniel called it Beast. Beast never broke down.",
+   "protagonista": [
+    "Daniel"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-031",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1709,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Daniel\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Beast\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"truck\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Daniel",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-032",
+   "fonte": "revisao",
+   "texto": "Olivia sang in the church choir. Olivia dreamed of Broadway. Olivia took the bus to New York. Olivia never looked back.",
+   "protagonista": [
+    "Olivia"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Broadway",
+    "New York"
+   ],
+   "resposta": {
+    "id": "rev-032",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1187,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Olivia\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Broadway\", \"New York\", \"church\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Olivia",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-033",
+   "fonte": "revisao",
+   "texto": "GRANDMA the legend walks into the gym. GRANDMA lifts two hundred pounds. The crowd goes wild. Grandma winks.",
+   "protagonista": [
+    "GRANDMA",
+    "Grandma"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-033",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1276,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"GRANDMA\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"elderly\",\n    \"age_evidence\": \"GRANDMA the legend\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"gym\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "GRANDMA",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-034",
+   "fonte": "revisao",
+   "texto": "Meet Duke, a stray dog. Duke follows Anna home. Anna feeds him. Duke never leaves her side.",
+   "protagonista": [
+    "Duke"
+   ],
+   "tipo": "animal",
+   "especie": "dog",
+   "humanos": [
+    "Anna"
+   ],
+   "resposta": {
+    "id": "rev-034",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1708,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Duke\",\n    \"role\": \"stray dog\",\n    \"kind\": \"animal\",\n    \"species\": \"dog\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Anna\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Duke",
+     "kind": "animal",
+     "species": "dog",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-035",
+   "fonte": "revisao",
+   "texto": "Meet Anna, a lonely nurse. Duke, a stray dog, follows Anna home. Anna feeds him. Duke never leaves her side.",
+   "protagonista": [
+    "Anna",
+    "Duke"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Anna"
+   ],
+   "animais": {
+    "Duke": "dog"
+   },
+   "resposta": {
+    "id": "rev-035",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1656,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Anna\",\n    \"role\": \"nurse\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Duke\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Anna",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-036",
+   "fonte": "revisao",
+   "texto": "Ruby was a cat person. Ruby adopted four cats. Ruby talked to them every night.",
+   "protagonista": [
+    "Ruby"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ruby"
+   ],
+   "resposta": {
+    "id": "rev-036",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1146,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ruby\",\n    \"role\": \"cat person\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ruby",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-037",
+   "fonte": "revisao",
+   "texto": "James was a dog lover. James walked six dogs every morning. James smiled.",
+   "protagonista": [
+    "James"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "James"
+   ],
+   "resposta": {
+    "id": "rev-037",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1243,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"James\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "James",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-038",
+   "fonte": "revisao",
+   "texto": "Picture this: Hana opens her fridge at 3 a.m. Hana finds a penguin inside. The penguin waves. Hana closes the door.",
+   "protagonista": [
+    "Hana"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Picture"
+   ],
+   "humanos": [
+    "Hana"
+   ],
+   "resposta": {
+    "id": "rev-038",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1848,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Hana\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"penguin\",\n      \"kind\": \"animal\",\n      \"species\": \"penguin\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Hana",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-039",
+   "fonte": "revisao",
+   "texto": "What if dinosaurs never died? Meet Rex, a tiny T-rex. Rex works at a coffee shop. Rex cannot reach the counter.",
+   "protagonista": [
+    "Rex"
+   ],
+   "tipo": "creature",
+   "especie": "t-rex",
+   "proib": [
+    "Meet",
+    "What"
+   ],
+   "resposta": {
+    "id": "rev-039",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1310,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Rex\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"T-rex\",\n    \"appearance_from_text\": \"tiny\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"coffee shop\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Rex",
+     "kind": "creature",
+     "species": "t-rex",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-040",
+   "fonte": "revisao",
+   "texto": "Every night, Omar walks his dog Shadow through the park. Shadow barks at the moon. Omar laughs. Tonight Shadow does not come back.",
+   "protagonista": [
+    "Omar",
+    "Shadow"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Omar"
+   ],
+   "animais": {
+    "Shadow": "dog"
+   },
+   "resposta": {
+    "id": "rev-040",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1673,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Omar\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Shadow\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"the park\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Omar",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-041",
+   "fonte": "revisao",
+   "texto": "Hugo found his grandfather's watch in the attic. Hugo wound it. Time stopped. Hugo was alone in a frozen world.",
+   "protagonista": [
+    "Hugo"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-041",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1135,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Hugo\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Hugo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-042",
+   "fonte": "revisao",
+   "texto": "Natalie trained for years to dance in Black Swan. Natalie lost twenty pounds. Natalie won the Oscar.",
+   "protagonista": [
+    "Natalie"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Black Swan",
+    "Swan",
+    "Oscar"
+   ],
+   "resposta": {
+    "id": "rev-042",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 880,
+    "raw": "{\"protagonist\":{\"name\":\"Natalie\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"female\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Natalie",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-043",
+   "fonte": "revisao",
+   "texto": "Derek moved to Beaver Creek in 2015. Derek opened a ski shop. Derek vanished during a blizzard.",
+   "protagonista": [
+    "Derek"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Beaver Creek",
+    "Beaver"
+   ],
+   "resposta": {
+    "id": "rev-043",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 890,
+    "raw": "{\"protagonist\":{\"name\":\"Derek\",\"role\":\"human\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Beaver Creek\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Derek",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-044",
+   "fonte": "revisao",
+   "texto": "Jenna watched every show on Peacock. Jenna cancelled Netflix. Jenna regrets nothing.",
+   "protagonista": [
+    "Jenna"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Peacock",
+    "Netflix"
+   ],
+   "resposta": {
+    "id": "rev-044",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1346,
+    "raw": "{\"protagonist\":{\"name\":\"Jenna\",\"role\":\"human\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"female\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Peacock\",\"Netflix\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jenna",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-045",
+   "fonte": "revisao",
+   "texto": "Carlos bought a Ford Mustang in 1999. Carlos drove the Mustang across Mexico. Carlos never sold it.",
+   "protagonista": [
+    "Carlos"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Ford Mustang",
+    "Mustang",
+    "Mexico"
+   ],
+   "resposta": {
+    "id": "rev-045",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 993,
+    "raw": "{\"protagonist\":{\"name\":\"Carlos\",\"role\":\"null\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Ford Mustang\",\"Mexico\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Carlos",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-046",
+   "fonte": "revisao",
+   "texto": "Aria and Leo found a magic map at bedtime. Leo giggled. Aria followed the rainbow trail. Leo and Aria flew home on a cloud.",
+   "protagonista": [
+    "Aria",
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Aria",
+    "Leo"
+   ],
+   "resposta": {
+    "id": "rev-046",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1609,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Aria\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Leo\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Aria",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-047",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Grace put on her glittering crown. Oliver laughed and clapped. Oliver and Grace danced in the enchanted castle. At bedtime, Oliver yawned.",
+   "protagonista": [
+    "Grace",
+    "Oliver"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Grace",
+    "Oliver"
+   ],
+   "resposta": {
+    "id": "rev-047",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1712,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Grace\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"glittering crown\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Oliver\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"enchanted castle\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Grace",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-048",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Ben brushed his teeth before bedtime. Lucy giggled. Lucy hid under the fluffy blanket. Ben found Lucy and they laughed.",
+   "protagonista": [
+    "Ben",
+    "Lucy"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ben",
+    "Lucy"
+   ],
+   "resposta": {
+    "id": "rev-048",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1583,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ben\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Lucy\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ben",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-049",
+   "fonte": "revisao",
+   "texto": "The Smith family moved to Maple Street. The Smiths were happy. Then the Smiths heard knocking in the walls.",
+   "protagonista": [
+    "Smith",
+    "Smiths",
+    "The Smiths",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "livre": true,
+   "resposta": {
+    "id": "rev-049",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 928,
+    "raw": "{\"protagonist\":{\"name\":\"Smith\",\"role\":\"family\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Maple Street\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Smith",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-050",
+   "fonte": "revisao",
+   "texto": "The Beatles played in Hamburg in 1960. John Lennon was nineteen. Paul McCartney was eighteen. The Beatles became legends.",
+   "protagonista": [
+    "John Lennon",
+    "Paul McCartney",
+    "Beatles",
+    "The Beatles",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Hamburg"
+   ],
+   "resposta": {
+    "id": "rev-050",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1383,
+    "raw": "{\"protagonist\":{\"name\":\"John Lennon\",\"role\":\"musician\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":\"teen\",\"age_evidence\":\"nineteen\",\"on_screen\":true},\"supporting\":[{\"name\":\"Paul McCartney\",\"role\":\"musician\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":\"teen\",\"age_evidence\":\"eighteen\",\"on_screen\":true}],\"places_and_orgs\":[\"Hamburg\",\"The Beatles\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "John Lennon",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-051",
+   "fonte": "revisao",
+   "texto": "DOGE the shiba inu became a meme in 2013. DOGE made crypto famous. Doge is still everywhere.",
+   "protagonista": [
+    "DOGE",
+    "Doge"
+   ],
+   "tipo": "animal",
+   "especie": "shiba inu",
+   "resposta": {
+    "id": "rev-051",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1033,
+    "raw": "{\"protagonist\":{\"name\":\"DOGE\",\"role\":null,\"kind\":\"animal\",\"species\":\"shiba inu\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[] }",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "DOGE",
+     "kind": "animal",
+     "species": "shiba inu",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-052",
+   "fonte": "revisao",
+   "texto": "Hannah Lee went hiking near Eagle Peak in 2016. Hannah Lee never returned. Rescuers found her backpack.",
+   "protagonista": [
+    "Hannah Lee"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Eagle Peak",
+    "Eagle"
+   ],
+   "resposta": {
+    "id": "rev-052",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1079,
+    "raw": "{\"protagonist\":{\"name\":\"Hannah Lee\",\"role\":\"hiker\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Eagle Peak\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Hannah Lee",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-053",
+   "fonte": "revisao",
+   "texto": "Amy flew Air Force One once. Amy met the president. Amy cried.",
+   "protagonista": [
+    "Amy"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Air Force One"
+   ],
+   "resposta": {
+    "id": "rev-053",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 974,
+    "raw": "{\"protagonist\":{\"name\":\"Amy\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"female\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Air Force One\",\"the president\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Amy",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-054",
+   "fonte": "revisao",
+   "texto": "Ivan worked on the Titanic as a stoker. Ivan survived the sinking. Ivan never spoke of it.",
+   "protagonista": [
+    "Ivan"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Titanic"
+   ],
+   "resposta": {
+    "id": "rev-054",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1230,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ivan\",\n    \"role\": \"stoker\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Titanic\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ivan",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-055",
+   "fonte": "revisao",
+   "texto": "Riley adopted a rescue horse named Thunder. Thunder kicked the fence. Riley calmed him. Thunder trusts nobody but Riley.",
+   "protagonista": [
+    "Riley",
+    "Thunder"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Riley"
+   ],
+   "animais": {
+    "Thunder": "horse"
+   },
+   "resposta": {
+    "id": "rev-055",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1987,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Riley\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Thunder\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"horse\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Riley",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-056",
+   "fonte": "revisao",
+   "texto": "Sophia's grandmother lived in a cottage. Sophia visited every summer. Sophia found a diary in the attic.",
+   "protagonista": [
+    "Sophia"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-056",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2165,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Sophia\",\n    \"role\": \"girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"girl\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"grandmother\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": \"elderly\",\n      \"age_evidence\": \"grandmother\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": [\"cottage\", \"attic\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Sophia",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-057",
+   "fonte": "revisao",
+   "texto": "Jordan flew into Swan River in 1987. Jordan disappeared. Jordan was never found.",
+   "protagonista": [
+    "Jordan"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Swan River",
+    "Swan"
+   ],
+   "resposta": {
+    "id": "rev-057",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1123,
+    "raw": "{\"protagonist\":{\"name\":\"Jordan\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":false},\"supporting\":[],\"places_and_orgs\":[\"Swan River\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jordan",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-058",
+   "fonte": "revisao",
+   "texto": "Grandpa bought Leo the puppy he always wanted. Leo runs to the park every morning. Leo laughs as the dog chases pigeons. One day the puppy disappears and Leo searches the whole city.",
+   "protagonista": [
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Leo"
+   ],
+   "resposta": {
+    "id": "rev-058",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2711,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"the puppy he always wanted\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"puppy\",\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Grandpa\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": \"elderly\",\n      \"age_evidence\": \"Grandpa\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"the park\",\n    \"the city\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-059",
+   "fonte": "revisao",
+   "texto": "The officer told Sarah the man had fled. Sarah grabs her coat and runs into the rain. Sarah checks every alley. Sarah finally finds a torn photograph.",
+   "protagonista": [
+    "Sarah"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Sarah"
+   ],
+   "resposta": {
+    "id": "rev-059",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1974,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Sarah\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"officer\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Sarah",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-060",
+   "fonte": "revisao",
+   "texto": "Lena saw Max the moment the wolf appeared. Max froze in the snow. Max raised his lantern. The wolf stepped closer, and Max whispered a prayer.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max",
+    "Lena"
+   ],
+   "resposta": {
+    "id": "rev-060",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2466,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Lena\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"wolf\",\n      \"kind\": \"animal\",\n      \"species\": \"wolf\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-061",
+   "fonte": "revisao",
+   "texto": "Jack wakes up in an empty house. Jack calls her name. She is the woman Jack married ten years ago, and she vanished without a trace. Jack finds her ring on the kitchen table.",
+   "protagonista": [
+    "Jack"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-061",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1802,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Jack\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"wife\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jack",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-062",
+   "fonte": "revisao",
+   "texto": "Lena walks into the old shelter. The dog Lena adopted last year is missing. Lena checks every cage. Lena finally hears a bark from the basement.",
+   "protagonista": [
+    "Lena"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Lena"
+   ],
+   "resposta": {
+    "id": "rev-062",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1806,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Lena\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"dog\",\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": [\n    \"old shelter\",\n    \"basement\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Lena",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-063",
+   "fonte": "revisao",
+   "texto": "Anna's little brother Tom is afraid of the dark. Tom hides under the bed. Tom finds a glowing stone. Tom holds it up and smiles. Anna hugs him goodnight.",
+   "protagonista": [
+    "Tom"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Tom",
+    "Anna"
+   ],
+   "resposta": {
+    "id": "rev-063",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1592,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Tom\",\n    \"role\": \"little brother\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"little brother\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Anna\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Tom",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-064",
+   "fonte": "revisao",
+   "texto": "Maria's son Leo dreams of flying. Leo builds wings from old sheets. Leo climbs the hill. Leo jumps into the wind. Maria watches from the window.",
+   "protagonista": [
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Leo",
+    "Maria"
+   ],
+   "resposta": {
+    "id": "rev-064",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1694,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": \"son\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Maria\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-065",
+   "fonte": "revisao",
+   "texto": "ONLY the strongest wolf survives the winter. The pack moves through the snow. The old wolf falls behind. By spring, a single wolf howls on the ridge.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "ONLY"
+   ],
+   "resposta": {
+    "id": "rev-065",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1138,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"old wolf\",\n    \"kind\": \"animal\",\n    \"species\": \"wolf\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"elderly\",\n    \"age_evidence\": \"The old wolf falls behind.\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the old wolf",
+     "kind": "animal",
+     "species": "wolf",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-066",
+   "fonte": "revisao",
+   "texto": "WAIT the tiny kitten survived forty days alone in the mountains. Rescuers found her under a rock. She weighed less than an apple. Now she sleeps on a firefighter's helmet.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "WAIT"
+   ],
+   "resposta": {
+    "id": "rev-066",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1795,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"tiny kitten\",\n    \"kind\": \"animal\",\n    \"species\": \"kitten\",\n    \"appearance_from_text\": \"weighed less than an apple\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"firefighter\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"mountains\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the tiny kitten",
+     "kind": "animal",
+     "species": "kitten",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-067",
+   "fonte": "revisao",
+   "texto": "OMG the giant brown bear walked straight into a supermarket in Alaska. Shoppers froze. The bear grabbed a bag of marshmallows. Then the bear walked out like a regular customer.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "OMG",
+    "Alaska"
+   ],
+   "resposta": {
+    "id": "rev-067",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1258,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"giant brown bear\",\n    \"kind\": \"animal\",\n    \"species\": \"bear\",\n    \"appearance_from_text\": \"giant, brown\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"Alaska\",\n    \"supermarket\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the giant brown bear",
+     "kind": "animal",
+     "species": "bear",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-068",
+   "fonte": "revisao",
+   "texto": "Once upon a time, Lily and Sam chased a rainbow across the meadow. Lily laughed. Sam laughed louder. They found a pot of candy at the end of the rainbow. Lily and Sam shared it with every bunny in the forest.",
+   "protagonista": [
+    "Lily",
+    "Sam"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Lily",
+    "Sam"
+   ],
+   "resposta": {
+    "id": "rev-068",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2201,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Lily\",\n    \"role\": \"girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Sam\",\n      \"role\": \"boy\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"bunny\",\n      \"kind\": \"animal\",\n      \"species\": \"bunny\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"meadow\", \"forest\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Lily",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-069",
+   "fonte": "revisao",
+   "texto": "Ella finds a fluffy bunny in the enchanted garden. Ella names it Cloud. Ella and Cloud chase butterflies until sunset. At bedtime, Ella whispers goodnight to Cloud.",
+   "protagonista": [
+    "Ella"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ella"
+   ],
+   "resposta": {
+    "id": "rev-069",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1748,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ella\",\n    \"role\": \"girl\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"girl\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Cloud\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"bunny\",\n      \"appearance_from_text\": \"fluffy\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"enchanted garden\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ella",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-070",
+   "fonte": "revisao",
+   "texto": "Noah wakes up in a candy kingdom. Noah walks past lollipop trees and rainbow rivers. Noah meets a talking cupcake. Noah laughs and eats the door of the castle.",
+   "protagonista": [
+    "Noah"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-070",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1905,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Noah\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"cupcake\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"cupcake\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"candy kingdom\",\n    \"lollipop trees\",\n    \"rainbow rivers\",\n    \"castle\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Noah",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-071",
+   "fonte": "revisao",
+   "texto": "Max was a boy when the war began. Decades later, Max is an old man returning to the village. Max walks past the ruined church. Max kneels at his mother's grave.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-071",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1336,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"elderly\",\n    \"age_evidence\": \"an old man\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"village\", \"ruined church\", \"mother's grave\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-072",
+   "fonte": "revisao",
+   "texto": "In 2004, Maura Murray, a nursing student, crashed her car on a snowy road in New Hampshire. Maura told a passing driver she was fine. Ten minutes later, police arrived. Maura was gone. Maura has never been found.",
+   "protagonista": [
+    "Maura Murray",
+    "Maura"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "New Hampshire"
+   ],
+   "resposta": {
+    "id": "rev-072",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1330,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Maura Murray\",\n    \"role\": \"nursing student\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"New Hampshire\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Maura Murray",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-073",
+   "fonte": "revisao",
+   "texto": "Imagine vanishing without a trace. Picture a quiet road in Death Valley. Elena parked her car and walked into the desert. Elena left a tiny backpack and a little water bottle. Elena was never seen again.",
+   "protagonista": [
+    "Elena"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Death Valley",
+    "Imagine",
+    "Picture"
+   ],
+   "resposta": {
+    "id": "rev-073",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1253,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Elena\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Death Valley\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Elena",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-074",
+   "fonte": "revisao",
+   "texto": "Picture a dragon the size of a city. Imagine the dragon waking up after a thousand years. The dragon opens one eye. Villagers scream and run for the hills.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Picture",
+    "Imagine"
+   ],
+   "resposta": {
+    "id": "rev-074",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1402,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"dragon\",\n    \"kind\": \"creature\",\n    \"species\": \"dragon\",\n    \"appearance_from_text\": \"the size of a city\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"Villagers\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the dragon",
+     "kind": "creature",
+     "species": "dragon",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-075",
+   "fonte": "revisao",
+   "texto": "What if your cat could talk? Meet Whiskers, a grumpy orange cat. Whiskers judges everyone. Whiskers knocks your coffee off the table. Whiskers finally says one word: Mine.",
+   "protagonista": [
+    "Whiskers"
+   ],
+   "tipo": "animal",
+   "especie": "cat",
+   "proib": [
+    "Meet",
+    "What"
+   ],
+   "resposta": {
+    "id": "rev-075",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1284,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Whiskers\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"cat\",\n    \"appearance_from_text\": \"grumpy orange\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Whiskers",
+     "kind": "animal",
+     "species": "cat",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-076",
+   "fonte": "revisao",
+   "texto": "Kai and his dog Biscuit live by the sea. Every morning Kai throws a stick into the waves. Biscuit swims after it. One stormy day Biscuit does not come back, and Kai searches the beach until dawn.",
+   "protagonista": [
+    "Kai"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Kai"
+   ],
+   "animais": {
+    "Biscuit": "dog"
+   },
+   "resposta": {
+    "id": "rev-076",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1839,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kai\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Biscuit\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"the sea\", \"the beach\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kai",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-077",
+   "fonte": "revisao",
+   "texto": "Endurance, the ship, was crushed by the ice in 1915. Shackleton and his crew watched it sink. Shackleton led them across the frozen sea. Shackleton never lost a single man.",
+   "protagonista": [
+    "Shackleton"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Endurance"
+   ],
+   "resposta": {
+    "id": "rev-077",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1874,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Shackleton\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"crew member\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"Endurance\",\n    \"1915\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Shackleton",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-078",
+   "fonte": "revisao",
+   "texto": "Pompeii was a thriving city. Then Vesuvius exploded. Ash buried Pompeii in hours. Today, Pompeii is frozen in time.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Pompeii",
+    "Vesuvius"
+   ],
+   "resposta": {
+    "id": "rev-078",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 682,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"Pompeii\",\"Vesuvius\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-079",
+   "fonte": "revisao",
+   "texto": "The Romans built roads across Europe. The Romans marched for weeks. Caesar led the legions into Gaul. Caesar crossed the Rubicon and changed history.",
+   "protagonista": [
+    "Caesar",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Gaul",
+    "Rubicon",
+    "Europe"
+   ],
+   "resposta": {
+    "id": "rev-079",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 977,
+    "raw": "{\"protagonist\":{\"name\":\"Caesar\",\"role\":\"leader\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Europe\",\"Gaul\",\"Rubicon\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Caesar",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-080",
+   "fonte": "revisao",
+   "texto": "Meet Lena\nThe wolf watches her from the trees\nLena keeps walking\nLena reaches the cabin",
+   "protagonista": [
+    "Lena"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Meet"
+   ],
+   "resposta": {
+    "id": "rev-080",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1830,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Lena\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"the wolf\",\n      \"kind\": \"animal\",\n      \"species\": \"wolf\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"the trees\", \"the cabin\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Lena",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-081",
+   "fonte": "revisao",
+   "texto": "Tom the cat lives in a tiny apartment. Tom hates Mondays. Tom knocks over a vase. Tom sleeps through the whole afternoon.",
+   "protagonista": [
+    "Tom"
+   ],
+   "tipo": "animal",
+   "especie": "cat",
+   "resposta": {
+    "id": "rev-081",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1130,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Tom\",\n    \"role\": \"cat\",\n    \"kind\": \"animal\",\n    \"species\": \"cat\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"tiny apartment\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Tom",
+     "kind": "animal",
+     "species": "cat",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-082",
+   "fonte": "revisao",
+   "texto": "Ahab hunts the white whale across every ocean. Ahab lost his leg to it. Ahab stands on the deck in the storm. The whale rises from the waves.",
+   "protagonista": [
+    "Ahab"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ahab"
+   ],
+   "resposta": {
+    "id": "rev-082",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1693,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ahab\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"stands on the deck in the storm\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"white whale\",\n      \"kind\": \"creature\",\n      \"species\": \"whale\",\n      \"appearance_from_text\": \"rises from the waves\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ahab",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-083",
+   "fonte": "revisao",
+   "texto": "Oliver, a lonely boy, walks home through the snow. The fox follows Oliver home. Oliver shares his bread with the fox. The fox sleeps by Oliver's fire.",
+   "protagonista": [
+    "Oliver"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Oliver"
+   ],
+   "resposta": {
+    "id": "rev-083",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1660,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Oliver\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"lonely\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"fox\",\n      \"kind\": \"animal\",\n      \"species\": \"fox\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Oliver",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-084",
+   "fonte": "revisao",
+   "texto": "Luna, a golden retriever, waits at the train station every day. Luna waited for nine years. Luna never stopped hoping. One day a man steps off the train.",
+   "protagonista": [
+    "Luna"
+   ],
+   "tipo": "animal",
+   "especie": "retriever",
+   "resposta": {
+    "id": "rev-084",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1689,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Luna\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"golden retriever\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"man\",\n      \"kind\": \"human\",\n      \"species\": null,\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"train station\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Luna",
+     "kind": "animal",
+     "species": "golden retriever",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-085",
+   "fonte": "revisao",
+   "texto": "Hachiko, the loyal dog, waited for his owner at Shibuya station. Hachiko waited every day for nine years. Hachiko never gave up. Today Hachiko is a bronze statue.",
+   "protagonista": [
+    "Hachiko"
+   ],
+   "tipo": "animal",
+   "especie": "dog",
+   "proib": [
+    "Shibuya"
+   ],
+   "resposta": {
+    "id": "rev-085",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1294,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Hachiko\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"dog\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"Shibuya\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Hachiko",
+     "kind": "animal",
+     "species": "dog",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-086",
+   "fonte": "revisao",
+   "texto": "ELON the billionaire bought Twitter. Then everything changed. Advertisers left. ELON renamed it X.",
+   "protagonista": [
+    "ELON",
+    "Elon"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Twitter"
+   ],
+   "resposta": {
+    "id": "rev-086",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 949,
+    "raw": "{\"protagonist\":{\"name\":\"ELON\",\"role\":\"billionaire\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"Twitter\",\"X\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "ELON",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-087",
+   "fonte": "revisao",
+   "texto": "NASA the space agency found a strange rock on Mars. NASA scientists cannot explain it. The rock glows at night.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "NASA",
+    "Mars"
+   ],
+   "resposta": {
+    "id": "rev-087",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 596,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"NASA\",\"Mars\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-088",
+   "fonte": "revisao",
+   "texto": "KAI the young fisherman sails at dawn. KAI casts his net. A giant fish pulls the boat. KAI holds on.",
+   "protagonista": [
+    "KAI",
+    "Kai"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-088",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1385,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"KAI\",\n    \"role\": \"fisherman\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"young\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"teen\",\n    \"age_evidence\": \"young\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "KAI",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-089",
+   "fonte": "revisao",
+   "texto": "Zoe, with her red braids and yellow raincoat, visits the enchanted forest. But Pip is missing! A trail of sparkly glitter leads to a hollow tree. Zoe calls out, and there is Pip, giggling inside.",
+   "protagonista": [
+    "Zoe",
+    "Pip"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Zoe"
+   ],
+   "resposta": {
+    "id": "rev-089",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1857,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Zoe\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"red braids and yellow raincoat\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Pip\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"enchanted forest\", \"hollow tree\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Zoe",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-090",
+   "fonte": "revisao",
+   "texto": "Emma and her sister Ruby find a map in the attic. Ruby reads the clues. Ruby solves the riddle. Ruby opens the secret door. Emma follows her.",
+   "protagonista": [
+    "Ruby",
+    "Emma"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ruby",
+    "Emma"
+   ],
+   "resposta": {
+    "id": "rev-090",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1724,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Emma\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Ruby\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Emma",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-091",
+   "fonte": "revisao",
+   "texto": "Leo and his friend Sam build a raft. Sam paddles. Sam sees the waterfall first. Sam screams. Sam saves Leo from the rapids.",
+   "protagonista": [
+    "Sam",
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Sam",
+    "Leo"
+   ],
+   "resposta": {
+    "id": "rev-091",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1710,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Sam\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-092",
+   "fonte": "revisao",
+   "texto": "Once upon a time, in an enchanted forest, Lily and Sam chased a rainbow. Lily laughed. Sam laughed louder. They found a candy house and knocked on the door.",
+   "protagonista": [
+    "Lily",
+    "Sam"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Lily",
+    "Sam"
+   ],
+   "resposta": {
+    "id": "rev-092",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1836,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Lily\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Sam\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"enchanted forest\", \"candy house\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Lily",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-093",
+   "fonte": "revisao",
+   "texto": "Ben finds a glittery map in his treehouse. The map leads to a rainbow bridge. Ben crosses it and meets a fairy queen. Ben waves goodbye at bedtime.",
+   "protagonista": [
+    "Ben"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ben"
+   ],
+   "resposta": {
+    "id": "rev-093",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1838,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ben\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"fairy queen\",\n      \"kind\": \"creature\",\n      \"species\": \"fairy\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"treehouse\", \"rainbow bridge\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ben",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-094",
+   "fonte": "revisao",
+   "texto": "Mia and Leo build a fort of fluffy pillows. Mia tells a bedtime story about a dragon. Leo giggles. Mia turns off the light, and the fort sparkles with tiny stars.",
+   "protagonista": [
+    "Mia",
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Mia",
+    "Leo"
+   ],
+   "resposta": {
+    "id": "rev-094",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1835,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Mia\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Leo\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Mia",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-095",
+   "fonte": "revisao",
+   "texto": "Sam wakes in a strange house. An old woman stands by the door. She hands Sam a rusty key. Sam unlocks the attic and finds a photograph of a little girl.",
+   "protagonista": [
+    "Sam"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-095",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2256,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Sam\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"old woman\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": \"elderly\",\n      \"age_evidence\": \"old woman\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Sam",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-096",
+   "fonte": "revisao",
+   "texto": "STOP the angry grizzly bear before it reaches the campsite. The bear smells food. Campers scream. A ranger fires a flare into the sky.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "STOP"
+   ],
+   "resposta": {
+    "id": "rev-096",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1234,
+    "raw": "{\n  \"protagonist\": null,\n  \"supporting\": [\n    {\n      \"name\": \"ranger\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"campsite\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-097",
+   "fonte": "revisao",
+   "texto": "POV the tiny orange cat you adopted runs the house now. The cat wakes you at five. The cat steals your chair. The cat judges your cooking.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "POV"
+   ],
+   "resposta": {
+    "id": "rev-097",
+    "fonte": "revisao",
+    "status": "json_invalido",
+    "tentativas": 2,
+    "ms": 5659,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"human\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"tiny orange cat\",\n      \"kind\": \"animal\",\n      \"species\": \"cat\",\n      \"appearance_from_text\": \"tiny orange\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-098",
+   "fonte": "revisao",
+   "texto": "RUN the giant spider is real. Scientists found it in a cave in Laos. The spider is as big as a dinner plate. Nobody knows how many there are.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "RUN",
+    "Laos"
+   ],
+   "resposta": {
+    "id": "rev-098",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 703,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"Laos\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-099",
+   "fonte": "revisao",
+   "texto": "NEVER feed the great white shark. A diver in Australia learned that the hard way. The shark circled him for an hour. He escaped with one shoe.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "NEVER",
+    "Australia"
+   ],
+   "resposta": {
+    "id": "rev-099",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 669,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"Australia\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-100",
+   "fonte": "revisao",
+   "texto": "REX the tiny dinosaur is hungry again. Today he sneaks into a bakery with one coin. The only cake he can afford is shaped like a dragon. He eats it and roars: Rex!",
+   "protagonista": [
+    "REX",
+    "Rex"
+   ],
+   "tipo": "creature",
+   "especie": "dinosaur",
+   "resposta": {
+    "id": "rev-100",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1225,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"REX\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"dinosaur\",\n    \"appearance_from_text\": \"tiny\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"bakery\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "REX",
+     "kind": "creature",
+     "species": "dinosaur",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-101",
+   "fonte": "revisao",
+   "texto": "For her birthday, Dad gave Emma the dog she always begged for. Emma names him Pepper. Emma and Pepper walk to the lake every morning. One morning Pepper vanishes, and Emma searches the woods.",
+   "protagonista": [
+    "Emma"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Emma"
+   ],
+   "animais": {
+    "Pepper": "dog"
+   },
+   "resposta": {
+    "id": "rev-101",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 3800,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Emma\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Pepper\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Dad\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"lake\", \"woods\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Emma",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-102",
+   "fonte": "revisao",
+   "texto": "The old man showed Kenji the boy he used to be in a faded photograph. Kenji stares at it for a long time. Kenji walks to the river. Kenji finally understands.",
+   "protagonista": [
+    "Kenji"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-102",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2276,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kenji\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"the boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"old man\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": \"elderly\",\n      \"age_evidence\": \"the old man\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"river\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kenji",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-103",
+   "fonte": "revisao",
+   "texto": "The doctor told Priya the nurse would come soon. Priya waits alone in the hospital room. Priya hears footsteps. Priya sees a shadow under the door.",
+   "protagonista": [
+    "Priya"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Priya"
+   ],
+   "resposta": {
+    "id": "rev-103",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1521,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Priya\",\n    \"role\": \"nurse\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"hospital\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Priya",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-104",
+   "fonte": "revisao",
+   "texto": "Her son Daniel was born deaf. Daniel learns to dance by feeling the floor. Daniel trains every night. Daniel wins the national championship. His mother Grace cries in the front row.",
+   "protagonista": [
+    "Daniel"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Daniel",
+    "Grace"
+   ],
+   "resposta": {
+    "id": "rev-104",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1984,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Daniel\",\n    \"role\": \"son\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Grace\",\n      \"role\": \"mother\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Daniel",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-105",
+   "fonte": "revisao",
+   "texto": "It is NOT the tiny kitten that saved the family. It was the old dog. The dog barked until the father woke up. The family escaped the fire.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "NOT"
+   ],
+   "resposta": {
+    "id": "rev-105",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 2,
+    "ms": 6466,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"the old dog\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"dog\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": \"elderly\",\n    \"age_evidence\": \"the old dog\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"the father\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"the family\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the old dog",
+     "kind": "animal",
+     "species": "dog",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-106",
+   "fonte": "revisao",
+   "texto": "NOT the tiny kitten again! The kitten climbs the curtains. The kitten knocks over a lamp. The kitten falls asleep in a shoe.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "NOT"
+   ],
+   "resposta": {
+    "id": "rev-106",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1104,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"kitten\",\n    \"kind\": \"animal\",\n    \"species\": \"kitten\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the kitten",
+     "kind": "animal",
+     "species": "kitten",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-107",
+   "fonte": "revisao",
+   "texto": "Max wakes on the same city bench. The glowing timer above his head now reads one minute. Lena is gone. A note in his pocket says: help someone who can never repay you. A stray puppy shivers in the rain. Max picks it up. The timer turns gold.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max"
+   ],
+   "ausentes": [
+    "Lena"
+   ],
+   "resposta": {
+    "id": "rev-107",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2325,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"stray puppy\",\n      \"kind\": \"animal\",\n      \"species\": \"puppy\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Lena\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": [\"city\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "prod-bro",
+   "fonte": "producao",
+   "texto": "BRO the muscular pigeon is back, and still bald. Today he marches into a fancy wig shop with exactly five dollars. The only wig he can afford is a bright pink unicorn mane. He puts it on, flexes in the mirror, and whispers one word: Bro.",
+   "protagonista": [
+    "BRO"
+   ],
+   "tipo": "animal",
+   "especie": "pigeon",
+   "proib": [
+    "unicorn"
+   ],
+   "resposta": {
+    "id": "prod-bro",
+    "fonte": "producao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1284,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"BRO\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"pigeon\",\n    \"appearance_from_text\": \"muscular, bald\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"wig shop\"]\n}",
+    "nota": {
+     "acerto": false,
+     "graves": [],
+     "erros": [
+      "tipo:BRO=creature (esperado animal)"
+     ],
+     "protagonista": "BRO",
+     "kind": "creature",
+     "species": "pigeon",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "prod-mila",
+   "fonte": "producao",
+   "texto": "Mila, with her turquoise hair and star-shaped backpack, returns to Rainbow Valley. But Skoczuś is missing! A trail of glowing footprints leads to a giant singing flower. Mila hums along, the petals slowly open, and there is Skoczuś, fast asleep, snoring tiny rainbow bubbles.",
+   "protagonista": [
+    "Mila"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Mila"
+   ],
+   "proib": [
+    "Rainbow Valley"
+   ],
+   "especiesProibidas": [
+    "giant",
+    "flower"
+   ],
+   "resposta": {
+    "id": "prod-mila",
+    "fonte": "producao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2039,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Mila\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"turquoise hair and star-shaped backpack\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Skoczuś\",\n      \"role\": null,\n      \"kind\": \"creature\",\n      \"species\": \"unknown\",\n      \"appearance_from_text\": \"fast asleep, snoring tiny rainbow bubbles\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"Rainbow Valley\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Mila",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "prod-max",
+   "fonte": "producao",
+   "texto": "Max wakes on the same city bench. The glowing timer above his head now reads one minute. Lena is gone. A note in his pocket says: help someone who can never repay you. A stray puppy shivers in the rain. Max picks it up. The timer turns gold.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max"
+   ],
+   "ausentes": [
+    "Lena"
+   ],
+   "resposta": {
+    "id": "prod-max",
+    "fonte": "producao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2450,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"stray puppy\",\n      \"kind\": \"animal\",\n      \"species\": \"puppy\",\n      \"appearance_from_text\": \"shivers in the rain\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Lena\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": [\"city\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-imagine-dragon",
+   "fonte": "revisao",
+   "texto": "Imagine a dragon. Imagine it breathing fire over the city. The dragon lands on the tallest tower.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Imagine"
+   ],
+   "resposta": {
+    "id": "rev-imagine-dragon",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 700,
+    "raw": "{\"protagonist\":null,\"supporting\":[],\"places_and_orgs\":[\"city\",\"tower\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-imagine-caps",
+   "fonte": "revisao",
+   "texto": "IMAGINE a dragon the size of a city. The dragon wakes up. The dragon opens one eye and the villagers run.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "IMAGINE"
+   ],
+   "resposta": {
+    "id": "rev-imagine-caps",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1939,
+    "raw": "{\"protagonist\":{\"name\":null,\"role\":\"dragon\",\"kind\":\"creature\",\"species\":\"dragon\",\"appearance_from_text\":\"the size of a city\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[{\"name\":null,\"role\":\"villagers\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true}],\"places_and_orgs\":[] }",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the dragon",
+     "kind": "creature",
+     "species": "dragon",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-picture-lion",
+   "fonte": "revisao",
+   "texto": "Picture a lion crossing a frozen river. The lion slips. The lion gets up and keeps walking.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Picture"
+   ],
+   "resposta": {
+    "id": "rev-picture-lion",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 885,
+    "raw": "{\"protagonist\":{\"name\":\"lion\",\"role\":null,\"kind\":\"animal\",\"species\":\"lion\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[] }",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the lion",
+     "kind": "animal",
+     "species": "lion",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-watch-bear",
+   "fonte": "revisao",
+   "texto": "WATCH the bear climb the tree. The bear reaches the honey. The bear slips and lands in the river.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "WATCH"
+   ],
+   "resposta": {
+    "id": "rev-watch-bear",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1144,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"bear\",\n    \"kind\": \"animal\",\n    \"species\": \"bear\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"river\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the bear",
+     "kind": "animal",
+     "species": "bear",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-later-soldier",
+   "fonte": "revisao",
+   "texto": "Later, a soldier walks into the ruins. Later, the soldier finds a letter from his mother. The soldier reads it and cries.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Later"
+   ],
+   "resposta": {
+    "id": "rev-later-soldier",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1228,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": null,\n    \"role\": \"soldier\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"ruins\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the soldier",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-finally-hero",
+   "fonte": "revisao",
+   "texto": "Finally, a hero rises from the ashes. Finally, the hero lifts his sword. The hero walks toward the castle.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Finally"
+   ],
+   "resposta": {
+    "id": "rev-finally-hero",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1002,
+    "raw": "{\"protagonist\":{\"name\":null,\"role\":\"hero\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[],\"places_and_orgs\":[\"castle\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the hero",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-meanwhile-fox",
+   "fonte": "revisao",
+   "texto": "Meanwhile, a fox sneaks into the henhouse. Meanwhile, the farmer sleeps. The fox grabs an egg and runs.",
+   "protagonista": null,
+   "tipo": null,
+   "especie": null,
+   "proib": [
+    "Meanwhile"
+   ],
+   "resposta": {
+    "id": "rev-meanwhile-fox",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1857,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"the fox\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"fox\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"the farmer\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"henhouse\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "the fox",
+     "kind": "animal",
+     "species": "fox",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-death-valley",
+   "fonte": "revisao",
+   "texto": "Elena vanished in Death Valley in 1996. Elena was never found. Only a tiny backpack remained near a little creek.",
+   "protagonista": [
+    "Elena"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Death Valley"
+   ],
+   "resposta": {
+    "id": "rev-death-valley",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 946,
+    "raw": "{\"protagonist\":{\"name\":\"Elena\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":false},\"supporting\":[],\"places_and_orgs\":[\"Death Valley\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Elena",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-ravi",
+   "fonte": "revisao",
+   "texto": "Ravi is missing. Ravi left his tiny village by the little river at dawn. Ravi never came back.",
+   "protagonista": [
+    "Ravi"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "rev-ravi",
+    "fonte": "revisao",
+    "status": "json_invalido",
+    "tentativas": 2,
+    "ms": 2019,
+    "raw": "{\"protagonist\":{\"name\":\"Ravi\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":false},\"supporting\":[],\"places_and_orgs\":[\"Ravi\",\"tiny village\",\"little river\"]}",
+    "nota": {
+     "acerto": false,
+     "graves": [],
+     "erros": [
+      "sem_protagonista_nomeado"
+     ],
+     "protagonista": null,
+     "kind": null,
+     "species": null,
+     "fallback": true
+    }
+   }
+  },
+  {
+   "id": "rev-yosemite",
+   "fonte": "revisao",
+   "texto": "Emma vanished from a little cabin in Yosemite Valley. Emma left a tiny note. Emma has never been found.",
+   "protagonista": [
+    "Emma"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Yosemite Valley",
+    "Yosemite"
+   ],
+   "resposta": {
+    "id": "rev-yosemite",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 985,
+    "raw": "{\"protagonist\":{\"name\":\"Emma\",\"role\":null,\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":null,\"age_if_stated\":null,\"age_evidence\":\"\",\"on_screen\":false},\"supporting\":[],\"places_and_orgs\":[\"Yosemite Valley\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Emma",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-whiskers-farm",
+   "fonte": "revisao",
+   "texto": "Tom and his cat Whiskers live on a farm. Whiskers chases mice. Tom laughs. Whiskers sleeps on the roof.",
+   "protagonista": [
+    "Tom",
+    "Whiskers"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Tom"
+   ],
+   "animais": {
+    "Whiskers": "cat"
+   },
+   "resposta": {
+    "id": "rev-whiskers-farm",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1834,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Tom\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Whiskers\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"cat\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"farm\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Tom",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-biscuit-kai",
+   "fonte": "revisao",
+   "texto": "Kai and his dog Biscuit walk to the beach. Biscuit chases the waves. Kai throws a stick. Biscuit brings it back.",
+   "protagonista": [
+    "Kai",
+    "Biscuit"
+   ],
+   "tipo": null,
+   "especie": null,
+   "humanos": [
+    "Kai"
+   ],
+   "animais": {
+    "Biscuit": "dog"
+   },
+   "resposta": {
+    "id": "rev-biscuit-kai",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1865,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kai\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Biscuit\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"dog\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"beach\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kai",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-max-the-puppy",
+   "fonte": "revisao",
+   "texto": "Max sees the stray puppy under the bridge. Max picks it up. Max takes it home and gives it a name.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max"
+   ],
+   "resposta": {
+    "id": "rev-max-the-puppy",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1874,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"stray puppy\",\n      \"kind\": \"animal\",\n      \"species\": \"puppy\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"bridge\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-ana-kitten",
+   "fonte": "revisao",
+   "texto": "Ana finds the kitten under a car. Ana feeds the kitten. Ana keeps it forever.",
+   "protagonista": [
+    "Ana"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ana"
+   ],
+   "resposta": {
+    "id": "rev-ana-kitten",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1783,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ana\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"kitten\",\n      \"kind\": \"animal\",\n      \"species\": \"kitten\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ana",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-mila-giant",
+   "fonte": "revisao",
+   "texto": "Mila sings to the giant. The giant smiles. Mila waves goodbye and walks home.",
+   "protagonista": [
+    "Mila"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Mila"
+   ],
+   "resposta": {
+    "id": "rev-mila-giant",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1832,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Mila\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"giant\",\n      \"kind\": \"creature\",\n      \"species\": \"giant\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Mila",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-captain-ahab",
+   "fonte": "revisao",
+   "texto": "Captain Ahab hunts the white whale. Captain Ahab never rests. The whale breaks his ship in two.",
+   "protagonista": [
+    "Captain Ahab",
+    "Ahab"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Ahab",
+    "Captain Ahab"
+   ],
+   "resposta": {
+    "id": "rev-captain-ahab",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1323,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Captain Ahab\",\n    \"role\": \"Captain\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Captain Ahab",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-lena-gone",
+   "fonte": "revisao",
+   "texto": "Lena is gone. Max searches the whole house. Max finds her scarf on the stairs. Max calls her name into the dark.",
+   "protagonista": [
+    "Max"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Max",
+    "Lena"
+   ],
+   "ausentes": [
+    "Lena"
+   ],
+   "resposta": {
+    "id": "rev-lena-gone",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1313,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Max\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Max",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "rev-oliver-fox",
+   "fonte": "revisao",
+   "texto": "Oliver, a lonely boy, meets a fox. The fox follows Oliver home. Oliver shares his bread.",
+   "protagonista": [
+    "Oliver"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Oliver"
+   ],
+   "resposta": {
+    "id": "rev-oliver-fox",
+    "fonte": "revisao",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2088,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Oliver\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"a lonely boy\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"fox\",\n      \"kind\": \"animal\",\n      \"species\": \"fox\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Oliver",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-leon",
+   "fonte": "banco",
+   "texto": "At exactly 3:17 AM, Leon woke up to a strange notification. Someone had just sent him a message from his own phone number. His blood ran cold as he read the words: Whatever happens tonight, do not open the front door. Leon crept toward the door and looked through the peephole. The hallway outside was completely empty. Then his phone vibrated again. A second message appeared: Leon, listen carefully. Whatever you do, don't turn around.",
+   "protagonista": [
+    "Leon"
+   ],
+   "tipo": "human",
+   "resposta": {
+    "id": "banco-leon",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1186,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leon\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leon",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-roland",
+   "fonte": "banco",
+   "video_id": "4a03c64b",
+   "texto": "Roland Pernicus Oznard has a new enemy: the smart fridge. It says good morning, Roland. He never told it his name. It reminds him the milk expired. It is watching. Roland unplugs it, wraps it in foil, and hides behind the couch. The fridge beeps once. Checkmate.",
+   "protagonista": [
+    "Roland Pernicus Oznard",
+    "Roland"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Roland"
+   ],
+   "resposta": {
+    "id": "banco-roland",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1861,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Roland Pernicus Oznard\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"the smart fridge\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"fridge\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Roland Pernicus Oznard",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-leo-mitten",
+   "fonte": "banco",
+   "video_id": "e26c2b57",
+   "texto": "Leo was playing in the park when he spotted a lonely mitten on the grass. Leo wondered whose it could be. Leo asked a bird, but the bird didn't know. Leo finally found the mitten's owner, a grateful squirrel. Helping friends makes Leo's heart warm. Have you ever found something that belongs to someone else?",
+   "protagonista": [
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Leo"
+   ],
+   "resposta": {
+    "id": "banco-leo-mitten",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2559,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"bird\",\n      \"kind\": \"animal\",\n      \"species\": \"bird\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"squirrel\",\n      \"kind\": \"animal\",\n      \"species\": \"squirrel\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"park\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-leo-mia",
+   "fonte": "banco",
+   "video_id": "4bf22ad7",
+   "texto": "Leo loves playing with his red ball. But today, his friend Mia wants to play too. Leo feels unsure but decides to share. They have twice the fun together. Sharing makes playtime special. Do you like playing with friends too?",
+   "protagonista": [
+    "Leo"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Leo",
+    "Mia"
+   ],
+   "resposta": {
+    "id": "banco-leo-mia",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1749,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Leo\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Mia\",\n      \"role\": null,\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Leo",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-noah",
+   "fonte": "banco",
+   "video_id": "22561d82",
+   "texto": "Noah's Ark — a story of faith and survival!\n\nLong ago, the world was filled with wickedness. But Noah wanted to obey God.\n\nA great flood is coming.”\n\nAfter the flood, God placed a rainbow in the sky... a promise kept.",
+   "protagonista": [
+    "Noah",
+    "God",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Noah"
+   ],
+   "resposta": {
+    "id": "banco-noah",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1326,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Noah\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Noah",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-guardiola",
+   "fonte": "banco",
+   "video_id": "402eafcb",
+   "texto": "\"Did Guardiola invent the false 9?\"\n\n\"In 2009, Guardiola changed Barcelona's attack style. Messi was key.\"\n\n\"Instead of staying with defenders, Messi dropped back to receive.\"\n\n\"This movement opened spaces for teammates... Barcelona created one of the era's most iconic attacks.\"",
+   "protagonista": [
+    "Guardiola",
+    "Messi",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Barcelona"
+   ],
+   "humanos": [
+    "Guardiola",
+    "Messi"
+   ],
+   "resposta": {
+    "id": "banco-guardiola",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1308,
+    "raw": "{\"protagonist\":{\"name\":\"Guardiola\",\"role\":\"human\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":\"adult\",\"age_evidence\":\"\",\"on_screen\":true},\"supporting\":[{\"name\":\"Messi\",\"role\":\"human\",\"kind\":\"human\",\"species\":\"human\",\"appearance_from_text\":\"\",\"gender_if_stated\":\"male\",\"age_if_stated\":\"adult\",\"age_evidence\":\"\",\"on_screen\":true}],\"places_and_orgs\":[\"Barcelona\"]}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Guardiola",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-dino-mitten",
+   "fonte": "banco",
+   "video_id": "a7fe3d56",
+   "texto": "Dino was playing in the park when he found a tiny lost mitten. Dino searched around, asking a squirrel and a bird, but no one knew. Finally, Dino saw a little bunny with one cold paw. Helping others is always kind. Have you ever found something special?",
+   "protagonista": [
+    "Dino"
+   ],
+   "tipo": null,
+   "especie": null,
+   "fallbackOk": true,
+   "animaisNao": [
+    "Dino"
+   ],
+   "resposta": {
+    "id": "banco-dino-mitten",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 3124,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Dino\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"playing in the park\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"squirrel\",\n      \"kind\": \"animal\",\n      \"species\": \"squirrel\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"bird\",\n      \"kind\": \"animal\",\n      \"species\": \"bird\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"bunny\",\n      \"kind\": \"animal\",\n      \"species\": \"bunny\",\n      \"appearance_from_text\": \"with one cold paw\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"park\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Dino",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-ollie-elephant",
+   "fonte": "banco",
+   "video_id": "39b8c319",
+   "texto": "Ollie the baby elephant found a lost mitten by the pond. Ollie gently picked it up with a giggle and set off to find its owner. After asking a few cheerful frogs, Ollie returned it to a grateful bird. Helping friends is wonderful. Have you ever found something that didn't belong to you?",
+   "protagonista": [
+    "Ollie"
+   ],
+   "tipo": "animal",
+   "especie": "elephant",
+   "resposta": {
+    "id": "banco-ollie-elephant",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2495,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ollie\",\n    \"role\": \"baby elephant\",\n    \"kind\": \"animal\",\n    \"species\": \"elephant\",\n    \"appearance_from_text\": \"none\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"baby elephant\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"frog\",\n      \"kind\": \"animal\",\n      \"species\": \"frog\",\n      \"appearance_from_text\": \"none\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": null,\n      \"role\": \"bird\",\n      \"kind\": \"animal\",\n      \"species\": \"bird\",\n      \"appearance_from_text\": \"none\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"pond\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ollie",
+     "kind": "animal",
+     "species": "elephant",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-ollie",
+   "fonte": "banco",
+   "video_id": "cd46fbbd",
+   "texto": "Ollie found a lost mitten by the river. He wondered who it belonged to. Ollie asked his animal friends nearby. Bunny hopped over and said it was hers. Kindness helps us help each other. Have you ever found something lost?",
+   "protagonista": [
+    "Ollie"
+   ],
+   "tipo": null,
+   "especie": null,
+   "fallbackOk": true,
+   "resposta": {
+    "id": "banco-ollie",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1786,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Ollie\",\n    \"role\": \"boy\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"Bunny\",\n      \"kind\": \"animal\",\n      \"species\": \"rabbit\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"river\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Ollie",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-jake-fridge",
+   "fonte": "banco",
+   "video_id": "2fe30a0f",
+   "texto": "Jake opens the fridge at 2 AM.\n\nJake whispers, “Keep your voice down!” and checks the hallway.\n\nFridge calmly replies, “I’ve already texted your wife.”\n\nOff-screen, a voice calls, “Jaaake?” Jake grabs an apple, whispers, “This house is spying on me.”",
+   "protagonista": [
+    "Jake"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Jake"
+   ],
+   "resposta": {
+    "id": "banco-jake-fridge",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1673,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Jake\",\n    \"role\": \"human\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"fridge\",\n      \"kind\": \"object\",\n      \"species\": null,\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Jake",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-earhart",
+   "fonte": "banco",
+   "video_id": "acce4a3c",
+   "texto": "Did they finally find Amelia Earhart's plane? On July second, 1937, Amelia Earhart and her navigator Fred Noonan vanished over the Pacific. She was thirty-nine, trying to become the first woman to fly around the world. They never reached Howland Island. About four hundred miles away sits a tiny island called Nikumaroro. In 2020, a satellite spotted something strange in its lagoon. A long, shiny shape, right where a plane could have broken apart. They called it the Taraia Object. This month, a team backed by Purdue University sailed out to finally touch it. And the answer was... trees.",
+   "protagonista": [
+    "Amelia Earhart",
+    "Earhart",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Nikumaroro",
+    "Purdue University",
+    "Howland Island",
+    "Taraia Object",
+    "Pacific"
+   ],
+   "humanos": [
+    "Amelia",
+    "Earhart",
+    "Fred Noonan"
+   ],
+   "resposta": {
+    "id": "banco-earhart",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2491,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Amelia Earhart\",\n    \"role\": \"pilot\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"adult\",\n    \"age_evidence\": \"thirty-nine\",\n    \"on_screen\": false\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Fred Noonan\",\n      \"role\": \"navigator\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"male\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": false\n    },\n    {\n      \"name\": null,\n      \"role\": \"team\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"Pacific\",\n    \"Howland Island\",\n    \"Nikumaroro\",\n    \"Purdue University\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Amelia Earhart",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-kael",
+   "fonte": "banco",
+   "video_id": "f7ac21dd",
+   "texto": "Kael, an 18-year-old in torn clothes, stands alone...\n\nBehind him, enormous stone castles and wealthy people mock.\n\nKael whispers, “One day, they will all bow before me.”\n\nSoldiers shout, “There he is! Catch him!” Kael runs, fear igniting his escape.",
+   "protagonista": [
+    "Kael"
+   ],
+   "tipo": "human",
+   "especie": null,
+   "humanos": [
+    "Kael"
+   ],
+   "resposta": {
+    "id": "banco-kael",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1834,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Kael\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"torn clothes\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"teen\",\n    \"age_evidence\": \"an 18-year-old\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"soldier\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"stone castles\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Kael",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-bob",
+   "fonte": "banco",
+   "video_id": "d7a3e16a",
+   "texto": "HOOK (0-2s): [Pexels: cartoon cockroach with sneakers] Meet Bob—the tiny cockroach with big eyes and cheeky smile.\n\nMICRO REWARD 1: [Pexels: cockroach scurrying in sneakers] Bob is convinced he's the fastest runner in his tiny sneakers.\n\nMICRO REWARD 2: [Pexels: cockroach hiding behind objects] But he's terrified of—everything! Even his own shadow.\n\nPAYOFF: [Pexels: cockroach smiling mischievously] Yet, his clumsy antics... always leave him smiling. Bob's charm? Unstoppable!",
+   "protagonista": [
+    "Bob"
+   ],
+   "tipo": "animal",
+   "especie": "cockroach",
+   "resposta": {
+    "id": "banco-bob",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1291,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Bob\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"cockroach\",\n    \"appearance_from_text\": \"tiny with big eyes and cheeky smile\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": false,
+     "graves": [],
+     "erros": [
+      "tipo:Bob=creature (esperado animal)"
+     ],
+     "protagonista": "Bob",
+     "kind": "creature",
+     "species": "cockroach",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-moranguinha",
+   "fonte": "banco",
+   "video_id": "0bec6590",
+   "texto": "HOOK (0-2s): [Pexels: colorful school hallway] Meet Moranguinha, the strawberry with a shocking secret!\n\nMICRO REWARD 1: [Pexels: animated strawberry character] She bursts in, furious: “I know who stole my boyfriend!”\n\nMICRO REWARD 2: [Pexels: animated watermelon character] Melancia looks nervous, Banano drops his phone.\n\nPAYOFF: [Pexels: animated grape character] Uvinha steps in, serious: “Moranguinha… the worst part... you have no idea!”",
+   "protagonista": [
+    "Moranguinha"
+   ],
+   "tipo": "object",
+   "especie": "strawberry",
+   "resposta": {
+    "id": "banco-moranguinha",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2955,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Moranguinha\",\n    \"role\": null,\n    \"kind\": \"object\",\n    \"species\": \"strawberry\",\n    \"appearance_from_text\": \"none\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Melancia\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"watermelon\",\n      \"appearance_from_text\": \"none\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Banano\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"banana\",\n      \"appearance_from_text\": \"none\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    },\n    {\n      \"name\": \"Uvinha\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"grape\",\n      \"appearance_from_text\": \"none\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Moranguinha",
+     "kind": "object",
+     "species": "strawberry",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-milo",
+   "fonte": "banco",
+   "video_id": "0a7fa307",
+   "texto": "**HOOK (0-2s):** [Pexels: magical forest flowers] Deep inside a magical forest, there lived a little panda named Milo.\n\n**MICRO REWARD 2 (6-10s):** [Pexels: panda hearing sound] One morning, Milo heard a little cry near a tree.\n\n**PAYOFF (10-15s):** [Pexels: animals celebrating together] Together, they found the bird's family... Milo learned kindness makes a big difference.",
+   "protagonista": [
+    "Milo"
+   ],
+   "tipo": "animal",
+   "especie": "panda",
+   "resposta": {
+    "id": "banco-milo",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1288,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Milo\",\n    \"role\": null,\n    \"kind\": \"animal\",\n    \"species\": \"panda\",\n    \"appearance_from_text\": \"little\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": \"child\",\n    \"age_evidence\": \"little panda\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\"magical forest\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Milo",
+     "kind": "animal",
+     "species": "panda",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-bibi",
+   "fonte": "banco",
+   "video_id": "2add1695",
+   "texto": "Bibi found a baby bird on the ground, chirping sadly. Bibi gently picked up the bird and hopped to its nest. The baby bird was safe and happy again. Helping friends makes everyone smile. Have you helped a friend today?",
+   "protagonista": [
+    "Bibi"
+   ],
+   "tipo": null,
+   "especie": null,
+   "fallbackOk": true,
+   "especiesProibidas": [
+    "bird"
+   ],
+   "resposta": {
+    "id": "banco-bibi",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1778,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Bibi\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"baby bird\",\n      \"kind\": \"animal\",\n      \"species\": \"bird\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": \"child\",\n      \"age_evidence\": \"baby bird\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Bibi",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-porsche",
+   "fonte": "banco",
+   "video_id": "0d2946d7",
+   "texto": "The red Porsche 911 thinks it's the fastest car ever!\n\nIt speeds toward a tiny speed bump... and stops in fear.\n\nA tiny snail inches by and asks, “Bro, are you even moving?”\n\nThe Porsche is left speechless... outpaced by a snail!",
+   "protagonista": [
+    "Porsche",
+    "Porsche 911",
+    null
+   ],
+   "tipo": null,
+   "especie": null,
+   "livre": true,
+   "proibTipo": {
+    "Porsche": "human"
+   },
+   "resposta": {
+    "id": "banco-porsche",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1851,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Porsche 911\",\n    \"role\": null,\n    \"kind\": \"object\",\n    \"species\": null,\n    \"appearance_from_text\": \"red\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"snail\",\n      \"role\": null,\n      \"kind\": \"animal\",\n      \"species\": \"snail\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Porsche 911",
+     "kind": "object",
+     "species": "porsche 911",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-borden",
+   "fonte": "banco",
+   "video_id": "3a5ebc5a",
+   "texto": "On the morning of August 4, 1892, in Fall River, Massachusetts, the Borden house on Second Street was silent amid a brutal heat wave. Andrew Borden, one of the wealthiest and most despised men in town, was a former undertaker turned banker known for his extreme frugality, as evidenced by the lack of indoor plumbing in his fine house. Upstairs, his wife Abby was making the guest-room bed when someone approached her from behind with a hatchet and struck her nineteen times.",
+   "protagonista": [
+    "Andrew Borden",
+    "Abby",
+    "Borden",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Fall River",
+    "Massachusetts",
+    "Second Street"
+   ],
+   "humanos": [
+    "Andrew",
+    "Abby",
+    "Borden"
+   ],
+   "resposta": {
+    "id": "banco-borden",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 2200,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Andrew Borden\",\n    \"role\": \"human\",\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": \"male\",\n    \"age_if_stated\": \"adult\",\n    \"age_evidence\": \"one of the wealthiest and most despised men in town\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Abby\",\n      \"role\": \"human\",\n      \"kind\": \"human\",\n      \"species\": \"human\",\n      \"appearance_from_text\": \"\",\n      \"gender_if_stated\": \"female\",\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\n    \"Fall River\",\n    \"Massachusetts\",\n    \"Borden house\",\n    \"Second Street\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Andrew Borden",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-zosia",
+   "fonte": "banco",
+   "video_id": "c7feba60",
+   "texto": "Why was this teenager padlocked inside her grave?\n\nIn 2022, archaeologists digging an old cemetery in Pień, in northern Poland, opened grave number seventy-five. Inside lay a young woman from the sixteen hundreds. She was seventeen, maybe nineteen. She still wore a silk cap.\n\nThen they saw the sickle. Fourteen inches of iron, laid across her neck, with the blade turned toward her throat.\n\nAnd on the big toe of her left foot, someone had locked an iron padlock.\n\nThe team named her Zosia. Her face has been rebuilt",
+   "protagonista": [
+    "Zosia",
+    null
+   ],
+   "tipo": "human",
+   "especie": null,
+   "proib": [
+    "Pień",
+    "Poland"
+   ],
+   "humanos": [
+    "Zosia"
+   ],
+   "resposta": {
+    "id": "banco-zosia",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1349,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Zosia\",\n    \"role\": null,\n    \"kind\": \"human\",\n    \"species\": \"human\",\n    \"appearance_from_text\": \"silk cap\",\n    \"gender_if_stated\": \"female\",\n    \"age_if_stated\": \"teen\",\n    \"age_evidence\": \"seventeen, maybe nineteen\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": [\n    \"Pień\",\n    \"Poland\"\n  ]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Zosia",
+     "kind": "human",
+     "species": "human",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-vegetais",
+   "fonte": "banco",
+   "video_id": "9061b275",
+   "texto": "The Secret Lives of Vegetables\n\nThe supermarket lights turn off. The camera moves toward the vegetable aisle. Suddenly, Broccoli opens his eyes.\n\nNarrator: \"Everyone thinks the supermarket sleeps at night... but they have NO idea what really happens here.\"\n\nBroccoli looks angrily at Avocado, who is sitting on a luxurious VIP shelf.\n\nBroccoli: \"I've been here for THREE WEEKS! Why does HE get the VIP shelf while I'm stuck next to cabbage?!\"\n\nAvocado slowly turns around, wearing sunglasses.",
+   "protagonista": [
+    "Broccoli",
+    "Avocado"
+   ],
+   "tipo": "object",
+   "resposta": {
+    "id": "banco-vegetais",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1770,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Broccoli\",\n    \"role\": null,\n    \"kind\": \"object\",\n    \"species\": \"broccoli\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": \"Avocado\",\n      \"role\": null,\n      \"kind\": \"object\",\n      \"species\": \"avocado\",\n      \"appearance_from_text\": \"wearing sunglasses\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": [\"supermarket\"]\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Broccoli",
+     "kind": "object",
+     "species": "broccoli",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-zipp",
+   "fonte": "banco",
+   "video_id": "921b7a87",
+   "texto": "Zipp takes a giant bite of pizza, eyes bulging through cheese!\n\nZipp spots a pizza box, snatches it, and bumps into a trash can.\n\nZipp leaps into his UFO, pizza in hand, and zooms away.\n\nZipp returns the pizza box, gives a thumbs-up... then his stomach growls!",
+   "protagonista": [
+    "Zipp"
+   ],
+   "tipo": null,
+   "especie": null,
+   "fallbackOk": true,
+   "resposta": {
+    "id": "banco-zipp",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1128,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Zipp\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"UFO\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": true,
+     "graves": [],
+     "erros": [],
+     "protagonista": "Zipp",
+     "kind": "creature",
+     "species": "ufo",
+     "fallback": false
+    }
+   }
+  },
+  {
+   "id": "banco-munch",
+   "fonte": "banco",
+   "video_id": "93f812b7",
+   "texto": "Munch discovers three floating letters: C, A, T. Munch: \"Whoa! What's this?\"\n\nMunch sniffs and gobbles them up. Sniff! Munch! Munch!\n\nPOOF! Tiny cats with sunglasses pop out and dance happily.\n\nMunch laughs and dances. Munch: \"Oopsie! I made CATS!\" *giggle*",
+   "protagonista": [
+    "Munch"
+   ],
+   "tipo": null,
+   "especie": null,
+   "fallbackOk": true,
+   "especiesProibidas": [
+    "cat",
+    "cats"
+   ],
+   "resposta": {
+    "id": "banco-munch",
+    "fonte": "banco",
+    "status": "ok",
+    "tentativas": 1,
+    "ms": 1818,
+    "raw": "{\n  \"protagonist\": {\n    \"name\": \"Munch\",\n    \"role\": null,\n    \"kind\": \"creature\",\n    \"species\": \"tiny cat\",\n    \"appearance_from_text\": \"\",\n    \"gender_if_stated\": null,\n    \"age_if_stated\": null,\n    \"age_evidence\": \"\",\n    \"on_screen\": true\n  },\n  \"supporting\": [\n    {\n      \"name\": null,\n      \"role\": \"tiny cat\",\n      \"kind\": \"creature\",\n      \"species\": \"cat\",\n      \"appearance_from_text\": \"with sunglasses\",\n      \"gender_if_stated\": null,\n      \"age_if_stated\": null,\n      \"age_evidence\": \"\",\n      \"on_screen\": true\n    }\n  ],\n  \"places_and_orgs\": []\n}",
+    "nota": {
+     "acerto": false,
+     "graves": [],
+     "erros": [
+      "especie_proibida:Munch=tiny cat"
+     ],
+     "protagonista": "Munch",
+     "kind": "creature",
+     "species": "tiny cat",
+     "fallback": false
+    }
+   }
+  }
+ ]
+}

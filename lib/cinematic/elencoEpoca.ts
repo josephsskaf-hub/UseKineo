@@ -188,6 +188,12 @@ const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINE
 const normaliza = (s: string) => s.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '') // KINEO-ELENCO-EPOCA-2710
 function hash(texto: string): number { let h = 0x811c9dc5; for (let i = 0; i < texto.length; i++) { h ^= texto.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 } return h >>> 0 } // KINEO-ELENCO-EPOCA-2710 — FNV-1a, como elencoDaHistoria
 function escolhe(lista: readonly string[], semente: number, usados: Set<string>): string { for (let i = 0; i < lista.length; i++) { const op = lista[(semente + i) % lista.length]; if (!usados.has(op)) { usados.add(op); return op } } return lista[semente % lista.length] } // KINEO-ELENCO-EPOCA-2710
+/** KINEO-PROTAGONISTA-SEEDANCE-0111 — o mesmo personagem por nome: alguma palavra do nome (3+ letras, fora "the") em comum ("Captain Ahab" = "Ahab"; "Roland Pernicus Oznard" = "Roland"). */
+export function mesmoPersonagem(a: string, b: string): boolean {
+  const ws = (s: string) => String(s ?? '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && w !== 'the')
+  const B = new Set(ws(b))
+  return ws(a).some((w) => B.has(w))
+}
 /** A palavra inteira no texto (Unicode, sem acento, sem caixa). */ // KINEO-ELENCO-EPOCA-2710
 export function citaPalavra(texto: string, palavra: string): boolean { // KINEO-ELENCO-EPOCA-2710
   const p = normaliza(limpa(palavra)) // KINEO-ELENCO-EPOCA-2710
@@ -508,6 +514,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   tagFaceless: boolean // KINEO-ELENCO-EPOCA-2710
   /** O template /kids-cartoon está ativo no pedido: conto infantil sem precisar de pista no texto. */ // KINEO-ELENCO-EPOCA-2710
   kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
+  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
 }): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710
   const prompts = args.prompts.map((p) => String(p ?? '')) // KINEO-ELENCO-EPOCA-2710
   const n = prompts.length // KINEO-ELENCO-EPOCA-2710
@@ -525,6 +533,9 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   else { // KINEO-ELENCO-EPOCA-2710
     const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710
     let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
+    // KINEO-PROTAGONISTA-SEEDANCE-0111 — com o elenco semântico aplicado (protagonista nomeado lido pelo sentido): nome que ele NÃO leu como personagem (lugar, empresa, "Lena is gone") não entra
+    // KINEO-PROTAGONISTA-SEEDANCE-0111 — em cena, e o protagonista desta camada passa a ser o mesmo (o Skoczuś deixava de ser coadjuvante aqui). Sem elenco semântico: igual, byte a byte.
+    if (args.elencoSemantico) { const sem = args.elencoSemantico; elenco = elenco.filter((p) => !p.nomeado || sem.nomes.some((n) => mesmoPersonagem(n, p.nome))); for (const p of elenco) if (p.nomeado) p.protagonista = mesmoPersonagem(sem.protagonista, p.nome) } // KINEO-PROTAGONISTA-SEEDANCE-0111
     // KINEO-ELENCO-MARCADOR-2910 — dono sem nome entra mesmo quando já existe outro personagem (ou outra pessoa nos visuais).
     for (const pessoa of pessoasPossessivas(texto)) {
       if (elenco.some((p) => p.possessivo?.nucleo === pessoa.nucleo)) continue

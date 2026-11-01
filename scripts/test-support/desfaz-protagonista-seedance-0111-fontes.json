@@ -1,0 +1,90 @@
+{
+ "base": "2359bf434288d0bf2b2727b994e3c374d23901ab",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "471146625b2b132924edd29a6f073eaf1c69f5bd13e7458a51ae684f2468ce37",
+   "afterSha256": "087f55745ed43217967568411d3009750569ff592aea000401e52a0470f56c74",
+   "hunks": [
+    {
+     "before": "import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos\n",
+     "after": "import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos\nimport { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico\n"
+    },
+    {
+     "before": "    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — existing paid casting only where it already ran; inherited cards win.\n    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada",
+     "after": "    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — existing paid casting only where it already ran; inherited cards win.\n    // KINEO-PROTAGONISTA-SEEDANCE-0111 [TRAVA 8.2 — vai do fundador 01/11 \"vai personagem\"] — estrada clássica em character_story (Seedance/Kling 2.5/Veo, inclusive o 15 s): UMA leitura\n    // KINEO-PROTAGONISTA-SEEDANCE-0111 — semântica do elenco (gpt-4o-mini, ~4 s + 1 tentativa, lib/cinematic/elencoSemantico). Com protagonista NOMEADO conferido contra o texto, ele e o\n    // KINEO-PROTAGONISTA-SEEDANCE-0111 — coadjuvante viram o elenco do pedido (BRO é pombo; Mila é gente; Max não é o filhote). Erro/prazo/JSON inválido/sem nome = o elenco determinístico de sempre.\n    const elencoBaseDoPedido: FichaDePersonagem[] = !qualidadeHerdada && personagem.ativo ? elencoDoRoteiro(prompt) : [] // KINEO-PROTAGONISTA-SEEDANCE-0111\n    const usarElencoSemantico = !qualidadeHerdada && personagem.ativo && !hollywoodPath && !estrelaFicha && !desenhoInfantil.ativo && classicVisualMode === 'character_story' // KINEO-PROTAGONISTA-SEEDANCE-0111\n    const pedidoSemantico = usarElencoSemantico ? await pedirElencoSemantico(prompt) : null // KINEO-PROTAGONISTA-SEEDANCE-0111 — nunca lança\n    const elencoSemantico = pedidoSemantico ? aplicarElencoSemantico(elencoBaseDoPedido, pedidoSemantico.elenco, prompt) : null // KINEO-PROTAGONISTA-SEEDANCE-0111\n    if (pedidoSemantico) { const relatoSemantico = relatoDoElencoSemantico(pedidoSemantico, elencoSemantico); console.log(`[personagem] gen=${generationId} KINEO-PROTAGONISTA-SEEDANCE: status=${relatoSemantico.status} tentativas=${relatoSemantico.tentativas} ${relatoSemantico.ms} ms aplicado=${relatoSemantico.aplicado} elenco=${relatoSemantico.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem}${e.protagonista ? '/P' : ''})`).join(', ') || '-'} novas=${relatoSemantico.novas.join('+') || '-'}`) } // KINEO-PROTAGONISTA-SEEDANCE-0111\n    const elencoDoPedido: FichaDePersonagem[] = elencoSemantico ? elencoSemantico.elenco : elencoBaseDoPedido // KINEO-PROTAGONISTA-SEEDANCE-0111\n    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada"
+    },
+    {
+     "before": "      ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }\n      : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt))\n        : { elenco: elencoDoRoteiro(prompt), casting: 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 }\n    // KINEO-DESENHO-LEO-0111 — desenho infantil: o elenco lido do roteiro dizia \"Leo, a squirrel…\" (a espécie do coadjuvante na frase do nome) e",
+     "after": "      ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }\n      : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoPedido) // KINEO-PROTAGONISTA-SEEDANCE-0111 — era elencoDoRoteiro(prompt)\n        : { elenco: elencoDoPedido, casting: elencoSemantico ? 'semantico' : 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-PROTAGONISTA-SEEDANCE-0111\n    // KINEO-DESENHO-LEO-0111 — desenho infantil: o elenco lido do roteiro dizia \"Leo, a squirrel…\" (a espécie do coadjuvante na frase do nome) e"
+    },
+    {
+     "before": "    const visuaisDoPlano15 = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-FILME15-ELENCO-2610\n    const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas // KINEO-QUALIDADE-TODOS-MOTORES-2910\n    const elencoDoAjuste = elencoFilme15 && elencoFilme15.elenco.length > 0 ? elencoFilme15.elenco : personagemElenco.elenco // KINEO-FILME15-ELENCO-2610",
+     "after": "    const visuaisDoPlano15 = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-FILME15-ELENCO-2610\n    const elencoFilme15 = !qualidadeHerdada && filme15RostoFixo && personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' ? elencoDoFilme15({ elencoDoPedido: personagemElenco.elenco, visuals: visuaisDoPlano15, extrair: elencoDoRoteiro, completar: !elencoSemantico /* KINEO-PROTAGONISTA-SEEDANCE-0111 — elenco lido pelo sentido: os visuais não acrescentam ninguém */ }) : null // KINEO-FILME15-ELENCO-2610 — pedido em PT/ES: o elenco sai dos visuais (inglês) das cenas // KINEO-QUALIDADE-TODOS-MOTORES-2910\n    const elencoDoAjuste = elencoFilme15 && elencoFilme15.elenco.length > 0 ? elencoFilme15.elenco : personagemElenco.elenco // KINEO-FILME15-ELENCO-2610"
+    },
+    {
+     "before": "      const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710\n      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710",
+     "after": "      const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710\n      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false, elencoSemantico: elencoSemantico ? { nomes: elencoSemantico.nomes, protagonista: elencoSemantico.protagonista } : null /* KINEO-PROTAGONISTA-SEEDANCE-0111 — nome que o elenco semântico não leu como personagem (lugar, \"Lena is gone\") não é inserido */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710"
+    }
+   ]
+  },
+  "lib/cinematic/folhaDePersonagem.ts": {
+   "beforeSha256": "2e567db13a38c777b35c59e0c7a9dd569593333997f33bb04bcb3f98dbd6bf73",
+   "afterSha256": "c4977508541206933f70c7880180ab0998e47dcc54641a56385f878018723963",
+   "hunks": [
+    {
+     "before": "/** A descrição canônica determinística de um personagem (mesmo roteiro → mesmo texto). */\nfunction canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {\n  const h = hash(nome.toLowerCase())",
+     "after": "/** A descrição canônica determinística de um personagem (mesmo roteiro → mesmo texto). */\n/** KINEO-PROTAGONISTA-SEEDANCE-0111 — exportada: o elenco semântico (lib/cinematic/elencoSemantico) gera a ficha com o MESMO gerador. */\nexport function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {\n  const h = hash(nome.toLowerCase())"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "896df95a3911129a1dff6f8f77707ef6c7cb17ad1fa52bc5c082e18fef06db04",
+   "afterSha256": "67edbaf7bc5c52ec01efa4a5482f19024bfcedc24c079e973b8adeb9a84be9fa",
+   "hunks": [
+    {
+     "before": "  kidsCartoon?: boolean; aplicarContrato?: boolean\n}) {",
+     "after": "  kidsCartoon?: boolean; aplicarContrato?: boolean\n  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — repassado à camada elencoEpoca (aplicarElencoEEpoca). */\n  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null\n}) {"
+    }
+   ]
+  },
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "abd11bdcb9ac1a64d45198a2e069b444f89a2e355af173236ed67b008ed0e0ca",
+   "afterSha256": "cb5479f24e49e87d8c1a88b99edbe581c8e8c88f54de3d48ac4820bdeb382b37",
+   "hunks": [
+    {
+     "before": "function escolhe(lista: readonly string[], semente: number, usados: Set<string>): string { for (let i = 0; i < lista.length; i++) { const op = lista[(semente + i) % lista.length]; if (!usados.has(op)) { usados.add(op); return op } } return lista[semente % lista.length] } // KINEO-ELENCO-EPOCA-2710\n/** A palavra inteira no texto (Unicode, sem acento, sem caixa). */ // KINEO-ELENCO-EPOCA-2710",
+     "after": "function escolhe(lista: readonly string[], semente: number, usados: Set<string>): string { for (let i = 0; i < lista.length; i++) { const op = lista[(semente + i) % lista.length]; if (!usados.has(op)) { usados.add(op); return op } } return lista[semente % lista.length] } // KINEO-ELENCO-EPOCA-2710\n/** KINEO-PROTAGONISTA-SEEDANCE-0111 — o mesmo personagem por nome: alguma palavra do nome (3+ letras, fora \"the\") em comum (\"Captain Ahab\" = \"Ahab\"; \"Roland Pernicus Oznard\" = \"Roland\"). */\nexport function mesmoPersonagem(a: string, b: string): boolean {\n  const ws = (s: string) => String(s ?? '').toLowerCase().split(/[^\\p{L}\\p{N}]+/u).filter((w) => w.length >= 3 && w !== 'the')\n  const B = new Set(ws(b))\n  return ws(a).some((w) => B.has(w))\n}\n/** A palavra inteira no texto (Unicode, sem acento, sem caixa). */ // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "  kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710\n}): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710",
+     "after": "  kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710\n  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */\n  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null\n}): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "    let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710\n    // KINEO-ELENCO-MARCADOR-2910 — dono sem nome entra mesmo quando já existe outro personagem (ou outra pessoa nos visuais).",
+     "after": "    let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710\n    // KINEO-PROTAGONISTA-SEEDANCE-0111 — com o elenco semântico aplicado (protagonista nomeado lido pelo sentido): nome que ele NÃO leu como personagem (lugar, empresa, \"Lena is gone\") não entra\n    // KINEO-PROTAGONISTA-SEEDANCE-0111 — em cena, e o protagonista desta camada passa a ser o mesmo (o Skoczuś deixava de ser coadjuvante aqui). Sem elenco semântico: igual, byte a byte.\n    if (args.elencoSemantico) { const sem = args.elencoSemantico; elenco = elenco.filter((p) => !p.nomeado || sem.nomes.some((n) => mesmoPersonagem(n, p.nome))); for (const p of elenco) if (p.nomeado) p.protagonista = mesmoPersonagem(sem.protagonista, p.nome) } // KINEO-PROTAGONISTA-SEEDANCE-0111\n    // KINEO-ELENCO-MARCADOR-2910 — dono sem nome entra mesmo quando já existe outro personagem (ou outra pessoa nos visuais)."
+    }
+   ]
+  },
+  "lib/filmes/filme15Elenco.ts": {
+   "beforeSha256": "04c30c24ff012da54260104aa49197dcf739b96caf95221ee1458d59948f7e14",
+   "afterSha256": "3c05504e14714aa5d49495cf481891ef672ac24af4990b5260bab090b9f525fe",
+   "hunks": [
+    {
+     "before": "  extrair: (texto: string) => FichaDePersonagem[]\n}): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'pedido+cenas' | 'cenas' | 'nenhum' } {",
+     "after": "  extrair: (texto: string) => FichaDePersonagem[]\n  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — false quando o elenco do pedido veio do elenco SEMÂNTICO (quem é personagem já foi lido pelo\n   *  sentido): os visuais não acrescentam ninguém (\"the bright pink unicorn\" da peruca do BRO entrava como coadjuvante). Padrão: true. */\n  completar?: boolean\n}): { elenco: FichaDePersonagem[]; origem: 'pedido' | 'pedido+cenas' | 'cenas' | 'nenhum' } {"
+    },
+    {
+     "before": "  if (doPedido.length >= FILME15_ELENCO_MAX) return { elenco: doPedido, origem: 'pedido' }\n  // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo",
+     "after": "  if (doPedido.length >= FILME15_ELENCO_MAX) return { elenco: doPedido, origem: 'pedido' }\n  if (args.completar === false && doPedido.length > 0) return { elenco: doPedido.map((f, i) => ({ ...f, protagonista: i === 0 })), origem: 'pedido' } // KINEO-PROTAGONISTA-SEEDANCE-0111\n  // 1. Por cena, os papéis que o extrator acha. Ele pega UM papel sem nome por texto: tira o papel achado e lê de novo"
+    },
+    {
+     "before": "export function cenaCitaElenco(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {\n  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)))\n}",
+     "after": "export function cenaCitaElenco(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {\n  // KINEO-PROTAGONISTA-SEEDANCE-0111 — também pelo NOME (\"BRO dons…\" cita o BRO, cujo núcleo é a espécie \"pigeon\"; \"Captain Ahab\" pela palavra \"Ahab\"). Ficha de nome de uma palavra: igual.\n  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)) || palavras(String(f.nome ?? '')).some((w) => w.length >= 3 && w !== 'the' && citaPalavra(visual, w)))\n}"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/elencoSemantico.ts": "8db73fc5a45129635e860b4fbcb8e702670c66c1df612a15cf37c2680f8bc7e7"
+ }
+}
