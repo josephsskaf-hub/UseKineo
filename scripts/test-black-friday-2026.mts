@@ -15,6 +15,8 @@ import {
   bf2026Countdown, bf2026DiscountMinor, bf2026EmailBody, bf2026EmailSkipReason, bf2026EmailUrl, bf2026NyDate, bf2026Open,
   bf2026PriceMinor, bf2026PriceRows, bf2026PricesMatchTable, bf2026SendDecision, bf2026State, bf2026Subject,
   bf2026UuidFromHex, bf2026WaveForDate, bf2026WorthAsking, isBf2026PromoCode,
+  BF2026_CRONS, BF2026_EMAIL_BATCH_DEFAULT, BF2026_SEND_BUDGET_MS, BF2026_WAVE_UTC_DAYS, bf2026CronPath,
+  bf2026CronRunsPerWave, bf2026OfferVisible, bf2026OutOfTime, bf2026SessionRecovery, bf2026WaveReachCeiling,
 } from '../lib/billing/blackFriday2026'
 import { ANNUAL_PRICES, ANNUAL_REFUND_DAYS, TIER_CREDITS, TIER_PRICES, getAnnualPrice, planAcceptsPromotions } from '../lib/checkoutPricing'
 import { ANNUAL_EARLY_OFFER_ENDS_AT } from '../lib/billing/annualEarlyOffer'
@@ -67,7 +69,14 @@ ok(/sessionParams\.discounts = \[\{ coupon: BF2026_COUPON_ID \}\]/.test(co), 'ch
 ok(!/promotionCodes\.create\(\{[^}]*BF2026/.test(co) && !/code: 'BF2026'/.test(co), 'checkout: nenhum promotion code BF2026 é criado (ninguém o digita no campo manual)')
 ok(/coupons\.create\(\{\n\s+id: BF2026_COUPON_ID,\n\s+percent_off: BF2026_PERCENT_OFF,\n\s+duration: 'once',\n\s+redeem_by: BF2026_COUPON_REDEEM_BY_SECONDS,/.test(co), "checkout: cupom auto-provisionado 40% 'once' (a 1ª fatura anual) com redeem_by")
 ok(/coupon!\.percent_off === BF2026_PERCENT_OFF && coupon!\.duration === 'once'/.test(co), 'checkout: cupom existente só vale se for exatamente 40% once')
-ok(/else if \(bf2026Requested\) \{[\s\S]{0,400}You have not been charged/.test(co), 'checkout: promessa clicada e cupom não confirmado → para com aviso, nunca cobra cheio calado')
+// Revisão 01/11, defeito 4: pela aba anual do /pricing (sem ?promo=) o selo também promete o desconto — falha do cupom
+// parava só quem veio com ?promo=BF2026; os outros pagavam cheio sem aviso.
+ok(/if \(bfCouponOk\) \{[\s\S]{0,2000}?\} else \{[\s\S]{0,700}You have not been charged/.test(co) && !/\} else if \(bf2026Requested\) \{/.test(co), 'checkout: cupom não confirmado → para com aviso em QUALQUER checkout anual da janela (com ou sem ?promo=), nunca cobra cheio calado')
+// Revisão 01/11, defeito 5: a recuperação da Stripe copiava o cupom e o link vive 30 dias → 40% até 04/12.
+ok(JSON.stringify(bf2026SessionRecovery(true)) === '{"recovery":{"enabled":false}}' && bf2026SessionRecovery(false) === null, 'recuperação: sessão com o cupom = sem recuperação; sem cupom = a de sempre')
+const recAt = co.indexOf('const bf2026Recovery = bf2026SessionRecovery(bf2026Applied)')
+const recBaseAt = co.indexOf('  sessionParams.after_expiration = {\n    recovery: {\n      enabled: true,')
+ok(recAt > 0 && recBaseAt > 0 && recAt > recBaseAt && co.includes('if (bf2026Recovery) sessionParams.after_expiration = bf2026Recovery') && recAt < co.indexOf('sessionParams.expires_at = recurringCheckoutExpiresAt(checkoutWindow)'), 'checkout: a recuperação da BF é desligada DEPOIS da recuperação padrão (ninguém a religa) e antes de a sessão nascer')
 const genericAt = co.indexOf('if (!discountApplied && requestedPromo && !promoBlocked) { // KINEO-FIRST50-2026-08-18: gate')
 const introAt = co.indexOf('// KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês.')
 ok(bfAt > 0 && introAt > bfAt && genericAt > bfAt, 'checkout: a Black Friday decide antes do intro e do bloco genérico de ?promo= (nunca empilha)')
@@ -167,10 +176,44 @@ ok(route.includes("email_opted_out") && route.includes('isInternalEmail') && rou
 ok(route.includes('function autorizadoPorCron') && route.includes("ADMIN_EMAILS.has(adminEmail)) && !porCron) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })"), 'rota: só admin logado ou o cron com CRON_SECRET')
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8')) as { crons: Array<{ path: string; schedule: string }> }
 const bfCrons = vercel.crons.filter((c) => c.path.startsWith('/api/admin/send-black-friday-2026?'))
-ok(bfCrons.length === 2 && bfCrons.every((c) => c.path.includes('confirm=SEND')), 'vercel.json: 2 agendamentos com ?confirm=SEND')
-ok(bfCrons.some((c) => c.schedule === '0 15 27 11 *') && bfCrons.some((c) => c.schedule === '0 15 30 11 *'), 'vercel.json: 27/11 e 30/11 às 15:00 UTC (10:00 ET)')
+ok(bfCrons.length === BF2026_CRONS.length && bfCrons.every((c) => c.path.includes('confirm=SEND')), `vercel.json: ${BF2026_CRONS.length} agendamentos com ?confirm=SEND`)
+ok(BF2026_CRONS.every((c) => bfCrons.some((v) => v.path === bf2026CronPath(c.run) && v.schedule === c.schedule)), 'vercel.json espelha BF2026_CRONS (caminho e horário, um por um)')
 ok(bfCrons.every((c) => !c.path.includes('wave=')), 'vercel.json: o cron não força a onda (quem decide é a data de NY)')
 ok(new Set(vercel.crons.map((c) => c.path)).size === vercel.crons.length, 'vercel.json: nenhum caminho de cron repetido')
+
+console.log('— 5b. alcance da carta (revisão 01/11, defeito 1: 1 cron × 250 nunca chegava à base inteira)')
+// Expande "*/N H1-H2 D M *" (o único formato usado aqui) nos instantes UTC de 2026 em que o Vercel dispara.
+const expand = (schedule: string): number[] => {
+  const m = /^\*\/(\d+) (\d+)-(\d+) (\d+) (\d+) \*$/.exec(schedule)
+  if (!m) return []
+  const [step, h1, h2, day, month] = m.slice(1).map(Number)
+  const out: number[] = []
+  for (let h = h1; h <= h2; h++) for (let min = 0; min < 60; min += step) out.push(Date.UTC(2026, month - 1, day, h, min))
+  return out
+}
+for (const c of BF2026_CRONS) {
+  const firings = expand(c.schedule)
+  ok(firings.length === c.runs, `${c.run}: ${c.schedule} dispara ${c.runs} vezes (conta conferida, não digitada)`)
+  ok(firings.every((t) => { const d = bf2026SendDecision({ nowMs: t }); return d.ok && d.wave === c.wave }), `${c.run}: TODO disparo cai no dia da onda '${c.wave}' em NY e dentro da janela (o cron envia em cada um)`)
+}
+// Cada disparo fora destas listas não envia: a véspera e o dia seguinte da onda, em NY, dão not_a_send_day.
+ok((bf2026SendDecision({ nowMs: Date.UTC(2026, 10, 27, 4, 30) }) as { reason: string }).reason === 'not_a_send_day' && (bf2026SendDecision({ nowMs: Date.UTC(2026, 10, 28, 5, 0) }) as { reason: string }).reason === 'not_a_send_day', 'fora do dia de NY da onda (26/11 23:30 ET, 28/11 00:00 ET) o cron não envia')
+ok(bf2026CronRunsPerWave('bf') === 30 && bf2026CronRunsPerWave('cyber') === 30, '30 execuções por onda (antes: 1)')
+ok(BF2026_CRONS.every((c) => c.schedule.startsWith('*/30 ')) && BF2026_SEND_BUDGET_MS < 300_000 - 30_000, 'execuções de 30 em 30 min, cada uma com orçamento abaixo do limite de 300 s da rota: nunca se sobrepõem')
+const utcDays = (w: 'bf' | 'cyber') => new Set(BF2026_CRONS.filter((c) => c.wave === w).flatMap((c) => expand(c.schedule)).map((t) => new Date(t).toISOString().slice(0, 10))).size
+ok(utcDays('bf') === BF2026_WAVE_UTC_DAYS && utcDays('cyber') === BF2026_WAVE_UTC_DAYS, 'cada onda atravessa 2 dias UTC: a cota diária renova no meio dela')
+// O exemplo da revisão: cota de hoje (100 → 60 de crescimento), base de 2.000 elegíveis.
+const hoje = bf2026WaveReachCeiling({ eligible: 2000, wave: 'bf', batch: BF2026_EMAIL_BATCH_DEFAULT, growthCapPerDay: Math.floor(100 * 0.6) })
+ok(hoje.reach === 120 && hoje.limitedBy === 'daily_quota', `cota de hoje (100/dia): teto da onda = 120 (60 × 2 dias UTC), limitado pela cota — não 60, e não "a base inteira"`)
+// Cota alta: antes travava em 250 (1 execução); agora a base inteira cabe.
+const alta = bf2026WaveReachCeiling({ eligible: 2000, wave: 'bf', batch: BF2026_EMAIL_BATCH_DEFAULT, growthCapPerDay: Math.floor(3000 * 0.6) })
+ok(alta.reach === 2000 && alta.limitedBy === 'eligible' && alta.byCronRuns === 4500, 'cota alta (3.000/dia): os 2.000 elegíveis recebem (as execuções comportam 4.500) — antes parava em 250')
+ok(bf2026WaveReachCeiling({ eligible: 9000, wave: 'cyber', batch: BF2026_EMAIL_BATCH_DEFAULT, growthCapPerDay: 100_000 }).limitedBy === 'cron_runs', 'base maior que as execuções: o teto diz cron_runs (sem prometer mais do que roda)')
+ok(bf2026WaveReachCeiling({ eligible: -3, wave: 'bf', batch: Number.NaN, growthCapPerDay: 60 }).reach === 0, 'entrada inválida = alcance 0')
+ok(!bf2026OutOfTime(0, BF2026_SEND_BUDGET_MS - 1) && bf2026OutOfTime(0, BF2026_SEND_BUDGET_MS) && bf2026OutOfTime(0, Number.NaN), 'orçamento: para de abrir envios ao bater 240 s (relógio inválido = para)')
+ok(Math.floor(BF2026_SEND_BUDGET_MS / 900) >= BF2026_EMAIL_BATCH_DEFAULT, 'o lote padrão (150 × ~0,9 s) cabe no orçamento')
+ok(/for \(const a of daVez\) \{\n(\s+\/\/.*\n)*\s+if \(bf2026OutOfTime\(nowMs, Date\.now\(\)\)\) \{ paradosPorTempo = /.test(route) && route.indexOf('bf2026OutOfTime(nowMs, Date.now())') < route.indexOf('name: BF2026_EMAIL_CLAIM, path: ROUTE'), 'rota: confere o orçamento ANTES de reservar cada envio (nenhuma reserva sem envio por falta de tempo)')
+ok(route.includes('stopped_for_time: paradosPorTempo') && route.includes('wave_reach_ceiling: bf2026WaveReachCeiling('), 'rota: a resposta diz quantos ficaram para a próxima execução e o dry-run mostra o teto da onda')
 
 console.log('— 6. eventos, faixa, selo e pares')
 ok(BF2026_EVENTS.bannerShown === 'bf2026_banner_shown' && BF2026_EVENTS.bannerClicked === 'bf2026_banner_clicked' && BF2026_EVENTS.pageView === 'bf2026_page_view' && BF2026_EVENTS.checkoutStarted === 'bf2026_checkout_started', 'nomes dos eventos')
@@ -192,7 +235,18 @@ const dashDirs = fs.readdirSync('app/(dashboard)', { withFileTypes: true }).filt
 const missing = dashDirs.filter((d) => !(BF2026_APP_ROUTE_PREFIXES as readonly string[]).includes(d))
 ok(missing.length === 0, `faixa: toda rota de app/(dashboard) está na lista do app${missing.length ? ` (faltam ${missing.join(', ')})` : ''}`)
 const banner = rd('components/BlackFridayBanner.tsx')
-ok(banner.includes("fetch('/api/offers/bf2026'") && banner.includes("setOpen(s === 'open')"), 'faixa/selo: pintam só com o servidor dizendo open')
+ok(banner.includes("fetch('/api/offers/bf2026'") && banner.includes("if (s !== 'open') { setOpen(false); return }"), 'faixa/selo: pintam só com o servidor dizendo open')
+// Revisão 01/11, defeito 2: a faixa do app e o selo diziam "40% off ... any annual plan" também para quem já assina, que
+// não consegue pegar a oferta (checkout recusa 2ª assinatura; troca de plano não aplica o cupom).
+ok(bf2026OfferVisible({ serverState: 'open', subscribed: false }), 'visitante/free na janela: vê a oferta')
+ok(!bf2026OfferVisible({ serverState: 'open', subscribed: true }), 'assinante na janela: NÃO vê a faixa nem o selo')
+ok(!bf2026OfferVisible({ serverState: 'open', subscribed: null }), 'assinatura desconhecida (resposta a caminho ou erro): não pinta (nunca pisca para quem paga)')
+ok(!bf2026OfferVisible({ serverState: 'before', subscribed: false }) && !bf2026OfferVisible({ serverState: 'after', subscribed: false }) && !bf2026OfferVisible({ serverState: null, subscribed: false }), 'fora da janela ou servidor mudo: ninguém vê')
+ok(banner.includes("const PLAN_SWITCH_STATE_URL = '/api/stripe/change-plan'") && banner.includes('setOpen(bf2026OfferVisible({ serverState: s, subscribed }))') && banner.indexOf('await fetchSubscribed()') > banner.indexOf("if (s !== 'open') { setOpen(false); return }"), 'faixa/selo: lê a assinatura pela rota do /pricing, só depois do servidor dizer open (fora da janela, nenhuma requisição a mais)')
+ok(/typeof j\.subscribed === 'boolean' \? j\.subscribed : null/.test(banner) && /\(r\.ok \? r\.json\(\) : null\)\)\n\s+\.then\(\(j: \{ subscribed/.test(banner), 'faixa/selo: erro da rota de assinatura = desconhecido (não vira "não assina")')
+const changePlan = rd('app/api/stripe/change-plan/route.ts')
+ok(/if \(!user\) return NextResponse\.json\(\{ subscribed: false, tier: null, status: null \}\)/.test(changePlan), 'rota de assinatura: visitante sem conta responde subscribed:false (a faixa aparece para ele)')
+ok(banner.includes('export function Bf2026PricingBadge() {\n  const open = useBf2026Open(true)'), 'selo do /pricing usa o mesmo portão (assinante não vê)')
 ok(banner.includes('BF2026_EVENTS.bannerShown') && banner.includes('BF2026_EVENTS.bannerClicked'), 'faixa/selo: shown e clicked')
 ok(rd('components/BlackFridayCountdown.tsx').includes('BF2026_EVENTS.pageView'), 'página: page_view')
 const offerRoute = rd('app/api/offers/bf2026/route.ts')

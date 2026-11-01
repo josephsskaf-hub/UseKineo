@@ -1,7 +1,7 @@
 'use client'
 // KINEO-BLACK-FRIDAY-2026 — a faixa do topo e o selo do /pricing (aba anual) da Black Friday.
 //
-// SÓ DENTRO DA JANELA, NO RELÓGIO DO SERVIDOR: o navegador só pergunta a /api/offers/bf2026 quando o PRÓPRIO relógio diz
+// SÓ DENTRO DA JANELA, NO RELÓGIO DO SERVIDOR, E SÓ PARA QUEM NÃO ASSINA (bf2026OfferVisible): o navegador só pergunta a /api/offers/bf2026 quando o PRÓPRIO relógio diz
 // que a janela está a menos de 2 dias (antes de 22/11 e depois de 04/12 não sai nenhuma requisição). Quem decide se pinta
 // é a resposta do servidor (state === 'open'); relógio do navegador errado nunca acende oferta que o checkout não aplica.
 //
@@ -20,6 +20,7 @@ import {
   BF2026_PAGE_PATH,
   BF2026_PERCENT_OFF,
   bf2026BannerHidden,
+  bf2026OfferVisible,
   bf2026WorthAsking,
   type Bf2026State,
 } from '@/lib/billing/blackFriday2026'
@@ -38,13 +39,37 @@ function fetchState(): Promise<Bf2026State | null> {
   return cached
 }
 
-/** true só com a janela aberta segundo o servidor. */
+// QUEM JÁ ASSINA NÃO VÊ A OFERTA (revisão 01/11): o checkout recusa uma 2ª assinatura e a troca de plano não aplica o
+// cupom, então "40% off any annual plan" seria uma promessa que a compra dele não cumpre. A leitura é a MESMA rota do
+// /pricing (GET /api/stripe/change-plan, a de fetchPlanSwitchState; visitante sem conta = { subscribed: false }). Só sai
+// depois que o servidor disse 'open' (fora da janela, nenhuma requisição a mais) e fica guardada 1 minuto por aba.
+const PLAN_SWITCH_STATE_URL = '/api/stripe/change-plan'
+let subCached: Promise<boolean | null> | null = null
+let subCachedAt = 0
+function fetchSubscribed(): Promise<boolean | null> {
+  if (!subCached || Date.now() - subCachedAt > 60_000) {
+    subCachedAt = Date.now()
+    // Resposta com erro = null (desconhecido = não pinta); fetchPlanSwitchState trocaria o erro por "não assina".
+    subCached = fetch(PLAN_SWITCH_STATE_URL, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { subscribed?: unknown } | null) => (j && typeof j.subscribed === 'boolean' ? j.subscribed : null))
+      .catch(() => null)
+  }
+  return subCached
+}
+
+/** true só com a janela aberta segundo o servidor E para quem não assina hoje (bf2026OfferVisible). */
 export function useBf2026Open(enabled = true): boolean {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (!enabled || !bf2026WorthAsking(Date.now())) { setOpen(false); return }
     let alive = true
-    void fetchState().then((s) => { if (alive) setOpen(s === 'open') })
+    void fetchState().then(async (s) => {
+      if (!alive) return
+      if (s !== 'open') { setOpen(false); return }
+      const subscribed = await fetchSubscribed()
+      if (alive) setOpen(bf2026OfferVisible({ serverState: s, subscribed }))
+    })
     return () => { alive = false }
   }, [enabled])
   return open

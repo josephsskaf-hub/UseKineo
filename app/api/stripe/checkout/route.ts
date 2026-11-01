@@ -99,7 +99,7 @@ import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' /
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
-import { BF2026_CAMPAIGN, BF2026_COUPON_ID, BF2026_COUPON_REDEEM_BY_SECONDS, BF2026_EVENTS, BF2026_PERCENT_OFF, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, bf2026PriceMinor, bf2026State, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano do anual, só de 24/11 a 01/12 (America/New_York)
+import { BF2026_CAMPAIGN, BF2026_COUPON_ID, BF2026_COUPON_REDEEM_BY_SECONDS, BF2026_EVENTS, BF2026_PERCENT_OFF, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, bf2026PriceMinor, bf2026SessionRecovery, bf2026State, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano do anual, só de 24/11 a 01/12 (America/New_York)
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -2423,8 +2423,10 @@ async function buildAndRedirect(
   // qualquer porta: /black-friday, aba anual do /pricing, e-mail). Fora dele, o ?promo=BF2026 é ignorado (promoBlocked)
   // e a compra segue a preço cheio — a página da Stripe mostra o valor real antes do pagamento. O mensal nunca ganha.
   // O cupom KINEO_BF2026 nasce aqui no 1º uso (padrão do KINEO_FIRST50), percent_off vale em qualquer moeda, e ele NÃO
-  // tem promotion code: ninguém o digita no campo manual da Stripe. Quem clicou na oferta (?promo=BF2026) recebeu uma
-  // promessa: se o cupom não puder ser confirmado, a compra para com aviso honesto em vez de cobrar o preço cheio calada.
+  // tem promotion code: ninguém o digita no campo manual da Stripe. Todo anual da janela recebeu uma promessa (faixa,
+  // selo, página): se o cupom não puder ser confirmado, a compra para com aviso honesto em vez de cobrar o preço cheio.
+  // A sessão com o cupom NÃO tem recuperação da Stripe (bf2026SessionRecovery, mais abaixo): a cópia recuperada levaria
+  // o cupom para depois da janela.
   const bf2026Requested = isBf2026PromoCode(requestedPromo)
   const bf2026Eligible = !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual, wantsTrial })
   let bf2026Applied = false
@@ -2471,11 +2473,14 @@ async function buildAndRedirect(
         currency: chargeCurrency,
         amount: bf2026PriceMinor(chargeAmount),
       })
-    } else if (bf2026Requested) {
+    } else {
+      // Revisão 01/11: o selo do /pricing promete o desconto "applied at checkout on every annual plan", então TODO
+      // checkout anual da janela é uma promessa — não só o que veio com ?promo=BF2026. Cupom não confirmado = para com
+      // aviso, em qualquer porta; nunca segue a preço cheio calado.
       await recordCheckoutEvent(
         'checkout_failed',
         user.id,
-        { ...checkoutMetadata, failure_stage: 'bf2026_promo', failure_reason: 'coupon_unverified' },
+        { ...checkoutMetadata, failure_stage: 'bf2026_promo', failure_reason: 'coupon_unverified', bf2026_requested: bf2026Requested },
         browserSessionId ?? undefined,
       )
       const message = 'We could not apply the Black Friday discount right now. You have not been charged. Please try again in a minute.'
@@ -2922,6 +2927,11 @@ async function buildAndRedirect(
       allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual),
     },
   }
+  // KINEO-BLACK-FRIDAY-2026 — a sessão com o cupom da BF não tem recuperação: a cópia recuperada (link de 30 dias da
+  // Stripe, usado pelo e-mail de carrinho e pelo /resume) levaria os 40% para depois de 01/12, até o redeem_by. Dentro da
+  // janela, quem perdeu a sessão abre outra e o portão aplica o cupom de novo; depois dela, compra a preço cheio.
+  const bf2026Recovery = bf2026SessionRecovery(bf2026Applied)
+  if (bf2026Recovery) sessionParams.after_expiration = bf2026Recovery
 
   // The payment page may need its normal amount copy, but a successful
   // post-video purchase must return to the exact saved render for a clean

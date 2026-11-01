@@ -4,8 +4,10 @@
 // envia nada, em qualquer data. Com ?confirm=SEND:
 //   · fora da janela (24/11 00:00 → 01/12 23:59 America/New_York) → 409, nada enviado — nem com ?wave=;
 //   · dentro dela, SEM ?wave= (o cron do vercel.json) → só envia nos dias 27/11 ('bf') e 30/11 ('cyber') de Nova York;
-//     nos outros dias responde 200 sem envio. Os dois agendamentos (15:00 UTC = 10:00 ET) ficam no vercel.json o ano
-//     todo e só fazem algo nessas duas datas de 2026;
+//     nos outros dias responde 200 sem envio. Cada onda tem 30 execuções no próprio dia de NY, de 30 em 30 min
+//     (BF2026_CRONS: 09:00 → 23:30 ET, atravessando dois dias UTC de cota), cada uma com até 150 cartas e um orçamento de
+//     240 s (BF2026_SEND_BUDGET_MS: para de abrir envios antes do limite de 300 s da rota). A base inteira é coberta pelas
+//     execuções seguintes, não por um único lote; o teto real é a cota diária (dry-run mostra `wave_reach_ceiling`);
 //   · dentro dela, COM ?wave=bf|cyber (o link do fundador) → repõe um lote em qualquer dia da janela.
 //
 // QUEM RECEBE (bf2026EmailSkipReason, lib/billing/blackFriday2026.ts): e-mail válido · não saiu da lista
@@ -41,11 +43,13 @@ import {
   bf2026EmailSkipReason,
   bf2026EmailUrl,
   bf2026NyDate,
+  bf2026OutOfTime,
   bf2026PriceRows,
   bf2026SendDecision,
   bf2026Subject,
   bf2026UuidFromHex,
   bf2026WaveForDate,
+  bf2026WaveReachCeiling,
   parseBf2026Wave,
   type Bf2026SkipReason,
   type Bf2026Wave,
@@ -175,6 +179,8 @@ export async function GET(req: NextRequest) {
         eligible: elegiveis.length,
         next_batch: daVez.length,
         quota_today: { used: usadosHoje, growth_cap: tetoGrowth, free_slots: vagas, batch_cap: lote },
+        // O teto da ONDA inteira (todas as execuções do cron dessa onda), não só deste lote — ver bf2026WaveReachCeiling.
+        wave_reach_ceiling: bf2026WaveReachCeiling({ eligible: elegiveis.length, wave, batch: BF2026_EMAIL_BATCH_DEFAULT, growthCapPerDay: tetoGrowth }),
         subject: bf2026Subject(wave),
         link: bf2026EmailUrl(wave),
         prices: rows.map((r) => `${r.name}: ${r.bfMinor} (regular ${r.annualMinor}) minor USD`),
@@ -194,9 +200,12 @@ export async function GET(req: NextRequest) {
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
 
-    let enviados = 0, falhas = 0, pulados = 0
+    let enviados = 0, falhas = 0, pulados = 0, paradosPorTempo = 0
     const resultados: Array<{ email: string; outcome: string }> = []
     for (const a of daVez) {
+      // Orçamento da execução: perto do limite de 300 s, para de ABRIR envios (nenhuma reserva fica sem envio por isso).
+      // Quem sobrou fica para a próxima execução do cron da mesma onda (30 min depois).
+      if (bf2026OutOfTime(nowMs, Date.now())) { paradosPorTempo = daVez.length - enviados - falhas - pulados; break }
       // A reserva vem ANTES do envio: duas corridas simultâneas (cron + link) nunca mandam a mesma onda duas vezes.
       const reserva = await admin.from('events').insert({
         id: bf2026UuidFromHex(sha256Hex(bf2026ClaimSeed(a.id, wave))), user_id: a.id, name: BF2026_EMAIL_CLAIM, path: ROUTE,
@@ -225,7 +234,7 @@ export async function GET(req: NextRequest) {
       }
     }
     await registrarCorrida(admin, { ...base, no_lote: daVez.length, enviados, falhas, pulados })
-    return NextResponse.json({ mode: 'SENT', wave, sent: enviados, failed: falhas, skipped: pulados, remaining_after: Math.max(0, elegiveis.length - daVez.length), results: resultados })
+    return NextResponse.json({ mode: 'SENT', wave, sent: enviados, failed: falhas, skipped: pulados, stopped_for_time: paradosPorTempo, remaining_after: Math.max(0, elegiveis.length - (daVez.length - paradosPorTempo)), results: resultados })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }

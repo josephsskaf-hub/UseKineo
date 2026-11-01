@@ -1,12 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=250&run=bf",
-      "schedule": "0 15 27 11 *"
+      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=150&run=bf-day",
+      "schedule": "*/30 14-23 27 11 *"
     },
     {
-      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=250&run=cyber",
-      "schedule": "0 15 30 11 *"
+      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=150&run=bf-night",
+      "schedule": "*/30 0-4 28 11 *"
+    },
+    {
+      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=150&run=cyber-day",
+      "schedule": "*/30 14-23 30 11 *"
+    },
+    {
+      "path": "/api/admin/send-black-friday-2026?confirm=SEND&limit=150&run=cyber-night",
+      "schedule": "*/30 0-4 1 12 *"
     },
     {
       "path": "/api/cron/send-month2-annual-offer?confirm=SEND&limit=20",

@@ -92,6 +92,15 @@ export function bf2026CheckoutEligible(input: {
     bf2026Open(input.nowMs ?? Date.now())
 }
 
+/**
+ * A recuperação da Stripe para a sessão com o cupom (revisão 01/11): a sessão recuperada é uma cópia exata — cupom
+ * incluído — e o link vive 30 dias; com recuperação, os 40% vazariam até o redeem_by (04/12). Sessão com o cupom = sem
+ * recuperação (null = o checkout mantém a recuperação de sempre).
+ */
+export function bf2026SessionRecovery(couponApplied: boolean): { recovery: { enabled: false } } | null {
+  return couponApplied ? { recovery: { enabled: false } } : null
+}
+
 /** O ?promo= pedido é o da Black Friday? (só atribuição; o portão acima é quem decide). */
 export function isBf2026PromoCode(raw: unknown): boolean {
   return typeof raw === 'string' && raw.trim().toUpperCase() === BF2026_PROMO_CODE
@@ -180,6 +189,16 @@ export function bf2026WorthAsking(nowMs: number): boolean {
   return Number.isFinite(nowMs) && nowMs >= Date.parse(BF2026_STARTS_AT) - slack && nowMs < Date.parse(BF2026_ENDS_AT) + slack
 }
 
+/**
+ * A faixa e o selo pintam para ESTA pessoa? Só com o servidor dizendo 'open' E com a certeza de que ela não assina hoje
+ * (subscribed === false). Quem assina não consegue pegar a oferta (o checkout recusa uma 2ª assinatura e a troca de plano
+ * não aplica o cupom) — mostrar "40% off any annual plan" para ela seria prometer o que a compra não entrega (revisão
+ * 01/11). Assinatura ainda desconhecida (null, resposta a caminho) = não pinta: nunca pisca a oferta para quem paga.
+ */
+export function bf2026OfferVisible(input: { serverState: Bf2026State | null; subscribed: boolean | null }): boolean {
+  return input.serverState === 'open' && input.subscribed === false
+}
+
 // ─── Eventos ────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const BF2026_EVENTS = {
   bannerShown: 'bf2026_banner_shown',
@@ -218,6 +237,59 @@ export const BF2026_EMAIL_REPLY_TO = 'joseph@usekineo.com'
 export const BF2026_EMAIL_BATCH_DEFAULT = 150
 /** Teto por execução (o cron e o link do fundador). A cota diária da casa (lib/email/quota) ainda limita por baixo. */
 export const BF2026_EMAIL_BATCH_MAX = 250
+/**
+ * Orçamento de tempo de UMA execução (a rota tem maxDuration 300 s; cada envio leva ~0,9 s com a reserva, o Resend, o
+ * ledger e a pausa). Passou disto, a execução para de enviar e devolve o que fez — a próxima execução do cron continua de
+ * onde parou (a reserva por pessoa+onda impede repetir). 60 s de folga para as leituras do começo.
+ */
+export const BF2026_SEND_BUDGET_MS = 240_000
+
+/** true = esta execução já gastou o orçamento e não deve abrir mais nenhum envio. */
+export function bf2026OutOfTime(startedMs: number, nowMs: number): boolean {
+  if (!Number.isFinite(startedMs) || !Number.isFinite(nowMs)) return true
+  return nowMs - startedMs >= BF2026_SEND_BUDGET_MS
+}
+
+/**
+ * O ALCANCE DA CARTA (revisão de 01/11): um único cron por onda, com teto de 250, nunca chegaria à base inteira, por mais
+ * alta que fosse a cota. Agora cada onda tem VÁRIAS execuções no próprio dia de Nova York, de 30 em 30 minutos:
+ *   · "dia": 14:00 → 23:30 UTC do dia da onda (09:00 → 18:30 ET) — 20 execuções;
+ *   · "noite": 00:00 → 04:30 UTC do dia seguinte (19:00 → 23:30 ET, ainda o dia da onda em NY) — 10 execuções, e já
+ *     contam na cota de um NOVO dia UTC (lib/email/quota conta por dia UTC).
+ * 30 execuções × 150 = até 4.500 cartas por onda; o limite que sobra é a cota diária (60% de KINEO_EMAIL_DAILY_CAP por dia
+ * UTC, dividida com as outras cartas de crescimento). Execução que chega com a onda já entregue não envia nada. O
+ * vercel.json espelha esta lista; o guardião expande cada agendamento e confere a data de NY de cada disparo.
+ */
+export const BF2026_CRONS: ReadonlyArray<{ wave: Bf2026Wave; run: string; schedule: string; runs: number }> = [
+  { wave: 'bf', run: 'bf-day', schedule: '*/30 14-23 27 11 *', runs: 20 },
+  { wave: 'bf', run: 'bf-night', schedule: '*/30 0-4 28 11 *', runs: 10 },
+  { wave: 'cyber', run: 'cyber-day', schedule: '*/30 14-23 30 11 *', runs: 20 },
+  { wave: 'cyber', run: 'cyber-night', schedule: '*/30 0-4 1 12 *', runs: 10 },
+]
+/** Dias UTC que uma onda atravessa (a cota diária renova à meia-noite UTC, no meio da noite de NY). */
+export const BF2026_WAVE_UTC_DAYS = 2
+
+export function bf2026CronPath(run: string): string {
+  return `/api/admin/send-black-friday-2026?confirm=SEND&limit=${BF2026_EMAIL_BATCH_DEFAULT}&run=${run}`
+}
+
+export function bf2026CronRunsPerWave(wave: Bf2026Wave): number {
+  return BF2026_CRONS.filter((c) => c.wave === wave).reduce((n, c) => n + c.runs, 0)
+}
+
+/**
+ * Teto do alcance de uma onda inteira = o menor entre quem é elegível, o que as execuções do cron comportam e o que a cota
+ * de crescimento deixa nos dias UTC da onda. `growthCapPerDay` = floor(0,6 × KINEO_EMAIL_DAILY_CAP); as outras cartas de
+ * crescimento do dia ainda comem dessa cota, então é um TETO, não uma promessa.
+ */
+export function bf2026WaveReachCeiling(input: { eligible: number; wave: Bf2026Wave; batch: number; growthCapPerDay: number }): { reach: number; limitedBy: 'eligible' | 'cron_runs' | 'daily_quota'; byCronRuns: number; byDailyQuota: number } {
+  const eligible = Math.max(0, Math.floor(input.eligible) || 0)
+  const byCronRuns = bf2026CronRunsPerWave(input.wave) * Math.max(0, Math.floor(input.batch) || 0)
+  const byDailyQuota = Math.max(0, Math.floor(input.growthCapPerDay) || 0) * BF2026_WAVE_UTC_DAYS
+  const reach = Math.min(eligible, byCronRuns, byDailyQuota)
+  const limitedBy = reach === eligible ? 'eligible' : reach === byDailyQuota ? 'daily_quota' : 'cron_runs'
+  return { reach, limitedBy, byCronRuns, byDailyQuota }
+}
 
 /** A onda do dia (data de Nova York). Fora de 27/11 e 30/11 = null (o cron não faz nada). */
 export function bf2026WaveForDate(nowMs: number = Date.now()): Bf2026Wave | null {
