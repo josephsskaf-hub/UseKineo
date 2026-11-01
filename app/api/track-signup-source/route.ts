@@ -16,6 +16,9 @@ import { paisDoRequest } from '@/lib/freeFilmPolicy'
 // borda, e só o hash desce para lib/reverseTrial.ts. O IP cru não é gravado em
 // lugar nenhum e não entra no escopo do módulo que fala com o banco.
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
+// KINEO-GOOGLE-ADS-TESTE-0111 — o cadastro lê o clique pago do anúncio (ver o bloco junto do patch).
+import { PAID_CLICK_COOKIE, parsePaidClick } from '@/lib/growth/paidClickAttribution'
+import { signupFillFromPaidClick } from '@/lib/growth/googleAdsTeste0111'
 
 // #383 — best-effort signup attribution.
 //
@@ -170,6 +173,26 @@ export async function POST(req: NextRequest) {
     // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — mesma regra de first-touch das
     // demais: só preenche quando ainda está nula, nunca sobrescreve.
     if (!profile?.signup_surface && signup_surface) patch.signup_surface = signup_surface
+
+    // KINEO-GOOGLE-ADS-TESTE-0111 — o cadastro também lê o clique pago (cookie kineo_paid_click, 90 dias), que até aqui só a
+    // rota de checkout lia. Fecha dois buracos do teste no Google Search: quem já tinha um primeiro toque SEM utm (referrer
+    // orgânico) e agora veio do anúncio não entrava em nenhum grupo gs_*, e quem confirma o e-mail numa aba nova perdia o
+    // gclid. Só PREENCHE coluna que continuaria nula; utm conhecido de outro canal nunca é trocado (regra no módulo).
+    try {
+      const paidFill = signupFillFromPaidClick({
+        profile,
+        pedido: {
+          signup_utm_source: patch.signup_utm_source ?? signup_utm_source,
+          signup_utm_medium: patch.signup_utm_medium ?? signup_utm_medium,
+          signup_utm_campaign: patch.signup_utm_campaign ?? signup_utm_campaign,
+          gclid: patch.gclid ?? gclid,
+        },
+        click: parsePaidClick(req.cookies.get(PAID_CLICK_COOKIE)?.value, Date.now()),
+      })
+      for (const [k, v] of Object.entries(paidFill)) if (v) patch[k] = v
+    } catch {
+      /* clique pago adulterado ou ilegível — segue sem ele */
+    }
 
     // KINEO-ORIGEM-IA-LOJAS-1610 — ESTIMATIVA 'ai_assistant_likely' (pouso sem referrer e sem utm direto numa página de
     // conteúdo; regra em lib/acquisitionSource.ts). Mesma coluna que o painel já lê (`signup_utm_source`), mas SÓ quando
