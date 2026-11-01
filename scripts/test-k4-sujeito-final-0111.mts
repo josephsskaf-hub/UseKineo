@@ -113,8 +113,8 @@ ok(finalFracoDoRoteiro('HOOK: ¿Qué hay bajo el hielo?\nPAYOFF: Bajo el hielo d
 ok(/LAST sentence of the PAYOFF/.test(problemaDoFinal('clima')), '(2) o pedido de correção diz o que falta')
 const escritor = rd('app/api/generate-script/route.ts')
 ok(/KINEO-FINAL-RESPOSTA-0111: the LAST spoken sentence of the PAYOFF IS the concrete answer itself/.test(escritor), '(2) o prompt do escritor exige a revelação como última frase')
-ok(/const finalFraco = finalFracoDoRoteiro\(script\)/.test(escritor) && /\|\| leuADescricao\(script\) \|\| finalFraco\)/.test(escritor) && /problems\.push\(problemaDoFinal\(finalFraco\)\)/.test(escritor), '(2) fim fraco entra na MESMA nova tentativa do escritor (sem chamada a mais quando o roteiro é bom)')
-ok(/!payoffIsEmpty\(t\) && !finalFracoDoRoteiro\(t\)/.test(escritor), '(2) entre as duas versões do filme curto, a que revela vence')
+ok(/const finalFraco = colado\.pasted \? null : finalFracoDoRoteiro\(script\)/.test(escritor) && /\|\| leuADescricao\(script\) \|\| finalFraco\)/.test(escritor) && /problems\.push\(problemaDoFinal\(finalFraco\)\)/.test(escritor), '(2) fim fraco entra na MESMA nova tentativa do escritor (sem chamada a mais quando o roteiro é bom); roteiro colado da pessoa fica com o fim dela')
+ok(/!payoffIsEmpty\(t\) && \(colado\.pasted \|\| !finalFracoDoRoteiro\(t\)\)/.test(escritor), '(2) entre as duas versões do filme curto, a que revela vence')
 
 // ── (2) descritor: a última cena mostra a revelação ──
 const fimPrompt = 'Film visual medium: photorealistic live-action. Slow push-in on a red desert at dusk, thin haze over distant hills. Mouth closed, no speaking.'

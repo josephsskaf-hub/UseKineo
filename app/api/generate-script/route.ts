@@ -529,7 +529,7 @@ export async function POST(req: NextRequest) {
      */
     const notaDoFilmeCurto = (t: string): number[] => {
       const n = palavrasDoFilmeCurto(t)
-      const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) && !finalFracoDoRoteiro(t) ? 1 : 0 // KINEO-FINAL-RESPOSTA-0111 — entre as duas versões do filme curto, a que revela no fim vence
+      const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) && (colado.pasted || !finalFracoDoRoteiro(t)) ? 1 : 0 // KINEO-FINAL-RESPOSTA-0111 — entre as duas versões do filme curto, a que revela no fim vence (roteiro colado: o fim é da pessoa)
       return [estrutura, descricaoDeCena && leuADescricaoEmVozAlta(t, topic) ? 0 : 1, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n] // KINEO-NARRADOR-DESCRICAO-0111 — entre as duas versões, a que não lê a descrição vence (fora da descrição: 1 nas duas, nada muda)
     }
     const segundaEMelhor = (primeira: string, segunda: string): boolean => {
@@ -550,7 +550,7 @@ export async function POST(req: NextRequest) {
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
     const leuADescricao = (t: string) => descricaoDeCena && leuADescricaoEmVozAlta(t, topic) // KINEO-NARRADOR-DESCRICAO-0111
-    const finalFraco = finalFracoDoRoteiro(script) // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, "o que a NASA nunca anunciou sobre Marte" sem revelar nada): fim em pergunta, clima ou eco do HOOK entra na MESMA nova tentativa
+    const finalFraco = colado.pasted ? null : finalFracoDoRoteiro(script) // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, "o que a NASA nunca anunciou sobre Marte" sem revelar nada): fim em pergunta, clima ou eco do HOOK entra na MESMA nova tentativa; roteiro colado da pessoa: o fim é dela (fidelidade)
     if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script) || finalFraco) { // KINEO-NARRADOR-DESCRICAO-0111: + roteiro que leu a descrição · KINEO-FINAL-RESPOSTA-0111: + fim que não revela
       const problems: string[] = []
       if (finalFraco && !payoffIsEmpty(script)) problems.push(problemaDoFinal(finalFraco)) // KINEO-FINAL-RESPOSTA-0111
