@@ -18,6 +18,7 @@ import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib
 // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 + KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 (fundador: "Vai no 4 e no não engordar")
 import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'
 import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE, PRODUCTION_BRIEF_RULE, semPreambuloDeChat } from '@/lib/pastedScript' // KINEO-BRIEF-NAO-E-FALA-3010: + regra do pedido de produção
+import { SCENE_DESCRIPTION_RULE, temaDaDescricao, leuADescricaoEmVozAlta, notaDeDescricaoDeCena } from '@/lib/pastedScript' // KINEO-NARRADOR-DESCRICAO-0111 — descrição de imagem vira ideia + imagem, nunca a fala
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
@@ -430,7 +431,11 @@ export async function POST(req: NextRequest) {
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
       + (colado.reason === 'production_brief' ? `\n\n${PRODUCTION_BRIEF_RULE}` : '') // KINEO-BRIEF-NAO-E-FALA-3010 [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"]: pedido de produção vira história, nunca a narração do pedido
-    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) : topic // KINEO-BRIEF-NAO-E-FALA-3010: sem o "aqui está prontinho pra copiar:" do chat
+      + (colado.reason === 'scene_description' ? `\n\n${SCENE_DESCRIPTION_RULE}` : '') // KINEO-NARRADOR-DESCRICAO-0111 [TRAVA 8.2 — vai do fundador 01/11]: descrição do que VER vira história narrada + pistas [Pexels] do sujeito descrito
+    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o "aqui está prontinho pra copiar:" do chat
+      : colado.reason === 'scene_description' ? temaDaDescricao(topic) : topic // KINEO-NARRADOR-DESCRICAO-0111 — a pergunta diz que é a imagem, não a fala
+    const descricaoDeCena = colado.reason === 'scene_description' // KINEO-NARRADOR-DESCRICAO-0111
+    if (descricaoDeCena) console.log(`[generate-script] KINEO-NARRADOR-DESCRICAO-0111 descrição de cena → ideia do escritor (${notaDeDescricaoDeCena(topic).sinais.join(' ')})`) // KINEO-NARRADOR-DESCRICAO-0111
 
     const completion = await openai.chat.completions.create(
       {
@@ -523,7 +528,7 @@ export async function POST(req: NextRequest) {
     const notaDoFilmeCurto = (t: string): number[] => {
       const n = palavrasDoFilmeCurto(t)
       const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) ? 1 : 0
-      return [estrutura, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n]
+      return [estrutura, descricaoDeCena && leuADescricaoEmVozAlta(t, topic) ? 0 : 1, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n] // KINEO-NARRADOR-DESCRICAO-0111 — entre as duas versões, a que não lê a descrição vence (fora da descrição: 1 nas duas, nada muda)
     }
     const segundaEMelhor = (primeira: string, segunda: string): boolean => {
       const a = notaDoFilmeCurto(primeira), b = notaDoFilmeCurto(segunda)
@@ -542,12 +547,14 @@ export async function POST(req: NextRequest) {
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
-    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {
+    const leuADescricao = (t: string) => descricaoDeCena && leuADescricaoEmVozAlta(t, topic) // KINEO-NARRADOR-DESCRICAO-0111
+    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script)) { // KINEO-NARRADOR-DESCRICAO-0111: + roteiro que leu a descrição
       const problems: string[] = []
       // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o número vai no pedido, como no "curto": "escreva menos" não é instrução.
       if (longoParaOFilmeCurto(script)) problems.push(`the script has ${palavrasDoFilmeCurto(script)} spoken words — a ${alvoSegundos}-second film allows at most ${tetoFilmeCurto}`)
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
       if (payoffIsEmpty(script)) problems.push('the PAYOFF teased instead of delivering a concrete answer')
+      if (leuADescricao(script)) problems.push('you read the picture description aloud — the user described what the viewer should SEE; write a narrated story about that subject in your own words and put the described visuals only in the [Pexels: …] cues') // KINEO-NARRADOR-DESCRICAO-0111
       // KINEO-ROTEIRO-CURTO-2026-08-22 — o número vai no pedido de correção
       // porque "escreva mais" não é instrução: o GPT precisa do alvo.
       if (curtoParaOAlvo(script)) {
@@ -655,7 +662,7 @@ export async function POST(req: NextRequest) {
       // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-REGUA-1910 — só RASTRO (nada muda na resposta): a IDEIA
       // ORIGINAL que a pessoa digitou, antes da IA escrever o roteiro, e o começo do roteiro que saiu (para o juiz coherence_v2
       // casar este evento com o nascimento do filme e julgar a fidelidade à ideia, não ao roteiro que a própria IA escreveu).
-      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}) },
+      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {
