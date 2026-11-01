@@ -44,9 +44,9 @@ export interface Ia0111Niche {
   /** a busca que a página mira, como a pessoa digita */
   searchTarget: string
   label: string
+  /** o título da página é "<h1> — Kineo" e a description é a resposta + a oferta, como os 30 nichos de antes (o generateMetadata
+   *  da rota é selado byte a byte por scripts/test-trafego-pages-2310.mjs — não muda) */
   h1: string
-  metaTitle: string
-  metaDescription: string
   /** a resposta direta (1º parágrafo depois do H1) */
   intro: string
   ideas: string[]
@@ -61,8 +61,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai mythology shorts generator / greek mythology video maker',
     label: 'Mythology',
     h1: 'Free AI Mythology Shorts Generator',
-    metaTitle: 'AI Mythology Shorts Generator: Greek, Norse, Egyptian | Kineo',
-    metaDescription: `Type a myth — Medusa, Ragnarok, Anubis — and get a narrated vertical Short with generated scenes and captions. First ${FREE_S}-second film free, no card.`,
     intro:
       'Kineo turns one myth into a finished vertical Short: you type "the night Medusa was cursed" or paste your own retelling, and it writes the hook, narrates it, generates a scene for every line and burns in captions. Gods, monsters and lost cities have no stock footage, so every shot is generated from your words.',
     ideas: [
@@ -99,8 +97,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai billionaire shorts generator / rich people facts video maker',
     label: 'Billionaire Stories',
     h1: 'Free AI Billionaire Stories Shorts Generator',
-    metaTitle: 'AI Billionaire Story Shorts Generator (Faceless) | Kineo',
-    metaDescription: `Turn a founder story or a wealth habit into a narrated, captioned vertical Short: no filming, your facts narrated word for word. First ${FREE_S}-second film free.`,
     intro:
       'Kineo makes faceless billionaire Shorts from one line: type "the first job of a self-made billionaire" or paste a script you researched, and you get back a narrated vertical video with a scene for every sentence and captions timed to the voice. It does not look up facts for you — the strongest billionaire channels source every number they say.',
     ideas: [
@@ -137,8 +133,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai military history shorts / war history video generator',
     label: 'Military History',
     h1: 'Free AI Military History Shorts Generator',
-    metaTitle: 'AI Military History Shorts Generator, No Footage | Kineo',
-    metaDescription: `Turn a battle, a strategy or an unlikely hero into a narrated vertical Short with period scenes and captions. Respectful, faceless, first ${FREE_S}-second film free.`,
     intro:
       'Kineo turns a moment of military history into a narrated vertical Short: type "the deception plan before D-Day" or paste your own script, and it writes, narrates, generates period-style scenes and adds captions. Battles from centuries ago have no footage at all, and generated scenes show the place and the era without reusing someone else’s archive.',
     ideas: [
@@ -175,8 +169,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai urban legend video generator / creepy story shorts maker',
     label: 'Urban Legends',
     h1: 'Free AI Urban Legends Shorts Generator',
-    metaTitle: 'AI Urban Legend Shorts Generator for Story Channels | Kineo',
-    metaDescription: `Turn an urban legend into a narrated, atmospheric vertical Short with generated scenes and captions — for adult audiences. First ${FREE_S}-second film free, no card.`,
     intro:
       'Kineo turns an urban legend into a narrated vertical Short: type "the phone call from inside the house" or paste your own telling, and it writes a slow-burn script, narrates it, generates moody scenes for each line and burns in captions. It is made for adult story channels — keep it out of feeds meant for children.',
     ideas: [
@@ -213,8 +205,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai dinosaur video generator / dinosaur facts shorts',
     label: 'Dinosaurs',
     h1: 'Free AI Dinosaur Shorts Generator',
-    metaTitle: 'AI Dinosaur Shorts Generator: Facts & Prehistoric Scenes | Kineo',
-    metaDescription: `Turn a dinosaur fact into a narrated vertical Short with generated prehistoric scenes and captions, calm enough for families. First ${FREE_S}-second film free.`,
     intro:
       'Kineo makes dinosaur Shorts from one fact: type "why T. rex had tiny arms" and it writes the script, narrates it, generates a prehistoric scene for every line and adds captions. Nobody has filmed a dinosaur, so every frame is generated — which is exactly what an AI video engine is good at.',
     ideas: [
@@ -251,8 +241,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai survival story video generator / true survival shorts',
     label: 'Survival Stories',
     h1: 'Free AI Survival Stories Shorts Generator',
-    metaTitle: 'AI Survival Story Shorts Generator (True Stories) | Kineo',
-    metaDescription: `Turn a true survival story into a narrated vertical Short: generated scenes of the place, captions, a hook in the first second. First ${FREE_S}-second film free.`,
     intro:
       'Kineo turns a true survival story into a narrated vertical Short: type "the climber who crawled down a mountain alone" or paste a script you researched, and it writes the hook, narrates, generates a scene of the place for every line and adds captions. The story is the hero; the scenes show the ice, the ocean or the jungle nobody could have filmed.',
     ideas: [
@@ -289,8 +277,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai invention history shorts / how things were invented video',
     label: 'Inventions',
     h1: 'Free AI Inventions Shorts Generator',
-    metaTitle: 'AI Invention History Shorts Generator | Kineo',
-    metaDescription: `Turn the story behind an everyday invention into a narrated vertical Short with generated scenes and captions for curiosity channels. First ${FREE_S}-second film free.`,
     intro:
       'Kineo makes invention Shorts from one question: type "how the microwave was invented by accident" and it writes the script, narrates it, generates a scene for each step and adds captions. Workshops from 1850 and labs from 1945 were never filmed for TikTok, so the scenes are generated from your text.',
     ideas: [
@@ -327,8 +313,6 @@ export const IA0111_NICHES: Readonly<Record<string, Ia0111Niche>> = {
     searchTarget: 'ai abandoned places video generator / lost places shorts',
     label: 'Abandoned Places',
     h1: 'Free AI Abandoned Places Shorts Generator',
-    metaTitle: 'AI Abandoned Places Shorts Generator, No Travel | Kineo',
-    metaDescription: `The story of an abandoned town, island or building as a narrated vertical Short with generated scenes. No travel, no trespassing. First ${FREE_S}-second film free.`,
     intro:
       'Kineo makes abandoned-places Shorts without anyone travelling or trespassing: type "the island city that emptied overnight" or paste your script, and it narrates the story, generates a scene of the place for every line and adds captions. You tell why the place was left behind; the engine shows the empty streets.',
     ideas: [

@@ -184,6 +184,10 @@ function discovery(overrides = {}) {
       // and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       PAGINAS_UGC_REVIEWED_ISO: '2026-10-20', PAGINAS_UGC_PATHS: [], PAGINAS_UGC_TOUCHED_PATHS: [],
       PAGINAS_KIDS_REVIEWED_ISO: '2026-10-20', paginasKidsSitemapPaths: () => [], KIDS_CARTOON_PAGES_LIVE: false, babyPagesSitemapPaths: () => [], BABY_PODCAST_PAGES_LIVE: false, // KINEO-BEBE-QUE-FALA-2010 (re-anchored 20/10) — the sitemap imports the kids cartoon pages behind their switch (inert here; exercised by test-bebe-que-fala-2010)
+      // KINEO-PAGINAS-IA-0111 (re-anchored 01/11) [TRAVA 8.2 — vai do fundador 01/11 "vai tudo, avulso 2,90"] — the sitemap imports the 2
+      // money-article paths (lib/seo/paginasIa0111Paths.ts); without them this run died reading an undefined list. Inert here: the real
+      // entries are exercised by test-paginas-ia-0111, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
+      PAGINAS_IA_0111_REVIEWED_ISO: '2026-11-01', PAGINAS_IA_0111_MONEY_PATHS: [],
     }
     // KINEO-LEVA-2410: carimbo puro da rodada de tráfego é executado, não dublado.
     new Function('exports', 'require', 'module', js)(mod.exports, id => id === '@/lib/seo/trafego2310' ? load('lib/seo/trafego2310.ts') : fixtures, mod)

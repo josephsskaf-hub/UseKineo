@@ -523,9 +523,7 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   const n = NICHES[params.niche]
   if (!n) return {}
   // KINEO-PAGINAS-LOTE1-2026-10-12 — os nichos do lote 1 têm título e descrição escritos para a busca que miram.
-  // KINEO-PAGINAS-IA-0111 — os nichos de 01/11 também têm título e descrição próprios (mesma forma do lote 1).
-  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche]
-    : Object.prototype.hasOwnProperty.call(IA0111_NICHES, params.niche) ? IA0111_NICHES[params.niche] : null
+  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : null
   const title = lote1 ? lote1.metaTitle : `${n.h1} — Kineo`
   const description = lote1 ? lote1.metaDescription : `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is ${STARTER_MONTH}.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`

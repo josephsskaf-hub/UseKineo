@@ -82,10 +82,10 @@ function rules(S: Record<string, string>): Array<[string, boolean]> {
   // ── (1) as 20 rotas existem ─────────────────────────────────────────────────────────────────────────────
   rule('R1 20 caminhos únicos: 8 nichos + 10 do catálogo /for + 2 artigos', () =>
     nicheSlugs.length === 8 && intentSlugs.length === 10 && moneyPaths.length === 2 && new Set(allPaths).size === 20 && allPaths.length === 20)
-  rule('R2 cada nicho tem dados completos (título, descrição, resposta, 5 ideias, 2+ seções, 3 FAQ, card do hub)', () =>
-    nicheSlugs.length === 8 && niches().every((n: any) => n && n.metaTitle && n.metaDescription && n.intro.length > 150 && n.ideas.length === 5
+  rule('R2 cada nicho tem dados completos (H1, resposta, 5 ideias, 2+ seções, 3 FAQ, card do hub)', () =>
+    nicheSlugs.length === 8 && niches().every((n: any) => n && n.h1 && n.intro.length > 150 && n.ideas.length === 5
       && n.sections.length >= 2 && n.faq.length === 3 && n.hubCard?.title && n.hubCard?.example))
-  rule('R3 os nichos entram no registro da página, na metadata, no guia com FAQPage e no card do hub', () =>
+  rule('R3 os nichos entram no registro da página, no guia com FAQPage e no card do hub', () =>
     S.niche.includes('for (const [slug, n] of Object.entries(IA0111_NICHES)) {')
     && S.niche.includes('Object.prototype.hasOwnProperty.call(IA0111_NICHES, params.niche) ? IA0111_NICHES[params.niche] : null')
     && S.niche.includes("data-kineo=\"ia0111-guide\"") && S.niche.includes("'@type': 'FAQPage',\n              mainEntity: ia0111.faq.map(")
@@ -102,12 +102,11 @@ function rules(S: Record<string, string>): Array<[string, boolean]> {
       S[k].includes(`const PATH = '${path}'`) && S[k].includes("export const dynamic = 'force-static'") && S[k].includes('<ArtigoDinheiro0111 path={PATH} />'))
     && moneyPaths.every((p) => existsSync(new URL(`../app${p}/page.tsx`, import.meta.url))))
   // ── (2) sitemap e llms.txt ───────────────────────────────────────────────────────────────────────────────
-  rule('R7 sitemap: nichos por NICHE_SLUGS, catálogo por INTENT_SLUGS, artigos empurrados e data da rodada', () =>
+  rule('R7 sitemap: nichos por NICHE_SLUGS, catálogo por INTENT_SLUGS, artigos empurrados com a data da rodada', () =>
     S.sitemap.includes("import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'")
     && S.sitemap.includes('for (const slug of INTENT_SLUGS) {')
-    && S.sitemap.includes("import { PAGINAS_IA_0111_MONEY_PATHS, PAGINAS_IA_0111_PATHS, PAGINAS_IA_0111_REVIEWED_ISO } from '@/lib/seo/paginasIa0111Paths'")
-    && S.sitemap.includes('for (const path of PAGINAS_IA_0111_MONEY_PATHS) {\n    staticEntries.push({ url: `${BASE}${path}`')
-    && S.sitemap.includes('if (PAGINAS_IA_0111_PATHS.some((path) => e.url === `${BASE}${path}`)) e.lastModified = PAGINAS_IA_0111_LAST_MODIFIED'))
+    && S.sitemap.includes("import { PAGINAS_IA_0111_MONEY_PATHS, PAGINAS_IA_0111_REVIEWED_ISO } from '@/lib/seo/paginasIa0111Paths'")
+    && S.sitemap.includes('for (const path of PAGINAS_IA_0111_MONEY_PATHS) {\n    staticEntries.push({ url: `${BASE}${path}`, lastModified: PAGINAS_IA_0111_LAST_MODIFIED'))
   rule('R8 os slugs do módulo de caminhos batem com os dados (nichos e catálogo)', () =>
     nicheSlugs.every((s) => D.IA0111_NICHES[s]) && Object.keys(D.IA0111_NICHES).length === 8
     && intentSlugs.every((s) => C.INTENT_SLUGS.includes(s)) && moneyPaths.every((p) => D.MONEY_ARTICLES_0111[p]?.path === p))
@@ -116,14 +115,14 @@ function rules(S: Record<string, string>): Array<[string, boolean]> {
     moneyPaths.every((p) => S.acq.includes(`  '${p.slice(1)}',`)))
   // ── (3) nada duplicado ───────────────────────────────────────────────────────────────────────────────────
   rule('R11 títulos únicos: as 20 entre si, contra o catálogo inteiro e contra os nichos/lote 1 que já existiam', () => {
-    const novos = [...niches().map((n: any) => n.metaTitle), ...newIntent().map((p: any) => p.title), ...money().map((a: any) => a.title)]
+    const novos = [...niches().map((n: any) => `${n.h1} — Kineo`), ...newIntent().map((p: any) => p.title), ...money().map((a: any) => a.title)]
     const catalogoOutros = C.INTENT_PAGES.filter((p: any) => !intentSlugs.includes(p.slug)).map((p: any) => p.title)
     const todos = [...novos, ...catalogoOutros, ...siblingTitles(S)]
     return novos.length === 20 && new Set(novos).size === 20 && new Set(todos.map((t) => t.toLowerCase())).size === todos.length
   })
   rule('R12 H1 e descriptions únicos entre as 20; nenhum H1 de nicho repete um H1 que já existia', () => {
     const h1 = [...niches().map((n: any) => n.h1), ...newIntent().map((p: any) => p.h1), ...money().map((a: any) => a.h1)]
-    const desc = [...niches().map((n: any) => n.metaDescription), ...money().map((a: any) => a.description), ...newIntent().map((p: any) => p.intro)]
+    const desc = [...niches().map((n: any) => n.intro), ...money().map((a: any) => a.description), ...newIntent().map((p: any) => p.intro)]
     const velhos = [...S.niche.matchAll(/\n    h1: '([^']+)',/g)].map((m) => m[1])
     return new Set(h1).size === 20 && new Set(desc).size === 20 && niches().every((n: any) => !velhos.includes(n.h1))
   })
@@ -155,8 +154,11 @@ function rules(S: Record<string, string>): Array<[string, boolean]> {
   })
   rule('R20 artigos no padrão do Bing: título ≤ 60, description 120–160, resposta direta > 200', () =>
     money().every((a: any) => a.title.length <= 60 && a.description.length >= 120 && a.description.length <= 160 && a.answer.length > 200))
-  rule('R21 títulos dos nichos ≤ 65 e descriptions dos nichos 120–160', () =>
-    niches().every((n: any) => n.metaTitle.length <= 65 && n.metaDescription.length >= 120 && n.metaDescription.length <= 160))
+  rule('R21 título dos nichos = "<h1> — Kineo" (o generateMetadata da rota é selado e não conhece os nichos novos) e cabe em 60', () => {
+    const i = S.niche.indexOf('export function generateMetadata')
+    const meta = S.niche.slice(i, S.niche.indexOf('\n}\n', i))
+    return i > 0 && !meta.includes('IA0111') && meta.includes('`${n.h1} — Kineo`') && niches().every((n: any) => `${n.h1} — Kineo`.length <= 60)
+  })
   rule('R22 o molde dos artigos publica FAQPage, BreadcrumbList e Article com as fontes como citation', () =>
     ["'@type': 'FAQPage'", "'@type': 'BreadcrumbList'", "'@type': 'Article'", 'citation: a.sources.map((s) => s.url)', 'alternates: { canonical: url }'].every((x) => S.artigo.includes(x)))
   // ── (6) alternativas só falam da Kineo ───────────────────────────────────────────────────────────────────
@@ -182,7 +184,8 @@ const MUTANTES: Array<[string, string, string, string, string]> = [
   ['R5', 'uma alternativa volta ao intro-modelo', 'intent', "answer: 'As an Animoto alternative,", "x: 'As an Animoto alternative,"],
   ['R7', 'o sitemap esquece os artigos', 'sitemap', 'for (const path of PAGINAS_IA_0111_MONEY_PATHS) {', 'for (const path of [] as string[]) {'],
   ['R9', 'o llms.txt esquece uma página', 'llms', '[Visla](${base}/ai-video-generator/for/visla-alternative), ', ''],
-  ['R11', 'título duplicado com uma irmã', 'data', "metaTitle: 'AI Invention History Shorts Generator | Kineo',", "metaTitle: 'Free AI History Shorts Generator — Kineo',"],
+  ['R11', 'título duplicado com uma irmã', 'data', "h1: 'Free AI Inventions Shorts Generator',", "h1: 'Free AI History Shorts Generator',"],
+  ['R21', 'o generateMetadata selado passa a ler os nichos novos', 'niche', '  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : null\n  const title', '  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : IA0111_NICHES[params.niche]\n  const title'],
   ['R14', 'preço digitado num nicho', 'data', "a: 'Yes — they are narrated explainers with captions.", "a: 'Yes — for $9 a month they are narrated explainers with captions."],
   ['R17', 'promessa proibida', 'data', 'Small inaccuracies can still happen; review the film before posting.', 'Accuracy is guaranteed.'],
   ['R18', 'fonte de terceiro sem ser oficial', 'data', "shortsRevenue: { label: 'YouTube Shorts monetization policies: revenue sharing (YouTube Help)', url: 'https://support.google.com/youtube/answer/12504220?hl=en'", "shortsRevenue: { label: 'blog', url: 'https://example-blog.com/shorts'"],

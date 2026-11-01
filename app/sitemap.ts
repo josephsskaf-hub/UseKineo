@@ -49,7 +49,7 @@ import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO
 import { BABY_PODCAST_PAGES_LIVE, babyPagesSitemapPaths } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — as páginas do bebê-podcast (interruptor próprio)
 import { trafego2310Sitemap } from '@/lib/seo/trafego2310' // KINEO-TRAFEGO-2310 — public clear templates and Cartoon, reviewed 23/10
 // KINEO-PAGINAS-IA-0111 — as 20 rotas novas de 01/11 (8 nichos, 10 do catálogo /for, 2 artigos de dinheiro). Módulo PURO, sem import.
-import { PAGINAS_IA_0111_MONEY_PATHS, PAGINAS_IA_0111_PATHS, PAGINAS_IA_0111_REVIEWED_ISO } from '@/lib/seo/paginasIa0111Paths'
+import { PAGINAS_IA_0111_MONEY_PATHS, PAGINAS_IA_0111_REVIEWED_ISO } from '@/lib/seo/paginasIa0111Paths'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -348,8 +348,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
   carimbaPaginasUgc2010(staticEntries) // KINEO-PAGINAS-UGC-2010 — home, /pricing e /ads ganharam link para as páginas novas
   // KINEO-PAGINAS-IA-0111 — os 2 artigos de dinheiro entram aqui (mesmo perfil de /how-much-do-youtube-shorts-pay); as 10 do
-  // catálogo /for já vieram de INTENT_SLUGS e os 8 nichos vêm de NICHE_SLUGS logo abaixo. Todas nascem com a data da rodada:
-  // URL nova no sitemap = o cron do IndexNow avisa o Bing na 1ª execução depois do deploy.
+  // catálogo /for já vieram de INTENT_SLUGS e os 8 nichos vêm de NICHE_SLUGS logo abaixo (essas 18 levam o carimbo do cluster
+  // claro de trafego2310Sitemap, selado por scripts/test-trafego-index-2310.mjs). URL nova no sitemap = o cron do IndexNow avisa o
+  // Bing na 1ª execução depois do deploy.
   for (const path of PAGINAS_IA_0111_MONEY_PATHS) {
     staticEntries.push({ url: `${BASE}${path}`, lastModified: PAGINAS_IA_0111_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.9 })
   }
@@ -365,10 +366,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // de antes); as 3 páginas de intenção entram logo abaixo.
   for (const e of nicheEntries) {
     if (LOTE1_NICHE_SLUG_LIST.some((slug) => e.url === `${BASE}/free-ai-shorts/${slug}`)) e.lastModified = LOTE1_LAST_MODIFIED
-  }
-  // KINEO-PAGINAS-IA-0111 — os 8 nichos e as 10 páginas do catálogo /for de 01/11 levam a data da rodada (as outras ficam como estavam).
-  for (const e of [...staticEntries, ...nicheEntries]) {
-    if (PAGINAS_IA_0111_PATHS.some((path) => e.url === `${BASE}${path}`)) e.lastModified = PAGINAS_IA_0111_LAST_MODIFIED
   }
   const lote1Entries = LOTE1_LANDING_PATH_LIST.map((path) => ({
     url: `${BASE}${path}`,
