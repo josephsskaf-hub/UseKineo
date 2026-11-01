@@ -10,6 +10,21 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-PAGINAS-IA-0111 — a camada MAIS NOVA (01/11, [TRAVA 8.2 — vai do fundador 01/11 "vai tudo, avulso 2,90"]): 20 páginas novas
+  // nas famílias que o ChatGPT/Bing já citam — 8 nichos em /free-ai-shorts, 4 casos de uso + 6 alternativas no catálogo /for e 2 artigos
+  // de dinheiro do YouTube com fonte oficial —, sitemap, llms.txt e atribuição. Base = a main de então (85a82bbe9), tip = árvore de
+  // trabalho até o commit.
+  'paginas-ia-0111': {
+    fn: 'semPaginasIa0111',
+    marca: 'KINEO-PAGINAS-IA-0111',
+    o_que: 'as 20 páginas novas que o ChatGPT/Bing citam (8 nichos, 4 casos de uso, 6 alternativas, 2 artigos de dinheiro)',
+    base: '85a82bbe97e1babdcfd92f459219b5bdec8e4a7a',
+    tip: null,
+    arquivos: ['lib/seo/intentPages.ts', 'lib/seo/trafego2310.ts', 'app/sitemap.ts', 'app/free-ai-shorts/[niche]/page.tsx', 'app/free-ai-shorts/page.tsx',
+      'lib/acquisitionSource.ts'],
+    novos: ['lib/seo/paginasIa0111.ts', 'lib/seo/paginasIa0111Paths.ts', 'components/seo/ArtigoDinheiro0111.tsx', 'app/when-does-youtube-pay-you/page.tsx',
+      'app/youtube-shorts-revenue-sharing-explained/page.tsx', 'scripts/test-paginas-ia-0111.mts', 'scripts/test-support/desfaz-paginas-ia-0111.mjs'],
+  },
   // KINEO-PUBLICAR-GANHAR-3110 — a camada MAIS NOVA (31/10, [TRAVA 8.2 — vai do fundador 31/10 "vai publicar"]): a tela de filme pronto
   // oferece "Publish your film — get 10 credits each time someone makes their own version" (publica só no clique) e o cron
   // /api/cron/remix-reward paga o dono quando a conta indicada termina o 1º filme. Base = a main de então (8584ab8e9), tip = árvore

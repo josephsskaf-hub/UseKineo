@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { NICHE_SLUGS } from './[niche]/page'
 import { LOTE1_NICHES } from '@/lib/seo/paginasLote1' // KINEO-PAGINAS-LOTE1-2026-10-12
+import { IA0111_NICHES } from '@/lib/seo/paginasIa0111' // KINEO-PAGINAS-IA-0111
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -129,6 +130,10 @@ const NICHE_CARDS: Record<string, { label: string; title: string; example: strin
 // KINEO-PAGINAS-LOTE1-2026-10-12 — o card de cada nicho do lote 1 (sem ele a página nasceria órfã do hub — a lição do
 // localbusiness acima). Vem da MESMA fonte da página: LOTE1_NICHES[slug].hubCard.
 for (const [slug, n] of Object.entries(LOTE1_NICHES)) {
+  if (!NICHE_CARDS[slug]) NICHE_CARDS[slug] = { label: n.label, title: n.hubCard.title, example: n.hubCard.example }
+}
+// KINEO-PAGINAS-IA-0111 — o card dos 8 nichos de 01/11, da mesma fonte da página (sem ele a página nasceria órfã do hub).
+for (const [slug, n] of Object.entries(IA0111_NICHES)) {
   if (!NICHE_CARDS[slug]) NICHE_CARDS[slug] = { label: n.label, title: n.hubCard.title, example: n.hubCard.example }
 }
 

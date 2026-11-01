@@ -34,6 +34,7 @@ import { stateNicheRankForPath } from '@/lib/seo/stateOfAiShorts'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — 7 nichos novos (desenho 3D, what-if, oceano, desastres, natureza, mistérios antigos, fatos
 // sinistros) com texto útil próprio, FAQ e filme real da casa; os dados vivem em lib/seo/paginasLote1.ts.
 import { LOTE1_NICHES, lote1NicheFilm } from '@/lib/seo/paginasLote1'
+import { IA0111_NICHES } from '@/lib/seo/paginasIa0111' // KINEO-PAGINAS-IA-0111 — 8 nichos novos com resposta direta, guia e FAQ próprios
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 
@@ -505,6 +506,12 @@ const NICHES: Record<string, Niche> = {
 for (const [slug, n] of Object.entries(LOTE1_NICHES)) {
   if (!NICHES[slug]) NICHES[slug] = { label: n.label, h1: n.h1, intro: n.intro, ideas: n.ideas }
 }
+// KINEO-PAGINAS-IA-0111 — os 8 nichos da rodada "dobrar o canal que já paga" (mitologia, bilionários, história militar, lendas
+// urbanas, dinossauros, sobrevivência, invenções, lugares abandonados) entram no MESMO registro, pelo mesmo caminho do lote 1:
+// sitemap, rodapé "More:", generateStaticParams e o card do hub derivam daqui. Texto e FAQ em lib/seo/paginasIa0111.ts.
+for (const [slug, n] of Object.entries(IA0111_NICHES)) {
+  if (!NICHES[slug]) NICHES[slug] = { label: n.label, h1: n.h1, intro: n.intro, ideas: n.ideas }
+}
 
 export const NICHE_SLUGS = Object.keys(NICHES)
 
@@ -516,7 +523,9 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   const n = NICHES[params.niche]
   if (!n) return {}
   // KINEO-PAGINAS-LOTE1-2026-10-12 — os nichos do lote 1 têm título e descrição escritos para a busca que miram.
-  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : null
+  // KINEO-PAGINAS-IA-0111 — os nichos de 01/11 também têm título e descrição próprios (mesma forma do lote 1).
+  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche]
+    : Object.prototype.hasOwnProperty.call(IA0111_NICHES, params.niche) ? IA0111_NICHES[params.niche] : null
   const title = lote1 ? lote1.metaTitle : `${n.h1} — Kineo`
   const description = lote1 ? lote1.metaDescription : `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is ${STARTER_MONTH}.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`
@@ -560,6 +569,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
         mainEntity: lote1.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
       }
     : null
+  const ia0111 = Object.prototype.hasOwnProperty.call(IA0111_NICHES, params.niche) ? IA0111_NICHES[params.niche] : null // KINEO-PAGINAS-IA-0111
   const steps = isLocalBusiness
     ? [
         { n: '1', t: 'Describe the real offer', d: 'Add the business, service, customer, differentiator and next step. Short factual phrases work best.' },
@@ -736,6 +746,34 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '8px 0 14px' }}>{n.label} Shorts: questions</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {lote1.faq.map((f) => (
+                <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '14px 16px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px' }}>{f.q}</h3>
+                  <p style={{ margin: 0, color: '#2A2F37', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* KINEO-PAGINAS-IA-0111 — guia e FAQ próprios dos 8 nichos de 01/11 (bloco separado: o do lote 1 fica intacto). */}
+        {ia0111 && (
+          <section data-kineo="ia0111-guide" style={{ marginTop: 48 }}>
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: ia0111.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+            }).replace(/</g, '\\u003c') }} />
+            {ia0111.sections.map((s) => (
+              <div key={s.h2} style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '0 0 12px' }}>{s.h2}</h2>
+                {s.paragraphs.map((p) => (
+                  <p key={p.slice(0, 40)} style={{ color: '#2A2F37', fontSize: '0.98rem', lineHeight: 1.7, margin: '0 0 12px' }}>{p}</p>
+                ))}
+              </div>
+            ))}
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '8px 0 14px' }}>{n.label} Shorts: questions</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {ia0111.faq.map((f) => (
                 <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '14px 16px' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px' }}>{f.q}</h3>
                   <p style={{ margin: 0, color: '#2A2F37', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.a}</p>

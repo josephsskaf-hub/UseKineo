@@ -41,7 +41,7 @@ export interface IntentPage {
 const kebab = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 // ── NICHO: para quem ─────────────────────────────────────────────────────────────────────────────
-type NicheSeed = { name: string; who: string; prompt: string; engine?: IntentEngine; why?: string }
+type NicheSeed = { name: string; who: string; prompt: string; engine?: IntentEngine; why?: string; answer?: string } // KINEO-PAGINAS-IA-0111: answer = resposta direta própria (o 1º parágrafo que o ChatGPT cita) no lugar do intro-modelo
 const NICHES: NicheSeed[] = [
   { name: 'faceless YouTube channels', who: 'creators who post daily without showing their face', prompt: '5 places on Earth where compasses stop working, and the science behind each one' },
   { name: 'YouTube Shorts creators', who: 'creators who need a finished vertical Short every day', prompt: 'The one habit that quietly separates people who save money from people who never do' },
@@ -88,6 +88,13 @@ const NICHES: NicheSeed[] = [
   { name: 'dental clinics', who: 'clinics posting short patient-education videos without filming in the chair', prompt: 'Why your gums bleed when you floss, and what it usually means, explained in 60 seconds' },
   { name: 'law firms', who: 'firms explaining one common legal question a week in plain language', prompt: 'What a power of attorney actually lets someone do, explained in plain English in 60 seconds' },
   { name: 'hotels and vacation rentals', who: 'properties that want a narrated destination video for every season', prompt: 'Three things to do within walking distance of a seaside hotel on a rainy day' },
+  // KINEO-PAGINAS-IA-0111 — 4 casos de uso que ainda não tinham página (fundador 01/11, "vai tudo, avulso 2,90"): negócio de país
+  // rico que pergunta ao ChatGPT "AI video for my <business>" e o canal de automação, que é quem mais repete render. Resposta direta
+  // própria (answer) e nada de promessa de resultado: vídeo narrado educativo, sem filmar.
+  { name: 'restaurants and cafes', who: 'restaurants and cafes posting a dish, a story or a weekly special without filming in the kitchen', prompt: 'The story behind our slow-cooked Sunday ragu: eight hours, three tomatoes and one family recipe', answer: 'Kineo makes vertical videos for restaurants and cafes without a camera crew: you type one line — the dish of the week, the story behind a recipe, why the bread is baked at 5 AM — and get back a narrated, captioned Reel, TikTok or Short with a generated scene for every sentence, usually in a few minutes. It suits menus that change weekly; it does not replace real photos of your actual food, which you can post alongside.' },
+  { name: 'YouTube automation channels', who: 'operators running one or more faceless channels on a fixed upload schedule', prompt: 'Episode 12: the shipwreck found standing upright on the bottom of Lake Superior', answer: 'For a YouTube automation channel, Kineo is the production step: one topic or a finished script in, a narrated vertical Short out — hook, AI voice, a generated or matched scene per line, captions and music — and every film comes with a written next episode so the queue never runs dry. It does not upload for you, and monetization is always YouTube’s decision: YouTube pays original channels, not mass-produced ones, so give each series its own angle.' },
+  { name: 'home services companies', who: 'plumbers, electricians, roofers, cleaners and HVAC companies explaining one common problem a week', prompt: 'Why your water heater makes a popping sound, and when it means you should call someone', answer: 'Kineo turns the questions customers ask a home services company — why the breaker trips, what a popping water heater means, when a roof needs inspection — into narrated 60-second explainer videos with captions, without filming on a job site. Post them on Google Business Profile, Reels, TikTok or Shorts; keep safety advice general and point viewers to a licensed professional.' },
+  { name: 'car dealerships', who: 'dealerships and independent lots posting buyer-education videos every week', prompt: 'Three things to check on a used car before the test drive, explained in 60 seconds', answer: 'Kineo makes buyer-education videos for car dealerships from one line of text: what to check on a used car, how financing terms work in plain words, why a model holds its value. You get a narrated, captioned vertical video with generated scenes in minutes. It is for explaining and attracting buyers; it does not show your actual inventory, so pair it with real photos of the cars on your lot.' },
 ]
 
 // ── FORMATO: que vídeo ───────────────────────────────────────────────────────────────────────────
@@ -163,7 +170,7 @@ const LANGUAGES: LangSeed[] = [
 ]
 
 // ── ALTERNATIVA: em vez de quem (só o que é verdade sobre a Kineo) ───────────────────────────────
-type AltSeed = { name: string; slug?: string; differences: string[]; prompt: string }
+type AltSeed = { name: string; slug?: string; differences: string[]; prompt: string; answer?: string } // KINEO-PAGINAS-IA-0111: answer = resposta direta própria, sempre dizendo que só a Kineo é descrita
 const KINEO_TRUTHS = {
   finished: 'Kineo delivers a finished MP4: script, AI voice, matched scenes, captions and music, from one idea or a pasted script.',
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 deixou de caber no trial de conta nova (fora do catálogo público); o filme
@@ -193,6 +200,15 @@ const ALTERNATIVES: AltSeed[] = [
   { name: 'Kapwing', differences: ['Kineo writes, narrates and assembles; there is no editor to learn.', KINEO_TRUTHS.engines, KINEO_TRUTHS.noCard], prompt: 'Why F1 cars could drive upside down' },
   { name: 'Veed AI', slug: 'veed-ai', differences: [KINEO_TRUTHS.finished, KINEO_TRUTHS.engines, KINEO_TRUTHS.series], prompt: 'How noise-cancelling headphones actually cancel noise' },
   { name: 'Zebracat', differences: [KINEO_TRUTHS.finished, KINEO_TRUTHS.engines, KINEO_TRUTHS.noCard], prompt: 'Seven countries where you can live well on $1,000 a month' },
+  // KINEO-PAGINAS-IA-0111 — 6 nomes que ainda não tinham página de alternativa em lugar nenhum da casa (conferido por grep em app/ e
+  // lib/ em 01/11: /alternatives, /vs, /compare e este catálogo). Mesma regra da família: só fatos da Kineo, nenhum preço ou
+  // recurso do concorrente; a resposta direta diz isso com todas as letras.
+  { name: 'Vyond', differences: ['Kineo generates the scenes from your text, so there is no animation to assemble scene by scene.', KINEO_TRUTHS.finished, KINEO_TRUTHS.noCard], prompt: 'How a single bad password can let someone into a whole company network', answer: 'If you are looking for a Vyond alternative to make a narrated explainer fast, Kineo takes one idea or a script and returns a finished vertical or widescreen video — script, AI voice, a generated scene for every line, captions and music — with no timeline to set up. We describe only Kineo here; Vyond’s plans and features are theirs to state.' },
+  { name: 'Animoto', differences: ['Kineo starts from text, not from photos and clips you upload: the scenes are generated or matched to each line of the script.', KINEO_TRUTHS.finished, KINEO_TRUTHS.series], prompt: 'Five small changes that make a tiny apartment feel bigger, explained in 60 seconds', answer: 'As an Animoto alternative, Kineo suits people who have an idea but no footage: you type the topic or paste a script and get a narrated, captioned video with scenes generated or matched to every line, ready for Reels, TikTok, Shorts or YouTube. We describe only Kineo here; Animoto’s plans and features are theirs to state.' },
+  { name: 'Clipchamp', differences: ['Kineo writes, narrates and assembles the film for you; there is no timeline to drag clips onto.', KINEO_TRUTHS.engines, KINEO_TRUTHS.series], prompt: 'Why airplane mode exists, and what actually happens if you forget it', answer: 'If you open Clipchamp mainly to turn an idea into a short narrated video, Kineo skips the editing step: one idea or a script in, a finished MP4 out — hook, AI voice, scenes, captions and music — with the engine of your choice. We describe only Kineo here; Clipchamp’s plans and features are theirs to state.' },
+  { name: 'Mootion', differences: [KINEO_TRUTHS.finished, KINEO_TRUTHS.engines, KINEO_TRUTHS.series], prompt: 'The lighthouse keeper who logged the same visitor every night for a year', answer: 'For anyone comparing Mootion with Kineo for AI story videos: Kineo turns one line into a finished narrated film, lets you pick the engine for each film and writes the next episode, so a story becomes a series. We describe only Kineo here; Mootion’s plans and features are theirs to state.' },
+  { name: 'Visla', differences: [KINEO_TRUTHS.finished, KINEO_TRUTHS.engines, KINEO_TRUTHS.noCard], prompt: 'Three questions to ask before signing any software contract, explained in 60 seconds', answer: 'As a Visla alternative for text-to-video, Kineo delivers the complete film from one idea or a pasted script — narration, scenes, captions and music in a single MP4 — and the free trial needs no card. We describe only Kineo here; Visla’s plans and features are theirs to state.' },
+  { name: 'Colossyan', differences: ['Kineo makes faceless narrated films with generated or matched scenes instead of a presenter avatar reading the script.', KINEO_TRUTHS.engines, KINEO_TRUTHS.noCard], prompt: 'Five workplace safety habits that prevent most warehouse injuries, in 60 seconds', answer: 'If you want training or explainer videos without an on-screen presenter, Kineo is a Colossyan alternative built around the narration: your script is read word for word by an AI voice over generated or matched scenes, with captions, in a finished MP4. We describe only Kineo here; Colossyan’s plans and features are theirs to state.' },
 ]
 
 // ── montagem ─────────────────────────────────────────────────────────────────────────────────────
@@ -208,7 +224,7 @@ function nichePage(n: NicheSeed): IntentPage {
     keyword: `AI video generator for ${n.name}`,
     title: `AI Video Generator for ${n.name.charAt(0).toUpperCase() + n.name.slice(1)} | Kineo`,
     h1: `AI video generator for ${n.name}`,
-    intro: `Built for ${n.who}. You type one idea; Kineo writes the hook and the script, records the voice, matches a scene to every line, burns in captions and hands you a vertical MP4, usually in about three minutes.`,
+    intro: n.answer ?? `Built for ${n.who}. You type one idea; Kineo writes the hook and the script, records the voice, matches a scene to every line, burns in captions and hands you a vertical MP4, usually in about three minutes.`,
     examplePrompt: n.prompt,
     engine,
     engineWhy: n.why ?? 'Seedance 1.5 generates a scene for every line of the script.',
@@ -264,7 +280,7 @@ function altPage(a: AltSeed): IntentPage {
     keyword: `${a.name} alternative`,
     title: `${a.name} Alternative for Finished AI Videos | Kineo`,
     h1: `A ${a.name} alternative that delivers the finished film`,
-    intro: `If you are comparing ${a.name} with Kineo, the honest difference is what you get at the end: a complete narrated, captioned MP4 from one idea, with the engine of your choice. Below is what Kineo does; we do not describe ${a.name}'s features or prices here because they change and are theirs to state.`,
+    intro: a.answer ?? `If you are comparing ${a.name} with Kineo, the honest difference is what you get at the end: a complete narrated, captioned MP4 from one idea, with the engine of your choice. Below is what Kineo does; we do not describe ${a.name}'s features or prices here because they change and are theirs to state.`,
     examplePrompt: a.prompt,
     engine: 'cinematic_ai',
     engineWhy: 'One idea in, a finished film out: that is the fastest way to see the difference.',

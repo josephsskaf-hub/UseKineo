@@ -297,9 +297,11 @@ const CONTENT_LANDING_SEGMENTS = new Set([
   'tiktok-vs-youtube-shorts-monetization',
   'viral-score',
   'vs',
+  'when-does-youtube-pay-you', // KINEO-PAGINAS-IA-0111 — artigo de dinheiro para o Bing
   'youtube-automation',
   'youtube-automation-case-study',
   'youtube-shorts-from-topic',
+  'youtube-shorts-revenue-sharing-explained', // KINEO-PAGINAS-IA-0111 — artigo de dinheiro para o Bing
   'youtube-shorts-rpm-by-niche',
   'youtube-shorts-script-timer',
   'youtube-shorts-title-generator',
