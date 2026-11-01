@@ -48,8 +48,9 @@ export function motorDoStudio(quality: string | null | undefined): string | null
 /**
  * O botão de duração do Studio que o filme de origem MIROU. KINEO-PROXIMO-EPISODIO-0111 (revisão): a duração MEDIDA passa do
  * alvo (hollywood de 60 s sai com 75-85 s) e o arredondamento para cima de retryDurationFor abria o episódio em 90 s — mais
- * caro e contra "o mesmo motor e duração". Aqui é o maior botão ≤ medida × 1,1 (a folga cobre o filme que ficou um pouco
- * abaixo do alvo); a tela que SABE o alvo (o /generate) manda o alvo e ele cai exato. Sem duração: null (o Studio escolhe).
+ * caro e contra "o mesmo motor e duração". Aqui é o maior botão que a medida enche a 90% (o piso do FAILFAST: um filme de 60 s
+ * pode sair com 54 s — antes, "≤ medida × 1,1" abria esse em 35); o alvo exato (a tela de pronto, ou o alvo que o filme pediu,
+ * lido pela rota) cai no próprio botão. Sem duração: null (o Studio escolhe).
  */
 export function duracaoDoStudio(engine: string | null, seconds: number | null | undefined): string | null {
   if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) return retryDurationFor(engine ?? 'fast', seconds)
@@ -57,9 +58,8 @@ export function duracaoDoStudio(engine: string | null, seconds: number | null | 
   // Studio usa para ler ?duration=): hollywood de 30 s abria em 35 e Kling 2.5/Veo de 15 s abria em 35 — mais caro e contra
   // "a mesma duração".
   const botoes = [...supportedDurationsFor(engine ?? 'fast')].sort((a, b) => a - b)
-  const teto = seconds * 1.1
   let escolhido = botoes[0]
-  for (const b of botoes) if (b <= teto) escolhido = b
+  for (const b of botoes) if (b * 0.9 <= seconds + 1e-9) escolhido = b // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a medida enche 90% do botão
   return String(escolhido)
 }
 

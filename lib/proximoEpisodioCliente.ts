@@ -47,6 +47,9 @@ export interface PedidoDoEpisodio {
   language?: string | null
   engine?: string | null
   durationSeconds?: number | null
+  /** KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — true = durationSeconds é o ALVO escolhido (tela de pronto); sem ele o servidor
+   *  procura o alvo que o filme pediu antes de usar a medida do MP4 (a biblioteca). */
+  durationIsTarget?: boolean
   /** KINEO-PROXIMO-EPISODIO-0111 (revisão) — o episódio que a tela JÁ mostra (cartão da tela de pronto): vai junto para o
    *  Studio receber o mesmo texto e o servidor não chamar um 2º escritor em paralelo. */
   episodio?: { title?: string | null; script?: string | null } | null
@@ -76,6 +79,7 @@ export async function abrirProximoEpisodio(p: PedidoDoEpisodio, ev?: { preventDe
         language: p.language ?? undefined,
         engine: p.engine ?? undefined,
         durationSeconds: typeof p.durationSeconds === 'number' && p.durationSeconds > 0 ? p.durationSeconds : undefined,
+        durationIsTarget: p.durationIsTarget === true ? true : undefined,
         episode: p.episodio && typeof p.episodio.script === 'string' && p.episodio.script.trim()
           ? { title: String(p.episodio.title ?? '').slice(0, 200), script: p.episodio.script.slice(0, EPISODIO_DA_TELA_MAX_CHARS) }
           : undefined,
@@ -83,11 +87,11 @@ export async function abrirProximoEpisodio(p: PedidoDoEpisodio, ev?: { preventDe
       signal: AbortSignal.timeout(PRAZO_MS),
     })
     if (r.ok) {
-      const d = (await r.json()) as { studioHref?: string; fichas?: string[]; wroteEpisode?: boolean; usedEpisode?: boolean; episodeOffTopic?: boolean; engine?: string | null; duration?: string | null; language?: string }
+      const d = (await r.json()) as { studioHref?: string; fichas?: string[]; wroteEpisode?: boolean; usedEpisode?: boolean; episodeOffTopic?: boolean; engine?: string | null; duration?: string | null; language?: string; characterSource?: string; characterReading?: Record<string, unknown>; durationSource?: string }
       if (typeof d.studioHref === 'string' && d.studioHref.startsWith('/studio?')) {
         href = d.studioHref
         via = 'server'
-        extras = { fichas: Array.isArray(d.fichas) ? d.fichas.length : 0, wrote_episode: d.wroteEpisode === true, used_episode: d.usedEpisode === true, episode_off_topic: d.episodeOffTopic === true, engine: d.engine ?? null, duration: d.duration ?? null, language: d.language ?? null }
+        extras = { fichas: Array.isArray(d.fichas) ? d.fichas.length : 0, wrote_episode: d.wroteEpisode === true, used_episode: d.usedEpisode === true, episode_off_topic: d.episodeOffTopic === true, engine: d.engine ?? null, duration: d.duration ?? null, language: d.language ?? null, character_source: d.characterSource ?? null, character_reading: d.characterReading ?? null, duration_source: d.durationSource ?? null } // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — auditoria da leitura da ficha
       }
     } else {
       extras = { status: r.status }

@@ -170,6 +170,12 @@ async function bateria(fonteRota, fonteLib, { silencioso = false } = {}) {
     '@/lib/textLanguage': transpilar('lib/textLanguage.ts', ler('lib/textLanguage.ts'), {}),
     '@/lib/episodeContinuity': transpilar(LIB, fonteLib, {}),
   }
+  // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a rota passou a importar a leitura semântica da ficha. O módulo REAL entra aqui; a
+  // chamada dele cai no mesmo fetch falso (que devolve um roteiro, não JSON) = falha segura = o bloco de 13/10 sai igual.
+  puros['@/lib/fichaDoEpisodio'] = transpilar('lib/fichaDoEpisodio.ts', ler('lib/fichaDoEpisodio.ts'), {
+    '@/lib/aiModels': transpilar('lib/aiModels.ts', ler('lib/aiModels.ts'), {}),
+    '@/lib/episodeContinuity': puros['@/lib/episodeContinuity'],
+  })
   let supabaseDe = null
   let uidAtual = null
   const NextResponse = { json: (body, init) => ({ status: init?.status ?? 200, body }) }

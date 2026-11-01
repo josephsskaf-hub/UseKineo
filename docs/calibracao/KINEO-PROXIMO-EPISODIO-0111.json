@@ -1,0 +1,2924 @@
+{
+ "marcador": "KINEO-PROXIMO-EPISODIO-0111",
+ "versao": "KINEO-PROXIMO-EPISODIO-0111-SEMANTICA-v1",
+ "rodado_em": "2026-11-01T22:56:50.770Z",
+ "modelo": "AI_TEXT_MODELS.utility (gpt-4o-mini), temperature 0, json_schema strict",
+ "sistema_sha": "025f03543d975e25991fd1e2711aeffe331b2e3da432425b688b6cdd403fb1c4",
+ "regua": "positivo = protagonista certo em formato story; FP grave = coisa/lugar/metáfora/organização virando ficha, nome que não estava rotulado como personagem, pessoa real virando coisa/criatura, ou a mesma pessoa em duas fichas; FP leve = pessoa real nomeada virando ficha num filme sem personagem (não acontece: factual não gera ficha)",
+ "resumo": {
+  "casos": 84,
+  "positivos": 24,
+  "acertos_positivos": 24,
+  "taxa_positivos": 100,
+  "negativos": 54,
+  "negativos_sem_ficha": 54,
+  "falsos_positivos_graves": 0,
+  "falsos_positivos_leves": 0,
+  "duplicatas": 0,
+  "falhas_seguras": 0,
+  "episodios": 8,
+  "episodios_ok": 8,
+  "meta": "0 falso positivo grave e >= 85% de acerto nos positivos",
+  "meta_ok": true
+ },
+ "casos": [
+  {
+   "id": "roland",
+   "fonte": "guardiao",
+   "narracao": "Roland Pernicus Oznard, a gruff old man with shoulder-length gray-brown hair, shuffles to his mailbox every morning. Today the box is warm. Roland opens it and finds a letter with no stamp.",
+   "protagonista": [
+    "Roland Pernicus Oznard"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland Pernicus Oznard\",\"species\":\"a gruff old man\",\"appearance\":\"with shoulder-length gray-brown hair\"},\"supporting\":[]}"
+  },
+  {
+   "id": "bro",
+   "fonte": "guardiao",
+   "narracao": "BRO, a muscular grey city pigeon, rules the rooftop of the old bakery. Every morning BRO fights the seagulls for the crumbs.",
+   "protagonista": [
+    "BRO"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"BRO\",\"species\":\"a muscular grey city pigeon\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the seagulls\",\"species\":\"birds\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "milo-pedido",
+   "fonte": "guardiao",
+   "pedido": "Generate a continuous visual story with CONSISTENT characters.\n\nA tiny cute blue milk carton named MILO.\n\nHe has small arms and legs, huge expressive brown eyes, tiny white sneakers, and a slightly crushed corner on the top of his carton.",
+   "narracao": "Nobody wanted Milo, as he stood all alone on the bottom shelf. Then a little hand reached for him.",
+   "protagonista": [
+    "MILO"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"MILO\",\"species\":\"a tiny cute blue milk carton\",\"appearance\":\"small arms and legs, huge expressive brown eyes, tiny white sneakers, and a slightly crushed corner on the top of his carton.\"},\"supporting\":[]}"
+  },
+  {
+   "id": "pip-e-luna",
+   "fonte": "guardiao",
+   "narracao": "Meet Pip, a brave little mouse with a red scarf, and Luna, an old owl. Pip wants to see the sea; Luna knows the way.",
+   "protagonista": [
+    "Pip"
+   ],
+   "coadjuvantes": [
+    "Luna"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Pip\",\"species\":\"a brave little mouse\",\"appearance\":\"with a red scarf\"},\"supporting\":[{\"name\":\"Luna\",\"species\":\"an old owl\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "kali-kameron",
+   "fonte": "guardiao",
+   "narracao": "Kali and Kameron are ready to play! Kali swoops her toy plane high above the play table. Kameron points to the toy boat. Kali laughs.",
+   "protagonista": [
+    "Kali",
+    "Kameron"
+   ],
+   "coadjuvantes": [
+    "Kali",
+    "Kameron"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Kali\",\"species\":\"a child with a toy plane\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Kameron\",\"species\":\"a child\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "dino",
+   "fonte": "guardiao",
+   "narracao": "Dino the dinosaur loved to dance. Dino danced all night. Dino smiled at the moon.",
+   "protagonista": [
+    "Dino"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Dino\",\"species\":\"a dinosaur\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "grog",
+   "fonte": "guardiao",
+   "narracao": "Grog, a friendly giant, lived in the hills. Every morning Grog carried the village children across the river on his shoulders.",
+   "protagonista": [
+    "Grog"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Grog\",\"species\":\"a friendly giant\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "smaug",
+   "fonte": "guardiao",
+   "narracao": "Once upon a time, Smaug, a dragon, slept on gold. One day a tiny thief tiptoed into his cave.",
+   "protagonista": [
+    "Smaug"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Smaug\",\"species\":\"a dragon\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"a tiny thief\",\"species\":\"\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "mila-cabelo",
+   "fonte": "guardiao",
+   "narracao": "Mila, a girl with a red scarf and tangled hair, dreamed of stars. One night she climbed the tallest tree to touch one.",
+   "protagonista": [
+    "Mila"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Mila\",\"species\":\"a girl\",\"appearance\":\"with a red scarf and tangled hair\"},\"supporting\":[]}"
+  },
+  {
+   "id": "pip-historia",
+   "fonte": "guardiao",
+   "narracao": "The story of Pip, a brave mouse. Pip lived under the old piano and dreamed of the kitchen.",
+   "protagonista": [
+    "Pip"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Pip\",\"species\":\"a brave mouse\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "leo-filhote",
+   "fonte": "guardiao",
+   "narracao": "At night, Leo, a lion cub, roared. His mother laughed, and Leo roared again, louder.",
+   "protagonista": [
+    "Leo"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Leo\",\"species\":\"a lion cub\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"mother\",\"species\":\"a lion\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "rua",
+   "fonte": "guardiao",
+   "narracao": "In the forest, Rua, a little fox, found a key. Rua hid it under her tail and ran home.",
+   "protagonista": [
+    "Rua"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Rua\",\"species\":\"a little fox\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "bolt",
+   "fonte": "guardiao",
+   "narracao": "A tiny robot named Bolt fixes toys. Every night Bolt rolls through the playroom with his little screwdriver.",
+   "protagonista": [
+    "Bolt"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Bolt\",\"species\":\"a tiny robot\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "bia-pt",
+   "fonte": "guardiao",
+   "narracao": "Bia, uma menina curiosa, achou um mapa no sótão. Bia correu para mostrar ao avô.",
+   "protagonista": [
+    "Bia"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Bia\",\"species\":\"uma menina curiosa\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"avô\",\"species\":\"um avô\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "roland-duplo",
+   "fonte": "revisao-3",
+   "narracao": "Roland Pernicus Oznard, a gruff old man with gray hair, opens his mailbox. Roland Oznard, a stubborn man, never asks for help. Roland reads the letter twice.",
+   "protagonista": [
+    "Roland Pernicus Oznard",
+    "Roland Oznard"
+   ],
+   "umaFicha": "Roland",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland Pernicus Oznard\",\"species\":\"a gruff old man\",\"appearance\":\"with gray hair\"},\"supporting\":[] }"
+  },
+  {
+   "id": "briggs-duplo",
+   "fonte": "revisao-3",
+   "narracao": "A man named Benjamin Briggs ran a small fishing boat. Briggs, a careful sailor, never lost a single crate. One night Briggs heard a knock on the hull, far from any shore.",
+   "protagonista": [
+    "Benjamin Briggs",
+    "Briggs"
+   ],
+   "umaFicha": "Briggs",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Benjamin Briggs\",\"species\":\"a careful sailor\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "dr-vega",
+   "fonte": "revisao-1",
+   "narracao": "Elsewhere, a scientist named Dr. Vega studied the comet.",
+   "protagonista": [
+    "Dr. Vega"
+   ],
+   "opcional": true,
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"Dr. Vega\",\"species\":\"a scientist\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "mia-frase",
+   "fonte": "revisao-1",
+   "narracao": "Mia, a little girl watched the storm from her window.",
+   "protagonista": [
+    "Mia"
+   ],
+   "opcional": true,
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Mia\",\"species\":\"a little girl\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "juan-es",
+   "fonte": "revisao-2",
+   "narracao": "Juan, un hombre de Lima, encontró oro.",
+   "protagonista": [
+    "Juan"
+   ],
+   "opcional": true,
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Juan\",\"species\":\"un hombre\",\"appearance\":\"de Lima\"},\"supporting\":[]}"
+  },
+  {
+   "id": "mrs-lopez",
+   "fonte": "revisao-2",
+   "narracao": "Mrs. Lopez, a teacher in Texas paid off every student loan in her class.",
+   "protagonista": [
+    "Mrs. Lopez"
+   ],
+   "opcional": true,
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"Mrs. Lopez\",\"species\":\"a teacher in Texas\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "janela",
+   "fonte": "guardiao",
+   "narracao": "Two tragic crashes exposed a critical design flaw in the square airplane windows used in the aircraft construction. Round airplane windows spread the cabin pressure evenly.",
+   "protagonista": null,
+   "naoSeres": [
+    "airplane",
+    "windows"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "skymaster-tehran",
+   "fonte": "revisao-1",
+   "narracao": "In 1950, a C-54 Skymaster disappeared over the Yukon. Tehran, a city of 9 million, never sleeps.",
+   "protagonista": null,
+   "naoSeres": [
+    "Skymaster",
+    "Tehran",
+    "Yukon"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "paquistao",
+   "fonte": "revisao-1",
+   "narracao": "Pakistan has one of the lowest literacy rates in Asia. Literacy in Pakistan rose to 60 percent. Pakistan spends little on schools. Literacy matters.",
+   "protagonista": null,
+   "naoSeres": [
+    "Pakistan",
+    "Literacy"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "roma",
+   "fonte": "revisao-1",
+   "narracao": "Rome was not built in a day. Rome had a million people. Rome fell in 476. The man who ruled Rome was Augustus.",
+   "protagonista": null,
+   "naoSeres": [
+    "Rome"
+   ],
+   "pessoas": [
+    "Augustus"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "lua-terra",
+   "fonte": "revisao-1",
+   "narracao": "The Moon pulls the oceans. Earth spins. The Moon is moving away from Earth every year. Earth has one moon.",
+   "protagonista": null,
+   "naoSeres": [
+    "Moon",
+    "Earth"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "use-kineo",
+   "fonte": "revisao-1",
+   "narracao": "Use this trick. Use it every day. Kineo makes videos. Kineo is fast. Video is the future. Video wins.",
+   "protagonista": null,
+   "naoSeres": [
+    "Use",
+    "Kineo",
+    "Video"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "ten-talent",
+   "fonte": "revisao-1",
+   "narracao": "Ten years ago, nobody cared. Ten countries signed. Seventy percent of people agree. Talent matters. Talent wins. Son of a farmer, he worked.",
+   "protagonista": null,
+   "naoSeres": [
+    "Ten",
+    "Seventy",
+    "Talent",
+    "Son"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "china-inflacao",
+   "fonte": "revisao-1",
+   "narracao": "China said on Monday it will cut tariffs. China says the economy grew. China has a plan. Inflation runs wild. Inflation hits the poor.",
+   "protagonista": null,
+   "naoSeres": [
+    "China",
+    "Inflation",
+    "Monday"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "helping",
+   "fonte": "revisao-1",
+   "narracao": "Helping others is good. Helping makes you happy. Friendship lasts. Friendship has rules.",
+   "protagonista": null,
+   "naoSeres": [
+    "Helping",
+    "Friendship"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "meanwhile",
+   "fonte": "revisao-1",
+   "narracao": "Meanwhile, a little girl watched the storm from her window. The storm grew. The little girl was scared of the storm.",
+   "protagonista": null,
+   "naoSeres": [
+    "Meanwhile"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"the little girl\",\"species\":\"a little girl\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "aberturas",
+   "fonte": "revisao-1",
+   "narracao": "Somewhere, a lonely fox waited in the snow. However, a strange man appeared at the door. Inside, a robot hummed quietly. Later, a tired old man sat down. Finally, a small bird landed on the roof.",
+   "protagonista": null,
+   "naoSeres": [
+    "Somewhere",
+    "However",
+    "Inside",
+    "Later",
+    "Finally"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"a lonely fox\",\"species\":\"a fox\",\"appearance\":\"lonely\"},\"supporting\":[{\"name\":\"a strange man\",\"species\":\"a man\",\"appearance\":\"strange\"},{\"name\":\"a tired old man\",\"species\":\"an old man\",\"appearance\":\"tired\"},{\"name\":\"a small bird\",\"species\":\"a bird\",\"appearance\":\"small\"}]}"
+  },
+  {
+   "id": "hisarlik",
+   "fonte": "revisao-1",
+   "narracao": "Hisarlik, a hill where a farmer found gold, hides Troy. Qinngua, a place in Greenland where a hunter lived.",
+   "protagonista": null,
+   "naoSeres": [
+    "Hisarlik",
+    "Qinngua",
+    "Troy",
+    "Greenland"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "rei-franca",
+   "fonte": "revisao-1",
+   "narracao": "The king of France signed the treaty. The king died in 1715. Historians still debate it.",
+   "protagonista": null,
+   "naoSeres": [
+    "France"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "robo-sem-nome",
+   "fonte": "guardiao",
+   "narracao": "A tiny discarded robot collects broken toys and repairs them for lonely children. One day, the robot shuts down.",
+   "protagonista": null,
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"a tiny discarded robot\",\"species\":\"a robot\",\"appearance\":\"tiny\"},\"supporting\":[]}"
+  },
+  {
+   "id": "ohio",
+   "fonte": "revisao-2",
+   "narracao": "In Ohio, a man found a winning lottery ticket in his old coat. The ticket was worth two million dollars.",
+   "protagonista": null,
+   "naoSeres": [
+    "Ohio"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "last-friday",
+   "fonte": "revisao-2",
+   "narracao": "Last Friday, a teacher in Texas paid off every student loan in her class. The students cried.",
+   "protagonista": null,
+   "naoSeres": [
+    "Friday",
+    "Texas"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"the teacher\",\"species\":\"a teacher\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the students\",\"species\":\"students\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "monday-kenya",
+   "fonte": "revisao-2",
+   "narracao": "On Monday, a farmer in Kenya found a meteorite. Scientists rushed to the farm.",
+   "protagonista": null,
+   "naoSeres": [
+    "Monday",
+    "Kenya"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "minas",
+   "fonte": "revisao-2",
+   "narracao": "Em Minas, um homem achou ouro no quintal. A cidade inteira foi ver.",
+   "protagonista": null,
+   "naoSeres": [
+    "Minas"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "mexico",
+   "fonte": "revisao-2",
+   "narracao": "En México, un hombre encontró una ciudad bajo su casa. Los arqueólogos llegaron.",
+   "protagonista": null,
+   "naoSeres": [
+    "México",
+    "Mexico"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "yesterday-ohio",
+   "fonte": "revisao-2",
+   "narracao": "Yesterday in Ohio, a man found gold. Friday, a teacher found a dog.",
+   "protagonista": null,
+   "naoSeres": [
+    "Ohio",
+    "Friday"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "centralia",
+   "fonte": "revisao-2",
+   "narracao": "Centralia, a ghost town in Pennsylvania, has burned since 1962.",
+   "protagonista": null,
+   "naoSeres": [
+    "Centralia",
+    "Pennsylvania"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "mary-celeste",
+   "fonte": "revisao-2",
+   "narracao": "Mary Celeste, a ghost ship, was found empty in 1872.",
+   "protagonista": null,
+   "naoSeres": [
+    "Mary Celeste"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "jupiter",
+   "fonte": "revisao-2",
+   "narracao": "Jupiter, a gas giant, has 95 moons.",
+   "protagonista": null,
+   "naoSeres": [
+    "Jupiter"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "nvidia",
+   "fonte": "revisao-2",
+   "narracao": "Nvidia, a chip giant, is worth trillions.",
+   "protagonista": null,
+   "naoSeres": [
+    "Nvidia"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "kodak",
+   "fonte": "revisao-2",
+   "narracao": "Kodak, a giant of photography, went bankrupt.",
+   "protagonista": null,
+   "naoSeres": [
+    "Kodak"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "lego",
+   "fonte": "revisao-2",
+   "narracao": "Lego, a toy company, nearly died in 2003.",
+   "protagonista": null,
+   "naoSeres": [
+    "Lego"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "china-dragao",
+   "fonte": "revisao-2",
+   "narracao": "China, a sleeping dragon, woke up.",
+   "protagonista": null,
+   "naoSeres": [
+    "China"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "inflacao-monstro",
+   "fonte": "revisao-2",
+   "narracao": "Inflation, a monster that eats your savings, is back.",
+   "protagonista": null,
+   "naoSeres": [
+    "Inflation"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "town-called",
+   "fonte": "revisao-2",
+   "narracao": "A small town called Centralia has burned for sixty years.",
+   "protagonista": null,
+   "naoSeres": [
+    "Centralia"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "tesla",
+   "fonte": "revisao-2",
+   "narracao": "Tesla, the robot maker, doubled its sales.",
+   "protagonista": null,
+   "naoSeres": [
+    "Tesla"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "moon-hides",
+   "fonte": "revisao-2",
+   "narracao": "The Moon hides a secret. The Moon is drifting away from Earth.",
+   "protagonista": null,
+   "naoSeres": [
+    "Moon",
+    "Earth"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "pakistan-hopes",
+   "fonte": "revisao-2",
+   "narracao": "Pakistan hopes to double literacy. Pakistan spends little on schools.",
+   "protagonista": null,
+   "naoSeres": [
+    "Pakistan"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "new-york",
+   "fonte": "revisao-2",
+   "narracao": "New York laughs at your salary. Rent in New York doubled.",
+   "protagonista": null,
+   "naoSeres": [
+    "New York",
+    "York"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "bitcoin-rei",
+   "fonte": "revisao-2",
+   "narracao": "Bitcoin, the king of crypto, crashed. Bitcoin fell 20 percent in a day.",
+   "protagonista": null,
+   "naoSeres": [
+    "Bitcoin"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "inflacao-ladra",
+   "fonte": "revisao-3",
+   "narracao": "Inflation, a silent thief, takes 3 percent a year from your savings. Prices climb while your salary stands still.",
+   "protagonista": null,
+   "naoSeres": [
+    "Inflation"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "thanks-bitcoin",
+   "fonte": "revisao-3",
+   "narracao": "Thanks to Bitcoin, a teenager in Ohio became a millionaire. He bought his first coin at fourteen.",
+   "protagonista": null,
+   "naoSeres": [
+    "Bitcoin",
+    "Ohio"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "gracas-pix",
+   "fonte": "revisao-3",
+   "narracao": "Graças ao Pix, um homem de Goiânia montou um império de pastel. Hoje ele vende dez mil por dia.",
+   "protagonista": null,
+   "naoSeres": [
+    "Pix",
+    "Goiânia"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"um homem de Goiânia\",\"species\":\"um homem\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "segun-forbes",
+   "fonte": "revisao-3",
+   "narracao": "Según Forbes, un hombre de Monterrey gana más que todo su país. Su fortuna creció 40 por ciento.",
+   "protagonista": null,
+   "naoSeres": [
+    "Forbes",
+    "Monterrey"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "like-apple",
+   "fonte": "revisao-3",
+   "narracao": "Like Apple, a farmer in Iowa bet everything on one product. Now his corn sells in 40 countries.",
+   "protagonista": null,
+   "naoSeres": [
+    "Apple",
+    "Iowa"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "titanic-olympic",
+   "fonte": "revisao-3",
+   "narracao": "The Titanic had a twin called Olympic. Olympic sailed for 24 years and even rammed a German submarine.",
+   "protagonista": null,
+   "naoSeres": [
+    "Titanic",
+    "Olympic"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "satoshi",
+   "fonte": "revisao-3",
+   "narracao": "This is the story of a coin called Bitcoin. Satoshi, a ghost, wrote the code and vanished in 2011.",
+   "protagonista": null,
+   "naoSeres": [
+    "Bitcoin"
+   ],
+   "pessoas": [
+    "Satoshi"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "kodak-company",
+   "fonte": "revisao-3",
+   "narracao": "A company called Kodak, a giant with 145,000 workers, invented the digital camera and buried it.",
+   "protagonista": null,
+   "naoSeres": [
+    "Kodak"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-840a372a",
+   "fonte": "banco",
+   "narracao": "Meet Tommy—a boy with a sandwich and a big adventure. Suddenly, a mischievous pup leaps and grabs Tommy's snack! Tommy chases, but the pup's got moves—like a true performer! And then... the pup dances on Tommy's head. Laughter erupts!",
+   "protagonista": [
+    "Tommy"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Tommy\",\"species\":\"a boy\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the pup\",\"species\":\"a mischievous pup\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-4a580774",
+   "fonte": "banco",
+   "narracao": "Dentinho, a escova de dentes mais corajosa do banheiro, acorda com um barulho estranho. Um monstrinho de açúcar está escondido entre os dentes do Lucas! Dentinho chama a pasta Mentinha, e juntos fazem espuma, giram e esfregam até o monstrinho fugir. Lucas sorri: dentes brilhando!",
+   "protagonista": [
+    "Dentinho"
+   ],
+   "coadjuvantes": [
+    "Mentinha",
+    "Lucas"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Dentinho\",\"species\":\"a escova de dentes mais corajosa do banheiro\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Mentinha\",\"species\":\"a pasta de dentes\",\"appearance\":\"\"},{\"name\":\"Lucas\",\"species\":\"um menino\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-38937288",
+   "fonte": "banco",
+   "narracao": "Ploc, um alienígena laranja, aperta um botão misterioso! Cada espirro... um novo Ploc surge, clonando-se sem parar! Geli, a geleia roxa, tenta impedir o desastre com urgência. Bip, o robô verde, acidentalmente ativa outra alavanca... aumentando o caos!",
+   "protagonista": [
+    "Ploc"
+   ],
+   "coadjuvantes": [
+    "Geli",
+    "Bip"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Ploc\",\"species\":\"um alienígena laranja\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Geli\",\"species\":\"a geleia roxa\",\"appearance\":\"\"},{\"name\":\"Bip\",\"species\":\"o robô verde\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-0a7fa307",
+   "fonte": "banco",
+   "narracao": "Deep inside a magical forest, there lived a little panda named Milo. One morning, Milo heard a little cry near a tree. Together, they found the bird's family... Milo learned kindness makes a big difference.",
+   "protagonista": [
+    "Milo"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Milo\",\"species\":\"a little panda\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"\",\"species\":\"a little bird\",\"appearance\":\"\"},{\"name\":\"\",\"species\":\"the bird's family\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-1bf949b7",
+   "fonte": "banco",
+   "narracao": "Leo tiptoed into his dark bedroom, feeling a little scared. Suddenly, a friendly firefly flew in, lighting up the room. Leo giggled as the firefly danced. Darkness isn't so scary with a little light. What helps you feel brave at night?",
+   "protagonista": [
+    "Leo"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Leo\",\"species\":\"a little boy\",\"appearance\":\"dark bedroom\"},\"supporting\":[{\"name\":\"firefly\",\"species\":\"a friendly firefly\",\"appearance\":\"lighting up the room\"}]}"
+  },
+  {
+   "id": "banco-60e03554",
+   "fonte": "banco",
+   "narracao": "Imagine um desenho animado 3D... com um toque único! Conheça Tito, a capivara robusta, com cabelo roxo-violeta e três pontas. E os coelhinhos, fofos, com orelhas flexíveis e reações hilárias! Tudo acontece na floresta encantada... um mundo de cores vibrantes e expressões exageradas!",
+   "protagonista": [
+    "Tito"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Tito\",\"species\":\"a capivara robusta\",\"appearance\":\"cabelo roxo-violeta e três pontas\"},\"supporting\":[{\"name\":\"os coelhinhos\",\"species\":\"coelhinhos\",\"appearance\":\"com orelhas flexíveis e reações hilárias\"}]}"
+  },
+  {
+   "id": "banco-f7ac21dd",
+   "fonte": "banco",
+   "narracao": "Kael, an 18-year-old in torn clothes, stands alone... Behind him, enormous stone castles and wealthy people mock. Kael whispers, “One day, they will all bow before me.” Soldiers shout, “There he is! Catch him!” Kael runs, fear igniting his escape.",
+   "protagonista": [
+    "Kael"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Kael\",\"species\":\"an 18-year-old\",\"appearance\":\"in torn clothes\"},\"supporting\":[{\"name\":\"the soldiers\",\"species\":\"soldiers\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-b237e578",
+   "fonte": "banco",
+   "narracao": "In Rainbow Valley, Mila, with her turquoise hair and star-shaped backpack, discovers a world where the grass glows like neon. Suddenly, a dazzling mini vortex of brilliant light opens up, revealing Skoczuś, a pastel-colored creature with mesmerizing eyes resembling sparkling, precious gems. Mila and Skoczuś joyfully run through the enchanting valley, leaping over vibrant balls that explode into a shower of colorful confetti.",
+   "protagonista": [
+    "Mila"
+   ],
+   "coadjuvantes": [
+    "Skoczuś"
+   ],
+   "naoSeres": [
+    "Rainbow Valley"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Mila\",\"species\":\"a girl\",\"appearance\":\"with her turquoise hair and star-shaped backpack\"},\"supporting\":[{\"name\":\"Skoczuś\",\"species\":\"a pastel-colored creature\",\"appearance\":\"with mesmerizing eyes resembling sparkling, precious gems\"}]}"
+  },
+  {
+   "id": "banco-70dc1a09",
+   "fonte": "banco",
+   "narracao": "Leadership isn't just a title—it's a guiding light for success. Meet Alex, a warehouse operator who leads with genuine passion. His team exceeds targets consistently—together, they achieve more. Alex's key to success? Leadership isn't about control... It's about trust, vision, and inspiring unity.",
+   "protagonista": [
+    "Alex"
+   ],
+   "opcional": true,
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Alex\",\"species\":\"a warehouse operator\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "banco-6ccc6edc",
+   "fonte": "banco",
+   "narracao": "What if helping others succeed means starting your own journey anew? Meet Neeraj Kumar, a trainer and mentor for over 17 years. From classrooms to AI, Neeraj keeps reinventing himself. Through his podcast, Neeraj shares: \"Talent opens doors... but skills, mindset, and confidence make opportunities count.\"",
+   "protagonista": null,
+   "pessoas": [
+    "Neeraj Kumar"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"Neeraj Kumar\",\"species\":\"a trainer and mentor\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "banco-5ea848e6",
+   "fonte": "banco",
+   "narracao": "Two armies faced each other: Israelites versus Philistines, preparing for battle. From the Philistines came Goliath, a giant challenging Israel daily. Young shepherd David arrived, shocked by Goliath's bold challenge. With faith and a sling, David's stone... struck Goliath down. Victory.",
+   "protagonista": [
+    "David",
+    "Goliath"
+   ],
+   "opcional": true,
+   "coadjuvantes": [
+    "Goliath",
+    "David"
+   ],
+   "naoSeres": [
+    "Israel",
+    "Philistines",
+    "Israelites"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"David\",\"species\":\"a young shepherd\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Goliath\",\"species\":\"a giant\",\"appearance\":\"\"},{\"name\":\"Israelites\",\"species\":\"soldiers\",\"appearance\":\"\"},{\"name\":\"Philistines\",\"species\":\"soldiers\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-e6eccede",
+   "fonte": "banco",
+   "narracao": "POV: You wake up as a gladiator in Ancient Rome in 100 AD. The crowd is screaming, the gates slowly open, and a giant opponent steps into the arena. You grip your sword, knowing this could be your last day alive. Suddenly, a lion is released behind your opponent. What happens next?",
+   "protagonista": null,
+   "naoSeres": [
+    "Rome",
+    "Ancient Rome"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"You\",\"species\":\"a gladiator\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the giant opponent\",\"species\":\"a giant\",\"appearance\":\"\"},{\"name\":\"the lion\",\"species\":\"a lion\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-3c612308",
+   "fonte": "banco",
+   "narracao": "A young man walks alone through a dark Indonesian village at midnight. Suddenly, a terrifying ghost appears behind a large tree. The man turns around and calmly asks, \"Mbak, tahu warung pecel lele yang masih buka?\" The ghost screams and hides behind him... everyone runs away, hilariously!",
+   "protagonista": null,
+   "naoSeres": [
+    "Mbak"
+   ],
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"a young man\",\"species\":\"a person\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"a terrifying ghost\",\"species\":\"a ghost\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-f8ea1e8f",
+   "fonte": "banco",
+   "narracao": "This Viking family reached America before Columbus. A skeleton near their home just solved a mystery. Southern Greenland. Around the year 980, an exiled Viking called Erik the Red sailed here and built his farm on a fjord once known as Erik's Fjord. According to the sagas, his son Leif later sailed west and reached North America, five hundred years before Columbus. For years, archaeologists studied a strange stone wall near Erik's old home, at a place called Qinngua. Inside it stood a large stone building. It looked like a church. Then, this August, they dug. And they found a skeleton, buried with the head facing east.",
+   "protagonista": null,
+   "pessoas": [
+    "Erik the Red",
+    "Erik",
+    "Leif",
+    "Columbus"
+   ],
+   "naoSeres": [
+    "Qinngua",
+    "Greenland",
+    "Erik's Fjord",
+    "America"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-735a5b67",
+   "fonte": "banco",
+   "narracao": "They just found music inside Troy. Yes, that Troy. The city of the Trojan Horse. The city Homer wrote about in the Iliad. Its ruins sit on a hill called Hisarlik, in Turkey, and archaeologists have been digging there for more than a hundred and fifty years. And this month, Turkey's culture minister announced something nobody had ever pulled out of that hill. A piece of a flute. Made of bone. About two thousand eight hundred years old.",
+   "protagonista": null,
+   "pessoas": [
+    "Homer"
+   ],
+   "naoSeres": [
+    "Troy",
+    "Hisarlik",
+    "Turkey",
+    "Iliad"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-acce4a3c",
+   "fonte": "banco",
+   "narracao": "Did they finally find Amelia Earhart's plane? On July second, 1937, Amelia Earhart and her navigator Fred Noonan vanished over the Pacific. She was thirty-nine, trying to become the first woman to fly around the world. They never reached Howland Island. About four hundred miles away sits a tiny island called Nikumaroro. In 2020, a satellite spotted something strange in its lagoon. They called it the Taraia Object. This month, a team backed by Purdue University sailed out to finally touch it. And the answer was... trees.",
+   "protagonista": null,
+   "pessoas": [
+    "Amelia Earhart",
+    "Fred Noonan"
+   ],
+   "naoSeres": [
+    "Nikumaroro",
+    "Howland Island",
+    "Taraia Object",
+    "Purdue University",
+    "Pacific"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-cfc55fc2",
+   "fonte": "banco",
+   "narracao": "What if time travel isn't just science fiction? In 1941, a physicist named Kurt Gödel suggested it could be real. He discovered solutions to Einstein's equations that allow for time loops. These solutions... imply that under certain conditions, time travel is mathematically possible.",
+   "protagonista": null,
+   "pessoas": [
+    "Kurt Gödel",
+    "Einstein"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-94902363",
+   "fonte": "banco",
+   "narracao": "Hoje à noite vai chover cometa no Brasil. Isso mesmo. Hoje, de vinte e um para vinte e dois de outubro, é o pico das Orionídeas, a chuva de meteoros que vem do cometa Halley. O Halley passa perto do Sol a cada setenta e poucos anos e deixa um rastro de poeira pelo caminho. Todo outubro, a Terra atravessa esse rastro. E o Halley em pessoa? Só volta em 2061.",
+   "protagonista": null,
+   "naoSeres": [
+    "Halley",
+    "Brasil",
+    "Orionídeas",
+    "Terra",
+    "Sol"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  },
+  {
+   "id": "banco-4b3b7668",
+   "fonte": "banco",
+   "narracao": "In March 1922, footprints in fresh snow led from the Bavarian forest to Hinterkaifeck farm, but none returned. Inexplicably, a Munich newspaper appeared in Hinterkaifeck, alarming the Gruber family who hadn't bought it, deepening their fears of an intruder. On March 31, 1922, four family members were lured to the barn and murdered in cold blood. Before the tragic events, the Gruber family's maid resigned, terrified by mysterious footsteps echoing from the attic during the night. Despite thorough investigations, the Hinterkaifeck murders remain an unsolved mystery, haunting the Bavarian woods to this day.",
+   "protagonista": null,
+   "pessoas": [
+    "Andreas Gruber",
+    "Gruber"
+   ],
+   "naoSeres": [
+    "Hinterkaifeck",
+    "Munich",
+    "Bavarian"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[{\"name\":\"Gruber family\",\"species\":\"people\",\"appearance\":\"\"},{\"name\":\"maid\",\"species\":\"person\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-54fde4c4",
+   "fonte": "banco",
+   "narracao": "In the summer of 480 BC, the largest army the world had ever seen marched into Greece. King Xerxes of Persia brought well over a hundred thousand men. Waiting for him at a narrow pass called Thermopylae stood King Leonidas of Sparta, with three hundred Spartans and a few thousand Greek allies. Xerxes sent a message: lay down your weapons. Leonidas answered: \"Come and take them.\" For two days, the pass held. A Spartan named Dienekes was warned that the Persian arrows would blot out the sun. He smiled: \"Good. Then we will fight in the shade.\" Leonidas sent most of the allies home. He stayed, with his three hundred.",
+   "protagonista": null,
+   "pessoas": [
+    "Leonidas",
+    "King Leonidas",
+    "Xerxes",
+    "King Xerxes",
+    "Dienekes"
+   ],
+   "naoSeres": [
+    "Thermopylae",
+    "Sparta",
+    "Persia",
+    "Greece"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"King Leonidas\",\"species\":\"a Spartan king\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"King Xerxes\",\"species\":\"a Persian king\",\"appearance\":\"\"},{\"name\":\"Dienekes\",\"species\":\"a Spartan\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-f14f4aa2",
+   "fonte": "banco",
+   "narracao": "79 AD. The Bay of Naples. Across the water, Mount Vesuvius explodes. A giant cloud shaped like a pine tree rises into the sky. That is how a seventeen-year-old named Pliny the Younger described it. His uncle, Pliny the Elder, commands the Roman fleet. A message arrives from a woman named Rectina. Her villa sits right under the volcano. She begs for rescue. Pliny orders the warships out. Pliny refuses. \"Fortune favors the brave.\" Across the bay, Pompeii disappears under the ash.",
+   "protagonista": null,
+   "pessoas": [
+    "Pliny the Elder",
+    "Pliny the Younger",
+    "Pliny",
+    "Rectina"
+   ],
+   "naoSeres": [
+    "Vesuvius",
+    "Mount Vesuvius",
+    "Naples",
+    "Pompeii",
+    "Stabiae"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":{\"name\":\"Pliny the Younger\",\"species\":\"a seventeen-year-old\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Pliny the Elder\",\"species\":\"a commander\",\"appearance\":\"\"},{\"name\":\"Rectina\",\"species\":\"a woman\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "banco-9888d70f",
+   "fonte": "banco",
+   "narracao": "Is the Black Death back in Russia? Last week, a twenty-eight-year-old researcher in Siberia died. She worked at the Irkutsk Anti-Plague Institute, a lab that studies dangerous germs. Within days, nearly two hundred people were put under medical observation. Even the US Secretary of State, Marco Rubio, said it could quickly spread. The World Health Organization says no dangerous pathogens were found in any of her contacts.",
+   "protagonista": null,
+   "pessoas": [
+    "Marco Rubio"
+   ],
+   "naoSeres": [
+    "Black Death",
+    "Russia",
+    "Siberia",
+    "Irkutsk Anti-Plague Institute",
+    "World Health Organization"
+   ],
+   "resposta_do_modelo": "{\"format\":\"factual\",\"protagonist\":null,\"supporting\":[]}"
+  }
+ ],
+ "episodios": [
+  {
+   "id": "ep-roland-fiel",
+   "fonte": "guardiao",
+   "titulo": "The Letter With No Stamp",
+   "script": "HOOK\nRoland never expected the letter to answer back.\nMICRO REWARD\nThe paper was warm. Roland read the first line twice. It was written in his own handwriting.\nESCALATION\nMore letters came.\nPAYOFF\nThe last one was dated tomorrow.",
+   "segue": "Roland",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland\",\"species\":\"a person\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "ep-mia",
+   "fonte": "guardiao",
+   "titulo": "A Gift Beyond Time",
+   "script": "HOOK\nWhat happens when a forgotten toy comes to life?\nMICRO REWARD\nThe little girl, named Mia, hugs her glowing teddy bear.\nESCALATION\nShe runs.\nPAYOFF\nShe smiles.",
+   "segue": "Mia",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Mia\",\"species\":\"a little girl\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the glowing teddy bear\",\"species\":\"a toy\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "ep-luna",
+   "fonte": "revisao-1",
+   "titulo": "The Girl Who Found the Box",
+   "script": "HOOK\nLuna, a curious girl, finds Roland’s old mailbox.\nMICRO REWARD\nLuna opens it. Luna reads the letter aloud.\nPAYOFF\nLuna smiles.",
+   "segue": "Luna",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Luna\",\"species\":\"a curious girl\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Roland\",\"species\":\"an old man\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "ep-roland-luna-passagem",
+   "fonte": "revisao-1",
+   "titulo": "The Letter",
+   "script": "HOOK\nRoland never expected the letter to answer back.\nMICRO REWARD\nLuna, a curious girl, waves at him. Roland tears the envelope open and reads it on the porch.",
+   "segue": "Roland",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland\",\"species\":\"a person\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Luna\",\"species\":\"a curious girl\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "ep-tofu",
+   "fonte": "revisao-1",
+   "titulo": "A Gift Beyond Time",
+   "script": "HOOK\nWhat if a forgotten toy came to life?\nMICRO REWARD\nA teddy bear named Tofu wakes up. Tofu hugs the robot. Tofu runs away.",
+   "segue": "Tofu",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Tofu\",\"species\":\"a teddy bear\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"the robot\",\"species\":\"a robot\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "ep-while-roland-slept",
+   "fonte": "revisao-3",
+   "titulo": "The Mailbox at Night",
+   "script": "HOOK\nWhile Roland slept, Mia opened the mailbox.\nMICRO REWARD\nMia read the letter. Mia ran to the forest.\nPAYOFF\nMia never came back.",
+   "segue": "Mia",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Mia\",\"species\":\"a girl\",\"appearance\":\"\"},\"supporting\":[{\"name\":\"Roland\",\"species\":\"a boy\",\"appearance\":\"\"}]}"
+  },
+  {
+   "id": "ep-this-time-roland",
+   "fonte": "revisao-2",
+   "titulo": "The Second Letter",
+   "script": "HOOK\nThe letter came back.\nMICRO REWARD\nThis time, Roland did not wait. He tore it open and read every word.",
+   "segue": "Roland",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland\",\"species\":\"a person\",\"appearance\":\"\"},\"supporting\":[]}"
+  },
+  {
+   "id": "ep-naquela-noite",
+   "fonte": "revisao-2",
+   "titulo": "A segunda carta",
+   "script": "HOOK\nA carta voltou.\nMICRO REWARD\nNaquela noite, Roland abriu a carta. Roland leu tudo duas vezes.",
+   "segue": "Roland",
+   "resposta_do_modelo": "{\"format\":\"story\",\"protagonist\":{\"name\":\"Roland\",\"species\":\"a person\",\"appearance\":\"\"},\"supporting\":[]}"
+  }
+ ],
+ "resultados": [
+  {
+   "id": "roland",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Roland Pernicus Oznard"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Roland Pernicus Oznard, a gruff old man, with shoulder-length gray-brown hair"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 956,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "bro",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "BRO"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "BRO, a muscular grey city pigeon"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1000,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "milo-pedido",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "MILO"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "MILO, a tiny cute blue milk carton, small arms and legs, huge expressive brown eyes, tiny white sneakers, and a slightly crushed corner on the top of his carton."
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 980,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "pip-e-luna",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Pip"
+    ],
+    "coadjuvantes": [
+     "Luna"
+    ],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Pip, a brave little mouse, with a red scarf",
+     "Luna, an old owl"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 828,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "kali-kameron",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Kali",
+     "Kameron"
+    ],
+    "coadjuvantes": [
+     "Kali",
+     "Kameron"
+    ],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Kali, a child with a toy plane",
+     "Kameron, a child"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 805,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "dino",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Dino"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Dino, a dinosaur"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 681,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "grog",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Grog"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Grog, a friendly giant"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 825,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "smaug",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Smaug"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Smaug, a dragon"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 888,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "mila-cabelo",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Mila"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Mila, a girl, with a red scarf and tangled hair"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 727,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "pip-historia",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Pip"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Pip, a brave mouse"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1123,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "leo-filhote",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Leo"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Leo, a lion cub"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 805,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "rua",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Rua"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Rua, a little fox"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 712,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "bolt",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Bolt"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Bolt, a tiny robot"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 976,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "bia-pt",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": [
+     "Bia"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Bia, uma menina curiosa"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 801,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "roland-duplo",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": [
+     "Roland Pernicus Oznard",
+     "Roland Oznard"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Roland Pernicus Oznard, a gruff old man, with gray hair"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 756,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "briggs-duplo",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": [
+     "Benjamin Briggs",
+     "Briggs"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Benjamin Briggs, a careful sailor"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1021,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "dr-vega",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": [
+     "Dr. Vega"
+    ],
+    "coadjuvantes": [],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 748,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "mia-frase",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": [
+     "Mia"
+    ],
+    "coadjuvantes": [],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Mia, a little girl"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 726,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "juan-es",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": [
+     "Juan"
+    ],
+    "coadjuvantes": [],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Juan, un hombre, de Lima"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 664,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "mrs-lopez",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": [
+     "Mrs. Lopez"
+    ],
+    "coadjuvantes": [],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 718,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "janela",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 570,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "skymaster-tehran",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 681,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "paquistao",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 653,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "roma",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 601,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "lua-terra",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 623,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "use-kineo",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 626,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "ten-talent",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 589,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "china-inflacao",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 782,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "helping",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 607,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "meanwhile",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 695,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "aberturas",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1144,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "hisarlik",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 639,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "rei-franca",
+   "fonte": "revisao-1",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 653,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "robo-sem-nome",
+   "fonte": "guardiao",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 745,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "ohio",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 722,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "last-friday",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 854,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "monday-kenya",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 599,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "minas",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 615,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "mexico",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 656,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "yesterday-ohio",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 742,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "centralia",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 636,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "mary-celeste",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 558,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "jupiter",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 575,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "nvidia",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 704,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "kodak",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 587,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "lego",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 612,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "china-dragao",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 666,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "inflacao-monstro",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 711,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "town-called",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 561,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "tesla",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 638,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "moon-hides",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 672,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "pakistan-hopes",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 761,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "new-york",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 594,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "bitcoin-rei",
+   "fonte": "revisao-2",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 584,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "inflacao-ladra",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 744,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "thanks-bitcoin",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 644,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "gracas-pix",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 703,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "segun-forbes",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 579,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "like-apple",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 570,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "titanic-olympic",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 615,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "satoshi",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 600,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "kodak-company",
+   "fonte": "revisao-3",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 616,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-840a372a",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Tommy"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Tommy, a boy"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 846,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-4a580774",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Dentinho"
+    ],
+    "coadjuvantes": [
+     "Mentinha",
+     "Lucas"
+    ],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Dentinho, a escova de dentes mais corajosa do banheiro",
+     "Mentinha, a pasta de dentes"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1059,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-38937288",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Ploc"
+    ],
+    "coadjuvantes": [
+     "Geli",
+     "Bip"
+    ],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Ploc, um alienígena laranja",
+     "Geli, a geleia roxa"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 954,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-0a7fa307",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Milo"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Milo, a little panda"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 818,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-1bf949b7",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Leo"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Leo, a little boy, dark bedroom"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 851,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-60e03554",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Tito"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Tito, a capivara robusta, cabelo roxo-violeta e três pontas"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1028,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-f7ac21dd",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Kael"
+    ],
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Kael, an 18-year-old, in torn clothes"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 818,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-b237e578",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Mila"
+    ],
+    "coadjuvantes": [
+     "Skoczuś"
+    ],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Mila, a girl, with her turquoise hair and star-shaped backpack",
+     "Skoczuś, a pastel-colored creature, with mesmerizing eyes resembling sparkling, precious gems"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 945,
+    "tentativas": 1
+   },
+   "acerto_positivo": true,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-70dc1a09",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "Alex"
+    ],
+    "coadjuvantes": [],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "Alex, a warehouse operator"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 713,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-6ccc6edc",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 811,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-5ea848e6",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": [
+     "David",
+     "Goliath"
+    ],
+    "coadjuvantes": [
+     "Goliath",
+     "David"
+    ],
+    "opcional": true
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [
+     "David, a young shepherd",
+     "Goliath, a giant"
+    ],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 1030,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-e6eccede",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 917,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-3c612308",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "story",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 809,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-f8ea1e8f",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 998,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-735a5b67",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 609,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-acce4a3c",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 698,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-cfc55fc2",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 601,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-94902363",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 669,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-4b3b7668",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 807,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-54fde4c4",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 963,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-f14f4aa2",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 977,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  },
+  {
+   "id": "banco-9888d70f",
+   "fonte": "banco",
+   "esperado": {
+    "protagonista": null,
+    "coadjuvantes": [],
+    "opcional": false
+   },
+   "obtido": {
+    "formato": "factual",
+    "fichas": [],
+    "origem": "modelo",
+    "erro": null,
+    "ms": 847,
+    "tentativas": 1
+   },
+   "acerto_positivo": null,
+   "fp_grave": [],
+   "fp_leve": []
+  }
+ ],
+ "resultados_episodios": [
+  {
+   "id": "ep-roland-fiel",
+   "fonte": "guardiao",
+   "esperado": "Roland",
+   "obtido": "Roland",
+   "ok": true
+  },
+  {
+   "id": "ep-mia",
+   "fonte": "guardiao",
+   "esperado": "Mia",
+   "obtido": "Mia",
+   "ok": true
+  },
+  {
+   "id": "ep-luna",
+   "fonte": "revisao-1",
+   "esperado": "Luna",
+   "obtido": "Luna",
+   "ok": true
+  },
+  {
+   "id": "ep-roland-luna-passagem",
+   "fonte": "revisao-1",
+   "esperado": "Roland",
+   "obtido": "Roland",
+   "ok": true
+  },
+  {
+   "id": "ep-tofu",
+   "fonte": "revisao-1",
+   "esperado": "Tofu",
+   "obtido": "Tofu",
+   "ok": true
+  },
+  {
+   "id": "ep-while-roland-slept",
+   "fonte": "revisao-3",
+   "esperado": "Mia",
+   "obtido": "Mia",
+   "ok": true
+  },
+  {
+   "id": "ep-this-time-roland",
+   "fonte": "revisao-2",
+   "esperado": "Roland",
+   "obtido": "Roland",
+   "ok": true
+  },
+  {
+   "id": "ep-naquela-noite",
+   "fonte": "revisao-2",
+   "esperado": "Roland",
+   "obtido": "Roland",
+   "ok": true
+  }
+ ]
+}

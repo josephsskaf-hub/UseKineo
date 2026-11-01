@@ -11426,6 +11426,7 @@ export default function GenerateClient({
         engine: falUsedRef.current ? falQualityRef.current : quality,
         // KINEO-PROXIMO-EPISODIO-0111 (revisão) — o ALVO escolhido, não o MP4 medido (60 s que saiu com 78 s abria em 90 s)
         durationSeconds: duration,
+        durationIsTarget: true, // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — o servidor sabe que é o alvo (a biblioteca manda a medida)
         // o episódio que o cartão desta tela já mostra vai junto: o Studio recebe o MESMO texto, sem um 2º escritor em paralelo
         episodio: nextEpisode,
         navegar: (destino) => {

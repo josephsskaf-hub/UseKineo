@@ -12,7 +12,8 @@ import {
 } from '@/lib/nextEpisodeMemoria'
 import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { blocoDeContinuidade } from '@/lib/episodeContinuity' // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13
-import { comFichaDoPedido } from '@/lib/episodeContinuity' // KINEO-PROXIMO-EPISODIO-0111 — a ficha do personagem escrita no pedido vira MAIN CHARACTER
+import { comFichaDoFilme } from '@/lib/episodeContinuity' // KINEO-PROXIMO-EPISODIO-0111 — a ficha do personagem vira MAIN CHARACTER
+import { lerFichaDoFilme, type AuditoriaDaFicha } from '@/lib/fichaDoEpisodio' // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a ficha por leitura semântica (falha segura)
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -262,7 +263,7 @@ async function episodioJaEscrito(userId: string, fromVideoId: string): Promise<E
 
 /** Guarda o episódio recém-escrito. Fire-and-forget de propósito: um erro de
  *  gravação NUNCA pode transformar um episódio pronto em resposta de erro. */
-async function guardarEpisodio(userId: string, fromVideoId: string, ep: EpisodioEscrito): Promise<void> {
+async function guardarEpisodio(userId: string, fromVideoId: string, ep: EpisodioEscrito, ficha?: AuditoriaDaFicha | null): Promise<void> {
   const admin = adminOuNulo()
   if (!admin) return
   try {
@@ -271,7 +272,7 @@ async function guardarEpisodio(userId: string, fromVideoId: string, ep: Episodio
       name: EPISODIO_ESCRITO_EVENT,
       session_id: fromVideoId.slice(0, 64),
       path: '/api/next-episode',
-      metadata: { ...ep },
+      metadata: { ...ep, ...(ficha ? { ficha_semantica: ficha } : {}) }, // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — auditoria da leitura da ficha (lerGravado ignora)
     })
   } catch {
     /* a memória é bônus; o episódio na tela não é. */
@@ -432,10 +433,17 @@ this episode. The title line is NOT part of the narration word count.`
     // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 — a âncora de assunto vem da
     // narração real do filme de origem (`videos.script`) e, sem ela, do próprio
     // EPISODE 1. '' (filme sem assunto utilizável) = o prompt de antes.
-    // KINEO-PROXIMO-EPISODIO-0111 — + o pedido do autor (`videos.topic`): a ficha do personagem ("Nome, a/an …",
-    // "a … named Nome") vira a linha MAIN CHARACTER. Medido 13/10→01/11: com o assunto já preso, o escritor ainda trocava o
-    // protagonista (o robô virou coadjuvante de uma "little girl, named Mia" inventada) — ver lib/episodeContinuity.ts.
-    const continuidade = comFichaDoPedido(blocoDeContinuidade({ anterior, narracaoOrigem: memoria.narracaoOrigem }), memoria.topicOrigem)
+    // KINEO-PROXIMO-EPISODIO-0111 — a ficha do personagem vira a linha MAIN CHARACTER. Medido 13/10→01/11: com o assunto já
+    // preso, o escritor ainda trocava o protagonista (o robô virou coadjuvante de uma "little girl, named Mia" inventada).
+    // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a ficha sai do rótulo do autor ("Main character: …", sem modelo) ou de UMA
+    // leitura semântica do pedido + narração (lib/fichaDoEpisodio.ts: só nome + ser que age; lugar, empresa, moeda e metáfora
+    // nunca). Só é lida quando há âncora (sem âncora o prompt é o de antes, byte a byte). Falhou, demorou (teto de 5 s, para
+    // caber nos 30 s da rota) ou veio lixo = ficha null = o bloco de 13/10 sai igual. A leitura vai para a auditoria do evento.
+    const ancoraDoFilme = blocoDeContinuidade({ anterior, narracaoOrigem: memoria.narracaoOrigem })
+    const inicioFicha = Date.now()
+    const fichaLida = ancoraDoFilme ? await lerFichaDoFilme({ pedido: memoria.topicOrigem, narracao: memoria.narracaoOrigem || anterior }, { prazoTotalMs: 5_000 }) : null
+    const gastoFicha = Date.now() - inicioFicha
+    const continuidade = comFichaDoFilme(ancoraDoFilme, fichaLida?.aplicada ?? null)
     const usuario = `EPISODE 1 (just produced):
 ${anterior}
 ${continuidade ? `\n${continuidade}\n` : ''}
@@ -455,7 +463,7 @@ Write EPISODE ${episodeNumber}.`
           { role: 'user', content: usuario },
         ],
       }),
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(Math.max(18_000, 25_000 - gastoFicha)), // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a leitura da ficha sai do mesmo orçamento de 30 s
     })
 
     if (!res.ok) {
@@ -515,7 +523,7 @@ Write EPISODE ${episodeNumber}.`
         episodeNumber,
         markersVia: garantido.via,
       })
-      if (paraGravar) await guardarEpisodio(user.id, fromVideoId, paraGravar)
+      if (paraGravar) await guardarEpisodio(user.id, fromVideoId, paraGravar, fichaLida?.auditoria ?? null)
     }
 
     // `title`/`script`/`words` mantêm o formato: o cliente depende deles. Os

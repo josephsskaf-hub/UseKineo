@@ -7,17 +7,18 @@
 // o TÍTULO do filme para o Studio: nome, espécie e aparência ("Roland Pernicus Oznard, a gruff old man with shoulder-length
 // gray-brown hair") ficavam para trás, e o episódio 2 nascia com outra cara.
 //
-// O QUE ESTE MÓDULO FAZ (sem rede; a rota app/api/next-episode/studio chama):
-//   · `fichasDoFilme` — a ficha do(s) personagem(ns): primeiro a que o AUTOR escreveu, palavra por palavra
-//     (lib/episodeContinuity.ts `fichasExplicitas`: "Nome, a/an descrição" · "a descrição named Nome"); sem ela, o elenco
-//     do roteiro (lib/cinematic/folhaDePersonagem.ts `elencoDeterministico`) — só nome + espécie, NUNCA a aparência
-//     sorteada (a folha sorteia cabelo/roupa/cor; colar isso como "mantenha a aparência" inventaria uma cara nova).
-//   · `episodioFicaNoAssunto` — o episódio escrito cita o personagem (ou, sem personagem, divide palavras de assunto com o
-//     filme de origem)? Se não, o gancho escrito NÃO entra na ideia: o Studio recebe só a ficha + "a história até aqui".
+// O QUE ESTE MÓDULO FAZ (puro, sem rede; a rota app/api/next-episode/studio chama):
+//   · `modoDaFicha` — de onde veio a ficha. KINEO-PROXIMO-EPISODIO-0111-SEMANTICA: a ficha NÃO é mais deduzida aqui por
+//     lista de palavras nem pelo elenco determinístico do roteiro (a reserva pelo elenco inventava "Pakistan", "York",
+//     "Bitcoin, the king"…). Ela chega pronta: o rótulo do autor ("Main character: …", lib/episodeContinuity) ou a leitura
+//     semântica do roteiro (lib/fichaDoEpisodio.ts, chamada pela rota). Sem ficha = filme factual ou leitura que falhou:
+//     a ideia fica sem "Main character" e com "Stay on the same subject".
+//   · `episodioFicaNoAssunto` — o episódio escrito cita o personagem no centro (ou, sem personagem, divide palavras de
+//     assunto com o filme de origem) e a leitura do episódio não diz que ele segue OUTRO ser? Se não, o gancho escrito NÃO
+//     entra na ideia: o Studio recebe só a ficha + "a história até aqui".
 //   · `ideiaDoProximoEpisodio` — o texto que entra na caixa do Studio (modo "Let AI structure"): episódio N, ficha, história
 //     até aqui, o gancho novo, e a ordem de não repetir. Sem preço, sem crédito, sem promessa de recurso.
-import { assuntoDoFilme, especieFigurada, especieJuntoDoNome, fichasExplicitas, formatoDoFilme, naoEhNome, serComoCabeca } from '@/lib/episodeContinuity'
-import { elencoDeterministico, type FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import { assuntoDoFilme, fichaRotulada, mesmoSer, type FichaAplicada } from '@/lib/episodeContinuity'
 import { IDEIA_MAX_CHARS } from '@/lib/proximoEpisodioLink'
 
 /** No máximo 2 personagens (o mesmo teto da folha). */
@@ -26,96 +27,24 @@ export const MAX_FICHAS = 2
 export const FICHA_MAX_CHARS = 240
 /** Teto do pedaço do episódio escrito (título + gancho + 1ª revelação) que entra na ideia. */
 export const EPISODIO_NA_IDEIA_MAX_CHARS = 520
+/** Teto do nome da série na ideia (cortado em fronteira de palavra). */
+export const NOME_DA_SERIE_MAX_CHARS = 90
 
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim()
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-// ═══ KINEO-PROXIMO-EPISODIO-0111 (revisão adversarial) — a reserva pelo elenco NÃO inventa personagem ═══
-// Medido nos 250 filmes reais de 30 dias: 127 caíam na reserva pelo elenco e ~30 viravam personagem inventado ("Pakistan",
-// "Literacy", "Use", "Kineo", "Bible", "Moon") — e a ficha ainda ganhava gênero que ninguém escreveu ("Rome, a man",
-// "Helping, a dinosaur"). Agora, sem ficha do AUTOR, um nome só vira ficha quando é um SER QUE AGE no texto (ri, fala,
-// sussurra, corre… ou tem fala "Nome:"), e a espécie só entra se o próprio texto a colou no nome ("Dino the dinosaur").
-// Nunca gênero, nunca aparência sorteada. Papel sem nome ("the tiny discarded robot") só em história; num filme 'livre' só
-// os seres que não são documentário (robô, dragão, fada, brinquedo…). Filme factual = [] → "Stay on the same subject".
+/** 'autor' = rótulo escrito; 'modelo' = leitura semântica com personagem; 'historia_sem_ficha' = a leitura diz história mas
+ *  ninguém com nome age; 'nenhum' = factual, ou a leitura falhou (falha segura). */
+export type ModoDaFicha = 'autor' | 'modelo' | 'historia_sem_ficha' | 'nenhum'
 
-/** Verbo que só um ser vivo/personagem faz (sujeito logo depois do nome). De propósito SEM "says/runs/plays/holds/hopes":
- *  país e conceito também "dizem", "correm" e "jogam" em documentário ("Pakistan plays cricket", "Inflation runs wild").
- *  KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — FORMAS EXATAS, não radical + sufixo: "hop"+"es" virava "hopes" ("Pakistan
- *  hopes…") e "hid"+"es" virava "hides" ("The Moon hides a secret"). "hide" saiu de vez (a Lua "esconde"). */
-const VERBO_DE_SER_QUE_AGE = new RegExp(String.raw`^(?:(?:then|slowly|quickly|suddenly|softly|quietly|happily|sadly|just|also|finally|still|never|always|gently|nervously|proudly|bravely|excitedly|loudly)\s+)?(?:laughs|laughed|laughing|smiles|smiled|smiling|cries|cried|crying|giggles|giggled|giggling|whispers|whispered|whispering|shouts|shouted|screams|screamed|yells|yelled|sighs|sighed|nods|nodded|waves|waved|hugs|hugged|hugging|kisses|kissed|sings|sang|singing|dances|danced|dancing|sleeps|slept|wakes|woke|frowns|frowned|grins|grinned|winks|winked|claps|clapped|barks|barked|meows|meowed|purrs|purred|growls|growled|chirps|chirped|squeaks|squeaked|tiptoes|tiptoed|sneaks|sneaked|snuck|peeks|peeked|sniffs|sniffed|whimpers|whimpered|sobs|sobbed|shivers|shivered|gasps|gasped|blinks|blinked|swoops|swooped|cuddles|cuddled|snuggles|snuggled|wiggles|wiggled|waddles|waddled|hops|hopped|hopping|scurries|scurried|munches|munched|yawns|yawned|shrugs|shrugged|stares|stared|staring|gazes|gazed|gazing)(?![\p{L}])`, 'u')
-// Seres de ficção: num filme sem sinal de história, só estes viram "Main character" sem nome (documentário não tem).
-// KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — sem dragon/monster/wizard/witch: são metáfora em documentário ("the sleeping
-// dragon" = China; "the monster" = inflação; "the wizard of Wall Street").
-const SER_DE_FICCAO = /^(?:robot|android|cyborg|unicorn|fairy|elf|troll|goblin|mermaid|genie|gnome|toy|doll|teddy|puppet)s?$/i
-
-/** Quantas vezes o nome AGE como ser vivo; fala de roteiro ("Kali: …") conta como prova forte (99). */
-function vezesQueAge(texto: string, nome: string): number {
-  const esc = escapaRe(nome)
-  if (new RegExp(String.raw`(?:^|\n)\s*${esc}\s*:`, 'u').test(texto)) return 99 // fala de roteiro: "Kali: …"
-  const re = new RegExp(String.raw`(?<![\p{L}\p{N}])${esc}(?![\p{L}\p{N}'’])\s+`, 'gu')
-  let n = 0
-  for (const m of texto.matchAll(re)) {
-    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — pedaço de nome composto ("New York laughs" → "York"): não é o nome.
-    const antes = /(\p{Lu}[\p{L}'’-]*)\s+$/u.exec(texto.slice(Math.max(0, (m.index ?? 0) - 30), m.index ?? 0))?.[1]
-    if (antes && !naoEhNome(antes)) continue
-    if (VERBO_DE_SER_QUE_AGE.test(texto.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 40))) n += 1
-  }
-  return n
+/** A ficha que vale: o rótulo do autor sempre vence (mesmo que a rota não tenha passado nada); senão a da rota. */
+export function fichaQueVale(ficha: FichaAplicada | null | undefined, ...fontes: Array<string | null | undefined>): FichaAplicada | null {
+  return fichaRotulada(...fontes) ?? ficha ?? null
 }
-
-export type ModoDaFicha = 'autor' | 'ser_que_age' | 'papel' | 'nenhum'
-export interface FichasDoFilme { fichas: string[]; modo: ModoDaFicha }
-
-/** Ficha do elenco que o TEXTO sustenta; '' quando o nome não é um ser que age (país, conceito, palavra solta). */
-function fichaDoElenco(f: FichaDePersonagem, texto: string, historia: boolean): { ficha: string; modo: ModoDaFicha } {
-  // sem nome ("the tiny discarded robot"): o papel JÁ é a ficha fiel do roteiro — mas só em história (ou ser de ficção)
-  if (f.nome.toLowerCase().startsWith('the ')) {
-    const nucleo = f.nome.split(' ').pop() ?? ''
-    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — fora de história, o ser tem de ser a CABEÇA no texto ("Tesla, the robot maker" não)
-    return historia || (SER_DE_FICCAO.test(nucleo) && serComoCabeca(texto, nucleo)) ? { ficha: f.nome, modo: 'papel' } : { ficha: '', modo: 'nenhum' }
-  }
-  const nome = limpa(f.nome)
-  if (!nome || naoEhNome(nome.split(' ')[0]) || !/^\p{Lu}/u.test(nome)) return { ficha: '', modo: 'nenhum' }
-  // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — nome próprio de SER QUE AGE, com espécie só a que o texto escreveu:
-  //   · espécie colada no nome ("Dino the dinosaur", "Bolt the robot"); espécie de metáfora ("Bitcoin, the king", "China,
-  //     the dragon") só se o nome age ou o filme é história;
-  //   · sem espécie: o nome age com prova forte — história, fala de roteiro ("Kali:") ou 2+ ações de ser vivo. Uma ação solta
-  //     ("New York laughs at your salary", "The Moon hides…") não basta.
-  const age = vezesQueAge(texto, nome)
-  const especie = especieJuntoDoNome(texto, nome)
-  if (especie && (age > 0 || historia || !especieFigurada(especie))) return { ficha: `${nome}, ${especie}`, modo: 'ser_que_age' }
-  return age > 0 && (historia || age >= 2) ? { ficha: nome, modo: 'ser_que_age' } : { ficha: '', modo: 'nenhum' }
-}
-
-/**
- * As fichas do filme de origem + de onde vieram. Primeiro as escritas pelo autor (verbatim); sem nenhuma, o elenco do
- * roteiro SÓ quando o texto sustenta (ser que age / papel de história). { fichas: [], modo: 'nenhum' } = filme factual.
- */
-export function fichasDoFilmeComModo(...fontes: Array<string | null | undefined>): FichasDoFilme {
-  const validas = fontes.filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
-  const explicitas = fichasExplicitas(...validas)
-  if (explicitas.length) return { fichas: explicitas.slice(0, MAX_FICHAS).map((f) => f.slice(0, FICHA_MAX_CHARS)), modo: 'autor' }
-  const texto = validas.join('\n')
-  if (!texto) return { fichas: [], modo: 'nenhum' }
-  const historia = formatoDoFilme(...validas) === 'historia'
-  let elenco: FichaDePersonagem[] = []
-  try { elenco = elencoDeterministico(texto) } catch { elenco = [] }
-  const out: string[] = []
-  let modo: ModoDaFicha = 'nenhum'
-  for (const f of elenco) {
-    const r = fichaDoElenco(f, texto, historia)
-    const ficha = r.ficha.slice(0, FICHA_MAX_CHARS)
-    if (!ficha || out.some((o) => o.toLowerCase() === ficha.toLowerCase())) continue
-    out.push(ficha)
-    if (r.modo === 'ser_que_age' || modo === 'nenhum') modo = r.modo
-    if (out.length >= MAX_FICHAS) break
-  }
-  return { fichas: out, modo }
-}
-
-/** As fichas do filme de origem (atalho de `fichasDoFilmeComModo`). [] = filme sem personagem (factual). */
-export function fichasDoFilme(...fontes: Array<string | null | undefined>): string[] {
-  return fichasDoFilmeComModo(...fontes).fichas
+export function modoDaFicha(ficha: FichaAplicada | null | undefined): ModoDaFicha {
+  if (!ficha) return 'nenhum'
+  if (ficha.formato === 'story' && ficha.fichas.length) return ficha.origem
+  return ficha.formato === 'story' ? 'historia_sem_ficha' : 'nenhum'
 }
 
 /** O nome que identifica a ficha na fala: "Roland Pernicus Oznard", "BRO", ou o núcleo do papel ("robot"). */
@@ -181,14 +110,17 @@ function vezesComoSujeito(frases: readonly string[], forma: string, papel: boole
 
 /**
  * O episódio escrito ficou no assunto do filme de origem?
- *  · com personagem: o protagonista está no CENTRO — é sujeito de alguma frase, ou está no título ou na 1ª frase — e
- *    nenhum personagem NOVO (apresentado no episódio com ficha própria: "The little girl, named Mia") é sujeito mais vezes;
+ *  · com personagem: o protagonista está no CENTRO — é sujeito de alguma frase, ou está no título ou na 1ª frase — e,
+ *    quando a leitura semântica do EPISÓDIO veio (lib/fichaDoEpisodio protagonistaDoEpisodio), o ser que o episódio segue
+ *    é o nosso. KINEO-PROXIMO-EPISODIO-0111-SEMANTICA: antes o rival saía do regex de aposto ("Mia, a girl") e o personagem
+ *    novo sem ficha passava ("While Roland slept, Mia opened the mailbox. Mia read the letter." = aceito). Leitura que não
+ *    veio (undefined) = só a checagem determinística, como antes;
  *  · sem personagem (factual): divide pelo menos 2 palavras de assunto com a âncora (1 quando a âncora só tem 1-2).
  * Sem âncora e sem ficha não há com o que comparar: true (nada a vigiar).
  */
 export function episodioFicaNoAssunto(
   episodio: { title?: string | null; script?: string | null },
-  ref: { fichas: readonly string[]; assunto: string },
+  ref: { fichas: readonly string[]; assunto: string; protagonistaDoEpisodio?: string | null },
 ): boolean {
   const texto = `${episodio.title ?? ''}\n${episodio.script ?? ''}`
   if (!limpa(texto)) return false
@@ -197,29 +129,20 @@ export function episodioFicaNoAssunto(
     const frases = frasesDoEpisodio(episodio.script ?? '')
     const primeira = frases[0] ?? ''
     let noCentro = false
-    let sujeitoNosso = 0
-    const nossas: string[] = []
+    const nomes: string[] = []
     for (const f of ref.fichas) {
       const nome = nomeDaFicha(f)
       if (!nome) continue
+      nomes.push(nome)
       const papel = !/^\p{Lu}/u.test(nome)
       for (const forma of formasDoNome(nome)) {
-        nossas.push(forma.toLowerCase())
-        const s = vezesComoSujeito(frases, forma, papel)
-        sujeitoNosso = Math.max(sujeitoNosso, s)
-        if (s > 0 || citaNome(titulo, forma, papel) || citaNome(primeira, forma, papel)) noCentro = true
+        if (vezesComoSujeito(frases, forma, papel) > 0 || citaNome(titulo, forma, papel) || citaNome(primeira, forma, papel)) noCentro = true
       }
     }
     if (!noCentro) return false
-    // personagem novo no centro? (o escritor apresentou alguém com ficha própria e ele age mais que o nosso)
-    for (const rival of fichasExplicitas(episodio.script)) {
-      const nomeRival = nomeDaFicha(rival)
-      const formas = formasDoNome(nomeRival)
-      if (!formas.length || formas.some((r) => nossas.some((n) => n === r.toLowerCase() || n.includes(r.toLowerCase()) || r.toLowerCase().includes(n)))) continue
-      const papelRival = !/^\p{Lu}/u.test(nomeRival)
-      const sujeitoRival = Math.max(...formas.map((r) => vezesComoSujeito(frases, r, papelRival)))
-      if (sujeitoRival > sujeitoNosso) return false
-    }
+    // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — quem o episódio SEGUE, pela leitura (string). Outro ser no centro = fora.
+    const lido = ref.protagonistaDoEpisodio
+    if (typeof lido === 'string' && limpa(lido) && !nomes.some((n) => mesmoSer(n, lido) || n.toLowerCase().split(' ').includes(limpa(lido).toLowerCase()))) return false
     return true
   }
   const ancora = palavrasDeAssunto(ref.assunto)
@@ -249,6 +172,15 @@ export function ganchoDoEpisodio(script: string | null | undefined): string {
   return limpa(`${hook} ${primeiraRevelacao}`)
 }
 
+/** Corta em fronteira de palavra (o nome da série no filme 4b3b7668 saía "…a family repo"). */
+export function cortarNaPalavra(texto: string, max: number): string {
+  const t = limpa(texto)
+  if (t.length <= max) return t
+  const janela = t.slice(0, max + 1)
+  const fim = janela.lastIndexOf(' ')
+  return (fim > 0 ? janela.slice(0, fim) : t.slice(0, max)).replace(/[\s,;:–—-]+$/u, '')
+}
+
 function cortar(texto: string, max: number): string {
   const t = limpa(texto)
   if (t.length <= max) return t
@@ -269,6 +201,11 @@ export interface EntradaDaIdeia {
   episodio?: { title?: string | null; script?: string | null } | null
   /** Número do episódio novo (≥ 2). Sem ele, sai do próprio pedido ("Episode 2 of my series …" → 3) ou é 2. */
   episodeNumber?: number | null
+  /** KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — a ficha que a rota leu (lib/fichaDoEpisodio lerFichaDoFilme). null/ausente =
+   *  leitura falhou ou não houve: sem ficha (o rótulo "Main character:" do autor continua valendo). */
+  ficha?: FichaAplicada | null
+  /** Quem o episódio escrito segue, pela leitura (string); null = ninguém nomeado; undefined = não lido. */
+  protagonistaDoEpisodio?: string | null
 }
 
 // O filme que JÁ nasceu deste botão carrega a moldura no pedido/título: 'Episode 2 of my series "The Mailbox".'
@@ -305,17 +242,21 @@ export interface IdeiaDoEpisodio {
   episodioFora: boolean
   /** O número do episódio novo na série. */
   numero: number
+  /** De onde veio a ficha (auditoria e linha de fecho). */
+  modo: ModoDaFicha
 }
 
 /** A ideia que entra na caixa do Studio. Inglês na moldura; a história segue na língua do filme (o link leva ?language=). */
 export function ideiaDoProximoEpisodio(e: EntradaDaIdeia): IdeiaDoEpisodio {
-  const { fichas, modo } = fichasDoFilmeComModo(e.pedido, e.narracao, e.titulo)
+  const ficha = fichaQueVale(e.ficha, e.pedido, e.narracao, e.titulo)
+  const modo = modoDaFicha(ficha)
+  const fichas = ficha && ficha.formato === 'story' ? ficha.fichas.slice(0, MAX_FICHAS).map((f) => f.slice(0, FICHA_MAX_CHARS)) : []
   const assunto = assuntoDoFilme(e.narracao, e.pedido, e.titulo)
   // O número é o da SÉRIE (moldura do pedido), não o total de filmes da conta (o do escritor conta tudo o que a pessoa já fez).
   const n = typeof e.episodeNumber === 'number' && Number.isFinite(e.episodeNumber) && e.episodeNumber >= 2 ? Math.round(e.episodeNumber) : numeroDoProximo(e.pedido)
-  const titulo = nomeDaSerie(e.titulo, e.pedido).replace(/["“”]/g, '').slice(0, 90)
+  const titulo = cortarNaPalavra(nomeDaSerie(e.titulo, e.pedido).replace(/["“”]/g, ''), NOME_DA_SERIE_MAX_CHARS) // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — fronteira de palavra
   const temEpisodio = Boolean(e.episodio && limpa(`${e.episodio.title ?? ''} ${e.episodio.script ?? ''}`))
-  const noAssunto = temEpisodio ? episodioFicaNoAssunto(e.episodio!, { fichas, assunto }) : false
+  const noAssunto = temEpisodio ? episodioFicaNoAssunto(e.episodio!, { fichas, assunto, protagonistaDoEpisodio: e.protagonistaDoEpisodio }) : false
   const linhas: string[] = []
   linhas.push(`Episode ${n} of my series${titulo ? ` "${titulo}"` : ''}.`)
   // "Main character: …" é o mesmo rótulo que lib/cinematic/sceneStyle deriveExplicitCharacter reconhece como ficha do autor.
@@ -328,16 +269,16 @@ export function ideiaDoProximoEpisodio(e: EntradaDaIdeia): IdeiaDoEpisodio {
     const corpo = cortar(`${tituloEp ? `${tituloEp}. ` : ''}${gancho}`, EPISODIO_NA_IDEIA_MAX_CHARS)
     if (corpo) linhas.push(`This episode: ${corpo}`)
   }
-  // KINEO-PROXIMO-EPISODIO-0111 (revisão) — "mesmos personagens" só quando o autor escreveu a ficha ou um ser AGE no texto.
-  // Papel sem nome num filme sem sinal de história fica no meio-termo; filme factual mantém "Stay on the same subject".
-  linhas.push(modo === 'autor' || modo === 'ser_que_age'
+  // KINEO-PROXIMO-EPISODIO-0111-SEMANTICA — "mesmos personagens" só com ficha (do autor ou da leitura: nome + ser que age).
+  // História sem ninguém nomeado fica no meio-termo; filme factual (ou leitura que falhou) mantém "Stay on the same subject".
+  linhas.push((modo === 'autor' || modo === 'modelo') && fichas.length
     ? 'Keep the same characters (same names, same species, same look) in the same world and tone. A new hook, new events and a fresh payoff; do not repeat what already happened.'
-    : modo === 'papel' && fichas.length
+    : modo === 'historia_sem_ficha'
       ? 'Stay on the same subject: if it is a story, keep the same characters in the same world; if it is factual, take the next angle. A new hook and a fresh payoff; do not repeat what episode 1 already said.'
       : 'Stay on the same subject and take the next angle of it. A new hook, new facts and a fresh payoff; do not repeat what episode 1 already said.')
   let ideia = linhas.join('\n')
   if (ideia.length > IDEIA_MAX_CHARS) ideia = ideia.slice(0, IDEIA_MAX_CHARS)
-  return { ideia, fichas, assunto, usouEpisodio: temEpisodio && noAssunto, episodioFora: temEpisodio && !noAssunto, numero: n }
+  return { ideia, fichas, assunto, usouEpisodio: temEpisodio && noAssunto, episodioFora: temEpisodio && !noAssunto, numero: n, modo }
 }
 
 // ── a língua do filme quando a tela não sabe (a biblioteca não guarda a língua) ──────────────────────────────
