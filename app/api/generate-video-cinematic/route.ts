@@ -269,7 +269,7 @@ import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsC
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
-import { exigirSujeitoNoKling4, lerSujeitoDoPedido, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura)
+import { sujeitoNoKling4, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura); v5: só depois da reserva do teste
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
@@ -7697,18 +7697,24 @@ async function manipularPost(req: NextRequest) {
     // cena cuja fala o cita (senão a última) ganha o sujeito no orçamento dos 512 e perde a imagem-chave do meio desenhada sem ele. Corrige, nunca bloqueia; a fala não muda.
     // v2: o sujeito sai SÓ do pedido original (ideia solta crua, ou a original_idea do roteiro estruturado pelo cliente) — nunca do roteiro com pistas [Pexels]; sem pedido confiável, nada muda.
     // v4: o sujeito vem de UMA chamada semântica ao gpt-4o-mini sobre esse pedido (prazo ~4 s, 1 tentativa extra no máximo); erro, prazo ou JSON inválido = nada muda.
+    // v5: a chamada só sai DEPOIS da reserva do teste aprovada e com as 3 cenas do Kling 4 (dentro do submit): em fallback ela não é gasta nem soma espera.
     const kling4PedidoSujeito = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: kling4Timing.voiceovers }) : null // KINEO-K4-SUJEITO-0111
-    const kling4LeituraSujeito = kling4PedidoSujeito?.pedido ? await lerSujeitoDoPedido(kling4PedidoSujeito.pedido) : null // KINEO-K4-SUJEITO-0111 — nunca lança: falha vira { ok: false }
-    const kling4Sujeito = kling4PedidoSujeito ? exigirSujeitoNoKling4({ pedido: kling4PedidoSujeito, leitura: kling4LeituraSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }) : null // KINEO-K4-SUJEITO-0111
-    if (kling4Sujeito?.relato.corrigido) { for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = kling4Sujeito.prompts[i]; for (let i = 0; i < kling4ApprovedStills.length; i++) kling4ApprovedStills[i] = kling4Sujeito.stills[i] ?? null; console.log(`[cinematic] KINEO-K4-SUJEITO: "${kling4Sujeito.relato.sujeito}" (pedido: ${kling4Sujeito.relato.fonte_do_pedido}) entrou na cena ${kling4Sujeito.relato.cena}${kling4Sujeito.relato.keyframe_removido ? ' (imagem-chave do meio retirada)' : ''}`) } // KINEO-K4-SUJEITO-0111
+    const kling4Sujeito: { r: Awaited<ReturnType<typeof sujeitoNoKling4>> | null } = { r: null } // KINEO-K4-SUJEITO-0111 — preenchido dentro do submit (depois da reserva); nunca lança
+    const aplicarSujeitoNoKling4 = async () => { // KINEO-K4-SUJEITO-0111
+      if (!kling4PedidoSujeito) return
+      const r = await sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo })
+      kling4Sujeito.r = r
+      if (r.relato.corrigido) { for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = r.prompts[i]; for (let i = 0; i < kling4ApprovedStills.length; i++) kling4ApprovedStills[i] = r.stills[i] ?? null; console.log(`[cinematic] KINEO-K4-SUJEITO: "${r.relato.sujeito}" (pedido: ${r.relato.fonte_do_pedido}) entrou na cena ${r.relato.cena}${r.relato.keyframe_removido ? ' (imagem-chave do meio retirada)' : ''}`) }
+      else if (r.relato.motivo_sem_sujeito && r.relato.fonte_do_pedido) console.log(`[cinematic] KINEO-K4-SUJEITO: nada injetado (${r.relato.motivo_sem_sujeito})`)
+    }
     let kling4Trial: Kling4TrialResult | null = null
     let kling4Posts = 0
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6))) {
       kling4Trial = await orchestrateKling4Trial({
         reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
-        submit: () => submitKling4TrialVideo({
+        submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago
           prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing,
-        }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }),
+        }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },
       })
     } else if (kling4TrialCandidate) {
       kling4Trial = { engineUsed: 'seedance15_fallback', costUsd: 0, reason: 'fallback_plan_unavailable' }
@@ -7975,7 +7981,7 @@ async function manipularPost(req: NextRequest) {
       response.kling4_trial = {
         version: 'kling4_trial_2810', engine_used: kling4Trial.engineUsed,
         cost_usd: kling4Trial.costUsd, country: paisDoRequest(req.headers),
-        sujeito_obrigatorio: kling4Sujeito?.relato ?? null, // KINEO-K4-SUJEITO-0111 — o sujeito central exigido, se já estava em cena e se a checagem corrigiu (cena, imagem-chave retirada)
+        sujeito_obrigatorio: kling4Sujeito.r?.relato ?? null, // KINEO-K4-SUJEITO-0111 — o sujeito central exigido, se já estava em cena e se a checagem corrigiu (cena, imagem-chave retirada)
         ...(kling4Trial.job ? {
           original_request_id: kling4Trial.job.requestId, submitted_at: kling4Trial.job.submittedAt,
           fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),

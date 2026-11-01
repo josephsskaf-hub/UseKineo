@@ -35,7 +35,7 @@ import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
 import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
-import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v4: detector estreito — pergunta/eco do HOOK — + juiz semântico curto, falha segura)
+import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -548,18 +548,25 @@ export async function POST(req: NextRequest) {
     const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
-    let rastroDoFinal: { versao: string; estreito: FinalFraco | null; semantico: { ok: boolean; ends_with_concrete_answer: boolean | null; erro: string | null; ms: number; tentativas: number } | null } | null = null // KINEO-FINAL-RESPOSTA-0111 — rastro no script_written (auditoria)
+    let rastroDoFinal: { versao: string; estreito: FinalFraco | null; outro_motivo: boolean; semantico: { ok: boolean; hook_promises_answer: boolean | null; ends_with_concrete_answer: boolean | null; erro: string | null; ms: number; tentativas: number } | null; retry_so_pelo_final: boolean; retry_adotado: boolean | null } | null = null // KINEO-FINAL-RESPOSTA-0111 — rastro no script_written (auditoria)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
     const leuADescricao = (t: string) => descricaoDeCena && leuADescricaoEmVozAlta(t, topic) // KINEO-NARRADOR-DESCRICAO-0111
     let finalFraco: FinalFraco | null = colado.pasted ? null : finalFracoDoRoteiro(script) // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, "o que a NASA nunca anunciou sobre Marte" sem revelar nada): fim em pergunta ou eco do HOOK entra na MESMA nova tentativa; roteiro colado da pessoa: o fim é dela (fidelidade)
-    // KINEO-FINAL-RESPOSTA-0111 v4 — o resto do julgamento ("o fim responde de verdade?") é de UMA chamada semântica curta, só no roteiro escrito pela IA: false = a MESMA nova tentativa; erro/prazo/JSON inválido = nada muda
+    // KINEO-FINAL-RESPOSTA-0111 v5 — o juiz semântico ("o gancho deve uma resposta? o fim a entrega?") só roda no roteiro da IA e só quando NENHUM outro motivo já pede a nova tentativa;
+    // só deve-e-não-entrega = a MESMA nova tentativa (história, motivacional, infantil e lista não devem resposta); erro/prazo/JSON inválido = nada muda
+    const outroMotivoDeRetry = missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script) || !!finalFraco
     if (!colado.pasted) {
-      rastroDoFinal = { versao: FINAL_RESPOSTA_VERSAO, estreito: finalFraco, semantico: null }
-      if (!finalFraco && !payoffIsEmpty(script)) {
-        const juiz = await finalTemRespostaConcreta(script)
-        rastroDoFinal.semantico = juiz.ok ? { ok: true, ends_with_concrete_answer: juiz.valor.ends_with_concrete_answer, erro: null, ms: juiz.ms, tentativas: juiz.tentativas } : { ok: false, ends_with_concrete_answer: null, erro: juiz.erro, ms: juiz.ms, tentativas: juiz.tentativas }
-        if (juiz.ok && !juiz.valor.ends_with_concrete_answer) finalFraco = 'sem_resposta'
+      rastroDoFinal = { versao: FINAL_RESPOSTA_VERSAO, estreito: finalFraco, outro_motivo: outroMotivoDeRetry, semantico: null, retry_so_pelo_final: false, retry_adotado: null }
+      if (!outroMotivoDeRetry) {
+        const juiz = await finalTemRespostaConcreta(script, { pedido: temaDoEscritor })
+        rastroDoFinal.semantico = juiz.ok ? { ok: true, hook_promises_answer: juiz.valor.hook_promises_answer, ends_with_concrete_answer: juiz.valor.ends_with_concrete_answer, erro: null, ms: juiz.ms, tentativas: juiz.tentativas } : { ok: false, hook_promises_answer: null, ends_with_concrete_answer: null, erro: juiz.erro, ms: juiz.ms, tentativas: juiz.tentativas }
+        if (juiz.ok && fimSemResposta(juiz.valor)) { finalFraco = 'sem_resposta'; rastroDoFinal.retry_so_pelo_final = true }
       }
+    }
+    // KINEO-FINAL-RESPOSTA-0111 v5 — a versão reescrita SÓ pelo juiz do fim só substitui a original se não piorar nada que a original tinha
+    const retryNaoPiora = (novo: string): boolean => {
+      const faltaNovo = filmeCurto ? missingElements(novo).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(novo)
+      return faltaNovo.length <= missing.length && !payoffIsEmpty(novo) && !curtoParaOAlvo(novo) && !longoParaOFilmeCurto(novo) && !leuADescricao(novo) && !finalFracoDoRoteiro(novo)
     }
     if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script) || finalFraco) { // KINEO-NARRADOR-DESCRICAO-0111: + roteiro que leu a descrição · KINEO-FINAL-RESPOSTA-0111: + fim que não revela
       const problems: string[] = []
@@ -609,9 +616,14 @@ export async function POST(req: NextRequest) {
             // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o tamanho das duas versões vai para o log (e para o script_written).
             versoesDoFilmeCurto.push(versaoDoFilmeCurto(fimDaTentativa.script))
             console.log(`[generate-script] KINEO-PONTAS-15S-IDIOMA duas versões do filme curto: 1ª ${palavrasDoFilmeCurto(script)} palavras${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(script) ? 'aceita' : 'recusa'})` : ''}, 2ª ${palavrasDoFilmeCurto(fimDaTentativa.script)}${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(fimDaTentativa.script) ? 'aceita' : 'recusa'})` : ''} → fica a ${segundaEMelhor(script, fimDaTentativa.script) ? '2ª' : '1ª'} (faixa ${pisoFilmeCurto}-${tetoFilmeCurto}${faixaDoCinematic ? `, o cinematic aceita ${faixaDoCinematic.min}-${faixaDoCinematic.max}` : ''}, língua ${idiomaDoRitmo ?? '-'}, alvo ${alvoSegundos}s)`)
-            if (segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
-          } else {
+            const adotaFinal = !rastroDoFinal?.retry_so_pelo_final || retryNaoPiora(fimDaTentativa.script) // KINEO-FINAL-RESPOSTA-0111 v5
+            if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = adotaFinal && segundaEMelhor(script, fimDaTentativa.script)
+            if (adotaFinal && segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
+          } else if (!rastroDoFinal?.retry_so_pelo_final || retryNaoPiora(retryScript)) { // KINEO-FINAL-RESPOSTA-0111 v5 — reescrita só pelo juiz do fim: só entra se não piorar
             script = retryScript
+            if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = true
+          } else if (rastroDoFinal) {
+            rastroDoFinal.retry_adotado = false
           }
           missing = filmeCurto ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
           if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {

@@ -14,10 +14,17 @@
 //      Falha segura: erro, prazo ou JSON inválido = o roteiro segue como está (nenhuma tentativa a mais).
 //   3. A injeção crua da revelação no prompt da última cena (comRevelacaoNoFim) SAIU. Fica só a instrução do descritor de cenas
 //      (KINEO-FINAL-RESPOSTA-0111 no system prompt de generate-video-cinematic): a última cena MOSTRA a resposta concreta.
+// v5 (revisão adversarial do 11db2897c: o juiz reprovava fim de HISTÓRIA, motivacional e infantil — false/false nos três — e isso
+// disparava um gpt-4o que reescrevia o fim em todos os motores, contra a regra FIDELITY): o juiz lê também o PEDIDO e responde
+// primeiro se o gancho DEVE uma resposta (hook_promises_answer: pergunta, mistério, segredo, "por quê", fato prometido). História,
+// fábula, conto infantil, mensagem motivacional ou devocional, lista de dicas = não deve resposta: o fim é o da história. Só
+// hook_promises_answer=true E ends_with_concrete_answer=false vira 'sem_resposta'. No escritor o juiz só é chamado quando NENHUM
+// outro motivo já pede a nova tentativa, e a versão reescrita só por ele só substitui a original se não piorar (seções, PAYOFF,
+// tamanho, detector estreito).
 import { isSocialCta } from '@/lib/shortFilmScript'
-import { perguntaSemantica, type OpcoesSemanticas, type ResultadoSemantico } from '@/lib/cinematic/sujeitoObrigatorio'
+import { perguntaSemantica, MODELO_SEMANTICO_0111, type OpcoesSemanticas, type ResultadoSemantico } from '@/lib/cinematic/sujeitoObrigatorio'
 
-export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v4_semantico' as const
+export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v5_semantico' as const
 export type FinalFraco = 'pergunta' | 'repete_gancho' | 'sem_revelacao' | 'sem_resposta'
 
 // Cabeçalho de seção: com dois-pontos (qualquer caixa) ou em MAIÚSCULAS sem dois-pontos. "Ritmo de vida…" numa linha de fala não é cabeçalho.
@@ -83,15 +90,21 @@ export function problemaDoFinal(motivo: FinalFraco): string {
 }
 
 // ─── O juiz semântico do fim (só no escritor, só roteiro da IA) ─────────────────────────────────────────────────────────────────
-export interface LeituraDoFinal { ends_with_concrete_answer: boolean }
-const SCHEMA_FINAL = { type: 'object', additionalProperties: false, required: ['ends_with_concrete_answer'], properties: { ends_with_concrete_answer: { type: 'boolean' } } } as const
+export interface LeituraDoFinal { hook_promises_answer: boolean; ends_with_concrete_answer: boolean }
+// a ordem dos campos é a ordem em que o modelo escreve: primeiro se o gancho deve uma resposta, depois se o fim a entrega
+const SCHEMA_FINAL = { type: 'object', additionalProperties: false, required: ['hook_promises_answer', 'ends_with_concrete_answer'], properties: { hook_promises_answer: { type: 'boolean' }, ends_with_concrete_answer: { type: 'boolean' } } } as const
 export const SYSTEM_FINAL_0111 = [
   'You check the ending of a short narrated video script (any language).',
-  'You get the HOOK (the opening promise), the MIDDLE (context) and the PAYOFF (the ending), all as spoken text.',
-  'ends_with_concrete_answer is true when the PAYOFF actually states the concrete answer the HOOK promised: a specific fact, number, name, place, mechanism, outcome, or the single most-accepted theory, said plainly (a short closing line after that answer is fine).',
-  'It is false when the PAYOFF only teases, sets a mood, says the mystery remains or that someone is still watching or waiting, asks a question, or restates the hook, without giving that concrete answer.',
+  'You get the customer REQUEST, the HOOK (the opening line), the MIDDLE (context) and the PAYOFF (the ending), all as spoken text.',
+  'hook_promises_answer is true only when the HOOK or the REQUEST owes the viewer a specific answer: it asks a question, announces a mystery, a secret, a hidden fact, "what happened", "why" or "how", sets up something unknown, hidden, buried, missing or unexplained, or promises a specific reveal.',
+  "hook_promises_answer is false for a story (fiction, fable, children's tale, a story the customer wrote or outlined, a love story, a parable), a motivational, inspirational, devotional or religious message, a list of tips, habits or steps, a description of a scene, a joke or a dance: their ending is the end of the story or the message, not an answer.",
+  'ends_with_concrete_answer is true when the PAYOFF actually states the concrete answer the HOOK promised: a specific fact, number, name, place, mechanism, outcome, or the single most-accepted theory, said plainly (a short closing line after that answer is fine). When hook_promises_answer is false, it is true if the PAYOFF closes the story or the message.',
+  'ends_with_concrete_answer is false when the PAYOFF only teases, sets a mood, says the mystery remains or that someone is still watching or waiting, asks a question, or restates the hook, without giving that concrete answer.',
   'Judge only what the text says; do not check whether the fact is true. Reply with JSON only.',
 ].join('\n')
+
+/** O fim deve uma resposta e não a entrega? (a única combinação que pede a nova tentativa ao escritor) */
+export const fimSemResposta = (l: LeituraDoFinal): boolean => l.hook_promises_answer && !l.ends_with_concrete_answer
 
 /** O que o juiz lê: o HOOK, o MEIO (contexto) e o PAYOFF falados (sem pistas, sem CTA de rede social). null = roteiro sem as duas pontas (não chama). */
 export function entradaDoJuizDoFinal(script: string): { hook: string; meio: string; payoff: string } | null {
@@ -106,14 +119,19 @@ export function entradaDoJuizDoFinal(script: string): { hook: string; meio: stri
  * Uma chamada: o PAYOFF responde ao HOOK? { ok: false } (sem as duas pontas, erro, prazo, JSON inválido) = não mexe em nada.
  * Prazo curto e tentativa extra só se ainda couber: a rota do escritor tem teto de 60 s com duas chamadas ao gpt-4o.
  */
-export async function finalTemRespostaConcreta(script: string, opts: OpcoesSemanticas = {}): Promise<ResultadoSemantico<LeituraDoFinal>> {
+export async function finalTemRespostaConcreta(script: string, opts: OpcoesSemanticas & { pedido?: string } = {}): Promise<ResultadoSemantico<LeituraDoFinal>> {
+  const { pedido: pedidoBruto, ...opcoes } = opts
   const entrada = entradaDoJuizDoFinal(script)
-  if (!entrada) return { ok: false, erro: 'sem_hook_ou_payoff', ms: 0, model: opts.model ?? 'gpt-4o-mini', tentativas: 0 }
+  if (!entrada) return { ok: false, erro: 'sem_hook_ou_payoff', ms: 0, model: opcoes.model ?? MODELO_SEMANTICO_0111, tentativas: 0 }
+  const pedido = String(pedidoBruto ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)
   return perguntaSemantica(
     {
-      system: SYSTEM_FINAL_0111, user: `HOOK: ${entrada.hook}\nMIDDLE: ${entrada.meio || '(none)'}\nPAYOFF: ${entrada.payoff}`, nome: 'final_responde', schema: SCHEMA_FINAL as unknown as Record<string, unknown>, maxTokens: 20,
-      ler: (o) => (o && typeof o === 'object' && typeof (o as Record<string, unknown>).ends_with_concrete_answer === 'boolean' ? { ends_with_concrete_answer: (o as LeituraDoFinal).ends_with_concrete_answer } : null),
+      system: SYSTEM_FINAL_0111, user: `REQUEST: ${pedido || '(not given)'}\nHOOK: ${entrada.hook}\nMIDDLE: ${entrada.meio || '(none)'}\nPAYOFF: ${entrada.payoff}`, nome: 'final_responde', schema: SCHEMA_FINAL as unknown as Record<string, unknown>, maxTokens: 30,
+      ler: (o) => {
+        const r = o && typeof o === 'object' ? (o as Record<string, unknown>) : null
+        return r && typeof r.hook_promises_answer === 'boolean' && typeof r.ends_with_concrete_answer === 'boolean' ? { hook_promises_answer: r.hook_promises_answer, ends_with_concrete_answer: r.ends_with_concrete_answer } : null
+      },
     },
-    { timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 5_500, ...opts },
+    { timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 5_500, ...opcoes },
   )
 }

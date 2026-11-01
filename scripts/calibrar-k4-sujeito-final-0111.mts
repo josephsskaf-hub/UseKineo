@@ -1,13 +1,15 @@
-// KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — CALIBRAÇÃO da chamada semântica (v4) contra a API de verdade.
-// Roda as funções de produção (lerSujeitoDoPedido, finalTemRespostaConcreta) sobre o conjunto rotulado e grava o conjunto, a
-// resposta CRUA do modelo (o guardião offline reusa essas respostas como mock) e o placar em docs/calibracao/KINEO-K4-SUJEITO-0111.json.
+// KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — CALIBRAÇÃO da chamada semântica contra a API de verdade (v5).
+// Roda as funções de produção (lerSujeitoDoPedido → avaliarSujeito, finalTemRespostaConcreta → fimSemResposta) sobre o conjunto
+// rotulado e grava o conjunto, a resposta CRUA do modelo (o guardião offline reusa essas respostas como mock) e o placar — separado
+// em AJUSTE (casos que o prompt viu) e CEGO (congelados antes da rodada) — em docs/calibracao/KINEO-K4-SUJEITO-0111.json.
 // A chave vem de OPENAI_API_KEY no ambiente ou da linha OPENAI_API_KEY= de um .env.local (caminho em KINEO_ENV_LOCAL, padrão
 // C:\kineo\.env.local); só é lida em memória — nunca impressa nem gravada.
-// Rodar: npx tsx scripts/calibrar-k4-sujeito-final-0111.mts   (custo ~US$ 0,01; 2 passadas para medir estabilidade)
+// Rodar: npx tsx scripts/calibrar-k4-sujeito-final-0111.mts   (custo ~US$ 0,03; 2 passadas para medir estabilidade)
+//        CONJUNTO=ajuste npx tsx …   (só o ajuste, sem gravar: para mexer no prompt sem olhar o cego)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { lerSujeitoDoPedido, sujeitoObrigatorio, SYSTEM_SUJEITO_0111, MODELO_SEMANTICO_0111 } from '@/lib/cinematic/sujeitoObrigatorio'
-import { finalTemRespostaConcreta, finalFracoDoRoteiro, SYSTEM_FINAL_0111 } from '@/lib/cinematic/finalResposta'
+import { lerSujeitoDoPedido, avaliarSujeito, SYSTEM_SUJEITO_0111, MODELO_SEMANTICO_0111, SUJEITO_K4_VERSAO } from '@/lib/cinematic/sujeitoObrigatorio'
+import { finalTemRespostaConcreta, finalFracoDoRoteiro, fimSemResposta, SYSTEM_FINAL_0111, FINAL_RESPOSTA_VERSAO } from '@/lib/cinematic/finalResposta'
 import { CASOS_SUJEITO, CASOS_FINAL } from './calibracao-k4-sujeito-final-0111-casos.mjs'
 
 function chave(): string {
@@ -32,16 +34,31 @@ function gravador() {
 }
 
 const PASSADAS = Number(process.env.PASSADAS ?? 2)
+const SO = process.env.CONJUNTO ?? null // 'ajuste' = não olha o cego e não grava
+const SO_SUJEITO = process.env.SO === 'sujeito', SO_FINAL = process.env.SO === 'final'
+type Conta = { graves: number; posAcertos: number; posTotal: number; negOk: number; negTotal: number; ambOk: number; ambTotal: number; casos: number }
+const nova = (): Conta => ({ graves: 0, posAcertos: 0, posTotal: 0, negOk: 0, negTotal: 0, ambOk: 0, ambTotal: 0, casos: 0 })
+const contas: Record<string, Conta> = { ajuste: nova(), cego: nova() }
 const resultadosSujeito: Array<Record<string, unknown>> = []
-let graves = 0, posAcertos = 0, posTotal = 0, negOk = 0, negTotal = 0, ambOk = 0, ambTotal = 0, instaveis = 0, falhas = 0
-for (const c of CASOS_SUJEITO) {
-  const passadas: Array<{ subject: string | null; kind: string | null; real_person: boolean | null; descartado: string | null; ok: boolean; erro: string | null; ms: number; cru: string }> = []
+let instaveis = 0, falhas = 0
+// em paralelo, de 6 em 6 (a ordem do resultado é a do conjunto)
+async function emLotes<T, R>(itens: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = []
+  for (let i = 0; i < itens.length; i += n) out.push(...(await Promise.all(itens.slice(i, i + n).map(fn))))
+  return out
+}
+const casosSujeito = (CASOS_SUJEITO as Array<Record<string, any>>).filter((c) => !SO || c.conjunto === SO)
+const rodadasSujeito = SO_FINAL ? [] : await emLotes(casosSujeito, 6, async (c) => {
+  const passadas: Array<Record<string, unknown>> = []
   for (let k = 0; k < PASSADAS; k++) {
     const g = gravador()
-    const r = await lerSujeitoDoPedido(c.pedido, { apiKey, fetchImpl: g.f, timeoutMs: 8_000, prazoTotalMs: 17_000 })
-    const s = sujeitoObrigatorio({ leitura: r })
-    passadas.push({ subject: s?.frase ?? null, kind: r.ok ? r.valor.kind : null, real_person: r.ok ? r.valor.real_person : null, descartado: r.ok ? r.valor.descartado : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
+    const r = await lerSujeitoDoPedido(c.pedido, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000 })
+    const a = avaliarSujeito({ leitura: r })
+    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, gist: r.ok ? r.valor.request_gist : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
+  return { c, passadas }
+})
+for (const { c, passadas } of rodadasSujeito) {
   const aceita = c.aceita ? new RegExp(c.aceita, 'i') : null
   const julga = (subject: string | null) => {
     if (c.rotulo === 'neg') return subject ? 'falso_positivo_grave' : 'ok'
@@ -50,53 +67,66 @@ for (const c of CASOS_SUJEITO) {
     if (aceita!.test(subject)) return 'acerto'
     return c.secundario && new RegExp(c.secundario, 'i').test(subject) ? 'perdeu_secundario' : 'falso_positivo_grave'
   }
-  const vereditos = passadas.map((x) => julga(x.subject))
+  const vereditos = passadas.map((x) => julga(x.subject as string | null))
   const pior = ['falso_positivo_grave', 'perdeu_secundario', 'perdeu'].find((v) => vereditos.includes(v)) ?? vereditos[0]
   if (new Set(passadas.map((x) => x.subject)).size > 1) instaveis++
   falhas += passadas.filter((x) => !x.ok).length
-  if (pior === 'falso_positivo_grave') graves++
-  if (c.rotulo === 'pos') { posTotal++; if (pior === 'acerto') posAcertos++ }
-  if (c.rotulo === 'neg') { negTotal++; if (pior === 'ok') negOk++ }
-  if (c.rotulo === 'amb') { ambTotal++; if (pior === 'ok') ambOk++ }
+  const k = contas[c.conjunto]
+  k.casos++
+  if (pior === 'falso_positivo_grave') k.graves++
+  if (c.rotulo === 'pos') { k.posTotal++; if (pior === 'acerto') k.posAcertos++ }
+  if (c.rotulo === 'neg') { k.negTotal++; if (pior === 'ok') k.negOk++ }
+  if (c.rotulo === 'amb') { k.ambTotal++; if (pior === 'ok') k.ambOk++ }
   resultadosSujeito.push({ ...c, veredito: pior, passadas })
-  console.log(`${pior.padEnd(22)} ${c.rotulo} ${c.id}: ${passadas.map((x) => x.subject ?? `null(${x.descartado ?? x.erro})`).join(' | ')}`)
+  if (pior !== 'ok' && pior !== 'acerto' || process.env.VERBOSO) console.log(`${pior.padEnd(22)} ${c.conjunto} ${c.rotulo} ${c.id}: ${passadas.map((x) => x.subject ?? `null(${x.motivo})`).join(' | ')}`)
 }
 
+type ContaFim = { contados: number; acertos: number; fim_bom_reprovado: number; fim_fraco_aprovado: number }
+const contasFim: Record<string, ContaFim> = { ajuste: { contados: 0, acertos: 0, fim_bom_reprovado: 0, fim_fraco_aprovado: 0 }, cego: { contados: 0, acertos: 0, fim_bom_reprovado: 0, fim_fraco_aprovado: 0 } }
 const resultadosFinal: Array<Record<string, unknown>> = []
-let fimAcertos = 0, fimTotal = 0, fimFalsoFraco = 0, fimFalsoForte = 0
-for (const c of CASOS_FINAL) {
-  const estreito = finalFracoDoRoteiro(c.roteiro)
-  const passadas: Array<{ ends_with_concrete_answer: boolean | null; ok: boolean; erro: string | null; ms: number; cru: string }> = []
+const casosFinal = (CASOS_FINAL as Array<Record<string, any>>).filter((c) => !SO || c.conjunto === SO)
+const rodadasFinal = SO_SUJEITO ? [] : await emLotes(casosFinal, 6, async (c) => {
+  const passadas: Array<Record<string, unknown>> = []
   for (let k = 0; k < PASSADAS; k++) {
     const g = gravador()
-    const r = await finalTemRespostaConcreta(c.roteiro, { apiKey, fetchImpl: g.f, timeoutMs: 8_000, prazoTotalMs: 17_000 })
-    passadas.push({ ends_with_concrete_answer: r.ok ? r.valor.ends_with_concrete_answer : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
+    const r = await finalTemRespostaConcreta(c.roteiro, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000, pedido: c.pedido })
+    passadas.push({ hook_promises_answer: r.ok ? r.valor.hook_promises_answer : null, ends_with_concrete_answer: r.ok ? r.valor.ends_with_concrete_answer : null, sem_resposta: r.ok ? fimSemResposta(r.valor) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
-  // o que o escritor faz: estreito primeiro; só sem estreito o juiz decide
-  const fraco = passadas.map((x) => !!estreito || x.ends_with_concrete_answer === false)
+  return { c, passadas }
+})
+for (const { c, passadas } of rodadasFinal) {
+  const estreito = finalFracoDoRoteiro(c.roteiro)
+  // o que o escritor faz: estreito primeiro; só sem estreito o juiz decide (e só "deve e não entrega" reprova)
+  const fraco = passadas.map((x) => !!estreito || x.sem_resposta === true)
   let veredito = 'nao_conta'
   if (c.rotulo !== 'amb') {
-    fimTotal++
+    const k = contasFim[c.conjunto]
+    k.contados++
     const certo = fraco.every((f) => f === !c.rotulo)
-    if (certo) fimAcertos++
-    else if (c.rotulo === true) fimFalsoFraco++
-    else fimFalsoForte++
+    if (certo) k.acertos++
+    else if (c.rotulo === true) k.fim_bom_reprovado++
+    else k.fim_fraco_aprovado++
     veredito = certo ? 'acerto' : c.rotulo === true ? 'fim_bom_reprovado' : 'fim_fraco_aprovado'
   }
-  resultadosFinal.push({ id: c.id, rotulo: c.rotulo, estreito, veredito, passadas, roteiro: c.roteiro })
-  console.log(`${veredito.padEnd(20)} ${String(c.rotulo)} ${c.id}: estreito=${estreito} juiz=${passadas.map((x) => x.ends_with_concrete_answer).join('|')}`)
+  resultadosFinal.push({ id: c.id, conjunto: c.conjunto, rotulo: c.rotulo, pedido: c.pedido ?? null, estreito, veredito, passadas, roteiro: c.roteiro })
+  console.log(`${veredito.padEnd(20)} ${c.conjunto} ${String(c.rotulo)} ${c.id}: estreito=${estreito} juiz=${passadas.map((x) => `${x.hook_promises_answer}/${x.ends_with_concrete_answer}`).join(' | ')}`)
 }
 
+const taxa = (a: number, b: number) => (b ? +(a / b).toFixed(3) : null)
+const resumo = (k: Conta) => ({ casos: k.casos, falsos_positivos_graves: k.graves, positivos: { acertos: k.posAcertos, total: k.posTotal, taxa: taxa(k.posAcertos, k.posTotal) }, negativos_ok: `${k.negOk}/${k.negTotal}`, ambiguos_ok: `${k.ambOk}/${k.ambTotal}` })
+const todos: Conta = Object.values(contas).reduce((t, k) => { for (const x of Object.keys(t) as Array<keyof Conta>) t[x] += k[x]; return t }, nova())
+const casosS = CASOS_SUJEITO as Array<Record<string, any>>
 const placar = {
-  sujeito: { casos: CASOS_SUJEITO.length, passadas: PASSADAS, falsos_positivos_graves: graves, positivos: { acertos: posAcertos, total: posTotal, taxa: +(posAcertos / posTotal).toFixed(3) }, negativos_ok: `${negOk}/${negTotal}`, ambiguos_ok: `${ambOk}/${ambTotal}`, instaveis_entre_passadas: instaveis, chamadas_que_falharam: falhas, origem: { revisao: CASOS_SUJEITO.filter((c) => c.origem === 'revisao').length, banco: CASOS_SUJEITO.filter((c) => c.origem === 'banco').length } },
-  final: { casos: CASOS_FINAL.length, contados: fimTotal, acertos: fimAcertos, fim_bom_reprovado: fimFalsoFraco, fim_fraco_aprovado: fimFalsoForte },
+  sujeito: { versao: SUJEITO_K4_VERSAO, passadas: PASSADAS, total: resumo(todos), ajuste: resumo(contas.ajuste), cego: resumo(contas.cego), instaveis_entre_passadas: instaveis, chamadas_que_falharam: falhas, origem: { revisao: casosS.filter((c) => c.origem === 'revisao').length, banco: casosS.filter((c) => c.origem === 'banco').length, inventado: casosS.filter((c) => c.origem === 'inventado').length } },
+  final: { versao: FINAL_RESPOSTA_VERSAO, casos: CASOS_FINAL.length, ajuste: contasFim.ajuste, cego: contasFim.cego },
 }
 console.log(JSON.stringify(placar, null, 1))
+if (SO || SO_SUJEITO || SO_FINAL) { console.log('(rodada parcial: nada gravado)'); process.exit(0) }
 const dir = join(import.meta.dirname, '..', 'docs', 'calibracao')
 if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 writeFileSync(join(dir, 'KINEO-K4-SUJEITO-0111.json'), JSON.stringify({
   marcador: 'KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111', rodado_em: new Date().toISOString(), modelo: MODELO_SEMANTICO_0111, temperatura: 0,
-  regra: 'meta: 0 falso positivo grave (subject em neg, subject fora do aceito em amb/pos) e >= 85% de acerto nos positivos; cada caso roda PASSADAS vezes e vale o pior veredito',
+  regra: 'meta: 0 falso positivo grave (subject em neg, subject fora do aceito em amb/pos) e >= 85% de acerto nos positivos — no total E no conjunto cego (congelado antes da rodada); cada caso roda PASSADAS vezes e vale o pior veredito',
   system_sujeito: SYSTEM_SUJEITO_0111, system_final: SYSTEM_FINAL_0111, placar, sujeito: resultadosSujeito, final: resultadosFinal,
 }, null, 1) + '\n')
 console.log('gravado docs/calibracao/KINEO-K4-SUJEITO-0111.json')
