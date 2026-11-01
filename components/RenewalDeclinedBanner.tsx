@@ -9,6 +9,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { decideRenewalNotice, renewalNoticeCopy, renewalNoticePlanLabel, RENEWAL_NOTICE_VERSION } from '@/lib/billing/renewalNotice'
+// KINEO-CARTAO-RECUSADO-0111 — nomes do laço do cartão recusado (o nome antigo segue junto: a série de 18/09 não quebra).
+import { CARD_UPDATE_BANNER_CLICKED_EVENT, CARD_UPDATE_BANNER_SHOWN_EVENT } from '@/lib/billing/renewalFailedEmail'
 
 export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: { hasStripeSubscription: boolean; plan: string | null }) {
   const [status, setStatus] = useState<string | null>(null)
@@ -38,6 +40,7 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
     if (!decision.visible || shownRef.current) return
     shownRef.current = true
     void trackEvent('renewal_declined_banner_shown', { version: RENEWAL_NOTICE_VERSION, status, plan })
+    void trackEvent(CARD_UPDATE_BANNER_SHOWN_EVENT, { version: RENEWAL_NOTICE_VERSION, status, plan })
   }, [decision.visible, status, plan])
 
   if (!decision.visible) return null
@@ -47,6 +50,7 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
     if (portal === 'busy') return
     setPortal('busy')
     void trackEvent('renewal_declined_banner_clicked', { version: RENEWAL_NOTICE_VERSION, status, plan, target: payUrl ? 'hosted_invoice' : 'portal' })
+    void trackEvent(CARD_UPDATE_BANNER_CLICKED_EVENT, { version: RENEWAL_NOTICE_VERSION, status, plan, target: payUrl ? 'hosted_invoice' : 'portal' })
     if (payUrl) {
       window.location.assign(payUrl)
       return

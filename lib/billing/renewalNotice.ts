@@ -42,9 +42,11 @@ export function renewalNoticePlanLabel(plan: string | null | undefined): string 
   return 'Kineo'
 }
 
+// KINEO-CARTAO-RECUSADO-0111 — o título diz o que fazer, na frase pedida: "Your last payment didn't go through — update
+// your card" (com o plano, para a pessoa saber de qual cobrança se trata).
 export function renewalNoticeCopy(planLabel: string): { title: string; body: string; cta: string } {
   return {
-    title: `Your ${planLabel} renewal didn't go through`,
+    title: `Your last ${planLabel} payment didn't go through — update your card`,
     body: 'Your plan is still on, but new credits only arrive once the payment clears. Update your card — it takes a minute, and Stripe retries right away.',
     cta: 'Update card →',
   }

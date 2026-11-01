@@ -15,14 +15,25 @@
 //   4. DRY-RUN POR PADRÃO: sem `confirm` nada sai e nada é carimbado; o relatório diz quem receberia e por quê.
 //   5. CARIMBO SÓ COM O RESEND DIZENDO OK; falha vira evento `_failed` (sem carimbo, a próxima rodada tenta de novo).
 //   6. Nada aqui muda preço, cupom, plano, crédito ou cobrança: só LÊ a Stripe e manda e-mail.
+// KINEO-CARTAO-RECUSADO-0111 — a rodada agora cobre os 3 e-mails da régua (1º aviso · lembrete do dia 3 · último lembrete
+// do dia 7; a decisão mora em decideRenewalFollowUp). Cada envio ok grava o carimbo da etapa E `card_failed_email_sent`
+// com attempt 1/2/3. Cartão BR recusado em cobrança USD ganha a dica de liberar compra internacional (sem prometer Pix:
+// não existe trilho em reais para a fatura de renovação — ver isBrazilianCardInUsd).
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { recordResendResponse, recordEmailSend } from '@/lib/email/quota'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { readInvoiceDeclineCategory } from '@/lib/billing/renewalDecline'
+import { readInvoiceDecline } from '@/lib/billing/renewalDecline'
 import {
+  CARD_FAILED_EMAIL_SENT_EVENT,
+  RENEWAL_FAILED_FINAL_EVENT,
+  RENEWAL_FAILED_FINAL_FAILED_EVENT,
+  RENEWAL_FAILED_FINAL_KIND,
+  cardFailedEmailAttempt,
+  isBrazilianCardInUsd,
+  type RenewalFollowUpStage,
   RENEWAL_FAILED_EMAIL_EVENT,
   RENEWAL_FAILED_EMAIL_FAILED_EVENT,
   RENEWAL_FAILED_EMAIL_FROM,
@@ -49,13 +60,20 @@ export const RENEWAL_FOLLOWUP_MAX_BATCH = 30
 const RENEWAL_FOLLOWUP_SEND_TIMEOUT_MS = 8000
 const RENEWAL_FOLLOWUP_PATH = '/api/admin/send-renewal-declined'
 
+// KINEO-CARTAO-RECUSADO-0111 — carimbo de dedupe, evento de falha e `email_send_log.kind` de cada etapa da régua.
+const STAGE_NAMES: Record<RenewalFollowUpStage, { stamp: string; failed: string; kind: string }> = {
+  first: { stamp: RENEWAL_FAILED_EMAIL_EVENT, failed: RENEWAL_FAILED_EMAIL_FAILED_EVENT, kind: RENEWAL_FAILED_EMAIL_KIND },
+  reminder: { stamp: RENEWAL_FAILED_REMINDER_EVENT, failed: RENEWAL_FAILED_REMINDER_FAILED_EVENT, kind: RENEWAL_FAILED_REMINDER_KIND },
+  final: { stamp: RENEWAL_FAILED_FINAL_EVENT, failed: RENEWAL_FAILED_FINAL_FAILED_EVENT, kind: RENEWAL_FAILED_FINAL_KIND },
+}
+
 type FollowUpRow = {
   email: string | null
   subscription_ref: string
   invoice_id: string | null
   invoice_status: string | null
   decision: string
-  stage: 'first' | 'reminder' | null
+  stage: RenewalFollowUpStage | null
   outcome?: 'sent' | 'failed' | 'held_by_limit'
 }
 
@@ -138,18 +156,23 @@ export async function runRenewalFollowUp(params: {
     const email = typeof owner?.email === 'string' ? owner.email.trim() : ''
     row.email = email || null
 
-    // 3. Carimbos desta fatura (1º aviso e lembrete).
+    // 3. Carimbos desta fatura (1º aviso, lembrete do dia 3 e último lembrete do dia 7).
     let firstSentAt: string | null = null
     let reminderSent = false
+    let reminderSentAt: string | null = null
+    let finalSent = false
     let dedupeReadable = false
     if (invoiceId) {
-      const [firstStamp, reminderStamp] = await Promise.all([
+      const [firstStamp, reminderStamp, finalStamp] = await Promise.all([
         readStamp(admin, RENEWAL_FAILED_EMAIL_EVENT, invoiceId),
         readStamp(admin, RENEWAL_FAILED_REMINDER_EVENT, invoiceId),
+        readStamp(admin, RENEWAL_FAILED_FINAL_EVENT, invoiceId),
       ])
-      dedupeReadable = firstStamp.ok && reminderStamp.ok
+      dedupeReadable = firstStamp.ok && reminderStamp.ok && finalStamp.ok
       firstSentAt = firstStamp.ok ? firstStamp.createdAt : null
-      reminderSent = reminderStamp.ok ? reminderStamp.createdAt !== null : false
+      reminderSentAt = reminderStamp.ok ? reminderStamp.createdAt : null
+      reminderSent = reminderSentAt !== null
+      finalSent = finalStamp.ok ? finalStamp.createdAt !== null : false
     }
 
     // 4. A fatura RELIDA agora: é o "já pagou?" do momento do envio.
@@ -179,6 +202,8 @@ export async function runRenewalFollowUp(params: {
       dedupeReadable,
       firstSentAt,
       reminderSent,
+      reminderSentAt,
+      finalSent,
       recipientEmail: email,
       nowMs,
     })
@@ -193,7 +218,9 @@ export async function runRenewalFollowUp(params: {
 
     // 5. Envio. Motivo e link saem da fatura relida; a carta é a mesma do webhook (+ lembrete).
     const ownerId = String(owner.id)
-    const reasonCategory = await readInvoiceDeclineCategory(invoice)
+    const decline = await readInvoiceDecline(invoice)
+    const reasonCategory = decline.category
+    const brazilianCardInUsd = isBrazilianCardInUsd(invoice.currency, decline.cardCountry)
     const payLink = renewalPayUrl(invoice.hosted_invoice_url)
     const message = renewalFailedEmailMessage({
       language: renewalEmailLanguage((owner.last_country as string | null) || (owner.signup_country as string | null)),
@@ -201,8 +228,10 @@ export async function runRenewalFollowUp(params: {
       hostedInvoiceUrl: invoice.hosted_invoice_url,
       reasonCategory,
       stage: decision.stage,
+      brazilianCardInUsd,
     })
-    const kind = decision.stage === 'reminder' ? RENEWAL_FAILED_REMINDER_KIND : RENEWAL_FAILED_EMAIL_KIND
+    const stageNames = STAGE_NAMES[decision.stage]
+    const kind = stageNames.kind
     const base = {
       version: RENEWAL_FAILED_EMAIL_VERSION,
       source: 'renewal_followup_cron',
@@ -215,6 +244,8 @@ export async function runRenewalFollowUp(params: {
       language: message.language,
       link: payLink === RENEWAL_FAILED_UPDATE_CARD_URL ? 'portal' : 'hosted_invoice',
       reason_category: reasonCategory,
+      br_card_usd: brazilianCardInUsd,
+      card_failed_attempt: cardFailedEmailAttempt(decision.stage),
     }
     let res: Response | null = null
     let sendError: string | null = null
@@ -242,7 +273,7 @@ export async function runRenewalFollowUp(params: {
       failed++
       row.outcome = 'failed'
       await writeServerEvent({
-        name: decision.stage === 'reminder' ? RENEWAL_FAILED_REMINDER_FAILED_EVENT : RENEWAL_FAILED_EMAIL_FAILED_EVENT,
+        name: stageNames.failed,
         userId: ownerId,
         path: RENEWAL_FOLLOWUP_PATH,
         metadata: { ...base, http_status: res?.status ?? null, error: sendError },
@@ -252,13 +283,21 @@ export async function runRenewalFollowUp(params: {
     }
 
     const receipt = (await res.json().catch(() => null)) as { id?: unknown } | null
+    const providerId = typeof receipt?.id === 'string' ? receipt.id : null
     const stamped = await writeServerEvent({
-      name: decision.stage === 'reminder' ? RENEWAL_FAILED_REMINDER_EVENT : RENEWAL_FAILED_EMAIL_EVENT,
+      name: stageNames.stamp,
       userId: ownerId,
       path: RENEWAL_FOLLOWUP_PATH,
-      metadata: { ...base, provider_id: typeof receipt?.id === 'string' ? receipt.id : null },
+      metadata: { ...base, provider_id: providerId },
     })
     if (!stamped) console.error('[renewal-followup] SENT but not stamped — the next round may resend:', invoiceId, decision.stage)
+    // KINEO-CARTAO-RECUSADO-0111 — a medição única do laço (attempt 1/2/3). Não é dedupe: o carimbo acima é.
+    await writeServerEvent({
+      name: CARD_FAILED_EMAIL_SENT_EVENT,
+      userId: ownerId,
+      path: RENEWAL_FOLLOWUP_PATH,
+      metadata: { ...base, attempt: cardFailedEmailAttempt(decision.stage), stripe_attempt: base.attempt, provider_id: providerId },
+    })
     sent++
     row.outcome = 'sent'
     rows.push(row)

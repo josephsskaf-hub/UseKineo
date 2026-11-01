@@ -86,9 +86,16 @@ import {
   renewalEmailLanguage,
   renewalFailedEmailMessage,
   renewalPayUrl,
+  // KINEO-CARTAO-RECUSADO-0111 — medição única do laço (attempt 1/2/3) e a dica do cartão BR em cobrança USD.
+  CARD_FAILED_EMAIL_SENT_EVENT,
+  cardFailedEmailAttempt,
+  isBrazilianCardInUsd,
 } from '@/lib/billing/renewalFailedEmail'
 // KINEO-CARTAO-RECUSADO-1510 — o motivo da recusa (só a categoria, nunca dado de cartão) para a carta dizer em 1 frase.
-import { readInvoiceDeclineCategory } from '@/lib/billing/renewalDecline'
+// reancorado KINEO-CARTAO-RECUSADO-0111 — a mesma leitura devolve também o país do cartão (só para a dica BR×USD).
+import { readInvoiceDecline } from '@/lib/billing/renewalDecline'
+// KINEO-CARTAO-RECUSADO-0111 — fatura paga depois de falha vira `card_recovered` (nunca lança).
+import { recordCardRecoveredIfAny } from '@/lib/billing/cardRecovered'
 import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 import {
   AffiliateLedgerIntegrityError,
@@ -1379,7 +1386,7 @@ async function sendRenewalFailedEmailOnce(
   supabase: AdminClient,
   input: {
     // KINEO-CARTAO-RECUSADO-1510 — + hosted_invoice_url (o botão de 1 clique, sem login) e payment_intent (o motivo).
-    invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email' | 'hosted_invoice_url' | 'payment_intent'>
+    invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email' | 'hosted_invoice_url' | 'payment_intent' | 'currency'>
     subscriptionId: string
     subscriptionStatus: string
     owner: RenewalFailedEmailOwner | null
@@ -1458,7 +1465,9 @@ async function sendRenewalFailedEmailOnce(
 
     // KINEO-CARTAO-RECUSADO-1510 — motivo humano (categoria) e botão na fatura hospedada da Stripe (sem login).
     // readInvoiceDeclineCategory nunca lança e tem teto de 2,5 s; sem motivo a carta diz a frase genérica.
-    const reasonCategory = await readInvoiceDeclineCategory(input.invoice)
+    const decline = await readInvoiceDecline(input.invoice)
+    const reasonCategory = decline.category
+    const brazilianCardInUsd = isBrazilianCardInUsd(input.invoice.currency, decline.cardCountry) // KINEO-CARTAO-RECUSADO-0111
     const payLink = renewalPayUrl(input.invoice.hosted_invoice_url)
     const message = renewalFailedEmailMessage({
       language: renewalEmailLanguage(profile?.last_country || profile?.signup_country),
@@ -1466,6 +1475,7 @@ async function sendRenewalFailedEmailOnce(
       hostedInvoiceUrl: input.invoice.hosted_invoice_url,
       reasonCategory,
       stage: 'first',
+      brazilianCardInUsd,
     })
     let res: Response
     try {
@@ -1520,6 +1530,23 @@ async function sendRenewalFailedEmailOnce(
         link: payLink === RENEWAL_FAILED_UPDATE_CARD_URL ? 'portal' : 'hosted_invoice',
         reason_category: reasonCategory,
         stage: 'first',
+        br_card_usd: brazilianCardInUsd,
+      },
+    })
+    // KINEO-CARTAO-RECUSADO-0111 — a medição única do laço: attempt 1 (o lembrete do dia 3 e o último do dia 7 saem da
+    // rodada lib/billing/renewalFailedFollowUp.ts com attempt 2 e 3). Não é dedupe: o carimbo acima é.
+    await writeServerEvent({
+      name: CARD_FAILED_EMAIL_SENT_EVENT,
+      userId: ownerId,
+      path: '/api/stripe/webhook',
+      metadata: {
+        ...base,
+        stripe_attempt: base.attempt,
+        attempt: cardFailedEmailAttempt('first'),
+        stage: 'first',
+        language: message.language,
+        br_card_usd: brazilianCardInUsd,
+        provider_id: typeof receipt?.id === 'string' ? receipt.id : null,
       },
     })
     if (!stamped) console.error('[stripe webhook] renewal email SENT but not stamped — the next failure of this invoice may resend:', invoiceId)
@@ -3012,6 +3039,18 @@ export async function POST(req: NextRequest) {
             balance_after: renovacao.balance,
             carry_version: RENEWAL_CARRY_VERSION,
           },
+        })
+        // KINEO-CARTAO-RECUSADO-0111 — paga depois de falhar (Stripe tentou >1 vez ou mandamos e-mail para esta fatura)
+        // = `card_recovered`. Depois do crédito e do evento da fatura; nunca lança, não muda a resposta à Stripe.
+        await recordCardRecoveredIfAny(supabase, {
+          invoiceId: invoice.id ?? null,
+          attemptCount: invoice.attempt_count ?? null,
+          userId: renewalUserId,
+          subscriptionId,
+          tier: renewalTier,
+          amountPaid: invoice.amount_paid ?? 0,
+          currency: invoice.currency ?? 'usd',
+          billingReason: billingReason ?? null,
         })
 
         // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre pagamento que só chega como

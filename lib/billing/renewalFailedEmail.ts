@@ -140,8 +140,58 @@ export const RENEWAL_FAILED_REMINDER_EVENT = 'renewal_payment_failed_reminder_se
 /** O Resend recusou o lembrete (sem carimbo: a próxima rodada tenta de novo). */
 export const RENEWAL_FAILED_REMINDER_FAILED_EVENT = 'renewal_payment_failed_reminder_failed'
 export const RENEWAL_FAILED_REMINDER_KIND = 'renewal_payment_failed_reminder'
-/** Horas mínimas entre o 1º aviso e o lembrete. O cron roda 2×/dia: o lembrete sai entre 20 h e ~32 h depois (dia 2). */
-export const RENEWAL_FAILED_REMINDER_AFTER_HOURS = 20
+/**
+ * Horas mínimas entre o 1º aviso e o lembrete. O cron roda 2×/dia: o lembrete sai entre 48 h e ~56 h depois (dia 3).
+ * reancorado KINEO-CARTAO-RECUSADO-0111 — era 20 h (dia 2). A régua nova é dia 1 · dia 3 · dia 7 (ver o bloco abaixo).
+ */
+export const RENEWAL_FAILED_REMINDER_AFTER_HOURS = 48
+
+// ═══ KINEO-CARTAO-RECUSADO-0111 — o laço fecha: 1º aviso (dia 1) · lembrete (dia 3) · último lembrete (dia 7) ═══
+// MEDIDO (01/11, banco): a cintia (ES, Starter) teve a fatura in_1UMC… recusada em 02/10, 08/10, 15/10 e 24/10. O laço
+// automático FUNCIONOU duas vezes (1º aviso em 08/10, lembrete em 15/10) e depois CALOU: 4ª recusa em 24/10 sem uma linha,
+// até a carta manual de 31/10. A régua antiga era "um aviso + um lembrete" e a Stripe segue tentando por semanas.
+// Agora são 3 e-mails por fatura, todos com a fatura RELIDA na Stripe no momento do envio:
+//   attempt 1 — 1º aviso, na 1ª falha (webhook) ou na rodada seguinte se o webhook não conseguiu;
+//   attempt 2 — lembrete, ≥ 48 h depois do 1º aviso (dia 3);
+//   attempt 3 — último lembrete, ≥ 144 h depois do 1º aviso (dia 7) e ≥ 48 h depois do lembrete, e só enquanto o 1º aviso
+//               tem no máximo RENEWAL_FAILED_FINAL_MAX_AGE_HOURS: fatura antiga (de antes desta régua) não recebe um
+//               "dia 7" semanas depois. Pagou, anulou, cancelou → a fatura não está 'open' / a assinatura não está em
+//               cobrança → nada sai.
+// Cada envio grava, além do carimbo de dedupe da etapa, CARD_FAILED_EMAIL_SENT_EVENT com `attempt` 1/2/3 — a medição
+// única do laço. A fatura paga depois de falha vira CARD_RECOVERED_EVENT (lib/billing/cardRecovered.ts).
+export const RENEWAL_FAILED_FINAL_EVENT = 'renewal_payment_failed_final_sent'
+export const RENEWAL_FAILED_FINAL_FAILED_EVENT = 'renewal_payment_failed_final_failed'
+export const RENEWAL_FAILED_FINAL_KIND = 'renewal_payment_failed_final'
+export const RENEWAL_FAILED_FINAL_AFTER_HOURS = 144
+export const RENEWAL_FAILED_FINAL_MIN_GAP_HOURS = 48
+export const RENEWAL_FAILED_FINAL_MAX_AGE_HOURS = 14 * 24
+/** Medição única do laço: 1 linha por e-mail que SAIU (Resend ok), com `attempt` 1/2/3. Só o servidor grava. */
+export const CARD_FAILED_EMAIL_SENT_EVENT = 'card_failed_email_sent'
+/** Fatura de assinatura paga depois de ter falhado (attempt_count > 1 ou e-mail nosso para ela). Só o servidor grava. */
+export const CARD_RECOVERED_EVENT = 'card_recovered'
+/** Banner "Your last payment didn't go through — update your card" (components/RenewalDeclinedBanner.tsx). */
+export const CARD_UPDATE_BANNER_SHOWN_EVENT = 'card_update_banner_shown'
+export const CARD_UPDATE_BANNER_CLICKED_EVENT = 'card_update_banner_clicked'
+
+export type RenewalFollowUpStage = 'first' | 'reminder' | 'final'
+
+/** attempt 1/2/3 de CARD_FAILED_EMAIL_SENT_EVENT. */
+export function cardFailedEmailAttempt(stage: RenewalFollowUpStage): 1 | 2 | 3 {
+  return stage === 'final' ? 3 : stage === 'reminder' ? 2 : 1
+}
+
+/**
+ * Cartão BRASILEIRO recusado numa cobrança em DÓLAR — o caso que a casa já trata no checkout (resolveSettlementCurrency,
+ * priorBrazilianCardFailure → sessão nova em reais). Na RENOVAÇÃO não existe trilho em reais/Pix: a fatura é da assinatura
+ * em USD, a página hospedada da Stripe só oferece Pix em fatura BRL, e o checkout bloqueia uma 2ª assinatura enquanto a
+ * 1ª está em cobrança. Por isso a carta NÃO promete Pix: diz o que resolve de verdade (liberar compra internacional ou
+ * usar outro cartão). Puro.
+ */
+export function isBrazilianCardInUsd(currency: string | null | undefined, cardCountry: string | null | undefined): boolean {
+  const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : ''
+  const cc = typeof cardCountry === 'string' ? cardCountry.trim().toUpperCase() : ''
+  return cur === 'usd' && cc === 'BR'
+}
 
 export type RenewalFollowUpSkipReason =
   | 'switch_off'
@@ -156,10 +206,13 @@ export type RenewalFollowUpSkipReason =
   | 'already_reminded'
   | 'no_recipient'
   | 'too_soon'
+  | 'sequence_done' // KINEO-CARTAO-RECUSADO-0111 — os 3 e-mails desta fatura já saíram
+  | 'final_window_passed' // KINEO-CARTAO-RECUSADO-0111 — o "dia 7" passou da janela (fatura de antes da régua)
 
 export type RenewalFollowUpDecision =
   | { send: true; stage: 'first'; reason: 'first_notice_missing' }
   | { send: true; stage: 'reminder'; reason: 'reminder_due' }
+  | { send: true; stage: 'final'; reason: 'final_due' } // KINEO-CARTAO-RECUSADO-0111
   | { send: false; reason: RenewalFollowUpSkipReason }
 
 export interface RenewalFollowUpFacts {
@@ -178,6 +231,11 @@ export interface RenewalFollowUpFacts {
   /** created_at do carimbo do 1º aviso desta fatura, ou null se nunca saiu. */
   firstSentAt: string | null
   reminderSent: boolean
+  // KINEO-CARTAO-RECUSADO-0111 — opcionais: sem eles o último lembrete (dia 7) não sai.
+  /** created_at do carimbo do lembrete desta fatura, ou null. */
+  reminderSentAt?: string | null
+  /** O último lembrete (dia 7) desta fatura já saiu? */
+  finalSent?: boolean
   recipientEmail: string | null | undefined
   nowMs: number
 }
@@ -196,13 +254,27 @@ export function decideRenewalFollowUp(x: RenewalFollowUpFacts): RenewalFollowUpD
   if (x.ownerHasPaid !== true) return { send: false, reason: 'never_paid' }
   if (x.internal) return { send: false, reason: 'internal' }
   if (!x.dedupeReadable) return { send: false, reason: 'dedupe_unavailable' }
-  if (x.reminderSent) return { send: false, reason: 'already_reminded' }
+  if (x.finalSent === true) return { send: false, reason: 'sequence_done' }
   if (!isDeliverableEmail(x.recipientEmail)) return { send: false, reason: 'no_recipient' }
-  if (x.firstSentAt === null) return { send: true, stage: 'first', reason: 'first_notice_missing' }
+  if (x.firstSentAt === null) {
+    // Lembrete sem 1º aviso não existe na régua: carimbo incoerente = não sabemos = não envia agora.
+    if (x.reminderSent) return { send: false, reason: 'already_reminded' }
+    return { send: true, stage: 'first', reason: 'first_notice_missing' }
+  }
   const firstMs = Date.parse(x.firstSentAt)
   if (!Number.isFinite(firstMs)) return { send: false, reason: 'dedupe_unavailable' }
-  if (x.nowMs - firstMs < RENEWAL_FAILED_REMINDER_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }
-  return { send: true, stage: 'reminder', reason: 'reminder_due' }
+  if (!x.reminderSent) {
+    if (x.nowMs - firstMs < RENEWAL_FAILED_REMINDER_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }
+    return { send: true, stage: 'reminder', reason: 'reminder_due' }
+  }
+  // KINEO-CARTAO-RECUSADO-0111 — o último lembrete (dia 7): precisa da data do lembrete para respeitar o intervalo.
+  if (typeof x.reminderSentAt !== 'string') return { send: false, reason: 'already_reminded' }
+  const reminderMs = Date.parse(x.reminderSentAt)
+  if (!Number.isFinite(reminderMs)) return { send: false, reason: 'dedupe_unavailable' }
+  if (x.nowMs - firstMs < RENEWAL_FAILED_FINAL_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }
+  if (x.nowMs - reminderMs < RENEWAL_FAILED_FINAL_MIN_GAP_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }
+  if (x.nowMs - firstMs > RENEWAL_FAILED_FINAL_MAX_AGE_HOURS * 3_600_000) return { send: false, reason: 'final_window_passed' }
+  return { send: true, stage: 'final', reason: 'final_due' }
 }
 
 // ── Língua ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -260,6 +332,10 @@ export interface RenewalFailedCopy {
   reason: (category: string | null | undefined) => string
   reminderSubject: string
   reminderWhat: (plan: string | null) => string
+  // KINEO-CARTAO-RECUSADO-0111 — último lembrete (dia 7) e a dica do cartão brasileiro em cobrança em dólar.
+  finalSubject: string
+  finalWhat: (plan: string | null) => string
+  brCardUsd: string
 }
 
 export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy> = {
@@ -286,6 +362,9 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     },
     reminderSubject: 'Reminder: your Kineo renewal is still pending',
     reminderWhat: (plan) => `Quick reminder: the payment to renew your Kineo${plan ? ` ${plan}` : ''} plan still hasn't gone through.`,
+    finalSubject: 'Last reminder: your Kineo renewal is still pending',
+    finalWhat: (plan) => `Last note from me on this: the payment to renew your Kineo${plan ? ` ${plan}` : ''} plan still hasn't gone through, and Stripe keeps retrying the same card.`,
+    brCardUsd: 'Brazilian cards are often declined on charges in US dollars when international purchases are turned off. Turning them on in your bank app, or using another card, usually fixes it.',
   },
   pt: {
     subject: 'Sua renovação da Kineo não passou',
@@ -310,6 +389,9 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     },
     reminderSubject: 'Lembrete: sua renovação da Kineo ainda está pendente',
     reminderWhat: (plan) => `Só lembrando: o pagamento para renovar o seu plano Kineo${plan ? ` ${plan}` : ''} ainda não passou.`,
+    finalSubject: 'Último lembrete: sua renovação da Kineo ainda está pendente',
+    finalWhat: (plan) => `Último aviso meu sobre isso: o pagamento para renovar o seu plano Kineo${plan ? ` ${plan}` : ''} ainda não passou, e a Stripe segue tentando o mesmo cartão.`,
+    brCardUsd: 'Cartão brasileiro costuma ser recusado em cobrança em dólar quando a compra internacional está desligada. Ligar a compra internacional no app do banco, ou usar outro cartão, costuma resolver.',
   },
   es: {
     subject: 'Tu renovación de Kineo no se completó',
@@ -334,6 +416,9 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     },
     reminderSubject: 'Recordatorio: tu renovación de Kineo sigue pendiente',
     reminderWhat: (plan) => `Un recordatorio: el pago para renovar tu plan Kineo${plan ? ` ${plan}` : ''} todavía no se completó.`,
+    finalSubject: 'Último recordatorio: tu renovación de Kineo sigue pendiente',
+    finalWhat: (plan) => `Último aviso mío sobre esto: el pago para renovar tu plan Kineo${plan ? ` ${plan}` : ''} todavía no se completó, y Stripe sigue intentando con la misma tarjeta.`,
+    brCardUsd: 'Las tarjetas brasileñas suelen ser rechazadas en cobros en dólares cuando las compras internacionales están desactivadas. Activarlas en la app del banco, o usar otra tarjeta, suele resolverlo.',
   },
 }
 
@@ -356,14 +441,18 @@ export function renewalFailedEmailMessage(input: {
   hostedInvoiceUrl?: string | null
   /** reason_category (lib/stripeCheckoutFailure.ts). undefined = não diz motivo; null/desconhecido = frase genérica. */
   reasonCategory?: string | null
-  stage?: 'first' | 'reminder'
+  stage?: RenewalFollowUpStage // KINEO-CARTAO-RECUSADO-0111 — + 'final' (dia 7)
+  /** KINEO-CARTAO-RECUSADO-0111 — cartão BR recusado em cobrança USD (isBrazilianCardInUsd): acrescenta a dica. */
+  brazilianCardInUsd?: boolean
 }): RenewalFailedEmailMessage {
   const language: RenewalEmailLanguage = RENEWAL_FAILED_COPY[input.language] ? input.language : 'en'
   const c = RENEWAL_FAILED_COPY[language]
   const plan = renewalPlanLabel(input.tier)
   const reminder = input.stage === 'reminder'
-  const what = reminder ? c.reminderWhat(plan) : c.what(plan)
-  const reason = input.reasonCategory === undefined ? null : c.reason(input.reasonCategory)
+  const final = input.stage === 'final' // KINEO-CARTAO-RECUSADO-0111
+  const what = final ? c.finalWhat(plan) : reminder ? c.reminderWhat(plan) : c.what(plan)
+  const reasonBase = input.reasonCategory === undefined ? null : c.reason(input.reasonCategory)
+  const reason = input.brazilianCardInUsd === true ? [reasonBase, c.brCardUsd].filter(Boolean).join(' ') : reasonBase
   const url = renewalPayUrl(input.hostedInvoiceUrl)
   const how = url === RENEWAL_FAILED_UPDATE_CARD_URL ? c.how : c.howHosted
   const text = [
@@ -392,5 +481,5 @@ export function renewalFailedEmailMessage(input: {
 <p>${escapeHtml(c.signoff)}</p>
 <p style="margin-top:28px;color:#94a3b8;font-size:12px">${escapeHtml(c.why)}<br>Kineo &middot; usekineo.com</p>
 </div>`
-  return { language, subject: reminder ? c.reminderSubject : c.subject, text, html }
+  return { language, subject: final ? c.finalSubject : reminder ? c.reminderSubject : c.subject, text, html }
 }

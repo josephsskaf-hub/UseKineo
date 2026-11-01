@@ -20,6 +20,13 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // KINEO-CARTAO-RECUSADO-0111 — carimbos de dedupe do laço do cartão recusado (um carimbo forjado calaria o aviso de
+  // cobrança daquela fatura), a medição dos envios e a recuperação: fatos do webhook/cron, nunca do navegador.
+  'renewal_payment_failed_email_sent',
+  'renewal_payment_failed_reminder_sent',
+  'renewal_payment_failed_final_sent',
+  'card_failed_email_sent',
+  'card_recovered',
   // Paid Kling promotion admissions and provider acceptance are server facts, never browser analytics.
   'kling4_promo_use_reserved',
   'kling4_paid_engine_used',

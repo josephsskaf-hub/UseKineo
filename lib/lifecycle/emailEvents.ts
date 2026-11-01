@@ -118,6 +118,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // KINEO-CARTAO-RECUSADO-1510 — o lembrete do dia 2 da mesma fatura (cron admin/send-renewal-declined?etapa=lembrete).
   // Entra no MESMO commit em que nasce: nenhuma oferta nossa no dia do lembrete do cartão.
   'renewal_payment_failed_reminder_sent',
+  // KINEO-CARTAO-RECUSADO-0111 — o último lembrete (dia 7) da mesma fatura, mesma rodada. Entra no MESMO commit em que nasce.
+  // `card_failed_email_sent` NÃO entra: é a medição do mesmo envio (o carimbo da etapa já está aqui).
+  'renewal_payment_failed_final_sent',
   // KINEO-STUDIO50-2026-09-22 — carta 'Studio a 50%' para quem chegou ao checkout e não pagou (admin/send-studio50).
   'studio50_sent',
   // KINEO-ANUAL-2o-MES-2026-10-08 — oferta do anual (30%) para quem pagou a 1ª renovação (cron/send-month2-annual-offer).

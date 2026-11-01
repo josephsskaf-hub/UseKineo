@@ -13,6 +13,9 @@
 //       canônica, webhook passa link + motivo, banner usa a fatura aberta;
 //   (6) nada de preço/cupom/cobrança: os arquivos novos só LEEM a Stripe;
 //   (7) mutantes: cada regra quebrada fica vermelha (e cada mutante prova que aplicou).
+// reancorado KINEO-CARTAO-RECUSADO-0111 [TRAVA 8.2 — vai do fundador 01/11 "pode fazer tudo o que você acha que deve ser
+// feito"]: o lembrete passou do dia 2 (20 h) para o dia 3 (48 h) e ganhou um último lembrete no dia 7 (provado em
+// scripts/test-cartao-recusado-0111.mts). Aqui só as janelas e as âncoras mudaram; as regras de 15/10 seguem todas.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -176,13 +179,15 @@ async function problems(over = {}) {
   const h = (n) => new Date(now - n * 3_600_000).toISOString()
   const base = {
     live: true, billingReason: 'subscription_cycle', invoiceId: 'in_1', invoiceStatus: 'open', subscriptionStatus: 'past_due',
-    ownerId: 'u1', ownerHasPaid: true, internal: false, dedupeReadable: true, firstSentAt: h(21), reminderSent: false,
+    ownerId: 'u1', ownerHasPaid: true, internal: false, dedupeReadable: true, firstSentAt: h(49), reminderSent: false, // reancorado KINEO-CARTAO-RECUSADO-0111 — era h(21)
     recipientEmail: 'a@example.com', nowMs: now,
   }
   const casos = [
-    [base, 'reminder', 'lembrete 21 h depois do 1º aviso'],
-    [{ ...base, firstSentAt: h(20) }, 'reminder', 'lembrete exatamente 20 h depois'],
-    [{ ...base, firstSentAt: h(19) }, false, 'lembrete 19 h depois (cedo demais)'],
+    // reancorado KINEO-CARTAO-RECUSADO-0111 — era 21/20/19 h (dia 2); a régua nova põe o lembrete no dia 3 (48 h).
+    [base, 'reminder', 'lembrete 49 h depois do 1º aviso'],
+    [{ ...base, firstSentAt: h(48) }, 'reminder', 'lembrete exatamente 48 h depois'],
+    [{ ...base, firstSentAt: h(47) }, false, 'lembrete 47 h depois (cedo demais)'],
+    [{ ...base, firstSentAt: h(21) }, false, 'lembrete 21 h depois (a régua antiga do dia 2 não vale mais)'],
     [{ ...base, firstSentAt: h(1) }, false, 'lembrete 1 h depois'],
     [{ ...base, firstSentAt: null }, 'first', '1º aviso que o webhook não mandou'],
     [{ ...base, reminderSent: true }, false, 'lembrete já enviado para esta fatura'],
@@ -207,7 +212,7 @@ async function problems(over = {}) {
     const got = d?.send ? d.stage : false
     if (got !== want) p.push(`rodada errada: ${label} (deu ${got})`)
   }
-  if (E.RENEWAL_FAILED_REMINDER_AFTER_HOURS !== 20) p.push('janela do lembrete mudou de 20 h')
+  if (E.RENEWAL_FAILED_REMINDER_AFTER_HOURS !== 48) p.push('janela do lembrete mudou de 48 h') // reancorado KINEO-CARTAO-RECUSADO-0111 — era 20
   if (E.decideRenewalFollowUp({ ...base, invoiceStatus: 'paid' })?.reason !== 'invoice_not_open') p.push('motivo da fatura paga não é invoice_not_open')
 
   // ── (3) link, motivo, textos ──────────────────────────────────────────────────────────────────────────────────────
@@ -281,14 +286,18 @@ async function problems(over = {}) {
 
     w.setClock(w.getClock() + 21 * 3_600_000)
     await runRound(over, w, true)
+    // reancorado KINEO-CARTAO-RECUSADO-0111 — 23 h depois do 1º aviso ainda é cedo (o lembrete agora é do dia 3).
+    if (w.sent.filter((s) => s.to === 'ana@example.com').length !== 1) p.push('23 h: Ana recebeu o lembrete antes do dia 3')
+    w.setClock(w.getClock() + 26 * 3_600_000)
+    await runRound(over, w, true)
     const anaAll = w.sent.filter((s) => s.to === 'ana@example.com')
-    if (anaAll.length !== 2) p.push(`dia 2: Ana deveria ter recebido o lembrete (total ${anaAll.length})`)
-    else if (!/Recordatorio/.test(anaAll[1].subject)) p.push('dia 2: o 2º e-mail da Ana não é o lembrete')
+    if (anaAll.length !== 2) p.push(`dia 3: Ana deveria ter recebido o lembrete (total ${anaAll.length})`)
+    else if (!/Recordatorio/.test(anaAll[1].subject)) p.push('dia 3: o 2º e-mail da Ana não é o lembrete')
     if (w.events.filter((e) => e.name === 'renewal_payment_failed_reminder_sent' && e.metadata?.invoice_id === 'in_A').length !== 1) p.push('lembrete sem carimbo próprio por fatura')
 
     w.setClock(w.getClock() + 30 * 3_600_000)
     await runRound(over, w, true)
-    if (w.sent.filter((s) => s.to === 'ana@example.com').length !== 2) p.push('dia 3: Ana recebeu um 2º lembrete')
+    if (w.sent.filter((s) => s.to === 'ana@example.com').length !== 2) p.push('dia 4: Ana recebeu um 2º lembrete antes do dia 7') // reancorado KINEO-CARTAO-RECUSADO-0111
   } catch (err) {
     p.push(`rodada lançou: ${err instanceof Error ? err.message : String(err)}`)
   }
@@ -325,7 +334,7 @@ async function problems(over = {}) {
   const iDry = follow.indexOf('    if (!confirm) { rows.push(row); continue }\n')
   const iFetch = follow.indexOf("      res = await fetch('https://api.resend.com/emails', {")
   const iNotOk = follow.indexOf('    if (!res || !res.ok) {\n')
-  const iStamp = follow.indexOf("      name: decision.stage === 'reminder' ? RENEWAL_FAILED_REMINDER_EVENT : RENEWAL_FAILED_EMAIL_EVENT,\n")
+  const iStamp = follow.indexOf("      name: stageNames.stamp,\n") // reancorado KINEO-CARTAO-RECUSADO-0111 — o carimbo vem do mapa da etapa (1º/lembrete/último)
   if ([iRetrieve, iDecide, iStatus, iDry, iFetch, iNotOk, iStamp].some((i) => i < 0)) p.push('âncoras da rodada sumiram (releitura, decisão, dry-run, envio, carimbo)')
   else if (!(iRetrieve < iDecide && iDecide < iStatus && iStatus < iDry && iDry < iFetch && iFetch < iNotOk && iNotOk < iStamp)) p.push('ordem quebrada: releitura → decisão → dry-run → envio → (só se ok) carimbo')
   if (follow.split('\n').some((l) => !/^\s*\/\//.test(l) && /\.in\(/.test(l))) p.push('a rodada usa .in() (truncável)')
@@ -335,8 +344,9 @@ async function problems(over = {}) {
   const helperStart = hook.indexOf('async function sendRenewalFailedEmailOnce(')
   const helper = helperStart < 0 ? '' : hook.slice(helperStart, hook.indexOf('\n}\n', helperStart) + 3)
   if (!helper.includes('      hostedInvoiceUrl: input.invoice.hosted_invoice_url,\n')) p.push('webhook: 1º aviso sem o link de 1 clique')
-  if (!helper.includes('      reasonCategory,\n') || !helper.includes('    const reasonCategory = await readInvoiceDeclineCategory(input.invoice)\n')) p.push('webhook: 1º aviso sem o motivo')
-  if (!/'hosted_invoice_url' \| 'payment_intent'>/.test(helper)) p.push('webhook: a fatura passada ao helper perdeu hosted_invoice_url/payment_intent')
+  // reancorado KINEO-CARTAO-RECUSADO-0111 — a leitura do motivo devolve também o país do cartão (dica BR×USD) e a fatura leva a moeda.
+  if (!helper.includes('      reasonCategory,\n') || !helper.includes('    const decline = await readInvoiceDecline(input.invoice)\n') || !helper.includes('    const reasonCategory = decline.category\n')) p.push('webhook: 1º aviso sem o motivo')
+  if (!/'hosted_invoice_url' \| 'payment_intent' \| 'currency'>/.test(helper)) p.push('webhook: a fatura passada ao helper perdeu hosted_invoice_url/payment_intent/currency')
   const decline = src(DECLINE)
   if (/\bthrow\b/.test(decline) || !decline.includes('Promise.race([stripe.paymentIntents.retrieve(id), timeout])')) p.push('leitura do motivo pode lançar ou não tem teto de tempo')
 
@@ -357,14 +367,14 @@ async function problems(over = {}) {
   return p
 }
 
-console.log('TESTE cartão recusado — tolerância, 1 clique, motivo, lembrete do dia 2 (15/10)')
+console.log('TESTE cartão recusado — tolerância, 1 clique, motivo, lembrete do dia 3 (15/10, reancorado 01/11)')
 const real = await problems()
 ok(real.length === 0, '(1–6) tolerância, decisão da rodada, link/motivo/textos, rodada executada, ligações, nada de cobrança' + (real.length ? ' → ' + real.join(' | ') : ''))
 
 const mutants = [
-  ['M1 lembrete sem esperar 20 h', EMAIL, "  if (x.nowMs - firstMs < RENEWAL_FAILED_REMINDER_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }\n", ''],
+  ['M1 lembrete sem esperar 48 h', EMAIL, "  if (x.nowMs - firstMs < RENEWAL_FAILED_REMINDER_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }\n", ''],
   ['M2 manda para fatura já paga', EMAIL, "  if (x.invoiceStatus !== 'open') return { send: false, reason: 'invoice_not_open' }\n", ''],
-  ['M3 ignora o carimbo do lembrete', EMAIL, "  if (x.reminderSent) return { send: false, reason: 'already_reminded' }\n", ''],
+  ['M3 ignora o carimbo do lembrete', EMAIL, '  if (!x.reminderSent) {\n', '  if (true) {\n'], // reancorado KINEO-CARTAO-RECUSADO-0111 — a porta do lembrete virou o ramo !reminderSent
   ['M4 carimbo ilegível manda mesmo assim', EMAIL, "  if (!x.dedupeReadable) return { send: false, reason: 'dedupe_unavailable' }\n", ''],
   ['M5 link aceita host parecido', EMAIL, '    return u.protocol === \'https:\' && u.hostname === STRIPE_HOSTED_INVOICE_HOST\n', '    return u.protocol === \'https:\' && u.hostname.startsWith(STRIPE_HOSTED_INVOICE_HOST)\n'],
   ['M6 motivo expõe o cartão', EMAIL, "        case 'insufficient_funds': return 'Your bank said the card did not have enough funds at that moment.'\n", "        case 'insufficient_funds': return 'Your Visa ending 4242 did not have enough funds.'\n"],
@@ -374,7 +384,7 @@ const mutants = [
   ['M10 rodada sem dry-run', FOLLOW, '    if (!confirm) { rows.push(row); continue }\n', ''],
   ['M11 rodada sem reler a fatura', FOLLOW, '        invoice = await stripe.invoices.retrieve(invoiceId)\n', "        invoice = { id: invoiceId, status: 'open', billing_reason: 'subscription_cycle', hosted_invoice_url: null } as unknown as Stripe.Invoice\n"],
   ['M12 carimba mesmo com o Resend recusando', FOLLOW, '    if (!res || !res.ok) {\n', '    if (!res) {\n'],
-  ['M13 rodada cobra a fatura', FOLLOW, '    const reasonCategory = await readInvoiceDeclineCategory(invoice)\n', '    await stripe.invoices.pay(invoice.id)\n    const reasonCategory = await readInvoiceDeclineCategory(invoice)\n'],
+  ['M13 rodada cobra a fatura', FOLLOW, '    const decline = await readInvoiceDecline(invoice)\n', '    await stripe.invoices.pay(invoice.id)\n    const decline = await readInvoiceDecline(invoice)\n'], // reancorado KINEO-CARTAO-RECUSADO-0111
   ['M14 rota envia sem confirm', ROUTE, "        confirm: req.nextUrl.searchParams.get('confirm') === 'SEND',\n", '        confirm: true,\n'],
   ['M15 cron sem confirm', VERCEL, '"/api/admin/send-renewal-declined?etapa=lembrete&confirm=SEND&limit=30"', '"/api/admin/send-renewal-declined?etapa=lembrete&limit=30"'],
   ['M16 cron no minuto de outro job', VERCEL, '"schedule": "13 14,22 * * *"', '"schedule": "0 13,22 * * *"'],
