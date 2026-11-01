@@ -14,8 +14,8 @@
 //   · qualquer outro país, ou país desconhecido → sem cupom (falha FECHADA: desconto não sai sem sinal de país).
 //
 // ⛔ POR QUE O BR FICA FORA, embora esteja em PAISES_FILME_GRATIS: ele entrou lá em 03/10 (KINEO-BRASIL-VOLTA-2026-10-03)
-// por "o Brasil vende", não por renda — e o Brasil já paga preço regional em reais. Metade em cima do preço regional é
-// desconto que ninguém decidiu. Mudar a lista de país rico continua sendo decisão do fundador (mexe-se lá, não aqui).
+// por "o Brasil vende", não por renda (KINEO-INTEGRA-VENDAS2-0111: a versão anterior dizia "preço regional"; não é isso — o BR
+// paga a tabela em reais pela fórmula de conversão). Dar metade ao BR é decisão de preço do fundador, ainda não tomada.
 //
 // 🪝 GANCHO DO AVULSO (US$ 2,90 — ?pack=starter290): para quem NÃO é de país rico, a ideia é apontar para o avulso.
 // Hoje NÃO existe na base nenhuma elegibilidade de resgate do starter290 (lib/flags.ts OFFER_290_ENABLED = false e é a
@@ -73,18 +73,29 @@ export function ofertaDoResgate(country: string | null | undefined): ResgateOfer
   return { offer: 'none', country_tier: 'outro', country: c }
 }
 
+// KINEO-INTEGRA-VENDAS2-0111 — o cupom automático só começa em 08/11: o lote manual de 01/11 (45 e-mails com FIRST50, sem evento
+// no banco) pegou a mesma coorte, e o fundador mandou não escrever de novo a essas pessoas antes de 08/11. Até lá a carta sai
+// como sempre saiu (sem cupom). A rota aceita CHECKOUT_RECOVERY_CUPOM_DESDE_MS para o guardião.
+export const RESGATE_CUPOM_DESDE_MS = Date.parse('2026-11-08T00:00:00Z')
+
+export function ofertaNaData(o: ResgateOferta, agoraMs: number, desdeMs: number = RESGATE_CUPOM_DESDE_MS): ResgateOferta {
+  return agoraMs >= desdeMs ? o : { ...o, offer: 'none' }
+}
+
 /** O link do cupom: a /pricing com o promo (abre no mensal) e a etiqueta da campanha para o painel. */
 export function resgatePromoUrl(site: string): string {
   return `${site}/pricing?promo=${CHECKOUT_RECOVERY_PROMO}&utm_source=email&utm_campaign=checkout_recovery_rico`
 }
 
-/** Copy honesta do cupom: metade da 1ª fatura, só Creator/Studio mensal, aplicado pelo link. Sem número digitado. */
+// KINEO-INTEGRA-VENDAS2-0111 — a carta NÃO escreve o nome do código: só o link aplica o cupom (e o link já trava em Creator/Studio
+// mensal). Escrito por extenso, o código era digitável no campo manual da compra sem conta, inclusive no anual (brecha antiga).
+/** Copy honesta do cupom: metade da 1ª fatura, só Creator/Studio mensal, aplicado pelo link. Sem número nem código digitado. */
 export function resgatePromoTexto(site: string): string {
-  return `If it was the price: code ${CHECKOUT_RECOVERY_PROMO} takes half off your first month of Creator or Studio ` +
+  return `If it was the price: half off your first month of Creator or Studio ` +
     `(monthly plans), applied automatically on this page:\n${resgatePromoUrl(site)}`
 }
 
 export function resgatePromoHtml(site: string): string {
-  return `<p>If it was the price: code <strong>${CHECKOUT_RECOVERY_PROMO}</strong> takes <strong>half off your first month</strong> ` +
+  return `<p>If it was the price: <strong>half off your first month</strong> ` +
     `of Creator or Studio (monthly plans), <a href="${resgatePromoUrl(site)}" style="color:#2997ff">applied automatically here</a>.</p>`
 }

@@ -53,7 +53,7 @@ import { stripe } from '@/lib/stripe'
 // KINEO-RESGATE-CUPOM-RICO-0111 — 31 cartas em 14 d e quase nenhuma compra: a carta voltava a pessoa ao MESMO preço e não
 // oferecia nada. Agora quem é de país rico leva o FIRST50 (metade da 1ª fatura, só Creator/Studio mensal) junto da porta de
 // volta; os outros países seguem sem cupom (gancho do avulso no módulo). A régua mora no módulo puro abaixo.
-import { ofertaDoResgate, paisDoResgate, resgatePromoHtml, resgatePromoTexto, resgatePromoUrl, CHECKOUT_RECOVERY_OFFER_VERSION, type ResgateOferta } from '@/lib/lifecycle/checkoutRecoveryOffer'
+import { ofertaDoResgate, ofertaNaData, RESGATE_CUPOM_DESDE_MS, paisDoResgate, resgatePromoHtml, resgatePromoTexto, resgatePromoUrl, CHECKOUT_RECOVERY_OFFER_VERSION, type ResgateOferta } from '@/lib/lifecycle/checkoutRecoveryOffer'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
@@ -391,11 +391,11 @@ export async function GET(req: NextRequest) {
         temFilme: Boolean(f),
         expiradoEm: sess.quando,
         // KINEO-RESGATE-CUPOM-RICO-0111 — perfil (último → cadastro) e, sem ele, o país do IP da própria sessão expirada.
-        oferta: ofertaDoResgate(paisDoResgate({
+        oferta: ofertaNaData(ofertaDoResgate(paisDoResgate({
           lastCountry: p.last_country as string | null,
           signupCountry: p.signup_country as string | null,
           sessionCountry: sess.pais,
-        })),
+        })), Date.now(), Number(process.env.CHECKOUT_RECOVERY_CUPOM_DESDE_MS) || RESGATE_CUPOM_DESDE_MS), // KINEO-INTEGRA-VENDAS2-0111
       })
     }
 

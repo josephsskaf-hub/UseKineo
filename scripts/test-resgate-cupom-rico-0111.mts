@@ -20,7 +20,7 @@ import path from 'node:path'
 import { createRequire } from 'node:module'
 import {
   ofertaDoResgate, paisDoResgate, resgatePromoUrl, resgatePromoTexto, resgatePromoHtml,
-  CHECKOUT_RECOVERY_PROMO, CHECKOUT_RECOVERY_OFFER_VERSION,
+  CHECKOUT_RECOVERY_PROMO, CHECKOUT_RECOVERY_OFFER_VERSION, ofertaNaData, RESGATE_CUPOM_DESDE_MS,
 } from '../lib/lifecycle/checkoutRecoveryOffer'
 import { PAISES_FILME_GRATIS } from '../lib/freeFilmPolicy'
 
@@ -44,6 +44,11 @@ ok(paisDoResgate({ lastCountry: 'XX', signupCountry: 'GB', sessionCountry: 'IN' 
 ok(paisDoResgate({ lastCountry: null, signupCountry: null, sessionCountry: 'DE' }) === 'DE', 'sem perfil → IP da sessão expirada')
 ok(paisDoResgate({}) === null, 'nenhum sinal → null')
 
+console.log('1b) o cupom automático só começa em 08/11 (lote manual de 01/11)')
+ok(RESGATE_CUPOM_DESDE_MS === Date.parse('2026-11-08T00:00:00Z'), 'data de início = 08/11 00:00 UTC')
+ok(ofertaNaData(ofertaDoResgate('US'), Date.parse('2026-11-07T23:59:00Z')).offer === 'none', 'antes de 08/11: EUA sem cupom')
+ok(ofertaNaData(ofertaDoResgate('US'), Date.parse('2026-11-08T00:00:00Z')).offer === 'FIRST50', 'a partir de 08/11: EUA com FIRST50')
+ok(ofertaNaData(ofertaDoResgate('US'), Date.parse('2026-11-07T00:00:00Z')).country_tier === 'rico', 'antes de 08/11 a faixa de país continua gravada')
 console.log('2) link e copy do cupom: honestos')
 const url = resgatePromoUrl(SITE)
 ok(url === `${SITE}/pricing?promo=FIRST50&utm_source=email&utm_campaign=checkout_recovery_rico`, 'link = /pricing?promo=FIRST50&utm_source=email&utm_campaign=checkout_recovery_rico')
@@ -145,6 +150,7 @@ function adminDe(tabelas: Record<string, Row[]>, inserts: Row[]) {
 }
 
 process.env.CRON_SECRET = 'segredo-de-teste'
+process.env.CHECKOUT_RECOVERY_CUPOM_DESDE_MS = '1' // o mundo simulado roda com o cupom já liberado
 process.env.RESEND_API_KEY = 're_teste_falso'
 process.env.STRIPE_SECRET_KEY = 'sk_test_falso'
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://supabase.invalid'
@@ -206,7 +212,7 @@ ok(iReply > 0 && iCupom > iReply && iPlanos > iCupom, 'texto: o cupom vem depois
 const hReply = ana.html.indexOf('I would rather know than guess.</p>'), hCupom = ana.html.indexOf(hx), hPlanos = ana.html.indexOf('If you would rather look at <a')
 ok(hReply > 0 && hCupom > hReply && hPlanos > hCupom, 'html: mesma ordem')
 ok(ana.text.includes('https://checkout.stripe.com/c/pay/cs_u-us#rec') && ana.text.indexOf('https://checkout.stripe.com') < iCupom, 'a porta de volta da Stripe continua sendo o 1º link da carta')
-ok(/\n\nIf it was the price: code FIRST50[^\n]*\n[^\n]*\n\nIf you would rather look/.test(ana.text), 'texto: parágrafo próprio, com linha em branco antes e depois')
+ok(/\n\nIf it was the price: half off[^\n]*\n[^\n]*\n\nIf you would rather look/.test(ana.text), 'texto: parágrafo próprio, com linha em branco antes e depois')
 for (const [nome, c] of [['Brasil', caio], ['Índia (perfil)', eli], ['desconhecido', fay]] as const) {
   ok(!/FIRST50|half off|checkout_recovery_rico/.test(c.text + c.html), `${nome}: carta SEM cupom`)
 }
