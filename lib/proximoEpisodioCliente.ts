@@ -31,6 +31,11 @@ function assinarEmVoo(f: () => void) { OUVINTES.add(f); return () => { OUVINTES.
 export function useProximoEpisodioEmVoo(): string | null {
   return useSyncExternalStore(assinarEmVoo, () => fotoEmVoo, () => null)
 }
+/** KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — há uma ideia sendo escrita agora? A biblioteca pergunta ANTES de gravar
+ *  series_continue_clicked: o clique ignorado durante a espera não pode inflar a medição. */
+export function proximoEpisodioOcupado(): boolean {
+  return EM_VOO.size > 0
+}
 /** Rótulo do botão enquanto espera (o mesmo nas duas telas). */
 export const ROTULO_ESPERANDO = 'Writing the next episode…'
 

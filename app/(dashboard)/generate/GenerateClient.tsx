@@ -315,7 +315,7 @@ import {
   buildSeriesContinuationPrompt,
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
-import { abrirProximoEpisodio, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem
+import { abrirProximoEpisodio, proximoEpisodioOcupado, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import {
   buildPublicVideoSharePath,
@@ -11395,6 +11395,8 @@ export default function GenerateClient({
     // hoje (o /studio/create herda a selecao que ja estava na tela).
     engine?: string | null,
   ) {
+    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — com o próximo episódio sendo escrito, outro clique não grava evento nem navega.
+    if (proximoEpisodioOcupado()) return
     const nextPrompt = buildSeriesContinuationPrompt(seed)
     if (!nextPrompt) {
       handleReset()

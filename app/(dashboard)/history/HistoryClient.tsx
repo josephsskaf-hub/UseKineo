@@ -34,7 +34,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { abrirProximoEpisodio, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem, no mesmo motor/duração
+import { abrirProximoEpisodio, proximoEpisodioOcupado, useProximoEpisodioEmVoo, useProximoEpisodioVisto, ROTULO_ESPERANDO } from '@/lib/proximoEpisodioCliente' // KINEO-PROXIMO-EPISODIO-0111 — "Next episode" abre o Studio com a ficha do personagem, no mesmo motor/duração
 import {
   buildPublicVideoSharePath,
   buildPublishedVideoSharePath, // KINEO-LACO-VIRAL-2026-09-17
@@ -1937,6 +1937,9 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     completed_video_count: completedVideos.length,
                   })}
                   onClick={(e) => {
+                    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — durante a espera o clique comum é ignorado (o cartão diz
+                    // "Writing the next episode…") e NÃO grava series_continue_clicked; Ctrl/Cmd/meio seguem o href (nova aba).
+                    if (proximoEpisodioOcupado() && !(e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)) { e.preventDefault(); return }
                     void trackEvent('series_continue_clicked', {
                       source: 'history_video_card',
                       video_id: video.id,

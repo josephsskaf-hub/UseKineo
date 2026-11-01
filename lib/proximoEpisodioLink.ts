@@ -8,9 +8,10 @@
 // MESMO motor, a MESMA duração e a MESMA língua do filme de origem, e a ideia do episódio seguinte escrita pelo servidor
 // (app/api/next-episode/studio). O Studio só PREENCHE: o crédito sai quando a pessoa aperta Create lá, como sempre.
 //
-// Puro e leve (só o espelho motor×duração de lib/navigation/reviewVideoRetry, também puro): roda no navegador (fallback
+// Puro e leve (o espelho motor×duração de lib/navigation/reviewVideoRetry e a tabela de botões de lib/durationByEngine): roda no navegador (fallback
 // do botão quando o servidor não responde) e no servidor. Guardião: scripts/test-proximo-episodio-0111.mts.
 import { STUDIO_ENGINE_FOR_QUALITY, retryDurationFor } from '@/lib/navigation/reviewVideoRetry'
+import { supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — botões de cada motor
 
 export const PROXIMO_EPISODIO_MARCA = 'KINEO-PROXIMO-EPISODIO-0111'
 /** O botão apareceu (uma vez por tela/filme). */
@@ -52,7 +53,10 @@ export function motorDoStudio(quality: string | null | undefined): string | null
  */
 export function duracaoDoStudio(engine: string | null, seconds: number | null | undefined): string | null {
   if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) return retryDurationFor(engine ?? 'fast', seconds)
-  const botoes = engine === 'seedance' ? [15, 35, 60, 90] : [35, 60, 90]
+  // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — os botões REAIS de cada motor (lib/durationByEngine, a mesma tabela que o
+  // Studio usa para ler ?duration=): hollywood de 30 s abria em 35 e Kling 2.5/Veo de 15 s abria em 35 — mais caro e contra
+  // "a mesma duração".
+  const botoes = [...supportedDurationsFor(engine ?? 'fast')].sort((a, b) => a - b)
   const teto = seconds * 1.1
   let escolhido = botoes[0]
   for (const b of botoes) if (b <= teto) escolhido = b

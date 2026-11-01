@@ -149,6 +149,64 @@ ok(linkLib.NEXT_EPISODE_CLICKED_EVENT === 'next_episode_button_clicked', '(5.6) 
 ok(nomeDaSerie('HOOK:  Meet Tommy—the boy who', null) === 'Meet Tommy—the boy who' && nomeDaSerie('Create a 2D animated horror story inspired', null) === '' && nomeDaSerie('The Mailbox. Part one', null) === 'The Mailbox', '(5.6) nome da série sem rótulo, sem ordem de produção, sem ponto final')
 ok(!/Same story and characters/.test(gerar), '(5.6) a copy do botão não promete personagens a filme factual')
 
+console.log('(6) revisão adversarial 2 — cada exemplo vira caso')
+const KEEP = /Keep the same characters/
+const semPersonagem = (t: string) => {
+  const ideia = ideiaDoProximoEpisodio({ narracao: t, pedido: t, episodio: null }).ideia
+  return fichasExplicitas(t).length === 0 && fichasDoFilme(t).length === 0 && !/Main character/.test(ideia) && !KEEP.test(ideia) && /Stay on the same subject/.test(ideia) && !/MAIN CHARACTER/.test(comFichaDoPedido(blocoDeContinuidade({ anterior: t }), t))
+}
+// (6.1) lugar ou data antes da vírgula não é ficha do autor (nem no escritor do episódio 2)
+for (const t of [
+  'In Ohio, a man found a winning lottery ticket in his old coat. The ticket was worth two million dollars.',
+  'Last Friday, a teacher in Texas paid off every student loan in her class. The students cried.',
+  'On Monday, a farmer in Kenya found a meteorite. Scientists rushed to the farm.',
+  'Em Minas, um homem achou ouro no quintal. A cidade inteira foi ver.',
+  'En México, un hombre encontró una ciudad bajo su casa. Los arqueólogos llegaron.',
+  'Yesterday in Ohio, a man found gold. Friday, a teacher found a dog.',
+]) ok(semPersonagem(t), `(6.1) lugar/data não vira MAIN CHARACTER: ${t.slice(0, 36)}… → ${JSON.stringify(fichasExplicitas(t))}`)
+// (6.2) coisa, lugar ou metáfora com ser dentro da descrição não é personagem (mistério, espaço, finanças)
+for (const t of [
+  'Centralia, a ghost town in Pennsylvania, has burned since 1962.',
+  'Mary Celeste, a ghost ship, was found empty in 1872.',
+  'Jupiter, a gas giant, has 95 moons.',
+  'Nvidia, a chip giant, is worth trillions.',
+  'Kodak, a giant of photography, went bankrupt.',
+  'Lego, a toy company, nearly died in 2003.',
+  'China, a sleeping dragon, woke up.',
+  'Inflation, a monster that eats your savings, is back.',
+  'A small town called Centralia has burned for sixty years.',
+  'Tesla, the robot maker, doubled its sales.',
+]) ok(semPersonagem(t), `(6.2) factual sem ficha: ${t.slice(0, 36)}… → ${JSON.stringify(fichasDoFilmeComModo(t))}`)
+// (6.3) verbo de ser que age: forma exata, nome composto, título figurado
+for (const t of [
+  'The Moon hides a secret. The Moon is drifting away from Earth.',
+  'Pakistan hopes to double literacy. Pakistan spends little on schools.',
+  'New York laughs at your salary. Rent in New York doubled.',
+  'Bitcoin, the king of crypto, crashed. Bitcoin fell 20 percent in a day.',
+]) ok(semPersonagem(t), `(6.3) documentário sem ser que age: ${t.slice(0, 36)}… → ${JSON.stringify(fichasDoFilmeComModo(t))}`)
+ok((await import('../lib/episodeContinuity')).especieJuntoDoNome('Bitcoin, the king of crypto, crashed.', 'Bitcoin') === '', '(6.3) "Bitcoin, the king of crypto" não dá espécie')
+// …e o que é personagem continua sendo (sem gênero inventado, ação cortada)
+ok(JSON.stringify(fichasExplicitas('Mrs. Lopez, a teacher in Texas paid off every student loan in her class.')) === '["Mrs. Lopez, a teacher in Texas"]', '(6.3) a ação depois de uma locução é cortada ("…in Texas paid off…")')
+ok(JSON.stringify(fichasExplicitas('Juan, un hombre de Lima, encontró oro.')) === '["Juan, un hombre de Lima"]' && JSON.stringify(fichasExplicitas('Bia, uma menina curiosa, achou um mapa.')) === '["Bia, uma menina curiosa"]', '(6.3) pt/es: núcleo no começo ("uma menina curiosa"), verbo pt/es fora')
+ok(JSON.stringify(fichasExplicitas('Ze, um menino, achou ouro no quintal.')) === '["Ze, um menino"]', '(6.3) "um menino achou…": o verbo pt sai da ficha')
+ok(JSON.stringify(fichasExplicitas('Grog, a friendly giant, lived in the hills.')) === '["Grog, a friendly giant"]' && JSON.stringify(fichasExplicitas('Once upon a time, Smaug, a dragon, slept on gold.')) === '["Smaug, a dragon"]', '(6.3) gigante/dragão de verdade: com adjetivo de personagem ou em história')
+ok(JSON.stringify(fichasExplicitas('Mila, a girl with a red scarf and tangled hair, dreamed of stars.')) === '["Mila, a girl with a red scarf and tangled hair"]', '(6.3) aparência com "-ed" no meio ("tangled hair") não é cortada')
+ok(JSON.stringify(fichasExplicitas('The story of Pip, a brave mouse.')) === '["Pip, a brave mouse"]' && JSON.stringify(fichasExplicitas('At night, Leo, a lion cub, roared.')) === '["Leo, a lion cub"]' && JSON.stringify(fichasExplicitas('In the forest, Rua, a little fox, found a key.')) === '["Rua, a little fox"]', '(6.3) "of Pip" e abertura de lugar com vírgula ANTES do nome não derrubam o personagem')
+ok(JSON.stringify(fichasExplicitas('A tiny robot named Bolt fixes toys.')) === '["Bolt, a tiny robot"]' && fichasDoFilme('Bolt the robot fixed the toys. Then Bolt went home.')[0] === 'Bolt, the robot', '(6.3) robô com nome continua ficha')
+const ohio = ideiaDoProximoEpisodio({ narracao: 'In Ohio, a man found a winning lottery ticket in his old coat. The ticket was worth two million dollars.', episodio: { title: 'The Second Ticket', script: 'HOOK\nA second winning lottery ticket turned up in the same coat.\nMICRO REWARD\nThe ticket was worth even more.' } })
+ok(!/Main character|Keep the same characters/.test(ohio.ideia) && ohio.fichas.length === 0 && ohio.usouEpisodio, '(6.4) o episódio factual bom entra (antes a ficha falsa "Ohio, a man" exigia Ohio como sujeito)')
+// (6.5) abertura com vírgula antes do protagonista: episódio fiel no assunto
+const RO = fichasDoFilme(ROLAND)
+ok(noAss('The Second Letter', 'HOOK\nThe letter came back.\nMICRO REWARD\nThis time, Roland did not wait. He tore it open.', RO), '(6.5) "This time, Roland did not wait…" = no assunto')
+ok(noAss('A segunda carta', 'HOOK\nA carta voltou.\nMICRO REWARD\nNaquela noite, Roland abriu a carta.', RO), '(6.5) "Naquela noite, Roland abriu a carta" = no assunto')
+ok(!noAss('The Girl Who Found the Box', LUNA, RO), '(6.5) Luna no centro continua fora')
+// (6.6) duração: os botões reais de cada motor
+ok(duracaoDoStudio('hollywood', 30) === '30' && duracaoDoStudio('kling', 15) === '15' && duracaoDoStudio('veo', 15) === '15' && duracaoDoStudio('h3', 15) === '15', '(6.6) hollywood 30 s abre em 30; Kling 2.5/Veo/H3 de 15 s abrem em 15')
+ok(duracaoDoStudio('fast', 15) === '35' && duracaoDoStudio('seedance', 15) === '15' && duracaoDoStudio('hollywood', 78) === '60', '(6.6) Kineo 1 sem curta (35); Seedance 15; hollywood 78 s medido = 60')
+// (6.7) clique ignorado durante a espera não grava series_continue_clicked
+ok(/if \(proximoEpisodioOcupado\(\) && !\(e\.metaKey[^\n]*\{ e\.preventDefault\(\); return \}\s*\n\s*void trackEvent\('series_continue_clicked'/.test(hist), '(6.7) biblioteca: clique durante a espera não grava series_continue_clicked')
+ok(/if \(proximoEpisodioOcupado\(\)\) return\s*\n\s*const nextPrompt = buildSeriesContinuationPrompt\(seed\)/.test(gerar), '(6.7) tela de pronto: clique durante a espera não grava nem navega')
+
 console.log('(3) a URL é a que o Studio lê')
 const PAI = '0b8f2c1e-5d3a-4c7b-9e21-7a6f5d4c3b2a'
 const motor = motorDoStudio('cinematic_ai')

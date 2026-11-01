@@ -16,7 +16,7 @@
 //     filme de origem)? Se não, o gancho escrito NÃO entra na ideia: o Studio recebe só a ficha + "a história até aqui".
 //   · `ideiaDoProximoEpisodio` — o texto que entra na caixa do Studio (modo "Let AI structure"): episódio N, ficha, história
 //     até aqui, o gancho novo, e a ordem de não repetir. Sem preço, sem crédito, sem promessa de recurso.
-import { assuntoDoFilme, especieJuntoDoNome, fichasExplicitas, formatoDoFilme, naoEhNome } from '@/lib/episodeContinuity'
+import { assuntoDoFilme, especieFigurada, especieJuntoDoNome, fichasExplicitas, formatoDoFilme, naoEhNome, serComoCabeca } from '@/lib/episodeContinuity'
 import { elencoDeterministico, type FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { IDEIA_MAX_CHARS } from '@/lib/proximoEpisodioLink'
 
@@ -39,19 +39,28 @@ const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // os seres que não são documentário (robô, dragão, fada, brinquedo…). Filme factual = [] → "Stay on the same subject".
 
 /** Verbo que só um ser vivo/personagem faz (sujeito logo depois do nome). De propósito SEM "says/runs/plays/holds/hopes":
- *  país e conceito também "dizem", "correm" e "jogam" em documentário ("Pakistan plays cricket", "Inflation runs wild"). */
-const VERBO_DE_SER_QUE_AGE = new RegExp(String.raw`^(?:(?:then|slowly|quickly|suddenly|softly|quietly|happily|sadly|just|also|finally|still|never|always|gently|nervously|proudly|bravely|excitedly|loudly)\s+)?(?:(?:laugh|smil|cr(?:y|ie)|giggl|whisper|shout|scream|yell|sigh|nod|wav|hug|kiss|sing|sang|danc|sleep|slept|wak|woke|frown|grin|wink|clap|hid|bark|meow|purr|growl|chirp|squeak|tiptoe|sneak|peek|sniff|whimper|sob|shiver|gasp|blink|swoop|cuddl|snuggl|wiggl|waddl|hop|scurr|munch|yawn|shrug)(?:s|es|ed|d|ing|ies|ied|ded|ped|ged|bed|ned|ping)?|stares?|stared|staring|gazes?|gazed|gazing)(?![\p{L}])`, 'u')
+ *  país e conceito também "dizem", "correm" e "jogam" em documentário ("Pakistan plays cricket", "Inflation runs wild").
+ *  KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — FORMAS EXATAS, não radical + sufixo: "hop"+"es" virava "hopes" ("Pakistan
+ *  hopes…") e "hid"+"es" virava "hides" ("The Moon hides a secret"). "hide" saiu de vez (a Lua "esconde"). */
+const VERBO_DE_SER_QUE_AGE = new RegExp(String.raw`^(?:(?:then|slowly|quickly|suddenly|softly|quietly|happily|sadly|just|also|finally|still|never|always|gently|nervously|proudly|bravely|excitedly|loudly)\s+)?(?:laughs|laughed|laughing|smiles|smiled|smiling|cries|cried|crying|giggles|giggled|giggling|whispers|whispered|whispering|shouts|shouted|screams|screamed|yells|yelled|sighs|sighed|nods|nodded|waves|waved|hugs|hugged|hugging|kisses|kissed|sings|sang|singing|dances|danced|dancing|sleeps|slept|wakes|woke|frowns|frowned|grins|grinned|winks|winked|claps|clapped|barks|barked|meows|meowed|purrs|purred|growls|growled|chirps|chirped|squeaks|squeaked|tiptoes|tiptoed|sneaks|sneaked|snuck|peeks|peeked|sniffs|sniffed|whimpers|whimpered|sobs|sobbed|shivers|shivered|gasps|gasped|blinks|blinked|swoops|swooped|cuddles|cuddled|snuggles|snuggled|wiggles|wiggled|waddles|waddled|hops|hopped|hopping|scurries|scurried|munches|munched|yawns|yawned|shrugs|shrugged|stares|stared|staring|gazes|gazed|gazing)(?![\p{L}])`, 'u')
 // Seres de ficção: num filme sem sinal de história, só estes viram "Main character" sem nome (documentário não tem).
-const SER_DE_FICCAO = /^(?:robot|android|cyborg|dragon|unicorn|fairy|elf|troll|goblin|mermaid|wizard|witch|genie|gnome|monster|toy|doll|teddy|puppet)s?$/i
+// KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — sem dragon/monster/wizard/witch: são metáfora em documentário ("the sleeping
+// dragon" = China; "the monster" = inflação; "the wizard of Wall Street").
+const SER_DE_FICCAO = /^(?:robot|android|cyborg|unicorn|fairy|elf|troll|goblin|mermaid|genie|gnome|toy|doll|teddy|puppet)s?$/i
 
-function nomeAge(texto: string, nome: string): boolean {
+/** Quantas vezes o nome AGE como ser vivo; fala de roteiro ("Kali: …") conta como prova forte (99). */
+function vezesQueAge(texto: string, nome: string): number {
   const esc = escapaRe(nome)
-  if (new RegExp(String.raw`(?:^|\n)\s*${esc}\s*:`, 'u').test(texto)) return true // fala de roteiro: "Kali: …"
+  if (new RegExp(String.raw`(?:^|\n)\s*${esc}\s*:`, 'u').test(texto)) return 99 // fala de roteiro: "Kali: …"
   const re = new RegExp(String.raw`(?<![\p{L}\p{N}])${esc}(?![\p{L}\p{N}'’])\s+`, 'gu')
+  let n = 0
   for (const m of texto.matchAll(re)) {
-    if (VERBO_DE_SER_QUE_AGE.test(texto.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 40))) return true
+    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — pedaço de nome composto ("New York laughs" → "York"): não é o nome.
+    const antes = /(\p{Lu}[\p{L}'’-]*)\s+$/u.exec(texto.slice(Math.max(0, (m.index ?? 0) - 30), m.index ?? 0))?.[1]
+    if (antes && !naoEhNome(antes)) continue
+    if (VERBO_DE_SER_QUE_AGE.test(texto.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 40))) n += 1
   }
-  return false
+  return n
 }
 
 export type ModoDaFicha = 'autor' | 'ser_que_age' | 'papel' | 'nenhum'
@@ -62,13 +71,20 @@ function fichaDoElenco(f: FichaDePersonagem, texto: string, historia: boolean): 
   // sem nome ("the tiny discarded robot"): o papel JÁ é a ficha fiel do roteiro — mas só em história (ou ser de ficção)
   if (f.nome.toLowerCase().startsWith('the ')) {
     const nucleo = f.nome.split(' ').pop() ?? ''
-    return historia || SER_DE_FICCAO.test(nucleo) ? { ficha: f.nome, modo: 'papel' } : { ficha: '', modo: 'nenhum' }
+    // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — fora de história, o ser tem de ser a CABEÇA no texto ("Tesla, the robot maker" não)
+    return historia || (SER_DE_FICCAO.test(nucleo) && serComoCabeca(texto, nucleo)) ? { ficha: f.nome, modo: 'papel' } : { ficha: '', modo: 'nenhum' }
   }
   const nome = limpa(f.nome)
   if (!nome || naoEhNome(nome.split(' ')[0]) || !/^\p{Lu}/u.test(nome)) return { ficha: '', modo: 'nenhum' }
+  // KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — nome próprio de SER QUE AGE, com espécie só a que o texto escreveu:
+  //   · espécie colada no nome ("Dino the dinosaur", "Bolt the robot"); espécie de metáfora ("Bitcoin, the king", "China,
+  //     the dragon") só se o nome age ou o filme é história;
+  //   · sem espécie: o nome age com prova forte — história, fala de roteiro ("Kali:") ou 2+ ações de ser vivo. Uma ação solta
+  //     ("New York laughs at your salary", "The Moon hides…") não basta.
+  const age = vezesQueAge(texto, nome)
   const especie = especieJuntoDoNome(texto, nome)
-  if (especie) return { ficha: `${nome}, ${especie}`, modo: 'ser_que_age' }
-  return nomeAge(texto, nome) ? { ficha: nome, modo: 'ser_que_age' } : { ficha: '', modo: 'nenhum' }
+  if (especie && (age > 0 || historia || !especieFigurada(especie))) return { ficha: `${nome}, ${especie}`, modo: 'ser_que_age' }
+  return age > 0 && (historia || age >= 2) ? { ficha: nome, modo: 'ser_que_age' } : { ficha: '', modo: 'nenhum' }
 }
 
 /**
@@ -120,7 +136,9 @@ function palavrasDeAssunto(texto: string): Set<string> {
 // Antes: `includes(nome)` sem fronteira ("Use" passava com "because", "Son" com "season", "Moon" com "Moonlight") e bastava o
 // nome APARECER — o episódio que rebaixa o protagonista a coadjuvante e põe outro no centro passava.
 const MARCADOR_DE_SECAO = /^(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF|RHYTHM)\s*:?\s*$/i
-const CONECTIVO = String.raw`(?:(?:and|but|then|so|now|suddenly|today|tonight|meanwhile|later|finally|soon|still|that night|that morning|one day|e|mas|então|entao|y|pero|entonces)\s*,?\s+)?`
+// KINEO-PROXIMO-EPISODIO-0111 (revisão 2) — além da lista, qualquer abertura curta antes de vírgula ("This time, Roland…",
+// "Naquela noite, Roland…", "Al amanecer, Roland…"): episódio fiel era recusado e o gancho do cartão sumia do Studio.
+const CONECTIVO = String.raw`(?:(?:[\p{L}'’-]+\s+){0,3}[\p{L}'’-]+,\s+)?(?:(?:and|but|then|so|now|suddenly|today|tonight|meanwhile|later|finally|soon|still|this time|that night|that morning|one day|e|mas|então|entao|naquela noite|y|pero|entonces)\s*,?\s+)?`
 const HONORIFICOS = /^(?:dr|dra|mr|mrs|ms|mx|prof|profa|capt|gen|lt|sgt|col|st|sr|sra|srta)\.?$/i
 
 function frasesDoEpisodio(script: string): string[] {
