@@ -233,6 +233,128 @@ export function comPersonagemInfantil(prompt: string, sheet: string): string {
   return p
 }
 
+// ── KINEO-DESENHO-LEO-0111 [TRAVA 8.2 — vai do fundador 01/11 "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"] ──
+// Revisor 31/10, dois PRIMEIROS vídeos de cliente: (1) o cliente escolheu o Leo (menino) e um ESQUILO fez o papel principal do começo
+// ao fim ("found the owner, a grateful squirrel"); (2) a luva listrada colorida virou luva vermelha e o parque de outono virou neve no
+// meio do filme. CAUSA de (1): o elenco determinístico da casa (lib/cinematic/folhaDePersonagem tipoDoNome) lê a espécie na frase do
+// nome — "Leo found the owner, a grateful squirrel" → Leo = 'animal', espécie 'squirrel' → canônica "Leo, a squirrel…" — e a rota
+// (KINEO-QUALIDADE-TODOS-MOTORES-2910, folha ligada para todos) punha ESSA canônica no lugar da ficha do personagem escolhido; o
+// semDescricaoConcorrente ainda tirava o menino da cena. CAUSA de (2): ninguém fixava objeto nem cenário — cada cena era descrita
+// solta pelo descritor a partir da sua fala. Conserto (só com `kids_cartoon`): o elenco do filme é a ficha ESCOLHIDA como protagonista
+// (origem 'autor': casting e ficha literal nunca a trocam) + no máximo um coadjuvante; e o último toque no prompt de cada cena põe o
+// personagem escolhido NA FRENTE como protagonista, tira a cláusula "No people" e repete o objeto e o cenário da história.
+export const KIDS_DESENHO_LEO_MARK = 'KINEO-DESENHO-LEO-0111' // KINEO-DESENHO-LEO-0111
+/** O que cada personagem fixo É (o elenco da casa precisa do tipo; o Leo é humano mesmo quando a história tem esquilo). */ // KINEO-DESENHO-LEO-0111
+export const KIDS_CHARACTER_TIPO: Record<KidsCharacterId, { tipo: 'humano' | 'animal' | 'criatura'; genero: 'man' | 'woman' | null }> = { // KINEO-DESENHO-LEO-0111
+  leo: { tipo: 'humano', genero: 'man' }, mia: { tipo: 'humano', genero: 'woman' }, dino: { tipo: 'criatura', genero: null }, // KINEO-DESENHO-LEO-0111
+  pip: { tipo: 'animal', genero: null }, bibi: { tipo: 'animal', genero: null }, ollie: { tipo: 'animal', genero: null }, // KINEO-DESENHO-LEO-0111
+  preta: { tipo: 'animal', genero: null }, guilhermina: { tipo: 'animal', genero: null }, amora: { tipo: 'animal', genero: null }, // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/** A forma de FichaDePersonagem (lib/cinematic/folhaDePersonagem) — espelhada aqui para o módulo seguir puro. */ // KINEO-DESENHO-LEO-0111
+export interface FichaDoDesenho { nome: string; nucleo: string; tipo: 'humano' | 'animal' | 'criatura'; canonica: string; origem: 'autor' | 'deterministica' | 'modelo'; protagonista: boolean; genero: 'man' | 'woman' | null } // KINEO-DESENHO-LEO-0111
+const escapaReDesenho = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINEO-DESENHO-LEO-0111
+/**
+ * O elenco do desenho: o personagem ESCOLHIDO é sempre o protagonista, com a ficha canônica (origem 'autor'); do elenco que a casa leu
+ * no roteiro fica no máximo UM coadjuvante (protagonista=false). Sai a ficha que leu o escolhido como outro ser (Leo = esquilo) e o
+ * papel sem nome que é ele mesmo ("the little boy" numa história do Leo). Puro e idempotente.
+ */ // KINEO-DESENHO-LEO-0111
+export function elencoDoDesenho(personagem: KidsCharacter, elenco: ReadonlyArray<FichaDoDesenho> | null | undefined): FichaDoDesenho[] { // KINEO-DESENHO-LEO-0111
+  const t = KIDS_CHARACTER_TIPO[personagem.id] // KINEO-DESENHO-LEO-0111
+  const folha = personagem.sheet.toLowerCase() // KINEO-DESENHO-LEO-0111
+  const protagonista: FichaDoDesenho = { nome: personagem.name, nucleo: personagem.name, tipo: t.tipo, canonica: personagem.sheet, origem: 'autor', protagonista: true, genero: t.genero } // KINEO-DESENHO-LEO-0111
+  const secundarios = (elenco ?? []).filter((f) => { // KINEO-DESENHO-LEO-0111
+    if (!f || typeof f.nome !== 'string') return false // KINEO-DESENHO-LEO-0111
+    if (f.nome.toLowerCase() === personagem.name.toLowerCase() || f.canonica === personagem.sheet) return false // KINEO-DESENHO-LEO-0111 — o escolhido lido como outro ser
+    if (/^the\s/i.test(f.nome) && new RegExp(`(?<![\\p{L}])${escapaReDesenho(String(f.nucleo ?? '').toLowerCase())}(?![\\p{L}])`, 'u').test(folha)) return false // KINEO-DESENHO-LEO-0111 — o papel sem nome que é ele mesmo
+    return true // KINEO-DESENHO-LEO-0111
+  }).slice(0, 1).map((f) => ({ ...f, protagonista: false })) // KINEO-DESENHO-LEO-0111 — teto de 2 fichas da casa (PERSONAGEM_MAX_PERSONAGENS)
+  return [protagonista, ...secundarios] // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+
+// a ÂNCORA da história: o objeto-chave e o cenário, tirados das PALAVRAS (história em inglês primeiro, depois o 1º plano) — determinístico // KINEO-DESENHO-LEO-0111
+export interface AncoraDoDesenho { objeto: string | null; nucleoObjeto: string | null; adjetivosObjeto: string[]; cenario: string | null; estacao: string | null } // KINEO-DESENHO-LEO-0111
+const OBJETOS_DESENHO = 'teddy bear|mitten|glove|ball|kite|balloon|teddy|toy car|toy|seed|flower|umbrella|cookie|cup|shoelace|shoe|card|letter|sandcastle|blanket|apple|basket|hat|scarf|book|drum|tricycle|bicycle|bike|boat|shell|egg|nest|acorn|key|box|present|gift|cake|sock|crayon|painting|toothbrush|lantern|map|bucket|shovel|pumpkin|snowman|robot toy|doll|puzzle|treasure' // KINEO-DESENHO-LEO-0111
+const CENARIOS_DESENHO = 'living room|park|garden|backyard|yard|beach|forest|woods|meadow|playground|kitchen|bedroom|classroom|school|farm|pond|lake|zoo|supermarket|street|village|jungle|mountain|hill|field|orchard|bakery|library' // KINEO-DESENHO-LEO-0111
+const DETERMINANTE_DESENHO = String.raw`(?:a|an|the|his|her|their|its|my|one|\p{Lu}\p{Ll}+['’]s)` // KINEO-DESENHO-LEO-0111
+const NAO_ADJETIVO_DESENHO = new Set(['and', 'or', 'of', 'with', 'very', 'so', 'that', 'this', 'to', 'in', 'on', 'at', 'was', 'is', 'were', 'had', 'has', 'found', 'saw', 'lost', 'little', 'own', 'same']) // KINEO-DESENHO-LEO-0111
+const ESTACAO_RE = /\b(autumn|winter|summer)\b|\b(?:in|this|one|a|the|on a)\s+(spring|fall)\b/i // KINEO-DESENHO-LEO-0111
+/** O objeto-chave (1º objeto da lista que o texto cita, com os adjetivos da 1ª menção detalhada) e o cenário (+ estação). */ // KINEO-DESENHO-LEO-0111
+export function ancoraDaHistoria(texto: string | null | undefined): AncoraDoDesenho { // KINEO-DESENHO-LEO-0111
+  const t = String(texto ?? '').replace(/\s+/g, ' ') // KINEO-DESENHO-LEO-0111
+  const vazio: AncoraDoDesenho = { objeto: null, nucleoObjeto: null, adjetivosObjeto: [], cenario: null, estacao: null } // KINEO-DESENHO-LEO-0111
+  if (!t.trim()) return vazio // KINEO-DESENHO-LEO-0111
+  const est = ESTACAO_RE.exec(t) // KINEO-DESENHO-LEO-0111
+  const estacao = est ? (est[1] ?? est[2]).toLowerCase().replace(/^fall$/, 'autumn') : null // KINEO-DESENHO-LEO-0111
+  // objeto: o núcleo é o que aparece PRIMEIRO no texto; os adjetivos, os da menção com mais adjetivos desse núcleo // KINEO-DESENHO-LEO-0111
+  const primeiro = new RegExp(String.raw`(?<![\p{L}])(${OBJETOS_DESENHO})s?(?![\p{L}])`, 'iu').exec(t) // KINEO-DESENHO-LEO-0111 — o objeto que a história cita primeiro
+  const nucleo = primeiro ? primeiro[1].toLowerCase() : null // KINEO-DESENHO-LEO-0111
+  let adjetivos: string[] = [] // KINEO-DESENHO-LEO-0111
+  if (nucleo) for (const m of t.matchAll(new RegExp(String.raw`(?<![\p{L}])${DETERMINANTE_DESENHO}\s+((?:[a-z][a-z-]*,?\s+){0,3})${escapaReDesenho(nucleo)}(?![\p{L}])`, 'giu'))) { // KINEO-DESENHO-LEO-0111
+    const adj = m[1].split(/[\s,]+/).map((w) => w.toLowerCase()).filter((w) => w && !NAO_ADJETIVO_DESENHO.has(w)) // KINEO-DESENHO-LEO-0111
+    if (adj.length > adjetivos.length) adjetivos = adj // KINEO-DESENHO-LEO-0111 — a menção mais detalhada vence ("a striped colorful mitten" > "the mitten")
+  } // KINEO-DESENHO-LEO-0111
+  // cenário: "in the autumn park", "at the beach" — até 2 adjetivos colados // KINEO-DESENHO-LEO-0111
+  const cen = new RegExp(String.raw`(?<![\p{L}])(?:in|at|to|through|around|across|into|near|by)\s+(?:the|a|an|his|her|their)\s+((?:[a-z][a-z-]*\s+){0,2})(${CENARIOS_DESENHO})(?![\p{L}])`, 'iu').exec(t) // KINEO-DESENHO-LEO-0111
+  const adjCen = cen ? cen[1].trim().split(/\s+/).filter((w) => w && !NAO_ADJETIVO_DESENHO.has(w.toLowerCase())) : [] // KINEO-DESENHO-LEO-0111
+  let cenario = cen ? [...adjCen, cen[2]].join(' ').toLowerCase() : null // KINEO-DESENHO-LEO-0111
+  if (cenario && estacao && !cenario.includes(estacao)) cenario = `${cenario} in ${estacao}` // KINEO-DESENHO-LEO-0111
+  return { objeto: nucleo ? [...adjetivos, nucleo].join(' ') : null, nucleoObjeto: nucleo, adjetivosObjeto: adjetivos, cenario, estacao } // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/** A frase de continuidade que vai em TODA cena (positiva: o motor não tem negativo). null = a história não deu objeto nem cenário. */ // KINEO-DESENHO-LEO-0111
+export function fraseDaAncora(a: AncoraDoDesenho | null | undefined): string | null { // KINEO-DESENHO-LEO-0111
+  if (!a || (!a.objeto && !a.cenario && !a.estacao)) return null // KINEO-DESENHO-LEO-0111
+  const partes: string[] = [] // KINEO-DESENHO-LEO-0111
+  if (a.objeto) partes.push(`the same ${a.objeto}, identical colour and pattern in every shot`) // KINEO-DESENHO-LEO-0111
+  if (a.cenario) partes.push(`the same ${a.cenario} setting`) // KINEO-DESENHO-LEO-0111
+  if (a.estacao) partes.push(`the same ${a.estacao} season and weather`) // KINEO-DESENHO-LEO-0111
+  return `Story continuity in every scene: ${partes.join('; ')}. ` // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/** O personagem escolhido NA FRENTE de toda cena (o motor segue o 1º sujeito do prompt; a ficha no rabo perdia para o esquilo). */ // KINEO-DESENHO-LEO-0111
+export function prefixoDoProtagonista(p: KidsCharacter): string { // KINEO-DESENHO-LEO-0111
+  return `Main character in the foreground of this shot, clearly visible and doing the action: ${p.sheet}. Any animal or other character in this scene is secondary, smaller and beside ${p.name}, never replacing ${p.name}. ` // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+const SEM_GENTE_DESENHO = ' No people, no human figures and no faces anywhere in this shot.' // KINEO-DESENHO-LEO-0111 — espelho de lib/cinematic/personagemAjuste CLAUSULA_SEM_GENTE (o guardião confere)
+const FICHA_REPETIDA_DESENHO = (sheet: string) => ` The same main character appears in this scene, consistent design: ${sheet}.` // KINEO-DESENHO-LEO-0111 — espelho de CLAUSULA_FICHA / sceneStyle / comPersonagemInfantil
+const COR_PADRAO_DESENHO = 'red|blue|green|yellow|purple|violet|pink|orange|brown|black|white|grey|gray|golden|gold|silver|striped|stripy|spotted|dotted|polka-dot|checked|plaid|plain|knitted|woolly|wool|woolen|woollen|colorful|colourful|rainbow|multicolored|multicoloured|bright|dark|light|pale|shiny' // KINEO-DESENHO-LEO-0111
+const NEVE_DESENHO_RE = /\b(snow-covered|snowy|snowfall|snowflakes?|snow|winter|wintry|frosty|frost|icy)\b/gi // KINEO-DESENHO-LEO-0111
+const NEVE_NA_HISTORIA_RE = /\b(?:snow-covered|snowy|snowfall|snowflakes?|snow|winter|wintry|frosty|frost|icy)\b/i // KINEO-DESENHO-LEO-0111 — sem /g: o .test não guarda estado
+const ESTACAO_QUENTE_RE = /\b(autumn|summer|spring)\b/gi // KINEO-DESENHO-LEO-0111
+/** Objeto e estação concorrentes viram os da âncora ("a red mitten" → "a striped colorful mitten"; "in the snow" → "in the fallen autumn leaves"). */ // KINEO-DESENHO-LEO-0111
+function semConcorrenteDaAncora(trecho: string, a: AncoraDoDesenho, historia: string): string { // KINEO-DESENHO-LEO-0111
+  let s = trecho // KINEO-DESENHO-LEO-0111
+  if (a.nucleoObjeto && a.adjetivosObjeto.length > 0) { // KINEO-DESENHO-LEO-0111
+    const certo = a.adjetivosObjeto.join(' ') // KINEO-DESENHO-LEO-0111
+    s = s.replace(new RegExp(String.raw`(?<![\p{L}])((?:(?:${COR_PADRAO_DESENHO})[\s,]+(?:and\s+)?){1,3})(${escapaReDesenho(a.nucleoObjeto)})(?![\p{L}])`, 'giu'), (todo, _adj, nucleo) => (todo.toLowerCase() === `${certo} ${a.nucleoObjeto}` ? todo : `${certo} ${nucleo}`)) // KINEO-DESENHO-LEO-0111
+  } // KINEO-DESENHO-LEO-0111
+  const h = historia.toLowerCase() // KINEO-DESENHO-LEO-0111
+  if (a.estacao && a.estacao !== 'winter' && !NEVE_NA_HISTORIA_RE.test(h)) { // KINEO-DESENHO-LEO-0111 — a história não fala de neve: neve na cena é deriva
+    const chao = a.estacao === 'autumn' ? 'fallen autumn leaves' : a.estacao === 'spring' ? 'spring blossoms' : 'summer sunshine' // KINEO-DESENHO-LEO-0111
+    s = s.replace(NEVE_DESENHO_RE, (w) => (/^(snow|snowfall|snowflakes?)$/i.test(w) ? chao : a.estacao as string)) // KINEO-DESENHO-LEO-0111
+  } // KINEO-DESENHO-LEO-0111
+  if (a.estacao === 'winter' && !/\b(autumn|summer|spring)\b/i.test(h)) s = s.replace(ESTACAO_QUENTE_RE, 'winter') // KINEO-DESENHO-LEO-0111
+  return s // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/**
+ * O ÚLTIMO toque no prompt de cada cena do desenho (depois do elenco/época da casa): (1) sai a cláusula "No people…" (o protagonista
+ * está em TODA cena) e a ficha repetida no rabo; (2) objeto e estação concorrentes viram os da âncora (fora da ficha); (3) logo depois
+ * da trava de estilo, o personagem escolhido como protagonista e a frase de continuidade. Puro e idempotente.
+ */ // KINEO-DESENHO-LEO-0111
+export function travarDesenhoInfantil(prompt: string, i: { personagem: KidsCharacter; ancora: AncoraDoDesenho | null; historia?: string | null }): string { // KINEO-DESENHO-LEO-0111
+  const sheet = i.personagem.sheet // KINEO-DESENHO-LEO-0111
+  const prefixo = prefixoDoProtagonista(i.personagem) // KINEO-DESENHO-LEO-0111
+  const frase = fraseDaAncora(i.ancora) // KINEO-DESENHO-LEO-0111
+  let p = String(prompt ?? '') // KINEO-DESENHO-LEO-0111
+  p = p.split(prefixo).join('') // KINEO-DESENHO-LEO-0111 — idempotente: o bloco da frente é refeito uma vez só
+  if (frase) p = p.split(frase).join('') // KINEO-DESENHO-LEO-0111
+  p = p.split(SEM_GENTE_DESENHO.trim()).join('') // KINEO-DESENHO-LEO-0111
+  p = p.split(FICHA_REPETIDA_DESENHO(sheet).trim().replace(/\.$/, '')).join('') // KINEO-DESENHO-LEO-0111 — a ficha já vai na frente (com ou sem o ponto: comPersonagemInfantil troca o ponto pela trava infantil)
+  if (i.ancora) p = p.split(sheet).map((trecho) => semConcorrenteDaAncora(trecho, i.ancora as AncoraDoDesenho, String(i.historia ?? ''))).join(sheet) // KINEO-DESENHO-LEO-0111 — a ficha do personagem nunca é reescrita
+  p = p.replace(/\s{2,}/g, ' ').replace(/\s+([.,])/g, '$1').replace(/\.\s*\./g, '.').replace(/\.\s*,/g, ',').trim() // KINEO-DESENHO-LEO-0111
+  const trava = /^Film visual medium: [^.]*\.\s*/.exec(p) // KINEO-DESENHO-LEO-0111 — a trava de estilo (travarEstiloDoFilme) continua a 1ª coisa do prompt
+  const cabeca = trava ? trava[0].replace(/\s*$/, ' ') : '' // KINEO-DESENHO-LEO-0111
+  return `${cabeca}${prefixo}${frase ?? ''}${trava ? p.slice(trava[0].length) : p}` // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+
 /** O que a rota do filme decide sobre `kids_cartoon` (puro). Ausente = inativo (nada muda, byte a byte). */
 export type DesenhoInfantil =
   | { ativo: false; recusa: null }

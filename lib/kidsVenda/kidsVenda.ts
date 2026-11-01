@@ -197,6 +197,31 @@ export function kidsIdeaForRun(i: { theme: string; seq: number; cycleIndex?: num
   const theme = String(i.theme ?? '').trim()
   return theme ? `${beat} (part of the series: ${theme})` : beat
 }
+// KINEO-DESENHO-LEO-0111 [TRAVA 8.2 — vai do fundador 01/11 "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"] — revisor
+// 31/10: as DUAS amostras grátis contaram a MESMA história (luva perdida). Causa: a amostra é sempre seq 1 do ciclo 0 → kidsBeatFor(1, 0)
+// = KIDS_SERIES_BEATS[0] ("finds a lost mitten…") para TODA conta. Agora a amostra anda pela lista pela ORDEM da amostra na casa
+// (quantas amostras nasceram antes dela): passo 7 (primo com 30) → duas amostras seguidas NUNCA repetem o momento, e as 30 primeiras
+// cobrem os 30 momentos. Mesmo custo (nenhuma chamada nova de modelo; só uma contagem no banco, no cron). Pack/piloto: nada muda.
+export const KIDS_SAMPLE_BEAT_STEP = 7 // KINEO-DESENHO-LEO-0111
+/** O momento da N-ésima amostra da casa (ordinal 0, 1, 2…). Determinístico; vizinhos sempre diferentes. */ // KINEO-DESENHO-LEO-0111
+export function kidsSampleBeatFor(ordinal: number): string { // KINEO-DESENHO-LEO-0111
+  const n = KIDS_SERIES_BEATS.length // KINEO-DESENHO-LEO-0111
+  const k = Number.isFinite(ordinal) ? Math.max(0, Math.floor(ordinal)) : 0 // KINEO-DESENHO-LEO-0111
+  return KIDS_SERIES_BEATS[(k * KIDS_SAMPLE_BEAT_STEP) % n] // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/** Sem a contagem do banco: um ordinal estável pelo id do pedido (FNV-1a) — o mesmo pedido, a mesma história nas retentativas. */ // KINEO-DESENHO-LEO-0111
+export function kidsSampleOrdinalFallback(orderId: string): number { // KINEO-DESENHO-LEO-0111
+  let h = 0x811c9dc5 // KINEO-DESENHO-LEO-0111
+  const s = String(orderId ?? '') // KINEO-DESENHO-LEO-0111
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 } // KINEO-DESENHO-LEO-0111
+  return h % KIDS_SERIES_BEATS.length // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
+/** A ideia da AMOSTRA grátis (o tema da pessoa, se houver, segue junto como em kidsIdeaForRun). */ // KINEO-DESENHO-LEO-0111
+export function kidsSampleIdea(i: { theme: string; ordinal: number }): string { // KINEO-DESENHO-LEO-0111
+  const beat = kidsSampleBeatFor(i.ordinal) // KINEO-DESENHO-LEO-0111
+  const theme = String(i.theme ?? '').trim() // KINEO-DESENHO-LEO-0111
+  return theme ? `${beat} (part of the series: ${theme})` : beat // KINEO-DESENHO-LEO-0111
+} // KINEO-DESENHO-LEO-0111
 
 // ── TÍTULO · LEGENDA · HASHTAGS de cada episódio (sem promessa de nada; o selo de IA vai junto) ─────────────────────────────
 export function kidsEpisodeTitle(i: { script: string; characterId: KidsCharacterId; seq: number; language: KidsCartoonLanguage }): string {

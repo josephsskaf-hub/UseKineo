@@ -25,6 +25,7 @@ import {
   KIDS_VENDA_ENGINE, kidsAutopilotNextRunMs, kidsCycleCreditCap, kidsCycleKey, kidsEpisodeHashtags, kidsEpisodeTitle, kidsFalPaused, kidsGenerationId,
   kidsIdeaForRun, kidsNextSeq, kidsPriceLabel, kidsReadyEmailCopy, kidsStartsAllowedThisPass, KIDS_PRICES, type KidsOrderKind,
 } from '@/lib/kidsVenda/kidsVenda'
+import { kidsSampleIdea, kidsSampleOrdinalFallback } from '@/lib/kidsVenda/kidsVenda' // KINEO-DESENHO-LEO-0111 — a amostra grátis varia a história
 import { KIDS_ORDERS_TABLE, KIDS_ORDER_COLUMNS, KIDS_RUNS_TABLE, KIDS_RUN_COLUMNS, isMissingKidsTable, type KidsOrderRow, type KidsRunRow } from '@/lib/kidsVenda/server'
 
 export const KIDS_CRON_PATH = '/api/cron/autopilot-generate'
@@ -270,7 +271,14 @@ async function dispatchPass(db: Db, baseUrl: string, deadline: number, sessions:
       // ── história (a MESMA rota do template: moderação + regra infantil + régua do Seedance 1.5) ──
       const lang = (order.language === 'pt' || order.language === 'es' ? order.language : 'en') as KidsCartoonLanguage
       const character = (kidsCharacter(order.character)?.id ?? 'leo') as KidsCharacterId
-      const story = await callAsUser<StoryResponse>({ baseUrl, session, path: '/api/kids-cartoon/story', method: 'POST', body: { character, language: lang, duration: order.duration, idea: kidsIdeaForRun({ theme: order.theme, seq, cycleIndex: order.cycle_index }), ideaId: null }, timeoutMs: 60_000 })
+      // KINEO-DESENHO-LEO-0111 — a amostra: a história pela ordem dela entre as amostras da casa (vizinhas nunca repetem); contagem falhou = o id do pedido
+      let ideaDaRun = kidsIdeaForRun({ theme: order.theme, seq, cycleIndex: order.cycle_index }) // KINEO-DESENHO-LEO-0111
+      if (order.kind === 'sample') { // KINEO-DESENHO-LEO-0111
+        const antes = await db.from(KIDS_ORDERS_TABLE).select('id', { count: 'exact', head: true }).eq('kind', 'sample').lt('created_at', order.created_at) // KINEO-DESENHO-LEO-0111
+        const ordinal = !antes.error && typeof antes.count === 'number' ? antes.count : kidsSampleOrdinalFallback(order.id) // KINEO-DESENHO-LEO-0111
+        ideaDaRun = kidsSampleIdea({ theme: order.theme, ordinal }) // KINEO-DESENHO-LEO-0111
+      } // KINEO-DESENHO-LEO-0111
+      const story = await callAsUser<StoryResponse>({ baseUrl, session, path: '/api/kids-cartoon/story', method: 'POST', body: { character, language: lang, duration: order.duration, idea: ideaDaRun, ideaId: null }, timeoutMs: 60_000 }) // KINEO-DESENHO-LEO-0111 — era idea: kidsIdeaForRun(…) para todos
       const script = (story.body?.script ?? '').trim()
       if (!story.ok || !script) { await failRun(`story_${story.status}: ${story.body?.error ?? story.errorText ?? 'no script'}`); break }
       const title = kidsEpisodeTitle({ script, characterId: character, seq, language: lang })

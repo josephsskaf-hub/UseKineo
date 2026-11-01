@@ -268,6 +268,7 @@ import { kidsOrderAdmits } from '@/lib/kidsVenda/server' // KINEO-KIDS-VENDA-201
 import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o som do desenho infantil (voz contadora, trilha infantil, legenda opcional)
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
+import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -962,6 +963,7 @@ async function generateCinematicDescriptions(
   topic: string,
   visualPolicy: VisualPromptPolicy,
   lote?: { numeros: number[]; total: number },
+  desenhoProtagonista?: { name: string; sheet: string } | null, // KINEO-DESENHO-LEO-0111 — só o desenho infantil: o personagem escolhido é o sujeito de todo plano
 ): Promise<string[]> {
   const list = scenes
     .map((s, i) => {
@@ -979,7 +981,8 @@ RULES:
 - In scene 1, immediately show the literal subject/event of the opening narration, not a generic establishing landscape. Do not add events or claims absent from the scene.
 - NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no "Winchester Mystery House", "Amityville", "1910 farmhouse", "Nokia 3310" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.
 - KINEO-CENA-ACAO-LADO-3110: show the ACTION the narration says (who does what to what), not only the subject or the setting, and put the camera on the side where that action is visible (a diver who knocks on a submarine window from outside = the diver outside in the dark water, knuckles on the glass). The narration can be in any language; always write the shot in English.
-- KINEO-CENA-ACAO-LADO-3110: the LAST scene shows how the story ends (the outcome the last narration line says), in a different place, moment or angle from scene 1 — never repeat the opening shot.
+- KINEO-CENA-ACAO-LADO-3110: the LAST scene shows how the story ends (the outcome the last narration line says), in a different place, moment or angle from scene 1 — never repeat the opening shot.${desenhoProtagonista ? `
+- KINEO-DESENHO-LEO-0111: ${desenhoProtagonista.name} (${desenhoProtagonista.sheet}) is the main subject of EVERY shot, clearly visible and doing the action; any animal or other character the narration mentions appears only beside ${desenhoProtagonista.name}, smaller, never alone and never instead of ${desenhoProtagonista.name}. Keep the same key object (same colour and pattern) and the same place, season and weather in every shot unless the narration changes them.` : ''}
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
 - Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
@@ -3814,6 +3817,9 @@ async function manipularPost(req: NextRequest) {
       ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }
       : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt))
         : { elenco: elencoDoRoteiro(prompt), casting: 'deterministico', ms: 0 } : { elenco: [], casting: 'desligado', ms: 0 }
+    // KINEO-DESENHO-LEO-0111 — desenho infantil: o elenco lido do roteiro dizia "Leo, a squirrel…" (a espécie do coadjuvante na frase do nome) e
+    // KINEO-DESENHO-LEO-0111 — a linha abaixo trocava a ficha do personagem escolhido por ela. Agora o escolhido é o protagonista (origem 'autor') + 1 coadjuvante.
+    if (desenhoInfantil.ativo) { personagemElenco.elenco = elencoDoDesenho(desenhoInfantil.personagem, personagemElenco.elenco) as FichaDePersonagem[]; personagemElenco.casting = `${personagemElenco.casting}+desenho` } // KINEO-DESENHO-LEO-0111
     if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0) { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundarios = elencoSecundario(personagemElenco.elenco); if (secundarios.length > 0) classicVisualPolicy.elenco = secundarios; console.log(`[personagem] gen=${generationId} elenco=${personagemElenco.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem})`).join(', ')} casting=${personagemElenco.casting} ${personagemElenco.ms} ms`) } // KINEO-META95-PERSONAGEM-2010
     // KINEO-JUIZ-FICHA-2710 — item 2: a ficha leva as PALAVRAS DO CLIENTE (lib/cinematic/juizFicha elencoComFichaLiteral). Em 27/10 "a tiny blue-skinned Lord Krishna" virou "a small and chubby soft purple creature" (a canônica determinística sorteia cor e corpo) e a folha, o still e o clipe nasceram do mascote;
     // KINEO-JUIZ-FICHA-2710 — "a beautiful strawberry girl wearing a pink dress" virou "a girl about nine years old … red t-shirt". Agora o sintagma do cliente entra verbatim na canônica (origem 'autor': o casting nunca a troca), figura conhecida (Krishna…) ganha a iconografia DEPOIS das palavras dele, e a política de cena (protagonista + elenco) é refeita com a literal.
@@ -4150,7 +4156,7 @@ async function manipularPost(req: NextRequest) {
     if (verbatim && !planoDeBrollAplicado && !hollywoodPath) { // KINEO-TRILHA-15S — era: planScenes.length === 0 (com plano fora de posição, o descritor era pulado)
       let cobertura: DescriptionCoverage = { descriptions: scenes.map(() => null), lotes: 0, repedidas: [], recuperadas: [], erros: [] }
       try {
-        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length })) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje
+        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor
       } catch (e) {
         console.warn('[cinematic] #441 description generation skipped:', e instanceof Error ? e.message : String(e))
       }
@@ -7152,6 +7158,16 @@ async function manipularPost(req: NextRequest) {
     // KINEO-JUIZ-FICHA-2710 — item 2 (filme de 15 s): o papel que veio dos VISUAIS das cenas ("the girl") também ganha as palavras do cliente, e os prompts já escritos com a canônica inventada (cláusula da ficha, ordem do protagonista) passam a dizer a literal — antes do dry-run, do still FLUX e do clipe.
     const fichaLiteral15 = !qualidadeHerdada && personagem.ativo && elencoDoAjuste.length > 0 ? elencoComFichaLiteral(prompt, elencoDoAjuste) : null // KINEO-JUIZ-FICHA-2710 — idempotente: ficha já literal não muda // KINEO-QUALIDADE-TODOS-MOTORES-2910
     if (fichaLiteral15 && fichaLiteral15.trocas.length > 0) { elencoDoAjuste.splice(0, elencoDoAjuste.length, ...fichaLiteral15.elenco); for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = trocarFichaNoPrompt(classicScenePrompts[i], fichaLiteral15.trocas); console.log(`[juiz-ficha] gen=${generationId} fichas literais (cenas)=${fichaLiteral15.literais.join('+')}`) } // KINEO-JUIZ-FICHA-2710
+    // KINEO-DESENHO-LEO-0111 — desenho infantil: o ÚLTIMO toque antes do dry-run, do still e do clipe — o personagem escolhido NA FRENTE de toda cena
+    // KINEO-DESENHO-LEO-0111 — (o esquilo é no máximo coadjuvante), sem a cláusula "No people", e o objeto + cenário da história repetidos (a luva listrada não vira vermelha, o outono não vira neve).
+    if (desenhoInfantil.ativo) { // KINEO-DESENHO-LEO-0111
+      const contextoDesenho = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-DESENHO-LEO-0111 — a MESMA string do elenco/época: a tradução já memoizada, zero chamada nova
+      const historiaIngles = (await contextoDoFiltro(contextoDesenho).catch(() => null)) ?? contextoDesenho // KINEO-DESENHO-LEO-0111 — o original + a tradução em inglês (a âncora lê as palavras em inglês)
+      const primeiroPlano = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description || '').find((v) => v.trim()) ?? '' // KINEO-DESENHO-LEO-0111 — história em outra língua sem tradução: vale o 1º plano (inglês)
+      const ancoraDesenho = ancoraDaHistoria(`${historiaIngles} ${primeiroPlano}`) // KINEO-DESENHO-LEO-0111
+      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = travarDesenhoInfantil(classicScenePrompts[i], { personagem: desenhoInfantil.personagem, ancora: ancoraDesenho, historia: `${historiaIngles} ${primeiroPlano}` }) // KINEO-DESENHO-LEO-0111
+      console.log(`[cinematic] KINEO-DESENHO-LEO: protagonista=${desenhoInfantil.personagem.name} em ${classicScenePrompts.length} cena(s) · objeto=${ancoraDesenho.objeto ?? '-'} · cenário=${ancoraDesenho.cenario ?? '-'} · estação=${ancoraDesenho.estacao ?? '-'}`) // KINEO-DESENHO-LEO-0111
+    } // KINEO-DESENHO-LEO-0111
     if (wantsKling) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = limitarPromptDoFilmeKling25(classicScenePrompts[i], i) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — final still and clip share the provider-safe prompt.
     if (body.dry_run === true && isDryRunAccount(user.email)) {
       const classicReport = classicDryRunReport({
