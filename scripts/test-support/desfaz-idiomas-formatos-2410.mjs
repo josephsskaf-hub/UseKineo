@@ -1,3 +1,4 @@
+import { semRevisor100111 } from './desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111 — camada mais nova (01/11) sai primeiro
 import { semLegendaCena3110 } from './desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110 — camada mais nova (31/10) sai primeiro
 import { semFluxoLeva13010 } from './desfaz-fluxo-leva1-3010.mjs' // KINEO-FLUXO-LEVA1-3010 — camada mais nova (30/10) sai primeiro
 import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
@@ -23,6 +24,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semRevisor100111(text, file) // KINEO-REVISOR-10-0111
   text = semLegendaCena3110(text, file) // KINEO-LEGENDA-CENA-3110
   text = semFluxoLeva13010(text, file) // KINEO-FLUXO-LEVA1-3010
   text = semConsertos2710(text, file) // KINEO-CONSERTOS-2710

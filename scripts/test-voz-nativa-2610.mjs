@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semVozNativa2610, VOZ_NATIVA_2610, MARCA_VOZ_NATIVA_2610 as MARCA } from './test-support/desfaz-voz-nativa-2610.mjs'
+import { semRevisor100111 } from './test-support/desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (t) => t.replace(/\r\n/g, '\n')
@@ -26,6 +27,7 @@ const roda = (src, mods = {}) => {
   return exp
 }
 const T_SRC = rd('lib/textLanguage.ts')
+const T_SRC_D = semRevisor100111(T_SRC, 'lib/textLanguage.ts') // KINEO-REVISOR-10-0111 — a camada mais nova (01/11) sai antes da conferência do desfaz exato
 const carregar = (tsrc) => {
   const T = roda(tsrc)
   const F = roda(rd('lib/ttsFallback.ts'), { '@/lib/textLanguage': T })
@@ -55,13 +57,13 @@ console.log('== D. desfaz exato ==')
   const f = 'lib/textLanguage.ts'
   const baseTxt = lf(git('show', `${baseSha}:${f}`))
   checa(`D1 base da tabela = base real (${baseSha.slice(0, 9)})`, VOZ_NATIVA_2610.base === baseSha)
-  checa('D2 sem a camada = byte a byte a base', semVozNativa2610(T_SRC, f) === baseTxt)
-  checa('D3 idempotente e preserva CRLF', semVozNativa2610(baseTxt, f) === baseTxt && semVozNativa2610(T_SRC.replace(/\n/g, '\r\n'), f) === baseTxt.replace(/\n/g, '\r\n'))
+  checa('D2 sem a camada = byte a byte a base', semVozNativa2610(T_SRC_D, f) === baseTxt)
+  checa('D3 idempotente e preserva CRLF', semVozNativa2610(baseTxt, f) === baseTxt && semVozNativa2610(T_SRC_D.replace(/\n/g, '\r\n'), f) === baseTxt.replace(/\n/g, '\r\n'))
   checa('D4 todo trecho novo leva a marca', VOZ_NATIVA_2610.scope[f].hunks.every((h) => h.after.includes(MARCA)))
-  const { T } = carregar(semVozNativa2610(T_SRC, f))
+  const { T } = carregar(semVozNativa2610(T_SRC_D, f))
   checa('M1 base (camada desfeita): pt e es voltam à tts-1-hd (A1/A2 seriam vermelhos)', T.usesMiniMaxNarration('pt') === false && T.usesMiniMaxNarration('es') === false && T.NARRATION_LANGUAGES.filter((l) => l.minimaxPrimary).length === 22)
-  const m2 = T_SRC.replace("minimaxBoost: 'Spanish', minimaxPrimary: true,", "minimaxBoost: 'Spanish',")
-  checa('M2 aplicado (es sem voz nativa)', m2 !== T_SRC)
+  const m2 = T_SRC_D.replace("minimaxBoost: 'Spanish', minimaxPrimary: true,", "minimaxBoost: 'Spanish',")
+  checa('M2 aplicado (es sem voz nativa)', m2 !== T_SRC_D)
   checa('M2 → A2 vermelho', carregar(m2).T.usesMiniMaxNarration('es') === false)
 }
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`)

@@ -46,6 +46,7 @@ import { CONSISTENCIA_SER_3010, deltaConsistenciaSer3010Exato } from './test-sup
 import { K4_ASSUNTO_3010, deltaK4Assunto3010Exato } from './test-support/desfaz-k4-assunto-3010.mjs' // KINEO-K4-ASSUNTO-3010 — [TRAVA 8.2 — vai do fundador 30/10]
 import { DECISOES_PRECO_3110, deltaDecisoesPreco3110Exato } from './test-support/recibo-decisoes-preco-3110.mjs' // KINEO-DECISOES-PRECO-3110 — [TRAVA 8.2 — vai do fundador 31/10 "1 sim, 2 não, 3 sim, 4 sim"]
 import { RECUSA_BOTAO_3110, deltaRecusaBotao3110Exato } from './test-support/recibo-recusa-botao-3110.mjs' // KINEO-RECUSA-BOTAO-3110 — [TRAVA 8.2 — vai do fundador 31/10 "10 tarefas, já vamos fazer"]
+import { REVISOR_10_0111, deltaRevisor100111Exato } from './test-support/desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111 — [TRAVA 8.2 — vai do fundador 01/11 "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"]
 import { LEGENDA_CENA_3110, deltaLegendaCena3110Exato } from './test-support/desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110 — [TRAVA 8.2 — vai do fundador 31/10 "pode fazer os 3 consertos agora"]
 import { FLUXO_LEVA1_3010, deltaFluxoLeva13010Exato } from './test-support/desfaz-fluxo-leva1-3010.mjs' // KINEO-FLUXO-LEVA1-3010 — [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"]
 import { CENA_RECOVERY_3010, deltaCenaRecovery3010Exato } from './test-support/desfaz-cena-recovery-3010.mjs' // exact integrated retry receipt [TRAVA 8.2 — pedido do fundador 30/10]
@@ -273,6 +274,14 @@ const deltaConsistenciaSerExato = (file) => {
 // KINEO-K4-ASSUNTO-3010 — [TRAVA 8.2 — vai do fundador 30/10 "vamos resolver os problemas por aqui"]: recibo exato
 // (scripts/test-support/desfaz-k4-assunto-3010-fontes.json) da moldura do Kling 4 e do assunto da fala; edição fora dele continua reprovando.
 // KINEO-LEGENDA-CENA-3110 — recibo exato (scripts/test-support/desfaz-legenda-cena-3110-fontes.json): pontuação da legenda, ação/lado da cena, fecho ≠ abertura.
+// KINEO-REVISOR-10-0111 — recibo exato (scripts/test-support/desfaz-revisor-10-0111-fontes.json): os consertos da rodada "últimos 10 vídeos".
+const deltaRevisor10Exato = (file) => {
+  if (!REVISOR_10_0111.scope[file] && !REVISOR_10_0111.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaRevisor100111Exato(current, upstream, file)
+}
 const deltaLegendaCenaExato = (file) => {
   if (!LEGENDA_CENA_3110.scope[file] && !LEGENDA_CENA_3110.addedSources[file]) return false
   const current = readFileSync(join(raiz, file), 'utf8')
@@ -326,7 +335,7 @@ const deltaRecusaBotaoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaRecusaBotao3110Exato(current, upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o
