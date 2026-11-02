@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['lib/cinematic/cenarioDoFilme.ts', 'lib/cinematic/cenaKling4.ts', 'lib/hollywood/router.ts', 'app/api/generate-video-cinematic/route.ts'] // a rota entra no recibo: a corrente antiga (filme15/consertos-2710) lança em âncora mudada, e esta camada mais nova é conferida antes
+const ESCOPO = ['lib/cinematic/cenarioDoFilme.ts', 'lib/hollywood/router.ts', 'app/api/generate-video-cinematic/route.ts'] // a rota entra no recibo: a corrente antiga (filme15/consertos-2710) lança em âncora mudada, e esta camada mais nova é conferida antes
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

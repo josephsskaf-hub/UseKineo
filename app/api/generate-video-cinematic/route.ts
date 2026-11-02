@@ -246,7 +246,7 @@ import { gerarStillDaEstrela } from '@/lib/estrelaServer' // KINEO-META95-PERSON
 import { elencoDoRoteiro, elencoComCastingAjuste, cenasDoElenco, ajustarPromptsDoElenco, promptDoStillComFolhaAjuste, relatoDoAjuste, ensaioDoPersonagemAjuste, PERSONAGEM_CRITICO_TETO_CENA_MS, PERSONAGEM_REGERACAO_JANELA_MS, PERSONAGEM_REGERACAO_MIN_MS, PERSONAGEM_CRITICO_PRAZO_MS, type MotivoStillComFolha } from '@/lib/cinematic/personagemAjuste' // KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os 6 consertos da folha (formato, moderação, figura conhecida, fala, refação, cena sem gente)
 import { gerarStillComFolha } from '@/lib/cinematic/personagemAjusteServer' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o still com folha: edit + formato conferido + moderação com a reconferência da criatura
 import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410
-import { comCenarioDoFilme, lerCenarioDoFilme, regrasDoCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — cenário do filme (era+lugar+povo) lido UMA vez do roteiro + sem letra/número/placar/figura pública, em TODO motor
+import { REGRAS_DO_ESCRITOR_DE_CENAS } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — regra única dos escritores de cena: sentido da frase, época/lugar de cada cena, sem letras/figura pública
 import { aplicarElencoEEpoca, type RelatoElencoEpoca } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — elenco nomeado em cena, época nas roupas/carros, geleia ≠ jellyfish (estrada clássica)
 import { tomDoRoteiro } from '@/lib/musicDirection' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -999,7 +999,7 @@ RULES:
 - Frame the subject in the upper two-thirds; keep the lower third uncluttered for on-screen captions.
 - ${aspectSpec(visualPolicy.aspect).promptFraming}. No on-screen text, captions, or logos.
 - ${NO_TEXT_OBJECT_DIRECTION}
-${regrasDoCenarioDoFilme(null)}
+${REGRAS_DO_ESCRITOR_DE_CENAS}
 - Output ONLY valid JSON: { "descriptions": ["...", "..."] } with EXACTLY ${scenes.length} items, in scene order.`
 
   const userMsg = `Topic: ${topic.slice(0, 12000)}\n\nScenes:\n${list}${lote ? `\n\n(These are scenes ${lote.numeros.join(', ')} of a ${lote.total}-scene film; the other scenes are described in a separate call — keep the same look and vary the framing within this set.)` : ''}` // PEDIDO-FIEL-2610 — same route input cap; retain cast/constraints beyond character 200.
@@ -3793,9 +3793,6 @@ async function manipularPost(req: NextRequest) {
     // desalinhava clip_word_starts. Cada plano é medido depois (veoAiPlan, passo min(voz, 2,3)): cena de 13-15 palavras → 8 s.
     // Seedance/Kling/Sora: objeto idêntico.
     if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))
-    // KINEO-CASA-FICHA-SEM-LETRAS-0211 — UMA leitura semântica do roteiro inteiro (era; lugar; povo), iniciada aqui em paralelo e aguardada onde
-    // KINEO-CASA-FICHA-SEM-LETRAS-0211 — cada estrada monta o prompt final da cena (clássica e hollywood). Nunca lança; falha = null (só a regra sem letras).
-    const leituraDoCenario = lerCenarioDoFilme(prompt) // KINEO-CASA-FICHA-SEM-LETRAS-0211
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
@@ -5706,7 +5703,6 @@ async function manipularPost(req: NextRequest) {
         // The approved plan and speech guards above are shared. Only the paid queue dispatch changes.
         const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')
         const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: ancoraHerdadaDaCena(qualidadeHerdada, s.dialogueLine ?? s.voiceover ?? '', s.prompt, fichasDaQualidade(s.prompt, s.dialogueLine ?? s.voiceover ?? '')) }))
-        { const cenarioK4 = (await leituraDoCenario).cenario; for (const s of paidScenes) s.prompt = comCenarioDoFilme(s.prompt, cenarioK4) } // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Kling 4 pago: o still e o multi_prompt levam o cenário (promptDaCenaKling4 o recompacta nos 512)
         if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {
           await releaseBirthClaim('promo_current_day_budget_unavailable')
           return NextResponse.json({ error: 'The free Kling 4.0 budget is unavailable today. No film was submitted and no credits were charged.',
@@ -6164,10 +6160,6 @@ async function manipularPost(req: NextRequest) {
         await writeServerEvent({ name: S25_CENA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...s25Plano.relato } }) // KINEO-S25-NOTA95-2026-10-06
       } // KINEO-S25-NOTA95-2026-10-06
       await aplicarQualidadeHollywood() // KINEO-QUALIDADE-TODOS-MOTORES-2910
-      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Kling 3, H3, H3 Max, Omni e Seedance 2.5: o cenário do filme (era; lugar; povo, lido UMA vez do roteiro) e a
-      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — proibição de número/placar/figura pública entram no plano de CADA cena antes do laço — o still FLUX, o contrato de cena e o POST
-      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — nascem deste texto. Em texto, nunca em negative_prompt (H3/Omni/S25 não têm o campo; o do Kling 3 fica como está).
-      { const cenarioH = (await leituraDoCenario).cenario; for (const cena of plan.scenes) cena.prompt = comCenarioDoFilme(cena.prompt, cenarioH) } // KINEO-CASA-FICHA-SEM-LETRAS-0211
       for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
@@ -7174,9 +7166,6 @@ async function manipularPost(req: NextRequest) {
 
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
-    const cenarioDoFilme = (await leituraDoCenario).cenario // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Seedance 1.5, Veo, Kling 2.5 e Sora: still e clipe nascem deste vetor; o Kling 4 recompacta (comCenarioNoKling4)
-    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comCenarioDoFilme(classicScenePrompts[i], cenarioDoFilme) // KINEO-CASA-FICHA-SEM-LETRAS-0211
-    console.log(`[cinematic] KINEO-CASA-FICHA: cenario=${cenarioDoFilme ?? "-"} (${classicScenePrompts.length} cena(s), sem letras/figura pública)`) // KINEO-CASA-FICHA-SEM-LETRAS-0211
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco

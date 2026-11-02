@@ -308,7 +308,7 @@ const deltaJuizPlanoExato = (file) => {
   return deltaJuizPlano0111Exato(current, upstream, file)
 }
 // KINEO-CASA-FICHA-SEM-LETRAS-0211 — recibo exato (scripts/test-support/desfaz-casa-ficha-sem-letras-0211-fontes.json): cenário do filme (era+lugar+povo) e sem
-// letras/figura pública em todo motor (helper novo em lib/cinematic, 3 linhas do planejador hollywood e as ligações na rota cinematic). Camada mais nova: conferida primeiro.
+// letras/figura pública em todo motor (constante das regras do escritor em lib/cinematic, lida pelo planejador hollywood e pelo descritor da rota cinematic). Camada mais nova: conferida primeiro.
 const deltaCasaFichaSemLetrasExato = (file) => {
   if (!CASA_FICHA_SEM_LETRAS_0211.scope[file] && !CASA_FICHA_SEM_LETRAS_0211.addedSources[file]) return false
   const current = readFileSync(join(raiz, file), 'utf8')
