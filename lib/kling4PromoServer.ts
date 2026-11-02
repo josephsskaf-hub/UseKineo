@@ -19,7 +19,9 @@ const noReservation = (reason: Kling4PromoReason): Kling4PromoReservation =>
 /** A profile/has_paid/is_pro flag is not a subscription. Revalidate status, owner, payment and period with its provider. */
 export const resolveKling4PaidSubscription: Kling4SubscriptionResolver = async (admin, userId, now) => {
   if (!UUID.test(userId)) return null
-  const profileResult = await admin.from('profiles').select('id,plan,stripe_customer_id,stripe_subscription_id,paypal_subscription_id,dodo_subscription_id')
+  // '*', not a column list: dodo_subscription_id is not in production yet, and naming a missing column
+  // makes PostgREST fail the whole read, so every real subscriber resolved as not_subscribed (02/11).
+  const profileResult = await admin.from('profiles').select('*')
     .eq('id', userId).maybeSingle()
   const p = profileResult.data
   if (profileResult.error || !p || !isKling4PaidPlan(p.plan)) return null

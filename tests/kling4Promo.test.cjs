@@ -188,6 +188,21 @@ test('runtime PayPal source requires ACTIVE verified subscription and a real pos
   }
 })
 
+test('profile read never names a column production may not have (dodo_subscription_id missing on 02/11)', async () => {
+  const live=new Set(['id','plan','stripe_customer_id','stripe_subscription_id','paypal_subscription_id','paddle_subscription_id'])
+  const profile={id:userId,plan:'basic',paypal_subscription_id:'I_verified'}
+  const db={from:table=>{let cols='*'
+    const q={select:c=>{cols=c;return q},eq:()=>q,contains:()=>q,order:()=>q,limit:()=>q,
+      maybeSingle:async()=>cols.split(',').some(c=>c!=='*'&&!live.has(c.trim()))
+        ?{data:null,error:{code:'42703',message:'column does not exist'}}:{data:table==='profiles'?profile:null,error:null}}
+    return q}}
+  const sub={id:'I_verified',status:'ACTIVE',custom_id:userId,start_time:subscription.startedAt,plan_id:'P_live',
+    billing_info:{next_billing_time:subscription.paidThrough,last_payment:{time:subscription.startedAt,amount:{value:'19.90'}}}}
+  const s=load('kling4PromoServer',{'./paypal':{paypalFetch:async()=>sub,tierFromPlanId:async()=>({tier:'basic'})}},
+    {PAYPAL_CLIENT_ID:'offline',PAYPAL_CLIENT_SECRET:'offline'})
+  assert.equal((await s.resolveKling4PaidSubscription(db,userId,now))?.provider,'paypal')
+})
+
 test('runtime Dodo source requires live active ownership plus a positive server-only live payment', async () => {
   const profile={id:userId,plan:'basic',dodo_subscription_id:'sub_dodo'}
   const sub={subscription_id:'sub_dodo',status:'active',metadata:{supabase_user_id:userId},
