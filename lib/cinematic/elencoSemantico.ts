@@ -44,7 +44,7 @@ import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
 import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v3' // rodada 6: mesma pergunta ao modelo, conferência mais dura
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v4' // rodada 7: mesma pergunta ao modelo; aparência 100% do texto, inglês por padrão
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
@@ -138,48 +138,88 @@ function mesmaFrase(texto: string, nome: string, especie: string): boolean {
 const semLugares = (texto: string, lugares: readonly string[]) => lugares.filter((l) => l.length >= 2).reduce((t, l) => tiraNome(t, l, 'giu'), texto)
 /** Palavras de função que denunciam o idioma do texto (só para decidir se os campos _en podem trocar a palavra do texto). */
 const FUNCAO_EN = new Set(['the', 'and', 'of', 'to', 'is', 'was', 'his', 'her', 'with', 'he', 'she', 'it', 'that', 'on', 'at', 'for', 'they', 'are', 'were', 'this', 'from', 'but', 'into'])
-const FUNCAO_PT_ES = new Set(['o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'que', 'e', 'um', 'uma', 'com', 'nao', 'el', 'la', 'los', 'las', 'y', 'en', 'con', 'del', 'por', 'para', 'ao', 'na', 'seu', 'sua', 'su', 'pero', 'mas', 'ele', 'ela', 'muy', 'muito'])
+const FUNCAO_PT_ES = new Set(['o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'que', 'e', 'um', 'uma', 'com', 'nao', 'el', 'la', 'los', 'las', 'y', 'en', 'con', 'del', 'por', 'para', 'ao', 'na', 'seu', 'sua', 'su', 'pero', 'mas', 'ele', 'ela', 'muy', 'muito',
+  'un', 'una', 'al', 'es', 'se', 'pelo', 'pela', 'num', 'numa', 'ou', 'nem', 'sus', 'esta', 'este', 'isso', 'eso'])
 /**
  * O texto é inglês? Revisão 01/11 (rodada 6): num roteiro em inglês os campos _en têm de repetir as palavras do texto (regra 12 do
  * prompt); se o modelo "traduz" ("pigeon" → species_en "eagle"; aparência_en inventada), o código fica com a palavra do texto.
+ * Revisão 01/11 (rodada 7): exigia ≥ 3 palavras de função inglesas — 28 dos 197 casos (roteiros curtos: Biscuit, Tom the cat, "BRO, a
+ * muscular pigeon, lifts weights all day") caíam como "não inglês" e a trava desligava ("BRO, a eagle"). Agora o padrão é INGLÊS: só deixa
+ * de ser quando há prova de português/espanhol — palavra de função PT/ES ou palavra minúscula com acento/ç/ñ — e ela não é vencida por
+ * mais que o dobro de palavras de função inglesas. Medido nos 197 casos: 0 inglês lido como PT/ES, 0 PT/ES lido como inglês.
  */
 function textoEmIngles(texto: string): boolean {
   let en = 0, pt = 0
-  for (const w of tokensDe(texto)) { if (FUNCAO_EN.has(w)) en++; else if (FUNCAO_PT_ES.has(w)) pt++ }
-  return en >= 3 && en > pt * 2
+  for (const bruta of String(texto ?? '').split(/[^\p{L}\p{N}]+/u).filter(Boolean)) {
+    const w = semAcento(bruta)
+    if (FUNCAO_EN.has(w)) en++
+    else if (FUNCAO_PT_ES.has(w) || (/^\p{Ll}/u.test(bruta) && /[ãõçñáéíóúâêôàü]/u.test(bruta))) pt++
+  }
+  return pt === 0 || en > pt * 2
 }
 /** Palavras de ligação que o modelo acrescenta ao resumir a aparência ("girl WITH a red scarf"): não contam na conferência. */
 const LIGACAO = new Set(['and', 'with', 'the', 'his', 'her', 'its', 'their', 'has', 'had', 'who', 'that', 'into', 'from', 'com', 'uma', 'umas', 'uns', 'dos', 'das', 'del', 'los', 'las', 'con', 'sus', 'seu', 'sua', 'que'])
 const tokensDe = (s: string) => semAcento(String(s ?? '')).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
-/** A mesma palavra inteira, aceitando o plural simples ("eye" = "eyes"; "boot" = "boots"). Nunca pedaço de palavra ("red" ≠ "tired"). */
-const mesmaPalavra = (a: string, b: string) => a === b || `${a}s` === b || `${b}s` === a || `${a}es` === b || `${b}es` === a
-/** Distância máxima (em palavras do texto) entre duas palavras seguidas da aparência: "turquoise hair and star-shaped backpack" cabe; palavras soltas em frases distantes, não. */
-const APARENCIA_SALTO_MAX = 6
 /**
- * A aparência só fica quando ≥ 80% das palavras de conteúdo (≥ 3 letras, fora as de ligação) estão no texto como PALAVRA INTEIRA e
- * NA MESMA ORDEM, cada uma a no máximo APARENCIA_SALTO_MAX palavras da anterior — uma sequência que o texto escreve de verdade.
- * Revisão 01/11 (rodada 6): era `texto.includes(pedaço)` — "red hat" passava por "tired, but that night" e "scar" por "scared"; a roupa
- * inventada virava ficha do autor (origem 'autor'), que vence a determinística e o casting nunca troca.
+ * A mesma palavra inteira, aceitando o plural regular ("eye" = "eyes"; "dress" = "dresses"; "berry" = "berries"). Nunca pedaço de palavra
+ * ("red" ≠ "tired"). Revisão 01/11 (rodada 7): o "+es" valia para qualquer palavra e casava hat/hates, scar/scares, cap/capes — agora só
+ * depois de s/x/z/ch/sh, onde o inglês de fato faz o plural com "es".
+ */
+const pluralDe = (a: string, b: string) => b === `${a}s` || (/(?:s|x|z|ch|sh)$/.test(a) && b === `${a}es`) || (/[^aeiou]y$/.test(a) && b === `${a.slice(0, -1)}ies`)
+const mesmaPalavra = (a: string, b: string) => a === b || pluralDe(a, b) || pluralDe(b, a)
+/** Distância máxima (em palavras do texto) entre dois GRUPOS seguidos da aparência ("turquoise hair" … "star-shaped backpack"). */
+const APARENCIA_SALTO_MAX = 6
+/** Dentro de um grupo ("long red hair"), entre duas palavras de conteúdo o texto só pode ter até 2 palavras de ligação/curtas ("hair OF A"). */
+const APARENCIA_FOLGA_NO_GRUPO = 2
+/** Palavras que, na resposta do modelo, separam um traço do outro ("turquoise hair AND star-shaped backpack"; "muscular, bald"). */
+const SEPARA_TRACO = new Set(['and', 'with', 'plus', 'or', 'e', 'y', 'com', 'con', 'ou'])
+const ehLigacao = (w: string) => w.length < 3 || LIGACAO.has(w)
+/**
+ * A aparência só fica quando TODAS as palavras de conteúdo (≥ 3 letras, fora as de ligação) estão no texto como PALAVRA INTEIRA, e cada
+ * TRAÇO da resposta (o pedaço entre vírgulas/"and"/"with": "long red hair", "star-shaped backpack") é uma sequência COLADA do texto — só
+ * ligação no meio. Os traços seguem a ordem do texto, cada um a no máximo APARENCIA_SALTO_MAX palavras do anterior.
+ * Revisão 01/11 (rodada 6): era `texto.includes(pedaço)` — "red hat" passava por "tired, but that night".
+ * Revisão 01/11 (rodada 7): a regra dos 80% aceitava 1 palavra inventada em 5 ("long red hair and a BLUE dress" de "a dress") e a folga
+ * de 6 palavras dentro do traço recombinava o texto ("blue eyes" de "a blue dress, and her eyes were green"). Como agora toda palavra
+ * de conteúdo é do texto e cada traço é um trecho colado dele, o que vai para a ficha 'autor' é o que o autor escreveu.
  */
 function aparenciaDoTexto(texto: string, aparencia: string): string {
   const a = limpa(aparencia).replace(/^["']|["']$/g, '').slice(0, 160)
   if (!a || /^(?:none|n\/a|null|unknown)$/i.test(a)) return ''
-  const palavras = tokensDe(a).filter((w) => w.length >= 3 && !LIGACAO.has(w))
-  if (palavras.length === 0) return ''
+  // os traços da resposta: vírgula/ponto e vírgula/dois-pontos/barra, ou uma palavra separadora
+  const tracos: string[][] = []
+  for (const pedaco of a.split(/[,;:/]+/)) {
+    let atual: string[] = []
+    for (const w of tokensDe(pedaco)) {
+      if (SEPARA_TRACO.has(w)) { if (atual.length) tracos.push(atual); atual = []; continue }
+      if (!ehLigacao(w)) atual.push(w)
+    }
+    if (atual.length) tracos.push(atual)
+  }
+  if (tracos.length === 0) return ''
   const t = tokensDe(texto)
-  // a maior cadeia em ordem: melhor[i] guarda, para cada posição p do texto onde a palavra i casa, o tamanho da melhor cadeia que termina ali
-  const melhor: Array<Map<number, number>> = palavras.map(() => new Map())
-  let maior = 0
-  palavras.forEach((w, i) => {
-    t.forEach((tw, p) => {
-      if (!mesmaPalavra(w, tw)) return
-      let m = 1
-      for (let j = 0; j < i; j++) for (const [q, v] of melhor[j]) if (q < p && p - q <= APARENCIA_SALTO_MAX + 1 && v + 1 > m) m = v + 1
-      melhor[i].set(p, m)
-      if (m > maior) maior = m
+  // onde cada traço aparece COLADO no texto: [início, fim] de cada ocorrência
+  const ocorrencias = tracos.map((traco) => {
+    const achadas: Array<[number, number]> = []
+    t.forEach((tw, p0) => {
+      if (!mesmaPalavra(traco[0], tw)) return
+      let p = p0
+      for (let k = 1; k < traco.length; k++) {
+        let q = p + 1
+        while (q < t.length && q - p - 1 <= APARENCIA_FOLGA_NO_GRUPO && !mesmaPalavra(traco[k], t[q])) { if (!ehLigacao(t[q])) { q = t.length; break } q++ }
+        if (q >= t.length || q - p - 1 > APARENCIA_FOLGA_NO_GRUPO) return
+        p = q
+      }
+      achadas.push([p0, p])
     })
+    return achadas
   })
-  return maior / palavras.length >= 0.8 ? a.split(' ').slice(0, 15).join(' ').replace(/[\s,;.]+$/, '') : ''
+  // a cadeia: um traço depois do outro, na ordem, sem passar do salto máximo
+  let fins = ocorrencias[0].map(([, fim]) => fim)
+  for (let i = 1; i < ocorrencias.length && fins.length; i++) {
+    fins = ocorrencias[i].filter(([ini]) => fins.some((f) => ini > f && ini - f <= APARENCIA_SALTO_MAX + 1)).map(([, fim]) => fim)
+  }
+  return fins.length > 0 ? a.split(' ').slice(0, 15).join(' ').replace(/[\s,;.]+$/, '') : ''
 }
 /** O campo em inglês: substantivo/sintagma curto só de letras latinas (≤ 4 palavras); fora disso, null (fica a palavra original). */
 function inglesCurto(v: unknown, maxPalavras = 4): string | null {

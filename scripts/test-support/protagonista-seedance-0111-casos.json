@@ -2714,5 +2714,128 @@
   "humanos": [
    "Leo"
   ]
+ },
+ {
+  "id": "rev7-red-eyed-leo",
+  "fonte": "rev-0111c",
+  "texto": "Red-eyed Leo hates the rain. Every morning Leo stares out the window, waiting for the sun. Today the clouds finally break.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ]
+ },
+ {
+  "id": "rev7-long-night",
+  "fonte": "rev-0111c",
+  "texto": "The long night scares Ana. She lights a candle and waits for dawn. When the sun rises, Ana finally sleeps.",
+  "protagonista": [
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana"
+  ]
+ },
+ {
+  "id": "rev7-lila-dress",
+  "fonte": "rev-0111c",
+  "texto": "Lila, with long red hair and a dress, walks to school alone. Lila smiles at the crossing guard. The guard waves back.",
+  "protagonista": [
+   "Lila"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lila"
+  ]
+ },
+ {
+  "id": "rev7-nora-eyes",
+  "fonte": "rev-0111c",
+  "texto": "Nora wore a blue dress, and her eyes were green. Nora waited at the station for a train that never came.",
+  "protagonista": [
+   "Nora"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Nora"
+  ]
+ },
+ {
+  "id": "rev7-biscuit-curto",
+  "fonte": "rev-0111c",
+  "texto": "Biscuit, a grumpy orange cat, steals a remote. Biscuit hides under a couch.",
+  "protagonista": [
+   "Biscuit"
+  ],
+  "tipo": "animal",
+  "especie": "cat",
+  "animais": {
+   "Biscuit": "cat"
+  }
+ },
+ {
+  "id": "rev7-bro-uma-linha",
+  "fonte": "rev-0111c",
+  "texto": "BRO, a muscular pigeon, lifts weights all day",
+  "protagonista": [
+   "BRO"
+  ],
+  "tipo": "animal",
+  "especie": "pigeon",
+  "animais": {
+   "BRO": "pigeon"
+  },
+  "especiesProibidas": [
+   "eagle"
+  ]
+ },
+ {
+  "id": "rev7-sunny-morning",
+  "fonte": "rev-0111c",
+  "texto": "Sunny, a golden retriever, waits by the door every morning. Sunny morning light fills the hallway. Sunny hears the car and spins in circles.",
+  "protagonista": [
+   "Sunny"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "golden retriever",
+   "retriever"
+  ],
+  "animais": {
+   "Sunny": "retriever"
+  }
+ },
+ {
+  "id": "pt-curto-nino",
+  "fonte": "rev-0111c",
+  "texto": "Nino, um sapo pequeno, pula no lago o dia todo.",
+  "protagonista": [
+   "Nino"
+  ],
+  "tipo": "animal",
+  "especie": "frog",
+  "animais": {
+   "Nino": "frog"
+  }
+ },
+ {
+  "id": "es-curto-lia",
+  "fonte": "rev-0111c",
+  "texto": "Lía, gaviota valiente, vuela hacia ríos lejanos.",
+  "protagonista": [
+   "Lía"
+  ],
+  "tipo": "animal",
+  "especie": "seagull",
+  "animais": {
+   "Lía": "seagull"
+  }
  }
 ]

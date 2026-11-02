@@ -353,7 +353,8 @@ console.log('== 8. Rodada 6: aparência por palavra inteira, nome inteiro, falha
   const comNome = (v: string, el: FichaDePersonagem[]) => protagonistaEmTodaCena({ visuals: [v], elenco: el, porNome: true }).forcadas.length === 0
   ok(comNome('BRO dons a pink wig.', [ficha('BRO', 'pigeon')]) && comNome('Ahab stands at the wheel.', [ficha('Captain Ahab', 'Ahab')]) && comNome("Emma Collins's hands tremble.", [ficha('Emma Collins', 'Emma')]), 'D3 porNome: "BRO dons…", "Ahab stands…", "Emma Collins\'s hands" citam o elenco')
   ok(!comNome('An old woman by the window.', [ficha('Old Tom', 'Tom')]) && !comNome('The ship captain shouts.', [ficha('Captain Ahab', 'Ahab')]) && !comNome('Captain Nemo waves.', [ficha('Captain Ahab', 'Ahab')]), 'D3 porNome: "an old woman", "the ship captain", "Captain Nemo" não citam "Old Tom"/"Captain Ahab"')
-  ok(!comNome('Jack Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && comNome('Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && !comNome('He drives at max speed.', [ficha('Max', 'boy')]), 'D3 porNome: "Jack Collins" não cita a Emma; "Collins" sozinho cita; "max speed" (minúscula) não cita o Max')
+  // rodada 7: "Collins" sozinho no COMEÇO da frase ficou ambíguo (maiúscula de abertura) → forçado, como a base; no meio da frase cita
+  ok(!comNome('Jack Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && comNome('At dawn, Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && !comNome('He drives at max speed.', [ficha('Max', 'boy')]), 'D3 porNome: "Jack Collins" não cita a Emma; "Collins" sozinho no meio da frase cita; "max speed" (minúscula) não cita o Max')
   const rotaSrc = fs.readFileSync(path.join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
   ok(rotaSrc.includes('protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco, porNome: !!elencoSemantico'), 'D3 a rota só liga o casador por nome com o elenco semântico aplicado')
 
@@ -398,6 +399,75 @@ console.log('== 8. Rodada 6: aparência por palavra inteira, nome inteiro, falha
   const flecha = casos.find((c) => c.id === 'pt-fora-flecha')!
   const apFlecha = aplicarElencoSemantico(elencoDoRoteiro(flecha.texto), lerElencoSemantico(mocks.respostas['pt-fora-flecha'], flecha.texto), flecha.texto)
   ok(!!apFlecha && /\bturtle\b/.test(apFlecha.elenco[0].canonica) && !/tartaruga (?:with|anatomy)|a tartaruga\b/.test(apFlecha.elenco[0].canonica), `mock pt-fora-flecha: a ficha diz turtle em inglês (${apFlecha?.elenco[0].canonica.slice(0, 70)}…)`)
+}
+
+// ═══ 9. Revisão de 01/11 (rodada 7): aparência sem palavra inventada, trava _en em roteiro curto, nome no começo da frase ═══
+console.log('== 9. Rodada 7: plural regular, aparência 100% do texto e colada por traço, inglês por padrão, nome no começo da frase ==')
+{
+  const j = (p: Record<string, unknown>, extra: Record<string, unknown> = {}) => JSON.stringify({ protagonist: { name: null, role: null, kind: 'human', species: 'human', appearance_from_text: '', gender_if_stated: null, age_if_stated: null, ...p }, supporting: [], places_and_orgs: [], ...extra })
+  const ap = (texto: string, p: Record<string, unknown>) => lerElencoSemantico(j(p), texto)?.protagonist?.appearance_from_text
+  // (1a) plural com "es" só depois de s/x/z/ch/sh
+  ok(ap('Red-eyed Leo hates the rain. Leo stays inside.', { name: 'Leo', appearance_from_text: 'red hat' }) === '', 'R7-1 "red hat" não passa por "Red-eyed Leo hates" (hat ≠ hates)')
+  ok(ap('The long night scares her. Ana waits for dawn.', { name: 'Ana', appearance_from_text: 'long scar' }) === '', 'R7-1 "long scar" não passa por "the long night scares" (scar ≠ scares)')
+  ok(ap('Pim wears a red cap. Pim runs.', { name: 'Pim', appearance_from_text: 'red capes' }) === '', 'R7-1 "red capes" não passa por "a red cap" (cap ≠ capes)')
+  ok(ap('Zoe loves her blue dresses. Zoe dances.', { name: 'Zoe', appearance_from_text: 'blue dress' }) === 'blue dress' && ap('Ivy wears ruby earrings and berries in her hair. Ivy sings.', { name: 'Ivy', appearance_from_text: 'berry in her hair' }) === 'berry in her hair', 'R7-1 plural regular continua valendo: dress = dresses, berry = berries')
+  ok(ap('Bo wears thick glasses. Bo reads.', { name: 'Bo', appearance_from_text: 'thick glass' }) === 'thick glass', 'R7-1 glass = glasses (plural depois de "s")')
+  // (1b) 100% das palavras de conteúdo: nenhuma inventada
+  const LILA = 'Lila, with long red hair and a dress, walks to school. Lila smiles.'
+  ok(ap(LILA, { name: 'Lila', appearance_from_text: 'long red hair and a blue dress' }) === '', 'R7-1 "long red hair and a BLUE dress" (1 palavra inventada em 5): sai inteira')
+  ok(ap(LILA, { name: 'Lila', appearance_from_text: 'long red hair and a dress' }) === 'long red hair and a dress', 'R7-1 a mesma aparência sem a cor inventada: fica')
+  // (1c) cada traço colado no texto: não recombina
+  const NORA = 'Nora wore a blue dress, and her eyes were green. Nora waited.'
+  ok(ap(NORA, { name: 'Nora', appearance_from_text: 'blue eyes' }) === '', 'R7-1 "blue eyes" de "a blue dress, and her eyes were green": recombinação, sai')
+  ok(ap(NORA, { name: 'Nora', appearance_from_text: 'blue dress' }) === 'blue dress' && ap(NORA, { name: 'Nora', appearance_from_text: 'a blue dress, green' }) === 'a blue dress, green', 'R7-1 traço do texto ("blue dress") e traços separados por vírgula na ordem do texto: ficam')
+  ok(ap(NORA, { name: 'Nora', appearance_from_text: 'green eyes' }) === '', 'R7-1 "green eyes" (ordem do traço trocada: "eyes were green"): sai')
+  const apNora = aplicarElencoSemantico(elencoDoRoteiro(NORA), lerElencoSemantico(j({ name: 'Nora', appearance_from_text: 'blue eyes' }), NORA), NORA)
+  ok(!!apNora && !/blue eyes/.test(apNora.elenco[0].canonica), `R7-1 a recombinação não vira ficha do autor (${apNora?.elenco[0].canonica.slice(0, 70)}…)`)
+  // os exemplos do próprio prompt continuam passando
+  ok(ap('BRO the muscular pigeon is bald. BRO lifts.', { name: 'BRO', kind: 'animal', species: 'pigeon', appearance_from_text: 'muscular, bald' }) === 'muscular, bald', 'R7-1 exemplo do prompt "muscular, bald" (traços separados): fica')
+  ok(ap('Avocado, wearing sunglasses, surfs. Avocado wins.', { name: 'Avocado', kind: 'object', species: 'avocado', appearance_from_text: 'wearing sunglasses' }) === 'wearing sunglasses', 'R7-1 exemplo do prompt "wearing sunglasses": fica')
+
+  // (2) roteiro inglês curto: a trava dos campos _en vale (era desligada em 28 dos 197 casos)
+  const casos = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-casos.json'), 'utf8')) as Caso[]
+  const BIS = casos.find((c) => c.id === 'rev-002')!.texto
+  const bis = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Biscuit', kind: 'animal', species: 'cat', species_en: 'dog', appearance_from_text: 'grumpy orange', appearance_en: 'grumpy orange with a red collar and blue hat', gender_if_stated: 'male', age_if_stated: null }, supporting: [], places_and_orgs: [] }), BIS)
+  const apBis = aplicarElencoSemantico(elencoDoRoteiro(BIS), bis, BIS)
+  ok(bis?.protagonist?.species === 'cat' && bis.protagonist.appearance_en === '', `R7-2 rev-002 (Biscuit): species_en "dog" e acessórios inventados não entram (${bis?.protagonist?.species} / "${bis?.protagonist?.appearance_en}")`)
+  ok(!!apBis && !/\bdog\b|collar|blue hat/.test(apBis.elenco[0].canonica), `R7-2 a ficha do Biscuit não diz "a dog" nem a coleira inventada (${apBis?.elenco[0].canonica.slice(0, 80)}…)`)
+  const TOM = casos.find((c) => c.id === 'rev-081')!.texto
+  const tom = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Tom', kind: 'animal', species: 'cat', species_en: 'dog', appearance_from_text: '', appearance_en: '' }, supporting: [], places_and_orgs: [] }), TOM)
+  ok(tom?.protagonist?.species === 'cat', `R7-2 rev-081: "Tom the cat" continua gato (${tom?.protagonist?.species})`)
+  const BRO1 = 'BRO, a muscular pigeon, lifts weights all day'
+  const bro1 = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'BRO', kind: 'animal', species: 'pigeon', species_en: 'eagle', appearance_from_text: 'muscular', appearance_en: 'muscular golden feathers' }, supporting: [], places_and_orgs: [] }), BRO1)
+  ok(bro1?.protagonist?.species === 'pigeon' && bro1.protagonist.appearance_en === '', `R7-2 frase de uma linha: "BRO, a eagle" não sai (${bro1?.protagonist?.species})`)
+  ok(lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Bob', kind: 'animal', species: 'pombo', species_en: 'pigeon', appearance_from_text: '', appearance_en: '' }, supporting: [], places_and_orgs: [] }), 'Bob, um pombo musculoso, levanta pesos o dia todo.')?.protagonist?.species === 'pigeon', 'R7-2 frase curta em português continua traduzindo ("pombo" → "pigeon")')
+  ok(lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Lía', kind: 'animal', species: 'gaviota', species_en: 'seagull', appearance_from_text: '', appearance_en: '' }, supporting: [], places_and_orgs: [] }), 'Lía, gaviota valiente, vuela hacia ríos lejanos.')?.protagonist?.species === 'seagull', 'R7-2 frase curta em espanhol (só acento como prova): "gaviota" → "seagull"')
+
+  // (3) nome no começo da frase com maiúscula de abertura (núcleo da ficha = espécie)
+  const fichaBicho = (nome: string, nucleo: string): FichaDePersonagem => ({ nome, nucleo, tipo: 'animal', canonica: `${nome}, a ${nucleo}`, origem: 'deterministica', protagonista: true, genero: null })
+  const SUNNY = [fichaBicho('Sunny', 'retriever')]
+  const p15 = (v: string, el: FichaDePersonagem[]) => protagonistaEmTodaCena({ visuals: [v], elenco: el, porNome: true }).forcadas.length === 1
+  ok(p15('Sunny morning light floods an empty kitchen.', SUNNY), 'R7-3 "Sunny morning light floods an empty kitchen": a cena é forçada com o protagonista (como a base)')
+  ok(p15('Misty hills at dawn.', [fichaBicho('Misty', 'cat')]) && p15('Rocky cliffs over the sea.', [fichaBicho('Rocky', 'dog')]) && p15('A wide shot. Shadow falls across the yard.', [fichaBicho('Shadow', 'cat')]), 'R7-3 "Misty hills", "Rocky cliffs", "…. Shadow falls" (abertura de frase): forçadas')
+  ok(!p15('Sunny, the golden retriever, chases a ball.', SUNNY) && !p15("Sunny's tail wags by the door.", SUNNY) && !p15('Sunny the retriever sleeps.', SUNNY) && !p15('In the park, Sunny chases a ball.', SUNNY), 'R7-3 o nome sem dúvida cita: vírgula, possessivo, aposto, ou no meio da frase')
+  ok(!p15('BRO dons a pink wig.', [fichaBicho('BRO', 'pigeon')]), 'R7-3 nome em maiúsculas ("BRO") no começo da frase continua citando')
+  // o que a base fazia nestas cenas é o mesmo: forçada
+  const baseSrc = execFileSync('git', ['show', '2359bf434:lib/filmes/filme15Elenco.ts'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 << 20 })
+  const tmp = path.join(os.tmpdir(), `filme15Elenco-base7-${process.pid}.ts`)
+  fs.writeFileSync(tmp, baseSrc)
+  const BASE = (await import(pathToFileURL(tmp).href)) as typeof import('../lib/filmes/filme15Elenco')
+  fs.rmSync(tmp, { force: true })
+  ok(BASE.protagonistaEmTodaCena({ visuals: ['Sunny morning light floods an empty kitchen.'], elenco: SUNNY }).forcadas.length === 1, 'R7-3 a base forçava a cena "Sunny morning…" — agora com o elenco semântico também')
+
+  // os 9 casos novos da rodada 7 (fonte rev-0111c) com resposta MOCKADA: a conferência derruba o que o modelo inventou
+  const mocks = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-mocks.json'), 'utf8')) as { respostas: Record<string, string> }
+  const leMock = (id: string) => lerElencoSemantico(mocks.respostas[id], casos.find((c) => c.id === id)!.texto)
+  const r7 = casos.filter((c) => c.fonte === 'rev-0111c')
+  ok(r7.length === 9 && r7.every((c) => c.id in mocks.respostas), `R7 ${r7.length} casos rev-0111c no arquivo de casos, todos com mock (o calibrador os mede quando houver crédito)`)
+  ok(['rev7-red-eyed-leo', 'rev7-long-night', 'rev7-lila-dress', 'rev7-nora-eyes'].every((id) => leMock(id)?.protagonist?.appearance_from_text === ''), 'R7 mocks: "red hat", "long scar", "…a blue dress", "blue eyes" apagados da aparência')
+  const bisM = leMock('rev7-biscuit-curto')?.protagonist, broM = leMock('rev7-bro-uma-linha')?.protagonist
+  ok(bisM?.species === 'cat' && bisM.appearance_en === '' && broM?.species === 'pigeon' && broM.appearance_en === '', `R7 mocks: roteiro inglês curto — Biscuit ${bisM?.species}, BRO ${broM?.species}, sem appearance_en inventado`)
+  ok(leMock('pt-curto-nino')?.protagonist?.species === 'frog' && leMock('es-curto-lia')?.protagonist?.species === 'seagull', 'R7 mocks: frase curta PT/ES segue traduzindo (sapo → frog, gaviota → seagull)')
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)

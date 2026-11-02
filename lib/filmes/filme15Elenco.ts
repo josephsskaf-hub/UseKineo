@@ -132,18 +132,39 @@ function cenaCitaPeloNome(visual: string, f: FichaDePersonagem): boolean {
   const partes = nome.split(/[^\p{L}\p{N}'-]+/u).filter(Boolean)
   const proprias = partes.filter((w) => !TITULOS_DO_NOME_15.has(w.toLowerCase()) && w.length >= 2)
   if (proprias.length === 0) return false
-  const tokens = String(visual ?? '').split(/[^\p{L}\p{N}'-]+/u).filter(Boolean).map((w) => w.replace(/'s$/i, ''))
+  // as palavras da cena com a posição no texto (para saber se a palavra abre frase e o que vem colado depois dela)
+  const bruto = String(visual ?? '')
+  const achadas = [...bruto.matchAll(/[\p{L}\p{N}'-]+/gu)].map((m) => ({ w: m[0].replace(/'s$/i, ''), ini: m.index ?? 0, fim: (m.index ?? 0) + m[0].length, possessivo: /'s$/i.test(m[0]) }))
+  const tokens = achadas.map((x) => x.w)
   const baixos = tokens.map((w) => w.toLowerCase())
   const alvo = partes.map((w) => w.toLowerCase())
   const maiuscula = (w: string) => /^\p{Lu}/u.test(w)
-  for (let i = 0; i + alvo.length <= baixos.length; i++) if (maiuscula(tokens[i]) && alvo.every((w, k) => baixos[i + k] === w)) return true
+  /**
+   * Revisão 01/11 (rodada 7): no começo da frase a maiúscula não prova nome — "Sunny morning light floods an empty kitchen" não cita o
+   * Sunny (golden retriever; o núcleo da ficha é a espécie) e a cena ficava sem o protagonista, que a base forçava. No começo da frase a
+   * palavra só conta como o nome quando o resto não deixa dúvida: escrita toda em maiúsculas como o nome ("BRO"), possessivo ("Sunny's"),
+   * vírgula logo depois ("Sunny, the golden retriever, …") ou aposto ("Sunny the retriever"). Na dúvida, não conta — a cena é forçada com
+   * o protagonista, exatamente como na base.
+   */
+  const abreFrase = (i: number) => i === 0 || /[.!?:;—–"“(\n]\s*$|\s-\s*$/.test(bruto.slice(achadas[i - 1].fim, achadas[i].ini))
+  const semDuvida = (i: number, j: number) => {
+    if (!abreFrase(i)) return true
+    if (j > i) return true // nome com 2+ palavras ("Emma Collins") no começo da frase: inteiro, sem dúvida
+    const w = tokens[i]
+    if (w.length >= 2 && w === w.toUpperCase() && /\p{Lu}/u.test(w) && nome.includes(w)) return true
+    if (achadas[i].possessivo) return true
+    const depois = bruto.slice(achadas[i].fim, achadas[i + 1]?.ini ?? bruto.length)
+    if (/^\s*,/.test(depois)) return true
+    return /^(?:the|a|an)$/i.test(tokens[i + 1] ?? '') && /^\s+$/.test(depois)
+  }
+  for (let i = 0; i + alvo.length <= baixos.length; i++) if (maiuscula(tokens[i]) && alvo.every((w, k) => baixos[i + k] === w) && semDuvida(i, i + alvo.length - 1)) return true
   const primeiro = proprias[0], ultimo = proprias[proprias.length - 1]
   return tokens.some((w, i) => {
     if (!maiuscula(w)) return false
-    if (w.toLowerCase() === primeiro.toLowerCase()) return true
+    if (w.toLowerCase() === primeiro.toLowerCase()) return semDuvida(i, i)
     if (proprias.length < 2 || w.toLowerCase() !== ultimo.toLowerCase()) return false
     const antes = tokens[i - 1]
-    return !antes || !maiuscula(antes) || TITULOS_DO_NOME_15.has(antes.toLowerCase()) || antes.toLowerCase() === primeiro.toLowerCase()
+    return (!antes || !maiuscula(antes) || TITULOS_DO_NOME_15.has(antes.toLowerCase()) || antes.toLowerCase() === primeiro.toLowerCase()) && semDuvida(i, i)
   })
 }
 

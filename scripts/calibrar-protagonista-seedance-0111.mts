@@ -5,18 +5,29 @@
 // Revisão 01/11 (rodada 6): a chave estava sem crédito (429) — os 12 casos novos (8 PT/ES FORA da amostra do prompt, fonte 'pt-es-fora', e 4
 // defeitos da revisão, fonte 'rev-0111b') só têm resposta MOCKADA (scripts/test-support/protagonista-seedance-0111-mocks.json). Esta rodada
 // os mede de verdade. Se mais de 20% das chamadas falharem (sem crédito, fora do ar), NADA é gravado: a calibração anterior fica intacta.
+// Revisão 01/11 (rodada 7): +9 casos fonte 'rev-0111c' (aparência com plural falso, cor inventada e recombinação; roteiro inglês curto com
+// species_en/appearance_en trocados; "Sunny" que é palavra comum; frase curta PT/ES), também só MOCKADOS (a chave seguia em 429).
+// PENDENTE DE MEDIR com crédito: os 21 casos mockados (8 pt-es-fora + 4 rev-0111b + 9 rev-0111c) e a taxa geral com a conferência v4.
+// Modos:
+//   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
+//   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava
+//        docs/calibracao/protagonista-seedance-0111-mockados.json (não mexe na calibração principal; ~US$ 0,004) — para comparar o mock com o real
 import fs from 'node:fs'
 import path from 'node:path'
 import { pedirElencoSemantico, ELENCO_SEMANTICO_MODELO, ELENCO_SEMANTICO_PRAZO_MS, ELENCO_SEMANTICO_VERSAO } from '../lib/cinematic/elencoSemantico'
 import { avaliar, type Caso } from './test-support/avaliar-protagonista-seedance-0111.mts'
 
 const raiz = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
-const envPath = process.argv[2] ?? 'C:/kineo/.env.local'
+const args = process.argv.slice(2)
+const soMockados = args.includes('--mockados')
+const envPath = args.find((a) => !a.startsWith('--')) ?? 'C:/kineo/.env.local'
 const linha = fs.readFileSync(envPath, 'utf8').split(/\r?\n/).find((l) => /^\s*OPENAI_API_KEY\s*=/.test(l))
 const apiKey = linha ? linha.replace(/^\s*OPENAI_API_KEY\s*=\s*/, '').replace(/^["']|["']$/g, '').trim() : ''
 if (!apiKey) { console.error('OPENAI_API_KEY ausente no .env.local'); process.exit(2) }
 
-const casos: Caso[] = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-casos.json'), 'utf8'))
+const todos: Caso[] = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-casos.json'), 'utf8'))
+const mockados = new Set(Object.keys((JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-mocks.json'), 'utf8')) as { respostas: Record<string, string> }).respostas))
+const casos: Caso[] = soMockados ? todos.filter((c) => mockados.has(c.id)) : todos
 const resultados: Array<Record<string, unknown>> = new Array(casos.length)
 let prox = 0
 async function trabalhador() {
@@ -46,5 +57,5 @@ const resumo = {
   chamadas_sem_resposta_valida: falhas, latencia_ms: { p50: ms[Math.floor(ms.length / 2)], p90: ms[Math.floor(ms.length * 0.9)], max: ms[ms.length - 1] },
 }
 fs.mkdirSync(path.join(raiz, 'docs/calibracao'), { recursive: true })
-fs.writeFileSync(path.join(raiz, 'docs/calibracao/protagonista-seedance-0111.json'), JSON.stringify({ resumo, casos: casos.map((c, i) => ({ ...c, resposta: resultados[i] })) }, null, 1) + '\n')
+fs.writeFileSync(path.join(raiz, soMockados ? 'docs/calibracao/protagonista-seedance-0111-mockados.json' : 'docs/calibracao/protagonista-seedance-0111.json'), JSON.stringify({ resumo, casos: casos.map((c, i) => ({ ...c, resposta: resultados[i] })) }, null, 1) + '\n')
 console.log(JSON.stringify(resumo, null, 1))
