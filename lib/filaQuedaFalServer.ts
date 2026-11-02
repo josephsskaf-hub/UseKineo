@@ -42,7 +42,7 @@ export async function alertarFundadorFalSemSaldo(input: { engine?: string | null
     const desde = new Date(nowMs - PARKED_TTL_MS).toISOString()
     const [{ count: recusas }, { data: estacionados }, { data: fechados }] = await Promise.all([
       db.from('events').select('id', { count: 'exact', head: true }).eq('name', 'fal_balance_exhausted').gte('created_at', desde),
-      db.from('events').select('session_id').eq('name', PARKED_EVENT).gte('created_at', desde).limit(500),
+      db.from('events').select('session_id').eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde).limit(500), // KINEO-SERIE-AUTO-ETAPA1-0111 — a linha filha (retomada re-estacionada) não é filme parado a mais
       db.from('events').select('session_id').eq('name', PARKED_CLOSED_EVENT).gte('created_at', desde).limit(500),
     ])
     const fechado = new Set((fechados ?? []).map((r) => String(r.session_id)))

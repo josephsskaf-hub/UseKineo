@@ -16,11 +16,15 @@
 //      falhar): ocupa a semana e NUNCA abre outra tentativa — o cron resume-parked-renders retoma. Fechamento 'resumed' (ou aluguel
 //      'started') = o id 'parked-…' da retomada vira o episódio (resume_generation_id; débito e montagem passam a ser lidos por ele);
 //      fechamento expired/superseded/failed/invalid = nada cobrado, falha que retenta; sem fechamento depois de 30 h = falha, salvo
-//      'parked-…' de aluguel com débito vivo (adotado). 503 queued SEM `render_parked` = ninguém retoma: falha que retenta.
+//      'parked-…' de aluguel com débito vivo (adotado; aluguel sem desfecho = o id da tentativa N, idDaRetomada). 503 queued SEM
+//      `render_parked` = ninguém retoma: falha que retenta. O resume-parked-renders só retoma o ORIGINAL (a linha filha que a rota
+//      grava ao re-estacionar uma retomada é ignorada) e nunca fecha episódio da série como 'superseded'.
 //   B. DESPACHAR — séries devidas (next_run_at ≤ agora): pausa inteira com fal_balance_exhausted nas últimas 2 h; a semana ISO já
 //      tem episódio vivo/entregue/pulado = no-op (a agenda só anda); sem crédito = linha 'skipped' + serie_skipped_no_credits (2 seguidas
 //      = pausa); senão a ficha é preservada, a ideia sai pela régua do motor, o episódio nasce 'pending' (unique (série, semana,
 //      tentativa) = 23505 vira no-op) e SÓ ENTÃO vai o POST para /api/generate-video-cinematic com generation_id determinístico.
+//      Recusa que não seja 402 nem estacionada NÃO prova que nada foi cobrado ("refund is still being confirmed", 500 depois do
+//      débito): o débito é LIDO antes de qualquer falha — ausente/estornado = falha que retenta; vivo = despachado; ilegível = pending.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { callAsUser as callAsUserReal, mintUserSession as mintUserSessionReal, type ApiCallResult, type UserSession } from '@/lib/autopilot/session'
 import { cinematicClaimId } from '@/lib/cinematic/claim'
@@ -29,6 +33,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { kidsFalPaused, KIDS_FAL_BALANCE_EVENT } from '@/lib/kidsVenda/kidsVenda'
 import { HOUSE_COMPOSED_EVENT } from '@/lib/kidsVenda/cron'
 import { PARKED_EVENT, PARKED_CLOSED_EVENT, PARKED_LEASE_EVENT } from '@/lib/filaQuedaFal'
+import { idDaRetomada } from '@/lib/filaQuedaFalIds'
 import {
   SERIE_AUTO_CRON_PATH, SERIE_AUTO_ENABLED, SERIE_AUTO_EPISODES_TABLE, SERIE_AUTO_EVENTS, SERIE_AUTO_MAX_ATTEMPTS_PER_WEEK, SERIE_AUTO_MAX_STARTS_PER_PASS,
   SERIE_AUTO_PENDING_STALE_MS, SERIE_AUTO_RETRY_MS, SERIE_AUTO_RUN_TIMEOUT_MS, SERIE_AUTO_SKIPS_TO_PAUSE, SERIE_AUTO_TABLE, serieAutoAtivaPara,
@@ -145,6 +150,12 @@ export async function seriePass(args: {
     if (error) console.error('[serie] episode update failed:', id, error.message)
   }
 
+  /** O débito da rota para (conta, generation_id): o mesmo render_id que a rota grava. Leitura que falha = 'unknown' (não decide nada). */
+  const lerDebitoDe = async (userId: string, g: string): Promise<Debito> => {
+    const q = await db.from('credit_debits').select('user_id, refunded_at').eq('render_id', `cinematic-${cinematicClaimId(userId, g)}`).maybeSingle()
+    return q.error ? 'unknown' : !q.data ? 'none' : (q.data as { refunded_at?: string | null }).refunded_at ? 'refunded' : 'live'
+  }
+
   try {
     const probe = await db.from(SERIE_AUTO_TABLE).select('id').limit(0)
     if (probe.error) return { ...empty, ready: !isMissingTable((probe.error as { code?: string }).code) }
@@ -157,10 +168,7 @@ export async function seriePass(args: {
       if (deps.now() > args.deadline) break
       settled.checked++
       if (!ep.generation_id) { settled.pending++; continue }
-      const lerDebito = async (g: string): Promise<Debito> => {
-        const q = await db.from('credit_debits').select('user_id, refunded_at').eq('render_id', `cinematic-${cinematicClaimId(ep.user_id, g)}`).maybeSingle()
-        return q.error ? 'unknown' : !q.data ? 'none' : (q.data as { refunded_at?: string | null }).refunded_at ? 'refunded' : 'live'
-      }
+      const lerDebito = (g: string): Promise<Debito> => lerDebitoDe(ep.user_id, g)
       // o id que manda AGORA: o da retomada do resume-parked-renders, se houve; senão o do despacho da série
       let gen = ep.resume_generation_id || ep.generation_id
       let debit = await lerDebito(gen)
@@ -173,13 +181,15 @@ export async function seriePass(args: {
         const c = await db.from('events').select('created_at, metadata').eq('name', PARKED_CLOSED_EVENT).eq('session_id', g).order('created_at', { ascending: false }).limit(1)
         const l = await db.from('events').select('created_at, metadata').eq('name', PARKED_LEASE_EVENT).eq('session_id', g).order('created_at', { ascending: false }).limit(20)
         if (c.error || l.error) return 'unknown'
-        const md = (x: unknown) => ((x && typeof x === 'object' ? x : {}) as { outcome?: unknown; resume_generation_id?: unknown })
+        const md = (x: unknown) => ((x && typeof x === 'object' ? x : {}) as { outcome?: unknown; resume_generation_id?: unknown; attempt?: unknown })
         const idOk = (v: unknown) => (typeof v === 'string' && v.length > 0 ? v : null)
+        // aluguel sem resume_generation_id (o cron morreu no meio do POST): o id da tentativa N é determinístico — o débito dele é lido igual
+        const idDaTentativa = (m: ReturnType<typeof md>) => idOk(m.resume_generation_id) ?? (Number.isInteger(Number(m.attempt)) && Number(m.attempt) >= 1 ? idDaRetomada(g, Number(m.attempt)) : null)
         const cRow = Array.isArray(c.data) && c.data.length > 0 ? (c.data[0] as { created_at?: string; metadata?: unknown }) : null
         return {
           parkedAtMs: Date.parse(String(row.created_at ?? '')) || deps.now(),
           closed: cRow ? { outcome: String(md(cRow.metadata).outcome ?? ''), resumeId: idOk(md(cRow.metadata).resume_generation_id), atMs: Date.parse(String(cRow.created_at ?? '')) || deps.now() } : null,
-          leases: ((l.data ?? []) as { created_at?: string; metadata?: unknown }[]).map((x) => ({ outcome: typeof md(x.metadata).outcome === 'string' ? String(md(x.metadata).outcome) : null, resumeId: idOk(md(x.metadata).resume_generation_id), atMs: Date.parse(String(x.created_at ?? '')) || deps.now() })),
+          leases: ((l.data ?? []) as { created_at?: string; metadata?: unknown }[]).map((x) => ({ outcome: typeof md(x.metadata).outcome === 'string' ? String(md(x.metadata).outcome) : null, resumeId: idDaTentativa(md(x.metadata)), atMs: Date.parse(String(x.created_at ?? '')) || deps.now() })),
         }
       }
       const fail = async (reason: string) => {
@@ -393,14 +403,22 @@ export async function seriePass(args: {
       // ── a ficha: a gravada VÁLIDA vence sempre; nula, [] ou malformada = deriva do episódio 1 e grava (só sobre o MESMO valor lido) ──
       const gravadaValida = serieFichaValida(serie.ficha).length > 0
       const fichaAtual = serieFichaPreservada(serie.ficha, gravadaValida ? null : (serie.source_script ? deps.derivarFicha(serie.source_script) : null))
+      let fichaUsada = fichaAtual.ficha
       if (fichaAtual.nova) {
         const base = db.from(SERIE_AUTO_TABLE).update({ ficha: fichaAtual.ficha, updated_at: nowIso() }).eq('id', serie.id)
-        // a troca só pega se ninguém gravou outra ficha entre a leitura e aqui (jsonb comparado ao texto que foi lido)
-        const up = await (serie.ficha === null || serie.ficha === undefined ? base.is('ficha', null) : base.eq('ficha', JSON.stringify(serie.ficha)))
-        if (!up.error) await ev({ name: SERIE_AUTO_EVENTS.fichaFixed, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, metadata: { serie_id: serie.id, nomes: fichaAtual.ficha.map((f) => f.nome).slice(0, 6), replaced: gravadaValida ? null : (serie.ficha === null || serie.ficha === undefined ? 'null' : 'invalid') } })
+        // a troca só pega se ninguém gravou outra ficha entre a leitura e aqui (jsonb comparado ao texto que foi lido); .select conta as linhas
+        const up = await (serie.ficha === null || serie.ficha === undefined ? base.is('ficha', null) : base.eq('ficha', JSON.stringify(serie.ficha))).select('id')
+        const pegou = !up.error && Array.isArray(up.data) && up.data.length > 0
+        if (!pegou) {
+          // 0 linhas (outra escrita venceu) ou erro: nenhum evento de ficha, e a ficha que vale é a GRAVADA, se válida
+          const rel = await db.from(SERIE_AUTO_TABLE).select('ficha').eq('id', serie.id).maybeSingle()
+          const banco = rel.error ? [] : serieFichaValida((rel.data as { ficha?: unknown } | null)?.ficha)
+          if (banco.length > 0) fichaUsada = banco
+        }
+        if (pegou) await ev({ name: SERIE_AUTO_EVENTS.fichaFixed, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, metadata: { serie_id: serie.id, nomes: fichaAtual.ficha.map((f) => f.nome).slice(0, 6), replaced: gravadaValida ? null : (serie.ficha === null || serie.ficha === undefined ? 'null' : 'invalid') } })
       }
       // ── a ideia (régua do motor fica com o escritor da rota) e o episódio nasce ANTES de qualquer gasto ──
-      const idea = serieIdeiaDoEpisodio({ theme: serie.theme, seq, ficha: fichaAtual.ficha, sourceScript: serie.source_script, anchor: serie.anchor, lastIdea: serie.last_episode_idea })
+      const idea = serieIdeiaDoEpisodio({ theme: serie.theme, seq, ficha: fichaUsada, sourceScript: serie.source_script, anchor: serie.anchor, lastIdea: serie.last_episode_idea })
       const generationId = serieGenerationId(serie.id, weekKey, attempt)
       const claim = await db.from(SERIE_AUTO_EPISODES_TABLE).insert({ serie_id: serie.id, user_id: serie.user_id, week_key: weekKey, seq, attempt, status: 'pending', generation_id: generationId, idea, credits_cost: cost }).select('id').maybeSingle()
       if (claim.error || !claim.data) {
@@ -438,7 +456,17 @@ export async function seriePass(args: {
           dispatch.parked++
           await patchEp(epId, { status: 'parked', dispatched_at: nowIso(), parked_at: nowIso(), error: `parked_${String(res.body?.reason ?? (res.body?.parked === true ? 'route' : 'queued')).slice(0, 60)}` })
           await ev({ name: SERIE_AUTO_EVENTS.parked, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: generationId, metadata: { serie_id: serie.id, week_key: weekKey, seq, attempt, http: res.status, parked: res.body?.parked === true, queued: res.body?.queued === true, reason_code: res.body?.reason ?? null, phase: 'dispatch' } })
-        } else if (!charged) { await failEp(`dispatch_${res.status}: ${res.body?.error ?? res.errorText ?? ''}`, { reason_code: res.body?.reason ?? null }); continue }
+        } else if (!charged) {
+          // Qualquer outra recusa (5xx, 4xx, 503 "refund is still being confirmed"): a resposta NÃO prova que nada foi cobrado — o estorno
+          // pode ter falhado com o débito vivo. A tentativa 2 (outro generation_id = outro débito) só abre com o débito LIDO ausente/estornado.
+          const motivo = `dispatch_${res.status}: ${res.body?.error ?? res.errorText ?? ''}`
+          const debito = await lerDebitoDe(serie.user_id, generationId)
+          if (debito === 'none' || debito === 'refunded') { await failEp(motivo, { reason_code: res.body?.reason ?? null, debit: debito }); continue }
+          // vivo = o cliente pagou: o passe A segue (filme tardio = entregue; prazo = stuck, nunca tentativa 2); ilegível = pending (o passe A relê)
+          dispatch.started++
+          await patchEp(epId, debito === 'live' ? { status: 'dispatched', dispatched_at: nowIso(), error: `http_${res.status}_debit_live` } : { status: 'pending', error: `http_${res.status}_debit_unknown` })
+          await ev({ name: SERIE_AUTO_EVENTS.dispatched, userId: serie.user_id, path: SERIE_AUTO_CRON_PATH, sessionId: generationId, metadata: { serie_id: serie.id, week_key: weekKey, seq, attempt, http: res.status, debit: debito, unconfirmed: true, error: motivo.slice(0, 200) } })
+        }
         else {
           dispatch.started++
           await patchEp(epId, { status: 'dispatched', dispatched_at: nowIso(), error: `http_${res.status}_charged` })

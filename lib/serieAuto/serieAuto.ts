@@ -11,7 +11,7 @@ import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { speechFamilyForQuality, type SpeechFamily } from '@/lib/speechRate'
 import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 import { assuntoDoFilme, formatoDoFilme, type FormatoDoFilme } from '@/lib/episodeContinuity'
-import { PARKED_TTL_MS } from '@/lib/filaQuedaFal'
+import { PARKED_TTL_MS, SERIE_AUTO_GENERATION_PREFIX } from '@/lib/filaQuedaFal'
 
 export const SERIE_AUTO_MARCA = 'KINEO-SERIE-AUTO-ETAPA1-0111'
 
@@ -166,11 +166,12 @@ export function serieNextRunMs(args: { weekday: number; hourUtc: number; nowMs: 
   const desta = serieSlotMs({ weekday: args.weekday, hourUtc: args.hourUtc, ms: args.nowMs })
   return desta > args.nowMs ? desta : desta + 7 * DIA_MS
 }
-/** generation_id determinístico por (série, semana, tentativa): o débito da rota é idempotente por ele. */
+/** generation_id determinístico por (série, semana, tentativa): o débito da rota é idempotente por ele. O prefixo 'serie-' é o que o
+ * resume-parked-renders lê para nunca fechar o episódio como 'superseded' nem contá-lo como pedido novo da pessoa. */
 export function serieGenerationId(serieId: string, weekKey: string, attempt: number): string {
   const id = String(serieId ?? '').replace(/[^A-Za-z0-9_-]/g, '')
   const wk = String(weekKey ?? '').replace(/[^A-Za-z0-9]/g, '')
-  return `serie-${id}-${wk}-${Math.max(1, Math.floor(attempt) || 1)}`.slice(0, 100)
+  return `${SERIE_AUTO_GENERATION_PREFIX}${id}-${wk}-${Math.max(1, Math.floor(attempt) || 1)}`.slice(0, 100)
 }
 
 // ── custo e régua (as fontes de sempre; nenhum número digitado à mão) ───────────────────────────────────────────────────

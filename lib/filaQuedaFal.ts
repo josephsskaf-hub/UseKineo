@@ -214,3 +214,48 @@ export function recusaDeFornecedor(metadata: unknown): boolean {
 export function ultimaFalhaFoiFornecedor(input: { lastFailureMs: number; lastProviderRefusalMs: number | null }): boolean {
   return input.lastProviderRefusalMs !== null && Number.isFinite(input.lastProviderRefusalMs) && input.lastProviderRefusalMs >= input.lastFailureMs - 5 * 60 * 1000
 }
+
+// ═══ KINEO-SERIE-AUTO-ETAPA1-0111 — um débito, um filme: quem o resume-parked-renders retoma, e quem conta como "pedido novo" ═══
+// Revisão de 01/11 (ALTO): a retomada de um estacionado chama a rota em modo serviço com o pedido guardado; se a fal continua fora,
+// a ROTA ESTACIONA DE NOVO aquele pedido — uma linha render_parked FILHA com session_id = o id 'parked-…' da tentativa. O cron lia as
+// filhas como estacionados novos (24 h de vida própria cada) e, quando a fal voltava, retomava o original E cada filha: ~25 débitos e
+// 25 filmes para uma queda de 2 h com o cron a cada 5 min. Regra: só o ORIGINAL é retomado; a filha é eco da tentativa N do original,
+// que já segue na fila dele (aluguel N+1 na próxima passada).
+/** Prefixo do generationId da retomada (idDaRetomada em lib/filaQuedaFalIds). */
+export const PARKED_RESUME_PREFIX = 'parked-'
+/** Prefixo do generationId da série automática semanal (lib/serieAuto serieGenerationId). */
+export const SERIE_AUTO_GENERATION_PREFIX = 'serie-'
+/** Este generationId é de uma retomada do resume-parked-renders? */
+export function ehRetomadaDeEstacionado(genId: unknown): boolean {
+  return typeof genId === 'string' && genId.startsWith(PARKED_RESUME_PREFIX)
+}
+/** Este generationId é de um episódio da série automática (despacho da agenda, não clique da pessoa)? */
+export function ehDespachoDaSerie(genId: unknown): boolean {
+  return typeof genId === 'string' && genId.startsWith(SERIE_AUTO_GENERATION_PREFIX)
+}
+/** Esta linha render_parked é retomável? Só o pedido ORIGINAL; a filha (re-estacionamento de uma retomada) nunca. */
+export function estacionadoRetomavel(sessionId: unknown): boolean {
+  return typeof sessionId === 'string' && sessionId.length > 0 && !ehRetomadaDeEstacionado(sessionId)
+}
+/**
+ * Este estacionado pode ser fechado como 'superseded' ("a pessoa já fez outro filme")? O episódio da série NÃO: ele nasce da agenda,
+ * não de um clique — um despacho do fundador ou de outra série da mesma conta o fechava e queimava as tentativas da semana.
+ */
+export function estacionadoSuperavel(sessionId: unknown): boolean {
+  return !ehDespachoDaSerie(sessionId)
+}
+export type DebitoDaRetomada = 'unknown' | 'none' | 'refunded' | 'live'
+/**
+ * Aluguel que pode já ter cobrado, sem fechamento 'resumed' gravado: desfecho 'started' cujo fechamento falhou, ou aluguel SEM
+ * desfecho (o cron morreu no meio do POST: 2 retomadas de até 240 s numa função de 300 s). Abrir a tentativa N+1 por cima cobraria
+ * de novo. 'started' ou débito vivo = aquela retomada É o filme: fecha 'resumed' com ela. Débito ilegível = espera. Sem débito
+ * (ou estornado) = nada cobrado: pode retomar.
+ */
+export function decidirAluguelSemFechamento(candidatos: ReadonlyArray<{ attempt: number; iniciado: boolean; debito: DebitoDaRetomada }>): { acao: 'adotar'; attempt: number } | { acao: 'esperar' } | { acao: 'retomar' } {
+  const iniciado = candidatos.find((c) => c.iniciado)
+  if (iniciado) return { acao: 'adotar', attempt: iniciado.attempt }
+  const vivo = candidatos.find((c) => c.debito === 'live')
+  if (vivo) return { acao: 'adotar', attempt: vivo.attempt }
+  if (candidatos.some((c) => c.debito === 'unknown')) return { acao: 'esperar' }
+  return { acao: 'retomar' }
+}

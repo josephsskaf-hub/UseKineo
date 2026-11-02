@@ -19,14 +19,16 @@
 // sem ele, só lista (os fechamentos e retomadas acontecem igual: são o produto, não campanha).
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
-import { createHash } from 'node:crypto'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import {
   PARKED_EVENT, PARKED_LEASE_EVENT, PARKED_CLOSED_EVENT, PARKED_TTL_MS, PARKED_MAX_RESUMES_PER_RUN, PARKED_VERSION,
-  classificarRespostaDaRetomada, corpoDaRetomada, decidirRetomada, uuidDeHex, type PedidoEstacionado, type ResumeDecision,
+  classificarRespostaDaRetomada, corpoDaRetomada, decidirRetomada, type PedidoEstacionado, type ResumeDecision,
 } from '@/lib/filaQuedaFal'
+import { decidirAluguelSemFechamento, ehDespachoDaSerie, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada } from '@/lib/filaQuedaFal' // KINEO-SERIE-AUTO-ETAPA1-0111 — só o original é retomado; série não é 'pedido novo'; aluguel que já cobrou nunca ganha a tentativa N+1
+import { idDaRetomada, idDoAluguel, idDoFechamento } from '@/lib/filaQuedaFalIds' // KINEO-SERIE-AUTO-ETAPA1-0111 — os ids moram num módulo importável (a série precisa do id 'parked-…' da tentativa N)
+import { cinematicClaimId } from '@/lib/cinematic/claim' // KINEO-SERIE-AUTO-ETAPA1-0111
 
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 (regra da casa): rota só-GET nasce com revalidate=false; sem isto o marcador de fechamento
@@ -55,13 +57,13 @@ function isInternalOrJunkEmail(email: string): boolean {
   const e = email.toLowerCase()
   return e.startsWith('josephsskaf') || e.startsWith('josephskaf') || e.endsWith('@shortsforgeai.com') || e.startsWith('test') || e.includes('mailinator') || e.includes('yopmail') || e.includes('tempmail')
 }
-const idDe = (...parts: string[]) => uuidDeHex(createHash('sha256').update(JSON.stringify(['kineo:fila-queda-fal:v1', ...parts])).digest('hex').slice(0, 32))
-/** Id do marcador de fechamento: UM por filme estacionado (a 2ª rodada cai no 23505 e não manda e-mail repetido). */
-export const idDoFechamento = (genId: string) => idDe('closed', genId)
-/** Id do aluguel da tentativa N. */
-export const idDoAluguel = (genId: string, attempt: number) => idDe('lease', genId, String(attempt))
-/** generationId da retomada N: determinístico, logo o mesmo claim se a rodada repetir a mesma tentativa. */
-export const idDaRetomada = (genId: string, attempt: number) => `parked-${idDe('resume', genId, String(attempt)).replace(/-/g, '').slice(0, 24)}`
+/** Os ids do fechamento, do aluguel N e da retomada N (fórmulas de sempre, agora em lib/filaQuedaFalIds). */ // KINEO-SERIE-AUTO-ETAPA1-0111
+export { idDoFechamento, idDoAluguel, idDaRetomada } // KINEO-SERIE-AUTO-ETAPA1-0111
+/** O débito da retomada (o mesmo render_id que a rota grava: cinematic-<claim>). Leitura que falha = 'unknown' (não decide nada). */ // KINEO-SERIE-AUTO-ETAPA1-0111
+async function debitoDaRetomada(admin: SupabaseClient, userId: string, resumeGenId: string): Promise<DebitoDaRetomada> { // KINEO-SERIE-AUTO-ETAPA1-0111
+  const q = await admin.from('credit_debits').select('refunded_at').eq('render_id', `cinematic-${cinematicClaimId(userId, resumeGenId)}`).maybeSingle() // KINEO-SERIE-AUTO-ETAPA1-0111
+  return q.error ? 'unknown' : !q.data ? 'none' : (q.data as { refunded_at?: string | null }).refunded_at ? 'refunded' : 'live' // KINEO-SERIE-AUTO-ETAPA1-0111
+} // KINEO-SERIE-AUTO-ETAPA1-0111
 
 type ParkedRow = { user_id: string | null; session_id: string | null; created_at: string; metadata: unknown }
 
@@ -137,9 +139,9 @@ export async function GET(req: NextRequest) {
   const now = Date.now()
   const desde = new Date(now - SCAN_WINDOW_MS).toISOString()
 
-  const { data: parkedRows, error } = await admin.from('events').select('user_id, session_id, created_at, metadata').eq('name', PARKED_EVENT).gte('created_at', desde).order('created_at', { ascending: true }).limit(100)
+  const { data: parkedRows, error } = await admin.from('events').select('user_id, session_id, created_at, metadata').eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde).order('created_at', { ascending: true }).limit(100)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  const parked = ((parkedRows ?? []) as ParkedRow[]).filter((r) => r.user_id && r.session_id)
+  const parked = ((parkedRows ?? []) as ParkedRow[]).filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id)) // KINEO-SERIE-AUTO-ETAPA1-0111 — a linha FILHA (a rota re-estacionou a tentativa N) nunca é retomada: só o original
   if (parked.length === 0) return NextResponse.json({ ok: true, mode: confirm ? 'SEND' : 'DRY_RUN', scanned: 0, results: [] })
   const genIds = parked.map((r) => String(r.session_id))
   const userIds = [...new Set(parked.map((r) => String(r.user_id)))]
@@ -160,10 +162,21 @@ export async function GET(req: NextRequest) {
     if (md.outcome === undefined && Number.isFinite(t)) cur.openAtMs = Math.max(cur.openAtMs ?? 0, t)
     leases.set(sid, cur)
   }
+  // Aluguéis que podem já ter cobrado sem fechamento 'resumed': 'started' cujo fechamento falhou, ou SEM desfecho (o cron morreu no POST). // KINEO-SERIE-AUTO-ETAPA1-0111
+  const semFechamento = new Map<string, { attempt: number; iniciado: boolean; resumeId: string | null }[]>() // KINEO-SERIE-AUTO-ETAPA1-0111
+  for (const l of leaseRows ?? []) { // KINEO-SERIE-AUTO-ETAPA1-0111
+    const md = (l.metadata ?? {}) as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown } // KINEO-SERIE-AUTO-ETAPA1-0111
+    const a = Number(md.attempt) // KINEO-SERIE-AUTO-ETAPA1-0111
+    if (!Number.isInteger(a) || a < 1 || (md.outcome !== undefined && md.outcome !== 'started')) continue // KINEO-SERIE-AUTO-ETAPA1-0111
+    const lista = semFechamento.get(String(l.session_id)) ?? [] // KINEO-SERIE-AUTO-ETAPA1-0111
+    lista.push({ attempt: a, iniciado: md.outcome === 'started', resumeId: typeof md.resume_generation_id === 'string' && md.resume_generation_id ? md.resume_generation_id : null }) // KINEO-SERIE-AUTO-ETAPA1-0111
+    semFechamento.set(String(l.session_id), lista) // KINEO-SERIE-AUTO-ETAPA1-0111
+  } // KINEO-SERIE-AUTO-ETAPA1-0111
   const lastDispatchByUser = new Map<string, number>()
   for (const d of dispatchRows ?? []) {
     // A nossa própria retomada também grava generation_dispatch_received (generation_id 'parked-…'): não é pedido novo da pessoa.
     if (String((d.metadata as { generation_id?: unknown } | null)?.generation_id ?? '').startsWith('parked-')) continue
+    if (ehDespachoDaSerie((d.metadata as { generation_id?: unknown } | null)?.generation_id)) continue // KINEO-SERIE-AUTO-ETAPA1-0111 — o episódio da série automática nasce da agenda, não é "a pessoa fez outro filme"
     const t = Date.parse(String(d.created_at))
     if (Number.isFinite(t)) lastDispatchByUser.set(String(d.user_id), Math.max(lastDispatchByUser.get(String(d.user_id)) ?? 0, t))
   }
@@ -178,7 +191,7 @@ export async function GET(req: NextRequest) {
     const parkedAtMs = Date.parse(row.created_at)
     const lease = leases.get(genId) ?? { n: 0, openAtMs: null }
     // Pedido mais novo da MESMA conta depois do estacionamento (a pessoa já fez outro filme) — as retomadas 'parked-…' ficaram de fora acima.
-    const newerDispatch = (lastDispatchByUser.get(userId) ?? 0) > parkedAtMs
+    const newerDispatch = estacionadoSuperavel(genId) && (lastDispatchByUser.get(userId) ?? 0) > parkedAtMs // KINEO-SERIE-AUTO-ETAPA1-0111 — episódio da série nunca é 'superseded'
     const decision = decidirRetomada({ parkedAtMs, nowMs: now, closed: closed.has(genId), newerDispatch, openLeaseAtMs: lease.openAtMs })
     if (decision === 'closed' || decision === 'leased') { results.push({ generation: g8, decision }); continue }
     const pedido = pedidoDe(row.metadata)
@@ -190,6 +203,22 @@ export async function GET(req: NextRequest) {
       results.push({ generation: g8, decision: outcome, outcome: fechado, email })
       continue
     }
+    // Um aluguel anterior já pode ter cobrado (sem fechamento gravado): aquela retomada É o filme — nunca a tentativa N+1 por cima. // KINEO-SERIE-AUTO-ETAPA1-0111
+    const candidatos = semFechamento.get(genId) ?? [] // KINEO-SERIE-AUTO-ETAPA1-0111
+    if (candidatos.length > 0) { // KINEO-SERIE-AUTO-ETAPA1-0111
+      const lidos: { attempt: number; iniciado: boolean; debito: DebitoDaRetomada; resumeId: string }[] = [] // KINEO-SERIE-AUTO-ETAPA1-0111
+      for (const c of candidatos) { const resumeId = c.resumeId ?? idDaRetomada(genId, c.attempt); lidos.push({ ...c, resumeId, debito: c.iniciado ? 'live' : await debitoDaRetomada(admin, userId, resumeId) }) } // KINEO-SERIE-AUTO-ETAPA1-0111
+      const d = decidirAluguelSemFechamento(lidos) // KINEO-SERIE-AUTO-ETAPA1-0111
+      if (d.acao === 'esperar') { results.push({ generation: g8, decision: 'lease_debit_unreadable' }); continue } // KINEO-SERIE-AUTO-ETAPA1-0111
+      if (d.acao === 'adotar') { // KINEO-SERIE-AUTO-ETAPA1-0111
+        const c = lidos.find((x) => x.attempt === d.attempt)! // KINEO-SERIE-AUTO-ETAPA1-0111
+        if (!c.iniciado) await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt: c.attempt, outcome: 'started', status: null, resume_generation_id: c.resumeId, recovered: true } }).eq('id', idDoAluguel(genId, c.attempt)) // KINEO-SERIE-AUTO-ETAPA1-0111
+        const f = await fechar(admin, row, 'resumed', { attempts: lease.n, resume_generation_id: c.resumeId, recovered: true }) // KINEO-SERIE-AUTO-ETAPA1-0111
+        results.push({ generation: g8, decision: 'resume_recovered', outcome: f }) // KINEO-SERIE-AUTO-ETAPA1-0111
+        continue // KINEO-SERIE-AUTO-ETAPA1-0111
+      } // KINEO-SERIE-AUTO-ETAPA1-0111
+      for (const c of lidos) await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt: c.attempt, outcome: 'lost_no_charge', status: null, resume_generation_id: c.resumeId, debit: c.debito } }).eq('id', idDoAluguel(genId, c.attempt)) // KINEO-SERIE-AUTO-ETAPA1-0111
+    } // KINEO-SERIE-AUTO-ETAPA1-0111
     if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }
     if (resumed >= PARKED_MAX_RESUMES_PER_RUN) { results.push({ generation: g8, decision: 'deferred_budget' }); continue }
     const attempt = lease.n + 1

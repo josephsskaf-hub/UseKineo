@@ -18,6 +18,12 @@
 //      fechamento sem retomada / 503 queued sem render_parked / 30 h sem fechamento = falha sem cobrança que retenta;
 //   Q. ficha vazia/malformada é derivada de novo; série pulada (perfil, conta fora da casa, semana ilegível) empurra a agenda e as
 //      travadas não monopolizam a leitura das devidas.
+//   R. revisão 3 de 01/11 — o resume-parked-renders: a retomada que a rota RE-ESTACIONA (linha filha 'parked-…') nunca é retomada (uma
+//      queda de 2 h com o cron a cada 5 min dava ~25 débitos e 25 filmes); episódio da série nunca é 'superseded' nem conta como pedido
+//      novo; aluguel que já cobrou (sem desfecho ou sem fechamento) é adotado em vez de abrir a tentativa N+1. Simulado com as decisões
+//      REAIS de lib/filaQuedaFal + os ids reais de lib/filaQuedaFalIds, e as chamadas conferidas no texto da rota do cron.
+//   S. o passe B nunca abre a tentativa 2 sem LER o débito (503 "refund is still being confirmed", 500 depois do débito); a ficha
+//      derivada só vale (e só gera evento) se a gravação pegou — senão vale a gravada pela outra escrita.
 // Rodar: npx tsx scripts/test-serie-auto-etapa1-0111.mts
 import fs from 'node:fs'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -29,6 +35,11 @@ import {
   serieAutoEmailDeTerceiro, serieEpisodioOcupaSemana, SERIE_AUTO_ERRO_DEBITO_VIVO, SERIE_AUTO_RUN_TIMEOUT_MS, SERIE_AUTO_STUCK_CLOSE_MS,
   serieRespostaEstacionada,
 } from '../lib/serieAuto/serieAuto'
+import {
+  PARKED_TTL_MS, PARKED_MAX_RESUMES_PER_RUN, PARKED_LEASE_TTL_MS, SERIE_AUTO_GENERATION_PREFIX, classificarRespostaDaRetomada, decidirRetomada,
+  decidirAluguelSemFechamento, ehDespachoDaSerie, ehRetomadaDeEstacionado, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada,
+} from '../lib/filaQuedaFal'
+import { idDaRetomada, idDoAluguel, idDoFechamento } from '../lib/filaQuedaFalIds'
 import { ehIdeiaSolta, temaParaOEscritor } from '../lib/meta95/ideiaNoEscritor'
 import { SPEECH_RATE_BASE } from '../lib/speechRate'
 // @ts-ignore — módulo .mjs de apoio dos guardiões (sem tipos)
@@ -46,7 +57,7 @@ class FakeDb {
   calls = 0
   /** Tabelas cuja LEITURA devolve erro (simula o banco instável: o débito vira 'unknown'). */
   failSelect = new Set<string>()
-  uniques: Record<string, string[][]> = { serie_auto_episodios: [['serie_id', 'week_key', 'attempt'], ['generation_id']] }
+  uniques: Record<string, string[][]> = { serie_auto_episodios: [['serie_id', 'week_key', 'attempt'], ['generation_id']], events: [['id']] }
   private seq = 0
   from(table: string) { this.calls++; this.tables[table] ??= []; return new Q(this, table) }
   newId() { this.seq++; return `00000000-0000-4000-8000-${String(this.seq).padStart(12, '0')}` }
@@ -59,7 +70,9 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
   private lim: number | null = null
   private orderBy: { col: string; asc: boolean } | null = null
   constructor(private db: FakeDb, private table: string) {}
-  select(_cols?: string, _o?: unknown) { if (this.op === 'select') this.op = 'select'; return this }
+  /** update(...).select('id'): o PostgREST devolve as linhas que a escrita pegou (0 linhas = o filtro não casou). */
+  private wantRows = false
+  select(_cols?: string, _o?: unknown) { if (this.op !== 'select') this.wantRows = true; return this }
   insert(row: Row) { this.op = 'insert'; this.payload = row; return this }
   update(patch: Row) { this.op = 'update'; this.payload = patch; return this }
   // jsonb: o PostgREST compara o texto do filtro com o valor da coluna (eq.[] casa com a coluna jsonb []) — o passe usa isso na ficha
@@ -92,7 +105,7 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
     }
     if (this.op === 'select' && this.db.failSelect.has(this.table)) return { data: null, error: { code: 'XX000', message: 'leitura falhou' } }
     const hit = t.filter((r) => this.filters.every((f) => f(r)))
-    if (this.op === 'update') { for (const r of hit) Object.assign(r, this.payload); return { data: null, error: null } }
+    if (this.op === 'update') { for (const r of hit) Object.assign(r, this.payload); return { data: this.wantRows ? hit.map((r) => ({ id: r.id })) : null, error: null } }
     let out = [...hit]
     if (this.orderBy) { const { col, asc } = this.orderBy; out.sort((a, b) => (String(a[col] ?? '') < String(b[col] ?? '') ? -1 : 1) * (asc ? 1 : -1)) }
     if (this.lim !== null) out = out.slice(0, this.lim)
@@ -665,6 +678,233 @@ function filaTravada(db: FakeDb) {
     ok(posts.length === 0, 'M10 mutante (série pulada não empurra a agenda): a série da casa nunca sai — Q10 reprova')
   } else ok(false, 'M10 mutante aplicado')
   ok(!fs.readdirSync('lib/serieAuto').some((f) => f.startsWith('__mutante_')), 'M11 nenhuma cópia mutada ficou no disco')
+}
+
+// ── R. o resume-parked-renders: só o original, série não é superada, aluguel que cobrou é adotado (revisão 3 de 01/11) ──────────
+console.log('R — resume-parked-renders: um estacionado, uma retomada cobrada')
+ok(idDoFechamento('g-1') === '63147f2e-5cf3-4db6-3879-1153c349e191' && idDoAluguel('g-1', 2) === '4f8d17ea-e70d-8ea8-61a6-093cc6594e5a' && idDaRetomada('g-1', 3) === 'parked-9a5fdbb94cf723fa02feff15', 'R1 os ids mudaram de casa (lib/filaQuedaFalIds) com as MESMAS fórmulas da rota da base (fechamento, aluguel N, retomada N)')
+{
+  const g = serieGenerationId('aaaaaaaa-0000-4000-8000-000000000001', '2026-W45', 1)
+  ok(g.startsWith(SERIE_AUTO_GENERATION_PREFIX) && ehDespachoDaSerie(g) && !ehDespachoDaSerie('3f2a1b4c-uuid-do-clique') && !estacionadoSuperavel(g) && estacionadoSuperavel('3f2a1b4c-uuid-do-clique'), 'R2 episódio da série (prefixo serie-) nunca é superado; o pedido de clique continua superável')
+  ok(estacionadoRetomavel(g) && estacionadoRetomavel('3f2a1b4c-uuid-do-clique') && !estacionadoRetomavel(idDaRetomada(g, 1)) && ehRetomadaDeEstacionado(idDaRetomada(g, 1)) && !estacionadoRetomavel(null), 'R3 linha render_parked de RETOMADA (parked-…) não é retomável; o original é')
+  const D = (c: { attempt: number; iniciado: boolean; debito: DebitoDaRetomada }[]) => decidirAluguelSemFechamento(c)
+  ok(JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'live' }])) === '{"acao":"adotar","attempt":1}' && JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'refunded' }, { attempt: 2, iniciado: true, debito: 'none' }])) === '{"acao":"adotar","attempt":2}' && D([{ attempt: 1, iniciado: false, debito: 'unknown' }]).acao === 'esperar' && D([{ attempt: 1, iniciado: false, debito: 'none' }, { attempt: 2, iniciado: false, debito: 'refunded' }]).acao === 'retomar', 'R4 aluguel sem fechamento: started ou débito vivo = adota; ilegível = espera; ausente/estornado = retoma')
+  const rota = rd('app/api/cron/resume-parked-renders/route.ts')
+  const iProv = rota.indexOf("if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }")
+  const iAdota = rota.indexOf('const d = decidirAluguelSemFechamento(lidos)')
+  const iLease = rota.indexOf('const leaseId = idDoAluguel(genId, attempt)')
+  ok(rota.includes(".eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde)") && rota.includes('.filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id))'), 'R5 a rota do cron não lê nem retoma a linha filha (filtro no banco E no código)')
+  ok(rota.includes('const newerDispatch = estacionadoSuperavel(genId) && (lastDispatchByUser.get(userId) ?? 0) > parkedAtMs') && rota.includes('if (ehDespachoDaSerie((d.metadata as { generation_id?: unknown } | null)?.generation_id)) continue'), "R6 a rota do cron nunca supera o episódio da série, e o despacho da série não supera ninguém")
+  ok(iAdota > 0 && iProv > iAdota && iLease > iProv && rota.includes("await fechar(admin, row, 'resumed', { attempts: lease.n, resume_generation_id: c.resumeId, recovered: true })") && rota.includes("from '@/lib/filaQuedaFalIds'") && !rota.includes('const idDe ='), 'R7 a adoção do aluguel que cobrou vem ANTES de qualquer aluguel novo; os ids vêm do módulo importável')
+  ok(!rd('app/api/generate-video-cinematic/route.ts').includes('KINEO-SERIE-AUTO-ETAPA1-0111'), 'R8 a rota de filme (211 guardiões) não foi tocada: o conserto mora no cron que retoma')
+}
+// ─ o simulador do resume-parked-renders: o MESMO fluxo da rota do cron, com as decisões e os ids reais ─
+type Fal = 'down' | 'up'
+interface SimOpts { filtraFilhas?: boolean; protegeSerie?: boolean; adota?: boolean; morreNoPost?: boolean }
+const evs = (db: FakeDb, name: string) => (db.tables.events ?? []).filter((e) => e.name === name)
+/** A rota de filme em modo serviço: fal fora = estorna, RE-ESTACIONA (linha filha) e responde 503 parked; fal de volta = cobra e 200. */
+function rotaDeFilme(db: FakeDb, gen: string, fal: Fal): { status: number; json: Record<string, unknown> } {
+  db.tables.events.push({ name: 'generation_dispatch_received', user_id: 'user-1', created_at: iso(clock), metadata: { generation_id: gen } })
+  if (fal === 'down') {
+    db.tables.credit_debits.push(debitoDe(gen, iso(clock)))
+    db.tables.events.push({ name: 'render_parked', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { reason: 'capacity', refunded: true, request: { prompt: 'x', duration: 60 } } })
+    return { status: 503, json: RESP_PARKED }
+  }
+  db.tables.credit_debits.push(debitoDe(gen))
+  return { status: 200, json: { ok: true } }
+}
+async function passeDoResume(db: FakeDb, fal: Fal, o: SimOpts = {}) {
+  const { filtraFilhas = true, protegeSerie = true, adota = true, morreNoPost = false } = o
+  const now = clock
+  const parked = evs(db, 'render_parked').filter((r) => Date.parse(String(r.created_at)) >= now - PARKED_TTL_MS - 2 * 3_600_000 && r.user_id && r.session_id && (!filtraFilhas || estacionadoRetomavel(r.session_id))).sort((a, b) => String(a.created_at) < String(b.created_at) ? -1 : 1).slice(0, 100)
+  const closed = new Set(evs(db, 'render_parked_closed').map((r) => String(r.session_id)))
+  const lastDispatch = evs(db, 'generation_dispatch_received').filter((d) => { const gid = (d.metadata as { generation_id?: unknown }).generation_id; return !String(gid ?? '').startsWith('parked-') && !(protegeSerie && ehDespachoDaSerie(gid)) }).reduce((m, d) => Math.max(m, Date.parse(String(d.created_at))), 0)
+  let resumed = 0, providerDown = false
+  for (const row of parked) {
+    const genId = String(row.session_id)
+    const parkedAtMs = Date.parse(String(row.created_at))
+    const leases = evs(db, 'render_parked_taken').filter((l) => l.session_id === genId)
+    const openAtMs = leases.filter((l) => (l.metadata as { outcome?: unknown }).outcome === undefined).reduce<number | null>((m, l) => Math.max(m ?? 0, Date.parse(String(l.created_at))), null)
+    const newerDispatch = (!protegeSerie || estacionadoSuperavel(genId)) && lastDispatch > parkedAtMs
+    const decision = decidirRetomada({ parkedAtMs, nowMs: now, closed: closed.has(genId), newerDispatch, openLeaseAtMs: openAtMs })
+    if (decision === 'closed' || decision === 'leased') continue
+    const fechar = (outcome: string, extra: Record<string, unknown> = {}) => db.from('events').insert({ id: idDoFechamento(genId), user_id: 'user-1', name: 'render_parked_closed', session_id: genId, created_at: iso(clock), metadata: { outcome, ...extra } })
+    if (decision === 'expired' || decision === 'superseded') { await fechar(decision); continue }
+    const candidatos = leases.map((l) => l.metadata as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown }).filter((m) => Number.isInteger(Number(m.attempt)) && (m.outcome === undefined || m.outcome === 'started'))
+    if (adota && candidatos.length > 0) {
+      const lidos = candidatos.map((m) => { const a = Number(m.attempt); const rid = typeof m.resume_generation_id === 'string' ? m.resume_generation_id : idDaRetomada(genId, a); const deb = db.tables.credit_debits.find((d) => d.render_id === debitoDe(rid).render_id); return { attempt: a, iniciado: m.outcome === 'started', resumeId: rid, debito: (!deb ? 'none' : deb.refunded_at ? 'refunded' : 'live') as DebitoDaRetomada } })
+      const d = decidirAluguelSemFechamento(lidos)
+      if (d.acao === 'esperar') continue
+      if (d.acao === 'adotar') { const c = lidos.find((x) => x.attempt === d.attempt)!; await fechar('resumed', { resume_generation_id: c.resumeId, recovered: true }); continue }
+      for (const c of lidos) { const l = leases.find((x) => (x.metadata as { attempt?: unknown }).attempt === c.attempt); if (l) l.metadata = { ...(l.metadata as object), outcome: 'lost_no_charge' } }
+    }
+    if (providerDown || resumed >= PARKED_MAX_RESUMES_PER_RUN) continue
+    const attempt = leases.length + 1
+    const ins = await db.from('events').insert({ id: idDoAluguel(genId, attempt), user_id: 'user-1', name: 'render_parked_taken', session_id: genId, created_at: iso(clock), metadata: { attempt } })
+    if ((ins as { error: unknown }).error) continue
+    resumed++
+    const resumeGenId = idDaRetomada(genId, attempt)
+    const resp = rotaDeFilme(db, resumeGenId, fal)
+    if (morreNoPost) continue // o cron morreu no meio do POST: o aluguel fica sem desfecho e sem resume_generation_id
+    const outcome = classificarRespostaDaRetomada(resp.status, resp.json)
+    const lease = evs(db, 'render_parked_taken').find((l) => l.id === idDoAluguel(genId, attempt))!
+    lease.metadata = { attempt, outcome, status: resp.status, resume_generation_id: resumeGenId }
+    if (outcome === 'started') await fechar('resumed', { attempts: attempt, resume_generation_id: resumeGenId })
+    else if (outcome === 'provider_down') providerDown = true
+  }
+}
+/** 2 h de queda com o resume a cada 5 min (e o passe da série a cada hora), depois a fal volta por 1 h. Devolve o episódio. */
+async function quedaLonga(o: SimOpts = {}, passe: typeof seriePass = seriePass) {
+  const { db, ep } = await estacionado({}, passe)
+  for (let i = 1; i <= 24; i++) { clock += 5 * 60_000; await passeDoResume(db, 'down', o); if (i % 12 === 0) { db.tables.serie_auto[0].next_run_at = null; await passeCom(db, passe) } }
+  for (let i = 1; i <= 12; i++) { clock += 5 * 60_000; await passeDoResume(db, 'up', o); if (i % 12 === 0) await passeCom(db, passe) }
+  return { db, ep }
+}
+const vivos = (db: FakeDb) => db.tables.credit_debits.filter((d) => !d.refunded_at)
+{
+  const { db, ep } = await quedaLonga()
+  const filhas = evs(db, 'render_parked').filter((r) => String(r.session_id).startsWith('parked-'))
+  ok(filhas.length >= 20 && !evs(db, 'render_parked_taken').some((l) => String(l.session_id).startsWith('parked-')), `R9 2 h de queda: a rota re-estacionou ${filhas.length} vezes (linhas filhas) e NENHUMA filha foi alugada/retomada`)
+  ok(vivos(db).length === 1 && evs(db, 'render_parked_closed').length === 1, `R10 a fal volta: 1 débito vivo e 1 fechamento 'resumed' (antes: ~${filhas.length + 1} débitos e filmes)`)
+  const rid = (evs(db, 'render_parked_closed')[0].metadata as { resume_generation_id?: string }).resume_generation_id!
+  ok(ep.status === 'dispatched' && ep.resume_generation_id === rid && posts.length === 1 && db.tables.serie_auto_episodios.length === 1, 'R11 a série segue a única retomada cobrada: 1 POST da série, 1 episódio, nenhuma tentativa 2 durante a queda')
+  db.tables.events.push({ name: 'stranded_composed', user_id: 'user-1', session_id: rid, metadata: { render_id: 'r-queda' }, created_at: iso(clock) })
+  db.tables.videos.push({ id: 'v-queda', user_id: 'user-1', render_id: 'r-queda', status: 'completed', final_video_url: 'https://x/q.mp4' })
+  await passeCom(db)
+  ok(ep.status === 'delivered' && db.tables.serie_auto[0].last_episode_seq === 2 && db.tables.serie_auto[0].episodes_delivered === 1, 'R12 503 parked → 2 h de queda → retomada → filme: entregue como o episódio 2, a série anda')
+}
+{
+  // o defeito da revisão, reproduzido: sem o filtro da linha filha, cada re-estacionamento vira um filme cobrado
+  const { db } = await quedaLonga({ filtraFilhas: false })
+  ok(vivos(db).length > 2, `R13 mutante (o cron retoma a linha filha): ${vivos(db).length} débitos vivos para 1 episódio — R10 reprova`)
+}
+{
+  // superseded em conta da casa: o fundador (ou outra série) despacha durante a queda
+  const run = async (protegeSerie: boolean) => {
+    const { db, ep } = await estacionado()
+    clock += 10 * 60_000
+    db.tables.events.push({ name: 'generation_dispatch_received', user_id: 'user-1', created_at: iso(clock), metadata: { generation_id: '3f2a1b4c-0000-4000-8000-00000000f00d' } })
+    db.tables.events.push({ name: 'generation_dispatch_received', user_id: 'user-1', created_at: iso(clock), metadata: { generation_id: serieGenerationId('outra-serie', '2026-W45', 1) } })
+    clock += 5 * 60_000; await passeDoResume(db, 'up', { protegeSerie })
+    clock += 3_600_000; await passeCom(db)
+    return { db, ep }
+  }
+  const a = await run(true)
+  ok(!evs(a.db, 'render_parked_closed').some((c) => (c.metadata as { outcome?: string }).outcome === 'superseded') && a.ep.status === 'dispatched' && vivos(a.db).length === 1 && posts.length === 1, 'R14 despacho do fundador e de outra série na mesma conta: o episódio estacionado NÃO é superado — é retomado, 1 débito, a semana não queima')
+  const b = await run(false)
+  ok(b.ep.status === 'failed' && b.ep.error === 'parked_superseded', 'R15 mutante (sem a proteção da série): fechado como superseded e a semana queima uma tentativa — R14 reprova')
+}
+{
+  // o cron morre no meio do POST (cobrou, mas o aluguel ficou sem desfecho e sem resume_generation_id)
+  const { db, ep } = await estacionado()
+  clock += 5 * 60_000; await passeDoResume(db, 'up', { morreNoPost: true })
+  const lease = evs(db, 'render_parked_taken')[0]
+  ok(vivos(db).length === 1 && (lease.metadata as { outcome?: unknown }).outcome === undefined && !(lease.metadata as { resume_generation_id?: unknown }).resume_generation_id, 'R16 cron morto no POST: 1 débito vivo, aluguel sem desfecho e sem id de retomada')
+  for (let i = 0; i < 4; i++) { clock += 5 * 60_000; await passeDoResume(db, 'up') }
+  const fech = evs(db, 'render_parked_closed')
+  ok(clock - Date.parse(String(lease.created_at)) > PARKED_LEASE_TTL_MS && evs(db, 'render_parked_taken').length === 1 && vivos(db).length === 1 && fech.length === 1 && (fech[0].metadata as { resume_generation_id?: string }).resume_generation_id === idDaRetomada(String(ep.generation_id), 1), 'R17 passado o aluguel, o cron ADOTA a retomada que cobrou (fecha resumed com o id da tentativa 1) — nenhuma tentativa 2, 1 débito')
+  await passeCom(db)
+  ok(ep.status === 'dispatched' && ep.resume_generation_id === idDaRetomada(String(ep.generation_id), 1), 'R18 a série segue a retomada adotada')
+  // e sem a adoção (o defeito): a tentativa 2 sai por cima e cobra de novo
+  const b = await estacionado()
+  clock += 5 * 60_000; await passeDoResume(b.db, 'up', { morreNoPost: true })
+  for (let i = 0; i < 4; i++) { clock += 5 * 60_000; await passeDoResume(b.db, 'up', { adota: false }) }
+  ok(vivos(b.db).length === 2, 'R19 mutante (sem adotar o aluguel que cobrou): 2 débitos vivos — R17 reprova')
+}
+{
+  // o lado da série: aluguel sem resume_generation_id, sem fechamento, > 30 h — a adoção acha o débito pelo id da tentativa N
+  const { db, ep } = await estacionado()
+  db.tables.events.push({ name: 'render_parked_taken', user_id: 'user-1', session_id: ep.generation_id, created_at: iso(clock + 5 * 60_000), metadata: { attempt: 1 } })
+  db.tables.credit_debits.push(debitoDe(idDaRetomada(String(ep.generation_id), 1)))
+  clock += 31 * 3_600_000
+  db.tables.serie_auto[0].next_run_at = iso(clock + 86_400_000)
+  await passeCom(db)
+  ok(ep.resume_generation_id === idDaRetomada(String(ep.generation_id), 1) && ep.status !== 'failed' && posts.length === 1 && db.tables.serie_auto_episodios.length === 1, 'R20 série: aluguel morto sem id de retomada + débito vivo do id da tentativa 1 → adotado depois de 30 h (antes: falhava e retentava)')
+}
+
+// ── S. passe B lê o débito antes da tentativa 2; ficha que não gravou não vale ────────────────────────────────────────────
+console.log('S — passe B lê o débito; ficha só vale se a gravação pegou')
+const REFUND_PENDENTE = 'No AI scenes started and your automatic refund is still being confirmed. Please retry this same generation.'
+/** A rota cobra e responde `status` sem queued/parked/charged; `debito` diz o que ficou no banco depois. */
+const rotaRecusa = (db: FakeDb, status: number, debito: 'live' | 'refunded' | 'none'): SerieDeps['callAsUser'] => async <T,>(a: { path: string; body?: unknown }) => {
+  posts.push({ path: a.path, body: a.body as Record<string, unknown> })
+  const gen = String((a.body as Record<string, unknown>).generationId)
+  if (debito !== 'none') db.tables.credit_debits.push(debitoDe(gen, debito === 'refunded' ? iso(clock) : null))
+  return { ok: false, status, body: { error: status === 503 ? REFUND_PENDENTE : 'Internal error' } as T, errorText: null }
+}
+async function recusado(status: number, debito: 'live' | 'refunded' | 'none', passe: typeof seriePass = seriePass, ilegivel = false) {
+  posts.length = 0; events.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  deps.callAsUser = rotaRecusa(db, status, debito)
+  if (ilegivel) db.failSelect.add('credit_debits')
+  const r = await passeCom(db, passe)
+  deps.callAsUser = callOk
+  return { db, ep: db.tables.serie_auto_episodios[0], r }
+}
+{
+  const { db, ep } = await recusado(503, 'live')
+  ok(!serieRespostaEstacionada(503, { error: REFUND_PENDENTE }) && ep.status === 'dispatched' && ep.error === 'http_503_debit_live' && posts.length === 1, 'S1 503 "refund is still being confirmed" com o débito VIVO: o episódio fica despachado (o cliente pagou), não falha')
+  await horas(db, 5)
+  ok(posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'S2 cinco passadas horárias: nenhuma tentativa 2 (seria o 2º débito)')
+  clock += 2 * 3_600_000; await passeCom(db)
+  ok(ep.status === 'stuck' && posts.length === 1, 'S3 passado o prazo com o débito vivo: stuck (nunca retenta)')
+  db.tables.credit_debits[0].refunded_at = iso(clock); clock += 3_600_000
+  await passeCom(db)
+  ok(ep.status === 'failed' && db.tables.serie_auto_episodios.length === 2 && posts.length === 2, 'S4 o estorno se confirma depois: aí sim falha sem cobrança e a tentativa 2 sai')
+}
+{
+  const { db, ep } = await recusado(503, 'refunded')
+  ok(ep.status === 'failed' && String(ep.error).startsWith('dispatch_503') && db.tables.serie_auto[0].next_run_at === iso(clock + 3_600_000), 'S5 503 com o débito já estornado: falha na hora e a agenda volta em 1 h (nada cobrado)')
+  const b = await recusado(500, 'none')
+  ok(b.ep.status === 'failed' && String(b.ep.error).startsWith('dispatch_500'), 'S6 500 sem débito: falha (nada foi cobrado)')
+  const c = await recusado(500, 'live', seriePass, true)
+  ok(c.ep.status === 'pending' && c.ep.error === 'http_500_debit_unknown' && posts.length === 1, 'S7 500 com o débito ILEGÍVEL: pending (o passe A relê), nenhuma falha às cegas')
+  await horas(c.db, 3)
+  ok(posts.length === 1 && c.db.tables.serie_auto_episodios.length === 1, 'S8 três passadas com o débito ilegível: nenhuma tentativa 2')
+  c.db.failSelect.delete('credit_debits'); clock += 3_600_000; await passeCom(c.db)
+  ok(c.ep.status === 'dispatched' && posts.length === 1, 'S9 o débito volta a ser legível e está vivo: dispatched, sem tentativa 2')
+}
+{
+  // a ficha mudou entre a leitura e a gravação (outra escrita gravou uma válida): 0 linhas → sem evento, a ideia usa a GRAVADA
+  posts.length = 0; events.length = 0; fichaDerivadaChamadas.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500, ficha: null })
+  const antes = deps.derivarFicha!
+  // a outra escrita troca a LINHA do banco (objeto novo): o passe segue com o valor que leu (null)
+  deps.derivarFicha = (script) => { db.tables.serie_auto[0] = { ...db.tables.serie_auto[0], ficha: FICHA }; return antes(script) }
+  await rodar(db, true)
+  deps.derivarFicha = antes
+  ok(fichaDerivadaChamadas.length === 1 && JSON.stringify(db.tables.serie_auto[0].ficha) === JSON.stringify(FICHA) && !events.some((e) => e.name === SERIE_AUTO_EVENTS.fichaFixed), 'S10 corrida na ficha: a gravação não pegou (0 linhas) → nenhum serie_auto_ficha_fixed, a ficha da outra escrita fica')
+  ok(String(posts[0]?.body.prompt).includes(FICHA[0].canonica) && !String(posts[0]?.body.prompt).includes('Milo'), 'S11 a ideia do episódio usa a ficha GRAVADA, não a derivada que perdeu a corrida')
+}
+{
+  const src = fs.readFileSync('lib/serieAuto/cron.ts', 'utf8').replace(/\r\n/g, '\n')
+  const mutar = async (nome: string, de: string, para: string) => {
+    if (!src.includes(de)) return null
+    const arq = `lib/serieAuto/__mutante_${nome}.ts`
+    fs.writeFileSync(arq, src.replace(de, para))
+    try { return (await import(`../${arq}`)).seriePass as typeof seriePass } finally { fs.unlinkSync(arq) }
+  }
+  const m12 = await mutar('sem_ler_debito', 'const debito = await lerDebitoDe(serie.user_id, generationId)', "const debito = 'none' as string")
+  if (m12) { const { db } = await recusado(503, "live", m12); await horas(db, 2, m12); ok(posts.length === 2 && db.tables.serie_auto_episodios.length === 2 && db.tables.serie_auto_episodios[0].status === 'failed' && vivos(db).length >= 1, 'M12 mutante (passe B não lê o débito): a tentativa 2 sai com o débito 1 ainda vivo (2º débito) — S2 reprova') } else ok(false, 'M12 mutante aplicado')
+  const m13 = await mutar('ficha_cega', 'if (pegou) await ev(', 'if (true) await ev(')
+  if (m13) {
+    posts.length = 0; events.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+    const db = new FakeDb(); semear(db, { credits: 500, ficha: null })
+    const antes = deps.derivarFicha!
+    deps.derivarFicha = (script) => { db.tables.serie_auto[0] = { ...db.tables.serie_auto[0], ficha: FICHA }; return antes(script) }
+    await passeCom(db, m13); deps.derivarFicha = antes
+    ok(events.some((e) => e.name === SERIE_AUTO_EVENTS.fichaFixed) && JSON.stringify(db.tables.serie_auto[0].ficha) === JSON.stringify(FICHA), 'M13 mutante (evento sem conferir a gravação): serie_auto_ficha_fixed mente — S10 reprova')
+  } else ok(false, 'M13 mutante aplicado')
+  const m14 = await mutar('sem_id_da_tentativa', '?? (Number.isInteger(Number(m.attempt)) && Number(m.attempt) >= 1 ? idDaRetomada(g, Number(m.attempt)) : null)', '?? null')
+  if (m14) {
+    const { db, ep } = await estacionado({}, m14)
+    db.tables.events.push({ name: 'render_parked_taken', user_id: 'user-1', session_id: ep.generation_id, created_at: iso(clock + 5 * 60_000), metadata: { attempt: 1 } })
+    db.tables.credit_debits.push(debitoDe(idDaRetomada(String(ep.generation_id), 1)))
+    clock += 31 * 3_600_000; db.tables.serie_auto[0].next_run_at = iso(clock + 86_400_000)
+    await passeCom(db, m14)
+    ok(ep.status === 'failed' && posts.length === 2, 'M14 mutante (aluguel sem id não vira id da tentativa): falha e a tentativa 2 cobra de novo — R20 reprova')
+  } else ok(false, 'M14 mutante aplicado')
+  ok(!fs.readdirSync('lib/serieAuto').some((f) => f.startsWith('__mutante_')), 'M15 nenhuma cópia mutada ficou no disco')
 }
 
 // ── mutantes: o guardião acusa o defeito que devia acusar ─────────────────────────────────────────────────────────────
