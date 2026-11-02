@@ -127,14 +127,10 @@ function texto(v: unknown, teto: number): string {
  */
 export function prepararPacote(
   bruto: unknown,
-  opts?: { creditLine?: string | null; narracao?: string | null },
+  opts?: { creditLine?: string | null },
 ): PacoteDePublicacao | null {
   if (!bruto || typeof bruto !== 'object') return null
-  // KINEO-PACOTE-LINGUA-0211 — com a narração em mãos, palavra quase igual a uma da fala ("polpo" × "polvo") volta a
-  // ser a da fala ANTES do crédito entrar (a linha de crédito da casa nunca é tocada). Sem narração: byte a byte o de antes.
-  const b = typeof opts?.narracao === 'string' && opts.narracao.trim()
-    ? corrigirPacotePelaNarracao(bruto as Record<string, unknown>, opts.narracao).pacote
-    : bruto as Record<string, unknown>
+  const b = bruto as Record<string, unknown>
   // Fail-closed no sentido do CLIENTE: sem linha de credito passada, o pacote
   // sai LIMPO. Errar para o lado de nao anunciar e o unico erro reversivel dos
   // dois — o contrario poe uma linha nossa na descricao de alguem que pagou
@@ -199,135 +195,59 @@ export function pacoteAindaVale(criadoEm: string | null | undefined, agora: numb
 // que o polvo tem três corações", "bombeia-o") e o pacote saiu com o título "Descubra o polpo…" e a hashtag #polpo —
 // "polpo" é italiano — e o resto em português do Brasil ("Você sabia", "né?"). A narração chegou certa ao escritor; a
 // CAUSA foi o pedido: o sistema é todo em inglês e só dizia "write in the language of the topic", sem nomear a língua
-// nem a variante, a 0,8 de temperatura num modelo pequeno. Duas defesas, as duas sem chamada extra:
-//   1. a língua é NOMEADA no pedido (código gravado no compose claim + variante lida na própria fala: pt-PT × pt-BR);
-//   2. checagem barata depois: palavra do pacote quase igual (1 letra trocada no meio) a uma palavra da fala, e que não
-//      existe na fala, volta a ser a da fala — "polpo" → "polvo", "#polpo" → "#polvo". Só consoante trocada no meio da
-//      palavra: flexão (vogal ↔ vogal, como falam/falem; última letra, como novo/nova), 1ª letra e palavra curta nunca.
+// nem a variante, a 0,8 de temperatura num modelo pequeno.
+// O conserto é SÓ o pedido: a língua gravada no compose claim vai nomeada numa linha LANGUAGE (e a temperatura cai para
+// 0,6 no escritor). Nenhuma correção automática de palavra depois — a revisão de 02/11 mostrou que trocar "palavra quase
+// igual à da fala" estraga palavras certas (world→would, morte→monte, Mario→Marco).
+// A variante do português só é nomeada quando a fala a mostra sem ambiguidade; senão o pedido diz "a mesma variante da
+// narração" e não chuta.
 
 const NOMES_DE_LINGUA: Record<string, string> = {
   en: 'English', pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', pl: 'Polish',
   ru: 'Russian', uk: 'Ukrainian', tr: 'Turkish', ar: 'Arabic', he: 'Hebrew', fa: 'Persian', hi: 'Hindi', bn: 'Bengali',
-  ur: 'Urdu', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', id: 'Indonesian', ms: 'Malay', vi: 'Vietnamese', th: 'Thai',
-  ro: 'Romanian', sv: 'Swedish', fil: 'Filipino', tl: 'Filipino', el: 'Greek', cs: 'Czech', hu: 'Hungarian',
+  ur: 'Urdu', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', yue: 'Cantonese', id: 'Indonesian', ms: 'Malay', vi: 'Vietnamese',
+  th: 'Thai', ro: 'Romanian', sv: 'Swedish', fi: 'Finnish', da: 'Danish', no: 'Norwegian', nb: 'Norwegian Bokmål',
+  nn: 'Norwegian Nynorsk', bg: 'Bulgarian', hr: 'Croatian', sk: 'Slovak', sl: 'Slovenian', ca: 'Catalan', af: 'Afrikaans',
+  fil: 'Filipino', tl: 'Filipino', el: 'Greek', cs: 'Czech', hu: 'Hungarian',
 }
 const NOMES_DE_VARIANTE: Record<string, string> = {
   'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese', 'es-ES': 'Spanish (Spain)', 'es-MX': 'Mexican Spanish',
   'en-US': 'American English', 'en-GB': 'British English', 'fr-CA': 'Canadian French', 'zh-TW': 'Traditional Chinese',
 }
 
-const conta = (texto: string, palavras: string[]): number => {
+const conta = (fala: string, palavras: string[]): number => {
   let n = 0
-  for (const p of palavras) n += (texto.match(new RegExp(`(?<!\\p{L})${p}(?!\\p{L})`, 'giu')) ?? []).length
+  for (const p of palavras) n += (fala.match(new RegExp(`(?<!\\p{L})${p}(?!\\p{L})`, 'giu')) ?? []).length
   return n
 }
 
-/** Variante do português lida na fala: pt-PT, pt-BR ou null (sem marca clara). */
+/** Variante do português lida na fala — só com 2+ marcas de um lado e NENHUMA do outro; senão null (não chuta). */
 export function variantePortugues(narracao: string): 'pt-PT' | 'pt-BR' | null {
   const t = String(narracao ?? '')
-  const pt = conta(t, ['sabias', 'tu', 'estás', 'tens', 'podes', 'vês', 'facto', 'factos', 'equipa', 'ecrã', 'telemóvel', 'autocarro', 'comboio', 'rapariga', 'miúdo', 'miúdos', 'fixe'])
+  const pt = conta(t, ['sabias', 'estás', 'tens', 'podes', 'facto', 'factos', 'equipa', 'ecrã', 'telemóvel', 'autocarro', 'comboio', 'rapariga', 'miúdo', 'miúdos'])
     + (t.match(/\p{L}{3,}-(?:o|a|os|as|lhe|lhes)(?!\p{L})/gu) ?? []).length
-  const br = conta(t, ['você', 'vocês', 'né', 'ônibus', 'celular', 'garota', 'moleque', 'legal', 'fato', 'fatos'])
-  if (pt > br) return 'pt-PT'
-  if (br > pt) return 'pt-BR'
+  const br = conta(t, ['você', 'vocês', 'né', 'ônibus', 'celular', 'garota', 'moleque'])
+  if (pt >= 2 && br === 0) return 'pt-PT'
+  if (br >= 2 && pt === 0) return 'pt-BR'
   return null
-}
-
-/** Reserva quando o claim não gravou a língua: palpite pelas palavras mais comuns. null = não chuta. */
-function palpiteDeLingua(narracao: string): string | null {
-  const t = String(narracao ?? '')
-  const notas: Array<[string, number]> = [
-    ['pt', conta(t, ['não', 'você', 'uma', 'são', 'também', 'mais', 'isso', 'muito', 'tem', 'como', 'dos', 'das', 'ao']) + (t.match(/ção|ções|ão(?!\p{L})/gu) ?? []).length],
-    ['es', conta(t, ['el', 'los', 'las', 'una', 'del', 'es', 'muy', 'pero', 'también', 'tiene', 'y']) + (t.match(/[ñ¿¡]/gu) ?? []).length],
-    ['en', conta(t, ['the', 'and', 'is', 'of', 'to', 'with', 'this', 'that', 'you', 'was'])],
-    ['it', conta(t, ['il', 'gli', 'della', 'che', 'non', 'per', 'sono', 'questo', 'anche'])],
-    ['fr', conta(t, ['le', 'les', 'est', 'une', 'avec', 'pour', 'des', 'dans', 'pas', 'vous'])],
-    ['de', conta(t, ['der', 'die', 'und', 'ist', 'mit', 'ein', 'eine', 'nicht', 'auch'])],
-  ]
-  notas.sort((a, b) => b[1] - a[1])
-  return notas[0][1] >= 3 && notas[0][1] > notas[1][1] ? notas[0][0] : null
 }
 
 export type IdiomaDoPacote = { tag: string; nome: string }
 
-/** A língua do pacote: o código gravado no claim manda; a variante do português sai da própria fala. */
+/** A língua do pacote, pelo código gravado no claim (ex.: "pt", "pt-BR", "yue"). Sem código ou código desconhecido: null. */
 export function idiomaDoPacote(language: string | null | undefined, narracao: string | null | undefined): IdiomaDoPacote | null {
-  const fala = String(narracao ?? '')
   const bruto = typeof language === 'string' ? language.trim().replace('_', '-') : ''
   const [base0, regiao0] = bruto.split('-')
-  const base = (base0 || palpiteDeLingua(fala) || '').toLowerCase()
+  const base = (base0 ?? '').toLowerCase()
   if (!base || !NOMES_DE_LINGUA[base]) return null
-  let tag = regiao0 ? `${base}-${regiao0.toUpperCase()}` : base
-  if (base === 'pt' && !regiao0) tag = variantePortugues(fala) ?? 'pt'
-  return { tag, nome: NOMES_DE_VARIANTE[tag] ?? NOMES_DE_LINGUA[base] }
+  const tag = regiao0 ? `${base}-${regiao0.toUpperCase()}` : base === 'pt' ? variantePortugues(String(narracao ?? '')) ?? 'pt' : base
+  const nome = NOMES_DE_VARIANTE[tag] ?? (tag === 'pt' ? 'Portuguese, same variant as the narration' : NOMES_DE_LINGUA[base])
+  return { tag, nome }
 }
 
 /** A frase explícita de língua que vai no pedido ao modelo. */
 export function instrucaoDeIdioma(idioma: IdiomaDoPacote | null): string {
   if (!idioma) return 'LANGUAGE: the exact language (and regional variant) of THE VIDEO narration. Never switch to another language.'
-  const variante = idioma.tag === 'pt'
-    ? ' Match the Portuguese variant the narration uses (pt-BR or pt-PT); do not mix them.'
-    : idioma.tag === 'pt-PT' ? ' Use European Portuguese spelling and grammar (e.g. "Sabias que", never Brazilian "Você sabia").'
-    : idioma.tag === 'pt-BR' ? ' Use Brazilian Portuguese spelling and grammar.' : ''
-  return `LANGUAGE: ${idioma.nome} (${idioma.tag}). Write ytTitle, ytDescription, tiktokCaption, pinnedComment and every hashtag ENTIRELY in ${idioma.nome} (${idioma.tag}) — the language of the narration.${variante} Never use words from any other language (no Spanish, Italian or English look-alikes): spell animals, places, people and things exactly as the narration spells them.`
-}
-
-const minus = (s: string) => s.toLocaleLowerCase()
-
-const VOGAL = /[aeiouyáéíóúâêîôûãõàèìòùäëïöü]/
-/** Troca de 1 letra no MEIO (nem a 1ª, nem a última; nunca vogal ↔ vogal) entre palavras de mesmo tamanho ≥ 5. */
-function quaseIgual(a: string, b: string): boolean {
-  if (a.length !== b.length || a.length < 5 || a === b) return false
-  let diff = -1
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] === b[i]) continue
-    if (diff >= 0) return false
-    diff = i
-  }
-  return diff > 0 && diff < a.length - 1 && !(VOGAL.test(a[diff]) && VOGAL.test(b[diff]))
-}
-
-function comCaixa(modelo: string, palavra: string): string {
-  if (modelo === modelo.toLocaleUpperCase() && modelo !== modelo.toLocaleLowerCase()) return palavra.toLocaleUpperCase()
-  if (modelo[0] === modelo[0].toLocaleUpperCase() && modelo[0] !== modelo[0].toLocaleLowerCase()) return palavra[0].toLocaleUpperCase() + palavra.slice(1)
-  return palavra
-}
-
-/** A checagem barata: o texto com as palavras quase iguais às da fala trocadas pela da fala, e a lista de trocas. */
-export function corrigirPelaNarracao(texto: string, narracao: string): { texto: string; trocas: string[] } {
-  const daFala = new Set((String(narracao ?? '').match(/\p{L}+/gu) ?? []).map(minus))
-  const trocas: string[] = []
-  if (daFala.size === 0 || typeof texto !== 'string') return { texto, trocas }
-  const out = texto.replace(/\p{L}+/gu, (palavra) => {
-    const p = minus(palavra)
-    if (daFala.has(p)) return palavra
-    const candidatas = [...daFala].filter((f) => quaseIgual(p, f))
-    if (candidatas.length !== 1) return palavra
-    trocas.push(`${palavra}→${candidatas[0]}`)
-    return comCaixa(palavra, candidatas[0])
-  })
-  return { texto: out, trocas }
-}
-
-/** Aplica a checagem nas peças do pacote bruto do modelo (antes do crédito, que nunca é tocado). */
-export function corrigirPacotePelaNarracao(bruto: Record<string, unknown>, narracao: string): { pacote: Record<string, unknown>; trocas: string[] } {
-  const pacote: Record<string, unknown> = { ...bruto }
-  const trocas: string[] = []
-  for (const k of ['ytTitle', 'title', 'ytDescription', 'description', 'tiktokCaption', 'caption', 'pinnedComment', 'comment']) {
-    if (typeof pacote[k] !== 'string') continue
-    const r = corrigirPelaNarracao(pacote[k] as string, narracao)
-    pacote[k] = r.texto
-    trocas.push(...r.trocas)
-  }
-  return { pacote, trocas }
-}
-
-/** O roteiro com marcadores ("HOOK: [Pexels: giant octopus] \"...\"") sem o andaime em inglês: só o que a voz fala. */
-export function semAndaimeDoRoteiro(roteiro: string): string {
-  return String(roteiro ?? '')
-    .replace(/\[[^\]]*\]/g, ' ')
-    .replace(/^\s*(?:HOOK|MICRO[ _-]?REWARD(?:\s*\d+)?|ESCALATION|RHYTHM|PAYOFF|CTA)\s*\d*\s*:/gim, '')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+  const rotulo = idioma.tag === 'pt' ? idioma.nome : `${idioma.nome} (${idioma.tag})`
+  return `LANGUAGE: ${rotulo}. Write ytTitle, ytDescription, tiktokCaption, pinnedComment and every hashtag ENTIRELY in ${rotulo}. Never use words from any other language: spell animals, places, people and things exactly as the narration spells them.`
 }

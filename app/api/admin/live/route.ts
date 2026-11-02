@@ -26,7 +26,8 @@ import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } fro
 import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510
 import { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { createLiveCache } from '@/lib/admin/liveCache'
-import { chaveMotor, lerChaveMotor, motorEntregueDe, rotuloMotorPedido } from '@/lib/admin/motorEntregue' // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+import { motorEntregueDe, rotuloMotorGrupo, type MotorEntregue } from '@/lib/admin/motorEntregue' // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — Kling 4 pago é vendido como "Kling 4.0"
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -479,6 +480,8 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
       // seguem sendo os da época (trocar reescreveria o passado); vídeo de 35s
       // custa 60% do base — por isso 12/15 e não 20/25.
       const spentBy = new Map<string, Map<string, { n: number; cr: number }>>()
+      // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o motor ENTREGUE de cada débito, no MESMO grupo (pessoa + quality) do extrato; só muda o texto.
+      const entregueBy = new Map<string, Map<string, Array<MotorEntregue | null>>>()
       {
         const dayDebits = (debitsRes.data ?? []).filter((d) => {
           const dd = d as { created_at?: string; refunded_at?: string | null }
@@ -541,12 +544,15 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
         }
         for (const d of dayDebits) {
           if (!d.user_id || !Number.isFinite(d.amount)) continue
-          const gen = genByRef.get(String(d.render_id)) // KINEO-PAINEL-MOTOR-ENTREGUE-0211
-          const q = chaveMotor(jobQuality.get(String(d.render_id)) ?? '?', gen ? motorEntregueDe(freeEngineByGen.get(gen), videoEngineByGen.get(gen)) : null)
+          const q = jobQuality.get(String(d.render_id)) ?? '?'
           const m = spentBy.get(d.user_id) ?? new Map()
           const cur = m.get(q) ?? { n: 0, cr: 0 }
           cur.n += 1; cur.cr += d.amount
           m.set(q, cur); spentBy.set(d.user_id, m)
+          const gen = genByRef.get(String(d.render_id)) // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+          const em = entregueBy.get(d.user_id) ?? new Map<string, Array<MotorEntregue | null>>()
+          em.set(q, [...(em.get(q) ?? []), gen ? motorEntregueDe(freeEngineByGen.get(gen), videoEngineByGen.get(gen)) : null])
+          entregueBy.set(d.user_id, em)
         }
       }
       const vidCount = new Map<string, number>()
@@ -708,14 +714,12 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
               // "no preço da época" quando os vídeos custaram preços diferentes.
               const mistoDePrecos = v.n > 1 && v.cr % v.n !== 0
               // KINEO-PAINEL-MONTANDO-2026-09-19 — pedidos (cobranças) × prontos (linhas em videos); o resto está montando.
-              // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a chave carrega o motor entregue; "prontos" segue contando pelo quality do débito.
-              const { quality: qEscolhido, entregue } = lerChaveMotor(q)
-              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${qEscolhido}`) ?? 0)
+              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)
               const montando = v.n - prontos
               const entrega = montando === 0 ? (v.n === 1 ? 'pronto' : 'todos prontos') : `${prontos} pronto${prontos === 1 ? '' : 's'} · ${montando} montando`
               void plural
               parts.push(
-                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${rotuloMotorPedido(qEscolhido, entregue, ENGINE_SHORT[qEscolhido] ?? qEscolhido)} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
+                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${rotuloMotorGrupo(q, entregueBy.get(p.id as string)?.get(q) ?? [], ENGINE_SHORT[q] ?? q, KLING4_PAID_LIVE)} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
                 (mistoDePrecos ? ' (preço da época)' : ''),
               )
             }

@@ -19,10 +19,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { KINEO_CREDIT_LINE } from '@/lib/videoDescription'
 import {
   PACOTE_EVENT,
-  corrigirPacotePelaNarracao,
   idiomaDoPacote,
   instrucaoDeIdioma,
-  semAndaimeDoRoteiro,
   lerPacote,
   pacoteAindaVale,
   prepararPacote,
@@ -97,15 +95,15 @@ export async function pacoteGravado(
   }
 }
 
-async function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao, extra?: Record<string, unknown>): Promise<void> {
+async function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao, language: string | null): Promise<void> {
   try {
     await admin.from('events').insert({
       user_id: userId,
       name: PACOTE_EVENT,
       session_id: videoId.slice(0, 64),
       path: '/lib/publishPackServer',
-      // KINEO-PACOTE-LINGUA-0211 — `language`/`spelling_fixes` são só para auditoria; lerPacote lê as 4 peças e ignora o resto.
-      metadata: { ...p, ...(extra ?? {}) },
+      // KINEO-PACOTE-LINGUA-0211 — `language` (a tag pedida ao modelo) é só auditoria; lerPacote lê as 4 peças e ignora o resto.
+      metadata: { ...p, language },
     })
   } catch {
     /* a memoria e bonus; o pacote no e-mail nao e. */
@@ -125,7 +123,7 @@ const SISTEMA = [
   '- pinnedComment: one short line in the creator\'s voice about a surprising fact from the video, or about it being AI-made. Max 200 characters.',
   '',
   // KINEO-PACOTE-LINGUA-0211 — a língua deixa de ser adivinhada: a linha LANGUAGE do pedido (instrucaoDeIdioma) a nomeia.
-  'Write in the language named in the LANGUAGE line (the language of the narration), never in English unless that line says English. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',
+  'Write in the language named in the LANGUAGE line (the language of the narration). Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',
 ].join('\n')
 
 /**
@@ -165,19 +163,16 @@ export async function garantirPacote(
   // o conteudo real mora em `topic`.
   // KINEO-PACOTE-DA-NARRACAO-2026-09-12 — o que a voz DIZ manda; o topic é reserva.
   const { narracao, language } = await narracaoDoFilme(admin, userId, filme)
-  // KINEO-PACOTE-LINGUA-0211 — sem narração, o topic vai SEM o andaime em inglês ("HOOK: [Pexels: giant octopus]"),
-  // que puxava o modelo para outra língua; é também a fala de referência da checagem de grafia.
-  const tema = semAndaimeDoRoteiro([
+  const idioma = idiomaDoPacote(language, narracao) // KINEO-PACOTE-LINGUA-0211
+  const linhaDeIdioma = instrucaoDeIdioma(idioma)
+  const tema = [
     typeof filme.title === 'string' && !narracao ? filme.title.trim() : '',
     narracao || (typeof filme.topic === 'string' ? filme.topic.trim() : ''),
   ]
     .filter(Boolean)
-    .join('\n'))
+    .join('\n')
     .slice(0, 1500)
   if (!tema) return falhou('sem_tema')
-  const falaDeReferencia = narracao || tema
-  const idioma = idiomaDoPacote(language, falaDeReferencia)
-  const linhaDeIdioma = instrucaoDeIdioma(idioma)
 
   let bruto = ''
   try {
@@ -219,14 +214,11 @@ export async function garantirPacote(
   // `buildBrandedYouTubeDescription`: quem assina compra, entre outras coisas,
   // nao ter de anunciar a ferramenta. Sem `isFreePlan` explicito o pacote sai
   // LIMPO — errar para o lado de nao anunciar e o unico erro reversivel.
-  // KINEO-PACOTE-LINGUA-0211 — a checagem barata (grafia pela fala) roda dentro do prepararPacote, antes do crédito.
   const p = prepararPacote(parsed, {
     creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,
-    narracao: falaDeReferencia,
   })
   if (!p) return falhou('pacote_invalido')
-  const trocas = parsed && typeof parsed === 'object' ? corrigirPacotePelaNarracao(parsed as Record<string, unknown>, falaDeReferencia).trocas : []
 
-  await guardar(admin, userId, videoId, p, { language: idioma?.tag ?? null, ...(trocas.length ? { spelling_fixes: trocas.slice(0, 10) } : {}) })
+  await guardar(admin, userId, videoId, p, idioma?.tag ?? null)
   return p
 }

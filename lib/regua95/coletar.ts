@@ -270,7 +270,8 @@ export async function julgarPendentesRegua(
           const inicio = Date.now()
           const ex = await extractFramesFal(e.video_url, e.seconds, { fetchImpl: opts.fetchImpl })
           r.frame_via = ex?.via ?? null
-          const p = ex ? await judgeFrames(e.pixel, ex.frames, { fetchImpl: opts.fetchImpl, via: ex.via, usdFrames: ex.usd, startedAt: inicio }) : null
+          // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — desconto da marca d'água só aqui (cron da régua) e só com a marca medida.
+          const p = ex ? await judgeFrames(e.pixel, ex.frames, { fetchImpl: opts.fetchImpl, via: ex.via, usdFrames: ex.usd, startedAt: inicio, ...(e.pixel.expectedKineoWatermark === true ? { marcaMedida: true } : {}) }) : null
           if (p) {
             r.pixel = p.score
             r.usd += p.usd

@@ -23,6 +23,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — reâncora: a versão vigente do pixel_score subiu para regua95_pixel_v2 (as fixtures de "versão vigente" acompanham; v0 segue velha).
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -204,15 +205,15 @@ async function provas(L) {
     // positive fixtures; historical-only scores are separately asserted below.
     const ev = (name, key, md) => ({ name, created_at: '2026-10-19T20:00:00Z', session_id: key, user_id: 'u', metadata: { video_id: key, generation_id: 'fixture-generation-' + key, delivered_at: '2026-10-19T19:00:00Z', evidence_validation: '2026-10-26', evidence_status: 'complete', evidence_reasons: [], coverage: { expected_frames: name === 'ugc_score' ? 12 : 8, judged_frames: name === 'ugc_score' ? 12 : 8, unique_frames: name === 'ugc_score' ? 12 : 8, expected_readings: name === 'ugc_score' ? 1 : 2, valid_readings: name === 'ugc_score' ? 1 : 2, readings_identical: false, independent_readings: false, audio_evaluated: false }, ...md } })
     const notas = P.juntarNotasRegua([
-      ev('pixel_score', 'u1', { version: 'regua95_pixel_v1', score: 96, product: 'ugc', engine: 'ads_v2', video_url: 'https://x/u1.mp4' }),
+      ev('pixel_score', 'u1', { version: 'regua95_pixel_v2', score: 96, product: 'ugc', engine: 'ads_v2', video_url: 'https://x/u1.mp4' }),
       ev('ugc_score', 'u1', { version: 'regua95_ugc_v1', score: 75, product: 'ugc', engine: 'ads_v2', caps: ['olhos fechados em 2 quadros seguidos do gancho (0–3 s) (teto 75)'], motivos: ['0,5 s gancho: olhos fechados'] }),
       ev('ugc_score', 'u2', { version: 'regua95_ugc_v0', score: 10, product: 'ugc', engine: 'ads_v2' }),
-      ev('pixel_score', 'u3', { version: 'regua95_pixel_v1', score: 90, product: 'ugc', engine: 'avatar' }),
+      ev('pixel_score', 'u3', { version: 'regua95_pixel_v2', score: 90, product: 'ugc', engine: 'avatar' }),
       ev('ugc_score', 'u3', { version: 'regua95_ugc_v1', score: 100, product: 'ugc', engine: 'avatar' }),
     ], '2026-10-19T00:00:00Z')
     const u1 = notas.find((n) => n.key === 'u1'), u3 = notas.find((n) => n.key === 'u3')
     const okNotas = notas.length === 2 && u1.ugc === 75 && u1.pixel === 96 && u1.nota === 75 && u1.quality.state === 'complete' && u1.ugc_motivos[0] === '0,5 s gancho: olhos fechados' && u3.nota === 90
-    const historical = P.juntarNotasRegua([ev('pixel_score', 'old', { version: 'regua95_pixel_v1', score: 96, product: 'ugc', evidence_validation: undefined }), ev('ugc_score', 'old', { version: 'regua95_ugc_v1', score: 75, product: 'ugc', evidence_validation: undefined })], '2026-10-19T00:00:00Z')[0]
+    const historical = P.juntarNotasRegua([ev('pixel_score', 'old', { version: 'regua95_pixel_v2', score: 96, product: 'ugc', evidence_validation: undefined }), ev('ugc_score', 'old', { version: 'regua95_ugc_v1', score: 75, product: 'ugc', evidence_validation: undefined })], '2026-10-19T00:00:00Z')[0]
     const okHistorical = historical.nota === null && historical.nota_historica === 75 && historical.quality.state === 'historical'
     const linha = P.placarRegua(notas, (n) => n.product)[0]
     const okPlacar = linha.ugc.n === 2 && linha.ugc.media === 88 && linha.nota.media === 83
