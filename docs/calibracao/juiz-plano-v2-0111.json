@@ -21,11 +21,24 @@
   "congelamento": {
    "sha256_lib": "e8347d748d54f5062483f2e374ae76d6a54a88a59a2ae45d7d9850045579b566",
    "quando_utc": "2026-11-02T02:25:02Z",
-   "nota": "o prompt, o schema e as guardas de código foram congelados depois da última rodada de treino e ANTES da primeira rodada de teste; a lib commitada tem exatamente este sha256 — nada mudou depois de ver o teste"
+   "nota": "o prompt, o schema e as guardas de código foram congelados depois da última rodada de treino e ANTES da primeira rodada de teste; a lib commitada tem exatamente este sha256 — nada mudou depois de ver o teste",
+   "mudanca_pos_revisao_0211": {
+    "sha256_lib_lf": "2a9709d812091b50d5f6c159eb7ff97eb7192a47396a802385a7be551eeace8b",
+    "o_que_mudou": "só comentários (temperatura 0,3/seed 11/n=3; regra da pergunta (e) = alerta; o resultado honesto da calibração) e planoDoEnvio (cena sem input enviado fica fora; o parâmetro prompts saiu). O prompt (JUIZ_PLANO_SYSTEM), o schema, vereditoDasRespostas e combinarLeituras estão byte a byte iguais ao congelado e8347d74; planoDoEnvio não foi usado na calibração (os casos montaram o texto direto do claim)."
+   }
   },
   "teste": "19 filmes de 01/11 com rótulo da confirmação (C:\\kineo\\.claude\\worktrees\\wf_58f84675-423-1\\docs\\calibracao\\juiz-plano-confirmacao-0111.json). Kling 4 grátis: multi_prompt do claim (o texto cortado em 512 que foi à fal — o v1 lia o scene_prompts de antes da compactação); demais: prompt do input assinado de cada cena. Duas rodadas iguais (r1, r2).",
   "exemplos_no_prompt": "só do treino (Cute, Check, Open, Sound, Barcelona, vegetais, Kali, Yamaguchi, Noé, Serafina, bunny); nenhum token do teste (Skymaster, Yukon, Ten, unicorn, puppy) está no prompt",
-  "limite_honesto": "as falas por plano do Kling 4 vêm da narração dividida por frases (o claim não guarda a fala de cada plano); na rota o juiz recebe a fala exata de cada cena"
+  "limite_honesto": "as falas por plano do Kling 4 vêm da narração dividida por frases (o claim não guarda a fala de cada plano); na rota o juiz recebe a fala exata de cada cena",
+  "cegueira_do_teste": {
+   "aviso": "o conjunto de teste NÃO era cego — o 4/10 não é uma medida limpa de generalização",
+   "fatos": [
+    "o agente que escreveu o prompt leu juiz-plano-confirmacao-0111.json (rótulos e defeitos dos 19 de teste) às 02:02Z; o prompt foi escrito às 02:16Z (transcript agent-af75a7d92a1dbfa4c, workflow wf_335cab4e-a57)",
+    "as perguntas (b) nome que não é personagem e (c) criatura no lugar do protagonista foram desenhadas a partir dos defeitos do próprio teste (Skymaster, Yukon, Ten, unicorn, puppy estavam no texto da tarefa); os exemplos escritos no prompt vêm do treino",
+    "nenhum ajuste foi feito depois de rodar o teste (congelamento 02:25:02Z, rodada única 02:25:07Z) e mesmo assim a meta falhou"
+   ],
+   "conjunto_novo": "não há conjunto limpo disponível em 02/11: a revisão de 31/10 só tem 3 filmes, e 2 deles (caneta-3D e Leo-luva) já estão no teste. A próxima medição precisa de filmes revisados de 02/11 em diante, com defeito_no_texto rotulado ANTES de o juiz rodar e sem que quem mexe no prompt veja os rótulos."
+  }
  },
  "meta": "pegar pelo menos 6 dos 8 ruins com defeito no texto, com no máximo 1 alarme falso nos 9 bons",
  "resultado_teste": {
@@ -65,15 +78,93 @@
     "ruins_texto": 81.3,
     "bons": 97.5
    }
+  },
+  "contagem_corrigida_0211": {
+   "por_que": "revisão adversarial de 02/11: o relatório de 01/11 contou só os 8 ruins com defeito no texto e um grupo de \"9 bons\". O teste tem 10 filmes no grupo bom, e 2 deles (bom7-robo: a menina nunca aparece = pergunta d; bom7-cozinha: a festa do pijama não aparece = pergunta e) têm defeito_no_texto \"sim\" no rótulo da confirmação e passaram com nota 100 nas 2 rodadas. Esta contagem usa o rótulo pré-teste sem nenhuma reclassificação.",
+   "r1": {
+    "com_defeito_no_texto_todos": {
+     "total": 10,
+     "pegos": [
+      "D4-C54",
+      "D5-NASA",
+      "caneta-3D",
+      "D10-Leon"
+     ],
+     "perdidos": [
+      "D1-BRO (nota 100)",
+      "D3-Mila (nota 100)",
+      "D2-Max (nota 100)",
+      "D9-Roland (nota 100)",
+      "bom7-robo (nota 100)",
+      "bom7-cozinha (nota 100)"
+     ],
+     "recall": "4/10"
+    },
+    "sem_defeito_no_texto_pelo_rotulo_pre_teste": {
+     "total": 6,
+     "alarmes_falsos": [
+      "bom7-Leo-luva"
+     ]
+    },
+    "grupo_bom": {
+     "total": 10,
+     "alarmes": [
+      "bom7-Leo-luva"
+     ]
+    },
+    "media_nota": {
+     "com_defeito_no_texto_10": 80,
+     "sem_defeito_no_texto_6": 95.8,
+     "grupo_bom_10": 97.5
+    }
+   },
+   "r2": {
+    "com_defeito_no_texto_todos": {
+     "total": 10,
+     "pegos": [
+      "D4-C54",
+      "D5-NASA",
+      "D10-Leon"
+     ],
+     "perdidos": [
+      "caneta-3D (nota 100)",
+      "D1-BRO (nota 100)",
+      "D3-Mila (nota 100)",
+      "D2-Max (nota 100)",
+      "D9-Roland (nota 100)",
+      "bom7-robo (nota 100)",
+      "bom7-cozinha (nota 100)"
+     ],
+     "recall": "3/10"
+    },
+    "sem_defeito_no_texto_pelo_rotulo_pre_teste": {
+     "total": 6,
+     "alarmes_falsos": [
+      "bom7-Leo-luva"
+     ]
+    },
+    "grupo_bom": {
+     "total": 10,
+     "alarmes": [
+      "bom7-Leo-luva"
+     ]
+    },
+    "media_nota": {
+     "com_defeito_no_texto_10": 85,
+     "sem_defeito_no_texto_6": 95.8,
+     "grupo_bom_10": 97.5
+    }
+   }
   }
  },
  "meta_atingida": {
-  "recall": "NÃO — 4/8 (r1) e 3/8 (r2); a meta era 6/8",
-  "alarmes": "SIM — 1 alarme nos 9 bons em cada rodada (bom7-Leo-luva), e esse alarme tem razão: o texto que foi à fal diz \"Leo, a man in his early thirties with straight sandy-blond hair\" num desenho infantil em que Leo pula em poças (o motor desenhou criança assim mesmo)"
+  "recall": "NÃO — pela meta escrita antes (só os 8 ruins): 4/8 (r1) e 3/8 (r2), meta 6/8. Contando TODOS os filmes com defeito no texto (os 8 ruins + bom7-robo + bom7-cozinha): 4/10 (r1) e 3/10 (r2).",
+  "alarmes": "SIM pelo teto escrito antes (máx. 1): 1 alarme falso em cada rodada — bom7-Leo-luva, cujo rótulo pré-teste é defeito_no_texto \"não\" (1 alarme em 6 filmes sem defeito no texto; 1 em 10 no grupo bom). A leitura de que esse alarme \"tem razão\" (a ficha que foi à fal diz \"Leo, a man in his early thirties\" num desenho infantil) foi feita DEPOIS de ver o resultado: fica registrada como opinião pós-teste e NÃO muda a conta.",
+  "veredito": "meta não atingida; o v2 fica só observando (nenhum efeito no filme) até ser medido num conjunto novo e cego"
  },
  "comparacao_v1_mesmos_19": {
   "v1_coherence_v2": "aponta 3/9 ruins (2 pelo motivo certo: C-54 e NASA), 2 falsos alarmes puros nos bons (BROKENBASE e câmera), média 87,1 ruins × 87,6 bons",
-  "v2": "pega D4-C54, D5-NASA, caneta-3D, D10-Leon (r1) pelo motivo certo, 0 falso alarme puro (o único alarme é texto errado de verdade); média de nota 75 nos ruins × 97.5 nos bons (r1)"
+  "v2": "pega D4-C54, D5-NASA, caneta-3D, D10-Leon (r1) pelo motivo certo; perde 6 dos 10 com defeito no texto (D1-BRO, D3-Mila, D2-Max, D9-Roland, bom7-robo, bom7-cozinha); 1 alarme falso pelo rótulo pré-teste (bom7-Leo-luva). Média de nota (r1): 80 nos 10 com defeito no texto × 95.8 nos 6 sem defeito no texto (75 nos 8 ruins com defeito × 97,5 no grupo bom)."
  },
  "diagnostico_pos_teste_sem_mexer": {
   "aviso": "lido DEPOIS do teste; nada disto foi aplicado ao prompt (qualquer mudança precisa de conjunto novo — ex.: filmes de 31/10 ou de 02/11 em diante — para medir sem vício)",
@@ -2043,5 +2134,10 @@
   "ms_p95": 7823,
   "ms_max": 7908,
   "nota": "na rota o juiz corre DEPOIS do 1º POST e ninguém espera (só o ensaio de $0); teto 25 s; evento gravado via waitUntil"
+ },
+ "nao_medido": {
+  "hollywood": "nenhum dos 36 casos (treino + teste) é hollywood. Filme de 8-15 planos com 3 leituras e max_tokens 3000 pode cortar o JSON ou passar do teto de 25 s e sair UNVERIFIED sempre; medir antes de qualquer enforce.",
+  "combinar_leituras": "quando nenhuma leitura bate exatamente com o conjunto da maioria, planos/e_final_entrega/d_escondido_sem_rosto/protagonista vêm da 1ª leitura válida e podem contradizer falhas; defeitos e cenas_reescreveria incluem plano acusado por uma leitura só. Não muda nota nem reprovado; pesa só quando houver enforce.",
+  "ensaio": "o ensaio de $0 julga o texto antes dos stills e da correção do sujeito do Kling 4; o ensaio de hollywood não chama o juiz."
  }
 }

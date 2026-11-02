@@ -6,17 +6,21 @@
 // lia no máximo 1.500 caracteres por cena, perguntava "a cena mostra a fala?" (o nome presente aprova a ficha errada) e dava
 // nota livre (escrevia o defeito e dava 95).
 //
-// O v2 é UMA chamada gpt-4o-mini (AI_TEXT_MODELS.utility), temperatura 0, JSON com schema estrito, só com PERGUNTAS DE SIM/NÃO,
+// O v2 é UMA chamada gpt-4o-mini (AI_TEXT_MODELS.utility), temperatura 0,3, seed 11, n=3 leituras (a maioria decide), JSON com
+// schema estrito, só com PERGUNTAS DE SIM/NÃO,
 // plano a plano, sobre o TEXTO FINAL que vai à fal (sem o corte de 1.500):
 //   (a) a ficha/elenco do plano bate com o que o pedido/fala diz do personagem (espécie, idade, gênero, identidade)?
 //   (b) algum nome usado como PERSONAGEM é na verdade lugar, time, empresa, veículo, número, efeito sonoro ou palavra comum?
 //   (c) uma criatura, objeto ou adjetivo virou o protagonista NO LUGAR do protagonista da história?
 //   (d) o sujeito central do pedido aparece (visível, não escondido por "faceless"/"só mãos") em algum plano?
 //   (e) quando o gancho promete uma resposta, a fala + o último plano entregam?
-// A nota NÃO é do modelo: reprovado = qualquer "não" em a/d/e ou "sim" em b/c; nota = 100 − 25 × falhas. Toda acusação de
+// A nota NÃO é do modelo: reprovado = qualquer "não" em a/d ou "sim" em b/c; (e) "não" baixa a nota e vira alerta, mas sozinho
+// não reprova; nota = 100 − 25 × falhas. Toda acusação de
 // plano (a "não", b/c "sim") precisa citar as palavras EXATAS do texto do plano — citação que não está no texto é descartada
 // (o modelo não pode inventar defeito). O prompt foi congelado só com filmes de 29-30/10 e medido nos 19 de 01/11
-// (docs/calibracao/juiz-plano-v2-0111.json).
+// (docs/calibracao/juiz-plano-v2-0111.json): META NÃO ATINGIDA — pegou 4 de 10 filmes com defeito no texto (r1) e 3 de 10 (r2),
+// 1 alarme em 6 filmes sem defeito no texto; o conjunto de teste não era cego (ver o JSON). Só observar até medir em filmes novos.
+// Hollywood (8-15 planos) nunca foi medido.
 //
 // Modo observe:
 //   · NUNCA altera prompt, fala, payload ou cobrança: recebe CÓPIAS das strings e devolve só um relato.
@@ -73,15 +77,14 @@ export type JuizPlanoEntrada = {
 
 /**
  * O texto exato de cada plano que a rota mandou à fal. Kling 4 grátis: os `multi_prompt` do input de buildKling4TrialInput
- * (compactados por promptDaCenaKling4 e cortados em 512); fallback e clássico: o `prompt` do input assinado de cada cena,
- * ou o classicScenePrompts quando a cena nunca foi enviada. `kling4Input` é uma função porque montar o input pode lançar.
+ * (compactados por promptDaCenaKling4 e cortados em 512); fallback e clássico: o `prompt` do input assinado de cada cena.
+ * Cena sem input (nunca foi à fal) fica fora. `kling4Input` é uma função porque montar o input pode lançar.
  */
 export function planoDoEnvio(args: {
   kling4Candidato: boolean
   kling4Input: () => Record<string, unknown> | null | undefined
   falas: readonly string[]
   inputs: ReadonlyArray<Record<string, unknown> | null | undefined>
-  prompts: readonly string[]
 }): { caminho: JuizPlanoCaminho; cenas: Array<{ fala: string; prompt: string }> } {
   let multi: Array<{ prompt?: unknown }> | null = null
   if (args.kling4Candidato) {
@@ -96,9 +99,9 @@ export function planoDoEnvio(args: {
   }
   return {
     caminho: args.kling4Candidato ? 'kling4_fallback_seedance' : 'classico',
-    cenas: args.prompts.map((p, i) => {
-      const enviado = args.inputs[i]?.prompt
-      return { fala: String(args.falas[i] ?? ''), prompt: typeof enviado === 'string' && enviado.trim() ? enviado : String(p ?? '') }
+    cenas: args.inputs.flatMap((input, i) => {
+      const enviado = input?.prompt
+      return typeof enviado === 'string' && enviado.trim() ? [{ fala: String(args.falas[i] ?? ''), prompt: enviado }] : []
     }),
   }
 }
@@ -211,7 +214,7 @@ export type JuizPlanoVeredito = {
   ensaio: boolean
   engine: string | null
   status: 'JUDGED' | 'UNVERIFIED'
-  /** true = qualquer "não" em a/d/e ou "sim" (com citação verificada) em b/c */
+  /** true = qualquer "não" em a/d ou "sim" (com citação verificada) em b/c; (e) sozinho é alerta, não reprova */
   reprovado: boolean
   /** = reprovado (nome mantido para o painel e para o enforce) */
   aponta: boolean

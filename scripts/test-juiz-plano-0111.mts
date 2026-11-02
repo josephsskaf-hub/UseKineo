@@ -14,7 +14,7 @@
 //      sem rosto em todo plano + sujeito humano = (d) reprova em código; maioria de 3 leituras.
 //   R  UMA chamada: modelo utility, n=3, json_schema estrito, mensagens = montarMensagensJuizPlano, sem o corte de 1.500.
 //   F  falha segura (rede, HTTP 500, JSON inválido, fora do schema, sem chave, prazo) = UNVERIFIED dentro do teto.
-//   E  evento UMA vez, dentro da promessa entregue ao waitUntil; dry_run certo também para o banco de stills.
+//   E  evento UMA vez, dentro da promessa entregue ao waitUntil; dry_run só no ensaio de $0 (dry_run:'stills' no hollywood é render pago).
 //   D  off desliga.  T  recibo TRAVA 8.2.  M  mutantes.
 // Rodar: npx tsx scripts/test-juiz-plano-0111.mts
 import fs from 'node:fs'
@@ -84,10 +84,10 @@ const posicoes = (rota: string) => {
     hollywood: lacoH > 0 && fimLacoH > lacoH && ultimoHsPrompt > lacoH && ultimoPostH > lacoH && inicioH > fimLacoH && inicioH > ultimoHsPrompt && inicioH > ultimoPostH && ledgerH > inicioH && rota.slice(fimLacoH, inicioH).split('\n').length === 3,
     classico: submit > 0 && k4Post > 0 && inicioC > submit && inicioC > k4Post && falIds > inicioC && rota.slice(inicioC, falIds).split('\n').length === 2,
     semEsperaNoPago: esperas.length === 1 && esperas[0] > ensaio && esperas[0] < ensaioFim && !/await\s+iniciarJuizDoPlano|await\s+esperarJuizDoPlano\(juizPlano/.test(rota.slice(0, ensaio) + rota.slice(ensaioFim)),
-    k4MesmosArgs: argsEnvioK4 && linhaC.includes('buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input') && linhaC.includes('inputs: classicSceneInputs, prompts: classicScenePrompts'),
-    hollywoodTextoEnviado: rota.includes("prompt: typeof hSceneFalInputs[i]?.prompt === 'string' ? String(hSceneFalInputs[i]?.prompt) : hSubmittedPrompts[i] ?? ''"),
+    k4MesmosArgs: argsEnvioK4 && linhaC.includes('buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input') && linhaC.includes('inputs: classicSceneInputs })'),
+    hollywoodTextoEnviado: rota.includes("cenas: plan.scenes.slice(0, hDispositions.length).map((s, i) => ({") && rota.includes("prompt: typeof hSceneFalInputs[i]?.prompt === 'string' ? String(hSceneFalInputs[i]?.prompt) : hSubmittedPrompts[i] ?? ''"),
     publicadorSemJuiz: blocoPublicador(rota).length > 200 && !/juizPlano|juiz_plano|JuizDoPlano|JuizPlano/.test(blocoPublicador(rota)),
-    evento: /const registrarJuizPlano = \(v: JuizPlanoVeredito\) => writeServerEvent\(\{ name: JUIZ_PLANO_EVENT, userId: user\.id, path: '\/api\/generate-video-cinematic', sessionId: generationId, metadata: \{ generation_id: generationId, dry_run: body\.dry_run === true \|\| ehPedidoDeStills\(body\.dry_run\), dry_run_modo: /.test(rota) && (rota.match(/aoDecidir: registrarJuizPlano/g) ?? []).length === 3,
+    evento: /const registrarJuizPlano = \(v: JuizPlanoVeredito\) => writeServerEvent\(\{ name: JUIZ_PLANO_EVENT, userId: user\.id, path: '\/api\/generate-video-cinematic', sessionId: generationId, metadata: \{ generation_id: generationId, dry_run: body\.dry_run === true, \.\.\.v \} \}\)/.test(rota) && !/ehPedidoDeStills|dry_run_modo/.test(rota.split('\n').find((l) => l.includes('const registrarJuizPlano')) ?? 'ehPedidoDeStills') && (rota.match(/aoDecidir: registrarJuizPlano/g) ?? []).length === 3,
   }
 }
 
@@ -124,7 +124,7 @@ async function main() {
   {
     const p = posicoes(rota)
     ok(p.hollywood, 'P1 hollywood: DEPOIS do laço que reescreve hs.prompt (último hs.prompt = e último submitToFal) e do preenchimento das cenas não enviadas')
-    ok(p.hollywoodTextoEnviado, 'P1 hollywood julga o prompt do input assinado de cada cena (hSceneFalInputs), ou o prompt EXATO enviado (hSubmittedPrompts)')
+    ok(p.hollywoodTextoEnviado, 'P1 hollywood julga só as cenas despachadas (hDispositions), com o prompt do input assinado (hSceneFalInputs) ou o prompt EXATO enviado (hSubmittedPrompts)')
     ok(p.classico, 'P2 clássico/Kling 4 grátis/fallback: DEPOIS do 1º POST (orchestrateKling4Trial e submitAllScenes), antes de ler os ids')
     ok(p.semEsperaNoPago, 'P3 nenhuma espera no caminho pago: a única espera do veredito é a do ensaio de $0, dentro dele')
     ok(p.k4MesmosArgs, 'P4 Kling 4 grátis julgado com os MESMOS argumentos do envio (kling4Prompts, kling4ApprovedStills, kling4Timing); fallback com os inputs enviados')
@@ -135,12 +135,12 @@ async function main() {
     const falas = ['In 1950 a C-54 vanished.', 'Forty-four people were on board.', 'It was never found.']
     const longos = falas.map((_, i) => `Shot ${i + 1}: a silver C-54 Skymaster over snowy peaks. ${'very long cinematic description '.repeat(40)}`)
     const input = buildKling4TrialInput(longos, [], { voiceovers: falas, wordsPerSecond: 2.5 }).input
-    const k4 = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => input, falas, inputs: [], prompts: longos })
+    const k4 = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => input, falas, inputs: [] })
     ok(k4.caminho === 'kling4_gratis' && k4.cenas.length === 3 && k4.cenas.every((c) => Array.from(c.prompt).length <= 512) && k4.cenas[0].prompt.startsWith('Shot 1: a silver C-54'), 'K1 Kling 4 grátis: o juiz lê o multi_prompt do buildKling4TrialInput REAL (≤ 512 por plano, o corte que vai à fal)')
-    const fb = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => null, falas, inputs: [{ prompt: 'ENVIADO 1' }, null, { prompt: '' }], prompts: ['crua 1', 'crua 2', 'crua 3'] })
-    ok(fb.caminho === 'kling4_fallback_seedance' && fb.cenas.map((c) => c.prompt).join('|') === 'ENVIADO 1|crua 2|crua 3', 'K2 Kling 4 caiu no Seedance: caminho próprio; prompt do input enviado, ou o classicScenePrompts da cena não enviada')
-    const ex = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => { throw new Error('kling4_empty_plan') }, falas, inputs: [], prompts: ['a', 'b', 'c'] })
-    const cl = J.planoDoEnvio({ kling4Candidato: false, kling4Input: () => input, falas, inputs: [], prompts: ['a', 'b', 'c'] })
+    const fb = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => null, falas, inputs: [null, { prompt: 'ENVIADO 2' }, { prompt: '' }] })
+    ok(fb.caminho === 'kling4_fallback_seedance' && fb.cenas.map((c) => c.prompt).join('|') === 'ENVIADO 2' && fb.cenas[0].fala === falas[1], 'K2 Kling 4 caiu no Seedance: caminho próprio; só o prompt do input enviado — cena sem input (não foi à fal) fica fora, a fala segue a cena')
+    const ex = J.planoDoEnvio({ kling4Candidato: true, kling4Input: () => { throw new Error('kling4_empty_plan') }, falas, inputs: [{ prompt: 'a' }] })
+    const cl = J.planoDoEnvio({ kling4Candidato: false, kling4Input: () => input, falas, inputs: [{ prompt: 'a' }, { prompt: 'b' }, { prompt: 'c' }] })
     ok(ex.caminho === 'kling4_fallback_seedance' && cl.caminho === 'classico' && cl.cenas[2].fala === falas[2], 'K3 montar o input que lança = fallback (nunca derruba); sem candidato = clássico (o input do Kling 4 nem é lido)')
   }
 
@@ -233,7 +233,7 @@ async function main() {
     ok(gravouAntesDeResolver && J.JUIZ_PLANO_EVENT === 'juiz_plano_verdict', 'E1 quando a promessa entregue resolve, o evento JÁ foi gravado (UMA vez)')
     const campos = ['versao', 'modo', 'caminho', 'status', 'reprovado', 'nota', 'falhas', 'defeitos', 'cenas_reescreveria', 'motivo', 'leituras_falhas', 'usd', 'ms']
     ok(campos.every((c) => c in gravados[0]) && gravados[0].caminho === 'kling4_gratis' && gravados[0].usd > 0, `E2 o evento leva veredito, falhas, defeitos com citação curta, planos, custo (US$ ${gravados[0]?.usd}) e caminho`)
-    ok(posicoes(rota).evento, 'E3 a rota grava JUIZ_PLANO_EVENT com sessionId = generationId e dry_run verdadeiro também para dry_run:"stills" (banco de stills), pelos 3 pontos (hollywood, ensaio, clássico)')
+    ok(posicoes(rota).evento, 'E3 a rota grava JUIZ_PLANO_EVENT com sessionId = generationId e dry_run verdadeiro SÓ no ensaio de $0 (dry_run:"stills" no hollywood é render pago), pelos 3 pontos (hollywood, ensaio, clássico)')
   }
 
   console.log('== D. off desliga ==')
@@ -271,8 +271,10 @@ async function main() {
     ok(m4 !== rota && !posicoes(m4).semEsperaNoPago, 'M4 espera do veredito no caminho pago → P3 vermelho')
     const m5 = rota.replace('      if (estrelaAtiva) response = { ...response, estrela_sobretaxa_cr', '      response = { ...response, juiz_plano: null }\n      if (estrelaAtiva) response = { ...response, estrela_sobretaxa_cr')
     ok(m5 !== rota && !posicoes(m5).publicadorSemJuiz, 'M5 veredito na resposta ao cliente → O4 vermelho')
-    const m6 = rota.replace('dry_run: body.dry_run === true || ehPedidoDeStills(body.dry_run), dry_run_modo', 'dry_run: body.dry_run === true, dry_run_modo')
-    ok(m6 !== rota && !posicoes(m6).evento, 'M6 evento sem o dry_run do banco de stills → E3 vermelho')
+    const m6 = rota.replace('dry_run: body.dry_run === true, ...v } })', 'dry_run: body.dry_run === true || ehPedidoDeStills(body.dry_run), ...v } })')
+    ok(m6 !== rota && !posicoes(m6).evento, 'M6 evento marcando dry_run para dry_run:"stills" (render pago no hollywood) → E3 vermelho')
+    const m8 = rota.replace('cenas: plan.scenes.slice(0, hDispositions.length).map((s, i)', 'cenas: plan.scenes.map((s, i)')
+    ok(m8 !== rota && !posicoes(m8).hollywoodTextoEnviado, 'M8 hollywood julgando também as cenas não enviadas → P1 vermelho')
     const linhaH = rota.split('\n').find((l) => l.startsWith("      iniciarJuizDoPlano({ caminho: 'hollywood'"))!
     const m7 = rota.replace(linhaH + '\n', '').replace('      for (const [idx, hs] of plan.scenes.entries()) {', `${linhaH}\n      for (const [idx, hs] of plan.scenes.entries()) {`)
     ok(m7 !== rota && !posicoes(m7).hollywood, 'M7 hollywood julgando antes do laço que reescreve hs.prompt → P1 vermelho')
