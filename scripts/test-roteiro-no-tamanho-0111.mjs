@@ -8,7 +8,7 @@
 //
 // Este guardião EXECUTA a rota real (offline: OpenAI, moderação, banco e eventos são dublês) com o pedido REAL do Rick
 // (script_written.original_idea) e prova:
-//   L  a lib pura: o orçamento por bloco soma o alvo (≥ piso, ≤ teto), a contagem por bloco, a escolha entre versões;
+//   L  a lib pura: o orçamento por bloco soma o piso, a contagem por bloco, a escolha entre versões;
 //   R1 o pedido do Rick: o prompt da 1ª chamada leva o LENGTH PLAN (≥ 169); a 1ª volta com as 89 palavras reais do filme;
 //      a 2ª chamada leva a conta por bloco ("MICRO REWARD 1 n/m") e, voltando no tamanho, é ela que sai (fits:true,
 //      length_retry {89 → N, retry}, still_short_after_retry:false);
@@ -32,6 +32,11 @@
 //   cortava o final. O plano, a nova tentativa por tamanho e o piso só valem até 60 s; a 90 s a rota é provada IGUAL à base
 //   (mesmas chamadas à OpenAI — prompt, tokens, timeout —, mesmo roteiro, mesmo script_written) em 5 cenários. A mudança da
 //   3ª revisão na rota do Kineo 1 (generate-video-fast) saiu: o arquivo é provado igual à origin/main. 35 s coberto (T35).
+// 5ª revisão — V60: a 60 s o plano mirava 205 (piso × 1,1) e o roteiro da IA vai verbatim; na voz mais lenta (dark-mystery /
+//   luxury-narrator, 2,30 pal/s — os temas de mistério e luxo) 205 palavras = 89,1 s e qualquer estouro passava do clamp de
+//   90 s da montagem. O plano agora soma o PISO (186 = 80,9 s; 169 = 73,5 s na voz mais lenta). V60 prova, na rota, com tema de
+//   mistério e de luxo, em 30/35/60 s e nos motores fast/seedance/kling25/veo/h3, que o plano cabe na voz mais lenta com ≥ 10 %
+//   de folga até 90 s; o mutante "folga de 10 % de volta" fica vermelho. T30: 30 s (hollywood) coberto.
 // Rodar: node scripts/test-roteiro-no-tamanho-0111.mjs   (sem rede, sem custo)
 import fs from 'node:fs'
 import path from 'node:path'
@@ -93,22 +98,23 @@ const ROTEIRO_RICK_70 = ROTEIRO_RICK_89.replace(' It all started when the fridge
 console.log('L — lib/roteiroNoTamanho.ts')
 const offlineMocks = {}
 const L = createOfflineLoader({ mocks: offlineMocks })('@/' + LIB_REL)
-const p169 = L.planoDePalavras(169, 203)
+const p169 = L.planoDePalavras(169)
 const soma = (p) => p.secoes.reduce((s, x) => s + x.palavras, 0)
-ok(p169 && soma(p169) === p169.alvo, `o orçamento por bloco soma o alvo (${p169 && soma(p169)} = ${p169?.alvo})`)
-ok(p169 && p169.alvo >= 169 && p169.alvo <= 203, `alvo entre o piso e o teto (169 ≤ ${p169?.alvo} ≤ 203)`)
+ok(p169 && soma(p169) === 169 && p169.piso === 169 && !('alvo' in p169), `5ª revisão: o orçamento por bloco soma exatamente o piso (${p169 && soma(p169)} = 169), sem alvo acima dele`)
+ok(typeof L.FOLGA_DO_PLANO === 'undefined' && L.planoDePalavras.length === 1, '5ª revisão: FOLGA_DO_PLANO e o parâmetro de teto saíram da lib')
 ok(p169 && p169.secoes.map((s) => s.secao).join('|') === 'HOOK|MICRO REWARD 1|MICRO REWARD 2|MICRO REWARD 3|ESCALATION|RHYTHM|PAYOFF', 'os 7 blocos, na ordem do escritor')
 ok(p169 && p169.secoes.find((s) => s.secao === 'HOOK').palavras <= 12 && p169.secoes.find((s) => s.secao === 'RHYTHM').palavras <= 6, 'HOOK e RHYTHM continuam curtos')
 ok(p169 && p169.secoes.find((s) => s.secao === 'MICRO REWARD 1').palavras >= 30, `cada fato ganha 30+ palavras (MICRO REWARD 1 = ${p169?.secoes[1].palavras})`)
-const pSemTeto = L.planoDePalavras(186, 150)
-ok(pSemTeto && pSemTeto.alvo >= 186, 'teto menor que o piso nunca puxa o alvo para baixo do piso')
-ok(L.planoDePalavras(15, 20) === null && L.planoDePalavras(NaN, 200) === null, 'piso minúsculo ou inválido = sem plano')
+const p186 = L.planoDePalavras(186)
+ok(p186 && p186.piso === 186 && soma(p186) === 186, `186 → plano 186 (${p186 && soma(p186)}) — não 205`)
+ok(L.planoDePalavras(15) === null && L.planoDePalavras(NaN) === null, 'piso minúsculo ou inválido = sem plano')
 const porSecao = L.palavrasPorSecao(ROTEIRO_RICK_89, 'en')
 ok(porSecao.length === 7 && porSecao.reduce((s, x) => s + x.palavras, 0) === 89, `contagem por bloco do roteiro do Rick soma 89 (${porSecao.reduce((s, x) => s + x.palavras, 0)})`)
 ok(L.escolherVersao({ piso: 169, primeira: { palavras: 89, problemas: 0 }, segunda: { palavras: 70, problemas: 0 } }) === 'primeira', 'as duas curtas, a 2ª menor → fica a 1ª')
 ok(L.escolherVersao({ piso: 169, primeira: { palavras: 89, problemas: 0 }, segunda: { palavras: 190, problemas: 0 } }) === 'segunda', '2ª no tamanho → a 2ª')
 ok(L.escolherVersao({ piso: 169, primeira: { palavras: 89, problemas: 1 }, segunda: { palavras: 80, problemas: 0 } }) === 'segunda', '2ª menor mas com a estrutura consertada → a 2ª (como antes)')
-ok(L.tetoDeTokens(null, 700) === 700 && L.tetoDeTokens(p169, 700) >= 700, 'sem plano, 700 tokens; com plano, nunca menos')
+ok(L.tetoDeTokens(null, 700) === 700 && L.tetoDeTokens(p169, 700) === 1014 && L.tetoDeTokens(p186, 700) === 1116, `sem plano, 700 tokens; com plano, piso × 6 (169 → ${L.tetoDeTokens(p169, 700)}, 186 → ${L.tetoDeTokens(p186, 700)})`)
+ok(L.tetoDeTokens(p186, 700) >= Math.ceil(186 * 1.2 * 4) + 150, 'tokens cobrem 20 % de estouro a 4 tokens/palavra (bengali, hindi, grego) + cabeçalhos e pistas — o PAYOFF não é cortado')
 
 // ── S (2ª revisão) — sem teto por motor: o plano é o mesmo para 'fast' e 'seedance' e cobre o Seedance em toda persona ────
 console.log('S — sem teto por motor: o piso do plano cobre o que o Seedance exige de cada persona')
@@ -120,9 +126,8 @@ const taxaDa = (p) => SR.speechRateFor({ family: 'classic', language: 'en', voic
 const exigidoPeloSeedance = (p, seg) => Math.ceil(seg * NF.minCoverageFor(seg) * taxaDa(p) - 1e-9)
 const STORYTELLER = PERS.VOICE_PERSONAS.find((p) => p.id === 'storyteller')
 ok(!!STORYTELLER && STORYTELLER.voice === 'fable', 'a persona do Rick: storyteller, voz fable')
-const p90 = L.planoDePalavras(253, 304)
-ok(p90 && p90.piso === 253 && p90.alvo === 278 && soma(p90) === 278, `lib pura: planoDePalavras(253) = ${p90?.piso}/${p90?.alvo} (a rota não o pede a 90 s — ver N90)`)
-ok(p169 && p169.piso === 169 && p169.alvo === 186, `60 s: plano ${p169?.piso}/${p169?.alvo}`)
+const p90 = L.planoDePalavras(253)
+ok(p90 && p90.piso === 253 && soma(p90) === 253, `lib pura: planoDePalavras(253) = ${p90?.piso} (a rota não o pede a 90 s — ver N90)`)
 ok(L.ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS === 60 && L.planoValeNoFilme(35) && L.planoValeNoFilme(60) && !L.planoValeNoFilme(61) && !L.planoValeNoFilme(90) && !L.planoValeNoFilme(NaN), 'planoValeNoFilme: 35 e 60 s sim; 61/90 s e inválido não (4ª revisão)')
 for (const seg of [60]) {
   const plano = p169
@@ -181,9 +186,9 @@ const PEDIDO_RICK = { topic: IDEIA_RICK, language: 'en', targetSeconds: 60, engi
 console.log('R1 — o pedido do Rick: 89 palavras na 1ª, a 2ª leva a conta por bloco e volta no tamanho')
 ok(falaDe(ROTEIRO_RICK_89) === 89 && falaDe(ROTEIRO_RICK_LONGO) >= 186, `dublês: o roteiro real tem 89 palavras; o longo ${falaDe(ROTEIRO_RICK_LONGO)}`)
 const r1 = await postar({ body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
-const plano1 = r1.chamadas[0]?.system.match(/NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+)/)
+const plano1 = r1.chamadas[0]?.system.match(/THIS 60-SECOND FILM NEEDS (\d+) SPOKEN WORDS \(/)
 ok(r1.status === 200 && r1.escrito?.min_words === 169, `200 e o piso da régua do Kineo 1 a 60 s = 169 (min_words ${r1.escrito?.min_words})`)
-ok(!!plano1 && Number(plano1[2]) === 169 && Number(plano1[1]) >= 169, `a 1ª chamada leva o LENGTH PLAN (alvo ${plano1?.[1]}, nunca menos de ${plano1?.[2]})`)
+ok(!!plano1 && Number(plano1[1]) === 169 && /Aim right at this number/.test(r1.chamadas[0]?.system ?? ''), `a 1ª chamada leva o LENGTH PLAN no piso (${plano1?.[1]}), mirando nele`)
 ok(/MICRO REWARD 1: about \d+ words/.test(r1.chamadas[0]?.system ?? '') && /OVERRIDE any "one sentence"/.test(r1.chamadas[0]?.system ?? ''), 'o plano dá palavras por bloco e vence o "uma frase" das regras gerais')
 ok((r1.chamadas[0]?.max_tokens ?? 0) >= 700 && r1.chamadas[1]?.max_tokens === r1.chamadas[0]?.max_tokens, `tokens de saída nunca abaixo de 700 (${r1.chamadas[0]?.max_tokens})`)
 ok(r1.chamadas.length === 2, `exatamente UMA nova tentativa (${r1.chamadas.length} chamadas)`)
@@ -229,8 +234,8 @@ const seedanceAceita = (p, palavras, seg) => palavras / taxaDa(p) >= seg * NF.mi
 console.log('SR — o Rick (storyteller/fable) a 60 s, motores fast e seedance, na rota')
 for (const engine of ['fast', 'seedance']) {
   const s60 = await postar({ body: { ...PEDIDO_RICK, engine }, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
-  const pl = (s60.chamadas[0]?.system ?? '').match(/NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+) \(/)
-  ok(!!pl && Number(pl[2]) === s60.escrito?.min_words && Number(pl[2]) >= 169 && !/NEVER MORE THAN/.test(s60.chamadas[0]?.system ?? ''), `engine ${engine} a 60 s: a 1ª chamada leva o plano ${pl?.[2]}/${pl?.[1]}, sem teto`)
+  const pl = (s60.chamadas[0]?.system ?? '').match(/NEEDS (\d+) SPOKEN WORDS \(/)
+  ok(!!pl && Number(pl[1]) === s60.escrito?.min_words && Number(pl[1]) >= 169 && s60.escrito?.length_plan?.floor_words === Number(pl[1]) && !/NEVER MORE THAN/.test(s60.chamadas[0]?.system ?? ''), `engine ${engine} a 60 s: a 1ª chamada leva o plano no piso (${pl?.[1]})`)
   ok(s60.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM: your script has 89 spoken words/.test(s60.chamadas[1]?.user ?? ''), `engine ${engine} a 60 s: as 89 palavras pedem a nova tentativa por tamanho`)
   ok(s60.body?.script === ROTEIRO_RICK_LONGO && s60.escrito?.fits === true && s60.escrito?.length_retry?.kept === 'retry' && s60.escrito?.still_short_after_retry === false && s60.escrito?.length_plan?.version === 'roteiro_no_tamanho_0111', `engine ${engine} a 60 s: sai a 2ª (${falaDe(ROTEIRO_RICK_LONGO)} palavras, fits:true)`)
   ok(seedanceAceita(STORYTELLER, falaDe(s60.body?.script ?? ''), 60) && !seedanceAceita(STORYTELLER, 89, 60), `engine ${engine} a 60 s: 89 (o Seedance encurtava para 35 s) → ${falaDe(s60.body?.script ?? '')} palavras, aceitas na voz fable`)
@@ -240,19 +245,61 @@ for (const engine of ['fast', 'seedance']) {
 {
   const PIOR_60 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 230 && n < 30) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
   const p = await postar({ body: PEDIDO_RICK, gpt: () => PIOR_60 })
-  ok(p.chamadas.length === 1 && p.body?.script === PIOR_60, `60 s, roteiro acima do alvo (${falaDe(PIOR_60)} palavras): UMA chamada, nada é cortado pelo escritor (passar do alvo é bom)`)
+  ok(p.chamadas.length === 1 && p.body?.script === PIOR_60, `60 s, roteiro acima do piso (${falaDe(PIOR_60)} palavras): UMA chamada, o escritor não corta (como na base)`)
 }
 
 console.log('T35 — 35 s: o plano vale (régua clássica)')
 {
   const PEDIDO_35 = { ...PEDIDO_RICK, targetSeconds: 35 }
   const t35 = await postar({ body: PEDIDO_35, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
-  const pl = (t35.chamadas[0]?.system ?? '').match(/THIS 35-SECOND FILM NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+) \(/)
-  ok(t35.status === 200 && !!pl && Number(pl[2]) === t35.escrito?.min_words && t35.escrito?.length_plan?.floor_words === t35.escrito?.min_words, `35 s: plano ${pl?.[2]}/${pl?.[1]} no prompt e no rastro (min_words ${t35.escrito?.min_words})`)
+  const pl = (t35.chamadas[0]?.system ?? '').match(/THIS 35-SECOND FILM NEEDS (\d+) SPOKEN WORDS \(/)
+  ok(t35.status === 200 && !!pl && Number(pl[1]) === t35.escrito?.min_words && t35.escrito?.length_plan?.floor_words === t35.escrito?.min_words, `35 s: plano ${pl?.[1]} no prompt e no rastro (min_words ${t35.escrito?.min_words})`)
   const curto35 = (t35.escrito?.min_words ?? 0) > 89
   ok(curto35 ? (t35.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM/.test(t35.chamadas[1]?.user ?? '') && t35.body?.script === ROTEIRO_RICK_LONGO) : (t35.chamadas.length >= 1), `35 s: ${curto35 ? '89 palavras abaixo do piso → nova tentativa por tamanho, sai a 2ª' : '89 palavras já no piso'}`)
   const c35 = await postar({ body: PEDIDO_35, gpt: () => ROTEIRO_RICK_LONGO })
   ok(c35.chamadas.length === 1 && c35.escrito?.length_retry === null && c35.escrito?.fits === true, '35 s: roteiro no tamanho na 1ª → UMA chamada, sem length_retry')
+}
+
+console.log('V60 (5ª revisão) — o plano cabe nos 90 s da montagem na voz MAIS LENTA, com tema de mistério e de luxo')
+const NM = createOfflineLoader({})('@/lib/narration/niche-mapping.ts')
+const TAXAS = PERS.VOICE_PERSONAS.map((p) => [p.id, taxaDa(p)])
+const [LENTA_ID, LENTA] = TAXAS.reduce((m, x) => (x[1] < m[1] ? x : m))
+ok(Math.abs(LENTA - 2.3) < 1e-9 && ['dark-mystery', 'luxury-narrator'].includes(LENTA_ID), `voz mais lenta do catálogo clássico: ${LENTA_ID} ${LENTA.toFixed(2)} pal/s`)
+const TEMA_MISTERIO = 'The Dyatlov Pass mystery'
+const TEMA_LUXO = 'The billionaire yacht with a submarine garage and a helipad'
+ok(NM.selectPersonaForScript(TEMA_MISTERIO, undefined, 'premium')?.id === 'dark-mystery' && NM.selectPersonaForScript(TEMA_LUXO, undefined, 'cinematic')?.id === 'luxury-narrator', `os temas pegam as vozes lentas nos planos pagos (${NM.selectPersonaForScript(TEMA_MISTERIO, undefined, 'premium')?.id} / ${NM.selectPersonaForScript(TEMA_LUXO, undefined, 'cinematic')?.id})`)
+const FOLGA_MINIMA = 1.1 // o modelo precisa passar 10 %+ do plano para a fala chegar a 90 s
+const pisosVistos = []
+for (const tema of [TEMA_MISTERIO, TEMA_LUXO]) {
+  for (const engine of ['fast', 'seedance', 'kling25', 'veo', 'h3']) {
+    for (const seg of [30, 35, 60]) {
+      const v = await postar({ body: { topic: tema, language: 'en', targetSeconds: seg, engine }, gpt: () => ROTEIRO_RICK_LONGO })
+      const pl = (v.chamadas[0]?.system ?? '').match(new RegExp(`THIS ${seg}-SECOND FILM NEEDS (\\d+) SPOKEN WORDS \\(`))
+      if (!pl) { ok(false, `${engine} ${seg} s: plano no prompt`); continue }
+      const piso = Number(pl[1])
+      const fala = piso / LENTA
+      pisosVistos.push([engine, seg, piso])
+      ok(piso === v.escrito?.min_words && fala * FOLGA_MINIMA < 90 && v.chamadas[0]?.max_tokens === Math.max(700, piso * 6), `${tema.slice(4, 18)} · ${engine} ${seg} s: plano ${piso} = ${fala.toFixed(1)} s na voz mais lenta; para chegar a 90 s precisaria de ${Math.ceil(90 * LENTA)} (+${Math.round((90 * LENTA / piso - 1) * 100)} %)`)
+    }
+  }
+}
+{
+  const s60 = pisosVistos.find(([e, s]) => e === 'seedance' && s === 60)?.[2]
+  ok(s60 === 186 && 186 * 1.1 / LENTA > 88.9, `Seedance 60 s: plano 186 (era 205 = ${(205 / LENTA).toFixed(1)} s na voz mais lenta, 2 palavras do corte)`)
+  const libFolga = rd(LIB_REL).replace('const piso = Math.ceil(pisoDaRegua)', 'const piso = Math.round(pisoDaRegua * 1.1)')
+  const m = libFolga !== rd(LIB_REL) ? await postar({ libSrc: libFolga, body: { topic: TEMA_MISTERIO, language: 'en', targetSeconds: 60, engine: 'seedance' }, gpt: () => ROTEIRO_RICK_LONGO }) : null
+  const pm = Number((m?.chamadas[0]?.system ?? '').match(/NEEDS (\d+) SPOKEN WORDS \(/)?.[1])
+  ok(!!m && pm === 205 && (pm / LENTA) * FOLGA_MINIMA >= 90, `mutante "folga de 10 % de volta": plano ${pm} = ${(pm / LENTA).toFixed(1)} s → reprovado pelo V60`)
+}
+ok(/rastroDoFinal\.retry_adotado = fica === 'segunda'/.test(rd(ROUTE_REL)), 'rastro do final: retry_adotado = a 2ª ficou de fato (antes: true mesmo quando a 1ª ficava)')
+
+console.log('T30 — 30 s (hollywood): o plano vale e cabe')
+{
+  const t30 = await postar({ body: { ...PEDIDO_RICK, targetSeconds: 30, engine: 'h3' }, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_70 : ROTEIRO_RICK_89) })
+  const pl = (t30.chamadas[0]?.system ?? '').match(/THIS 30-SECOND FILM NEEDS (\d+) SPOKEN WORDS \(/)
+  ok(t30.status === 200 && !!pl && Number(pl[1]) === t30.escrito?.min_words && t30.escrito?.family === 'hollywood' && t30.escrito?.length_plan?.floor_words === Number(pl[1]), `30 s h3: plano ${pl?.[1]} no prompt e no rastro (régua hollywood)`)
+  const curto = falaDe(ROTEIRO_RICK_70) < (t30.escrito?.min_words ?? 0)
+  ok(curto ? t30.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM/.test(t30.chamadas[1]?.user ?? '') : t30.chamadas.length >= 1, `30 s h3: ${falaDe(ROTEIRO_RICK_70)} palavras ${curto ? 'abaixo do piso → nova tentativa por tamanho' : 'no piso'}`)
 }
 
 console.log('N90 — 90 s: o plano não se aplica; a rota é IGUAL à base (chamadas, roteiro, script_written)')

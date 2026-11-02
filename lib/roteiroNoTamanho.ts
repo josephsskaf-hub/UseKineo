@@ -18,8 +18,7 @@
 //
 // CONSERTO (puro, sem rede; a rota injeta):
 //   1. planoDePalavras — o piso vira ORÇAMENTO POR BLOCO (HOOK e RHYTHM continuam curtos; os 3 MICRO REWARD, a ESCALATION e
-//      o PAYOFF recebem o resto), mirando ~10 % acima do piso e nunca acima do teto ("passar do alvo é bom; ficar abaixo é
-//      defeito"). instrucaoDoPlano entra no prompt do escritor no filme de 35/60 s (nunca no curto, nunca a 90 s, nunca no roteiro
+//      o PAYOFF recebem o resto), somando exatamente o piso (5ª revisão: sem a folga de 10 % — ver e.). instrucaoDoPlano entra no prompt do escritor no filme de 35/60 s (nunca no curto, nunca a 90 s, nunca no roteiro
 //      colado: ali o piso é o texto da pessoa, e ela não ganha enchimento).
 //   2. pedidoDeTamanho — a 2ª tentativa (a que JÁ existia, "regenerating once") passa a levar a contagem por bloco do que
 //      saiu e o orçamento de cada um: "MICRO REWARD 1 tem 11 de 34 palavras — expanda com frases da MESMA história".
@@ -39,12 +38,19 @@
 //      montagem (lib/compose.ts, clamp a 90) cortava o final; na rota do Kineo 1 o alvo de 278 ainda passava do teto de
 //      103,5 s em duas vozes. A 90 s o escritor volta EXATAMENTE à base: sem plano, sem pedido de tamanho, sem escolha entre
 //      versões (a 2ª substitui, como sempre) e com o timeout de sempre na 2ª chamada. A mudança da 3ª revisão na rota fast
-//      (roteiro da IA longo vira tema) saiu junto: só existia para o caso de 90 s. A 60 s o pior caso é 89 s de fala.
+//      (roteiro da IA longo vira tema) saiu junto: só existia para o caso de 90 s.
 //   b. escolherVersao respeita o KINEO-NARRADOR-DESCRICAO-0111: a versão que NÃO lê a descrição de cena vence a que lê —
 //      antes do critério de tamanho.
 //   c. prazoDaNovaTentativa: a 2ª chamada só sai se couber no maxDuration de 60 s, com o timeout encolhido ao que sobrou.
 //   d. o resgate da recusa (KINEO-MOTOR-15S-1510, 700 tokens) NÃO leva o plano (a rota injeta o plano só nas chamadas do
 //      escritor normal); o script_written diz por que não houve nova tentativa por tamanho (length_retry_skipped).
+//   e. (5ª revisão) O PLANO MIRA O PISO, NÃO 10 % ACIMA. O roteiro da IA tem marcadores e vai verbatim (o compose não encurta
+//      nem acelera) e a montagem corta em 90 s (lib/compose.ts, clamp). A voz MAIS LENTA do catálogo clássico — dark-mystery
+//      (onyx 0,92) e luxury-narrator (alloy 0,9), 2,30 pal/s — é a dos temas de mistério e luxo, o vertical principal. Com o
+//      alvo em 205 (186 × 1,1) a 60 s, 205 palavras davam 89,1 s nessa voz e um estouro de 2 palavras já perdia o final. Agora o
+//      orçamento por bloco soma o piso: 186 = 80,9 s na voz mais lenta (169 do Kineo 1 = 73,5 s); para chegar a 90 s o modelo
+//      precisa passar 11 % do plano. Saíram a FOLGA_DO_PLANO e o teto (maxWordsFor) do plano. Tokens: piso × 6 (folga para
+//      estouro e para línguas de muitos tokens por palavra — bengali, hindi, grego — sem cortar o PAYOFF).
 import { narrationWordCount } from '@/lib/textLanguage'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta'
 
@@ -66,30 +72,24 @@ const HOOK_PALAVRAS = 12
 const RHYTHM_PALAVRAS = 5
 /** O resto do orçamento, por peso: os 3 fatos e o payoff carregam a história; a escalada é a ponte. */
 const PESOS: ReadonlyArray<[SecaoDoRoteiro, number]> = [['MICRO REWARD 1', 22], ['MICRO REWARD 2', 22], ['MICRO REWARD 3', 22], ['ESCALATION', 12], ['PAYOFF', 22]]
-/** Quanto acima do piso o plano mira: o modelo erra para baixo; mirar no piso exato devolve roteiro abaixo dele. */
-export const FOLGA_DO_PLANO = 1.1
 
 export interface PlanoDePalavras {
-  /** O total que o plano pede (≥ piso, ≤ teto quando o teto é maior que o piso). */
-  alvo: number
-  /** O piso do plano: o da régua do escritor. */
+  /** O que o plano pede e o que os blocos somam: o piso da régua do escritor (5ª revisão: sem folga acima dele). */
   piso: number
   secoes: Array<{ secao: SecaoDoRoteiro; palavras: number }>
 }
 
-/** O piso de palavras vira um orçamento por bloco que soma exatamente o alvo. null quando não há piso utilizável. */
-export function planoDePalavras(pisoDaRegua: number, teto: number): PlanoDePalavras | null {
+/** O piso de palavras vira um orçamento por bloco que soma exatamente o piso. null quando não há piso utilizável. */
+export function planoDePalavras(pisoDaRegua: number): PlanoDePalavras | null {
   if (!Number.isFinite(pisoDaRegua) || pisoDaRegua < HOOK_PALAVRAS + RHYTHM_PALAVRAS + 20) return null
   const piso = Math.ceil(pisoDaRegua)
-  const tetoUtil = Number.isFinite(teto) && teto > piso ? teto : Number.POSITIVE_INFINITY
-  const alvo = Math.max(piso, Math.min(Math.round(pisoDaRegua * FOLGA_DO_PLANO), Math.floor(tetoUtil)))
-  const resto = alvo - HOOK_PALAVRAS - RHYTHM_PALAVRAS
+  const resto = piso - HOOK_PALAVRAS - RHYTHM_PALAVRAS
   const somaPesos = PESOS.reduce((s, [, p]) => s + p, 0)
   const meio = PESOS.map(([secao, p]) => ({ secao, palavras: Math.round((resto * p) / somaPesos) }))
   const ajuste = resto - meio.reduce((s, x) => s + x.palavras, 0)
   meio[meio.length - 1].palavras += ajuste // o PAYOFF absorve o arredondamento
   const porSecao = new Map<SecaoDoRoteiro, number>([['HOOK', HOOK_PALAVRAS], ['RHYTHM', RHYTHM_PALAVRAS], ...meio.map((x) => [x.secao, x.palavras] as [SecaoDoRoteiro, number])])
-  return { alvo, piso, secoes: SECOES_DO_ROTEIRO.map((secao) => ({ secao, palavras: porSecao.get(secao) ?? 0 })) }
+  return { piso, secoes: SECOES_DO_ROTEIRO.map((secao) => ({ secao, palavras: porSecao.get(secao) ?? 0 })) }
 }
 
 const frasesPara = (palavras: number): string => (palavras >= 30 ? '3-4 full sentences' : palavras >= 18 ? '2-3 full sentences' : '1-2 sentences')
@@ -101,8 +101,8 @@ export function instrucaoDoPlano(plano: PlanoDePalavras, alvoSegundos: number): 
       : secao === 'RHYTHM' ? `- RHYTHM: about ${palavras} words (2-3 ultra-short punches — stays short)`
         : `- ${secao}: about ${palavras} words (${frasesPara(palavras)} that tell this beat of the story with concrete detail: who, where, what happened, what it looked like, what it meant)`)
   return [
-    `LENGTH PLAN — THIS ${alvoSegundos}-SECOND FILM NEEDS ABOUT ${plano.alvo} SPOKEN WORDS, NEVER FEWER THAN ${plano.piso} (${ROTEIRO_NO_TAMANHO_VERSAO}):`,
-    'The film ends when the narration ends: a short script does not make a shorter film, it makes an interrupted story. Word budget per section (spoken words only — headers and [Pexels: ...] cues do not count):',
+    `LENGTH PLAN — THIS ${alvoSegundos}-SECOND FILM NEEDS ${plano.piso} SPOKEN WORDS (${ROTEIRO_NO_TAMANHO_VERSAO}):`,
+    'The film ends when the narration ends: a short script does not make a shorter film, it makes an interrupted story — and a much longer one loses its ending. Aim right at this number. Word budget per section (spoken words only — headers and [Pexels: ...] cues do not count):',
     ...linhas,
     'These budgets OVERRIDE any "one sentence" / "one fact" wording above for a film this long: only the HOOK and the RHYTHM stay short. Develop each MICRO REWARD, the ESCALATION and the PAYOFF with more sentences from the SAME story or subject — never filler, never repeated sentences, never invented facts about real people. Before answering, count the words of each section against its budget.',
   ].join('\n')
@@ -133,7 +133,7 @@ export function pedidoDeTamanho(args: { roteiro: string; palavras: number; plano
   const feitas = new Map(palavrasPorSecao(roteiro, language).map((x) => [x.secao, x.palavras]))
   const contas = plano.secoes.map(({ secao, palavras: meta }) => `${secao} ${feitas.get(secao) ?? 0}/${meta}`).join(', ')
   return [
-    `LENGTH IS THE MAIN PROBLEM: your script has ${palavras} spoken words and this ${alvoSegundos}-second film needs at least ${plano.piso} (aim for about ${plano.alvo}).`,
+    `LENGTH IS THE MAIN PROBLEM: your script has ${palavras} spoken words and this ${alvoSegundos}-second film needs ${plano.piso}.`,
     `Words you wrote per section vs. the budget: ${contas}.`,
     'Rewrite the FULL script: the SAME story, the SAME facts and characters, the SAME headers in the same order — and expand every section that is under its budget with additional concrete sentences that continue that beat (setting, action, detail, consequence). Do not add new sections, do not pad with filler or repeat sentences, do not invent facts about real people. Count the words of each section before answering.',
   ].join(' ')
@@ -161,10 +161,10 @@ export function escolherVersao(args: { piso: number; primeira: VersaoDoRoteiro; 
   return 'segunda'
 }
 
-/** Tokens de saída para o roteiro longo: o alvo com folga para cabeçalhos, pistas e línguas de muitos tokens por palavra. */
+/** Tokens de saída para o roteiro longo: o piso com folga para cabeçalhos, pistas, estouro e línguas de muitos tokens por palavra. */
 export function tetoDeTokens(plano: PlanoDePalavras | null, base: number): number {
   if (!plano) return base
-  return Math.max(base, Math.min(2000, Math.round(plano.alvo * 4)))
+  return Math.max(base, Math.min(2000, Math.round(plano.piso * 6)))
 }
 
 /** Menor prazo que ainda vale gastar numa 2ª chamada de roteiro inteiro (gpt-4o, centenas de tokens). */
