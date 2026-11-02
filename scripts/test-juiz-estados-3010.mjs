@@ -9,6 +9,7 @@ import { JUIZ_ESTADOS_3010, deltaJuizEstados3010Exato, semJuizEstados3010 } from
 import { semLegendaCena3110 } from './test-support/desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110
 import { semRevisor100111 } from './test-support/desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111
 import { semK4SujeitoFinal0111 } from './test-support/desfaz-k4-sujeito-final-0111.mjs' // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111
+import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111
 import { semJuizPlano0111 } from './test-support/desfaz-juiz-plano-0111.mjs' // KINEO-JUIZ-PLANO-0111
 import { semProtagonistaSeedance0111 } from './test-support/desfaz-protagonista-seedance-0111.mjs' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import { semRecusaBotao3110Recibo } from './test-support/recibo-recusa-botao-3110.mjs' // KINEO-RECUSA-BOTAO-3110
@@ -132,7 +133,7 @@ await test('mutant promoting a high-score FAIL is caught', async () => {
 await test('exact TRAVA receipt restores the fixed baseline and rejects unknown edits', async () => {
   for (const path of Object.keys(JUIZ_ESTADOS_3010.scope)) {
     const before = execFileSync('git', ['show', `${JUIZ_ESTADOS_3010.base}:${path}`], { cwd: root, encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n')
-    const atual = semLegendaCena3110(semRecusaBotao3110Recibo(semDecisoesPreco3110Recibo(semRevisor100111(semK4SujeitoFinal0111(semJuizPlano0111(semProtagonistaSeedance0111(read(path), path) /* KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes de tudo */, path) /* KINEO-JUIZ-PLANO-0111 — a camada do juiz do plano (01/11) sai antes de todas */, path), path) /* KINEO-K4-SUJEITO-0111 — a camada de 01/11 ("vai tudo") sai primeiro */, path), path), path) /* KINEO-REVISOR-10-0111 — a camada de 01/11 sai primeiro */ /* KINEO-DECISOES-PRECO-3110 — as decisões de preço (31/10) saem primeiro, pelo recibo exato */ // KINEO-RECUSA-BOTAO-3110 — a entrega de 31/10 (botão da recusa) sai primeiro, pelo recibo exato · KINEO-LEGENDA-CENA-3110 — a camada mais nova sai antes da conferência deste recibo
+    const atual = semLegendaCena3110(semRecusaBotao3110Recibo(semDecisoesPreco3110Recibo(semRevisor100111(semK4SujeitoFinal0111(semJuizPlano0111(semProtagonistaSeedance0111(semK4NarracaoCabe0111(read(path), path) /* KINEO-K4-NARRACAO-CABE-0111 — a camada mais nova (02/11, opção C) sai primeiro */, path) /* KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes de tudo */, path) /* KINEO-JUIZ-PLANO-0111 — a camada do juiz do plano (01/11) sai antes de todas */, path), path) /* KINEO-K4-SUJEITO-0111 — a camada de 01/11 ("vai tudo") sai primeiro */, path), path), path) /* KINEO-REVISOR-10-0111 — a camada de 01/11 sai primeiro */ /* KINEO-DECISOES-PRECO-3110 — as decisões de preço (31/10) saem primeiro, pelo recibo exato */ // KINEO-RECUSA-BOTAO-3110 — a entrega de 31/10 (botão da recusa) sai primeiro, pelo recibo exato · KINEO-LEGENDA-CENA-3110 — a camada mais nova sai antes da conferência deste recibo
     assert.equal(semJuizEstados3010(atual, path), before)
     assert.equal(deltaJuizEstados3010Exato(atual, before, path), true)
     assert.equal(deltaJuizEstados3010Exato(atual + '\n// unknown edit\n', before, path), false)

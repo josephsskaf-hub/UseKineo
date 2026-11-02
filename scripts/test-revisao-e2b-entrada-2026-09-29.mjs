@@ -21,6 +21,7 @@ import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
 import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
+import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -109,7 +110,7 @@ console.log('B) handoff do GPT: 15 s acima do teto de fala volta 400 na conversa
 
 console.log('C) o escritor (trava 8.2, "vai" do 15 s): texto pronto com marcadores não volta intacto acima do teto')
 {
-  const GS = rd('app/api/generate-script/route.ts')
+  const GS = semK4NarracaoCabe0111(rd('app/api/generate-script/route.ts'), 'app/api/generate-script/route.ts') // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — a camada mais nova (teto/piso do escritor viram let para a faixa do Kling 4 grátis) sai pelo recibo exato
   const L_RET = '    if (!forceAuthoring && hasViralMarkers(topic)) {'
   const L_FIT = '      if (filmeCurto && palavrasDoFilmeCurto(topic) > tetoFilmeCurto) {'
   // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.

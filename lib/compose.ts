@@ -2491,7 +2491,15 @@ export function buildCreatomateSource({
       const len = round3(Math.min(K4_CAUDA, totalDuration - t)) // KINEO-K4-FIM-SEM-VOLTA-0111
       elements.push({ // KINEO-K4-FIM-SEM-VOLTA-0111
         ...k4Base, time: t, duration: len, trim_start: round3(K4_SEGUNDOS - len), // KINEO-K4-FIM-SEM-VOLTA-0111
-        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }], // KINEO-K4-FIM-SEM-VOLTA-0111
+        // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — farol (e8f91bdf): o empurrão
+        // de 6 % linear deixava a sobra como quadro quase parado. Agora um movimento de câmera perceptível: empurrão de 12 % ancorado
+        // fora do centro (38 % / 62 %, alternando — o mesmo par de âncoras do Ken Burns do Kineo 1, exercitado em produção), que se
+        // lê como pan. Escala CONTÍNUA entre trechos: o 1º sai de 100 % (o clipe inteiro termina em 100 %), o seguinte volta de 112 %
+        // a 100 % com a MESMA âncora, e só no 100 % (onde a âncora não desloca nada) o par troca de lado — nenhum salto de escala
+        // nem de enquadramento no corte. A sobra em si fica em até 0,5 s: a rota MEDE a fala (a TTS desta montagem, antes do
+        // POST pago) e só manda ao clipe de 15 s fala de até 15,5 s medidos — acima, o filme vai ao Seedance; o escritor do
+        // filme grátis mira a faixa de palavras do Kling 4 (lib/kling4TrialScript), mas quem decide é a medição.
+        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '112%', end_scale: k % 2 === 0 ? '112%' : '100%', x_anchor: Math.floor(k / 2) % 2 === 0 ? '38%' : '62%', y_anchor: '50%', easing: 'ease-out' }], // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-NARRACAO-CABE-0111
       }) // KINEO-K4-FIM-SEM-VOLTA-0111
       t = round3(t + len) // KINEO-K4-FIM-SEM-VOLTA-0111
     } // KINEO-K4-FIM-SEM-VOLTA-0111

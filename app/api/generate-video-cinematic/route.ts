@@ -17,6 +17,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
+import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
 import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
@@ -7725,7 +7726,14 @@ async function manipularPost(req: NextRequest) {
     }
     let kling4Trial: Kling4TrialResult | null = null
     let kling4Posts = 0
-    if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6))) {
+    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o clipe do Kling 4 tem 15 s.
+    // A fala NÃO é estimada: ANTES da reserva e do POST pago, a narração é sintetizada como a montagem vai sintetizar (mesmo
+    // texto do voiceover_script, voz assinada em narration_voice × speed, língua e qualidade do claim — a chave do cache de voz
+    // que o /api/compose lê, então a montagem não paga a TTS de novo) e a duração do mp3 decide: ≤ 15,5 s → Kling 4; acima, ou
+    // sem medida → o Seedance de 3 clipes, que filma a fala inteira (farol e8f91bdf: 18,4 s sobre 15 s). lib/kling4TrialScript.
+    const kling4Fala: FalaK4 | null = kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? await medirFalaDoKling4Trial({ voiceoverScript: verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' '), verbatim, scriptSpeed: parsedScript.speed, voz: vozCurta, language: narrationLanguage.language, quality: String(claimQuality), log: `gen=${generationId.slice(0, 8)}` }) : null // KINEO-K4-NARRACAO-CABE-0111 — o mesmo voiceover_script da resposta abaixo
+    if (kling4Fala && !kling4Fala.cabe) console.warn(`[cinematic] KINEO-K4-NARRACAO-CABE-0111 fala medida ${kling4Fala.seconds ?? '?'}s (teto ${kling4Fala.maxSeconds}s, ${kling4Fala.reason}) → Seedance 15 s, não Kling 4`) // KINEO-K4-NARRACAO-CABE-0111
+    if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) && kling4Fala?.cabe) { // KINEO-K4-NARRACAO-CABE-0111: + fala medida ≤ 15,5 s
       kling4Trial = await orchestrateKling4Trial({
         reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
         submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago
@@ -7733,7 +7741,7 @@ async function manipularPost(req: NextRequest) {
         }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },
       })
     } else if (kling4TrialCandidate) {
-      kling4Trial = { engineUsed: 'seedance15_fallback', costUsd: 0, reason: 'fallback_plan_unavailable' }
+      kling4Trial = { engineUsed: 'seedance15_fallback', costUsd: 0, reason: kling4Fala && !kling4Fala.cabe ? kling4Fala.reason : 'fallback_plan_unavailable' } // KINEO-K4-NARRACAO-CABE-0111
     }
     const submittedScenes = kling4Trial?.job
       ? { ids: [kling4Trial.job.requestId], models: [kling4Trial.job.model] }
@@ -7999,6 +8007,7 @@ async function manipularPost(req: NextRequest) {
         version: 'kling4_trial_2810', engine_used: kling4Trial.engineUsed,
         cost_usd: kling4Trial.costUsd, country: paisDoRequest(req.headers),
         sujeito_obrigatorio: kling4Sujeito.r?.relato ?? null, // KINEO-K4-SUJEITO-0111 — o sujeito central exigido, se já estava em cena e se a checagem corrigiu (cena, imagem-chave retirada)
+        ...(kling4Trial.reason ? { reason: kling4Trial.reason } : {}), ...(kling4Fala ? { narration_fit: kling4Fala } : {}), // KINEO-K4-NARRACAO-CABE-0111 — rastro: fala medida × teto do clipe de 15 s
         ...(kling4Trial.job ? {
           original_request_id: kling4Trial.job.requestId, submitted_at: kling4Trial.job.submittedAt,
           fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),

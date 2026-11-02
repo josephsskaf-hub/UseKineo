@@ -36,6 +36,7 @@ import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMo
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
+import { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -383,8 +384,8 @@ export async function POST(req: NextRequest) {
     // KINEO-RITMO-POR-IDIOMA-15S — a faixa e o teto duro (idiomaDoRitmo, acima) correm no MESMO ritmo da guarda de roteiro longo,
     // do plano 3x6 e do portão da rota do cinematic. O maxWordsForShortFilm do teto da faixa segue sem língua: no Seedance o
     // teto da faixa (16,75 s) já é menor que o da guarda (22,5 s) em qualquer ritmo, e o Kineo 1 a 15 s (a cota grátis) não muda.
-    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))
-    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
+    let tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos)) // KINEO-K4-NARRACAO-CABE-0111: let — a faixa do Kling 4 grátis estreita depois do texto pronto
+    let pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto) // KINEO-K4-NARRACAO-CABE-0111: let (idem)
     // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic
     // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
     // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
@@ -432,6 +433,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
+    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — opção C: quando o pedido vai ao filme grátis do Kling 4
+    // (um clipe de 15 s; o mesmo predicado da rota, kling4TrialEligible, lido com o perfil e as contagens da própria pessoa), o
+    // escritor escreve para CABER nos 15 s: faixa de PALAVRAS por língua tirada das durações medidas (lib/kling4TrialScript), sempre
+    // dentro da faixa que o Seedance de 15 s aceita. O teto DURO do corte por frases continua o da guarda do Seedance
+    // (tetoDuroFilmeCurto, acima, já calculado): sem combinação de frases inteiras dentro da faixa, passar do teto vence ficar abaixo
+    // do piso, e a medição da voz na rota manda ao Seedance. Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado
+    // (as palavras da pessoa) ficam na faixa normal. Língua sem interseção ou sem medida, perfil ilegível: faixa normal.
+    const faixaK4 = filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({
+      engine: body.engine, seconds: alvoSegundos, language,
+      paid: await (async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } })(),
+      contar: async () => {
+        const [films, debits] = await Promise.all([
+          supabase.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'failed'),
+          supabase.from('credit_debits').select('render_id', { count: 'exact', head: true }).eq('user_id', user.id).like('render_id', 'cinematic-%').is('refunded_at', null),
+        ])
+        return { films: films.error ? null : films.count, debits: debits.error ? null : debits.count }
+      },
+    }) : null // KINEO-K4-NARRACAO-CABE-0111
+    if (faixaK4) { // KINEO-K4-NARRACAO-CABE-0111
+      tetoFilmeCurto = faixaK4.max; pisoFilmeCurto = faixaK4.min // KINEO-K4-NARRACAO-CABE-0111 — tetoDuroFilmeCurto NÃO muda
+      console.log(`[generate-script] KINEO-K4-NARRACAO-CABE-0111 filme grátis Kling 4: faixa ${faixaK4.min}-${faixaK4.max} palavras (${faixaK4.language}), teto duro ${tetoDuroFilmeCurto}`) // KINEO-K4-NARRACAO-CABE-0111
+    } // KINEO-K4-NARRACAO-CABE-0111
+
     // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por
     // bloco (lib/roteiroNoTamanho.ts). Caso Rick 01/11: 82 → 89 palavras para um piso de 169 e o filme de 60 s saiu com 35 s.
     // 2ª revisão: sem teto por motor — engine:'fast' no escritor também é filme do cinematic/Seedance (Rick); o plano vale para todos.
@@ -446,6 +470,7 @@ export async function POST(req: NextRequest) {
       + (colado.reason === 'scene_description' ? `\n\n${SCENE_DESCRIPTION_RULE}` : '') // KINEO-NARRADOR-DESCRICAO-0111 [TRAVA 8.2 — vai do fundador 01/11]: descrição do que VER vira história narrada + pistas [Pexels] do sujeito descrito
     // KINEO-ROTEIRO-NO-TAMANHO-0111 — o plano vai só nas chamadas do escritor (1ª e nova tentativa); o resgate da recusa segue com o SYSTEM_PROMPT e os 700 tokens de sempre
     const PROMPT_DO_ROTEIRO = SYSTEM_PROMPT + (planoDoTamanho ? `\n\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : '') // KINEO-ROTEIRO-NO-TAMANHO-0111
+      + (faixaK4 ? `\n\n${instrucaoDoKling4NoEscritor(faixaK4)}` : '') // KINEO-K4-NARRACAO-CABE-0111 — a faixa do Kling 4 grátis substitui a do prompt (1ª e nova tentativa)
     const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o "aqui está prontinho pra copiar:" do chat
       : colado.reason === 'scene_description' ? temaDaDescricao(topic) : topic // KINEO-NARRADOR-DESCRICAO-0111 — a pergunta diz que é a imagem, não a fala
     const descricaoDeCena = colado.reason === 'scene_description' // KINEO-NARRADOR-DESCRICAO-0111
@@ -723,7 +748,7 @@ export async function POST(req: NextRequest) {
       // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-REGUA-1910 — só RASTRO (nada muda na resposta): a IDEIA
       // ORIGINAL que a pessoa digitou, antes da IA escrever o roteiro, e o começo do roteiro que saiu (para o juiz coherence_v2
       // casar este evento com o nascimento do filme e julgar a fidelidade à ideia, não ao roteiro que a própria IA escreveu).
-      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(planoDoTamanho ? { length_plan: { version: ROTEIRO_NO_TAMANHO_VERSAO, floor_words: planoDoTamanho.piso }, length_retry: tentativaDeTamanho, length_retry_skipped: scriptWordCount(script) < alvoPalavras ? tamanhoSemNovaTentativa : null, still_short_after_retry: scriptWordCount(script) < alvoPalavras } : {}), ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(rastroDoFinal ? { final_resposta: rastroDoFinal } : {}), /* KINEO-FINAL-RESPOSTA-0111 — detector estreito + juiz semântico do fim (auditoria) */ ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê
+      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(faixaK4 ? { kling4_writer_band: { min: faixaK4.min, max: faixaK4.max, language: faixaK4.language } } : {}), /* KINEO-K4-NARRACAO-CABE-0111 */ ...(planoDoTamanho ? { length_plan: { version: ROTEIRO_NO_TAMANHO_VERSAO, floor_words: planoDoTamanho.piso }, length_retry: tentativaDeTamanho, length_retry_skipped: scriptWordCount(script) < alvoPalavras ? tamanhoSemNovaTentativa : null, still_short_after_retry: scriptWordCount(script) < alvoPalavras } : {}), ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(rastroDoFinal ? { final_resposta: rastroDoFinal } : {}), /* KINEO-FINAL-RESPOSTA-0111 — detector estreito + juiz semântico do fim (auditoria) */ ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {
