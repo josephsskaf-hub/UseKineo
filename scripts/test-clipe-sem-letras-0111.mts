@@ -5,10 +5,15 @@
 // O banco guarda só os 500 primeiros caracteres do pedido (1.282 no total); o teste usa esse trecho real, sem inventar o resto.
 // 0111d (decisão depois de 2 revisões): sem extração do texto pedido e sem detector "o cliente já proibiu texto". Regra única:
 // pediu texto explicitamente → prompt igual à base (nada acrescentado, nada cortado); senão → proteção genérica.
+// 0111f (revisão de 858cc5ee4): o /clips NÃO manda negative_prompt (payload da fal = base em todo motor e todo pedido) e o corte
+// do Studio em 1.800 é o da base (o cliente nunca perde mais texto que antes).
 // Rodar: node --import ./scripts/alias-loader.mjs scripts/test-clipe-sem-letras-0111.mts
 import { readFileSync } from 'node:fs'
-import { buildClipPrompt, detectShotSpec, pedeTextoExplicito as pedeStudio, FRASE_SEM_LETRAS as FRASE_STUDIO, CLIP_PROMPT_ENGINE_MAX } from '../lib/cinematic/shotSpec'
-import { pedeTextoExplicito, negativePromptSemLetras, FRASE_SEM_LETRAS, FECHO_DOS_EFEITOS, MOTORES_COM_NEGATIVE_PROMPT, KLING_NEGATIVE_PADRAO, NEGATIVO_SEM_LETRAS } from '../lib/clips/clipSemLetras'
+import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import { buildClipPrompt, detectShotSpec, pedeTextoExplicito as pedeStudio, FRASE_SEM_LETRAS as FRASE_STUDIO } from '../lib/cinematic/shotSpec'
+import * as semLetras from '../lib/clips/clipSemLetras'
+import { pedeTextoExplicito, FRASE_SEM_LETRAS, FECHO_DOS_EFEITOS } from '../lib/clips/clipSemLetras'
 import { buildClipFalInput, CLIP_ENGINES, CLIP_ENGINE_ORDER, CLIPE_SEM_LETRAS, promptDoClipeSemLetras } from '../lib/clips/clipCatalog'
 import { CLIP_EFFECTS } from '../lib/clips/clipEffects'
 import { semLetras0111Exato } from './test-support/desfaz-clipe-sem-letras-0111.mjs'
@@ -42,15 +47,19 @@ check('caso real: moldura antiga + frase curta no fim', finalCaso.endsWith(`${MO
 check('a frase é a decidida', FRASE_SEM_LETRAS === 'Screens, signs and papers show no legible words.')
 const comCelular = `${CASO} man walking alone at night, checking the map on his smartphone.`
 check('com o smartphone que o juiz viu: frase curta no fim', studio(comCelular).endsWith(FRASE_SEM_LETRAS))
-check('o Seedance 1.5 não recebe negative_prompt (o schema não tem)', negativePromptSemLetras('fal-ai/bytedance/seedance/v1.5/pro/text-to-video', CASO) === null)
+check('a régua não exporta mais nada de negative_prompt', !Object.keys(semLetras).some((k) => /NEGATIV|negative/i.test(k)))
 const rota = lf(readFileSync(new URL('../app/api/generate-clip/route.ts', import.meta.url), 'utf8'))
 check('a rota do Modo Clipe manda ao fal o prompt de buildClipPrompt, sem negative_prompt', rota.includes('const finalPrompt = buildClipPrompt(') && rota.includes('prompt: finalPrompt,') && !rota.includes('negative_prompt'))
 
-// ── 2. Prompt longo: a moldura da casa nunca é cortada ──
+// ── 2. Prompt longo: o corte em 1.800 é o da base — o cliente não perde nem um caractere a mais que antes ──
 const LONGO = ('A girl walks through an abandoned hospital at night holding her phone. ').repeat(80)
-const finalLongo = studio(LONGO, '16:9')
-check(`prompt de ${LONGO.length} caracteres cabe no teto de ${CLIP_PROMPT_ENGINE_MAX}`, finalLongo.length <= CLIP_PROMPT_ENGINE_MAX)
-check('prompt longo: moldura + frase inteiras no fim, texto do cliente no começo', finalLongo.endsWith(`${MOLDURA('16:9 widescreen framing')}. ${FRASE_SEM_LETRAS}`) && finalLongo.startsWith('A girl walks'))
+check(`prompt de ${LONGO.length} caracteres: igual à base (corte da base, sem frase)`, studio(LONGO, '16:9') === BASE(LONGO, '16:9 widescreen framing'))
+// faixa da revisão (1.650–1.800): o texto do cliente sai inteiro como na base; a cauda da casa é que encolhe
+for (const n of [1650, 1700, 1760, 1798]) {
+  const p = ('Rain falls on the empty pier at dawn ').repeat(60).slice(0, n).trimEnd()
+  const fs = studio(p, '16:9')
+  check(`prompt de ${p.length} caracteres: texto do cliente inteiro, como na base`, fs.length <= 1800 && fs.startsWith(p) && BASE(p, '16:9 widescreen framing').startsWith(fs.slice(0, Math.min(fs.length, BASE(p, '16:9 widescreen framing').length))))
+}
 
 // ── 3. Texto PEDIDO: nada acrescentado, nada cortado — igual à base nos dois caminhos (todos os exemplos das 2 revisões) ──
 const PEDIDOS = [
@@ -79,7 +88,7 @@ for (const p of PEDIDOS) {
     && promptDoClipeSemLetras(p) === p && clips.every((c) => c.pay.prompt === p && !('negative_prompt' in c.pay)))
 }
 
-// ── 4. Qualquer outro caso: proteção genérica (Studio: frase; /clips: negative onde o schema tem, frase com superfície) ──
+// ── 4. Qualquer outro caso: proteção genérica (Studio: frase; /clips: frase com superfície, nunca negative_prompt) ──
 const SEM_PEDIDO = [
   CASO, comCelular, 'a cat jumps on a table', 'a girl looks at her phone in bed',
   // revisão 2: prosa com "no words/no letters" não desliga mais a proteção (o detector saiu)
@@ -94,9 +103,7 @@ const SEM_PEDIDO = [
 for (const p of SEM_PEDIDO) {
   const fs = studio(p)
   const clips = payloads(p)
-  const negOk = clips.every((c) => MOTORES_COM_NEGATIVE_PROMPT.includes(c.model)
-    ? c.pay.negative_prompt === (c.model.startsWith('fal-ai/kling-video/') ? `${KLING_NEGATIVE_PADRAO}, ${NEGATIVO_SEM_LETRAS}` : NEGATIVO_SEM_LETRAS)
-    : !('negative_prompt' in c.pay))
+  const negOk = clips.every((c) => !('negative_prompt' in c.pay))
   check(`sem texto pedido, protegido: ${p.slice(0, 70)}`, !pedeTextoExplicito(p) && fs.startsWith(p.replace(/\.\s*$/, '')) && fs.endsWith(FRASE_SEM_LETRAS) && negOk
     && clips.every((c) => String(c.pay.prompt).startsWith(p)))
 }
@@ -111,10 +118,18 @@ check('/clips: "no text" do cliente com placa → frase no fim (detector removid
 check('/clips: sem superfície, prompt igual', promptDoClipeSemLetras('a cat jumps on a table') === 'a cat jumps on a table' && promptDoClipeSemLetras(CASO) === CASO)
 check('/clips: idempotente', promptDoClipeSemLetras(promptDoClipeSemLetras(comCelular)) === promptDoClipeSemLetras(comCelular))
 check('/clips: o Seedance do caso real com celular leva a frase no payload', payloads(comCelular).filter((c) => c.engine === 'seedance').every((c) => String(c.pay.prompt).endsWith(FRASE_SEM_LETRAS)))
-check('chamador sem id da fal (model "x") usa o endpoint do catálogo', 'negative_prompt' in buildClipFalInput({ engine: 'kling', mode: 't2v', model: 'x', seconds: 5, aspect: '9:16', prompt: 'a cat', imageUrl: null }))
-check('/clips: modelo nulo não derruba a montagem do payload', (() => { try { return !('negative_prompt' in buildClipFalInput({ engine: 's25', mode: 'i2v', model: null as never, seconds: 5, aspect: 'image', prompt: 'x y z', imageUrl: PHOTO })) } catch { return false } })())
-const VERIFICADOS = ['fal-ai/kling-video/v3/pro/text-to-video', 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video', 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video', 'fal-ai/veo3.1/fast', 'fal-ai/veo3.1/fast/image-to-video']
-check('lista de endpoints com negative_prompt = a conferida no schema da fal em 01/11', JSON.stringify([...MOTORES_COM_NEGATIVE_PROMPT].sort()) === JSON.stringify([...VERIFICADOS].sort()))
+// 0111f — a revisão de 858cc5ee4: foto com rótulo/logo real (i2v) e texto pedido com outras palavras não podem ser combatidos
+const REVISAO_0111F = [
+  'my perfume bottle rotates slowly on a marble table', 'a neon sign spelling OPEN', 'a birthday cake that spells HAPPY BIRTHDAY',
+  'fireworks forming the word 2027', 'subtitle at the bottom: hello world', 'a vintage movie title card THE END', 'a license plate ABC-1234',
+  'a jersey with the number 10', 'my coffee brand logo appears with a glossy 3D shine', 'texto na tela: OI', 'a protester holds a sign: NO WAR',
+]
+for (const p of REVISAO_0111F) {
+  check(`/clips sem negative_prompt em nenhum motor (t2v e i2v): ${p}`, payloads(p).every((c) => !('negative_prompt' in c.pay) && c.pay.prompt === promptDoClipeSemLetras(p) && String(c.pay.prompt).startsWith(p)))
+}
+const bloco0111f = (src: string) => { const t = lf(src); const a = t.indexOf('// ─── Payload da fal'); const b = t.indexOf("    case 'h3':", a); return a >= 0 && b > a ? t.slice(a, b) : null }
+const catalogoBase = (() => { try { return execSync('git show cc94d9c44:lib/clips/clipCatalog.ts', { encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)) }) } catch { return '' } })()
+check('buildClipFalInput (cabeçalho até o Veo) é byte a byte o da base cc94d9c44', bloco0111f(catalogoBase) !== null && bloco0111f(catalogoBase) === bloco0111f(readFileSync(new URL('../lib/clips/clipCatalog.ts', import.meta.url), 'utf8')))
 // efeitos do catálogo: prompt da casa (fecho NO_TEXT), payload igual ao da base — sem frase, sem negative_prompt
 const efeitosSrc = lf(readFileSync(new URL('../lib/clips/clipEffects.ts', import.meta.url), 'utf8'))
 check('FECHO_DOS_EFEITOS = o NO_TEXT de lib/clips/clipEffects.ts', efeitosSrc.includes(`const NO_TEXT = '${FECHO_DOS_EFEITOS}'`))

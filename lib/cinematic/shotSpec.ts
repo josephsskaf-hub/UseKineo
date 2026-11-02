@@ -117,12 +117,12 @@ export const CLIP_CREDITS = 5
 // KINEO-CLIPE-SEM-LETRAS-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 01/11, Modo Clipe
 // (cumiasammanis27, Seedance 1.5, 5 s, 2D de terror, prompt de 1.282 caracteres): tela do celular e último quadro com letras falsas
 // ("G hcwy", "Siny Stoite"). O Seedance 1.5 NÃO tem negative_prompt no schema da fal (lido em 01/11), então a proteção vai no texto:
-// a frase curta da casa no fim, e o corte em 1.800 sai do texto do cliente, nunca da moldura. REGRA ÚNICA (0111d): se o cliente
+// a frase curta da casa no fim; o corte em 1.800 é o da base (0111f: o cliente não perde nada a mais que antes). REGRA ÚNICA (0111d): se o cliente
 // pede texto explicitamente (aspas, says/reads/written/escrito/dizendo/que diz/with the words/text:), o prompt sai IGUAL à base —
 // a casa não extrai nem reescreve o texto pedido. A régua vem COPIADA de lib/clips/clipSemLetras.ts (o módulo roda isolado nos
 // guardiões, sem require); o guardião scripts/test-clipe-sem-letras-0111.mts compara as duas cópias.
 // INÍCIO-CÓPIA pedeTextoExplicito
-/** A frase curta da casa, para motor sem negative_prompt. */
+/** A frase curta da casa contra letras inventadas. */
 export const FRASE_SEM_LETRAS = 'Screens, signs and papers show no legible words.'
 // aspas com letra/número dentro ("OPEN", “Feliz Natal”, «SE VENDE», 'EXIT' — apóstrofo de "Luffy's" não conta)
 const PL_ASPAS = /["“«„][^"“”«»„\n]*[\p{L}\p{N}][^"“”«»„\n]*["”»“]|(?:^|[\s:(])'[^'\n]*[\p{L}\p{N}][^'\n]*'(?=[\s.,;:!?)]|$)/u
@@ -135,18 +135,11 @@ export function pedeTextoExplicito(prompt: string): boolean {
 }
 // FIM-CÓPIA pedeTextoExplicito
 
-/** Teto do prompt que vai ao motor (o corte sai do texto do cliente, nunca da moldura da casa). */
-export const CLIP_PROMPT_ENGINE_MAX = 1800
-
 /** O prompt final que vai ao motor: a prosa do plano + a moldura da casa. */
 export function buildClipPrompt(spec: ShotSpec, aspect: '9:16' | '16:9' | '1:1'): string {
   const frame = aspect === '16:9' ? '16:9 widescreen framing' : aspect === '1:1' ? '1:1 square framing' : '9:16 vertical framing'
   const moldura = `${frame}, cinematic, sharp focus, no readable text, no watermark, no logo, no subtitles`
-  // texto pedido: igual à base, byte a byte
-  if (pedeTextoExplicito(spec.prompt)) return `${spec.prompt}. ${moldura}`.replace(/\.\s*\./g, '.').slice(0, CLIP_PROMPT_ENGINE_MAX)
-  const casa = `${moldura}. ${FRASE_SEM_LETRAS}` // KINEO-CLIPE-SEM-LETRAS-0111
-  const inteiro = `${spec.prompt}. ${casa}`.replace(/\.\s*\./g, '.')
-  if (inteiro.length <= CLIP_PROMPT_ENGINE_MAX) return inteiro
-  const cabe = Math.max(0, CLIP_PROMPT_ENGINE_MAX - casa.length - 2)
-  return `${spec.prompt.slice(0, cabe).replace(/[\s.]+$/, '')}. ${casa}`.replace(/\.\s*\./g, '.').slice(0, CLIP_PROMPT_ENGINE_MAX)
+  // texto pedido: igual à base, byte a byte; senão a frase no fim. O corte em 1800 é o da base: sai a cauda da casa, nunca mais do cliente.
+  const casa = pedeTextoExplicito(spec.prompt) ? moldura : `${moldura}. ${FRASE_SEM_LETRAS}` // KINEO-CLIPE-SEM-LETRAS-0111
+  return `${spec.prompt}. ${casa}`.replace(/\.\s*\./g, '.').slice(0, 1800)
 }
