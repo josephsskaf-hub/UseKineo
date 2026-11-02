@@ -12,7 +12,7 @@
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import {
-  usaReguaDoKling4Pago, falaDoKling4Pago, reguaDoKling4Pago, faixaDaVozNoKling4Pago, ritmoNominalDaVoz, vozPinadaDoKling4Pago, hostVoiceDoKling4Pago,
+  usaReguaDoKling4Pago, falaDoKling4Pago, reguaDoKling4Pago, faixaDaVozNoKling4Pago, ritmoNominalDaVoz, vozPinadaDoKling4Pago, hostVoiceDoKling4Pago, hostVoiceTemVelocidadeFinal, velocidadePinadaNoCompose,
   K4_PAGO_FALA_ALVO_S, K4_PAGO_FATOR_REAL_MEDIO, K4_PAGO_VELOCIDADE_MIN, K4_PAGO_VELOCIDADE_MAX,
   segundosDoFilmeNaReguaDeDuracao, K4_PAGO_FATOR_REAL_RAPIDO, K4_PAGO_FATOR_REAL_LENTO, K4_PAGO_SILENCIO_MAX_S, K4_PAGO_FALA_MAX_S,
 } from '../lib/kling4PaidSilence'
@@ -106,15 +106,28 @@ console.log('5. o teto da régua é o que o compose aceita, e o compose fala a v
   const cps = rd('app/api/compose/route.ts')
   ok(cps.includes('const FALA_CABE_RESPIRO_S = 0.4') && cps.includes('const FALA_CABE_MAX_FATOR = 1.1'), 'compose: respiro 0,4 s e re-síntese × 1,1 (KINEO-FALA-CABE) — K4_PAGO_FALA_MAX_S = (15 − 0,4) × 1,1')
   ok(cps.includes('hollywoodPinnedVoice = hollywoodVoiceFromClaim(cinematicBirthClaim?.response?.host_voice)'), 'compose: host_voice do claim vence (sem re-escolha pelo roteiro)')
-  ok(cps.includes('speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),'), 'compose: a velocidade falada = host_voice.speed × speed do cliente (a "efetiva" da régua)')
+  ok(cps.includes('speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),'), 'compose: a síntese multiplica a pinada pelo speed do corpo (por isso a pinada é descontada abaixo)')
+  ok(cps.includes('if (hostVoiceTemVelocidadeFinal(cinematicBirthClaim?.response?.host_voice)) hollywoodPinnedVoice = { ...hollywoodPinnedVoice, defaultSpeed: velocidadePinadaNoCompose(hollywoodPinnedVoice.defaultSpeed, explicitSpeed) }'), '0211e compose: host_voice com velocidade final → pinada ÷ speed do corpo, logo pinada × speed = a final')
+  ok(cps.indexOf('if (hostVoiceTemVelocidadeFinal(') > cps.indexOf('hollywoodPinnedVoice = hollywoodVoiceFromClaim(') && cps.indexOf('if (hostVoiceTemVelocidadeFinal(') < cps.indexOf('speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),'), '0211e compose: o ajuste vem logo após pinar a voz, antes de toda síntese (clique, cena e FALA-CABE)')
   for (const voz of new Set(VOICE_PERSONAS.map((p) => p.voice))) ok(isCharacterVoiceName(voz), `${voz}: aceita no host_voice do claim`)
   for (const n of [27, 31]) {
-    const v = vozPinadaDoKling4Pago({ fala: palavras(n), language: 'en', velocidadeDoCliente: null })
+    const v = vozPinadaDoKling4Pago({ fala: palavras(n), language: 'en' })
     const lida = hollywoodVoiceFromClaim(hostVoiceDoKling4Pago(v))
     ok(!!lida && lida.voice === v.voice && lida.defaultSpeed === v.defaultSpeed && lida.personaId === v.personaId, `${n} palavras: o compose lê do claim exatamente a voz e a velocidade que a régua julgou (${v.voice}@${v.defaultSpeed})`)
   }
-  const cli = vozPinadaDoKling4Pago({ fala: palavras(29), language: 'en', velocidadeDoCliente: 1.2 })
-  ok(Math.abs(cli.efetiva - vozPinadaDoKling4Pago({ fala: palavras(29), language: 'en' }).efetiva) <= 0.01, `speed do cliente (1,2): a pinada desconta (${cli.defaultSpeed}) e a efetiva fica a mesma (${cli.efetiva})`)
+  // 0211e: speed: 1.3 / 0.7 no roteiro e o resgate do cron sem body.speed → a mesma velocidade falada e o filme cabe
+  for (const n of [27, 29, 31]) {
+    const fala = palavras(n)
+    const comum = vozPinadaDoKling4Pago({ fala, language: 'en' })
+    const hv = hostVoiceDoKling4Pago(comum)
+    ok(hv.speed_final === true && hostVoiceTemVelocidadeFinal(hv) && !hostVoiceTemVelocidadeFinal({ persona_id: 'x', voice: 'onyx', speed: 1 }), `${n} palavras: host_voice marcado com velocidade final (claims antigos sem a marca seguem como antes)`)
+    for (const [caminho, corpo] of [['roteiro com speed: 1.3 (body.speed 1,3)', 1.3], ['roteiro com speed: 0.7 (body.speed 0,7)', 0.7], ['resgate do cron / caminho não-verbatim (sem body.speed)', null]] as const) {
+      const lida = hollywoodVoiceFromClaim(hv)!
+      const falada = velocidadePinadaNoCompose(lida.defaultSpeed, corpo) * (corpo ?? 1.0)
+      const r = reguaDoKling4Pago({ fala, speed: falada })
+      ok(Math.abs(falada - comum.defaultSpeed) < 1e-9 && r.ok && !r.estouro, `${n} palavras · ${caminho}: fala a ${falada.toFixed(2)} (a pinada) — cauda ${r.total} s, fala lenta ${r.falaLentaSegundos} s`)
+    }
+  }
 }
 
 console.log('6. a régua de duração (plan_duration_below_request) julga o filme despachado: o Kling 4 pago de 15 s tem sempre 15 s')
@@ -144,8 +157,8 @@ console.log('7. 0211c: o meta95 volta a ser o da origin/main (ideia curta → re
 console.log('8. a rota liga a régua nova antes do despacho (fonte)')
 {
   const rt = rd('app/api/generate-video-cinematic/route.ts')
-  const linha = 'const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical, velocidadeDoCliente: parsedScript.speed }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz)'
-  ok(rt.includes("...(usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? { host_voice: hostVoiceDoKling4Pago(vozPinadaDoKling4Pago({ fala: narration, language: hollywoodLanguage, vertical: hollywoodVertical, velocidadeDoCliente: parsedScript.speed })) } : {}),"), 'o claim do Kling 4 pago de 15 s leva host_voice = a mesma voz pinada (mesma fala do despacho, língua, vertical e speed)')
+  const linha = 'const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz)'
+  ok(rt.includes("...(usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? { host_voice: hostVoiceDoKling4Pago(vozPinadaDoKling4Pago({ fala: narration, language: hollywoodLanguage, vertical: hollywoodVertical })) } : {}),"), 'o claim do Kling 4 pago de 15 s leva host_voice = a mesma voz pinada (mesma fala do despacho, língua, vertical e speed)')
   ok(rt.includes("const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')"), 'a fala do despacho é a mesma que falaDoKling4Pago julga')
   ok(rt.split(linha).length === 3, 'ensaio de $0 e portão pago usam a régua do clipe único no Kling 4 pago de 15 s')
   ok(!/const silence = reguaDoFilme\(plan\.scenes, ritmoVoz\)/.test(rt), 'nenhum ponto ficou com a régua antiga incondicional')

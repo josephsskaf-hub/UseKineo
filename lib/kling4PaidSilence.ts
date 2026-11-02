@@ -63,30 +63,40 @@ const centesimos = (n: number) => Math.round(n * 100) / 100
 
 export interface VozPinadaDoKling4Pago {
   personaId: string; voice: OpenAIVoice
-  /** A velocidade gravada no claim (host_voice.speed) — o compose multiplica pelo speed do cliente, se houver. */
+  /** A velocidade gravada no claim (host_voice.speed): a velocidade FINAL falada (0211e — nenhum speed do cliente multiplica). */
   defaultSpeed: number
-  /** A velocidade que a voz fala de fato (pinada × cliente): a que a régua julga. */
+  /** = defaultSpeed (mantido para a régua): a velocidade que a voz fala de fato. */
   efetiva: number
   /** A velocidade natural da persona (só rastro). */
   personaSpeed: number
 }
 
 /** A voz do Kling 4 pago de 15 s, escolhida uma vez e pinada com a velocidade que encaixa a fala no clipe. */
-export function vozPinadaDoKling4Pago(a: { fala: string; language: string; vertical?: string; velocidadeDoCliente?: number | null }): VozPinadaDoKling4Pago {
+// 0211e (revisão): o speed do cliente NÃO entra — o clipe de 15 s é fixo e não honra velocidade própria; descontá-lo apostava que todo
+// chamador do compose mandaria body.speed (o resgate do cron e o caminho não-verbatim do navegador não mandam: 1,3 → pinada 0,82 →
+// ~18,9 s de fala, recusa depois da fal). A velocidade do claim é a final e o compose não a multiplica (hostVoiceTemVelocidadeFinal).
+export function vozPinadaDoKling4Pago(a: { fala: string; language: string; vertical?: string }): VozPinadaDoKling4Pago {
   let persona: { personaId: string; voice: OpenAIVoice; defaultSpeed: number }
   try { persona = resolveHollywoodVoice(a.fala, a.language as NarrationLanguage, a.vertical) } catch { persona = { personaId: 'documentary', voice: 'echo', defaultSpeed: 0.96 } }
   const palavras = String(a.fala ?? '').trim().split(/\s+/).filter(Boolean).length
   const alvo = palavras / (K4_PAGO_FALA_ALVO_S * 2.3 * K4_PAGO_FATOR_REAL_MEDIO)
-  const efetivaAlvo = centesimos(Math.max(K4_PAGO_VELOCIDADE_MIN, Math.min(K4_PAGO_VELOCIDADE_MAX, alvo)))
-  const cliente = typeof a.velocidadeDoCliente === 'number' && Number.isFinite(a.velocidadeDoCliente) && a.velocidadeDoCliente > 0 ? Math.max(0.7, Math.min(1.3, a.velocidadeDoCliente)) : 1
-  // o compose limita host_voice.speed a 0,7–1,3 (hollywoodVoiceFromClaim) e multiplica pelo speed do cliente
-  const defaultSpeed = centesimos(Math.max(0.7, Math.min(1.3, efetivaAlvo / cliente)))
-  return { personaId: persona.personaId, voice: persona.voice, defaultSpeed, efetiva: centesimos(defaultSpeed * cliente), personaSpeed: persona.defaultSpeed }
+  const defaultSpeed = centesimos(Math.max(K4_PAGO_VELOCIDADE_MIN, Math.min(K4_PAGO_VELOCIDADE_MAX, alvo)))
+  return { personaId: persona.personaId, voice: persona.voice, defaultSpeed, efetiva: defaultSpeed, personaSpeed: persona.defaultSpeed }
 }
 
-/** O campo host_voice do claim (o formato que hollywoodVoiceFromClaim lê no compose). */
-export function hostVoiceDoKling4Pago(v: VozPinadaDoKling4Pago): { persona_id: string; voice: OpenAIVoice; speed: number } {
-  return { persona_id: v.personaId, voice: v.voice, speed: v.defaultSpeed }
+/** O campo host_voice do claim (o formato que hollywoodVoiceFromClaim lê no compose) + a marca de velocidade final. */
+export function hostVoiceDoKling4Pago(v: VozPinadaDoKling4Pago): { persona_id: string; voice: OpenAIVoice; speed: number; speed_final: true } {
+  return { persona_id: v.personaId, voice: v.voice, speed: v.defaultSpeed, speed_final: true }
+}
+
+/** O host_voice do claim traz a velocidade FINAL (Kling 4 pago de 15 s)? Então o compose não multiplica pelo speed do corpo. */
+export function hostVoiceTemVelocidadeFinal(hostVoice: unknown): boolean {
+  return !!hostVoice && typeof hostVoice === 'object' && (hostVoice as Record<string, unknown>).speed_final === true
+}
+
+/** A velocidade pinada que o compose usa para chegar à velocidade final, qualquer que seja o speed do corpo (pinada × speed = final). */
+export function velocidadePinadaNoCompose(finalSpeed: number, explicitSpeed: number | null): number {
+  return finalSpeed / (explicitSpeed ?? 1.0)
 }
 
 export interface ReguaDoKling4Pago {

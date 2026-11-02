@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/kling4PaidSilence.ts'] // KINEO-K4-PAGO-SILENCIO-0211 (+0211c) — a régua do portão (rota: ensaio, estouro e silêncio antes do despacho) e a régua do clipe único (lib nova); o meta95 voltou à origin/main
+const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/kling4PaidSilence.ts', 'app/api/compose/route.ts'] // KINEO-K4-PAGO-SILENCIO-0211 (+c/d/e) — a régua do portão (rota), a régua e a voz pinada do clipe único (lib nova) e a velocidade final no compose
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

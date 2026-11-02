@@ -163,6 +163,7 @@ import {
 // host lines, so host speech and b-roll narration share a single narrator.
 // Failure preserves the clips for recovery; it never selects a different voice.
 import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'
+import { hostVoiceTemVelocidadeFinal, velocidadePinadaNoCompose } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211e [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 · KINEO-FILME15-FIEL-2610
 
 export const maxDuration = 300
@@ -2369,6 +2370,9 @@ export async function POST(req: NextRequest) {
           // campo) cai na resolução por roteiro, como antes.
           hollywoodPinnedVoice = hollywoodVoiceFromClaim(cinematicBirthClaim?.response?.host_voice)
             ?? resolveHollywoodVoice(voiceoverScript, language, vertical)
+          // KINEO-K4-PAGO-SILENCIO-0211e — o Kling 4 pago de 15 s pina a velocidade FINAL (a que encaixa a fala no clipe): o speed do corpo
+          // (que nem todo chamador manda — resgate do cron, caminho não-verbatim) não multiplica; pinada × speed = a final, sempre.
+          if (hostVoiceTemVelocidadeFinal(cinematicBirthClaim?.response?.host_voice)) hollywoodPinnedVoice = { ...hollywoodPinnedVoice, defaultSpeed: velocidadePinadaNoCompose(hollywoodPinnedVoice.defaultSpeed, explicitSpeed) }
           console.log(
             `[compose] hollywood pinned narration voice: persona=${hollywoodPinnedVoice.personaId} voice=${hollywoodPinnedVoice.voice}`,
           )

@@ -5533,7 +5533,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
           // KINEO-RITMO-DA-VOZ-2026-09-15 — no MESMO ritmo da voz pinada que o portão pago usa (ritmoVoz),
           // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.
-          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical, velocidadeDoCliente: parsedScript.speed }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
+          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
@@ -5687,7 +5687,7 @@ async function manipularPost(req: NextRequest) {
       // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
       {
         // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).
-        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical, velocidadeDoCliente: parsedScript.speed }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
+        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: vozPinadaDoKling4Pago({ fala, language: hollywoodLanguage, vertical: hollywoodVertical }).efetiva }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
         const k4 = silence as Partial<ReguaDoKling4Pago>
         if (k4.estouro) { // KINEO-K4-PAGO-SILENCIO-0211c — a fala na voz lenta passa do que o compose aceita no clipe de 15 s: recusa grátis ANTES da fal
           const refunded = await confirmCinematicRefund()
@@ -5779,7 +5779,7 @@ async function manipularPost(req: NextRequest) {
         const response: Record<string, unknown> = {
           mode: 'cinematic_ai', freeTrial: false, generationId, prompt, duration, requested_duration: requestedDuration, aspect: '9:16',
           language: narrationLanguage.language, quality: claimQuality, verbatim, speed: parsedScript.speed,
-          ...(usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? { host_voice: hostVoiceDoKling4Pago(vozPinadaDoKling4Pago({ fala: narration, language: hollywoodLanguage, vertical: hollywoodVertical, velocidadeDoCliente: parsedScript.speed })) } : {}), // KINEO-K4-PAGO-SILENCIO-0211d — a voz que a régua julgou, pinada para o compose (sem re-escolha)
+          ...(usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? { host_voice: hostVoiceDoKling4Pago(vozPinadaDoKling4Pago({ fala: narration, language: hollywoodLanguage, vertical: hollywoodVertical })) } : {}), // KINEO-K4-PAGO-SILENCIO-0211d — a voz que a régua julgou, pinada para o compose (sem re-escolha)
           fal_request_ids: ids, fal_models: models, fal_model: models[0],
           scenes: chunks.map(chunk => chunk.prompts.join(' ')), scene_captions: chunks.map(chunk => chunk.narration),
           voiceover_script: narration, scene_narrations: chunks.map(chunk => chunk.narration), scene_seconds: chunks.map(() => 15),
