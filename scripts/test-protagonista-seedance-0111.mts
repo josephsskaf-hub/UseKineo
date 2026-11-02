@@ -5,6 +5,7 @@
 //   3. Caminho REAL do filme de 15 s da rota com BRO, Mila, Max (renders de 01/11) e controles: um pombo só, Mila gente, Max gente.
 //   4. Conferência contra o texto (mutantes de resposta): nome fora do texto, espécie fora do texto, aparência inventada, lugar.
 //   12. Rodada 10: idade escrita literal na ficha (Leo/Zoe/Sam/Maya/Davi/Mateo/Riley) e gênero/idade escritos vencem a ficha antiga (Walter/Lily/Riley).
+//   13. Rodada 11: a idade de OUTRA pessoa perto do nome não é da pessoa (Leo/Davi/Mateo/Riley/Emma/Tom/Lucas; anos de trabalho; ofício sem sobra).
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
@@ -469,7 +470,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // medido na API (217 casos): em roteiro inglês, toda species_en diferente da species é tradução de palavra PT/ES ou pup→puppy — nenhuma
   // troca de uma espécie inglesa por outra ("pigeon" → "eagle"), que é o que o detector de língua barrava
   const trocas = ((calib as unknown as { resumo: { species_en_troca_em_ingles?: Array<{ id: string; species: string; species_en: string }> } }).resumo.species_en_troca_em_ingles) ?? null
-  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o branco|cachorrinho|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
+  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o[- ]branco|galinheiro|cachorrinho|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
   ok(Array.isArray(trocas) && trocas.every((t) => PT_ES.test(t.species) || t.species_en.startsWith(t.species)), `respostas reais, roteiro inglês: ${trocas?.length ?? '?'} species_en ≠ species, todas tradução de PT/ES ou plural/diminutivo (${(trocas ?? []).filter((t) => !PT_ES.test(t.species) && !t.species_en.startsWith(t.species)).map((t) => `${t.id}:${t.species}>${t.species_en}`).join(' | ') || 'nenhuma troca inglês→inglês'})`)
 
   // (c) 15 s: nome de lugar com a grafia do protagonista no MEIO da frase → a cena é forçada, como na base
@@ -667,6 +668,95 @@ console.log('== 12. Rodada 10: idade escrita literal na ficha; gênero/idade esc
     const texto = T('rev10-leo-inventor')
     const ap2 = aplicarElencoSemantico([autor], lerElencoSemantico(JSON.stringify({ protagonist: P('Leo', 'inventor', 'male'), supporting: [], places_and_orgs: [] }), texto), texto)
     ok(ap2?.elenco[0].canonica === autor.canonica, 'a ficha do autor nunca é trocada pela evidência escrita')
+  }
+}
+
+// ═══ 13. Rodada 11: a idade de OUTRA pessoa perto do nome não é da pessoa ═════════════════════════════════════════
+console.log('== 13. Rodada 11: possessivo, "de NOME", "grandson of", "He/She is N" de parente, "the baby of the family" (exemplos da revisão, API real + mocks) ==')
+{
+  const ADULTO = /\b(?:thirties|twenties|forties|adult|grown|elderly|sixties|seventies|eighties)\b/
+  const forcada = (q: string) => q.split(MAIN)[0].match(/The only person in this shot is the same main character \(([^)]*)\)/)?.[1] ?? ''
+  const cabeca = (c: string) => c.split(' with ')[0]
+  const T = (id: string) => porId.get(id)!.texto
+  // (a) a leitura determinística, um a um, dos exemplos da revisão (null = nenhuma idade desta pessoa)
+  const idades: Array<[string, string, string[], 'male' | 'female' | null, number | null]> = [
+    ['Leo', "Meet Leo, a curious boy who loves baking. Every Sunday, Leo's 80-year-old grandma teaches him a new recipe.", [], 'male', null],
+    ['Davi', 'Davi adora pipas. A avó de Davi, de oitenta anos, costura todas elas.', [], null, null],
+    ['Mateo', 'Mateo vive en el campo. La abuela de Mateo, de 75 años, le cuenta historias.', [], null, null],
+    ['Davi', 'Davi, neto de Dona Rosa, de 78 anos, sonha em ser astronauta.', ['Dona Rosa'], null, null],
+    ['Leo', "Meet Leo, a curious boy. Leo's mom works late. She is thirty-five and tired.", [], 'male', null],
+    ['Leo', "Meet Leo, a curious boy. Leo's mom works late. She is thirty-five and tired.", [], null, null],
+    ['Riley', 'Riley lives with her grandpa on a farm. He is seventy-two and walks with a cane.', [], null, null],
+    ['Riley', 'Riley, a little girl with pigtails, lives on a farm. He is seventy-two and walks with a cane.', [], 'female', null],
+    ['Leo', 'Leo, grandson of a 78-year-old fisherman, dreams of the sea.', [], 'male', null],
+    ['Seu Joaquim', 'Seu Joaquim, um pescador que trabalhou 50 anos no mar, conversa com as gaivotas.', [], 'male', null],
+    ['Don Ernesto', 'Don Ernesto, un pescador que lleva 50 años en el mar, habla con las gaviotas.', [], 'male', null],
+    ['Ana', 'Ana, professora de 20 anos de carreira, ensina.', [], 'female', null],
+    ['Ana', 'Ana, que é professora há 20 anos, ensina as crianças.', [], 'female', null],
+    ['Lucas', 'Lucas mora com o avô. Ele tem setenta anos.', [], null, null],
+    ['Leo', "Leo is his grandpa's favorite. He is eighty-one and still fishes every day.", [], null, null],
+    ['Tom', 'Tom, the baby of the family, is fourteen.', [], 'male', null],
+    ['Emma', "Emma's dad, a 42-year-old firefighter, comes home late. Emma, a shy girl, waits by the window.", [], 'female', null],
+    // controles: a idade colada ao nome continua
+    ['Mia', 'Seven-Year-Old Mia finds a kitten.', [], null, 7],
+    ['Noah', 'Noah, who just turned ten, builds a robot with his 12-year-old sister.', [], 'male', 10],
+    ['Dona Rosa', 'Dona Rosa, de oitenta e dois anos, vive sozinha com a gata Mimi.', [], 'female', 82],
+    ['Lucas', 'Lucas tem sete anos e mora com o avô.', [], null, 7],
+    ['Sofía', 'Sofía, una niña de ocho años, y su abuelo Pepe, de 70, plantan un árbol.', ['Pepe'], 'female', 8],
+    ['Mia', 'Mia, 6, finds a kitten. Her dog Max, 3, barks.', ['Max'], null, 6],
+    ['Riley', 'Meet Riley. She is seven. Her big brother Jake teaches her to ride a bike.', ['Jake'], 'female', 7],
+    ['Zé', 'Lucas, um menino de sete anos, mora com o avô Zé num barco. Zé tem setenta anos e ensina Lucas a pescar.', ['Lucas'], 'male', 70],
+  ]
+  for (const [nome, texto, outros, g, anos] of idades) {
+    const r = idadeDoPersonagem(nome, texto, outros, g)
+    ok(anos === null ? r === null : r?.anos === anos, `idade de ${nome}: ${anos ?? 'nenhuma'} (lido: ${r ? r.anos ?? r.literal : 'nenhuma'}) — ${texto.slice(0, 60)}`)
+  }
+  // (b) os 17 casos da revisão com a resposta REAL gravada na calibração (API), pela ficha aplicada e pelo caminho real do 15 s:
+  // nenhuma criança leva a idade de outra pessoa nem vira adulto/idoso
+  const criancas: Array<[string, string, string | null]> = [
+    ['rev11-leo-avo-rose', 'Leo', '80-year-old'], ['pt-rev11-davi-avo', 'Davi', '80-year-old'], ['es-rev11-mateo-abuela', 'Mateo', '75-year-old'],
+    ['rev11-riley-grandpa', 'Riley', 'seventy-two'], ['rev11-emma-dad', 'Emma', '42-year-old'], ['rev11-tom-baby-family', 'Tom', 'baby'],
+    ['rev11-leo-mom-35', 'Leo', 'thirty-five'], ['rev11-noah-just-turned', 'Noah', '12-year-old'], ['pt-rev11-lucas-ze', 'Lucas', '70-year-old'],
+  ]
+  for (const [id, nome, alheia] of criancas) {
+    const sem = gravado(id)
+    const r = caminho15(id, sem)
+    const f = r.elenco.find((x) => x.nome === nome)
+    ok(!!f && !ADULTO.test(cabeca(f.canonica)) && (!alheia || !f.canonica.includes(alheia)), `${id} (API): ${nome} = ${f ? cabeca(f.canonica) : 'fora do elenco'} (sem "${alheia}")`)
+    ok(r.fin.every((q) => !ADULTO.test(forcada(q)) && (!alheia || !forcada(q).includes(alheia))), `${id} (API): nenhuma cena do 15 s forçada com adulto/idade alheia`)
+    ok(r.fin.every((q) => !new RegExp(`${nome}, an? (?:\\S+-year-old )?(?:elderly|man|woman)\\b`).test(q)), `${id} (API): nenhuma cena diz que ${nome} é adulto`)
+  }
+  // os controles com idade escrita colada ao nome continuam literais
+  for (const [id, nome, cab] of [['pt-rev11-lucas-ze', 'Lucas', 'Lucas, a 7-year-old boy'], ['pt-rev11-lucas-ze', 'Zé', 'Zé, a 70-year-old elderly man'], ['es-rev11-sofia-pepe', 'Sofía', 'Sofía, an 8-year-old girl'], ['rev11-mia-title-case', 'Mia', 'Mia, a seven-year-old girl'], ['rev11-noah-just-turned', 'Noah', 'Noah, a ten-year-old boy'], ['pt-rev11-dona-rosa', 'Dona Rosa', 'Dona Rosa, an 82-year-old elderly woman']] as const) {
+    const sem = gravado(id)
+    if (!sem) { ok(true, `${id} (API): sem resposta válida gravada (falha segura)`); continue }
+    // a ficha APLICADA (a ficha literal do juiz pode depois trocar pelas palavras do autor, como "avô Zé", que já trazem a idade escrita)
+    const r = caminho15(id, sem)
+    const f = r.aplicado?.elenco.find((x) => x.nome === nome)
+    ok(!!f && f.canonica.startsWith(cab), `${id} (API): ${f ? cabeca(f.canonica) : 'sem ficha'} (esperado "${cab}")`)
+  }
+  // anos de trabalho não são idade: a ficha do Joaquim/Ernesto não diz "50-year-old"
+  for (const id of ['pt-rev11-joaquim-50-anos', 'es-rev11-ernesto-50-anos']) {
+    const r = caminho15(id, gravado(id))
+    ok(r.elenco.every((f) => !f.canonica.includes('50-year-old')) && r.fin.every((q) => !q.includes('50-year-old')), `${id} (API): "trabalhou/lleva 50 anos" não vira "50-year-old"`)
+  }
+  // (c) mocks: o ofício não deixa sobra na ficha ("who is a mischievous", "who is an of the family")
+  const P = (name: string, role: string | null, g: string | null, roleEn: string | null = role) => ({ name, role, role_en: roleEn, kind: 'human', species: 'human', species_en: 'human', appearance_from_text: '', appearance_en: '', gender_if_stated: g, age_if_stated: null, age_evidence: '', on_screen: true })
+  for (const [texto, nome, role, roleEn, cab] of [
+    ['Davi, um menino sapeca de nove anos, adora soltar pipa. Davi corre pelo morro atrás dela.', 'Davi', 'menino sapeca', 'mischievous boy', 'Davi, a 9-year-old boy with '],
+    ['Tom, a fourteen-year-old, is the baby of the family. Tom bakes his own cake and eats it on the roof.', 'Tom', 'baby of the family', 'baby of the family', 'Tom, a fourteen-year-old boy with '],
+    ['Meet Leo, a nine-year-old inventor. Leo builds a robot out of old toasters. He laughs when it beeps.', 'Leo', 'inventor', 'inventor', 'Leo, a nine-year-old boy who is an inventor with '],
+  ] as const) {
+    const ap = aplicarElencoSemantico([], lerElencoSemantico(JSON.stringify({ protagonist: P(nome, role, 'male', roleEn), supporting: [], places_and_orgs: [] }), texto), texto)
+    const c = ap?.elenco[0].canonica ?? ''
+    ok(c.startsWith(cab) && !/who is an? (?:mischievous|of)\b/.test(c), `ofício sem sobra: ${cabeca(c)}`)
+  }
+  // "the baby of the family, is fourteen" não é bebê; a ficha da base ("a boy about nine") fica
+  {
+    const id = 'rev11-tom-baby-family'
+    const ap = aplicarElencoSemantico(elencoDoRoteiro(T(id)), lerElencoSemantico(JSON.stringify({ protagonist: P('Tom', 'the baby of the family', 'male'), supporting: [], places_and_orgs: [] }), T(id)), T(id))
+    const f = ap?.elenco.find((x) => x.nome === 'Tom')
+    ok(!!f && !/\bbaby\b|of the family/.test(cabeca(f.canonica)), `"the baby of the family" não vira bebê (${f ? cabeca(f.canonica) : 'sem ficha'})`)
   }
 }
 

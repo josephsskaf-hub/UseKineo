@@ -3485,5 +3485,361 @@
     ]
    }
   }
+ },
+ {
+  "id": "rev11-leo-avo-rose",
+  "fonte": "rev-0111f",
+  "texto": "Meet Leo, a curious boy who loves baking. Every Sunday, Leo's 80-year-old grandma Rose teaches him a new recipe. Today the cake collapses, and Leo laughs so hard he cries. Rose hugs him and they start again.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo",
+   "Rose"
+  ],
+  "fichas": {
+   "Leo": {
+    "faixa": "child",
+    "genero": "male",
+    "semLiteral": "80-year-old"
+   },
+   "Rose": {
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "pt-rev11-davi-avo",
+  "fonte": "rev-0111f",
+  "texto": "Davi, um menino sapeca, adora soltar pipa. A avó de Davi, de oitenta anos, costura todas as pipas dele. Num domingo, o vento leva a pipa vermelha e Davi corre pelo morro atrás dela.",
+  "protagonista": [
+   "Davi"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Davi"
+  ],
+  "fichas": {
+   "Davi": {
+    "faixa": "child",
+    "genero": "male",
+    "semLiteral": "80-year-old"
+   }
+  }
+ },
+ {
+  "id": "es-rev11-mateo-abuela",
+  "fonte": "rev-0111f",
+  "texto": "Mateo es un niño muy curioso que vive en el campo. La abuela de Mateo, de 75 años, le cuenta historias de estrellas cada noche. Una noche, Mateo ve una estrella fugaz y pide un deseo.",
+  "protagonista": [
+   "Mateo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mateo"
+  ],
+  "fichas": {
+   "Mateo": {
+    "faixa": "child",
+    "semLiteral": "75-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-riley-grandpa",
+  "fonte": "rev-0111f",
+  "texto": "Riley, a little girl with pigtails, lives with her grandpa on a farm. He is seventy-two and walks with a cane. Every morning Riley feeds the chickens before school, singing to each one.",
+  "protagonista": [
+   "Riley"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Riley"
+  ],
+  "fichas": {
+   "Riley": {
+    "faixa": "child",
+    "genero": "female",
+    "semLiteral": "seventy-two"
+   }
+  }
+ },
+ {
+  "id": "rev11-emma-dad",
+  "fonte": "rev-0111f",
+  "texto": "Emma's dad, a 42-year-old firefighter, comes home late every night. Emma, a shy girl, waits by the window with a drawing. Tonight she falls asleep before he arrives, and he tucks her in.",
+  "protagonista": [
+   "Emma"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Emma"
+  ],
+  "fichas": {
+   "Emma": {
+    "faixa": "child",
+    "genero": "female",
+    "semLiteral": "42-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-tom-baby-family",
+  "fonte": "rev-0111f",
+  "texto": "Tom, the baby of the family, is fourteen and hates being treated like a kid. When his sisters forget his birthday, Tom bakes his own cake and eats it on the roof.",
+  "protagonista": [
+   "Tom"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Tom"
+  ],
+  "fichas": {
+   "Tom": {
+    "faixa": [
+     "child",
+     "teen"
+    ],
+    "genero": "male",
+    "semLiteral": "baby"
+   }
+  }
+ },
+ {
+  "id": "pt-rev11-lucas-ze",
+  "fonte": "rev-0111f",
+  "texto": "Lucas, um menino de sete anos, mora com o avô Zé num barco. Zé tem setenta anos e ensina Lucas a pescar. Um dia, Lucas pesca um peixe dourado e o devolve ao mar.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas",
+   "Zé"
+  ],
+  "fichas": {
+   "Lucas": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "7-year-old",
+    "semLiteral": "70-year-old"
+   },
+   "Zé": {
+    "faixa": "elderly",
+    "literal": "70-year-old"
+   }
+  }
+ },
+ {
+  "id": "es-rev11-sofia-pepe",
+  "fonte": "rev-0111f",
+  "texto": "Sofía, una niña de ocho años, y su abuelo Pepe plantan un árbol en el patio. Cada mañana Sofía lo riega. Diez años después, Pepe ya no está, pero el árbol da sombra a toda la casa.",
+  "protagonista": [
+   "Sofía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sofía",
+   "Pepe"
+  ],
+  "fichas": {
+   "Sofía": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "8-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-biscuit-noah",
+  "fonte": "rev-0111f",
+  "texto": "Meet Biscuit, a three-year-old golden retriever, and his best friend Noah, a nine-year-old boy. Every afternoon Biscuit waits at the bus stop. Today Noah does not come, so Biscuit goes looking for him.",
+  "protagonista": [
+   "Biscuit"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "golden retriever",
+   "retriever",
+   "dog"
+  ],
+  "humanos": [
+   "Noah"
+  ],
+  "animais": {
+   "Biscuit": "retriever"
+  },
+  "fichas": {
+   "Noah": {
+    "faixa": "child",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "pt-rev11-dona-rosa",
+  "fonte": "rev-0111f",
+  "texto": "Dona Rosa, de oitenta e dois anos, vive sozinha com a gata Mimi. Todo dia Mimi espera Rosa voltar da feira na janela. Numa tarde de chuva, Rosa demora, e Mimi sai pela rua para procurá-la.",
+  "protagonista": [
+   "Dona Rosa",
+   "Rosa",
+   "Mimi"
+  ],
+  "tipo": null,
+  "especie": null,
+  "humanos": [
+   "Rosa"
+  ],
+  "fichas": {
+   "Rosa": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "82-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-leo-grandson-of",
+  "fonte": "rev-0111f",
+  "texto": "Leo, grandson of a 78-year-old fisherman, dreams of the sea. Every evening Leo waits on the dock and counts the boats coming home.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ],
+  "fichas": {
+   "Leo": {
+    "semLiteral": "78-year-old"
+   }
+  }
+ },
+ {
+  "id": "pt-rev11-joaquim-50-anos",
+  "fonte": "rev-0111f",
+  "texto": "Seu Joaquim, um pescador que trabalhou 50 anos no mar, conversa com as gaivotas. Toda manhã Joaquim divide o pão com elas no cais.",
+  "protagonista": [
+   "Seu Joaquim",
+   "Joaquim"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joaquim"
+  ],
+  "fichas": {
+   "Joaquim": {
+    "semLiteral": "50-year-old"
+   }
+  }
+ },
+ {
+  "id": "es-rev11-ernesto-50-anos",
+  "fonte": "rev-0111f",
+  "texto": "Don Ernesto, un pescador que lleva 50 años en el mar, habla con las gaviotas. Cada mañana Ernesto les da pan en el muelle.",
+  "protagonista": [
+   "Don Ernesto",
+   "Ernesto"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ernesto"
+  ],
+  "fichas": {
+   "Ernesto": {
+    "semLiteral": "50-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-mia-title-case",
+  "fonte": "rev-0111f",
+  "texto": "Seven-Year-Old Mia finds a kitten in the rain. Mia carries it home under her coat and names it Pebble.",
+  "protagonista": [
+   "Mia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mia"
+  ],
+  "fichas": {
+   "Mia": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "seven-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-noah-just-turned",
+  "fonte": "rev-0111f",
+  "texto": "Noah, who just turned ten, builds a robot with his 12-year-old sister. The robot follows Noah everywhere, even to school.",
+  "protagonista": [
+   "Noah"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Noah"
+  ],
+  "fichas": {
+   "Noah": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "ten-year-old",
+    "semLiteral": "12-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev11-leo-mom-35",
+  "fonte": "rev-0111f",
+  "texto": "Meet Leo, a curious boy. Leo's mom works late. She is thirty-five and tired, so Leo cooks dinner for her.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ],
+  "fichas": {
+   "Leo": {
+    "faixa": "child",
+    "genero": "male",
+    "semLiteral": "thirty-five"
+   }
+  }
+ },
+ {
+  "id": "pt-rev11-lucas-avo-70",
+  "fonte": "rev-0111f",
+  "texto": "Lucas mora com o avô. Ele tem setenta anos e ensina Lucas a pescar. Um dia, Lucas pega um peixe enorme.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas"
+  ],
+  "fichas": {
+   "Lucas": {
+    "semLiteral": "70-year-old"
+   }
+  }
  }
 ]
