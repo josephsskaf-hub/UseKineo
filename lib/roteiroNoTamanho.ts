@@ -29,21 +29,19 @@
 //      encurta e estorna); o script_written registra length_retry e still_short_after_retry para medir quantas vezes isso
 //      ainda acontece.
 //
-// REVISÃO (laço do revisor, 01/11) — 4 defeitos do 1º conserto, corrigidos aqui:
-//   a. KINEO 1 A 90 s: o escritor mede o Kineo 1 pela voz MAIS RÁPIDA (2,81 pal/s → piso 253, plano 278), mas a rota fast mede
-//      pela voz que VAI falar e recusa (422 script_too_long_for_engine) acima de 90 × 1,15 = 103,5 s de fala — 238 palavras na
-//      voz mais lenta (dark-mystery/luxury, 2,30). Roteiro curto do modo 'ai' ela resgata (roteiroIaCurto); roteiro longo, não.
-//      tetoDoMotorDoEscritor: no Kineo 1, o plano nunca passa do que a voz mais lenta fala em 103,5 s (com folga), e o piso
-//      do plano desce junto — a nova tentativa por tamanho não empurra o roteiro para a recusa.
-//   b. escolherVersao respeita o KINEO-NARRADOR-DESCRICAO-0111: a versão que NÃO lê a descrição de cena vence a que lê, e a
-//      versão acima do teto do motor perde para a que cabe — antes do critério de tamanho.
+// REVISÃO (laço do revisor, 01/11):
+//   a. SEM TETO POR MOTOR NO ESCRITOR (2ª revisão): a 1ª revisão limitou o plano do Kineo 1 a 90 s (214/226) lendo
+//      engine:'fast' — mas o GenerateClient manda 'fast' também para filmes que vão ao cinematic/Seedance (o caso do Rick; 5 de
+//      5 script_written com engine 'fast' em 30 dias foram para o cinematic). A 90 s isso devolvia o Seedance à amputação
+//      90 → 60 s (storyteller exige 225, futuristic-ai 227, energetic-facts 241). Saiu: o plano vale para todos (253/278 a 90 s,
+//      169/186 a 60 s), como no 1º conserto. O risco do Kineo 1 a 90 s (rota fast recusa roteiro longo) fica como na base; o
+//      Kineo 1 está fora do jogo desde 29/09.
+//   b. escolherVersao respeita o KINEO-NARRADOR-DESCRICAO-0111: a versão que NÃO lê a descrição de cena vence a que lê —
+//      antes do critério de tamanho.
 //   c. prazoDaNovaTentativa: a 2ª chamada só sai se couber no maxDuration de 60 s, com o timeout encolhido ao que sobrou.
 //   d. o resgate da recusa (KINEO-MOTOR-15S-1510, 700 tokens) NÃO leva o plano (a rota injeta o plano só nas chamadas do
 //      escritor normal); o script_written diz por que não houve nova tentativa por tamanho (length_retry_skipped).
 import { narrationWordCount } from '@/lib/textLanguage'
-import { VOICE_PERSONAS } from '@/lib/narration/personas'
-import { speechRateFor } from '@/lib/speechRate'
-import { DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS, DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE } from '@/lib/durationFollowsScript'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta'
 
 export const ROTEIRO_NO_TAMANHO_VERSAO = 'roteiro_no_tamanho_0111' as const
@@ -60,55 +58,26 @@ const PESOS: ReadonlyArray<[SecaoDoRoteiro, number]> = [['MICRO REWARD 1', 22], 
 export const FOLGA_DO_PLANO = 1.1
 
 export interface PlanoDePalavras {
-  /** O total que o plano pede (≥ piso, ≤ teto quando o teto é maior que o piso; abaixo do teto do motor quando há). */
+  /** O total que o plano pede (≥ piso, ≤ teto quando o teto é maior que o piso). */
   alvo: number
-  /** O piso do plano: o da régua do escritor, ou menos quando o teto do motor não comporta a régua (Kineo 1 a 90 s). */
+  /** O piso do plano: o da régua do escritor. */
   piso: number
-  /** O teto DURO do motor (acima disto = recusa na rota do motor). null = o motor não recusa roteiro longo. */
-  tetoDoMotor: number | null
-  /** O teto do motor encolheu o plano (alvo e/ou piso abaixo do que a régua do escritor pediria). */
-  limitadoPeloMotor: boolean
   secoes: Array<{ secao: SecaoDoRoteiro; palavras: number }>
 }
 
-/** Do teto duro do motor, quanto o plano mira e quanto ele exige: o modelo erra para os dois lados; o teto não perdoa. */
-export const MIRA_SOB_O_TETO_DO_MOTOR = 0.95
-export const PISO_SOB_O_TETO_DO_MOTOR = 0.9
-
-/**
- * Teto DURO de palavras do roteiro para o motor (null = o motor não recusa roteiro longo). Hoje só o Kineo 1: a rota fast
- * (app/api/generate-video-fast, decideDurationFollowsScriptUp) mede a fala NA VOZ DA PERSONA que vai falar e recusa acima
- * de 90 s × 1,15; a persona sai do roteiro pronto, então o teto que nunca recusa é o da voz MAIS LENTA do catálogo.
- */
-export function tetoDoMotorDoEscritor(engine: unknown, language?: string | null): number | null {
-  const q = typeof engine === 'string' ? engine.trim().toLowerCase() : ''
-  if (q !== 'fast') return null
-  let maisLenta = Number.POSITIVE_INFINITY
-  for (const p of VOICE_PERSONAS) {
-    const r = speechRateFor({ family: 'classic', language: language ?? undefined, voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond
-    if (Number.isFinite(r) && r > 0 && r < maisLenta) maisLenta = r
-  }
-  if (!Number.isFinite(maisLenta)) return null
-  return Math.floor(DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS * DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE * maisLenta + 1e-9)
-}
-
 /** O piso de palavras vira um orçamento por bloco que soma exatamente o alvo. null quando não há piso utilizável. */
-export function planoDePalavras(pisoDaRegua: number, teto: number, tetoDoMotor: number | null = null): PlanoDePalavras | null {
+export function planoDePalavras(pisoDaRegua: number, teto: number): PlanoDePalavras | null {
   if (!Number.isFinite(pisoDaRegua) || pisoDaRegua < HOOK_PALAVRAS + RHYTHM_PALAVRAS + 20) return null
-  const motor = tetoDoMotor !== null && Number.isFinite(tetoDoMotor) && tetoDoMotor > 0 ? Math.floor(tetoDoMotor) : null
-  const piso = motor !== null ? Math.min(Math.ceil(pisoDaRegua), Math.floor(motor * PISO_SOB_O_TETO_DO_MOTOR)) : Math.ceil(pisoDaRegua)
-  if (piso < HOOK_PALAVRAS + RHYTHM_PALAVRAS + 20) return null
+  const piso = Math.ceil(pisoDaRegua)
   const tetoUtil = Number.isFinite(teto) && teto > piso ? teto : Number.POSITIVE_INFINITY
-  const alvoDaRegua = Math.max(piso, Math.min(Math.round(pisoDaRegua * FOLGA_DO_PLANO), Math.floor(tetoUtil)))
-  const alvo = motor !== null ? Math.max(piso, Math.min(alvoDaRegua, Math.floor(motor * MIRA_SOB_O_TETO_DO_MOTOR))) : alvoDaRegua
-  const limitadoPeloMotor = motor !== null && (alvo < alvoDaRegua || piso < Math.ceil(pisoDaRegua))
+  const alvo = Math.max(piso, Math.min(Math.round(pisoDaRegua * FOLGA_DO_PLANO), Math.floor(tetoUtil)))
   const resto = alvo - HOOK_PALAVRAS - RHYTHM_PALAVRAS
   const somaPesos = PESOS.reduce((s, [, p]) => s + p, 0)
   const meio = PESOS.map(([secao, p]) => ({ secao, palavras: Math.round((resto * p) / somaPesos) }))
   const ajuste = resto - meio.reduce((s, x) => s + x.palavras, 0)
   meio[meio.length - 1].palavras += ajuste // o PAYOFF absorve o arredondamento
   const porSecao = new Map<SecaoDoRoteiro, number>([['HOOK', HOOK_PALAVRAS], ['RHYTHM', RHYTHM_PALAVRAS], ...meio.map((x) => [x.secao, x.palavras] as [SecaoDoRoteiro, number])])
-  return { alvo, piso, tetoDoMotor: motor, limitadoPeloMotor, secoes: SECOES_DO_ROTEIRO.map((secao) => ({ secao, palavras: porSecao.get(secao) ?? 0 })) }
+  return { alvo, piso, secoes: SECOES_DO_ROTEIRO.map((secao) => ({ secao, palavras: porSecao.get(secao) ?? 0 })) }
 }
 
 const frasesPara = (palavras: number): string => (palavras >= 30 ? '3-4 full sentences' : palavras >= 18 ? '2-3 full sentences' : '1-2 sentences')
@@ -120,7 +89,7 @@ export function instrucaoDoPlano(plano: PlanoDePalavras, alvoSegundos: number): 
       : secao === 'RHYTHM' ? `- RHYTHM: about ${palavras} words (2-3 ultra-short punches — stays short)`
         : `- ${secao}: about ${palavras} words (${frasesPara(palavras)} that tell this beat of the story with concrete detail: who, where, what happened, what it looked like, what it meant)`)
   return [
-    `LENGTH PLAN — THIS ${alvoSegundos}-SECOND FILM NEEDS ABOUT ${plano.alvo} SPOKEN WORDS, NEVER FEWER THAN ${plano.piso}${plano.limitadoPeloMotor && plano.tetoDoMotor !== null ? ` AND NEVER MORE THAN ${plano.tetoDoMotor} (above that the narration no longer fits the film)` : ''} (${ROTEIRO_NO_TAMANHO_VERSAO}):`,
+    `LENGTH PLAN — THIS ${alvoSegundos}-SECOND FILM NEEDS ABOUT ${plano.alvo} SPOKEN WORDS, NEVER FEWER THAN ${plano.piso} (${ROTEIRO_NO_TAMANHO_VERSAO}):`,
     'The film ends when the narration ends: a short script does not make a shorter film, it makes an interrupted story. Word budget per section (spoken words only — headers and [Pexels: ...] cues do not count):',
     ...linhas,
     'These budgets OVERRIDE any "one sentence" / "one fact" wording above for a film this long: only the HOOK and the RHYTHM stay short. Develop each MICRO REWARD, the ESCALATION and the PAYOFF with more sentences from the SAME story or subject — never filler, never repeated sentences, never invented facts about real people. Before answering, count the words of each section against its budget.',
@@ -152,7 +121,7 @@ export function pedidoDeTamanho(args: { roteiro: string; palavras: number; plano
   const feitas = new Map(palavrasPorSecao(roteiro, language).map((x) => [x.secao, x.palavras]))
   const contas = plano.secoes.map(({ secao, palavras: meta }) => `${secao} ${feitas.get(secao) ?? 0}/${meta}`).join(', ')
   return [
-    `LENGTH IS THE MAIN PROBLEM: your script has ${palavras} spoken words and this ${alvoSegundos}-second film needs at least ${plano.piso} (aim for about ${plano.alvo}${plano.limitadoPeloMotor && plano.tetoDoMotor !== null ? `, never more than ${plano.tetoDoMotor}` : ''}).`,
+    `LENGTH IS THE MAIN PROBLEM: your script has ${palavras} spoken words and this ${alvoSegundos}-second film needs at least ${plano.piso} (aim for about ${plano.alvo}).`,
     `Words you wrote per section vs. the budget: ${contas}.`,
     'Rewrite the FULL script: the SAME story, the SAME facts and characters, the SAME headers in the same order — and expand every section that is under its budget with additional concrete sentences that continue that beat (setting, action, detail, consequence). Do not add new sections, do not pad with filler or repeat sentences, do not invent facts about real people. Count the words of each section before answering.',
   ].join(' ')
@@ -167,19 +136,14 @@ export interface VersaoDoRoteiro {
 }
 
 /**
- * Qual versão fica depois da 2ª tentativa. Regra da casa até aqui: a 2ª sempre substituía a 1ª. Muda em três casos, nesta
+ * Qual versão fica depois da 2ª tentativa. Regra da casa até aqui: a 2ª sempre substituía a 1ª. Muda em dois casos, nesta
  * ordem: (1) só uma das duas lê a descrição de cena em voz alta → fica a que NÃO lê (KINEO-NARRADOR-DESCRICAO-0111, o mesmo
- * critério do filme curto); (2) só uma passa do teto duro do motor → fica a que cabe (a outra seria recusada); (3) as duas
- * abaixo do piso, a 2ª mais curta e sem estrutura melhor → fica a 1ª ("ficar abaixo é defeito"; menos ainda é pior).
+ * critério do filme curto); (2) as duas abaixo do piso, a 2ª mais curta e sem estrutura melhor → fica a 1ª ("ficar abaixo é
+ * defeito"; menos ainda é pior).
  */
-export function escolherVersao(args: { piso: number; tetoDoMotor?: number | null; primeira: VersaoDoRoteiro; segunda: VersaoDoRoteiro }): 'primeira' | 'segunda' {
+export function escolherVersao(args: { piso: number; primeira: VersaoDoRoteiro; segunda: VersaoDoRoteiro }): 'primeira' | 'segunda' {
   const { piso, primeira, segunda } = args
   if (!!primeira.leDescricao !== !!segunda.leDescricao) return primeira.leDescricao ? 'segunda' : 'primeira'
-  const teto = args.tetoDoMotor
-  if (teto !== null && teto !== undefined && Number.isFinite(teto)) {
-    const passa1 = primeira.palavras > teto, passa2 = segunda.palavras > teto
-    if (passa1 !== passa2) return passa2 ? 'primeira' : 'segunda'
-  }
   const duasCurtas = primeira.palavras < piso && segunda.palavras < piso
   if (duasCurtas && segunda.palavras < primeira.palavras && segunda.problemas >= primeira.problemas) return 'primeira'
   return 'segunda'
