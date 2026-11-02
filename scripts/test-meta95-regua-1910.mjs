@@ -20,7 +20,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — reâncora: a versão vigente do pixel_score subiu para regua95_pixel_v2 (as fixtures de "versão vigente" acompanham; v0 segue velha).
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -223,10 +222,10 @@ async function provas(L) {
     const eventos = [
       ev('coherence_v2', 'v1', '2026-10-19T12:00:00Z', { version: 'regua95_coerencia_v2', score: 80, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z' }),
       ev('coherence_v2', 'v1', '2026-10-19T13:00:00Z', { version: 'regua95_coerencia_v2', score: 97, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z' }),
-      ev('pixel_score', 'v1', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v2', score: 96, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z', video_url: 'https://x/v1.mp4' }),
-      ev('pixel_score', 'a1', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v2', score: 70, product: 'ads', engine: 'ads_v2', delivered_at: '2026-10-19T12:00:00Z', caps: ['produto diferente da foto real (teto 70)'] }),
+      ev('pixel_score', 'v1', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v1', score: 96, product: 'filme', engine: 'cinematic_ai', delivered_at: '2026-10-19T11:00:00Z', video_url: 'https://x/v1.mp4' }),
+      ev('pixel_score', 'a1', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v1', score: 70, product: 'ads', engine: 'ads_v2', delivered_at: '2026-10-19T12:00:00Z', caps: ['produto diferente da foto real (teto 70)'] }),
       ev('pixel_score', 'old', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v0', score: 10, product: 'ads', delivered_at: '2026-10-19T12:00:00Z' }),
-      ev('pixel_score', 'antes', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v2', score: 10, product: 'clipe', delivered_at: '2026-10-18T12:00:00Z' }),
+      ev('pixel_score', 'antes', '2026-10-19T13:00:00Z', { version: 'regua95_pixel_v1', score: 10, product: 'clipe', delivered_at: '2026-10-18T12:00:00Z' }),
     ]
     const notas = P.juntarNotasRegua(eventos, '2026-10-19T00:00:00Z')
     const v1 = notas.find((n) => n.key === 'v1')
@@ -248,10 +247,10 @@ async function provas(L) {
     const agora = Date.parse('2026-10-19T23:30:00Z')
     const ev = (name, key, created, md) => ({ name, created_at: created, session_id: key, user_id: 'u', metadata: md })
     const linhas = [
-      ev('pixel_score', 'ok', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v2', score: 90 }),
-      ev('pixel_score', 'falhou-agora', '2026-10-19T23:10:00Z', { version: 'regua95_pixel_v2', score: null, falha: 'quadros_indisponiveis' }),
-      ev('pixel_score', 'falhou-antes', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v2', score: null, falha: 'quadros_indisponiveis' }),
-      ...[1, 2, 3].map((i) => ev('pixel_score', 'desistiu', `2026-10-19T1${i}:00:00Z`, { version: 'regua95_pixel_v2', score: null, falha: 'visao_sem_resposta' })),
+      ev('pixel_score', 'ok', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v1', score: 90 }),
+      ev('pixel_score', 'falhou-agora', '2026-10-19T23:10:00Z', { version: 'regua95_pixel_v1', score: null, falha: 'quadros_indisponiveis' }),
+      ev('pixel_score', 'falhou-antes', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v1', score: null, falha: 'quadros_indisponiveis' }),
+      ...[1, 2, 3].map((i) => ev('pixel_score', 'desistiu', `2026-10-19T1${i}:00:00Z`, { version: 'regua95_pixel_v1', score: null, falha: 'visao_sem_resposta' })),
       ev('coherence_v2', 'velha', '2026-10-19T20:00:00Z', { version: 'regua95_coerencia_v0', score: 99 }),
     ]
     const fakeAdmin = { from: () => ({ select() { return this }, in() { return this } }) }

@@ -25,8 +25,12 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { assessEvidence, inspectFrameEvidence, isScore, objectRecord, type EvidenceAssessment } from '@/lib/regua95/evidence'
 
 export const PIXEL_SCORE_EVENT = 'pixel_score'
-// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — v2: no cron da régua, a marca d'água medida deixa de contar como "texto inventado".
-export const PIXEL_SCORE_VERSION = 'regua95_pixel_v2'
+// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — DEGRAU NO HISTÓRICO EM 02/11/2026: a partir desta data, no cron da régua, a marca d'água
+// MEDIDA ("usekineo.com/free" no topo, quando o RenderScript gravado a tem) deixa de contar como "texto inventado" (teto 85).
+// A versão continua regua95_pixel_v1 DE PROPÓSITO (decisão do fundador 02/11, caixa apertado): subir a versão faria o cron
+// re-julgar os 7 dias de entregas (~US$ 3-6). Só entregas novas usam o critério novo; notas de antes de 02/11 com
+// "texto inventado … (teto 85)" pela marca ficam como estão — comparar antes/depois desta data exige descontar esse degrau.
+export const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'
 export const PIXEL_FRAMES = 8
 /** Leituras do juiz de visão por vídeo (média). */
 export const PIXEL_READINGS = 2

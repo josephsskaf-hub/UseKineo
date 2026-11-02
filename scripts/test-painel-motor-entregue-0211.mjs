@@ -175,7 +175,12 @@ console.log("== 3. pixel_score: marca d'água medida fora do teto (cron da régu
   checa('3.9 nota abaixo do teto (60) com só a marca: o texto sai do teto mas a nota NÃO sobe', baixo.frames.every((f) => f.score === 60 && f.issues.length === 0) && baixo.score === 60)
   const outro = X.normalizePixel(leitura(() => ({ issues: ['invented_text', 'deformed_face_or_hand'], score: 85 })), regua)
   checa('3.10 marca + outro defeito: o outro teto fica e a nota do quadro não sobe', outro.caps.some((c) => /rosto\/mão deformado em 8/.test(c)) && outro.frames.every((f) => f.score === 85))
-  checa('3.11 versão nova: regua95_pixel_v2', X.PIXEL_SCORE_VERSION === 'regua95_pixel_v2' && real.version === 'regua95_pixel_v2')
+  checa('3.11 versão MANTIDA em regua95_pixel_v1 (decisão 02/11: sem re-julgar 7 dias) e o degrau de 02/11 documentado no código', X.PIXEL_SCORE_VERSION === 'regua95_pixel_v1' && real.version === 'regua95_pixel_v1' && rd('lib/regua95/pixelScore.ts').includes('DEGRAU NO HISTÓRICO EM 02/11/2026'))
+  const C = createOfflineLoader()('lib/regua95/coletar.ts')
+  const antigas = [{ created_at: '2026-11-02T14:04:38Z', session_id: '6f4891e8-28c2-4895-b9c0-ddf506930fe4', user_id: USER, metadata: { version: 'regua95_pixel_v1', score: 85, caps: [teto8] } }]
+  const lidoQ = { in: () => lidoQ, select: () => lidoQ }
+  const feitas = await C.notasExistentes({ from: () => lidoQ }, ['6f4891e8-28c2-4895-b9c0-ddf506930fe4'], async () => ({ data: antigas, error: null }))
+  checa('3.11b o cron NÃO re-julga a entrega antiga: a nota v1 de 02/11 (teto 85 pela marca) conta como feita', feitas.has('pixel_score:6f4891e8-28c2-4895-b9c0-ddf506930fe4'))
   const msgs = (o) => X.buildPixelMessages({ product: 'filme', asked: 'polvo', narration: NARRACAO, expectedKineoWatermark: true }, frames, 'low', o)
   const baseMsgs = createOfflineLoader({ source: (rel, text) => rel === 'lib/regua95/pixelScore.ts' ? base(rel) : text })('lib/regua95/pixelScore.ts').buildPixelMessages({ product: 'filme', asked: 'polvo', narration: NARRACAO, expectedKineoWatermark: true }, frames, 'low')
   checa('3.12 portão do filme de 15 s: mensagens ao juiz byte a byte as da base sem marcaMedida', JSON.stringify(msgs(undefined)) === JSON.stringify(baseMsgs))

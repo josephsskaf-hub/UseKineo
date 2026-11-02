@@ -119,11 +119,11 @@
   },
   "lib/regua95/pixelScore.ts": {
    "beforeSha256": "a30e5c860faa159d2924babfc867a2503027e016fa62782fa5143455137f81a0",
-   "afterSha256": "fa6ddbba90c0af081519caa0fd365df4626a58910d25be07c2d81f3c67125acc",
+   "afterSha256": "dc5adad9ffcf1c1cbe5b648d0f52dad835754c8e6490f06f1f1c232e377cde2e",
    "hunks": [
     {
-     "before": "export const PIXEL_SCORE_EVENT = 'pixel_score'\nexport const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'\nexport const PIXEL_FRAMES = 8",
-     "after": "export const PIXEL_SCORE_EVENT = 'pixel_score'\n// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — v2: no cron da régua, a marca d'água medida deixa de contar como \"texto inventado\".\nexport const PIXEL_SCORE_VERSION = 'regua95_pixel_v2'\nexport const PIXEL_FRAMES = 8"
+     "before": "export const PIXEL_SCORE_EVENT = 'pixel_score'\nexport const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'",
+     "after": "export const PIXEL_SCORE_EVENT = 'pixel_score'\n// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — DEGRAU NO HISTÓRICO EM 02/11/2026: a partir desta data, no cron da régua, a marca d'água\n// MEDIDA (\"usekineo.com/free\" no topo, quando o RenderScript gravado a tem) deixa de contar como \"texto inventado\" (teto 85).\n// A versão continua regua95_pixel_v1 DE PROPÓSITO (decisão do fundador 02/11, caixa apertado): subir a versão faria o cron\n// re-julgar os 7 dias de entregas (~US$ 3-6). Só entregas novas usam o critério novo; notas de antes de 02/11 com\n// \"texto inventado … (teto 85)\" pela marca ficam como estão — comparar antes/depois desta data exige descontar esse degrau.\nexport const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'"
     },
     {
      "before": "  cap_limit: number\n  summary: string",
