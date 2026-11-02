@@ -9,6 +9,7 @@
 //       com a duração/modo decididos e despacha uma vez só; o componente agenda o reenvio com Cancel;
 //   (M) mutantes ficam vermelhos.
 // Rodar: node scripts/test-recusa-botao-3110.mjs
+import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -17,7 +18,7 @@ const require = createRequire(import.meta.url)
 const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = 'KINEO-RECUSA-BOTAO-3110'
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semFilmeGratisComeca0211(fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'), rel)
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }

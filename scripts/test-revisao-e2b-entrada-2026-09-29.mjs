@@ -13,6 +13,7 @@
 //   F. a retomada de checkout enxerga o filme grátis de 15 s (não reabre checkout de conta com 0 filmes);
 //   G. o cartão de plano não vende "Keep N/month with Kineo 1" a quem não vê o Kineo 1;
 //   H. o modal de trial vencido não manda para um filme que a rota recusa.
+import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
@@ -27,7 +28,7 @@ import { semK4PagoCabe0211 } from './test-support/desfaz-k4-pago-cabe-0211.mjs' 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semK4PagoCabe0211(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p) /* KINEO-K4-PAGO-CABE-0211 */, p), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semK4PagoCabe0211(semFilmeGratisComeca0211(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p), p) /* KINEO-K4-PAGO-CABE-0211 */, p), p)
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

@@ -198,6 +198,7 @@ import {
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada: Kineo 1 na tela, motor da URL, duração que o
 // saldo paga, e o "roteiro cabe no filme curto". Tudo só age com a entrada nova ligada para a conta (flag seedance15).
 import { kineo1NaTela, motorDaUrl, duracaoDeEntrada, roteiroCabeNoFilmeCurto, pedidoDeKineo1, duracaoDaUrlNaEntrada } from '@/lib/growth/entradaSeedance15'
+import { textoDoFilmeGratis, type TextoDoFilmeGratis } from '@/lib/growth/filmeGratisComeca' // KINEO-FILME-GRATIS-COMECA-0211 — o clique do filme grátis começa o filme, com o texto certo
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -2026,6 +2027,8 @@ export default function GenerateClient({
   const [error, setError] = useState<string | null>(null)
   const [recusaResposta, setRecusaResposta] = useState<Record<string, unknown> | null>(null) // KINEO-RECUSA-BOTAO-3110 — o corpo da última recusa (o `fix` do servidor)
   const recusaDespachoRef = useRef<{ at: number; started: boolean } | null>(null) // KINEO-RECUSA-BOTAO-3110 — o conserto reanalisou: despacha UMA vez quando a análise chegar em 'options'
+  const filmeGratisDespachoRef = useRef<{ at: number; started: boolean; analisou: boolean; segundos: Duration; pedido: TextoDoFilmeGratis } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211 — o clique do filme grátis: analisa no próximo render e despacha UMA vez em 'options'
+  const [filmeGratisTick, setFilmeGratisTick] = useState(0) // KINEO-FILME-GRATIS-COMECA-0211 — o render em que motor/duração/modo novos já valem
   const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)
   const [quality, setQuality] = useState<Quality>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15: sem Kineo 1, a entrada é o Seedance
   // Push #084 — Fast Mode (Pexels + TTS, 1 credit, ~30s) is the new default.
@@ -12049,6 +12052,29 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, error]) // KINEO-RECUSA-BOTAO-3110
 
+  // ═══ KINEO-FILME-GRATIS-COMECA-0211 — "Make my free film" começa o filme (o clique é o consentimento) ═══
+  // O clique troca motor/duração/modo; a análise roda AQUI, no render seguinte, para enxergar os valores novos (chamada no
+  // próprio clique, ela leria o motor antigo — um Kling 3 pularia o escritor). A MESMA análise do botão Generate, sem a
+  // prévia (skipPreview); quando ela chega em 'options', o despacho é o MESMO handleGenerateGuarded — UMA vez.
+  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211
+    const p = filmeGratisDespachoRef.current
+    if (!filmeGratisTick || !p || p.analisou) return
+    p.analisou = true
+    void handleAnalyze(p.pedido.texto, { skipPreview: true, structureFirst: p.pedido.modo === 'ai', scriptModeOverride: p.pedido.modo, targetSeconds: p.segundos })
+      .finally(() => { if (filmeGratisDespachoRef.current === p && !p.started) filmeGratisDespachoRef.current = null }) // a análise parou antes de começar (link, portão): o próximo clique é dela
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filmeGratisTick]) // KINEO-FILME-GRATIS-COMECA-0211
+  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211 — despacho único depois da análise do filme grátis
+    const p = filmeGratisDespachoRef.current
+    if (!p || !p.analisou) return
+    if (Date.now() - p.at > 180_000) { filmeGratisDespachoRef.current = null; return }
+    if (isProcessingPhase(phase)) { p.started = true; return }
+    if (!p.started) return
+    filmeGratisDespachoRef.current = null // plano, recusa ou erro: o próximo clique é dela
+    if (phase === 'options' && !error && !verbatimOrderHoldRef.current) handleGenerateGuarded() // o aviso da ordem colada segura, como no one-click do Studio
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, error]) // KINEO-FILME-GRATIS-COMECA-0211
+
   // PUSH #38 — a live TAAFT signup reached /generate four times and opened
   // pricing, but never fired analyze_idea_clicked. The only primary CTA sat
   // below uploads, examples, engines and duration. Give a free account with
@@ -15242,24 +15268,40 @@ export default function GenerateClient({
             },
           }}
           onFirstFilmFree={() => {
-            // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.
-            // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.
+            // KINEO-FILME-GRATIS-COMECA-0211 — o clique COMEÇA o filme grátis (antes só fechava a caixa e trocava o motor:
+            // noroutine2026 clicou e nada aconteceu). Trava de duplo clique: um pedido pendente ou um render em curso seguram o 2º.
+            if (filmeGratisDespachoRef.current || generationInFlightRef.current || isProcessingPhase(phase)) return
             void trackEvent('first_film_free_offer_clicked', {
               reason: upgradeReason, surface: 'generate_upgrade_modal',
               // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — a mesma saída, dois motivos: grátis (free) ou saldo do trial (trial_kineo1).
               variant: trialActive === true ? (kineo1Shown ? 'trial_kineo1' : 'trial_seedance15') : 'free', credits: credits ?? null,
             })
             setShowUpgradeModal(false)
-            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, a saída é o Seedance de 15 s (não gera nada).
-            if (trialActive === true && !kineo1Shown) {
+            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, a saída é o Seedance de 15 s.
+            const curto = trialActive === true && !kineo1Shown // KINEO-FILME-GRATIS-COMECA-0211
+            if (curto) {
               setMode('cinematic_ai'); setAiEngine('seedance'); setDuration(SEEDANCE_SHORT_SECONDS)
-              // Revisão da E2b (achado 3): roteiro colado longo demais para 15 s não vai verbatim (a guarda do cinematic
-              // recusaria com 422) — vira o teaser em modo IA, a mesma régua do /go (roteiroCabeNoFilmeCurto).
-              // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto da guarda na língua da fala (a mesma do cinematic).
-              if (scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(prompt, SEEDANCE_SHORT_SECONDS, language)) setScriptMode('ai')
-              return
+            } else {
+              setMode('fast')
             }
-            setMode('fast')
+            // KINEO-FILME-GRATIS-COMECA-0211 — o texto do filme grátis (lib/growth/filmeGratisComeca): o roteiro que a IA escreveu
+            // para outra duração sai e a ideia original volta (madsandreasen: 197 palavras de 60 s recusadas no 15 s); o roteiro
+            // DELA longo demais para 15 s vira a ideia em modo IA (Revisão da E2b, achado 3 — a mesma régua roteiroCabeNoFilmeCurto,
+            // na língua da fala, KINEO-PONTAS-15S-IDIOMA-2026-09-29); o que ela escreveu nunca é apagado.
+            const segundosDoFilme: Duration = curto ? SEEDANCE_SHORT_SECONDS : duration
+            const pedido = textoDoFilmeGratis({ prompt, estruturado: structuredScriptRef.current, ideiaDoRoteiro: ideiaDoRoteiroRef.current, scriptMode, segundos: segundosDoFilme, curto, language })
+            if (pedido.modo !== scriptMode) setScriptMode(pedido.modo)
+            if (!pedido.texto) return // caixa vazia: a tela fica no motor do filme grátis para ela escrever a ideia
+            if (pedido.descartouRoteiro) {
+              structuredScriptRef.current = null
+              ideiaDoRoteiroRef.current = null
+              setPrompt(pedido.texto)
+            }
+            // O one-click do Studio não dispara por cima (nem devolve o motor/duração da URL): este clique já é o consentimento.
+            studioOneClickFiredRef.current = true
+            studioAutoFirePendingRef.current = false
+            filmeGratisDespachoRef.current = { at: Date.now(), started: false, analisou: false, segundos: segundosDoFilme, pedido }
+            setFilmeGratisTick((t) => t + 1)
           }}
           onClose={() => setShowUpgradeModal(false)}
         />

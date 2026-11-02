@@ -16,6 +16,7 @@
 // Le os arquivos REAIS. Nao ha mock: o valor deste teste e provar que o codigo
 // em producao tem estas propriedades, nao que uma copia delas passa.
 // ═══════════════════════════════════════════════════════════════════════════
+import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -23,7 +24,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 
 const raiz = path.resolve(process.argv[2] ?? '.')
-const ler = (rel) => fs.readFileSync(path.join(raiz, rel), 'utf8')
+const ler = (rel) => semFilmeGratisComeca0211(fs.readFileSync(path.join(raiz, rel), 'utf8'), rel)
 
 const CREDITS = ler('app/api/credits/route.ts')
 const GEN = ler('app/(dashboard)/generate/GenerateClient.tsx')

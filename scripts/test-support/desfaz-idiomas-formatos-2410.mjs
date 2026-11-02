@@ -1,3 +1,4 @@
+import { semFilmeGratisComeca0211 } from './desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semK4PagoSilencio0211 } from './desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semK4Despacho0211 } from './desfaz-k4-despacho-0211.mjs' // KINEO-K4-DESPACHO-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semK4PagoCabe0211 } from './desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
@@ -34,6 +35,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semFilmeGratisComeca0211(text, file) // KINEO-FILME-GRATIS-COMECA-0211
   text = semK4PagoSilencio0211(text, file) // KINEO-K4-PAGO-SILENCIO-0211
   text = semK4Despacho0211(text, file) // KINEO-K4-DESPACHO-0211
   text = semK4PagoCabe0211(text, file) // KINEO-K4-PAGO-CABE-0211

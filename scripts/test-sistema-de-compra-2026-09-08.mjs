@@ -1,6 +1,7 @@
 // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — guardião do caminho de compra, elo por elo:
 // entrada → carimbo → faixa → Generate → caixa ($1) → Stripe → webhook → créditos
 // → filme → dia 8 → admin. "Cada falha é um cliente que a gente perde" (fundador).
+import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — a camada mais nova (GenerateClient: selo honesto do filme grátis) sai antes da do sem-início-automático
 import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
 import { readFileSync } from 'node:fs'
@@ -13,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semFilmeGratisComeca0211(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p), p), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
