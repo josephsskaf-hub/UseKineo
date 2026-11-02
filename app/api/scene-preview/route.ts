@@ -43,6 +43,7 @@ import {
   type PreviaProfile,
   type PreviaRefusalReason,
 } from '@/lib/scenePreview'
+import { previaNarrationLanguage } from '@/lib/scenePreviewLanguage' // KINEO-PREVIA-LINGUA-0211 — o roteiro sai na língua do próprio texto
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -119,6 +120,9 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as { idea?: unknown; language?: unknown } | null
   const language = typeof body?.language === 'string' && /^[a-z]{2}$/.test(body.language) ? body.language : 'en'
   const idea = typeof body?.idea === 'string' ? body.idea.replace(/\s+/g, ' ').trim() : ''
+  // KINEO-PREVIA-LINGUA-0211 — `language` (a da interface) fica para as recusas; o ESCRITOR recebe a língua do próprio texto.
+  // Antes: urdu + 'en' forçado → "Write everything in US English" + "translate nothing" → o gpt-4o recusou (jstarshahzad43, 02/11).
+  const narration = previaNarrationLanguage(body?.language, idea)
 
   // 1. Quem pode: a mesma régua do aviso region_paid_only (sem pagar, plano grátis).
   const profile = await loadProfile(user.id)
@@ -167,7 +171,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`${req.nextUrl.origin}/api/generate-script`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: req.headers.get('cookie') ?? '' },
-      body: JSON.stringify({ topic: idea, language, engine: PREVIA_ENGINE_QUALITY, targetSeconds: PREVIA_TARGET_SECONDS }),
+      body: JSON.stringify({ topic: idea, language: narration, engine: PREVIA_ENGINE_QUALITY, targetSeconds: PREVIA_TARGET_SECONDS }),
       signal: AbortSignal.timeout(SCRIPT_TIMEOUT_MS),
       cache: 'no-store',
     })
@@ -198,7 +202,7 @@ export async function POST(req: NextRequest) {
   if (shown.length < PREVIA_MIN_SCENES) return fail('images_failed', `images ${shown.length}/${scenes.length}`)
 
   // 8. Mostrada: a reserva conta para sempre; o evento leva o que é medível do custo (chamadas e megapixels).
-  await setReservation(db, myId, { status: 'shown', language, idea_chars: idea.length })
+  await setReservation(db, myId, { status: 'shown', language, narration_language: narration, idea_chars: idea.length })
   const left = Math.max(0, PREVIA_PER_ACCOUNT_TOTAL - (aAll?.length ?? PREVIA_PER_ACCOUNT_TOTAL))
   await writeServerEvent({
     name: PREVIA_EVENTS.shown,
@@ -206,7 +210,8 @@ export async function POST(req: NextRequest) {
     path: PATH,
     metadata: {
       reservation: myId,
-      language,
+      language: narration, // KINEO-PREVIA-LINGUA-0211 — a língua do roteiro mostrado (a volta ao Studio a usa)
+      interface_language: language,
       idea: idea.slice(0, 500),
       script: script.slice(0, 4000),
       scenes: shown,
@@ -220,5 +225,5 @@ export async function POST(req: NextRequest) {
       est_usd: null,
     },
   })
-  return NextResponse.json({ script, scenes: shown, left }, { headers: NO_STORE })
+  return NextResponse.json({ script, scenes: shown, left, language: narration }, { headers: NO_STORE })
 }

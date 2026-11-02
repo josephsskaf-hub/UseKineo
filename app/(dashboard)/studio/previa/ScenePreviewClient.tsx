@@ -22,7 +22,7 @@ const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
 export default function ScenePreviewClient({ initialIdea, from }: { initialIdea: string; from: string }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
-  const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
+  const scriptLanguage = language // KINEO-PREVIA-LINGUA-0211 — só uma dica: o servidor escreve na língua do próprio texto (antes: tudo fora de pt/es virava 'en')
   const [idea, setIdea] = useState(initialIdea)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +50,7 @@ export default function ScenePreviewClient({ initialIdea, from }: { initialIdea:
       const r = await fetch('/api/scene-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idea, language: scriptLanguage }) })
       const j = await r.json().catch(() => null)
       if (!r.ok || !j?.script) { setError(typeof j?.error === 'string' ? j.error : copy.refused.busy); return }
-      setPreview({ script: j.script, scenes: j.scenes ?? [], idea, language: scriptLanguage })
+      setPreview({ script: j.script, scenes: j.scenes ?? [], idea, language: typeof j.language === 'string' ? j.language : scriptLanguage })
       if (typeof j.left === 'number') setLeft(j.left)
     } finally {
       setBusy(false)
