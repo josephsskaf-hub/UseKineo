@@ -60,6 +60,7 @@ import { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-F
 import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { iniciarJuizDoPlano, esperarJuizDoPlano, planoDoEnvio, JUIZ_PLANO_EVENT, type JuizPlanoVeredito } from '@/lib/juizDoPlano' // KINEO-JUIZ-PLANO-0111 [TRAVA 8.2 — vai do fundador 01/11 "concordo vai"] — juiz do plano v2 (perguntas sim/não sobre o texto que foi à fal), SÓ OBSERVAR, depois do envio
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
 import { REGION_FREE_FILM_IN_USE_MESSAGE, REGION_FREE_FILM_LIVE, REGION_FREE_FILM_QUALITY, REGION_FREE_FILM_REFUSAL, REGION_FREE_FILM_REFUSED_EVENT, REGION_FREE_FILM_SECONDS, REGION_FREE_FILM_USED_EVENT, regionFreeFilmAdmissible, regionFreeFilmEligibility, regionFreeFilmExclusive } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
@@ -3324,6 +3325,7 @@ async function manipularPost(req: NextRequest) {
     const stillDecisionReports: RelatoCriticoStill[] = []
     const stillDecisionExtras: EvidenciaStillFinal[] = []
     let qualitySnapshot: FilmQualitySnapshot | null = null
+    const registrarJuizPlano = (v: JuizPlanoVeredito) => writeServerEvent({ name: JUIZ_PLANO_EVENT, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, dry_run: body.dry_run === true || ehPedidoDeStills(body.dry_run), dry_run_modo: body.dry_run === true ? 'ensaio' : ehPedidoDeStills(body.dry_run) ? 'stills' : null, ...v } }) // KINEO-JUIZ-PLANO-0111 — evento juiz_plano_verdict, UMA vez por filme, gravado depois da resposta (waitUntil); só o veredito (citações ≤ 120 caracteres), nunca vai ao cliente
     let personagemRelatoFinal: RelatoPersonagem | null = null // KINEO-META95-PERSONAGEM-2010 — o relato da folha (contagens, vereditos, custo), preenchido no bloco da folha; null = nada entra na resposta
     const publishCinematicResponse = async (
       response: Record<string, unknown>,
@@ -6562,6 +6564,7 @@ async function manipularPost(req: NextRequest) {
         hEngines.push(unsubmitted.type)
         hSubmittedPrompts.push(unsubmitted.prompt + eraSuffix)
       }
+      iniciarJuizDoPlano({ caminho: 'hollywood', engine: family, pedido: prompt, verbatim, seconds: duration, cenas: plan.scenes.map((s, i) => ({ fala: (s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover : s.voiceover) ?? '', prompt: typeof hSceneFalInputs[i]?.prompt === 'string' ? String(hSceneFalInputs[i]?.prompt) : hSubmittedPrompts[i] ?? '' })) }, { aoDecidir: registrarJuizPlano }) // KINEO-JUIZ-PLANO-0111 — DEPOIS do laço que reescreve hs.prompt (celular, boca fechada, fidelidade, ação do S25, nitidez): julga o prompt EXATO que foi à fal, em paralelo, sem esperar
 
       // KINEO-VIGIA-LEDGER-2026-09-11 — o finalizador único (finalizarDespacho) lê
       // ctx.outcomes/attempts; cena nunca tentada fica de fora e vira not_attempted.
@@ -7209,6 +7212,7 @@ async function manipularPost(req: NextRequest) {
         contrato_cena: contratoRelatoClassico,
         contrato_modo: classicVisualMode, contrato_palavra_inteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — a régua que o gate clássico aplicou (visual_mode do claim é a do Diretor de Formato)
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
+        juiz_plano: await esperarJuizDoPlano(iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: kling4TrialCandidate, kling4Input: () => (scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? buildKling4TrialInput(classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)), [], { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: [], prompts: classicScenePrompts }), ensaio: true, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', pedido: prompt, verbatim, seconds: duration }, { aoDecidir: registrarJuizPlano })), // KINEO-JUIZ-PLANO-0111 — o ensaio de $0 (só contas internas) espera e mostra o veredito sobre o texto que IRIA à fal (sem os stills e sem a correção do sujeito do Kling 4, que só roda depois da reserva); é o que a camada B lê
         broll_plan: { aplicado: planoDeBrollAplicado, ...decisaoPlanoDeBroll }, // KINEO-TRILHA-15S — o ensaio mostra se o plano de b-roll do Studio foi usado ou ignorado, e por quê
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
         ...(elencoEpocaRelato ? { elenco_epoca: elencoEpocaRelato } : {}), // KINEO-ELENCO-EPOCA-2710 — o ensaio de $0 mostra quem entrou em que cena, a época e os falsos amigos
@@ -7737,6 +7741,7 @@ async function manipularPost(req: NextRequest) {
         status: null, ambiguous: true, accepted: false })
       ctxDespacho().outcomes[0].attempt_count++
     }
+    iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: kling4TrialCandidate, kling4Input: () => (kling4Trial?.job ? buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicSceneInputs, prompts: classicScenePrompts }), engine: kling4Trial?.job ? 'kling4' : wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', pedido: prompt, verbatim, seconds: duration }, { aoDecidir: registrarJuizPlano }) // KINEO-JUIZ-PLANO-0111 — DEPOIS do 1º POST, nunca antes: Kling 4 grátis = multi_prompt de buildKling4TrialInput (compactado e cortado em 512); fallback/clássico = o prompt de cada input enviado; corre em paralelo, sem esperar
     const falRequestIds = submittedScenes.ids
     const usedModels = submittedScenes.models
     let validIds = falRequestIds.filter((id): id is string => id !== null)

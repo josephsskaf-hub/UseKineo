@@ -1,0 +1,2047 @@
+{
+ "versao": "juiz-plano-v2-0111",
+ "criado_em": "2026-11-02T02:38:51.964Z",
+ "juiz": {
+  "versao": "juiz_plano_v2",
+  "arquivo": "lib/juizDoPlano.ts",
+  "modelo": "gpt-4o-mini (AI_TEXT_MODELS.utility)",
+  "chamada": "UMA requisição, n=3 leituras, temperatura 0.3, seed 11, response_format json_schema estrito",
+  "perguntas": [
+   "(a) ficha × pedido/fala, plano a plano (com citação da ficha e das palavras da história)",
+   "(b) nome que não é personagem (lugar, time, veículo, número, efeito sonoro, palavra comum) virou gente",
+   "(c) criatura/adjetivo no lugar do protagonista",
+   "(d) sujeito central do pedido visível em algum plano (sujeito humano + todo plano sem rosto = não, decidido em código)",
+   "(e) o final entrega a promessa do gancho (só quando há promessa)"
+  ],
+  "regra": "reprovado = qualquer \"sim\" em b/c ou \"não\" em a/d (regra do pedido); (e) \"não\" = alerta, baixa a nota mas sozinho não reprova; nota = 100 − 25 × falhas; cada falha só conta na MAIORIA das 3 leituras; acusação de plano sem citação literal no texto do plano é descartada"
+ },
+ "protocolo": {
+  "treino": "17 filmes de 29-30/10 (docs/revisao-videos/2026-10-29.md e 2026-10-30.md), claims lidos do Supabase (execute_sql, só leitura), texto exato que foi à fal (multi_prompt do Kling 4 grátis; prompt do input de cada cena no Seedance). Nenhum dos 19 de teste entra. Os filmes de 29-30/10 que já estavam no teste (BROKENBASE, câmera, guaxinim, robô, Isaías, pets, Vênus, cozinha) ficaram fora do treino. Treino não tem filme \"bom\" sobrando (todo filme ≥ 7 de 29-30/10 já está no teste); os negativos do treino são ruins cujo defeito NÃO está no texto (bateria, letras BROKENBASE/kozel, NCB, mergulhador).",
+  "rotulos_treino": "defeito_no_texto rotulado à mão lendo o texto do claim ANTES de rodar o juiz (campo onde_no_texto)",
+  "congelamento": {
+   "sha256_lib": "e8347d748d54f5062483f2e374ae76d6a54a88a59a2ae45d7d9850045579b566",
+   "quando_utc": "2026-11-02T02:25:02Z",
+   "nota": "o prompt, o schema e as guardas de código foram congelados depois da última rodada de treino e ANTES da primeira rodada de teste; a lib commitada tem exatamente este sha256 — nada mudou depois de ver o teste"
+  },
+  "teste": "19 filmes de 01/11 com rótulo da confirmação (C:\\kineo\\.claude\\worktrees\\wf_58f84675-423-1\\docs\\calibracao\\juiz-plano-confirmacao-0111.json). Kling 4 grátis: multi_prompt do claim (o texto cortado em 512 que foi à fal — o v1 lia o scene_prompts de antes da compactação); demais: prompt do input assinado de cada cena. Duas rodadas iguais (r1, r2).",
+  "exemplos_no_prompt": "só do treino (Cute, Check, Open, Sound, Barcelona, vegetais, Kali, Yamaguchi, Noé, Serafina, bunny); nenhum token do teste (Skymaster, Yukon, Ten, unicorn, puppy) está no prompt",
+  "limite_honesto": "as falas por plano do Kling 4 vêm da narração dividida por frases (o claim não guarda a fala de cada plano); na rota o juiz recebe a fala exata de cada cena"
+ },
+ "meta": "pegar pelo menos 6 dos 8 ruins com defeito no texto, com no máximo 1 alarme falso nos 9 bons",
+ "resultado_teste": {
+  "r1": {
+   "ruins_com_defeito_no_texto_pegos": [
+    "D4-C54",
+    "D5-NASA",
+    "caneta-3D",
+    "D10-Leon"
+   ],
+   "alarmes_nos_bons_10": [
+    "bom7-Leo-luva"
+   ],
+   "alarmes_nos_9_bons_julgados_pelo_v1": [
+    "bom7-Leo-luva"
+   ],
+   "ruim_sem_defeito_no_texto_D6_gelo": "aprovou",
+   "media_nota": {
+    "ruins_texto": 75,
+    "bons": 97.5
+   }
+  },
+  "r2": {
+   "ruins_com_defeito_no_texto_pegos": [
+    "D4-C54",
+    "D5-NASA",
+    "D10-Leon"
+   ],
+   "alarmes_nos_bons_10": [
+    "bom7-Leo-luva"
+   ],
+   "alarmes_nos_9_bons_julgados_pelo_v1": [
+    "bom7-Leo-luva"
+   ],
+   "ruim_sem_defeito_no_texto_D6_gelo": "aprovou",
+   "media_nota": {
+    "ruins_texto": 81.3,
+    "bons": 97.5
+   }
+  }
+ },
+ "meta_atingida": {
+  "recall": "NÃO — 4/8 (r1) e 3/8 (r2); a meta era 6/8",
+  "alarmes": "SIM — 1 alarme nos 9 bons em cada rodada (bom7-Leo-luva), e esse alarme tem razão: o texto que foi à fal diz \"Leo, a man in his early thirties with straight sandy-blond hair\" num desenho infantil em que Leo pula em poças (o motor desenhou criança assim mesmo)"
+ },
+ "comparacao_v1_mesmos_19": {
+  "v1_coherence_v2": "aponta 3/9 ruins (2 pelo motivo certo: C-54 e NASA), 2 falsos alarmes puros nos bons (BROKENBASE e câmera), média 87,1 ruins × 87,6 bons",
+  "v2": "pega D4-C54, D5-NASA, caneta-3D, D10-Leon (r1) pelo motivo certo, 0 falso alarme puro (o único alarme é texto errado de verdade); média de nota 75 nos ruins × 97.5 nos bons (r1)"
+ },
+ "diagnostico_pos_teste_sem_mexer": {
+  "aviso": "lido DEPOIS do teste; nada disto foi aplicado ao prompt (qualquer mudança precisa de conjunto novo — ex.: filmes de 31/10 ou de 02/11 em diante — para medir sem vício)",
+  "D1-BRO": "o modelo marcou a ficha como contraditória nos 3 planos, mas citou só \"the bright pink unicorn\" (sem a marca de ficha da rota \"main character (\") → a guarda descartou. Acerto do modelo perdido pela guarda.",
+  "D2-Max": "o modelo citou a ficha traduzida para o português (\"Lena, um homem na casa dos trinta anos…\"), não literal → descartada; e tomou \"Max, um pequeno cachorro\" (a própria ficha errada) como verdade do protagonista.",
+  "D3-Mila": "o modelo respondeu \"bate\" para o Skoczuś gigante de rosto rude (não ligou a ficha ao personagem da história).",
+  "D9-Roland": "limite já medido na confirmação: a ficha certa está no episódio anterior, fora do claim; só o plano não basta.",
+  "caneta-3D": "pegou no r1 (d: a criança some), perdeu no r2 por 1 leitura (maioria 2/3 virou 1/3).",
+  "candidatos_v2_1": [
+   "aceitar como ficha a citação que está DENTRO de uma ficha da rota no texto do plano, mesmo sem copiar a marca",
+   "pedir as citações sempre na língua do plano (nunca traduzir)",
+   "passar a ficha da série (Next episode) ao juiz",
+   "medir num conjunto novo antes de qualquer \"vai\""
+  ]
+ },
+ "treino": {
+  "resultado": {
+   "r1": {
+    "com_defeito_no_texto_pegos": [
+     "T-animais-3D",
+     "T-anime",
+     "T-babydoll",
+     "T-rei-rainha",
+     "T-noe",
+     "T-porta-3h",
+     "T-kali",
+     "T-vegetais-1",
+     "T-brocolis"
+    ],
+    "sem_defeito_no_texto_reprovados": [],
+    "parcial_krav": "reprovou (a_ficha, pelo motivo errado)"
+   },
+   "r2": {
+    "com_defeito_no_texto_pegos": [
+     "T-animais-3D",
+     "T-anime",
+     "T-babydoll",
+     "T-rei-rainha",
+     "T-noe",
+     "T-porta-3h",
+     "T-kali",
+     "T-vegetais-1",
+     "T-brocolis"
+    ],
+    "sem_defeito_no_texto_reprovados": [],
+    "parcial_krav": "reprovou (a_ficha, pelo motivo errado)"
+   }
+  },
+  "casos": [
+   {
+    "id": "T-animais-3D",
+    "render_id": "52995fa2",
+    "generation_id": "28bb5b98-c128-4006-8aa0-7097936a14a9",
+    "nota_revisor": 5,
+    "defeito_revisor": "narração lê a instrução; homem adulto domina vídeo de animais",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "ficha 'Cute, a person in their thirties' (palavra comum virou gente) em 2 planos",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Animais fofinhos em 3D... prontos para uma aventura surpreendente!\": \"Named character in this shot: Cute, a person in their thirties with wavy chestnut hair, high cheekbones and dark eyes, …\"",
+      "plano 1 · \"Cute\" não é personagem e virou gente: \"Cute\"",
+      "plano 2 · ficha contradiz \"Com expressões engraçadas, eles vão te fazer rir e se encantar. Música infantil animada toca enquanto as cores vibrante…\": \"Named character in this shot: Cute, a person in their thirties with wavy chestnut hair, high cheekbones and dark eyes, …\"",
+      "plano 2 · \"Cute\" não é personagem e virou gente: \"Cute\"",
+      "plano 3 · ficha contradiz \"No final inesperado... a diversão com esses animais fofinhos é garantida!\": \"The only person in this shot is the same main character (the bunny, a bunny with realistic bunny anatomy and natural co…\""
+     ],
+     "descartes": [
+      "plano 3 · b_nome_falso: nome \"(vazio)\" fora do texto"
+     ],
+     "d_sujeito": "animais fofinhos",
+     "e_promessa": "a diversão com esses animais fofinhos é garantida!",
+     "usd": 0.001133,
+     "ms": 4710
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 25,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso",
+      "c_criatura"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso+c_criatura",
+      "a_ficha+b_nome_falso+c_criatura"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Animais fofinhos em 3D... prontos para uma aventura surpreendente!\": \"Named character in this shot: Cute, a person in their thirties with wavy chestnut hair, high cheekbones and dark eyes, …\"",
+      "plano 1 · \"Cute\" não é personagem e virou gente: \"Cute\"",
+      "plano 2 · ficha contradiz \"Com expressões engraçadas, eles vão te fazer rir e se encantar. Música infantil animada toca enquanto as cores vibrante…\": \"Named character in this shot: Cute, a person in their thirties with wavy chestnut hair, high cheekbones and dark eyes, …\"",
+      "plano 2 · \"Cute\" não é personagem e virou gente: \"Cute\"",
+      "plano 3 · ficha contradiz \"No final inesperado... a diversão com esses animais fofinhos é garantida!\": \"The only person in this shot is the same main character (the bunny, a bunny with realistic bunny anatomy and natural co…\"",
+      "plano 3 · criatura/adjetivo no lugar do protagonista: \"The only person in this shot is the same main character (the bunny, a bunny with realistic bunny anatomy and natural co…\""
+     ],
+     "descartes": [
+      "plano 3 · b_nome_falso: nome \"(vazio)\" fora do texto"
+     ],
+     "d_sujeito": "animais fofinhos",
+     "e_promessa": "a diversão com esses animais fofinhos é garantida!",
+     "usd": 0.001172,
+     "ms": 4987
+    }
+   },
+   {
+    "id": "T-bateria",
+    "render_id": "f3676539",
+    "generation_id": "36bc53e9-7495-41e2-a67c-f635b88512cf",
+    "nota_revisor": 6,
+    "defeito_revisor": "letreiro sem sentido; legenda cortada; bateria de carro virou pilhas",
+    "defeito_no_texto": "nao",
+    "onde_no_texto": "o texto pede a bateria de 12 V certa; defeito é do motor",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"A close-up of a classic 12-volt lead-acid battery, showing six distinct cells with bright colors highlighting each cell…\" × \"Wie viele Zellen hat eine klassische 12-Volt-Blei-Säure-Batterie?\""
+     ],
+     "d_sujeito": "car battery",
+     "e_promessa": "Anzahl der Zellen einer 12-Volt-Batterie",
+     "usd": 0.000894,
+     "ms": 3815
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"A close-up of a classic 12-volt lead-acid battery, showing six distinct cells with bright colors highlighting each cell…\" × \"Wie viele Zellen hat eine klassische 12-Volt-Blei-Säure-Batterie?\""
+     ],
+     "d_sujeito": "die Batterie",
+     "e_promessa": "Wie viele Zellen hat eine klassische 12-Volt-Blei-Säure-Batterie?",
+     "usd": 0.000912,
+     "ms": 3453
+    }
+   },
+   {
+    "id": "T-krav",
+    "render_id": "802dbace",
+    "generation_id": "3d9e9301-2b6a-411b-a27b-ee9fc1059929",
+    "nota_revisor": 6,
+    "defeito_revisor": "FINAL_FRACO: luta com Krav e resgate só narrados; agente de costas",
+    "defeito_no_texto": "parcial",
+    "onde_no_texto": "último plano só 'Serafina avança' — a vitória e o resgate prometidos não estão em plano nenhum",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Serafina, agente da DIVISÃO-7, tem 18 minutos — infiltração.\": \"Visible: Serafina, a person in their thirties with straight sandy-blond hair, round face and big expressive eyes, weari…\"",
+      "plano 3 · ficha contradiz \"Krav desafiou... mas Serafina venceu.\": \"Visible: Krav, a person in their thirties with long dark braided hair, thick eyebrows and a warm smile, wearing a dark …\"",
+      "plano 3 · ficha contradiz \"Krav desafiou... mas Serafina venceu. Resgate completo.\": \"Visible: Krav, a person in their thirties with long dark braided hair, thick eyebrows and a warm smile, wearing a dark …\""
+     ],
+     "descartes": [
+      "plano 2 · a_ficha: \"Visible: Serafina, a person in their thirties with straight sandy-blond hair, round face and big expressive eyes, weari…\""
+     ],
+     "d_sujeito": "Serafina",
+     "e_promessa": "Resgate completo.",
+     "usd": 0.000992,
+     "ms": 4616
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Serafina, agente da DIVISÃO-7, tem 18 minutos — infiltração.\": \"Visible: Serafina, a person in their thirties with straight sandy-blond hair, round face and big expressive eyes, weari…\"",
+      "plano 3 · ficha contradiz \"Krav desafiou... mas Serafina venceu.\": \"Visible: Krav, a person in their thirties with long dark braided hair, thick eyebrows and a warm smile, wearing a dark …\"",
+      "plano 3 · ficha contradiz \"Krav desafiou... mas Serafina venceu. Resgate completo.\": \"Visible: Krav, a person in their thirties with long dark braided hair, thick eyebrows and a warm smile, wearing a dark …\""
+     ],
+     "descartes": [
+      "plano 2 · a_ficha: \"Visible: Serafina, a person in their thirties with straight sandy-blond hair, round face and big expressive eyes, weari…\""
+     ],
+     "d_sujeito": "Serafina, agente da DIVISÃO-7",
+     "e_promessa": "Serafina vence Krav e completa o resgate.",
+     "usd": 0.001012,
+     "ms": 4146
+    }
+   },
+   {
+    "id": "T-messi",
+    "render_id": "110a1ecc",
+    "generation_id": "46a14669-1a25-4bce-93d9-0543822073b0",
+    "nota_revisor": 6,
+    "defeito_revisor": "marcas na camisa; letreiro inventado; Messi não parece o Messi",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "'main character (Barcelona, exactly as the author wrote...)': o clube virou o protagonista em todos os planos",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "b_nome_falso",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 1 · b_nome_falso: nome \"(vazio)\" fora do texto"
+     ],
+     "d_sujeito": "Guardiola's false 9 strategy and Messi's role",
+     "e_promessa": "Barcelona created one of the era's most iconic attacks",
+     "usd": 0.001135,
+     "ms": 5662
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "b_nome_falso",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 1 · b_nome_falso: nome \"(vazio)\" fora do texto"
+     ],
+     "d_sujeito": "Guardiola's false 9 strategy and Messi's role",
+     "e_promessa": "Barcelona created one of the era's most iconic attacks",
+     "usd": 0.001136,
+     "ms": 5326
+    }
+   },
+   {
+    "id": "T-kozel-letras",
+    "render_id": "26064761",
+    "generation_id": "6f9610b8-532e-4c10-add1-e5ac1a77fbfd",
+    "nota_revisor": 6,
+    "defeito_revisor": "pediu vista de cima e fundo preto; veio show com plateia; pediu mudo e veio narração",
+    "defeito_no_texto": "nao",
+    "onde_no_texto": "os planos pedem a palavra BROKENBASE de cima com lasers — certo; o desvio foi do motor (e a narração é do produto)",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a palavra 'BROKENBASE'",
+     "e_promessa": "lasers creating a mesmerizing spectacle",
+     "usd": 0.000961,
+     "ms": 4163
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "the word 'BROKENBASE'",
+     "e_promessa": "lasers creating a mesmerizing spectacle",
+     "usd": 0.000956,
+     "ms": 3761
+    }
+   },
+   {
+    "id": "T-anime",
+    "render_id": "366160c1",
+    "generation_id": "a072e2ee-b287-4b4e-b3f1-f10dacb6034f",
+    "nota_revisor": 6,
+    "defeito_revisor": "'Sasuke' é um homem qualquer de cachecol",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "ficha 'Sasuke, a person in their thirties ... grey wool coat and a dark scarf' para o personagem de anime",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"Em \"One Piece\", Luffy tropeçou e derrubou toda a tripulação. Em \"Naruto\", Sasuke espirrou e acordou uma aldeia inteira.\": \"Named character in this shot: Sasuke, a person in their thirties with neatly combed brown hair, freckles and a small no…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "situações engraçadas de anime",
+     "e_promessa": "Goku confundiu torneio com piquenique",
+     "usd": 0.000995,
+     "ms": 4024
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"Em \"One Piece\", Luffy tropeçou e derrubou toda a tripulação. Em \"Naruto\", Sasuke espirrou e acordou uma aldeia inteira.\": \"Named character in this shot: Sasuke, a person in their thirties with neatly combed brown hair, freckles and a small no…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "situações engraçadas de anime",
+     "e_promessa": "Goku confundiu torneio com piquenique",
+     "usd": 0.000995,
+     "ms": 3796
+    }
+   },
+   {
+    "id": "T-babydoll",
+    "render_id": "bf06d4bb",
+    "generation_id": "b7a14f5c-f128-4216-a8a3-9e2836e92d91",
+    "nota_revisor": 3,
+    "defeito_revisor": "anúncio de baby doll sem baby doll; influencer pedida não aparece",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "'Named character: Check, a person in their thirties ... grey wool coat' (de 'Confira'); nenhum plano mostra o baby doll vestido nem a influencer",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"um modelo delicado, leve e perfeito pra suas noites\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "plano 3 · ficha contradiz \"e escolha sua cor favorita!\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "sujeito do pedido ausente/escondido em todos os planos: roupa linda e confortável pra dormir",
+      "plano 2 · ficha contradiz \"Olha esse baby doll!\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "plano 3 · ficha contradiz \"Confira o seu...\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "roupa linda e confortável pra dormir",
+     "e_promessa": "escolher sua cor favorita",
+     "usd": 0.000978,
+     "ms": 4123
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"um modelo delicado, leve e perfeito pra suas noites\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "plano 3 · ficha contradiz \"e escolha sua cor favorita!\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "sujeito do pedido ausente/escondido em todos os planos: roupa linda e confortável pra dormir",
+      "plano 2 · ficha contradiz \"Olha esse baby doll!\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "plano 3 · ficha contradiz \"Confira o seu...\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\"",
+      "plano 2 · ficha contradiz \"Olha esse baby doll! Um modelo delicado, leve e perfeito pra suas noites.\": \"Named character in this shot: Check, a person in their thirties with short dark hair, narrow face and sharp eyes, weari…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "roupa linda e confortável pra dormir",
+     "e_promessa": "escolher sua cor favorita",
+     "usd": 0.000973,
+     "ms": 3947
+    }
+   },
+   {
+    "id": "T-rei-rainha",
+    "render_id": "b110a1de",
+    "generation_id": "c8c19508-d131-4620-9430-de3dd3290fbf",
+    "nota_revisor": 5,
+    "defeito_revisor": "rei, rainha e bebê não aparecem (só médico e um ombro)",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "modo 'faceless cinematic b-roll ... no foreground human faces' em todos os planos de uma história de pessoas",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "d_sujeito"
+     ],
+     "leituras": [
+      "d_sujeito",
+      "d_sujeito",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "sujeito do pedido ausente/escondido em todos os planos: الملكة وولادتها",
+      "sujeito do pedido ausente/escondido em todos os planos: a royal birth and the discovery of a blue star mark",
+      "sujeito do pedido ausente/escondido em todos os planos: a royal birth and the king's reaction"
+     ],
+     "descartes": [],
+     "d_sujeito": "الملكة وولادتها",
+     "e_promessa": "العلامة السرية للعائلة الملكية",
+     "usd": 0.000879,
+     "ms": 3620
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "d_sujeito"
+     ],
+     "leituras": [
+      "d_sujeito",
+      "d_sujeito",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "sujeito do pedido escondido pelo modo sem rosto em todos os planos: the royal family and the birth of their child",
+      "sujeito do pedido ausente/escondido em todos os planos: a rainha e o rei",
+      "sujeito do pedido escondido pelo modo sem rosto em todos os planos: royal birth and the king's daughter"
+     ],
+     "descartes": [],
+     "d_sujeito": "the royal family and the birth of their child",
+     "e_promessa": "the discovery of the royal mark on the baby",
+     "usd": 0.000897,
+     "ms": 3626
+    }
+   },
+   {
+    "id": "T-noe",
+    "render_id": "f656b348",
+    "generation_id": "d1491e27-f6b5-4636-a9d7-68fd7ed146ca",
+    "nota_revisor": 6,
+    "defeito_revisor": "Arca de Noé: nem arca, nem dilúvio, nem arco-íris; só Noé parado",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "os 3 planos são só 'Identity: Noah, a god' (Noé virou deus; a arca, o dilúvio e o arco-íris não estão em plano nenhum)",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Noah's Ark — a story of faith and survival!\": \"Identity: Noah, a god, shown with the traditional appearance, costume and attributes that the god Noah has in the myth …\"",
+      "plano 2 · ficha contradiz \"Long ago, the world was filled with wickedness. But Noah wanted to obey God.\": \"Identity: Noah, a ,\"",
+      "plano 3 · ficha contradiz \"A great flood is coming.” After the flood, God placed a rainbow in the sky... a promise kept.\": \"Identity: Noah, a ,\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Noah's Ark",
+     "e_promessa": "God placed a rainbow in the sky... a promise kept.",
+     "usd": 0.00092,
+     "ms": 4032
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Noah's Ark — a story of faith and survival!\": \"Identity: Noah, a god, shown with the traditional appearance, costume and attributes that the god Noah has in the myth …\"",
+      "plano 2 · ficha contradiz \"Long ago, the world was filled with wickedness. But Noah wanted to obey God.\": \"Identity: Noah, a ,\"",
+      "plano 3 · ficha contradiz \"A great flood is coming.” After the flood, God placed a rainbow in the sky... a promise kept.\": \"Identity: Noah, a ,\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Noah's Ark",
+     "e_promessa": "God placed a rainbow in the sky... a promise kept.",
+     "usd": 0.000919,
+     "ms": 3505
+    }
+   },
+   {
+    "id": "T-porta-3h",
+    "render_id": "3d8350e3",
+    "generation_id": "18fdbfa4-f2bc-44e0-aa4c-84fd747cbc0d",
+    "nota_revisor": 6,
+    "defeito_revisor": "REPETICAO; FINAL_FRACO (a mãe rindo atrás da porta só na legenda)",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "'Visible: Open (the son), a man in his thirties' — o verbo 'abre' (افتح) virou personagem",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"أحمد\": \"Visible: Open (the son), a man in his thirties with short reddish hair, freckles and a small nose, wearing an olive jac…\"",
+      "plano 2 · \"Open (the son)\" não é personagem e virou gente: \"Open (the son)\"",
+      "plano 2 · ficha contradiz \"أمه\": \"Visible: Open (the son), a man in his thirties with short reddish hair, freckles and a small nose, wearing an olive jac…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "أحمد",
+     "e_promessa": "صوت أمه يضحك خلف الباب",
+     "usd": 0.000891,
+     "ms": 3682
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso+e_final",
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"أمه\": \"Visible: Open (the son), a man in his thirties with short reddish hair, freckles and a small nose, wearing an olive jac…\"",
+      "plano 2 · \"Open (the son)\" não é personagem e virou gente: \"Open (the son)\""
+     ],
+     "descartes": [],
+     "d_sujeito": "أحمد",
+     "e_promessa": "ماذا سيحدث عندما يفتح أحمد الباب؟",
+     "usd": 0.000897,
+     "ms": 3592
+    }
+   },
+   {
+    "id": "T-ncb",
+    "render_id": "7aa3d055",
+    "generation_id": "2ac9dea0-ac3c-4219-8b48-545fe87e3b48",
+    "nota_revisor": 6,
+    "defeito_revisor": "telas de site com letras falsas; repetição",
+    "defeito_no_texto": "nao",
+    "onde_no_texto": "o texto pede site, loja, checkout e logo — certo; letras falsas são do motor",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"Visible: NCB Software logo\""
+     ],
+     "d_sujeito": "NCB Software",
+     "e_promessa": "reveal of NCB Software logo",
+     "usd": 0.000905,
+     "ms": 3755
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "NCB Software",
+     "e_promessa": "NCB Software ως καινοτομία και αξιοπιστία",
+     "usd": 0.000913,
+     "ms": 3517
+    }
+   },
+   {
+    "id": "T-yamaguchi",
+    "render_id": "599f1583",
+    "generation_id": "784d1f57-b12e-46c2-82fc-abcc6273594d",
+    "nota_revisor": 5,
+    "defeito_revisor": "Tsutomu Yamaguchi (japonês, 1945) vira galã ocidental de jaqueta de couro e relógio moderno",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "ficha 'Yamaguchi ... straight sandy-blond hair ... brown leather jacket and dark jeans' para o sobrevivente japonês de 1945",
+    "motor": "Seedance 15 s",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "the man who survived two atomic bombs in three days",
+     "e_promessa": "Yamaguchi lived to 93, becoming a symbol of resilience",
+     "usd": 0.001193,
+     "ms": 5162
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "the man who survived two atomic bombs in three days",
+     "e_promessa": "Yamaguchi lived to 93, becoming a symbol of resilience",
+     "usd": 0.001192,
+     "ms": 4478
+    }
+   },
+   {
+    "id": "T-kali",
+    "render_id": "4ce89c9c",
+    "generation_id": "dc203db4-7471-4f76-a04a-535ac69bdf8c",
+    "nota_revisor": 6,
+    "defeito_revisor": "Kali e Kameron nunca juntos; metade final é close de uma mulher adulta; o trem não aparece",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "ficha 'Kali, a woman in her early thirties' e 'Kameron, a person in their early thirties' contra 'a girl with pigtails' / 'a boy' de pré-escola",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "e_final"
+     ],
+     "leituras": [
+      "a_ficha+e_final",
+      "a_ficha+e_final",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Kali, a girl with pigtails, joyfully swoops her toy plane above a play table\": \"Identity: Kali, a woman in her early thirties with short dark hair, high cheekbones, and dark eyes. She wears an olive …\"",
+      "plano 2 · ficha contradiz \"Kameron points to the toy boat bobbing with a friendly toot-toot!\": \"Identity: Kameron, a person in their early thirties with wavy chestnut hair, a narrow face, and sharp eyes. They wear a…\"",
+      "o final não entrega a promessa: O que eles escolherão a seguir? — Kali e Kameron estão prontos para brincar!",
+      "plano 3 · ficha contradiz \"The only person in this shot is the same main character (Kali, a woman in her early thirties with short dark hair, high…\": \"Identity: Kali, a woman in her early thirties with short dark hair, high cheekbones, and dark eyes. She wears an olive …\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Kali e Kameron",
+     "e_promessa": "O que eles escolherão a seguir?",
+     "usd": 0.001092,
+     "ms": 4809
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "e_final"
+     ],
+     "leituras": [
+      "a_ficha+e_final",
+      "a_ficha+e_final",
+      "a_ficha+e_final"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Kali, a girl with pigtails, joyfully swoops her toy plane above a play table\": \"Identity: Kali, a woman in her early thirties with short dark hair, high cheekbones, and dark eyes. She wears an olive …\"",
+      "plano 2 · ficha contradiz \"Kameron points to the toy boat bobbing with a friendly toot-toot!\": \"Identity: Kameron, a person in their early thirties with wavy chestnut hair, a narrow face, and sharp eyes. They wear a…\"",
+      "plano 3 · ficha contradiz \"The only person in this shot is the same main character (Kali, a woman in her early thirties with short dark hair, high…\": \"Identity: Kali, a woman in her early thirties with short dark hair, high cheekbones, and dark eyes. She wears an olive …\"",
+      "o final não entrega a promessa: What will they choose next? The boat or the train... stay tuned for their guessing game! — Kali e Kameron prontos para brincar.",
+      "o final não entrega a promessa: What will they choose next? The boat or the train... — Kali e Kameron estão prontos para brincar!"
+     ],
+     "descartes": [],
+     "d_sujeito": "Kali e Kameron",
+     "e_promessa": "What will they choose next? The boat or the train... stay tuned for their guessing game!",
+     "usd": 0.001105,
+     "ms": 4581
+    }
+   },
+   {
+    "id": "T-mergulhador",
+    "render_id": "33d4e5ad",
+    "generation_id": "e1fde114-1a8e-4a8d-9e61-a388b91fcbe7",
+    "nota_revisor": 6,
+    "defeito_revisor": "homem DENTRO do submarino; ninguém bate do lado de fora; missão não aparece",
+    "defeito_no_texto": "nao",
+    "onde_no_texto": "plano 1 pede o mergulhador batendo no vidro, plano 3 a missão secreta — o texto está certo; o desvio é do motor",
+    "motor": "Kling 4 grátis (multi_prompt)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 2 · b_nome_falso: nome \"USS\" fora do texto"
+     ],
+     "d_sujeito": "الغواص",
+     "e_promessa": "مهمة سرية لمراقبة الغواصة",
+     "usd": 0.000932,
+     "ms": 3926
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 2 · b_nome_falso: nome \"USS\" fora do texto"
+     ],
+     "d_sujeito": "الغواص",
+     "e_promessa": "مهمة سرية لمراقبة الغواصة",
+     "usd": 0.000929,
+     "ms": 3473
+    }
+   },
+   {
+    "id": "T-vegetais-2",
+    "render_id": "caf0613e",
+    "generation_id": "2bd264ec-6afd-4d4c-8a65-05bca930692d",
+    "nota_revisor": 2,
+    "defeito_revisor": "'A vida secreta dos vegetais' sem NENHUM vegetal: só casais humanos no supermercado",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "fichas 'Broccoli, a man in their early thirties', 'Banana, a man in his thirties', 'the avocado is a man' + 'Cast: a man and a woman, both adults'",
+    "motor": "Seedance 60 s",
+    "amostra": "planos 1, 2, 3 e 7 de 7 (treino; o volume do claim inteiro não coube na transcrição)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "a_ficha"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 4 · a_ficha: \"Potato manager in suit at entrance; dramatic lighting, wide shot, authoritative presence.\" × \"WHO LEFT THE LIGHTS ON in this place?\"",
+      "plano 4 · b_nome_falso: nome \"Potato\" fora do texto",
+      "plano 4 · c_criatura: \"A potato wearing a manager's suit is standing behind them.\""
+     ],
+     "d_sujeito": "vegetais",
+     "e_promessa": "revelação sobre o Abacate",
+     "usd": 0.001311,
+     "ms": 5316
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "a_ficha+c_criatura"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 4 · a_ficha: \"Potato manager in suit at entrance; dramatic lighting, wide shot, authoritative presence.\" × \"WHO LEFT THE LIGHTS ON in this place?\"",
+      "plano 4 · b_nome_falso: nome \"Potato\" fora do texto",
+      "plano 4 · c_criatura: \"A potato wearing a manager's suit is standing behind them.\""
+     ],
+     "d_sujeito": "vegetais",
+     "e_promessa": "revelação sobre o Avocado",
+     "usd": 0.00132,
+     "ms": 4967
+    }
+   },
+   {
+    "id": "T-vegetais-1",
+    "render_id": "f4b627ce",
+    "generation_id": "3c0a2d29-6747-4f26-a9d8-dac81e0e8372",
+    "nota_revisor": 3,
+    "defeito_revisor": "vegetais falantes viram mistura de desenho e gente real; humanos em 5 de 8 quadros",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "fichas 'Broccoli, a man in their early thirties', 'Banana, a man in his thirties' + 'Cast: a man and a woman, both adults'",
+    "motor": "Seedance 60 s",
+    "amostra": "planos 1, 2, 3 e 7 de 7 (treino)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "-",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 4 · ficha contradiz \"a potato dressed in a manager's suit\": \"Cast: a man and a woman, both adults.\"",
+      "plano 1 · ficha contradiz \"a man in his thirties with long dark braided hair, a square jaw and tired eyes, wearing an olive jacket and plain trous…\": \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\"",
+      "plano 3 · ficha contradiz \"I QUIT this job right now! You all have no idea what the Avocado is really hiding beneath its smooth surface and how mu…\": \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\"",
+      "plano 4 · ficha contradiz \"A potato dressed in a manager's suit is standing behind them, looking completely out of place.\": \"Cast: a man and a woman, both adults.\""
+     ],
+     "descartes": [
+      "plano 4 · a_ficha: \"Cast: a man and a woman, both adults.\" × \"vegetais, um batata\"",
+      "plano 4 · c_criatura: \"a potato dressed in a manager's suit is standing behind them, looking completely out of place.\"",
+      "plano 1 · a_ficha: \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\" × \"Banana, Broccoli\"",
+      "plano 2 · a_ficha: \"Cast: a man and a woman, both adults. The same main character appears in this scene, consistent design: Broccoli, a man…\" × \"Broccoli, Avocado\"",
+      "plano 3 · a_ficha: \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\" × \"Banana, Avocado\""
+     ],
+     "d_sujeito": "vegetais",
+     "e_promessa": "revelar o segredo do abacate",
+     "usd": 0.001565,
+     "ms": 6567
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "-",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 4 · ficha contradiz \"a potato dressed in a manager's suit\": \"Cast: a man and a woman, both adults.\"",
+      "plano 1 · ficha contradiz \"a man in his thirties with long dark braided hair, a square jaw and tired eyes, wearing an olive jacket and plain trous…\": \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\"",
+      "plano 3 · ficha contradiz \"I QUIT this job right now! You all have no idea what the Avocado is really hiding beneath its smooth surface and how mu…\": \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\"",
+      "plano 4 · ficha contradiz \"a potato dressed in a manager's suit is standing behind them, looking completely out of place.\": \"Cast: a man and a woman, both adults.\""
+     ],
+     "descartes": [
+      "plano 1 · a_ficha: \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\" × \"Banana, Broccoli\"",
+      "plano 2 · a_ficha: \"Cast: a man and a woman, both adults. The same main character appears in this scene, consistent design: Broccoli, a man…\" × \"Broccoli, Avocado\"",
+      "plano 3 · a_ficha: \"Named character in this shot: Banana, a man in his thirties with long dark braided hair, a square jaw and tired eyes, w…\" × \"Banana, Avocado\"",
+      "plano 4 · c_criatura: \"A potato dressed in a manager's suit is standing behind them, looking completely out of place.\"",
+      "plano 4 · c_criatura: \"a potato dressed in a manager's suit is standing behind them, looking completely out of place.\""
+     ],
+     "d_sujeito": "vegetais",
+     "e_promessa": "O que o abacate está escondendo?",
+     "usd": 0.001577,
+     "ms": 6726
+    }
+   },
+   {
+    "id": "T-brocolis",
+    "render_id": "76aae086",
+    "generation_id": "47f1fbae-bf78-40b2-b0a8-5cfe7698d606",
+    "nota_revisor": 6,
+    "defeito_revisor": "o brócolis tem 3 desenhos diferentes; o menino troca de roupa",
+    "defeito_no_texto": "sim",
+    "onde_no_texto": "'Named character in this shot: Sound, shown with the traditional appearance ... of the myth' (de 'Sound: Dramatic record scratch')",
+    "motor": "Seedance 60 s",
+    "amostra": "planos 1, 2, 3 e 7 de 7 (treino)",
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso",
+      "-"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"the broccoli's cheerful smile quickly vanishes, replaced by furious red eyes\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\"",
+      "plano 2 · \"Sound\" não é personagem e virou gente: \"Sound\"",
+      "plano 3 · ficha contradiz \"the vegetables launch their hilarious attack, rolling and bouncing across the kitchen\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\"",
+      "plano 3 · \"Sound\" não é personagem e virou gente: \"Sound\"",
+      "plano 3 · ficha contradiz \"an army of determined vegetables, ready to challenge him\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "broccoli",
+     "e_promessa": "the boy enjoys his broccoli and the broccoli is proud",
+     "usd": 0.001283,
+     "ms": 4982
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "b_nome_falso"
+     ],
+     "leituras": [
+      "a_ficha+b_nome_falso",
+      "a_ficha+b_nome_falso",
+      "-"
+     ],
+     "defeitos": [
+      "plano 2 · ficha contradiz \"the broccoli's cheerful smile quickly vanishes, replaced by furious red eyes\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\"",
+      "plano 2 · \"Sound\" não é personagem e virou gente: \"Sound\"",
+      "plano 3 · ficha contradiz \"the vegetables launch their hilarious attack, rolling and bouncing across the kitchen\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\"",
+      "plano 3 · \"Sound\" não é personagem e virou gente: \"Sound\"",
+      "plano 2 · ficha contradiz \"the broccoli secretly gathers a formidable army of various vegetables\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\"",
+      "plano 3 · ficha contradiz \"an army of determined vegetables, ready to challenge him for dominance\": \"Named character in this shot: Sound, shown with the traditional appearance, costume and attributes that Sound has in th…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "broccoli",
+     "e_promessa": "the boy enjoys his broccoli and the broccoli is proud",
+     "usd": 0.001297,
+     "ms": 5180
+    }
+   }
+  ]
+ },
+ "teste": {
+  "casos": [
+   {
+    "id": "D4-C54",
+    "grupo": "ruim",
+    "render_id": "de7071ea-90ed-481a-94bf-e5d1a5e28138",
+    "generation_id": "4c16ace3-0cf5-48e8-8d90-249f000dcd93",
+    "nota_revisor": 5,
+    "motor": "Kling 4 grátis 19 s",
+    "defeito_revisor": "C-54 nunca aparece; 'Skymaster'/'Yukon' viram pessoas; fantasmas inventados",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 73,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 25,
+     "falhas": [
+      "a_ficha",
+      "c_criatura",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+d_sujeito",
+      "a_ficha+c_criatura+d_sujeito",
+      "a_ficha+c_criatura+d_sujeito"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"In 1950, a C-54 Skymaster disappeared over the Yukon wilderness.\": \"Visible: Skymaster, a person in their thirties with wavy chestnut hair, a square jaw and tired ey; Yukon, a person in t…\"",
+      "sujeito do pedido ausente/escondido em todos os planos: C-54 Skymaster disappearance",
+      "plano 2 · criatura/adjetivo no lugar do protagonista: \"The only person in this shot is the same main character (the ghost, a translucent pale spectral figure with a human sha…\"",
+      "plano 3 · criatura/adjetivo no lugar do protagonista: \"The only person in this shot is the same main character (the ghost, a translucent pale spectral figure with a human sha…\"",
+      "sujeito do pedido ausente/escondido em todos os planos: the mystery of the ghost flight",
+      "sujeito do pedido ausente/escondido em todos os planos: o voo fantasma"
+     ],
+     "descartes": [],
+     "d_sujeito": "the mystery of the ghost flight",
+     "e_promessa": "the mystery remains unsolved",
+     "usd": 0.001152,
+     "ms": 5262
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 25,
+     "falhas": [
+      "a_ficha",
+      "c_criatura",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+c_criatura+d_sujeito",
+      "a_ficha+c_criatura+d_sujeito",
+      "a_ficha+d_sujeito"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"In 1950, a C-54 Skymaster disappeared over the Yukon wilderness.\": \"Visible: Skymaster, a person in their thirties with wavy chestnut hair, a square jaw and tired ey; Yukon, a person in t…\"",
+      "plano 2 · criatura/adjetivo no lugar do protagonista: \"The only person in this shot is the same main character (the ghost, a translucent pale spectral figure with a human sha…\"",
+      "plano 3 · criatura/adjetivo no lugar do protagonista: \"The only person in this shot is the same main character (the ghost, a translucent pale spectral figure with a human sha…\"",
+      "sujeito do pedido ausente/escondido em todos os planos: a C-54 Skymaster and its passengers",
+      "sujeito do pedido ausente/escondido em todos os planos: C-54 Skymaster and its passengers",
+      "sujeito do pedido ausente/escondido em todos os planos: o desaparecimento de um C-54 Skymaster"
+     ],
+     "descartes": [],
+     "d_sujeito": "a C-54 Skymaster and its passengers",
+     "e_promessa": "the mystery of the ghost flight",
+     "usd": 0.001093,
+     "ms": 4753
+    }
+   },
+   {
+    "id": "D5-NASA",
+    "grupo": "ruim",
+    "render_id": "ac96404f-c1bd-4744-952d-3303a2697595",
+    "generation_id": "9f7b6916-974c-40cc-afd6-5c3f0a2c4d95",
+    "nota_revisor": 6,
+    "motor": "Seedance 1.5 62 s",
+    "defeito_revisor": "final não revela o que a NASA achou; rover muda de modelo; legenda partida",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 78,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "d_sujeito",
+      "e_final"
+     ],
+     "leituras": [
+      "d_sujeito+e_final",
+      "d_sujeito+e_final",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "sujeito do pedido ausente/escondido em todos os planos: o que a NASA encontrou em Marte",
+      "o final não entrega a promessa: o que a NASA encontrou em Marte — O que a NASA encontrou em Marte.",
+      "o final não entrega a promessa: o que a NASA encontrou em Marte — O que a NASA não anunciou sobre Marte."
+     ],
+     "descartes": [],
+     "d_sujeito": "o que a NASA encontrou em Marte",
+     "e_promessa": "o que a NASA encontrou em Marte",
+     "usd": 0.001293,
+     "ms": 5017
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "d_sujeito"
+     ],
+     "leituras": [
+      "d_sujeito+e_final",
+      "d_sujeito",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "sujeito do pedido ausente/escondido em todos os planos: o que a NASA encontrou em Marte"
+     ],
+     "descartes": [],
+     "d_sujeito": "o que a NASA encontrou em Marte",
+     "e_promessa": "",
+     "usd": 0.001289,
+     "ms": 5369
+    }
+   },
+   {
+    "id": "D6-gelo",
+    "grupo": "ruim",
+    "render_id": "7b178427-cf2e-41c0-9d13-ac5e8844d938",
+    "generation_id": "15ce2097-dc85-43da-b186-06e0778393fc",
+    "nota_revisor": 6,
+    "motor": "Kling 4 grátis 18 s",
+    "defeito_revisor": "termina no plano da abertura; a vida sob o gelo nunca aparece",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "ruim_sem_defeito_no_texto",
+    "juiz_v1_r1": 73,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "o planeta coberto de gelo",
+     "e_promessa": "vida sob o gelo",
+     "usd": 0.000806,
+     "ms": 3106
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a Terra",
+     "e_promessa": "vida sob o gelo",
+     "usd": 0.000801,
+     "ms": 2983
+    }
+   },
+   {
+    "id": "caneta-3D",
+    "grupo": "ruim",
+    "render_id": "e566cb2a-0888-46fa-8cb5-a41549bbe8b1",
+    "generation_id": "f58665ef-cc8d-466b-a103-43407ef63303",
+    "nota_revisor": 5,
+    "motor": "Kling 4 grátis 21 s",
+    "defeito_revisor": "a criança nunca aparece (mão adulta + homem no escuro); descrição de imagem lida como narração",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 95,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "d_sujeito"
+     ],
+     "leituras": [
+      "-",
+      "d_sujeito",
+      "d_sujeito"
+     ],
+     "defeitos": [
+      "sujeito do pedido ausente/escondido em todos os planos: дете"
+     ],
+     "descartes": [
+      "plano 3 · a_ficha: \"a distant silhouetted figure\" × \"дете което седи и си играе на маса с 3D химикала\"",
+      "plano 3 · a_ficha: \"a distant silhouetted figure\" × \"дете\""
+     ],
+     "d_sujeito": "дете",
+     "e_promessa": "детето се гордее с творенията си",
+     "usd": 0.000798,
+     "ms": 3415
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"a distant silhouetted figure\" × \"дете което седи и си играе на маса с 3D химикала\""
+     ],
+     "d_sujeito": "дете",
+     "e_promessa": "детето гордо възхищава своите творения",
+     "usd": 0.000854,
+     "ms": 3439
+    }
+   },
+   {
+    "id": "D1-BRO",
+    "grupo": "ruim",
+    "render_id": "faaa6054-f3e4-4687-b8bf-aad37483ecc8",
+    "generation_id": "0fb82413-56f9-4dc0-affa-c9bcf892e012",
+    "nota_revisor": null,
+    "motor": "Seedance 15 s",
+    "defeito_revisor": "BRO, o pombo musculoso, vira unicórnio rosa em todas as cenas",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 90,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 1 · a_ficha: \"the bright pink unicorn\" × \"BRO the muscular pigeon\"",
+      "plano 2 · a_ficha: \"the bright pink unicorn\" × \"the only wig he can afford is a bright pink unicorn mane\"",
+      "plano 3 · a_ficha: \"the bright pink unicorn\" × \"He puts it on, flexes in the mirror, and whispers one word: Bro.\""
+     ],
+     "d_sujeito": "BRO the muscular pigeon",
+     "e_promessa": "BRO flexes in front of the mirror and whispers 'Bro'",
+     "usd": 0.000831,
+     "ms": 3180
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 1 · a_ficha: \"the bright pink unicorn\" × \"BRO the muscular pigeon\"",
+      "plano 2 · a_ficha: \"the bright pink unicorn\" × \"the only wig he can afford is a bright pink unicorn mane\"",
+      "plano 3 · a_ficha: \"the bright pink unicorn\" × \"He puts it on, flexes in the mirror, and whispers one word: Bro.\""
+     ],
+     "d_sujeito": "BRO the muscular pigeon",
+     "e_promessa": "BRO flexes in front of the mirror and whispers 'Bro'",
+     "usd": 0.000834,
+     "ms": 3650
+    }
+   },
+   {
+    "id": "D3-Mila",
+    "grupo": "ruim",
+    "render_id": "93b10f01-406b-45c0-a261-1b82bccb8999",
+    "generation_id": "3f4d4f10-1b20-4b42-9310-53327ea58541",
+    "nota_revisor": null,
+    "motor": "Seedance 15 s",
+    "defeito_revisor": "Mila abre como ogro de chifres; Skoczuś vira velho barbudo",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 95,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Mila",
+     "e_promessa": "Skoczuś is found inside the giant flower.",
+     "usd": 0.001158,
+     "ms": 4611
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Mila and Skoczuś",
+     "e_promessa": "Skoczuś is found inside the giant flower.",
+     "usd": 0.001162,
+     "ms": 4561
+    }
+   },
+   {
+    "id": "D2-Max",
+    "grupo": "ruim",
+    "render_id": "39523e3f-204b-43c8-abf1-c157f9401b32",
+    "generation_id": "201b3eed-210d-4638-8422-e105194a33de",
+    "nota_revisor": null,
+    "motor": "Seedance 15 s",
+    "defeito_revisor": "Max some; um filhote vira protagonista",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 95,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 2 · a_ficha: \"Lena, um homem na casa dos trinta anos com cabelo liso e loiro-areia.\" × \"Lena is gone.\"",
+      "plano 2 · a_ficha: \"Lena, um homem na casa dos trinta anos com cabelo liso e loiro-areia, rosto estreito e olhos afiados, vestindo um casac…\" × \"Lena is gone.\""
+     ],
+     "d_sujeito": "Max, o cachorro",
+     "e_promessa": "Max ajuda um cachorro que não pode retribuir.",
+     "usd": 0.001045,
+     "ms": 4556
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 2 · a_ficha: \"Lena, um homem na casa dos trinta anos com cabelo liso loiro-areia, rosto estreito e olhos afiados, vestindo um casaco …\" × \"Lena is gone.\"",
+      "plano 2 · a_ficha: \"Lena, um homem na casa dos trinta com cabelo liso e loiro-areia, rosto estreito e olhos afiados, vestindo um casaco mar…\" × \"Lena is gone.\""
+     ],
+     "d_sujeito": "Max, o cachorro",
+     "e_promessa": "Max ajuda um cachorro abandonado.",
+     "usd": 0.001027,
+     "ms": 4502
+    }
+   },
+   {
+    "id": "D9-Roland",
+    "grupo": "ruim",
+    "render_id": "73836fd4-e05b-411a-b5c9-59c099c96645",
+    "generation_id": "91ed1d8a-b048-4318-b376-a81b25a28596",
+    "nota_revisor": null,
+    "motor": "Next episode",
+    "defeito_revisor": "Roland (velho grisalho na série) vira rapaz jovem",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 100,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Roland Pernicus Oznard and the smart fridge",
+     "e_promessa": "Roland defeats the smart fridge.",
+     "usd": 0.001203,
+     "ms": 4839
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Roland Pernicus Oznard",
+     "e_promessa": "Roland defeats the smart fridge.",
+     "usd": 0.001201,
+     "ms": 5055
+    }
+   },
+   {
+    "id": "D10-Leon",
+    "grupo": "ruim",
+    "render_id": "5c10144c-3530-4479-9ae7-3535c0988c5e",
+    "generation_id": "f3f4a7bb-04c4-43a0-a78c-fa3a72dd43ff",
+    "nota_revisor": null,
+    "motor": "Seedance 15 s",
+    "defeito_revisor": "'Leon, I'm you': no clímax aparece uma mulher ruiva",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "ruim_com_defeito_no_texto",
+    "juiz_v1_r1": 85,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito"
+     ],
+     "defeitos": [
+      "plano 3 · ficha contradiz \"Leon, I'm you.\": \"Named character in this shot: Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wea…\"",
+      "sujeito do pedido escondido pelo modo sem rosto em todos os planos: Leon",
+      "plano 3 · ficha contradiz \"Leon\": \"Named character in this shot: Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wea…\"",
+      "plano 3 · ficha contradiz \"It reads: Leon, I'm you. Ten minutes from now.\": \"Named character in this shot: Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wea…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Leon",
+     "e_promessa": "Leon receives a message from himself.",
+     "usd": 0.000888,
+     "ms": 3470
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 50,
+     "falhas": [
+      "a_ficha",
+      "d_sujeito"
+     ],
+     "leituras": [
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito",
+      "a_ficha+d_sujeito"
+     ],
+     "defeitos": [
+      "plano 3 · ficha contradiz \"It reads: Leon, I'm you. Ten minutes from now.\": \"Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wearing a grey wool coat and a da…\"",
+      "sujeito do pedido escondido pelo modo sem rosto em todos os planos: Leon",
+      "plano 3 · ficha contradiz \"Leon\": \"Named character in this shot: Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wea…\"",
+      "plano 3 · ficha contradiz \"It reads: Leon, I'm you. Ten minutes from now.\": \"Named character in this shot: Ten, a person in their thirties with short reddish hair, a square jaw and tired eyes, wea…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Leon",
+     "e_promessa": "A message from the future.",
+     "usd": 0.000899,
+     "ms": 3772
+    }
+   },
+   {
+    "id": "bom-Leo-zilou",
+    "grupo": "bom",
+    "render_id": "ed6e422f-20d1-48f7-9ec2-9b4ff6a3dcdb",
+    "generation_id": "6ed13acd-09fd-484f-a332-f7eeee373c53",
+    "nota_revisor": 8,
+    "motor": "Kling 4 15 s desenho",
+    "defeito_revisor": "nenhum",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 100,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Leo",
+     "e_promessa": "Leo lernt, dass geduldiges Suchen hilft.",
+     "usd": 0.001012,
+     "ms": 4425
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Leo",
+     "e_promessa": "Leo lernt, dass geduldiges Suchen hilft.",
+     "usd": 0.001001,
+     "ms": 4471
+    }
+   },
+   {
+    "id": "bom-BROKENBASE",
+    "grupo": "bom",
+    "render_id": "6039e4e5-3d31-40ed-a9e1-4fc03b0571c1",
+    "generation_id": "f365676a-5027-48b0-87a5-9b65642598cb",
+    "nota_revisor": 8,
+    "motor": "Kling 4 16 s grátis",
+    "defeito_revisor": "marca cortada nas bordas (visual)",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 73,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "BROKENBASE",
+     "e_promessa": "BROKENBASE transforms into an epic electronic realm",
+     "usd": 0.000814,
+     "ms": 3169
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "BROKENBASE",
+     "e_promessa": "BROKENBASE transforms into an epic electronic realm",
+     "usd": 0.000814,
+     "ms": 3216
+    }
+   },
+   {
+    "id": "bom-camera-terror",
+    "grupo": "bom",
+    "render_id": "ddf69f98-e382-4be3-baee-14ab0c75c498",
+    "generation_id": "72782837-df54-4163-adcd-84573470e902",
+    "nota_revisor": 8,
+    "motor": "Seedance 15 s",
+    "defeito_revisor": "nenhum",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 73,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"a pale face\" × \"a tall, dark figure crawled into my room, whispered, \"He's starting to notice us.\" Then... another face rose from under…\""
+     ],
+     "d_sujeito": "a tall, dark figure and a pale face",
+     "e_promessa": "a reveal of the figures in the bedroom",
+     "usd": 0.000865,
+     "ms": 3503
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"a pale face\" × \"a tall, dark figure crawled into my room, whispered, \"He's starting to notice us.\" Then... another face rose from under…\""
+     ],
+     "d_sujeito": "a tall, dark figure and a pale face",
+     "e_promessa": "a reveal of the dark figure and the pale face",
+     "usd": 0.000872,
+     "ms": 3610
+    }
+   },
+   {
+    "id": "bom-guaxinim",
+    "grupo": "bom",
+    "render_id": "f4e8b79d-2b44-4a05-9534-5e7cbf3e4401",
+    "generation_id": "e76faac4-70c7-4f71-a808-49a3092131a0",
+    "nota_revisor": 8,
+    "motor": "Seedance 17 s grátis",
+    "defeito_revisor": "nenhum (2º guaxinim ao fundo em 1 cena)",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 100,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a plump raccoon",
+     "e_promessa": "the raccoon successfully steals the pie",
+     "usd": 0.001018,
+     "ms": 4109
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a plump raccoon",
+     "e_promessa": "the raccoon successfully steals the pie",
+     "usd": 0.001021,
+     "ms": 4262
+    }
+   },
+   {
+    "id": "bom-pets-62s",
+    "grupo": "bom",
+    "render_id": "29cbcf5a-005e-4e32-8e2c-cb428845b871",
+    "generation_id": "84a70f5b-1f6d-4e72-8a2c-d8a4f4300ad1",
+    "nota_revisor": 8,
+    "motor": "Seedance 62 s",
+    "defeito_revisor": "nenhum (coelho no jardim)",
+    "defeito_no_texto": "leve",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 95,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "pets",
+     "e_promessa": "the secret life of house pets",
+     "usd": 0.00137,
+     "ms": 5283
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "pets",
+     "e_promessa": "the secret life of house pets",
+     "usd": 0.001366,
+     "ms": 5651
+    }
+   },
+   {
+    "id": "bom-Izajasz",
+    "grupo": "bom",
+    "render_id": "a603eb9b-84e7-47f1-8d1d-67beed55e29b",
+    "generation_id": "5d8c3b35-ab23-483b-8a05-98549886b331",
+    "nota_revisor": 7,
+    "motor": "Kling 4 19 s",
+    "defeito_revisor": "nenhum grave (pseudo-letras)",
+    "defeito_no_texto": "leve",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 88,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "mesjasz",
+     "e_promessa": "przesłanie nadziei i odkupienia",
+     "usd": 0.000993,
+     "ms": 3899
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "Mesjasz",
+     "e_promessa": "przesłanie nadziei i odkupienia",
+     "usd": 0.000967,
+     "ms": 3719
+    }
+   },
+   {
+    "id": "bom7-robo",
+    "grupo": "bom",
+    "render_id": "de6c89f9-a27d-4b56-9c78-0619eca02746",
+    "generation_id": "2b9a32ba-c99d-4489-af3f-a4658cf80fb4",
+    "nota_revisor": 7,
+    "motor": "Kling 4 17 s grátis",
+    "defeito_revisor": "PESSOA_FALTANDO: a menina nunca aparece",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 84,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"A glowing teddy bear, revealing its heart-shaped LED light pulsing gently\" × \"but the little girl's teddy bear suddenly lights up with the robot's tiny heart-shaped LED.\"",
+      "plano 3 · a_ficha: \"A glowing teddy bear, revealing its heart-shaped LED light pulsing gently\" × \"The robot shuts down... but the little girl's teddy bear suddenly lights up with the robot's tiny heart-shaped LED.\""
+     ],
+     "d_sujeito": "robot",
+     "e_promessa": "the little girl's teddy bear lights up with the robot's heart",
+     "usd": 0.000911,
+     "ms": 3637
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [
+      "plano 3 · a_ficha: \"A glowing teddy bear, revealing its heart-shaped LED light pulsing gently\" × \"but the little girl's teddy bear suddenly lights up with the robot's tiny heart-shaped LED.\"",
+      "plano 3 · a_ficha: \"A glowing teddy bear, revealing its heart-shaped LED light pulsing gently\" × \"The little girl's teddy bear suddenly lights up with the robot's tiny heart-shaped LED.\""
+     ],
+     "d_sujeito": "robot",
+     "e_promessa": "the little girl's teddy bear lights up with the robot's LED",
+     "usd": 0.00091,
+     "ms": 3510
+    }
+   },
+   {
+    "id": "bom7-Venus",
+    "grupo": "bom",
+    "render_id": "a371e0ea-edaa-4e43-8b53-18aa6a53c6f7",
+    "generation_id": "1c2d5de4-891e-427f-8c21-f0f987b26db2",
+    "nota_revisor": 7,
+    "motor": "Kling 4 15 s",
+    "defeito_revisor": "REPETICAO (galáxia 3 quadros); FINAL_FRACO",
+    "defeito_no_texto": "parcial",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 90,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "planet Venus",
+     "e_promessa": "the year ends before a single day does",
+     "usd": 0.000782,
+     "ms": 2987
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "planet Venus",
+     "e_promessa": "the year ends before a single day does",
+     "usd": 0.000782,
+     "ms": 3153
+    }
+   },
+   {
+    "id": "bom7-cozinha",
+    "grupo": "bom",
+    "render_id": "702699d9-d219-41be-a1e4-1402c275fa81",
+    "generation_id": "f572a53e-a1ef-4ee8-88a7-e36cd8725fc2",
+    "nota_revisor": 7,
+    "motor": "Kling 4 17 s",
+    "defeito_revisor": "FINAL_FRACO: festa do pijama não aparece",
+    "defeito_no_texto": "sim",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": null,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a girl in a luxury kitchen",
+     "e_promessa": "she buys a puppy and has a slumber party",
+     "usd": 0.000983,
+     "ms": 3946
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": false,
+     "nota": 100,
+     "falhas": [],
+     "leituras": [
+      "-",
+      "-",
+      "-"
+     ],
+     "defeitos": [],
+     "descartes": [],
+     "d_sujeito": "a girl in a luxury kitchen",
+     "e_promessa": "She buys a puppy and has a slumber party.",
+     "usd": 0.000985,
+     "ms": 4081
+    }
+   },
+   {
+    "id": "bom7-Leo-luva",
+    "grupo": "bom",
+    "render_id": "422729f0-97c2-4b37-8894-3a55243d3a0b",
+    "generation_id": "kids-d712d33c-4e67-4530-a82e-cc6a3cf8ab84",
+    "nota_revisor": 7,
+    "motor": "Desenho amostra 19 s",
+    "defeito_revisor": "luva muda de cor; outono vira neve",
+    "defeito_no_texto": "não",
+    "conta_na_meta": "bom",
+    "juiz_v1_r1": 85,
+    "r1": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Leo was jumping in puddles when he found a lonely mitten on the ground. Leo wondered who it belonged to.\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\"",
+      "plano 2 · ficha contradiz \"He asked his friends, but no one claimed it. So, Leo hung it on a tree branch.\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\"",
+      "plano 3 · ficha contradiz \"Sometimes, helping others means doing small things. Have you ever found something special and returned it?\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Leo",
+     "e_promessa": "Leo reflects on small acts of kindness.",
+     "usd": 0.001851,
+     "ms": 7823
+    },
+    "r2": {
+     "status": "JUDGED",
+     "reprovado": true,
+     "nota": 75,
+     "falhas": [
+      "a_ficha"
+     ],
+     "leituras": [
+      "a_ficha",
+      "a_ficha",
+      "a_ficha"
+     ],
+     "defeitos": [
+      "plano 1 · ficha contradiz \"Leo was jumping in puddles when he found a lonely mitten on the ground. Leo wondered who it belonged to.\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\"",
+      "plano 2 · ficha contradiz \"He asked his friends, but no one claimed it. So, Leo hung it on a tree branch.\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\"",
+      "plano 3 · ficha contradiz \"Sometimes, helping others means doing small things. Have you ever found something special and returned it?\": \"The same main character appears in this scene, consistent design: Leo, a man in his early thirties with straight sandy-…\""
+     ],
+     "descartes": [],
+     "d_sujeito": "Leo",
+     "e_promessa": "Leo reflects on small acts of kindness.",
+     "usd": 0.00177,
+     "ms": 7908
+    }
+   }
+  ]
+ },
+ "custo_latencia": {
+  "usd_teste_2_rodadas": 0.0394,
+  "usd_por_filme": 0.00104,
+  "ms_p50": 4081,
+  "ms_p95": 7823,
+  "ms_max": 7908,
+  "nota": "na rota o juiz corre DEPOIS do 1º POST e ninguém espera (só o ensaio de $0); teto 25 s; evento gravado via waitUntil"
+ }
+}

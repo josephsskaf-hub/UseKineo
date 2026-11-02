@@ -1,3 +1,4 @@
+import { semJuizPlano0111 } from './desfaz-juiz-plano-0111.mjs' // KINEO-JUIZ-PLANO-0111 — camada mais nova (01/11, juiz do plano) sai primeiro
 import { semK4SujeitoFinal0111 } from './desfaz-k4-sujeito-final-0111.mjs' // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — camada mais nova (01/11, "vai tudo") sai primeiro
 import { semRevisor100111 } from './desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111 — camada mais nova (01/11) sai primeiro
 import { semLegendaCena3110 } from './desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110 — camada mais nova (31/10) sai primeiro
@@ -25,6 +26,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semJuizPlano0111(text, file) // KINEO-JUIZ-PLANO-0111
   text = semK4SujeitoFinal0111(text, file) // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111
   text = semRevisor100111(text, file) // KINEO-REVISOR-10-0111
   text = semLegendaCena3110(text, file) // KINEO-LEGENDA-CENA-3110
