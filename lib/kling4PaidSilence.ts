@@ -9,7 +9,7 @@
 // Aqui a régua julga o filme COMO ELE É DESPACHADO: UM clipe de 15 s com a fala inteira, no MESMO passo real da faixa. Os limites da
 // régua (1,5 s por cena, 8 s no total) não mudam. Só o Kling 4 pago de 15 s; 30/60 s e os outros motores seguem a régua de sempre.
 import { RITMO_HOLLYWOOD, fatorDoRitmoDoIdioma } from '@/lib/durationByEngine'
-import { K4_FATOR_REAL_PADRAO, K4_PAGO_SEGUNDOS } from '@/lib/kling4TrialScript'
+import { K4_FATOR_REAL_PADRAO, K4_PAGO_SEGUNDOS, faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript'
 import type { SilenceScene } from '@/lib/cinematic/timelineContract'
 
 /** Passo REAL previsto da voz no Kling 4 pago (pal/s) — a mesma conta do teto de faixaDoKling4PagoNoEscritor. */
@@ -45,4 +45,13 @@ export function filmeDoKling4PagoParaARegua(a: { verbatim: boolean; narration?: 
  */
 export function segundosDoFilmeNaReguaDeDuracao(a: { paidKling4: boolean; seconds: number; plannedSeconds: number }): number {
   return usaReguaDoKling4Pago(a) ? K4_PAGO_SEGUNDOS : a.plannedSeconds
+}
+
+// ═══ KINEO-K4-PAGO-SILENCIO-0211b [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o meta95 aceita a partir do piso da faixa ═══
+// f37872b5 (02/11 21:14 UTC, en): o escritor devolveu 26 palavras (faixa 27–31; a nova tentativa do generate-script não chegou lá)
+// e o meta95 aceitou — o piso dele era o do portão pago (26). Com a régua do clipe único, 26 palavras = 2,0 s mudos → recusa
+// garantida depois. No Kling 4 pago de 15 s o piso de aceitação do meta95 vira o piso da faixa: abaixo dele a ideia segue o
+// caminho de antes (fallback 'curto', sem 422 novo e sem laço). Fora do Kling 4 pago de 15 s: null (o piso de sempre).
+export function pisoDoMeta95NoKling4Pago(a: { engine?: string | null; seconds: number; language?: string | null; live?: boolean }): number | null {
+  return faixaDoKling4PagoParaOPedido({ engine: a.engine ?? null, seconds: a.seconds, language: a.language ?? 'en', live: a.live })?.min ?? null
 }

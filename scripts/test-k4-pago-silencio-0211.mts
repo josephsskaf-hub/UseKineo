@@ -9,7 +9,8 @@
 // Na origin/main este guardião nem carrega (lib/kling4PaidSilence não existe).
 // Rodar: npx tsx scripts/test-k4-pago-silencio-0211.mts
 import fs from 'node:fs'
-import { passoRealDoKling4Pago, usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, segundosDoFilmeNaReguaDeDuracao } from '../lib/kling4PaidSilence'
+import { passoRealDoKling4Pago, usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, segundosDoFilmeNaReguaDeDuracao, pisoDoMeta95NoKling4Pago } from '../lib/kling4PaidSilence'
+import { avaliarRoteiroEscrito } from '../lib/meta95/ideiaNoEscritor'
 import { prepareKling4PaidFilm } from '../lib/kling4PaidFilm'
 import { faixaDoKling4PagoNoEscritor, K4_TETO_MEDIDO_SEGUNDOS, K4_FATOR_REAL_PADRAO, K4_FATOR_REAL_POR_VOZ } from '../lib/kling4TrialScript'
 import { RITMO_HOLLYWOOD, fatorDoRitmoDoIdioma } from '../lib/durationByEngine'
@@ -131,6 +132,30 @@ console.log('6. a régua de duração (plan_duration_below_request) julga o film
   const rt = rd('app/api/generate-video-cinematic/route.ts')
   ok(rt.includes('const finalPlannedSeconds = segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0) })'), 'rota: o portão de duração usa os segundos do filme despachado')
   ok(rt.includes('verdict: muteSeconds <= 6 && segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: totalSeconds }) >= duration'), 'rota: o ensaio de $0 dá o mesmo veredito de duração')
+}
+
+console.log('7. KINEO-K4-PAGO-SILENCIO-0211b — o meta95 aceita a ideia do Kling 4 pago de 15 s a partir do piso da faixa')
+{
+  const roteiro = (n: number) => {
+    const ws = palavras(n).split(' ')
+    const q = Math.ceil(n / 3)
+    return `HOOK: [Pexels: city] ${ws.slice(0, q).join(' ')}.\nMICRO REWARD 1: [Pexels: street] ${ws.slice(q, 2 * q).join(' ')}.\nPAYOFF: [Pexels: sky] ${ws.slice(2 * q).join(' ')}.`
+  }
+  for (const l of ['en', 'pt', 'es']) {
+    const f = faixaDoKling4PagoNoEscritor(l)
+    ok(pisoDoMeta95NoKling4Pago({ engine: 'hollywood', seconds: 15, language: l, live: true }) === f.min, `${l}: piso do meta95 no Kling 4 pago de 15 s = piso da faixa (${f.min})`)
+    const abaixo = avaliarRoteiroEscrito({ script: roteiro(f.min - 1), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: true })
+    ok(!abaixo.ok && abaixo.motivo === 'curto' && abaixo.piso === f.min, `${l}: ${f.min - 1} palavras (o f37872b5) → fallback 'curto' (caminho de antes, sem 422), não 'used'`)
+    ok(avaliarRoteiroEscrito({ script: roteiro(f.min), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: true }).ok, `${l}: ${f.min} palavras → entra`)
+    ok(avaliarRoteiroEscrito({ script: roteiro(f.min - 1), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: false }).ok, `${l}: interruptor do Kling 4 pago desligado (Kling 3) → piso de sempre (${f.min - 1} entra)`)
+  }
+  for (const [engine, s] of [['hollywood', 30], ['hollywood', 60], ['h3', 15], ['seedance', 15], ['omni', 15]] as const) {
+    ok(pisoDoMeta95NoKling4Pago({ engine, seconds: s, language: 'en', live: true }) === null, `${engine} · ${s} s → piso do meta95 de sempre`)
+  }
+  ok(!reguaNova(faixaDoKling4PagoNoEscritor('en').min - 1, 'en').ok, 'o que o meta95 passa a recusar é exatamente o que a régua do clipe recusaria depois')
+  const m95 = rd('lib/meta95/ideiaNoEscritor.ts')
+  ok(m95.includes('const piso = Math.max(pisoDoPortao(args), pisoDoMeta95NoKling4Pago({ engine: args.engine, seconds: args.seconds, language: args.language, live: args.kling4PagoLive }) ?? 0)'), 'meta95: o piso de aceitação é o maior entre o do portão e o da faixa do Kling 4 pago')
+  ok((m95.match(/args\.escritor\(/g) ?? []).length === 1, 'meta95: uma chamada ao escritor (a nova tentativa segue dentro do generate-script) — sem laço novo')
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)

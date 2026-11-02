@@ -37,6 +37,7 @@ import { fastestClassicPersonaRate } from '@/lib/scriptWriterRate'
 import { isShortFilmTarget } from '@/lib/shortFilmScript'
 import { checarFalaDoFilmeCurto, checarFalaCurtaDoMotor, faixaAceitaNoFilmeCurtoDoMotor, maxWordsCurtoDoMotor } from '@/lib/durationByEngine'
 import { PASTED_SCRIPT_MIN_WORDS } from '@/lib/pastedScript'
+import { pisoDoMeta95NoKling4Pago } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211b — no Kling 4 pago de 15 s o meta95 aceita a partir do piso da faixa
 
 export const META95_IDEIA_VERSAO = 'meta95_ideia_1910'
 export const IDEIA_ESCRITA_EVENTO = 'idea_written_on_server'
@@ -280,10 +281,10 @@ export function pisoDoPortao(args: { engine?: string | null; seconds: number; la
 }
 
 /** O roteiro marcado que o escritor devolveu entra no filme? (só o que a rota vai aceitar: nenhum 422 novo para a ideia solta) */
-export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null }): AvaliacaoDoRoteiro {
+export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null; kling4PagoLive?: boolean }): AvaliacaoDoRoteiro {
   const parsed = parseUserScript(String(args.script ?? ''))
   const palavras = parsed.narration.split(/\s+/).filter(Boolean).length
-  const piso = pisoDoPortao(args)
+  const piso = Math.max(pisoDoPortao(args), pisoDoMeta95NoKling4Pago({ engine: args.engine, seconds: args.seconds, language: args.language, live: args.kling4PagoLive }) ?? 0) // KINEO-K4-PAGO-SILENCIO-0211b — Kling 4 pago de 15 s: piso da faixa (27), o mínimo que a régua de silêncio do clipe aceita
   const blocos = parsed.segments.length
   const nao = (motivo: MotivoDaRecusaDoRoteiro): AvaliacaoDoRoteiro => ({ ok: false, motivo, palavras, piso, blocos })
   if (!parsed.hasMarkers || blocos === 0) return nao('sem_marcadores')
