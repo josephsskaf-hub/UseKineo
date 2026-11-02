@@ -185,6 +185,24 @@ const SUJEITO_BRUTO = [
   { id: 'rv5-einstein-violino', origem: 'revisao', pedido: 'o violino de Einstein', rotulo: 'pos', aceita: 'violin', proibido: 'Einstein' },
   { id: 'rv5-hamster', origem: 'revisao', pedido: 'o hamster que fugiu de casa', rotulo: 'pos', aceita: 'hamster' },
   { id: 'rv5-taxi', origem: 'revisao', pedido: 'o táxi que atravessou o país', rotulo: 'pos', aceita: 'taxi|cab' },
+  // ── v7 (revisão do 21d3c2333): nome de pessoa em "by X", possessivo de grupo ("brothers'", "family's") e verbo no passado depois do
+  // objeto ("smashed", "loved") não chega ao texto injetado; lugar, navio, árvore e marca ficam; a família "child" não prova "boy" com
+  // uma menina; "Lego" é exigido. AJUSTE, resposta MOCKADA em scripts/test-support/k4-sujeito-0111-v7-mocks.json (OpenAI 429 em 01/11).
+  {id: "rv6-picasso-by",pedido: "a painting by Pablo Picasso that sold for 100 million dollars",rotulo: "pos",aceita: "^a painting$",proibido: "Picasso|Pablo",origem: "revisao"},
+  {id: "rv6-michelangelo-by",pedido: "the sculpture by Michelangelo nobody has seen",rotulo: "pos",aceita: "sculpture",proibido: "Michelangelo",origem: "revisao"},
+  {id: "rv6-wright-brothers",pedido: "the Wright brothers' first airplane",rotulo: "pos",aceita: "^the first airplane$",proibido: "Wright",presente: ["An early wooden airplane lifts off a sand dune"],ausente: ["Two brothers stand on a windy beach"],origem: "revisao"},
+  {id: "rv6-kennedy-iate",pedido: "o iate da família Kennedy",rotulo: "pos",aceita: "^the yacht$",proibido: "Kennedy",origem: "revisao"},
+  {id: "rv6-hendrix-smashed",pedido: "the guitar Jimi Hendrix smashed at Monterey",rotulo: "pos",aceita: "guitar",proibido: "Hendrix|Jimi",origem: "revisao"},
+  {id: "rv6-einstein-loved",pedido: "a violin Einstein loved",rotulo: "pos",aceita: "^a violin$",proibido: "Einstein",origem: "revisao"},
+  {id: "rv6-jfk-car",pedido: "the car that John F. Kennedy rode in",rotulo: "pos",aceita: "^the car$",proibido: "Kennedy|John",presente: ["A black open-top car rolls slowly down the street"],origem: "revisao"},
+  {id: "rv6-darwin-finches",pedido: "Darwin's finches and the secret of evolution",rotulo: "pos",aceita: "^finches$",proibido: "Darwin",origem: "revisao"},
+  {id: "rv6-machu-picchu",pedido: "the ruins of Machu Picchu at sunrise",rotulo: "pos",aceita: "ruins of Machu Picchu",origem: "revisao"},
+  {id: "rv6-queen-mary",pedido: "the haunted Queen Mary ocean liner",rotulo: "pos",aceita: "Queen Mary ocean liner",origem: "revisao"},
+  {id: "rv6-mcdonalds",pedido: "the very first McDonald's restaurant",rotulo: "pos",aceita: "McDonald's restaurant",origem: "revisao"},
+  {id: "rv6-general-sherman",pedido: "the General Sherman tree is older than you think",rotulo: "pos",aceita: "General Sherman tree",origem: "revisao"},
+  {id: "rv6-flag-us",pedido: "the flag of the United States left on the moon",rotulo: "pos",aceita: "flag of the United States",origem: "revisao"},
+  {id: "rv6-menino-7",pedido: "um menino de 7 anos que salvou a família",rotulo: "pos",aceita: "boy",presente: ["A 7-year-old boy runs across the yard toward the house"],ausente: ["A young girl running through a field"],origem: "revisao"},
+  {id: "rv6-lego-car",pedido: "a Lego car that actually drives",rotulo: "pos",aceita: "Lego car",presente: ["A small Lego car rolls across a wooden floor"],ausente: ["Cars stuck in traffic at rush hour"],origem: "revisao"},
 ]
 export const CASOS_SUJEITO = SUJEITO_BRUTO.map((c) => ({ conjunto: 'ajuste', ...c }))
 

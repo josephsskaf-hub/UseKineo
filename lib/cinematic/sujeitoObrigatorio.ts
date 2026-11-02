@@ -24,6 +24,10 @@
 // famílias e o modificador visual ("flying car") só reforçam, exigidas junto; (2) nome de pessoa dona/autora do objeto sai do texto
 // injetado ("Napoleon's hat" → "a hat", "designed by Leonardo da Vinci", "belonging to King Arthur"), com o original no relato;
 // (3) palavra igual nas duas línguas ("o hamster", "o táxi") não é mais "sujeito sem tradução".
+// v7 (revisão do 21d3c2333), ainda sem mexer no prompt: (1) o nome da pessoa também sai em "a painting by Pablo Picasso", "the Wright
+// brothers' first airplane", "the Kennedy family's yacht" e "a guitar Jimi Hendrix smashed" (ver semNomeDePessoa); o artigo é refeito;
+// lugar/navio/árvore/marca ficam; (2) núcleo com gênero ("boy") não é provado pela família "child" com uma menina, e "Lego" é exigido;
+// (3) -ves volta a um singular só. Casos rv6-* com resposta MOCKADA (OpenAI 429 em 01/11) — pendente de medir.
 // Calibração (conjunto de ajuste + conjunto CEGO congelado antes da rodada, respostas reais da API) em
 // docs/calibracao/KINEO-K4-SUJEITO-0111.json. LIMITE CONHECIDO: a âncora no pedido e o word_use vêm do mesmo modelo; se ele errar os
 // dois juntos, a validação não pega — a proteção real é a calibração do caminho inteiro (0 grave em 151 casos x 2 passadas).
@@ -41,7 +45,7 @@ import { KLING4_ORCAMENTO_DA_CAMADA, eixoCurtoKling4 } from '@/lib/cinematic/cen
 import { temaDiscordaDaFala } from '@/lib/pedidoCerto'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
-export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v6_semantico' as const
+export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v7_semantico' as const
 
 // ─── A chamada semântica (compartilhada com o juiz do fim, lib/cinematic/finalResposta.ts) ──────────────────────────────────────
 export const MODELO_SEMANTICO_0111 = AI_TEXT_MODELS.scenePlannerLight // gpt-4o-mini (registro único: lib/aiModels.ts)
@@ -194,36 +198,95 @@ const SUJEITO_VALIDO_RE = /^[\p{Script=Latin}\p{N}][\p{Script=Latin}\p{N}\s'’,
 // ─── v6: nome de pessoa real NUNCA entra no texto injetado ──────────────────────────────────────────────────────────────────────
 // Revisão adversarial do c5dbdbcf3: a calibração gravou "Napoleon's hat", "a flying machine designed by Leonardo da Vinci" e "a crown
 // belonging to King Arthur" — o motor de vídeo pode desenhar a PESSOA (rosto de gente real) em vez do objeto. O objeto fica; o dono sai.
-// Corte determinístico e estreito, só nos três formatos em que um nome próprio é DONO/AUTOR do objeto: possessivo ("X's hat"),
-// autoria/posse ("designed by X", "belonging to X", "of King X", "of Leonardo da Vinci", "the hat X wore") e título + nome ("a King Tut mask").
-// Nome de navio, voo, modelo, marca, espécie ou lugar SEM esses formatos fica ("the SS St. Louis refugee ship", "a Komodo dragon",
-// "a SpaceX Dragon capsule", "a C-54 airplane", "the lifeboats of the Titanic"). Se o núcleo sumir no corte, nada é injetado.
+// v7 (revisão do 21d3c2333): também saem "a painting by Pablo Picasso" (by sem verbo), "the Wright brothers' first airplane" / "the
+// Kennedy family's yacht" (possessivo depois de substantivo de grupo) e "a guitar Jimi Hendrix smashed" / "a violin Einstein loved"
+// (qualquer verbo no passado logo depois do objeto); o artigo é refeito pelo som (an/a) e plural fica sem artigo ("finches", nunca
+// "a finches"); "the car that John F. Kennedy rode in" → "the car". FICAM: "of" + nome depois de substantivo de lugar ("the ruins of
+// Machu Picchu"), "of the X" ("the flag of the United States"), título + nome antes de navio/árvore/lugar ("a Queen Mary ocean liner",
+// "the General Sherman tree"), marca com possessivo ("a McDonald's restaurant", lista fechada), "by" de lugar ("by Lake Como").
+// Corte determinístico e estreito, só nos formatos em que um nome próprio é DONO/AUTOR do objeto. Nome de navio, voo, modelo, marca,
+// espécie ou lugar SEM esses formatos fica ("the SS St. Louis refugee ship", "a Komodo dragon", "a SpaceX Dragon capsule"). Se o núcleo
+// sumir no corte, nada é injetado. LIMITE declarado: nome usado como adjetivo, sem nenhum desses formatos ("a Picasso painting", "a
+// Van Gogh painting") fica — sem lista de pessoas é indistinguível de marca/modelo ("a Tesla car"); o motor lê como estilo, não como rosto.
 const PALAVRA_DE_NOME = String.raw`\p{Lu}[\p{L}'’.-]*`
 const CONECTOR_DE_NOME = String.raw`(?:da|de|del|della|di|du|do|dos|das|van|von|der|den|la|le|bin|ibn|al|el)`
 const NOME_PROPRIO = String.raw`${PALAVRA_DE_NOME}(?:\s+(?:${CONECTOR_DE_NOME}\s+)?${PALAVRA_DE_NOME})*`
-const NOME_DE_2_PALAVRAS = String.raw`${PALAVRA_DE_NOME}(?:\s+(?:${CONECTOR_DE_NOME}\s+)?${PALAVRA_DE_NOME})+`
 const TITULO_DE_PESSOA = String.raw`(?:King|Queen|Prince|Princess|Emperor|Empress|Pharaoh|Pope|Sir|Lord|Lady|President|General|Captain|Admiral|Tsar|Czar|Tsarina|Sultan|Duke|Duchess|Count|Countess|Baron|Chief|Dr\.?|Doctor|Professor)`
-const VERBO_DE_AUTORIA = String.raw`(?:designed|built|invented|owned|made|created|painted|worn|used|drawn|sculpted|carved|written|commissioned|flown|driven|ridden|played|signed|given|gifted|discovered|found)`
+const TITULO_INICIAL_RE = new RegExp(String.raw`^${TITULO_DE_PESSOA}\s`, 'u')
+const VERBO_DE_AUTORIA = String.raw`(?:designed|built|invented|owned|made|created|painted|worn|used|drawn|sculpted|carved|written|commissioned|flown|driven|ridden|played|signed|given|gifted|discovered|found|sung|won|taken|stolen|thrown|broken|held|kept|lost|sold|bought)`
+// verbo no passado logo depois do objeto ("the hat Napoleon wore", "a guitar Jimi Hendrix smashed", "a violin Einstein loved"): os
+// irregulares mais comuns + qualquer palavra em -ed
+const VERBO_NO_PASSADO = String.raw`(?:wore|owned|used|built|designed|invented|drove|flew|rode|played|painted|made|carried|signed|wrote|sang|threw|broke|gave|took|bought|sold|held|kept|lost|found|stole|left|won|drew|ate|read|saw|\p{Ll}{2,}ed)`
+const GRUPO_DE_PESSOAS = String.raw`(?:brothers|sisters|family|families|twins|couple|clan|dynasty|household|children|kids|sons|daughters|wife|husband|widow|mother|father|son|daughter|grandmother|grandfather|administration|estate|gang|band)`
 const ASTRO = /^(?:Earth|Moon|Sun|Mars|Venus|Jupiter|Saturn|Mercury|Neptune|Uranus|Pluto)$/
-const AUTORIA_RE = new RegExp(String.raw`(?:,\s*|\s+)(?:that\s+|which\s+)?(?:(?:once\s+)?${VERBO_DE_AUTORIA}\s+by|belong(?:ing|ed|s)\s+to|of)\s+(?:the\s+)?(?:${TITULO_DE_PESSOA}\s+${NOME_PROPRIO}|${NOME_DE_2_PALAVRAS})`, 'gu')
-const AUTORIA_1_NOME_RE = new RegExp(String.raw`(?:,\s*|\s+)(?:that\s+|which\s+)?(?:(?:once\s+)?${VERBO_DE_AUTORIA}\s+by|belong(?:ing|ed|s)\s+to)\s+(?:the\s+)?${NOME_PROPRIO}`, 'gu')
-// "the hat Napoleon wore", "the car Elvis drove": o nome que é sujeito do verbo de posse/autoria logo depois do objeto
-const NOME_E_VERBO_RE = new RegExp(String.raw`\s+(?:that\s+|which\s+)?${NOME_PROPRIO}\s+(?:once\s+)?(?:wore|owned|used|built|designed|invented|drove|flew|rode|played|painted|made|carried|signed|wrote)(?![\p{L}])`, 'gu')
+// lugar dentro do nome ("the United States", "Death Valley") e primeira palavra de acidente geográfico ("by Lake Como" = à beira do lago)
+const PALAVRA_DE_LUGAR = /^(?:States|Kingdom|Republic|Empire|Islands?|Mountains?|Valley|City|Lake|River|Mount|Mt\.?|Ocean|Sea|Canyon|Park|Desert|Bay|Falls|Coast|Peninsula|Strait|Gulf|Union|Emirates|Nations|Cape|Isle|Fort|Port|Glacier|Forest|Reef|Alps|Andes|Himalayas|Sahara|Amazon|Nile)$/
+// substantivo de lugar logo antes do "of" ("the ruins of Machu Picchu", "the streets of New York"): o nome depois é lugar, não dono
+const LUGAR_ANTES_DO_OF = /(?:^|\s)(?:ruins|flags?|streets|coast|city|map|skyline|shores?|capital|islands?|temples?|walls|harbou?r|ports?|beach(?:es)?|mountains|valley|jungle|desert|towns?|village|kingdom|empire|waters|lakes?|rivers?|landscape|skies|sky|outskirts|heart|center|centre|suburbs)$/i
+// navio, árvore, lugar ou obra com nome de gente ("a Queen Mary ocean liner", "the General Sherman tree")
+const COISA_COM_NOME_DE_GENTE = /^(?:ocean\s+liner|liner|ship|steamship|steamer|vessel|boat|yacht|cruiser|battleship|carrier|submarine|frigate|schooner|train|locomotive|tree|sequoia|tower|building|bridge|airport|station|hotel|stadium|dam|street|avenue|highway|tunnel|canal|park|hospital|university|college|school|museum|library|theater|theatre|square|island|glacier|mountain|peak|falls|lake|river|crater|reef)(?![\p{L}])/iu
+// marca com possessivo no próprio nome ("a McDonald's restaurant"): fica. Lista curta e fechada.
+const MARCA_COM_POSSESSIVO = new Set(['McDonald', 'Macy', 'Wendy', 'Denny', 'Kellogg', 'Hershey', 'Domino', 'Arby', 'Chili', 'Applebee', 'Carl', 'Lowe', 'Kohl', 'Sainsbury', 'Levi', 'Dunkin', 'Trader Joe', 'Reese', 'Hardee', 'Nathan'])
+const ARTIGO_OU_DETERMINANTE = /^(?:a|an|the|this|that|these|those|his|her|its|their|our|my|your|some|one)$/i
+
+const AUTORIA_RE = new RegExp(String.raw`(?:,\s*|\s+)(?:that\s+|which\s+)?(?:(?:once\s+)?(?:${VERBO_DE_AUTORIA}|\p{Ll}{2,}ed)\s+by|(by)|belong(?:ing|ed|s)\s+to|(of))\s+(the\s+)?(${NOME_PROPRIO})(\s+${GRUPO_DE_PESSOAS}(?![\p{L}]))?`, 'gu')
+const NOME_E_VERBO_RE = new RegExp(String.raw`\s+(?:that\s+|which\s+)?(?:the\s+)?(${NOME_PROPRIO})(?:\s+${GRUPO_DE_PESSOAS})?\s+(?:once\s+)?${VERBO_NO_PASSADO}(?![\p{L}])(?:\s+(?:in|on|with|to|from|into|onto|aboard|through|about|for|at)(?=\s*(?:$|[,;.])))?`, 'gu')
+const POSSESSIVO_DE_GRUPO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME_PROPRIO})\s+${GRUPO_DE_PESSOAS}(?:['’]s|['’])(?=\s)\s*`, 'gu')
 const POSSESSIVO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME_PROPRIO})(?:['’]s|['’])(?=\s)\s*`, 'gu')
 const TITULO_E_NOME_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])${TITULO_DE_PESSOA}\s+${NOME_PROPRIO}\s*`, 'gu')
+// depois de "by Nome" sem verbo, o nome só é AUTOR se a frase acaba, pontua, ou segue com preposição/relativa/-ing ("a painting by
+// Picasso hanging in a museum"); "a boat pulled by Clydesdale horses" (nome como adjetivo de outro substantivo) não tem autor
+const DEPOIS_DO_AUTOR = /^\s*(?:$|[,;.)]|(?:in|on|at|with|from|for|of|that|which|who|during|before|after|inside|near|under|over|and|himself|herself|themselves)(?![\p{L}])|\p{Ll}+ing(?![\p{L}]))/u
+
+const palavrasDe = (t: string) => t.split(/\s+/).filter(Boolean)
+const ehLugar = (nome: string) => palavrasDe(nome).some((w) => PALAVRA_DE_LUGAR.test(w))
+const ehAstro = (nome: string) => palavrasDe(nome).every((w) => ASTRO.test(w))
+const somDeVogal = (w: string) => /^(?:hour|honest|honou?r|heir)/i.test(w) || (/^[aeiou]/i.test(w) && !/^(?:uni|use|usu|uti|eu|one|once|ur[aeio])/i.test(w))
+const ehPlural = (w: string) => {
+  const n = w.toLowerCase()
+  if (n in IRREGULARES) return false
+  if (n in SINGULAR_IRREGULAR) return true
+  return /[^aeiou]men$/.test(n) || (/s$/.test(n) && !/(?:ss|us|is|ics)$/.test(n))
+}
 
 /** O sujeito sem o nome de pessoa que é dono/autor do objeto ("Napoleon's historic hat" → "a historic hat"). Sem nome = o mesmo texto. */
-export function semNomeDePessoa(subject: string): string {
+export function semNomeDePessoa(subject: string, nucleo?: string | null): string {
+  const entrada = String(subject ?? '')
   // o artigo do começo nunca é nome ("The Titanic's lifeboats": o artigo fica, o "Titanic's" sai)
-  let s = String(subject ?? '').replace(/^(A|An|The)\s/, (m) => m.toLowerCase())
-  s = s.replace(AUTORIA_RE, '').replace(AUTORIA_1_NOME_RE, '').replace(NOME_E_VERBO_RE, '')
-  s = s.replace(POSSESSIVO_RE, (todo, nome: string) => (nome.split(/\s+/).every((w) => ASTRO.test(w)) ? todo : ''))
-  s = s.replace(TITULO_E_NOME_RE, '')
-  s = s.replace(/\s+/g, ' ').replace(/[\s,]+$/, '').replace(/\s+(?:of|by|to|from|with|and)$/i, '').trim()
-  if (s === String(subject ?? '').replace(/^(A|An|The)\s/, (m) => m.toLowerCase())) return String(subject ?? '')
-  // o artigo que o corte levou volta ("Napoleon's hat" → "hat" → "a hat")
-  if (s && !/^(?:a|an|the)\s/i.test(s)) s = `${/^[aeiou]/i.test(s) ? 'an' : 'a'} ${s}`
-  return s
+  const base = entrada.replace(/^(A|An|The)\s/, (m) => m.toLowerCase())
+  let s = base
+  s = s.replace(AUTORIA_RE, (todo: string, porSo: string | undefined, de: string | undefined, oArtigo: string | undefined, nome: string, grupo: string | undefined, offset: number, tudo: string) => {
+    if (de) {
+      // "of King Arthur" e "of Leonardo da Vinci" (2+ palavras, sem "the") saem; "of the Titanic", "of the United States", "of Mars",
+      // "of Einstein" (1 palavra: pode ser lugar ou navio) e "the ruins of Machu Picchu" (lugar antes do of) ficam
+      if (TITULO_INICIAL_RE.test(nome + ' ')) return ''
+      if (oArtigo || palavrasDe(nome).length < 2 || ehLugar(nome) || LUGAR_ANTES_DO_OF.test(tudo.slice(0, offset))) return todo
+      return ''
+    }
+    // "by" sozinho também é "à beira de": "by Lake Como", "by the Thames" ficam
+    if (porSo && ((oArtigo && !grupo) || ehLugar(nome) || ehAstro(nome))) return todo
+    // autor só se a frase seguir como frase de autor ("a boat pulled by Clydesdale horses": o nome é adjetivo de "horses", fica)
+    return DEPOIS_DO_AUTOR.test(tudo.slice(offset + todo.length)) ? '' : todo
+  })
+  s = s.replace(NOME_E_VERBO_RE, (todo: string, nome: string, offset: number, tudo: string) => {
+    // só logo depois do OBJETO ("the hat Napoleon wore"), nunca logo depois do artigo ("the Golden Gate Bridge painted red")
+    const antes = palavrasDe(tudo.slice(0, offset)).pop() ?? ''
+    if (!antes || ARTIGO_OU_DETERMINANTE.test(antes) || !/^\p{Ll}/u.test(antes) || ehLugar(nome) || ehAstro(nome)) return todo
+    return ''
+  })
+  s = s.replace(POSSESSIVO_DE_GRUPO_RE, (todo: string, nome: string) => (ehLugar(nome) ? todo : ''))
+  s = s.replace(POSSESSIVO_RE, (todo: string, nome: string) => (ehAstro(nome) || MARCA_COM_POSSESSIVO.has(nome) ? todo : ''))
+  s = s.replace(TITULO_E_NOME_RE, (todo: string, offset: number, tudo: string) => (COISA_COM_NOME_DE_GENTE.test(tudo.slice(offset + todo.length)) ? todo : ''))
+  s = s.replace(/\s+/g, ' ').replace(/[\s,]+$/, '').replace(/\s+(?:of|by|to|from|with|and|that|which)$/i, '').trim()
+  if (s === base) return entrada
+  // o artigo: a/an pelo som da palavra que ficou (nunca "a ocean liner"), e o que o corte levou volta ("Napoleon's hat" → "a hat");
+  // plural fica sem artigo ("Darwin's finches" → "finches", nunca "a finches")
+  const comArtigo = /^(a|an)\s+(\S+)/i.exec(s)
+  if (comArtigo) return `${somDeVogal(comArtigo[2]) ? 'an' : 'a'} ${s.slice(comArtigo[1].length + 1)}`
+  if (!s || /^the\s/i.test(s)) return s
+  const h = String(nucleo ?? '').trim() || (palavrasDe(s.split(/\s+(?:in|on|at|of|with|from|that|which|who)\s+/i)[0]).pop() ?? '')
+  if (ehPlural(h)) return s
+  return `${somDeVogal(s) ? 'an' : 'a'} ${s}`
 }
 
 // v6: palavra que é a MESMA em inglês e na língua do pedido ("o hamster", "o táxi"): o sujeito em inglês é igual a ela, e isso não é
@@ -259,7 +322,7 @@ export function lerLeituraDoSujeito(bruto: unknown, pedido: string): LeituraDoSu
   const h = leitura.head_noun
   if (!h || !NUCLEO_RE.test(h) || !s.split(/[^\p{L}-]+/u).includes(h)) return descarta('sem_nucleo')
   // v6: o nome da pessoa dona/autora do objeto sai do texto que vai para o motor; se o núcleo sumir junto, nada é injetado
-  const semNome = semNomeDePessoa(s)
+  const semNome = semNomeDePessoa(s, h)
   if (semNome !== s) {
     leitura.subject_original = s
     if (!semNome.split(/[^\p{L}-]+/u).includes(h)) return descarta('nome_de_pessoa_no_sujeito')
@@ -349,18 +412,22 @@ function formasDoNucleo(nucleo: string): string {
     let raiz = n
     if (/[^aeiou]ies$/.test(n)) raiz = n.slice(0, -3) + 'y'
     else if (/(?:s|x|z|ch|sh)es$/.test(n)) raiz = n.slice(0, -2)
-    else if (/ves$/.test(n) && n.length > 4) { formas.add(n.slice(0, -3) + 'f'); raiz = n.slice(0, -3) + 'fe' }
+    // v7: -ves volta a UM singular ("wolves" → wolf, "knives" → knife), nunca às duas formas ("wolfe"/"wolfes" saíam no 21d3c2333)
+    else if (/ves$/.test(n) && n.length > 4) raiz = /ives$/.test(n) ? n.slice(0, -3) + 'fe' : n.slice(0, -3) + 'f'
     else if (/[^s]s$/.test(n) && n.length > 3) raiz = n.slice(0, -1)
     formas.add(raiz)
-    formas.add(/[^aeiou]y$/.test(raiz) ? raiz.slice(0, -1) + 'ies' : /(?:s|x|z|ch|sh)$/.test(raiz) ? raiz + 'es' : /(?:[^f]f|fe)$/.test(raiz) ? raiz.replace(/fe?$/, 'ves') : raiz + 's')
-    if (/(?:[^f]f|fe)$/.test(raiz)) formas.add(raiz + 's')
+    if (raiz === n) formas.add(/[^aeiou]y$/.test(raiz) ? raiz.slice(0, -1) + 'ies' : /(?:s|x|z|ch|sh)$/.test(raiz) ? raiz + 'es' : /(?:[^f]f|fe)$/.test(raiz) ? raiz.replace(/fe?$/, 'ves') : raiz + 's')
+    if (raiz === n && /[^f]f$/.test(raiz)) formas.add(raiz + 's') // "roof" → roofs (e roves, inofensivo); "knife" nunca vira "knifes"
   }
   return [...formas].map(escapa).join('|')
 }
 
 // v6: o modificador colado ao núcleo que MUDA o que se vê ("a flying car" não é "cars in traffic", "a paper boat" não é "a boat").
 // Tamanho, humor e ação ("giant", "talking", "sleeping") não entram: o motor desenha o bicho/objeto do mesmo jeito.
-const MODIFICADOR_VISUAL = String.raw`flying|robot|robotic|mechanical|toy|paper|origami|ghost|ghostly|zombie|skeleton|cyborg|astronaut`
+// v7: material de brinquedo também muda o que se vê ("a Lego car" não é "cars stuck in traffic").
+const MODIFICADOR_VISUAL = String.raw`flying|robot|robotic|mechanical|toy|paper|origami|ghost|ghostly|zombie|skeleton|cyborg|astronaut|lego|clay|plush|stuffed|cardboard|inflatable`
+// v7: núcleo com gênero ("a 7-year-old boy"): a família "child" não o substitui — "a young girl running" não prova o menino.
+const NUCLEO_COM_GENERO = /^(?:boys?|girls?)$/
 const NUCLEO_RE = /^\p{Ll}{3,}(?:-\p{Ll}+)?$/u
 const comFlagG = (re: RegExp) => new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g')
 const ou = (res: RegExp[]) => res.length === 1 ? res[0] : new RegExp(res.map((r) => `(?:${r.source})`).join('|'), 'iu')
@@ -383,7 +450,7 @@ export function chavesDoSujeito(frase: string, nucleo?: string | null): RegExp[]
   const finais = grupos.includes('komodo') ? grupos.filter((g) => g !== 'dragon') : grupos
   const cobreONucleo = (g: string) => [...frase.matchAll(comFlagG(CHAVES[g]))].some((m) => ondeNucleo.some(([a, b]) => (m.index ?? 0) <= a && (m.index ?? 0) + m[0].length >= b))
   const doNucleo = finais.filter(cobreONucleo)
-  const chaveDoNucleo = doNucleo.length ? ou(doNucleo.map((g) => CHAVES[g])) : p(formasDoNucleo(h))
+  const chaveDoNucleo = doNucleo.length && !NUCLEO_COM_GENERO.test(h) ? ou(doNucleo.map((g) => CHAVES[g])) : p(formasDoNucleo(h))
   const reforcos = finais.filter((g) => !doNucleo.includes(g)).map((g) => CHAVES[g])
   const mod = new RegExp(`(?<![\\p{L}\\p{N}])(${MODIFICADOR_VISUAL})[\\s-]+${escapa(h)}(?![\\p{L}\\p{N}])`, 'iu').exec(frase)?.[1]?.toLowerCase()
   const chaveDoMod = mod && !reforcos.some((re) => re.test(mod)) && !chaveDoNucleo.test(mod) ? [p(escapa(mod))] : []

@@ -11,6 +11,8 @@ const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
 // v6: a base é o ponto em que esta entrega saiu da origin/main (merge-base) — a origin/main andou depois (outra sessão mexeu no
 // GenerateClient) e comparar com a ponta dela misturaria o trabalho alheio no recibo.
+// v7: depois do scripts/enfileirar.sh (rebase por cima da fila/origin/main), o merge-base muda e o afterSha256 deixa de bater: RODAR ESTE
+// GERADOR DE NOVO na worktree já rebaseada e incluir o recibo novo antes de publicar.
 const BASE = git('merge-base', 'HEAD', 'origin/main').trim()
 const ESCOPO = ['app/(dashboard)/generate/GenerateClient.tsx', 'app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/finalResposta.ts', 'lib/cinematic/sujeitoObrigatorio.ts'] // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — sujeito obrigatório do Kling 4 (v2: só do pedido original — original_idea do cliente) e fim que revela (escritor + descritor)
 

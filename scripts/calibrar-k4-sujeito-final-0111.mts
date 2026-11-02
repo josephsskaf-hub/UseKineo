@@ -7,11 +7,16 @@
 // v6: grava também o reasoning (o campo gist não existe mais), o sujeito antes do corte do nome de pessoa (subject_original) e as
 // chaves de presença que o código montou (núcleo exigido). Os casos rv5-* (revisão do c5dbdbcf3) entram no AJUSTE; até a próxima
 // rodada com crédito, o guardião usa para eles respostas MOCKADAS (scripts/test-support/k4-sujeito-0111-v6-mocks.json).
+// v7 (revisão do 21d3c2333): casos rv6-* (nome de pessoa em 'by X', possessivo de grupo, verbo no passado; lugar/navio/marca que
+// ficam; presença frouxa) também com resposta MOCKADA. O juiz desta rodada passa a cobrar "proibido" (nome de pessoa no texto injetado =
+// falso positivo GRAVE) e "presente"/"ausente" (a presença pelas chaves de produção; errar = perdeu_presenca). Ao rodar com crédito:
+// conferir que 0 grave segue valendo, e trocar os mocks rv5/rv6 pelas respostas reais (o guardião lê o 'cru' gravado aqui).
 // Rodar: npx tsx scripts/calibrar-k4-sujeito-final-0111.mts   (custo ~US$ 0,03; 2 passadas para medir estabilidade)
+//        MOCK=1 npx tsx …   (ensaio sem rede e sem gravar: confere que o script roda e mostra o placar com os mocks)
 //        CONJUNTO=ajuste npx tsx …   (só o ajuste, sem gravar: para mexer no prompt sem olhar o cego)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { lerSujeitoDoPedido, avaliarSujeito, SYSTEM_SUJEITO_0111, MODELO_SEMANTICO_0111, SUJEITO_K4_VERSAO } from '@/lib/cinematic/sujeitoObrigatorio'
+import { lerSujeitoDoPedido, avaliarSujeito, promptMostraOSujeito, SYSTEM_SUJEITO_0111, MODELO_SEMANTICO_0111, SUJEITO_K4_VERSAO } from '@/lib/cinematic/sujeitoObrigatorio'
 import { finalTemRespostaConcreta, finalFracoDoRoteiro, fimSemResposta, SYSTEM_FINAL_0111, FINAL_RESPOSTA_VERSAO } from '@/lib/cinematic/finalResposta'
 import { CASOS_SUJEITO, CASOS_FINAL } from './calibracao-k4-sujeito-final-0111-casos.mjs'
 
@@ -21,14 +26,24 @@ function chave(): string {
   const linha = readFileSync(env, 'utf8').split(/\r?\n/).find((l) => /^\s*OPENAI_API_KEY\s*=/.test(l)) ?? ''
   return linha.replace(/^\s*OPENAI_API_KEY\s*=\s*/, '').replace(/^["']|["']$/g, '').trim()
 }
-const apiKey = chave()
+// v7: MOCK=1 ensaia o script inteiro SEM rede e sem gravar — rv5/rv6 com as respostas mockadas, o resto com o 'cru' da última rodada
+// real (prova que a recalibração roda antes de gastar; NÃO é medição)
+const MOCK = process.env.MOCK === '1'
+const MOCKS: Record<string, string> = MOCK ? { ...JSON.parse(readFileSync(join(import.meta.dirname, 'test-support', 'k4-sujeito-0111-v6-mocks.json'), 'utf8')).respostas, ...JSON.parse(readFileSync(join(import.meta.dirname, 'test-support', 'k4-sujeito-0111-v7-mocks.json'), 'utf8')).respostas } : {}
+const GRAVADO = MOCK ? JSON.parse(readFileSync(join(import.meta.dirname, '..', 'docs', 'calibracao', 'KINEO-K4-SUJEITO-0111.json'), 'utf8')) : null
+const apiKey = MOCK ? 'mock' : chave()
 if (!apiKey) { console.error('sem OPENAI_API_KEY'); process.exit(1) }
+function respostaMock(id: string, k: number, onde: 'sujeito' | 'final'): string {
+  if (onde === 'sujeito' && MOCKS[id]) return MOCKS[id]
+  const c = (GRAVADO[onde] as Array<{ id: string; passadas: Array<{ cru: string }> }>).find((x) => x.id === id)
+  return c?.passadas[Math.min(k, c.passadas.length - 1)]?.cru ?? ''
+}
 
 /** fetch que guarda o conteúdo cru de cada resposta (para o mock do guardião). */
-function gravador() {
+function gravador(mock?: { id: string; k: number; onde: 'sujeito' | 'final' }) {
   const crus: string[] = []
   const f: typeof fetch = async (url, init) => {
-    const res = await fetch(url, init)
+    const res = MOCK && mock ? new Response(JSON.stringify({ choices: [{ message: { content: respostaMock(mock.id, mock.k, mock.onde) } }] }), { status: 200 }) : await fetch(url, init)
     const texto = await res.text()
     try { crus.push(String(JSON.parse(texto).choices?.[0]?.message?.content ?? '')) } catch { crus.push('') }
     return new Response(texto, { status: res.status, headers: { 'Content-Type': 'application/json' } })
@@ -54,24 +69,25 @@ const casosSujeito = (CASOS_SUJEITO as Array<Record<string, any>>).filter((c) =>
 const rodadasSujeito = SO_FINAL ? [] : await emLotes(casosSujeito, 6, async (c) => {
   const passadas: Array<Record<string, unknown>> = []
   for (let k = 0; k < PASSADAS; k++) {
-    const g = gravador()
+    const g = gravador({ id: c.id, k, onde: 'sujeito' })
     const r = await lerSujeitoDoPedido(c.pedido, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000 })
     const a = avaliarSujeito({ leitura: r })
-    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, reasoning: r.ok ? r.valor.reasoning : null, subject_original: r.ok ? r.valor.subject_original : null, chaves: a.sujeito ? a.sujeito.chaves.map((re) => re.source) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
+    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, reasoning: r.ok ? r.valor.reasoning : null, subject_original: r.ok ? r.valor.subject_original : null, chaves: a.sujeito ? a.sujeito.chaves.map((re) => re.source) : null, presenca_ok: a.sujeito ? (c.presente ?? []).every((q: string) => promptMostraOSujeito(q, a.sujeito!)) && (c.ausente ?? []).every((q: string) => !promptMostraOSujeito(q, a.sujeito!)) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
   return { c, passadas }
 })
 for (const { c, passadas } of rodadasSujeito) {
   const aceita = c.aceita ? new RegExp(c.aceita, 'i') : null
-  const julga = (subject: string | null) => {
+  const julga = (subject: string | null, presencaOk: boolean | null = null) => {
+    if (subject && c.proibido && new RegExp(c.proibido).test(subject)) return 'falso_positivo_grave' // v7: nome de pessoa no texto injetado
     if (c.rotulo === 'neg') return subject ? 'falso_positivo_grave' : 'ok'
     if (c.rotulo === 'amb') return !subject ? 'ok' : aceita!.test(subject) ? 'ok' : 'falso_positivo_grave'
     if (!subject) return 'perdeu'
-    if (aceita!.test(subject)) return 'acerto'
+    if (aceita!.test(subject)) return presencaOk === false ? 'perdeu_presenca' : 'acerto'
     return c.secundario && new RegExp(c.secundario, 'i').test(subject) ? 'perdeu_secundario' : 'falso_positivo_grave'
   }
-  const vereditos = passadas.map((x) => julga(x.subject as string | null))
-  const pior = ['falso_positivo_grave', 'perdeu_secundario', 'perdeu'].find((v) => vereditos.includes(v)) ?? vereditos[0]
+  const vereditos = passadas.map((x) => julga(x.subject as string | null, x.presenca_ok as boolean | null))
+  const pior = ['falso_positivo_grave', 'perdeu_secundario', 'perdeu_presenca', 'perdeu'].find((v) => vereditos.includes(v)) ?? vereditos[0]
   if (new Set(passadas.map((x) => x.subject)).size > 1) instaveis++
   falhas += passadas.filter((x) => !x.ok).length
   const k = contas[c.conjunto]
@@ -91,7 +107,7 @@ const casosFinal = (CASOS_FINAL as Array<Record<string, any>>).filter((c) => !SO
 const rodadasFinal = SO_SUJEITO ? [] : await emLotes(casosFinal, 6, async (c) => {
   const passadas: Array<Record<string, unknown>> = []
   for (let k = 0; k < PASSADAS; k++) {
-    const g = gravador()
+    const g = gravador({ id: c.id, k, onde: 'final' })
     const r = await finalTemRespostaConcreta(c.roteiro, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000, pedido: c.pedido })
     passadas.push({ hook_promises_answer: r.ok ? r.valor.hook_promises_answer : null, ends_with_concrete_answer: r.ok ? r.valor.ends_with_concrete_answer : null, sem_resposta: r.ok ? fimSemResposta(r.valor) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
@@ -124,7 +140,7 @@ const placar = {
   final: { versao: FINAL_RESPOSTA_VERSAO, casos: CASOS_FINAL.length, ajuste: contasFim.ajuste, cego: contasFim.cego },
 }
 console.log(JSON.stringify(placar, null, 1))
-if (SO || SO_SUJEITO || SO_FINAL) { console.log('(rodada parcial: nada gravado)'); process.exit(0) }
+if (SO || SO_SUJEITO || SO_FINAL || MOCK) { console.log(MOCK ? '(ensaio MOCK=1: nada gravado — não é medição)' : '(rodada parcial: nada gravado)'); process.exit(0) }
 const dir = join(import.meta.dirname, '..', 'docs', 'calibracao')
 if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 writeFileSync(join(dir, 'KINEO-K4-SUJEITO-0111.json'), JSON.stringify({

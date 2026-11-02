@@ -59,7 +59,7 @@
   },
   "app/api/generate-video-cinematic/route.ts": {
    "beforeSha256": "471146625b2b132924edd29a6f073eaf1c69f5bd13e7458a51ae684f2468ce37",
-   "afterSha256": "a94de708fbd52318a950fc769a1e4617323f662865f66df5f37bb65b7028e34e",
+   "afterSha256": "4ffec4f1add9392b35b741afec7f29e60ea4e778354f44c6fe015d3828517156",
    "hunks": [
     {
      "before": "import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos\n",
@@ -79,7 +79,7 @@
     },
     {
      "before": "      try {\n        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor\n      } catch (e) {",
-     "after": "      try {\n        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, kling4TrialCandidate)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor\n      } catch (e) {"
+     "after": "      try {\n        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, kling4TrialCandidate && scenes.length === 3)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor // KINEO-K4-SUJEITO-0111 v7 — a regra do sujeito só com as 3 cenas que o Kling 4 grátis aceita (com outra contagem o filme já cai no Seedance: fallback_plan_unavailable)\n      } catch (e) {"
     },
     {
      "before": "    const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }\n    let kling4Trial: Kling4TrialResult | null = null",
@@ -98,6 +98,6 @@
  },
  "addedSources": {
   "lib/cinematic/finalResposta.ts": "93583c8625891f28301af3402100141103c25ff58c447bdd3bf28ecb80f6d5ad",
-  "lib/cinematic/sujeitoObrigatorio.ts": "f4eaeabb4d736c66feccdb45dca73479d7e0517e8387fc37cc86b1fdf8eb1332"
+  "lib/cinematic/sujeitoObrigatorio.ts": "77b4fac2621181722500980071df4fa94c4016bd5c668ed364b7dfa322dc0544"
  }
 }
