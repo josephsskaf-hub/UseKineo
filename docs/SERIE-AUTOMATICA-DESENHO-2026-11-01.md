@@ -128,3 +128,10 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
 - Sem decisão em 29 h desde o estacionamento → fecha `expired_unverified` SEM e-mail; a série não lê isso como "nada cobrado".
 - Aluguéis lidos por inteiro (páginas de 1000, mais velho primeiro); leitura incompleta = a passada não decide nada.
 - Guardião: scripts/test-retomada-sem-cobranca-dupla-0111.mts (rota real do cron + rota de filme falsa que guarda o claim).
+
+## Revisão 6 (01/11) — a reconexão saiu: cobrança viva = só esperar
+
+- Motivo: em pedido de ideia solta o roteiro é reescrito pelo GPT (temperature 0.7) a cada POST; a impressão digital do claim muda e a rota responde 409 `conflict` antes de qualquer ramo útil. O re-POST do mesmo id só gastava o escritor e o teto da passada.
+- Regra única: `settled` não estornado = filme a caminho → adota. Qualquer outro claim com débito VIVO → o cron só ESPERA: nunca abre a N+1, nunca re-POSTa. Débito estornado/ausente (depois de 10 min do aluguel) → segue (N+1, ou `expired`/`failed` com o e-mail honesto).
+- Quem resolve a espera é o que já existe: `refund-sweep` (sweepAbandonedCinematicDebits: `settled` sem entrega após 100 min; `pending` só no caso órfão — claim nascido a ≤ 60 s do débito e sem fal_request_ids) e `finish-stranded-renders` (só `settled`). **Lacuna conhecida:** nenhuma varredura toca `done`, nem `pending` cujo débito nasceu > 60 s depois do claim. Esses casos chegam ao teto.
+- Teto: 29 h desde o estacionamento ainda esperando → fecha `expired_unverified`, SEM e-mail ao cliente, e grava o evento `founder_alert_parked_unverified` (+ console.error "ALERTA FUNDADOR") com os ids das tentativas para conferir à mão.

@@ -9,33 +9,39 @@
 // O DEFEITO 2 (revisão 5 de 01/11, ALTO, no e1edb2c36): o conserto adotava QUALQUER débito vivo, sem assentamento. Débito vivo com claim
 // 'pending' é o que a rota deixa quando falha sem filme (503 de estorno pendente, 503 pending ambíguo); 'done' sem 'settled' é o 503
 // "safe while we finalize". Ninguém move esses claims depois (finish-stranded-renders só pega 'settled'; a varredura nunca toca 'done'):
-// o parked fechava 'resumed', o cliente ficava sem filme (e, no 'done', cobrado para sempre). Agora: 'settled' = adota; 'done'/'pending'
-// parado = RECONECTA (re-POST do MESMO id — o "retry this same generation" que a rota pede); o resto só depois do assentamento.
+// o parked fechava 'resumed', o cliente ficava sem filme (e, no 'done', cobrado para sempre) — e sem nenhum alerta.
+// O DEFEITO 3 (revisão 6 de 01/11, ALTO, no 583bb7387): a revisão 5 RECONECTAVA (re-POST do mesmo id). Em pedido de ideia solta o roteiro é
+// reescrito pelo GPT a temperature 0.7 a cada POST, a impressão digital do claim muda e a rota responde 409 "generation id belongs to a
+// different cinematic request" antes de qualquer ramo útil: re-POST inútil que roda o escritor de novo; e, em verbatim, o 'pending' de
+// até 2 h re-POSTado a cada passada gastava o teto da passada e travava filmes novos. Agora, regra única: 'settled' não estornado = adota;
+// qualquer outro claim com débito VIVO = só ESPERA (nunca N+1, nunca re-POST) até as varreduras que já existem estornarem; no teto (29 h)
+// fecha 'expired_unverified' sem e-mail ao cliente e grava o alerta do fundador (founder_alert_parked_unverified).
 //
 // COMO PROVA: roda a ROTA REAL do cron (app/api/cron/resume-parked-renders/route.ts, GET) contra um PostgREST falso servido pelo `fetch`
 // global (o mesmo supabase-js de produção fala HTTP com ele), uma rota de filme falsa QUE GUARDA O CLAIM (pending/done/settled/released)
-// e responde ao re-POST do mesmo id como a rota real (replay de 'done' liquida; 'pending' depois de 2 h estorna e libera), e um Resend
-// falso. Relógio controlado. Cada caso roda na rota ATUAL e numa CÓPIA QUEBRADA — a base 124824492 (produção), o e1edb2c36 (revisão 4)
-// ou um mutante de uma linha — e a cópia quebrada tem de cobrar duas vezes / perder o filme / mentir no e-mail.
+// e responde a um re-POST do mesmo id como a rota real (verbatim: replay/espera; ideia solta: 409 conflict de impressão digital), a
+// varredura de estorno (refund-sweep) no caso que ela alcança, e um Resend falso. Relógio controlado. Cada caso roda na rota ATUAL e numa
+// CÓPIA QUEBRADA — a base 124824492 (produção), o e1edb2c36 (revisão 4), o 583bb7387 (revisão 5) ou um mutante de uma linha.
 //   T1  abort em 240 s; a rota seguiu e liquidou (settled + débito) → adota (1 POST, 1 débito); base: 2 débitos.
-//   T2  503 pending:true "may already be processing" (claim pending + débito vivo) → reconecta o MESMO id até a rota estornar e liberar
-//       (2 h); só então a tentativa 2 — o filme sai, nunca 2 débitos vivos; base: 2 débitos; e1edb2c36: adota e o filme se perde.
+//   T2  503 pending:true "may already be processing" (claim pending + débito vivo) e o estorno nunca vem → espera, ZERO re-POST, nenhuma
+//       tentativa 2; às 29 h 'expired_unverified' + alerta do fundador, sem e-mail; base: 2 débitos; e1edb2c36: fecha 'resumed' calado;
+//       583bb7387 (ideia solta): re-POSTa o id 1 e bate no 409 de impressão digital, e não grava alerta.
 //   T3  503 "refund is still being confirmed" (idem); T3b o estorno chega em 3 min → a tentativa 2 sai depois do assentamento;
-//       T3c a varredura de estorno (100 min) adianta a tentativa 2.
+//       T3c a varredura de estorno (100 min) devolve o débito → a tentativa 2 sai; T3m mutante "cobrança viva = sem cobrança": 2 débitos.
 //   T4  a rota cobra DEPOIS da rodada seguinte → espera o assentamento de 10 min; mutante sem a espera: 2 débitos.
-//   T5  débito ilegível por 30 h → nenhuma tentativa 2, nenhum e-mail; às 29 h fecha 'expired_unverified' (nunca estacionado para
-//       sempre); e1edb2c36: nunca fecha.
-//   T6  24 h com um aluguel de débito vivo → fecha 'resumed', SEM e-mail; base: 'expired' + "Nothing was charged". T6b a cobrança chega
-//       depois da virada → espera. T6c 503 de estorno pendente às 23 h 55 → o e-mail só sai depois do estorno confirmado.
+//   T5  débito ilegível por 30 h → nenhuma tentativa 2, nenhum e-mail; às 29 h fecha 'expired_unverified' + alerta; e1edb2c36: nunca fecha.
+//   T6  24 h com um aluguel liquidado → fecha 'resumed', SEM e-mail; base: 'expired' + "Nothing was charged". T6b a cobrança chega
+//       depois da virada → espera. T6c 503 de estorno pendente às 23 h 55 → o e-mail só sai depois de a varredura estornar.
 //   T7  24 h com o aluguel lido sem cobrança (assentado) → 'expired' + o e-mail honesto continua saindo.
-//   T8  4xx com o débito vivo → nada de 'failed' nem e-mail; reconecta e, liberado, a tentativa 2 é o filme; 4xx sem claim → 'failed'
+//   T8  4xx com o débito vivo → nada de 'failed' nem e-mail; espera a varredura e a tentativa 2 é o filme; 4xx sem claim → 'failed'
 //       + e-mail; 402 com claim 'done' sem débito → 'failed' + e-mail (nada cobrado, de verdade).
-//   T9  'started' cujo fechamento falhou e cujo filme foi estornado → retoma; T9c 'started' de promoção liberado → retoma (antes:
-//       adotava e o filme grátis se perdia).
-//   T10 filme grátis de promoção (claim pending de custo 0) → não adota de cara; reconecta e, liberado, a tentativa 2 é o filme.
-//   T11 claim 'done' (503 "safe while we finalize") → reconecta, a rota liquida, o finish-stranded-renders monta; e1edb2c36: cobrado e
-//       sem filme para sempre.
+//   T9  'started' cujo fechamento falhou e cujo filme foi estornado → retoma; T9c 'started' de promoção liberado → retoma.
+//   T10 filme grátis de promoção (claim pending de custo 0, sem débito) → não adota; assentado, a tentativa 2 é o filme (sem re-POST).
+//   T11 claim 'done' com débito (503 "safe while we finalize") → espera, zero re-POST; nenhuma varredura toca 'done' (lacuna conhecida):
+//       às 29 h 'expired_unverified' + alerta do fundador; e1edb2c36: 'resumed' calado; base: 2 débitos.
 //   T12 1.200 aluguéis de outros estacionados: o aluguel que cobrou continua sendo lido (páginas); e1edb2c36 (limit 1000): travado.
+//   T13 dois filmes com claim 'pending' e um terceiro estacionado depois: o terceiro sai na hora; 583bb7387 (verbatim): as reconexões
+//       gastam o teto da passada e o terceiro fica parado.
 //   P   regras puras · F o texto da rota.
 // Rodar: npx tsx scripts/test-retomada-sem-cobranca-dupla-0111.mts
 import fs from 'node:fs'
@@ -57,6 +63,7 @@ const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m
 const rd = (p: string) => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const BASE = '124824492'
 const ANTERIOR = 'e1edb2c36'
+const REV5 = '583bb7387'
 const ROTA = 'app/api/cron/resume-parked-renders/route.ts'
 const LIB = 'lib/filaQuedaFal.ts'
 const USER = '11111111-2222-4333-8444-555555555555'
@@ -87,6 +94,7 @@ class Mundo {
   agenda: { at: number; fn: () => void }[] = []
   comportamentos: Comportamento[] = []
   semSaldo = false
+  ideia = false
   varredura = false
   maxVivos = 0
   seq = 0
@@ -123,6 +131,8 @@ function rotaDeFilme(gen: string): { abort?: true; status?: number; json?: unkno
   const existente = claimDe(gen)
   if (existente) {
     mundo.posts.push({ generationId: gen, at: clock, repost: true })
+    // pedido de ideia solta: o escritor (GPT a 0.7) reescreve o roteiro → outra impressão digital → claim.ts:718 + route.ts:2996-2997
+    if (mundo.ideia) return { status: 409, json: { error: 'generation id belongs to a different cinematic request' } }
     const md = existente.metadata as { status: string; credit_cost: number; started_at: string }
     if (md.status === 'pending') {
       if (clock - Date.parse(md.started_at) <= HOLD_MS) return { status: 409, json: { error: 'This AI generation is already being submitted.', pending: true, retry_after_ms: 2500 } }
@@ -256,15 +266,17 @@ const atual = (await import('../app/api/cron/resume-parked-renders/route')).GET 
 const rotaAtual = rd(ROTA)
 const libAtual = rd(LIB)
 const git = (a: string[]) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
-let base: Get, anterior: Get, semEspera: Get, filtroVelho: Get, quatroCentosCego: Get, settledCego: Get, adotaVivo: Get
+let base: Get, anterior: Get, rev5: Get, semEspera: Get, filtroVelho: Get, quatroCentosCego: Get, settledCego: Get, adotaVivo: Get, reabreVivo: Get
 try {
   base = await rotaDe('base', git(['show', `${BASE}:${ROTA}`]), git(['show', `${BASE}:${LIB}`]))
   anterior = await rotaDe('anterior', git(['show', `${ANTERIOR}:${ROTA}`]), git(['show', `${ANTERIOR}:${LIB}`]))
+  rev5 = await rotaDe('rev5', git(['show', `${REV5}:${ROTA}`]), git(['show', `${REV5}:${LIB}`]))
   semEspera = await rotaDe('sem_espera', rotaAtual, troca(libAtual, 'export const PARKED_DEBIT_SETTLE_MS = PARKED_LEASE_TTL_MS', 'export const PARKED_DEBIT_SETTLE_MS = 0', 'sem_espera'))
   filtroVelho = await rotaDe('filtro_velho', troca(rotaAtual, '!aluguelPodeTerCobrado(md.outcome)', "(md.outcome !== undefined && md.outcome !== 'started')", 'filtro_velho'), null)
   quatroCentosCego = await rotaDe('4xx_cego', rotaAtual, troca(libAtual, "  if (outcome !== 'failed') return outcome\n", '  return outcome\n', '4xx_cego'))
   settledCego = await rotaDe('settled_cego', rotaAtual, troca(libAtual, "if (l.claim === 'settled' && l.debito !== 'estornado') return 'filme'", "if (l.claim === 'settled') return 'filme'", 'settled_cego'))
   adotaVivo = await rotaDe('adota_vivo', rotaAtual, troca(libAtual, "  if (l.erro) return 'ilegivel'\n", "  if (l.erro) return 'ilegivel'\n  if (l.debito === 'vivo') return 'filme'\n", 'adota_vivo'))
+  reabreVivo = await rotaDe('reabre_vivo', rotaAtual, troca(libAtual, "return l.debito === 'vivo' ? 'cobranca_viva' : 'sem_cobranca'", "return 'sem_cobranca'", 'reabre_vivo'))
 } finally {
   for (const f of temporarios) { try { fs.unlinkSync(f) } catch { /* já foi */ } }
 }
@@ -299,6 +311,9 @@ async function rodadas(GET: Get, n: number, inicio: number, intervalo = 5 * MIN,
 const fechamento = () => fechamentos().find((f) => f.session_id === GEN)?.metadata as { outcome?: string; resume_generation_id?: string; recovered?: boolean; reconnected?: boolean } | undefined
 const r1 = idDaRetomada(GEN, 1)
 const r2 = idDaRetomada(GEN, 2)
+const alertas = () => evs(L.FOUNDER_PARKED_ALERT_EVENT).filter((e) => e.session_id === GEN)
+/** Fechou no teto: 'expired_unverified', 1 alerta do fundador com o id da tentativa, nenhum e-mail ao cliente. */
+const fechouNoTeto = (rid: string) => fechamento()?.outcome === 'expired_unverified' && alertas().length === 1 && ((alertas()[0].metadata as { resume_generation_ids?: string[] }).resume_generation_ids ?? []).includes(rid) && mundo.emails.length === 0
 /** O filme saiu UMA vez: fechado 'resumed' com `rid`, claim dele liquidado, nenhum débito vivo sem filme, nunca 2 débitos vivos juntos. */
 const umFilme = (rid: string, debitos = 1) => fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === rid && aCaminho(rid) && vivos().length === debitos && cobradoSemFilme().length === 0 && mundo.maxVivos <= 1 && nadaCobradoEnviado().length === 0
 
@@ -317,25 +332,36 @@ console.log('T1 — abort do cron; a rota seguiu e liquidou: adota, nunca a tent
 }
 
 // ── T2/T3: a rota falhou sem filme e deixou o débito vivo com o claim 'pending' ───────────────────────────────────────
-console.log('T2/T3 — claim pending + débito vivo: reconecta o MESMO id; só com o estorno a tentativa 2 sai — e o filme sai')
+console.log('T2/T3 — claim pending + débito vivo: só espera (zero re-POST, nenhuma tentativa 2); no teto, alerta do fundador')
 for (const [rot, c] of [['T2 503 pending:true "may already be processing"', 'pending-processing'], ['T3 503 "refund is still being confirmed" e o estorno não vem', 'refund-pending']] as const) {
   novoMundo([c, 'ok'])
-  const d = await rodadas(atual, 36, T0 + 5 * MIN)
-  const r2em = primeiros()[1]?.at ?? 0
-  ok(umFilme(r2) && primeiros().length === 2 && reposts().length >= 1 && reposts().every((p) => p.generationId === r1) && r2em - (T0 + 5 * MIN) > HOLD_MS && !!debitoDe(r1)?.refunded_at,
-    `${rot}: ${reposts().length} reconexões do id 1 (nunca um id novo) até a rota estornar e liberar; aí a tentativa 2 é o filme — nunca 2 débitos vivos (rodada 2 = ${d[1]}, rodada 4 = ${d[3]})`)
+  const d = await rodadas(atual, 30 * 12, T0 + 5 * MIN)
+  const iFecha = d.findIndex((x) => x.startsWith('expired_unverified'))
+  const fechouEm = T0 + 5 * MIN + iFecha * 5 * MIN
+  ok(fechouNoTeto(r1) && reposts().length === 0 && primeiros().length === 1 && mundo.maxVivos === 1 && d[2] === 'lease_charge_live' && d.slice(2, iFecha).every((x) => x === 'lease_charge_live') && fechouEm - T0 >= L.PARKED_HARD_STOP_MS && fechouEm - T0 < L.PARKED_HARD_STOP_MS + 5 * MIN,
+    `${rot}: espera (${d[2]}) sem re-POSTar e sem tentativa 2; às ${Math.round((fechouEm - T0) / H)} h fecha 'expired_unverified' + 1 alerta do fundador, nenhum e-mail`)
   novoMundo([c, 'ok'])
   await rodadas(base, 36, T0 + 5 * MIN)
   ok(mundo.maxVivos >= 2, `${rot} — BASE ${BASE}: ${mundo.maxVivos} débitos vivos ao mesmo tempo para UM clique`)
   novoMundo([c, 'ok'])
   await rodadas(anterior, 36, T0 + 5 * MIN)
-  ok(fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === r1 && !aCaminho(r1) && primeiros().length === 1 && cobradoSemFilme().length === 1,
-    `${rot} — ${ANTERIOR} (revisão 4): adota o débito vivo e fecha 'resumed' com o claim 'pending' — ninguém mais move o claim: cobrado e sem filme`)
+  ok(fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === r1 && !aCaminho(r1) && primeiros().length === 1 && cobradoSemFilme().length === 1 && alertas().length === 0,
+    `${rot} — ${ANTERIOR} (revisão 4): adota o débito vivo e fecha 'resumed' com o claim 'pending' — cobrado, sem filme e sem alerta a ninguém`)
+  novoMundo([c, 'ok'])
+  mundo.ideia = true
+  await rodadas(rev5, 30 * 12, T0 + 5 * MIN)
+  ok(reposts().length >= 1 && reposts().every((p) => p.generationId === r1) && alertas().length === 0 && fechamento()?.outcome === 'expired_unverified',
+    `${rot} — ${REV5} (revisão 5), pedido de ideia solta: ${reposts().length} re-POST(s) do id 1 batem no 409 de impressão digital (cada um roda o escritor de novo) e o teto fecha sem alerta gravado`)
 }
 {
   novoMundo(['pending-processing', 'ok'])
   await rodadas(adotaVivo, 36, T0 + 5 * MIN)
   ok(fechamento()?.resume_generation_id === r1 && !aCaminho(r1) && primeiros().length === 1, "T2m mutante ('débito vivo = filme', a regra da revisão 4): o filme se perde")
+}
+{
+  novoMundo(['pending-processing', 'ok'])
+  await rodadas(reabreVivo, 6, T0 + 5 * MIN)
+  ok(primeiros().length === 2 && mundo.maxVivos === 2, "T3m mutante ('cobrança viva = sem cobrança'): a tentativa 2 sai com o débito da 1 vivo — 2 débitos")
 }
 {
   novoMundo(['refund-pending-confirma', 'ok'])
@@ -348,7 +374,7 @@ for (const [rot, c] of [['T2 503 pending:true "may already be processing"', 'pen
   mundo.varredura = true
   await rodadas(atual, 36, T0 + 5 * MIN)
   const r2em = primeiros()[1]?.at ?? 0
-  ok(umFilme(r2) && r2em - (T0 + 5 * MIN) > 100 * MIN && r2em - (T0 + 5 * MIN) < HOLD_MS, `T3c a varredura de estorno (100 min) devolve o débito do claim parado: a tentativa 2 sai antes das 2 h, 1 débito vivo`)
+  ok(umFilme(r2) && reposts().length === 0 && r2em - (T0 + 5 * MIN) > 100 * MIN && r2em - (T0 + 5 * MIN) < HOLD_MS, `T3c a varredura de estorno (100 min) devolve o débito do claim parado: a tentativa 2 sai logo depois, sem re-POST, 1 débito vivo`)
 }
 
 // ── T4: a rota cobra depois da rodada seguinte ───────────────────────────────────────────────────────────────────────
@@ -373,8 +399,8 @@ console.log('T5 — banco instável: nada é decidido às cegas, e nada fica est
   const d = await rodadas(atual, 30 * 12, T0 + 10 * MIN)
   const iFecha = d.findIndex((x) => x.startsWith('expired_unverified'))
   const fechouEm = T0 + 10 * MIN + iFecha * 5 * MIN
-  ok(primeiros().length === 1 && mundo.emails.length === 0 && iFecha > 0 && d.slice(0, iFecha).every((x) => x === 'lease_debit_unreadable') && fechouEm - T0 >= L.PARKED_HARD_STOP_MS && fechouEm - T0 < L.PARKED_HARD_STOP_MS + 5 * MIN && fechamento()?.outcome === 'expired_unverified',
-    `T5 30 h com o débito ilegível: 1 POST, nenhum e-mail; espera até ${Math.round((fechouEm - T0) / H)} h e fecha 'expired_unverified' (sem "nothing was charged")`)
+  ok(primeiros().length === 1 && mundo.emails.length === 0 && iFecha > 0 && d.slice(0, iFecha).every((x) => x === 'lease_debit_unreadable') && fechouEm - T0 >= L.PARKED_HARD_STOP_MS && fechouEm - T0 < L.PARKED_HARD_STOP_MS + 5 * MIN && fechouNoTeto(r1),
+    `T5 30 h com o débito ilegível: 1 POST, nenhum e-mail; espera até ${Math.round((fechouEm - T0) / H)} h e fecha 'expired_unverified' + alerta do fundador (sem "nothing was charged")`)
   novoMundo(['abort-charged', 'ok'])
   await rodadas(anterior, 1, T0 + 5 * MIN)
   mundo.failSelect.add('credit_debits')
@@ -402,10 +428,11 @@ console.log('T6 — 24 h: o vencido só fecha (e só diz "nothing was charged") 
   await rodadas(semEspera, 4, T0 + 23 * H + 55 * MIN)
   ok(fechamento()?.outcome === 'expired' && nadaCobradoEnviado().length === 1 && vivos().length === 1, 'T6m mutante (sem a espera): "Nothing was charged" sai e a cobrança chega 20 s depois')
   novoMundo(['refund-pending'])
+  mundo.varredura = true
   await rodadas(atual, 30, T0 + 23 * H + 55 * MIN)
   const estornoEm = Date.parse(String(debitoDe(r1)?.refunded_at ?? ''))
-  ok(fechamento()?.outcome === 'expired' && nadaCobradoEnviado().length === 1 && vivos().length === 0 && Number.isFinite(estornoEm) && nadaCobradoEnviado()[0].at > estornoEm && primeiros().length === 1,
-    "T6c 503 de estorno pendente às 23 h 55: reconecta até a rota estornar (~26 h); o \"Nothing was charged\" só sai DEPOIS do estorno, 1 vez")
+  ok(fechamento()?.outcome === 'expired' && nadaCobradoEnviado().length === 1 && vivos().length === 0 && Number.isFinite(estornoEm) && nadaCobradoEnviado()[0].at >= estornoEm && estornoEm - (T0 + 23 * 60 * 60_000 + 55 * 60_000) > 100 * 60_000 && primeiros().length === 1 && reposts().length === 0,
+    "T6c 503 de estorno pendente às 23 h 55: espera (sem re-POST) até a varredura estornar (~25 h 40); o \"Nothing was charged\" só sai DEPOIS do estorno, 1 vez")
 }
 {
   novoMundo(['abort-no-charge', 'abort-no-charge'])
@@ -421,9 +448,10 @@ console.log('T6 — 24 h: o vencido só fecha (e só diz "nothing was charged") 
 console.log('T8 — 4xx só é terminal com a tentativa lida sem cobrança')
 {
   novoMundo(['bad-request-charged', 'ok'])
+  mundo.varredura = true
   const d = await rodadas(atual, 36, T0 + 5 * MIN)
-  ok(d[0] === 'resume:retry_later' && umFilme(r2) && !fechamentos().some((f) => (f.metadata as { outcome?: string }).outcome === 'failed') && primeiros().length === 2,
-    `T8 4xx com o débito vivo: nada de 'failed' nem "nothing was charged" (${d[0]}); reconecta, a rota estorna e libera, a tentativa 2 é o filme`)
+  ok(d[0] === 'resume:retry_later' && umFilme(r2) && !fechamentos().some((f) => (f.metadata as { outcome?: string }).outcome === 'failed') && primeiros().length === 2 && reposts().length === 0,
+    `T8 4xx com o débito vivo: nada de 'failed' nem "nothing was charged" (${d[0]}); espera a varredura estornar, a tentativa 2 é o filme (sem re-POST)`)
   novoMundo(['bad-request-charged', 'ok'])
   await rodadas(quatroCentosCego, 4, T0 + 5 * MIN)
   ok(fechamento()?.outcome === 'failed' && nadaCobradoEnviado().length === 1 && vivos().length === 1, 'T8m mutante (4xx sem ler a cobrança): fecha failed e manda "Nothing was charged" com o débito vivo')
@@ -469,30 +497,34 @@ for (const [nome, GET] of [['atual', atual], ['anterior', anterior]] as const) {
 }
 
 // ── T10: filme grátis de promoção (claim pending de custo 0) ─────────────────────────────────────────────────────────
-console.log('T10 — promoção em voo: nem adota de cara, nem abre a tentativa 2 por cima')
+console.log('T10 — promoção em voo: não adota; assentada e sem débito, a tentativa 2 é o filme')
 {
   novoMundo(['promo-abort', 'promo-ok'])
   const d = await rodadas(atual, 36, T0 + 5 * MIN)
-  ok(d[1] === 'lease_debit_settling' && primeiros().length === 2 && reposts().every((p) => p.generationId === r1) && reposts().length >= 1 && fechamento()?.resume_generation_id === r2 && aCaminho(r2) && statusDe(r1) === 'released',
-    `T10 claim pending de custo 0: espera o assentamento (${d[1]}), reconecta o id 1 até a rota liberar; aí a tentativa 2 é o filme — 1 filme`)
+  ok(d[1] === 'lease_debit_settling' && primeiros().length === 2 && reposts().length === 0 && fechamento()?.resume_generation_id === r2 && aCaminho(r2) && primeiros()[1].at - primeiros()[0].at >= L.PARKED_DEBIT_SETTLE_MS && mundo.emails.length === 0,
+    `T10 claim pending de custo 0 sem débito: espera o assentamento (${d[1]}); nada cobrado → a tentativa 2 é o filme, sem re-POST — 1 filme`)
   novoMundo(['promo-abort', 'promo-ok'])
   await rodadas(anterior, 36, T0 + 5 * MIN)
   ok(primeiros().length === 1 && fechamento()?.resume_generation_id === r1 && !aCaminho(r1), `T10 — ${ANTERIOR}: adotava o claim pending de custo 0 na hora — o filme grátis se perdia`)
 }
 
 // ── T11: claim 'done' (cenas na fal, falta liquidar) ─────────────────────────────────────────────────────────────────
-console.log("T11 — claim 'done': o cron liquida pelo MESMO id; ninguém mais o faria")
+console.log("T11 — claim 'done' com débito: só espera; nenhuma varredura toca 'done' — o teto avisa o fundador")
 {
   novoMundo(['finalizando', 'ok'])
-  const d = await rodadas(atual, 6, T0 + 5 * MIN)
-  ok(umFilme(r1) && primeiros().length === 1 && reposts().length === 1 && reposts()[0].generationId === r1 && fechamento()?.reconnected === true,
-    `T11 503 "safe while we finalize": depois do assentamento 1 reconexão do id 1 → a rota liquida (settled) → fecha 'resumed' (${d.slice(0, 3).join(' → ')})`)
+  const d = await rodadas(atual, 30 * 12, T0 + 5 * MIN)
+  ok(fechouNoTeto(r1) && reposts().length === 0 && primeiros().length === 1 && mundo.maxVivos === 1 && d[2] === 'lease_charge_live' && statusDe(r1) === 'done' && cobradoSemFilme().length === 1,
+    `T11 503 "safe while we finalize": espera (${d[2]}), zero re-POST, nenhuma tentativa 2; às 29 h 'expired_unverified' + alerta do fundador com o id 1 (lacuna conhecida: o débito do 'done' só sai à mão)`)
   novoMundo(['finalizando', 'ok'])
   await rodadas(anterior, 36, T0 + 5 * MIN)
-  ok(fechamento()?.resume_generation_id === r1 && statusDe(r1) === 'done' && cobradoSemFilme().length === 1, `T11 — ${ANTERIOR}: adota com o claim 'done' que nunca liquida — cobrado e sem filme, para sempre (a varredura não toca 'done')`)
+  ok(fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === r1 && statusDe(r1) === 'done' && cobradoSemFilme().length === 1 && alertas().length === 0, `T11 — ${ANTERIOR}: adota com o claim 'done' que nunca liquida — fecha 'resumed', cobrado e sem filme, sem alerta a ninguém`)
   novoMundo(['finalizando', 'ok'])
   await rodadas(base, 12, T0 + 5 * MIN)
   ok(vivos().length >= 2, `T11 — BASE ${BASE}: a tentativa 2 sai por cima — ${vivos().length} débitos vivos`)
+  novoMundo(['finalizando', 'ok'])
+  mundo.ideia = true
+  await rodadas(rev5, 12, T0 + 5 * MIN)
+  ok(reposts().length >= 1 && reposts().every((p) => p.generationId === r1) && statusDe(r1) === 'done' && fechamento() === undefined, `T11 — ${REV5} (revisão 5), pedido de ideia solta: re-POSTa o id 1, bate no 409 de impressão digital e o 'done' não liquida — a reconexão não servia`)
 }
 
 // ── T12: lista de aluguéis completa ──────────────────────────────────────────────────────────────────────────────────
@@ -511,29 +543,42 @@ for (const [nome, GET] of [['atual', atual], ['anterior', anterior]] as const) {
   else ok(fechamento() === undefined && d.every((x) => x === 'leased') && primeiros().length === 1, `T12 — ${ANTERIOR} (limit 1000, mais novo primeiro): o aluguel que cobrou cai fora, o N sai errado e cada passada bate no 23505 — travado (${d[0]})`)
 }
 
+// ── T13: o teto da passada não é gasto com re-POST ───────────────────────────────────────────────────────────────────
+console.log('T13 — dois filmes esperando não travam um terceiro')
+for (const [nome, GET] of [['atual', atual], ['rev5', rev5]] as const) {
+  novoMundo(['pending-processing', 'pending-processing', 'ok'])
+  const GB = '7d3f0c2a-9b1e-4c55-8a10-0000000000b2'
+  const GC = '7d3f0c2a-9b1e-4c55-8a10-0000000000c3'
+  mundo.tables.events.push({ id: 'parked-row-b', name: L.PARKED_EVENT, user_id: USER, session_id: GB, created_at: iso(T0 + 30_000), metadata: { version: L.PARKED_VERSION, reason: 'balance_quota', refunded: true, request: { prompt: 'Second film', duration: 60 } } })
+  // o terceiro estaciona às T0 + 20 min, quando os dois primeiros já passaram do assentamento
+  await rodadas(GET, 12, T0 + 5 * MIN, 5 * MIN, (i) => { if (i === 3) mundo.tables.events.push({ id: 'parked-row-c', name: L.PARKED_EVENT, user_id: USER, session_id: GC, created_at: iso(clock), metadata: { version: L.PARKED_VERSION, reason: 'balance_quota', refunded: true, request: { prompt: 'Third film', duration: 60 } } }) })
+  const terceiro = primeiros().find((p) => p.generationId === idDaRetomada(GC, 1))
+  if (nome === 'atual') ok(!!terceiro && terceiro.at <= T0 + 25 * MIN && reposts().length === 0, 'T13 os dois primeiros esperam sem gastar o teto; o terceiro sai na primeira passada depois de estacionar')
+  else ok(!terceiro && reposts().length >= 10, `T13 — ${REV5} (revisão 5, verbatim): ${reposts().length} reconexões em 1 h gastam o teto de 2 por passada; o terceiro filme fica parado`)
+}
+
 // ── P: a regra pura ──────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('P — regras puras de lib/filaQuedaFal')
 {
-  const LE = (debito: [boolean, boolean, boolean], claim: [boolean, string | null, number | null]) => L.leituraDaCobranca({ debito: { erro: debito[0], existe: debito[1], estornado: debito[2] }, claim: { erro: claim[0], status: claim[1], creditCost: claim[2] } })
-  ok(LE([true, false, false], [false, null, null]).erro && LE([false, false, false], [true, null, null]).erro && LE([false, true, true], [false, 'done', 25]).debito === 'estornado' && LE([false, true, false], [false, 'xyz', 25]).claim === null && LE([false, false, false], [false, 'pending', 0]).creditCost === 0,
-    'P1 leituraDaCobranca: erro em qualquer leitura = erro; débito nenhum/vivo/estornado; status fora da lista = sem claim')
-  const S = (d: 'nenhum' | 'vivo' | 'estornado', claim: 'pending' | 'done' | 'settled' | 'released' | null, o: { cost?: number; iniciado?: boolean; idade?: number; respondeu?: boolean; recusada?: boolean; erro?: boolean } = {}) =>
-    L.situacaoDaTentativa({ leitura: { erro: !!o.erro, debito: d, claim, creditCost: o.cost ?? 25 }, iniciado: !!o.iniciado, atMs: T0 - (o.idade ?? 20 * MIN), nowMs: T0, rotaRespondeu: o.respondeu, reconexaoRecusada: o.recusada })
-  ok(S('vivo', 'settled', { idade: 0 }) === 'filme' && S('nenhum', 'settled', { cost: 0, idade: 0 }) === 'filme' && S('estornado', 'settled') === 'sem_cobranca' && S('estornado', 'settled', { idade: MIN }) === 'assentando' && S('nenhum', null, { iniciado: true, idade: 0 }) === 'filme' && S('vivo', 'settled', { erro: true }) === 'ilegivel',
+  const LE = (debito: [boolean, boolean, boolean], claim: [boolean, string | null]) => L.leituraDaCobranca({ debito: { erro: debito[0], existe: debito[1], estornado: debito[2] }, claim: { erro: claim[0], status: claim[1] } })
+  ok(LE([true, false, false], [false, null]).erro && LE([false, false, false], [true, null]).erro && LE([false, true, true], [false, 'done']).debito === 'estornado' && LE([false, true, false], [false, 'xyz']).claim === null && !('creditCost' in LE([false, false, false], [false, 'pending'])),
+    'P1 leituraDaCobranca: erro em qualquer leitura = erro; débito nenhum/vivo/estornado; status fora da lista = sem claim; o custo do claim saiu (nada mais decide por ele)')
+  const S = (d: 'nenhum' | 'vivo' | 'estornado', claim: 'pending' | 'done' | 'settled' | 'released' | null, o: { iniciado?: boolean; idade?: number; respondeu?: boolean; erro?: boolean } = {}) =>
+    L.situacaoDaTentativa({ leitura: { erro: !!o.erro, debito: d, claim }, iniciado: !!o.iniciado, atMs: T0 - (o.idade ?? 20 * MIN), nowMs: T0, rotaRespondeu: o.respondeu })
+  ok(S('vivo', 'settled', { idade: 0 }) === 'filme' && S('nenhum', 'settled', { idade: 0 }) === 'filme' && S('estornado', 'settled') === 'sem_cobranca' && S('estornado', 'settled', { idade: MIN }) === 'assentando' && S('nenhum', null, { iniciado: true, idade: 0 }) === 'filme' && S('vivo', 'settled', { erro: true }) === 'ilegivel',
     "P2 situacaoDaTentativa: 'settled' não estornado = filme (sem esperar); estornado = sem cobrança depois do assentamento; 2xx sem rastro = filme; erro = ilegível")
-  ok(S('vivo', 'pending', { idade: MIN }) === 'assentando' && S('vivo', 'pending') === 'reconectar' && S('nenhum', 'done') === 'reconectar' && S('vivo', 'done') === 'reconectar' && S('nenhum', 'pending', { cost: 0 }) === 'reconectar' && S('nenhum', 'pending') === 'sem_cobranca',
-    "P3 'pending' com débito vivo, 'done' e 'pending' grátis = reconectar (depois do assentamento); 'pending' pago sem débito = sem cobrança")
-  ok(S('vivo', 'released') === 'estorno_pendente' && S('nenhum', 'released') === 'sem_cobranca' && S('vivo', null) === 'estorno_pendente' && S('nenhum', null) === 'sem_cobranca' && S('nenhum', 'released', { iniciado: true }) === 'sem_cobranca',
-    "P4 'released' com débito vivo (estorno em voo) espera; sem débito = sem cobrança — inclusive o 'started' liberado")
-  ok(S('nenhum', 'done', { idade: 0, respondeu: true, recusada: true }) === 'sem_cobranca' && S('vivo', 'pending', { idade: 0, respondeu: true, recusada: true }) === 'estorno_pendente' && S('nenhum', null, { idade: 0, respondeu: true, recusada: true }) === 'sem_cobranca' && S('nenhum', 'done', { recusada: true }) === 'sem_cobranca',
-    'P5 a rota respondeu (4xx): sem assentamento; reconexão recusada sem débito vivo = sem cobrança; com débito vivo = espera o estorno')
+  ok(S('vivo', 'pending', { idade: MIN }) === 'assentando' && (['pending', 'done', 'released', null] as const).every((c) => S('vivo', c) === 'cobranca_viva') && (['pending', 'done', 'released', null] as const).every((c) => S('nenhum', c) === 'sem_cobranca' && S('estornado', c) === 'sem_cobranca'),
+    "P3 regra única: débito vivo sem 'settled' (pending/done/released/nenhum) = cobrança viva (espera); estornado ou ausente = sem cobrança (depois do assentamento)")
+  ok(S('nenhum', 'released', { iniciado: true }) === 'sem_cobranca' && S('estornado', null, { iniciado: true }) === 'sem_cobranca', "P4 'started' liberado ou estornado = sem cobrança (retoma)")
+  ok(S('nenhum', 'done', { idade: 0, respondeu: true }) === 'sem_cobranca' && S('vivo', 'pending', { idade: 0, respondeu: true }) === 'cobranca_viva' && S('nenhum', null, { idade: 0, respondeu: true }) === 'sem_cobranca',
+    'P5 a rota respondeu (4xx): sem assentamento; sem débito vivo = sem cobrança; com débito vivo = espera')
   const D = L.decidirAluguelSemFechamento
-  ok(JSON.stringify(D([{ attempt: 1, situacao: 'filme' }, { attempt: 2, situacao: 'filme' }])) === '{"acao":"adotar","attempt":2}' && JSON.stringify(D([{ attempt: 1, situacao: 'reconectar' }, { attempt: 2, situacao: 'filme' }])) === '{"acao":"adotar","attempt":2}'
-    && D([{ attempt: 1, situacao: 'reconectar' }, { attempt: 2, situacao: 'ilegivel' }]).acao === 'esperar' && JSON.stringify(D([{ attempt: 1, situacao: 'reconectar' }, { attempt: 2, situacao: 'assentando' }])) === '{"acao":"esperar","motivo":"debito_pode_chegar"}'
-    && JSON.stringify(D([{ attempt: 1, situacao: 'estorno_pendente' }])) === '{"acao":"esperar","motivo":"estorno_pendente"}' && JSON.stringify(D([{ attempt: 1, situacao: 'sem_cobranca' }, { attempt: 2, situacao: 'reconectar' }])) === '{"acao":"reconectar","attempt":2}' && D([{ attempt: 1, situacao: 'sem_cobranca' }]).acao === 'retomar',
-    'P6 decidirAluguelSemFechamento: filme adota (o mais novo); ilegível/assentando/estorno esperam; reconectar re-POSTa o mais novo; tudo sem cobrança retoma')
-  ok(L.desfechoComCobranca('failed', 'sem_cobranca') === 'failed' && ['filme', 'reconectar', 'ilegivel', 'assentando', 'estorno_pendente'].every((s) => L.desfechoComCobranca('failed', s as never) === 'retry_later') && L.desfechoComCobranca('started', null) === 'started' && L.desfechoComCobranca('retry_later', null) === 'retry_later', 'P7 desfechoComCobranca: 4xx só é terminal sem cobrança')
-  ok(L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'sem_cobranca' }]) && !L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'reconectar' }]) && !L.podeDizerNadaCobrado([{ situacao: 'ilegivel' }]), 'P8 podeDizerNadaCobrado: só com tudo lido sem cobrança')
+  ok(JSON.stringify(D([{ attempt: 1, situacao: 'filme' }, { attempt: 2, situacao: 'filme' }])) === '{"acao":"adotar","attempt":2}' && JSON.stringify(D([{ attempt: 1, situacao: 'cobranca_viva' }, { attempt: 2, situacao: 'filme' }])) === '{"acao":"adotar","attempt":2}'
+    && D([{ attempt: 1, situacao: 'cobranca_viva' }, { attempt: 2, situacao: 'ilegivel' }]).acao === 'esperar' && JSON.stringify(D([{ attempt: 1, situacao: 'cobranca_viva' }, { attempt: 2, situacao: 'assentando' }])) === '{"acao":"esperar","motivo":"debito_pode_chegar"}'
+    && JSON.stringify(D([{ attempt: 1, situacao: 'sem_cobranca' }, { attempt: 2, situacao: 'cobranca_viva' }])) === '{"acao":"esperar","motivo":"cobranca_viva"}' && D([{ attempt: 1, situacao: 'sem_cobranca' }]).acao === 'retomar',
+    'P6 decidirAluguelSemFechamento: filme adota (o mais novo); ilegível/assentando/cobrança viva esperam; tudo sem cobrança retoma — não existe mais "reconectar"')
+  ok(L.desfechoComCobranca('failed', 'sem_cobranca') === 'failed' && ['filme', 'ilegivel', 'assentando', 'cobranca_viva'].every((s) => L.desfechoComCobranca('failed', s as never) === 'retry_later') && L.desfechoComCobranca('started', null) === 'started' && L.desfechoComCobranca('retry_later', null) === 'retry_later', 'P7 desfechoComCobranca: 4xx só é terminal sem cobrança')
+  ok(L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'sem_cobranca' }]) && !L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'cobranca_viva' }]) && !L.podeDizerNadaCobrado([{ situacao: 'ilegivel' }]), 'P8 podeDizerNadaCobrado: só com tudo lido sem cobrança')
   ok(['provider_down', 'lost_no_charge'].every((o) => !L.aluguelPodeTerCobrado(o)) && [undefined, 'started', 'retry_later', 'failed', 'qualquer'].every((o) => L.aluguelPodeTerCobrado(o)), 'P9 só o desfecho que PROVA estorno (503 parked, já lido) dispensa a leitura')
   ok(!L.passouDoLimiteDeEspera(T0, T0 + L.PARKED_HARD_STOP_MS - 1) && L.passouDoLimiteDeEspera(T0, T0 + L.PARKED_HARD_STOP_MS) && !L.passouDoLimiteDeEspera(Number.NaN, T0), 'P10 passouDoLimiteDeEspera: 29 h desde o estacionamento')
 }
@@ -546,12 +591,18 @@ console.log('F — a rota do cron')
   const iVencido = r.indexOf("if (decision === 'expired' || decision === 'superseded' || !pedido) {")
   const iEmailVencido = r.indexOf("decision === 'expired' && pedido) email = await enviarEmail(admin, userId, 'expired'")
   const iNovo = r.indexOf('const leaseId = idDoAluguel(genId, attempt)')
-  const iDesfecho = r.indexOf("const outcome = desfechoComCobranca(resposta, resposta === 'failed' ? situacaoDaTentativa({ leitura: await cobrancaDaRetomada(admin, userId, resumeGenId), iniciado: false, nowMs: now, rotaRespondeu: true, reconexaoRecusada: true }) : null)")
+  const iDesfecho = r.indexOf("const outcome = desfechoComCobranca(resposta, resposta === 'failed' ? situacaoDaTentativa({ leitura: await cobrancaDaRetomada(admin, userId, resumeGenId), iniciado: false, nowMs: now, rotaRespondeu: true }) : null)")
   const iEmailFalho = r.indexOf("if (f === 'novo') email = await enviarEmail(admin, userId, 'failed'")
   ok(iLe > 0 && iVencido > iLe && iEmailVencido > iVencido && iNovo > iVencido, 'F1 a cobrança dos aluguéis é lida ANTES do fechamento vencido/substituído e antes de qualquer aluguel novo')
   ok(iDesfecho > iNovo && iEmailFalho > iDesfecho, 'F2 o 4xx passa pela cobrança antes do fechamento failed e do e-mail')
   ok(r.includes('!aluguelPodeTerCobrado(md.outcome)') && r.includes('const leitura = await cobrancaDaRetomada(admin, userId, resumeId)') && r.includes(".eq('id', claimId).eq('user_id', userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle()"), 'F3 retry_later e started são lidos; o claim do mesmo id entra na leitura')
-  ok(r.includes('const r = await postarRetomada(userId, row, pedido, c.resumeId)') && r.includes('const { status, json } = await postarRetomada(userId, row, pedido, resumeGenId)') && (r.match(/await fetch\(`\$\{APP_URL\}\/api\/generate-video-cinematic`/g) ?? []).length === 1, 'F4 a reconexão usa o MESMO id da tentativa (c.resumeId) e o mesmo POST da tentativa nova (um só fetch para a rota de filme)')
+  ok((r.match(/postarRetomada\(/g) ?? []).length === 2 && r.includes('const { status, json } = await postarRetomada(userId, row, pedido, resumeGenId)') && (r.match(/await fetch\(`\$\{APP_URL\}\/api\/generate-video-cinematic`/g) ?? []).length === 1 && !/reconnect|reconect|reconex/i.test(r) && !/'reconectar'/.test(libAtual),
+    'F4 um só POST para a rota de filme, só na tentativa NOVA (id N+1): nenhum caminho de reconexão na rota nem na regra')
+  const iTeto = r.indexOf("if (d.acao === 'esperar' && passouDoLimiteDeEspera(parkedAtMs, now)) {")
+  const iEspera = r.indexOf("if (d.acao === 'esperar') {", iTeto + 1)
+  const teto = iTeto > 0 && iEspera > iTeto ? r.slice(iTeto, iEspera) : ''
+  ok(teto.includes("fechar(admin, row, 'expired_unverified'") && teto.includes('name: FOUNDER_PARKED_ALERT_EVENT') && teto.includes("if (f === 'novo')") && teto.includes('console.error(') && !teto.includes('enviarEmail') && L.FOUNDER_PARKED_ALERT_EVENT === 'founder_alert_parked_unverified',
+    'F8 o teto fecha expired_unverified, grava UM alerta do fundador (evento founder_alert_parked_unverified + console.error) e não manda e-mail ao cliente')
   ok(r.includes('.range(p * PARKED_LEASE_PAGE, (p + 1) * PARKED_LEASE_PAGE - 1)') && !r.includes(".eq('name', PARKED_LEASE_EVENT).in('session_id', genIds).order('created_at', { ascending: false }).limit(1000)") && r.includes("if (closedErr || leaseRows === null) return NextResponse.json("), 'F5 aluguéis lidos por inteiro em páginas; leitura incompleta = a passada não decide nada')
   ok(!r.includes("from '@/app/api/generate-video-cinematic/route'") && !/generate-video-cinematic\/route['"]/.test(r), 'F6 o cron continua chamando a rota de filme por HTTP (nunca a importa)')
   ok(!fs.readdirSync('lib').some((f) => f.startsWith('__mutante_rscd_')) && !fs.readdirSync('app/api/cron/resume-parked-renders').some((f) => f.startsWith('__mutante_rscd_')), 'F7 nenhuma cópia mutada ficou no disco')
