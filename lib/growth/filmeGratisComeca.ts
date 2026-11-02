@@ -21,6 +21,8 @@ export interface TextoDoFilmeGratis {
   modo: 'ai' | 'verbatim'
   /** true = o roteiro que a IA escreveu para outra duração foi descartado e a ideia original voltou. */
   descartouRoteiro: boolean
+  /** true = o texto passa pelo escritor (/api/generate-script) antes da análise; false = já é o roteiro (o dela que cabe, ou o da IA na mesma duração). */
+  estruturar: boolean
 }
 
 export function textoDoFilmeGratis(e: {
@@ -29,7 +31,7 @@ export function textoDoFilmeGratis(e: {
   /** structuredScriptRef.current — o roteiro marcado que iria ao servidor. */
   estruturado: string | null | undefined
   /** ideiaDoRoteiroRef.current — a ideia dela e o roteiro que o /api/generate-script escreveu a partir DELA. */
-  ideiaDoRoteiro: { ideia: string; roteiro: string } | null | undefined
+  ideiaDoRoteiro: { ideia: string; roteiro: string; segundos?: number } | null | undefined
   scriptMode: 'ai' | 'verbatim'
   /** Duração do filme grátis. */
   segundos: number
@@ -39,14 +41,17 @@ export function textoDoFilmeGratis(e: {
 }): TextoDoFilmeGratis {
   const estruturado = typeof e.estruturado === 'string' ? e.estruturado.trim() : ''
   const r = e.ideiaDoRoteiro
-  // O roteiro que vai ao servidor é EXATAMENTE o que a IA escreveu: ele foi medido para a duração antiga — sai.
+  // KINEO-FILME-GRATIS-COMECA-0211b — o roteiro que vai ao servidor é EXATAMENTE o que a IA escreveu:
   if (r && estruturado && r.roteiro.trim() === estruturado && r.ideia.trim()) {
-    return { texto: r.ideia.trim(), modo: 'ai', descartouRoteiro: true }
+    // escrito para OUTRA duração (ou duração desconhecida): foi medido para o filme antigo — sai, a ideia original volta.
+    if (r.segundos !== e.segundos) return { texto: r.ideia.trim(), modo: 'ai', descartouRoteiro: true, estruturar: true }
+    // escrito para ESTA duração (aprovado/intacto, ex.: Kineo 1 na duração da tela): fica, e vai como o "Looks good" o manda — sem reescrever.
+    return { texto: estruturado, modo: e.scriptMode, descartouRoteiro: false, estruturar: false }
   }
   const texto = (estruturado || String(e.prompt ?? '')).trim()
   // Roteiro DELA, longo demais para o filme curto: vira a ideia em modo IA (nunca recusa, nunca apaga).
   if (texto && e.curto && e.scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(texto, e.segundos, e.language)) {
-    return { texto, modo: 'ai', descartouRoteiro: false }
+    return { texto, modo: 'ai', descartouRoteiro: false, estruturar: true }
   }
-  return { texto, modo: e.scriptMode, descartouRoteiro: false }
+  return { texto, modo: e.scriptMode, descartouRoteiro: false, estruturar: e.scriptMode === 'ai' }
 }

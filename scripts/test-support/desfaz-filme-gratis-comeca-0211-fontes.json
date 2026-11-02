@@ -1,9 +1,9 @@
 {
- "base": "0fe2df9ad95f86d79322f246862d53da1b28320e",
+ "base": "65d7569e7b9dea38dfc30c8f62fad9197afb0fe0",
  "scope": {
   "app/(dashboard)/generate/GenerateClient.tsx": {
    "beforeSha256": "c514e9c4b3ecd429d54b6fc4601ee7b2514c32c11f9a3dbfc63af36980cfe81e",
-   "afterSha256": "1afb3d15eb8a25920d95bc0f186c8b781dbff576c7d9fdee11e36809b7f87b12",
+   "afterSha256": "66f248a3dc1c4b77e6265e5c57e06a586b9fb653e84c18ead9f22b4a6aa580eb",
    "hunks": [
     {
      "before": "import { kineo1NaTela, motorDaUrl, duracaoDeEntrada, roteiroCabeNoFilmeCurto, pedidoDeKineo1, duracaoDaUrlNaEntrada } from '@/lib/growth/entradaSeedance15'\n// KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e",
@@ -14,8 +14,28 @@
      "after": "  const recusaDespachoRef = useRef<{ at: number; started: boolean } | null>(null) // KINEO-RECUSA-BOTAO-3110 — o conserto reanalisou: despacha UMA vez quando a análise chegar em 'options'\n  const filmeGratisDespachoRef = useRef<{ at: number; started: boolean; analisou: boolean; segundos: Duration; pedido: TextoDoFilmeGratis } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211 — o clique do filme grátis: analisa no próximo render e despacha UMA vez em 'options'\n  const [filmeGratisTick, setFilmeGratisTick] = useState(0) // KINEO-FILME-GRATIS-COMECA-0211 — o render em que motor/duração/modo novos já valem\n  const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)"
     },
     {
+     "before": "  // (original_idea) só quando o roteiro despachado é exatamente esse: o sujeito obrigatório do Kling 4 sai do pedido, nunca do roteiro.\n  const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string } | null>(null)\n  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)",
+     "after": "  // (original_idea) só quando o roteiro despachado é exatamente esse: o sujeito obrigatório do Kling 4 sai do pedido, nunca do roteiro.\n  const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string; segundos?: number } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211b: + a duração para a qual o escritor mediu o roteiro\n  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)"
+    },
+    {
+     "before": "      completionApproved?: boolean // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — explicit review click, never autoauthoring\n    },",
+     "after": "      completionApproved?: boolean // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — explicit review click, never autoauthoring\n      fixarDuracao?: boolean // KINEO-FILME-GRATIS-COMECA-0211b — o clique do filme grátis prometeu ESTA duração (15 s · custo no botão): nenhuma subida automática nesta chamada\n    },"
+    },
+    {
+     "before": "    if (leituraColada.directives.length > 0) {\n      const subidaColada = leituraColada.suggestedDuration !== null ? subidaQueOSaldoPaga({ atual: duration, alvo: leituraColada.suggestedDuration, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — \"60-second\" colado sobe só até onde o saldo paga (conta que não paga)\n      const duracaoColada = subidaColada ? subidaColada.para : null // KINEO-MOTOR-15S-1510",
+     "after": "    if (leituraColada.directives.length > 0) {\n      const subidaColada = leituraColada.suggestedDuration !== null && !opts?.fixarDuracao /* KINEO-FILME-GRATIS-COMECA-0211b */ ? subidaQueOSaldoPaga({ atual: duration, alvo: leituraColada.suggestedDuration, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — \"60-second\" colado sobe só até onde o saldo paga (conta que não paga)\n      const duracaoColada = subidaColada ? subidaColada.para : null // KINEO-MOTOR-15S-1510"
+    },
+    {
+     "before": "        const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })\n        const sobeParaBruto = vereditoAnalise?.kind === 'up' ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined\n        // KINEO-SEEDANCE-15S-2026-09-29 (B3, reaplicado sobre o STUDIO-CONTADOR-VOZ no merge de 29/09) — o crédito DEPENDE da",
+     "after": "        const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })\n        const sobeParaBruto = vereditoAnalise?.kind === 'up' && !opts?.fixarDuracao /* KINEO-FILME-GRATIS-COMECA-0211b */ ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined\n        // KINEO-SEEDANCE-15S-2026-09-29 (B3, reaplicado sobre o STUDIO-CONTADOR-VOZ no merge de 29/09) — o crédito DEPENDE da"
+    },
+    {
+     "before": "            structuredScriptRef.current = source\n            ideiaDoRoteiroRef.current = { ideia: rawSource, roteiro: source } // KINEO-K4-SUJEITO-0111\n            // ═══ KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9) ═════",
+     "after": "            structuredScriptRef.current = source\n            ideiaDoRoteiroRef.current = { ideia: rawSource, roteiro: source, segundos: duracaoPedida } // KINEO-K4-SUJEITO-0111\n            // ═══ KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9) ═════"
+    },
+    {
      "before": "\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened",
-     "after": "\n  // ═══ KINEO-FILME-GRATIS-COMECA-0211 — \"Make my free film\" começa o filme (o clique é o consentimento) ═══\n  // O clique troca motor/duração/modo; a análise roda AQUI, no render seguinte, para enxergar os valores novos (chamada no\n  // próprio clique, ela leria o motor antigo — um Kling 3 pularia o escritor). A MESMA análise do botão Generate, sem a\n  // prévia (skipPreview); quando ela chega em 'options', o despacho é o MESMO handleGenerateGuarded — UMA vez.\n  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211\n    const p = filmeGratisDespachoRef.current\n    if (!filmeGratisTick || !p || p.analisou) return\n    p.analisou = true\n    void handleAnalyze(p.pedido.texto, { skipPreview: true, structureFirst: p.pedido.modo === 'ai', scriptModeOverride: p.pedido.modo, targetSeconds: p.segundos })\n      .finally(() => { if (filmeGratisDespachoRef.current === p && !p.started) filmeGratisDespachoRef.current = null }) // a análise parou antes de começar (link, portão): o próximo clique é dela\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [filmeGratisTick]) // KINEO-FILME-GRATIS-COMECA-0211\n  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211 — despacho único depois da análise do filme grátis\n    const p = filmeGratisDespachoRef.current\n    if (!p || !p.analisou) return\n    if (Date.now() - p.at > 180_000) { filmeGratisDespachoRef.current = null; return }\n    if (isProcessingPhase(phase)) { p.started = true; return }\n    if (!p.started) return\n    filmeGratisDespachoRef.current = null // plano, recusa ou erro: o próximo clique é dela\n    if (phase === 'options' && !error && !verbatimOrderHoldRef.current) handleGenerateGuarded() // o aviso da ordem colada segura, como no one-click do Studio\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [phase, error]) // KINEO-FILME-GRATIS-COMECA-0211\n\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened"
+     "after": "\n  // ═══ KINEO-FILME-GRATIS-COMECA-0211 — \"Make my free film\" começa o filme (o clique é o consentimento) ═══\n  // O clique troca motor/duração/modo; a análise roda AQUI, no render seguinte, para enxergar os valores novos (chamada no\n  // próprio clique, ela leria o motor antigo — um Kling 3 pularia o escritor). A MESMA análise do botão Generate, sem a\n  // prévia (skipPreview); quando ela chega em 'options', o despacho é o MESMO handleGenerateGuarded — UMA vez.\n  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211\n    const p = filmeGratisDespachoRef.current\n    if (!filmeGratisTick || !p || p.analisou) return\n    p.analisou = true\n    void handleAnalyze(p.pedido.texto, { skipPreview: true, structureFirst: p.pedido.estruturar, scriptModeOverride: p.pedido.modo, targetSeconds: p.segundos, fixarDuracao: true }) // KINEO-FILME-GRATIS-COMECA-0211b — a duração do botão, sem subida\n      .finally(() => { if (filmeGratisDespachoRef.current === p && !p.started) filmeGratisDespachoRef.current = null }) // a análise parou antes de começar (link, portão): o próximo clique é dela\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [filmeGratisTick]) // KINEO-FILME-GRATIS-COMECA-0211\n  useEffect(() => { // KINEO-FILME-GRATIS-COMECA-0211 — despacho único depois da análise do filme grátis\n    const p = filmeGratisDespachoRef.current\n    if (!p || !p.analisou) return\n    if (Date.now() - p.at > 180_000) { filmeGratisDespachoRef.current = null; return }\n    if (isProcessingPhase(phase)) { p.started = true; return }\n    if (!p.started) return\n    filmeGratisDespachoRef.current = null // plano, recusa ou erro: o próximo clique é dela\n    if (phase === 'options' && !error && !verbatimOrderHoldRef.current) handleGenerateGuarded() // o aviso da ordem colada segura, como no one-click do Studio\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [phase, error]) // KINEO-FILME-GRATIS-COMECA-0211\n\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened"
     },
     {
      "before": "          onFirstFilmFree={() => {\n            // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.\n            // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.\n            void trackEvent('first_film_free_offer_clicked', {",
@@ -29,6 +49,6 @@
   }
  },
  "addedSources": {
-  "lib/growth/filmeGratisComeca.ts": "3edc4d9eda419e2bc3772fac4db0522d7151dd8cbf7ad303f138dfdaabf781a8"
+  "lib/growth/filmeGratisComeca.ts": "e7da00fe96cae588655e79a9efae4606c150a73c93092a5b6eca16a261a48290"
  }
 }

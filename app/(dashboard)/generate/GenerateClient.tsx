@@ -2955,7 +2955,7 @@ export default function GenerateClient({
   const structuredScriptRef = useRef<string | null>(null)
   // KINEO-K4-SUJEITO-0111 — a ideia que a pessoa digitou e o roteiro que o /api/generate-script escreveu a partir DELA. Vai ao servidor
   // (original_idea) só quando o roteiro despachado é exatamente esse: o sujeito obrigatório do Kling 4 sai do pedido, nunca do roteiro.
-  const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string } | null>(null)
+  const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string; segundos?: number } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211b: + a duração para a qual o escritor mediu o roteiro
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const autoAnalyzeKeyRef = useRef<string | null>(null)
@@ -8508,6 +8508,7 @@ export default function GenerateClient({
       targetSeconds?: Duration
       scriptModeOverride?: 'ai' | 'verbatim'
       completionApproved?: boolean // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — explicit review click, never autoauthoring
+      fixarDuracao?: boolean // KINEO-FILME-GRATIS-COMECA-0211b — o clique do filme grátis prometeu ESTA duração (15 s · custo no botão): nenhuma subida automática nesta chamada
     },
   ) {
     // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — validate before any writer/analyzer request.
@@ -8574,7 +8575,7 @@ export default function GenerateClient({
     // duracao — o mesmo que o autofit logo abaixo ja movia — e um aviso.
     const leituraColada = readPastedDirectives(expandBaseRef.current, opcoesDeDuracao.map((o) => o.value)) // KINEO-SEEDANCE-15S-2026-09-29: "15-second" fica em 15 no Seedance
     if (leituraColada.directives.length > 0) {
-      const subidaColada = leituraColada.suggestedDuration !== null ? subidaQueOSaldoPaga({ atual: duration, alvo: leituraColada.suggestedDuration, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — "60-second" colado sobe só até onde o saldo paga (conta que não paga)
+      const subidaColada = leituraColada.suggestedDuration !== null && !opts?.fixarDuracao /* KINEO-FILME-GRATIS-COMECA-0211b */ ? subidaQueOSaldoPaga({ atual: duration, alvo: leituraColada.suggestedDuration, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — "60-second" colado sobe só até onde o saldo paga (conta que não paga)
       const duracaoColada = subidaColada ? subidaColada.para : null // KINEO-MOTOR-15S-1510
       const aplicou = duracaoColada !== null && duracaoColada !== duration // KINEO-MOTOR-15S-1510
       if (duracaoColada !== null && aplicou) { // KINEO-MOTOR-15S-1510
@@ -8667,7 +8668,7 @@ export default function GenerateClient({
         // seletor para 60 aqui, e o servidor descia para 35 e devolvia a diferença — três frases para o mesmo
         // texto. Agora o veredito é o MESMO do contador (contadorVoz): sobe só quando a fala ENCHE um botão maior.
         const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })
-        const sobeParaBruto = vereditoAnalise?.kind === 'up' ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined
+        const sobeParaBruto = vereditoAnalise?.kind === 'up' && !opts?.fixarDuracao /* KINEO-FILME-GRATIS-COMECA-0211b */ ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined
         // KINEO-SEEDANCE-15S-2026-09-29 (B3, reaplicado sobre o STUDIO-CONTADOR-VOZ no merge de 29/09) — o crédito DEPENDE da
         // duração: subir 15 → 35 no trial de 10 cr trocava um filme que cabe (7 cr) por um que não sai (15 cr). A partir de
         // 15 s só sobe se o saldo pagar a nova duração; senão mantém, e a rota do cinematic recusa o roteiro longo antes do
@@ -8882,7 +8883,7 @@ export default function GenerateClient({
             source = sgData.script.trim()
             // #362 — keep the marked script for submission; show clean text.
             structuredScriptRef.current = source
-            ideiaDoRoteiroRef.current = { ideia: rawSource, roteiro: source } // KINEO-K4-SUJEITO-0111
+            ideiaDoRoteiroRef.current = { ideia: rawSource, roteiro: source, segundos: duracaoPedida } // KINEO-K4-SUJEITO-0111
             // ═══ KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9) ═════
             // A BASE IMUTAVEL do teto de 2,5x tinha ficado na IDEIA CRUA que a
             // pessoa digitou, enquanto o texto mandado para completar passava a
@@ -12060,7 +12061,7 @@ export default function GenerateClient({
     const p = filmeGratisDespachoRef.current
     if (!filmeGratisTick || !p || p.analisou) return
     p.analisou = true
-    void handleAnalyze(p.pedido.texto, { skipPreview: true, structureFirst: p.pedido.modo === 'ai', scriptModeOverride: p.pedido.modo, targetSeconds: p.segundos })
+    void handleAnalyze(p.pedido.texto, { skipPreview: true, structureFirst: p.pedido.estruturar, scriptModeOverride: p.pedido.modo, targetSeconds: p.segundos, fixarDuracao: true }) // KINEO-FILME-GRATIS-COMECA-0211b — a duração do botão, sem subida
       .finally(() => { if (filmeGratisDespachoRef.current === p && !p.started) filmeGratisDespachoRef.current = null }) // a análise parou antes de começar (link, portão): o próximo clique é dela
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filmeGratisTick]) // KINEO-FILME-GRATIS-COMECA-0211
