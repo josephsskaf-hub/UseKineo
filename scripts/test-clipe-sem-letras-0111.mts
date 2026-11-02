@@ -8,8 +8,10 @@
 // Rodar: node --import ./scripts/alias-loader.mjs scripts/test-clipe-sem-letras-0111.mts
 import { readFileSync } from 'node:fs'
 import { buildClipPrompt, detectShotSpec, pedeTextoExplicito as pedeStudio, FRASE_SEM_LETRAS as FRASE_STUDIO, CLIP_PROMPT_ENGINE_MAX } from '../lib/cinematic/shotSpec'
-import { pedeTextoExplicito, negativePromptSemLetras, FRASE_SEM_LETRAS, MOTORES_COM_NEGATIVE_PROMPT, KLING_NEGATIVE_PADRAO, NEGATIVO_SEM_LETRAS } from '../lib/clips/clipSemLetras'
+import { pedeTextoExplicito, negativePromptSemLetras, FRASE_SEM_LETRAS, FECHO_DOS_EFEITOS, MOTORES_COM_NEGATIVE_PROMPT, KLING_NEGATIVE_PADRAO, NEGATIVO_SEM_LETRAS } from '../lib/clips/clipSemLetras'
 import { buildClipFalInput, CLIP_ENGINES, CLIP_ENGINE_ORDER, CLIPE_SEM_LETRAS, promptDoClipeSemLetras } from '../lib/clips/clipCatalog'
+import { CLIP_EFFECTS } from '../lib/clips/clipEffects'
+import { semLetras0111Exato } from './test-support/desfaz-clipe-sem-letras-0111.mjs'
 
 let ok = 0, f = 0
 const check = (n: string, c: boolean) => { if (c) { ok++; console.log('ok   ' + n) } else { f++; console.log('FAIL ' + n) } }
@@ -113,6 +115,14 @@ check('chamador sem id da fal (model "x") usa o endpoint do catálogo', 'negativ
 check('/clips: modelo nulo não derruba a montagem do payload', (() => { try { return !('negative_prompt' in buildClipFalInput({ engine: 's25', mode: 'i2v', model: null as never, seconds: 5, aspect: 'image', prompt: 'x y z', imageUrl: PHOTO })) } catch { return false } })())
 const VERIFICADOS = ['fal-ai/kling-video/v3/pro/text-to-video', 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video', 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video', 'fal-ai/veo3.1/fast', 'fal-ai/veo3.1/fast/image-to-video']
 check('lista de endpoints com negative_prompt = a conferida no schema da fal em 01/11', JSON.stringify([...MOTORES_COM_NEGATIVE_PROMPT].sort()) === JSON.stringify([...VERIFICADOS].sort()))
+// efeitos do catálogo: prompt da casa (fecho NO_TEXT), payload igual ao da base — sem frase, sem negative_prompt
+const efeitosSrc = lf(readFileSync(new URL('../lib/clips/clipEffects.ts', import.meta.url), 'utf8'))
+check('FECHO_DOS_EFEITOS = o NO_TEXT de lib/clips/clipEffects.ts', efeitosSrc.includes(`const NO_TEXT = '${FECHO_DOS_EFEITOS}'`))
+for (const e of CLIP_EFFECTS.filter((x) => typeof x.prompt === 'string' && x.prompt.endsWith(FECHO_DOS_EFEITOS))) {
+  check(`efeito ${e.key}: payload igual ao da base em todo motor`, payloads(e.prompt).every((c) => c.pay.prompt === e.prompt && !('negative_prompt' in c.pay)))
+}
+const recibo = JSON.parse(readFileSync(new URL('./test-support/desfaz-clipe-sem-letras-0111-fontes.json', import.meta.url), 'utf8'))
+check('recibo da trava 8.2: shotSpec.ts de hoje = base + esta camada, exato', semLetras0111Exato(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'), 'lib/cinematic/shotSpec.ts') && Object.keys(recibo.scope).join() === 'lib/cinematic/shotSpec.ts')
 
 // ── 5. Plano JSON (Luffy, 11/09): moldura + frase ──
 const LUFFY = '{"clip": "07", "duration": "10 seconds", "action": "Luffy rapidly dodges the descending magma fists.", "camera": "High-speed FPV drone weaving through falling magma."}'

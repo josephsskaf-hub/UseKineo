@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semLetras0111Exato } from './test-support/desfaz-clipe-sem-letras-0111.mjs' // reancorado KINEO-CLIPE-SEM-LETRAS-0111
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
@@ -411,7 +412,12 @@ try {
   // roteirista/análise no MESMO commit; ele sai desta conta (scripts/test-moderacao-1410.mjs prova que ele só acrescenta linhas marcadas).
   const moderacao1410 = new Set(execSync('git log --no-merges --format=%H --grep=KINEO-MODERACAO-1410 -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)) // reancorado KINEO-MODERACAO-1410
   const shas = execSync('git log --no-merges --format=%H -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean).filter((h) => !moderacao1410.has(h)) // reancorado KINEO-MODERACAO-1410
-  changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n'))
+  // reancorado KINEO-CLIPE-SEM-LETRAS-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: o Modo Clipe do Studio
+  // (lib/cinematic/shotSpec.ts buildClipPrompt) leva a mesma régua contra letras inventadas do /clips, então os commits dessa camada
+  // tocam lib/clips E shotSpec.ts. Só o shotSpec.ts desses commits sai da conta, e só se o recibo provar que o arquivo de hoje é
+  // exatamente base + esta camada (scripts/test-support/desfaz-clipe-sem-letras-0111-fontes.json); qualquer outro arquivo da trava conta.
+  const semLetras0111 = semLetras0111Exato(root, 'lib/cinematic/shotSpec.ts') ? new Set(execSync('git log --no-merges --format=%H --grep=KINEO-CLIPE-SEM-LETRAS-0111 -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)) : new Set() // reancorado KINEO-CLIPE-SEM-LETRAS-0111
+  changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n').filter((f) => !(semLetras0111.has(h) && f.trim() === 'lib/cinematic/shotSpec.ts'))) // reancorado KINEO-CLIPE-SEM-LETRAS-0111
     .concat(execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n'))
     .map((s) => s.trim()).filter(Boolean)
 } catch { changed = [] }

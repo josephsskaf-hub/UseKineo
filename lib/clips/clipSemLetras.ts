@@ -46,9 +46,18 @@ export function pedeTextoExplicito(prompt: string): boolean {
 }
 // FIM-CÓPIA pedeTextoExplicito
 
+/** A frase que fecha todo efeito do catálogo (lib/clips/clipEffects.ts NO_TEXT; o guardião confere a igualdade). O prompt é da
+ *  casa, não do cliente, e já proíbe texto: vai byte a byte igual, sem frase nem negative_prompt (como na base). */
+export const FECHO_DOS_EFEITOS = 'No text, no captions, no logos, no watermark.'
+/** A casa não acrescenta nada: o cliente pediu texto, ou o prompt é de um efeito do catálogo. */
+export function promptFicaComoVeio(prompt: string): boolean {
+  const p = String(prompt ?? '')
+  return pedeTextoExplicito(p) || p.trimEnd().endsWith(FECHO_DOS_EFEITOS)
+}
+
 /** negative_prompt para o endpoint da fal, ou null quando o schema dele não tem o campo (aí só vale a frase no texto) ou quando
- *  o cliente pediu texto (nada é acrescentado). */
+ *  a casa não acrescenta nada (texto pedido / efeito do catálogo). */
 export function negativePromptSemLetras(endpoint: string, prompt: string): string | null {
-  if (!MOTORES_COM_NEGATIVE_PROMPT.includes(endpoint) || pedeTextoExplicito(prompt)) return null
+  if (!MOTORES_COM_NEGATIVE_PROMPT.includes(endpoint) || promptFicaComoVeio(prompt)) return null
   return endpoint.startsWith('fal-ai/kling-video/') ? `${KLING_NEGATIVE_PADRAO}, ${NEGATIVO_SEM_LETRAS}` : NEGATIVO_SEM_LETRAS
 }
