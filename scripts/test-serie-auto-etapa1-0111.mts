@@ -37,7 +37,7 @@ import {
 } from '../lib/serieAuto/serieAuto'
 import {
   PARKED_TTL_MS, PARKED_MAX_RESUMES_PER_RUN, PARKED_LEASE_TTL_MS, SERIE_AUTO_GENERATION_PREFIX, classificarRespostaDaRetomada, decidirRetomada,
-  decidirAluguelSemFechamento, ehDespachoDaSerie, ehRetomadaDeEstacionado, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada,
+  aluguelPodeTerCobrado, decidirAluguelSemFechamento, ehDespachoDaSerie, ehRetomadaDeEstacionado, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada,
 } from '../lib/filaQuedaFal'
 import { idDaRetomada, idDoAluguel, idDoFechamento } from '../lib/filaQuedaFalIds'
 import { ehIdeiaSolta, temaParaOEscritor } from '../lib/meta95/ideiaNoEscritor'
@@ -691,7 +691,7 @@ ok(idDoFechamento('g-1') === '63147f2e-5cf3-4db6-3879-1153c349e191' && idDoAlugu
   ok(JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'live' }])) === '{"acao":"adotar","attempt":1}' && JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'refunded' }, { attempt: 2, iniciado: true, debito: 'none' }])) === '{"acao":"adotar","attempt":2}' && D([{ attempt: 1, iniciado: false, debito: 'unknown' }]).acao === 'esperar' && D([{ attempt: 1, iniciado: false, debito: 'none' }, { attempt: 2, iniciado: false, debito: 'refunded' }]).acao === 'retomar', 'R4 aluguel sem fechamento: started ou débito vivo = adota; ilegível = espera; ausente/estornado = retoma')
   const rota = rd('app/api/cron/resume-parked-renders/route.ts')
   const iProv = rota.indexOf("if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }")
-  const iAdota = rota.indexOf('const d = decidirAluguelSemFechamento(lidos)')
+  const iAdota = rota.indexOf('const d = decidirAluguelSemFechamento(lidos, now)') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — a decisão agora recebe o relógio (ausente há < 10 min do aluguel não prova nada)
   const iLease = rota.indexOf('const leaseId = idDoAluguel(genId, attempt)')
   ok(rota.includes(".eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde)") && rota.includes('.filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id))'), 'R5 a rota do cron não lê nem retoma a linha filha (filtro no banco E no código)')
   ok(rota.includes('const newerDispatch = estacionadoSuperavel(genId) && (lastDispatchByUser.get(userId) ?? 0) > parkedAtMs') && rota.includes('if (ehDespachoDaSerie((d.metadata as { generation_id?: unknown } | null)?.generation_id)) continue'), "R6 a rota do cron nunca supera o episódio da série, e o despacho da série não supera ninguém")
@@ -730,7 +730,7 @@ async function passeDoResume(db: FakeDb, fal: Fal, o: SimOpts = {}) {
     if (decision === 'closed' || decision === 'leased') continue
     const fechar = (outcome: string, extra: Record<string, unknown> = {}) => db.from('events').insert({ id: idDoFechamento(genId), user_id: 'user-1', name: 'render_parked_closed', session_id: genId, created_at: iso(clock), metadata: { outcome, ...extra } })
     if (decision === 'expired' || decision === 'superseded') { await fechar(decision); continue }
-    const candidatos = leases.map((l) => l.metadata as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown }).filter((m) => Number.isInteger(Number(m.attempt)) && (m.outcome === undefined || m.outcome === 'started'))
+    const candidatos = leases.map((l) => l.metadata as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown }).filter((m) => Number.isInteger(Number(m.attempt)) && aluguelPodeTerCobrado(m.outcome)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — o mesmo filtro da rota (retry_later também é lido)
     if (adota && candidatos.length > 0) {
       const lidos = candidatos.map((m) => { const a = Number(m.attempt); const rid = typeof m.resume_generation_id === 'string' ? m.resume_generation_id : idDaRetomada(genId, a); const deb = db.tables.credit_debits.find((d) => d.render_id === debitoDe(rid).render_id); return { attempt: a, iniciado: m.outcome === 'started', resumeId: rid, debito: (!deb ? 'none' : deb.refunded_at ? 'refunded' : 'live') as DebitoDaRetomada } })
       const d = decidirAluguelSemFechamento(lidos)

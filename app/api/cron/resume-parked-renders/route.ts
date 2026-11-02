@@ -29,6 +29,8 @@ import {
 import { decidirAluguelSemFechamento, ehDespachoDaSerie, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada } from '@/lib/filaQuedaFal' // KINEO-SERIE-AUTO-ETAPA1-0111 — só o original é retomado; série não é 'pedido novo'; aluguel que já cobrou nunca ganha a tentativa N+1
 import { idDaRetomada, idDoAluguel, idDoFechamento } from '@/lib/filaQuedaFalIds' // KINEO-SERIE-AUTO-ETAPA1-0111 — os ids moram num módulo importável (a série precisa do id 'parked-…' da tentativa N)
 import { cinematicClaimId } from '@/lib/cinematic/claim' // KINEO-SERIE-AUTO-ETAPA1-0111
+import { CINEMATIC_CLAIM_EVENT } from '@/lib/cinematic/claim' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+import { aluguelPodeTerCobrado, desfechoComCobranca, estadoDaCobranca, podeDizerNadaCobrado } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — nenhuma tentativa N+1 (nem e-mail "nothing was charged") sem LER a cobrança da tentativa N
 
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 (regra da casa): rota só-GET nasce com revalidate=false; sem isto o marcador de fechamento
@@ -59,11 +61,20 @@ function isInternalOrJunkEmail(email: string): boolean {
 }
 /** Os ids do fechamento, do aluguel N e da retomada N (fórmulas de sempre, agora em lib/filaQuedaFalIds). */ // KINEO-SERIE-AUTO-ETAPA1-0111
 export { idDoFechamento, idDoAluguel, idDaRetomada } // KINEO-SERIE-AUTO-ETAPA1-0111
-/** O débito da retomada (o mesmo render_id que a rota grava: cinematic-<claim>). Leitura que falha = 'unknown' (não decide nada). */ // KINEO-SERIE-AUTO-ETAPA1-0111
-async function debitoDaRetomada(admin: SupabaseClient, userId: string, resumeGenId: string): Promise<DebitoDaRetomada> { // KINEO-SERIE-AUTO-ETAPA1-0111
-  const q = await admin.from('credit_debits').select('refunded_at').eq('render_id', `cinematic-${cinematicClaimId(userId, resumeGenId)}`).maybeSingle() // KINEO-SERIE-AUTO-ETAPA1-0111
-  return q.error ? 'unknown' : !q.data ? 'none' : (q.data as { refunded_at?: string | null }).refunded_at ? 'refunded' : 'live' // KINEO-SERIE-AUTO-ETAPA1-0111
-} // KINEO-SERIE-AUTO-ETAPA1-0111
+/** A cobrança da retomada: o débito (o mesmo render_id que a rota grava: cinematic-<claim>) E o claim de nascimento do mesmo id (o filme // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+ *  grátis de promoção não debita). Qualquer leitura que falha = 'unknown' (não decide nada). Regra pura em lib/filaQuedaFal estadoDaCobranca. */ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+async function cobrancaDaRetomada(admin: SupabaseClient, userId: string, resumeGenId: string): Promise<DebitoDaRetomada> { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  const claimId = cinematicClaimId(userId, resumeGenId) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  const [d, c] = await Promise.all([ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    admin.from('credit_debits').select('refunded_at').eq('render_id', `cinematic-${claimId}`).maybeSingle(), // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    admin.from('events').select('metadata').eq('id', claimId).eq('user_id', userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle(), // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  ]) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  const cm = (((c.data as { metadata?: unknown } | null)?.metadata ?? null) as { status?: unknown; credit_cost?: unknown } | null) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  return estadoDaCobranca({ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    debito: { erro: !!d.error, existe: !!d.data, estornado: !!(d.data as { refunded_at?: string | null } | null)?.refunded_at }, // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    claim: { erro: !!c.error, status: typeof cm?.status === 'string' ? cm.status : null, creditCost: typeof cm?.credit_cost === 'number' ? cm.credit_cost : null }, // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+} // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
 
 type ParkedRow = { user_id: string | null; session_id: string | null; created_at: string; metadata: unknown }
 
@@ -163,13 +174,14 @@ export async function GET(req: NextRequest) {
     leases.set(sid, cur)
   }
   // Aluguéis que podem já ter cobrado sem fechamento 'resumed': 'started' cujo fechamento falhou, ou SEM desfecho (o cron morreu no POST). // KINEO-SERIE-AUTO-ETAPA1-0111
-  const semFechamento = new Map<string, { attempt: number; iniciado: boolean; resumeId: string | null }[]>() // KINEO-SERIE-AUTO-ETAPA1-0111
+  // E 'retry_later' (abort em 240 s com a rota viva até 300 s; 503 pending; 503 de estorno pendente): só fica de fora o desfecho que PROVA estorno. // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  const semFechamento = new Map<string, { attempt: number; iniciado: boolean; resumeId: string | null; atMs: number }[]>() // KINEO-SERIE-AUTO-ETAPA1-0111
   for (const l of leaseRows ?? []) { // KINEO-SERIE-AUTO-ETAPA1-0111
     const md = (l.metadata ?? {}) as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown } // KINEO-SERIE-AUTO-ETAPA1-0111
     const a = Number(md.attempt) // KINEO-SERIE-AUTO-ETAPA1-0111
-    if (!Number.isInteger(a) || a < 1 || (md.outcome !== undefined && md.outcome !== 'started')) continue // KINEO-SERIE-AUTO-ETAPA1-0111
+    if (!Number.isInteger(a) || a < 1 || !aluguelPodeTerCobrado(md.outcome)) continue // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — era: (md.outcome !== undefined && md.outcome !== 'started'), e o 'retry_later' abria a N+1 sem ler o débito
     const lista = semFechamento.get(String(l.session_id)) ?? [] // KINEO-SERIE-AUTO-ETAPA1-0111
-    lista.push({ attempt: a, iniciado: md.outcome === 'started', resumeId: typeof md.resume_generation_id === 'string' && md.resume_generation_id ? md.resume_generation_id : null }) // KINEO-SERIE-AUTO-ETAPA1-0111
+    lista.push({ attempt: a, iniciado: md.outcome === 'started', resumeId: typeof md.resume_generation_id === 'string' && md.resume_generation_id ? md.resume_generation_id : null, atMs: Date.parse(String(l.created_at)) }) // KINEO-SERIE-AUTO-ETAPA1-0111 // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 (atMs: a rota cobra até 300 s depois do aluguel)
     semFechamento.set(String(l.session_id), lista) // KINEO-SERIE-AUTO-ETAPA1-0111
   } // KINEO-SERIE-AUTO-ETAPA1-0111
   const lastDispatchByUser = new Map<string, number>()
@@ -195,21 +207,15 @@ export async function GET(req: NextRequest) {
     const decision = decidirRetomada({ parkedAtMs, nowMs: now, closed: closed.has(genId), newerDispatch, openLeaseAtMs: lease.openAtMs })
     if (decision === 'closed' || decision === 'leased') { results.push({ generation: g8, decision }); continue }
     const pedido = pedidoDe(row.metadata)
-    if (decision === 'expired' || decision === 'superseded' || !pedido) {
-      const outcome = !pedido ? 'invalid_request' : decision
-      const fechado = await fechar(admin, row, outcome, { attempts: lease.n })
-      let email = 'none'
-      if (fechado === 'novo' && decision === 'expired' && pedido) email = await enviarEmail(admin, userId, 'expired', pedido.prompt, confirm)
-      results.push({ generation: g8, decision: outcome, outcome: fechado, email })
-      continue
-    }
     // Um aluguel anterior já pode ter cobrado (sem fechamento gravado): aquela retomada É o filme — nunca a tentativa N+1 por cima. // KINEO-SERIE-AUTO-ETAPA1-0111
+    // Lido ANTES do vencido/substituído: o fechamento 'expired' manda "Nothing was charged" e a série lê 'expired' como falha sem cobrança. // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     const candidatos = semFechamento.get(genId) ?? [] // KINEO-SERIE-AUTO-ETAPA1-0111
     if (candidatos.length > 0) { // KINEO-SERIE-AUTO-ETAPA1-0111
-      const lidos: { attempt: number; iniciado: boolean; debito: DebitoDaRetomada; resumeId: string }[] = [] // KINEO-SERIE-AUTO-ETAPA1-0111
-      for (const c of candidatos) { const resumeId = c.resumeId ?? idDaRetomada(genId, c.attempt); lidos.push({ ...c, resumeId, debito: c.iniciado ? 'live' : await debitoDaRetomada(admin, userId, resumeId) }) } // KINEO-SERIE-AUTO-ETAPA1-0111
-      const d = decidirAluguelSemFechamento(lidos) // KINEO-SERIE-AUTO-ETAPA1-0111
-      if (d.acao === 'esperar') { results.push({ generation: g8, decision: 'lease_debit_unreadable' }); continue } // KINEO-SERIE-AUTO-ETAPA1-0111
+      const lidos: { attempt: number; iniciado: boolean; debito: DebitoDaRetomada; resumeId: string; atMs: number }[] = [] // KINEO-SERIE-AUTO-ETAPA1-0111
+      for (const c of candidatos) { const resumeId = c.resumeId ?? idDaRetomada(genId, c.attempt); lidos.push({ ...c, resumeId, debito: await cobrancaDaRetomada(admin, userId, resumeId) }) } // KINEO-SERIE-AUTO-ETAPA1-0111 // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — o 'started' também é lido (estornado = o filme falhou: retoma)
+      const d = decidirAluguelSemFechamento(lidos, now) // KINEO-SERIE-AUTO-ETAPA1-0111 // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — ausente há < 10 min do aluguel ainda não prova nada
+      if (d.acao === 'esperar') { results.push({ generation: g8, decision: d.motivo === 'debito_pode_chegar' ? 'lease_debit_settling' : 'lease_debit_unreadable' }); continue } // KINEO-SERIE-AUTO-ETAPA1-0111 // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+      if (d.acao === 'retomar' && !podeDizerNadaCobrado(lidos)) { results.push({ generation: g8, decision: 'lease_debit_unreadable' }); continue } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — trava dupla: nada segue com cobrança viva/ilegível
       if (d.acao === 'adotar') { // KINEO-SERIE-AUTO-ETAPA1-0111
         const c = lidos.find((x) => x.attempt === d.attempt)! // KINEO-SERIE-AUTO-ETAPA1-0111
         if (!c.iniciado) await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt: c.attempt, outcome: 'started', status: null, resume_generation_id: c.resumeId, recovered: true } }).eq('id', idDoAluguel(genId, c.attempt)) // KINEO-SERIE-AUTO-ETAPA1-0111
@@ -219,6 +225,14 @@ export async function GET(req: NextRequest) {
       } // KINEO-SERIE-AUTO-ETAPA1-0111
       for (const c of lidos) await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt: c.attempt, outcome: 'lost_no_charge', status: null, resume_generation_id: c.resumeId, debit: c.debito } }).eq('id', idDoAluguel(genId, c.attempt)) // KINEO-SERIE-AUTO-ETAPA1-0111
     } // KINEO-SERIE-AUTO-ETAPA1-0111
+    if (decision === 'expired' || decision === 'superseded' || !pedido) {
+      const outcome = !pedido ? 'invalid_request' : decision
+      const fechado = await fechar(admin, row, outcome, { attempts: lease.n })
+      let email = 'none'
+      if (fechado === 'novo' && decision === 'expired' && pedido) email = await enviarEmail(admin, userId, 'expired', pedido.prompt, confirm)
+      results.push({ generation: g8, decision: outcome, outcome: fechado, email })
+      continue
+    }
     if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }
     if (resumed >= PARKED_MAX_RESUMES_PER_RUN) { results.push({ generation: g8, decision: 'deferred_budget' }); continue }
     const attempt = lease.n + 1
@@ -237,7 +251,8 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       console.error(`[parked] gen=${g8} resume threw:`, e instanceof Error ? e.message : String(e))
     }
-    const outcome = classificarRespostaDaRetomada(status, json)
+    const resposta = classificarRespostaDaRetomada(status, json) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    const outcome = desfechoComCobranca(resposta, resposta === 'failed' ? await cobrancaDaRetomada(admin, userId, resumeGenId) : null) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — 4xx com cobrança viva/ilegível = retry_later (a próxima passada lê de novo), nunca "nothing was charged"
     const erro = typeof (json as { error?: unknown } | null)?.error === 'string' ? String((json as { error: string }).error).slice(0, 200) : null
     await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt, outcome, status, resume_generation_id: resumeGenId, error: erro } }).eq('id', leaseId)
     let email = 'none'

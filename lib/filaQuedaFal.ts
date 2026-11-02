@@ -245,17 +245,71 @@ export function estacionadoSuperavel(sessionId: unknown): boolean {
   return !ehDespachoDaSerie(sessionId)
 }
 export type DebitoDaRetomada = 'unknown' | 'none' | 'refunded' | 'live'
+// ═══ KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — nenhuma tentativa N+1 sem LER a cobrança da tentativa N ═══
+// Revisão de 01/11 (ALTO, já em produção): a retomada classificada 'retry_later' (abort do cron em 240 s com a rota viva até 300 s;
+// 503 pending:true "Your AI scenes may already be processing"; 503 "automatic refund is still being confirmed") gravava o desfecho e,
+// 5 min depois, a tentativa N+1 saía com outro generationId — outro claim, outro débito, dois filmes. Agora TODO aluguel que pode ter
+// cobrado (qualquer desfecho que não PROVE estorno) tem a cobrança lida antes: viva = aquela retomada É o filme (fecha 'resumed');
+// ilegível = espera; ausente = só conclui depois de PARKED_DEBIT_SETTLE_MS do aluguel (a rota pode cobrar até 300 s depois do POST);
+// estornada = pode seguir. O e-mail "Nothing was charged" (vencido / 4xx terminal) só sai depois dessa leitura.
+/** A rota de filme roda até 300 s (maxDuration) a partir do POST do cron: antes disto, "sem débito" ainda não prova nada. */
+export const PARKED_ROUTE_MAX_MS = 300 * 1000
+/** Do aluguel até concluir "nada cobrado" pela AUSÊNCIA do débito: o teto da rota + folga (= o aluguel de 10 min). */
+export const PARKED_DEBIT_SETTLE_MS = PARKED_LEASE_TTL_MS
+/** Desfechos de aluguel que PROVAM que nada ficou cobrado: 503 queued/parked (a rota só estaciona com o estorno confirmado) e o já lido. */
+const DESFECHOS_SEM_COBRANCA: ReadonlySet<string> = new Set(['provider_down', 'lost_no_charge'])
 /**
- * Aluguel que pode já ter cobrado, sem fechamento 'resumed' gravado: desfecho 'started' cujo fechamento falhou, ou aluguel SEM
- * desfecho (o cron morreu no meio do POST: 2 retomadas de até 240 s numa função de 300 s). Abrir a tentativa N+1 por cima cobraria
- * de novo. 'started' ou débito vivo = aquela retomada É o filme: fecha 'resumed' com ela. Débito ilegível = espera. Sem débito
- * (ou estornado) = nada cobrado: pode retomar.
+ * Este aluguel precisa ter a cobrança lida antes da tentativa seguinte? Sem desfecho (o cron morreu no POST), 'started' (2xx cujo
+ * fechamento falhou), 'retry_later' (abort/503 pending/5xx — a rota pode ter cobrado) e qualquer outro: sim. Só não os que provam estorno.
  */
-export function decidirAluguelSemFechamento(candidatos: ReadonlyArray<{ attempt: number; iniciado: boolean; debito: DebitoDaRetomada }>): { acao: 'adotar'; attempt: number } | { acao: 'esperar' } | { acao: 'retomar' } {
-  const iniciado = candidatos.find((c) => c.iniciado)
-  if (iniciado) return { acao: 'adotar', attempt: iniciado.attempt }
-  const vivo = candidatos.find((c) => c.debito === 'live')
-  if (vivo) return { acao: 'adotar', attempt: vivo.attempt }
-  if (candidatos.some((c) => c.debito === 'unknown')) return { acao: 'esperar' }
+export function aluguelPodeTerCobrado(outcome: unknown): boolean {
+  return !(typeof outcome === 'string' && DESFECHOS_SEM_COBRANCA.has(outcome))
+}
+/**
+ * A cobrança de uma retomada, a partir do débito (credit_debits, render_id cinematic-<claim>) e do claim de nascimento (o evento
+ * cinematic_submission_claim do mesmo id). Leitura que falha = 'unknown'. Débito manda: estornado = 'refunded', vivo = 'live'. Sem
+ * débito, o claim decide: 'done'/'settled' = o fornecedor já recebeu as cenas (filme em voo); 'pending' de custo 0 = filme grátis de
+ * promoção em voo (não debita); o resto (sem claim, 'released', 'pending' pago sem débito = a rota morreu antes de cobrar) = 'none'.
+ */
+export function estadoDaCobranca(input: {
+  debito: { erro: boolean; existe: boolean; estornado: boolean }
+  claim: { erro: boolean; status: string | null; creditCost: number | null }
+}): DebitoDaRetomada {
+  if (input.debito.erro || input.claim.erro) return 'unknown'
+  if (input.debito.existe) return input.debito.estornado ? 'refunded' : 'live'
+  if (input.claim.status === 'done' || input.claim.status === 'settled') return 'live'
+  if (input.claim.status === 'pending' && input.claim.creditCost === 0) return 'live'
+  return 'none'
+}
+/**
+ * Um aluguel 4xx ('failed') só é TERMINAL (fecha 'failed' + e-mail "nothing was charged") com a cobrança lida e ausente/estornada.
+ * Viva ou ilegível = 'retry_later': a próxima passada lê de novo (viva → adota; estornada → retoma). Os outros desfechos passam iguais.
+ */
+export function desfechoComCobranca(outcome: ResumeResult, cobranca: DebitoDaRetomada | null): ResumeResult {
+  if (outcome !== 'failed') return outcome
+  return cobranca === 'none' || cobranca === 'refunded' ? 'failed' : 'retry_later'
+}
+/**
+ * Aluguel que pode já ter cobrado, sem fechamento 'resumed' gravado: desfecho 'started' cujo fechamento falhou, aluguel SEM desfecho
+ * (o cron morreu no meio do POST: 2 retomadas de até 240 s numa função de 300 s) ou 'retry_later' (abort em 240 s com a rota viva até
+ * 300 s, 503 pending, 503 de estorno pendente). Abrir a tentativa N+1 por cima cobraria de novo. Cobrança viva = aquela retomada É o
+ * filme: fecha 'resumed' com ela. 'started' sem nenhum rastro (2xx sem débito nem claim) = adota (não dá para provar o contrário).
+ * Ilegível = espera. Ausente há menos de PARKED_DEBIT_SETTLE_MS do aluguel (`nowMs` + `atMs`) = espera: a rota ainda pode cobrar.
+ * Ausente depois disso, ou estornada (inclusive a de um 'started' cujo filme falhou) = nada cobrado: pode retomar.
+ */
+export function decidirAluguelSemFechamento(
+  candidatos: ReadonlyArray<{ attempt: number; iniciado: boolean; debito: DebitoDaRetomada; atMs?: number }>,
+  nowMs?: number,
+): { acao: 'adotar'; attempt: number } | { acao: 'esperar'; motivo: 'debito_ilegivel' | 'debito_pode_chegar' } | { acao: 'retomar' } {
+  const vivos = candidatos.filter((c) => c.debito === 'live')
+  if (vivos.length > 0) return { acao: 'adotar', attempt: Math.max(...vivos.map((c) => c.attempt)) }
+  const semRastro = candidatos.filter((c) => c.iniciado && c.debito === 'none')
+  if (semRastro.length > 0) return { acao: 'adotar', attempt: Math.max(...semRastro.map((c) => c.attempt)) }
+  if (candidatos.some((c) => c.debito === 'unknown')) return { acao: 'esperar', motivo: 'debito_ilegivel' }
+  if (nowMs !== undefined && candidatos.some((c) => c.debito === 'none' && !(Number.isFinite(c.atMs) && nowMs - Number(c.atMs) >= PARKED_DEBIT_SETTLE_MS))) return { acao: 'esperar', motivo: 'debito_pode_chegar' }
   return { acao: 'retomar' }
+}
+/** O e-mail "Nothing was charged" só pode sair quando TODA retomada tentada foi lida sem cobrança (ausente ou estornada). */
+export function podeDizerNadaCobrado(leituras: ReadonlyArray<{ debito: DebitoDaRetomada }>): boolean {
+  return leituras.every((l) => l.debito === 'none' || l.debito === 'refunded')
 }
