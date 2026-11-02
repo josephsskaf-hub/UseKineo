@@ -4799,5 +4799,294 @@
     "literal": "10"
    }
   }
+ },
+ {
+  "id": "rev15-hazel-ninety",
+  "fonte": "rev-0211d",
+  "texto": "Meet Hazel, who turns ninety today. Hazel still bikes to the bakery every morning, and today the baker has a surprise cake waiting for her.",
+  "protagonista": [
+   "Hazel"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Hazel"
+  ],
+  "fichas": {
+   "Hazel": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "ninety"
+   }
+  }
+ },
+ {
+  "id": "rev15-otto-barely-two",
+  "fonte": "rev-0211d",
+  "texto": "Little Otto, barely two, toddles into the garden and finds a hedgehog. Otto giggles as the hedgehog sniffs his shoe.",
+  "protagonista": [
+   "Otto"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Otto"
+  ],
+  "fichas": {
+   "Otto": {
+    "faixa": "toddler",
+    "genero": "male",
+    "literal": "barely two"
+   }
+  }
+ },
+ {
+  "id": "rev15-edith-103",
+  "fonte": "rev-0211d",
+  "texto": "At 103, Edith Morgan is the oldest marathon runner in Wales. Edith laces her shoes at dawn while her great-grandson Finn, 8, holds the stopwatch.",
+  "protagonista": [
+   "Edith Morgan",
+   "Edith"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Edith",
+   "Finn"
+  ],
+  "fichas": {
+   "Edith": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "103",
+    "semLiteral": "8,"
+   },
+   "Finn": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "8",
+    "semLiteral": "103"
+   }
+  }
+ },
+ {
+  "id": "rev15-nell-bea-twelve",
+  "fonte": "rev-0211d",
+  "texto": "Twin sisters Nell and Bea, both twelve, find a map in their grandfather's attic. Nell reads it aloud while Bea grabs a flashlight.",
+  "protagonista": [
+   "Nell",
+   "Bea"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Nell",
+   "Bea"
+  ],
+  "fichas": {
+   "Nell": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "twelve"
+   },
+   "Bea": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "twelve"
+   }
+  }
+ },
+ {
+  "id": "pt-rev15-dona-zuleide",
+  "fonte": "rev-0211d",
+  "texto": "Dona Zuleide tem noventa e um anos e nunca saiu da sua cidade. Hoje o neto Rafael, de vinte, leva a avó para ver o mar pela primeira vez.",
+  "protagonista": [
+   "Dona Zuleide",
+   "Zuleide"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Zuleide",
+   "Rafael"
+  ],
+  "fichas": {
+   "Zuleide": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "noventa e um anos"
+   },
+   "Rafael": {
+    "faixa": "adult",
+    "genero": "male",
+    "literal": "vinte",
+    "semLiteral": "noventa"
+   }
+  }
+ },
+ {
+  "id": "es-rev15-iker-ocho-meses",
+  "fonte": "rev-0211d",
+  "texto": "Íker, un bebé de ocho meses, gatea por primera vez hacia su perrita Canela. Canela mueve la cola e Íker se ríe.",
+  "protagonista": [
+   "Íker"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Íker"
+  ],
+  "fichas": {
+   "Íker": {
+    "faixa": "baby",
+    "genero": "male",
+    "literal": "ocho meses"
+   }
+  }
+ },
+ {
+  "id": "rev15-bean-martha",
+  "fonte": "rev-0211d",
+  "texto": "The kid everyone called Bean was only nine when he built a radio from scrap. Bean's grandmother, Martha, 70, tuned it to the first station.",
+  "protagonista": [
+   "Bean"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Bean",
+   "Martha"
+  ],
+  "fichas": {
+   "Bean": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "nine",
+    "semLiteral": "70"
+   },
+   "Martha": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "70"
+   }
+  }
+ },
+ {
+  "id": "rev15-rosa-delgado",
+  "fonte": "rev-0211d",
+  "texto": "Captain Rosa Delgado, 45, steers her fishing boat into the storm. Her daughter Pia, sixteen, ties down the nets.",
+  "protagonista": [
+   "Rosa Delgado",
+   "Rosa"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Rosa",
+   "Pia"
+  ],
+  "fichas": {
+   "Rosa": {
+    "faixa": "adult",
+    "genero": "female",
+    "literal": "45",
+    "semLiteral": "sixteen"
+   },
+   "Pia": {
+    "faixa": "teen",
+    "genero": "female",
+    "literal": "sixteen",
+    "semLiteral": "45"
+   }
+  }
+ },
+ {
+  "id": "rev15-old-tom-nineteen",
+  "fonte": "rev-0211d",
+  "texto": "Old Tom is the youngest fisherman on the island, just nineteen. Tom rows out before sunrise and sings to the gulls.",
+  "protagonista": [
+   "Old Tom",
+   "Tom"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Tom"
+  ],
+  "fichas": {
+   "Tom": {
+    "faixa": "adult",
+    "genero": "male",
+    "literal": "nineteen"
+   }
+  }
+ },
+ {
+  "id": "rev15-lorna-avo-95",
+  "fonte": "rev-0211d",
+  "texto": "Lorna, whose grandfather is 95, spends every Sunday reading him the newspaper. Lorna is eleven and does all the voices.",
+  "protagonista": [
+   "Lorna"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lorna"
+  ],
+  "fichas": {
+   "Lorna": {
+    "faixa": "child",
+    "literal": "eleven",
+    "semLiteral": "95"
+   }
+  }
+ },
+ {
+  "id": "rev15-sam-nurse-pirate",
+  "fonte": "rev-0211d",
+  "texto": "Sam, a retired nurse of seventy-two, adopts a three-legged cat named Pirate. Pirate follows Sam everywhere, even to the post office.",
+  "protagonista": [
+   "Sam"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sam"
+  ],
+  "animais": {
+   "Pirate": "cat"
+  },
+  "fichas": {
+   "Sam": {
+    "faixa": "elderly",
+    "literal": "seventy-two"
+   }
+  }
+ },
+ {
+  "id": "rev15-wren-kit",
+  "fonte": "rev-0211d",
+  "texto": "A girl named Wren, 7, and her baby brother Kit, just 4 months old, wait at the airport window for their dad's plane.",
+  "protagonista": [
+   "Wren"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Wren",
+   "Kit"
+  ],
+  "fichas": {
+   "Wren": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "7"
+   },
+   "Kit": {
+    "faixa": "baby",
+    "genero": "male",
+    "literal": "4 months old"
+   }
+  }
  }
 ]

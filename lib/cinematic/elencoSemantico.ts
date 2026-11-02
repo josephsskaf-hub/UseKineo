@@ -94,13 +94,21 @@
 //   · o gênero da ficha só vem de palavra de gênero ESCRITA no trecho/nome ("sister", "Grandma", "menina", "abuela"); pronome e o
 //     gender_if_stated do modelo, não;
 //   · sem trecho aceito, a base, como antes.
+//
+// REVISÃO 02/11 (rodada 15): no caminho REAL de 15 s a rota roda o casting da folha (FILME15_ROSTO_FIXO_PUBLIC → gerarFolha →
+// elencoComCastingAjuste) — passo que o guardião não rodava. A ficha do trecho do autor tinha origem 'deterministica' e o gpt-4o-mini a
+// reescrevia com faixa/gênero/aparência próprios ("Sam, a seventy-two-year-old human woman"; "Bean, a nine-year-old boy"); depois o juiz
+// literal ficava sozinho e a idade escrita sumia ("little brother Arjun" sem o 6; Finn 8, Wren 7, Bean 9, Pia 16). Agora a ficha do autor
+// nasce com origem 'autor': o casting e o juiz não a tocam (como toda ficha do autor). SAIU a junção "autor; juiz" das rodadas 13/14
+// (cabecaDoAutor): com a origem certa ela nunca acontece — e com ela saem os trechos inúteis do juiz ("door every day for Grandma June").
+// Fora deste arquivo: o 15 s com elenco semântico de DUAS pessoas não força a cena que já mostra gente sem nome (filme15Elenco).
 import { canonicaDeterministica, PERSONAGEM_CASTING_MODELO, PERSONAGEM_MAX_PERSONAGENS, type FichaDePersonagem, type TipoDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
 import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v10' // rodada 14: a ficha do trecho aceito é só o trecho do autor (sem faixa/pessoa/aparência nossa); gênero só de palavra escrita. rodada 12: age_text/role_text = trecho LITERAL copiado pelo modelo, aceito só se existe no texto a até ~12 palavras do nome; sem regex de idade. rodadas 10/11: idade por regex (removida). rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido. rodada 8: o código só usava quem, o kind e a species
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v11' // rodada 15: a ficha do trecho do autor nasce com origem 'autor' (o casting do 15 s e o juiz não a reescrevem; a junção autor+juiz saiu). rodada 14: a ficha do trecho aceito é só o trecho do autor (sem faixa/pessoa/aparência nossa); gênero só de palavra escrita. rodada 12: age_text/role_text = trecho LITERAL copiado pelo modelo, aceito só se existe no texto a até ~12 palavras do nome; sem regex de idade. rodadas 10/11: idade por regex (removida). rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido. rodada 8: o código só usava quem, o kind e a species
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
@@ -461,8 +469,6 @@ export function nucleoDoPapel(papel: string | null | undefined): string {
   return (k < 0 ? ws : ws.slice(0, k)).join(' ').replace(/[,;:]+$/, '')
 }
 
-/** Rodada 14: o fim da ficha do trecho do autor — depois dele o código NÃO acrescenta pessoa, idade nem aparência do gerador. */
-const MARCA_AUTOR = ', exactly as the author wrote'
 /**
  * Rodada 14 (decisão 02/11: NÃO INTERPRETAR IDADE NEM GÊNERO): a ficha de quem tem papel/idade copiados do texto e conferidos é SÓ o que o
  * autor escreveu — "Zoe, 6yo, exactly as the author wrote"; "Ivy, a month old, exactly as the author wrote"; "Grandma Rose, Grandma, seven
@@ -470,12 +476,7 @@ const MARCA_AUTOR = ', exactly as the author wrote'
  * nossa; nada da aparência do gerador (a barba/o blazer do gerador brigariam com "a month old"). Os motores leem "6yo" melhor que a tradução.
  */
 export function fichaDoAutor(nome: string, literal: string): string {
-  return `${nome}, ${literal}${MARCA_AUTOR}`
-}
-/** Rodada 14: a ficha do trecho do autor ("Nome, <trecho>, exactly as the author wrote"), sem o que veio depois dela; senão null. */
-export function cabecaDoAutor(canonica: string): string | null {
-  const m = new RegExp(`^(.*?${escapaRe(MARCA_AUTOR)})(?=;|$)`, 'u').exec(String(canonica ?? ''))
-  return m ? m[1] : null
+  return `${nome}, ${literal}, exactly as the author wrote`
 }
 /**
  * Rodada 14: o gênero ESCRITO no trecho aceito — uma palavra de gênero no núcleo do papel ou da idade copiados ("big sister", "Grandma",
@@ -518,7 +519,9 @@ function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, u
     const nucleo = p.name ? nucleoDoNome(p.name, texto) : (p.role ?? '').split(' ').pop() ?? nome
     const e = evid ?? evidenciaEscrita(p, texto)
     const generoDaFicha = e.genero === 'female' ? 'woman' : e.genero === 'male' ? 'man' : null
-    if (e.literal) return { nome, nucleo, tipo, canonica: fichaDoAutor(nome, e.literal), origem: 'deterministica', protagonista, genero: generoDaFicha }
+    // rodada 15: origem 'autor' — o casting da folha (lerCasting, que a rota roda em todo 15 s) e o juiz literal (elencoComFichaLiteral)
+    // nunca reescrevem a ficha do autor (antes, 'deterministica': o casting dava "Sam, a seventy-two-year-old human woman" e o juiz apagava a idade)
+    if (e.literal) return { nome, nucleo, tipo, canonica: fichaDoAutor(nome, e.literal), origem: 'autor', protagonista, genero: generoDaFicha }
     const papelBruto = p.species && p.species !== 'human' ? p.species : p.role ?? ''
     // ao gerador vai só o NÚCLEO do papel ("whose dad is a fisherman" → nada: o "dad" é de outra pessoa)
     const papelEscrito = limpa(nucleoDoPapel(papelBruto).replace(/\S*\d\S*|\S+-years?-olds?/giu, ' '))
@@ -647,18 +650,9 @@ export function conferirFichaLiteral(lit: ElencoLiteral, antes: ReadonlyArray<Fi
     let ult = -1
     toks.forEach((w, k) => { if (chaves.includes(w)) ult = k })
     const complemento = ult >= 0 && toks.slice(ult + 1).some((w) => w.length >= 3)
-    if (traz || complemento) {
-      // rodada 13/14: a ficha do trecho do autor ("Arjun, little brother, 6, exactly as the author wrote") não perde o trecho para o do
-      // juiz ("little brother Arjun" não traz o 6; "door every day for Grandma June" não é o papel da June): os dois ficam, o do autor
-      // conferido primeiro, mesmo quando o do juiz já repete as palavras dele
-      const cab = cabecaDoAutor(a.canonica)
-      const prefixo = `${f.nome}, `
-      if (!cab || !f.canonica.startsWith(prefixo)) return
-      const unida = `${cab}; ${f.canonica.slice(prefixo.length)}`
-      elenco[i] = { ...f, canonica: unida }
-      trocas = trocas.map(([x, y]): [string, string] => (x === a.canonica && y === f.canonica ? [x, unida] : [x, y]))
-      return
-    }
+    // rodada 15: a junção "ficha do autor; trecho do juiz" das rodadas 13/14 SAIU — a ficha do trecho do autor nasce com origem 'autor'
+    // (fichaDe) e o juiz não a toca, então ela nunca chega aqui
+    if (traz || complemento) return
     elenco[i] = { ...a }
     const k = literais.indexOf(f.nome)
     if (k >= 0) literais.splice(k, 1)

@@ -12,6 +12,9 @@
 //       os casos da revisão da rodada 13 (Ivy, Mae, Theo 1,5 ano + Maya irmã, Zoe 6yo, Grandma Rose, Grandma June, Laura, Martina, Ezra,
 //       Ben/Ruth, Seu Antônio/Pedrinho, Lucía) e os de antes (Leo inventor, Leo neto do pescador, Pablo/Carmen, Roland) pelo caminho real
 //       de 15 s: o trecho literal chega ao motor e nenhuma faixa/pessoa nossa contraditória.
+//   15. Rodada 15: o caminho15 roda o CASTING da folha (como a rota em todo 15 s) com uma resposta que reescreve todo personagem; a ficha
+//       do trecho do autor (origem 'autor') chega igual ao motor em todos os casos com ficha esperada; os 12 casos da revisão da rodada 14
+//       (com os visuais do revisor); com duas pessoas no elenco semântico, a cena com gente sem nome não é forçada.
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
@@ -19,7 +22,7 @@ import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, trechoPerto, trechoDaPessoa, nucleoDoPapel, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
-import { elencoDoRoteiro, ajustarPromptsDoElenco } from '../lib/cinematic/personagemAjuste'
+import { elencoDoRoteiro, ajustarPromptsDoElenco, lerCastingAjuste, elencoComCastingAjuste, visualMostraAlguem } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
 import { elencoDoFilme15, protagonistaEmTodaCena, cenaCitaElenco, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
 import { prepararQualidadeDoFilme } from '../lib/cinematic/filmQuality'
@@ -120,19 +123,49 @@ const PROD: Record<string, { falas: string[]; prompts: string[] }> = {
     prompts: ['A young boy named Tommy, wearing a bright red cap and blue shorts, strolls through a sunlit park, clutching a sandwich in hand, excitement in his eyes.', "A playful dog, mid-air with its fluffy fur catching the sunlight, snatches the sandwich from Tommy's hand as he looks on in surprise; Tommy immediately starts running after it.", "The mischievous pup balances on Tommy's head, performing a silly dance, while Tommy laughs joyfully, surrounded by the vibrant park backdrop."],
   },
 }
+// rodada 15: os 12 casos da revisão da rodada 14 com os visuais que o revisor usou (o escritor de cenas cita o coadjuvante só pelo papel:
+// "A baby in a stroller", "A young man helps his grandmother", "An old man in the armchair"); as falas são as frases do texto
+const VISUAIS_R15: Record<string, string[]> = {
+  'rev15-hazel-ninety': ['An elderly woman with silver hair pedals a vintage bicycle down a cobblestone street at sunrise.', 'A baker in a white apron hides a candlelit cake behind the counter of a cozy bakery.', 'Hazel laughs as the baker reveals the cake, warm light filling the shop.'],
+  'rev15-otto-barely-two': ['A toddler in blue overalls wobbles across a sunlit garden lawn.', 'A small hedgehog peeks out from under a rosebush.', 'The hedgehog sniffs a tiny sneaker while the little boy giggles.'],
+  'rev15-edith-103': ['A very old woman ties the laces of her running shoes on a misty Welsh hillside at dawn.', 'A young boy holds a silver stopwatch, grinning.', 'Edith crosses the finish line as the crowd cheers.'],
+  'rev15-nell-bea-twelve': ['Two girls climb into a dusty attic full of old trunks.', 'An old yellowed map unfolds in the beam of a flashlight.', 'One girl reads the map aloud while the other aims a flashlight into the dark.'],
+  'pt-rev15-dona-zuleide': ['An elderly woman in a floral dress sits on the porch of a small town house.', 'A young man helps his grandmother out of an old car near the beach.', 'The grandmother stands barefoot on the sand, staring at the ocean for the first time.'],
+  'es-rev15-iker-ocho-meses': ['A baby crawls across a wooden living room floor.', 'A small brown dog wags its tail excitedly.', 'The baby laughs as the dog licks his hand.'],
+  'rev15-bean-martha': ['A boy solders wires on a cluttered workbench in a garage.', 'A homemade radio made of scrap parts crackles to life.', 'An old woman turns the dial of the radio and smiles.'],
+  'rev15-rosa-delgado': ['A woman at the wheel of a fishing boat in a raging storm.', 'A teenage girl ties down nets on the deck as waves crash.', 'Rosa shouts orders while lightning splits the sky.'],
+  'rev15-old-tom-nineteen': ['A young man rows a small wooden boat out of a harbor before sunrise.', 'Seagulls circle above the boat in the pink dawn light.', 'Tom sings with his head tilted back as the gulls follow.'],
+  'rev15-lorna-avo-95': ['A girl sits beside an armchair holding a large newspaper.', 'An old man in the armchair laughs with his eyes closed.', 'Lorna acts out a headline with a funny voice.'],
+  'rev15-sam-nurse-pirate': ['A person walks out of an animal shelter holding a cat carrier.', 'A three-legged black cat hops along a sidewalk.', 'Sam stands in line at the post office with Pirate at their feet.'],
+  'rev15-wren-kit': ['A little girl presses her hands against a big airport window.', 'A baby in a stroller looks up at the planes.', 'The girl points at a landing plane while the baby kicks happily.'],
+}
+for (const [id, prompts] of Object.entries(VISUAIS_R15)) PROD[id] = { falas: porId.get(id)!.texto.split(/(?<=[.!?])\s+/).concat(['', '']).slice(0, 3), prompts }
 const emTres = (texto: string) => { const fr = texto.split(/(?<=[.!?])\s+|\n+/).filter(Boolean); const falas = ['', '', '']; fr.forEach((x, i) => { const k = Math.min(2, Math.floor((i * 3) / fr.length)); falas[k] = `${falas[k]} ${x}`.trim() }); return { falas, prompts: falas.slice() } }
-/** route.ts: elencoDoRoteiro → elenco semântico → elencoComFichaLiteral conferida (fichaLiteralConferida) → elencoDoFilme15 → protagonistaEmTodaCena → ajustarPromptsDoElenco → ORDEM → prepararQualidadeDoFilme (com os nomes do semântico) → ficha literal. */
+/**
+ * Rodada 15: o CASTING da folha que a rota roda em todo 15 s (FILME15_ROSTO_FIXO_PUBLIC → gerarFolha → elencoComCastingAjuste, route.ts)
+ * — sem rede: a leitura REAL (lerCastingAjuste) de uma resposta do modelo que reescreve TODO personagem listado com faixa, gênero e
+ * aparência inventados (o que o gpt-4o-mini fez em 24 de 30 fichas na revisão da rodada 14). A marca CASTREWRITE mostra quem foi reescrito.
+ */
+const MARCA_CASTING = 'CASTREWRITE'
+function castingQueReescreve(script: string, elenco: ReadonlyArray<FichaDePersonagem>): FichaDePersonagem[] {
+  if (elenco.length === 0 || elenco.every((e) => (e.origem as string) === 'mitica' || e.origem === 'autor')) return elenco.map((e) => ({ ...e })) // 'fixo' (sem chamada)
+  const characters = elenco.map((e) => ({ name: e.nome, description: e.tipo === 'humano'
+    ? `a seventy-two-year-old human woman in her early thirties ${MARCA_CASTING} with short grey hair, round glasses, a red cardigan over a white blouse, blue jeans and white sneakers, smiling warmly`
+    : `a ${e.nucleo} ${MARCA_CASTING} with glowing green eyes, soft purple fur, a long curled tail and tiny round paws, no clothes, sitting calmly in soft light` }))
+  return lerCastingAjuste(JSON.stringify({ characters }), elenco, script)
+}
+/** route.ts: elencoDoRoteiro → elenco semântico → CASTING (rodada 15) → elencoComFichaLiteral conferida (fichaLiteralConferida) → elencoDoFilme15 → protagonistaEmTodaCena → ajustarPromptsDoElenco → ORDEM → prepararQualidadeDoFilme (com os nomes do semântico) → ficha literal. */
 function caminho15(id: string, sem: ElencoSemantico | null) {
   const c = porId.get(id)!
   const { falas, prompts } = PROD[id] ?? emTres(c.texto)
   const base = elencoDoRoteiro(c.texto)
   const aplicado = aplicarElencoSemantico(base, sem, c.texto)
-  let pedido: FichaDePersonagem[] = aplicado ? aplicado.elenco : base
+  let pedido: FichaDePersonagem[] = castingQueReescreve(c.texto, aplicado ? aplicado.elenco : base)
   const lit = fichaLiteralConferida(c.texto, pedido, aplicado)
   if (lit.literais.length > 0) pedido = lit.elenco
   const e15 = elencoDoFilme15({ elencoDoPedido: pedido, visuals: prompts, extrair: elencoDoRoteiro, completar: aplicado ? aceitaPapelDasCenas(c.texto) : true })
   const elenco = e15.elenco.length > 0 ? e15.elenco : pedido
-  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco, porNome: !!aplicado }) : null
+  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco, porNome: !!aplicado, mostraGente: visualMostraAlguem }) : null
   const aj = ajustarPromptsDoElenco({ prompts, visuals: p15 ? p15.visuals : prompts, falas, elenco })
   const out = aj.prompts.slice()
   const pp = elenco.find((f) => f.protagonista) ?? elenco[0]
@@ -547,7 +580,7 @@ console.log('== 11. Rodada 9: protagonista do modelo, sem ficha inventada, papel
     const { r } = corre('rev9-rosa-theo')
     const theo = r.elenco.find((f) => f.nome === 'Theo')
     const rosa = r.elenco.find((f) => /Rosa/.test(f.nome))
-    ok(!!theo && /grandson Theo/.test(theo.canonica) && !/\bgirl\b/.test(theo.canonica), `Theo: a ficha literal "grandson Theo" volta (o neto não vira menina) (${theo?.canonica.slice(0, 60)})`)
+    ok(!!theo && /\bgrandson\b/.test(theo.canonica) && !/\bgirl\b/.test(theo.canonica), `Theo: o papel "grandson" como o autor escreveu (o neto não vira menina) (${theo?.canonica.slice(0, 60)})`)
     ok(!rosa || (/Grandma/.test(rosa.canonica) && rosa.genero === 'woman' && !/\bman\b/.test(rosa.canonica.replace(/woman/g, ''))), `Grandma Rosa é mulher pela palavra escrita ("Grandma") (${rosa?.canonica.slice(0, 60) ?? '-'} / ${rosa?.genero ?? '-'})`)
     ok(r.fin.every((q) => !/Rosa, a elderly man|Rosa, an elderly man/.test(q)), 'nenhuma cena diz "Grandma Rosa, a elderly man"')
   }
@@ -722,24 +755,25 @@ console.log('== 13. Rodada 13/14: bebê em meses/semanas vai como o autor escrev
     const f = ap1(texto, prot)?.elenco[0]
     ok(f?.canonica === esperada && f.genero === null, `idade em meses/semanas: o trecho como o autor escreveu, sem faixa nem gênero nossos (${f?.canonica ?? 'sem ficha'} / ${f?.genero ?? 'null'})`)
   }
-  // o juiz literal ganha a aparência do autor, mas o trecho do autor conferido fica na frente (Arjun: "6"; Valentina: "de once años")
+  // rodada 15: a ficha do trecho do autor tem origem 'autor' — o juiz literal não a toca (Arjun: "6"; Valentina: "de once años"); a junção
+  // "autor; juiz" das rodadas 13/14 saiu
   {
     const T = 'Fifteen-year-old Priya builds a drone in her bedroom. Her little brother Arjun, 6, wants to fly it. Priya lets him, and the drone crashes into the cake.'
     const ap = ap1(T, P('Priya', null, 'female', 'Fifteen-year-old'), [P('Arjun', 'little brother', 'male', '6')])!
     const lit = fichaLiteralConferida(T, ap.elenco, ap)
     const arjun = lit.elenco.find((f) => f.nome === 'Arjun')!
     const priya = lit.elenco.find((f) => f.nome === 'Priya')!
-    ok(/^Arjun, little brother, 6, exactly as the author wrote; exactly as the author wrote: "little brother Arjun"/.test(arjun.canonica) && arjun.genero === 'man', `Arjun: o 6 fica com o trecho do juiz; gênero do "brother" (${arjun.canonica} / ${arjun.genero})`)
+    ok(arjun.canonica === 'Arjun, little brother, 6, exactly as the author wrote' && arjun.origem === 'autor' && arjun.genero === 'man', `Arjun: o 6 fica, o juiz não reescreve a ficha do autor; gênero do "brother" (${arjun.canonica} / ${arjun.genero})`)
     ok(/^Priya, Fifteen-year-old, exactly as the author wrote(?:;|$)/.test(priya.canonica) && priya.genero === null, `Priya: "Fifteen-year-old" como o autor escreveu, sem "a teenage girl" (${priya.canonica})`)
-    ok(lit.trocas.every(([, y]) => lit.elenco.some((f) => f.canonica === y)), 'as trocas nos prompts usam a ficha unida (a que o motor recebe)')
+    ok(lit.trocas.every(([x]) => x !== arjun.canonica), 'nenhuma troca de prompt mexe na ficha do autor')
     const i = ap.elenco.findIndex((f) => f.nome === 'Arjun')
-    ok(fichaLiteralConferida(T, lit.elenco, ap).elenco[i].canonica === arjun.canonica, 'idempotente: a ficha unida não muda na 2ª passada (o 15 s confere duas vezes)')
+    ok(fichaLiteralConferida(T, lit.elenco, ap).elenco[i].canonica === arjun.canonica, 'idempotente: a ficha do autor não muda na 2ª passada (o 15 s confere duas vezes)')
   }
   {
     const T = 'Valentina, de once años, cuida a su perro Canelo. Un día Canelo desaparece y Valentina lo busca por todo el pueblo hasta encontrarlo dormido en la panadería.'
     const ap = ap1(T, P('Valentina', null, 'female', 'de once años'))!
     const v = fichaLiteralConferida(T, ap.elenco, ap).elenco[0].canonica
-    ok(/^Valentina, de once años, exactly as the author wrote; exactly as the author wrote: "Valentina de once años/.test(v), `Valentina: o trecho conferido na frente, o do juiz depois (${v})`)
+    ok(v === 'Valentina, de once años, exactly as the author wrote', `Valentina: só o trecho do autor, o juiz não o reescreve (${v})`)
   }
   {
     // "Grandma June": o trecho do juiz ("door every day for Grandma June") não apaga o papel conferido ("Grandma")
@@ -847,6 +881,83 @@ console.log('== 14. Rodada 14: os casos das revisões (API real) pelo caminho de
     ok(!!june && /Grandma/.test(june.canonica) && june.genero !== 'man' && limpaDoAutor(june), `Grandma June: "Grandma" chega ao motor (${june?.canonica.slice(0, 120) ?? 'sem ficha'})`)
     const rose = ficha('rev14-rose-decades', 'Rose')
     ok(!!rose && rose.genero !== 'man', `Grandma Rose: nunca homem (${rose?.genero ?? 'null'})`)
+  }
+}
+
+// ═══ 15. Rodada 15: o casting do 15 s e a cena forçada ═════════════════════════════════════════════════════════════
+console.log('== 15. Rodada 15: o casting do 15 s não reescreve a ficha do autor; a cena forçada não apaga o coadjuvante ==')
+{
+  const rotaSrc = fs.readFileSync(path.join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
+  const P = (name: string | null, role_text: string | null, g: string | null, age_text: string | null) => ({ name, role_text, role_en: role_text, kind: 'human', species: 'human', species_en: 'human', appearance_from_text: '', appearance_en: '', gender_if_stated: g, age_text, on_screen: true })
+  const ap1 = (texto: string, prot: Record<string, unknown>, sup: Array<Record<string, unknown>> = []) => aplicarElencoSemantico(elencoDoRoteiro(texto), lerElencoSemantico(JSON.stringify({ protagonist: prot, supporting: sup, places_and_orgs: [] }), texto), texto)
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // (a) a rota roda o casting em todo 15 s (FILME15_ROSTO_FIXO_PUBLIC → gerarFolha → elencoComCastingAjuste) sobre o elenco do pedido
+  ok(rotaSrc.includes('await elencoComCastingAjuste(prompt, elencoDoPedido)'), '(controle) a rota passa o elenco semântico ao casting da folha')
+  ok(/protagonistaEmTodaCena\(\{ visuals: visuaisDoPlano15, elenco: elencoFilme15\.elenco, porNome: !!elencoSemantico [^\n]*mostraGente: visualMostraAlguem/.test(rotaSrc) && rotaSrc.includes("import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste'"), 'a rota passa o detector de gente ao 15 s (a cena com gente sem nome não é forçada com duas pessoas)')
+  // (b) a função REAL de rede: elenco todo do autor = 'fixo', nenhuma chamada; elenco misto = a ficha do autor volta igual
+  {
+    const T = 'Sam, a retired nurse of seventy-two, adopts a three-legged cat named Pirate. Pirate follows Sam everywhere, even to the post office.'
+    const ap = ap1(T, P('Sam', 'retired nurse', null, 'seventy-two'))!
+    const sam = ap.elenco[0]
+    ok(sam.origem === 'autor' && sam.canonica === 'Sam, a retired nurse of seventy-two, exactly as the author wrote' && sam.genero === null, `Sam: ficha do autor com origem 'autor', sem gênero (${sam.canonica} / ${sam.genero})`)
+    let chamadas = 0
+    const resposta = (els: ReadonlyArray<FichaDePersonagem>) => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ characters: els.map((e) => ({ name: e.nome, description: e.tipo === 'humano' ? `a seventy-two-year-old human woman ${MARCA_CASTING} with short grey hair, round glasses, a red cardigan, blue jeans and white sneakers, smiling warmly` : `a black cat ${MARCA_CASTING} with three legs, green eyes, a white chest and a long tail, no clothes, sitting calmly` })) }) } }] }), { status: 200, headers: { 'content-type': 'application/json' } })
+    const fixo = await elencoComCastingAjuste(T, [sam], { apiKey: 'k', fetchImpl: async () => { chamadas++; return resposta([sam]) } })
+    ok(fixo.casting === 'fixo' && chamadas === 0 && fixo.elenco[0].canonica === sam.canonica, `elenco só do autor: casting 'fixo', ${chamadas} chamada(s), ficha intacta`)
+    const bicho: FichaDePersonagem = { nome: 'Pirate', nucleo: 'cat', tipo: 'animal', canonica: 'Pirate, a cat', origem: 'deterministica', protagonista: false, genero: null }
+    const misto = await elencoComCastingAjuste(T, [sam, bicho], { apiKey: 'k', fetchImpl: async () => { chamadas++; return resposta([sam, bicho]) } })
+    ok(misto.elenco[0].canonica === sam.canonica && misto.elenco[0].genero === null && misto.elenco[1].canonica.includes(MARCA_CASTING), `elenco misto: o casting reescreve o Pirate e nunca a Sam ("a seventy-two-year-old human woman" não entra) (${misto.elenco[0].canonica})`)
+  }
+  // (c) todos os casos com ficha esperada (revisões 10 a 15, resposta REAL da API), pelo caminho real de 15 s COM o casting que reescreve
+  //     tudo: a ficha do trecho do autor chega ao motor igual (a idade escrita não some: Arjun 6, Finn 8, Wren 7, Bean 9, Pia 16)
+  let autores = 0
+  for (const c of calib.casos.filter((x) => x.fichas)) {
+    const sem = gravado(c.id)
+    const ap = aplicarElencoSemantico(elencoDoRoteiro(c.texto), sem, c.texto)
+    if (!ap) continue
+    const r = caminho15(c.id, sem)
+    for (const f of ap.elenco.filter((x) => fichaDoTrecho(x.canonica))) {
+      autores++
+      const fim = r.elenco.find((x) => x.nome === f.nome)
+      ok(!!fim && fim.canonica === f.canonica && fim.origem === 'autor', `${c.id}: ${f.nome} chega ao motor como o autor escreveu, depois do casting e do juiz (${fim?.canonica.slice(0, 110) ?? 'sumiu do elenco'})`)
+      ok(r.fin.every((q) => !new RegExp(`${esc(f.nome)}, [^;.]*${MARCA_CASTING}`).test(q)), `${c.id}: nenhum prompt leva a ficha de ${f.nome} reescrita pelo casting`)
+      if (f.protagonista) ok(r.fin.some((q) => q.includes(f.canonica)), `${c.id}: o trecho do protagonista ${f.nome} está no que vai ao motor`)
+    }
+  }
+  ok(autores >= 80, `${autores} fichas do trecho do autor conferidas pelo caminho real de 15 s com casting (≥ 80)`)
+  // (d) os 12 casos da revisão da rodada 14, nominalmente (resposta real): o trecho literal e nada contraditório
+  const R15 = (id: string) => caminho15(id, gravado(id))
+  for (const [id, nome, lit] of [
+    ['rev15-hazel-ninety', 'Hazel', 'ninety'], ['rev15-otto-barely-two', 'Otto', 'barely two'], ['rev15-edith-103', 'Edith', '103'], ['rev15-edith-103', 'Finn', '8'],
+    ['rev15-nell-bea-twelve', 'Nell', 'twelve'], ['rev15-nell-bea-twelve', 'Bea', 'twelve'], ['pt-rev15-dona-zuleide', 'Zuleide', 'noventa e um anos'], ['pt-rev15-dona-zuleide', 'Rafael', 'vinte'],
+    ['es-rev15-iker-ocho-meses', 'Íker', 'ocho meses'], ['rev15-bean-martha', 'Bean', 'nine'], ['rev15-bean-martha', 'Martha', '70'], ['rev15-rosa-delgado', 'Rosa', '45'], ['rev15-rosa-delgado', 'Pia', 'sixteen'],
+    ['rev15-old-tom-nineteen', 'Tom', 'nineteen'], ['rev15-lorna-avo-95', 'Lorna', 'eleven'], ['rev15-sam-nurse-pirate', 'Sam', 'seventy-two'], ['rev15-wren-kit', 'Wren', '7'], ['rev15-wren-kit', 'Kit', '4 months old'],
+  ] as const) {
+    const f = R15(id).elenco.find((x) => x.nome.includes(nome))
+    ok(!!f && f.canonica.includes(lit) && limpaDoAutor(f) && !f.canonica.includes(MARCA_CASTING), `${id}: ${nome} vai ao motor com "${lit}", sem faixa/pessoa nossa (${f?.canonica.slice(0, 110) ?? 'sem ficha'})`)
+  }
+  {
+    const sam = R15('rev15-sam-nurse-pirate').elenco.find((x) => x.nome === 'Sam')
+    ok(!!sam && sam.genero === null && !/\b(?:woman|man)\b/.test(sam.canonica), `Sam (o texto não diz o gênero): sem gênero (${sam?.canonica} / ${sam?.genero ?? 'null'})`)
+    const lorna = R15('rev15-lorna-avo-95').elenco.find((x) => x.nome === 'Lorna')
+    ok(!!lorna && !lorna.canonica.includes('95'), `Lorna: o 95 é do avô, nunca dela (${lorna?.canonica})`)
+  }
+  // (e) a cena forçada não apaga o coadjuvante descrito só pelo papel (elenco semântico com duas pessoas)
+  for (const [id, cena, quem] of [
+    ['rev15-wren-kit', 1, 'A baby in a stroller'], ['pt-rev15-dona-zuleide', 1, 'A young man helps his grandmother'], ['rev15-lorna-avo-95', 1, 'An old man in the armchair'],
+    ['rev15-edith-103', 1, 'A young boy holds a silver stopwatch'], ['rev15-bean-martha', 2, 'An old woman turns the dial'], ['rev15-rosa-delgado', 1, 'A teenage girl ties down nets'],
+  ] as const) {
+    const r = R15(id)
+    ok(r.elenco.filter((f) => f.tipo === 'humano').length >= 2 && !r.forcadas.includes(cena) && !r.fin[cena].startsWith('The only person in this shot'), `${id}: "${quem}" não vira o protagonista (forçadas=${r.forcadas.join(',') || '-'})`)
+  }
+  {
+    const pessoa = (nome: string, protagonista: boolean): FichaDePersonagem => ({ nome, nucleo: nome, tipo: 'humano', canonica: `${nome}, x`, origem: 'autor', protagonista, genero: null })
+    const bicho: FichaDePersonagem = { nome: 'the hedgehog', nucleo: 'hedgehog', tipo: 'animal', canonica: 'the hedgehog, x', origem: 'deterministica', protagonista: false, genero: null }
+    const forca = (v: string, el: FichaDePersonagem[], porNome = true) => protagonistaEmTodaCena({ visuals: [v], elenco: el, porNome, mostraGente: visualMostraAlguem }).forcadas.length === 1
+    ok(!forca('A baby in a stroller looks up at the planes.', [pessoa('Wren', true), pessoa('Kit', false)]), 'duas pessoas (semântico): a cena com gente sem nome fica como o escritor de cenas a descreveu')
+    ok(forca('An old yellowed map unfolds in the beam of a flashlight.', [pessoa('Nell', true), pessoa('Bea', false)]), 'duas pessoas: a cena sem ninguém ainda ganha o protagonista (como a base)')
+    ok(forca('A woman stands by the window.', [pessoa('Max', true)]) && forca('A toddler wobbles across the lawn.', [pessoa('Otto', true), bicho]), 'uma pessoa só (com ou sem bicho): a cena com gente sem nome continua forçada (o conserto de 26/10)')
+    ok(forca('A baby in a stroller looks up at the planes.', [pessoa('Wren', true), pessoa('Kit', false)], false), 'sem o elenco semântico (porNome ausente): o casador de sempre, byte a byte')
   }
 }
 

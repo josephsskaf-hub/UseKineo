@@ -6,6 +6,7 @@
 // palavra de pessoa/faixa nossa fora do trecho (grave: faixa_inventada) nem gênero que contradiz o caso (grave: genero_contradiz); gênero
 // ausente não é erro. A faixa esperada do caso é a verdade do rótulo (lida por um humano), usada só para achar contradição. Na ficha do
 // gerador (sem trecho aceito: a base), faixa contraditória (criança adulta, idoso criança, bebê idoso) com o elenco aplicado = grave.
+// rodada 15: ficha do trecho do autor sem origem 'autor' = grave (casting_reescreve) — o casting do 15 s a reescreveria.
 import { aplicarElencoSemantico, type ElencoSemantico, type PersonagemSemantico } from '../../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro } from '../../lib/cinematic/personagemAjuste'
 import type { FichaDePersonagem } from '../../lib/cinematic/folhaDePersonagem'
@@ -116,6 +117,8 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
         if (inventada) graves.push(`faixa_inventada:${inventada[0]}:${nome}`)
         const g = f.genero === 'woman' ? 'female' : f.genero === 'man' ? 'male' : null
         if (esp.genero && g && g !== esp.genero) graves.push(`genero_contradiz:${nome}=${g}`)
+        // rodada 15: a ficha do autor tem origem 'autor' — senão o casting da folha que a rota roda em todo 15 s a reescreve
+        if (f.origem !== 'autor') graves.push(`casting_reescreve:${nome}`)
       } else {
         const lida = faixaDoGerador(f.canonica)
         const contradiz = faixaContradiz(faixas, lida.faixa)

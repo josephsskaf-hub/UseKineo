@@ -202,13 +202,19 @@ export function protagonistaEmTodaCena(args: {
   elenco: ReadonlyArray<FichaDePersonagem>
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — true só com o elenco SEMÂNTICO aplicado: a cena também cita o elenco pelo nome próprio (cenaCitaPeloNome). Ausente/false: o de sempre. */
   porNome?: boolean
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 15) — o detector de gente no visual (a rota passa visualMostraAlguem de lib/cinematic/personagemAjuste); só vale com porNome. */
+  mostraGente?: (visual: string) => boolean
 }): { visuals: string[]; forcadas: number[] } {
   const protagonista = args.elenco.find((f) => f.protagonista) ?? args.elenco[0]
   const visuals = args.visuals.map((v) => String(v ?? ''))
   if (!protagonista) return { visuals, forcadas: [] }
   const forcadas: number[] = []
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 15) — elenco semântico com DUAS pessoas: a cena que já mostra gente sem citar ninguém pelo nome ("A baby in a stroller", "A young man
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 — helps his grandmother") fica como o escritor de cenas a descreveu; a ordem "any other person … is replaced" apagava o coadjuvante. A fala dá a ficha (ajustarPromptsDoElenco).
+  const mostraGente = args.porNome === true && args.elenco.filter((f) => f.tipo === 'humano').length >= 2 ? args.mostraGente : undefined // KINEO-PROTAGONISTA-SEEDANCE-0111
   const saida = visuals.map((v, i) => {
     if (args.porNome === true && args.elenco.some((f) => cenaCitaPeloNome(v, f))) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
+    if (mostraGente && mostraGente(v)) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v
     forcadas.push(i)
     return `${protagonista.nome}, the only person in the shot — ${v}`

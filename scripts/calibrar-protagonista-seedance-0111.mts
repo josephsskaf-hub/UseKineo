@@ -21,6 +21,9 @@
 // Ivy "a month old", Mae "a few months old", Zoe "6yo", Theo "a year and a half old" + irmã Maya, Grandma Rose "seven decades young",
 // Grandma June, Laura "de um ano e meio", Martina/Ramón, Ezra, Ben/Ruth, Seu Antônio/Pedrinho, Lucía "tres semanas"). A régua passa a
 // reprovar como GRAVE qualquer pessoa/faixa nossa na ficha do trecho do autor (faixa_inventada) e gênero que contradiz (genero_contradiz).
+// Revisão 02/11 (rodada 15): +12 casos fonte 'rev-0211d' (os 12 da revisão da rodada 14 na API: Hazel "turns ninety", Otto "barely two",
+// Edith 103 + Finn 8, Nell/Bea "both twelve", Dona Zuleide + Rafael "de vinte", Íker "ocho meses", Bean 9 + Martha 70, Rosa Delgado 45 +
+// Pia 16, "Old Tom… just nineteen", Lorna 11 com o avô de 95, Sam enfermeira de 72 + Pirate, Wren 7 + Kit "4 months old").
 // Modos:
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava
