@@ -1,0 +1,70 @@
+{
+ "base": "eebf05ce20b9ee35b5230e58933597b2eeaffaf2",
+ "scope": {
+  "lib/cinematic/cenaKling4.ts": {
+   "beforeSha256": "259886ac80f2d9eb5e4b83746ddd18ab49fd9b0131b804ad48f2afa4bf4115f0",
+   "afterSha256": "03a3741377df87dc394dfe3ddad4462b4c1a3f701ed9b4926104aca05138248c",
+   "hunks": [
+    {
+     "before": "import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto'\n",
+     "after": "import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto'\nimport { caudaDoCenarioNoPrompt, comCenarioNoKling4, semCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]\n"
+    },
+    {
+     "before": "export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {\n  const curto = compactar(semMolduraParaKling4(prompt, style), style)",
+     "after": "export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {\n  // KINEO-CASA-FICHA-SEM-LETRAS-0211 — a cauda longa do cenário do filme (lib/cinematic/cenarioDoFilme) sai ANTES do corte de 512 e volta compacta\n  // só se couber (com folga para o sujeito do pedido): nunca disputa espaço com a ação. Prompt sem a cauda: o caminho de sempre, byte a byte.\n  const caudaDoCenario = caudaDoCenarioNoPrompt(prompt)\n  const semCauda = caudaDoCenario.tem ? semCenarioDoFilme(prompt, caudaDoCenario.cenario) : prompt\n  if (semCauda !== prompt && !caudaDoCenarioNoPrompt(semCauda).tem) return comCenarioNoKling4(promptDaCenaKling4Com(compactar, semCauda, style, index), caudaDoCenario.cenario, KLING4_ORCAMENTO_DA_CAMADA)\n  const curto = compactar(semMolduraParaKling4(prompt, style), style)"
+    }
+   ]
+  },
+  "lib/hollywood/router.ts": {
+   "beforeSha256": "1c39ec47689485a02568880d9667811cf9d913d4c5b47e8489d8c0c868176d99",
+   "afterSha256": "d1a38c2054e9fa378f27ec3d415352cde680c76f74418288254c73a7dce57ac5",
+   "hunks": [
+    {
+     "before": "import { SCENE_FIDELITY_DIRECTION } from '@/lib/cinematic/visualPromptPolicy' // KINEO-CENAS-FIEIS-2610\nimport { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23",
+     "after": "import { SCENE_FIDELITY_DIRECTION } from '@/lib/cinematic/visualPromptPolicy' // KINEO-CENAS-FIEIS-2610\nimport { regrasDoCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]\nimport { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23"
+    },
+    {
+     "before": "- NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.\n${args.characterHint ? `- CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PEDIDO-2026-09-15, founder's render 4328b078: the input said \"a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat\" and the plan invented \"a rugged male engineer in his late 30s with short brown hair and snow goggles\"): the input describes the protagonist as \"${String(args.characterHint).replace(/\"/g, \"'\")}\". characterSheet MUST describe exactly this person — same age, hair, beard, clothing and accessories; add only details that do not contradict it; every scene that shows the person repeats these traits. Never invent a different age, hair color or outfit.\\n` : ''}- Each scene gets a short on-screen \"caption\" (max 6 words, punchy).",
+     "after": "- NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.\n${regrasDoCenarioDoFilme(null)}\n- The environmentSheet states that era, place and people/culture (KINEO-CASA-FICHA-0211).\n${args.characterHint ? `- CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PEDIDO-2026-09-15, founder's render 4328b078: the input said \"a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat\" and the plan invented \"a rugged male engineer in his late 30s with short brown hair and snow goggles\"): the input describes the protagonist as \"${String(args.characterHint).replace(/\"/g, \"'\")}\". characterSheet MUST describe exactly this person — same age, hair, beard, clothing and accessories; add only details that do not contradict it; every scene that shows the person repeats these traits. Never invent a different age, hair color or outfit.\\n` : ''}- Each scene gets a short on-screen \"caption\" (max 6 words, punchy)."
+    }
+   ]
+  },
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "a93c68798be01ddd19c84f6f2385385cf2b3dae43624ebb544704b4f21b57d18",
+   "afterSha256": "78a39266b9bf0f0c09f8cba7003f47b026b800c8c338de3bc4043d3f79fe57a2",
+   "hunks": [
+    {
+     "before": "import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410\nimport { aplicarElencoEEpoca, type RelatoElencoEpoca } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"faz todos esses consertos de 1 a 6\"] — elenco nomeado em cena, época nas roupas/carros, geleia ≠ jellyfish (estrada clássica)",
+     "after": "import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410\nimport { comCenarioDoFilme, lerCenarioDoFilme, regrasDoCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — cenário do filme (era+lugar+povo) lido UMA vez do roteiro + sem letra/número/placar/figura pública, em TODO motor\nimport { aplicarElencoEEpoca, type RelatoElencoEpoca } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-EPOCA-2710 [TRAVA 8.2 — vai do fundador 27/10 \"faz todos esses consertos de 1 a 6\"] — elenco nomeado em cena, época nas roupas/carros, geleia ≠ jellyfish (estrada clássica)"
+    },
+    {
+     "before": "RULES:\n- Anchor the shot on the LITERAL subject of that scene's narration (the exact place, object, event, number, or concept being said).\n- Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.",
+     "after": "RULES:\n- Anchor the shot on the subject of that scene's narration (the exact place, object, event, number, or concept being said), as MEANT in the context of the whole script (KINEO-CASA-FICHA-0211).\n- Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene."
+    },
+    {
+     "before": "- ${NO_TEXT_OBJECT_DIRECTION}\n- Output ONLY valid JSON: { \"descriptions\": [\"...\", \"...\"] } with EXACTLY ${scenes.length} items, in scene order.`",
+     "after": "- ${NO_TEXT_OBJECT_DIRECTION}\n${regrasDoCenarioDoFilme(null)}\n- Output ONLY valid JSON: { \"descriptions\": [\"...\", \"...\"] } with EXACTLY ${scenes.length} items, in scene order.`"
+    },
+    {
+     "before": "    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))\n    // Build scenes",
+     "after": "    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))\n    // KINEO-CASA-FICHA-SEM-LETRAS-0211 — UMA leitura semântica do roteiro inteiro (era; lugar; povo), iniciada aqui em paralelo e aguardada onde\n    // KINEO-CASA-FICHA-SEM-LETRAS-0211 — cada estrada monta o prompt final da cena (clássica e hollywood). Nunca lança; falha = null (só a regra sem letras).\n    const leituraDoCenario = lerCenarioDoFilme(prompt) // KINEO-CASA-FICHA-SEM-LETRAS-0211\n    // Build scenes"
+    },
+    {
+     "before": "        const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: ancoraHerdadaDaCena(qualidadeHerdada, s.dialogueLine ?? s.voiceover ?? '', s.prompt, fichasDaQualidade(s.prompt, s.dialogueLine ?? s.voiceover ?? '')) }))\n        if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {",
+     "after": "        const paidScenes = plan.scenes.map(s => ({ prompt: `${silenciarFalaNoPrompt(s.prompt)}${eraSuffix} Mouth closed, no speaking. ${plan.styleSheet ?? ''}`, seconds: s.seconds, approvedStillUrl: ancoraHerdadaDaCena(qualidadeHerdada, s.dialogueLine ?? s.voiceover ?? '', s.prompt, fichasDaQualidade(s.prompt, s.dialogueLine ?? s.voiceover ?? '')) }))\n        { const cenarioK4 = (await leituraDoCenario).cenario; for (const s of paidScenes) s.prompt = comCenarioDoFilme(s.prompt, cenarioK4) } // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Kling 4 pago: o still e o multi_prompt levam o cenário (promptDaCenaKling4 o recompacta nos 512)\n        if (cost === 0 && !await ensureKling4PromoBudgetToday(cinematicAdmin, { userId: user.id, jobId: generationId })) {"
+    },
+    {
+     "before": "      await aplicarQualidadeHollywood() // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      for (const [idx, hs] of plan.scenes.entries()) {",
+     "after": "      await aplicarQualidadeHollywood() // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Kling 3, H3, H3 Max, Omni e Seedance 2.5: o cenário do filme (era; lugar; povo, lido UMA vez do roteiro) e a\n      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — proibição de número/placar/figura pública entram no plano de CADA cena antes do laço — o still FLUX, o contrato de cena e o POST\n      // KINEO-CASA-FICHA-SEM-LETRAS-0211 — nascem deste texto. Em texto, nunca em negative_prompt (H3/Omni/S25 não têm o campo; o do Kling 3 fica como está).\n      { const cenarioH = (await leituraDoCenario).cenario; for (const cena of plan.scenes) cena.prompt = comCenarioDoFilme(cena.prompt, cenarioH) } // KINEO-CASA-FICHA-SEM-LETRAS-0211\n      for (const [idx, hs] of plan.scenes.entries()) {"
+    },
+    {
+     "before": "    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)\n",
+     "after": "    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)\n    const cenarioDoFilme = (await leituraDoCenario).cenario // KINEO-CASA-FICHA-SEM-LETRAS-0211 — Seedance 1.5, Veo, Kling 2.5 e Sora: still e clipe nascem deste vetor; o Kling 4 recompacta (comCenarioNoKling4)\n    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comCenarioDoFilme(classicScenePrompts[i], cenarioDoFilme) // KINEO-CASA-FICHA-SEM-LETRAS-0211\n    console.log(`[cinematic] KINEO-CASA-FICHA: cenario=${cenarioDoFilme ?? \"-\"} (${classicScenePrompts.length} cena(s), sem letras/figura pública)`) // KINEO-CASA-FICHA-SEM-LETRAS-0211\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/cenarioDoFilme.ts": "aa053a8afe29e69f7277cd2a3a483c9b429c737a65c9f80929c58b8bd962eaa9"
+ }
+}

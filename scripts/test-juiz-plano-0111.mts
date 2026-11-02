@@ -28,6 +28,7 @@ import { AI_TEXT_MODELS } from '../lib/aiModels'
 import { semJuizPlano0111, deltaJuizPlano0111Exato, JUIZ_PLANO_0111 } from './test-support/desfaz-juiz-plano-0111.mjs'
 import { semProtagonistaSeedance0111 } from './test-support/desfaz-protagonista-seedance-0111.mjs' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111
+import { semCasaFichaSemLetras0211 } from './test-support/desfaz-casa-ficha-sem-letras-0211.mjs' // KINEO-CASA-FICHA-SEM-LETRAS-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s: string) => String(s).replace(/\r\n/g, '\n')
@@ -94,7 +95,7 @@ const posicoes = (rota: string) => {
 }
 
 async function main() {
-  const rota = semProtagonistaSeedance0111(semK4NarracaoCabe0111(rd(ROTA), ROTA) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — a camada mais nova (02/11, opção C) sai primeiro, pelo recibo exato */, ROTA) // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes, pelo recibo exato
+  const rota = semProtagonistaSeedance0111(semK4NarracaoCabe0111(semCasaFichaSemLetras0211(rd(ROTA), ROTA) /* KINEO-CASA-FICHA-SEM-LETRAS-0211 — a camada mais nova (02/11) sai primeiro, pelo recibo exato */, ROTA) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — a camada mais nova (02/11, opção C) sai primeiro, pelo recibo exato */, ROTA) // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes, pelo recibo exato
   const lib = rd('lib/juizDoPlano.ts')
   const BASE = String(JUIZ_PLANO_0111.base)
   let base: string | null = null

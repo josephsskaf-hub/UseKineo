@@ -64,6 +64,7 @@ import { openai } from '@/lib/openai'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido → prompt do planner.
 import { aspectSpec } from '@/lib/aspect'
 import { SCENE_FIDELITY_DIRECTION } from '@/lib/cinematic/visualPromptPolicy' // KINEO-CENAS-FIEIS-2610
+import { regrasDoCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — the host-scene engine (Kling AI Avatar
 // v2, $0.0562/s — ~1/3 of O3's $0.168/s) so logHollywoodCost prices anchored
@@ -514,6 +515,8 @@ OTHER HARD RULES:
 - SUBJECT VARIETY (KINEO-CENAS-FIEIS-2610): list only the visual subjects and moments the input actually supplies. Avoid duplicating the same action and composition, but keep the same cast when the story follows their action. If there are fewer subjects than scenes, show the next supplied action beat or another framing of that same moment; do not invent a different subject, prop, place, era or event to fill a scene. Event order and current state take priority over variety.
 - ${language && language !== 'en' ? `NARRATION LANGUAGE (STRICT — KINEO-IDIOMA-DA-NARRACAO-2026-09-14: a Portuguese idea on H3 came out narrated in English): every "voiceover" MUST be written in ${NARRATION_LANGUAGE_NAME[language] ?? language} — that is the language the narrator will speak. Prompts, characterSheet, environmentSheet, styleSheet and captions stay in English. Use NO "dialogue" scenes for this film: all scenes are "support" or "cinematic" with voiceover (the on-camera engines lip-sync English only).` : 'ALL text in English regardless of the input language.'}
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
+${regrasDoCenarioDoFilme(null)}
+- The environmentSheet states that era, place and people/culture (KINEO-CASA-FICHA-0211).
 ${args.characterHint ? `- CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PEDIDO-2026-09-15, founder's render 4328b078: the input said "a broad-shouldered man in his fifties with a gray beard, a red parka and a black wool hat" and the plan invented "a rugged male engineer in his late 30s with short brown hair and snow goggles"): the input describes the protagonist as "${String(args.characterHint).replace(/"/g, "'")}". characterSheet MUST describe exactly this person — same age, hair, beard, clothing and accessories; add only details that do not contradict it; every scene that shows the person repeats these traits. Never invent a different age, hair color or outfit.\n` : ''}- Each scene gets a short on-screen "caption" (max 6 words, punchy).
 
 Output JSON shape ("demo" is optional, only on demo/showcase support scenes):

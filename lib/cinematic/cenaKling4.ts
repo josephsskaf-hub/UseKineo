@@ -10,6 +10,7 @@ import { promptCurtoDoFilmeKling4 } from '@/lib/cinematic/filmQuality'
 import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto'
+import { caudaDoCenarioNoPrompt, comCenarioNoKling4, semCenarioDoFilme } from '@/lib/cinematic/cenarioDoFilme' // KINEO-CASA-FICHA-SEM-LETRAS-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 
 export const CENA_KLING4_VERSAO = 'cena_kling4_3010_v1' as const
 /** Teto do KlingV4Shot.prompt (code points), o mesmo que buildKling4TrialInput respeita. */
@@ -57,6 +58,11 @@ export function promptDaCenaKling4(prompt: string, style: StyleAnchor, index: nu
 
 /** O mesmo, com o adaptador de corte injetado (os guardiões de texto rodam o adaptador antigo/mutante por aqui). */
 export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {
+  // KINEO-CASA-FICHA-SEM-LETRAS-0211 — a cauda longa do cenário do filme (lib/cinematic/cenarioDoFilme) sai ANTES do corte de 512 e volta compacta
+  // só se couber (com folga para o sujeito do pedido): nunca disputa espaço com a ação. Prompt sem a cauda: o caminho de sempre, byte a byte.
+  const caudaDoCenario = caudaDoCenarioNoPrompt(prompt)
+  const semCauda = caudaDoCenario.tem ? semCenarioDoFilme(prompt, caudaDoCenario.cenario) : prompt
+  if (semCauda !== prompt && !caudaDoCenarioNoPrompt(semCauda).tem) return comCenarioNoKling4(promptDaCenaKling4Com(compactar, semCauda, style, index), caudaDoCenario.cenario, KLING4_ORCAMENTO_DA_CAMADA)
   const curto = compactar(semMolduraParaKling4(prompt, style), style)
   const medio = /^[^.]+\. /.exec(curto)?.[0] ?? ''
   const comEixo = `${medio}${eixoCurtoKling4(index)}. ${curto.slice(medio.length)}`
