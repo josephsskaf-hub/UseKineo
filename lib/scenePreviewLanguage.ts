@@ -1,61 +1,82 @@
 // KINEO-PREVIA-LINGUA-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — A LÍNGUA DO ROTEIRO DA PRÉVIA.
 //
 // Caso de 02/11 (jstarshahzad43, Paquistão, região sem filme grátis → Gerar cai na prévia das cenas): ideia de 72 palavras
-// em URDU. A tela mandava a língua da INTERFACE forçada a 'en' (só pt/es passavam) e a rota repassava ao escritor
-// (/api/generate-script) → "LANGUAGE: Write everything in US English" + PASTED_SCRIPT_RULE "translate nothing" para um texto
-// em urdu. Ordem impossível: o gpt-4o respondeu "I'm sorry, I can't assist with that request." duas vezes → "the AI declined
-// the topic" → a pessoa foi embora sem ver uma cena.
+// em URDU. A tela mandava 'en' (só pt/es passavam) e a rota repassava ao escritor (/api/generate-script) → "LANGUAGE: Write
+// everything in US English" + PASTED_SCRIPT_RULE "translate nothing" para um texto em urdu. Ordem impossível: o gpt-4o
+// respondeu "I'm sorry, I can't assist with that request." duas vezes → "the AI declined the topic" → a pessoa foi embora.
 //
-// FÓRMULA ÚNICA PARA TODAS AS LÍNGUAS (regra do fundador: conserto de língua é fórmula, nunca remendo por língua):
-//   a língua da INTERFACE é só uma dica — a tela da prévia não tem seletor de voz. O roteiro sai na língua do PRÓPRIO texto
-//   quando ela é conhecida; só quando o texto não diz nada a dica vale.
-//   1. resolveNarrationLanguage (lib/textLanguage — a MESMA regra das rotas de geração) sobre o texto, sem a dica:
-//      o detector de sempre (≥ 8 palavras, en/pt/es/fr/de/it);
-//   2. senão, detectShortTextLanguage (lib/shortTextLanguage): escrita própria (devanágari, cirílico, árabe/urdu) e marcas
-//      exclusivas das latinas (tr, pl, vi, nl, id…);
-//   3. senão, a escrita dominante do texto (hangul, kana, han, tailandês, grego, hebraico, bengali, árabe, cirílico): um
-//      texto que é quase todo de outra escrita NUNCA é tratado como inglês;
-//   4. senão, a dica da interface (qualquer código do catálogo); sem dica, 'en'.
-// Assim um texto em inglês, português ou espanhol sai como antes, e nenhum texto de outra língua recebe "write in English"
-// junto com "translate nothing". LIB PURA (só funções; sem banco, sem rede).
+// FÓRMULA ÚNICA (regra do fundador: conserto de língua é fórmula para todas as línguas, nunca remendo por língua):
+//   · texto cuja maioria das LETRAS (> 50%) é de uma escrita NÃO latina → o roteiro sai na língua dessa escrita. Uma palavra
+//     estrangeira solta ("story of दीवाली") não muda nada;
+//   · escrita com várias línguas (cirílico, árabe, devanágari, han): marcas próprias decidem só quando são inequívocas; na
+//     dúvida vale a dica da interface se ela for uma língua dessa escrita, senão a língua mais comum da escrita no catálogo
+//     (o /api/generate-script não tem modo "mantenha a língua de origem" — ver KINEO-PREVIA-LINGUA-0211b no commit);
+//   · texto latino → EXATAMENTE como antes: resolveNarrationLanguage(dica, texto) (a dica pt/es vence; 'en' só cede ao
+//     detector de sempre, ≥ 8 palavras). Nada de adivinhar por palavra curta: "Los Angeles wildfires" segue en.
+// KINEO-PREVIA-LINGUA-0211b — revisão: saiu o detectShortTextLanguage (nome de lugar virava língua e a volta ao Studio
+// levava isso ao filme), entrou a maioria de letras e as escritas ambíguas (búlgaro, persa, curdo sorani, sérvio).
+// LIB PURA (só funções; sem banco, sem rede).
 import { narrationLanguage, resolveNarrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
-import { detectShortTextLanguage } from '@/lib/shortTextLanguage'
 
-export const PREVIA_LINGUA_VERSION = 'KINEO-PREVIA-LINGUA-0211'
+export const PREVIA_LINGUA_VERSION = 'KINEO-PREVIA-LINGUA-0211b'
 
-/** Escritas que, sozinhas, nomeiam uma língua do catálogo (ordem: as mais específicas primeiro). */
-const SCRIPTS: readonly [RegExp, (text: string) => NarrationLanguage][] = [
-  [/\p{Script=Hangul}/gu, () => 'ko'],
-  [/[\p{Script=Hiragana}\p{Script=Katakana}]/gu, () => 'ja'],
-  [/\p{Script=Han}/gu, () => 'zh'],
-  [/\p{Script=Thai}/gu, () => 'th'],
-  [/\p{Script=Greek}/gu, () => 'el'],
-  [/\p{Script=Hebrew}/gu, () => 'he'],
-  [/\p{Script=Bengali}/gu, () => 'bn'],
-  [/\p{Script=Devanagari}/gu, () => 'hi'],
-  [/\p{Script=Arabic}/gu, (t) => (/[ٹڈڑںےۓہھ]/u.test(t) ? 'ur' : 'ar')],
-  [/\p{Script=Cyrillic}/gu, (t) => (/[іїєґ]/u.test(t) && !/[ыэъё]/u.test(t) ? 'uk' : 'ru')],
+type Script = { name: string; test: RegExp; candidates: readonly NarrationLanguage[]; pick: (text: string) => NarrationLanguage | null }
+
+/** Escritas não latinas. `candidates[0]` = a língua mais comum da escrita no catálogo; `pick` só responde quando tem certeza. */
+const SCRIPTS: readonly Script[] = [
+  { name: 'hangul', test: /\p{Script=Hangul}/u, candidates: ['ko'], pick: () => 'ko' },
+  // han + kana numa escrita só: kana → japonês; han puro → chinês (cantonês escrito não se distingue com certeza)
+  { name: 'cjk', test: /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u, candidates: ['zh', 'ja', 'yue'], pick: (t) => (/[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(t) ? 'ja' : null) },
+  { name: 'thai', test: /\p{Script=Thai}/u, candidates: ['th'], pick: () => 'th' },
+  { name: 'greek', test: /\p{Script=Greek}/u, candidates: ['el'], pick: () => 'el' },
+  { name: 'hebrew', test: /\p{Script=Hebrew}/u, candidates: ['he'], pick: () => 'he' },
+  { name: 'bengali', test: /\p{Script=Bengali}/u, candidates: ['bn'], pick: () => 'bn' },
+  // devanágari: hindi, marati, nepali… — só o hindi está no catálogo, e marca segura não há: vale a regra da escrita
+  { name: 'devanagari', test: /\p{Script=Devanagari}/u, candidates: ['hi'], pick: () => null },
+  {
+    name: 'cyrillic', test: /\p{Script=Cyrillic}/u, candidates: ['ru', 'uk', 'bg'],
+    pick: (t) => {
+      if (/[ђјљњћџѓќѕ]/iu.test(t)) return null // sérvio/macedônio: fora do catálogo
+      const uk = /[іїєґ]/iu.test(t), ru = /[ыэё]/iu.test(t), bg = /ъ/iu.test(t)
+      if (uk && !ru && !bg) return 'uk'
+      if (ru && !uk) return 'ru' // ъ aparece no russo (объявить); ы/э/ё nunca no búlgaro
+      if (bg && !uk && !ru) return 'bg'
+      return null
+    },
+  },
+  {
+    name: 'arabic', test: /\p{Script=Arabic}/u, candidates: ['ar', 'ur'],
+    pick: (t) => {
+      if (/[ەێۆڵڕڤ]/u.test(t)) return null // curdo sorani: fora do catálogo — nunca urdu
+      if (/[ٹڈڑںےۓہھ]/u.test(t)) return 'ur'
+      if (/[پچژگ]/u.test(t)) return null // persa (fa fora do catálogo)
+      if (/[ةإأؤئى]/u.test(t)) return 'ar'
+      return null
+    },
+  },
 ]
 
-/** A língua da escrita que domina o texto (mais letras dela do que latinas), ou null se o texto é latino/vazio. */
-export function dominantScriptLanguage(text: string): NarrationLanguage | null {
-  const t = String(text ?? '')
-  const latin = (t.match(/\p{Script=Latin}/gu) ?? []).length
-  let best: { lang: NarrationLanguage; n: number } | null = null
-  for (const [re, pick] of SCRIPTS) {
-    const n = (t.match(re) ?? []).length
-    if (n > 0 && (!best || n > best.n)) best = { lang: pick(t), n }
+/** A escrita não latina que tem MAIS DA METADE das letras do texto, ou null (texto latino, misto ou vazio). */
+export function dominantScript(text: string): Script | null {
+  const letters = String(text ?? '').match(/\p{L}/gu) ?? []
+  if (!letters.length) return null
+  for (const s of SCRIPTS) {
+    const n = letters.filter((c) => s.test.test(c)).length
+    if (n * 2 > letters.length) return s
   }
-  return best && best.n > latin ? best.lang : null
+  return null
 }
 
 /**
- * A língua em que o escritor da prévia deve escrever: a do próprio texto quando conhecida; senão a dica da interface.
- * `hint` = a língua da interface que a tela mandou (nunca uma escolha de voz).
+ * A língua em que o escritor da prévia deve escrever. `hint` = a língua da interface que a tela mandou (nunca uma escolha
+ * de voz). Escrita não latina dominante → a língua dessa escrita; texto latino → a regra de sempre.
  */
 export function previaNarrationLanguage(hint: unknown, idea: string): NarrationLanguage {
   const text = String(idea ?? '')
-  const resolved = resolveNarrationLanguage(null, text)
-  if (resolved.detected) return resolved.language
-  return detectShortTextLanguage(text) ?? dominantScriptLanguage(text) ?? narrationLanguage(hint) ?? 'en'
+  const script = dominantScript(text)
+  if (!script) return resolveNarrationLanguage(hint, text).language
+  const sure = script.pick(text)
+  if (sure) return sure
+  const asked = narrationLanguage(hint)
+  return asked && script.candidates.includes(asked) ? asked : script.candidates[0]
 }

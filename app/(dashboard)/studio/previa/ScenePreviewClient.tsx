@@ -22,7 +22,7 @@ const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
 export default function ScenePreviewClient({ initialIdea, from }: { initialIdea: string; from: string }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
-  const scriptLanguage = language // KINEO-PREVIA-LINGUA-0211 — só uma dica: o servidor escreve na língua do próprio texto (antes: tudo fora de pt/es virava 'en')
+  const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
   const [idea, setIdea] = useState(initialIdea)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)

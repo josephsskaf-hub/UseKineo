@@ -3,11 +3,12 @@
 // tela forçava 'en' (só pt/es passavam) e a rota mandava ao escritor "Write everything in US English" + "translate nothing"
 // → o gpt-4o recusou duas vezes → "the AI declined the topic". Prova, EXECUTANDO lib/scenePreviewLanguage.ts (sem rede,
 // sem banco, sem fal, sem OpenAI):
-//   (1) urdu, hindi, árabe (e coreano, japonês, chinês, russo, grego, hebraico, tailandês, bengali, turco) chegam ao escritor
-//       na própria língua, mesmo com a interface em inglês — e a instrução do escritor para essa língua não é "US English";
-//   (2) en/pt/es saem como antes (inglês com interface inglesa, português/espanhol com a sua interface, ideia curta sem
-//       marca segue a interface);
-//   (3) a rota passa a língua do texto ao /api/generate-script e a tela não força mais 'en';
+//   (1) urdu, hindi, árabe (e coreano, japonês, chinês, russo, ucraniano, búlgaro, grego, hebraico, tailandês, bengali)
+//       chegam ao escritor na própria língua, mesmo com a interface em inglês — e a instrução não é "US English";
+//   (1b) KINEO-PREVIA-LINGUA-0211b (revisão): escrita ambígua não chuta — persa, curdo sorani e sérvio caem na língua mais
+//       comum da escrita (nunca urdu para sorani); palavra estrangeira solta e nome de lugar latino não mudam a língua;
+//   (2) en/pt/es saem como antes (texto latino = resolveNarrationLanguage(dica, texto), a mesma regra de sempre);
+//   (3) a rota passa a língua do texto ao /api/generate-script; a tela segue mandando en/pt/es como dica;
 //   (4) mutantes: a fórmula antiga (dica da interface direto) volta a dar o choque inglês+"translate nothing".
 // Em origin/main: vermelho (lib ausente, rota manda a língua da interface, tela força 'en').
 import fs from 'node:fs'
@@ -69,7 +70,8 @@ const OTHERS = {
   he: 'פעם, לפני הרבה שנים, הייתה עיר ענקית בעומק הים שאף אחד לא ראה מעולם. לילה אחד היא נעלמה.',
   th: 'กาลครั้งหนึ่งนานมาแล้ว มีเมืองขนาดใหญ่อยู่ใต้ทะเลลึกที่ไม่มีใครเคยเห็นมาก่อน คืนหนึ่งเมืองนั้นก็หายไป',
   bn: 'অনেক দিন আগে সমুদ্রের গভীরে একটি বিশাল শহর ছিল যা কেউ কখনো দেখেনি। এক রাতে শহরটি হারিয়ে গেল।',
-  tr: 'Bir zamanlar okyanusun derinliklerinde kimsenin görmediği dev bir şehir vardı ve bu şehir bir gece için tamamen kayboldu.',
+  uk: 'Колись давно в глибині океану було величезне місто, яке ніхто ніколи не бачив. Одного разу вночі воно зникло.',
+  bg: 'Някога в дълбините на океана имало огромен град, който никой не е виждал. Една нощ той изчезнал завинаги.',
 }
 
 console.log('1 — línguas fora de en/pt/es chegam ao escritor na própria língua (interface em inglês)')
@@ -85,6 +87,24 @@ for (const [code, text, hint] of [['ur', URDU, 'en'], ['ur', URDU, undefined], [
 }
 for (const [code, text] of Object.entries(OTHERS)) ok(lang('en', text) === code, `${code} com interface em inglês → ${lang('en', text)} (fórmula, não remendo por língua)`)
 
+console.log('1b — revisão 0211b: escrita ambígua e palavra solta')
+const PERSA = 'روزی روزگاری در اعماق دریا شهر بزرگی بود که هیچ کس آن را ندیده بود. یک شب این شهر ناگهان گم شد و پیدا نشد.'
+const SORANI = 'ڕۆژێک لە ڕۆژان شارێکی گەورە لە ناو دەریادا هەبوو کە هیچ کەس نەیبینیبوو. شەوێک ئەو شارە ون بوو.'
+const SERVIO = 'Једном давно у дубини океана постојао је огроман град који нико никада није видео. Једне ноћи је нестао.'
+for (const [label, text, want] of [
+  ['"Los Angeles wildfires" (en)', 'Los Angeles wildfires', 'en'],
+  ['"Nova Scotia Oak Island mystery" (en)', 'Nova Scotia Oak Island mystery', 'en'],
+  ['"Yang Liwei first astronaut" (en)', 'Yang Liwei first astronaut', 'en'],
+  ['"story of दीवाली" (palavra solta não domina)', 'story of दीवाली', 'en'],
+  ['"the Kremlin (Кремль) secrets" (palavra solta)', 'the secrets of the Kremlin (Кремль) and its towers', 'en'],
+  ['persa (fa fora do catálogo) → língua mais comum da escrita, nunca urdu', PERSA, 'ar'],
+  ['curdo sorani → nunca urdu', SORANI, 'ar'],
+  ['sérvio cirílico (fora do catálogo) → língua mais comum da escrita, nunca bg/uk por engano', SERVIO, 'ru'],
+]) ok(lang('en', text) === want, `${label} → ${lang('en', text)}`)
+ok(lang('en', SORANI) !== 'ur' && lang('ur', SORANI) === 'ur', 'sorani: sem marca segura vale a dica se ela for da escrita (ur), senão a mais comum (ar) — nunca urdu por chute')
+ok(lang('bg', SERVIO) === 'bg' && lang('pt', SERVIO) === 'ru', 'cirílico ambíguo: dica da mesma escrita vence; dica de outra escrita não')
+ok(lang('pt', 'Los Angeles wildfires') === 'pt' && lang('es', 'Nova Scotia Oak Island mystery') === 'es', 'ideia latina curta: a dica pt/es vence, como antes')
+
 console.log('2 — en/pt/es como antes')
 const EN = 'The mystery of the lost city of Atlantis and why scientists still search for it today'
 const PT = 'O mistério da cidade perdida de Atlântida e por que os cientistas ainda procuram por ela hoje'
@@ -92,9 +112,12 @@ const ES = 'El misterio de la ciudad perdida de la Atlántida y por qué los cie
 ok(lang('en', EN) === 'en', 'inglês + interface inglesa → en')
 ok(lang('pt', PT) === 'pt', 'português + interface portuguesa → pt')
 ok(lang('es', ES) === 'es', 'espanhol + interface espanhola → es')
-ok(lang('en', PT) === 'pt' && lang('en', ES) === 'es', 'português/espanhol com interface inglesa → a língua do texto (a mesma regra de resolveNarrationLanguage)')
+ok(lang('en', PT) === 'pt' && lang('en', ES) === T.resolveNarrationLanguage('en', ES).language, 'português/espanhol com interface inglesa → a mesma regra de resolveNarrationLanguage (detector de sempre)')
 ok(lang('pt', 'Messi contra Ronaldo') === 'pt' && lang('es', 'Messi contra Ronaldo') === 'es' && lang('en', 'Messi vs Ronaldo') === 'en', 'ideia curta sem marca de língua → segue a interface (como antes)')
 ok(lang(undefined, 'Messi vs Ronaldo') === 'en' && lang('xx', 'Messi vs Ronaldo') === 'en', 'sem dica válida → en')
+const latinos = [EN, PT, ES, 'Los Angeles wildfires', 'Yang Liwei first astronaut', 'Nova Scotia Oak Island mystery', 'Bir zamanlar okyanusun derinliklerinde dev bir şehir vardı ve kayboldu bir gece']
+ok(latinos.every((t) => ['en', 'pt', 'es', undefined].every((h) => lang(h, t) === T.resolveNarrationLanguage(h, t).language)), 'texto latino = EXATAMENTE resolveNarrationLanguage(dica, texto) (nenhum detector novo)')
+ok(!/from '@\/lib\/shortTextLanguage'/.test(read('lib/scenePreviewLanguage.ts') ?? ''), 'a prévia não usa o detector de frase curta (nome de lugar virava língua)')
 
 console.log('3 — rota e tela')
 ok(/const narration = previaNarrationLanguage\(body\?\.language, idea\)/.test(ROUTE), 'a rota resolve a língua pelo próprio texto')
@@ -102,7 +125,7 @@ ok(ROUTE.includes("body: JSON.stringify({ topic: idea, language: narration, engi
 ok(!/JSON\.stringify\(\{ topic: idea, language,/.test(ROUTE), 'nenhuma chamada ao escritor com a língua da interface')
 ok(/return refuse\(user\.id, 'not_eligible', language\)/.test(ROUTE), 'recusas seguem na língua da interface')
 ok(/NextResponse\.json\(\{ script, scenes: shown, left, language: narration \}/.test(ROUTE), 'a resposta devolve a língua do roteiro (a volta ao Studio usa)')
-ok(!/scriptLanguage = language === 'pt' \|\| language === 'es' \? language : 'en'/.test(CLIENT), "a tela não força mais 'en' fora de pt/es")
+ok(/scriptLanguage = language === 'pt' \|\| language === 'es' \? language : 'en'/.test(CLIENT), 'a tela segue mandando en/pt/es como dica (texto latino como antes)')
 ok(/language: typeof j\.language === 'string' \? j\.language : scriptLanguage/.test(CLIENT), 'a tela guarda a língua que o servidor usou')
 
 console.log('4 — mutantes')
@@ -110,7 +133,7 @@ const antiga = (hint) => (typeof hint === 'string' && /^[a-z]{2}$/.test(hint) ? 
 ok(writerRule(antiga('en')) === EN_RULE, 'mutante "dica direto" (origin/main) → urdu recebe "US English" + "translate nothing"')
 const soResolve = (hint, text) => T.resolveNarrationLanguage(hint, text).language
 ok(soResolve('en', URDU) === 'en', 'mutante "só resolveNarrationLanguage" → urdu ainda vira en (o detector de 6 línguas não lê árabe/urdu)')
-ok(!!L && L.dominantScriptLanguage('Atlantis was a city') === null && L.dominantScriptLanguage(URDU) === 'ur' && L.dominantScriptLanguage(ARABIC) === 'ar', 'escrita dominante: latino → null; urdu → ur; árabe → ar')
+ok(!!L && L.dominantScript('Atlantis was a city') === null && L.dominantScript('story of दीवाली') === null && L.dominantScript(URDU)?.name === 'arabic' && L.dominantScript(HINDI)?.name === 'devanagari', 'escrita dominante = mais da metade das letras: latino/palavra solta → null; urdu → árabe; hindi → devanágari')
 
 console.log(`\n${pass} ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)
