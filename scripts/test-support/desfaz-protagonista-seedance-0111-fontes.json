@@ -1,13 +1,13 @@
 {
- "base": "5f9ee5e015e76bfce506667ec4d8ae34b5a8a405",
+ "base": "65eaf42530ab9cae1088032633d6f4a6835cc0cf",
  "scope": {
   "app/api/generate-video-cinematic/route.ts": {
-   "beforeSha256": "471146625b2b132924edd29a6f073eaf1c69f5bd13e7458a51ae684f2468ce37",
-   "afterSha256": "1462d06a75c4ffb2e96421d0e6af002fca1ce7a7bb896ce367b008b305b8fa18",
+   "beforeSha256": "702057e157bc213d04362ce0253beb956992314082f75eaeb123ffb5543904af",
+   "afterSha256": "dad55a9cb49e67ef38f9843dbd72c84580eb5ccac964b5a9baaae2291cb4cfe4",
    "hunks": [
     {
-     "before": "import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos\n",
-     "after": "import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos\nimport { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico\n"
+     "before": "import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original\n",
+     "after": "import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original\nimport { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico\n"
     },
     {
      "before": "    // KINEO-QUALIDADE-TODOS-MOTORES-2910 — existing paid casting only where it already ran; inherited cards win.\n    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada",
@@ -113,6 +113,6 @@
   }
  },
  "addedSources": {
-  "lib/cinematic/elencoSemantico.ts": "79d6eb8eed44905a1d48ece4f37b91f1a7ff1886c75e8bf387b88aa451aad49e"
+  "lib/cinematic/elencoSemantico.ts": "2326baef14b5178a8bad2cd0e31036adf38b06d119c8a49b73769dfc92e3b128"
  }
 }

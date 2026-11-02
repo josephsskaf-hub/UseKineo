@@ -3082,7 +3082,13 @@
   "especie": null,
   "humanos": [
    "Lince"
-  ]
+  ],
+  "fichas": {
+   "Lince": {
+    "faixa": "child",
+    "literal": "oito anos"
+   }
+  }
  },
  {
   "id": "rev9-pickles-hedgehog",
@@ -3135,7 +3141,13 @@
   "especie": null,
   "humanos": [
    "Sofía"
-  ]
+  ],
+  "fichas": {
+   "Sofía": {
+    "faixa": "child",
+    "literal": "seis años"
+   }
+  }
  },
  {
   "id": "rev10-leo-inventor",
@@ -3173,7 +3185,7 @@
   "fichas": {
    "Riley": {
     "faixa": "child",
-    "literal": "seven-year-old",
+    "literal": "seven",
     "genero": "female"
    },
    "Jake": {
@@ -3233,7 +3245,7 @@
   "fichas": {
    "Mateo": {
     "faixa": "child",
-    "literal": "6-year-old",
+    "literal": "seis años",
     "genero": "male"
    },
    "Ernesto": {
@@ -3398,7 +3410,7 @@
   "fichas": {
    "Davi": {
     "faixa": "child",
-    "literal": "9-year-old",
+    "literal": "nove anos",
     "genero": "male"
    }
   }
@@ -3460,7 +3472,7 @@
      "adult",
      "elderly"
     ],
-    "semLiteral": "10-year-old"
+    "semLiteral": "dez anos"
    }
   }
  },
@@ -3526,7 +3538,7 @@
    "Davi": {
     "faixa": "child",
     "genero": "male",
-    "semLiteral": "80-year-old"
+    "semLiteral": "oitenta"
    }
   }
  },
@@ -3545,7 +3557,7 @@
   "fichas": {
    "Mateo": {
     "faixa": "child",
-    "semLiteral": "75-year-old"
+    "semLiteral": "75"
    }
   }
  },
@@ -3629,12 +3641,12 @@
    "Lucas": {
     "faixa": "child",
     "genero": "male",
-    "literal": "7-year-old",
-    "semLiteral": "70-year-old"
+    "literal": "sete anos",
+    "semLiteral": "setenta"
    },
    "Zé": {
     "faixa": "elderly",
-    "literal": "70-year-old"
+    "literal": "setenta anos"
    }
   }
  },
@@ -3655,7 +3667,7 @@
    "Sofía": {
     "faixa": "child",
     "genero": "female",
-    "literal": "8-year-old"
+    "literal": "ocho años"
    }
   }
  },
@@ -3703,7 +3715,7 @@
    "Rosa": {
     "faixa": "elderly",
     "genero": "female",
-    "literal": "82-year-old"
+    "literal": "oitenta e dois anos"
    }
   }
  },
@@ -3721,7 +3733,12 @@
   ],
   "fichas": {
    "Leo": {
-    "semLiteral": "78-year-old"
+    "semLiteral": "78-year-old",
+    "faixa": [
+     "child",
+     "teen",
+     "adult"
+    ]
    }
   }
  },
@@ -3740,7 +3757,7 @@
   ],
   "fichas": {
    "Joaquim": {
-    "semLiteral": "50-year-old"
+    "semLiteral": "50"
    }
   }
  },
@@ -3759,7 +3776,7 @@
   ],
   "fichas": {
    "Ernesto": {
-    "semLiteral": "50-year-old"
+    "semLiteral": "50"
    }
   }
  },
@@ -3799,7 +3816,7 @@
    "Noah": {
     "faixa": "child",
     "genero": "male",
-    "literal": "ten-year-old",
+    "literal": "ten",
     "semLiteral": "12-year-old"
    }
   }
@@ -3838,7 +3855,289 @@
   ],
   "fichas": {
    "Lucas": {
-    "semLiteral": "70-year-old"
+    "semLiteral": "setenta"
+   }
+  }
+ },
+ {
+  "id": "rev12-tom-boy-of-nine",
+  "fonte": "rev-0211a",
+  "texto": "Tom, a boy of nine, finds a dragon egg in the barn. Tom hides it under his bed. That night, the egg cracks and a tiny dragon sneezes fire on his pillow.",
+  "protagonista": [
+   "Tom"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Tom"
+  ],
+  "fichas": {
+   "Tom": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "nine"
+   }
+  }
+ },
+ {
+  "id": "pt-rev12-historia-de-lucas",
+  "fonte": "rev-0211a",
+  "texto": "A história de Lucas, um menino de sete anos, começa numa praia. Lucas encontra uma garrafa com um mapa. Ele corre para mostrar ao avô Tião, de 80 anos.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas"
+  ],
+  "fichas": {
+   "Lucas": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "sete anos",
+    "semLiteral": "80"
+   }
+  }
+ },
+ {
+  "id": "pt-rev12-ana-olhos-azuis",
+  "fonte": "rev-0211a",
+  "texto": "Ana, uma menina de oito anos de olhos azuis, ama gatos. Ana encontra um gatinho na chuva e o leva para casa. A mãe dela sorri e deixa o gatinho ficar.",
+  "protagonista": [
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana"
+  ],
+  "fichas": {
+   "Ana": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "oito anos"
+   }
+  }
+ },
+ {
+  "id": "es-rev12-lucia-abuelo",
+  "fonte": "rev-0211a",
+  "texto": "Lucía, una niña de ocho años de ojos verdes, sueña con volar. Su abuelo Ramón, de 82 años, le construye unas alas de papel. Lucía salta desde el granero y aterriza en el heno.",
+  "protagonista": [
+   "Lucía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucía"
+  ],
+  "fichas": {
+   "Lucía": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "ocho años",
+    "semLiteral": "82"
+   },
+   "Ramón": {
+    "faixa": "elderly",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev12-story-of-leo",
+  "fonte": "rev-0211a",
+  "texto": "The story of Leo, a 9-year-old inventor, starts in a garage. Leo builds a robot dog named Bolt. Bolt fetches his grandma's slippers and Leo laughs.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ],
+  "fichas": {
+   "Leo": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "9-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev12-lily-grandma-seven",
+  "fonte": "rev-0211a",
+  "texto": "Meet Lily, a girl who adores her grandma. She is seven. Every Saturday they bake cookies together, and Lily always burns the first batch.",
+  "protagonista": [
+   "Lily"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lily"
+  ],
+  "fichas": {
+   "Lily": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "seven"
+   }
+  }
+ },
+ {
+  "id": "rev12-grandpa-joe-sunny",
+  "fonte": "rev-0211a",
+  "texto": "Grandpa Joe is 84 and his best friend is a golden retriever named Sunny. Every morning Joe and Sunny walk to the lake. One day Sunny finds a message in a bottle.",
+  "protagonista": [
+   "Grandpa Joe",
+   "Joe"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joe"
+  ],
+  "fichas": {
+   "Joe": {
+    "faixa": "elderly",
+    "genero": "male",
+    "literal": "84"
+   }
+  },
+  "animais": {
+   "Sunny": "golden retriever"
+  }
+ },
+ {
+  "id": "rev12-mia-peanut",
+  "fonte": "rev-0211a",
+  "texto": "Mia, 6, and her hamster Peanut go on a tiny adventure. Peanut escapes into the garden. Mia follows him past the roses and finds a hidden fairy door.",
+  "protagonista": [
+   "Mia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mia"
+  ],
+  "fichas": {
+   "Mia": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "6"
+   }
+  },
+  "animais": {
+   "Peanut": "hamster"
+  }
+ },
+ {
+  "id": "pt-rev12-dona-cida",
+  "fonte": "rev-0211a",
+  "texto": "Dona Cida, de 75 anos, mora com o cachorro Pipoca. Pipoca rouba o pão da vizinha todo dia. Dona Cida pede desculpas levando bolo de fubá.",
+  "protagonista": [
+   "Dona Cida",
+   "Cida"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Cida"
+  ],
+  "fichas": {
+   "Cida": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "75 anos"
+   }
+  },
+  "animais": {
+   "Pipoca": "dog"
+  }
+ },
+ {
+  "id": "es-rev12-pablo-carmen",
+  "fonte": "rev-0211a",
+  "texto": "Pablo tiene nueve años y vive con su abuela Carmen. Ella tiene setenta y ocho años y le enseña a cocinar. Pablo quema la tortilla y los dos se ríen.",
+  "protagonista": [
+   "Pablo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Pablo"
+  ],
+  "fichas": {
+   "Pablo": {
+    "faixa": "child",
+    "literal": "nueve años",
+    "semLiteral": "setenta"
+   },
+   "Carmen": {
+    "faixa": "elderly",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "rev12-sam-girl",
+  "fonte": "rev-0211a",
+  "texto": "Sam, a nine-year-old girl, wants a puppy. Her dad says no. Sam builds a puppy out of cardboard and names it Rex.",
+  "protagonista": [
+   "Sam"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sam"
+  ],
+  "fichas": {
+   "Sam": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "nine-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev12-kai-youngest",
+  "fonte": "rev-0211a",
+  "texto": "Kai, the youngest of five brothers, is six. Kai wants to win the family soccer game. His brothers laugh, but Kai scores the winning goal.",
+  "protagonista": [
+   "Kai"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Kai"
+  ],
+  "fichas": {
+   "Kai": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "six"
+   }
+  }
+ },
+ {
+  "id": "rev12-roland-rick",
+  "fonte": "rev-0211a",
+  "texto": "Roland Pernicus Oznard, a gruff old man with shoulder-length gray-brown hair, has a new enemy: the smart fridge. It says good morning, Roland. He never told it his name. Roland unplugs it, wraps it in foil, and hides behind the couch. The fridge beeps once. Checkmate.",
+  "protagonista": [
+   "Roland Pernicus Oznard",
+   "Roland"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Roland"
+  ],
+  "fichas": {
+   "Roland": {
+    "faixa": "elderly",
+    "genero": "male",
+    "literal": "old man"
    }
   }
  }

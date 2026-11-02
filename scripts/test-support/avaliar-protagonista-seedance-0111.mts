@@ -1,6 +1,7 @@
 // KINEO-PROTAGONISTA-SEEDANCE-0111 — a régua da calibração do elenco semântico (usada pelo calibrador e pelo guardião).
 // Erro GRAVE: pessoa virando bicho/criatura; personagem inventado (lugar, empresa, palavra de abertura); protagonista errado;
 // rodada 10: criança/adolescente com idade escrita virando adulto na FICHA aplicada (aplicarElencoSemantico sobre o elenco de sempre).
+// rodada 12: a idade "literal" esperada é a palavra do autor (o trecho copiado entra como ele escreveu), sem diferença de caixa.
 import { aplicarElencoSemantico, faixaDaFicha, type ElencoSemantico, type PersonagemSemantico, type FaixaEtaria } from '../../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro } from '../../lib/cinematic/personagemAjuste'
 
@@ -74,8 +75,12 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
       const virouAdulto = menor && (lida.faixa === 'adult' || lida.faixa === 'elderly')
       if (faixas.length && !faixas.includes(lida.faixa)) (virouAdulto && aplicado ? graves : erros).push(`${pre}${virouAdulto ? 'crianca_virou_' : 'faixa:'}${lida.faixa}:${nome}`)
       if (esp.genero && lida.genero !== esp.genero) erros.push(`${pre}genero:${nome}=${lida.genero}`)
-      if (esp.literal && !f.canonica.includes(esp.literal)) erros.push(`${pre}idade_literal:${nome}`)
-      if (esp.semLiteral && f.canonica.includes(esp.semLiteral)) erros.push(`${pre}idade_alheia:${nome}`)
+      // rodada 12: a idade literal é a palavra do AUTOR ("de oito anos", "seven") e pode vir em qualquer caixa ("Seven-Year-Old")
+      if (esp.literal && !f.canonica.toLowerCase().includes(esp.literal.toLowerCase())) erros.push(`${pre}idade_literal:${nome}`)
+      // a idade alheia não pode estar no que a ficha diz DA PESSOA; o trecho que o autor escreveu e o código conferiu ("Leo, grandson of a
+      // 78-year-old fisherman, exactly as the author wrote — …") entra como está e não conta (a faixa da pessoa é conferida acima)
+      const semTrechoDoAutor = f.canonica.replace(/^([^,]*,)\s.*?, exactly as the author wrote — /u, '$1 ')
+      if (esp.semLiteral && semTrechoDoAutor.includes(esp.semLiteral)) erros.push(`${pre}idade_alheia:${nome}`)
     }
   }
   const unicos = (xs: string[]) => [...new Set(xs)]

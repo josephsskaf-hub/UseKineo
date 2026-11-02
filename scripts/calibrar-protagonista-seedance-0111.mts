@@ -13,6 +13,8 @@
 // Métrica nova species_en_troca_em_ingles: em roteiro INGLÊS (id sem prefixo pt-/es-), quantas respostas reais trazem species_en diferente
 // da species — sem detector de língua, o species_en é usado como tradução da palavra original que está no texto, então é aqui que um
 // "pigeon" → "eagle" do modelo apareceria.
+// Revisão 02/11 (rodada 12, v9): o prompt pede age_text/role_text como TRECHO LITERAL (sem age_if_stated/age_evidence); +13 casos fonte
+// 'rev-0211a' (os 12 da revisão da rodada 11 na API + o Roland do Rick) e as expectativas de "literal" passam a ser as palavras do autor.
 // Modos:
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava
