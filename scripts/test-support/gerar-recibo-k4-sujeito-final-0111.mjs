@@ -9,14 +9,17 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
+// v6: a base é o ponto em que esta entrega saiu da origin/main (merge-base) — a origin/main andou depois (outra sessão mexeu no
+// GenerateClient) e comparar com a ponta dela misturaria o trabalho alheio no recibo.
+const BASE = git('merge-base', 'HEAD', 'origin/main').trim()
 const ESCOPO = ['app/(dashboard)/generate/GenerateClient.tsx', 'app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/cinematic/finalResposta.ts', 'lib/cinematic/sujeitoObrigatorio.ts'] // KINEO-K4-SUJEITO-0111 + KINEO-FINAL-RESPOSTA-0111 — sujeito obrigatório do Kling 4 (v2: só do pedido original — original_idea do cliente) e fim que revela (escritor + descritor)
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {
   const now = lf(readFileSync(join(raiz, file), 'utf8'))
-  const existe = git('ls-tree', '--name-only', 'origin/main', '--', file).trim()
+  const existe = git('ls-tree', '--name-only', BASE, '--', file).trim()
   if (!existe) { addedSources[file] = sha(now); continue }
-  const before = lf(git('show', `origin/main:${file}`))
+  const before = lf(git('show', `${BASE}:${file}`))
   // hunks por linhas: blocos contíguos diferentes, com 1 linha de contexto de cada lado (único no arquivo)
   const a = before.split('\n'), b = now.split('\n')
   let i = 0, j = 0; const hunks = []
@@ -38,5 +41,5 @@ for (const file of ESCOPO) {
   if (r !== before) throw Error('desfazer não devolve a origin/main em ' + file)
   scope[file] = { beforeSha256: sha(before), afterSha256: sha(now), hunks }
 }
-writeFileSync(join(raiz, 'scripts/test-support/desfaz-k4-sujeito-final-0111-fontes.json'), JSON.stringify({ base: git('rev-parse', 'origin/main').trim(), scope, addedSources }, null, 1) + '\n')
+writeFileSync(join(raiz, 'scripts/test-support/desfaz-k4-sujeito-final-0111-fontes.json'), JSON.stringify({ base: BASE, scope, addedSources }, null, 1) + '\n')
 console.log('recibo:', Object.keys(scope).length, 'alterados,', Object.keys(addedSources).length, 'novos')

@@ -10,6 +10,9 @@
 // gente por has_human ("a boy" em pedido adulto nunca), motivo de descarte no relato, 4xx sem 2ª tentativa, chamada só depois da
 // reserva; o juiz do fim só cobra resposta de gancho que a DEVE (história, motivacional, infantil e lista passam) e só roda quando
 // nenhum outro motivo já pede a nova tentativa; a reescrita só pelo juiz só entra se não piorar. Calibração com conjunto CEGO.
+// v6 (revisão do c5dbdbcf3): presença exige o NÚCLEO (família só reforça), nome de pessoa fora do texto injetado, juiz do fim e
+// reescrita dentro do prazo de 60 s da rota, regra do sujeito no descritor só no Kling 4 grátis; casos rv5-* com resposta MOCKADA
+// (OpenAI sem crédito em 01/11 — pendente de medir com scripts/calibrar-k4-sujeito-final-0111.mts).
 // Rodar: npx tsx scripts/test-k4-sujeito-final-0111.mts
 import { readFileSync } from 'node:fs'
 import { buildClassicVisualPrompt } from '@/lib/cinematic/visualPromptPolicy'
@@ -17,9 +20,9 @@ import { deriveStyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { promptDaCenaKling4, KLING4_ORCAMENTO_DA_CAMADA, KLING4_PROMPT_MAX } from '@/lib/cinematic/cenaKling4'
 import { buildKling4TrialInput } from '@/lib/kling4Trial'
 import * as sujeitoMod from '@/lib/cinematic/sujeitoObrigatorio'
-import { sujeitoObrigatorio, avaliarSujeito, exigirSujeitoNoKling4, sujeitoNoKling4, promptMostraOSujeito, comSujeitoNaCena, pedidoOriginalDoSujeito, pedidoCurto, lerSujeitoDoPedido, lerLeituraDoSujeito, chavesDoSujeito, EXEMPLOS_SUJEITO_0111, type ResultadoSemantico, type LeituraDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio'
+import { sujeitoObrigatorio, avaliarSujeito, exigirSujeitoNoKling4, sujeitoNoKling4, promptMostraOSujeito, comSujeitoNaCena, pedidoOriginalDoSujeito, pedidoCurto, lerSujeitoDoPedido, lerLeituraDoSujeito, chavesDoSujeito, semNomeDePessoa, EXEMPLOS_SUJEITO_0111, type ResultadoSemantico, type LeituraDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio'
 import * as finalMod from '@/lib/cinematic/finalResposta'
-import { finalFracoDoRoteiro, ultimaFraseDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, entradaDoJuizDoFinal, quaseIgualAoGancho, fimSemResposta } from '@/lib/cinematic/finalResposta'
+import { finalFracoDoRoteiro, ultimaFraseDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, entradaDoJuizDoFinal, quaseIgualAoGancho, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, PRAZO_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta'
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor'
 import { parseUserScript } from '@/lib/scriptParser'
 
@@ -105,7 +108,7 @@ ok(v('The real story of Billy the Kid', { subject: 'a child', kind: 'person_gene
 ok(v('O que Lula disse', { subject: null, kind: 'none' })?.descartado === 'sem_sujeito', '(2) kind none: nada a injetar')
 ok(v('cara ou coroa: a matemática da moeda', { subject: 'a moeda', head_noun: 'moeda', kind: 'object', mention_words: ['moeda'], request_language: 'pt' })?.descartado === 'sujeito_sem_traducao', '(2) sujeito copiado sem traduzir ("a moeda", resposta real da calibração): descartado')
 ok(v('cara ou coroa: a matemática da moeda', { subject: 'a coin', head_noun: 'coin', kind: 'object', mention_words: ['moeda'], request_language: 'pt' })?.subject === 'a coin', '(2) o mesmo pedido com "a coin": vale')
-ok(v("Leonardo da Vinci's flying machine", { subject: "Leonardo da Vinci's flying machine", head_noun: 'machine', kind: 'object', mention_words: ['flying machine'], request_language: 'en' })?.subject === "Leonardo da Vinci's flying machine", '(2) v5: pedido em inglês com "da" não cai mais na checagem de tradução (a língua é a que o modelo leu)')
+ok(v("Leonardo da Vinci's flying machine", { subject: "Leonardo da Vinci's flying machine", head_noun: 'machine', kind: 'object', mention_words: ['flying machine'], request_language: 'en' })?.subject === 'a flying machine', '(2) v5/v6: pedido em inglês com "da" não cai na checagem de tradução (a língua é a que o modelo leu) — e o nome do inventor sai do texto injetado (v6)')
 ok(v('What really happened to Flight 19', { subject: 'Flight 19', head_noun: 'flight', kind: 'vehicle', mention_words: ['Flight 19'] })?.descartado === 'sem_nucleo', '(2) só nome/número ("Flight 19"): o núcleo não está escrito em minúscula no sujeito — descartado, o motor não sabe o que desenhar')
 ok(v('the SS St. Louis', { subject: 'the SS St. Louis', head_noun: 'louis', kind: 'vehicle', mention_words: ['the SS St. Louis'] })?.descartado === 'sem_nucleo', '(2) "the SS St. Louis" sem "ship" (núcleo "Louis" é nome, não substantivo comum): descartado')
 ok(v('a talking parrot that tells jokes', { subject: 'a talking parrot', head_noun: 'parrot', kind: 'creature', mention_words: ['talking parrot'] })?.subject === 'a talking parrot' && v('x', { subject: 'a talking parrot', head_noun: 'eagle', kind: 'creature' })?.descartado === 'sem_nucleo', '(2) v5: o núcleo tem de ser palavra do próprio sujeito ("parrot" sim, "eagle" não)')
@@ -138,7 +141,7 @@ for (const c of CAL.sujeito as Array<{ id: string; pedido: string; rotulo: strin
   let pior = 'ok'
   for (const p of c.passadas) {
     const s = sujeitoObrigatorio({ leitura: await leituraDe(c.pedido, p.cru) })
-    total++; if ((s?.frase ?? null) === p.subject) iguais++
+    total++; if ((s?.frase ?? null) === (p.subject === null ? null : semNomeDePessoa(p.subject))) iguais++ // v6: o gravado com o nome de pessoa cortado ("Napoleon's hat" → "a hat")
     const f = s?.frase ?? null
     const vered = c.rotulo === 'neg' ? (f ? 'grave' : 'ok') : !f ? (c.rotulo === 'pos' ? 'perdeu' : 'ok') : aceita!.test(f) ? 'ok' : c.secundario && new RegExp(c.secundario, 'i').test(f) ? 'perdeu' : 'grave'
     if (vered === 'grave') pior = 'grave'; else if (vered === 'perdeu' && pior === 'ok') pior = 'perdeu'
@@ -146,7 +149,7 @@ for (const c of CAL.sujeito as Array<{ id: string; pedido: string; rotulo: strin
   if (pior === 'grave') { graves++; console.log('    grave:', c.id) }
   if (c.rotulo === 'pos') { posTotal++; if (pior === 'ok') posAcertos++ }
 }
-ok(iguais === total, `(3) a validação de hoje reproduz o sujeito gravado na calibração (${iguais}/${total})`)
+ok(iguais === total, `(3) a validação de hoje reproduz o sujeito gravado na calibração, menos o nome de pessoa (v6) (${iguais}/${total})`)
 ok(graves === 0, `(3) 0 falso positivo grave nas ${CAL.sujeito.length} respostas gravadas (${CAL.placar.sujeito.origem.revisao} das revisões + ${CAL.placar.sujeito.origem.banco} do banco)`)
 ok(posAcertos / posTotal >= 0.85, `(3) positivos: ${posAcertos}/${posTotal} = ${(100 * posAcertos / posTotal).toFixed(1)}% (meta ≥ 85%)`)
 ok(CAL.sujeito.length >= 40 && CAL.placar.sujeito.origem.banco >= 20, '(3) conjunto rotulado ≥ 40 casos, ≥ 20 reais do banco')
@@ -190,7 +193,7 @@ ok(corr.relato.corrigido && corr.relato.cena === 3, `(4) corrigido na cena ${cor
 ok(corr.prompts[2].includes(`Main subject clearly visible in frame: ${sAviao.frase}.`), '(4) a cena leva "Main subject clearly visible in frame: …"')
 ok(corr.stills[0] === stillsAviao[0] && corr.stills[1] === stillsAviao[1] && corr.stills[2] === null && corr.relato.keyframe_removido, '(4) abertura intacta; a imagem-chave do meio desenhada sem o avião sai')
 ok(corr.prompts.every((q) => len(q) <= KLING4_ORCAMENTO_DA_CAMADA) && corr.prompts.every((q) => q.endsWith('Mouth closed, no speaking.')), '(4) orçamento da camada e cauda preservados')
-ok(corr.relato.leitura?.ok === true && corr.relato.leitura.subject === sAviao.frase && corr.relato.leitura.head_noun === 'airplane' && corr.relato.leitura.word_use === 'literal' && corr.relato.leitura.model === 'gpt-4o-mini' && corr.relato.versao === 'k4_sujeito_0111_v5_semantico' && corr.relato.motivo_sem_sujeito === null, '(4) o relato do claim guarda a leitura semântica crua (auditoria)')
+ok(corr.relato.leitura?.ok === true && corr.relato.leitura.subject === sAviao.frase && corr.relato.leitura.head_noun === 'airplane' && corr.relato.leitura.word_use === 'literal' && corr.relato.leitura.model === 'gpt-4o-mini' && corr.relato.versao === 'k4_sujeito_0111_v6_semantico' && corr.relato.leitura.subject_original === null && corr.relato.motivo_sem_sujeito === null, '(4) o relato do claim guarda a leitura semântica crua (auditoria)')
 const shots = buildKling4TrialInput(corr.prompts, corr.stills, { voiceovers: falasAviao, wordsPerSecond: 2.5 }).input.multi_prompt as Array<{ prompt: string }>
 ok(shots.every((s) => len(s.prompt) <= KLING4_PROMPT_MAX) && shots.some((s) => /C-54/.test(s.prompt)), '(4) no corpo do POST (multi_prompt) o avião chega e todo shot ≤ 512')
 const semImagens = exigirSujeitoNoKling4({ pedido: ped, leitura: leituraAviao, falas: falasAviao, prompts: k4Aviao })
@@ -274,13 +277,79 @@ ok(/KINEO-FINAL-RESPOSTA-0111: when the opening narration promises an answer/.te
 ok(/submit: async \(\) => \{ await aplicarSujeitoNoKling4\(\); return submitKling4TrialVideo\(/.test(rota) && rota.indexOf('aplicarSujeitoNoKling4(); return') > rota.indexOf('reserve: () => reserveKling4Trial('), '(6) cinematic v5: a chamada semântica sai DENTRO do submit — depois da reserva aprovada e só no ramo das 3 cenas')
 ok(!/await lerSujeitoDoPedido\(/.test(rota) && /if \(!kling4PedidoSujeito\) return/.test(rota) && /sujeitoNoKling4\(\{ pedido: kling4PedidoSujeito/.test(rota) && /sujeito_obrigatorio: kling4Sujeito\.r\?\.relato \?\? null/.test(rota), '(6) cinematic: sem pedido confiável nada sai; a leitura vai para a checagem e o relato (com a leitura crua e o motivo) vai no claim')
 ok(/kling4TrialCandidate && !desenhoInfantil\.ativo \? pedidoOriginalDoSujeito/.test(rota), '(6) cinematic: só no Kling 4 grátis, nunca no desenho infantil')
-ok(/if \(!colado\.pasted\) \{[\s\S]{0,500}if \(!outroMotivoDeRetry\) \{\s*const juiz = await finalTemRespostaConcreta\(script, \{ pedido: temaDoEscritor \}\)/.test(escritor), '(6) escritor v5: o juiz só roda no roteiro da IA, só quando nenhum outro motivo já pede a nova tentativa, e lê o pedido')
+ok(/\$\{kling4Gratis \? \x60\n- KINEO-K4-SUJEITO-0111: /.test(rota) && /sheet: desenhoInfantil\.personagem\.sheet \} : null, kling4TrialCandidate\)\)/.test(rota) && !/or as wreckage/.test(rota), '(6) cinematic v6: a regra do sujeito no descritor de cenas só vai no Kling 4 grátis (os outros motores clássicos recebem o system de antes), sem o exemplo de destroços')
+ok(/if \(!colado\.pasted\) \{[\s\S]{0,900}const orcamentoDoJuiz = outroMotivoDeRetry \? null : orcamentoDoJuizDoFinal\(Date\.now\(\) - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS\)[\s\S]{0,400}if \(!outroMotivoDeRetry && orcamentoDoJuiz\) \{\s*const juiz = await finalTemRespostaConcreta\(script, \{ pedido: temaDoEscritor, \.\.\.orcamentoDoJuiz \}\)/.test(escritor), '(6) escritor v6: o juiz só roda no roteiro da IA, só quando nenhum outro motivo já pede a nova tentativa, lê o pedido e só sai com prazo que deixa a reescrita caber')
 ok(/const outroMotivoDeRetry = missing\.length > 0 \|\| payoffIsEmpty\(script\) \|\| curtoParaOAlvo\(script\) \|\| longoParaOFilmeCurto\(script\) \|\| leuADescricao\(script\) \|\| !!finalFraco/.test(escritor), '(6) escritor v5: os outros motivos de nova tentativa são conferidos antes do juiz')
-ok(/if \(juiz\.ok && fimSemResposta\(juiz\.valor\)\) \{ finalFraco = 'sem_resposta'; rastroDoFinal\.retry_so_pelo_final = true \}/.test(escritor), '(6) escritor v5: só deve-e-não-entrega = a MESMA nova tentativa; erro do juiz = nada muda')
+ok(/if \(juiz\.ok && fimSemResposta\(juiz\.valor\)\) \{\s*if \(cabeReescritaDoFinal\(Date\.now\(\) - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS\)\) \{ finalFraco = 'sem_resposta'; rastroDoFinal\.retry_so_pelo_final = true \}\s*else rastroDoFinal\.retry_pulado_por_prazo = true/.test(escritor), '(6) escritor v6: só deve-e-não-entrega = a MESMA nova tentativa, e só se a reescrita ainda couber; erro do juiz = nada muda')
+ok(/export async function POST\(req: NextRequest\) \{\s*const inicioDaRota = Date\.now\(\)/.test(escritor) && /export const maxDuration = 60\b/.test(escritor) && PRAZO_DA_ROTA_DO_ESCRITOR_MS === 60_000, '(6) escritor v6: o relógio começa na entrada da rota e o prazo do juiz é o mesmo maxDuration (60 s)')
 ok(/\} else if \(!rastroDoFinal\?\.retry_so_pelo_final \|\| retryNaoPiora\(retryScript\)\) \{/.test(escritor) && /const adotaFinal = !rastroDoFinal\?\.retry_so_pelo_final \|\| retryNaoPiora\(fimDaTentativa\.script\)/.test(escritor), '(6) escritor v5: a reescrita pedida só pelo juiz só substitui a original se não piorar (filme longo e curto)')
 ok(/final_resposta: rastroDoFinal/.test(escritor), '(6) escritor: o resultado vai no script_written (auditoria)')
 ok(/\(colado\.pasted \|\| !finalFracoDoRoteiro\(t\)\)/.test(escritor), '(6) escritor: a escolha entre as duas versões do filme curto usa só o detector estreito (sem rede)')
 ok(/original_idea: ideiaDoRoteiroRef\.current\.ideia\.slice\(0, 600\)/.test(cliente) && /ideiaDoRoteiroRef\.current\.roteiro === trimmed/.test(cliente), '(6) cliente: a ideia original só acompanha o roteiro que nasceu dela')
+
+// ═══ (7) v6 — revisão adversarial do c5dbdbcf3 ═══
+// 7a. a presença exige o NÚCLEO; a família só reforça (os 5 casos da revisão, que no c5dbdbcf3 passavam como "já em cena")
+for (const [frase, nucleo, semNucleo, comNucleo] of [
+  ['a dog waiting at a train station', 'dog', 'A train pulls into an empty station at dusk', 'A loyal dog sits on a train platform as a train pulls in'],
+  ['an astronaut cat on the moon', 'cat', 'An astronaut plants a flag on the moon', 'A cat in a tiny astronaut suit bounces on the moon'],
+  ['a boy who found a meteorite', 'boy', 'A glowing meteorite smokes in a crater', 'A boy kneels beside a glowing meteorite'],
+  ['a flying car stuck in traffic', 'car', 'Cars stuck bumper to bumper in traffic', 'A flying car hovers above a traffic jam'],
+  ['an old fisherman with his boat', 'fisherman', 'A wooden boat rocks in the harbor at dawn', 'Two old fishermen haul a net into a wooden boat'],
+] as const) {
+  const sj = { frase, tipo: 'objeto' as const, chaves: chavesDoSujeito(frase, nucleo), tokens: [] as string[], mencoes: [] as string[], origem: 'pedido' as const }
+  ok(!promptMostraOSujeito(semNucleo, sj) && promptMostraOSujeito(comNucleo, sj), `(7) v6: "${frase}" — sem o núcleo "${nucleo}" NÃO está em cena; com ele, está`)
+}
+ok(chavesDoSujeito('a cat on the moon', 'cat').length === 1 && chavesDoSujeito('a talking parrot', 'parrot').length === 1, '(7) v6: núcleo sem família nem modificador visual = 1 chave ("talking" não muda o que se vê)')
+ok(chavesDoSujeito('a pack of wolves', 'wolves')[0].test('A lone wolf howls') && chavesDoSujeito('an old fisherman', 'fisherman')[0].test('Fishermen at dawn') && chavesDoSujeito('two women walking', 'women')[0].test('A woman walks'), '(7) v6: plural irregular do núcleo (wolf/wolves, fisherman/fishermen, woman/women)')
+ok(chavesDoSujeito('a dog', 'cat').length === 0 && chavesDoSujeito('a dog at a train station', null).length === 0, '(7) v6: núcleo ausente da frase, ou sem núcleo = nada a provar (a leitura já foi descartada como sem_nucleo)')
+const pedDog = pedidoOriginalDoSujeito({ prompt: 'a dog waiting at a train station', ideiaSolta: true, scriptMode: 'ai' })
+const MOCKS = JSON.parse(rd('scripts/test-support/k4-sujeito-0111-v6-mocks.json'))
+ok(MOCKS.mock === true && /NÃO são medição/.test(MOCKS.nota), '(7) v6: as respostas dos casos rv5-* são MOCK declarado (OpenAI sem crédito em 01/11) — pendente de medir')
+const leDog = await leituraDe('a dog waiting at a train station', MOCKS.respostas['rv5-dog-train'])
+const k4Dog = ['Photoreal film. Wide shot. A train pulls into an empty station at dusk. Mouth closed, no speaking.', 'Photoreal film. Close-up. Rain on the station clock. Mouth closed, no speaking.', 'Photoreal film. Aerial. The train leaves into the fog. Mouth closed, no speaking.']
+const corrDog = exigirSujeitoNoKling4({ pedido: pedDog, leitura: leDog, falas: ['Every day at five, he came back.', 'Rain or shine, he waited.', 'For ten years, the dog never missed a train.'], prompts: k4Dog })
+ok(!corrDog.relato.ja_presente && corrDog.relato.corrigido && corrDog.relato.cena === 3 && /Main subject clearly visible in frame: a dog waiting at a train station\./.test(corrDog.prompts[2]), `(7) v6: "a dog waiting at a train station" com prompts só de trem: corrigido na cena ${corrDog.relato.cena} (no c5dbdbcf3 era "já presente")`)
+// 7b. nome de pessoa real fora do texto injetado (as 3 respostas REAIS da calibração que traziam nome + formatos vizinhos)
+ok(semNomeDePessoa("Napoleon's hat") === 'a hat' && semNomeDePessoa("Napoleon's historic hat") === 'a historic hat', `(7) v6: "Napoleon's hat" (gravado) → "a hat"`)
+ok(semNomeDePessoa('a flying machine designed by Leonardo da Vinci') === 'a flying machine', '(7) v6: "designed by Leonardo da Vinci" (gravado) sai')
+ok(semNomeDePessoa('a crown belonging to King Arthur') === 'a crown' && semNomeDePessoa('a crown of King Arthur') === 'a crown', '(7) v6: "belonging to King Arthur" / "of King Arthur" (gravados) saem')
+ok(semNomeDePessoa('the bicorne hat Napoleon wore at Waterloo') === 'the bicorne hat at Waterloo' && semNomeDePessoa('a King Tut golden mask') === 'a golden mask' && semNomeDePessoa("The Titanic's lifeboats") === 'the lifeboats', '(7) v6: "X wore", título + nome e possessivo no começo')
+for (const fica of ['the SS St. Louis refugee ship', 'a Komodo dragon', 'a SpaceX Dragon capsule docking', 'the C-54 airplane that disappeared', 'the lifeboats of the Titanic', "students in a girls' school in Iran", 'a Malaysia Airlines passenger jet', 'a rusty bicycle crossing Africa', "Saturn's rings"]) ok(semNomeDePessoa(fica) === fica, `(7) v6: "${fica}" fica igual (navio, espécie, modelo, marca, lugar, astro)`)
+const napGravado = (CAL.sujeito as Array<{ id: string; passadas: Array<{ cru: string }> }>).find((c) => c.id === 'rv4-napoleon-hat')!
+const lNap = await leituraDe("Why Napoleon's hat sold for 2 million dollars", napGravado.passadas[0].cru)
+ok(lNap.ok && lNap.valor.subject === 'a hat' && lNap.valor.subject_original === "Napoleon's hat", '(7) v6: a resposta REAL gravada do Napoleão vira "a hat", com o original no relato')
+const sNapMal = lerLeituraDoSujeito({ reasoning: 't', subject: "Napoleon's hat", head_noun: 'napoleon', kind: 'object', real_person: false, has_human: false, mention_words: ['hat'], word_use: 'literal', request_language: 'en' }, "Napoleon's hat")
+ok(sNapMal?.subject === null, '(7) v6: se o núcleo for o próprio nome, nada é injetado')
+ok(lerLeituraDoSujeito({ reasoning: 't', subject: 'the hat of the man', head_noun: 'hat', kind: 'object', real_person: false, has_human: false, mention_words: ['hat'], word_use: 'literal', request_language: 'en' }, 'the hat')?.subject_original === null, '(7) v6: sem nome, subject_original fica null')
+const lEinstein = lerLeituraDoSujeito({ reasoning: 't', subject: "Einstein's violin", head_noun: 'violin', kind: 'object', real_person: false, has_human: false, mention_words: ['violino'], word_use: 'literal', request_language: 'pt' }, 'o violino de Einstein')
+ok(lEinstein?.subject === 'a violin', '(7) v6: pedido em português com dono famoso: "a violin"')
+// 7c. os casos rv5-* com a resposta mockada (já estão no conjunto da próxima calibração)
+const { CASOS_SUJEITO } = await import('./calibracao-k4-sujeito-final-0111-casos.mjs')
+const rv5 = (CASOS_SUJEITO as Array<{ id: string; pedido: string; aceita: string; proibido?: string; presente?: string[]; ausente?: string[] }>).filter((c) => c.id.startsWith('rv5-'))
+ok(rv5.length === 11 && rv5.every((c) => typeof MOCKS.respostas[c.id] === 'string'), '(7) v6: 11 casos novos no conjunto da calibração, cada um com resposta mockada')
+for (const c of rv5) {
+  const s = sujeitoObrigatorio({ leitura: await leituraDe(c.pedido, MOCKS.respostas[c.id]) })
+  const certo = !!s && new RegExp(c.aceita, 'i').test(s.frase) && (!c.proibido || !new RegExp(c.proibido).test(s.frase))
+  const pres = !!s && (c.presente ?? []).every((q) => promptMostraOSujeito(q, s)) && (c.ausente ?? []).every((q) => !promptMostraOSujeito(q, s))
+  ok(certo && pres, `(7) v6 [mock] "${c.pedido}" → "${s?.frase ?? null}"${c.proibido ? ' (sem nome de pessoa)' : ''}${c.presente ? ' e presença pelo núcleo' : ''}`)
+}
+ok(lerLeituraDoSujeito({ reasoning: 't', subject: 'a moeda', head_noun: 'moeda', kind: 'object', real_person: false, has_human: false, mention_words: ['moeda'], word_use: 'literal', request_language: 'pt' }, 'a moeda de ouro')?.descartado === 'sujeito_sem_traducao', '(7) v6: "a moeda" continua descartado (a lista de palavras iguais nas duas línguas é fechada)')
+// 7d. o juiz do fim e a reescrita respeitam o prazo de 60 s da rota
+const o0 = orcamentoDoJuizDoFinal(10_000, 35_000)
+ok(o0?.prazoTotalMs === 5_500 && o0.timeoutMs === 4_000, '(7) v6: com 10 s gastos, o juiz tem os 5,5 s de sempre')
+const o1 = orcamentoDoJuizDoFinal(19_000, 35_000)
+ok(o1?.prazoTotalMs === 3_000 && o1.timeoutMs === 3_000, '(7) v6: com 19 s gastos, o prazo do juiz encolhe para a reescrita caber (3 s)')
+ok(orcamentoDoJuizDoFinal(21_000, 35_000) === null && orcamentoDoJuizDoFinal(34_000, 35_000) === null, '(7) v6: 1ª chamada lenta (21 s, 34 s): o juiz nem é chamado — nenhuma 2ª chamada que estoure os 60 s')
+ok(cabeReescritaDoFinal(22_000, 35_000) && !cabeReescritaDoFinal(22_001, 35_000), '(7) v6: a reescrita só sai se 35 s + 3 s de folga ainda cabem nos 60 s')
+for (const gasto of [0, 5_000, 15_000, 17_000, 19_000, 20_000, 30_000]) {
+  const o = orcamentoDoJuizDoFinal(gasto, 35_000)
+  const pior = o ? gasto + o.prazoTotalMs + (cabeReescritaDoFinal(gasto + o.prazoTotalMs, 35_000) ? 35_000 : 0) : gasto
+  ok(pior <= 57_000, `(7) v6: ${gasto / 1000} s gastos → pior caso ${pior / 1000} s ≤ 57 s (60 s − folga)`)
+}
+const mLento = mock('pendura', 'pendura')
+const t0 = Date.now()
+const jLento = await finalTemRespostaConcreta(r('What NASA never announced about Mars.', 'The truth is out there.'), { ...OPC, fetchImpl: mLento.fetch, timeoutMs: 60, prazoTotalMs: 90 })
+ok(!jLento.ok && mLento.chamadas === 1 && Date.now() - t0 < 1_000, '(7) v6: o prazo encolhido do juiz é respeitado (sem 2ª tentativa que não caiba)')
 
 console.log(`\n${pass}/${pass + fail} verificações`)
 if (fail) process.exit(1)

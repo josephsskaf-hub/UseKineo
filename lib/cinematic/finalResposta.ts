@@ -24,7 +24,9 @@
 import { isSocialCta } from '@/lib/shortFilmScript'
 import { perguntaSemantica, MODELO_SEMANTICO_0111, type OpcoesSemanticas, type ResultadoSemantico } from '@/lib/cinematic/sujeitoObrigatorio'
 
-export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v5_semantico' as const
+// v6 (revisão adversarial do c5dbdbcf3): o juiz e a reescrita que ele pede respeitam o prazo de 60 s da rota (orcamentoDoJuizDoFinal,
+// cabeReescritaDoFinal); a instrução do sujeito no descritor de cenas ficou só no Kling 4 grátis.
+export const FINAL_RESPOSTA_VERSAO = 'final_resposta_0111_v6_semantico' as const
 export type FinalFraco = 'pergunta' | 'repete_gancho' | 'sem_revelacao' | 'sem_resposta'
 
 // Cabeçalho de seção: com dois-pontos (qualquer caixa) ou em MAIÚSCULAS sem dois-pontos. "Ritmo de vida…" numa linha de fala não é cabeçalho.
@@ -102,6 +104,29 @@ export const SYSTEM_FINAL_0111 = [
   'ends_with_concrete_answer is false when the PAYOFF only teases, sets a mood, says the mystery remains or that someone is still watching or waiting, asks a question, or restates the hook, without giving that concrete answer.',
   'Judge only what the text says; do not check whether the fact is true. Reply with JSON only.',
 ].join('\n')
+
+// ─── v6: o juiz e a reescrita que ele pede cabem no prazo da rota do escritor (revisão adversarial do c5dbdbcf3) ─────────────────
+// /api/generate-script tem maxDuration 60 s e cada chamada ao gpt-4o tem teto de 35 s (OPENAI_SCRIPT_TIMEOUT_MS). Antes, o juiz criava
+// um gatilho NOVO de 2ª chamada ao gpt-4o sem olhar o relógio: 1ª chamada lenta + juiz + reescrita podia passar de 60 s e a Vercel mataria
+// a rota no meio (sem roteiro nenhum para a pessoa). Agora: o juiz só é chamado se, depois dele, ainda couber a reescrita INTEIRA com
+// folga; o prazo dele encolhe com o que sobrou; e a reescrita só sai se ainda couber quando ele responde.
+export const PRAZO_DA_ROTA_DO_ESCRITOR_MS = 60_000
+/** Folga para gravar o script_written e responder depois da última chamada. */
+export const FOLGA_DA_ROTA_DO_ESCRITOR_MS = 3_000
+const MENOR_PRAZO_UTIL_DO_JUIZ_MS = 1_500
+
+/** O prazo do juiz para o tempo já gasto na rota — null = não chama (não sobra tempo para ele E para a reescrita que ele pediria). */
+export function orcamentoDoJuizDoFinal(decorridoMs: number, reescritaMs: number): { prazoTotalMs: number; timeoutMs: number } | null {
+  const sobra = PRAZO_DA_ROTA_DO_ESCRITOR_MS - FOLGA_DA_ROTA_DO_ESCRITOR_MS - reescritaMs - Math.max(0, decorridoMs)
+  const prazoTotalMs = Math.min(5_500, sobra)
+  if (!Number.isFinite(prazoTotalMs) || prazoTotalMs < MENOR_PRAZO_UTIL_DO_JUIZ_MS) return null
+  return { prazoTotalMs, timeoutMs: Math.min(4_000, prazoTotalMs) }
+}
+
+/** A reescrita pedida pelo juiz ainda cabe inteira no prazo da rota? */
+export function cabeReescritaDoFinal(decorridoMs: number, reescritaMs: number): boolean {
+  return Math.max(0, decorridoMs) + reescritaMs + FOLGA_DA_ROTA_DO_ESCRITOR_MS <= PRAZO_DA_ROTA_DO_ESCRITOR_MS
+}
 
 /** O fim deve uma resposta e não a entrega? (a única combinação que pede a nova tentativa ao escritor) */
 export const fimSemResposta = (l: LeituraDoFinal): boolean => l.hook_promises_answer && !l.ends_with_concrete_answer

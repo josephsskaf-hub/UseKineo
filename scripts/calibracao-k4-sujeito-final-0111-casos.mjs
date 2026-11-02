@@ -170,6 +170,21 @@ const SUJEITO_BRUTO = [
   { id: 'cego-inv-dragon-fruit', conjunto: 'cego', origem: 'inventado', pedido: 'dragon fruit: 5 benefits you did not know', rotulo: 'amb', aceita: 'dragon fruit|fruit|pitaya', nota: 'nunca dragão' },
   { id: 'cego-inv-hot-dog', conjunto: 'cego', origem: 'inventado', pedido: 'The hot dog eating contest world record', rotulo: 'amb', aceita: 'hot dog|sausage|man|eater|contest', nota: 'nunca cachorro' },
   { id: 'cego-inv-bear-market', conjunto: 'cego', origem: 'inventado', pedido: 'How to survive a bear market in 2027', rotulo: 'neg' },
+  // ── v6 (revisão adversarial do c5dbdbcf3): núcleo exigido na presença, nome de pessoa fora do texto injetado, palavra igual nas duas
+  // línguas. AJUSTE (escritos vendo o código). Ainda SEM resposta real gravada (OpenAI sem crédito em 01/11): o guardião usa a resposta
+  // mockada de scripts/test-support/k4-sujeito-0111-v6-mocks.json até a próxima rodada desta calibração.
+  // `proibido` = nome de pessoa que nunca pode chegar ao texto injetado; `presente`/`ausente` = prompts que provam ou não a presença.
+  { id: 'rv5-dog-train', origem: 'revisao', pedido: 'a dog waiting at a train station', rotulo: 'pos', aceita: 'dog', presente: ['A loyal dog sits on a train platform as a train pulls in'], ausente: ['A train pulls into an empty station at dusk'] },
+  { id: 'rv5-astronaut-cat', origem: 'revisao', pedido: 'an astronaut cat on the moon', rotulo: 'pos', aceita: 'cat', presente: ['A cat in a tiny astronaut suit bounces on the moon'], ausente: ['An astronaut plants a flag on the moon', 'A cat sleeps on a sofa'] },
+  { id: 'rv5-boy-meteorite', origem: 'revisao', pedido: 'o menino que encontrou um meteorito', rotulo: 'pos', aceita: '(boy|child|kid).*meteorite', presente: ['A boy kneels beside a glowing meteorite in a field'], ausente: ['A glowing meteorite smokes in a crater'] },
+  { id: 'rv5-flying-car', origem: 'revisao', pedido: 'a flying car stuck in traffic', rotulo: 'pos', aceita: 'flying car', presente: ['A flying car hovers above a traffic jam'], ausente: ['Cars stuck bumper to bumper in traffic'] },
+  { id: 'rv5-fisherman', origem: 'revisao', pedido: 'the old fisherman who never sold his boat', rotulo: 'pos', aceita: 'fisherman', presente: ['Two old fishermen haul a net into a wooden boat'], ausente: ['A wooden boat rocks in the harbor at dawn'] },
+  { id: 'rv5-napoleon-wore', origem: 'revisao', pedido: 'the hat Napoleon wore at Waterloo', rotulo: 'pos', aceita: 'hat|bicorne', proibido: 'Napoleon' },
+  { id: 'rv5-king-tut', origem: 'revisao', pedido: "King Tut's golden mask", rotulo: 'pos', aceita: 'mask', proibido: 'Tut|King' },
+  { id: 'rv5-lincoln-hat', origem: 'revisao', pedido: "Abraham Lincoln's stovepipe hat", rotulo: 'pos', aceita: 'hat', proibido: 'Lincoln|Abraham' },
+  { id: 'rv5-einstein-violino', origem: 'revisao', pedido: 'o violino de Einstein', rotulo: 'pos', aceita: 'violin', proibido: 'Einstein' },
+  { id: 'rv5-hamster', origem: 'revisao', pedido: 'o hamster que fugiu de casa', rotulo: 'pos', aceita: 'hamster' },
+  { id: 'rv5-taxi', origem: 'revisao', pedido: 'o táxi que atravessou o país', rotulo: 'pos', aceita: 'taxi|cab' },
 ]
 export const CASOS_SUJEITO = SUJEITO_BRUTO.map((c) => ({ conjunto: 'ajuste', ...c }))
 

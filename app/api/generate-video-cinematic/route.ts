@@ -966,6 +966,7 @@ async function generateCinematicDescriptions(
   visualPolicy: VisualPromptPolicy,
   lote?: { numeros: number[]; total: number },
   desenhoProtagonista?: { name: string; sheet: string } | null, // KINEO-DESENHO-LEO-0111 — só o desenho infantil: o personagem escolhido é o sujeito de todo plano
+  kling4Gratis?: boolean, // KINEO-K4-SUJEITO-0111 v6 — só o Kling 4 grátis recebe a regra do sujeito central (nos outros motores clássicos ela não teve render de validação)
 ): Promise<string[]> {
   const list = scenes
     .map((s, i) => {
@@ -984,8 +985,8 @@ RULES:
 - NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no "Winchester Mystery House", "Amityville", "1910 farmhouse", "Nokia 3310" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.
 - KINEO-CENA-ACAO-LADO-3110: show the ACTION the narration says (who does what to what), not only the subject or the setting, and put the camera on the side where that action is visible (a diver who knocks on a submarine window from outside = the diver outside in the dark water, knuckles on the glass). The narration can be in any language; always write the shot in English.
 - KINEO-CENA-ACAO-LADO-3110: the LAST scene shows how the story ends (the outcome the last narration line says), in a different place, moment or angle from scene 1 — never repeat the opening shot.
-- KINEO-FINAL-RESPOSTA-0111: when the opening narration promises an answer (a question, a secret, a mystery, "what they never told you"), the LAST scene SHOWS that concrete answer — the very object, place, creature or event the last narration line reveals — as the clear subject of the frame; never a mood shot, fog, a silhouette or a repeat of the opening.
-- KINEO-K4-SUJEITO-0111: the central subject the topic asks for (a vehicle, a creature, an object, or a child) is clearly visible in at least one shot, preferably the shot whose narration names it; a vehicle is shown as the machine itself (the missing aircraft in the sky or as wreckage), never replaced by people talking about it.${desenhoProtagonista ? `
+- KINEO-FINAL-RESPOSTA-0111: when the opening narration promises an answer (a question, a secret, a mystery, "what they never told you"), the LAST scene SHOWS that concrete answer — the very object, place, creature or event the last narration line reveals — as the clear subject of the frame; never a mood shot, fog, a silhouette or a repeat of the opening.${kling4Gratis ? `
+- KINEO-K4-SUJEITO-0111: the central subject the topic asks for (a vehicle, a creature, an object, or a child) is clearly visible in at least one shot, preferably the shot whose narration names it; a vehicle is shown as the machine itself, intact and in use (the missing aircraft flying in the sky), never replaced by people talking about it.` : ''}${desenhoProtagonista ? `
 - KINEO-DESENHO-LEO-0111: ${desenhoProtagonista.name} (${desenhoProtagonista.sheet}) is the main subject of EVERY shot, clearly visible and doing the action; any animal or other character the narration mentions appears only beside ${desenhoProtagonista.name}, smaller, never alone and never instead of ${desenhoProtagonista.name}. Keep the same key object (same colour and pattern) and the same place, season and weather in every shot unless the narration changes them.` : ''}
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
@@ -4160,7 +4161,7 @@ async function manipularPost(req: NextRequest) {
     if (verbatim && !planoDeBrollAplicado && !hollywoodPath) { // KINEO-TRILHA-15S — era: planScenes.length === 0 (com plano fora de posição, o descritor era pulado)
       let cobertura: DescriptionCoverage = { descriptions: scenes.map(() => null), lotes: 0, repedidas: [], recuperadas: [], erros: [] }
       try {
-        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor
+        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, kling4TrialCandidate)) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje // KINEO-DESENHO-LEO-0111 — desenho: a regra do protagonista no descritor
       } catch (e) {
         console.warn('[cinematic] #441 description generation skipped:', e instanceof Error ? e.message : String(e))
       }

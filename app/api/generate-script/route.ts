@@ -35,7 +35,7 @@ import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
 import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
-import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
+import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -289,6 +289,7 @@ async function recusar(
 }
 
 export async function POST(req: NextRequest) {
+  const inicioDaRota = Date.now() // KINEO-FINAL-RESPOSTA-0111 v6 — o juiz do fim e a reescrita que ele pede só saem se couberem no maxDuration de 60 s
   try {
     // Auth check — same pattern as other routes
     const supabase = await createClient()
@@ -548,7 +549,7 @@ export async function POST(req: NextRequest) {
     const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
-    let rastroDoFinal: { versao: string; estreito: FinalFraco | null; outro_motivo: boolean; semantico: { ok: boolean; hook_promises_answer: boolean | null; ends_with_concrete_answer: boolean | null; erro: string | null; ms: number; tentativas: number } | null; retry_so_pelo_final: boolean; retry_adotado: boolean | null } | null = null // KINEO-FINAL-RESPOSTA-0111 — rastro no script_written (auditoria)
+    let rastroDoFinal: { versao: string; estreito: FinalFraco | null; outro_motivo: boolean; semantico: { ok: boolean; hook_promises_answer: boolean | null; ends_with_concrete_answer: boolean | null; erro: string | null; ms: number; tentativas: number } | null; retry_so_pelo_final: boolean; retry_adotado: boolean | null; retry_pulado_por_prazo?: boolean } | null = null // KINEO-FINAL-RESPOSTA-0111 — rastro no script_written (auditoria)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
     const leuADescricao = (t: string) => descricaoDeCena && leuADescricaoEmVozAlta(t, topic) // KINEO-NARRADOR-DESCRICAO-0111
     let finalFraco: FinalFraco | null = colado.pasted ? null : finalFracoDoRoteiro(script) // KINEO-FINAL-RESPOSTA-0111 — revisor 01/11 (FINAL_FRACO, "o que a NASA nunca anunciou sobre Marte" sem revelar nada): fim em pergunta ou eco do HOOK entra na MESMA nova tentativa; roteiro colado da pessoa: o fim é dela (fidelidade)
@@ -557,10 +558,17 @@ export async function POST(req: NextRequest) {
     const outroMotivoDeRetry = missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script) || leuADescricao(script) || !!finalFraco
     if (!colado.pasted) {
       rastroDoFinal = { versao: FINAL_RESPOSTA_VERSAO, estreito: finalFraco, outro_motivo: outroMotivoDeRetry, semantico: null, retry_so_pelo_final: false, retry_adotado: null }
-      if (!outroMotivoDeRetry) {
-        const juiz = await finalTemRespostaConcreta(script, { pedido: temaDoEscritor })
+      // v6: o juiz só sai se, depois dele, ainda couber a reescrita inteira (35 s) no maxDuration de 60 s; o prazo dele encolhe com o que sobrou
+      const orcamentoDoJuiz = outroMotivoDeRetry ? null : orcamentoDoJuizDoFinal(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)
+      if (!outroMotivoDeRetry && !orcamentoDoJuiz) rastroDoFinal.semantico = { ok: false, hook_promises_answer: null, ends_with_concrete_answer: null, erro: 'sem_tempo_na_rota', ms: 0, tentativas: 0 }
+      if (!outroMotivoDeRetry && orcamentoDoJuiz) {
+        const juiz = await finalTemRespostaConcreta(script, { pedido: temaDoEscritor, ...orcamentoDoJuiz })
         rastroDoFinal.semantico = juiz.ok ? { ok: true, hook_promises_answer: juiz.valor.hook_promises_answer, ends_with_concrete_answer: juiz.valor.ends_with_concrete_answer, erro: null, ms: juiz.ms, tentativas: juiz.tentativas } : { ok: false, hook_promises_answer: null, ends_with_concrete_answer: null, erro: juiz.erro, ms: juiz.ms, tentativas: juiz.tentativas }
-        if (juiz.ok && fimSemResposta(juiz.valor)) { finalFraco = 'sem_resposta'; rastroDoFinal.retry_so_pelo_final = true }
+        // a reescrita pedida só pelo juiz só sai se ainda couber inteira quando ele responde; senão o roteiro segue como está (com rastro)
+        if (juiz.ok && fimSemResposta(juiz.valor)) {
+          if (cabeReescritaDoFinal(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)) { finalFraco = 'sem_resposta'; rastroDoFinal.retry_so_pelo_final = true }
+          else rastroDoFinal.retry_pulado_por_prazo = true
+        }
       }
     }
     // KINEO-FINAL-RESPOSTA-0111 v5 — a versão reescrita SÓ pelo juiz do fim só substitui a original se não piorar nada que a original tinha

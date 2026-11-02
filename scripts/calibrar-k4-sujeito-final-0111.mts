@@ -4,6 +4,9 @@
 // em AJUSTE (casos que o prompt viu) e CEGO (congelados antes da rodada) — em docs/calibracao/KINEO-K4-SUJEITO-0111.json.
 // A chave vem de OPENAI_API_KEY no ambiente ou da linha OPENAI_API_KEY= de um .env.local (caminho em KINEO_ENV_LOCAL, padrão
 // C:\kineo\.env.local); só é lida em memória — nunca impressa nem gravada.
+// v6: grava também o reasoning (o campo gist não existe mais), o sujeito antes do corte do nome de pessoa (subject_original) e as
+// chaves de presença que o código montou (núcleo exigido). Os casos rv5-* (revisão do c5dbdbcf3) entram no AJUSTE; até a próxima
+// rodada com crédito, o guardião usa para eles respostas MOCKADAS (scripts/test-support/k4-sujeito-0111-v6-mocks.json).
 // Rodar: npx tsx scripts/calibrar-k4-sujeito-final-0111.mts   (custo ~US$ 0,03; 2 passadas para medir estabilidade)
 //        CONJUNTO=ajuste npx tsx …   (só o ajuste, sem gravar: para mexer no prompt sem olhar o cego)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
@@ -54,7 +57,7 @@ const rodadasSujeito = SO_FINAL ? [] : await emLotes(casosSujeito, 6, async (c) 
     const g = gravador()
     const r = await lerSujeitoDoPedido(c.pedido, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000 })
     const a = avaliarSujeito({ leitura: r })
-    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, gist: r.ok ? r.valor.request_gist : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
+    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, reasoning: r.ok ? r.valor.reasoning : null, subject_original: r.ok ? r.valor.subject_original : null, chaves: a.sujeito ? a.sujeito.chaves.map((re) => re.source) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
   return { c, passadas }
 })
