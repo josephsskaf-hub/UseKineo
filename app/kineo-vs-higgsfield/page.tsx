@@ -86,7 +86,7 @@ const FAQ_JSONLD = {
       name: 'Can I try Kling 4.0 for free?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` /* KINEO-K4-NARRACAO-CABE-0111 */ +
+        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}, no card (if the narration runs past 15 seconds or the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` /* KINEO-K4-NARRACAO-CABE-0111 */ +
           (PROMO_ON ? ` Creator or above, bought by ${PROMO_UNTIL}, includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),
       },
     }] : []),

@@ -8,11 +8,11 @@
 // Rodar: npx tsx scripts/test-k4-narracao-cabe-0111.mts
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { kling4TrialFalaCabe, medirFalaDoKling4Trial, K4_TETO_MEDIDO_SEGUNDOS, K4_PRAZO_DA_MEDICAO_MS, faixaDoKling4NoEscritor, faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor, passoDaVozNoFilmeCurto, pisoDoPortaoNaVoz, K4_FOLGA_DO_ESCRITOR, K4_FATOR_REAL_MEDIDO, type DepsDaFalaK4 } from '../lib/kling4TrialScript'
+import { kling4TrialFalaCabe, medirFalaDoKling4Trial, K4_TETO_MEDIDO_SEGUNDOS, K4_PRAZO_DA_MEDICAO_MS, faixaDoKling4NoEscritor, faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor, passoDaVozNoFilmeCurto, pisoDoPortaoNaVoz, palavrasNoPortao, K4_MARGEM_DO_PORTAO, K4_FALA_MINIMA_SEGUNDOS, K4_PASSO_REAL_MAIS_RAPIDO, K4_FATOR_REAL_POR_VOZ, type DepsDaFalaK4 } from '../lib/kling4TrialScript'
 import { maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurto } from '../lib/durationByEngine'
 import { minCoverageFor } from '../lib/narrationFit'
 import { VOICE_PERSONAS } from '../lib/narration/personas'
-import { CLASSIC_VOICE_WORDS_PER_SECOND } from '../lib/speechRate'
+import { CLASSIC_VOICE_WORDS_PER_SECOND, narrationFitAt } from '../lib/speechRate'
 import { seedanceShortWriterWords } from '../lib/scriptWriterRate'
 import { narrationWordCount } from '../lib/textLanguage'
 import { parseUserScript } from '../lib/scriptParser'
@@ -137,7 +137,7 @@ ok(/resolveTtsVoiceIdentity\(\s*scaledScript,\s*explicitSpeed \?\? 1\.0,\s*verti
 ok(cps.includes('const vozAssinada = vozAssinadaDoClaim(cinematicBirthClaim?.response)') && cps.includes('} else if (explicitSpeed != null || claimVerbatim) {'), '3 o compose fala o texto como está (velocidade explícita ou verbatim) e usa a voz assinada — a mesma condição da medição')
 ok(!/estimarFalaK4|kling4TrialWriterWords|kling4TrialVersaoCabe|K4_SEG_POR_LETRA|kling4TrialProvavelNoEscritor/.test(lib), '3 o estimador de letras/pausas e a faixa do escritor saíram')
 
-console.log('== 4. o escritor do Kling 4 grátis: mira o piso do portão de 15 s (75 %), teto por voz ==')
+console.log('== 4. o escritor do Kling 4 grátis: piso = portão + 1 e a voz real mais rápida; teto pela voz prevista ==')
 const gs = rd('app/api/generate-script/route.ts'), rt0 = rd('app/api/generate-video-cinematic/route.ts'), ide = rd('lib/meta95/ideiaNoEscritor.ts')
 const gsBase = (() => { try { return execFileSync('git', ['show', 'origin/main:app/api/generate-script/route.ts'], { encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n') } catch { return '' } })()
 const LINHA_TETO_DURO = "    const tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor("
@@ -146,7 +146,8 @@ const iTetoDuro = gs.indexOf(LINHA_TETO_DURO), iFaixaK4 = gs.indexOf('const faix
 ok(iTetoDuro > 0 && iFaixaK4 > iTetoDuro && iFaixaK4 > iTextoPronto, '4 a faixa do Kling 4 entra DEPOIS do teto duro (que não a lê) e do texto pronto (que fica na faixa normal); roteiro colado fora')
 ok(/if \(faixaK4\) \{[^\n]*\n\s*tetoFilmeCurto = faixaK4\.max; pisoFilmeCurto = faixaK4\.min/.test(gs) && !/tetoDuroFilmeCurto\s*=\s*faixaK4/.test(gs), '4 só a faixa do escritor (teto/piso) muda; tetoDuroFilmeCurto nunca é reatribuído')
 ok(gs.includes('faixaDoCinematic = faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === \'string\' ? body.engine : null, alvoSegundos, minCoverageFor(alvoSegundos), idiomaDoRitmo)'), '4 no Kling 4, "o cinematic aceita" = o portão real de 15 s (75 %): a versão curta não perde para a longa')
-ok(gs.includes('const curtoParaOAlvo = (t: string) => scriptWordCount(t) < (faixaK4 ? faixaK4.min : alvoPalavras)') && gs.includes('const aindaCurto = palavras < (faixaK4 ? faixaK4.min : alvoPalavras)'), '4 o roteiro no piso da faixa não dispara "curto demais" (nem nova tentativa, nem stillShort)')
+ok(gs.includes('const curtoParaOAlvo = (t: string) => faixaK4 ? Math.min(palavrasNoPortao(t), falaNaReguaDaGuarda(t)) < faixaK4.min : scriptWordCount(t) < alvoPalavras') && gs.includes('const aindaCurto = faixaK4 ? Math.min(palavrasNoPortao(script), falaNaReguaDaGuarda(script)) < faixaK4.min : palavras < alvoPalavras'), '4 o piso da faixa é conferido COMO O PORTÃO CONTA (palavrasNoPortao) e na língua — o menor dos dois')
+{ const amostra = `HOOK: [Pexels: sea] One man. One boat.\n\nPAYOFF: [Pexels: ship] He was safe — at last... the end.`; ok(palavrasNoPortao(amostra) === Math.round(narrationFitAt(parseUserScript(amostra).narration, 15, { family: 'classic', wordsPerSecond: 2.3, speed: 1, language: 'en', basis: 'estimate' } as never).speech * 2.3) && palavrasNoPortao(amostra) === narrationWordCount(parseUserScript(amostra).narration, 'en'), `4 palavrasNoPortao = a contagem do portão da rota (narrationFitAt) = narrationWordCount na língua (${palavrasNoPortao(amostra)})`) }
 ok(gs.includes("+ (faixaK4 ? `\\n\\n${instrucaoDoKling4NoEscritor(faixaK4)}` : '')") && (gs.match(/content: PROMPT_DO_ROTEIRO/g) ?? []).length === 2, '4 a instrução do Kling 4 vai nas duas chamadas do escritor (1ª e nova tentativa)')
 ok(gs.includes(".from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'failed')") && gs.includes(".like('render_id', 'cinematic-%').is('refunded_at', null)") && rt0.includes(".eq('user_id', user.id).neq('status', 'failed'),") && rt0.includes(".eq('user_id', user.id).like('render_id', 'cinematic-%').is('refunded_at', null)"), '4 elegibilidade = as MESMAS contagens da rota (filmes não falhos, débitos cinematic-% não estornados)')
 ok(gs.includes('lerPago: async () =>') && !/paid: await \(async/.test(gs), '4 o perfil é lido só depois das checagens baratas (lerPago preguiçoso)')
@@ -159,27 +160,31 @@ const passo = (voice: string, defaultSpeed: number, l: string) => passoDaVozNoFi
 ok(passo('onyx', 0.92, 'en') === 2.3 && passo('echo', 0.96, 'en') === 2.45 && passo('alloy', 0.9, 'en') === 2.3 && passo('nova', 0.97, 'de') === 2.09, '4 passo da voz = a conta da rota (onyx 0,92 → 2,3; echo 0,96 → 2,45; alloy 0,9 → 2,3; nova 0,97 em de → 2,09)')
 ok(pisoDoPortaoNaVoz(2.5) === 29 && pisoDoPortaoNaVoz(2.3) === 26 && pisoDoPortaoNaVoz(2.45) === 28 && pisoDoPortaoNaVoz(2.12) === 24, '4 piso do portão: ⌈15 × 75 % × passo⌉ (2,5 → 29 · 2,45 → 28 · 2,3 → 26 · de 2,12 → 24)')
 const fEn = faixaDoKling4NoEscritor('en')
-ok(fEn.min === 29 && fEn.max === 31 && fEn.voiceWordsPerSecond === null, `4 en, voz desconhecida (caminho do cliente): ${fEn.min}-${fEn.max} (piso na voz mais rápida; teto na mais lenta, onyx 0,92 / alloy 0,9 = 2,3)`)
-ok(faixaDoKling4NoEscritor('en', 2.3).max === 31 && faixaDoKling4NoEscritor('en', 2.45).max === 33 && faixaDoKling4NoEscritor('en', 2.5).max === 33 && faixaDoKling4NoEscritor('en', 2.3).min === 29, '4 en por voz: onyx 0,92 → 29-31 · echo → 29-33 · futuristic → 29-33 (o piso nunca desce: serve a qualquer voz)')
-const esperado: Record<string, [number, number]> = { pt: [29, 31], es: [29, 31], ar: [29, 31], el: [29, 31], de: [24, 26], pl: [26, 28], tr: [23, 25] }
-for (const [l, [mn, mx]] of Object.entries(esperado)) { const f = faixaDoKling4NoEscritor(l); ok(f.min === mn && f.max === mx, `4 ${l}: ${f.min}-${f.max} (sem fator medido: piso + folga ${K4_FOLGA_DO_ESCRITOR})`) }
+ok(K4_MARGEM_DO_PORTAO === 1 && K4_PASSO_REAL_MAIS_RAPIDO.en === 2.79 && K4_FALA_MINIMA_SEGUNDOS === 11.1, '4 margem +1 sobre o portão; voz real mais rápida medida en 2,79 pal/s (ddf69f98); fala mínima 11,1 s')
+ok(fEn.min === 31 && fEn.max === 32 && fEn.voiceWordsPerSecond === null, `4 en, voz desconhecida (caminho do cliente): ${fEn.min}-${fEn.max} (piso = ⌈11,1 s × 2,79⌉ = 31 > portão 29 + 1; teto na voz mais restritiva, onyx 0,92)`)
+const vEn = (voice: string, defaultSpeed: number) => faixaDoKling4NoEscritor('en', { voice, defaultSpeed })
+ok(vEn('onyx', 0.92).max === 32 && vEn('echo', 0.96).max === 33 && vEn('alloy', 0.98).max === 33 && vEn('alloy', 0.9).max === 33 && vEn('onyx', 0.92).min === 31, '4 en pela voz prevista (fator real DELA): onyx 0,92 → 31-32 · echo → 31-33 · futuristic → 31-33 · alloy 0,9 → 31-33 (o piso nunca desce)')
+const esperado: Record<string, [number, number]> = { pt: [30, 31], es: [31, 32], ar: [30, 31], el: [30, 31], de: [25, 26], pl: [27, 28], tr: [26, 27] }
+for (const [l, [mn, mx]] of Object.entries(esperado)) { const f = faixaDoKling4NoEscritor(l); ok(f.min === mn && f.max === mx, `4 ${l}: ${f.min}-${f.max} (piso = max(portão + 1, fala mínima na voz real mais rápida medida); sem fator medido: teto = piso + 1)`) }
 for (const l of ['en', 'pt', 'es', 'ar', 'el', 'de', 'pl', 'tr', 'ru', 'fr', 'hi', 'vi']) {
   const f = faixaDoKling4NoEscritor(l), s = faixaAceitaNoFilmeCurto(15, minCoverageFor(15), l)
   const pisoPior = Math.max(...PERSONAS.map((p) => pisoDoPortaoNaVoz(passo(p.voice, Math.min(p.defaultSpeed, 2.5 / CLASSIC_VOICE_WORDS_PER_SECOND[p.voice]), l))))
-  ok(f.min >= pisoPior && f.min === s.min && f.max <= maxWordsCurtoDoMotor('seedance', 15, l) && f.max >= f.min + K4_FOLGA_DO_ESCRITOR, `4 ${l}: piso ${f.min} ≥ o portão em QUALQUER voz do 15 s (${pisoPior}) = o piso do Seedance de 15 s; teto ${f.max} ≤ guarda do Seedance`)
+  ok(f.min >= pisoPior + K4_MARGEM_DO_PORTAO && f.min >= s.min + 1 && f.max <= maxWordsCurtoDoMotor('seedance', 15, l) && f.max >= f.min + 1, `4 ${l}: piso ${f.min} ≥ o portão em QUALQUER voz do 15 s + 1 (${pisoPior} + 1); teto ${f.max} ≤ guarda do Seedance`)
 }
 ok(seedanceShortWriterWords('en').min === 36 && seedanceShortWriterWords('en').max === 41, '4 a faixa normal do escritor en continua 36-41 (fora do Kling 4 grátis nada muda)')
-// fator real medido: o pior real ÷ nominal dos filmes en que não pararam no piso
+// fator real por voz: o pior real ÷ nominal dos filmes en (que não pararam no piso) DE CADA voz; b4cbb871 (02/11) entra no alloy 0,9
 const nominal: Record<string, number> = {}
 for (const [id, v] of Object.entries(VOZ_REAL)) nominal[id] = passo(v.voice, v.defaultSpeed, porId(id)[1])
-const fatores = FILMES.filter((f) => f[1] === 'en' && f[4] === 0).map((f) => (narrationWordCount(f[5], 'en') / f[3]) / nominal[f[0]])
-ok(K4_FATOR_REAL_MEDIDO.en <= Math.min(...fatores) && Math.min(...fatores) - K4_FATOR_REAL_MEDIDO.en < 0.01, `4 fator real en ${K4_FATOR_REAL_MEDIDO.en} ≤ o pior medido (${Math.min(...fatores).toFixed(3)}, 6039e4e5)`)
+const porVoz: Record<string, number[]> = { 'alloy@0.9': [(41 / 19.084) / passo('alloy', 0.9, 'en')] }
+for (const f of FILMES.filter((x) => x[1] === 'en' && x[4] === 0)) { const v = VOZ_REAL[f[0]]; (porVoz[`${v.voice}@${v.defaultSpeed}`] ??= []).push((narrationWordCount(f[5], 'en') / f[3]) / nominal[f[0]]) }
+for (const [k, fs] of Object.entries(porVoz)) { const pior = Math.min(...fs); ok(K4_FATOR_REAL_POR_VOZ[k] <= pior && pior - K4_FATOR_REAL_POR_VOZ[k] < 0.015, `4 fator real ${k} ${K4_FATOR_REAL_POR_VOZ[k]} ≤ o pior medido dessa voz (${pior.toFixed(3)})`) }
+for (const f of FILMES.filter((x) => x[4] === 0)) ok(narrationWordCount(f[5], f[1]) / f[3] <= (K4_PASSO_REAL_MAIS_RAPIDO[f[1]] ?? 9) + 1e-9, `4 ${f[0]} (${f[1]}) não fala mais rápido que a voz real mais rápida medida da língua`)
 // elegibilidade (o mesmo predicado da rota): só conta de grátis sem filme e sem débito, Seedance 15 s; perfil lido por último
 const conta = (films: number | null, debits: number | null) => async () => ({ films, debits })
 let leuPerfil = 0
 const pago = (v: boolean | null) => async () => { leuPerfil++; return v }
 const pede = (o: Partial<Parameters<typeof faixaDoKling4ParaOPedido>[0]> = {}) => faixaDoKling4ParaOPedido({ engine: 'seedance', seconds: 15, language: 'en', lerPago: pago(false), contar: conta(0, 0), live: true, ...o })
-ok((await pede())?.max === 31 && (await pede({ engine: undefined }))?.max === 31 && (await pede({ engine: 'cinematic_ai' }))?.max === 31, '4 1º filme grátis no Seedance 15 s (com ou sem engine) → faixa do Kling 4')
+ok((await pede())?.max === 32 && (await pede({ engine: undefined }))?.max === 32 && (await pede({ engine: 'cinematic_ai' }))?.max === 32, '4 1º filme grátis no Seedance 15 s (com ou sem engine) → faixa do Kling 4')
 ok((await pede({ vertical: 'mystery', topic: 'A lighthouse mystery from 1900' }))?.voiceWordsPerSecond === 2.3, '4 com vertical (caminho do servidor): a voz prevista (dark-mystery, onyx 0,92 = 2,3) dá o teto')
 for (const [nome, o] of [
   ['conta paga', { lerPago: pago(true) }], ['perfil ilegível', { lerPago: pago(null) }], ['já tem filme', { contar: conta(1, 0) }], ['já tem débito', { contar: conta(0, 1) }],
@@ -189,7 +194,7 @@ leuPerfil = 0
 for (const [nome, o] of [['Kineo 1', { engine: 'fast' }], ['Kling 2.5', { engine: 'kling' }], ['35 s', { seconds: 35 }], ['Kling 4 grátis desligado', { live: false }]] as const) ok((await pede(o as never)) === null, `4 ${nome} → faixa normal`)
 ok(leuPerfil === 0, '4 desligado ou não elegível pelo pedido: o perfil NÃO é consultado')
 const inst = instrucaoDoKling4NoEscritor(fEn)
-ok(inst.includes('29-31 spoken words') && /do NOT use "\.\.\." or em-dashes/.test(inst) && inst.includes('PAYOFF still delivers'), '4 a instrução dá a faixa em palavras, tira as pausas longas e mantém o PAYOFF')
+ok(inst.includes('31-32 spoken words') && /do NOT use "\.\.\." or em-dashes/.test(inst) && inst.includes('PAYOFF still delivers'), '4 a instrução dá a faixa em palavras, tira as pausas longas e mantém o PAYOFF')
 // casos da revisão anterior
 const PT48 = `HOOK: [Pexels: frozen planet] A Terra já foi uma bola de gelo.
 
@@ -215,9 +220,9 @@ MICRO REWARD 2: [Pexels: logbook] The last log spoke of a storm that no ship nea
 
 PAYOFF: [Pexels: wave] The leading theory is simple. A giant rogue wave swept all three men off the rocks and into the sea.`
 const kEn = fitShortFilmScript(EN_LONGO, { maxWords: fEn.max, minWords: fEn.min, countWords: contEn, hardMaxWords: hardEn })
-ok(contEn(EN_LONGO) > 31 && kEn.words >= 29 && kEn.words <= hardEn, `4 en ${contEn(EN_LONGO)} palavras com a faixa do Kling 4 → ${kEn.words} (dentro de [29, teto duro ${hardEn}] — nunca abaixo do piso do portão)`)
+ok(contEn(EN_LONGO) > 32 && kEn.words >= 31 && kEn.words <= hardEn, `4 en ${contEn(EN_LONGO)} palavras com a faixa do Kling 4 → ${kEn.words} (dentro de [31, teto duro ${hardEn}] — nunca abaixo do piso)`)
 const k55 = fitShortFilmScript(`HOOK: [Pexels: sea] ${CURTAS55}`, { maxWords: fEn.max, minWords: fEn.min, countWords: contEn, hardMaxWords: hardEn })
-ok(k55.words >= 29 && k55.words <= hardEn, `4 55 palavras curtas com a faixa do Kling 4 → ${k55.words} palavras (≥ 29: o portão do Seedance aceita se a medição mandar)`)
+ok(k55.words >= 31 && k55.words <= hardEn, `4 55 palavras curtas com a faixa do Kling 4 → ${k55.words} palavras (≥ 31: o portão do Seedance aceita se a medição mandar)`)
 
 console.log('== 5. a sobra no compose: movimento perceptível e contínuo ==')
 const compose = rd('lib/compose.ts')
@@ -252,8 +257,8 @@ console.log('== 7. simulação ("vai 16"): os 20 filmes reais no tamanho do alvo
 type Sim = { id: string; lingua: string; n: number; faixa: { min: number; max: number }; segMax: number; segMin: number; portao: boolean }
 const simula = (f: Filme, comVoz: boolean): Sim => {
   const n = narrationWordCount(f[5], f[1]), sPP = f[3] / n, v = VOZ_REAL[f[0]]
-  const faixa = faixaDoKling4NoEscritor(f[1], comVoz ? passo(v.voice, v.defaultSpeed, f[1]) : null)
-  return { id: f[0], lingua: f[1], n, faixa, segMax: faixa.max * sPP, segMin: faixa.min * sPP, portao: faixa.min >= pisoDoPortaoNaVoz(passo(v.voice, v.defaultSpeed, f[1])) }
+  const faixa = faixaDoKling4NoEscritor(f[1], comVoz ? v : null)
+  return { id: f[0], lingua: f[1], n, faixa, segMax: faixa.max * sPP, segMin: faixa.min * sPP, portao: faixa.min >= pisoDoPortaoNaVoz(passo(v.voice, v.defaultSpeed, f[1])) + K4_MARGEM_DO_PORTAO }
 }
 const placar = (sims: Sim[], campo: 'segMax' | 'segMin') => {
   const por: Record<string, [number, number]> = {}
@@ -267,11 +272,13 @@ const cabemHoje = FILMES.filter((f) => f[3] <= 15.5).length
 const aMax = placar(simA, 'segMax'), aMin = placar(simA, 'segMin'), bMax = placar(simB, 'segMax'), bMin = placar(simB, 'segMin')
 console.log(`       PLACAR hoje: ${cabemHoje}/20 · A teto ${fmt(aMax)} · A piso ${fmt(aMin)} · B teto ${fmt(bMax)} · B piso ${fmt(bMin)}`)
 ok(cabemHoje === 6, `7 hoje (sem a faixa): ${cabemHoje} de 20 cabem no Kling 4 — o número da revisão`)
-ok(aMax.total >= 15 && aMin.total >= 16, `7 voz desconhecida: ${aMax.total}/20 no teto da faixa, ${aMin.total}/20 no piso (meta ~16)`)
-ok(bMax.total >= 15 && bMin.total >= 16, `7 voz conhecida: ${bMax.total}/20 no teto, ${bMin.total}/20 no piso`)
+ok(aMax.total >= 15 && aMin.total >= 15, `7 voz desconhecida: ${aMax.total}/20 no teto da faixa, ${aMin.total}/20 no piso (meta ≥ 15)`)
+ok(bMax.total >= 15 && bMin.total >= 15, `7 voz conhecida: ${bMax.total}/20 no teto, ${bMin.total}/20 no piso`)
 ok(aMax.por.en[0] === 10 && bMax.por.en[0] === 10, '7 inglês: 10 de 10 (inclusive onyx 0,92 e alloy, que hoje encolhiam e mesmo assim caíam no Seedance)')
-ok(aMin.por.pt[0] >= 3 && aMin.por.ar[0] >= 1 && aMin.por.pl[0] === 1 && aMin.por.de[0] === 1, `7 pt ${aMin.por.pt[0]}/4 · ar ${aMin.por.ar[0]}/3 · pl ${aMin.por.pl[0]}/1 · de ${aMin.por.de[0]}/1 no piso`)
-ok(simA.every((s) => s.portao) && simB.every((s) => s.portao), '7 o piso da faixa passa no portão do Seedance de 15 s na voz REAL de cada um dos 20 filmes (nenhum vira "narração curta")')
+ok(aMin.por.pt[0] >= 2 && aMin.por.ar[0] >= 1 && aMin.por.pl[0] === 1 && aMin.por.de[0] === 1, `7 pt ${aMin.por.pt[0]}/4 · ar ${aMin.por.ar[0]}/3 · pl ${aMin.por.pl[0]}/1 · de ${aMin.por.de[0]}/1 no piso`)
+ok(simA.every((s) => s.portao) && simB.every((s) => s.portao), '7 o piso da faixa passa no portão do Seedance de 15 s (+1 palavra) na voz REAL de cada um dos 20 filmes (nenhum 422 narration_too_short)')
+{ const naoPiso = simA.filter((s) => porId(s.id)[4] === 0), menor = Math.min(...naoPiso.map((s) => s.segMin)); ok(menor >= K4_FALA_MINIMA_SEGUNDOS - 0.05, `7 no piso da faixa, a fala mais curta dos filmes medidos é ${menor.toFixed(2)} s (antes: 10,4 s) — nunca abaixo de ~${K4_FALA_MINIMA_SEGUNDOS} s`) }
+{ const s = simB.find((x) => x.id === 'ddf69f98')!; ok(s.faixa.max === 33, `7 ddf69f98 (echo): o teto pela voz prevista sobe para ${s.faixa.max} palavras (${s.segMax.toFixed(1)} s)`) }
 for (const id of ['de7071ea', 'e8f91bdf']) { const s = simA.find((x) => x.id === id)!; ok(s.segMin <= 15.5, `7 ${id} (onyx 0,92): no piso ${s.segMin.toFixed(1)} s → Kling 4 (hoje Seedance)`) }
 { const s = simA.find((x) => x.id === '702699d9')!; ok(s.segMax <= 12.5, `7 caso do revisor 702699d9: na faixa, ${s.segMax.toFixed(1)} s (com as 43 palavras que teve, 16,7 s)`) }
 for (const id of ['802dbace', '7aa3d055', '33d4e5ad', '8d314182']) { const s = simA.find((x) => x.id === id)!; ok(s.segMin > 15.5, `7 ${id} (${s.lingua}, ${(s.segMin / s.faixa.min).toFixed(3)} s/palavra): nem no piso do portão (${s.segMin.toFixed(1)} s) cabe → a medição manda ao Seedance (rede de segurança)`) }

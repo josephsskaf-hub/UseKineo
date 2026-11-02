@@ -1,5 +1,6 @@
 'use client'
 
+import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-K4-NARRACAO-CABE-0111
 import Link from 'next/link'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -20,7 +21,8 @@ export default function Kling4PaidEnginePage({ serverPaidLive = false, freeFilmI
   const href = buildEngineLandingSignupHref({ engine: 'hollywood', campaign: 'seo_engine_kling4' })
   return <main style={{ maxWidth: 900, margin: '0 auto', padding: '64px 22px 80px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
     <p style={{ color: 'var(--muted)', fontSize: 13 }}>Kineo · Kling 4.0</p>
-    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{freeFilmIsKling4 ? 'Try Kling 4.0 free on 15-second stories' /* KINEO-K4-NARRACAO-CABE-0111 — selo honesto: grátis quando a história cabe em 15 s */ : KLING4_PAID_COPY.try}</UiLabel></h1>
+    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{freeFilmIsKling4 ? 'Try Kling 4.0 free' : KLING4_PAID_COPY.try}</UiLabel></h1>
+    {freeFilmIsKling4 ? <p style={{ color: 'var(--muted)', fontSize: 15, margin: '0 0 10px' }}><UiLabel>{`Free 15-second film · ${FREE_FILM_ENGINE_NAME}`}</UiLabel></p> : null /* KINEO-K4-NARRACAO-CABE-0111 — H1 curto; o nome duplo (selo honesto) no subtítulo */}
     {freeLine ? <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, fontWeight: 600, margin: '0 0 8px' }}>{freeLine}</p> : null}
     <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, color: 'var(--muted2)' }}><UiLabel>{KLING4_PAID_COPY.directed}</UiLabel></p>
     <Kling4PaidNotice surface="engine" availability={a} />

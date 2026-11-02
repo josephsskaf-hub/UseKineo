@@ -21,13 +21,14 @@
 // delas ficaram MAIS ESTRITAS (motor de verdade, cardápio vivo, régua única).
 // Nada foi afrouxado. O que mudou foi o alvo das âncoras: a verdade do rascunho
 // mora agora em lib/growth/cardEntryResumeDraft.ts.
+import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — a camada mais nova (GenerateClient: selo honesto do filme grátis) sai antes da do sem-início-automático
 import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semSemInicioAutomatico0211(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

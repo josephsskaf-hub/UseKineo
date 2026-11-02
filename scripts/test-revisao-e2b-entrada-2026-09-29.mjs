@@ -26,7 +26,7 @@ import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-01
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => semSemInicioAutomatico0211(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p), p)
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

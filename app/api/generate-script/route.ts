@@ -37,7 +37,7 @@ import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMo
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
-import { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s
+import { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor, palavrasNoPortao } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -586,7 +586,7 @@ export async function POST(req: NextRequest) {
     // short, proceed with what we have (degraded — never blocks the flow).
     // KINEO-351 — o "curto" agora é medido contra a duração PEDIDA, não contra
     // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.
-    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa (portão de 75 %)
+    const curtoParaOAlvo = (t: string) => faixaK4 ? Math.min(palavrasNoPortao(t), falaNaReguaDaGuarda(t)) < faixaK4.min : scriptWordCount(t) < alvoPalavras // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa contado COMO O PORTÃO CONTA (e na língua — o menor dos dois)
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let tentativaDeTamanho: { first_words: number; retry_words: number | null; kept: 'first' | 'retry' } | null = null // KINEO-ROTEIRO-NO-TAMANHO-0111 — rastro da 2ª tentativa por tamanho
     let tamanhoSemNovaTentativa: 'story_rescue' | 'deadline' | null = tentativaDaHistoria ? 'story_rescue' : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — por que o roteiro curto não ganhou a 2ª chamada
@@ -724,7 +724,7 @@ export async function POST(req: NextRequest) {
     // Então o estado sai declarado, e a tela não apresenta como pronto.
     if (forceAuthoring) {
       const palavras = scriptWordCount(script)
-      const aindaCurto = palavras < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa
+      const aindaCurto = faixaK4 ? Math.min(palavrasNoPortao(script), falaNaReguaDaGuarda(script)) < faixaK4.min : palavras < alvoPalavras // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa
       if (aindaCurto) {
         console.warn(
           `[generate-script] forceAuthoring ainda curto: ${palavras}/${alvoPalavras} palavras para ${alvoSegundos}s`,

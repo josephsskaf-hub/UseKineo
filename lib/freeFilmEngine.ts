@@ -7,9 +7,7 @@ import { KLING4_TRIAL_LIVE } from './kling4TrialPolicy'
 export const FREE_FILM_ENGINE_NAME = KLING4_TRIAL_LIVE ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5'
 /** O filme grátis PODE sair no Kling 4.0 (interruptor de reversão). Para decisões de copy — nunca comparar o nome acima. */
 export const FREE_FILM_IS_KLING4 = KLING4_TRIAL_LIVE
-/** A condição, por extenso, onde a página promete o Kling 4.0 grátis. Vazia com o Kling 4 grátis desligado. */
-export const FREE_FILM_FITS_CLAUSE = KLING4_TRIAL_LIVE ? ' when the story fits 15 seconds; longer narration goes to Seedance 1.5' : ''
-export const FREE_FILM_FITS_CLAUSE_PT = KLING4_TRIAL_LIVE ? ' quando a história cabe em 15 segundos; narração mais longa vai para o Seedance 1.5' : ''
-export const FREE_FILM_FITS_CLAUSE_ES = KLING4_TRIAL_LIVE ? ' cuando la historia cabe en 15 segundos; una narración más larga va a Seedance 1.5' : ''
-/** O motor do filme grátis com a condição, para "(…)" depois de "free 15-second film". */
-export const FREE_FILM_ENGINE_CONDITION = KLING4_TRIAL_LIVE ? 'Kling 4.0 when the story fits 15 seconds; longer narration goes to Seedance 1.5' : 'Seedance 1.5'
+/** A condição, onde a frase já promete o Kling 4.0 grátis ("free on Kling 4.0" + isto). Vazia com o Kling 4 grátis desligado. */
+export const FREE_FILM_FITS_CLAUSE = KLING4_TRIAL_LIVE ? ' when the story fits 15 seconds' : ''
+/** Depois de "free 15-second film (Kling 4.0 / Seedance 1.5)": qual dos dois e quando. */
+export const FREE_FILM_ON_KLING4_CLAUSE = KLING4_TRIAL_LIVE ? ', on Kling 4.0 when the story fits 15 seconds' : ''

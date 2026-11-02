@@ -72,7 +72,7 @@ async function verify(live, overrides = {}) {
   if (live) {
     assert.doesNotMatch(llms, /free 15-second film \(Seedance 1\.5\)|free (?:first )?film (?:uses|runs on) Seedance 1\.5|trial film uses Seedance 1\.5/i)
     assert.match(offer.FREE_FILM_LABEL, /Kling 4\.0 \/ Seedance 1\.5/) // KINEO-K4-NARRACAO-CABE-0111 — o rótulo nomeia os dois motores (antes: proibia citar o Seedance)
-    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes('Kling 4.0 when the story fits 15 seconds; longer narration goes to Seedance 1.5')) // KINEO-K4-NARRACAO-CABE-0111
+    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes('free 15-second film (Kling 4.0 / Seedance 1.5), on Kling 4.0 when the story fits 15 seconds — with no card')) // KINEO-K4-NARRACAO-CABE-0111
   }
 }
 

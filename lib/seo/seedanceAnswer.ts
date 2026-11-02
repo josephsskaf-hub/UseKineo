@@ -165,7 +165,7 @@ export function seedanceFreeAnswer(geo: EngineCitation, f: FreeFilmFacts): Seeda
     heading: 'Is Seedance 1.5 free?',
     lead,
     bullets,
-    ctaLabel: f.trialCoversFilm ? `Make your free ${f.filmSeconds}-second ${FREE_FILM_ENGINE_NAME} film →` : 'See the plans that include Seedance →', // KINEO-LLMS-K4-2910
+    ctaLabel: f.trialCoversFilm ? `Make your free ${f.filmSeconds}-second film →` /* KINEO-K4-NARRACAO-CABE-0111 — ≤ 32 caracteres, 1 linha no celular; o motor está no texto acima */ : 'See the plans that include Seedance →', // KINEO-LLMS-K4-2910
     ctaHref: f.trialCoversFilm ? seedanceStudioSignupHref({ duration: f.filmSeconds }) : '/pricing',
     ctaNote: 'You type your idea in the Studio and press Generate — nothing renders on its own.',
     faq,

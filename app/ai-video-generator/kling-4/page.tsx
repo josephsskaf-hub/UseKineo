@@ -37,7 +37,7 @@ const faq: Array<{ q: string; a: string }> = [
   {
     q: 'Is Kling 4.0 free?',
     a: (freeFilmIsKling4
-      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `
+      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}${noCard}. If the narration runs past 15 seconds or the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `
       : '') +
       `After that, a Kling 4.0 film costs ${credits(15)} credits (15 s), ${credits(30)} (30 s) or ${credits(60)} (60 s).` +
       (promoOn ? ` Subscribe to Creator or above by ${promoUntil} and Kling 4.0 is free for 30 days — up to 3 films or ads a day, up to 60 seconds each, with no credits used.` : ''),
