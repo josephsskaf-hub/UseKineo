@@ -30,6 +30,7 @@
 
 // Cadastro preparado, fora da seleção pública e do dispatcher até existir API/custo/schema verificados.
 export { PREPARED_CLIP_ENGINES } from './clipKling4'
+import { negativePromptSemLetras, promptComProtecaoContraLetras } from './clipSemLetras' // KINEO-CLIPE-SEM-LETRAS-0111
 
 export type ClipEngineKey = 'hollywood' | 'kling' | 'seedance' | 'veo' | 'h3' | 'omni' | 's25'
 export type ClipAspect = '9:16' | '16:9' | '1:1'
@@ -300,32 +301,39 @@ export function validateClipRequest(input: ClipRequestInput, ctx: { userId: stri
 // KINEO-CLIPE-LETRAS-3010 — revisão de 30/10: espelho e camiseta riscados "VioeAloXoD" (conto do espelho, ES) e tela de celular
 // com letras falsas (conto das 3:33, BR). Os motores não escrevem: quando o pedido tem superfície que carrega texto (espelho,
 // tela, celular, placa, camiseta, papel), o prompt que vai à fal ganha a ordem de deixar tudo ilegível. O texto do cliente não muda.
-const SUPERFICIE_DE_TEXTO_RE = /\b(?:mirrors?|reflections?|phones?|smartphones?|cell ?phones?|screens?|monitors?|laptops?|tablets?|tv|television|signs?|billboards?|posters?|shirts?|t-shirts?|hoodies?|notes?|letters?|books?|newspapers?|papers?|walls? writing|espelhos?|reflexos?|celular(?:es)?|telas?|televis[aã]o|placas?|cartaz(?:es)?|camisetas?|camisas?|bilhetes?|cartas?|livros?|jornal|pap[eé]is|espejos?|reflejos?|tel[eé]fonos?|m[oó]vil(?:es)?|pantallas?|letreros?|carteles?|camisetas?|notas?|libros?|peri[oó]dicos?)\b/i
-export const CLIPE_SEM_LETRAS = ' No readable text, letters, numbers or words anywhere in the frame: any writing, screen, reflection or print stays blurred and unreadable.'
-/** O prompt do clipe para a fal: igual ao do cliente, mais a ordem de texto ilegível quando há superfície que carrega texto. */
+// KINEO-CLIPE-SEM-LETRAS-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a régua mora em lib/clips/clipSemLetras.ts
+// (a mesma do Modo Clipe do Studio): + legenda/título inventado em pedido de vídeo/história, texto PEDIDO pelo cliente fica (só ele
+// legível) e negative_prompt nos endpoints cujo schema da fal tem o campo (Kling 3 t2v, Kling 2.5, Veo 3.1 Fast).
+export const CLIPE_SEM_LETRAS = ' Every screen, phone, sign, page, label and reflection shows only abstract shapes, icons, soft glow or blur, never letters, words or numbers.'
+/** O prompt do clipe para a fal: igual ao do cliente, mais a ordem de texto ilegível (lib/clips/clipSemLetras.ts). */
 export function promptDoClipeSemLetras(prompt: string): string {
-  const p = String(prompt ?? '')
   // prompt que já proíbe texto (os efeitos do catálogo trazem "No text, no captions…") fica byte a byte igual
-  return SUPERFICIE_DE_TEXTO_RE.test(p) && !/\bno (?:readable )?(?:text|letters|words|writing)\b/i.test(p) ? `${p.replace(/\s+$/, '')}${CLIPE_SEM_LETRAS}` : p
+  return promptComProtecaoContraLetras(prompt)
 }
 
 // ─── Payload da fal ──────────────────────────────────────────────────────────
 // Só campos conferidos no schema oficial (ver o cabeçalho). Nada de negative_prompt/cfg herdados do filme: o clipe é o
-// pedido do cliente, não o plano de cena da casa.
+// pedido do cliente, não o plano de cena da casa. KINEO-CLIPE-SEM-LETRAS-0111 — única exceção: o negative_prompt CONTRA LETRAS
+// INVENTADAS, só nos endpoints cujo schema tem o campo (lib/clips/clipSemLetras.ts MOTORES_COM_NEGATIVE_PROMPT, lido em 01/11).
 export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
   const s = req.seconds
   const image = req.mode === 'i2v' ? { image_url: req.imageUrl } : {}
   const aspect = req.aspect === 'image' ? null : req.aspect
   const prompt = promptDoClipeSemLetras(req.prompt) // KINEO-CLIPE-LETRAS-3010 — espelho/tela/placa: texto ilegível (o pedido do cliente não muda)
+  // KINEO-CLIPE-SEM-LETRAS-0111 — o endpoint que vai de fato (req.model; o do catálogo quando o chamador não passa um id da fal)
+  const spec = CLIP_ENGINES[req.engine]
+  const endpoint = typeof req.model === 'string' && req.model.includes('/') ? req.model :(req.mode === 'i2v' ? spec.i2vModel : spec.t2vModel) ?? ''
+  const negativo = negativePromptSemLetras(endpoint, req.prompt)
+  const neg = negativo ? { negative_prompt: negativo } : {}
   switch (req.engine) {
     case 'hollywood':
-      return { prompt, ...image, duration: String(s), generate_audio: false, ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
+      return { prompt, ...image, duration: String(s), generate_audio: false, ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}), ...neg }
     case 'kling':
-      return { prompt, ...image, duration: String(s), ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
+      return { prompt, ...image, duration: String(s), ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}), ...neg }
     case 'seedance':
       return { prompt, ...image, duration: String(s), resolution: '720p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
     case 'veo':
-      return { prompt, ...image, duration: `${s}s`, resolution: '1080p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
+      return { prompt, ...image, duration: `${s}s`, resolution: '1080p', generate_audio: false, aspect_ratio: aspect ?? 'auto', ...neg }
     case 'h3':
       return { prompt, ...image, duration: s, resolution: '768P', ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'omni':
