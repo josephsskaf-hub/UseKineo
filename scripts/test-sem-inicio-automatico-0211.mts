@@ -178,13 +178,13 @@ console.log('== C. o clique dispara o render ==')
   const novaPagina = (clicou: boolean) => {
     const st = {
       aguardando: true, url: 'https://usekineo.com/studio/create?resume=card_entry&intent_campaign=x', rascunho: 'rascunho' as string | null,
-      eventos: [] as Array<[string, Record<string, unknown>]>,
-      refs: { clique: { current: clicou ? Date.now() - 50 : null as number | null }, saiu: { current: false }, consumo: { current: null as { at: number; prompt: string } | null }, aceito: { current: false }, consumido: { current: null as string | null } },
+      eventos: [] as Array<[string, Record<string, unknown>]>, attempt: { current: 'att-1' as string | null },
+      refs: { clique: { current: clicou ? Date.now() - 50 : null as number | null }, saiu: { current: false }, consumo: { current: null as { at: number; prompt: string; attemptId: string | null } | null }, aceito: { current: false }, consumido: { current: null as string | null } },
     }
     const passo = (phase: string, sinal: { reason: string; httpStatus: number | null; at: number } | null = null) => {
       roda(corpo, {
         resumeConsumoPorCliqueRef: st.refs.consumo, resumeAceitoRef: st.refs.aceito, resumeCliqueRef: st.refs.clique, resumeSaiuDoIdleRef: st.refs.saiu, resumeConsumidoRef: st.refs.consumido,
-        phase, sinalDaFalha: sinal, resumeAguardandoClique: st.aguardando, despachoAceito, recusaExplicitaAntesDeAceitar,
+        phase, sinalDaFalha: sinal, resumeAguardandoClique: st.aguardando, despachoAceito, recusaExplicitaAntesDeAceitar, generationAttemptRef: st.attempt,
         isProcessingPhase: (p: string) => ['scripting', 'analyzing', 'broll_planning', 'generating', 'fal_polling', 'avatar_polling', 'clips_ready', 'composing'].includes(p),
         prompt: PROMPT, setResumeAguardandoClique: (v: boolean) => { st.aguardando = v },
         sessionStorage: { removeItem: () => { st.rascunho = null }, setItem: (_k: string, v: string) => { st.rascunho = v } }, CARD_ENTRY_DRAFT_KEY: 'kineo_studio_draft_v1', serializeCardEntryDraft,
@@ -245,6 +245,28 @@ console.log('== C. o clique dispara o render ==')
   p5.passo('composing')
   checa('C17 despacho pelo botão Generate de sempre: consome (rascunho/URL) mas NÃO grava confirmed', !p5.st.aguardando && p5.st.rascunho === null && !p5.st.url.includes('resume=') && !p5.st.eventos.some(([n]) => n === 'card_entry_resume_confirmed'))
 
+  // 4ª leva — throw → "Still rendering…" → Generate normal → 4xx: a recusa é de OUTRA tentativa; o cartão NÃO reabre.
+  const p6 = novaPagina(true)
+  p6.passo('generating')                       // clique consumido (attempt att-1)
+  p6.passo('idle')                             // POST caiu no cliente; aindaNoForno → idle "Still rendering…"
+  checa('C27a fim da 1ª tentativa (throw → idle): a janela de reabrir fecha', p6.st.refs.consumo.current === null && !p6.st.aguardando)
+  p6.st.attempt.current = 'att-1'              // o Generate normal pode até reaproveitar o attempt (idle não renova)
+  p6.passo('generating')                       // Generate normal (cartão já fechado)
+  p6.passo('failed', { reason: 'cinematic_not_ok', httpStatus: 402, at: Date.now() + 5 })
+  checa('C27 throw → "Still rendering" → Generate normal → 4xx: o cartão NÃO reabre e o rascunho NÃO é regravado (1º filme no forno)',
+    !p6.st.aguardando && p6.st.rascunho === null && !p6.st.eventos.some(([n]) => n === 'card_entry_resume_refused'))
+  const p7 = novaPagina(true)
+  p7.passo('generating')                       // consumido com att-1
+  p7.st.attempt.current = 'att-2'              // a falha que chega é de outra tentativa
+  p7.passo('failed', { reason: 'cinematic_not_ok', httpStatus: 402, at: Date.now() + 5 })
+  checa('C28 4xx de OUTRO attempt em failed: não reabre e a janela fecha', !p7.st.aguardando && p7.st.rascunho === null && p7.st.refs.consumo.current === null)
+  const p8 = novaPagina(true)
+  p8.st.attempt.current = null
+  p8.passo('scripting')                        // consumido antes de o attempt existir
+  p8.st.attempt.current = 'att-9'
+  p8.passo('generating')                       // o attempt é preso no 1º generating
+  p8.passo('failed', { reason: 'cinematic_not_ok', httpStatus: 409, at: Date.now() + 5 })
+  checa('C29 attempt preso no 1º generating: a recusa 4xx dessa mesma tentativa ainda reabre', p8.st.aguardando && p8.st.rascunho !== null)
   checa('C18 recusaExplicitaAntesDeAceitar: só 4xx em failed, depois do clique, antes de aceitar, sem throw',
     recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 409, at: 10 }, cliqueAt: 5, aceito: false }) &&
     !recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 409, at: 1 }, cliqueAt: 5, aceito: false }) &&

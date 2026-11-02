@@ -3701,7 +3701,7 @@ export default function GenerateClient({
   // O clique já levou a fase para fora de 'idle' (então o handleGenerate não voltou por guarda); o pedido consumido pelo
   // clique (texto + instante, para restaurar só numa recusa explícita do servidor) e se o despacho chegou a ser aceito.
   const resumeSaiuDoIdleRef = useRef(false)
-  const resumeConsumoPorCliqueRef = useRef<{ at: number; prompt: string } | null>(null)
+  const resumeConsumoPorCliqueRef = useRef<{ at: number; prompt: string; attemptId: string | null } | null>(null)
   const resumeAceitoRef = useRef(false)
   useEffect(() => {
     try {
@@ -7615,9 +7615,17 @@ export default function GenerateClient({
   useEffect(() => {
     const clique = resumeConsumoPorCliqueRef.current
     if (clique && despachoAceito(phase)) resumeAceitoRef.current = true
+    // O consumo pode acontecer antes de o handleGenerate gravar o attempt (fase de roteiro): ele é preso no 1º 'generating'.
+    if (clique && clique.attemptId === null && phase === 'generating') clique.attemptId = generationAttemptRef.current
+    // A 1ª tentativa (a do clique) terminou sem recusa — entregue, ou throw → aindaNoForno → 'idle' "Still rendering…":
+    // a janela de reabrir fecha AQUI. Uma recusa de OUTRA tentativa (o Generate normal, com o 1º filme ainda no forno)
+    // nunca reabre o cartão nem regrava o rascunho (revisão de 02/11, 4ª leva).
+    if (clique && (phase === 'idle' || phase === 'done')) { resumeConsumoPorCliqueRef.current = null; return }
     if (clique && phase === 'failed') {
-      if (recusaExplicitaAntesDeAceitar({ phase, sinal: sinalDaFalha, cliqueAt: clique.at, aceito: resumeAceitoRef.current })) {
-        resumeConsumoPorCliqueRef.current = null
+      // A recusa só vale se for DESTA tentativa (o attempt gravado no consumo); qualquer outro desfecho encerra a janela.
+      const mesmaTentativa = clique.attemptId !== null && generationAttemptRef.current === clique.attemptId
+      resumeConsumoPorCliqueRef.current = null
+      if (mesmaTentativa && recusaExplicitaAntesDeAceitar({ phase, sinal: sinalDaFalha, cliqueAt: clique.at, aceito: resumeAceitoRef.current })) {
         resumeConsumidoRef.current = null
         try {
           sessionStorage.setItem(
@@ -7636,7 +7644,7 @@ export default function GenerateClient({
     resumeSaiuDoIdleRef.current = true
     const viaCartao = resumeCliqueRef.current !== null
     const texto = prompt.trim()
-    resumeConsumoPorCliqueRef.current = viaCartao ? { at: resumeCliqueRef.current as number, prompt: texto } : null
+    resumeConsumoPorCliqueRef.current = viaCartao ? { at: resumeCliqueRef.current as number, prompt: texto, attemptId: generationAttemptRef.current } : null
     resumeAceitoRef.current = despachoAceito(phase)
     resumeCliqueRef.current = null
     resumeConsumidoRef.current = texto
