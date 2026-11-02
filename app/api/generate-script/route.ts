@@ -2,6 +2,7 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
+import { minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-0111 — a cobertura do portão de 15 s na faixa do Kling 4 grátis
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).
 import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
@@ -396,7 +397,7 @@ export async function POST(req: NextRequest) {
     // vence a que ele recusa (notaDoFilmeCurto, abaixo). Caso de 29/09 09:27 UTC (Turquia): 27 palavras (o portão recusa) ficavam
     // no lugar de ~40 (a guarda aceita) porque "cabe no teto da faixa" pesava mais — e o 1º filme morria em 'narration_too_short'.
     // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.
-    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null // KINEO-DURACOES-CURTAS-2026-09-29: a faixa da guarda do motor (Seedance: a mesma de antes)
+    let faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null // KINEO-DURACOES-CURTAS-2026-09-29: a faixa da guarda do motor (Seedance: a mesma de antes) · KINEO-K4-NARRACAO-CABE-0111: let — no Kling 4 grátis, a cobertura do portão de 15 s (75 %)
     const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max
     /** O rastro de uma versão do filme curto (log e script_written): palavras na régua da guarda e se o cinematic a aceita. */
     const versaoDoFilmeCurto = (t: string): { words: number; cinematic_accepts: boolean | null } => ({ words: palavrasDoFilmeCurto(t), cinematic_accepts: faixaDoCinematic ? oCinematicAceita(t) : null })
@@ -433,16 +434,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — opção C: quando o pedido vai ao filme grátis do Kling 4
-    // (um clipe de 15 s; o mesmo predicado da rota, kling4TrialEligible, lido com o perfil e as contagens da própria pessoa), o
-    // escritor escreve para CABER nos 15 s: faixa de PALAVRAS por língua tirada das durações medidas (lib/kling4TrialScript), sempre
-    // dentro da faixa que o Seedance de 15 s aceita. O teto DURO do corte por frases continua o da guarda do Seedance
-    // (tetoDuroFilmeCurto, acima, já calculado): sem combinação de frases inteiras dentro da faixa, passar do teto vence ficar abaixo
-    // do piso, e a medição da voz na rota manda ao Seedance. Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado
-    // (as palavras da pessoa) ficam na faixa normal. Língua sem interseção ou sem medida, perfil ilegível: faixa normal.
+    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c" / "vai 16"] — quando o pedido vai ao filme grátis do
+    // Kling 4 (um clipe de 15 s; o mesmo predicado da rota, kling4TrialEligible, lido com o perfil e as contagens da própria
+    // pessoa), o escritor mira o PISO do portão do Seedance de 15 s (75 % de cobertura no passo da voz mais rápida do 15 s: serve
+    // a qualquer voz e ao Seedance), com teto pelo que cabe em 15,5 s na voz (lib/kling4TrialScript faixaDoKling4NoEscritor).
+    // O teto DURO do corte por frases continua o da guarda do Seedance (tetoDuroFilmeCurto, acima, já calculado): sem combinação
+    // de frases inteiras dentro da faixa, passar do teto vence ficar abaixo do piso, e a medição da voz na rota manda ao Seedance.
+    // Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado (as palavras da pessoa) ficam na faixa normal. O perfil
+    // só é lido depois das checagens baratas (Kling 4 grátis ligado, 15 s, Seedance); ilegível = faixa normal.
     const faixaK4 = filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({
-      engine: body.engine, seconds: alvoSegundos, language,
-      paid: await (async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } })(),
+      engine: body.engine, seconds: alvoSegundos, language, topic,
+      vertical: typeof body.vertical === 'string' ? body.vertical : null, // KINEO-K4-NARRACAO-CABE-0111 — caminho do servidor: a voz prevista dá o teto
+      lerPago: async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } },
       contar: async () => {
         const [films, debits] = await Promise.all([
           supabase.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'failed'),
@@ -453,7 +456,8 @@ export async function POST(req: NextRequest) {
     }) : null // KINEO-K4-NARRACAO-CABE-0111
     if (faixaK4) { // KINEO-K4-NARRACAO-CABE-0111
       tetoFilmeCurto = faixaK4.max; pisoFilmeCurto = faixaK4.min // KINEO-K4-NARRACAO-CABE-0111 — tetoDuroFilmeCurto NÃO muda
-      console.log(`[generate-script] KINEO-K4-NARRACAO-CABE-0111 filme grátis Kling 4: faixa ${faixaK4.min}-${faixaK4.max} palavras (${faixaK4.language}), teto duro ${tetoDuroFilmeCurto}`) // KINEO-K4-NARRACAO-CABE-0111
+      if (idiomaDoRitmo !== undefined) faixaDoCinematic = faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, minCoverageFor(alvoSegundos), idiomaDoRitmo) // KINEO-K4-NARRACAO-CABE-0111 — "o cinematic aceita" = o portão real de 15 s (75 %), não o de 95 %
+      console.log(`[generate-script] KINEO-K4-NARRACAO-CABE-0111 filme grátis Kling 4: faixa ${faixaK4.min}-${faixaK4.max} palavras (${faixaK4.language}, voz ${faixaK4.voiceWordsPerSecond ?? 'mais lenta'}), teto duro ${tetoDuroFilmeCurto}`) // KINEO-K4-NARRACAO-CABE-0111
     } // KINEO-K4-NARRACAO-CABE-0111
 
     // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por
@@ -582,7 +586,7 @@ export async function POST(req: NextRequest) {
     // short, proceed with what we have (degraded — never blocks the flow).
     // KINEO-351 — o "curto" agora é medido contra a duração PEDIDA, não contra
     // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.
-    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
+    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa (portão de 75 %)
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let tentativaDeTamanho: { first_words: number; retry_words: number | null; kept: 'first' | 'retry' } | null = null // KINEO-ROTEIRO-NO-TAMANHO-0111 — rastro da 2ª tentativa por tamanho
     let tamanhoSemNovaTentativa: 'story_rescue' | 'deadline' | null = tentativaDaHistoria ? 'story_rescue' : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — por que o roteiro curto não ganhou a 2ª chamada
@@ -628,7 +632,7 @@ export async function POST(req: NextRequest) {
         problems.push(colado.pasted
           // KINEO-ROTEIRO-COLADO-NAO-ENGORDA — o problema aqui é ter CORTADO o texto da pessoa, nunca faltar enchimento.
           ? `you dropped part of the user's own script — it has ${colado.words} spoken words and your version has only ${scriptWordCount(script)}; keep every sentence they wrote`
-          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +
+          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${faixaK4 ? faixaK4.min : alvoPalavras} ` + /* KINEO-K4-NARRACAO-CABE-0111 */
             `to fill a ${alvoSegundos}-second video with narration instead of silence`,
         )
       }
@@ -720,7 +724,7 @@ export async function POST(req: NextRequest) {
     // Então o estado sai declarado, e a tela não apresenta como pronto.
     if (forceAuthoring) {
       const palavras = scriptWordCount(script)
-      const aindaCurto = palavras < alvoPalavras
+      const aindaCurto = palavras < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa
       if (aindaCurto) {
         console.warn(
           `[generate-script] forceAuthoring ainda curto: ${palavras}/${alvoPalavras} palavras para ${alvoSegundos}s`,

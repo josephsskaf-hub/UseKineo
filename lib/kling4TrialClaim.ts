@@ -11,6 +11,17 @@ export function kling4TrialEngineFromClaim(response: Record<string, unknown> | n
     ? trial.engine_used : null
 }
 
+/**
+ * KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: o filme grátis saiu no Seedance 1.5
+ * PORQUE a narração medida passou de 15 s (o `reason` que a rota grava no marcador kling4_trial). Só esse motivo — sem medida,
+ * prazo estourado ou teto do dia não dizem "sua narração era longa".
+ */
+export function kling4TrialFallbackPorFalaLonga(response: Record<string, unknown> | null | undefined): boolean {
+  const engine = kling4TrialEngineFromClaim(response)
+  if (engine !== 'seedance15_fallback') return false
+  return (response!.kling4_trial as Record<string, unknown>).reason === 'narration_over_kling4_15s'
+}
+
 /** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */
 export function kling4TrialVideoUrlFromClaim(response: Record<string, unknown> | null | undefined): string | null {
   if (kling4TrialEngineFromClaim(response) !== 'kling4') return null

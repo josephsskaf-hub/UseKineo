@@ -1,6 +1,6 @@
 import { KLING4_TRIAL_LIVE } from '@/lib/kling4TrialPolicy'
 
-export const KLING4_TRIAL_NOTICE_COPY = 'First film free — made with Kling 4.0'
+export const KLING4_TRIAL_NOTICE_COPY = 'First film free on Kling 4.0 when the story fits 15 s' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: narração mais longa sai no Seedance 1.5
 export const KLING4_TRIAL_NOTICE_REFRESH_MS = 15_000
 
 /** A short server lease, not a cached promise of capacity. Unknown, expired or malformed state hides the copy. */

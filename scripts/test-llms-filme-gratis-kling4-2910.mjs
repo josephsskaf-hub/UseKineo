@@ -51,7 +51,7 @@ function loader(overrides = {}) {
 // KINEO-LLMS-K4-2910 — expectations are independent of the canonical copy implementation.
 async function verify(live, overrides = {}) {
   const load = loader(overrides)
-  const expected = live ? 'Kling 4.0' : 'Seedance 1.5'
+  const expected = live ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: Kling 4.0 só quando a história cabe em 15 s
   const label = `free 15-second film (${expected})`
   assert.equal(load(policy).KLING4_TRIAL_LIVE, live)
   assert.equal(load('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME, expected)
@@ -71,7 +71,8 @@ async function verify(live, overrides = {}) {
   assert.ok(llms.includes(`First film free — made with ${expected}`))
   if (live) {
     assert.doesNotMatch(llms, /free 15-second film \(Seedance 1\.5\)|free (?:first )?film (?:uses|runs on) Seedance 1\.5|trial film uses Seedance 1\.5/i)
-    assert.doesNotMatch(offer.FREE_FILM_LABEL, /Seedance 1\.5/)
+    assert.match(offer.FREE_FILM_LABEL, /Kling 4\.0 \/ Seedance 1\.5/) // KINEO-K4-NARRACAO-CABE-0111 — o rótulo nomeia os dois motores (antes: proibia citar o Seedance)
+    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes('Kling 4.0 when the story fits 15 seconds; longer narration goes to Seedance 1.5')) // KINEO-K4-NARRACAO-CABE-0111
   }
 }
 

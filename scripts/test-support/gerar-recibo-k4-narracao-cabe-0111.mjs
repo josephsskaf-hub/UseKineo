@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/compose.ts', 'lib/kling4TrialScript.ts'] // KINEO-K4-NARRACAO-CABE-0111 — opção C: o escritor do filme grátis Kling 4 escreve na faixa medida (dentro da do Seedance de 15 s); a rota MEDE a fala (TTS da montagem, prazo próprio) antes do POST pago; sobra em movimento.
+const ESCOPO = ['app/api/generate-script/route.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/compose.ts', 'lib/kling4TrialScript.ts', 'lib/meta95/ideiaNoEscritor.ts', 'lib/freeFilmEngine.ts', 'lib/entryPolicy.ts', 'lib/kling4TrialNotice.ts', 'lib/kling4TrialClaim.ts', 'lib/ui/refinementCopy.json', 'app/ai-video-generator/kling-4/page.tsx', 'app/kineo-vs-higgsfield/page.tsx', 'components/Kling4PaidEnginePage.tsx', 'app/api/compose/status/[renderId]/route.ts', 'app/(dashboard)/generate/GenerateClient.tsx'] // KINEO-K4-NARRACAO-CABE-0111 — vai 16: o escritor do filme grátis Kling 4 mira o piso do portão de 15 s (teto por voz); a rota MEDE a fala (prazo próprio) antes do POST pago; selo honesto na copy e na tela do filme; sobra < 1 s com o empurrão da base.
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

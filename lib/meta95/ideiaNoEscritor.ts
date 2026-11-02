@@ -31,7 +31,7 @@
 // clássico (que só roda com verbatim=false) não toca mais a fala. O filtro em si é de outra entrega (KINEO-META95-ASSUNTO-1910).
 import { parseUserScript, looksLikeBrief } from '@/lib/scriptParser'
 import { looksLikeModelRefusal } from '@/lib/modelRefusal'
-import { MIN_COVERAGE } from '@/lib/narrationFit'
+import { MIN_COVERAGE, minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-0111: + minCoverageFor
 import { speechFamilyForQuality, speechRateFor } from '@/lib/speechRate'
 import { fastestClassicPersonaRate } from '@/lib/scriptWriterRate'
 import { isShortFilmTarget } from '@/lib/shortFilmScript'
@@ -272,7 +272,7 @@ export type AvaliacaoDoRoteiro =
 export function pisoDoPortao(args: { engine?: string | null; seconds: number; language?: string | null }): number {
   const engine = args.engine ?? MOTOR_PADRAO_DO_CINEMATIC
   const lang = args.language ?? 'en'
-  if (isShortFilmTarget(args.seconds)) return faixaAceitaNoFilmeCurtoDoMotor(engine, args.seconds, MIN_COVERAGE, lang).min
+  if (isShortFilmTarget(args.seconds)) return faixaAceitaNoFilmeCurtoDoMotor(engine, args.seconds, minCoverageFor(args.seconds), lang).min // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — a cobertura do PORTÃO real da rota (minCoverageFor: 75 % até 15 s, KINEO-COBERTURA-15S-2026-09-30); com 95 % o roteiro do Kling 4 grátis (piso de 75 %) virava fallback
   const ritmo = speechFamilyForQuality(engine) === 'hollywood'
     ? speechRateFor({ family: 'hollywood', language: lang }).wordsPerSecond
     : fastestClassicPersonaRate(lang).wordsPerSecond

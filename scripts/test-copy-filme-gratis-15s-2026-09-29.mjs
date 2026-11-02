@@ -150,7 +150,7 @@ function problemasPublicos({ L, llms, facts }) {
   const custo = L('lib/credits/engineCost.ts').creditCostForDuration('cinematic_ai', true, L('lib/durationByEngine.ts').SEEDANCE_SHORT_SECONDS)
   const trial = L('lib/freeTierOffer.ts').TRIAL_GRANT_CREDITS_COPY
   // KINEO-LLMS-K4-2910 — expectativa independente do rótulo, derivada do interruptor real.
-  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5' /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: o grátis nomeia os dois motores */
   const frase = `free ${L('lib/durationByEngine.ts').SEEDANCE_SHORT_SECONDS}-second film (${engine})`
   if (!(custo <= trial)) p.push(`custo do 15 s (${custo}) não cabe no trial (${trial})`)
   if (!llms.includes(frase)) p.push('llms.txt sem a frase do filme grátis de 15 s')
@@ -193,7 +193,7 @@ console.log('== 2. números derivados e espelhos batem com lib/durationByEngine 
   checa(`freeTierOffer: ${fto.TRIAL_FREE_FILM_SECONDS} s = ${S} s; custo ${fto.TRIAL_FREE_FILM_CREDITS} = creditCostForDuration (${custo}); filmes ${fto.TRIAL_SEEDANCE15_FILMS} = ⌊${fto.TRIAL_GRANT_CREDITS_COPY}/${custo}⌋`,
     fto.TRIAL_FREE_FILM_SECONDS === S && fto.TRIAL_FREE_FILM_CREDITS === custo && fto.TRIAL_SEEDANCE15_FILMS === Math.floor(fto.TRIAL_GRANT_CREDITS_COPY / custo) && fto.TRIAL_SEEDANCE15_FILMS >= 1)
   // KINEO-LLMS-K4-2910 — trocar o rótulo sem obedecer ao interruptor continua ficando vermelho.
-  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'
+  const engine = L('lib/kling4TrialPolicy.ts').KLING4_TRIAL_LIVE ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5' /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: o grátis nomeia os dois motores */
   checa(`FREE_FILM_LABEL = "${fto.FREE_FILM_LABEL}"`, fto.FREE_FILM_LABEL === `free ${S}-second film (${engine})`)
   checa(`marketingPrice: ${mp.SEEDANCE_SHORT_FILM_SECONDS} s e ${mp.SEEDANCE_SHORT_FILM_CREDITS} cr espelham o 15 s`, mp.SEEDANCE_SHORT_FILM_SECONDS === S && mp.SEEDANCE_SHORT_FILM_CREDITS === custo)
   checa('videoReadyFooter: o piso do próximo filme é o custo do 15 s (import, não número)', /^export const NEXT_VIDEO_MIN_CREDITS = SEEDANCE_SHORT_FILM_CREDITS$/m.test(rd('lib/lifecycle/videoReadyFooter.ts')))

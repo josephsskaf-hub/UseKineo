@@ -1608,7 +1608,13 @@ export async function GET(
         ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' ? {
           engine_used: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used,
           engine_label: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5',
-        } : {}),
+        } : await (async () => { // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto do filme grátis
+          const m = await import('@/lib/kling4TrialClaim')
+          const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined
+          const engine = m.kling4TrialEngineFromClaim(resp)
+          if (!engine) return {}
+          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : {}) }
+        })()),
         final_video_url: responseVideoUrl,
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,

@@ -2487,6 +2487,7 @@ export function buildCreatomateSource({
     const k4Base = { type: 'video' as const, track: 2, source: cleanClips[0], fit: 'cover' as const, loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' } // KINEO-K4-FIM-SEM-VOLTA-0111
     const k4Inteiro = round3(Math.min(totalDuration, K4_SEGUNDOS)) // KINEO-K4-FIM-SEM-VOLTA-0111
     elements.push({ ...k4Base, time: 0, duration: k4Inteiro, trim_start: 0 }) // KINEO-K4-FIM-SEM-VOLTA-0111
+    const k4SobraCurta = totalDuration - k4Inteiro < 1 // KINEO-K4-NARRACAO-CABE-0111 — sobra < 1 s: o empurrão de 6 % da base (o que já rodou em produção), nunca o de 12 %
     for (let t = k4Inteiro, k = 0; totalDuration - t > 0.05; k++) { // KINEO-K4-FIM-SEM-VOLTA-0111
       const len = round3(Math.min(K4_CAUDA, totalDuration - t)) // KINEO-K4-FIM-SEM-VOLTA-0111
       elements.push({ // KINEO-K4-FIM-SEM-VOLTA-0111
@@ -2498,8 +2499,12 @@ export function buildCreatomateSource({
         // a 100 % com a MESMA âncora, e só no 100 % (onde a âncora não desloca nada) o par troca de lado — nenhum salto de escala
         // nem de enquadramento no corte. A sobra em si fica em até 0,5 s: a rota MEDE a fala (a TTS desta montagem, antes do
         // POST pago) e só manda ao clipe de 15 s fala de até 15,5 s medidos — acima, o filme vai ao Seedance; o escritor do
-        // filme grátis mira a faixa de palavras do Kling 4 (lib/kling4TrialScript), mas quem decide é a medição.
-        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '112%', end_scale: k % 2 === 0 ? '112%' : '100%', x_anchor: Math.floor(k / 2) % 2 === 0 ? '38%' : '62%', y_anchor: '50%', easing: 'ease-out' }], // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-NARRACAO-CABE-0111
+        // filme grátis mira o piso do portão de 15 s (lib/kling4TrialScript), mas quem decide é a medição.
+        // Revisão 02/11: o empurrão de 12 % nunca foi validado em render — com sobra < 1 s (o caso que a medição deixa passar)
+        // fica o empurrão de 6 % linear da base, já exercitado em produção (KINEO-K4-FIM-SEM-VOLTA-0111).
+        animations: k4SobraCurta // KINEO-K4-NARRACAO-CABE-0111
+          ? [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }] // KINEO-K4-FIM-SEM-VOLTA-0111 (a da base)
+          : [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '112%', end_scale: k % 2 === 0 ? '112%' : '100%', x_anchor: Math.floor(k / 2) % 2 === 0 ? '38%' : '62%', y_anchor: '50%', easing: 'ease-out' }], // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-NARRACAO-CABE-0111
       }) // KINEO-K4-FIM-SEM-VOLTA-0111
       t = round3(t + len) // KINEO-K4-FIM-SEM-VOLTA-0111
     } // KINEO-K4-FIM-SEM-VOLTA-0111

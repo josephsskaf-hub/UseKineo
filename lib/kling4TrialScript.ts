@@ -15,17 +15,18 @@
 //    estourado o prazo próprio da medição (K4_PRAZO_DA_MEDICAO_MS) → o Seedance de 3 clipes, que filma a fala inteira. Na dúvida,
 //    Seedance; nunca se amputa a fala do cliente. Custo: uma TTS + um Whisper (centavos), que a montagem NÃO paga de novo.
 //
-// 2. O ALVO DO ESCRITOR (o que faz a maioria caber). É em PALAVRAS, por língua, tirado das durações medidas (palavras ×
-//    segundos dos 20 filmes; scripts/test-k4-narracao-cabe-0111.mts simula cada filme no tamanho do alvo com a duração real
-//    por palavra dele). E fica SEMPRE dentro da faixa que o Seedance de 15 s aceita (faixaAceitaNoFilmeCurto, a mesma do
-//    escritor e do lib/meta95/ideiaNoEscritor pisoDoPortao): se a medição mandar o filme ao Seedance, o roteiro curto serve.
-//    Língua sem interseção (a voz real fala o piso do Seedance em mais de 15,5 s) ou sem medida: null — o escritor usa a faixa
-//    normal e a medição decide.
+// 2. O ALVO DO ESCRITOR (o que faz a maioria caber; "vai 16", fundador 02/11). É em PALAVRAS e mira o PISO do portão do
+//    Seedance de 15 s (75 % de cobertura no passo da voz — a régua da rota), com teto por voz (faixaDoKling4NoEscritor, abaixo).
+//    Se a medição mandar o filme ao Seedance, o roteiro serve: está acima do piso do portão em qualquer voz.
+//    scripts/test-k4-narracao-cabe-0111.mts simula os 20 filmes reais no tamanho do alvo, com a duração real por palavra.
 import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'
 import { campoDaVozAssinada, vozAssinadaDoClaim, type VozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
 import type { NarrationLanguage } from '@/lib/textLanguage'
-import { faixaAceitaNoFilmeCurto, isSeedance15, SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
-import { MIN_COVERAGE } from '@/lib/narrationFit'
+import { isSeedance15, SEEDANCE_SHORT_SECONDS, maxWordsForShortFilm, ritmoDoFilmeCurto, ritmoDaVozNoIdioma } from '@/lib/durationByEngine'
+import { minCoverageFor } from '@/lib/narrationFit'
+import { speechRateFor } from '@/lib/speechRate'
+import { VOICE_PERSONAS } from '@/lib/narration/personas'
+import { vozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 
 /** Teto da fala MEDIDA (mp3 da voz da montagem) para o clipe único de 15 s. */
@@ -90,8 +91,9 @@ async function medirSemPrazo(a: ArgsDaFalaK4, deps?: DepsDaFalaK4): Promise<Fala
 
 /**
  * Sintetiza (ou acha no cache) a narração que a montagem vai falar e devolve a decisão pela duração MEDIDA. Nunca lança e
- * nunca passa do prazo próprio (K4_PRAZO_DA_MEDICAO_MS): estourou → 'narration_measure_timeout_kling4' → Seedance (a TTS que
- * terminar depois só deixa o mp3 no cache, que a montagem do Seedance não usa — nada é cobrado do cliente).
+ * nunca passa do prazo próprio (K4_PRAZO_DA_MEDICAO_MS): estourou → 'narration_measure_timeout_kling4' → Seedance. A TTS que
+ * terminar depois deixa o mp3 no cache de voz com a MESMA chave (mesmo texto, voz, velocidade, língua e qualidade), e a montagem
+ * do Seedance o USA — não paga a voz de novo; nada é cobrado do cliente pela medição.
  * Derivação ≡ /api/compose: texto = stripScriptMarkers(voiceover_script) (ou o salvamento); voz e velocidade = o
  * `narration_voice` assinado × `speed` do roteiro (vozAssinadaDoClaim); o compose só fala o texto como está com velocidade
  * explícita ou roteiro verbatim — fora disso ele reescreve antes da TTS e não há o que medir aqui (→ Seedance).
@@ -112,32 +114,57 @@ export async function medirFalaDoKling4Trial(a: ArgsDaFalaK4, deps?: DepsDaFalaK
   }
 }
 
-// ═══ O alvo do escritor do filme grátis Kling 4 (opção C, fundador 02/11) ═══════════════════════════════════════════════
-// Teto de PALAVRAS faladas por língua, das durações medidas dos 20 filmes (claims kling4_trial × render_delivered_measured,
-// 29/10–01/11; os dados e a simulação estão em scripts/test-k4-narracao-cabe-0111.mts):
-//   · en (10 filmes): 6 falam ≥ 2,57 pal/s (echo 0,96, alloy, onyx sem reticências) e cabem com até 39 palavras; os outros 4
-//     (onyx 0,92/alloy 0,9 com reticências e palavras longas, 2,13–2,19 pal/s) só caberiam com ≤ 33 — abaixo do piso de 36 do
-//     Seedance, então não se persegue. Teto 38: o mais lento dos 6 (702699d9, 0,389 s/palavra) fala 38 em 14,8 s — 0,7 s de folga.
-//   · de (1 filme, ed6e422f): 33 palavras couberam nos 15 s (o filme parou no piso de 15 s). Teto 33, nenhuma extrapolação.
-//   · pt (4), ar (3), pl (1), el (1): a voz real fala o piso do Seedance (36; pl 32) em 16,4–25 s — sem interseção, faixa normal.
-//   · demais línguas (es, tr, …): sem medida — faixa normal; a medição decide.
-export const K4_TETO_DO_ESCRITOR_POR_LINGUA: Readonly<Record<string, number>> = { en: 38, de: 33 }
+// ═══ O alvo do escritor do filme grátis Kling 4 ("vai 16", fundador 02/11) ═══════════════════════════════════════════════
+// O escritor mira o PISO do portão do Seedance de 15 s — a mesma régua da rota: fala estimada ≥ 75 % de 15 s
+// (minCoverageFor(15) = SHORT_FILM_MIN_COVERAGE) no passo da VOZ (speechRateFor × ritmo da língua, como narrationRate na rota
+// do cinematic). A voz do 15 s é escolhida DEPOIS, pelas palavras do roteiro pronto (vozDoFilmeCurto → detectNiche), então a
+// faixa vale para TODA voz que o 15 s pode escolher:
+//   · PISO = o piso do portão na voz MAIS RÁPIDA do 15 s (o teto de passo da casa, ritmoDoFilmeCurto: 2,5 pal/s × língua) —
+//     com ele o portão passa em qualquer voz; nunca abaixo do piso do Seedance, nunca filme recusado por fala curta;
+//   · TETO = o que cabe nos 15,5 s na voz pedida (ou na mais LENTA, quando a voz não é conhecida): passo nominal da voz × o
+//     fator real medido (K4_FATOR_REAL_MEDIDO: o pior real ÷ nominal dos filmes da língua), e nunca menos que PISO + folga.
+// A medição da voz (≤ 15,5 s) continua decidindo: faixa é alvo, não garantia.
+/** Folga mínima acima do piso (o corte por frases inteiras precisa de espaço para cair dentro da faixa). */
+export const K4_FOLGA_DO_ESCRITOR = 2
+/**
+ * Fator real ÷ nominal mais baixo medido por língua (palavras/s medidas no mp3 ÷ passo nominal da voz assinada), dos filmes
+ * Kling 4 de 29/10–01/11 que NÃO pararam no piso de 15 s. en: 6039e4e5 (futuristic-ai, 2,194 ÷ 2,5 = 0,878) — arredondado para
+ * baixo. Língua sem medida suficiente: sem fator (o teto fica em piso + folga).
+ */
+export const K4_FATOR_REAL_MEDIDO: Readonly<Record<string, number>> = { en: 0.87 }
 
-export interface FaixaK4DoEscritor { min: number; max: number; language: string }
+/** Palavras mínimas que o portão do Seedance de 15 s aceita numa voz de passo `wps` (já na língua): ⌈15 × 75 % × wps⌉. */
+export function pisoDoPortaoNaVoz(wps: number): number {
+  return Math.ceil(SEEDANCE_SHORT_SECONDS * minCoverageFor(SEEDANCE_SHORT_SECONDS) * wps - 1e-9)
+}
+
+/** Passo nominal (pal/s, na língua) de uma voz do 15 s — a mesma conta da rota (narrationRate do cinematic, sem `speed:`). */
+export function passoDaVozNoFilmeCurto(voz: { voice: string; defaultSpeed: number }, language: string): number {
+  return ritmoDaVozNoIdioma(speechRateFor({ family: 'classic', language, voice: voz.voice, personaSpeed: voz.defaultSpeed }).wordsPerSecond, language)
+}
+
+/** A voz mais LENTA que o 15 s pode escolher (todas as personas e a de legado, onyx × 1,0), na língua. */
+export function passoMaisLentoDoFilmeCurto(language: string): number {
+  const passos = [...VOICE_PERSONAS.map((p) => ({ voice: p.voice, defaultSpeed: p.defaultSpeed })), { voice: 'onyx', defaultSpeed: 1 }]
+    .map((v) => passoDaVozNoFilmeCurto(v, language))
+  return Math.min(...passos)
+}
+
+export interface FaixaK4DoEscritor { min: number; max: number; language: string; voiceWordsPerSecond: number | null }
 
 /**
- * A faixa de palavras do escritor quando o filme vai ao Kling 4 grátis: [piso do Seedance de 15 s, teto medido do Kling 4],
- * só se as duas se cruzam. Nunca abaixo do piso do Seedance (se a medição mandar ao Seedance, o roteiro serve) e nunca acima do
- * teto dele. null = sem interseção ou sem medida → o escritor usa a faixa normal.
+ * A faixa de palavras do escritor quando o filme vai ao Kling 4 grátis. `vozWps` = passo da voz (na língua), quando a voz é
+ * conhecida; null = a mais lenta do 15 s. PISO = portão de 75 % na voz mais rápida (serve a qualquer voz e ao Seedance);
+ * TETO = cabe em 15,5 s na voz, no fator real medido; nunca menos que piso + folga, nunca acima do teto da guarda do Seedance.
  */
-export function faixaDoKling4NoEscritor(language: string | null | undefined): FaixaK4DoEscritor | null {
-  const lang = typeof language === 'string' ? language.trim().toLowerCase() : ''
-  const teto = K4_TETO_DO_ESCRITOR_POR_LINGUA[lang]
-  if (!(typeof teto === 'number' && teto > 0)) return null
-  const seedance = faixaAceitaNoFilmeCurto(SEEDANCE_SHORT_SECONDS, MIN_COVERAGE, lang)
-  const max = Math.min(teto, seedance.max)
-  if (seedance.min > max) return null
-  return { min: seedance.min, max, language: lang }
+export function faixaDoKling4NoEscritor(language: string | null | undefined, vozWps?: number | null): FaixaK4DoEscritor {
+  const lang = typeof language === 'string' && language.trim() ? language.trim().toLowerCase() : 'en'
+  const piso = pisoDoPortaoNaVoz(ritmoDoFilmeCurto(lang))
+  const passo = typeof vozWps === 'number' && Number.isFinite(vozWps) && vozWps > 0 ? vozWps : passoMaisLentoDoFilmeCurto(lang)
+  const fator = K4_FATOR_REAL_MEDIDO[lang]
+  const cabe = typeof fator === 'number' && fator > 0 ? Math.floor(K4_TETO_MEDIDO_SEGUNDOS * fator * passo + 1e-9) : 0
+  const max = Math.min(maxWordsForShortFilm(SEEDANCE_SHORT_SECONDS, lang), Math.max(piso + K4_FOLGA_DO_ESCRITOR, cabe))
+  return { min: Math.min(piso, max), max, language: lang, voiceWordsPerSecond: typeof vozWps === 'number' && vozWps > 0 ? vozWps : null }
 }
 
 /** O pedido vai ao Kling 4 grátis? O mesmo predicado da rota (kling4TrialEligible), lido no escritor — falha = null. */
@@ -145,22 +172,27 @@ export async function faixaDoKling4ParaOPedido(a: {
   engine: unknown
   seconds: number
   language: string
-  /** Plano já pago (lista do cobrador) ou has_paid; null = perfil ilegível → sem faixa. */
-  paid: boolean | null
+  /** Plano já pago (lista do cobrador) ou has_paid; null = perfil ilegível → sem faixa. Lido SÓ depois das checagens baratas. */
+  lerPago: () => Promise<boolean | null>
   /** Filmes não falhos e débitos cinematic-% não estornados da pessoa (null = ilegível). */
   contar: () => Promise<{ films: number | null; debits: number | null }>
+  /** O `vertical` do pedido, quando já existe (caminho do servidor): a voz prevista dá o TETO da faixa; o piso não muda. */
+  vertical?: string | null
+  /** O texto do pedido (prevê a voz junto com o vertical). */
+  topic?: string
   live?: boolean
 }): Promise<FaixaK4DoEscritor | null> {
   try {
     if (!(a.live ?? KLING4_TRIAL_LIVE) || a.seconds !== SEEDANCE_SHORT_SECONDS) return null
-    if (!isSeedance15(typeof a.engine === 'string' ? a.engine : null) || a.paid !== false) return null
-    const faixa = faixaDoKling4NoEscritor(a.language)
-    if (!faixa) return null
+    if (!isSeedance15(typeof a.engine === 'string' ? a.engine : null)) return null
+    if ((await a.lerPago()) !== false) return null
     const { films, debits } = await a.contar()
-    // admitted: true — a admissão do filme grátis (trial/região/semana) é da rota; fora dela, o roteiro na faixa do Kling 4
-    // continua dentro da faixa do Seedance de 15 s, então não há pedido que o portão recuse por causa dela.
-    const elegivel = kling4TrialEligible({ paid: false, admitted: true, shortFilm: true, priorFilms: films, priorDebits: debits, live: a.live })
-    return elegivel ? faixa : null
+    // admitted: true — a admissão do filme grátis (trial/região/semana) é da rota; fora dela, o roteiro na faixa continua
+    // acima do piso do portão do Seedance de 15 s em qualquer voz, então não há pedido que a rota recuse por causa dela.
+    if (!kling4TrialEligible({ paid: false, admitted: true, shortFilm: true, priorFilms: films, priorDebits: debits, live: a.live })) return null
+    const vertical = typeof a.vertical === 'string' && a.vertical.trim() ? a.vertical : null
+    const voz = vertical ? (() => { try { return vozDoFilmeCurto({ engine: a.engine, seconds: a.seconds, narration: String(a.topic ?? ''), vertical, language: a.language as NarrationLanguage }) } catch { return null } })() : null
+    return faixaDoKling4NoEscritor(a.language, voz ? passoDaVozNoFilmeCurto(voz, a.language) : null)
   } catch (e) {
     console.warn('[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 elegibilidade no escritor não lida (faixa normal):', e instanceof Error ? e.message : String(e))
     return null

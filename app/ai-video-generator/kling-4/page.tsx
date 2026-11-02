@@ -4,7 +4,7 @@ import Kling4PaidEnginePage from '@/components/Kling4PaidEnginePage'
 import Footer from '@/components/Footer'
 import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy'
 import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing'
-import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine'
+import { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: Kling 4.0 grátis só quando a história cabe em 15 s
 import { GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
@@ -14,15 +14,15 @@ import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 // "Kling 4.0 is currently unavailable. You can choose Kling 3" (a disponibilidade só chegava no navegador), e os
 // cadastros vindos de páginas de motor citadas pelo ChatGPT caíram de 34/semana (21/09) para 2. Tudo o que um robô lê
 // aqui sai dos interruptores do servidor — nenhum número digitado.
-const freeFilmIsKling4 = FREE_FILM_ENGINE_NAME === 'Kling 4.0'
+const freeFilmIsKling4 = FREE_FILM_IS_KLING4 // KINEO-K4-NARRACAO-CABE-0111 — o nome do motor grátis agora nomeia os dois motores
 const promoOn = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'
 const promoUntil = new Date(Date.parse(KLING4_PROMO_SIGNUP_CUTOFF) - 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 const starterPrice = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 const noCard = CARD_ENTRY_ONLY ? '' : ', no credit card'
 
-const title = freeFilmIsKling4 ? 'Kling 4.0 free — your first AI film, no waitlist | Kineo' : 'Try Kling 4.0 — AI films and ads | Kineo'
+const title = freeFilmIsKling4 ? 'Kling 4.0 free when your story fits 15 s | Kineo' : 'Try Kling 4.0 — AI films and ads | Kineo' // KINEO-K4-NARRACAO-CABE-0111
 const description = freeFilmIsKling4
-  ? `Make your first ${TRIAL_FREE_FILM_SECONDS}-second Kling 4.0 film free${GRANT_COUNTRY_CLAUSE}${noCard}. Kineo directs the scenes and adds narration, captions and music.`
+  ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}. Kineo directs the scenes and adds narration, captions and music.`
   : 'Create Kling 4.0 films and ads in Kineo with your narration, captions and music.'
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ const faq: Array<{ q: string; a: string }> = [
   {
     q: 'Is Kling 4.0 free?',
     a: (freeFilmIsKling4
-      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film made with Kling 4.0 for free${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `
+      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `
       : '') +
       `After that, a Kling 4.0 film costs ${credits(15)} credits (15 s), ${credits(30)} (30 s) or ${credits(60)} (60 s).` +
       (promoOn ? ` Subscribe to Creator or above by ${promoUntil} and Kling 4.0 is free for 30 days — up to 3 films or ads a day, up to 60 seconds each, with no credits used.` : ''),
@@ -65,14 +65,14 @@ export default function Kling4Page() {
     mainEntity: faq.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
   }
   return <>
-    <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second Kling 4.0 film is free${GRANT_COUNTRY_CLAUSE} — no waitlist${noCard}.` : null} />
+    <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}.` : null} />
     <section aria-labelledby="kling4-faq" style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
       <h2 id="kling4-faq" style={{ fontSize: 28, letterSpacing: '-.02em', margin: '0 0 18px' }}>Kling 4.0 questions</h2>
       {faq.map(({ q, a }) => <div key={q} style={{ padding: '16px 0', borderTop: '1px solid var(--border)' }}>
         <h3 style={{ fontSize: 17, margin: '0 0 6px' }}>{q}</h3>
         <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--muted2)' }}>{a}</p>
       </div>)}
-      <p style={{ marginTop: 24 }}><Link href={href} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? 'Make your free Kling 4.0 film →' : 'Try Kling 4.0 →'}</Link></p>
+      <p style={{ marginTop: 24 }}><Link href={href} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? `Make your free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Try Kling 4.0 →'}</Link></p>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </section>
     <Footer />

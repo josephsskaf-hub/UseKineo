@@ -18,7 +18,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 // desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
 import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910
-import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910
+import { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910 · KINEO-K4-NARRACAO-CABE-0111 (selo honesto)
 import { CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE } from '@/lib/growth/checkoutValueContext' // KINEO-VENDER-3-2910
 import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05 · KINEO-MOTORES-GEO-2026-10-06 (país)
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
@@ -26,7 +26,7 @@ const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 // de Kling 3 (substituído pelo Kling 4.0 no plano pago em 29/10) e não tocava em cobrança, a reclamação mais comum sobre
 // eles. Tudo derivado dos interruptores; os fatos sobre o Higgsfield vêm da central de ajuda deles (out/2026).
 const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY
-const FREE_IS_K4 = FREE_FILM_ENGINE_NAME === 'Kling 4.0'
+const FREE_IS_K4 = FREE_FILM_IS_KLING4 // KINEO-K4-NARRACAO-CABE-0111
 const PROMO_ON = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'
 const PROMO_UNTIL = new Date(Date.parse(KLING4_PROMO_SIGNUP_CUTOFF) - 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 const BILLING_ANSWER = 'On Kineo the price on the plan card is the price charged, it renews at that price, you cancel from Account in one click, and monthly plans carry a 7-day money-back guarantee. ' + CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE + " Higgsfield's help centre says there is no trial period, and refunds apply only to an initial purchase within 7 days when no credits have been used (as of October 2026)."
@@ -86,7 +86,7 @@ const FAQ_JSONLD = {
       name: 'Can I try Kling 4.0 for free?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film made with Kling 4.0 free, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` +
+        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` /* KINEO-K4-NARRACAO-CABE-0111 */ +
           (PROMO_ON ? ` Creator or above, bought by ${PROMO_UNTIL}, includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),
       },
     }] : []),

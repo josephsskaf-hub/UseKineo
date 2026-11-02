@@ -3,8 +3,12 @@
  "scope": {
   "app/api/generate-script/route.ts": {
    "beforeSha256": "a25c724d5b3cb35c4128f4c84c1a74c69487c8d81fb8066db10e675319a45612",
-   "afterSha256": "804be22df99a97b310a01c52c06acdf3f6954a9e29ba3c256b7be3dff73318a1",
+   "afterSha256": "c450b50e6cebae0965e26886480608732368fcbc2def0ccc99c2d1cf3ad9b2f5",
    "hunks": [
+    {
+     "before": "import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'\n// KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).",
+     "after": "import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'\nimport { minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-0111 — a cobertura do portão de 15 s na faixa do Kling 4 grátis\n// KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão)."
+    },
     {
      "before": "import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco\nimport { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)",
      "after": "import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco\nimport { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s\nimport { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)"
@@ -14,12 +18,28 @@
      "after": "    // teto da faixa (16,75 s) já é menor que o da guarda (22,5 s) em qualquer ritmo, e o Kineo 1 a 15 s (a cota grátis) não muda.\n    let tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos)) // KINEO-K4-NARRACAO-CABE-0111: let — a faixa do Kling 4 grátis estreita depois do texto pronto\n    let pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto) // KINEO-K4-NARRACAO-CABE-0111: let (idem)\n    // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic"
     },
     {
+     "before": "    // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.\n    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null // KINEO-DURACOES-CURTAS-2026-09-29: a faixa da guarda do motor (Seedance: a mesma de antes)\n    const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max",
+     "after": "    // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.\n    let faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null // KINEO-DURACOES-CURTAS-2026-09-29: a faixa da guarda do motor (Seedance: a mesma de antes) · KINEO-K4-NARRACAO-CABE-0111: let — no Kling 4 grátis, a cobertura do portão de 15 s (75 %)\n    const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max"
+    },
+    {
      "before": "\n    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por",
-     "after": "\n    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\"] — opção C: quando o pedido vai ao filme grátis do Kling 4\n    // (um clipe de 15 s; o mesmo predicado da rota, kling4TrialEligible, lido com o perfil e as contagens da própria pessoa), o\n    // escritor escreve para CABER nos 15 s: faixa de PALAVRAS por língua tirada das durações medidas (lib/kling4TrialScript), sempre\n    // dentro da faixa que o Seedance de 15 s aceita. O teto DURO do corte por frases continua o da guarda do Seedance\n    // (tetoDuroFilmeCurto, acima, já calculado): sem combinação de frases inteiras dentro da faixa, passar do teto vence ficar abaixo\n    // do piso, e a medição da voz na rota manda ao Seedance. Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado\n    // (as palavras da pessoa) ficam na faixa normal. Língua sem interseção ou sem medida, perfil ilegível: faixa normal.\n    const faixaK4 = filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({\n      engine: body.engine, seconds: alvoSegundos, language,\n      paid: await (async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } })(),\n      contar: async () => {\n        const [films, debits] = await Promise.all([\n          supabase.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'failed'),\n          supabase.from('credit_debits').select('render_id', { count: 'exact', head: true }).eq('user_id', user.id).like('render_id', 'cinematic-%').is('refunded_at', null),\n        ])\n        return { films: films.error ? null : films.count, debits: debits.error ? null : debits.count }\n      },\n    }) : null // KINEO-K4-NARRACAO-CABE-0111\n    if (faixaK4) { // KINEO-K4-NARRACAO-CABE-0111\n      tetoFilmeCurto = faixaK4.max; pisoFilmeCurto = faixaK4.min // KINEO-K4-NARRACAO-CABE-0111 — tetoDuroFilmeCurto NÃO muda\n      console.log(`[generate-script] KINEO-K4-NARRACAO-CABE-0111 filme grátis Kling 4: faixa ${faixaK4.min}-${faixaK4.max} palavras (${faixaK4.language}), teto duro ${tetoDuroFilmeCurto}`) // KINEO-K4-NARRACAO-CABE-0111\n    } // KINEO-K4-NARRACAO-CABE-0111\n\n    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por"
+     "after": "\n    // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\" / \"vai 16\"] — quando o pedido vai ao filme grátis do\n    // Kling 4 (um clipe de 15 s; o mesmo predicado da rota, kling4TrialEligible, lido com o perfil e as contagens da própria\n    // pessoa), o escritor mira o PISO do portão do Seedance de 15 s (75 % de cobertura no passo da voz mais rápida do 15 s: serve\n    // a qualquer voz e ao Seedance), com teto pelo que cabe em 15,5 s na voz (lib/kling4TrialScript faixaDoKling4NoEscritor).\n    // O teto DURO do corte por frases continua o da guarda do Seedance (tetoDuroFilmeCurto, acima, já calculado): sem combinação\n    // de frases inteiras dentro da faixa, passar do teto vence ficar abaixo do piso, e a medição da voz na rota manda ao Seedance.\n    // Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado (as palavras da pessoa) ficam na faixa normal. O perfil\n    // só é lido depois das checagens baratas (Kling 4 grátis ligado, 15 s, Seedance); ilegível = faixa normal.\n    const faixaK4 = filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({\n      engine: body.engine, seconds: alvoSegundos, language, topic,\n      vertical: typeof body.vertical === 'string' ? body.vertical : null, // KINEO-K4-NARRACAO-CABE-0111 — caminho do servidor: a voz prevista dá o teto\n      lerPago: async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } },\n      contar: async () => {\n        const [films, debits] = await Promise.all([\n          supabase.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('status', 'failed'),\n          supabase.from('credit_debits').select('render_id', { count: 'exact', head: true }).eq('user_id', user.id).like('render_id', 'cinematic-%').is('refunded_at', null),\n        ])\n        return { films: films.error ? null : films.count, debits: debits.error ? null : debits.count }\n      },\n    }) : null // KINEO-K4-NARRACAO-CABE-0111\n    if (faixaK4) { // KINEO-K4-NARRACAO-CABE-0111\n      tetoFilmeCurto = faixaK4.max; pisoFilmeCurto = faixaK4.min // KINEO-K4-NARRACAO-CABE-0111 — tetoDuroFilmeCurto NÃO muda\n      if (idiomaDoRitmo !== undefined) faixaDoCinematic = faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, minCoverageFor(alvoSegundos), idiomaDoRitmo) // KINEO-K4-NARRACAO-CABE-0111 — \"o cinematic aceita\" = o portão real de 15 s (75 %), não o de 95 %\n      console.log(`[generate-script] KINEO-K4-NARRACAO-CABE-0111 filme grátis Kling 4: faixa ${faixaK4.min}-${faixaK4.max} palavras (${faixaK4.language}, voz ${faixaK4.voiceWordsPerSecond ?? 'mais lenta'}), teto duro ${tetoDuroFilmeCurto}`) // KINEO-K4-NARRACAO-CABE-0111\n    } // KINEO-K4-NARRACAO-CABE-0111\n\n    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por"
     },
     {
      "before": "    const PROMPT_DO_ROTEIRO = SYSTEM_PROMPT + (planoDoTamanho ? `\\n\\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : '') // KINEO-ROTEIRO-NO-TAMANHO-0111\n    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o \"aqui está prontinho pra copiar:\" do chat",
      "after": "    const PROMPT_DO_ROTEIRO = SYSTEM_PROMPT + (planoDoTamanho ? `\\n\\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : '') // KINEO-ROTEIRO-NO-TAMANHO-0111\n      + (faixaK4 ? `\\n\\n${instrucaoDoKling4NoEscritor(faixaK4)}` : '') // KINEO-K4-NARRACAO-CABE-0111 — a faixa do Kling 4 grátis substitui a do prompt (1ª e nova tentativa)\n    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o \"aqui está prontinho pra copiar:\" do chat"
+    },
+    {
+     "before": "    // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.\n    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras\n    // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.",
+     "after": "    // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.\n    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa (portão de 75 %)\n    // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito."
+    },
+    {
+     "before": "          ? `you dropped part of the user's own script — it has ${colado.words} spoken words and your version has only ${scriptWordCount(script)}; keep every sentence they wrote`\n          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +\n            `to fill a ${alvoSegundos}-second video with narration instead of silence`,",
+     "after": "          ? `you dropped part of the user's own script — it has ${colado.words} spoken words and your version has only ${scriptWordCount(script)}; keep every sentence they wrote`\n          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${faixaK4 ? faixaK4.min : alvoPalavras} ` + /* KINEO-K4-NARRACAO-CABE-0111 */\n            `to fill a ${alvoSegundos}-second video with narration instead of silence`,"
+    },
+    {
+     "before": "      const palavras = scriptWordCount(script)\n      const aindaCurto = palavras < alvoPalavras\n      if (aindaCurto) {",
+     "after": "      const palavras = scriptWordCount(script)\n      const aindaCurto = palavras < (faixaK4 ? faixaK4.min : alvoPalavras) // KINEO-K4-NARRACAO-CABE-0111: no Kling 4 grátis, o piso da faixa\n      if (aindaCurto) {"
     },
     {
      "before": "      // casar este evento com o nascimento do filme e julgar a fidelidade à ideia, não ao roteiro que a própria IA escreveu).\n      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(planoDoTamanho ? { length_plan: { version: ROTEIRO_NO_TAMANHO_VERSAO, floor_words: planoDoTamanho.piso }, length_retry: tentativaDeTamanho, length_retry_skipped: scriptWordCount(script) < alvoPalavras ? tamanhoSemNovaTentativa : null, still_short_after_retry: scriptWordCount(script) < alvoPalavras } : {}), ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(rastroDoFinal ? { final_resposta: rastroDoFinal } : {}), /* KINEO-FINAL-RESPOSTA-0111 — detector estreito + juiz semântico do fim (auditoria) */ ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê\n    })",
@@ -29,11 +49,15 @@
   },
   "app/api/generate-video-cinematic/route.ts": {
    "beforeSha256": "76dbed858d1a44dc8e669f86af9b1a0d4c1df05f2fa787d09a6017ac257add9a",
-   "afterSha256": "29e4c3265b2eb855715998316790765c45444bc380b3a81f46da4829c363f7a6",
+   "afterSha256": "a93c68798be01ddd19c84f6f2385385cf2b3dae43624ebb544704b4f21b57d18",
    "hunks": [
     {
      "before": "import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'\nimport { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'",
      "after": "import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'\nimport { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\"]\nimport { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'"
+    },
+    {
+     "before": "    // continua lendo estas mesmas variáveis.\n    const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, language: narrationLanguage.language, escritor: async (corpo) => { const r = await escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) })); return { status: r.status, json: await r.json().catch(() => null) } }, registrar: (name, metadata) => writeServerEvent({ name, userId: user.id, path: '/api/generate-video-cinematic', metadata: { ...metadata, generation_id: generationId, dry_run: body.dry_run === true } }) }) // KINEO-META95-IDEIA-1910 — ideia solta (o caminho verbatim=false, 0 filmes ≥ 95 em 7 dias) → roteiro marcado do generate-script no tamanho do filme e na régua do motor; dali em diante a fala é verbatim (o filtro anti-invenção do caminho clássico só roda com verbatim=false); qualquer tropeço = o caminho de antes, com o motivo em idea_written_on_server\n    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910",
+     "after": "    // continua lendo estas mesmas variáveis.\n    const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, language: narrationLanguage.language, escritor: async (corpo) => { const r = await escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...corpo, ...(typeof body.vertical === 'string' && body.vertical.trim() ? { vertical: body.vertical } : {}) }) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — o vertical do pedido: a voz prevista dá o teto da faixa do Kling 4 grátis */ })); return { status: r.status, json: await r.json().catch(() => null) } }, registrar: (name, metadata) => writeServerEvent({ name, userId: user.id, path: '/api/generate-video-cinematic', metadata: { ...metadata, generation_id: generationId, dry_run: body.dry_run === true } }) }) // KINEO-META95-IDEIA-1910 — ideia solta (o caminho verbatim=false, 0 filmes ≥ 95 em 7 dias) → roteiro marcado do generate-script no tamanho do filme e na régua do motor; dali em diante a fala é verbatim (o filtro anti-invenção do caminho clássico só roda com verbatim=false); qualquer tropeço = o caminho de antes, com o motivo em idea_written_on_server\n    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910"
     },
     {
      "before": "    let kling4Posts = 0\n    if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6))) {\n      kling4Trial = await orchestrateKling4Trial({",
@@ -51,16 +75,250 @@
   },
   "lib/compose.ts": {
    "beforeSha256": "0813830d9c6b5208611b3ecaf0dd83b718f227d56c02abb754389aff338a44d6",
-   "afterSha256": "4d2c6ddc6bca02c6cbab234f542d4d8b9895c6da947a4d9d07df7410baa622e3",
+   "afterSha256": "827e8ac525a569714cd1bfca793e6bb3cbcb203ee0f3d7681832dec0cb06a159",
    "hunks": [
     {
+     "before": "    elements.push({ ...k4Base, time: 0, duration: k4Inteiro, trim_start: 0 }) // KINEO-K4-FIM-SEM-VOLTA-0111\n    for (let t = k4Inteiro, k = 0; totalDuration - t > 0.05; k++) { // KINEO-K4-FIM-SEM-VOLTA-0111",
+     "after": "    elements.push({ ...k4Base, time: 0, duration: k4Inteiro, trim_start: 0 }) // KINEO-K4-FIM-SEM-VOLTA-0111\n    const k4SobraCurta = totalDuration - k4Inteiro < 1 // KINEO-K4-NARRACAO-CABE-0111 — sobra < 1 s: o empurrão de 6 % da base (o que já rodou em produção), nunca o de 12 %\n    for (let t = k4Inteiro, k = 0; totalDuration - t > 0.05; k++) { // KINEO-K4-FIM-SEM-VOLTA-0111"
+    },
+    {
      "before": "        ...k4Base, time: t, duration: len, trim_start: round3(K4_SEGUNDOS - len), // KINEO-K4-FIM-SEM-VOLTA-0111\n        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }], // KINEO-K4-FIM-SEM-VOLTA-0111\n      }) // KINEO-K4-FIM-SEM-VOLTA-0111",
-     "after": "        ...k4Base, time: t, duration: len, trim_start: round3(K4_SEGUNDOS - len), // KINEO-K4-FIM-SEM-VOLTA-0111\n        // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\"] — farol (e8f91bdf): o empurrão\n        // de 6 % linear deixava a sobra como quadro quase parado. Agora um movimento de câmera perceptível: empurrão de 12 % ancorado\n        // fora do centro (38 % / 62 %, alternando — o mesmo par de âncoras do Ken Burns do Kineo 1, exercitado em produção), que se\n        // lê como pan. Escala CONTÍNUA entre trechos: o 1º sai de 100 % (o clipe inteiro termina em 100 %), o seguinte volta de 112 %\n        // a 100 % com a MESMA âncora, e só no 100 % (onde a âncora não desloca nada) o par troca de lado — nenhum salto de escala\n        // nem de enquadramento no corte. A sobra em si fica em até 0,5 s: a rota MEDE a fala (a TTS desta montagem, antes do\n        // POST pago) e só manda ao clipe de 15 s fala de até 15,5 s medidos — acima, o filme vai ao Seedance; o escritor do\n        // filme grátis mira a faixa de palavras do Kling 4 (lib/kling4TrialScript), mas quem decide é a medição.\n        animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '112%', end_scale: k % 2 === 0 ? '112%' : '100%', x_anchor: Math.floor(k / 2) % 2 === 0 ? '38%' : '62%', y_anchor: '50%', easing: 'ease-out' }], // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-NARRACAO-CABE-0111\n      }) // KINEO-K4-FIM-SEM-VOLTA-0111"
+     "after": "        ...k4Base, time: t, duration: len, trim_start: round3(K4_SEGUNDOS - len), // KINEO-K4-FIM-SEM-VOLTA-0111\n        // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"2 c\"] — farol (e8f91bdf): o empurrão\n        // de 6 % linear deixava a sobra como quadro quase parado. Agora um movimento de câmera perceptível: empurrão de 12 % ancorado\n        // fora do centro (38 % / 62 %, alternando — o mesmo par de âncoras do Ken Burns do Kineo 1, exercitado em produção), que se\n        // lê como pan. Escala CONTÍNUA entre trechos: o 1º sai de 100 % (o clipe inteiro termina em 100 %), o seguinte volta de 112 %\n        // a 100 % com a MESMA âncora, e só no 100 % (onde a âncora não desloca nada) o par troca de lado — nenhum salto de escala\n        // nem de enquadramento no corte. A sobra em si fica em até 0,5 s: a rota MEDE a fala (a TTS desta montagem, antes do\n        // POST pago) e só manda ao clipe de 15 s fala de até 15,5 s medidos — acima, o filme vai ao Seedance; o escritor do\n        // filme grátis mira o piso do portão de 15 s (lib/kling4TrialScript), mas quem decide é a medição.\n        // Revisão 02/11: o empurrão de 12 % nunca foi validado em render — com sobra < 1 s (o caso que a medição deixa passar)\n        // fica o empurrão de 6 % linear da base, já exercitado em produção (KINEO-K4-FIM-SEM-VOLTA-0111).\n        animations: k4SobraCurta // KINEO-K4-NARRACAO-CABE-0111\n          ? [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }] // KINEO-K4-FIM-SEM-VOLTA-0111 (a da base)\n          : [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '112%', end_scale: k % 2 === 0 ? '112%' : '100%', x_anchor: Math.floor(k / 2) % 2 === 0 ? '38%' : '62%', y_anchor: '50%', easing: 'ease-out' }], // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-NARRACAO-CABE-0111\n      }) // KINEO-K4-FIM-SEM-VOLTA-0111"
+    }
+   ]
+  },
+  "lib/meta95/ideiaNoEscritor.ts": {
+   "beforeSha256": "576c1588dc9c3c4e95b7a4037270e0ccbc2ff4e2d98a5782e691d9d573380362",
+   "afterSha256": "978f1a7fa6bf8c377b1efc6702a8cbd605c636ca07aaf1ce80ba671ca6c231ef",
+   "hunks": [
+    {
+     "before": "import { looksLikeModelRefusal } from '@/lib/modelRefusal'\nimport { MIN_COVERAGE } from '@/lib/narrationFit'\nimport { speechFamilyForQuality, speechRateFor } from '@/lib/speechRate'",
+     "after": "import { looksLikeModelRefusal } from '@/lib/modelRefusal'\nimport { MIN_COVERAGE, minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-0111: + minCoverageFor\nimport { speechFamilyForQuality, speechRateFor } from '@/lib/speechRate'"
+    },
+    {
+     "before": "  const lang = args.language ?? 'en'\n  if (isShortFilmTarget(args.seconds)) return faixaAceitaNoFilmeCurtoDoMotor(engine, args.seconds, MIN_COVERAGE, lang).min\n  const ritmo = speechFamilyForQuality(engine) === 'hollywood'",
+     "after": "  const lang = args.language ?? 'en'\n  if (isShortFilmTarget(args.seconds)) return faixaAceitaNoFilmeCurtoDoMotor(engine, args.seconds, minCoverageFor(args.seconds), lang).min // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — a cobertura do PORTÃO real da rota (minCoverageFor: 75 % até 15 s, KINEO-COBERTURA-15S-2026-09-30); com 95 % o roteiro do Kling 4 grátis (piso de 75 %) virava fallback\n  const ritmo = speechFamilyForQuality(engine) === 'hollywood'"
+    }
+   ]
+  },
+  "lib/freeFilmEngine.ts": {
+   "beforeSha256": "7e9d1d4140b1cb246bde3166cf149fa88d0b0dc613bea89d1ecdd1fe0f3146d4",
+   "afterSha256": "459899428bf8fbc9176abd8998f24792bad867fa04e4834477f1d9ba7d5c4f5e",
+   "hunks": [
+    {
+     "before": "\n// KINEO-LLMS-K4-2910 — the primary engine name is copy, not a guarantee against budget fallback.\nexport const FREE_FILM_ENGINE_NAME = KLING4_TRIAL_LIVE ? 'Kling 4.0' : 'Seedance 1.5'\n",
+     "after": "\n// KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — selo honesto: o filme grátis sai no Kling 4.0\n// quando a história cabe em 15 s; narração mais longa vai ao Seedance 1.5 (a rota mede a voz antes de pagar). O nome do motor\n// do filme grátis, usado em ~100 frases de 16 línguas, passa a nomear os DOIS — a forma mais curta que é verdade em toda língua.\nexport const FREE_FILM_ENGINE_NAME = KLING4_TRIAL_LIVE ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5'\n/** O filme grátis PODE sair no Kling 4.0 (interruptor de reversão). Para decisões de copy — nunca comparar o nome acima. */\nexport const FREE_FILM_IS_KLING4 = KLING4_TRIAL_LIVE\n/** A condição, por extenso, onde a página promete o Kling 4.0 grátis. Vazia com o Kling 4 grátis desligado. */\nexport const FREE_FILM_FITS_CLAUSE = KLING4_TRIAL_LIVE ? ' when the story fits 15 seconds; longer narration goes to Seedance 1.5' : ''\nexport const FREE_FILM_FITS_CLAUSE_PT = KLING4_TRIAL_LIVE ? ' quando a história cabe em 15 segundos; narração mais longa vai para o Seedance 1.5' : ''\nexport const FREE_FILM_FITS_CLAUSE_ES = KLING4_TRIAL_LIVE ? ' cuando la historia cabe en 15 segundos; una narración más larga va a Seedance 1.5' : ''\n/** O motor do filme grátis com a condição, para \"(…)\" depois de \"free 15-second film\". */\nexport const FREE_FILM_ENGINE_CONDITION = KLING4_TRIAL_LIVE ? 'Kling 4.0 when the story fits 15 seconds; longer narration goes to Seedance 1.5' : 'Seedance 1.5'\n"
+    }
+   ]
+  },
+  "lib/entryPolicy.ts": {
+   "beforeSha256": "6ce4f48937b63b724eb7eff79cea2fae31d3611011e9ddeef2ce138c99d18b0f",
+   "afterSha256": "4ddd102dd75d2b52b2cf0ed2b9d39fc3556d94d82c70c9ecde94a27497b41162",
+   "hunks": [
+    {
+     "before": "// inteiro (lib/checkoutPricing.ts CARD_TRIAL_LIVE = false).\nimport { FREE_FILM_ENGINE_NAME } from './freeFilmEngine' // KINEO-LLMS-K4-2910 — módulo continua puro, sem env/rede.\nexport const CARD_ENTRY_ONLY = false",
+     "after": "// inteiro (lib/checkoutPricing.ts CARD_TRIAL_LIVE = false).\nimport { FREE_FILM_ENGINE_NAME, FREE_FILM_ENGINE_CONDITION } from './freeFilmEngine' // KINEO-LLMS-K4-2910 — módulo continua puro, sem env/rede. · KINEO-K4-NARRACAO-CABE-0111: + a condição (selo honesto)\nexport const CARD_ENTRY_ONLY = false"
+    },
+    {
+     "before": "    // KINEO-LLMS-K4-2910 — mesmo nome canônico usado por FREE_FILM_LABEL, sem ciclo com freeTierOffer.\n    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (${FREE_FILM_ENGINE_NAME}) — with no card required. Longer films and other engines come with any paid plan. Plans start at $9.90/month when you want more.`,\n  noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, no card.`,",
+     "after": "    // KINEO-LLMS-K4-2910 — mesmo nome canônico usado por FREE_FILM_LABEL, sem ciclo com freeTierOffer.\n    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (${FREE_FILM_ENGINE_NAME}) — with no card required.${FREE_FILM_ENGINE_NAME === FREE_FILM_ENGINE_CONDITION ? '' : ` The free film is made with ${FREE_FILM_ENGINE_CONDITION}.`} Longer films and other engines come with any paid plan. Plans start at $9.90/month when you want more.`,\n  noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, no card.`,"
+    }
+   ]
+  },
+  "lib/kling4TrialNotice.ts": {
+   "beforeSha256": "d393d3171f2c00e988099d69b6da37c6233df00005d947468745703000b694b9",
+   "afterSha256": "91d6615ef47e682697ec88d3b497bc77deb33f495d59bf36f345684c9522331f",
+   "hunks": [
+    {
+     "before": "\nexport const KLING4_TRIAL_NOTICE_COPY = 'First film free — made with Kling 4.0'\nexport const KLING4_TRIAL_NOTICE_REFRESH_MS = 15_000",
+     "after": "\nexport const KLING4_TRIAL_NOTICE_COPY = 'First film free on Kling 4.0 when the story fits 15 s' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — selo honesto: narração mais longa sai no Seedance 1.5\nexport const KLING4_TRIAL_NOTICE_REFRESH_MS = 15_000"
+    }
+   ]
+  },
+  "lib/kling4TrialClaim.ts": {
+   "beforeSha256": "3657f5e11418371b308cbc360334f828e4a557d6f5b9749db47cb84b52fe2cbd",
+   "afterSha256": "7dcc7099369171712e679ccdf30bb7922170cda1f006f57a63ba76c00db3271e",
+   "hunks": [
+    {
+     "before": "\n/** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */",
+     "after": "\n/**\n * KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — selo honesto: o filme grátis saiu no Seedance 1.5\n * PORQUE a narração medida passou de 15 s (o `reason` que a rota grava no marcador kling4_trial). Só esse motivo — sem medida,\n * prazo estourado ou teto do dia não dizem \"sua narração era longa\".\n */\nexport function kling4TrialFallbackPorFalaLonga(response: Record<string, unknown> | null | undefined): boolean {\n  const engine = kling4TrialEngineFromClaim(response)\n  if (engine !== 'seedance15_fallback') return false\n  return (response!.kling4_trial as Record<string, unknown>).reason === 'narration_over_kling4_15s'\n}\n\n/** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */"
+    }
+   ]
+  },
+  "lib/ui/refinementCopy.json": {
+   "beforeSha256": "11f798020c1eb05603408e8a38908bb2c5ea3a5e0baa0394865945e6a808bd41",
+   "afterSha256": "8197838e2320e5270c3d19cef695e078a67bd4f573b6bbbf737470daef28ee62",
+   "hunks": [
+    {
+     "before": "  \"en\": {\n    \"First film free — made with Kling 4.0\": \"First film free — made with Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads is included in every paid plan\",",
+     "after": "  \"en\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"First film free on Kling 4.0 when the story fits 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads is included in every paid plan\","
+    },
+    {
+     "before": "  \"pt\": {\n    \"First film free — made with Kling 4.0\": \"Primeiro filme grátis — feito com Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"O Studio Ads está incluído em todos os planos pagos\",",
+     "after": "  \"pt\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Primeiro filme grátis no Kling 4.0 quando a história cabe em 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Sua narração passou de 15 s, então este foi feito com o Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"O Studio Ads está incluído em todos os planos pagos\","
+    },
+    {
+     "before": "  \"es\": {\n    \"First film free — made with Kling 4.0\": \"Primera película gratis — hecha con Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads está incluido en todos los planes de pago\",",
+     "after": "  \"es\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Primera película gratis en Kling 4.0 cuando la historia cabe en 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Tu narración pasó de 15 s, así que esta se hizo con Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads está incluido en todos los planes de pago\","
+    },
+    {
+     "before": "  \"fr\": {\n    \"First film free — made with Kling 4.0\": \"Premier film gratuit — réalisé avec Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads est inclus dans toutes les offres payantes\",",
+     "after": "  \"fr\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Premier film gratuit sur Kling 4.0 quand l’histoire tient en 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Votre narration dépassait 15 s : ce film a donc été fait avec Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads est inclus dans toutes les offres payantes\","
+    },
+    {
+     "before": "  \"de\": {\n    \"First film free — made with Kling 4.0\": \"Erster Film kostenlos — erstellt mit Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ist in jedem bezahlten Plan enthalten\",",
+     "after": "  \"de\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Erster Film kostenlos mit Kling 4.0, wenn die Geschichte in 15 s passt\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ihre Erzählung war länger als 15 s, daher wurde dieser Film mit Seedance 1.5 erstellt\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ist in jedem bezahlten Plan enthalten\","
+    },
+    {
+     "before": "  \"it\": {\n    \"First film free — made with Kling 4.0\": \"Primo film gratis — realizzato con Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads è incluso in tutti i piani a pagamento\",",
+     "after": "  \"it\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Primo film gratis su Kling 4.0 quando la storia sta in 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"La tua narrazione superava i 15 s, quindi questo film è stato fatto con Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads è incluso in tutti i piani a pagamento\","
+    },
+    {
+     "before": "  \"nl\": {\n    \"First film free — made with Kling 4.0\": \"Eerste film gratis — gemaakt met Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads zit in elk betaald plan\",",
+     "after": "  \"nl\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Eerste film gratis op Kling 4.0 als het verhaal in 15 s past\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Je vertelling was langer dan 15 s, dus deze film is gemaakt met Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads zit in elk betaald plan\","
+    },
+    {
+     "before": "  \"pl\": {\n    \"First film free — made with Kling 4.0\": \"Pierwszy film za darmo — stworzony z Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads jest w każdym płatnym planie\",",
+     "after": "  \"pl\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Pierwszy film za darmo w Kling 4.0, gdy historia mieści się w 15 s\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Twoja narracja była dłuższa niż 15 s, więc ten film powstał w Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads jest w każdym płatnym planie\","
+    },
+    {
+     "before": "  \"tr\": {\n    \"First film free — made with Kling 4.0\": \"İlk film ücretsiz — Kling 4.0 ile hazırlandı\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads tüm ücretli planlara dahil\",",
+     "after": "  \"tr\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Hikâye 15 sn’ye sığarsa ilk film Kling 4.0 ile ücretsiz\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Anlatımınız 15 sn’den uzundu, bu yüzden bu film Seedance 1.5 ile yapıldı\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads tüm ücretli planlara dahil\","
+    },
+    {
+     "before": "  \"ru\": {\n    \"First film free — made with Kling 4.0\": \"Первый фильм бесплатно — создан с Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входит в каждый платный план\",",
+     "after": "  \"ru\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Первый фильм бесплатно на Kling 4.0, если история укладывается в 15 с\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваш текст звучал дольше 15 с, поэтому этот фильм сделан на Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входит в каждый платный план\","
+    },
+    {
+     "before": "  \"uk\": {\n    \"First film free — made with Kling 4.0\": \"Перший фільм безкоштовно — створено з Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входить у кожен платний план\",",
+     "after": "  \"uk\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Перший фільм безкоштовно на Kling 4.0, якщо історія вміщується в 15 с\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваша розповідь була довшою за 15 с, тому цей фільм зроблено на Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входить у кожен платний план\","
+    },
+    {
+     "before": "  \"ar\": {\n    \"First film free — made with Kling 4.0\": \"الفيلم الأول مجانًا — صُنع باستخدام Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads مشمول في كل خطة مدفوعة\",",
+     "after": "  \"ar\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"الفيلم الأول مجاني على Kling 4.0 عندما تتسع القصة لـ 15 ثانية\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"كان التعليق الصوتي أطول من 15 ثانية، لذلك صُنع هذا الفيلم باستخدام Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads مشمول في كل خطة مدفوعة\","
+    },
+    {
+     "before": "  \"ur\": {\n    \"First film free — made with Kling 4.0\": \"پہلی فلم مفت — Kling 4.0 سے بنائی گئی\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ہر پیڈ پلان میں شامل ہے\",",
+     "after": "  \"ur\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"پہلی فلم Kling 4.0 پر مفت، جب کہانی 15 سیکنڈ میں سما جائے\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"آپ کی نریشن 15 سیکنڈ سے لمبی تھی، اس لیے یہ فلم Seedance 1.5 سے بنی\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ہر پیڈ پلان میں شامل ہے\","
+    },
+    {
+     "before": "  \"hi\": {\n    \"First film free — made with Kling 4.0\": \"पहली फ़िल्म मुफ़्त — Kling 4.0 से बनाई गई\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads हर पेड प्लान में शामिल है\",",
+     "after": "  \"hi\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"पहली फ़िल्म Kling 4.0 पर मुफ़्त, जब कहानी 15 सेकंड में समा जाए\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"आपका नैरेशन 15 सेकंड से लंबा था, इसलिए यह फ़िल्म Seedance 1.5 से बनी\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads हर पेड प्लान में शामिल है\","
+    },
+    {
+     "before": "  \"id\": {\n    \"First film free — made with Kling 4.0\": \"Film pertama gratis — dibuat dengan Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads sudah termasuk di setiap paket berbayar\",",
+     "after": "  \"id\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Film pertama gratis di Kling 4.0 jika ceritanya muat dalam 15 detik\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Narasi Anda lebih dari 15 detik, jadi film ini dibuat dengan Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads sudah termasuk di setiap paket berbayar\","
+    },
+    {
+     "before": "  \"vi\": {\n    \"First film free — made with Kling 4.0\": \"Phim đầu tiên miễn phí — được tạo bằng Kling 4.0\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads có trong mọi gói trả phí\",",
+     "after": "  \"vi\": {\n    \"First film free on Kling 4.0 when the story fits 15 s\": \"Phim đầu tiên miễn phí trên Kling 4.0 khi câu chuyện vừa 15 giây\",\n\n    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Lời dẫn của bạn dài hơn 15 giây, nên phim này được làm bằng Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads có trong mọi gói trả phí\","
+    }
+   ]
+  },
+  "app/ai-video-generator/kling-4/page.tsx": {
+   "beforeSha256": "4c09490d177aacdaa9ed2fc0aa880f3ac0fe365a96566a18c0273b06c5935bb2",
+   "afterSha256": "c25c3a0f3eac2baa6df8a551f1833f3502475c8a12787dce808cdb8b17aa8466",
+   "hunks": [
+    {
+     "before": "import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing'\nimport { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine'\nimport { GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'",
+     "after": "import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing'\nimport { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — selo honesto: Kling 4.0 grátis só quando a história cabe em 15 s\nimport { GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'"
+    },
+    {
+     "before": "// aqui sai dos interruptores do servidor — nenhum número digitado.\nconst freeFilmIsKling4 = FREE_FILM_ENGINE_NAME === 'Kling 4.0'\nconst promoOn = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'",
+     "after": "// aqui sai dos interruptores do servidor — nenhum número digitado.\nconst freeFilmIsKling4 = FREE_FILM_IS_KLING4 // KINEO-K4-NARRACAO-CABE-0111 — o nome do motor grátis agora nomeia os dois motores\nconst promoOn = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'"
+    },
+    {
+     "before": "\nconst title = freeFilmIsKling4 ? 'Kling 4.0 free — your first AI film, no waitlist | Kineo' : 'Try Kling 4.0 — AI films and ads | Kineo'\nconst description = freeFilmIsKling4\n  ? `Make your first ${TRIAL_FREE_FILM_SECONDS}-second Kling 4.0 film free${GRANT_COUNTRY_CLAUSE}${noCard}. Kineo directs the scenes and adds narration, captions and music.`\n  : 'Create Kling 4.0 films and ads in Kineo with your narration, captions and music.'",
+     "after": "\nconst title = freeFilmIsKling4 ? 'Kling 4.0 free when your story fits 15 s | Kineo' : 'Try Kling 4.0 — AI films and ads | Kineo' // KINEO-K4-NARRACAO-CABE-0111\nconst description = freeFilmIsKling4\n  ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}. Kineo directs the scenes and adds narration, captions and music.`\n  : 'Create Kling 4.0 films and ads in Kineo with your narration, captions and music.'"
+    },
+    {
+     "before": "    a: (freeFilmIsKling4\n      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film made with Kling 4.0 for free${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `\n      : '') +",
+     "after": "    a: (freeFilmIsKling4\n      ? `On Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first ${TRIAL_FREE_FILM_SECONDS}-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}${noCard}. If the day's free Kling 4.0 capacity is used up, the free film is made with Seedance 1.5 instead. `\n      : '') +"
+    },
+    {
+     "before": "  return <>\n    <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second Kling 4.0 film is free${GRANT_COUNTRY_CLAUSE} — no waitlist${noCard}.` : null} />\n    <section aria-labelledby=\"kling4-faq\" style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>",
+     "after": "  return <>\n    <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}.` : null} />\n    <section aria-labelledby=\"kling4-faq\" style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>"
+    },
+    {
+     "before": "      </div>)}\n      <p style={{ marginTop: 24 }}><Link href={href} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? 'Make your free Kling 4.0 film →' : 'Try Kling 4.0 →'}</Link></p>\n      <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />",
+     "after": "      </div>)}\n      <p style={{ marginTop: 24 }}><Link href={href} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? `Make your free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Try Kling 4.0 →'}</Link></p>\n      <script type=\"application/ld+json\" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />"
+    }
+   ]
+  },
+  "app/kineo-vs-higgsfield/page.tsx": {
+   "beforeSha256": "3a69267d5fb7f2249a2c267c552410f06b330d13d97cf4e0d1a07aed5396cc3b",
+   "afterSha256": "3cf9b288bc847a0b169d8b0148b073e8fe1dbb1446453ce53f92f41676f7caea",
+   "hunks": [
+    {
+     "before": "import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910\nimport { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910\nimport { CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE } from '@/lib/growth/checkoutValueContext' // KINEO-VENDER-3-2910",
+     "after": "import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4PromoPolicyReason } from '@/lib/kling4PaidPolicy' // KINEO-VENDER-3-2910\nimport { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910 · KINEO-K4-NARRACAO-CABE-0111 (selo honesto)\nimport { CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE } from '@/lib/growth/checkoutValueContext' // KINEO-VENDER-3-2910"
+    },
+    {
+     "before": "const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY\nconst FREE_IS_K4 = FREE_FILM_ENGINE_NAME === 'Kling 4.0'\nconst PROMO_ON = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'",
+     "after": "const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY\nconst FREE_IS_K4 = FREE_FILM_IS_KLING4 // KINEO-K4-NARRACAO-CABE-0111\nconst PROMO_ON = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'"
+    },
+    {
+     "before": "        '@type': 'Answer',\n        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film made with Kling 4.0 free, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` +\n          (PROMO_ON ? ` Creator or above, bought by ${PROMO_UNTIL}, includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),",
+     "after": "        '@type': 'Answer',\n        text: `Yes — on Kineo, new accounts${GRANT_COUNTRY_CLAUSE} get their first 15-second film free on Kling 4.0${FREE_FILM_FITS_CLAUSE}, no card (if the day's free Kling 4.0 capacity is used up, it is made with Seedance 1.5).` /* KINEO-K4-NARRACAO-CABE-0111 */ +\n          (PROMO_ON ? ` Creator or above, bought by ${PROMO_UNTIL}, includes Kling 4.0 free for 30 days, up to 3 films a day.` : ''),"
+    }
+   ]
+  },
+  "components/Kling4PaidEnginePage.tsx": {
+   "beforeSha256": "a82b791d1f4accd6f8e7070f5ab60042321088e8d05af3211248fb8ff7b110d7",
+   "afterSha256": "086dc677f95860da6d4f4e90030fceecd8a82f59c5be7cf05efbdf9b3ef95fbf",
+   "hunks": [
+    {
+     "before": "    <p style={{ color: 'var(--muted)', fontSize: 13 }}>Kineo · Kling 4.0</p>\n    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{freeFilmIsKling4 ? 'Try Kling 4.0 free' : KLING4_PAID_COPY.try}</UiLabel></h1>\n    {freeLine ? <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, fontWeight: 600, margin: '0 0 8px' }}>{freeLine}</p> : null}",
+     "after": "    <p style={{ color: 'var(--muted)', fontSize: 13 }}>Kineo · Kling 4.0</p>\n    <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}><UiLabel>{freeFilmIsKling4 ? 'Try Kling 4.0 free on 15-second stories' /* KINEO-K4-NARRACAO-CABE-0111 — selo honesto: grátis quando a história cabe em 15 s */ : KLING4_PAID_COPY.try}</UiLabel></h1>\n    {freeLine ? <p style={{ maxWidth: 660, fontSize: 20, lineHeight: 1.5, fontWeight: 600, margin: '0 0 8px' }}>{freeLine}</p> : null}"
+    },
+    {
+     "before": "      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '24px 0' }}>\n        <Link href={href} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}><UiLabel>{freeFilmIsKling4 ? 'Make your free Kling 4.0 film' : KLING4_PAID_COPY.try}</UiLabel></Link>\n        <Link href=\"/pricing\" style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 22px', color: 'inherit' }}><UiLabel>See plans</UiLabel></Link>",
+     "after": "      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '24px 0' }}>\n        <Link href={href} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}><UiLabel>{freeFilmIsKling4 ? 'Make your free 15-second film' /* KINEO-K4-NARRACAO-CABE-0111 */ : KLING4_PAID_COPY.try}</UiLabel></Link>\n        <Link href=\"/pricing\" style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 22px', color: 'inherit' }}><UiLabel>See plans</UiLabel></Link>"
+    }
+   ]
+  },
+  "app/api/compose/status/[renderId]/route.ts": {
+   "beforeSha256": "085724768e82f86305678e5abfa37d2dd331319f0a7500983d3bf49725631de2",
+   "afterSha256": "1c654efaf2b48450b9bac2a7cad087508407a6d007fdd8e2541627b1c244cb15",
+   "hunks": [
+    {
+     "before": "          engine_label: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5',\n        } : {}),\n        final_video_url: responseVideoUrl,",
+     "after": "          engine_label: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5',\n        } : await (async () => { // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 \"vai 16\"] — selo honesto do filme grátis\n          const m = await import('@/lib/kling4TrialClaim')\n          const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined\n          const engine = m.kling4TrialEngineFromClaim(resp)\n          if (!engine) return {}\n          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : {}) }\n        })()),\n        final_video_url: responseVideoUrl,"
+    }
+   ]
+  },
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "daaf420583d17cd221fe5324ed9d6316b01eec36e7bcf76d286fddbe10f0d24f",
+   "afterSha256": "81d8e1552055e332c992959366533fbe6b6ea91a22d787d73201977bae045f7f",
+   "hunks": [
+    {
+     "before": "  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)\n  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)",
+     "after": "  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)\n  const [actualEngineNote, setActualEngineNote] = useState<string | null>(null) // KINEO-K4-NARRACAO-CABE-0111 — 'narration_over_15s': o grátis saiu no Seedance porque a fala passou de 15 s\n  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)"
+    },
+    {
+     "before": "          if (typeof data.engine_used === 'string') setActualEngineUsed(data.engine_used)\n          setFinalVideoUrl(url)",
+     "after": "          if (typeof data.engine_used === 'string') setActualEngineUsed(data.engine_used)\n          setActualEngineNote(data.engine_note === 'narration_over_15s' ? 'narration_over_15s' : null) // KINEO-K4-NARRACAO-CABE-0111\n          setFinalVideoUrl(url)"
+    },
+    {
+     "before": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null)\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem",
+     "after": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (1) */\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem"
+    },
+    {
+     "before": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null)\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem",
+     "after": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (2) */\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem"
+    },
+    {
+     "before": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null)\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem",
+     "after": "    setFinalVideoUrl(null)\n    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (3) */\n    // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem"
+    },
+    {
+     "before": "                  {engineLabelFor(null, actualEngineUsed) ? <span data-kling4-actual-engine style={{ display: 'block', fontSize: 12, marginTop: 6 }}>{engineLabelFor(null, actualEngineUsed)}</span> : null}\n                </h2>",
+     "after": "                  {engineLabelFor(null, actualEngineUsed) ? <span data-kling4-actual-engine style={{ display: 'block', fontSize: 12, marginTop: 6 }}>{engineLabelFor(null, actualEngineUsed)}</span> : null}\n                  {actualEngineNote === 'narration_over_15s' && engineLabelFor(null, actualEngineUsed) === 'Seedance 1.5' ? <span data-kling4-fallback-note style={{ display: 'block', fontSize: 12, marginTop: 4, fontWeight: 400, color: 'var(--muted)' }}><UiLabel>Your narration was longer than 15 s, so this one was made with Seedance 1.5</UiLabel></span> : null /* KINEO-K4-NARRACAO-CABE-0111 — selo honesto: o motivo, do reason gravado no claim */}\n                </h2>"
     }
    ]
   }
  },
  "addedSources": {
-  "lib/kling4TrialScript.ts": "589d887c6056332faa388faed9a0483c51adec60eed300586e8e7ce1f7fe2ab9"
+  "lib/kling4TrialScript.ts": "1696a55e1abf8d240b25fe66b1224440e1e2ffc629aa1399f5dac8ad6b8e4800"
  }
 }
