@@ -1216,9 +1216,29 @@ export function buildCaptionsFromWhisperWords(
     }
     glued.push(w)
   }
+  // KINEO-LEGENDA-MILHAR-0211 — Whisper parte "2,600" em "2," + "600" (idem "1.500", "3.5", "2,5"); a vírgula de "2," fechava
+  // o pedaço e a legenda mostrou "600 TRACKS" com a narração dizendo "2,600 tracks". Algarismo-separador-algarismo vira UM
+  // token (início do 1º, fim do 2º). Só cola sem pausa audível, sem fim de frase medido e com 1-3 algarismos no grupo da
+  // frente — "In 1999, 600 people" (ano + vírgula) continua cortando como antes.
+  const numeros: WhisperWord[] = []
+  for (const w of glued) {
+    const prev = numeros[numeros.length - 1]
+    const a = (prev?.word ?? '').trim()
+    const b = (w.word ?? '').trim()
+    if (
+      prev &&
+      prev.sentenceEnd !== true &&
+      w.start - prev.end < 0.28 &&
+      ((/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*[.,]$/u.test(a) && /^\d/.test(b)) || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*$/u.test(a) && /^[.,]\d/.test(b)))
+    ) {
+      numeros[numeros.length - 1] = { ...w, word: `${a}${b}`, start: prev.start, end: w.end, sentenceEnd: w.sentenceEnd }
+      continue
+    }
+    numeros.push(w)
+  }
   // Only include words that start before the caption window ends (i.e. before the CTA).
   const captionWindowEnd = Math.max(0, totalAudioDuration - ctaTailSeconds)
-  const windowWords = glued.filter((w) => w.start < captionWindowEnd)
+  const windowWords = numeros.filter((w) => w.start < captionWindowEnd)
   if (windowWords.length === 0) return []
 
   const result: Array<{ text: string; time: number; duration: number; highlight: string | null; words: CaptionChunkWord[] }> = []

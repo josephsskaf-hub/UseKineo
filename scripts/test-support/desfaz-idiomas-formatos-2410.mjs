@@ -1,3 +1,4 @@
+import { semLegendaMilhar0211 } from './desfaz-legenda-milhar-0211.mjs' // KINEO-LEGENDA-MILHAR-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semK4NarracaoCabe0111 } from './desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111 — camada mais nova (01/11, laço do revisor) sai primeiro
 import { semProtagonistaSeedance0111 } from './desfaz-protagonista-seedance-0111.mjs' // KINEO-PROTAGONISTA-SEEDANCE-0111 — camada mais nova (01/11, depois do revisor) sai primeiro
 import { semRoteiroNoTamanho0111 } from './desfaz-roteiro-no-tamanho-0111.mjs' // KINEO-ROTEIRO-NO-TAMANHO-0111 — camada mais nova (01/11, laço do revisor) sai primeiro
@@ -29,6 +30,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semLegendaMilhar0211(text, file) // KINEO-LEGENDA-MILHAR-0211
   text = semK4NarracaoCabe0111(text, file) // KINEO-K4-NARRACAO-CABE-0111
   text = semProtagonistaSeedance0111(text, file) // KINEO-PROTAGONISTA-SEEDANCE-0111
   text = semRoteiroNoTamanho0111(text, file) // KINEO-ROTEIRO-NO-TAMANHO-0111
