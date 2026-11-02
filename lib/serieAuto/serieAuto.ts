@@ -11,6 +11,7 @@ import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { speechFamilyForQuality, type SpeechFamily } from '@/lib/speechRate'
 import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 import { assuntoDoFilme, formatoDoFilme, type FormatoDoFilme } from '@/lib/episodeContinuity'
+import { PARKED_TTL_MS } from '@/lib/filaQuedaFal'
 
 export const SERIE_AUTO_MARCA = 'KINEO-SERIE-AUTO-ETAPA1-0111'
 
@@ -69,12 +70,37 @@ export const SERIE_AUTO_STUCK_CLOSE_MS = 7 * 24 * 60 * 60 * 1000
 /** Falha terminal com o débito vivo: nunca libera nova tentativa na semana (o cliente já pagou aquele episódio). */
 export const SERIE_AUTO_ERRO_DEBITO_VIVO = 'render_lost_debit_live'
 /**
- * A semana já está ocupada por este episódio? Tudo que não é falha ocupa; a falha com débito vivo também (cobraria duas vezes).
+ * A semana já está ocupada por este episódio? Tudo que não é falha ocupa ('parked' inclusive: o resume-parked-renders vai retomar e
+ * cobrar); a falha com débito vivo também (cobraria duas vezes).
  * O passe B só abre uma tentativa nova quando TODAS as linhas da semana são falhas sem cobrança.
  */
 export function serieEpisodioOcupaSemana(row: { status: string; error?: string | null }): boolean {
   return row.status !== 'failed' || row.error === SERIE_AUTO_ERRO_DEBITO_VIVO
 }
+/**
+ * ESTACIONADO (revisão 2 de 01/11): a rota respondeu 503 { queued, parked, refunded } — a fal recusou por saldo/capacidade, o crédito
+ * voltou e o pedido ficou guardado em `render_parked` (session_id = o generation_id da série). O cron resume-parked-renders retoma
+ * esse pedido sozinho com um id NOVO ('parked-…', gravado no `render_parked_closed` outcome 'resumed' e no aluguel
+ * `render_parked_taken`), cobra de novo, e o finish-stranded-renders monta e manda o "Your film is ready". Tratar como falha comum
+ * abria a tentativa 2 uma hora depois: cobrança dupla, filme duplicado, e-mail duplicado. Então 'parked' OCUPA a semana (não é
+ * 'failed') e o passe A segue o id da retomada como o episódio da série.
+ */
+export function serieRespostaEstacionada(status: number, body: { parked?: unknown; queued?: unknown; charged?: unknown; refunded?: unknown } | null | undefined): boolean {
+  if (body?.charged === true && body?.refunded !== true) return false
+  if (body?.parked === true || body?.queued === true) return true
+  // 503 sem corpo legível: a rota pode ter estacionado e a resposta se perdeu — o passe A confere o `render_parked` antes de decidir
+  return status === 503 && (body === null || body === undefined)
+}
+/**
+ * Estacionado sem fechamento nem retomada depois disto = o resume-parked-renders já não o enxerga (janela de 26 h): falha que pode
+ * retentar — a não ser que um aluguel tenha deixado um 'parked-…' com débito vivo (aí ele É o episódio).
+ */
+export const SERIE_AUTO_PARKED_LOST_MS = PARKED_TTL_MS + 6 * 60 * 60 * 1000
+/**
+ * Série pulada por erro transitório (perfil ou semana ilegíveis, trava que colidiu): a agenda anda este tanto, para a série não ficar
+ * devida a cada hora nem ocupar a fila das devidas (a leitura traz 100 por passada).
+ */
+export const SERIE_AUTO_SKIP_BACKOFF_MS = 6 * 60 * 60 * 1000
 /** Episódio 'pending' sem débito na rota depois disto = o POST morreu antes de nascer. */
 export const SERIE_AUTO_PENDING_STALE_MS = 30 * 60 * 1000
 /** Retentativa depois de falha que não gastou nada. */
@@ -94,6 +120,8 @@ export const SERIE_AUTO_EVENTS = {
   passPaused: 'serie_auto_pass_paused',
   stuck: 'serie_auto_stuck',
   fichaFixed: 'serie_auto_ficha_fixed',
+  parked: 'serie_auto_parked',
+  resumed: 'serie_auto_resumed',
 } as const
 
 // ── quem pode ────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -168,7 +196,7 @@ export function serieFichaValida(raw: unknown): SerieFicha[] {
     .map((f) => ({ nome: String(f.nome ?? '').trim(), canonica: String(f.canonica ?? '').trim(), tipo: typeof f.tipo === 'string' ? f.tipo : null, protagonista: f.protagonista === true }))
     .filter((f) => f.nome.length > 0 && f.canonica.length > 0)
 }
-/** A ficha gravada vence SEMPRE; a derivada só entra quando a série ainda não tem nenhuma. */
+/** A ficha gravada VÁLIDA vence SEMPRE; a derivada só entra quando a gravada é nula, vazia ([]) ou malformada. */
 export function serieFichaPreservada(gravada: unknown, derivada: unknown): { ficha: SerieFicha[]; nova: boolean } {
   const g = serieFichaValida(gravada)
   if (g.length > 0) return { ficha: g, nova: false }

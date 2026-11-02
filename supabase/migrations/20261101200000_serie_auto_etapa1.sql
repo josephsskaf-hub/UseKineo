@@ -49,8 +49,12 @@ create table if not exists public.serie_auto_episodios (
   seq integer not null,
   attempt smallint not null default 1 check (attempt between 1 and 10),
   -- 'stuck' = passou do prazo com o débito vivo: trava a semana (retentar cobraria o cliente duas vezes) e segue sendo conferido
-  status text not null default 'pending' check (status in ('pending', 'dispatched', 'stuck', 'delivered', 'failed', 'skipped')),
+  -- 'parked' = a rota estacionou o pedido (503 queued/parked, render_parked): o resume-parked-renders retoma; trava a semana igual
+  status text not null default 'pending' check (status in ('pending', 'dispatched', 'parked', 'stuck', 'delivered', 'failed', 'skipped')),
   generation_id text,
+  -- estacionado: quando, e o id 'parked-…' com que o resume-parked-renders retomou (daí em diante o débito e o filme são dele)
+  parked_at timestamptz,
+  resume_generation_id text,
   idea text,
   credits_cost integer,
   render_id text,
@@ -64,7 +68,7 @@ create table if not exists public.serie_auto_episodios (
   constraint serie_auto_episodios_semana_unique unique (serie_id, week_key, attempt)
 );
 create unique index if not exists serie_auto_episodios_generation_unique on public.serie_auto_episodios (generation_id) where generation_id is not null;
-create index if not exists serie_auto_episodios_open on public.serie_auto_episodios (status, started_at) where status in ('pending', 'dispatched', 'stuck');
+create index if not exists serie_auto_episodios_open on public.serie_auto_episodios (status, started_at) where status in ('pending', 'dispatched', 'parked', 'stuck');
 create index if not exists serie_auto_episodios_serie on public.serie_auto_episodios (serie_id, week_key);
 
 alter table public.serie_auto enable row level security;

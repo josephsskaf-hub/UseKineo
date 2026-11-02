@@ -13,6 +13,11 @@
 //   H. COBRANÇA DUPLA (revisão de 01/11): prazo estourado COM débito vivo = 'stuck', nunca nova tentativa; débito ilegível não decide
 //      nada; filme montado pelo caminho de recuperação (stranded_recovery_composed) conta como entregue; sem débito pode retentar;
 //      402 da rota = semana pulada (não 3 falhas); falha de semana passada não reabre a agenda; apelido Gmail de terceiro fica de fora.
+//   P. 503 ESTACIONADO (revisão 2 de 01/11): a rota estorna, grava render_parked e responde 503 queued/parked; o episódio fica 'parked'
+//      (ocupa a semana, nunca tentativa 2), o passe A segue o id 'parked-…' do resume-parked-renders e a série anda com o filme retomado;
+//      fechamento sem retomada / 503 queued sem render_parked / 30 h sem fechamento = falha sem cobrança que retenta;
+//   Q. ficha vazia/malformada é derivada de novo; série pulada (perfil, conta fora da casa, semana ilegível) empurra a agenda e as
+//      travadas não monopolizam a leitura das devidas.
 // Rodar: npx tsx scripts/test-serie-auto-etapa1-0111.mts
 import fs from 'node:fs'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -22,6 +27,7 @@ import {
   SERIE_AUTO_ENABLED, SERIE_AUTO_INTERNAL_EMAILS, SERIE_AUTO_EVENTS, SERIE_AUTO_MARCA, serieAutoAccountAllowed, serieEpisodeCost, serieGenerationId,
   serieIdeiaDoEpisodio, serieNextRunMs, serieReguaDoMotor, serieWeekKey, SERIE_AUTO_IDEA_MAX_CHARS,
   serieAutoEmailDeTerceiro, serieEpisodioOcupaSemana, SERIE_AUTO_ERRO_DEBITO_VIVO, SERIE_AUTO_RUN_TIMEOUT_MS, SERIE_AUTO_STUCK_CLOSE_MS,
+  serieRespostaEstacionada,
 } from '../lib/serieAuto/serieAuto'
 import { ehIdeiaSolta, temaParaOEscritor } from '../lib/meta95/ideiaNoEscritor'
 import { SPEECH_RATE_BASE } from '../lib/speechRate'
@@ -56,7 +62,14 @@ class Q implements PromiseLike<{ data: unknown; error: unknown; count?: number }
   select(_cols?: string, _o?: unknown) { if (this.op === 'select') this.op = 'select'; return this }
   insert(row: Row) { this.op = 'insert'; this.payload = row; return this }
   update(patch: Row) { this.op = 'update'; this.payload = patch; return this }
-  eq(c: string, v: unknown) { this.filters.push((r) => r[c] === v); return this }
+  // jsonb: o PostgREST compara o texto do filtro com o valor da coluna (eq.[] casa com a coluna jsonb []) — o passe usa isso na ficha
+  eq(c: string, v: unknown) { this.filters.push((r) => r[c] === v || (typeof v === 'string' && r[c] !== undefined && r[c] !== null && JSON.stringify(r[c]) === v)); return this }
+  /** O subconjunto de or() que o passe usa: 'col.is.null,col.lte.<iso>' (e gte/eq). */
+  or(expr: string) {
+    const partes = expr.split(',').map((p) => { const [c, op, ...resto] = p.split('.'); return { c, op, v: resto.join('.') } })
+    this.filters.push((r) => partes.some(({ c, op, v }) => op === 'is' && v === 'null' ? (r[c] ?? null) === null : r[c] === undefined || r[c] === null ? false : op === 'lte' ? String(r[c]) <= v : op === 'gte' ? String(r[c]) >= v : op === 'eq' ? String(r[c]) === v : false))
+    return this
+  }
   is(c: string, v: unknown) { this.filters.push((r) => (r[c] ?? null) === v); return this }
   in(c: string, vs: unknown[]) { this.filters.push((r) => vs.includes(r[c])); return this }
   order(col: string, o?: { ascending?: boolean }) { this.orderBy = { col, asc: o?.ascending !== false }; return this }
@@ -415,6 +428,243 @@ async function cenarioTimeoutDebitoVivo(passe: typeof seriePass = seriePass) {
     ok(db.tables.serie_auto_episodios[0].status === 'failed', 'M5 mutante (débito ilegível decide): o pending falha às cegas — H9 reprova')
   } else ok(false, 'M5 mutante aplicado')
   ok(!fs.readdirSync('lib/serieAuto').some((f) => f.startsWith('__mutante_')), 'M6 nenhuma cópia mutada ficou no disco')
+}
+
+// ── P. o 503 ESTACIONADO e a retomada do resume-parked-renders (revisão 2 de 01/11) ────────────────────────────────────
+// O caso: a fal recusa por capacidade/saldo, a rota estorna, grava `render_parked` (session_id = generation_id da série) e responde
+// 503 { queued, parked, refunded }. O passe tratava como falha comum e abria a tentativa 2 uma hora depois, enquanto o cron
+// resume-parked-renders retomava o pedido com um id 'parked-…': 2 débitos, 2 filmes, 2 e-mails. E a série não andava (o passe A
+// só olhava o generation_id próprio).
+console.log('P — 503 estacionado + retomada: um episódio, um débito, um filme')
+const iso = (ms: number) => new Date(ms).toISOString()
+const RESP_PARKED = { queued: true, parked: true, error: 'Our video engine is paused for a few minutes.', reason: 'capacity', retryable: false, charged: false, refunded: true }
+/** A rota estaciona como a de verdade: débito estornado, `render_parked` gravado ANTES da resposta, 503. `grava:false` = 503 queued sem estacionar. */
+const rotaEstaciona = (db: FakeDb, opts: { grava?: boolean; status?: number } = {}): SerieDeps['callAsUser'] => async <T,>(a: { path: string; body?: unknown }) => {
+  posts.push({ path: a.path, body: a.body as Record<string, unknown> })
+  const gen = String((a.body as Record<string, unknown>).generationId)
+  db.tables.credit_debits.push(debitoDe(gen, iso(clock)))
+  if (opts.grava !== false) db.tables.events.push({ name: 'render_parked', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { reason: 'capacity', refunded: true, request: { prompt: (a.body as Record<string, unknown>).prompt, duration: 60 } } })
+  if (opts.status === 0) return { ok: false, status: 0, body: null as T, errorText: 'timeout' }
+  return { ok: false, status: 503, body: (opts.grava === false ? { queued: true, error: "We're experiencing high demand right now." } : RESP_PARKED) as T, errorText: null }
+}
+const passeCom = (db: FakeDb, passe: typeof seriePass = seriePass) => passe({ db: db as never, baseUrl: 'https://example.test', deadline: clock + 250_000, sessions: new Map(), enabled: true, deps })
+async function estacionado(opts: { grava?: boolean; status?: number } = {}, passe: typeof seriePass = seriePass) {
+  posts.length = 0; events.length = 0
+  clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  deps.callAsUser = rotaEstaciona(db, opts)
+  const r = await passeCom(db, passe)
+  deps.callAsUser = callOk
+  return { db, ep: db.tables.serie_auto_episodios[0], r }
+}
+/** O resume-parked-renders: aluga (render_parked_taken) e, se a rota aceitou, fecha 'resumed' com o id 'parked-…' (as chaves dele). */
+function resumeCron(db: FakeDb, gen: unknown, resumeId: string, opts: { outcome?: string; fecha?: boolean } = {}) {
+  const outcome = opts.outcome ?? 'resumed'
+  db.tables.events.push({ name: 'render_parked_taken', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { version: 'fila_queda_fal_v1', attempt: 1, outcome: outcome === 'resumed' ? 'started' : outcome, status: outcome === 'resumed' ? 200 : 0, resume_generation_id: resumeId } })
+  if (opts.fecha !== false) db.tables.events.push({ name: 'render_parked_closed', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { version: 'fila_queda_fal_v1', outcome, attempts: 1, ...(outcome === 'resumed' ? { resume_generation_id: resumeId } : {}) } })
+}
+const horas = async (db: FakeDb, n: number, passe: typeof seriePass = seriePass) => { for (let i = 0; i < n; i++) { clock += 3_600_000; db.tables.serie_auto[0].next_run_at = null; await passeCom(db, passe) } }
+{
+  const { db, ep, r } = await estacionado()
+  ok(ep.status === 'parked' && r.dispatch.parked === 1 && r.dispatch.failed === 0 && ep.parked_at === iso(clock) && String(ep.error).startsWith('parked_'), 'P1 503 {queued, parked, refunded}: o episódio fica PARKED (em andamento), não falha')
+  ok(db.tables.serie_auto[0].next_run_at === iso(Date.UTC(2026, 10, 9, 10, 0)) && events.filter((e) => e.name === SERIE_AUTO_EVENTS.parked).length === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'P2 a agenda anda para a semana que vem; serie_auto_parked uma vez; nenhum serie_auto_failed')
+  await horas(db, 6)
+  ok(posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && ep.status === 'parked' && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'P3 seis passadas horárias (agenda forçada): nenhuma tentativa 2 — o estorno do estacionamento não vira falha')
+  ok(serieEpisodioOcupaSemana({ status: 'parked' }) && serieRespostaEstacionada(503, RESP_PARKED) && serieRespostaEstacionada(503, { queued: true }) && serieRespostaEstacionada(503, null) && !serieRespostaEstacionada(503, { error: 'x' }) && !serieRespostaEstacionada(503, { parked: true, charged: true }), 'P4 parked OCUPA a semana; parked/queued/503 sem corpo = estacionado; 503 comum e cobrança viva não')
+  // o resume-parked-renders retoma com o id 'parked-…' e a rota cobra por ele
+  clock += 30 * 60_000
+  resumeCron(db, ep.generation_id, 'parked-0a1b2c3d4e5f60718293a4b5')
+  db.tables.credit_debits.push(debitoDe('parked-0a1b2c3d4e5f60718293a4b5'))
+  const r2 = await passeCom(db)
+  ok(r2.settled.resumed === 1 && ep.status === 'dispatched' && ep.resume_generation_id === 'parked-0a1b2c3d4e5f60718293a4b5' && ep.dispatched_at === iso(clock) && posts.length === 1, 'P5 fechamento resumed: o id parked-… vira o episódio da série (resume_generation_id gravado), nenhum POST da série')
+  ok(events.filter((e) => e.name === SERIE_AUTO_EVENTS.resumed).length === 1 && events.find((e) => e.name === SERIE_AUTO_EVENTS.resumed)?.metadata.parked_generation_id === ep.generation_id, 'P6 serie_auto_resumed liga o pedido estacionado (generation_id da série) ao parked-…')
+  await horas(db, 2)
+  ok(ep.status === 'dispatched' && posts.length === 1, 'P7 retomado e ainda montando: segue dispatched, sem tentativa nova')
+  // a casa monta o filme RETOMADO (session_id = parked-…) e grava em videos
+  db.tables.events.push({ name: 'stranded_composed', user_id: 'user-1', session_id: 'parked-0a1b2c3d4e5f60718293a4b5', metadata: { render_id: 'r-park' }, created_at: iso(clock) })
+  db.tables.videos.push({ id: 'v-park', user_id: 'user-1', render_id: 'r-park', status: 'completed', final_video_url: 'https://x/p.mp4' })
+  const r3 = await passeCom(db)
+  ok(r3.settled.delivered === 1 && ep.status === 'delivered' && ep.render_id === 'r-park' && ep.video_id === 'v-park', 'P8 o filme retomado é reconhecido como o episódio: entregue')
+  ok(db.tables.serie_auto[0].last_episode_seq === 2 && db.tables.serie_auto[0].episodes_delivered === 1 && db.tables.serie_auto[0].last_episode_video_id === 'v-park' && events.find((e) => e.name === SERIE_AUTO_EVENTS.delivered)?.metadata.resume_generation_id === 'parked-0a1b2c3d4e5f60718293a4b5', 'P9 a série ANDA: last_episode_seq 2, 1 entregue, o vídeo é o retomado')
+  const debitosVivos = db.tables.credit_debits.filter((d) => !d.refunded_at).length
+  ok(posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && debitosVivos === 1, 'P10 no fim: 1 POST da série, 1 episódio, 1 débito vivo (o da retomada) — o cliente pagou UM episódio')
+  clock = Date.UTC(2026, 10, 9, 10, 5)
+  await passeCom(db)
+  ok(posts.length === 2 && String(posts[1].body.prompt).includes('Episode 3'), 'P11 semana seguinte: sai o episódio 3 (não repete o número nem o ângulo do 2)')
+}
+{
+  // o filme retomado é estornado (falhou de verdade): nada cobrado → falha que pode retentar
+  const { db, ep } = await estacionado()
+  clock += 3_600_000
+  resumeCron(db, ep.generation_id, 'parked-ffff0000ffff0000ffff0000')
+  db.tables.credit_debits.push(debitoDe('parked-ffff0000ffff0000ffff0000'))
+  await passeCom(db)
+  db.tables.credit_debits.find((d) => d.render_id === debitoDe('parked-ffff0000ffff0000ffff0000').render_id)!.refunded_at = iso(clock)
+  clock += 3_600_000
+  await passeCom(db)
+  const eps = db.tables.serie_auto_episodios
+  ok(ep.status === 'failed' && ep.error === 'render_refunded' && eps.length === 2 && eps[1].attempt === 2 && posts.length === 2, 'P12 retomado e depois estornado: falha (nada cobrado) e a tentativa 2 sai — não fica preso')
+}
+{
+  // o resume-parked-renders desiste (24 h sem a fal): fechamento 'expired' = nada cobrado → tentativa 2 na mesma semana
+  const { db, ep } = await estacionado()
+  clock += 25 * 3_600_000
+  db.tables.events.push({ name: 'render_parked_closed', user_id: 'user-1', session_id: ep.generation_id, created_at: iso(clock), metadata: { outcome: 'expired', attempts: 0 } })
+  await passeCom(db)
+  const eps = db.tables.serie_auto_episodios
+  ok(ep.status === 'failed' && ep.error === 'parked_expired' && eps.length === 2 && eps[1].attempt === 2 && posts.length === 2, 'P13 fechamento expired (ou superseded/failed): falha sem cobrança e a tentativa 2 sai')
+}
+{
+  // o POST não respondeu (status 0) mas a rota ESTACIONOU do outro lado: o passe A acha o render_parked antes de falhar
+  const { db, ep } = await estacionado({ status: 0 })
+  ok(ep.status === 'pending' && posts.length === 1, 'P14 POST sem resposta: pending (a rota pode ter estacionado)')
+  await horas(db, 2)
+  ok(ep.status === 'parked' && ep.error === 'parked_seen_by_settle' && posts.length === 1 && db.tables.serie_auto_episodios.length === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'P15 pending velho com débito estornado + render_parked: vira parked, não dispatch_refunded (sem tentativa 2)')
+}
+{
+  // 503 queued SEM render_parked (alta demanda, pedido não guardado): ninguém vai retomar → o passe A confere e libera a tentativa 2
+  const { db, ep, r } = await estacionado({ grava: false })
+  ok(ep.status === 'parked' && r.dispatch.parked === 1 && posts.length === 1, 'P16 503 queued: em andamento até o passe A conferir o render_parked')
+  clock += 3_600_000; db.tables.serie_auto[0].next_run_at = null
+  await passeCom(db)
+  const eps = db.tables.serie_auto_episodios
+  ok(ep.status === 'failed' && ep.error === 'dispatch_queued_not_parked' && eps.length === 2 && posts.length === 2, 'P17 sem render_parked: falha sem cobrança e a tentativa 2 sai (não fica parado para sempre)')
+}
+{
+  // estacionado que o resume-parked-renders nunca fechou (> 30 h, fora da janela dele)
+  const { db, ep } = await estacionado()
+  clock += 31 * 3_600_000
+  db.tables.serie_auto[0].next_run_at = iso(clock + 86_400_000) // isola o passe A
+  await passeCom(db)
+  ok(ep.status === 'failed' && ep.error === 'parked_never_resumed' && posts.length === 2 && db.tables.serie_auto_episodios[1]?.attempt === 2, 'P18 > 30 h sem fechamento nem aluguel: falha sem cobrança (o resume já não o enxerga) e a tentativa 2 sai')
+  const b = await estacionado()
+  resumeCron(b.db, b.ep.generation_id, 'parked-aaaa1111bbbb2222cccc3333', { outcome: 'retry_later', fecha: false })
+  clock += 31 * 3_600_000
+  b.db.tables.credit_debits.push(debitoDe('parked-aaaa1111bbbb2222cccc3333'))
+  b.db.tables.serie_auto[0].next_run_at = iso(clock + 86_400_000)
+  await passeCom(b.db)
+  ok(b.ep.status === 'stuck' && b.ep.resume_generation_id === 'parked-aaaa1111bbbb2222cccc3333' && posts.length === 1 && b.db.tables.serie_auto_episodios.length === 1, 'P19 > 30 h sem fechamento, mas um aluguel cobrou (débito vivo no parked-…): adotado como o episódio — e, 31 h sem filme com débito vivo, stuck (nunca tentativa 2)')
+  const c = await estacionado()
+  resumeCron(c.db, c.ep.generation_id, 'parked-dddd4444eeee5555ffff6666', { fecha: false }) // aluguel 'started' sem o fechamento
+  clock += 3_600_000
+  await passeCom(c.db)
+  ok(c.ep.status === 'dispatched' && c.ep.resume_generation_id === 'parked-dddd4444eeee5555ffff6666', 'P20 aluguel started sem fechamento gravado: a retomada é seguida igual')
+}
+{
+  // leitura de events falhando: estacionado não decide nada; e um estorno não vira falha às cegas
+  const { db, ep } = await estacionado()
+  db.failSelect.add('events')
+  await horas(db, 3)
+  ok(ep.status === 'parked' && posts.length === 1, 'P21 events ilegível: o estacionado fica como está, nenhum POST')
+  db.failSelect.delete('events')
+  const b = await estacionado({ status: 0 })
+  b.db.failSelect.add('events')
+  await horas(b.db, 2)
+  ok(b.ep.status === 'pending' && posts.length === 1 && !events.some((e) => e.name === SERIE_AUTO_EVENTS.failed), 'P22 pending estornado com events ilegível: não falha (pode ser o estorno do estacionamento)')
+}
+
+// ── Q. as menores da revisão 2: ficha vazia/malformada, série pulada que não anda, fila das devidas ──────────────────────
+console.log('Q — ficha inválida re-derivada; série pulada empurra a agenda; a fila das devidas não trava')
+for (const [nome, ficha] of [['[]', []], ['itens sem nome/canônica', [{ nome: '', canonica: '' }, 'x', null]], ['objeto', { foo: 1 }], ['texto', 'Dina']] as [string, unknown][]) {
+  posts.length = 0; events.length = 0; fichaDerivadaChamadas.length = 0
+  clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500, ficha })
+  await rodar(db, true)
+  const gravada = db.tables.serie_auto[0].ficha as { nome: string }[]
+  ok(fichaDerivadaChamadas.length === 1 && Array.isArray(gravada) && gravada[0]?.nome === 'Milo' && String(posts[0]?.body.prompt).includes('Milo, a small orange fox') && events.some((e) => e.name === SERIE_AUTO_EVENTS.fichaFixed && e.metadata.replaced === 'invalid'), `Q1 ficha ${nome}: derivada de novo, gravada e usada na ideia`)
+}
+{
+  // a gravada válida continua intocável mesmo com o texto de origem novo (o conserto não abriu a sobrescrita)
+  posts.length = 0; fichaDerivadaChamadas.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  await rodar(db, true)
+  ok(fichaDerivadaChamadas.length === 0 && JSON.stringify(db.tables.serie_auto[0].ficha) === JSON.stringify(FICHA), 'Q2 ficha válida: nunca re-derivada nem sobrescrita')
+}
+{
+  posts.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500, email: 'cliente@gmail.com' })
+  await rodar(db, true)
+  ok(db.tables.serie_auto[0].next_run_at === iso(Date.UTC(2026, 10, 9, 10, 0)), 'Q3 conta fora da casa: a agenda anda para a semana que vem')
+  clock += 3_600_000
+  const r2 = await rodar(db, true)
+  ok(r2.dispatch.due === 0 && posts.length === 0, 'Q4 uma hora depois a série NÃO está devida (antes: devida a cada hora)')
+}
+{
+  posts.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  db.failSelect.add('profiles')
+  await rodar(db, true)
+  ok(db.tables.serie_auto[0].next_run_at === iso(clock + 6 * 3_600_000) && posts.length === 0, 'Q5 perfil ilegível: a agenda anda 6 h (sem passar da semana que vem)')
+  db.failSelect.delete('profiles'); clock += 3_600_000
+  const r2 = await rodar(db, true)
+  ok(r2.dispatch.due === 0, 'Q6 uma hora depois: não devida')
+  clock += 6 * 3_600_000
+  const r3 = await rodar(db, true)
+  ok(r3.dispatch.started === 1 && posts.length === 1, 'Q7 passado o adiamento, a série volta e o episódio sai')
+}
+{
+  posts.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); semear(db, { credits: 500 })
+  db.failSelect.add('serie_auto_episodios')
+  await rodar(db, true)
+  db.failSelect.delete('serie_auto_episodios')
+  ok(db.tables.serie_auto[0].next_run_at === iso(clock + 6 * 3_600_000) && posts.length === 0 && db.tables.serie_auto_episodios.length === 0, 'Q8 semana ilegível: nenhum POST e a agenda anda 6 h')
+}
+/** 120 séries de clientes (fora da casa) devidas há mais tempo + a série da casa devida agora. */
+function filaTravada(db: FakeDb) {
+  semear(db, { credits: 500 })
+  const casa = db.tables.serie_auto[0]
+  casa.next_run_at = iso(Date.UTC(2026, 10, 2, 10, 0))
+  for (let i = 0; i < 120; i++) {
+    db.tables.profiles.push({ id: `u-${i}`, email: `cliente${i}@gmail.com`, video_credits: 500 })
+    db.tables.serie_auto.push({ ...casa, id: `bbbbbbbb-0000-4000-8000-${String(i).padStart(12, '0')}`, user_id: `u-${i}`, next_run_at: iso(Date.UTC(2026, 10, 1, 0, i)) })
+  }
+  return casa
+}
+{
+  posts.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+  const db = new FakeDb(); const casa = filaTravada(db)
+  const r1 = await rodar(db, true)
+  ok(r1.dispatch.due === 100 && posts.length === 0 && db.tables.serie_auto.filter((s) => s.next_run_at === iso(Date.UTC(2026, 10, 9, 10, 0))).length === 100, 'Q9 1ª passada: as 100 mais antigas (de clientes) são lidas e empurradas para a semana que vem')
+  clock += 3_600_000
+  await rodar(db, true)
+  ok(posts.length === 1 && casa.next_run_at === iso(Date.UTC(2026, 10, 9, 10, 0)) && db.tables.serie_auto_episodios.length === 1, 'Q10 2ª passada: a série da casa sai — as travadas não monopolizam a leitura das devidas')
+  db.tables.serie_auto.push({ ...casa, id: 'cccccccc-0000-4000-8000-000000000001', next_run_at: iso(clock + 3_600_000) })
+  const r3 = await rodar(db, true)
+  ok(r3.dispatch.due === 0 && !db.tables.serie_auto_episodios.some((e) => e.serie_id === 'cccccccc-0000-4000-8000-000000000001'), 'Q11 série do futuro não entra na leitura das devidas')
+}
+{
+  const src = fs.readFileSync('lib/serieAuto/cron.ts', 'utf8').replace(/\r\n/g, '\n')
+  const mutar = async (nome: string, de: string, para: string) => {
+    if (!src.includes(de)) return null
+    const arq = `lib/serieAuto/__mutante_${nome}.ts`
+    fs.writeFileSync(arq, src.replace(de, para))
+    try { return (await import(`../${arq}`)).seriePass as typeof seriePass } finally { fs.unlinkSync(arq) }
+  }
+  const m7 = await mutar('parked_falha', 'if (!charged && serieRespostaEstacionada(res.status, res.body)) {', 'if (false) {')
+  if (m7) { const { db } = await estacionado({}, m7); await horas(db, 2, m7); ok(posts.length === 2 && db.tables.serie_auto_episodios.length === 2, 'M7 mutante (503 parked = falha comum): a tentativa 2 sai e cobraria de novo — P3 reprova') } else ok(false, 'M7 mutante aplicado')
+  const m8 = await mutar('sem_retomada', 'let gen = ep.resume_generation_id || ep.generation_id', 'let gen = ep.generation_id')
+  if (m8) {
+    const { db, ep } = await estacionado({}, m8)
+    clock += 3_600_000
+    resumeCron(db, ep.generation_id, 'parked-9999888877776666aaaabbbb'); db.tables.credit_debits.push(debitoDe('parked-9999888877776666aaaabbbb'))
+    await passeCom(db, m8)
+    db.tables.events.push({ name: 'stranded_composed', user_id: 'user-1', session_id: 'parked-9999888877776666aaaabbbb', metadata: { render_id: 'r-m8' }, created_at: iso(clock) })
+    db.tables.videos.push({ id: 'v-m8', user_id: 'user-1', render_id: 'r-m8', status: 'completed', final_video_url: 'https://x/m.mp4' })
+    clock += 3_600_000
+    await passeCom(db, m8)
+    ok(ep.status !== 'delivered' && db.tables.serie_auto[0].last_episode_seq === 1, 'M8 mutante (passe A só olha o generation_id próprio): o filme retomado não é visto e a série não anda — P8/P9 reprovam')
+  } else ok(false, 'M8 mutante aplicado')
+  const m9 = await mutar('sem_conferir', '      const estacionouAgora = async (): Promise<boolean> => {\n', '      const estacionouAgora = async (): Promise<boolean> => { if (Math.random() < 2) return false\n')
+  if (m9) { const { db } = await estacionado({ status: 0 }, m9); await horas(db, 2, m9); ok(posts.length === 2, 'M9 mutante (passe A não confere o render_parked): o pending estornado falha e retenta — P15 reprova') } else ok(false, 'M9 mutante aplicado')
+  const m10 = await mutar('pulada_parada', "{ dispatch.skipped++; await patchSerie(serie.id, { next_run_at: proximaSemana }); continue }", '{ dispatch.skipped++; continue }')
+  if (m10) {
+    posts.length = 0; clock = Date.UTC(2026, 10, 2, 10, 30)
+    const db = new FakeDb(); filaTravada(db)
+    for (let i = 0; i < 3; i++) { await passeCom(db, m10); clock += 3_600_000 }
+    ok(posts.length === 0, 'M10 mutante (série pulada não empurra a agenda): a série da casa nunca sai — Q10 reprova')
+  } else ok(false, 'M10 mutante aplicado')
+  ok(!fs.readdirSync('lib/serieAuto').some((f) => f.startsWith('__mutante_')), 'M11 nenhuma cópia mutada ficou no disco')
 }
 
 // ── mutantes: o guardião acusa o defeito que devia acusar ─────────────────────────────────────────────────────────────

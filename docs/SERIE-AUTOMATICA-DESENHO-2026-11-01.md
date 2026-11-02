@@ -92,7 +92,17 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
   - **Falha de semana passada não reabre a agenda.**
   - **`joseph+teste01@gmail.com` fora da lista da série.** É apelido do Gmail `joseph@gmail.com`, que não é da casa, e o "Your video is ready" iria para um estranho.
   - **Guardião dos desenhos intacto.** `test-kids-venda-2010` volta a ser byte a byte o da base; esta camada sai dentro do `desfaz-cron-origem-2610` (a mais nova primeiro, como a galeria de 27/10).
+- **Consertos da revisão 2 (01/11, mesma entrega):**
+  - **Filme estacionado não é cobrado duas vezes.** Quando a fal recusa por saldo ou capacidade, a rota devolve o crédito, guarda o pedido em `render_parked` e responde 503 `queued/parked`. O episódio agora fica `parked`, que trava a semana como o `stuck`: nenhuma tentativa 2. Antes ele virava falha, a série tentava de novo 1 h depois, e o `resume-parked-renders` também retomava o pedido. Resultado: 2 débitos, 2 filmes, 2 e-mails.
+  - **O filme retomado é o episódio.** O `resume-parked-renders` retoma com um id `parked-…` e o grava no fechamento (`render_parked_closed`, outcome `resumed`) e no aluguel (`render_parked_taken`). O passe A lê esse id e grava em `resume_generation_id`. Daí em diante, débito, montagem e prazo são conferidos por ele. A série anda (`last_episode_seq`) e o "Your film is ready" sai uma vez só.
+  - **Estorno com `render_parked` não é falha.** Quando o POST não respondeu, ou o despacho foi estornado e existe `render_parked` para o id, o episódio vira `parked` em vez de `dispatch_refunded` ou `render_refunded`.
+  - **Quando o estacionado vira falha que retenta (nada foi cobrado):** fechamento sem retomada (`expired`, `superseded`, `failed`, `invalid_request`); 503 `queued` sem `render_parked` (ninguém vai retomar); 30 h sem fechamento. Exceção: se um aluguel deixou um `parked-…` com débito vivo, ele é adotado como o episódio. Erro de leitura em `events` não decide nada.
+  - **Ficha vazia ou malformada** (`[]`, itens sem nome, objeto, texto) é derivada de novo e gravada só sobre o mesmo valor que foi lido. Ficha válida continua intocável.
+  - **Série pulada empurra a agenda.** Conta fora da casa ou sem perfil: volta só no horário da semana seguinte. Perfil ou semana ilegíveis: volta em 6 h. Trava que colidiu: volta em 1 h. A leitura das devidas filtra no banco (`next_run_at` nula ou já vencida), então série travada não ocupa as 100 vagas por passada.
+  - **Migration (continua NÃO aplicada):** status `parked` no check e no índice de abertos; colunas `parked_at` e `resume_generation_id`.
 - **Ainda aberto (menores, antes da Etapa 2):**
   - Plano pago e cancelamento não são conferidos: hoje só contas da casa entram.
   - Um despacho atrasado que atravessa a virada da semana ISO cai na semana seguinte.
   - A ficha só vai no texto da ideia (Etapa 3).
+  - O número do episódio vem de `last_episode_seq`. Se o episódio da semana anterior ainda estiver aberto (`stuck`, ou `parked` por mais de uma semana), o da semana seguinte repete o número.
+  - **Fora da série, vale para todo cliente:** o `resume-parked-renders` pode retomar duas vezes o mesmo pedido. Se a retomada é estacionada de novo, nasce um `render_parked` para o id `parked-…`, e o pedido original ganha o aluguel 2. A série acompanha um id só.
