@@ -119,3 +119,12 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
   - **4xx só é terminal com a cobrança lida ausente ou estornada.** Viva ou ilegível vira `retry_later` e a rodada seguinte decide. O e-mail "Nothing was charged" nunca sai com débito vivo.
   - **MENOR: `started` deixou de ser adotado às cegas.** Se o fechamento falhou e o filme foi estornado, retoma (antes o cliente ficava sem filme).
   - Guardião: `scripts/test-retomada-sem-cobranca-dupla-0111.mts` roda a ROTA REAL do cron contra um PostgREST falso no `fetch`, com a base `124824492` e mutantes de uma linha cobrando duas vezes / mentindo no e-mail.
+
+## Revisão 5 (01/11) — retomada: o claim decide, não só o débito
+
+- `settled` com débito não estornado = filme a caminho → o cron adota (fecha `resumed`).
+- `done` (cenas na fal, falta liquidar) ou `pending` com débito vivo / grátis → o cron RECONECTA: re-POST do MESMO id da tentativa N (o "retry this same generation" da rota). `done` liquida na hora; `pending` a rota estorna e libera depois de 2 h. Nunca a tentativa N+1 por cima.
+- Estornado, `released` sem débito, nenhum rastro, `pending` pago sem débito, ou reconexão recusada (4xx) sem débito vivo → só depois de 10 min do aluguel → nada cobrado: segue (N+1, ou `expired`/`failed` com o e-mail honesto).
+- Sem decisão em 29 h desde o estacionamento → fecha `expired_unverified` SEM e-mail; a série não lê isso como "nada cobrado".
+- Aluguéis lidos por inteiro (páginas de 1000, mais velho primeiro); leitura incompleta = a passada não decide nada.
+- Guardião: scripts/test-retomada-sem-cobranca-dupla-0111.mts (rota real do cron + rota de filme falsa que guarda o claim).

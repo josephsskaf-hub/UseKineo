@@ -229,7 +229,9 @@ export async function seriePass(args: {
         if (est.closed?.outcome === 'resumed' && est.closed.resumeId) retomada = { id: est.closed.resumeId, atMs: est.closed.atMs }
         if (!retomada) { const s = est.leases.find((x) => x.outcome === 'started' && x.resumeId); if (s?.resumeId) retomada = { id: s.resumeId, atMs: s.atMs } }
         // fechado sem retomada (expired / superseded / failed / invalid_request): o crédito voltou no estacionamento, nada cobrado
-        if (!retomada && est.closed) { await fail(`parked_${est.closed.outcome || 'closed'}`.slice(0, 80)); continue }
+        // 'expired_unverified' = o resume-parked-renders desistiu SEM ler a cobrança limpa (pode haver débito vivo): não é "nada cobrado" — // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        // segue estacionado até SERIE_AUTO_PARKED_LOST_MS, quando os aluguéis são lidos aqui (débito vivo = episódio; ilegível = espera). // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        if (!retomada && est.closed && est.closed.outcome !== 'expired_unverified') { await fail(`parked_${est.closed.outcome || 'closed'}`.slice(0, 80)); continue } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
         if (!retomada && deps.now() - est.parkedAtMs > SERIE_AUTO_PARKED_LOST_MS) {
           // o resume-parked-renders já não o enxerga. Um aluguel cujo POST cobrou (débito vivo) É o episódio; ilegível = espera.
           let ilegivel = false

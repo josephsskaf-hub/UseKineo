@@ -37,7 +37,8 @@ import {
 } from '../lib/serieAuto/serieAuto'
 import {
   PARKED_TTL_MS, PARKED_MAX_RESUMES_PER_RUN, PARKED_LEASE_TTL_MS, SERIE_AUTO_GENERATION_PREFIX, classificarRespostaDaRetomada, decidirRetomada,
-  aluguelPodeTerCobrado, decidirAluguelSemFechamento, ehDespachoDaSerie, ehRetomadaDeEstacionado, estacionadoRetomavel, estacionadoSuperavel, type DebitoDaRetomada,
+  aluguelPodeTerCobrado, decidirAluguelSemFechamento, ehDespachoDaSerie, ehRetomadaDeEstacionado, estacionadoRetomavel, estacionadoSuperavel,
+  leituraDaCobranca, situacaoDaTentativa, type SituacaoDaTentativa, // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 (revisão 5: a cobrança é débito E claim; 'settled' = filme a caminho)
 } from '../lib/filaQuedaFal'
 import { idDaRetomada, idDoAluguel, idDoFechamento } from '../lib/filaQuedaFalIds'
 import { ehIdeiaSolta, temaParaOEscritor } from '../lib/meta95/ideiaNoEscritor'
@@ -687,11 +688,11 @@ ok(idDoFechamento('g-1') === '63147f2e-5cf3-4db6-3879-1153c349e191' && idDoAlugu
   const g = serieGenerationId('aaaaaaaa-0000-4000-8000-000000000001', '2026-W45', 1)
   ok(g.startsWith(SERIE_AUTO_GENERATION_PREFIX) && ehDespachoDaSerie(g) && !ehDespachoDaSerie('3f2a1b4c-uuid-do-clique') && !estacionadoSuperavel(g) && estacionadoSuperavel('3f2a1b4c-uuid-do-clique'), 'R2 episódio da série (prefixo serie-) nunca é superado; o pedido de clique continua superável')
   ok(estacionadoRetomavel(g) && estacionadoRetomavel('3f2a1b4c-uuid-do-clique') && !estacionadoRetomavel(idDaRetomada(g, 1)) && ehRetomadaDeEstacionado(idDaRetomada(g, 1)) && !estacionadoRetomavel(null), 'R3 linha render_parked de RETOMADA (parked-…) não é retomável; o original é')
-  const D = (c: { attempt: number; iniciado: boolean; debito: DebitoDaRetomada }[]) => decidirAluguelSemFechamento(c)
-  ok(JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'live' }])) === '{"acao":"adotar","attempt":1}' && JSON.stringify(D([{ attempt: 1, iniciado: false, debito: 'refunded' }, { attempt: 2, iniciado: true, debito: 'none' }])) === '{"acao":"adotar","attempt":2}' && D([{ attempt: 1, iniciado: false, debito: 'unknown' }]).acao === 'esperar' && D([{ attempt: 1, iniciado: false, debito: 'none' }, { attempt: 2, iniciado: false, debito: 'refunded' }]).acao === 'retomar', 'R4 aluguel sem fechamento: started ou débito vivo = adota; ilegível = espera; ausente/estornado = retoma')
+  const D = (c: { attempt: number; situacao: SituacaoDaTentativa }[]) => decidirAluguelSemFechamento(c) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  ok(JSON.stringify(D([{ attempt: 1, situacao: 'filme' }])) === '{"acao":"adotar","attempt":1}' && JSON.stringify(D([{ attempt: 1, situacao: 'sem_cobranca' }, { attempt: 2, situacao: 'filme' }])) === '{"acao":"adotar","attempt":2}' && D([{ attempt: 1, situacao: 'ilegivel' }]).acao === 'esperar' && D([{ attempt: 1, situacao: 'sem_cobranca' }, { attempt: 2, situacao: 'sem_cobranca' }]).acao === 'retomar' && D([{ attempt: 1, situacao: 'reconectar' }]).acao === 'reconectar', 'R4 aluguel sem fechamento: filme a caminho = adota; ilegível = espera; claim parado = reconecta o mesmo id; sem cobrança = retoma')
   const rota = rd('app/api/cron/resume-parked-renders/route.ts')
   const iProv = rota.indexOf("if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }")
-  const iAdota = rota.indexOf('const d = decidirAluguelSemFechamento(lidos, now)') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — a decisão agora recebe o relógio (ausente há < 10 min do aluguel não prova nada)
+  const iAdota = rota.indexOf('const d = decidirAluguelSemFechamento(lidos)') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — a decisão agora recebe o relógio (ausente há < 10 min do aluguel não prova nada)
   const iLease = rota.indexOf('const leaseId = idDoAluguel(genId, attempt)')
   ok(rota.includes(".eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde)") && rota.includes('.filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id))'), 'R5 a rota do cron não lê nem retoma a linha filha (filtro no banco E no código)')
   ok(rota.includes('const newerDispatch = estacionadoSuperavel(genId) && (lastDispatchByUser.get(userId) ?? 0) > parkedAtMs') && rota.includes('if (ehDespachoDaSerie((d.metadata as { generation_id?: unknown } | null)?.generation_id)) continue'), "R6 a rota do cron nunca supera o episódio da série, e o despacho da série não supera ninguém")
@@ -705,11 +706,14 @@ const evs = (db: FakeDb, name: string) => (db.tables.events ?? []).filter((e) =>
 /** A rota de filme em modo serviço: fal fora = estorna, RE-ESTACIONA (linha filha) e responde 503 parked; fal de volta = cobra e 200. */
 function rotaDeFilme(db: FakeDb, gen: string, fal: Fal): { status: number; json: Record<string, unknown> } {
   db.tables.events.push({ name: 'generation_dispatch_received', user_id: 'user-1', created_at: iso(clock), metadata: { generation_id: gen } })
+  const claimDoSim = (status: string) => db.tables.events.push({ id: cinematicClaimId('user-1', gen), name: 'cinematic_submission_claim', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { status, credit_cost: 25 } }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
   if (fal === 'down') {
+    claimDoSim('released') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     db.tables.credit_debits.push(debitoDe(gen, iso(clock)))
     db.tables.events.push({ name: 'render_parked', user_id: 'user-1', session_id: gen, created_at: iso(clock), metadata: { reason: 'capacity', refunded: true, request: { prompt: 'x', duration: 60 } } })
     return { status: 503, json: RESP_PARKED }
   }
+  claimDoSim('settled') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
   db.tables.credit_debits.push(debitoDe(gen))
   return { status: 200, json: { ok: true } }
 }
@@ -730,11 +734,11 @@ async function passeDoResume(db: FakeDb, fal: Fal, o: SimOpts = {}) {
     if (decision === 'closed' || decision === 'leased') continue
     const fechar = (outcome: string, extra: Record<string, unknown> = {}) => db.from('events').insert({ id: idDoFechamento(genId), user_id: 'user-1', name: 'render_parked_closed', session_id: genId, created_at: iso(clock), metadata: { outcome, ...extra } })
     if (decision === 'expired' || decision === 'superseded') { await fechar(decision); continue }
-    const candidatos = leases.map((l) => l.metadata as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown }).filter((m) => Number.isInteger(Number(m.attempt)) && aluguelPodeTerCobrado(m.outcome)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — o mesmo filtro da rota (retry_later também é lido)
+    const candidatos = leases.map((l) => ({ ...(l.metadata as { outcome?: unknown; attempt?: unknown; resume_generation_id?: unknown }), atMs: Date.parse(String(l.created_at)) })).filter((m) => Number.isInteger(Number(m.attempt)) && aluguelPodeTerCobrado(m.outcome)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — o mesmo filtro da rota (retry_later também é lido)
     if (adota && candidatos.length > 0) {
-      const lidos = candidatos.map((m) => { const a = Number(m.attempt); const rid = typeof m.resume_generation_id === 'string' ? m.resume_generation_id : idDaRetomada(genId, a); const deb = db.tables.credit_debits.find((d) => d.render_id === debitoDe(rid).render_id); return { attempt: a, iniciado: m.outcome === 'started', resumeId: rid, debito: (!deb ? 'none' : deb.refunded_at ? 'refunded' : 'live') as DebitoDaRetomada } })
+      const lidos = candidatos.map((m) => { const a = Number(m.attempt); const rid = typeof m.resume_generation_id === 'string' ? m.resume_generation_id : idDaRetomada(genId, a); const deb = db.tables.credit_debits.find((d) => d.render_id === debitoDe(rid).render_id); const cl = db.tables.events.find((e) => e.id === cinematicClaimId('user-1', rid) && e.name === 'cinematic_submission_claim'); const leitura = leituraDaCobranca({ debito: { erro: false, existe: !!deb, estornado: !!deb?.refunded_at }, claim: { erro: false, status: cl ? String((cl.metadata as { status?: unknown }).status) : null, creditCost: 25 } }); return { attempt: a, iniciado: m.outcome === 'started', resumeId: rid, situacao: situacaoDaTentativa({ leitura, iniciado: m.outcome === 'started', atMs: m.atMs, nowMs: now }) } }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
       const d = decidirAluguelSemFechamento(lidos)
-      if (d.acao === 'esperar') continue
+      if (d.acao === 'esperar' || d.acao === 'reconectar') continue // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 (a rota simulada sempre liquida ao cobrar: reconectar não acontece aqui)
       if (d.acao === 'adotar') { const c = lidos.find((x) => x.attempt === d.attempt)!; await fechar('resumed', { resume_generation_id: c.resumeId, recovered: true }); continue }
       for (const c of lidos) { const l = leases.find((x) => (x.metadata as { attempt?: unknown }).attempt === c.attempt); if (l) l.metadata = { ...(l.metadata as object), outcome: 'lost_no_charge' } }
     }
