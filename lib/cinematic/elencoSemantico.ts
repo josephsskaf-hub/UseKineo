@@ -30,18 +30,31 @@
 //     palavra que o texto escreve e a leitura semântica não chamou de personagem ("unicorn" da peruca do BRO) não entra.
 //   · A ficha literal do juiz (lib/cinematic/juizFicha elencoComFichaLiteral) não apaga mais a ficha semântica com lixo ("night Pip",
 //     "morning Toast", "and Emma"): para quem o elenco semântico leu, o trecho só entra se traz palavra da aparência ou da espécie lida.
+//
+// REVISÃO 01/11 (rodada 6, revisão adversarial):
+//   · APARÊNCIA: palavra inteira e na ordem do texto (era includes de pedaço: "red hat" passava por "tired"/"that", "scar" por "scared").
+//   · CAMPOS _en num texto em INGLÊS: só valem se o texto também os escreve ("pigeon" → species_en "eagle" não vira "BRO, a eagle";
+//     appearance_en não acrescenta roupa). Em PT/ES continuam traduzindo.
+//   · ESPÉCIE: conferida fora do próprio nome ("Meet Duck, a retired boxer" não é pato) e fora dos lugares listados ("Bear Lake").
+//   · TEMPO: teto total de 6 s para as 2 tentativas (era ~8 s no pior caso). Custo de log revisto para US$ 0,0005.
+//   · Fora deste arquivo: elencoEpoca.mesmoPersonagem compara o nome inteiro (sobrenome/título em comum não junta "Emma Collins" e "Jack
+//     Collins"); o 15 s só casa a cena pelo nome próprio com o elenco semântico (sem ele, protagonistaEmTodaCena é a base byte a byte).
 import { canonicaDeterministica, PERSONAGEM_CASTING_MODELO, PERSONAGEM_MAX_PERSONAGENS, type FichaDePersonagem, type TipoDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
 import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v2'
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v3' // rodada 6: mesma pergunta ao modelo, conferência mais dura
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
+/** Revisão 01/11 (rodada 6): teto TOTAL da leitura (as 2 tentativas juntas). Era 4 s + 4 s = ~8 s no pior caso, em série, antes do casting;
+ *  agora a tentativa extra só usa o que sobra de 6 s (1ª estourou o prazo → a 2ª tem ~2 s; 1ª falhou rápido → a 2ª tem os 4 s). */
+export const ELENCO_SEMANTICO_ORCAMENTO_MS = 6_000
 export const ELENCO_SEMANTICO_MAX_COADJUVANTES = 3
-/** Custo de log (US$): ~900 tokens de entrada + ~200 de saída no gpt-4o-mini. */
-export const ELENCO_SEMANTICO_USD = 0.0003
+/** Custo de log (US$): ~1,5 mil tokens só do prompt de sistema + o roteiro (até ~1 mil) de entrada e ~250 de saída no gpt-4o-mini
+ *  (US$ 0,15/M entrada, US$ 0,60/M saída) ≈ US$ 0,0005. Revisão 01/11 (rodada 6): era 0,0003, contado sem o tamanho real do prompt. */
+export const ELENCO_SEMANTICO_USD = 0.0005
 
 export type KindSemantico = 'human' | 'animal' | 'creature' | 'object'
 export interface PersonagemSemantico {
@@ -113,19 +126,60 @@ function especieNoTexto(texto: string, especie: string): boolean {
   return formas.some((f) => f.length >= 2 && palavraNoTexto(t, f))
 }
 const frasesDe = (texto: string) => texto.split(/(?<=[.!?…])\s+|\n+/)
-/** O nome e a espécie na mesma frase. */
+const tiraNome = (texto: string, nome: string, flags: string) => texto.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(nome)}(?![\\p{L}\\p{N}])`, flags), ' ')
+/**
+ * O nome e a espécie na mesma frase — e a espécie FORA do próprio nome. Revisão 01/11 (rodada 6): "Meet Duck, a retired boxer" achava
+ * "duck" no nome do Duck e o boxeador virava pato. O nome sai da frase (na grafia exata: "Duck the duck" mantém o "duck" do papel).
+ */
 function mesmaFrase(texto: string, nome: string, especie: string): boolean {
-  return frasesDe(texto).some((f) => palavraNoTexto(f, nome) && especieNoTexto(f, especie))
+  return frasesDe(texto).some((f) => palavraNoTexto(f, nome) && especieNoTexto(tiraNome(f, nome, 'gu'), especie))
 }
-/** A aparência só fica quando ≥ 80% das palavras de conteúdo (≥ 3 letras) estão no texto — o modelo não inventa roupa. */
+/** O texto sem os lugares/empresas que o modelo listou: "Cara grew up in Bear Lake" não prova que alguém é urso. */
+const semLugares = (texto: string, lugares: readonly string[]) => lugares.filter((l) => l.length >= 2).reduce((t, l) => tiraNome(t, l, 'giu'), texto)
+/** Palavras de função que denunciam o idioma do texto (só para decidir se os campos _en podem trocar a palavra do texto). */
+const FUNCAO_EN = new Set(['the', 'and', 'of', 'to', 'is', 'was', 'his', 'her', 'with', 'he', 'she', 'it', 'that', 'on', 'at', 'for', 'they', 'are', 'were', 'this', 'from', 'but', 'into'])
+const FUNCAO_PT_ES = new Set(['o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'que', 'e', 'um', 'uma', 'com', 'nao', 'el', 'la', 'los', 'las', 'y', 'en', 'con', 'del', 'por', 'para', 'ao', 'na', 'seu', 'sua', 'su', 'pero', 'mas', 'ele', 'ela', 'muy', 'muito'])
+/**
+ * O texto é inglês? Revisão 01/11 (rodada 6): num roteiro em inglês os campos _en têm de repetir as palavras do texto (regra 12 do
+ * prompt); se o modelo "traduz" ("pigeon" → species_en "eagle"; aparência_en inventada), o código fica com a palavra do texto.
+ */
+function textoEmIngles(texto: string): boolean {
+  let en = 0, pt = 0
+  for (const w of tokensDe(texto)) { if (FUNCAO_EN.has(w)) en++; else if (FUNCAO_PT_ES.has(w)) pt++ }
+  return en >= 3 && en > pt * 2
+}
+/** Palavras de ligação que o modelo acrescenta ao resumir a aparência ("girl WITH a red scarf"): não contam na conferência. */
+const LIGACAO = new Set(['and', 'with', 'the', 'his', 'her', 'its', 'their', 'has', 'had', 'who', 'that', 'into', 'from', 'com', 'uma', 'umas', 'uns', 'dos', 'das', 'del', 'los', 'las', 'con', 'sus', 'seu', 'sua', 'que'])
+const tokensDe = (s: string) => semAcento(String(s ?? '')).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+/** A mesma palavra inteira, aceitando o plural simples ("eye" = "eyes"; "boot" = "boots"). Nunca pedaço de palavra ("red" ≠ "tired"). */
+const mesmaPalavra = (a: string, b: string) => a === b || `${a}s` === b || `${b}s` === a || `${a}es` === b || `${b}es` === a
+/** Distância máxima (em palavras do texto) entre duas palavras seguidas da aparência: "turquoise hair and star-shaped backpack" cabe; palavras soltas em frases distantes, não. */
+const APARENCIA_SALTO_MAX = 6
+/**
+ * A aparência só fica quando ≥ 80% das palavras de conteúdo (≥ 3 letras, fora as de ligação) estão no texto como PALAVRA INTEIRA e
+ * NA MESMA ORDEM, cada uma a no máximo APARENCIA_SALTO_MAX palavras da anterior — uma sequência que o texto escreve de verdade.
+ * Revisão 01/11 (rodada 6): era `texto.includes(pedaço)` — "red hat" passava por "tired, but that night" e "scar" por "scared"; a roupa
+ * inventada virava ficha do autor (origem 'autor'), que vence a determinística e o casting nunca troca.
+ */
 function aparenciaDoTexto(texto: string, aparencia: string): string {
   const a = limpa(aparencia).replace(/^["']|["']$/g, '').slice(0, 160)
   if (!a || /^(?:none|n\/a|null|unknown)$/i.test(a)) return ''
-  const palavras = a.toLowerCase().split(/[^\p{L}\p{N}-]+/u).filter((w) => w.length >= 3)
+  const palavras = tokensDe(a).filter((w) => w.length >= 3 && !LIGACAO.has(w))
   if (palavras.length === 0) return ''
-  const t = texto.toLowerCase()
-  const achadas = palavras.filter((w) => t.includes(w)).length
-  return achadas / palavras.length >= 0.8 ? a.split(' ').slice(0, 15).join(' ').replace(/[\s,;.]+$/, '') : ''
+  const t = tokensDe(texto)
+  // a maior cadeia em ordem: melhor[i] guarda, para cada posição p do texto onde a palavra i casa, o tamanho da melhor cadeia que termina ali
+  const melhor: Array<Map<number, number>> = palavras.map(() => new Map())
+  let maior = 0
+  palavras.forEach((w, i) => {
+    t.forEach((tw, p) => {
+      if (!mesmaPalavra(w, tw)) return
+      let m = 1
+      for (let j = 0; j < i; j++) for (const [q, v] of melhor[j]) if (q < p && p - q <= APARENCIA_SALTO_MAX + 1 && v + 1 > m) m = v + 1
+      melhor[i].set(p, m)
+      if (m > maior) maior = m
+    })
+  })
+  return maior / palavras.length >= 0.8 ? a.split(' ').slice(0, 15).join(' ').replace(/[\s,;.]+$/, '') : ''
 }
 /** O campo em inglês: substantivo/sintagma curto só de letras latinas (≤ 4 palavras); fora disso, null (fica a palavra original). */
 function inglesCurto(v: unknown, maxPalavras = 4): string | null {
@@ -142,7 +196,7 @@ function aparenciaEmIngles(v: unknown, original: string): string {
 }
 
 const KINDS: readonly KindSemantico[] = ['human', 'animal', 'creature', 'object']
-function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]): PersonagemSemantico | null {
+function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[], ingles: boolean): PersonagemSemantico | null {
   if (!bruto || typeof bruto !== 'object') return null
   const o = bruto as Record<string, unknown>
   const kind = typeof o.kind === 'string' ? (o.kind.toLowerCase() as KindSemantico) : null
@@ -164,13 +218,22 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
     if (!roleEnNoTexto || !especieNoTexto(texto, roleEnNoTexto)) return null
     role_text = roleEnNoTexto
   }
-  // o papel em inglês só substitui o original que passou na conferência ("velho pescador" → "old fisherman")
-  const role = role_text ? (inglesCurto(o.role_en) ?? role_text) : null
+  // o papel em inglês só substitui o original que passou na conferência ("velho pescador" → "old fisherman"); num texto em INGLÊS, só se o
+  // texto também o escreve (senão o "inglês" do modelo é troca de papel, não tradução)
+  const roleEnBruto = inglesCurto(o.role_en)
+  const roleEn = ingles && roleEnBruto && !especieNoTexto(texto, roleEnBruto) ? null : roleEnBruto
+  const role = role_text ? (roleEn ?? role_text) : null
   const speciesBruta = typeof o.species === 'string' && limpa(o.species) ? limpa(o.species).toLowerCase() : null
-  const speciesEn = inglesCurto(o.species_en)
+  const speciesEnBruta = inglesCurto(o.species_en)
+  // revisão 01/11 (rodada 6): a espécie é conferida no texto SEM os lugares que o modelo listou ("Bear Lake", "Pigeon Forge")
+  const textoEspecie = semLugares(texto, lugares)
+  // texto em inglês: quando o texto escreve a espécie original fora do nome, species_en só vale se o texto também o escreve ("pigeon" com
+  // species_en "eagle" → fica "pigeon"; nunca "BRO, a eagle"). Espécie que só aparece NO nome ("Melancia" → "watermelon") não é troca.
+  const originalForaDoNome = !!speciesBruta && especieNoTexto(name ? tiraNome(textoEspecie, name, 'giu') : textoEspecie, speciesBruta)
+  const speciesEn = ingles && speciesEnBruta && originalForaDoNome && !especieNoTexto(textoEspecie, speciesEnBruta) ? null : speciesEnBruta
   // a âncora no texto: a palavra original ("pombo") ou, se o texto é inglês e o modelo traduziu o campo original ("gata" para "cat"), a inglesa
-  const originalNoTexto = !!speciesBruta && especieNoTexto(texto, speciesBruta)
-  const inglesNoTexto = !originalNoTexto && !!speciesEn && especieNoTexto(texto, speciesEn)
+  const originalNoTexto = !!speciesBruta && especieNoTexto(textoEspecie, speciesBruta)
+  const inglesNoTexto = !originalNoTexto && !!speciesEn && especieNoTexto(textoEspecie, speciesEn)
   const especieConferida = originalNoTexto || inglesNoTexto
   let species: string | null
   let species_text: string | null = originalNoTexto ? speciesBruta : inglesNoTexto ? speciesEn : null
@@ -179,7 +242,7 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   else if (!especieConferida) return null // bicho/criatura sem a espécie escrita no texto: não confiamos
   // bicho/criatura NOMEADO: a espécie tem de estar na MESMA frase que o nome ("Laika, a stray dog"; "his cat Whiskers"). A palavra estar em
   // outro ponto do texto não prova que é dele — no "Mila" em português o Skoczuś virava a "flor gigante" da frase anterior
-  else if (name && !mesmaFrase(texto, name, species_text!)) return null
+  else if (name && !mesmaFrase(textoEspecie, name, species_text!)) return null
   else species = speciesEn ?? species_text
   if (kind === 'human' && species === 'human') species_text = null
   const g = o.gender_if_stated
@@ -191,7 +254,8 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   const appearance_from_text = aparenciaDoTexto(texto, typeof o.appearance_from_text === 'string' ? o.appearance_from_text : '')
   return {
     name, role, role_text, kind, species, species_text, appearance_from_text,
-    appearance_en: aparenciaEmIngles(o.appearance_en, appearance_from_text),
+    // texto em inglês: a aparência do texto já é inglês — o "appearance_en" só poderia acrescentar o que o texto não diz
+    appearance_en: ingles ? '' : aparenciaEmIngles(o.appearance_en, appearance_from_text),
     gender_if_stated: gender, age_if_stated: age, age_evidence: age ? prova.slice(0, 60) : '',
   }
 }
@@ -206,12 +270,13 @@ export function lerElencoSemantico(raw: string, textoOriginal: string): ElencoSe
   const texto = semTags(textoOriginal)
   const lugares = Array.isArray(o.places_and_orgs) ? o.places_and_orgs.filter((x): x is string => typeof x === 'string' && !!limpa(x)).map(limpa).slice(0, 20) : []
   if (o.protagonist !== null && (typeof o.protagonist !== 'object' || Array.isArray(o.protagonist))) return null
-  const protagonist = o.protagonist === null ? null : lerPersonagem(o.protagonist, texto, lugares)
+  const ingles = textoEmIngles(texto)
+  const protagonist = o.protagonist === null ? null : lerPersonagem(o.protagonist, texto, lugares, ingles)
   if (o.protagonist !== null && !protagonist) return null // protagonista que não passa na conferência: nada do modelo entra
   const supporting = (Array.isArray(o.supporting) ? o.supporting : []).slice(0, ELENCO_SEMANTICO_MAX_COADJUVANTES)
     // coadjuvante que o próprio modelo diz que só é citado (on_screen false: "Lena is gone") não entra em cena
     .filter((s) => !(s && typeof s === 'object' && (s as { on_screen?: unknown }).on_screen === false))
-    .map((s) => lerPersonagem(s, texto, lugares)).filter((s): s is PersonagemSemantico => !!s)
+    .map((s) => lerPersonagem(s, texto, lugares, ingles)).filter((s): s is PersonagemSemantico => !!s)
     .filter((s) => !protagonist || chave(s) !== chave(protagonist))
   return { protagonist, supporting, places_and_orgs: lugares }
 }
@@ -219,7 +284,7 @@ const chave = (p: PersonagemSemantico) => (p.name ?? p.role ?? '').toLowerCase()
 
 // ═══ A rede (uma chamada, 1 tentativa extra só para falha de rede/HTTP/prazo; nunca lança) ═══════════════════════
 export type StatusElencoSemantico = 'ok' | 'sem_chave' | 'falhou' | 'json_invalido' | 'vazio'
-export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: number; tentativas?: number; fetchImpl?: typeof fetch; apiKey?: string }): Promise<{ elenco: ElencoSemantico | null; status: StatusElencoSemantico; tentativas: number; ms: number; raw: string | null }> {
+export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: number; orcamentoMs?: number; tentativas?: number; fetchImpl?: typeof fetch; apiKey?: string }): Promise<{ elenco: ElencoSemantico | null; status: StatusElencoSemantico; tentativas: number; ms: number; raw: string | null }> {
   const t0 = Date.now()
   if (!semTags(texto)) return { elenco: null, status: 'vazio', tentativas: 0, ms: 0, raw: null }
   const key = opts?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
@@ -229,9 +294,13 @@ export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: n
   let status: StatusElencoSemantico = 'falhou'
   let raw: string | null = null
   let n = 0
+  const prazo = opts?.timeoutMs ?? ELENCO_SEMANTICO_PRAZO_MS
+  const orcamento = opts?.orcamentoMs ?? Math.max(ELENCO_SEMANTICO_ORCAMENTO_MS, prazo)
   for (; n < max; n++) {
+    const resta = orcamento - (Date.now() - t0)
+    if (n > 0 && resta < Math.min(1_000, prazo)) break // sem tempo útil para a tentativa extra: o determinístico de sempre
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), opts?.timeoutMs ?? ELENCO_SEMANTICO_PRAZO_MS)
+    const timer = setTimeout(() => ctrl.abort(), Math.max(1, Math.min(prazo, resta)))
     try {
       const res = await doFetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',

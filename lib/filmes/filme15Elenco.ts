@@ -114,8 +114,37 @@ const citaPalavra = (t: string, w: string): boolean => !!w && palavras(t).includ
 const semPalavra = (t: string, w: string): string => String(t ?? '').split(/(\p{L}+)/u).map((p) => (p.toLowerCase() === w ? ' ' : p)).join('')
 /** A cena cita alguém do elenco? Só pela palavra do papel/nome inteira ("man" não casa "woman"). */
 export function cenaCitaElenco(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {
-  // KINEO-PROTAGONISTA-SEEDANCE-0111 — também pelo NOME ("BRO dons…" cita o BRO, cujo núcleo é a espécie "pigeon"; "Captain Ahab" pela palavra "Ahab"). Ficha de nome de uma palavra: igual.
-  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)) || palavras(String(f.nome ?? '')).some((w) => w.length >= 3 && w !== 'the' && citaPalavra(visual, w)))
+  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)))
+}
+
+// KINEO-PROTAGONISTA-SEEDANCE-0111 — título/tratamento/adjetivo do nome que, sozinho, não cita ninguém ("the ship captain", "an old woman").
+const TITULOS_DO_NOME_15 = new Set(['the', 'a', 'an', 'captain', 'capt', 'old', 'young', 'little', 'big', 'mr', 'mrs', 'ms', 'miss', 'dr', 'doctor', 'sir', 'lady', 'lord', 'king', 'queen', 'prince', 'princess', 'uncle', 'aunt', 'auntie', 'grandma', 'grandpa', 'granny', 'professor', 'prof', 'detective', 'officer', 'sergeant', 'sgt', 'general', 'colonel', 'major', 'lieutenant', 'agent', 'saint', 'st', 'father', 'mother', 'brother', 'sister', 'baby'])
+/**
+ * KINEO-PROTAGONISTA-SEEDANCE-0111 — a cena cita alguém do elenco pelo NOME PRÓPRIO ("BRO dons…" cita o BRO, cujo núcleo é a espécie
+ * "pigeon"; "Ahab stands…" cita o "Captain Ahab"). SÓ com o elenco semântico (protagonistaEmTodaCena porNome) — sem ele, o casador é o
+ * de sempre (cenaCitaElenco), byte a byte. Conta: o nome inteiro; ou o primeiro nome sem o título, escrito com maiúscula na cena; ou o
+ * sobrenome com maiúscula quando não vem depois de OUTRO nome ("Jack Collins" não cita "Emma Collins"). Título/adjetivo sozinho nunca
+ * ("Old Tom" × "an old woman"; "Captain Ahab" × "the ship captain"). Ficha sem nome próprio (papel): nada a acrescentar.
+ */
+function cenaCitaPeloNome(visual: string, f: FichaDePersonagem): boolean {
+  const nome = String(f.nome ?? '').trim()
+  if (!/^\p{Lu}/u.test(nome)) return false
+  const partes = nome.split(/[^\p{L}\p{N}'-]+/u).filter(Boolean)
+  const proprias = partes.filter((w) => !TITULOS_DO_NOME_15.has(w.toLowerCase()) && w.length >= 2)
+  if (proprias.length === 0) return false
+  const tokens = String(visual ?? '').split(/[^\p{L}\p{N}'-]+/u).filter(Boolean).map((w) => w.replace(/'s$/i, ''))
+  const baixos = tokens.map((w) => w.toLowerCase())
+  const alvo = partes.map((w) => w.toLowerCase())
+  const maiuscula = (w: string) => /^\p{Lu}/u.test(w)
+  for (let i = 0; i + alvo.length <= baixos.length; i++) if (maiuscula(tokens[i]) && alvo.every((w, k) => baixos[i + k] === w)) return true
+  const primeiro = proprias[0], ultimo = proprias[proprias.length - 1]
+  return tokens.some((w, i) => {
+    if (!maiuscula(w)) return false
+    if (w.toLowerCase() === primeiro.toLowerCase()) return true
+    if (proprias.length < 2 || w.toLowerCase() !== ultimo.toLowerCase()) return false
+    const antes = tokens[i - 1]
+    return !antes || !maiuscula(antes) || TITULOS_DO_NOME_15.has(antes.toLowerCase()) || antes.toLowerCase() === primeiro.toLowerCase()
+  })
 }
 
 /** Ordem do prompt final da cena forçada (vai na frente do prompt do still e do clipe). */
@@ -130,12 +159,15 @@ export const ORDEM_DO_PROTAGONISTA = (canonica: string) =>
 export function protagonistaEmTodaCena(args: {
   visuals: ReadonlyArray<string>
   elenco: ReadonlyArray<FichaDePersonagem>
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 — true só com o elenco SEMÂNTICO aplicado: a cena também cita o elenco pelo nome próprio (cenaCitaPeloNome). Ausente/false: o de sempre. */
+  porNome?: boolean
 }): { visuals: string[]; forcadas: number[] } {
   const protagonista = args.elenco.find((f) => f.protagonista) ?? args.elenco[0]
   const visuals = args.visuals.map((v) => String(v ?? ''))
   if (!protagonista) return { visuals, forcadas: [] }
   const forcadas: number[] = []
   const saida = visuals.map((v, i) => {
+    if (args.porNome === true && args.elenco.some((f) => cenaCitaPeloNome(v, f))) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v
     forcadas.push(i)
     return `${protagonista.nome}, the only person in the shot — ${v}`

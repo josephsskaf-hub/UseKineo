@@ -2525,5 +2525,194 @@
   "proib": [
    "Endurance"
   ]
+ },
+ {
+  "id": "pt-fora-pipoca",
+  "fonte": "pt-es-fora",
+  "texto": "Pipoca é uma calopsita que imita o toque do celular da dona Marta. Toda vez que Pipoca assobia, Marta corre para atender. Hoje o telefone tocou de verdade e ninguém acreditou.",
+  "protagonista": [
+   "Pipoca"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "cockatiel",
+   "parrot",
+   "bird"
+  ],
+  "humanos": [
+   "Marta"
+  ]
+ },
+ {
+  "id": "pt-fora-flecha",
+  "fonte": "pt-es-fora",
+  "texto": "Seu Jorge tem uma tartaruga chamada Flecha. Flecha fugiu do quintal em 1998. Vinte anos depois, Flecha apareceu no mesmo portão, devagar, como se nada tivesse acontecido.",
+  "protagonista": [
+   "Flecha"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "turtle",
+   "tortoise"
+  ],
+  "humanos": [
+   "Jorge",
+   "Seu Jorge"
+  ]
+ },
+ {
+  "id": "es-fora-rocio",
+  "fonte": "pt-es-fora",
+  "texto": "Rocío tiene doce años y vive en un pueblo de Asturias. Cada tarde sube al faro abandonado con su linterna roja. Una noche, la luz del faro se enciende sola.",
+  "protagonista": [
+   "Rocío"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Rocío"
+  ],
+  "proib": [
+   "Asturias"
+  ]
+ },
+ {
+  "id": "es-fora-lince",
+  "fonte": "pt-es-fora",
+  "texto": "En Sierra Morena vive Lince, un niño que corre más rápido que nadie. Lince quiere ganar la carrera del pueblo, pero sus zapatillas están rotas.",
+  "protagonista": [
+   "Lince"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lince"
+  ],
+  "proib": [
+   "Sierra Morena"
+  ]
+ },
+ {
+  "id": "pt-fora-carla-lagoa",
+  "fonte": "pt-es-fora",
+  "texto": "Carla cresceu perto da Lagoa do Urso. Aos dezesseis anos, Carla desapareceu numa trilha. A polícia encontrou só a mochila dela.",
+  "protagonista": [
+   "Carla"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Carla"
+  ],
+  "proib": [
+   "Lagoa do Urso"
+  ]
+ },
+ {
+  "id": "es-fora-capitanes",
+  "fonte": "pt-es-fora",
+  "texto": "El capitán Morales y el capitán Ruiz zarpan juntos del puerto de Vigo. En la tormenta, Morales desaparece. Ruiz vuelve solo y nunca cuenta lo que vio.",
+  "protagonista": [
+   "Morales",
+   "capitán Morales",
+   "Ruiz"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Morales",
+   "Ruiz"
+  ],
+  "proib": [
+   "Vigo"
+  ]
+ },
+ {
+  "id": "pt-fora-souza",
+  "fonte": "pt-es-fora",
+  "texto": "Ana Souza procura o irmão há vinte anos. Pedro Souza sumiu em 2003, aos vinte anos. Todo domingo, Ana refaz o caminho que ele fazia até a estação.",
+  "protagonista": [
+   "Ana Souza",
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana Souza",
+   "Pedro Souza"
+  ],
+  "ausentes": [
+   "Pedro Souza"
+  ]
+ },
+ {
+  "id": "pt-fora-parafuso",
+  "fonte": "pt-es-fora",
+  "texto": "Parafuso é um robô de lata que trabalha numa fábrica de brinquedos. Uma noite, Parafuso encontra um ursinho rasgado no lixo e decide consertá-lo antes do sol nascer.",
+  "protagonista": [
+   "Parafuso"
+  ],
+  "tipo": "creature",
+  "especie": "robot"
+ },
+ {
+  "id": "rev-collins",
+  "fonte": "rev-0111b",
+  "texto": "Emma Collins walks into the empty house. Her husband Jack Collins vanished in 1999. Emma finds his watch under the floorboards.",
+  "protagonista": [
+   "Emma Collins",
+   "Emma"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Emma Collins",
+   "Jack Collins"
+  ],
+  "ausentes": [
+   "Jack Collins"
+  ]
+ },
+ {
+  "id": "rev-duck-boxer",
+  "fonte": "rev-0111b",
+  "texto": "Meet Duck, a retired boxer. Duck trains kids in an old gym. Tonight Duck steps into the ring one last time.",
+  "protagonista": [
+   "Duck"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Duck"
+  ]
+ },
+ {
+  "id": "rev-bear-lake",
+  "fonte": "rev-0111b",
+  "texto": "Cara grew up in Bear Lake. At nineteen, Cara left for the city and never came back. Her mother still keeps the porch light on.",
+  "protagonista": [
+   "Cara"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Cara"
+  ],
+  "proib": [
+   "Bear Lake"
+  ]
+ },
+ {
+  "id": "rev-tired-leo",
+  "fonte": "rev-0111b",
+  "texto": "Leo was tired, but that night he walked to the harbor anyway. Leo was scared of the dark water. A fisherman waved at him from a boat.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ]
  }
 ]

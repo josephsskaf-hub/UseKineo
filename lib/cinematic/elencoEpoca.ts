@@ -188,11 +188,25 @@ const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINE
 const normaliza = (s: string) => s.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '') // KINEO-ELENCO-EPOCA-2710
 function hash(texto: string): number { let h = 0x811c9dc5; for (let i = 0; i < texto.length; i++) { h ^= texto.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 } return h >>> 0 } // KINEO-ELENCO-EPOCA-2710 — FNV-1a, como elencoDaHistoria
 function escolhe(lista: readonly string[], semente: number, usados: Set<string>): string { for (let i = 0; i < lista.length; i++) { const op = lista[(semente + i) % lista.length]; if (!usados.has(op)) { usados.add(op); return op } } return lista[semente % lista.length] } // KINEO-ELENCO-EPOCA-2710
-/** KINEO-PROTAGONISTA-SEEDANCE-0111 — o mesmo personagem por nome: alguma palavra do nome (3+ letras, fora "the") em comum ("Captain Ahab" = "Ahab"; "Roland Pernicus Oznard" = "Roland"). */
+/** KINEO-PROTAGONISTA-SEEDANCE-0111 — título/tratamento/adjetivo que antecede um nome e não o identifica ("Captain", "Old", "Dr", "Tia"). */
+const TITULOS_DO_NOME = new Set(['the', 'a', 'an', 'captain', 'capt', 'old', 'young', 'little', 'big', 'mr', 'mrs', 'ms', 'miss', 'dr', 'doctor', 'sir', 'lady', 'lord', 'king', 'queen', 'prince', 'princess', 'uncle', 'aunt', 'auntie', 'grandma', 'grandpa', 'granny', 'professor', 'prof', 'detective', 'officer', 'sergeant', 'sgt', 'general', 'colonel', 'major', 'lieutenant', 'agent', 'saint', 'st', 'father', 'mother', 'brother', 'sister', 'baby', 'tio', 'tia', 'vovo', 'vo', 'dona', 'seu', 'senhor', 'senhora', 'sr', 'sra', 'don', 'capitao', 'capitan', 'el', 'la', 'o']) // KINEO-PROTAGONISTA-SEEDANCE-0111
+/**
+ * KINEO-PROTAGONISTA-SEEDANCE-0111 — o mesmo personagem por nome. Revisão 01/11 (rodada 6): era "alguma palavra em comum" — "Emma Collins" e
+ * "Jack Collins" (sobrenome) viravam a mesma pessoa e o Jack ausente entrava em cena como protagonista; "Captain Ahab" e "Captain Nemo"
+ * (título) também. Agora, sem os títulos: o nome inteiro igual; ou um lado de uma palavra só que é o PRIMEIRO nome do outro ("Roland" =
+ * "Roland Pernicus Oznard"; "Ahab" = "Captain Ahab") ou o sobrenome quando esse lado não tem primeiro nome ("Collins" = "Emma Collins");
+ * dois nomes completos só com o primeiro nome igual E o último igual ("Roland Oznard" = "Roland Pernicus Oznard"; "Emma Collins" ≠ "Jack Collins").
+ */
 export function mesmoPersonagem(a: string, b: string): boolean {
-  const ws = (s: string) => String(s ?? '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && w !== 'the')
-  const B = new Set(ws(b))
-  return ws(a).some((w) => B.has(w))
+  const ws = (s: string) => normaliza(String(s ?? '')).split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+  const sem = (xs: string[]) => { const r = xs.filter((w) => !TITULOS_DO_NOME.has(w)); return r.length > 0 ? r : xs }
+  const A0 = ws(a), B0 = ws(b)
+  if (A0.length === 0 || B0.length === 0) return false
+  const A = sem(A0), B = sem(B0)
+  if (A.join(' ') === B.join(' ')) return true
+  if (A.length === 1 && B.length === 1) return false
+  if (A.length === 1 || B.length === 1) { const [um, varios] = A.length === 1 ? [A[0], B] : [B[0], A]; return um === varios[0] || um === varios[varios.length - 1] }
+  return A[0] === B[0] && A[A.length - 1] === B[B.length - 1]
 }
 /** A palavra inteira no texto (Unicode, sem acento, sem caixa). */ // KINEO-ELENCO-EPOCA-2710
 export function citaPalavra(texto: string, palavra: string): boolean { // KINEO-ELENCO-EPOCA-2710

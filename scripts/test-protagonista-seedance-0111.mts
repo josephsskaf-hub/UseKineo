@@ -7,12 +7,15 @@
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
-import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
+import os from 'node:os'
+import { execFileSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
+import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro, ajustarPromptsDoElenco } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
-import { elencoDoFilme15, protagonistaEmTodaCena, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
+import { elencoDoFilme15, protagonistaEmTodaCena, cenaCitaElenco, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
 import { prepararQualidadeDoFilme } from '../lib/cinematic/filmQuality'
-import { aplicarElencoEEpoca } from '../lib/cinematic/elencoEpoca'
+import { aplicarElencoEEpoca, mesmoPersonagem } from '../lib/cinematic/elencoEpoca'
 import { deriveStyleAnchor } from '../lib/cinematic/sceneStyle'
 import type { FichaDePersonagem } from '../lib/cinematic/folhaDePersonagem'
 import { avaliar, type Caso } from './test-support/avaliar-protagonista-seedance-0111.mts'
@@ -116,7 +119,7 @@ function caminho15(id: string, sem: ElencoSemantico | null) {
   if (lit.literais.length > 0) pedido = lit.elenco
   const e15 = elencoDoFilme15({ elencoDoPedido: pedido, visuals: prompts, extrair: elencoDoRoteiro, completar: aplicado ? aceitaPapelDasCenas(c.texto) : true })
   const elenco = e15.elenco.length > 0 ? e15.elenco : pedido
-  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco }) : null
+  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco, porNome: !!aplicado }) : null
   const aj = ajustarPromptsDoElenco({ prompts, visuals: p15 ? p15.visuals : prompts, falas, elenco })
   const out = aj.prompts.slice()
   const pp = elenco.find((f) => f.protagonista) ?? elenco[0]
@@ -289,6 +292,112 @@ console.log('== 7. Completar pelos visuais com o elenco semântico ==')
   ok(eb.elenco.length === 1 && eb.elenco[0].nome === 'BRO', `BRO em português: a "unicorn mane" dos visuais não vira coadjuvante (${eb.elenco.map((f) => f.nome).join(', ')})`)
   const en = porId.get('prod-bro')!
   ok(aceitaPapelDasCenas(en.texto)({ tipo: 'humano' }, 'pigeon') === false, 'palavra que o texto escreve e a leitura não chamou de personagem: não entra')
+}
+
+// ═══ 8. Revisão de 01/11 (rodada 6): os 3 defeitos e os menores ═══════════════════════════════════════════════════
+console.log('== 8. Rodada 6: aparência por palavra inteira, nome inteiro, falha segura byte a byte, campos _en, espécie no nome ==')
+{
+  const j = (p: Record<string, unknown>, extra: Record<string, unknown> = {}) => JSON.stringify({ protagonist: { name: null, role: null, kind: 'human', species: 'human', appearance_from_text: '', gender_if_stated: null, age_if_stated: null, ...p }, supporting: [], places_and_orgs: [], ...extra })
+  // (1) aparência: palavra inteira e a sequência real
+  const LEO = 'Leo was tired, but that night he walked to the harbor anyway. Leo was scared of the dark water.'
+  ok(lerElencoSemantico(j({ name: 'Leo', appearance_from_text: 'red hat' }), LEO)?.protagonist?.appearance_from_text === '', 'D1 "red hat" não passa por "tired"/"that" (pedaço de palavra)')
+  ok(lerElencoSemantico(j({ name: 'Leo', appearance_from_text: 'scar' }), LEO)?.protagonist?.appearance_from_text === '', 'D1 "scar" não passa por "scared"')
+  ok(lerElencoSemantico(j({ name: 'Leo', appearance_from_text: 'tired, scared' }), LEO)?.protagonist?.appearance_from_text === '', 'D1 palavras inteiras mas soltas em frases distantes ("tired … scared"): não é sequência do texto')
+  const HOPE = 'Hope, a seven-year-old in a red scarf, waits at the bus stop. Hope counts the snowflakes.'
+  ok(lerElencoSemantico(j({ name: 'Hope', appearance_from_text: 'in a red scarf' }), HOPE)?.protagonist?.appearance_from_text === 'in a red scarf', 'D1 aparência que o texto escreve em sequência: fica ("in a red scarf")')
+  ok(lerElencoSemantico(j({ name: 'Hope', appearance_from_text: 'scarf red' }), HOPE)?.protagonist?.appearance_from_text === '', 'D1 ordem trocada ("scarf red"): sai')
+  ok(lerElencoSemantico(j({ name: 'Hope', appearance_from_text: 'with a red scarf' }), HOPE)?.protagonist?.appearance_from_text === 'with a red scarf', 'D1 palavra de ligação acrescentada pelo modelo ("with"): não derruba a aparência do texto')
+  const MILA = 'Mila, with her turquoise hair and star-shaped backpack, returns to Rainbow Valley.'
+  ok(lerElencoSemantico(j({ name: 'Mila', appearance_from_text: 'turquoise hair and star-shaped backpack' }), MILA)?.protagonist?.appearance_from_text === 'turquoise hair and star-shaped backpack', 'D1 hífen ("star-shaped") e plural continuam valendo')
+  ok(lerElencoSemantico(j({ name: 'Mila', appearance_from_text: 'turquoise hairs' }), MILA)?.protagonist?.appearance_from_text === 'turquoise hairs', 'D1 plural simples ("hairs" = "hair")')
+  const apLeo = aplicarElencoSemantico(elencoDoRoteiro(LEO), lerElencoSemantico(j({ name: 'Leo', appearance_from_text: 'red hat' }), LEO), LEO)
+  ok(!!apLeo && apLeo.elenco[0].origem !== 'autor' && !/red hat/.test(apLeo.elenco[0].canonica), `D1 a roupa inventada não vira ficha do autor (${apLeo?.elenco[0].canonica.slice(0, 70)}…)`)
+
+  // (2) mesmoPersonagem: nome inteiro; sobrenome só quando o primeiro nome bate ou não existe
+  ok(!mesmoPersonagem('Emma Collins', 'Jack Collins'), 'D2 "Emma Collins" ≠ "Jack Collins" (sobrenome em comum)')
+  ok(!mesmoPersonagem('Captain Ahab', 'Captain Nemo'), 'D2 "Captain Ahab" ≠ "Captain Nemo" (título em comum)')
+  ok(!mesmoPersonagem('Old Tom', 'Old Mary') && !mesmoPersonagem('Emma Collins', 'Emma Stone'), 'D2 "Old Tom" ≠ "Old Mary"; "Emma Collins" ≠ "Emma Stone"')
+  ok(mesmoPersonagem('Captain Ahab', 'Ahab') && mesmoPersonagem('Roland', 'Roland Pernicus Oznard') && mesmoPersonagem('Roland Oznard', 'Roland Pernicus Oznard') && mesmoPersonagem('Collins', 'Emma Collins') && mesmoPersonagem('Rocío', 'rocio'), 'D2 "Ahab" = "Captain Ahab"; "Roland" = "Roland Pernicus Oznard"; "Collins" sozinho = "Emma Collins"; acento/caixa não importam')
+  const COL = porId.get('rev-collins') ?? { texto: 'Emma Collins walks into the empty house. Her husband Jack Collins vanished in 1999. Emma finds his watch under the floorboards.' }
+  const colPrompts = ['Emma Collins walks into an empty house at dusk.', 'A faded wedding photo on the wall.', 'Emma kneels and finds a watch under the floorboards.']
+  const colFalas = ['Emma Collins walks into the empty house.', 'Her husband Jack Collins vanished in 1999.', 'Emma finds his watch under the floorboards.']
+  const rc = aplicarElencoEEpoca({ prompts: colPrompts, falas: colFalas, contextoOriginal: COL.texto, contextoFiltro: COL.texto, modo: 'character_story', tagFaceless: false, elencoSemantico: { nomes: ['Emma Collins'], protagonista: 'Emma Collins' } })
+  ok(rc.prompts.every((q) => !/Jack Collins[^.]{0,120}clearly visible/i.test(q)) && rc.relato.elenco.every((e) => !/Jack/.test(e.nome) || e.cenas_inseridas.length === 0), `D2 o Jack Collins ausente não entra em cena (${rc.relato.elenco.map((e) => `${e.nome}:${e.cenas_inseridas.join(',') || '-'}`).join(' ')})`)
+  ok(rc.relato.elenco.filter((e) => e.protagonista).every((e) => /Emma/.test(e.nome)), `D2 só a Emma é protagonista (${rc.relato.elenco.filter((e) => e.protagonista).map((e) => e.nome).join(', ') || 'nenhum'})`)
+  const AHAB = 'Captain Ahab hunts the white whale. Captain Nemo watches from his submarine. Ahab never rests.'
+  const ra = aplicarElencoEEpoca({ prompts: ['Captain Ahab on the deck.', 'A submarine under the waves.', 'Ahab at the wheel in the storm.'], falas: AHAB.split(/(?<=\.)\s+/), contextoOriginal: AHAB, contextoFiltro: AHAB, modo: 'character_story', tagFaceless: false, elencoSemantico: { nomes: ['Captain Ahab'], protagonista: 'Captain Ahab' } })
+  ok(ra.relato.elenco.every((e) => !/Nemo/.test(e.nome) || (!e.protagonista && e.cenas_inseridas.length === 0)), `D2 "Captain Nemo" não herda o lugar do "Captain Ahab" (${ra.relato.elenco.map((e) => `${e.nome}${e.protagonista ? '/P' : ''}`).join(' ')})`)
+
+  // (3) sem elenco semântico: o 15 s é byte a byte a base (2359bf434) — diferencial contra o código da base
+  const baseSrc = execFileSync('git', ['show', '2359bf434:lib/filmes/filme15Elenco.ts'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 << 20 })
+  const tmp = path.join(os.tmpdir(), `filme15Elenco-base-${process.pid}.ts`)
+  fs.writeFileSync(tmp, baseSrc)
+  const BASE = (await import(pathToFileURL(tmp).href)) as typeof import('../lib/filmes/filme15Elenco')
+  fs.rmSync(tmp, { force: true })
+  const ficha = (nome: string, nucleo: string, protagonista = true): FichaDePersonagem => ({ nome, nucleo, tipo: 'humano', canonica: `${nome}, a person`, origem: 'deterministica', protagonista, genero: null })
+  const elencos: FichaDePersonagem[][] = [[ficha('Old Tom', 'Tom')], [ficha('Captain Ahab', 'Ahab')], [ficha('Emma Collins', 'Collins'), ficha('the young girl', 'girl', false)], [ficha('BRO', 'pigeon')], [ficha('the tired young man', 'man')]]
+  const visuaisDif = ['An old woman by the window, morning light.', 'The ship captain shouts at the crew.', 'Ahab stands at the wheel.', 'BRO dons a pink wig.', 'Jack Collins opens the door.', 'Collins opens the door.', 'A woman by an open window.', 'The young man by the window.', 'A stormy sea at night.', 'Tom fixes the radio.', 'uma menina e o avô no jardim', '']
+  let iguais = 0, total = 0
+  for (const el of elencos) {
+    total++
+    const a = protagonistaEmTodaCena({ visuals: visuaisDif, elenco: el })
+    const b = BASE.protagonistaEmTodaCena({ visuals: visuaisDif, elenco: el })
+    if (JSON.stringify(a) === JSON.stringify(b)) iguais++
+    for (const v of visuaisDif) { total++; if (cenaCitaElenco(v, el) === BASE.cenaCitaElenco(v, el)) iguais++ }
+  }
+  ok(iguais === total, `D3 sem elenco semântico: protagonistaEmTodaCena e cenaCitaElenco idênticos à base em ${iguais}/${total} casos`)
+  ok(protagonistaEmTodaCena({ visuals: ['An old woman by the window.'], elenco: [ficha('Old Tom', 'Tom')] }).forcadas.length === 1, 'D3 base: "Old Tom" × "an old woman by the window" → a cena é forçada (o casador de sempre)')
+  ok(protagonistaEmTodaCena({ visuals: ['The ship captain shouts.'], elenco: [ficha('Captain Ahab', 'Ahab')] }).forcadas.length === 1, 'D3 base: "Captain Ahab" × "the ship captain" → a cena é forçada')
+  ok(fs.readFileSync(path.join(raiz, 'lib/filmes/filme15Elenco.ts'), 'utf8').replace(/\r\n/g, '\n').includes('export function cenaCitaElenco(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {\n  return elenco.some((f) => citaPalavra(visual, nucleoDe(f)))\n}'), 'D3 cenaCitaElenco voltou ao texto exato da base')
+  // com o elenco semântico (porNome): o nome próprio cita; título/adjetivo/sobrenome alheio, não
+  const comNome = (v: string, el: FichaDePersonagem[]) => protagonistaEmTodaCena({ visuals: [v], elenco: el, porNome: true }).forcadas.length === 0
+  ok(comNome('BRO dons a pink wig.', [ficha('BRO', 'pigeon')]) && comNome('Ahab stands at the wheel.', [ficha('Captain Ahab', 'Ahab')]) && comNome("Emma Collins's hands tremble.", [ficha('Emma Collins', 'Emma')]), 'D3 porNome: "BRO dons…", "Ahab stands…", "Emma Collins\'s hands" citam o elenco')
+  ok(!comNome('An old woman by the window.', [ficha('Old Tom', 'Tom')]) && !comNome('The ship captain shouts.', [ficha('Captain Ahab', 'Ahab')]) && !comNome('Captain Nemo waves.', [ficha('Captain Ahab', 'Ahab')]), 'D3 porNome: "an old woman", "the ship captain", "Captain Nemo" não citam "Old Tom"/"Captain Ahab"')
+  ok(!comNome('Jack Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && comNome('Collins opens the door.', [ficha('Emma Collins', 'Emma')]) && !comNome('He drives at max speed.', [ficha('Max', 'boy')]), 'D3 porNome: "Jack Collins" não cita a Emma; "Collins" sozinho cita; "max speed" (minúscula) não cita o Max')
+  const rotaSrc = fs.readFileSync(path.join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
+  ok(rotaSrc.includes('protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco, porNome: !!elencoSemantico'), 'D3 a rota só liga o casador por nome com o elenco semântico aplicado')
+
+  // (5) campos _en num texto em inglês
+  const BROEN = 'BRO the muscular pigeon is back, and still bald. BRO marches into a wig shop.'
+  const eagle = lerElencoSemantico(j({ name: 'BRO', kind: 'animal', species: 'pigeon', species_en: 'eagle', appearance_from_text: 'muscular, bald', appearance_en: 'blonde hair, red dress, carrying a rifle' }), BROEN)
+  ok(eagle?.protagonist?.species === 'pigeon', `M5 texto em inglês: species_en "eagle" para "pigeon" não entra (${eagle?.protagonist?.species})`)
+  ok(eagle?.protagonist?.appearance_en === '', 'M5 texto em inglês: appearance_en inventado não entra na ficha')
+  const apEagle = aplicarElencoSemantico(elencoDoRoteiro(BROEN), eagle, BROEN)
+  ok(!!apEagle && !/eagle|blonde|rifle/i.test(apEagle.elenco[0].canonica), `M5 a ficha não diz "a eagle" nem a aparência inventada (${apEagle?.elenco[0].canonica})`)
+  const nurse = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Kai', kind: 'human', species: 'human', appearance_from_text: '' }, supporting: [{ name: null, role: 'old nurse', role_en: 'young doctor', kind: 'human', species: 'nurse', species_en: 'nurse', appearance_from_text: '' }], places_and_orgs: [] }), 'Kai wakes in the ward. The old nurse brings him water. Kai thanks the old nurse.')
+  ok(nurse?.supporting[0]?.role === 'old nurse', `M5 texto em inglês: role_en que troca o papel ("young doctor") não entra (${nurse?.supporting[0]?.role})`)
+  ok(lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Thor', kind: 'animal', species: 'cachorro', species_en: 'dog', appearance_from_text: 'caramelo', appearance_en: 'caramel-colored' }, supporting: [], places_and_orgs: [] }), porId.get('pt-thor')!.texto)?.protagonist?.species === 'dog', 'M5 texto em português: species_en continua traduzindo ("cachorro" → "dog")')
+
+  // (6) espécie dentro do próprio nome ou de um lugar listado
+  ok(lerElencoSemantico(j({ name: 'Duck', kind: 'animal', species: 'duck' }), 'Meet Duck, a retired boxer. Duck trains kids in an old gym.') === null, 'M6 "Meet Duck, a retired boxer": a espécie só no nome não faz dele um pato (descartado → determinístico)')
+  ok(lerElencoSemantico(j({ name: 'Duck', kind: 'animal', species: 'duck' }), 'Duck the duck waddles to the pond. Duck quacks.')?.protagonist?.species === 'duck', 'M6 "Duck the duck": a espécie escrita fora do nome continua valendo')
+  ok(lerElencoSemantico(j({ name: 'Cara', kind: 'animal', species: 'bear' }, { places_and_orgs: ['Bear Lake'] }), 'Cara grew up in Bear Lake. Cara left at nineteen.') === null, 'M6 "Cara grew up in Bear Lake": a espécie só no lugar listado não faz dela um urso')
+
+  // menor: teto total de tempo (as 2 tentativas juntas)
+  let chamadas = 0
+  const t0 = Date.now()
+  const lento = await pedirElencoSemantico(LEO, { apiKey: 'k', timeoutMs: 150, orcamentoMs: 200, fetchImpl: (_u, init) => { chamadas++; return new Promise((_res, rej) => { (init as RequestInit).signal?.addEventListener('abort', () => rej(new Error('abort'))) }) } })
+  ok(lento.elenco === null && chamadas === 1 && Date.now() - t0 < 600, `teto total: a 1ª tentativa estourou o prazo e não sobra tempo útil → sem 2ª chamada (${chamadas} chamada, ${Date.now() - t0} ms)`)
+  ok(ELENCO_SEMANTICO_ORCAMENTO_MS === 6_000 && ELENCO_SEMANTICO_USD === 0.0005, 'teto padrão 6 s (era ~8 s no pior caso) e custo de log US$ 0,0005')
+
+  // casos novos (PT/ES fora da amostra do prompt + defeitos da revisão) com respostas MOCKADAS — não é medição: a API estava sem crédito
+  const mocks = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-mocks.json'), 'utf8')) as { respostas: Record<string, string> }
+  const casos = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-casos.json'), 'utf8')) as Caso[]
+  const novos = casos.filter((c) => c.id in mocks.respostas)
+  ok(novos.length === Object.keys(mocks.respostas).length && novos.filter((c) => c.fonte === 'pt-es-fora').length >= 8, `${novos.length} casos novos no arquivo de casos (o calibrador os mede quando houver crédito), ${novos.filter((c) => c.fonte === 'pt-es-fora').length} PT/ES fora da amostra`)
+  const PROMPT_PARES = ['negra de olhos verdes', 'vira-lata', 'pombo', 'gata', 'dragão', 'de oito anos', 'Imagina', 'Imagínate', 'velho pescador', 'brócolis']
+  ok(novos.filter((c) => c.fonte === 'pt-es-fora').every((c) => PROMPT_PARES.every((p) => !c.texto.includes(p))), 'os PT/ES novos não usam nenhum par que o prompt ensina (fora da amostra de verdade)')
+  const notas = novos.map((c) => ({ c, n: avaliar(c, lerElencoSemantico(mocks.respostas[c.id], c.texto)) }))
+  ok(notas.every(({ n }) => n.graves.length === 0), `mocks: 0 erro grave (${notas.filter(({ n }) => n.graves.length).map(({ c, n }) => `${c.id}:${n.graves.join(',')}`).join(' | ') || 'nenhum'})`)
+  ok(notas.filter(({ n }) => n.acerto).length === notas.length, `mocks: ${notas.filter(({ n }) => n.acerto).length}/${notas.length} (${notas.filter(({ n }) => !n.acerto).map(({ c, n }) => `${c.id}:${n.erros.join(',')}`).join(' | ') || 'todos'})`)
+  const leo = lerElencoSemantico(mocks.respostas['rev-tired-leo'], porId.get('rev-tired-leo')?.texto ?? casos.find((c) => c.id === 'rev-tired-leo')!.texto)
+  ok(leo?.protagonist?.appearance_from_text === '', 'mock rev-tired-leo: o estado "tired, scared" no campo da aparência é apagado')
+  const lince = casos.find((c) => c.id === 'es-fora-lince')!
+  const apLince = aplicarElencoSemantico(elencoDoRoteiro(lince.texto), lerElencoSemantico(mocks.respostas['es-fora-lince'], lince.texto), lince.texto)
+  ok(!!apLince && apLince.elenco[0].tipo === 'humano' && !/lynx/i.test(apLince.elenco[0].canonica), `mock es-fora-lince: o menino chamado Lince é gente (${apLince?.elenco[0].canonica.slice(0, 60)}…)`)
+  const flecha = casos.find((c) => c.id === 'pt-fora-flecha')!
+  const apFlecha = aplicarElencoSemantico(elencoDoRoteiro(flecha.texto), lerElencoSemantico(mocks.respostas['pt-fora-flecha'], flecha.texto), flecha.texto)
+  ok(!!apFlecha && /\bturtle\b/.test(apFlecha.elenco[0].canonica) && !/tartaruga (?:with|anatomy)|a tartaruga\b/.test(apFlecha.elenco[0].canonica), `mock pt-fora-flecha: a ficha diz turtle em inglês (${apFlecha?.elenco[0].canonica.slice(0, 70)}…)`)
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
