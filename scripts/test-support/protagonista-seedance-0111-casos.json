@@ -2837,5 +2837,164 @@
   "animais": {
    "Lía": "seagull"
   }
+ },
+ {
+  "id": "real-tommy",
+  "fonte": "producao",
+  "video_id": "49b015e8",
+  "texto": "HOOK: [Pexels: boy park walking] Meet Tommy—a boy with a sandwich and a big adventure.\n\nMICRO REWARD 1: [Pexels: funny dog jumping] Suddenly, a mischievous pup leaps and grabs Tommy's snack!\n\nMICRO REWARD 2: [Pexels: boy chasing dog] Tommy chases, but the pup's got moves—like a true performer!\n\nPAYOFF: [Pexels: dog dancing on boy's head] And then... the pup dances on Tommy's head. Laughter erupts!",
+  "protagonista": [
+   "Tommy"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "proib": [
+   "Laughter",
+   "Meet"
+  ],
+  "especiesProibidas": [
+   "pup",
+   "dog",
+   "puppy"
+  ]
+ },
+ {
+  "id": "rev8-bro-sol",
+  "fonte": "rev-0111d",
+  "texto": "BRO, a muscular pigeon, lifts weights as the sun rises.",
+  "protagonista": [
+   "BRO"
+  ],
+  "tipo": "animal",
+  "especie": "pigeon",
+  "especiesProibidas": [
+   "eagle"
+  ]
+ },
+ {
+  "id": "rev8-tom-cafe",
+  "fonte": "rev-0111d",
+  "texto": "Tom the cat naps in a café.",
+  "protagonista": [
+   "Tom"
+  ],
+  "tipo": "animal",
+  "especie": "cat",
+  "especiesProibidas": [
+   "tiger"
+  ]
+ },
+ {
+  "id": "rev8-max-la",
+  "fonte": "rev-0111d",
+  "texto": "Max, a golden retriever, surfs in Los Angeles.",
+  "protagonista": [
+   "Max"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "golden retriever",
+   "retriever",
+   "dog"
+  ],
+  "proib": [
+   "Los Angeles"
+  ],
+  "especiesProibidas": [
+   "wolf"
+  ]
+ },
+ {
+  "id": "rev8-biscuit-vegas",
+  "fonte": "rev-0111d",
+  "texto": "Biscuit the corgi wins big in Las Vegas.",
+  "protagonista": [
+   "Biscuit"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "corgi",
+   "dog"
+  ],
+  "proib": [
+   "Las Vegas"
+  ],
+  "especiesProibidas": [
+   "fox"
+  ]
+ },
+ {
+  "id": "rev8-pigeons-do",
+  "fonte": "rev-0111d",
+  "texto": "Pigeons do not lift weights. BRO the pigeon does.",
+  "protagonista": [
+   "BRO"
+  ],
+  "tipo": "animal",
+  "especie": "pigeon",
+  "especiesProibidas": [
+   "eagle"
+  ]
+ },
+ {
+  "id": "pt-rev8-luna",
+  "fonte": "rev-0111d",
+  "texto": "Luna, gata preta, persegue borboletas.",
+  "protagonista": [
+   "Luna"
+  ],
+  "tipo": "animal",
+  "especie": "cat"
+ },
+ {
+  "id": "pt-rev8-thor",
+  "fonte": "rev-0111d",
+  "texto": "Thor, vira-lata caramelo, late alto.",
+  "protagonista": [
+   "Thor"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "dog",
+   "mixed-breed dog"
+  ]
+ },
+ {
+  "id": "es-rev8-lola",
+  "fonte": "rev-0111d",
+  "texto": "Lola, perrita blanca, baila salsa.",
+  "protagonista": [
+   "Lola"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "dog",
+   "puppy",
+   "little dog",
+   "small dog"
+  ]
+ },
+ {
+  "id": "rev8-snow-fox",
+  "fonte": "rev-0111d",
+  "texto": "Snow, a white fox, sits by the frozen river. Her fur was white, her eyes gold. Snow waits for spring.",
+  "protagonista": [
+   "Snow"
+  ],
+  "tipo": "animal",
+  "especie": "fox"
+ },
+ {
+  "id": "rev8-rocky-husky",
+  "fonte": "rev-0111d",
+  "texto": "Rocky the husky pulls a sled toward a cabin in the Rocky Mountains. Rocky barks at the moon.",
+  "protagonista": [
+   "Rocky"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "husky",
+   "dog"
+  ]
  }
 ]

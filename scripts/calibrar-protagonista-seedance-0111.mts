@@ -7,7 +7,12 @@
 // os mede de verdade. Se mais de 20% das chamadas falharem (sem crédito, fora do ar), NADA é gravado: a calibração anterior fica intacta.
 // Revisão 01/11 (rodada 7): +9 casos fonte 'rev-0111c' (aparência com plural falso, cor inventada e recombinação; roteiro inglês curto com
 // species_en/appearance_en trocados; "Sunny" que é palavra comum; frase curta PT/ES), também só MOCKADOS (a chave seguia em 429).
-// PENDENTE DE MEDIR com crédito: os 21 casos mockados (8 pt-es-fora + 4 rev-0111b + 9 rev-0111c) e a taxa geral com a conferência v4.
+// Revisão 01/11 (rodada 8, superfície reduzida — v5): o modelo só diz quem, o kind e a species; +11 casos (o Tommy real de 01/11, render
+// 49b015e8, e 10 textos da revisão: roteiro inglês curto, PT/ES curto, "Snow" com a cor de outra frase, "Rocky" com as Rocky Mountains).
+// A chave voltou a ter crédito: os 217 casos (os 21 antes só mockados inclusive) são medidos na API de verdade.
+// Métrica nova species_en_troca_em_ingles: em roteiro INGLÊS (id sem prefixo pt-/es-), quantas respostas reais trazem species_en diferente
+// da species — sem detector de língua, o species_en é usado como tradução da palavra original que está no texto, então é aqui que um
+// "pigeon" → "eagle" do modelo apareceria.
 // Modos:
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava
@@ -46,6 +51,20 @@ if (falhasRede > casos.length * 0.2) { console.error(`${falhasRede}/${casos.leng
 const acertos = resultados.filter((r) => (r.nota as { acerto: boolean }).acerto).length
 const graves = resultados.filter((r) => (r.nota as { graves: string[] }).graves.length > 0)
 const falhas = resultados.filter((r) => r.status !== 'ok').length
+// em roteiro inglês, species_en diferente da species (bruto do modelo, antes da conferência; gente com species "human" não conta)
+const normEsp = (x: unknown) => String(x ?? '').toLowerCase().replace(/^(?:a|an|the)\s+/, '').trim()
+const trocasEmIngles: Array<{ id: string; quem: string; species: string; species_en: string }> = []
+casos.forEach((c, i) => {
+  if (/^(?:pt|es)-/.test(c.id) || !resultados[i].raw) return
+  let p: { protagonist?: unknown; supporting?: unknown[] } = {}
+  try { p = JSON.parse(String(resultados[i].raw)) } catch { return }
+  for (const m of [p.protagonist, ...(Array.isArray(p.supporting) ? p.supporting : [])]) {
+    if (!m || typeof m !== 'object') continue
+    const o = m as Record<string, unknown>
+    const a = normEsp(o.species), b = normEsp(o.species_en)
+    if (a && b && a !== 'human' && b !== 'human' && a !== b) trocasEmIngles.push({ id: c.id, quem: String(o.name ?? o.role ?? ''), species: a, species_en: b })
+  }
+})
 const ms = resultados.map((r) => r.ms as number).sort((a, b) => a - b)
 const resumo = {
   marca: 'KINEO-PROTAGONISTA-SEEDANCE-0111', versao: ELENCO_SEMANTICO_VERSAO, modelo: ELENCO_SEMANTICO_MODELO, prazo_ms: ELENCO_SEMANTICO_PRAZO_MS,
@@ -54,7 +73,8 @@ const resumo = {
   erros_leves: resultados.filter((r) => !(r.nota as { acerto: boolean }).acerto && (r.nota as { graves: string[] }).graves.length === 0).map((r) => ({ id: r.id, erros: (r.nota as { erros: string[] }).erros })),
   // acerto por fonte: 'pt-es-fora' é o número fora da amostra (os 'pt-es' usam pares que o próprio prompt ensina)
   acerto_por_fonte: Object.fromEntries([...new Set(casos.map((c) => c.fonte))].map((f) => { const rs = resultados.filter((r) => r.fonte === f); return [f, `${rs.filter((r) => (r.nota as { acerto: boolean }).acerto).length}/${rs.length}`] })),
-  chamadas_sem_resposta_valida: falhas, latencia_ms: { p50: ms[Math.floor(ms.length / 2)], p90: ms[Math.floor(ms.length * 0.9)], max: ms[ms.length - 1] },
+  chamadas_sem_resposta_valida: falhas,
+  species_en_troca_em_ingles: trocasEmIngles, latencia_ms: { p50: ms[Math.floor(ms.length / 2)], p90: ms[Math.floor(ms.length * 0.9)], max: ms[ms.length - 1] },
 }
 fs.mkdirSync(path.join(raiz, 'docs/calibracao'), { recursive: true })
 fs.writeFileSync(path.join(raiz, soMockados ? 'docs/calibracao/protagonista-seedance-0111-mockados.json' : 'docs/calibracao/protagonista-seedance-0111.json'), JSON.stringify({ resumo, casos: casos.map((c, i) => ({ ...c, resposta: resultados[i] })) }, null, 1) + '\n')

@@ -126,6 +126,8 @@ const TITULOS_DO_NOME_15 = new Set(['the', 'a', 'an', 'captain', 'capt', 'old', 
  * sobrenome com maiúscula quando não vem depois de OUTRO nome ("Jack Collins" não cita "Emma Collins"). Título/adjetivo sozinho nunca
  * ("Old Tom" × "an old woman"; "Captain Ahab" × "the ship captain"). Ficha sem nome próprio (papel): nada a acrescentar.
  */
+/** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 8) — artigo/preposição de lugar colado antes do nome: "of Paris", "the Sydney…", "in Aspen". */
+const LUGAR_ANTES_DO_NOME_15 = new Set(['the', 'of', 'in', 'at', 'from', 'to', 'near', 'over', 'across', 'into', 'through', 'toward', 'towards', 'around', 'above', 'beyond', 'under', 'outside', 'inside', 'within', 'along', 'past', 'via', 'on', 'by'])
 function cenaCitaPeloNome(visual: string, f: FichaDePersonagem): boolean {
   const nome = String(f.nome ?? '').trim()
   if (!/^\p{Lu}/u.test(nome)) return false
@@ -147,7 +149,25 @@ function cenaCitaPeloNome(visual: string, f: FichaDePersonagem): boolean {
    * o protagonista, exatamente como na base.
    */
   const abreFrase = (i: number) => i === 0 || /[.!?:;—–"“(\n]\s*$|\s-\s*$/.test(bruto.slice(achadas[i - 1].fim, achadas[i].ini))
+  /**
+   * Revisão 01/11 (rodada 8): no MEIO da frase a maiúscula também deixa dúvida quando a palavra é parte de um nome de LUGAR com a mesma
+   * grafia — "a cabin in the Rocky Mountains", "the Sydney Opera House", "The Aurora Borealis", "the Cape of Good Hope", "rooftops of
+   * Paris". Conta como dúvida: outra maiúscula colada que não é do nome (à direita, ou à esquerda sem ser título), ou artigo/preposição de
+   * lugar colado à esquerda. Na dúvida a cena é forçada com o protagonista, como na base.
+   */
+  const colado = (a: number, b: number) => !/[.!?:;,—–"“”()\n]/.test(bruto.slice(achadas[a].fim, achadas[b].ini))
+  const pareceLugar = (i: number, j: number) => {
+    const prox = tokens[j + 1]
+    if (prox !== undefined && colado(j, j + 1) && maiuscula(prox) && !alvo.includes(prox.toLowerCase())) return true
+    if (abreFrase(i)) return false
+    const ant = tokens[i - 1]
+    if (ant === undefined || !colado(i - 1, i)) return false
+    const a = ant.toLowerCase()
+    if (maiuscula(ant) && !alvo.includes(a) && (!TITULOS_DO_NOME_15.has(a) || a === 'the' || a === 'a' || a === 'an')) return true
+    return LUGAR_ANTES_DO_NOME_15.has(a)
+  }
   const semDuvida = (i: number, j: number) => {
+    if (pareceLugar(i, j)) return false
     if (!abreFrase(i)) return true
     if (j > i) return true // nome com 2+ palavras ("Emma Collins") no começo da frase: inteiro, sem dúvida
     const w = tokens[i]
