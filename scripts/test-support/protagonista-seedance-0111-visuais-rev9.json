@@ -1,0 +1,122 @@
+{
+ "rev9-lily-oreo": {
+  "falas": [
+   "Meet Lily, a young baker. Every morning she opens her tiny shop.",
+   "Her cat Oreo sleeps in the window. Oreo watches every customer. One day Oreo steals a croissant.",
+   "Oreo runs across the street with it. She chases him, laughing."
+  ],
+  "prompts": [
+   "A young woman in a flour-dusted apron unlocks the door of a cozy bakery at dawn, warm light spilling onto the street.",
+   "A black and white cat lounges in the bakery window, then snatches a golden croissant from the counter.",
+   "The cat dashes across a cobblestone street with the croissant as the young baker runs after it, laughing."
+  ]
+ },
+ "rev9-emma-liam": {
+  "falas": [
+   "Meet Emma. She moves to a new school in the middle of the year.",
+   "A boy named Liam sits next to her. Liam shares his lunch. Liam shows her the library.",
+   "Liam introduces her to his friends. She smiles for the first time."
+  ],
+  "prompts": [
+   "A shy girl with a backpack stands alone at the gate of a big school, students rushing past her.",
+   "In a bright cafeteria, a friendly boy slides half of his sandwich toward the shy girl beside him.",
+   "A group of kids laughs around the girl in the schoolyard as she finally smiles."
+  ]
+ },
+ "rev9-jack-will": {
+  "falas": [
+   "Jack will never forget his first fishing trip. His grandpa Will woke him before dawn.",
+   "He said the fish will come if you wait. Patience will win, he promised.",
+   "So he waited. Then the line pulled, and he laughed."
+  ],
+  "prompts": [
+   "A young boy in a yellow raincoat sits sleepily in a small wooden boat on a misty lake at dawn.",
+   "An old man with a white beard points at the still water, the boy holding a fishing rod beside him.",
+   "The boy's fishing rod bends sharply as he laughs with delight, mist rising off the lake."
+  ]
+ },
+ "rev9-sam-firefighter": {
+  "falas": [
+   "Meet Sam, a firefighter. She hears a tiny meow from the top of an old oak.",
+   "She climbs, branch by branch, as the wind howls. At the top, a shaking kitten waits.",
+   "She tucks it into her jacket and climbs down to cheers."
+  ],
+  "prompts": [
+   "A firefighter in full gear looks up at a towering old oak tree, hearing a faint meow.",
+   "The firefighter climbs high among swaying branches toward a small shaking kitten.",
+   "The firefighter descends the tree with the kitten tucked in her jacket as neighbors cheer."
+  ]
+ },
+ "rev9-rosa-theo": {
+  "falas": [
+   "Grandma Rosa bakes bread every Sunday. Her grandson Theo helps her.",
+   "Theo kneads the dough with tiny hands. Theo sneaks a taste of the sugar.",
+   "Theo burns his finger on the tray. Grandma Rosa laughs and hugs him tight."
+  ],
+  "prompts": [
+   "An elderly woman in a floral apron pulls warm bread from an old oven in a sunlit kitchen.",
+   "A small boy kneads dough on a flour-covered table, sneaking a pinch of sugar.",
+   "The elderly woman laughs and hugs the little boy tightly in the warm kitchen."
+  ]
+ },
+ "pt-rev9-lince": {
+  "falas": [
+   "Lince tem oito anos e mora numa vila de pescadores.",
+   "Certa manhã, Lince encontra uma tartaruga presa numa rede. Lince corta a rede com cuidado.",
+   "A tartaruga nada de volta para o mar."
+  ],
+  "prompts": [
+   "An eight-year-old boy walks barefoot along a small fishing village beach at sunrise.",
+   "The boy kneels on the sand and carefully cuts a fishing net tangled around a sea turtle.",
+   "The sea turtle swims back into the turquoise ocean as the boy watches from the shore."
+  ]
+ },
+ "rev9-pickles-hedgehog": {
+  "falas": [
+   "Meet Pickles. Pickles is a tiny hedgehog with a red scarf.",
+   "Pickles has never seen snow. One night, the first flakes fall.",
+   "Pickles runs outside and catches one on his nose."
+  ],
+  "prompts": [
+   "A tiny hedgehog wearing a red scarf peeks out of a cozy burrow under a tree.",
+   "Soft snowflakes begin to fall over a quiet moonlit meadow.",
+   "Pickles scampers through fresh snow and catches a snowflake on his nose."
+  ]
+ },
+ "rev9-fox-girl": {
+  "falas": [
+   "Meet Fox, a ten-year-old girl who lives at the edge of the forest.",
+   "One evening, Fox finds an injured owl. Fox carries the owl home and nurses it for weeks.",
+   "When it finally flies, Fox cries happy tears."
+  ],
+  "prompts": [
+   "A ten-year-old girl with braided hair walks along the edge of a misty forest at dusk.",
+   "Fox kneels beside an injured owl in the leaves and gently lifts it into her arms.",
+   "The owl soars into the night sky as the girl wipes away happy tears."
+  ]
+ },
+ "rev9-max-bella-chihuahua": {
+  "falas": [
+   "Max is a retired mailman. Every day he walks past the same yellow house.",
+   "Bella barks at him from the porch. Bella is a tiny chihuahua with a big attitude. Bella chases him to the gate.",
+   "One day Bella brings him a slipper. Bella wags her tail. Bella follows him home."
+  ],
+  "prompts": [
+   "An elderly man with a cap strolls down a quiet suburban street past a yellow house.",
+   "A tiny chihuahua barks fiercely from the porch and chases the old man to the gate.",
+   "The chihuahua trots proudly behind the old man carrying a slipper, tail wagging."
+  ]
+ },
+ "es-rev9-sofia": {
+  "falas": [
+   "Sofía tiene seis años y le encanta pintar.",
+   "Un día, su perrito Coco pisa la pintura azul. Coco deja huellas por toda la casa.",
+   "Sofía se ríe y convierte las huellas en un cuadro."
+  ],
+  "prompts": [
+   "A six-year-old girl paints happily at a small easel in a bright living room.",
+   "A small fluffy puppy steps into a tray of blue paint and leaves paw prints across the floor.",
+   "The girl laughs and frames the blue paw prints as a painting."
+  ]
+ }
+}

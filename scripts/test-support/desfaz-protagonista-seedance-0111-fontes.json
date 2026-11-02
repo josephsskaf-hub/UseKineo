@@ -1,5 +1,5 @@
 {
- "base": "cc94d9c44dabebb2a476ae6a2ae04b8f6b7bd532",
+ "base": "5f9ee5e015e76bfce506667ec4d8ae34b5a8a405",
  "scope": {
   "app/api/generate-video-cinematic/route.ts": {
    "beforeSha256": "471146625b2b132924edd29a6f073eaf1c69f5bd13e7458a51ae684f2468ce37",
@@ -113,6 +113,6 @@
   }
  },
  "addedSources": {
-  "lib/cinematic/elencoSemantico.ts": "c8ef3f60c4000d55ca1604ce2bd37718ca7d131d0a58ffe5e37d14212b9c989b"
+  "lib/cinematic/elencoSemantico.ts": "47d34ef62ccb5e6fd380e4f63f4904ec0e0efc9fb305ab1c1a5a49307ee52e68"
  }
 }

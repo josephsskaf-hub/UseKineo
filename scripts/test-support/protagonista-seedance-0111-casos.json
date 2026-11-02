@@ -2548,17 +2548,18 @@
   "fonte": "pt-es-fora",
   "texto": "Seu Jorge tem uma tartaruga chamada Flecha. Flecha fugiu do quintal em 1998. Vinte anos depois, Flecha apareceu no mesmo portão, devagar, como se nada tivesse acontecido.",
   "protagonista": [
-   "Flecha"
+   "Flecha",
+   "Seu Jorge"
   ],
-  "tipo": "animal",
-  "especie": [
-   "turtle",
-   "tortoise"
-  ],
+  "tipo": null,
+  "especie": null,
   "humanos": [
    "Jorge",
    "Seu Jorge"
-  ]
+  ],
+  "animais": {
+   "Flecha": "turtle"
+  }
  },
  {
   "id": "es-fora-rocio",
@@ -2995,6 +2996,145 @@
   "especie": [
    "husky",
    "dog"
+  ]
+ },
+ {
+  "id": "rev9-lily-oreo",
+  "fonte": "rev-0111d",
+  "texto": "Meet Lily, a young baker. Every morning she opens her tiny shop. Her cat Oreo sleeps in the window. Oreo watches every customer. One day Oreo steals a croissant. Oreo runs across the street with it. She chases him, laughing.",
+  "protagonista": [
+   "Lily"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lily"
+  ],
+  "animais": {
+   "Oreo": "cat"
+  }
+ },
+ {
+  "id": "rev9-emma-liam",
+  "fonte": "rev-0111d",
+  "texto": "Meet Emma. She moves to a new school in the middle of the year. A boy named Liam sits next to her. Liam shares his lunch. Liam shows her the library. Liam introduces her to his friends. She smiles for the first time.",
+  "protagonista": [
+   "Emma"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Emma",
+   "Liam"
+  ]
+ },
+ {
+  "id": "rev9-jack-will",
+  "fonte": "rev-0111d",
+  "texto": "Jack will never forget his first fishing trip. His grandpa Will woke him before dawn. He said the fish will come if you wait. Patience will win, he promised. So he waited. Then the line pulled, and he laughed.",
+  "protagonista": [
+   "Jack"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Jack",
+   "Will"
+  ]
+ },
+ {
+  "id": "rev9-sam-firefighter",
+  "fonte": "rev-0111d",
+  "texto": "Meet Sam, a firefighter. She hears a tiny meow from the top of an old oak. She climbs, branch by branch, as the wind howls. At the top, a shaking kitten waits. She tucks it into her jacket and climbs down to cheers.",
+  "protagonista": [
+   "Sam"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sam"
+  ]
+ },
+ {
+  "id": "rev9-rosa-theo",
+  "fonte": "rev-0111d",
+  "texto": "Grandma Rosa bakes bread every Sunday. Her grandson Theo helps her. Theo kneads the dough with tiny hands. Theo sneaks a taste of the sugar. Theo burns his finger on the tray. Grandma Rosa laughs and hugs him tight.",
+  "protagonista": [
+   "Theo",
+   "Rosa",
+   "Grandma Rosa"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Theo",
+   "Rosa"
+  ]
+ },
+ {
+  "id": "pt-rev9-lince",
+  "fonte": "rev-0111d",
+  "texto": "Lince tem oito anos e mora numa vila de pescadores. Certa manhã, Lince encontra uma tartaruga presa numa rede. Lince corta a rede com cuidado. A tartaruga nada de volta para o mar.",
+  "protagonista": [
+   "Lince"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lince"
+  ]
+ },
+ {
+  "id": "rev9-pickles-hedgehog",
+  "fonte": "rev-0111d",
+  "texto": "Meet Pickles. Pickles is a tiny hedgehog with a red scarf. Pickles has never seen snow. One night, the first flakes fall. Pickles runs outside and catches one on his nose.",
+  "protagonista": [
+   "Pickles"
+  ],
+  "tipo": "animal",
+  "especie": "hedgehog"
+ },
+ {
+  "id": "rev9-fox-girl",
+  "fonte": "rev-0111d",
+  "texto": "Meet Fox, a ten-year-old girl who lives at the edge of the forest. One evening, Fox finds an injured owl. Fox carries the owl home and nurses it for weeks. When it finally flies, Fox cries happy tears.",
+  "protagonista": [
+   "Fox"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Fox"
+  ]
+ },
+ {
+  "id": "rev9-max-bella-chihuahua",
+  "fonte": "rev-0111d",
+  "texto": "Max is a retired mailman. Every day he walks past the same yellow house. Bella barks at him from the porch. Bella is a tiny chihuahua with a big attitude. Bella chases him to the gate. One day Bella brings him a slipper. Bella wags her tail. Bella follows him home.",
+  "protagonista": [
+   "Max",
+   "Bella"
+  ],
+  "tipo": null,
+  "especie": null,
+  "humanos": [
+   "Max"
+  ],
+  "animais": {
+   "Bella": "chihuahua"
+  }
+ },
+ {
+  "id": "es-rev9-sofia",
+  "fonte": "rev-0111d",
+  "texto": "Sofía tiene seis años y le encanta pintar. Un día, su perrito Coco pisa la pintura azul. Coco deja huellas por toda la casa. Sofía se ríe y convierte las huellas en un cuadro.",
+  "protagonista": [
+   "Sofía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sofía"
   ]
  }
 ]

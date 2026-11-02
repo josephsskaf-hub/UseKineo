@@ -216,12 +216,13 @@ console.log('== 5. Português e espanhol: conferência no idioma do texto, ficha
   const bro = pt('pt-bro')
   ok(!!bro && bro.elenco[0].nome === 'BRO' && /pigeon/.test(bro.elenco[0].canonica) && bro.elenco.every((f) => !/unic/i.test(f.nome)), `BRO em português: aplicado, pombo, sem unicórnio (${bro?.elenco.map((f) => f.canonica).join(' | ')})`)
   const mila = pt('pt-mila')
-  ok(!!mila && mila.elenco[0].nome === 'Mila' && mila.elenco[0].tipo === 'humano' && mila.elenco.every((f) => !/flower|flor|giant/i.test(f.canonica.split('"')[0])), `Mila em português: gente; o Skoczuś não vira a "flor gigante" da outra frase (${mila?.elenco.map((f) => f.nome).join(', ')})`)
-  ok(!!mila && !/\ba woman\b|an adult/.test(mila.elenco[0].canonica), `Mila sem idade no texto: a ficha não diz "a woman" (${mila?.elenco[0].canonica})`)
+  // rodada 9: o texto não diz o que a Mila é (nem papel nem idade) e o determinístico não a tem → o elenco de sempre (null), sem ficha inventada
+  ok(gravado('pt-mila')?.protagonist?.kind === 'human' && (!mila || mila.elenco[0].nome === 'Mila' && mila.elenco[0].tipo === 'humano') && (mila?.elenco ?? []).every((f) => !/flower|flor|giant/i.test(f.canonica.split('"')[0])), `Mila em português: gente; o Skoczuś não vira a "flor gigante" da outra frase (${mila?.elenco.map((f) => f.nome).join(', ')})`)
+  ok(!mila || !/\ba woman\b|an adult|thirties/.test(mila.elenco[0].canonica), `Mila sem idade no texto: nenhuma ficha de adulto inventada (${mila?.elenco[0].canonica ?? 'determinístico'})`)
   const ana = pt('pt-ana-avo')
   ok(!!ana && ana.elenco[0].nome === 'Ana' && ana.elenco.some((f) => f.nome === 'the grandfather' && f.nucleo === 'grandfather'), `Ana: o avô entra pelo papel em inglês, que casa com os visuais (${ana?.elenco.map((f) => `${f.nome}/${f.nucleo}`).join(', ')})`)
   const sofia = fichaP('es-sofia')
-  ok(!!sofia && sofia.tipo === 'humano' && !/sixteen/.test(sofia.canonica) && !/age as the author wrote/.test(sofia.canonica), `Sofía (diecinueve años): gente; a idade do modelo não entra mais (rodada 8), a ficha é a do gerador determinístico (${sofia?.canonica})`)
+  ok(!sofia || (sofia.tipo === 'humano' && !/sixteen|thirties/.test(sofia.canonica) && !/age as the author wrote/.test(sofia.canonica)), `Sofía (diecinueve años): nenhuma idade inventada — sem papel no texto e fora do determinístico, o elenco de sempre (rodada 9) (${sofia?.canonica ?? 'determinístico'})`)
   const lucas = pt('pt-lucas-leao')
   ok(!!lucas && lucas.elenco[0].nome === 'Lucas' && lucas.elenco[0].tipo === 'humano' && lucas.elenco.some((f) => f.nome === 'Simba' && /\blion\b/.test(f.canonica)), `Lucas é gente; Simba é o leão (${lucas?.elenco.map((f) => `${f.nome}/${f.tipo}`).join(', ')})`)
   // mutante: o modelo traduz o campo original num texto em português e o inglês também não está no texto → descartado (o determinístico cuida)
@@ -396,7 +397,9 @@ console.log('== 8. Rodada 6: aparência por palavra inteira, nome inteiro, falha
   ok(!apLince || (apLince.elenco[0].tipo === 'humano' && !/lynx/i.test(apLince.elenco[0].canonica)), `real es-fora-lince: o menino chamado Lince é gente (${apLince?.elenco[0].canonica.slice(0, 60) ?? 'determinístico'}…)`)
   const flecha = casos.find((c) => c.id === 'pt-fora-flecha')!
   const apFlecha = aplicarElencoSemantico(elencoDoRoteiro(flecha.texto), gravado('pt-fora-flecha'), flecha.texto)
-  ok(!!apFlecha && apFlecha.elenco[0].nome === 'Flecha' && /\bturtle\b/.test(apFlecha.elenco[0].canonica) && !/tartaruga (?:with|anatomy)|a tartaruga\b/.test(apFlecha.elenco[0].canonica), `real pt-fora-flecha: o modelo pôs "Seu Jorge" na frente; Flecha está em 3 frases e ele em 1 → Flecha é a protagonista, turtle em inglês (${apFlecha?.elenco.map((f) => f.nome).join(', ')}: ${apFlecha?.elenco[0].canonica.slice(0, 50)}…)`)
+  // rodada 9: a troca de protagonista por contagem de frases saiu (invertia Lily/Oreo, Emma/Liam, Jack/Will). Aqui Flecha e Seu Jorge são
+  // leitura defensável; o que não pode é o Seu Jorge virar tartaruga ou a Flecha virar gente
+  ok(!apFlecha || apFlecha.elenco.every((f) => (f.nome === 'Flecha') === (f.tipo === 'animal') && (f.nome !== 'Flecha' || (/\bturtle\b/.test(f.canonica) && !/tartaruga (?:with|anatomy)|a tartaruga\b/.test(f.canonica)))), `real pt-fora-flecha: a Flecha é tartaruga (turtle em inglês) e o Seu Jorge é gente (${apFlecha?.elenco.map((f) => `${f.nome}/${f.tipo}`).join(', ') ?? 'determinístico'})`)
 }
 
 // ═══ 9. Revisão de 01/11 (rodada 7): aparência sem palavra inventada, trava _en em roteiro curto, nome no começo da frase ═══
@@ -450,7 +453,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // (a) aparência, gênero e idade do modelo não existem no elenco lido
   const SNOW = porId.get('rev8-snow-fox')!.texto
   const snow = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Snow', kind: 'animal', species: 'fox', species_en: 'fox', appearance_from_text: 'white eyes', appearance_en: 'white eyes', gender_if_stated: 'female', age_if_stated: 'child', age_evidence: 'Snow' }, supporting: [], places_and_orgs: [] }), SNOW)
-  ok(!!snow?.protagonist && Object.keys(snow.protagonist).sort().join(',') === 'kind,name,role,role_text,species,species_text', `a leitura só guarda quem/kind/species/papel (${Object.keys(snow?.protagonist ?? {}).join(',')})`)
+  ok(!!snow?.protagonist && Object.keys(snow.protagonist).sort().join(',') === 'gender,kind,name,role,role_text,species,species_text', `a leitura só guarda quem/kind/species/papel/gênero — nada de aparência nem idade (${Object.keys(snow?.protagonist ?? {}).join(',')})`)
   const apSnow = aplicarElencoSemantico(elencoDoRoteiro(SNOW), snow, SNOW)!
   const litSnow = fichaLiteralConferida(SNOW, apSnow.elenco, apSnow)
   ok(/fox/.test(litSnow.elenco[0].canonica) && !/white eyes/.test(litSnow.elenco[0].canonica) && !/age as the author wrote/.test(litSnow.elenco[0].canonica), `"Her fur was white, her eyes gold" + resposta "white eyes": a ficha final não diz olhos brancos (${litSnow.elenco[0].canonica.slice(0, 90)})`)
@@ -465,7 +468,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // medido na API (217 casos): em roteiro inglês, toda species_en diferente da species é tradução de palavra PT/ES ou pup→puppy — nenhuma
   // troca de uma espécie inglesa por outra ("pigeon" → "eagle"), que é o que o detector de língua barrava
   const trocas = ((calib as unknown as { resumo: { species_en_troca_em_ingles?: Array<{ id: string; species: string; species_en: string }> } }).resumo.species_en_troca_em_ingles) ?? null
-  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o branco|cachorrinho|perro|perrita)$/
+  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o branco|cachorrinho|perro|perrita|urso|esquilo|coelho)$/
   ok(Array.isArray(trocas) && trocas.every((t) => PT_ES.test(t.species) || t.species_en.startsWith(t.species)), `respostas reais, roteiro inglês: ${trocas?.length ?? '?'} species_en ≠ species, todas tradução de PT/ES ou plural/diminutivo (${(trocas ?? []).filter((t) => !PT_ES.test(t.species) && !t.species_en.startsWith(t.species)).map((t) => `${t.id}:${t.species}>${t.species_en}`).join(' | ') || 'nenhuma troca inglês→inglês'})`)
 
   // (c) 15 s: nome de lugar com a grafia do protagonista no MEIO da frase → a cena é forçada, como na base
@@ -500,6 +503,55 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   ok(t.fin.every((q) => q.includes(pt!.canonica)), 'o menino (a mesma ficha) está em TODA cena do 15 s')
   ok(t.fin.every((q) => !/Laughter|thirties|\badult\b|grown man/.test(q)), 'nenhuma cena leva homem adulto, "Laughter" ou outro homem')
   void TOMMY
+}
+
+// ═══ 11. Rodada 9: menos lógica — sem troca por contagem; nomeado sem papel e fora da base = elenco de sempre; papel + gênero ═══
+console.log('== 11. Rodada 9: protagonista do modelo, sem ficha inventada, papel e gênero do nomeado (10 casos da revisão, API real) ==')
+{
+  const VIS = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-visuais-rev9.json'), 'utf8')) as Record<string, { falas: string[]; prompts: string[] }>
+  Object.assign(PROD, VIS)
+  const ids = Object.keys(VIS)
+  ok(ids.length === 10 && ids.every((id) => porId.has(id) && typeof porId.get(id)!.resposta.raw === 'string'), `os 10 casos da revisão têm resposta real gravada (${ids.filter((id) => !porId.get(id)?.resposta.raw).join(', ') || 'todos'})`)
+  const ADULTO = /\b(?:thirties|twenties|forties|adult|grown)\b/
+  const corre = (id: string) => ({ r: caminho15(id, gravado(id)), b: caminho15(id, null) })
+  // (a) a troca por contagem saiu: o protagonista é o que o modelo leu (mutante com a resposta de antes, em que o Jack era o protagonista)
+  const JW = porId.get('rev9-jack-will')!.texto
+  const jw = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Jack', role: 'boy', kind: 'human', species: 'human', gender_if_stated: 'male' }, supporting: [{ name: 'Will', role: 'grandpa', kind: 'human', species: 'human', gender_if_stated: 'male', on_screen: true }], places_and_orgs: [] }), JW)
+  ok(jw?.protagonist?.name === 'Jack' && jw.supporting[0]?.name === 'Will', 'o verbo "will" não faz do avô Will o protagonista (a leitura do modelo fica)')
+  const LO = porId.get('rev9-lily-oreo')!.texto
+  const lo = lerElencoSemantico(JSON.stringify({ protagonist: { name: 'Lily', role: 'young baker', kind: 'human', species: 'human', gender_if_stated: 'female' }, supporting: [{ name: 'Oreo', kind: 'animal', species: 'cat', on_screen: true }], places_and_orgs: [] }), LO)
+  ok(lo?.protagonist?.name === 'Lily', 'protagonista narrada por "she" e o gato pelo nome: a Lily fica na frente')
+  // (b) cada caso pelo caminho real do 15 s, com os visuais da revisão
+  for (const id of ['rev9-emma-liam', 'rev9-jack-will', 'pt-rev9-lince', 'es-rev9-sofia']) {
+    const { r, b } = corre(id)
+    const sem = gravado(id)
+    const semPapel = !!sem?.protagonist?.name && sem.protagonist.kind === 'human' && !sem.protagonist.role
+    ok(!semPapel || (!r.aplicado && JSON.stringify(r.fin) === JSON.stringify(b.fin)), `${id}: nomeado sem papel no texto e fora do determinístico → o 15 s é o de sempre, byte a byte (${r.aplicado ? 'aplicado' : 'determinístico'})`)
+    ok(r.fin.every((q) => !ADULTO.test(q.split(MAIN)[0].match(/The only person in this shot is the same main character \(([^)]*)\)/)?.[1] ?? '')), `${id}: nenhuma cena forçada com um adulto inventado`)
+  }
+  {
+    const { r } = corre('rev9-lily-oreo')
+    const p = r.elenco.find((f) => f.protagonista)
+    ok(!!p && p.nome === 'Lily' && p.tipo === 'humano' && /\bwoman\b/.test(p.canonica) && /twenties/.test(p.canonica), `Lily: protagonista, mulher jovem pelo papel "young baker" e o gênero lido (${p?.canonica.slice(0, 60)})`)
+    ok(r.elenco.some((f) => f.nome === 'Oreo' && f.tipo === 'animal'), 'Oreo segue o gato, coadjuvante')
+  }
+  {
+    const { r } = corre('rev9-rosa-theo')
+    const theo = r.elenco.find((f) => f.nome === 'Theo')
+    const rosa = r.elenco.find((f) => /Rosa/.test(f.nome))
+    ok(!!theo && /grandson Theo/.test(theo.canonica) && !/\bgirl\b/.test(theo.canonica), `Theo: a ficha literal "grandson Theo" volta (o neto não vira menina) (${theo?.canonica.slice(0, 60)})`)
+    ok(!rosa || (/\bwoman\b/.test(rosa.canonica) && !/\bman\b/.test(rosa.canonica.replace(/woman/g, ''))), `Grandma Rosa é mulher (${rosa?.canonica.slice(0, 60) ?? '-'})`)
+    ok(r.fin.every((q) => !/Rosa, a elderly man|Rosa, an elderly man/.test(q)), 'nenhuma cena diz "Grandma Rosa, a elderly man"')
+  }
+  {
+    const { r } = corre('rev9-fox-girl')
+    const p = r.elenco.find((f) => f.protagonista)
+    ok(!!p && p.nome === 'Fox' && p.tipo === 'humano' && /\bgirl\b/.test(p.canonica), `Fox (a ten-year-old girl) segue menina (${p?.canonica.slice(0, 50)})`)
+    const s = corre('rev9-sam-firefighter').r.elenco.find((f) => f.protagonista)
+    ok(!!s && s.nome === 'Sam' && /\bwoman\b/.test(s.canonica), `Sam, a firefighter ("She hears"): mulher (${s?.canonica.slice(0, 50)})`)
+    const pk = corre('rev9-pickles-hedgehog').r.elenco.find((f) => f.protagonista)
+    ok(!!pk && pk.nome === 'Pickles' && /hedgehog/.test(pk.canonica), 'Pickles segue ouriço')
+  }
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)

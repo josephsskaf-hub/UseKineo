@@ -47,18 +47,29 @@
 //     em 217, BRO virou criatura, Marta tomou o lugar da calopsita —, então o modelo ainda as responde e o código as ignora): a
 //     aparência vem só do caminho determinístico que a base já tinha (a ficha literal do juiz, com as palavras do autor, conferida em
 //     conferirFichaLiteral); gênero e idade vêm do gerador determinístico, como na base;
-//   · protagonista: quando um coadjuvante nomeado aparece no dobro das frases do protagonista nomeado (e em 2 a mais), ele passa à frente
-//     (medido na API: "Seu Jorge tem uma tartaruga chamada Flecha. Flecha fugiu…" vinha com o Seu Jorge na frente);
+//   · (a troca de protagonista por contagem de frases desta rodada SAIU na rodada 9 — ver abaixo);
 //   · sem detector de língua: a species aceita é a que aparece como PALAVRA INTEIRA no texto (em qualquer língua); o species_en só é usado
 //     como tradução quando a palavra original está no texto; sem a palavra original no texto, nada (o papel sem nome segue a mesma regra);
 //   · o 15 s segue com o protagonista em toda cena que não o cita; na dúvida (nome de lugar com a mesma grafia: "Rocky Mountains",
 //     "rooftops of Paris"), a cena é forçada, como na base.
+//
+// REVISÃO 01/11 (rodada 9, revisão adversarial com 10 casos na API): menos lógica, não mais.
+//   · SAIU a troca de protagonista por contagem de frases: o roteiro em inglês narra o protagonista por pronome ("she/he") e o coadjuvante
+//     pelo nome, e o verbo "will" contava como o nome Will — Lily virava o gato Oreo, Emma virava o Liam, Jack virava o avô Will. Vale o
+//     protagonista que o modelo leu (no "Seu Jorge tem uma tartaruga chamada Flecha" os dois são leitura defensável; a cena da tartaruga
+//     cita "turtle" e não é forçada).
+//   · gente nomeada de quem o texto não diz o que é ("Meet Emma.", "Lince tem oito anos") e que o determinístico não tem NÃO ganha ficha
+//     inventada ("a person in their early thirties" no lugar do menino de oito anos dos visuais): protagonista assim = o elenco de sempre.
+//   · o papel escrito no texto passa a ser lido também para quem tem nome ("Meet Lily, a young baker", "Her grandson Theo") e o gênero
+//     que o modelo leu deste personagem volta (a idade não: "a young baker" vinha "child"). O papel leva idade ao gerador e faz a ficha
+//     literal "grandson Theo" ser reconhecida (antes o neto virava "a girl" pelo "Her" da avó); "Grandma Rosa" volta a ser mulher.
 import { canonicaDeterministica, PERSONAGEM_CASTING_MODELO, PERSONAGEM_MAX_PERSONAGENS, type FichaDePersonagem, type TipoDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
 import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
+import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v5' // rodada 8: mesma pergunta ao modelo; o código só usa quem, o kind e a species (sem aparência/idade do modelo, sem detector de língua)
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v6' // rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido; nomeado sem papel e fora da base = elenco de sempre (rodada 8: o código só usava quem, o kind e a species)
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
@@ -83,6 +94,8 @@ export interface PersonagemSemantico {
   species: string | null
   /** O substantivo como o TEXTO escreve ("pombo", "vira-lata"), conferido no texto. */
   species_text: string | null
+  /** Rodada 9: "male"/"female" dos pronomes/substantivos deste personagem (gender_if_stated), ou null. Só a ficha de gente o usa. */
+  gender?: 'male' | 'female' | null
 }
 export interface ElencoSemantico {
   protagonist: PersonagemSemantico | null
@@ -167,7 +180,9 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   const descricaoNoNome = !!nomeBruto && (/^(?:a|an|the|o|os|as|um|uma|el|la|los|las|un|una)\s/i.test(nomeBruto) || !/^\p{Lu}/u.test(nomeBruto))
   const name = descricaoNoNome ? null : nomeBruto
   const roleBruto = descricaoNoNome ? nomeBruto : typeof o.role === 'string' && limpa(o.role) && limpa(o.role).toLowerCase() !== 'null' ? limpa(o.role) : null
-  let role_text = !name && roleBruto ? roleBruto.replace(/^(?:a|an|the|o|os|as|um|uma|el|la|los|las|un|una)\s+/i, '').toLowerCase() : null
+  // rodada 9: o papel também é lido para quem TEM nome ("Meet Lily, a young baker", "Her grandson Theo") — é dele que o gerador tira idade
+  // e gênero e é com ele que a ficha literal "grandson Theo" é reconhecida; papel que o texto não escreve é descartado (o personagem fica)
+  let role_text = roleBruto ? roleBruto.replace(/^(?:a|an|the|o|os|as|um|uma|el|la|los|las|un|una)\s+/i, '').toLowerCase() : null
   if (!name && !role_text) return null
   if (name) {
     if (name.length > 40 || !palavraNoTexto(texto, name)) return null // nome que o texto não escreve = inventado
@@ -179,10 +194,17 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   if (role_text) {
     if (especieNoTexto(texto, role_text)) role = roleEn ?? role_text
     else if (roleEn && especieNoTexto(texto, roleEn)) { role_text = roleEn; role = roleEn }
-    else return null
+    else if (!name) return null
+    else role_text = null
   }
-  const speciesBruta = typeof o.species === 'string' && limpa(o.species) ? limpa(o.species).toLowerCase() : null
-  const speciesEnBruta = inglesCurto(o.species_en)
+  // o gênero que o modelo leu dos pronomes/substantivos DESTE personagem (a idade não: "a young baker" vinha "child")
+  const gender = o.gender_if_stated === 'male' || o.gender_if_stated === 'female' ? o.gender_if_stated : null
+  // rodada 9 (calibração na API): "Red-eyed Leo hates the rain" voltou species "red-eyed" = a própria appearance_from_text — o modelo mesmo
+  // classificou a palavra como aparência, não espécie; ela não prova que o Leo é criatura (sem espécie, bicho/criatura cai no determinístico)
+  const aparencia = semAcento(limpa(o.appearance_from_text))
+  const naoEhAparencia = (w: string | null) => (w && aparencia && semAcento(w) === aparencia ? null : w)
+  const speciesBruta = naoEhAparencia(typeof o.species === 'string' && limpa(o.species) ? limpa(o.species).toLowerCase() : null)
+  const speciesEnBruta = naoEhAparencia(inglesCurto(o.species_en))
   // a espécie é conferida no texto SEM os lugares que o modelo listou ("Bear Lake", "Pigeon Forge")
   const textoEspecie = semLugares(texto, lugares)
   const temEspecie = (w: string | null): w is string => !!w && w !== 'human' && especieNoTexto(textoEspecie, w)
@@ -202,7 +224,7 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   else if (name && !mesmaFrase(textoEspecie, name, species_text)) return null
   else species = traduzida
   if (kind === 'human' && species === 'human') species_text = null
-  return { name, role, role_text, kind, species, species_text }
+  return { name, role, role_text, kind, species, species_text, gender }
 }
 
 /** Lê e confere a resposta. JSON inválido ou fora do formato → null (a rota segue o determinístico). */
@@ -222,25 +244,9 @@ export function lerElencoSemantico(raw: string, textoOriginal: string): ElencoSe
     .filter((s) => !(s && typeof s === 'object' && (s as { on_screen?: unknown }).on_screen === false))
     .map((s) => lerPersonagem(s, texto, lugares)).filter((s): s is PersonagemSemantico => !!s)
     .filter((s) => !protagonist || chave(s) !== chave(protagonist))
-  // revisão 01/11 (rodada 8, caso real medido na API: "Seu Jorge tem uma tartaruga chamada Flecha. Flecha fugiu… Flecha apareceu…" →
-  // protagonista "Seu Jorge"): a regra 9 do prompt diz que o protagonista é quem é sujeito de mais frases. Quando um coadjuvante NOMEADO
-  // aparece em pelo menos o dobro das frases do protagonista nomeado, e em 2 frases a mais, ele passa a ser o protagonista. Só troca a
-  // ordem entre personagens que o modelo já leu e o código já conferiu; nunca cria nem tira ninguém.
-  if (protagonist?.name) {
-    const np = frasesDoPersonagem(texto, protagonist.name)
-    const melhor = supporting.filter((s) => !!s.name).map((s) => ({ s, n: frasesDoPersonagem(texto, s.name!) })).sort((a, b) => b.n - a.n)[0]
-    if (melhor && melhor.n >= np * 2 && melhor.n - np >= 2) return { protagonist: melhor.s, supporting: [protagonist, ...supporting.filter((s) => s !== melhor.s)], places_and_orgs: lugares }
-  }
   return { protagonist, supporting, places_and_orgs: lugares }
 }
 const chave = (p: PersonagemSemantico) => (p.name ?? p.role ?? '').toLowerCase()
-/** Títulos/tratamentos que não identificam o personagem sozinhos ("Seu Jorge", "Captain Ahab"). */
-const TITULOS_DO_NOME = new Set(['the', 'captain', 'capt', 'old', 'young', 'little', 'big', 'mr', 'mrs', 'ms', 'miss', 'dr', 'doctor', 'sir', 'lady', 'lord', 'king', 'queen', 'prince', 'princess', 'uncle', 'aunt', 'grandma', 'grandpa', 'professor', 'detective', 'officer', 'agent', 'saint', 'father', 'mother', 'brother', 'sister', 'baby', 'tio', 'tia', 'dona', 'seu', 'senhor', 'senhora', 'don', 'doña', 'capitao', 'capitão', 'capitan', 'capitán'])
-/** Em quantas frases o personagem aparece (o nome inteiro ou uma palavra própria dele: "Ahab" conta para "Captain Ahab"). */
-function frasesDoPersonagem(texto: string, nome: string): number {
-  const partes = [nome, ...nome.split(/\s+/).filter((w) => w.replace(/[^\p{L}]/gu, '').length >= 3 && !TITULOS_DO_NOME.has(w.toLowerCase()))]
-  return frasesDe(texto).filter((f) => partes.some((w) => palavraNoTexto(f, w))).length
-}
 
 // ═══ A rede (uma chamada, 1 tentativa extra só para falha de rede/HTTP/prazo; nunca lança) ═══════════════════════
 export type StatusElencoSemantico = 'ok' | 'sem_chave' | 'falhou' | 'json_invalido' | 'vazio'
@@ -325,7 +331,11 @@ function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, u
   }
   if (p.kind === 'human') {
     const nucleo = p.name ? nucleoDoNome(p.name, texto) : (p.role ?? '').split(' ').pop() ?? nome
-    const papel = p.species && p.species !== 'human' ? p.species : p.name ? janelasDoNome(texto, p.name) : (p.role ?? '')
+    // rodada 9: o papel que o texto escreve ("young baker", "grandma") e o gênero lido DESTE personagem; sem nenhum dos dois, as janelas
+    // do nome como na base (elas pegam o "Her" da avó em "Her grandson Theo" — por isso o gênero lido vem antes delas)
+    const papelEscrito = p.species && p.species !== 'human' ? p.species : p.role ?? ''
+    const pronome = p.gender === 'female' ? 'she' : p.gender === 'male' ? 'he' : ''
+    const papel = papelEscrito || pronome ? `${papelEscrito} ${pronome}`.trim() : p.name ? janelasDoNome(texto, p.name) : ''
     const contexto = `${papel} | ${frasesDoNome(texto, p.name ?? nucleo)}`
     const canonica = canonicaDeterministica(nome, 'humano', null, contexto, usados)
     const genero = / (?:woman|girl|elderly woman) /.test(` ${canonica.split(' with ')[0]} `) ? 'woman' : / (?:man|boy|elderly man) /.test(` ${canonica.split(' with ')[0]} `) ? 'man' : null
@@ -365,10 +375,15 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
   if (!sem || !sem.protagonist || !sem.protagonist.name) return null
   const texto = semTags(textoOriginal)
   const todos = [sem.protagonist, ...sem.supporting]
+  // rodada 9: gente nomeada de quem o texto não diz o que é (sem papel escrito: "Meet Emma.", "Lince tem oito anos") e que o determinístico
+  // não tem (mesmoPersonagem: "Collins" é a "Sarah Collins") não ganha ficha inventada ("a woman in their early thirties" no lugar da "shy girl" dos visuais). Protagonista assim = o elenco
+  // de sempre (null); coadjuvante assim fica fora das fichas (o nome segue em `nomes`).
+  const semFicha = (p: PersonagemSemantico) => p.kind === 'human' && !!p.name && (!p.species || p.species === 'human') && !p.role && !base.some((f) => mesmoPersonagem(f.nome, p.name!))
+  if (semFicha(sem.protagonist)) return null
   const usados = new Set<string>()
   const novas: string[] = []
   const mantidas: string[] = []
-  const noElenco = todos.slice(0, PERSONAGEM_MAX_PERSONAGENS)
+  const noElenco = todos.filter((p) => !semFicha(p)).slice(0, PERSONAGEM_MAX_PERSONAGENS)
   const elenco = noElenco.map((p, i): FichaDePersonagem => {
     const nome = p.name ?? `the ${p.role}`
     const antes = base.find((f) => mesmoNome(f.nome, nome))
