@@ -35,6 +35,7 @@ import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
 import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
+import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, tetoDoMotorDoEscritor, prazoDaNovaTentativa, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -431,10 +432,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
+    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60/90 s com ideia (não roteiro colado): o piso entra como orçamento por
+    // bloco (lib/roteiroNoTamanho.ts). Caso Rick 01/11: 82 → 89 palavras para um piso de 169 e o filme de 60 s saiu com 35 s.
+    // Revisão: no Kineo 1 o plano (e o piso da nova tentativa por tamanho) fica abaixo do teto da rota fast na voz mais lenta (238 palavras: acima, 422 a 90 s).
+    const tetoDoMotor = tetoDoMotorDoEscritor(body.engine, language) // KINEO-ROTEIRO-NO-TAMANHO-0111 — null fora do Kineo 1
+    const planoDoTamanho = !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras, maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), tetoDoMotor) : null // KINEO-ROTEIRO-NO-TAMANHO-0111
+    const pisoDoRoteiro = planoDoTamanho ? Math.min(alvoPalavras, planoDoTamanho.piso) : alvoPalavras // KINEO-ROTEIRO-NO-TAMANHO-0111 — = alvoPalavras, exceto quando o teto do motor não comporta a régua
+    const tokensDoRoteiro = tetoDeTokens(planoDoTamanho, 700) // KINEO-ROTEIRO-NO-TAMANHO-0111 — curto e colado: os 700 de sempre
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
       + (colado.reason === 'production_brief' ? `\n\n${PRODUCTION_BRIEF_RULE}` : '') // KINEO-BRIEF-NAO-E-FALA-3010 [TRAVA 8.2 — vai do fundador 30/10 "estão todos autorizados"]: pedido de produção vira história, nunca a narração do pedido
       + (colado.reason === 'scene_description' ? `\n\n${SCENE_DESCRIPTION_RULE}` : '') // KINEO-NARRADOR-DESCRICAO-0111 [TRAVA 8.2 — vai do fundador 01/11]: descrição do que VER vira história narrada + pistas [Pexels] do sujeito descrito
+    // KINEO-ROTEIRO-NO-TAMANHO-0111 — o plano vai só nas chamadas do escritor (1ª e nova tentativa); o resgate da recusa segue com o SYSTEM_PROMPT e os 700 tokens de sempre
+    const PROMPT_DO_ROTEIRO = SYSTEM_PROMPT + (planoDoTamanho ? `\n\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : '') // KINEO-ROTEIRO-NO-TAMANHO-0111
     const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o "aqui está prontinho pra copiar:" do chat
       : colado.reason === 'scene_description' ? temaDaDescricao(topic) : topic // KINEO-NARRADOR-DESCRICAO-0111 — a pergunta diz que é a imagem, não a fala
     const descricaoDeCena = colado.reason === 'scene_description' // KINEO-NARRADOR-DESCRICAO-0111
@@ -444,9 +454,9 @@ export async function POST(req: NextRequest) {
       {
         model: 'gpt-4o',
         temperature: 0.7,
-        max_tokens: 700,
+        max_tokens: tokensDoRoteiro, // KINEO-ROTEIRO-NO-TAMANHO-0111 (era 700)
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: PROMPT_DO_ROTEIRO }, // KINEO-ROTEIRO-NO-TAMANHO-0111 (era SYSTEM_PROMPT)
           {
             role: 'user',
             content: 'Write a viral YouTube Short script about this topic:\n\n' + temaDoEscritor, // KINEO-BRIEF-NAO-E-FALA-3010
@@ -546,8 +556,10 @@ export async function POST(req: NextRequest) {
     // short, proceed with what we have (degraded — never blocks the flow).
     // KINEO-351 — o "curto" agora é medido contra a duração PEDIDA, não contra
     // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.
-    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
+    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < pisoDoRoteiro // KINEO-ROTEIRO-NO-TAMANHO-0111 (era alvoPalavras; só o Kineo 1 a 90 s difere: o teto da rota fast)
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
+    let tentativaDeTamanho: { first_words: number; retry_words: number | null; kept: 'first' | 'retry' } | null = null // KINEO-ROTEIRO-NO-TAMANHO-0111 — rastro da 2ª tentativa por tamanho
+    let tamanhoSemNovaTentativa: 'story_rescue' | 'deadline' | null = tentativaDaHistoria ? 'story_rescue' : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — por que o roteiro curto não ganhou a 2ª chamada
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
     let rastroDoFinal: { versao: string; estreito: FinalFraco | null; outro_motivo: boolean; semantico: { ok: boolean; hook_promises_answer: boolean | null; ends_with_concrete_answer: boolean | null; erro: string | null; ms: number; tentativas: number } | null; retry_so_pelo_final: boolean; retry_adotado: boolean | null; retry_pulado_por_prazo?: boolean } | null = null // KINEO-FINAL-RESPOSTA-0111 — rastro no script_written (auditoria)
     if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
@@ -590,18 +602,28 @@ export async function POST(req: NextRequest) {
         problems.push(colado.pasted
           // KINEO-ROTEIRO-COLADO-NAO-ENGORDA — o problema aqui é ter CORTADO o texto da pessoa, nunca faltar enchimento.
           ? `you dropped part of the user's own script — it has ${colado.words} spoken words and your version has only ${scriptWordCount(script)}; keep every sentence they wrote`
-          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +
+          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${pisoDoRoteiro} ` + // KINEO-ROTEIRO-NO-TAMANHO-0111 (era alvoPalavras)
             `to fill a ${alvoSegundos}-second video with narration instead of silence`,
         )
       }
       console.warn('[generate-script] regenerating once —', problems.join('; '))
-      try {
+      const pedidoDoTamanho = planoDoTamanho && curtoParaOAlvo(script) ? ' ' + pedidoDeTamanho({ roteiro: script, palavras: scriptWordCount(script), plano: planoDoTamanho, alvoSegundos, language }) : '' // KINEO-ROTEIRO-NO-TAMANHO-0111 — a conta por bloco vai junto
+      const palavrasDaPrimeira = scriptWordCount(script) // KINEO-ROTEIRO-NO-TAMANHO-0111
+      // KINEO-ROTEIRO-NO-TAMANHO-0111 (revisão) — a 2ª chamada só sai se couber no maxDuration de 60 s; o timeout encolhe ao que sobrou
+      const prazoDaRetry = prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) // KINEO-ROTEIRO-NO-TAMANHO-0111
+      if (pedidoDoTamanho && prazoDaRetry !== null) tentativaDeTamanho = { first_words: palavrasDaPrimeira, retry_words: null, kept: 'first' } // KINEO-ROTEIRO-NO-TAMANHO-0111 — 2ª chamada vazia/com erro: fica a 1ª, e o rastro diz
+      if (prazoDaRetry === null) { // KINEO-ROTEIRO-NO-TAMANHO-0111
+        console.warn(`[generate-script] KINEO-ROTEIRO-NO-TAMANHO-0111 sem tempo para a nova tentativa (${Date.now() - inicioDaRota} ms gastos) — fica a 1ª versão`) // KINEO-ROTEIRO-NO-TAMANHO-0111
+        if (curtoParaOAlvo(script)) tamanhoSemNovaTentativa = 'deadline' // KINEO-ROTEIRO-NO-TAMANHO-0111
+        if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = false // KINEO-ROTEIRO-NO-TAMANHO-0111
+      }
+      if (prazoDaRetry !== null) try { // KINEO-ROTEIRO-NO-TAMANHO-0111 (era só try)
         const retry = await openai.chat.completions.create({
           model: 'gpt-4o',
           temperature: 0.6,
-          max_tokens: 700,
+          max_tokens: tokensDoRoteiro, // KINEO-ROTEIRO-NO-TAMANHO-0111 (era 700)
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: PROMPT_DO_ROTEIRO }, // KINEO-ROTEIRO-NO-TAMANHO-0111 (era SYSTEM_PROMPT)
             { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + temaDoEscritor }, // KINEO-BRIEF-NAO-E-FALA-3010
             { role: 'assistant', content: script },
             {
@@ -610,12 +632,12 @@ export async function POST(req: NextRequest) {
                 // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o reforço de 7 cabeçalhos abaixo mandava o filme curto de volta a 7 blocos.
                 ? `Your script had problems: ${problems.join('; ')}. ${shortFilmRetryInstruction(tetoFilmeCurto, pisoFilmeCurto, alvoSegundos)}`
                 :
-                `Your script had problems: ${problems.join('; ')}. Rewrite the FULL script using EXACTLY the required headers, in order, each present and on its own line: HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF. ESCALATION must raise the stakes above MICRO REWARD 3. RHYTHM must be 2-3 ultra-short 1-3 word punches. The PAYOFF MUST deliver the concrete answer the hook promised (a specific fact, number, name, mechanism, or the single most-accepted theory) — NO questions, NO "no one knows", NO "remains a mystery", NO teasing — with the follow CTA on a SEPARATE line after the reveal. Every fact (especially the PAYOFF) must be LESSER-KNOWN: never the single most famous fact about the topic. Respond with ONLY the script.`,
+                `Your script had problems: ${problems.join('; ')}. Rewrite the FULL script using EXACTLY the required headers, in order, each present and on its own line: HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF. ESCALATION must raise the stakes above MICRO REWARD 3. RHYTHM must be 2-3 ultra-short 1-3 word punches. The PAYOFF MUST deliver the concrete answer the hook promised (a specific fact, number, name, mechanism, or the single most-accepted theory) — NO questions, NO "no one knows", NO "remains a mystery", NO teasing — with the follow CTA on a SEPARATE line after the reveal. Every fact (especially the PAYOFF) must be LESSER-KNOWN: never the single most famous fact about the topic.${pedidoDoTamanho} Respond with ONLY the script.`, // KINEO-ROTEIRO-NO-TAMANHO-0111: + pedidoDoTamanho
             },
           ],
         },
-        // Same 35s budget as the first pass. Both fit inside maxDuration 60.
-        { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 })
+        // KINEO-ROTEIRO-NO-TAMANHO-0111 (revisão): o budget de 35 s da 1ª, encolhido ao que ainda cabe no maxDuration 60 (antes, 35 + 35 podiam passar de 60).
+        { timeout: prazoDaRetry, maxRetries: 0 })
         const retryScript = retry.choices[0]?.message?.content?.trim() ?? ''
         if (retryScript) {
           if (filmeCurto) {
@@ -628,7 +650,11 @@ export async function POST(req: NextRequest) {
             if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = adotaFinal && segundaEMelhor(script, fimDaTentativa.script)
             if (adotaFinal && segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
           } else if (!rastroDoFinal?.retry_so_pelo_final || retryNaoPiora(retryScript)) { // KINEO-FINAL-RESPOSTA-0111 v5 — reescrita só pelo juiz do fim: só entra se não piorar
-            script = retryScript
+            // KINEO-ROTEIRO-NO-TAMANHO-0111 — as duas curtas e a 2ª menor (sem estrutura nem fim melhores): fica a 1ª. Senão, a 2ª, como sempre.
+            const problemasDe = (t: string) => missingElements(t).length + (payoffIsEmpty(t) ? 1 : 0) + (!colado.pasted && finalFracoDoRoteiro(t) ? 1 : 0)
+            const fica = escolherVersao({ piso: pisoDoRoteiro, tetoDoMotor, primeira: { palavras: scriptWordCount(script), problemas: problemasDe(script), leDescricao: leuADescricao(script) }, segunda: { palavras: scriptWordCount(retryScript), problemas: problemasDe(retryScript), leDescricao: leuADescricao(retryScript) } }) // revisão: + leitura da descrição (KINEO-NARRADOR-DESCRICAO-0111) e teto do motor
+            if (pedidoDoTamanho) tentativaDeTamanho = { first_words: palavrasDaPrimeira, retry_words: scriptWordCount(retryScript), kept: fica === 'segunda' ? 'retry' : 'first' }
+            if (fica === 'segunda') script = retryScript
             if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = true
           } else if (rastroDoFinal) {
             rastroDoFinal.retry_adotado = false
@@ -696,7 +722,7 @@ export async function POST(req: NextRequest) {
       // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-REGUA-1910 — só RASTRO (nada muda na resposta): a IDEIA
       // ORIGINAL que a pessoa digitou, antes da IA escrever o roteiro, e o começo do roteiro que saiu (para o juiz coherence_v2
       // casar este evento com o nascimento do filme e julgar a fidelidade à ideia, não ao roteiro que a própria IA escreveu).
-      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(rastroDoFinal ? { final_resposta: rastroDoFinal } : {}), /* KINEO-FINAL-RESPOSTA-0111 — detector estreito + juiz semântico do fim (auditoria) */ ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê
+      metadata: { original_idea: topic.slice(0, 4000), script_head: script.slice(0, 200), engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(planoDoTamanho ? { length_plan: { version: ROTEIRO_NO_TAMANHO_VERSAO, target_words: planoDoTamanho.alvo, floor_words: pisoDoRoteiro, engine_ceiling_words: planoDoTamanho.tetoDoMotor, capped_by_engine: planoDoTamanho.limitadoPeloMotor }, length_retry: tentativaDeTamanho, length_retry_skipped: scriptWordCount(script) < pisoDoRoteiro ? tamanhoSemNovaTentativa : null, still_short_after_retry: scriptWordCount(script) < pisoDoRoteiro } : {}), ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}), ...(rastroDoFinal ? { final_resposta: rastroDoFinal } : {}), /* KINEO-FINAL-RESPOSTA-0111 — detector estreito + juiz semântico do fim (auditoria) */ ...(descricaoDeCena ? { scene_description: true, scene_description_read_aloud: leuADescricaoEmVozAlta(script, topic), scene_description_version: notaDeDescricaoDeCena(topic).version } : {}) }, // KINEO-NARRADOR-DESCRICAO-0111 — rastro: descrição detectada e se o roteiro final ainda a lê
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {
