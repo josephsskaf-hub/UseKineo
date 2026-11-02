@@ -4140,5 +4140,366 @@
     "literal": "old man"
    }
   }
+ },
+ {
+  "id": "rev13-sofia-turned-six",
+  "fonte": "rev-0211b",
+  "texto": "Meet Sofia, who just turned six. Sofia wants to ride her bike without training wheels. Her dad holds the seat, then lets go, and Sofia flies down the street.",
+  "protagonista": [
+   "Sofia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sofia"
+  ],
+  "fichas": {
+   "Sofia": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "six"
+   }
+  }
+ },
+ {
+  "id": "rev13-marcus-ten",
+  "fonte": "rev-0211b",
+  "texto": "Ten-year-old Marcus has never seen snow. When the first flake lands on his nose, Marcus runs outside in his pajamas and laughs.",
+  "protagonista": [
+   "Marcus"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Marcus"
+  ],
+  "fichas": {
+   "Marcus": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "ten-year-old"
+   }
+  }
+ },
+ {
+  "id": "pt-rev13-joaozinho-avo",
+  "fonte": "rev-0211b",
+  "texto": "Joãozinho tem 7 anos e mora no sertão com a avó Benedita, de 80 anos. Toda tarde, Joãozinho leva água para as cabras. A avó espera na porta.",
+  "protagonista": [
+   "Joãozinho"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joãozinho",
+   "Benedita"
+  ],
+  "fichas": {
+   "Joãozinho": {
+    "faixa": "child",
+    "literal": "7 anos",
+    "semLiteral": "80"
+   }
+  }
+ },
+ {
+  "id": "es-rev13-valentina-canelo",
+  "fonte": "rev-0211b",
+  "texto": "Valentina, de once años, cuida a su perro Canelo. Un día Canelo desaparece y Valentina lo busca por todo el pueblo hasta encontrarlo dormido en la panadería.",
+  "protagonista": [
+   "Valentina"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Valentina"
+  ],
+  "fichas": {
+   "Valentina": {
+    "faixa": "child",
+    "literal": "once años"
+   }
+  },
+  "animais": {
+   "Canelo": "dog"
+  }
+ },
+ {
+  "id": "rev13-ollie-grandpa",
+  "fonte": "rev-0211b",
+  "texto": "The story of Ollie, a seven-year-old with a missing front tooth. Ollie's grandpa, 84, teaches him to fish at the lake. Ollie catches a boot.",
+  "protagonista": [
+   "Ollie"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ollie"
+  ],
+  "fichas": {
+   "Ollie": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "seven-year-old",
+    "semLiteral": "84"
+   }
+  }
+ },
+ {
+  "id": "rev13-grandma-june-91",
+  "fonte": "rev-0211b",
+  "texto": "Grandma June is 91 and still drives her red pickup to the market every Sunday. June waves at everyone and buys too many peaches.",
+  "protagonista": [
+   "June",
+   "Grandma June"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "June"
+  ],
+  "fichas": {
+   "June": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "91"
+   }
+  }
+ },
+ {
+  "id": "rev13-pepper-beagle-emma",
+  "fonte": "rev-0211b",
+  "texto": "Pepper, a three-year-old beagle, hates bath time. When Emma, 12, fills the tub, Pepper hides under the porch. Emma finds her with a treat.",
+  "protagonista": [
+   "Pepper",
+   "Emma"
+  ],
+  "tipo": null,
+  "especie": null,
+  "humanos": [
+   "Emma"
+  ],
+  "fichas": {
+   "Emma": {
+    "faixa": "child",
+    "literal": "12"
+   }
+  },
+  "animais": {
+   "Pepper": "beagle"
+  }
+ },
+ {
+  "id": "rev13-noah-sister-16",
+  "fonte": "rev-0211b",
+  "texto": "Noah, whose sister is 16, is only five. He wants to go to her prom. Noah puts on his dad's tie and waits by the door.",
+  "protagonista": [
+   "Noah"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Noah"
+  ],
+  "fichas": {
+   "Noah": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "five",
+    "semLiteral": "16"
+   }
+  }
+ },
+ {
+  "id": "es-rev13-abuelo-mia",
+  "fonte": "rev-0211b",
+  "texto": "Abuelo Ernesto, ochenta años, enseña a su nieta Mía a bailar tango. Mía tiene cuatro años y pisa sus zapatos. Los dos se ríen en la cocina.",
+  "protagonista": [
+   "Ernesto",
+   "Abuelo Ernesto",
+   "Mía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ernesto",
+   "Mía"
+  ],
+  "fichas": {
+   "Ernesto": {
+    "faixa": "elderly",
+    "genero": "male",
+    "literal": "ochenta años"
+   },
+   "Mía": {
+    "faixa": "child",
+    "literal": "cuatro años"
+   }
+  }
+ },
+ {
+  "id": "pt-rev13-bia-garotinha",
+  "fonte": "rev-0211b",
+  "texto": "Conheça a Bia, uma garotinha sapeca que sonha em ser astronauta. Bia constrói um foguete de papelão no quintal e convida o gato Tico para a missão.",
+  "protagonista": [
+   "Bia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Bia"
+  ],
+  "fichas": {
+   "Bia": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "garotinha"
+   }
+  },
+  "animais": {
+   "Tico": "cat"
+  }
+ },
+ {
+  "id": "rev13-priya-arjun",
+  "fonte": "rev-0211b",
+  "texto": "Fifteen-year-old Priya builds a drone in her bedroom. Her little brother Arjun, 6, wants to fly it. Priya lets him, and the drone crashes into the cake.",
+  "protagonista": [
+   "Priya"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Priya",
+   "Arjun"
+  ],
+  "fichas": {
+   "Priya": {
+    "faixa": "teen",
+    "genero": "female",
+    "literal": "fifteen-year-old"
+   },
+   "Arjun": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "6"
+   }
+  }
+ },
+ {
+  "id": "rev13-baby-theo-months",
+  "fonte": "rev-0211b",
+  "texto": "Theo is only 10 months old and has just discovered the dog's water bowl. Theo crawls over, splashes, and giggles while Biscuit the dog watches.",
+  "protagonista": [
+   "Theo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Theo"
+  ],
+  "fichas": {
+   "Theo": {
+    "faixa": "baby",
+    "literal": "10 months"
+   }
+  },
+  "animais": {
+   "Biscuit": "dog"
+  }
+ },
+ {
+  "id": "rev13-lucas-18-months",
+  "fonte": "rev-0211b",
+  "texto": "Lucas is 18 months old and just learned to walk. Lucas wobbles across the kitchen toward his mom, who opens her arms.",
+  "protagonista": [
+   "Lucas"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lucas"
+  ],
+  "fichas": {
+   "Lucas": {
+    "faixa": [
+     "baby",
+     "toddler"
+    ],
+    "literal": "18 months"
+   }
+  }
+ },
+ {
+  "id": "es-rev13-sofia-18-meses",
+  "fonte": "rev-0211b",
+  "texto": "Sofía tiene dieciocho meses y descubre la arena por primera vez. Sofía se ríe y la tira al aire.",
+  "protagonista": [
+   "Sofía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sofía"
+  ],
+  "fichas": {
+   "Sofía": {
+    "faixa": [
+     "baby",
+     "toddler"
+    ],
+    "literal": "dieciocho meses"
+   }
+  }
+ },
+ {
+  "id": "rev13-nora-six-weeks",
+  "fonte": "rev-0211b",
+  "texto": "Baby Nora is six weeks old. Nora sleeps in a laundry basket while her big brother Sam, 8, reads her a story about the moon.",
+  "protagonista": [
+   "Nora",
+   "Baby Nora",
+   "Sam"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Nora",
+   "Sam"
+  ],
+  "fichas": {
+   "Nora": {
+    "faixa": "baby",
+    "literal": "six weeks"
+   },
+   "Sam": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "8"
+   }
+  },
+  "nota": "protagonista ambíguo: a bebê (passiva, dorme) ou o irmão Sam (age, lê a história) — os dois valem; a ficha da Nora é conferida igual"
+ },
+ {
+  "id": "pt-rev13-davi-3-meses",
+  "fonte": "rev-0211b",
+  "texto": "O Davi tem 3 meses e acorda a casa inteira às três da manhã. Davi chora, o pai canta, e o cachorro Thor uiva junto.",
+  "protagonista": [
+   "Davi"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Davi"
+  ],
+  "fichas": {
+   "Davi": {
+    "faixa": "baby",
+    "literal": "3 meses"
+   }
+  },
+  "animais": {
+   "Thor": "dog"
+  }
  }
 ]

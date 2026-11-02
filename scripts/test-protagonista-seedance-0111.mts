@@ -472,7 +472,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // medido na API (217 casos): em roteiro inglês, toda species_en diferente da species é tradução de palavra PT/ES ou pup→puppy — nenhuma
   // troca de uma espécie inglesa por outra ("pigeon" → "eagle"), que é o que o detector de língua barrava
   const trocas = ((calib as unknown as { resumo: { species_en_troca_em_ingles?: Array<{ id: string; species: string; species_en: string }> } }).resumo.species_en_troca_em_ingles) ?? null
-  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o[- ]branco|galinheiro|cachorrinho|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
+  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o[- ]branco|galinheiro|cachorrinho|gatinho|gatinha|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
   ok(Array.isArray(trocas) && trocas.every((t) => PT_ES.test(t.species) || t.species_en.startsWith(t.species)), `respostas reais, roteiro inglês: ${trocas?.length ?? '?'} species_en ≠ species, todas tradução de PT/ES ou plural/diminutivo (${(trocas ?? []).filter((t) => !PT_ES.test(t.species) && !t.species_en.startsWith(t.species)).map((t) => `${t.id}:${t.species}>${t.species_en}`).join(' | ') || 'nenhuma troca inglês→inglês'})`)
 
   // (c) 15 s: nome de lugar com a grafia do protagonista no MEIO da frase → a cena é forçada, como na base
@@ -690,6 +690,90 @@ console.log('== 12. Rodada 12: o modelo copia age_text/role_text, o código conf
     ok(r.elenco.every((f) => !/years?-old/.test(cabeca(f.canonica)) || !cabeca(f.canonica).includes(alheia)) && r.elenco.every((f) => faixaDaFichaOk(f.canonica)), `${id} (API): "${alheia}" de trabalho/moradia não vira idade`)
   }
   function faixaDaFichaOk(c: string) { return !/\b(?:boy|girl|child|baby|toddler)\b/.test(cabeca(c)) }
+}
+
+// ═══ 13. Rodada 13 (revisão 02/11): meses/semanas não são anos; a ficha do juiz não apaga a idade do trecho do autor ═══
+console.log('== 13. Rodada 13: bebê em meses/semanas; o juiz literal não apaga a idade ==')
+{
+  const I = (age: string | null, role?: string | null) => { const r = idadeDoTrecho(age, role ?? null); return r ? `${r.anos ?? '-'}/${r.faixa}` : 'null' }
+  for (const [age, esperado] of [
+    ['18 months old', '1/toddler'], ['is 18 months old', '1/toddler'], ['10 months old', '0/baby'], ['is only 10 months old', '0/baby'], ['six weeks old', '0/baby'], ['a 6-month-old', '0/baby'],
+    ['3 meses', '0/baby'], ['tem 3 meses', '0/baby'], ['dieciocho meses', '1/toddler'], ['tiene dieciocho meses', '1/toddler'], ['two days old', '0/baby'], ['dez dias', '0/baby'], ['30 months', '2/toddler'],
+    ['60 months', '5/child'], ['a 9-year-old', '9/child'], ['de oito anos', '8/child'], ['84', '84/elderly'],
+  ] as const) ok(I(age) === esperado, `unidade colada ao número: "${age}" → ${esperado} (lido ${I(age)})`)
+  for (const [role, esperado] of [['uma garotinha sapeca', '-/child'], ['menininho', '-/child'], ['una niñita', '-/child'], ['bebezinho', '-/baby']] as const) ok(I(null, role) === esperado, `palavra de criança/bebê: "${role}" → ${esperado} (lido ${I(null, role)})`)
+  // mocks: o bebê em meses/semanas é bebê/criança pequena na ficha, nunca adulto
+  const ADULTO = /\b(?:thirties|twenties|forties|adult|grown|man|woman|person)\b/
+  const cabeca = (c: string) => c.split(' with ')[0]
+  const P = (name: string, role_text: string | null, g: string | null, age_text: string | null) => ({ name, role_text, role_en: role_text, kind: 'human', species: 'human', species_en: 'human', appearance_from_text: '', appearance_en: '', gender_if_stated: g, age_text, on_screen: true })
+  const ap1 = (texto: string, prot: Record<string, unknown>, sup: Array<Record<string, unknown>> = []) => aplicarElencoSemantico(elencoDoRoteiro(texto), lerElencoSemantico(JSON.stringify({ protagonist: prot, supporting: sup, places_and_orgs: [] }), texto), texto)
+  for (const [texto, prot, pessoa] of [
+    ['Lucas is 18 months old and just learned to walk. Lucas wobbles across the kitchen toward his mom, who opens her arms.', P('Lucas', null, 'male', '18 months old'), /— a toddler boy\b/],
+    ['Sofía tiene dieciocho meses y descubre la arena por primera vez. Sofía se ríe y la tira al aire.', P('Sofía', null, null, 'dieciocho meses'), /— a toddler\b/],
+    ["Theo is only 10 months old and has just discovered the dog's water bowl. Theo crawls over, splashes, and giggles.", P('Theo', null, null, '10 months old'), /— a baby\b/],
+    ['Baby Nora is six weeks old. Nora sleeps in a laundry basket.', P('Nora', null, 'female', 'six weeks old'), /— a baby\b/],
+    ['O Davi tem 3 meses e acorda a casa inteira às três da manhã. Davi chora e o pai canta.', P('Davi', null, null, '3 meses'), /— a baby\b/],
+  ] as const) {
+    const c = ap1(texto, prot)?.elenco[0].canonica ?? ''
+    ok(pessoa.test(c) && !ADULTO.test(cabeca(c).split(' — ').pop() ?? ''), `idade em meses/semanas: bebê/criança pequena, nunca adulto (${cabeca(c) || 'sem ficha'})`)
+  }
+  // o juiz literal ganha a aparência do autor, mas a cabeça com a idade do trecho fica (Arjun: "6 … a boy"; Valentina: "a child" em inglês)
+  {
+    const T = 'Fifteen-year-old Priya builds a drone in her bedroom. Her little brother Arjun, 6, wants to fly it. Priya lets him, and the drone crashes into the cake.'
+    const ap = ap1(T, P('Priya', null, 'female', 'Fifteen-year-old'), [P('Arjun', 'little brother', 'male', '6')])!
+    const lit = fichaLiteralConferida(T, ap.elenco, ap)
+    const arjun = lit.elenco.find((f) => f.nome === 'Arjun')!.canonica
+    const priya = lit.elenco.find((f) => f.nome === 'Priya')!.canonica
+    ok(/^Arjun, little brother, 6, exactly as the author wrote — a boy; exactly as the author wrote: "little brother Arjun"/.test(arjun), `Arjun: o 6 e "a boy" ficam com o trecho do juiz (${arjun})`)
+    ok(/— a teenage girl\b/.test(priya) && (!/; exactly as the author wrote: /.test(priya) || /— a teenage girl; exactly as the author wrote: "Fifteen-year-old Priya"/.test(priya)), `Priya: "a teenage girl" fica, com ou sem o trecho do juiz (${priya})`)
+    ok(lit.trocas.every(([, y]) => lit.elenco.some((f) => f.canonica === y)), 'as trocas nos prompts usam a ficha unida (a que o motor recebe)')
+    const i = ap.elenco.findIndex((f) => f.nome === 'Arjun')
+    ok(fichaLiteralConferida(T, lit.elenco, ap).elenco[i].canonica === arjun, 'idempotente: a ficha unida não muda na 2ª passada (o 15 s confere duas vezes)')
+  }
+  {
+    const T = 'Valentina, de once años, cuida a su perro Canelo. Un día Canelo desaparece y Valentina lo busca por todo el pueblo hasta encontrarlo dormido en la panadería.'
+    const ap = ap1(T, P('Valentina', null, 'female', 'de once años'))!
+    const v = fichaLiteralConferida(T, ap.elenco, ap).elenco[0].canonica
+    ok(/^Valentina, de once años, exactly as the author wrote — a (?:girl|child); exactly as the author wrote: "Valentina de once años/.test(v), `Valentina: a pessoa em inglês e a idade ficam com o trecho do juiz (${v})`)
+  }
+  {
+    // sem faixa do trecho (só papel, cabeça do gerador): o juiz decide como antes — nada novo
+    const T = 'Mila, an inventor with turquoise hair and a star-shaped backpack, returns to Rainbow Valley. Mila finds a glowing trail.'
+    const ap = ap1(T, P('Mila', 'inventor', 'female', null))!
+    const m = fichaLiteralConferida(T, ap.elenco, ap).elenco[0].canonica
+    ok(!/; exactly as the author wrote: /.test(m), `sem idade no trecho: o juiz como antes, sem cabeça unida (${m.slice(0, 120)})`)
+  }
+  // a resposta REAL (API) dos 16 casos da revisão da rodada 12, pelo caminho real de 15 s
+  const R13 = (id: string) => caminho15(id, gravado(id))
+  const casos13 = calib.casos.filter((c) => c.fonte === 'rev-0211b')
+  ok(casos13.length === 16, `16 casos 'rev-0211b' na calibração (${casos13.length})`)
+  for (const c of casos13) {
+    const n = avaliar(c, gravado(c.id))
+    ok(n.graves.length === 0, `${c.id} (API): 0 erro grave ${n.graves.join(',')}`)
+  }
+  for (const [id, nome, pessoaRe] of [
+    ['rev13-baby-theo-months', 'Theo', /— a baby\b/], ['rev13-lucas-18-months', 'Lucas', /— a (?:baby|toddler)\b/], ['es-rev13-sofia-18-meses', 'Sofía', /— a (?:baby|toddler)\b/],
+    ['rev13-nora-six-weeks', 'Nora', /— a baby\b/], ['pt-rev13-davi-3-meses', 'Davi', /— a baby\b/],
+  ] as const) {
+    const r = R13(id)
+    const f = r.elenco.find((x) => x.nome.includes(nome))
+    ok(!!f && pessoaRe.test(f.canonica) && !ADULTO.test(cabeca(f.canonica).split(' — ').pop()!.split(';')[0]), `${id} (API, 15 s): ${nome} é bebê/criança pequena (${f ? cabeca(f.canonica).slice(0, 110) : 'sem ficha'})`)
+    ok(r.fin.every((q) => !/\b(?:man|woman|person) in (?:his|her|their) (?:early|mid|late)/.test(q.split(MAIN)[0].match(/The only person in this shot is the same main character \(([^)]*)\)/)?.[1] ?? '')), `${id} (API, 15 s): nenhuma cena forçada com adulto`)
+  }
+  {
+    const r = R13('rev13-priya-arjun')
+    const arjun = r.elenco.find((f) => f.nome === 'Arjun')
+    ok(!!arjun && /\b6\b/.test(arjun.canonica) && /— a boy\b/.test(arjun.canonica), `Arjun (API, 15 s): o 6 e "a boy" chegam ao motor (${arjun ? cabeca(arjun.canonica).slice(0, 120) : 'sem ficha'})`)
+  }
+  {
+    const r = R13('es-rev13-valentina-canelo')
+    const v = r.elenco.find((f) => f.nome === 'Valentina')
+    ok(!!v && /once años/.test(v.canonica) && /— a (?:girl|child)\b/.test(v.canonica), `Valentina (API, 15 s): "once años" e a pessoa em inglês chegam ao motor (${v ? cabeca(v.canonica).slice(0, 120) : 'sem ficha'})`)
+  }
+  for (const [id, nome, alheia] of [['rev13-ollie-grandpa', 'Ollie', '84'], ['rev13-noah-sister-16', 'Noah', '16'], ['pt-rev13-joaozinho-avo', 'Joãozinho', '80']] as const) {
+    const f = R13(id).elenco.find((x) => x.nome.includes(nome))
+    ok(!!f && !f.canonica.split(' with ')[0].includes(alheia) && !ADULTO.test(cabeca(f.canonica).split(' — ').pop()!.split(';')[0]), `${id} (API, 15 s): a idade de outra pessoa (${alheia}) não vai para ${nome} (${f ? cabeca(f.canonica).slice(0, 110) : 'sem ficha'})`)
+  }
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
