@@ -63,13 +63,22 @@
 //   · o papel escrito no texto passa a ser lido também para quem tem nome ("Meet Lily, a young baker", "Her grandson Theo") e o gênero
 //     que o modelo leu deste personagem volta (a idade não: "a young baker" vinha "child"). O papel leva idade ao gerador e faz a ficha
 //     literal "grandson Theo" ser reconhecida (antes o neto virava "a girl" pelo "Her" da avó); "Grandma Rosa" volta a ser mulher.
+//
+// REVISÃO 01/11 (rodada 10, revisão adversarial): o que o texto ESCREVE da pessoa, determinístico.
+//   · GRAVE: "Meet Leo, a nine-year-old inventor" virava "Leo, a man in their early thirties" (o gerador só tirava idade de boy/girl/teen e
+//     o papel "inventor" não diz idade). A idade escrita colada ao nome (idadeDoPersonagem: "N-year-old", por extenso, "aged N", "de N
+//     anos", "N años", "Riley, 7,", "She is seven." logo depois do nome, teen/toddler/baby) vai literal à ficha: "Leo, a nine-year-old boy
+//     who is an inventor"; menor de 18 nunca recebe "in their early thirties".
+//   · MÉDIO: o gênero escrito (papel "brother"/"grandma", ou o gênero do modelo CONFIRMADO por pronome na frase do nome ou na seguinte) e a
+//     idade escrita vencem a ficha antiga da base que os contradiz (Walter "waits for him" deixa de ser mulher; Riley "She is seven" deixa
+//     de ser mulher de 30). Sem evidência escrita, fica a base. O gênero do modelo sem pronome no texto não entra.
 import { canonicaDeterministica, PERSONAGEM_CASTING_MODELO, PERSONAGEM_MAX_PERSONAGENS, type FichaDePersonagem, type TipoDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis'
 import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v6' // rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido; nomeado sem papel e fora da base = elenco de sempre (rodada 8: o código só usava quem, o kind e a species)
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v7' // rodada 10: idade escrita literal na ficha (menor de 18 nunca "thirties"); gênero/idade escritos vencem a ficha antiga da base. rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido; nomeado sem papel e fora da base = elenco de sempre (rodada 8: o código só usava quem, o kind e a species)
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
@@ -317,13 +326,164 @@ function janelasDoNome(texto: string, nome: string): string {
   return [...texto.matchAll(re)].map((m) => texto.slice(Math.max(0, (m.index ?? 0) - 12), (m.index ?? 0) + nome.length + 25)).join(' ')
 }
 
+// ═══ Rodada 10: a idade e o gênero ESCRITOS no texto (determinístico; o modelo nunca decide sozinho) ═══════════════
+// "Meet Leo, a nine-year-old inventor" virava "Leo, a man in their early thirties": o gerador só tirava idade de boy/girl/kid/teen e o
+// papel "inventor" não diz idade. Agora a idade que o texto ESCREVE colada ao nome ("a nine-year-old inventor", "um inventor de nove
+// anos", "seven-year-old Riley", "Riley, 7,", "Meet Riley. She is seven.") vai literalmente para a ficha ("a nine-year-old boy who is
+// an inventor"), e menor de 18 nunca recebe "in their early thirties".
+const NUM_EN: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 }
+const NUM_PT_ES: Record<string, number> = {
+  um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, treze: 13, catorze: 14, quatorze: 14, quinze: 15, dezesseis: 16, dezasseis: 16, dezessete: 17, dezassete: 17, dezoito: 18, dezenove: 19, dezanove: 19, vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90,
+  uno: 1, una: 1, un: 1, dos: 2, cuatro: 4, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, veintiuno: 21, veintidos: 22, veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27, veintiocho: 28, veintinueve: 29, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, ochenta: 80,
+}
+const PALAVRA_NUM = [...new Set([...Object.keys(NUM_EN), ...Object.keys(NUM_PT_ES)])].sort((a, b) => b.length - a.length).join('|')
+/** Número em algarismos ou por extenso (EN/PT/ES, composto "twenty-one", "vinte e um", "treinta y cinco"), no texto sem acento. */
+const NUM = `(?:\\d{1,3}|(?:${PALAVRA_NUM})(?:(?:-| e | y )(?:${PALAVRA_NUM}))?)`
+function valorDoNumero(tok: string): number | null {
+  if (/^\d+$/.test(tok)) return Number(tok)
+  const partes = tok.split(/-| e | y /)
+  let soma = 0
+  for (const w of partes) { const v = NUM_EN[w] ?? NUM_PT_ES[w]; if (v === undefined) return null; soma += v }
+  return soma
+}
+export type FaixaEtaria = 'baby' | 'toddler' | 'child' | 'teen' | 'adult' | 'elderly'
+export interface IdadeEscrita { anos: number | null; faixa: FaixaEtaria; /** em inglês, para a ficha: "nine-year-old", "7-year-old", "teenage", "toddler", "baby" */ literal: string }
+const faixaDosAnos = (n: number): FaixaEtaria => (n < 2 ? 'baby' : n < 4 ? 'toddler' : n < 13 ? 'child' : n < 18 ? 'teen' : n < 65 ? 'adult' : 'elderly')
+const daIdade = (tok: string): IdadeEscrita | null => {
+  const n = valorDoNumero(tok)
+  if (n === null || n < 0 || n > 120) return null
+  // a ficha vai em inglês: algarismo ou palavra inglesa ficam como o autor escreveu; número por extenso em PT/ES vira algarismo
+  const literal = /^\d+$/.test(tok) || tok.split('-').every((w) => w in NUM_EN) ? `${tok}-year-old` : `${n}-year-old`
+  return { anos: n, faixa: faixaDosAnos(n), literal }
+}
+/** Trechos que dizem "N anos" sem ser idade: "há dez anos", "hace diez años", "for ten years", "depois de dois anos". */
+const NAO_E_IDADE = '(?<!(?<![\\p{L}])(?:ha|hace|faz|por|durante|em|en|apos|depois de|despues de|after|for) )'
+/**
+ * A idade escrita num trecho que já é DA PESSOA (aposto ou cópula colada ao nome; ver idadeDoPersonagem). Formas: "N-year-old"/"N years
+ * old" (algarismo ou por extenso), "aged N", "de N anos"/"N años", "is/tem/tiene N" no começo do trecho, ", 7," e as palavras teen,
+ * teenager, toddler, baby, newborn, adolescente. Nada disso no trecho → null.
+ */
+export function idadeEscrita(trecho: string, inicioDeClausula = false): IdadeEscrita | null {
+  const t = semAcento(String(trecho ?? ''))
+  const re = (s: string) => new RegExp(s, 'u')
+  const m1 = re(`(?<![\\p{L}\\p{N}])(${NUM})[- ](?:years?|yrs?)[- ]olds?(?![\\p{L}])`).exec(t) ?? re(`(?<![\\p{L}\\p{N}])aged (${NUM})(?![\\p{L}\\p{N}])`).exec(t) ?? re(`${NAO_E_IDADE}(?<![\\p{L}\\p{N}])(${NUM}) anos?(?![\\p{L}])`).exec(t)
+  if (m1) return daIdade(m1[1])
+  if (inicioDeClausula) {
+    const m2 = re(`^\\s*(?:(?:,|who is|who's|que tem|que tiene)\\s*)?(?:is|was|'s|turns|turned|just turned|is now|tem|tinha|fez|completou|completa|tiene|tenia|cumple|cumplio)\\s+(${NUM})(?=\\s*(?:$|[,;.!?)]|years?(?![\\p{L}])|anos?(?![\\p{L}])))`).exec(t) ?? /^\s*[,(]\s*(\d{1,2})\s*(?:[,)]|$)/.exec(t)
+    if (m2) return daIdade(m2[1])
+  }
+  // no aposto, a palavra de faixa só vale como o próprio aposto ("Mia, a baby girl", "Kai, a teenage hacker", "Kai is a teen"):
+  // artigo/cópula + no máximo 1 adjetivo; "Mia, holding a baby goat" não é bebê
+  const FAIXA = '(teenager|teenage|teen|adolescente|toddler|newborn|infant|baby|bebe)(?![\\p{L}])'
+  const m3 = inicioDeClausula
+    ? re(`^\\s*[,(—–-]?\\s*(?:(?:who is|who's|is|was|e|era|es|que e)\\s+)?(?:(?:a|an|the|um|uma|un|una)\\s+)(?:[\\p{L}-]+(?<!ing)\\s+)?${FAIXA}`).exec(t) ?? re(`^\\s*[,(—–-]?\\s*${FAIXA}`).exec(t)
+    : re(`(?<![\\p{L}])${FAIXA}`).exec(t)
+  if (!m3) return null
+  if (/^(?:teen|teenage|teenager|adolescente)$/.test(m3[1])) return { anos: null, faixa: 'teen', literal: 'teenage' }
+  if (m3[1] === 'toddler') return { anos: null, faixa: 'toddler', literal: 'toddler' }
+  return { anos: null, faixa: 'baby', literal: 'baby' }
+}
+/** O aposto/cópula logo depois do nome: só começa com ", — ( is was tem tiene é es who is"; para em ; : e antes de outra pessoa ("and his", "com seu"). */
+const COMECO_DO_APOSTO = /^\s*(?:,|—|–|-|\(|(?:is|was|'s|turns|turned|just turned|tem|tinha|fez|completou|completa|tiene|tenía|tenia|cumple|cumplió|é|era|es|who is|who's|que tem|que tiene)(?![\p{L}]))/iu
+const FIM_DO_APOSTO = /[;:]|\s(?:and|but|while|with|whose|his|her|their|e|mas|com|seu|sua|cujo|cuja|y|pero|con|su|cuyo|cuya)\s/iu
+const aposto = (depois: string) => { const m = FIM_DO_APOSTO.exec(depois); return m ? depois.slice(0, m.index) : depois }
+/** Antes do nome, colado (no máximo 2 palavras minúsculas no meio): "seven-year-old Riley", "a 9-year-old named Leo", "her baby sister Mia". */
+const IDADE_ANTES = /((?:\d{1,3}|[\p{L}]+(?:-[\p{L}]+)*)[- ](?:years?|yrs?)[- ]old|teen(?:age|ager)?|toddler|baby|newborn)\s+(?:[\p{Ll}'-]+\s+){0,2}$/u
+const PRONOME_INICIAL = /^(?:She|He|Ele|Ela|Ella|Él)\s+/u
+const PRON_F = /(?<![\p{L}])(?:she|her|hers|herself|ela|dela|nela|ella)(?![\p{L}])/iu
+const PRON_M = /(?<![\p{L}])(?:he|him|his|himself|ele|dele|nele|él)(?![\p{L}])/iu
+
+/**
+ * A idade ESCRITA desta pessoa: no aposto/cópula colado ao nome, colada antes dele, ou na frase seguinte que começa pelo pronome
+ * ("Meet Riley. She is seven.") quando a frase do nome não cita outro personagem. Idade de outra pessoa da frase ("Leo and his
+ * 70-year-old grandpa") não entra: o aposto para no "and his".
+ */
+export function idadeDoPersonagem(nome: string, textoOriginal: string, outrosNomes: readonly string[] = []): IdadeEscrita | null {
+  const texto = semTags(textoOriginal)
+  const frases = frasesDe(texto)
+  const reNome = new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(nome)}(?![\\p{L}\\p{N}])`, 'gu')
+  for (let i = 0; i < frases.length; i++) {
+    const f = frases[i]
+    for (const m of f.matchAll(reNome)) {
+      const ini = m.index ?? 0
+      const antes = IDADE_ANTES.exec(f.slice(Math.max(0, ini - 48), ini))
+      if (antes) { const r = idadeEscrita(antes[1]); if (r) return r }
+      const depois = f.slice(ini + nome.length)
+      if (COMECO_DO_APOSTO.test(depois)) { const r = idadeEscrita(aposto(depois), true); if (r) return r }
+    }
+    if (!palavraNoTexto(f, nome)) continue
+    const prox = frases[i + 1] ?? ''
+    const outro = outrosNomes.some((o) => o && o !== nome && palavraNoTexto(f, o))
+    if (!outro && PRONOME_INICIAL.test(prox)) {
+      const depois = prox.replace(PRONOME_INICIAL, ' ')
+      if (COMECO_DO_APOSTO.test(depois)) { const r = idadeEscrita(aposto(depois), true); if (r) return r }
+    }
+  }
+  return null
+}
+/**
+ * O gênero que o modelo leu (gender_if_stated) só vale se o TEXTO o confirma: um pronome desse gênero na frase que cita a pessoa ou
+ * na seguinte ("Meet Lily, whose dad is a fisherman. Every morning she waves"; "Walter feeds the gulls. One gull … waits for him").
+ */
+export function generoConfirmado(p: Pick<PersonagemSemantico, 'name' | 'role' | 'role_text' | 'gender'>, textoOriginal: string): 'male' | 'female' | null {
+  if (p.gender !== 'male' && p.gender !== 'female') return null
+  const chave = p.name ?? (p.role_text ?? p.role ?? '').split(' ').pop() ?? ''
+  if (!chave) return null
+  const frases = frasesDe(semTags(textoOriginal))
+  const re = p.gender === 'female' ? PRON_F : PRON_M
+  return frases.some((f, i) => palavraNoTexto(f, chave) && (re.test(f) || re.test(frases[i + 1] ?? ''))) ? p.gender : null
+}
+/** O gênero que o PAPEL escrito no texto diz ("brother", "grandma", "boy"; PT/ES já chegam traduzidos pelo role_en conferido). */
+export function generoDoPapel(papel: string | null | undefined): 'male' | 'female' | null {
+  const p = String(papel ?? '').toLowerCase()
+  const f = /(?<![\p{L}])(?:girl|woman|lady|grandma|grandmother|granny|mother|mom|mum|sister|daughter|granddaughter|wife|aunt|niece|queen|princess|widow|bride)(?![\p{L}])/u.test(p)
+  const m = /(?<![\p{L}])(?:boy|man|guy|grandpa|grandfather|father|dad|brother|son|grandson|husband|uncle|nephew|king|prince|widower|groom)(?![\p{L}])/u.test(p)
+  return f === m ? null : f ? 'female' : 'male'
+}
+const GENERICO_DE_PESSOA =new Set(['boy', 'girl', 'kid', 'child', 'baby', 'toddler', 'teen', 'teenager', 'teenage', 'man', 'woman', 'person', 'human', 'little', 'young', 'old', 'elderly', 'lady', 'guy', 'de', 'anos', 'years', 'year'])
+/** O ofício/papel sem idade e sem palavra genérica de pessoa ("nine-year-old inventor" → "inventor"; "boy" → ""). */
+function oficioDe(papel: string): string {
+  const ws = limpa(papel).toLowerCase().split(' ').filter((w) => w && !GENERICO_DE_PESSOA.has(w) && !/\d|year|-old$/.test(w) && !(w in NUM_EN) && !(semAcento(w) in NUM_PT_ES))
+  return ws.length && ws.length <= 4 ? ws.join(' ') : ''
+}
+const artigo = (s: string) => (/^(?:one|uni|use|eu)/i.test(s) ? 'a' : /^(?:[aeiou]|8|11-|18-)/i.test(s) ? 'an' : 'a')
+/**
+ * A cabeça da ficha com a idade escrita: "Leo, a man in their early thirties with …" → "Leo, a nine-year-old boy who is an inventor with …".
+ * O resto (cabelo, rosto, roupa) é o do gerador determinístico, que já recebeu a faixa (roupa de criança para criança).
+ */
+function comIdadeEscrita(canonica: string, nome: string, idade: IdadeEscrita, oficio: string): string {
+  const prefixo = `${nome}, a `
+  if (!canonica.startsWith(prefixo)) return canonica
+  const resto = canonica.slice(prefixo.length)
+  const k = resto.indexOf(' with ')
+  if (k < 0) return canonica
+  const pessoa = /^(elderly woman|elderly man|woman|man|girl|boy|child|person)\s/.exec(resto)?.[1] ?? 'person'
+  const g = /woman|girl/.test(pessoa) ? 'f' : /man|boy/.test(pessoa) ? 'm' : null
+  const por = (f: string, m: string, n: string) => (g === 'f' ? f : g === 'm' ? m : n)
+  const descr = idade.faixa === 'baby' ? por('baby girl', 'baby boy', 'baby')
+    : idade.faixa === 'toddler' ? por('toddler girl', 'toddler boy', 'toddler')
+    : idade.anos === null && idade.faixa === 'teen' ? por('teenage girl', 'teenage boy', 'teenager')
+    : `${idade.literal} ${idade.faixa === 'child' || idade.faixa === 'teen' ? por('girl', 'boy', idade.faixa === 'teen' ? 'teenager' : 'child') : idade.faixa === 'elderly' ? por('elderly woman', 'elderly man', 'elderly person') : por('woman', 'man', 'person')}`
+  return `${nome}, ${artigo(descr)} ${descr}${oficio ? ` who is ${artigo(oficio)} ${oficio}` : ''}${resto.slice(k)}`
+}
+/** A faixa e o gênero que uma ficha de gente diz (cabeça antes do " with "). */
+export function faixaDaFicha(canonica: string): { faixa: FaixaEtaria; genero: 'male' | 'female' | null } {
+  const c = ` ${canonica.split(' with ')[0].replace(/^[^,]*,\s*/, '').toLowerCase()} `
+  const genero = / (?:woman|girl|lady)\b/.test(c) ? 'female' : / (?:man|boy)\b/.test(c) ? 'male' : null
+  const anos = new RegExp(`(?<![\\p{L}\\p{N}])(${NUM})-years?-old`, 'u').exec(semAcento(c))
+  const n = anos ? valorDoNumero(anos[1]) : null
+  const faixa: FaixaEtaria = /\bbaby\b/.test(c) ? 'baby' : /\btoddler\b/.test(c) ? 'toddler' : /\b(?:teen\w*|sixteen)\b/.test(c) ? 'teen' : /\belderly\b/.test(c) ? 'elderly' : n !== null ? faixaDosAnos(n) : /\b(?:girl|boy|child|about nine)\b/.test(c) ? 'child' : /\b(?:sixties|seventies|eighties)\b/.test(c) ? 'elderly' : 'adult'
+  return { faixa, genero }
+}
+export interface EvidenciaEscrita { genero: 'male' | 'female' | null; idade: IdadeEscrita | null }
+
 /**
  * A ficha de quem o determinístico errou, SEMPRE pelo gerador determinístico da base (canonicaDeterministica). Revisão 01/11 (rodada 8):
  * nenhuma aparência, gênero ou idade do modelo entra — a aparência do autor chega depois, pela ficha literal do juiz (conferida em
  * conferirFichaLiteral). Do modelo só vêm o tipo e a espécie conferida no texto: gente com papel escrito ("a boy named Tommy" → "boy")
  * usa esse papel como o papel do gerador (idade e gênero saem dele, como na base); sem papel, as janelas do nome, como na base.
  */
-function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, usados: Set<string>): FichaDePersonagem {
+function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, usados: Set<string>, evid?: EvidenciaEscrita): FichaDePersonagem {
   const tipo = TIPO[p.kind]
   const nome = p.name ?? `the ${p.role}`
   if (p.kind === 'object') {
@@ -333,11 +493,17 @@ function fichaDe(p: PersonagemSemantico, texto: string, protagonista: boolean, u
     const nucleo = p.name ? nucleoDoNome(p.name, texto) : (p.role ?? '').split(' ').pop() ?? nome
     // rodada 9: o papel que o texto escreve ("young baker", "grandma") e o gênero lido DESTE personagem; sem nenhum dos dois, as janelas
     // do nome como na base (elas pegam o "Her" da avó em "Her grandson Theo" — por isso o gênero lido vem antes delas)
-    const papelEscrito = p.species && p.species !== 'human' ? p.species : p.role ?? ''
-    const pronome = p.gender === 'female' ? 'she' : p.gender === 'male' ? 'he' : ''
-    const papel = papelEscrito || pronome ? `${papelEscrito} ${pronome}`.trim() : p.name ? janelasDoNome(texto, p.name) : ''
+    // rodada 10: o gênero só se o texto o confirma (generoConfirmado) e a idade escrita (idadeDoPersonagem) entra como faixa no gerador
+    // (roupa de criança para criança; "-year-old" não pode cair no "old" do gerador) e, literal, na cabeça da ficha (comIdadeEscrita)
+    const e = evid ?? { genero: generoDoPapel(p.species && p.species !== 'human' ? p.species : p.role) ?? generoConfirmado(p, texto), idade: p.name ? idadeDoPersonagem(p.name, texto) : null }
+    const papelBruto = p.species && p.species !== 'human' ? p.species : p.role ?? ''
+    const papelEscrito = e.idade ? limpa(papelBruto.replace(/\S*\d\S*|\S+-years?-olds?|(?<![\p{L}])(?:years?|old)(?![\p{L}])/giu, ' ')) : papelBruto
+    const pronome = e.genero === 'female' ? 'she' : e.genero === 'male' ? 'he' : ''
+    const faixa = !e.idade ? '' : e.idade.faixa === 'teen' ? 'teen' : e.idade.faixa === 'adult' ? '' : e.idade.faixa === 'elderly' ? 'elderly' : 'kid'
+    const papel = papelEscrito || pronome || faixa ? `${papelEscrito} ${pronome} ${faixa}`.replace(/\s+/g, ' ').trim() : p.name ? janelasDoNome(texto, p.name) : ''
     const contexto = `${papel} | ${frasesDoNome(texto, p.name ?? nucleo)}`
-    const canonica = canonicaDeterministica(nome, 'humano', null, contexto, usados)
+    const gerada = canonicaDeterministica(nome, 'humano', null, contexto, usados)
+    const canonica = e.idade ? comIdadeEscrita(gerada, nome, e.idade, oficioDe(papelBruto)) : gerada
     const genero = / (?:woman|girl|elderly woman) /.test(` ${canonica.split(' with ')[0]} `) ? 'woman' : / (?:man|boy|elderly man) /.test(` ${canonica.split(' with ')[0]} `) ? 'man' : null
     return { nome, nucleo, tipo, canonica, origem: 'deterministica', protagonista, genero }
   }
@@ -384,19 +550,29 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
   const novas: string[] = []
   const mantidas: string[] = []
   const noElenco = todos.filter((p) => !semFicha(p)).slice(0, PERSONAGEM_MAX_PERSONAGENS)
+  const outrosNomes = todos.map((x) => x.name ?? '').filter(Boolean)
   const elenco = noElenco.map((p, i): FichaDePersonagem => {
     const nome = p.name ?? `the ${p.role}`
     const antes = base.find((f) => mesmoNome(f.nome, nome))
     const tipo = TIPO[p.kind]
+    // rodada 10: o que o TEXTO escreve desta pessoa (gênero confirmado por pronome; idade escrita colada ao nome) vence a ficha antiga
+    // da base que o contradiz ("Walter, a woman…" com "waits for him"; "Riley, a woman in their early thirties" com "She is seven").
+    // Ficha do autor e figura mítica ficam; sem evidência escrita, fica a base.
+    const evid: EvidenciaEscrita | undefined = p.kind === 'human' ? { genero: generoDoPapel(p.species && p.species !== 'human' ? p.species : p.role) ?? generoConfirmado(p, texto), idade: p.name ? idadeDoPersonagem(p.name, texto, outrosNomes) : null } : undefined
+    const contradiz = (f: FichaDePersonagem) => {
+      if (!evid || f.origem === 'autor' || (f.origem as string) === 'mitica') return false
+      const lida = faixaDaFicha(f.canonica)
+      return (!!evid.genero && !!lida.genero && lida.genero !== evid.genero) || (!!evid.idade && !f.canonica.includes(evid.idade.literal))
+    }
     // gente com papel escrito no texto ("a boy named Tommy"): a ficha de antes só fica se diz a mesma pessoa ("a boy about nine…"), não
     // "a man in their early thirties" — revisão 01/11 (rodada 8, caso real Tommy 49b015e8). Ficha do autor fica sempre.
     const cabeca = (c: string) => c.split(' with ')[0].replace(/^[^,]*,\s*/, '')
     const especieBate = (f: FichaDePersonagem) => tipo === 'humano'
-      ? !p.species || p.species === 'human' || f.origem === 'autor' || cabeca(f.canonica) === cabeca(fichaDe(p, texto, false, new Set()).canonica)
+      ? !p.species || p.species === 'human' || f.origem === 'autor' || cabeca(f.canonica) === cabeca(fichaDe(p, texto, false, new Set(), evid).canonica)
       : !p.species || f.canonica.toLowerCase().includes((p.species.split(' ').pop() ?? '').toLowerCase())
-    if (antes && ((antes.origem as string) === 'mitica' || (antes.tipo === tipo && especieBate(antes)))) { mantidas.push(antes.nome); return { ...antes, protagonista: i === 0 } }
+    if (antes && ((antes.origem as string) === 'mitica' || (antes.tipo === tipo && especieBate(antes) && !contradiz(antes)))) { mantidas.push(antes.nome); return { ...antes, protagonista: i === 0 } }
     novas.push(nome)
-    return fichaDe(p, texto, i === 0, usados)
+    return fichaDe(p, texto, i === 0, usados, evid)
   })
   const leitura = noElenco.map((p): LeituraDaFicha => ({
     nome: p.name ?? `the ${p.role}`,

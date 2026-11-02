@@ -1,6 +1,8 @@
 // KINEO-PROTAGONISTA-SEEDANCE-0111 — a régua da calibração do elenco semântico (usada pelo calibrador e pelo guardião).
-// Erro GRAVE: pessoa virando bicho/criatura; personagem inventado (lugar, empresa, palavra de abertura); protagonista errado.
-import type { ElencoSemantico, PersonagemSemantico } from '../../lib/cinematic/elencoSemantico'
+// Erro GRAVE: pessoa virando bicho/criatura; personagem inventado (lugar, empresa, palavra de abertura); protagonista errado;
+// rodada 10: criança/adolescente com idade escrita virando adulto na FICHA aplicada (aplicarElencoSemantico sobre o elenco de sempre).
+import { aplicarElencoSemantico, faixaDaFicha, type ElencoSemantico, type PersonagemSemantico, type FaixaEtaria } from '../../lib/cinematic/elencoSemantico'
+import { elencoDoRoteiro } from '../../lib/cinematic/personagemAjuste'
 
 export interface Caso {
   id: string; fonte: string; texto: string; video_id?: string
@@ -13,6 +15,8 @@ export interface Caso {
   proibTipo?: Record<string, string>; livre?: boolean; fallbackOk?: boolean
   /** só citados ("Lena is gone"): não podem entrar como coadjuvante em cena */
   ausentes?: string[]
+  /** rodada 10: o que a FICHA aplicada tem de dizer de cada pessoa (faixa aceita, gênero, idade literal, idade que NÃO pode aparecer) */
+  fichas?: Record<string, { faixa?: FaixaEtaria | FaixaEtaria[]; genero?: 'male' | 'female'; literal?: string; semLiteral?: string }>
 }
 export interface Nota { acerto: boolean; graves: string[]; erros: string[]; protagonista: string | null; kind: string | null; species: string | null; fallback: boolean }
 
@@ -54,6 +58,26 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
   }
   const especies = c.especie == null ? [] : Array.isArray(c.especie) ? c.especie : [c.especie]
   if (nomeado && especies.length && p && !especies.some((esp) => casaNome(p.species ?? '', esp) || norm(p.species ?? '').includes(norm(esp)))) erros.push(`especie:${nomeado}=${p.species} (esperado ${especies.join('|')})`)
+  // rodada 10: a ficha aplicada (o que vai ao motor). Sem elenco aplicado (falha segura) confere o elenco de sempre, mas o defeito dele
+  // é da base, não desta leitura: erro leve com prefixo "base:", nunca grave.
+  if (c.fichas) {
+    const base = elencoDoRoteiro(c.texto)
+    const aplicado = aplicarElencoSemantico(base, e, c.texto)
+    const fichas = aplicado ? aplicado.elenco : base
+    const pre = aplicado ? '' : 'base:'
+    for (const [nome, esp] of Object.entries(c.fichas)) {
+      const f = fichas.find((x) => casaNome(x.nome, nome))
+      if (!f) { if (aplicado) erros.push(`ficha_ausente:${nome}`); continue }
+      const lida = faixaDaFicha(f.canonica)
+      const faixas = esp.faixa ? (Array.isArray(esp.faixa) ? esp.faixa : [esp.faixa]) : []
+      const menor = faixas.length > 0 && faixas.every((x) => x !== 'adult' && x !== 'elderly')
+      const virouAdulto = menor && (lida.faixa === 'adult' || lida.faixa === 'elderly')
+      if (faixas.length && !faixas.includes(lida.faixa)) (virouAdulto && aplicado ? graves : erros).push(`${pre}${virouAdulto ? 'crianca_virou_' : 'faixa:'}${lida.faixa}:${nome}`)
+      if (esp.genero && lida.genero !== esp.genero) erros.push(`${pre}genero:${nome}=${lida.genero}`)
+      if (esp.literal && !f.canonica.includes(esp.literal)) erros.push(`${pre}idade_literal:${nome}`)
+      if (esp.semLiteral && f.canonica.includes(esp.semLiteral)) erros.push(`${pre}idade_alheia:${nome}`)
+    }
+  }
   const unicos = (xs: string[]) => [...new Set(xs)]
   const g = unicos(graves), er = unicos(erros)
   return { acerto: g.length === 0 && er.length === 0, graves: g, erros: er, protagonista: nomeado ?? (p?.role ? `the ${p.role}` : null), kind: p?.kind ?? null, species: p?.species ?? null, fallback }

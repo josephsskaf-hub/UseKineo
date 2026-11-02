@@ -4,13 +4,14 @@
 //   2. Falha segura: sem chave, erro de rede, HTTP 500, JSON inválido, prazo estourado → null e a rota fica com o elenco de sempre.
 //   3. Caminho REAL do filme de 15 s da rota com BRO, Mila, Max (renders de 01/11) e controles: um pombo só, Mila gente, Max gente.
 //   4. Conferência contra o texto (mutantes de resposta): nome fora do texto, espécie fora do texto, aparência inventada, lugar.
+//   12. Rodada 10: idade escrita literal na ficha (Leo/Zoe/Sam/Maya/Davi/Mateo/Riley) e gênero/idade escritos vencem a ficha antiga (Walter/Lily/Riley).
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
-import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
+import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, idadeDoPersonagem, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro, ajustarPromptsDoElenco } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
 import { elencoDoFilme15, protagonistaEmTodaCena, cenaCitaElenco, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
@@ -468,7 +469,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // medido na API (217 casos): em roteiro inglês, toda species_en diferente da species é tradução de palavra PT/ES ou pup→puppy — nenhuma
   // troca de uma espécie inglesa por outra ("pigeon" → "eagle"), que é o que o detector de língua barrava
   const trocas = ((calib as unknown as { resumo: { species_en_troca_em_ingles?: Array<{ id: string; species: string; species_en: string }> } }).resumo.species_en_troca_em_ingles) ?? null
-  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o branco|cachorrinho|perro|perrita|urso|esquilo|coelho)$/
+  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o branco|cachorrinho|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
   ok(Array.isArray(trocas) && trocas.every((t) => PT_ES.test(t.species) || t.species_en.startsWith(t.species)), `respostas reais, roteiro inglês: ${trocas?.length ?? '?'} species_en ≠ species, todas tradução de PT/ES ou plural/diminutivo (${(trocas ?? []).filter((t) => !PT_ES.test(t.species) && !t.species_en.startsWith(t.species)).map((t) => `${t.id}:${t.species}>${t.species_en}`).join(' | ') || 'nenhuma troca inglês→inglês'})`)
 
   // (c) 15 s: nome de lugar com a grafia do protagonista no MEIO da frase → a cena é forçada, como na base
@@ -551,6 +552,121 @@ console.log('== 11. Rodada 9: protagonista do modelo, sem ficha inventada, papel
     ok(!!s && s.nome === 'Sam' && /\bwoman\b/.test(s.canonica), `Sam, a firefighter ("She hears"): mulher (${s?.canonica.slice(0, 50)})`)
     const pk = corre('rev9-pickles-hedgehog').r.elenco.find((f) => f.protagonista)
     ok(!!pk && pk.nome === 'Pickles' && /hedgehog/.test(pk.canonica), 'Pickles segue ouriço')
+  }
+}
+
+// ═══ 12. Rodada 10: a idade e o gênero ESCRITOS no texto ═══════════════════════════════════════════════════════════
+console.log('== 12. Rodada 10: idade escrita literal na ficha; gênero/idade escritos vencem a ficha antiga (exemplos da revisão, API real + mocks) ==')
+{
+  const VIS10 = JSON.parse(fs.readFileSync(path.join(raiz, 'scripts/test-support/protagonista-seedance-0111-visuais-rev10.json'), 'utf8')) as Record<string, { falas: string[]; prompts: string[] }>
+  Object.assign(PROD, VIS10)
+  const ADULTO = /\b(?:thirties|twenties|forties|adult|grown)\b/
+  const forcada = (q: string) => q.split(MAIN)[0].match(/The only person in this shot is the same main character \(([^)]*)\)/)?.[1] ?? ''
+  const cabeca = (c: string) => c.split(' with ')[0]
+  // (a) a leitura determinística da idade
+  const T = (id: string) => porId.get(id)!.texto
+  const idades: Array<[string, string, string[], number | null, string | null]> = [
+    ['Leo', T('rev10-leo-inventor'), [], 9, 'nine-year-old'],
+    ['Zoe', T('rev10-zoe-skater'), [], 12, 'twelve-year-old'],
+    ['Sam', T('rev10-sam-artist'), [], 7, '7-year-old'],
+    ['Maya', T('rev10-maya-ballerina'), [], 8, 'eight-year-old'],
+    ['Davi', T('pt-rev10-davi'), [], 9, '9-year-old'],
+    ['Mateo', T('es-rev10-mateo'), ['Ernesto'], 6, '6-year-old'],
+    ['Riley', T('rev10-riley-seven'), ['Jake'], 7, 'seven-year-old'],
+    ['Riley', 'Riley, 7, rides her bike to school. Riley waves at the bus.', [], 7, '7-year-old'],
+    ['Riley', 'Meet seven-year-old Riley. Riley rides her bike.', [], 7, 'seven-year-old'],
+    ['Joe', T('rev10-leo-grandpa'), ['Leo'], 70, '70-year-old'],
+    ['Leo', T('rev10-leo-grandpa'), ['Joe'], null, null],
+    ['Ana', T('pt-rev10-ana-ha-dez-anos'), [], null, null],
+    ['Mia', T('rev10-mia-baby-goat'), [], null, null],
+    ['Riley', 'Jake teaches Riley to ride. He is twelve. Riley falls twice.', ['Jake'], null, null],
+    ['Sofía', T('es-rev9-sofia'), ['Coco'], 6, '6-year-old'],
+    ['Lince', T('pt-rev9-lince'), [], 8, '8-year-old'],
+  ]
+  for (const [nome, texto, outros, anos, literal] of idades) {
+    const r = idadeDoPersonagem(nome, texto, outros)
+    ok(literal === null ? r === null : r?.anos === anos && r.literal === literal, `idade escrita de ${nome}: ${literal ?? 'nenhuma'} (lido: ${r ? `${r.anos} ${r.literal}` : 'nenhuma'}) — ${texto.slice(0, 50)}`)
+  }
+  const k = idadeDoPersonagem('Kai', T('rev10-kai-teen'))
+  ok(k?.faixa === 'teen' && k.anos === null, `"Kai, a teenage hacker" = adolescente (${k?.faixa})`)
+  // (b) o GRAVE da revisão, no formato da resposta real (role=ofício, gender, age=child), base vazia: criança nunca vira adulto de 30
+  const P = (name: string, role: string | null, g: string | null, extra: Record<string, unknown> = {}) => ({ name, role, role_en: role, kind: 'human', species: 'human', species_en: 'human', appearance_from_text: '', appearance_en: '', gender_if_stated: g, age_if_stated: 'child', age_evidence: '', on_screen: true, ...extra })
+  const graveRev: Array<[string, string, string, string | null, string, RegExp]> = [
+    ['rev10-leo-inventor', 'Leo', 'inventor', 'male', 'Leo, a nine-year-old boy who is an inventor with ', /boy/],
+    ['rev10-zoe-skater', 'Zoe', 'skateboarder', 'female', 'Zoe, a twelve-year-old girl who is a skateboarder with ', /girl/],
+    ['rev10-sam-artist', 'Sam', 'artist', 'male', 'Sam, a 7-year-old boy who is an artist with ', /boy/],
+    ['rev10-maya-ballerina', 'Maya', 'ballerina', 'female', 'Maya, an eight-year-old girl who is a ballerina with ', /girl/],
+    ['pt-rev10-davi', 'Davi', 'inventor', 'male', 'Davi, a 9-year-old boy who is an inventor with ', /boy/],
+  ]
+  for (const [id, nome, role, g, cab, gen] of graveRev) {
+    const texto = T(id)
+    const sem = lerElencoSemantico(JSON.stringify({ protagonist: P(nome, role, g), supporting: [], places_and_orgs: [] }), texto)
+    const ap = aplicarElencoSemantico(elencoDoRoteiro(texto), sem, texto)
+    const f = ap?.elenco.find((x) => x.nome === nome)
+    ok(!!f && f.canonica.startsWith(cab) && gen.test(cabeca(f.canonica)) && !ADULTO.test(f.canonica), `${id}: ${f?.canonica.slice(0, cab.length + 10) ?? 'sem ficha'}`)
+    const r = caminho15(id, sem)
+    ok(r.fin.every((q) => !ADULTO.test(forcada(q))) && r.fin.every((q) => !/(?:Leo|Sam|Davi), a man|(?:Zoe|Maya), a woman/.test(q)), `${id}: no 15 s nenhuma cena forçada com adulto (forçadas ${r.forcadas.join(',') || '-'})`)
+    ok(r.fin.some((q) => q.includes(cab.slice(0, -6))), `${id}: a ficha com a idade escrita chega aos prompts do 15 s`)
+  }
+  // o gênero do modelo sem pronome no texto não entra: "Leo builds… Leo laughs" (sem he/his) = "child", nunca "girl" por um gender errado
+  {
+    const texto = 'Meet Leo, a nine-year-old inventor. Leo builds a robot out of old toasters. Leo laughs when it beeps.'
+    const ap = aplicarElencoSemantico([], lerElencoSemantico(JSON.stringify({ protagonist: P('Leo', 'inventor', 'female'), supporting: [], places_and_orgs: [] }), texto), texto)
+    ok(!!ap && ap.elenco[0].canonica.startsWith('Leo, a nine-year-old child who is an inventor with '), `gênero do modelo sem pronome no texto não entra (${ap?.elenco[0].canonica.slice(0, 50)})`)
+  }
+  // (c) os mesmos exemplos com a resposta REAL gravada na calibração (API), pelo caminho real do 15 s
+  for (const [id, nome, cab] of [['rev10-leo-inventor', 'Leo', 'Leo, a nine-year-old boy'], ['rev10-zoe-skater', 'Zoe', 'Zoe, a twelve-year-old girl'], ['rev10-sam-artist', 'Sam', 'Sam, a 7-year-old boy'], ['rev10-maya-ballerina', 'Maya', 'Maya, an eight-year-old girl'], ['pt-rev10-davi', 'Davi', 'Davi, a 9-year-old boy'], ['es-rev10-mateo', 'Mateo', 'Mateo, a 6-year-old boy'], ['rev10-riley-seven', 'Riley', 'Riley, a seven-year-old girl']] as const) {
+    const r = caminho15(id, gravado(id))
+    const f = r.elenco.find((x) => x.nome === nome)
+    ok(!!f && f.canonica.startsWith(cab) && f.protagonista, `${id} (API): ${f?.canonica.slice(0, 45) ?? 'sem ficha'}`)
+    ok(r.fin.every((q) => !ADULTO.test(forcada(q))), `${id} (API): nenhuma cena do 15 s forçada com adulto`)
+  }
+  // (d) o MÉDIO: a base já tinha a pessoa com a ficha errada; o que o texto escreve vence
+  {
+    const W = T('rev10-walter-gulls')
+    const baseW = elencoDoRoteiro(W).find((f) => f.nome === 'Walter')
+    ok(!!baseW && /\bwoman\b/.test(cabeca(baseW.canonica)), `(controle) a base fazia do Walter uma mulher ("names her Pegleg") (${baseW?.canonica.slice(0, 30)})`)
+    const sw = lerElencoSemantico(JSON.stringify({ protagonist: P('Walter', 'retired sailor', 'male', { age_if_stated: 'adult' }), supporting: [{ name: 'Pegleg', kind: 'animal', species: 'gull', species_en: 'gull', on_screen: true }], places_and_orgs: ['harbor'] }), W)
+    for (const [rotulo, sem] of [['mock', sw], ['API', gravado('rev10-walter-gulls')]] as const) {
+      const r = caminho15('rev10-walter-gulls', sem)
+      const f = r.elenco.find((x) => x.nome === 'Walter')
+      ok(!!f && /\bman\b/.test(cabeca(f.canonica)) && !/woman/.test(cabeca(f.canonica)), `Walter (${rotulo}): "waits for him" → homem (${f?.canonica.slice(0, 30)})`)
+      ok(r.fin.every((q) => !/Walter, a woman/.test(q)), `Walter (${rotulo}): nenhuma cena com "Walter, a woman"`)
+    }
+    const L = T('rev10-lily-fisherman')
+    ok(/Lily, a man/.test(elencoDoRoteiro(L)[0]?.canonica ?? ''), '(controle) a base fazia da Lily um homem ("calling his name")')
+    const sl = lerElencoSemantico(JSON.stringify({ protagonist: P('Lily', 'girl', 'female'), supporting: [{ ...P(null as unknown as string, 'fisherman', 'male'), on_screen: false }], places_and_orgs: ['pier', 'shore'] }), L)
+    // a resposta real da Lily oscila na API: às vezes o modelo põe "Lily" também em places_and_orgs e a conferência a reprova (falha
+    // segura = o elenco de sempre, byte a byte). Só a resposta que passa na conferência é cobrada aqui; a reprovada, como falha segura.
+    const lilyApi = gravado('rev10-lily-fisherman')
+    if (!lilyApi) ok(JSON.stringify(caminho15('rev10-lily-fisherman', null).fin) === JSON.stringify(caminho15('rev10-lily-fisherman', lilyApi).fin), 'Lily (API): resposta gravada reprovada na conferência ("Lily" listada como lugar) → o 15 s é o de sempre')
+    for (const [rotulo, sem] of (lilyApi ? [['mock', sl], ['API', lilyApi]] : [['mock', sl]]) as Array<[string, ElencoSemantico | null]>) {
+      const r = caminho15('rev10-lily-fisherman', sem)
+      const f = r.elenco.find((x) => x.nome === 'Lily')
+      ok(!!f && /\bwoman\b/.test(cabeca(f.canonica)), `Lily (${rotulo}): "she waves" → mulher (${f?.canonica.slice(0, 30)})`)
+      ok(r.fin.every((q) => !/Lily, a man/.test(q)), `Lily (${rotulo}): nenhuma cena com "Lily, a man"`)
+    }
+    const R = T('rev10-riley-seven')
+    ok(elencoDoRoteiro(R).some((f) => f.nome === 'Riley' && /woman in their early thirties/.test(f.canonica)), '(controle) a base fazia da Riley de 7 anos uma mulher de 30')
+    const sr = lerElencoSemantico(JSON.stringify({ protagonist: P('Riley', 'girl', 'female'), supporting: [P('Jake', 'brother', 'male', { age_if_stated: 'teen' })], places_and_orgs: [] }), R)
+    for (const [rotulo, sem] of [['mock', sr], ['API', gravado('rev10-riley-seven')]] as const) {
+      const r = caminho15('rev10-riley-seven', sem)
+      const riley = r.elenco.find((x) => x.nome === 'Riley')
+      const jake = r.elenco.find((x) => x.nome === 'Jake')
+      ok(!!riley && riley.canonica.startsWith('Riley, a seven-year-old girl'), `Riley (${rotulo}): "She is seven" → menina de 7 (${riley?.canonica.slice(0, 32)})`)
+      ok(!jake || (/\bman\b|\bboy\b|\bbrother\b/.test(cabeca(jake.canonica)) && !/\bwoman\b/.test(jake.canonica)), `Jake (${rotulo}): "big brother" → homem/menino/irmão, nunca mulher (${jake?.canonica.slice(0, 70) ?? 'fora'})`)
+      ok(r.fin.every((q) => !ADULTO.test(forcada(q))), `Riley (${rotulo}): nenhuma cena forçada com adulto`)
+    }
+  }
+  // (e) sem evidência escrita fica a base: Dawn ("a shy girl", sem idade) mantém a ficha de antes; ficha do autor nunca é trocada
+  {
+    const D = T('rev10-dawn-girl')
+    const ap = aplicarElencoSemantico(elencoDoRoteiro(D), gravado('rev10-dawn-girl'), D)
+    ok(!ap || ap.mantidas.includes('Dawn'), `Dawn sem idade escrita: a ficha da base fica (${ap ? ap.mantidas.join(',') : 'base'})`)
+    const autor: FichaDePersonagem = { nome: 'Leo', nucleo: 'Leo', tipo: 'humano', canonica: 'Leo, exactly as the author wrote: a tall man with a red beard', origem: 'autor', protagonista: true, genero: 'man' }
+    const texto = T('rev10-leo-inventor')
+    const ap2 = aplicarElencoSemantico([autor], lerElencoSemantico(JSON.stringify({ protagonist: P('Leo', 'inventor', 'male'), supporting: [], places_and_orgs: [] }), texto), texto)
+    ok(ap2?.elenco[0].canonica === autor.canonica, 'a ficha do autor nunca é trocada pela evidência escrita')
   }
 }
 

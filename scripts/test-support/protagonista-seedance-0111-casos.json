@@ -3136,5 +3136,354 @@
   "humanos": [
    "Sofía"
   ]
+ },
+ {
+  "id": "rev10-leo-inventor",
+  "fonte": "rev-0111e",
+  "texto": "Meet Leo, a nine-year-old inventor. In his garage he builds a robot out of old toasters. The robot blinks, beeps, and says his name.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo"
+  ],
+  "fichas": {
+   "Leo": {
+    "faixa": "child",
+    "literal": "nine-year-old",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-riley-seven",
+  "fonte": "rev-0111e",
+  "texto": "Meet Riley. She is seven. Her big brother Jake teaches her to ride a bike. Jake runs beside her, holding the seat, then lets go. Riley rides alone for the first time.",
+  "protagonista": [
+   "Riley"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Riley",
+   "Jake"
+  ],
+  "fichas": {
+   "Riley": {
+    "faixa": "child",
+    "literal": "seven-year-old",
+    "genero": "female"
+   },
+   "Jake": {
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-walter-gulls",
+  "fonte": "rev-0111e",
+  "texto": "Meet Walter, a retired sailor. Every dawn Walter feeds the gulls on the harbor wall. One gull, missing a foot, always waits for him. Walter names her Pegleg.",
+  "protagonista": [
+   "Walter"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Walter"
+  ],
+  "fichas": {
+   "Walter": {
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-lily-fisherman",
+  "fonte": "rev-0111e",
+  "texto": "Meet Lily, whose dad is a fisherman. Every morning she waves at his boat from the pier. One day the boat does not come back. Lily grabs a lantern and runs along the shore, calling his name.",
+  "protagonista": [
+   "Lily"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Lily"
+  ],
+  "fichas": {
+   "Lily": {
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "es-rev10-mateo",
+  "fonte": "rev-0111e",
+  "texto": "Conoce a Mateo, un niño de seis años que le tiene miedo al mar. Su abuelo Ernesto, un viejo pescador, lo lleva en su bote. Mateo ve un delfín y se ríe por primera vez.",
+  "protagonista": [
+   "Mateo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mateo",
+   "Ernesto"
+  ],
+  "fichas": {
+   "Mateo": {
+    "faixa": "child",
+    "literal": "6-year-old",
+    "genero": "male"
+   },
+   "Ernesto": {
+    "faixa": "elderly"
+   }
+  }
+ },
+ {
+  "id": "rev10-tiger-boxer",
+  "fonte": "rev-0111e",
+  "texto": "Meet Tiger, a boxer from Detroit. Tiger trains every morning before dawn. He has never lost a fight. Tonight, under the lights, he faces the champion.",
+  "protagonista": [
+   "Tiger"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Tiger"
+  ],
+  "especiesProibidas": [
+   "tiger"
+  ]
+ },
+ {
+  "id": "rev10-dawn-girl",
+  "fonte": "rev-0111e",
+  "texto": "Dawn is a shy girl who has never spoken in class. Today Dawn raises her hand. The whole room goes quiet. She answers, and the teacher smiles.",
+  "protagonista": [
+   "Dawn"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Dawn"
+  ],
+  "fichas": {
+   "Dawn": {
+    "faixa": "child",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "rev10-austin-drummer",
+  "fonte": "rev-0111e",
+  "texto": "Austin is a street drummer in downtown Austin. He plays on overturned buckets for tips. One night a famous producer stops, listens, and hands him a card.",
+  "protagonista": [
+   "Austin"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Austin"
+  ],
+  "fallbackOk": true
+ },
+ {
+  "id": "rev10-coco-edna",
+  "fonte": "rev-0111e",
+  "texto": "Coco the parrot lives with Grandma Edna. Every morning Coco wakes Edna by singing her favorite song. One morning Edna does not wake up, and Coco flies to the neighbor for help.",
+  "protagonista": [
+   "Coco"
+  ],
+  "tipo": "animal",
+  "especie": "parrot",
+  "humanos": [
+   "Edna"
+  ],
+  "fichas": {
+   "Edna": {
+    "faixa": "elderly",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "rev10-noah-dark",
+  "fonte": "rev-0111e",
+  "texto": "Noah is afraid of the dark. Every night his night-light flickers. Tonight it goes out completely, and a small glowing firefly drifts into his room.",
+  "protagonista": [
+   "Noah"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Noah"
+  ],
+  "fallbackOk": true
+ },
+ {
+  "id": "rev10-zoe-skater",
+  "fonte": "rev-0111e",
+  "texto": "Meet Zoe, a twelve-year-old skateboarder. She lands her first kickflip in front of the whole school.",
+  "protagonista": [
+   "Zoe"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Zoe"
+  ],
+  "fichas": {
+   "Zoe": {
+    "faixa": "child",
+    "literal": "twelve-year-old",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "rev10-sam-artist",
+  "fonte": "rev-0111e",
+  "texto": "Meet Sam, a 7-year-old artist who paints the clouds. Every afternoon he climbs the hill with his brushes.",
+  "protagonista": [
+   "Sam"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Sam"
+  ],
+  "fichas": {
+   "Sam": {
+    "faixa": "child",
+    "literal": "7-year-old",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-maya-ballerina",
+  "fonte": "rev-0111e",
+  "texto": "Maya, an eight-year-old ballerina, has stage fright. She peeks at the crowd from behind the curtain. Tonight Maya dances anyway.",
+  "protagonista": [
+   "Maya"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Maya"
+  ],
+  "fichas": {
+   "Maya": {
+    "faixa": "child",
+    "literal": "eight-year-old",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "pt-rev10-davi",
+  "fonte": "rev-0111e",
+  "texto": "Conheça o Davi, um inventor de nove anos. Na garagem ele monta um robô de torradeiras. O robô pisca e diz o nome do Davi.",
+  "protagonista": [
+   "Davi"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Davi"
+  ],
+  "fichas": {
+   "Davi": {
+    "faixa": "child",
+    "literal": "9-year-old",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-kai-teen",
+  "fonte": "rev-0111e",
+  "texto": "Meet Kai, a teenage hacker. He breaks into the school server to change one grade. Then Kai sees what else is hidden there.",
+  "protagonista": [
+   "Kai"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Kai"
+  ],
+  "fichas": {
+   "Kai": {
+    "faixa": "teen",
+    "genero": "male"
+   }
+  }
+ },
+ {
+  "id": "rev10-leo-grandpa",
+  "fonte": "rev-0111e",
+  "texto": "Leo, a curious kid, fixes an old boat with his 70-year-old grandpa Joe. Joe tells him stories of the sea. Leo listens and paints the hull blue.",
+  "protagonista": [
+   "Leo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Leo",
+   "Joe"
+  ],
+  "fichas": {
+   "Leo": {
+    "faixa": "child",
+    "semLiteral": "70"
+   }
+  }
+ },
+ {
+  "id": "pt-rev10-ana-ha-dez-anos",
+  "fonte": "rev-0111e",
+  "texto": "Ana, que mora na vila há dez anos, abre a padaria todo dia às cinco. Ela sorri para cada cliente. Um dia, Ana encontra um bilhete na porta.",
+  "protagonista": [
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana"
+  ],
+  "fichas": {
+   "Ana": {
+    "faixa": [
+     "adult",
+     "elderly"
+    ],
+    "semLiteral": "10-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev10-mia-baby-goat",
+  "fonte": "rev-0111e",
+  "texto": "Mia, holding a baby goat, walks to the county fair. She hopes to win first prize. Mia brushes the goat until it shines.",
+  "protagonista": [
+   "Mia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mia"
+  ],
+  "fichas": {
+   "Mia": {
+    "faixa": [
+     "child",
+     "teen",
+     "adult"
+    ]
+   }
+  }
  }
 ]

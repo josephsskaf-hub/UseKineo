@@ -1,0 +1,122 @@
+{
+ "rev10-leo-inventor": {
+  "falas": [
+   "Meet Leo, a nine-year-old inventor.",
+   "In his garage he builds a robot out of old toasters.",
+   "The robot blinks, beeps, and says his name."
+  ],
+  "prompts": [
+   "A boy in goggles tinkers with wires in a cluttered garage workshop.",
+   "A clunky robot made of chrome toasters sits on a workbench, sparks flying.",
+   "The toaster robot's eyes light up blue as the boy grins in amazement."
+  ]
+ },
+ "rev10-riley-seven": {
+  "falas": [
+   "Meet Riley. She is seven.",
+   "Her big brother Jake teaches her to ride a bike. Jake runs beside her, holding the seat, then lets go.",
+   "Riley rides alone for the first time."
+  ],
+  "prompts": [
+   "A small girl in a pink helmet wobbles on a bicycle on a quiet suburban street.",
+   "An older boy runs beside the bike holding the seat, both laughing.",
+   "The girl pedals alone down the street, arms steady, beaming."
+  ]
+ },
+ "rev10-walter-gulls": {
+  "falas": [
+   "Meet Walter, a retired sailor. Every dawn Walter feeds the gulls on the harbor wall.",
+   "One gull, missing a foot, always waits for him.",
+   "Walter names her Pegleg."
+  ],
+  "prompts": [
+   "An elderly man in a navy peacoat scatters bread on a stone harbor wall at dawn.",
+   "A seagull with one foot hops along the wall toward him.",
+   "The old man smiles and gently offers bread to the one-footed gull."
+  ]
+ },
+ "rev10-lily-fisherman": {
+  "falas": [
+   "Meet Lily, whose dad is a fisherman. Every morning she waves at his boat from the pier.",
+   "One day the boat does not come back.",
+   "Lily grabs a lantern and runs along the shore, calling his name."
+  ],
+  "prompts": [
+   "A little girl waves from a wooden pier at a small fishing boat heading out at sunrise.",
+   "An empty grey sea under a storm sky, no boat on the horizon.",
+   "A girl holding a lantern runs along a dark rocky shore, shouting into the wind."
+  ]
+ },
+ "es-rev10-mateo": {
+  "falas": [
+   "Conoce a Mateo, un niño de seis años que le tiene miedo al mar.",
+   "Su abuelo Ernesto, un viejo pescador, lo lleva en su bote.",
+   "Mateo ve un delfín y se ríe por primera vez."
+  ],
+  "prompts": [
+   "A six-year-old boy clings to his grandfather's arm on a small wooden boat.",
+   "An old fisherman with a white beard rows calmly across a calm blue sea.",
+   "A dolphin leaps beside the boat and the little boy laughs."
+  ]
+ },
+ "rev10-tiger-boxer": {
+  "falas": [
+   "Meet Tiger, a boxer from Detroit. Tiger trains every morning before dawn.",
+   "He has never lost a fight.",
+   "Tonight, under the lights, he faces the champion."
+  ],
+  "prompts": [
+   "A muscular young man in a grey hoodie skips rope in a dim Detroit gym before dawn.",
+   "Close-up of taped fists hitting a heavy bag, sweat flying.",
+   "A boxer walks toward a bright ring under arena lights, crowd roaring."
+  ]
+ },
+ "rev10-dawn-girl": {
+  "falas": [
+   "Dawn is a shy girl who has never spoken in class. Today Dawn raises her hand.",
+   "The whole room goes quiet.",
+   "She answers, and the teacher smiles."
+  ],
+  "prompts": [
+   "Dawn breaks over a small town school, golden light on the windows.",
+   "A shy girl at a wooden desk slowly raises her hand in a quiet classroom.",
+   "A kind teacher smiles at the front of the class."
+  ]
+ },
+ "rev10-austin-drummer": {
+  "falas": [
+   "Austin is a street drummer in downtown Austin.",
+   "He plays on overturned buckets for tips.",
+   "One night a famous producer stops, listens, and hands him a card."
+  ],
+  "prompts": [
+   "A busy downtown Austin street at night, neon signs glowing.",
+   "A young man drums on overturned plastic buckets on a sidewalk, crowd gathering.",
+   "A man in a suit hands a business card to the drummer."
+  ]
+ },
+ "rev10-coco-edna": {
+  "falas": [
+   "Coco the parrot lives with Grandma Edna.",
+   "Every morning Coco wakes Edna by singing her favorite song.",
+   "One morning Edna does not wake up, and Coco flies to the neighbor for help."
+  ],
+  "prompts": [
+   "A bright green parrot sings on a perch beside a sleeping old woman's bed.",
+   "The parrot flaps urgently around the quiet bedroom.",
+   "The parrot taps its beak on a neighbor's window, a man looks out surprised."
+  ]
+ },
+ "rev10-noah-dark": {
+  "falas": [
+   "Noah is afraid of the dark.",
+   "Every night his night-light flickers.",
+   "Tonight it goes out completely, and a small glowing firefly drifts into his room."
+  ],
+  "prompts": [
+   "A little boy hides under his blanket in a dark bedroom, a night-light flickering.",
+   "The night-light goes dark; only moonlight through the window.",
+   "A tiny glowing firefly drifts above the boy's bed, lighting his amazed face."
+  ]
+ }
+}
