@@ -1,0 +1,186 @@
+{
+ "base": "2faa5d7a00a28d226355fb7501e185a9b57ad399",
+ "scope": {
+  "app/api/admin/live/route.ts": {
+   "beforeSha256": "896095dbc1503802a951d138b14e3a771cf3b18859a9a9e28664a2463d8286b7",
+   "afterSha256": "0ad8821be92ab7c4ddda22842f9d6092f28af66f23a24decddf4b27b560c5025",
+   "hunks": [
+    {
+     "before": "import { createLiveCache } from '@/lib/admin/liveCache'\n",
+     "after": "import { createLiveCache } from '@/lib/admin/liveCache'\nimport { chaveMotor, lerChaveMotor, motorEntregueDe, rotuloMotorPedido } from '@/lib/admin/motorEntregue' // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n"
+    },
+    {
+     "before": "      // \"2 pedidos (1 pronto · 1 montando)\" em vez de \"2 vídeos\", que contradizia o total=1 enquanto o resgate montava.\n      const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })\n      const delivered24 = new Map<string, number>()",
+     "after": "      // \"2 pedidos (1 pronto · 1 montando)\" em vez de \"2 vídeos\", que contradizia o total=1 enquanto o resgate montava.\n      const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode, render_id, engine_used').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })\n      const delivered24 = new Map<string, number>()"
+    },
+    {
+     "before": "        const jobQuality = new Map<string, string>()\n        if (renderIds.length > 0) {",
+     "after": "        const jobQuality = new Map<string, string>()\n        const genByRef = new Map<string, string>(), freeEngineByGen = new Map<string, string>(), videoEngineByGen = new Map<string, string>() // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n        if (renderIds.length > 0) {"
+    },
+    {
+     "before": "            if (ref && q && !jobQuality.has(ref)) jobQuality.set(ref, q)\n          }",
+     "after": "            if (ref && q && !jobQuality.has(ref)) jobQuality.set(ref, q)\n            const gen = typeof md.generation_id === 'string' ? md.generation_id : null // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n            if (ref && gen && !genByRef.has(ref)) genByRef.set(ref, gen)\n          }"
+    },
+    {
+     "before": "        }\n        for (const d of dayDebits) {",
+     "after": "        }\n        // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o motor ENTREGUE de cada geração (lib/admin/motorEntregue.ts): o filme grátis\n        // grava free_film_engine_used; o resto vem de videos.engine_used (render_id → generation_id pelo compose claim).\n        const gens = Array.from(new Set(genByRef.values()))\n        if (gens.length > 0) {\n          const { data: free } = await readAll(() => admin\n            .from('events').select('metadata').eq('name', 'free_film_engine_used').in('metadata->>generation_id', gens), { route: '/api/admin/live', table: 'events' })\n          for (const e of free ?? []) {\n            const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>\n            const gen = typeof md.generation_id === 'string' ? md.generation_id : null\n            if (gen && typeof md.engine_used === 'string' && !freeEngineByGen.has(gen)) freeEngineByGen.set(gen, md.engine_used)\n          }\n          const engineByRender = new Map<string, string>()\n          for (const v of vids24 ?? []) {\n            const vv = v as { render_id?: string | null; engine_used?: string | null }\n            if (vv.render_id && vv.engine_used) engineByRender.set(String(vv.render_id), vv.engine_used)\n          }\n          if (engineByRender.size > 0) {\n            const { data: claims } = await readAll(() => admin\n              .from('events').select('metadata').eq('name', 'compose_submission_claim').in('metadata->>render_id', Array.from(engineByRender.keys())), { route: '/api/admin/live', table: 'events' })\n            for (const c of claims ?? []) {\n              const md = ((c as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>\n              const gen = typeof md.generation_id === 'string' ? md.generation_id : null\n              const eng = typeof md.render_id === 'string' ? engineByRender.get(md.render_id) : undefined\n              if (gen && eng && !videoEngineByGen.has(gen)) videoEngineByGen.set(gen, eng)\n            }\n          }\n        }\n        for (const d of dayDebits) {"
+    },
+    {
+     "before": "          if (!d.user_id || !Number.isFinite(d.amount)) continue\n          const q = jobQuality.get(String(d.render_id)) ?? '?'\n          const m = spentBy.get(d.user_id) ?? new Map()",
+     "after": "          if (!d.user_id || !Number.isFinite(d.amount)) continue\n          const gen = genByRef.get(String(d.render_id)) // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n          const q = chaveMotor(jobQuality.get(String(d.render_id)) ?? '?', gen ? motorEntregueDe(freeEngineByGen.get(gen), videoEngineByGen.get(gen)) : null)\n          const m = spentBy.get(d.user_id) ?? new Map()"
+    },
+    {
+     "before": "              // KINEO-PAINEL-MONTANDO-2026-09-19 — pedidos (cobranças) × prontos (linhas em videos); o resto está montando.\n              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)\n              const montando = v.n - prontos",
+     "after": "              // KINEO-PAINEL-MONTANDO-2026-09-19 — pedidos (cobranças) × prontos (linhas em videos); o resto está montando.\n              // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a chave carrega o motor entregue; \"prontos\" segue contando pelo quality do débito.\n              const { quality: qEscolhido, entregue } = lerChaveMotor(q)\n              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${qEscolhido}`) ?? 0)\n              const montando = v.n - prontos"
+    },
+    {
+     "before": "              parts.push(\n                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${ENGINE_SHORT[q] ?? q} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +\n                (mistoDePrecos ? ' (preço da época)' : ''),",
+     "after": "              parts.push(\n                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${rotuloMotorPedido(qEscolhido, entregue, ENGINE_SHORT[qEscolhido] ?? qEscolhido)} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +\n                (mistoDePrecos ? ' (preço da época)' : ''),"
+    }
+   ]
+  },
+  "lib/publishPack.ts": {
+   "beforeSha256": "b1aef949c6d6170157157b6b481b0aee7ee092e32c7f379797f5bf973be300d2",
+   "afterSha256": "8b1443311de39df12e24c99b861951722fce2d00220e098de5a9bf3bd9804b37",
+   "hunks": [
+    {
+     "before": "  bruto: unknown,\n  opts?: { creditLine?: string | null },\n): PacoteDePublicacao | null {",
+     "after": "  bruto: unknown,\n  opts?: { creditLine?: string | null; narracao?: string | null },\n): PacoteDePublicacao | null {"
+    },
+    {
+     "before": "  if (!bruto || typeof bruto !== 'object') return null\n  const b = bruto as Record<string, unknown>\n  // Fail-closed no sentido do CLIENTE: sem linha de credito passada, o pacote",
+     "after": "  if (!bruto || typeof bruto !== 'object') return null\n  // KINEO-PACOTE-LINGUA-0211 — com a narração em mãos, palavra quase igual a uma da fala (\"polpo\" × \"polvo\") volta a\n  // ser a da fala ANTES do crédito entrar (a linha de crédito da casa nunca é tocada). Sem narração: byte a byte o de antes.\n  const b = typeof opts?.narracao === 'string' && opts.narracao.trim()\n    ? corrigirPacotePelaNarracao(bruto as Record<string, unknown>, opts.narracao).pacote\n    : bruto as Record<string, unknown>\n  // Fail-closed no sentido do CLIENTE: sem linha de credito passada, o pacote"
+    },
+    {
+     "before": "",
+     "after": "\n// ═══ KINEO-PACOTE-LINGUA-0211 ══════════════════════════════════════════════\n// Caso real (02/11, filme grátis de viniciusssvianna, render 5aac817a): a voz do filme falava PORTUGUÊS EUROPEU (\"Sabias\n// que o polvo tem três corações\", \"bombeia-o\") e o pacote saiu com o título \"Descubra o polpo…\" e a hashtag #polpo —\n// \"polpo\" é italiano — e o resto em português do Brasil (\"Você sabia\", \"né?\"). A narração chegou certa ao escritor; a\n// CAUSA foi o pedido: o sistema é todo em inglês e só dizia \"write in the language of the topic\", sem nomear a língua\n// nem a variante, a 0,8 de temperatura num modelo pequeno. Duas defesas, as duas sem chamada extra:\n//   1. a língua é NOMEADA no pedido (código gravado no compose claim + variante lida na própria fala: pt-PT × pt-BR);\n//   2. checagem barata depois: palavra do pacote quase igual (1 letra trocada no meio) a uma palavra da fala, e que não\n//      existe na fala, volta a ser a da fala — \"polpo\" → \"polvo\", \"#polpo\" → \"#polvo\". Só consoante trocada no meio da\n//      palavra: flexão (vogal ↔ vogal, como falam/falem; última letra, como novo/nova), 1ª letra e palavra curta nunca.\n\nconst NOMES_DE_LINGUA: Record<string, string> = {\n  en: 'English', pt: 'Portuguese', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', pl: 'Polish',\n  ru: 'Russian', uk: 'Ukrainian', tr: 'Turkish', ar: 'Arabic', he: 'Hebrew', fa: 'Persian', hi: 'Hindi', bn: 'Bengali',\n  ur: 'Urdu', ja: 'Japanese', ko: 'Korean', zh: 'Chinese', id: 'Indonesian', ms: 'Malay', vi: 'Vietnamese', th: 'Thai',\n  ro: 'Romanian', sv: 'Swedish', fil: 'Filipino', tl: 'Filipino', el: 'Greek', cs: 'Czech', hu: 'Hungarian',\n}\nconst NOMES_DE_VARIANTE: Record<string, string> = {\n  'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese', 'es-ES': 'Spanish (Spain)', 'es-MX': 'Mexican Spanish',\n  'en-US': 'American English', 'en-GB': 'British English', 'fr-CA': 'Canadian French', 'zh-TW': 'Traditional Chinese',\n}\n\nconst conta = (texto: string, palavras: string[]): number => {\n  let n = 0\n  for (const p of palavras) n += (texto.match(new RegExp(`(?<!\\\\p{L})${p}(?!\\\\p{L})`, 'giu')) ?? []).length\n  return n\n}\n\n/** Variante do português lida na fala: pt-PT, pt-BR ou null (sem marca clara). */\nexport function variantePortugues(narracao: string): 'pt-PT' | 'pt-BR' | null {\n  const t = String(narracao ?? '')\n  const pt = conta(t, ['sabias', 'tu', 'estás', 'tens', 'podes', 'vês', 'facto', 'factos', 'equipa', 'ecrã', 'telemóvel', 'autocarro', 'comboio', 'rapariga', 'miúdo', 'miúdos', 'fixe'])\n    + (t.match(/\\p{L}{3,}-(?:o|a|os|as|lhe|lhes)(?!\\p{L})/gu) ?? []).length\n  const br = conta(t, ['você', 'vocês', 'né', 'ônibus', 'celular', 'garota', 'moleque', 'legal', 'fato', 'fatos'])\n  if (pt > br) return 'pt-PT'\n  if (br > pt) return 'pt-BR'\n  return null\n}\n\n/** Reserva quando o claim não gravou a língua: palpite pelas palavras mais comuns. null = não chuta. */\nfunction palpiteDeLingua(narracao: string): string | null {\n  const t = String(narracao ?? '')\n  const notas: Array<[string, number]> = [\n    ['pt', conta(t, ['não', 'você', 'uma', 'são', 'também', 'mais', 'isso', 'muito', 'tem', 'como', 'dos', 'das', 'ao']) + (t.match(/ção|ções|ão(?!\\p{L})/gu) ?? []).length],\n    ['es', conta(t, ['el', 'los', 'las', 'una', 'del', 'es', 'muy', 'pero', 'también', 'tiene', 'y']) + (t.match(/[ñ¿¡]/gu) ?? []).length],\n    ['en', conta(t, ['the', 'and', 'is', 'of', 'to', 'with', 'this', 'that', 'you', 'was'])],\n    ['it', conta(t, ['il', 'gli', 'della', 'che', 'non', 'per', 'sono', 'questo', 'anche'])],\n    ['fr', conta(t, ['le', 'les', 'est', 'une', 'avec', 'pour', 'des', 'dans', 'pas', 'vous'])],\n    ['de', conta(t, ['der', 'die', 'und', 'ist', 'mit', 'ein', 'eine', 'nicht', 'auch'])],\n  ]\n  notas.sort((a, b) => b[1] - a[1])\n  return notas[0][1] >= 3 && notas[0][1] > notas[1][1] ? notas[0][0] : null\n}\n\nexport type IdiomaDoPacote = { tag: string; nome: string }\n\n/** A língua do pacote: o código gravado no claim manda; a variante do português sai da própria fala. */\nexport function idiomaDoPacote(language: string | null | undefined, narracao: string | null | undefined): IdiomaDoPacote | null {\n  const fala = String(narracao ?? '')\n  const bruto = typeof language === 'string' ? language.trim().replace('_', '-') : ''\n  const [base0, regiao0] = bruto.split('-')\n  const base = (base0 || palpiteDeLingua(fala) || '').toLowerCase()\n  if (!base || !NOMES_DE_LINGUA[base]) return null\n  let tag = regiao0 ? `${base}-${regiao0.toUpperCase()}` : base\n  if (base === 'pt' && !regiao0) tag = variantePortugues(fala) ?? 'pt'\n  return { tag, nome: NOMES_DE_VARIANTE[tag] ?? NOMES_DE_LINGUA[base] }\n}\n\n/** A frase explícita de língua que vai no pedido ao modelo. */\nexport function instrucaoDeIdioma(idioma: IdiomaDoPacote | null): string {\n  if (!idioma) return 'LANGUAGE: the exact language (and regional variant) of THE VIDEO narration. Never switch to another language.'\n  const variante = idioma.tag === 'pt'\n    ? ' Match the Portuguese variant the narration uses (pt-BR or pt-PT); do not mix them.'\n    : idioma.tag === 'pt-PT' ? ' Use European Portuguese spelling and grammar (e.g. \"Sabias que\", never Brazilian \"Você sabia\").'\n    : idioma.tag === 'pt-BR' ? ' Use Brazilian Portuguese spelling and grammar.' : ''\n  return `LANGUAGE: ${idioma.nome} (${idioma.tag}). Write ytTitle, ytDescription, tiktokCaption, pinnedComment and every hashtag ENTIRELY in ${idioma.nome} (${idioma.tag}) — the language of the narration.${variante} Never use words from any other language (no Spanish, Italian or English look-alikes): spell animals, places, people and things exactly as the narration spells them.`\n}\n\nconst minus = (s: string) => s.toLocaleLowerCase()\n\nconst VOGAL = /[aeiouyáéíóúâêîôûãõàèìòùäëïöü]/\n/** Troca de 1 letra no MEIO (nem a 1ª, nem a última; nunca vogal ↔ vogal) entre palavras de mesmo tamanho ≥ 5. */\nfunction quaseIgual(a: string, b: string): boolean {\n  if (a.length !== b.length || a.length < 5 || a === b) return false\n  let diff = -1\n  for (let i = 0; i < a.length; i++) {\n    if (a[i] === b[i]) continue\n    if (diff >= 0) return false\n    diff = i\n  }\n  return diff > 0 && diff < a.length - 1 && !(VOGAL.test(a[diff]) && VOGAL.test(b[diff]))\n}\n\nfunction comCaixa(modelo: string, palavra: string): string {\n  if (modelo === modelo.toLocaleUpperCase() && modelo !== modelo.toLocaleLowerCase()) return palavra.toLocaleUpperCase()\n  if (modelo[0] === modelo[0].toLocaleUpperCase() && modelo[0] !== modelo[0].toLocaleLowerCase()) return palavra[0].toLocaleUpperCase() + palavra.slice(1)\n  return palavra\n}\n\n/** A checagem barata: o texto com as palavras quase iguais às da fala trocadas pela da fala, e a lista de trocas. */\nexport function corrigirPelaNarracao(texto: string, narracao: string): { texto: string; trocas: string[] } {\n  const daFala = new Set((String(narracao ?? '').match(/\\p{L}+/gu) ?? []).map(minus))\n  const trocas: string[] = []\n  if (daFala.size === 0 || typeof texto !== 'string') return { texto, trocas }\n  const out = texto.replace(/\\p{L}+/gu, (palavra) => {\n    const p = minus(palavra)\n    if (daFala.has(p)) return palavra\n    const candidatas = [...daFala].filter((f) => quaseIgual(p, f))\n    if (candidatas.length !== 1) return palavra\n    trocas.push(`${palavra}→${candidatas[0]}`)\n    return comCaixa(palavra, candidatas[0])\n  })\n  return { texto: out, trocas }\n}\n\n/** Aplica a checagem nas peças do pacote bruto do modelo (antes do crédito, que nunca é tocado). */\nexport function corrigirPacotePelaNarracao(bruto: Record<string, unknown>, narracao: string): { pacote: Record<string, unknown>; trocas: string[] } {\n  const pacote: Record<string, unknown> = { ...bruto }\n  const trocas: string[] = []\n  for (const k of ['ytTitle', 'title', 'ytDescription', 'description', 'tiktokCaption', 'caption', 'pinnedComment', 'comment']) {\n    if (typeof pacote[k] !== 'string') continue\n    const r = corrigirPelaNarracao(pacote[k] as string, narracao)\n    pacote[k] = r.texto\n    trocas.push(...r.trocas)\n  }\n  return { pacote, trocas }\n}\n\n/** O roteiro com marcadores (\"HOOK: [Pexels: giant octopus] \\\"...\\\"\") sem o andaime em inglês: só o que a voz fala. */\nexport function semAndaimeDoRoteiro(roteiro: string): string {\n  return String(roteiro ?? '')\n    .replace(/\\[[^\\]]*\\]/g, ' ')\n    .replace(/^\\s*(?:HOOK|MICRO[ _-]?REWARD(?:\\s*\\d+)?|ESCALATION|RHYTHM|PAYOFF|CTA)\\s*\\d*\\s*:/gim, '')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim()\n}\n"
+    }
+   ]
+  },
+  "lib/publishPackServer.ts": {
+   "beforeSha256": "fa612a20305b3e51693d0946826edfe83bd1abf6f38f031e8b1d750050fe2731",
+   "afterSha256": "35810572bbf19a1bf27e698b8e639357bc33c641a27c1712e94c038406079b1c",
+   "hunks": [
+    {
+     "before": "  PACOTE_EVENT,\n  lerPacote,",
+     "after": "  PACOTE_EVENT,\n  corrigirPacotePelaNarracao,\n  idiomaDoPacote,\n  instrucaoDeIdioma,\n  semAndaimeDoRoteiro,\n  lerPacote,"
+    },
+    {
+     "before": "// O pacote passa a nascer da narração; o topic continua como reserva.\nasync function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacote): Promise<string> {\n  try {",
+     "after": "// O pacote passa a nascer da narração; o topic continua como reserva.\n// KINEO-PACOTE-LINGUA-0211 — o mesmo claim guarda a LÍNGUA do filme (metadata.language, ex.: \"pt\"); o pacote passa a\n// nomeá-la no pedido em vez de pedir \"a língua do tema\" (ver lib/publishPack.ts, caso do \"polpo\" de 02/11).\nasync function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacote): Promise<{ narracao: string; language: string | null }> {\n  try {"
+    },
+    {
+     "before": "    }\n    if (!renderId) return ''\n    const { data: claims } = await admin",
+     "after": "    }\n    if (!renderId) return { narracao: '', language: null }\n    const { data: claims } = await admin"
+    },
+    {
+     "before": "    const n = typeof md.narration === 'string' ? md.narration.trim() : ''\n    return n.length >= 40 ? n : ''\n  } catch {\n    return ''\n  }",
+     "after": "    const n = typeof md.narration === 'string' ? md.narration.trim() : ''\n    const language = typeof md.language === 'string' && md.language.trim() ? md.language.trim() : null\n    return { narracao: n.length >= 40 ? n : '', language }\n  } catch {\n    return { narracao: '', language: null }\n  }"
+    },
+    {
+     "before": "\nasync function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao): Promise<void> {\n  try {",
+     "after": "\nasync function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao, extra?: Record<string, unknown>): Promise<void> {\n  try {"
+    },
+    {
+     "before": "      path: '/lib/publishPackServer',\n      metadata: { ...p },\n    })",
+     "after": "      path: '/lib/publishPackServer',\n      // KINEO-PACOTE-LINGUA-0211 — `language`/`spelling_fixes` são só para auditoria; lerPacote lê as 4 peças e ignora o resto.\n      metadata: { ...p, ...(extra ?? {}) },\n    })"
+    },
+    {
+     "before": "  '',\n  'Write in the language of the topic you are given. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',\n].join('\\n')",
+     "after": "  '',\n  // KINEO-PACOTE-LINGUA-0211 — a língua deixa de ser adivinhada: a linha LANGUAGE do pedido (instrucaoDeIdioma) a nomeia.\n  'Write in the language named in the LANGUAGE line (the language of the narration), never in English unless that line says English. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',\n].join('\\n')"
+    },
+    {
+     "before": "  // KINEO-PACOTE-DA-NARRACAO-2026-09-12 — o que a voz DIZ manda; o topic é reserva.\n  const narracao = await narracaoDoFilme(admin, userId, filme)\n  const tema = [\n    typeof filme.title === 'string' && !narracao ? filme.title.trim() : '',",
+     "after": "  // KINEO-PACOTE-DA-NARRACAO-2026-09-12 — o que a voz DIZ manda; o topic é reserva.\n  const { narracao, language } = await narracaoDoFilme(admin, userId, filme)\n  // KINEO-PACOTE-LINGUA-0211 — sem narração, o topic vai SEM o andaime em inglês (\"HOOK: [Pexels: giant octopus]\"),\n  // que puxava o modelo para outra língua; é também a fala de referência da checagem de grafia.\n  const tema = semAndaimeDoRoteiro([\n    typeof filme.title === 'string' && !narracao ? filme.title.trim() : '',"
+    },
+    {
+     "before": "    .filter(Boolean)\n    .join('\\n')\n    .slice(0, 1500)",
+     "after": "    .filter(Boolean)\n    .join('\\n'))\n    .slice(0, 1500)"
+    },
+    {
+     "before": "  if (!tema) return falhou('sem_tema')\n",
+     "after": "  if (!tema) return falhou('sem_tema')\n  const falaDeReferencia = narracao || tema\n  const idioma = idiomaDoPacote(language, falaDeReferencia)\n  const linhaDeIdioma = instrucaoDeIdioma(idioma)\n"
+    },
+    {
+     "before": "        model: 'gpt-4o-mini',\n        temperature: 0.8,\n        max_tokens: 600,",
+     "after": "        model: 'gpt-4o-mini',\n        // KINEO-PACOTE-LINGUA-0211 — 0,8 → 0,6: o \"polpo\" nasceu de criatividade de grafia, não de falta de ideia.\n        temperature: 0.6,\n        max_tokens: 600,"
+    },
+    {
+     "before": "        messages: [\n          { role: 'system', content: SISTEMA },\n          { role: 'user', content: `THE VIDEO:\\n${tema}` },\n        ],",
+     "after": "        messages: [\n          { role: 'system', content: `${SISTEMA}\\n${linhaDeIdioma}` },\n          { role: 'user', content: `${linhaDeIdioma}\\n\\nTHE VIDEO:\\n${tema}` },\n        ],"
+    },
+    {
+     "before": "  // LIMPO — errar para o lado de nao anunciar e o unico erro reversivel.\n  const p = prepararPacote(parsed, {",
+     "after": "  // LIMPO — errar para o lado de nao anunciar e o unico erro reversivel.\n  // KINEO-PACOTE-LINGUA-0211 — a checagem barata (grafia pela fala) roda dentro do prepararPacote, antes do crédito.\n  const p = prepararPacote(parsed, {"
+    },
+    {
+     "before": "    creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,\n  })",
+     "after": "    creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,\n    narracao: falaDeReferencia,\n  })"
+    },
+    {
+     "before": "  if (!p) return falhou('pacote_invalido')\n\n  await guardar(admin, userId, videoId, p)\n  return p",
+     "after": "  if (!p) return falhou('pacote_invalido')\n  const trocas = parsed && typeof parsed === 'object' ? corrigirPacotePelaNarracao(parsed as Record<string, unknown>, falaDeReferencia).trocas : []\n\n  await guardar(admin, userId, videoId, p, { language: idioma?.tag ?? null, ...(trocas.length ? { spelling_fixes: trocas.slice(0, 10) } : {}) })\n  return p"
+    }
+   ]
+  },
+  "lib/regua95/coletar.ts": {
+   "beforeSha256": "a5cbf061676bfebe9a5a29c3552f1cedba24f888a4e6810303e07d09307d0158",
+   "afterSha256": "1a5c939b424b42f6e6d5812121c9bdadbed1eb2c6f47d033ae5c20ef956c32f9",
+   "hunks": [
+    {
+     "before": "  }\n  const filmUsers = Array.from(new Set(filmes.map((v) => v.user_id)))",
+     "after": "  }\n  // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a marca \"usekineo.com/free\" só é dita ao juiz quando o RenderScript que a montagem\n  // gravou (free_redo_film_source, events só do servidor) a tem: medida, nunca inferida da imagem — o mesmo critério do\n  // portão do filme de 15 s. Sem isto, 8 quadros com a nossa marca no topo viravam \"texto inventado\" (teto 85).\n  const comMarca = new Set<string>()\n  for (const part of chunks(genIds)) {\n    const r = await readAll(() => admin.from('events').select('session_id').eq('name', 'free_redo_film_source').in('session_id', part)\n      .contains('metadata', { source: { elements: [{ type: 'text', text: 'usekineo.com/free' }] } }), { route, table: 'events' })\n    for (const m of (r.data ?? []) as Array<{ session_id: string | null }>) if (m.session_id) comMarca.add(m.session_id)\n  }\n  const filmUsers = Array.from(new Set(filmes.map((v) => v.user_id)))"
+    },
+    {
+     "before": "      ugc: null,\n      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null },\n    })",
+     "after": "      ugc: null,\n      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null, ...(gen && comMarca.has(gen) ? { expectedKineoWatermark: true } : {}) },\n    })"
+    }
+   ]
+  },
+  "lib/regua95/pixelScore.ts": {
+   "beforeSha256": "a30e5c860faa159d2924babfc867a2503027e016fa62782fa5143455137f81a0",
+   "afterSha256": "3fc575b79968084feacf39d96c62917b10a91daedd101ace898f4671dffa4a87",
+   "hunks": [
+    {
+     "before": "  cap_limit: number\n  summary: string",
+     "after": "  cap_limit: number\n  /** Quadros (1-based) cujo \"texto inventado\" era o nosso overlay conferido (legenda da fala / marca medida). */\n  overlay_text_ignored?: number[]\n  summary: string"
+    },
+    {
+     "before": "    ' CAPTIONS: burned-in captions are part of the product; flag caption_broken when a caption block is a single orphan word, ends on a preposition/article (\"STRAIGHT AT\", \"GRIDS FOR\"), cuts a phrase awkwardly, or covers the center of the subject; flag caption_illegible when it is hard to read (contrast, size, overlap). Text that is not a caption/overlay of the brief (random words, \"UNTITLED\", gibberish signage) is invented_text. ' +\n    ' Score EACH frame 0-100 and be harsh: reserve 100 for frames a professional editor would ship untouched; 90-99 = tiny cosmetic flaw; 70-89 = a visible flaw (soft deformation, weak match to the line, awkward or hard-to-read caption); below 70 = a defect a viewer notices at once (wrong subject, melted hand/face, character changed, gibberish text, black frame, product redesigned). ' +",
+     "after": "    ' CAPTIONS: burned-in captions are part of the product; flag caption_broken when a caption block is a single orphan word, ends on a preposition/article (\"STRAIGHT AT\", \"GRIDS FOR\"), cuts a phrase awkwardly, or covers the center of the subject; flag caption_illegible when it is hard to read (contrast, size, overlap). Text that is not a caption/overlay of the brief (random words, \"UNTITLED\", gibberish signage) is invented_text. ' +\n    // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o juiz diz ONDE e O QUE leu; o código confere com a fala/marca antes de pôr teto.\n    ' Whenever you flag invented_text on a frame, add to that frame \"seen_text\": [{\"text\": the exact letters you read, \"where\": \"caption_band\" (burned-in caption block, lower or middle), \"top_band\" (a short overlay line at the very top edge) or \"inside_scene\" (letters generated on signs, screens, documents, objects, packaging, clothing)}]. Letters inside the scene stay invented_text even when they spell a real word. ' +\n    ' Score EACH frame 0-100 and be harsh: reserve 100 for frames a professional editor would ship untouched; 90-99 = tiny cosmetic flaw; 70-89 = a visible flaw (soft deformation, weak match to the line, awkward or hard-to-read caption); below 70 = a defect a viewer notices at once (wrong subject, melted hand/face, character changed, gibberish text, black frame, product redesigned). ' +"
+    },
+    {
+     "before": "\n/**",
+     "after": "\n// ═══ KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o alarme falso de \"texto inventado\" ════════════════════════════════════════\n// Caso real (02/11, filme grátis 5aac817a, Kling 4.0): teto 85 por \"texto inventado na imagem em 8 quadro(s)\". As 16\n// notas das 2 leituras diziam a mesma coisa: \"Texto 'usekineo.com/free' no topo.\" — a NOSSA marca, queimada pela montagem,\n// porque o cron da régua não dizia ao juiz que ela estava lá (só o portão do filme de 15 s dizia). Em 14 dias, 40 de 436\n// notas de filme tiveram esse teto, a maioria com a marca ou a legenda como \"texto inventado\".\n// O conserto tem duas pontas: (1) o cron passa a dizer a marca quando o RenderScript gravado a tem (lib/regua95/coletar.ts);\n// (2) o código confere o que o juiz LEU: só sai do teto o texto na faixa de overlay (topo/legenda) que é a marca medida ou\n// palavras da própria fala. Letra dentro da cena nunca é descontada; filme sem marca medida nunca desconta a marca.\nexport type OverlayConhecido = { narration?: string | null; spokenByScene?: string[] | null; watermark?: boolean }\n\nexport function overlayDoContexto(ctx: PixelContext): OverlayConhecido {\n  return { narration: ctx.narration ?? null, spokenByScene: ctx.spokenByScene ?? null, watermark: ctx.expectedKineoWatermark === true }\n}\n\nconst semAcento = (s: string) => s.normalize('NFD').replace(/\\p{M}/gu, '').toLowerCase()\nfunction distancia(a: string, b: string): number {\n  const d = Array.from({ length: b.length + 1 }, (_, j) => j)\n  for (let i = 1; i <= a.length; i++) {\n    let prev = d[0]; d[0] = i\n    for (let j = 1; j <= b.length; j++) { const tmp = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp }\n  }\n  return d[b.length]\n}\n/** \"usekineo.com/free\" lido pelo juiz (inclusive \"usekino.com/free\", que ele já escreveu 8 vezes). */\nfunction ehMarcaKineo(texto: string): boolean {\n  const c = semAcento(texto).replace(/[^a-z0-9]/g, '')\n  return c.length >= 8 && (distancia(c, 'usekineocomfree') <= 2 || distancia(c, 'usekineocom') <= 2)\n}\nfunction ehFalaDoFilme(texto: string, overlay: OverlayConhecido): boolean {\n  const fala = [overlay.narration ?? '', ...(overlay.spokenByScene ?? [])].join(' ')\n  const daFala = new Set(semAcento(fala).match(/[\\p{L}\\p{N}]+/gu) ?? [])\n  const lidas = semAcento(texto).match(/[\\p{L}\\p{N}]+/gu) ?? []\n  return daFala.size > 0 && lidas.length > 0 && lidas.every((w) => daFala.has(w))\n}\nconst FAIXAS_DE_OVERLAY = new Set(['caption_band', 'top_band'])\n\n/**\n * O \"texto inventado\" deste quadro é só o nosso overlay? Exige TUDO: cada trecho lido está numa faixa de overlay e é a\n * marca medida (quando a montagem a pôs) ou palavras da fala. Sem `seen_text`, a nota do juiz serve de reserva só para a\n * marca medida (texto entre aspas + \"topo\"); nunca para palavras soltas.\n */\nexport function textoEhOverlayNosso(frame: Record<string, unknown>, overlay: OverlayConhecido | undefined): boolean {\n  if (!overlay) return false\n  const vistos = Array.isArray(frame.seen_text) ? (frame.seen_text as unknown[]) : null\n  if (vistos && vistos.length > 0) {\n    return vistos.every((v) => {\n      const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : null\n      const texto = typeof o?.text === 'string' ? o.text.trim() : ''\n      const onde = typeof o?.where === 'string' ? o.where.trim() : ''\n      if (!texto || !FAIXAS_DE_OVERLAY.has(onde)) return false\n      if (overlay.watermark === true && onde === 'top_band' && ehMarcaKineo(texto)) return true\n      return ehFalaDoFilme(texto, overlay)\n    })\n  }\n  if (overlay.watermark !== true) return false\n  const nota = typeof frame.note === 'string' ? frame.note : ''\n  const citados = [...nota.matchAll(/['\"“‘]([^'\"”’]{4,60})['\"”’]/g)].map((m) => m[1])\n  return citados.length > 0 && citados.every(ehMarcaKineo) && /\\b(topo|no alto|superior|top)\\b/i.test(nota)\n}\n\n/**"
+    },
+    {
+     "before": "  parsed: Record<string, unknown>,\n  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number },\n): PixelResult {",
+     "after": "  parsed: Record<string, unknown>,\n  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number; overlay?: OverlayConhecido },\n): PixelResult {"
+    },
+    {
+     "before": "  const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []\n  const verdicts: PixelFrameVerdict[] = ctx.frames.map((f, idx) => {",
+     "after": "  const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []\n  const overlayIgnored: number[] = [] // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n  const verdicts: PixelFrameVerdict[] = ctx.frames.map((f, idx) => {"
+    },
+    {
+     "before": "    const r = raw.find((x) => x?.i === idx + 1) ?? null\n    const issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []\n    const nearBlack = typeof f.bytes === 'number' && f.bytes > 0 && f.bytes < NEAR_BLACK_JPEG_BYTES",
+     "after": "    const r = raw.find((x) => x?.i === idx + 1) ?? null\n    let issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []\n    let frameScore = r ? clamp(r.score) : 0\n    // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — \"texto inventado\" que é o NOSSO overlay (legenda com as palavras da fala, ou a marca\n    // usekineo.com/free medida no RenderScript) não é defeito do motor. Só no filme, só na faixa de overlay, só com o texto\n    // conferido; letra gerada DENTRO da cena (placa, tela, documento, embalagem) continua reprovando (KINEO-CLIPE-SEM-LETRAS-0111).\n    if (ctx.product === 'filme' && r && issues.includes('invented_text') && textoEhOverlayNosso(r, ctx.overlay)) {\n      issues = issues.filter((c) => c !== 'invented_text')\n      overlayIgnored.push(idx + 1)\n      // Na rubrica do juiz, texto inventado empurra o quadro para 70-89; apagado o único defeito, o quadro volta no\n      // máximo ao piso de \"falha cosmética\" (90) — nunca a 100 por decreto.\n      if (issues.length === 0) frameScore = Math.max(frameScore, 90)\n    }\n    const nearBlack = typeof f.bytes === 'number' && f.bytes > 0 && f.bytes < NEAR_BLACK_JPEG_BYTES"
+    },
+    {
+     "before": "    if (nearBlack && !issues.includes('near_black')) issues.push('near_black')\n    return { i: idx + 1, t: f.t, subject: typeof r?.subject === 'string' ? r.subject.trim().slice(0, 60) : '', score: r ? clamp(r.score) : 0, issues, note: typeof r?.note === 'string' ? r.note.trim().slice(0, 120) : r ? '' : 'sem leitura do juiz para este quadro' }\n  })",
+     "after": "    if (nearBlack && !issues.includes('near_black')) issues.push('near_black')\n    return { i: idx + 1, t: f.t, subject: typeof r?.subject === 'string' ? r.subject.trim().slice(0, 60) : '', score: frameScore, issues, note: typeof r?.note === 'string' ? r.note.trim().slice(0, 120) : r ? '' : 'sem leitura do juiz para este quadro' }\n  })"
+    },
+    {
+     "before": "    cap_limit: capLimit,\n    summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',",
+     "after": "    cap_limit: capLimit,\n    ...(overlayIgnored.length ? { overlay_text_ignored: overlayIgnored } : {}), // KINEO-PAINEL-MOTOR-ENTREGUE-0211\n    summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',"
+    },
+    {
+     "before": "    }\n    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started })\n  } catch {",
+     "after": "    }\n    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started, overlay: overlayDoContexto(ctx) })\n  } catch {"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/admin/motorEntregue.ts": "e7b60bc583d2c3f88204cad3409f724a90df1a416d00fa11f4ade345904229f5"
+ }
+}

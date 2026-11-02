@@ -26,6 +26,7 @@ import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } fro
 import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510
 import { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { createLiveCache } from '@/lib/admin/liveCache'
+import { chaveMotor, lerChaveMotor, motorEntregueDe, rotuloMotorPedido } from '@/lib/admin/motorEntregue' // KINEO-PAINEL-MOTOR-ENTREGUE-0211
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -332,7 +333,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
         /partner|afiliad|parceir/i.test((r as { reason?: string | null }).reason ?? '')))
       // KINEO-PAINEL-MONTANDO-2026-09-19 — entregues nas 24 h por pessoa+motor: a linha de gasto passa a dizer
       // "2 pedidos (1 pronto · 1 montando)" em vez de "2 vídeos", que contradizia o total=1 enquanto o resgate montava.
-      const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })
+      const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode, render_id, engine_used').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })
       const delivered24 = new Map<string, number>()
       for (const v of vids24 ?? []) { const k = `${(v as { user_id?: string }).user_id}|${(v as { quality_mode?: string }).quality_mode ?? '?'}`; delivered24.set(k, (delivered24.get(k) ?? 0) + 1) }
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
@@ -485,6 +486,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
         }) as Array<{ user_id: string; render_id: string; amount: number }>
         const renderIds = dayDebits.map((d) => d.render_id).filter(Boolean)
         const jobQuality = new Map<string, string>()
+        const genByRef = new Map<string, string>(), freeEngineByGen = new Map<string, string>(), videoEngineByGen = new Map<string, string>() // KINEO-PAINEL-MOTOR-ENTREGUE-0211
         if (renderIds.length > 0) {
           const { data: jobs } = await readAll(() => admin
             .from('render_jobs').select('render_id, quality').in('render_id', renderIds), { route: '/api/admin/live', table: 'render_jobs', key: 'render_id' })
@@ -506,11 +508,41 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
             const ref = typeof md.billing_reference === 'string' ? md.billing_reference : null
             const q = typeof md.quality === 'string' ? md.quality : null
             if (ref && q && !jobQuality.has(ref)) jobQuality.set(ref, q)
+            const gen = typeof md.generation_id === 'string' ? md.generation_id : null // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+            if (ref && gen && !genByRef.has(ref)) genByRef.set(ref, gen)
+          }
+        }
+        // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o motor ENTREGUE de cada geração (lib/admin/motorEntregue.ts): o filme grátis
+        // grava free_film_engine_used; o resto vem de videos.engine_used (render_id → generation_id pelo compose claim).
+        const gens = Array.from(new Set(genByRef.values()))
+        if (gens.length > 0) {
+          const { data: free } = await readAll(() => admin
+            .from('events').select('metadata').eq('name', 'free_film_engine_used').in('metadata->>generation_id', gens), { route: '/api/admin/live', table: 'events' })
+          for (const e of free ?? []) {
+            const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
+            const gen = typeof md.generation_id === 'string' ? md.generation_id : null
+            if (gen && typeof md.engine_used === 'string' && !freeEngineByGen.has(gen)) freeEngineByGen.set(gen, md.engine_used)
+          }
+          const engineByRender = new Map<string, string>()
+          for (const v of vids24 ?? []) {
+            const vv = v as { render_id?: string | null; engine_used?: string | null }
+            if (vv.render_id && vv.engine_used) engineByRender.set(String(vv.render_id), vv.engine_used)
+          }
+          if (engineByRender.size > 0) {
+            const { data: claims } = await readAll(() => admin
+              .from('events').select('metadata').eq('name', 'compose_submission_claim').in('metadata->>render_id', Array.from(engineByRender.keys())), { route: '/api/admin/live', table: 'events' })
+            for (const c of claims ?? []) {
+              const md = ((c as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
+              const gen = typeof md.generation_id === 'string' ? md.generation_id : null
+              const eng = typeof md.render_id === 'string' ? engineByRender.get(md.render_id) : undefined
+              if (gen && eng && !videoEngineByGen.has(gen)) videoEngineByGen.set(gen, eng)
+            }
           }
         }
         for (const d of dayDebits) {
           if (!d.user_id || !Number.isFinite(d.amount)) continue
-          const q = jobQuality.get(String(d.render_id)) ?? '?'
+          const gen = genByRef.get(String(d.render_id)) // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+          const q = chaveMotor(jobQuality.get(String(d.render_id)) ?? '?', gen ? motorEntregueDe(freeEngineByGen.get(gen), videoEngineByGen.get(gen)) : null)
           const m = spentBy.get(d.user_id) ?? new Map()
           const cur = m.get(q) ?? { n: 0, cr: 0 }
           cur.n += 1; cur.cr += d.amount
@@ -676,12 +708,14 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
               // "no preço da época" quando os vídeos custaram preços diferentes.
               const mistoDePrecos = v.n > 1 && v.cr % v.n !== 0
               // KINEO-PAINEL-MONTANDO-2026-09-19 — pedidos (cobranças) × prontos (linhas em videos); o resto está montando.
-              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)
+              // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a chave carrega o motor entregue; "prontos" segue contando pelo quality do débito.
+              const { quality: qEscolhido, entregue } = lerChaveMotor(q)
+              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${qEscolhido}`) ?? 0)
               const montando = v.n - prontos
               const entrega = montando === 0 ? (v.n === 1 ? 'pronto' : 'todos prontos') : `${prontos} pronto${prontos === 1 ? '' : 's'} · ${montando} montando`
               void plural
               parts.push(
-                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${ENGINE_SHORT[q] ?? q} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
+                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${rotuloMotorPedido(qEscolhido, entregue, ENGINE_SHORT[qEscolhido] ?? qEscolhido)} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
                 (mistoDePrecos ? ' (preço da época)' : ''),
               )
             }

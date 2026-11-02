@@ -95,6 +95,15 @@ export async function listarEntregasRegua(
     const r = await readAll(() => ev('cinematic_submission_claim').in('session_id', part), { route, table: 'events' })
     for (const b of (r.data ?? []) as EventRow[]) if (b.session_id && !birthByGen.has(b.session_id)) birthByGen.set(b.session_id, b)
   }
+  // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a marca "usekineo.com/free" só é dita ao juiz quando o RenderScript que a montagem
+  // gravou (free_redo_film_source, events só do servidor) a tem: medida, nunca inferida da imagem — o mesmo critério do
+  // portão do filme de 15 s. Sem isto, 8 quadros com a nossa marca no topo viravam "texto inventado" (teto 85).
+  const comMarca = new Set<string>()
+  for (const part of chunks(genIds)) {
+    const r = await readAll(() => admin.from('events').select('session_id').eq('name', 'free_redo_film_source').in('session_id', part)
+      .contains('metadata', { source: { elements: [{ type: 'text', text: 'usekineo.com/free' }] } }), { route, table: 'events' })
+    for (const m of (r.data ?? []) as Array<{ session_id: string | null }>) if (m.session_id) comMarca.add(m.session_id)
+  }
   const filmUsers = Array.from(new Set(filmes.map((v) => v.user_id)))
   const writtenByUser = new Map<string, ScriptWrittenLido[]>()
   const sinceIdea = new Date(Date.parse(since) - 3 * 3600_000).toISOString()
@@ -125,7 +134,7 @@ export async function listarEntregasRegua(
       video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: gen, render_id: v.render_id,
       coherence,
       ugc: null,
-      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null },
+      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null, ...(gen && comMarca.has(gen) ? { expectedKineoWatermark: true } : {}) },
     })
   }
 

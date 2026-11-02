@@ -19,6 +19,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { KINEO_CREDIT_LINE } from '@/lib/videoDescription'
 import {
   PACOTE_EVENT,
+  corrigirPacotePelaNarracao,
+  idiomaDoPacote,
+  instrucaoDeIdioma,
+  semAndaimeDoRoteiro,
   lerPacote,
   pacoteAindaVale,
   prepararPacote,
@@ -42,14 +46,16 @@ export type FilmeDoPacote = {
 // digitou), não do que a voz DIZ. A narração que tocou mora no
 // compose_submission_claim (metadata.narration, chaveado por render_id).
 // O pacote passa a nascer da narração; o topic continua como reserva.
-async function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacote): Promise<string> {
+// KINEO-PACOTE-LINGUA-0211 — o mesmo claim guarda a LÍNGUA do filme (metadata.language, ex.: "pt"); o pacote passa a
+// nomeá-la no pedido em vez de pedir "a língua do tema" (ver lib/publishPack.ts, caso do "polpo" de 02/11).
+async function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacote): Promise<{ narracao: string; language: string | null }> {
   try {
     let renderId = typeof filme.render_id === 'string' && filme.render_id ? filme.render_id : ''
     if (!renderId && typeof filme.id === 'string') {
       const { data } = await admin.from('videos').select('render_id').eq('id', filme.id).maybeSingle()
       renderId = typeof data?.render_id === 'string' ? data.render_id : ''
     }
-    if (!renderId) return ''
+    if (!renderId) return { narracao: '', language: null }
     const { data: claims } = await admin
       .from('events')
       .select('metadata, created_at')
@@ -60,9 +66,10 @@ async function narracaoDoFilme(admin: Admin, userId: string, filme: FilmeDoPacot
       .limit(1)
     const md = (claims?.[0]?.metadata ?? {}) as Record<string, unknown>
     const n = typeof md.narration === 'string' ? md.narration.trim() : ''
-    return n.length >= 40 ? n : ''
+    const language = typeof md.language === 'string' && md.language.trim() ? md.language.trim() : null
+    return { narracao: n.length >= 40 ? n : '', language }
   } catch {
-    return ''
+    return { narracao: '', language: null }
   }
 }
 
@@ -90,14 +97,15 @@ export async function pacoteGravado(
   }
 }
 
-async function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao): Promise<void> {
+async function guardar(admin: Admin, userId: string, videoId: string, p: PacoteDePublicacao, extra?: Record<string, unknown>): Promise<void> {
   try {
     await admin.from('events').insert({
       user_id: userId,
       name: PACOTE_EVENT,
       session_id: videoId.slice(0, 64),
       path: '/lib/publishPackServer',
-      metadata: { ...p },
+      // KINEO-PACOTE-LINGUA-0211 — `language`/`spelling_fixes` são só para auditoria; lerPacote lê as 4 peças e ignora o resto.
+      metadata: { ...p, ...(extra ?? {}) },
     })
   } catch {
     /* a memoria e bonus; o pacote no e-mail nao e. */
@@ -116,7 +124,8 @@ const SISTEMA = [
   '- tiktokCaption: one hook line with one emoji, then hashtags including #fyp and #ai. Max 300 characters.',
   '- pinnedComment: one short line in the creator\'s voice about a surprising fact from the video, or about it being AI-made. Max 200 characters.',
   '',
-  'Write in the language of the topic you are given. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',
+  // KINEO-PACOTE-LINGUA-0211 — a língua deixa de ser adivinhada: a linha LANGUAGE do pedido (instrucaoDeIdioma) a nomeia.
+  'Write in the language named in the LANGUAGE line (the language of the narration), never in English unless that line says English. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',
 ].join('\n')
 
 /**
@@ -155,15 +164,20 @@ export async function garantirPacote(
   // `videos.script` esta vazio em 774 de 774 filmes de 30 dias (achado do #14):
   // o conteudo real mora em `topic`.
   // KINEO-PACOTE-DA-NARRACAO-2026-09-12 — o que a voz DIZ manda; o topic é reserva.
-  const narracao = await narracaoDoFilme(admin, userId, filme)
-  const tema = [
+  const { narracao, language } = await narracaoDoFilme(admin, userId, filme)
+  // KINEO-PACOTE-LINGUA-0211 — sem narração, o topic vai SEM o andaime em inglês ("HOOK: [Pexels: giant octopus]"),
+  // que puxava o modelo para outra língua; é também a fala de referência da checagem de grafia.
+  const tema = semAndaimeDoRoteiro([
     typeof filme.title === 'string' && !narracao ? filme.title.trim() : '',
     narracao || (typeof filme.topic === 'string' ? filme.topic.trim() : ''),
   ]
     .filter(Boolean)
-    .join('\n')
+    .join('\n'))
     .slice(0, 1500)
   if (!tema) return falhou('sem_tema')
+  const falaDeReferencia = narracao || tema
+  const idioma = idiomaDoPacote(language, falaDeReferencia)
+  const linhaDeIdioma = instrucaoDeIdioma(idioma)
 
   let bruto = ''
   try {
@@ -172,12 +186,13 @@ export async function garantirPacote(
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        temperature: 0.8,
+        // KINEO-PACOTE-LINGUA-0211 — 0,8 → 0,6: o "polpo" nasceu de criatividade de grafia, não de falta de ideia.
+        temperature: 0.6,
         max_tokens: 600,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: SISTEMA },
-          { role: 'user', content: `THE VIDEO:\n${tema}` },
+          { role: 'system', content: `${SISTEMA}\n${linhaDeIdioma}` },
+          { role: 'user', content: `${linhaDeIdioma}\n\nTHE VIDEO:\n${tema}` },
         ],
       }),
       // Curto DE PROPOSITO: este escritor roda em lote dentro de um cron.
@@ -204,11 +219,14 @@ export async function garantirPacote(
   // `buildBrandedYouTubeDescription`: quem assina compra, entre outras coisas,
   // nao ter de anunciar a ferramenta. Sem `isFreePlan` explicito o pacote sai
   // LIMPO — errar para o lado de nao anunciar e o unico erro reversivel.
+  // KINEO-PACOTE-LINGUA-0211 — a checagem barata (grafia pela fala) roda dentro do prepararPacote, antes do crédito.
   const p = prepararPacote(parsed, {
     creditLine: opts?.isFreePlan === true ? KINEO_CREDIT_LINE : null,
+    narracao: falaDeReferencia,
   })
   if (!p) return falhou('pacote_invalido')
+  const trocas = parsed && typeof parsed === 'object' ? corrigirPacotePelaNarracao(parsed as Record<string, unknown>, falaDeReferencia).trocas : []
 
-  await guardar(admin, userId, videoId, p)
+  await guardar(admin, userId, videoId, p, { language: idioma?.tag ?? null, ...(trocas.length ? { spelling_fixes: trocas.slice(0, 10) } : {}) })
   return p
 }

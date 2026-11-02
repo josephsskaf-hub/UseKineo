@@ -164,6 +164,8 @@ export type PixelResult = EvidenceAssessment & {
   product_faithful: boolean | null
   caps: string[]
   cap_limit: number
+  /** Quadros (1-based) cujo "texto inventado" era o nosso overlay conferido (legenda da fala / marca medida). */
+  overlay_text_ignored?: number[]
   summary: string
   /** nota de cada leitura (a média é `score`) */
   readings: number[]
@@ -195,6 +197,8 @@ export function buildPixelMessages(ctx: PixelContext, frames: Frame[], detail: P
     'You are a strict video QA reviewer measuring whether a delivered video is a 95+/100 video. You see frames sampled in time order from the FINAL MP4 the customer received. ' +
     PRODUCT_RULES[ctx.product] +
     ' CAPTIONS: burned-in captions are part of the product; flag caption_broken when a caption block is a single orphan word, ends on a preposition/article ("STRAIGHT AT", "GRIDS FOR"), cuts a phrase awkwardly, or covers the center of the subject; flag caption_illegible when it is hard to read (contrast, size, overlap). Text that is not a caption/overlay of the brief (random words, "UNTITLED", gibberish signage) is invented_text. ' +
+    // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o juiz diz ONDE e O QUE leu; o código confere com a fala/marca antes de pôr teto.
+    ' Whenever you flag invented_text on a frame, add to that frame "seen_text": [{"text": the exact letters you read, "where": "caption_band" (burned-in caption block, lower or middle), "top_band" (a short overlay line at the very top edge) or "inside_scene" (letters generated on signs, screens, documents, objects, packaging, clothing)}]. Letters inside the scene stay invented_text even when they spell a real word. ' +
     ' Score EACH frame 0-100 and be harsh: reserve 100 for frames a professional editor would ship untouched; 90-99 = tiny cosmetic flaw; 70-89 = a visible flaw (soft deformation, weak match to the line, awkward or hard-to-read caption); below 70 = a defect a viewer notices at once (wrong subject, melted hand/face, character changed, gibberish text, black frame, product redesigned). ' +
     `Issue codes (use only these): ${PIXEL_ISSUES.join(', ')}. ` +
     'First name the main subject of EACH frame in a few English words (species, age, look: e.g. "purple cartoon dinosaur", "human child in pajamas", "amber perfume bottle"), THEN compare those subjects across frames: a recurring character or product whose species/age/face/look changes is an identity change. ' +
@@ -226,6 +230,66 @@ const clamp = (n: unknown): number => {
 }
 const bool = (x: unknown): boolean | null => (x === true ? true : x === false ? false : null)
 
+// ═══ KINEO-PAINEL-MOTOR-ENTREGUE-0211 — o alarme falso de "texto inventado" ════════════════════════════════════════
+// Caso real (02/11, filme grátis 5aac817a, Kling 4.0): teto 85 por "texto inventado na imagem em 8 quadro(s)". As 16
+// notas das 2 leituras diziam a mesma coisa: "Texto 'usekineo.com/free' no topo." — a NOSSA marca, queimada pela montagem,
+// porque o cron da régua não dizia ao juiz que ela estava lá (só o portão do filme de 15 s dizia). Em 14 dias, 40 de 436
+// notas de filme tiveram esse teto, a maioria com a marca ou a legenda como "texto inventado".
+// O conserto tem duas pontas: (1) o cron passa a dizer a marca quando o RenderScript gravado a tem (lib/regua95/coletar.ts);
+// (2) o código confere o que o juiz LEU: só sai do teto o texto na faixa de overlay (topo/legenda) que é a marca medida ou
+// palavras da própria fala. Letra dentro da cena nunca é descontada; filme sem marca medida nunca desconta a marca.
+export type OverlayConhecido = { narration?: string | null; spokenByScene?: string[] | null; watermark?: boolean }
+
+export function overlayDoContexto(ctx: PixelContext): OverlayConhecido {
+  return { narration: ctx.narration ?? null, spokenByScene: ctx.spokenByScene ?? null, watermark: ctx.expectedKineoWatermark === true }
+}
+
+const semAcento = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+function distancia(a: string, b: string): number {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i
+    for (let j = 1; j <= b.length; j++) { const tmp = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp }
+  }
+  return d[b.length]
+}
+/** "usekineo.com/free" lido pelo juiz (inclusive "usekino.com/free", que ele já escreveu 8 vezes). */
+function ehMarcaKineo(texto: string): boolean {
+  const c = semAcento(texto).replace(/[^a-z0-9]/g, '')
+  return c.length >= 8 && (distancia(c, 'usekineocomfree') <= 2 || distancia(c, 'usekineocom') <= 2)
+}
+function ehFalaDoFilme(texto: string, overlay: OverlayConhecido): boolean {
+  const fala = [overlay.narration ?? '', ...(overlay.spokenByScene ?? [])].join(' ')
+  const daFala = new Set(semAcento(fala).match(/[\p{L}\p{N}]+/gu) ?? [])
+  const lidas = semAcento(texto).match(/[\p{L}\p{N}]+/gu) ?? []
+  return daFala.size > 0 && lidas.length > 0 && lidas.every((w) => daFala.has(w))
+}
+const FAIXAS_DE_OVERLAY = new Set(['caption_band', 'top_band'])
+
+/**
+ * O "texto inventado" deste quadro é só o nosso overlay? Exige TUDO: cada trecho lido está numa faixa de overlay e é a
+ * marca medida (quando a montagem a pôs) ou palavras da fala. Sem `seen_text`, a nota do juiz serve de reserva só para a
+ * marca medida (texto entre aspas + "topo"); nunca para palavras soltas.
+ */
+export function textoEhOverlayNosso(frame: Record<string, unknown>, overlay: OverlayConhecido | undefined): boolean {
+  if (!overlay) return false
+  const vistos = Array.isArray(frame.seen_text) ? (frame.seen_text as unknown[]) : null
+  if (vistos && vistos.length > 0) {
+    return vistos.every((v) => {
+      const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : null
+      const texto = typeof o?.text === 'string' ? o.text.trim() : ''
+      const onde = typeof o?.where === 'string' ? o.where.trim() : ''
+      if (!texto || !FAIXAS_DE_OVERLAY.has(onde)) return false
+      if (overlay.watermark === true && onde === 'top_band' && ehMarcaKineo(texto)) return true
+      return ehFalaDoFilme(texto, overlay)
+    })
+  }
+  if (overlay.watermark !== true) return false
+  const nota = typeof frame.note === 'string' ? frame.note : ''
+  const citados = [...nota.matchAll(/['"“‘]([^'"”’]{4,60})['"”’]/g)].map((m) => m[1])
+  return citados.length > 0 && citados.every(ehMarcaKineo) && /\b(topo|no alto|superior|top)\b/i.test(nota)
+}
+
 /**
  * Do JSON do modelo para a nota. A NOTA nasce aqui:
  *   base = média das notas por quadro; tetos de código (cada um nomeado em `caps`):
@@ -240,7 +304,7 @@ const bool = (x: unknown): boolean | null => (x === true ? true : x === false ? 
  */
 export function normalizePixel(
   parsed: Record<string, unknown>,
-  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number },
+  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number; overlay?: OverlayConhecido },
 ): PixelResult {
   parsed = objectRecord(parsed)
   const evidence = inspectFrameEvidence(parsed, ctx.frames, PIXEL_FRAMES, (r) =>
@@ -248,12 +312,24 @@ export function normalizePixel(
     r.issues.every((c) => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) &&
     typeof r.note === 'string' && (r.score === 100 && r.issues.length === 0 || !!r.note.trim()))
   const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []
+  const overlayIgnored: number[] = [] // KINEO-PAINEL-MOTOR-ENTREGUE-0211
   const verdicts: PixelFrameVerdict[] = ctx.frames.map((f, idx) => {
     const r = raw.find((x) => x?.i === idx + 1) ?? null
-    const issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []
+    let issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []
+    let frameScore = r ? clamp(r.score) : 0
+    // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — "texto inventado" que é o NOSSO overlay (legenda com as palavras da fala, ou a marca
+    // usekineo.com/free medida no RenderScript) não é defeito do motor. Só no filme, só na faixa de overlay, só com o texto
+    // conferido; letra gerada DENTRO da cena (placa, tela, documento, embalagem) continua reprovando (KINEO-CLIPE-SEM-LETRAS-0111).
+    if (ctx.product === 'filme' && r && issues.includes('invented_text') && textoEhOverlayNosso(r, ctx.overlay)) {
+      issues = issues.filter((c) => c !== 'invented_text')
+      overlayIgnored.push(idx + 1)
+      // Na rubrica do juiz, texto inventado empurra o quadro para 70-89; apagado o único defeito, o quadro volta no
+      // máximo ao piso de "falha cosmética" (90) — nunca a 100 por decreto.
+      if (issues.length === 0) frameScore = Math.max(frameScore, 90)
+    }
     const nearBlack = typeof f.bytes === 'number' && f.bytes > 0 && f.bytes < NEAR_BLACK_JPEG_BYTES
     if (nearBlack && !issues.includes('near_black')) issues.push('near_black')
-    return { i: idx + 1, t: f.t, subject: typeof r?.subject === 'string' ? r.subject.trim().slice(0, 60) : '', score: r ? clamp(r.score) : 0, issues, note: typeof r?.note === 'string' ? r.note.trim().slice(0, 120) : r ? '' : 'sem leitura do juiz para este quadro' }
+    return { i: idx + 1, t: f.t, subject: typeof r?.subject === 'string' ? r.subject.trim().slice(0, 60) : '', score: frameScore, issues, note: typeof r?.note === 'string' ? r.note.trim().slice(0, 120) : r ? '' : 'sem leitura do juiz para este quadro' }
   })
   const caps: string[] = []
   let capLimit = 100
@@ -301,6 +377,7 @@ export function normalizePixel(
     product_faithful: productFaithful,
     caps,
     cap_limit: capLimit,
+    ...(overlayIgnored.length ? { overlay_text_ignored: overlayIgnored } : {}), // KINEO-PAINEL-MOTOR-ENTREGUE-0211
     summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 200) : '',
     frame_via: ctx.via,
     frame_count: ctx.frames.length,
@@ -386,7 +463,7 @@ async function judgeFramesOnce(
     } catch {
       return null
     }
-    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started })
+    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started, overlay: overlayDoContexto(ctx) })
   } catch {
     return null
   } finally {
