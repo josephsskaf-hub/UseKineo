@@ -97,7 +97,8 @@ for (const [label, text, want] of [
   ['"Yang Liwei first astronaut" (en)', 'Yang Liwei first astronaut', 'en'],
   ['"story of दीवाली" (palavra solta não domina)', 'story of दीवाली', 'en'],
   ['"the Kremlin (Кремль) secrets" (palavra solta)', 'the secrets of the Kremlin (Кремль) and its towers', 'en'],
-  ['persa (fa fora do catálogo) → língua mais comum da escrita, nunca urdu', PERSA, 'ar'],
+  ['persa (fa fora do catálogo) → urdu (letras que o árabe não tem), nunca árabe', PERSA, 'ur'],
+  ['urdu curto sem letra exclusiva (پاکستان کی تاریخ) → urdu, nunca árabe', 'پاکستان کی تاریخ', 'ur'],
   ['curdo sorani → nunca urdu', SORANI, 'ar'],
   ['sérvio cirílico (fora do catálogo) → língua mais comum da escrita, nunca bg/uk por engano', SERVIO, 'ru'],
 ]) ok(lang('en', text) === want, `${label} → ${lang('en', text)}`)

@@ -49,8 +49,10 @@ const SCRIPTS: readonly Script[] = [
     pick: (t) => {
       if (/[ەێۆڵڕڤ]/u.test(t)) return null // curdo sorani: fora do catálogo — nunca urdu
       if (/[ٹڈڑںےۓہھ]/u.test(t)) return 'ur'
-      if (/[پچژگ]/u.test(t)) return null // persa (fa fora do catálogo)
       if (/[ةإأؤئى]/u.test(t)) return 'ar'
+      // پچژگ / ک / ی não existem no árabe: sem marca só do árabe, a única língua do catálogo com essas letras é o urdu
+      // ("پاکستان کی تاریخ" virava 'ar' + "translate nothing"). Persa (fa fora do catálogo) cai aqui também: urdu > árabe.
+      if (/[پچژگکی]/u.test(t)) return 'ur'
       return null
     },
   },
