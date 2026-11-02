@@ -13,6 +13,7 @@
 //   F. a retomada de checkout enxerga o filme grátis de 15 s (não reabre checkout de conta com 0 filmes);
 //   G. o cartão de plano não vende "Keep N/month with Kineo 1" a quem não vê o Kineo 1;
 //   H. o modal de trial vencido não manda para um filme que a rota recusa.
+import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,7 +25,7 @@ import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // re
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semSemInicioAutomatico0211(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

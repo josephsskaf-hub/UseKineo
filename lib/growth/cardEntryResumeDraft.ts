@@ -3,6 +3,8 @@
 // O PROBLEMA QUE ISTO RESOLVE. Na versão B a pessoa escreve a ideia, escolhe o
 // MOTOR e a duração, aperta Generate, bate na cota zero, vê a porta de $1, paga,
 // e volta para `/studio/create?resume=card_entry`, onde o filme dispara sozinho.
+// (KINEO-SEM-INICIO-AUTOMATICO-0211: não dispara mais — a tela mostra o pedido e
+// espera o clique em "Start my film"; ver lib/growth/semInicioAutomatico.ts.)
 // O rascunho que atravessava essa viagem guardava `prompt`, `quality` e
 // `duration` — e NÃO guardava `mode` nem `aiEngine`, que são as duas variáveis
 // que de fato escolhem o motor. Na volta, `mode` renascia no padrão de fábrica
@@ -37,7 +39,9 @@ export type DraftEngine =
 const DRAFT_QUALITIES: readonly DraftQuality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']
 const DRAFT_MODES: readonly DraftMode[] = ['fast', 'cinematic_ai', 'cinematic', 'creator']
 const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13
-const DRAFT_DURATIONS: readonly number[] = [35, 45, 60, 90]
+// KINEO-SEM-INICIO-AUTOMATICO-0211 — a duração restaurada é EXATAMENTE a escolhida: 15 (Seedance curto) e 30 (estrada
+// hollywood) também voltam. Antes eram recusados aqui e a tela renascia no padrão dela — trocar a escolha por um chute.
+const DRAFT_DURATIONS: readonly number[] = [15, 30, 35, 45, 60, 90]
 
 export interface CardEntryDraft {
   prompt: string

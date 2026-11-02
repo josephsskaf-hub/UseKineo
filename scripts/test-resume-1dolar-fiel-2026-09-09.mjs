@@ -33,6 +33,7 @@
 // As verificações amarram cada afirmação à VARIÁVEL/FUNÇÃO que decide, nunca à
 // presença de uma string: um mutante que troque `outOfCredits()` por `false`
 // mantém todo o texto do arquivo (memória `guardiao-contar-texto-nao-prova-condicao`).
+import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -40,7 +41,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const root = path.resolve(import.meta.dirname, '..')
-const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semSemInicioAutomatico0211(fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n'), rel)
 
 const MODULO = 'lib/growth/cardEntryResumeDraft.ts'
 const GENERATE = 'app/(dashboard)/generate/GenerateClient.tsx'

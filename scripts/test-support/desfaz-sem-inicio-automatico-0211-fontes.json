@@ -1,0 +1,123 @@
+{
+ "base": "e563b4af0596ebb7c62cf389900236d1854a6bff",
+ "scope": {
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "daaf420583d17cd221fe5324ed9d6316b01eec36e7bcf76d286fddbe10f0d24f",
+   "afterSha256": "d96fa2fc7dd10395bb03db2722cb805b12bd5d35e5469766aa4abe6a8b29e181",
+   "hunks": [
+    {
+     "before": "} from '@/lib/growth/cardEntryResumeDraft'\nimport { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'",
+     "after": "} from '@/lib/growth/cardEntryResumeDraft'\nimport { ACTIVATION_AUTOSTART_CONFIRMED_EVENT, ACTIVATION_AUTOSTART_HELD_EVENT, CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION, START_MY_FILM_CTA, defaultsDoPlanoPodemMexer, estadoDoPedidoRestaurado, inicioAutomaticoPedeClique, resumoDoPedido } from '@/lib/growth/semInicioAutomatico' // KINEO-SEM-INICIO-AUTOMATICO-0211\nimport { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'"
+    },
+    {
+     "before": "  const [activationAutostartArmed, setActivationAutostartArmed] = useState(false)\n  useEffect(() => {",
+     "after": "  const [activationAutostartArmed, setActivationAutostartArmed] = useState(false)\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o 1º filme automático que DEBITA crédito (inclusive do trial) fica pronto na tela\n  // (texto, motor, duração) e espera o clique em \"Start my film\". Custo 0 (cota grátis) segue automático, por desenho.\n  const [activationAguardandoClique, setActivationAguardandoClique] = useState(false)\n  const activationHeldRef = useRef<{ topic: string; structureFirst: boolean } | null>(null)\n  useEffect(() => {"
+    },
+    {
+     "before": "  const resumeArmedRef = useRef(false)\n  const resumeFiredRef = useRef(false)\n  const resumeBlockedReportedRef = useRef(false)\n  useEffect(() => {",
+     "after": "  const resumeArmedRef = useRef(false)\n  const resumeBlockedReportedRef = useRef(false)\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — a tela restaurou um pedido da pessoa (card_entry ou wall_v1): os defaults por\n  // plano do fetchCredits não tocam mais em motor nem duração (era o 35 → 60 da manobiayousaf, 01/11).\n  const escolhaRestauradaRef = useRef(false)\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — pedido restaurado esperando o clique em \"Start my film\" (nunca dispara sozinho).\n  const [resumeAguardandoClique, setResumeAguardandoClique] = useState(false)\n  useEffect(() => {"
+    },
+    {
+     "before": "      if (!draft) return\n      setPrompt(draft.prompt)",
+     "after": "      if (!draft) return\n      escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211\n      setPrompt(draft.prompt)"
+    },
+    {
+     "before": "      resumeArmedRef.current = draft.fresh\n      void trackEvent('card_entry_resume_restored', {",
+     "after": "      resumeArmedRef.current = draft.fresh\n      setResumeAguardandoClique(draft.fresh) // KINEO-SEM-INICIO-AUTOMATICO-0211 — mostra o pedido; o render espera o clique\n      void trackEvent('card_entry_resume_restored', {"
+    },
+    {
+     "before": "        engine_restored: draft.mode !== null,\n      })",
+     "after": "        engine_restored: draft.mode !== null,\n        awaits_click: draft.fresh, // KINEO-SEM-INICIO-AUTOMATICO-0211 — nada começa sozinho; o filme sai no clique\n        version: SEM_INICIO_AUTOMATICO_VERSION,\n      })"
+    },
+    {
+     "before": "  }, [])\n  useEffect(() => {\n    if (!resumeArmedRef.current || resumeFiredRef.current) return\n    if (credits === null) return",
+     "after": "  }, [])\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — este efeito DISPARAVA o filme sozinho (card_entry_resume_autostart) assim que o\n  // saldo chegava. Caso manobiayousaf (01/11): Creator recém-pago, Seedance de 60 s começou sem clique e debitou 35 cr.\n  // Agora ele só MEDE: se o saldo não paga o pedido restaurado, registra uma vez (a tela mostra o pedido com o botão, e o\n  // clique cai na mesma guarda do Generate). Quem dispara é confirmarPedidoRestaurado(), chamado só pelo onClick.\n  useEffect(() => {\n    if (!resumeArmedRef.current || !resumeAguardandoClique) return\n    if (credits === null) return"
+    },
+    {
+     "before": "    }\n    resumeFiredRef.current = true\n    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }\n    void trackEvent('card_entry_resume_autostart', { quality, duration, credits, mode, engine: aiEngine })\n    handleGenerateGuarded()\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [credits, prompt, quality, duration, phase, mode, aiEngine])\n",
+     "after": "    }\n    // KINEO-SEM-INICIO-AUTOMATICO-0211 — saldo paga: NADA acontece aqui. O pedido fica na tela esperando o clique.\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [credits, prompt, quality, duration, phase, mode, aiEngine, resumeAguardandoClique])\n  // Qualquer geração que comece (o botão Generate de sempre, por exemplo) encerra o cartão: ele não volta depois do filme.\n  useEffect(() => {\n    if (resumeAguardandoClique && isProcessingPhase(phase)) setResumeAguardandoClique(false) // KINEO-SEM-INICIO-AUTOMATICO-0211\n  }, [phase, resumeAguardandoClique])\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o ÚNICO caminho que tira um pedido restaurado do papel: o clique em \"Start my film\".\n  // Mesma guarda do Generate (handleGenerateGuarded → outOfCredits → modal). Saldo que não paga: o rascunho e o cartão\n  // ficam (a pessoa troca o motor/duração e clica de novo). Saldo que paga: apaga o rascunho, registra a confirmação e gera.\n  function confirmarPedidoRestaurado() {\n    if (isProcessingPhase(phase) || !prompt.trim()) return\n    if (outOfCredits()) {\n      void trackEvent('card_entry_resume_blocked', { reason: 'insufficient_credits', on_click: true, quality, duration, mode, engine: aiEngine, credits, version: SEM_INICIO_AUTOMATICO_VERSION })\n      handleGenerateGuarded()\n      return\n    }\n    setResumeAguardandoClique(false)\n    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }\n    void trackEvent(CARD_ENTRY_RESUME_CONFIRMED_EVENT, { quality, duration, credits, mode, engine: aiEngine, cost: selectedCost, version: SEM_INICIO_AUTOMATICO_VERSION })\n    handleGenerateGuarded()\n  }\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o clique que libera o 1º filme do create_intent (activation_autostart) que custa\n  // crédito. Rearma o rail e segue o MESMO caminho de antes (análise → activation_autostart_dispatched), agora autorizado.\n  function confirmarPrimeiroFilme() {\n    const held = activationHeldRef.current\n    if (!held || isProcessingPhase(phase) || generationInFlightRef.current) return\n    if (outOfCredits()) {\n      openOutOfCreditsModal()\n      return\n    }\n    activationHeldRef.current = null\n    setActivationAguardandoClique(false)\n    activationAutoGenerateRef.current = true\n    activationAutostartSawProcessingRef.current = false\n    void trackEvent(ACTIVATION_AUTOSTART_CONFIRMED_EVENT, { ...(activationAutostartContextRef.current ?? {}), cost: selectedCost, duration, mode, engine: mode === 'cinematic_ai' ? aiEngine : 'fast', version: SEM_INICIO_AUTOMATICO_VERSION })\n    void handleAnalyze(held.topic, { fromTopic: true, skipPreview: true, structureFirst: held.structureFirst })\n  }\n  // Qualquer geração que comece por outro botão encerra a espera do 1º filme (o rail já está desarmado).\n  useEffect(() => {\n    if (!activationAguardandoClique || !isProcessingPhase(phase)) return\n    activationHeldRef.current = null\n    setActivationAguardandoClique(false) // KINEO-SEM-INICIO-AUTOMATICO-0211\n  }, [phase, activationAguardandoClique])\n"
+    },
+    {
+     "before": "      }\n      setPrompt(draft.prompt)",
+     "after": "      }\n      escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211 — os defaults do plano não atropelam o pedido restaurado\n      setPrompt(draft.prompt)"
+    },
+    {
+     "before": "            const motorTraduzidoDoKineo1 = entradaNoPlano && pedidoDeKineo1(searchParams?.get('engine'))\n            if (urlPickedEngine && !motorTraduzidoDoKineo1) { /* escolha explicita — nao tocar */ }\n            else if (entradaNoPlano) {",
+     "after": "            const motorTraduzidoDoKineo1 = entradaNoPlano && pedidoDeKineo1(searchParams?.get('engine'))\n            // KINEO-SEM-INICIO-AUTOMATICO-0211 — a causa do 35 → 60 (manobiayousaf, 01/11): na volta do checkout\n            // (?resume=card_entry, sem ?duration) o ramo entradaNoPlano abaixo trocava a duração RESTAURADA pela maior que o\n            // saldo novo paga (Creator → 60), ~2 s depois da restauração. Pedido restaurado vence os defaults, sempre.\n            if (!defaultsDoPlanoPodemMexer({ escolhaRestaurada: escolhaRestauradaRef.current, motorExplicitoNaUrl: Boolean(urlPickedEngine && !motorTraduzidoDoKineo1) })) { /* escolha explicita ou restaurada — nao tocar */ }\n            else if (entradaNoPlano) {"
+    },
+    {
+     "before": "\n    activationCreationContractRef.current = null",
+     "after": "\n    // KINEO-SEM-INICIO-AUTOMATICO-0211 — filme que debita crédito (inclusive do trial) não começa sem clique: o arranjo\n    // fica pronto e a tela mostra \"Start my film\" com motor · duração · custo. O rail fica DESARMADO enquanto espera\n    // (activationAutoGenerateRef=false), para que nenhuma análise feita por outro botão vire despacho automático; o\n    // clique (confirmarPrimeiroFilme) rearma e segue exatamente o caminho de antes. Custo 0 = cota grátis: segue.\n    if (inicioAutomaticoPedeClique({ custoCreditos: selectedCost, confirmado: false })) {\n      activationCreationContractRef.current = null\n      activationHeldRef.current = { topic, structureFirst: activationContract.structureFirst }\n      activationAutoGenerateRef.current = false\n      setActivationAguardandoClique(true)\n      void trackEvent(ACTIVATION_AUTOSTART_HELD_EVENT, { ...metadata, cost: selectedCost, duration, version: SEM_INICIO_AUTOMATICO_VERSION })\n      return\n    }\n\n    activationCreationContractRef.current = null"
+    },
+    {
+     "before": "    : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)\n  // KINEO-TOPUP-OFERTA-2026-09-06 (#29) — o plano no vocabulario do SERVIDOR",
+     "after": "    : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)\n  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o cartão do pedido restaurado (card_entry) ou do 1º filme que espera o clique.\n  const pedidoRestauradoEstado = estadoDoPedidoRestaurado({\n    restaurado: resumeAguardandoClique,\n    confirmado: false,\n    temTexto: prompt.trim().length > 0,\n    processando: isProcessingPhase(phase),\n    credits,\n    outOfCredits: credits !== null && outOfCredits(),\n  })\n  const pedidoParaConfirmar: 'resume' | 'activation' | null = phase !== 'idle'\n    ? null\n    : pedidoRestauradoEstado !== 'nenhum' ? 'resume' : activationAguardandoClique ? 'activation' : null\n  const pedidoResumo = resumoDoPedido({ mode, engine: aiEngine, duration, cost: selectedCost })\n  // KINEO-TOPUP-OFERTA-2026-09-06 (#29) — o plano no vocabulario do SERVIDOR"
+    },
+    {
+     "before": "\n      {/* KINEO-STUDIO-FANTASMA-1510 (2) — o auto-start espera o saldo: nunca escreve roteiro de filme pago às cegas. */}",
+     "after": "\n      {/* KINEO-SEM-INICIO-AUTOMATICO-0211 — depois do checkout (ou no 1º filme que custa crédito) nada começa sozinho: a\n          tela mostra o pedido (motor · duração · custo) e o render só sai no clique em \"Start my film\". */}\n      {pedidoParaConfirmar && (\n        <div\n          role=\"region\"\n          aria-label=\"Your film is ready to start\"\n          data-kineo=\"sem-inicio-automatico-0211\"\n          data-testid=\"start-my-film-card\"\n          className=\"gv-card rounded-xl px-4 py-4 mb-6 flex items-center justify-between gap-3 flex-wrap\"\n          style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.35)' }}\n        >\n          <div>\n            <div className=\"font-bold text-sm\" style={{ color: 'var(--text)' }}>\n              {pedidoParaConfirmar === 'resume' ? 'Your film is saved and ready to start' : 'Your first film is ready to start'}\n            </div>\n            <div className=\"text-xs mt-1\" style={{ color: 'var(--muted2)' }} data-testid=\"start-my-film-summary\">\n              {pedidoResumo}\n            </div>\n            <div className=\"text-xs mt-1\" style={{ color: 'var(--muted2)' }}>\n              {pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'sem_saldo'\n                ? 'Your balance does not cover this film yet. Pick a shorter length or another engine below, or add credits.'\n                : 'Nothing starts until you press the button. You can still change the engine, length or text below.'}\n            </div>\n          </div>\n          <button\n            type=\"button\"\n            data-testid=\"start-my-film-button\"\n            onClick={() => { if (pedidoParaConfirmar === 'resume') confirmarPedidoRestaurado(); else confirmarPrimeiroFilme() }}\n            disabled={pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo'}\n            className=\"font-bold text-sm px-4 py-2 rounded-lg\"\n            style={{ background: '#2997ff', color: '#fff', opacity: pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo' ? 0.7 : 1 }}\n          >\n            {pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo' ? 'Checking your credits…' : START_MY_FILM_CTA}\n          </button>\n        </div>\n      )}\n\n      {/* KINEO-STUDIO-FANTASMA-1510 (2) — o auto-start espera o saldo: nunca escreve roteiro de filme pago às cegas. */}"
+    }
+   ]
+  },
+  "app/(dashboard)/create/CreateClient.tsx": {
+   "beforeSha256": "f76a8a282701407adf1aeb720633f683722e77fdee095f53c3917d9e0ad95f33",
+   "afterSha256": "e875b3cd972aadd4280712c6e798b2ccf5fe371e9fed11936bcadbf63a0808df",
+   "hunks": [
+    {
+     "before": "import { createClient } from '@/lib/supabase/client'\n",
+     "after": "import { createClient } from '@/lib/supabase/client'\nimport { trackEvent } from '@/lib/analytics' // KINEO-SEM-INICIO-AUTOMATICO-0211\n"
+    },
+    {
+     "before": "\n  // Autostart: when ?autostart=true, AI picks a topic and runs the pipeline immediately.\n  useEffect(() => {",
+     "after": "\n  // Autostart: when ?autostart=true, AI picks a topic and FILLS it in; the render waits for the Create click (KINEO-SEM-INICIO-AUTOMATICO-0211).\n  useEffect(() => {"
+    },
+    {
+     "before": "        cleanAutostartUrl(targetNiche)\n        await handleGenerate(t, targetNiche)\n      } catch (err) {",
+     "after": "        cleanAutostartUrl(targetNiche)\n        // KINEO-SEM-INICIO-AUTOMATICO-0211 [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11] — o link\n        // ?autostart=true só PREENCHE o tema sugerido; o render (que debita crédito) espera o clique da pessoa no botão.\n        // Antes: `await handleGenerate(t, targetNiche)` — um link aberto gastava crédito sem ninguém apertar nada.\n        void trackEvent('create_autostart_held_for_click', { niche: targetNiche, version: 'sem_inicio_automatico_0211' })\n      } catch (err) {"
+    }
+   ]
+  },
+  "app/admin/overview/page.tsx": {
+   "beforeSha256": "4c231d8c0a7521a26f3eef1152efd7041941005abfae0a27d856546cf752a1fd",
+   "afterSha256": "b438e8196659bde156d1ea99a903abc6e29e299595e20af4cb5086a360aed128",
+   "hunks": [
+    {
+     "before": "        'card_entry_resume_autostart',\n        'subscription_invoice_paid',",
+     "after": "        'card_entry_resume_autostart',\n        'card_entry_resume_confirmed', // KINEO-SEM-INICIO-AUTOMATICO-0211\n        'subscription_invoice_paid',"
+    }
+   ]
+  },
+  "lib/admin/versaoBFunnel.ts": {
+   "beforeSha256": "9c90d1a97e28280f027443e24b65b8f8aece3d2b123b4c322f0b92ccd21654bc",
+   "afterSha256": "95252f90641d5e8ac209d1a309a9be03d04f974c87ce18057b459a73bc50793f",
+   "hunks": [
+    {
+     "before": "  'card_entry_resume_autostart',\n  'subscription_invoice_paid',",
+     "after": "  'card_entry_resume_autostart',\n  'card_entry_resume_confirmed', // KINEO-SEM-INICIO-AUTOMATICO-0211 — o filme da volta do Stripe agora sai no clique\n  'subscription_invoice_paid',"
+    },
+    {
+     "before": "      case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break\n      case 'card_entry_resume_autostart': sets.autostart.add(e.user_id); break\n      case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break",
+     "after": "      case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break\n      case 'card_entry_resume_autostart': // histórico (até 02/11 o filme disparava sozinho)\n      case 'card_entry_resume_confirmed': sets.autostart.add(e.user_id); break // KINEO-SEM-INICIO-AUTOMATICO-0211\n      case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break"
+    }
+   ]
+  },
+  "lib/growth/cardEntryResumeDraft.ts": {
+   "beforeSha256": "94f486ccd26dde9e8a1d84aaae1a01c9dc26a5982ddb302f928333e7ab856036",
+   "afterSha256": "943986ac03c49c1850a2b7cbbe744112f7677c264dd4f1047e94d4d2701d6e59",
+   "hunks": [
+    {
+     "before": "// e volta para `/studio/create?resume=card_entry`, onde o filme dispara sozinho.\n// O rascunho que atravessava essa viagem guardava `prompt`, `quality` e",
+     "after": "// e volta para `/studio/create?resume=card_entry`, onde o filme dispara sozinho.\n// (KINEO-SEM-INICIO-AUTOMATICO-0211: não dispara mais — a tela mostra o pedido e\n// espera o clique em \"Start my film\"; ver lib/growth/semInicioAutomatico.ts.)\n// O rascunho que atravessava essa viagem guardava `prompt`, `quality` e"
+    },
+    {
+     "before": "const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13\nconst DRAFT_DURATIONS: readonly number[] = [35, 45, 60, 90]\n",
+     "after": "const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13\n// KINEO-SEM-INICIO-AUTOMATICO-0211 — a duração restaurada é EXATAMENTE a escolhida: 15 (Seedance curto) e 30 (estrada\n// hollywood) também voltam. Antes eram recusados aqui e a tela renascia no padrão dela — trocar a escolha por um chute.\nconst DRAFT_DURATIONS: readonly number[] = [15, 30, 35, 45, 60, 90]\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/growth/semInicioAutomatico.ts": "f2c7896c4510b803b934b212a41eea089a3f67870816ee3c720c2267c2e83999",
+  "scripts/test-sem-inicio-automatico-0211.mts": "3b40d626625fa2fc4301cd8275a1ea9673576a84752f3b4fa144779a2805c94b"
+ }
+}

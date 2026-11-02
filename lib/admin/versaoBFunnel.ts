@@ -22,6 +22,7 @@ export const VERSAO_B_EVENT_NAMES = [
   'checkout_started',
   'payment_success',
   'card_entry_resume_autostart',
+  'card_entry_resume_confirmed', // KINEO-SEM-INICIO-AUTOMATICO-0211 — o filme da volta do Stripe agora sai no clique
   'subscription_invoice_paid',
   'paywall_hit',
 ] as const
@@ -44,7 +45,8 @@ export function funilVersaoB(rows: EventRow[], sinceMs: number, extIds: Set<stri
       case 'card_entry_door_clicked': sets.clickedDoor.add(e.user_id); break
       case 'checkout_started': if (metaTrue(m, 'card_trial') || ic === 'card_entry' || ic === 'door_v2' || ic.startsWith('trial_1usd')) sets.checkout.add(e.user_id); break
       case 'payment_success': if (metaTrue(m, 'card_trial')) sets.paid1.add(e.user_id); break
-      case 'card_entry_resume_autostart': sets.autostart.add(e.user_id); break
+      case 'card_entry_resume_autostart': // histórico (até 02/11 o filme disparava sozinho)
+      case 'card_entry_resume_confirmed': sets.autostart.add(e.user_id); break // KINEO-SEM-INICIO-AUTOMATICO-0211
       case 'subscription_invoice_paid': if (metaTrue(m, 'trial_conversion')) sets.converted.add(e.user_id); break
       case 'paywall_hit': sets.paywallHits.add(e.user_id); break
     }

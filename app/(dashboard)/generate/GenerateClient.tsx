@@ -136,6 +136,7 @@ import {
   readCardEntryDraft,
   serializeCardEntryDraft,
 } from '@/lib/growth/cardEntryResumeDraft'
+import { ACTIVATION_AUTOSTART_CONFIRMED_EVENT, ACTIVATION_AUTOSTART_HELD_EVENT, CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION, START_MY_FILM_CTA, defaultsDoPlanoPodemMexer, estadoDoPedidoRestaurado, inicioAutomaticoPedeClique, resumoDoPedido } from '@/lib/growth/semInicioAutomatico' // KINEO-SEM-INICIO-AUTOMATICO-0211
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme (ver o cabeçalho do módulo).
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
@@ -1392,6 +1393,10 @@ export default function GenerateClient({
   // (defeito D13). Nenhuma outra parte da tela lê este valor.
   const [activationAutostartWaitTick, setActivationAutostartWaitTick] = useState(0)
   const [activationAutostartArmed, setActivationAutostartArmed] = useState(false)
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o 1º filme automático que DEBITA crédito (inclusive do trial) fica pronto na tela
+  // (texto, motor, duração) e espera o clique em "Start my film". Custo 0 (cota grátis) segue automático, por desenho.
+  const [activationAguardandoClique, setActivationAguardandoClique] = useState(false)
+  const activationHeldRef = useRef<{ topic: string; structureFirst: boolean } | null>(null)
   useEffect(() => {
     try {
       onboardingGenerationDispatchedRef.current =
@@ -3704,13 +3709,18 @@ export default function GenerateClient({
     } catch { /* ignore */ }
   }, [prompt, quality, duration, mode, aiEngine])
   const resumeArmedRef = useRef(false)
-  const resumeFiredRef = useRef(false)
   const resumeBlockedReportedRef = useRef(false)
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — a tela restaurou um pedido da pessoa (card_entry ou wall_v1): os defaults por
+  // plano do fetchCredits não tocam mais em motor nem duração (era o 35 → 60 da manobiayousaf, 01/11).
+  const escolhaRestauradaRef = useRef(false)
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — pedido restaurado esperando o clique em "Start my film" (nunca dispara sozinho).
+  const [resumeAguardandoClique, setResumeAguardandoClique] = useState(false)
   useEffect(() => {
     if (searchParams?.get('resume') !== 'card_entry') return
     try {
       const draft = readCardEntryDraft(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY), Date.now())
       if (!draft) return
+      escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211
       setPrompt(draft.prompt)
       // Nulo = campo ausente ou invalido no rascunho: nao mexer no que a tela
       // ja tem. Sobrescrever com um padrao seria trocar a escolha da pessoa por
@@ -3720,6 +3730,7 @@ export default function GenerateClient({
       if (draft.mode) setMode(draft.mode)
       if (draft.engine) setAiEngine(draft.engine)
       resumeArmedRef.current = draft.fresh
+      setResumeAguardandoClique(draft.fresh) // KINEO-SEM-INICIO-AUTOMATICO-0211 — mostra o pedido; o render espera o clique
       void trackEvent('card_entry_resume_restored', {
         armed: resumeArmedRef.current,
         fresh: draft.fresh,
@@ -3730,13 +3741,19 @@ export default function GenerateClient({
         mode: draft.mode,
         engine: draft.engine,
         engine_restored: draft.mode !== null,
+        awaits_click: draft.fresh, // KINEO-SEM-INICIO-AUTOMATICO-0211 — nada começa sozinho; o filme sai no clique
+        version: SEM_INICIO_AUTOMATICO_VERSION,
       })
     } catch { /* ignore */ }
     // Mount-only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — este efeito DISPARAVA o filme sozinho (card_entry_resume_autostart) assim que o
+  // saldo chegava. Caso manobiayousaf (01/11): Creator recém-pago, Seedance de 60 s começou sem clique e debitou 35 cr.
+  // Agora ele só MEDE: se o saldo não paga o pedido restaurado, registra uma vez (a tela mostra o pedido com o botão, e o
+  // clique cai na mesma guarda do Generate). Quem dispara é confirmarPedidoRestaurado(), chamado só pelo onClick.
   useEffect(() => {
-    if (!resumeArmedRef.current || resumeFiredRef.current) return
+    if (!resumeArmedRef.current || !resumeAguardandoClique) return
     if (credits === null) return
     if (!prompt.trim() || isProcessingPhase(phase)) return
     // KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — o resume pergunta ao MESMO caixa que
@@ -3756,12 +3773,50 @@ export default function GenerateClient({
       // motor e disparar; apagar aqui deixaria a pessoa sem o proprio texto.
       return
     }
-    resumeFiredRef.current = true
-    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }
-    void trackEvent('card_entry_resume_autostart', { quality, duration, credits, mode, engine: aiEngine })
-    handleGenerateGuarded()
+    // KINEO-SEM-INICIO-AUTOMATICO-0211 — saldo paga: NADA acontece aqui. O pedido fica na tela esperando o clique.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [credits, prompt, quality, duration, phase, mode, aiEngine])
+  }, [credits, prompt, quality, duration, phase, mode, aiEngine, resumeAguardandoClique])
+  // Qualquer geração que comece (o botão Generate de sempre, por exemplo) encerra o cartão: ele não volta depois do filme.
+  useEffect(() => {
+    if (resumeAguardandoClique && isProcessingPhase(phase)) setResumeAguardandoClique(false) // KINEO-SEM-INICIO-AUTOMATICO-0211
+  }, [phase, resumeAguardandoClique])
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o ÚNICO caminho que tira um pedido restaurado do papel: o clique em "Start my film".
+  // Mesma guarda do Generate (handleGenerateGuarded → outOfCredits → modal). Saldo que não paga: o rascunho e o cartão
+  // ficam (a pessoa troca o motor/duração e clica de novo). Saldo que paga: apaga o rascunho, registra a confirmação e gera.
+  function confirmarPedidoRestaurado() {
+    if (isProcessingPhase(phase) || !prompt.trim()) return
+    if (outOfCredits()) {
+      void trackEvent('card_entry_resume_blocked', { reason: 'insufficient_credits', on_click: true, quality, duration, mode, engine: aiEngine, credits, version: SEM_INICIO_AUTOMATICO_VERSION })
+      handleGenerateGuarded()
+      return
+    }
+    setResumeAguardandoClique(false)
+    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }
+    void trackEvent(CARD_ENTRY_RESUME_CONFIRMED_EVENT, { quality, duration, credits, mode, engine: aiEngine, cost: selectedCost, version: SEM_INICIO_AUTOMATICO_VERSION })
+    handleGenerateGuarded()
+  }
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o clique que libera o 1º filme do create_intent (activation_autostart) que custa
+  // crédito. Rearma o rail e segue o MESMO caminho de antes (análise → activation_autostart_dispatched), agora autorizado.
+  function confirmarPrimeiroFilme() {
+    const held = activationHeldRef.current
+    if (!held || isProcessingPhase(phase) || generationInFlightRef.current) return
+    if (outOfCredits()) {
+      openOutOfCreditsModal()
+      return
+    }
+    activationHeldRef.current = null
+    setActivationAguardandoClique(false)
+    activationAutoGenerateRef.current = true
+    activationAutostartSawProcessingRef.current = false
+    void trackEvent(ACTIVATION_AUTOSTART_CONFIRMED_EVENT, { ...(activationAutostartContextRef.current ?? {}), cost: selectedCost, duration, mode, engine: mode === 'cinematic_ai' ? aiEngine : 'fast', version: SEM_INICIO_AUTOMATICO_VERSION })
+    void handleAnalyze(held.topic, { fromTopic: true, skipPreview: true, structureFirst: held.structureFirst })
+  }
+  // Qualquer geração que comece por outro botão encerra a espera do 1º filme (o rail já está desarmado).
+  useEffect(() => {
+    if (!activationAguardandoClique || !isProcessingPhase(phase)) return
+    activationHeldRef.current = null
+    setActivationAguardandoClique(false) // KINEO-SEM-INICIO-AUTOMATICO-0211
+  }, [phase, activationAguardandoClique])
 
   // ═══ KINEO-PAREDE-V1-2026-09-23 — o rascunho é gravado ANTES de sair para o
   // Stripe, com o relógio zerado. O efeito acima já grava a cada tecla, mas o
@@ -3802,6 +3857,7 @@ export default function GenerateClient({
         })
         return
       }
+      escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211 — os defaults do plano não atropelam o pedido restaurado
       setPrompt(draft.prompt)
       if (draft.quality) setQuality(draft.quality)
       if (draft.duration) setDuration(draft.duration as Duration)
@@ -4127,7 +4183,10 @@ export default function GenerateClient({
             // Kineo 1, que a conta não tem) — segue a régua da entrada; e a ?duration= da URL só vence quando o saldo paga
             // (Viral Now manda 45→35 = 15 cr e abria o trial de 10 cr direto na parede, antes do roteiro).
             const motorTraduzidoDoKineo1 = entradaNoPlano && pedidoDeKineo1(searchParams?.get('engine'))
-            if (urlPickedEngine && !motorTraduzidoDoKineo1) { /* escolha explicita — nao tocar */ }
+            // KINEO-SEM-INICIO-AUTOMATICO-0211 — a causa do 35 → 60 (manobiayousaf, 01/11): na volta do checkout
+            // (?resume=card_entry, sem ?duration) o ramo entradaNoPlano abaixo trocava a duração RESTAURADA pela maior que o
+            // saldo novo paga (Creator → 60), ~2 s depois da restauração. Pedido restaurado vence os defaults, sempre.
+            if (!defaultsDoPlanoPodemMexer({ escolhaRestaurada: escolhaRestauradaRef.current, motorExplicitoNaUrl: Boolean(urlPickedEngine && !motorTraduzidoDoKineo1) })) { /* escolha explicita ou restaurada — nao tocar */ }
             else if (entradaNoPlano) {
               setMode('cinematic_ai'); setAiEngine('seedance')
               const d = duracaoDaUrlNaEntrada({
@@ -4791,6 +4850,19 @@ export default function GenerateClient({
       isProcessingPhase(phase)
     ) {
       skipBeforeAnalysis('render_state_changed_before_analysis')
+      return
+    }
+
+    // KINEO-SEM-INICIO-AUTOMATICO-0211 — filme que debita crédito (inclusive do trial) não começa sem clique: o arranjo
+    // fica pronto e a tela mostra "Start my film" com motor · duração · custo. O rail fica DESARMADO enquanto espera
+    // (activationAutoGenerateRef=false), para que nenhuma análise feita por outro botão vire despacho automático; o
+    // clique (confirmarPrimeiroFilme) rearma e segue exatamente o caminho de antes. Custo 0 = cota grátis: segue.
+    if (inicioAutomaticoPedeClique({ custoCreditos: selectedCost, confirmado: false })) {
+      activationCreationContractRef.current = null
+      activationHeldRef.current = { topic, structureFirst: activationContract.structureFirst }
+      activationAutoGenerateRef.current = false
+      setActivationAguardandoClique(true)
+      void trackEvent(ACTIVATION_AUTOSTART_HELD_EVENT, { ...metadata, cost: selectedCost, duration, version: SEM_INICIO_AUTOMATICO_VERSION })
       return
     }
 
@@ -12622,6 +12694,19 @@ export default function GenerateClient({
         duration,
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
+  // KINEO-SEM-INICIO-AUTOMATICO-0211 — o cartão do pedido restaurado (card_entry) ou do 1º filme que espera o clique.
+  const pedidoRestauradoEstado = estadoDoPedidoRestaurado({
+    restaurado: resumeAguardandoClique,
+    confirmado: false,
+    temTexto: prompt.trim().length > 0,
+    processando: isProcessingPhase(phase),
+    credits,
+    outOfCredits: credits !== null && outOfCredits(),
+  })
+  const pedidoParaConfirmar: 'resume' | 'activation' | null = phase !== 'idle'
+    ? null
+    : pedidoRestauradoEstado !== 'nenhum' ? 'resume' : activationAguardandoClique ? 'activation' : null
+  const pedidoResumo = resumoDoPedido({ mode, engine: aiEngine, duration, cost: selectedCost })
   // KINEO-TOPUP-OFERTA-2026-09-06 (#29) — o plano no vocabulario do SERVIDOR
   // ('free' | 'starter' | 'basic' | 'pro'), que e o que canPurchaseCreditTopup
   // (a regra do /api/stripe/checkout) sabe ler. Derivado dos mesmos booleanos
@@ -14752,6 +14837,43 @@ export default function GenerateClient({
           >
             Open Library
           </a>
+        </div>
+      )}
+
+      {/* KINEO-SEM-INICIO-AUTOMATICO-0211 — depois do checkout (ou no 1º filme que custa crédito) nada começa sozinho: a
+          tela mostra o pedido (motor · duração · custo) e o render só sai no clique em "Start my film". */}
+      {pedidoParaConfirmar && (
+        <div
+          role="region"
+          aria-label="Your film is ready to start"
+          data-kineo="sem-inicio-automatico-0211"
+          data-testid="start-my-film-card"
+          className="gv-card rounded-xl px-4 py-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+          style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.35)' }}
+        >
+          <div>
+            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+              {pedidoParaConfirmar === 'resume' ? 'Your film is saved and ready to start' : 'Your first film is ready to start'}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }} data-testid="start-my-film-summary">
+              {pedidoResumo}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+              {pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'sem_saldo'
+                ? 'Your balance does not cover this film yet. Pick a shorter length or another engine below, or add credits.'
+                : 'Nothing starts until you press the button. You can still change the engine, length or text below.'}
+            </div>
+          </div>
+          <button
+            type="button"
+            data-testid="start-my-film-button"
+            onClick={() => { if (pedidoParaConfirmar === 'resume') confirmarPedidoRestaurado(); else confirmarPrimeiroFilme() }}
+            disabled={pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo'}
+            className="font-bold text-sm px-4 py-2 rounded-lg"
+            style={{ background: '#2997ff', color: '#fff', opacity: pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo' ? 0.7 : 1 }}
+          >
+            {pedidoParaConfirmar === 'resume' && pedidoRestauradoEstado === 'aguardando_saldo' ? 'Checking your credits…' : START_MY_FILM_CTA}
+          </button>
         </div>
       )}
 

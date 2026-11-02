@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics' // KINEO-SEM-INICIO-AUTOMATICO-0211
 
 interface Scene {
   sceneNumber: number
@@ -529,7 +530,7 @@ export default function CreateClient() {
     }
   }
 
-  // Autostart: when ?autostart=true, AI picks a topic and runs the pipeline immediately.
+  // Autostart: when ?autostart=true, AI picks a topic and FILLS it in; the render waits for the Create click (KINEO-SEM-INICIO-AUTOMATICO-0211).
   useEffect(() => {
     if (!autostartParam) {
       autostartedRef.current = false
@@ -560,7 +561,10 @@ export default function CreateClient() {
         setAutopickedTopic(t)
         setAutoPicking(false)
         cleanAutostartUrl(targetNiche)
-        await handleGenerate(t, targetNiche)
+        // KINEO-SEM-INICIO-AUTOMATICO-0211 [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11] — o link
+        // ?autostart=true só PREENCHE o tema sugerido; o render (que debita crédito) espera o clique da pessoa no botão.
+        // Antes: `await handleGenerate(t, targetNiche)` — um link aberto gastava crédito sem ninguém apertar nada.
+        void trackEvent('create_autostart_held_for_click', { niche: targetNiche, version: 'sem_inicio_automatico_0211' })
       } catch (err) {
         setAutoPicking(false)
         setError(err instanceof Error ? err.message : 'Could not pick a topic. Try again.')
