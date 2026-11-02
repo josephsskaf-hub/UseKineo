@@ -4,7 +4,7 @@
 // julgava as cenas do PLANO (8 + 7 s) — mas o Kling 4 pago de 15 s NÃO tem cenas com fala própria: prepareKling4PaidFilm junta a fala
 // inteira num clipe único de 15 s (scene_narrations: [tudo], scene_seconds: [15]).
 // Aqui a régua julga o filme COMO ELE É DESPACHADO E MONTADO: UM clipe de 15 s com a fala inteira, na voz que a MONTAGEM vai usar
-// (o claim do Kling 4 pago não leva host_voice: o compose resolve resolveHollywoodVoice(roteiro, língua, vertical), sem ficha).
+// (0211d: a voz é pinada no claim — host_voice — com a velocidade que encaixa a fala; régua e compose usam a mesma).
 // 0211c (revisão): duas pontas, cada uma no lado seguro da incerteza da voz real (fator real ÷ nominal medido 0,87–0,93):
 //   · SILÊNCIO (a fala não fica curta): passo nominal da voz × o fator RÁPIDO (0,93) — prever a voz mais rápida = mais silêncio
 //     previsto. Clipe único: até 2,5 s de cauda (o "rabo congelado" antigo era ~8 s; ≤ 2,5 s é o fim ambiente do próprio clipe
@@ -14,6 +14,7 @@
 import { K4_FATOR_REAL_PADRAO, K4_FATOR_REAL_POR_VOZ, K4_PAGO_SEGUNDOS } from '@/lib/kling4TrialScript'
 import { resolveHollywoodVoice } from '@/lib/hollywood/hostVoice'
 import type { NarrationLanguage } from '@/lib/textLanguage'
+import type { OpenAIVoice } from '@/lib/narration/personas'
 
 /** Fator real ÷ nominal mais RÁPIDO medido (alloy@0.9 = 0,93): o lado seguro da régua de silêncio. */
 export const K4_PAGO_FATOR_REAL_RAPIDO = Math.max(...Object.values(K4_FATOR_REAL_POR_VOZ))
@@ -43,9 +44,49 @@ export function falaDoKling4Pago(a: { verbatim: boolean; narration?: string | nu
     : a.scenes.map((s) => (s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '')).join(' ')
 }
 
-/** A velocidade da voz que o compose vai usar no Kling 4 pago (sem host_voice no claim: resolução pelo roteiro, sem ficha). */
-export function velocidadeDaMontagemDoKling4Pago(fala: string, language: string, vertical?: string): number {
-  try { return resolveHollywoodVoice(fala, language as NarrationLanguage, vertical).defaultSpeed } catch { return 1 }
+// ═══ KINEO-K4-PAGO-SILENCIO-0211d [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a voz PINADA com a velocidade que encaixa ═══
+// 0211c mostrou que, na velocidade natural de cada persona, a faixa 27–31 só cabia inteira em 3 das 15 vozes (interseção vazia:
+// fable@1.1 pede ≥ 30, alloy@0.9 aceita ≤ 28) — recusa grátis para a maioria dos clientes pagantes. Agora a voz do Kling 4 pago de
+// 15 s é escolhida UMA vez (a persona que o compose escolheria: resolveHollywoodVoice(fala, língua, vertical), sem ficha) e pinada no
+// claim (host_voice) com a velocidade que põe a fala em ~14 s de voz real: velocidade = palavras ÷ (14 × 2,3 × 0,90), limitada a
+// 0,9–1,1 (natural). A régua do portão e o compose usam a MESMA voz e a MESMA velocidade (hollywoodVoiceFromClaim; sem re-escolha).
+// Com a faixa 27–31 toda persona passa nas duas pontas; a recusa grátis fica só para fala que nem a velocidade limite encaixa.
+/** Fala-alvo na voz real (s). */
+export const K4_PAGO_FALA_ALVO_S = 14
+/** Fator real ÷ nominal do meio da faixa medida (0,87–0,93): o alvo; as pontas seguem julgadas em 0,93 (silêncio) e 0,87 (estouro). */
+export const K4_PAGO_FATOR_REAL_MEDIO = Math.round((K4_FATOR_REAL_PADRAO + Math.max(...Object.values(K4_FATOR_REAL_POR_VOZ))) / 2 * 1000) / 1000
+/** Faixa natural da velocidade pinada. */
+export const K4_PAGO_VELOCIDADE_MIN = 0.9
+export const K4_PAGO_VELOCIDADE_MAX = 1.1
+
+const centesimos = (n: number) => Math.round(n * 100) / 100
+
+export interface VozPinadaDoKling4Pago {
+  personaId: string; voice: OpenAIVoice
+  /** A velocidade gravada no claim (host_voice.speed) — o compose multiplica pelo speed do cliente, se houver. */
+  defaultSpeed: number
+  /** A velocidade que a voz fala de fato (pinada × cliente): a que a régua julga. */
+  efetiva: number
+  /** A velocidade natural da persona (só rastro). */
+  personaSpeed: number
+}
+
+/** A voz do Kling 4 pago de 15 s, escolhida uma vez e pinada com a velocidade que encaixa a fala no clipe. */
+export function vozPinadaDoKling4Pago(a: { fala: string; language: string; vertical?: string; velocidadeDoCliente?: number | null }): VozPinadaDoKling4Pago {
+  let persona: { personaId: string; voice: OpenAIVoice; defaultSpeed: number }
+  try { persona = resolveHollywoodVoice(a.fala, a.language as NarrationLanguage, a.vertical) } catch { persona = { personaId: 'documentary', voice: 'echo', defaultSpeed: 0.96 } }
+  const palavras = String(a.fala ?? '').trim().split(/\s+/).filter(Boolean).length
+  const alvo = palavras / (K4_PAGO_FALA_ALVO_S * 2.3 * K4_PAGO_FATOR_REAL_MEDIO)
+  const efetivaAlvo = centesimos(Math.max(K4_PAGO_VELOCIDADE_MIN, Math.min(K4_PAGO_VELOCIDADE_MAX, alvo)))
+  const cliente = typeof a.velocidadeDoCliente === 'number' && Number.isFinite(a.velocidadeDoCliente) && a.velocidadeDoCliente > 0 ? Math.max(0.7, Math.min(1.3, a.velocidadeDoCliente)) : 1
+  // o compose limita host_voice.speed a 0,7–1,3 (hollywoodVoiceFromClaim) e multiplica pelo speed do cliente
+  const defaultSpeed = centesimos(Math.max(0.7, Math.min(1.3, efetivaAlvo / cliente)))
+  return { personaId: persona.personaId, voice: persona.voice, defaultSpeed, efetiva: centesimos(defaultSpeed * cliente), personaSpeed: persona.defaultSpeed }
+}
+
+/** O campo host_voice do claim (o formato que hollywoodVoiceFromClaim lê no compose). */
+export function hostVoiceDoKling4Pago(v: VozPinadaDoKling4Pago): { persona_id: string; voice: OpenAIVoice; speed: number } {
+  return { persona_id: v.personaId, voice: v.voice, speed: v.defaultSpeed }
 }
 
 export interface ReguaDoKling4Pago {
