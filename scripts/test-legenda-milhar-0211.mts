@@ -57,6 +57,15 @@ ok(textos(whisper(['Over', '1,000,', '000', 'people', 'watched.'])).some((x) => 
 }
 
 // ── (C) controles: o que cortava antes continua cortando ───────────────────────────────────────────────────────
+// datas e enumerações (revisão adversarial 02/11): depois da vírgula só cola grupo de milhar de 3 algarismos
+for (const [tokens, proibido] of [
+  [['On', 'June', '6,', '1944,', 'Allied', 'troops', 'landed.'], '6,1944'],
+  [['Rules', '1,', '2,', 'and', '3', 'matter.'], '1,2'],
+  [['Chapters', '3,', '4', 'and', '5', 'today.'], '3,4'],
+  [['Top', '10,', '20', 'or', '30', 'songs.'], '10,20'],
+] as Array<[string[], string]>) {
+  ok(!textos(whisper(tokens)).some((x) => x.includes(proibido)), `(C) "${tokens.join(' ')}" não vira "${proibido}"`)
+}
 {
   const t = textos(whisper(['In', '1999,', '600', 'people', 'left.']))
   ok(t[0] === 'In 1999,' && t[1] === '600 people left.', `(C) ano + vírgula: corte de antes — ${t.join(' | ')}`)

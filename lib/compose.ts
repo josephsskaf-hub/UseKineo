@@ -1229,7 +1229,10 @@ export function buildCaptionsFromWhisperWords(
       prev &&
       prev.sentenceEnd !== true &&
       w.start - prev.end < 0.28 &&
-      ((/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*[.,]$/u.test(a) && /^\d/.test(b)) || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*$/u.test(a) && /^[.,]\d/.test(b)))
+      // Depois da vírgula só cola um grupo de milhar (3 algarismos): "June 6, 1944" e "1, 2, and 3" continuam separados.
+      ((/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*,$/u.test(a) && /^\d{3}(?!\d)/.test(b))
+        || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*\.$/u.test(a) && /^\d/.test(b))
+        || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*$/u.test(a) && /^(?:,\d{3}(?!\d)|\.\d)/.test(b)))
     ) {
       numeros[numeros.length - 1] = { ...w, word: `${a}${b}`, start: prev.start, end: w.end, sentenceEnd: w.sentenceEnd }
       continue
