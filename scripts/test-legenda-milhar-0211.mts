@@ -1,7 +1,7 @@
 // KINEO-LEGENDA-MILHAR-0211 — guardião do pedido do revisor de 02/11: a narração dizia "2,600 tracks" e a legenda queimada
 // mostrou "600 TRACKS" — o Whisper partiu o número em "2," + "600" e a vírgula de "2," fechava o pedaço. Prova, com as
 // funções REAIS de lib/compose e lib/filmes/faceless15:
-//   (A) "2,600 tracks", "1.500 pessoas" e "3.5 billion" ficam num pedaço só, como UM token, com o texto do roteiro;
+//   (A) "2,600 tracks" e "1.500 pessoas" ficam num pedaço só, como UM token, com o texto do roteiro;
 //   (B) as formas "2" + ",600" e "1,000," + "000" também colam; o agrupador do filme grátis herda a cola;
 //   (C) controles: "In 1999, 600 people" (ano + vírgula), vírgula com pausa e frase que acaba em "3." seguem cortando como antes.
 // Rodar: npx tsx scripts/test-legenda-milhar-0211.mts
@@ -33,7 +33,6 @@ const textos = (ws: WhisperWord[], max = CWPC) => caps(ws, max).map((c) => c.tex
 for (const [tokens, numero, frase] of [
   [['Then', '2,', '600', 'tracks', 'vanished', 'that', 'year.'], '2,600', '2,600 tracks'],
   [['Mais', 'de', '1.', '500', 'pessoas', 'foram', 'embora.'], '1.500', '1.500 pessoas'],
-  [['About', '3.', '5', 'billion', 'people', 'watched', 'it.'], '3.5', '3.5 billion'],
 ] as const) {
   const ws = whisper([...tokens])
   const cs = caps(ws)
@@ -63,6 +62,8 @@ for (const [tokens, proibido] of [
   [['Rules', '1,', '2,', 'and', '3', 'matter.'], '1,2'],
   [['Chapters', '3,', '4', 'and', '5', 'today.'], '3,4'],
   [['Top', '10,', '20', 'or', '30', 'songs.'], '10,20'],
+  [['He', 'was', 'only', '9.', '2', 'years', 'later', 'he', 'left.'], '9.2'],
+  [['Step', '1.', '2', 'cups', 'of', 'flour.'], '1.2'],
 ] as Array<[string[], string]>) {
   ok(!textos(whisper(tokens)).some((x) => x.includes(proibido)), `(C) "${tokens.join(' ')}" não vira "${proibido}"`)
 }

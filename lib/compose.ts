@@ -1229,10 +1229,10 @@ export function buildCaptionsFromWhisperWords(
       prev &&
       prev.sentenceEnd !== true &&
       w.start - prev.end < 0.28 &&
-      // Depois da vírgula só cola um grupo de milhar (3 algarismos): "June 6, 1944" e "1, 2, and 3" continuam separados.
-      ((/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*,$/u.test(a) && /^\d{3}(?!\d)/.test(b))
-        || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*\.$/u.test(a) && /^\d/.test(b))
-        || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*$/u.test(a) && /^(?:,\d{3}(?!\d)|\.\d)/.test(b)))
+      // Só cola GRUPO DE MILHAR (3 algarismos depois do separador): "June 6, 1944", "1, 2, and 3" e "only 9. 2 years" continuam
+      // separados. Decimal partido ("3." + "5") fica de fora: no meio do segmento o ponto final não é medido e não se distingue.
+      ((/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*[.,]$/u.test(a) && /^\d{3}(?!\d)/.test(b))
+        || (/^[^\p{L}\p{N}]*\d{1,3}(?:[.,]\d{3})*$/u.test(a) && /^[.,]\d{3}(?!\d)/.test(b)))
     ) {
       numeros[numeros.length - 1] = { ...w, word: `${a}${b}`, start: prev.start, end: w.end, sentenceEnd: w.sentenceEnd }
       continue
