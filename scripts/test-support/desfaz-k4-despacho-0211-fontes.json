@@ -1,0 +1,50 @@
+{
+ "base": "9bd629f268ecdbb680c9c34fd78f750a01156886",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "f2be4c583db66ae311b60f56e67fadc8e43e337e40f90331ed9a6ba0ef31c10e",
+   "afterSha256": "ce6c8729fc84aa33180ede223e4557dc915784fde24be2535c65af7051520be7",
+   "hunks": [
+    {
+     "before": "} from '@/lib/cinematic/sceneDisposition'\n// KINEO-FAL-SALDO-ALERTA-2026-09-28 — o alarme de saldo é UM só, em lib/falAlert (a cópia local com o e-mail cravado",
+     "after": "} from '@/lib/cinematic/sceneDisposition'\nimport { notAttempted as notAttemptedScene, failed as failedScene } from '@/lib/cinematic/sceneDisposition' // KINEO-K4-DESPACHO-0211 — ledger do despacho do Kling 4 pago (linha própria)\n// KINEO-FAL-SALDO-ALERTA-2026-09-28 — o alarme de saldo é UM só, em lib/falAlert (a cópia local com o e-mail cravado"
+    },
+    {
+     "before": "        const submittedAt = new Date().toISOString()\n        let uncertain = false",
+     "after": "        const submittedAt = new Date().toISOString()\n        const kling4PaidPosted: boolean[] = chunks.map(() => false) // KINEO-K4-DESPACHO-0211 — which chunk really reached fal (dispatch ledger)\n        let uncertain = false"
+    },
+    {
+     "before": "            const job = await submitKling4TrialVideo({ prompts: chunk.prompts, approvedStills: chunk.approvedStills }, {\n              apiKey: process.env.FAL_KEY ?? '', onPost: () => { ctxDespacho().totalPosts++ },\n            })",
+     "after": "            const job = await submitKling4TrialVideo({ prompts: chunk.prompts, approvedStills: chunk.approvedStills }, {\n              apiKey: process.env.FAL_KEY ?? '', onPost: () => { ctxDespacho().totalPosts++; kling4PaidPosted[chunk.index] = true },\n            })"
+    },
+    {
+     "before": "        { const c = ctxDespacho(); c.engine = models[0]; c.planned = chunks.length; c.quality = claimQuality }\n        return publishCinematicResponse(response, ids, models)",
+     "after": "        { const c = ctxDespacho(); c.engine = models[0]; c.planned = chunks.length; c.quality = claimQuality }\n        { // KINEO-K4-DESPACHO-0211 — the paid queue POST is a real dispatch: record it, or cinematic_dispatch_result reads\n          // \"attempted 0 / not_attempted 1 / invariant_ok false / claim_action unknown\" for a clip fal ACCEPTED (02/11, 4 films).\n          const c = ctxDespacho()\n          c.outcomes = chunks.map((chunk, i) => ids[i] ? acceptedScene(i, chunk.model)\n            : kling4PaidPosted[i] ? failedScene({ scene_index: i, model: chunk.model, status: null, ambiguous: true }) : notAttemptedScene(i, chunk.model))\n          c.attempts = chunks.map((chunk, i) => kling4PaidPosted[i] ? [{ model: chunk.model, status: ids[i] ? 200 : null, ambiguous: !ids[i], accepted: !!ids[i] }] : [])\n          c.submittedPrompts = chunks.map((chunk, i) => kling4PaidPosted[i] ? chunk.prompts.join(' ').slice(0, 240) : '')\n          c.claimAction = 'published'\n        }\n        return publishCinematicResponse(response, ids, models)"
+    }
+   ]
+  },
+  "lib/kling4PaidAsyncStatus.ts": {
+   "beforeSha256": "8fa87eb8d6d0e232c71b2f1e00c40b42a8488bcb931527a7cadfa0cc8b90e041",
+   "afterSha256": "73787403e9762ccf0b48c38eccd93c38865c37d248c1856e431a08beb241e973",
+   "hunks": [
+    {
+     "before": "import { replaceKling4PaidBinding, type CinematicClaim } from '@/lib/cinematic/claim'\nimport { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'\nimport { KLING4_TRIAL_FALLBACK_MODEL, Kling4FallbackSubmitError, submitKling4TrialSeedanceFallback,",
+     "after": "import { replaceKling4PaidBinding, type CinematicClaim } from '@/lib/cinematic/claim'\nimport { KLING4_T2V_MODEL, KLING4_I2V_MODEL, pollKling4TrialVideo } from '@/lib/kling4Trial'\nimport { KLING4_TRIAL_FALLBACK_MODEL, Kling4FallbackSubmitError, submitKling4TrialSeedanceFallback,"
+    },
+    {
+     "before": "\nexport const KLING4_PAID_FALLBACK_MILLIUSD_PER_15S = 468 // 3 × 6s × $0.026/s; lib/fastAiClips.ts declared tariff.",
+     "after": "\n/** KINEO-K4-DESPACHO-0211 — paid Kling 4 waits up to 20 min (the no-scene ceiling of lib/stuckScene) before the backup. */\nexport const KLING4_PAID_TIMEOUT_MS = 20 * 60_000\nexport const KLING4_PAID_FALLBACK_MILLIUSD_PER_15S = 468 // 3 × 6s × $0.026/s; lib/fastAiClips.ts declared tariff."
+    },
+    {
+     "before": "    clips: args.claim.falRequestIds.map((id, i) => ({ id, status: 'done', url: args.claim.authorizedCompletedUrls[i] })) }\n  let reason: 'provider_failed' | 'timeout' | null = marker.fallback_started\n    ? marker.fallback_reason ?? 'timeout'\n    : (args.now ?? Date.now()) - Date.parse(marker.submitted_at) >= KLING4_TRIAL_TIMEOUT_MS ? 'timeout' : null\n  if (!reason) {\n    const poll = deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' }))",
+     "after": "    clips: args.claim.falRequestIds.map((id, i) => ({ id, status: 'done', url: args.claim.authorizedCompletedUrls[i] })) }\n  // KINEO-K4-DESPACHO-0211 — the paid Kling 4 clip is ALWAYS polled before any timeout decision, and the paid window is\n  // KLING4_PAID_TIMEOUT_MS (20 min), not the free trial's 8 min. 02/11: four paid films (e306d742, bc9177cd, af240efa,\n  // c13eb147) had Kling 4 ACCEPTED by fal (kling4_paid_queue_slots state=accepted), but the first status check came from the\n  // minute cron after 8 min and went straight to the Seedance fallback without asking fal — the paid render (≈7.5 min on\n  // 29/10) was thrown away and a 3×5 s Seedance 1.5 film shipped at the Kling 4 price. The free trial clock is untouched.\n  let reason: 'provider_failed' | 'timeout' | null = marker.fallback_started ? marker.fallback_reason ?? 'timeout' : null\n  if (!reason) {\n    const expired = (args.now ?? Date.now()) - Date.parse(marker.submitted_at) >= KLING4_PAID_TIMEOUT_MS\n    const poll = deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' }))"
+    },
+    {
+     "before": "        status: args.claim.response?.submission_uncertain === true ? 'processing' as const : 'failed' as const, url: null })) }\n    catch { return pending }\n    if (clips.every(c => c.status === 'done' && typeof c.url === 'string' && c.url.startsWith('https://'))) return { kind: 'ready', claim: args.claim, clips }\n    if (!clips.some(c => c.status === 'failed')) return pending\n    reason = 'provider_failed'\n  }",
+     "after": "        status: args.claim.response?.submission_uncertain === true ? 'processing' as const : 'failed' as const, url: null })) }\n    catch { if (!expired) return pending; clips = [] }\n    if (clips.length && clips.every(c => c.status === 'done' && typeof c.url === 'string' && c.url.startsWith('https://'))) return { kind: 'ready', claim: args.claim, clips }\n    if (clips.some(c => c.status === 'failed')) reason = 'provider_failed'\n    else if (expired) reason = 'timeout'\n    else return pending\n  }"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

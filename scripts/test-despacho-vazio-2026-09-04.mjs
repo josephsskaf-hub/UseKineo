@@ -54,6 +54,7 @@ import { PROTAGONISTA_SEEDANCE_0111, deltaProtagonistaSeedance0111Exato } from '
 import { LEGENDA_MILHAR_0211, deltaLegendaMilhar0211Exato } from './test-support/desfaz-legenda-milhar-0211.mjs' // KINEO-LEGENDA-MILHAR-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { PAINEL_MOTOR_ENTREGUE_0211, deltaPainelMotorEntregue0211Exato } from './test-support/desfaz-painel-motor-entregue-0211.mjs' // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { CASA_FICHA_SEM_LETRAS_0211, deltaCasaFichaSemLetras0211Exato } from './test-support/desfaz-casa-ficha-sem-letras-0211.mjs' // KINEO-CASA-FICHA-SEM-LETRAS-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
+import { K4_DESPACHO_0211, deltaK4Despacho0211Exato } from './test-support/desfaz-k4-despacho-0211.mjs' // KINEO-K4-DESPACHO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { K4_PAGO_CABE_0211, deltaK4PagoCabe0211Exato } from './test-support/desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { REVISOR_10_0111, deltaRevisor100111Exato } from './test-support/desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111 — [TRAVA 8.2 — vai do fundador 01/11 "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"]
 import { LEGENDA_CENA_3110, deltaLegendaCena3110Exato } from './test-support/desfaz-legenda-cena-3110.mjs' // KINEO-LEGENDA-CENA-3110 — [TRAVA 8.2 — vai do fundador 31/10 "pode fazer os 3 consertos agora"]
@@ -308,6 +309,15 @@ const deltaJuizPlanoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaJuizPlano0111Exato(current, upstream, file)
 }
+// KINEO-K4-DESPACHO-0211 — recibo exato (scripts/test-support/desfaz-k4-despacho-0211-fontes.json): o Kling 4 PAGO consulta a fal antes do timeout (20 min,
+// lib/kling4PaidAsyncStatus) e o despacho pago entra no ledger (rota do cinematic). Camada mais nova: conferida primeiro.
+const deltaK4DespachoExato = (file) => {
+  if (!K4_DESPACHO_0211.scope[file] && !K4_DESPACHO_0211.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaK4Despacho0211Exato(current, upstream, file)
+}
 // KINEO-K4-PAGO-CABE-0211 — recibo exato (scripts/test-support/desfaz-k4-pago-cabe-0211-fontes.json): a faixa do escritor do Kling 4 PAGO de 15 s
 // (lib/kling4TrialScript) e a ligação no generate-script (faixa, instrução e teto duro). Camada mais nova: conferida primeiro.
 const deltaK4PagoCabeExato = (file) => {
@@ -421,7 +431,7 @@ const deltaRecusaBotaoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaRecusaBotao3110Exato(current, upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaK4DespachoExato(file) && !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o

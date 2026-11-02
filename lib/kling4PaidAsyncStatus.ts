@@ -1,11 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { replaceKling4PaidBinding, type CinematicClaim } from '@/lib/cinematic/claim'
-import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'
+import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, pollKling4TrialVideo } from '@/lib/kling4Trial'
 import { KLING4_TRIAL_FALLBACK_MODEL, Kling4FallbackSubmitError, submitKling4TrialSeedanceFallback,
   type Kling4FallbackInput } from '@/lib/kling4TrialFallback'
 import { claimKling4PaidSlot, finishKling4PaidSlot, readKling4PaidSlots } from '@/lib/kling4PaidQueue'
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 
+/** KINEO-K4-DESPACHO-0211 — paid Kling 4 waits up to 20 min (the no-scene ceiling of lib/stuckScene) before the backup. */
+export const KLING4_PAID_TIMEOUT_MS = 20 * 60_000
 export const KLING4_PAID_FALLBACK_MILLIUSD_PER_15S = 468 // 3 × 6s × $0.026/s; lib/fastAiClips.ts declared tariff.
 export type Kling4PaidMarker = {
   version: 'kling4_paid_2810'; promo: boolean; seconds: 15 | 30 | 60
@@ -139,19 +141,24 @@ export async function advanceKling4PaidStatus(args: Identity & { now?: number },
       args.claim.falModels.some(model => ![KLING4_T2V_MODEL, KLING4_I2V_MODEL].includes(model))) return pending
   if (args.claim.authorizedCompletedUrls.every(Boolean)) return { kind: 'ready', claim: args.claim,
     clips: args.claim.falRequestIds.map((id, i) => ({ id, status: 'done', url: args.claim.authorizedCompletedUrls[i] })) }
-  let reason: 'provider_failed' | 'timeout' | null = marker.fallback_started
-    ? marker.fallback_reason ?? 'timeout'
-    : (args.now ?? Date.now()) - Date.parse(marker.submitted_at) >= KLING4_TRIAL_TIMEOUT_MS ? 'timeout' : null
+  // KINEO-K4-DESPACHO-0211 — the paid Kling 4 clip is ALWAYS polled before any timeout decision, and the paid window is
+  // KLING4_PAID_TIMEOUT_MS (20 min), not the free trial's 8 min. 02/11: four paid films (e306d742, bc9177cd, af240efa,
+  // c13eb147) had Kling 4 ACCEPTED by fal (kling4_paid_queue_slots state=accepted), but the first status check came from the
+  // minute cron after 8 min and went straight to the Seedance fallback without asking fal — the paid render (≈7.5 min on
+  // 29/10) was thrown away and a 3×5 s Seedance 1.5 film shipped at the Kling 4 price. The free trial clock is untouched.
+  let reason: 'provider_failed' | 'timeout' | null = marker.fallback_started ? marker.fallback_reason ?? 'timeout' : null
   if (!reason) {
+    const expired = (args.now ?? Date.now()) - Date.parse(marker.submitted_at) >= KLING4_PAID_TIMEOUT_MS
     const poll = deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' }))
     let clips: Clip[]
     try { clips = await Promise.all(args.claim.falRequestIds.map(async id => id
       ? { id, ...await poll(id) } : { id: null,
         status: args.claim.response?.submission_uncertain === true ? 'processing' as const : 'failed' as const, url: null })) }
-    catch { return pending }
-    if (clips.every(c => c.status === 'done' && typeof c.url === 'string' && c.url.startsWith('https://'))) return { kind: 'ready', claim: args.claim, clips }
-    if (!clips.some(c => c.status === 'failed')) return pending
-    reason = 'provider_failed'
+    catch { if (!expired) return pending; clips = [] }
+    if (clips.length && clips.every(c => c.status === 'done' && typeof c.url === 'string' && c.url.startsWith('https://'))) return { kind: 'ready', claim: args.claim, clips }
+    if (clips.some(c => c.status === 'failed')) reason = 'provider_failed'
+    else if (expired) reason = 'timeout'
+    else return pending
   }
   // Never replace clips that another authorized finisher has already accepted.
   if (args.claim.authorizedCompletedUrls.some(Boolean)) return pending

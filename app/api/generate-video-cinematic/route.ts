@@ -77,6 +77,7 @@ import {
   type ReasonClass,
   type SceneOutcome,
 } from '@/lib/cinematic/sceneDisposition'
+import { notAttempted as notAttemptedScene, failed as failedScene } from '@/lib/cinematic/sceneDisposition' // KINEO-K4-DESPACHO-0211 — ledger do despacho do Kling 4 pago (linha própria)
 // KINEO-FAL-SALDO-ALERTA-2026-09-28 — o alarme de saldo é UM só, em lib/falAlert (a cópia local com o e-mail cravado
 // e o throttle na memória da lambda morreu). looksExhausted segue a classe de sceneDisposition.
 import { alertDispatchDefect, alertFalExhausted, looksExhausted } from '@/lib/falAlert'
@@ -5731,6 +5732,7 @@ async function manipularPost(req: NextRequest) {
         const ids: (string | null)[] = chunks.map(() => null)
         const models = chunks.map(chunk => chunk.model)
         const submittedAt = new Date().toISOString()
+        const kling4PaidPosted: boolean[] = chunks.map(() => false) // KINEO-K4-DESPACHO-0211 — which chunk really reached fal (dispatch ledger)
         let uncertain = false
         for (const chunk of chunks) {
           const identity = { userId: user.id, jobId: generationId, phase: 'kling4' as const, index: chunk.index }
@@ -5746,7 +5748,7 @@ async function manipularPost(req: NextRequest) {
           let state: 'accepted' | 'ambiguous' = 'ambiguous'
           try {
             const job = await submitKling4TrialVideo({ prompts: chunk.prompts, approvedStills: chunk.approvedStills }, {
-              apiKey: process.env.FAL_KEY ?? '', onPost: () => { ctxDespacho().totalPosts++ },
+              apiKey: process.env.FAL_KEY ?? '', onPost: () => { ctxDespacho().totalPosts++; kling4PaidPosted[chunk.index] = true },
             })
             ids[chunk.index] = job.requestId
             state = 'accepted'
@@ -5777,6 +5779,15 @@ async function manipularPost(req: NextRequest) {
           } : {}),
         }
         { const c = ctxDespacho(); c.engine = models[0]; c.planned = chunks.length; c.quality = claimQuality }
+        { // KINEO-K4-DESPACHO-0211 — the paid queue POST is a real dispatch: record it, or cinematic_dispatch_result reads
+          // "attempted 0 / not_attempted 1 / invariant_ok false / claim_action unknown" for a clip fal ACCEPTED (02/11, 4 films).
+          const c = ctxDespacho()
+          c.outcomes = chunks.map((chunk, i) => ids[i] ? acceptedScene(i, chunk.model)
+            : kling4PaidPosted[i] ? failedScene({ scene_index: i, model: chunk.model, status: null, ambiguous: true }) : notAttemptedScene(i, chunk.model))
+          c.attempts = chunks.map((chunk, i) => kling4PaidPosted[i] ? [{ model: chunk.model, status: ids[i] ? 200 : null, ambiguous: !ids[i], accepted: !!ids[i] }] : [])
+          c.submittedPrompts = chunks.map((chunk, i) => kling4PaidPosted[i] ? chunk.prompts.join(' ').slice(0, 240) : '')
+          c.claimAction = 'published'
+        }
         return publishCinematicResponse(response, ids, models)
       }
 
