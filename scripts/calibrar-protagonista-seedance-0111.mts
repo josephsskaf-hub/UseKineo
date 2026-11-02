@@ -17,6 +17,10 @@
 // 'rev-0211a' (os 12 da revisão da rodada 11 na API + o Roland do Rick) e as expectativas de "literal" passam a ser as palavras do autor.
 // Revisão 02/11 (rodada 13): +16 casos fonte 'rev-0211b' (os 12 da revisão da rodada 12 na API + bebês em meses/semanas: Lucas 18 months,
 // Sofía dieciocho meses, Nora six weeks, Davi 3 meses).
+// Revisão 02/11 (rodada 14, v10 — NÃO INTERPRETAR IDADE NEM GÊNERO): +12 casos fonte 'rev-0211c' (os 12 da revisão da rodada 13 na API:
+// Ivy "a month old", Mae "a few months old", Zoe "6yo", Theo "a year and a half old" + irmã Maya, Grandma Rose "seven decades young",
+// Grandma June, Laura "de um ano e meio", Martina/Ramón, Ezra, Ben/Ruth, Seu Antônio/Pedrinho, Lucía "tres semanas"). A régua passa a
+// reprovar como GRAVE qualquer pessoa/faixa nossa na ficha do trecho do autor (faixa_inventada) e gênero que contradiz (genero_contradiz).
 // Modos:
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava

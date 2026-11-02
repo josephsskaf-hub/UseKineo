@@ -2,9 +2,15 @@
 // Erro GRAVE: pessoa virando bicho/criatura; personagem inventado (lugar, empresa, palavra de abertura); protagonista errado;
 // rodada 10: criança/adolescente com idade escrita virando adulto na FICHA aplicada (aplicarElencoSemantico sobre o elenco de sempre).
 // rodada 12: a idade "literal" esperada é a palavra do autor (o trecho copiado entra como ele escreveu), sem diferença de caixa.
-import { aplicarElencoSemantico, faixaDaFicha, type ElencoSemantico, type PersonagemSemantico, type FaixaEtaria } from '../../lib/cinematic/elencoSemantico'
+// rodada 14 (NÃO INTERPRETAR IDADE NEM GÊNERO): a ficha do trecho do autor ("Zoe, 6yo, exactly as the author wrote") não pode ter NENHUMA
+// palavra de pessoa/faixa nossa fora do trecho (grave: faixa_inventada) nem gênero que contradiz o caso (grave: genero_contradiz); gênero
+// ausente não é erro. A faixa esperada do caso é a verdade do rótulo (lida por um humano), usada só para achar contradição. Na ficha do
+// gerador (sem trecho aceito: a base), faixa contraditória (criança adulta, idoso criança, bebê idoso) com o elenco aplicado = grave.
+import { aplicarElencoSemantico, type ElencoSemantico, type PersonagemSemantico } from '../../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro } from '../../lib/cinematic/personagemAjuste'
+import type { FichaDePersonagem } from '../../lib/cinematic/folhaDePersonagem'
 
+export type FaixaEtaria = 'baby' | 'toddler' | 'child' | 'teen' | 'adult' | 'elderly'
 export interface Caso {
   id: string; fonte: string; texto: string; video_id?: string
   /** nomes aceitos para o protagonista; null na lista = "sem protagonista nomeado" também vale; null = não pode haver protagonista nomeado */
@@ -16,7 +22,7 @@ export interface Caso {
   proibTipo?: Record<string, string>; livre?: boolean; fallbackOk?: boolean
   /** só citados ("Lena is gone"): não podem entrar como coadjuvante em cena */
   ausentes?: string[]
-  /** rodada 10: o que a FICHA aplicada tem de dizer de cada pessoa (faixa aceita, gênero, idade literal, idade que NÃO pode aparecer) */
+  /** rodada 10: o que a FICHA aplicada tem de dizer de cada pessoa (faixa verdadeira, gênero, idade literal, idade que NÃO pode aparecer) */
   fichas?: Record<string, { faixa?: FaixaEtaria | FaixaEtaria[]; genero?: 'male' | 'female'; literal?: string; semLiteral?: string }>
 }
 export interface Nota { acerto: boolean; graves: string[]; erros: string[]; protagonista: string | null; kind: string | null; species: string | null; fallback: boolean }
@@ -30,6 +36,39 @@ export function casaNome(a: string, b: string): boolean {
   const [curto, longo] = A.length <= B.length ? [A, B] : [B, A]
   for (let i = 0; i + curto.length <= longo.length; i++) if (curto.every((w, k) => longo[i + k] === w)) return true
   return false
+}
+
+// ═══ Rodada 14: o que a ficha diz da pessoa FORA das palavras do autor ═══════════════════════════════════════════════
+const CABECA_DO_AUTOR = /^(.*?), exactly as the author wrote(?=;|$)/u
+/** Palavra de pessoa ou de faixa de idade (a que o gerador acrescentava: "a man in their early thirties", "an elderly woman", "a boy"). */
+export const PESSOA_OU_FAIXA = /\b(?:man|woman|men|women|boy|girl|child|kid|baby|toddler|infant|newborn|teen|teenage|teenager|person|adult|grown|lady|gentleman|elderly|old|senior|young|twenties|thirties|forties|fifties|sixties|seventies|eighties)\b/i
+/** A ficha é a do trecho do autor ("Nome, <trecho>, exactly as the author wrote", rodada 14)? */
+export const fichaDoTrecho = (canonica: string) => CABECA_DO_AUTOR.test(String(canonica ?? ''))
+/** O que a ficha diz da pessoa fora do trecho aceito, do trecho do juiz entre aspas e do nome. */
+export function nossaParte(f: Pick<FichaDePersonagem, 'nome' | 'canonica'>): string {
+  const original = String(f.canonica ?? '')
+  const m = CABECA_DO_AUTOR.exec(original)
+  let c = m ? original.slice(m[0].length) : original.startsWith(`${f.nome}, `) ? original.slice(f.nome.length + 2) : original
+  c = c.replace(/exactly as the author wrote: "[^"]*"/gu, ' ')
+  return c.replace(/\s+/g, ' ').trim()
+}
+/** A faixa e o gênero que a ficha do GERADOR diz (cabeça antes do " with "): só para a ficha que não é do trecho do autor. */
+export function faixaDoGerador(canonica: string): { faixa: FaixaEtaria; genero: 'male' | 'female' | null } {
+  const pessoa = ` ${canonica.split(' with ')[0].replace(/^[^,]*,\s*/, '').toLowerCase()} `
+  const genero = / (?:woman|girl|lady)\b/.test(pessoa) ? 'female' : / (?:man|boy)\b/.test(pessoa) ? 'male' : null
+  const anos = /(\d{1,3})-years?-old/.exec(pessoa)
+  const n = anos ? Number(anos[1]) : null
+  const pelosAnos = (x: number): FaixaEtaria => (x < 2 ? 'baby' : x < 4 ? 'toddler' : x < 13 ? 'child' : x < 18 ? 'teen' : x < 65 ? 'adult' : 'elderly')
+  const faixa: FaixaEtaria = /\bbaby\b/.test(pessoa) ? 'baby' : /\btoddler\b/.test(pessoa) ? 'toddler' : /\b(?:teen\w*|sixteen)\b/.test(pessoa) ? 'teen' : /\belderly\b/.test(pessoa) ? 'elderly' : n !== null ? pelosAnos(n) : /\b(?:girl|boy|child|about nine)\b/.test(pessoa) ? 'child' : /\b(?:sixties|seventies|eighties)\b|\bold (?:man|woman|lady)\b/.test(pessoa) ? 'elderly' : 'adult'
+  return { faixa, genero }
+}
+const MENORES: ReadonlySet<FaixaEtaria> = new Set(['baby', 'toddler', 'child', 'teen'])
+/** Faixa lida que CONTRADIZ a verdadeira (não só "outra faixa"): criança adulta/idosa, adulto/idoso criança. */
+export function faixaContradiz(verdade: ReadonlyArray<FaixaEtaria>, lida: FaixaEtaria): boolean {
+  if (!verdade.length || verdade.includes(lida)) return false
+  const menor = verdade.every((x) => MENORES.has(x))
+  const maior = verdade.every((x) => !MENORES.has(x))
+  return (menor && !MENORES.has(lida)) || (maior && MENORES.has(lida))
 }
 
 export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
@@ -69,18 +108,25 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
     for (const [nome, esp] of Object.entries(c.fichas)) {
       const f = fichas.find((x) => casaNome(x.nome, nome))
       if (!f) { if (aplicado) erros.push(`ficha_ausente:${nome}`); continue }
-      const lida = faixaDaFicha(f.canonica)
       const faixas = esp.faixa ? (Array.isArray(esp.faixa) ? esp.faixa : [esp.faixa]) : []
-      const menor = faixas.length > 0 && faixas.every((x) => x !== 'adult' && x !== 'elderly')
-      const virouAdulto = menor && (lida.faixa === 'adult' || lida.faixa === 'elderly')
-      if (faixas.length && !faixas.includes(lida.faixa)) (virouAdulto && aplicado ? graves : erros).push(`${pre}${virouAdulto ? 'crianca_virou_' : 'faixa:'}${lida.faixa}:${nome}`)
-      if (esp.genero && lida.genero !== esp.genero) erros.push(`${pre}genero:${nome}=${lida.genero}`)
+      const nossa = nossaParte(f)
+      if (fichaDoTrecho(f.canonica)) {
+        // rodada 14: a ficha do trecho do autor não acrescenta pessoa/faixa ("— a boy", "an elderly woman", "early thirties")
+        const inventada = PESSOA_OU_FAIXA.exec(nossa)
+        if (inventada) graves.push(`faixa_inventada:${inventada[0]}:${nome}`)
+        const g = f.genero === 'woman' ? 'female' : f.genero === 'man' ? 'male' : null
+        if (esp.genero && g && g !== esp.genero) graves.push(`genero_contradiz:${nome}=${g}`)
+      } else {
+        const lida = faixaDoGerador(f.canonica)
+        const contradiz = faixaContradiz(faixas, lida.faixa)
+        if (faixas.length && !faixas.includes(lida.faixa)) (contradiz && aplicado ? graves : erros).push(`${pre}${contradiz ? 'faixa_contradiz' : 'faixa'}:${lida.faixa}:${nome}`)
+        if (esp.genero && lida.genero !== esp.genero) erros.push(`${pre}genero:${nome}=${lida.genero}`)
+      }
       // rodada 12: a idade literal é a palavra do AUTOR ("de oito anos", "seven") e pode vir em qualquer caixa ("Seven-Year-Old")
       if (esp.literal && !f.canonica.toLowerCase().includes(esp.literal.toLowerCase())) erros.push(`${pre}idade_literal:${nome}`)
-      // a idade alheia não pode estar no que a ficha diz DA PESSOA; o trecho que o autor escreveu e o código conferiu ("Leo, grandson of a
-      // 78-year-old fisherman, exactly as the author wrote — …") entra como está e não conta (a faixa da pessoa é conferida acima)
-      const semTrechoDoAutor = f.canonica.replace(/^([^,]*,)\s.*?, exactly as the author wrote — /u, '$1 ')
-      if (esp.semLiteral && semTrechoDoAutor.includes(esp.semLiteral)) erros.push(`${pre}idade_alheia:${nome}`)
+      // a idade alheia não pode estar no que a ficha diz DA PESSOA fora das palavras do autor ("Leo, grandson of a 78-year-old fisherman,
+      // exactly as the author wrote" entra como o autor escreveu e não conta)
+      if (esp.semLiteral && nossa.includes(esp.semLiteral)) erros.push(`${pre}idade_alheia:${nome}`)
     }
   }
   const unicos = (xs: string[]) => [...new Set(xs)]

@@ -4501,5 +4501,303 @@
   "animais": {
    "Thor": "dog"
   }
+ },
+ {
+  "id": "rev14-mae-few-months",
+  "fonte": "rev-0211c",
+  "texto": "Baby Mae is just a few months old. Mae stares at the ceiling fan, then laughs for the very first time while her dad films.",
+  "protagonista": [
+   "Mae",
+   "Baby Mae"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Mae"
+  ],
+  "fichas": {
+   "Mae": {
+    "faixa": [
+     "baby"
+    ],
+    "genero": "female",
+    "literal": "a few months old"
+   }
+  }
+ },
+ {
+  "id": "rev14-ivy-month-old",
+  "fonte": "rev-0211c",
+  "texto": "Ivy is a month old and has never seen snow. Her mom carries Ivy to the window and the first flakes start to fall.",
+  "protagonista": [
+   "Ivy"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ivy"
+  ],
+  "fichas": {
+   "Ivy": {
+    "faixa": "baby",
+    "genero": "female",
+    "literal": "a month old"
+   }
+  }
+ },
+ {
+  "id": "rev14-zoe-6yo",
+  "fonte": "rev-0211c",
+  "texto": "Zoe (6yo) loses her first tooth at the dinner table. Zoe hides it under her pillow and waits all night for the tooth fairy.",
+  "protagonista": [
+   "Zoe"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Zoe"
+  ],
+  "fichas": {
+   "Zoe": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "6yo"
+   }
+  }
+ },
+ {
+  "id": "rev14-story-ezra",
+  "fonte": "rev-0211c",
+  "texto": "The story of Ezra, a seven-year-old who built a raft out of milk cartons and sailed it across the town pond while his dog Pickles barked from the shore.",
+  "protagonista": [
+   "Ezra"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ezra"
+  ],
+  "animais": {
+   "Pickles": "dog"
+  },
+  "fichas": {
+   "Ezra": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "seven-year-old"
+   }
+  }
+ },
+ {
+  "id": "rev14-ben-ruth-92",
+  "fonte": "rev-0211c",
+  "texto": "Ben, 8, and his 92-year-old great-grandmother Ruth bake bread every Sunday. This week Ben drops the dough and Ruth just laughs.",
+  "protagonista": [
+   "Ben"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ben",
+   "Ruth"
+  ],
+  "fichas": {
+   "Ben": {
+    "faixa": "child",
+    "genero": "male",
+    "literal": "8",
+    "semLiteral": "92"
+   },
+   "Ruth": {
+    "faixa": "elderly",
+    "genero": "female"
+   }
+  }
+ },
+ {
+  "id": "pt-rev14-antonio-pedrinho",
+  "fonte": "rev-0211c",
+  "texto": "Seu Antônio, de 87 anos, ensina o bisneto Pedrinho, de cinco anos, a pescar no rio. Pedrinho fisga um peixe enorme e cai na água.",
+  "protagonista": [
+   "Seu Antônio",
+   "Antônio",
+   "Pedrinho"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Antônio",
+   "Pedrinho"
+  ],
+  "fichas": {
+   "Antônio": {
+    "faixa": "elderly",
+    "genero": "male",
+    "literal": "87 anos",
+    "semLiteral": "cinco"
+   },
+   "Pedrinho": {
+    "faixa": "child",
+    "genero": "male",
+    "semLiteral": "87"
+   }
+  }
+ },
+ {
+  "id": "es-rev14-martina-ramon",
+  "fonte": "rev-0211c",
+  "texto": "Martina cumple siete años hoy y su abuelo Ramón, de setenta y cuatro, le regala un cachorro llamado Pancho. Martina y Pancho corren por el jardín.",
+  "protagonista": [
+   "Martina"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Martina",
+   "Ramón"
+  ],
+  "animais": {
+   "Pancho": "puppy"
+  },
+  "fichas": {
+   "Martina": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "siete años",
+    "semLiteral": "setenta"
+   },
+   "Ramón": {
+    "faixa": "elderly",
+    "genero": "male",
+    "semLiteral": "siete"
+   }
+  }
+ },
+ {
+  "id": "rev14-biscuit-june",
+  "fonte": "rev-0211c",
+  "texto": "Biscuit, a 12-year-old golden retriever, waits at the door every day for Grandma June. Today June comes home with a tiny kitten named Pip.",
+  "protagonista": [
+   "Biscuit"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "golden retriever",
+   "dog",
+   "retriever"
+  ],
+  "humanos": [
+   "June"
+  ],
+  "animais": {
+   "Pip": "kitten"
+  },
+  "fichas": {
+   "June": {
+    "faixa": "elderly",
+    "genero": "female",
+    "semLiteral": "12-year-old"
+   }
+  }
+ },
+ {
+  "id": "pt-rev14-laura-ano-e-meio",
+  "fonte": "rev-0211c",
+  "texto": "A pequena Laura, de um ano e meio, dá os primeiros passos no quintal. Laura tropeça, ri e corre atrás da galinha Margarida.",
+  "protagonista": [
+   "Laura"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Laura"
+  ],
+  "animais": {
+   "Margarida": "hen"
+  },
+  "fichas": {
+   "Laura": {
+    "faixa": [
+     "baby",
+     "toddler"
+    ],
+    "genero": "female",
+    "literal": "um ano e meio"
+   }
+  }
+ },
+ {
+  "id": "es-rev14-lucia-semanas",
+  "fonte": "rev-0211c",
+  "texto": "Lucía tiene apenas tres semanas de vida y su gata Luna no se separa de su cuna. Luna maúlla cada vez que Lucía llora.",
+  "protagonista": [
+   "Lucía",
+   "Luna"
+  ],
+  "tipo": null,
+  "especie": null,
+  "humanos": [
+   "Lucía"
+  ],
+  "animais": {
+   "Luna": "cat"
+  },
+  "fichas": {
+   "Lucía": {
+    "faixa": "baby",
+    "genero": "female",
+    "literal": "tres semanas"
+   }
+  }
+ },
+ {
+  "id": "rev14-rose-decades",
+  "fonte": "rev-0211c",
+  "texto": "Grandma Rose, seven decades young, enters her first skateboarding contest. Rose wobbles, then lands a perfect kickflip as the crowd cheers.",
+  "protagonista": [
+   "Grandma Rose",
+   "Rose"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Rose"
+  ],
+  "fichas": {
+   "Rose": {
+    "faixa": "elderly",
+    "genero": "female",
+    "literal": "seven decades young"
+   }
+  }
+ },
+ {
+  "id": "rev14-theo-year-half",
+  "fonte": "rev-0211c",
+  "texto": "Theo is a year and a half old and refuses to wear shoes. Theo runs barefoot through the puddles while his big sister Maya, 10, chases him with boots.",
+  "protagonista": [
+   "Theo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Theo",
+   "Maya"
+  ],
+  "fichas": {
+   "Theo": {
+    "faixa": [
+     "baby",
+     "toddler"
+    ],
+    "genero": "male",
+    "literal": "a year and a half old"
+   },
+   "Maya": {
+    "faixa": "child",
+    "genero": "female",
+    "literal": "10"
+   }
+  }
  }
 ]
