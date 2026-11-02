@@ -10,7 +10,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-script/route.ts', 'lib/roteiroNoTamanho.ts', 'app/api/generate-video-fast/route.ts'] // 3ª revisão: + rota fast (roteiro da IA longo vira tema) // KINEO-ROTEIRO-NO-TAMANHO-0111
+const ESCOPO = ['app/api/generate-script/route.ts', 'lib/roteiroNoTamanho.ts'] // 4ª revisão: a rota fast saiu (voltou à origin/main) // KINEO-ROTEIRO-NO-TAMANHO-0111
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

@@ -19,7 +19,7 @@
 // CONSERTO (puro, sem rede; a rota injeta):
 //   1. planoDePalavras — o piso vira ORÇAMENTO POR BLOCO (HOOK e RHYTHM continuam curtos; os 3 MICRO REWARD, a ESCALATION e
 //      o PAYOFF recebem o resto), mirando ~10 % acima do piso e nunca acima do teto ("passar do alvo é bom; ficar abaixo é
-//      defeito"). instrucaoDoPlano entra no prompt do escritor no filme de 35/60/90 s (nunca no curto, nunca no roteiro
+//      defeito"). instrucaoDoPlano entra no prompt do escritor no filme de 35/60 s (nunca no curto, nunca a 90 s, nunca no roteiro
 //      colado: ali o piso é o texto da pessoa, e ela não ganha enchimento).
 //   2. pedidoDeTamanho — a 2ª tentativa (a que JÁ existia, "regenerating once") passa a levar a contagem por bloco do que
 //      saiu e o orçamento de cada um: "MICRO REWARD 1 tem 11 de 34 palavras — expanda com frases da MESMA história".
@@ -33,14 +33,13 @@
 //   a. SEM TETO POR MOTOR NO ESCRITOR (2ª revisão): a 1ª revisão limitou o plano do Kineo 1 a 90 s (214/226) lendo
 //      engine:'fast' — mas o GenerateClient manda 'fast' também para filmes que vão ao cinematic/Seedance (o caso do Rick; 5 de
 //      5 script_written com engine 'fast' em 30 dias foram para o cinematic). A 90 s isso devolvia o Seedance à amputação
-//      90 → 60 s (storyteller exige 225, futuristic-ai 227, energetic-facts 241). Saiu: o plano vale para todos (253/278 a 90 s,
-//      169/186 a 60 s), como no 1º conserto.
-//   a2. (3ª revisão) NÃO era "como na base": a 90 s o alvo de 278 passa do teto de 103,5 s da rota do Kineo 1 nas vozes
-//      storyteller (2,63 pal/s, recusa de 273) e finance-authority (2,50, recusa de 259), e a rota fast devolvia 422 ao
-//      roteiro que a própria IA escreveu no modo "IA estrutura" (na base o escritor saía com ~89 e a rota reescrevia — V1).
-//      O conserto fica na rota fast (app/api/generate-video-fast): roteiro da IA acima do teto vira tema do escritor de cenas,
-//      como o curto; o literal ("as is") continua recusável. Ainda aberto: roteiro escrito pelo botão "write the full script"
-//      e aprovado vai como literal — nessas duas vozes, a 90 s, a recusa passa de "curto" (base) a "longo".
+//      90 → 60 s (storyteller exige 225, futuristic-ai 227, energetic-facts 241). Saiu: o plano vale para todos os motores
+//      (169/186 a 60 s).
+//   a2. (4ª revisão, substitui a 3ª) SÓ ATÉ 60 s (planoValeNoFilme). A 90 s o plano fazia o roteiro passar de 90 s de fala e a
+//      montagem (lib/compose.ts, clamp a 90) cortava o final; na rota do Kineo 1 o alvo de 278 ainda passava do teto de
+//      103,5 s em duas vozes. A 90 s o escritor volta EXATAMENTE à base: sem plano, sem pedido de tamanho, sem escolha entre
+//      versões (a 2ª substitui, como sempre) e com o timeout de sempre na 2ª chamada. A mudança da 3ª revisão na rota fast
+//      (roteiro da IA longo vira tema) saiu junto: só existia para o caso de 90 s. A 60 s o pior caso é 89 s de fala.
 //   b. escolherVersao respeita o KINEO-NARRADOR-DESCRICAO-0111: a versão que NÃO lê a descrição de cena vence a que lê —
 //      antes do critério de tamanho.
 //   c. prazoDaNovaTentativa: a 2ª chamada só sai se couber no maxDuration de 60 s, com o timeout encolhido ao que sobrou.
@@ -50,6 +49,14 @@ import { narrationWordCount } from '@/lib/textLanguage'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta'
 
 export const ROTEIRO_NO_TAMANHO_VERSAO = 'roteiro_no_tamanho_0111' as const
+
+/** O filme mais longo em que o plano de tamanho, a nova tentativa por tamanho e o piso valem (4ª revisão: 90 s fica na base). */
+export const ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS = 60
+
+/** true = o escritor usa o plano de tamanho; false (acima de 60 s) = o escritor da base, intocado. */
+export function planoValeNoFilme(alvoSegundos: number): boolean {
+  return Number.isFinite(alvoSegundos) && alvoSegundos <= ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS
+}
 
 export type SecaoDoRoteiro = 'HOOK' | 'MICRO REWARD 1' | 'MICRO REWARD 2' | 'MICRO REWARD 3' | 'ESCALATION' | 'RHYTHM' | 'PAYOFF'
 export const SECOES_DO_ROTEIRO: readonly SecaoDoRoteiro[] = ['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'MICRO REWARD 3', 'ESCALATION', 'RHYTHM', 'PAYOFF']

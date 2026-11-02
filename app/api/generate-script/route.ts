@@ -35,7 +35,7 @@ import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
 import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
-import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
+import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -432,10 +432,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60/90 s com ideia (não roteiro colado): o piso entra como orçamento por
+    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por
     // bloco (lib/roteiroNoTamanho.ts). Caso Rick 01/11: 82 → 89 palavras para um piso de 169 e o filme de 60 s saiu com 35 s.
     // 2ª revisão: sem teto por motor — engine:'fast' no escritor também é filme do cinematic/Seedance (Rick); o plano vale para todos.
-    const planoDoTamanho = !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras, maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)) : null // KINEO-ROTEIRO-NO-TAMANHO-0111
+    // 4ª revisão: SÓ ATÉ 60 s. A 90 s o plano fazia a fala passar de 90 s e a montagem (lib/compose.ts, clamp a 90) cortava o final;
+    // ali o escritor é exatamente o da base (sem plano, sem pedido de tamanho, sem escolha entre versões, timeout de sempre).
+    const noTamanho = planoValeNoFilme(alvoSegundos) // KINEO-ROTEIRO-NO-TAMANHO-0111 — false a 90 s: comportamento da base
+    const planoDoTamanho = noTamanho && !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras, maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)) : null // KINEO-ROTEIRO-NO-TAMANHO-0111
     const tokensDoRoteiro = tetoDeTokens(planoDoTamanho, 700) // KINEO-ROTEIRO-NO-TAMANHO-0111 — curto e colado: os 700 de sempre
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
@@ -608,7 +611,7 @@ export async function POST(req: NextRequest) {
       const pedidoDoTamanho = planoDoTamanho && curtoParaOAlvo(script) ? ' ' + pedidoDeTamanho({ roteiro: script, palavras: scriptWordCount(script), plano: planoDoTamanho, alvoSegundos, language }) : '' // KINEO-ROTEIRO-NO-TAMANHO-0111 — a conta por bloco vai junto
       const palavrasDaPrimeira = scriptWordCount(script) // KINEO-ROTEIRO-NO-TAMANHO-0111
       // KINEO-ROTEIRO-NO-TAMANHO-0111 (revisão) — a 2ª chamada só sai se couber no maxDuration de 60 s; o timeout encolhe ao que sobrou
-      const prazoDaRetry = prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) // KINEO-ROTEIRO-NO-TAMANHO-0111
+      const prazoDaRetry = noTamanho ? prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) : OPENAI_SCRIPT_TIMEOUT_MS // KINEO-ROTEIRO-NO-TAMANHO-0111 — a 90 s, o timeout da base
       if (pedidoDoTamanho && prazoDaRetry !== null) tentativaDeTamanho = { first_words: palavrasDaPrimeira, retry_words: null, kept: 'first' } // KINEO-ROTEIRO-NO-TAMANHO-0111 — 2ª chamada vazia/com erro: fica a 1ª, e o rastro diz
       if (prazoDaRetry === null) { // KINEO-ROTEIRO-NO-TAMANHO-0111
         console.warn(`[generate-script] KINEO-ROTEIRO-NO-TAMANHO-0111 sem tempo para a nova tentativa (${Date.now() - inicioDaRota} ms gastos) — fica a 1ª versão`) // KINEO-ROTEIRO-NO-TAMANHO-0111
@@ -648,9 +651,9 @@ export async function POST(req: NextRequest) {
             if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = adotaFinal && segundaEMelhor(script, fimDaTentativa.script)
             if (adotaFinal && segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
           } else if (!rastroDoFinal?.retry_so_pelo_final || retryNaoPiora(retryScript)) { // KINEO-FINAL-RESPOSTA-0111 v5 — reescrita só pelo juiz do fim: só entra se não piorar
-            // KINEO-ROTEIRO-NO-TAMANHO-0111 — as duas curtas e a 2ª menor (sem estrutura nem fim melhores): fica a 1ª. Senão, a 2ª, como sempre.
+            // KINEO-ROTEIRO-NO-TAMANHO-0111 — as duas curtas e a 2ª menor (sem estrutura nem fim melhores): fica a 1ª. Senão, a 2ª, como sempre (e sempre a 2ª a 90 s, como na base).
             const problemasDe = (t: string) => missingElements(t).length + (payoffIsEmpty(t) ? 1 : 0) + (!colado.pasted && finalFracoDoRoteiro(t) ? 1 : 0)
-            const fica = escolherVersao({ piso: alvoPalavras, primeira: { palavras: scriptWordCount(script), problemas: problemasDe(script), leDescricao: leuADescricao(script) }, segunda: { palavras: scriptWordCount(retryScript), problemas: problemasDe(retryScript), leDescricao: leuADescricao(retryScript) } }) // revisão: + leitura da descrição (KINEO-NARRADOR-DESCRICAO-0111)
+            const fica = !noTamanho ? 'segunda' : escolherVersao({ piso: alvoPalavras, primeira: { palavras: scriptWordCount(script), problemas: problemasDe(script), leDescricao: leuADescricao(script) }, segunda: { palavras: scriptWordCount(retryScript), problemas: problemasDe(retryScript), leDescricao: leuADescricao(retryScript) } }) // revisão: + leitura da descrição (KINEO-NARRADOR-DESCRICAO-0111)
             if (pedidoDoTamanho) tentativaDeTamanho = { first_words: palavrasDaPrimeira, retry_words: scriptWordCount(retryScript), kept: fica === 'segunda' ? 'retry' : 'first' }
             if (fica === 'segunda') script = retryScript
             if (rastroDoFinal?.retry_so_pelo_final) rastroDoFinal.retry_adotado = true

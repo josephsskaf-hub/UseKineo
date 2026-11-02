@@ -786,15 +786,12 @@ export async function POST(req: NextRequest) {
     // matéria-prima por contrato. Então, quando o roteiro marcado veio do modo 'ai' e não enche a duração pedida, ele deixa
     // de ser lido palavra por palavra e vira o TEMA do escritor de cenas desta rota, que dimensiona a fala pela duração
     // (wordsPerSceneFor). Roteiro literal ("Use my script as is") continua intocado e continua podendo ser recusado.
-    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o mesmo vale para o roteiro
-    // da IA LONGO demais: o escritor agora mira ~278 palavras a 90 s, e na voz storyteller (2,63 pal/s) isso passa do teto de
-    // 103,5 s do too_long abaixo — o 422 mandava "mude para Let AI structure" a quem já estava nele. Vira tema, como o curto.
     const falaMarcada = marcadoresValidos ? parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ') : ''
-    const roteiroIaForaDoTamanho = marcadoresValidos && body.script_mode === 'ai' && (!narrationFitAt(falaMarcada, duration, fastRate).ok || decideDurationFollowsScriptUp({ ownScript: true, requestedSeconds: duration, speechSeconds: narrationWordCount(falaMarcada) / fastRate.wordsPerSecond, largestFitting: null })?.kind === 'too_long')
-    const verbatim = marcadoresValidos && !roteiroIaForaDoTamanho
-    if (roteiroIaForaDoTamanho && !(body.dry_run === true && isDryRunAccount(user.email))) {
+    const roteiroIaCurto = marcadoresValidos && body.script_mode === 'ai' && !narrationFitAt(falaMarcada, duration, fastRate).ok
+    const verbatim = marcadoresValidos && !roteiroIaCurto
+    if (roteiroIaCurto && !(body.dry_run === true && isDryRunAccount(user.email))) {
       const fitIa = narrationFitAt(falaMarcada, duration, fastRate)
-      void writeServerEvent({ name: 'ai_script_rewritten_to_fit', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: duration, speech_seconds: Math.round(fitIa.speech * 10) / 10, coverage: Math.round(fitIa.coverage * 100) / 100, words_per_second: fastRate.wordsPerSecond, too_long: fitIa.ok, version: 'v1_roteiro_nosso_cabe_20260923' } })
+      void writeServerEvent({ name: 'ai_script_rewritten_to_fit', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: duration, speech_seconds: Math.round(fitIa.speech * 10) / 10, coverage: Math.round(fitIa.coverage * 100) / 100, words_per_second: fastRate.wordsPerSecond, version: 'v1_roteiro_nosso_cabe_20260923' } })
       console.log(`[generate-fast] V1-ROTEIRO-NOSSO-CABE: roteiro da IA com ${Math.round(fitIa.speech)}s de fala para ${duration}s → escritor de cenas dimensiona pela duração (user=${user.id.slice(0, 8)})`)
     }
     // ═══ KINEO1-VERBATIM-ESTICA-2026-09-22 — "Use my script as is" vale para PROSA, e o roteiro manda na duração ═══

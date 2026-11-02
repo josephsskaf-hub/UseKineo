@@ -22,15 +22,16 @@
 //   M  mutantes: sem o plano no prompt / sem o pedido de tamanho / sem a escolha → vermelho.
 // Revisão (laço do revisor, 01/11) — os 4 defeitos do 1º conserto:
 //   S/SR (2ª revisão) SEM teto por motor: engine 'fast' no escritor também é filme do cinematic/Seedance (o Rick: script_written
-//      engine fast, voice fable → cinematic seedance). O plano vale para todos — 169/186 a 60 s, 253/278 a 90 s — e o piso
-//      cobre o que o Seedance exige de TODAS as personas (storyteller/fable 150 e 225; a mais exigente 161 e 241); o caso do
-//      Rick a 60 s e a 90 s sai no tamanho; 220 palavras a 90 s (a faixa que a 1ª revisão aceitava) pede a nova tentativa;
+//      engine fast, voice fable → cinematic seedance). O plano vale para todos os motores — 169/186 a 60 s — e o piso
+//      cobre o que o Seedance exige de TODAS as personas (storyteller/fable 150; a mais exigente 161); o caso do Rick a 60 s
+//      sai no tamanho nos motores fast e seedance;
 //   D/DR a versão que lê a descrição de cena nunca vence a que não lê (KINEO-NARRADOR-DESCRICAO-0111);
 //   PR a 2ª chamada sai com o timeout encolhido ao que cabe nos 60 s, e não sai sem tempo (length_retry_skipped deadline);
 //   RS o resgate da recusa vai sem o plano e com 700 tokens; curto depois dele = still_short_after_retry true + story_rescue.
-// 3ª revisão — K1: o plano de 278 a 90 s passa do teto de 103,5 s da rota do Kineo 1 nas vozes storyteller (2,63) e
-//   finance-authority (2,50); no modo "IA estrutura" a rota fast recusava com 422 o roteiro que a própria IA escreveu. Agora
-//   o roteiro da IA longo demais vira tema do escritor de cenas (como o curto, V1 de 23/09); o literal continua recusável.
+// 4ª revisão (substitui a 3ª) — N90: a 90 s o plano fazia a fala passar de 90 s e a montagem (lib/compose.ts, clamp a 90)
+//   cortava o final. O plano, a nova tentativa por tamanho e o piso só valem até 60 s; a 90 s a rota é provada IGUAL à base
+//   (mesmas chamadas à OpenAI — prompt, tokens, timeout —, mesmo roteiro, mesmo script_written) em 5 cenários. A mudança da
+//   3ª revisão na rota do Kineo 1 (generate-video-fast) saiu: o arquivo é provado igual à origin/main. 35 s coberto (T35).
 // Rodar: node scripts/test-roteiro-no-tamanho-0111.mjs   (sem rede, sem custo)
 import fs from 'node:fs'
 import path from 'node:path'
@@ -120,10 +121,11 @@ const exigidoPeloSeedance = (p, seg) => Math.ceil(seg * NF.minCoverageFor(seg) *
 const STORYTELLER = PERS.VOICE_PERSONAS.find((p) => p.id === 'storyteller')
 ok(!!STORYTELLER && STORYTELLER.voice === 'fable', 'a persona do Rick: storyteller, voz fable')
 const p90 = L.planoDePalavras(253, 304)
-ok(p90 && p90.piso === 253 && p90.alvo === 278 && soma(p90) === 278, `90 s: plano ${p90?.piso}/${p90?.alvo} (o do 1º conserto, sem o 214/226 da 1ª revisão)`)
+ok(p90 && p90.piso === 253 && p90.alvo === 278 && soma(p90) === 278, `lib pura: planoDePalavras(253) = ${p90?.piso}/${p90?.alvo} (a rota não o pede a 90 s — ver N90)`)
 ok(p169 && p169.piso === 169 && p169.alvo === 186, `60 s: plano ${p169?.piso}/${p169?.alvo}`)
-for (const seg of [60, 90]) {
-  const plano = seg === 60 ? p169 : p90
+ok(L.ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS === 60 && L.planoValeNoFilme(35) && L.planoValeNoFilme(60) && !L.planoValeNoFilme(61) && !L.planoValeNoFilme(90) && !L.planoValeNoFilme(NaN), 'planoValeNoFilme: 35 e 60 s sim; 61/90 s e inválido não (4ª revisão)')
+for (const seg of [60]) {
+  const plano = p169
   const exig = PERS.VOICE_PERSONAS.map((p) => [p.id, exigidoPeloSeedance(p, seg)])
   const maior = exig.reduce((m, x) => (x[1] > m[1] ? x : m))
   ok(plano && exig.every(([, w]) => w <= plano.piso), `${seg} s: o piso ${plano?.piso} cobre o Seedance em TODAS as ${exig.length} personas (a mais exigente: ${maior[0]} ${maior[1]}; storyteller ${exigidoPeloSeedance(STORYTELLER, seg)})`)
@@ -218,73 +220,78 @@ ok(c2b.body?.pastedScript === true && !/LENGTH PLAN/.test(c2b.chamadas[0]?.syste
 const c3 = await postar({ body: { topic: IDEIA_RICK, language: 'en', targetSeconds: 15, engine: 'cinematic_ai' }, gpt: () => ROTEIRO_RICK_89 })
 ok(c3.chamadas.length >= 1 && c3.chamadas.every((c) => !/LENGTH PLAN/.test(c.system) && c.max_tokens === 700), 'C3 filme curto (15 s): sem plano, 700 tokens, como antes')
 
-// ── Revisão: Kineo 1 a 90 s, descrição de cena, prazo da rota e resgate da recusa — na rota real ─────────────────────────
+// ── Revisão: 60 s nos dois motores, 35 s, 90 s igual à base, descrição de cena, prazo da rota e resgate da recusa — na rota real ──
 const maisFrases = (t, n) => t.replace('hello, Roland.', 'hello, Roland. ' + Array.from({ length: n }, (_, i) => `On night ${i + 2} it changed the password on the ice maker and hummed a little tune.`).join(' '))
 const ROTEIRO_222 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 220 && n < 20) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
 const ROTEIRO_260 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 260 && n < 30) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
 const PEDIDO_K90 = { ...PEDIDO_RICK, targetSeconds: 90 }
 const seedanceAceita = (p, palavras, seg) => palavras / taxaDa(p) >= seg * NF.minCoverageFor(seg) - 1e-9
-console.log('SR — o Rick (engine fast, storyteller/fable, filme no Seedance) a 60 s e a 90 s, na rota')
-ok(falaDe(ROTEIRO_222) >= 214 && falaDe(ROTEIRO_222) < 225 && falaDe(ROTEIRO_260) >= 253, `dublês: ${falaDe(ROTEIRO_222)} palavras (a faixa 214-224 que a 1ª revisão aceitava e o Seedance/storyteller amputa) e ${falaDe(ROTEIRO_260)}`)
-ok(!seedanceAceita(STORYTELLER, falaDe(ROTEIRO_222), 90), `${falaDe(ROTEIRO_222)} palavras a 90 s na voz fable: o Seedance encurtaria (a prova do defeito da 1ª revisão)`)
+console.log('SR — o Rick (storyteller/fable) a 60 s, motores fast e seedance, na rota')
 for (const engine of ['fast', 'seedance']) {
-  const s90 = await postar({ body: { ...PEDIDO_K90, engine }, gpt: ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260) })
-  const pl = (s90.chamadas[0]?.system ?? '').match(/NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+) \(/)
-  if (engine === 'fast') ok(!!pl && Number(pl[1]) === 278 && Number(pl[2]) === 253 && !/NEVER MORE THAN/.test(s90.chamadas[0]?.system ?? ''), `engine ${engine} a 90 s: a 1ª chamada leva o plano 253/278, sem teto (${pl?.[2]}/${pl?.[1]})`)
-  else ok(!!pl && Number(pl[2]) >= 225 && !/NEVER MORE THAN/.test(s90.chamadas[0]?.system ?? ''), `engine ${engine} a 90 s: plano na régua dele, sem teto (${pl?.[2]}/${pl?.[1]})`)
-  ok(s90.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM: your script has \d+ spoken words/.test(s90.chamadas[1]?.user ?? ''), `engine ${engine} a 90 s: ${falaDe(ROTEIRO_222)} palavras pedem a nova tentativa por tamanho`)
-  ok(s90.body?.script === ROTEIRO_260 && s90.escrito?.length_retry?.kept === 'retry' && s90.escrito?.still_short_after_retry === (falaDe(ROTEIRO_260) < s90.escrito?.min_words), `engine ${engine} a 90 s: sai a 2ª (${falaDe(ROTEIRO_260)}; piso da régua ${s90.escrito?.min_words}, still_short_after_retry ${s90.escrito?.still_short_after_retry})`)
-  if (engine === 'fast') ok(s90.escrito?.min_words === 253 && s90.escrito?.length_plan?.floor_words === 253 && s90.escrito?.length_plan?.target_words === 278 && !('engine_ceiling_words' in (s90.escrito?.length_plan ?? {})) && !('capped_by_engine' in (s90.escrito?.length_plan ?? {})), `rastro: min_words 253, length_plan ${JSON.stringify(s90.escrito?.length_plan)}`)
+  const s60 = await postar({ body: { ...PEDIDO_RICK, engine }, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
+  const pl = (s60.chamadas[0]?.system ?? '').match(/NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+) \(/)
+  ok(!!pl && Number(pl[2]) === s60.escrito?.min_words && Number(pl[2]) >= 169 && !/NEVER MORE THAN/.test(s60.chamadas[0]?.system ?? ''), `engine ${engine} a 60 s: a 1ª chamada leva o plano ${pl?.[2]}/${pl?.[1]}, sem teto`)
+  ok(s60.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM: your script has 89 spoken words/.test(s60.chamadas[1]?.user ?? ''), `engine ${engine} a 60 s: as 89 palavras pedem a nova tentativa por tamanho`)
+  ok(s60.body?.script === ROTEIRO_RICK_LONGO && s60.escrito?.fits === true && s60.escrito?.length_retry?.kept === 'retry' && s60.escrito?.still_short_after_retry === false && s60.escrito?.length_plan?.version === 'roteiro_no_tamanho_0111', `engine ${engine} a 60 s: sai a 2ª (${falaDe(ROTEIRO_RICK_LONGO)} palavras, fits:true)`)
+  ok(seedanceAceita(STORYTELLER, falaDe(s60.body?.script ?? ''), 60) && !seedanceAceita(STORYTELLER, 89, 60), `engine ${engine} a 60 s: 89 (o Seedance encurtava para 35 s) → ${falaDe(s60.body?.script ?? '')} palavras, aceitas na voz fable`)
+  const fala60 = falaDe(s60.body?.script ?? '') / taxaDa(STORYTELLER)
+  ok(fala60 < 90, `engine ${engine} a 60 s: ${fala60.toFixed(1)} s de fala na voz fable — abaixo do clamp de 90 s da montagem`)
 }
-const rick90 = await postar({ body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_260) })
-ok(rick90.body?.script === ROTEIRO_260 && seedanceAceita(STORYTELLER, falaDe(rick90.body?.script ?? ''), 90), `Rick a 90 s: 89 → ${falaDe(rick90.body?.script ?? '')} palavras, que o Seedance aceita na voz fable sem encurtar`)
-const rick60 = await postar({ body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
-ok(rick60.body?.script === ROTEIRO_RICK_LONGO && rick60.escrito?.min_words === 169 && seedanceAceita(STORYTELLER, falaDe(rick60.body?.script ?? ''), 60) && !seedanceAceita(STORYTELLER, 89, 60), `Rick a 60 s: 89 (o Seedance encurtava para 35 s) → ${falaDe(rick60.body?.script ?? '')} palavras, aceitas na voz fable`)
+{
+  const PIOR_60 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 230 && n < 30) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
+  const p = await postar({ body: PEDIDO_RICK, gpt: () => PIOR_60 })
+  ok(p.chamadas.length === 1 && p.body?.script === PIOR_60, `60 s, roteiro acima do alvo (${falaDe(PIOR_60)} palavras): UMA chamada, nada é cortado pelo escritor (passar do alvo é bom)`)
+}
 
-// ── K1 (3ª revisão) — Kineo 1 a 90 s: o roteiro da IA longo demais vira tema na rota fast, em vez do 422 ──────────────────
-console.log('K1 — Kineo 1 a 90 s: roteiro da IA acima do teto da rota fast vira tema; o literal continua recusável')
-const FAST_REL = 'app/api/generate-video-fast/route.ts'
-const fastSrc = rd(FAST_REL)
-const blocoK1 = fastSrc.match(/    const falaMarcada = [^\n]+\n    const roteiroIaForaDoTamanho = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
-ok(blocoK1.length > 0, 'o bloco do roteiro da IA (falaMarcada → verbatim) está na rota do Kineo 1')
-const SP = createOfflineLoader({})('@/lib/scriptParser.ts')
-const DF = createOfflineLoader({})('@/lib/durationFollowsScript.ts')
-const TL = createOfflineLoader({})('@/lib/textLanguage.ts')
-const FINANCE = PERS.VOICE_PERSONAS.find((p) => p.id === 'finance-authority')
-const taxaFast = (p) => SR.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed })
-function rotaFast(src, roteiro, scriptMode, persona, duration = 90) {
-  const parsedScript = SP.parseUserScript(roteiro)
-  const marcadoresValidos = parsedScript.hasMarkers && parsedScript.segments.length > 0
-  const fastRate = taxaFast(persona)
-  const f = new Function('parsedScript', 'marcadoresValidos', 'body', 'narrationFitAt', 'duration', 'fastRate', 'decideDurationFollowsScriptUp', 'narrationWordCount', `${src}
-return { verbatim, falaMarcada }`)
-  const { verbatim, falaMarcada } = f(parsedScript, marcadoresValidos, { script_mode: scriptMode }, SR.narrationFitAt, duration, fastRate, DF.decideDurationFollowsScriptUp, TL.narrationWordCount)
-  // o portão logo abaixo na rota (KINEO1-VERBATIM-ESTICA): ownScript = verbatim || literal; acima de 90 × 1,15 s → 422
-  const ownScript = verbatim || scriptMode === 'verbatim'
-  const fala = verbatim ? falaMarcada : roteiro
-  const sobe = ownScript ? DF.decideDurationFollowsScriptUp({ ownScript, requestedSeconds: duration, speechSeconds: TL.narrationWordCount(fala) / fastRate.wordsPerSecond, largestFitting: null }) : null
-  return { verbatim, recusado: sobe?.kind === 'too_long', segundos: Math.round(TL.narrationWordCount(falaMarcada) / fastRate.wordsPerSecond) }
+console.log('T35 — 35 s: o plano vale (régua clássica)')
+{
+  const PEDIDO_35 = { ...PEDIDO_RICK, targetSeconds: 35 }
+  const t35 = await postar({ body: PEDIDO_35, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
+  const pl = (t35.chamadas[0]?.system ?? '').match(/THIS 35-SECOND FILM NEEDS ABOUT (\d+) SPOKEN WORDS, NEVER FEWER THAN (\d+) \(/)
+  ok(t35.status === 200 && !!pl && Number(pl[2]) === t35.escrito?.min_words && t35.escrito?.length_plan?.floor_words === t35.escrito?.min_words, `35 s: plano ${pl?.[2]}/${pl?.[1]} no prompt e no rastro (min_words ${t35.escrito?.min_words})`)
+  const curto35 = (t35.escrito?.min_words ?? 0) > 89
+  ok(curto35 ? (t35.chamadas.length === 2 && /LENGTH IS THE MAIN PROBLEM/.test(t35.chamadas[1]?.user ?? '') && t35.body?.script === ROTEIRO_RICK_LONGO) : (t35.chamadas.length >= 1), `35 s: ${curto35 ? '89 palavras abaixo do piso → nova tentativa por tamanho, sai a 2ª' : '89 palavras já no piso'}`)
+  const c35 = await postar({ body: PEDIDO_35, gpt: () => ROTEIRO_RICK_LONGO })
+  ok(c35.chamadas.length === 1 && c35.escrito?.length_retry === null && c35.escrito?.fits === true, '35 s: roteiro no tamanho na 1ª → UMA chamada, sem length_retry')
 }
-const ROTEIRO_250 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 245 && n < 40) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
-const ROTEIRO_278 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 278 && n < 40) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
-ok(!!FINANCE && falaDe(ROTEIRO_278) >= 278 && falaDe(ROTEIRO_278) < 300 && falaDe(ROTEIRO_250) >= 245 && falaDe(ROTEIRO_250) <= 258, `dublês: ${falaDe(ROTEIRO_250)} (cabe nas duas vozes) e ${falaDe(ROTEIRO_278)} palavras (o alvo do plano a 90 s); taxas storyteller ${taxaFast(STORYTELLER).wordsPerSecond}, finance-authority ${taxaFast(FINANCE ?? STORYTELLER).wordsPerSecond}`)
-for (const p of [STORYTELLER, FINANCE].filter(Boolean)) {
-  const ia = rotaFast(blocoK1, ROTEIRO_278, 'ai', p)
-  ok(ia.verbatim === false && ia.recusado === false, `${p.id} a 90 s, "IA estrutura": ${ia.segundos} s de fala → vira tema do escritor de cenas, sem 422`)
-  const literal = rotaFast(blocoK1, ROTEIRO_278, 'verbatim', p)
-  ok(literal.recusado === true, `${p.id} a 90 s, "as is": o literal de ${literal.segundos} s continua recusado (o texto da pessoa não é reescrito)`)
-  const cabe = rotaFast(blocoK1, ROTEIRO_250, 'ai', p)
-  ok(cabe.verbatim === true && cabe.recusado === false, `${p.id} a 90 s, "IA estrutura": ${falaDe(ROTEIRO_250)} palavras (${cabe.segundos} s) cabem → narradas palavra por palavra`)
+
+console.log('N90 — 90 s: o plano não se aplica; a rota é IGUAL à base (chamadas, roteiro, script_written)')
+{
+  let baseRota = null
+  try { baseRota = lf(git('show', `${BASE_REF}:${ROUTE_REL}`)) } catch { baseRota = null }
+  ok(!!baseRota && !baseRota.includes(MARCA), `base legível e sem a marca (${BASE_REF})`)
+  const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  const cenarios = [
+    ['Rick 89 → 2ª menor (70)', ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70), 0],
+    ['Rick 89 → 2ª longa (260)', ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_260), 0],
+    ['222 → 260', ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260), 0],
+    ['2ª com erro', ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : new Error('timeout')), 0],
+    ['1ª lenta (50 s)', ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70), 50000],
+    ['no tamanho na 1ª', () => ROTEIRO_260, 0],
+  ]
+  for (const engine of ['fast', 'seedance']) {
+    for (const [nome, gpt, atraso] of cenarios) {
+      const rodar = async (routeSrc) => {
+        try { return await postar({ routeSrc, body: { ...PEDIDO_K90, engine }, gpt: (a) => { if (a.n === 1) atrasoDoRelogio += atraso; return gpt(a) } }) } finally { atrasoDoRelogio = 0 }
+      }
+      const novo = await rodar(null)
+      const velho = baseRota ? await rodar(baseRota) : null
+      const semPlano = novo.chamadas.every((c) => !/LENGTH PLAN/.test(c.system) && !/LENGTH IS THE MAIN PROBLEM/.test(c.user) && c.max_tokens === 700) && !('length_plan' in (novo.escrito ?? {})) && !('length_retry' in (novo.escrito ?? {}))
+      ok(semPlano, `${engine} 90 s · ${nome}: sem plano, sem pedido de tamanho, 700 tokens, sem length_plan no rastro`)
+      ok(!!velho && igual(novo.chamadas, velho.chamadas) && igual(novo.body, velho.body) && igual(novo.escrito, velho.escrito) && novo.status === velho.status, `${engine} 90 s · ${nome}: igual à base (${novo.chamadas.length} chamadas, timeouts ${novo.chamadas.map((c) => c.timeout).join('/')}, roteiro de ${falaDe(novo.body?.script ?? '')} palavras)`)
+    }
+  }
 }
-const curtoK1 = rotaFast(blocoK1, ROTEIRO_RICK_89, 'ai', STORYTELLER)
-ok(curtoK1.verbatim === false && curtoK1.recusado === false, 'V1 intacto: o roteiro da IA curto (89 a 90 s) segue virando tema')
-ok(/name: 'ai_script_rewritten_to_fit'[^\n]*too_long: fitIa.ok, version: 'v1_roteiro_nosso_cabe_20260923'/.test(fastSrc), 'rastro: ai_script_rewritten_to_fit diz se foi por longo (too_long)')
-const semLongo = blocoK1.replace(" || decideDurationFollowsScriptUp({ ownScript: true, requestedSeconds: duration, speechSeconds: narrationWordCount(falaMarcada) / fastRate.wordsPerSecond, largestFitting: null })?.kind === 'too_long')", ')')
-ok(semLongo !== blocoK1 && rotaFast(semLongo, ROTEIRO_278, 'ai', STORYTELLER).recusado === true, 'mutante "sem o caso longo" (a regra da base) aplicado e reprovado: storyteller a 90 s volta ao 422')
-let baseFast = null
-try { baseFast = lf(git('show', `${BASE_REF}:${FAST_REL}`)) } catch { baseFast = null }
-const blocoBase = (baseFast ?? '').match(/    const falaMarcada = [^\n]+\n    const roteiroIaCurto = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
-ok(blocoBase.length > 0 && rotaFast(blocoBase.replace(/roteiroIaCurto/g, 'roteiroIaForaDoTamanho'), ROTEIRO_278, 'ai', STORYTELLER).recusado === true, `na base: o mesmo roteiro da IA de ${falaDe(ROTEIRO_278)} palavras a 90 s era recusado na voz storyteller`)
+
+console.log('F — a rota do Kineo 1 (generate-video-fast) é a da origin/main: a mudança da 3ª revisão saiu')
+{
+  const FAST_REL = 'app/api/generate-video-fast/route.ts'
+  let fastMain = null
+  try { fastMain = lf(git('show', `origin/main:${FAST_REL}`)) } catch { fastMain = null }
+  const fastAqui = rd(FAST_REL)
+  ok(!!fastMain && fastAqui === fastMain, 'generate-video-fast/route.ts idêntica à origin/main')
+  ok(!fastAqui.includes('roteiroIaForaDoTamanho') && !fastAqui.includes(MARCA), 'sem roteiroIaForaDoTamanho nem a marca desta entrega na rota fast')
+}
 
 console.log('DR — descrição de cena: a versão que lê a descrição nunca vence a que não lê')
 const CRIANCA = 'A child skillfully and enthusiastically crafts a colorful 3D car, surrounded by their vibrant creations. The table showcases an impressive 3D dinosaur and a charming house, inspiring further imaginative creativity.'
@@ -334,9 +341,13 @@ console.log('M — mutantes (cada um precisa ficar vermelho)')
 const rota = rd(ROUTE_REL)
 const mutantes = [
   ['sem o plano no prompt', rota.replace('SYSTEM_PROMPT + (planoDoTamanho ? `\\n\\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : \'\')', 'SYSTEM_PROMPT'), async (src) => /LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })).chamadas[0]?.system ?? '')],
-  ['teto do Kineo 1 de volta (engine fast a 90 s → 214)', rota.replace('planoDePalavras(alvoPalavras, maxWordsFor(', "planoDePalavras(body.engine === 'fast' && alvoSegundos >= 90 ? 214 : alvoPalavras, maxWordsFor("), async (src) => /NEVER FEWER THAN 253 \(/.test((await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260) })).chamadas[0]?.system ?? '')],
+  ['plano a 90 s (sem o portão dos 60 s)', rota.replace('const noTamanho = planoValeNoFilme(alvoSegundos)', 'const noTamanho = true'), async (src) => !/LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260) })).chamadas[0]?.system ?? '')],
+  ['escolha entre versões a 90 s', rota.replace("const fica = !noTamanho ? 'segunda' : escolherVersao(", 'const fica = escolherVersao('), async (src) => (await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70) })).body?.script === ROTEIRO_RICK_70],
+  ['prazo encolhido a 90 s', rota.replace('noTamanho ? prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) : OPENAI_SCRIPT_TIMEOUT_MS', 'prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)'), async (src) => {
+    try { return (await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => { if (n === 1) atrasoDoRelogio += 30000; return n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70 } })).chamadas[1]?.timeout === 35000 } finally { atrasoDoRelogio = 0 }
+  }],
   ['sem a descrição na escolha', rota.replace(', leDescricao: leuADescricao(script) }', ' }').replace(', leDescricao: leuADescricao(retryScript) }', ' }'), async (src) => (await postar({ routeSrc: src, body: { topic: CRIANCA, language: 'en', targetSeconds: 60, engine: 'seedance' }, gpt: ({ n }) => (n === 1 ? DESC_LE : DESC_NAO) })).body?.script === DESC_NAO],
-  ['sem o prazo da 2ª chamada', rota.replace('const prazoDaRetry = prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)', 'const prazoDaRetry = OPENAI_SCRIPT_TIMEOUT_MS'), async (src) => {
+  ['sem o prazo da 2ª chamada', rota.replace('noTamanho ? prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) : OPENAI_SCRIPT_TIMEOUT_MS', 'OPENAI_SCRIPT_TIMEOUT_MS'), async (src) => {
     try { return (await postar({ routeSrc: src, body: PEDIDO_RICK, gpt: ({ n }) => { if (n === 1) atrasoDoRelogio += 50000; return ROTEIRO_RICK_89 } })).chamadas.length === 1 } finally { atrasoDoRelogio = 0 }
   }],
   ['resgate com o plano', rota.replace('SYSTEM_PROMPT + instrucaoDoResgate(', 'PROMPT_DO_ROTEIRO + instrucaoDoResgate('), async (src) => !/LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? RECUSA : ROTEIRO_RICK_89) })).chamadas[1]?.system ?? 'LENGTH PLAN')],
