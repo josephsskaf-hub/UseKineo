@@ -2,7 +2,7 @@
 //
 // O par do `render_parked` que a rota /api/generate-video-cinematic grava quando a fal recusa TODAS as cenas por saldo
 // (403/402 balance_quota) ou capacidade (429 rate_limit) sem nenhum gasto possível (ver lib/filaQuedaFal). A cada 5 min:
-//   1. lê os estacionados das últimas 26 h, mais velho primeiro, e os marcadores `render_parked_closed`;
+//   1. lê TODOS os estacionados das últimas 30 h (em páginas), mais velho primeiro, e os marcadores `render_parked_closed`;
 //   2. vencido (≥ 24 h) → fecha 'expired' + e-mail honesto (nada cobrado; o crédito voltou no estacionamento);
 //      pedido mais novo da MESMA conta depois do estacionamento (generation_dispatch_received) → fecha 'superseded' em
 //      silêncio: a pessoa já fez outro filme, nunca dois filmes pelo mesmo clique;
@@ -31,6 +31,8 @@ import { idDaRetomada, idDoAluguel, idDoFechamento } from '@/lib/filaQuedaFalIds
 import { cinematicClaimId } from '@/lib/cinematic/claim' // KINEO-SERIE-AUTO-ETAPA1-0111
 import { CINEMATIC_CLAIM_EVENT } from '@/lib/cinematic/claim' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
 import { aluguelPodeTerCobrado, desfechoComCobranca, leituraDaCobranca, podeDizerNadaCobrado, situacaoDaTentativa, passouDoLimiteDeEspera, FOUNDER_PARKED_ALERT_EVENT, PARKED_LEASE_MAX_PAGES, PARKED_LEASE_PAGE, type LeituraDaCobranca, type SituacaoDaTentativa } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — nenhuma tentativa N+1 (nem e-mail "nothing was charged") sem LER a cobrança da tentativa N; cobrança viva = só espera (nunca re-POST)
+import { textoDoAlertaEstacionadoSemConfirmacao } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — revisão 7: o teto AVISA o fundador (o evento sozinho não tinha leitor)
+import { notifyFounder } from '@/lib/supplier/notify' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
 
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 (regra da casa): rota só-GET nasce com revalidate=false; sem isto o marcador de fechamento
@@ -97,16 +99,21 @@ async function postarRetomada(userId: string, row: ParkedRow, pedido: PedidoEsta
  * numa queda longa os aluguéis antigos caíam fora — o candidato que cobrou sumia e o N da próxima tentativa saía errado. Página que // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
  * falha ou teto de páginas atingido = leitura incompleta = a passada não decide nada (fail closed). // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
  */ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
-async function lerAlugueis(admin: SupabaseClient, genIds: string[]): Promise<LeaseRow[] | null> { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
-  const out: LeaseRow[] = [] // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+// Revisão 7: o mesmo leitor serve os estacionados e os fechamentos. Eram .limit(100)/.limit(500): numa queda com mais de 100 estacionados // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+// na janela (os já fechados contam), o mais novo só aparecia já vencido e recebia "never started" sem nenhuma tentativa. // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+async function lerTudo<T>(pagina: (de: number, ate: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<T[] | null> { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  const out: T[] = [] // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
   for (let p = 0; p < PARKED_LEASE_MAX_PAGES; p++) { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
-    const { data, error } = await admin.from('events').select('id, session_id, created_at, metadata').eq('name', PARKED_LEASE_EVENT).in('session_id', genIds).order('created_at').order('id').range(p * PARKED_LEASE_PAGE, (p + 1) * PARKED_LEASE_PAGE - 1) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    const { data, error } = await pagina(p * PARKED_LEASE_PAGE, (p + 1) * PARKED_LEASE_PAGE - 1) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     if (error) return null // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
-    const rows = (data ?? []) as LeaseRow[] // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    const rows = (data ?? []) as T[] // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     out.push(...rows) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     if (rows.length < PARKED_LEASE_PAGE) return out // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
   } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
   return null // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+} // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+function lerAlugueis(admin: SupabaseClient, genIds: string[]): Promise<LeaseRow[] | null> { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+  return lerTudo<LeaseRow>((de, ate) => admin.from('events').select('id, session_id, created_at, metadata').eq('name', PARKED_LEASE_EVENT).in('session_id', genIds).order('created_at').order('id').range(de, ate)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
 } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
 
 function pedidoDe(metadata: unknown): PedidoEstacionado | null {
@@ -115,7 +122,8 @@ function pedidoDe(metadata: unknown): PedidoEstacionado | null {
   return r && typeof r === 'object' && typeof r.prompt === 'string' && r.prompt.length > 0 && Number.isFinite(Number(r.duration)) ? r : null
 }
 
-// E-mail honesto: nada foi cobrado, o crédito voltou no dia, e o caminho de 1 clique para fazer o filme agora.
+// E-mail honesto: nada foi cobrado e o caminho de 1 clique para fazer o filme agora. Sem dizer QUANDO o crédito voltou (revisão 7): uma
+// tentativa intermediária pode ter cobrado e a varredura estornado horas depois — o saldo final está certo, o "na hora" não estaria.
 function buildEmail(userId: string, kind: 'expired' | 'failed', prompt: string) {
   const url = composerUrl({ base: APP_URL, campaign: kind === 'expired' ? 'parked_expired' : 'parked_failed', prompt })
   const oQue = kind === 'expired'
@@ -125,7 +133,7 @@ function buildEmail(userId: string, kind: 'expired' | 'failed', prompt: string) 
 
 ${oQue}
 
-Nothing was charged — the credits for that film went back to your account the moment it was saved, and they are still there.
+Nothing was charged — the credits for that film are back in your account.
 
 Your script is kept: one click opens it in the Studio so you can render it now: ${url}
 
@@ -136,7 +144,7 @@ usekineo.com`
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p>Hey,</p>
   <p>${oQue}</p>
-  <p><strong>Nothing was charged</strong> — the credits for that film went back to your account the moment it was saved, and they are still there.</p>
+  <p><strong>Nothing was charged</strong> — the credits for that film are back in your account.</p>
   <p>Your script is kept: one click opens it in the Studio so you can render it now.</p>
   <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Render it now →</a></p>
   <p>If anything looks off, hit reply. It lands with a real person.</p>
@@ -181,20 +189,20 @@ export async function GET(req: NextRequest) {
   const now = Date.now()
   const desde = new Date(now - SCAN_WINDOW_MS).toISOString()
 
-  const { data: parkedRows, error } = await admin.from('events').select('user_id, session_id, created_at, metadata').eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde).order('created_at', { ascending: true }).limit(100)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  const parked = ((parkedRows ?? []) as ParkedRow[]).filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id)) // KINEO-SERIE-AUTO-ETAPA1-0111 — a linha FILHA (a rota re-estacionou a tentativa N) nunca é retomada: só o original
+  const parkedRows = await lerTudo<ParkedRow>((de, ate) => admin.from('events').select('user_id, session_id, created_at, metadata').eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde).order('created_at', { ascending: true }).order('id').range(de, ate)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — era .limit(100)
+  if (parkedRows === null) return NextResponse.json({ error: 'parked read incomplete' }, { status: 500 })
+  const parked = parkedRows.filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id)) // KINEO-SERIE-AUTO-ETAPA1-0111 — a linha FILHA (a rota re-estacionou a tentativa N) nunca é retomada: só o original
   if (parked.length === 0) return NextResponse.json({ ok: true, mode: confirm ? 'SEND' : 'DRY_RUN', scanned: 0, results: [] })
   const genIds = parked.map((r) => String(r.session_id))
   const userIds = [...new Set(parked.map((r) => String(r.user_id)))]
   const minParkedAt = parked[0].created_at
-  const [{ data: closedRows, error: closedErr }, leaseRows, { data: dispatchRows }] = await Promise.all([ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
-    admin.from('events').select('session_id').eq('name', PARKED_CLOSED_EVENT).in('session_id', genIds).limit(500),
+  const [closedRows, leaseRows, { data: dispatchRows }] = await Promise.all([ // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+    lerTudo<{ session_id: string | null }>((de, ate) => admin.from('events').select('session_id').eq('name', PARKED_CLOSED_EVENT).in('session_id', genIds).order('id').range(de, ate)), // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — era .limit(500)
     lerAlugueis(admin, genIds), // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     admin.from('events').select('user_id, created_at, metadata').eq('name', 'generation_dispatch_received').in('user_id', userIds).gt('created_at', minParkedAt).limit(1000),
   ])
-  if (closedErr || leaseRows === null) return NextResponse.json({ error: 'parked lease/close read incomplete — nothing decided this pass' }, { status: 503 }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — sem a lista inteira, a tentativa N+1 poderia nascer por cima de uma que cobrou
-  const closed = new Set((closedRows ?? []).map((r) => String(r.session_id)))
+  if (closedRows === null || leaseRows === null) return NextResponse.json({ error: 'parked lease/close read incomplete — nothing decided this pass' }, { status: 503 }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — sem a lista inteira, a tentativa N+1 poderia nascer por cima de uma que cobrou
+  const closed = new Set(closedRows.map((r) => String(r.session_id)))
   const leases = new Map<string, { n: number; maxAttempt: number; openAtMs: number | null }>() // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 (maxAttempt: o N vem do maior número gravado, não da contagem)
   for (const l of leaseRows) {
     const sid = String(l.session_id)
@@ -253,7 +261,10 @@ export async function GET(req: NextRequest) {
         const vivas = lidos.filter((x) => x.situacao === 'cobranca_viva' || x.situacao === 'ilegivel').map((x) => x.resumeId) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
         console.error(`[parked] ALERTA FUNDADOR gen=${g8} expired_unverified (${situacoes.join(' ')}) — cobrança não confirmada em ${Math.round((now - parkedAtMs) / 3_600_000)} h; conferir à mão: ${vivas.join(' ')}`) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
         if (f === 'novo') { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — um alerta por estacionado (o fechamento tem id determinístico)
-          const { error: alertErr } = await admin.from('events').insert({ user_id: userId, name: FOUNDER_PARKED_ALERT_EVENT, path: '/api/cron/resume-parked-renders', session_id: genId, metadata: { version: PARKED_VERSION, parked_at: row.created_at, hours: Math.round((now - parkedAtMs) / 3_600_000), situacoes, resume_generation_ids: vivas, motivo: d.motivo, acao: 'conferir à mão: débito vivo/ilegível sem filme — estornar pelo /admin/people ou confirmar que o filme saiu' } }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+          const hours = Math.round((now - parkedAtMs) / 3_600_000) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+          const aviso = textoDoAlertaEstacionadoSemConfirmacao({ generationId: genId, userId, hours, situacoes, resumeIds: vivas }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+          const enviado = await notifyFounder(aviso.subject, aviso.text, { idempotencyKey: `founder-parked-unverified-${idDoFechamento(genId)}` }).catch(() => null) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — revisão 7: o evento sozinho não chegava a ninguém
+          const { error: alertErr } = await admin.from('events').insert({ user_id: userId, name: FOUNDER_PARKED_ALERT_EVENT, path: '/api/cron/resume-parked-renders', session_id: genId, metadata: { version: PARKED_VERSION, parked_at: row.created_at, hours, situacoes, resume_generation_ids: vivas, motivo: d.motivo, founder_notified: enviado?.delivered === true, acao: 'conferir à mão: débito vivo/ilegível sem filme — devolver pelo /admin/people ou confirmar que o filme saiu; responder o cliente' } }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
           if (alertErr) console.error(`[parked] gen=${g8} alerta do fundador não gravado: ${alertErr.message}`) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
         } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
         results.push({ generation: g8, decision: 'expired_unverified', outcome: f, email: 'none' }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
@@ -268,6 +279,15 @@ export async function GET(req: NextRequest) {
         results.push({ generation: g8, decision: 'resume_recovered', outcome: f }) // KINEO-SERIE-AUTO-ETAPA1-0111
         continue // KINEO-SERIE-AUTO-ETAPA1-0111
       } // KINEO-SERIE-AUTO-ETAPA1-0111
+      // Revisão 7: um 4xx terminal ('failed', gravado só depois de ler 'sem_cobranca') cujo FECHAMENTO falhou. Era relido 'sem_cobranca' e virava // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+      // a tentativa N+1 depois de um erro definitivo (gastava o escritor). Agora: lido de novo (acima, tudo 'sem_cobranca'), só refaz o fechamento. // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+      const falhou = lidos.find((x) => x.md.outcome === 'failed') // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+      if (falhou && pedido) { // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        const f = await fechar(admin, row, 'failed', { attempts: lease.n, status: falhou.md.status ?? null, error: falhou.md.error ?? null, recovered: true }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        const email = f === 'novo' ? await enviarEmail(admin, userId, 'failed', pedido.prompt, confirm) : 'none' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        results.push({ generation: g8, decision: 'failed_recovered', outcome: f, email }) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+        continue // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+      } // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
       for (const c of lidos) await admin.from('events').update({ metadata: { ...c.md, version: PARKED_VERSION, attempt: c.attempt, outcome: 'lost_no_charge', status: null, resume_generation_id: c.resumeId, debit: c.leitura.debito, claim: c.leitura.claim } }).eq('id', idDoAluguel(genId, c.attempt)) // KINEO-SERIE-AUTO-ETAPA1-0111
     } // KINEO-SERIE-AUTO-ETAPA1-0111
     if (decision === 'expired' || decision === 'superseded' || !pedido) {

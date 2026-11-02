@@ -254,12 +254,17 @@ export function estacionadoSuperavel(sessionId: unknown): boolean {
 // request" antes de qualquer ramo útil — re-POST que só gastava o escritor e o teto da passada. Regra única, sem re-POST:
 //   · 'settled' com débito não estornado = o filme está a caminho → adota (fecha 'resumed'; o finish-stranded-renders monta, a varredura
 //     estorna se nunca entregar). Não é "esperar": o débito de um filme ENTREGUE fica vivo para sempre.
-//   · qualquer outro claim (pending/done/released/nenhum) com débito VIVO → ESPERA. Nunca abre a N+1, nunca re-POSTa. Quem resolve é o
-//     que já existe (refund-sweep, finish-stranded-renders); quando o débito ficar estornado, o cron segue.
+//   · qualquer outro claim (pending/done/released/nenhum) com débito VIVO → ESPERA. Nunca abre a N+1, nunca re-POSTa. O que já existe
+//     resolve SÓ uma parte: a varredura (lib/credits/refund.ts:344-366) estorna o 'pending' sem fal_request_ids cujo débito nasceu a ±60 s
+//     do claim (quase todo 'pending' da retomada: o débito sai segundos depois do claim). NINGUÉM resolve o 'done' com débito vivo, nem o
+//     'pending' fora dos ±60 s, nem débito sem claim legível (refund.ts:379-381 e finish-stranded-renders :617-620 só olham 'settled'):
+//     esses chegam ao teto e viram aviso ao fundador, que estorna à mão. Quando o débito ficar estornado, o cron segue.
 //   · débito estornado ou ausente, depois do assentamento → nada cobrado: segue (N+1, ou fecha 'expired'/'failed' com o e-mail honesto).
 //   · leitura que falha → espera.
 // O e-mail "Nothing was charged" (vencido / 4xx terminal) só sai com TODA tentativa lida 'sem_cobranca'. Passado PARKED_HARD_STOP_MS ainda
-// esperando, fecha 'expired_unverified' SEM e-mail ao cliente e grava FOUNDER_PARKED_ALERT_EVENT (a tarefa de alarmes lê; conferir à mão).
+// esperando, fecha 'expired_unverified' SEM e-mail ao cliente, grava FOUNDER_PARKED_ALERT_EVENT e AVISA o fundador por notifyFounder
+// (e-mail KINEO_ALERT_EMAIL + webhook do celular, se houver) — antes o evento não tinha leitor e o cliente ficava cobrado sem filme calado.
+// Revisão 7 (01/11): o verbatim também ficou sem reconexão (decisão de simplificar); o 'done' do verbatim cai no mesmo aviso.
 /** A rota de filme roda até 300 s (maxDuration) a partir do POST do cron: antes disto, "sem débito" ainda não prova nada. */
 export const PARKED_ROUTE_MAX_MS = 300 * 1000
 /** Do aluguel até concluir qualquer coisa que não seja "o filme está a caminho": o teto da rota + folga (= o aluguel de 10 min). */
@@ -270,7 +275,7 @@ export const PARKED_DEBIT_SETTLE_MS = PARKED_LEASE_TTL_MS
  * várias vezes até aqui. 29 h fica abaixo da janela de leitura do cron (30 h) e do SERIE_AUTO_PARKED_LOST_MS (30 h).
  */
 export const PARKED_HARD_STOP_MS = PARKED_TTL_MS + 5 * 60 * 60 * 1000
-/** Alerta do fundador: estacionado fechado 'expired_unverified' (cobrança viva ou ilegível no teto). Lido pela tarefa kineo-alarmes-7-sinais. */
+/** Alerta do fundador: estacionado fechado 'expired_unverified' (cobrança viva ou ilegível no teto). Rastro no banco; o aviso sai por notifyFounder. */
 export const FOUNDER_PARKED_ALERT_EVENT = 'founder_alert_parked_unverified'
 /** Desfechos de aluguel que PROVAM que nada ficou cobrado: 503 queued/parked (a rota só estaciona com o estorno confirmado) e o já lido. */
 const DESFECHOS_SEM_COBRANCA: ReadonlySet<string> = new Set(['provider_down', 'lost_no_charge'])
@@ -346,6 +351,24 @@ export function desfechoComCobranca(outcome: ResumeResult, situacao: SituacaoDaT
 /** O e-mail "Nothing was charged" só pode sair quando TODA retomada tentada foi lida 'sem_cobranca' (nenhum débito vivo, nada a caminho). */
 export function podeDizerNadaCobrado(leituras: ReadonlyArray<{ situacao: SituacaoDaTentativa }>): boolean {
   return leituras.every((l) => l.situacao === 'sem_cobranca')
+}
+/** O aviso ao fundador quando um estacionado fecha 'expired_unverified'. Puro: o cron só manda. Diz o que fazer à mão, dos dois lados. */
+export function textoDoAlertaEstacionadoSemConfirmacao(input: { generationId: string; userId: string; hours: number; situacoes: string[]; resumeIds: string[] }): { subject: string; text: string } {
+  return {
+    subject: '⚠ filme estacionado sem cobrança confirmada — conferir à mão',
+    text: [
+      `Um filme estacionado (fal fora) ficou ${input.hours} h sem a cobrança confirmada e foi fechado 'expired_unverified'.`,
+      `Pode haver cliente cobrado sem filme: claim 'done'/'pending' com débito vivo que nenhuma varredura estorna.`,
+      ``,
+      `Pedido: ${input.generationId}`,
+      `Conta: ${input.userId}`,
+      `Tentativas: ${input.situacoes.join(' ') || '-'}`,
+      `Ids da retomada (débito = credit_debits.render_id cinematic-<claim> destes ids): ${input.resumeIds.join(' ') || '-'}`,
+      ``,
+      `O que fazer: 1) se o filme não saiu, devolver o crédito pelo /admin/people ("+ créditos", motivo "estacionado sem filme");`,
+      `2) o cliente NÃO recebeu e-mail nenhum e a tela prometeu e-mail em 24 h: responder à mão.`,
+    ].join('\n'),
+  }
 }
 /** Passou do limite de espera? Então fecha 'expired_unverified' sem e-mail ao cliente + alerta ao fundador — nunca estacionado para sempre. */
 export function passouDoLimiteDeEspera(parkedAtMs: number, nowMs: number): boolean {

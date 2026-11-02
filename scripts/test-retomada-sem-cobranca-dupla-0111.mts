@@ -16,6 +16,11 @@
 // até 2 h re-POSTado a cada passada gastava o teto da passada e travava filmes novos. Agora, regra única: 'settled' não estornado = adota;
 // qualquer outro claim com débito VIVO = só ESPERA (nunca N+1, nunca re-POST) até as varreduras que já existem estornarem; no teto (29 h)
 // fecha 'expired_unverified' sem e-mail ao cliente e grava o alerta do fundador (founder_alert_parked_unverified).
+// O DEFEITO 4 (revisão 7 de 01/11, no fab79145c): (ALTO) o alerta do teto era só um evento que NADA lê — o cliente com claim 'done' (ou
+// 'pending' fora dos ±60 s da varredura) ficava cobrado sem filme e ninguém sabia; agora o teto chama notifyFounder (e-mail do fundador +
+// webhook). (MENOR) o fechamento 'failed' que falhava reabria a tentativa N+1 depois de um 4xx terminal; os estacionados eram lidos com
+// .limit(100) (os já fechados contavam: o mais novo só aparecia vencido, com "never started" sem nenhuma tentativa); o e-mail dizia que o
+// crédito voltou "the moment it was saved" mesmo quando uma tentativa intermediária cobrou e a varredura estornou horas depois.
 //
 // COMO PROVA: roda a ROTA REAL do cron (app/api/cron/resume-parked-renders/route.ts, GET) contra um PostgREST falso servido pelo `fetch`
 // global (o mesmo supabase-js de produção fala HTTP com ele), uma rota de filme falsa QUE GUARDA O CLAIM (pending/done/settled/released)
@@ -42,6 +47,8 @@
 //   T12 1.200 aluguéis de outros estacionados: o aluguel que cobrou continua sendo lido (páginas); e1edb2c36 (limit 1000): travado.
 //   T13 dois filmes com claim 'pending' e um terceiro estacionado depois: o terceiro sai na hora; 583bb7387 (verbatim): as reconexões
 //       gastam o teto da passada e o terceiro fica parado.
+//   T14 4xx terminal cujo fechamento 'failed' falhou → refaz o fechamento + e-mail, nenhuma tentativa 2; fab79145c: re-POSTa a N+1.
+//   T15 120 estacionados já fechados na janela + um novo → o novo sai na hora; fab79145c (.limit(100)): invisível, nenhum POST.
 //   P   regras puras · F o texto da rota.
 // Rodar: npx tsx scripts/test-retomada-sem-cobranca-dupla-0111.mts
 import fs from 'node:fs'
@@ -64,6 +71,8 @@ const rd = (p: string) => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const BASE = '124824492'
 const ANTERIOR = 'e1edb2c36'
 const REV5 = '583bb7387'
+const REV6 = 'fab79145c'
+const FUNDADOR = 'josephsskaf@gmail.com'
 const ROTA = 'app/api/cron/resume-parked-renders/route.ts'
 const LIB = 'lib/filaQuedaFal.ts'
 const USER = '11111111-2222-4333-8444-555555555555'
@@ -89,7 +98,8 @@ class Mundo {
   tables: Record<string, Row[]> = { events: [], credit_debits: [], profiles: [{ id: USER, email: 'cliente@exemplo.com', email_opted_out: false }] }
   failSelect = new Set<string>()
   failInsertIds = new Set<string>()
-  emails: { subject: string; text: string; at: number }[] = []
+  emails: { subject: string; text: string; at: number }[] = [] // só os do CLIENTE
+  fundador: { subject: string; text: string; at: number }[] = [] // os avisos ao fundador (notifyFounder)
   posts: { generationId: string; at: number; repost: boolean }[] = []
   agenda: { at: number; fn: () => void }[] = []
   comportamentos: Comportamento[] = []
@@ -243,7 +253,7 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     if (r.abort) throw new DOMException('The operation was aborted due to timeout', 'TimeoutError')
     return json(r.json, r.status)
   }
-  if (url.href === 'https://api.resend.com/emails') { const b = JSON.parse(String(init?.body)); mundo.emails.push({ subject: b.subject, text: b.text, at: clock }); return json({ id: 'em_' + mundo.emails.length }) }
+  if (url.href === 'https://api.resend.com/emails') { const b = JSON.parse(String(init?.body)); ((b.to ?? []) as string[]).includes(FUNDADOR) ? mundo.fundador.push({ subject: b.subject, text: b.text, at: clock }) : mundo.emails.push({ subject: b.subject, text: b.text, at: clock }); return json({ id: 'em_' + mundo.emails.length }) }
   throw new Error('fetch inesperado: ' + url.href)
 }) as typeof fetch
 
@@ -266,11 +276,12 @@ const atual = (await import('../app/api/cron/resume-parked-renders/route')).GET 
 const rotaAtual = rd(ROTA)
 const libAtual = rd(LIB)
 const git = (a: string[]) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
-let base: Get, anterior: Get, rev5: Get, semEspera: Get, filtroVelho: Get, quatroCentosCego: Get, settledCego: Get, adotaVivo: Get, reabreVivo: Get
+let base: Get, anterior: Get, rev5: Get, rev6: Get, semEspera: Get, filtroVelho: Get, quatroCentosCego: Get, settledCego: Get, adotaVivo: Get, reabreVivo: Get
 try {
   base = await rotaDe('base', git(['show', `${BASE}:${ROTA}`]), git(['show', `${BASE}:${LIB}`]))
   anterior = await rotaDe('anterior', git(['show', `${ANTERIOR}:${ROTA}`]), git(['show', `${ANTERIOR}:${LIB}`]))
   rev5 = await rotaDe('rev5', git(['show', `${REV5}:${ROTA}`]), git(['show', `${REV5}:${LIB}`]))
+  rev6 = await rotaDe('rev6', git(['show', `${REV6}:${ROTA}`]), git(['show', `${REV6}:${LIB}`]))
   semEspera = await rotaDe('sem_espera', rotaAtual, troca(libAtual, 'export const PARKED_DEBIT_SETTLE_MS = PARKED_LEASE_TTL_MS', 'export const PARKED_DEBIT_SETTLE_MS = 0', 'sem_espera'))
   filtroVelho = await rotaDe('filtro_velho', troca(rotaAtual, '!aluguelPodeTerCobrado(md.outcome)', "(md.outcome !== undefined && md.outcome !== 'started')", 'filtro_velho'), null)
   quatroCentosCego = await rotaDe('4xx_cego', rotaAtual, troca(libAtual, "  if (outcome !== 'failed') return outcome\n", '  return outcome\n', '4xx_cego'))
@@ -314,6 +325,7 @@ const r2 = idDaRetomada(GEN, 2)
 const alertas = () => evs(L.FOUNDER_PARKED_ALERT_EVENT).filter((e) => e.session_id === GEN)
 /** Fechou no teto: 'expired_unverified', 1 alerta do fundador com o id da tentativa, nenhum e-mail ao cliente. */
 const fechouNoTeto = (rid: string) => fechamento()?.outcome === 'expired_unverified' && alertas().length === 1 && ((alertas()[0].metadata as { resume_generation_ids?: string[] }).resume_generation_ids ?? []).includes(rid) && mundo.emails.length === 0
+  && mundo.fundador.length === 1 && mundo.fundador[0].text.includes(rid) && mundo.fundador[0].text.includes('NÃO recebeu e-mail') && (alertas()[0].metadata as { founder_notified?: boolean }).founder_notified === true
 /** O filme saiu UMA vez: fechado 'resumed' com `rid`, claim dele liquidado, nenhum débito vivo sem filme, nunca 2 débitos vivos juntos. */
 const umFilme = (rid: string, debitos = 1) => fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === rid && aCaminho(rid) && vivos().length === debitos && cobradoSemFilme().length === 0 && mundo.maxVivos <= 1 && nadaCobradoEnviado().length === 0
 
@@ -433,6 +445,11 @@ console.log('T6 — 24 h: o vencido só fecha (e só diz "nothing was charged") 
   const estornoEm = Date.parse(String(debitoDe(r1)?.refunded_at ?? ''))
   ok(fechamento()?.outcome === 'expired' && nadaCobradoEnviado().length === 1 && vivos().length === 0 && Number.isFinite(estornoEm) && nadaCobradoEnviado()[0].at >= estornoEm && estornoEm - (T0 + 23 * 60 * 60_000 + 55 * 60_000) > 100 * 60_000 && primeiros().length === 1 && reposts().length === 0,
     "T6c 503 de estorno pendente às 23 h 55: espera (sem re-POST) até a varredura estornar (~25 h 40); o \"Nothing was charged\" só sai DEPOIS do estorno, 1 vez")
+  ok(!/moment it was saved|still there/.test(nadaCobradoEnviado()[0]?.text ?? 'x'), 'T6d o e-mail não diz QUANDO o crédito voltou (a varredura estornou ~1 h 45 depois da cobrança)')
+  novoMundo(['refund-pending'])
+  mundo.varredura = true
+  await rodadas(rev6, 30, T0 + 23 * H + 55 * MIN)
+  ok(/the moment it was saved/.test(nadaCobradoEnviado()[0]?.text ?? ''), `T6d — ${REV6}: o e-mail diz que o crédito voltou "the moment it was saved" — mas a tentativa cobrou e só foi estornada horas depois`)
 }
 {
   novoMundo(['abort-no-charge', 'abort-no-charge'])
@@ -516,6 +533,10 @@ console.log("T11 — claim 'done' com débito: só espera; nenhuma varredura toc
   ok(fechouNoTeto(r1) && reposts().length === 0 && primeiros().length === 1 && mundo.maxVivos === 1 && d[2] === 'lease_charge_live' && statusDe(r1) === 'done' && cobradoSemFilme().length === 1,
     `T11 503 "safe while we finalize": espera (${d[2]}), zero re-POST, nenhuma tentativa 2; às 29 h 'expired_unverified' + alerta do fundador com o id 1 (lacuna conhecida: o débito do 'done' só sai à mão)`)
   novoMundo(['finalizando', 'ok'])
+  await rodadas(rev6, 30 * 12, T0 + 5 * MIN)
+  ok(fechamento()?.outcome === 'expired_unverified' && alertas().length === 1 && mundo.fundador.length === 0 && cobradoSemFilme().length === 1,
+    `T11 — ${REV6} (revisão 6): fecha 'expired_unverified' e grava um evento que nada lê — cobrado, sem filme, e nenhum aviso chega ao fundador`)
+  novoMundo(['finalizando', 'ok'])
   await rodadas(anterior, 36, T0 + 5 * MIN)
   ok(fechamento()?.outcome === 'resumed' && fechamento()?.resume_generation_id === r1 && statusDe(r1) === 'done' && cobradoSemFilme().length === 1 && alertas().length === 0, `T11 — ${ANTERIOR}: adota com o claim 'done' que nunca liquida — fecha 'resumed', cobrado e sem filme, sem alerta a ninguém`)
   novoMundo(['finalizando', 'ok'])
@@ -557,6 +578,33 @@ for (const [nome, GET] of [['atual', atual], ['rev5', rev5]] as const) {
   else ok(!terceiro && reposts().length >= 10, `T13 — ${REV5} (revisão 5, verbatim): ${reposts().length} reconexões em 1 h gastam o teto de 2 por passada; o terceiro filme fica parado`)
 }
 
+// ── T14: fechamento 'failed' perdido ─────────────────────────────────────────────────────────────────────────────────
+console.log("T14 — 4xx terminal cujo fechamento 'failed' falhou: refaz o fechamento, nunca a tentativa 2")
+for (const [nome, GET] of [['atual', atual], ['rev6', rev6]] as const) {
+  novoMundo(['bad-request', 'ok'])
+  mundo.failInsertIds.add(idDoFechamento(GEN))
+  await rodadas(GET, 1, T0 + 5 * MIN)
+  const semFechar = fechamentos().length === 0 && (alugueis()[0].metadata as { outcome?: string }).outcome === 'failed' && mundo.emails.length === 0
+  mundo.failInsertIds.clear()
+  const d = await rodadas(GET, 6, T0 + 10 * MIN)
+  if (nome === 'atual') ok(semFechar && primeiros().length === 1 && fechamento()?.outcome === 'failed' && nadaCobradoEnviado().length === 1 && d.some((x) => x.startsWith('failed_recovered')), `T14 o 4xx terminal fica 'failed': refaz o fechamento + 1 e-mail honesto, 1 POST só (${d.filter(Boolean).join(' → ')})`)
+  else ok(semFechar && primeiros().length === 2, `T14 — ${REV6}: o aluguel 'failed' é relido "sem cobrança" e a tentativa 2 sai depois de um erro definitivo (${primeiros().length} POSTs)`)
+}
+
+// ── T15: mais de 100 estacionados na janela ─────────────────────────────────────────────────────────────────────────
+console.log('T15 — numa queda grande, o estacionado mais novo não fica invisível')
+for (const [nome, GET] of [['atual', atual], ['rev6', rev6]] as const) {
+  novoMundo(['ok'])
+  for (let k = 0; k < 120; k++) {
+    const g = `9a5e2c4d-9b1e-4c55-8a10-000000000${String(k).padStart(3, '0')}`
+    mundo.tables.events.push({ id: `parked-old-${String(k).padStart(3, '0')}`, name: L.PARKED_EVENT, user_id: USER, session_id: g, created_at: iso(T0 - 3 * H + k * 1000), metadata: { request: { prompt: 'x', duration: 60 } } })
+    mundo.tables.events.push({ id: idDoFechamento(g), name: L.PARKED_CLOSED_EVENT, user_id: USER, session_id: g, created_at: iso(T0 - 2 * H), metadata: { outcome: 'resumed' } })
+  }
+  const d = await rodadas(GET, 2, T0 + 5 * MIN)
+  if (nome === 'atual') ok(umFilme(r1) && primeiros().length === 1, `T15 121 estacionados (120 já fechados): o novo é lido e retomado na 1ª passada (${d[0]})`)
+  else ok(primeiros().length === 0 && d.every((x) => x === ''), `T15 — ${REV6} (.limit(100), mais velho primeiro): os 100 já fechados ocupam a leitura e o novo nem aparece — nenhum POST`)
+}
+
 // ── P: a regra pura ──────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('P — regras puras de lib/filaQuedaFal')
 {
@@ -580,6 +628,8 @@ console.log('P — regras puras de lib/filaQuedaFal')
   ok(L.desfechoComCobranca('failed', 'sem_cobranca') === 'failed' && ['filme', 'ilegivel', 'assentando', 'cobranca_viva'].every((s) => L.desfechoComCobranca('failed', s as never) === 'retry_later') && L.desfechoComCobranca('started', null) === 'started' && L.desfechoComCobranca('retry_later', null) === 'retry_later', 'P7 desfechoComCobranca: 4xx só é terminal sem cobrança')
   ok(L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'sem_cobranca' }]) && !L.podeDizerNadaCobrado([{ situacao: 'sem_cobranca' }, { situacao: 'cobranca_viva' }]) && !L.podeDizerNadaCobrado([{ situacao: 'ilegivel' }]), 'P8 podeDizerNadaCobrado: só com tudo lido sem cobrança')
   ok(['provider_down', 'lost_no_charge'].every((o) => !L.aluguelPodeTerCobrado(o)) && [undefined, 'started', 'retry_later', 'failed', 'qualquer'].every((o) => L.aluguelPodeTerCobrado(o)), 'P9 só o desfecho que PROVA estorno (503 parked, já lido) dispensa a leitura')
+  const av = L.textoDoAlertaEstacionadoSemConfirmacao({ generationId: GEN, userId: USER, hours: 29, situacoes: ['1:cobranca_viva'], resumeIds: [r1] })
+  ok(av.text.includes(GEN) && av.text.includes(USER) && av.text.includes(r1) && av.text.includes('29 h') && av.text.includes('/admin/people') && av.text.includes('NÃO recebeu e-mail') && av.subject.length > 0, 'P11 o aviso ao fundador traz pedido, conta, ids, horas e o que fazer à mão dos dois lados')
   ok(!L.passouDoLimiteDeEspera(T0, T0 + L.PARKED_HARD_STOP_MS - 1) && L.passouDoLimiteDeEspera(T0, T0 + L.PARKED_HARD_STOP_MS) && !L.passouDoLimiteDeEspera(Number.NaN, T0), 'P10 passouDoLimiteDeEspera: 29 h desde o estacionamento')
 }
 
@@ -601,9 +651,9 @@ console.log('F — a rota do cron')
   const iTeto = r.indexOf("if (d.acao === 'esperar' && passouDoLimiteDeEspera(parkedAtMs, now)) {")
   const iEspera = r.indexOf("if (d.acao === 'esperar') {", iTeto + 1)
   const teto = iTeto > 0 && iEspera > iTeto ? r.slice(iTeto, iEspera) : ''
-  ok(teto.includes("fechar(admin, row, 'expired_unverified'") && teto.includes('name: FOUNDER_PARKED_ALERT_EVENT') && teto.includes("if (f === 'novo')") && teto.includes('console.error(') && !teto.includes('enviarEmail') && L.FOUNDER_PARKED_ALERT_EVENT === 'founder_alert_parked_unverified',
-    'F8 o teto fecha expired_unverified, grava UM alerta do fundador (evento founder_alert_parked_unverified + console.error) e não manda e-mail ao cliente')
-  ok(r.includes('.range(p * PARKED_LEASE_PAGE, (p + 1) * PARKED_LEASE_PAGE - 1)') && !r.includes(".eq('name', PARKED_LEASE_EVENT).in('session_id', genIds).order('created_at', { ascending: false }).limit(1000)") && r.includes("if (closedErr || leaseRows === null) return NextResponse.json("), 'F5 aluguéis lidos por inteiro em páginas; leitura incompleta = a passada não decide nada')
+  ok(teto.includes("fechar(admin, row, 'expired_unverified'") && teto.includes('name: FOUNDER_PARKED_ALERT_EVENT') && teto.includes("if (f === 'novo')") && teto.includes('console.error(') && teto.includes('await notifyFounder(aviso.subject, aviso.text') && !teto.includes('enviarEmail') && L.FOUNDER_PARKED_ALERT_EVENT === 'founder_alert_parked_unverified',
+    'F8 o teto fecha expired_unverified, AVISA o fundador (notifyFounder) e grava UM evento founder_alert_parked_unverified, sem e-mail ao cliente')
+  ok(r.includes('await pagina(p * PARKED_LEASE_PAGE, (p + 1) * PARKED_LEASE_PAGE - 1)') && r.includes('const parkedRows = await lerTudo<ParkedRow>(') && !/ascending: true \}\)\.limit\(100\)|\.in\('session_id', genIds\)\.limit\(500\)/.test(r) && !r.includes(".eq('name', PARKED_LEASE_EVENT).in('session_id', genIds).order('created_at', { ascending: false }).limit(1000)") && r.includes("if (closedRows === null || leaseRows === null) return NextResponse.json(") && r.includes("if (parkedRows === null) return NextResponse.json("), 'F5 estacionados, fechamentos e aluguéis lidos por inteiro em páginas; leitura incompleta = a passada não decide nada')
   ok(!r.includes("from '@/app/api/generate-video-cinematic/route'") && !/generate-video-cinematic\/route['"]/.test(r), 'F6 o cron continua chamando a rota de filme por HTTP (nunca a importa)')
   ok(!fs.readdirSync('lib').some((f) => f.startsWith('__mutante_rscd_')) && !fs.readdirSync('app/api/cron/resume-parked-renders').some((f) => f.startsWith('__mutante_rscd_')), 'F7 nenhuma cópia mutada ficou no disco')
 }

@@ -135,3 +135,11 @@ O padrão é **Seedance 1.5 · 60 s · segunda 10:00 UTC** (07:00 em Brasília, 
 - Regra única: `settled` não estornado = filme a caminho → adota. Qualquer outro claim com débito VIVO → o cron só ESPERA: nunca abre a N+1, nunca re-POSTa. Débito estornado/ausente (depois de 10 min do aluguel) → segue (N+1, ou `expired`/`failed` com o e-mail honesto).
 - Quem resolve a espera é o que já existe: `refund-sweep` (sweepAbandonedCinematicDebits: `settled` sem entrega após 100 min; `pending` só no caso órfão — claim nascido a ≤ 60 s do débito e sem fal_request_ids) e `finish-stranded-renders` (só `settled`). **Lacuna conhecida:** nenhuma varredura toca `done`, nem `pending` cujo débito nasceu > 60 s depois do claim. Esses casos chegam ao teto.
 - Teto: 29 h desde o estacionamento ainda esperando → fecha `expired_unverified`, SEM e-mail ao cliente, e grava o evento `founder_alert_parked_unverified` (+ console.error "ALERTA FUNDADOR") com os ids das tentativas para conferir à mão.
+
+## Revisão 7 (01/11) — o teto avisa alguém; quatro furos menores
+
+- (ALTO) O evento `founder_alert_parked_unverified` não tinha leitor: o cliente com claim `done` (ou `pending` fora dos ±60 s da varredura) ficava cobrado sem filme e ninguém sabia. Agora o teto chama `notifyFounder` (e-mail KINEO_ALERT_EMAIL + webhook do celular, se configurado) com pedido, conta, ids e o que fazer à mão (devolver pelo /admin/people e responder o cliente, que não recebe e-mail). O evento fica como rastro, com `founder_notified`. A tarefa kineo-alarmes-7-sinais NÃO lê esse evento hoje.
+- Decisão mantida: sem reconexão também no verbatim (simplificar). O `done` do verbatim cai no mesmo aviso; nenhuma varredura nova foi inventada.
+- 4xx terminal cujo fechamento `failed` falhou: a passada seguinte relê (tudo sem cobrança) e só refaz o fechamento + e-mail; nunca abre a N+1.
+- Estacionados e fechamentos lidos por inteiro em páginas (eram `.limit(100)`/`.limit(500)`, e os já fechados ocupavam a leitura: o mais novo só aparecia vencido).
+- E-mail "Nothing was charged" não diz mais QUANDO o crédito voltou ("the moment it was saved" era falso quando uma tentativa cobrou e a varredura estornou depois).
