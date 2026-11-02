@@ -34,8 +34,13 @@
 //      engine:'fast' — mas o GenerateClient manda 'fast' também para filmes que vão ao cinematic/Seedance (o caso do Rick; 5 de
 //      5 script_written com engine 'fast' em 30 dias foram para o cinematic). A 90 s isso devolvia o Seedance à amputação
 //      90 → 60 s (storyteller exige 225, futuristic-ai 227, energetic-facts 241). Saiu: o plano vale para todos (253/278 a 90 s,
-//      169/186 a 60 s), como no 1º conserto. O risco do Kineo 1 a 90 s (rota fast recusa roteiro longo) fica como na base; o
-//      Kineo 1 está fora do jogo desde 29/09.
+//      169/186 a 60 s), como no 1º conserto.
+//   a2. (3ª revisão) NÃO era "como na base": a 90 s o alvo de 278 passa do teto de 103,5 s da rota do Kineo 1 nas vozes
+//      storyteller (2,63 pal/s, recusa de 273) e finance-authority (2,50, recusa de 259), e a rota fast devolvia 422 ao
+//      roteiro que a própria IA escreveu no modo "IA estrutura" (na base o escritor saía com ~89 e a rota reescrevia — V1).
+//      O conserto fica na rota fast (app/api/generate-video-fast): roteiro da IA acima do teto vira tema do escritor de cenas,
+//      como o curto; o literal ("as is") continua recusável. Ainda aberto: roteiro escrito pelo botão "write the full script"
+//      e aprovado vai como literal — nessas duas vozes, a 90 s, a recusa passa de "curto" (base) a "longo".
 //   b. escolherVersao respeita o KINEO-NARRADOR-DESCRICAO-0111: a versão que NÃO lê a descrição de cena vence a que lê —
 //      antes do critério de tamanho.
 //   c. prazoDaNovaTentativa: a 2ª chamada só sai se couber no maxDuration de 60 s, com o timeout encolhido ao que sobrou.

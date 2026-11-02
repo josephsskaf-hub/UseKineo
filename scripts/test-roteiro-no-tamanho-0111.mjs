@@ -28,6 +28,9 @@
 //   D/DR a versão que lê a descrição de cena nunca vence a que não lê (KINEO-NARRADOR-DESCRICAO-0111);
 //   PR a 2ª chamada sai com o timeout encolhido ao que cabe nos 60 s, e não sai sem tempo (length_retry_skipped deadline);
 //   RS o resgate da recusa vai sem o plano e com 700 tokens; curto depois dele = still_short_after_retry true + story_rescue.
+// 3ª revisão — K1: o plano de 278 a 90 s passa do teto de 103,5 s da rota do Kineo 1 nas vozes storyteller (2,63) e
+//   finance-authority (2,50); no modo "IA estrutura" a rota fast recusava com 422 o roteiro que a própria IA escreveu. Agora
+//   o roteiro da IA longo demais vira tema do escritor de cenas (como o curto, V1 de 23/09); o literal continua recusável.
 // Rodar: node scripts/test-roteiro-no-tamanho-0111.mjs   (sem rede, sem custo)
 import fs from 'node:fs'
 import path from 'node:path'
@@ -237,6 +240,51 @@ const rick90 = await postar({ body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEI
 ok(rick90.body?.script === ROTEIRO_260 && seedanceAceita(STORYTELLER, falaDe(rick90.body?.script ?? ''), 90), `Rick a 90 s: 89 → ${falaDe(rick90.body?.script ?? '')} palavras, que o Seedance aceita na voz fable sem encurtar`)
 const rick60 = await postar({ body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })
 ok(rick60.body?.script === ROTEIRO_RICK_LONGO && rick60.escrito?.min_words === 169 && seedanceAceita(STORYTELLER, falaDe(rick60.body?.script ?? ''), 60) && !seedanceAceita(STORYTELLER, 89, 60), `Rick a 60 s: 89 (o Seedance encurtava para 35 s) → ${falaDe(rick60.body?.script ?? '')} palavras, aceitas na voz fable`)
+
+// ── K1 (3ª revisão) — Kineo 1 a 90 s: o roteiro da IA longo demais vira tema na rota fast, em vez do 422 ──────────────────
+console.log('K1 — Kineo 1 a 90 s: roteiro da IA acima do teto da rota fast vira tema; o literal continua recusável')
+const FAST_REL = 'app/api/generate-video-fast/route.ts'
+const fastSrc = rd(FAST_REL)
+const blocoK1 = fastSrc.match(/    const falaMarcada = [^\n]+\n    const roteiroIaForaDoTamanho = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
+ok(blocoK1.length > 0, 'o bloco do roteiro da IA (falaMarcada → verbatim) está na rota do Kineo 1')
+const SP = createOfflineLoader({})('@/lib/scriptParser.ts')
+const DF = createOfflineLoader({})('@/lib/durationFollowsScript.ts')
+const TL = createOfflineLoader({})('@/lib/textLanguage.ts')
+const FINANCE = PERS.VOICE_PERSONAS.find((p) => p.id === 'finance-authority')
+const taxaFast = (p) => SR.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed })
+function rotaFast(src, roteiro, scriptMode, persona, duration = 90) {
+  const parsedScript = SP.parseUserScript(roteiro)
+  const marcadoresValidos = parsedScript.hasMarkers && parsedScript.segments.length > 0
+  const fastRate = taxaFast(persona)
+  const f = new Function('parsedScript', 'marcadoresValidos', 'body', 'narrationFitAt', 'duration', 'fastRate', 'decideDurationFollowsScriptUp', 'narrationWordCount', `${src}
+return { verbatim, falaMarcada }`)
+  const { verbatim, falaMarcada } = f(parsedScript, marcadoresValidos, { script_mode: scriptMode }, SR.narrationFitAt, duration, fastRate, DF.decideDurationFollowsScriptUp, TL.narrationWordCount)
+  // o portão logo abaixo na rota (KINEO1-VERBATIM-ESTICA): ownScript = verbatim || literal; acima de 90 × 1,15 s → 422
+  const ownScript = verbatim || scriptMode === 'verbatim'
+  const fala = verbatim ? falaMarcada : roteiro
+  const sobe = ownScript ? DF.decideDurationFollowsScriptUp({ ownScript, requestedSeconds: duration, speechSeconds: TL.narrationWordCount(fala) / fastRate.wordsPerSecond, largestFitting: null }) : null
+  return { verbatim, recusado: sobe?.kind === 'too_long', segundos: Math.round(TL.narrationWordCount(falaMarcada) / fastRate.wordsPerSecond) }
+}
+const ROTEIRO_250 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 245 && n < 40) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
+const ROTEIRO_278 = (() => { let n = 0, t = ROTEIRO_RICK_LONGO; while (falaDe(t) < 278 && n < 40) t = maisFrases(ROTEIRO_RICK_LONGO, ++n); return t })()
+ok(!!FINANCE && falaDe(ROTEIRO_278) >= 278 && falaDe(ROTEIRO_278) < 300 && falaDe(ROTEIRO_250) >= 245 && falaDe(ROTEIRO_250) <= 258, `dublês: ${falaDe(ROTEIRO_250)} (cabe nas duas vozes) e ${falaDe(ROTEIRO_278)} palavras (o alvo do plano a 90 s); taxas storyteller ${taxaFast(STORYTELLER).wordsPerSecond}, finance-authority ${taxaFast(FINANCE ?? STORYTELLER).wordsPerSecond}`)
+for (const p of [STORYTELLER, FINANCE].filter(Boolean)) {
+  const ia = rotaFast(blocoK1, ROTEIRO_278, 'ai', p)
+  ok(ia.verbatim === false && ia.recusado === false, `${p.id} a 90 s, "IA estrutura": ${ia.segundos} s de fala → vira tema do escritor de cenas, sem 422`)
+  const literal = rotaFast(blocoK1, ROTEIRO_278, 'verbatim', p)
+  ok(literal.recusado === true, `${p.id} a 90 s, "as is": o literal de ${literal.segundos} s continua recusado (o texto da pessoa não é reescrito)`)
+  const cabe = rotaFast(blocoK1, ROTEIRO_250, 'ai', p)
+  ok(cabe.verbatim === true && cabe.recusado === false, `${p.id} a 90 s, "IA estrutura": ${falaDe(ROTEIRO_250)} palavras (${cabe.segundos} s) cabem → narradas palavra por palavra`)
+}
+const curtoK1 = rotaFast(blocoK1, ROTEIRO_RICK_89, 'ai', STORYTELLER)
+ok(curtoK1.verbatim === false && curtoK1.recusado === false, 'V1 intacto: o roteiro da IA curto (89 a 90 s) segue virando tema')
+ok(/name: 'ai_script_rewritten_to_fit'[^\n]*too_long: fitIa.ok, version: 'v1_roteiro_nosso_cabe_20260923'/.test(fastSrc), 'rastro: ai_script_rewritten_to_fit diz se foi por longo (too_long)')
+const semLongo = blocoK1.replace(" || decideDurationFollowsScriptUp({ ownScript: true, requestedSeconds: duration, speechSeconds: narrationWordCount(falaMarcada) / fastRate.wordsPerSecond, largestFitting: null })?.kind === 'too_long')", ')')
+ok(semLongo !== blocoK1 && rotaFast(semLongo, ROTEIRO_278, 'ai', STORYTELLER).recusado === true, 'mutante "sem o caso longo" (a regra da base) aplicado e reprovado: storyteller a 90 s volta ao 422')
+let baseFast = null
+try { baseFast = lf(git('show', `${BASE_REF}:${FAST_REL}`)) } catch { baseFast = null }
+const blocoBase = (baseFast ?? '').match(/    const falaMarcada = [^\n]+\n    const roteiroIaCurto = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
+ok(blocoBase.length > 0 && rotaFast(blocoBase.replace(/roteiroIaCurto/g, 'roteiroIaForaDoTamanho'), ROTEIRO_278, 'ai', STORYTELLER).recusado === true, `na base: o mesmo roteiro da IA de ${falaDe(ROTEIRO_278)} palavras a 90 s era recusado na voz storyteller`)
 
 console.log('DR — descrição de cena: a versão que lê a descrição nunca vence a que não lê')
 const CRIANCA = 'A child skillfully and enthusiastically crafts a colorful 3D car, surrounded by their vibrant creations. The table showcases an impressive 3D dinosaur and a charming house, inspiring further imaginative creativity.'

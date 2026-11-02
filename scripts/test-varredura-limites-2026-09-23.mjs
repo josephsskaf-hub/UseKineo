@@ -80,12 +80,13 @@ checa('(5) 4:5 some no modo clipe e o formato volta ao 9:16 visível', S.include
 
 // (V1) roteiro NOSSO (modo 'ai') curto para a duração não é recusado: vira tema do escritor que enche a duração.
 // Autorização nominal do fundador ("V1", 23/09) — trava 8.2 em app/api/generate-video-fast.
-const blocoV1 = FAST.match(/    const falaMarcada = [^\n]+\n    const roteiroIaCurto = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
+// KINEO-ROTEIRO-NO-TAMANHO-0111 (3ª revisão): roteiroIaCurto → roteiroIaForaDoTamanho — o roteiro da IA LONGO demais para o teto também vira tema.
+const blocoV1 = FAST.match(/    const falaMarcada = [^\n]+\n    const roteiroIaForaDoTamanho = [^\n]+\n    const verbatim = [^\n]+\n/)?.[0] ?? ''
 checa('(V1) regra do roteiro nosso presente na rota do Kineo 1', blocoV1.length > 0)
-function decideV1(src, { segs, scriptMode, fits }) {
-  const f = new Function('parsedScript', 'marcadoresValidos', 'body', 'narrationFitAt', 'duration', 'fastRate', `${src}\nreturn verbatim`)
+function decideV1(src, { segs, scriptMode, fits, longo = false }) {
+  const f = new Function('parsedScript', 'marcadoresValidos', 'body', 'narrationFitAt', 'duration', 'fastRate', 'decideDurationFollowsScriptUp', 'narrationWordCount', `${src}\nreturn verbatim`)
   const parsed = { segments: segs.map((v) => ({ voiceover: v })) }
-  return f(parsed, segs.length > 0, { script_mode: scriptMode }, () => ({ ok: fits }), 35, { wordsPerSecond: 2.6 })
+  return f(parsed, segs.length > 0, { script_mode: scriptMode }, () => ({ ok: fits }), 35, { wordsPerSecond: 2.6 }, () => (longo ? { kind: 'too_long' } : null), () => 3)
 }
 function provaV1(src) {
   return [
@@ -94,15 +95,18 @@ function provaV1(src) {
     ['(V1) literal + curto → intocado (o portão continua podendo recusar)', decideV1(src, { segs: ['a b c'], scriptMode: 'verbatim', fits: false }) === true],
     ['(V1) cliente sem script_mode (antigo) + curto → comportamento de antes', decideV1(src, { segs: ['a b c'], scriptMode: undefined, fits: false }) === true],
     ['(V1) sem marcadores → não é roteiro marcado', decideV1(src, { segs: [], scriptMode: 'ai', fits: false }) === false],
+    ['(V1) IA + longo demais para o teto → escritor (sem 422)', decideV1(src, { segs: ['a b c'], scriptMode: 'ai', fits: true, longo: true }) === false],
+    ['(V1) literal + longo → intocado (o portão continua podendo recusar)', decideV1(src, { segs: ['a b c'], scriptMode: 'verbatim', fits: true, longo: true }) === true],
   ]
 }
 for (const [n, c] of provaV1(blocoV1)) checa(n, c)
 checa('(V1) o portão do literal continua olhando o texto do autor', FAST.includes("const ownScript = verbatim || body.script_mode === 'verbatim'"))
 checa('(V1) cada reescrita é medida (sem texto)', FAST.includes("name: 'ai_script_rewritten_to_fit'") && /metadata: \{ engine: 'fast', requested_seconds: duration, speech_seconds: [^}]*version: 'v1_roteiro_nosso_cabe_20260923' \}/.test(FAST))
 for (const [nome, de, para] of [
-  ['V1 reescreve também o literal', "body.script_mode === 'ai' && !narrationFitAt", "body.script_mode !== 'x' && !narrationFitAt"],
-  ['V1 reescreve até o que cabe', "&& !narrationFitAt(falaMarcada, duration, fastRate).ok", "&& true"],
-  ['V1 desligado', "const verbatim = marcadoresValidos && !roteiroIaCurto", "const verbatim = marcadoresValidos"],
+  ['V1 reescreve também o literal', "body.script_mode === 'ai' && (!narrationFitAt", "body.script_mode !== 'x' && (!narrationFitAt"],
+  ['V1 reescreve até o que cabe', "(!narrationFitAt(falaMarcada, duration, fastRate).ok ||", "(true ||"],
+  ['V1 desligado', "const verbatim = marcadoresValidos && !roteiroIaForaDoTamanho", "const verbatim = marcadoresValidos"],
+  ['V1 sem o caso longo', " || decideDurationFollowsScriptUp(", " && decideDurationFollowsScriptUp("],
 ]) {
   const m = blocoV1.replace(de, para)
   checa(`mutante "${nome}" aplicou`, m !== blocoV1 && m.includes(para))
