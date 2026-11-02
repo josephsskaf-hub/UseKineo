@@ -6,13 +6,16 @@
 // C:\kineo\.env.local); só é lida em memória — nunca impressa nem gravada.
 // v6: grava também o reasoning (o campo gist não existe mais), o sujeito antes do corte do nome de pessoa (subject_original) e as
 // chaves de presença que o código montou (núcleo exigido). Os casos rv5-* (revisão do c5dbdbcf3) entram no AJUSTE; até a próxima
-// rodada com crédito, o guardião usa para eles respostas MOCKADAS (scripts/test-support/k4-sujeito-0111-v6-mocks.json).
+// rodada com crédito, o guardião usou para eles respostas MOCKADAS (arquivos removidos na v8).
 // v7 (revisão do 21d3c2333): casos rv6-* (nome de pessoa em 'by X', possessivo de grupo, verbo no passado; lugar/navio/marca que
 // ficam; presença frouxa) também com resposta MOCKADA. O juiz desta rodada passa a cobrar "proibido" (nome de pessoa no texto injetado =
 // falso positivo GRAVE) e "presente"/"ausente" (a presença pelas chaves de produção; errar = perdeu_presenca). Ao rodar com crédito:
 // conferir que 0 grave segue valendo, e trocar os mocks rv5/rv6 pelas respostas reais (o guardião lê o 'cru' gravado aqui).
+// v8 (revisão do c04a09837): o prompt mudou (campo subject_visual_no_people — o que vai ao motor, sem gente) → rodada REAL refeita; os
+// mocks rv5/rv6 SAÍRAM (as respostas reais estão no 'cru' gravado). "proibido" passa a valer SEM caixa (nome escondido em minúscula
+// também é grave). Casos rv7-* = os formatos da revisão ("built by X 400 years ago", "the one X drove", epíteto).
 // Rodar: npx tsx scripts/calibrar-k4-sujeito-final-0111.mts   (custo ~US$ 0,03; 2 passadas para medir estabilidade)
-//        MOCK=1 npx tsx …   (ensaio sem rede e sem gravar: confere que o script roda e mostra o placar com os mocks)
+//        MOCK=1 npx tsx …   (ensaio sem rede e sem gravar: refaz o placar sobre o 'cru' da última rodada real gravada)
 //        CONJUNTO=ajuste npx tsx …   (só o ajuste, sem gravar: para mexer no prompt sem olhar o cego)
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -26,15 +29,12 @@ function chave(): string {
   const linha = readFileSync(env, 'utf8').split(/\r?\n/).find((l) => /^\s*OPENAI_API_KEY\s*=/.test(l)) ?? ''
   return linha.replace(/^\s*OPENAI_API_KEY\s*=\s*/, '').replace(/^["']|["']$/g, '').trim()
 }
-// v7: MOCK=1 ensaia o script inteiro SEM rede e sem gravar — rv5/rv6 com as respostas mockadas, o resto com o 'cru' da última rodada
-// real (prova que a recalibração roda antes de gastar; NÃO é medição)
+// MOCK=1 ensaia o script inteiro SEM rede e sem gravar, sobre o 'cru' da última rodada real (refaz o placar com o código de hoje)
 const MOCK = process.env.MOCK === '1'
-const MOCKS: Record<string, string> = MOCK ? { ...JSON.parse(readFileSync(join(import.meta.dirname, 'test-support', 'k4-sujeito-0111-v6-mocks.json'), 'utf8')).respostas, ...JSON.parse(readFileSync(join(import.meta.dirname, 'test-support', 'k4-sujeito-0111-v7-mocks.json'), 'utf8')).respostas } : {}
 const GRAVADO = MOCK ? JSON.parse(readFileSync(join(import.meta.dirname, '..', 'docs', 'calibracao', 'KINEO-K4-SUJEITO-0111.json'), 'utf8')) : null
 const apiKey = MOCK ? 'mock' : chave()
 if (!apiKey) { console.error('sem OPENAI_API_KEY'); process.exit(1) }
 function respostaMock(id: string, k: number, onde: 'sujeito' | 'final'): string {
-  if (onde === 'sujeito' && MOCKS[id]) return MOCKS[id]
   const c = (GRAVADO[onde] as Array<{ id: string; passadas: Array<{ cru: string }> }>).find((x) => x.id === id)
   return c?.passadas[Math.min(k, c.passadas.length - 1)]?.cru ?? ''
 }
@@ -72,14 +72,14 @@ const rodadasSujeito = SO_FINAL ? [] : await emLotes(casosSujeito, 6, async (c) 
     const g = gravador({ id: c.id, k, onde: 'sujeito' })
     const r = await lerSujeitoDoPedido(c.pedido, { apiKey, fetchImpl: g.f, timeoutMs: 10_000, prazoTotalMs: 21_000 })
     const a = avaliarSujeito({ leitura: r })
-    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, reasoning: r.ok ? r.valor.reasoning : null, subject_original: r.ok ? r.valor.subject_original : null, chaves: a.sujeito ? a.sujeito.chaves.map((re) => re.source) : null, presenca_ok: a.sujeito ? (c.presente ?? []).every((q: string) => promptMostraOSujeito(q, a.sujeito!)) && (c.ausente ?? []).every((q: string) => !promptMostraOSujeito(q, a.sujeito!)) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
+    passadas.push({ subject: a.sujeito?.frase ?? null, motivo: a.motivo, kind: r.ok ? r.valor.kind : null, head_noun: r.ok ? r.valor.head_noun : null, reasoning: r.ok ? r.valor.reasoning : null, visual_cru: r.ok ? r.valor.subject_visual_no_people : null, chaves: a.sujeito ? a.sujeito.chaves.map((re) => re.source) : null, presenca_ok: a.sujeito ? (c.presente ?? []).every((q: string) => promptMostraOSujeito(q, a.sujeito!)) && (c.ausente ?? []).every((q: string) => !promptMostraOSujeito(q, a.sujeito!)) : null, ok: r.ok, erro: r.ok ? null : r.erro, ms: r.ms, cru: g.crus[g.crus.length - 1] ?? '' })
   }
   return { c, passadas }
 })
 for (const { c, passadas } of rodadasSujeito) {
   const aceita = c.aceita ? new RegExp(c.aceita, 'i') : null
   const julga = (subject: string | null, presencaOk: boolean | null = null) => {
-    if (subject && c.proibido && new RegExp(c.proibido).test(subject)) return 'falso_positivo_grave' // v7: nome de pessoa no texto injetado
+    if (subject && c.proibido && new RegExp(c.proibido, 'i').test(subject)) return 'falso_positivo_grave' // v7/v8: nome de pessoa no texto injetado (sem caixa)
     if (c.rotulo === 'neg') return subject ? 'falso_positivo_grave' : 'ok'
     if (c.rotulo === 'amb') return !subject ? 'ok' : aceita!.test(subject) ? 'ok' : 'falso_positivo_grave'
     if (!subject) return 'perdeu'

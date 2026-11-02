@@ -172,7 +172,7 @@ const SUJEITO_BRUTO = [
   { id: 'cego-inv-bear-market', conjunto: 'cego', origem: 'inventado', pedido: 'How to survive a bear market in 2027', rotulo: 'neg' },
   // ── v6 (revisão adversarial do c5dbdbcf3): núcleo exigido na presença, nome de pessoa fora do texto injetado, palavra igual nas duas
   // línguas. AJUSTE (escritos vendo o código). Ainda SEM resposta real gravada (OpenAI sem crédito em 01/11): o guardião usa a resposta
-  // mockada de scripts/test-support/k4-sujeito-0111-v6-mocks.json até a próxima rodada desta calibração.
+  // mockada até a rodada real da v8 (o mock saiu; a resposta REAL está gravada).
   // `proibido` = nome de pessoa que nunca pode chegar ao texto injetado; `presente`/`ausente` = prompts que provam ou não a presença.
   { id: 'rv5-dog-train', origem: 'revisao', pedido: 'a dog waiting at a train station', rotulo: 'pos', aceita: 'dog', presente: ['A loyal dog sits on a train platform as a train pulls in'], ausente: ['A train pulls into an empty station at dusk'] },
   { id: 'rv5-astronaut-cat', origem: 'revisao', pedido: 'an astronaut cat on the moon', rotulo: 'pos', aceita: 'cat', presente: ['A cat in a tiny astronaut suit bounces on the moon'], ausente: ['An astronaut plants a flag on the moon', 'A cat sleeps on a sofa'] },
@@ -187,22 +187,44 @@ const SUJEITO_BRUTO = [
   { id: 'rv5-taxi', origem: 'revisao', pedido: 'o táxi que atravessou o país', rotulo: 'pos', aceita: 'taxi|cab' },
   // ── v7 (revisão do 21d3c2333): nome de pessoa em "by X", possessivo de grupo ("brothers'", "family's") e verbo no passado depois do
   // objeto ("smashed", "loved") não chega ao texto injetado; lugar, navio, árvore e marca ficam; a família "child" não prova "boy" com
-  // uma menina; "Lego" é exigido. AJUSTE, resposta MOCKADA em scripts/test-support/k4-sujeito-0111-v7-mocks.json (OpenAI 429 em 01/11).
-  {id: "rv6-picasso-by",pedido: "a painting by Pablo Picasso that sold for 100 million dollars",rotulo: "pos",aceita: "^a painting$",proibido: "Picasso|Pablo",origem: "revisao"},
+  // uma menina; "Lego" é exigido. AJUSTE; v8: aceito sem o nome do lugar/navio/marca (o motor recebe o campo visual sem nome próprio) e resposta REAL gravada (o mock saiu).
+  {id: "rv6-picasso-by",pedido: "a painting by Pablo Picasso that sold for 100 million dollars",rotulo: "pos",aceita: "painting|canvas",proibido: "Picasso|Pablo",origem: "revisao"},
   {id: "rv6-michelangelo-by",pedido: "the sculpture by Michelangelo nobody has seen",rotulo: "pos",aceita: "sculpture",proibido: "Michelangelo",origem: "revisao"},
-  {id: "rv6-wright-brothers",pedido: "the Wright brothers' first airplane",rotulo: "pos",aceita: "^the first airplane$",proibido: "Wright",presente: ["An early wooden airplane lifts off a sand dune"],ausente: ["Two brothers stand on a windy beach"],origem: "revisao"},
-  {id: "rv6-kennedy-iate",pedido: "o iate da família Kennedy",rotulo: "pos",aceita: "^the yacht$",proibido: "Kennedy",origem: "revisao"},
+  {id: "rv6-wright-brothers",pedido: "the Wright brothers' first airplane",rotulo: "pos",aceita: "airplane|aircraft|plane|biplane|glider",proibido: "Wright",presente: ["An early wooden airplane lifts off a sand dune"],ausente: ["Two brothers stand on a windy beach"],origem: "revisao"},
+  {id: "rv6-kennedy-iate",pedido: "o iate da família Kennedy",rotulo: "pos",aceita: "yacht|boat",proibido: "Kennedy",origem: "revisao"},
   {id: "rv6-hendrix-smashed",pedido: "the guitar Jimi Hendrix smashed at Monterey",rotulo: "pos",aceita: "guitar",proibido: "Hendrix|Jimi",origem: "revisao"},
-  {id: "rv6-einstein-loved",pedido: "a violin Einstein loved",rotulo: "pos",aceita: "^a violin$",proibido: "Einstein",origem: "revisao"},
-  {id: "rv6-jfk-car",pedido: "the car that John F. Kennedy rode in",rotulo: "pos",aceita: "^the car$",proibido: "Kennedy|John",presente: ["A black open-top car rolls slowly down the street"],origem: "revisao"},
-  {id: "rv6-darwin-finches",pedido: "Darwin's finches and the secret of evolution",rotulo: "pos",aceita: "^finches$",proibido: "Darwin",origem: "revisao"},
-  {id: "rv6-machu-picchu",pedido: "the ruins of Machu Picchu at sunrise",rotulo: "pos",aceita: "ruins of Machu Picchu",origem: "revisao"},
-  {id: "rv6-queen-mary",pedido: "the haunted Queen Mary ocean liner",rotulo: "pos",aceita: "Queen Mary ocean liner",origem: "revisao"},
-  {id: "rv6-mcdonalds",pedido: "the very first McDonald's restaurant",rotulo: "pos",aceita: "McDonald's restaurant",origem: "revisao"},
-  {id: "rv6-general-sherman",pedido: "the General Sherman tree is older than you think",rotulo: "pos",aceita: "General Sherman tree",origem: "revisao"},
-  {id: "rv6-flag-us",pedido: "the flag of the United States left on the moon",rotulo: "pos",aceita: "flag of the United States",origem: "revisao"},
+  {id: "rv6-einstein-loved",pedido: "a violin Einstein loved",rotulo: "pos",aceita: "violin",proibido: "Einstein",origem: "revisao"},
+  {id: "rv6-jfk-car",pedido: "the car that John F. Kennedy rode in",rotulo: "pos",aceita: "car|limousine",proibido: "Kennedy|John",presente: ["A black open-top car rolls slowly down the street"],origem: "revisao"},
+  {id: "rv6-darwin-finches",pedido: "Darwin's finches and the secret of evolution",rotulo: "pos",aceita: "finch|bird",proibido: "Darwin",origem: "revisao"},
+  {id: "rv6-machu-picchu",pedido: "the ruins of Machu Picchu at sunrise",rotulo: "pos",aceita: "ruins|citadel|terraces",origem: "revisao"},
+  {id: "rv6-queen-mary",pedido: "the haunted Queen Mary ocean liner",rotulo: "pos",aceita: "liner|ship",origem: "revisao"},
+  {id: "rv6-mcdonalds",pedido: "the very first McDonald's restaurant",rotulo: "pos",aceita: "restaurant|diner|burger",origem: "revisao"},
+  {id: "rv6-general-sherman",pedido: "the General Sherman tree is older than you think",rotulo: "pos",aceita: "tree|sequoia",origem: "revisao"},
+  {id: "rv6-flag-us",pedido: "the flag of the United States left on the moon",rotulo: "pos",aceita: "flag",origem: "revisao"},
   {id: "rv6-menino-7",pedido: "um menino de 7 anos que salvou a família",rotulo: "pos",aceita: "boy",presente: ["A 7-year-old boy runs across the yard toward the house"],ausente: ["A young girl running through a field"],origem: "revisao"},
-  {id: "rv6-lego-car",pedido: "a Lego car that actually drives",rotulo: "pos",aceita: "Lego car",presente: ["A small Lego car rolls across a wooden floor"],ausente: ["Cars stuck in traffic at rush hour"],origem: "revisao"},
+  {id: "rv6-lego-car",pedido: "a Lego car that actually drives",rotulo: "pos",aceita: "(lego|toy|brick).*car",presente: ["A small Lego car rolls across a wooden floor"],ausente: ["Cars stuck in traffic at rush hour"],origem: "revisao"},
+  // ── v8 (revisão do c04a09837): o nome de pessoa voltava ao prompt pago em "built by X 400 years ago", "used by X to sign laws",
+  // "the one X drove", e nome com epíteto virava texto quebrado ("an Alexander the helmet", "a Joan of sword"). O texto injetado
+  // passa a ser o campo visual sem gente (subject_visual_no_people). AJUSTE (escritos vendo o código); "proibido" vale sem caixa.
+  { id: 'rv7-galileo-built', origem: 'revisao', pedido: 'the telescope Galileo Galilei built 400 years ago', rotulo: 'pos', aceita: 'telescope', proibido: 'Galileo|Galilei' },
+  { id: 'rv7-lincoln-pen', origem: 'revisao', pedido: 'the pen used by Abraham Lincoln to sign laws', rotulo: 'pos', aceita: 'pen', proibido: 'Lincoln|Abraham' },
+  { id: 'rv7-james-dean', origem: 'revisao', pedido: 'the car James Dean drove on his last day', rotulo: 'pos', aceita: 'car|porsche', proibido: 'James|Dean' },
+  { id: 'rv7-lennon-signed', origem: 'revisao', pedido: 'a guitar signed by John Lennon years ago', rotulo: 'pos', aceita: 'guitar', proibido: 'Lennon|John' },
+  { id: 'rv7-elvis-owned', origem: 'revisao', pedido: 'the pink car once owned by Elvis Presley', rotulo: 'pos', aceita: 'car|cadillac', proibido: 'Elvis|Presley' },
+  { id: 'rv7-da-vinci-designed', origem: 'revisao', pedido: 'the flying machine designed by Leonardo da Vinci 500 years ago', rotulo: 'pos', aceita: 'machine|ornithopter|glider|wing', proibido: 'Leonardo|Vinci' },
+  { id: 'rv7-alexander-helmet', origem: 'revisao', pedido: "Alexander the Great's helmet", rotulo: 'pos', aceita: 'helmet', proibido: 'Alexander|Great' },
+  { id: 'rv7-catherine-crown', origem: 'revisao', pedido: "Catherine the Great's crown", rotulo: 'pos', aceita: 'crown', proibido: 'Catherine|Great' },
+  { id: 'rv7-richard-sword', origem: 'revisao', pedido: "Richard the Lionheart's sword", rotulo: 'pos', aceita: 'sword', proibido: 'Richard|Lionheart' },
+  { id: 'rv7-joan-sword', origem: 'revisao', pedido: "Joan of Arc's sword", rotulo: 'pos', aceita: 'sword', proibido: 'Joan|Arc' },
+  { id: 'rv7-joan-wielded', origem: 'revisao', pedido: 'the sword wielded by Joan of Arc', rotulo: 'pos', aceita: 'sword', proibido: 'Joan|Arc' },
+  { id: 'rv7-hendrix-played', origem: 'revisao', pedido: 'the guitar played by Jimi Hendrix at Woodstock', rotulo: 'pos', aceita: 'guitar', proibido: 'Jimi|Hendrix' },
+  { id: 'rv7-elvis-gave', origem: 'revisao', pedido: 'the car Elvis Presley gave away', rotulo: 'pos', aceita: 'car|cadillac', proibido: 'Elvis|Presley' },
+  { id: 'rv7-michelangelo-david', origem: 'revisao', pedido: 'a sculpture by Michelangelo Buonarroti called David', rotulo: 'amb', aceita: 'sculpture|statue', proibido: 'Michelangelo|Buonarroti|David', nota: 'a estátua É de um homem; o nome nunca' },
+  { id: 'rv7-rembrandt', origem: 'revisao', pedido: 'a painting by the Dutch master Rembrandt', rotulo: 'pos', aceita: 'painting|canvas', proibido: 'Rembrandt' },
+  { id: 'rv7-lincoln-statue', origem: 'revisao', pedido: 'a statue of Lincoln in the rain', rotulo: 'amb', aceita: 'statue', proibido: 'Lincoln', nota: 'estátua de pessoa real: null é seguro; o nome nunca' },
+  { id: 'rv7-postcard-sf', origem: 'revisao', pedido: 'a postcard of San Francisco from 1906', rotulo: 'pos', aceita: 'postcard', proibido: 'San Francisco' },
+  { id: 'rv7-caves-bats', origem: 'revisao', pedido: 'the caves where millions of bats sleep', rotulo: 'amb', aceita: 'bat|cave', presente: ['Millions of bats pour out of a dark cave at dusk'] },
+  { id: 'rv7-wolf-mowgli', origem: 'revisao', pedido: 'a wolf, as Mowgli saw it', rotulo: 'amb', aceita: 'wolf', proibido: 'Mowgli' },
 ]
 export const CASOS_SUJEITO = SUJEITO_BRUTO.map((c) => ({ conjunto: 'ajuste', ...c }))
 

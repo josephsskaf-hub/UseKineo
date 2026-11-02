@@ -28,6 +28,14 @@
 // brothers' first airplane", "the Kennedy family's yacht" e "a guitar Jimi Hendrix smashed" (ver semNomeDePessoa); o artigo é refeito;
 // lugar/navio/árvore/marca ficam; (2) núcleo com gênero ("boy") não é provado pela família "child" com uma menina, e "Lego" é exigido;
 // (3) -ves volta a um singular só. Casos rv6-* com resposta MOCKADA (OpenAI 429 em 01/11) — pendente de medir.
+// v8 (revisão do c04a09837 — o filtro DEPOIS_DO_AUTOR deixava "built by Galileo Galilei", "used by Abraham Lincoln", "the one James
+// Dean drove" voltarem ao prompt pago, e nome com epíteto virava texto quebrado: "an Alexander the helmet", "a Joan of sword").
+// DECISÃO SIMPLES: o corte cirúrgico do nome (semNomeDePessoa e suas exceções de lugar/navio/marca) SAIU. O texto injetado é um campo
+// PRÓPRIO que o modelo escreve, subject_visual_no_people — só o objeto/veículo/criatura com o que se vê, sem nenhum nome próprio — e
+// o código o valida (visualSemPessoas): corta tudo a partir de by/belonging to/owned/used/designed/built/that/which/who/once…;
+// possessivo, palavra com inicial maiúscula sem dígito ("C-54" e "3D" ficam) ou palavra que o próprio subject escreveu com maiúscula
+// (nome escondido em minúscula) = nada injetado; resto quebrado (artigo duplo, artigo ou preposição no fim, núcleo fora) = nada
+// injetado. Falha segura sempre: na dúvida, a cena fica como estava. Prompt mudou → calibração refeita contra a API (respostas reais).
 // Calibração (conjunto de ajuste + conjunto CEGO congelado antes da rodada, respostas reais da API) em
 // docs/calibracao/KINEO-K4-SUJEITO-0111.json. LIMITE CONHECIDO: a âncora no pedido e o word_use vêm do mesmo modelo; se ele errar os
 // dois juntos, a validação não pega — a proteção real é a calibração do caminho inteiro (0 grave em 151 casos x 2 passadas).
@@ -45,7 +53,7 @@ import { KLING4_ORCAMENTO_DA_CAMADA, eixoCurtoKling4 } from '@/lib/cinematic/cen
 import { temaDiscordaDaFala } from '@/lib/pedidoCerto'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
-export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v7_semantico' as const
+export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v8_semantico' as const
 
 // ─── A chamada semântica (compartilhada com o juiz do fim, lib/cinematic/finalResposta.ts) ──────────────────────────────────────
 export const MODELO_SEMANTICO_0111 = AI_TEXT_MODELS.scenePlannerLight // gpt-4o-mini (registro único: lib/aiModels.ts)
@@ -122,9 +130,14 @@ export interface LeituraDoSujeito {
   reasoning: string
   /** Como as palavras citadas são usadas NESTE pedido — o código só aceita "literal" (nome/título, figurado, verbo e nada = sem sujeito). */
   word_use: UsoDaPalavra
-  /** Sintagma visual em inglês ("a 1950s C-54 propeller airplane"); null quando não há nada a injetar. */
+  /** Sintagma em inglês como o modelo leu o pedido ("Napoleon's hat", "a Komodo dragon"); auditoria e âncora — NUNCA vai ao motor. */
   subject: string | null
-  /** O substantivo comum inglês no centro do sujeito ("parrot", "cart", "creatures") — é ele que prova presença no prompt. */
+  /** v8: o que o motor desenha — só o objeto/veículo/criatura e o que se vê, sem nome próprio ("a black bicorne hat"), JÁ validado por
+   *  visualSemPessoas; null = nada a injetar. */
+  subject_visual: string | null
+  /** v8: o campo subject_visual_no_people como o modelo escreveu (auditoria; null = não escreveu). */
+  subject_visual_no_people: string | null
+  /** O substantivo comum inglês no centro do sujeito ("parrot", "cart", "creatures"), escrito no subject_visual — prova presença no prompt. */
   head_noun: string | null
   kind: KindDoSujeito
   /** O sujeito é ou inclui gente (criança, menino, mulher, mergulhador…), seja qual for o kind. */
@@ -136,8 +149,6 @@ export interface LeituraDoSujeito {
   request_language: string
   /** Por que o sujeito ficou null depois da validação (null = válido). */
   descartado: string | null
-  /** v6: o sujeito como o modelo escreveu, quando o nome de pessoa dona/autora saiu dele (null = nada cortado). */
-  subject_original: string | null
 }
 
 const KINDS: ReadonlyArray<KindDoSujeito> = ['object', 'vehicle', 'creature', 'person_generic', 'none']
@@ -145,11 +156,12 @@ const KINDS: ReadonlyArray<KindDoSujeito> = ['object', 'vehicle', 'creature', 'p
 // pedido e do uso delas (word_use) DEPOIS — o código só aceita word_use "literal".
 const SCHEMA_SUJEITO = {
   type: 'object', additionalProperties: false,
-  required: ['reasoning', 'subject', 'head_noun', 'kind', 'real_person', 'has_human', 'mention_words', 'word_use', 'request_language'],
+  required: ['reasoning', 'subject', 'head_noun', 'subject_visual_no_people', 'kind', 'real_person', 'has_human', 'mention_words', 'word_use', 'request_language'],
   properties: {
     reasoning: { type: 'string' },
     subject: { type: ['string', 'null'] },
     head_noun: { type: ['string', 'null'] },
+    subject_visual_no_people: { type: ['string', 'null'] },
     kind: { type: 'string', enum: KINDS },
     real_person: { type: 'boolean' },
     has_human: { type: 'boolean' },
@@ -162,18 +174,24 @@ const SCHEMA_SUJEITO = {
 // Exemplos resolvidos, mandados como conversa (o gpt-4o-mini segue exemplo melhor que regra). NENHUM deles está no conjunto da
 // calibração (nem no ajuste nem no cego) — assim o placar do cego não é inflado por cópia.
 const ex = (user: string, o: Record<string, unknown>) => ({ user: `Video request:\n${user}`, assistant: JSON.stringify(o) })
-const nada = { subject: null, head_noun: null, kind: 'none', real_person: false, has_human: false, mention_words: [] as string[], word_use: 'none' }
+const nada = { subject: null, head_noun: null, subject_visual_no_people: null, kind: 'none', real_person: false, has_human: false, mention_words: [] as string[], word_use: 'none' }
+// v8: subject_visual_no_people logo depois do subject — o mesmo objeto, só pelo que se vê, sem nome próprio nenhum (dono, autor, marca,
+// navio, lugar, espécie com nome); código com dígito ("K-129") pode ficar.
 export const EXEMPLOS_SUJEITO_0111: ReadonlyArray<{ user: string; assistant: string }> = [
-  ex('Why do octopuses have three hearts', { reasoning: 'About octopuses, the animal itself; the word is literal.', subject: 'an octopus', head_noun: 'octopus', kind: 'creature', real_person: false, has_human: false, mention_words: ['octopuses'], word_use: 'literal', request_language: 'en' }),
-  ex('a sleepy koala hugging a tree in the rain', { reasoning: 'A koala, literal animal; sleepy and hugging describe it.', subject: 'a sleepy koala hugging a tree in the rain', head_noun: 'koala', kind: 'creature', real_person: false, has_human: false, mention_words: ['koala'], word_use: 'literal', request_language: 'en' }),
-  ex('o caminhão que atravessou o deserto sozinho', { reasoning: 'A truck crossing a desert; caminhão is a literal truck.', subject: 'a truck crossing the desert alone', head_noun: 'truck', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['caminhão'], word_use: 'literal', request_language: 'pt' }),
-  ex('un anciano pescador y su barca al amanecer', { reasoning: 'An unnamed old fisherman with his boat; literal person.', subject: 'an old fisherman with his boat at dawn', head_noun: 'fisherman', kind: 'person_generic', real_person: false, has_human: true, mention_words: ['anciano pescador'], word_use: 'literal', request_language: 'es' }),
-  ex('What happened to the submarine K-129', { reasoning: 'A numbered submarine; a literal vehicle drawn as a submarine.', subject: 'a Soviet K-129 submarine', head_noun: 'submarine', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['submarine K-129'], word_use: 'literal', request_language: 'en' }),
-  ex('Where is flight MH370 now', { reasoning: 'A numbered flight; the real airliner is literal, drawn as the plane.', subject: 'a Malaysia Airlines passenger jet', head_noun: 'jet', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['flight MH370'], word_use: 'literal', request_language: 'en' }),
-  ex('a vida nas fontes hidrotermais do fundo do mar', { reasoning: 'Life in a place means the living creatures there; literal.', subject: 'creatures living around deep-sea hydrothermal vents', head_noun: 'creatures', kind: 'creature', real_person: false, has_human: false, mention_words: ['vida'], word_use: 'literal', request_language: 'pt' }),
-  ex('the village where goats outnumber people', { reasoning: 'Goats are the striking literal animal of the village.', subject: 'goats roaming a mountain village', head_noun: 'goats', kind: 'creature', real_person: false, has_human: false, mention_words: ['goats'], word_use: 'literal', request_language: 'en' }),
-  ex('The Paper Boat — a paper boat floats down a flooded street and reaches the sea', { reasoning: 'A story titled after its main object; the paper boat is literal.', subject: 'a paper boat floating down a flooded street', head_noun: 'boat', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['paper boat'], word_use: 'literal', request_language: 'en' }),
-  ex("Elvis Presley's first guitar", { reasoning: 'An object that belonged to a named person; the guitar is literal.', subject: 'a vintage acoustic guitar', head_noun: 'guitar', kind: 'object', real_person: false, has_human: false, mention_words: ['guitar'], word_use: 'literal', request_language: 'en' }),
+  ex('Why do octopuses have three hearts', { reasoning: 'About octopuses, the animal itself; the word is literal.', subject: 'an octopus', head_noun: 'octopus', subject_visual_no_people: 'an octopus', kind: 'creature', real_person: false, has_human: false, mention_words: ['octopuses'], word_use: 'literal', request_language: 'en' }),
+  ex('a sleepy koala hugging a tree in the rain', { reasoning: 'A koala, literal animal; sleepy and hugging describe it.', subject: 'a sleepy koala hugging a tree in the rain', head_noun: 'koala', subject_visual_no_people: 'a sleepy koala hugging a tree in the rain', kind: 'creature', real_person: false, has_human: false, mention_words: ['koala'], word_use: 'literal', request_language: 'en' }),
+  ex('o caminhão que atravessou o deserto sozinho', { reasoning: 'A truck crossing a desert; caminhão is a literal truck.', subject: 'a truck crossing the desert alone', head_noun: 'truck', subject_visual_no_people: 'a truck crossing the desert alone', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['caminhão'], word_use: 'literal', request_language: 'pt' }),
+  ex('un anciano pescador y su barca al amanecer', { reasoning: 'An unnamed old fisherman with his boat; literal person.', subject: 'an old fisherman with his boat at dawn', head_noun: 'fisherman', subject_visual_no_people: 'an old fisherman with his boat at dawn', kind: 'person_generic', real_person: false, has_human: true, mention_words: ['anciano pescador'], word_use: 'literal', request_language: 'es' }),
+  ex('What happened to the submarine K-129', { reasoning: 'A numbered submarine; a literal vehicle drawn as a submarine.', subject: 'a Soviet K-129 submarine', head_noun: 'submarine', subject_visual_no_people: 'a K-129 diesel submarine', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['submarine K-129'], word_use: 'literal', request_language: 'en' }),
+  ex('Where is flight MH370 now', { reasoning: 'A numbered flight; the real airliner is literal, drawn as the plane.', subject: 'a Malaysia Airlines passenger jet', head_noun: 'jet', subject_visual_no_people: 'a white passenger jet', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['flight MH370'], word_use: 'literal', request_language: 'en' }),
+  ex('a vida nas fontes hidrotermais do fundo do mar', { reasoning: 'Life in a place means the living creatures there; literal.', subject: 'creatures living around deep-sea hydrothermal vents', head_noun: 'creatures', subject_visual_no_people: 'creatures living around deep-sea hydrothermal vents', kind: 'creature', real_person: false, has_human: false, mention_words: ['vida'], word_use: 'literal', request_language: 'pt' }),
+  ex('the village where goats outnumber people', { reasoning: 'Goats are the striking literal animal of the village.', subject: 'goats roaming a mountain village', head_noun: 'goats', subject_visual_no_people: 'goats roaming a mountain village', kind: 'creature', real_person: false, has_human: false, mention_words: ['goats'], word_use: 'literal', request_language: 'en' }),
+  ex('The Paper Boat — a paper boat floats down a flooded street and reaches the sea', { reasoning: 'A story titled after its main object; the paper boat is literal.', subject: 'a paper boat floating down a flooded street', head_noun: 'boat', subject_visual_no_people: 'a paper boat floating down a flooded street', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['paper boat'], word_use: 'literal', request_language: 'en' }),
+  ex("Elvis Presley's first guitar", { reasoning: 'An object that belonged to a named person; the guitar is literal.', subject: "Elvis Presley's first guitar", head_noun: 'guitar', subject_visual_no_people: 'a vintage acoustic guitar', kind: 'object', real_person: false, has_human: false, mention_words: ['guitar'], word_use: 'literal', request_language: 'en' }),
+  ex('o bracelete de ouro que pertenceu a Cleópatra', { reasoning: 'A gold bracelet owned by a named queen; the bracelet is literal.', subject: 'a gold bracelet that belonged to Cleopatra', head_noun: 'bracelet', subject_visual_no_people: 'an ancient gold bracelet', kind: 'object', real_person: false, has_human: false, mention_words: ['bracelete de ouro'], word_use: 'literal', request_language: 'pt' }),
+  ex('the Golden Hind, a famous sailing ship', { reasoning: 'A named ship; the ship itself is literal, drawn as a sailing ship.', subject: 'the Golden Hind sailing ship', head_noun: 'ship', subject_visual_no_people: 'a 16th-century wooden sailing ship', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['sailing ship'], word_use: 'literal', request_language: 'en' }),
+  ex('a Rolls-Royce from the 1920s parked in Paris', { reasoning: 'A vintage luxury car; the car itself is literal.', subject: 'a 1920s Rolls-Royce car parked in Paris', head_noun: 'car', subject_visual_no_people: 'a 1920s luxury car parked on a city street', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['Rolls-Royce'], word_use: 'literal', request_language: 'en' }),
+  ex('the Brazilian flag flying over the Amazon', { reasoning: 'A national flag, a literal object over a forest.', subject: 'the Brazilian flag over the Amazon rainforest', head_noun: 'flag', subject_visual_no_people: 'a green and yellow Brazilian flag over a rainforest', kind: 'object', real_person: false, has_human: false, mention_words: ['flag'], word_use: 'literal', request_language: 'en' }),
   ex('The Lion King facts you missed', { reasoning: 'About the film The Lion King; Lion is part of a film title, not an animal to draw.', ...nada, mention_words: ['Lion King'], word_use: 'name_or_title', request_language: 'en' }),
   ex('Don\'t be a lone wolf at work', { reasoning: 'Career advice; lone wolf is an idiom for a person, not an animal.', ...nada, mention_words: ['lone wolf'], word_use: 'figurative', request_language: 'en' }),
   ex('Abraham Lincoln\'s last day', { reasoning: 'About a specific real person, Abraham Lincoln.', ...nada, real_person: true, request_language: 'en' }),
@@ -188,6 +206,7 @@ export const SYSTEM_SUJEITO_0111 = [
   'real_person true (and subject null) when the central subject is a specific real person, named or clearly identifiable; a named fictional character is kind "none". But an object that belongs to a named person (their crown, hat, guitar, machine) is itself the subject, with real_person false.',
   'subject: a short noun phrase WRITTEN IN ENGLISH (always translate; never copy words of another language), at most 10 words, starting with "a", "an" or "the", built around a plain English common noun (never only a name or number), keeping only the concrete details the request gives. Never add details, characters or objects that are not in the request.',
   'head_noun: the one English common noun, lowercase and exactly as written in subject, that IS the subject (not an adjective or verb before it; never "flight", a name or a number — a flight is drawn as an airplane): "a talking parrot" gives "parrot". Null when subject is null.',
+  'subject_visual_no_people: the text the image model will receive. The SAME subject described only by what the viewer sees, in plain English, at most 10 words, starting with "a", "an" or "the" (or a plural noun), and containing the head_noun word exactly. Write every word in lowercase and use NO proper name of any kind, not even in lowercase: no person (owner, maker, user, artist, inventor, king, saint, character), no place or city, no ship or vehicle name, no brand, company or model name; replace each name with what it looks like ("Napoleon\'s hat" gives "a black bicorne hat", "Machu Picchu" gives "ancient stone ruins on a mountain ridge", "a Porsche" gives "a silver sports car", "the Queen Mary" gives "a 1930s ocean liner", "Darwin\'s finches" gives "small brown finches", "a Lego car" gives "a lego toy car"). Only these may keep a capital letter: a nationality or era word (Greek, Roman, Victorian, Brazilian), a named species (Komodo dragon) and model codes with digits (C-54, K-129, 3D). No "by", "belonging to", "owned", "used", "designed", "built" or "that someone drove" clause, and no possessive. Null when subject is null.',
   'has_human: true when the subject is or includes a person of any age. mention_words: the exact word or words copied from the request, in its own language and spelling, that name the subject (empty when kind is "none"). word_use: how those words are used in THIS request — "literal"; "name_or_title" only when they name a person, a work (film, series, book, song, game), a sports team, a company, a brand or a weather phenomenon (the proper name of a ship, flight or other vehicle, and the title of the requested story itself, are "literal"); "figurative"; "verb"; or "none" when kind is "none". request_language: ISO 639-1 code.',
   'Reply with JSON only.',
 ].join('\n')
@@ -195,98 +214,80 @@ export const SYSTEM_SUJEITO_0111 = [
 const semAcento = (t: string) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const SUJEITO_VALIDO_RE = /^[\p{Script=Latin}\p{N}][\p{Script=Latin}\p{N}\s'’,.-]*$/u
 
-// ─── v6: nome de pessoa real NUNCA entra no texto injetado ──────────────────────────────────────────────────────────────────────
-// Revisão adversarial do c5dbdbcf3: a calibração gravou "Napoleon's hat", "a flying machine designed by Leonardo da Vinci" e "a crown
-// belonging to King Arthur" — o motor de vídeo pode desenhar a PESSOA (rosto de gente real) em vez do objeto. O objeto fica; o dono sai.
-// v7 (revisão do 21d3c2333): também saem "a painting by Pablo Picasso" (by sem verbo), "the Wright brothers' first airplane" / "the
-// Kennedy family's yacht" (possessivo depois de substantivo de grupo) e "a guitar Jimi Hendrix smashed" / "a violin Einstein loved"
-// (qualquer verbo no passado logo depois do objeto); o artigo é refeito pelo som (an/a) e plural fica sem artigo ("finches", nunca
-// "a finches"); "the car that John F. Kennedy rode in" → "the car". FICAM: "of" + nome depois de substantivo de lugar ("the ruins of
-// Machu Picchu"), "of the X" ("the flag of the United States"), título + nome antes de navio/árvore/lugar ("a Queen Mary ocean liner",
-// "the General Sherman tree"), marca com possessivo ("a McDonald's restaurant", lista fechada), "by" de lugar ("by Lake Como").
-// Corte determinístico e estreito, só nos formatos em que um nome próprio é DONO/AUTOR do objeto. Nome de navio, voo, modelo, marca,
-// espécie ou lugar SEM esses formatos fica ("the SS St. Louis refugee ship", "a Komodo dragon", "a SpaceX Dragon capsule"). Se o núcleo
-// sumir no corte, nada é injetado. LIMITE declarado: nome usado como adjetivo, sem nenhum desses formatos ("a Picasso painting", "a
-// Van Gogh painting") fica — sem lista de pessoas é indistinguível de marca/modelo ("a Tesla car"); o motor lê como estilo, não como rosto.
-const PALAVRA_DE_NOME = String.raw`\p{Lu}[\p{L}'’.-]*`
-const CONECTOR_DE_NOME = String.raw`(?:da|de|del|della|di|du|do|dos|das|van|von|der|den|la|le|bin|ibn|al|el)`
-const NOME_PROPRIO = String.raw`${PALAVRA_DE_NOME}(?:\s+(?:${CONECTOR_DE_NOME}\s+)?${PALAVRA_DE_NOME})*`
-const TITULO_DE_PESSOA = String.raw`(?:King|Queen|Prince|Princess|Emperor|Empress|Pharaoh|Pope|Sir|Lord|Lady|President|General|Captain|Admiral|Tsar|Czar|Tsarina|Sultan|Duke|Duchess|Count|Countess|Baron|Chief|Dr\.?|Doctor|Professor)`
-const TITULO_INICIAL_RE = new RegExp(String.raw`^${TITULO_DE_PESSOA}\s`, 'u')
-const VERBO_DE_AUTORIA = String.raw`(?:designed|built|invented|owned|made|created|painted|worn|used|drawn|sculpted|carved|written|commissioned|flown|driven|ridden|played|signed|given|gifted|discovered|found|sung|won|taken|stolen|thrown|broken|held|kept|lost|sold|bought)`
-// verbo no passado logo depois do objeto ("the hat Napoleon wore", "a guitar Jimi Hendrix smashed", "a violin Einstein loved"): os
-// irregulares mais comuns + qualquer palavra em -ed
-const VERBO_NO_PASSADO = String.raw`(?:wore|owned|used|built|designed|invented|drove|flew|rode|played|painted|made|carried|signed|wrote|sang|threw|broke|gave|took|bought|sold|held|kept|lost|found|stole|left|won|drew|ate|read|saw|\p{Ll}{2,}ed)`
-const GRUPO_DE_PESSOAS = String.raw`(?:brothers|sisters|family|families|twins|couple|clan|dynasty|household|children|kids|sons|daughters|wife|husband|widow|mother|father|son|daughter|grandmother|grandfather|administration|estate|gang|band)`
-const ASTRO = /^(?:Earth|Moon|Sun|Mars|Venus|Jupiter|Saturn|Mercury|Neptune|Uranus|Pluto)$/
-// lugar dentro do nome ("the United States", "Death Valley") e primeira palavra de acidente geográfico ("by Lake Como" = à beira do lago)
-const PALAVRA_DE_LUGAR = /^(?:States|Kingdom|Republic|Empire|Islands?|Mountains?|Valley|City|Lake|River|Mount|Mt\.?|Ocean|Sea|Canyon|Park|Desert|Bay|Falls|Coast|Peninsula|Strait|Gulf|Union|Emirates|Nations|Cape|Isle|Fort|Port|Glacier|Forest|Reef|Alps|Andes|Himalayas|Sahara|Amazon|Nile)$/
-// substantivo de lugar logo antes do "of" ("the ruins of Machu Picchu", "the streets of New York"): o nome depois é lugar, não dono
-const LUGAR_ANTES_DO_OF = /(?:^|\s)(?:ruins|flags?|streets|coast|city|map|skyline|shores?|capital|islands?|temples?|walls|harbou?r|ports?|beach(?:es)?|mountains|valley|jungle|desert|towns?|village|kingdom|empire|waters|lakes?|rivers?|landscape|skies|sky|outskirts|heart|center|centre|suburbs)$/i
-// navio, árvore, lugar ou obra com nome de gente ("a Queen Mary ocean liner", "the General Sherman tree")
-const COISA_COM_NOME_DE_GENTE = /^(?:ocean\s+liner|liner|ship|steamship|steamer|vessel|boat|yacht|cruiser|battleship|carrier|submarine|frigate|schooner|train|locomotive|tree|sequoia|tower|building|bridge|airport|station|hotel|stadium|dam|street|avenue|highway|tunnel|canal|park|hospital|university|college|school|museum|library|theater|theatre|square|island|glacier|mountain|peak|falls|lake|river|crater|reef)(?![\p{L}])/iu
-// marca com possessivo no próprio nome ("a McDonald's restaurant"): fica. Lista curta e fechada.
-const MARCA_COM_POSSESSIVO = new Set(['McDonald', 'Macy', 'Wendy', 'Denny', 'Kellogg', 'Hershey', 'Domino', 'Arby', 'Chili', 'Applebee', 'Carl', 'Lowe', 'Kohl', 'Sainsbury', 'Levi', 'Dunkin', 'Trader Joe', 'Reese', 'Hardee', 'Nathan'])
-const ARTIGO_OU_DETERMINANTE = /^(?:a|an|the|this|that|these|those|his|her|its|their|our|my|your|some|one)$/i
-
-const AUTORIA_RE = new RegExp(String.raw`(?:,\s*|\s+)(?:that\s+|which\s+)?(?:(?:once\s+)?(?:${VERBO_DE_AUTORIA}|\p{Ll}{2,}ed)\s+by|(by)|belong(?:ing|ed|s)\s+to|(of))\s+(the\s+)?(${NOME_PROPRIO})(\s+${GRUPO_DE_PESSOAS}(?![\p{L}]))?`, 'gu')
-const NOME_E_VERBO_RE = new RegExp(String.raw`\s+(?:that\s+|which\s+)?(?:the\s+)?(${NOME_PROPRIO})(?:\s+${GRUPO_DE_PESSOAS})?\s+(?:once\s+)?${VERBO_NO_PASSADO}(?![\p{L}])(?:\s+(?:in|on|with|to|from|into|onto|aboard|through|about|for|at)(?=\s*(?:$|[,;.])))?`, 'gu')
-const POSSESSIVO_DE_GRUPO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME_PROPRIO})\s+${GRUPO_DE_PESSOAS}(?:['’]s|['’])(?=\s)\s*`, 'gu')
-const POSSESSIVO_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])(${NOME_PROPRIO})(?:['’]s|['’])(?=\s)\s*`, 'gu')
-const TITULO_E_NOME_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])${TITULO_DE_PESSOA}\s+${NOME_PROPRIO}\s*`, 'gu')
-// depois de "by Nome" sem verbo, o nome só é AUTOR se a frase acaba, pontua, ou segue com preposição/relativa/-ing ("a painting by
-// Picasso hanging in a museum"); "a boat pulled by Clydesdale horses" (nome como adjetivo de outro substantivo) não tem autor
-const DEPOIS_DO_AUTOR = /^\s*(?:$|[,;.)]|(?:in|on|at|with|from|for|of|that|which|who|during|before|after|inside|near|under|over|and|himself|herself|themselves)(?![\p{L}])|\p{Ll}+ing(?![\p{L}]))/u
-
-const palavrasDe = (t: string) => t.split(/\s+/).filter(Boolean)
-const ehLugar = (nome: string) => palavrasDe(nome).some((w) => PALAVRA_DE_LUGAR.test(w))
-const ehAstro = (nome: string) => palavrasDe(nome).every((w) => ASTRO.test(w))
+// ─── v8: o texto injetado é o campo VISUAL, sem gente — e o código o valida ─────────────────────────────────────────────────────
+// Revisões do c5dbdbcf3, 21d3c2333 e c04a09837: cortar o nome de dentro do subject ("Napoleon's hat", "designed by Leonardo da Vinci",
+// "a telescope built by Galileo Galilei 400 years ago", "Alexander the Great's helmet") foi um jogo de exceções sem fim — cada rodada
+// deixava um formato passar ou quebrava o texto ("an Alexander the helmet", "a Joan of sword"). Decisão simples (v8): o motor recebe
+// SÓ o subject_visual_no_people, que o modelo escreve sem nome próprio nenhum, e visualSemPessoas confere:
+//   1. corta tudo a partir de by / belonging to / owned / used / designed / built / once / wore / drove / named / "the one" e de
+//      "that/which/whom/whose … drove/wore/owned/built/played…" (a oração de dono/autor nunca chega ao motor, mesmo que o modelo a
+//      escreva), e de "of/depicting/showing" + nome com maiúscula ("the lifeboats of the Titanic" → "the lifeboats"); "a boy who
+//      found a meteorite" fica (oração de ação, sem dono);
+//   2. possessivo de pessoa ("Napoleon's", "napoleon's" quando o subject escreveu Napoleon, "Titanic's") SAI — só a palavra do dono
+//      ("the Titanic's lifeboats" → "the lifeboats"); o que sobrar de nome em volta cai nas regras 3-5; possessivo de substantivo
+//      comum ("a girls' school", "the moon's surface") fica;
+//   3. palavra com inicial maiúscula = nada injetado, salvo código com dígito ("C-54", "K-129", "3D"), o artigo do começo e a lista
+//      FECHADA NOME_PROPRIO_PERMITIDO (nacionalidade/época — Greek, Roman, Victorian — e espécie com nome — Komodo): só permite, nunca
+//      cria sujeito, e nenhuma dessas palavras é rosto de gente;
+//   4. palavra que o PRÓPRIO subject escreveu com maiúscula (o nome do dono/navio/marca escondido em minúscula: "napoleon",
+//      "galileo") = nada injetado, salvo a mesma lista e o material de brinquedo de MODIFICADOR_VISUAL ("lego");
+//   5. resto quebrado = nada injetado: artigo seguido de artigo/preposição, artigo/preposição/conjunção no fim, texto vazio, ou o
+//      núcleo (head_noun) fora do texto.
+// Nada disso tenta CONSERTAR o texto: na dúvida a cena fica como estava (falha segura). LIMITE: nome de gente escrito em minúscula
+// que o subject também não escreveu com maiúscula passa — a calibração (com "proibido" sem caixa) mede isso no caminho inteiro.
+const VERBO_DE_DONO = String.raw`(?:drove|driven|wore|worn|owned|used|built|designed|played|signed|loved|gave|rode|ridden|flew|flown|wielded|made|painted|carved|sculpted|smashed|invented|carried|kept|held|wrote|written)`
+const CORTE_DE_AUTORIA_RE = new RegExp(String.raw`(?:,\s*|\s+)(?:by|belong(?:s|ed|ing)?|owned|once|used|designed|built|made\s+by|invented|created\s+by|painted\s+by|worn|wore|drove|driven|rode|ridden|flew|flown|wielded|signed|played\s+by|named|called|(?:(?:similar\s+to|like)\s+)?the\s+one|(?:that|which|whom|whose)\s+(?:[\p{L}'’.-]+\s+){0,4}?${VERBO_DE_DONO})(?![\p{L}\p{N}'’-]).*$`, 'iu')
+// "of"/"depicting"/"showing" + nome com maiúscula é o possessivo por extenso ("the lifeboats of the Titanic", "a sword of Joan of Arc",
+// "a postcard of San Francisco"): sai do marcador até o fim, com caixa (o nome começa com maiúscula; "of the sea" fica)
+const CORTE_DE_NOME_RE = /(?:,\s*|\s+)(?:of|depicting|showing)\s+(?:the\s+)?\p{Lu}(?![\p{Lu}\d-]*\d).*$/u
+// palavras com maiúscula que podem ficar no texto do motor: nacionalidade/época/região e espécie com nome. Lista FECHADA que só PERMITE
+// (nunca cria sujeito); nenhuma é nome de pessoa.
+const NOME_PROPRIO_PERMITIDO = new Set(['american', 'british', 'english', 'french', 'german', 'italian', 'spanish', 'portuguese', 'dutch', 'russian', 'soviet', 'chinese', 'japanese', 'korean', 'indian', 'mexican', 'brazilian', 'argentine', 'peruvian', 'egyptian', 'greek', 'roman', 'viking', 'norse', 'celtic', 'aztec', 'mayan', 'maya', 'inca', 'incan', 'persian', 'ottoman', 'mongol', 'mongolian', 'arab', 'arabian', 'african', 'european', 'asian', 'arctic', 'antarctic', 'atlantic', 'pacific', 'medieval', 'renaissance', 'victorian', 'edwardian', 'baroque', 'gothic', 'byzantine', 'babylonian', 'sumerian', 'polynesian', 'hawaiian', 'scandinavian', 'siberian', 'australian', 'canadian', 'irish', 'scottish', 'swiss', 'swedish', 'norwegian', 'polish', 'turkish', 'thai', 'vietnamese', 'filipino', 'andean', 'himalayan', 'komodo', 'galapagos', 'bengal', 'dalmatian', 'labrador', 'shetland', 'holstein', 'lego'])
+const POSSESSIVO_NO_VISUAL_RE = /([\p{L}][\p{L}\p{N}-]*?)(?:['’]s|(?<=s)['’])(?![\p{L}])/gu
+const PALAVRA_FUNCIONAL = /^(?:a|an|the|of|by|to|from|with|and|or|in|on|at|for|as|into|onto|than|nor|but)$/i
+const ARTIGO = /^(?:a|an|the)$/i
 const somDeVogal = (w: string) => /^(?:hour|honest|honou?r|heir)/i.test(w) || (/^[aeiou]/i.test(w) && !/^(?:uni|use|usu|uti|eu|one|once|ur[aeio])/i.test(w))
-const ehPlural = (w: string) => {
-  const n = w.toLowerCase()
-  if (n in IRREGULARES) return false
-  if (n in SINGULAR_IRREGULAR) return true
-  return /[^aeiou]men$/.test(n) || (/s$/.test(n) && !/(?:ss|us|is|ics)$/.test(n))
-}
+const palavrasDe = (t: string) => t.split(/\s+/).filter(Boolean)
+const limpaPalavra = (w: string) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
 
-/** O sujeito sem o nome de pessoa que é dono/autor do objeto ("Napoleon's historic hat" → "a historic hat"). Sem nome = o mesmo texto. */
-export function semNomeDePessoa(subject: string, nucleo?: string | null): string {
-  const entrada = String(subject ?? '')
-  // o artigo do começo nunca é nome ("The Titanic's lifeboats": o artigo fica, o "Titanic's" sai)
-  const base = entrada.replace(/^(A|An|The)\s/, (m) => m.toLowerCase())
-  let s = base
-  s = s.replace(AUTORIA_RE, (todo: string, porSo: string | undefined, de: string | undefined, oArtigo: string | undefined, nome: string, grupo: string | undefined, offset: number, tudo: string) => {
-    if (de) {
-      // "of King Arthur" e "of Leonardo da Vinci" (2+ palavras, sem "the") saem; "of the Titanic", "of the United States", "of Mars",
-      // "of Einstein" (1 palavra: pode ser lugar ou navio) e "the ruins of Machu Picchu" (lugar antes do of) ficam
-      if (TITULO_INICIAL_RE.test(nome + ' ')) return ''
-      if (oArtigo || palavrasDe(nome).length < 2 || ehLugar(nome) || LUGAR_ANTES_DO_OF.test(tudo.slice(0, offset))) return todo
-      return ''
-    }
-    // "by" sozinho também é "à beira de": "by Lake Como", "by the Thames" ficam
-    if (porSo && ((oArtigo && !grupo) || ehLugar(nome) || ehAstro(nome))) return todo
-    // autor só se a frase seguir como frase de autor ("a boat pulled by Clydesdale horses": o nome é adjetivo de "horses", fica)
-    return DEPOIS_DO_AUTOR.test(tudo.slice(offset + todo.length)) ? '' : todo
-  })
-  s = s.replace(NOME_E_VERBO_RE, (todo: string, nome: string, offset: number, tudo: string) => {
-    // só logo depois do OBJETO ("the hat Napoleon wore"), nunca logo depois do artigo ("the Golden Gate Bridge painted red")
-    const antes = palavrasDe(tudo.slice(0, offset)).pop() ?? ''
-    if (!antes || ARTIGO_OU_DETERMINANTE.test(antes) || !/^\p{Ll}/u.test(antes) || ehLugar(nome) || ehAstro(nome)) return todo
-    return ''
-  })
-  s = s.replace(POSSESSIVO_DE_GRUPO_RE, (todo: string, nome: string) => (ehLugar(nome) ? todo : ''))
-  s = s.replace(POSSESSIVO_RE, (todo: string, nome: string) => (ehAstro(nome) || MARCA_COM_POSSESSIVO.has(nome) ? todo : ''))
-  s = s.replace(TITULO_E_NOME_RE, (todo: string, offset: number, tudo: string) => (COISA_COM_NOME_DE_GENTE.test(tudo.slice(offset + todo.length)) ? todo : ''))
-  s = s.replace(/\s+/g, ' ').replace(/[\s,]+$/, '').replace(/\s+(?:of|by|to|from|with|and|that|which)$/i, '').trim()
-  if (s === base) return entrada
-  // o artigo: a/an pelo som da palavra que ficou (nunca "a ocean liner"), e o que o corte levou volta ("Napoleon's hat" → "a hat");
-  // plural fica sem artigo ("Darwin's finches" → "finches", nunca "a finches")
+/** v8: o subject_visual_no_people validado (o que vai ao motor) — ou o motivo de nada ser injetado. Puro, sem rede. */
+export function visualSemPessoas(visual: string | null, subject: string | null, nucleo: string | null): { frase: string | null; motivo: string | null } {
+  const bruto = String(visual ?? '').replace(/\s+/g, ' ').trim().replace(/[.\s]+$/, '')
+  if (!bruto || bruto.toLowerCase() === 'null') return { frase: null, motivo: 'sem_visual' }
+  // o artigo do começo pode vir com maiúscula ("A black hat"); fora ele, maiúscula é nome
+  let s = bruto.replace(/^(A|An|The)\s/, (m) => m.toLowerCase())
+  // 1. a oração de dono/autor sai inteira, do marcador até o fim
+  s = s.replace(CORTE_DE_AUTORIA_RE, '').replace(CORTE_DE_NOME_RE, '').replace(/[\s,;:-]+$/, '').trim()
+  if (Array.from(s).length > 90 || palavrasDe(s).length > 12 || !SUJEITO_VALIDO_RE.test(s || '-')) return { frase: null, motivo: 'visual_mal_formado' }
+  // os nomes que o PRÓPRIO subject escreveu com maiúscula (menos a 1ª palavra, se for artigo ou o próprio núcleo — "Goats roaming…" —,
+  // e códigos): servem às regras 2 e 4
+  const doSubject = palavrasDe(String(subject ?? '')).map(limpaPalavra).map((w) => w.replace(/['’]s$/, ''))
+  const nomes = new Set(doSubject.filter((w, i) => /^\p{Lu}/u.test(w) && !/\d/.test(w) && !(i === 0 && (ARTIGO.test(w) || w.toLowerCase() === String(nucleo ?? '').toLowerCase()))).flatMap((w) => w.toLowerCase().split('-')))
+  const ehNome = (w: string) => /^\p{Lu}/u.test(w) || nomes.has(w.toLowerCase()) || nomes.has(w.toLowerCase().replace(/s$/, ''))
+  // 2. possessivo de PESSOA: dono com maiúscula ("Napoleon's", "Titanic's") ou que o subject escreveu com maiúscula ("napoleon's") =
+  // nada injetado; possessivo de substantivo comum ("a girls' school", "the moon's surface") não é dono com rosto e fica
+  // o possessivo de pessoa SAI (só a palavra do dono: "the Titanic's lifeboats" → "the lifeboats"); o que sobrar de nome em volta dele
+  // ("an Alexander the Great's helmet" → "an Alexander the helmet") cai na regra 3 — nada injetado, nunca consertado
+  const antesDoCorte = s
+  s = s.replace(POSSESSIVO_NO_VISUAL_RE, (todo: string, dono: string) => (ehNome(dono) ? '' : todo)).replace(/\s+/g, ' ').trim()
+  if (s !== antesDoCorte && (!s || !SUJEITO_VALIDO_RE.test(s))) return { frase: null, motivo: 'visual_com_possessivo' }
+  const palavras = palavrasDe(s).map(limpaPalavra).filter(Boolean)
+  // 3. maiúscula sem dígito
+  if (palavras.some((w) => /^\p{Lu}/u.test(w) && !/\d/.test(w) && !NOME_PROPRIO_PERMITIDO.has(w.toLowerCase()))) return { frase: null, motivo: 'visual_com_maiuscula' }
+  // 4. nome escondido em minúscula: palavra que o subject escreveu com maiúscula
+  const material = new Set(MODIFICADOR_VISUAL.split('|'))
+  if (palavras.some((w) => w.toLowerCase().split('-').some((p) => nomes.has(p) && !material.has(p) && !NOME_PROPRIO_PERMITIDO.has(p)))) return { frase: null, motivo: 'visual_com_nome_do_subject' }
+  // 5. resto quebrado
+  const ws = palavrasDe(s)
+  if (ws.length === 0 || (ws.length === 1 && ARTIGO.test(ws[0]))) return { frase: null, motivo: 'visual_quebrado' }
+  if (PALAVRA_FUNCIONAL.test(limpaPalavra(ws[ws.length - 1]))) return { frase: null, motivo: 'visual_quebrado' }
+  for (let i = 0; i + 1 < ws.length; i++) if (ARTIGO.test(ws[i]) && PALAVRA_FUNCIONAL.test(ws[i + 1])) return { frase: null, motivo: 'visual_quebrado' }
+  const h = String(nucleo ?? '').trim().toLowerCase()
+  if (!h || !NUCLEO_RE.test(h) || !s.split(/[^\p{L}-]+/u).includes(h)) return { frase: null, motivo: 'sem_nucleo' }
+  // a/an pelo som da palavra seguinte (nunca "a ancient"); o resto é o texto do modelo, intocado
   const comArtigo = /^(a|an)\s+(\S+)/i.exec(s)
-  if (comArtigo) return `${somDeVogal(comArtigo[2]) ? 'an' : 'a'} ${s.slice(comArtigo[1].length + 1)}`
-  if (!s || /^the\s/i.test(s)) return s
-  const h = String(nucleo ?? '').trim() || (palavrasDe(s.split(/\s+(?:in|on|at|of|with|from|that|which|who)\s+/i)[0]).pop() ?? '')
-  if (ehPlural(h)) return s
-  return `${somDeVogal(s) ? 'an' : 'a'} ${s}`
+  if (comArtigo) s = (somDeVogal(comArtigo[2]) ? 'an' : 'a') + s.slice(comArtigo[1].length)
+  return { frase: s, motivo: null }
 }
 
 // v6: palavra que é a MESMA em inglês e na língua do pedido ("o hamster", "o táxi"): o sujeito em inglês é igual a ela, e isso não é
@@ -300,6 +301,8 @@ export function lerLeituraDoSujeito(bruto: unknown, pedido: string): LeituraDoSu
   if (!KINDS.includes(o.kind as KindDoSujeito) || typeof o.real_person !== 'boolean' || typeof o.has_human !== 'boolean') return null
   if (!USOS.includes(o.word_use as UsoDaPalavra) || typeof o.request_language !== 'string' || typeof o.reasoning !== 'string') return null
   if (o.subject !== null && typeof o.subject !== 'string') return null
+  // v8: o campo visual é obrigatório no formato (null ou texto); resposta sem ele (formato antigo) = falha segura
+  if (o.subject_visual_no_people !== null && typeof o.subject_visual_no_people !== 'string') return null
   if (o.head_noun !== null && typeof o.head_noun !== 'string') return null
   if (!Array.isArray(o.mention_words) || o.mention_words.some((w) => typeof w !== 'string')) return null
   // "null" escrito como texto (visto na calibração real) é null
@@ -307,32 +310,28 @@ export function lerLeituraDoSujeito(bruto: unknown, pedido: string): LeituraDoSu
   const leitura: LeituraDoSujeito = {
     reasoning: o.reasoning.replace(/\s+/g, ' ').trim().slice(0, 300), word_use: o.word_use as UsoDaPalavra,
     subject: texto(o.subject)?.replace(/[.\s]+$/, '') ?? null,
+    subject_visual: null, subject_visual_no_people: texto(o.subject_visual_no_people),
     head_noun: texto(o.head_noun)?.toLowerCase() ?? null,
     kind: o.kind as KindDoSujeito, has_human: o.has_human, real_person: o.real_person,
     mention_words: (o.mention_words as string[]).map((w) => w.trim()).filter(Boolean).slice(0, 6),
-    request_language: o.request_language.trim().toLowerCase().slice(0, 8), descartado: null, subject_original: null,
+    request_language: o.request_language.trim().toLowerCase().slice(0, 8), descartado: null,
   }
-  const descarta = (motivo: string) => ({ ...leitura, subject: null, descartado: motivo })
+  const descarta = (motivo: string) => ({ ...leitura, subject: null, subject_visual: null, descartado: motivo })
   if (leitura.real_person) return descarta('pessoa_real')
   if (leitura.word_use !== 'literal') return descarta(`uso_${leitura.word_use}`)
   if (leitura.kind === 'none' || !leitura.subject) return descarta('sem_sujeito')
   const s = leitura.subject
   if (Array.from(s).length > 90 || s.split(/\s+/).length > 12 || !SUJEITO_VALIDO_RE.test(s)) return descarta('sujeito_mal_formado')
-  // o núcleo é UMA palavra minúscula que está no próprio sujeito ("parrot" em "a talking parrot"); fora disso o motor não tem o que provar
-  const h = leitura.head_noun
-  if (!h || !NUCLEO_RE.test(h) || !s.split(/[^\p{L}-]+/u).includes(h)) return descarta('sem_nucleo')
-  // v6: o nome da pessoa dona/autora do objeto sai do texto que vai para o motor; se o núcleo sumir junto, nada é injetado
-  const semNome = semNomeDePessoa(s, h)
-  if (semNome !== s) {
-    leitura.subject_original = s
-    if (!semNome.split(/[^\p{L}-]+/u).includes(h)) return descarta('nome_de_pessoa_no_sujeito')
-    leitura.subject = semNome
-  }
+  // v8: o que vai ao motor é o campo VISUAL validado (sem nome próprio, sem oração de dono/autor, sem texto quebrado); o núcleo
+  // (head_noun) é UMA palavra minúscula escrita nele ("parrot" em "a talking parrot") — fora disso nada é injetado
+  const vis = visualSemPessoas(leitura.subject_visual_no_people, s, leitura.head_noun)
+  if (!vis.frase) return descarta(vis.motivo ?? 'sem_visual')
+  leitura.subject_visual = vis.frase
   return validarAncora(leitura, pedido, descarta)
 }
 
 function validarAncora(leitura: LeituraDoSujeito, pedido: string, descarta: (motivo: string) => LeituraDoSujeito): LeituraDoSujeito {
-  const s = leitura.subject ?? ''
+  const s = leitura.subject_visual ?? ''
   // sujeito COPIADO sem traduzir de pedido em outra língua ("a moeda", "a menina"): o motor só lê inglês. A língua é a que o modelo leu;
   // pedido em inglês nunca cai aqui ("Leonardo da Vinci's flying machine" passa).
   const conteudo = (t: string) => semAcento(t).replace(/[^\p{L}\p{N}]+/gu, ' ').split(' ').filter((w) => w.length >= 3 && !['the', 'and', 'with'].includes(w))
@@ -344,7 +343,7 @@ function validarAncora(leitura: LeituraDoSujeito, pedido: string, descarta: (mot
   const p = ` ${semAcento(pedido).replace(/[^\p{L}\p{N}]+/gu, ' ')} `
   const noPedido = (w: string) => p.includes(` ${w} `) || (w.length >= 5 && p.includes(` ${w.replace(/s$/, '')}`))
   const citacaoInteira = leitura.mention_words.some((m) => { const ws = conteudo(m); return ws.length > 0 && ws.every(noPedido) })
-  if (!citacaoInteira && !palavrasDoSujeito.some(noPedido)) return descarta('sem_ancora_no_pedido')
+  if (!citacaoInteira && !palavrasDoSujeito.some(noPedido) && !conteudo(leitura.subject ?? '').some(noPedido)) return descarta('sem_ancora_no_pedido')
   return leitura
 }
 
@@ -352,7 +351,7 @@ function validarAncora(leitura: LeituraDoSujeito, pedido: string, descarta: (mot
 export async function lerSujeitoDoPedido(pedido: string, opts: OpcoesSemanticas = {}): Promise<ResultadoSemantico<LeituraDoSujeito>> {
   const texto = String(pedido ?? '').replace(/\s+/g, ' ').trim().slice(0, 600)
   return perguntaSemantica(
-    { system: SYSTEM_SUJEITO_0111, user: `Video request:\n${texto}`, nome: 'sujeito_do_pedido', schema: SCHEMA_SUJEITO as unknown as Record<string, unknown>, maxTokens: 260, exemplos: EXEMPLOS_SUJEITO_0111, ler: (o) => lerLeituraDoSujeito(o, texto) },
+    { system: SYSTEM_SUJEITO_0111, user: `Video request:\n${texto}`, nome: 'sujeito_do_pedido', schema: SCHEMA_SUJEITO as unknown as Record<string, unknown>, maxTokens: 320, exemplos: EXEMPLOS_SUJEITO_0111, ler: (o) => lerLeituraDoSujeito(o, texto) },
     { timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 8_500, ...opts },
   )
 }
@@ -400,6 +399,8 @@ const escapa = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const IRREGULARES: Readonly<Record<string, string>> = { child: 'children', person: 'people', mouse: 'mice', goose: 'geese', tooth: 'teeth', foot: 'feet', ox: 'oxen', cactus: 'cacti', octopus: 'octopi', fungus: 'fungi', sheep: 'sheep', deer: 'deer', fish: 'fish', moose: 'moose', bison: 'bison', aircraft: 'aircraft', spacecraft: 'spacecraft' }
 const SINGULAR_IRREGULAR: Readonly<Record<string, string>> = Object.fromEntries(Object.entries(IRREGULARES).map(([s, pl]) => [pl, s]))
 
+// v8: os plurais em -ves que voltam a -f/-fe (lista fechada); qualquer outro -ves só perde o "s" ("caves", "gloves", "olives")
+const PLURAL_EM_VES: Readonly<Record<string, string>> = { wolves: 'wolf', knives: 'knife', leaves: 'leaf', halves: 'half', shelves: 'shelf', lives: 'life', wives: 'wife', loaves: 'loaf', calves: 'calf', elves: 'elf', thieves: 'thief', selves: 'self', sheaves: 'sheaf', scarves: 'scarf', wharves: 'wharf', hooves: 'hoof' }
 /** Singular e plural do núcleo, sem amputar ("creatures" → creature|creatures, "puppies" → puppy|puppies, "fisherman" → fisherman|fishermen, "wolves" → wolf|wolves). */
 function formasDoNucleo(nucleo: string): string {
   const n = nucleo.toLowerCase()
@@ -413,7 +414,7 @@ function formasDoNucleo(nucleo: string): string {
     if (/[^aeiou]ies$/.test(n)) raiz = n.slice(0, -3) + 'y'
     else if (/(?:s|x|z|ch|sh)es$/.test(n)) raiz = n.slice(0, -2)
     // v7: -ves volta a UM singular ("wolves" → wolf, "knives" → knife), nunca às duas formas ("wolfe"/"wolfes" saíam no 21d3c2333)
-    else if (/ves$/.test(n) && n.length > 4) raiz = /ives$/.test(n) ? n.slice(0, -3) + 'fe' : n.slice(0, -3) + 'f'
+    else if (/ves$/.test(n) && n.length > 4) raiz = PLURAL_EM_VES[n] ?? n.slice(0, -1) // v8: "caves" → cave, "gloves" → glove (nunca "caf"/"glof")
     else if (/[^s]s$/.test(n) && n.length > 3) raiz = n.slice(0, -1)
     formas.add(raiz)
     if (raiz === n) formas.add(/[^aeiou]y$/.test(raiz) ? raiz.slice(0, -1) + 'ies' : /(?:s|x|z|ch|sh)$/.test(raiz) ? raiz + 'es' : /(?:[^f]f|fe)$/.test(raiz) ? raiz.replace(/fe?$/, 'ves') : raiz + 's')
@@ -452,8 +453,11 @@ export function chavesDoSujeito(frase: string, nucleo?: string | null): RegExp[]
   const doNucleo = finais.filter(cobreONucleo)
   const chaveDoNucleo = doNucleo.length && !NUCLEO_COM_GENERO.test(h) ? ou(doNucleo.map((g) => CHAVES[g])) : p(formasDoNucleo(h))
   const reforcos = finais.filter((g) => !doNucleo.includes(g)).map((g) => CHAVES[g])
-  const mod = new RegExp(`(?<![\\p{L}\\p{N}])(${MODIFICADOR_VISUAL})[\\s-]+${escapa(h)}(?![\\p{L}\\p{N}])`, 'iu').exec(frase)?.[1]?.toLowerCase()
-  const chaveDoMod = mod && !reforcos.some((re) => re.test(mod)) && !chaveDoNucleo.test(mod) ? [p(escapa(mod))] : []
+  // v8: o modificador pode estar até 2 palavras antes do núcleo ("a toy brick car"); "toy" e "lego" provam um ao outro (o campo visual
+  // escreve "a toy brick car", o descritor pode escrever "a Lego car")
+  const mod = new RegExp(`(?<![\\p{L}\\p{N}])(${MODIFICADOR_VISUAL})(?:[\\s-]+\\p{Ll}+){0,2}?[\\s-]+${escapa(h)}(?![\\p{L}\\p{N}])`, 'iu').exec(frase)?.[1]?.toLowerCase()
+  const fonteDoMod = mod === 'toy' || mod === 'lego' ? 'toys?|lego' : mod ? escapa(mod) : ''
+  const chaveDoMod = mod && !reforcos.some((re) => re.test(mod)) && !chaveDoNucleo.test(mod) ? [p(fonteDoMod)] : []
   return [chaveDoNucleo, ...reforcos, ...chaveDoMod]
 }
 
@@ -466,15 +470,17 @@ export function avaliarSujeito(args: { leitura: ResultadoSemantico<LeituraDoSuje
   if (!r.ok) return { sujeito: null, motivo: `leitura_falhou:${r.erro}` }
   const l = r.valor
   if (l.descartado) return { sujeito: null, motivo: l.descartado }
-  if (!l.subject || l.real_person || l.kind === 'none') return { sujeito: null, motivo: 'sem_sujeito' }
+  // v8: o que o motor recebe é o campo VISUAL validado (sem gente); o subject do modelo nunca vai ao prompt
+  const frase = l.subject_visual
+  if (!l.subject || !frase || l.real_person || l.kind === 'none') return { sujeito: null, motivo: 'sem_sujeito' }
   // romance/pedido adulto (pessoaPermitida=false): gente genérica nunca vira sujeito obrigatório (nunca "a boy" num pedido adulto).
   // Gente = o kind, o has_human do modelo ou criança escrita na frase — qualquer um dos três.
-  const ehGente = l.kind === 'person_generic' || l.has_human || CHAVES.child.test(l.subject)
+  const ehGente = l.kind === 'person_generic' || l.has_human || CHAVES.child.test(l.subject) || CHAVES.child.test(frase)
   if (ehGente && args.pessoaPermitida === false) return { sujeito: null, motivo: 'gente_em_pedido_adulto' }
-  const chaves = chavesDoSujeito(l.subject, l.head_noun)
-  const tokens = [...l.subject.matchAll(/(?<![\p{L}\p{N}-])\p{Lu}{1,3}-\d{1,4}\p{Lu}?(?![\p{L}\p{N}])/gu)].map((m) => m[0])
+  const chaves = chavesDoSujeito(frase, l.head_noun)
+  const tokens = [...frase.matchAll(/(?<![\p{L}\p{N}-])\p{Lu}{1,3}-\d{1,4}\p{Lu}?(?![\p{L}\p{N}])/gu)].map((m) => m[0])
   if (chaves.length === 0 && tokens.length === 0) return { sujeito: null, motivo: 'sem_chave_de_presenca' }
-  return { sujeito: { frase: l.subject, tipo: ehGente ? 'pessoa' : TIPO_DO_KIND[l.kind], chaves, tokens, mencoes: l.mention_words, origem: 'pedido' }, motivo: null }
+  return { sujeito: { frase, tipo: ehGente ? 'pessoa' : TIPO_DO_KIND[l.kind], chaves, tokens, mencoes: l.mention_words, origem: 'pedido' }, motivo: null }
 }
 
 /** A leitura semântica vira o sujeito (null = nada a injetar; o motivo está em avaliarSujeito). */
@@ -569,7 +575,7 @@ export interface RelatoSujeitoK4 {
   fonte_do_pedido: FonteDoPedido | null
   motivo_do_pedido: string
   /** A leitura semântica crua, para auditoria (null = não chamada). */
-  leitura: { ok: boolean; erro: string | null; ms: number; model: string; tentativas: number; reasoning: string | null; word_use: UsoDaPalavra | null; subject: string | null; head_noun: string | null; kind: KindDoSujeito | null; has_human: boolean | null; real_person: boolean | null; mention_words: string[]; request_language: string | null; descartado: string | null; subject_original: string | null } | null
+  leitura: { ok: boolean; erro: string | null; ms: number; model: string; tentativas: number; reasoning: string | null; word_use: UsoDaPalavra | null; subject: string | null; head_noun: string | null; kind: KindDoSujeito | null; has_human: boolean | null; real_person: boolean | null; mention_words: string[]; request_language: string | null; descartado: string | null; subject_visual: string | null; subject_visual_no_people: string | null } | null
   ja_presente: boolean
   corrigido: boolean
   /** Cena corrigida, 1-based (null = nada corrigido). */
@@ -579,9 +585,9 @@ export interface RelatoSujeitoK4 {
 
 function relatoDaLeitura(r: ResultadoSemantico<LeituraDoSujeito> | null): RelatoSujeitoK4['leitura'] {
   if (!r) return null
-  if (!r.ok) return { ok: false, erro: r.erro, ms: r.ms, model: r.model, tentativas: r.tentativas, reasoning: null, word_use: null, subject: null, head_noun: null, kind: null, has_human: null, real_person: null, mention_words: [], request_language: null, descartado: null, subject_original: null }
+  if (!r.ok) return { ok: false, erro: r.erro, ms: r.ms, model: r.model, tentativas: r.tentativas, reasoning: null, word_use: null, subject: null, head_noun: null, kind: null, has_human: null, real_person: null, mention_words: [], request_language: null, descartado: null, subject_visual: null, subject_visual_no_people: null }
   const v = r.valor
-  return { ok: true, erro: null, ms: r.ms, model: r.model, tentativas: r.tentativas, reasoning: v.reasoning, word_use: v.word_use, subject: v.subject, head_noun: v.head_noun, kind: v.kind, has_human: v.has_human, real_person: v.real_person, mention_words: v.mention_words, request_language: v.request_language, descartado: v.descartado, subject_original: v.subject_original }
+  return { ok: true, erro: null, ms: r.ms, model: r.model, tentativas: r.tentativas, reasoning: v.reasoning, word_use: v.word_use, subject: v.subject, head_noun: v.head_noun, kind: v.kind, has_human: v.has_human, real_person: v.real_person, mention_words: v.mention_words, request_language: v.request_language, descartado: v.descartado, subject_visual: v.subject_visual, subject_visual_no_people: v.subject_visual_no_people }
 }
 
 /** A checagem antes do POST pago do Kling 4: o sujeito do PEDIDO ORIGINAL em pelo menos 1 cena do multi_prompt — corrige, nunca bloqueia. */
