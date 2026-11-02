@@ -7,6 +7,7 @@
 // continuação passa SEM tocar na régua, sem perder palavra e sem baixar segundos;
 // (c) verbatim não passa por ali; (d) continuação inútil → o 422 continua barrando.
 import { readFileSync } from 'node:fs'
+import { semK4PagoSilencio0211 } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -31,7 +32,7 @@ const loadQuality = createOfflineLoader()
 const Q = loadQuality('@/lib/cinematic/filmQuality')
 const qualityStyle = loadQuality('@/lib/cinematic/sceneStyle')
 const { isStylizedLook } = loadQuality('@/lib/cinematic/visualPromptPolicy')
-const rota = rd('app/api/generate-video-cinematic/route.ts')
+const rota = semK4PagoSilencio0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */
 const runway = rd('lib/runway.ts')
 const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
 
@@ -304,7 +305,7 @@ console.log('== (g) KINEO-FALA-NO-TETO: cena cinematic de 8 s com uma frase de 2
   checa(`KINEO-CORTE-NA-FRASE: cabeça = primeira frase inteira (${wordsOf(cF.voiceover)} palavras) e a cauda começa em "segunda_1" (${tF ? wordsOf(tF.voiceover) : '-'} palavras)`, /primeira_12\.$/.test(cF.voiceover.trim()) && !!tF && /^segunda_1\b/.test(tF.voiceover.trim()))
   checa('KINEO-SOBRA-VIRA-CAUDA: nenhuma palavra da cena de 21 sumiu (12 na cabeça + 9 na cauda)', wordsOf(cF.voiceover) + (tF ? wordsOf(tF.voiceover) : 0) >= 21 && !fatia.includes('frases.pop()'))
   checa('rota: o corte por frase vem antes do corte por palavra e só vale com cabeça ≥ 4 palavras', fatia.includes('KINEO-CORTE-NA-FRASE-2026-09-16') && fatia.includes('const corte = corteFrase >= 4 ? corteFrase : Math.max(1, Math.min(fits, speech.length - 4))'))
-  const rt4 = rd('app/api/generate-video-cinematic/route.ts')
+  const rt4 = semK4PagoSilencio0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */
   checa('varredura FINAL de datas inventadas depois de toda reescrita (antes do OMNI-ALVO e da régua)', rt4.includes('KINEO-DATA-INVENTADA (final)') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') > rt4.indexOf('KINEO-FALA-NO-TETO-2026-09-15 — ensaio') && rt4.indexOf('KINEO-DATA-INVENTADA-2026-09-15 (varredura final)') < rt4.indexOf('KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1') && rt4.includes("import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'"))
 }
 

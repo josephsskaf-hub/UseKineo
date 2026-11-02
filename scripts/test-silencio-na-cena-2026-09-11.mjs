@@ -7,6 +7,7 @@
 // cena = segundos − palavras ÷ wps, reprova >1,5 s numa cena ou >8 s no total,
 // no render PAGO (estorna e diz quantas palavras faltam) e no dry-run de $0.
 import { readFileSync } from 'node:fs'
+import { semK4PagoSilencio0211 } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
@@ -44,7 +45,7 @@ checa('cena sem texto = toda muda', T.sceneSilenceSeconds({ type: 'support', sec
 }
 
 console.log('== a rota: frase curta não abre cena, portão pago, dry-run ==')
-const rt = rd('app/api/generate-video-cinematic/route.ts')
+const rt = semK4PagoSilencio0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */
 checa('frase de < 5 palavras é absorvida no bloco atual mesmo passando da cota', /if \(chunk\.length > 0 && \(w \+ nw > capWords\(sc\) \|\| \(w >= share && nw >= 5\)\)\) break/.test(rt))
 checa('rota importa a régua', /import \{ fitCinematicPlanFloor, planSilenceReport, SILENCE_SCENE_MAX_SECONDS, SILENCE_TOTAL_MAX_SECONDS \} from '@\/lib\/cinematic\/timelineContract'/.test(rt))
 checa('portão pago: roda depois do portão de duração e antes das âncoras (nada foi pago ainda)', (() => { const a = rt.indexOf("reason: 'plan_duration_below_request'"); const b = rt.indexOf("const silence = reguaDoFilme(plan.scenes, ritmoVoz)\n        if (!silence.ok)") /* 15/09 KINEO-RITMO-DA-VOZ: a mesma régua, no ritmo da voz pinada (2,3 × velocidade da persona); 23/09 KINEO-REGUA-PROPORCIONAL: teto total proporcional ao filme */; const c = rt.indexOf('let anchors: HollywoodAnchors | null = null'); return a > 0 && b > a && c > b })())

@@ -25,6 +25,8 @@ import * as J from '../lib/juizDoPlano'
 import { buildKling4TrialInput } from '../lib/kling4Trial'
 import { AI_TEXT_MODELS } from '../lib/aiModels'
 // @ts-ignore — módulo .mjs de apoio das travas (sem tipos)
+// @ts-ignore — módulo .mjs de apoio das travas (sem tipos)
+import { semK4PagoSilencio0211 } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { semK4Despacho0211 } from './test-support/desfaz-k4-despacho-0211.mjs' // KINEO-K4-DESPACHO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { semJuizPlano0111, deltaJuizPlano0111Exato, JUIZ_PLANO_0111 } from './test-support/desfaz-juiz-plano-0111.mjs'
 import { semProtagonistaSeedance0111 } from './test-support/desfaz-protagonista-seedance-0111.mjs' // KINEO-PROTAGONISTA-SEEDANCE-0111
@@ -96,7 +98,7 @@ const posicoes = (rota: string) => {
 }
 
 async function main() {
-  const rota = semProtagonistaSeedance0111(semK4NarracaoCabe0111(semCasaFichaSemLetras0211(semK4Despacho0211(rd(ROTA), ROTA) /* KINEO-K4-DESPACHO-0211 */, ROTA) /* KINEO-CASA-FICHA-SEM-LETRAS-0211 — a camada mais nova (02/11) sai primeiro, pelo recibo exato */, ROTA) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — a camada mais nova (02/11, opção C) sai primeiro, pelo recibo exato */, ROTA) // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes, pelo recibo exato
+  const rota = semProtagonistaSeedance0111(semK4NarracaoCabe0111(semCasaFichaSemLetras0211(semK4Despacho0211(semK4PagoSilencio0211(rd(ROTA), ROTA) /* KINEO-K4-PAGO-SILENCIO-0211 */, ROTA) /* KINEO-K4-DESPACHO-0211 */, ROTA) /* KINEO-CASA-FICHA-SEM-LETRAS-0211 — a camada mais nova (02/11) sai primeiro, pelo recibo exato */, ROTA) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — a camada mais nova (02/11, opção C) sai primeiro, pelo recibo exato */, ROTA) // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (01/11, camada mais nova) sai antes, pelo recibo exato
   const lib = rd('lib/juizDoPlano.ts')
   const BASE = String(JUIZ_PLANO_0111.base)
   let base: string | null = null

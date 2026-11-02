@@ -21,6 +21,7 @@ import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' //
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
 import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
+import { usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, passoRealDoKling4Pago, segundosDoFilmeNaReguaDeDuracao } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é UM clipe com a fala inteira, julgado no passo real da faixa
 import { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
 import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue'
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
@@ -5532,7 +5533,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
           // KINEO-RITMO-DA-VOZ-2026-09-15 — no MESMO ritmo da voz pinada que o portão pago usa (ritmoVoz),
           // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.
-          const silence = reguaDoFilme(plan.scenes, ritmoVoz)
+          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
@@ -5630,7 +5631,7 @@ async function manipularPost(req: NextRequest) {
             preflight_problems: preflightProblems,
             dispatch_preview: dispatchPreview,
             ...(s25Ensaio ? { s25_cenas: s25Ensaio } : {}), // KINEO-S25-NOTA95-2026-10-06
-            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0 && silence.ok
+            verdict: muteSeconds <= 6 && segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: totalSeconds }) >= duration && preflightProblems.length === 0 && silence.ok // KINEO-K4-PAGO-SILENCIO-0211
               ? 'PASS — todos os segundos têm história (mudo ≤6s, silêncio dentro da cena ≤1,5s/≤8s), a duração fecha e o payload respeita o schema do fornecedor'
               : preflightProblems.length > 0
                 ? `FAIL — preflight: ${preflightProblems.join(' · ')}`
@@ -5669,7 +5670,7 @@ async function manipularPost(req: NextRequest) {
         return quality
       }
       await aplicarQualidadeHollywood()
-      const finalPlannedSeconds = plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0)
+      const finalPlannedSeconds = segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0) }) // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é sempre um clipe de 15 s (prepareKling4PaidFilm reescala o plano)
       if (finalPlannedSeconds < duration) {
         const refunded = await confirmCinematicRefund()
         const released = refunded && await releaseBirthClaim('plan_duration_below_request')
@@ -5686,7 +5687,7 @@ async function manipularPost(req: NextRequest) {
       // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
       {
         // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).
-        const silence = reguaDoFilme(plan.scenes, ritmoVoz)
+        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
         if (!silence.ok) {
           const refunded = await confirmCinematicRefund()
           const released = refunded && await releaseBirthClaim('plan_silence_inside_scenes')

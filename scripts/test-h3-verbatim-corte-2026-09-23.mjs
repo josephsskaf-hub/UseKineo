@@ -4,6 +4,7 @@
 // mas deixava a cabeça com os segundos do TETO (12 s): 15 palavras em 12 s = 5,5 s mudos; 11 em 12 s = 6,9 s.
 // Este guardião roda a fatia real da rota (harness do test-h3-palavras) com esse plano em verbatim.
 import { readFileSync } from 'node:fs'
+import { semK4PagoSilencio0211 } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -28,7 +29,7 @@ const loadQuality = createOfflineLoader()
 const Q = loadQuality('@/lib/cinematic/filmQuality')
 const qualityStyle = loadQuality('@/lib/cinematic/sceneStyle')
 const { isStylizedLook } = loadQuality('@/lib/cinematic/visualPromptPolicy')
-const rota = rd('app/api/generate-video-cinematic/route.ts')
+const rota = semK4PagoSilencio0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */
 const runway = rd('lib/runway.ts')
 const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
 
