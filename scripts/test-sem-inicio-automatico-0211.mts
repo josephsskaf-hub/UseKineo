@@ -9,9 +9,10 @@
 //      card_entry_resume_autostart deixou de ser emitido; card_entry e wall_v1 abrem o cartão "Start my film";
 //   B. duração preservada — o rascunho devolve 15/30/35/45/60/90 exatos; o ramo de defaults do fetchCredits
 //      (a causa do 35 → 60) não toca motor/duração quando houve restauração, e sem restauração ainda daria 60;
-//   C. o clique dispara o render — o clique pede o despacho pela guarda do Generate; o cartão fecha, o rascunho sai, a URL
-//      perde o ?resume= e card_entry_resume_confirmed é gravado só com o despacho ACEITO; recusa = cartão e rascunho ficam;
-//      o texto consumido não é regravado; saldo não lido não trava o botão; selo do motor honesto (Kling 4.0);
+//   C. o clique dispara o render — guardas do Generate primeiro, depois a ref; assim que a fase sai de 'idle' (inclusive
+//      'generating') o pedido é consumido: cartão fecha e não reabre, ?resume= sai, rascunho sai e não volta; throw →
+//      idle "Still rendering…" não reabre; F5 depois do filme não reabre; só a recusa explícita (4xx antes de aceitar)
+//      devolve o cartão; saldo não lido não trava o botão; selo do motor honesto (Kling 4.0, Cinematic);
 //   D. os outros caminhos — activation_autostart (trial) IDÊNTICO à origin/main (fora do escopo, decisão de 02/11);
 //      /create?autostart só preenche; Studio só grava o token do 1 clique no clique; /checkout/success sem cards de
 //      tema nem OAuth automático; o painel conta a confirmação.
@@ -26,6 +27,7 @@ import {
   despachoAceito,
   estadoDoPedidoRestaurado,
   motorDoPedido,
+  recusaExplicitaAntesDeAceitar,
   resumoDoPedido,
 } from '../lib/growth/semInicioAutomatico'
 import { readCardEntryDraft, serializeCardEntryDraft } from '../lib/growth/cardEntryResumeDraft'
@@ -142,55 +144,116 @@ console.log('== B. duração preservada ==')
 console.log('== C. o clique dispara o render ==')
 {
   const PROMPT = 'What NASA found on Mars they never announced'
-  // C1-C4: o clique só PEDE o despacho (pela guarda do Generate) — nada é consumido no clique.
+  // ── C1-C6: o clique. Guardas síncronas do Generate primeiro; só então arma a ref e despacha.
   const fn = trecho(GC, '  function confirmarPedidoRestaurado() {', '\n  }\n') + '\n  }\nconfirmarPedidoRestaurado()'
-  const clique = (o: { outOfCredits: boolean; phase?: string }) => {
-    const r = { renders: 0, eventos: [] as string[], removidos: [] as string[], cartao: [] as boolean[], ref: { current: null as number | null } }
+  const clique = async (o: { outOfCredits?: boolean; phase?: string; pacote?: boolean; qualidade?: boolean; saiDoIdle?: boolean }) => {
+    const r = { gerou: 0, guardou: 0, eventos: [] as string[], removidos: [] as string[], cartao: [] as boolean[], ref: { current: null as number | null }, saiu: { current: false } }
+    let fim: Promise<void> = Promise.resolve()
     roda(fn, {
       phase: o.phase ?? 'idle', prompt: PROMPT, isProcessingPhase: (p: string) => p === 'generating',
-      outOfCredits: () => o.outOfCredits, trackEvent: (n: string) => r.eventos.push(n), quality: 'cinematic_ai', duration: 35, mode: 'cinematic_ai', aiEngine: 'seedance', credits: 165,
-      handleGenerateGuarded: () => { r.renders++ }, setResumeAguardandoClique: (v: boolean) => r.cartao.push(v), sessionStorage: { removeItem: (k: string) => r.removidos.push(k) },
-      resumeCliqueRef: r.ref, CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION: 'x',
+      outOfCredits: () => o.outOfCredits === true, qualityFailureRef: { current: o.qualidade === true }, wallV1PackSyncing: o.pacote === true,
+      trackEvent: (n: string) => r.eventos.push(n), quality: 'cinematic_ai', duration: 35, mode: 'cinematic_ai', aiEngine: 'seedance', credits: 165,
+      handleGenerateGuarded: () => { r.guardou++ },
+      handleGenerate: () => { r.gerou++; if (o.saiDoIdle) r.saiu.current = true; fim = Promise.resolve(); return fim },
+      setResumeAguardandoClique: (v: boolean) => r.cartao.push(v), sessionStorage: { removeItem: (k: string) => r.removidos.push(k) },
+      resumeCliqueRef: r.ref, resumeSaiuDoIdleRef: r.saiu, SEM_INICIO_AUTOMATICO_VERSION: 'x',
     })
-    return r
+    const armada = r.ref.current
+    await fim; await new Promise((ok) => setTimeout(ok, 0))
+    return { ...r, armada }
   }
-  const a = clique({ outOfCredits: false })
-  checa('C1 clique com saldo: pede o render UMA vez (guarda do Generate) e marca o clique pendente', a.renders === 1 && typeof a.ref.current === 'number')
-  checa('C2 o clique sozinho NÃO fecha o cartão, NÃO apaga o rascunho e NÃO grava card_entry_resume_confirmed', a.cartao.length === 0 && a.removidos.length === 0 && !a.eventos.includes('card_entry_resume_confirmed'))
-  const b = clique({ outOfCredits: true })
-  checa('C3 clique sem saldo: cai na guarda (modal), sem clique pendente, registra card_entry_resume_blocked', b.renders === 1 && b.ref.current === null && b.eventos.includes('card_entry_resume_blocked'))
-  checa('C4 clique durante uma geração em voo: nada', clique({ outOfCredits: false, phase: 'generating' }).renders === 0)
+  const a = await clique({ saiDoIdle: true })
+  checa('C1 clique com saldo: despacha UMA vez (handleGenerate) com a ref armada DEPOIS das guardas', a.gerou === 1 && a.guardou === 0 && typeof a.armada === 'number')
+  checa('C2 o clique sozinho não fecha o cartão, não apaga o rascunho, não grava confirmed (quem fecha é o efeito)', a.cartao.length === 0 && a.removidos.length === 0 && !a.eventos.includes('card_entry_resume_confirmed'))
+  const b = await clique({ outOfCredits: true })
+  checa('C3 sem saldo: a guarda de sempre abre o modal, nada é armado nem despachado, card_entry_resume_blocked', b.guardou === 1 && b.gerou === 0 && b.armada === null && b.eventos.includes('card_entry_resume_blocked'))
+  const c = await clique({ pacote: true }), q = await clique({ qualidade: true })
+  checa('C4 pacote ainda caindo / falha de qualidade: guarda de sempre, nada armado nem despachado', c.guardou === 1 && c.gerou === 0 && c.armada === null && q.gerou === 0 && q.armada === null)
+  checa('C5 clique durante uma geração em voo: nada', (await clique({ phase: 'generating' })).gerou === 0)
+  const volta = await clique({ saiDoIdle: false })
+  checa('C6 handleGenerate voltou por guarda dele SEM sair de idle: a ref é limpa (o cartão continua aberto)', volta.gerou === 1 && typeof volta.armada === 'number' && volta.ref.current === null)
 
-  // C5-C10: o efeito que CONSOME o pedido — executado de verdade em cada fase.
-  const efeito = trecho(GC, '    if (!resumeAguardandoClique) return\n    if (phase === \'failed\')', '  }, [phase, resumeAguardandoClique])')
-  const consome = (phase: string, clicou: boolean, aguardando = true) => {
-    const r = { eventos: [] as Array<[string, Record<string, unknown>]>, removidos: [] as string[], cartao: [] as boolean[], urls: [] as string[], ref: { current: clicou ? Date.now() : null as number | null }, consumido: { current: null as string | null } }
-    const href = 'https://usekineo.com/studio/create?resume=card_entry&intent_campaign=x'
-    roda(efeito, {
-      resumeAguardandoClique: aguardando, phase, despachoAceito, resumeCliqueRef: r.ref, resumeConsumidoRef: r.consumido, prompt: PROMPT,
-      setResumeAguardandoClique: (v: boolean) => r.cartao.push(v), sessionStorage: { removeItem: (k: string) => r.removidos.push(k) }, CARD_ENTRY_DRAFT_KEY: 'kineo_studio_draft_v1',
-      window: { location: { href }, history: { state: null, replaceState: (_s: unknown, _t: string, u: string) => r.urls.push(u) } }, URL,
-      trackEvent: (n: string, m: Record<string, unknown>) => r.eventos.push([n, m]), CARD_ENTRY_RESUME_CONFIRMED_EVENT, quality: 'cinematic_ai', duration: 35, credits: 165, mode: 'cinematic_ai', aiEngine: 'seedance', selectedCost: custoSeedance(35), SEM_INICIO_AUTOMATICO_VERSION: 'x',
-    })
-    return r
+  // ── C7-C16: o efeito "o pedido saiu do papel", executado de verdade numa sequência de fases (estado entre os passos).
+  const corpo = trecho(GC, '    const clique = resumeConsumoPorCliqueRef.current\n', '    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [phase, resumeAguardandoClique, sinalDaFalha])')
+  const novaPagina = (clicou: boolean) => {
+    const st = {
+      aguardando: true, url: 'https://usekineo.com/studio/create?resume=card_entry&intent_campaign=x', rascunho: 'rascunho' as string | null,
+      eventos: [] as Array<[string, Record<string, unknown>]>,
+      refs: { clique: { current: clicou ? Date.now() - 50 : null as number | null }, saiu: { current: false }, consumo: { current: null as { at: number; prompt: string } | null }, aceito: { current: false }, consumido: { current: null as string | null } },
+    }
+    const passo = (phase: string, sinal: { reason: string; httpStatus: number | null; at: number } | null = null) => {
+      roda(corpo, {
+        resumeConsumoPorCliqueRef: st.refs.consumo, resumeAceitoRef: st.refs.aceito, resumeCliqueRef: st.refs.clique, resumeSaiuDoIdleRef: st.refs.saiu, resumeConsumidoRef: st.refs.consumido,
+        phase, sinalDaFalha: sinal, resumeAguardandoClique: st.aguardando, despachoAceito, recusaExplicitaAntesDeAceitar,
+        isProcessingPhase: (p: string) => ['scripting', 'analyzing', 'broll_planning', 'generating', 'fal_polling', 'avatar_polling', 'clips_ready', 'composing'].includes(p),
+        prompt: PROMPT, setResumeAguardandoClique: (v: boolean) => { st.aguardando = v },
+        sessionStorage: { removeItem: () => { st.rascunho = null }, setItem: (_k: string, v: string) => { st.rascunho = v } }, CARD_ENTRY_DRAFT_KEY: 'kineo_studio_draft_v1', serializeCardEntryDraft,
+        window: { get location() { return { href: st.url } }, history: { state: null, replaceState: (_s: unknown, _t: string, u: string) => { st.url = 'https://usekineo.com' + u } } }, URL,
+        trackEvent: (n: string, m: Record<string, unknown>) => st.eventos.push([n, m]), CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION: 'x',
+        quality: 'cinematic_ai', duration: 35, credits: 165, mode: 'cinematic_ai', aiEngine: 'seedance', selectedCost: custoSeedance(35),
+      })
+    }
+    return { st, passo }
   }
-  const g = consome('generating', true)
-  checa('C5 fase generating (servidor ainda pode recusar): nada consumido, clique continua pendente', g.cartao.length === 0 && g.removidos.length === 0 && g.urls.length === 0 && g.ref.current !== null)
-  const f = consome('failed', true)
-  checa('C6 recusa (failed): cartão e rascunho FICAM; o clique pendente é esquecido', f.cartao.length === 0 && f.removidos.length === 0 && f.ref.current === null && f.eventos.length === 0)
-  for (const fase of ['fal_polling', 'composing']) {
-    const ok1 = consome(fase, true)
-    const conf = ok1.eventos.find(([n]) => n === 'card_entry_resume_confirmed')
-    checa(`C7 despacho ACEITO (${fase}) depois do clique: cartão fecha, rascunho sai, ?resume= sai da URL, confirmed com 35 s`,
-      ok1.cartao.includes(false) && ok1.removidos.includes('kineo_studio_draft_v1') && ok1.urls.length === 1 && !ok1.urls[0].includes('resume=') && ok1.urls[0].includes('intent_campaign=x') && !!conf && conf[1].duration === 35 && ok1.consumido.current === PROMPT)
-  }
-  const outro = consome('composing', false)
-  checa('C8 despacho aceito pelo botão Generate de sempre: consome (rascunho/URL) mas NÃO grava confirmed', outro.removidos.length === 1 && outro.urls.length === 1 && !outro.eventos.some(([n]) => n === 'card_entry_resume_confirmed'))
-  checa('C9 sem cartão aberto: o efeito não faz nada', consome('composing', true, false).removidos.length === 0)
-  checa('C10 despachoAceito: generating/idle/options/failed = não; fal_polling/avatar_polling/clips_ready/composing/done = sim',
-    ['generating', 'idle', 'options', 'failed', 'scripting', 'analyzing'].every((p) => !despachoAceito(p)) && ['fal_polling', 'avatar_polling', 'clips_ready', 'composing', 'done'].every((p) => despachoAceito(p)))
+  const p1 = novaPagina(true)
+  p1.passo('idle')
+  checa('C7 ainda em idle depois do clique: nada consumido', p1.st.aguardando && p1.st.rascunho !== null && p1.st.url.includes('resume='))
+  p1.passo('generating')
+  const conf = p1.st.eventos.find(([n]) => n === 'card_entry_resume_confirmed')
+  checa("C8 a fase saiu de idle ('generating'): cartão fecha, rascunho sai, ?resume= sai da URL (o resto fica), confirmed com 35 s",
+    !p1.st.aguardando && p1.st.rascunho === null && !p1.st.url.includes('resume=') && p1.st.url.includes('intent_campaign=x') && !!conf && conf[1].duration === 35 && conf[1].stage === 'generating' && p1.st.refs.consumido.current === PROMPT)
+  // O POST caiu no cliente (throw) DEPOIS de o servidor aceitar: aindaNoFornoAntesDeFalhar → idle "Still rendering…".
+  p1.passo('idle')
+  checa('C9 throw → idle "Still rendering…": o cartão NÃO reabre e o rascunho NÃO volta', !p1.st.aguardando && p1.st.rascunho === null)
+  p1.passo('failed', { reason: 'cinematic_threw', httpStatus: null, at: Date.now() })
+  checa('C10 throw de rede em failed (sem status): conta como aceito — não reabre', !p1.st.aguardando && p1.st.rascunho === null && !p1.st.eventos.some(([n]) => n === 'card_entry_resume_refused'))
+  p1.passo('failed', { reason: 'cinematic_not_ok', httpStatus: 503, at: Date.now() })
+  checa('C11 5xx em failed: conta como aceito (o servidor pode ter debitado) — não reabre', !p1.st.aguardando && p1.st.rascunho === null)
+  // F5 depois do filme: a URL limpa não tem ?resume= e o rascunho sumiu — a restauração do card_entry nem começa.
+  const restauracao = trecho(GC, "    if (searchParams?.get('resume') !== 'card_entry') return", '    // Mount-only.')
+  let abriuNoF5 = false
+  const urlF5 = new URL(p1.st.url)
+  roda(restauracao, {
+    searchParams: urlF5.searchParams, readCardEntryDraft, sessionStorage: { getItem: () => p1.st.rascunho }, CARD_ENTRY_DRAFT_KEY: 'kineo_studio_draft_v1', Date,
+    escolhaRestauradaRef: { current: false }, setPrompt: () => {}, setQuality: () => {}, setDuration: () => {}, setMode: () => {}, setAiEngine: () => {},
+    resumeArmedRef: { current: false }, setResumeAguardandoClique: (v: boolean) => { if (v) abriuNoF5 = true }, trackEvent: () => {}, SEM_INICIO_AUTOMATICO_VERSION: 'x',
+  })
+  checa('C12 F5 depois do filme: sem ?resume= e sem rascunho, o cartão não reabre (nenhum segundo filme pago)', !abriuNoF5 && urlF5.searchParams.get('resume') === null && p1.st.rascunho === null)
+  // O mesmo F5 se o ?resume= tivesse ficado (o defeito da revisão): reabriria — prova que o teste enxerga o defeito.
+  let abriria = false
+  roda(restauracao, {
+    searchParams: new URL('https://usekineo.com/studio/create?resume=card_entry').searchParams, readCardEntryDraft, sessionStorage: { getItem: () => serializeCardEntryDraft({ prompt: PROMPT, quality: 'cinematic_ai', duration: 35, mode: 'cinematic_ai', engine: 'seedance', at: Date.now() }) }, CARD_ENTRY_DRAFT_KEY: 'kineo_studio_draft_v1', Date,
+    escolhaRestauradaRef: { current: false }, setPrompt: () => {}, setQuality: () => {}, setDuration: () => {}, setMode: () => {}, setAiEngine: () => {},
+    resumeArmedRef: { current: false }, setResumeAguardandoClique: (v: boolean) => { if (v) abriria = true }, trackEvent: () => {}, SEM_INICIO_AUTOMATICO_VERSION: 'x',
+  })
+  checa('C13 controle: com ?resume= e rascunho a restauração reabriria (por isso os dois saem)', abriria)
 
-  // C11: o texto consumido não é regravado como rascunho (F5 depois do filme não reabre o cartão).
+  // Recusa explícita do servidor antes de aceitar: o cartão volta, do estado em memória.
+  const p2 = novaPagina(true)
+  p2.passo('generating')
+  p2.passo('failed', { reason: 'cinematic_not_ok', httpStatus: 402, at: Date.now() + 1 })
+  const rasc = p2.st.rascunho ? JSON.parse(p2.st.rascunho) : null
+  checa('C14 recusa explícita (HTTP 402) antes de aceitar: o cartão volta e o rascunho é refeito da memória (mesmo texto, 35 s)',
+    p2.st.aguardando && rasc?.prompt === PROMPT && rasc?.duration === 35 && p2.st.eventos.some(([n]) => n === 'card_entry_resume_refused') && p2.st.refs.consumido.current === null)
+  const p3 = novaPagina(true)
+  p3.passo('generating'); p3.passo('fal_polling'); p3.passo('failed', { reason: 'compose_not_ok', httpStatus: 422, at: Date.now() + 1 })
+  checa('C15 falha 4xx DEPOIS de aceito (fal_polling): não reabre', !p3.st.aguardando && p3.st.rascunho === null)
+  const p4 = novaPagina(true)
+  p4.passo('options')
+  checa("C16 guarda que leva a 'options' sem despachar (free limit): nada consumido, o pedido continua", p4.st.aguardando && p4.st.rascunho !== null && p4.st.url.includes('resume='))
+  const p5 = novaPagina(false)
+  p5.passo('composing')
+  checa('C17 despacho pelo botão Generate de sempre: consome (rascunho/URL) mas NÃO grava confirmed', !p5.st.aguardando && p5.st.rascunho === null && !p5.st.url.includes('resume=') && !p5.st.eventos.some(([n]) => n === 'card_entry_resume_confirmed'))
+
+  checa('C18 recusaExplicitaAntesDeAceitar: só 4xx em failed, depois do clique, antes de aceitar, sem throw',
+    recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 409, at: 10 }, cliqueAt: 5, aceito: false }) &&
+    !recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 409, at: 1 }, cliqueAt: 5, aceito: false }) &&
+    !recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'fast_threw', httpStatus: null, at: 10 }, cliqueAt: 5, aceito: false }) &&
+    !recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 500, at: 10 }, cliqueAt: 5, aceito: false }) &&
+    !recusaExplicitaAntesDeAceitar({ phase: 'failed', sinal: { reason: 'x_not_ok', httpStatus: 402, at: 10 }, cliqueAt: 5, aceito: true }) &&
+    !recusaExplicitaAntesDeAceitar({ phase: 'idle', sinal: { reason: 'x_not_ok', httpStatus: 402, at: 10 }, cliqueAt: 5, aceito: false }))
+
+  // ── C19-C26: rascunho, cartão, selo.
   const salva = trecho(GC, '  useEffect(() => {\n    try {\n      const clean = prompt.trim()\n      if (!clean) return\n      if (resumeConsumidoRef', '  }, [prompt, quality, duration, mode, aiEngine])')
   const corpoSalva = salva.slice(salva.indexOf('{') + 1)
   const regravou = (consumido: string | null, texto: string) => {
@@ -201,18 +264,20 @@ console.log('== C. o clique dispara o render ==')
     })
     return set.length > 0
   }
-  checa('C11 o texto que já virou filme não volta para o rascunho; texto novo volta', !regravou(PROMPT, PROMPT) && regravou(PROMPT, 'Outra ideia') && regravou(null, PROMPT))
-
-  // C12-C15: o cartão.
+  checa('C19 o texto que já virou filme não volta para o rascunho; texto novo volta', !regravou(PROMPT, PROMPT) && regravou(PROMPT, 'Outra ideia') && regravou(null, PROMPT))
   const cartao = trecho(GC, '      {pedidoParaConfirmar && (', '      )}\n')
-  checa('C12 o botão "Start my film" nunca fica desabilitado (saldo não lido: a guarda e o servidor decidem)', !/disabled=/.test(cartao) && cartao.includes('onClick={() => confirmarPedidoRestaurado()}') && START_MY_FILM_CTA === 'Start my film')
-  checa('C13 a cópia não promete edição ("change the engine, length or text") e mostra motor · duração · custo', !/change the|text below|beditb/i.test(cartao) && cartao.includes('{pedidoResumo}'))
-  checa('C14 confirmarPedidoRestaurado só é chamado pelo onClick do cartão', (semComentarios(GC).match(/confirmarPedidoRestaurado\(\)/g) ?? []).length === 2)
-  checa('C15 selo honesto: Kling 4.0 quando o Kling 4 pago está no ar, Kling 3 quando não; Seedance/Kineo 1 pelo mapa único',
+  checa('C20 o botão "Start my film" nunca fica desabilitado (saldo não lido: a guarda e o servidor decidem)', !/disabled=/.test(cartao) && cartao.includes('onClick={() => confirmarPedidoRestaurado()}') && START_MY_FILM_CTA === 'Start my film')
+  checa('C21 a cópia não promete edição e mostra motor · duração · custo', !/change the|text below|\bedit\b/i.test(cartao) && cartao.includes('{pedidoResumo}'))
+  const copia = cartao.slice(cartao.indexOf("{wallV1PackSyncing\n"))
+  checa('C22 pacote caindo: a cópia mostra só "Adding your credits…" (vence o "Your balance does not cover…")', copia.length > 0 && copia.indexOf("'Adding your credits…'") < copia.indexOf('Your balance does not cover'))
+  checa('C23 confirmarPedidoRestaurado só é chamado pelo onClick do cartão', (semComentarios(GC).match(/confirmarPedidoRestaurado\(\)/g) ?? []).length === 2)
+  checa('C24 selo honesto: Kling 4.0 com o Kling 4 pago no ar, Kling 3 sem; mesma condição do despacho',
     motorDoPedido('cinematic_ai', 'hollywood', true) === 'Kling 4.0' && motorDoPedido('cinematic_ai', 'hollywood', false) === 'Kling 3' &&
     resumoDoPedido({ mode: 'cinematic_ai', engine: 'hollywood', duration: 60, cost: 0, kling4PaidLive: true }) === 'Kling 4.0 · 60 s · Free' &&
     GC.includes('kling4PaidLive: kling4DispatchAvailability?.paidLive === true'))
-  checa('C16 CARD_ENTRY_RESUME_CONFIRMED_EVENT = card_entry_resume_confirmed', CARD_ENTRY_RESUME_CONFIRMED_EVENT === 'card_entry_resume_confirmed')
+  checa("C25 modo legado 'cinematic' tem nome (\"Cinematic\", como o seletor), nunca some do resumo", motorDoPedido('cinematic', 'seedance') === 'Cinematic' && resumoDoPedido({ mode: 'cinematic', engine: null, duration: 35, cost: 8 }) === 'Cinematic · 35 s · 8 credits')
+  checa('C26 despachoAceito: generating/idle/options/failed = não; fal_polling/avatar_polling/clips_ready/composing/done = sim',
+    ['generating', 'idle', 'options', 'failed', 'scripting', 'analyzing'].every((p) => !despachoAceito(p)) && ['fal_polling', 'avatar_polling', 'clips_ready', 'composing', 'done'].every((p) => despachoAceito(p)) && CARD_ENTRY_RESUME_CONFIRMED_EVENT === 'card_entry_resume_confirmed')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

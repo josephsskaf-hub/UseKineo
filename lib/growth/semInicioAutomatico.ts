@@ -10,9 +10,11 @@
 // DUAS CAUSAS, as duas fechadas aqui:
 //   1. O resume do card_entry DISPARAVA o render sozinho assim que o saldo chegava (handleGenerateGuarded num efeito).
 //      Agora a volta do checkout (card_entry e wall_v1) mostra o pedido restaurado (motor · duração · custo) e um botão
-//      "Start my film"; o render só sai no clique. O cartão fecha, o rascunho sai, a URL perde o ?resume= e
-//      card_entry_resume_confirmed é gravado só quando o despacho é ACEITO (despachoAceito); recusa = cartão e rascunho
-//      ficam. O card_entry_resume_autostart deixa de existir.
+//      "Start my film"; o render só sai no clique (depois das guardas do Generate). Assim que a fase sai de 'idle' para
+//      trabalho (inclusive 'generating'), o pedido é consumido: cartão fecha e não reabre na página, rascunho sai e não é
+//      regravado, a URL perde o ?resume=, card_entry_resume_confirmed é gravado. Throw de rede e "Still rendering…"
+//      contam como aceito (o servidor pode ter debitado). Só volta numa recusa explícita do servidor antes de aceitar
+//      (recusaExplicitaAntesDeAceitar). O card_entry_resume_autostart deixa de existir.
 //   2. 35 → 60: o fetchCredits do /generate aplica os DEFAULTS POR PLANO quando o saldo chega (assíncrono, ~2 s depois
 //      da montagem). Com a entrada nova do Seedance (seedance15Ok && !kineo1NoPlano) o ramo `entradaNoPlano` chamava
 //      duracaoDaUrlNaEntrada() — sem ?duration na URL do resume, ela devolve duracaoDeEntrada(saldo) = a MAIOR duração
@@ -63,11 +65,31 @@ export function estadoDoPedidoRestaurado(f: {
 
 /**
  * O despacho foi ACEITO? Fases em que o servidor já aceitou o trabalho (polling no fornecedor, clipes prontos, montagem,
- * entrega). 'generating' ainda pode voltar recusado (402/409/422) — não conta. Só aqui o pedido restaurado é consumido.
+ * entrega). 'generating' ainda pode voltar recusado (402/409/422). NÃO decide o consumo do pedido (que acontece ao sair de
+'idle'); decide só se uma falha posterior ainda pode reabrir o cartão: depois de aceito, nunca.
  */
 export const FASES_DE_DESPACHO_ACEITO = ['fal_polling', 'avatar_polling', 'clips_ready', 'composing', 'done'] as const
 export function despachoAceito(phase: string | null | undefined): boolean {
   return (FASES_DE_DESPACHO_ACEITO as readonly string[]).includes(String(phase ?? ''))
+}
+
+/**
+ * O cartão volta depois do clique? SÓ numa recusa EXPLÍCITA do servidor antes de aceitar: fase 'failed', o despacho nunca
+ * chegou a uma fase aceita, e a última falha (sinalDaFalha, gravada depois do clique) é uma resposta HTTP 4xx — 402/409/
+ * 422/429: o servidor disse "não" e não cobrou. Throw de rede (*_threw, sem status) e 5xx contam como aceito: o servidor
+ * pode já ter aceitado e debitado, e reabrir o cartão ali é o caminho do segundo filme pago.
+ */
+export function recusaExplicitaAntesDeAceitar(f: {
+  phase: string | null | undefined
+  sinal: { reason: string; httpStatus: number | null; at: number } | null | undefined
+  cliqueAt: number
+  aceito: boolean
+}): boolean {
+  if (f.phase !== 'failed' || f.aceito || !f.sinal) return false
+  if (!Number.isFinite(f.sinal.at) || f.sinal.at < f.cliqueAt) return false
+  const status = f.sinal.httpStatus
+  if (typeof status !== 'number' || status < 400 || status >= 500) return false
+  return !/threw|network|timeout/i.test(String(f.sinal.reason ?? ''))
 }
 
 // O quality_mode que cada escolha da tela despacha — a mesma tabela do selectedCost do GenerateClient.
@@ -82,6 +104,8 @@ const QUALITY_DO_MOTOR: Record<string, string> = {
  */
 export function motorDoPedido(mode: string | null | undefined, engine: string | null | undefined, kling4PaidLive = false): string | null {
   if (mode === 'fast' || mode === 'creator') return engineLabelFor('fast')
+  // Modo legado 'cinematic' (tokens do plano Pro antigo): a tela o chama de "Cinematic" no seletor e no recibo.
+  if (mode === 'cinematic') return 'Cinematic'
   if (mode !== 'cinematic_ai') return engineLabelFor(mode ?? null)
   const e = String(engine ?? 'seedance')
   if (e === 'hollywood') return engineLabelFor(null, kling4PaidLive ? 'kling4' : 'kling3')

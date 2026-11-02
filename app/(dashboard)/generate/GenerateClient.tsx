@@ -136,7 +136,7 @@ import {
   readCardEntryDraft,
   serializeCardEntryDraft,
 } from '@/lib/growth/cardEntryResumeDraft'
-import { CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION, START_MY_FILM_CTA, defaultsDoPlanoPodemMexer, despachoAceito, estadoDoPedidoRestaurado, resumoDoPedido } from '@/lib/growth/semInicioAutomatico' // KINEO-SEM-INICIO-AUTOMATICO-0211
+import { CARD_ENTRY_RESUME_CONFIRMED_EVENT, SEM_INICIO_AUTOMATICO_VERSION, START_MY_FILM_CTA, defaultsDoPlanoPodemMexer, despachoAceito, estadoDoPedidoRestaurado, recusaExplicitaAntesDeAceitar, resumoDoPedido } from '@/lib/growth/semInicioAutomatico' // KINEO-SEM-INICIO-AUTOMATICO-0211
 import { decidePostDeliverySlot, type PostDeliverySlotOwner } from '@/lib/growth/postDeliverySlot'
 // KINEO-PORTA-TERCEIRO-FILME-2026-09-17 — a jogada do segundo filme (ver o cabeçalho do módulo).
 import { decideThirdFilmDoor, thirdFilmDoorCapacityLine } from '@/lib/growth/thirdFilmDoor'
@@ -3698,6 +3698,11 @@ export default function GenerateClient({
   // do pedido restaurado que já virou filme (não é regravado como rascunho: F5 depois do filme não reabre nada).
   const resumeCliqueRef = useRef<number | null>(null)
   const resumeConsumidoRef = useRef<string | null>(null)
+  // O clique já levou a fase para fora de 'idle' (então o handleGenerate não voltou por guarda); o pedido consumido pelo
+  // clique (texto + instante, para restaurar só numa recusa explícita do servidor) e se o despacho chegou a ser aceito.
+  const resumeSaiuDoIdleRef = useRef(false)
+  const resumeConsumoPorCliqueRef = useRef<{ at: number; prompt: string } | null>(null)
+  const resumeAceitoRef = useRef(false)
   useEffect(() => {
     try {
       const clean = prompt.trim()
@@ -3778,38 +3783,24 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credits, prompt, quality, duration, phase, mode, aiEngine, resumeAguardandoClique])
   // KINEO-SEM-INICIO-AUTOMATICO-0211 — o ÚNICO caminho que tira um pedido restaurado do papel: o clique em "Start my film".
-  // O clique só PEDE o despacho, pela mesma guarda do Generate (handleGenerateGuarded → outOfCredits → modal; depois as
-  // guardas do handleGenerate e o servidor). O cartão fecha, o rascunho sai, a URL perde o ?resume= e
-  // card_entry_resume_confirmed é gravado só quando o despacho é ACEITO (efeito abaixo). Recusou: cartão e rascunho ficam.
+  // As guardas síncronas do Generate rodam primeiro (as MESMAS de handleGenerateGuarded): se uma delas segura (qualidade,
+  // pacote ainda caindo, saldo → modal), o clique não arma nada e o cartão fica. Passou: arma resumeCliqueRef e despacha.
+  // Se o handleGenerate voltar por uma guarda dele SEM sair de 'idle', a ref é limpa (o cartão continua aberto).
+  // Quem fecha o cartão é o efeito "o pedido saiu do papel", logo depois de sinalDaFalha.
   function confirmarPedidoRestaurado() {
     if (isProcessingPhase(phase) || !prompt.trim()) return
-    const recusaNaHora = outOfCredits()
-    resumeCliqueRef.current = recusaNaHora ? null : Date.now()
-    if (recusaNaHora) void trackEvent('card_entry_resume_blocked', { reason: 'insufficient_credits', on_click: true, quality, duration, mode, engine: aiEngine, credits, version: SEM_INICIO_AUTOMATICO_VERSION })
-    handleGenerateGuarded()
+    if (qualityFailureRef.current || wallV1PackSyncing || outOfCredits()) {
+      if (outOfCredits()) void trackEvent('card_entry_resume_blocked', { reason: 'insufficient_credits', on_click: true, quality, duration, mode, engine: aiEngine, credits, version: SEM_INICIO_AUTOMATICO_VERSION })
+      handleGenerateGuarded() // a mesma UX de sempre (modal, aviso do pacote); nunca despacha aqui
+      return
+    }
+    const clique = Date.now()
+    resumeCliqueRef.current = clique
+    resumeSaiuDoIdleRef.current = false
+    void handleGenerate().finally(() => {
+      if (resumeCliqueRef.current === clique && !resumeSaiuDoIdleRef.current) resumeCliqueRef.current = null
+    })
   }
-  // Despacho aceito (fal/avatar em polling, clipes prontos, montagem ou entrega) com o cartão aberto = o pedido restaurado
-  // virou filme. Vale também quando o despacho saiu pelo botão Generate de sempre — só o evento de confirmação é do cartão.
-  useEffect(() => {
-    if (!resumeAguardandoClique) return
-    if (phase === 'failed') { resumeCliqueRef.current = null; return }
-    if (!despachoAceito(phase)) return
-    const viaCartao = resumeCliqueRef.current !== null
-    resumeCliqueRef.current = null
-    resumeConsumidoRef.current = prompt.trim()
-    setResumeAguardandoClique(false)
-    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }
-    // Um F5 depois do filme não pode reabrir o cartão: a URL perde o ?resume= (sem remontar a tela).
-    try {
-      const url = new URL(window.location.href)
-      if (url.searchParams.has('resume')) {
-        url.searchParams.delete('resume')
-        window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
-      }
-    } catch { /* ignore */ }
-    if (viaCartao) void trackEvent(CARD_ENTRY_RESUME_CONFIRMED_EVENT, { quality, duration, credits, mode, engine: aiEngine, cost: selectedCost, phase, version: SEM_INICIO_AUTOMATICO_VERSION })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, resumeAguardandoClique])
 
   // ═══ KINEO-PAREDE-V1-2026-09-23 — o rascunho é gravado ANTES de sair para o
   // Stripe, com o relógio zerado. O efeito acima já grava a cada tecla, mas o
@@ -7612,6 +7603,55 @@ export default function GenerateClient({
   const [sinalDaFalha, setSinalDaFalha] = useState<
     { reason: string; httpStatus: number | null; retryAfterMs: unknown; at: number } | null
   >(null)
+
+  // ═══ KINEO-SEM-INICIO-AUTOMATICO-0211 — o pedido restaurado saiu do papel ═══════════════════════════════════════
+  // À prova de corrida (revisão de 02/11): o POST pode cair no cliente (cinematic_threw / fast_threw) DEPOIS de o servidor
+  // aceitar e debitar, e o aindaNoFornoAntesDeFalhar devolve a tela para 'idle' com "Still rendering…". Se o cartão
+  // esperasse "despacho aceito" para fechar, ele reabriria ali — e um F5 (rascunho + ?resume=) também — e um clique faria
+  // um SEGUNDO filme pago. Regra: assim que a fase sai de 'idle' para uma fase de trabalho (inclusive 'generating'), o
+  // pedido é consumido — o cartão fecha e não reabre nesta página, o ?resume= sai da URL, o rascunho sai e não é regravado.
+  // Volta SÓ com recusa explícita do servidor antes de aceitar (HTTP 4xx em 'failed', nunca throw de rede nem 5xx) —
+  // restaurado do estado em memória. A guarda que abre o modal sem sair de 'idle' nunca consome (o cartão nem fecha).
+  useEffect(() => {
+    const clique = resumeConsumoPorCliqueRef.current
+    if (clique && despachoAceito(phase)) resumeAceitoRef.current = true
+    if (clique && phase === 'failed') {
+      if (recusaExplicitaAntesDeAceitar({ phase, sinal: sinalDaFalha, cliqueAt: clique.at, aceito: resumeAceitoRef.current })) {
+        resumeConsumoPorCliqueRef.current = null
+        resumeConsumidoRef.current = null
+        try {
+          sessionStorage.setItem(
+            CARD_ENTRY_DRAFT_KEY,
+            serializeCardEntryDraft({ prompt: clique.prompt, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+          )
+        } catch { /* ignore */ }
+        setResumeAguardandoClique(true)
+        void trackEvent('card_entry_resume_refused', { http_status: sinalDaFalha?.httpStatus ?? null, reason: sinalDaFalha?.reason ?? null, version: SEM_INICIO_AUTOMATICO_VERSION })
+      }
+      return
+    }
+    if (!resumeAguardandoClique) return
+    if (!isProcessingPhase(phase) && !despachoAceito(phase)) return
+    // Saiu de 'idle' para trabalho: consumido, venha o desfecho que vier (aceito, throw, "still rendering").
+    resumeSaiuDoIdleRef.current = true
+    const viaCartao = resumeCliqueRef.current !== null
+    const texto = prompt.trim()
+    resumeConsumoPorCliqueRef.current = viaCartao ? { at: resumeCliqueRef.current as number, prompt: texto } : null
+    resumeAceitoRef.current = despachoAceito(phase)
+    resumeCliqueRef.current = null
+    resumeConsumidoRef.current = texto
+    setResumeAguardandoClique(false)
+    try { sessionStorage.removeItem(CARD_ENTRY_DRAFT_KEY) } catch { /* ignore */ }
+    try {
+      const url = new URL(window.location.href)
+      if (url.searchParams.has('resume')) {
+        url.searchParams.delete('resume')
+        window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
+      }
+    } catch { /* ignore */ }
+    if (viaCartao) void trackEvent(CARD_ENTRY_RESUME_CONFIRMED_EVENT, { quality, duration, credits, mode, engine: aiEngine, cost: selectedCost, stage: phase, version: SEM_INICIO_AUTOMATICO_VERSION })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, resumeAguardandoClique, sinalDaFalha])
 
   function trackGenerationFailure(
     stage: Phase,
@@ -14841,10 +14881,10 @@ export default function GenerateClient({
               {pedidoResumo}
             </div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
-              {pedidoRestauradoEstado === 'sem_saldo'
-                ? 'Your balance does not cover this film yet. Press the button to see your options.'
-                : wallV1PackSyncing
-                  ? 'Payment received — adding your credits to this account.'
+              {wallV1PackSyncing
+                ? 'Adding your credits…'
+                : pedidoRestauradoEstado === 'sem_saldo'
+                  ? 'Your balance does not cover this film yet. Press the button to see your options.'
                   : 'Nothing starts until you press the button.'}
             </div>
           </div>
