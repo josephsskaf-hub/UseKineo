@@ -15,14 +15,18 @@
 //   15. Rodada 15: o caminho15 roda o CASTING da folha (como a rota em todo 15 s) com uma resposta que reescreve todo personagem; a ficha
 //       do trecho do autor (origem 'autor') chega igual ao motor em todos os casos com ficha esperada; os 12 casos da revisão da rodada 14
 //       (com os visuais do revisor); com duas pessoas no elenco semântico, a cena com gente sem nome não é forçada.
+//   16. Rodada 16 (revisão da rodada 15): bicho/criatura com espécie de gente ("twin boys" → animal/"boys") é recusado e fica a base;
+//       protagonista bicho nunca apaga a pessoa da cena ("The only person … is replaced" não entra; o bicho entra junto pelo nome);
+//       visualMostraAlguem vê toddlers/twins/infant/newborn/baker/coach/doctor/nurse/firefighter/fisherman e gente em PT/ES. Os 12 casos
+//       da revisão da rodada 15 (Kai e os gêmeos, Rex e a baby Nora…) pelo caminho real de 15 s com casting, com os visuais do revisor.
 // Rodar: npx tsx scripts/test-protagonista-seedance-0111.mts
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
-import { lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, trechoPerto, trechoDaPessoa, nucleoDoPapel, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
-import { elencoDoRoteiro, ajustarPromptsDoElenco, lerCastingAjuste, elencoComCastingAjuste, visualMostraAlguem } from '../lib/cinematic/personagemAjuste'
+import { especieDePessoa, lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, trechoPerto, trechoDaPessoa, nucleoDoPapel, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
+import { elencoDoRoteiro, ajustarPromptsDoElenco, lerCastingAjuste, elencoComCastingAjuste, visualMostraAlguem, visualMostraPessoa } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
 import { elencoDoFilme15, protagonistaEmTodaCena, cenaCitaElenco, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
 import { prepararQualidadeDoFilme } from '../lib/cinematic/filmQuality'
@@ -140,6 +144,22 @@ const VISUAIS_R15: Record<string, string[]> = {
   'rev15-wren-kit': ['A little girl presses her hands against a big airport window.', 'A baby in a stroller looks up at the planes.', 'The girl points at a landing plane while the baby kicks happily.'],
 }
 for (const [id, prompts] of Object.entries(VISUAIS_R15)) PROD[id] = { falas: porId.get(id)!.texto.split(/(?<=[.!?])\s+/).concat(['', '']).slice(0, 3), prompts }
+// rodada 16: os 12 casos da revisão da rodada 15 com os visuais que o revisor usou
+const VISUAIS_R16: Record<string, string[]> = {
+  'rev16-maya-grandma-80': ['A young girl in an apron stirs chocolate batter in a messy kitchen.', 'An elderly woman opens the front door, surprised.', 'Maya holds out a lopsided cake with a single candle.'],
+  'rev16-ana-sixty-years-ago': ['A small girl in a 1960s dress waves at a departing ship in a foggy harbor.', 'A man on the deck of the ship waves back.', 'A brass compass rests in a tiny hand.'],
+  'rev16-ben-lily-born': ['A man jogs behind a little girl on a pink bicycle in a park.', 'A small hand grips the handlebars tightly.', 'The girl pedals away alone while the man stops and cheers.'],
+  'rev16-joe-feels-twenty': ['An old man in suspenders spins a tiny girl around a warm kitchen.', 'A record player spins a vinyl record.', "Mia stands on Joe's shoes as they sway together."],
+  'rev16-kai-twins-aged-3': ['A man runs barefoot after two small boys on a golden beach.', 'Two toddlers squeal and run from a foaming wave.', 'A wave crashes over Kai while the boys laugh.'],
+  'rev16-rex-nora-10-months': ['An old golden retriever lies beside a crib in a sunny nursery.', 'A baby grips the fur of the dog and pulls herself up.', 'The baby stands for the first time, holding onto Rex.'],
+  'pt-rev16-joaquim-bisavo': ['A young boy and a very old man sit at a small table on a wooden porch.', 'Domino tiles click onto the table in the afternoon light.', 'The old man laughs as the boy places the winning tile.'],
+  'es-rev16-carmen-sofia': ['An elderly woman and a girl stand at a rustic kitchen counter covered in flour.', 'Hands press a ball of dough into a flat tortilla.', 'The girl proudly holds up her first round tortilla.'],
+  'rev16-jordan-grandmother-of-six': ['A woman in a swim cap holds onto the edge of a public pool.', 'A small boy jumps up and down by the pool shouting.', 'Jordan swims her first full lap.'],
+  'rev16-marcus-six-feet': ['A very tall teenage boy stands next to a shorter middle-aged coach in a gym.', 'Students pack the bleachers of a school gym.', 'Marcus leaps and slams the ball through the hoop.'],
+  'rev16-priya-nineteen-ten-years': ['A young woman takes a set of keys from an older woman in front of a small restaurant.', 'A neon OPEN sign flickers on before dawn.', 'Priya unlocks the restaurant doors in the blue morning light.'],
+  'rev16-theo-dad-firefighter-40': ['A small boy wearing an oversized firefighter helmet marches through a living room.', 'A firefighter in uniform kneels and adjusts the helmet.', 'Theo salutes proudly beside a red fire truck.'],
+}
+for (const [id, prompts] of Object.entries(VISUAIS_R16)) if (porId.has(id)) PROD[id] = { falas: porId.get(id)!.texto.split(/(?<=[.!?])\s+/).concat(['', '']).slice(0, 3), prompts }
 const emTres = (texto: string) => { const fr = texto.split(/(?<=[.!?])\s+|\n+/).filter(Boolean); const falas = ['', '', '']; fr.forEach((x, i) => { const k = Math.min(2, Math.floor((i * 3) / fr.length)); falas[k] = `${falas[k]} ${x}`.trim() }); return { falas, prompts: falas.slice() } }
 /**
  * Rodada 15: o CASTING da folha que a rota roda em todo 15 s (FILME15_ROSTO_FIXO_PUBLIC → gerarFolha → elencoComCastingAjuste, route.ts)
@@ -165,7 +185,7 @@ function caminho15(id: string, sem: ElencoSemantico | null) {
   if (lit.literais.length > 0) pedido = lit.elenco
   const e15 = elencoDoFilme15({ elencoDoPedido: pedido, visuals: prompts, extrair: elencoDoRoteiro, completar: aplicado ? aceitaPapelDasCenas(c.texto) : true })
   const elenco = e15.elenco.length > 0 ? e15.elenco : pedido
-  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco, porNome: !!aplicado, mostraGente: visualMostraAlguem }) : null
+  const p15 = e15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: prompts, elenco: e15.elenco, porNome: !!aplicado, mostraGente: visualMostraAlguem, mostraPessoa: visualMostraPessoa }) : null
   const aj = ajustarPromptsDoElenco({ prompts, visuals: p15 ? p15.visuals : prompts, falas, elenco })
   const out = aj.prompts.slice()
   const pp = elenco.find((f) => f.protagonista) ?? elenco[0]
@@ -509,7 +529,7 @@ console.log('== 10. Rodada 8: o modelo só diz quem/kind/species; sem detector d
   // medido na API (217 casos): em roteiro inglês, toda species_en diferente da species é tradução de palavra PT/ES ou pup→puppy — nenhuma
   // troca de uma espécie inglesa por outra ("pigeon" → "eagle"), que é o que o detector de língua barrava
   const trocas = ((calib as unknown as { resumo: { species_en_troca_em_ingles?: Array<{ id: string; species: string; species_en: string }> } }).resumo.species_en_troca_em_ingles) ?? null
-  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o[- ]branco|galinheiro|cachorrinho|gatinho|gatinha|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra)$/
+  const PT_ES = /^(?:gato|gata|lobo|cachorro|raposa|vira-lata|retriever dourado|r[ãa]s|sapos|abacate|morango|melancia|uva|cavalo|galinha|le[ãa]o|drag[ãa]o|elefante|elefante-beb[êe]|p[áa]ssaro|br[óo]colis|tubar[ãa]o[- ]branco|galinheiro|cachorrinho|gatinho|gatinha|perro|perrita|urso|esquilo|coelho|foca|pinguim|papagaio|cabra|ouri[çc]o)$/
   ok(Array.isArray(trocas) && trocas.every((t) => PT_ES.test(t.species) || t.species_en.startsWith(t.species)), `respostas reais, roteiro inglês: ${trocas?.length ?? '?'} species_en ≠ species, todas tradução de PT/ES ou plural/diminutivo (${(trocas ?? []).filter((t) => !PT_ES.test(t.species) && !t.species_en.startsWith(t.species)).map((t) => `${t.id}:${t.species}>${t.species_en}`).join(' | ') || 'nenhuma troca inglês→inglês'})`)
 
   // (c) 15 s: nome de lugar com a grafia do protagonista no MEIO da frase → a cena é forçada, como na base
@@ -893,7 +913,7 @@ console.log('== 15. Rodada 15: o casting do 15 s não reescreve a ficha do autor
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   // (a) a rota roda o casting em todo 15 s (FILME15_ROSTO_FIXO_PUBLIC → gerarFolha → elencoComCastingAjuste) sobre o elenco do pedido
   ok(rotaSrc.includes('await elencoComCastingAjuste(prompt, elencoDoPedido)'), '(controle) a rota passa o elenco semântico ao casting da folha')
-  ok(/protagonistaEmTodaCena\(\{ visuals: visuaisDoPlano15, elenco: elencoFilme15\.elenco, porNome: !!elencoSemantico [^\n]*mostraGente: visualMostraAlguem/.test(rotaSrc) && rotaSrc.includes("import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste'"), 'a rota passa o detector de gente ao 15 s (a cena com gente sem nome não é forçada com duas pessoas)')
+  ok(/protagonistaEmTodaCena\(\{ visuals: visuaisDoPlano15, elenco: elencoFilme15\.elenco, porNome: !!elencoSemantico [^\n]*mostraGente: visualMostraAlguem[^\n]*mostraPessoa: visualMostraPessoa/.test(rotaSrc) && rotaSrc.includes("import { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste'"), 'a rota passa o detector de gente e o de pessoa ao 15 s (duas pessoas: a cena com gente sem nome não é forçada; protagonista bicho: a cena com pessoa não é forçada)')
   // (b) a função REAL de rede: elenco todo do autor = 'fixo', nenhuma chamada; elenco misto = a ficha do autor volta igual
   {
     const T = 'Sam, a retired nurse of seventy-two, adopts a three-legged cat named Pirate. Pirate follows Sam everywhere, even to the post office.'
@@ -961,5 +981,72 @@ console.log('== 15. Rodada 15: o casting do 15 s não reescreve a ficha do autor
   }
 }
 
+console.log('\n== 16. Rodada 16: gente nunca vira bicho; protagonista bicho não apaga a pessoa; o detector vê toddlers, twins, ofícios e PT/ES ==')
+{
+  const M = (o: Record<string, unknown>) => ({ name: null, role_text: null, role_en: null, kind: 'human', species: 'human', species_en: 'human', appearance_from_text: '', appearance_en: '', gender_if_stated: null, age_text: null, on_screen: true, ...o })
+  const RAW = (p: Record<string, unknown> | null, s: Array<Record<string, unknown>>) => JSON.stringify({ protagonist: p ? M(p) : null, supporting: s.map(M), places_and_orgs: [] })
+  const KAI = 'rev16-kai-twins-aged-3', REX = 'rev16-rex-nora-10-months'
+  const tKai = porId.get(KAI)!.texto, tRex = porId.get(REX)!.texto
+  // (a) a trava: palavra de pessoa como espécie de bicho/criatura = aquele personagem recusado (a resposta real do Kai em 3 de 4 chamadas)
+  const kaiP = { name: 'Kai', role_text: 'young dad', role_en: 'young dad', gender_if_stated: 'male' }
+  const gemeosBicho = lerElencoSemantico(RAW(kaiP, [{ role_text: 'twin boys', role_en: 'twin boys', kind: 'animal', species: 'boys', species_en: 'boys', age_text: 'aged three' }]), tKai)
+  ok(!!gemeosBicho && gemeosBicho.protagonist?.name === 'Kai' && gemeosBicho.supporting.length === 0, `Kai: os gêmeos como animal/"boys" são recusados; o Kai fica (${JSON.stringify(gemeosBicho?.supporting.map((s) => `${s.role}:${s.kind}`))})`)
+  ok(lerElencoSemantico(RAW({ role_text: 'twin boys', role_en: 'twin boys', kind: 'animal', species: 'boys', species_en: 'boys' }, []), tKai) === null, 'protagonista "twin boys" como animal: nada do modelo entra (fica a base)')
+  const gemeosHumanos = lerElencoSemantico(RAW(kaiP, [{ role_text: 'twin boys', role_en: 'twin boys', species: 'boys', species_en: 'boys', age_text: 'aged three' }]), tKai)
+  ok(!!gemeosHumanos && gemeosHumanos.supporting.length === 1 && gemeosHumanos.supporting[0].kind === 'human', 'controle: os mesmos gêmeos como human entram')
+  for (const [w, pessoa] of [['boys', true], ['toddler', true], ['baby', true], ['bebê', true], ['crianças', true], ['niños', true], ['niña', true], ['menino', true], ['woman', true], ['twin boys', true], ['golden retriever', false], ['baby elephant', false], ['puppy', false], ['dragão', false], ['robot', false]] as const) ok(especieDePessoa(w) === pessoa, `especieDePessoa("${w}") = ${pessoa}`)
+  const ptBebe = lerElencoSemantico(RAW({ name: 'Davi', role_text: null, kind: 'creature', species: 'bebê', species_en: 'baby' }, []), 'Davi é um bebê de três meses que ri para o gato.')
+  ok(ptBebe === null, 'PT: "Davi, bebê" como criatura é recusado')
+  const rexOk = lerElencoSemantico(RAW({ name: 'Rex', role_text: 'golden retriever', kind: 'animal', species: 'golden retriever', species_en: 'golden retriever' }, [{ name: 'Nora', role_text: 'baby', age_text: 'ten months old', gender_if_stated: 'female' }]), tRex)
+  ok(!!rexOk && rexOk.protagonist?.kind === 'animal' && rexOk.supporting[0]?.name === 'Nora', 'controle: o Rex (golden retriever) continua bicho e a Nora gente')
+  // (b) o detector: gente que faltava (EN) e PT/ES; bicho, pronome e negação
+  for (const v of ['Two toddlers squeal and run from a foaming wave.', 'The twins splash in the shallow water.', 'An infant sleeps in a wicker basket.', 'A newborn yawns in a hospital crib.', 'A baker slides bread into the oven.', 'The coach blows a whistle.', 'A doctor checks a chart.', 'A nurse adjusts the drip.', 'A firefighter kneels by the truck.', 'A fisherman casts a net at dawn.', 'Two fishermen haul a net.', 'Uma criança corre na praia.', 'O bebê dorme no berço.', 'Un niño juega en la arena.', 'La abuela cocina tortillas.']) ok(visualMostraAlguem(v), `visualMostraAlguem: "${v}"`)
+  ok(!visualMostraAlguem('An empty beach at dawn, no people.') && !visualMostraAlguem('A red fire truck parked by the station.'), 'visualMostraAlguem: cena sem ninguém continua sem ninguém')
+  for (const [v, pessoa] of [['A baby grips the fur of the dog and pulls herself up.', true], ['The baby stands for the first time, holding onto Rex.', true], ['A man runs barefoot on the beach.', true], ['Uma menina abraça o cachorro.', true], ['An old golden retriever lies beside a crib in a sunny nursery.', false], ['The dog lifts his head and sniffs the air.', false], ['A small brown dog wags its tail excitedly.', false], ['Empty nursery, no people.', false]] as const) ok(visualMostraPessoa(v) === pessoa, `visualMostraPessoa("${v}") = ${pessoa}`)
+  // (c) protagonistaEmTodaCena com protagonista bicho: a cena com pessoa não é forçada e ganha o bicho junto; sem pessoa, como antes
+  const rexF: FichaDePersonagem = { nome: 'Rex', nucleo: 'retriever', tipo: 'animal', canonica: 'Rex, a golden retriever', origem: 'autor', protagonista: true, genero: null }
+  const noraF: FichaDePersonagem = { nome: 'Nora', nucleo: 'Nora', tipo: 'humano', canonica: 'Nora, ten months old, exactly as the author wrote', origem: 'autor', protagonista: false, genero: null }
+  const pe = (v: string, mp = true) => protagonistaEmTodaCena({ visuals: [v], elenco: [rexF, noraF], porNome: true, mostraGente: visualMostraAlguem, mostraPessoa: mp ? visualMostraPessoa : undefined })
+  const bebe = pe('A baby grips the fur of the dog and pulls herself up.')
+  ok(bebe.forcadas.length === 0 && bebe.visuals[0].startsWith('Rex, together with the people in the shot — A baby grips'), `bicho protagonista + pessoa na cena: não é forçada, o Rex entra junto (${bebe.visuals[0].slice(0, 70)})`)
+  ok(pe('Sunlight moves across an empty nursery floor.').forcadas.length === 1, 'bicho protagonista + cena sem ninguém: ganha o protagonista como antes')
+  ok(pe('A baby grips the fur of the dog and pulls herself up.', false).forcadas.length === 1, 'sem o detector de pessoa (chamador antigo): o de sempre, byte a byte')
+  const humanoP = protagonistaEmTodaCena({ visuals: ['A woman stands by the window.'], elenco: [{ ...noraF, nome: 'Max', protagonista: true }], porNome: true, mostraGente: visualMostraAlguem, mostraPessoa: visualMostraPessoa })
+  ok(humanoP.forcadas.length === 1, 'protagonista humano sozinho: o detector de pessoa não muda nada (o conserto de 26/10 segue)')
+  // (d) Rex e a baby Nora pelo caminho real de 15 s com casting (resposta da revisão e resposta gravada da API)
+  const rexRev = lerElencoSemantico(RAW({ name: 'Rex', role_text: 'a twelve-year-old golden retriever', kind: 'animal', species: 'golden retriever', species_en: 'golden retriever', age_text: 'twelve-year-old', gender_if_stated: 'male' }, [{ name: 'Nora', role_text: 'ten months old', age_text: 'ten months old', gender_if_stated: 'female' }]), tRex)
+  ok(!!rexRev && rexRev.protagonist?.name === 'Rex' && rexRev.protagonist.kind === 'animal', 'Rex (revisão): a resposta da revisão é aceita (Rex bicho protagonista)')
+  for (const [rot, sem] of [['revisão', rexRev], ['API gravada', gravado(REX)]] as const) {
+    const r = caminho15(REX, sem)
+    ok(r.fin.every((q) => !/The only person in this shot is the same main character \(Rex/.test(q)), `Rex (${rot}): nenhuma cena manda trocar a pessoa pelo Rex (forçadas=${r.forcadas.join(',') || '-'})`)
+    ok(/\bbaby\b/i.test(r.fin[1]) && !r.fin[1].startsWith('The only person in this shot'), `Rex (${rot}): a cena do bebê mantém o bebê (${r.fin[1].slice(0, 90)})`)
+    const rex = r.elenco.find((f) => f.nome === 'Rex')
+    if (rex && rex.tipo !== 'humano') ok(r.fin[1].includes(rex.canonica), `Rex (${rot}): o Rex entra junto na cena do bebê com a ficha dele`)
+  }
+  // (e) Kai e os gêmeos pelo caminho real de 15 s com casting: gêmeos nunca bicho; lidos como gente (2 pessoas), "Two toddlers" não é forçada
+  for (const [rot, sem] of [['gêmeos bicho (resposta da revisão)', gemeosBicho], ['gêmeos gente', gemeosHumanos], ['API gravada', gravado(KAI)]] as const) {
+    const r = caminho15(KAI, sem)
+    ok(r.elenco.every((f) => f.tipo === 'humano') && r.fin.every((q) => !/\b(?:snout|paws|tail of a boy|purple boy)\b/i.test(q)), `Kai (${rot}): ninguém vira bicho no que vai ao motor (${r.elenco.map((f) => `${f.nome}:${f.tipo}`).join(' ')})`)
+    if (r.elenco.filter((f) => f.tipo === 'humano').length >= 2 && r.aplicado) ok(!r.forcadas.includes(1) && !r.fin[1].startsWith('The only person in this shot'), `Kai (${rot}): "Two toddlers" fica como o escritor de cenas a descreveu (forçadas=${r.forcadas.join(',') || '-'})`)
+  }
+  {
+    const r = caminho15(KAI, gemeosHumanos)
+    const gemeos = r.elenco.find((f) => /twin/i.test(f.nome))
+    ok(r.elenco.filter((f) => f.tipo === 'humano').length >= 2 && !r.forcadas.includes(1), `Kai (gêmeos gente): duas pessoas no elenco e a cena 2 não é forçada (forçadas=${r.forcadas.join(',') || '-'})`)
+    ok(!!gemeos && gemeos.canonica.includes('aged three') && gemeos.origem === 'autor', `Kai (gêmeos gente): "aged three" chega ao motor como o autor escreveu (${gemeos?.canonica ?? 'sem ficha'})`)
+  }
+  // (f) os 12 casos da revisão da rodada 15 (resposta real gravada) pelo caminho de 15 s: nenhuma pessoa vira bicho; com bicho protagonista nenhuma pessoa é trocada
+  let n16 = 0
+  for (const id of Object.keys(VISUAIS_R16)) {
+    if (!porId.has(id)) continue
+    n16++
+    const r = caminho15(id, gravado(id))
+    const humanos = new Set((porId.get(id)!.humanos ?? []).map((h) => h.toLowerCase()))
+    ok(r.elenco.every((f) => !(f.tipo !== 'humano' && (humanos.has(f.nome.toLowerCase()) || especieDePessoa(f.nucleo)))), `${id}: nenhuma pessoa vira bicho (${r.elenco.map((f) => `${f.nome}:${f.tipo}`).join(' ')})`)
+    const p = r.elenco.find((f) => f.protagonista) ?? r.elenco[0]
+    if (p && p.tipo !== 'humano') ok(r.forcadas.every((i) => !visualMostraPessoa(VISUAIS_R16[id][i])), `${id}: protagonista bicho e nenhuma cena com pessoa forçada`)
+  }
+  ok(n16 === 12, `${n16} casos da revisão da rodada 15 na calibração (12)`)
+}
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -7,7 +7,8 @@
 // ausente não é erro. A faixa esperada do caso é a verdade do rótulo (lida por um humano), usada só para achar contradição. Na ficha do
 // gerador (sem trecho aceito: a base), faixa contraditória (criança adulta, idoso criança, bebê idoso) com o elenco aplicado = grave.
 // rodada 15: ficha do trecho do autor sem origem 'autor' = grave (casting_reescreve) — o casting do 15 s a reescreveria.
-import { aplicarElencoSemantico, type ElencoSemantico, type PersonagemSemantico } from '../../lib/cinematic/elencoSemantico'
+// rodada 16: qualquer membro (com ou sem nome) bicho/criatura cuja espécie é palavra de pessoa ("twin boys" → animal/"boys") = grave pessoa_virou_*.
+import { aplicarElencoSemantico, especieDePessoa, type ElencoSemantico, type PersonagemSemantico } from '../../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro } from '../../lib/cinematic/personagemAjuste'
 import type { FichaDePersonagem } from '../../lib/cinematic/folhaDePersonagem'
 
@@ -82,6 +83,7 @@ export function avaliar(c: Caso, e: ElencoSemantico | null): Nota {
     for (const proibido of c.proib ?? []) if (rotulos.some((r) => casaNome(r, proibido)) && m.name && casaNome(m.name, proibido)) graves.push(`inventado:${m.name}`)
     for (const proibido of c.proib ?? []) if (!m.name && rotulos.some((r) => casaNome(r, proibido))) graves.push(`inventado:${m.role}`)
     if (m.name && (c.humanos ?? []).some((h) => casaNome(m.name!, h)) && m.kind !== 'human') graves.push(`pessoa_virou_${m.kind}:${m.name}`)
+    if ((m.kind === 'animal' || m.kind === 'creature') && (especieDePessoa(m.species) || especieDePessoa(m.species_text))) graves.push(`pessoa_virou_${m.kind}:${m.name ?? m.role}`)
     for (const [nome, esp] of Object.entries(c.animais ?? {})) if (m.name && casaNome(m.name, nome) && (m.kind !== 'animal' || !casaNome(m.species ?? '', esp))) erros.push(`especie:${m.name}=${m.kind}/${m.species}`)
     for (const ep of c.especiesProibidas ?? []) if (m.name && m.species && casaNome(m.species, ep)) erros.push(`especie_proibida:${m.name}=${m.species}`)
     if (m !== p && m.name && (c.ausentes ?? []).some((n) => casaNome(m.name!, n))) erros.push(`ausente_em_cena:${m.name}`)

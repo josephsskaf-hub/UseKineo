@@ -204,18 +204,24 @@ export function protagonistaEmTodaCena(args: {
   porNome?: boolean
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 15) — o detector de gente no visual (a rota passa visualMostraAlguem de lib/cinematic/personagemAjuste); só vale com porNome. */
   mostraGente?: (visual: string) => boolean
+  /** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — o detector de PESSOA no visual (a rota passa visualMostraPessoa de lib/cinematic/personagemAjuste); vale quando o protagonista é bicho/criatura. */
+  mostraPessoa?: (visual: string) => boolean
 }): { visuals: string[]; forcadas: number[] } {
   const protagonista = args.elenco.find((f) => f.protagonista) ?? args.elenco[0]
   const visuals = args.visuals.map((v) => String(v ?? ''))
   if (!protagonista) return { visuals, forcadas: [] }
   const forcadas: number[] = []
-  // KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 15) — elenco semântico com DUAS pessoas: a cena que já mostra gente sem citar ninguém pelo nome ("A baby in a stroller", "A young man
-  // KINEO-PROTAGONISTA-SEEDANCE-0111 — helps his grandmother") fica como o escritor de cenas a descreveu; a ordem "any other person … is replaced" apagava o coadjuvante. A fala dá a ficha (ajustarPromptsDoElenco).
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 15) — elenco semântico com DUAS pessoas: a cena que já mostra gente sem nome ("A baby in a stroller") fica como foi descrita.
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 — a ordem "any other person … is replaced" apagava o coadjuvante; a fala dá a ficha (ajustarPromptsDoElenco).
   const mostraGente = args.porNome === true && args.elenco.filter((f) => f.tipo === 'humano').length >= 2 ? args.mostraGente : undefined // KINEO-PROTAGONISTA-SEEDANCE-0111
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — protagonista bicho/criatura: a cena que mostra uma PESSOA nunca recebe "the only person … is replaced" (o Rex apagava a baby Nora).
+  // KINEO-PROTAGONISTA-SEEDANCE-0111 — o bicho entra junto pelo nome (a folha dele entra na cena) e a pessoa fica.
+  const mostraPessoa = protagonista.tipo !== 'humano' ? args.mostraPessoa : undefined // KINEO-PROTAGONISTA-SEEDANCE-0111
   const saida = visuals.map((v, i) => {
     if (args.porNome === true && args.elenco.some((f) => cenaCitaPeloNome(v, f))) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (mostraGente && mostraGente(v)) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v
+    if (mostraPessoa && mostraPessoa(v)) return `${protagonista.nome}, together with the people in the shot — ${v}` // KINEO-PROTAGONISTA-SEEDANCE-0111
     forcadas.push(i)
     return `${protagonista.nome}, the only person in the shot — ${v}`
   })

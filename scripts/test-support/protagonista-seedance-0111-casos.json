@@ -5088,5 +5088,178 @@
     "literal": "4 months old"
    }
   }
+ },
+ {
+  "id": "rev16-maya-grandma-80",
+  "fonte": "rev-0211e",
+  "texto": "Maya's grandmother turned 80 yesterday, so Maya baked her a lopsided chocolate cake. Maya is only in third grade, but she did it all by herself.",
+  "protagonista": [
+   "Maya"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Maya"
+  ]
+ },
+ {
+  "id": "rev16-ana-sixty-years-ago",
+  "fonte": "rev-0211e",
+  "texto": "Sixty years ago, little Ana, five years old, waved goodbye to her father at the harbor. She never saw him again, but she kept his compass.",
+  "protagonista": [
+   "Ana"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ana"
+  ]
+ },
+ {
+  "id": "rev16-ben-lily-born",
+  "fonte": "rev-0211e",
+  "texto": "Ben was thirty when his daughter Lily was born. Now Lily is five, and Ben runs behind her bike, holding the seat, then letting go.",
+  "protagonista": [
+   "Ben",
+   "Lily"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Ben",
+   "Lily"
+  ]
+ },
+ {
+  "id": "rev16-joe-feels-twenty",
+  "fonte": "rev-0211e",
+  "texto": "Grandpa Joe says he feels like he is twenty again whenever he dances with his granddaughter Mia, who is four. Tonight they dance in the kitchen.",
+  "protagonista": [
+   "Joe",
+   "Grandpa Joe",
+   "Mia"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joe",
+   "Mia"
+  ]
+ },
+ {
+  "id": "rev16-kai-twins-aged-3",
+  "fonte": "rev-0211e",
+  "texto": "Kai, a young dad, chases his twin boys, aged three, across the beach at sunset. The twins scream with joy as the waves catch Kai.",
+  "protagonista": [
+   "Kai"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Kai"
+  ]
+ },
+ {
+  "id": "rev16-rex-nora-10-months",
+  "fonte": "rev-0211e",
+  "texto": "Rex, a twelve-year-old golden retriever, has guarded baby Nora since the day she came home. Nora is ten months old and pulls herself up on Rex to stand.",
+  "protagonista": [
+   "Rex"
+  ],
+  "tipo": "animal",
+  "especie": [
+   "golden retriever",
+   "retriever",
+   "dog"
+  ],
+  "humanos": [
+   "Nora"
+  ],
+  "animais": {
+   "Rex": "retriever"
+  }
+ },
+ {
+  "id": "pt-rev16-joaquim-bisavo",
+  "fonte": "rev-0211e",
+  "texto": "Joaquim tem sete anos e mora com o bisavô, Seu Antônio, de noventa e nove. Toda tarde os dois jogam dominó na varanda.",
+  "protagonista": [
+   "Joaquim"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Joaquim",
+   "Antônio"
+  ]
+ },
+ {
+  "id": "es-rev16-carmen-sofia",
+  "fonte": "rev-0211e",
+  "texto": "La abuela Carmen, de ochenta y ocho años, enseña a su nieta Sofía, de diez, a hacer tortillas a mano. Sofía aplasta la masa con cuidado.",
+  "protagonista": [
+   "Carmen",
+   "Sofía"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Carmen",
+   "Sofía"
+  ]
+ },
+ {
+  "id": "rev16-jordan-grandmother-of-six",
+  "fonte": "rev-0211e",
+  "texto": "Jordan, a grandmother of six, finally learns to swim at the community pool. Her youngest grandson, Eli, cheers from the edge.",
+  "protagonista": [
+   "Jordan"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Jordan",
+   "Eli"
+  ]
+ },
+ {
+  "id": "rev16-marcus-six-feet",
+  "fonte": "rev-0211e",
+  "texto": "At six foot four, fourteen-year-old Marcus already towers over his coach, Mr. Lee. Marcus dunks for the first time in front of the whole school.",
+  "protagonista": [
+   "Marcus"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Marcus",
+   "Lee"
+  ]
+ },
+ {
+  "id": "rev16-priya-nineteen-ten-years",
+  "fonte": "rev-0211e",
+  "texto": "Priya was nineteen when her mother handed her the keys to the family restaurant. Ten years later, Priya still opens the doors at five every morning.",
+  "protagonista": [
+   "Priya"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Priya"
+  ]
+ },
+ {
+  "id": "rev16-theo-dad-firefighter-40",
+  "fonte": "rev-0211e",
+  "texto": "Theo, whose dad is a firefighter of forty, wants to be just like him. Theo is six and wears the giant helmet everywhere.",
+  "protagonista": [
+   "Theo"
+  ],
+  "tipo": "human",
+  "especie": null,
+  "humanos": [
+   "Theo"
+  ]
  }
 ]

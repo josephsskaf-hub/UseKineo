@@ -108,7 +108,7 @@ import { elencoComFichaLiteral, literalDaCanonica, type ElencoLiteral } from '@/
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
 
 export const MARCA_ELENCO_SEMANTICO = 'KINEO-PROTAGONISTA-SEEDANCE-0111'
-export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v11' // rodada 15: a ficha do trecho do autor nasce com origem 'autor' (o casting do 15 s e o juiz não a reescrevem; a junção autor+juiz saiu). rodada 14: a ficha do trecho aceito é só o trecho do autor (sem faixa/pessoa/aparência nossa); gênero só de palavra escrita. rodada 12: age_text/role_text = trecho LITERAL copiado pelo modelo, aceito só se existe no texto a até ~12 palavras do nome; sem regex de idade. rodadas 10/11: idade por regex (removida). rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido. rodada 8: o código só usava quem, o kind e a species
+export const ELENCO_SEMANTICO_VERSAO = 'elenco_semantico_v12' // rodada 16: bicho/criatura com espécie de gente ("boys", "bebê") é recusado; protagonista bicho não apaga a pessoa da cena. rodada 15: a ficha do trecho do autor nasce com origem 'autor' (o casting do 15 s e o juiz não a reescrevem; a junção autor+juiz saiu). rodada 14: a ficha do trecho aceito é só o trecho do autor (sem faixa/pessoa/aparência nossa); gênero só de palavra escrita. rodada 12: age_text/role_text = trecho LITERAL copiado pelo modelo, aceito só se existe no texto a até ~12 palavras do nome; sem regex de idade. rodadas 10/11: idade por regex (removida). rodada 9: sem troca de protagonista por contagem; papel do nomeado + gênero lido. rodada 8: o código só usava quem, o kind e a species
 export const ELENCO_SEMANTICO_MODELO: string = PERSONAGEM_CASTING_MODELO
 export const ELENCO_SEMANTICO_PRAZO_MS = 4_000
 export const ELENCO_SEMANTICO_TENTATIVAS = 2
@@ -204,6 +204,19 @@ function inglesCurto(v: unknown, maxPalavras = 4): string | null {
 }
 
 const KINDS: readonly KindSemantico[] = ['human', 'animal', 'creature', 'object']
+/**
+ * Rodada 16 (revisão da rodada 15): palavra de PESSOA nunca é espécie de bicho/criatura. "his twin boys, aged three" voltou kind "animal",
+ * species "boys" (3 de 4 chamadas) e a ficha nascia "purple boy with … snout, paws and tail". Trava fixa, sem leitura nova: o núcleo da
+ * species (a última palavra, sem acento) numa lista de gente em inglês/português/espanhol = a resposta DAQUELE personagem é recusada.
+ */
+const PALAVRAS_DE_PESSOA = new Set(('boy boys girl girls kid kids child children twin twins baby babies toddler toddlers infant infants newborn newborns '
+  + 'man men woman women person persons people human humans lady ladies guy guys teen teens teenager teenagers son sons daughter daughters '
+  + 'mother mothers father fathers mom mum dad brother brothers sister sisters grandma grandpa grandmother grandfather granddaughter grandson '
+  + 'menino meninos menina meninas crianca criancas bebe bebes gemeo gemeos gemea gemeas homem homens mulher mulheres pessoa pessoas garoto garotos '
+  + 'garota garotas moco moca filho filhos filha filhas pai pais mae maes irmao irmaos irma irmas avo avos neto netos neta netas '
+  + 'nino ninos nina ninas gemelo gemelos gemela gemelas hombre hombres mujer mujeres persona personas chico chicos chica chicas hijo hijos hija hijas '
+  + 'padre padres madre madres hermano hermanos hermana hermanas abuelo abuelos abuela abuelas nieto nietos nieta nietas').split(' '))
+export const especieDePessoa = (w: string | null | undefined): boolean => !!w && PALAVRAS_DE_PESSOA.has(semAcento(limpa(w)).split(' ').pop() ?? '')
 /** Rodada 12: o trecho diz algo além do próprio nome ("Emma" como role_text de "Meet Emma." não diz nada). */
 const alemDoNome = (trecho: string, nome: string | null) => /[\p{L}\p{N}]/u.test(nome ? tiraNome(trecho, nome, 'giu') : trecho)
 /**
@@ -277,6 +290,7 @@ function lerPersonagem(bruto: unknown, texto: string, lugares: readonly string[]
   let species_text: string | null = species_text_achada
   if (kind === 'human') species = traduzida && traduzida !== 'human' ? traduzida : 'human'
   else if (kind === 'object') species = traduzida ?? (name ? name.toLowerCase() : role)
+  else if (especieDePessoa(speciesBruta) || especieDePessoa(speciesEnBruta)) return null // rodada 16: bicho/criatura com espécie de gente ("boys") = resposta recusada, fica a base
   else if (!species_text) return null // bicho/criatura sem a espécie escrita no texto: não confiamos
   // bicho/criatura NOMEADO: a espécie tem de estar na MESMA frase que o nome ("Laika, a stray dog"; "his cat Whiskers") e fora do próprio
   // nome ("Meet Duck, a retired boxer" não é pato). Em outro ponto do texto ela não prova que é dele (o Skoczuś virava a "flor gigante")

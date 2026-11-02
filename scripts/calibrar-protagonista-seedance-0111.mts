@@ -24,6 +24,10 @@
 // Revisão 02/11 (rodada 15): +12 casos fonte 'rev-0211d' (os 12 da revisão da rodada 14 na API: Hazel "turns ninety", Otto "barely two",
 // Edith 103 + Finn 8, Nell/Bea "both twelve", Dona Zuleide + Rafael "de vinte", Íker "ocho meses", Bean 9 + Martha 70, Rosa Delgado 45 +
 // Pia 16, "Old Tom… just nineteen", Lorna 11 com o avô de 95, Sam enfermeira de 72 + Pirate, Wren 7 + Kit "4 months old").
+// Revisão 02/11 (rodada 16, v12): +12 casos fonte 'rev-0211e' (os 12 da revisão da rodada 15 na API: Maya/avó 80, Ana "sixty years
+// ago", Ben 30/Lily, Grandpa Joe "twenty again"/Mia (dueto: Joe ou Mia valem como protagonista), Kai e os gêmeos "aged three", Rex e a
+// baby Nora, Joaquim/Seu Antônio, Carmen/Sofía, Jordan/Eli, Marcus/Mr. Lee, Priya, Theo). Régua nova: membro bicho/criatura com espécie
+// de gente ("boys") = grave pessoa_virou_*.
 // Modos:
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local]            → mede os 206 casos e regrava a calibração (o guardião usa)
 //   npx tsx scripts/calibrar-protagonista-seedance-0111.mts [.env.local] --mockados → mede SÓ os casos que hoje têm resposta mockada e grava

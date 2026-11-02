@@ -154,7 +154,13 @@ export async function elencoComCastingAjuste(script: string, elenco: ReadonlyArr
 // ═══ 4. QUEM ESTÁ NA CENA — o visual diz SE há alguém; a fala diz QUEM ═════════════════════════════════════════════
 const GENTE = 'man|men|woman|women|boy|boys|girl|girls|kid|kids|child|children|person|people|persons|figure|figures|silhouette|someone|somebody|rider|biker|cyclist|motorcyclist|driver|teen|teenager|youth|guy|lady|stranger|hero|heroine|face|faces|hands?|eyes|shoulders?|feet|legs?|body|he|him|his|she|her|hers|they|riding|rides|rode|crowds?|villagers?|soldiers?|warriors?|family|families|audience|dancers?|workers?|monks?|priests?|citizens?|passengers?|students?|players?|fans?|tourists?|pilgrims?|guards?|knights?|kings?|queens?|princes?|princess|mother|father|sister|brother|grandmother|grandfather|baby|babies'
 const BICHOS = 'dinosaur|dino|dragon|robot|unicorn|monster|ghost|demon|alien|fairy|creature|bunny|rabbit|bear|fox|mouse|puppy|dog|kitten|cat|owl|turtle|elephant|lion|tiger|wolf|deer|monkey|horse|pony|bird|frog|duck|penguin|panda|whale|dolphin'
-const FIGURA_RE = new RegExp(`\\b(?:${GENTE}|${BICHOS})s?\\b`, 'i')
+// KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — gente que o detector não via: "Two toddlers squeal" era forçada e os gêmeos viravam o pai
+const GENTE_MAIS = 'toddler|twins|infant|newborn|baker|coach|coaches|doctor|nurse|firefighter|fireman|firemen|fisherman|fishermen|grandma|grandpa|dad|mom|daughter|son' // KINEO-PROTAGONISTA-SEEDANCE-0111
+// KINEO-PROTAGONISTA-SEEDANCE-0111 — o mesmo em português/espanhol (fronteira por letra Unicode: "bebê", "niño")
+const GENTE_PT_ES_RE = /(?<!\p{L})(?:homem|homens|mulher|mulheres|menin[oa]s?|crianças?|bebês?|bebés?|gême[oa]s|pessoas?|garot[oa]s?|moç[oa]s?|médic[oa]s?|enfermeir[oa]s?|bombeir[oa]s?|pescador(?:es|a|as)?|padeir[oa]s?|treinador(?:es|a|as)?|avós?|avô|vovó|vovô|mãe|pai|filh[oa]s?|irmãos?|irmãs?|niñ[oa]s?|hombres?|mujer(?:es)?|personas?|gemel[oa]s|chic[oa]s|enfermer[oa]s?|bomber[oa]s?|panader[oa]s?|entrenador(?:es|a|as)?|abuel[oa]s?|madre|padre|hij[oa]s?|herman[oa]s?)(?!\p{L})/iu // KINEO-PROTAGONISTA-SEEDANCE-0111
+const FIGURA_RE = new RegExp(`\\b(?:${GENTE}|${GENTE_MAIS}|${BICHOS})s?\\b`, 'i')
+// KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — só PESSOA (sem bicho, pronome nem parte do corpo — "the dog lifts his head" não é gente)
+const PESSOA_RE = new RegExp(`\\b(?:${GENTE.split('|').filter((w) => !/^(?:face|faces|hands\?|eyes|shoulders\?|feet|legs\?|body|he|him|his|she|her|hers|they|riding|rides|rode|figure|figures|silhouette|hero|heroine)$/.test(w)).join('|')}|${GENTE_MAIS})s?\\b`, 'i') // KINEO-PROTAGONISTA-SEEDANCE-0111
 const SEM_GENTE_RE = /\b(?:no (?:people|person|humans?|human figures?|one|foreground human faces?)|without (?:people|humans?|anyone)|nobody|no one in sight|empty (?:scene|street|room|beach|landscape|city|path|road|forest)|unpopulated|deserted)\b/i
 const FEM_VISUAL_RE = /\b(?:woman|women|girl|girls|lady|she|her|hers|herself|mother|sister|daughter|queen|princess|bride)\b/i
 const MASC_VISUAL_RE = /\b(?:man|men|boy|boys|guy|he|him|his|himself|father|brother|son|king|prince|groom)\b/i
@@ -162,7 +168,13 @@ const MASC_VISUAL_RE = /\b(?:man|men|boy|boys|guy|he|him|his|himself|father|brot
 /** O visual mostra alguém (pessoa, criatura, parte do corpo, quem pilota)? A negação de gente vence. */
 export function visualMostraAlguem(visual: string): boolean {
   const v = String(visual ?? '')
-  return !SEM_GENTE_RE.test(v) && FIGURA_RE.test(v)
+  return !SEM_GENTE_RE.test(v) && (FIGURA_RE.test(v) || GENTE_PT_ES_RE.test(v)) // KINEO-PROTAGONISTA-SEEDANCE-0111 — + gente em PT/ES (rodada 16)
+}
+
+/** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — o visual mostra uma PESSOA (bicho, pronome e parte do corpo não contam)? A negação de gente vence. */
+export function visualMostraPessoa(visual: string): boolean {
+  const v = String(visual ?? '')
+  return !SEM_GENTE_RE.test(v) && (PESSOA_RE.test(v) || GENTE_PT_ES_RE.test(v))
 }
 
 /** Quem a FALA cita: o nome, o papel ("a boy", "the boy") ou, por pronome, quem a fala anterior citou (gênero tem de bater). */

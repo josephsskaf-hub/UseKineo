@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/cinematic/elencoSemantico.ts', 'lib/cinematic/folhaDePersonagem.ts', 'lib/cinematic/filmQuality.ts', 'lib/cinematic/elencoEpoca.ts', 'lib/filmes/filme15Elenco.ts'] // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (rede + fichas), a rota que o chama e as 3 camadas que o recebem
+const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/cinematic/elencoSemantico.ts', 'lib/cinematic/folhaDePersonagem.ts', 'lib/cinematic/filmQuality.ts', 'lib/cinematic/elencoEpoca.ts', 'lib/filmes/filme15Elenco.ts', 'lib/cinematic/personagemAjuste.ts'] // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico (rede + fichas), a rota que o chama, as 3 camadas que o recebem e o detector de gente/pessoa da cena (rodada 16)
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {
