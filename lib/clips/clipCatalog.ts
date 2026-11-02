@@ -30,7 +30,7 @@
 
 // Cadastro preparado, fora da seleção pública e do dispatcher até existir API/custo/schema verificados.
 export { PREPARED_CLIP_ENGINES } from './clipKling4'
-import { negativePromptSemLetras, promptComProtecaoContraLetras } from './clipSemLetras' // KINEO-CLIPE-SEM-LETRAS-0111
+import { FRASE_SEM_LETRAS, negativePromptSemLetras, pedeTextoExplicito } from './clipSemLetras' // KINEO-CLIPE-SEM-LETRAS-0111
 
 export type ClipEngineKey = 'hollywood' | 'kling' | 'seedance' | 'veo' | 'h3' | 'omni' | 's25'
 export type ClipAspect = '9:16' | '16:9' | '1:1'
@@ -301,14 +301,18 @@ export function validateClipRequest(input: ClipRequestInput, ctx: { userId: stri
 // KINEO-CLIPE-LETRAS-3010 — revisão de 30/10: espelho e camiseta riscados "VioeAloXoD" (conto do espelho, ES) e tela de celular
 // com letras falsas (conto das 3:33, BR). Os motores não escrevem: quando o pedido tem superfície que carrega texto (espelho,
 // tela, celular, placa, camiseta, papel), o prompt que vai à fal ganha a ordem de deixar tudo ilegível. O texto do cliente não muda.
-// KINEO-CLIPE-SEM-LETRAS-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a régua mora em lib/clips/clipSemLetras.ts
-// (a mesma do Modo Clipe do Studio): + legenda/título inventado em pedido de vídeo/história, texto PEDIDO pelo cliente fica (só ele
-// legível) e negative_prompt nos endpoints cujo schema da fal tem o campo (Kling 3 t2v, Kling 2.5, Veo 3.1 Fast).
-export const CLIPE_SEM_LETRAS = ' Every screen, phone, sign, page, label and reflection shows only abstract shapes, icons, soft glow or blur, never letters, words or numbers.'
-/** O prompt do clipe para a fal: igual ao do cliente, mais a ordem de texto ilegível (lib/clips/clipSemLetras.ts). */
+// KINEO-CLIPE-SEM-LETRAS-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — régua única em lib/clips/clipSemLetras.ts:
+// texto pedido explicitamente (aspas, says/reads/escrito/…) → o prompt vai como o cliente escreveu, sem frase nem negative_prompt;
+// qualquer outro caso → negative_prompt nos endpoints cujo schema da fal tem o campo (Kling 3 t2v, Kling 2.5, Veo 3.1 Fast) e a frase
+// curta no texto quando há superfície que carrega texto (a frase cita tela/placa/papel: em pedido sem nenhuma, nomeá-las convidaria
+// o motor a desenhá-las). Saiu o atalho "o cliente já proibiu texto" (prosa com "no words" desligava a proteção da tela).
+const SUPERFICIE_DE_TEXTO_RE = /\b(?:mirrors?|reflections?|phones?|smartphones?|cell ?phones?|screens?|monitors?|laptops?|tablets?|tv|television|signs?|billboards?|posters?|shirts?|t-shirts?|hoodies?|notes?|letters?|books?|newspapers?|papers?|walls? writing|espelhos?|reflexos?|celular(?:es)?|telas?|televis[aã]o|placas?|cartaz(?:es)?|camisetas?|camisas?|bilhetes?|cartas?|livros?|jornal|pap[eé]is|espejos?|reflejos?|tel[eé]fonos?|m[oó]vil(?:es)?|pantallas?|letreros?|carteles?|camisetas?|notas?|libros?|peri[oó]dicos?)\b/i
+export const CLIPE_SEM_LETRAS = ' ' + FRASE_SEM_LETRAS
+/** O prompt do clipe para a fal: igual ao do cliente, mais a frase de texto ilegível quando há superfície que carrega texto. */
 export function promptDoClipeSemLetras(prompt: string): string {
-  // prompt que já proíbe texto (os efeitos do catálogo trazem "No text, no captions…") fica byte a byte igual
-  return promptComProtecaoContraLetras(prompt)
+  const p = String(prompt ?? '')
+  if (pedeTextoExplicito(p) || !SUPERFICIE_DE_TEXTO_RE.test(p) || p.includes(FRASE_SEM_LETRAS)) return p
+  return `${p.replace(/\s+$/, '')}${CLIPE_SEM_LETRAS}`
 }
 
 // ─── Payload da fal ──────────────────────────────────────────────────────────
@@ -322,7 +326,7 @@ export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
   const prompt = promptDoClipeSemLetras(req.prompt) // KINEO-CLIPE-LETRAS-3010 — espelho/tela/placa: texto ilegível (o pedido do cliente não muda)
   // KINEO-CLIPE-SEM-LETRAS-0111 — o endpoint que vai de fato (req.model; o do catálogo quando o chamador não passa um id da fal)
   const spec = CLIP_ENGINES[req.engine]
-  const endpoint = typeof req.model === 'string' && req.model.includes('/') ? req.model :(req.mode === 'i2v' ? spec.i2vModel : spec.t2vModel) ?? ''
+  const endpoint = typeof req.model === 'string' && req.model.includes('/') ? req.model : (req.mode === 'i2v' ? spec.i2vModel : spec.t2vModel) ?? ''
   const negativo = negativePromptSemLetras(endpoint, req.prompt)
   const neg = negativo ? { negative_prompt: negativo } : {}
   switch (req.engine) {
