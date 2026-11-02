@@ -60,8 +60,11 @@ export const ROTEIRO_NO_TAMANHO_VERSAO = 'roteiro_no_tamanho_0111' as const
 export const ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS = 60
 
 /** true = o escritor usa o plano de tamanho; false (acima de 60 s) = o escritor da base, intocado. */
-export function planoValeNoFilme(alvoSegundos: number): boolean {
-  return Number.isFinite(alvoSegundos) && alvoSegundos <= ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS
+// 6ª revisão (02/11): SÓ EM INGLÊS. A régua de 60 s não lê a língua, e em tr/de/ru/uk/id/pl a mesma conta de palavras passa de
+// 90 s de fala na voz mais lenta (a montagem corta no teto). Os 17 roteiros de 60 s dos últimos 30 dias eram todos em inglês;
+// nas outras línguas o escritor fica exatamente como na base até haver medição por língua.
+export function planoValeNoFilme(alvoSegundos: number, language: string = 'en'): boolean {
+  return Number.isFinite(alvoSegundos) && alvoSegundos <= ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS && language === 'en'
 }
 
 export type SecaoDoRoteiro = 'HOOK' | 'MICRO REWARD 1' | 'MICRO REWARD 2' | 'MICRO REWARD 3' | 'ESCALATION' | 'RHYTHM' | 'PAYOFF'

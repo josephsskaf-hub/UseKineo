@@ -3,7 +3,7 @@
  "scope": {
   "app/api/generate-script/route.ts": {
    "beforeSha256": "25428c8600ea7a879027a8f614d8fae4745efc2225c232e74b9f65e13c3b5348",
-   "afterSha256": "8e5e7b0fc5bcd0dd460db93c271ea24ffed74b688b21e9105130f7505f3027d3",
+   "afterSha256": "a25c724d5b3cb35c4128f4c84c1a74c69487c8d81fb8066db10e675319a45612",
    "hunks": [
     {
      "before": "import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'\nimport { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)",
@@ -11,7 +11,7 @@
     },
     {
      "before": "\n    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR",
-     "after": "\n    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por\n    // bloco (lib/roteiroNoTamanho.ts). Caso Rick 01/11: 82 → 89 palavras para um piso de 169 e o filme de 60 s saiu com 35 s.\n    // 2ª revisão: sem teto por motor — engine:'fast' no escritor também é filme do cinematic/Seedance (Rick); o plano vale para todos.\n    // 4ª revisão: SÓ ATÉ 60 s. A 90 s o plano fazia a fala passar de 90 s e a montagem (lib/compose.ts, clamp a 90) cortava o final;\n    // ali o escritor é exatamente o da base (sem plano, sem pedido de tamanho, sem escolha entre versões, timeout de sempre).\n    const noTamanho = planoValeNoFilme(alvoSegundos) // KINEO-ROTEIRO-NO-TAMANHO-0111 — false a 90 s: comportamento da base\n    const planoDoTamanho = noTamanho && !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras) : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — 5ª revisão: o plano mira o piso (sem folga nem teto)\n    const tokensDoRoteiro = tetoDeTokens(planoDoTamanho, 700) // KINEO-ROTEIRO-NO-TAMANHO-0111 — curto e colado: os 700 de sempre\n    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR"
+     "after": "\n    // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — filme de 35/60 s com ideia (não roteiro colado): o piso entra como orçamento por\n    // bloco (lib/roteiroNoTamanho.ts). Caso Rick 01/11: 82 → 89 palavras para um piso de 169 e o filme de 60 s saiu com 35 s.\n    // 2ª revisão: sem teto por motor — engine:'fast' no escritor também é filme do cinematic/Seedance (Rick); o plano vale para todos.\n    // 4ª revisão: SÓ ATÉ 60 s. A 90 s o plano fazia a fala passar de 90 s e a montagem (lib/compose.ts, clamp a 90) cortava o final;\n    // ali o escritor é exatamente o da base (sem plano, sem pedido de tamanho, sem escolha entre versões, timeout de sempre).\n    const noTamanho = planoValeNoFilme(alvoSegundos, language) // KINEO-ROTEIRO-NO-TAMANHO-0111 — false a 90 s e fora do inglês: comportamento da base\n    const planoDoTamanho = noTamanho && !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras) : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — 5ª revisão: o plano mira o piso (sem folga nem teto)\n    const tokensDoRoteiro = tetoDeTokens(planoDoTamanho, 700) // KINEO-ROTEIRO-NO-TAMANHO-0111 — curto e colado: os 700 de sempre\n    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR"
     },
     {
      "before": "      + (colado.reason === 'scene_description' ? `\\n\\n${SCENE_DESCRIPTION_RULE}` : '') // KINEO-NARRADOR-DESCRICAO-0111 [TRAVA 8.2 — vai do fundador 01/11]: descrição do que VER vira história narrada + pistas [Pexels] do sujeito descrito\n    const temaDoEscritor = colado.reason === 'production_brief' ? semPreambuloDeChat(topic) // KINEO-BRIEF-NAO-E-FALA-3010: sem o \"aqui está prontinho pra copiar:\" do chat",
@@ -53,6 +53,6 @@
   }
  },
  "addedSources": {
-  "lib/roteiroNoTamanho.ts": "bcd5811618c0603d9eefa6ff2b72021913c7213e37c61e44de53b39faa1c43b5"
+  "lib/roteiroNoTamanho.ts": "0994be5fa4fe27d4ef72c12c694492a95b35a43918499ef254b24f50016cc50d"
  }
 }

@@ -129,6 +129,8 @@ ok(!!STORYTELLER && STORYTELLER.voice === 'fable', 'a persona do Rick: storytell
 const p90 = L.planoDePalavras(253)
 ok(p90 && p90.piso === 253 && soma(p90) === 253, `lib pura: planoDePalavras(253) = ${p90?.piso} (a rota não o pede a 90 s — ver N90)`)
 ok(L.ROTEIRO_NO_TAMANHO_ATE_SEGUNDOS === 60 && L.planoValeNoFilme(35) && L.planoValeNoFilme(60) && !L.planoValeNoFilme(61) && !L.planoValeNoFilme(90) && !L.planoValeNoFilme(NaN), 'planoValeNoFilme: 35 e 60 s sim; 61/90 s e inválido não (4ª revisão)')
+ok(L.planoValeNoFilme(60, 'en') && !L.planoValeNoFilme(60, 'tr') && !L.planoValeNoFilme(60, 'de') && !L.planoValeNoFilme(35, 'pt') && !L.planoValeNoFilme(60, 'ru'), 'planoValeNoFilme: só em inglês; tr/de/pt/ru ficam na base (6ª revisão)')
+ok(rd(ROUTE_REL).includes('planoValeNoFilme(alvoSegundos, language)'), 'a rota passa a língua para o portão do plano (6ª revisão)')
 for (const seg of [60]) {
   const plano = p169
   const exig = PERS.VOICE_PERSONAS.map((p) => [p.id, exigidoPeloSeedance(p, seg)])
@@ -388,7 +390,7 @@ console.log('M — mutantes (cada um precisa ficar vermelho)')
 const rota = rd(ROUTE_REL)
 const mutantes = [
   ['sem o plano no prompt', rota.replace('SYSTEM_PROMPT + (planoDoTamanho ? `\\n\\n${instrucaoDoPlano(planoDoTamanho, alvoSegundos)}` : \'\')', 'SYSTEM_PROMPT'), async (src) => /LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_RICK, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_LONGO) })).chamadas[0]?.system ?? '')],
-  ['plano a 90 s (sem o portão dos 60 s)', rota.replace('const noTamanho = planoValeNoFilme(alvoSegundos)', 'const noTamanho = true'), async (src) => !/LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260) })).chamadas[0]?.system ?? '')],
+  ['plano a 90 s (sem o portão dos 60 s)', rota.replace('const noTamanho = planoValeNoFilme(alvoSegundos, language)', 'const noTamanho = true'), async (src) => !/LENGTH PLAN/.test((await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_222 : ROTEIRO_260) })).chamadas[0]?.system ?? '')],
   ['escolha entre versões a 90 s', rota.replace("const fica = !noTamanho ? 'segunda' : escolherVersao(", 'const fica = escolherVersao('), async (src) => (await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => (n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70) })).body?.script === ROTEIRO_RICK_70],
   ['prazo encolhido a 90 s', rota.replace('noTamanho ? prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS) : OPENAI_SCRIPT_TIMEOUT_MS', 'prazoDaNovaTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)'), async (src) => {
     try { return (await postar({ routeSrc: src, body: PEDIDO_K90, gpt: ({ n }) => { if (n === 1) atrasoDoRelogio += 30000; return n === 1 ? ROTEIRO_RICK_89 : ROTEIRO_RICK_70 } })).chamadas[1]?.timeout === 35000 } finally { atrasoDoRelogio = 0 }

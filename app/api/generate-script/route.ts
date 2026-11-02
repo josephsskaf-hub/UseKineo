@@ -437,7 +437,7 @@ export async function POST(req: NextRequest) {
     // 2ª revisão: sem teto por motor — engine:'fast' no escritor também é filme do cinematic/Seedance (Rick); o plano vale para todos.
     // 4ª revisão: SÓ ATÉ 60 s. A 90 s o plano fazia a fala passar de 90 s e a montagem (lib/compose.ts, clamp a 90) cortava o final;
     // ali o escritor é exatamente o da base (sem plano, sem pedido de tamanho, sem escolha entre versões, timeout de sempre).
-    const noTamanho = planoValeNoFilme(alvoSegundos) // KINEO-ROTEIRO-NO-TAMANHO-0111 — false a 90 s: comportamento da base
+    const noTamanho = planoValeNoFilme(alvoSegundos, language) // KINEO-ROTEIRO-NO-TAMANHO-0111 — false a 90 s e fora do inglês: comportamento da base
     const planoDoTamanho = noTamanho && !filmeCurto && !colado.pasted ? planoDePalavras(alvoPalavras) : null // KINEO-ROTEIRO-NO-TAMANHO-0111 — 5ª revisão: o plano mira o piso (sem folga nem teto)
     const tokensDoRoteiro = tetoDeTokens(planoDoTamanho, 700) // KINEO-ROTEIRO-NO-TAMANHO-0111 — curto e colado: os 700 de sempre
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
