@@ -102,13 +102,54 @@ const kEfeito = buildClipFalInput({ engine: 'kling', mode: 'i2v', model: CLIP_EN
 check('/clips: efeito no Kling 2.5 (já proíbe texto) — payload sem negative_prompt, igual ao de antes', !('negative_prompt' in kEfeito) && kEfeito.prompt === EFEITO)
 check('/clips: modelo nulo não derruba a montagem do payload', (() => { try { return !('negative_prompt' in buildClipFalInput({ engine: 's25', mode: 'i2v', model: null as never, seconds: 5, aspect: 'image', prompt: 'x y z', imageUrl: PHOTO })) } catch { return false } })())
 check('idempotente nos dois caminhos', promptComProtecaoContraLetras(promptComProtecaoContraLetras(comCelular)) === promptComProtecaoContraLetras(comCelular))
+// KINEO-CLIPE-SEM-LETRAS-0111c — revisão adversarial: idempotência também sem superfície ("title cards" da frase da casa não conta)
+for (const p of ['a horror story about a dog', 'a video of a sunset', placa, 'a sign that says Welcome Home']) {
+  const uma = promptComProtecaoContraLetras(p)
+  check(`idempotente sem superfície do cliente: ${p}`, promptComProtecaoContraLetras(uma) === uma && promptComProtecaoContraLetras(promptComProtecaoContraLetras(uma)) === uma)
+}
+
+// ── 5b. Revisão adversarial 01/11 (0111c): texto pedido inteiro, prosa não vira texto pedido ──
+const inteiros: Array<[string, string[]]> = [
+  ['a sign reading THE END', ['THE END']],
+  ['uma placa escrito O FIM', ['O FIM']],
+  ['a banner that says A NEW ERA', ['A NEW ERA']],
+  ['the title card says THE END', ['THE END']],
+  ['a sign that says Welcome Home', ['Welcome Home']],
+  ['uma placa escrito Feliz Natal', ['Feliz Natal']],
+  ['a t-shirt that says I love NY', ['I love NY']],
+  ['a menu that says Pizza 10 dollars', ['Pizza 10 dollars']],
+  ['a poster that reads Missing with a photo of a girl', ['Missing']],
+  ['a book titled The Shining', ['The Shining']],
+  ['a book titled Romeo and Juliet on the shelf', ['Romeo and Juliet']],
+  ['a sign that says Welcome home', ['Welcome home']],
+  ['a road sign that says No Parking', ['No Parking']],
+]
+for (const [p, esperado] of inteiros) check(`texto pedido inteiro: ${p} → ${JSON.stringify(esperado)}`, JSON.stringify(protecaoContraLetras(p).textos) === JSON.stringify(esperado))
+const prosa = [
+  'she finds a note that says he is coming back tonight',
+  'a note that says she is gone',
+  'her phone says nothing, the screen stays black',
+  'the screen says loading',
+  'the letter says Maria is dead',
+  'a note that says meet me at the bridge',
+]
+for (const p of prosa) {
+  const r = protecaoContraLetras(p)
+  check(`prosa não é texto pedido (tela/papel seguem protegidos): ${p}`, r.textos.length === 0 && !r.pedido && r.frase.includes(SUPERFICIE) && !r.frase.includes('exactly'))
+}
+const fProsa = buildClipPrompt({ ...detectShotSpec(prosa[0]), prompt: prosa[0], seconds: 5 }, '9:16')
+check('prosa no Studio: moldura antiga + proibição de legenda continuam', fProsa.includes('no readable text') && fProsa.includes('no subtitles') && fProsa.includes(SOBREPOSICAO))
+const kProsa = buildClipFalInput({ engine: 'kling', mode: 't2v', model: CLIP_ENGINES.kling.t2vModel!, seconds: 5, aspect: '9:16', prompt: prosa[0], imageUrl: null })
+check('prosa no /clips: negative_prompt continua "text, letters, words…"', String(kProsa.negative_prompt).includes(NEGATIVO_SEM_LETRAS))
+const msgs = protecaoContraLetras('a video of a woman with no text messages on her phone')
+check('"no text messages" não é "o cliente já proibiu texto": recebe a proteção', !msgs.jaProibe && msgs.frase.includes(SOBREPOSICAO) && msgs.frase.includes(SUPERFICIE))
 
 // ── 6. As duas cópias da régua são a mesma (o shotSpec roda isolado, sem require) ──
 const bloco = (src: string) => { const t = lf(src); const a = t.indexOf('// INÍCIO-CÓPIA protecaoContraLetras'); const b = t.indexOf('// FIM-CÓPIA protecaoContraLetras'); return a >= 0 && b > a ? t.slice(a, b) : null }
 const bClips = bloco(readFileSync(new URL('../lib/clips/clipSemLetras.ts', import.meta.url), 'utf8'))
 const bStudio = bloco(readFileSync(new URL('../lib/cinematic/shotSpec.ts', import.meta.url), 'utf8'))
 check('cópia da régua no shotSpec é idêntica à de lib/clips/clipSemLetras.ts', bClips !== null && bClips === bStudio)
-const CORPUS = [CASO, comCelular, LONGO, placa, legenda, LUFFY, EFEITO, ...pedidos.map((x) => x[0]), ...naoPedidos]
+const CORPUS = [CASO, comCelular, LONGO, placa, legenda, LUFFY, EFEITO, ...pedidos.map((x) => x[0]), ...naoPedidos, ...inteiros.map((x) => x[0]), ...prosa]
 check('as duas cópias dão a mesma resposta no corpus (sempre e não-sempre)', CORPUS.every((p) => JSON.stringify(protecaoStudio(p, { sempre: true })) === JSON.stringify(protecaoContraLetras(p, { sempre: true })) && JSON.stringify(protecaoStudio(p)) === JSON.stringify(protecaoContraLetras(p))))
 
 console.log(`${f ? '🔴' : '🟢'} clipe-sem-letras-0111: ${ok}/${ok + f}`)
