@@ -22,11 +22,12 @@ import vm from 'node:vm'
 import crypto from 'node:crypto'
 import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
 import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111
+import { semK4PagoCabe0211 } from './test-support/desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semK4PagoCabe0211(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p) /* KINEO-K4-PAGO-CABE-0211 */, p), p)
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

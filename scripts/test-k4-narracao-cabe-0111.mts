@@ -18,6 +18,7 @@ import { narrationWordCount } from '../lib/textLanguage'
 import { parseUserScript } from '../lib/scriptParser'
 import { fitShortFilmScript } from '../lib/shortFilmScript'
 import type { VozDoFilmeCurto } from '../lib/vozDoFilmeCurto'
+import { semK4PagoCabe0211 } from './test-support/desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a camada mais nova (faixa do Kling 4 pago) sai pelo recibo exato
 
 let pass = 0, fail = 0
 const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
@@ -130,7 +131,7 @@ for (const [falha, nome] of [['produzir', 'TTS sem áudio'], ['lança', 'TTS lan
   ok(r.cabe, '2 sem modelo de texto: se a voz real der 13,9 s para as mesmas 55 palavras, cabe — quem decide é o mp3') }
 
 console.log('== 3. a medição reaproveita a voz da montagem (mesma chave, sem pagar duas vezes) ==')
-const lib = rd('lib/kling4TrialScript.ts'), ancs = rd('lib/audioNoCliqueServer.ts'), cps = rd('app/api/compose/route.ts')
+const lib = semK4PagoCabe0211(rd('lib/kling4TrialScript.ts'), 'lib/kling4TrialScript.ts'), ancs = rd('lib/audioNoCliqueServer.ts'), cps = rd('app/api/compose/route.ts')
 ok(lib.includes("import('@/lib/audioNoCliqueServer')") && lib.includes("import('@/lib/compose')") && lib.includes('aquecivel: vozClassicaAquecivel, lookup: lookupCachedVoiceover'), '3 produção: vozClassicaAquecivel (TTS + Whisper + cache de voz) e lookupCachedVoiceover — as do clique e do compose')
 ok(ancs.includes('const identity = resolveTtsVoiceIdentity(a.script, a.speed, a.vertical, tier, a.language, model)') && ancs.includes('if (await lookupCachedVoiceover(chave)) return true'), '3 vozClassicaAquecivel: a identidade de voz do compose e cache acertado = nada pago de novo')
 ok(/resolveTtsVoiceIdentity\(\s*scaledScript,\s*explicitSpeed \?\? 1\.0,\s*vertical,\s*narrationTier,\s*language,\s*model,\s*\)/.test(cps) && cps.includes('cachedVoiceover = await lookupCachedVoiceover(voiceoverCacheKey)'), '3 o compose procura a MESMA identidade no cache antes da TTS')
@@ -138,7 +139,7 @@ ok(cps.includes('const vozAssinada = vozAssinadaDoClaim(cinematicBirthClaim?.res
 ok(!/estimarFalaK4|kling4TrialWriterWords|kling4TrialVersaoCabe|K4_SEG_POR_LETRA|kling4TrialProvavelNoEscritor/.test(lib), '3 o estimador de letras/pausas e a faixa do escritor saíram')
 
 console.log('== 4. o escritor do Kling 4 grátis: piso = portão + 1 e a voz real mais rápida; teto pela voz prevista ==')
-const gs = rd('app/api/generate-script/route.ts'), rt0 = rd('app/api/generate-video-cinematic/route.ts'), ide = rd('lib/meta95/ideiaNoEscritor.ts')
+const gs = semK4PagoCabe0211(rd('app/api/generate-script/route.ts'), 'app/api/generate-script/route.ts'), rt0 = rd('app/api/generate-video-cinematic/route.ts'), ide = rd('lib/meta95/ideiaNoEscritor.ts')
 const gsBase = (() => { try { return execFileSync('git', ['show', 'origin/main:app/api/generate-script/route.ts'], { encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n') } catch { return '' } })()
 const LINHA_TETO_DURO = "    const tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor("
 ok(gs.includes(LINHA_TETO_DURO) && gs.split('\n').find((l) => l.startsWith(LINHA_TETO_DURO)) === gsBase.split('\n').find((l) => l.startsWith(LINHA_TETO_DURO)), '4 teto DURO do corte por frases = a linha da base, byte a byte (a rodada reprovada o baixava)')

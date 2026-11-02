@@ -1,3 +1,4 @@
+import { semK4PagoCabe0211 } from './desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semCasaFichaSemLetras0211 } from './desfaz-casa-ficha-sem-letras-0211.mjs' // KINEO-CASA-FICHA-SEM-LETRAS-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semLegendaMilhar0211 } from './desfaz-legenda-milhar-0211.mjs' // KINEO-LEGENDA-MILHAR-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
 import { semK4NarracaoCabe0111 } from './desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111 — camada mais nova (01/11, laço do revisor) sai primeiro
@@ -31,6 +32,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semK4PagoCabe0211(text, file) // KINEO-K4-PAGO-CABE-0211
   text = semCasaFichaSemLetras0211(text, file) // KINEO-CASA-FICHA-SEM-LETRAS-0211
   text = semLegendaMilhar0211(text, file) // KINEO-LEGENDA-MILHAR-0211
   text = semK4NarracaoCabe0111(text, file) // KINEO-K4-NARRACAO-CABE-0111

@@ -28,6 +28,8 @@ import { speechRateFor, CLASSIC_VOICE_WORDS_PER_SECOND } from '@/lib/speechRate'
 import { VOICE_PERSONAS } from '@/lib/narration/personas'
 import { vozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
+import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-K4-PAGO-CABE-0211 — o mesmo interruptor da rota (paidKling4 = engine 'hollywood' && KLING4_PAID_LIVE)
+import { RITMO_HOLLYWOOD } from '@/lib/durationByEngine' // KINEO-K4-PAGO-CABE-0211 — a régua do portão pago (narrationFitAt na família hollywood)
 
 /** Teto da fala MEDIDA (mp3 da voz da montagem) para o clipe único de 15 s. */
 export const K4_TETO_MEDIDO_SEGUNDOS = 15.5
@@ -214,6 +216,34 @@ export async function faixaDoKling4ParaOPedido(a: {
     console.warn('[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 elegibilidade no escritor não lida (faixa normal):', e instanceof Error ? e.message : String(e))
     return null
   }
+}
+
+// ═══ KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o Kling 4 PAGO de 15 s ═══
+// O filme pago de 15 s também é UM clipe de 15 s (kling/v4, multi_prompt; se a fal falhar, 3 × 5 s do Seedance com a fala
+// dividida por igual). O escritor do caminho da ideia (engine 'hollywood') mirava a régua hollywood com cobertura 1,0
+// (⌈15 × 2,3⌉ = 35 a 42 palavras). 02/11, dois filmes pagos (bc9177cd, 35 palavras; af240efa, 40): a voz falou 2,05 e 2,14
+// pal/s, 16–19 s de fala em 15 s, e o compose recusou (scene_speech_exceeds_footage) DEPOIS de pagar a fal. A mesma faixa do
+// grátis (acima), com as réguas do caminho pago:
+//   · PISO = o portão pago (narrationFitAt na régua hollywood: 75 % de 15 s a 2,3 pal/s = 26) + K4_MARGEM_DO_PORTAO — nunca
+//     422 kling4_paid_script_duration_mismatch, nunca 'curto' no meta95 (pisoDoPortao = o mesmo 26);
+//   · TETO = o que cabe em K4_TETO_MEDIDO_SEGUNDOS na voz real mais lenta: 2,3 × fator da língua × K4_FATOR_REAL_PADRAO
+//     (0,87 → 2,0 pal/s em en/pt/es, abaixo das duas vozes medidas no defeito); nunca menos que piso + 1.
+// en/pt/es 27–31 (31 palavras a 2,05 pal/s = 15,1 s). O pago não mede a voz antes do POST: no escritor, este teto também é o
+// teto DURO do corte por frases (generate-script). 30/60 s e o roteiro verbatim do cliente ficam como estão.
+/** Duração do filme pago com faixa própria no escritor (o clipe único de 15 s). */
+export const K4_PAGO_SEGUNDOS = 15
+export function faixaDoKling4PagoNoEscritor(language: string | null | undefined): FaixaK4DoEscritor {
+  const lang = typeof language === 'string' && language.trim() ? language.trim().toLowerCase() : 'en'
+  const piso = Math.ceil(K4_PAGO_SEGUNDOS * minCoverageFor(K4_PAGO_SEGUNDOS) * RITMO_HOLLYWOOD - 1e-9) + K4_MARGEM_DO_PORTAO
+  const passoReal = RITMO_HOLLYWOOD * fatorDoRitmoDoIdioma(lang) * K4_FATOR_REAL_PADRAO
+  const max = Math.max(piso + 1, Math.floor(K4_TETO_MEDIDO_SEGUNDOS * passoReal + 1e-9))
+  return { min: piso, max, language: lang, voiceWordsPerSecond: null }
+}
+
+/** O pedido vai ao Kling 4 PAGO de 15 s? O predicado da rota (engine 'hollywood' com KLING4_PAID_LIVE), na duração de 15 s. */
+export function faixaDoKling4PagoParaOPedido(a: { engine: unknown; seconds: number; language: string; live?: boolean }): FaixaK4DoEscritor | null {
+  if (!(a.live ?? KLING4_PAID_LIVE) || a.seconds !== K4_PAGO_SEGUNDOS || a.engine !== 'hollywood') return null
+  return faixaDoKling4PagoNoEscritor(a.language)
 }
 
 /** Instrução extra do escritor no Kling 4 grátis: substitui a faixa de palavras do prompt e corta as pausas longas. */

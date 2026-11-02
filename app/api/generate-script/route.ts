@@ -38,6 +38,7 @@ import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 �
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
 import { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor, palavrasNoPortao } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s
+import { faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — e o do Kling 4 PAGO de 15 s também
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -390,7 +391,7 @@ export async function POST(req: NextRequest) {
     // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic
     // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
     // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
-    const tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1 (teto da guarda DO MOTOR; no Seedance, o mesmo maxWordsForShortFilm)
+    let tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1 (teto da guarda DO MOTOR; no Seedance, o mesmo maxWordsForShortFilm)
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o que a rota do cinematic ACEITA no
     // filme curto do Seedance 1.5, na língua (lib/durationByEngine faixaAceitaNoFilmeCurto: o portão de 95 % na voz mais rápida
     // do 15 s e a guarda de roteiro longo; tr 29–45, en/pt/es 36–56). Entre as duas versões do escritor, a que o cinematic aceita
@@ -442,7 +443,11 @@ export async function POST(req: NextRequest) {
     // de frases inteiras dentro da faixa, passar do teto vence ficar abaixo do piso, e a medição da voz na rota manda ao Seedance.
     // Só o que o escritor ESCREVE: texto pronto (acima) e roteiro colado (as palavras da pessoa) ficam na faixa normal. O perfil
     // só é lido depois das checagens baratas (Kling 4 grátis ligado, 15 s, Seedance); ilegível = faixa normal.
-    const faixaK4 = filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({
+    // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o Kling 4 PAGO de 15 s (engine 'hollywood' com
+    // KLING4_PAID_LIVE: o mesmo predicado da rota) é o MESMO clipe único de 15 s: a mesma faixa e a mesma instrução, nas réguas do caminho
+    // pago (lib/kling4TrialScript faixaDoKling4PagoNoEscritor). Sem a medição da voz antes do POST, o teto da faixa é também o teto duro.
+    const faixaK4Pago = filmeCurto && !colado.pasted ? faixaDoKling4PagoParaOPedido({ engine: body.engine, seconds: alvoSegundos, language }) : null // KINEO-K4-PAGO-CABE-0211
+    const faixaK4 = faixaK4Pago ?? (filmeCurto && !colado.pasted ? await faixaDoKling4ParaOPedido({ // KINEO-K4-PAGO-CABE-0211: faixaK4Pago ?? (…)
       engine: body.engine, seconds: alvoSegundos, language, topic,
       vertical: typeof body.vertical === 'string' ? body.vertical : null, // KINEO-K4-NARRACAO-CABE-0111 — caminho do servidor: a voz prevista dá o teto
       lerPago: async () => { try { const { data: p, error } = await supabase.from('profiles').select('plan, has_paid').eq('id', user.id).maybeSingle(); if (error || !p) return null; return (p as { has_paid?: boolean }).has_paid === true || WRITER_PAID_PLANS.has(String((p as { plan?: string }).plan ?? 'free').toLowerCase()) } catch { return null } },
@@ -453,7 +458,8 @@ export async function POST(req: NextRequest) {
         ])
         return { films: films.error ? null : films.count, debits: debits.error ? null : debits.count }
       },
-    }) : null // KINEO-K4-NARRACAO-CABE-0111
+    }) : null) // KINEO-K4-NARRACAO-CABE-0111 · KINEO-K4-PAGO-CABE-0211: fecha o (…)
+    if (faixaK4Pago) tetoDuroFilmeCurto = faixaK4Pago.max // KINEO-K4-PAGO-CABE-0211 — sem medição da voz no pago: passar do teto não tem rede
     if (faixaK4) { // KINEO-K4-NARRACAO-CABE-0111
       tetoFilmeCurto = faixaK4.max; pisoFilmeCurto = faixaK4.min // KINEO-K4-NARRACAO-CABE-0111 — tetoDuroFilmeCurto NÃO muda
       if (idiomaDoRitmo !== undefined) faixaDoCinematic = faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, minCoverageFor(alvoSegundos), idiomaDoRitmo) // KINEO-K4-NARRACAO-CABE-0111 — "o cinematic aceita" = o portão real de 15 s (75 %), não o de 95 %
