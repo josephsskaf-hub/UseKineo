@@ -1,102 +1,111 @@
-// KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — guardião da régua de silêncio do Kling 4 PAGO de 15 s.
+// KINEO-K4-PAGO-SILENCIO-0211 (+0211c) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — guardião da régua do Kling 4 PAGO de 15 s.
 // Defeito (02/11 20:54 UTC, c391673c): ideia em pt → 28 palavras (faixa 27–31 do KINEO-K4-PAGO-CABE-0211) → 422 plan_silence_inside_scenes
-// ("cena 1 fica 1,8 s sem fala", per_scene [1.8, 0.5]) antes do despacho. O portão julgava as cenas do PLANO no passo nominal da voz pinada
-// (echo@0.96 → 2,21 pal/s em pt/es), mas o Kling 4 pago de 15 s é UM clipe com a fala inteira, e a faixa foi medida na voz REAL (2,0 pal/s).
-// Aqui, sem rede e sem fal: em en/pt/es a faixa do escritor ⊂ [mínimo da régua do portão, máximo que cabe em 15,5 s na voz real]; a régua
-// antiga reproduz a recusa; só o Kling 4 pago de 15 s muda; a rota liga a régua nova nos DOIS pontos (ensaio de $0 e portão pago).
-// 2ª régua (21:14 UTC, f37872b5, en, 26 palavras): plan_duration_below_request — fitCinematicPlanFloor estica cada cena só até
-// ⌈palavras ÷ 2,3⌉ + 1 e o plano de 2 cenas parou em 14 s; mas prepareKling4PaidFilm reescala o plano para o clipe único de 15 s.
-// Na origin/main este guardião nem carrega (lib/kling4PaidSilence não existe).
+// ("cena 1 fica 1,8 s sem fala", per_scene [1.8, 0.5]) antes do despacho: o portão julgava as cenas do PLANO; o Kling 4 pago de 15 s é UM
+// clipe com a fala inteira. 2ª recusa (21:14 UTC, f37872b5, en, 26 palavras): plan_duration_below_request — o plano não é o filme.
+// 0211c (revisão): a régua do clipe único usa a voz da MONTAGEM (velocidade pinada) com o fator real RÁPIDO (0,93) no silêncio (cauda
+// ≤ 2,5 s) e o LENTO (0,87) contra o que o compose aceita (FALA-CABE: (15 − 0,4) × 1,1 s) — estouro = recusa grátis antes da fal;
+// o meta95 volta a ser o da origin/main (o fallback 'curto' ia ao planejador IA, que enche até ~34 palavras sem teto do pago).
+// Sem rede e sem fal. Na origin/main este guardião nem carrega (lib/kling4PaidSilence não existe).
 // Rodar: npx tsx scripts/test-k4-pago-silencio-0211.mts
 import fs from 'node:fs'
-import { passoRealDoKling4Pago, usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, segundosDoFilmeNaReguaDeDuracao, pisoDoMeta95NoKling4Pago } from '../lib/kling4PaidSilence'
-import { avaliarRoteiroEscrito } from '../lib/meta95/ideiaNoEscritor'
+import { execFileSync } from 'node:child_process'
+import {
+  usaReguaDoKling4Pago, falaDoKling4Pago, reguaDoKling4Pago, faixaDaVozNoKling4Pago, ritmoNominalDaVoz, velocidadeDaMontagemDoKling4Pago,
+  segundosDoFilmeNaReguaDeDuracao, K4_PAGO_FATOR_REAL_RAPIDO, K4_PAGO_FATOR_REAL_LENTO, K4_PAGO_SILENCIO_MAX_S, K4_PAGO_FALA_MAX_S,
+} from '../lib/kling4PaidSilence'
 import { prepareKling4PaidFilm } from '../lib/kling4PaidFilm'
-import { faixaDoKling4PagoNoEscritor, K4_TETO_MEDIDO_SEGUNDOS, K4_FATOR_REAL_PADRAO, K4_FATOR_REAL_POR_VOZ } from '../lib/kling4TrialScript'
-import { RITMO_HOLLYWOOD, fatorDoRitmoDoIdioma } from '../lib/durationByEngine'
+import { faixaDoKling4PagoNoEscritor } from '../lib/kling4TrialScript'
 import { fitCinematicPlanFloor, planSilenceReport, SILENCE_SCENE_MAX_SECONDS, SILENCE_TOTAL_MAX_SECONDS, type SilenceScene } from '../lib/cinematic/timelineContract'
 import { resolveHollywoodVoice } from '../lib/hollywood/hostVoice'
+import { VOICE_PERSONAS } from '../lib/narration/personas'
+import { voiceForCharacter } from '../lib/hollywood/characterVoice'
 
 let pass = 0, fail = 0
 const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 const rd = (p: string) => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const palavras = (n: number) => Array.from({ length: n }, () => 'palavra').join(' ')
-
-// Espelho de reguaDoFilme (app/api/generate-video-cinematic/route.ts): limites por cena e total proporcional (8 s a cada 60 s, nunca < 8).
-const regua = (scenes: SilenceScene[], wps: number) => {
+// Espelho de reguaDoFilme (route.ts): limites por cena e total proporcional (8 s a cada 60 s, nunca < 8) — a régua de antes.
+const reguaAntiga = (scenes: SilenceScene[], wps: number) => {
   const rep = planSilenceReport(scenes, wps)
   const filme = scenes.reduce((a, s) => a + (s.seconds || 0), 0)
   const totalMax = Math.round(SILENCE_TOTAL_MAX_SECONDS * Math.max(1, filme / 60) * 10) / 10
   return { ...rep, ok: rep.worst <= SILENCE_SCENE_MAX_SECONDS && rep.total <= totalMax }
 }
-const reguaNova = (n: number, l: string, verbatim = true) =>
-  regua(filmeDoKling4PagoParaARegua({ verbatim, narration: palavras(n), scenes: [{ type: 'cinematic', voiceover: palavras(n) }] }), passoRealDoKling4Pago(l))
-const minimoDoPortao = (l: string) => { for (let n = 1; n <= 60; n++) if (reguaNova(n, l).ok) return n; return Infinity }
-const ritmoVozDe = (texto: string, l: string) => { const v = resolveHollywoodVoice(texto, l as 'en', undefined, null); return Math.round(2.3 * Math.max(0.85, Math.min(1.1, v.defaultSpeed)) * 100) / 100 }
-const TEXTOS: Record<string, string> = {
-  pt: 'Este animal tem três corações! Sabias que o polvo tem três corações e sangue azul? Dois bombeiam sangue para as brânquias e o terceiro para o corpo.',
-  es: 'Este animal tiene tres corazones. ¿Sabías que el pulpo tiene tres corazones y sangre azul? Dos bombean sangre a las branquias y el tercero al cuerpo.',
-  en: 'Want to master money in seconds? Start by setting a realistic budget you can stick to. Explore investment options. Every small step counts toward a secure future.',
-}
 
-console.log('1. faixa do escritor ⊂ [mínimo do portão, máximo na voz real] (en/pt/es)')
-for (const l of ['en', 'pt', 'es']) {
-  const f = faixaDoKling4PagoNoEscritor(l)
-  const min = minimoDoPortao(l)
-  const passo = passoRealDoKling4Pago(l)
-  ok(f.min >= min, `${l}: piso da faixa ${f.min} ≥ mínimo do portão ${min} (clipe único de 15 s a ${passo.toFixed(3)} pal/s)`)
-  ok(f.max / passo <= K4_TETO_MEDIDO_SEGUNDOS, `${l}: teto ${f.max} ÷ ${passo.toFixed(3)} = ${(f.max / passo).toFixed(2)} s ≤ ${K4_TETO_MEDIDO_SEGUNDOS} s (nada de scene_speech_exceeds_footage)`)
-  let todas = true
-  for (let n = f.min; n <= f.max; n++) if (!reguaNova(n, l).ok) todas = false
-  ok(todas, `${l}: toda contagem de ${f.min} a ${f.max} passa no portão`)
-  ok(!reguaNova(f.min - 2, l).ok, `${l}: ${f.min - 2} palavras (abaixo do portão pago de 26) seguem reprovando — o portão não virou carimbo`)
-  // a voz real medida da voz pinada de pt/es (echo@0.96, fator 0,89) é MAIS LENTA que o passo da régua: o portão não aprova silêncio maior que o previsto
-  const echoReal = 2.3 * 0.96 * K4_FATOR_REAL_POR_VOZ['echo@0.96']
-  ok(echoReal <= passo + 1e-9, `${l}: echo@0.96 real ${echoReal.toFixed(3)} pal/s ≤ passo da régua ${passo.toFixed(3)} (prever mais rápido = mais silêncio previsto, nunca menos)`)
-}
-
-console.log('2. o passo da régua é o MESMO do teto da faixa (uma conta só)')
-for (const l of ['en', 'pt', 'es', 'de', 'tr']) {
-  const p = RITMO_HOLLYWOOD * fatorDoRitmoDoIdioma(l) * K4_FATOR_REAL_PADRAO
-  ok(passoRealDoKling4Pago(l) === p, `${l}: passoRealDoKling4Pago = 2,3 × ${fatorDoRitmoDoIdioma(l).toFixed(3)} × ${K4_FATOR_REAL_PADRAO} = ${p.toFixed(3)}`)
-  const f = faixaDoKling4PagoNoEscritor(l)
-  ok(f.max === Math.max(f.min + 1, Math.floor(K4_TETO_MEDIDO_SEGUNDOS * p + 1e-9)), `${l}: teto da faixa ${f.max} sai do mesmo passo`)
-}
-
-console.log('3. a régua antiga reproduz o defeito (c391673c) e explica o inglês que passou (dc79fc17)')
+console.log('1. a tabela: toda voz/velocidade da casa — mínimo (silêncio, fator 0,93, cauda 2,5 s) e máximo (fator 0,87, 15,5 s | compose 16,06 s)')
+// [voz@velocidade, passo nominal, mínimo, máximo a 15,5 s, máximo que o compose aceita (FALA-CABE)]
+const TABELA: Array<[string, number, number, number, number, number]> = [
+  ['alloy@0.9', 0.9, 2.07, 24, 27, 28], ['onyx@0.92', 0.92, 2.12, 25, 28, 29], ['onyx@0.94', 0.94, 2.16, 26, 29, 30], ['shimmer@0.94', 0.94, 2.16, 26, 29, 30],
+  ['echo@0.96', 0.96, 2.21, 26, 29, 30], ['onyx@0.96', 0.96, 2.21, 26, 29, 30], ['nova@0.97', 0.97, 2.23, 26, 30, 31], ['onyx@1', 1, 2.3, 27, 31, 32],
+  ['nova@1', 1, 2.3, 27, 31, 32], ['echo@1.02', 1.02, 2.35, 28, 31, 32], ['fable@1.03', 1.03, 2.37, 28, 31, 33], ['nova@1.03', 1.03, 2.37, 28, 31, 33],
+  ['alloy@1.04', 1.04, 2.39, 28, 32, 33], ['shimmer@1.06', 1.06, 2.44, 29, 32, 34], ['fable@1.1', 1.1, 2.53, 30, 34, 35],
+]
+ok(K4_PAGO_FATOR_REAL_RAPIDO === 0.93 && K4_PAGO_FATOR_REAL_LENTO === 0.87 && K4_PAGO_SILENCIO_MAX_S === 2.5 && K4_PAGO_FALA_MAX_S === 16.06, 'constantes: rápido 0,93 · lento 0,87 · cauda 2,5 s · compose (15 − 0,4) × 1,1 = 16,06 s')
 {
-  const rPt = ritmoVozDe(TEXTOS.pt, 'pt'), rEs = ritmoVozDe(TEXTOS.es, 'es'), rEn = ritmoVozDe(TEXTOS.en, 'en')
-  ok(rPt === 2.21 && rEs === 2.21, `pt/es: voz pinada echo@0.96 → ritmoVoz ${rPt}/${rEs} pal/s (o passo do portão antigo)`)
-  ok(rEn === 2.07, `en (dinheiro): alloy@0.9 → ritmoVoz ${rEn} pal/s`)
-  // plano de 2 cenas que soma 15 s com as 28 palavras do pt (16 + 12 em 9 + 6 s)
-  const plano: SilenceScene[] = [{ type: 'cinematic', seconds: 9, voiceover: palavras(16) }, { type: 'cinematic', seconds: 6, voiceover: palavras(12) }]
-  const antes = regua(plano, rPt)
-  ok(!antes.ok && antes.worstScene === 1 && antes.worst === 1.8, `pt 28 palavras na régua antiga: cena 1 com ${antes.worst} s mudos → recusa (o 422 de 02/11)`)
-  ok(regua(plano, rEn).ok, 'o MESMO plano na voz do inglês (2,07) passa — a recusa era sorte da voz, não do roteiro')
-  ok(reguaNova(28, 'pt').ok, 'pt 28 palavras na régua nova (clipe único de 15 s, passo real) → passa')
-  // a faixa inteira na régua antiga, no melhor plano possível (cena única), recusa em pt/es
-  for (const l of ['pt', 'es']) ok(!regua([{ type: 'cinematic', seconds: 15, voiceover: palavras(faixaDoKling4PagoNoEscritor(l).min) }], 2.21).ok, `${l}: o piso ${faixaDoKling4PagoNoEscritor(l).min} recusava na régua antiga mesmo num clipe único (15 − ${faixaDoKling4PagoNoEscritor(l).min}/2,21 > 1,5 s)`)
+  const daCasa = new Set<string>()
+  for (const p of VOICE_PERSONAS) daCasa.add(`${p.voice}@${p.defaultSpeed}`)
+  for (const g of ['male', 'female', 'child'] as const) for (const a of ['young', 'adult', 'elderly'] as const) { const v = voiceForCharacter(g, a); daCasa.add(`${v.voice}@${v.speed}`) }
+  ok([...daCasa].every((k) => TABELA.some((t) => t[0] === k)) && TABELA.every((t) => daCasa.has(t[0])), `a tabela cobre exatamente as ${daCasa.size} vozes/velocidades da casa (personas + vozes de personagem)`)
+}
+for (const [k, s, ritmo, min, max155, maxCompose] of TABELA) {
+  const f = faixaDaVozNoKling4Pago(s)
+  const m155 = Math.floor(15.5 * ritmo * K4_PAGO_FATOR_REAL_LENTO + 1e-9)
+  ok(ritmoNominalDaVoz(s) === ritmo && f.min === min && m155 === max155 && f.max === maxCompose, `${k}: passo ${ritmo} · mín ${min} · máx ${max155} (15,5 s) · máx ${maxCompose} (compose)`)
+  const r = (n: number) => reguaDoKling4Pago({ fala: palavras(n), speed: s })
+  ok(r(min).ok && !r(min - 1).ok && !r(min - 1).estouro, `${k}: ${min} passa, ${min - 1} recusa por silêncio (cauda > 2,5 s na voz rápida)`)
+  ok(r(maxCompose).ok && r(maxCompose + 1).estouro && !r(maxCompose + 1).ok, `${k}: ${maxCompose} cabe, ${maxCompose + 1} estoura (recusa grátis antes da fal)`)
 }
 
-console.log('4. só o Kling 4 pago de 15 s muda')
+console.log('2. a faixa fixa do escritor (27–31) contra a tabela: a voz da montagem só é conhecida DEPOIS do roteiro')
+{
+  const f = faixaDoKling4PagoNoEscritor('en')
+  ok(f.min === 27 && f.max === 31, 'faixa do escritor en/pt/es = 27–31 (intocada)')
+  const cabem = TABELA.filter(([, , , min, , maxC]) => f.min >= min && f.max <= maxC).map((t) => t[0])
+  ok(JSON.stringify(cabem) === JSON.stringify(['nova@0.97', 'onyx@1', 'nova@1']), `a faixa inteira cabe só em: ${cabem.join(', ')}`)
+  // só personas importam no Kling 4 pago: o claim não leva host_voice e o compose resolve pelo roteiro, sem ficha
+  const personas = TABELA.filter((t) => VOICE_PERSONAS.some((p) => `${p.voice}@${p.defaultSpeed}` === t[0]))
+  const piso = Math.max(...personas.map((t) => t[3])), teto = Math.min(...personas.map((t) => t[5]))
+  ok(piso === 30 && teto === 28 && piso > teto, `interseção das personas VAZIA: o maior mínimo (${piso}, fable@1.1) passa do menor máximo (${teto}, alloy@0.9) — nenhuma faixa fixa serve; a régua julga na voz real e recusa grátis`)
+  const r = resolveHollywoodVoice('In today’s world, understanding money is crucial. Start by setting a realistic budget.', 'en', undefined)
+  ok(r.voice === 'alloy' && r.defaultSpeed === 0.9, 'a persona sai do TEXTO do roteiro (o mesmo tema dá alloy@0.9 no en de dinheiro) — não existe antes do escritor')
+}
+
+console.log('3. o defeito c391673c reproduzido na régua antiga e resolvido na nova')
+{
+  const rPt = Math.round(2.3 * 0.96 * 100) / 100
+  const plano: SilenceScene[] = [{ type: 'cinematic', seconds: 9, voiceover: palavras(16) }, { type: 'cinematic', seconds: 6, voiceover: palavras(12) }]
+  const antes = reguaAntiga(plano, rPt)
+  ok(!antes.ok && antes.worstScene === 1 && antes.worst === 1.8, `pt 28 palavras na régua antiga (echo@0.96, ${rPt} pal/s, cenas do plano): cena 1 com ${antes.worst} s → recusa`)
+  const pt = 'Este animal tem três corações! Sabias que o polvo tem três corações e sangue azul? Dois bombeiam sangue para as brânquias.'
+  ok(velocidadeDaMontagemDoKling4Pago(pt, 'pt') === 0.96, 'pt documentário: a montagem fala em echo@0.96')
+  ok(reguaDoKling4Pago({ fala: palavras(28), speed: 0.96 }).ok, 'pt 28 palavras no clipe único, voz echo@0.96 → passa (faixa da voz 26–30)')
+  ok(!reguaDoKling4Pago({ fala: palavras(26), speed: 0.9 }).estouro && reguaDoKling4Pago({ fala: palavras(26), speed: 0.9 }).ok, 'en 26 palavras (f37872b5) em alloy@0.9 → passa (24–28)')
+  ok(!reguaDoKling4Pago({ fala: palavras(31), speed: 0.9 }).ok && reguaDoKling4Pago({ fala: palavras(31), speed: 0.9 }).estouro, 'en 31 palavras em alloy@0.9 → recusa grátis (16,6 s na voz lenta; antes ia à fal e o compose recusava depois)')
+}
+
+console.log('4. lado seguro: silêncio na voz rápida, estouro na voz lenta; os outros motores intocados')
+for (const [k, s] of TABELA.map((t) => [t[0], t[1]] as const)) {
+  const ritmo = ritmoNominalDaVoz(s)
+  const n = faixaDaVozNoKling4Pago(s).min
+  ok(15 - n / (ritmo * 0.93) >= 15 - n / (ritmo * 0.87), `${k}: a cauda prevista na voz rápida é a maior das duas (não subestima o silêncio)`)
+}
 ok(usaReguaDoKling4Pago({ paidKling4: true, seconds: 15 }), 'Kling 4 pago · 15 s → régua do clipe único')
-for (const s of [30, 35, 60, 90]) ok(!usaReguaDoKling4Pago({ paidKling4: true, seconds: s }), `Kling 4 pago · ${s} s → régua de sempre`)
-for (const s of [15, 60]) ok(!usaReguaDoKling4Pago({ paidKling4: false, seconds: s }), `não-Kling 4 (Kling 3/H3/Omni/S25) · ${s} s → régua de sempre`)
+for (const s of [30, 60]) ok(!usaReguaDoKling4Pago({ paidKling4: true, seconds: s }), `Kling 4 pago · ${s} s → régua de sempre (1,5 s por cena)`)
+ok(!usaReguaDoKling4Pago({ paidKling4: false, seconds: 15 }), 'outros motores a 15 s → régua de sempre (1,5 s por cena)')
+ok(SILENCE_SCENE_MAX_SECONDS === 1.5 && SILENCE_TOTAL_MAX_SECONDS === 8, 'limites da régua comum intocados (1,5 s / 8 s)')
 {
   const cenas = [{ type: 'cinematic', voiceover: 'um dois' }, { type: 'dialogue', dialogueLine: 'três', voiceover: 'x' }, { type: 'cinematic', voiceover: 'quatro' }]
-  ok(filmeDoKling4PagoParaARegua({ verbatim: false, scenes: cenas })[0].voiceover === 'um dois três quatro', 'sem verbatim: a fala é a do despacho (falas do plano, diálogo pela linha falada)')
-  const v = filmeDoKling4PagoParaARegua({ verbatim: true, narration: 'a narração do roteiro', scenes: cenas })
-  ok(v.length === 1 && v[0].seconds === 15 && v[0].voiceover === 'a narração do roteiro', 'verbatim: uma cena de 15 s com a narração do roteiro (parsedScript.narration)')
+  ok(falaDoKling4Pago({ verbatim: false, scenes: cenas }) === 'um dois três quatro' && falaDoKling4Pago({ verbatim: true, narration: 'roteiro', scenes: cenas }) === 'roteiro', 'a fala julgada é a do despacho (verbatim → narração do roteiro)')
 }
 
-console.log('5. a rota liga a régua nova nos dois pontos, com a mesma fala do despacho (fonte)')
+console.log('5. o teto da régua é o que o compose aceita (fonte)')
 {
+  const cps = rd('app/api/compose/route.ts')
+  ok(cps.includes('const FALA_CABE_RESPIRO_S = 0.4') && cps.includes('const FALA_CABE_MAX_FATOR = 1.1'), 'compose: respiro 0,4 s e re-síntese × 1,1 (KINEO-FALA-CABE) — K4_PAGO_FALA_MAX_S = (15 − 0,4) × 1,1')
+  ok(cps.includes('hollywoodPinnedVoice = hollywoodVoiceFromClaim(cinematicBirthClaim?.response?.host_voice)\n            ?? resolveHollywoodVoice(voiceoverScript, language, vertical)'), 'compose: sem host_voice no claim, a voz sai do roteiro + língua + vertical (sem ficha) — a mesma que a régua usa')
   const rt = rd('app/api/generate-video-cinematic/route.ts')
-  const linha = "const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz)"
-  ok(rt.split(linha).length === 3, 'ensaio de $0 e portão pago usam a régua do clipe único no Kling 4 pago de 15 s')
-  ok(!/const silence = reguaDoFilme\(plan\.scenes, ritmoVoz\)/.test(rt), 'nenhum ponto ficou com a régua antiga incondicional')
-  ok(rt.includes("const narration = verbatim ? parsedScript.narration : plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '').join(' ')"), 'o despacho pago segue entregando a mesma fala (verbatim → parsedScript.narration) a prepareKling4PaidFilm')
-  ok(rt.indexOf(linha, rt.indexOf('KINEO-SILENCIO-NA-CENA-2026-09-11 — aprovado pelo fundador')) < rt.indexOf('if (paidKling4) {\n        // The approved plan and speech guards above are shared.'), 'o portão roda ANTES do despacho pago (nenhum POST sem a régua)')
+  const k4 = rt.slice(rt.indexOf('if (paidKling4) {\n        // The approved plan and speech guards above are shared.'), rt.indexOf('if (paidKling4) {\n        // The approved plan and speech guards above are shared.') + 6000)
+  ok(!k4.includes('host_voice'), 'o claim do Kling 4 pago segue sem host_voice (a régua e a montagem resolvem a mesma voz)')
 }
 
 console.log('6. a régua de duração (plan_duration_below_request) julga o filme despachado: o Kling 4 pago de 15 s tem sempre 15 s')
@@ -104,15 +113,9 @@ console.log('6. a régua de duração (plan_duration_below_request) julga o film
   const plano = (ws: number[]) => fitCinematicPlanFloor(ws.map((w) => ({ type: 'cinematic', seconds: 4, voiceover: palavras(w) })), 15, 10)
   const soma = (ws: number[]) => plano(ws).reduce((a, s) => a + s.seconds, 0)
   ok(soma([13, 13]) === 14, `f37872b5 reproduzido: 26 palavras em 2 cenas → o piso do plano para em ${soma([13, 13])} s (< 15) → 422 na régua antiga`)
-  ok(soma([11, 16]) < 15, `na régua antiga até o piso da faixa (27 = 11 + 16) para em ${soma([11, 16])} s, conforme a divisão do plano`)
-  // régua antiga: nenhuma contagem que caiba em 15,5 s de voz real (≤ 31) passa em TODA divisão do plano em 2 cenas (cena
-  // cinematográfica tem teto de 8 s e cada cena só estica até ⌈wᵢ/2,3⌉ + 1) — nenhuma faixa inteira resolvia: a régua tinha de mudar
   let algumaFaixa = false
   for (let w = 20; w <= 31; w++) { let todas = true; for (let a = 1; a < w; a++) if (soma([a, w - a]) < 15) todas = false; if (todas) algumaFaixa = true }
   ok(!algumaFaixa, 'régua antiga, 2 cenas: nenhuma contagem de 20 a 31 passa em toda divisão — subir o piso da faixa não resolvia')
-  let minEquilibrado = Infinity
-  for (let w = 20; w <= 40 && minEquilibrado === Infinity; w++) if (soma([Math.floor(w / 2), Math.ceil(w / 2)]) >= 15) minEquilibrado = w
-  ok(minEquilibrado === 27, `régua antiga, divisão ao meio: passa a partir de ${minEquilibrado} — o 26 do f37872b5 caía, o 27 passava por sorte da divisão`)
   for (const ws of [[13, 13], [11, 16], [14, 15, 2]]) {
     const total = ws.reduce((a, b) => a + b, 0)
     const chunks = prepareKling4PaidFilm({ seconds: 15, narration: palavras(total), scenes: plano(ws).map((s) => ({ prompt: 'shot', seconds: s.seconds })) })
@@ -120,42 +123,28 @@ console.log('6. a régua de duração (plan_duration_below_request) julga o film
   }
   ok(segundosDoFilmeNaReguaDeDuracao({ paidKling4: true, seconds: 15, plannedSeconds: 14 }) === 15, 'Kling 4 pago de 15 s: a régua de duração vê os 15 s do clipe')
   ok(segundosDoFilmeNaReguaDeDuracao({ paidKling4: true, seconds: 30, plannedSeconds: 28 }) === 28 && segundosDoFilmeNaReguaDeDuracao({ paidKling4: false, seconds: 15, plannedSeconds: 14 }) === 14, 'Kling 4 de 30/60 s e os outros motores: a soma do plano, como sempre')
-  for (const l of ['en', 'pt', 'es']) {
-    const f = faixaDoKling4PagoNoEscritor(l)
-    let todas = true
-    for (let n = f.min; n <= f.max; n++) for (let a = 1; a < n; a++) {
-      if (!(reguaNova(n, l).ok && segundosDoFilmeNaReguaDeDuracao({ paidKling4: true, seconds: 15, plannedSeconds: soma([a, n - a]) }) >= 15)) todas = false
-    }
-    ok(todas && f.max / passoRealDoKling4Pago(l) <= K4_TETO_MEDIDO_SEGUNDOS, `${l}: faixa ${f.min}–${f.max} passa nas DUAS réguas do portão em qualquer divisão do plano e cabe em 15,5 s de voz real`)
-  }
-  ok(!reguaNova(26, 'en').ok, 'f37872b5 (26 palavras, ABAIXO da faixa) segue recusado — agora pela régua de silêncio (2,0 s mudos no clipe)')
-  const rt = rd('app/api/generate-video-cinematic/route.ts')
-  ok(rt.includes('const finalPlannedSeconds = segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0) })'), 'rota: o portão de duração usa os segundos do filme despachado')
-  ok(rt.includes('verdict: muteSeconds <= 6 && segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: totalSeconds }) >= duration'), 'rota: o ensaio de $0 dá o mesmo veredito de duração')
 }
 
-console.log('7. KINEO-K4-PAGO-SILENCIO-0211b — o meta95 aceita a ideia do Kling 4 pago de 15 s a partir do piso da faixa')
+console.log('7. 0211c: o meta95 volta a ser o da origin/main (ideia curta → recusa grátis no portão, nunca o planejador IA sem teto)')
 {
-  const roteiro = (n: number) => {
-    const ws = palavras(n).split(' ')
-    const q = Math.ceil(n / 3)
-    return `HOOK: [Pexels: city] ${ws.slice(0, q).join(' ')}.\nMICRO REWARD 1: [Pexels: street] ${ws.slice(q, 2 * q).join(' ')}.\nPAYOFF: [Pexels: sky] ${ws.slice(2 * q).join(' ')}.`
-  }
-  for (const l of ['en', 'pt', 'es']) {
-    const f = faixaDoKling4PagoNoEscritor(l)
-    ok(pisoDoMeta95NoKling4Pago({ engine: 'hollywood', seconds: 15, language: l, live: true }) === f.min, `${l}: piso do meta95 no Kling 4 pago de 15 s = piso da faixa (${f.min})`)
-    const abaixo = avaliarRoteiroEscrito({ script: roteiro(f.min - 1), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: true })
-    ok(!abaixo.ok && abaixo.motivo === 'curto' && abaixo.piso === f.min, `${l}: ${f.min - 1} palavras (o f37872b5) → fallback 'curto' (caminho de antes, sem 422), não 'used'`)
-    ok(avaliarRoteiroEscrito({ script: roteiro(f.min), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: true }).ok, `${l}: ${f.min} palavras → entra`)
-    ok(avaliarRoteiroEscrito({ script: roteiro(f.min - 1), engine: 'hollywood', seconds: 15, language: l, kling4PagoLive: false }).ok, `${l}: interruptor do Kling 4 pago desligado (Kling 3) → piso de sempre (${f.min - 1} entra)`)
-  }
-  for (const [engine, s] of [['hollywood', 30], ['hollywood', 60], ['h3', 15], ['seedance', 15], ['omni', 15]] as const) {
-    ok(pisoDoMeta95NoKling4Pago({ engine, seconds: s, language: 'en', live: true }) === null, `${engine} · ${s} s → piso do meta95 de sempre`)
-  }
-  ok(!reguaNova(faixaDoKling4PagoNoEscritor('en').min - 1, 'en').ok, 'o que o meta95 passa a recusar é exatamente o que a régua do clipe recusaria depois')
-  const m95 = rd('lib/meta95/ideiaNoEscritor.ts')
-  ok(m95.includes('const piso = Math.max(pisoDoPortao(args), pisoDoMeta95NoKling4Pago({ engine: args.engine, seconds: args.seconds, language: args.language, live: args.kling4PagoLive }) ?? 0)'), 'meta95: o piso de aceitação é o maior entre o do portão e o da faixa do Kling 4 pago')
-  ok((m95.match(/args\.escritor\(/g) ?? []).length === 1, 'meta95: uma chamada ao escritor (a nova tentativa segue dentro do generate-script) — sem laço novo')
+  let diff = 'x'
+  try { diff = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'lib/meta95/ideiaNoEscritor.ts'], { encoding: 'utf8' }).trim() } catch { /* sem git = falha */ }
+  ok(diff === '', 'lib/meta95/ideiaNoEscritor.ts sem mudança contra a origin/main')
+}
+
+console.log('8. a rota liga a régua nova antes do despacho (fonte)')
+{
+  const rt = rd('app/api/generate-video-cinematic/route.ts')
+  const linha = 'const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: velocidadeDaMontagemDoKling4Pago(fala, hollywoodLanguage, hollywoodVertical) }) })() : reguaDoFilme(plan.scenes, ritmoVoz)'
+  ok(rt.split(linha).length === 3, 'ensaio de $0 e portão pago usam a régua do clipe único no Kling 4 pago de 15 s')
+  ok(!/const silence = reguaDoFilme\(plan\.scenes, ritmoVoz\)/.test(rt), 'nenhum ponto ficou com a régua antiga incondicional')
+  const iGate = rt.indexOf(linha, rt.indexOf('KINEO-SILENCIO-NA-CENA-2026-09-11 — aprovado pelo fundador'))
+  const iEstouro = rt.indexOf("reason: 'kling4_paid_narration_over_clip'")
+  const iSilencio = rt.indexOf("reason: 'plan_silence_inside_scenes'")
+  const iDespacho = rt.indexOf('if (paidKling4) {\n        // The approved plan and speech guards above are shared.')
+  ok(iGate > 0 && iGate < iEstouro && iEstouro < iSilencio && iSilencio < iDespacho, 'ordem: régua → recusa por estouro → recusa por silêncio → despacho pago (nenhum POST sem as duas)')
+  ok(rt.includes('const finalPlannedSeconds = segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: plan.scenes.reduce((sum, scene) => sum + scene.seconds, 0) })'), 'o portão de duração usa os segundos do filme despachado')
+  ok(rt.includes('verdict: muteSeconds <= 6 && segundosDoFilmeNaReguaDeDuracao({ paidKling4, seconds: duration, plannedSeconds: totalSeconds }) >= duration'), 'o ensaio de $0 dá o mesmo veredito de duração')
 }
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)

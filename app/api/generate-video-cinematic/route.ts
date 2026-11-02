@@ -21,7 +21,7 @@ import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' //
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
 import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
-import { usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, passoRealDoKling4Pago, segundosDoFilmeNaReguaDeDuracao } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é UM clipe com a fala inteira, julgado no passo real da faixa
+import { usaReguaDoKling4Pago, falaDoKling4Pago, velocidadeDaMontagemDoKling4Pago, reguaDoKling4Pago, segundosDoFilmeNaReguaDeDuracao, type ReguaDoKling4Pago } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é UM clipe com a fala inteira, julgado na voz da montagem
 import { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'
 import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue'
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
@@ -5533,7 +5533,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
           // KINEO-RITMO-DA-VOZ-2026-09-15 — no MESMO ritmo da voz pinada que o portão pago usa (ritmoVoz),
           // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.
-          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
+          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: velocidadeDaMontagemDoKling4Pago(fala, hollywoodLanguage, hollywoodVertical) }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
@@ -5687,7 +5687,18 @@ async function manipularPost(req: NextRequest) {
       // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
       {
         // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).
-        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
+        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: velocidadeDaMontagemDoKling4Pago(fala, hollywoodLanguage, hollywoodVertical) }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211
+        const k4 = silence as Partial<ReguaDoKling4Pago>
+        if (k4.estouro) { // KINEO-K4-PAGO-SILENCIO-0211c — a fala na voz lenta passa do que o compose aceita no clipe de 15 s: recusa grátis ANTES da fal
+          const refunded = await confirmCinematicRefund()
+          const released = refunded && await releaseBirthClaim('kling4_paid_narration_over_clip')
+          return NextResponse.json({
+            error: `This narration is too long for one 15-second Kling 4.0 shot (${k4.palavras} words; this voice fits about ${k4.palavrasMax}). Remove about ${(k4.palavras ?? 0) - (k4.palavrasMax ?? 0)} words or choose 30 seconds. No video was submitted and your credits are back.`,
+            qualityCheckFailed: true, reason: 'kling4_paid_narration_over_clip',
+            generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+            words: k4.palavras, maxWords: k4.palavrasMax, predictedSpeechSeconds: k4.falaLentaSegundos,
+          }, { status: 422 })
+        }
         if (!silence.ok) {
           const refunded = await confirmCinematicRefund()
           const released = refunded && await releaseBirthClaim('plan_silence_inside_scenes')

@@ -1,21 +1,32 @@
-// KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a régua de silêncio do Kling 4 PAGO de 15 s.
+// KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a régua do Kling 4 PAGO de 15 s.
 // Defeito (02/11 20:54 UTC, c391673c): ideia em português → o escritor entregou 28 palavras (faixa do pago 27–31, KINEO-K4-PAGO-CABE-0211)
 // e o portão KINEO-SILENCIO-NA-CENA recusou ANTES do despacho (422 plan_silence_inside_scenes: "cena 1 fica 1,8 s sem fala"). O portão
-// julgava as cenas do PLANO (8 + 7 s) no passo nominal da voz pinada (ritmoVoz = 2,3 × 0,96 = 2,21 pal/s para echo@0.96, a voz de
-// pt/es documentário) — mas o Kling 4 pago de 15 s NÃO tem cenas com fala própria: prepareKling4PaidFilm junta a fala inteira num
-// clipe único de 15 s (scene_narrations: [tudo], scene_seconds: [15]). E a faixa do escritor foi medida na voz REAL (2,3 × língua ×
-// K4_FATOR_REAL_PADRAO 0,87 = 2,0 pal/s; echo@0.96 medida: 0,89 → 1,97 pal/s). O inglês passou (27 palavras, dc79fc17) só porque a
-// voz dele era alloy@0.9 (ritmoVoz 2,07). Resultado: pt/es na faixa 27–31 recusavam por sorte da divisão do plano.
-// Aqui a régua julga o filme COMO ELE É DESPACHADO: UM clipe de 15 s com a fala inteira, no MESMO passo real da faixa. Os limites da
-// régua (1,5 s por cena, 8 s no total) não mudam. Só o Kling 4 pago de 15 s; 30/60 s e os outros motores seguem a régua de sempre.
-import { RITMO_HOLLYWOOD, fatorDoRitmoDoIdioma } from '@/lib/durationByEngine'
-import { K4_FATOR_REAL_PADRAO, K4_PAGO_SEGUNDOS, faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript'
-import type { SilenceScene } from '@/lib/cinematic/timelineContract'
+// julgava as cenas do PLANO (8 + 7 s) — mas o Kling 4 pago de 15 s NÃO tem cenas com fala própria: prepareKling4PaidFilm junta a fala
+// inteira num clipe único de 15 s (scene_narrations: [tudo], scene_seconds: [15]).
+// Aqui a régua julga o filme COMO ELE É DESPACHADO E MONTADO: UM clipe de 15 s com a fala inteira, na voz que a MONTAGEM vai usar
+// (o claim do Kling 4 pago não leva host_voice: o compose resolve resolveHollywoodVoice(roteiro, língua, vertical), sem ficha).
+// 0211c (revisão): duas pontas, cada uma no lado seguro da incerteza da voz real (fator real ÷ nominal medido 0,87–0,93):
+//   · SILÊNCIO (a fala não fica curta): passo nominal da voz × o fator RÁPIDO (0,93) — prever a voz mais rápida = mais silêncio
+//     previsto. Clipe único: até 2,5 s de cauda (o "rabo congelado" antigo era ~8 s; ≤ 2,5 s é o fim ambiente do próprio clipe
+//     Kling). Os outros motores seguem 1,5 s por cena.
+//   · CABE (a fala não estoura a montagem DEPOIS de pagar a fal): passo nominal × o fator LENTO (0,87), contra o que o compose
+//     aceita de fato (KINEO-FALA-CABE: fala + 0,4 s de respiro ≤ clipe × 1,1 de re-síntese) → recusa grátis ANTES do despacho.
+import { K4_FATOR_REAL_PADRAO, K4_FATOR_REAL_POR_VOZ, K4_PAGO_SEGUNDOS } from '@/lib/kling4TrialScript'
+import { resolveHollywoodVoice } from '@/lib/hollywood/hostVoice'
+import type { NarrationLanguage } from '@/lib/textLanguage'
 
-/** Passo REAL previsto da voz no Kling 4 pago (pal/s) — a mesma conta do teto de faixaDoKling4PagoNoEscritor. */
-export function passoRealDoKling4Pago(language: string | null | undefined): number {
-  const lang = typeof language === 'string' && language.trim() ? language.trim().toLowerCase() : 'en'
-  return RITMO_HOLLYWOOD * fatorDoRitmoDoIdioma(lang) * K4_FATOR_REAL_PADRAO
+/** Fator real ÷ nominal mais RÁPIDO medido (alloy@0.9 = 0,93): o lado seguro da régua de silêncio. */
+export const K4_PAGO_FATOR_REAL_RAPIDO = Math.max(...Object.values(K4_FATOR_REAL_POR_VOZ))
+/** Fator real ÷ nominal mais LENTO medido (0,87): o lado seguro da régua de "cabe". */
+export const K4_PAGO_FATOR_REAL_LENTO = K4_FATOR_REAL_PADRAO
+/** Cauda muda tolerada no clipe único de 15 s (s). */
+export const K4_PAGO_SILENCIO_MAX_S = 2.5
+/** O que o compose aceita no clipe de 15 s (KINEO-FALA-CABE: respiro 0,4 s, re-síntese até × 1,1). */
+export const K4_PAGO_FALA_MAX_S = Math.round((K4_PAGO_SEGUNDOS - 0.4) * 1.1 * 1000) / 1000
+
+/** Passo nominal da voz (pal/s) — a MESMA conta do ritmoVoz da rota: 2,3 × velocidade da persona limitada a 0,85–1,1. */
+export function ritmoNominalDaVoz(speed: number): number {
+  return Math.round(2.3 * Math.max(0.85, Math.min(1.1, Number.isFinite(speed) ? speed : 1)) * 100) / 100
 }
 
 /** O filme usa a régua do clipe único? Só o Kling 4 pago de 15 s (um clipe, uma fala). */
@@ -25,33 +36,55 @@ export function usaReguaDoKling4Pago(a: { paidKling4: boolean; seconds: number }
 
 type CenaDoPlano = { type: string; voiceover?: string | null; dialogueLine?: string | null }
 
-/**
- * O filme como o Kling 4 pago de 15 s o despacha: UMA cena de 15 s com a fala inteira — a mesma fala que a rota entrega a
- * prepareKling4PaidFilm (verbatim: a narração do roteiro; senão as falas do plano, em ordem).
- */
-export function filmeDoKling4PagoParaARegua(a: { verbatim: boolean; narration?: string | null; scenes: readonly CenaDoPlano[] }): SilenceScene[] {
-  const fala = a.verbatim
+/** A fala que a rota entrega a prepareKling4PaidFilm (verbatim: a narração do roteiro; senão as falas do plano, em ordem). */
+export function falaDoKling4Pago(a: { verbatim: boolean; narration?: string | null; scenes: readonly CenaDoPlano[] }): string {
+  return a.verbatim
     ? String(a.narration ?? '')
     : a.scenes.map((s) => (s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '')).join(' ')
-  return [{ type: 'cinematic', seconds: K4_PAGO_SEGUNDOS, voiceover: fala }]
+}
+
+/** A velocidade da voz que o compose vai usar no Kling 4 pago (sem host_voice no claim: resolução pelo roteiro, sem ficha). */
+export function velocidadeDaMontagemDoKling4Pago(fala: string, language: string, vertical?: string): number {
+  try { return resolveHollywoodVoice(fala, language as NarrationLanguage, vertical).defaultSpeed } catch { return 1 }
+}
+
+export interface ReguaDoKling4Pago {
+  ok: boolean; perScene: number[]; total: number; worst: number; worstScene: number; wordsToAdd: number; totalMax: number
+  /** A fala prevista na voz LENTA passa do que o compose aceita: recusa grátis antes do despacho. */
+  estouro: boolean; falaLentaSegundos: number; palavras: number; palavrasMax: number; palavrasMin: number
+}
+
+/** Mínimo e máximo de palavras do clipe único numa velocidade de voz (as duas pontas da régua). */
+export function faixaDaVozNoKling4Pago(speed: number): { min: number; max: number; ritmo: number } {
+  const ritmo = ritmoNominalDaVoz(speed)
+  let min = 1
+  while (min < 200 && Math.round((K4_PAGO_SEGUNDOS - min / (ritmo * K4_PAGO_FATOR_REAL_RAPIDO)) * 10) / 10 > K4_PAGO_SILENCIO_MAX_S) min++
+  const max = Math.floor(K4_PAGO_FALA_MAX_S * ritmo * K4_PAGO_FATOR_REAL_LENTO + 1e-9)
+  return { min, max, ritmo }
+}
+
+/** A régua do Kling 4 pago de 15 s sobre a fala inteira, na velocidade da voz da montagem. */
+export function reguaDoKling4Pago(a: { fala: string; speed: number }): ReguaDoKling4Pago {
+  const palavras = String(a.fala ?? '').trim().split(/\s+/).filter(Boolean).length
+  const { min, max, ritmo } = faixaDaVozNoKling4Pago(a.speed)
+  const silencio = Math.max(0, Math.round((K4_PAGO_SEGUNDOS - palavras / (ritmo * K4_PAGO_FATOR_REAL_RAPIDO)) * 10) / 10)
+  const falaLentaSegundos = Math.round(palavras / (ritmo * K4_PAGO_FATOR_REAL_LENTO) * 100) / 100
+  const estouro = palavras > max
+  const silencioOk = silencio <= K4_PAGO_SILENCIO_MAX_S
+  return {
+    ok: silencioOk && !estouro, perScene: [silencio], total: silencio, worst: silencio, worstScene: 1,
+    wordsToAdd: silencioOk ? 0 : Math.max(1, min - palavras), totalMax: K4_PAGO_SILENCIO_MAX_S,
+    estouro, falaLentaSegundos, palavras, palavrasMax: max, palavrasMin: min,
+  }
 }
 
 /**
  * Segundos do filme que a régua de duração (plan_duration_below_request) julga. No Kling 4 pago de 15 s o plano NÃO é o filme:
  * prepareKling4PaidFilm reescala a linha do tempo do plano para o clipe único de 15 s (kling4PaidFallbackPrompts idem), então o
- * filme despachado tem sempre K4_PAGO_SEGUNDOS — o que decide se a fala enche o clipe é a régua de silêncio acima. 02/11 21:14 UTC
+ * filme despachado tem sempre K4_PAGO_SEGUNDOS — o que decide se a fala enche o clipe é a régua acima. 02/11 21:14 UTC
  * (f37872b5, en, 26 palavras): fitCinematicPlanFloor estica cada cena só até ⌈palavras ÷ 2,3⌉ + 1 (passo nominal) e o plano de
  * 2 cenas parou em 14 s → 422 plan_duration_below_request antes do despacho. Fora do Kling 4 pago de 15 s: a soma do plano.
  */
 export function segundosDoFilmeNaReguaDeDuracao(a: { paidKling4: boolean; seconds: number; plannedSeconds: number }): number {
   return usaReguaDoKling4Pago(a) ? K4_PAGO_SEGUNDOS : a.plannedSeconds
-}
-
-// ═══ KINEO-K4-PAGO-SILENCIO-0211b [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o meta95 aceita a partir do piso da faixa ═══
-// f37872b5 (02/11 21:14 UTC, en): o escritor devolveu 26 palavras (faixa 27–31; a nova tentativa do generate-script não chegou lá)
-// e o meta95 aceitou — o piso dele era o do portão pago (26). Com a régua do clipe único, 26 palavras = 2,0 s mudos → recusa
-// garantida depois. No Kling 4 pago de 15 s o piso de aceitação do meta95 vira o piso da faixa: abaixo dele a ideia segue o
-// caminho de antes (fallback 'curto', sem 422 novo e sem laço). Fora do Kling 4 pago de 15 s: null (o piso de sempre).
-export function pisoDoMeta95NoKling4Pago(a: { engine?: string | null; seconds: number; language?: string | null; live?: boolean }): number | null {
-  return faixaDoKling4PagoParaOPedido({ engine: a.engine ?? null, seconds: a.seconds, language: a.language ?? 'en', live: a.live })?.min ?? null
 }

@@ -3,15 +3,15 @@
  "scope": {
   "app/api/generate-video-cinematic/route.ts": {
    "beforeSha256": "ce6c8729fc84aa33180ede223e4557dc915784fde24be2535c65af7051520be7",
-   "afterSha256": "e567e48c0b6062a419d05a33d670b3dd0ac41301e45622f2f1d4f44da955f8a8",
+   "afterSha256": "c2f8ea4909aed9ed574292f16104322aed69de58ac7c59fce545b2b2cf54f1d8",
    "hunks": [
     {
      "before": "import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'\nimport { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'",
-     "after": "import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'\nimport { usaReguaDoKling4Pago, filmeDoKling4PagoParaARegua, passoRealDoKling4Pago, segundosDoFilmeNaReguaDeDuracao } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é UM clipe com a fala inteira, julgado no passo real da faixa\nimport { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'"
+     "after": "import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'\nimport { usaReguaDoKling4Pago, falaDoKling4Pago, velocidadeDaMontagemDoKling4Pago, reguaDoKling4Pago, segundosDoFilmeNaReguaDeDuracao, type ReguaDoKling4Pago } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211 — o Kling 4 pago de 15 s é UM clipe com a fala inteira, julgado na voz da montagem\nimport { reserveKling4Promo, verifyKling4PromoReservation, recordKling4PaidUse } from '@/lib/kling4PromoServer'"
     },
     {
      "before": "          // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.\n          const silence = reguaDoFilme(plan.scenes, ritmoVoz)\n          // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══",
-     "after": "          // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.\n          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211\n          // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══"
+     "after": "          // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.\n          const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: velocidadeDaMontagemDoKling4Pago(fala, hollywoodLanguage, hollywoodVertical) }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211\n          // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══"
     },
     {
      "before": "            ...(s25Ensaio ? { s25_cenas: s25Ensaio } : {}), // KINEO-S25-NOTA95-2026-10-06\n            verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0 && silence.ok\n              ? 'PASS — todos os segundos têm história (mudo ≤6s, silêncio dentro da cena ≤1,5s/≤8s), a duração fecha e o payload respeita o schema do fornecedor'",
@@ -23,30 +23,12 @@
     },
     {
      "before": "        // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).\n        const silence = reguaDoFilme(plan.scenes, ritmoVoz)\n        if (!silence.ok) {",
-     "after": "        // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).\n        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? reguaDoFilme(filmeDoKling4PagoParaARegua({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }), passoRealDoKling4Pago(hollywoodLanguage)) : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211\n        if (!silence.ok) {"
-    }
-   ]
-  },
-  "lib/meta95/ideiaNoEscritor.ts": {
-   "beforeSha256": "978f1a7fa6bf8c377b1efc6702a8cbd605c636ca07aaf1ce80ba671ca6c231ef",
-   "afterSha256": "9b90734c7c4e9ff509eec11288673720f299c0add475ed83bd08497db6fc9e0f",
-   "hunks": [
-    {
-     "before": "import { PASTED_SCRIPT_MIN_WORDS } from '@/lib/pastedScript'\n",
-     "after": "import { PASTED_SCRIPT_MIN_WORDS } from '@/lib/pastedScript'\nimport { pisoDoMeta95NoKling4Pago } from '@/lib/kling4PaidSilence' // KINEO-K4-PAGO-SILENCIO-0211b — no Kling 4 pago de 15 s o meta95 aceita a partir do piso da faixa\n"
-    },
-    {
-     "before": "/** O roteiro marcado que o escritor devolveu entra no filme? (só o que a rota vai aceitar: nenhum 422 novo para a ideia solta) */\nexport function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null }): AvaliacaoDoRoteiro {\n  const parsed = parseUserScript(String(args.script ?? ''))",
-     "after": "/** O roteiro marcado que o escritor devolveu entra no filme? (só o que a rota vai aceitar: nenhum 422 novo para a ideia solta) */\nexport function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null; kling4PagoLive?: boolean }): AvaliacaoDoRoteiro {\n  const parsed = parseUserScript(String(args.script ?? ''))"
-    },
-    {
-     "before": "  const palavras = parsed.narration.split(/\\s+/).filter(Boolean).length\n  const piso = pisoDoPortao(args)\n  const blocos = parsed.segments.length",
-     "after": "  const palavras = parsed.narration.split(/\\s+/).filter(Boolean).length\n  const piso = Math.max(pisoDoPortao(args), pisoDoMeta95NoKling4Pago({ engine: args.engine, seconds: args.seconds, language: args.language, live: args.kling4PagoLive }) ?? 0) // KINEO-K4-PAGO-SILENCIO-0211b — Kling 4 pago de 15 s: piso da faixa (27), o mínimo que a régua de silêncio do clipe aceita\n  const blocos = parsed.segments.length"
+     "after": "        // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).\n        const silence = usaReguaDoKling4Pago({ paidKling4, seconds: duration }) ? (() => { const fala = falaDoKling4Pago({ verbatim, narration: parsedScript.narration, scenes: plan.scenes }); return reguaDoKling4Pago({ fala, speed: velocidadeDaMontagemDoKling4Pago(fala, hollywoodLanguage, hollywoodVertical) }) })() : reguaDoFilme(plan.scenes, ritmoVoz) // KINEO-K4-PAGO-SILENCIO-0211\n        const k4 = silence as Partial<ReguaDoKling4Pago>\n        if (k4.estouro) { // KINEO-K4-PAGO-SILENCIO-0211c — a fala na voz lenta passa do que o compose aceita no clipe de 15 s: recusa grátis ANTES da fal\n          const refunded = await confirmCinematicRefund()\n          const released = refunded && await releaseBirthClaim('kling4_paid_narration_over_clip')\n          return NextResponse.json({\n            error: `This narration is too long for one 15-second Kling 4.0 shot (${k4.palavras} words; this voice fits about ${k4.palavrasMax}). Remove about ${(k4.palavras ?? 0) - (k4.palavrasMax ?? 0)} words or choose 30 seconds. No video was submitted and your credits are back.`,\n            qualityCheckFailed: true, reason: 'kling4_paid_narration_over_clip',\n            generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,\n            words: k4.palavras, maxWords: k4.palavrasMax, predictedSpeechSeconds: k4.falaLentaSegundos,\n          }, { status: 422 })\n        }\n        if (!silence.ok) {"
     }
    ]
   }
  },
  "addedSources": {
-  "lib/kling4PaidSilence.ts": "26432c292c91eff8f35f23f4bb296c8e97bd2b371a3a885fb99a9ba4d8c8c9c1"
+  "lib/kling4PaidSilence.ts": "a9c5c709dc91a65d0c659f3f9d71a7ef791c2dfc4e6dd4c98ff357076b1923f1"
  }
 }
