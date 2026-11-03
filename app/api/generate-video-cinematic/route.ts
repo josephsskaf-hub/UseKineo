@@ -6211,6 +6211,7 @@ async function manipularPost(req: NextRequest) {
               text: hs.dialogueLine,
               voice: hostVoice.voice,
               speed: hostVoice.defaultSpeed * hostUserSpeed,
+              language: narrationLanguage.language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a fala do apresentador (lipsync) na voz nativa da língua
             })
             const audioDur = estimateMp3DurationSeconds(speechBuf)
             if (!(audioDur > 0.5)) throw new Error(`host TTS unmeasurable/too short (${audioDur.toFixed(2)}s)`)

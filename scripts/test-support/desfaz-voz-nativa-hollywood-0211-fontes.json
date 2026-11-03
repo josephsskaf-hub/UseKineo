@@ -1,0 +1,94 @@
+{
+ "base": "0364f84fe89c5e03a884bde747a858ecd58fec11",
+ "scope": {
+  "lib/hollywood/hostVoice.ts": {
+   "beforeSha256": "fa2456cef0a6c1318d593c0f30087996d69851d9e5a9d0f0ea8f4ad95a31cbee",
+   "afterSha256": "574dbeddcef853ea3ea17e416e865f383f3dfc10501b087489f8ef9903de0e14",
+   "hunks": [
+    {
+     "before": "import type { NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17\nimport type { OpenAIVoice } from '@/lib/narration/personas'",
+     "after": "import type { NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17\nimport { usesMiniMaxNarration } from '@/lib/textLanguage' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua de voz nativa (MiniMax) também na estrada hollywood\nimport type { OpenAIVoice } from '@/lib/narration/personas'"
+    },
+    {
+     "before": "  speed?: number\n}): Promise<Buffer> {",
+     "after": "  speed?: number\n  /** KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua da narração; as línguas de voz nativa (usesMiniMaxNarration) não passam pela tts-1-hd. */\n  language?: string | null\n}): Promise<Buffer> {"
+    },
+    {
+     "before": "  )\n  // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.",
+     "after": "  )\n  // ═══ KINEO-VOZ-NATIVA-HOLLYWOOD-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] ═══\n  // A voz americana da tts-1-hd lia português/espanhol com sotaque (\"sangue azul\" ouvido como \"cinco olhos\") enquanto a legenda\n  // saía certa. Os clássicos já narram essas línguas na voz nativa MiniMax (lib/compose.ts, KINEO-VOZ-NATIVA-2610); aqui o MESMO\n  // desvio vale para Kling 3, Kling 4 (pago/promo), H3, H3 Max e Seedance 2.5. A velocidade é a MESMA final (safeSpeed, 0,7–1,3 —\n  // a voz pinada do Kling 4 pago chega já final) e o gênero da voz pinada é mantido (homem na ficha = voz de homem na língua).\n  if (args.language != null && usesMiniMaxNarration(args.language)) { // KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n    const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n    const gender = args.voice === 'onyx' || args.voice === 'echo' || args.voice === 'fable' ? 'male' : 'female' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — vozes masculinas da tts-1-hd (characterVoice: onyx/echo para homem)\n    return synthesizeTtsFallback(cleaned, { language: args.language, speed: safeSpeed, gender }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n  } // KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n  // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default."
+    }
+   ]
+  },
+  "lib/ttsFallback.ts": {
+   "beforeSha256": "df648d003b70240edf332701ef5651c2621df2462a62932959ca26ae0b00d1d4",
+   "afterSha256": "db0271df65a205eb39f2e1b5e3aed276a3f0293cc82a619f1aa50b4527ef494b",
+   "hunks": [
+    {
+     "before": "/** O corpo EXATO da rota /audio para a MiniMax 2.8 HD (nunca inventar parâmetro). */\nexport function ttsFallbackInput(text: string, language?: string, speed = 1): { prompt: string; output_format: 'url'; language_boost: MiniMaxLanguageBoost; voice_setting?: { voice_id: string; speed: number } } { // KINEO-IDIOMAS-FORMATOS-2410\n  return { prompt: text, output_format: 'url', language_boost: minimaxLanguageBoost(language), ...(usesMiniMaxNarration(language) ? { voice_setting: { voice_id: minimaxVoiceFor(language), speed: Math.max(0.7, Math.min(1.3, speed)) } } : {}) } // KINEO-IDIOMAS-FORMATOS-2410\n}",
+     "after": "/** O corpo EXATO da rota /audio para a MiniMax 2.8 HD (nunca inventar parâmetro). */\nexport function ttsFallbackInput(text: string, language?: string, speed = 1, gender: 'female' | 'male' = 'female' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — o gênero da voz pinada do hollywood */): { prompt: string; output_format: 'url'; language_boost: MiniMaxLanguageBoost; voice_setting?: { voice_id: string; speed: number } } { // KINEO-IDIOMAS-FORMATOS-2410\n  return { prompt: text, output_format: 'url', language_boost: minimaxLanguageBoost(language), ...(usesMiniMaxNarration(language) ? { voice_setting: { voice_id: minimaxVoiceFor(language, gender) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */, speed: Math.max(0.7, Math.min(1.3, speed)) } } : {}) } // KINEO-IDIOMAS-FORMATOS-2410\n}"
+    },
+    {
+     "before": "  script: string,\n  ctx: { userId?: string | null; generationId?: string | null; language?: string; speed?: number } = {}, // KINEO-IDIOMAS-FORMATOS-2410\n): Promise<Buffer> {",
+     "after": "  script: string,\n  ctx: { userId?: string | null; generationId?: string | null; language?: string; speed?: number; gender?: 'female' | 'male' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ } = {}, // KINEO-IDIOMAS-FORMATOS-2410\n): Promise<Buffer> {"
+    },
+    {
+     "before": "  try {\n    return await sintetizaPelaFal(script, ctx.language, ctx.speed) // KINEO-IDIOMAS-FORMATOS-2410\n  } catch (e) {",
+     "after": "  try {\n    return await sintetizaPelaFal(script, ctx.language, ctx.speed, ctx.gender) // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n  } catch (e) {"
+    },
+    {
+     "before": "\nasync function sintetizaPelaFal(script: string, language?: string, speed?: number): Promise<Buffer> { // KINEO-IDIOMAS-FORMATOS-2410\n  const falKey = process.env.FAL_KEY",
+     "after": "\nasync function sintetizaPelaFal(script: string, language?: string, speed?: number, gender?: 'female' | 'male' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */): Promise<Buffer> { // KINEO-IDIOMAS-FORMATOS-2410\n  const falKey = process.env.FAL_KEY"
+    },
+    {
+     "before": "  const result = (await fal.subscribe(TTS_FALLBACK_MODEL, {\n    input: ttsFallbackInput(text, language, speed), // KINEO-IDIOMAS-FORMATOS-2410\n    timeout: TTS_FALLBACK_TIMEOUT_MS,",
+     "after": "  const result = (await fal.subscribe(TTS_FALLBACK_MODEL, {\n    input: ttsFallbackInput(text, language, speed, gender) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */, // KINEO-IDIOMAS-FORMATOS-2410\n    timeout: TTS_FALLBACK_TIMEOUT_MS,"
+    }
+   ]
+  },
+  "app/api/compose/route.ts": {
+   "beforeSha256": "e4f117eb16ea6651eb376611f8d209e5b57be94a417ff3d3c01ed4d411c2aaa2",
+   "afterSha256": "f170ac9eab34ff3b6387e503120f481a15e11fe2bf7cbe6e2918bcda1cecd689",
+   "hunks": [
+    {
+     "before": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),\n          })",
+     "after": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),\n            language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — pt/es/… narram na voz nativa (MiniMax), a mesma velocidade final\n          })"
+    },
+    {
+     "before": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator,\n          })",
+     "after": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator,\n            language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a re-síntese da FALA-CABE fala na MESMA voz nativa\n          })"
+    }
+   ]
+  },
+  "lib/audioNoCliqueServer.ts": {
+   "beforeSha256": "16296f4928a4ea61306030c872b9fbe5a799837239f0dde6a6129f35fb2341a2",
+   "afterSha256": "3fe092f2273383bf6205d4e7648ac6a69fa7602f0a544d87b7105511f7916efa",
+   "hunks": [
+    {
+     "before": "            if (await lookupCachedVoiceover(chave)) return true\n            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade })\n            const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0",
+     "after": "            if (await lookupCachedVoiceover(chave)) return true\n            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade, language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz do clique ≡ a do compose */ })\n            const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0"
+    }
+   ]
+  },
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "cda7ec34d41f10b2ed21004bcb5a749a29e2b061dd4eac3eb75d748f2681dd09",
+   "afterSha256": "144ad5c74d6c542d33f903ae51e4ab8d21ac72143e1ed0b4a7c4ff4d6f102b31",
+   "hunks": [
+    {
+     "before": "              speed: hostVoice.defaultSpeed * hostUserSpeed,\n            })",
+     "after": "              speed: hostVoice.defaultSpeed * hostUserSpeed,\n              language: narrationLanguage.language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a fala do apresentador (lipsync) na voz nativa da língua\n            })"
+    }
+   ]
+  },
+  "lib/mcp/studioTools.ts": {
+   "beforeSha256": "f45e88eb7c9711bdd1da116a6d7bd59de405c2c07e0171629ddfebff3fb0da2e",
+   "afterSha256": "5f95cd980843e2a4d8dafe12f1815cc01025e5db3884b57723734e786a5fb8d1",
+   "hunks": [
+    {
+     "before": "      duration_seconds: input.duration,\n      language: input.language,\n      aspect: input.aspect,",
+     "after": "      duration_seconds: input.duration,\n      language: typeof data.language === 'string' && data.language ? data.language : input.language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua que a rota RESOLVEU (texto > pedido), não o eco do pedido\n      aspect: input.aspect,"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

@@ -107,7 +107,7 @@ export async function hollywoodDispatch(route, { family = 'hollywood', type = 's
     ...loadSensitivePure('lib/hollywood/fidelidade.ts'), ...loadSensitivePure('lib/hollywood/s25Cena.ts'),
     family, plan, styleAnchor: ss.deriveStyleAnchor(stylePrompt), formatoVisual: { modo: 'documentary_faceless' },
     anchors: hostFailure ? { portraitUrl: 'https://example.test/portrait.png', environmentUrl: 'https://example.test/world.png' } : null,
-    cinematicSceneModel: modelSelector(), hostTtsEnabled: hostFailure, hostVoice: { voice: 'fixture', defaultSpeed: 1 }, hostUserSpeed: 1,
+    cinematicSceneModel: modelSelector(), hostTtsEnabled: hostFailure, hostVoice: { voice: 'fixture', defaultSpeed: 1 }, hostUserSpeed: 1, narrationLanguage: { language: 'en' } /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211: a fala do apresentador recebe a língua resolvida */,
     synthesizeHostSpeech: async () => new Uint8Array(), estimateMp3DurationSeconds: () => 5,
     uploadVoiceoverToSupabase: async () => 'https://example.test/audio.mp3',
     submitAvatarJob: async input => { hostCalls.push(input); throw new AvatarError('explicit fixture failure') },

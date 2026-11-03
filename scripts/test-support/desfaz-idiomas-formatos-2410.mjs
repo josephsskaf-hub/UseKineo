@@ -1,3 +1,4 @@
+import { semVozNativaHollywood0211 } from './desfaz-voz-nativa-hollywood-0211.mjs' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (voz nativa na estrada hollywood) sai primeiro, pelo recibo exato
 import { semAnoInventado0211 } from './desfaz-ano-inventado-0211.mjs' // KINEO-ANO-INVENTADO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (generate-script + analyze-idea: o escritor nunca inventa o ano) sai primeiro, pelo recibo exato
 import { semFilmeGratisComeca0211 } from './desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semK4PagoSilencio0211 } from './desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 — camada mais nova (02/11, laço do revisor) sai primeiro
@@ -36,6 +37,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semVozNativaHollywood0211(text, file) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211
   text = semAnoInventado0211(text, file) // KINEO-ANO-INVENTADO-0211
   text = semFilmeGratisComeca0211(text, file) // KINEO-FILME-GRATIS-COMECA-0211
   text = semK4PagoSilencio0211(text, file) // KINEO-K4-PAGO-SILENCIO-0211

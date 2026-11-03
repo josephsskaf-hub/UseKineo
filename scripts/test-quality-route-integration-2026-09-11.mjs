@@ -145,7 +145,7 @@ for(const pinned of [false,true]){
     for(const dur of [3,10.5,12]){
       const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
       const calls=[];calls.baseDur=dur
-      const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
+      const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',language:'en'/* KINEO-VOZ-NATIVA-HOLLYWOOD-0211: a re-síntese recebe a língua do filme */,duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
         hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,logComposeRefusal:async()=>{},authenticatedUserId:'fixture',/* KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25: a recusa grava evento */
         hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
       const result=await module.run()
@@ -163,7 +163,7 @@ for(const pinned of [false,true]){
     // 0,94 × 1,01 and the film proceeds; without a voice the clip stays at its footage and the film proceeds too.
     const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
     const calls=[];calls.baseDur=9.7
-    const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
+    const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',language:'en'/* KINEO-VOZ-NATIVA-HOLLYWOOD-0211: a re-síntese recebe a língua do filme */,duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
       hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur:9.7,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,logComposeRefusal:async()=>{},authenticatedUserId:'fixture',/* KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25: a recusa grava evento */
       hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
     const result=await module.run()

@@ -274,7 +274,7 @@ export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput,
       engine: input.engine,
       engine_label: studioEngineLabel(input.engine),
       duration_seconds: input.duration,
-      language: input.language,
+      language: typeof data.language === 'string' && data.language ? data.language : input.language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua que a rota RESOLVEU (texto > pedido), não o eco do pedido
       aspect: input.aspect,
       credits_charged: charged,
       estimated_minutes: minutes,

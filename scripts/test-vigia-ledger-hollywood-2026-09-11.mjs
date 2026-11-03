@@ -12,6 +12,7 @@
 // "Formato respeitado" não se media no banco. Agora `requested_aspect` viaja
 // em generation_dispatch_received e `aspect` no claim assinado (dois caminhos).
 import { readFileSync } from 'node:fs'
+import { semVozNativaHollywood0211 } from './test-support/desfaz-voz-nativa-hollywood-0211.mjs' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { semK4PagoSilencio0211 } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { semK4Despacho0211 } from './test-support/desfaz-k4-despacho-0211.mjs' // KINEO-K4-DESPACHO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — camada mais nova: sai primeiro, pelo recibo exato
 import { join, dirname } from 'node:path'
@@ -33,7 +34,7 @@ const roda = (src) => {
   return exp
 }
 
-const rt = semK4Despacho0211(semK4PagoSilencio0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */, 'app/api/generate-video-cinematic/route.ts') // KINEO-K4-DESPACHO-0211 — o ledger do Kling 4 pago (4º claimAction) sai pelo recibo exato
+const rt = semK4Despacho0211(semK4PagoSilencio0211(semVozNativaHollywood0211(rd('app/api/generate-video-cinematic/route.ts'), 'app/api/generate-video-cinematic/route.ts') /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */, 'app/api/generate-video-cinematic/route.ts') /* KINEO-K4-PAGO-SILENCIO-0211 */, 'app/api/generate-video-cinematic/route.ts') // KINEO-K4-DESPACHO-0211 — o ledger do Kling 4 pago (4º claimAction) sai pelo recibo exato
 const idx = (s) => rt.indexOf(s)
 const conta = (s) => rt.split(s).length - 1
 

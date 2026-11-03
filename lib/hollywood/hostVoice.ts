@@ -27,6 +27,7 @@
 // never kill a render that works today.
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import type { NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { usesMiniMaxNarration } from '@/lib/textLanguage' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua de voz nativa (MiniMax) também na estrada hollywood
 import type { OpenAIVoice } from '@/lib/narration/personas'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { PRESENTER_PERFORMANCE_PROMPT } from '@/lib/avatar/veed'
@@ -90,6 +91,8 @@ export async function synthesizeHostSpeech(args: {
   text: string
   voice: OpenAIVoice
   speed?: number
+  /** KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua da narração; as línguas de voz nativa (usesMiniMaxNarration) não passam pela tts-1-hd. */
+  language?: string | null
 }): Promise<Buffer> {
   const cleaned = stripScriptMarkers(String(args.text ?? ''))
   if (!cleaned.trim()) throw new Error('empty host speech text')
@@ -98,6 +101,16 @@ export async function synthesizeHostSpeech(args: {
     0.7,
     Math.min(1.3, Number.isFinite(args.speed) && (args.speed as number) > 0 ? (args.speed as number) : 1.0),
   )
+  // ═══ KINEO-VOZ-NATIVA-HOLLYWOOD-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] ═══
+  // A voz americana da tts-1-hd lia português/espanhol com sotaque ("sangue azul" ouvido como "cinco olhos") enquanto a legenda
+  // saía certa. Os clássicos já narram essas línguas na voz nativa MiniMax (lib/compose.ts, KINEO-VOZ-NATIVA-2610); aqui o MESMO
+  // desvio vale para Kling 3, Kling 4 (pago/promo), H3, H3 Max e Seedance 2.5. A velocidade é a MESMA final (safeSpeed, 0,7–1,3 —
+  // a voz pinada do Kling 4 pago chega já final) e o gênero da voz pinada é mantido (homem na ficha = voz de homem na língua).
+  if (args.language != null && usesMiniMaxNarration(args.language)) { // KINEO-VOZ-NATIVA-HOLLYWOOD-0211
+    const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-VOZ-NATIVA-HOLLYWOOD-0211
+    const gender = args.voice === 'onyx' || args.voice === 'echo' || args.voice === 'fable' ? 'male' : 'female' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — vozes masculinas da tts-1-hd (characterVoice: onyx/echo para homem)
+    return synthesizeTtsFallback(cleaned, { language: args.language, speed: safeSpeed, gender }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211
+  } // KINEO-VOZ-NATIVA-HOLLYWOOD-0211
   // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
   // Critical here: this runs inside per-block loops (app/api/compose/route.ts
   // and generate-video-cinematic, the latter on a 60s budget). Inheriting 20s

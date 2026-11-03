@@ -135,7 +135,7 @@ export async function agendarAudioNoClique(a: {
           const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto: p.text, voz: pinned.voice, velocidade })
           cenas.push(async () => {
             if (await lookupCachedVoiceover(chave)) return true
-            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade })
+            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade, language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz do clique ≡ a do compose */ })
             const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0
             if (!(dur > 0.3)) return false
             const words = await transcribeTTSWithTimestamps(buf).catch(() => [])

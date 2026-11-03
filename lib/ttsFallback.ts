@@ -67,8 +67,8 @@ export function ttsFallbackSkipsRetry(err: unknown): boolean {
 }
 
 /** O corpo EXATO da rota /audio para a MiniMax 2.8 HD (nunca inventar parâmetro). */
-export function ttsFallbackInput(text: string, language?: string, speed = 1): { prompt: string; output_format: 'url'; language_boost: MiniMaxLanguageBoost; voice_setting?: { voice_id: string; speed: number } } { // KINEO-IDIOMAS-FORMATOS-2410
-  return { prompt: text, output_format: 'url', language_boost: minimaxLanguageBoost(language), ...(usesMiniMaxNarration(language) ? { voice_setting: { voice_id: minimaxVoiceFor(language), speed: Math.max(0.7, Math.min(1.3, speed)) } } : {}) } // KINEO-IDIOMAS-FORMATOS-2410
+export function ttsFallbackInput(text: string, language?: string, speed = 1, gender: 'female' | 'male' = 'female' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — o gênero da voz pinada do hollywood */): { prompt: string; output_format: 'url'; language_boost: MiniMaxLanguageBoost; voice_setting?: { voice_id: string; speed: number } } { // KINEO-IDIOMAS-FORMATOS-2410
+  return { prompt: text, output_format: 'url', language_boost: minimaxLanguageBoost(language), ...(usesMiniMaxNarration(language) ? { voice_setting: { voice_id: minimaxVoiceFor(language, gender) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */, speed: Math.max(0.7, Math.min(1.3, speed)) } } : {}) } // KINEO-IDIOMAS-FORMATOS-2410
 }
 
 /**
@@ -79,10 +79,10 @@ export function ttsFallbackInput(text: string, language?: string, speed = 1): { 
  */
 export async function synthesizeTtsFallback(
   script: string,
-  ctx: { userId?: string | null; generationId?: string | null; language?: string; speed?: number } = {}, // KINEO-IDIOMAS-FORMATOS-2410
+  ctx: { userId?: string | null; generationId?: string | null; language?: string; speed?: number; gender?: 'female' | 'male' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ } = {}, // KINEO-IDIOMAS-FORMATOS-2410
 ): Promise<Buffer> {
   try {
-    return await sintetizaPelaFal(script, ctx.language, ctx.speed) // KINEO-IDIOMAS-FORMATOS-2410
+    return await sintetizaPelaFal(script, ctx.language, ctx.speed, ctx.gender) // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-VOZ-NATIVA-HOLLYWOOD-0211
   } catch (e) {
     await avisaSaldoDaFalNaVoz(e, ctx)
     throw e
@@ -108,7 +108,7 @@ async function avisaSaldoDaFalNaVoz(e: unknown, ctx: { userId?: string | null; g
   }
 }
 
-async function sintetizaPelaFal(script: string, language?: string, speed?: number): Promise<Buffer> { // KINEO-IDIOMAS-FORMATOS-2410
+async function sintetizaPelaFal(script: string, language?: string, speed?: number, gender?: 'female' | 'male' /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */): Promise<Buffer> { // KINEO-IDIOMAS-FORMATOS-2410
   const falKey = process.env.FAL_KEY
   if (!falKey) throw new Error('FAL_KEY is not set')
   // A mesma limpeza do generateTTS: o narrador nunca lê "[Pexels: …]", "HOOK" ou linha de "speed:".
@@ -117,7 +117,7 @@ async function sintetizaPelaFal(script: string, language?: string, speed?: numbe
   if (!text) throw new Error('fallback TTS: narration is empty after marker strip')
   fal.config({ credentials: falKey })
   const result = (await fal.subscribe(TTS_FALLBACK_MODEL, {
-    input: ttsFallbackInput(text, language, speed), // KINEO-IDIOMAS-FORMATOS-2410
+    input: ttsFallbackInput(text, language, speed, gender) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */, // KINEO-IDIOMAS-FORMATOS-2410
     timeout: TTS_FALLBACK_TIMEOUT_MS,
   })) as { data?: { audio?: { url?: string } }; audio?: { url?: string } }
   const url = result?.data?.audio?.url ?? result?.audio?.url ?? null

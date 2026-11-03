@@ -2409,6 +2409,7 @@ export async function POST(req: NextRequest) {
             text: pending.text,
             voice: hollywoodPinnedVoice.voice,
             speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
+            language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — pt/es/… narram na voz nativa (MiniMax), a mesma velocidade final
           })
           if (!buf || buf.length === 0) throw new Error('Narration audio unavailable')
           const dur = estimateMp3DurationSeconds(buf)
@@ -2477,6 +2478,7 @@ export async function POST(req: NextRequest) {
             text: m.text,
             voice: hollywoodPinnedVoice.voice,
             speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0) * fator,
+            language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a re-síntese da FALA-CABE fala na MESMA voz nativa
           })
           const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0
           if (!(dur > 0.3) || dur >= m.dur) {
