@@ -15,7 +15,7 @@ export const KLING4_PAID_COPY = {
   offer: 'Kling 4.0 free for 30 days with Creator or above',
   terms: 'Creator, Studio and Business subscribers only. Up to 3 Kling 4.0 films or ads per day, up to 60 seconds each, shared across both tools. No credits used within the allowance.',
   dates: 'Subscribe by November 30, 2026: your 30 days start with your subscription. Existing subscribers: 30 days from launch.',
-  cap: 'The promotion has a shared US$100 daily fal budget. When it is used up, regular credits apply; we tell you before you confirm.',
+  cap: 'Free Kling 4.0 runs while today’s capacity lasts. When it is used up, regular credits apply; we tell you before you confirm.',
   included: 'Included in your Kling 4.0 promotion · 0 credits',
   dailyCap: 'Today’s free Kling 4.0 allowance is used up. Regular credits apply before you confirm.',
   unavailable: 'Your free Kling 4.0 allowance is unavailable right now. Check the credit cost before you confirm.',

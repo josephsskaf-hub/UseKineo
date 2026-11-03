@@ -2,7 +2,7 @@
 
 // KINEO-VALOR-NO-CHECKOUT-3110 — as três peças de tela do "valor na hora de pagar". Nenhum número é digitado aqui: toda
 // conta sai de lib/valorNoCheckout.ts (a régua única), que usa as funções que cobram. Nenhuma peça muda preço ou plano.
-//   · FilmsMadeProof — a prova social real (/api/films-made), muda abaixo do piso ou em erro;
+//   · FilmsMadeProof — a prova social real (/api/stats/public, a régua única de lib/publicStats.ts), muda abaixo do piso ou em erro;
 //   · FilmsLikeThisNote — "≈ N more films like this a month on Starter · …" a partir do filme que a pessoa já fez;
 //   · PlanFinder — "Which plan fits me?": 3 perguntas → o plano mais barato que cobre, com a conta à vista.
 import { useEffect, useRef, useState } from 'react'
@@ -11,18 +11,25 @@ import { formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { pricingTierCardId } from '@/lib/growth/pricingTierHandoff'
 import {
   PLAN_FINDER_ENGINES, PLAN_FINDER_LENGTHS, PLAN_FINDER_OPENED_EVENT, PLAN_FINDER_PER_WEEK, PLAN_FINDER_RECOMMENDED_EVENT,
-  VALOR_NO_CHECKOUT_VERSION, filmsLikeThis, filmsLikeThisLine, filmsLikeThisMath, planFinderMathLine, planFinderVerdictLine,
+  VALOR_NO_CHECKOUT_VERSION, filmsLikeThis, filmsLikeThisLine, filmsLikeThisMath, filmsMadeLine, planFinderMathLine, planFinderVerdictLine,
   recommendPlan, type PlanFinderEngine,
 } from '@/lib/valorNoCheckout'
+import { PUBLIC_STATS_ENDPOINT, parsePublicStats } from '@/lib/publicStats'
 
 /** A prova social real perto do botão de pagar; null enquanto carrega, em erro ou abaixo do piso. */
 export function FilmsMadeProof({ surface }: { surface: 'pricing' | 'upgrade' }) {
   const [line, setLine] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
-    void fetch('/api/films-made', { credentials: 'same-origin' })
+    // KINEO-COPIA-ORCAMENTO-CONTADOR-0211 — a mesma leitura do selo do rodapé e da faixa da home (lib/publicStats.ts):
+    // um número só no site inteiro; zero, erro ou abaixo do piso = nada na tela.
+    void fetch(PUBLIC_STATS_ENDPOINT)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { line?: unknown } | null) => { if (alive && d && typeof d.line === 'string' && d.line) setLine(d.line) })
+      .then((raw: unknown) => {
+        const s = parsePublicStats(raw)
+        const text = s ? filmsMadeLine({ films: s.films30d, creators: s.creators30d }) : null
+        if (alive && text) setLine(text)
+      })
       .catch(() => {})
     return () => { alive = false }
   }, [])

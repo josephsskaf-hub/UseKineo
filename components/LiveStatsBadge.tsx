@@ -7,83 +7,29 @@
 // the old fake-name toasts were removed for exactly this reason; never
 // reintroduce invented social proof here.
 //
-// Thresholds (why): with <500 lifetime Shorts the video count reads as
-// "nobody uses this", so we lead with total Shorts only past 500. Below
-// that, the account count (signups) is the honest metric that already
-// impresses, shown alone once past 200. Weekly volume only appears once
-// it clears 100 — "12 this week" would undermine, not persuade.
+// KINEO-COPIA-ORCAMENTO-CONTADOR-0211 — thresholds, formatting and the shape
+// of the response now live in lib/publicStats.ts (the ONE rule for every
+// public counter; the faixa da home and /pricing use the same reading). The
+// 600 ms count-up from ZERO is gone: requestAnimationFrame stops in background
+// tabs, page readers and screenshots, so the audit of 02/11 caught the badge
+// frozen at "0 Shorts created · 0 this week · 0 accounts joined" on engine
+// pages and at 77% of the real numbers on the home (2,144 vs 2,778 in the band
+// a few hundred pixels below). The badge now paints the real number or nothing.
 
 import { useEffect, useState } from 'react'
-
-type PublicStats = {
-  ok?: boolean
-  totalVideos?: number
-  videosLast7Days?: number
-  totalCreators?: number
-}
-
-const MIN_TOTAL_VIDEOS = 500
-const MIN_CREATORS = 200
-const MIN_WEEKLY = 100
-
-function fmt(n: number): string {
-  return n.toLocaleString('en-US')
-}
+import { PUBLIC_STATS_ENDPOINT, parsePublicStats, publicStatsBadgeLine } from '@/lib/publicStats'
 
 export default function LiveStatsBadge({ style }: { style?: React.CSSProperties }) {
   const [label, setLabel] = useState<string | null>(null)
-  // KINEO-HIGGSFIELD-20D dia 17 (13/08) — count-up 600ms 1x com o numero
-  // REAL (a regra de honestidade acima continua intacta: numero fake nunca;
-  // o que anima e a contagem ate o valor verdadeiro). reduced-motion pula
-  // direto para o valor final.
-  const [counts, setCounts] = useState<{ videos: number; weekly: number; accounts: number } | null>(null)
-  const [t, setT] = useState(1)
-
-  useEffect(() => {
-    if (!counts) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setT(1)
-      return
-    }
-    let start: number | undefined
-    let raf = 0
-    const step = (ts: number) => {
-      if (start === undefined) start = ts
-      const p = Math.min(1, (ts - start) / 600)
-      setT(1 - Math.pow(1 - p, 3)) // ease-out cubic
-      if (p < 1) raf = requestAnimationFrame(step)
-    }
-    setT(0)
-    raf = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(raf)
-  }, [counts])
 
   useEffect(() => {
     let cancelled = false
 
-    fetch('/api/stats/public')
-      .then((res) => (res.ok ? (res.json() as Promise<PublicStats>) : null))
-      .then((stats) => {
-        if (cancelled || !stats || !stats.ok) return
-
-        const videos = stats.totalVideos ?? 0
-        const weekly = stats.videosLast7Days ?? 0
-        const accounts = stats.totalCreators ?? 0
-
-        const parts: string[] = []
-        if (videos >= MIN_TOTAL_VIDEOS) {
-          parts.push(`${fmt(videos)} Shorts created`)
-          if (weekly >= MIN_WEEKLY) parts.push(`${fmt(weekly)} this week`)
-          if (accounts >= MIN_CREATORS) parts.push(`${fmt(accounts)} accounts joined`)
-        } else if (accounts >= MIN_CREATORS) {
-          // Video count not impressive yet — show only the signup base.
-          parts.push(`${fmt(accounts)} accounts joined`)
-        }
-
-        if (parts.length > 0) {
-          setLabel(parts.join(' · '))
-          setCounts({ videos, weekly, accounts })
-        }
+    fetch(PUBLIC_STATS_ENDPOINT)
+      .then((res) => (res.ok ? (res.json() as Promise<unknown>) : null))
+      .then((raw) => {
+        if (cancelled) return
+        setLabel(publicStatsBadgeLine(parsePublicStats(raw)))
       })
       .catch(() => {
         // Silent by design — no badge is better than a broken or fake one.
@@ -95,21 +41,6 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
   }, [])
 
   if (!label) return null
-
-  // Reconstroi o label com os numeros animados (mesmas regras de exibicao do
-  // fetch acima). Quando t chega a 1, o texto e IDENTICO ao label estatico.
-  const animatedLabel = (() => {
-    if (!counts || t >= 1) return label
-    const parts: string[] = []
-    if (counts.videos >= MIN_TOTAL_VIDEOS) {
-      parts.push(`${fmt(Math.round(counts.videos * t))} Shorts created`)
-      if (counts.weekly >= MIN_WEEKLY) parts.push(`${fmt(Math.round(counts.weekly * t))} this week`)
-      if (counts.accounts >= MIN_CREATORS) parts.push(`${fmt(Math.round(counts.accounts * t))} accounts joined`)
-    } else if (counts.accounts >= MIN_CREATORS) {
-      parts.push(`${fmt(Math.round(counts.accounts * t))} accounts joined`)
-    }
-    return parts.join(' · ')
-  })()
 
   return (
     <span
@@ -136,7 +67,7 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
         }}
       />
       {/* KINEO-RTL-BIDI-2026-09-21: número + unidade em inglês é uma ilha LTR mesmo em página árabe/urdu */}
-      <span lang="en" className="kineo-ltr-island">{animatedLabel}</span>
+      <span lang="en" className="kineo-ltr-island">{label}</span>
       <style
         dangerouslySetInnerHTML={{
           __html:

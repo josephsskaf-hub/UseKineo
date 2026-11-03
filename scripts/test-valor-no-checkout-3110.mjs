@@ -21,11 +21,14 @@ const MARCA = 'KINEO-VALOR-NO-CHECKOUT-3110'
 const LIB = 'lib/valorNoCheckout.ts'
 const UI = 'components/checkout/ValorNoCheckout.tsx'
 const ROUTE = 'app/api/films-made/route.ts'
+// KINEO-COPIA-ORCAMENTO-CONTADOR-0211 — a contagem (readAll, contas internas fora, só concluídos) mudou para a leitura única
+// de todos os contadores públicos; a rota só fatia os 30 dias e monta a frase.
+const SERVER = 'lib/publicStatsServer.ts'
 const STRIPE = 'app/api/stripe/checkout/route.ts'
 const UPGRADE = 'components/offers/ConversionUpgrade.tsx'
 const PRICING = 'app/pricing/PricingClient.tsx'
 const read = (rel) => readFileSync(resolve(root, rel), 'utf8').replace(/\r\n/g, '\n')
-const SRC = Object.fromEntries([LIB, UI, ROUTE, STRIPE, UPGRADE, PRICING].map((rel) => [rel, read(rel)]))
+const SRC = Object.fromEntries([LIB, UI, ROUTE, SERVER, STRIPE, UPGRADE, PRICING].map((rel) => [rel, read(rel)]))
 
 const analyticsMock = { trackEvent: async () => {} }
 
@@ -108,11 +111,12 @@ function problems(replacements = {}) {
 
   // 5. fiação
   const route = src(ROUTE)
-  if (!route.includes(MARCA) || !/readAll<[^>]*>\(/.test(route) || !route.includes("table: 'videos'")) p.push('rota: sem paginação readAll')
-  if (!route.includes('isInternalEmail(p.email)') || !route.includes('!internal.has(r.user_id)')) p.push('rota: contas internas não saem')
-  if (!route.includes("eq('status', 'completed')") || !route.includes('FILMS_MADE_WINDOW_DAYS')) p.push('rota: filtro de concluídos / janela')
+  const server = src(SERVER)
+  if (!route.includes(MARCA) || !route.includes('readPublicStats()') || !server.includes(MARCA) || !/readAll<[^>]*>\(/.test(server) || !server.includes("table: 'videos'")) p.push('rota: sem paginação readAll')
+  if (!server.includes('isInternalEmail(p.email)') || !server.includes('!internal.has(r.user_id)')) p.push('rota: contas internas não saem')
+  if (!server.includes("eq('status', 'completed')") || !server.includes('FILMS_MADE_WINDOW_DAYS')) p.push('rota: filtro de concluídos / janela')
   if (!route.includes('line: filmsMadeLine({ films, creators })')) p.push('rota: frase fora da régua')
-  if (/\b(474|424|658)\b/.test(route.replace(/^\/\/.*$/gm, ''))) p.push('rota: número digitado no código')
+  if (/\b(474|424|658)\b/.test((route + server).replace(/^\/\/.*$/gm, ''))) p.push('rota: número digitado no código')
   const stripe = src(STRIPE)
   const annualCalls = (stripe.match(/lineItemDescription \?\? annualLineItemDescription\(\{ (billing|billing: ctx\.billing), (tier|tier: ctx\.tier), credits: plan\.credits, kling4Paid: KLING4_PAID_LIVE \}\) \?\? plan\.description/g) || []).length
   if (annualCalls !== 2) p.push(`stripe: linha do anual em ${annualCalls} de 2 caminhos (logado + convidado)`)
@@ -167,8 +171,8 @@ const MUTANTES = [
   ['finder conta 4 semanas', muta(LIB, 'export const WEEKS_PER_MONTH = 52 / 12', 'export const WEEKS_PER_MONTH = 4')],
   ['prova social sem piso', muta(LIB, 'export const FILMS_MADE_MIN_TO_SHOW = 100', 'export const FILMS_MADE_MIN_TO_SHOW = 0')],
   ['anual volta à descrição velha', muta(LIB, "if (input.billing !== 'annual') return null", "return null")],
-  ['rota conta a casa', muta(ROUTE, '!internal.has(r.user_id)', 'true')],
-  ['rota sem paginação', muta(ROUTE, "table: 'videos'", "table: 'videos_x'")],
+  ['rota conta a casa', muta(SERVER, '!internal.has(r.user_id)', 'true')],
+  ['rota sem paginação', muta(SERVER, "table: 'videos'", "table: 'videos_x'")],
   ['stripe convidado sem a linha do anual', muta(STRIPE, 'ctx.checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing: ctx.billing, tier: ctx.tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description', 'ctx.checkoutValueContext.lineItemDescription ?? plan.description')],
   ['parede sem prova social', muta(UPGRADE, '<FilmsMadeProof surface="upgrade" />', '')],
   ['parede sem films like this', muta(UPGRADE, '<FilmsLikeThisNote qualityMode={film.quality_mode} seconds={film.duration} />', '')],

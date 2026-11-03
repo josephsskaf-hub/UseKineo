@@ -5,32 +5,20 @@
 // nosso jeito: numeros REAIS de /api/stats/public, com os MESMOS thresholds
 // de honestidade do LiveStatsBadge — se o numero nao impressiona ou a API
 // falha, a secao INTEIRA some (return null). Melhor invisivel que inflado.
+// KINEO-COPIA-ORCAMENTO-CONTADOR-0211 — pisos, formato e leitura vêm de lib/publicStats.ts, a régua única de todo contador
+// público: a faixa e o selo logo acima dela não podem mais dizer números diferentes.
 import { useEffect, useState } from 'react'
-
-type PublicStats = {
-  ok?: boolean
-  totalVideos?: number
-  videosLast7Days?: number
-  totalCreators?: number
-}
-
-const MIN_TOTAL_VIDEOS = 500
-const MIN_CREATORS = 200
-const MIN_WEEKLY = 100
-
-function fmt(n: number): string {
-  return n.toLocaleString('en-US')
-}
+import { PUBLIC_STATS_ENDPOINT, parsePublicStats, publicStatsBandItems } from '@/lib/publicStats'
 
 export default function LiveStatsBand() {
-  const [stats, setStats] = useState<PublicStats | null>(null)
+  const [items, setItems] = useState<Array<{ n: string; label: string }>>([])
 
   useEffect(() => {
     let cancelled = false
-    fetch('/api/stats/public')
-      .then((res) => (res.ok ? (res.json() as Promise<PublicStats>) : null))
-      .then((s) => {
-        if (!cancelled && s?.ok) setStats(s)
+    fetch(PUBLIC_STATS_ENDPOINT)
+      .then((res) => (res.ok ? (res.json() as Promise<unknown>) : null))
+      .then((raw) => {
+        if (!cancelled) setItems(publicStatsBandItems(parsePublicStats(raw)))
       })
       .catch(() => {})
     return () => {
@@ -38,14 +26,6 @@ export default function LiveStatsBand() {
     }
   }, [])
 
-  if (!stats) return null
-  const videos = stats.totalVideos ?? 0
-  const weekly = stats.videosLast7Days ?? 0
-  const creators = stats.totalCreators ?? 0
-  const items: Array<{ n: string; label: string }> = []
-  if (videos >= MIN_TOTAL_VIDEOS) items.push({ n: fmt(videos), label: 'Shorts generated' })
-  if (weekly >= MIN_WEEKLY) items.push({ n: fmt(weekly), label: 'in the last 7 days' })
-  if (creators >= MIN_CREATORS) items.push({ n: fmt(creators), label: 'accounts created' })
   if (items.length < 2) return null
 
   return (
