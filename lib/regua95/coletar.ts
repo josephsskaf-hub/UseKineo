@@ -134,7 +134,10 @@ export async function listarEntregasRegua(
       video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: gen, render_id: v.render_id,
       coherence,
       ugc: null,
-      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null, ...(gen && comMarca.has(gen) ? { expectedKineoWatermark: true } : {}) },
+      pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null, ...(gen && comMarca.has(gen) ? { expectedKineoWatermark: true } : {}),
+        // KINEO-JUIZ-PERGUNTAS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]
+        // o prompt de cada cena (o que foi à fal) dá a época, as cenas sem gente e o estilo; o juiz pergunta e a nota ganha os tetos novos.
+        promptByScene: evd?.scenes.map((s) => s.prompt) ?? null, perguntasHonestas: true },
     })
   }
 

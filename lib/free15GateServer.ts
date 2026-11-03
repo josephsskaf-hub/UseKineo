@@ -47,6 +47,17 @@ async function pollScene(model: string, requestId: string) {
   return url?.startsWith('https://') ? { status: 'done' as const, url } : { status: 'failed' as const }
 }
 
+/** KINEO-JUIZ-PERGUNTAS-0311 — o prompt completo de cada cena do claim assinado (Kling 4 grátis: o plano; clássico: o payload da fal). */
+export function promptsDoClaim0311(response: unknown): string[] | null {
+  const r = response && typeof response === 'object' ? response as Record<string, unknown> : null
+  if (!r) return null
+  const trial = r.kling4_trial && typeof r.kling4_trial === 'object' ? (r.kling4_trial as Record<string, unknown>).scene_plan : null
+  const lista = Array.isArray(trial) && trial.length ? trial : Array.isArray(r.scene_fal_inputs) ? r.scene_fal_inputs : null
+  if (!lista) return null
+  const prompts = lista.map(x => x && typeof x === 'object' && typeof (x as Record<string, unknown>).prompt === 'string' ? (x as Record<string, unknown>).prompt as string : '')
+  return prompts.some(Boolean) ? prompts : null
+}
+
 export async function runFree15Gate(a: Context & { claim: CinematicClaim; media: GateMedia }): Promise<GateOutcome> {
   let checked = false
   const outcome = await advanceFree15Gate({
@@ -72,6 +83,10 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
         const el = raw as Record<string, unknown> | null
         return el?.type === 'text' && Number(el.track) === 9 && el.text === 'usekineo.com/free'
       }) ? { expectedKineoWatermark: true } : {}),
+      // KINEO-JUIZ-PERGUNTAS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]
+      // o prompt assinado de cada cena (época, sem gente, estilo) + as perguntas novas na MESMA chamada de visão. Um teto novo (época,
+      // pessoa inventada, plano parado) cai em 'other_pixel_cap' do decideFree15Gate (falha honesta, sem refazer cena nova).
+      ...(promptsDoClaim0311(a.claim.response) ? { promptByScene: promptsDoClaim0311(a.claim.response) as string[], perguntasHonestas: true } : {}), // sem as cenas assinadas: o contexto de sempre
       // KINEO-PORTAO-FREE15-2910 — causa do 'pixel_evidence_unverified' (22x desde 27/10): com 15 s o extrator de 8 quadros da fal
       // (nth-frame) estourava em vídeo mais pesado (Kling 4.0/1080p, ~20 s); caía na reserva de 3 quadros e o juiz não fechava as
       // 2 leituras (evidência 'incomplete', judged_frames 3/8, valid_readings 0/2, 22-32 s). Os completos levam 12-19 s. 25 s por etapa

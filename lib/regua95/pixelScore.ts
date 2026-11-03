@@ -23,6 +23,12 @@ import type { ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { assessEvidence, inspectFrameEvidence, isScore, objectRecord, type EvidenceAssessment } from '@/lib/regua95/evidence'
+// KINEO-JUIZ-PERGUNTAS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]
+// As perguntas que faltavam (época, pessoa onde não devia, texto além da nossa legenda, troca de estilo, plano parado) entram
+// na MESMA chamada de visão, só quando o chamador pede (perguntasHonestas: o cron da régua e o portão do filme grátis de 15 s).
+// A versão continua regua95_pixel_v1 (mesma decisão de caixa de 02/11: subir a versão re-julgaria 7 dias): DEGRAU NO HISTÓRICO
+// EM 03/11/2026 — notas de filme depois desta data podem ganhar os tetos novos (época 70, pessoa 75, plano parado 80).
+import { PIXEL_ISSUES_0311, contextoDasPerguntas0311, rubricaHonesta0311, segundosParados0311 } from '@/lib/regua95/perguntasHonestas'
 
 export const PIXEL_SCORE_EVENT = 'pixel_score'
 // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — DEGRAU NO HISTÓRICO EM 02/11/2026: a partir desta data, no cron da régua, a marca d'água
@@ -145,10 +151,15 @@ export type PixelContext = {
   language?: string | null
   /** Opt-in from the free15 signed RenderScript, never inferred from the image. */
   expectedKineoWatermark?: boolean
+  /** KINEO-JUIZ-PERGUNTAS-0311 — o prompt de cada cena como foi à fal (mesma ordem das falas): de onde saem época, "sem gente" e estilo. */
+  promptByScene?: string[] | null
+  /** KINEO-JUIZ-PERGUNTAS-0311 — liga as perguntas novas e os tetos novos (opt-in do chamador; ausente = byte a byte o de antes). */
+  perguntasHonestas?: boolean
 }
 
 export const PIXEL_ISSUES = ['subject_missing', 'deformed_face_or_hand', 'invented_text', 'near_black', 'repeated', 'caption_illegible', 'caption_broken', 'product_unfaithful', 'ugc_eyes_mouth_hands', 'off_topic'] as const
-export type PixelIssue = (typeof PIXEL_ISSUES)[number]
+export type PixelIssue = (typeof PIXEL_ISSUES)[number] | (typeof PIXEL_ISSUES_0311)[number] // KINEO-JUIZ-PERGUNTAS-0311 — os 3 códigos novos só aparecem com perguntasHonestas
+const PIXEL_ISSUES_ACEITOS: readonly string[] = [...PIXEL_ISSUES, ...PIXEL_ISSUES_0311] // KINEO-JUIZ-PERGUNTAS-0311
 
 export type PixelFrameVerdict = { i: number; t: number | null; subject: string; score: number; issues: PixelIssue[]; note: string }
 
@@ -206,6 +217,7 @@ export function buildPixelMessages(ctx: PixelContext, frames: Frame[], detail: P
     (opts?.marcaMedida ? ' Whenever you flag invented_text on a frame, add to that frame "seen_text": [{"text": the exact letters you read, "where": "top_band" (a short overlay line at the very top edge), "caption_band" (burned-in caption block) or "inside_scene" (letters on signs, screens, documents, objects, packaging, clothing)}]. ' : '') +
     ' Score EACH frame 0-100 and be harsh: reserve 100 for frames a professional editor would ship untouched; 90-99 = tiny cosmetic flaw; 70-89 = a visible flaw (soft deformation, weak match to the line, awkward or hard-to-read caption); below 70 = a defect a viewer notices at once (wrong subject, melted hand/face, character changed, gibberish text, black frame, product redesigned). ' +
     `Issue codes (use only these): ${PIXEL_ISSUES.join(', ')}. ` +
+    (ctx.perguntasHonestas === true ? rubricaHonesta0311(contextoDasPerguntas0311(ctx), !!ctx.spokenByScene && !!ctx.promptByScene && ctx.spokenByScene.length === ctx.promptByScene.length) + ' ' : '') + // KINEO-JUIZ-PERGUNTAS-0311
     'First name the main subject of EACH frame in a few English words (species, age, look: e.g. "purple cartoon dinosaur", "human child in pajamas", "amber perfume bottle"), THEN compare those subjects across frames: a recurring character or product whose species/age/face/look changes is an identity change. ' +
     'Reply ONLY with JSON: {"frames":[{"i": frame index starting at 1, "subject": main subject in a few English words, "score": 0-100, "issues": [codes], "note": short Brazilian Portuguese note naming what you see (max 90 chars)}], ' +
     '"identity_changes": [{"from": frame i, "to": frame j, "what": short Brazilian Portuguese description}] (empty when none), "identity_consistent": true|false|null (null when no recurring character/product), "caption_present": true|false, "caption_legible": true|false|null, "caption_language_ok": true|false|null (does the caption script/language match the expected language), ' +
@@ -287,18 +299,18 @@ export function textoEhSoAMarca(frame: Record<string, unknown>): boolean {
  */
 export function normalizePixel(
   parsed: Record<string, unknown>,
-  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number; marcaMedida?: boolean },
+  ctx: { product: ProdutoRegua; frames: Frame[]; via: PixelResult['frame_via']; model: string | null; usdFrames: number; usdVision: number; ms: number; marcaMedida?: boolean; perguntasHonestas?: boolean /* KINEO-JUIZ-PERGUNTAS-0311 */ },
 ): PixelResult {
   parsed = objectRecord(parsed)
   const evidence = inspectFrameEvidence(parsed, ctx.frames, PIXEL_FRAMES, (r) =>
     isScore(r.score) && typeof r.subject === 'string' && !!r.subject.trim() && Array.isArray(r.issues) &&
-    r.issues.every((c) => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) &&
+    r.issues.every((c) => typeof c === 'string' && PIXEL_ISSUES_ACEITOS.includes(c)) && // KINEO-JUIZ-PERGUNTAS-0311 — era: (PIXEL_ISSUES as readonly string[]).includes(c)
     typeof r.note === 'string' && (r.score === 100 && r.issues.length === 0 || !!r.note.trim()))
   const raw = Array.isArray(parsed.frames) ? (parsed.frames as Array<Record<string, unknown>>) : []
   const overlayIgnored: number[] = [] // KINEO-PAINEL-MOTOR-ENTREGUE-0211
   const verdicts: PixelFrameVerdict[] = ctx.frames.map((f, idx) => {
     const r = raw.find((x) => x?.i === idx + 1) ?? null
-    let issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && (PIXEL_ISSUES as readonly string[]).includes(c)) : []
+    let issues = Array.isArray(r?.issues) ? (r!.issues as unknown[]).filter((c): c is PixelIssue => typeof c === 'string' && PIXEL_ISSUES_ACEITOS.includes(c)) : [] // KINEO-JUIZ-PERGUNTAS-0311 — era: (PIXEL_ISSUES as readonly string[]).includes(c)
     let frameScore = r ? clamp(r.score) : 0
     // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — só filme, só com a marca MEDIDA (cron da régua), só quando o texto lido é a marca.
     if (ctx.marcaMedida === true && ctx.product === 'filme' && r && issues.includes('invented_text') && textoEhSoAMarca(r)) {
@@ -340,6 +352,12 @@ export function normalizePixel(
   if (count('invented_text') >= 1) cap(85, `texto inventado na imagem em ${count('invented_text')} quadro(s)`)
   // KINEO-META95-UGC-1910 — no UGC/apresentador a frase curta no alto é o formato: legenda só pesa se for ilegível (teto 85 acima).
   if (ctx.product !== 'ugc' && count('caption_broken') >= 2) cap(88, `legenda partida/órfã em ${count('caption_broken')} quadros`)
+  // KINEO-JUIZ-PERGUNTAS-0311 — os tetos novos, só com as perguntas novas (2+ quadros, como rosto deformado e sujeito ausente: 1 quadro
+  // sozinho pode ser leitura torta do modelo). Plano parado = quadros seguidos sem movimento por 6 s ou mais (precisa de 3+ quadros medidos).
+  if (ctx.perguntasHonestas === true && count('anachronism') >= 2) cap(70, `época errada: roupa/objeto de depois da época em ${count('anachronism')} quadros`)
+  if (ctx.perguntasHonestas === true && count('invented_person') >= 2) cap(75, `pessoa inventada em cena sem gente em ${count('invented_person')} quadros`)
+  const parados0311 = ctx.perguntasHonestas === true && verdicts.length >= 3 ? segundosParados0311(verdicts) : 0 // KINEO-JUIZ-PERGUNTAS-0311
+  if (parados0311 >= 6) cap(80, `plano parado por ${parados0311} s`) // KINEO-JUIZ-PERGUNTAS-0311
   if (identity === false && !trocas.some((t) => Number.isInteger(t.from) && Number.isInteger(t.to) && Number(t.from) >= 1 && Number(t.to) >= 1 && Number(t.from) <= ctx.frames.length && Number(t.to) <= ctx.frames.length && t.from !== t.to && typeof t.what === 'string' && !!t.what.trim())) evidence.evidence_reasons.push('identity_defect_not_located')
   if (productFaithful === false && count('product_unfaithful') === 0) evidence.evidence_reasons.push('product_defect_not_located')
   if (captionPresent === true && (captionLegible === false || captionLang === false) && !verdicts.some((v) => (v.issues.includes('caption_illegible') || v.issues.includes('caption_broken')) && v.note.trim())) evidence.evidence_reasons.push('caption_defect_not_located')
@@ -444,7 +462,7 @@ async function judgeFramesOnce(
     } catch {
       return null
     }
-    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started, ...(opts?.marcaMedida ? { marcaMedida: true } : {}) })
+    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started, ...(opts?.marcaMedida ? { marcaMedida: true } : {}), ...(ctx.perguntasHonestas === true ? { perguntasHonestas: true } : {}) }) // KINEO-JUIZ-PERGUNTAS-0311 — + perguntasHonestas
   } catch {
     return null
   } finally {

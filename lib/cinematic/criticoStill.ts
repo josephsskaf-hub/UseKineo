@@ -78,6 +78,7 @@ export function criticoNaFamiliaHollywood(family: string | null | undefined): bo
 }
 
 export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato' | 'identidade' // KINEO-META95-PERSONAGEM-2010 — 'identidade' só existe quando o pedido levou a folha (referencia)
+  | 'epoca' | 'pessoa' | 'estilo' // KINEO-JUIZ-PERGUNTAS-0311 — só existem quando o PROMPT da cena traz a época, o "sem gente" ou o estilo travado
 const PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato', mascot: 'sujeito', missing: 'sujeito', missing_character: 'sujeito' } // KINEO-JUIZ-REFAZ-2810 — "mascot"/"missing" (se o modelo os escrever) são SUJEITO errado; era: só os 4
 const PROBLEMA_IDENTIDADE: Record<string, ProblemaStill> = { identity: 'identidade' } // KINEO-META95-PERSONAGEM-2010 — lido SÓ com referência; sem ela "identity" segue ignorado (gosto), byte a byte o de antes
 export type VereditoCritico = 'PASS' | 'FAIL' | 'ERRO' | 'PULADO'
@@ -125,6 +126,57 @@ export const STILL_CRITIC_SISTEMA =
 export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
   ' When a CHARACTER REFERENCE image is given, also apply (5) IDENTITY — the named character in the still is CLEARLY a different character from the reference: another species or kind of creature, a different sex or apparent age group, a clearly different body shape, different fur/skin/scale colour, different hair or a different outfit (a different pose, angle, expression, lighting or background is fine; the reference is a design sheet, not the shot). ' + // KINEO-META95-PERSONAGEM-2010
   'For (5) use the issue name "identity". Deliberate anatomy of a creature or mythical figure shown in the reference, such as the demon king Ravan with ten heads, is its identity and is not an anatomy defect.' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — integração 21/10 (ideia da versão Codex): as 10 cabeças do Ravan não são defeito de anatomia; era: 'For (5) use the issue name "identity".'
+// ═══ KINEO-JUIZ-PERGUNTAS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"] ═══
+// O crítico deu 95 à pelúcia de desenho no lugar do cachorro realista (youbykh, 02/11) e ninguém perguntava "algo depois de 1950?"
+// (gustavoq, piloto de 1950 de jeans) nem "pessoa numa cena sem gente?" (Tunguska 1908 virou detetive). As três perguntas saem do
+// PROMPT da cena (o texto com que o still nasceu), nunca de chute: "Period setting: 1950 (1950s)" (lib/cinematic/elencoEpoca
+// aplicarEpoca), "No people, no human figures and no faces anywhere in this shot." (lib/cinematic/personagemAjuste CLAUSULA_SEM_GENTE)
+// e "Film visual medium: …" (lib/cinematic/filmQuality travarEstiloDoFilme). Prompt sem nenhuma das marcas = pedido byte a byte o
+// de antes. Mesma chamada, mesmo modelo, mesmo custo (só ~120 caracteres de texto a mais). O modo não muda: em log_only o FAIL novo
+// só fica gravado; em 'enforce' pede foto nova dentro dos MESMOS tetos (2 por cena, 6 por filme, prazo da cena).
+// Leitura irmã (mesmas regras) em lib/regua95/perguntasHonestas.ts — este módulo não importa nada novo (o guardião do juiz proíbe).
+export const MARCA_JUIZ_PERGUNTAS_0311 = 'KINEO-JUIZ-PERGUNTAS-0311'
+export type ContextoCritico0311 = { epoca: string | null; semGente: boolean; estilo: 'foto' | 'desenho' | null }
+/** Época, "sem gente" e estilo pedidos pelo prompt da cena. */
+export function contextoDoCritico0311(prompt: string | null | undefined): ContextoCritico0311 {
+  const p = String(prompt ?? '')
+  let epoca: string | null = null
+  const per = /Period setting:\s*([^.;]+)/i.exec(p)
+  if (per) {
+    const ano = /\b(1[89]\d{2}|200\d)\b(?!s)/.exec(per[1])
+    const rot = /\b(?:the\s+)?(1[89]\d0s|200\ds|\d{2}th-century)\b/i.exec(per[1])
+    epoca = ano ? ano[1] : rot ? `the ${rot[1]}` : null
+  }
+  const medio = /Film visual medium:\s*([^\n]+?)\.\s/i.exec(p + ' ')?.[1] ?? /^(?:Style:|Chosen)\s*([\w ]+?)(?:\.|\s+still:)/i.exec(p)?.[1] ?? ''
+  const estilo = !medio ? null : /not photorealistic|animated|animation|anime|cartoon|illustrat|cel shading/i.test(medio) ? 'desenho' : /photoreal|noir|live[- ]action/i.test(medio) ? 'foto' : null
+  return { epoca, semGente: p.includes('No people, no human figures and no faces anywhere in this shot'), estilo }
+}
+/** Os critérios extras (anexados ao texto do pedido). '' = nenhum: o pedido de sempre. */
+export function criteriosDoCritico0311(c: ContextoCritico0311, comReferencia: boolean): string {
+  const partes: string[] = []
+  if (c.estilo === 'foto') partes.push('(6) STYLE — this film is PHOTOREALISTIC live action: FAIL when the main subject is clearly rendered as a cartoon, 3D animation, plush toy, doll, figurine, clay model or illustration instead of a real, photographed subject; use the issue name "style".')
+  if (c.estilo === 'desenho') partes.push('(6) STYLE — this film is ANIMATED, not photographic: FAIL when the main subject is clearly a real photograph of a live-action person or animal instead of the animated look; use the issue name "style".')
+  if (c.epoca) partes.push(`(7) ERA — the story is set in ${c.epoca}: FAIL when something clearly visible was invented or became fashionable only after ${c.epoca}: jeans or denim, hoodies, sneakers, puffer jackets, modern streetwear or haircuts, a smartwatch or modern wristwatch, a smartphone, earbuds, a present-day car, LED screens or lights (period-accurate items are fine; when unsure, it is fine); use the issue name "era".`)
+  if (c.semGente) partes.push('(8) PERSON — this shot must contain NO people: FAIL when a person, human figure or face is clearly visible (a tiny distant silhouette is fine); use the issue name "person".')
+  if (partes.length === 0) return ''
+  if (comReferencia && c.estilo) partes.push('For (5) IDENTITY, a different rendering style from the reference (a real animal or person vs a cartoon, 3D-animated figure, plush toy or doll) is also a different character.')
+  return `ALSO FAIL the image for these checks of this shot: ${partes.join(' ')}`
+}
+const PROBLEMA_0311: Record<string, ProblemaStill> = { style: 'estilo', era: 'epoca', person: 'pessoa' }
+/** Relê a resposta com os critérios extras: FAIL com "era"/"person"/"style" (permitidos pelo prompt) vira FAIL de verdade — a leitura
+ *  de sempre trocaria o FAIL sem critério conhecido por PASS. Sem critério extra pedido, devolve a mesma resposta. */
+export function aplicarPerguntas0311(r: RespostaDoCritico, raw: string, c: ContextoCritico0311): RespostaDoCritico {
+  const permitidos = new Set<string>([...(c.estilo ? ['style'] : []), ...(c.epoca ? ['era'] : []), ...(c.semGente ? ['person'] : [])])
+  if (permitidos.size === 0) return r
+  let j: Record<string, unknown>
+  try { const x = JSON.parse(raw) as unknown; if (!x || typeof x !== 'object' || Array.isArray(x)) return r; j = x as Record<string, unknown> } catch { return r }
+  if (String(j.verdict ?? '').trim().toUpperCase() !== 'FAIL') return r
+  const lista = Array.isArray(j.issues) ? j.issues : typeof j.issues === 'string' ? [j.issues] : []
+  const novos = lista.map((x) => String(x ?? '').trim().toLowerCase()).filter((x) => permitidos.has(x)).map((x) => PROBLEMA_0311[x])
+  if (novos.length === 0) return r
+  const motivo = limpa(typeof j.reason === 'string' ? j.reason : '').slice(0, 160)
+  return { veredito: 'FAIL', problemas: Array.from(new Set([...(r.veredito === 'FAIL' ? r.problemas : []), ...novos])), motivo: motivo || r.motivo, nota: r.nota }
+}
 /** O pedido ao crítico: a foto + o que a cena deve mostrar + a narração. Uma imagem só, detail 'low'. */
 /** KINEO-JUIZ-REFAZ-2810 — o elenco nomeado que a rota pôs na frente do prompt (lib/cinematic/elencoEpoca CLAUSULA_ELENCO): o crítico precisa saber quem DEVE aparecer para reprovar "personagem ausente"/"mascote no lugar". '' = sem elenco no prompt. */
 export function elencoNoPrompt(prompt: string): string { // KINEO-JUIZ-REFAZ-2810
@@ -143,6 +195,8 @@ export function montarPedidoAoCritico(e: EntradaCritico, url: string): { message
   const sistema = e.referencia ? STILL_CRITIC_SISTEMA + STILL_CRITIC_IDENTIDADE : STILL_CRITIC_SISTEMA // KINEO-META95-PERSONAGEM-2010 — sem folha, o sistema de sempre
   const textoReferencia = e.referencia ? `CHARACTER REFERENCE (design sheet of the character who must appear in this shot, NOT the shot itself): ${limpa(e.referencia.descricao).slice(0, 400)}` : '' // KINEO-META95-PERSONAGEM-2010
   if (e.referencia) parts.splice(1, 0, { type: 'text', text: textoReferencia }, { type: 'image_url', image_url: { url: e.referencia.url, detail: 'low' } }, { type: 'text', text: `STILL TO CHECK (shot ${e.indice + 1}):` }) // KINEO-META95-PERSONAGEM-2010 — a folha vem ANTES do still, cada uma rotulada
+  const extra0311 = criteriosDoCritico0311(contextoDoCritico0311(e.prompt), Boolean(e.referencia)) // KINEO-JUIZ-PERGUNTAS-0311 — época / sem gente / estilo, lidos do prompt da cena
+  if (extra0311) parts[0] = { type: 'text', text: `${texto}\n${extra0311}` } // KINEO-JUIZ-PERGUNTAS-0311 — sem marca no prompt: o pedido de sempre, byte a byte
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: parts }], imagens: e.referencia ? 2 : 1, caracteres: sistema.length + texto.length + textoReferencia.length } // KINEO-META95-PERSONAGEM-2010 — era: sistema fixo, 1 imagem (sem folha, os mesmos números)
 }
 
@@ -216,6 +270,7 @@ export async function chamarCritico(
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
     const custoUsd = custoDoCriticoUsd(data.usage, imagens, caracteres)
     const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '', Boolean(e.referencia)) // KINEO-META95-PERSONAGEM-2010 — "identity" só conta com a folha; era: lerRespostaDoCritico(conteúdo)
+    if (r) Object.assign(r, aplicarPerguntas0311(r, data.choices?.[0]?.message?.content ?? '', contextoDoCritico0311(e.prompt))) // KINEO-JUIZ-PERGUNTAS-0311 — "era"/"person"/"style" só contam quando o prompt da cena os pediu
     if (!r) return { ...base, erro: 'resposta_ilegivel', custoUsd, ms: agora() - t0 }
     return { ...base, veredito: r.veredito, problemas: r.problemas, motivo: r.motivo, nota: r.nota, custoUsd, ms: agora() - t0 }
   } catch (err) {
@@ -235,11 +290,16 @@ const INSTRUCAO: Record<ProblemaStill, string> = {
   texto: 'Every surface plain and unmarked.',
   artefato: 'One clean, coherent photograph, every object whole, solid and separate.',
   identidade: 'The named character exactly as in the reference image: same species, body shape, colours, face, hair and outfit.', // KINEO-META95-PERSONAGEM-2010
+  estilo: 'Every subject rendered in exactly the visual medium stated for this film, the same look as every other shot.', // KINEO-JUIZ-PERGUNTAS-0311
+  pessoa: 'An empty, unoccupied scene: only the place and the objects described.', // KINEO-JUIZ-PERGUNTAS-0311
+  epoca: 'Every garment, vehicle and object strictly period-accurate for the period setting described.', // KINEO-JUIZ-PERGUNTAS-0311
 }
+const ORDEM_0311: ProblemaStill[] = ['estilo', 'pessoa', 'epoca'] // KINEO-JUIZ-PERGUNTAS-0311 — depois dos 5 de sempre
 const ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']
 
 /** A instrução da foto nova: uma frase por problema, na ordem sujeito → anatomia → texto → artefato. '' = nada a refazer. */
 export function instrucaoDoCritico(problemas: readonly ProblemaStill[]): string {
+  if (problemas.some((p) => ORDEM_0311.includes(p))) return [...ORDEM, ...ORDEM_0311].filter((p) => problemas.includes(p)).map((p) => INSTRUCAO[p]).join(' ') // KINEO-JUIZ-PERGUNTAS-0311
   return ORDEM.filter((p) => problemas.includes(p)).map((p) => INSTRUCAO[p]).join(' ')
 }
 
