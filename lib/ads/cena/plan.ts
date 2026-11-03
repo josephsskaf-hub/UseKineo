@@ -43,13 +43,13 @@ export function cenaInput(raw: unknown): CenaInput {
   const b = raw as Record<string, unknown>, frase = clean(b.frase)
   if (!cenaHttps(b.foto) || !frase || frase.length > 1200) throw new Error('cena_bad_photo_or_sentence')
   if (b.oferta !== undefined && (typeof b.oferta !== 'string' || b.oferta.length > 300)) throw new Error('cena_bad_offer')
-  if (b.cta !== undefined && (typeof b.cta !== 'string' || !clean(b.cta) || b.cta.length > 300)) throw new Error('cena_bad_cta') // KINEO-ADS-CENA-95-PACING-2110
+  if (b.cta !== undefined && (typeof b.cta !== 'string' || b.cta.length > 300)) throw new Error('cena_bad_cta') // KINEO-ADS-CENA-95-PACING-2110 · KINEO-ADS-CTA-VAZIO-0311 — CTA opcional vazio/só espaços = sem CTA (igual a ausente)
   if (b.beneficios !== undefined && (!Array.isArray(b.beneficios) || b.beneficios.length > 6 || b.beneficios.some(x => typeof x !== 'string' || !clean(x) || x.length > 160))) throw new Error('cena_bad_benefits')
   if (b.formato !== undefined && !escolhaFormat(b.formato)) throw new Error('cena_bad_format')
   if (b.language !== undefined && !narrationLanguage(b.language)) throw new Error('cena_bad_language')
   if (b.actorUrl !== undefined && !cenaHttps(b.actorUrl)) throw new Error('cena_bad_actor')
   if (b.voice_mode !== undefined && !isCenaVoiceMode(b.voice_mode)) throw new Error('cena_bad_voice_mode')
-  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: narrationLanguage(b.language) ?? 'en', formato: escolhaFormat(b.formato) ? b.formato : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(b.cta ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110
+  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: narrationLanguage(b.language) ?? 'en', formato: escolhaFormat(b.formato) ? b.formato : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(clean(b.cta) ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110
 }
 function jsonObject(raw: unknown): Record<string, unknown> {
   const v = typeof raw === 'string' ? JSON.parse(raw) : raw
