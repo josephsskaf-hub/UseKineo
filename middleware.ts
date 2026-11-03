@@ -11,6 +11,7 @@ import {
   checkoutGateStatus,
   decideCheckoutGate,
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
+import { caminhoForaDasLinguas } from '@/lib/seo/linguasPublicas0311' // KINEO-5-LINGUAS-0311
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -101,6 +102,15 @@ export async function middleware(request: NextRequest) {
     dest.pathname = '/a/' + ref
     dest.search = ''
     return NextResponse.redirect(dest, 307)
+  }
+
+  // KINEO-5-LINGUAS-0311 [TRAVA 8.2 — "vai" do fundador 03/11] — a versão de página numa língua fora das 5 (en/de/es/pt/fr) segue
+  // no ar, mas pede ao Bing/Google para sair do índice e seguir os links. Regra e porquê: lib/seo/linguasPublicas0311.ts. Ramo
+  // próprio, antes do cookie da home: a home ('/') nunca é página de língua de fora, então o sorteio do A/B não muda.
+  if (caminhoForaDasLinguas(request.nextUrl.pathname)) {
+    const linguaResponse = await updateSession(request)
+    linguaResponse.headers.set('X-Robots-Tag', 'noindex, follow')
+    return linguaResponse
   }
 
   // KINEO-HOME-CLIPS-FIRST-2026-10-05 — id first-party do visitante para o A/B da home (lib/growth/homeClipsFirst.ts).

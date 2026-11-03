@@ -39,11 +39,12 @@ const sitemap = load('app/sitemap.ts').default()
 const refresh = load('lib/seo/trafego2310.ts')
 const { INTENT_SLUGS, intentPagePath } = load('lib/seo/intentPages.ts')
 const { ENGINE_SLUGS, isIndexableEngineSlug } = load('lib/growth/enginePageCatalog.ts')
+const { caminhoForaDasLinguas } = load('lib/seo/linguasPublicas0311.ts') // KINEO-5-LINGUAS-0311 — /for/<língua de fora> sai do mapa de propósito
 const expected = [
   '/', '/text-to-video-shorts', '/gerador-de-shorts-gratis', '/state-of-ai-shorts-2026',
   '/best-ai-shorts-generators', '/free-ai-shorts-generator', '/chatgpt',
   ...mocks['app/free-ai-shorts/[niche]/page.tsx'].NICHE_SLUGS.map(s => `/free-ai-shorts/${s}`),
-  ...INTENT_SLUGS.map(intentPagePath),
+  ...INTENT_SLUGS.map(intentPagePath).filter(p => !caminhoForaDasLinguas(p)),
   ...ENGINE_SLUGS.filter(isIndexableEngineSlug).map(s => `/ai-video-generator/${s}`),
 ]
 const byPath = new Map(sitemap.map(e => [new URL(e.url).pathname, e]))
