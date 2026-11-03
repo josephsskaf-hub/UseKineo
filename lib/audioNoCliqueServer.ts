@@ -19,7 +19,7 @@ import {
 } from '@/lib/compose'
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'
-import { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
+import { narrationLanguage, resolveNarrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — resolveNarrationLanguage: a MESMA resolução do compose
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto'
 import { resolveMusicDirection } from '@/lib/musicDirection'
 import { esperarLyria, lyriaPromptFor, submeterLyria } from '@/lib/lyriaMusic'
@@ -104,7 +104,7 @@ export async function agendarAudioNoClique(a: {
     if (assinada) { verticalRaw = assinada.vertical; speedRaw = assinada.speed }
     const vertical = typeof verticalRaw === 'string' && verticalRaw.trim() ? verticalRaw.trim().toLowerCase() : undefined
     const explicitSpeed = velocidadeExplicita(speedRaw)
-    const language = narrationLanguage(a.bodyLanguage) ?? 'en' // ≡ compose
+    const language = narrationLanguage(r.language) ?? resolveNarrationLanguage(a.bodyLanguage, voiceoverScript).language // ≡ compose — KINEO-VOZ-NATIVA-HOLLYWOOD-0211b: o idioma do claim vence; sem ele, a interface cede ao idioma claro do roteiro (resolveNarrationLanguage(body.language, voiceoverScript), compose :783/:848). Era a interface crua ('en' com roteiro pt = voz americana no cache)
     const topic = typeof r.prompt === 'string' ? r.prompt : '' // o cliente manda topic = o pedido despachado
 
     // Trilha: ≡ compose selectMusicForScript({ script, rawScript: `${raw}\n${topic}`, vertical }).
@@ -132,7 +132,7 @@ export async function agendarAudioNoClique(a: {
         const pinned = hollywoodVoiceFromClaim(r.host_voice) ?? resolveHollywoodVoice(voiceoverScript, language, vertical)
         const velocidade = pinned.defaultSpeed * (explicitSpeed ?? 1.0)
         for (const p of pendentes) {
-          const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto: p.text, voz: pinned.voice, velocidade })
+          const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto: p.text, voz: pinned.voice, velocidade, lingua: language }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b
           cenas.push(async () => {
             if (await lookupCachedVoiceover(chave)) return true
             const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade, language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz do clique ≡ a do compose */ })

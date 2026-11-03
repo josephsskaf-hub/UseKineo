@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['lib/hollywood/hostVoice.ts', 'lib/ttsFallback.ts', 'app/api/compose/route.ts', 'lib/audioNoCliqueServer.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/mcp/studioTools.ts'] // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz nativa (MiniMax) na estrada hollywood: o desvio (hostVoice + gênero no ttsFallback), a língua nos 4 chamadores e a língua resolvida no conector
+const ESCOPO = ['lib/hollywood/hostVoice.ts', 'lib/ttsFallback.ts', 'app/api/compose/route.ts', 'lib/audioNoCliqueServer.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/mcp/studioTools.ts', 'lib/audioNoClique.ts'] // (0211b: + a língua na chave do cache da cena) KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz nativa (MiniMax) na estrada hollywood: o desvio (hostVoice + gênero no ttsFallback), a língua nos 4 chamadores e a língua resolvida no conector
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

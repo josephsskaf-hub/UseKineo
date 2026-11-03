@@ -47,8 +47,12 @@
   },
   "app/api/compose/route.ts": {
    "beforeSha256": "e4f117eb16ea6651eb376611f8d209e5b57be94a417ff3d3c01ed4d411c2aaa2",
-   "afterSha256": "f170ac9eab34ff3b6387e503120f481a15e11fe2bf7cbe6e2918bcda1cecd689",
+   "afterSha256": "ef8bc98d892672d989c16d2b39cfe38c17dc83ace79e4db678f69dc4a9830d10",
    "hunks": [
+    {
+     "before": "          if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')\n          if (tentativasCena === 1) { const daCena = await audioDoClique.cena(pending.text, hollywoodPinnedVoice.voice, hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0)); if (daCena) { measured.push({ sceneIdx: pending.sceneIdx, url: daCena.voiceoverUrl, dur: daCena.audioDuration, text: pending.text, words: daCena.words.length > 0 && verifyObservedSpeech(pending.text, daCena.words).ok ? daCena.words : undefined }); cenaFeita = true; continue } } // KINEO-FILME-RAPIDO-1710 — a voz desta cena saiu no clique (mesmo texto, voz e velocidade = a mesma síntese; a transcrição passa pela MESMA conferência)\n          composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME",
+     "after": "          if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')\n          if (tentativasCena === 1) { const daCena = await audioDoClique.cena(pending.text, hollywoodPinnedVoice.voice, hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0), language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — a voz do clique só serve se for da MESMA língua */); if (daCena) { measured.push({ sceneIdx: pending.sceneIdx, url: daCena.voiceoverUrl, dur: daCena.audioDuration, text: pending.text, words: daCena.words.length > 0 && verifyObservedSpeech(pending.text, daCena.words).ok ? daCena.words : undefined }); cenaFeita = true; continue } } // KINEO-FILME-RAPIDO-1710 — a voz desta cena saiu no clique (mesmo texto, voz e velocidade = a mesma síntese; a transcrição passa pela MESMA conferência)\n          composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME"
+    },
     {
      "before": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),\n          })",
      "after": "            speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),\n            language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — pt/es/… narram na voz nativa (MiniMax), a mesma velocidade final\n          })"
@@ -61,8 +65,20 @@
   },
   "lib/audioNoCliqueServer.ts": {
    "beforeSha256": "16296f4928a4ea61306030c872b9fbe5a799837239f0dde6a6129f35fb2341a2",
-   "afterSha256": "3fe092f2273383bf6205d4e7648ac6a69fa7602f0a544d87b7105511f7916efa",
+   "afterSha256": "6a3e5cd48e12ce11492affce6021569e43345671c63754dffcd8e355c1486e81",
    "hunks": [
+    {
+     "before": "import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'\nimport { narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'\nimport { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto'",
+     "after": "import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'\nimport { narrationLanguage, resolveNarrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — resolveNarrationLanguage: a MESMA resolução do compose\nimport { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto'"
+    },
+    {
+     "before": "    const explicitSpeed = velocidadeExplicita(speedRaw)\n    const language = narrationLanguage(a.bodyLanguage) ?? 'en' // ≡ compose\n    const topic = typeof r.prompt === 'string' ? r.prompt : '' // o cliente manda topic = o pedido despachado",
+     "after": "    const explicitSpeed = velocidadeExplicita(speedRaw)\n    const language = narrationLanguage(r.language) ?? resolveNarrationLanguage(a.bodyLanguage, voiceoverScript).language // ≡ compose — KINEO-VOZ-NATIVA-HOLLYWOOD-0211b: o idioma do claim vence; sem ele, a interface cede ao idioma claro do roteiro (resolveNarrationLanguage(body.language, voiceoverScript), compose :783/:848). Era a interface crua ('en' com roteiro pt = voz americana no cache)\n    const topic = typeof r.prompt === 'string' ? r.prompt : '' // o cliente manda topic = o pedido despachado"
+    },
+    {
+     "before": "        for (const p of pendentes) {\n          const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto: p.text, voz: pinned.voice, velocidade })\n          cenas.push(async () => {",
+     "after": "        for (const p of pendentes) {\n          const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto: p.text, voz: pinned.voice, velocidade, lingua: language }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b\n          cenas.push(async () => {"
+    },
     {
      "before": "            if (await lookupCachedVoiceover(chave)) return true\n            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade })\n            const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0",
      "after": "            if (await lookupCachedVoiceover(chave)) return true\n            const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade, language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a voz do clique ≡ a do compose */ })\n            const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0"
@@ -86,6 +102,20 @@
     {
      "before": "      duration_seconds: input.duration,\n      language: input.language,\n      aspect: input.aspect,",
      "after": "      duration_seconds: input.duration,\n      language: typeof data.language === 'string' && data.language ? data.language : input.language, // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — a língua que a rota RESOLVEU (texto > pedido), não o eco do pedido\n      aspect: input.aspect,"
+    }
+   ]
+  },
+  "lib/audioNoClique.ts": {
+   "beforeSha256": "bbd2a8677346bba63fd73742d09eafdeb13116ce249d810e3ce57ebad42137c1",
+   "afterSha256": "b83f9b17d17a5d484ec9f6b354c16c8c7c610f75d25a6c491d1cde91e481d5f2",
+   "hunks": [
+    {
+     "before": "/** Chave do cache de voz da cena (Kling 3/H3/Omni/S25): por filme, para nenhuma outra montagem tocar nela. */\nexport function chaveDaCenaAquecida(a: { generationId: string; texto: string; voz: string; velocidade: number }): string {\n  const v = Number.isFinite(a.velocidade) ? Math.round(a.velocidade * 1000) / 1000 : 1\n  return sha(`kineo:cena-no-clique:v1|${a.generationId}|${a.voz}|${v}|${a.texto.trim()}`)\n}",
+     "after": "/** Chave do cache de voz da cena (Kling 3/H3/Omni/S25): por filme, para nenhuma outra montagem tocar nela. */\nexport function chaveDaCenaAquecida(a: { generationId: string; texto: string; voz: string; velocidade: number; lingua?: string | null /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — a língua entra na chave: a voz de outra língua nunca é reaproveitada */ }): string {\n  const v = Number.isFinite(a.velocidade) ? Math.round(a.velocidade * 1000) / 1000 : 1\n  return sha(`kineo:cena-no-clique:v1|${a.generationId}|${a.voz}|${v}|${a.texto.trim()}` + (a.lingua ? `|lang=${a.lingua}` : '')) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b\n}"
+    },
+    {
+     "before": "    },\n    cena: async (texto: string, voz: string, velocidade: number): Promise<E | null> => {\n      try {\n        const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto, voz, velocidade })\n        const achou = (await a.lookup(chave).catch(() => null)) ?? (await esperar('cenas', chave))",
+     "after": "    },\n    cena: async (texto: string, voz: string, velocidade: number, lingua?: string | null /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b */): Promise<E | null> => {\n      try {\n        const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto, voz, velocidade, lingua }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b\n        const achou = (await a.lookup(chave).catch(() => null)) ?? (await esperar('cenas', chave))"
     }
    ]
   }

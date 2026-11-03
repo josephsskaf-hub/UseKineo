@@ -48,9 +48,9 @@ export function shaDoPrompt(prompt: string): string {
   return sha(`lyria-prompt:v1:${prompt}`)
 }
 /** Chave do cache de voz da cena (Kling 3/H3/Omni/S25): por filme, para nenhuma outra montagem tocar nela. */
-export function chaveDaCenaAquecida(a: { generationId: string; texto: string; voz: string; velocidade: number }): string {
+export function chaveDaCenaAquecida(a: { generationId: string; texto: string; voz: string; velocidade: number; lingua?: string | null /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — a língua entra na chave: a voz de outra língua nunca é reaproveitada */ }): string {
   const v = Number.isFinite(a.velocidade) ? Math.round(a.velocidade * 1000) / 1000 : 1
-  return sha(`kineo:cena-no-clique:v1|${a.generationId}|${a.voz}|${v}|${a.texto.trim()}`)
+  return sha(`kineo:cena-no-clique:v1|${a.generationId}|${a.voz}|${v}|${a.texto.trim()}` + (a.lingua ? `|lang=${a.lingua}` : '')) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b
 }
 
 // ── o aquecimento (roda depois da resposta do despacho) ─────────────────────────────────────────────────────────────
@@ -265,9 +265,9 @@ export function montagemComAudioDoClique<E extends { voiceoverUrl: string; audio
       if (r) relato.voz = 'esperada'
       return r
     },
-    cena: async (texto: string, voz: string, velocidade: number): Promise<E | null> => {
+    cena: async (texto: string, voz: string, velocidade: number, lingua?: string | null /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b */): Promise<E | null> => {
       try {
-        const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto, voz, velocidade })
+        const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto, voz, velocidade, lingua }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211b
         const achou = (await a.lookup(chave).catch(() => null)) ?? (await esperar('cenas', chave))
         const ok = achou && achou.audioDuration > 0.3 && achou.voiceoverUrl ? achou : null
         if (ok) relato.cenas += 1

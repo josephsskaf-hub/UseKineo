@@ -9,6 +9,7 @@
 //   C. en (e chamador sem língua) continua byte a byte na tts-1-hd com a voz e a velocidade de antes;
 //   D. Kling 4 pago: a velocidade FINAL pinada (host_voice.speed_final) chega à MiniMax igual, com ou sem body.speed;
 //   E. os 4 chamadores (compose ×2, audioNoCliqueServer, rota do cinematic) passam a língua; o conector devolve a língua resolvida;
+//      0211b: a voz do clique nasce na MESMA língua do compose (claim > roteiro claro > interface) e a chave do cache leva a língua;
 //   F. reprodução: a synthesizeHostSpeech da origin/main manda pt/es à tts-1-hd (este guardião fica vermelho lá);
 //   G. recibo exato da trava + mutantes.
 import { readFileSync } from 'node:fs'
@@ -151,10 +152,47 @@ const chamadores = () => {
   for (const c of cs) console.log(`      ${c.f}:${c.linha}`)
   const cine = cs.find((c) => c.f === 'app/api/generate-video-cinematic/route.ts')
   checa('E3 a fala do apresentador (lipsync) usa a língua que a rota resolveu (texto > pedido)', !!cine && cine.corpo.includes('language: narrationLanguage.language'))
-  const clique = cs.find((c) => c.f === 'lib/audioNoCliqueServer.ts')
-  checa('E4 a voz feita no clique usa a MESMA língua do compose (narrationLanguage(bodyLanguage) ?? en)', !!clique && rd('lib/audioNoCliqueServer.ts').includes("const language = narrationLanguage(a.bodyLanguage) ?? 'en' // ≡ compose") && /language/.test(clique.corpo))
   const tools = rd('lib/mcp/studioTools.ts')
   checa('E5 o conector devolve a língua que a rota resolveu (data.language), com o pedido como reserva', tools.includes("language: typeof data.language === 'string' && data.language ? data.language : input.language,"))
+}
+
+console.log('== E4/E6/E7 (0211b). a voz do clique nasce na MESMA língua do compose e a chave do cache leva a língua ==')
+{
+  // As linhas REAIS das duas pontas, executadas com o textLanguage real.
+  const srv = rd('lib/audioNoCliqueServer.ts')
+  const ini = srv.indexOf('    const language = ') + '    const language = '.length
+  const exprClique = srv.slice(ini, srv.indexOf(' // ≡ compose', ini))
+  const lingClique = new Function('narrationLanguage', 'resolveNarrationLanguage', 'r', 'a', 'voiceoverScript', `return ${exprClique}`).bind(null, T.narrationLanguage, T.resolveNarrationLanguage)
+  const cmp = rd('app/api/compose/route.ts')
+  const l1 = cmp.slice(cmp.indexOf('    const idiomaDoFilme = resolveNarrationLanguage('), cmp.indexOf('\n', cmp.indexOf('    const idiomaDoFilme = resolveNarrationLanguage(')))
+  const l2 = cmp.slice(cmp.indexOf('    let language = idiomaDoFilme.language'), cmp.indexOf('\n', cmp.indexOf('    let language = idiomaDoFilme.language')))
+  const bIni = cmp.indexOf('    { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu')
+  const bFim = cmp.indexOf('    } // KINEO-FILME15-FIEL-2610\n', bIni) + '    } // KINEO-FILME15-FIEL-2610'.length
+  const corpoCompose = compila(`${l1}\n${l2}\n${cmp.slice(bIni, bFim)}\nreturn language`)
+  const lingCompose = (body, voiceoverScript, claimResponse) => new Function('resolveNarrationLanguage', 'narrationLanguage', 'body', 'voiceoverScript', 'cinematicBirthClaim', 'console', corpoCompose)(T.resolveNarrationLanguage, T.narrationLanguage, body, voiceoverScript, claimResponse ? { response: claimResponse } : null, { warn() {}, log() {} })
+  const PT = 'O sangue azul corria nas veias da rainha, e ninguém no castelo sabia o segredo que ela guardava desde criança.'
+  const ES = 'La sangre azul corría por las venas de la reina, y nadie en el castillo conocía el secreto que guardaba desde niña.'
+  const EN = 'The blue blood ran through the queen veins, and nobody in the castle knew the secret she had kept since childhood.'
+  const casos = [['en', PT, undefined], ['en', ES, undefined], [undefined, PT, undefined], ['pt', EN, undefined], ['en', EN, undefined], ['en', PT, 'pt'], ['en', EN, 'es'], ['pt', PT, 'en'], [null, ES, 'es']]
+  let iguais = true
+  for (const [ui, script, claimLang] of casos) {
+    const r = claimLang ? { language: claimLang } : {}
+    const c = lingClique(r, { bodyLanguage: ui }, script), m = lingCompose({ language: ui }, script, claimLang ? { language: claimLang } : null)
+    if (c !== m) { iguais = false; console.log('    ', ui, claimLang, script.slice(0, 20), 'clique', c, 'compose', m) }
+  }
+  checa(`E4 a língua do clique = a do compose em ${casos.length} combinações (interface × roteiro × claim; claim vence, interface "en" cede ao roteiro claro)`, iguais && exprClique.includes('resolveNarrationLanguage'))
+  const ui_en_pt = lingClique({}, { bodyLanguage: 'en' }, PT)
+  const A = roda(rd('lib/audioNoClique.ts'), { 'node:crypto': await import('node:crypto') })
+  const h = carregaHost(HOST)
+  await h.fala({ text: PT, voice: 'echo', speed: 0.96, language: ui_en_pt })
+  checa('E6 interface "en" + roteiro pt (sem língua no claim): o clique resolve pt e a voz que vai ao cache é a NATIVA (Portuguese_ReliableMan), 0 chamadas à tts-1-hd',
+    ui_en_pt === 'pt' && h.chamadas.openai.length === 0 && h.chamadas.nativa[0]?.corpo.voice_setting?.voice_id === 'Portuguese_ReliableMan')
+  const base = { generationId: 'g-0211b', texto: PT, voz: 'echo', velocidade: 0.96 }
+  const kClique = A.chaveDaCenaAquecida({ ...base, lingua: ui_en_pt }), kCompose = A.chaveDaCenaAquecida({ ...base, lingua: lingCompose({ language: 'en' }, PT, null) })
+  checa('E7 a chave do cache da cena leva a língua: clique pt = compose pt; uma voz feita em "en" NUNCA é reaproveitada num filme pt (cinto e suspensório)',
+    kClique === kCompose && kClique !== A.chaveDaCenaAquecida({ ...base, lingua: 'en' }) && A.chaveDaCenaAquecida({ ...base, lingua: 'en' }) !== A.chaveDaCenaAquecida({ ...base, lingua: 'es' }))
+  checa('E8 as duas pontas passam a língua à chave: o clique (chaveDaCenaAquecida … lingua: language) e a montagem (audioDoClique.cena(…, language))',
+    srv.includes('velocidade, lingua: language })') && cmp.includes('hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0), language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b') && rd('lib/audioNoClique.ts').includes('const chave = chaveDaCenaAquecida({ generationId: a.generationId, texto, voz, velocidade, lingua })'))
 }
 
 console.log('== F. reprodução na origin/main ==')
@@ -174,7 +212,7 @@ console.log('== G. recibo exato da trava + mutantes ==')
 {
   const R = VOZ_NATIVA_HOLLYWOOD_0211
   const arquivos = Object.keys(R.scope)
-  checa('G1 o recibo cobre os 6 arquivos da entrega', ['lib/hollywood/hostVoice.ts', 'lib/ttsFallback.ts', 'app/api/compose/route.ts', 'lib/audioNoCliqueServer.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/mcp/studioTools.ts'].every((f) => arquivos.includes(f)) && arquivos.length === 6)
+  checa('G1 o recibo cobre os 7 arquivos da entrega (0211b: + lib/audioNoClique.ts)', ['lib/hollywood/hostVoice.ts', 'lib/ttsFallback.ts', 'app/api/compose/route.ts', 'lib/audioNoCliqueServer.ts', 'app/api/generate-video-cinematic/route.ts', 'lib/mcp/studioTools.ts', 'lib/audioNoClique.ts'].every((f) => arquivos.includes(f)) && arquivos.length === 7)
   let exato = true
   for (const f of arquivos) {
     const atual = rd(f)

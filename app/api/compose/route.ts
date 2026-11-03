@@ -2403,7 +2403,7 @@ export async function POST(req: NextRequest) {
         tentativasCena++
         try {
           if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
-          if (tentativasCena === 1) { const daCena = await audioDoClique.cena(pending.text, hollywoodPinnedVoice.voice, hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0)); if (daCena) { measured.push({ sceneIdx: pending.sceneIdx, url: daCena.voiceoverUrl, dur: daCena.audioDuration, text: pending.text, words: daCena.words.length > 0 && verifyObservedSpeech(pending.text, daCena.words).ok ? daCena.words : undefined }); cenaFeita = true; continue } } // KINEO-FILME-RAPIDO-1710 — a voz desta cena saiu no clique (mesmo texto, voz e velocidade = a mesma síntese; a transcrição passa pela MESMA conferência)
+          if (tentativasCena === 1) { const daCena = await audioDoClique.cena(pending.text, hollywoodPinnedVoice.voice, hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0), language /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211b — a voz do clique só serve se for da MESMA língua */); if (daCena) { measured.push({ sceneIdx: pending.sceneIdx, url: daCena.voiceoverUrl, dur: daCena.audioDuration, text: pending.text, words: daCena.words.length > 0 && verifyObservedSpeech(pending.text, daCena.words).ok ? daCena.words : undefined }); cenaFeita = true; continue } } // KINEO-FILME-RAPIDO-1710 — a voz desta cena saiu no clique (mesmo texto, voz e velocidade = a mesma síntese; a transcrição passa pela MESMA conferência)
           composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME
           const buf = await synthesizeHostSpeech({
             text: pending.text,
