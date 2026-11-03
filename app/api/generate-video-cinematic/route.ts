@@ -2081,6 +2081,11 @@ async function manipularPost(req: NextRequest) {
       'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
     ])
     const isPaidUser = profile?.has_paid === true || PAID_PLANS.has(planVal)
+    // KINEO-FOLHA-PAGANTE-0311 [TRAVA 8.2 — fundador 03/11: "arrumar todos os defeitos conhecidos, universalizar"] — a folha de personagem (a imagem de referência
+    // KINEO-FOLHA-PAGANTE-0311 — que gera cada still: o rosto travado) era só de conta interna e do filme grátis de 15 s (PERSONAGEM_PUBLIC=false). O PAGANTE do motor
+    // KINEO-FOLHA-PAGANTE-0311 — clássico ficava sem: gapozweb (Rick, anual, 03/11, Seedance 60→90 s, nota 4,5, 3ª vez) teve ~7 Rolands diferentes com o nome e a aparência
+    // KINEO-FOLHA-PAGANTE-0311 — no pedido. Agora conta paga ganha a folha nas mesmas regras de sempre (motor seedance/kling/veo, âncora ligada, sem Estrela, sem [faceless]).
+    if (isPaidUser && !qualidadeFilme.gerarFolha && decidirPersonagem({ interna: true, pedido: ['personagem'], engine: body.engine, anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }).ativo) qualidadeFilme.gerarFolha = true // KINEO-FOLHA-PAGANTE-0311
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial ativo = direitos do
     // CREATOR (Seedance liberado abaixo), mas NUNCA os motores Studio: o gate
     // Kling/Veo/Hollywood continua exigindo conta PAGA de verdade — trialActive
@@ -7400,7 +7405,7 @@ async function manipularPost(req: NextRequest) {
       // STILL_CRITIC_MODE: off = nada roda (byte a byte o de antes) · log_only (PADRÃO) = só o evento cinematic_still_critic, nunca // KINEO-JUIZ-STILL-1410
       // regera · enforce = FAIL refaz o still UMA vez (máx. 3 por filme) e segue o melhor. A escolha só entra em sceneStills depois // KINEO-JUIZ-STILL-1410
       // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410
-      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm ? 'enforce' : 'log_only') // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: "porta não aparece", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando
+      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm || (isPaidUser && personagemElenco.elenco.length > 0) ? 'enforce' : 'log_only') // KINEO-FOLHA-PAGANTE-0311 — pagante com personagem: o still reprovado (identidade/sujeito) é refeito dentro dos limites de sempre (1 por still, 6 por filme), não só registrado // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: "porta não aparece", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando
       const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410
       const criticoTarefas: Promise<{ idx: number; url: string }>[] = [] // KINEO-JUIZ-STILL-1410
       const criticoEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
