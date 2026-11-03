@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { reviewRequestFidelity } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
+import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano em todo escritor de fala/título/legenda
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
@@ -293,6 +294,8 @@ function buildSystemPrompt(duration: number, language: AnalyzeLanguage = 'en', e
   return `You are a YouTube Shorts creative director specializing in addictive micro-knowledge content. Every script must feel like Netflix knowledge dopamine — short, real, surprising, and satisfying. Your job is to produce a complete creative brief for a ${plan.duration} second Short built around real, verifiable facts that escalate to a satisfying payoff.${languageInstruction(language)}
 
 The brief MUST include: a viral_title, a brutal hook for the first 1-2 seconds, a scene-by-scene breakdown with cinematic visual prompts (never generic), captions of MAX 6-8 words, full voiceover_script (made of real micro-knowledge beats, not vague mystery), music_mood, pacing_notes, youtube_title, youtube_description, and hashtags.
+
+${regraDaDataReal()}
 
 ${MICRO_KNOWLEDGE_SYSTEM_RULES}
 
@@ -819,7 +822,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
           {
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.' },
+              { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.\n\n' + regraDaDataReal() }, // KINEO-ANO-INVENTADO-0211 — viral_title e captions vão para a tela
               { role: 'user', content: visualUserMsg },
             ],
             temperature: 0.5,
@@ -936,7 +939,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
             {
               model: 'gpt-4o-mini',
               messages: [
-                { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.' },
+                { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.\n\n' + regraDaDataReal() }, // KINEO-ANO-INVENTADO-0211 — viral_title e captions vão para a tela
                 { role: 'user', content: visualUserMsg },
               ],
               temperature: 0.5,

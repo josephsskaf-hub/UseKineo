@@ -39,6 +39,7 @@ import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilm
 import { planoDePalavras, instrucaoDoPlano, pedidoDeTamanho, escolherVersao, tetoDeTokens, prazoDaNovaTentativa, planoValeNoFilme, ROTEIRO_NO_TAMANHO_VERSAO } from '@/lib/roteiroNoTamanho' // KINEO-ROTEIRO-NO-TAMANHO-0111 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o piso vira orçamento por bloco; a 2ª tentativa leva a conta por bloco
 import { faixaDoKling4ParaOPedido, instrucaoDoKling4NoEscritor, palavrasNoPortao } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o roteiro do filme grátis Kling 4 nasce para caber nos 15 s
 import { faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — e o do Kling 4 PAGO de 15 s também
+import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano: o escritor nunca inventa "2023"
 import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -116,6 +117,8 @@ function buildSystemPrompt(language: Language, targetSeconds: number = 60, words
   return `You are a world-class viral YouTube Shorts scriptwriter AND voice director. Your job is to take any topic and write a tight, punchy, CINEMATIC script in the exact structure below. The script will be fed word-for-word into a premium AI text-to-speech voice — so how you write determines how it SOUNDS. Write for a US audience aged 18-34.
 
 ${langInstruction}
+
+${regraDaDataReal()}
 
 OUTPUT FORMAT — use EXACTLY these headers, in this exact order. Each section MUST start with a [Pexels: search term] footage cue, immediately followed by the voiceover text.
 

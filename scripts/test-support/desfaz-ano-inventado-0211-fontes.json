@@ -1,0 +1,44 @@
+{
+ "base": "036d7134d7ca4c48f88f84248545b95271684bd0",
+ "scope": {
+  "app/api/generate-script/route.ts": {
+   "beforeSha256": "2f38cb24e62fa1781d99bb8b13f6d5f19d826afc5b5e9fde88da11a822233bd4",
+   "afterSha256": "02511b0deea5d46a41b58d3d7dc853dc5ed80cefa94c9b59bf0cf149ea46f2c7",
+   "hunks": [
+    {
+     "before": "import { faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — e o do Kling 4 PAGO de 15 s também\nimport { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)",
+     "after": "import { faixaDoKling4PagoParaOPedido } from '@/lib/kling4TrialScript' // KINEO-K4-PAGO-CABE-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — e o do Kling 4 PAGO de 15 s também\nimport { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano: o escritor nunca inventa \"2023\"\nimport { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)"
+    },
+    {
+     "before": "\nOUTPUT FORMAT — use EXACTLY these headers, in this exact order. Each section MUST start with a [Pexels: search term] footage cue, immediately followed by the voiceover text.",
+     "after": "\n${regraDaDataReal()}\n\nOUTPUT FORMAT — use EXACTLY these headers, in this exact order. Each section MUST start with a [Pexels: search term] footage cue, immediately followed by the voiceover text."
+    }
+   ]
+  },
+  "app/api/analyze-idea/route.ts": {
+   "beforeSha256": "f08d54d9af5947ce1a9ed3e0f14ad7d320367650ac4ec5e4724d0523e507b3a1",
+   "afterSha256": "c22477fce693ba85360abd234e955c4eac90234ee4a4265403a59ef23c95ce94",
+   "hunks": [
+    {
+     "before": "import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'\nimport { writeServerEvent } from '@/lib/serverEvents'",
+     "after": "import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'\nimport { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano em todo escritor de fala/título/legenda\nimport { writeServerEvent } from '@/lib/serverEvents'"
+    },
+    {
+     "before": "\n${MICRO_KNOWLEDGE_SYSTEM_RULES}",
+     "after": "\n${regraDaDataReal()}\n\n${MICRO_KNOWLEDGE_SYSTEM_RULES}"
+    },
+    {
+     "before": "            messages: [\n              { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.' },\n              { role: 'user', content: visualUserMsg },",
+     "after": "            messages: [\n              { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.\\n\\n' + regraDaDataReal() }, // KINEO-ANO-INVENTADO-0211 — viral_title e captions vão para a tela\n              { role: 'user', content: visualUserMsg },"
+    },
+    {
+     "before": "              messages: [\n                { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.' },\n                { role: 'user', content: visualUserMsg },",
+     "after": "              messages: [\n                { role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.\\n\\n' + regraDaDataReal() }, // KINEO-ANO-INVENTADO-0211 — viral_title e captions vão para a tela\n                { role: 'user', content: visualUserMsg },"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/dataRealDoEscritor.ts": "074924fd8e2e208b89e383174e71216015c82b8e081b490bc3650ee245c6b5e8"
+ }
+}

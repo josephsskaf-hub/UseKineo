@@ -43,6 +43,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAnoInventado0211 } from './test-support/desfaz-ano-inventado-0211.mjs' // KINEO-ANO-INVENTADO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (a data real + a regra do ano no system prompt) sai primeiro, pelo recibo exato, na comparação com a base
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -325,9 +326,10 @@ console.log('N90 — 90 s: o plano não se aplica; a rota é IGUAL à base (cham
       }
       const novo = await rodar(null)
       const velho = baseRota ? await rodar(baseRota) : null
+      const novoSemAno = await rodar(lf(semAnoInventado0211(fs.readFileSync(path.join(ROOT, ROUTE_REL), 'utf8'), ROUTE_REL))) // KINEO-ANO-INVENTADO-0211 — a base não tem a data real no prompt
       const semPlano = novo.chamadas.every((c) => !/LENGTH PLAN/.test(c.system) && !/LENGTH IS THE MAIN PROBLEM/.test(c.user) && c.max_tokens === 700) && !('length_plan' in (novo.escrito ?? {})) && !('length_retry' in (novo.escrito ?? {}))
       ok(semPlano, `${engine} 90 s · ${nome}: sem plano, sem pedido de tamanho, 700 tokens, sem length_plan no rastro`)
-      ok(!!velho && igual(novo.chamadas, velho.chamadas) && igual(novo.body, velho.body) && igual(novo.escrito, velho.escrito) && novo.status === velho.status, `${engine} 90 s · ${nome}: igual à base (${novo.chamadas.length} chamadas, timeouts ${novo.chamadas.map((c) => c.timeout).join('/')}, roteiro de ${falaDe(novo.body?.script ?? '')} palavras)`)
+      ok(!!velho && igual(novoSemAno.chamadas, velho.chamadas) && igual(novo.body, velho.body) && igual(novo.escrito, velho.escrito) && novo.status === velho.status, `${engine} 90 s · ${nome}: igual à base (${novo.chamadas.length} chamadas, timeouts ${novo.chamadas.map((c) => c.timeout).join('/')}, roteiro de ${falaDe(novo.body?.script ?? '')} palavras)`)
     }
   }
 }
