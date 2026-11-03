@@ -90,7 +90,9 @@ async function runChecks(over = {}, verbose = false) {
     const c = await tts(CAPS, 'business')
     check(c.ok && c.inputs.length === 1 && c.inputs[0] === CAPS, `(2) generateTTS("AI COPILOT") manda "AI COPILOT" (${JSON.stringify(c.inputs)})`)
     const n = await tts(NORMAL, undefined)
-    check(n.ok && n.inputs.length === 1 && n.inputs[0] === P.stripScriptMarkers(NORMAL), '(2) texto que o estrito aceita sai byte a byte igual (sem o tolerante)')
+    // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"] — regra nova:
+    // o texto do estrito é o MESMO; só o ano ("1960" → "nineteen sixty") vai por extenso à voz. A escada estrito → tolerante continua provada aqui.
+    check(n.ok && n.inputs.length === 1 && n.inputs[0] === P.stripScriptMarkers(NORMAL).replace('1960', 'nineteen sixty'), '(2) texto que o estrito aceita sai byte a byte igual (sem o tolerante)')
     const e = await tts('— VOICE —\nspeed: 1.1', undefined)
     check(!e.ok && e.inputs.length === 0, `(3) nada para narrar → lança ANTES de chamar a OpenAI (chamadas=${e.inputs.length})`)
   }

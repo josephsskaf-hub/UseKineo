@@ -21,6 +21,7 @@ import { aspectSpec, type AspectSpec } from '@/lib/aspect'
 import { cinematicSceneSeconds, assertCinematicTimeline } from '@/lib/cinematic/timelineContract'
 import { verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 import { probeMp4DurationSeconds } from '@/lib/mp4Duration'
+import { falarNumerosParaTts } from '@/lib/falaNumeros' // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]: número por extenso só no que vai à TTS
 import type { Kling4TrialEngine } from '@/lib/kling4TrialClaim'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
@@ -615,9 +616,12 @@ export async function generateTTS(
   // string_too_short → 502 "Voiceover generation failed", DETERMINÍSTICO (o cron de resgate repetiu e levou o mesmo). [KINEO-ESTORNO-NARRACAO-2026-10-13]
   // Texto que o estrito já aceita segue byte a byte igual (o tolerante só entra quando sobrou zero). [KINEO-ESTORNO-NARRACAO-2026-10-13]
   const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13
+  // KINEO-NUMEROS-FALADOS-0311 — ano, milhar, %, moeda e ordinal por extenso SÓ no texto que a voz lê (en/pt/es; lib/falaNumeros).
+  // A persona continua escolhida pelo texto de exibição; a legenda volta à grafia do roteiro no /api/compose. Sem número: o mesmo texto.
+  const falado = falarNumerosParaTts(cleaned, language).texto // KINEO-NUMEROS-FALADOS-0311
   if (usesMiniMaxNarration(language)) { // KINEO-IDIOMAS-FORMATOS-2410
     const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-IDIOMAS-FORMATOS-2410
-    return synthesizeTtsFallback(cleaned, { language, speed }) // KINEO-IDIOMAS-FORMATOS-2410
+    return synthesizeTtsFallback(falado, { language, speed }) // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-NUMEROS-FALADOS-0311
   } // KINEO-IDIOMAS-FORMATOS-2410
   if (!cleaned.trim()) throw new Error('TTS input is empty after sanitization') // KINEO-ESTORNO-NARRACAO-2026-10-13 — nunca chama a OpenAI com ''
 
@@ -637,7 +641,7 @@ export async function generateTTS(
         (process.env.ELEVENLABS_VOICE_ID ?? '').trim() ||
         ELEVENLABS_DEFAULT_VOICE_ID
       const elBuffer = await synthesizeWithElevenLabs({
-        text: cleaned,
+        text: falado, // KINEO-NUMEROS-FALADOS-0311
         voiceId,
         stability: persona?.elevenStability,
         similarityBoost: persona?.elevenSimilarity,
@@ -704,7 +708,7 @@ export async function generateTTS(
           // left untouched: nothing is spliced after it, and we don't want to
           // pad the end of the narration (totalDuration is derived from the
           // measured audio length).
-          const sectionText = section.text.trim()
+          const sectionText = falarNumerosParaTts(section.text.trim(), language).texto // KINEO-NUMEROS-FALADOS-0311
           const isLastSection = si === sections.length - 1
           const pausedText =
             isLastSection || /\.{2,}$/.test(sectionText)
@@ -734,7 +738,7 @@ export async function generateTTS(
   }
 
   // ── Single-pass TTS (no vertical, or no sections detected) ────────────────
-  const input = cleaned.length > 3800 ? cleaned.slice(0, 3800) : cleaned
+  const input = falado.length > 3800 ? falado.slice(0, 3800) : falado // KINEO-NUMEROS-FALADOS-0311
   const safeSpeed = Math.max(0.7, Math.min(1.3, Number.isFinite(baseSpeed) ? baseSpeed : 1.0))
   const { openai } = await import('@/lib/openai')
   // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
@@ -3249,6 +3253,9 @@ export interface HollywoodClipInput {
   // cena). Matching words supply karaoke timings. Missing/different words
   // fail the speech gate; there is no requested-dialogue caption fallback.
   speechWords?: WhisperWord[]
+  // KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos,
+  // universalizar"] — duração REAL do arquivo (cabeçalho mvhd, lida no /api/compose). Ausente = desconhecida: a montagem de sempre.
+  mediaSeconds?: number | null
 }
 
 export interface HollywoodNarrationBlock {
@@ -3277,6 +3284,38 @@ const HOLLYWOOD_CLIP_VOLUME: Record<HollywoodClipInput['engine'], string> = {
   // KINEO-HOLLYWOOD-HOST-2026-07-13 — the host clip's audio IS the speech
   // (our TTS lip-synced by Kling Avatar v2): full volume, like dialogue.
   host: '100%',
+}
+
+// ═══ KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar
+// todos, universalizar"] — o fim do loop:true no b-roll do hollywood. A cena de b-roll entra com loop:true; quando o clipe que a fal
+// devolveu é mais CURTO que a janela da cena (a fal arredonda os segundos: 7,4 s planejados = clipe de 7 s; e o crossfade estende
+// a janela 0,25 s por baixo da cena seguinte), o clipe RECOMEÇA e o quadro de abertura reaparece antes do corte — o "mesmo plano de
+// novo" do revisor, em todo motor da estrada hollywood (Kling 3, Kling 4 pago, H3, Omni, Seedance 2.5). Com a duração REAL do
+// arquivo (mediaSeconds, cabeçalho mvhd lido no /api/compose), o clipe toca UMA vez e a sobra repete só os últimos segundos dele com
+// o empurrão lento de 6 % linear — o mesmo mecanismo da sobra do Kling 4 grátis (KINEO-K4-FIM-SEM-VOLTA-0111), já exercitado em
+// produção —, mudo (a voz é a narração; o ambiente do clipe não gagueja). Nada muda quando: a duração é desconhecida, o clipe cobre a
+// janela, ou a cena tem fala nativa (diálogo/apresentador já entram com loop:false). A fala e os tempos da timeline nunca mudam.
+const SOBRA_CAUDA_MAX_S = 3 // KINEO-FRENTE-A-SEM-LOOP-0311 — o trecho final que se repete (≤ o clipe)
+export function seguraOFimDoClipeCurto(elements: CreatomateElement[], clip: HollywoodClipInput, falaNativa: boolean): void {
+  const real = clip.mediaSeconds
+  const el = elements[elements.length - 1]
+  if (falaNativa || !el || el.type !== 'video' || el.source !== clip.url || el.loop !== true) return
+  if (typeof real !== 'number' || !Number.isFinite(real) || real < 0.5 || !(el.duration > real + 0.02)) return
+  const janela = el.duration
+  el.loop = false
+  el.duration = round3(real)
+  const cauda = Math.min(SOBRA_CAUDA_MAX_S, real)
+  const fimDaJanela = round3(el.time + janela)
+  for (let t = round3(el.time + real), k = 0; fimDaJanela - t > 0.01; k++) {
+    const len = round3(Math.min(cauda, fimDaJanela - t))
+    elements.push({
+      type: 'video', track: el.track, time: t, duration: len, source: clip.url,
+      fit: 'cover', loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%',
+      trim_start: round3(real - len),
+      animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }],
+    })
+    t = round3(t + len)
+  }
 }
 
 export function buildHollywoodCreatomateSource({
@@ -3480,6 +3519,7 @@ export function buildHollywoodCreatomateSource({
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
         : {}), // The hook and first word are visible from frame one, not faded from black.
     })
+    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip)) // KINEO-FRENTE-A-SEM-LOOP-0311
   })
 
   // Track 3 — readability overlays (same as the standard builder).

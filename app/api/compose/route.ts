@@ -230,6 +230,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-PLANO-B-OPENAI-2026-09-28 — voz reserva (MiniMax 2.8 HD na fal) quando a TTS da OpenAI cai.
 import { ttsFallbackApplies, ttsFallbackSkipsRetry, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
 import { primaryStatusOf } from '@/lib/llmFallback'
+import { restaurarNumerosNaLegenda } from '@/lib/falaNumeros' // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]: a TTS fala o número por extenso, a legenda volta à grafia do roteiro
+import { sondarDuracaoDosClipes } from '@/lib/mp4Duration' // KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"]: a duração REAL de cada clipe de b-roll do hollywood (cabeçalho mvhd), para a montagem nunca voltar ao quadro zero
 import { desenhoDoClaim, kidsMusicQuieter } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o desenho infantil assinado no claim: legenda opcional e trilha mais baixa
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
@@ -2296,10 +2298,17 @@ export async function POST(req: NextRequest) {
             }, { status: 422 }))
           }
           c.speechWords = words
+          if (c.dialogueLine) c.speechWords = restaurarNumerosNaLegenda(words, c.dialogueLine, language) // KINEO-NUMEROS-FALADOS-0311 — depois da conferência: só a grafia da legenda muda, nunca o veredito
         }
       }
       console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
       const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds) // depois da verificação: uma cena de fala pode ter crescido
+      // KINEO-FRENTE-A-SEM-LOOP-0311 — a duração REAL de cada clipe de b-roll (support/cinematic), lida do cabeçalho mvhd: quando o
+      // clipe da fal é mais curto que a janela da cena, a montagem segura o fim em vez de recomeçar o clipe (lib/compose.ts).
+      // Falha aberta: sem leitura (prazo, formato), mediaSeconds fica vazio e a montagem é a de sempre. As falas nunca mudam.
+      composeCtx.stage = 'hollywood_clip_media_seconds' // KINEO-FRENTE-A-SEM-LOOP-0311
+      const duracaoReal = await sondarDuracaoDosClipes(hollywoodClips.map((c) => (c.engine === 'support' || c.engine === 'cinematic' ? c.url : null))) // KINEO-FRENTE-A-SEM-LOOP-0311
+      hollywoodClips.forEach((c, i) => { const d = duracaoReal[i]; if (typeof d === 'number' && d > 0) c.mediaSeconds = d }) // KINEO-FRENTE-A-SEM-LOOP-0311
 
       // Timeline offsets (pre-trim — only the LAST scene is ever trimmed by
       // the builder, which never moves earlier offsets).
@@ -2748,7 +2757,7 @@ export async function POST(req: NextRequest) {
             url: m.url,
             audioDuration: m.dur,
             text: m.text,
-            words: m.words,
+            words: restaurarNumerosNaLegenda(m.words, m.text, language), // KINEO-NUMEROS-FALADOS-0311 — "nineteen eighty-three" do Whisper volta a "1983" na legenda (tempo medido)
           })
         }
       }
@@ -3510,6 +3519,9 @@ export async function POST(req: NextRequest) {
     // declara narration_source 'tts' e só chega pelo modo serviço (o segredo é do servidor). O cache de voz continua
     // guardando o Whisper bruto; o caminho hollywood já retornou lá em cima e não passa por aqui.
     const legendaPelaGrafiaDoRoteiro = !avatarMode && (!hasUserVoice || (isServiceFinish && body.narration_source === 'tts'))
+    // KINEO-NUMEROS-FALADOS-0311 — a TTS leu o número por extenso (lib/falaNumeros, só en/pt/es); a legenda volta à grafia do roteiro
+    // ("nineteen" + "eighty-three," → "1983,", tempo medido). Depois da evidência de legenda (que compara o Whisper BRUTO) e só quando o áudio é TTS do scaledScript.
+    if (legendaPelaGrafiaDoRoteiro) whisperWords = restaurarNumerosNaLegenda(whisperWords, scaledScript, language) // KINEO-NUMEROS-FALADOS-0311
     const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null
     if (grafia) {
       console.log(`[compose] legenda com a grafia do roteiro: ${grafia.motivo} ancoras=${grafia.ancoras}/${grafia.palavrasDoRoteiro} trocadas=${grafia.trocadas} mantidos=${grafia.trechosMantidos}`)

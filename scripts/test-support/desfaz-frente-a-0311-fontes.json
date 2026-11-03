@@ -1,0 +1,114 @@
+{
+ "base": "7dca79a46d976aed935dcf1565748c0063a350f1",
+ "scope": {
+  "lib/cinematic/cenarioDoFilme.ts": {
+   "beforeSha256": "8fd9c38b17ed603ad1b707b90129744631d89af54f0dec904df5e31526bd2ad9",
+   "afterSha256": "acdf8814d960b4dc98fe42a002ff5f22e18cb0972ebc12f5805d76d978192529",
+   "hunks": [
+    {
+     "before": "  '- KINEO-CENA-BATE-COM-FALA-0311 LAST SHOT: the final shot shows literally what the final narration line says (its subject, place, light and time of day); never a dramatic generic image that contradicts it, such as an explosion for a calm sky or night for a line that says daylight.',\n].join('\\n')",
+     "after": "  '- KINEO-CENA-BATE-COM-FALA-0311 LAST SHOT: the final shot shows literally what the final narration line says (its subject, place, light and time of day); never a dramatic generic image that contradicts it, such as an explosion for a calm sky or night for a line that says daylight.',\n  // KINEO-FECHO-ABERTURA-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos,\n  // universalizar\"] — 9 primeiros filmes com o fim fraco/repetido (\"abre e fecha com o mesmo plano\", Kling 4 da escotilha; Vênus com a\n  // mesma galáxia nos 3 últimos quadros). A regra \"o fecho não repete a abertura\" (be6d3af37, KINEO-CENA-ACAO-LADO-3110) vivia só no\n  // descritor clássico (generateCinematicDescriptions); o planejador hollywood (lib/hollywood/router.ts) lê ESTA lista e não a via.\n  // Agora é comum a todo escritor. A rede determinística (última cena quase igual à 1ª → eixo do desfecho) já é universal em\n  // prepararQualidadeDoFilme (lib/cinematic/filmQuality.ts), que roda nas duas estradas.\n  '- KINEO-FECHO-ABERTURA-0311 CLOSING SHOT DIFFERS FROM THE OPENING: the last shot shows how the story ends, in a different place, moment, shot size or camera angle from the first shot; never repeat the opening image (same subject in the same place with the same framing). When a host opens and closes the film speaking to the lens, the closing host shot uses a different shot size and a different spot of the same setting.',\n].join('\\n')"
+    }
+   ]
+  },
+  "lib/compose.ts": {
+   "beforeSha256": "b4adf2f1c55b6a356f26cf4cd6eb9737c5e26b69bc3ba1a6952a2ae9d28f4753",
+   "afterSha256": "dcbab68a894c6a0b693992066fa6a3e6b559d31d254c44763da2d9add8c9d37b",
+   "hunks": [
+    {
+     "before": "import { probeMp4DurationSeconds } from '@/lib/mp4Duration'\nimport type { Kling4TrialEngine } from '@/lib/kling4TrialClaim'",
+     "after": "import { probeMp4DurationSeconds } from '@/lib/mp4Duration'\nimport { falarNumerosParaTts } from '@/lib/falaNumeros' // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar\"]: número por extenso só no que vai à TTS\nimport type { Kling4TrialEngine } from '@/lib/kling4TrialClaim'"
+    },
+    {
+     "before": "  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13\n  if (usesMiniMaxNarration(language)) { // KINEO-IDIOMAS-FORMATOS-2410",
+     "after": "  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13\n  // KINEO-NUMEROS-FALADOS-0311 — ano, milhar, %, moeda e ordinal por extenso SÓ no texto que a voz lê (en/pt/es; lib/falaNumeros).\n  // A persona continua escolhida pelo texto de exibição; a legenda volta à grafia do roteiro no /api/compose. Sem número: o mesmo texto.\n  const falado = falarNumerosParaTts(cleaned, language).texto // KINEO-NUMEROS-FALADOS-0311\n  if (usesMiniMaxNarration(language)) { // KINEO-IDIOMAS-FORMATOS-2410"
+    },
+    {
+     "before": "    const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-IDIOMAS-FORMATOS-2410\n    return synthesizeTtsFallback(cleaned, { language, speed }) // KINEO-IDIOMAS-FORMATOS-2410\n  } // KINEO-IDIOMAS-FORMATOS-2410",
+     "after": "    const { synthesizeTtsFallback } = await import('@/lib/ttsFallback') // KINEO-IDIOMAS-FORMATOS-2410\n    return synthesizeTtsFallback(falado, { language, speed }) // KINEO-IDIOMAS-FORMATOS-2410 · KINEO-NUMEROS-FALADOS-0311\n  } // KINEO-IDIOMAS-FORMATOS-2410"
+    },
+    {
+     "before": "      const elBuffer = await synthesizeWithElevenLabs({\n        text: cleaned,\n        voiceId,",
+     "after": "      const elBuffer = await synthesizeWithElevenLabs({\n        text: falado, // KINEO-NUMEROS-FALADOS-0311\n        voiceId,"
+    },
+    {
+     "before": "          // measured audio length).\n          const sectionText = section.text.trim()\n          const isLastSection = si === sections.length - 1",
+     "after": "          // measured audio length).\n          const sectionText = falarNumerosParaTts(section.text.trim(), language).texto // KINEO-NUMEROS-FALADOS-0311\n          const isLastSection = si === sections.length - 1"
+    },
+    {
+     "before": "  // ── Single-pass TTS (no vertical, or no sections detected) ────────────────\n  const input = cleaned.length > 3800 ? cleaned.slice(0, 3800) : cleaned\n  const safeSpeed = Math.max(0.7, Math.min(1.3, Number.isFinite(baseSpeed) ? baseSpeed : 1.0))",
+     "after": "  // ── Single-pass TTS (no vertical, or no sections detected) ────────────────\n  const input = falado.length > 3800 ? falado.slice(0, 3800) : falado // KINEO-NUMEROS-FALADOS-0311\n  const safeSpeed = Math.max(0.7, Math.min(1.3, Number.isFinite(baseSpeed) ? baseSpeed : 1.0))"
+    },
+    {
+     "before": "  speechWords?: WhisperWord[]\n}",
+     "after": "  speechWords?: WhisperWord[]\n  // KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos,\n  // universalizar\"] — duração REAL do arquivo (cabeçalho mvhd, lida no /api/compose). Ausente = desconhecida: a montagem de sempre.\n  mediaSeconds?: number | null\n}"
+    },
+    {
+     "before": "\nexport function buildHollywoodCreatomateSource({",
+     "after": "\n// ═══ KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar\n// todos, universalizar\"] — o fim do loop:true no b-roll do hollywood. A cena de b-roll entra com loop:true; quando o clipe que a fal\n// devolveu é mais CURTO que a janela da cena (a fal arredonda os segundos: 7,4 s planejados = clipe de 7 s; e o crossfade estende\n// a janela 0,25 s por baixo da cena seguinte), o clipe RECOMEÇA e o quadro de abertura reaparece antes do corte — o \"mesmo plano de\n// novo\" do revisor, em todo motor da estrada hollywood (Kling 3, Kling 4 pago, H3, Omni, Seedance 2.5). Com a duração REAL do\n// arquivo (mediaSeconds, cabeçalho mvhd lido no /api/compose), o clipe toca UMA vez e a sobra repete só os últimos segundos dele com\n// o empurrão lento de 6 % linear — o mesmo mecanismo da sobra do Kling 4 grátis (KINEO-K4-FIM-SEM-VOLTA-0111), já exercitado em\n// produção —, mudo (a voz é a narração; o ambiente do clipe não gagueja). Nada muda quando: a duração é desconhecida, o clipe cobre a\n// janela, ou a cena tem fala nativa (diálogo/apresentador já entram com loop:false). A fala e os tempos da timeline nunca mudam.\nconst SOBRA_CAUDA_MAX_S = 3 // KINEO-FRENTE-A-SEM-LOOP-0311 — o trecho final que se repete (≤ o clipe)\nexport function seguraOFimDoClipeCurto(elements: CreatomateElement[], clip: HollywoodClipInput, falaNativa: boolean): void {\n  const real = clip.mediaSeconds\n  const el = elements[elements.length - 1]\n  if (falaNativa || !el || el.type !== 'video' || el.source !== clip.url || el.loop !== true) return\n  if (typeof real !== 'number' || !Number.isFinite(real) || real < 0.5 || !(el.duration > real + 0.02)) return\n  const janela = el.duration\n  el.loop = false\n  el.duration = round3(real)\n  const cauda = Math.min(SOBRA_CAUDA_MAX_S, real)\n  const fimDaJanela = round3(el.time + janela)\n  for (let t = round3(el.time + real), k = 0; fimDaJanela - t > 0.01; k++) {\n    const len = round3(Math.min(cauda, fimDaJanela - t))\n    elements.push({\n      type: 'video', track: el.track, time: t, duration: len, source: clip.url,\n      fit: 'cover', loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%',\n      trim_start: round3(real - len),\n      animations: [{ type: 'scale', fade: false, start_scale: k % 2 === 0 ? '100%' : '106%', end_scale: k % 2 === 0 ? '106%' : '100%', easing: 'linear' }],\n    })\n    t = round3(t + len)\n  }\n}\n\nexport function buildHollywoodCreatomateSource({"
+    },
+    {
+     "before": "    })\n  })",
+     "after": "    })\n    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip)) // KINEO-FRENTE-A-SEM-LOOP-0311\n  })"
+    }
+   ]
+  },
+  "lib/hollywood/hostVoice.ts": {
+   "beforeSha256": "574dbeddcef853ea3ea17e416e865f383f3dfc10501b087489f8ef9903de0e14",
+   "afterSha256": "19cb57f0dde1377831515abd57cfd14d282cf079d012c1e859af67d7e1523bc8",
+   "hunks": [
+    {
+     "before": "import type { OpenAIVoice } from '@/lib/narration/personas'\nimport { stripScriptMarkers } from '@/lib/scriptParser'",
+     "after": "import type { OpenAIVoice } from '@/lib/narration/personas'\nimport { falarNumerosParaTts } from '@/lib/falaNumeros' // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar\"]: número por extenso só no que vai à TTS\nimport { stripScriptMarkers } from '@/lib/scriptParser'"
+    },
+    {
+     "before": "  if (!cleaned.trim()) throw new Error('empty host speech text')\n  const input = cleaned.length > 3800 ? cleaned.slice(0, 3800) : cleaned\n  const safeSpeed = Math.max(",
+     "after": "  if (!cleaned.trim()) throw new Error('empty host speech text')\n  // KINEO-NUMEROS-FALADOS-0311 — a mesma forma falada do generateTTS (en/pt/es); sem língua declarada, o texto vai como sempre foi.\n  const falado = args.language != null ? falarNumerosParaTts(cleaned, args.language).texto : cleaned // KINEO-NUMEROS-FALADOS-0311\n  const input = falado.length > 3800 ? falado.slice(0, 3800) : falado // KINEO-NUMEROS-FALADOS-0311\n  const safeSpeed = Math.max("
+    },
+    {
+     "before": "    const gender = args.voice === 'onyx' || args.voice === 'echo' || args.voice === 'fable' ? 'male' : 'female' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — vozes masculinas da tts-1-hd (characterVoice: onyx/echo para homem)\n    return synthesizeTtsFallback(cleaned, { language: args.language, speed: safeSpeed, gender }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211\n  } // KINEO-VOZ-NATIVA-HOLLYWOOD-0211",
+     "after": "    const gender = args.voice === 'onyx' || args.voice === 'echo' || args.voice === 'fable' ? 'male' : 'female' // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 — vozes masculinas da tts-1-hd (characterVoice: onyx/echo para homem)\n    return synthesizeTtsFallback(falado, { language: args.language, speed: safeSpeed, gender }) // KINEO-VOZ-NATIVA-HOLLYWOOD-0211 · KINEO-NUMEROS-FALADOS-0311\n  } // KINEO-VOZ-NATIVA-HOLLYWOOD-0211"
+    }
+   ]
+  },
+  "lib/mp4Duration.ts": {
+   "beforeSha256": "8fcdf242ce9e263b4aafced4c2947fbd9457c259f6d009d5ba365805fb8152dd",
+   "afterSha256": "a8638bad173e54a17ddc08b2230aa7d4234222ce46d2f1f3004a92d586c68085",
+   "hunks": [
+    {
+     "before": "",
+     "after": "\n// ═══ KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar\"] ═══\n// A montagem do hollywood (lib/compose.ts, buildHollywoodCreatomateSource) monta cada cena de b-roll com loop:true: quando o clipe\n// que a fal devolveu é mais CURTO que a janela da cena (a fal arredonda os segundos — 7,4 s planejados viram um clipe de 7 s —, e o\n// crossfade ainda estende 0,25 s por baixo da cena seguinte), o clipe RECOMEÇA e o quadro de abertura pisca de novo antes do corte:\n// o \"mesmo plano repetido\" que o revisor marca. Para trocar o laço por segurar o fim, a montagem precisa da duração REAL do arquivo.\n// Aqui: lê só o cabeçalho (Range de 256 KB no começo; se o moov estiver no fim, 256 KB do fim) e acha a caixa mvhd. Falha aberta:\n// qualquer erro, prazo ou formato desconhecido → null, e a montagem faz exatamente o que fazia antes.\n\n/** Acha a caixa mvhd num TRECHO qualquer do MP4 (começo ou fim do arquivo) e devolve a duração. Confere tamanho e versão da caixa. */\nexport function duracaoMvhdNoTrecho(bytes: ArrayBuffer | Uint8Array): number | null {\n  try {\n    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)\n    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength)\n    for (let i = 4; i + 4 <= u8.length; i++) {\n      if (u8[i] !== 0x6d || u8[i + 1] !== 0x76 || u8[i + 2] !== 0x68 || u8[i + 3] !== 0x64) continue // 'mvhd'\n      const o = i - 4\n      const size = dv.getUint32(o)\n      const version = u8[o + 8]\n      if (version === 0 && size === 108 && o + 28 <= u8.length) {\n        const timescale = dv.getUint32(o + 20), duration = dv.getUint32(o + 24)\n        const d = timescale > 0 ? duration / timescale : 0\n        if (d > 0.1 && d < 3600) return Math.round(d * 1000) / 1000\n      } else if (version === 1 && size === 120 && o + 40 <= u8.length) {\n        const timescale = dv.getUint32(o + 28), duration = dv.getUint32(o + 32) * 4294967296 + dv.getUint32(o + 36)\n        const d = timescale > 0 ? duration / timescale : 0\n        if (d > 0.1 && d < 3600) return Math.round(d * 1000) / 1000\n      }\n    }\n    return null\n  } catch {\n    return null\n  }\n}\n\nconst SONDA_BYTES = 262144\nconst SONDA_PRAZO_MS = 2500\n\nasync function lerTrecho(url: string, range: string, f: typeof fetch): Promise<{ bytes: Uint8Array; total: number | null } | null> {\n  const res = await f(url, { headers: { Range: range }, signal: AbortSignal.timeout(SONDA_PRAZO_MS) })\n  if (!res || !res.ok || !res.body) return null\n  const total = Number(/\\/(\\d+)\\s*$/.exec(res.headers.get('content-range') ?? '')?.[1] ?? NaN)\n  // Servidor que ignora o Range (200 com o arquivo inteiro): lê só os primeiros SONDA_BYTES e cancela o resto.\n  const reader = res.body.getReader()\n  const partes: Uint8Array[] = []\n  let lidos = 0\n  while (lidos < SONDA_BYTES) {\n    const { done, value } = await reader.read()\n    if (done || !value) break\n    partes.push(value)\n    lidos += value.length\n  }\n  try { await reader.cancel() } catch { /* já terminou */ }\n  const bytes = new Uint8Array(Math.min(lidos, SONDA_BYTES))\n  let p = 0\n  for (const parte of partes) { const n = Math.min(parte.length, bytes.length - p); if (n <= 0) break; bytes.set(parte.subarray(0, n), p); p += n }\n  return { bytes, total: Number.isFinite(total) && total > 0 ? total : null }\n}\n\n/** Duração real (s) de um MP4 remoto pelo cabeçalho, ou null. Nunca lança. */\nexport async function sondarDuracaoDoClipe(url: string | null | undefined, f: typeof fetch = fetch): Promise<number | null> {\n  try {\n    if (typeof url !== 'string' || !/^https:\\/\\//i.test(url)) return null\n    const inicio = await lerTrecho(url, `bytes=0-${SONDA_BYTES - 1}`, f)\n    if (!inicio) return null\n    const noInicio = duracaoMvhdNoTrecho(inicio.bytes)\n    if (noInicio != null) return noInicio\n    if (!inicio.total || inicio.total <= SONDA_BYTES) return null\n    const fim = await lerTrecho(url, `bytes=${inicio.total - SONDA_BYTES}-${inicio.total - 1}`, f)\n    return fim ? duracaoMvhdNoTrecho(fim.bytes) : null\n  } catch {\n    return null\n  }\n}\n\n/** Uma sonda por clipe, em paralelo (null onde não há url ou a leitura falhou). */\nexport async function sondarDuracaoDosClipes(urls: ReadonlyArray<string | null | undefined>, f: typeof fetch = fetch): Promise<Array<number | null>> {\n  try {\n    return await Promise.all(urls.map((u) => (u ? sondarDuracaoDoClipe(u, f) : Promise.resolve(null))))\n  } catch {\n    return urls.map(() => null)\n  }\n}\n"
+    }
+   ]
+  },
+  "app/api/compose/route.ts": {
+   "beforeSha256": "ef8bc98d892672d989c16d2b39cfe38c17dc83ace79e4db678f69dc4a9830d10",
+   "afterSha256": "4812a453c64e01888cd77b53aedcc13fbc93444abdfcba99de5f8713248decbc",
+   "hunks": [
+    {
+     "before": "import { primaryStatusOf } from '@/lib/llmFallback'\nimport { desenhoDoClaim, kidsMusicQuieter } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 \"experiência no mínimo 9\"] — o desenho infantil assinado no claim: legenda opcional e trilha mais baixa",
+     "after": "import { primaryStatusOf } from '@/lib/llmFallback'\nimport { restaurarNumerosNaLegenda } from '@/lib/falaNumeros' // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: \"vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar\"]: a TTS fala o número por extenso, a legenda volta à grafia do roteiro\nimport { sondarDuracaoDosClipes } from '@/lib/mp4Duration' // KINEO-FRENTE-A-SEM-LOOP-0311 [TRAVA 8.2 — fundador 03/11 \"universalizar\"]: a duração REAL de cada clipe de b-roll do hollywood (cabeçalho mvhd), para a montagem nunca voltar ao quadro zero\nimport { desenhoDoClaim, kidsMusicQuieter } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 \"experiência no mínimo 9\"] — o desenho infantil assinado no claim: legenda opcional e trilha mais baixa"
+    },
+    {
+     "before": "          c.speechWords = words\n        }",
+     "after": "          c.speechWords = words\n          if (c.dialogueLine) c.speechWords = restaurarNumerosNaLegenda(words, c.dialogueLine, language) // KINEO-NUMEROS-FALADOS-0311 — depois da conferência: só a grafia da legenda muda, nunca o veredito\n        }"
+    },
+    {
+     "before": "      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds) // depois da verificação: uma cena de fala pode ter crescido\n",
+     "after": "      const originalFootageSeconds = hollywoodClips.map(cinematicSceneSeconds) // depois da verificação: uma cena de fala pode ter crescido\n      // KINEO-FRENTE-A-SEM-LOOP-0311 — a duração REAL de cada clipe de b-roll (support/cinematic), lida do cabeçalho mvhd: quando o\n      // clipe da fal é mais curto que a janela da cena, a montagem segura o fim em vez de recomeçar o clipe (lib/compose.ts).\n      // Falha aberta: sem leitura (prazo, formato), mediaSeconds fica vazio e a montagem é a de sempre. As falas nunca mudam.\n      composeCtx.stage = 'hollywood_clip_media_seconds' // KINEO-FRENTE-A-SEM-LOOP-0311\n      const duracaoReal = await sondarDuracaoDosClipes(hollywoodClips.map((c) => (c.engine === 'support' || c.engine === 'cinematic' ? c.url : null))) // KINEO-FRENTE-A-SEM-LOOP-0311\n      hollywoodClips.forEach((c, i) => { const d = duracaoReal[i]; if (typeof d === 'number' && d > 0) c.mediaSeconds = d }) // KINEO-FRENTE-A-SEM-LOOP-0311\n"
+    },
+    {
+     "before": "            text: m.text,\n            words: m.words,\n          })",
+     "after": "            text: m.text,\n            words: restaurarNumerosNaLegenda(m.words, m.text, language), // KINEO-NUMEROS-FALADOS-0311 — \"nineteen eighty-three\" do Whisper volta a \"1983\" na legenda (tempo medido)\n          })"
+    },
+    {
+     "before": "    const legendaPelaGrafiaDoRoteiro = !avatarMode && (!hasUserVoice || (isServiceFinish && body.narration_source === 'tts'))\n    const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null",
+     "after": "    const legendaPelaGrafiaDoRoteiro = !avatarMode && (!hasUserVoice || (isServiceFinish && body.narration_source === 'tts'))\n    // KINEO-NUMEROS-FALADOS-0311 — a TTS leu o número por extenso (lib/falaNumeros, só en/pt/es); a legenda volta à grafia do roteiro\n    // (\"nineteen\" + \"eighty-three,\" → \"1983,\", tempo medido). Depois da evidência de legenda (que compara o Whisper BRUTO) e só quando o áudio é TTS do scaledScript.\n    if (legendaPelaGrafiaDoRoteiro) whisperWords = restaurarNumerosNaLegenda(whisperWords, scaledScript, language) // KINEO-NUMEROS-FALADOS-0311\n    const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/falaNumeros.ts": "8fbaf9f94397afb0df8a511f1215abf58eac65d06353dd0c9ea4f14b9145fd68"
+ }
+}

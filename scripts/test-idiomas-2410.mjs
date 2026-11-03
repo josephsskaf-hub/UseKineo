@@ -61,7 +61,9 @@ await check('o Studio de filme e Cartoon leem a lista única; idioma da interfac
   assert.equal((rd('lib/ads/cena/runtime.ts').match(/language: state\.plan\.input\.language/g)??[]).length,2)
 })
 await check('generateTTS e cache escolhem MiniMax apenas nas línguas novas', async () => {
-  const s=rd('lib/compose.ts'); assert.match(s,/if \(usesMiniMaxNarration\(language\)\) \{[\s\S]*?synthesizeTtsFallback\(cleaned, \{ language, speed \}\)/)
+  // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"] — regra nova:
+  // a MiniMax recebe `falado` (o MESMO texto limpo, com número por extenso em en/pt/es; sem número = idêntico a `cleaned`). A prova da língua não muda.
+  const s=rd('lib/compose.ts'); assert.match(s,/const falado = falarNumerosParaTts\(cleaned, language\)\.texto[\s\S]*?if \(usesMiniMaxNarration\(language\)\) \{[\s\S]*?synthesizeTtsFallback\(falado, \{ language, speed \}\)/)
   const M=modules(); const C=M.load('@/lib/compose')
   for(const code of ['zh','yue','ja','ko','th','he','af']) { const id=C.resolveTtsVoiceIdentity('sample',1.1,undefined,'free',code,'tts-1-hd');assert.equal(id.model,'fal-ai/minimax/speech-2.8-hd');assert.equal(id.voice,M.T.minimaxVoiceFor(code));assert.equal(id.speed,1.1) }
   assert.equal(C.resolveTtsVoiceIdentity('sample',1,undefined,'free','en','tts-1-hd').model,'tts-1-hd')

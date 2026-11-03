@@ -26,4 +26,11 @@ export const REGRAS_DO_ESCRITOR_DE_CENAS = [
   '- KINEO-CENA-BATE-COM-FALA-0311 ACTIONS: when a line tells the viewer to DO something ("set a budget", "cut expenses", "store water", "pack the bag"), show a person doing exactly that concrete action with the real objects involved, never a symbolic stand-in (coins with a sprout, a piggy bank, an abstract chart).',
   '- KINEO-CENA-BATE-COM-FALA-0311 INSIDE THE BODY: a fact about an internal organ or anatomy (hearts, lungs, brain, bones) shows the whole animal or body intact, with the organ suggested by a soft glow or a subtle x-ray view INSIDE the body; organs never appear outside, floating or growing out of the body.',
   '- KINEO-CENA-BATE-COM-FALA-0311 LAST SHOT: the final shot shows literally what the final narration line says (its subject, place, light and time of day); never a dramatic generic image that contradicts it, such as an explosion for a calm sky or night for a line that says daylight.',
+  // KINEO-FECHO-ABERTURA-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos,
+  // universalizar"] — 9 primeiros filmes com o fim fraco/repetido ("abre e fecha com o mesmo plano", Kling 4 da escotilha; Vênus com a
+  // mesma galáxia nos 3 últimos quadros). A regra "o fecho não repete a abertura" (be6d3af37, KINEO-CENA-ACAO-LADO-3110) vivia só no
+  // descritor clássico (generateCinematicDescriptions); o planejador hollywood (lib/hollywood/router.ts) lê ESTA lista e não a via.
+  // Agora é comum a todo escritor. A rede determinística (última cena quase igual à 1ª → eixo do desfecho) já é universal em
+  // prepararQualidadeDoFilme (lib/cinematic/filmQuality.ts), que roda nas duas estradas.
+  '- KINEO-FECHO-ABERTURA-0311 CLOSING SHOT DIFFERS FROM THE OPENING: the last shot shows how the story ends, in a different place, moment, shot size or camera angle from the first shot; never repeat the opening image (same subject in the same place with the same framing). When a host opens and closes the film speaking to the lens, the closing host shot uses a different shot size and a different spot of the same setting.',
 ].join('\n')

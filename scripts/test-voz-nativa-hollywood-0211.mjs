@@ -37,6 +37,7 @@ const roda = (src, mods = {}) => {
 }
 const T = roda(rd('lib/textLanguage.ts'))
 const F = roda(rd('lib/ttsFallback.ts'), { '@/lib/textLanguage': T })
+const FALA = roda(rd('lib/falaNumeros.ts')) // KINEO-NUMEROS-FALADOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]
 const NATIVAS = T.NARRATION_LANGUAGES.filter((l) => l.minimaxPrimary === true).map((l) => l.code)
 
 /** A synthesizeHostSpeech REAL do texto dado, com a OpenAI e a fal trocadas por gravadores (nenhuma chamada sai). */
@@ -47,6 +48,7 @@ function carregaHost(source) {
   const chamadas = { openai: [], nativa: [] }
   const box = {
     exports: {}, Buffer, stripScriptMarkers: (v) => v, usesMiniMaxNarration: T.usesMiniMaxNarration,
+    falarNumerosParaTts: FALA.falarNumerosParaTts, // KINEO-NUMEROS-FALADOS-0311 — a função real que a synthesizeHostSpeech passou a importar (texto sem número = o mesmo texto; as provas abaixo não mudam)
     require: (id) => {
       if (id === '@/lib/openai') return { OPENAI_TTS_TIMEOUT_MS: 55000, openai: { audio: { speech: { create: async (input, options) => { chamadas.openai.push({ input, options }); return { arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer } } } } } }
       if (id === '@/lib/ttsFallback') return { synthesizeTtsFallback: async (text, ctx) => { chamadas.nativa.push({ text, ctx, corpo: F.ttsFallbackInput(text, ctx.language, ctx.speed, ctx.gender) }); return Buffer.from('voz-nativa') } }
