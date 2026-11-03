@@ -315,7 +315,7 @@ async function verificacoes(over = {}) {
       const Q = load('@/lib/cinematic/filmQuality')
       const styleAnchor = load('@/lib/cinematic/sceneStyle').deriveStyleAnchor('photoreal documentary')
       const { isStylizedLook } = load('@/lib/cinematic/visualPromptPolicy')
-      const aplicarFinal = carrega(`export async function aplicarFinal(ctx: any) {\n  const { plan, prompt, prepararQualidadeDoFilme, contextoDoFiltro, classicVisualMode, tagFacelessPresente, desenhoInfantil, styleAnchor, personagemElenco, qualidadeHerdada, qualitySnapshot, isStylizedLook } = ctx\n${corpoQualidade}\n  return aplicarQualidadeHollywood()\n}`).aplicarFinal
+      const aplicarFinal = carrega(`export async function aplicarFinal(ctx: any) {\n  const { plan, prompt, prepararQualidadeDoFilme, contextoDoFiltro, classicVisualMode, tagFacelessPresente, desenhoInfantil, styleAnchor, personagemElenco, qualidadeHerdada, qualitySnapshot, isStylizedLook, origemNasCenas = null, origemDoFilme = null, sheetComOrigem = (s: unknown) => s /* KINEO-ORIGEM-DO-ELENCO-0311 — sem leitura de origem nesta fatia: byte a byte */ } = ctx\n${corpoQualidade}\n  return aplicarQualidadeHollywood()\n}`).aplicarFinal
       const falaETempo = JSON.stringify(plan.scenes.map(({ voiceover, seconds }) => ({ voiceover, seconds })))
       await aplicarFinal({ plan, prompt: ROTEIRO_T, prepararQualidadeDoFilme: Q.prepararQualidadeDoFilme,
         contextoDoFiltro: async (contexto) => contexto, classicVisualMode: 'documentary_faceless', tagFacelessPresente: false,

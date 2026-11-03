@@ -79,6 +79,7 @@ export function criticoNaFamiliaHollywood(family: string | null | undefined): bo
 
 export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato' | 'identidade' // KINEO-META95-PERSONAGEM-2010 — 'identidade' só existe quando o pedido levou a folha (referencia)
   | 'epoca' | 'pessoa' | 'estilo' // KINEO-JUIZ-PERGUNTAS-0311 — só existem quando o PROMPT da cena traz a época, o "sem gente" ou o estilo travado
+  | 'origem' // KINEO-ORIGEM-DO-ELENCO-0311 — só existe quando o PROMPT da cena traz UMA origem
 const PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato', mascot: 'sujeito', missing: 'sujeito', missing_character: 'sujeito' } // KINEO-JUIZ-REFAZ-2810 — "mascot"/"missing" (se o modelo os escrever) são SUJEITO errado; era: só os 4
 const PROBLEMA_IDENTIDADE: Record<string, ProblemaStill> = { identity: 'identidade' } // KINEO-META95-PERSONAGEM-2010 — lido SÓ com referência; sem ela "identity" segue ignorado (gosto), byte a byte o de antes
 export type VereditoCritico = 'PASS' | 'FAIL' | 'ERRO' | 'PULADO'
@@ -136,7 +137,7 @@ export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
 // só fica gravado; em 'enforce' pede foto nova dentro dos MESMOS tetos (2 por cena, 6 por filme, prazo da cena).
 // Leitura irmã (mesmas regras) em lib/regua95/perguntasHonestas.ts — este módulo não importa nada novo (o guardião do juiz proíbe).
 export const MARCA_JUIZ_PERGUNTAS_0311 = 'KINEO-JUIZ-PERGUNTAS-0311'
-export type ContextoCritico0311 = { epoca: string | null; semGente: boolean; estilo: 'foto' | 'desenho' | null }
+export type ContextoCritico0311 = { epoca: string | null; semGente: boolean; estilo: 'foto' | 'desenho' | null; origem?: string /* KINEO-ORIGEM-DO-ELENCO-0311 — só existe quando o prompt da cena traz UMA origem */ }
 /** Época, "sem gente" e estilo pedidos pelo prompt da cena. */
 export function contextoDoCritico0311(prompt: string | null | undefined): ContextoCritico0311 {
   const p = String(prompt ?? '')
@@ -149,7 +150,8 @@ export function contextoDoCritico0311(prompt: string | null | undefined): Contex
   }
   const medio = /Film visual medium:\s*([^\n]+?)\.\s/i.exec(p + ' ')?.[1] ?? /^(?:Style:|Chosen)\s*([\w ]+?)(?:\.|\s+still:)/i.exec(p)?.[1] ?? ''
   const estilo = !medio ? null : /not photorealistic|animated|animation|anime|cartoon|illustrat|cel shading/i.test(medio) ? 'desenho' : /photoreal|noir|live[- ]action/i.test(medio) ? 'foto' : null
-  return { epoca, semGente: p.includes('No people, no human figures and no faces anywhere in this shot'), estilo }
+  const origens0311 = [...new Set([...p.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311 — a marca de lib/cinematic/origemDoElenco; duas origens na cena = sem pergunta (o juiz não adivinha quem é quem)
+  return { epoca, semGente: p.includes('No people, no human figures and no faces anywhere in this shot'), estilo, ...(origens0311.length === 1 ? { origem: origens0311[0] } : {}) }
 }
 /** Os critérios extras (anexados ao texto do pedido). '' = nenhum: o pedido de sempre. */
 export function criteriosDoCritico0311(c: ContextoCritico0311, comReferencia: boolean): string {
@@ -158,15 +160,16 @@ export function criteriosDoCritico0311(c: ContextoCritico0311, comReferencia: bo
   if (c.estilo === 'desenho') partes.push('(6) STYLE — this film is ANIMATED, not photographic: FAIL when the main subject is clearly a real photograph of a live-action person or animal instead of the animated look; use the issue name "style".')
   if (c.epoca) partes.push(`(7) ERA — the story is set in ${c.epoca}: FAIL when something clearly visible was invented or became fashionable only after ${c.epoca}: jeans or denim, hoodies, sneakers, puffer jackets, modern streetwear or haircuts, a smartwatch or modern wristwatch, a smartphone, earbuds, a present-day car, LED screens or lights (period-accurate items are fine; when unsure, it is fine); use the issue name "era".`)
   if (c.semGente) partes.push('(8) PERSON — this shot must contain NO people: FAIL when a person, human figure or face is clearly visible (a tiny distant silhouette is fine); use the issue name "person".')
+  if (c.origem) partes.push(`(9) ORIGIN — the story's person here is ${c.origem}: FAIL only when the main person is clearly visible and clearly looks like someone from a different part of the world, not ${c.origem} (people of any origin vary widely; when the face is small, turned away, or you are unsure, it is fine; never judge beauty or stereotypes); use the issue name "origin".`) // KINEO-ORIGEM-DO-ELENCO-0311
   if (partes.length === 0) return ''
   if (comReferencia && c.estilo) partes.push('For (5) IDENTITY, a different rendering style from the reference (a real animal or person vs a cartoon, 3D-animated figure, plush toy or doll) is also a different character.')
   return `ALSO FAIL the image for these checks of this shot: ${partes.join(' ')}`
 }
-const PROBLEMA_0311: Record<string, ProblemaStill> = { style: 'estilo', era: 'epoca', person: 'pessoa' }
+const PROBLEMA_0311: Record<string, ProblemaStill> = { style: 'estilo', era: 'epoca', person: 'pessoa', origin: 'origem' /* KINEO-ORIGEM-DO-ELENCO-0311 */ }
 /** Relê a resposta com os critérios extras: FAIL com "era"/"person"/"style" (permitidos pelo prompt) vira FAIL de verdade — a leitura
  *  de sempre trocaria o FAIL sem critério conhecido por PASS. Sem critério extra pedido, devolve a mesma resposta. */
 export function aplicarPerguntas0311(r: RespostaDoCritico, raw: string, c: ContextoCritico0311): RespostaDoCritico {
-  const permitidos = new Set<string>([...(c.estilo ? ['style'] : []), ...(c.epoca ? ['era'] : []), ...(c.semGente ? ['person'] : [])])
+  const permitidos = new Set<string>([...(c.estilo ? ['style'] : []), ...(c.epoca ? ['era'] : []), ...(c.semGente ? ['person'] : []), ...(c.origem ? ['origin'] : []) /* KINEO-ORIGEM-DO-ELENCO-0311 */])
   if (permitidos.size === 0) return r
   let j: Record<string, unknown>
   try { const x = JSON.parse(raw) as unknown; if (!x || typeof x !== 'object' || Array.isArray(x)) return r; j = x as Record<string, unknown> } catch { return r }
@@ -293,8 +296,9 @@ const INSTRUCAO: Record<ProblemaStill, string> = {
   estilo: 'Every subject rendered in exactly the visual medium stated for this film, the same look as every other shot.', // KINEO-JUIZ-PERGUNTAS-0311
   pessoa: 'An empty, unoccupied scene: only the place and the objects described.', // KINEO-JUIZ-PERGUNTAS-0311
   epoca: 'Every garment, vehicle and object strictly period-accurate for the period setting described.', // KINEO-JUIZ-PERGUNTAS-0311
+  origem: 'The person shown with the origin and natural features stated in the shot description.', // KINEO-ORIGEM-DO-ELENCO-0311
 }
-const ORDEM_0311: ProblemaStill[] = ['estilo', 'pessoa', 'epoca'] // KINEO-JUIZ-PERGUNTAS-0311 — depois dos 5 de sempre
+const ORDEM_0311: ProblemaStill[] = ['estilo', 'pessoa', 'epoca', 'origem'] // KINEO-JUIZ-PERGUNTAS-0311 — depois dos 5 de sempre // KINEO-ORIGEM-DO-ELENCO-0311
 const ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']
 
 /** A instrução da foto nova: uma frase por problema, na ordem sujeito → anatomia → texto → artefato. '' = nada a refazer. */

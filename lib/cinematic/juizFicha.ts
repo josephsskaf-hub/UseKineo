@@ -212,11 +212,14 @@ export function trocarFichaNoPrompt(prompt: string, trocas: ReadonlyArray<[strin
   let out = String(prompt ?? '')
   for (const [antes, depois] of trocas) {
     if (!antes || antes === depois) continue
-    out = out.split(antes).join(depois)
+    // KINEO-ORIGEM-DO-ELENCO-0311 — a ficha nova COMEÇA pela antiga (trava do estilo, origem): a forma sem o nome casava de novo dentro da troca recém-feita e a linha nova saía duplicada no prompt pago. O que já é a ficha nova fica protegido durante as trocas.
+    const PROTEGE = '\u0000F\u0000', PROTEGE_SEM_NOME = '\u0000S\u0000' // KINEO-ORIGEM-DO-ELENCO-0311
+    out = out.split(depois).join(PROTEGE).split(antes).join(PROTEGE) // KINEO-ORIGEM-DO-ELENCO-0311
     // a forma sem o nome ("Dino, " tirado), que promptDoStillComFolha e elencoSecundario usam
     const semNomeAntes = antes.replace(/^[^,]+,\s*/, '')
     const semNomeDepois = depois.replace(/^[^,]+,\s*/, '')
-    if (semNomeAntes && semNomeAntes !== antes && semNomeAntes.length > 20) out = out.split(semNomeAntes).join(semNomeDepois)
+    if (semNomeAntes && semNomeAntes !== antes && semNomeAntes.length > 20) out = out.split(semNomeDepois).join(PROTEGE_SEM_NOME).split(semNomeAntes).join(PROTEGE_SEM_NOME) // KINEO-ORIGEM-DO-ELENCO-0311
+    out = out.split(PROTEGE_SEM_NOME).join(semNomeDepois).split(PROTEGE).join(depois) // KINEO-ORIGEM-DO-ELENCO-0311
   }
   return out
 }

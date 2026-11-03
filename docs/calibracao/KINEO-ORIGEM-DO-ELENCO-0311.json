@@ -1,0 +1,279 @@
+{
+ "versao": "origem_elenco_0311_v1",
+ "modelo": "gpt-4o-mini",
+ "data": "2026-11-03",
+ "respostas": [
+  {
+   "id": "onoda_real",
+   "ok": true,
+   "ms": 3325,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Hiroo Onoda is a known Japanese soldier from a historical context.\",\"characters\":[{\"role\":\"soldier\",\"name\":\"Hiroo Onoda\",\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"teniente japonés\",\"evidence_type\":\"nationality\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"teniente japonés\"}],\"overall\":{\"origin\":\"Japanese\",\"evidence\":\"teniente japonés\",\"evidence_type\":\"nationality\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "onoda_so_nome",
+   "ok": true,
+   "ms": 2815,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Onoda is a known historical figure from Japan.\",\"characters\":[{\"role\":\"soldier\",\"name\":\"Onoda\",\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"Onoda\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Japanese\",\"evidence\":\"Onoda\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "yamaguchi",
+   "ok": true,
+   "ms": 2952,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Tsutomu Yamaguchi is a known historical figure from Japan.\",\"characters\":[{\"role\":\"survivor\",\"name\":\"Tsutomu Yamaguchi\",\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"Tsutomu Yamaguchi\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Japanese\",\"evidence\":\"Tsutomu Yamaguchi\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "yi_sun_sin",
+   "ok": true,
+   "ms": 3085,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Admiral Yi Sun-sin is a historical figure from Korea.\",\"characters\":[{\"role\":\"admiral\",\"name\":\"Yi Sun-sin\",\"is_group\":false,\"is_human\":true,\"origin\":\"Korean\",\"evidence\":\"Admiral Yi Sun-sin\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Korean\",\"evidence\":\"Admiral Yi Sun-sin\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "petrov",
+   "ok": true,
+   "ms": 1817,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Stanislav Petrov is a known historical figure from the Soviet Union.\",\"characters\":[{\"role\":\"officer\",\"name\":\"Stanislav Petrov\",\"is_group\":false,\"is_human\":true,\"origin\":\"Russian\",\"evidence\":\"Soviet officer\",\"evidence_type\":\"army\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Russian\",\"evidence\":\"Soviet officer\",\"evidence_type\":\"army\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "mansa_musa",
+   "ok": true,
+   "ms": 1762,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Mansa Musa is a well-known historical figure from Mali.\",\"characters\":[{\"role\":\"king\",\"name\":\"Mansa Musa\",\"is_group\":false,\"is_human\":true,\"origin\":\"Malian\",\"evidence\":\"Mansa Musa\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Malian\",\"evidence\":\"Mansa Musa\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "lagos",
+   "ok": true,
+   "ms": 1785,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The fisherman is from Lagos, Nigeria.\",\"characters\":[{\"role\":\"fisherman\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Nigerian\",\"evidence\":\"Lagos\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Nigerian\",\"evidence\":\"Lagos\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "bikila",
+   "ok": true,
+   "ms": 1736,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Abebe Bikila is a known historical figure from Ethiopia.\",\"characters\":[{\"role\":\"runner\",\"name\":\"Abebe Bikila\",\"is_group\":false,\"is_human\":true,\"origin\":\"Ethiopian\",\"evidence\":\"Abebe Bikila\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Ethiopian\",\"evidence\":\"Abebe Bikila\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "lakshmibai",
+   "ok": true,
+   "ms": 2419,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Rani Lakshmibai is a historical figure from India; her son shares that origin.\",\"characters\":[{\"role\":\"queen\",\"name\":\"Rani Lakshmibai\",\"is_group\":false,\"is_human\":true,\"origin\":\"Indian\",\"evidence\":\"Rani Lakshmibai\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null},{\"role\":\"son\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Indian\",\"evidence\":\"Jhansi\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Indian\",\"evidence\":\"Jhansi\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "baghdad",
+   "ok": true,
+   "ms": 1669,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The coffee seller is from Baghdad, indicating a specific origin.\",\"characters\":[{\"role\":\"coffee seller\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Iraqi\",\"evidence\":\"Baghdad\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Iraqi\",\"evidence\":\"Baghdad\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "baghdad_arabe",
+   "ok": true,
+   "ms": 1597,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The coffee seller is from Baghdad, which indicates his origin.\",\"characters\":[{\"role\":\"coffee seller\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Iraqi\",\"evidence\":\"بغداد\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Iraqi\",\"evidence\":\"بغداد\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "khayyam",
+   "ok": true,
+   "ms": 1734,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Omar Khayyam is a known historical figure from Persia.\",\"characters\":[{\"role\":\"mathematician\",\"name\":\"Omar Khayyam\",\"is_group\":false,\"is_human\":true,\"origin\":\"Persian\",\"evidence\":\"Omar Khayyam\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Persian\",\"evidence\":\"Isfahan\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "kahlo",
+   "ok": true,
+   "ms": 1530,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Frida Kahlo is a known Mexican artist; her location confirms her origin.\",\"characters\":[{\"role\":\"artist\",\"name\":\"Frida Kahlo\",\"is_group\":false,\"is_human\":true,\"origin\":\"Mexican\",\"evidence\":\"Frida Kahlo\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Mexican\",\"evidence\":\"Coyoacán\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "oaxaca",
+   "ok": true,
+   "ms": 2088,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The villagers are from Oaxaca, and the teacher is implied to be part of that community.\",\"characters\":[{\"role\":\"villagers\",\"name\":null,\"is_group\":true,\"is_human\":true,\"origin\":\"Mexican\",\"evidence\":\"Oaxaca\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null},{\"role\":\"teacher\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Mexican\",\"evidence\":\"Oaxaca\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Mexican\",\"evidence\":\"Oaxaca\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "chief_joseph",
+   "ok": true,
+   "ms": 2262,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Chief Joseph is a known historical figure; the Nez Perce are a recognized Native American group.\",\"characters\":[{\"role\":\"chief\",\"name\":\"Chief Joseph\",\"is_group\":false,\"is_human\":true,\"origin\":\"Nez Perce\",\"evidence\":\"Chief Joseph\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null},{\"role\":\"Nez Perce\",\"name\":null,\"is_group\":true,\"is_human\":true,\"origin\":\"Nez Perce\",\"evidence\":\"Nez Perce\",\"evidence_type\":\"people_group\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Nez Perce\",\"evidence\":\"Nez Perce\",\"evidence_type\":\"people_group\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "quechua",
+   "ok": true,
+   "ms": 2445,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The grandmother is identified as Quechua, and she belongs to a village in the Andes.\",\"characters\":[{\"role\":\"grandmother\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Quechua\",\"evidence\":\"Quechua grandmother\",\"evidence_type\":\"people_group\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"Quechua grandmother\"},{\"role\":\"villagers\",\"name\":null,\"is_group\":true,\"is_human\":true,\"origin\":\"Quechua\",\"evidence\":\"her village\",\"evidence_type\":\"people_group\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Quechua\",\"evidence\":\"Quechua grandmother\",\"evidence_type\":\"people_group\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "roma",
+   "ok": true,
+   "ms": 1713,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The violinist is identified as Roma; Budapest indicates the location.\",\"characters\":[{\"role\":\"violinist\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Roma\",\"evidence\":\"Roma violinist\",\"evidence_type\":\"people_group\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"Roma violinist\"}],\"overall\":{\"origin\":\"Hungarian\",\"evidence\":\"Budapest\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "coleman",
+   "ok": true,
+   "ms": 1831,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Bessie Coleman is a known historical figure; her achievements indicate her origin.\",\"characters\":[{\"role\":\"pilot\",\"name\":\"Bessie Coleman\",\"is_group\":false,\"is_human\":true,\"origin\":\"Black American\",\"evidence\":\"Bessie Coleman\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Black American\",\"evidence\":\"Bessie Coleman\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "irlanda",
+   "ok": true,
+   "ms": 2477,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Seán is a character from Ireland, specifically County Cork.\",\"characters\":[{\"role\":\"fleeing man\",\"name\":\"Seán\",\"is_group\":false,\"is_human\":true,\"origin\":\"Irish\",\"evidence\":\"County Cork\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Irish\",\"evidence\":\"County Cork\",\"evidence_type\":\"place\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "nobel",
+   "ok": true,
+   "ms": 1384,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Alfred Nobel is a known historical figure from Sweden.\",\"characters\":[{\"role\":\"inventor\",\"name\":\"Alfred Nobel\",\"is_group\":false,\"is_human\":true,\"origin\":\"Swedish\",\"evidence\":\"Alfred Nobel\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"Swedish\",\"evidence\":\"Alfred Nobel\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "loira_sueca",
+   "ok": true,
+   "ms": 1453,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The girl's origin is stated; the fox is not human.\",\"characters\":[{\"role\":\"girl\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Swedish\",\"evidence\":\"Swedish girl\",\"evidence_type\":\"nationality\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"blonde Swedish girl\"}],\"overall\":{\"origin\":\"Swedish\",\"evidence\":\"Swedish girl\",\"evidence_type\":\"nationality\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "dono_japones_texas",
+   "ok": true,
+   "ms": 1434,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The restaurant owner is Japanese; he lives in Texas.\",\"characters\":[{\"role\":\"restaurant owner\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"Japanese restaurant owner\",\"evidence_type\":\"nationality\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"Japanese restaurant owner\"}],\"overall\":{\"origin\":\"Japanese\",\"evidence\":\"Japanese restaurant owner\",\"evidence_type\":\"nationality\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "menina_ruiva_toquio",
+   "ok": true,
+   "ms": 1815,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The girl's appearance is stated; the stranger's origin is not specified.\",\"characters\":[{\"role\":\"girl\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"appearance\",\"stated_words\":\"red-haired girl\"},{\"role\":\"stranger\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "misto_hiroshima",
+   "ok": true,
+   "ms": 1994,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The soldier is American; the nurse is Japanese.\",\"characters\":[{\"role\":\"soldier\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"American\",\"evidence\":\"American soldier\",\"evidence_type\":\"nationality\",\"confidence\":\"high\",\"stated_by_text\":\"origin\",\"stated_words\":\"American soldier\"},{\"role\":\"nurse\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"Hiroshima\",\"evidence_type\":\"place\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "homem_no_bar",
+   "ok": true,
+   "ms": 1125,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"No specific origin or nationality is provided for the man or the stranger.\",\"characters\":[],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "menina_chave",
+   "ok": true,
+   "ms": 852,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"No human origin or nationality is mentioned in the text.\",\"characters\":[],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "commuter",
+   "ok": true,
+   "ms": 6033,
+   "tentativas": 2,
+   "erro": null,
+   "crua": "{\"reasoning\":\"No origin or nationality is provided for the commuter or the stranger.\",\"characters\":[{\"role\":\"commuter\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null},{\"role\":\"stranger\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "so_primeiro_nome",
+   "ok": true,
+   "ms": 1553,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Carlos is a common name; no origin is specified in the text.\",\"characters\":[{\"role\":\"coffee lover\",\"name\":\"Carlos\",\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "kimono",
+   "ok": true,
+   "ms": 1599,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The woman is described with a cultural item; no specific origin is stated.\",\"characters\":[{\"role\":\"woman\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":\"Japanese\",\"evidence\":\"kimono\",\"evidence_type\":\"none\",\"confidence\":\"medium\",\"stated_by_text\":\"appearance\",\"stated_words\":\"a woman in a kimono\"}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "tacos",
+   "ok": true,
+   "ms": 1469,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The chef's origin is not specified; no human group is mentioned.\",\"characters\":[{\"role\":\"chef\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "lingua_hindi",
+   "ok": true,
+   "ms": 849,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"No human origin or nationality is specified in the text.\",\"characters\":[],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "lingua_pt",
+   "ok": true,
+   "ms": 1494,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"The boy's origin is not specified; the dog is not human.\",\"characters\":[{\"role\":\"boy\",\"name\":null,\"is_group\":false,\"is_human\":true,\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "billy",
+   "ok": true,
+   "ms": 1378,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Billy the Kid is a known historical figure from the American West.\",\"characters\":[{\"role\":\"outlaw\",\"name\":\"Billy the Kid\",\"is_group\":false,\"is_human\":true,\"origin\":\"American\",\"evidence\":\"Billy the Kid\",\"evidence_type\":\"known_person\",\"confidence\":\"high\",\"stated_by_text\":\"none\",\"stated_words\":null}],\"overall\":{\"origin\":\"American\",\"evidence\":\"Billy the Kid\",\"evidence_type\":\"known_person\",\"confidence\":\"high\"}}"
+  },
+  {
+   "id": "dragao",
+   "ok": true,
+   "ms": 1066,
+   "tentativas": 1,
+   "erro": null,
+   "crua": "{\"reasoning\":\"Only an invented creature, no human.\",\"characters\":[],\"overall\":{\"origin\":null,\"evidence\":null,\"evidence_type\":\"none\",\"confidence\":\"high\"}}"
+  }
+ ]
+}

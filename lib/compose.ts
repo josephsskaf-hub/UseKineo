@@ -1263,6 +1263,13 @@ export function buildCaptionsFromWhisperWords(
     }
     numeros.push(w)
   }
+  // KINEO-LEGENDA-NUMERO-CARREGA-0311 [TRAVA 8.2 — fundador 03/11: "Conserta a etnia agora", item 2] — enzojimcua, vídeo 23a1412e: "EN 1945 PERO UN" | "SOLDADO…". O teto era 5 e o pedaço fechou
+  // KINEO-LEGENDA-NUMERO-CARREGA-0311 — em 4: uma pausa medida (ou o fim de segmento do Whisper, carimbado por tempo) caiu no artigo, e o fecho "natural" pula a regra da palavra-função.
+  // KINEO-LEGENDA-NUMERO-CARREGA-0311 — Aqui a fronteira falsa some antes do corte: o artigo emenda na palavra que ele rege (a próxima em maiúscula continua sendo frase nova).
+  for (let i = 0; i + 1 < numeros.length; i++) { // KINEO-LEGENDA-NUMERO-CARREGA-0311
+    const w = numeros[i], nx = numeros[i + 1], p = (w.word ?? '').trim(), q = (nx.word ?? '').trim() // KINEO-LEGENDA-NUMERO-CARREGA-0311
+    if ((w.sentenceEnd === true || nx.start - w.end >= 0.28) && q && terminaEmPalavraFuncao(p) && /[\p{L}\p{N}']$/u.test(p) && !/^[^\p{L}\p{N}]*\p{Lu}/u.test(q)) numeros[i] = { ...w, sentenceEnd: false, end: Math.max(w.end, nx.start) } // KINEO-LEGENDA-NUMERO-CARREGA-0311 — sem pontuação própria e a próxima em minúscula
+  } // KINEO-LEGENDA-NUMERO-CARREGA-0311
   // Only include words that start before the caption window ends (i.e. before the CTA).
   const captionWindowEnd = Math.max(0, totalAudioDuration - ctaTailSeconds)
   const windowWords = numeros.filter((w) => w.start < captionWindowEnd)

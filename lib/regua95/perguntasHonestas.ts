@@ -16,7 +16,7 @@ import { epocaDaHistoria } from '@/lib/cinematic/elencoEpoca'
 export const MARCA_JUIZ_PERGUNTAS_0311 = 'KINEO-JUIZ-PERGUNTAS-0311'
 export const SEM_GENTE_NO_PROMPT_0311 = 'No people, no human figures and no faces anywhere in this shot'
 /** Códigos novos do juiz de visão (só existem com perguntasHonestas). */
-export const PIXEL_ISSUES_0311 = ['anachronism', 'invented_person', 'static'] as const
+export const PIXEL_ISSUES_0311 = ['anachronism', 'invented_person', 'static', 'wrong_origin' /* KINEO-ORIGEM-DO-ELENCO-0311 */] as const
 export type EstiloPedido0311 = 'foto' | 'desenho' | null
 
 const limpa = (t: unknown) => String(t ?? '').replace(/\s+/g, ' ').trim()
@@ -55,6 +55,13 @@ export type ContextoPerguntas0311 = {
   /** todas as cenas conhecidas pedem "sem gente" */
   todasSemGente: boolean
   estilo: EstiloPedido0311
+  /** KINEO-ORIGEM-DO-ELENCO-0311 — a origem que TODOS os prompts com a marca dizem; ausente = sem marca ou duas origens (nenhuma pergunta). */
+  origem?: string
+}
+
+/** KINEO-ORIGEM-DO-ELENCO-0311 — as origens distintas do prompt ("… with the natural features of Japanese people"), a marca de lib/cinematic/origemDoElenco. */
+export function origensDoPrompt0311(prompt: unknown): string[] {
+  return [...new Set([...String(prompt ?? '').matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))]
 }
 
 /** A leitura do filme inteiro: o prompt das cenas manda; sem a marca de época, as palavras da história (a régua da rota). */
@@ -69,7 +76,8 @@ export function contextoDasPerguntas0311(c: { asked?: string | null; narration?:
   const cenasSemGente = prompts.map((p, i) => (semGenteNoPrompt0311(p) ? i + 1 : 0)).filter((n) => n > 0)
   let estilo: EstiloPedido0311 = null
   for (const p of prompts) { estilo = estiloDoPrompt0311(p); if (estilo) break }
-  return { epoca, cenasSemGente, todasSemGente: prompts.length > 0 && cenasSemGente.length === prompts.length, estilo }
+  const origens = [...new Set(prompts.flatMap(origensDoPrompt0311))] // KINEO-ORIGEM-DO-ELENCO-0311
+  return { epoca, cenasSemGente, todasSemGente: prompts.length > 0 && cenasSemGente.length === prompts.length, estilo, ...(origens.length === 1 ? { origem: origens[0] } : {}) }
 }
 
 /**
@@ -87,7 +95,8 @@ export function rubricaHonesta0311(c: ContextoPerguntas0311, porCena: boolean): 
   if (c.epoca) partes.push(` (iv) ERA — the story is set in ${c.epoca}: add "anachronism" to a frame where something clearly visible was invented or became fashionable only after ${c.epoca}: jeans or denim, hoodies, sneakers, puffer jackets, modern streetwear or haircuts, a smartwatch or modern wristwatch, a smartphone, earbuds, a present-day car, LED screens or lights (period-accurate items are fine; when unsure, do not add it).`)
   if (c.todasSemGente) partes.push(' (v) NO PEOPLE — no shot of this film shows people: add "invented_person" to a frame where a person, human figure or face is clearly visible (a tiny distant silhouette is fine).')
   else if (porCena && c.cenasSemGente.length > 0) partes.push(` (v) NO PEOPLE — shot(s) ${c.cenasSemGente.join(', ')} (same order as the spoken lines) show no people: add "invented_person" to a frame of those shots where a person, human figure or face is clearly visible (a tiny distant silhouette is fine).`)
-  const codigos = ['static', ...(c.epoca ? ['anachronism'] : []), ...(c.todasSemGente || (porCena && c.cenasSemGente.length > 0) ? ['invented_person'] : [])]
+  if (c.origem) partes.push(` (vi) ORIGIN — the story's person is ${c.origem}: add "wrong_origin" only to a frame where the main person is clearly visible and clearly looks like someone from a different part of the world, not ${c.origem} (people of any origin vary widely; a small or turned-away face, or any doubt, is fine; never judge beauty or stereotypes).`) // KINEO-ORIGEM-DO-ELENCO-0311
+  const codigos = ['static', ...(c.epoca ? ['anachronism'] : []), ...(c.todasSemGente || (porCena && c.cenasSemGente.length > 0) ? ['invented_person'] : []), ...(c.origem ? ['wrong_origin'] : []) /* KINEO-ORIGEM-DO-ELENCO-0311 */]
   partes.push(` Extra issue codes you may also use: ${codigos.join(', ')}.`)
   return partes.join('')
 }

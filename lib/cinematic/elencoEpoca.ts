@@ -537,6 +537,12 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
+  /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */
+  origemDoElenco?: {
+    descricao: (p: { nome: string; genero: 'man' | 'woman' | null; tipo: string; descricao: string }, povoDaTabela: string | null) => string | null
+    frase: (prompt: string) => string
+    roupaDaEpoca: (rotulo: string) => string
+  } | null
 }): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710
   const prompts = args.prompts.map((p) => String(p ?? '')) // KINEO-ELENCO-EPOCA-2710
   const n = prompts.length // KINEO-ELENCO-EPOCA-2710
@@ -574,6 +580,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       else if (semNome) { elenco = [semNome]; fichaNasCenasComGente = prompts.map((p, i) => (UMA_PESSOA_NO_PROMPT_RE.test(p) && !MULTIDAO_NO_PROMPT_RE.test(p) ? i : -1)).filter((i) => i >= 0); if (fichaNasCenasComGente.length === 0) { elenco = []; relato.motivo_sem_elenco = 'protagonista_sem_nome_ja_em_cena' } } // KINEO-PROTAGONISTA-DOC-0311 // KINEO-ELENCO-EPOCA-2710
       else relato.motivo_sem_elenco = semNome ? 'protagonista_sem_nome_ja_em_cena' : 'sem_personagem' // KINEO-ELENCO-EPOCA-2710
     } // KINEO-ELENCO-EPOCA-2710
+    // KINEO-ORIGEM-DO-ELENCO-0311 — o personagem lido do texto ganha a origem que o texto prova (e perde o povo da tabela de lugares, quando discorda)
+    if (args.origemDoElenco) { const povoTabela = povoDaHistoria(texto)?.povo ?? null; for (const p of elenco) { if (p.tipo !== 'humano') continue; const nova = args.origemDoElenco.descricao(p, povoTabela); if (nova) p.descricao = nova } } // KINEO-ORIGEM-DO-ELENCO-0311
     const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710
     for (const p of elenco) { // KINEO-ELENCO-EPOCA-2710
       const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : p.possessivo ? cenaMostraPessoa(pr, p.possessivo.nucleo) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-MARCADOR-2910 — "girl's teddy" no prompt não prova menina visível.
@@ -600,11 +608,21 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       else { prompts[i] = p; for (const e of relato.elenco) e.cenas_inseridas = e.cenas_inseridas.filter((c) => c !== i + 1) } // KINEO-ELENCO-EPOCA-2710 — sem espaço: nada entra, o relato diz
     } // KINEO-ELENCO-EPOCA-2710
   } // KINEO-ELENCO-EPOCA-2710
+  // KINEO-ORIGEM-DO-ELENCO-0311 — cena com gente sem ficha (documentário, elenco vazio): a frase da origem na frente. É condicional ("any person shown"): nunca põe gente onde não há. Tag [faceless] e apresentador ficam fora.
+  const origemNaCena = args.origemDoElenco && !args.tagFaceless && args.modo !== 'presenter' ? args.origemDoElenco : null // KINEO-ORIGEM-DO-ELENCO-0311
+  if (origemNaCena) for (let i = 0; i < n; i++) { // KINEO-ORIGEM-DO-ELENCO-0311
+    const semNegacao = prompts[i].replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/talking head|foreground human face/gi, '') // KINEO-ORIGEM-DO-ELENCO-0311 — a mesma limpeza do protagonista sem nome
+    if (prompts[i].includes('No people, no human figures and no faces anywhere in this shot') || !(GENTE_NO_PROMPT_RE.test(semNegacao) || MULTIDAO_NO_PROMPT_RE.test(semNegacao) || PESSOA_RE.test(semNegacao))) continue // KINEO-ORIGEM-DO-ELENCO-0311
+    const frase = origemNaCena.frase(prompts[i]) // KINEO-ORIGEM-DO-ELENCO-0311
+    if (frase && prompts[i].length + frase.length <= ELENCO_EPOCA_TETO_PROMPT) prompts[i] = frase + prompts[i] // KINEO-ORIGEM-DO-ELENCO-0311 · KINEO-ELENCO-EPOCA-2710 (mesmo teto)
+  } // KINEO-ORIGEM-DO-ELENCO-0311
   // B. época em toda cena (gente, veículo ou interior de qualquer cena precisa da década); o objeto de hoje que o descritor escreveu sai antes // KINEO-ELENCO-EPOCA-2710
   if (epoca) for (let i = 0; i < n; i++) { // KINEO-ELENCO-EPOCA-2710
     const t = trocarModernidades(prompts[i], epoca) // KINEO-ELENCO-EPOCA-2710
     for (const x of t.trocas) if (!relato.modernidades.includes(x)) relato.modernidades.push(x) // KINEO-ELENCO-EPOCA-2710
     const r = aplicarEpoca(t.prompt, epoca) // KINEO-ELENCO-EPOCA-2710
+    // KINEO-ORIGEM-DO-ELENCO-0311 — a lista de roupa da década é ocidental (fedoras, trench coats: o chapéu do Onoda): com origem na cena, o figurino é o do lugar e do papel, na mesma década
+    if (args.origemDoElenco && r.aplicada === 'longa' && r.prompt.includes('natural features of ')) r.prompt = r.prompt.replace(`wears ${pistasDaEpoca(epoca).roupa} (`, `wears ${args.origemDoElenco.roupaDaEpoca(epoca.rotulo)} (`) // KINEO-ORIGEM-DO-ELENCO-0311
     prompts[i] = r.prompt // KINEO-ELENCO-EPOCA-2710
     if (r.aplicada === 'longa' || r.aplicada === 'curta') relato.cenas_com_epoca.push(i + 1) // KINEO-ELENCO-EPOCA-2710
   } // KINEO-ELENCO-EPOCA-2710

@@ -356,6 +356,7 @@ export function normalizePixel(
   // sozinho pode ser leitura torta do modelo). Plano parado = quadros seguidos sem movimento por 6 s ou mais (precisa de 3+ quadros medidos).
   if (ctx.perguntasHonestas === true && count('anachronism') >= 2) cap(70, `época errada: roupa/objeto de depois da época em ${count('anachronism')} quadros`)
   if (ctx.perguntasHonestas === true && count('invented_person') >= 2) cap(75, `pessoa inventada em cena sem gente em ${count('invented_person')} quadros`)
+  if (ctx.perguntasHonestas === true && count('wrong_origin') >= 2) cap(75, `pessoa de outra origem que a da história em ${count('wrong_origin')} quadros`) // KINEO-ORIGEM-DO-ELENCO-0311 — enzojimcua 03/11: o Onoda ocidental levou 95
   const parados0311 = ctx.perguntasHonestas === true && verdicts.length >= 3 ? segundosParados0311(verdicts) : 0 // KINEO-JUIZ-PERGUNTAS-0311
   if (parados0311 >= 6) cap(80, `plano parado por ${parados0311} s`) // KINEO-JUIZ-PERGUNTAS-0311
   if (identity === false && !trocas.some((t) => Number.isInteger(t.from) && Number.isInteger(t.to) && Number(t.from) >= 1 && Number(t.to) >= 1 && Number(t.from) <= ctx.frames.length && Number(t.to) <= ctx.frames.length && t.from !== t.to && typeof t.what === 'string' && !!t.what.trim())) evidence.evidence_reasons.push('identity_defect_not_located')

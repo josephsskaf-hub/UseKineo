@@ -166,6 +166,7 @@ export function fichaNaEpoca(f: FichaDePersonagem, epoca: Epoca | null): FichaDe
   troca(/\b(?:puffer jacket|windbreaker|track ?suit|athleisure)\b/gi, d >= 1900 ? `${rotulo} wool overcoat` : 'long wool coat', 1980)
   const quando = epoca.ano !== null ? `${epoca.ano}` : `the ${rotulo}`
   c = c.replace(/[\s,;]+$/, '')
+  if (c.includes('natural features of ')) return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing true to their own place and role` } // KINEO-ORIGEM-DO-ELENCO-0311 — a lista de roupa da década é ocidental (fedoras, trench coats); com origem na ficha, o figurino é o do lugar e do papel
   return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing (${pistasDaEpoca(epoca).roupa})` }
 }
 

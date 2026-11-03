@@ -84,7 +84,11 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // The era is already at the front. Repeating it before the action consumes
   // the room reserved for the original text guard, especially with long casts.
   if (compactTextProtection && period) action = action.replace(period, '').replace(/^[,.\s]+/, '')
-  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}`
+  // KINEO-ORIGEM-DO-ELENCO-0311 — o corte de 140-178 caracteres da ficha jogava a linha da origem fora: ela vai curta, na frente, com a marca que os juízes leem. Sem marca: byte a byte.
+  const origensDaCena = [...new Set([...prompt.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311
+  if (origensDaCena.length > 0) action = action.replace(/(?:The main person, if one is shown in this shot, is|The [a-z' -]+ in this shot (?:is|are)) [^.]+?natural features of [^.]+? people\.\s*/g, '').trim() // KINEO-ORIGEM-DO-ELENCO-0311
+  const origemCurta = origensDaCena.length === 1 ? `Everyone shown has the natural features of ${origensDaCena[0]} people. ` : origensDaCena.length > 1 ? `People: ${origensDaCena.slice(0, 2).join(', ')}. ` : '' // KINEO-ORIGEM-DO-ELENCO-0311 — duas origens: sem a marca (o juiz só pergunta com uma)
+  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${origemCurta}`
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
   const textProtection = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
@@ -151,6 +155,8 @@ export function prepararQualidadeDoFilme(args: {
   kidsCartoon?: boolean; aplicarContrato?: boolean
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — repassado à camada elencoEpoca (aplicarElencoEEpoca). */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null
+  /** KINEO-ORIGEM-DO-ELENCO-0311 — repassado à camada elencoEpoca (aplicarElencoEEpoca); ausente = byte a byte o de antes. */
+  origemDoElenco?: Parameters<typeof aplicarElencoEEpoca>[0]['origemDoElenco']
 }) {
   const elenco = args.tagFaceless ? [] : args.preservarElenco
     ? [...(args.elenco ?? [])]

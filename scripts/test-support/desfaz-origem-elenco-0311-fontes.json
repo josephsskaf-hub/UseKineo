@@ -1,0 +1,182 @@
+{
+ "base": "ca725effb8960d01615337e880aa9dbfb54ebb36",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "536b1f915353653ebbf4a43f6342f3e56cdc3881f2a9bea6c8966838c7414594",
+   "afterSha256": "6e42fbcbdb3598ffd3b0e807f68618b9fce03d67c0c31801f84030b1806fe2e3",
+   "hunks": [
+    {
+     "before": "import { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico\nimport { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)",
+     "after": "import { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico\nimport { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: \"Conserta a etnia agora, universal de todas as etnias\"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores\nimport { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)"
+    },
+    {
+     "before": "    // KINEO-PROTAGONISTA-SEEDANCE-0111 — coadjuvante viram o elenco do pedido (BRO é pombo; Mila é gente; Max não é o filhote). Erro/prazo/JSON inválido/sem nome = o elenco determinístico de sempre.\n    const elencoBaseDoPedido: FichaDePersonagem[] = !qualidadeHerdada && personagem.ativo ? elencoDoRoteiro(prompt) : [] // KINEO-PROTAGONISTA-SEEDANCE-0111",
+     "after": "    // KINEO-PROTAGONISTA-SEEDANCE-0111 — coadjuvante viram o elenco do pedido (BRO é pombo; Mila é gente; Max não é o filhote). Erro/prazo/JSON inválido/sem nome = o elenco determinístico de sempre.\n    // KINEO-ORIGEM-DO-ELENCO-0311 — UMA chamada por filme (pedido + narração), em paralelo com o casting: nunca lança; erro/prazo = nada muda. Herdado, Estrela, [faceless] e desenho infantil não chamam.\n    const origemPedida = origemLigadaNoFilme({ herdada: !!qualidadeHerdada, estrela: estrelaAtiva || !!estrelaFicha, tagFaceless: tagFacelessPresente, desenhoInfantil: desenhoInfantil.ativo }) ? pedirOrigemDoElenco(prompt, body.original_idea) : null // KINEO-ORIGEM-DO-ELENCO-0311\n    const elencoBaseDoPedido: FichaDePersonagem[] = !qualidadeHerdada && personagem.ativo ? elencoDoRoteiro(prompt) : [] // KINEO-PROTAGONISTA-SEEDANCE-0111"
+    },
+    {
+     "before": "    if (fichaLiteral && fichaLiteral.literais.length > 0) { personagemElenco.elenco = fichaLiteral.elenco; personagemElenco.casting = `${personagemElenco.casting}+literal`; if (!estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(fichaLiteral.elenco); const secundariosLiterais = elencoSecundario(fichaLiteral.elenco); if (secundariosLiterais.length > 0) classicVisualPolicy.elenco = secundariosLiterais }; console.log(`[juiz-ficha] gen=${generationId} fichas literais=${fichaLiteral.literais.join('+')} natureza=${fichaLiteral.natureza ? 'sim' : 'nao'}`) } // KINEO-JUIZ-FICHA-2710\n    // KINEO-ELENCO-TRAVA-0311 — (c) a ficha trava o ESTILO do filme (uma linha positiva: fotorreal \"a real … filmed in photorealistic live action\" ou o desenho do filme), sem o \"cartoon style\"",
+     "after": "    if (fichaLiteral && fichaLiteral.literais.length > 0) { personagemElenco.elenco = fichaLiteral.elenco; personagemElenco.casting = `${personagemElenco.casting}+literal`; if (!estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(fichaLiteral.elenco); const secundariosLiterais = elencoSecundario(fichaLiteral.elenco); if (secundariosLiterais.length > 0) classicVisualPolicy.elenco = secundariosLiterais }; console.log(`[juiz-ficha] gen=${generationId} fichas literais=${fichaLiteral.literais.join('+')} natureza=${fichaLiteral.natureza ? 'sim' : 'nao'}`) } // KINEO-JUIZ-FICHA-2710\n    // KINEO-ORIGEM-DO-ELENCO-0311 — cada personagem humano ganha a origem que o texto prova ANTES da trava do estilo e do snapshot: a estrada clássica (policy + elencoSecundario) e a hollywood (fichaDoProtagonista → characterHint) leem a mesma ficha. O evento diz a origem, a prova e por que não entrou.\n    const origemResposta = origemPedida ? await origemPedida : null // KINEO-ORIGEM-DO-ELENCO-0311\n    const origemDoFilme = montarOrigemDoFilme(origemResposta, prompt, body.original_idea, { presenter: classicVisualMode === 'presenter' }) // KINEO-ORIGEM-DO-ELENCO-0311\n    const origemNasCenas = origemParaCenas(origemDoFilme) // KINEO-ORIGEM-DO-ELENCO-0311\n    const origemNoPedido = origemDoFilme && personagemElenco.elenco.length > 0 ? elencoComOrigem(personagemElenco.elenco, origemDoFilme) : null // KINEO-ORIGEM-DO-ELENCO-0311\n    if (origemNoPedido && origemNoPedido.trocas.length > 0) { personagemElenco.elenco = origemNoPedido.elenco; if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundariosComOrigem = elencoSecundario(personagemElenco.elenco); if (secundariosComOrigem.length > 0) classicVisualPolicy.elenco = secundariosComOrigem } } // KINEO-ORIGEM-DO-ELENCO-0311\n    if (origemResposta) { const relatoOrigem = relatoDaOrigem({ generationId, engine: body.engine, resposta: origemResposta, filme: origemDoFilme, decisoes: origemNoPedido?.decisoes ?? [] }); console.log(`[personagem] gen=${generationId} KINEO-ORIGEM-DO-ELENCO: origem=${relatoOrigem.origin ?? '-'} prova=\"${relatoOrigem.evidence ?? '-'}\" motivo=${relatoOrigem.motive ?? '-'} fichas=${origemNoPedido?.trocas.length ?? 0} ${relatoOrigem.ms} ms`); void writeServerEvent({ name: EVENTO_ORIGEM_DO_ELENCO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: relatoOrigem }) } // KINEO-ORIGEM-DO-ELENCO-0311\n    // KINEO-ELENCO-TRAVA-0311 — (c) a ficha trava o ESTILO do filme (uma linha positiva: fotorreal \"a real … filmed in photorealistic live action\" ou o desenho do filme), sem o \"cartoon style\""
+    },
+    {
+     "before": "          tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor,\n          elenco: personagemElenco.elenco, preservarElenco: !!qualidadeHerdada })",
+     "after": "          tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor,\n          origemDoElenco: origemNasCenas, // KINEO-ORIGEM-DO-ELENCO-0311 — estrada hollywood: cena com gente sem ficha também diz a origem\n          elenco: personagemElenco.elenco, preservarElenco: !!qualidadeHerdada })"
+    },
+    {
+     "before": "        } else if (quality.elenco.length) plan.characterSheet = quality.elenco.map(f => f.canonica).join('; ')\n        if (qualitySnapshot) { qualitySnapshot.characters = quality.elenco; qualitySnapshot.characterSheet = plan.characterSheet; qualitySnapshot.environmentSheet = plan.environmentSheet }",
+     "after": "        } else if (quality.elenco.length) plan.characterSheet = quality.elenco.map(f => f.canonica).join('; ')\n        if (!qualidadeHerdada && !quality.elenco.length && origemDoFilme) plan.characterSheet = sheetComOrigem(plan.characterSheet, origemDoFilme) ?? plan.characterSheet // KINEO-ORIGEM-DO-ELENCO-0311 — sem elenco, a pessoa que o planejador inventou (âncora/retrato) também tem a origem geral do filme\n        if (qualitySnapshot) { qualitySnapshot.characters = quality.elenco; qualitySnapshot.characterSheet = plan.characterSheet; qualitySnapshot.environmentSheet = plan.environmentSheet }"
+    },
+    {
+     "before": "      const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710\n      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false, elencoSemantico: elencoSemantico ? { nomes: elencoSemantico.nomes, protagonista: elencoSemantico.protagonista, leitura: elencoSemantico.leitura } : null /* KINEO-PROTAGONISTA-SEEDANCE-0111 — nome que o elenco semântico não leu como personagem (lugar, \"Lena is gone\") não é inserido */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710",
+     "after": "      const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710\n      const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts, falas: scenes.map(s => s.voiceover ?? ''), contextoOriginal: contextoElencoEpoca, contextoFiltro: await contextoDoFiltro(contextoElencoEpoca), modo: classicVisualMode, tagFaceless: tagFacelessPresente, kidsCartoon: desenhoInfantil.ativo, style: styleAnchor, elenco: elencoDoAjuste, preservarElenco: !!qualidadeHerdada, aplicarContrato: false, origemDoElenco: origemNasCenas /* KINEO-ORIGEM-DO-ELENCO-0311 — estrada clássica: cena com gente sem ficha também diz a origem */, elencoSemantico: elencoSemantico ? { nomes: elencoSemantico.nomes, protagonista: elencoSemantico.protagonista, leitura: elencoSemantico.leitura } : null /* KINEO-PROTAGONISTA-SEEDANCE-0111 — nome que o elenco semântico não leu como personagem (lugar, \"Lena is gone\") não é inserido */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910\n      for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = elencoEpoca.prompts[i] // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "    // KINEO-ELENCO-TRAVA-0311 — folha, do still FLUX e do clipe: a ficha antiga — e a forma que a trava de estilo do filme já reescreveu nela (\"cartoon style\" → o look) — vira a travada em todo prompt escrito.\n    const travaEstiloDaCena = !qualidadeHerdada && elencoDoAjuste.length > 0 ? travarEstiloDoElenco(elencoDoAjuste, styleAnchor, textoDoPedido(prompt, body.original_idea)) : null // KINEO-ELENCO-TRAVA-0311",
+     "after": "    // KINEO-ELENCO-TRAVA-0311 — folha, do still FLUX e do clipe: a ficha antiga — e a forma que a trava de estilo do filme já reescreveu nela (\"cartoon style\" → o look) — vira a travada em todo prompt escrito.\n    // KINEO-ORIGEM-DO-ELENCO-0311 — o elenco que só nasceu agora (o filme de 15 s lê os VISUAIS: \"the weathered soldier\" do Onoda) recebe a MESMA leitura, sem chamada nova; os prompts já escritos trocam a ficha pelos mesmos pares da trava.\n    const origemNaCena = origemDoFilme && elencoDoAjuste.length > 0 ? elencoComOrigem(elencoDoAjuste, origemDoFilme) : null // KINEO-ORIGEM-DO-ELENCO-0311\n    if (origemNaCena && origemNaCena.trocas.length > 0) { elencoDoAjuste.splice(0, elencoDoAjuste.length, ...origemNaCena.elenco); const paresDaOrigem = trocasDaFicha(origemNaCena.trocas, styleAnchor); for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = trocarFichaNoPrompt(classicScenePrompts[i], paresDaOrigem); console.log(`[personagem] gen=${generationId} KINEO-ORIGEM-DO-ELENCO: origem nas cenas (${origemNaCena.trocas.length} ficha(s)): ${origemNaCena.decisoes.map((d) => `${d.nome}=${d.origem ?? d.motivo}`).join(', ')}`) } // KINEO-ORIGEM-DO-ELENCO-0311\n    const travaEstiloDaCena = !qualidadeHerdada && elencoDoAjuste.length > 0 ? travarEstiloDoElenco(elencoDoAjuste, styleAnchor, textoDoPedido(prompt, body.original_idea)) : null // KINEO-ELENCO-TRAVA-0311"
+    }
+   ]
+  },
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "a765f272397c64f07fd077dac4d778b3bdd668b476998e22cb076022a851b7f3",
+   "afterSha256": "df03b22d9d901ffaee86bfb3f90dc9e9b32e6287a6603181316c1c314aa57b1b",
+   "hunks": [
+    {
+     "before": "  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null\n}): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710",
+     "after": "  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null\n  /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */\n  origemDoElenco?: {\n    descricao: (p: { nome: string; genero: 'man' | 'woman' | null; tipo: string; descricao: string }, povoDaTabela: string | null) => string | null\n    frase: (prompt: string) => string\n    roupaDaEpoca: (rotulo: string) => string\n  } | null\n}): { prompts: string[]; relato: RelatoElencoEpoca } { // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "    } // KINEO-ELENCO-EPOCA-2710\n    const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710",
+     "after": "    } // KINEO-ELENCO-EPOCA-2710\n    // KINEO-ORIGEM-DO-ELENCO-0311 — o personagem lido do texto ganha a origem que o texto prova (e perde o povo da tabela de lugares, quando discorda)\n    if (args.origemDoElenco) { const povoTabela = povoDaHistoria(texto)?.povo ?? null; for (const p of elenco) { if (p.tipo !== 'humano') continue; const nova = args.origemDoElenco.descricao(p, povoTabela); if (nova) p.descricao = nova } } // KINEO-ORIGEM-DO-ELENCO-0311\n    const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "  } // KINEO-ELENCO-EPOCA-2710\n  // B. época em toda cena (gente, veículo ou interior de qualquer cena precisa da década); o objeto de hoje que o descritor escreveu sai antes // KINEO-ELENCO-EPOCA-2710",
+     "after": "  } // KINEO-ELENCO-EPOCA-2710\n  // KINEO-ORIGEM-DO-ELENCO-0311 — cena com gente sem ficha (documentário, elenco vazio): a frase da origem na frente. É condicional (\"any person shown\"): nunca põe gente onde não há. Tag [faceless] e apresentador ficam fora.\n  const origemNaCena = args.origemDoElenco && !args.tagFaceless && args.modo !== 'presenter' ? args.origemDoElenco : null // KINEO-ORIGEM-DO-ELENCO-0311\n  if (origemNaCena) for (let i = 0; i < n; i++) { // KINEO-ORIGEM-DO-ELENCO-0311\n    const semNegacao = prompts[i].replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/talking head|foreground human face/gi, '') // KINEO-ORIGEM-DO-ELENCO-0311 — a mesma limpeza do protagonista sem nome\n    if (prompts[i].includes('No people, no human figures and no faces anywhere in this shot') || !(GENTE_NO_PROMPT_RE.test(semNegacao) || MULTIDAO_NO_PROMPT_RE.test(semNegacao) || PESSOA_RE.test(semNegacao))) continue // KINEO-ORIGEM-DO-ELENCO-0311\n    const frase = origemNaCena.frase(prompts[i]) // KINEO-ORIGEM-DO-ELENCO-0311\n    if (frase && prompts[i].length + frase.length <= ELENCO_EPOCA_TETO_PROMPT) prompts[i] = frase + prompts[i] // KINEO-ORIGEM-DO-ELENCO-0311 · KINEO-ELENCO-EPOCA-2710 (mesmo teto)\n  } // KINEO-ORIGEM-DO-ELENCO-0311\n  // B. época em toda cena (gente, veículo ou interior de qualquer cena precisa da década); o objeto de hoje que o descritor escreveu sai antes // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "    const r = aplicarEpoca(t.prompt, epoca) // KINEO-ELENCO-EPOCA-2710\n    prompts[i] = r.prompt // KINEO-ELENCO-EPOCA-2710",
+     "after": "    const r = aplicarEpoca(t.prompt, epoca) // KINEO-ELENCO-EPOCA-2710\n    // KINEO-ORIGEM-DO-ELENCO-0311 — a lista de roupa da década é ocidental (fedoras, trench coats: o chapéu do Onoda): com origem na cena, o figurino é o do lugar e do papel, na mesma década\n    if (args.origemDoElenco && r.aplicada === 'longa' && r.prompt.includes('natural features of ')) r.prompt = r.prompt.replace(`wears ${pistasDaEpoca(epoca).roupa} (`, `wears ${args.origemDoElenco.roupaDaEpoca(epoca.rotulo)} (`) // KINEO-ORIGEM-DO-ELENCO-0311\n    prompts[i] = r.prompt // KINEO-ELENCO-EPOCA-2710"
+    }
+   ]
+  },
+  "lib/cinematic/elencoTrava.ts": {
+   "beforeSha256": "e2ed71436751fa421caac8b5b6de5f29836ae9f11e7c5063d024c71a582739eb",
+   "afterSha256": "ae7f8f867aeb7380e229589a4f23b91f97ee91bff33cb508ccb144d5c5bccc3d",
+   "hunks": [
+    {
+     "before": "  c = c.replace(/[\\s,;]+$/, '')\n  return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing (${pistasDaEpoca(epoca).roupa})` }",
+     "after": "  c = c.replace(/[\\s,;]+$/, '')\n  if (c.includes('natural features of ')) return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing true to their own place and role` } // KINEO-ORIGEM-DO-ELENCO-0311 — a lista de roupa da década é ocidental (fedoras, trench coats); com origem na ficha, o figurino é o do lugar e do papel\n  return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing (${pistasDaEpoca(epoca).roupa})` }"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "7d52f5bda769bcf5d781cbeda8f6a63e5bb1ae4240e4ade968009544207b2096",
+   "afterSha256": "7c595095d6cb49b14dda828dcdd9a91d818be12bcb7f74407c2b2b6c2df77fed",
+   "hunks": [
+    {
+     "before": "  if (compactTextProtection && period) action = action.replace(period, '').replace(/^[,.\\s]+/, '')\n  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}`\n  let core = prefix + who(identityBudget) + action",
+     "after": "  if (compactTextProtection && period) action = action.replace(period, '').replace(/^[,.\\s]+/, '')\n  // KINEO-ORIGEM-DO-ELENCO-0311 — o corte de 140-178 caracteres da ficha jogava a linha da origem fora: ela vai curta, na frente, com a marca que os juízes leem. Sem marca: byte a byte.\n  const origensDaCena = [...new Set([...prompt.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311\n  if (origensDaCena.length > 0) action = action.replace(/(?:The main person, if one is shown in this shot, is|The [a-z' -]+ in this shot (?:is|are)) [^.]+?natural features of [^.]+? people\\.\\s*/g, '').trim() // KINEO-ORIGEM-DO-ELENCO-0311\n  const origemCurta = origensDaCena.length === 1 ? `Everyone shown has the natural features of ${origensDaCena[0]} people. ` : origensDaCena.length > 1 ? `People: ${origensDaCena.slice(0, 2).join(', ')}. ` : '' // KINEO-ORIGEM-DO-ELENCO-0311 — duas origens: sem a marca (o juiz só pergunta com uma)\n  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${origemCurta}`\n  let core = prefix + who(identityBudget) + action"
+    },
+    {
+     "before": "  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null\n}) {",
+     "after": "  elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null\n  /** KINEO-ORIGEM-DO-ELENCO-0311 — repassado à camada elencoEpoca (aplicarElencoEEpoca); ausente = byte a byte o de antes. */\n  origemDoElenco?: Parameters<typeof aplicarElencoEEpoca>[0]['origemDoElenco']\n}) {"
+    }
+   ]
+  },
+  "lib/cinematic/juizFicha.ts": {
+   "beforeSha256": "9e4c4c05c534ad544a35d3e7dab2a0bc1136506da06edb4da6d423fa6cac6fb6",
+   "afterSha256": "8bda7daba9be5e3a7b08b07537607c0744f758eac0451357a7fad2b7daa08685",
+   "hunks": [
+    {
+     "before": "    if (!antes || antes === depois) continue\n    out = out.split(antes).join(depois)\n    // a forma sem o nome (\"Dino, \" tirado), que promptDoStillComFolha e elencoSecundario usam",
+     "after": "    if (!antes || antes === depois) continue\n    // KINEO-ORIGEM-DO-ELENCO-0311 — a ficha nova COMEÇA pela antiga (trava do estilo, origem): a forma sem o nome casava de novo dentro da troca recém-feita e a linha nova saía duplicada no prompt pago. O que já é a ficha nova fica protegido durante as trocas.\n    const PROTEGE = '\\u0000F\\u0000', PROTEGE_SEM_NOME = '\\u0000S\\u0000' // KINEO-ORIGEM-DO-ELENCO-0311\n    out = out.split(depois).join(PROTEGE).split(antes).join(PROTEGE) // KINEO-ORIGEM-DO-ELENCO-0311\n    // a forma sem o nome (\"Dino, \" tirado), que promptDoStillComFolha e elencoSecundario usam"
+    },
+    {
+     "before": "    const semNomeDepois = depois.replace(/^[^,]+,\\s*/, '')\n    if (semNomeAntes && semNomeAntes !== antes && semNomeAntes.length > 20) out = out.split(semNomeAntes).join(semNomeDepois)\n  }",
+     "after": "    const semNomeDepois = depois.replace(/^[^,]+,\\s*/, '')\n    if (semNomeAntes && semNomeAntes !== antes && semNomeAntes.length > 20) out = out.split(semNomeDepois).join(PROTEGE_SEM_NOME).split(semNomeAntes).join(PROTEGE_SEM_NOME) // KINEO-ORIGEM-DO-ELENCO-0311\n    out = out.split(PROTEGE_SEM_NOME).join(semNomeDepois).split(PROTEGE).join(depois) // KINEO-ORIGEM-DO-ELENCO-0311\n  }"
+    }
+   ]
+  },
+  "lib/cinematic/criticoStill.ts": {
+   "beforeSha256": "ef45ecadfdbad2fbd40b333473cdb950a99db5d5e044faf3ed0054ed80372ac7",
+   "afterSha256": "f2bb5b93eb0bed7655ebbdd00f92ae9ad7e35a6c1ed904f79577e5f4bb9b4951",
+   "hunks": [
+    {
+     "before": "  | 'epoca' | 'pessoa' | 'estilo' // KINEO-JUIZ-PERGUNTAS-0311 — só existem quando o PROMPT da cena traz a época, o \"sem gente\" ou o estilo travado\nconst PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato', mascot: 'sujeito', missing: 'sujeito', missing_character: 'sujeito' } // KINEO-JUIZ-REFAZ-2810 — \"mascot\"/\"missing\" (se o modelo os escrever) são SUJEITO errado; era: só os 4",
+     "after": "  | 'epoca' | 'pessoa' | 'estilo' // KINEO-JUIZ-PERGUNTAS-0311 — só existem quando o PROMPT da cena traz a época, o \"sem gente\" ou o estilo travado\n  | 'origem' // KINEO-ORIGEM-DO-ELENCO-0311 — só existe quando o PROMPT da cena traz UMA origem\nconst PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato', mascot: 'sujeito', missing: 'sujeito', missing_character: 'sujeito' } // KINEO-JUIZ-REFAZ-2810 — \"mascot\"/\"missing\" (se o modelo os escrever) são SUJEITO errado; era: só os 4"
+    },
+    {
+     "before": "export const MARCA_JUIZ_PERGUNTAS_0311 = 'KINEO-JUIZ-PERGUNTAS-0311'\nexport type ContextoCritico0311 = { epoca: string | null; semGente: boolean; estilo: 'foto' | 'desenho' | null }\n/** Época, \"sem gente\" e estilo pedidos pelo prompt da cena. */",
+     "after": "export const MARCA_JUIZ_PERGUNTAS_0311 = 'KINEO-JUIZ-PERGUNTAS-0311'\nexport type ContextoCritico0311 = { epoca: string | null; semGente: boolean; estilo: 'foto' | 'desenho' | null; origem?: string /* KINEO-ORIGEM-DO-ELENCO-0311 — só existe quando o prompt da cena traz UMA origem */ }\n/** Época, \"sem gente\" e estilo pedidos pelo prompt da cena. */"
+    },
+    {
+     "before": "  const estilo = !medio ? null : /not photorealistic|animated|animation|anime|cartoon|illustrat|cel shading/i.test(medio) ? 'desenho' : /photoreal|noir|live[- ]action/i.test(medio) ? 'foto' : null\n  return { epoca, semGente: p.includes('No people, no human figures and no faces anywhere in this shot'), estilo }\n}",
+     "after": "  const estilo = !medio ? null : /not photorealistic|animated|animation|anime|cartoon|illustrat|cel shading/i.test(medio) ? 'desenho' : /photoreal|noir|live[- ]action/i.test(medio) ? 'foto' : null\n  const origens0311 = [...new Set([...p.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311 — a marca de lib/cinematic/origemDoElenco; duas origens na cena = sem pergunta (o juiz não adivinha quem é quem)\n  return { epoca, semGente: p.includes('No people, no human figures and no faces anywhere in this shot'), estilo, ...(origens0311.length === 1 ? { origem: origens0311[0] } : {}) }\n}"
+    },
+    {
+     "before": "  if (c.semGente) partes.push('(8) PERSON — this shot must contain NO people: FAIL when a person, human figure or face is clearly visible (a tiny distant silhouette is fine); use the issue name \"person\".')\n  if (partes.length === 0) return ''",
+     "after": "  if (c.semGente) partes.push('(8) PERSON — this shot must contain NO people: FAIL when a person, human figure or face is clearly visible (a tiny distant silhouette is fine); use the issue name \"person\".')\n  if (c.origem) partes.push(`(9) ORIGIN — the story's person here is ${c.origem}: FAIL only when the main person is clearly visible and clearly looks like someone from a different part of the world, not ${c.origem} (people of any origin vary widely; when the face is small, turned away, or you are unsure, it is fine; never judge beauty or stereotypes); use the issue name \"origin\".`) // KINEO-ORIGEM-DO-ELENCO-0311\n  if (partes.length === 0) return ''"
+    },
+    {
+     "before": "}\nconst PROBLEMA_0311: Record<string, ProblemaStill> = { style: 'estilo', era: 'epoca', person: 'pessoa' }\n/** Relê a resposta com os critérios extras: FAIL com \"era\"/\"person\"/\"style\" (permitidos pelo prompt) vira FAIL de verdade — a leitura",
+     "after": "}\nconst PROBLEMA_0311: Record<string, ProblemaStill> = { style: 'estilo', era: 'epoca', person: 'pessoa', origin: 'origem' /* KINEO-ORIGEM-DO-ELENCO-0311 */ }\n/** Relê a resposta com os critérios extras: FAIL com \"era\"/\"person\"/\"style\" (permitidos pelo prompt) vira FAIL de verdade — a leitura"
+    },
+    {
+     "before": "export function aplicarPerguntas0311(r: RespostaDoCritico, raw: string, c: ContextoCritico0311): RespostaDoCritico {\n  const permitidos = new Set<string>([...(c.estilo ? ['style'] : []), ...(c.epoca ? ['era'] : []), ...(c.semGente ? ['person'] : [])])\n  if (permitidos.size === 0) return r",
+     "after": "export function aplicarPerguntas0311(r: RespostaDoCritico, raw: string, c: ContextoCritico0311): RespostaDoCritico {\n  const permitidos = new Set<string>([...(c.estilo ? ['style'] : []), ...(c.epoca ? ['era'] : []), ...(c.semGente ? ['person'] : []), ...(c.origem ? ['origin'] : []) /* KINEO-ORIGEM-DO-ELENCO-0311 */])\n  if (permitidos.size === 0) return r"
+    },
+    {
+     "before": "  epoca: 'Every garment, vehicle and object strictly period-accurate for the period setting described.', // KINEO-JUIZ-PERGUNTAS-0311\n}\nconst ORDEM_0311: ProblemaStill[] = ['estilo', 'pessoa', 'epoca'] // KINEO-JUIZ-PERGUNTAS-0311 — depois dos 5 de sempre\nconst ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']",
+     "after": "  epoca: 'Every garment, vehicle and object strictly period-accurate for the period setting described.', // KINEO-JUIZ-PERGUNTAS-0311\n  origem: 'The person shown with the origin and natural features stated in the shot description.', // KINEO-ORIGEM-DO-ELENCO-0311\n}\nconst ORDEM_0311: ProblemaStill[] = ['estilo', 'pessoa', 'epoca', 'origem'] // KINEO-JUIZ-PERGUNTAS-0311 — depois dos 5 de sempre // KINEO-ORIGEM-DO-ELENCO-0311\nconst ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']"
+    }
+   ]
+  },
+  "lib/regua95/perguntasHonestas.ts": {
+   "beforeSha256": "076775d6c1841b107dd280b87fb5f5d066b7762661fad04405e51d8fcb31b514",
+   "afterSha256": "70467e05cbf32edd686b8786093525159b52dd1fd125aabeb6fc73552de63824",
+   "hunks": [
+    {
+     "before": "/** Códigos novos do juiz de visão (só existem com perguntasHonestas). */\nexport const PIXEL_ISSUES_0311 = ['anachronism', 'invented_person', 'static'] as const\nexport type EstiloPedido0311 = 'foto' | 'desenho' | null",
+     "after": "/** Códigos novos do juiz de visão (só existem com perguntasHonestas). */\nexport const PIXEL_ISSUES_0311 = ['anachronism', 'invented_person', 'static', 'wrong_origin' /* KINEO-ORIGEM-DO-ELENCO-0311 */] as const\nexport type EstiloPedido0311 = 'foto' | 'desenho' | null"
+    },
+    {
+     "before": "  estilo: EstiloPedido0311\n}",
+     "after": "  estilo: EstiloPedido0311\n  /** KINEO-ORIGEM-DO-ELENCO-0311 — a origem que TODOS os prompts com a marca dizem; ausente = sem marca ou duas origens (nenhuma pergunta). */\n  origem?: string\n}"
+    },
+    {
+     "before": "\n/** A leitura do filme inteiro: o prompt das cenas manda; sem a marca de época, as palavras da história (a régua da rota). */",
+     "after": "\n/** KINEO-ORIGEM-DO-ELENCO-0311 — as origens distintas do prompt (\"… with the natural features of Japanese people\"), a marca de lib/cinematic/origemDoElenco. */\nexport function origensDoPrompt0311(prompt: unknown): string[] {\n  return [...new Set([...String(prompt ?? '').matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))]\n}\n\n/** A leitura do filme inteiro: o prompt das cenas manda; sem a marca de época, as palavras da história (a régua da rota). */"
+    },
+    {
+     "before": "  for (const p of prompts) { estilo = estiloDoPrompt0311(p); if (estilo) break }\n  return { epoca, cenasSemGente, todasSemGente: prompts.length > 0 && cenasSemGente.length === prompts.length, estilo }\n}",
+     "after": "  for (const p of prompts) { estilo = estiloDoPrompt0311(p); if (estilo) break }\n  const origens = [...new Set(prompts.flatMap(origensDoPrompt0311))] // KINEO-ORIGEM-DO-ELENCO-0311\n  return { epoca, cenasSemGente, todasSemGente: prompts.length > 0 && cenasSemGente.length === prompts.length, estilo, ...(origens.length === 1 ? { origem: origens[0] } : {}) }\n}"
+    },
+    {
+     "before": "  else if (porCena && c.cenasSemGente.length > 0) partes.push(` (v) NO PEOPLE — shot(s) ${c.cenasSemGente.join(', ')} (same order as the spoken lines) show no people: add \"invented_person\" to a frame of those shots where a person, human figure or face is clearly visible (a tiny distant silhouette is fine).`)\n  const codigos = ['static', ...(c.epoca ? ['anachronism'] : []), ...(c.todasSemGente || (porCena && c.cenasSemGente.length > 0) ? ['invented_person'] : [])]\n  partes.push(` Extra issue codes you may also use: ${codigos.join(', ')}.`)",
+     "after": "  else if (porCena && c.cenasSemGente.length > 0) partes.push(` (v) NO PEOPLE — shot(s) ${c.cenasSemGente.join(', ')} (same order as the spoken lines) show no people: add \"invented_person\" to a frame of those shots where a person, human figure or face is clearly visible (a tiny distant silhouette is fine).`)\n  if (c.origem) partes.push(` (vi) ORIGIN — the story's person is ${c.origem}: add \"wrong_origin\" only to a frame where the main person is clearly visible and clearly looks like someone from a different part of the world, not ${c.origem} (people of any origin vary widely; a small or turned-away face, or any doubt, is fine; never judge beauty or stereotypes).`) // KINEO-ORIGEM-DO-ELENCO-0311\n  const codigos = ['static', ...(c.epoca ? ['anachronism'] : []), ...(c.todasSemGente || (porCena && c.cenasSemGente.length > 0) ? ['invented_person'] : []), ...(c.origem ? ['wrong_origin'] : []) /* KINEO-ORIGEM-DO-ELENCO-0311 */]\n  partes.push(` Extra issue codes you may also use: ${codigos.join(', ')}.`)"
+    }
+   ]
+  },
+  "lib/regua95/pixelScore.ts": {
+   "beforeSha256": "82434d03179f13563bf59373f9b5ce04d885e47baee447bb8e4690ed852a1c67",
+   "afterSha256": "4e9861e499f81e385f1523ec40c8b253378216d77a2256778ebe1c708db5e0ab",
+   "hunks": [
+    {
+     "before": "  if (ctx.perguntasHonestas === true && count('invented_person') >= 2) cap(75, `pessoa inventada em cena sem gente em ${count('invented_person')} quadros`)\n  const parados0311 = ctx.perguntasHonestas === true && verdicts.length >= 3 ? segundosParados0311(verdicts) : 0 // KINEO-JUIZ-PERGUNTAS-0311",
+     "after": "  if (ctx.perguntasHonestas === true && count('invented_person') >= 2) cap(75, `pessoa inventada em cena sem gente em ${count('invented_person')} quadros`)\n  if (ctx.perguntasHonestas === true && count('wrong_origin') >= 2) cap(75, `pessoa de outra origem que a da história em ${count('wrong_origin')} quadros`) // KINEO-ORIGEM-DO-ELENCO-0311 — enzojimcua 03/11: o Onoda ocidental levou 95\n  const parados0311 = ctx.perguntasHonestas === true && verdicts.length >= 3 ? segundosParados0311(verdicts) : 0 // KINEO-JUIZ-PERGUNTAS-0311"
+    }
+   ]
+  },
+  "lib/compose.ts": {
+   "beforeSha256": "dcbab68a894c6a0b693992066fa6a3e6b559d31d254c44763da2d9add8c9d37b",
+   "afterSha256": "753689401a54759cf0c33db9f135cf6eb88523e47336d9539c8fdb6c01714f0d",
+   "hunks": [
+    {
+     "before": "  }\n  // Only include words that start before the caption window ends (i.e. before the CTA).",
+     "after": "  }\n  // KINEO-LEGENDA-NUMERO-CARREGA-0311 [TRAVA 8.2 — fundador 03/11: \"Conserta a etnia agora\", item 2] — enzojimcua, vídeo 23a1412e: \"EN 1945 PERO UN\" | \"SOLDADO…\". O teto era 5 e o pedaço fechou\n  // KINEO-LEGENDA-NUMERO-CARREGA-0311 — em 4: uma pausa medida (ou o fim de segmento do Whisper, carimbado por tempo) caiu no artigo, e o fecho \"natural\" pula a regra da palavra-função.\n  // KINEO-LEGENDA-NUMERO-CARREGA-0311 — Aqui a fronteira falsa some antes do corte: o artigo emenda na palavra que ele rege (a próxima em maiúscula continua sendo frase nova).\n  for (let i = 0; i + 1 < numeros.length; i++) { // KINEO-LEGENDA-NUMERO-CARREGA-0311\n    const w = numeros[i], nx = numeros[i + 1], p = (w.word ?? '').trim(), q = (nx.word ?? '').trim() // KINEO-LEGENDA-NUMERO-CARREGA-0311\n    if ((w.sentenceEnd === true || nx.start - w.end >= 0.28) && q && terminaEmPalavraFuncao(p) && /[\\p{L}\\p{N}']$/u.test(p) && !/^[^\\p{L}\\p{N}]*\\p{Lu}/u.test(q)) numeros[i] = { ...w, sentenceEnd: false, end: Math.max(w.end, nx.start) } // KINEO-LEGENDA-NUMERO-CARREGA-0311 — sem pontuação própria e a próxima em minúscula\n  } // KINEO-LEGENDA-NUMERO-CARREGA-0311\n  // Only include words that start before the caption window ends (i.e. before the CTA)."
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/origemDoElenco.ts": "c999c9f116922a03ba8976a66284f070a79979b181ca9fa9f6fc66628a5285e2"
+ }
+}
