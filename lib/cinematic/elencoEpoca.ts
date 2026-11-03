@@ -432,7 +432,7 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
   return saida.map((p, i) => ({ ...p, protagonista: i === 0 })) // KINEO-JUIZ-REFAZ-2810 — quem mais age entre os que FICARAM é o protagonista (era `i === 0` do mapa, antes do filtro)
 } // KINEO-ELENCO-EPOCA-2710
 
-const SEM_NOME_RE = new RegExp(String.raw`\b(?:a|an|the)\s+((?:(?:sad|happy|young|little|tiny|small|big|old|elderly|teenage|brave|clever|lonely|curious|shy|kind|poor|rich|tall|short|scared|sleepy|tired|exhausted|weary|nervous|quiet|lost|late|lone|lonely|middle-aged|cheerful|grumpy|mysterious|friendly|wise|night-shift|night)\s+){0,3}(?:${PESSOAS}))\b`, 'i') // KINEO-ELENCO-EPOCA-2710
+const SEM_NOME_RE = new RegExp(String.raw`\b(?:a|an|the|one)\s+((?:(?:sad|happy|young|little|tiny|small|big|old|elderly|teenage|brave|clever|lonely|curious|shy|kind|poor|rich|tall|short|scared|sleepy|tired|exhausted|weary|nervous|quiet|lost|late|lone|lonely|middle-aged|cheerful|grumpy|mysterious|friendly|wise|night-shift|night)\s+){0,3}(?:${PESSOAS}))\b`, 'i') // KINEO-ELENCO-EPOCA-2710
 /** Protagonista SEM nome ("a tired commuter", "a young man"): o 1º papel humano do texto em inglês. */ // KINEO-ELENCO-EPOCA-2710
 export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710
   const texto = limpa(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710
@@ -490,7 +490,10 @@ export interface RelatoElencoEpoca { // KINEO-ELENCO-EPOCA-2710
 
 const ORDEM_PROTAGONISTA_RE = /^The only person in this shot is the same main character \((?:[^()]|\([^()]*\))*\); any other person described below is replaced by this same character\. /u // KINEO-ELENCO-EPOCA-2710 — lib/filmes/filme15Elenco ORDEM_DO_PROTAGONISTA
 const CLAUSULA_SEM_GENTE_RE = /\s*No people, no human figures and no faces anywhere in this shot\./g // KINEO-ELENCO-EPOCA-2710 — lib/cinematic/personagemAjuste CLAUSULA_SEM_GENTE
-const GENTE_NO_PROMPT_RE = /\b(?:man|men|woman|women|boy|boys|girl|girls|kid|kids|child|children|person|people|figure|figures|silhouette|silhouettes|commuter|passenger|passengers|someone|somebody|guy|lady|stranger|character|characters|hands?|face|faces)\b/i // KINEO-ELENCO-EPOCA-2710
+// KINEO-PROTAGONISTA-DOC-0311 — UMA pessoa no plano (o "a man in a uniform" que o descritor escreve em cada cena); plural/multidão fica fora.
+const UMA_PESSOA_NO_PROMPT_RE = /\b(?:man|woman|boy|girl|kid|child|person|figure|silhouette|guy|lady|stranger|someone|officer|soldier|pilot|worker|farmer|doctor|scientist|engineer|sailor|captain|detective)\b/i // KINEO-PROTAGONISTA-DOC-0311
+const MULTIDAO_NO_PROMPT_RE = /\b(?:men|women|people|crowds?|soldiers|officers|workers|children|kids|figures|silhouettes|passengers|families|groups?|team|staff)\b/i // KINEO-PROTAGONISTA-DOC-0311
+const GENTE_NO_PROMPT_RE =/\b(?:man|men|woman|women|boy|boys|girl|girls|kid|kids|child|children|person|people|figure|figures|silhouette|silhouettes|commuter|passenger|passengers|someone|somebody|guy|lady|stranger|character|characters|hands?|face|faces)\b/i // KINEO-ELENCO-EPOCA-2710
 
 /** O texto em inglês que o extrator lê: o original (inglês puro) ou a parte traduzida que a rota memoizou (contexto + inglês + nomes). */ // KINEO-ELENCO-EPOCA-2710
 export function textoInglesDe(contextoOriginal: string, contextoFiltro: string | null | undefined): { texto: string | null; origem: RelatoElencoEpoca['texto'] } { // KINEO-ELENCO-EPOCA-2710
@@ -559,20 +562,27 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       if (elenco.some((p) => p.possessivo?.nucleo === pessoa.nucleo)) continue
       elenco.push({ nome: `the ${pessoa.papel}`, nomeado: false, tipo: 'humano', genero: pessoa.genero, descricao: pessoa.descricao, protagonista: false, ocorrencias: 1, posicoes: [pessoa.posicao], possessivo: { nucleo: pessoa.nucleo, objeto: pessoa.objeto } })
     }
+    let fichaNasCenasComGente: number[] = [] // KINEO-PROTAGONISTA-DOC-0311
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
       const semNome = protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
-      if (semNome && !prompts.some((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, '')))) elenco = [semNome] // KINEO-ELENCO-EPOCA-2710
+      const comGente = prompts.map((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, ''))) // KINEO-PROTAGONISTA-DOC-0311
+      if (semNome && !comGente.some(Boolean)) elenco = [semNome]
+      // KINEO-PROTAGONISTA-DOC-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"] — o protagonista sem nome JÁ desenhado pelo descritor ("a man" em cada cena)
+      // KINEO-PROTAGONISTA-DOC-0311 — virava UM HOMEM DIFERENTE por cena (hansak.th 03/11, Petrov 1983, "One man stopped World War 3…": 3 homens, nota 6,5, 1º filme).
+      // KINEO-PROTAGONISTA-DOC-0311 — Agora a ficha fixa dele entra nas cenas que mostram UMA pessoa (multidão fica como está) e o "a man" do plano passa a ser ele.
+      else if (semNome) { elenco = [semNome]; fichaNasCenasComGente = prompts.map((p, i) => (UMA_PESSOA_NO_PROMPT_RE.test(p) && !MULTIDAO_NO_PROMPT_RE.test(p) ? i : -1)).filter((i) => i >= 0); if (fichaNasCenasComGente.length === 0) { elenco = []; relato.motivo_sem_elenco = 'protagonista_sem_nome_ja_em_cena' } } // KINEO-PROTAGONISTA-DOC-0311 // KINEO-ELENCO-EPOCA-2710
       else relato.motivo_sem_elenco = semNome ? 'protagonista_sem_nome_ja_em_cena' : 'sem_personagem' // KINEO-ELENCO-EPOCA-2710
     } // KINEO-ELENCO-EPOCA-2710
     const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710
     for (const p of elenco) { // KINEO-ELENCO-EPOCA-2710
       const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : p.possessivo ? cenaMostraPessoa(pr, p.possessivo.nucleo) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-MARCADOR-2910 — "girl's teddy" no prompt não prova menina visível.
       const { pelaFala, porPosicao } = cenasDoPersonagem(p, args.falas) // KINEO-ELENCO-EPOCA-2710
-      const alvo = p.possessivo ? pelaFala : pelaFala.length > 0 ? pelaFala : porPosicao.length > 0 ? porPosicao : [0] // KINEO-ELENCO-MARCADOR-2910
+      const alvo = fichaNasCenasComGente.length > 0 && !p.nomeado ? fichaNasCenasComGente : p.possessivo ? pelaFala : pelaFala.length > 0 ? pelaFala : porPosicao.length > 0 ? porPosicao : [0] // KINEO-ELENCO-MARCADOR-2910 // KINEO-PROTAGONISTA-DOC-0311 — protagonista sem nome já em cena: as cenas de uma pessoa
       const jaPresente = presente.some(Boolean) // KINEO-ELENCO-EPOCA-2710
       const inseridas: number[] = [] // KINEO-ELENCO-EPOCA-2710
       // protagonista ausente de TODO prompt: entra em todas as cenas-alvo; coadjuvante: nas cenas-alvo em que não está // KINEO-ELENCO-EPOCA-2710
+      if (!p.nomeado) for (const i of fichaNasCenasComGente) presente[i] = false // KINEO-PROTAGONISTA-DOC-0311 — já desenhado como "a man": a ficha entra assim mesmo (jaPresente já foi lido acima)
       for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { // KINEO-ELENCO-MARCADOR-2910
         const objeto = p.possessivo ? pessoasPossessivas(args.falas[i]).find((dono) => dono.nucleo === p.possessivo!.nucleo)?.objeto : null // KINEO-ELENCO-MARCADOR-2910
         porCena[i].push(`${p.descricao}${objeto ? ` ${objeto}` : ''}`); inseridas.push(i) // KINEO-ELENCO-MARCADOR-2910

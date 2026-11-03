@@ -128,7 +128,9 @@ console.log('== D. o passageiro sem nome do último trem ==')
   checa('D1 sem nome e sem gente em prompt nenhum: "the tired commuter" entra na cena 1', r.relato.elenco[0]?.nome === 'the tired commuter' && r.relato.elenco[0]?.nomeado === false && r.relato.elenco[0]?.cenas_inseridas.join(',') === '1' && /Named character in this shot: the tired commuter, a man/.test(r.prompts[0]))
   checa('D2 as cenas 2 e 3 ficam byte a byte', r.prompts[1] === L_PROMPTS[1] && r.prompts[2] === L_PROMPTS[2])
   const comGente = E.aplicarElencoEEpoca({ prompts: ['A tired man in a coat seen from behind on a platform, 9:16 vertical, subject framed', L_PROMPTS[1], L_PROMPTS[2]], falas: L_FALAS, contextoOriginal: L_CTX, contextoFiltro: L_CTX, modo: 'documentary_faceless', tagFaceless: false })
-  checa('D3 se algum prompt já mostra gente, o sem-nome não é forçado', comGente.relato.elenco.length === 0 && comGente.relato.motivo_sem_elenco === 'protagonista_sem_nome_ja_em_cena')
+  // KINEO-PROTAGONISTA-DOC-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"] — a regra antiga ("já mostra gente → não força") deixava cada cena desenhar o SEU
+  // homem (hansak.th, Petrov 1983: 3 homens). Agora a cena que já mostra UMA pessoa recebe a ficha fixa do sem-nome; as outras cenas ficam byte a byte.
+  checa('D3 cena que já mostra uma pessoa recebe a ficha fixa do sem-nome (as outras ficam iguais)', comGente.relato.elenco[0]?.nome === 'the tired commuter' && comGente.relato.elenco[0]?.cenas_inseridas.join(',') === '1' && /in this shot: the tired commuter, /.test(comGente.prompts[0]) && comGente.prompts[1] === L_PROMPTS[1] && comGente.prompts[2] === L_PROMPTS[2])
 }
 
 console.log('== E. Francisco Fernando e Sofia ==')

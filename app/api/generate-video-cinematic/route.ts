@@ -276,6 +276,7 @@ import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-S
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
 import { sujeitoNoKling4, pedidoOriginalDoSujeito } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura); v5: só depois da reserva do teste
+import { sujeitoEmTodosOsMotores, SUJEITO_TODOS_EVENTO } from '@/lib/cinematic/sujeitoTodosMotores' // KINEO-SUJEITO-TODOS-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"]: o sujeito do pedido em todos os motores
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
 import { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico
 import { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)
@@ -6152,6 +6153,18 @@ async function manipularPost(req: NextRequest) {
       } catch (e) {
         console.warn('[fala-x-imagem] hollywood falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
       }
+      // KINEO-SUJEITO-TODOS-0311 — o mesmo sujeito obrigatório na estrada hollywood (Kling 3, H3, H3 Max, Omni, S25): só nas cenas de narração (diálogo fica intocado).
+      if (!desenhoInfantil.ativo) {
+        const idxSujeito = plan.scenes.map((_, i) => i).filter((i) => plan.scenes[i].type !== 'dialogue' && (plan.scenes[i].prompt ?? '').trim().length > 0) // KINEO-SUJEITO-TODOS-0311
+        const falasSujeitoH = idxSujeito.map((i) => plan.scenes[i].voiceover ?? '')
+        const pedidoSujeitoH = pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: falasSujeitoH }) // KINEO-SUJEITO-TODOS-0311
+        const sujeitoH = await sujeitoEmTodosOsMotores({ pedido: pedidoSujeitoH, falas: falasSujeitoH, planos: idxSujeito.map((i) => plan.scenes[i].prompt), pessoaPermitida: !romanceAdulto.ativo, estrada: 'hollywood' }) // KINEO-SUJEITO-TODOS-0311 — nunca lança
+        if (sujeitoH) {
+          const cenaH = sujeitoH.relato.cena
+          if (sujeitoH.relato.corrigido && cenaH !== null && idxSujeito[cenaH - 1] !== undefined) { plan.scenes[idxSujeito[cenaH - 1]].prompt = sujeitoH.planos[cenaH - 1]; console.log(`[cinematic] KINEO-SUJEITO-TODOS-0311: "${sujeitoH.relato.sujeito}" entrou na cena ${idxSujeito[cenaH - 1] + 1} (hollywood/${family})`) } // KINEO-SUJEITO-TODOS-0311
+          await writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: family, dry_run: body.dry_run === true, ...sujeitoH.relato } }) // KINEO-SUJEITO-TODOS-0311
+        }
+      }
       // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — a ESTRELA na estrada hollywood ═══
       // Kling 3 / MiniMax H3 / Omni Flash. Depois do supervisor fala×imagem (os prompts já são os finais) e ANTES do primeiro [KINEO-ESTRELA-DO-FILME-2026-09-29]
       // POST de cena: (1) o retrato-âncora das cenas de diálogo passa a ser a estrela (edit com a ficha do plano), no lugar do [KINEO-ESTRELA-DO-FILME-2026-09-29]
@@ -7101,6 +7114,19 @@ async function manipularPost(req: NextRequest) {
       }
     } catch (e) {
       console.warn('[fala-x-imagem] falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
+    }
+    // KINEO-SUJEITO-TODOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"] — o sujeito central do
+    // KINEO-SUJEITO-TODOS-0311 — PEDIDO (o avião, a criança, a arca) em pelo menos 1 cena também na estrada clássica (Seedance/Veo/Kling 2.5): a decisão calibrada do
+    // KINEO-SUJEITO-TODOS-0311 — KINEO-K4-SUJEITO-0111, a frase na frente do plano, sem corte. Corrige, nunca bloqueia; a fala não muda; sem pedido confiável nada sai.
+    if (!desenhoInfantil.ativo) {
+      const falasSujeitoClassico = scenes.map((sc) => sc.voiceover ?? '')
+      const pedidoSujeitoClassico = pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: falasSujeitoClassico }) // KINEO-SUJEITO-TODOS-0311
+      const sujeitoClassico = await sujeitoEmTodosOsMotores({ pedido: pedidoSujeitoClassico, falas: falasSujeitoClassico, planos: scenes.map((sc) => sc.aiPrompt || sc.stockSearchQuery || sc.description || ''), pessoaPermitida: !romanceAdulto.ativo, estrada: 'classica' }) // KINEO-SUJEITO-TODOS-0311 — nunca lança
+      if (sujeitoClassico) {
+        const cenaSujeito = sujeitoClassico.relato.cena
+        if (sujeitoClassico.relato.corrigido && cenaSujeito !== null && scenes[cenaSujeito - 1]) { scenes[cenaSujeito - 1].aiPrompt = sujeitoClassico.planos[cenaSujeito - 1]; console.log(`[cinematic] KINEO-SUJEITO-TODOS-0311: "${sujeitoClassico.relato.sujeito}" entrou na cena ${cenaSujeito} (estrada clássica)`) } // KINEO-SUJEITO-TODOS-0311
+        void writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', dry_run: body.dry_run === true, ...sujeitoClassico.relato } }) // KINEO-SUJEITO-TODOS-0311
+      }
     }
     // KINEO-MONUMENTO-2026-10-13 — o lugar real do pedido vai na frente do plano de CADA cena (nome + país + 1–2 descritores [KINEO-MONUMENTO-2026-10-13]
     // verdadeiros) e os negativos óbvios no fim — depois do scrub e do supervisor, antes do prompt final que alimenta o still [KINEO-MONUMENTO-2026-10-13]
