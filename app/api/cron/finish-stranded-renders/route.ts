@@ -50,6 +50,7 @@ import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { resolveNarrationLanguage } from '@/lib/textLanguage' // LOTE2-RESGATE-FIEL-2026-09-23
 import { classicSceneRetryHoldRow } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { authorizeCinematicTerminalFailures } from '@/lib/cinematic/claim' // KINEO-RETENTAR-CENA-1410
+import { cenasMortasParaOClaim, type CenaMortaPorIdade } from '@/lib/cinematic/staleSceneDeath' // KINEO-CENA-MORTA-MONTA-0311
 import { type FalhaDeCena } from '@/lib/cinematic/sceneRetryPolicy' // KINEO-RETENTAR-CENA-1410
 import { recoverSceneFailures } from '@/lib/cinematic/sceneRecovery' // KINEO-CENA-RETRY-3010 [TRAVA 8.2 — pedido do fundador 30/10]
 import { finalizeSceneFailure } from '@/lib/cinematic/sceneFailureFinalizer'
@@ -216,7 +217,7 @@ async function collectFinishedClips(
       }
       if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') {
         // KINEO-CENA-MORTA — claim com 2 h+ e cena ainda na fila: morta.
-        if (staleClaim) { dead++; continue }
+        if (staleClaim) { dead++; rastro?.mortasPorIdade?.push({ index: i, requestId: id, model }); continue } // KINEO-CENA-MORTA-MONTA-0311
         stillRunning++
         continue
       }
@@ -235,7 +236,7 @@ async function collectFinishedClips(
         }
         const url = data?.video?.url ?? data?.output?.video?.url ?? null
         if (url) out.push({ requestId: id, model, url })
-        else if (staleClaim) dead++
+        else if (staleClaim) { dead++; rastro?.mortasPorIdade?.push({ index: i, requestId: id, model }) } // KINEO-CENA-MORTA-MONTA-0311
         else stillRunning++
         if (url) rastro?.prontas.push({ requestId: id, model, url }) // KINEO-RETENTAR-CENA-1410
         else if (erroDaFila) rastro?.falhas.push({ index: i, requestId: id, model, http: null, message: erroDaFila.message, errorType: erroDaFila.type }) // KINEO-RETENTAR-CENA-1410
@@ -245,7 +246,7 @@ async function collectFinishedClips(
         if (httpStatus === 400 || httpStatus === 422) {
           rastro?.falhas.push({ index: i, requestId: id, model, http: httpStatus })
           dead++
-        } else if (staleClaim) dead++
+        } else if (staleClaim) { dead++; rastro?.mortasPorIdade?.push({ index: i, requestId: id, model }) } // KINEO-CENA-MORTA-MONTA-0311
         else stillRunning++
       }
     } catch (e) {
@@ -253,7 +254,7 @@ async function collectFinishedClips(
       // Erro de transporte cai aqui; a próxima rodada re-checa (o clipe fica
       // de fora só se continuar inacessível, e o piso de 60% protege o filme).
       const status = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
-      if (staleClaim) { dead++; continue }
+      if (staleClaim) { dead++; rastro?.mortasPorIdade?.push({ index: i, requestId: id, model }); continue } // KINEO-CENA-MORTA-MONTA-0311
       stillRunning++
     }
   }
@@ -269,7 +270,7 @@ async function collectFinishedClips(
 // KINEO-RETENTAR-CENA-1410 — (429/408/5xx/capacidade): até 2 retentativas por cena (aba + cron somadas), com espera, via a
 // KINEO-RETENTAR-CENA-1410 — retomada assinada em modo serviço. Nenhum crédito se move aqui: débito e estorno seguem nos donos
 // KINEO-RETENTAR-CENA-1410 — de sempre (geração e too_few). Regra pura e testada em lib/cinematic/sceneRetryPolicy.ts.
-type RastroDaColeta = { falhas: FalhaDeCena[]; prontas: ClipResult[] } // KINEO-RETENTAR-CENA-1410
+type RastroDaColeta = { falhas: FalhaDeCena[]; prontas: ClipResult[]; mortasPorIdade?: CenaMortaPorIdade[] } // KINEO-RETENTAR-CENA-1410 + KINEO-CENA-MORTA-MONTA-0311
 async function retentarCenasDoFilme(a: { admin: SupabaseClient; secret: string; userId: string; genId: string; claimCreatedAt: unknown; claimAgeMin: number; rastro: RastroDaColeta }): Promise<{ reenviadas: number; segurar: boolean }> { // KINEO-RETENTAR-CENA-1410
   try {
     return await recoverSceneFailures({ db: a.admin, secret: a.secret, userId: a.userId, generationId: a.genId,
@@ -878,7 +879,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
     // KINEO-CENA-MORTA-2026-09-12 — a idade do claim viaja para o coletor
     // (cena na fila com 2 h+ é morta) e 'pending' velho vira rastro no banco.
     const claimAgeMin = typeof claim.created_at === 'string' ? Math.max(0, (Date.now() - new Date(claim.created_at).getTime()) / 60_000) : 0
-    const rastroDaColeta: RastroDaColeta = { falhas: [], prontas: [] } // KINEO-RETENTAR-CENA-1410
+    const rastroDaColeta: RastroDaColeta = { falhas: [], prontas: [], mortasPorIdade: [] } // KINEO-RETENTAR-CENA-1410 + KINEO-CENA-MORTA-MONTA-0311
     let collected: ClipCollect = paidAdvance?.kind === 'ready' && paidAdvance.clips
       ? { state: 'ready', clips: paidAdvance.clips.map((c, i) => ({ requestId: c.id!, model: models[i], url: c.url! })), dead: 0 }
       : paidAdvance?.kind === 'fallback_empty'
@@ -894,7 +895,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       if (!failures.ok) { results.push({ generation: gen8, outcome: 'fallback_failure_binding_pending' }); continue }
     }
     // Paid films keep every spoken word: a missing or terminal backup slot cannot drop its narration.
-    if (frozenPaidFallback && (requestIds.some(id => !id) || rastroDaColeta.falhas.length > 0)) {
+    if (frozenPaidFallback && (requestIds.some(id => !id) || rastroDaColeta.falhas.length > 0 || (rastroDaColeta.mortasPorIdade?.length ?? 0) > 0)) { // KINEO-CENA-MORTA-MONTA-0311: cena morta por idade também cala fala paga
       collected = { state: 'too_few', done: rastroDaColeta.prontas.length, total: requestIds.length,
         dead: requestIds.length - rastroDaColeta.prontas.length }
     }
@@ -984,6 +985,17 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       completed: clips,
     })
     if (!authorized.ok) { results.push({ generation: gen8, outcome: `authorize_failed:${authorized.error}`.slice(0, 60) }); continue }
+    // KINEO-CENA-MORTA-MONTA-0311 — a morte por idade sai da memória do cron e vira prova assinada no claim; sem isso
+    // o portão do compose (cinematicJobsAreTerminal) seguia vendo a cena como viva e devolvia 409 até o estorno.
+    if (rastroDaColeta.mortasPorIdade && rastroDaColeta.mortasPorIdade.length > 0) {
+      const decisao = cenasMortasParaOClaim({ requestIds, models, prontas: clips.length,
+        mortas: rastroDaColeta.mortasPorIdade, authorizedUrls: authorized.claim?.authorizedCompletedUrls,
+        piso: frozenTrialFallback ? 0 : undefined }) // o reserva do trial de 15 s já aceita 1 cena (regra acima)
+      if (!decisao.ok) { results.push({ generation: gen8, outcome: `stale_death_refused:${decisao.motivo}` }); continue }
+      const bound = await authorizeCinematicTerminalFailures({ db: admin, secret, userId, generationId: genId, failed: decisao.failed })
+      if (!bound.ok) { results.push({ generation: gen8, outcome: 'stale_death_binding_pending', error: String(bound.error ?? '').slice(0, 80) }); continue }
+      console.log(`[stranded] gen=${gen8} stale_dead_bound=${decisao.failed.length} age=${Math.round(claimAgeMin)}min`)
+    }
 
     // Recarrega o claim verificado: response (hash-conferida) + URLs na ordem.
     const reloaded = await loadVerifiedCinematicClaim({ db: admin, secret, userId, generationId: genId })
