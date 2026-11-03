@@ -7,6 +7,7 @@
 // complete restored hash must agree. A marker alone grants no exception.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semAdsCtaVazio0311 } from './desfaz-ads-cta-vazio-0311.mjs' // KINEO-ADS-CTA-VAZIO-0311b — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova em plan.ts (CTA opcional vazio = sem CTA) sai primeiro, pelo recibo exato
 
 export const QUALIDADE_ELENCO_2910 = JSON.parse(readFileSync(new URL('./desfaz-qualidade-elenco-2910-fontes.json', import.meta.url), 'utf8'))
 const lf = text => text.replace(/\r\n/g, '\n')
@@ -14,6 +15,7 @@ const sha = text => createHash('sha256').update(text).digest('hex')
 const rel = file => String(file ?? '').replace(/\\/g, '/')
 
 export function semQualidadeElenco2910(source, file) {
+  source = semAdsCtaVazio0311(source, file) // KINEO-ADS-CTA-VAZIO-0311b
   const path = rel(file), entry = QUALIDADE_ELENCO_2910.scope[path]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source), hash = sha(text)

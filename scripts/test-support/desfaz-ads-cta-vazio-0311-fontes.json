@@ -1,0 +1,20 @@
+{
+ "base": "431d5622cf6d34159bccd2aac8bf8514a72eb3f7",
+ "scope": {
+  "lib/ads/cena/plan.ts": {
+   "beforeSha256": "c2ed4b579d96ccb9f20b59a1b9857f92831bbe2b85773cb3812896868923d94b",
+   "afterSha256": "6c6de9d065ee9647a00e7a2577939aeefc0ef42aa8d34ac6479daeecfaaebd33",
+   "hunks": [
+    {
+     "before": "  if (b.oferta !== undefined && (typeof b.oferta !== 'string' || b.oferta.length > 300)) throw new Error('cena_bad_offer')\n  if (b.cta !== undefined && (typeof b.cta !== 'string' || !clean(b.cta) || b.cta.length > 300)) throw new Error('cena_bad_cta') // KINEO-ADS-CENA-95-PACING-2110\n  if (b.beneficios !== undefined && (!Array.isArray(b.beneficios) || b.beneficios.length > 6 || b.beneficios.some(x => typeof x !== 'string' || !clean(x) || x.length > 160))) throw new Error('cena_bad_benefits')",
+     "after": "  if (b.oferta !== undefined && (typeof b.oferta !== 'string' || b.oferta.length > 300)) throw new Error('cena_bad_offer')\n  if (b.cta !== undefined && (typeof b.cta !== 'string' || b.cta.length > 300)) throw new Error('cena_bad_cta') // KINEO-ADS-CENA-95-PACING-2110 · KINEO-ADS-CTA-VAZIO-0311 — CTA opcional vazio/só espaços = sem CTA (igual a ausente)\n  if (b.beneficios !== undefined && (!Array.isArray(b.beneficios) || b.beneficios.length > 6 || b.beneficios.some(x => typeof x !== 'string' || !clean(x) || x.length > 160))) throw new Error('cena_bad_benefits')"
+    },
+    {
+     "before": "  if (b.voice_mode !== undefined && !isCenaVoiceMode(b.voice_mode)) throw new Error('cena_bad_voice_mode')\n  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: narrationLanguage(b.language) ?? 'en', formato: escolhaFormat(b.formato) ? b.formato : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(b.cta ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110\n}",
+     "after": "  if (b.voice_mode !== undefined && !isCenaVoiceMode(b.voice_mode)) throw new Error('cena_bad_voice_mode')\n  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: narrationLanguage(b.language) ?? 'en', formato: escolhaFormat(b.formato) ? b.formato : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(clean(b.cta) ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110\n}"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

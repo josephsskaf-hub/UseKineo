@@ -36,4 +36,14 @@ assert.throws(() => P.cenaInput({ ...base, frase: '' }), /cena_bad_photo_or_sent
 const old = load((rel, s) => rel === PLAN ? s.replace("(typeof b.cta !== 'string' || b.cta.length > 300)", "(typeof b.cta !== 'string' || !clean(b.cta) || b.cta.length > 300)") : s)
 assert.throws(() => old.cenaInput({ ...base, cta: '' }), /cena_bad_cta/, 'mutante (regra antiga) recusa o caso real')
 
-console.log('PASS test-ads-cta-vazio-0311 (caso real + 9 controles + mutante)')
+// 5) KINEO-ADS-CTA-VAZIO-0311b — recibo exato para os guardiões históricos de plan.ts: desfazer devolve a base 431d5622c byte a byte;
+// qualquer edição a mais em plan.ts continua reprovando no guardião 2910 (o recibo não vira passe-livre).
+const { semAdsCtaVazio0311 } = await import('./test-support/desfaz-ads-cta-vazio-0311.mjs')
+const { semQualidadeElenco2910 } = await import('./test-support/desfaz-qualidade-elenco-2910.mjs')
+const { execFileSync } = await import('node:child_process')
+const lfx = t => t.replace(/\r\n/g, '\n'), agora = readFileSync(PLAN, 'utf8')
+assert.equal(lfx(semAdsCtaVazio0311(agora, PLAN)), lfx(execFileSync('git', ['show', '431d5622cf6d34159bccd2aac8bf8514a72eb3f7:' + PLAN], { encoding: 'utf8' })), 'recibo devolve a base exata')
+assert.doesNotThrow(() => semQualidadeElenco2910(agora, PLAN), 'guardião 2910 aceita plan.ts de hoje')
+assert.throws(() => semQualidadeElenco2910(agora.replace('cena_bad_cta', 'cena_bad_ctx'), PLAN), /fonte divergente/, 'edição desconhecida em plan.ts continua reprovando')
+
+console.log('PASS test-ads-cta-vazio-0311 (caso real + 9 controles + mutante + recibo)')
