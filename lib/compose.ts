@@ -201,7 +201,27 @@ export function fonteDaLegendaQueCabe(texto: string, tamanho: number, larguraQua
 // artigo/preposição ("THE MAN WALKED INTO | THE ROOM"): a palavra-função passa para o chunk seguinte, junto do que ela rege.
 const LEGENDA_PALAVRA_FUNCAO = new Set(['the', 'a', 'an', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'and', 'or', 'but', 'from', 'by', 'into', 'his', 'her', 'their', 'my', 'your', 'its', 'our',
   'o', 'os', 'as', 'um', 'uma', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'e', 'ou', 'mas', 'por', 'para', 'com', 'seu', 'sua', 'meu', 'minha',
-  'el', 'la', 'los', 'las', 'un', 'una', 'del', 'en', 'y', 'con', 'su', 'mi', 'al', 'le', 'les', 'des', 'du', 'et', 'der', 'die', 'das', 'und'])
+  'el', 'la', 'los', 'las', 'un', 'una', 'del', 'en', 'y', 'con', 'su', 'mi', 'al', 'le', 'les', 'des', 'du', 'et', 'der', 'die', 'das', 'und',
+  // KINEO-LEGENDA-PREPOSICAO-0311 [TRAVA 8.2 — fundador 03/11, Canal do Revisor] — Tunguska (historyhideshere): o chunk fechou em
+  // "THE SUN EXPLODED OVER" e a frase mudou de sentido. Preposição longa e conectivo também viajam com o que regem, nas 5 línguas.
+  'over', 'under', 'above', 'below', 'across', 'through', 'after', 'before', 'about', 'around', 'against', 'between', 'toward', 'towards', 'without', 'within', 'near', 'like', 'than', 'that', 'as',
+  'sobre', 'sob', 'entre', 'até', 'contra', 'sem', 'desde', 'após', 'como', 'que', 'bajo', 'hasta', 'sin', 'hacia', 'tras', 'sur', 'sous', 'avec', 'sans', 'pour', 'dans', 'par', 'vers',
+  'über', 'unter', 'mit', 'von', 'zu', 'im', 'am', 'auf', 'für', 'aus', 'nach', 'bei', 'ein', 'eine', 'den', 'dem'])
+// KINEO-LEGENDA-NOME-NUMERO-0311 [TRAVA 8.2 — fundador 03/11, Canal do Revisor (hansak.th, Petrov 1983)] — "STOPPED WORLD WAR | 3 BY
+// DOING NOTHING" e "A POSSIBLE WORLD | WAR 3 YET": nome próprio seguido de número (World War 3, Apollo 11, Boeing 747, Louis XIV) é
+// uma coisa só. Quando o pedaço fecha pelo teto e o PRÓXIMO token é número, as até 2 palavras finais com inicial maiúscula descem
+// e abrem o pedaço seguinte junto com o número. Devolve quantas descem (0 = nada muda). Pura.
+const LEGENDA_NUMERO_RE = /^(?:\d[\d.,:]*(?:st|nd|rd|th|s)?|[IVXLC]{2,6})[\p{P}]*$/u
+export function palavrasDoNomeAntesDoNumero(atual: readonly { word?: string }[], proximo: string | undefined): number {
+  if (!proximo || !LEGENDA_NUMERO_RE.test(proximo.trim())) return 0
+  let n = 0
+  for (let i = atual.length - 1; i >= 0 && n < 2; i--) {
+    const w = String(atual[i]?.word ?? '').trim()
+    if (!/^\p{Lu}[\p{L}'’-]*$/u.test(w)) break
+    n++
+  }
+  return n > 0 && n < atual.length ? n : 0
+}
 export function terminaEmPalavraFuncao(palavra: string): boolean {
   return LEGENDA_PALAVRA_FUNCAO.has((palavra ?? '').toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, ''))
 }
@@ -1280,7 +1300,11 @@ export function buildCaptionsFromWhisperWords(
         // KINEO-LEGENDA-NUMERO-RTL-0111 — idem quando o próximo token é um número preso a esta palavra em escrita RTL: o teto de 4
         // partia "جريمة هزت ألمانيا عام | ١٩٢٢" (render 8d314182); "عام" desce e abre o pedaço junto com o ano. LTR: sempre false.
         const numeroPreso = numeroPresoAPalavraRtl(w.word, next?.word) // KINEO-LEGENDA-NUMERO-RTL-0111
-        if (!natural && next && current.length > 1 && (terminaEmPalavraFuncao(w.word) || numeroPreso)) { // KINEO-LEGENDA-NUMERO-RTL-0111
+        const nomeAntesDoNumero = !natural && next ? palavrasDoNomeAntesDoNumero(current, next.word) : 0 // KINEO-LEGENDA-NOME-NUMERO-0311
+        if (nomeAntesDoNumero > 0) { // KINEO-LEGENDA-NOME-NUMERO-0311 — "World War" desce e abre o pedaço com o "3"
+          groups.push(current.slice(0, -nomeAntesDoNumero))
+          current = current.slice(-nomeAntesDoNumero)
+        } else if (!natural && next && current.length > 1 && (terminaEmPalavraFuncao(w.word) || numeroPreso)) { // KINEO-LEGENDA-NUMERO-RTL-0111
           groups.push(current.slice(0, -1))
           current = [w]
         } else {

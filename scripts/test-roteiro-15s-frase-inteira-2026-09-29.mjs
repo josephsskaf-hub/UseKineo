@@ -26,7 +26,8 @@ import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2
 //      pergunta e fica inteiro; "Siga-me…"/"Follow me inside…" não são CTA e o HOOK nunca é apagado; CTA com emoji ou
 //      rótulo ("👉 Follow for more!", "CTA: …") sai; acima do teto, o corte chega o mais perto do teto. Um mutante
 //      VERMELHO por conserto.
-import { readFileSync } from 'node:fs'
+import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
+const readFileSync = lerSemLeva3 // KINEO-LEVA3-REVISOR-0311
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'

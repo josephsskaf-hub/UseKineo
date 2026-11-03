@@ -17,6 +17,7 @@ import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2
 //   6. mutantes — cada um precisa ficar vermelho.
 // BASE = o pai do 1º commit com a marca (nunca origin/main: depois de publicado, origin/main já contém o conserto).
 import fs from 'node:fs'
+import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -37,7 +38,7 @@ const { semRegua35a90_1410, FORMA_REGUA_35_60_90_1410 } = await import(pathToFil
 const { semMotor15s1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
 const { semModeracao1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-moderacao-1410.mjs')).href) // reancorado KINEO-MODERACAO-1410: a régua completa do texto (acréscimos) sai PRIMEIRO
 
-const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(lerSemLeva3(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 const show = (ref, rel) => { try { return git(['show', ref + ':' + rel]).replace(/\r\n/g, '\n') } catch { return '' } }
 let pass = 0
 let fail = 0

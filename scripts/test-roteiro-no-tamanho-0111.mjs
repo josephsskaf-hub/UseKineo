@@ -39,6 +39,7 @@
 //   de folga até 90 s; o mutante "folga de 10 % de volta" fica vermelho. T30: 30 s (hollywood) coberto.
 // Rodar: node scripts/test-roteiro-no-tamanho-0111.mjs   (sem rede, sem custo)
 import fs from 'node:fs'
+import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -48,7 +49,7 @@ import { semAnoInventado0211 } from './test-support/desfaz-ano-inventado-0211.mj
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(lerSemLeva3(path.join(ROOT, rel), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const MARCA = 'KINEO-ROTEIRO-NO-TAMANHO-0111'
 const BASE_REF = (() => {
@@ -326,10 +327,10 @@ console.log('N90 — 90 s: o plano não se aplica; a rota é IGUAL à base (cham
       }
       const novo = await rodar(null)
       const velho = baseRota ? await rodar(baseRota) : null
-      const novoSemAno = await rodar(lf(semAnoInventado0211(fs.readFileSync(path.join(ROOT, ROUTE_REL), 'utf8'), ROUTE_REL))) // KINEO-ANO-INVENTADO-0211 — a base não tem a data real no prompt
+      const novoSemAno = await rodar(lf(semAnoInventado0211(lerSemLeva3(path.join(ROOT, ROUTE_REL), 'utf8'), ROUTE_REL))) // KINEO-ANO-INVENTADO-0211 — a base não tem a data real no prompt
       const semPlano = novo.chamadas.every((c) => !/LENGTH PLAN/.test(c.system) && !/LENGTH IS THE MAIN PROBLEM/.test(c.user) && c.max_tokens === 700) && !('length_plan' in (novo.escrito ?? {})) && !('length_retry' in (novo.escrito ?? {}))
       ok(semPlano, `${engine} 90 s · ${nome}: sem plano, sem pedido de tamanho, 700 tokens, sem length_plan no rastro`)
-      ok(!!velho && igual(novoSemAno.chamadas, velho.chamadas) && igual(novo.body, velho.body) && igual(novo.escrito, velho.escrito) && novo.status === velho.status, `${engine} 90 s · ${nome}: igual à base (${novo.chamadas.length} chamadas, timeouts ${novo.chamadas.map((c) => c.timeout).join('/')}, roteiro de ${falaDe(novo.body?.script ?? '')} palavras)`)
+      ok(!!velho && igual(novoSemAno.chamadas, velho.chamadas) && igual(novo.body, velho.body) && igual(Object.fromEntries(Object.entries(novo.escrito ?? {}).filter(([k]) => k !== 'min_words_long')) /* KINEO-LEVA3-REVISOR-0311: campo novo só de rastro */, velho.escrito) && novo.status === velho.status, `${engine} 90 s · ${nome}: igual à base (${novo.chamadas.length} chamadas, timeouts ${novo.chamadas.map((c) => c.timeout).join('/')}, roteiro de ${falaDe(novo.body?.script ?? '')} palavras)`)
     }
   }
 }

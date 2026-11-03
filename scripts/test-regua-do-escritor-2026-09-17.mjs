@@ -6,7 +6,8 @@
 // palavras suficientes para PASSAR no portão na régua da persona; (c) sem `engine` nada muda (2,3 × 0,95);
 // (d) o cliente manda duração e motor; (e) a rota usa a régua no prompt, no alvo e no rastro `script_written`
 // com await; (f) o portão C1 do roteiro PRÓPRIO continua onde estava (não reescrevemos o autor em silêncio).
-import { readFileSync } from 'node:fs'
+import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
+const readFileSync = lerSemLeva3 // KINEO-LEVA3-REVISOR-0311
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'

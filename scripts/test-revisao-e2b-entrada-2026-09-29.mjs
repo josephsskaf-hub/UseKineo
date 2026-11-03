@@ -16,7 +16,9 @@
 import { semAnoInventado0211 } from './test-support/desfaz-ano-inventado-0211.mjs' // KINEO-ANO-INVENTADO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (generate-script: a data real + a regra do ano) sai primeiro, pelo recibo exato
 import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
-import { readFileSync, existsSync } from 'node:fs'
+import { existsSync } from 'node:fs'
+import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
+const readFileSync = lerSemLeva3 // KINEO-LEVA3-REVISOR-0311
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
