@@ -45,6 +45,7 @@ import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { enginePaused, AVATAR_PUBLIC, SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28 · KINEO-ENTRADA-SEEDANCE15-2026-09-29
 import { S25_PAID_BADGE, S25_PAID_HINT, S25_PAID_CLICK_EVENT, S25_PAID_SHOWN_EVENT, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06 — o 2.5 trancado para quem não paga
+import { decidirClipeNoStudio, CLIPE_NO_STUDIO_EVENTOS, CLIPE_NO_STUDIO_VERSION, CLIPE_VENDA_ADS_HREF } from '@/lib/clips/clipNoStudio0311' // KINEO-CLIPE-NO-STUDIO-0311 — venda sem foto → Anúncio; texto de filme → Filme narrado (antes de gastar)
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada (quem vê o Kineo 1, a duração que o saldo paga, o
 // rótulo do filme grátis). Só age com a entrada nova ligada para a conta (flag seedance15).
 import { kineo1NaTela, duracaoDaUrlNaEntrada, rotuloDoFilmeGratis } from '@/lib/growth/entradaSeedance15'
@@ -443,6 +444,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     return () => { delete root.dataset.studioStage }
   }, [stageKey])
   const [clipSeconds, setClipSeconds] = useState<number>(10)
+  // KINEO-CLIPE-NO-STUDIO-0311 — o desvio do modo clipe que a pessoa está vendo (some quando o texto ou o modo mudam).
+  const [clipDesvio, setClipDesvio] = useState<'venda' | 'filme' | null>(null)
   const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; noCredits?: boolean; startedAt?: number }>({ phase: 'idle' })
   const clipPollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   usePremiereBeacon(clipState.phase === 'done' && !!clipState.url, 'clip') // KINEO-ESTREIA-3110 — aba escondida pisca quando o clipe fica pronto
@@ -849,6 +852,9 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     }
   }
   useEffect(() => () => { if (clipPollRef.current) clearTimeout(clipPollRef.current) }, [])
+  // KINEO-CLIPE-NO-STUDIO-0311 — o aviso de venda some quando ela muda o texto; o de filme fica até ela voltar ao modo clipe.
+  useEffect(() => { setClipDesvio((d) => (d === 'venda' ? null : d)) }, [prompt])
+  useEffect(() => { if (scriptMode === 'clip') setClipDesvio((d) => (d === 'filme' ? null : d)) }, [scriptMode])
   // VARREDURA-LIMITES-2026-09-23 — entrou no modo clipe com 4:5 escolhido: volta ao 9:16 VISÍVEL em vez de trocar escondido no servidor.
   useEffect(() => { if (scriptMode === 'clip' && !(CLIP_ASPECTS as readonly string[]).includes(aspect)) setAspect('9:16') }, [scriptMode, aspect])
 
@@ -914,7 +920,21 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const generate = () => {
     if (isStandaloneHttpUrl(prompt)) { promptRef.current?.focus(); return } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — before camera suffix, navigation and the consent token.
     // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
-    if (scriptMode === 'clip') { if (limit.over) return; void generateClip(); return }
+    if (scriptMode === 'clip') {
+      if (limit.over) return
+      // KINEO-CLIPE-NO-STUDIO-0311 [TRAVA 8.2 — fundador 03/11: "quero consertar tudo agora"] — antes de gastar: pedido de venda
+      // sem foto vai para o Anúncio (deruh14: "Vender este produto" virou cilindro inventado); texto de filme vira Filme narrado
+      // (morongclarence9: master prompt de 4.262 caracteres virou 1 clipe mudo de 12 s). Nada é cobrado nos dois desvios.
+      const desvio = decidirClipeNoStudio(prompt)
+      if (desvio !== 'clipe') {
+        setClipDesvio(desvio)
+        if (desvio === 'filme') setScriptMode('ai')
+        void trackEvent(CLIPE_NO_STUDIO_EVENTOS[desvio], { chars: prompt.trim().length, version: CLIPE_NO_STUDIO_VERSION })
+        return
+      }
+      void generateClip()
+      return
+    }
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
     // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
     if (limit.over) return
@@ -1486,6 +1506,19 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 <b style={{ fontWeight: 600 }}>
                   {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? (t('film', 'vídeo')) : (t('films', 'vídeos'))}<UiLabel> like this
                 </UiLabel></b>
+              </div>
+            )}
+            {clipDesvio === 'venda' && ( /* KINEO-CLIPE-NO-STUDIO-0311 — vender um produto precisa da foto dele */
+              <div role="status" data-kineo="clipe-venda-ads" style={{ marginTop: 10, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line, var(--border))', background: 'var(--card2, #f5f7fb)', fontSize: 13, lineHeight: 1.5 }}>
+                <b style={{ display: 'block', marginBottom: 4 }}>{t('To sell a product, we need a photo of it.')}</b>
+                <span>{t('A clip without the photo invents a product that is not yours. The product ad uses your photo, writes the script, narrates and edits it. Nothing was charged.')}</span>
+                <div style={{ marginTop: 8 }}><a className="pill" href={CLIPE_VENDA_ADS_HREF} style={{ fontWeight: 700 }}>{t('Make a product ad with my photo')} →</a></div>
+              </div>
+            )}
+            {clipDesvio === 'filme' && scriptMode !== 'clip' && ( /* KINEO-CLIPE-NO-STUDIO-0311 — texto de filme virou Filme narrado */
+              <div role="status" data-kineo="clipe-vira-filme" style={{ marginTop: 10, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line, var(--border))', background: 'var(--card2, #f5f7fb)', fontSize: 13, lineHeight: 1.5 }}>
+                <b style={{ display: 'block', marginBottom: 4 }}>{t('This text is a film, not a single clip.')}</b>
+                <span>{t('We switched to a narrated film so every part of your text gets its own scene, voice and captions. Press Generate when you are ready. Nothing was charged.')}</span>
               </div>
             )}
             {scriptMode === 'clip' && clipState.phase !== 'idle' && (

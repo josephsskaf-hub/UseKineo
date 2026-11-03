@@ -100,7 +100,11 @@ export function sufixoDeEpoca(epoca: Epoca, curto = false): string { // KINEO-EL
   const quando = epoca.ano !== null ? `${epoca.ano} (${epoca.rotulo})` : `the ${epoca.rotulo}` // KINEO-ELENCO-EPOCA-2710
   const p = pistasDaEpoca(epoca) // KINEO-ELENCO-EPOCA-2710
   if (curto) return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}; period-accurate ${epoca.rotulo} clothing, vehicles and props only; no present-day smartphones, cars or fashion.` // KINEO-ELENCO-EPOCA-2710
-  return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}. Every person in frame wears ${p.roupa}; any vehicle in frame is ${p.veiculos}; props are ${p.objetos}; absolutely no present-day smartphones, no present-day cars, no hoodies or modern streetwear, no LED screens.` // KINEO-ELENCO-EPOCA-2710
+  // KINEO-EPOCA-SEM-GENTE-INVENTADA-0311 [TRAVA 8.2 — fundador 03/11: "quero consertar tudo agora"] — "Every person in frame wears…"
+  // era uma ORDEM de pôr gente: Tunguska 1908 (historyhideshere, nota 6, baixou) virou filme de detetive de chapéu em 4 de 8
+  // quadros, sem pessoa nenhuma no roteiro. Condicional: quem a cena descreve veste a época; a cena sem gente continua sem gente.
+  // Nunca nega gente que o plano descreve (a tentativa de 03/11 com "no people" por lista de palavras foi reprovada: perdia multidões).
+  return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}. Any person the shot describes wears ${p.roupa} (do not add people the shot does not mention); any vehicle in frame is ${p.veiculos}; props are ${p.objetos}; absolutely no present-day smartphones, no present-day cars, no hoodies or modern streetwear, no LED screens.` // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
 /** Objeto de hoje escrito pelo descritor numa história de época ("a man in a hoodie" em 1953): a troca determinística pelo equivalente da década, só no que é seguro. */ // KINEO-ELENCO-EPOCA-2710
