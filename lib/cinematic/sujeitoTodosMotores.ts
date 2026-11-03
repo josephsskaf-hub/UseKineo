@@ -47,11 +47,25 @@ export function exigirSujeitoEmTodos(args: {
 export async function sujeitoEmTodosOsMotores(args: {
   pedido: PedidoDoSujeito | null; falas: ReadonlyArray<string>; planos: ReadonlyArray<string>; pessoaPermitida: boolean; estrada: EstradaDoSujeito
 }, opts: OpcoesSemanticas = {}): Promise<{ planos: string[]; relato: RelatoSujeitoTodos } | null> {
-  if (!args.pedido || !args.pedido.pedido || args.planos.length === 0) return null
+  if (args.planos.length === 0) return null
   try {
-    const leitura = await lerSujeitoDoPedido(args.pedido.pedido, opts)
-    return exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura })
+    const doPedido = args.pedido?.pedido ? exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura: await lerSujeitoDoPedido(args.pedido.pedido, opts) }) : null
+    if (doPedido?.relato.sujeito) return doPedido
+    // KINEO-SUJEITO-DA-FALA-0311 [TRAVA 8.2 — fundador 03/11: "universalizar"] — pedido genérico ("mistério sem solução") ou roteiro colado não dizem o sujeito, mas a 1ª frase da narração
+    // KINEO-SUJEITO-DA-FALA-0311 — diz: "A plane vanished—unsolved for 70 years!" (mahrafariha, 03/11) não mostrou avião nenhum. A MESMA leitura calibrada sobre essa frase (uso literal, âncora no texto).
+    const frase = primeiraFraseDaFala(args.falas[0])
+    if (!frase) return doPedido
+    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })
+    return daFala.relato.sujeito ? daFala : doPedido ?? daFala
   } catch {
     return null
   }
+}
+
+/** A 1ª frase da narração (8 a 140 caracteres), sem aspas e sem rótulo de seção; vazia = nada a ler. */
+export function primeiraFraseDaFala(fala: string | null | undefined): string {
+  const t = String(fala ?? '').replace(/\[[^\]]*\]/g, ' ').replace(/^[\s"“”'‘’]+/, '').replace(/\s+/g, ' ').trim()
+  const m = /^.{8,140}?[.!?…؟。](?=\s|$|["”’])/u.exec(t)
+  const frase = (m ? m[0] : t.slice(0, 140)).replace(/["“”]/g, '').trim()
+  return frase.length >= 8 ? frase : ''
 }
