@@ -24,7 +24,7 @@ const pedir: DepsStillComFolha['pedir'] = async (input, pollWindowMs, retomar) =
     requestId = retomar || await submitFalQueueOnce(ESTRELA_EDIT_SLUG, input) // KINEO-ELENCO-TRAVA-0311 — retomar: o pedido já feito (prazo estourado) só é LIDO de novo, sem novo POST pago
   } catch (err) {
     console.warn('[personagem] submit do edit falhou (cena volta ao still de hoje):', err instanceof Error ? err.message : String(err))
-    return { url: null, motivo: 'provider_failed' }
+    return { url: null, motivo: 'provider_failed', envioFalhou: true } // KINEO-ELENCO-TRAVA-0311 — o POST lançou (ambíguo ou recusado): sem id, NUNCA se posta de novo (lib/falQueue: transporte/5xx podem ter cobrado)
   }
   const prazo = Date.now() + pollWindowMs
   let authFails = 0
@@ -37,7 +37,7 @@ const pedir: DepsStillComFolha['pedir'] = async (input, pollWindowMs, retomar) =
         const img = r?.data?.images?.[0] ?? r?.images?.[0]
         return img?.url ? { url: img.url, motivo: 'ok', largura: img.width ?? null, altura: img.height ?? null } : { url: null, motivo: 'provider_failed' }
       }
-      if (st.status === 'FAILED') return { url: null, motivo: 'provider_failed' }
+      if (st.status === 'FAILED') return { url: null, motivo: 'provider_failed', requestId, jobFalhou: true } // KINEO-ELENCO-TRAVA-0311 — a fal DISSE que o job falhou: só este caso de provider_failed pode ganhar um novo POST
       authFails = 0
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

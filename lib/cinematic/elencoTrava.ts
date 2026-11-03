@@ -26,7 +26,7 @@
 //   5. cenaSemReferencia — o portão do filme grátis prefere refazer a cena que nasceu sem a referência e refaz o still com a folha.
 // Guardião: scripts/test-elenco-trava-0311.mjs (o caso youbykh com a forma real: 3 cenas, 1 still estourado, troca de identidade).
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
-import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { DRAWN_LOOK_PATTERNS, semEstiloNegado, deriveStyleAnchor, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
 import { ESTILO_INFANTIL } from '@/lib/cinematic/seresFieis'
 
@@ -38,11 +38,34 @@ const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // ═══ 0. O LOOK do filme lê também o PEDIDO original ═══════════════════════════════════════════════════════════════════
 /**
- * O texto que decide o look: o roteiro despachado + a ideia de onde ele nasceu (body.original_idea, que o Studio só manda quando o
- * roteiro despachado é exatamente o que a ideia gerou). "Estilo animación cinematográfica 3D familiar" vivia só na ideia: o roteiro
- * estruturado em espanhol não citava estilo nenhum e o filme nascia fotorreal. Sem ideia: o roteiro, byte a byte.
+ * O pedido de DESENHO explícito da ideia — só ele vira look (revisão de f009126dc). Da ideia NÃO valem o "animated"/"animation" solto
+ * ("an animated debate about taxes" é um debate acalorado, não desenho), "black and white" nem "fairy tale": vale "3D animation",
+ * "animated film/style", "cartoon", "Pixar", "anime", "desenho animado", "animación", "animação", "estilo animado"… O roteiro em si
+ * continua lido pela régua de sempre (deriveStyleAnchor). Menção negada ("no cartoon") não conta.
+ */
+const PEDIDO_DE_DESENHO_RE: RegExp[] = [
+  ...DRAWN_LOOK_PATTERNS.filter((re) => !/\(animated\|animation\|anime\|manga/.test(re.source)), // a lista da casa sem o padrão do "animated/animation" solto
+  /\b(?:anime|manga|claymation|stop[- ]motion|dreamworks|2d animat(?:ed|ion)|comic book style)\b|\b(?:animated|animation)\s+(?:style|look|film|movie|series|short|cartoon)\b|\bin (?:an? )?(?:animated|animation) style\b/i,
+  /(?<![\p{L}])(?:estilo animado|estilo de animación|estilo de animação|desenho 3d|dibujo 3d)(?![\p{L}])/iu,
+]
+export function pedidoDeDesenhoDaIdeia(ideiaOriginal: unknown): string {
+  const ideia = typeof ideiaOriginal === 'string' ? semEstiloNegado(limpa(ideiaOriginal).slice(0, 600)) : ''
+  if (!ideia) return ''
+  return [...new Set(PEDIDO_DE_DESENHO_RE.map((re) => ideia.match(re)?.[0] ?? '').filter(Boolean))].join(', ')
+}
+/**
+ * O texto que decide o look: o roteiro despachado + o pedido de desenho EXPLÍCITO da ideia de onde ele nasceu (body.original_idea, que o
+ * Studio só manda quando o roteiro despachado é exatamente o que a ideia gerou). "Estilo animación cinematográfica 3D familiar" vivia só na
+ * ideia: o roteiro estruturado em espanhol não citava estilo nenhum e o filme nascia fotorreal. Sem pedido explícito: o roteiro, byte a byte.
  */
 export function textoDoLook(prompt: string, ideiaOriginal: unknown): string {
+  const pedido = pedidoDeDesenhoDaIdeia(ideiaOriginal)
+  if (!pedido) return prompt
+  // pedido explícito que a régua do look não conhece ("estilo animado"): vai junto a forma que ela conhece (o desenho padrão da casa)
+  return deriveStyleAnchor(pedido).look === 'photoreal' ? `${prompt}\n${pedido}, animated film` : `${prompt}\n${pedido}`
+}
+/** O texto inteiro do pedido (roteiro + ideia) — onde se procura a cor que o CLIENTE disse. */
+export function textoDoPedido(prompt: string, ideiaOriginal: unknown): string {
   const ideia = typeof ideiaOriginal === 'string' ? limpa(ideiaOriginal).slice(0, 600) : ''
   return ideia ? `${prompt}\n${ideia}` : prompt
 }
@@ -203,10 +226,26 @@ export async function lerAncorasDaFolha(f: FichaDePersonagem, url: string, opts?
 
 // ═══ 3. O STILL QUE FALHOU — refaz uma vez, depois a vizinha, por último o texto com a ficha inteira ══════════════════
 export type DecisaoDaReferencia = 'ok' | 'retry_ok' | 'vizinha' | 'texto_ficha'
-/** Os motivos que valem UMA nova tentativa (o prazo estourado continua lendo o MESMO pedido; moderação não se refaz). */
-export const MOTIVOS_QUE_REFAZEM: ReadonlySet<string> = new Set(['provider_timeout', 'provider_failed', 'formato_errado', 'formato_nao_conferido'])
-/** A janela da 2ª tentativa do edit (a 1ª é de até 40 s; o edit leva 15-40 s, a fila às vezes mais). */
+/** A janela máxima da 2ª tentativa do edit (a 1ª é de até 40 s; o edit leva 15-40 s, a fila às vezes mais) — nunca passa do prazo do lote. */
 export const STILL_RETRY_JANELA_MS = 50_000
+/** Menos que isto até o prazo do lote = não há 2ª tentativa (o edit não volta antes). */
+export const STILL_RETRY_MIN_MS = 5_000
+/**
+ * A 2ª tentativa do still com folha — ou null (a cena vai direto à vizinha / texto_ficha). Revisão de f009126dc (BLOQUEIO): um POST que
+ * LANÇOU (transporte/5xx = ambíguo, lib/falQueue) NUNCA é repetido — pode ter sido cobrado. Só refaz:
+ *   · prazo estourado com id → LÊ o MESMO pedido (retomar; nenhum POST novo);
+ *   · provider_failed com id E a fal dizendo FAILED → um POST novo (o job morreu do lado dela);
+ *   · formato errado/não conferido → um POST novo (o job terminou e a foto veio fora do formato do filme).
+ * Moderação, sem chave, falha de leitura/autorização e envio que lançou: nada. A janela é min(50 s, prazo do lote − agora).
+ */
+export function planoDaRetentativa(r: { motivo: string; requestId?: string | null; jobFalhou?: boolean; envioFalhou?: boolean }, restanteMs: number): { retomar: string | null; janelaMs: number } | null {
+  if (!(restanteMs >= STILL_RETRY_MIN_MS) || r.envioFalhou) return null
+  const janelaMs = Math.min(STILL_RETRY_JANELA_MS, Math.floor(restanteMs))
+  if (r.motivo === 'provider_timeout') return r.requestId ? { retomar: r.requestId, janelaMs } : null
+  if (r.motivo === 'provider_failed') return r.requestId && r.jobFalhou ? { retomar: null, janelaMs } : null
+  if (r.motivo === 'formato_errado' || r.motivo === 'formato_nao_conferido') return { retomar: null, janelaMs }
+  return null
+}
 
 const mesmoElenco = (a: readonly string[], b: readonly string[]) => a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|')
 /**

@@ -44,6 +44,13 @@ checa('c0 sem a ideia o roteiro estruturado nasce fotorreal (o defeito de origem
 const look3d = estilo.deriveStyleAnchor(trava.textoDoLook(PROMPT, IDEIA))
 checa('c1 com a ideia original ("animación cinematográfica 3D") o look é 3D', look3d.look === 'animated3d')
 checa('c1b sem ideia, textoDoLook devolve o roteiro byte a byte', trava.textoDoLook(PROMPT, undefined) === PROMPT && trava.textoDoLook(PROMPT, 42) === PROMPT)
+const lookDaIdeia = (ideia) => estilo.deriveStyleAnchor(trava.textoDoLook(PROMPT, ideia)).look
+checa('c1c ideia "an animated debate about taxes" (animated solto) → filme real', lookDaIdeia('An animated debate about taxes between two neighbours') === 'photoreal')
+checa('c1d ideia com "black and white" / "fairy tale" / "animation" solto não muda o look', lookDaIdeia('A black and white photo of my grandfather, a real fairy tale') === 'photoreal' && lookDaIdeia('The animation of the crowd when the goal happened') === 'photoreal')
+checa('c1e "Estilo animación cinematográfica 3D familiar" → desenho', lookDaIdeia('Estilo animación cinematográfica 3D familiar, personajes adorables') === 'animated3d')
+checa('c1f pedidos explícitos: "3D animation", "animated film", "cartoon", "Pixar", "desenho animado", "animação", "estilo animado" → desenho; "anime" → anime', ['A 3D animation of a fox', 'an animated film about a fox', 'cartoon fox story', 'Pixar-like fox', 'um desenho animado de raposa', 'animação de uma raposa', 'história em estilo animado'].every((t) => lookDaIdeia(t) === 'animated3d') && lookDaIdeia('estilo anime, raposa ninja') === 'anime')
+checa('c1g pedido negado na ideia ("no cartoon, realistic") → filme real', lookDaIdeia('A fox story, no cartoon, realistic footage') === 'photoreal')
+checa('c1h o roteiro em si segue a régua de sempre ("animated" no roteiro continua valendo)', estilo.deriveStyleAnchor(trava.textoDoLook('An animated story about a fox', null)).look === estilo.deriveStyleAnchor('An animated story about a fox').look)
 // a ficha REAL do cachorro sai do gerador determinístico de hoje (o "small" do roteiro liga o conto infantil)
 const canonicaCao = folha.canonicaDeterministica('the small dog', 'animal', 'dog', 'small dog | small dog walking', new Set())
 checa('c2 a ficha real de hoje é o cachorro azul de desenho (reproduz o caso)', /sky blue|bright green|warm orange|soft purple|sunny yellow|teal/.test(canonicaCao) && /cartoon style/.test(canonicaCao))
@@ -68,6 +75,11 @@ console.log('(d) ÂNCORAS lidas da folha')
 checa('d1 a menina de 6 palavras é rala', trava.fichaRala(meninaT))
 checa('d2 o cachorro travado sem pelagem é ralo', trava.fichaRala(caoT))
 checa('d3 ficha com cabelo/roupa não é rala; mítica nunca', !trava.fichaRala({ ...menina, canonica: 'the girl, a girl about nine with curly black hair wearing a red dress' }) && !trava.fichaRala({ ...menina, origem: 'mitica' }))
+// item 7 da revisão: o teste de 'mitica' NÃO é código morto — o elenco real cria figura humana mítica (FIGURAS_FIEIS tipo 'humano')
+const elencoNatal = ajuste.elencoDoRoteiro('Father Christmas arrived. A little boy ran to the door.')
+const natal = elencoNatal.find((f) => f.origem === 'mitica')
+checa('d3b "Father Christmas" nasce humano + mitica no elenco real (o guarda de mítica é alcançável)', natal && natal.tipo === 'humano')
+checa('d3c figura mítica humana sem palavra de cabelo/roupa (Buda) não ganha âncora inventada', !trava.fichaRala({ nome: 'Buddha', tipo: 'humano', origem: 'mitica', canonica: 'Buddha, a serene seated monk with a shaved head of tight curls, a topknot, a saffron robe' }) && trava.fichaRala({ nome: 'Buddha', tipo: 'humano', origem: 'autor', canonica: 'Buddha, a serene seated monk with a shaved head of tight curls, a topknot, a saffron robe' }))
 const respostaMenina = JSON.stringify({ age_range: 'about eight years old', hair: 'long dark brown hair in a ponytail', skin_tone: 'light olive', clothing: 'yellow raincoat over a blue dress', coat: '', size: '' })
 let pedidoVisao = null
 const fetchFalso = async (url, init) => { pedidoVisao = JSON.parse(init.body); return { ok: true, json: async () => ({ choices: [{ message: { content: respostaMenina } }] }) } }
@@ -94,9 +106,29 @@ const deps = {
 }
 const r1 = await ajuste.stillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', fichas: [meninaT], pollWindowMs: 40_000 }, deps)
 checa('a1 1ª tentativa estoura o prazo e devolve o id do pedido (motivo real: provider_timeout)', r1.url === null && r1.motivo === 'provider_timeout' && r1.requestId === 'req-cena-2')
-checa('a2 o prazo estourado é uma das causas que refazem; moderação não', trava.MOTIVOS_QUE_REFAZEM.has(r1.motivo) && !trava.MOTIVOS_QUE_REFAZEM.has('moderation_blocked'))
-const r2 = await ajuste.stillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', fichas: [meninaT], pollWindowMs: trava.STILL_RETRY_JANELA_MS, retomar: r1.requestId }, deps)
+const plano1 = trava.planoDaRetentativa(r1, 60_000)
+checa('a2 prazo estourado com id → retomar o MESMO pedido; moderação/sem chave não refazem', plano1 && plano1.retomar === 'req-cena-2' && plano1.janelaMs === trava.STILL_RETRY_JANELA_MS && trava.planoDaRetentativa({ motivo: 'moderation_blocked' }, 60_000) === null && trava.planoDaRetentativa({ motivo: 'no_key' }, 60_000) === null)
+const r2 = await ajuste.stillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', fichas: [meninaT], pollWindowMs: plano1.janelaMs, retomar: plano1.retomar }, deps)
 checa('a3 a 2ª tentativa LÊ o mesmo pedido com janela maior — nenhum 2º POST pago', r2.url === 'https://fixture.invalid/still-cena2.png' && posts.length === 1 && leituras.length === 1 && leituras[0].retomar === 'req-cena-2' && leituras[0].janela > 40_000)
+// BLOQUEIO da revisão de f009126dc — o POST que LANÇA (transporte/5xx = ambíguo, lib/falQueue) nunca é repetido. O servidor REAL (personagemAjusteServer) com a fal e a fila falsas.
+const contaPosts = { n: 0 }
+const servidorStill = (submit, status) => createOfflineLoader({ globals, env: { FAL_KEY: 'fal-test' }, mocks: {
+  '@fal-ai/client': { fal: { config() {}, queue: { status: async () => status(), result: async () => ({ data: { images: [{ url: 'https://f.invalid/x.png', width: 768, height: 1376 }] } }) } } },
+  '@/lib/falQueue': { submitFalQueueOnce: async () => { contaPosts.n++; return submit() } },
+  '@/lib/safety/contentModeration': { moderateContent: async () => ({ ok: true }) },
+} })('lib/cinematic/personagemAjusteServer.ts')
+const ambiguo = () => { const e = new Error('fetch failed (ambiguous)'); e.ambiguous = true; throw e }
+const srvAmb = servidorStill(ambiguo, () => ({ status: 'IN_QUEUE' }))
+const rAmb = await srvAmb.gerarStillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', userId: 'u', engine: 'personagem:seedance', pollWindowMs: 40_000, fichas: [meninaT] })
+const planoAmb = trava.planoDaRetentativa(rAmb, 60_000)
+checa('a3b envio AMBÍGUO (POST lançou) → provider_failed sem id e SEM 2ª tentativa: zero 2º POST, direto à vizinha/texto_ficha', rAmb.url === null && rAmb.motivo === 'provider_failed' && rAmb.envioFalhou === true && !rAmb.requestId && planoAmb === null && contaPosts.n === 1)
+contaPosts.n = 0
+const srvFailed = servidorStill(async () => 'req-morto', () => ({ status: 'FAILED' }))
+const rFailed = await srvFailed.gerarStillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', userId: 'u', engine: 'personagem:seedance', pollWindowMs: 40_000, fichas: [meninaT] })
+const planoFailed = trava.planoDaRetentativa(rFailed, 60_000)
+checa('a3c a fal disse FAILED (com id) → um POST novo é permitido (o job morreu do lado dela)', rFailed.motivo === 'provider_failed' && rFailed.jobFalhou === true && rFailed.requestId === 'req-morto' && planoFailed && planoFailed.retomar === null)
+checa('a3d provider_failed com id mas SEM a fal dizer FAILED (leitura/autorização) → não refaz', trava.planoDaRetentativa({ motivo: 'provider_failed', requestId: 'req-x' }, 60_000) === null)
+checa('a3e a janela da 2ª tentativa nunca passa do prazo do lote; sem folga mínima, nada', trava.planoDaRetentativa(r1, 12_000).janelaMs === 12_000 && trava.planoDaRetentativa(r1, 3_000) === null && trava.planoDaRetentativa(r1, -5) === null)
 const cenasYoubykh = [{ indice: 0, nomes: ['the small dog'] }, { indice: 1, nomes: ['the young girl'] }, { indice: 2, nomes: ['the small dog', 'the young girl'] }]
 const stillsYoubykh = ['https://f.invalid/s1.png', null, 'https://f.invalid/s3.png']
 checa('a4 youbykh: a menina sozinha não tem vizinha do MESMO elenco (cena 3 tem o cachorro) → texto_ficha', trava.vizinhaDoElenco(1, ['the young girl'], cenasYoubykh, stillsYoubykh) === null)
@@ -108,7 +140,9 @@ checa('a7 empate de distância = a cena anterior', trava.vizinhaDoElenco(1, ['a'
 checa('a8 garantirFichasNoPrompt é idempotente', trava.garantirFichasNoPrompt(cena2ComFicha, [meninaA]) === cena2ComFicha)
 const rota = rd('app/api/generate-video-cinematic/route.ts')
 const pos = (s) => rota.indexOf(s)
-checa('a9 a rota refaz o still uma vez retomando o pedido estourado', rota.includes("retomar: r.motivo === 'provider_timeout' ? r.requestId ?? null : null") && rota.includes("referenciaP[c.indice] = 'retry_ok'"))
+checa('a9 a rota decide a 2ª tentativa pelo plano (prazo do lote − agora) e usa a janela/retomar dele', rota.includes('planoDaRetentativa(r, prazoP - Date.now())') && rota.includes('pollWindowMs: planoR.janelaMs, fichas: fichasDaCena(c), retomar: planoR.retomar') && rota.includes("referenciaP[c.indice] = 'retry_ok'") && !rota.includes('MOTIVOS_QUE_REFAZEM'))
+checa('a9b o juiz que escolhe o texto puro marca a cena texto_ficha (o portão a refaz primeiro)', pos("if (semFolha.url && semFolha.escolha === 'sem_folha') referenciaP[c.indice] = 'texto_ficha'") > 0 && pos("if (semFolha.url && semFolha.escolha === 'sem_folha') referenciaP[c.indice] = 'texto_ficha'") < pos("if (semFolha.url && semFolha.escolha === 'sem_folha') stillsP[c.indice] = semFolha.url"))
+checa('a9c a cor dita é procurada no pedido inteiro (roteiro + ideia); o look só no pedido de desenho', rota.includes('textoDoPedido(prompt, body.original_idea)') && trava.textoDoPedido(PROMPT, 'un perro azul').includes('azul') && !trava.textoDoLook(PROMPT, 'un perro azul').includes('azul'))
 checa('a10 a rota decide vizinha/texto_ficha e regenera o still com a ficha no prompt', rota.includes("referenciaP[c.indice] = 'vizinha'") && rota.includes("referenciaP[c.indice] = 'texto_ficha'") && /const novo = await generateCinematicSceneStill\(\{ scenePrompt: classicScenePrompts\[c\.indice\]/.test(rota))
 checa('a11 âncoras e ficha em toda cena ANTES do 1º still com folha', pos('lerAncorasDaFolha(f, folhaDe.get(f.nome)') > 0 && pos('garantirFichasNoPrompt(classicScenePrompts[c.indice]') > pos('lerAncorasDaFolha(f, folhaDe.get(f.nome)') && pos('const trabalhadorP = async') > pos('garantirFichasNoPrompt(classicScenePrompts[c.indice]'))
 checa('a12 estilo travado depois da ficha literal e antes da folha/still', pos('const travaEstiloDaCena =') > pos('if (fichaLiteral15 && fichaLiteral15.trocas.length > 0)') && pos('const travaEstiloDaCena =') < pos('const folhasP = await Promise.all'))
@@ -184,11 +218,22 @@ const mutTrava = carrega('lib/cinematic/elencoTrava.ts', { arquivo: 'lib/cinemat
 checa('M3 sem tirar a cor sorteada, o cachorro azul volta (vermelho)', mutTrava.travarEstiloDaFicha(cao, fotorreal, '').canonica.includes('sky blue'))
 const mutTrava2 = carrega('lib/cinematic/elencoTrava.ts', { arquivo: 'lib/cinematic/elencoTrava.ts', fn: (t) => troca(t, "c = c.split(ESTILO_INFANTIL).join('').replace(ESTILO_INFANTIL_RE, '')", '') })
 checa('M4 sem tirar o "cartoon style" infantil, o desenho volta ao filme fotorreal (vermelho)', mutTrava2.travarEstiloDaFicha(cao, fotorreal, '').canonica.includes('cartoon style'))
-const mutAjuste = carrega('lib/cinematic/personagemAjuste.ts', { arquivo: 'lib/cinematic/personagemAjuste.ts', fn: (t) => troca(t, 'reconferida: false, requestId: pedido.requestId ?? null }', 'reconferida: false }') })
+const mutAjuste = carrega('lib/cinematic/personagemAjuste.ts', { arquivo: 'lib/cinematic/personagemAjuste.ts', fn: (t) => troca(t, 'reconferida: false, requestId: pedido.requestId ?? null,', 'reconferida: false,') })
 const rM = await mutAjuste.stillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', fichas: [meninaT], pollWindowMs: 40_000 }, deps)
 checa('M5 sem o id do pedido, a 2ª tentativa teria de postar de novo (vermelho)', !rM.requestId)
 const mutViz = carrega('lib/cinematic/elencoTrava.ts', { arquivo: 'lib/cinematic/elencoTrava.ts', fn: (t) => troca(t, '&& mesmoElenco(c.nomes, nomes))', ')') })
 checa('M6 sem exigir o MESMO elenco, a cena da menina sozinha abriria no quadro do cachorro com a menina (vermelho)', mutViz.vizinhaDoElenco(1, ['the young girl'], cenasYoubykh, stillsYoubykh) !== null)
+const mutPlano = carrega('lib/cinematic/elencoTrava.ts', { arquivo: 'lib/cinematic/elencoTrava.ts', fn: (t) => troca(troca(t, '|| r.envioFalhou) return null', ') return null'), 'return r.requestId && r.jobFalhou ? { retomar: null, janelaMs } : null', 'return { retomar: null, janelaMs }') })
+checa('M7 sem a regra do envio ambíguo, o envio que lançou ganharia um 2º POST pago (vermelho)', mutPlano.planoDaRetentativa(rAmb, 60_000) !== null)
+const mutSrv = createOfflineLoader({ globals, env: { FAL_KEY: 'fal-test' }, source: (rel, text) => rel === 'lib/cinematic/personagemAjusteServer.ts' ? troca(text, "motivo: 'provider_failed', envioFalhou: true }", "motivo: 'provider_failed', requestId: 'inventado', jobFalhou: true }") : text, mocks: {
+  '@fal-ai/client': { fal: { config() {}, queue: { status: async () => ({ status: 'IN_QUEUE' }), result: async () => ({}) } } },
+  '@/lib/falQueue': { submitFalQueueOnce: async () => ambiguo() },
+  '@/lib/safety/contentModeration': { moderateContent: async () => ({ ok: true }) },
+} })('lib/cinematic/personagemAjusteServer.ts')
+const rMutSrv = await mutSrv.gerarStillComFolha({ prompt: 'p', imageUrls: ['https://f.invalid/folha.png'], aspect: '9:16', userId: 'u', engine: 'personagem:seedance', pollWindowMs: 40_000, fichas: [meninaT] })
+checa('M8 servidor que esconde o envio ambíguo atrás de um "FAILED" levaria a um 2º POST (vermelho)', trava.planoDaRetentativa(rMutSrv, 60_000) !== null)
+const mutLook = carrega('lib/cinematic/elencoTrava.ts', { arquivo: 'lib/cinematic/elencoTrava.ts', fn: (t) => troca(t, "...DRAWN_LOOK_PATTERNS.filter((re) => !/\\(animated\\|animation\\|anime\\|manga/.test(re.source)),", '...DRAWN_LOOK_PATTERNS,') })
+checa('M9 com o "animated" solto da ideia de volta, o debate sobre impostos viraria desenho (vermelho)', estilo.deriveStyleAnchor(mutLook.textoDoLook(PROMPT, 'An animated debate about taxes')).look !== 'photoreal')
 
 console.log(`\n${falhas.length === 0 ? '🟢' : '🔴'} elenco-trava-0311: ${ok}/${ok + falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.error('  · ' + f); process.exit(1) }

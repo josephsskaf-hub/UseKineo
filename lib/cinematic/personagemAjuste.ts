@@ -376,10 +376,10 @@ export function podeReconferirModeracao(args: { decisao: DecisaoDeModeracaoLike 
 
 // ═══ 1+2. O still com folha, com rede INJETADA (o servidor em ./personagemAjusteServer liga a fal e a moderação) ══════
 export type MotivoStillComFolha = 'ok' | 'provider_failed' | 'provider_timeout' | 'formato_errado' | 'formato_nao_conferido' | 'moderation_blocked' | 'moderation_unavailable' | 'no_key'
-export interface ResultadoStillComFolha { url: string | null; motivo: MotivoStillComFolha; razao: number | null; reconferida: boolean; requestId?: string | null /* KINEO-ELENCO-TRAVA-0311 — o pedido da fal: o prazo estourado continua lendo o MESMO pedido (sem novo POST) */ }
+export interface ResultadoStillComFolha { url: string | null; motivo: MotivoStillComFolha; razao: number | null; reconferida: boolean; requestId?: string | null /* KINEO-ELENCO-TRAVA-0311 — o pedido da fal: o prazo estourado continua lendo o MESMO pedido (sem novo POST) */; jobFalhou?: boolean /* KINEO-ELENCO-TRAVA-0311 — a fal disse FAILED (o único provider_failed que pode ser refeito) */; envioFalhou?: boolean /* KINEO-ELENCO-TRAVA-0311 — o POST lançou (ambíguo): nunca refazer */ }
 export interface DepsStillComFolha {
   /** POST único ao edit + leitura até o prazo; width/height quando a fal devolve. */
-  pedir: (input: Record<string, unknown>, pollWindowMs: number, retomar?: string | null /* KINEO-ELENCO-TRAVA-0311 — id de um pedido já feito: só lê, não posta de novo */) => Promise<{ url: string | null; motivo: 'ok' | 'provider_failed' | 'provider_timeout'; largura?: number | null; altura?: number | null; requestId?: string | null }>
+  pedir: (input: Record<string, unknown>, pollWindowMs: number, retomar?: string | null /* KINEO-ELENCO-TRAVA-0311 — id de um pedido já feito: só lê, não posta de novo */) => Promise<{ url: string | null; motivo: 'ok' | 'provider_failed' | 'provider_timeout'; largura?: number | null; altura?: number | null; requestId?: string | null; jobFalhou?: boolean; envioFalhou?: boolean }>
   /** Os primeiros bytes do arquivo (para o cabeçalho). null = não deu para ler. */
   bytes: (url: string) => Promise<Uint8Array | null>
   /** A porta de moderação da casa (lib/safety/contentModeration moderateContent, superfície 'estrela', etapa 'output'). */
@@ -393,7 +393,7 @@ export function corpoDoEditAjuste(prompt: string, imageUrls: string[], aspect: u
 export async function stillComFolha(args: { prompt: string; imageUrls: string[]; aspect: unknown; fichas: ReadonlyArray<Pick<FichaDePersonagem, 'tipo'>>; pollWindowMs: number; meta?: Record<string, unknown>; retomar?: string | null /* KINEO-ELENCO-TRAVA-0311 */ }, deps: DepsStillComFolha): Promise<ResultadoStillComFolha> {
   try {
     const pedido = args.retomar ? await deps.pedir(corpoDoEditAjuste(args.prompt, args.imageUrls, args.aspect), args.pollWindowMs, args.retomar) : await deps.pedir(corpoDoEditAjuste(args.prompt, args.imageUrls, args.aspect), args.pollWindowMs) // KINEO-ELENCO-TRAVA-0311 — retomar = ler o MESMO pedido por mais tempo; sem retomar, a chamada de sempre
-    if (!pedido.url) return { url: null, motivo: pedido.motivo === 'provider_timeout' ? 'provider_timeout' : 'provider_failed', razao: null, reconferida: false, requestId: pedido.requestId ?? null } // KINEO-ELENCO-TRAVA-0311 — + o id do pedido
+    if (!pedido.url) return { url: null, motivo: pedido.motivo === 'provider_timeout' ? 'provider_timeout' : 'provider_failed', razao: null, reconferida: false, requestId: pedido.requestId ?? null, ...(pedido.jobFalhou ? { jobFalhou: true } : {}), ...(pedido.envioFalhou ? { envioFalhou: true } : {}) } // KINEO-ELENCO-TRAVA-0311 — + o id do pedido e de onde veio a falha
     const dim = typeof pedido.largura === 'number' && typeof pedido.altura === 'number' && pedido.largura > 0 && pedido.altura > 0
       ? { largura: pedido.largura, altura: pedido.altura }
       : dimensoesDaImagem(await deps.bytes(pedido.url).catch(() => null))
