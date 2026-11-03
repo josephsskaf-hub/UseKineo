@@ -65,10 +65,11 @@ let lib: typeof import('../lib/dataRealDoEscritor') | null = null
 try { lib = await import('../lib/dataRealDoEscritor') } catch { lib = null }
 const RELOGIO = new Date('2026-11-02T15:30:00Z')
 const HOJE = new Date().toISOString().slice(0, 10)
-const REGRA_ESPERADA = "Never mention a specific year, date or 'this year' unless the user's own text contains it; if the user's text names a year, keep it exactly."
+// KINEO-ANO-INVENTADO-0211b — só o ano ATUAL/recente inventado é proibido; data correta de fato histórico é permitida.
+const REGRA_ESPERADA = "Never state or imply the current or a recent year (no 'in 2023', 'this year', 'in 2024', 'nowadays in …') unless the user's own text names it — say 'today' or 'now' instead. Dates of real historical events are allowed and encouraged when they are correct."
 // Sem a lib (origin/main), a regra esperada entra como dublê: assim B/C ainda provam que a ROTA a chama.
-const fixo = () => lib ? lib.regraDaDataReal(RELOGIO) : `TODAY'S REAL DATE: 2026-11-02. ${REGRA_ESPERADA}`
-const relogioReal = () => lib ? lib.regraDaDataReal() : `TODAY'S REAL DATE: ${HOJE}. ${REGRA_ESPERADA}`
+const fixo = () => lib ? lib.regraDaDataReal(RELOGIO) : `Today is 2026-11-02. ${REGRA_ESPERADA}`
+const relogioReal = () => lib ? lib.regraDaDataReal() : `Today is ${HOJE}. ${REGRA_ESPERADA}`
 const temRegraEData = (p: unknown, data = '2026-11-02') => typeof p === 'string' && p.includes(REGRA_ESPERADA) && p.includes(data)
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,6 +80,15 @@ if (lib) {
   checa('A2 relógio injetado → a data dele (2026-11-02) + a regra', temRegraEData(lib.regraDaDataReal(RELOGIO)))
   checa('A3 sem relógio → a data de hoje, calculada no pedido', temRegraEData(lib.regraDaDataReal(), HOJE))
   checa('A4 outro dia → outra data (nada fixo no código)', lib.regraDaDataReal(new Date('2031-01-15T00:00:00Z')).includes('2031-01-15'))
+  checa('A5 abre com "Today is <data>."', lib.regraDaDataReal(RELOGIO).startsWith('Today is 2026-11-02. '))
+  // 0211b — os dois lados da regra, com os casos reais:
+  const R = lib.REGRA_ANO_INVENTADO
+  checa('A6 caso "money game in 2023": o ano atual/recente inventado é PROIBIDO (cita "in 2023", "this year"; manda dizer today/now)',
+    /Never state or imply the current or a recent year/.test(R) && R.includes("'in 2023'") && R.includes("'this year'") && /say 'today' or 'now' instead/.test(R))
+  checa('A7 caso "money game in 2023": só o texto do PRÓPRIO usuário libera o ano', /unless the user's own text names it/.test(R))
+  checa('A8 ideia de história (Hiroshima "August 6, 1945", Titanic "1912"): data real de fato histórico PERMITIDA e incentivada',
+    /Dates of real historical events are allowed and encouraged when they are correct/.test(R))
+  checa('A9 a proibição genérica da 1ª versão ("Never mention a specific year, date") saiu', !/Never mention a specific year, date/.test(R))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
