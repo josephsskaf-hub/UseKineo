@@ -16,6 +16,8 @@ import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim' // KINEO-GRATIS-REFAZ-CENA-0311 — o marcador do 1º filme grátis (nasce com 0 filmes e 0 débitos)
 import { filmeGratisPermitido } from '@/lib/freeFilmPolicy' // KINEO-GRATIS-REFAZ-CENA-0311 — a lista de países do filme grátis (sem lista nova)
 import { corrigirPrompt0311, TETO_PROMPT_STILL_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311
+// [TRAVA 8.2 — fundador 03/11: "três sim" — refazer também a imagem da cena no 1º filme grátis] KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX da cena sem folha (o corpo do gerador da rota)
+import { entradaDoStillFlux0311, stillFluxPronto0311, FLUX_STILL_MODEL_0311 } from '@/lib/free15StillFlux0311'
 
 type Context = { db: SupabaseClient; secret: string; userId: string; renderId: string }
 const gateId = (a: Context) => uuidFrom(`kineo:free15-gate:v1:${a.userId}:${a.renderId}`)
@@ -64,6 +66,27 @@ export async function primeiroFilmeGratis0311(a: { db: SupabaseClient; userId: s
   if (!filmeGratisPermitido(typeof marcador?.country === 'string' ? marcador.country : null)) return false
   const { count, error } = await a.db.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', a.userId).neq('status', 'failed').neq('render_id', a.renderId)
   return !error && count === 0
+}
+
+/**
+ * KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX da cena i2v SEM folha, em 2 tempos (o portão faz UMA ação de fornecedor por chamada):
+ * aqui o POST único (o corpo de lib/hollywood/anchors generateAnchorImage, montado em entradaDoStillFlux0311) e, na chamada seguinte,
+ * só a leitura. Cena com folha → null (o caminho da folha, KINEO-ELENCO-TRAVA-0311); t2v/Kling 4/sem chave → null (o clipe de sempre).
+ */
+export async function postarStillSemFolha0311(a: { claim: Pick<CinematicClaim, 'response'> }, scene: { index: number; model: string; input: Record<string, unknown> }, refaz0311: RefazCena0311): Promise<string | null> {
+  if (referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)) return null
+  const input = entradaDoStillFlux0311(scene, refaz0311, a.claim.response?.aspect)
+  if (!input || !process.env.FAL_KEY) return null
+  return submitFalQueueOnce(FLUX_STILL_MODEL_0311, input)
+}
+export async function lerStillSemFolha0311(requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> {
+  const key = process.env.FAL_KEY
+  if (!key) return { status: 'failed' }
+  fal.config({ credentials: key })
+  const st = await fal.queue.status(FLUX_STILL_MODEL_0311, { requestId }) as unknown as { status?: string; error?: unknown }
+  if (st.status === 'FAILED' || st.status === 'COMPLETED' && st.error) return { status: 'failed' }
+  if (st.status !== 'COMPLETED') return { status: 'pending' }
+  return stillFluxPronto0311(await fal.queue.result(FLUX_STILL_MODEL_0311, { requestId }))
 }
 
 /** KINEO-GRATIS-REFAZ-CENA-0311 — a referência do still com a correção de época no prompt (sem relato: a referência de sempre). */
@@ -133,6 +156,8 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
       return ref ? lerStillComFolha({ requestId, prompt: ref.prompt, imageUrls: ref.folhas, aspect: a.claim.response?.aspect, userId: a.userId }) : { status: 'failed' }
     },
     primeiroFilmeGratis0311: () => primeiroFilmeGratis0311(a), // KINEO-GRATIS-REFAZ-CENA-0311 — só chamado quando o juiz deu um teto novo com cena para refazer
+    submitStillSemFolha0311: (scene, refaz0311) => postarStillSemFolha0311(a, scene, refaz0311), // KINEO-GRATIS-REFAZ-IMAGEM-0311 — época/pessoa em cena i2v sem folha
+    pollStillSemFolha0311: (_scene, requestId) => lerStillSemFolha0311(requestId), // KINEO-GRATIS-REFAZ-IMAGEM-0311
     pollScene: (scene, requestId) => pollScene(scene.model, requestId),
     submitRender: submitCreatomateRender,
     pollRender: async id => {

@@ -4,6 +4,8 @@ import type { CaptionEvidenceAssessment } from '@/lib/captionEvidenceGuard'
 import { trocarCena, type CenaRefazivel } from '@/lib/freeRedo/core'
 import { custoEstimadoUsd } from '@/lib/freeRedo/core' // KINEO-GRATIS-REFAZ-CENA-0311 — o custo estimado da cena refeita vai ao relato
 import { motivosDosTetos0311, cenaAceitaMotivo0311, corrigirPrompt0311, epocaDaCena0311, rotuloDaEpoca0311, CODIGOS_DO_MOTIVO_0311, TETO_PROMPT_CLIPE_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311
+// [TRAVA 8.2 — fundador 03/11: "três sim" — refazer também a imagem da cena no 1º filme grátis] KINEO-GRATIS-REFAZ-IMAGEM-0311 — época/pessoa em cena i2v SEM folha: o still FLUX é refeito com a correção antes do clipe
+import { motivoRefazImagem0311, cabeNoTeto0311, USD_STILL_FLUX_0311, USD_STILL_FOLHA_0311, type MotivoImagem0311, type RefazImagem0311 } from '@/lib/free15RefazImagem0311'
 
 export const FREE15_GATE_EVENT = 'free15_delivery_gate'
 export const FREE15_GATE_FAILED_EVENT = 'free15_gate_failed'
@@ -36,7 +38,7 @@ export type GateState = {
   /** KINEO-ELENCO-TRAVA-0311 — a reprovação final é a troca de personagem: o filme não pode ser celebrado. */
   identityUnresolved?: boolean
   /** KINEO-GRATIS-REFAZ-CENA-0311 — a cena refeita por teto novo do juiz no 1º filme grátis: motivo, cena, quadros, custo e resultado. */
-  refazCena0311?: RefazCena0311
+  refazCena0311?: RefazCena0311 & RefazImagem0311 // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: RefazCena0311 (+ imagem_refeita, imagem_motivo, imagem_via, imagem_usd)
 }
 export type GateDecision = { kind: 'pass' | 'fail' | 'caption' | 'scene'; reason: string; sceneIndex?: number; identity?: boolean /* KINEO-ELENCO-TRAVA-0311 — a cena é refeita por troca de personagem */ }
 export const isCaptionElement = (el: unknown): boolean => !!el && typeof el === 'object' &&
@@ -160,6 +162,10 @@ export interface Free15GateDeps {
   pollStill?(scene: CenaRefazivel, requestId: string, refaz0311?: RefazCena0311): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> // KINEO-GRATIS-REFAZ-CENA-0311 — o MESMO prompt do envio
   /** KINEO-GRATIS-REFAZ-CENA-0311 — o 1º filme grátis de conta de país rico (sem esta função: nunca refaz por teto novo). */
   primeiroFilmeGratis0311?(): Promise<boolean>
+  /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — UM POST do still FLUX da cena i2v SEM folha (o gerador do 1º quadro da rota) com a correção do relato; null = não se aplica (t2v, com folha, sem chave). */
+  submitStillSemFolha0311?(scene: CenaRefazivel, refaz0311: RefazCena0311): Promise<string | null>
+  /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — só leitura do still FLUX (sem URL https ou barrado pelo filtro de segurança = 'failed'). */
+  pollStillSemFolha0311?(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
   pollScene(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
   submitRender(source: Record<string, unknown>): Promise<string>
   pollRender(id: string): Promise<{ status: string; url: string | null; snapshotUrl: string | null; durationSeconds?: number | null }>
@@ -192,12 +198,16 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   // KINEO-ELENCO-TRAVA-0311 — o still da cena refeito com a folha: pronto → o clipe sai dele; falhou/estourou 5 min → o clipe sai do still assinado de sempre (nunca para o portão).
   if (state.status === 'still') {
     const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)
-    if (!scene || !state.stillRequestId || !d.pollStill) return finish('failed', 'repair_scene_missing')
+    const flux0311 = state.refazCena0311?.imagem_via === 'flux' // KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX sem folha é lido pelo leitor dele
+    if (!scene || !state.stillRequestId || !(flux0311 ? d.pollStillSemFolha0311 : d.pollStill)) return finish('failed', 'repair_scene_missing') // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: !d.pollStill
     let still: { status: 'pending' | 'done' | 'failed'; url?: string | null } = { status: 'failed' }
-    try { still = await d.pollStill(scene, state.stillRequestId, state.refazCena0311) } catch { if (age <= STALE) return pending } // KINEO-GRATIS-REFAZ-CENA-0311 — + a correção do envio
+    try { still = flux0311 ? await d.pollStillSemFolha0311!(scene, state.stillRequestId) : await d.pollStill!(scene, state.stillRequestId, state.refazCena0311) } catch { if (age <= STALE) return pending } // KINEO-GRATIS-REFAZ-CENA-0311 — + a correção do envio · KINEO-GRATIS-REFAZ-IMAGEM-0311 — + o leitor do FLUX
     if (still.status === 'pending' && age <= STALE) return pending
     const imageUrl = still.status === 'done' && still.url ? still.url : undefined
-    if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}) })) return pending
+    // KINEO-GRATIS-REFAZ-IMAGEM-0311 — o relato diz se o clipe sai do still novo; falhou/prazo = o clipe sai do still de antes (como hoje)
+    const imagem0311: MotivoImagem0311 = imageUrl ? 'still_novo' : still.status === 'pending' ? 'still_prazo' : 'still_falhou'
+    const relatoImagem0311 = state.refazCena0311?.imagem_via ? { refazCena0311: { ...state.refazCena0311, imagem_refeita: !!imageUrl, imagem_motivo: imagem0311 } } : {}
+    if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}), ...relatoImagem0311 })) return pending // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + relatoImagem0311
     try {
       const requestId = await d.submitScene(comCorrecao0311(scene), imageUrl) // KINEO-GRATIS-REFAZ-CENA-0311 — sem refazCena0311: a cena de sempre
       await move({ status: 'scene', requestId })
@@ -260,11 +270,22 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   if ((decision.identity || state.refazCena0311?.motivo === 'epoca') && d.submitStill) {
     let stillRequestId: string | null = null
     try { stillRequestId = state.refazCena0311 ? await d.submitStill(scene, state.refazCena0311) : await d.submitStill(scene) } catch { stillRequestId = null } // KINEO-GRATIS-REFAZ-CENA-0311 — era: await d.submitStill(scene)
-    if (stillRequestId) { await move({ status: 'still', stillRequestId }); return pending }
+    if (stillRequestId) { await move({ status: 'still', stillRequestId, ...(state.refazCena0311 ? { refazCena0311: { ...state.refazCena0311, imagem_via: 'folha' as const, imagem_usd: USD_STILL_FOLHA_0311, imagem_refeita: false, imagem_motivo: 'still_pedido' as const } } : {}) }); return pending } // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + o relato do still com folha (só na refação por teto novo)
   }
+  // KINEO-GRATIS-REFAZ-IMAGEM-0311 [TRAVA 8.2 — fundador 03/11: "três sim"] — época/pessoa em cena i2v SEM folha: o still volta a nascer pelo
+  // MESMO gerador do 1º quadro da rota (FLUX), com a correção na frente do prompt, e o clipe sai dele. UM POST (attempted já gravado), nunca
+  // repetido; recusado/ambíguo/sem still/acima do teto → o clipe sai do still de antes, como hoje. Plano parado: nada muda.
+  let semImagem0311: MotivoImagem0311 | undefined
+  if (state.refazCena0311 && motivoRefazImagem0311(state.refazCena0311.motivo) && d.submitStillSemFolha0311) {
+    let fluxId: string | null = null
+    if (!cabeNoTeto0311(state.refazCena0311)) semImagem0311 = 'teto_usd'
+    else { try { fluxId = await d.submitStillSemFolha0311(scene, state.refazCena0311); if (!fluxId) semImagem0311 = 'sem_still_i2v' } catch { semImagem0311 = 'envio_falhou' } }
+    if (fluxId) { await move({ status: 'still', stillRequestId: fluxId, refazCena0311: { ...state.refazCena0311, imagem_via: 'flux', imagem_usd: USD_STILL_FLUX_0311, imagem_refeita: false, imagem_motivo: 'still_pedido' } }); return pending }
+  }
+  const relatoSemImagem0311 = semImagem0311 && state.refazCena0311 ? { refazCena0311: { ...state.refazCena0311, imagem_refeita: false, imagem_motivo: semImagem0311, ...(semImagem0311 === 'envio_falhou' ? { imagem_via: 'flux' as const, imagem_usd: USD_STILL_FLUX_0311 } : {}) } } : {} // envio ambíguo pode ter cobrado: conta o still
   try {
     const requestId = await d.submitScene(comCorrecao0311(scene)) // KINEO-GRATIS-REFAZ-CENA-0311 — era: d.submitScene(scene)
-    await move({ status: 'scene', requestId })
+    await move({ status: 'scene', requestId, ...relatoSemImagem0311 }) // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + relatoSemImagem0311 (o relato vai no MESMO passo: nenhuma escrita a mais)
     return pending
   } catch { return finish('failed', 'scene_repair_submit_failed', media) }
 }

@@ -1,0 +1,88 @@
+{
+ "base": "a667faf06206f5c81fe04c0d4a26c81c23ca5ab0",
+ "scope": {
+  "lib/free15Gate.ts": {
+   "beforeSha256": "67b5ec16599dcb720dc63765917a6cccd5cf7b88673e4cf374cf759c8537c785",
+   "afterSha256": "847344f09dd2690bb9117cad07f2c883360424d12ced21d7dbe5771641f69c65",
+   "hunks": [
+    {
+     "before": "import { motivosDosTetos0311, cenaAceitaMotivo0311, corrigirPrompt0311, epocaDaCena0311, rotuloDaEpoca0311, CODIGOS_DO_MOTIVO_0311, TETO_PROMPT_CLIPE_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311\n",
+     "after": "import { motivosDosTetos0311, cenaAceitaMotivo0311, corrigirPrompt0311, epocaDaCena0311, rotuloDaEpoca0311, CODIGOS_DO_MOTIVO_0311, TETO_PROMPT_CLIPE_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311\n// [TRAVA 8.2 — fundador 03/11: \"três sim\" — refazer também a imagem da cena no 1º filme grátis] KINEO-GRATIS-REFAZ-IMAGEM-0311 — época/pessoa em cena i2v SEM folha: o still FLUX é refeito com a correção antes do clipe\nimport { motivoRefazImagem0311, cabeNoTeto0311, USD_STILL_FLUX_0311, USD_STILL_FOLHA_0311, type MotivoImagem0311, type RefazImagem0311 } from '@/lib/free15RefazImagem0311'\n"
+    },
+    {
+     "before": "  /** KINEO-GRATIS-REFAZ-CENA-0311 — a cena refeita por teto novo do juiz no 1º filme grátis: motivo, cena, quadros, custo e resultado. */\n  refazCena0311?: RefazCena0311\n}",
+     "after": "  /** KINEO-GRATIS-REFAZ-CENA-0311 — a cena refeita por teto novo do juiz no 1º filme grátis: motivo, cena, quadros, custo e resultado. */\n  refazCena0311?: RefazCena0311 & RefazImagem0311 // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: RefazCena0311 (+ imagem_refeita, imagem_motivo, imagem_via, imagem_usd)\n}"
+    },
+    {
+     "before": "  primeiroFilmeGratis0311?(): Promise<boolean>\n  pollScene(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>",
+     "after": "  primeiroFilmeGratis0311?(): Promise<boolean>\n  /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — UM POST do still FLUX da cena i2v SEM folha (o gerador do 1º quadro da rota) com a correção do relato; null = não se aplica (t2v, com folha, sem chave). */\n  submitStillSemFolha0311?(scene: CenaRefazivel, refaz0311: RefazCena0311): Promise<string | null>\n  /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — só leitura do still FLUX (sem URL https ou barrado pelo filtro de segurança = 'failed'). */\n  pollStillSemFolha0311?(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>\n  pollScene(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>"
+    },
+    {
+     "before": "    const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)\n    if (!scene || !state.stillRequestId || !d.pollStill) return finish('failed', 'repair_scene_missing')\n    let still: { status: 'pending' | 'done' | 'failed'; url?: string | null } = { status: 'failed' }\n    try { still = await d.pollStill(scene, state.stillRequestId, state.refazCena0311) } catch { if (age <= STALE) return pending } // KINEO-GRATIS-REFAZ-CENA-0311 — + a correção do envio\n    if (still.status === 'pending' && age <= STALE) return pending",
+     "after": "    const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)\n    const flux0311 = state.refazCena0311?.imagem_via === 'flux' // KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX sem folha é lido pelo leitor dele\n    if (!scene || !state.stillRequestId || !(flux0311 ? d.pollStillSemFolha0311 : d.pollStill)) return finish('failed', 'repair_scene_missing') // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: !d.pollStill\n    let still: { status: 'pending' | 'done' | 'failed'; url?: string | null } = { status: 'failed' }\n    try { still = flux0311 ? await d.pollStillSemFolha0311!(scene, state.stillRequestId) : await d.pollStill!(scene, state.stillRequestId, state.refazCena0311) } catch { if (age <= STALE) return pending } // KINEO-GRATIS-REFAZ-CENA-0311 — + a correção do envio · KINEO-GRATIS-REFAZ-IMAGEM-0311 — + o leitor do FLUX\n    if (still.status === 'pending' && age <= STALE) return pending"
+    },
+    {
+     "before": "    const imageUrl = still.status === 'done' && still.url ? still.url : undefined\n    if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}) })) return pending\n    try {",
+     "after": "    const imageUrl = still.status === 'done' && still.url ? still.url : undefined\n    // KINEO-GRATIS-REFAZ-IMAGEM-0311 — o relato diz se o clipe sai do still novo; falhou/prazo = o clipe sai do still de antes (como hoje)\n    const imagem0311: MotivoImagem0311 = imageUrl ? 'still_novo' : still.status === 'pending' ? 'still_prazo' : 'still_falhou'\n    const relatoImagem0311 = state.refazCena0311?.imagem_via ? { refazCena0311: { ...state.refazCena0311, imagem_refeita: !!imageUrl, imagem_motivo: imagem0311 } } : {}\n    if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}), ...relatoImagem0311 })) return pending // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + relatoImagem0311\n    try {"
+    },
+    {
+     "before": "    try { stillRequestId = state.refazCena0311 ? await d.submitStill(scene, state.refazCena0311) : await d.submitStill(scene) } catch { stillRequestId = null } // KINEO-GRATIS-REFAZ-CENA-0311 — era: await d.submitStill(scene)\n    if (stillRequestId) { await move({ status: 'still', stillRequestId }); return pending }\n  }\n  try {",
+     "after": "    try { stillRequestId = state.refazCena0311 ? await d.submitStill(scene, state.refazCena0311) : await d.submitStill(scene) } catch { stillRequestId = null } // KINEO-GRATIS-REFAZ-CENA-0311 — era: await d.submitStill(scene)\n    if (stillRequestId) { await move({ status: 'still', stillRequestId, ...(state.refazCena0311 ? { refazCena0311: { ...state.refazCena0311, imagem_via: 'folha' as const, imagem_usd: USD_STILL_FOLHA_0311, imagem_refeita: false, imagem_motivo: 'still_pedido' as const } } : {}) }); return pending } // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + o relato do still com folha (só na refação por teto novo)\n  }\n  // KINEO-GRATIS-REFAZ-IMAGEM-0311 [TRAVA 8.2 — fundador 03/11: \"três sim\"] — época/pessoa em cena i2v SEM folha: o still volta a nascer pelo\n  // MESMO gerador do 1º quadro da rota (FLUX), com a correção na frente do prompt, e o clipe sai dele. UM POST (attempted já gravado), nunca\n  // repetido; recusado/ambíguo/sem still/acima do teto → o clipe sai do still de antes, como hoje. Plano parado: nada muda.\n  let semImagem0311: MotivoImagem0311 | undefined\n  if (state.refazCena0311 && motivoRefazImagem0311(state.refazCena0311.motivo) && d.submitStillSemFolha0311) {\n    let fluxId: string | null = null\n    if (!cabeNoTeto0311(state.refazCena0311)) semImagem0311 = 'teto_usd'\n    else { try { fluxId = await d.submitStillSemFolha0311(scene, state.refazCena0311); if (!fluxId) semImagem0311 = 'sem_still_i2v' } catch { semImagem0311 = 'envio_falhou' } }\n    if (fluxId) { await move({ status: 'still', stillRequestId: fluxId, refazCena0311: { ...state.refazCena0311, imagem_via: 'flux', imagem_usd: USD_STILL_FLUX_0311, imagem_refeita: false, imagem_motivo: 'still_pedido' } }); return pending }\n  }\n  const relatoSemImagem0311 = semImagem0311 && state.refazCena0311 ? { refazCena0311: { ...state.refazCena0311, imagem_refeita: false, imagem_motivo: semImagem0311, ...(semImagem0311 === 'envio_falhou' ? { imagem_via: 'flux' as const, imagem_usd: USD_STILL_FLUX_0311 } : {}) } } : {} // envio ambíguo pode ter cobrado: conta o still\n  try {"
+    },
+    {
+     "before": "    const requestId = await d.submitScene(comCorrecao0311(scene)) // KINEO-GRATIS-REFAZ-CENA-0311 — era: d.submitScene(scene)\n    await move({ status: 'scene', requestId })\n    return pending",
+     "after": "    const requestId = await d.submitScene(comCorrecao0311(scene)) // KINEO-GRATIS-REFAZ-CENA-0311 — era: d.submitScene(scene)\n    await move({ status: 'scene', requestId, ...relatoSemImagem0311 }) // KINEO-GRATIS-REFAZ-IMAGEM-0311 — + relatoSemImagem0311 (o relato vai no MESMO passo: nenhuma escrita a mais)\n    return pending"
+    }
+   ]
+  },
+  "lib/free15GateServer.ts": {
+   "beforeSha256": "f66ac903eedbfea0bb02d66a52aa5adca5e22d26613f65dfbc6d78b03e492743",
+   "afterSha256": "41ab235ab76e9e1e882a7c696001044406c18c54214dac6bf46b7e9c33cd2969",
+   "hunks": [
+    {
+     "before": "import { corrigirPrompt0311, TETO_PROMPT_STILL_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311\n",
+     "after": "import { corrigirPrompt0311, TETO_PROMPT_STILL_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311\n// [TRAVA 8.2 — fundador 03/11: \"três sim\" — refazer também a imagem da cena no 1º filme grátis] KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX da cena sem folha (o corpo do gerador da rota)\nimport { entradaDoStillFlux0311, stillFluxPronto0311, FLUX_STILL_MODEL_0311 } from '@/lib/free15StillFlux0311'\n"
+    },
+    {
+     "before": "\n/** KINEO-GRATIS-REFAZ-CENA-0311 — a referência do still com a correção de época no prompt (sem relato: a referência de sempre). */",
+     "after": "\n/**\n * KINEO-GRATIS-REFAZ-IMAGEM-0311 — o still FLUX da cena i2v SEM folha, em 2 tempos (o portão faz UMA ação de fornecedor por chamada):\n * aqui o POST único (o corpo de lib/hollywood/anchors generateAnchorImage, montado em entradaDoStillFlux0311) e, na chamada seguinte,\n * só a leitura. Cena com folha → null (o caminho da folha, KINEO-ELENCO-TRAVA-0311); t2v/Kling 4/sem chave → null (o clipe de sempre).\n */\nexport async function postarStillSemFolha0311(a: { claim: Pick<CinematicClaim, 'response'> }, scene: { index: number; model: string; input: Record<string, unknown> }, refaz0311: RefazCena0311): Promise<string | null> {\n  if (referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)) return null\n  const input = entradaDoStillFlux0311(scene, refaz0311, a.claim.response?.aspect)\n  if (!input || !process.env.FAL_KEY) return null\n  return submitFalQueueOnce(FLUX_STILL_MODEL_0311, input)\n}\nexport async function lerStillSemFolha0311(requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> {\n  const key = process.env.FAL_KEY\n  if (!key) return { status: 'failed' }\n  fal.config({ credentials: key })\n  const st = await fal.queue.status(FLUX_STILL_MODEL_0311, { requestId }) as unknown as { status?: string; error?: unknown }\n  if (st.status === 'FAILED' || st.status === 'COMPLETED' && st.error) return { status: 'failed' }\n  if (st.status !== 'COMPLETED') return { status: 'pending' }\n  return stillFluxPronto0311(await fal.queue.result(FLUX_STILL_MODEL_0311, { requestId }))\n}\n\n/** KINEO-GRATIS-REFAZ-CENA-0311 — a referência do still com a correção de época no prompt (sem relato: a referência de sempre). */"
+    },
+    {
+     "before": "    primeiroFilmeGratis0311: () => primeiroFilmeGratis0311(a), // KINEO-GRATIS-REFAZ-CENA-0311 — só chamado quando o juiz deu um teto novo com cena para refazer\n    pollScene: (scene, requestId) => pollScene(scene.model, requestId),",
+     "after": "    primeiroFilmeGratis0311: () => primeiroFilmeGratis0311(a), // KINEO-GRATIS-REFAZ-CENA-0311 — só chamado quando o juiz deu um teto novo com cena para refazer\n    submitStillSemFolha0311: (scene, refaz0311) => postarStillSemFolha0311(a, scene, refaz0311), // KINEO-GRATIS-REFAZ-IMAGEM-0311 — época/pessoa em cena i2v sem folha\n    pollStillSemFolha0311: (_scene, requestId) => lerStillSemFolha0311(requestId), // KINEO-GRATIS-REFAZ-IMAGEM-0311\n    pollScene: (scene, requestId) => pollScene(scene.model, requestId),"
+    }
+   ]
+  },
+  "scripts/test-gratis-refaz-cena-0311.mjs": {
+   "beforeSha256": "eb982f8626bad25418934b270afcc98b2212ec038f3ff9abf49074368c7368f2",
+   "afterSha256": "8a2a1b7636f97e325dc51d8ff77c8a53b49cea633980b55124fb2008828b709b",
+   "hunks": [
+    {
+     "before": "  const arquivos = Object.keys(GRATIS_REFAZ_0311.scope)\n  checa('R1 desfazer o recibo devolve EXATAMENTE o commit-base em cada arquivo alterado (portão, servidor, guardião histórico)', arquivos.length === 3 && arquivos.every((f) => lf(semGratisRefaz0311(lf(fs.readFileSync(f, 'utf8')), f)) === antes(f)))\n  checa('R2 os arquivos novos estão no recibo por hash', ['lib/free15RefazCena0311.ts', 'scripts/test-gratis-refaz-cena-0311.mjs'].every((f) => typeof GRATIS_REFAZ_0311.addedSources[f] === 'string'))",
+     "after": "  const arquivos = Object.keys(GRATIS_REFAZ_0311.scope)\n  const { semGratisRefazImagem0311 } = await import('./test-support/desfaz-gratis-refaz-imagem-0311.mjs') // KINEO-GRATIS-REFAZ-IMAGEM-0311 — a camada de cima (o still refeito) sai antes, pelo recibo exato dela\n  checa('R1 desfazer o recibo devolve EXATAMENTE o commit-base em cada arquivo alterado (portão, servidor, guardião histórico)', arquivos.length === 3 && arquivos.every((f) => lf(semGratisRefaz0311(lf(semGratisRefazImagem0311(lf(fs.readFileSync(f, 'utf8')), f)), f)) === antes(f))) // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: semGratisRefaz0311(lf(fs.readFileSync(f, 'utf8')), f)\n  checa('R2 os arquivos novos estão no recibo por hash', ['lib/free15RefazCena0311.ts', 'scripts/test-gratis-refaz-cena-0311.mjs'].every((f) => typeof GRATIS_REFAZ_0311.addedSources[f] === 'string'))"
+    }
+   ]
+  },
+  "scripts/test-painel-motor-entregue-0211.mjs": {
+   "beforeSha256": "7c476d7c26ce8a1148b72bc3d8be40bc53e880fdee2fe3cb4ae78e3e121658b2",
+   "afterSha256": "c9b5ae87f722a319194cdf5455f9c7c5d9738cdebc655af2b713fca6e529a213",
+   "hunks": [
+    {
+     "before": "import { semGratisRefaz0311 } from './test-support/desfaz-gratis-refaz-0311.mjs' // KINEO-GRATIS-REFAZ-CENA-0311 — [TRAVA 8.2 — fundador 03/11: \"As 2 sim\"] o portão refaz a cena do teto novo no 1º filme grátis; camada mais nova, sai primeiro\n",
+     "after": "import { semGratisRefaz0311 } from './test-support/desfaz-gratis-refaz-0311.mjs' // KINEO-GRATIS-REFAZ-CENA-0311 — [TRAVA 8.2 — fundador 03/11: \"As 2 sim\"] o portão refaz a cena do teto novo no 1º filme grátis; camada mais nova, sai primeiro\nimport { GRATIS_REFAZ_0311 } from './test-support/desfaz-gratis-refaz-0311.mjs' // KINEO-GRATIS-REFAZ-IMAGEM-0311 — o commit-base gravado no recibo da camada de baixo (a origin/main de agora já contém essa camada publicada)\nimport { semGratisRefazImagem0311 } from './test-support/desfaz-gratis-refaz-imagem-0311.mjs' // KINEO-GRATIS-REFAZ-IMAGEM-0311 — [TRAVA 8.2 — fundador 03/11: \"três sim\"] o portão refaz também o still da cena; camada mais nova, sai primeiro\n"
+    },
+    {
+     "before": "  const px = rd('lib/regua95/pixelScore.ts')\n  checa('3.14 scorePixel (usado pelo portão free15) não liga o desconto', /return judgeFrames\\(ctx, ex\\.frames, \\{ fetchImpl: opts\\?\\.fetchImpl, apiKey: opts\\?\\.apiKey, model: opts\\?\\.model, via: ex\\.via, usdFrames: ex\\.usd, startedAt: started, timeoutMs: opts\\?\\.timeoutMs \\}\\)/.test(px) && semElencoTrava0311(semGratisRefaz0311(rd('lib/free15GateServer.ts'), 'lib/free15GateServer.ts'), 'lib/free15GateServer.ts') === base('lib/free15GateServer.ts')) // KINEO-ELENCO-TRAVA-0311 — era: rd(…) === base(…) · KINEO-GRATIS-REFAZ-CENA-0311 — + semGratisRefaz0311 (a camada mais nova sai antes)\n  const coletar = rd('lib/regua95/coletar.ts')",
+     "after": "  const px = rd('lib/regua95/pixelScore.ts')\n  checa('3.14 scorePixel (usado pelo portão free15) não liga o desconto', /return judgeFrames\\(ctx, ex\\.frames, \\{ fetchImpl: opts\\?\\.fetchImpl, apiKey: opts\\?\\.apiKey, model: opts\\?\\.model, via: ex\\.via, usdFrames: ex\\.usd, startedAt: started, timeoutMs: opts\\?\\.timeoutMs \\}\\)/.test(px) && semElencoTrava0311(semGratisRefaz0311(semGratisRefazImagem0311(rd('lib/free15GateServer.ts'), 'lib/free15GateServer.ts'), 'lib/free15GateServer.ts'), 'lib/free15GateServer.ts') === execFileSync('git', ['show', `${GRATIS_REFAZ_0311.base}:lib/free15GateServer.ts`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\\r\\n/g, '\\n')) // KINEO-ELENCO-TRAVA-0311 — era: rd(…) === base(…) · KINEO-GRATIS-REFAZ-CENA-0311 — + semGratisRefaz0311 (a camada mais nova sai antes) · KINEO-GRATIS-REFAZ-IMAGEM-0311 — + semGratisRefazImagem0311 antes de todas; compara com o commit-base do recibo gratis-refaz (era: base(…) = origin/main, que já contém a camada publicada)\n  const coletar = rd('lib/regua95/coletar.ts')"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/free15RefazImagem0311.ts": "1164454d539527b472d3243234fb3e7668dc5583e0f6e2f83dae76184e7e9fa5",
+  "lib/free15StillFlux0311.ts": "50e77e2cfd95065591efdc6e61cbe1637607fcf50acd922a4d3f703e7b6a84fa",
+  "scripts/test-gratis-refaz-imagem-0311.mjs": "cf252d9cc9c6501410fd0c3cb51998dc984088cdde30e9e413d6079e4015cfae",
+  "scripts/test-support/desfaz-gratis-refaz-imagem-0311.mjs": "f25b07acd9e8544e720c8fab4f97285d619c597ef6c2450e9233a147772d8d9c",
+  "scripts/test-support/gerar-recibo-gratis-refaz-imagem-0311.mjs": "c38477c882fd7dcd87b30b94feabaab534c221415b03d093ccdcfe7a487eec6b"
+ }
+}

@@ -285,7 +285,8 @@ console.log('(R) recibo exato da TRAVA 8.2')
   // "antes desta entrega" = o commit-base gravado no recibo (não a origin/main de agora, que já contém esta entrega depois de publicada)
   const antes = (rel) => lf(execFileSync('git', ['show', `${GRATIS_REFAZ_0311.base}:${rel}`], { encoding: 'utf8', maxBuffer: 64 << 20 }))
   const arquivos = Object.keys(GRATIS_REFAZ_0311.scope)
-  checa('R1 desfazer o recibo devolve EXATAMENTE o commit-base em cada arquivo alterado (portão, servidor, guardião histórico)', arquivos.length === 3 && arquivos.every((f) => lf(semGratisRefaz0311(lf(fs.readFileSync(f, 'utf8')), f)) === antes(f)))
+  const { semGratisRefazImagem0311 } = await import('./test-support/desfaz-gratis-refaz-imagem-0311.mjs') // KINEO-GRATIS-REFAZ-IMAGEM-0311 — a camada de cima (o still refeito) sai antes, pelo recibo exato dela
+  checa('R1 desfazer o recibo devolve EXATAMENTE o commit-base em cada arquivo alterado (portão, servidor, guardião histórico)', arquivos.length === 3 && arquivos.every((f) => lf(semGratisRefaz0311(lf(semGratisRefazImagem0311(lf(fs.readFileSync(f, 'utf8')), f)), f)) === antes(f))) // KINEO-GRATIS-REFAZ-IMAGEM-0311 — era: semGratisRefaz0311(lf(fs.readFileSync(f, 'utf8')), f)
   checa('R2 os arquivos novos estão no recibo por hash', ['lib/free15RefazCena0311.ts', 'scripts/test-gratis-refaz-cena-0311.mjs'].every((f) => typeof GRATIS_REFAZ_0311.addedSources[f] === 'string'))
 }
 
