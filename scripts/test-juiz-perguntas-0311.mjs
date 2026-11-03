@@ -21,7 +21,9 @@ let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
-const base = (rel) => { try { return lf(execFileSync('git', ['show', `origin/main:${rel}`], { encoding: 'utf8', maxBuffer: 64 << 20 })) } catch { return null } }
+// "Antes deste conserto" = o commit-base gravado no recibo (não a origin/main de agora, que já contém este conserto depois de publicado).
+const ANTES_DO_CONSERTO = JSON.parse(fs.readFileSync(new URL('./test-support/desfaz-frente-b-0311-fontes.json', import.meta.url), 'utf8')).base
+const base = (rel) => { try { return lf(execFileSync('git', ['show', `${ANTES_DO_CONSERTO}:${rel}`], { encoding: 'utf8', maxBuffer: 64 << 20 })) } catch { return null } }
 const globals = { AbortController, setTimeout: () => 0, clearTimeout() {}, Date, Math, JSON, Promise }
 const F = { critico: 'lib/cinematic/criticoStill.ts', pixel: 'lib/regua95/pixelScore.ts', perg: 'lib/regua95/perguntasHonestas.ts', gate: 'lib/free15Gate.ts', gateSrv: 'lib/free15GateServer.ts', coletar: 'lib/regua95/coletar.ts' }
 const carrega = (mutantes = {}) => {
