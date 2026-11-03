@@ -29,6 +29,7 @@ import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { DRAWN_LOOK_PATTERNS, semEstiloNegado, deriveStyleAnchor, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
 import { ESTILO_INFANTIL } from '@/lib/cinematic/seresFieis'
+import { epocaDaHistoria, pistasDaEpoca, trocarModernidades, type Epoca } from '@/lib/cinematic/elencoEpoca' // KINEO-EPOCA-NA-FICHA-0311
 
 export const MARCA_ELENCO_TRAVA = 'KINEO-ELENCO-TRAVA-0311'
 export const ELENCO_TRAVA_VERSAO = 'elenco_trava_v1'
@@ -118,6 +119,9 @@ export function linhaDeEstilo(f: Pick<FichaDePersonagem, 'tipo' | 'nucleo' | 'ca
  * linha, se faltar. Idempotente.
  */
 export function travarEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAnchor, 'look' | 'lookPhrase'>, textoDoPedido: string): FichaDePersonagem {
+  return fichaNaEpoca(travarSoEstiloDaFicha(f, style, textoDoPedido), epocaDaHistoria(textoDoPedido)) // KINEO-EPOCA-NA-FICHA-0311 — o estilo E a época
+}
+function travarSoEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAnchor, 'look' | 'lookPhrase'>, textoDoPedido: string): FichaDePersonagem {
   let c = String(f.canonica ?? '')
   const fotorreal = filmeFotorreal(style)
   if (fotorreal ? LINHA_FOTORREAL_RE.test(c) : LINHA_DESENHO_RE.test(c)) return f
@@ -135,6 +139,34 @@ export function travarEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAncho
     c = c.replace(/\s+—\s*$/, '').replace(/[\s,;]+$/, '')
   }
   return { ...f, canonica: `${c}; ${linhaDeEstilo({ ...f, canonica: c }, style)}` }
+}
+
+// ═══ KINEO-EPOCA-NA-FICHA-0311 [TRAVA 8.2 — fundador 03/11 pelo Canal do Revisor: "é o pior agora"] — a ficha veste a ÉPOCA ═══
+// Caso (gustavoq.contato, 03/11 14:12 BRT, Kling 4 grátis 15 s, nota 7, não baixou): "1950: A pilot vanished over the Bermuda
+// Triangle…" → o casting (origem 'modelo', 55 palavras) vestiu o piloto de jaqueta verde, JEANS e relógio de hoje, cabelo moderno; o
+// sufixo de época ("Any person the shot describes wears…") vale para a cena, mas a ficha entra no prompt e vence. Mesma família:
+// hansak.th (Petrov 1983 de moletom). A ficha de gente numa história de época (epocaDaHistoria: ano/década explícitos, sem "hoje")
+// troca o que é de hoje pelo equivalente da década e ganha UMA linha positiva de figurino e cabelo do período. Serve as duas
+// estradas (travarEstiloDoElenco: clássica pela policy, hollywood pela fichaDoProtagonista) — todos os motores. Idempotente.
+const MARCA_EPOCA_NA_FICHA = 'period look:'
+export function fichaNaEpoca(f: FichaDePersonagem, epoca: Epoca | null): FichaDePersonagem {
+  if (!epoca || f.tipo !== 'humano' || (f.origem as string) === 'mitica') return f
+  let c = String(f.canonica ?? '')
+  if (c.includes(MARCA_EPOCA_NA_FICHA)) return f
+  c = trocarModernidades(c, epoca).prompt
+  const d = epoca.decada, rotulo = epoca.rotulo
+  const troca = (re: RegExp, por: string, ate: number) => { if (d < ate) c = c.replace(re, por) }
+  troca(/\b(?:skinny |ripped |blue |dark |light |slim )?(?:jeans|denim (?:jeans|pants|trousers))\b/gi, 'high-waisted wool trousers', 1960)
+  troca(/\bdenim jacket\b/gi, 'wool jacket', 1960)
+  troca(/\b(?:graphic |plain |white |black |grey |gray )?t-shirt\b/gi, 'buttoned collared shirt', 1960)
+  troca(/\b(?:baseball cap|beanie|snapback)\b/gi, d >= 1900 ? 'fedora hat' : 'top hat', 1970)
+  troca(/\b(?:smart ?watch|digital watch|modern (?:wrist)?watch|fitness tracker)\b/gi, 'leather-strap mechanical wristwatch', 2010)
+  troca(/\b(?:modern|contemporary|trendy) (?:haircut|hairstyle)\b/gi, `${rotulo} hairstyle`, 2010)
+  troca(/\b(?:undercut|fade haircut|man bun)\b/gi, `${rotulo} hairstyle`, 2010)
+  troca(/\b(?:puffer jacket|windbreaker|track ?suit|athleisure)\b/gi, d >= 1900 ? `${rotulo} wool overcoat` : 'long wool coat', 1980)
+  const quando = epoca.ano !== null ? `${epoca.ano}` : `the ${rotulo}`
+  c = c.replace(/[\s,;]+$/, '')
+  return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing (${pistasDaEpoca(epoca).roupa})` }
 }
 
 /** O elenco inteiro com o estilo travado (mudou = alguma ficha trocou de texto). */

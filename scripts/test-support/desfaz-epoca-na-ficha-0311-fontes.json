@@ -1,0 +1,24 @@
+{
+ "base": "db38428df9eb25ebae21471bbb854f7616c07b36",
+ "scope": {
+  "lib/cinematic/elencoTrava.ts": {
+   "beforeSha256": "8e294bacfa4c87fec1e599af240b2f1125c9bce3bce9f1cbb05a4669f4882172",
+   "afterSha256": "e2ed71436751fa421caac8b5b6de5f29836ae9f11e7c5063d024c71a582739eb",
+   "hunks": [
+    {
+     "before": "import { ESTILO_INFANTIL } from '@/lib/cinematic/seresFieis'\n",
+     "after": "import { ESTILO_INFANTIL } from '@/lib/cinematic/seresFieis'\nimport { epocaDaHistoria, pistasDaEpoca, trocarModernidades, type Epoca } from '@/lib/cinematic/elencoEpoca' // KINEO-EPOCA-NA-FICHA-0311\n"
+    },
+    {
+     "before": "export function travarEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAnchor, 'look' | 'lookPhrase'>, textoDoPedido: string): FichaDePersonagem {\n  let c = String(f.canonica ?? '')",
+     "after": "export function travarEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAnchor, 'look' | 'lookPhrase'>, textoDoPedido: string): FichaDePersonagem {\n  return fichaNaEpoca(travarSoEstiloDaFicha(f, style, textoDoPedido), epocaDaHistoria(textoDoPedido)) // KINEO-EPOCA-NA-FICHA-0311 — o estilo E a época\n}\nfunction travarSoEstiloDaFicha(f: FichaDePersonagem, style: Pick<StyleAnchor, 'look' | 'lookPhrase'>, textoDoPedido: string): FichaDePersonagem {\n  let c = String(f.canonica ?? '')"
+    },
+    {
+     "before": "\n/** O elenco inteiro com o estilo travado (mudou = alguma ficha trocou de texto). */",
+     "after": "\n// ═══ KINEO-EPOCA-NA-FICHA-0311 [TRAVA 8.2 — fundador 03/11 pelo Canal do Revisor: \"é o pior agora\"] — a ficha veste a ÉPOCA ═══\n// Caso (gustavoq.contato, 03/11 14:12 BRT, Kling 4 grátis 15 s, nota 7, não baixou): \"1950: A pilot vanished over the Bermuda\n// Triangle…\" → o casting (origem 'modelo', 55 palavras) vestiu o piloto de jaqueta verde, JEANS e relógio de hoje, cabelo moderno; o\n// sufixo de época (\"Any person the shot describes wears…\") vale para a cena, mas a ficha entra no prompt e vence. Mesma família:\n// hansak.th (Petrov 1983 de moletom). A ficha de gente numa história de época (epocaDaHistoria: ano/década explícitos, sem \"hoje\")\n// troca o que é de hoje pelo equivalente da década e ganha UMA linha positiva de figurino e cabelo do período. Serve as duas\n// estradas (travarEstiloDoElenco: clássica pela policy, hollywood pela fichaDoProtagonista) — todos os motores. Idempotente.\nconst MARCA_EPOCA_NA_FICHA = 'period look:'\nexport function fichaNaEpoca(f: FichaDePersonagem, epoca: Epoca | null): FichaDePersonagem {\n  if (!epoca || f.tipo !== 'humano' || (f.origem as string) === 'mitica') return f\n  let c = String(f.canonica ?? '')\n  if (c.includes(MARCA_EPOCA_NA_FICHA)) return f\n  c = trocarModernidades(c, epoca).prompt\n  const d = epoca.decada, rotulo = epoca.rotulo\n  const troca = (re: RegExp, por: string, ate: number) => { if (d < ate) c = c.replace(re, por) }\n  troca(/\\b(?:skinny |ripped |blue |dark |light |slim )?(?:jeans|denim (?:jeans|pants|trousers))\\b/gi, 'high-waisted wool trousers', 1960)\n  troca(/\\bdenim jacket\\b/gi, 'wool jacket', 1960)\n  troca(/\\b(?:graphic |plain |white |black |grey |gray )?t-shirt\\b/gi, 'buttoned collared shirt', 1960)\n  troca(/\\b(?:baseball cap|beanie|snapback)\\b/gi, d >= 1900 ? 'fedora hat' : 'top hat', 1970)\n  troca(/\\b(?:smart ?watch|digital watch|modern (?:wrist)?watch|fitness tracker)\\b/gi, 'leather-strap mechanical wristwatch', 2010)\n  troca(/\\b(?:modern|contemporary|trendy) (?:haircut|hairstyle)\\b/gi, `${rotulo} hairstyle`, 2010)\n  troca(/\\b(?:undercut|fade haircut|man bun)\\b/gi, `${rotulo} hairstyle`, 2010)\n  troca(/\\b(?:puffer jacket|windbreaker|track ?suit|athleisure)\\b/gi, d >= 1900 ? `${rotulo} wool overcoat` : 'long wool coat', 1980)\n  const quando = epoca.ano !== null ? `${epoca.ano}` : `the ${rotulo}`\n  c = c.replace(/[\\s,;]+$/, '')\n  return { ...f, canonica: `${c}; ${MARCA_EPOCA_NA_FICHA} a person of ${quando} with period-accurate ${rotulo} hairstyle and clothing (${pistasDaEpoca(epoca).roupa})` }\n}\n\n/** O elenco inteiro com o estilo travado (mudou = alguma ficha trocou de texto). */"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

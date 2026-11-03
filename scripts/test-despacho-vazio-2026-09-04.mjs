@@ -33,6 +33,7 @@
 // Rodar: node scripts/test-despacho-vazio-2026-09-04.mjs   (sem rede, sem custo)
 
 import { readFileSync as readFileSyncCru } from 'node:fs'
+import { deltaEpocaNaFicha0311Exato } from './test-support/desfaz-epoca-na-ficha-0311.mjs' // KINEO-EPOCA-NA-FICHA-0311 — [TRAVA 8.2 — fundador 03/11 pelo Canal do Revisor]: a ficha de gente numa história de época veste a época (recibo exato)
 import { lerSemLeva3, deltaLeva3Revisor0311Exato } from './test-support/desfaz-leva3-revisor-0311.mjs' // KINEO-LEVA3-REVISOR-0311 — [TRAVA 8.2 — fundador 03/11, Canal do Revisor]: a camada mais nova (legenda e fits do 15 s) sai primeiro, pelo recibo exato
 const readFileSync = lerSemLeva3 // KINEO-LEVA3-REVISOR-0311
 import { execFileSync } from 'node:child_process'
@@ -492,12 +493,17 @@ const deltaRecusaBotaoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaRecusaBotao3110Exato(current, upstream, file)
 }
+const deltaEpocaNaFichaExato = (file) => { // KINEO-EPOCA-NA-FICHA-0311 — recibo exato (scripts/test-support/desfaz-epoca-na-ficha-0311-fontes.json)
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaEpocaNaFicha0311Exato(readFileSyncCru(join(raiz, file), 'utf8'), upstream, file)
+}
 const deltaLeva3Exato = (file) => { // KINEO-LEVA3-REVISOR-0311 — recibo exato (scripts/test-support/desfaz-leva3-revisor-0311-fontes.json): legenda e fits do filme curto
   const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaLeva3Revisor0311Exato(readFileSyncCru(join(raiz, file), 'utf8'), upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaLeva3Exato(file) /* KINEO-LEVA3-REVISOR-0311 */ && !deltaCenaMortaMontaExato(file) /* KINEO-CENA-MORTA-MONTA-0311 */ && !deltaElencoTravaExato(file) /* KINEO-ELENCO-TRAVA-0311 */ && !deltaVozNativaHollywoodExato(file) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ && !deltaAnoInventadoExato(file) && !deltaFilmeGratisComecaExato(file) && !deltaK4PagoSilencioExato(file) && !deltaK4DespachoExato(file) && !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaEpocaNaFichaExato(file) /* KINEO-EPOCA-NA-FICHA-0311 */ && !deltaLeva3Exato(file) /* KINEO-LEVA3-REVISOR-0311 */ && !deltaCenaMortaMontaExato(file) /* KINEO-CENA-MORTA-MONTA-0311 */ && !deltaElencoTravaExato(file) /* KINEO-ELENCO-TRAVA-0311 */ && !deltaVozNativaHollywoodExato(file) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ && !deltaAnoInventadoExato(file) && !deltaFilmeGratisComecaExato(file) && !deltaK4PagoSilencioExato(file) && !deltaK4DespachoExato(file) && !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o
