@@ -10,6 +10,9 @@ import { scorePixel } from '@/lib/regua95/pixelScore'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { sanitizarObjetos15 } from '@/lib/cinematic/objetosSemTexto15'
 import { FREE15_GATE_EVENT, FREE15_GATE_FAILED_EVENT, FREE15_GATE_VERSION, advanceFree15Gate, type GateState, type GateMedia, type GateOutcome } from '@/lib/free15Gate'
+import { cenaSemReferencia, referenciaDaCenaNoClaim } from '@/lib/cinematic/elencoTrava' // KINEO-ELENCO-TRAVA-0311 — a cena sem referência e a folha da cena, lidas do claim assinado
+import { postarStillComFolha, lerStillComFolha } from '@/lib/cinematic/personagemAjusteServer' // KINEO-ELENCO-TRAVA-0311 — o MESMO edit, formato e moderação do still com folha da rota
+import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311
 
 type Context = { db: SupabaseClient; secret: string; userId: string; renderId: string }
 const gateId = (a: Context) => uuidFrom(`kineo:free15-gate:v1:${a.userId}:${a.renderId}`)
@@ -76,11 +79,20 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
       }, { timeoutMs: 25_000, fps: typeof state.source.frame_rate === 'number' ? state.source.frame_rate : undefined, exactFrameTimes: true })
     },
     scenes: source => cenasDoFilme(a.claim, a.userId, source),
-    submitScene: scene => {
+    submitScene: (scene, imageUrl?: string) => { // KINEO-ELENCO-TRAVA-0311 — + o still refeito com a folha
       // Preserve signed I2V reference, scene duration, resolution and voice-free input.
       const instruction = 'Repair this shot: keep the exact reference character and subject. No readable text, letters, signs or captions in the image. '
-      const input = { ...scene.input, prompt: instruction + sanitizarObjetos15(String(scene.input.prompt), true).slice(0, 6000 - instruction.length) }
+      const input = { ...scene.input, prompt: instruction + sanitizarObjetos15(String(scene.input.prompt), true).slice(0, 6000 - instruction.length), ...(imageUrl && CLASSIC_I2V.has(scene.model) ? { image_url: imageUrl } : {}) } // KINEO-ELENCO-TRAVA-0311 — o still refeito com a folha vira o 1º quadro; o resto do payload assinado (e o prompt com a ficha) fica
       return submitFalQueueOnce(scene.model, input)
+    },
+    semReferencia: () => cenaSemReferencia(a.claim.response?.elenco_trava), // KINEO-ELENCO-TRAVA-0311
+    submitStill: async scene => { // KINEO-ELENCO-TRAVA-0311 — só cena i2v com folha no claim; sem folha = null (o portão refaz como sempre)
+      const ref = referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)
+      return ref && CLASSIC_I2V.has(scene.model) ? postarStillComFolha({ prompt: ref.prompt, imageUrls: ref.folhas, aspect: a.claim.response?.aspect }) : null
+    },
+    pollStill: async (scene, requestId) => { // KINEO-ELENCO-TRAVA-0311
+      const ref = referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)
+      return ref ? lerStillComFolha({ requestId, prompt: ref.prompt, imageUrls: ref.folhas, aspect: a.claim.response?.aspect, userId: a.userId }) : { status: 'failed' }
     },
     pollScene: (scene, requestId) => pollScene(scene.model, requestId),
     submitRender: submitCreatomateRender,

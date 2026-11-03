@@ -58,6 +58,7 @@ import { VOZ_NATIVA_HOLLYWOOD_0211, deltaVozNativaHollywood0211Exato } from './t
 import { ANO_INVENTADO_0211, deltaAnoInventado0211Exato } from './test-support/desfaz-ano-inventado-0211.mjs' // KINEO-ANO-INVENTADO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { FILME_GRATIS_COMECA_0211, deltaFilmeGratisComeca0211Exato } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { K4_PAGO_SILENCIO_0211, deltaK4PagoSilencio0211Exato } from './test-support/desfaz-k4-pago-silencio-0211.mjs' // KINEO-K4-PAGO-SILENCIO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
+import { ELENCO_TRAVA_0311, deltaElencoTrava0311Exato } from './test-support/desfaz-elenco-trava-0311.mjs' // KINEO-ELENCO-TRAVA-0311 — [TRAVA 8.2 — pedido do fundador 03/11: o personagem nomeado troca entre as cenas]
 import { K4_DESPACHO_0211, deltaK4Despacho0211Exato } from './test-support/desfaz-k4-despacho-0211.mjs' // KINEO-K4-DESPACHO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { K4_PAGO_CABE_0211, deltaK4PagoCabe0211Exato } from './test-support/desfaz-k4-pago-cabe-0211.mjs' // KINEO-K4-PAGO-CABE-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { REVISOR_10_0111, deltaRevisor100111Exato } from './test-support/desfaz-revisor-10-0111.mjs' // KINEO-REVISOR-10-0111 — [TRAVA 8.2 — vai do fundador 01/11 "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"]
@@ -340,6 +341,15 @@ const deltaFilmeGratisComecaExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaFilmeGratisComeca0211Exato(current, upstream, file)
 }
+// KINEO-ELENCO-TRAVA-0311 — recibo exato (scripts/test-support/desfaz-elenco-trava-0311-fontes.json): o personagem nomeado não troca entre as cenas (estilo na ficha,
+// âncoras da folha, still que falhou refaz/vizinha/texto com ficha, portão do filme grátis refaz o still com a folha). Camada mais nova: conferida primeiro.
+const deltaElencoTravaExato = (file) => {
+  if (!ELENCO_TRAVA_0311.scope[file] && !ELENCO_TRAVA_0311.addedSources[file]) return false
+  const current = readFileSync(join(raiz, file), 'utf8')
+  const exists = execFileSync('git', ['ls-tree', '--name-only', 'origin/main', '--', file], { cwd: raiz, encoding: 'utf8' }).trim()
+  const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
+  return deltaElencoTrava0311Exato(current, upstream, file)
+}
 // KINEO-K4-PAGO-SILENCIO-0211 — recibo exato (scripts/test-support/desfaz-k4-pago-silencio-0211-fontes.json): a régua de silêncio do Kling 4 PAGO de 15 s julga o
 // clipe único com a fala inteira no passo real da faixa (rota do cinematic + lib/kling4PaidSilence). Camada mais nova: conferida primeiro.
 const deltaK4PagoSilencioExato = (file) => {
@@ -471,7 +481,7 @@ const deltaRecusaBotaoExato = (file) => {
   const upstream = exists ? execFileSync('git', ['show', `origin/main:${file}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) : null
   return deltaRecusaBotao3110Exato(current, upstream, file)
 }
-const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaVozNativaHollywoodExato(file) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ && !deltaAnoInventadoExato(file) && !deltaFilmeGratisComecaExato(file) && !deltaK4PagoSilencioExato(file) && !deltaK4DespachoExato(file) && !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
+const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean).filter((file) => !deltaElencoTravaExato(file) /* KINEO-ELENCO-TRAVA-0311 */ && !deltaVozNativaHollywoodExato(file) /* KINEO-VOZ-NATIVA-HOLLYWOOD-0211 */ && !deltaAnoInventadoExato(file) && !deltaFilmeGratisComecaExato(file) && !deltaK4PagoSilencioExato(file) && !deltaK4DespachoExato(file) && !deltaK4PagoCabeExato(file) && !deltaCasaFichaSemLetrasExato(file) && !deltaLegendaMilharExato(file) && !deltaPainelMotorEntregueExato(file) && !deltaK4NarracaoCabeExato(file) && !deltaSemInicioAutomaticoExato(file) && !deltaProtagonistaSeedanceExato(file) && !deltaJuizPlanoExato(file) && !deltaK4SujeitoFinalExato(file) && !deltaRevisor10Exato(file) && !deltaDecisoesPrecoExato(file) && !deltaRecusaBotaoExato(file) && !deltaLegendaCenaExato(file) &&!deltaFluxoLeva1Exato(file) && !deltaCenaRecoveryExato(file) && !deltaJuizEstadosExato(file) && !deltaK4AssuntoExato(file) && !deltaConsistenciaSerExato(file) && !deltaRevisorRestoExato(file) && !deltaSeresPersonificadosExato(file) &&!deltaCenaPedidoExato(file) &&!deltaQualidadeExato(file) && !deltaFilme15Exato(file))
 // KINEO-DIFF-VAZIO-NAO-E-FALHA-2026-09-07 — esta linha exigia diff NÃO-VAZIO, e
 // isso inverte a própria trava. A regra 8.2 diz "a sua entrega não pode tocar o
 // motor de vídeo"; um diff vazio significa "não há entrega pendente", que é o

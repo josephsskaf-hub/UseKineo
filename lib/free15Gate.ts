@@ -9,7 +9,7 @@ export const FREE15_GATE_VERSION = 'free15-gate-v1'
 export type GateMedia = { url: string; snapshotUrl: string | null; durationSeconds: number | null }
 export type GateState = {
   version: typeof FREE15_GATE_VERSION
-  status: 'ready' | 'checking' | 'scene_submitting' | 'scene' | 'render_submitting' | 'render' | 'passed' | 'failed'
+  status: 'ready' | 'checking' | 'scene_submitting' | 'still' | 'scene' | 'render_submitting' | 'render' | 'passed' | 'failed' // KINEO-ELENCO-TRAVA-0311 — 'still': o still da cena refeito com a folha do personagem
   source: Record<string, unknown>
   captionElements: unknown[]
   captionTiming?: 'approximate'
@@ -27,8 +27,14 @@ export type GateState = {
   requestId?: string
   repairRenderId?: string
   pixel?: PixelResult | null
+  /** KINEO-ELENCO-TRAVA-0311 — o pedido do still com folha da cena refeita (troca de identidade). */
+  stillRequestId?: string
+  /** KINEO-ELENCO-TRAVA-0311 — o still novo que foi ao clipe refeito (ausente = o still assinado de sempre). */
+  stillUrl?: string
+  /** KINEO-ELENCO-TRAVA-0311 — a reprovação final é a troca de personagem: o filme não pode ser celebrado. */
+  identityUnresolved?: boolean
 }
-export type GateDecision = { kind: 'pass' | 'fail' | 'caption' | 'scene'; reason: string; sceneIndex?: number }
+export type GateDecision = { kind: 'pass' | 'fail' | 'caption' | 'scene'; reason: string; sceneIndex?: number; identity?: boolean /* KINEO-ELENCO-TRAVA-0311 — a cena é refeita por troca de personagem */ }
 export const isCaptionElement = (el: unknown): boolean => !!el && typeof el === 'object' &&
   (el as { type?: unknown }).type === 'text' && [5, 7].includes(Number((el as { track?: unknown }).track))
 
@@ -65,7 +71,7 @@ function culpritAt(source: Record<string, unknown>, seconds: number | null, scen
 }
 
 /** Only complete pixel evidence can pass. Scores alone never trigger a scene reshoot. */
-export function decideFree15Gate(state: GateState, media: GateMedia, pixel: PixelResult | null, scenes: CenaRefazivel[]): GateDecision {
+export function decideFree15Gate(state: GateState, media: GateMedia, pixel: PixelResult | null, scenes: CenaRefazivel[], opts?: { semReferencia?: readonly number[] } /* KINEO-ELENCO-TRAVA-0311 — as cenas que nasceram sem a referência do personagem */): GateDecision {
   if (media.durationSeconds === null || !Number.isFinite(media.durationSeconds)) return { kind: 'fail', reason: 'duration_unverified' }
   const minimumSeconds = state.minimumSeconds === 15 ? 15 : 14
   if (media.durationSeconds < minimumSeconds) return { kind: 'fail', reason: `duration_below_${minimumSeconds}` }
@@ -88,8 +94,11 @@ export function decideFree15Gate(state: GateState, media: GateMedia, pixel: Pixe
   const identityFrames = capped && identityBad ? (pixel.identity_changes ?? []).flatMap(change => pixel.frames.filter(f => f.i === change.to)) : []
   const located = [...bad, ...identityFrames].map(f => culpritAt(state.source, f.t, scenes)).filter((i): i is number => i !== undefined)
   if (bad.length || capped && identityBad) {
-    const sceneIndex = located.find(i => i > 0) ?? located[0]
-    return sceneIndex === undefined ? { kind: 'fail', reason: 'scene_defect_not_located' } : { kind: 'scene', reason: 'pixel_scene_cap', sceneIndex }
+    // KINEO-ELENCO-TRAVA-0311 — troca de personagem: a cena que nasceu SEM a referência (still de texto) é a culpada provável — o quadro "depois da troca" pode ser a cena certa.
+    const identity = capped && identityBad
+    const semReferencia = identity ? scenes.find(s => opts?.semReferencia?.includes(s.index))?.index : undefined
+    const sceneIndex = semReferencia ?? located.find(i => i > 0) ?? located[0]
+    return sceneIndex === undefined ? { kind: 'fail', reason: 'scene_defect_not_located', ...(identity ? { identity } : {}) } : { kind: 'scene', reason: 'pixel_scene_cap', sceneIndex, ...(identity ? { identity } : {}) }
   }
   if (caption) return { kind: 'caption', reason: state.captionEvidence?.status === 'mismatch' ? 'caption_evidence_mismatch' : 'pixel_caption_cap' }
   // Other pixel ceilings (black frame, anatomy etc.) must not be labelled perfect either.
@@ -104,12 +113,18 @@ export interface Free15GateDeps {
   move(previous: GateState, next: GateState): Promise<boolean>
   judge(media: GateMedia, state: GateState): Promise<PixelResult | null>
   scenes(source: Record<string, unknown>): CenaRefazivel[]
-  submitScene(scene: CenaRefazivel): Promise<string>
+  submitScene(scene: CenaRefazivel, imageUrl?: string): Promise<string> // KINEO-ELENCO-TRAVA-0311 — imageUrl: o still refeito com a folha (1º quadro do clipe)
+  /** KINEO-ELENCO-TRAVA-0311 — as cenas sem referência do personagem (claim assinado, elenco_trava). */
+  semReferencia?(): number[]
+  /** KINEO-ELENCO-TRAVA-0311 — UM POST do still da cena com a folha + o prompt do still assinado; null = a cena não tem folha (refaz como sempre). */
+  submitStill?(scene: CenaRefazivel): Promise<string | null>
+  /** KINEO-ELENCO-TRAVA-0311 — só leitura do still (formato e moderação conferidos no 'done'). */
+  pollStill?(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
   pollScene(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
   submitRender(source: Record<string, unknown>): Promise<string>
   pollRender(id: string): Promise<{ status: string; url: string | null; snapshotUrl: string | null; durationSeconds?: number | null }>
 }
-export type GateOutcome = { status: 'pending' } | { status: 'passed' | 'failed'; media: GateMedia; reason: string; source?: Record<string, unknown> }
+export type GateOutcome = { status: 'pending' } | { status: 'passed' | 'failed'; media: GateMedia; reason: string; source?: Record<string, unknown>; identityUnresolved?: boolean /* KINEO-ELENCO-TRAVA-0311 */ }
 const pending: GateOutcome = { status: 'pending' }
 const STALE = 5 * 60_000
 const PROVIDER_STALE = 30 * 60_000
@@ -125,12 +140,27 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
     state = next
     return true
   }
-  const finish = async (status: 'passed' | 'failed', reason: string, media = state?.media ?? original): Promise<GateOutcome> =>
-    await move({ status, reason, media, ...(finalPixel === undefined ? {} : { pixel: finalPixel }) }) ? { status, reason, media, source: state?.mediaSource ?? state?.source } : pending
-  if (state.status === 'passed' || state.status === 'failed') return { status: state.status, reason: state.reason, media: state.media ?? original, source: state.mediaSource ?? state.source }
+  const finish = async (status: 'passed' | 'failed', reason: string, media = state?.media ?? original, identityUnresolved = false): Promise<GateOutcome> =>
+    await move({ status, reason, media, ...(finalPixel === undefined ? {} : { pixel: finalPixel }), ...(identityUnresolved ? { identityUnresolved: true } : {}) }) ? { status, reason, media, source: state?.mediaSource ?? state?.source, ...(identityUnresolved ? { identityUnresolved: true } : {}) } : pending // KINEO-ELENCO-TRAVA-0311 — + a marca da troca de personagem não resolvida
+  if (state.status === 'passed' || state.status === 'failed') return { status: state.status, reason: state.reason, media: state.media ?? original, source: state.mediaSource ?? state.source, ...(state.identityUnresolved ? { identityUnresolved: true } : {}) } // KINEO-ELENCO-TRAVA-0311
   const age = d.now() - state.updatedAt
   if (['checking', 'scene_submitting', 'render_submitting'].includes(state.status)) {
     return age > STALE ? finish('failed', 'gate_action_stale') : pending
+  }
+  // KINEO-ELENCO-TRAVA-0311 — o still da cena refeito com a folha: pronto → o clipe sai dele; falhou/estourou 5 min → o clipe sai do still assinado de sempre (nunca para o portão).
+  if (state.status === 'still') {
+    const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)
+    if (!scene || !state.stillRequestId || !d.pollStill) return finish('failed', 'repair_scene_missing')
+    let still: { status: 'pending' | 'done' | 'failed'; url?: string | null } = { status: 'failed' }
+    try { still = await d.pollStill(scene, state.stillRequestId) } catch { if (age <= STALE) return pending }
+    if (still.status === 'pending' && age <= STALE) return pending
+    const imageUrl = still.status === 'done' && still.url ? still.url : undefined
+    if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}) })) return pending
+    try {
+      const requestId = await d.submitScene(scene, imageUrl)
+      await move({ status: 'scene', requestId })
+      return pending
+    } catch { return finish('failed', 'scene_repair_submit_failed') }
   }
   if (state.status === 'scene') {
     const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)
@@ -161,9 +191,9 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   let pixel: PixelResult | null = null
   try { pixel = await d.judge(media, state) } catch { /* explicit failed/unverified, never pass on exception */ }
   finalPixel = pixel
-  const decision = decideFree15Gate(state, media, pixel, d.scenes(state.source))
+  const decision = decideFree15Gate(state, media, pixel, d.scenes(state.source), { semReferencia: d.semReferencia?.() ?? [] }) // KINEO-ELENCO-TRAVA-0311 — + as cenas sem referência
   if (decision.kind === 'pass') return finish('passed', decision.reason, media)
-  if (state.attempted || decision.kind === 'fail') return finish('failed', decision.reason, media)
+  if (state.attempted || decision.kind === 'fail') return finish('failed', decision.reason, media, decision.identity === true) // KINEO-ELENCO-TRAVA-0311 — refeita e o personagem ainda troca: falha marcada, nunca "passou"
   // Persist attempted=true BEFORE spending. Two polls cannot buy two attempts.
   if (decision.kind === 'caption') {
     const repaired = repairGateCaptions(state.source, state.captionElements)
@@ -178,6 +208,12 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   const scene = d.scenes(state.source).find(s => s.index === decision.sceneIndex)
   if (!scene) return finish('failed', 'repair_scene_missing', media)
   if (!await move({ status: 'scene_submitting', attempted: true, sceneIndex: scene.index, reason: decision.reason, pixel })) return pending
+  // KINEO-ELENCO-TRAVA-0311 — troca de personagem: o clipe refeito com o MESMO still assinado repetia o rosto errado. Com folha no claim, o still da cena é refeito com ela primeiro.
+  if (decision.identity && d.submitStill) {
+    let stillRequestId: string | null = null
+    try { stillRequestId = await d.submitStill(scene) } catch { stillRequestId = null }
+    if (stillRequestId) { await move({ status: 'still', stillRequestId }); return pending }
+  }
   try {
     const requestId = await d.submitScene(scene)
     await move({ status: 'scene', requestId })

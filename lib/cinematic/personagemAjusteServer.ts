@@ -12,16 +12,16 @@ import { fal } from '@fal-ai/client'
 import { submitFalQueueOnce } from '@/lib/falQueue'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { ESTRELA_EDIT_SLUG } from '@/lib/estrelaDoFilme'
-import { stillComFolha, type DepsStillComFolha, type ResultadoStillComFolha } from '@/lib/cinematic/personagemAjuste'
+import { stillComFolha, corpoDoEditAjuste, type DepsStillComFolha, type ResultadoStillComFolha } from '@/lib/cinematic/personagemAjuste' // KINEO-ELENCO-TRAVA-0311 — + corpoDoEditAjuste (o POST do still do portão)
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 
 const BYTES_DO_CABECALHO = 65_535
 const BYTES_PRAZO_MS = 5_000
 
-const pedir: DepsStillComFolha['pedir'] = async (input, pollWindowMs) => {
+const pedir: DepsStillComFolha['pedir'] = async (input, pollWindowMs, retomar) => {
   let requestId: string
   try {
-    requestId = await submitFalQueueOnce(ESTRELA_EDIT_SLUG, input)
+    requestId = retomar || await submitFalQueueOnce(ESTRELA_EDIT_SLUG, input) // KINEO-ELENCO-TRAVA-0311 — retomar: o pedido já feito (prazo estourado) só é LIDO de novo, sem novo POST pago
   } catch (err) {
     console.warn('[personagem] submit do edit falhou (cena volta ao still de hoje):', err instanceof Error ? err.message : String(err))
     return { url: null, motivo: 'provider_failed' }
@@ -49,7 +49,7 @@ const pedir: DepsStillComFolha['pedir'] = async (input, pollWindowMs) => {
     }
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
-  return { url: null, motivo: 'provider_timeout' }
+  return { url: null, motivo: 'provider_timeout', requestId } // KINEO-ELENCO-TRAVA-0311 — o id volta para a 2ª tentativa continuar lendo este pedido
 }
 
 const bytes: DepsStillComFolha['bytes'] = async (url) => {
@@ -75,12 +75,13 @@ export async function gerarStillComFolha(args: {
   engine: string
   pollWindowMs: number
   fichas: ReadonlyArray<Pick<FichaDePersonagem, 'tipo'>>
+  retomar?: string | null // KINEO-ELENCO-TRAVA-0311 — o pedido do prazo estourado, lido de novo (sem novo POST)
 }): Promise<ResultadoStillComFolha> {
   const key = process.env.FAL_KEY
   if (!key) return { url: null, motivo: 'no_key', razao: null, reconferida: false }
   fal.config({ credentials: key })
   const r = await stillComFolha(
-    { prompt: args.prompt, imageUrls: args.imageUrls, aspect: args.aspect, fichas: args.fichas, pollWindowMs: args.pollWindowMs, meta: { engine: args.engine } },
+    { prompt: args.prompt, imageUrls: args.imageUrls, aspect: args.aspect, fichas: args.fichas, pollWindowMs: args.pollWindowMs, meta: { engine: args.engine }, ...(args.retomar ? { retomar: args.retomar } : {}) }, // KINEO-ELENCO-TRAVA-0311
     {
       pedir,
       bytes,
@@ -92,4 +93,35 @@ export async function gerarStillComFolha(args: {
   )
   if (r.motivo !== 'ok') console.warn(`[personagem] still com folha recusado (${r.motivo}${r.razao !== null ? `, razão ${r.razao}` : ''}) — a cena fica com o FLUX de hoje`)
   return r
+}
+
+// ═══ KINEO-ELENCO-TRAVA-0311 — o still com folha do PORTÃO do filme grátis (lib/free15Gate), em 2 tempos ═══
+// O portão faz UMA ação de fornecedor por chamada (cada GET da tela tem 60 s): aqui o POST único ao edit e, nas chamadas seguintes, a leitura.
+// Pronto = a MESMA régua do still da rota (formato do filme + moderação de saída 'estrela'); qualquer falha = 'failed' e o portão refaz o
+// clipe do still assinado de sempre. Nunca posta de novo.
+export async function postarStillComFolha(args: { prompt: string; imageUrls: string[]; aspect: unknown }): Promise<string | null> {
+  const key = process.env.FAL_KEY
+  if (!key || args.imageUrls.length === 0) return null
+  fal.config({ credentials: key })
+  return submitFalQueueOnce(ESTRELA_EDIT_SLUG, corpoDoEditAjuste(args.prompt, args.imageUrls, args.aspect))
+}
+export async function lerStillComFolha(args: { requestId: string; prompt: string; imageUrls: string[]; aspect: unknown; userId: string }): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> {
+  const key = process.env.FAL_KEY
+  if (!key) return { status: 'failed' }
+  fal.config({ credentials: key })
+  const st = (await fal.queue.status(ESTRELA_EDIT_SLUG, { requestId: args.requestId })) as { status?: string }
+  if (st.status === 'FAILED') return { status: 'failed' }
+  if (st.status !== 'COMPLETED') return { status: 'pending' }
+  const r = await stillComFolha(
+    { prompt: args.prompt, imageUrls: args.imageUrls, aspect: args.aspect, fichas: [], pollWindowMs: 5_000, meta: { engine: 'personagem:portao_free15' }, retomar: args.requestId },
+    {
+      pedir,
+      bytes,
+      moderar: async (texto, imageUrls, meta) => {
+        const v = await moderateContent({ surface: 'estrela', stage: 'output', userId: args.userId, text: texto, imageUrls, meta })
+        return v.ok ? { ok: true } : v.reason === 'blocked' ? { ok: false, reason: 'blocked', decision: v.decision } : { ok: false, reason: v.reason }
+      },
+    },
+  )
+  return r.url ? { status: 'done', url: r.url } : { status: 'failed' }
 }

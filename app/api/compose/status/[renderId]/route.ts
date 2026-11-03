@@ -622,7 +622,7 @@ export async function GET(
       }
       // KINEO-FILME15-PERFEITO-2610: authoritative birth, never ?duration or ?quality.
       // This runs BEFORE any settlement, history insert, ready email or URL response.
-      let free15GateFailure: { reason: string; creditsRefunded: number } | null = null
+      let free15GateFailure: { reason: string; creditsRefunded: number; identityUnresolved?: boolean } | null = null // KINEO-ELENCO-TRAVA-0311 — + a troca de personagem não resolvida
       if (quality === 'cinematic_ai' && prepaidCinematicClaim?.response?.duration === 15) {
         const { isSeedanceShortClaim } = await import('@/lib/durationByEngine')
         const { kling4TrialEngineFromClaim } = await import('@/lib/kling4TrialClaim')
@@ -641,6 +641,7 @@ export async function GET(
             const creditsRefunded = await refundFailedFree15Gate({ ...ctx, reason: gate.reason })
             if (creditsRefunded === null) return NextResponse.json({ phase: 'processing', progress: 98, reconcile: true, quality_review: true })
             free15GateFailure = { reason: gate.reason, creditsRefunded }
+            if (gate.identityUnresolved) free15GateFailure.identityUnresolved = true // KINEO-ELENCO-TRAVA-0311 — refeita e o personagem ainda troca (o estado assinado do portão também guarda identityUnresolved)
           }
           state = { ...state, url: gate.media.url, snapshotUrl: gate.media.snapshotUrl, durationSeconds: gate.media.durationSeconds }
         }
@@ -1622,6 +1623,7 @@ export async function GET(
         creditsDeducted: free15GateFailure ? false : creditsDeducted,
         creditsRemaining,
         ...(free15GateFailure ? { free15_gate_failed: true, quality_review_reason: free15GateFailure.reason, creditsRefunded: free15GateFailure.creditsRefunded } : {}),
+        ...(free15GateFailure?.identityUnresolved ? { delivery_mark: 'identity_unresolved', celebrate: false } : {}), // KINEO-ELENCO-TRAVA-0311 — o filme em que o personagem troca não é "perfeito": a marca vai na resposta (a tela ainda não a lê — sem redesenho nesta leva)
       })
     }
 
