@@ -61,11 +61,45 @@ export async function hasEscolhaSampleReservation(admin: SupabaseClient, i: Iden
   } catch { return false }
 }
 
+// KINEO-AMOSTRA-QUEIMADA-0311 — a amostra cujo PLANO nunca saiu não conta como usada: a reserva vem antes do planejamento (a
+// semente 'planned' só com a marca), e quando o planejamento falha ou a função morre, a pessoa ficava sem amostra e sem vídeo,
+// para sempre. Caso real: bloom.boca.llc (02/11 23:43 UTC, link da AliExpress), pedido 8e456a32 parado em 'planned' com a
+// semente; a 1ª amostra grátis de anúncio da produção. Vale só com a semente parada há ≥ 5 min (planejamento em curso conta
+// como usado), sem débito, sem início, sem geração, sem entrega e sem plano gravado; 'cancelled' só pela faxina de 48 h.
+export const AMOSTRA_QUEIMADA_MARCA = 'KINEO-AMOSTRA-QUEIMADA-0311'
+export const AMOSTRA_SEMENTE_PARADA_MS = 5 * 60_000
+type PedidoSemente = { id?: unknown; status?: unknown; error?: unknown; credits_charged?: unknown; started_at?: unknown; delivered_at?: unknown; generation_id?: unknown; plan?: unknown; assembly_lease_at?: unknown; updated_at?: unknown; created_at?: unknown }
+/** PURA: o pedido da amostra é a semente que nunca ganhou plano (e está parado há ≥ 5 min)? */
+export function pedidoDeAmostraSemPlano(order: PedidoSemente | null | undefined, nowMs: number): boolean {
+  if (!order || typeof order !== 'object') return false
+  if (order.status !== 'planned' && !(order.status === 'cancelled' && order.error === 'abandoned_48h')) return false
+  if (Number(order.credits_charged ?? 0) !== 0 || order.started_at || order.delivered_at || order.generation_id) return false
+  const plan = order.plan as { cena?: { plan?: unknown }; escolhaFlow?: unknown; narration?: unknown } | null | undefined
+  const inner = plan && typeof plan === 'object' ? plan.cena?.plan : null
+  if (!inner || typeof inner !== 'object' || Object.keys(inner).some(k => k !== 'escolha') || plan!.escolhaFlow || plan!.narration) return false
+  const desde = Date.parse(String(order.assembly_lease_at ?? order.updated_at ?? order.created_at ?? ''))
+  return Number.isFinite(desde) && nowMs - desde >= AMOSTRA_SEMENTE_PARADA_MS
+}
+/** A semente parada da pessoa (id + lease atual, para a retomada condicional) — ou null. Qualquer erro = null (conta como usada). */
+export async function amostraSemPlano(admin: SupabaseClient, actorId: string, nowMs = Date.now()): Promise<{ orderId: string; lease: string | null } | null> {
+  if (!UUID.test(actorId)) return null
+  try {
+    const r = await admin.from(TABLE).select('order_id, owner_id, delivered_at').eq('actor_id', actorId).maybeSingle()
+    const row = (r.data as { order_id?: unknown; owner_id?: unknown; delivered_at?: unknown } | null) ?? null
+    if (r.error || !row || row.delivered_at || typeof row.order_id !== 'string' || row.owner_id !== actorId) return null
+    const o = await admin.from('ads_v2_orders').select('id, status, error, credits_charged, started_at, delivered_at, generation_id, plan, assembly_lease_at, updated_at, created_at').eq('id', row.order_id).eq('user_id', actorId).maybeSingle()
+    const order = (o.data as PedidoSemente | null) ?? null
+    if (o.error || !order || !pedidoDeAmostraSemPlano(order, nowMs)) return null
+    return { orderId: row.order_id, lease: typeof order.assembly_lease_at === 'string' ? order.assembly_lease_at : null }
+  } catch { return null }
+}
+
 /** Used forever includes failed/deleted orders; an unavailable ledger fails closed. */
 export async function escolhaSampleUsed(admin: SupabaseClient, actorId: string): Promise<boolean> {
   if (!UUID.test(actorId)) return true
   try {
     const r = await admin.from(TABLE).select('order_id').eq('actor_id', actorId).maybeSingle()
+    if (!r.error && r.data && await amostraSemPlano(admin, actorId)) return false // KINEO-AMOSTRA-QUEIMADA-0311 — o plano nunca saiu: não foi usada
     return !!r.error || !!r.data
   } catch { return true }
 }

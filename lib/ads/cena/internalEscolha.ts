@@ -23,6 +23,7 @@ import { writeEscolhaEvent } from './escolhaEvents'
 import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_MARK, isEscolhaSamplePlan } from './escolhaSamplePolicy'
 import { escolhaSampleAccountOk as escolhaSampleAccountOkPais, reserveEscolhaSample as reserveEscolhaSamplePais } from './escolhaSampleServer' // KINEO-ADS-SIMPLES-2810 — as versões com o país do pedido (os nomes de sempre viram fechos locais abaixo)
 import { upgradeEscolhaSample } from './escolhaSampleUpgrade'
+import { amostraSemPlano, AMOSTRA_QUEIMADA_MARCA } from './escolhaSampleServer' // KINEO-AMOSTRA-QUEIMADA-0311 — a semente cujo plano nunca saiu é retomada
 import type { SupabaseClient } from '@supabase/supabase-js' // KINEO-ADS-SIMPLES-2810 — o tipo dos fechos locais acima
 
 export type EscolhaEffects = Pick<EscolhaStillDeps, 'submit' | 'poll' | 'persist'>
@@ -70,11 +71,23 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       const planLease = new Date(now()).toISOString()
       if (sampleMode) {
         if (body.dry_run === true) return v2Json({ dry_run: true, charged: false, sample: true, seconds: 8, credits: 0, stage: 'edit' })
-        const seed = await d.admin.from('ads_v2_orders').insert({ user_id: uid, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, assembly_lease_at: planLease, plan: { cena: { route, plan: { escolha: { marker: 'KINEO-ADS-ESCOLHA-2310', sample: ADS_ESCOLHA_SAMPLE_MARK } } } } }).select('id').maybeSingle()
-        if (seed.error || !seed.data) return v2Fail('cena_order_failed', 503)
-        sampleOrder = String(seed.data.id)
-        const reservation = await reserveEscolhaSample(d.admin, { orderId: sampleOrder, actorId: user.id, ownerId: uid, leaseAt: planLease, route })
-        if (!reservation.ok) return v2Fail(reservation.error, reservation.status)
+        // KINEO-AMOSTRA-QUEIMADA-0311 — a semente de uma amostra cujo plano nunca saiu é RETOMADA (lease condicional), sem nova reserva.
+        const parada = await amostraSemPlano(d.admin, user.id, now())
+        if (parada) {
+          let retoma = d.admin.from('ads_v2_orders').update({ status: 'planned', error: null, assembly_lease_at: planLease }).eq('id', parada.orderId).eq('user_id', uid).in('status', ['planned', 'cancelled']).eq('credits_charged', 0).is('started_at', null)
+          retoma = parada.lease ? retoma.eq('assembly_lease_at', parada.lease) : retoma.is('assembly_lease_at', null)
+          const won = await retoma.select('id').maybeSingle()
+          if (won.error || !won.data) return v2Fail('cena_order_failed', 503)
+          sampleOrder = parada.orderId
+          try { await (await import('@/lib/serverEvents')).writeServerEvent({ name: 'ads_sample_seed_resumed', userId: uid, path: '/api/ads/cena', metadata: { order_id: parada.orderId, marker: AMOSTRA_QUEIMADA_MARCA } }) } catch { /* o rastro nunca derruba a retomada */ }
+        }
+        const seed = sampleOrder ? null : await d.admin.from('ads_v2_orders').insert({ user_id: uid, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, assembly_lease_at: planLease, plan: { cena: { route, plan: { escolha: { marker: 'KINEO-ADS-ESCOLHA-2310', sample: ADS_ESCOLHA_SAMPLE_MARK } } } } }).select('id').maybeSingle()
+        if (seed) { // KINEO-AMOSTRA-QUEIMADA-0311 — só a semente NOVA reserva; a retomada já tem a reserva dela
+          if (seed.error || !seed.data) return v2Fail('cena_order_failed', 503)
+          sampleOrder = String(seed.data.id)
+          const reservation = await reserveEscolhaSample(d.admin, { orderId: sampleOrder, actorId: user.id, ownerId: uid, leaseAt: planLease, route })
+          if (!reservation.ok) return v2Fail(reservation.error, reservation.status)
+        }
       }
       const first = cena95ModerationFailure(await d.moderate([input.frase, input.oferta, input.cta, ...(input.beneficios ?? [])].filter(Boolean).join('\n')))
       if (first) return v2Fail(first.error, first.status)

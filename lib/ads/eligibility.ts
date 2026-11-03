@@ -12,6 +12,7 @@ import { isDisposableEmail } from '@/lib/emailValidation'
 import { ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { adsEligibilityDecide, adsSampleCapResetIso, adsSampleCountry, type AdsEligibilityDecision } from '@/lib/ads/eligibilityPure'
+import { amostraSemPlano } from '@/lib/ads/cena/escolhaSampleServer' // KINEO-AMOSTRA-QUEIMADA-0311
 
 export interface AdsEligibility extends AdsEligibilityDecision {
   gate: 'ok' | 'no_access' | 'closed'
@@ -52,6 +53,7 @@ export async function loadAdsEligibility(admin: SupabaseClient, user: { id: stri
       used = !!row
       if (row && typeof row.order_id === 'string') base.sampleOrderId = row.order_id
       base.sampleDelivered = !!row && typeof row.delivered_at === 'string'
+      if (row && !base.sampleDelivered && await amostraSemPlano(admin, user.id)) { used = false; base.sampleOrderId = null } // KINEO-AMOSTRA-QUEIMADA-0311 — o plano nunca saiu: a amostra volta a valer
     }
   } catch { used = null }
   if (used !== false) return { ...adsEligibilityDecide({ gate, sampleLive: ADS_ESCOLHA_SAMPLE_LIVE, used, emailConfirmed: true, disposable: false, trialBlocked: false, country: null, reservedCentsToday: 0, dailyCapCents: ADS_ESCOLHA_SAMPLE_DAILY_CAP_CENTS, estimateCents }), ...base }
