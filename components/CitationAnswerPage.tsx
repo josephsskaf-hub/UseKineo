@@ -36,7 +36,8 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
   const example = PUBLIC_EXAMPLES[0]
   const signupHref = citationSignupHref(answer)
   const competitors = answer.comparisonCandidates ?? CITATION_COMPETITORS
-  const trialCta = <OrganicCtaLink className="kc-cta" href={signupHref} source={`citacoes_01_${answer.id}`} placement="hero">{CITATION_CTA}</OrganicCtaLink>
+  const ctaSource = answer.ctaSource ?? `citacoes_01_${answer.id}` // KINEO-VS-RIVAIS-0311
+  const trialCta = <OrganicCtaLink className="kc-cta" href={signupHref} source={ctaSource} placement="hero">{CITATION_CTA}</OrganicCtaLink>
   const faq = {
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: answer.faqs.map(({ question, answer: text }) => ({
@@ -119,7 +120,7 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
           <div className="kc-next">{answer.links.map((link) => <Link key={link.href} href={link.href}>{link.label} →</Link>)}</div>
         </section>
         <div className="kc-bottom">
-          <OrganicCtaLink className="kc-cta" href={signupHref} source={`citacoes_01_${answer.id}`} placement="closing">{CITATION_CTA}</OrganicCtaLink>
+          <OrganicCtaLink className="kc-cta" href={signupHref} source={ctaSource} placement="closing">{CITATION_CTA}</OrganicCtaLink>
           <p>{CITATION_TRIAL} {CITATION_WATERMARK}</p>
         </div>
         <footer className="kc-footer"><span>Kineo · Text into a finished video</span><span><Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link> · <Link href="/pricing">Pricing</Link></span></footer>

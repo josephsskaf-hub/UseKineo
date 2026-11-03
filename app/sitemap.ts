@@ -42,6 +42,8 @@ import { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSe
 import { VS_NOVOS_ENRICHED_PATHS, VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
 // KINEO-GUIAS-IA-1610 — as guias /guides/<slug> do GPT (16/10) conferidas contra o código. Módulo PURO, sem import.
 import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Paths'
+// KINEO-VS-RIVAIS-0311 — Revid, Crayo, AutoShorts, Faceless.video, Fliki e Zebracat, e as 4 relidas. Módulo PURO, sem import.
+import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_REFRESHED_PATHS, VS_RIVAL_LINKS } from '@/lib/seo/vsRivais0311'
 // KINEO-PAGINAS-UGC-2010 — AI UGC Ads (pilar EN/PT, gerador, 12 nichos) e Kit Black Friday (EN/PT). Módulo PURO, sem import.
 import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS } from '@/lib/seo/paginasUgc2010'
 import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — as páginas do AI Kids Cartoon Stories (módulo puro)
@@ -476,6 +478,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...[...VS_NOVOS_LINKS.map(({ path }) => path), ...ADS_COMPARISONS_1610.map(({ slug }) => adsComparisonPath(slug))].map((path) => ({
       url: `${BASE}${path}`,
       lastModified: VS_NOVOS_REVIEWED_ISO,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+    // KINEO-VS-RIVAIS-0311 — as páginas novas e as 4 relidas; lastmod = dia da leitura dos fatos. As relidas já têm linha acima:
+    // trafego2310Sitemap junta a URL repetida e fica com a data mais nova. URL nova no mapa = o cron submit-indexnow avisa o Bing.
+    ...[...VS_RIVAL_LINKS.map(({ path }) => path), ...VS_RIVAIS_REFRESHED_PATHS].map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: VS_RIVAIS_CHECKED_ISO,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),

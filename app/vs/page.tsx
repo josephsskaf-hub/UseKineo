@@ -23,6 +23,8 @@ import {
   pairsForTool,
 } from '@/lib/comparisons'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-VS-RIVAIS-0311 — as alternativas datadas (fatos relidos em 03/11) entram no hub: sem isso nascem sem link interno.
+import { VS_RIVAIS_CHECKED_LABEL, VS_RIVAL_LINKS } from '@/lib/seo/vsRivais0311'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -224,6 +226,27 @@ export default function ComparisonsHubPage() {
         </p>
         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
           {HEAD_TO_HEAD.map((pair) => cardFor(pair.slug, TOOLS[pair.a].name, TOOLS[pair.b].name, pair.whyItExists, 'Head-to-head'))}
+        </div>
+
+        {/* KINEO-VS-RIVAIS-0311 — as ferramentas de faceless do mesmo porte. Só caminho e rótulo: o fato e a data moram na página. */}
+        <h2 style={h2}>Kineo and the faceless video tools</h2>
+        <p style={p}>
+          The tools people shortlist for faceless Shorts, each with a dated answer on who should pick which, sourced prices and
+          the jobs they do better than we do. {VS_RIVAIS_CHECKED_LABEL}.
+        </p>
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }} data-kineo="vs-rivals-hub">
+          {[
+            ...VS_RIVAL_LINKS,
+            { path: '/vs/invideo-alternatives-faceless-shorts', label: 'InVideo alternatives by workflow' },
+            { path: '/vs/pictory-alternatives-cinematic-shorts', label: 'Pictory alternatives for a narrated Short' },
+            { path: '/vs/opus-clip-alternatives-original-shorts', label: 'OpusClip alternatives for original Shorts' },
+            { path: '/kineo-vs-higgsfield', label: 'Kineo vs Higgsfield: clips or a finished film' },
+          ].map((item) => (
+            <Link key={item.path} href={item.path} style={{ ...CARD, padding: '18px 20px', textDecoration: 'none', color: '#f5f5f7', display: 'block' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>{item.label}</div>
+              <div style={{ color: ACCENT, fontSize: '0.85rem', fontWeight: 800, marginTop: 11 }}>Read the comparison →</div>
+            </Link>
+          ))}
         </div>
 
         {/* KINEO-AEO-PAIRS-2026-08-03 — browse by tool.

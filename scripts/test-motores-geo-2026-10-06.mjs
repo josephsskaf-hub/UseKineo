@@ -349,7 +349,8 @@ async function problemas(rep = {}) {
   }
   for (const path of ['/ai-video-generator', '/models-pricing', '/kineo-vs-higgsfield', '/seedance-vs-veo-vs-kling']) {
     const ent = sm.find((x) => x.url === `${BASE}${path}`)
-    const quando = path === '/seedance-vs-veo-vs-kling' ? rodada3 : lastmodGeo // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (a comparação foi revisada)
+    // REANCORADO KINEO-VS-RIVAIS-0311: /kineo-vs-higgsfield foi relida em 03/11 e leva a data dela (prova: test-vs-rivais-0311, R7).
+    const quando = path === '/seedance-vs-veo-vs-kling' ? rodada3 : path === '/kineo-vs-higgsfield' ? new Date('2026-11-03').getTime() : lastmodGeo // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (a comparação foi revisada)
     if (!ent || new Date(ent.lastModified).getTime() !== quando) p.push(`sitemap: ${path} sem o lastmod da revisão`)
   }
   const cluster = sm.find((x) => x.url === `${BASE}/pricing`)
@@ -433,7 +434,8 @@ ok(edicoesMotoresGeo(rd(PAGE)) === 11, 'as 11 edições da página que os guardi
   // indexáveis, as traduzidas e /seedance-vs-veo-vs-kling — o ping DESTA revisão (lastmod = 06/10) corretamente não as escolhe
   // mais; o ping da rodada 3 é scripts/indexnow-ping-geo-rodada3-2026-10-08.mjs. Ficam o hub e as 2 comparações não tocadas
   // (a igualdade EXATA abaixo segue provando que nenhuma página de motor, pausada ou não, entra neste ping).
-  const deveTer = [`${BASE}/ai-video-generator`, `${BASE}/models-pricing`, `${BASE}/kineo-vs-higgsfield`].sort()
+  // REANCORADO KINEO-VS-RIVAIS-0311: a Higgsfield foi re-datada em 03/11, então o ping desta revisão corretamente não a escolhe mais.
+  const deveTer = [`${BASE}/ai-video-generator`, `${BASE}/models-pricing`].sort()
   const veio = [...(saida?.urlList ?? [])].sort()
   ok(saida?.mode === 'ensaio-offline' && JSON.stringify(veio) === JSON.stringify(deveTer), `(8) ping offline escolhe EXATAMENTE as ${deveTer.length} URLs desta revisão que a rodada 3 não re-datou (hub e 2 comparações) — nada de motor pausado nem de página de outra sessão [veio ${veio.length}]`)
 }

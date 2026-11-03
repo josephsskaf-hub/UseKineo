@@ -177,6 +177,9 @@ function discovery(overrides = {}) {
       // Arcads ad comparison; without them this run died mapping an undefined list. Inert here: the real entries are exercised by
       // test-vs-novos-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       VS_NOVOS_REVIEWED_ISO: '2026-10-15', VS_NOVOS_LINKS: [], ADS_COMPARISONS_1610: [],
+      // KINEO-VS-RIVAIS-0311 (re-anchored 03/11) — the sitemap imports the rival comparison pages (lib/seo/vsRivais0311.ts); without
+      // them this run died mapping an undefined list. Inert here: the real entries are exercised by test-vs-rivais-0311.
+      VS_RIVAIS_CHECKED_ISO: '2026-11-03', VS_RIVAL_LINKS: [], VS_RIVAIS_REFRESHED_PATHS: [],
       // KINEO-GUIAS-IA-1610 (re-anchored 16/10) — the sitemap imports the /guides/<slug> paths (lib/seo/guiasIa1610Paths.ts);
       // without them this run died mapping an undefined list. Inert here: the real entries are exercised by
       // test-guias-ia-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.

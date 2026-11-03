@@ -677,7 +677,8 @@ async function regraR7(world = {}) {
     ...cat.INDEXABLE_ENGINE_SLUGS.filter((s) => s !== 'seedance').map((s) => `/ai-video-generator/${s}`),
     ...langs.LOCALIZED_ENGINE_SLUGS.filter((s) => cat.INDEXABLE_ENGINE_SLUGS.includes(s)).flatMap((s) => langs.ENGINE_LANG_CODES.map((c) => `/ai-video-generator/${s}/${c}`)),
   ]
-  for (const path of r3Paths) if (lm(path) !== stamp) p.push(`R7 sitemap: ${path} com lastmod ${lm(path)} (esperado o carimbo da rodada 3)`)
+  // REANCORADO KINEO-VS-RIVAIS-0311: a página do InVideo foi relida em 03/11 e leva a data dela (prova: test-vs-rivais-0311, R7).
+  for (const path of r3Paths.filter((x) => x !== '/vs/invideo-alternatives-faceless-shorts')) if (lm(path) !== stamp) p.push(`R7 sitemap: ${path} com lastmod ${lm(path)} (esperado o carimbo da rodada 3)`)
   const r2Paths = ['/ai-video-generator/seedance', ...ideas.NICHE_HOUSE_FILM_SLUGS.map((s) => `/free-ai-shorts/${s}`)]
   for (const path of r2Paths) if (lm(path) !== R2_STAMP) p.push(`R7 sitemap: ${path} perdeu o carimbo da rodada 2 (${lm(path)})`)
   for (const path of ['/pricing', '/ai-video-generator', '/alternatives/heygen', '/kineo-vs-kineo-studio', '/ai-video-index']) if (lm(path) === stamp) p.push(`R7 sitemap: re-datou página que a rodada 3 não tocou (${path})`)
@@ -721,7 +722,7 @@ async function regraPing(world = {}) {
   const naoNoMapa = new Set()
   const noMapa = (path) => { const ok2 = sm.some((x) => x.url === `${BASE}${path}`); if (!ok2) naoNoMapa.add(path); return ok2 }
   const deveTer = [
-    ...G.GEO_RODADA3_STATIC_PATHS.filter(noMapa),
+    ...G.GEO_RODADA3_STATIC_PATHS.filter((x) => x !== '/vs/invideo-alternatives-faceless-shorts').filter(noMapa), // REANCORADO KINEO-VS-RIVAIS-0311
     ...G.GEO_RODADA3_ALTERNATIVE_SLUGS.map((s) => `/alternatives/${s}`).filter(noMapa),
     ...cat.INDEXABLE_ENGINE_SLUGS.map((s) => `/ai-video-generator/${s}`),
     ...langs.LOCALIZED_ENGINE_SLUGS.filter((s) => cat.INDEXABLE_ENGINE_SLUGS.includes(s)).flatMap((s) => langs.ENGINE_LANG_CODES.map((c) => `/ai-video-generator/${s}/${c}`)),

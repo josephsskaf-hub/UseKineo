@@ -3,12 +3,12 @@
 import CitationAnswerPage, { citationAnswerMetadata } from '@/components/CitationAnswerPage'
 import VsAlternativeComparison, { VsAlternativeFreeCta } from '@/components/VsAlternativeComparison'
 import { VS_ALTERNATIVE_ANSWERS } from '@/lib/growth/vsAlternativeAnswers'
-import { VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
+import { VS_RIVAIS_CHECKED_ISO } from '@/lib/seo/vsRivais0311' // KINEO-VS-RIVAIS-0311 — relida em 03/11 (os fatos de 13/10 seguem com a data deles)
 
 export const dynamic = 'force-static'
 const answer = VS_ALTERNATIVE_ANSWERS.pictory
 export const metadata = citationAnswerMetadata(answer)
 
 export default function Page() {
-  return <CitationAnswerPage answer={answer} heroActions={<VsAlternativeFreeCta answer={answer} />} comparisonSection={<VsAlternativeComparison id="pictory" />} reviewDate={VS_ALT_REVIEWED_ISO} />
+  return <CitationAnswerPage answer={answer} heroActions={<VsAlternativeFreeCta answer={answer} />} comparisonSection={<VsAlternativeComparison id="pictory" />} reviewDate={VS_RIVAIS_CHECKED_ISO} />
 }

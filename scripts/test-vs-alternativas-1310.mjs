@@ -109,7 +109,9 @@ function run(opts = {}) {
     }
     // reancorado KINEO-VS-NOVOS-1610 — a CapCut foi enriquecida e relida em 15/10 (decisão da CEO): a página leva a data nova;
     // as outras 3 continuam exigindo 13/10. Os fatos de 13/10 da CapCut seguem com a data deles (R5 abaixo, intacto).
-    const pageDay = id === 'capcut' ? '2026-10-15' : facts.VS_ALT_REVIEWED_ISO
+    // reancorado KINEO-VS-RIVAIS-0311 — Pictory e OpusClip relidas em 03/11 (fundador: páginas de comparação): a página leva a data
+    // nova e fatos novos com a data deles (prova: test-vs-rivais-0311, R7); os fatos de 13/10 seguem com a data deles (R5, intacto).
+    const pageDay = ({ capcut: '2026-10-15', pictory: '2026-11-03', opusclip: '2026-11-03' })[id] ?? facts.VS_ALT_REVIEWED_ISO
     if (!h.includes(`Reviewed ${pageDay}`)) fail('R1', `${id}: data de revisão`)
   }
 
@@ -138,7 +140,7 @@ function run(opts = {}) {
       const e = sm.find((x) => x.url === `${BASE}${path}`)
       if (!e) fail('R2', `sitemap sem ${path}`)
       // reancorado KINEO-VS-NOVOS-1610 — CapCut relida em 15/10 (mesma regra do R1); as outras 3 seguem em 13/10
-      else if (new Date(e.lastModified).toISOString().slice(0, 10) !== (id === 'capcut' ? '2026-10-15' : facts.VS_ALT_REVIEWED_ISO)) fail('R2', `sitemap ${path} com lastmod ${e.lastModified}`)
+      else if (new Date(e.lastModified).toISOString().slice(0, 10) !== (({ capcut: '2026-10-15', pictory: '2026-11-03', opusclip: '2026-11-03' })[id] ?? facts.VS_ALT_REVIEWED_ISO)) fail('R2', `sitemap ${path} com lastmod ${e.lastModified}`)
     }
     if (sm.filter((x) => ids.some((id) => x.url === `${BASE}${facts.VS_ALTERNATIVE_PAGES[id].path}`)).length !== ids.length) fail('R2', 'sitemap com página duplicada')
   } catch (e) { fail('R2', `sitemap não executa: ${e.message}`) }
@@ -264,7 +266,7 @@ const MUTANTS = [
   ['M3 preço do concorrente digitado na resposta', 'R3', () => sub(ANSWERS_FILE, '${VS_COMPETITORS.pictory.price.text}', 'Starter: USD 29/month on monthly billing.')],
   ['M4 preço da Kineo digitado no componente', 'R3', () => sub(COMPONENT_FILE, '${creator.priceLine} (${creatorPlan.credits} credits)', '$19.90/month (140 credits)')],
   ['M5 promessa proibida na FAQ', 'R4', () => sub(ANSWERS_FILE, 'Yes. Paste your narration and choose', 'Yes, with unlimited renders. Paste your narration and choose')],
-  ['M6 página fora do sitemap', 'R2', () => sub(SITEMAP_FILE, '...VS_ALTERNATIVE_LINKS.map(({ path }) => ({', '...VS_ALTERNATIVE_LINKS.slice(1).map(({ path }) => ({')],
+  ['M6 página fora do sitemap', 'R2', () => sub(SITEMAP_FILE, '...VS_ALTERNATIVE_LINKS.map(({ path }) => ({', '...VS_ALTERNATIVE_LINKS.filter(({ path }) => !path.includes("synthesia")).map(({ path }) => ({')], // reancorado KINEO-VS-RIVAIS-0311 — pictory e opusclip agora também têm a linha das relidas
   ['M7 página fora do /llms.txt', 'R2', () => sub(LLMS_FILE, ' vsAlternativeLlmsLines(BASE)}', " ''}")],
   ['M8 campanha do botão diferente da do InVideo', 'R6', () => sub(COMPONENT_FILE, 'href={citationSignupHref(answer)}', 'href={`/signup?intent_campaign=vs_${answer.id}`}')],
   ['M9 WELCOME20 sem interruptor (preço do 1º mês fixo)', 'R3', () => sub(ANSWERS_FILE, 'const creator = buyCreatorCopy(\'en\')', 'const creator = buyCreatorCopy(\'en\', true)')],

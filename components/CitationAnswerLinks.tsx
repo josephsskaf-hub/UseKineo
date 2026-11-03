@@ -5,12 +5,14 @@ import { CITATION_ANSWER_CSS } from '@/lib/ui/citationAnswerStyles'
 import { VS_ALTERNATIVE_LINKS } from '@/lib/seo/vsAlternatives1310'
 // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina, no mesmo molde, na mesma lista.
 import { VS_NOVOS_LINKS } from '@/lib/seo/vsNovos1610'
+// KINEO-VS-RIVAIS-0311 — os rivais do mesmo porte, no mesmo molde, na mesma lista.
+import { VS_RIVAL_LINKS } from '@/lib/seo/vsRivais0311'
 
 export default function CitationAnswerLinks() {
   return <section className="kc-guides" aria-labelledby="citation-guides-heading">
     <style dangerouslySetInnerHTML={{ __html: CITATION_ANSWER_CSS }} />
     <h2 id="citation-guides-heading">Start with the video you want to make</h2>
     <p>Practical guides to scripts, faceless videos, free-trial limits and the cost of a complete Short.</p>
-    <ul>{[...CITATION_ANSWER_LINKS, ...VS_ALTERNATIVE_LINKS, ...VS_NOVOS_LINKS].map((item) => <li key={item.path}><Link href={item.path}>{item.label} →</Link></li>)}</ul>
+    <ul>{[...CITATION_ANSWER_LINKS, ...VS_ALTERNATIVE_LINKS, ...VS_NOVOS_LINKS, ...VS_RIVAL_LINKS].map((item) => <li key={item.path}><Link href={item.path}>{item.label} →</Link></li>)}</ul>
   </section>
 }

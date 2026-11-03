@@ -17,6 +17,7 @@ import { VS_ALTERNATIVE_PAGES, VS_COMPETITORS, type VsAlternativeId } from '@/li
 // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina no MESMO molde; fatos (com fonte e data) em lib/seo/vsNovos1610.ts.
 import { VS_NOVOS_CAPCUT_EXTRA, VS_NOVOS_COMPETITORS, VS_NOVOS_PAGES, type VsNovoId } from '@/lib/seo/vsNovos1610'
 import { S25_PUBLIC, engineOffered, enginePaused } from '@/lib/engineLaunch'
+import { VS_RIVAL_PAGES } from '@/lib/seo/vsRivais0311' // KINEO-VS-RIVAIS-0311 — só caminho e rótulo, para os links internos
 
 const creator = buyCreatorCopy('en')
 /** "Kineo Creator is <1º mês> for the first month, then <cheio>/month for N credits…" — só o cheio com o WELCOME20 desligado. */
@@ -72,6 +73,8 @@ export const VS_ALTERNATIVE_ANSWERS: Record<VsAlternativeId, CitationAnswer> = {
       { href: '/vs/kineo-vs-pictory', label: 'Read the Kineo vs Pictory comparison' },
       { href: '/alternatives/pictory', label: 'See more Pictory alternatives' },
       { href: '/vs/invideo-alternatives-faceless-shorts', label: 'InVideo alternatives by workflow' },
+      { href: VS_RIVAL_PAGES.fliki.path, label: VS_RIVAL_PAGES.fliki.label }, // KINEO-VS-RIVAIS-0311
+      { href: VS_RIVAL_PAGES.zebracat.path, label: VS_RIVAL_PAGES.zebracat.label },
     ],
   },
   synthesia: {
@@ -171,6 +174,8 @@ export const VS_ALTERNATIVE_ANSWERS: Record<VsAlternativeId, CitationAnswer> = {
       { href: '/vs/kineo-vs-opus-clip', label: 'Read the Kineo vs OpusClip comparison' },
       { href: '/alternatives/opusclip', label: 'See more OpusClip alternatives' },
       { href: '/vs/invideo-alternatives-faceless-shorts', label: 'InVideo alternatives by workflow' },
+      { href: VS_RIVAL_PAGES.crayo.path, label: VS_RIVAL_PAGES.crayo.label }, // KINEO-VS-RIVAIS-0311
+      { href: VS_RIVAL_PAGES.revid.path, label: VS_RIVAL_PAGES.revid.label },
     ],
   },
 }

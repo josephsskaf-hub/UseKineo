@@ -8,6 +8,9 @@ import { COMPARISON_REVIEW_DATE } from '@/lib/growth/citationComparisonSnapshot'
 // Kineo por motor (ENGINE_GEO). Não se estima preço por vídeo do InVideo: a página dele não publica crédito por vídeo.
 import { dayMonthYear, money, usd } from '@/lib/seo/engineCitation'
 import { HUB_REVIEWED_DAY, INVIDEO_FACTS, hubEngines, hubPlans } from '@/lib/seo/citableHubPages'
+// KINEO-VS-RIVAIS-0311 — a página que converteu: invideo.io/pricing relida em 03/11. A tabela de 4 ferramentas abaixo continua com
+// a data dela (COMPARISON_REVIEW_DATE, lida em 11/09): só a linha do InVideo foi relida, e a página diz qual é qual.
+import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_CHECKED_LABEL, VS_RIVAIS_REREAD, VS_RIVAL_PAGES } from '@/lib/seo/vsRivais0311'
 
 export const dynamic = 'force-static'
 const original = CITATION_ANSWERS.invideo
@@ -23,6 +26,7 @@ const answer: CitationAnswer = {
     ...faq,
     answer: 'No. Kineo does not import InVideo projects. Start from a text idea or paste your script, and Kineo builds the narrated video from it.',
   } : faq),
+  links: [...original.links, { href: VS_RIVAL_PAGES.revid.path, label: VS_RIVAL_PAGES.revid.label }, { href: VS_RIVAL_PAGES.zebracat.path, label: VS_RIVAL_PAGES.zebracat.label }, { href: VS_RIVAL_PAGES.fliki.path, label: VS_RIVAL_PAGES.fliki.label }],
 }
 export const metadata = citationAnswerMetadata(answer)
 
@@ -33,7 +37,9 @@ function InVideoBaseline() {
   const iv = INVIDEO_FACTS
   return (
     <section className="kc-section" aria-labelledby="invideo-baseline-heading" data-kineo="invideo-baseline">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: answer.question, inLanguage: 'en', dateModified: VS_RIVAIS_CHECKED_ISO, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} />
       <h2 id="invideo-baseline-heading">InVideo AI and Kineo: price per Short</h2>
+      <p className="kc-source" data-vs-rival-checked="invideo">{VS_RIVAIS_CHECKED_LABEL}: {VS_RIVAIS_REREAD.invideo.plans.text} <a href={VS_RIVAIS_REREAD.invideo.plans.url} rel="nofollow noopener noreferrer">{VS_RIVAIS_REREAD.invideo.plans.label}</a> ({VS_RIVAIS_REREAD.invideo.plans.checkedOn}).</p>
       <p>
         {/* KINEO-GEO-RODADA3-2026-10-08 — os planos da InVideo relidos em 08/10 (Basic/Pro/Ultra, preço por assento no mensal). */}
         {`InVideo AI (checked ${dayMonthYear(iv.checkedOn)}): ${iv.basic.plan} ${iv.basic.perSeatMonthly}/seat/month on monthly billing with ${iv.basic.credits} credits (${iv.basic.models}); ${iv.pro.plan} ${iv.pro.perSeatMonthly}/seat/month with ${iv.pro.credits} credits (${iv.pro.models}); ${iv.annualNote}. ${iv.perVideoNote} `}

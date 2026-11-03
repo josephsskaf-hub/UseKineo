@@ -75,6 +75,7 @@ export type CitationGuideId = 'script' | 'tiktok' | 'cost' | 'invideo' | 'budget
 // (citacoes_01_<id>); os dados ficam em lib/growth/vsAlternativeAnswers.ts, fora de CITATION_ANSWERS (as 8 guias de sempre).
 export type CitationAnswerId = CitationGuideId | import('@/lib/seo/vsAlternatives1310').VsAlternativeId
   | import('@/lib/seo/vsNovos1610').VsNovoId // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina, mesmo molde e campanha
+  | import('@/lib/seo/vsRivais0311').VsRivalId // KINEO-VS-RIVAIS-0311 — Revid, Crayo, AutoShorts, Faceless.video, Fliki e Zebracat, mesmo molde
 type Faq = { question: string; answer: string }
 export type CitationAnswer = {
   id: CitationAnswerId
@@ -91,6 +92,8 @@ export type CitationAnswer = {
   comparisonCandidates?: readonly ComparisonCandidate[]
   /** Existing script surface when starting from approved narration matters. */
   startHref?: string
+  /** KINEO-VS-RIVAIS-0311 — a origem do clique no CTA, quando a página tem campanha própria (senão: citacoes_01_<id>). */
+  ctaSource?: string
   faqs: readonly Faq[]
   links: readonly { href: string; label: string }[]
 }

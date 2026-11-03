@@ -21,6 +21,10 @@ import { KLING4_PAID_LIVE, KLING4_PROMO_SIGNUP_CUTOFF, kling4PromoPolicy, kling4
 import { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-VENDER-3-2910 · KINEO-K4-NARRACAO-CABE-0111 (selo honesto)
 import { CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE } from '@/lib/growth/checkoutValueContext' // KINEO-VENDER-3-2910
 import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05 · KINEO-MOTORES-GEO-2026-10-06 (país)
+// KINEO-VS-RIVAIS-0311 — higgsfield.ai/pricing relida em 03/11: o preço do concorrente mora num fato com URL e data, e a página
+// ganha a resposta primeiro, a linha de preço na tabela e o dateModified.
+import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_CHECKED_LABEL, VS_RIVAIS_REREAD } from '@/lib/seo/vsRivais0311'
+const HIGGS = VS_RIVAIS_REREAD.higgsfield.plans
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 // KINEO-VENDER-3-2910 — quem procura "Higgsfield alternative" já paga por vídeo com IA e mora onde se paga. A página falava
 // de Kling 3 (substituído pelo Kling 4.0 no plano pago em 29/10) e não tocava em cobrança, a reclamação mais comum sobre
@@ -67,7 +71,7 @@ const FAQ_JSONLD = {
       name: 'Is Kineo cheaper than Higgsfield?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo plans start at ${usd(TIER_PRICES.starter.usd)}/month and the mid plan is ${usd(TIER_PRICES.basic.usd)}/month; Higgsfield's plans start at $15/month (Starter, 200 credits) and Plus is $49/month, or $39/month billed annually (1,000 credits), as listed on Higgsfield's site in October 2026. The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.`,
+        text: `Kineo plans start at ${usd(TIER_PRICES.starter.usd)}/month and the mid plan is ${usd(TIER_PRICES.basic.usd)}/month; on Higgsfield's own pricing page (checked November 2026): ${HIGGS.text} The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.`,
       },
     },
     {
@@ -109,6 +113,7 @@ const ROWS: Array<[string, string, string]> = [
   KLING4_PAID_LIVE // KINEO-VENDER-3-2910 — o Kling 4.0 entrou no lugar do Kling 3 no plano pago
     ? ['Kling 4.0', 'Clips you edit', PROMO_ON ? `Finished Kling 4.0 films — free for 30 days with Creator or above (up to 3 a day)` : 'Finished Kling 4.0 films with narration, captions and music']
     : ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
+  ['Plan prices', HIGGS.text, `Starter ${usd(TIER_PRICES.starter.usd)}/month, ${TIER_CREDITS.starter} credits. Creator ${usd(TIER_PRICES.basic.usd)}/month, ${TIER_CREDITS.basic} credits.`], // KINEO-VS-RIVAIS-0311
   ['Entry', 'No trial period; limited free tier', FREE_IS_K4 ? `Free first film${GRANT_COUNTRY_CLAUSE} made with Kling 4.0, no card` : `Free trial${GRANT_COUNTRY_CLAUSE}: ${TRIAL_FIRST_FILM_SHORT}, no card`], // KINEO-VENDER-3-2910
   ['Refunds', 'Initial purchase only, within 7 days, if no credits used', '7-day money-back on monthly plans + first-film redo or refund'], // KINEO-VENDER-3-2910
 ]
@@ -117,11 +122,17 @@ export default function VsHiggsfieldPage() {
   return (
     <main style={{ maxWidth: 820, margin: '0 auto', padding: '48px 20px 64px', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif', lineHeight: 1.65 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', url: `${BASE}/kineo-vs-higgsfield`, name: 'Kineo vs Higgsfield', inLanguage: 'en', datePublished: '2026-08-25', dateModified: VS_RIVAIS_CHECKED_ISO, citation: [HIGGS.url], publisher: { '@type': 'Organization', name: 'Kineo', url: BASE } }).replace(/</g, '\u003c') }} />
       <p style={{ color: '#86868b', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800 }}>Kineo · Comparison</p>
       <h1 style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.15, margin: '10px 0 14px', letterSpacing: '-0.02em' }}>
         Kineo vs Higgsfield: clips, or a finished film?
       </h1>
 
+      {/* KINEO-VS-RIVAIS-0311 — resposta primeiro: quem escolhe o quê, em duas frases. */}
+      <p style={{ color: '#f5f5f7', fontSize: 17, fontWeight: 600 }} data-vs-rival-answer="higgsfield">
+        Pick Higgsfield if you want to generate images and clips across many models and craft the edit yourself. Pick Kineo if you
+        want one idea turned into a finished narrated film, with scenes, voice, captions and music in a single render.
+      </p>
       <p style={{ color: '#c7c7cc', fontSize: 16 }}>
         Let&apos;s be fair about it: Higgsfield is a strong generation platform with a beautiful catalogue of models, and
         if what you want is to generate images and clips and craft the edit yourself, it does that well. This page
@@ -186,7 +197,8 @@ export default function VsHiggsfieldPage() {
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>
-        Competitor pricing and features change; Higgsfield figures were read from Higgsfield’s own price list in October 2026. We link
+        {VS_RIVAIS_CHECKED_LABEL}. Competitor pricing and features change; Higgsfield plan prices were read from{' '}
+        <a href={HIGGS.url} rel="nofollow noopener noreferrer" style={{ color: '#86868b' }}>{HIGGS.label}</a> on {HIGGS.checkedOn}; the other Higgsfield figures come from its help center, October 2026. We link
         to our own renders so you can verify our side yourself. Kineo is not affiliated with Higgsfield.
       </p>
     </main>

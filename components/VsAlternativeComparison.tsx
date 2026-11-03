@@ -15,14 +15,24 @@ import { VS_ALT_REVIEWED_ISO, VS_COMPETITORS, type VsAlternativeId, type VsSourc
 // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina usam esta MESMA tabela (fatos com fonte e data de 15/10); a CapCut ganha
 // linhas a mais (fatos novos de 15/10) sem perder as de 13/10. Cada célula mostra a SUA data.
 import { VS_NOVOS_CAPCUT_EXTRA, VS_NOVOS_COMPETITORS, VS_NOVOS_REVIEWED_ISO, type VsNovoId } from '@/lib/seo/vsNovos1610'
+// KINEO-VS-RIVAIS-0311 — Pictory e OpusClip relidas em 03/11: planos e limites atuais entram como linhas datadas.
+import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_CHECKED_LABEL, VS_RIVAIS_REREAD } from '@/lib/seo/vsRivais0311'
 
 type VsComparisonId = VsAlternativeId | VsNovoId
+const KINEO_PLAN_CELL = CITATION_PLANS.map((plan) => `${plan.name}: ${plan.price}, ${plan.credits} credits a month.`).join(' ')
 const isNovo = (id: VsComparisonId): id is VsNovoId => id in VS_NOVOS_COMPETITORS
 /** Linhas a mais (fato novo do concorrente × o que a Kineo faz), só onde houver. */
 const EXTRA_ROWS: Partial<Record<VsComparisonId, { label: string; them: VsSourcedFact; kineo: string }[]>> = {
   capcut: [
     { label: 'AI video generation', them: VS_NOVOS_CAPCUT_EXTRA.aiVideo, kineo: 'Generation is the whole job: the engine is chosen by name before rendering, and the narration, captions and music come assembled in the film.' },
     { label: 'Editing tools', them: VS_NOVOS_CAPCUT_EXTRA.editor, kineo: 'No timeline editor. Download the MP4 and polish it in an editor if you want to.' },
+  ],
+  pictory: [
+    { label: 'Plans and limits', them: VS_RIVAIS_REREAD.pictory.plans, kineo: KINEO_PLAN_CELL },
+    { label: 'Stock library', them: VS_RIVAIS_REREAD.pictory.stock, kineo: 'No stock library to browse: scenes are generated for the narration. If a large licensed library is the point, Pictory is the better fit.' },
+  ],
+  opusclip: [
+    { label: 'Plans and limits', them: VS_RIVAIS_REREAD.opusclip.plans, kineo: KINEO_PLAN_CELL },
   ],
 }
 
@@ -43,7 +53,9 @@ export default function VsAlternativeComparison({ id }: { id: VsComparisonId }) 
   const c = isNovo(id) ? VS_NOVOS_COMPETITORS[id] : VS_COMPETITORS[id]
   const reviewed = isNovo(id) ? VS_NOVOS_REVIEWED_ISO : VS_ALT_REVIEWED_ISO
   const extra = EXTRA_ROWS[id] ?? []
-  const checked = extra.length ? `${reviewed} and ${VS_NOVOS_REVIEWED_ISO}` : reviewed
+  const extraDay = extra[0]?.them.checkedOn // KINEO-VS-RIVAIS-0311 — cada leva de linhas a mais diz a SUA data
+  const checked = extraDay ? `${reviewed} and ${extraDay}` : reviewed
+  const reread = extraDay === VS_RIVAIS_CHECKED_ISO
   const creator = buyCreatorCopy('en')
   const [starter, creatorPlan] = CITATION_PLANS
   const rows: { label: string; them: VsSourcedFact; kineo: string }[] = [
@@ -54,9 +66,10 @@ export default function VsAlternativeComparison({ id }: { id: VsComparisonId }) 
     ...extra,
   ]
   return <section className="kc-section" aria-labelledby="comparison-heading" data-kineo="vs-alternative-comparison" data-vs-alternative={id}>
+    {reread ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: `${c.name} and Kineo, side by side`, inLanguage: 'en', datePublished: VS_ALT_REVIEWED_ISO, dateModified: VS_RIVAIS_CHECKED_ISO, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} /> : null}
     <h2 id="comparison-heading">{c.name} and Kineo, side by side</h2>
     <p>The two tools start from different material. Compare the starting point first, then the price; a tool built for another input is not a cheaper or dearer version of the same job.</p>
-    <p className="kc-source">{c.name} facts read on its own pages on {dayMonthYear(reviewed)}{extra.length ? <> and {dayMonthYear(VS_NOVOS_REVIEWED_ISO)}</> : null}; prices use monthly billing. A fact we could not confirm is left out, not guessed. Kineo figures come from the <Link href="/llms.txt">public fact sheet</Link> and <Link href="/pricing">current plans</Link>; Brazilian customers pay in reais.</p>
+    <p className="kc-source">{c.name} facts read on its own pages on {dayMonthYear(reviewed)}{extraDay ? <> and {dayMonthYear(extraDay)}</> : null}{reread ? <> ({VS_RIVAIS_CHECKED_LABEL})</> : null}; prices use monthly billing. A fact we could not confirm is left out, not guessed. Kineo figures come from the <Link href="/llms.txt">public fact sheet</Link> and <Link href="/pricing">current plans</Link>; Brazilian customers pay in reais.</p>
     <div className="kc-table-scroll" role="region" aria-label={`${c.name} and Kineo comparison, scroll horizontally for all columns`} tabIndex={0}>
       <table className="kc-table">
         <caption>{c.name} and Kineo · sources checked {checked}</caption>
