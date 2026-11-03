@@ -23,7 +23,9 @@
 export type HomeClipsFirstMode = 'off' | 'ab50' | 'all'
 
 /** Interruptor da home clips-first. NASCE 'off' (nada muda para ninguém). O fundador liga. */
-export const HOME_CLIPS_FIRST: HomeClipsFirstMode = 'ab50' // fundador 05/10: A/B 50/50, juiz = SQL #5 em 14 dias
+// KINEO-SEM-CLOAKING-0311 [fundador 03/11: "vamos tentar desbloquear nosso google ads"] — o A/B de 05/10 mostrava a variante a METADE das pessoas e SEMPRE a control ao robô:
+// conteúdo diferente por user-agent é a definição de cloaking (a conta 186-928-2523 está suspensa por isso) e o juiz de 14 dias venceu em 19/10 (cliques em gerar: clips_first 14,6% × control 12,2%, sem diferença clara).
+export const HOME_CLIPS_FIRST: HomeClipsFirstMode = 'off' // era 'ab50' (fundador 05/10: A/B 50/50, juiz = SQL #5 em 14 dias). Voltar a testar = tratar robô como gente (sem regra por user-agent)
 
 export type HomeVariant = 'control' | 'clips_first'
 export type HomeAssignmentKind = 'user' | 'visitor'
