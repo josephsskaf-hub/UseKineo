@@ -20,6 +20,6 @@ checa('nenhum cookie de sorteio para ninguém', !M.shouldMintHomeVisitorCookie({
 const interruptorOff = (s) => /export const HOME_CLIPS_FIRST: HomeClipsFirstMode = 'off'/.test(s)
 const fonte = fs.readFileSync(ARQ, 'utf8')
 checa('o fonte declara off', interruptorOff(fonte))
-checa('mutante ab50 fica vermelho', !interruptorOff(fonte.replace("HomeClipsFirstMode = 'off'", "HomeClipsFirstMode = 'ab50'")))
+checa('mutante ab50 fica vermelho', !interruptorOff(fonte.replace("HOME_CLIPS_FIRST: HomeClipsFirstMode = 'off'", "HOME_CLIPS_FIRST: HomeClipsFirstMode = 'ab50'")))
 console.log(falhas ? `\n${falhas} falha(s)` : '\ntudo verde')
 process.exit(falhas ? 1 : 0)
