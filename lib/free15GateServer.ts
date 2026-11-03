@@ -13,6 +13,9 @@ import { FREE15_GATE_EVENT, FREE15_GATE_FAILED_EVENT, FREE15_GATE_VERSION, advan
 import { cenaSemReferencia, referenciaDaCenaNoClaim } from '@/lib/cinematic/elencoTrava' // KINEO-ELENCO-TRAVA-0311 — a cena sem referência e a folha da cena, lidas do claim assinado
 import { postarStillComFolha, lerStillComFolha } from '@/lib/cinematic/personagemAjusteServer' // KINEO-ELENCO-TRAVA-0311 — o MESMO edit, formato e moderação do still com folha da rota
 import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311
+import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim' // KINEO-GRATIS-REFAZ-CENA-0311 — o marcador do 1º filme grátis (nasce com 0 filmes e 0 débitos)
+import { filmeGratisPermitido } from '@/lib/freeFilmPolicy' // KINEO-GRATIS-REFAZ-CENA-0311 — a lista de países do filme grátis (sem lista nova)
+import { corrigirPrompt0311, TETO_PROMPT_STILL_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311
 
 type Context = { db: SupabaseClient; secret: string; userId: string; renderId: string }
 const gateId = (a: Context) => uuidFrom(`kineo:free15-gate:v1:${a.userId}:${a.renderId}`)
@@ -46,6 +49,26 @@ async function pollScene(model: string, requestId: string) {
   const url = data.video?.url ?? data.output?.video?.url
   return url?.startsWith('https://') ? { status: 'done' as const, url } : { status: 'failed' as const }
 }
+
+/**
+ * KINEO-GRATIS-REFAZ-CENA-0311 [TRAVA 8.2 — fundador 03/11: "As 2 sim" — refazer a cena reprovada no 1º filme grátis]
+ * A conta é a do 1º filme grátis de país rico? (1) o claim assinado traz o marcador kling4_trial — a rota só o grava quando a conta
+ * NÃO paga, foi admitida ao filme grátis (trial/cota/região, todos já filtrados pela lista PAISES_FILME_GRATIS) e tinha 0 filmes e
+ * 0 débitos cinematic (kling4TrialEligible); (2) o país do pedido gravado no marcador está na lista (filmeGratisPermitido: país
+ * desconhecido = vale a admissão que já liberou o filme); (3) agora, no portão (antes do histórico deste render), a conta continua
+ * com 0 vídeos não falhos. Qualquer erro de leitura = false (nunca refaz no escuro).
+ */
+export async function primeiroFilmeGratis0311(a: { db: SupabaseClient; userId: string; renderId: string; claim: Pick<CinematicClaim, 'response'> }): Promise<boolean> {
+  if (kling4TrialEngineFromClaim(a.claim.response) === null) return false
+  const marcador = a.claim.response?.kling4_trial as { country?: unknown } | undefined
+  if (!filmeGratisPermitido(typeof marcador?.country === 'string' ? marcador.country : null)) return false
+  const { count, error } = await a.db.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', a.userId).neq('status', 'failed').neq('render_id', a.renderId)
+  return !error && count === 0
+}
+
+/** KINEO-GRATIS-REFAZ-CENA-0311 — a referência do still com a correção de época no prompt (sem relato: a referência de sempre). */
+export const comCorrecaoNoStill0311 = (ref: { folhas: string[]; prompt: string } | null, refaz0311?: RefazCena0311) =>
+  ref && refaz0311 ? { ...ref, prompt: corrigirPrompt0311(ref.prompt, refaz0311, TETO_PROMPT_STILL_0311) } : ref
 
 /** KINEO-JUIZ-PERGUNTAS-0311 — o prompt completo de cada cena do claim assinado (Kling 4 grátis: o plano; clássico: o payload da fal). */
 export function promptsDoClaim0311(response: unknown): string[] | null {
@@ -101,14 +124,15 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
       return submitFalQueueOnce(scene.model, input)
     },
     semReferencia: () => cenaSemReferencia(a.claim.response?.elenco_trava), // KINEO-ELENCO-TRAVA-0311
-    submitStill: async scene => { // KINEO-ELENCO-TRAVA-0311 — só cena i2v com folha no claim; sem folha = null (o portão refaz como sempre)
-      const ref = referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)
+    submitStill: async (scene, refaz0311?: RefazCena0311) => { // KINEO-ELENCO-TRAVA-0311 — só cena i2v com folha no claim; sem folha = null (o portão refaz como sempre)
+      const ref = comCorrecaoNoStill0311(referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index), refaz0311) // KINEO-GRATIS-REFAZ-CENA-0311 — sem relato: a referência de sempre
       return ref && CLASSIC_I2V.has(scene.model) ? postarStillComFolha({ prompt: ref.prompt, imageUrls: ref.folhas, aspect: a.claim.response?.aspect }) : null
     },
-    pollStill: async (scene, requestId) => { // KINEO-ELENCO-TRAVA-0311
-      const ref = referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index)
+    pollStill: async (scene, requestId, refaz0311?: RefazCena0311) => { // KINEO-ELENCO-TRAVA-0311
+      const ref = comCorrecaoNoStill0311(referenciaDaCenaNoClaim(a.claim.response?.elenco_trava, scene.index), refaz0311) // KINEO-GRATIS-REFAZ-CENA-0311 — o MESMO prompt do envio
       return ref ? lerStillComFolha({ requestId, prompt: ref.prompt, imageUrls: ref.folhas, aspect: a.claim.response?.aspect, userId: a.userId }) : { status: 'failed' }
     },
+    primeiroFilmeGratis0311: () => primeiroFilmeGratis0311(a), // KINEO-GRATIS-REFAZ-CENA-0311 — só chamado quando o juiz deu um teto novo com cena para refazer
     pollScene: (scene, requestId) => pollScene(scene.model, requestId),
     submitRender: submitCreatomateRender,
     pollRender: async id => {

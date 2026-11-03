@@ -13,6 +13,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semElencoTrava0311 } from './test-support/desfaz-elenco-trava-0311.mjs' // KINEO-ELENCO-TRAVA-0311 — o portão ganhou o still com folha; o recibo EXATO desfaz só essa camada (edição a mais continua reprovando)
+import { semGratisRefaz0311 } from './test-support/desfaz-gratis-refaz-0311.mjs' // KINEO-GRATIS-REFAZ-CENA-0311 — [TRAVA 8.2 — fundador 03/11: "As 2 sim"] o portão refaz a cena do teto novo no 1º filme grátis; camada mais nova, sai primeiro
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -187,7 +188,7 @@ console.log("== 3. pixel_score: marca d'água medida fora do teto (cron da régu
   checa('3.12 portão do filme de 15 s: mensagens ao juiz byte a byte as da base sem marcaMedida', JSON.stringify(msgs(undefined)) === JSON.stringify(baseMsgs))
   checa('3.13 no cron (marcaMedida) o juiz é pedido a dizer o que leu e onde (seen_text)', /"seen_text": \[\{"text"/.test(msgs({ marcaMedida: true })[0].content) && !/seen_text/.test(msgs(undefined)[0].content))
   const px = rd('lib/regua95/pixelScore.ts')
-  checa('3.14 scorePixel (usado pelo portão free15) não liga o desconto', /return judgeFrames\(ctx, ex\.frames, \{ fetchImpl: opts\?\.fetchImpl, apiKey: opts\?\.apiKey, model: opts\?\.model, via: ex\.via, usdFrames: ex\.usd, startedAt: started, timeoutMs: opts\?\.timeoutMs \}\)/.test(px) && semElencoTrava0311(rd('lib/free15GateServer.ts'), 'lib/free15GateServer.ts') === base('lib/free15GateServer.ts')) // KINEO-ELENCO-TRAVA-0311 — era: rd(…) === base(…)
+  checa('3.14 scorePixel (usado pelo portão free15) não liga o desconto', /return judgeFrames\(ctx, ex\.frames, \{ fetchImpl: opts\?\.fetchImpl, apiKey: opts\?\.apiKey, model: opts\?\.model, via: ex\.via, usdFrames: ex\.usd, startedAt: started, timeoutMs: opts\?\.timeoutMs \}\)/.test(px) && semElencoTrava0311(semGratisRefaz0311(rd('lib/free15GateServer.ts'), 'lib/free15GateServer.ts'), 'lib/free15GateServer.ts') === base('lib/free15GateServer.ts')) // KINEO-ELENCO-TRAVA-0311 — era: rd(…) === base(…) · KINEO-GRATIS-REFAZ-CENA-0311 — + semGratisRefaz0311 (a camada mais nova sai antes)
   const coletar = rd('lib/regua95/coletar.ts')
   checa('3.15 o cron diz a marca ao juiz só quando o RenderScript gravado a tem, e só então liga o desconto', /\.eq\('name', 'free_redo_film_source'\)\.in\('session_id', part\)\s*\n\s*\.contains\('metadata', \{ source: \{ elements: \[\{ type: 'text', text: 'usekineo\.com\/free' \}\] \} \}\)/.test(coletar) && coletar.includes("...(gen && comMarca.has(gen) ? { expectedKineoWatermark: true } : {})") && coletar.includes("...(e.pixel.expectedKineoWatermark === true ? { marcaMedida: true } : {})"))
 }

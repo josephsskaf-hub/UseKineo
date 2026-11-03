@@ -2,6 +2,8 @@
 import type { PixelResult } from '@/lib/regua95/pixelScore'
 import type { CaptionEvidenceAssessment } from '@/lib/captionEvidenceGuard'
 import { trocarCena, type CenaRefazivel } from '@/lib/freeRedo/core'
+import { custoEstimadoUsd } from '@/lib/freeRedo/core' // KINEO-GRATIS-REFAZ-CENA-0311 — o custo estimado da cena refeita vai ao relato
+import { motivosDosTetos0311, cenaAceitaMotivo0311, corrigirPrompt0311, epocaDaCena0311, rotuloDaEpoca0311, CODIGOS_DO_MOTIVO_0311, TETO_PROMPT_CLIPE_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311
 
 export const FREE15_GATE_EVENT = 'free15_delivery_gate'
 export const FREE15_GATE_FAILED_EVENT = 'free15_gate_failed'
@@ -33,6 +35,8 @@ export type GateState = {
   stillUrl?: string
   /** KINEO-ELENCO-TRAVA-0311 — a reprovação final é a troca de personagem: o filme não pode ser celebrado. */
   identityUnresolved?: boolean
+  /** KINEO-GRATIS-REFAZ-CENA-0311 — a cena refeita por teto novo do juiz no 1º filme grátis: motivo, cena, quadros, custo e resultado. */
+  refazCena0311?: RefazCena0311
 }
 export type GateDecision = { kind: 'pass' | 'fail' | 'caption' | 'scene'; reason: string; sceneIndex?: number; identity?: boolean /* KINEO-ELENCO-TRAVA-0311 — a cena é refeita por troca de personagem */ }
 export const isCaptionElement = (el: unknown): boolean => !!el && typeof el === 'object' &&
@@ -106,6 +110,40 @@ export function decideFree15Gate(state: GateState, media: GateMedia, pixel: Pixe
   return { kind: 'pass', reason: 'gate_passed' }
 }
 
+/**
+ * KINEO-GRATIS-REFAZ-CENA-0311 [TRAVA 8.2 — fundador 03/11: "As 2 sim" — refazer a cena reprovada no 1º filme grátis]
+ * Só os tetos NOVOS do juiz (época, pessoa inventada, plano parado — e nenhum outro teto junto) ganham UMA cena refeita. A cena é a
+ * dos quadros que carregaram o defeito (tempo do quadro → cena pelo RenderScript, o mesmo culpritAt do texto/identidade; a mais
+ * votada; empate: a mais cedo, e no plano parado a mais tarde). Plano parado sem quadro localizado → a última cena. Época/pessoa
+ * sem quadro localizado (ou pessoa numa cena que não pediu "sem gente") → null: a falha honesta de sempre ('other_pixel_cap').
+ */
+export function refazCenaGratis0311(state: GateState, pixel: PixelResult | null, scenes: CenaRefazivel[]): RefazCena0311 | null {
+  if (pixel?.evidence_status !== 'complete' || pixel.score === null || !(pixel.cap_limit < 100) || !scenes.length) return null
+  const motivos = motivosDosTetos0311(pixel.caps)
+  if (!motivos) return null
+  const contexto = `${state.context?.asked ?? ''}\n${state.context?.narration ?? ''}`
+  const frames = pixel.defect_frames ?? pixel.frames
+  for (const motivo of motivos) {
+    const votos = new Map<number, number[]>()
+    for (const f of frames) {
+      if (!f.issues.some(i => (CODIGOS_DO_MOTIVO_0311[motivo] as readonly string[]).includes(i))) continue
+      const i = culpritAt(state.source, f.t, scenes)
+      const scene = i === undefined ? undefined : scenes.find(s => s.index === i)
+      if (!scene || !cenaAceitaMotivo0311(motivo, scene.input.prompt, contexto)) continue
+      votos.set(scene.index, [...(votos.get(scene.index) ?? []), f.i])
+    }
+    let cena: number | undefined
+    let quadros: number[] = []
+    for (const [i, q] of [...votos].sort((a, b) => motivo === 'parado' ? b[0] - a[0] : a[0] - b[0])) if (q.length > quadros.length) { cena = i; quadros = q }
+    if (cena === undefined && motivo === 'parado') cena = Math.max(...scenes.map(s => s.index))
+    const scene = scenes.find(s => s.index === cena)
+    if (!scene) continue
+    const epoca = motivo === 'epoca' ? rotuloDaEpoca0311(epocaDaCena0311(scene.input.prompt, contexto)) : undefined
+    return { motivo, cena: scene.index, quadros: [...new Set(quadros)].sort((a, b) => a - b), ...(epoca ? { epoca } : {}), usdEstimado: custoEstimadoUsd(scene.model, scene.seconds) }
+  }
+  return null
+}
+
 export interface Free15GateDeps {
   now(): number
   read(): Promise<GateState | null>
@@ -117,9 +155,11 @@ export interface Free15GateDeps {
   /** KINEO-ELENCO-TRAVA-0311 — as cenas sem referência do personagem (claim assinado, elenco_trava). */
   semReferencia?(): number[]
   /** KINEO-ELENCO-TRAVA-0311 — UM POST do still da cena com a folha + o prompt do still assinado; null = a cena não tem folha (refaz como sempre). */
-  submitStill?(scene: CenaRefazivel): Promise<string | null>
+  submitStill?(scene: CenaRefazivel, refaz0311?: RefazCena0311): Promise<string | null> // KINEO-GRATIS-REFAZ-CENA-0311 — refaz0311: a correção de época vai também ao prompt do still com folha
   /** KINEO-ELENCO-TRAVA-0311 — só leitura do still (formato e moderação conferidos no 'done'). */
-  pollStill?(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
+  pollStill?(scene: CenaRefazivel, requestId: string, refaz0311?: RefazCena0311): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> // KINEO-GRATIS-REFAZ-CENA-0311 — o MESMO prompt do envio
+  /** KINEO-GRATIS-REFAZ-CENA-0311 — o 1º filme grátis de conta de país rico (sem esta função: nunca refaz por teto novo). */
+  primeiroFilmeGratis0311?(): Promise<boolean>
   pollScene(scene: CenaRefazivel, requestId: string): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }>
   submitRender(source: Record<string, unknown>): Promise<string>
   pollRender(id: string): Promise<{ status: string; url: string | null; snapshotUrl: string | null; durationSeconds?: number | null }>
@@ -140,8 +180,10 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
     state = next
     return true
   }
+  // KINEO-GRATIS-REFAZ-CENA-0311 — o prompt da cena refeita por teto novo leva a correção positiva (no clipe; o still com folha a recebe no servidor).
+  const comCorrecao0311 = (scene: CenaRefazivel): CenaRefazivel => state?.refazCena0311 ? { ...scene, input: { ...scene.input, prompt: corrigirPrompt0311(scene.input.prompt, state.refazCena0311, TETO_PROMPT_CLIPE_0311) } } : scene
   const finish = async (status: 'passed' | 'failed', reason: string, media = state?.media ?? original, identityUnresolved = false): Promise<GateOutcome> =>
-    await move({ status, reason, media, ...(finalPixel === undefined ? {} : { pixel: finalPixel }), ...(identityUnresolved ? { identityUnresolved: true } : {}) }) ? { status, reason, media, source: state?.mediaSource ?? state?.source, ...(identityUnresolved ? { identityUnresolved: true } : {}) } : pending // KINEO-ELENCO-TRAVA-0311 — + a marca da troca de personagem não resolvida
+    await move({ status, reason, media, ...(finalPixel === undefined ? {} : { pixel: finalPixel }), ...(identityUnresolved ? { identityUnresolved: true } : {}), ...(state?.refazCena0311 ? { refazCena0311: { ...state.refazCena0311, resultado: status } } : {}) /* KINEO-GRATIS-REFAZ-CENA-0311 — o desfecho da cena refeita fica no evento */ }) ? { status, reason, media, source: state?.mediaSource ?? state?.source, ...(identityUnresolved ? { identityUnresolved: true } : {}) } : pending // KINEO-ELENCO-TRAVA-0311 — + a marca da troca de personagem não resolvida
   if (state.status === 'passed' || state.status === 'failed') return { status: state.status, reason: state.reason, media: state.media ?? original, source: state.mediaSource ?? state.source, ...(state.identityUnresolved ? { identityUnresolved: true } : {}) } // KINEO-ELENCO-TRAVA-0311
   const age = d.now() - state.updatedAt
   if (['checking', 'scene_submitting', 'render_submitting'].includes(state.status)) {
@@ -152,12 +194,12 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
     const scene = d.scenes(state.source).find(s => s.index === state!.sceneIndex)
     if (!scene || !state.stillRequestId || !d.pollStill) return finish('failed', 'repair_scene_missing')
     let still: { status: 'pending' | 'done' | 'failed'; url?: string | null } = { status: 'failed' }
-    try { still = await d.pollStill(scene, state.stillRequestId) } catch { if (age <= STALE) return pending }
+    try { still = await d.pollStill(scene, state.stillRequestId, state.refazCena0311) } catch { if (age <= STALE) return pending } // KINEO-GRATIS-REFAZ-CENA-0311 — + a correção do envio
     if (still.status === 'pending' && age <= STALE) return pending
     const imageUrl = still.status === 'done' && still.url ? still.url : undefined
     if (!await move({ status: 'scene_submitting', ...(imageUrl ? { stillUrl: imageUrl } : {}) })) return pending
     try {
-      const requestId = await d.submitScene(scene, imageUrl)
+      const requestId = await d.submitScene(comCorrecao0311(scene), imageUrl) // KINEO-GRATIS-REFAZ-CENA-0311 — sem refazCena0311: a cena de sempre
       await move({ status: 'scene', requestId })
       return pending
     } catch { return finish('failed', 'scene_repair_submit_failed') }
@@ -193,7 +235,12 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   finalPixel = pixel
   const decision = decideFree15Gate(state, media, pixel, d.scenes(state.source), { semReferencia: d.semReferencia?.() ?? [] }) // KINEO-ELENCO-TRAVA-0311 — + as cenas sem referência
   if (decision.kind === 'pass') return finish('passed', decision.reason, media)
-  if (state.attempted || decision.kind === 'fail') return finish('failed', decision.reason, media, decision.identity === true) // KINEO-ELENCO-TRAVA-0311 — refeita e o personagem ainda troca: falha marcada, nunca "passou"
+  // KINEO-GRATIS-REFAZ-CENA-0311 [TRAVA 8.2 — fundador 03/11: "As 2 sim"] — teto novo do juiz (época/pessoa/parado) no 1º filme grátis de país
+  // rico: a MESMA refação de uma cena (attempted=true antes de gastar; nunca duas refações). Refeita e ainda reprovada → a falha de sempre.
+  const refaz0311 = !state.attempted && decision.kind === 'fail' && decision.reason === 'other_pixel_cap' && d.primeiroFilmeGratis0311 ? refazCenaGratis0311(state, pixel, d.scenes(state.source)) : null
+  let refazAqui0311 = false
+  if (refaz0311) { try { refazAqui0311 = await d.primeiroFilmeGratis0311!() === true } catch { refazAqui0311 = false } }
+  if (state.attempted || decision.kind === 'fail' && !refazAqui0311) return finish('failed', decision.reason, media, decision.identity === true) // KINEO-ELENCO-TRAVA-0311 — refeita e o personagem ainda troca: falha marcada, nunca "passou"
   // Persist attempted=true BEFORE spending. Two polls cannot buy two attempts.
   if (decision.kind === 'caption') {
     const repaired = repairGateCaptions(state.source, state.captionElements)
@@ -205,17 +252,18 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
       return pending
     } catch { return finish('failed', 'caption_repair_submit_failed', media) }
   }
-  const scene = d.scenes(state.source).find(s => s.index === decision.sceneIndex)
+  const scene = d.scenes(state.source).find(s => s.index === (refazAqui0311 ? refaz0311!.cena : decision.sceneIndex)) // KINEO-GRATIS-REFAZ-CENA-0311 — era: s.index === decision.sceneIndex
   if (!scene) return finish('failed', 'repair_scene_missing', media)
-  if (!await move({ status: 'scene_submitting', attempted: true, sceneIndex: scene.index, reason: decision.reason, pixel })) return pending
+  if (!await move({ status: 'scene_submitting', attempted: true, sceneIndex: scene.index, reason: decision.reason, pixel, ...(refazAqui0311 ? { reason: `gratis_refaz_${refaz0311!.motivo}`, refazCena0311: refaz0311! } : {}) })) return pending // KINEO-GRATIS-REFAZ-CENA-0311 — + o motivo e o relato da cena
   // KINEO-ELENCO-TRAVA-0311 — troca de personagem: o clipe refeito com o MESMO still assinado repetia o rosto errado. Com folha no claim, o still da cena é refeito com ela primeiro.
-  if (decision.identity && d.submitStill) {
+  // KINEO-GRATIS-REFAZ-CENA-0311 — época errada com folha: o still (a roupa) também é refeito, com a correção de época no prompt dele.
+  if ((decision.identity || state.refazCena0311?.motivo === 'epoca') && d.submitStill) {
     let stillRequestId: string | null = null
-    try { stillRequestId = await d.submitStill(scene) } catch { stillRequestId = null }
+    try { stillRequestId = state.refazCena0311 ? await d.submitStill(scene, state.refazCena0311) : await d.submitStill(scene) } catch { stillRequestId = null } // KINEO-GRATIS-REFAZ-CENA-0311 — era: await d.submitStill(scene)
     if (stillRequestId) { await move({ status: 'still', stillRequestId }); return pending }
   }
   try {
-    const requestId = await d.submitScene(scene)
+    const requestId = await d.submitScene(comCorrecao0311(scene)) // KINEO-GRATIS-REFAZ-CENA-0311 — era: d.submitScene(scene)
     await move({ status: 'scene', requestId })
     return pending
   } catch { return finish('failed', 'scene_repair_submit_failed', media) }
