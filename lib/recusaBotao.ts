@@ -238,3 +238,23 @@ export function textoDoConserto(fix: RefusalFix, texto: string): string | null {
   if (fix.code === 'safer_angle') return texto.startsWith(SAFER_ANGLE_PREFIX) ? texto : SAFER_ANGLE_PREFIX + texto.trim()
   return null
 }
+
+// ═══ KINEO-MURO-PRIMEIRO-FILME-0311 [TRAVA 8.2 — "vai" do fundador 03/11: "vamos melhorar esse muro de entrada"] ═══
+// O CASO (7 d até 03/11): quem ainda NÃO tem filme nenhum leu a recusa com o botão e foi embora — "asks for 60 seconds, but the
+// selected duration is 15" (4 pessoas, 3 sem filme), "looks like a video request" (5), "the AI declined the topic" (5). A regra
+// aprovada 02/11 é "o 1º filme nunca recusa": para conta com 0 filmes o botão se aperta SOZINHO, uma vez, e o filme segue.
+// Só entra conserto que NÃO sobe o preço (trocar para uma duração mais cara pede o clique dela). "Retry later" fica de fora:
+// ele já tem relógio próprio. Puro: o cliente decide quem tem 0 filmes; aqui só se escolhe QUAL botão.
+export const MURO_PRIMEIRO_FILME_VERSION = 'muro_primeiro_filme_0311_v1'
+export function consertoAutomaticoDoPrimeiroFilme(
+  botoes: { primary: BotaoDaRecusa; secondary: BotaoDaRecusa | null } | null,
+  custoAtual: number,
+): RefusalFix | null {
+  if (!botoes) return null
+  for (const b of [botoes.primary, botoes.secondary]) {
+    if (!b || b.fix.code === 'retry_later') continue
+    if (b.fix.code === 'switch_duration' && !(Number.isFinite(b.cost) && Number.isFinite(custoAtual) && (b.cost as number) <= custoAtual)) continue
+    return b.fix
+  }
+  return null
+}

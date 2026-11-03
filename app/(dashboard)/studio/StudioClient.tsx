@@ -461,6 +461,11 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // antigas nunca souberam que isso existe.
   const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }[]>([])
   const [firstFilmHistoryEmpty, setFirstFilmHistoryEmpty] = useState(false)
+  // KINEO-MURO-PRIMEIRO-FILME-0311 [TRAVA 8.2 — "vai" do fundador 03/11] — conta sem filme e sem pagar não vê oferta antes do 1º
+  // filme: o card trancado do Seedance 2.5 (7 d: 5 de 5 cliques no selo eram contas sem filme, 0 pagou — tesla1of1/US saiu por
+  // ele) e o aviso da promo do Kling 4 (76 pessoas sem filme o viram no Studio). A página de preços continua com tudo.
+  const s25SomeNoPrimeiroFilme = firstFilmHistoryEmpty && s25Liberado !== true
+  const semOfertaAntesDoFilme = firstFilmHistoryEmpty && contaPaga !== true
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { videos: [] }))
@@ -748,10 +753,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // carga. Sem isto, S25_PAID_CLICK_EVENT seria número solto.
   const s25SeloVistoRef = useRef(false)
   useEffect(() => {
-    if (!pickerOpen || !internal || s25Liberado === true || s25SeloVistoRef.current || ENGINES.find((x) => x.key === 's25')?.paused) return
+    if (!pickerOpen || !internal || s25Liberado === true || s25SomeNoPrimeiroFilme /* KINEO-MURO-PRIMEIRO-FILME-0311 */ || s25SeloVistoRef.current || ENGINES.find((x) => x.key === 's25')?.paused) return
     s25SeloVistoRef.current = true
     void trackEvent(S25_PAID_SHOWN_EVENT, { surface: 'studio', balance, flag: s25Liberado === false ? 'not_paying' : 'unknown' })
-  }, [pickerOpen, internal, s25Liberado]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pickerOpen, internal, s25Liberado, s25SomeNoPrimeiroFilme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalPrompt = useMemo(() => {
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
@@ -1031,7 +1036,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (
+                {ENGINES.filter((e) => (e.key !== 's25' || (internal && !s25SomeNoPrimeiroFilme)) /* KINEO-MURO-PRIMEIRO-FILME-0311 */ && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (
                   // KINEO-S25-ABRE-2026-10-06 — card PRÓPRIO do 2.5 trancado: o clique leva aos planos e nunca chama setEngine. O card
                   // normal (abaixo) segue byte a byte o de sempre, com o handler da base.
                   <button key={e.key} type="button" className="pk" data-kineo="s25-trancado"
@@ -1244,7 +1249,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 </button>
               </div>
             )}
-            <Kling4PaidNotice surface="studio" availability={kling4Availability} />
+            {!semOfertaAntesDoFilme && <Kling4PaidNotice surface="studio" availability={kling4Availability} />}{/* KINEO-MURO-PRIMEIRO-FILME-0311 */}
             {engine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
             {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": o mesmo desenho da foto de referência do /images (caixa de

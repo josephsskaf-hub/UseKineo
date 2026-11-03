@@ -392,7 +392,7 @@ import type { RefusalNotice } from '@/lib/entrega/refusalNotice'
 import { classificarEsperaDaGeracao } from '@/lib/entrega/generationWaitNotice'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import RecusaBotao from '@/components/RecusaBotao' // KINEO-RECUSA-BOTAO-3110
-import { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão
+import { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix, MURO_PRIMEIRO_FILME_VERSION, consertoAutomaticoDoPrimeiroFilme } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão · KINEO-MURO-PRIMEIRO-FILME-0311 — no 1º filme ela se aperta sozinha
 // BEGIN COMPRA-CLAREZA-2610 imports
 import RecurringPlanValue from '@/components/growth/RecurringPlanValue'
 import ResultScriptReview from '@/components/growth/ResultScriptReview'
@@ -14150,6 +14150,21 @@ export default function GenerateClient({
       onShown={(fix) => { void trackEvent('refusal_fix_shown', { code: fix.code, reason: fix.reason, secondary: recusaBotoes.secondary?.fix.code ?? null, version: RECUSA_BOTAO_VERSION }) }} // KINEO-RECUSA-BOTAO-3110
     /> // KINEO-RECUSA-BOTAO-3110
   ) : null // KINEO-RECUSA-BOTAO-3110
+  // KINEO-MURO-PRIMEIRO-FILME-0311 — conta com 0 filmes: o botão da recusa se aperta sozinho, UMA vez por frase de recusa e no
+  // máximo 2 por carga (lib/recusaBotao escolhe o conserto que não sobe o preço). Com 1+ filme, ou sem conserto seguro, a tela
+  // de sempre (o botão para ela clicar).
+  const consertoAutoRef = useRef<{ feitos: number; chaves: Set<string> }>({ feitos: 0, chaves: new Set() }) // KINEO-MURO-PRIMEIRO-FILME-0311 — o conserto automático do 1º filme: no máximo 2 por carga, 1 por frase
+  const consertoAuto = filmsDelivered === 0 && recusaBotoes ? consertoAutomaticoDoPrimeiroFilme(recusaBotoes, costForDurationOption(duration)) : null
+  useEffect(() => { // KINEO-MURO-PRIMEIRO-FILME-0311
+    if (!consertoAuto || !error || isProcessingPhase(phase)) return
+    const chave = error.trim().slice(0, 160)
+    if (consertoAutoRef.current.feitos >= 2 || consertoAutoRef.current.chaves.has(chave)) return
+    consertoAutoRef.current.feitos += 1
+    consertoAutoRef.current.chaves.add(chave)
+    void trackEvent('refusal_auto_fixed', { code: consertoAuto.code, reason: consertoAuto.reason, seconds: consertoAuto.seconds ?? null, from_seconds: duration, script_mode: scriptMode, version: MURO_PRIMEIRO_FILME_VERSION })
+    aplicarConsertoDaRecusa(consertoAuto)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consertoAuto?.code, consertoAuto?.reason, error, phase])
   // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════
   // Medido em 01/09: 129 `generation_stage_error` de 33 pessoas externas em
   // 7 dias e `generation_failed_screen_shown` com ZERO eventos em TODA a
@@ -16187,7 +16202,8 @@ export default function GenerateClient({
             credits={credits}
             freeAiUsed={freeAiUsed}
             aiEngine={aiEngine}
-            s25Ok={s25Ok}
+            s25Ok={s25Ok && !(s25Liberado !== true && filmsDelivered === 0)} // KINEO-MURO-PRIMEIRO-FILME-0311: o 2.5 trancado some até o 1º filme (5 de 5 cliques no selo eram contas sem filme, 0 pagou)
+            primeiroFilme={filmsDelivered === 0 && !hasPaid} // KINEO-MURO-PRIMEIRO-FILME-0311: sem aviso de oferta antes do 1º filme
             h3maxOk={h3maxOk} // KINEO-H3MAX-2026-10-13
             s25Liberado={s25Liberado} // KINEO-S25-ABRE-2026-10-06
             onUpgradeS25={() => openOutOfCreditsModal('studio')} // KINEO-S25-ABRE-2026-10-06: a caixa de planos (os 3 planos pagos abrem o 2.5)
@@ -22061,6 +22077,7 @@ function ModeSelector({
   freeAiUsed,
   aiEngine,
   s25Ok,
+  primeiroFilme = false, // KINEO-MURO-PRIMEIRO-FILME-0311
   h3maxOk = false, // KINEO-H3MAX-2026-10-13
   s25Liberado = null, // KINEO-S25-ABRE-2026-10-06
   onUpgradeS25, // KINEO-S25-ABRE-2026-10-06
@@ -22087,6 +22104,8 @@ function ModeSelector({
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
   aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
   s25Ok: boolean
+  /** KINEO-MURO-PRIMEIRO-FILME-0311 — conta sem filme e sem pagar: o aviso da promo do Kling 4 não aparece aqui. */
+  primeiroFilme?: boolean
   /** KINEO-H3MAX-2026-10-13 — o H3 Max aparece (H3MAX_PUBLIC || casa). */
   h3maxOk?: boolean // KINEO-H3MAX-2026-10-13
   /** KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5 (flag do servidor). Diferente de true = chip trancado: selo + upgrade. */
@@ -22230,7 +22249,7 @@ function ModeSelector({
 
   return (
     <div className="mt-5">
-      <Kling4PaidNotice surface="generate" availability={kling4Availability} />
+      {!primeiroFilme && <Kling4PaidNotice surface="generate" availability={kling4Availability} />}{/* KINEO-MURO-PRIMEIRO-FILME-0311 */}
       {aiEngine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}
       <div
         className="text-xs font-black uppercase tracking-widest mb-3"

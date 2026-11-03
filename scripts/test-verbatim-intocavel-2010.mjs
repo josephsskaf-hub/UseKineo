@@ -31,12 +31,13 @@ import { semVerbatimIntocavel2010, semVerbatimIntocavel2010NaCadeia, MARCA_VERBA
 import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10, entrega de depois, com desfaz próprio) não são desta entrega
 import { semAfiliado50_2610 } from './test-support/desfaz-afiliado50-2610.mjs'
 import { selectAffiliate50ForeignRef, readAffiliate50ForeignSource } from './test-support/affiliate50-history-2610.mjs'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 // KINEO-AFILIADO-50-2610: remove only this later layer before historical source checks; retain raw EOL.
 const affiliateRaw = (rel, source) => { const projected = semAfiliado50_2610(rel, source); return source.includes('\r\n') ? projected.replace(/\n/g, '\r\n') : projected }
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
-const rd = (p) => affiliateRaw(p, readFileSync(join(RAIZ, p), 'utf8')).replace(/\r\n/g, '\n')
+const rd = (p) => affiliateRaw(p, semMuroPrimeiroFilme0311(readFileSync(join(RAIZ, p), 'utf8'), p)).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

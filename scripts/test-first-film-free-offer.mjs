@@ -22,9 +22,10 @@ import path from 'node:path'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 
 const raiz = path.resolve(process.argv[2] ?? '.')
-const ler = (rel) => semFilmeGratisComeca0211(fs.readFileSync(path.join(raiz, rel), 'utf8'), rel)
+const ler = (rel) => semFilmeGratisComeca0211(semMuroPrimeiroFilme0311(fs.readFileSync(path.join(raiz, rel), 'utf8'), rel), rel)
 
 const CREDITS = ler('app/api/credits/route.ts')
 const GEN = ler('app/(dashboard)/generate/GenerateClient.tsx')

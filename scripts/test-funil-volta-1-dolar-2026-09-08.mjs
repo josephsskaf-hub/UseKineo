@@ -27,9 +27,10 @@ import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-aut
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semFilmeGratisComeca0211(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p), p), p)
+const rd = (p) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semFilmeGratisComeca0211(semMuroPrimeiroFilme0311(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n'), p), p), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

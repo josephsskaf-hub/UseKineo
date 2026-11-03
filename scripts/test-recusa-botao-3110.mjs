@@ -13,12 +13,13 @@ import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-com
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = 'KINEO-RECUSA-BOTAO-3110'
-const read = (rel) => semFilmeGratisComeca0211(fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'), rel)
+const read = (rel) => semFilmeGratisComeca0211(semMuroPrimeiroFilme0311(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n'), rel)
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }

@@ -41,9 +41,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 
 const root = path.resolve(import.meta.dirname, '..')
-const read = (rel) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semFilmeGratisComeca0211(fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n'), rel), rel), rel)
+const read = (rel) => semSemInicioAutomatico0211(semK4NarracaoCabe0111(semFilmeGratisComeca0211(semMuroPrimeiroFilme0311(fs.readFileSync(path.join(root, rel), 'utf8'), rel).replace(/\r\n/g, '\n'), rel), rel), rel)
 
 const MODULO = 'lib/growth/cardEntryResumeDraft.ts'
 const GENERATE = 'app/(dashboard)/generate/GenerateClient.tsx'

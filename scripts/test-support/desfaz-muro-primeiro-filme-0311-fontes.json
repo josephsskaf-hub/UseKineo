@@ -1,0 +1,72 @@
+{
+ "base": "1b733b3944e6d167e46bab7e898e76c5dfda338e",
+ "scope": {
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "66f248a3dc1c4b77e6265e5c57e06a586b9fb653e84c18ead9f22b4a6aa580eb",
+   "afterSha256": "8695d5b3ccce74982f4f023bf2f3db2df557496bd06cda183fd5f668bd58d542",
+   "hunks": [
+    {
+     "before": "import RecusaBotao from '@/components/RecusaBotao' // KINEO-RECUSA-BOTAO-3110\nimport { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão\n// BEGIN COMPRA-CLAREZA-2610 imports",
+     "after": "import RecusaBotao from '@/components/RecusaBotao' // KINEO-RECUSA-BOTAO-3110\nimport { RECUSA_BOTAO_VERSION, fixDaRecusa, resolverBotoesDaRecusa, textoDoConserto, trocarDuracaoNoTexto, type RefusalFix, MURO_PRIMEIRO_FILME_VERSION, consertoAutomaticoDoPrimeiroFilme } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão · KINEO-MURO-PRIMEIRO-FILME-0311 — no 1º filme ela se aperta sozinha\n// BEGIN COMPRA-CLAREZA-2610 imports"
+    },
+    {
+     "before": "  ) : null // KINEO-RECUSA-BOTAO-3110\n  // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════",
+     "after": "  ) : null // KINEO-RECUSA-BOTAO-3110\n  // KINEO-MURO-PRIMEIRO-FILME-0311 — conta com 0 filmes: o botão da recusa se aperta sozinho, UMA vez por frase de recusa e no\n  // máximo 2 por carga (lib/recusaBotao escolhe o conserto que não sobe o preço). Com 1+ filme, ou sem conserto seguro, a tela\n  // de sempre (o botão para ela clicar).\n  const consertoAutoRef = useRef<{ feitos: number; chaves: Set<string> }>({ feitos: 0, chaves: new Set() }) // KINEO-MURO-PRIMEIRO-FILME-0311 — o conserto automático do 1º filme: no máximo 2 por carga, 1 por frase\n  const consertoAuto = filmsDelivered === 0 && recusaBotoes ? consertoAutomaticoDoPrimeiroFilme(recusaBotoes, costForDurationOption(duration)) : null\n  useEffect(() => { // KINEO-MURO-PRIMEIRO-FILME-0311\n    if (!consertoAuto || !error || isProcessingPhase(phase)) return\n    const chave = error.trim().slice(0, 160)\n    if (consertoAutoRef.current.feitos >= 2 || consertoAutoRef.current.chaves.has(chave)) return\n    consertoAutoRef.current.feitos += 1\n    consertoAutoRef.current.chaves.add(chave)\n    void trackEvent('refusal_auto_fixed', { code: consertoAuto.code, reason: consertoAuto.reason, seconds: consertoAuto.seconds ?? null, from_seconds: duration, script_mode: scriptMode, version: MURO_PRIMEIRO_FILME_VERSION })\n    aplicarConsertoDaRecusa(consertoAuto)\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n  }, [consertoAuto?.code, consertoAuto?.reason, error, phase])\n  // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════"
+    },
+    {
+     "before": "            aiEngine={aiEngine}\n            s25Ok={s25Ok}\n            h3maxOk={h3maxOk} // KINEO-H3MAX-2026-10-13",
+     "after": "            aiEngine={aiEngine}\n            s25Ok={s25Ok && !(s25Liberado !== true && filmsDelivered === 0)} // KINEO-MURO-PRIMEIRO-FILME-0311: o 2.5 trancado some até o 1º filme (5 de 5 cliques no selo eram contas sem filme, 0 pagou)\n            primeiroFilme={filmsDelivered === 0 && !hasPaid} // KINEO-MURO-PRIMEIRO-FILME-0311: sem aviso de oferta antes do 1º filme\n            h3maxOk={h3maxOk} // KINEO-H3MAX-2026-10-13"
+    },
+    {
+     "before": "  s25Ok,\n  h3maxOk = false, // KINEO-H3MAX-2026-10-13",
+     "after": "  s25Ok,\n  primeiroFilme = false, // KINEO-MURO-PRIMEIRO-FILME-0311\n  h3maxOk = false, // KINEO-H3MAX-2026-10-13"
+    },
+    {
+     "before": "  s25Ok: boolean\n  /** KINEO-H3MAX-2026-10-13 — o H3 Max aparece (H3MAX_PUBLIC || casa). */",
+     "after": "  s25Ok: boolean\n  /** KINEO-MURO-PRIMEIRO-FILME-0311 — conta sem filme e sem pagar: o aviso da promo do Kling 4 não aparece aqui. */\n  primeiroFilme?: boolean\n  /** KINEO-H3MAX-2026-10-13 — o H3 Max aparece (H3MAX_PUBLIC || casa). */"
+    },
+    {
+     "before": "    <div className=\"mt-5\">\n      <Kling4PaidNotice surface=\"generate\" availability={kling4Availability} />\n      {aiEngine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}",
+     "after": "    <div className=\"mt-5\">\n      {!primeiroFilme && <Kling4PaidNotice surface=\"generate\" availability={kling4Availability} />}{/* KINEO-MURO-PRIMEIRO-FILME-0311 */}\n      {aiEngine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}"
+    }
+   ]
+  },
+  "app/(dashboard)/studio/StudioClient.tsx": {
+   "beforeSha256": "ed58dd23658dbf813e05600c1c2e5020bfd91a100fdb3d84d569d9effe2a3703",
+   "afterSha256": "03b2dfa75b97a3ad856d0d300d1c02a51c30f2b6ff9f31507107cbc80d988138",
+   "hunks": [
+    {
+     "before": "  const [firstFilmHistoryEmpty, setFirstFilmHistoryEmpty] = useState(false)\n  useEffect(() => {",
+     "after": "  const [firstFilmHistoryEmpty, setFirstFilmHistoryEmpty] = useState(false)\n  // KINEO-MURO-PRIMEIRO-FILME-0311 [TRAVA 8.2 — \"vai\" do fundador 03/11] — conta sem filme e sem pagar não vê oferta antes do 1º\n  // filme: o card trancado do Seedance 2.5 (7 d: 5 de 5 cliques no selo eram contas sem filme, 0 pagou — tesla1of1/US saiu por\n  // ele) e o aviso da promo do Kling 4 (76 pessoas sem filme o viram no Studio). A página de preços continua com tudo.\n  const s25SomeNoPrimeiroFilme = firstFilmHistoryEmpty && s25Liberado !== true\n  const semOfertaAntesDoFilme = firstFilmHistoryEmpty && contaPaga !== true\n  useEffect(() => {"
+    },
+    {
+     "before": "  useEffect(() => {\n    if (!pickerOpen || !internal || s25Liberado === true || s25SeloVistoRef.current || ENGINES.find((x) => x.key === 's25')?.paused) return\n    s25SeloVistoRef.current = true",
+     "after": "  useEffect(() => {\n    if (!pickerOpen || !internal || s25Liberado === true || s25SomeNoPrimeiroFilme /* KINEO-MURO-PRIMEIRO-FILME-0311 */ || s25SeloVistoRef.current || ENGINES.find((x) => x.key === 's25')?.paused) return\n    s25SeloVistoRef.current = true"
+    },
+    {
+     "before": "    void trackEvent(S25_PAID_SHOWN_EVENT, { surface: 'studio', balance, flag: s25Liberado === false ? 'not_paying' : 'unknown' })\n  }, [pickerOpen, internal, s25Liberado]) // eslint-disable-line react-hooks/exhaustive-deps\n",
+     "after": "    void trackEvent(S25_PAID_SHOWN_EVENT, { surface: 'studio', balance, flag: s25Liberado === false ? 'not_paying' : 'unknown' })\n  }, [pickerOpen, internal, s25Liberado, s25SomeNoPrimeiroFilme]) // eslint-disable-line react-hooks/exhaustive-deps\n"
+    },
+    {
+     "before": "              <div className=\"picker\">\n                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (\n                  // KINEO-S25-ABRE-2026-10-06 — card PRÓPRIO do 2.5 trancado: o clique leva aos planos e nunca chama setEngine. O card",
+     "after": "              <div className=\"picker\">\n                {ENGINES.filter((e) => (e.key !== 's25' || (internal && !s25SomeNoPrimeiroFilme)) /* KINEO-MURO-PRIMEIRO-FILME-0311 */ && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (\n                  // KINEO-S25-ABRE-2026-10-06 — card PRÓPRIO do 2.5 trancado: o clique leva aos planos e nunca chama setEngine. O card"
+    },
+    {
+     "before": "            )}\n            <Kling4PaidNotice surface=\"studio\" availability={kling4Availability} />\n            {engine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}",
+     "after": "            )}\n            {!semOfertaAntesDoFilme && <Kling4PaidNotice surface=\"studio\" availability={kling4Availability} />}{/* KINEO-MURO-PRIMEIRO-FILME-0311 */}\n            {engine === 'hollywood' && kling4Availability?.paidLive ? <p data-kling4-film-limits style={{ fontSize: 12, color: 'var(--muted)' }}><UiLabel>{KLING4_PAID_COPY.limits}</UiLabel></p> : null}"
+    }
+   ]
+  },
+  "lib/recusaBotao.ts": {
+   "beforeSha256": "3306e5685353264c800594844f2032bc1aa8d4c948cb8cb5cdb356a43cd89093",
+   "afterSha256": "dd91b22c872103788551e8ec6c8671376b9c361d46af1e54140a227ff8e69630",
+   "hunks": [
+    {
+     "before": "",
+     "after": "\n// ═══ KINEO-MURO-PRIMEIRO-FILME-0311 [TRAVA 8.2 — \"vai\" do fundador 03/11: \"vamos melhorar esse muro de entrada\"] ═══\n// O CASO (7 d até 03/11): quem ainda NÃO tem filme nenhum leu a recusa com o botão e foi embora — \"asks for 60 seconds, but the\n// selected duration is 15\" (4 pessoas, 3 sem filme), \"looks like a video request\" (5), \"the AI declined the topic\" (5). A regra\n// aprovada 02/11 é \"o 1º filme nunca recusa\": para conta com 0 filmes o botão se aperta SOZINHO, uma vez, e o filme segue.\n// Só entra conserto que NÃO sobe o preço (trocar para uma duração mais cara pede o clique dela). \"Retry later\" fica de fora:\n// ele já tem relógio próprio. Puro: o cliente decide quem tem 0 filmes; aqui só se escolhe QUAL botão.\nexport const MURO_PRIMEIRO_FILME_VERSION = 'muro_primeiro_filme_0311_v1'\nexport function consertoAutomaticoDoPrimeiroFilme(\n  botoes: { primary: BotaoDaRecusa; secondary: BotaoDaRecusa | null } | null,\n  custoAtual: number,\n): RefusalFix | null {\n  if (!botoes) return null\n  for (const b of [botoes.primary, botoes.secondary]) {\n    if (!b || b.fix.code === 'retry_later') continue\n    if (b.fix.code === 'switch_duration' && !(Number.isFinite(b.cost) && Number.isFinite(custoAtual) && (b.cost as number) <= custoAtual)) continue\n    return b.fix\n  }\n  return null\n}\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semRostoCards2810 } from './test-support/desfaz-rosto-cards-2810.mjs' // reancorado KINEO-REMIX-PAGINAS-3110
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // reancorado KINEO-REMIX-PAGINAS-3110 — o 'Make your own version' com Studio preenchido (31/10) sai em memória antes desta prova
 // histórica (a prova nova mora em scripts/test-remix-paginas-3110.mjs).
-const rd = (p) => semRostoCards2810(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n')
+const rd = (p) => semRostoCards2810(semMuroPrimeiroFilme0311(readFileSync(join(root, p), 'utf8'), p), p).replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
 

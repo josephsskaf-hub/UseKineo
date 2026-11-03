@@ -9,10 +9,11 @@
  */
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
+import { semMuroPrimeiroFilme0311 } from './test-support/desfaz-muro-primeiro-filme-0311.mjs' // KINEO-MURO-PRIMEIRO-FILME-0311 — [TRAVA 8.2 — "vai" do fundador 03/11]: a camada mais nova (o 1º filme nunca recusa) sai primeiro, pelo recibo exato
 
 const CLIENT = 'app/(dashboard)/generate/GenerateClient.tsx'
 const ROUTE = 'app/api/generate-video-cinematic/route.ts'
-const client = readFileSync(CLIENT, 'utf8')
+const client = semMuroPrimeiroFilme0311(readFileSync(CLIENT, 'utf8'), 'app/(dashboard)/generate/GenerateClient.tsx')
 const route = readFileSync(ROUTE, 'utf8')
 const diff = execSync(`git diff HEAD -- "${CLIENT}"`, {
   encoding: 'utf8',
