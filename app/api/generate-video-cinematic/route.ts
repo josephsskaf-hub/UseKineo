@@ -2904,6 +2904,10 @@ async function manipularPost(req: NextRequest) {
         userId: user.id,
         renderId: billingReference,
         cost: creditCost,
+        // KINEO-RETOMADA-DEBITA-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"; fal sem saldo 16:26] — a retomada do filme estacionado (cron, modo serviço, sem
+        // KINEO-RETOMADA-DEBITA-0311 — sessão) chamava o RPC de sessão: auth.uid() nulo → 'not authenticated' → 503 "credit charge could not be confirmed".
+        // KINEO-RETOMADA-DEBITA-0311 — 449 tentativas em 10 dias, 0 retomadas: o "seu filme começa sozinho" nunca aconteceu. A variante _service (usuário explícito).
+        service: isServiceJob, // KINEO-RETOMADA-DEBITA-0311
       })
       if (error || typeof data !== 'number') {
         const message = error?.message ?? 'no balance returned'

@@ -1,0 +1,16 @@
+{
+ "base": "96ce04b6f01b3587aca584b26fc3307268225abb",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "7a1cbfed45fefe5def12796e88d9ae10e1cb64140cc55ffc2a6ee814eb1822b5",
+   "afterSha256": "536b1f915353653ebbf4a43f6342f3e56cdc3881f2a9bea6c8966838c7414594",
+   "hunks": [
+    {
+     "before": "        cost: creditCost,\n      })",
+     "after": "        cost: creditCost,\n        // KINEO-RETOMADA-DEBITA-0311 [TRAVA 8.2 — fundador 03/11 \"universalizar\"; fal sem saldo 16:26] — a retomada do filme estacionado (cron, modo serviço, sem\n        // KINEO-RETOMADA-DEBITA-0311 — sessão) chamava o RPC de sessão: auth.uid() nulo → 'not authenticated' → 503 \"credit charge could not be confirmed\".\n        // KINEO-RETOMADA-DEBITA-0311 — 449 tentativas em 10 dias, 0 retomadas: o \"seu filme começa sozinho\" nunca aconteceu. A variante _service (usuário explícito).\n        service: isServiceJob, // KINEO-RETOMADA-DEBITA-0311\n      })"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
