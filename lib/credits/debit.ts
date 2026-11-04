@@ -14,8 +14,21 @@
 // em vez do rpc cru; senão ele não soma no cap (a classe de bug que a revisão
 // adversarial desta fase existe para pegar).
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { REVERSE_TRIAL_ENABLED, recordReverseTrialDebitForRender } from '@/lib/reverseTrial'
+
+// KINEO-DEBITO-SO-SERVIDOR-0411 — todo débito passa pela variante _service, que
+// só o service_role executa. O RPC de sessão ficava aberto a qualquer logado e
+// gravava no ledger o custo que o cliente mandasse: custo 1.000.000 numa chave
+// inventada virava 1.000.000 de créditos no estorno automático de 2 h depois, e
+// custo 0 numa chave previsível (enhance-<videoId>) tornava grátis o débito real.
+// O userId vem do chamador, sempre já autenticado (auth.getUser ou CRON_SECRET).
+function serviceDebitClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
 
 export interface DebitResult {
   /** Saldo novo devolvido pelo RPC, ou null quando o RPC falhou/atipou. */
@@ -34,16 +47,17 @@ export async function debitVideoCredits(
   // idempotência, mesmo custo autoritativo de render_jobs.
   args: { userId: string; renderId: string; cost: number; service?: boolean },
 ): Promise<DebitResult> {
-  const { data, error } = args.service
-    ? await supabase.rpc('debit_video_credits_service', {
-        p_render: args.renderId,
-        p_cost: args.cost,
-        p_user: args.userId,
-      })
-    : await supabase.rpc('debit_video_credits', {
-        p_render: args.renderId,
-        p_cost: args.cost,
-      })
+  // KINEO-DEBITO-SO-SERVIDOR-0411 — chamador em modo serviço já tem client admin; o de sessão não serve mais para o RPC.
+  const db = args.service ? supabase : serviceDebitClient()
+  if (!db) {
+    console.error('[credits/debit] service-role env missing — debit refused')
+    return { data: null, error: { message: 'debit service unavailable' } }
+  }
+  const { data, error } = await db.rpc('debit_video_credits_service', {
+    p_render: args.renderId,
+    p_cost: args.cost,
+    p_user: args.userId,
+  })
   const balance = typeof data === 'number' ? data : null
 
   // Contabilidade do trial SÓ depois de débito confirmado (error nulo E saldo

@@ -18,8 +18,10 @@ function provas(r, d) {
   const i = r.indexOf('const { data, error } = await debitVideoCredits(supabase, {'), j = r.indexOf('})', i)
   if (i < 0 || !r.slice(i, j).includes('service: isServiceJob,')) e.push('o débito da rota não usa o modo serviço na retomada')
   if (!/const isServiceJob = !!process\.env\.CRON_SECRET && req\.headers\.get\('authorization'\) === `Bearer \$\{process\.env\.CRON_SECRET\}`/.test(r)) e.push('isServiceJob deixou de exigir o CRON_SECRET')
-  if (!/args\.service\s*\n?\s*\? await supabase\.rpc\('debit_video_credits_service', \{[^}]*p_user: args\.userId/.test(d)) e.push('a lib não chama debit_video_credits_service com o usuário explícito')
-  if (!/: await supabase\.rpc\('debit_video_credits', \{/.test(d)) e.push('o caminho do clique saiu do RPC de sessão')
+  if (!/args\.service \? supabase : serviceDebitClient\(\)/.test(d)) e.push('o modo serviço deixou de usar o client admin do chamador')
+  if (!/db\.rpc\('debit_video_credits_service', \{[^}]*p_user: args\.userId/.test(d)) e.push('a lib não chama debit_video_credits_service com o usuário explícito')
+  // KINEO-DEBITO-SO-SERVIDOR-0411 — o clique também passou para a variante _service; o RPC de sessão foi revogado.
+  if (/rpc\('debit_video_credits',/.test(d)) e.push('a lib voltou a chamar o RPC de sessão')
   return e
 }
 const base = provas(rota, debit)
