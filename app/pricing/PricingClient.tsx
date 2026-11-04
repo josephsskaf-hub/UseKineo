@@ -59,7 +59,6 @@ import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA
 import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier } from '@/components/pricing/PlanValueStage'
 import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
-import MrrPricingProof from '@/components/growth/MrrPricingProof'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
 import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
 // KINEO-CLARITY-WELCOME20-2026-10-12 — antes das constantes: PRICING_WELCOME20_ON_CARD lê o interruptor daqui.
@@ -171,7 +170,7 @@ import Offer290RescueCard from '@/components/Offer290RescueCard' // KINEO-AVULSO
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
-import { FilmsLikeThisNote, FilmsMadeProof, PlanFinder } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — "Which plan fits me?", prova social real e "≈ N more films like this"
+import { FilmsLikeThisNote, FilmsMadeProof } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — "Which plan fits me?", prova social real e "≈ N more films like this"
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -1255,7 +1254,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <Offer290RescueCard surface="pricing" />
         {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
             a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
-        {valueCards ? null : <MrrPricingProof />}
+        
         {valueCards ? (() => {
           // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o palco novo: mesmo plano, mesmo preço, mesmo handleBuy; muda o que o cartão
           // CONTA (o que os créditos compram, calculado dentro do cartão por lib/pricingPlanValue.ts) e a cara.
@@ -1723,7 +1722,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
         <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>{/* KINEO-PRICING-LIMPO-0411 — saiu de cada cartão, fica uma vez */}
         <FilmsMadeProof surface="pricing" />
-        <PlanFinder />
+        {/* KINEO-PRICING-SEM-VELHO-0411 — fundador 04/11: "tira essa parte muito velha, how many film do i get e which plan fits me". */}
 
         <div className="pricing-secondary">
         {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
@@ -1775,7 +1774,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
         </div>
-        {valueCards ? <MrrPricingProof /> : null}
+        
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
             nao so no FAQ: uma fita de precos por resultado. */}

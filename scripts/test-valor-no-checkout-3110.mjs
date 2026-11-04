@@ -131,9 +131,9 @@ function problems(replacements = {}) {
   if (!up.includes('poster={film && !failed ? film.thumbnail_url ?? undefined : SAMPLE?.arenaPosterPath}')) p.push('parede: miniatura do filme da pessoa')
   if (!up.includes("Your completed film — keep creating with your own ideas.")) p.push('parede: legenda de sempre sumiu')
   const pr = src(PRICING)
-  if (!pr.includes('<PlanFinder />') || !pr.includes('<FilmsMadeProof surface="pricing" />')) p.push('pricing: PlanFinder / prova social')
+  if (pr.includes('<PlanFinder />') || !pr.includes('<FilmsMadeProof surface="pricing" />')) p.push('pricing: sem PlanFinder (KINEO-PRICING-SEM-VELHO-0411), com prova social')
   if (!pr.includes('<FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />')) p.push('pricing: "films like this" no Your latest film')
-  if (pr.indexOf('<PlanFinder />') > pr.indexOf('<div className="pricing-secondary">')) p.push('pricing: PlanFinder abaixo da dobra secundária')
+  if (pr.indexOf('<FilmsMadeProof surface="pricing" />') > pr.indexOf('<div className="pricing-secondary">')) p.push('pricing: prova social abaixo da dobra secundária')
   const uiSrc = src(UI)
   if (!uiSrc.includes('trackEvent(PLAN_FINDER_OPENED_EVENT') || !uiSrc.includes('trackEvent(PLAN_FINDER_RECOMMENDED_EVENT')) p.push('ui: eventos')
   if (lib.PLAN_FINDER_OPENED_EVENT !== 'plan_finder_opened' || lib.PLAN_FINDER_RECOMMENDED_EVENT !== 'plan_finder_recommended') p.push('eventos com nome errado')
@@ -178,7 +178,7 @@ const MUTANTES = [
   ['stripe convidado sem a linha do anual', muta(STRIPE, 'ctx.checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing: ctx.billing, tier: ctx.tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description', 'ctx.checkoutValueContext.lineItemDescription ?? plan.description')],
   ['parede sem prova social', muta(UPGRADE, '<FilmsMadeProof surface="upgrade" />', '')],
   ['parede sem films like this', muta(UPGRADE, '<FilmsLikeThisNote qualityMode={film.quality_mode} seconds={film.duration} />', '')],
-  ['pricing sem PlanFinder', muta(PRICING, '<PlanFinder />', '')],
+  ['pricing com PlanFinder de volta', muta(PRICING, '<FilmsMadeProof surface="pricing" />', '<FilmsMadeProof surface="pricing" /><PlanFinder />')],
   ['ui sem evento de abertura', muta(UI, 'trackEvent(PLAN_FINDER_OPENED_EVENT', 'void (PLAN_FINDER_OPENED_EVENT')],
 ]
 for (const [nome, repl] of MUTANTES) {
