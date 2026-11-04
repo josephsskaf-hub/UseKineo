@@ -18,6 +18,11 @@ for (const arq of ['app/(auth)/login/page.tsx', 'app/(auth)/signup/page.tsx']) {
 }
 const ms = fs.readFileSync('components/MicrosoftSignInButton.tsx', 'utf8')
 checa('Microsoft usa o provedor azure com escopo de e-mail', ms.includes("provider: 'azure'") && ms.includes("scopes: 'email'"))
+// KINEO-LOGIN-X-0411 — fundador 04/11: sair do login sem a seta do navegador.
+const temX = (t) => t.includes('{!inModal && (') && t.includes('href="/"') && t.includes('data-auth-fechar="true"')
+const fonteQuadro = fs.readFileSync('components/auth/AuthQuadro.tsx', 'utf8')
+checa('a página tem um X que volta ao site', temX(fonteQuadro))
+checa('mutante sem o X fica vermelho', !temX(fonteQuadro.replace('data-auth-fechar="true"', '')))
 // KINEO-LOGIN-FUNDO-0411 — fundador 04/11: "ela loga nessa tela em branco, tem que ter os nossos vídeos por trás".
 const quadroSrc = fs.readFileSync('components/auth/AuthQuadro.tsx', 'utf8')
 const fundoNaPagina = (t) => t.includes('<AuthFundo />') && t.indexOf('if (inModal) return quadro') < t.indexOf('<AuthFundo />')
