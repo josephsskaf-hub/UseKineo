@@ -1,53 +1,58 @@
 {
- "base": "7a5ba201aaaa79a1d71d4c71b40d164623bddc0f",
+ "base": "46282cb6cc82c0cb561e17729e3cdeeeaef4c0fc",
  "scope": {
-  "lib/cinematic/citadoNaoAge.ts": {
-   "beforeSha256": "f0978daca61ed2ad31c104874a6b58f2cee2684e41d0eb09187987612279c889",
-   "afterSha256": "3314e19cf7c19210c409bbccb9dc5973ea9a6a606f494208082fd13c7411e413",
-   "hunks": [
-    {
-     "before": "\n/** O papel sem nome que abre a história agindo (\"A mystery woman filmed…\" → \"woman\"), ou null. */",
-     "after": "\n/** KINEO-SO-GENTE-NA-FICHA-0411 — palavra comum que abre frase ou compõe nome de lugar e nunca é gente: rótulo de roteiro (\"Sound:\", \"Moral:\", \"Essential:\"), parte de lugar (\"Lituya Bay acted\", \"Empire State Building stands\") e direção (\"Northeast\"). É a rede de segurança de quando a leitura semântica falha. */\nexport const PALAVRAS_NUNCA_NOME: readonly string[] = 'essential|essentials|moral|moraleja|ending|opening|concept|dialogue|sound|incomplete|confusion|digital|laughter|northeast|northwest|southeast|southwest|building|skyscraper|bay|tower|bridge|lake|island|valley|canyon|desert|harbor|harbour|strait|gulf|peninsula|volcano|glacier|cathedral|museum|stadium|airport|avenue|university|hospital|republic|empire|state'.split('|')\n\n/** O papel sem nome que abre a história agindo (\"A mystery woman filmed…\" → \"woman\"), ou null. */"
-    }
-   ]
-  },
   "lib/cinematic/elencoEpoca.ts": {
-   "beforeSha256": "8d577019df7dd4d2c917e9e5846666393ae9f3a22cbc419bf3b71ba31212ff1d",
-   "afterSha256": "b18d1d3371db974f170665796191ac03422fcf20ca58e18f629e33b5c254684b",
+   "beforeSha256": "687debb3385ea74de3eefb780ccaaa68dc6513f9a4cfcd7404ae458c99ee135c",
+   "afterSha256": "8d577019df7dd4d2c917e9e5846666393ae9f3a22cbc419bf3b71ba31212ff1d",
    "hunks": [
     {
-     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n",
-     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, PALAVRAS_NUNCA_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411\n"
+     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\n",
+     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n"
     },
     {
-     "before": "const PAISAGEM_DEPOIS_RE = /^(?:wilderness|wilds|backcountry|outback|mountains?|peaks?|highlands|lowlands|desert|dunes|forest|forests|jungle|rainforest|valley|canyon|plains?|plateau|tundra|steppe|coast|coastline|shore|sea|ocean|bay|gulf|strait|lake|river|delta|basin|glacier|icefield|ice\\s+sheet|islands?|archipelago|territory|territories|region|province|countryside|frontier|airspace|waters)\\b/i // KINEO-ELENCO-AVIAO-LUGAR-0111\nconst GEO_SUFIXO_RE =/^(?:City|Island|Islands|Valley|Canyon|Desert|Mountain|Mountains|Bay|Beach|Park|Street|Avenue|Road|Bridge|Tower|Castle|Palace|Temple|Station|Airport|University|Hospital|Company|Corporation|Inc|Ltd|Empire|Kingdom|Republic|Ocean|Sea|Falls|Forest|Jungle|Plains|Square|Market|Bazaar|Museum|Church|Cathedral|Mosque|Hotel|Theater|Theatre|Stadium|Arena|Zoo|Garden|Gardens|Harbor|Harbour|Lane|Boulevard|Canal|Dam|Mine|Mines|Plant|Factory|Prison|School|College|Bank|Hall|Manor|Farm|Ranch|Village|Town|County|State|Province|Coast|Peninsula|Strait|Gulf|Lagoon|Glacier|Volcano|Crater|Reef|Cave|Caves|Trail|Highway|Route|Railway|Express|Mall|Center|Centre|Base|Camp|Field|Fields|Lake|River|Hill|Hills|Rock|Point|Pass|Peak|Summit|Ridge|Cliff|Cliffs|Shore|Creek|Spring|Springs|Woods|Heights|Grove|Meadow|Marsh|Swamp|Triangle|Line|Wall|Gate|Tunnel|Port|Pier|Dock|Docks|Wharf|Lighthouse|Fortress|Citadel|Abbey|Monastery|Shrine|Pyramid|Pyramids|Ruins|Tomb|Library|Archive|Archives|Institute|Academy|Agency|Bureau|Department|Ministry|Council|Court|Parliament|Senate|Congress|Army|Navy|Guard|Police|Times|Post|Herald|Tribune|News|Gazette|Journal|Review|Press)$/i // KINEO-ELENCO-EPOCA-2710\n/** Palavras com maiúscula que não são nome de personagem (inglês + o que a tradução traz: países, gentílicos, meses, marcas, abstratos que abrem frase). */ // KINEO-ELENCO-EPOCA-2710",
-     "after": "const PAISAGEM_DEPOIS_RE = /^(?:wilderness|wilds|backcountry|outback|mountains?|peaks?|highlands|lowlands|desert|dunes|forest|forests|jungle|rainforest|valley|canyon|plains?|plateau|tundra|steppe|coast|coastline|shore|sea|ocean|bay|gulf|strait|lake|river|delta|basin|glacier|icefield|ice\\s+sheet|islands?|archipelago|territory|territories|region|province|countryside|frontier|airspace|waters)\\b/i // KINEO-ELENCO-AVIAO-LUGAR-0111\nconst GEO_SUFIXO_RE =/^(?:Building|Skyscraper|Monument|Statue|Memorial|City|Island|Islands|Valley|Canyon|Desert|Mountain|Mountains|Bay|Beach|Park|Street|Avenue|Road|Bridge|Tower|Castle|Palace|Temple|Station|Airport|University|Hospital|Company|Corporation|Inc|Ltd|Empire|Kingdom|Republic|Ocean|Sea|Falls|Forest|Jungle|Plains|Square|Market|Bazaar|Museum|Church|Cathedral|Mosque|Hotel|Theater|Theatre|Stadium|Arena|Zoo|Garden|Gardens|Harbor|Harbour|Lane|Boulevard|Canal|Dam|Mine|Mines|Plant|Factory|Prison|School|College|Bank|Hall|Manor|Farm|Ranch|Village|Town|County|State|Province|Coast|Peninsula|Strait|Gulf|Lagoon|Glacier|Volcano|Crater|Reef|Cave|Caves|Trail|Highway|Route|Railway|Express|Mall|Center|Centre|Base|Camp|Field|Fields|Lake|River|Hill|Hills|Rock|Point|Pass|Peak|Summit|Ridge|Cliff|Cliffs|Shore|Creek|Spring|Springs|Woods|Heights|Grove|Meadow|Marsh|Swamp|Triangle|Line|Wall|Gate|Tunnel|Port|Pier|Dock|Docks|Wharf|Lighthouse|Fortress|Citadel|Abbey|Monastery|Shrine|Pyramid|Pyramids|Ruins|Tomb|Library|Archive|Archives|Institute|Academy|Agency|Bureau|Department|Ministry|Council|Court|Parliament|Senate|Congress|Army|Navy|Guard|Police|Times|Post|Herald|Tribune|News|Gazette|Journal|Review|Press)$/i // KINEO-ELENCO-EPOCA-2710\n/** Palavras com maiúscula que não são nome de personagem (inglês + o que a tradução traz: países, gentílicos, meses, marcas, abstratos que abrem frase). */ // KINEO-ELENCO-EPOCA-2710"
+     "before": "for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710",
+     "after": "for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.\nfor (const palavra of GRUPOS_NAO_NOME) NAO_NOME.add(palavra) // KINEO-CITADO-NAO-AGE-0311 — \"Investigators appealed\": grupo que abre frase não é \"Investigators, a woman with a ponytail\"\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710"
     },
     {
-     "before": "for (const palavra of GRUPOS_NAO_NOME) NAO_NOME.add(palavra) // KINEO-CITADO-NAO-AGE-0311 — \"Investigators appealed\": grupo que abre frase não é \"Investigators, a woman with a ponytail\"\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710",
-     "after": "for (const palavra of GRUPOS_NAO_NOME) NAO_NOME.add(palavra) // KINEO-CITADO-NAO-AGE-0311 — \"Investigators appealed\": grupo que abre frase não é \"Investigators, a woman with a ponytail\"\nfor (const palavra of PALAVRAS_NUNCA_NOME) NAO_NOME.add(palavra) // KINEO-SO-GENTE-NA-FICHA-0411 — \"Moral:\", \"Essential:\", \"Lituya Bay acted\", \"Empire State Building stands\"\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710"
+     "before": "  if (!texto) return [] // KINEO-ELENCO-EPOCA-2710\n  const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710",
+     "after": "  if (!texto) return [] // KINEO-ELENCO-EPOCA-2710\n  const lista = candidatos(texto).filter((c) => !nomeSoCitado(texto, c.nome, VERBO_RE)).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710 // KINEO-CITADO-NAO-AGE-0311 — \"A mystery woman filmed Kennedy's assassination\": o citado não entra; a protagonista sem nome entra pelo caminho de sempre\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710"
     }
    ]
   },
   "lib/cinematic/filmQuality.ts": {
-   "beforeSha256": "eb9e441329cea9af23d0e34348bd3e2782a5c97f8b813adab8ead526ef26c2c5",
-   "afterSha256": "eb9e441329cea9af23d0e34348bd3e2782a5c97f8b813adab8ead526ef26c2c5",
-   "hunks": []
-  },
-  "lib/cinematic/folhaDePersonagem.ts": {
-   "beforeSha256": "a054c1996fdae855cb2e38c799115714e68b5e8ace6145ae1facba88581735e8",
-   "afterSha256": "33a6f8ce5ba4e2b8200b3e50fe3d3243567fdf0fdf9e410ef55fdc799c9e7e2b",
+   "beforeSha256": "7c595095d6cb49b14dda828dcdd9a91d818be12bcb7f74407c2b2b6c2df77fed",
+   "afterSha256": "d7356330ff33b047650f81935375b062cd49524b5a0068b2d01f1db954b82e72",
    "hunks": [
     {
-     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n",
-     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, PALAVRAS_NUNCA_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411\n"
+     "before": "import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'\nimport { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'",
+     "after": "import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'\nimport { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311\nimport { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'"
     },
     {
-     "before": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311\n    const fim = (m.index ?? 0) + m[0].length",
-     "after": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase()) || PALAVRAS_NUNCA_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411\n    const fim = (m.index ?? 0) + m[0].length"
+     "before": "    for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {\n      const detected = cast.relato.elenco.find(e => e.nome.toLowerCase() === ficha.nome.toLowerCase())\n      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)",
+     "after": "    for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {\n      const detected = cast.relato.elenco.find(e => mesmoPersonagem(e.nome, ficha.nome)) // KINEO-CITADO-NAO-AGE-0311 — era nome exato: \"the woman\" x \"the mystery woman\" (e \"F. Kennedy\" x \"Kennedy\") ficavam com DUAS descrições na mesma cena\n      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)"
+    }
+   ]
+  },
+  "lib/cinematic/folhaDePersonagem.ts": {
+   "beforeSha256": "c4977508541206933f70c7880180ab0998e47dcc54641a56385f878018723963",
+   "afterSha256": "a054c1996fdae855cb2e38c799115714e68b5e8ace6145ae1facba88581735e8",
+   "hunks": [
+    {
+     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\n",
+     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n"
+    },
+    {
+     "before": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910\n    const fim = (m.index ?? 0) + m[0].length",
+     "after": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311\n    const fim = (m.index ?? 0) + m[0].length"
+    },
+    {
+     "before": "    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break\n    // KINEO-SERES-PERSONIFICADOS-3010 — \"Broccoli opens his eyes\": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado",
+     "after": "    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break\n    if (nomeSoCitado(semTags, nome, VERBO_RE)) continue // KINEO-CITADO-NAO-AGE-0311 — \"A mystery woman filmed Kennedy's assassination\": Kennedy é citado; a protagonista sem nome entra logo abaixo\n    // KINEO-SERES-PERSONIFICADOS-3010 — \"Broccoli opens his eyes\": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado"
     }
    ]
   }
  },
- "addedSources": {}
+ "addedSources": {
+  "lib/cinematic/citadoNaoAge.ts": "f0978daca61ed2ad31c104874a6b58f2cee2684e41d0eb09187987612279c889"
+ }
 }
