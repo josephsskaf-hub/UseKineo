@@ -27,6 +27,7 @@ import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDIT
 import { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { createLiveCache } from '@/lib/admin/liveCache'
 import { motorEntregueDe, rotuloMotorGrupo, type MotorEntregue } from '@/lib/admin/motorEntregue' // KINEO-PAINEL-MOTOR-ENTREGUE-0211
+import { filmeEmVoo, type EventoDoFilme } from '@/lib/admin/filmeEmVoo' // KINEO-PAINEL-FILME-EM-VOO-0311
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-PAINEL-MOTOR-ENTREGUE-0211 — Kling 4 pago é vendido como "Kling 4.0"
 
 export const dynamic = 'force-dynamic'
@@ -77,6 +78,8 @@ export interface LiveVisitor {
   // situação legível sem precisar consultar o banco na mão.
   /** true = tem geração EM VOO agora (explica crédito gasto sem vídeo). */
   rendering: boolean
+  /** KINEO-PAINEL-FILME-EM-VOO-0311 — qual filme: "Kling 4.0, filme grátis · 15 s · “tema”". Só com filme em voo. */
+  renderingFilm: string | null
   /** Quanto do trial já foi gasto: "20 of 50" — do contador oficial. */
   creditsUsedLabel: string | null
   /** Em QUÊ foi: "Seedance×2 (40cr) · Kineo 1×1 (2cr)". Só débitos efetivos. */
@@ -599,6 +602,12 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
       // definição de "quem paga" ou "quem é interno" nasce dentro de uma rota.
       const internal = (e: string) => isInternalEmail(e)
 
+      // KINEO-PAINEL-FILME-EM-VOO-0311 — janela de 2 h: um filme leva mais que os 5 min do "online", e o despacho precisa continuar à vista até ele sair.
+      const { data: filmeRows } = await readAll(() => admin
+        .from('events').select('user_id, name, metadata').in('name', ['video_generation_started', 'generate_started', 'generation_attempt_opened', 'free_film_engine_used', 'cinematic_dispatch_result']).in('user_id', ids).gte('created_at', iso(2 * 60 * 60 * 1000)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' })
+      const filmeEventos = new Map<string, EventoDoFilme[]>()
+      for (const e of (filmeRows ?? []) as Array<EventoDoFilme & { user_id: string }>) filmeEventos.set(e.user_id, [...(filmeEventos.get(e.user_id) ?? []), e])
+
       online = (profRes.data ?? [])
         .map((p) => {
           const row = byUser.get(p.id as string)!
@@ -657,6 +666,8 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
           const iDoneCandidates = [newestIdx('video_generation_completed'), newestIdx('video_generation_failed'), iCompletion].filter((i) => i >= 0) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           const iDone = iDoneCandidates.length > 0 ? Math.min(...iDoneCandidates) : -1
           const rendering = iStart >= 0 && (iDone === -1 || iStart < iDone)
+          // KINEO-PAINEL-FILME-EM-VOO-0311 — o filme em voo, com motor e tema, ao lado do selo (lib/admin/filmeEmVoo.ts).
+          const renderingFilm = rendering || did.some((d) => d.startsWith('⏳ montando')) ? filmeEmVoo(filmeEventos.get(p.id as string) ?? [], KLING4_PAID_LIVE) : null
           const failed = row.details.filter((event) => event.name === 'video_generation_failed' && !isNarrationCompletionEvent(event)).length // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           const lastEngine =
             [...names].find((n) => n.startsWith('engine_')) ?? null
@@ -792,6 +803,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
             heat,
             source: (p.signup_utm_source as string | null) ?? null,
             rendering,
+            renderingFilm,
             creditsUsedLabel,
             spentOn,
             hoursOld,

@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
-import { semPainelMotorEntregue0211 } from './test-support/desfaz-painel-motor-entregue-0211.mjs' // KINEO-PAINEL-MOTOR-ENTREGUE-0211
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
@@ -48,10 +47,10 @@ checa('cron a cada 1 min (KINEO-FILME-RAPIDO-1710; era 5)', /"path": "\/api\/cro
 checa('compose resgatado carrega o pedido (response.prompt) — o painel de coerência deixa de dizer "prompt vazio no banco"', cron.includes("typeof response.prompt === 'string' ? response.prompt : undefined"))
 
 console.log('4) painel')
-// KINEO-PAINEL-MOTOR-ENTREGUE-0211 — a linha de gasto ganhou o motor ENTREGUE; esta checagem histórica lê a rota sem essa camada (recibo exato).
-const live = semPainelMotorEntregue0211(rd('app/api/admin/live/route.ts'), 'app/api/admin/live/route.ts')
+// KINEO-PAINEL-FILME-EM-VOO-0311 — a rota ganhou a linha do filme em voo; a checagem lê a rota de hoje, com o nome do motor entregue na linha de gasto.
+const live = rd('app/api/admin/live/route.ts')
 checa('"montando" quando há claim cobrado sem filme pronto nem falha', live.includes("did.push('⏳ montando (crédito cobrado, filme a caminho)')"))
-checa('linha de gasto: pedidos × prontos × montando', live.includes('const prontos = Math.min(v.n, delivered24.get(') && live.includes("`🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${ENGINE_SHORT[q] ?? q} (${entrega})"))
+checa('linha de gasto: pedidos × prontos × montando', live.includes('const prontos = Math.min(v.n, delivered24.get(') && live.includes("`🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${rotuloMotorGrupo(q, entregueBy.get(p.id as string)?.get(q) ?? [], ENGINE_SHORT[q] ?? q, KLING4_PAID_LIVE)} (${entrega})"))
 
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)
 process.exit(falhas.length ? 1 : 0)

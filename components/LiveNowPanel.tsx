@@ -187,6 +187,10 @@ export default function LiveNowPanel() {
                         rendering
                       </span>
                     )}
+                    {/* KINEO-PAINEL-FILME-EM-VOO-0311 — fundador 03/11: "deixa mais claro qual é o filme que está renderizando". */}
+                    {v.renderingFilm && (
+                      <div style={{ marginTop: 4, color: 'var(--text)', fontWeight: 600, whiteSpace: 'normal', maxWidth: 340 }}>{v.renderingFilm}</div>
+                    )}
                     {v.failed > 0 && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase"
                         title="Geracoes que falharam — dor, nao uso"

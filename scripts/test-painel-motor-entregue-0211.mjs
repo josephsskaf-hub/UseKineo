@@ -97,8 +97,11 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
         '@/lib/admin/checkoutHonesto': { carregarCheckoutHonesto: async () => null },
       },
     })('app/api/admin/live/route.ts')
-    return (await route.GET()).body?.online?.find((v) => v.user_id === USER)?.spentOn ?? ''
+    const visitante = (await route.GET()).body?.online?.find((v) => v.user_id === USER)
+    ultimoVisitante = visitante
+    return visitante?.spentOn ?? ''
   }
+  let ultimoVisitante = null
   const l1 = await linhaDaRota()
   checa('1.10 a rota real escreve "🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos"', l1.includes('🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos') && !l1.includes('no Seedance (pronto)'))
   DB.events = DB.events.filter((e) => e.name !== 'free_film_engine_used')
@@ -109,6 +112,33 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
   DB.events.push({ user_id: USER, session_id: 'gen-2', name: 'cinematic_dispatch_result', path: '/api/generate-video-cinematic', created_at: '2026-11-02T14:10:30Z', metadata: { billing_reference: 'cinematic-outro', quality: 'cinematic_ai', generation_id: 'gen-2' } })
   const l3 = await linhaDaRota()
   checa('1.12 grupo misto: UMA linha, texto de antes e "prontos" contados uma vez ("2 pedidos no Seedance (1 pronto · 1 montando) · 18 créditos")', (l3.match(/🎬 24h/g) ?? []).length === 1 && l3.includes('🎬 24h: 2 pedidos no Seedance (1 pronto · 1 montando) · 18 créditos'))
+  // KINEO-PAINEL-FILME-EM-VOO-0311 — fundador 03/11: "deixa mais claro qual é o filme que está renderizando" (caso real: gabriela, kit de presilhas).
+  DB = casoReal()
+  const TEMA = 'Meninas, olha que lindo esse kit de presilhas! São peças delicadas e práticas'
+  DB.events = [
+    { user_id: USER, session_id: 'sess-1', name: 'studio_tiles_shown', path: '/studio', created_at: iso(agora - 60_000), metadata: {}, is_bot: 'false' },
+    { user_id: USER, session_id: 'sess-1', name: 'video_generation_started', path: '/studio', created_at: iso(agora - 400_000), metadata: { quality: 'cinematic_ai' }, is_bot: 'false' },
+    { user_id: USER, session_id: 'sess-1', name: 'video_generation_started', path: '/studio', created_at: iso(agora - 200_000), metadata: { quality: 'cinematic_ai' }, is_bot: 'false' },
+    { user_id: USER, session_id: GEN, name: 'generation_attempt_opened', path: '/api/generate-video-cinematic', created_at: iso(agora - 190_000), metadata: { engine: 'seedance', duration: 15, topic_hint: TEMA, generation_id: GEN } },
+  ]
+  const maisNovoPrimeiro = () => DB.events.sort((a, b) => b.created_at.localeCompare(a.created_at)) // a rota real pede ORDER BY created_at DESC
+  maisNovoPrimeiro()
+  await linhaDaRota()
+  checa('1.15 antes de sair do escolhido: "motor sendo definido", nunca o Seedance da tela', ultimoVisitante?.rendering === true && ultimoVisitante?.renderingFilm === 'motor sendo definido · 15 s · “Meninas, olha que lindo esse kit de presilhas! São peças…”')
+  DB.events.push({ user_id: USER, session_id: GEN, name: 'free_film_engine_used', path: '/api/generate-video-cinematic', created_at: iso(agora - 170_000), metadata: { engine_used: 'kling4', generation_id: GEN, seconds: 15 } })
+  maisNovoPrimeiro()
+  await linhaDaRota()
+  checa('1.16 filme grátis no Kling 4: a linha diz o motor, os segundos e o tema', ultimoVisitante?.renderingFilm === 'Kling 4.0, filme grátis · 15 s · “Meninas, olha que lindo esse kit de presilhas! São peças…”')
+  DB.events.push({ user_id: USER, session_id: 'sess-1', name: 'video_generation_completed', path: '/studio', created_at: iso(agora - 30_000), metadata: {}, is_bot: 'false' })
+  maisNovoPrimeiro()
+  await linhaDaRota()
+  checa('1.17 filme pronto: a linha some junto com o selo', ultimoVisitante?.rendering === false && ultimoVisitante?.renderingFilm === null)
+  const V = createOfflineLoader()('lib/admin/filmeEmVoo.ts')
+  const inicio = { name: 'video_generation_started' }, velho = { name: 'free_film_engine_used', metadata: { engine_used: 'kling4' } }
+  checa('1.18 o motor do filme anterior não vaza para o filme novo', V.filmeEmVoo([inicio, velho], true) === 'motor sendo definido')
+  checa('1.19 reserva, despacho Kling 4 e venda paga dizem o motor certo', V.filmeEmVoo([{ name: 'free_film_engine_used', metadata: { engine_used: 'seedance15_fallback' } }, inicio], true) === 'Seedance 1.5, reserva do filme grátis' && V.filmeEmVoo([{ name: 'cinematic_dispatch_result', metadata: { engine: 'kling/v4/text-to-video', quality: 'cinematic_hollywood' } }, inicio], true) === 'Kling 4.0' && V.filmeEmVoo([{ name: 'cinematic_dispatch_result', metadata: { quality: 'cinematic_veo' } }, inicio], true) === 'Veo 3.1')
+  checa('1.20 motor de fornecedor desconhecido não vira selo', V.filmeEmVoo([{ name: 'free_film_engine_used', metadata: { engine_used: 'kling9-novo' } }, inicio], true) === 'motor sendo definido')
+  DB = casoReal()
   const rota = rd('app/api/admin/live/route.ts'), rotaBase = base('app/api/admin/live/route.ts')
   const linhaProntos = 'const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)'
   checa('1.13 agrupamento e conta de "prontos" idênticos à base', rota.includes(linhaProntos) && rotaBase.includes(linhaProntos) && rota.includes('const cur = m.get(q) ?? { n: 0, cr: 0 }') && rota.includes("const q = jobQuality.get(String(d.render_id)) ?? '?'") && !/chaveMotor|lerChaveMotor/.test(rota))
