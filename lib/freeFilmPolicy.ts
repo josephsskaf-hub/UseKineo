@@ -39,6 +39,7 @@ export const PAISES_FILME_GRATIS: readonly string[] = [
   // Golfo e Israel
   'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'IL',
   'BR', // KINEO-BRASIL-VOLTA-2026-10-03 — fundador (03/10): o Brasil vende (checkout em reais, Kineo Empresas). Reverter = apagar esta linha.
+  'AR', // KINEO-ARGENTINA-0411 — fundador (04/11): "libera pra argentina o trial". Reverter = apagar esta linha.
 ]
 
 /** Status gravado em profiles.trial_status para quem ficou fora do filme grátis (texto livre, sem CHECK no banco). */
