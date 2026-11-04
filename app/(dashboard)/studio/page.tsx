@@ -8,6 +8,8 @@
 import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
+import StudioSimples from '@/components/studio/StudioSimples' // KINEO-CAIXA-UNICA-0411
+import { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/studioSimples' // KINEO-CAIXA-UNICA-0411
 import StudioIdeaArrival from '@/components/StudioIdeaArrival'
 import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-STUDIO-CLS-2026-10-13 — o motor que a tela abre (o mesmo useState do StudioClient)
 
@@ -43,7 +45,7 @@ const BEST_FILM_IDS = [
 /** Motor dos filmes da casa → chave do seletor do Studio (inverso de HERO_ENGINE). */
 const STUDIO_KEY: Record<string, string> = Object.fromEntries(Object.entries(HERO_ENGINE).map(([k, v]) => [v, k]))
 
-export default function StudioPage() {
+export default function StudioPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const engineHeroes: Record<string, StudioHeroVideo[]> = {}
   for (const [key, engine] of Object.entries(HERO_ENGINE)) {
     engineHeroes[key] = getHouseEngineExamples(engine, 4)
@@ -62,6 +64,15 @@ export default function StudioPage() {
   // cabeça). <video poster> não aceita fetchpriority e mora no fim de um HTML grande; o preload põe o pôster do motor de
   // entrada na fila alta já no começo do documento. Só o 1º filme do motor de abertura (o que a tela mostra sem clique).
   const lcpPoster = engineHeroes[SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast']?.[0]?.poster
+  // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — quem só chegou vê a caixa única; quem traz trabalho (texto, retomada, episódio) ou pede "More options" segue no Studio completo.
+  if (usarCaixaUnica(searchParams)) {
+    return (
+      <>
+        <StudioIdeaArrival />
+        <StudioSimples filmes={bestFilms.flatMap((f) => (f.poster ? [{ id: f.id, title: f.title, engine: f.engine, poster: f.poster }] : []))} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />
+      </>
+    )
+  }
   return (
     <>
       {lcpPoster ? <link rel="preload" as="image" href={lcpPoster} fetchPriority="high" /> : null}

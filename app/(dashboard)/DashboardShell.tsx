@@ -137,10 +137,10 @@ export default function DashboardShell({
         <CreditRebaseBanner />
         {/* KINEO-BLACK-FRIDAY-2026 — só de 24/11 a 01/12 (relógio do servidor); a faixa de app/layout se cala nestas rotas. */}
         <BlackFridayBanner placement="app" />
-        <Creator30OfferModal />
+        {isLoggedIn && <Creator30OfferModal />}{/* KINEO-CAIXA-UNICA-0411 — fundador 04/11: sem venda na cara de quem não está logado */}
         {/* KINEO-WELCOME20-2026-08-25 — convite de boas-vindas com nome:
             20% no 1º mês de Creator/Studio, 1×/72h, pagante nunca vê. */}
-        <WelcomeOfferModal surface="dashboard" />
+        {isLoggedIn && <WelcomeOfferModal surface="dashboard" />}
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1
             KINEO-AVATAR-FORA-2026-09-28 — "NEW — AI Avatar Video" não se anuncia com o Avatar fora do catálogo
             (fundador 27/09: "avatar sai por hora"). O componente fica; volta com AVATAR_PUBLIC=true. */}

@@ -244,6 +244,7 @@ async function problems(over = {}) {
     })
     mw = compile(S('middleware'), {
       'next/server': { NextResponse: { redirect: mkRedirect } },
+      '@/lib/growth/visitanteEscreveAntes': { destinoDoVisitanteQueEscreve: () => null }, // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 — este guardião não passa por /signup
       '@/lib/supabase/middleware': { updateSession: async () => ({ passthrough: true, cookies: { set() {} } }) },
       '@/lib/growth/homeClipsFirst': { HOME_VISITOR_COOKIE: 'kineo_vid', HOME_VISITOR_COOKIE_MAX_AGE_SECONDS: 1, shouldMintHomeVisitorCookie: () => false },
       // KINEO-CHECKOUT-ROBO-1510: o portão do checkout só age em /api/stripe/checkout (provado em scripts/test-checkout-robo-1510.mjs).

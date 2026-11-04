@@ -12,6 +12,7 @@ import {
   decideCheckoutGate,
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 import { caminhoForaDasLinguas } from '@/lib/seo/linguasPublicas0311' // KINEO-5-LINGUAS-0311
+import { destinoDoVisitanteQueEscreve } from '@/lib/growth/visitanteEscreveAntes' // KINEO-ESCREVE-ANTES-DO-LOGIN-0411
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -102,6 +103,12 @@ export async function middleware(request: NextRequest) {
     dest.pathname = '/a/' + ref
     dest.search = ''
     return NextResponse.redirect(dest, 307)
+  }
+
+  // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 [fundador 04/11: "1a"] — cartão de filme da home, sem sessão: escreve primeiro no Studio; o login vem no Generate.
+  if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))) {
+    const destinoEscreve = destinoDoVisitanteQueEscreve(request.nextUrl.pathname, request.nextUrl.searchParams.get('redirect'))
+    if (destinoEscreve) return NextResponse.redirect(new URL(destinoEscreve, request.url), 307)
   }
 
   // KINEO-5-LINGUAS-0311 [TRAVA 8.2 — "vai" do fundador 03/11] — a versão de página numa língua fora das 5 (en/de/es/pt/fr) segue
