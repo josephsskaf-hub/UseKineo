@@ -144,9 +144,9 @@ function problemas(repl = {}) {
   checa('a rota da oferta é privada e lê a conta', api.includes("'Cache-Control': 'private, no-store'") && api.includes('accountCreatedAt = user.created_at') && api.includes('resolveAnnualOffer({'))
   checa('leitura que falha fecha', api.includes('let hasPaid: boolean | null = true') && api.includes('if (!error && data) hasPaid'))
 
-  // 6. nenhum plano com o campo de cupom; desconto do servidor intacto
-  for (const t of ['starter', 'basic', 'pro', 'business', 'autopilot', 'autopilot_lite']) for (const an of [true, false]) checa(`sem campo manual ${t} ${an}`, D.subscriptionAcceptsManualPromotions(t, an) === false)
-  checa('interruptores desligados', D.MANUAL_PROMO_FIELD_LIVE === false && /GUEST_MANUAL_PROMO_FIELD_LIVE = false/.test(src(F.convidado)))
+  // 6. KINEO-CUPOM-FICA-0411: o campo de cupom só no Creator/Studio mensal; desconto do servidor intacto
+  for (const t of ['starter', 'basic', 'pro', 'business', 'autopilot', 'autopilot_lite']) for (const an of [true, false]) checa(`campo manual ${t} ${an}`, D.subscriptionAcceptsManualPromotions(t, an) === (!an && (t === 'basic' || t === 'pro')))
+  checa('interruptores ligados nos dois lados', D.MANUAL_PROMO_FIELD_LIVE === true && /GUEST_MANUAL_PROMO_FIELD_LIVE = true/.test(src(F.convidado)))
   checa('convidado: espelho fecha o campo e a recuperação', /return GUEST_MANUAL_PROMO_FIELD_LIVE && /.test(src(F.convidado)) && /if \(!guestSubscriptionAcceptsManualPromotions\(input\.tier, isAnnual\)\) \{\n\s+delete params\.allow_promotion_codes\n\s+params\.after_expiration = \{ recovery: \{ enabled: true, allow_promotion_codes: false \} \}/.test(src(F.convidado)))
   checa('logado: o campo passa pelo interruptor', /if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(rota) && /allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)/.test(rota))
   checa('sessão recuperada do convidado sem campo', /recovery: \{ enabled: true, allow_promotion_codes: welcome === null \}/.test(src(F.convidado)))
@@ -261,8 +261,8 @@ const MUTANTES = [
   ['renovação BRL trata boas-vindas como legado', muta(F.moeda, ' || amountPaidMinor === BRL_ANNUAL_WELCOME_MINOR[tier])', ')')],
   ['recarga USD trata boas-vindas como legado', muta(F.recarga, "cur === 'usd' && annualAmountMinor !== ANNUAL_WELCOME_PRICES[tier].usd && ", "cur === 'usd' && ")],
   ['recarga BRL trata boas-vindas como legado', muta(F.recarga, "cur === 'brl' && annualAmountMinor !== ANNUAL_WELCOME_BRL_MINOR[tier] && ", "cur === 'brl' && ")],
-  ['campo de cupom volta', muta(F.parceiro, 'MANUAL_PROMO_FIELD_LIVE = false', 'MANUAL_PROMO_FIELD_LIVE = true')],
-  ['campo de cupom volta no convidado', muta(F.convidado, 'GUEST_MANUAL_PROMO_FIELD_LIVE = false', 'GUEST_MANUAL_PROMO_FIELD_LIVE = true')],
+  ['campo de cupom some', muta(F.parceiro, 'MANUAL_PROMO_FIELD_LIVE = true', 'MANUAL_PROMO_FIELD_LIVE = false')],
+  ['campo de cupom some no convidado', muta(F.convidado, 'GUEST_MANUAL_PROMO_FIELD_LIVE = true', 'GUEST_MANUAL_PROMO_FIELD_LIVE = false')],
   ['parceiro perde o desconto logado', muta(F.rota, 'if (coupon && affiliateOffer) {\n      sessionParams.discounts = [{ coupon }]', 'if (coupon && affiliateOffer) {\n      void coupon')],
   ['parceiro perde o desconto convidado', muta(F.rota, 'if (coupon) {\n      params.discounts = [{ coupon }]', 'if (coupon) {\n      void coupon')],
   ['parceiro inelegível', muta(F.parceiro, "return input.affiliatePresent &&", "return false && input.affiliatePresent &&")],

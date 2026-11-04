@@ -143,7 +143,7 @@ function runChecks(over = {}, verbose = false) {
   // (7) cupom
   check(P.planAcceptsPromotions('business') === false && P.planAcceptsPromotions('pro') === true, '(7) planAcceptsPromotions: business não, pro sim')
   check(PROMOTIONS.subscriptionAcceptsManualPromotions('business', false) === false && PROMOTIONS.subscriptionAcceptsManualPromotions('business', true) === false, '(7) campo manual da Stripe: Business fica fora no mensal e anual')
-  check(PROMOTIONS.subscriptionAcceptsManualPromotions('pro', false) === false && PROMOTIONS.MANUAL_PROMO_FIELD_LIVE === false, '(7) KINEO-CHECKOUT-FINO-0411: nenhum plano abre o campo (interruptor único)')
+  check(PROMOTIONS.subscriptionAcceptsManualPromotions('pro', false) === true, '(7) controle: Studio mensal continua aceitando promoções')
   check(/return MANUAL_PROMO_FIELD_LIVE && planAcceptsPromotions\(tier\) && !isAnnual/.test(src(over, F.PROMOTIONS)), '(7) religado, o interruptor segue barrando o Business (planAcceptsPromotions)')
   check(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), '(7) campo manual da Stripe desligado para business (logado)')
   check(/allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)/.test(co), '(7) recuperação da sessão sem campo manual para business (logado)')

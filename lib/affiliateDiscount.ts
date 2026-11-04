@@ -2,9 +2,9 @@ import { planAcceptsPromotions } from '@/lib/checkoutPricing'
 
 export const AFFILIATE_LINK_PROMO_SOURCE = 'affiliate_link_50'
 
-// KINEO-CHECKOUT-FINO-0411 [fundador 04/11, "limpo, sem cupom"] — interruptor único: nenhum plano abre o campo "Add promotion code" da Stripe. O que o
-// SERVIDOR aplica (`discounts`: parceiro 50%, ?promo= já emitido) não passa por aqui e segue igual. true devolve o campo ao Creator/Studio mensal.
-export const MANUAL_PROMO_FIELD_LIVE = false as boolean
+// KINEO-CUPOM-FICA-0411 [fundador 04/11 noite, depois de saber que os afiliados falam o código nos vídeos: "mantenha o cupom... do jeito que tá"] — o campo "Add promotion code" segue no Creator/Studio mensal, como sempre. Interruptor único. O que o
+// SERVIDOR aplica (`discounts`: parceiro 50%, ?promo= já emitido) não passa por aqui. false tira o campo de todos os planos.
+export const MANUAL_PROMO_FIELD_LIVE = true as boolean
 
 // Stripe cannot restrict a code by billing interval. Inline products also
 // prevent product scoping, so hosted manual entry follows the same safe scope.

@@ -299,10 +299,10 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
 }
 
 /**
- * KINEO-CHECKOUT-FINO-0411 [fundador 04/11, "limpo, sem cupom"] — espelho de MANUAL_PROMO_FIELD_LIVE (lib/affiliateDiscount.ts): nenhum plano abre o campo.
+ * KINEO-CUPOM-FICA-0411 — espelho de MANUAL_PROMO_FIELD_LIVE (lib/affiliateDiscount.ts): o campo segue no Creator/Studio mensal.
  * Literal aqui porque o guardião da compra sem login carrega este módulo com imports fechados; o guardião confere que os dois dizem o mesmo.
  */
-export const GUEST_MANUAL_PROMO_FIELD_LIVE = false as boolean
+export const GUEST_MANUAL_PROMO_FIELD_LIVE = true as boolean
 
 /**
  * KINEO-BLACK-FRIDAY-2026 — espelho literal de subscriptionAcceptsManualPromotions (lib/affiliateDiscount.ts): o campo
