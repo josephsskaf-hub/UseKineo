@@ -61,7 +61,7 @@ ok(page.includes('<ExamplesBusinessProofBridge />'), 'examples index renders the
 ok(!page.startsWith("'use client'"), 'examples page remains a Server Component')
 ok(page.includes('Watch what Kineo actually makes.'), 'proof headline remains intact')
 ok(page.includes('Bring your own topic.'), 'creator card remains intact')
-ok(page.includes('Create a Fast video →'), 'visitor creator CTA remains intact')
+ok(page.includes('<UiLabel>Open Studio →</UiLabel>') && !page.includes('Create a Fast video'), 'the footer button says the same thing to everyone') // KINEO-PAGINA-IGUAL-0411
 ok(page.includes('Open Studio →'), 'signed-in creator CTA remains intact')
 ok(page.indexOf('Bring your own topic.') < page.indexOf('<ExamplesBusinessProofBridge />'), 'creator action stays before the business bridge')
 ok(page.indexOf('</figure>') < page.indexOf('<ExamplesBusinessProofBridge />'), 'subscriber proof remains before the bridge')

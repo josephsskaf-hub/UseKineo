@@ -102,13 +102,12 @@ check(!landing.includes('{engineWall.length >= 4 && ('), 'engine grid section re
 const referralAnchors = landing.match(/referralBridge \? '#try-kineo' :/g) ?? []
 // 30/09: o botão do hero saiu com o bloco "Make room…" (fundador) — sobram cinco, todos ainda levando o indicado ao valor primeiro.
 // reancorado KINEO-HOME-LIMPA-1410 — o CTA do bloco "full toolkit" (utm_source=engine_bento) saiu com o bloco (14/10): sobram quatro.
-equal(referralAnchors.length, 4, 'all four generic signed-out Start free CTAs point referral visitors to value first')
+equal(referralAnchors.length, 3, 'all three generic signed-out Start free CTAs point referral visitors to value first') // KINEO-PAGINA-IGUAL-0411 — a barra fixa saiu da home
 check(!landing.includes('utm_source=engine_bento'), 'full toolkit CTA removed from the home (KINEO-HOME-LIMPA-1410)')
 for (const originalDestination of [
   '/signup?utm_source=nav',
   '/signup?utm_source=nav-mobile',
   '/signup?utm_source=final_cta',
-  '/signup?utm_source=home_sticky_cta',
 ]) {
   check(landing.includes(originalDestination), `direct homepage keeps ${originalDestination}`)
 }

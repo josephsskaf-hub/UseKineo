@@ -133,7 +133,7 @@ export default async function ExamplesPage() {
             placement="footer_band"
             className={styles.navCta}
           >
-            <UiLabel>{isLoggedIn ? 'Open Studio →' : 'Create a Fast video →'}</UiLabel>
+            <UiLabel>Open Studio →</UiLabel>
           </OrganicCtaLink>
         </div>
 

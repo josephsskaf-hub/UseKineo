@@ -17,7 +17,6 @@ import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
 // KINEO-HOME-REMODELA-2010 — import { IMG_ENGINES } saiu com o "More tools" do topo (os motores de imagem seguem em /images)
 import NavCreditsBadge from '@/components/NavCreditsBadge'
-import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
@@ -1489,8 +1488,7 @@ export default function KineoLanding({
           </a>
         </div>
       </div>
-      {/* #5 (aprovado 15/08) — a barra ja existia; agora so para deslogados e com utm da home. */}
-      {!isSignedIn && <StickyFreeShortCTA href={referralBridge ? '#try-kineo' : '/signup?utm_source=home_sticky_cta'} />}
+      {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "queria deixar tudo igual". A barra fixa de quem não está logado saiu da home: 1 cadastro e 0 pagantes em 30 dias. */}
       {/* KINEO-LOGIN-MODAL-1410 — o modal de entrar/criar conta (abre pelos links marcados com data-auth-modal e por /?auth=…). */}
       <HomeAuthModal signedIn={isSignedIn} />
     </main>
