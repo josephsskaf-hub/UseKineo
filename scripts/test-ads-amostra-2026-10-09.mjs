@@ -345,7 +345,7 @@ ok(telaOk(CLIENT, 'client') && /redo=\{scopy \? undefined :/.test(CLIENT) && /sa
 const DOOR = code(read(F.door))
 ok(/const SAMPLE_SIGNUP_HREF = `\/signup\?redirect=\$\{encodeURIComponent\('\/ads\/v2'\)\}`/.test(DOOR) && /!ADS_SAMPLE_LIVE \|\| !live \|\| !ADS_V2_PUBLIC/.test(DOOR) &&
   /viewer\.signedIn && viewer\.gate === 'no_access' && viewer\.userId/.test(DOOR) && /withTimeout\(adsSampleOpen\(footageAdminClient\(\), viewer\.userId, 'none'\), false\)/.test(DOOR) && /!viewer\.signedIn && viewer\.noSession/.test(DOOR) &&
-  ordem(DOOR, '{sampleHref ? (', 'Make your first ad free', '{paywallOffer ? (', '<header className="ads-hero">'),
+  ordem(DOOR, '{paywallOffer ? (', '<header className="ads-hero">', '{sampleHref ? (', 'Make your first ad free'), // KINEO-PAGINA-IGUAL-0411 — o botão da amostra agora é o botão principal, dentro da página
   '8c porta /ads: o botão "Make your first ad free" vem ANTES da oferta paga; logado elegível → /ads/v2, anônimo confirmado → cadastro que volta ao /ads/v2; timeout = sem botão')
 // As fotos da amostra: /api/footage abre SÓ para purpose 'ads' + amostra aberta, só imagem (pedido e bytes), com teto próprio.
 const footageOk = (raw) => {
@@ -412,7 +412,7 @@ await mutante('língua copiada do inglês', 'sample', "    make: 'Buat iklan gra
 }
 {
   const m = trocar(read(F.door), "{sampleHref ? (", '{false ? (')
-  ok(m.includes('{false ? (') && !ordem(code(m), '{sampleHref ? (', 'Make your first ad free', '{paywallOffer ? ('), '9 mutante: porta sem o botão da amostra fica vermelho')
+  ok(m.includes('{false ? (') && !ordem(code(m), '{paywallOffer ? (', '<header className="ads-hero">', '{sampleHref ? (', 'Make your first ad free'), '9 mutante: porta sem o botão da amostra fica vermelho')
 }
 
 console.log(`\ntest-ads-amostra-2026-10-09: ${pass} ok · ${fail} falhas`)

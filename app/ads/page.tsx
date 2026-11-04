@@ -366,17 +366,6 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <AdsPageBanners live={live} cta={cta} planOffer={planOffer} from={from} />
         </Suspense>
 
-        {/* KINEO-ADS-AMOSTRA-2026-10-09 — o primeiro anúncio grátis vem ANTES da oferta paga (que continua aqui embaixo). */}
-        {sampleHref ? (
-          <div className="ads-banner ads-sample" role="region" aria-label="Free first ad" data-kineo="ads-door-sample">
-            <p>
-              {/* KINEO-CLIPE360-AMOSTRA-1410 — a amostra passou para o nível Commercial (lib/ads/sample.ts ADS_SAMPLE_TIER). */}
-              <b>Your first ad is free.</b> One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product in the scene you choose, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, a short voice-over and music, with a small usekineo.com watermark. No card needed.{/* KINEO-ADS-SIMPLES-2810 — a amostra de hoje é a da Escolha (8 s, apresentador, 2 fotos); era: One ad per account in the Real product close-up format: about {ADS_V2_SCREEN_SECONDS} seconds, only your own photos with camera moves, your label 100% faithful, with a small watermark. No card needed. */}{/* KINEO-CLOSE-REAL-1910 — a amostra é o Close do produto real; era: One ad per account at the Commercial level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed. */}
-            </p>
-            <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
-          </div>
-        ) : null}
-
         {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business, com o anúncio que a pessoa fez. */}
         {afterSample ? (
           <div className="ads-banner ads-sample ads-after-sample" role="region" aria-label="Business plan" data-kineo="ads-door-after-sample">
@@ -430,7 +419,15 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <ul className="ads-tiers-line" aria-label="Levels and credits">
             {V2_LEVELS.map((l) => <li key={l.id}><b>{l.name}</b> {l.credits} credits</li>)}
           </ul>
-          <div className="ads-cta"><DoorCta cta={cta} placement="hero" price={price} /></div>
+          {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "tem uma diferença enorme… queria deixar tudo igual". A mesma página para todos, com um botão principal no mesmo lugar; muda só o que ele faz. */}
+          {sampleHref ? (
+            <div className="ads-cta" data-kineo="ads-door-sample">
+              <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
+              <p className="gnote">One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, voice-over and music, with a small usekineo.com watermark. No card needed.</p>
+            </div>
+          ) : (
+            <div className="ads-cta"><DoorCta cta={cta} placement="hero" price={price} /></div>
+          )}
           {planOffer ? <p className="ads-plan-line"><a href="#ads-price">Included in any paid plan — from {starterPrice}/month</a></p> : null}
         </header>
 
