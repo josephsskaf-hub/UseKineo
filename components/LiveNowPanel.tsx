@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'
 import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
+import { NumerosDaEmpresa, UltimosCadastros, useNumerosEmpresa } from '@/components/admin/NumerosEmpresa' // KINEO-ADMIN-NUMEROS-0311
 
 const REFRESH_MS = 60_000
 
@@ -79,6 +80,7 @@ export function CheckoutHonestoCard({ loaded, value, cardStyle }: {
 export default function LiveNowPanel() {
   const [data, setData] = useState<LiveData | null>(null)
   const [err, setErr] = useState(false)
+  const numeros = useNumerosEmpresa() // KINEO-ADMIN-NUMEROS-0311
 
   useEffect(() => {
     let cancelled = false
@@ -124,6 +126,10 @@ export default function LiveNowPanel() {
         <CheckoutHonestoCard loaded={data !== null} value={data?.checkout_honesto ?? null} cardStyle={CARD} />
       </div>
 
+      {/* KINEO-ADMIN-NUMEROS-0311 — fundador 03/11: à esquerda as pessoas que entram, à direita os números da empresa; em tela estreita, um embaixo do outro. */}
+      <style>{'.lnp-duas{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}@media (min-width:1180px){.lnp-duas{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}}'}</style>
+      <div className="lnp-duas">
+      <div style={{ minWidth: 0 }}>
       {/* Lista de quem está online: mais quente primeiro */}
       <div className="overflow-x-auto" style={{ ...CARD, padding: 0 }}>
         {err && <div className="px-4 py-6 text-center text-xs" style={{ color: '#FF8787' }}>Could not load live data.</div>}
@@ -263,10 +269,16 @@ export default function LiveNowPanel() {
           </div>
         ))}
       </div>
+      <UltimosCadastros dados={numeros.dados} erro={numeros.erro} />
       <p className="text-[10px] mt-2" style={{ color: 'var(--muted2)' }}>
         Online = visitante logado com atividade nos últimos 5 min · última meia hora = quem esteve logado entre 5 e 30 min atrás · atualiza a cada 60s com a aba visível · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
         {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.
       </p>
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <NumerosDaEmpresa dados={numeros.dados} erro={numeros.erro} />
+      </div>
+      </div>
     </section>
   )
 }
