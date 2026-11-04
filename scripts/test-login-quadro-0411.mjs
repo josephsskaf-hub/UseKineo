@@ -18,6 +18,15 @@ for (const arq of ['app/(auth)/login/page.tsx', 'app/(auth)/signup/page.tsx']) {
 }
 const ms = fs.readFileSync('components/MicrosoftSignInButton.tsx', 'utf8')
 checa('Microsoft usa o provedor azure com escopo de e-mail', ms.includes("provider: 'azure'") && ms.includes("scopes: 'email'"))
+// KINEO-LOGIN-FUNDO-0411 — fundador 04/11: "ela loga nessa tela em branco, tem que ter os nossos vídeos por trás".
+const quadroSrc = fs.readFileSync('components/auth/AuthQuadro.tsx', 'utf8')
+const fundoNaPagina = (t) => t.includes('<AuthFundo />') && t.indexOf('if (inModal) return quadro') < t.indexOf('<AuthFundo />')
+checa('o fundo aparece na página, não no modal', fundoNaPagina(quadroSrc))
+checa('mutante sem o fundo fica vermelho', !fundoNaPagina(quadroSrc.replace('<AuthFundo />', '')))
+checa('todo arquivo do fundo existe', V.FUNDO_ENTRADA.every((f) => fs.existsSync('public' + f.poster) && (!f.video || fs.existsSync('public' + f.video))))
+checa('4 filmes em movimento e o resto em foto', V.FUNDO_ENTRADA.filter((f) => f.video).length === 4)
+const fundoSrc = fs.readFileSync('components/auth/AuthFundo.tsx', 'utf8')
+checa('o vídeo do fundo só entra em tela larga', fundoSrc.includes("(min-width: 768px)") && fundoSrc.includes('videos && f.video'))
 // KINEO-HOME-SEM-PROMO-0411 — fundador 04/11: sem aviso de venda na primeira impressão de quem não está logado.
 const home = fs.readFileSync('app/KineoLanding.tsx', 'utf8')
 const faixa = fs.readFileSync('components/home/EngineNewsBar.tsx', 'utf8')

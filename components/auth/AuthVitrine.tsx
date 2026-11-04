@@ -1,13 +1,14 @@
 'use client'
 
 // KINEO-LOGIN-QUADRO-0411 — a vitrine do quadro de entrada: um vídeo e três fotos, com a barra de tempo em cima do nome do motor.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { VITRINE_ENTRADA as SLIDES, estadoDaBarra, proximoSlide } from '@/lib/authVitrine'
 
 export default function AuthVitrine() {
   const [atual, setAtual] = useState(0)
   const [largo, setLargo] = useState(false)
   const [parado, setParado] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
 
   // Só carrega vídeo em tela larga: no celular a vitrine não aparece e não deve gastar dados.
   useEffect(() => {
@@ -26,6 +27,18 @@ export default function AuthVitrine() {
     return () => clearTimeout(t)
   }, [atual, largo, parado])
 
+  // O vídeo recomeça sempre do início ao voltar ao primeiro slide.
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (SLIDES[atual].tipo === 'video' && !parado) {
+      v.currentTime = 0
+      void v.play().catch(() => {})
+    } else {
+      v.pause()
+    }
+  }, [atual, parado, largo])
+
   if (!largo) return null
   const slide = SLIDES[atual]
 
@@ -34,9 +47,9 @@ export default function AuthVitrine() {
       <style>{'@keyframes kineoAuthBarra{from{transform:scaleX(0)}to{transform:scaleX(1)}}'}</style>
       {SLIDES.map((s, i) => (
         s.tipo === 'video'
-          ? <video key={s.src} src={s.src} muted playsInline autoPlay={!parado} loop preload="auto" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0, transition: 'opacity .7s ease' }} />
+          ? <video key={s.src} ref={videoRef} src={s.src} muted playsInline preload="auto" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0 }} />
           // eslint-disable-next-line @next/next/no-img-element
-          : <img key={s.src} src={s.src} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0, transition: 'opacity .7s ease' }} />
+          : <img key={s.src} src={s.src} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0 }} />
       ))}
       <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(5,6,12,.92) 0%, rgba(5,6,12,.45) 32%, rgba(5,6,12,0) 58%)' }} />
       <div className="absolute left-0 right-0 bottom-0" style={{ padding: '0 16px 14px' }}>
