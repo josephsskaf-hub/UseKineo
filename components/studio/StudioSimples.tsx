@@ -30,6 +30,8 @@ const CSS = `
 .ksx-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ksx-set{height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
 .ksx-set:hover{border-color:var(--text)}
+.ksx-set{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.ksx-set-v{font-weight:600;color:var(--muted2,var(--muted))}
 .ksx-go{height:44px;margin-left:auto;padding:0 22px;border-radius:12px;border:0;background:#2997ff;color:#000;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer}
 .ksx-go:focus-visible,.ksx-set:focus-visible,.ksx-chip:focus-visible,.ksx-film:focus-visible{outline:2px solid #2997ff;outline-offset:2px}
 .ksx-msg{margin:0;font-size:13px;font-weight:600;line-height:1.45;color:#d7263d}
@@ -52,7 +54,7 @@ const CSS = `
 .ksx-motor a{color:#1f7fe0;font-weight:700;text-decoration:none;white-space:nowrap}
 .ksx-done{height:48px;border:0;border-radius:13px;background:#2997ff;color:#000;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer}
 @media (min-width:640px){.ksx-dim{align-items:center}.ksx-sheet{border-radius:22px}}
-@media (max-width:560px){.ksx-films{grid-template-columns:repeat(2,minmax(0,1fr))}.ksx-go{flex:1;margin-left:0}.ksx-set{flex:1}}
+@media (max-width:560px){.ksx-films{grid-template-columns:repeat(2,minmax(0,1fr))}.ksx-go{flex:1 1 110px;margin-left:0;padding:0 12px}.ksx-set{flex:1 1 auto;padding:0 10px}}
 @media (prefers-reduced-motion:no-preference){.ksx-sheet{animation:ksx-up .18s ease-out}@keyframes ksx-up{from{transform:translateY(16px);opacity:.6}to{transform:none;opacity:1}}}
 `
 
@@ -133,7 +135,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
         />
         {aviso ? <p className="ksx-msg" role="alert">{aviso}</p> : null}
         <div className="ksx-row">
-          <button type="button" className="ksx-set" data-testid="studio-simple-settings" aria-haspopup="dialog" onClick={() => setFolha(true)}>{duracao} s · {formato}</button>
+          <button type="button" className="ksx-set" data-testid="studio-simple-settings" aria-haspopup="dialog" onClick={() => setFolha(true)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" aria-hidden="true"><path d="M2 4h7M13 4h1M2 12h1M7 12h7"></path><circle cx="11" cy="4" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>Settings<span className="ksx-set-v">{duracao} s · {formato}</span></button>
           <button type="button" className="ksx-go" data-testid="studio-simple-generate" onClick={gerar}>Generate</button>
         </div>
       </div>
