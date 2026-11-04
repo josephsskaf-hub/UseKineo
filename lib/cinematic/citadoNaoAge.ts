@@ -16,6 +16,9 @@ const PAPEIS = 'boy|girl|man|woman|kid|child|baby|toddler|teen|teenager|student|
 /** Palavras de grupo que abrem frase com maiúscula e nunca são nome de gente ("Investigators appealed…"). */
 export const GRUPOS_NAO_NOME: readonly string[] = 'investigators|officials|authorities|witnesses|scientists|researchers|experts|historians|archaeologists|detectives|journalists|reporters|survivors|rescuers|searchers|locals|villagers|neighbors|neighbours|doctors|engineers|soldiers|sailors|divers|explorers|farmers|workers|police|prosecutors|analysts|scholars|astronomers|biologists|geologists|crews|passengers|residents|citizens|lawyers|judges'.split('|')
 
+/** KINEO-SO-GENTE-NA-FICHA-0411 — palavra comum que abre frase ou compõe nome de lugar e nunca é gente: rótulo de roteiro ("Sound:", "Moral:", "Essential:"), parte de lugar ("Lituya Bay acted", "Empire State Building stands") e direção ("Northeast"). É a rede de segurança de quando a leitura semântica falha. */
+export const PALAVRAS_NUNCA_NOME: readonly string[] = 'essential|essentials|moral|moraleja|ending|opening|concept|dialogue|sound|incomplete|confusion|digital|laughter|northeast|northwest|southeast|southwest|building|skyscraper|bay|tower|bridge|lake|island|valley|canyon|desert|harbor|harbour|strait|gulf|peninsula|volcano|glacier|cathedral|museum|stadium|airport|avenue|university|hospital|republic|empire|state'.split('|')
+
 /** O papel sem nome que abre a história agindo ("A mystery woman filmed…" → "woman"), ou null. */
 export function papelQueAbre(texto: string, verbo: RegExp): string | null {
   const t = String(texto ?? '').replace(/^[^\p{L}]+/u, '')

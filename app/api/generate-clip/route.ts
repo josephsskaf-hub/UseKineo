@@ -23,6 +23,7 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { submitFalQueueOnce, FalQueueSubmitError } from '@/lib/falQueue'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { comSuperficieDoPedido } from '@/lib/cinematic/superficieSemTexto' // KINEO-EMBALAGEM-SEM-LETRA-0411
 import { buildClipPrompt, CLIP_CREDITS, CLIP_MAX_SECONDS, CLIP_MIN_SECONDS, detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { CLIP_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
 // KINEO-MODERACAO-2026-09-25 — o texto da pessoa vai direto ao Seedance (texto→vídeo) e o clipe é guardado no nosso
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
   const requestedSeconds = typeof body.seconds === 'number' && Number.isFinite(body.seconds) ? body.seconds : spec.seconds
   const seconds = Math.max(CLIP_MIN_SECONDS, Math.min(CLIP_MAX_SECONDS, Math.round(requestedSeconds)))
   const aspect = coerceAspect(body.aspect)
-  const finalPrompt = buildClipPrompt({ ...spec, prompt: spec.isShotSpec ? spec.prompt : prompt, seconds }, aspect)
+  const finalPrompt = comSuperficieDoPedido(buildClipPrompt({ ...spec, prompt: spec.isShotSpec ? spec.prompt : prompt, seconds }, aspect), prompt) // KINEO-EMBALAGEM-SEM-LETRA-0411 — 3 clipes com letra inventada (celular "Wmramaa:Ices", "VioeAloXoD"): a superfície vai descrita em positivo; quem pede letra de propósito fica como pediu
 
   // KINEO-MODERACAO-2026-09-25 — porta de entrada: o texto cru (tudo o que a pessoa escreveu; o finalPrompt deriva dele).
   const safety = await moderateContent({ surface: 'clip', stage: 'input', userId: user.id, text: prompt, meta: { seconds, aspect, shot_spec: spec.isShotSpec } })

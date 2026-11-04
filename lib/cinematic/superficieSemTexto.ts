@@ -8,8 +8,16 @@ const SUPERFICIES: ReadonlyArray<{ re: RegExp; frase: string }> = [
   { re: /\b(?:chalkboard|blackboard|whiteboard|tactics board|classroom board)\b/i, frase: 'the board is covered only in hand-drawn arrows, circles and simple diagrams' },
   { re: /\b(?:smartphone|phone|cellphone|screen|monitor|laptop|tablet|display|tv)\b/i, frase: 'every screen glows with soft abstract light and colour' },
   { re: /\b(?:scroll|parchment|manuscript|book|page|pages|letter|diary|journal|newspaper|map|document|notebook)\b/i, frase: 'every page shows only aged texture and faint decorative lines' },
-  { re: /\b(?:sign|signboard|billboard|placard|poster|banner|plaque|nameplate|menu|label|storefront)\b/i, frase: 'every sign is a plain block of colour' },
+  { re: /\b(?:sign|signboard|billboard|placard|poster|banner|plaque|nameplate|menu|label|storefront|pharmacy|drugstore|shopfront)\b/i, frase: 'every sign is a plain block of colour' },
+  // KINEO-EMBALAGEM-SEM-LETRA-0411 — manobiayousaf 04/11 (55221671, Seedance 1.5): farmácia com placa "FNSSFOCA" e frascos com rótulos sem sentido. Nem toda prateleira diz "sign": frasco, lata e caixa também recebem o que mostram.
+  { re: /\b(?:bottles?|jars?|cans|tins|canned|packages?|packaging|packets?|cartons?|sachets?|supplements?|medicines?|medications?|pills?|cosmetics?|shelves)\b/i, frase: 'every bottle, box and package is one plain solid colour' },
 ]
+
+/** KINEO-EMBALAGEM-SEM-LETRA-0411 — o texto pede letra de propósito (aspas, "says", "written", marca, logo): nada é acrescentado, a pessoa escolheu. */
+const PEDE_LETRA_RE = /["“”]|\b(?:says?|saying|reads?|written|writes?|logo|logos|brand|branded|branding|packshot|product\s+shot|our\s+product)\b/i
+export function comSuperficieDoPedido(prompt: string, pedido: string): string {
+  return PEDE_LETRA_RE.test(String(pedido ?? '')) ? prompt : comSuperficieSemTexto(prompt)
+}
 
 /** As frases positivas das superfícies que a cena cita (na ordem fixa); [] = nenhuma superfície de texto. */
 export function frasesDeSuperficie(prompt: string): string[] {

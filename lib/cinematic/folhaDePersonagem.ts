@@ -37,7 +37,7 @@ import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
-import { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311
+import { GRUPOS_NAO_NOME, PALAVRAS_NUNCA_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
 export const PERSONAGEM_VERSAO = 'personagem_v1'
@@ -227,7 +227,7 @@ function nomesDoRoteiro(script: string): string[] {
   const re = /(^|[^\p{L}\p{N}'’])(\p{Lu}[\p{Ll}]{2,})(?:'s|’s)?(?=($|[^\p{L}\p{N}]))/gu
   for (const m of texto.matchAll(re)) {
     const nome = m[2]
-    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311
+    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase()) || PALAVRAS_NUNCA_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411
     const fim = (m.index ?? 0) + m[0].length
     const depois = texto.slice(fim, fim + 40).replace(/^[\s]+/, '')
     const possessivo = /(?:'s|’s)$/.test(m[0])
