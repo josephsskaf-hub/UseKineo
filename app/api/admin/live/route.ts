@@ -46,6 +46,8 @@ export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 
 const ONLINE_WINDOW_MIN = 5
+// KINEO-PAINEL-30MIN-0311 — fundador 03/11: "não só quem está online, mas também quem entrou na última meia hora". Mesma regra de presença, janela maior; o contador "online" segue em 5 min.
+const RECENTES_WINDOW_MIN = 30
 
 export interface LiveVisitor {
   user_id: string
@@ -126,6 +128,8 @@ export interface LiveData {
   checkout_honesto: CheckoutHonestoComCartao | null
   online_now: number
   online: LiveVisitor[]
+  /** KINEO-PAINEL-30MIN-0311 — logados vistos entre 5 e 30 min atrás, o mais recente primeiro. */
+  recentes: LiveVisitor[]
   generated_at: string
 }
 
@@ -194,7 +198,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
         p_exact_emails: INTERNAL_EXACT_EMAILS,
         p_like_patterns: INTERNAL_LIKE_PATTERNS,
       }),
-      readAll(() => admin.from('events').select('user_id, session_id, name, path, created_at, metadata, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' }), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+      readAll(() => admin.from('events').select('user_id, session_id, name, path, created_at, metadata, is_bot:metadata->>is_bot').gte('created_at', iso(RECENTES_WINDOW_MIN * 60 * 1000)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' }), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     ])
 
     type Counters = {
@@ -245,6 +249,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
     const ids = [...byUser.keys()]
 
     let online: LiveVisitor[] = []
+    let recentes: LiveVisitor[] = [] // KINEO-PAINEL-30MIN-0311
     if (ids.length > 0) {
       // KINEO-LIVE-V3-2026-08-19 — o consumo REAL, por motor, das últimas 24h.
       // O fundador viu '80 créditos, 0 usados' e '48, usou 2' e não conseguiu
@@ -816,6 +821,10 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
         })
         .filter((v) => v.email && !internal(v.email))
         .sort((a, b) => b.heat - a.heat || a.minutes_ago - b.minutes_ago)
+      // KINEO-PAINEL-30MIN-0311 — quem não teve evento nos últimos 5 min sai do "online" e vai para a lista da meia hora.
+      const estaOnline = (v: LiveVisitor) => { const r = byUser.get(v.user_id); return !!r && now - Date.parse(r.last.created_at) <= ONLINE }
+      recentes = online.filter((v) => !estaOnline(v)).sort((a, b) => a.minutes_ago - b.minutes_ago)
+      online = online.filter(estaOnline)
     }
 
     const data: LiveData = {
@@ -828,6 +837,7 @@ async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>
       checkout_honesto: await checkoutHonestoPromise, // KINEO-CHECKOUT-HONESTO-2026-10-07
       online_now: online.length,
       online,
+      recentes,
       generated_at: new Date().toISOString(),
     }
     return data

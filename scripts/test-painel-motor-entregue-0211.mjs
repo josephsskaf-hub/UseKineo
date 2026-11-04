@@ -97,11 +97,13 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
         '@/lib/admin/checkoutHonesto': { carregarCheckoutHonesto: async () => null },
       },
     })('app/api/admin/live/route.ts')
-    const visitante = (await route.GET()).body?.online?.find((v) => v.user_id === USER)
+    ultimoCorpo = (await route.GET()).body
+    const visitante = ultimoCorpo?.online?.find((v) => v.user_id === USER)
     ultimoVisitante = visitante
     return visitante?.spentOn ?? ''
   }
   let ultimoVisitante = null
+  let ultimoCorpo = null
   const l1 = await linhaDaRota()
   checa('1.10 a rota real escreve "🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos"', l1.includes('🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos') && !l1.includes('no Seedance (pronto)'))
   DB.events = DB.events.filter((e) => e.name !== 'free_film_engine_used')
@@ -138,6 +140,17 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
   checa('1.18 o motor do filme anterior não vaza para o filme novo', V.filmeEmVoo([inicio, velho], true) === 'motor sendo definido')
   checa('1.19 reserva, despacho Kling 4 e venda paga dizem o motor certo', V.filmeEmVoo([{ name: 'free_film_engine_used', metadata: { engine_used: 'seedance15_fallback' } }, inicio], true) === 'Seedance 1.5, reserva do filme grátis' && V.filmeEmVoo([{ name: 'cinematic_dispatch_result', metadata: { engine: 'kling/v4/text-to-video', quality: 'cinematic_hollywood' } }, inicio], true) === 'Kling 4.0' && V.filmeEmVoo([{ name: 'cinematic_dispatch_result', metadata: { quality: 'cinematic_veo' } }, inicio], true) === 'Veo 3.1')
   checa('1.20 motor de fornecedor desconhecido não vira selo', V.filmeEmVoo([{ name: 'free_film_engine_used', metadata: { engine_used: 'kling9-novo' } }, inicio], true) === 'motor sendo definido')
+  // KINEO-PAINEL-30MIN-0311 — fundador 03/11: "não só quem está online, mas também quem entrou na última meia hora".
+  const visto = (msAtras) => ({ user_id: USER, session_id: 'sess-1', name: 'studio_tiles_shown', path: '/studio', created_at: iso(agora - msAtras), metadata: {}, is_bot: 'false' })
+  const naLista = (l) => (ultimoCorpo?.[l] ?? []).some((v) => v.user_id === USER)
+  DB = casoReal(); DB.events = [visto(60_000)]; await linhaDaRota()
+  checa('1.21 visto há 1 min: online, fora da meia hora, e o contador conta', naLista('online') && !naLista('recentes') && ultimoCorpo.online_now === 1)
+  DB = casoReal(); DB.events = [visto(20 * 60_000)]; await linhaDaRota()
+  checa('1.22 visto há 20 min: na meia hora, fora do online, e o contador NÃO conta', !naLista('online') && naLista('recentes') && ultimoCorpo.online_now === 0 && ultimoCorpo.recentes[0].minutes_ago === 20)
+  DB = casoReal(); DB.events = [visto(40 * 60_000)]; await linhaDaRota()
+  checa('1.23 visto há 40 min: em nenhuma das duas', !naLista('online') && !naLista('recentes'))
+  DB = casoReal(); DB.events = [{ ...visto(20 * 60_000), path: '/api/cron/x' }]; await linhaDaRota()
+  checa('1.24 evento de robô/cron continua sem contar como presença', !naLista('recentes'))
   DB = casoReal()
   const rota = rd('app/api/admin/live/route.ts'), rotaBase = base('app/api/admin/live/route.ts')
   const linhaProntos = 'const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)'

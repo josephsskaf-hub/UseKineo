@@ -134,7 +134,19 @@ export default function LiveNowPanel() {
           </div>
         )}
         <style>{'.lnp-cel{display:none}@media (max-width:760px){.lnp-cel{display:block}}'}</style>
-        {data && data.online.length > 0 && (
+        {/* KINEO-PAINEL-30MIN-0311 — fundador 03/11: "coloca não só quem está online, mas também quem entrou na última meia hora… menos medo de não pegar alguém na hora". */}
+        {data && [
+          { chave: 'online', titulo: null as string | null, lista: data.online },
+          { chave: 'recentes', titulo: `Na última meia hora, fora os online (${(data.recentes ?? []).length})`, lista: data.recentes ?? [] },
+        ].map(({ chave, titulo, lista }) => (
+          <div key={chave}>
+          {titulo && (
+            <div className="font-black uppercase tracking-widest" style={{ fontSize: '0.62rem', color: 'var(--muted2)', padding: '12px 12px 6px', borderTop: chave === 'recentes' && data.online.length > 0 ? '1px solid var(--border)' : undefined }}>{titulo}</div>
+          )}
+          {titulo && lista.length === 0 && (
+            <div className="px-3 pb-3 text-xs" style={{ color: 'var(--muted2)' }}>Ninguém logado passou por aqui nos últimos 30 minutos.</div>
+          )}
+          {lista.length > 0 && (
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
@@ -144,7 +156,7 @@ export default function LiveNowPanel() {
               </tr>
             </thead>
             <tbody>
-              {data.online.map((v) => (
+              {lista.map((v) => (
                 <tr key={v.user_id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
                     {/* KINEO-ADMIN-PESSOA-1910 — o e-mail abre a TELA DA PESSOA; escrever e-mail virou o ✉ pequeno ao lado. */}
@@ -247,10 +259,12 @@ export default function LiveNowPanel() {
               ))}
             </tbody>
           </table>
-        )}
+          )}
+          </div>
+        ))}
       </div>
       <p className="text-[10px] mt-2" style={{ color: 'var(--muted2)' }}>
-        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 60s com a aba visível · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
+        Online = visitante logado com atividade nos últimos 5 min · última meia hora = quem esteve logado entre 5 e 30 min atrás · atualiza a cada 60s com a aba visível · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
         {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.
       </p>
     </section>
