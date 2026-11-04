@@ -7,8 +7,8 @@
 //
 // Só o TEXTO muda — o agrupamento por quality e a conta de "prontos" da rota ficam como eram. Regra, por grupo (pessoa +
 // quality do débito):
-//   · todos os débitos do grupo com o MESMO motor entregue conhecido → o nome dele; seta "vendido → entregue" só quando
-//     difere do produto vendido ("(filme grátis)" só se todos vieram do free_film_engine_used);
+//   · todos os débitos do grupo com o MESMO motor entregue conhecido → o nome dele, primeiro e sem seta. Filme grátis (todos do
+//     free_film_engine_used): "Kling 4.0, filme grátis" ou "Seedance 1.5, reserva do filme grátis". Venda paga diferente: "Seedance 1.5 (vendido como Kling 4.0)";
 //   · Kling 4 pago (quality cinematic_hollywood com KLING4_PAID_LIVE) é vendido como "Kling 4.0": entregue kling4 → "Kling 4.0", sem seta;
 //   · grupo misto, sem motor entregue, ou valor de fornecedor desconhecido → o texto de antes, byte a byte.
 // Nomes públicos: lib/engineLabel.ts (única tradução de motor para nome).
@@ -42,6 +42,9 @@ export function rotuloMotorGrupo(quality: string, entregues: Array<MotorEntregue
   if (!nomeEntregue) return curto
   const vendido = nomeVendido(quality, paidLive)
   if (!vendido) return curto
+  // KINEO-PAINEL-MOTOR-CLARO-0311 — fundador 03/11: "deixa mais claro qual é o filme que está renderizando". "Seedance 1.5 → Kling 4.0 (filme grátis)"
+  // KINEO-PAINEL-MOTOR-CLARO-0311 — obrigava a decifrar a seta: o motor que roda vem primeiro e sozinho; o escolhido na tela só aparece quando foi venda paga diferente.
+  if (entregues.every((e) => e!.freeFilm)) return `${nomeEntregue}, ${entregues[0]!.code.endsWith('_fallback') ? 'reserva do filme grátis' : 'filme grátis'}`
   if (vendido === nomeEntregue) return vendido === engineLabelFor(quality) ? curto : vendido
-  return `${vendido} → ${nomeEntregue}${entregues.every((e) => e!.freeFilm) ? ' (filme grátis)' : ''}`
+  return `${nomeEntregue} (vendido como ${vendido})`
 }

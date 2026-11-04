@@ -42,13 +42,15 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
 {
   const M = createOfflineLoader()('lib/admin/motorEntregue.ts')
   const k4free = { code: 'kling4', freeFilm: true }
-  checa('1.1 Seedance escolhido + Kling 4 do filme grátis → "Seedance 1.5 → Kling 4.0 (filme grátis)"', M.rotuloMotorGrupo('cinematic_ai', [k4free], 'Seedance', false) === 'Seedance 1.5 → Kling 4.0 (filme grátis)')
+  // KINEO-PAINEL-MOTOR-CLARO-0311 — fundador 03/11: "deixa mais claro": o motor que roda vem primeiro, sem seta.
+  checa('1.1 Seedance escolhido + Kling 4 do filme grátis → "Kling 4.0, filme grátis"', M.rotuloMotorGrupo('cinematic_ai', [k4free], 'Seedance', false) === 'Kling 4.0, filme grátis')
+  checa('1.1b o filme grátis que caiu na reserva diz que é reserva', M.rotuloMotorGrupo('cinematic_ai', [{ code: 'seedance15_fallback', freeFilm: true }], 'Seedance', false) === 'Seedance 1.5, reserva do filme grátis')
   checa('1.2 grupo MISTO (Kling 4 + Seedance) → texto de antes', M.rotuloMotorGrupo('cinematic_ai', [k4free, { code: 'seedance15_cap', freeFilm: false }], 'Seedance', false) === 'Seedance')
   checa('1.3 grupo com um débito sem motor entregue → texto de antes', M.rotuloMotorGrupo('cinematic_ai', [k4free, null], 'Seedance', false) === 'Seedance' && M.rotuloMotorGrupo('cinematic_ai', [], 'Seedance', false) === 'Seedance')
   checa('1.4 entregue = vendido (Seedance 1.5) → texto de antes, sem seta', M.rotuloMotorGrupo('cinematic_ai', [{ code: 'seedance15_cap', freeFilm: false }], 'Seedance', false) === 'Seedance')
   checa('1.5 Kling 4 pago (cinematic_hollywood + paidLive) entregue kling4 → "Kling 4.0", sem seta', M.rotuloMotorGrupo('cinematic_hollywood', [{ code: 'kling4', freeFilm: false }, { code: 'kling4', freeFilm: false }], 'Kling 3', true) === 'Kling 4.0')
-  checa('1.6 o mesmo sem paidLive → "Kling 3 → Kling 4.0"', M.rotuloMotorGrupo('cinematic_hollywood', [{ code: 'kling4', freeFilm: false }], 'Kling 3', false) === 'Kling 3 → Kling 4.0')
-  checa('1.7 Kling 4 pago que caiu no Seedance → "Kling 4.0 → Seedance 1.5"', M.rotuloMotorGrupo('cinematic_hollywood', [{ code: 'seedance15_fallback', freeFilm: false }], 'Kling 3', true) === 'Kling 4.0 → Seedance 1.5')
+  checa('1.6 o mesmo sem paidLive → "Kling 4.0 (vendido como Kling 3)"', M.rotuloMotorGrupo('cinematic_hollywood', [{ code: 'kling4', freeFilm: false }], 'Kling 3', false) === 'Kling 4.0 (vendido como Kling 3)')
+  checa('1.7 Kling 4 pago que caiu no Seedance → "Seedance 1.5 (vendido como Kling 4.0)"', M.rotuloMotorGrupo('cinematic_hollywood', [{ code: 'seedance15_fallback', freeFilm: false }], 'Kling 3', true) === 'Seedance 1.5 (vendido como Kling 4.0)')
   checa('1.8 valor de fornecedor desconhecido nunca vira selo', M.rotuloMotorGrupo('cinematic_ai', [{ code: 'kling9-novo', freeFilm: true }], 'Seedance', false) === 'Seedance')
   checa('1.9 free_film_engine_used manda; videos.engine_used é reserva', JSON.stringify(M.motorEntregueDe('kling4', 'seedance')) === JSON.stringify(k4free) && JSON.stringify(M.motorEntregueDe(null, 'kling4')) === JSON.stringify({ code: 'kling4', freeFilm: false }) && M.motorEntregueDe(null, null) === null)
 
@@ -98,9 +100,9 @@ console.log('== 1. painel /admin "online agora": motor entregue (só o texto) ==
     return (await route.GET()).body?.online?.find((v) => v.user_id === USER)?.spentOn ?? ''
   }
   const l1 = await linhaDaRota()
-  checa('1.10 a rota real escreve "🎬 24h: 1 pedido no Seedance 1.5 → Kling 4.0 (filme grátis) (pronto) · 9 créditos"', l1.includes('🎬 24h: 1 pedido no Seedance 1.5 → Kling 4.0 (filme grátis) (pronto) · 9 créditos') && !l1.includes('no Seedance (pronto)'))
+  checa('1.10 a rota real escreve "🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos"', l1.includes('🎬 24h: 1 pedido no Kling 4.0, filme grátis (pronto) · 9 créditos') && !l1.includes('no Seedance (pronto)'))
   DB.events = DB.events.filter((e) => e.name !== 'free_film_engine_used')
-  checa('1.11 reserva videos.engine_used (render → generation pelo compose claim): sem "(filme grátis)"', (await linhaDaRota()).includes('1 pedido no Seedance 1.5 → Kling 4.0 (pronto) · 9 créditos'))
+  checa('1.11 reserva videos.engine_used (render → generation pelo compose claim): sem "filme grátis"', (await linhaDaRota()).includes('1 pedido no Kling 4.0 (vendido como Seedance 1.5) (pronto) · 9 créditos'))
   // Refutação da 1ª leva: 2 débitos Seedance, um Kling 4 grátis e outro sem motor entregue, 1 vídeo pronto.
   DB = casoReal()
   DB.credit_debits.push({ user_id: USER, amount: 9, refunded_at: null, render_id: 'cinematic-outro', created_at: '2026-11-02T14:10:00Z' })
