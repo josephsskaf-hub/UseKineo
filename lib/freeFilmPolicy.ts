@@ -23,7 +23,7 @@ export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'
 /**
  * ISO-3166 alfa-2 dos países que recebem o filme grátis sob 'pais_rico'. Alta renda: América do Norte anglófona,
  * Reino Unido/Irlanda, Oceania, União Europeia + EEE + Suíça, Ásia rica e Golfo + Israel.
- * MX FORA de propósito (0 pagantes em 30 dias). BR voltou em 03/10 por decisão do fundador (KINEO-BRASIL-VOLTA-2026-10-03).
+ * MX ficou fora de 29/09 a 04/11/2026 (0 pagantes em 30 dias); voltou no teste KINEO-PAISES-5-0411. BR voltou em 03/10 por decisão do fundador (KINEO-BRASIL-VOLTA-2026-10-03).
  * Mudar a lista é decisão do fundador.
  */
 export const PAISES_FILME_GRATIS: readonly string[] = [
@@ -40,6 +40,12 @@ export const PAISES_FILME_GRATIS: readonly string[] = [
   'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'IL',
   'BR', // KINEO-BRASIL-VOLTA-2026-10-03 — fundador (03/10): o Brasil vende (checkout em reais, Kineo Empresas). Reverter = apagar esta linha.
   'AR', // KINEO-ARGENTINA-0411 — fundador (04/11): "libera pra argentina o trial". Reverter = apagar esta linha.
+  // KINEO-PAISES-5-0411 — fundador (04/11): "libera os 5 países". Teste até 03/01/2027: mantém com 1 pagante ou 3 idas ao pagamento; reverter = apagar a linha do país.
+  'ZA', // KINEO-PAISES-5-0411 — África do Sul
+  'TR', // KINEO-PAISES-5-0411 — Turquia
+  'MX', // KINEO-PAISES-5-0411 — México (estava fora desde 29/09; o fundador trouxe de volta para o teste)
+  'MY', // KINEO-PAISES-5-0411 — Malásia
+  'PR', // KINEO-PAISES-5-0411 — Porto Rico
 ]
 
 /** Status gravado em profiles.trial_status para quem ficou fora do filme grátis (texto livre, sem CHECK no banco). */
