@@ -3,6 +3,7 @@
 // Recibo EXATO desta entrega no GenerateClient, no StudioClient e em lib/recusaBotao: para cada arquivo existente, o hash de antes (origin/main),
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
 // estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais continua reprovando. Nunca usar em lib/app.
+import { semDuracaoColadaSaldo0411 } from './desfaz-duracao-colada-saldo-0411.mjs' // KINEO-DURACAO-COLADA-SALDO-0411 — camada mais nova (04/11, laço do revisor) sai primeiro
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semMuroPrimeiroFilme0311(source, file) {
+  source = semDuracaoColadaSaldo0411(source, file) // KINEO-DURACAO-COLADA-SALDO-0411
   const entry = MURO_PRIMEIRO_FILME_0311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

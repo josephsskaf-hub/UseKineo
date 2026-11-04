@@ -1,0 +1,26 @@
+{
+ "base": "69f8ee8de0e2e53429f1e69a910a3705be8c844e",
+ "scope": {
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "8695d5b3ccce74982f4f023bf2f3db2df557496bd06cda183fd5f668bd58d542",
+   "afterSha256": "34427870c35f85881505e1ce16fb0203019450e814425b9f2f8ffd89247eb0ea",
+   "hunks": [
+    {
+     "before": "import { isKidsCharacterId } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"começa hoje\"] — ?kids_cartoon=<personagem> do template /kids-cartoon viaja ao filme (o servidor decide)\nimport { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga",
+     "after": "import { isKidsCharacterId } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"começa hoje\"] — ?kids_cartoon=<personagem> do template /kids-cartoon viaja ao filme (o servidor decide)\nimport { contaPagaNaTela } from '@/lib/growth/contaPagaNaTela' // KINEO-DURACAO-COLADA-SALDO-0411 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — \"esta conta paga?\" não depende de /api/me/plan ter chegado\nimport { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga"
+    },
+    {
+     "before": "    setNotaSubidaSegura(null) // KINEO-MOTOR-15S-1510 — análise nova, nota nova\n    const contaPagaNaSubida = planTier === null ? null : hasPaid || isStarter || isCreator || isStudio // KINEO-MOTOR-15S-1510 — o mesmo predicado da descida do filme grátis (null = ainda não sabemos)\n    const custoDaOpcao = (segundos: number): number => costForDurationOption(segundos as Duration) // KINEO-MOTOR-15S-1510 — a função que cobra, na qualidade da tela",
+     "after": "    setNotaSubidaSegura(null) // KINEO-MOTOR-15S-1510 — análise nova, nota nova\n    const contaPagaNaSubida = contaPagaNaTela({ hasPaid, isStarter, isCreator, isStudio, planoLido: planTier !== null, provadoQueNaoPaga: activationAccountStatus === 'free' }) // KINEO-DURACAO-COLADA-SALDO-0411 — o mesmo predicado da descida do filme grátis (null = ainda não sabemos); /api/credits já prova a conta grátis, sem esperar /api/me/plan\n    const custoDaOpcao = (segundos: number): number => costForDurationOption(segundos as Duration) // KINEO-MOTOR-15S-1510 — a função que cobra, na qualidade da tela"
+    },
+    {
+     "before": "      const descida = mode === 'cinematic_ai' && !freeFilmDownshiftRef.current\n        ? decidirDescidaFilmeGratis({ engine: aiEngine, requestedSeconds: duration, balance: credits, paid: planTier === null ? null : hasPaid || isStarter || isCreator || isStudio, freeFilmEntitled: trialActive === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance })\n        : null // KINEO-PRIMEIRO-FILME-2026-10-13",
+     "after": "      const descida = mode === 'cinematic_ai' && !freeFilmDownshiftRef.current\n        ? decidirDescidaFilmeGratis({ engine: aiEngine, requestedSeconds: duration, balance: credits, paid: /* KINEO-DURACAO-COLADA-SALDO-0411 */ contaPagaNaTela({ hasPaid, isStarter, isCreator, isStudio, planoLido: planTier !== null, provadoQueNaoPaga: activationAccountStatus === 'free' }), freeFilmEntitled: trialActive === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance })\n        : null // KINEO-PRIMEIRO-FILME-2026-10-13"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/growth/contaPagaNaTela.ts": "d9c5f43326f0ad013bafb382328bb9116f9aba23838539aeecc061f7a1ec6a27"
+ }
+}

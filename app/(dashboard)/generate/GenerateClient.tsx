@@ -433,6 +433,7 @@ import { intervaloDePoll, POLL_RAPIDO_FILME_MS } from '@/lib/pollingRapido' // K
 import { useTrocaDoLinkDoBucket } from '@/lib/useTrocaDoLink' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — "pronto" na hora; o link troca para o bucket depois (linha própria)
 import FirstFilmRedoHint from '@/components/video/FirstFilmRedoHint' // KINEO-REFAZER-GRATIS-2810 — "Something off? Redo any scene for free on your first film." acima do player (só no primeiro filme)
 import { isKidsCharacterId } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — ?kids_cartoon=<personagem> do template /kids-cartoon viaja ao filme (o servidor decide)
+import { contaPagaNaTela } from '@/lib/growth/contaPagaNaTela' // KINEO-DURACAO-COLADA-SALDO-0411 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — "esta conta paga?" não depende de /api/me/plan ter chegado
 import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
@@ -8529,7 +8530,7 @@ export default function GenerateClient({
     setExpandState(null)
     setAuthoredScript(null)
     setNotaSubidaSegura(null) // KINEO-MOTOR-15S-1510 — análise nova, nota nova
-    const contaPagaNaSubida = planTier === null ? null : hasPaid || isStarter || isCreator || isStudio // KINEO-MOTOR-15S-1510 — o mesmo predicado da descida do filme grátis (null = ainda não sabemos)
+    const contaPagaNaSubida = contaPagaNaTela({ hasPaid, isStarter, isCreator, isStudio, planoLido: planTier !== null, provadoQueNaoPaga: activationAccountStatus === 'free' }) // KINEO-DURACAO-COLADA-SALDO-0411 — o mesmo predicado da descida do filme grátis (null = ainda não sabemos); /api/credits já prova a conta grátis, sem esperar /api/me/plan
     const custoDaOpcao = (segundos: number): number => costForDurationOption(segundos as Duration) // KINEO-MOTOR-15S-1510 — a função que cobra, na qualidade da tela
     const avisarSubidaSegura = (sub: ReturnType<typeof subidaQueOSaldoPaga>, origem: 'pasted_directive' | 'autofit'): void => { if (!sub.segurou) return; if (sub.custoPara !== null) setNotaSubidaSegura({ texto: notaDaSubidaSegura({ engine: mode === 'cinematic_ai' ? aiEngine : mode, para: sub.para, saldo: credits ?? 0, segundosDoFilmeGratis: SEEDANCE_SHORT_SECONDS }), para: sub.para }); void trackEvent(SUBIDA_SEGURA_PELO_SALDO_EVENT, { origem, pedida: sub.pedida, para: sub.para, saldo: credits, custo_pedida: sub.custoPedida, custo_para: sub.custoPara, motivo: sub.motivo, version: MOTOR_15S_VERSION }) } // KINEO-MOTOR-15S-1510
 
@@ -9555,7 +9556,7 @@ export default function GenerateClient({
       // roda de novo com 15 s; o roteiro nasce na régua do 15 s). A regra de quem tem filme grátis não muda: teste ativo,
       // sem pagar, saldo que cobre os 15 s. Fora disso, a parede de sempre.
       const descida = mode === 'cinematic_ai' && !freeFilmDownshiftRef.current
-        ? decidirDescidaFilmeGratis({ engine: aiEngine, requestedSeconds: duration, balance: credits, paid: planTier === null ? null : hasPaid || isStarter || isCreator || isStudio, freeFilmEntitled: trialActive === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance })
+        ? decidirDescidaFilmeGratis({ engine: aiEngine, requestedSeconds: duration, balance: credits, paid: /* KINEO-DURACAO-COLADA-SALDO-0411 */ contaPagaNaTela({ hasPaid, isStarter, isCreator, isStudio, planoLido: planTier !== null, provadoQueNaoPaga: activationAccountStatus === 'free' }), freeFilmEntitled: trialActive === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance })
         : null // KINEO-PRIMEIRO-FILME-2026-10-13
       if (descida?.descer && descida.para !== null) { // KINEO-PRIMEIRO-FILME-2026-10-13
         freeFilmDownshiftRef.current = true
