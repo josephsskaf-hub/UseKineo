@@ -11,7 +11,7 @@ checa('motores reais dos filmes aprovados em 16/09', S.map((x) => x.motor).join(
 checa('o carrossel volta ao primeiro', V.proximoSlide(3, 4) === 0 && V.proximoSlide(0, 4) === 1)
 checa('barra: cheia antes, enchendo no atual, vazia depois', V.estadoDaBarra(0, 1) === 'cheia' && V.estadoDaBarra(1, 1) === 'enchendo' && V.estadoDaBarra(2, 1) === 'vazia')
 const P = createOfflineLoader()('lib/authProviders.ts')
-checa('Apple e Microsoft escondidos enquanto o Supabase recusa o provedor', P.APPLE_LOGIN_LIVE === false && P.MICROSOFT_LOGIN_LIVE === false)
+checa('Apple escondido enquanto o Supabase recusa o provedor; Microsoft ligado em 04/11', P.APPLE_LOGIN_LIVE === false && P.MICROSOFT_LOGIN_LIVE === true)
 for (const arq of ['app/(auth)/login/page.tsx', 'app/(auth)/signup/page.tsx']) {
   const t = fs.readFileSync(arq, 'utf8')
   checa(arq + ': quadro, Google, Apple e Microsoft', t.includes('<AuthQuadro inModal={inModal}>') && t.includes('<GoogleSignInButton') && t.includes('APPLE_LOGIN_LIVE && (') && t.includes('MICROSOFT_LOGIN_LIVE && (') && !t.includes('NEXT_PUBLIC_ENABLE_APPLE'))
