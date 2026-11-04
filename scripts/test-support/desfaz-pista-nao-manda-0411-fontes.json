@@ -1,0 +1,50 @@
+{
+ "base": "22b2e14b055f252c49e241e2cae95f8e5f0935da",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "6e42fbcbdb3598ffd3b0e807f68618b9fce03d67c0c31801f84030b1806fe2e3",
+   "afterSha256": "857a55a521fdc2fe0481b23a61d09063ce207362b1ff689d5a7326acab3a5e89",
+   "hunks": [
+    {
+     "before": "import { parseUserScript } from '@/lib/scriptParser'\nimport { reviewRequestFidelity, briefRequiresReview, sceneDescriptionReviewMessage } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610",
+     "after": "import { parseUserScript } from '@/lib/scriptParser'\nimport { temMarcaDeBusca, REGRA_DA_PISTA } from '@/lib/cinematic/pistaNaoManda' // KINEO-PISTA-NAO-MANDA-0411\nimport { reviewRequestFidelity, briefRequiresReview, sceneDescriptionReviewMessage } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610"
+    },
+    {
+     "before": "RULES:\n- Anchor the shot on the subject of that scene's narration (the exact place, object, event, number, or concept being said), as MEANT in the context of the whole script (KINEO-CASA-FICHA-0211).\n- Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.",
+     "after": "RULES:\n- Anchor the shot on the subject of that scene's narration (the exact place, object, event, number, or concept being said), as MEANT in the context of the whole script (KINEO-CASA-FICHA-0211).${temMarcaDeBusca(topic) ? `\n- ${REGRA_DA_PISTA}` : ''}\n- Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene."
+    }
+   ]
+  },
+  "lib/hollywood/router.ts": {
+   "beforeSha256": "6dd21b7e64c51157c28b1f9c9a2d0ac6dd1e7cdf478b19d42fc7643ec0a2c0e3",
+   "afterSha256": "6816944984fa62006f8f45c41960b2a82b896106555c63e8ae482679587ec98d",
+   "hunks": [
+    {
+     "before": "import { sanitizeRealPeople } from '@/lib/hollywood/realPeople'\nexport { CONTEMPORARY_FIGURE_RE, HISTORICAL_TITLE_NAME_RE, HISTORICAL_FIGURE_RE, mentionsRealPerson, mentionsContemporaryFigure, sanitizeRealPeople } from '@/lib/hollywood/realPeople'",
+     "after": "import { sanitizeRealPeople } from '@/lib/hollywood/realPeople'\nimport { temMarcaDeBusca, REGRA_DA_PISTA } from '@/lib/cinematic/pistaNaoManda' // KINEO-PISTA-NAO-MANDA-0411\nexport { CONTEMPORARY_FIGURE_RE, HISTORICAL_TITLE_NAME_RE, HISTORICAL_FIGURE_RE, mentionsRealPerson, mentionsContemporaryFigure, sanitizeRealPeople } from '@/lib/hollywood/realPeople'"
+    },
+    {
+     "before": "  // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — o planejador lia 600 caracteres da ideia e 1.500 da narração (fonte única em lib/analyzeLimits).\n  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}\n",
+     "after": "  // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — o planejador lia 600 caracteres da ideia e 1.500 da narração (fonte única em lib/analyzeLimits).\n  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}${temMarcaDeBusca(String(idea ?? '')) ? `\\n\\n${REGRA_DA_PISTA}` : ''}\n"
+    }
+   ]
+  },
+  "lib/cinematic/speechImageAlign.ts": {
+   "beforeSha256": "7e6ef440bf072b8f0b092f33957b21e3f75543f0e306984fb016dc7db75c8547",
+   "afterSha256": "b44ecb242eb09d56e9f5006c1385487b364487576e15d97311bfb5270faf2171",
+   "hunks": [
+    {
+     "before": "\nexport const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'",
+     "after": "\n// KINEO-PISTA-NAO-MANDA-0411 — cópia LITERAL de pistaNaoManda.REGRA_DA_PISTA (este módulo é puro, sem imports). Só entra quando o tópico tem marca [Pexels: …].\nconst REGRA_DA_PISTA =\n  'KINEO-PISTA-NAO-MANDA-0411: a [Pexels: ...] tag or \"visual hint\" is a stock-footage search term, not the request. It may add to a shot but never replaces the narration. ' +\n  'When the line names a concrete subject, the shot shows that subject doing that action, with the term at most as its surroundings (\"A plane vanished\" + \"foggy forest\" = the plane disappearing above the forest, never the forest alone). ' +\n  'When the line is vague or only a pronoun or a name, the term says what it refers to, so use it (\"She sank fast\" + \"old ship sinking\" = the ship; \"I am Tod!\" + \"fox cub waving\" = Tod is a fox cub; \"Something terrible happened!\" + \"broken toy\" = the broken toy). ' +\n  'Leave the term out only where it contradicts the line.'\n\nexport const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'"
+    },
+    {
+     "before": "    NO_TEXT_OBJECT_DIRECTION + ' A shot whose subject is a text-bearing object counts as a REWRITE. ' +\n    'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing \"faceless / no real face / silhouette / from behind\" constraint and keep it for named real people. Keep the film\\'s established look if the current shot states one (e.g. \"photorealistic\", \"3D animated\"). ' +",
+     "after": "    NO_TEXT_OBJECT_DIRECTION + ' A shot whose subject is a text-bearing object counts as a REWRITE. ' +\n    (/\\[\\s*pexels/i.test(input.topic) ? REGRA_DA_PISTA + ' ' : '') + // KINEO-PISTA-NAO-MANDA-0411 (bcd18c51: reprovou a floresta e a reescreveu floresta)\n    'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing \"faceless / no real face / silhouette / from behind\" constraint and keep it for named real people. Keep the film\\'s established look if the current shot states one (e.g. \"photorealistic\", \"3D animated\"). ' +"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/pistaNaoManda.ts": "70befd52ae2d522bce573400dc017fd78f2c4bde0fed42809bbb0a11d0ac60e9"
+ }
+}

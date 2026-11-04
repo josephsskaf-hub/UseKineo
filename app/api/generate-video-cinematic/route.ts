@@ -135,6 +135,7 @@ import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
+import { temMarcaDeBusca, REGRA_DA_PISTA } from '@/lib/cinematic/pistaNaoManda' // KINEO-PISTA-NAO-MANDA-0411
 import { reviewRequestFidelity, briefRequiresReview, sceneDescriptionReviewMessage } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 // KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
@@ -989,7 +990,8 @@ async function generateCinematicDescriptions(
   const system = `You are a cinematographer. For each scene's narration line, write ONE vivid cinematic SHOT description (12-24 words) to feed a text-to-video AI.
 
 RULES:
-- Anchor the shot on the subject of that scene's narration (the exact place, object, event, number, or concept being said), as MEANT in the context of the whole script (KINEO-CASA-FICHA-0211).
+- Anchor the shot on the subject of that scene's narration (the exact place, object, event, number, or concept being said), as MEANT in the context of the whole script (KINEO-CASA-FICHA-0211).${temMarcaDeBusca(topic) ? `
+- ${REGRA_DA_PISTA}` : ''}
 - Approved visual direction: ${visualDescriptionDirection(visualPolicy)} Never invent an unrelated person to fill the scene.
 - In scene 1, immediately show the literal subject/event of the opening narration, not a generic establishing landscape. Do not add events or claims absent from the scene.
 - NEVER add a real-world landmark, named house, city, decade, year, brand or model that the narration or topic does not mention (no "Winchester Mystery House", "Amityville", "1910 farmhouse", "Nokia 3310" unless the narration says so). If the narration gives no era, the setting is PRESENT-DAY with present-day objects (a phone that receives a text message is a smartphone, never a rotary phone). Keep one consistent setting across scenes unless the narration moves.

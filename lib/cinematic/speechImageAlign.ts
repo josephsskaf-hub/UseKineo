@@ -39,6 +39,13 @@ const NO_TEXT_OBJECT_DIRECTION =
   'When the narration states a name, a date or a fact, show the place, the person or the era it belongs to — never an object that ' +
   'mentions, reads, displays or commemorates it.'
 
+// KINEO-PISTA-NAO-MANDA-0411 — cópia LITERAL de pistaNaoManda.REGRA_DA_PISTA (este módulo é puro, sem imports). Só entra quando o tópico tem marca [Pexels: …].
+const REGRA_DA_PISTA =
+  'KINEO-PISTA-NAO-MANDA-0411: a [Pexels: ...] tag or "visual hint" is a stock-footage search term, not the request. It may add to a shot but never replaces the narration. ' +
+  'When the line names a concrete subject, the shot shows that subject doing that action, with the term at most as its surroundings ("A plane vanished" + "foggy forest" = the plane disappearing above the forest, never the forest alone). ' +
+  'When the line is vague or only a pronoun or a name, the term says what it refers to, so use it ("She sank fast" + "old ship sinking" = the ship; "I am Tod!" + "fox cub waving" = Tod is a fox cub; "Something terrible happened!" + "broken toy" = the broken toy). ' +
+  'Leave the term out only where it contradicts the line.'
+
 export const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'
 // v2 (19/09, fundador: "vai, sobe o livro de estado"): caso das meias (Axel, Veo, 00:39 BRT) — a cena 4 dizia "large
 // WHITE sock" quando a história já a tinha pintado de azul; a cena 6 dizia "transforming from blue back to white" e o
@@ -71,6 +78,7 @@ export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] 
     'A shot in the wrong state or with extras counts as a REWRITE. ' +
     // KINEO-SEM-LETRAS-2026-09-21 — o supervisor reescrevia cenas pedindo mapa/artigo/jornal (Atlantis) → letras inventadas.
     NO_TEXT_OBJECT_DIRECTION + ' A shot whose subject is a text-bearing object counts as a REWRITE. ' +
+    (/\[\s*pexels/i.test(input.topic) ? REGRA_DA_PISTA + ' ' : '') + // KINEO-PISTA-NAO-MANDA-0411 (bcd18c51: reprovou a floresta e a reescreveu floresta)
     'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing "faceless / no real face / silhouette / from behind" constraint and keep it for named real people. Keep the film\'s established look if the current shot states one (e.g. "photorealistic", "3D animated"). ' +
     'Reply ONLY with JSON: {"scenes":[{"i":<scene number>,"action":"keep"|"rewrite","shot":"<new shot when rewrite, else empty>","why":"<max 12 words>","state":"<visible state of each recurring character/object at this line, e.g. big sock: blue; small sock: red — empty when the story has none>"}]} with exactly one entry per scene.'
   const lines = input.scenes

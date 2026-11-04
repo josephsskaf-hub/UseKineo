@@ -267,6 +267,7 @@ export const HOLLYWOOD_USD_PER_SECOND: Record<HollywoodSceneType, number> = {
 
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — compatibility exports; pure quality callers import realPeople directly.
 import { sanitizeRealPeople } from '@/lib/hollywood/realPeople'
+import { temMarcaDeBusca, REGRA_DA_PISTA } from '@/lib/cinematic/pistaNaoManda' // KINEO-PISTA-NAO-MANDA-0411
 export { CONTEMPORARY_FIGURE_RE, HISTORICAL_TITLE_NAME_RE, HISTORICAL_FIGURE_RE, mentionsRealPerson, mentionsContemporaryFigure, sanitizeRealPeople } from '@/lib/hollywood/realPeople'
 
 // ── Plan types ───────────────────────────────────────────────────────────────
@@ -525,7 +526,7 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
   // [KINEO-DURACOES-CURTAS-2026-09-29] planejavam 34); agora o piso é 15 e o alvo curto (< 35: os pedidos de 15 e 30 s, alvos 17 e 34) ganha a instrução de filme curto.
   const alvoDoPlano = Math.max(15, Math.min(100, Math.round(durationSeconds || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15
   // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — o planejador lia 600 caracteres da ideia e 1.500 da narração (fonte única em lib/analyzeLimits).
-  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}
+  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}${temMarcaDeBusca(String(idea ?? '')) ? `\n\n${REGRA_DA_PISTA}` : ''}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
 Target total duration: ${alvoDoPlano} seconds.${instrucaoDoFilmeCurto(alvoDoPlano)}${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}` // KINEO-DURACOES-CURTAS-2026-09-29
