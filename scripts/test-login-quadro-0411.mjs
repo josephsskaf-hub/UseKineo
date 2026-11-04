@@ -40,5 +40,6 @@ checa('home sem aviso de oferta para quem não está logado; faixa sem desconto'
 checa('mutante com o aviso de volta fica vermelho', !semPromo(home.replace('{isSignedIn && <WelcomeOfferModal surface="home" />}', '<WelcomeOfferModal surface="home" />'), faixa))
 const mutante = createOfflineLoader({ source: (rel, t) => (rel === 'lib/authVitrine.ts' ? t.replace("indice < atual ? 'cheia'", "indice < atual ? 'vazia'") : t) })('lib/authVitrine.ts')
 checa('mutante da barra fica vermelho', mutante.estadoDaBarra(0, 1) !== 'cheia')
+{ const cad = fs.readFileSync('app/(auth)/signup/page.tsx', 'utf8'); checa('cadastro sem a frase de créditos, países e marca d\'água', !cad.includes('OFFER.copy.headline)}') && cad.includes('KINEO-CADASTRO-SEM-LETRA-0411')) }
 console.log(falhas ? falhas + ' falha(s)' : 'tudo verde')
 process.exit(falhas ? 1 : 0)

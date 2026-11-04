@@ -628,7 +628,7 @@ export default function SignupPage() {
                       ? savedProductDestination.subtitle ?? 'Create a free account and continue to the product you chose.'
                       : savedCreation
                         ? 'Create a free account and continue without starting over.'
-                        : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
+                        : null /* KINEO-CADASTRO-SEM-LETRA-0411 [fundador 04/11: "isso já causa uma impressão ruim"] — saiu a frase de créditos, países e marca d'água do cadastro */}
                 </p>
                 <Kling4TrialNotice surface="signup" />
 
