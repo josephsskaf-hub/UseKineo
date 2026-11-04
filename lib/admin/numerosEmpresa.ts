@@ -36,6 +36,14 @@ export const LINHAS: Array<{ campo: keyof Periodo; rotulo: string; forte?: boole
   { campo: 'pagantes', rotulo: 'Pagantes no período', forte: true, meta: '1 a cada 2 dias' },
 ]
 
+/** KINEO-ADMIN-CADASTROS-24H-0411 — fundador 04/11: "nas últimas 24 horas, com uma opção de ver mais". A lista vem do mais novo para o mais antigo. */
+export const VER_MAIS_PASSO = 20
+export function cadastrosVisiveis<T extends { entrou: string }>(lista: ReadonlyArray<T>, agoraMs: number, extras: number): { visiveis: T[]; em24h: number; restam: number } {
+  const em24h = lista.filter((c) => agoraMs - Date.parse(c.entrou) <= 24 * 3600_000).length
+  const visiveis = lista.slice(0, em24h + Math.max(0, extras))
+  return { visiveis, em24h, restam: lista.length - visiveis.length }
+}
+
 /** Número em pt-BR; sem dado vira "—", nunca zero. */
 export function formataValor(v: unknown, sufixo = ''): string {
   if (v === null || v === undefined || v === '') return '—'

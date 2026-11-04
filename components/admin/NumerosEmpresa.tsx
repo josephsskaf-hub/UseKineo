@@ -3,7 +3,7 @@
 // KINEO-ADMIN-NUMEROS-0311 — fundador 03/11: "coloca todos esses dados também no admin na 1ª página, lado esquerdo as pessoas que entram, lado direito os números da empresa".
 import { useEffect, useState } from 'react'
 import { startVisiblePolling } from '@/lib/admin/visiblePolling'
-import { COLUNAS, LINHAS, diaCurto, entrouEm, formataValor, type NumerosEmpresa as Dados } from '@/lib/admin/numerosEmpresa'
+import { COLUNAS, LINHAS, VER_MAIS_PASSO, cadastrosVisiveis, diaCurto, entrouEm, formataValor, type NumerosEmpresa as Dados } from '@/lib/admin/numerosEmpresa'
 import { engineLabelFor } from '@/lib/engineLabel'
 import { PessoaLink } from '@/components/admin/PessoaLink'
 
@@ -33,12 +33,15 @@ function nomeDoMotor(motor: string | null): string {
 
 /** Lado esquerdo: os últimos cadastros, com o desfecho do 1º filme. */
 export function UltimosCadastros({ dados, erro }: { dados: Dados | null; erro: boolean }) {
+  const [extras, setExtras] = useState(0)
+  const lista = dados ? cadastrosVisiveis(dados.cadastros, Date.now(), extras) : null
   return (
     <div className="mt-3 overflow-x-auto" style={{ ...CARD, padding: 0 }}>
-      <div className="font-black uppercase tracking-widest" style={{ ...TITULO, padding: '12px 12px 6px' }}>Últimos cadastros</div>
+      <div className="font-black uppercase tracking-widest" style={{ ...TITULO, padding: '12px 12px 6px' }}>Cadastros nas últimas 24 horas{lista ? ` (${lista.em24h})` : ''}</div>
       {erro && !dados && <div className="px-3 pb-3 text-xs" style={{ color: '#FF8787' }}>Não consegui ler os cadastros.</div>}
       {!erro && !dados && <div className="px-3 pb-3 text-xs" style={{ color: 'var(--muted2)' }}>Carregando…</div>}
-      {dados && (
+      {lista && lista.visiveis.length === 0 && <div className="px-3 pb-3 text-xs" style={{ color: 'var(--muted2)' }}>Ninguém se cadastrou nas últimas 24 horas.</div>}
+      {lista && lista.visiveis.length > 0 && (
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
@@ -48,7 +51,7 @@ export function UltimosCadastros({ dados, erro }: { dados: Dados | null; erro: b
             </tr>
           </thead>
           <tbody>
-            {dados.cadastros.map((c) => (
+            {lista.visiveis.map((c) => (
               <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>
                 <td style={{ padding: '8px 12px', whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
                   <PessoaLink id={c.id} email={c.email} style={{ color: '#8DB4FF', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{c.email}</PessoaLink>
@@ -67,6 +70,11 @@ export function UltimosCadastros({ dados, erro }: { dados: Dados | null; erro: b
             ))}
           </tbody>
         </table>
+      )}
+      {lista && lista.restam > 0 && (
+        <button type="button" onClick={() => setExtras((n) => n + VER_MAIS_PASSO)} className="w-full font-bold" style={{ padding: '10px 12px', fontSize: '0.75rem', color: '#8DB4FF', borderTop: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}>
+          Ver mais ({Math.min(VER_MAIS_PASSO, lista.restam)} anteriores)
+        </button>
       )}
     </div>
   )

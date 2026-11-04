@@ -15,6 +15,19 @@ checa('hora de Brasília', N.entrouEm('2026-11-04T01:15:55Z') === '03/11 22:15')
 checa('as colunas pedidas estão na ordem', N.COLUNAS.map((c) => c.chave).join() === 'hoje,ontem,d7,d10,media7,media7antes')
 checa('todas as medidas da tabela aprovada', ['nota','visitas','chatgpt','cadastros','pais_que_paga','pct_com_filme','pct_baixou_primeiro','downloads','pagantes'].every((c) => N.LINHAS.some((l) => l.campo === c)))
 
+// KINEO-ADMIN-CADASTROS-24H-0411 — 24 horas, com "Ver mais".
+const AGORA = Date.parse('2026-11-04T12:00:00Z')
+const hAtras = (h) => ({ entrou: new Date(AGORA - h * 3600e3).toISOString() })
+const LISTA = [hAtras(1), hAtras(23), hAtras(25), hAtras(30), hAtras(40)]
+const v0 = N.cadastrosVisiveis(LISTA, AGORA, 0)
+checa('abre só com as últimas 24 horas', v0.em24h === 2 && v0.visiveis.length === 2 && v0.restam === 3)
+const v1 = N.cadastrosVisiveis(LISTA, AGORA, 2)
+checa('"Ver mais" soma os anteriores na ordem', v1.visiveis.length === 4 && v1.visiveis[3] === LISTA[3] && v1.restam === 1)
+checa('no fim da lista não sobra botão', N.cadastrosVisiveis(LISTA, AGORA, 99).restam === 0)
+checa('ninguém em 24 horas: lista vazia, com botão para os anteriores', (() => { const r = N.cadastrosVisiveis([hAtras(30)], AGORA, 0); return r.visiveis.length === 0 && r.em24h === 0 && r.restam === 1 })())
+const M24 = createOfflineLoader({ source: (rel, t) => (rel === 'lib/admin/numerosEmpresa.ts' ? t.replace('24 * 3600_000', '48 * 3600_000') : t) })('lib/admin/numerosEmpresa.ts')
+checa('mutante de 48 horas fica vermelho', M24.cadastrosVisiveis(LISTA, AGORA, 0).em24h !== 2)
+
 async function chamaRota({ email = 'admin@x.test', admin = true } = {}) {
   const chamadas = []
   const db = { rpc: async (nome, args) => { chamadas.push({ nome, args }); return { data: { periodos: [], nota_dias: [], cadastros: [] }, error: null } } }
