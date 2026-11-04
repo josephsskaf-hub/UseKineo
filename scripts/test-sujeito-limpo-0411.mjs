@@ -50,6 +50,30 @@ for (const [n, fala] of LIXO) {
   checa(`${n}: prompt intacto`, p === 'A breathtaking view of the sky')
 }
 
+// Reprovação do revisor: o nome descartado pelos filtros conta como segundo candidato, e o prompt certo fica intacto
+const INTACTO = [
+  ['In 1912, the Titanic sank near Newfoundland.', 'The Titanic sinking in icy black water at night'],
+  ['In 1986, the Challenger exploded over Florida.', 'The space shuttle Challenger breaking apart in a blue sky'],
+  ['In 1492, Columbus reached America.', 'Columbus stepping ashore from a wooden ship'],
+  ['In 1963, Kennedy was shot in Dallas.', 'Kennedy waving from an open-top car'],
+  ['the Boeing 747 flew over Texas.', 'A Boeing 747 cruising above the clouds'],
+  ['Then Buffett bought Apple.', 'Warren Buffett reading a report at his desk'],
+  ['Em 1500, Cabral chegou ao Brasil.', 'Cabral em uma caravela chegando à praia'],
+  ['In 1815, Wellington defeated Napoleon at Waterloo.', 'Wellington on horseback in battle'],
+  ['In 1950, Northwest Flight 2501 vanished over Michigan.', 'A propeller airliner in a storm at night'],
+  ['In 1950, Northwest Flight 2501 vanished over Michigan.', 'A Northwest Flight propeller airliner in a storm at night'],
+  ['On Dec. 7, 1941, Pearl Harbor was attacked.', 'Bombers over a harbor at dawn, 1941'],
+  ['the Bay of Pigs.', 'Soldiers in a Cuban jungle landing, 1961'],
+  ['the Minister of Finance.', 'A politician at a podium'],
+  ['the Secretary of State.', 'A politician at a podium'],
+  // o outro nome pode estar em outra frase da fala, ter posse ou ser sigla: conta igual
+  ['In 1912, the Titanic sank. It went down near Newfoundland.', 'The Titanic sinking in icy black water at night'],
+  ["In 1963, Kennedy's car passed through Dallas.", 'Kennedy waving from an open-top car'],
+  ['In 1969, NASA landed near Tranquility.', 'A NASA rocket on the launchpad'],
+]
+for (const [fala, prompt] of INTACTO) checa(`intacto: ${fala} | ${prompt}`, Q.comSujeitoDaFala(prompt, fala, []) === prompt)
+for (const fala of ['It ended on Jan. 3.', 'Em Fev. tudo parou.', 'It ended in Sept.', 'By Oct. it had ended.']) checa(`abreviação de mês não sai: ${fala}`, Q.sujeitosDaFala(fala).length === 0)
+
 // Controles: tem de continuar saindo
 const VENUS = 'On Venus, the year ends before a single day does!'
 checa('Venus: "On Venus, ..." continua', igual(Q.sujeitosDaFala(VENUS), ['Venus']))
@@ -59,7 +83,7 @@ checa('Venus: "is Venus! ... the Sun." sai só Venus', igual(Q.sujeitosDaFala('T
 checa('cena que já mostra Venus fica igual', Q.comSujeitoDaFala('A close-up of Venus rotating', 'This planet is Venus! But only 225 days to orbit the Sun.', []) === 'A close-up of Venus rotating')
 checa('Mars não é confundido com o mês francês', igual(Q.sujeitosDaFala('On Mars, the sunsets are blue.'), ['Mars']))
 checa('fim de frase com reticências: "over Siberia..."', igual(Q.sujeitosDaFala('A fireball brighter than the sun exploded over Siberia...'), ['Siberia']))
-checa('"In London the Great Fire began": sai só London, nunca Great/Fire', igual(Q.sujeitosDaFala('In London the Great Fire began'), ['London']))
+checa('"In London the Great Fire began": erro seguro, nada sai', Q.sujeitosDaFala('In London the Great Fire began').length === 0)
 checa('acento e preposição pt: "Na Sicília!"', igual(Q.sujeitosDaFala('Na Sicília, o vulcão acordou.'), ['Sicília']))
 checa('quem tem ficha não é repetido', Q.comSujeitoDaFala('A sky', 'On Venus, the year ends.', ['Venus']) === 'A sky')
 checa('fala com pronome de gente segue de fora', Q.sujeitosDaFala('On Venus, he saw nothing.').length === 0)
@@ -74,10 +98,12 @@ checa('preparo: Venus vira assunto', prep(VENUS).includes(`Venus ${FRASE}.`))
 const roda = (mut) => carrega(mut)
 const troca = (de, para) => (t) => { if (!t.includes(de)) throw new Error('mutante não aplicou: ' + de); return t.replace(de, para) }
 const MUT = [
-  ['dois candidatos voltam', troca("out.size === 1 ? [...out] : []", '[...out].slice(0, 2)'), 'From Paris, the road ends in Tokyo!', (s) => s.length === 2],
-  ['maiúscula antes volta a valer', troca("(/^\\p{Lu}/u.test(anterior) && !PREPOSICAO_INICIAL_0411.has(anterior))", 'false'), 'Then Dallas, Texas!', (s) => s.includes('Texas')],
-  ['mês volta', troca("DATA_0411.has(m[1].normalize('NFD').replace(/\\p{M}/gu, '').toLowerCase())", 'false'), 'It all changed in March.', (s) => s.includes('March')],
-  ['alemão volta', troca(' || ALEMAO_0411.test(t)', ''), 'Kommissarin Emma Berger steht um drei Uhr nachts in einer leeren Tiefgarage.', (s) => s.includes('Tiefgarage')],
+  ['dois candidatos voltam', troca("out.size === 1 && citadas.size === 1 ? [...out] : []", '[...out].slice(0, 2)'), 'From Paris, the road ends in Tokyo!', (s) => s.length === 2],
+  ['a contagem antes dos filtros some', troca(" && citadas.size === 1", ''), 'In 1912, the Titanic sank near Newfoundland.', (s) => s.includes('Newfoundland')],
+  ['maiúscula antes volta a valer', troca("(/^\\p{Lu}/u.test(anterior) && !PREPOSICAO_INICIAL_0411.has(anterior))", 'false'), 'Northwest Flight!', (s) => s.includes('Flight')],
+  ['abreviação de mês volta', troca(" jan feb mar apr jun jul aug sep sept oct nov dec", ''), 'It ended on Dec. 7.', (s) => s.includes('Dec')],
+  ['mês volta', troca("DATA_0411.has(m[0].normalize('NFD').replace(/\\p{M}/gu, '').toLowerCase())", 'false'), 'It all changed in March.', (s) => s.includes('March')],
+  ['alemão volta', troca(' || ALEMAO_0411.test(t)', ''), 'Es steht in einer leeren Tiefgarage.', (s) => s.includes('Tiefgarage')],
   ['quebra de linha volta', troca(" || crua.slice(antes.length).includes('\\n')", ''), 'Eu vi tudo\nSão!', (s) => s.includes('São')],
   ['artigo antes volta', troca('ARTIGO_ANTES_0411.test(anterior) || ', ''), 'It fell to the Mongol.', (s) => s.includes('Mongol')],
 ]

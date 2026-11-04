@@ -224,27 +224,30 @@ const NAO_SUJEITO = new Set(['The', 'And', 'But', 'This', 'That', 'These', 'Thos
 const ARTIGO_ANTES_0411 = /^(?:the|an?|os?|as|um|uma|uns|umas|el|la|los|las|un|una|unos|unas|le|les|une|il|lo|gli|der|die|das|den|dem|ein|eine)$/i
 const ARTIGO_DEPOIS_0411 = /^(?:the|os?|el|la|los|las|le|les|il|der)\s/ // artigo logo depois prova que a palavra é nome ("In London the"); adjetivo pátrio nunca vem antes de artigo
 const PREPOSICAO_INICIAL_0411 = new Set(['On', 'In', 'At', 'From', 'To', 'Near', 'Over', 'Inside', 'Em', 'No', 'Na', 'Nos', 'Nas', 'Para', 'De', 'Do', 'Da', 'En', 'Desde', 'Hacia', 'Dans', 'Sur', 'Vers'])
-const DATA_0411 = new Set('january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday janeiro fevereiro marco abril maio junho julho agosto setembro outubro novembro dezembro segunda terca quarta quinta sexta sabado domingo enero febrero marzo mayo junio julio septiembre octubre noviembre diciembre lunes martes miercoles jueves viernes janvier fevrier avril juin juillet aout septembre octobre novembre decembre lundi mardi mercredi jeudi vendredi samedi dimanche gennaio febbraio aprile maggio giugno luglio settembre ottobre dicembre lunedi martedi mercoledi giovedi venerdi sabato domenica januar februar marz juni juli oktober dezember montag dienstag mittwoch donnerstag freitag samstag sonntag'.split(' '))
+const DATA_0411 = new Set('january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday janeiro fevereiro marco abril maio junho julho agosto setembro outubro novembro dezembro segunda terca quarta quinta sexta sabado domingo enero febrero marzo mayo junio julio septiembre octubre noviembre diciembre lunes martes miercoles jueves viernes janvier fevrier avril juin juillet aout septembre octobre novembre decembre lundi mardi mercredi jeudi vendredi samedi dimanche gennaio febbraio aprile maggio giugno luglio settembre ottobre dicembre lunedi martedi mercoledi giovedi venerdi sabato domenica januar februar marz juni juli oktober dezember montag dienstag mittwoch donnerstag freitag samstag sonntag jan feb mar apr jun jul aug sep sept oct nov dec fev abr mai ago set out dez ene dic gen sun'.split(' ')) // abreviações de mês; "sun" também é o astro: "the Sun" não disputa com Venus
 const ALEMAO_0411 = /\b(?:und|nicht|ist|sind|einer?|einem|einen|eine|dem|auf|mit)\b/i // em alemão todo substantivo tem maiúscula: maiúscula não prova nome próprio ("Wagen and Motor")
 /** O único nome próprio limpo e isolado que a fala cita no meio da frase ("On Venus,", "is Venus!"); na dúvida, nenhum. Nunca dois. */
 export function sujeitosDaFala(fala: string): string[] {
   const t = String(fala ?? '')
   if (/\b(?:he|she|his|her|him|hers)\b/i.test(t) || ALEMAO_0411.test(t)) return []
-  const out = new Set<string>()
-  for (const m of t.matchAll(/(?<![\p{L}\p{N}'’])(\p{Lu}[\p{Ll}]{2,})(?![\p{L}'’])/gu)) {
-    const crua = t.slice(0, m.index ?? 0), antes = crua.trimEnd(), depois = t.slice((m.index ?? 0) + m[1].length), resto = depois.trimStart()
-    if (NAO_SUJEITO.has(m[1]) || DATA_0411.has(m[1].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase())) continue
+  const out = new Set<string>(), citadas = new Set<string>()
+  for (const m of t.matchAll(/(?<![\p{L}\p{N}'’])\p{Lu}[\p{L}\p{N}'’]+/gu)) {
+    const crua = t.slice(0, m.index ?? 0), antes = crua.trimEnd(), depois = t.slice((m.index ?? 0) + m[0].length), resto = depois.trimStart()
+    if (NAO_SUJEITO.has(m[0]) || DATA_0411.has(m[0].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase())) continue
     // antes: só letra, número ou vírgula. Início de frase depois de ponto, emoji, aspas, travessão, hífen ou quebra de linha não conta.
     if (!/[\p{L}\p{N},;]$/u.test(antes) || crua.slice(antes.length).includes('\n')) continue
+    // Conta ANTES dos filtros, inclusive o que eles descartam: "In 1912, the Titanic sank near Newfoundland" tem dois nomes, e o coadjuvante não pode sair sozinho como assunto.
+    citadas.add(m[0])
+    if (!/^\p{Lu}\p{Ll}{2,}$/u.test(m[0])) continue
     const anterior = antes.split(/\s+/).pop()!.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
     // artigo antes ("the Roman") e maiúscula antes, por espaço, hífen ou vírgula ("World War", "Sexta-feira Santa", "Dallas, Texas"); preposição que abre a frase ("On Venus") é a única exceção.
     if (ARTIGO_ANTES_0411.test(anterior) || (/^\p{Lu}/u.test(anterior) && !PREPOSICAO_INICIAL_0411.has(anterior))) continue
     // depois: fim, pontuação ou artigo. Palavra minúscula ("Roman army"), maiúscula ("Northwest Flight"), número ("Flight 2501"), hífen ("Sexta-feira"), & ("Achados & Variedades") e vírgula + nome ("Dallas, Texas") não contam.
     if (/^[-‐‑]/.test(depois)) continue
     if (resto && !/^[^\S\n]*\n/.test(depois) && (/^[\p{L}\p{N}]/u.test(resto) ? !ARTIGO_DEPOIS_0411.test(resto) : /^[&+]|^[,;]\s*\p{Lu}/u.test(resto))) continue
-    out.add(m[1])
+    out.add(m[0])
   }
-  return out.size === 1 ? [...out] : [] // dois candidatos = nenhum sai limpo; "X and Y" nunca mais
+  return out.size === 1 && citadas.size === 1 ? [...out] : [] // outra maiúscula em qualquer ponto da fala = nenhum sai limpo; "X and Y" nunca mais
 }
 // KINEO-DESFECHO-3010 — revisão de 30/10 (Kling 4, 1º filme, US, nota 7): "At the mall, she buys a puppy and more... then a slumber
 // party!" — a última cena seguiu a etiqueta "[Pexels: shopping mall puppy store]" e o filme acabou de volta na cozinha; a festa nunca
