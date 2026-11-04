@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
-import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
+// import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' — não usado desde KINEO-PRECO-MERCADO-0411; // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -56,16 +56,22 @@ checa('o degrau legado do anual de 40% off guarda EXATAMENTE os valores vendidos
   ANNUAL40.starter === 9290 && ANNUAL40.basic === 21500 && ANNUAL40.pro === 39500)
 
 // ── módulo puro, transpilado e executado com as tabelas injetadas no lugar do import ──
-const src = semKitBfVenda2010(rd('lib/billing/annualRefill.ts'), 'lib/billing/annualRefill.ts') // reancorado KINEO-KIT-BF-VENDA-2010 — o piso da oferta "2 meses grátis" (igual à base em toda a grade: test-kit-bf-venda-2010 N1) sai antes, em memória
-checa('o módulo só importa de @/lib/checkoutPricing (puro: sem stripe, supabase, crypto)',
-  (src.match(/^import /gm) || []).length === 1 && /from '@\/lib\/checkoutPricing'/.test(src) && !/node:crypto|supabase|@\/lib\/stripe/.test(src))
+// KINEO-PRECO-MERCADO-0411 — a regra nova mora no piso da oferta: o módulo é executado inteiro, com o annualEarlyOffer real, em vez de desfazer a camada do Kit BF.
+const src = rd('lib/billing/annualRefill.ts')
+checa('o módulo só importa de @/lib/checkoutPricing e do annualEarlyOffer puro (sem stripe, supabase, crypto)',
+  (src.match(/^import /gm) || []).length === 2 && /from '@\/lib\/checkoutPricing'/.test(src) && /from '@\/lib\/billing\/annualEarlyOffer'/.test(src) && !/node:crypto|supabase|@\/lib\/stripe/.test(src))
 const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
 const exp = {}
 vm.runInNewContext(js, {
   exports: exp, console, Date, Math, Number, String, Array, Object,
   require: (mod) => {
+    if (mod === '@/lib/billing/annualEarlyOffer') {
+      const eo = {}
+      vm.runInNewContext(ts.transpileModule(rd('lib/billing/annualEarlyOffer.ts'), { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: eo, Date, Math, Number })
+      return eo
+    }
     if (mod !== '@/lib/checkoutPricing') throw new Error('import inesperado: ' + mod)
-    return { ANNUAL_PRICES: ANNUAL, TIER_CREDITS, legacyCreditsForUsd }
+    return { ANNUAL_PRICES: ANNUAL, TIER_PRICES: tabelaUsd('TIER_PRICES'), TIER_CREDITS, legacyCreditsForUsd, LEGACY_TIER_CREDITS_V5: LEGACY_V5, ANNUAL_BRL_CURRENT_MINOR: Object.fromEntries([...(pricing.match(/export const ANNUAL_BRL_CURRENT_MINOR[^=]*=\s*\{([^}]*)\}/)?.[1] ?? '').matchAll(/(starter|basic|pro):\s*(\d+)/g)].map((x) => [x[1], Number(x[2])])) }
   },
 })
 const lib = exp
@@ -99,17 +105,17 @@ const PISO_ANUAL = (t) => Math.min(V5_PRICES[t] * 10, ANNUAL40[t])
 // ABAIXO do piso legado (9290/19900). Para eles a faixa "abaixo do vigente e no piso ou acima" deixa de existir de novo (como
 // em 05/10): quem pagou o anual antigo pagou ≥ o vigente e recebe o grant vigente (60/150). A faixa segue no Studio
 // ($395 ≤ x < $460). O degrau é provado onde ele existe, e pelo menos um plano tem de tê-lo.
-const COM_FAIXA = ['starter', 'basic', 'pro'].filter((t) => PISO_ANUAL(t) <= ANNUAL[t].usd - 100)
-checa('anual pago abaixo do vigente mas no piso legado ou acima (vigente − $1) → grant V5 (60/150/300 — o que esse valor comprou), em todo plano onde a faixa existe (hoje: ' + COM_FAIXA.join(', ') + ')', COM_FAIXA.length >= 1 && COM_FAIXA.every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
-checa('sem a faixa (anual vigente abaixo do piso legado), quem pagou o piso ou mais recebe o grant vigente', ['starter', 'basic', 'pro'].filter((t) => !COM_FAIXA.includes(t)).every((t) => lib.annualRefillCredits(t, PISO_ANUAL(t), 'usd') === TIER_CREDITS[t]))
+// KINEO-PRECO-MERCADO-0411 — o anual CAIU (54 / 114 / 354) e a regra virou "só o preço novo recebe o grant novo": qualquer outro valor segue a escada do que comprou. Sem faixa: o degrau vale nos três planos.
+checa('anual pago no piso legado ou acima → grant V5 (60/150/300 — o que esse valor comprou), nos três planos', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, PISO_ANUAL(t), 'usd') === LEGACY_V5[t]))
+checa('anual de 30% off (8300 / 16700 / 46000, vendido de 08/10 a 04/11) → mantém 60/150/300', lib.annualRefillCredits('starter', 8300, 'usd') === 60 && lib.annualRefillCredits('basic', 16700, 'usd') === 150 && lib.annualRefillCredits('pro', 46000, 'usd') === 300)
 checa('anual pago EXATAMENTE no anual V5 (9900/19900/39900, assinante de antes de 28/09) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10, 'usd') === LEGACY_V5[t]))
 checa('anual pago abaixo do piso legado E do vigente (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, Math.min(PISO_ANUAL(t), ANNUAL[t].usd) - 100, 'usd') === LEGACY[t]))
 // KINEO-PRECO-TESTE-2026-10-08 — no teste o anual de 40% off do Starter/Creator ($92,90/$215) ficou ACIMA do vigente ($83/$167):
 // recebe o grant vigente; o do Studio ($395) segue abaixo do vigente ($460) e é o degrau legado que o salva de 180.
-checa('anual de 40% off (9290/21500/39500) → mantém 60/150/300 dos dois lados do vigente (sem o degrau o Studio de $395 cairia para 180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]) && ANNUAL40.pro < ANNUAL.pro.usd && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
+checa('anual de 40% off (9290/21500/39500) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]))
 checa('troca por e-mail a 40% a partir do mensal V8-A ($93 / $215 / $395) → mesmos 60/150/300 de hoje', lib.annualRefillCredits('starter', 9300, 'usd') === 60 && lib.annualRefillCredits('basic', 21500, 'usd') === 150 && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
-checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 30% off ($460) → 300', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 46000)
-checa('fatura em BRL não tem legado a honrar → grant vigente', lib.annualRefillCredits('pro', 1, 'brl') === TIER_CREDITS.pro)
+checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 50% off ($354) → 280', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 35400 && TIER_CREDITS.pro === 280)
+checa('fatura em BRL: só o anual novo recebe o grant novo; outro valor mantém 60/150/300', lib.annualRefillCredits('pro', 176990, 'brl') === TIER_CREDITS.pro && lib.annualRefillCredits('pro', 230990, 'brl') === 300 && lib.annualRefillCredits('basic', 83990, 'brl') === 150)
 checa('valor ausente → grant vigente', lib.annualRefillCredits('starter', null, 'usd') === TIER_CREDITS.starter)
 checa('só starter/basic/pro têm anual', lib.annualTierFromMetadata('pro') === 'pro' && lib.annualTierFromMetadata('autopilot') === null && lib.annualTierFromMetadata(undefined) === null)
 checa('cinematic_tokens: Studio 1, demais 0 (Push #088)', lib.annualRefillCinematicTokens('pro') === 1 && lib.annualRefillCinematicTokens('basic') === 0)

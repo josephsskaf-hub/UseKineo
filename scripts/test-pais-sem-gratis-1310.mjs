@@ -47,7 +47,8 @@ const LAY = 'app/(dashboard)/layout.tsx'
 const OFERTA = 'components/RegionPassOffer.tsx'
 
 function carrega({ over = {}, mocks = {} } = {}) {
-  return createOfflineLoader({ mocks, source: (rel, text) => over[rel] ?? semDecisoesPreco3110(semAvulsoUnico3110(text, rel), rel) }) // KINEO-DECISOES-PRECO-3110 · KINEO-AVULSO-UNICO-3110
+  // KINEO-PRECO-MERCADO-0411 — o passe regional saiu da loja (fundador 04/11); a régua segue provada com a flag ligada em memória.
+  return createOfflineLoader({ mocks, source: (rel, text) => { const fonte = over[rel] ?? semDecisoesPreco3110(semAvulsoUnico3110(text, rel), rel); return rel === 'lib/freeFilmPolicy.ts' ? fonte.replace('export const REGION_PASS_OFFER_LIVE = false', 'export const REGION_PASS_OFFER_LIVE = true') : fonte } }) // KINEO-DECISOES-PRECO-3110 · KINEO-AVULSO-UNICO-3110
 }
 const s = (over, f) => over[f] ?? rd(f)
 

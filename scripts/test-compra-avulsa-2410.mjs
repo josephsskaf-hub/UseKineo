@@ -27,7 +27,7 @@ async function checkout(query = '', options = {}, overrides = {}) {
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: options.anon ? null : { id: UID, email: 'auth@example.invalid' } }, error: null }) }, from: queryDb }) },
     '@supabase/supabase-js': { createClient: () => ({ from: queryDb }) },
   }
-  const load = createOfflineLoader({ mocks, env: { STRIPE_SECRET_KEY: 'offline-placeholder', NEXT_PUBLIC_SUPABASE_URL: 'https://offline.invalid', SUPABASE_SERVICE_ROLE_KEY: 'offline-placeholder' }, source: (file, text) => overrides[file] ?? text, globals: { Error } })
+  const load = createOfflineLoader({ mocks, env: { STRIPE_SECRET_KEY: 'offline-placeholder', NEXT_PUBLIC_SUPABASE_URL: 'https://offline.invalid', SUPABASE_SERVICE_ROLE_KEY: 'offline-placeholder' }, source: (file, text) => { const fonte = overrides[file] ?? text; return file === 'lib/oneTimeItem.ts' && !options.vendaFechada ? fonte.replace('export const ONE_TIME_ITEMS_LIVE = false', 'export const ONE_TIME_ITEMS_LIVE = true') : fonte }, globals: { Error } }) // KINEO-PRECO-MERCADO-0411 — o contrato segue provado com a flag ligada em memória; a venda fechada é o caso abaixo
   const url = new URL(`https://www.usekineo.com/api/stripe/checkout?${query}`)
   const req = { url: String(url), nextUrl: url, headers: new Headers({ 'x-vercel-ip-country': options.country ?? 'US', 'accept-language': options.language ?? 'en-US' }) }
   const result = await load(CHECKOUT).buildOneTimeItemAndRedirect(req, { browserSessionIdFrom: () => 'browser-offline', recordCheckoutEvent: async (...args) => events.push(plain(args)), oneTimeIdempotencyKey: value => { const key = JSON.stringify(value); return key }, checkoutFailureReason: () => 'offline' })
@@ -89,7 +89,7 @@ async function proofs(overrides = {}) {
   assert.ok(!JSON.stringify(err).includes('private provider detail'))
   const pt = await checkout('pack=one_time_ad', { country: 'US', language: 'pt-BR' }, overrides)
   assert.equal(pt.calls[0].line_items[0].price_data.currency, 'brl')
-  const off = await checkout('pack=one_time_ad', {}, { ...overrides, 'lib/oneTimeItem.ts': source('lib/oneTimeItem.ts').replace('ONE_TIME_ITEMS_LIVE = true', 'ONE_TIME_ITEMS_LIVE = false') })
+  const off = await checkout('pack=one_time_ad', { vendaFechada: true }, overrides) // KINEO-PRECO-MERCADO-0411 — a fonte já é a venda fechada
   assert.equal(off.calls.length, 0)
   const adsOff = await checkout('pack=one_time_ad', {}, { ...overrides, 'lib/ads/offer.ts': source('lib/ads/offer.ts').replace('ADS_PASS_LIVE_IN_CODE = true', 'ADS_PASS_LIVE_IN_CODE = false') })
   assert.equal(adsOff.calls.length, 0)
@@ -130,6 +130,12 @@ async function proofs(overrides = {}) {
   assert.equal(M.isOneTimeItemSession({ metadata: { pack: 'one_time_unknown' } }), true)
   assert.equal(M.isOneTimeItemSession({ metadata: { pack: 'kit_bf' } }), false)
   return cases + 9
+}
+// KINEO-PRECO-MERCADO-0411 — fundador 04/11: "tira o avulso". Fora da loja: nenhum SKU abre sessão da Stripe; sessão já paga continua sendo entregue (proofs).
+for (const sku of ['one_time_ad', 'one_time_film35']) {
+  const fechado = await checkout(`pack=${sku}`, { vendaFechada: true })
+  assert.match(fechado.result.location, /checkout_error=/)
+  assert.equal(fechado.calls.length, 0, 'venda fechada não chama a Stripe: ' + sku)
 }
 const total = await proofs()
 console.log(`PASS compra avulsa: ${total} executable checkout/fulfillment contracts`)

@@ -229,7 +229,8 @@ export async function createCheckoutWithPublicPromoTruth<T>(
 // O INTERRUPTOR É UM SÓ: este. O /pricing (PRICING_WELCOME20_ON_CARD, que liga a faixa e o cartão) passou a apontar para
 // cá, e o servidor lê o MESMO valor para aplicar o WELCOME20 sozinho. false = some a faixa, some o cartão e some o
 // automático, juntos — nunca mais um anunciando sem o outro cobrar.
-export const WELCOME20_SITE_OFFER_LIVE = true
+// KINEO-PRECO-MERCADO-0411 — fundador 04/11: mensal sem desconto; desconto só no anual.
+export const WELCOME20_SITE_OFFER_LIVE = false
 
 /** O carimbo do checkout_started: de onde veio o desconto de boas-vindas. Só categorias fechadas, nunca o código cru. */
 export const WELCOME20_AUTO_SOURCE = 'auto_banner' as const

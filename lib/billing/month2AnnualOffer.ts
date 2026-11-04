@@ -38,6 +38,10 @@ export function month2AnnualOfferOpen(nowMs: number = Date.now()): boolean {
 export const MONTH2_ANNUAL_OFFER = 'month2_annual_30_2026_10_08' as const
 /** O desconto sobre 12 mensalidades. A regra do valor (annualSwitch.month2OfferAnnualUsd) e a frase "save N%" leem daqui. */
 export const MONTH2_ANNUAL_PERCENT_OFF = 30
+/** KINEO-PRECO-MERCADO-0411 — a economia que a pessoa VÊ. Quem paga o mensal de hoje recebe o anual do site (50%), e "save 30%: $54/year instead of $9 × 12" estava errado na conta; o legado segue na faixa de 30%. */
+export function month2SavedPercent(monthlyMinor: number, annualMinor: number): number {
+  return Math.round((1 - annualMinor / (monthlyMinor * 12)) * 100)
+}
 export const MONTH2_ANNUAL_VERSION = 'month2_annual_v1' as const
 
 /** A rota de autoatendimento: GET = estado para a tela; POST = ensaio (sem confirm) ou troca (confirm: 'SEND'). */

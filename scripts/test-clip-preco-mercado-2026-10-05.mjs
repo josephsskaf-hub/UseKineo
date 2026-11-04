@@ -159,15 +159,16 @@ const tierPrices = checkout.slice(checkout.indexOf('export const TIER_PRICES'))
 // KINEO-PRECO-TESTE-2026-10-08 — o Creator foi a $19,90 no teste de 7 dias; a referência da régua dos clipes fica
 // CONGELADA em 2990 (o valor em que a régua de 05-06/10 foi decidida), senão o clipe subiria ~50% em créditos sem decisão.
 // Enquanto TIER_PRICES.basic for 1990 (teste) ou 2990 (V8-A), a referência é 2990; qualquer outro valor pede revisão.
+// KINEO-PRECO-MERCADO-0411 — o Creator foi a US$ 19 / 85 cr; o preço dos clipes em créditos NÃO mudou (fundador 04/11). A referência segue 2990 / 150, fora de TIER_PRICES/TIER_CREDITS.
 ok(OFF.price.CREATOR_PLAN_USD_CENTS === 2990
-  && [1990, 2990].includes(Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1])), 'referência do Creator nos clipes congelada em 2990 (TIER_PRICES.basic é 1990 no teste ou 2990)')
+  && Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]) === 1900, 'referência do Creator nos clipes congelada em 2990 (TIER_PRICES.basic é 1900 desde 04/11)')
 const tierCredits = checkout.slice(checkout.indexOf('export const TIER_CREDITS'))
-ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === OFF.price.CREATOR_PLAN_CREDITS, 'créditos do Creator = TIER_CREDITS.basic')
+ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === 85 && OFF.price.CREATOR_PLAN_CREDITS === 150, 'créditos do Creator nos clipes congelados em 150 (TIER_CREDITS.basic é 85 desde 04/11)')
 ok(Math.abs(OFF.price.CREATOR_USD_PER_CREDIT - OFF.price.CREATOR_PLAN_USD_CENTS / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12, 'US$/crédito do Creator é derivado, não digitado')
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o Studio deixou de ser o crédito mais barato
 // (08/10); o piso é LIDO de checkoutPricing (Creator mensal) e o Creator congelado em 2990 segue de referência (alvo).
-ok(Math.abs(OFF.price.CLIP_FLOOR_USD_PER_CREDIT - Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]) / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12
-  && OFF.price.CLIP_FLOOR_USD_PER_CREDIT < OFF.price.STUDIO_USD_PER_CREDIT, 'piso = crédito do Creator mensal (TIER_PRICES.basic / TIER_CREDITS.basic, lido), abaixo do Studio; o Creator de 2990 é a referência do alvo')
+ok(Math.abs(OFF.price.CLIP_FLOOR_USD_PER_CREDIT - 19.9 / 150) < 1e-12
+  && OFF.price.CLIP_FLOOR_USD_PER_CREDIT < OFF.price.STUDIO_USD_PER_CREDIT, 'piso congelado em US$ 19,90 / 150 (KINEO-PRECO-MERCADO-0411), abaixo do Studio; o Creator de 2990 é a referência do alvo')
 
 // ─── 3. A régua, executada com o interruptor ligado ──────────────────────────
 console.log('3. régua ligada')
@@ -234,6 +235,8 @@ const MUTANTS = [
   ['alvo no crédito do Studio', mutate('lib/clips/clipPricing.ts', 'refUsdPerCredit: CREATOR_USD_PER_CREDIT', 'refUsdPerCredit: STUDIO_USD_PER_CREDIT')],
   // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o mutante agora devolve o piso ao Studio.
   ['piso volta ao crédito do Studio', mutate('lib/clips/clipPricing.ts', 'floorUsdPerCredit: CLIP_FLOOR_USD_PER_CREDIT,', 'floorUsdPerCredit: STUDIO_USD_PER_CREDIT,')],
+  // KINEO-PRECO-MERCADO-0411 — o defeito que este mutante reproduz: o piso voltar a acompanhar o crédito do plano derruba o preço dos clipes sem decisão.
+  ['piso acompanha o crédito novo (59 / 280)', mutate('lib/clips/clipPricing.ts', 'export const CLIP_FLOOR_USD_PER_CREDIT: number = 1990 / 100 / 150', 'export const CLIP_FLOOR_USD_PER_CREDIT: number = 5900 / 100 / 280')],
   ['sem prateleira (Ultra de US$ 160 entra)', mutate('lib/clips/clipPricing.ts', 'shelfMaxUsdCents: STUDIO_PLAN_USD_CENTS', 'shelfMaxUsdCents: Infinity')],
   ['ignora o custo fal conferido (S25 0,2205)', mutate('lib/clips/clipPriceVsMarket.ts', 'Math.max(ctx.houseFalUsdPerSecond, ENGINE_MARKET[engine].falUsdPerSecond)', 'ctx.houseFalUsdPerSecond')],
   ['acompanha o concorrente no prejuízo', mutate('lib/clips/clipPriceVsMarket.ts', "credits: Math.max(floorCredits, ctx.minCredits), status: 'impossivel'", "credits: Math.max(marketCredits, ctx.minCredits), status: 'impossivel'")],

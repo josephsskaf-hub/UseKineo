@@ -63,6 +63,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { PACK_CREDITS, PACK_PRICE_MINOR, packPriceLabel } from '@/lib/checkoutPricing'
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 
 /** Marcador de versão da superfície. Sem ele, uma medição depois do próximo
  *  deploy misturaria duas telas diferentes no mesmo número. */
@@ -227,7 +228,7 @@ export default function RegionalFirstPack({
     })
   }, [mostrar, pais, surface, mostrarPack, metodoLocal])
 
-  if (!mostrar) return null
+  if (!mostrar || !FILM_PASS_LIVE) return null // KINEO-PRECO-MERCADO-0411 — o botão desta faixa é ?pack=starter, que saiu da loja
 
   const href =
     '/api/stripe/checkout?pack=starter' +

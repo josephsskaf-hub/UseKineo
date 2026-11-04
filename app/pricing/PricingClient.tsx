@@ -101,6 +101,7 @@ import {
   AUTOPILOT_LITE_PRICES,
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo, a linha do card e a política de reembolso do anual leem daqui.
   ANNUAL_DISCOUNT_PERCENT,
+  TOPUPS_LIVE, // KINEO-PRECO-MERCADO-0411
   MONEY_BACK_GUARANTEE, // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a política do anual entra nela)
   INTRO_CREDITS,
   TIER_CREDITS,
@@ -1850,7 +1851,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}<KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         <div className="mx-auto max-w-3xl"><KidsVendaCards lang="en" surface="pricing" /></div>{/* KINEO-KIDS-VENDA-2010 — embaixo do Kit BF; só com a venda ligada */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
-        <PricingCreditsBlock />
+        {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.

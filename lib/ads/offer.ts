@@ -43,7 +43,7 @@ export const ADS_ACCESS_COLUMN = 'ads_access_until' as const
  *  assim de 25/09 a 28/09 (V5) sem problema — mensal é mode:'subscription' e não passa pelo fallback por valor do
  *  webhook, que só resolve sessões one-time. */
 export const ONE_TIME_USD_MINOR_OCCUPIED: readonly number[] = [
-  290, 490, 499, 590, 900, 990, 1290, 1490, 1900, 3500, 4900, 5490, 5990, 7500, 8300, 9900, 10000, 16700, 29900, 46000,
+  290, 490, 499, 590, 900, 1290, 1490, 1900, 3500, 4900, 5400, 5900, 5990, 7500, 9900, 10000, 11400, 29900, 35400,
 ]
 
 /** Kineo 1 de 60 s custa 5 créditos (lib/credits/engineCost.ts); o passe (90 cr desde 28/09) cobre 18 anúncios de 60 s ou 30 de 35 s. */

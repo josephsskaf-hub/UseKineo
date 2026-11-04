@@ -5,6 +5,8 @@
 // Preço, créditos e segundos saem de lib/checkoutPricing.ts — a MESMA linha que a Stripe cobra (buildPackAndRedirect).
 import { PACK_ADVERTISED_SECONDS, PACK_CREDITS, packPriceLabel } from '@/lib/checkoutPricing'
 
+/** KINEO-PRECO-MERCADO-0411 — fundador 04/11: "tira o avulso, não vendemos". O checkout manda ?pack=starter para os planos; sessão já paga continua recebendo os créditos. */
+export const FILM_PASS_LIVE = false as boolean
 export const AVULSO_UNICO_VERSION = 'avulso_unico_3110' as const
 /** O que o checkout grava em checkout_*.metadata.sku e metadata.pack da sessão (→ payment_success.metadata.pack). */
 export const FILM_PASS_SKU = 'starter10' as const

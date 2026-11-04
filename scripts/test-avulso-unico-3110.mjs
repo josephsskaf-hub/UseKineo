@@ -50,12 +50,27 @@ async function problems(replacements = {}) {
   const src = (rel) => replacements[rel] ?? SRC[rel]
   let helper, oti, otiLib, mrr, prices, engine
   try {
-    const load = offlineModules({ replacements, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
+    // KINEO-PRECO-MERCADO-0411 — o avulso saiu da loja (fundador 04/11): o cartão segue provado com a flag ligada em memória; a venda fechada é provada abaixo sobre a fonte crua.
+    const load = offlineModules({ replacements: { ...replacements, [OTI_LIB]: src(OTI_LIB).replace('export const ONE_TIME_ITEMS_LIVE = false', 'export const ONE_TIME_ITEMS_LIVE = true') }, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
     helper = load(HELPER); oti = load(OTI); otiLib = load(OTI_LIB); mrr = load(MRR); prices = load(PRICES); engine = load(ENGINE)
   } catch (e) {
     return ['módulos carregam: ' + String(e && e.stack || e)]
   }
 
+  // ── 0. Fora da loja: nenhuma flag religada, nenhuma tela vende, a rota não cobra ─────────────────────────────
+  if (!/export const ONE_TIME_ITEMS_LIVE = false/.test(src(OTI_LIB))) p.push('ONE_TIME_ITEMS_LIVE religado sem decisão do fundador')
+  if (!/export const FILM_PASS_LIVE = false as boolean/.test(src(HELPER))) p.push('FILM_PASS_LIVE religado sem decisão do fundador')
+  {
+    const ckFora = src(CHECKOUT)
+    const redirecao = "NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303)"
+    if (!ckFora.includes("if (!FILM_PASS_LIVE) return " + redirecao + "\n      return await buildPackAndRedirect(req, true)")) p.push('rota: o fallback de ?pack= vende o passe com a loja fechada')
+    if (!ckFora.includes("if (!FILM_PASS_LIVE) return " + redirecao + " // KINEO-PRECO-MERCADO-0411\n        return await buildStarter290AndRedirect(req, true)")) p.push('rota: ?pack=starter290 vende com a loja fechada')
+    if (!/intent\.kind === 'pack' && !FILM_PASS_LIVE/.test(read('app/api/paypal/checkout/route.ts'))) p.push('PayPal vende o passe com a loja fechada')
+    if (!/sku === 'first_pack' && !FILM_PASS_LIVE/.test(read('app/api/dodo/checkout/route.ts'))) p.push('Dodo vende o pacote com a loja fechada')
+    const upFora = src(UPGRADE)
+    if (!upFora.includes('return FILM_PASS_LIVE ? <ConversionPassCardVenda {...props} /> : null')) p.push('a parede ainda mostra o cartão do passe')
+    if (!/!mostrar \|\| !FILM_PASS_LIVE/.test(read('components/RegionalFirstPack.tsx'))) p.push('a faixa regional ainda vende o passe')
+  }
   // ── 1. O passe: preço, créditos e segundos das tabelas reais; 35 cr = exatamente 1 filme Seedance 1.5 de 60 s ──────────────
   if (prices.PACK_PRICE_MINOR.usd !== 499) p.push('o passe não custa mais US$ 4,99 (PACK_PRICE_MINOR) — decisão "2A" é o passe que já existia')
   const filme60 = engine.creditCostForDuration('cinematic_ai', true, 60)
@@ -72,7 +87,7 @@ async function problems(replacements = {}) {
   if (helper.FILM_PASS_SKU !== 'starter10') p.push('FILM_PASS_SKU ≠ o SKU que o checkout grava (starter10)')
   // A rota vende ?pack=starter pelo construtor do passe, com o preço e os créditos das tabelas.
   const ck = src(CHECKOUT)
-  if (!ck.includes('const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd }') || !ck.includes('credits: PACK_CREDITS.starter,') || !/return await buildStarter290AndRedirect\(req, true\)\n\s+\}\n\s+return await buildPackAndRedirect\(req, true\)/.test(ck)) p.push('checkout: ?pack=starter não cai mais no buildPackAndRedirect com PACK_PRICE_MINOR/PACK_CREDITS.starter')
+  if (!ck.includes('const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd }') || !ck.includes('credits: PACK_CREDITS.starter,') || !/return await buildStarter290AndRedirect\(req, true\)\n\s+\}\n[\s\S]{0,300}return await buildPackAndRedirect\(req, true\)/.test(ck)) p.push('checkout: ?pack=starter não cai mais no buildPackAndRedirect com PACK_PRICE_MINOR/PACK_CREDITS.starter')
   if (!ck.includes("pack: 'starter10',\n      pack_credits: String(STARTER_PACK.credits),") || !ck.includes("? `${appUrl}/studio/create?resume=wall_v1&pack=starter&session_id={CHECKOUT_SESSION_ID}`")) p.push('checkout do passe sem metadata.pack/pack_credits ou sem a volta ao Studio (return=studio)')
   // Webhook: o passe é o Path A (pack_credits + guard da sessão); o one_time_film35 segue entregue pelo RPC (sessão aberta).
   const wh = src(WEBHOOK)
@@ -131,6 +146,9 @@ const muta = (rel, from, to) => {
   return { [rel]: s.replace(from, to) }
 }
 const MUTANTES = [
+  ['passe religado sem decisão', muta(HELPER, 'export const FILM_PASS_LIVE = false as boolean', 'export const FILM_PASS_LIVE = true as boolean')],
+  ['avulso religado sem decisão', muta(OTI_LIB, 'export const ONE_TIME_ITEMS_LIVE = false', 'export const ONE_TIME_ITEMS_LIVE = true')],
+  ['fallback da rota volta a vender o passe', muta(CHECKOUT, "if (!FILM_PASS_LIVE) return NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303)\n      return await buildPackAndRedirect(req, true)", 'return await buildPackAndRedirect(req, true)')],
   ['o filme some do pacote', muta(OTI, "const DEFAULT_ITEMS: readonly ItemId[] = ['film_pass', 'one_time_ad']", "const DEFAULT_ITEMS: readonly ItemId[] = ['one_time_ad']")],
   ['título volta ao "Buy just one"', muta(OTI, '`Not ready for a plan? ${filmPassOffer().line}.`', "'Not ready for a plan? Buy just one.'")],
   ['cartão do filme abre o pacote de US$ 5', muta(OTI, "checkout.launch('film_pass', filmPassCheckoutHref(props.surface === 'generate_paywall' ? 'generate_paywall' : 'pricing'),", "checkout.launch('film_pass', oneTimeItemCheckoutHref('one_time_film35' as never, props.surface),")],

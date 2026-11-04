@@ -29,6 +29,8 @@ fs.mkdirSync(tmpDir, { recursive: true })
 const w = (name, code) => { const p = path.join(tmpDir, name); fs.writeFileSync(p, code); return p }
 w('cost.mjs', tsjs(read('lib/animate/cost.ts')))
 w('topupEligibility.mjs', tsjs(read('lib/growth/topupEligibility.ts')))
+// KINEO-PRECO-MERCADO-0411 — venda fechada de verdade; a mesma parede com a flag ligada em memória prova a tabela de sempre.
+w('topupEligibilityAberta.mjs', tsjs(read('lib/growth/topupEligibility.ts').replace('TOPUP_SALES_OPEN = false as boolean', 'TOPUP_SALES_OPEN = true as boolean')))
 w('checkoutPricing.mjs', `export const TIER_CREDITS = ${JSON.stringify(TIER_CREDITS)};
 export const TIER_PRICES = ${JSON.stringify(TIER_PRICES)};
 export function formatCheckoutMoney(currency, amountMinor) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amountMinor / 100) }`)
@@ -38,6 +40,8 @@ const paywallSrc = read('lib/animate/paywall.ts')
   .replace("'@/lib/growth/topupEligibility'", "'./topupEligibility.mjs'")
 const modPath = w('paywall.mjs', tsjs(paywallSrc))
 const m = await import(`file://${modPath}?t=${Date.now()}`)
+const modAberta = w('aberta-paywall.mjs', tsjs(paywallSrc.replace("'./topupEligibility.mjs'", "'./topupEligibilityAberta.mjs'")))
+const aberta = await import(`file://${modAberta}?t=${Date.now()}`)
 const cost = (await import(`file://${path.join(tmpDir, 'cost.mjs')}`)).ANIMATE_COST
 fs.rmSync(tmpDir, { recursive: true, force: true })
 
@@ -57,13 +61,14 @@ ok(m.isOutOfAnimateCredits(0, true, true) === false, 'clipe rodando = sem parede
 ok(m.isOutOfAnimateCredits(Number.NaN, true, false) === false, 'NaN = sem parede')
 
 console.log('destino por plano (mesma regra do checkout)')
-ok(m.animatePaywallDestination('basic') === 'topup', 'Creator -> recarga')
-ok(m.animatePaywallDestination('pro') === 'topup', 'Studio -> recarga')
-ok(m.animatePaywallDestination('PRO ') === 'topup', 'normaliza caixa/espaco como o checkout')
-ok(m.animatePaywallDestination('starter') === 'topup', 'Starter -> recarga (KINEO-MRR-2, 16/09: o checkout passou a aceitar)')
+ok(['basic', 'pro', 'PRO ', 'starter', 'basic_trial'].every((p) => m.animatePaywallDestination(p) === 'pricing'), 'venda fechada: todo plano vai aos planos, nunca a uma recarga que nao existe')
+ok(aberta.animatePaywallDestination('basic') === 'topup', 'venda aberta: Creator -> recarga')
+ok(aberta.animatePaywallDestination('pro') === 'topup', 'venda aberta: Studio -> recarga')
+ok(aberta.animatePaywallDestination('PRO ') === 'topup', 'venda aberta: normaliza caixa/espaco como o checkout')
+ok(aberta.animatePaywallDestination('starter') === 'topup', 'venda aberta: Starter -> recarga (KINEO-MRR-2, 16/09: o checkout passou a aceitar)')
 ok(m.animatePaywallDestination('free') === 'pricing', 'free -> planos')
 ok(m.animatePaywallDestination(undefined) === 'pricing', 'sem plano -> planos')
-ok(m.animatePaywallDestination('basic_trial') === 'topup', 'basic_trial acompanha o checkout')
+ok(aberta.animatePaywallDestination('basic_trial') === 'topup', 'venda aberta: basic_trial acompanha o checkout')
 
 console.log('motivo')
 ok(m.animatePaywallReason({ phase: 'failed', lastInsufficient: true }) === 'insufficient_402', '402 -> insufficient_402')

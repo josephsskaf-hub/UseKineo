@@ -37,12 +37,13 @@ const ck = rd('app/api/stripe/checkout/route.ts')
 // 60/150/300); o número vigente e o mutante moram em scripts/test-preco-v8-A-2026-09-28.mjs.
 console.log('== 1. preço V8-A (escada 13/30/55 sobre a estrutura da V5) ==')
 // KINEO-PRECO-TESTE-2026-10-08 — re-ancorado: Starter e Creator a $9,90/$19,90 no teste de 7 dias (fundador 08/10); Studio intocado.
-checa('TIER_PRICES = 990 / 1990 / 5490', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n  pro: \{ usd: 5490 \},/.test(cp))
+// KINEO-PRECO-MERCADO-0411 — re-ancorado: 9 / 19 / 59, anual 50%, sem 1º mês com desconto, 40 / 85 / 280 (fundador 04/11).
+checa('TIER_PRICES = 900 / 1900 / 5900', /starter: \{ usd: 900 \},\n  basic: \{ usd: 1900 \},\n  pro: \{ usd: 5900 \},/.test(cp))
 // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: anual = 12 × mensal × 0,60 arredondado (fundador 04-05/10; era 10×).
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: anual = 12 × mensal × 0,70 arredondado (fundador 08/10; era 40% off).
-checa('ANNUAL = 8300 / 16700 / 46000 (30% off)', /starter: \{ usd: 8300 \},\n  basic: \{ usd: 16700 \},\n  pro: \{ usd: 46000 \},/.test(cp))
-checa('INTRO = preço cheio (990 / 1990)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n\}/.test(cp))
-checa('créditos dos planos intactos (60/150/300)', /starter: 60,\n  basic: 150,\n  pro: 300,/.test(cp))
+checa('ANNUAL = 5400 / 11400 / 35400 (50% off)', /starter: \{ usd: 5400 \},\n  basic: \{ usd: 11400 \},\n  pro: \{ usd: 35400 \},/.test(cp))
+checa('INTRO = preço cheio (900 / 1900)', /starter: \{ usd: 900 \},\n  basic: \{ usd: 1900 \},\n\}/.test(cp))
+checa('créditos dos planos = 40/85/280', /starter: 40,\n  basic: 85,\n  pro: 280,/.test(cp))
 
 // KINEO-TRIAL-10-2026-09-16 — fundador reduziu o trial de cadastro novo para 10 ("impulso maior de comprar"). Quem já tinha 30 mantém (trialCapFor).
 console.log('== 2. entrada grátis de 10 (era 30 até 16/09) ==')

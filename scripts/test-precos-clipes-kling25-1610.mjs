@@ -79,7 +79,7 @@ const OLD_TABLE = { // origin/main c9199975 — para o relatório e para provar 
 }
 const FLOOR = 0.4
 const KLING25_FILM = 75
-const STUDIO = { usd: 5490, credits: 300, annualUsd: 46000 }
+const STUDIO = { usd: 5900, credits: 280, annualUsd: 35400 } // KINEO-PRECO-MERCADO-0411
 
 function creatorMonthly(cp) { return cp.TIER_PRICES.basic.usd / 100 / cp.TIER_CREDITS.basic }
 function creatorAnnual(cp) { return cp.ANNUAL_PRICES.basic.usd / 100 / 12 / cp.TIER_CREDITS.basic }
@@ -136,10 +136,9 @@ function floorProblems({ price, mk, cat, fx, cp }, shotSrc) {
 // P3 — o piso é LIDO de checkoutPricing (Creator mensal hoje), nunca digitado.
 function readsPlanProblems({ price, cp }, priceSrc) {
   const p = []
-  if (price.CLIP_FLOOR_USD_PER_CREDIT !== cp.CHEAPEST_PLAN_USD_PER_CREDIT) p.push('CLIP_FLOOR_USD_PER_CREDIT ≠ CHEAPEST_PLAN_USD_PER_CREDIT')
-  if (Math.abs(price.CLIP_FLOOR_USD_PER_CREDIT - creatorMonthly(cp)) > 1e-12) p.push(`piso ${price.CLIP_FLOOR_USD_PER_CREDIT} ≠ Creator mensal ${creatorMonthly(cp)}`)
-  if (!/^import \{ CHEAPEST_PLAN_USD_PER_CREDIT \} from '@\/lib\/checkoutPricing'$/m.test(priceSrc)) p.push('clipPricing não importa CHEAPEST_PLAN_USD_PER_CREDIT de @/lib/checkoutPricing')
-  if (!/^export const CLIP_FLOOR_USD_PER_CREDIT: number = CHEAPEST_PLAN_USD_PER_CREDIT$/m.test(priceSrc)) p.push('CLIP_FLOOR_USD_PER_CREDIT não é CHEAPEST_PLAN_USD_PER_CREDIT (número digitado?)')
+  // KINEO-PRECO-MERCADO-0411 — o piso ficou CONGELADO em US$ 19,90 / 150: o crédito novo (59 / 280) derrubaria o preço dos clipes em créditos, e o fundador manteve a tabela.
+  if (Math.abs(price.CLIP_FLOOR_USD_PER_CREDIT - 19.9 / 150) > 1e-12) p.push(`piso ${price.CLIP_FLOOR_USD_PER_CREDIT} ≠ US$ 19,90 / 150`)
+  if (!/^export const CLIP_FLOOR_USD_PER_CREDIT: number = 1990 \/ 100 \/ 150$/m.test(priceSrc)) p.push('CLIP_FLOOR_USD_PER_CREDIT não é o congelado 1990 / 100 / 150')
   const call = /export function clipMarketDecision[\s\S]*?\n\}/.exec(priceSrc)?.[0] ?? ''
   if (!/floorUsdPerCredit: CLIP_FLOOR_USD_PER_CREDIT,/.test(call)) p.push('clipMarketDecision não passa CLIP_FLOOR_USD_PER_CREDIT como piso')
   // A régua EXECUTADA (sem o preço decidido do 2.5) cai no mesmo número: o 14/20/28/42 é o piso, não um chute.
@@ -195,7 +194,7 @@ function studioProblems({ price, cp }) {
   if (cp.TIER_PRICES.pro.usd !== STUDIO.usd) p.push(`TIER_PRICES.pro ${cp.TIER_PRICES.pro.usd} ≠ ${STUDIO.usd}`)
   if (cp.TIER_CREDITS.pro !== STUDIO.credits) p.push(`TIER_CREDITS.pro ${cp.TIER_CREDITS.pro} ≠ ${STUDIO.credits}`)
   if (cp.ANNUAL_PRICES.pro.usd !== STUDIO.annualUsd) p.push(`ANNUAL_PRICES.pro ${cp.ANNUAL_PRICES.pro.usd} ≠ ${STUDIO.annualUsd}`)
-  if (price.STUDIO_PLAN_USD_CENTS !== cp.TIER_PRICES.pro.usd || price.STUDIO_PLAN_CREDITS !== cp.TIER_CREDITS.pro) p.push('espelho do Studio em clipPricing divergiu de checkoutPricing')
+  if (price.STUDIO_PLAN_USD_CENTS !== 5490 || price.STUDIO_PLAN_CREDITS !== 300) p.push('régua congelada do Studio em clipPricing mudou (5490 / 300)')
   return p
 }
 
@@ -248,7 +247,7 @@ const mut = (rel, from, to) => {
 }
 const MUTANTS = [
   ['piso volta para o Studio', mut(PRICE, 'floorUsdPerCredit: CLIP_FLOOR_USD_PER_CREDIT,', 'floorUsdPerCredit: STUDIO_USD_PER_CREDIT,'), ['table', 'floor', 'reads']],
-  ['piso digitado (0.1327) em vez de lido', mut(PRICE, 'export const CLIP_FLOOR_USD_PER_CREDIT: number = CHEAPEST_PLAN_USD_PER_CREDIT', 'export const CLIP_FLOOR_USD_PER_CREDIT: number = 0.1327'), ['reads']],
+  ['piso acompanha o crédito novo em vez do congelado', mut(PRICE, 'export const CLIP_FLOOR_USD_PER_CREDIT: number = 1990 / 100 / 150', 'export const CLIP_FLOOR_USD_PER_CREDIT: number = 5900 / 100 / 280'), ['reads']],
   ['Seedance 2.5 volta ao chamariz 8/11/16/24', mut(PRICE, '{ 5: 14, 7: 20, 10: 28, 15: 42 }', '{ 5: 8, 7: 11, 10: 16, 15: 24 }'), ['table', 'floor']],
   ['Seedance 2.5 de 7 s um crédito abaixo (19)', mut(PRICE, '{ 5: 14, 7: 20, 10: 28, 15: 42 }', '{ 5: 14, 7: 19, 10: 28, 15: 42 }'), ['table']],
   ['filme do Kling 2.5 volta a 60', mut(COST, '      return 75', '      return 60'), ['kling']],

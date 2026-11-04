@@ -90,12 +90,12 @@ const filmsCell = (grantCr, custoCr, style) => {
   if (films < 1) return '—'
   return style === 'mo' ? `✅ ${films}/mo` : `✅ ${films} ${films === 1 ? 'film' : 'films'}`
 }
-ok(filmsCell(starter, h3, 'film') === '✅ 1 film', `Starter × H3 pinta "✅ 1 film" (${starter} ≥ ${h3})`)
+ok(filmsCell(starter, h3, 'film') === '—', `Starter × H3 pinta "—" (${starter} < ${h3})`) // KINEO-PRECO-MERCADO-0411
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o filme do Kling 2.5 foi a 75 cr; o Starter (60) não
 // fecha mais um filme de 60 s nele (fecha o de 35 s, 44 cr). A conta segue a mesma fórmula; quem pinta é o número de hoje.
 ok(filmsCell(starter, kling, 'film') === (starter >= kling ? '✅ 1 film' : '—') && kling === 75, `Starter × Kling 2.5 pinta "${filmsCell(starter, kling, 'film')}" (${starter} vs ${kling})`)
-ok(filmsCell(pro, kling3, 'mo') === '✅ 2/mo', `Studio × Kling 3 pinta "✅ 2/mo" (${pro} ÷ ${kling3})`)
-ok(filmsCell(basic, kling3, 'mo') === '✅ 1/mo', `Creator × Kling 3 pinta "✅ 1/mo" (${basic} ÷ ${kling3})`)
+ok(filmsCell(pro, kling3, 'mo') === '✅ 1/mo', `Studio × Kling 3 pinta "✅ 1/mo" (${pro} ÷ ${kling3})`)
+ok(filmsCell(basic, kling3, 'mo') === '—', `Creator × Kling 3 pinta "—" (${basic} < ${kling3})`)
 ok(filmsCell(starter, kling3, 'mo') === '—', `Starter × Kling 3 continua "—" (${starter} < ${kling3})`)
 
 // Personagens: derivação no servidor (page.tsx) e uso por prop no client.
@@ -126,7 +126,7 @@ ok(/is charged immediately at the price shown in checkout\. The monthly\n\s*pric
 ok(conta(terms, '7-day') >= 1, '/terms mantém a garantia de 7 dias')
 
 // Nada do que é proibido nesta entrega foi tocado: preço, créditos por plano, trial, oferta.
-ok(/starter: 60,\n\s*basic: 150,\n\s*pro: 300,/.test(tierBlock), 'TIER_CREDITS intacto (60/150/300) — a entrega não mexeu em grant')
+ok(/starter: 40,\n\s*basic: 85,\n\s*pro: 280,/.test(tierBlock), 'TIER_CREDITS = 40/85/280 (fundador 04/11)')
 
 console.log(`\n${passou} verificações passaram; ${falhas.length} falharam.`)
 if (falhas.length) { for (const f of falhas) console.log(`  FALHOU: ${f}`); process.exit(1) }

@@ -37,7 +37,8 @@ for (const f of ['components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/i
 // KINEO-AFILIADOS-40-2026-10-06 — reancorado de novo com motivo: a 40%, o Creator de US$29,90 rende US$11,96 por mês.
 // KINEO-PRECO-TESTE-2026-10-08 — reancorado com motivo: no teste de 7 dias o Creator é US$19,90 → 40% = US$7,96 por mês.
 // KINEO-AFILIADO-30-NOVOS-2026-10-13 — reancorado com motivo: a 30% (afiliado novo), o Creator de US$19,90 rende US$5,97 por mês.
-checa('kit de afiliados: 30% e US$5,97 por Creator (US$19,90)', /Earn \*\*30% on every eligible purchase/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$19\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$5\.97 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+// KINEO-PRECO-MERCADO-0411 — Creator a US$ 19 / 85 cr.
+checa('kit de afiliados: 30% e US$5,70 por Creator (US$19)', /Earn \*\*30% on every eligible purchase/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$19\.00 \| 85 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$5\.70 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
 
 console.log('== packs de agência no V7 ==')
 const cp = rd('lib/checkoutPricing.ts')

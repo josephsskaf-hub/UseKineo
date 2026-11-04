@@ -483,7 +483,9 @@ function routeWorld({ variante, db, stripe, transforms = {} }) {
     crypto: null,
   }
   stubs.crypto = stubs['node:crypto']
-  const sources = variante === 'base' ? { [ROUTE]: BASE_SOURCE } : {}
+  // KINEO-PRECO-MERCADO-0411 — o passe saiu da loja; o cenário "pacote sem login" prova o carimbo, então roda com a flag ligada em memória.
+  const PASSE = 'lib/offers/avulsoUnico3110.ts'
+  const sources = { ...(variante === 'base' ? { [ROUTE]: BASE_SOURCE } : {}), [PASSE]: read(PASSE).replace('FILM_PASS_LIVE = false as boolean', 'FILM_PASS_LIVE = true as boolean') }
   const all = { ...transforms, [GUEST_PURE]: [guestLive, ...(transforms[GUEST_PURE] ?? [])] }
   return makeWorld({ stubs, sources, transforms: all, globals: { process: { env: { ...ENV } }, console: quiet, fetch: async () => { throw new Error('sem rede') }, Date: fixedDate(FIXED_MS) } })
 }

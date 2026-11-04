@@ -1,5 +1,6 @@
 'use client'
 
+import { TOPUPS_LIVE } from '@/lib/checkoutPricing' // KINEO-PRECO-MERCADO-0411
 import KineoBolt from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 
@@ -31,7 +32,22 @@ import {
   CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderPriceUsdMinor,
 } from '@/lib/credits/creditSlider'
 
-export default function CreditsTopupModal({
+/** KINEO-PRECO-MERCADO-0411 — sem top-up à venda, quem fica sem crédito vê o caminho que existe: subir de plano ou esperar a renovação. */
+export default function CreditsTopupModal(props: { onClose: () => void; surface: string }) {
+  if (TOPUPS_LIVE) return <CreditsTopupModalVenda {...props} />
+  return (
+    <div role="dialog" aria-modal="true" data-credits-out-plans onClick={props.onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, padding: 24, borderRadius: 16, background: 'var(--surface, #fff)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900 }}>You&apos;re out of credits</h2>
+        <p style={{ margin: '0 0 18px', fontSize: 14, lineHeight: 1.5, color: 'var(--muted)' }}>Credits come with your plan and renew every month. Pick a bigger plan to keep creating now.</p>
+        <a href="/pricing?from=out_of_credits" style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: 'var(--accent)', color: '#fff', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}>See plans</a>
+        <button type="button" onClick={props.onClose} style={{ display: 'block', width: '100%', marginTop: 8, padding: 10, border: 0, background: 'transparent', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer' }}>Not now</button>
+      </div>
+    </div>
+  )
+}
+
+function CreditsTopupModalVenda({
   onClose,
   surface,
 }: {

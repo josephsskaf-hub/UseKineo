@@ -174,6 +174,7 @@ function prepare(kind, { routeSource = read(routes[kind]), readSource = wrapperS
     '@/lib/emailSuppression': { emailFooterHtml: () => '', emailFooterText: () => '', unsubscribeHeaders: () => ({}) },
     '@/lib/lifecycle/suppression': suppression,
     '@/lib/checkoutPricing': { PACK_CREDITS: { starter: 35 }, packPriceLabel: () => 'fixture' },
+    '@/lib/offers/avulsoUnico3110': { FILM_PASS_LIVE: false }, // KINEO-PRECO-MERCADO-0411
     '@/lib/internalAccounts': { isInternalEmail: () => false },
     '@/lib/reverseTrial': { TRIAL_CREDIT_CAP: 40 },
     '../_shared/mrr': { PAID_PLANS: new Set(['pro']) },

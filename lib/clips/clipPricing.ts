@@ -68,18 +68,19 @@ import type { ClipEngineKey } from './clipCatalog'
 // KINEO-CLIP-PRECO-MERCADO-2026-10-05 — único import em tempo de execução, e RELATIVO a outro módulo puro (sem ciclo:
 // clipPriceVsMarket só tem `import type`). A régua "−10% do concorrente" mora lá; aqui só o interruptor.
 import { decideMarketClipPrice, type MarketDecision } from './clipPriceVsMarket'
-// KINEO-PRECOS-CLIPES-KLING25-1610 — o preço do crédito do plano mais barato (mensal), derivado de TIER_PRICES/TIER_CREDITS.
-import { CHEAPEST_PLAN_USD_PER_CREDIT } from '@/lib/checkoutPricing'
 
 /** US$ 54,90 (5490 centavos) — espelho de TIER_PRICES.pro.usd em lib/checkoutPricing.ts (guardião confere). */
+// KINEO-PRECO-MERCADO-0411 — congelado: o Studio virou US$ 59 / 280 cr, mas o preço dos clipes em créditos NÃO mudou. Esta é a régua da tabela de clipes, não o preço de hoje.
 export const STUDIO_PLAN_USD_CENTS = 5490
 /** 300 créditos — espelho de TIER_CREDITS.pro em lib/checkoutPricing.ts (guardião confere). */
 export const STUDIO_PLAN_CREDITS = 300
 export const STUDIO_USD_PER_CREDIT = STUDIO_PLAN_USD_CENTS / 100 / STUDIO_PLAN_CREDITS
 
-/** KINEO-PRECOS-CLIPES-KLING25-1610 — base do piso de 40% da régua de mercado: o menor US$/crédito entre os planos
- *  mensais (lib/checkoutPricing.ts CHEAPEST_PLAN_USD_PER_CREDIT, lido — não espelhado). Hoje = Creator mensal, US$ 0,1327. */
-export const CLIP_FLOOR_USD_PER_CREDIT: number = CHEAPEST_PLAN_USD_PER_CREDIT
+/** KINEO-PRECOS-CLIPES-KLING25-1610 — base do piso de 40% da régua de mercado: o Creator mensal de US$ 19,90 / 150 cr = US$ 0,1327.
+ *  KINEO-PRECO-MERCADO-0411 — CONGELADO aqui. Era lido de checkoutPricing (CHEAPEST_PLAN_USD_PER_CREDIT) e acompanharia o
+ *  crédito novo (US$ 59 / 280 = 0,2107), derrubando o piso sem decisão: Seedance 2.5 de 5 s de 14 para 9 cr, a 40% de margem só
+ *  no papel. O preço dos clipes em créditos NÃO mudou (fundador 04/11); mexer nele é decisão de preço. */
+export const CLIP_FLOOR_USD_PER_CREDIT: number = 1990 / 100 / 150
 
 export const CLIP_MARGIN_FLOOR = 0.5
 export const CLIP_MIN_CREDITS = 5

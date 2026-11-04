@@ -1,0 +1,79 @@
+{
+ "base": "7da88cf10b727a76f118d151f5937b1d30bd4554",
+ "scope": {
+  "lib/checkoutPricing.ts": {
+   "beforeSha256": "acaf822a0d71f1e7d957da3d48cbeb8c4327f3fd38009021341354d81427652b",
+   "afterSha256": "9c5883d861d0c42aa5a6c26dcf16348b56f31f37909b4718bc9a9435526fa539",
+   "hunks": [
+    {
+     "before": "// Guardião: scripts/test-preco-teste-2026-10-08.mjs.\nexport const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 1990 },\n  pro: { usd: 5490 },\n}",
+     "after": "// Guardião: scripts/test-preco-teste-2026-10-08.mjs.\n// KINEO-PRECO-MERCADO-0411 — fundador 04/11, olhando a InVideo: \"9, 19, 59\", mensal sem desconto e 50% só no anual; avulso e top-up saem.\n// Créditos 40 / 85 / 280 = 1 / 2 / 8 filmes Seedance 1.5 de 60 s (35 cr, US$ 3,30 na fal). Crédito por US$: 0,225 → 0,224 → 0,211, a escada desce.\n// QUEM JÁ ASSINA MANTÉM preço e grant: a renovação só dá o grant novo para quem paga EXATAMENTE o preço novo (renewalCreditsFor).\nexport const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 900 },\n  basic: { usd: 1900 },\n  pro: { usd: 5900 },\n}"
+    },
+    {
+     "before": "  // Quem pagou o anual de $108/$250 (08/10) fica ACIMA do vigente e recebe o grant cheio na recarga.\n  starter: { usd: 8300 },\n  basic: { usd: 16700 },\n  pro: { usd: 46000 },\n}",
+     "after": "  // Quem pagou o anual de $108/$250 (08/10) fica ACIMA do vigente e recebe o grant cheio na recarga.\n  // KINEO-PRECO-MERCADO-0411 — 12 × mensal × 0,50: US$ 54 / 114 / 354 (US$ 4,50 / 9,50 / 29,50 por mês). Quem pagou 83 / 167 / 460 fica no legado da recarga anual.\n  starter: { usd: 5400 },\n  basic: { usd: 11400 },\n  pro: { usd: 35400 },\n}"
+    },
+    {
+     "before": " *  decisão do fundador). A copy (\"save 30%\") lê daqui — nunca digita o número. */\nexport const ANNUAL_DISCOUNT_PERCENT = 30\n",
+     "after": " *  decisão do fundador). A copy (\"save 30%\") lê daqui — nunca digita o número. */\n// KINEO-PRECO-MERCADO-0411 — o anual em reais de hoje, espelho de BRL_PLAN_PRICES_MINOR (o guardião confere): a recarga anual separa quem pagou o novo do legado.\nexport const ANNUAL_BRL_CURRENT_MINOR: Record<CheckoutTier, number> = { starter: 26990, basic: 56990, pro: 176990 }\nexport const ANNUAL_DISCOUNT_PERCENT = 50\n"
+    },
+    {
+     "before": "  // KINEO-PRECO-TESTE-2026-10-08 — espelha o mensal do teste ($9,90 / $19,90).\n  starter: { usd: 990 },\n  basic: { usd: 1990 },\n}",
+     "after": "  // KINEO-PRECO-TESTE-2026-10-08 — espelha o mensal do teste ($9,90 / $19,90).\n  // KINEO-PRECO-MERCADO-0411 — espelha o mensal novo: sem 1º mês com desconto.\n  starter: { usd: 900 },\n  basic: { usd: 1900 },\n}"
+    },
+    {
+     "before": "  // 150 = \"1 film a day\" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).\n  starter: 60,\n  basic: 150,\n  pro: 300,\n  autopilot: 400,",
+     "after": "  // 150 = \"1 film a day\" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).\n  // KINEO-PRECO-MERCADO-0411 — 40 / 85 / 280.\n  starter: 40,\n  basic: 85,\n  pro: 280,\n  autopilot: 400,"
+    },
+    {
+     "before": "  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : tier === 'business' ? BUSINESS_PRICES.usd : TIER_PRICES[tier].usd\n  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {",
+     "after": "  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : tier === 'business' ? BUSINESS_PRICES.usd : TIER_PRICES[tier].usd\n  if (tier === 'starter' || tier === 'basic' || tier === 'pro') {\n    // KINEO-PRECO-MERCADO-0411 — o preço CAIU: 9,90 / 19,90 ficaram ACIMA do vigente e a régua \"abaixo do vigente = legado\" daria 40 / 85 a quem comprou 60 / 150.\n    // Agora só o preço novo (mensal ou anual) recebe o grant novo; qualquer outro valor segue a escada do que comprou.\n    if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor !== current && amountPaidMinor !== ANNUAL_PRICES[tier].usd) {\n      return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')\n    }\n    return TIER_CREDITS[tier]\n  }\n  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {"
+    },
+    {
+     "before": "  // erro que só aparece em produção, no extrato, um mês depois.\n  starter: 60,\n  basic: 150,\n}",
+     "after": "  // erro que só aparece em produção, no extrato, um mês depois.\n  starter: 40,\n  basic: 85,\n}"
+    },
+    {
+     "before": "// Worst-case margins: +$2.59 (48%) and +$4.96 (41%).\nexport const TOPUP_CREDITS = {",
+     "after": "// Worst-case margins: +$2.59 (48%) and +$4.96 (41%).\n/** KINEO-PRECO-MERCADO-0411 — fundador 04/11: \"não quero mais top ups\". Crédito só vem de plano. true reabre a venda; o preço precisaria subir (invariante 1). */\nexport const TOPUPS_LIVE = false as boolean\nexport const TOPUP_CREDITS = {"
+    },
+    {
+     "before": "  // (1) Every top-up costs MORE per credit than the cheapest recurring plan.\n  for (const id of Object.keys(TOPUP_CREDITS) as TopupId[]) {\n    const usd = TOPUP_USD_PRICES[id] / 100",
+     "after": "  // (1) Every top-up costs MORE per credit than the cheapest recurring plan.\n  for (const id of (TOPUPS_LIVE ? Object.keys(TOPUP_CREDITS) : []) as TopupId[]) { // KINEO-PRECO-MERCADO-0411: top-up fora de venda não tem o que provar\n    const usd = TOPUP_USD_PRICES[id] / 100"
+    }
+   ]
+  },
+  "lib/settlementCurrency.ts": {
+   "beforeSha256": "00176b278c751ae97efb1ebc6cc966a26b5576d03ec8b6e9481b72a2e28f4de2",
+   "afterSha256": "84d90b1b3e32ad8ffa2507c23fcfbf48594b0b94bc5d0639202d5f65a91c0d85",
+   "hunks": [
+    {
+     "before": "  // 9990×8,4 = 83916 → R$ 839,90. O Studio fica onde estava. Era 6490/54590 e 14990/125990.\n  starter: { monthly: 4990, annual: 41990 },\n  basic: { monthly: 9990, annual: 83990 },\n  pro: { monthly: 27490, annual: 230990 },\n}",
+     "after": "  // 9990×8,4 = 83916 → R$ 839,90. O Studio fica onde estava. Era 6490/54590 e 14990/125990.\n  // KINEO-PRECO-MERCADO-0411 — usdToBrlMinor(900/1900/5900) = R$ 44,90 / 94,90 / 294,90; anual = 12 × mensal × 0,50 até ,90: R$ 269,90 / 569,90 / 1.769,90.\n  starter: { monthly: 4490, annual: 26990 },\n  basic: { monthly: 9490, annual: 56990 },\n  pro: { monthly: 29490, annual: 176990 },\n}"
+    },
+    {
+     "before": " *  checkoutPricing stubado). */\nexport const BRL_ANNUAL_PAID_FRACTION = 0.7\n",
+     "after": " *  checkoutPricing stubado). */\nexport const BRL_ANNUAL_PAID_FRACTION = 0.5 // KINEO-PRECO-MERCADO-0411\n"
+    },
+    {
+     "before": "  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : tier === 'business' ? usdToBrlMinor(BUSINESS_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly\n  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < currentBrl) {\n    // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:",
+     "after": "  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : tier === 'business' ? usdToBrlMinor(BUSINESS_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly\n  // KINEO-PRECO-MERCADO-0411 — a mesma regra do dólar: só o preço novo em reais (mensal ou anual) recebe o grant novo.\n  const tierDaTabela = tier === 'starter' || tier === 'basic' || tier === 'pro'\n  const precoNovoEmReais = tierDaTabela && (amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].monthly || amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].annual)\n  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && !precoNovoEmReais && (tierDaTabela || amountPaidMinor < currentBrl)) {\n    // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:"
+    }
+   ]
+  },
+  "lib/billing/annualRefill.ts": {
+   "beforeSha256": "cd5d17bb5eb4c9715f107f1da9d65ecf198d8ed9da851569cdd636d0f75a75d1",
+   "afterSha256": "10a7fc4d48edabe886b563d90fe6adb01597b09cc8d7bd0533061872bf884e69",
+   "hunks": [
+    {
+     "before": "  legacyCreditsForUsd,\n  type CheckoutTier,",
+     "after": "  legacyCreditsForUsd,\n  LEGACY_TIER_CREDITS_V5,\n  ANNUAL_BRL_CURRENT_MINOR,\n  type CheckoutTier,"
+    },
+    {
+     "before": "  const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'\n  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) { // KINEO-KIT-BF-VENDA-2010 — o preço da oferta \"2 meses grátis\" (quando vencer) recebe o grant CHEIO; hoje o piso = o anual vigente (o mesmo de antes); era: annualAmountMinor < ANNUAL_PRICES[tier].usd\n    return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')\n  }",
+     "after": "  const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'\n  // KINEO-PRECO-MERCADO-0411 — o anual CAIU (83 / 167 / 460 → 54 / 114 / 354): só o preço novo recebe o grant novo; quem pagou outro valor segue com o que comprou.\n  if (typeof annualAmountMinor === 'number' && annualAmountMinor > 0) {\n    if (cur === 'usd' && annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')\n    if (cur === 'brl' && annualAmountMinor !== ANNUAL_BRL_CURRENT_MINOR[tier]) return LEGACY_TIER_CREDITS_V5[tier]\n  }"
+    }
+   ]
+  }
+ }
+}

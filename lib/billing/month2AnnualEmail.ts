@@ -10,7 +10,7 @@
 //   · o botão leva ao login com destino /account?tab=billing&offer=annual (logada, o login devolve na hora para lá; o
 //     cartão abre a prévia sozinho) — nenhum valor é cobrado sem o "Confirm" da pessoa;
 //   · é oferta, não aviso de cobrança: o rodapé de descadastro e o opt-out valem (o cron os aplica).
-import { MONTH2_ANNUAL_EMAIL_CAMPAIGN, MONTH2_ANNUAL_PERCENT_OFF, month2Money } from './month2AnnualOffer'
+import { MONTH2_ANNUAL_EMAIL_CAMPAIGN, month2SavedPercent, month2Money } from './month2AnnualOffer'
 import {
   RENEWAL_FAILED_EMAIL_FROM,
   RENEWAL_FAILED_EMAIL_REPLY_TO,
@@ -115,7 +115,7 @@ function escapeHtml(value: string): string {
 export function month2EmailMessage(input: Month2EmailFacts): Month2EmailMessage {
   const language: RenewalEmailLanguage = MONTH2_EMAIL_COPY[input.language] ? input.language : 'en'
   const c = MONTH2_EMAIL_COPY[language]
-  const percent = MONTH2_ANNUAL_PERCENT_OFF
+  const percent = month2SavedPercent(input.monthlyMinor, input.annualMinor)
   const plan = renewalPlanLabel(input.tier)
   const annual = month2Money(input.annualMinor)
   const monthly = month2Money(input.monthlyMinor)

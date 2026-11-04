@@ -50,15 +50,16 @@ const m = roda(libSrc)
 // KINEO-ANUAL-40OFF-2026-10-05 — o anual em reais virou 12 × mensal × 0,60 até ,90 (era 10×): 467,90 / 1.079,90 / 1.979,90.
 // KINEO-ANUAL-30-2026-10-08 — reancorado com a decisão do fundador (30% off): 12 × mensal × 0,70 até ,90 = 545,90 / 1.259,90 / 2.309,90.
 // KINEO-PRECO-TESTE-2026-10-08 — Starter e Creator voltaram à etiqueta da V5 (R$ 49,90 / 99,90); anual 12 × mensal × 0,70 até ,90.
-checa('Starter R$ 49,90 · anual R$ 419,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4990 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 41990)
-checa('Creator R$ 99,90 · anual R$ 839,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 83990)
-checa('Studio R$ 274,90 · anual R$ 2.309,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 230990)
-checa('fração paga no anual em reais = 0,70 (espelho de ANNUAL_DISCOUNT_PERCENT = 30)', m.BRL_ANNUAL_PAID_FRACTION === 0.7)
+// KINEO-PRECO-MERCADO-0411 — re-ancorado: R$ 44,90 / 94,90 / 294,90; anual 12 × mensal × 0,50 até ,90.
+checa('Starter R$ 44,90 · anual R$ 269,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 26990)
+checa('Creator R$ 94,90 · anual R$ 569,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9490 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 56990)
+checa('Studio R$ 294,90 · anual R$ 1.769,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 29490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 176990)
+checa('fração paga no anual em reais = 0,50 (espelho de ANNUAL_DISCOUNT_PERCENT = 50)', m.BRL_ANNUAL_PAID_FRACTION === 0.5)
 checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
-checa('a tabela é exatamente o que a fórmula da casa dá sobre $9,90/$19,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 990, basic: 1990, pro: 5490 }).length === 0)
-checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 1990, pro: 5490 }).length === 1)
+checa('a tabela é exatamente o que a fórmula da casa dá sobre $9/$19/$59 (invariante vazio)', m.checkSettlementInvariants({ starter: 900, basic: 1900, pro: 5900 }).length === 0)
+checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 1900, pro: 5900 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,70 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 8300) === 41990 && m.usdToBrlMinor(8300) !== 41990)
+checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,50 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9999) === 26990 && m.usdToBrlMinor(9999) !== 26990) // KINEO-PRECO-MERCADO-0411 — a 50% a fórmula sobre 5400 coincide com a tabela (R$ 269,90); o valor em USD passado é ignorado
 checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão

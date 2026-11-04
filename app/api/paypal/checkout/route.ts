@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import {
   paypalAdminClient,
   paypalFetch,
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
 
   const intent = resolvePaypalCheckoutIntent(req.nextUrl.searchParams)
   if (!intent) return redirectError('Invalid plan.')
+  if (intent.kind === 'pack' && !FILM_PASS_LIVE) return NextResponse.redirect(`${appUrl()}/pricing?from=no_one_time`) // KINEO-PRECO-MERCADO-0411 — link velho cai nos planos, nunca numa cobrança
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

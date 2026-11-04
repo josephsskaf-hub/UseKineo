@@ -2,6 +2,7 @@
 // Mantém o guardião histórico de 20/10 intacto; snapshots antigos têm deriva na origin/main.
 // Nenhuma rede, banco ou Stripe real. Os mutantes rodam só em memória.
 import { readFileSync } from 'node:fs'
+import { semPrecoMercado0411 } from './test-support/desfaz-preco-mercado-0411.mjs' // KINEO-PRECO-MERCADO-0411
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -152,7 +153,7 @@ async function provas(over = {}) {
   r.I6_evento_server_only = sEv.split('\n').filter((l) => l.includes(MARCA)).length === 1 && /^  'kit_bf_purchased', \/\/ KINEO-KIT-BF-VENDA-2010/m.test(sEv) && S.KIT_BF_EVENTS.purchased === 'kit_bf_purchased'
 
   // N — nada muda para quem não compra
-  const RN = L(F.refill)
+  const RN = carregar({ ...over, [F.refill]: semPrecoMercado0411(src(F.refill), F.refill) })(F.refill) // KINEO-PRECO-MERCADO-0411 — só a regra de 04/11 sai (recibo exato); o Kit BF segue sem mexer na recarga
   const RV = carregar({ [F.refill]: base(F.refill) })(F.refill) // a recarga da BASE (git show), nunca o disco mutado
   const grade = [1, 990, 5000, 8299, 8300, 9900, 16600, 16700, 19900, 45999, 46000, 54900, 99999]
   r.N1_recarga_anual_igual_a_base = tiers.every((t) => grade.every((g) => ['usd', 'brl'].every((cur) => RN.annualRefillCredits(t, g, cur) === RV.annualRefillCredits(t, g, cur))))
@@ -184,7 +185,7 @@ const MUT = [
   ['M10 evento antes da concessão', F.webhook, '          const isKitBf = packMeta === KIT_BF_PACK_ID // KINEO-KIT-BF-VENDA-2010\n', "          const isKitBf = packMeta === KIT_BF_PACK_ID // KINEO-KIT-BF-VENDA-2010\n            if (isKitBf) await writeServerEvent({ name: KIT_BF_EVENTS.purchased, userId, path: '/x' }) // KINEO-KIT-BF-VENDA-2010\n", 'I3_evento_depois_da_concessao'],
   ['M11 concessão antes do guard', F.webhook, '          entitlementPending = true\n          // Legacy packs are additive', "          entitlementPending = true\n          if (packMeta === KIT_BF_PACK_ID) await supabase.from('profiles').update({ video_credits: 340 }).eq('id', userId) // KINEO-KIT-BF-VENDA-2010\n          // Legacy packs are additive", 'I1_concessao_entre_guard_e_update'],
   ['M12 rota: Business vira compra', F.rota, "kitBfIncludedInPlan(plan) ? 'included' : 'buy'", "'buy'", 'B2_rota_incluido'],
-  ['M13 recarga anual muda', F.refill, 'annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)', 'annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd / 10)', 'N1_recarga_anual_igual_a_base'],
+  ['M13 recarga anual muda', F.refill, 'annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)', 'annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd / 10)', 'N1_recarga_anual_igual_a_base'],
   ['M14 anual lê o pedido', F.checkout, '    ? annualEarlyOfferPriceMinor(getAnnualPrice(tier, currency, region), monthlyPriceMinor(tier, currency, region))', "    ? annualEarlyOfferPriceMinor(getAnnualPrice(tier, currency, region), Number(req.nextUrl.searchParams.get('m')))", 'P8_anual_checkout_servidor'],
   ['M15 preço na URL do cartão', F.card, 'href={`${KIT_BF_CHECKOUT_HREF}&surface=${surface}`}>{t.cta}</a>', 'href={`${KIT_BF_CHECKOUT_HREF}&surface=${surface}&price=4900`}>{t.cta}</a>', 'N2_cartao_sem_preco_na_url'],
   ['M16 reconhece pelo valor', F.webhook, '            else if (packMeta === KIT_BF_PACK_ID) creditsToAdd = KIT_BF_CREDITS // KINEO-KIT-BF-VENDA-2010', '            else if (packMeta === KIT_BF_PACK_ID || amount === 4900) creditsToAdd = KIT_BF_CREDITS // KINEO-KIT-BF-VENDA-2010', 'I4_so_metadata_nunca_valor'],

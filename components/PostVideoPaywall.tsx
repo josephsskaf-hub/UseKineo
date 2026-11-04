@@ -12,6 +12,7 @@
 // BR cards were getting rejected ("Seu cartão não aceita essa moeda");
 // the server route applies BRL via x-vercel-ip-country (#112).
 
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 // KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel
@@ -189,7 +190,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           porque não existe constante exportada para ele; o que passou a ser
           derivado é a QUANTIDADE: o pack concede PACK_CREDITS.starter (30)
           créditos, e a copy vendia "10 videos" desde antes do rebase. */}
-      <button
+      {FILM_PASS_LIVE && (<button
         type="button"
         disabled={purchasing !== null}
         onClick={() => {
@@ -225,7 +226,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
             </span>
           </>
         )}
-      </button>
+      </button>)}
 
       {/* ══════════════════════════════════════════════════════════════════
           KINEO-PILOT-99-2026-07-26 — AUTOPILOT PILOT.

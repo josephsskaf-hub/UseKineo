@@ -36,7 +36,7 @@
 
 ### Pricing field
 
-`Free to start (10 credits, no card) · plans from $9.90/month USD`
+`Free to start (10 credits, no card) · plans from $9/month USD`
 
 ### Primary URL
 

@@ -70,7 +70,7 @@ export { PAYPAL_TIER_USD, PAYPAL_PLAN_CREDITS, PAYPAL_PACK }
 // v5 também (a versão é uma só para o catálogo inteiro).
 // KINEO-LEVA-2410 — keep the approved product identity; plan identities fingerprint canonical price and credits.
 // Existing v/unversioned plan keys remain recognized by tierFromPlanId.
-const PLAN_VERSION = 'v5'
+const PLAN_VERSION = 'v6' // KINEO-PRECO-MERCADO-0411 — preços novos, planos novos no PayPal
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(

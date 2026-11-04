@@ -66,7 +66,8 @@ async function problems(replacements = {}) {
   const src = (rel) => replacements[rel] ?? SRC[rel]
   let pol, grant, oti, otiLib, fulfill, mrr, handoff, prices
   try {
-    const load = offlineModules({ replacements: { ...SEM_AVULSO, ...replacements, [GRANT]: GRANT_OFFLINE(src(GRANT)) }, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
+    // KINEO-PRECO-MERCADO-0411 — o avulso saiu da loja (fundador 04/11); as decisões 3 e 4 seguem provadas com a flag ligada em memória, e a venda fechada logo abaixo.
+    const load = offlineModules({ replacements: { ...SEM_AVULSO, ...replacements, [OTI_LIB]: src(OTI_LIB).replace('export const ONE_TIME_ITEMS_LIVE = false', 'export const ONE_TIME_ITEMS_LIVE = true'), [GRANT]: GRANT_OFFLINE(src(GRANT)) }, mocks: { 'lib/analytics.ts': { trackEvent: async () => true }, 'lib/checkoutTelemetry.ts': { useCheckoutLaunch: () => ({ launch: () => false, pending: null, error: null }) } } })
     pol = load(POLICY); grant = load(GRANT); oti = load(OTI); otiLib = load(OTI_LIB); fulfill = load(FULFILL); mrr = load(MRR); handoff = load(HANDOFF); prices = load(PRICES)
   } catch (e) {
     return ['módulos carregam: ' + String(e && e.stack || e)]
@@ -135,7 +136,7 @@ async function problems(replacements = {}) {
   if (!src(BANNER).includes('const film = useRegionFilmGift(REGION_FREE_FILM_STRIP_LIVE && freeFilm)') || !src(BANNER).includes('if (REGION_FREE_FILM_STRIP_LIVE && film) return <RegionFreeFilmStrip />')) p.push('faixa ignora o premiado (lê só REGION_FREE_FILM_LIVE)')
 
   // ── 3. Pacote avulso ───────────────────────────────────────────────────────────────────────────────────────────
-  if (otiLib.ONE_TIME_ITEMS_LIVE !== true) p.push('3 SIM: ONE_TIME_ITEMS_LIVE desligado')
+  if (!/export const ONE_TIME_ITEMS_LIVE = false/.test(src(OTI_LIB))) p.push('ONE_TIME_ITEMS_LIVE religado sem decisão do fundador (04/11: "tira o avulso")')
   if (prices.ONE_TIME_ITEM_USD_MINOR.one_time_film35 !== 500 || prices.ONE_TIME_ITEM_USD_MINOR.one_time_ad !== 900) p.push('preço do avulso mudou (decisão do fundador: não inventar preço)')
   if (otiLib.getOneTimeItem('one_time_film35').credits !== otiLib.oneTimeItemV1Credits('one_time_film35') || otiLib.getOneTimeItem('one_time_ad').credits !== otiLib.oneTimeItemV1Credits('one_time_ad') || !otiLib.oneTimeItemContractReady()) p.push('contrato V1 do avulso (créditos × preço) quebrado — o checkout recusaria')
   const html = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing' }))
@@ -168,7 +169,7 @@ async function problems(replacements = {}) {
   if (handoff.pricingBillingHandoff({}).initialBilling !== 'annual') p.push('4 SIM: /pricing não abre no anual')
   if (handoff.pricingBillingHandoff({ billing: 'monthly' }).initialBilling !== 'monthly') p.push('?billing=monthly explícito deixou de abrir no mensal')
   if (!src(PRICING).includes("export default function PricingClient({ initialBilling = 'annual' }")) p.push('PricingClient não nasce no anual')
-  const esperado = { starter: 990 * 12 - 8300, basic: 1990 * 12 - 16700, pro: 5490 * 12 - 46000 }
+  const esperado = { starter: 900 * 12 - 5400, basic: 1900 * 12 - 11400, pro: 5900 * 12 - 35400 } // KINEO-PRECO-MERCADO-0411
   for (const tier of ['starter', 'basic', 'pro']) {
     if (prices.TIER_PRICES[tier].usd * 12 - prices.ANNUAL_PRICES[tier].usd !== esperado[tier]) p.push(`preço do plano ${tier} mudou (mensal/anual)`)
     const s = mrr.annualSavingMinor(tier, 'usd', 'standard')
@@ -203,7 +204,7 @@ const MUTANTES = [
   ['rota ignora o premiado', muta(ROUTE, '(REGION_FREE_FILM_LIVE || regionGrantOnRecord3110 === true) && !isPaidUser', 'REGION_FREE_FILM_LIVE && !isPaidUser')],
   ['rota sem a régua nova', muta(ROUTE, 'const elegivelRegiao = regionFreeFilmEligibilityFor(profile, regionGrantOnRecord3110)', 'const elegivelRegiao = regionFreeFilmEligibility(profile)')],
   ['faixa ignora o premiado', muta(BANNER, 'const film = useRegionFilmGift(REGION_FREE_FILM_STRIP_LIVE && freeFilm)', 'const film = useRegionFilmGift(REGION_FREE_FILM_LIVE && freeFilm)')],
-  ['avulso desligado', muta(OTI_LIB, 'export const ONE_TIME_ITEMS_LIVE = true', 'export const ONE_TIME_ITEMS_LIVE = false')],
+  ['avulso religado sem decisão', muta(OTI_LIB, 'export const ONE_TIME_ITEMS_LIVE = false', 'export const ONE_TIME_ITEMS_LIVE = true')],
   ['pricing sem o pacote', muta(PRICING, '<OneTimeItemOffer surface="pricing" checkout={checkout} />', '')],
   ['pacote sem "Not ready for a plan?"', muta(OTI, "'Not ready for a plan? Buy just one.'", "'I only want 1 now'")],
   ['exit-intent sem o pacote', muta(EXIT, 'onClick={handleOneTimePack}', 'onClick={handleIntroStarter}')],

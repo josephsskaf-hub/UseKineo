@@ -18,7 +18,7 @@ check(ready.length > 0, 'current paste section exists')
 check(credits === cap, 'entry agrees with grant')
 check(/CARD_ENTRY_ONLY\s*=\s*false/.test(entry), 'no-card entry active')
 check(ready.includes(credits + ' credits'), 'canonical grant')
-check(ready.includes('$' + starter.toFixed(2) + '/month'), 'canonical price')
+check(ready.includes('$' + (Number.isInteger(starter) ? starter : starter.toFixed(2)) + '/month'), 'canonical price') // KINEO-PRECO-MERCADO-0411 — dólar inteiro sem centavos
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o filme grátis passou a ser o Seedance 1.5 de 15 s (7 cr ≤ 10); a ficha não cita mais o Kineo 1.
 for (const text of ['USD','Free to start','no card','10 credits, no card = one free 15-second Seedance film',
  'watermarked','engine and duration','available engine','account access','sufficient credits']) {

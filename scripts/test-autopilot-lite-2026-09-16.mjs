@@ -35,11 +35,12 @@ const CP = load('lib/checkoutPricing.ts')
 checa('AUTOPILOT_LITE_PRICES.usd = 5900 (US$ 59, decisão do fundador)', CP.AUTOPILOT_LITE_PRICES.usd === 5900)
 checa('TIER_CREDITS.autopilot_lite = 160 e o legado também', CP.TIER_CREDITS.autopilot_lite === 160 && CP.LEGACY_TIER_CREDITS_V6.autopilot_lite === 160)
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: Studio foi de 3990 para 5490 (escada 13/30/55 do fundador, 28/09).
-checa('monthlyPriceMinor conhece o Lite; Autopilot intacto e Studio na V8-A (5490)', CP.monthlyPriceMinor('autopilot_lite', 'usd') === 5900 && CP.monthlyPriceMinor('autopilot', 'usd') === 29900 && CP.monthlyPriceMinor('pro', 'usd') === 5490)
+// KINEO-PRECO-MERCADO-0411 — Studio a 5900, igual ao Lite (que está fora da vitrine).
+checa('monthlyPriceMinor conhece o Lite; Autopilot intacto e Studio a 5900', CP.monthlyPriceMinor('autopilot_lite', 'usd') === 5900 && CP.monthlyPriceMinor('autopilot', 'usd') === 29900 && CP.monthlyPriceMinor('pro', 'usd') === 5900)
 checa('renewalCreditsFor: fatura cheia → 160; fatura menor que o preço → legado (160)', CP.renewalCreditsFor('autopilot_lite', 5900) === 160 && CP.renewalCreditsFor('autopilot_lite', 5000) === 160)
 const problemas = CP.checkPricingInvariants()
 checa(`checkPricingInvariants() sem problemas com o Lite dentro (${problemas.length})`, Array.isArray(problemas) && problemas.length === 0)
-checa('o Lite senta entre Studio e Autopilot no preço (39,90 < 59 < 299)', CP.TIER_PRICES.pro.usd < CP.AUTOPILOT_LITE_PRICES.usd && CP.AUTOPILOT_LITE_PRICES.usd < CP.AUTOPILOT_PRICES.usd)
+checa('o Lite não fica abaixo do Studio nem acima do Autopilot (59 ≤ 59 < 299)', CP.TIER_PRICES.pro.usd <= CP.AUTOPILOT_LITE_PRICES.usd && CP.AUTOPILOT_LITE_PRICES.usd < CP.AUTOPILOT_PRICES.usd)
 
 console.log('== (b) robô: cadência semanal ==')
 const C = load('lib/autopilot/config.ts')

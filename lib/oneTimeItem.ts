@@ -5,7 +5,8 @@ import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { settlementAmountMinor } from '@/lib/settlementCurrency'
 
 /** Disable NEW sales/UI here; paid sessions must always remain fulfillable. */
-export const ONE_TIME_ITEMS_LIVE = true
+// KINEO-PRECO-MERCADO-0411 — fundador 04/11: "tira o avulso, não vendemos".
+export const ONE_TIME_ITEMS_LIVE = false
 export const ONE_TIME_ITEM_VERSION = 'one_time_item_v1' as const
 export type OneTimeItemId = keyof typeof ONE_TIME_ITEM_USD_MINOR
 export type OneTimeItemSurface = 'pricing' | 'generate_paywall' | 'ads_choice'

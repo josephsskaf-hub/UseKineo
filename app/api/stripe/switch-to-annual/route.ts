@@ -28,7 +28,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ANNUAL_REFUND_DAYS } from '@/lib/checkoutPricing'
 import { MONTH2_ANNUAL_OFFER, month2ProfileBlocker } from '@/lib/billing/annualSwitch'
 import {
-  MONTH2_ANNUAL_PERCENT_OFF,
+  month2SavedPercent,
   month2AnnualOfferOpen,
   month2Surface,
   type Month2AnnualPreview,
@@ -81,7 +81,7 @@ export async function GET() {
     live: true,
     eligible: true,
     reasons: [],
-    offer: { id: MONTH2_ANNUAL_OFFER, percentOff: MONTH2_ANNUAL_PERCENT_OFF },
+    offer: { id: MONTH2_ANNUAL_OFFER, percentOff: month2SavedPercent(ev.monthlyMinor, ev.annualMinor) },
     tier: ev.tier ?? undefined,
     monthlyMinor: ev.monthlyMinor,
     annualMinor: ev.annualMinor,

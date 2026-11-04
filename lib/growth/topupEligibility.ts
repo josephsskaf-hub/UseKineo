@@ -22,7 +22,11 @@ export function normalizeTopupPlan(plan: unknown): string {
   return typeof plan === 'string' ? plan.trim().toLowerCase() : ''
 }
 
+/** KINEO-PRECO-MERCADO-0411 — espelho de TOPUPS_LIVE (lib/checkoutPricing.ts); módulo sem import, o guardião confere os dois. */
+export const TOPUP_SALES_OPEN = false as boolean
+
 export function canPurchaseCreditTopup(plan: unknown): boolean {
+  if (!TOPUP_SALES_OPEN) return false // KINEO-PRECO-MERCADO-0411
   return TOPUP_ELIGIBLE_PLANS.has(normalizeTopupPlan(plan))
 }
 

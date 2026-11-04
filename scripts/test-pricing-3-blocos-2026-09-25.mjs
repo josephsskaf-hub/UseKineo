@@ -123,7 +123,14 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   const divergentes = planos.filter((p) => (st({ status: 200, body: { plan: p } }) === 'eligible') !== topup.canPurchaseCreditTopup(p))
   ok(divergentes.length === 0, '3f estado eligible === canPurchaseCreditTopup do checkout, plano a plano' + (divergentes.length ? ': ' + divergentes.join(',') : ''))
   ok(st({ status: 200, body: { plan: 'free' } }) === 'ineligible' && st({ status: 200, body: { plan: 'autopilot' } }) === 'ineligible', '3g free e autopilot fecham')
-  ok(st({ status: 200, body: { plan: 'starter' } }) === 'eligible' && st({ status: 200, body: { plan: 'basic_trial' } }) === 'eligible' && st({ status: 200, body: { plan: 'pro' } }) === 'eligible', '3h starter/basic_trial/pro abrem')
+  // KINEO-PRECO-MERCADO-0411 — top-up fora da loja: ninguém abre, e o bloco nem é montado no /pricing. A tabela de planos segue valendo se a venda reabrir (flag ligada em memória).
+  ok(['starter', 'basic_trial', 'pro'].every((plano) => st({ status: 200, body: { plan: plano } }) === 'ineligible'), '3h com a venda fechada, starter/basic_trial/pro não compram')
+  {
+    const m = { exports: {} }
+    new Function('module', 'exports', ts.transpileModule(rd('lib/growth/topupEligibility.ts').replace('TOPUP_SALES_OPEN = false as boolean', 'TOPUP_SALES_OPEN = true as boolean'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(m, m.exports)
+    ok(['starter', 'basic_trial', 'pro'].every((plano) => m.exports.canPurchaseCreditTopup(plano) === true) && !m.exports.canPurchaseCreditTopup('free') && !m.exports.canPurchaseCreditTopup('autopilot'), '3h2 com a flag ligada, a tabela de planos volta igual')
+  }
+  ok(rd('app/pricing/PricingClient.tsx').includes('{TOPUPS_LIVE ? <PricingCreditsBlock /> : null}'), '3h3 /pricing só monta o bloco de crédito avulso com a venda aberta')
   const estados = ['loading', 'eligible', 'ineligible', 'anon', 'read_error']
   ok(estados.filter((s) => blocks.pricingCreditsCanBuy(s)).join() === 'eligible', '3i só eligible compra')
   const m = blocks.pricingCreditsBlockModel('anon')
@@ -253,8 +260,8 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   ok(dfyOffer.DFY_TIERS.express.priceMinor === 3500 && dfyOffer.DFY_TIERS.pro.priceMinor === 7500 && dfyOffer.DFY_TIERS.express.hours === 48 && dfyOffer.DFY_TIERS.pro.hours === 72, '7b Express 3500/48 h · Pro 7500/72 h')
   ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 37790, '7c barra 50..2000, 50 = 990, 2000 = 37790 (piso 0,189 desde a V8-A de 28/09; era 29790)')
   // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09).
-  // KINEO-PRECO-TESTE-2026-10-08 — Starter/Creator a $9,90/$19,90 no teste de 7 dias; Studio intocado.
-  ok(checkout.TIER_PRICES.starter.usd === 990 && checkout.TIER_PRICES.basic.usd === 1990 && checkout.TIER_PRICES.pro.usd === 5490, '7d planos 990/1990/5490 (teste de 08/10)')
+  // KINEO-PRECO-MERCADO-0411
+  ok(checkout.TIER_PRICES.starter.usd === 900 && checkout.TIER_PRICES.basic.usd === 1900 && checkout.TIER_PRICES.pro.usd === 5900, '7d planos 900/1900/5900 (fundador 04/11)')
 }
 
 console.log(`\n  verificações: ${passou + falhas.length} · falhas: ${falhas.length}`)

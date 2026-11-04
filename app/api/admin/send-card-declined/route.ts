@@ -1,4 +1,5 @@
 import { readAll } from '@/lib/supabase/readAll'
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 // ═══ KINEO-CARTA-DA-RECUSA-2026-09-07 — ciclo de pagamentos #2 ═════════════
 //
 // O NÚMERO QUE MANDOU ESCREVER ISTO (07/09, base inteira; o instrumento nasceu
@@ -209,17 +210,17 @@ function corpoTexto(motivo: string, tier: string | null, userId: string): string
 
 You tried to pay for Kineo and it did not go through. I want to be clear about whose fault that was: it was not yours, and it was not a problem on our side. The charge reached your bank and ${motivo}.
 
-Two things actually work when that happens.
+${FILM_PASS_LIVE ? 'Two things actually work when that happens.' : 'One thing actually works when that happens.'}
 
-1) Try again with a different card. Same plan, same price, nothing to pick again:
+${FILM_PASS_LIVE ? '1) ' : ''}Try again with a different card. Same plan, same price, nothing to pick again:
 ${tentarDeNovoUrl(tier)}
-
+${FILM_PASS_LIVE ? `
 2) Skip the subscription entirely. ${PACK_CREDITS.starter} credits for ${packPriceLabel()}, paid once:
 ${packUrl()}
+` : ''}
+${FILM_PASS_LIVE ? `Option 2 is worth a look even if option 1 sounds easier. It is a single charge, not a recurring one — and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal.
 
-Option 2 is worth a look even if option 1 sounds easier. It is a single charge, not a recurring one — and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal.
-
-If neither works, hit reply and tell me which country you are in. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.
+` : ''}${FILM_PASS_LIVE ? 'If neither works' : 'If that does not work'}, hit reply and tell me which country you are in. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.
 
 Plans, if you want to look again:
 ${planosUrl()}
@@ -233,17 +234,17 @@ function corpoHtml(motivo: string, tier: string | null, userId: string): string 
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>Hey &mdash; Joseph here, founder of <strong>Kineo</strong> 🎬</p>
 <p>You tried to pay for Kineo and it did not go through. I want to be clear about whose fault that was: <strong>it was not yours</strong>, and it was not a problem on our side. The charge reached your bank and ${motivo}.</p>
-<p>Two things actually work when that happens.</p>
-<p style="margin:22px 0 10px"><strong>1) Try again with a different card.</strong> Same plan, same price, nothing to pick again.</p>
+<p>${FILM_PASS_LIVE ? 'Two things actually work when that happens.' : 'One thing actually works when that happens.'}</p>
+<p style="margin:22px 0 10px"><strong>${FILM_PASS_LIVE ? '1) ' : ''}Try again with a different card.</strong> Same plan, same price, nothing to pick again.</p>
 <p style="margin:0 0 22px">
   <a href="${tentarDeNovoUrl(tier)}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Try a different card &rarr;</a>
 </p>
-<p style="margin:22px 0 10px"><strong>2) Skip the subscription entirely.</strong> ${PACK_CREDITS.starter} credits for ${packPriceLabel()}, paid once.</p>
+${FILM_PASS_LIVE ? `<p style="margin:22px 0 10px"><strong>2) Skip the subscription entirely.</strong> ${PACK_CREDITS.starter} credits for ${packPriceLabel()}, paid once.</p>
 <p style="margin:0 0 22px">
   <a href="${packUrl()}" style="background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Get ${PACK_CREDITS.starter} credits for ${packPriceLabel()} &rarr;</a>
 </p>
 <p>Option 2 is worth a look even if option 1 sounds easier. It is a <strong>single charge, not a recurring one</strong> &mdash; and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal.</p>
-<p>If neither works, <strong>hit reply and tell me which country you are in</strong>. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.</p>
+` : ''}<p>${FILM_PASS_LIVE ? 'If neither works' : 'If that does not work'}, <strong>hit reply and tell me which country you are in</strong>. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.</p>
 <p style="font-size:14px;color:#555">Or look at <a href="${planosUrl()}" style="color:#2997ff">the plans</a> again first.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`

@@ -94,7 +94,7 @@ function problems(replacements = {}) {
 console.log('1. interruptor')
 ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC), 'PRECOS_DOIS_PRODUTOS_PUBLIC = true (fundador ligou em 05/10)')
 ok((CLIENT_SRC.match(/<TwoProductsPricing \/>/g) || []).length === 1
-  && CLIENT_SRC.includes('        <PricingCreditsBlock />\n        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}\n'), 'o /pricing só monta as tabelas atrás do interruptor, logo abaixo de "One-time credits"')
+  && CLIENT_SRC.includes('<PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}\n        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}\n'), 'o /pricing só monta as tabelas atrás do interruptor, logo abaixo de "One-time credits"')
 ok((CLIENT_SRC.match(/TwoProductsPricing|PRECOS_DOIS_PRODUTOS_PUBLIC/g) || []).length === 5, 'PricingClient: só o import, o interruptor e a linha do bloco (mudança mínima)')
 ok(!/checkoutPricing|app\/api\/stripe/.test(MODEL_SRC.replace(/^\/\/.*$/gm, '')), 'o modelo não toca lib/checkoutPricing.ts nem app/api/stripe (planos chegam de fora)')
 ok(/TIER_PRICES\.basic\.usd, credits: TIER_CREDITS\.basic/.test(COMP_SRC) && /creator: PLANS\[1\]/.test(COMP_SRC), 'componente deriva o Creator de TIER_PRICES.basic / TIER_CREDITS.basic')

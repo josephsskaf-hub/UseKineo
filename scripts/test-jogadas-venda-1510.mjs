@@ -43,7 +43,9 @@ function check(nome, condicao) {
 // ── módulos reais ──────────────────────────────────────────────────────────────────────────────────────────────────
 function carregar(transform = null) {
   // reancorado KINEO-ABANDONO-RAPIDO-1610 — a carta da época primeiro; a transformação do mutante (se houver) por cima.
-  const load = createOfflineLoader({ source: (rel, s) => (transform ? transform(rel, desfazAbandonoRapido1610(rel, s)) : desfazAbandonoRapido1610(rel, s)) })
+  // KINEO-PRECO-MERCADO-0411 — o passe regional saiu da loja (fundador 04/11); a carta que o oferecia segue provada com a flag ligada em memória.
+  const ligaPasse = (rel, s) => (rel === 'lib/freeFilmPolicy.ts' ? s.replace('export const REGION_PASS_OFFER_LIVE = false', 'export const REGION_PASS_OFFER_LIVE = true') : s)
+  const load = createOfflineLoader({ source: (rel, s) => { const fonte = ligaPasse(rel, desfazAbandonoRapido1610(rel, s)); return transform ? transform(rel, fonte) : fonte } })
   return { carta: load(LIB_REL), regionPass: load('lib/regionPass.ts'), momentum: load('lib/momentumTopic.ts'), load }
 }
 const real = carregar()

@@ -1,6 +1,7 @@
 'use client'
 // KINEO-DOWNLOAD-OFERTA-2810 — o cartão "Remove watermark + HD" que nasce NO clique do download, e o botão
 // "Make it HD" (o ✨ Enhance de sempre) para filme limpo de quem pagou. Decisões e copy: lib/growth/downloadUpsell.ts.
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -95,7 +96,7 @@ export function DownloadUpsellCard({
         <span style={{ marginTop: 3, fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.4 }}>{copy.sub}</span>
       </button>
       {/* KINEO-AVULSO-GARANTIA-2810 — a segunda opção, do MESMO tamanho e peso: só este filme, pagamento único. */}
-      <button
+      {FILM_PASS_LIVE && (      <button
         type="button"
         onClick={onBuyOneTime}
         disabled={pending}
@@ -109,7 +110,7 @@ export function DownloadUpsellCard({
       >
         <span>{pending && pendingOption === 'one_time' ? copy.pending : copy.oneTimeButton}</span>
         <span style={{ marginTop: 3, fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.4, color: 'var(--muted)' }}>{copy.oneTimeSub}</span>
-      </button>
+      </button>)}
       <p data-first-film-guarantee="1" style={{ margin: '7px 0 0', fontSize: '0.68rem', fontWeight: 600, lineHeight: 1.4, color: 'var(--muted)' }}>
         {firstFilmGuarantee(lang)}
       </p>

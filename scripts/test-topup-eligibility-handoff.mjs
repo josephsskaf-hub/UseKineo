@@ -27,8 +27,8 @@ const registrar = (ok, message) => {
 const check = (value, message) => registrar(!!value, message)
 const equal = (actual, expected, message) => registrar(actual === expected, `${message} (esperado ${JSON.stringify(expected)}, veio ${JSON.stringify(actual)})`)
 
-function executeTs(file) {
-  const compiled = ts.transpileModule(read(file), {
+function executeTs(file, transform = (text) => text) {
+  const compiled = ts.transpileModule(transform(read(file)), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText
   const moduleBox = { exports: {} }
@@ -47,10 +47,16 @@ equal(policy.TOPUP_ELIGIBILITY_VISIBLE_RATIO, 0.6, 'view requires sixty percent 
 equal(policy.TOPUP_ELIGIBILITY_MEASUREMENT_HOST, 'www.usekineo.com', 'measurement host is canonical production')
 
 // KINEO-MRR-2-TOPUP-2026-09-16 (fundador): Starter passa a poder recarregar.
+// KINEO-PRECO-MERCADO-0411 — fundador 04/11: "não quero mais top ups". Fechado para todo plano; a tabela interna segue provada com a flag ligada em memória.
+const policyAberta = executeTs('lib/growth/topupEligibility.ts', (text) => text.replace('TOPUP_SALES_OPEN = false as boolean', 'TOPUP_SALES_OPEN = true as boolean'))
 for (const plan of ['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', ' BASIC ', 'Pro_Trial']) {
-  equal(policy.canPurchaseCreditTopup(plan), true, `top-up remains available for ${plan}`)
-  equal(policy.topupEligibilityState(plan), 'eligible', `eligible state is explicit for ${plan}`)
+  equal(policy.canPurchaseCreditTopup(plan), false, `top-up is closed for ${plan}`)
+  equal(policy.topupEligibilityState(plan), 'ineligible', `ineligible state is explicit for ${plan}`)
+  equal(policyAberta.canPurchaseCreditTopup(plan), true, `with sales open, top-up is available for ${plan}`)
+  equal(policyAberta.topupEligibilityState(plan), 'eligible', `with sales open, eligible state is explicit for ${plan}`)
 }
+for (const plan of ['free', 'autopilot', 'autopilot_trial', 'unknown', '', null, undefined, 42]) equal(policyAberta.canPurchaseCreditTopup(plan), false, `with sales open, top-up stays unavailable for ${plan}`)
+equal(policy.TOPUP_SALES_OPEN, /export const TOPUPS_LIVE = (true|false)/.exec(read('lib/checkoutPricing.ts'))?.[1] === 'true', 'TOPUP_SALES_OPEN mirrors TOPUPS_LIVE')
 for (const plan of ['free', 'autopilot', 'autopilot_trial', 'unknown', '', null, undefined, 42]) {
   equal(policy.canPurchaseCreditTopup(plan), false, `top-up is unavailable for ${plan}`)
   equal(policy.topupEligibilityState(plan), 'ineligible', `ineligible state is explicit for ${plan}`)

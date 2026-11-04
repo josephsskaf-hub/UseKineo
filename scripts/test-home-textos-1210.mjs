@@ -63,7 +63,8 @@ const pct = Number(promo.match(/export const WELCOME20_PERCENT_OFF = (\d+)/)[1])
 check(promo.includes('return Math.round(fullAmountMinor * (100 - WELCOME20_PERCENT_OFF) / 100)'), 'fórmula do 1º mês inalterada')
 const usd = (tier) => Number(pricing.match(new RegExp(`\\n  ${tier}: \\{ usd: (\\d+) \\}`))[1])
 const first = (m) => Math.round(m * (100 - pct) / 100)
-check(first(usd('basic')) === 1592 && first(usd('pro')) === 4392, `1º mês = $15.92 / $43.92 (basic ${usd('basic')}, pro ${usd('pro')}, ${pct}%)`)
+check(first(usd('basic')) === 1520 && first(usd('pro')) === 4720, `1º mês (se o interruptor religar) = $15.20 / $47.20 (basic ${usd('basic')}, pro ${usd('pro')}, ${pct}%)`) // KINEO-PRECO-MERCADO-0411
+check(/export const WELCOME20_SITE_OFFER_LIVE = false\n/.test(promo), 'mensal sem desconto: interruptor desligado (fundador 04/11)')
 
 // (4)
 check(!landing.includes('o 1º mês não tem desconto'), 'comentário falso sobre o 1º mês morreu')

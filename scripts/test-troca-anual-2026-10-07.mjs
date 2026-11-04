@@ -791,9 +791,11 @@ async function sMetadata() {
   })
   const built = params.subscription_data?.metadata ?? {}
   if (params.line_items?.[0]?.price_data?.recurring?.interval !== 'year') p.push('o builder do checkout não montou a anual (âncora da comparação quebrada)')
-  for (const k of ['tier', 'plan_credits', 'price_region']) {
+  for (const k of ['tier', 'price_region']) {
     if (meta[k] !== built[k]) p.push(`metadata.${k} = ${meta[k]} ≠ ${built[k]} do checkout anual`)
   }
+  // KINEO-PRECO-MERCADO-0411 — o checkout anual de hoje dá 40 cr; esta assinatura é legada ($12,90 = 60 cr) e MANTÉM os 60: é a recarga anual dela, não o grant novo.
+  if (built.plan_credits !== '40' || meta.plan_credits !== String(L.annualSwitchCredits('starter', 1290, 9300, 'usd').perMonthAfter)) p.push(`plan_credits: legado ${meta.plan_credits}, checkout ${built.plan_credits}`)
   if (meta.supabase_user_id !== USER) p.push(`metadata.supabase_user_id = ${meta.supabase_user_id}`)
   // (c) nada do checkout mensal original se perde (afiliado, intro, origem…) — nem no estado da Stripe, nem no que a rota
   //     ENVIA (a metadata gravada é a completa, igual à que o ensaio mostra; não depende do merge de chaves da Stripe)

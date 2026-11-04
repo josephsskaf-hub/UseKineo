@@ -86,7 +86,7 @@ console.log('\nB. a peça, a copy e a montagem de uma linha')
 ok('a decisão é MESMO usada para renderizar, não só declarada',
   /const mostrarPack = regiaoSemMandato\(pais\)/.test(comp) &&
     /const mostrar = mostrarPack \|\| mostrarMetodoLocal/.test(comp) &&
-    /if \(!mostrar\) return null/.test(comp))
+    /if \(!mostrar \|\| !FILM_PASS_LIVE\) return null/.test(comp)) // KINEO-PRECO-MERCADO-0411 — a faixa só existe com o passe à venda
 // Os dois gates são independentes de propósito: o Brasil ganha o botão de Pix
 // SEM ganhar a compra única (lá o cartão fecha — 5 no checkout, 1 pagamento),
 // e a Índia recebe os dois. Um gate só faria uma das duas coisas errado.

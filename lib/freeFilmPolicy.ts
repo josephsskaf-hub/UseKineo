@@ -182,7 +182,8 @@ export function paisDoRequest(h: { get(name: string): string | null } | null | u
 // false = o comportamento de hoje, byte a byte (scripts/test-saida-regiao-2026-10-07.mjs prova executando).
 // KINEO-REGIAO-SEM-GRATIS-2810 — fundador 28/10: sem filme grátis para país fora da lista; segue o passe pago (REGION_PASS_OFFER_LIVE) e os planos.
 export const REGION_FREE_FILM_LIVE = false
-export const REGION_PASS_OFFER_LIVE = true
+// KINEO-PRECO-MERCADO-0411 — o passe regional é o mesmo ?pack=starter, que saiu da loja (fundador 04/11: "tira o avulso").
+export const REGION_PASS_OFFER_LIVE = false
 
 /** O filme grátis de região é o MESMO filme da cota semanal (lib/freeWeeklyFilm.ts FREE_WEEKLY_FILM_QUALITY/SECONDS). */
 export const REGION_FREE_FILM_QUALITY = 'cinematic_ai' as const
@@ -394,7 +395,8 @@ export const REGION_PLANS_NOTICE_FILM_LIVE: { en: RegionPaidOnlyNoticeCopy; pt: 
 // 'blocked' (anti-abuso: digital do aparelho estourada ou e-mail descartável, lib/reverseTrial.ts) NÃO recebe oferta de
 // compra: só um aviso neutro, sem acusação e sem botão (decisão do pedido de 13/10).
 // false = hoje, byte a byte (scripts/test-pais-sem-gratis-1310.mjs).
-export const REGION_FIRST_FILM_OFFER_LIVE = true
+// KINEO-PRECO-MERCADO-0411 — a faixa vendia o passe avulso, que saiu; fica a faixa de sempre.
+export const REGION_FIRST_FILM_OFFER_LIVE = false
 export const BLOCKED_NEUTRAL_NOTICE_LIVE = true
 
 /** O carimbo anti-abuso (lib/reverseTrial.ts grava 'blocked' com a guarda .is('trial_status', null)). */

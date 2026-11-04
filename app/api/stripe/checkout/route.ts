@@ -1,3 +1,5 @@
+import { TOPUPS_LIVE } from '@/lib/checkoutPricing' // KINEO-PRECO-MERCADO-0411
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers' // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago dos eventos de checkout
 import { createClient } from '@/lib/supabase/server'
@@ -4683,6 +4685,10 @@ export async function GET(req: NextRequest) {
           { status: 410 },
         )
       }
+      // KINEO-PRECO-MERCADO-0411 — avulso e top-up saíram da loja: link velho (e-mail, botão antigo) cai nos planos, nunca numa cobrança.
+      if ((!FILM_PASS_LIVE && packParam === 'starter') || (!TOPUPS_LIVE && (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100' || packParam === 'topup300' || packParam === CREDIT_SLIDER_PACK_ID))) {
+        return NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303)
+      }
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
       if (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100' || packParam === 'topup300') {
         return await buildTopupAndRedirect(req, packParam, true)
@@ -4720,8 +4726,11 @@ export async function GET(req: NextRequest) {
       }
       // KINEO-OFFER290-2026-07-07 — first-purchase $2.90 offer (flag-gated).
       if (packParam === 'starter290') {
+        if (!FILM_PASS_LIVE) return NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303) // KINEO-PRECO-MERCADO-0411
         return await buildStarter290AndRedirect(req, true)
       }
+      // KINEO-PRECO-MERCADO-0411 — este é o fallback: QUALQUER ?pack= desconhecido vendia o passe aqui, mesmo fora da loja.
+      if (!FILM_PASS_LIVE) return NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303)
       return await buildPackAndRedirect(req, true)
     }
     const tierParam = req.nextUrl.searchParams.get('tier') ?? 'basic'

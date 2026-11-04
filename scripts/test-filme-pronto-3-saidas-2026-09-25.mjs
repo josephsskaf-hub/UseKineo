@@ -54,6 +54,8 @@ function mutante(nome, src, de, para, provas) {
 }
 
 const TOPUP = roda(rd('lib/growth/topupEligibility.ts'))
+// KINEO-PRECO-MERCADO-0411 — venda fechada: todo plano vai aos planos. As saídas "abre a barra" seguem provadas com a flag ligada em memória.
+const TOPUP_ABERTO = roda(rd('lib/growth/topupEligibility.ts').replace('TOPUP_SALES_OPEN = false as boolean', 'TOPUP_SALES_OPEN = true as boolean'))
 const LIB_SRC = rd('lib/growth/filmReadyExits.ts')
 const COMP_SRC = rd('components/FilmReadyExits.tsx')
 const GEN_SRC = rd('app/(dashboard)/generate/GenerateClient.tsx')
@@ -72,7 +74,9 @@ function provasLib(src) {
     PLANOS.every((p) => L.filmReadyCreditsExit(p) === (TOPUP.canPurchaseCreditTopup(p) ? 'topup' : 'plans'))])
   R.push(['(a) free, Autopilot e plano desconhecido (leitura falhou) vão aos planos, nunca ao 403',
     ['free', 'autopilot', null, undefined, ''].every((p) => L.filmReadyCreditsExit(p) === 'plans')])
-  R.push(['(a) Starter e Studio pagantes abrem a barra', ['starter', 'pro'].every((p) => L.filmReadyCreditsExit(p) === 'topup')])
+  const LA = roda(src, { '@/lib/growth/topupEligibility': TOPUP_ABERTO })
+  R.push(['(a) com a venda aberta, Starter e Studio pagantes abrem a barra', ['starter', 'pro'].every((p) => LA.filmReadyCreditsExit(p) === 'topup')])
+  R.push(['(a) com a venda fechada, Starter e Studio vão aos planos', ['starter', 'pro'].every((p) => L.filmReadyCreditsExit(p) === 'plans')])
   // Delegação real: se a fonte única mudar, a saída muda junto (não há lista própria escondida na lib).
   const L2 = roda(src, { '@/lib/growth/topupEligibility': { canPurchaseCreditTopup: () => true } })
   R.push(['(a) a decisão delega à fonte única canPurchaseCreditTopup', L2.filmReadyCreditsExit('free') === 'topup'])
@@ -101,7 +105,8 @@ function provasLib(src) {
   R.push(['impressão carrega versão, vídeo, saída de crédito e estado do plano',
     shown.version === 'film_ready_exits_v1' && shown.video_id === 'vid-1' && shown.credits_exit === 'plans' && shown.plan_state === 'not_subscriber'])
   const dest = (exit, plan) => L.filmReadyExitClickedMetadata({ exit, videoId: 'v', plan }).destination
-  R.push(['clique carrega o destino real', dest('next_film', 'pro') === 'studio' && dest('more_credits', 'pro') === 'topup_modal'
+  R.push(['clique carrega o destino real', dest('next_film', 'pro') === 'studio' && dest('more_credits', 'pro') === 'pricing'
+    && LA.filmReadyExitClickedMetadata({ exit: 'more_credits', videoId: 'v', plan: 'pro' }).destination === 'topup_modal'
     && dest('more_credits', 'free') === 'pricing' && dest('subscribe', 'pro') === 'pricing'])
   return R
 }

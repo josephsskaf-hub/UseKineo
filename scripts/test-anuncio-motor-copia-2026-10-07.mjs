@@ -81,9 +81,9 @@ function parseCsv(rel) {
 const pricing = load('lib/checkoutPricing.ts')
 const catalog = load('lib/growth/enginePageCatalog.ts')
 const hub = load('lib/seo/citableHubPages.ts')
-const money = (cents) => `$${(cents / 100).toFixed(2)}`
+const money = (cents) => (cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`) // KINEO-PRECO-MERCADO-0411 — dólar inteiro sem centavos no anúncio
 const PRICE = { starter: money(pricing.TIER_PRICES.starter.usd), creator: money(pricing.TIER_PRICES.basic.usd), studio: money(pricing.TIER_PRICES.pro.usd) }
-const CREDITS = { starter: pricing.TIER_CREDITS.starter, creator: pricing.TIER_CREDITS.basic }
+const CREDITS = { starter: pricing.TIER_CREDITS.starter, creator: pricing.TIER_CREDITS.basic, studio: pricing.TIER_CREDITS.pro }
 const geo = (slug) => catalog.ENGINE_GEO[slug]
 const S25 = geo('seedance-2-5')
 const K3 = geo('kling-3')
@@ -155,15 +155,17 @@ for (const s of sitelinks) check(s['Link Text'].length <= 25 && s['Description L
 // ═══ Cada número do anúncio = o número do código ═══════════════════════════════════════════════════════════════════════
 const copy = [...ads.flatMap((ad) => [...headlines(ad), ...descriptions(ad)]), ...sitelinks.flatMap((s) => [s['Description Line 1'], s['Description Line 2']])]
 const allowedPrices = new Set(Object.values(PRICE))
-for (const m of copy.join(' ').match(/\$\d+\.\d{2}/g) ?? []) check(allowedPrices.has(m), `preço ${m} existe em TIER_PRICES`)
+for (const m of copy.join(' ').match(/\$\d+(?:\.\d{2})?/g) ?? []) check(allowedPrices.has(m), `preço ${m} existe em TIER_PRICES`)
 const has = (text) => copy.some((x) => x.includes(text))
 const say = (text, truth, label) => check(!has(text) || truth, `${label}: "${text}"`)
 check(has(`Plans From ${PRICE.starter} a Month`) && has(`Creator Plan: ${PRICE.creator} a Month`), 'os títulos de preço usam TIER_PRICES de hoje')
-say('for 60 credits', CREDITS.starter === 60, 'Starter = 60 créditos')
-// KINEO-PRECO-TESTE-2026-10-08 — Creator a $19,90 no teste de 7 dias (o gerador do anúncio foi atualizado no mesmo commit).
-say('Creator: $19.90/month for 150 credits', PRICE.creator === '$19.90' && CREDITS.creator === 150, 'Creator = US$ 19,90 por 150 créditos')
-say('Creator ($19.90, 150 credits)', PRICE.creator === '$19.90' && CREDITS.creator === 150, 'Creator = US$ 19,90 por 150 créditos')
-say('Studio ($54.90', PRICE.studio === '$54.90', 'Studio = US$ 54,90')
+say('for 40 credits', CREDITS.starter === 40, 'Starter = 40 créditos')
+// KINEO-PRECO-MERCADO-0411 — Creator a $19 / 85 cr (o gerador do anúncio foi atualizado no mesmo commit). O filme de 60 s do Kling 3 (150) e do Veo (100) não cabe no Creator: a frase "covers" passou ao Studio.
+say('Creator: $19/month for 85 credits', PRICE.creator === '$19' && CREDITS.creator === 85, 'Creator = US$ 19 por 85 créditos')
+check(!has('Creator ($'), 'nenhuma frase diz que o Creator cobre um filme do Kling 3 / Veo')
+say('Studio ($59, 280 credits) covers a 60-second Kling 3 film', CREDITS.studio >= K3?.rows.film60.credits, 'filme do Kling 3 cabe no Studio')
+say('Studio ($59, 280 credits) covers a 60-second Veo 3.1 film', CREDITS.studio >= VEO?.rows.film60.credits, 'filme do Veo cabe no Studio')
+say('Studio ($59', PRICE.studio === '$59', 'Studio = US$ 59')
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: clipe do 2.5 8 → 14, Kling 3 de 5 s 6 → 8, Veo de 6 s 6 → 8
 // (piso de 40% no crédito do Creator mensal). A cópia (docs/anuncio-google-motores-2026-10-07/6-anuncios.csv) foi atualizada junto.
 say('Seedance 2.5 Clips: 14 Credits', S25?.rows.clip.credits === 14, 'clipe do Seedance 2.5 = 14 créditos')
@@ -194,17 +196,17 @@ check(!/\d+\s*[-–]\s*\d+\s*Minutes/i.test(copy.join(' ')), 'nenhuma faixa de m
 say('Veo 3.1 Fast', /Veo 3\.1 Fast/.test(VEO?.answerLead ?? ''), 'a página diz que roda o Veo 3.1 Fast')
 say('Seedance 2.5 runs on paid plans', S25?.paidPlansOnly === true, 'o 2.5 é só de plano pago')
 // As frases-chave TÊM de estar na cópia (senão as checagens acima passariam por ausência).
-for (const text of ['Seedance 2.5 Clips: 14 Credits', '35-Second Film: 88 Credits', 'Kling 3 Clips: 8 Credits', 'Veo 3.1 Clips: 8 Credits', /* reancorado KINEO-PRECOS-CLIPES-KLING25-1610 */ '60-Second Film: 100 Credits', '60-Second Film: 150 Credits', '35 to 150 credits', '6 AI Video Models', 'Film Ready in Minutes', 'Veo 3.1 Fast', 'for 60 credits']) {
+for (const text of ['Seedance 2.5 Clips: 14 Credits', '35-Second Film: 88 Credits', 'Kling 3 Clips: 8 Credits', 'Veo 3.1 Clips: 8 Credits', /* reancorado KINEO-PRECOS-CLIPES-KLING25-1610 */ '60-Second Film: 100 Credits', '60-Second Film: 150 Credits', '35 to 150 credits', '6 AI Video Models', 'Film Ready in Minutes', 'Veo 3.1 Fast', 'for 40 credits']) {
   check(has(text), `a cópia afirma "${text}" (checado contra o código acima)`)
 }
 // Todo "<n> credits" e todo "<n>-second" da cópia é um número que o código produz hoje — inclusive os que ninguém previu.
-const allowedCredits = new Set([S25?.rows.clip.credits, S25?.rows.film35.credits, S25?.rows.film60.credits, K3?.rows.clip.credits, K3?.rows.film60.credits, VEO?.rows.clip.credits, VEO?.rows.film60.credits, CREDITS.starter, CREDITS.creator, Math.min(...film60), Math.max(...film60)].map(String))
+const allowedCredits = new Set([S25?.rows.clip.credits, S25?.rows.film35.credits, S25?.rows.film60.credits, K3?.rows.clip.credits, K3?.rows.film60.credits, VEO?.rows.clip.credits, VEO?.rows.film60.credits, CREDITS.starter, CREDITS.creator, CREDITS.studio, Math.min(...film60), Math.max(...film60)].map(String))
 for (const m of copy.join(' ').matchAll(/\b(\d+) [Cc]redits\b/g)) check(allowedCredits.has(m[1]), `"${m[0]}" é um número de créditos do código (${[...allowedCredits].join('/')})`)
 const allowedSeconds = new Set([S25?.rows.clip.seconds, K3?.rows.clip.seconds, VEO?.rows.clip.seconds, S25?.rows.film35.seconds, S25?.rows.film60.seconds].map(String))
 for (const m of copy.join(' ').matchAll(/\b(\d+)-[Ss]econd\b/g)) check(allowedSeconds.has(m[1]), `"${m[0]}" é uma duração do código (${[...allowedSeconds].join('/')})`)
 const numbersInCopy = new Set((copy.join(' ').match(/\b\d+(?:\.\d+)?\b/g) ?? []))
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: + '14' (clipe do Seedance 2.5 de 5 s, conferido acima).
-const KNOWN = new Set(['1', '2', '3', '5', '6', '8', '9', '14', '16', '25', '35', '60', '88', '100', '150', '9.90', '19.90', '54.90', '2026', '1.5', '2.5', '3.1'])
+const KNOWN = new Set(['1', '2', '3', '5', '6', '8', '9', '14', '16', '25', '35', '60', '88', '19', '59', '85', '40', '280', '100', '150', '2026', '1.5', '2.5', '3.1'])
 check([...numbersInCopy].every((n) => KNOWN.has(n)), `nenhum número fora da lista conferida: ${[...numbersInCopy].filter((n) => !KNOWN.has(n)).join(', ')}`)
 
 // ═══ Palavras-chave e negativas ════════════════════════════════════════════════════════════════════════════════════════

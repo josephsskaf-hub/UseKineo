@@ -81,15 +81,16 @@ export const BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, { monthly: number; annu
   // KINEO-PRECO-TESTE-2026-10-08 — Starter e Creator de volta a US$ 9,90 / 19,90 (teste de 7 dias, fundador 08/10):
   // usdToBrlMinor(990/1990) = R$ 49,90 / 99,90 (a etiqueta da V5); anual 4990×8,4 = 41916 → R$ 419,90 ·
   // 9990×8,4 = 83916 → R$ 839,90. O Studio fica onde estava. Era 6490/54590 e 14990/125990.
-  starter: { monthly: 4990, annual: 41990 },
-  basic: { monthly: 9990, annual: 83990 },
-  pro: { monthly: 27490, annual: 230990 },
+  // KINEO-PRECO-MERCADO-0411 — usdToBrlMinor(900/1900/5900) = R$ 44,90 / 94,90 / 294,90; anual = 12 × mensal × 0,50 até ,90: R$ 269,90 / 569,90 / 1.769,90.
+  starter: { monthly: 4490, annual: 26990 },
+  basic: { monthly: 9490, annual: 56990 },
+  pro: { monthly: 29490, annual: 176990 },
 }
 
 /** KINEO-ANUAL-30-2026-10-08 — fração paga no anual (1 − 30%; era 0,6 = 1 − 40% desde KINEO-ANUAL-40OFF-2026-10-05).
  *  Espelho de ANNUAL_DISCOUNT_PERCENT em lib/checkoutPricing.ts, sem import (o guardião executa este módulo com
  *  checkoutPricing stubado). */
-export const BRL_ANNUAL_PAID_FRACTION = 0.7
+export const BRL_ANNUAL_PAID_FRACTION = 0.5 // KINEO-PRECO-MERCADO-0411
 
 /** Anual em reais a partir do mensal em reais: 12 × mensal × 0,70, para cima até ,90. */
 export function brlAnnualFromMonthly(monthlyMinor: number): number {
@@ -204,7 +205,10 @@ export function renewalCreditsForInvoice(
   const cur = typeof invoiceCurrency === 'string' ? invoiceCurrency.trim().toLowerCase() : 'usd'
   if (cur !== 'brl') return renewalCreditsFor(tier, amountPaidMinor)
   const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : tier === 'business' ? usdToBrlMinor(BUSINESS_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
-  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < currentBrl) {
+  // KINEO-PRECO-MERCADO-0411 — a mesma regra do dólar: só o preço novo em reais (mensal ou anual) recebe o grant novo.
+  const tierDaTabela = tier === 'starter' || tier === 'basic' || tier === 'pro'
+  const precoNovoEmReais = tierDaTabela && (amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].monthly || amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].annual)
+  if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && !precoNovoEmReais && (tierDaTabela || amountPaidMinor < currentBrl)) {
     // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:
     // quem pagou a tabela V5 (R$ 49,90 · 99,90 · 199,90) comprou 60/150/300 e mantém; abaixo disso, V6.
     if ((tier === 'starter' || tier === 'basic' || tier === 'pro') && amountPaidMinor >= LEGACY_V5_BRL_PLAN_PRICES_MINOR[tier]) {

@@ -94,7 +94,7 @@ export const FREE_ENTRY_COPY = {
     // scripts/test-preco-teste-2026-10-08.mjs.
     // KINEO-LLMS-K4-2910 — o motor vem de freeFilmEngine; o guardião confere a frase contra FREE_FILM_LABEL.
     // KINEO-LLMS-K4-2910 — mesmo nome canônico usado por FREE_FILM_LABEL, sem ciclo com freeTierOffer.
-    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (${FREE_FILM_ENGINE_NAME})${FREE_FILM_ON_KLING4_CLAUSE} — with no card required. Longer films and other engines come with any paid plan. Plans start at $9.90/month when you want more.`,
+    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (${FREE_FILM_ENGINE_NAME})${FREE_FILM_ON_KLING4_CLAUSE} — with no card required. Longer films and other engines come with any paid plan. Plans start at $9/month when you want more.`,
   noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, no card.`,
 } as const
 export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY ? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY

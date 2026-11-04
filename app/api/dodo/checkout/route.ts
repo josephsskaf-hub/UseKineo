@@ -22,6 +22,7 @@
 //      GET /api/dodo/checkout?pack=first_pack             (pacote único $4,90)
 //      POST idem no corpo JSON → { url, session_id }
 import { NextRequest, NextResponse } from 'next/server'
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
@@ -120,6 +121,7 @@ async function handle(req: NextRequest, isGet: boolean): Promise<NextResponse> {
     ? { tier: req.nextUrl.searchParams.get('tier'), pack: req.nextUrl.searchParams.get('pack') }
     : await readPostSelection(req)
   const sku = resolveSku(selection.tier, selection.pack)
+  if (sku === 'first_pack' && !FILM_PASS_LIVE) return NextResponse.redirect(new URL('/pricing?from=no_one_time', req.url), 303) // KINEO-PRECO-MERCADO-0411 — o pacote único saiu da loja
   const country = req.headers.get('x-vercel-ip-country') ?? 'US'
   const mode = dodoMode()
   const browserSessionId = browserSessionIdFrom(req)

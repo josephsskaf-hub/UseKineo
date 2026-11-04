@@ -75,7 +75,8 @@ function problems(rep = {}) {
       if (r !== motivo) p.push(`régua: ${tier} mensal com ${campo}=${valor} deu ${r}, devia ${motivo}`)
     }
   }
-  if (policy.WELCOME20_SITE_OFFER_LIVE !== true) p.push('interruptor WELCOME20_SITE_OFFER_LIVE desligado sem decisão do fundador')
+  // KINEO-PRECO-MERCADO-0411 — fundador 04/11: mensal sem desconto; a fiação abaixo segue provada para o dia em que religar.
+  if (policy.WELCOME20_SITE_OFFER_LIVE !== false) p.push('interruptor WELCOME20_SITE_OFFER_LIVE religado sem decisão do fundador')
   if (policy.WELCOME20_AUTO_SOURCE !== 'auto_banner') p.push("public_promo_source do automático deixou de ser 'auto_banner'")
 
   // 2. um interruptor só
@@ -158,7 +159,7 @@ const MUTANTES = [
   ['automático empilha com cupom pedido', troca(POLICY, "  if (input.promoRequested) return 'promo_requested'\n", '')],
   ['automático atropela o afiliado', troca(POLICY, "  if (input.affiliatePresent) return 'affiliate'\n", '')],
   ['automático em cima da retomada salva', troca(POLICY, "  if (input.checkoutRecovery) return 'checkout_recovery'\n", '')],
-  ['interruptor desligado sem decisão', troca(POLICY, 'export const WELCOME20_SITE_OFFER_LIVE = true', 'export const WELCOME20_SITE_OFFER_LIVE = false')],
+  ['interruptor religado sem decisão', troca(POLICY, 'export const WELCOME20_SITE_OFFER_LIVE = false', 'export const WELCOME20_SITE_OFFER_LIVE = true')],
   ['/pricing com interruptor próprio', troca(CLIENT, 'export const PRICING_WELCOME20_ON_CARD = WELCOME20_SITE_OFFER_LIVE', 'export const PRICING_WELCOME20_ON_CARD = true')],
   ['rota esquece o cookie da Rewardful', troca(ROUTE, "      || Boolean(req.cookies.get('rewardful_referral')?.value?.trim()),\n", '\n')],
   ['rota esquece o afiliado da conta', troca(ROUTE, "  if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {\n    autoWelcome20 = false\n", "  if (false) {\n    autoWelcome20 = false\n")],

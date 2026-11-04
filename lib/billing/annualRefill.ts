@@ -30,6 +30,8 @@ import {
   ANNUAL_PRICES, TIER_PRICES, // KINEO-KIT-BF-VENDA-2010 — + TIER_PRICES (o piso da oferta "2 meses grátis"); era:   ANNUAL_PRICES,
   TIER_CREDITS,
   legacyCreditsForUsd,
+  LEGACY_TIER_CREDITS_V5,
+  ANNUAL_BRL_CURRENT_MINOR,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { annualEarlyOfferFloorMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010
@@ -87,8 +89,10 @@ export function annualRefillCredits(
   currency: string | null | undefined,
 ): number {
   const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'
-  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) { // KINEO-KIT-BF-VENDA-2010 — o preço da oferta "2 meses grátis" (quando vencer) recebe o grant CHEIO; hoje o piso = o anual vigente (o mesmo de antes); era: annualAmountMinor < ANNUAL_PRICES[tier].usd
-    return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
+  // KINEO-PRECO-MERCADO-0411 — o anual CAIU (83 / 167 / 460 → 54 / 114 / 354): só o preço novo recebe o grant novo; quem pagou outro valor segue com o que comprou.
+  if (typeof annualAmountMinor === 'number' && annualAmountMinor > 0) {
+    if (cur === 'usd' && annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
+    if (cur === 'brl' && annualAmountMinor !== ANNUAL_BRL_CURRENT_MINOR[tier]) return LEGACY_TIER_CREDITS_V5[tier]
   }
   return TIER_CREDITS[tier]
 }

@@ -137,10 +137,13 @@ export type CheckoutCurrency = 'usd'
 // assinou e recebe o mesmo grant (renewalCreditsFor: fatura ≥ vigente → TIER_CREDITS). Medir de novo em 16/10 com
 // payment_success depois do deploy deste commit. Doc: docs/DECISAO-PRECO-TESTE-2026-10-08.md.
 // Guardião: scripts/test-preco-teste-2026-10-08.mjs.
+// KINEO-PRECO-MERCADO-0411 — fundador 04/11, olhando a InVideo: "9, 19, 59", mensal sem desconto e 50% só no anual; avulso e top-up saem.
+// Créditos 40 / 85 / 280 = 1 / 2 / 8 filmes Seedance 1.5 de 60 s (35 cr, US$ 3,30 na fal). Crédito por US$: 0,225 → 0,224 → 0,211, a escada desce.
+// QUEM JÁ ASSINA MANTÉM preço e grant: a renovação só dá o grant novo para quem paga EXATAMENTE o preço novo (renewalCreditsFor).
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 990 },
-  basic: { usd: 1990 },
-  pro: { usd: 5490 },
+  starter: { usd: 900 },
+  basic: { usd: 1900 },
+  pro: { usd: 5900 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier.
@@ -245,14 +248,17 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
   // KINEO-PRECO-TESTE-2026-10-08 — o anual segue o mensal do teste (12 × mensal × 0,70, preço limpo): $118,80 × 0,7 =
   // $83,16 → $83 ($6,92/mês, 30,1%) · $238,80 × 0,7 = $167,16 → $167 ($13,92/mês, 30,1%). Studio intacto ($460).
   // Quem pagou o anual de $108/$250 (08/10) fica ACIMA do vigente e recebe o grant cheio na recarga.
-  starter: { usd: 8300 },
-  basic: { usd: 16700 },
-  pro: { usd: 46000 },
+  // KINEO-PRECO-MERCADO-0411 — 12 × mensal × 0,50: US$ 54 / 114 / 354 (US$ 4,50 / 9,50 / 29,50 por mês). Quem pagou 83 / 167 / 460 fica no legado da recarga anual.
+  starter: { usd: 5400 },
+  basic: { usd: 11400 },
+  pro: { usd: 35400 },
 }
 
 /** KINEO-ANUAL-30-2026-10-08 — o desconto do anual sobre 12 mensalidades (40 de 05/10 a 08/10; 30 desde 08/10,
  *  decisão do fundador). A copy ("save 30%") lê daqui — nunca digita o número. */
-export const ANNUAL_DISCOUNT_PERCENT = 30
+// KINEO-PRECO-MERCADO-0411 — o anual em reais de hoje, espelho de BRL_PLAN_PRICES_MINOR (o guardião confere): a recarga anual separa quem pagou o novo do legado.
+export const ANNUAL_BRL_CURRENT_MINOR: Record<CheckoutTier, number> = { starter: 26990, basic: 56990, pro: 176990 }
+export const ANNUAL_DISCOUNT_PERCENT = 50
 
 // KINEO-BUSINESS-84-2026-10-09 — planos em que NENHUM cupom vale: nem ?promo= (WELCOME20, FIRST50, COMEBACK50, privados), nem o campo
 // manual "Add promotion code" da Stripe (o cupom WELCOME20 na Stripe não tem restrição de produto: digitado à mão ele
@@ -301,8 +307,9 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
   // KINEO-PRECO-V8-A-2026-09-28 — espelha o mensal novo (sem 1º mês).
   // KINEO-PRECO-TESTE-2026-10-08 — espelha o mensal do teste ($9,90 / $19,90).
-  starter: { usd: 990 },
-  basic: { usd: 1990 },
+  // KINEO-PRECO-MERCADO-0411 — espelha o mensal novo: sem 1º mês com desconto.
+  starter: { usd: 900 },
+  basic: { usd: 1900 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -570,9 +577,10 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // Kling 3 (150cr) por mês com folga.
   // KINEO-PLANOS-9-19-29-2026-09-08 — 60 = "3 films a week" (12 Kineo 1 ou 3 Seedance);
   // 150 = "1 film a day" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).
-  starter: 60,
-  basic: 150,
-  pro: 300,
+  // KINEO-PRECO-MERCADO-0411 — 40 / 85 / 280.
+  starter: 40,
+  basic: 85,
+  pro: 280,
   autopilot: 400,
   // KINEO-AUTOPILOT-LITE-2026-09-16 — 160: os ~5 episódios semanais do mês saem do mesmo saldo (Kineo 1 = 5 cr
   // cada) e sobra folga para filmes manuais em qualquer motor. Pior caso (tudo em Seedance): 160 × $0,117 ≈ $18,7
@@ -659,6 +667,14 @@ export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: num
 export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: number | null | undefined): number {
   // KINEO-BUSINESS-84-2026-10-09 — o Business compara com o próprio preço (8400); abaixo dele o legado também é 500 (nunca subconcede).
   const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : tier === 'business' ? BUSINESS_PRICES.usd : TIER_PRICES[tier].usd
+  if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
+    // KINEO-PRECO-MERCADO-0411 — o preço CAIU: 9,90 / 19,90 ficaram ACIMA do vigente e a régua "abaixo do vigente = legado" daria 40 / 85 a quem comprou 60 / 150.
+    // Agora só o preço novo (mensal ou anual) recebe o grant novo; qualquer outro valor segue a escada do que comprou.
+    if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor !== current && amountPaidMinor !== ANNUAL_PRICES[tier].usd) {
+      return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')
+    }
+    return TIER_CREDITS[tier]
+  }
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {
     return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')
   }
@@ -682,8 +698,8 @@ export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
   // abaixo do custo no pior caso (net $6.50 vs COGS $7.02; $14.26 vs $16.38) —
   // ou seja, o primeiro mês de todo assinante novo seria prejuízo. É o tipo de
   // erro que só aparece em produção, no extrato, um mês depois.
-  starter: 60,
-  basic: 150,
+  starter: 40,
+  basic: 85,
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (a). The entry packs used to grant 10
@@ -759,6 +775,8 @@ export function packPriceLabel(currency: CheckoutCurrency = 'usd'): string {
 //   topup40  $5.90  / 30 = $0.1967 / cr  (+3.8% vs Studio, +18.5% vs Creator)
 //   topup120 $12.90 / 65 = $0.1985 / cr  (+4.8% vs Studio, +19.6% vs Creator)
 // Worst-case margins: +$2.59 (48%) and +$4.96 (41%).
+/** KINEO-PRECO-MERCADO-0411 — fundador 04/11: "não quero mais top ups". Crédito só vem de plano. true reabre a venda; o preço precisaria subir (invariante 1). */
+export const TOPUPS_LIVE = false as boolean
 export const TOPUP_CREDITS = {
   topup40: 30,
   topup120: 65,
@@ -992,7 +1010,7 @@ export function checkPricingInvariants(): string[] {
   const problems: string[] = []
 
   // (1) Every top-up costs MORE per credit than the cheapest recurring plan.
-  for (const id of Object.keys(TOPUP_CREDITS) as TopupId[]) {
+  for (const id of (TOPUPS_LIVE ? Object.keys(TOPUP_CREDITS) : []) as TopupId[]) { // KINEO-PRECO-MERCADO-0411: top-up fora de venda não tem o que provar
     const usd = TOPUP_USD_PRICES[id] / 100
     const perCredit = usd / TOPUP_CREDITS[id]
     if (perCredit <= CHEAPEST_PLAN_USD_PER_CREDIT) {

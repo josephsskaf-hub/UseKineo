@@ -7,6 +7,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { PUBLIC_ENGINE_EXAMPLES } from '@/lib/publicExamples'
 import type { CheckoutCurrency, PriceRegion } from '@/lib/checkoutPricing'
 import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing' // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única
+import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import {
   ANNUAL_DISCOUNT_PERCENT, CONVERSION_NAMES, CONVERSION_TIERS,
@@ -100,7 +101,12 @@ export function ConversionProof() {
   </figure>
 }
 
-export function ConversionPassCard({ surface, onBuy, disabled = false }: { surface: ConversionSurface; onBuy: () => void; disabled?: boolean }) {
+/** KINEO-PRECO-MERCADO-0411 — sem avulso à venda o cartão não existe; casca fora do cartão para não chamar hook à toa. */
+export function ConversionPassCard(props: { surface: ConversionSurface; onBuy: () => void; disabled?: boolean }) {
+  return FILM_PASS_LIVE ? <ConversionPassCardVenda {...props} /> : null
+}
+
+function ConversionPassCardVenda({ surface, onBuy, disabled = false }: { surface: ConversionSurface; onBuy: () => void; disabled?: boolean }) {
   const observation = useOfferObservation(surface, 'pass')
   const offer = conversionPass()
   return <div ref={observation.root} data-conversion-pass={MRR_CONVERSION_VERSION} style={{ ...panel, borderColor: 'var(--accent)', marginBottom: 18 }}>

@@ -101,8 +101,10 @@ checa('interfaceHindi traduz a desc nova do mega-menu', /'Google’s flagship en
   try { vm.runInNewContext(ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: exp, console, require: () => ({}) }) } catch (e) { exp.__erro = String(e) }
   const custo = (s) => (typeof exp.creditCostForDuration === 'function' ? exp.creditCostForDuration('cinematic_veo', true, s) : null)
   const c35 = custo(35)
-  const starter = Number((rd('lib/checkoutPricing.ts').match(/export const TIER_CREDITS[\s\S]*?starter:\s*(\d+)/) ?? [])[1])
-  checa(`Veo 35 s = ${c35} cr cabe no grant do Starter (${starter} cr) — lido de creditCostForDuration e TIER_CREDITS`, Number.isFinite(c35) && c35 > 0 && Number.isFinite(starter) && c35 <= starter)
+  const grant = (tier) => Number((rd('lib/checkoutPricing.ts').match(new RegExp(`export const TIER_CREDITS[\\s\\S]*?${tier}:\\s*(\\d+)`)) ?? [])[1])
+  const starter = grant('starter'), creator = grant('basic')
+  // KINEO-PRECO-MERCADO-0411 — o Starter (40 cr) não paga mais o Veo de 35 s; o Creator (85) paga. O selo "Studio" segue fora porque o gate está desligado: é falta de saldo, não motor trancado.
+  checa(`Veo 35 s = ${c35} cr cabe no grant do Creator (${creator} cr) e não no do Starter (${starter} cr) — lido de creditCostForDuration e TIER_CREDITS`, Number.isFinite(c35) && c35 > 0 && Number.isFinite(starter) && c35 > starter && c35 <= creator)
   checa(`Veo 60 s = ${custo(60)} cr e 90 s = ${custo(90)} cr continuam os da casa (100 / 150)`, custo(60) === 100 && custo(90) === 150)
 }
 
