@@ -163,10 +163,10 @@ export const ADS_V2_TIER_COPY: Readonly<Record<AdsV2ScreenTier, { name: string; 
 
 // ── Como funciona (coluna lateral; 4 passos do v2) ─────────────────────────────────────────────────────────────────
 export const ADS_V2_HOW_IT_WORKS: readonly { title: string; body: string }[] = [
-  { title: 'Pick a level', body: 'Photo motion, Commercial or Cinema. The price is shown before anything is charged.' },
+  { title: 'Pick a level', body: 'Photo motion, Commercial or Cinema.' },
   { title: 'Show your business', body: 'One sentence (or your link), your logo and 3 to 7 real photos. Frame each one for a vertical phone screen.' },
   { title: 'Check the plan', body: 'See every shot, the words on screen and the voice-over. Planning is free.' },
-  { title: 'Get your ad', body: 'We animate your photos, add music and your logo, and deliver a vertical ad. Not happy with a shot? Redo it for a few credits, with the price shown first.' },
+  { title: 'Get your ad', body: 'We animate your photos, add music and your logo, and deliver a vertical ad. Not happy with a shot? Redo just that one.' },
 ]
 /** A estrutura do anúncio (o "modelo" ao lado do montador). */
 export const ADS_V2_AD_SHAPE: readonly string[] = ['Hook', 'Desire', 'In use', 'Your place or product', 'Your logo']

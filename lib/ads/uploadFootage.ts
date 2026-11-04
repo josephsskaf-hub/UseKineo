@@ -225,7 +225,7 @@ async function readJson(res: Response): Promise<Record<string, unknown>> {
 function refusalFromStatus(status: number, body: Record<string, unknown>): AdsUploadError {
   const msg = typeof body.error === 'string' && body.error.trim() ? body.error : ''
   if (status === 401) return new AdsUploadError('unauthenticated', 'Sign in again to upload your files.', status)
-  if (status === 402) return new AdsUploadError('paid_feature', msg || 'Uploading your own files needs the Studio Ads pass or a paid plan.', status)
+  if (status === 402) return new AdsUploadError('paid_feature', msg || 'Uploading your own files needs a paid plan.', status)
   if (status === 409) return new AdsUploadError('quota', msg || 'Your file storage is full. Delete something to upload more.', status)
   if (status === 400 && /under 50 MB/i.test(msg)) return new AdsUploadError('file_too_large', msg, status)
   if (status === 400 && /JPG|PNG|MP4/i.test(msg)) return new AdsUploadError('unsupported_type', msg, status)

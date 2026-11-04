@@ -1,5 +1,5 @@
 import { getTierPrice, formatCheckoutMoney } from '../checkoutPricing'
-import { KINEO1_35S_CREDITS, adsPassPriceLabel } from '../ads/offer'
+import { KINEO1_35S_CREDITS } from '../ads/offer'
 import { ADS_MODELS } from '../ads/models'
 import { AD_FORMATS } from '../ads/adStyle'
 import type { AdsSegment } from './adsSegments'
@@ -15,7 +15,6 @@ export function adsSegmentOffer() {
     seconds: Math.min(...ADS_MODELS.map((model) => model.seconds)),
     durations: Array.from(new Set(ADS_MODELS.map((model) => model.seconds))).sort((a, b) => a - b).join(' / '),
     formats: AD_FORMATS.map(({ id }) => id).join(', '),
-    passPrice: adsPassPriceLabel(),
     // KINEO-ADS-V2-VIRADA-2026-09-29 — preço por nível do v2 (decisão do fundador 28/09), sempre de adsV2Credits.
     v2Seconds: ADS_V2_SCREEN_SECONDS,
     v2Credits: Math.min(...ADS_V2_TIER_IDS.map((id) => adsV2Credits(id, ADS_V2_SCREEN_SECONDS))),
@@ -28,7 +27,7 @@ export function adsSegmentFaq(segment: AdsSegment) {
   return [
     { question: 'What should I provide?', answer: segment.materials },
     { question: 'What does Studio Ads make?', answer: `A vertical ad of about ${offer.v2Seconds} seconds in which your real photos get movement, with music, a short voice-over you can turn off and your logo at the end. You see every shot and the words on screen before anything is charged; download the finished video to post yourself. Prefer a longer narrated ad from your photos and clips? The classic maker still makes one of ${offer.durations} seconds.` },
-    { question: 'Do I need a subscription?', answer: `Studio Ads is included in any paid plan, from ${offer.starterPrice} USD per month. A ${offer.v2Seconds}-second ad uses ${offer.v2Levels} credits, depending on the level; a classic ${offer.seconds}-second ad uses ${offer.credits}. A one-time pass without a subscription is also available at ${offer.passPrice}; see Studio Ads for its current terms.` },
+    { question: 'Do I need a subscription?', answer: `Studio Ads is included in any paid plan, from ${offer.starterPrice} USD per month. A ${offer.v2Seconds}-second ad uses ${offer.v2Levels} credits, depending on the level; a classic ${offer.seconds}-second ad uses ${offer.credits}.` },
     { question: 'What should I check before making my ad?', answer: `${segment.caution} Generation time can vary. Kineo does not publish to your social accounts or guarantee advertising results.` },
     // KINEO-ORIGEM-IA-LOJAS-1610 — só a página de lojas ganha as perguntas de quem pergunta ao ChatGPT; o FAQ visível e o
     // JSON-LD continuam saindo DESTA função (uma fonte, impossível divergirem).

@@ -61,6 +61,16 @@ export function adsPassLive(): boolean {
   return env === '1' || ADS_PASS_LIVE_IN_CODE
 }
 
+// KINEO-ADS-SEM-PRECO-0411 [fundador 04/11: "Não quero isso mais"; 0 vendas em 90 dias] — o passe saiu de venda. São duas perguntas diferentes:
+//   · adsPassLive(): o Studio Ads está ABERTO? (porta, índice, sitemap, llms, assinante). O nome é antigo; a pergunta é esta e não mudou.
+//   · adsPassOnSale(): dá para COMPRAR o passe? false: ?pack=ads_pass vai para /pricing sem cobrar, e nenhuma tela o oferece.
+// Quem já comprou fica como está: os créditos estão no saldo e profiles.ads_access_until segue valendo (lib/ads/access.ts, webhook intocado).
+export const ADS_PASS_ON_SALE = false
+
+export function adsPassOnSale(on: boolean = ADS_PASS_ON_SALE): boolean {
+  return on && adsPassLive()
+}
+
 /** "US$19.90" — sem ".00" fantasma, sem inventar arredondamento. */
 export function adsPassPriceLabel(minor: number = ADS_PASS_USD_MINOR): string {
   const value = minor / 100
@@ -147,7 +157,7 @@ export function adsPassCopy() {
       // KINEO-COPY-CONTRADICOES-1510 — "Presenter or avatar videos … not part of this pass" ficou falso: o anúncio v2 tem a
       // pessoa de IA opcional (lib/ads/v2Presenter.ts ADS_V2_PRESENTER_PUBLIC, biblioteca fechada de 12, só 9:16). O que segue
       // fora de verdade: avatar/gêmeo digital da PRÓPRIA pessoa e voz clonada (o ator usa a voz da casa ou a lista fechada).
-      'A custom avatar or digital twin of you, and cloned voices, are not part of this pass yet',
+      'A custom avatar or digital twin of you, and cloned voices, are not part of Studio Ads yet',
       // KINEO-ADS-REVISAO-2026-09-27 — 1:1, 4:5 e 16:9 existem desde 26/09 (lib/ads/adStyle.ts AD_FORMATS): saíram do "ainda não".
       'Ads with the original audio of your clip are coming next',
     ],

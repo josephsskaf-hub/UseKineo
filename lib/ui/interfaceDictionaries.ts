@@ -2,6 +2,7 @@
 // Um arquivo por língua em lib/ui/interface/<code>.ts, gerado de lib/ui/interface/_corpus (frases vivas do site).
 // en/es/hi não passam por aqui (es/hi já vêm no bundle em interfaceLabels/interfaceHindi).
 import type { InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import { INTERFACE_BOTOES_0411 } from '@/lib/ui/interfaceBotoes0411' // KINEO-BOTOES-SEM-FREE-0411
 
 export type InterfaceDictionary = Record<string, string>
 type Loader = () => Promise<{ DICT: InterfaceDictionary }>
@@ -27,6 +28,6 @@ export function loadInterfaceDictionary(language: InterfaceLanguage): Promise<In
   const loader = INTERFACE_DICTIONARY_LOADERS[language]
   if (!loader) return null
   let p = cache.get(language)
-  if (!p) { p = loader().then((m) => m.DICT); cache.set(language, p) }
+  if (!p) { p = loader().then((m) => ({ ...m.DICT, ...INTERFACE_BOTOES_0411[language] })); cache.set(language, p) }
   return p
 }

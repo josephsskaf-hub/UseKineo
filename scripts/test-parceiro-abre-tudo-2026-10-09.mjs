@@ -441,9 +441,7 @@ async function problems(over = {}) {
     if (JSON.stringify([...ACC.ADS_SUBSCRIBER_PLANS]) !== JSON.stringify(['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business'])) p.push('ADS_SUBSCRIBER_PLANS mudou (o parceiro não entra pela lista de planos)')
   } catch (err) { p.push(`Studio Ads não roda: ${err.message}`) } finally { ADMIN = null }
   const door = src(DOOR)
-  const proofFn = door.slice(door.indexOf('async function readPaywallProof('), door.indexOf('/** Who is looking'))
-  const iGuard = proofFn.indexOf("if ((await readPartnerStatus(userId, typeof row.plan === 'string' ? row.plan : null)) !== 'not_partner') return null")
-  if (iGuard < 0 || iGuard > proofFn.indexOf('reason: adsAccessReason(row, authEmail)')) p.push('app/ads/page.tsx: a prova positiva da parede não exige "not_partner" antes de oferecer plano')
+  if (/import AdsPaywall|<AdsPaywall|adsPaywallOffer|STARTER_CHECKOUT_HREF/.test(door)) p.push('app/ads/page.tsx: a porta voltou a oferecer plano; o parceiro não pode receber oferta (exigir not_partner)') // KINEO-ADS-SEM-PRECO-0411
   if (!/type Access = 'pass' \| 'subscriber' \| 'internal' \| 'partner' \| 'none'/.test(src(WIZARD))) p.push('AdsWizardClient: o tipo Access não aceita partner')
 
   // ── (7) o teto é o saldo ─────────────────────────────────────────────────────────────────────────────────────────
@@ -495,7 +493,7 @@ const mutants = [
   ['M16 parceiro antes do assinante/passe/casa', ADS, "  if (isAdsInternalEmail(authEmail)) return 'internal'\n", "  if (partner === true) return 'partner'\n  if (isAdsInternalEmail(authEmail)) return 'internal'\n"],
   ['M17 loadAdsAccess não lê o parceiro', ADS_SERVER, '  return adsAccessReason(row, authEmail, undefined, await isActivePartner(userId, row.plan))', '  return adsAccessReason(row, authEmail)'],
   ['M18 adsGate barra o parceiro', ADS_SERVER, "  if (reason === 'none') return 'no_access'", "  if (reason === 'none' || reason === 'partner') return 'no_access'"],
-  ['M19 a parede vende plano ao parceiro', DOOR, "    if ((await readPartnerStatus(userId, typeof row.plan === 'string' ? row.plan : null)) !== 'not_partner') return null\n", ''],
+  ['M19 a porta volta a vender plano', DOOR, "import AdsPageBanners, {", "import AdsPaywall from './AdsPaywall'\nimport AdsPageBanners, {"],
   ['M20 tile do /studio ignora o parceiro', STUDIO, 'const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan) || parceiro', 'const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan)'],
   ['M21 a cortesia vira pagante no MRR', 'app/api/admin/_shared/mrr.ts', 'export function isPayingPlan(plan: string | null | undefined): boolean {\n  return isPaidPlan(plan) && !isTrialPlan(plan)', 'export function isPayingPlan(plan: string | null | undefined): boolean {\n  return isPaidPlan(plan)'],
 ]

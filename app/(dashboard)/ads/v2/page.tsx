@@ -37,8 +37,9 @@ import { headers } from 'next/headers' // KINEO-ADS-SIMPLES-2810 — o país do 
 import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
 import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA: paid · free_sample_available · free_sample_used · not_eligible
 import AdsEligibilityNotice from '@/components/ads/AdsEligibilityNotice' // KINEO-ADS-SIMPLES-2810 — o aviso honesto no lugar da parede (componente de navegador: a língua da interface mora no localStorage)
-import { adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-SIMPLES-2810 — o preço do anúncio completo no aviso (a mesma conta do débito)
+import { ADS_V2_PUBLIC, adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-SIMPLES-2810 — o preço do anúncio completo no aviso (a mesma conta do débito)
 import { bfCampaignFromQuery } from '@/lib/ads/bfCampaign'
+import { anuncioAbreSemConta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -67,6 +68,11 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, vindo do cartão da home ou do botão da porta: a tela de verdade, sem oferta e sem nenhuma chamada de conta; o login vem na primeira ação que precisa dele.
+  const rawOrigem = searchParams?.utm_source
+  if (!user && ADS_ESCOLHA_SAMPLE_LIVE && ADS_V2_PUBLIC && !isUuid(resumeOrder) && !bfCampaign && anuncioAbreSemConta(entry, Array.isArray(rawOrigem) ? rawOrigem[0] : rawOrigem)) {
+    return <AdsPresenterAllProvider all={false}><AdsV2Client guest initialBalance={null} workspace={null} classicCredits={null} variations={false} producao={false} sample business={null} sampleProbe={false} entry={entry} escolhaInternal={false} escolhaSample escolhaSampleAvailable advancedModes={false} escolhaTestControls={false} escolhaOwnerKey="visitante" /></AdsPresenterAllProvider>
+  }
   if (!user) redirect(`/login?redirect=${encodeURIComponent(loginTarget)}`) // KINEO-AMOSTRA-ANUNCIO-2410 — preserve the owned result and explicit upgrade intent through login.
 
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de um Business entra com o acesso, o saldo e o kit DO DONO (uid = dono).

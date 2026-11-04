@@ -13,6 +13,8 @@
 // personagem em toda cena, marca d'água e débito continuam no servidor; se a aba fechar, o cron finish-stranded-renders termina.
 // KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar"); o botão
 // "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
+import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
+import { guardarRascunhoDoDesenho, lerRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import Link from 'next/link'
 import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { useEffect, useRef, useState } from 'react'
@@ -150,7 +152,7 @@ html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F
 .kkc-video{max-width:300px;margin:0 auto}.kkc-edit{min-height:280px!important}.kkc-ghost{width:100%;justify-content:center}}
 `
 
-export default function KidsCartoonTemplate() {
+export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ visitante?: boolean }) {
   const ui = useInterfaceLanguage()
   const t = kidsTemplateCopy(ui)
   const ideaLang: 'en' | 'pt' | 'es' = ui === 'pt' || ui === 'es' ? ui : 'en' // KINEO-IDIOMAS-FORMATOS-2410 — idioma editorial da interface separado da narração
@@ -185,6 +187,7 @@ export default function KidsCartoonTemplate() {
   const char = KIDS_CHARACTERS.find((c) => c.id === character) ?? KIDS_CHARACTERS[0]
 
   function readBalance() {
+    if (visitante) return
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (alive.current && typeof d?.credits === 'number') setBalance(d.credits) })
@@ -194,6 +197,14 @@ export default function KidsCartoonTemplate() {
   useEffect(() => {
     alive.current = true
     readBalance()
+    if (!visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — as escolhas de antes do login
+      const r = lerRascunhoDoDesenho()
+      if (r) {
+        if (KIDS_CHARACTERS.some((c) => c.id === r.character)) setCharacter(r.character as KidsCharacterId)
+        if (typeof r.idea === 'string') setIdea(r.idea)
+        if (isKidsCartoonLanguage(r.language)) setLanguage(r.language)
+      }
+    }
     const onCredits = () => readBalance()
     window.addEventListener('creditsChanged', onCredits)
     // Retomada: o filme que estava saindo nesta conta, nesta aba ou noutra, continua na mesma tela depois de recarregar.
@@ -219,6 +230,12 @@ export default function KidsCartoonTemplate() {
   }
 
   async function write(dur: KidsCartoonDuration = duration) {
+    if (visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — a primeira ação que precisa de conta: guarda as escolhas e volta à mesma tela depois do login
+      guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur })
+      void trackEvent('visitor_login_asked', { surface: 'kids_cartoon', action: 'write' })
+      window.location.assign(cadastroComVolta(`${window.location.pathname}${window.location.search}`))
+      return
+    }
     setStage('writing'); setError(null); setNeedPlans(false); setCopied(false)
     try {
       const res = await fetch('/api/kids-cartoon/story', {

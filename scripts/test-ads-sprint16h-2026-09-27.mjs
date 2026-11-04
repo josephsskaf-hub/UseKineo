@@ -42,17 +42,17 @@ const offer = load('lib/ads/offer.ts')
 const copy = offer.adsPassCopy()
 checa('1d. adsPassCopy() EXECUTADO: include novo presente; nada de prazo nem "versão corrigida" em lugar nenhum da copy', copy.includes.includes('A human checks your first ad') && !/24 hours|corrected version|human editor/i.test(JSON.stringify(copy)))
 checa('1e. excludes não falam mais de "Square and landscape" (1:1, 4:5 e 16:9 existem em lib/ads/adStyle.ts) e continuam ≥ 2 (honestidade)', !/Square and landscape/i.test(JSON.stringify(copy)) && copy.excludes.length >= 2 && /'1:1'/.test(STYLE) && /'4:5'/.test(STYLE) && /'16:9'/.test(STYLE))
-checa('1f. o /llms.txt e o /api/facts herdam a copy (studioAdsFacts copia includes/excludes de adsPassCopy, não digita a promessa)', /includes: \[\.\.\.copy\.includes\]/.test(FACTS) && /excludes: \[\.\.\.copy\.excludes\]/.test(FACTS))
+checa('1f. o /llms.txt e o /api/facts herdam a copy (studioAdsFacts copia includes/excludes de adsPassCopy, não digita a promessa)', /\[\.\.\.copy\.includes\]/.test(FACTS) && /excludes: \[\.\.\.copy\.excludes\]/.test(FACTS))
 
 // ── 2. FAQ "Do I need a subscription?": o custo por anúncio nasce de KINEO1_35S_CREDITS, nunca digitado ──
 const faqStart = DOOR.indexOf('<summary>Do I need a subscription?</summary>')
 const faq = DOOR.slice(faqStart, DOOR.indexOf('</details>', faqStart))
 // REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a FAQ cita o preço dos 3 níveis do v2 (de adsV2Credits) e o do clássico,
 // ainda de {KINEO1_35S_CREDITS}. Intenção mantida: "Any paid plan", mesmos créditos dos vídeos, nada digitado.
-checa('2a. FAQ: "Any paid plan includes Studio Ads, with the same credits as your videos" + preço do v2 por V2_LEVELS + clássico {KINEO1_35S_CREDITS} + "The pass is for people without a plan"', /Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs \{V2_LEVELS\.map\(/.test(faq) && /a classic narrated ad of 35 seconds costs \{KINEO1_35S_CREDITS\}\. The pass is for people without a plan/.test(faq))
-checa('2b. FAQ: nenhum número de crédito digitado à mão (o passe também vem de {ADS_PASS_CREDITS})', !/\b\d+ credits?\b/.test(faq) && /\{ADS_PASS_CREDITS\} credits/.test(faq))
-const offerImport = DOOR.slice(DOOR.indexOf('import {\n  ADS_PASS_ACCESS_DAYS'), DOOR.indexOf("} from '@/lib/ads/offer'"))
-checa('2c. KINEO1_35S_CREDITS vem do import de @/lib/ads/offer e é número', offerImport.includes('KINEO1_35S_CREDITS,') && typeof offer.KINEO1_35S_CREDITS === 'number')
+// REANCORADO 04/11 (KINEO-ADS-SEM-PRECO-0411): a pergunta "Do I need a subscription?" saiu com o preço do /ads. O fato "qualquer plano pago inclui" continua provado abaixo.
+checa('2a. /ads: a pergunta de assinatura com preço e passe saiu', faqStart === -1)
+checa('2b. /ads: nenhum número de crédito digitado à mão', !/\b\d+ credits?\b/.test(DOOR.slice(DOOR.indexOf('export default async function StudioAdsPage'), DOOR.indexOf('const ADS_DOOR_CSS'))))
+checa('2c. KINEO1_35S_CREDITS segue exportado por @/lib/ads/offer e é número', typeof offer.KINEO1_35S_CREDITS === 'number')
 // "Any paid plan" é fato do código: todo degrau de TIER_CREDITS (lib/checkoutPricing.ts) entra como 'subscriber' (lib/ads/access.ts).
 const cp = load('lib/checkoutPricing.ts')
 const access = load('lib/ads/access.ts')

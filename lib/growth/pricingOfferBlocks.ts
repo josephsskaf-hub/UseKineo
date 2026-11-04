@@ -12,7 +12,7 @@
 // ou "cheio" pelo teto de revisões — um ?pack=ads_pass direto pularia os dois). Express/Pro vão para
 // /business-video-ads#packages (é lá que o link da Stripe ganha a identidade da conta, o escopo e o reembolso; um
 // buy.stripe.com daqui sairia sem client_reference_id e o pedido chegaria anônimo).
-import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsCoverageLine, adsPassCopy, adsPassLive } from '@/lib/ads/offer'
+import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsCoverageLine, adsPassCopy, adsPassOnSale } from '@/lib/ads/offer'
 import { ADS_V2_LEVEL_PRICES } from '@/lib/ads/v2Levels' // KINEO-PASSE-B-2026-09-28 — níveis derivados (adsV2Credits), nunca digitados
 import { liveDfyTiers, type DfyTier, type DfyTierSpec } from '@/lib/growth/dfyOffer'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, sliderPriceUsdMinor } from '@/lib/credits/creditSlider'
@@ -72,7 +72,7 @@ export interface PricingAdsBlockModel {
 
 /** Modelo do bloco "Anúncios". `passLive`/`dfyTiers` só existem para o guardião simular interruptores. */
 export function pricingAdsBlockModel(input: { passLive?: boolean; dfyTiers?: readonly DfyTierSpec[] } = {}): PricingAdsBlockModel {
-  const passLive = input.passLive ?? adsPassLive()
+  const passLive = input.passLive ?? adsPassOnSale() // KINEO-ADS-SEM-PRECO-0411
   const tiers = input.dfyTiers ?? liveDfyTiers()
   const copy = adsPassCopy()
   const pass: PricingAdsPassModel | null = passLive

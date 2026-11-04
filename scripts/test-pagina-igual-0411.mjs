@@ -5,11 +5,11 @@ const checa = (n, c) => { console.log((c ? '  ok  ' : '  FALHA ') + n); if (!c) 
 const src = fs.readFileSync('app/ads/page.tsx', 'utf8')
 const igual = (t) => {
   const hero = t.indexOf('<header className="ads-hero">')
-  const amostra = t.indexOf('Make your first ad free')
+  const amostra = t.indexOf('<DoorCta cta={cta} placement="hero"') // KINEO-ADS-SEM-PRECO-0411 — o botão único, dentro da página
   const fimHero = t.indexOf('</header>', hero)
   return hero > 0 && amostra > hero && amostra < fimHero && !t.includes('aria-label="Free first ad"')
 }
-checa('o convite da amostra é o botão principal, dentro da página', igual(src))
+checa('o botão principal mora dentro da página, para todos', igual(src))
 checa('não existe mais o bloco acima da página', !src.includes('ads-banner ads-sample" role="region" aria-label="Free first ad"'))
 checa('quem já tem acesso continua com "Make your ad"', src.includes('Make your ad <span') && src.includes('<DoorCta cta={cta} placement="hero"'))
 checa('mutante com o bloco de volta fica vermelho', !igual(src.replace('<header className="ads-hero">', 'aria-label="Free first ad"<header className="ads-hero">')))

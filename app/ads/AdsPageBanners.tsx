@@ -105,7 +105,7 @@ export default function AdsPageBanners({
   ) : (
     <div className="ads-banner" role="status">
       <p>
-        <b>Checkout cancelled.</b> You have not been charged. The pass is below whenever you are ready.
+        <b>Checkout cancelled.</b> You have not been charged.
       </p>
       <button type="button" className="ads-x" aria-label="Dismiss message" onClick={dismiss}>×</button>
     </div>

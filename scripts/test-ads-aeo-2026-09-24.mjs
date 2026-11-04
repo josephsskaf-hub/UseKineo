@@ -35,8 +35,9 @@ for (const ext of ['.ts', '.tsx']) {
   }
 }
 const limpaCache = () => { for (const k of Object.keys(require.cache)) if (k.startsWith(RAIZ) && !k.includes('node_modules')) delete require.cache[k] }
-async function renderiza(envLive, v2Public, changedCredits) {
+async function renderiza(envLive, v2Public, changedCredits, passeAVenda = true) { // KINEO-ADS-SEM-PRECO-0411 — passeAVenda: o interruptor novo; true = as provas de sempre, false = hoje
   limpaCache()
+  require(join(RAIZ, 'lib/ads/offer.ts')).ADS_PASS_ON_SALE = passeAVenda
   if (envLive === undefined) delete process.env.NEXT_PUBLIC_ADS_PASS_LIVE
   else process.env.NEXT_PUBLIC_ADS_PASS_LIVE = envLive
   const tiers = require(join(RAIZ, 'lib/ads/v2Tiers.ts'))
@@ -52,6 +53,13 @@ async function renderiza(envLive, v2Public, changedCredits) {
 // ── 1. passe ligado (padrão do código) ─────────────────────────────────────────────────────────────────
 const on = await renderiza(undefined)
 const copy = on.offer.adsPassCopy()
+// KINEO-ADS-SEM-PRECO-0411 — o passe saiu de venda em 04/11; Studio Ads segue aberto e citado, sem preço.
+const hoje = await renderiza(undefined, undefined, undefined, false)
+const blocoHoje = hoje.llms.slice(hoje.llms.indexOf(`## Business video ads you make yourself — ${copy.name}`), hoje.llms.indexOf('## One-time packs for agencies'))
+ok(hoje.offer.adsPassLive() === true && hoje.offer.adsPassOnSale() === false && blocoHoje.length > 200, '0a. hoje: Studio Ads aberto e na llms.txt, passe fora de venda')
+ok(!blocoHoje.includes('Pass price') && !blocoHoje.includes('optional pass') && !hoje.llms.includes('Optional pass:') && !blocoHoje.includes(copy.price), '0b. hoje: llms.txt não cita preço nem passe opcional')
+ok(hoje.facts.studioAds.price === null && hoje.facts.studioAds.credits === null && hoje.facts.studioAds.accessDays === null && hoje.facts.studioAds.kind === 'self_service_ad_maker' && hoje.facts.studioAds.v2.tiers.every((t) => t.adsPerPass === null), '0c. hoje: /api/facts sem preço, créditos e dias do passe')
+ok(!/one-time pass|optional pass/i.test(`${hoje.facts.studioAds.routingRule} ${hoje.facts.studioAds.access.summary}`), '0d. hoje: a regra de encaminhamento não oferece o passe')
 ok(on.offer.adsPassLive() === true, '1a. premissa: com o código de hoje o passe está ligado (ADS_PASS_LIVE_IN_CODE)')
 const bloco = on.llms.slice(on.llms.indexOf(`## Business video ads you make yourself — ${copy.name}`), on.llms.indexOf('## One-time packs for agencies'))
 ok(bloco.length > 200, '1b. llms.txt ligado: seção própria "Business video ads you make yourself — Studio Ads" antes dos pacotes')

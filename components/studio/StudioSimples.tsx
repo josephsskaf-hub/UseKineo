@@ -15,6 +15,8 @@ import { CHATGPT_LINK_MESSAGE, isStandaloneHttpUrl } from '@/lib/scriptInput'
 import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
 import { MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine'
 import { nomeDoMotorEscolhido, pedidoDoStudioSimples, type FilmeDaCaixa } from '@/lib/growth/studioSimples'
+import { EVENTO_DA_LINHA, LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa' // KINEO-CAIXA-GRATIS-VISIVEL-0411
+import { temCookieDeSessao } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 
 const CSS = `
 .ksx{max-width:760px;margin:0 auto;padding:clamp(20px,6vh,64px) 16px 48px;color:var(--text)}
@@ -40,6 +42,7 @@ const CSS = `
 .ksx-film img{width:100%;height:100%;object-fit:cover;display:block}
 .ksx-film span{position:absolute;left:0;right:0;bottom:0;padding:26px 9px 9px;background:linear-gradient(transparent,rgba(0,0,0,.78));color:#fff;font-size:12px;font-weight:700;line-height:1.3}
 .ksx-hint{margin:10px 0 0;font-size:13px;font-weight:600;color:var(--muted2,var(--muted))}
+.ksx-gratis{margin:10px 2px 0;font-size:13px;font-weight:600;color:var(--muted2,var(--muted))}
 .ksx-dim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;display:flex;align-items:flex-end;justify-content:center}
 .ksx-sheet{width:100%;max-width:520px;max-height:90vh;overflow:auto;box-sizing:border-box;background:var(--card);color:var(--text);border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
 .ksx-sheet h2{margin:0;font-size:19px;font-weight:800;color:var(--text)}
@@ -78,11 +81,27 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
   const [palavraPorPalavra, setPalavraPorPalavra] = useState(false)
   const [folha, setFolha] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [temFilmeGratis, setTemFilmeGratis] = useState(false) // KINEO-CAIXA-GRATIS-VISIVEL-0411 — só com prova do servidor; desconhecido = não mostra
   const nomeMotor = nomeDoMotorEscolhido(motor)
   const opcoesDuracao = motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES)
   const limite = useMemo(() => promptLimitState(texto, analyzePromptMaxChars(palavraPorPalavra ? 'verbatim' : 'ai')), [texto, palavraPorPalavra])
 
   useEffect(() => { void trackEvent('studio_simple_viewed', { engine: motor, campaign: campanha }) }, [motor, campanha])
+
+  // KINEO-CAIXA-GRATIS-VISIVEL-0411 — sem cookie de sessão nem pergunta: visitante não vê a linha e não gera 401.
+  useEffect(() => {
+    if (!temCookieDeSessao(document.cookie)) return
+    let vivo = true
+    void fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!vivo || !filmeGratisNaCaixa(d)) return
+        setTemFilmeGratis(true)
+        void trackEvent(EVENTO_DA_LINHA, { engine: motor, surface: 'studio_simple' })
+      })
+      .catch(() => { /* leitura que falhou = não mostra */ })
+    return () => { vivo = false }
+  }, [motor])
 
   useEffect(() => {
     if (!folha) return
@@ -139,6 +158,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
           <button type="button" className="ksx-go" data-testid="studio-simple-generate" onClick={gerar}>Generate</button>
         </div>
       </div>
+      {temFilmeGratis ? <p className="ksx-gratis" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}
       {filmes.length > 0 ? (
         <>
           <div className="ksx-films">

@@ -12,13 +12,13 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
+import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010
+import { homeCardBotao } from '@/lib/ui/homeCardBotoes0411' // KINEO-BOTOES-SEM-FREE-0411 — o nome do botão, sem "free"
 import {
   // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros")
   HOME_CARD_COPY,
   HOME_CARD_EVENT,
   HOME_CARD_ORDER,
-  homeCardAdsCta, // KINEO-HOME-CARDS-BOTOES-2010
   homeCardClickMetadata,
   homeCardClip,
   homeCardHref,
@@ -105,7 +105,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
   const track = (card: HomeCardId, position: number) => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(card, signedIn), position }) } // KINEO-PAGINAS-IA-CLARAS-2110 — posição real, inclusive quando o Cartoon vem primeiro.
   const elegibilidade = useAdsEligibility(signedIn) // KINEO-ADS-SIMPLES-2810 — null até responder (ou sem sessão): o rótulo de antes
-  const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE && (elegibilidade === null || adsDoorSaysFree(signedIn, elegibilidade.state))) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10) // KINEO-ADS-SIMPLES-2810 — porta honesta: "grátis" só para visitante ou amostra aberta; era: homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)
+  const adsCta = (card: HomeCardId) => homeCardBotao(card, language, ADS_SAMPLE_LIVE && (elegibilidade === null || adsDoorSaysFree(signedIn, elegibilidade.state))) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10) // KINEO-ADS-SIMPLES-2810 — porta honesta: "grátis" só para visitante ou amostra aberta; era: homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />

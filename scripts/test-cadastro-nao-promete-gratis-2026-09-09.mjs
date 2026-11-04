@@ -62,6 +62,7 @@ check(!/free/i.test(ctaPorta), 'o CTA da porta nao contem a palavra "free": ' + 
 check(/ctaPrimary:\s*CARD_ENTRY_COPY\.ctaLong/.test(freeTier), 'ctaPrimary da porta e o ctaLong da fonte unica')
 
 // ── 5. A versao A continua intacta (byte a byte) ─────────────────────────────
-check(linhaDecisao.includes("'Get Started Free →'"), 'com a porta desligada o literal legado volta byte a byte')
+// KINEO-BOTOES-SEM-FREE-0411 — fundador 04/11: "Get started" no geral. O literal fora da porta perdeu o "free"; o filme grátis segue explicado na caixa.
+check(linhaDecisao.includes("'Get started →'") && !/free/i.test(linhaDecisao.split('//')[0].split(':').pop()), 'com a porta desligada o rotulo e Get started, sem free')
 
 console.log(`\n✅ ${ok_} verificacoes ok — a caixa de cadastro fala uma lingua so.\n`)

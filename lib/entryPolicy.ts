@@ -81,7 +81,7 @@ export const CARD_ENTRY_COPY_V_B = {
 // 'todos' deixa o guardião vermelho até este espelho virar ''.
 export const FREE_ENTRY_COUNTRY_CLAUSE_MIRROR = ' in supported countries'
 export const FREE_ENTRY_COPY = {
-  ctaShort: 'Start free',
+  ctaShort: 'Get started', // KINEO-BOTOES-SEM-FREE-0411 [fundador 04/11: "Get started" no geral] — só o nome do botão; o filme grátis segue igual
   ctaLong: `Start free — ${FREE_ENTRY_CREDITS} credits →`,
   // KINEO-VERDADE-TRIAL-2026-10-05 — "every engine" saiu: o grant paga o filme de 15 s, não um Kling/Veo (que exigem plano).
   // "your first 15-second AI film" é espelho literal (módulo PURO) de TRIAL_FIRST_FILM_PHRASE (lib/freeTierOffer.ts).

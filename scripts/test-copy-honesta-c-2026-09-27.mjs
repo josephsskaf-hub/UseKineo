@@ -82,26 +82,22 @@ checa('2f. fato: sem cartão — lib/checkoutPricing.ts CARD_TRIAL_LIVE = false 
 // ── (c) /ads porta Starter: gnote condicionado a viewer.signedIn ─────────────────────────────────────────────────────
 const OLD_NOTE = '<p className="gnote">Secure Stripe checkout. You sign in (or create your account) first.</p>'
 const NEW_NOTE = "<p className=\"gnote\">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>"
+// REANCORADO 04/11 (KINEO-ADS-SEM-PRECO-0411): a porta Starter saiu do /ads, e a frase do checkout com ela. O risco que esta prova cobria (frase errada para o logado) só volta com o bloco de volta.
 function provasDoor(src) {
-  const a = src.indexOf('data-kineo="ads-door-plan"')
-  const b = src.indexOf('<div className="cost ads-price">', a)
-  const plano = a >= 0 && b > a ? src.slice(a, b) : ''
-  const doorCta = src.slice(src.indexOf('function DoorCta('), src.indexOf('export default async function StudioAdsPage'))
   return {
-    oldZeroInPlan: plano.length > 0 && count(plano, OLD_NOTE) === 0,
-    newOnceInPlan: count(plano, NEW_NOTE) === 1,
-    newOnceInFile: count(src, NEW_NOTE) === 1,
-    passUntouched: count(doorCta, OLD_NOTE) === 1 && count(src, '<div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>') === 1 && count(src, '<DoorCta cta={cta} placement="hero" price={price} />') === 1 && count(src, '<DoorCta cta={cta} placement="end" price={price} />') === 1,
+    planoFora: count(src, 'data-kineo="ads-door-plan"') === 0,
+    notaFora: count(src, OLD_NOTE) === 0 && count(src, NEW_NOTE) === 0,
+    umBotao: count(src, '<DoorCta cta={cta} placement="hero" href={makerHref} />') === 1 && count(src, '<DoorCta cta={cta} placement="end" href={makerHref} />') === 1,
     signedInIsBoolean: count(src, "type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }") === 1 && count(src, 'const viewer = await withTimeout(readViewer(), ANONYMOUS)') === 1,
   }
 }
 const pc = provasDoor(DOOR)
-checa('3a. porta Starter: o gnote incondicional antigo = 0 dentro do bloco ads-door-plan (literal travado)', pc.oldZeroInPlan)
-checa('3b. porta Starter: gnote condicionado — logado "Secure Stripe checkout."; anônimo a frase inteira (1x no bloco, 1x no arquivo)', pc.newOnceInPlan && pc.newOnceInFile)
+checa('3a. /ads sem o bloco da porta Starter', pc.planoFora)
+checa('3b. /ads sem a frase de login do checkout (nenhuma das duas versões)', pc.notaFora)
 checa('3c. viewer.signedIn é boolean lido no servidor (readViewer/getUser), não palpite do cliente', pc.signedInIsBoolean)
-checa('3d. o passe fica como estava: DoorCta e as 3 chamadas (hero/price/end) intactas', pc.passUntouched)
+checa('3d. um botão só, no topo e no fim', pc.umBotao)
 checa('3e. fato: o checkout GET só manda para /login quem não tem sessão (redirect com reason=checkout)', count(CHECKOUT, '/login?reason=checkout&redirect=') >= 1)
-checa('3f. a porta do plano continua condicionada a planOffer (gate !== ok) — o logado sem acesso VÊ este gnote', count(DOOR, "const planOffer = live && viewer.gate !== 'ok'") === 1 && count(DOOR, '{planOffer ? (') === 1)
+checa('3f. a condição da porta do plano saiu junto', count(DOOR, 'planOffer') === 0)
 
 // ── 4. mutantes em memória ───────────────────────────────────────────────────────────────────────────────────────────
 // M1–M4 (célula/helper da tabela) saíram com a tabela — reancorado KINEO-PRECOS-LIMPEZA-1510. Mutante novo da ausência:
@@ -110,12 +106,12 @@ checa('M1. a tabela de volta ao /pricing reprova em 1d', !m1.semTabela)
 // M5: banner com "Creator trial" de volta → 2a cai
 const m5 = provasBanner(BANNER.replace("You&apos;re on your free trial — ends {timeLeft}", "You&apos;re on the Creator trial — ends {timeLeft}"))
 checa('M5. banner com "Creator trial" de volta reprova em 2a e 2c', !m5.creatorZero && !m5.headlineFree)
-// M6: porta Starter com o gnote incondicional de volta → 3a/3b caem
-const m6 = provasDoor(DOOR.replace(NEW_NOTE, OLD_NOTE))
-checa('M6. porta Starter com o gnote incondicional de volta reprova em 3a e 3b', !m6.oldZeroInPlan && !m6.newOnceInPlan)
-// M7: condicional invertida (logado vê a frase inteira) → 3b cai
-const m7 = provasDoor(DOOR.replace(NEW_NOTE, "<p className=\"gnote\">{viewer.signedIn ? 'Secure Stripe checkout. You sign in (or create your account) first.' : 'Secure Stripe checkout.'}</p>"))
-checa('M7. condicional invertida reprova em 3b', !m7.newOnceInPlan)
+// M6: a frase do checkout de volta → 3b cai
+const m6 = provasDoor(DOOR.replace('<header className="ads-hero">', OLD_NOTE + '<header className="ads-hero">'))
+checa('M6. a frase do checkout de volta reprova em 3b', !m6.notaFora)
+// M7: a porta Starter de volta → 3a cai
+const m7 = provasDoor(DOOR.replace('<header className="ads-hero">', '<div data-kineo="ads-door-plan"></div><header className="ads-hero">'))
+checa('M7. a porta Starter de volta reprova em 3a', !m7.planoFora)
 
 console.log(`\ntest-copy-honesta-c-2026-09-27: ${ok} ok, ${falhas.length} falhas`)
 if (falhas.length) process.exit(1)

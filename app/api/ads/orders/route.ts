@@ -34,7 +34,7 @@ async function gateOrDeny(userId: string, reason: Parameters<typeof adsGate>[0],
   await writeServerEvent({ name: 'ads_access_denied', userId, path, metadata: { reason: g, live: adsPassLive() } })
   return g === 'closed'
     ? NextResponse.json({ error: 'Studio Ads opens soon.', reason: 'closed' }, { status: 403 })
-    : NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: 'no_access' }, { status: 403 })
+    : NextResponse.json({ error: 'Studio Ads needs a paid plan.', reason: 'no_access' }, { status: 403 })
 }
 
 // KINEO-ADS-LISTA-2026-09-27 — a lista "Your ads" do /ads/new mostra a miniatura do filme: videos.thumbnail_url juntada

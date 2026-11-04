@@ -20,7 +20,7 @@ import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
 import { adsModelById, adsModelMissingInputs, ADS_MODELS, type AdsModel, type AdsModelId } from '@/lib/ads/models'
 import type { AdsBrief, AdsMediaItem, AdsOrder } from '@/lib/ads/types'
 import type { AdsScriptVersion } from '@/lib/ads/scriptPrompt'
-import { ADS_PASS_CREDITS, adsPassLive, adsPassPriceLabel } from '@/lib/ads/offer'
+// KINEO-ADS-SEM-PRECO-0411 — o passe saiu de venda: sem crédito, a saída é "See plans".
 import {
   ADS_BEAT_MAX_CHARS,
   ADS_DEFAULT_VOICE,
@@ -1145,9 +1145,9 @@ export default function AdsWizardClient({ gate, access, resumingPass, v2Href = n
     content = (
       <div className="card adsw-panel">
         <h2 tabIndex={-1} data-step-heading>Studio Ads needs a pass</h2>
-        <p className="adsw-lead">Studio Ads is included with the Studio Ads pass or any paid plan.</p>
+        <p className="adsw-lead">Studio Ads is included with any paid plan.</p>
         <div className="adsw-actions">
-          <Link className="adsw-btn" href="/ads">See the Studio Ads pass</Link>
+          <Link className="adsw-btn" href="/pricing?intent_campaign=ads_door">See plans</Link>
         </div>
       </div>
     )
@@ -3412,15 +3412,6 @@ function RenderStep({
             </p>
           ) : null}
           <div className="adsw-actions">
-            {adsPassLive() ? (
-              <a
-                className="adsw-btn"
-                href="/api/stripe/checkout?pack=ads_pass"
-                onClick={() => { void trackEvent('ads_cta_clicked', { source: 'wizard_out_of_credits', order_id: order.id }) }}
-              >
-                Get {ADS_PASS_CREDITS} more credits · {adsPassPriceLabel()}
-              </a>
-            ) : null}
             <Link className="adsw-link" href="/pricing">See plans</Link>
           </div>
         </div>

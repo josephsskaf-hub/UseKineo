@@ -52,7 +52,7 @@ checa('FREE_ENTRY_CREDITS = 10 (entryPolicy)', /export const FREE_ENTRY_CREDITS 
 checa('TRIAL_CREDIT_CAP = 10 (reverseTrial)', /export const TRIAL_CREDIT_CAP = 10/.test(rt))
 checa('TRIAL_GRANT_CREDITS_COPY = 10 (freeTierOffer)', /export const TRIAL_GRANT_CREDITS_COPY = 10/.test(fo))
 checa('teto por conta: quem recebeu 30 continua com 30 (trialCapFor lê trial_credits_granted)', /export function trialCapFor\(/.test(rt) && /trialCreditsUsed\(profile\) >= trialCapFor\(profile\)/.test(rt) && /newUsed >= capDaConta/.test(rt) && /newUsed < \(granted > 0 \? granted : TRIAL_CREDIT_CAP\)/.test(rt))
-checa('CARD_ENTRY_COPY vira a copy grátis quando a versão B está desligada', /export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY \? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY/.test(ep) && /ctaShort: 'Start free'/.test(ep))
+checa('CARD_ENTRY_COPY vira a copy grátis quando a versão B está desligada', /export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY \? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY/.test(ep) && /ctaShort: 'Get started'/.test(ep))
 checa('caminho de entrada é o cadastro, não o checkout', /CARD_ENTRY_CHECKOUT_PATH = CARD_ENTRY_ONLY \? CARD_ENTRY_CHECKOUT_PATH_V_B : \('\/signup\?intent_campaign=free_entry' as const\)/.test(ep))
 
 console.log('== 3. o $1 morreu ==')

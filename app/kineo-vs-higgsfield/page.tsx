@@ -191,7 +191,7 @@ export default function VsHiggsfieldPage() {
           href="/free?utm_source=seo&utm_medium=vs_higgsfield&utm_campaign=comparison"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
-          Start free
+          Get started
         </Link>
         <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_CREDITS_SHOWN} credits${GRANT_COUNTRY_CLAUSE}, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
       </div>

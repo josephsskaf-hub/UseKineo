@@ -82,7 +82,7 @@ export function adsComparisonEnrichment(c: AdsComparisonEntry) {
     { id: 'actors', label: 'AI actors', them: f.actors, kineo: kineoAvatar },
     { id: 'tools', label: 'Starting point & tools', them: f.input, kineo: kineoInput },
     { id: 'price', label: 'Entry price', them: f.price, kineo: kineoAdsPrice() },
-    { id: 'free', label: 'Free option', them: f.free, kineo: ADS_SAMPLE_LIVE ? 'First ad free to try for free and trial accounts (one per account, within a daily limit).' : `No free ad right now; a one-time pass without a subscription is ${offer.passPrice}.` },
+    { id: 'free', label: 'Free option', them: f.free, kineo: ADS_SAMPLE_LIVE ? 'First ad free to try for free and trial accounts (one per account, within a daily limit).' : 'No free ad right now; Studio Ads comes with any paid plan.' },
     { id: 'extra', label: c.id === 'creatify' ? 'Launching & insights' : 'Languages', them: f.extra, kineo: c.id === 'creatify' ? '✗ No direct publishing and ✗ no ad-performance analytics: download the ad and publish it yourself.' : 'Narration in the supported languages; check the script. Not automatic dubbing of an existing ad.' },
   ]
   const pickThem = c.id === 'creatify'

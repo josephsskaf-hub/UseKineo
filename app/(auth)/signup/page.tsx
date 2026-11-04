@@ -963,7 +963,7 @@ export default function SignupPage() {
                         ? bulkCheckoutContext
                           ? `Continue to ${bulkCheckoutContext.videos}-video checkout →`
                           : trialPromise?.cta ?? checkoutChoice?.button ?? 'Continue to secure checkout →'
-                        : '⚡ Create Free Account'}</KineoBoltText>
+                        : '⚡ Create account'}</KineoBoltText>
                   </button>
                 </form>
 

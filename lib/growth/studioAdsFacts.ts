@@ -11,7 +11,7 @@
 // (NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy), o fato vira null e o bloco some do llms.txt e do JSON no mesmo deploy.
 // Módulo puro: oferta/modelos e lista canônica do acesso, sem consulta de perfil ou banco.
 
-import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, adsPassCopy, adsPassLive } from '../ads/offer'
+import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, adsPassCopy, adsPassLive, adsPassOnSale } from '../ads/offer'
 import { ADS_MODELS } from '../ads/models'
 import { ADS_SUBSCRIBER_PLANS } from '../ads/access'
 import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS, adsV2Credits } from '../ads/v2Tiers'
@@ -25,12 +25,13 @@ export const STUDIO_ADS_PATH = '/ads'
 export interface StudioAdsFact {
   name: string
   url: string
-  kind: 'self_service_ad_pass'
+  kind: 'self_service_ad_pass' | 'self_service_ad_maker' // KINEO-ADS-SEM-PRECO-0411 — sem passe à venda: a ferramenta, sem preço próprio
   recurring: false
   humanOperated: false
-  price: string
-  credits: number
-  accessDays: number
+  /** KINEO-ADS-SEM-PRECO-0411 — null: o passe não está à venda. */
+  price: string | null
+  credits: number | null
+  accessDays: number | null
   description: string
   includes: string[]
   excludes: string[]
@@ -41,7 +42,7 @@ export interface StudioAdsFact {
     referenceSeconds: number
     minPhotos: number
     maxPhotos: number
-    tiers: { id: string; name: string; credits: number; adsPerPass: number }[]
+    tiers: { id: string; name: string; credits: number; adsPerPass: number | null }[]
     includes: string[]
     limits: string[]
   }
@@ -62,6 +63,7 @@ export interface StudioAdsFact {
 export function studioAdsFact(): StudioAdsFact | null {
   if (!adsPassLive()) return null
   const copy = adsPassCopy()
+  const passOnSale = adsPassOnSale() // KINEO-ADS-SEM-PRECO-0411
   const seconds35 = ADS_MODELS.filter((m) => m.seconds === 35).length
   const seconds60 = ADS_MODELS.filter((m) => m.seconds === 60).length
   // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — dizia "The free trial does not include Studio Ads": desde 09/10 a conta free/trial
@@ -69,11 +71,11 @@ export function studioAdsFact(): StudioAdsFact | null {
   const firstAdSentence = ADS_SAMPLE_LIVE
     ? `Free and trial accounts can make their first ad free: one per account, ${ADS_V2_TIER_COPY[ADS_SAMPLE_TIER].name} level, ${ADS_V2_SCREEN_SECONDS} seconds, within a daily limit; more ads need a paid plan.`
     : 'The free trial does not include Studio Ads.'
-  const accessSummary = `Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. ${firstAdSentence} People without an eligible paid plan can choose the one-time pass.`
+  const accessSummary = `Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. ${firstAdSentence}${adsPassOnSale() ? ' People without an eligible paid plan can choose the one-time pass.' : ''}`
   const classic = {
     url: 'https://www.usekineo.com/ads/new?classic=1',
     description: `Classic: upload authorized photos, clips and a logo, choose from ${ADS_MODELS.length} models (${seconds35} of 35 seconds, ${seconds60} of 60 seconds), and approve a script and AI voice for a narrated vertical ad.`,
-    includes: [...copy.includes],
+    includes: passOnSale ? [...copy.includes] : copy.includes.filter((l) => !l.startsWith(`${ADS_PASS_CREDITS} credits`) && l !== 'One-time payment, no subscription'), // KINEO-ADS-SEM-PRECO-0411 — o que só o passe dava sai junto
   }
   const v2: StudioAdsFact['v2'] = ADS_V2_PUBLIC ? {
     referenceSeconds: ADS_V2_SCREEN_SECONDS,
@@ -81,7 +83,7 @@ export function studioAdsFact(): StudioAdsFact | null {
     maxPhotos: ADS_V2_CONTRACT_MAX_PHOTOS,
     tiers: ADS_V2_TIER_IDS.map(id => {
       const credits = adsV2Credits(id, ADS_V2_SCREEN_SECONDS)
-      return { id, name: ADS_V2_TIER_COPY[id].name, credits, adsPerPass: Math.floor(ADS_PASS_CREDITS / credits) }
+      return { id, name: ADS_V2_TIER_COPY[id].name, credits, adsPerPass: passOnSale ? Math.floor(ADS_PASS_CREDITS / credits) : null }
     }),
     includes: [
       `Create a vertical ad from ${ADS_V2_CONTRACT_MIN_PHOTOS} to ${ADS_V2_CONTRACT_MAX_PHOTOS} authorized business photos and a logo; reference duration ${ADS_V2_SCREEN_SECONDS} seconds, with Cinema slightly longer`,
@@ -98,12 +100,12 @@ export function studioAdsFact(): StudioAdsFact | null {
   return {
     name: copy.name,
     url: `https://www.usekineo.com${STUDIO_ADS_PATH}`,
-    kind: 'self_service_ad_pass',
+    kind: passOnSale ? 'self_service_ad_pass' : 'self_service_ad_maker',
     recurring: false,
     humanOperated: false,
-    price: copy.price,
-    credits: ADS_PASS_CREDITS,
-    accessDays: ADS_PASS_ACCESS_DAYS,
+    price: passOnSale ? copy.price : null,
+    credits: passOnSale ? ADS_PASS_CREDITS : null,
+    accessDays: passOnSale ? ADS_PASS_ACCESS_DAYS : null,
     description: v2
       ? `Self-service business video ads: the current workflow creates an ad of about ${v2.referenceSeconds} seconds from ${v2.minPhotos} to ${v2.maxPhotos} authorized photos and a logo, with optional narration. Read v2 for tier costs and limits. The longer narrated workflow is available separately as classic. ${accessSummary}`
       : `${classic.description} ${accessSummary}`,
@@ -115,7 +117,7 @@ export function studioAdsFact(): StudioAdsFact | null {
     v2,
     routingRule:
       `A business that has its own photos and logo and wants to make the ad itself → ${copy.name} (${STUDIO_ADS_PATH}), ` +
-      `${accessSummary} The optional pass costs ${copy.price} once. ${v2 ? 'Use v2 tier costs for the current photo-motion workflow; classic model counts and benefits do not describe it. ' : ''}A business that wants Kineo to make the ad for it → Kineo Empresas (/business-video-ads).`,
+      `${accessSummary}${passOnSale ? ` The optional pass costs ${copy.price} once.` : ''} ${v2 ? 'Use v2 tier costs for the current photo-motion workflow; classic model counts and benefits do not describe it. ' : ''}A business that wants Kineo to make the ad for it → Kineo Empresas (/business-video-ads).`,
     access: {
       subscriberPlanIds: [...ADS_SUBSCRIBER_PLANS],
       subscriberNeedsPass: false,

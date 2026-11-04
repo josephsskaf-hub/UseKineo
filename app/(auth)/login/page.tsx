@@ -435,7 +435,7 @@ export default function LoginPage() {
                 className="font-semibold transition-colors"
                 style={{ color: 'var(--accent)' }}
               >
-                Sign up free
+                Sign up
               </Link>
             </p>}
         </div>

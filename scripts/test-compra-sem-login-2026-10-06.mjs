@@ -2114,7 +2114,7 @@ async function run(name, scenario, opts) {
   check(declares.length === 1 && declares[0] === PURE, `o interruptor mora num lugar só (${declares.join(', ')})`)
   const consumers = files.filter((f) => f !== PURE && /\bGUEST_CHECKOUT_LIVE\b/.test(read(f)))
   for (const f of consumers) check(/import \{[^}]*\bGUEST_CHECKOUT_LIVE\b[^}]*\} from '@\/lib\/growth\/guestCheckout'/.test(read(f)), `${f} lê o interruptor da fonte única`)
-  for (const f of [CHECKOUT, 'app/pricing/PricingClient.tsx', 'app/KineoLanding.tsx', 'app/ads/page.tsx', 'app/ads/AdsPaywall.tsx']) check(consumers.includes(f), `${f} obedece ao interruptor`)
+  for (const f of [CHECKOUT, 'app/pricing/PricingClient.tsx', 'app/KineoLanding.tsx', 'app/ads/AdsPaywall.tsx']) check(consumers.includes(f), `${f} obedece ao interruptor`)
   // Leva 4 — o interruptor da oferta de boas-vindas sem conta: um lugar só, lido só pela rota de checkout (o webhook NÃO
   // olha interruptor de propósito: uma compra feita com ele ligado é entregue e medida mesmo que alguém o desligue).
   check((pure.match(/^export const GUEST_WELCOME_PROMO_LIVE = (?:true|false)$/gm) ?? []).length === 1, 'interruptor único: GUEST_WELCOME_PROMO_LIVE é um booleano literal, declarado uma vez')
@@ -2154,11 +2154,7 @@ async function run(name, scenario, opts) {
   for (const name of Object.values(env0.pure.GUEST_CHECKOUT_EVENTS)) check(serverOnly.includes(`'${name}',`), `${name} é SERVER_ONLY no sink do navegador`)
   check(read('app/pricing/PricingClient.tsx').includes("signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo,"), 'pricing: "Sign up & continue" só some quando o servidor abre a Stripe sem conta')
   const squash = (s) => s.replace(/\s+/g, ' ')
-  check(squash(read('app/ads/page.tsx')).includes(squash(`{GUEST_CHECKOUT_LIVE && !viewer.signedIn ? (
-    <p className="gnote">{GUEST_CHECKOUT_ANON_NOTE}</p>
-  ) : (
-    <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>
-  )}`)), '/ads: a nota do anônimo segue o interruptor (desligado = a linha de sempre, intacta)')
+  check(!read('app/ads/page.tsx').includes('GUEST_CHECKOUT_LIVE'), '/ads: sem porta de compra na tela, a nota do anônimo saiu junto (KINEO-ADS-SEM-PRECO-0411)')
   check(/function pricingCheckoutHref[\s\S]{0,200}if \(isSignedIn\) return checkoutPath\n[\s\S]{0,400}if \(GUEST_CHECKOUT_LIVE\) return checkoutPath/.test(read('app/KineoLanding.tsx')), 'home: os cards vão direto ao checkout só com o interruptor ligado')
   check(squash(read('app/ads/AdsPaywall.tsx')).includes(squash(`{GUEST_CHECKOUT_LIVE && !signedIn ? (
     <p className="gnote">{ui(COPY.note)}</p>

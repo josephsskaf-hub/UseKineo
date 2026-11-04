@@ -4,44 +4,17 @@
 // upload its photos, clips and logo, get the narration and download the finished ad, with no manual work by Kineo.
 // This page sells that and nothing more. It lives OUTSIDE (dashboard) because that layout forces noindex.
 //
-// SOURCES, NEVER TYPED HERE: price, credits, days and the includes/excludes lists come from lib/ads/offer.ts; the 8
-// models from lib/ads/models.ts; the review cap from lib/ads/events.ts; the voices from lib/ads/renderContract.ts.
+// SOURCES, NEVER TYPED HERE: the includes/excludes lists come from lib/ads/offer.ts; the 8 models from lib/ads/models.ts; the voices from lib/ads/renderContract.ts.
 //
-// KINEO-ADS-PORTA-PLANO-2026-09-27 — whoever cannot open the wizard (anonymous, or signed in without access) sees TWO
-// doors in Price: the Starter plan first (price and credits from lib/checkoutPricing.ts, name from lib/growth/planFit.ts,
-// ads-per-month from KINEO1_35S_CREDITS) and the pass beside it, untouched. The wizard's no_access redirect now carries
-// ?from=new, and that adds a strip above the hero saying that Studio Ads comes with every paid plan. Facts the copy
-// leans on: every TIER_CREDITS plan is 'subscriber' in lib/ads/access.ts (ADS_SUBSCRIBER_PLANS), the engine gate is off
-// for every account (lib/enginePlanGate.ts ENGINE_GATE_SINCE), and app/api/stripe/portal exists (cancel anytime).
-// "Every engine" carries "your balance covers": TIER_CREDITS.starter is below the dearest engine's 60 s cost
-// (lib/credits/engineCost.ts creditCostForDuration) — access and sufficient credits are separate (lib/kineoFacts.ts).
-// The subscription checkout GET reads tier, billing and intent_campaign; it has NO post-payment return parameter, so
-// success lands on /checkout/success like every plan — nothing here pretends otherwise.
-//
-// KINEO-ADS-V2-VIRADA-2026-09-29 — the v2 ad is public (lib/ads/v2Tiers.ts ADS_V2_PUBLIC). This door now sells what the
-// ad maker at /ads/v2 makes: a vertical ad of about 15 s where the business's REAL photos get motion, with music, a short
-// voice-over and the real logo; 3 levels priced by adsV2Credits (founder, 28/09: 34/41/51 per 15 s); "How it works" is
-// the SAME 4 steps as the maker's side column (lib/ads/v2Screen.ts ADS_V2_HOW_IT_WORKS). The 8 v1 models moved down to
-// "Classic narrated ads", with the link to /ads/new?classic=1. No caption promise, no "35 or 60 seconds" as the product.
-// ?from=v2 (the maker's no-access redirect) gets the same strip as ?from=new. The pass price and credits are unchanged
-// (lib/ads/offer.ts); the price cards only say how many ads of each kind those credits pay for.
-//
-// THE CTA IS DECIDED ON THE SERVER, in this order:
-//   1. signed in and adsGate(...) === 'ok'  → "Make your ad" (MAKER_HREF: /ads/v2)  — pass, paid plan or internal;
-//   2. adsPassLive() OR internal account     → "Get Studio Ads · <price>" as a plain <a> to the checkout GET
-//      (logged-out people are sent to /login by the checkout and brought back); the same rule the checkout applies;
-//   3. otherwise                             → "Opens soon", no button.
-// The buy CTA (and only it) closes when the first-ad review queue is full: ads_orders delivered inside REVIEW_WINDOW_MS
-// with qa_at null, counted by distinct user, >= ADS_MAX_OPEN_REVIEWS. The window is the operator's review rhythm (since
-// 27/09 the page promises no deadline: "A human checks your first ad"), so a review nobody closed can never lock the
-// door for good and "come back tomorrow" stays true. A read failure or a
-// missing table counts as 0 — the page never hangs or breaks on it (the server side of the cap belongs to the
-// render/checkout routes, not to this page).
+// KINEO-ADS-SEM-PRECO-0411 [fundador 04/11: "Não quero isso mais. /ads tem que ter só o que o cara vai trabalhar, não tem que ter o pricing. Não tem que ter valor."]
+// This page shows what Studio Ads makes, how it works, examples and ONE button that opens the flow. No price, no pass, no plan card, no credits.
+// The pass is off sale (lib/ads/offer.ts adsPassOnSale); Studio Ads itself stays open and indexed (adsPassLive). Who cannot pay for an ad finds the plans
+// at the point of generating, inside /ads/v2 (lib/ads/eligibilityPure adsV2RefusalFor, AdsEligibilityNotice). Guardian: scripts/test-frente-0411.mjs.
+// The button: Studio Ads closed and not internal → "Opens soon"; signed in → the maker; not signed in → the maker's guest screen (login comes at the first action that needs it).
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation' // KINEO-ADS-V2-VIRADA-2026-09-29 — go=maker
 import Footer from '@/components/Footer'
-import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
@@ -49,53 +22,24 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/server'
 import { footageAdminClient } from '@/lib/userFootage'
 import { isAdsInternalEmail } from '@/lib/ads/access'
-import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAccess'
-import { ADS_MAX_OPEN_REVIEWS } from '@/lib/ads/events'
+import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { ADS_MODELS, type AdsModel } from '@/lib/ads/models'
-import {
-  ADS_PASS_ACCESS_DAYS,
-  ADS_PASS_CREDITS,
-  KINEO1_35S_CREDITS, // KINEO-ADS-REVISAO-2026-09-27: o custo por anúncio da FAQ nasce daqui, nunca digitado
-  adsCoverageLine, // KINEO-PASSE-B-2026-09-28: 90 cr = "2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s"
-  adsPassCopy,
-  adsPassLive,
-  adsPassPriceLabel,
-} from '@/lib/ads/offer'
+import { adsPassCopy, adsPassLive } from '@/lib/ads/offer'
 import { ADS_VOICES } from '@/lib/ads/renderContract'
-import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS, adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09-29
+import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09-29
 import { ADS_V2_HOW_IT_WORKS, ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '@/lib/ads/v2Screen' // KINEO-ADS-V2-VIRADA-2026-09-29
 import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists' // KINEO-ADS-V2-VIRADA-2026-09-29
-import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
-import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
-import { GUEST_CHECKOUT_ANON_NOTE, GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
-// KINEO-ADS-PAREDE-2026-10-06 — a parede vende: quem chega por uma porta da parede (?from=v2|new|producao|studio) sem acesso
-// vê a OFERTA do plano de entrada (+ Express) no lugar da faixa. Quem vê e de onde vem cada número: lib/ads/paywall.ts e
-// lib/ads/paywallSources.ts. Interruptor de reversão: ADS_PAYWALL_LIVE (false = a faixa de antes volta sozinha).
-import { ADS_ACCESS_SELECT, adsAccessReason, type AdsAccessFields } from '@/lib/ads/access'
-import { adsPaywallNoSession, adsPaywallOffer, adsPaywallVisible, type AdsPaywallProof } from '@/lib/ads/paywall'
-import { adsPaywallSources } from '@/lib/ads/paywallSources'
-import { REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy'
-import AdsPaywall from './AdsPaywall'
-import { BUSINESS_ADS_PROMISE, BUSINESS_PAGE_PATH, BUSINESS_PRICE_LABEL } from '@/lib/businessPlan' // KINEO-BUSINESS-84-2026-10-09
-import { adsUgcComparisonLine } from '@/lib/ads/ugcComparison' // KINEO-CHECKOUT-CLAREZA-1610 — criador UGC humano × anúncio na Kineo
-import { BF_EN_PATH, UGC_PILLAR_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — a porta do menu "Product ads" leva às páginas do UGC e do Kit Black Friday
-// KINEO-ADS-AMOSTRA-2026-10-09 — o PRIMEIRO anúncio grátis (lib/ads/sample.ts): a porta oferece a amostra ANTES da oferta paga
-// (que continua logo abaixo). Logado e barrado pelo gate ('no_access') com a amostra ainda aberta (adsSampleOpen) → botão para
-// /ads/v2; anônimo CONFIRMADO pelo auth (noSession) → o mesmo botão para /signup?redirect=/ads/v2 (o cadastro volta ao
-// montador). Timeout/erro de leitura = sem botão (falha fechada). Studio Ads fechado (adsPassLive false) = sem botão.
-import { adsSampleOpen } from '@/lib/ads/serverAccess'
+import { ANUNCIO_DA_PORTA } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, o botão abre a tela do anúncio
+// KINEO-ADS-PAREDE-2026-10-06 — a oferta da parede saiu daqui (KINEO-ADS-SEM-PRECO-0411); só a leitura de "sem sessão" continua.
+import { adsPaywallNoSession } from '@/lib/ads/paywall'
+import { UGC_PILLAR_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — a porta do menu "Product ads" leva à página do UGC
+// KINEO-ADS-AMOSTRA-2026-10-09 — o PRIMEIRO anúncio grátis (lib/ads/sample.ts): a porta explica a amostra embaixo do botão, para quem ela está aberta.
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { headers } from 'next/headers' // KINEO-ADS-SIMPLES-2810 — o país do pedido para a régua única
 import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
 import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA da amostra (a mesma do /ads/v2 e dos cards)
 import { ADS_ESCOLHA_SAMPLE_PHOTOS, ADS_ESCOLHA_SAMPLE_SECONDS } from '@/lib/ads/cena/escolhaSamplePolicy' // KINEO-ADS-SIMPLES-2810 — a copy da amostra nasce dos números reais (8 s, 2 fotos)
-// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — amostra JÁ usada: a porta troca o convite pela oferta do Business, com o anúncio dela.
-import { loadAdsSampleUsedAd, type AdsSampleUsedAd } from '@/lib/ads/serverAccess'
-import { adsAfterSampleCopy, fillAfterSample } from '@/lib/ads/afterSample'
-import { businessAdsOffer } from '@/lib/businessPlan'
-const SAMPLE_SIGNUP_HREF = `/signup?redirect=${encodeURIComponent('/ads/v2')}`
-import { readPartnerStatus } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a prova positiva também pergunta pelo parceiro
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (prévias feitas pelo próprio efeito).
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 import { AdsStyleStrip } from '@/components/ads/AdsStyles'
@@ -114,30 +58,20 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: '/ads' },
   openGraph: { title: 'Studio Ads — make your own video ad', description: DESCRIPTION, url: '/ads', type: 'website' },
-  // While the pass is not on sale the page only says "Opens soon": keep it out of the index (and out of the sitemap).
+  // While Studio Ads is closed the page only says "Opens soon": keep it out of the index (and out of the sitemap). The pass being off sale changes nothing here.
   ...(adsPassLive() ? {} : { robots: { index: false, follow: true } }),
 }
 
-const CHECKOUT_HREF = '/api/stripe/checkout?pack=ads_pass'
-/** KINEO-ADS-PORTA-PLANO-2026-09-27 — the Starter door: tier, billing and intent_campaign are the GET parameters
- *  app/api/stripe/checkout/route.ts reads (intentCampaignFrom accepts [A-Za-z0-9._~-]{1,100}). Signed out, the checkout
- *  sends the person to /signup carrying this URL and resumes it. */
-const STARTER_CHECKOUT_HREF = '/api/stripe/checkout?tier=starter&billing=monthly&intent_campaign=ads_door'
 // KINEO-ADS-V2-VIRADA-2026-09-29 — the main button opens the ad maker (/ads/v2); the old wizard is the classic option.
 const MAKER_HREF = ADS_V2_PUBLIC ? '/ads/v2' : '/ads/new'
 const CLASSIC_HREF = '/ads/new?classic=1'
 const DFY_HREF = '/business-video-ads'
 /** A slow auth or database read must never hold the public door; past this, the page renders the safe default. */
 const READ_TIMEOUT_MS = 2500
-/** The operator's review window (an internal rhythm, not a customer promise since 27/09): only ads delivered inside it count toward the review cap. */
-const REVIEW_WINDOW_MS = 24 * 3600 * 1000
-
 type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }
-/** KINEO-ADS-PAREDE-2026-10-06 — o que a oferta da parede precisa além do Viewer: o id (client_reference_id do Express), se o
- *  getUser CONFIRMOU "sem sessão" e a prova positiva relida. ANONYMOUS é também o valor do timeout: ali noSession fica false —
- *  leitura que estourou o tempo é "não sei", nunca "anônimo". */
-type DoorViewer = Viewer & { userId: string | null; noSession: boolean; proof: AdsPaywallProof | null }
-const ANONYMOUS: DoorViewer = { signedIn: false, gate: null, internal: false, userId: null, noSession: false, proof: null }
+/** O id (a régua da amostra) e se o getUser CONFIRMOU "sem sessão". ANONYMOUS é também o valor do timeout: ali noSession fica false — leitura que estourou o tempo é "não sei", nunca "anônimo". */
+type DoorViewer = Viewer & { userId: string | null; noSession: boolean }
+const ANONYMOUS: DoorViewer = { signedIn: false, gate: null, internal: false, userId: null, noSession: false }
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -157,25 +91,7 @@ function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
   })
 }
 
-/** KINEO-ADS-PAREDE-2026-10-06 — PROVA POSITIVA para a oferta da parede: o perfil relido com sucesso continua sem acesso.
- *  loadAdsAccess devolve 'none' também quando a leitura FALHA (falha fechada para o montador); para uma oferta de assinatura
- *  isso seria vender plano a quem já assina. Erro, perfil ausente ou exceção = null = a oferta não aparece (a faixa fica). */
-async function readPaywallProof(admin: ReturnType<typeof footageAdminClient>, userId: string, authEmail: string | null | undefined): Promise<AdsPaywallProof | null> {
-  try {
-    const { data, error } = await admin.from('profiles').select(`${ADS_ACCESS_SELECT}, trial_status`).eq('id', userId).maybeSingle()
-    if (error || !data) return null
-    const row = data as AdsAccessFields & { trial_status?: unknown }
-    // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): plano de
-    // cortesia só vira prova "sem acesso" quando a leitura do parceiro RESPONDEU que não é parceiro. Parceiro ativo nunca recebe a
-    // oferta de plano; leitura que falhou = "não sei" = a faixa de antes. Plano fora da cortesia responde sem ler nada.
-    if ((await readPartnerStatus(userId, typeof row.plan === 'string' ? row.plan : null)) !== 'not_partner') return null
-    return { reason: adsAccessReason(row, authEmail), trialStatus: typeof row.trial_status === 'string' ? row.trial_status : null }
-  } catch {
-    return null
-  }
-}
-
-/** Who is looking: the verified auth e-mail (getUser), never profiles.email. */
+/** Who is looking: the verified auth e-mail (getUser), never profiles.email. KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — o parceiro ativo entra com gate 'ok' (loadAdsAccess); esta porta não oferece plano a ninguém. */
 async function readViewer(): Promise<DoorViewer> {
   try {
     const { data: { user }, error } = await createClient().auth.getUser()
@@ -184,39 +100,13 @@ async function readViewer(): Promise<DoorViewer> {
     const internal = isAdsInternalEmail(user.email)
     try {
       // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de uma equipe Business vê a porta do DONO ("Make your ad").
-      const { admin, reason } = await loadAdsAccess(user.id, user.email, { workspace: true })
-      const gate = adsGate(reason)
-      // KINEO-ADS-PAREDE-2026-10-06 — só quem o gate barrou é relido (assinante nem paga a segunda leitura).
-      const proof = gate === 'no_access' ? await readPaywallProof(admin, user.id, user.email) : null
-      return { signedIn: true, gate, internal, userId: user.id, noSession: false, proof }
+      const { reason } = await loadAdsAccess(user.id, user.email, { workspace: true })
+      return { signedIn: true, gate: adsGate(reason), internal, userId: user.id, noSession: false }
     } catch {
-      return { signedIn: true, gate: null, internal, userId: user.id, noSession: false, proof: null }
+      return { signedIn: true, gate: null, internal, userId: user.id, noSession: false }
     }
   } catch {
     return ANONYMOUS
-  }
-}
-
-/** Businesses waiting for the human review of an ad delivered inside REVIEW_WINDOW_MS (distinct users; 0 on any failure). */
-async function countOpenReviews(): Promise<number> {
-  try {
-    const since = new Date(Date.now() - REVIEW_WINDOW_MS).toISOString()
-    const { data, error } = await footageAdminClient()
-      .from('ads_orders')
-      .select('user_id')
-      .eq('status', 'delivered')
-      .is('qa_at', null)
-      .gte('delivered_at', since)
-      .limit(1000)
-    if (error) {
-      if (!isMissingAdsTable(error.code)) console.warn('[ads page] open-review count failed:', error.code)
-      return 0
-    }
-    const users = new Set<string>()
-    for (const row of (data ?? []) as { user_id?: unknown }[]) if (typeof row.user_id === 'string') users.add(row.user_id)
-    return users.size
-  } catch {
-    return 0
   }
 }
 
@@ -227,17 +117,8 @@ function mediaNeeds(model: AdsModel): string {
   return `${photos}; photos only`
 }
 
-// KINEO-ADS-V2-VIRADA-2026-09-29 — the 3 levels of the v2 ad: name and pitch from ADS_V2_TIER_COPY, credits from adsV2Credits
-// (the same function /api/ads/v2/start debits). Never typed here.
-const V2_LEVELS = ADS_V2_TIER_IDS.map((id) => ({ id, name: ADS_V2_TIER_COPY[id].name, pitch: ADS_V2_TIER_COPY[id].pitch, credits: adsV2Credits(id, ADS_V2_SCREEN_SECONDS) }))
-const V2_DEAREST = Math.max(...V2_LEVELS.map((l) => l.credits))
-/** How many new ads a balance pays for at ANY level (the dearest level decides), so the page never promises more. */
-function v2AdsAnyLevel(credits: number): number {
-  return Math.floor(credits / V2_DEAREST)
-}
-function newAdsLabel(n: number): string {
-  return n === 1 ? '1 new ad at any level' : `${n} new ads at any level`
-}
+// KINEO-ADS-V2-VIRADA-2026-09-29 — the 3 levels of the v2 ad: name and pitch from ADS_V2_TIER_COPY. KINEO-ADS-SEM-PRECO-0411 — no credits on this page.
+const V2_LEVELS = ADS_V2_TIER_IDS.map((id) => ({ id, name: ADS_V2_TIER_COPY[id].name, pitch: ADS_V2_TIER_COPY[id].pitch }))
 
 /** REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29) — the same rule as /ads/new adsV2Href: only short, clean utm_* travel. */
 function withCleanUtm(href: string, searchParams?: SearchParams): string {
@@ -250,30 +131,12 @@ function withCleanUtm(href: string, searchParams?: SearchParams): string {
   return s ? `${href}${href.includes('?') ? '&' : '?'}${s}` : href
 }
 
-function DoorCta({ cta, placement, price }: { cta: AdsDoorCta; placement: 'hero' | 'price' | 'end'; price: string }) {
+function DoorCta({ cta, placement, href }: { cta: AdsDoorCta; placement: 'hero' | 'end'; href: string }) {
   if (cta === 'open') {
     return (
-      <AdsCtaLink href={MAKER_HREF} cta="open" placement={placement} className="go ok ads-go">
+      <AdsCtaLink href={href} cta="open" placement={placement} className="go ok ads-go">
         Make your ad <span aria-hidden="true">→</span>
       </AdsCtaLink>
-    )
-  }
-  if (cta === 'buy') {
-    return (
-      <>
-        <AdsCtaLink href={CHECKOUT_HREF} cta="buy" placement={placement} className="go ok ads-go">
-          Get Studio Ads · {price}
-        </AdsCtaLink>
-        <p className="gnote">Secure Stripe checkout. You sign in (or create your account) first.</p>
-      </>
-    )
-  }
-  if (cta === 'full') {
-    return (
-      <div className="ads-closed">
-        <p>We are fully booked for new businesses today — come back tomorrow.</p>
-        <a href={DFY_HREF}>Need an ad now? We can make it for you →</a>
-      </div>
     )
   }
   return (
@@ -287,64 +150,23 @@ function DoorCta({ cta, placement, price }: { cta: AdsDoorCta; placement: 'hero'
 export default async function StudioAdsPage({ searchParams }: { searchParams?: SearchParams }) {
   const live = adsPassLive()
   const viewer = await withTimeout(readViewer(), ANONYMOUS)
-  const canBuy = live || viewer.internal
-  let cta: AdsDoorCta
-  if (viewer.gate === 'ok') cta = 'open'
-  else if (!canBuy) cta = 'soon'
-  else cta = (await withTimeout(countOpenReviews(), 0)) >= ADS_MAX_OPEN_REVIEWS ? 'full' : 'buy'
+  // KINEO-ADS-SEM-PRECO-0411 — one button, whatever the account: with Studio Ads open it opens the flow; the plans show up at the point of generating.
+  const cta: AdsDoorCta = live || viewer.internal ? 'open' : 'soon'
   // KINEO-ADS-V2-VIRADA-2026-09-29 — the /ads/for/<segment> button carries go=maker (those pages are static and cannot
   // tell who is looking): whoever can already make an ad goes straight to the maker; everyone else stays on this door.
   // REVISÃO 29/09: o redirect leva os utm_* curtos e limpos (o SourceCapture do /ads/v2 grava a origem; sem eles o clique
   // do /ads/for de quem já tem acesso chegava ao montador sem atribuição nenhuma).
-  if (ADS_V2_PUBLIC && cta === 'open' && first(searchParams?.go) === 'maker') redirect(withCleanUtm(MAKER_HREF, searchParams))
+  if (ADS_V2_PUBLIC && viewer.gate === 'ok' && first(searchParams?.go) === 'maker') redirect(withCleanUtm(MAKER_HREF, searchParams))
 
-  // KINEO-ADS-PORTA-PLANO-2026-09-27 — the plan door only while the pass is live: with it off the whole product says
-  // "Opens soon" and adsGate answers 'closed' to subscribers too, so a Starter door would sell a closed room.
   const from = first(searchParams?.from)
-  const planOffer = live && viewer.gate !== 'ok'
-  // KINEO-ADS-V2-VIRADA-2026-09-29 — /ads/v2 sends no-access people here with ?from=v2: same strip as ?from=new.
+  // KINEO-ADS-SEM-PRECO-0411 — /ads/new (classic, no access) and old links arrive with ?from=new|v2: say why, and where the plans are, with no price on this page.
   const returnedFromWizard = (from === 'new' || from === 'v2') && viewer.signedIn && viewer.gate === 'no_access'
-  // KINEO-ADS-PAREDE-2026-10-06 — a oferta da parede (lib/ads/paywall.ts): no lugar da faixa, para quem chegou por uma porta da
-  // parede sem acesso (logado com prova positiva relida, ou anônimo confirmado pelo auth). null = a faixa de antes.
-  const paywallOffer = adsPaywallVisible({ live, from, viewer }) ? adsPaywallOffer(adsPaywallSources(viewer.userId)) : null
-  const starterName = planName('starter')
-  const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
-  const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
-  const starterV2 = v2AdsAnyLevel(TIER_CREDITS.starter) // KINEO-ADS-V2-VIRADA-2026-09-29
-  // KINEO-CHECKOUT-CLAREZA-1610 — "A human UGC creator typically charges US$ 150–500 per video (market estimate). On Kineo…"
-  const ugcLine = adsUgcComparisonLine({
-    planName: starterName,
-    planPriceMinor: getTierPrice('starter', 'usd', 'standard'),
-    planCredits: TIER_CREDITS.starter,
-    seconds: ADS_V2_SCREEN_SECONDS,
-    adCredits: V2_LEVELS.map((l) => l.credits),
-  })
-  // KINEO-PASSE-B-2026-09-28 — passe B do fundador (90 cr): o cartão e a FAQ dizem nível a nível o que o passe paga, com os
-  // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
-  const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
-  // KINEO-ADS-AMOSTRA-2026-10-09 — quem vê o botão da amostra grátis e para onde ele leva.
-  // KINEO-ADS-SIMPLES-2810 — a porta pergunta à régua ÚNICA (lib/ads/eligibility.ts), não mais ao adsSampleOpen do caminho antigo: a amostra de hoje é a da
-  // KINEO-ADS-SIMPLES-2810 — Escolha (8 s, apresentador, 2 fotos, marca). Timeout/erro = null (sem botão, falha fechada). Era: adsSampleOpen(footageAdminClient(), viewer.userId, 'none')
-  const elegibilidadePorta = live && ADS_V2_PUBLIC && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId ? await withTimeout(loadAdsEligibility(footageAdminClient(), { id: viewer.userId }, 'none', { requestCountry: paisDoRequest(headers()) }), null) : null // KINEO-ADS-SIMPLES-2810
-  const sampleHref: string | null = !ADS_SAMPLE_LIVE || !live || !ADS_V2_PUBLIC
-    ? null
-    : viewer.signedIn && viewer.gate === 'no_access' && viewer.userId
-    ? (elegibilidadePorta?.state === 'free_sample_available' ? MAKER_HREF : null) // KINEO-ADS-SIMPLES-2810
-    : !viewer.signedIn && viewer.noSession
-    ? SAMPLE_SIGNUP_HREF
-    : null
-
-  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — logado, barrado pelo gate, SEM amostra aberta e com a amostra USADA → a oferta do
-  // Business no lugar do convite (o mesmo lugar, antes da oferta paga). Timeout/erro de leitura = null (a porta de antes).
-  // KINEO-ADS-SIMPLES-2810 — "usada" agora é o livro-razão da Escolha (state 'free_sample_used'); o vídeo mostrado continua vindo de loadAdsSampleUsedAd (a chave 'adssample-escolha-…' casa com o prefixo).
-  const afterSample: AdsSampleUsedAd | null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId && elegibilidadePorta?.state === 'free_sample_used'
-    ? await withTimeout(loadAdsSampleUsedAd(footageAdminClient(), viewer.userId), null).then((r) => (r && r.used && r.delivered ? r : null))
-    : null
-  const business = businessAdsOffer()
-  const afterCopy = adsAfterSampleCopy('en')
-
+  // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, o botão abre a tela do anúncio; o login vem na primeira ação que precisa dele.
+  const makerHref = ADS_V2_PUBLIC && !viewer.signedIn ? ANUNCIO_DA_PORTA : MAKER_HREF
+  // KINEO-ADS-AMOSTRA-2026-10-09 / KINEO-ADS-SIMPLES-2810 — a nota da amostra pergunta à régua ÚNICA (lib/ads/eligibility.ts). A amostra em si não muda. Timeout/erro = sem nota (falha fechada).
+  const elegibilidadePorta = live && ADS_SAMPLE_LIVE && ADS_V2_PUBLIC && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId ? await withTimeout(loadAdsEligibility(footageAdminClient(), { id: viewer.userId }, 'none', { requestCountry: paisDoRequest(headers()) }), null) : null
+  const sampleOpen = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && (viewer.signedIn ? elegibilidadePorta?.state === 'free_sample_available' : viewer.noSession)
   const copy = adsPassCopy()
-  const price = adsPassPriceLabel()
   const lengths = Array.from(new Set(ADS_MODELS.map((m) => m.seconds))).sort((a, b) => a - b)
   const lengthsLabel = lengths.map((s) => `${s}`).join(' or ')
 
@@ -363,51 +185,17 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         </nav>
 
         <Suspense fallback={null}>
-          <AdsPageBanners live={live} cta={cta} planOffer={planOffer} from={from} />
+          <AdsPageBanners live={live} cta={cta} from={from} />
         </Suspense>
 
-        {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business, com o anúncio que a pessoa fez. */}
-        {afterSample ? (
-          <div className="ads-banner ads-sample ads-after-sample" role="region" aria-label="Business plan" data-kineo="ads-door-after-sample">
-            <div className="ads-after-row">
-              {afterSample.videoUrl ? (
-                <div className="ads-after-ad">
-                  <video src={afterSample.videoUrl} poster={afterSample.posterUrl ?? undefined} controls playsInline muted preload="metadata" />
-                  <span className="ads-after-label">{afterCopy.yourAd}</span>
-                </div>
-              ) : null}
-              <div className="ads-after-text">
-                <p><b>{afterCopy.title}</b></p>
-                <p>{fillAfterSample(afterCopy.body, business)}</p>
-                <a href={business.checkoutHref} className="go ok ads-go">{fillAfterSample(afterCopy.cta, business)} <span aria-hidden="true">→</span></a>
-                <p className="ads-after-more"><a href={business.pageHref}>{afterCopy.more} →</a></p>
-              </div>
-            </div>
+        {/* KINEO-ADS-SEM-PRECO-0411 — no offer here: whoever came back from a door without access gets one line pointing to the plans. */}
+        {returnedFromWizard ? (
+          <div className="ads-banner ads-returned" role="status">
+            <p>
+              <b>Studio Ads is part of every paid plan.</b> <a href="/pricing?intent_campaign=ads_door">See plans →</a>
+            </p>
           </div>
         ) : null}
-
-        {/* KINEO-ADS-PAREDE-2026-10-06 — quem bateu na parede vê a OFERTA (plano de entrada + Express; sem passe, a mesma para a
-            conta 'region_paid_only') no lugar da faixa; impressão e clique saem do próprio componente. */}
-        {paywallOffer ? (
-          <>
-            <AdsPaywall offer={paywallOffer} from={from ?? ''} signedIn={viewer.signedIn} regionPaidOnly={viewer.proof?.trialStatus === REGION_PAID_ONLY_TRIAL_STATUS} />
-            {/* KINEO-BUSINESS-84-2026-10-09 — quem bate na parede (inclusive depois do anúncio grátis) vê também o plano das empresas. */}
-            <p className="ads-plan-line"><b>Making ads every month?</b> Business: {BUSINESS_ADS_PROMISE} for {BUSINESS_PRICE_LABEL}/month. <a href={`${BUSINESS_PAGE_PATH}#plan`}>See Business →</a></p>
-          </>
-        ) : (
-          <>
-            {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — sent back by /ads/new (no access): say why, point to the two doors. No promise
-                about a saved draft: AdsWizardClient only writes 'kineo:ads:draft:v1' in the anonymous mode (saveDraftAndLogin),
-                never for a signed-in account, so there is nothing to bring back here. */}
-            {returnedFromWizard ? (
-              <div className="ads-banner ads-returned" role="status">
-                <p>
-                  <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the ad maker again. <a href="#ads-price">See both options →</a>
-                </p>
-              </div>
-            ) : null}
-          </>
-        )}
 
         <header className="ads-hero">
           <p className="ads-eyebrow">STUDIO ADS · KINEO EMPRESAS</p>
@@ -416,19 +204,11 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             Add {ADS_V2_MIN_PHOTOS} to {ADS_V2_MAX_PHOTOS} photos of your business and your logo. Kineo gives your photos movement, adds music,
             a short voice-over and your real logo at the end, and delivers a vertical ad of about {ADS_V2_SCREEN_SECONDS} seconds for Reels, TikTok and Shorts.
           </p>
-          <ul className="ads-tiers-line" aria-label="Levels and credits">
-            {V2_LEVELS.map((l) => <li key={l.id}><b>{l.name}</b> {l.credits} credits</li>)}
-          </ul>
-          {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "tem uma diferença enorme… queria deixar tudo igual". A mesma página para todos, com um botão principal no mesmo lugar; muda só o que ele faz. */}
-          {sampleHref ? (
-            <div className="ads-cta" data-kineo="ads-door-sample">
-              <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
-              <p className="gnote">One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, voice-over and music, with a small usekineo.com watermark. No card needed.</p>
-            </div>
-          ) : (
-            <div className="ads-cta"><DoorCta cta={cta} placement="hero" price={price} /></div>
-          )}
-          {planOffer ? <p className="ads-plan-line"><a href="#ads-price">Included in any paid plan — from {starterPrice}/month</a></p> : null}
+          {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "tem uma diferença enorme… queria deixar tudo igual". A mesma página para todos, com um botão principal no mesmo lugar. */}
+          <div className="ads-cta" data-kineo={sampleOpen ? 'ads-door-sample' : undefined}>
+            <DoorCta cta={cta} placement="hero" href={makerHref} />
+            {sampleOpen && cta === 'open' ? <p className="gnote">One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, voice-over and music, with a small usekineo.com watermark. No card needed.</p> : null}
+          </div>
         </header>
 
         <section className="ads-sec" aria-labelledby="ads-how">
@@ -448,18 +228,18 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         {ADS_V2_STYLES_PUBLIC ? (
           <section className="ads-sec" aria-labelledby="ads-styles" data-kineo="ads-door-styles">
             <h2 id="ads-styles">Styles for your product shot</h2>
-            <p className="ads-lede">Pick a style for your product shot: {ADS_V2_STYLES.length} effects made from your own product photo, included in the price. No product photo, no effect — or choose Auto for none.</p>
+            <p className="ads-lede">Pick a style for your product shot: {ADS_V2_STYLES.length} effects made from your own product photo. No product photo, no effect — or choose Auto for none.</p>
             <AdsStyleStrip />
           </section>
         ) : null}
 
         <section className="ads-sec" aria-labelledby="ads-levels">
           <h2 id="ads-levels">{V2_LEVELS.length} levels</h2>
-          <p className="ads-lede">Every level starts from your own photos and ends on your logo. The price shows before anything is charged, and it comes out of the same credits as your videos.</p>
+          <p className="ads-lede">Every level starts from your own photos and ends on your logo.</p>
           <ul className="ads-models">
             {V2_LEVELS.map((l) => (
               <li className="card ads-model" key={l.id}>
-                <div className="ads-model-top"><b>{l.name}</b><span className="ads-secs">{l.credits} credits</span></div>
+                <div className="ads-model-top"><b>{l.name}</b></div>
                 <p className="ads-seg">{l.pitch}</p>
                 <ul className="ads-level-list">{ADS_V2_TIER_COPY[l.id].includes.map((item) => <li key={item}>{item}</li>)}</ul>
               </li>
@@ -475,8 +255,8 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
               <ul className="ads-list ok">
                 <li>A vertical 9:16 ad of about {ADS_V2_SCREEN_SECONDS} seconds, made from your own photos</li>
                 <li>Music, a short voice-over you can turn off, and your real logo on the last frame</li>
-                <li>Every shot, the words on screen and the voice-over shown before you pay: planning is free</li>
-                <li>Not happy with a shot? Redo just that one, with the price shown first</li>
+                <li>Every shot, the words on screen and the voice-over shown before you generate</li>
+                <li>Not happy with a shot? Redo just that one</li>
                 {ADS_V2_PRESENTER_PUBLIC ? <li>Optional AI presenter: an AI person holds your product and says the voice-over, always labeled as AI, in vertical 9:16</li> : null}
               </ul>
             </div>
@@ -491,8 +271,8 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
 
         <section className="ads-sec" aria-labelledby="ads-models">
           <h2 id="ads-models">Classic narrated ads</h2>
-          <p className="ads-lede">Prefer a longer ad with a script written from your brief? The classic maker still makes it from your photos and clips: {ADS_MODELS.length} ad models, {lengthsLabel} seconds, {KINEO1_35S_CREDITS} credits for a 35-second ad. A person checks your first classic ad.</p>
-          <p className="ads-classic-link"><a href={CLASSIC_HREF}>Open the classic maker ({KINEO1_35S_CREDITS} credits) →</a></p>
+          <p className="ads-lede">Prefer a longer ad with a script written from your brief? The classic maker still makes it from your photos and clips: {ADS_MODELS.length} ad models, {lengthsLabel} seconds. A person checks your first classic ad.</p>
+          <p className="ads-classic-link"><a href={CLASSIC_HREF}>Open the classic maker →</a></p>
           <ul className="ads-models">
             {ADS_MODELS.map((m) => (
               <li className="card ads-model" key={m.id}>
@@ -504,56 +284,8 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           </ul>
         </section>
 
-        <section className="ads-sec" aria-labelledby="ads-price">
-          <h2 id="ads-price">Price</h2>
-          {/* KINEO-CHECKOUT-CLAREZA-1610 — a comparação honesta com o criador UGC humano (fonte e conta em lib/ads/ugcComparison.ts):
-              o lado da Kineo é o pedaço do Starter que um anúncio de 15 s usa (preço do caixa × créditos do nível ÷ créditos do plano). */}
-          {ugcLine ? <p className="ads-fine" data-kineo="ads-ugc-comparison">{ugcLine}</p> : null}
-          {/* KINEO-PAGINAS-UGC-2010 — as páginas novas a 1 clique da porta do menu "Product ads" (visitante cai aqui pelo /ads/new). */}
-          <p className="ads-fine" data-kineo="ads-ugc-pages"><a href={UGC_PILLAR_PATH}>AI UGC ads: an AI person holds your product</a> · <a href={BF_EN_PATH}>Black Friday ad kit: your offer + 3–5 variations</a></p>{/* KINEO-PAGINAS-UGC-2010 */}
-          {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — two doors for whoever cannot open the wizard: the Starter plan first (it includes
-              Studio Ads and costs less than the pass), the pass beside it, untouched. With gate 'ok' the pass card stands alone. */}
-          <div className={planOffer ? 'ads-doors' : undefined}>
-            {planOffer ? (
-              <div className="cost ads-price ads-plan" data-kineo="ads-door-plan">
-                <div className="sum">{starterName} plan</div>
-                <p className="ads-amount">{starterPrice}<span> /month</span></p>
-                <p className="ads-cover">{TIER_CREDITS.starter} credits every month: {newAdsLabel(starterV2)}, or about {starterAds35} classic ads of 35 s.</p>
-                <div className="val"><span>Studio Ads</span><b>Included</b></div>
-                <div className="val"><span>Video engines</span><b>Every engine your balance covers</b></div>
-                <div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>
-                <div className="ads-cta">
-                  <AdsCtaLink href={STARTER_CHECKOUT_HREF} cta="plan" tier="starter" from={from} placement="price" className="go ok ads-go">
-                    Get {starterName} · {starterPrice}/mo
-                  </AdsCtaLink>
-                  {/* KINEO-COPY-HONESTA-C-2026-09-27 — this door is also shown to signed-in people without access (planOffer = gate !== 'ok');
-                      the checkout GET only sends anonymous viewers to /login (app/api/stripe/checkout/route.ts), so the note tells each viewer the truth. */}
-                  {/* KINEO-COMPRA-SEM-LOGIN-2026-10-06 — com a compra sem login ligada, o anônimo vai direto à Stripe (esta porta
-                      não leva cupom nem 1º mês: guestCheckoutFallbackReason devolve null) e a conta nasce do e-mail pago;
-                      desligada, a nota de sempre (logado / anônimo) continua exatamente como era. */}
-                  {GUEST_CHECKOUT_LIVE && !viewer.signedIn ? (
-                    <p className="gnote">{GUEST_CHECKOUT_ANON_NOTE}</p>
-                  ) : (
-                    <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>
-                  )}
-                </div>
-                <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
-              </div>
-            ) : null}
-            <div className="cost ads-price">
-              <div className="sum">{copy.name} pass</div>
-              <p className="ads-amount">{price}<span> one-time</span></p>
-              <p className="ads-cover">Enough for {passCoverage}.</p>
-              <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
-              <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
-              <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
-              <div className="val"><span>Subscription</span><b>None</b></div>
-              <div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>
-              <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
-              {live ? <p className="ads-fine">Already on a paid Kineo plan? Studio Ads is open to you with your plan&apos;s credits — sign in and open it.</p> : null}
-            </div>
-          </div>
-        </section>
+        {/* KINEO-PAGINAS-UGC-2010 — a página do UGC a 1 clique da porta do menu "Product ads". */}
+        <p className="ads-fine" data-kineo="ads-ugc-pages"><a href={UGC_PILLAR_PATH}>AI UGC ads: an AI person holds your product</a></p>
 
         <section className="ads-sec ads-faq" aria-labelledby="ads-faq">
           <h2 id="ads-faq">Questions</h2>
@@ -567,27 +299,22 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           </details>
           <details>
             <summary>What about the voice-over?</summary>
-            <p>A short voice-over is written from your sentence, with music under it. You see it in the plan before anything is charged, and you can turn it off. The classic maker writes a longer script you can edit line by line, with {ADS_VOICES.length} voices to choose from.</p>
+            <p>A short voice-over is written from your sentence, with music under it. You see it in the plan before you generate, and you can turn it off. The classic maker writes a longer script you can edit line by line, with {ADS_VOICES.length} voices to choose from.</p>
           </details>
           <details>
             <summary>Can I use video clips?</summary>
             <p>The new ad is made from photos: each one gets its own movement. To put your own clips in an ad, use the <a href={CLASSIC_HREF}>classic maker</a>; there the narration and the music replace the original sound of your clips.</p>
           </details>
           <details>
-            <summary>Do I need a subscription?</summary>
-            {/* KINEO-ADS-REVISAO-2026-09-27 — assinante entra sem passe (lib/ads/access.ts ADS_SUBSCRIBER_PLANS); o custo por anúncio vem de lib/ads/offer.ts. */}
-            <p>No. Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs {V2_LEVELS.map((l) => `${l.name} ${l.credits}`).join(', ')} credits, and a classic narrated ad of 35 seconds costs {KINEO1_35S_CREDITS}. The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits — enough for {passCoverage} — and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
-          </details>
-          <details>
             <summary>I would rather have someone make it for me.</summary>
-            <p>That is Kineo Empresas: you send the brief and a person produces the video, in <a href={DFY_HREF}>Express or Pro</a>, one-time payment.</p>
+            <p>That is Kineo Empresas: you send the brief and a person produces the video, in <a href={DFY_HREF}>Express or Pro</a>.</p>
           </details>
         </section>
 
-        {cta === 'buy' || cta === 'open' ? (
+        {cta === 'open' ? (
           <section className="ads-sec" aria-label="Get started">
-            <h2>{cta === 'open' ? 'Your next ad is a few steps away.' : 'Make your first ad today.'}</h2>
-            <div className="ads-cta"><DoorCta cta={cta} placement="end" price={price} /></div>
+            <h2>Your next ad is a few steps away.</h2>
+            <div className="ads-cta"><DoorCta cta={cta} placement="end" href={makerHref} /></div>
           </section>
         ) : null}
       </div>

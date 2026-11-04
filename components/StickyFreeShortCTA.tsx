@@ -30,7 +30,7 @@ const Z_INDEX = 60
 export default function StickyFreeShortCTA({
   href = '/signup?utm_source=sticky_cta',
   label,
-  cta = 'Start free',
+  cta = 'Get started', // KINEO-BOTOES-SEM-FREE-0411
   onCtaClick,
 }: {
   href?: string

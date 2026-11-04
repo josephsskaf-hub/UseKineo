@@ -177,9 +177,11 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
 
 // ── 5. Anúncios: destinos, interruptor, preços ────────────────────────────────────────────────────────────────────
 {
-  const m = blocks.pricingAdsBlockModel()
+  const m = blocks.pricingAdsBlockModel({ passLive: true }) // KINEO-ADS-SEM-PRECO-0411 — hoje o padrão é sem passe (5a0); o modelo do passe segue provado com o interruptor
+  const hoje = blocks.pricingAdsBlockModel()
+  ok(hoje.pass === null && offer.adsPassOnSale() === false, '5a0 hoje o bloco não oferece o passe')
   const live = dfyOffer.liveDfyTiers()
-  ok(!!m.pass === offer.adsPassLive() && m.dfy.length === live.length && m.visible === (!!m.pass || live.length > 0), '5a modelo segue adsPassLive() e liveDfyTiers()')
+  ok(!!m.pass && m.dfy.length === live.length && m.visible === (!!m.pass || live.length > 0), '5a modelo com o passe ligado e liveDfyTiers()')
   ok(m.pass && m.pass.href === '/ads?from=pricing' && m.pass.priceMinor === offer.ADS_PASS_USD_MINOR && m.pass.credits === offer.ADS_PASS_CREDITS && m.pass.accessDays === offer.ADS_PASS_ACCESS_DAYS, '5b passe: /ads?from=pricing + números de lib/ads/offer')
   ok(m.dfy.every((t) => t.href === '/business-video-ads?from=pricing#packages' && t.priceMinor === dfyOffer.DFY_TIERS[t.tier].priceMinor && t.hours === dfyOffer.DFY_TIERS[t.tier].hours && !('url' in t)), '5c Express/Pro: /business-video-ads#packages, preço do degrau, sem url de pagamento')
   const semPasse = blocks.pricingAdsBlockModel({ passLive: false })
@@ -213,7 +215,7 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   ok(ctas.join() === [...(m.pass ? ['ads_pass'] : []), ...m.dfy.map((t) => 'dfy_' + t.tier)].join(), '5m cliques: ' + ctas.join())
   let ssr = ''
   try { ssr = renderToStaticMarkup(React.createElement(A.default)) } catch (e) { ssr = 'ERRO ' + e.message }
-  ok(ssr === h, '5n SSR do componente real = view com o modelo padrão, sem rede')
+  ok(ssr === html(hoje), '5n SSR do componente real = view com o modelo padrão, sem rede')
 }
 
 // ── 6. Medição ────────────────────────────────────────────────────────────────────────────────────────────────────

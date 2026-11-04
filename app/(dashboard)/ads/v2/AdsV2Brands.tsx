@@ -73,8 +73,8 @@ export function initialBrandPick(brands: readonly { id: string }[], remembered: 
   return brands.length === 1 ? brands[0].id : null
 }
 
-export function useAdsBrands() {
-  const [state, setState] = useState<AdsBrandsState>({ status: 'loading' })
+export function useAdsBrands(enabled = true) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — false (visitante): nenhuma chamada, a tela de sempre sem marcas
+  const [state, setState] = useState<AdsBrandsState>({ status: enabled ? 'loading' : 'legacy' })
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const firstRef = useRef(true)
 
@@ -97,11 +97,12 @@ export function useAdsBrands() {
   }, [])
 
   useEffect(() => {
+    if (!enabled) return
     let done = false
     const t = window.setTimeout(() => { if (!done) setState((s) => (s.status === 'loading' ? { status: 'legacy' } : s)) }, 4000)
     void reload().finally(() => { done = true; window.clearTimeout(t) })
     return () => window.clearTimeout(t)
-  }, [reload])
+  }, [reload, enabled])
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)

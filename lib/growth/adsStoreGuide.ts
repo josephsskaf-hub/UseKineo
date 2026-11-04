@@ -19,7 +19,7 @@
 // CONCORRENTES: preço público lido NA PÁGINA OFICIAL de cada um em COMPETITORS_CHECKED_ON, sem criar conta. O que não
 // estava legível vira "not published" — nunca um número de terceiro. Sem vencedor universal: cada linha diz para quem serve.
 import { BUSINESS_PRICES, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '../checkoutPricing'
-import { ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsPassLive } from '../ads/offer'
+import { ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsPassOnSale } from '../ads/offer'
 import { ADS_V2_TIER_IDS, adsV2Credits, type AdsV2Tier } from '../ads/v2Tiers'
 import { ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '../ads/v2Screen'
 import { ADS_V2_FORMATS, ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '../ads/v2ShotLists'
@@ -79,7 +79,7 @@ export function storeCostRows(): StoreCostRow[] {
     costRow('Studio', TIER_PRICES.pro.usd, TIER_CREDITS.pro, 'per month'),
     costRow('Business', BUSINESS_PRICES.usd, TIER_CREDITS.business, 'per month'),
   ]
-  if (adsPassLive()) rows.push(costRow('Studio Ads pass', ADS_PASS_USD_MINOR, ADS_PASS_CREDITS, 'one time'))
+  if (adsPassOnSale()) rows.push(costRow('Studio Ads pass', ADS_PASS_USD_MINOR, ADS_PASS_CREDITS, 'one time'))
   return rows
 }
 

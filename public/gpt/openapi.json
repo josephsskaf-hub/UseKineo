@@ -57,7 +57,7 @@
                   "properties": {
                     "studioAds": {
                       "type": ["object", "null"],
-                      "description": "Self-service business video ads; null when unavailable. Read access for paid-subscriber eligibility: an eligible subscriber does not need a separate pass and uses plan credits. price, credits, accessDays and recurring describe the optional one-time pass, not the subscriber's plan. Trial is excluded. Separate from the human-operated service.",
+                      "description": "Self-service business video ads; null when unavailable. Read access for paid-subscriber eligibility: an eligible subscriber does not need a separate pass and uses plan credits. price, credits and accessDays describe the optional one-time pass, not the subscriber's plan, and are null while the pass is not on sale. Trial is excluded. Separate from the human-operated service.",
                       "properties": {
                         "name": { "type": "string" },
                         "url": { "type": "string", "format": "uri" },
@@ -83,14 +83,14 @@
                               "id": { "type": "string" },
                               "name": { "type": "string" },
                               "credits": { "type": "integer" },
-                              "adsPerPass": { "type": "integer" }
+                              "adsPerPass": { "type": ["integer", "null"] }
                             } } },
                             "includes": { "type": "array", "items": { "type": "string" } },
                             "limits": { "type": "array", "items": { "type": "string" } }
                           }
                         },
                         "humanOperated": { "type": "boolean", "const": false },
-                        "price": { "type": "string", "description": "Price of the optional one-time pass; not an extra fee for eligible subscribers." },
+                        "price": { "type": ["string", "null"], "description": "Price of the optional one-time pass; null while it is not on sale; never an extra fee for eligible subscribers." },
                         "access": {
                           "type": "object",
                           "properties": {

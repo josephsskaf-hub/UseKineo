@@ -83,7 +83,7 @@ export interface AdsRenderState {
 export const ADS_RENDER_ERROR_MESSAGES: Record<string, string> = {
   unauthenticated: 'Sign in to render your ad.',
   closed: 'Studio Ads opens soon.',
-  no_access: 'Studio Ads needs the Studio Ads pass or a paid plan.',
+  no_access: 'Studio Ads needs a paid plan.',
   body_must_be_object: 'Something went wrong. Refresh the page and try again.',
   order_id_invalid: 'This ad could not be found. Refresh the page.',
   order_not_found: 'This ad could not be found. Refresh the page.',

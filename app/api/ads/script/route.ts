@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/script', metadata: { reason: gate } })
       return gate === 'closed'
         ? NextResponse.json({ error: 'Studio Ads opens soon.', reason: 'closed' }, { status: 403 })
-        : NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: 'no_access' }, { status: 403 })
+        : NextResponse.json({ error: 'Studio Ads needs a paid plan.', reason: 'no_access' }, { status: 403 })
     }
 
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null

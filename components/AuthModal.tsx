@@ -456,7 +456,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                       {tab === 'signup' ? 'Creating account...' : 'Signing in...'}
                     </>
                   ) : (
-                    <><span aria-hidden="true"><KineoBoltText inheritColor>{tab === 'signup' ? '⚡' : '🔑'}</KineoBoltText> </span>{tab === 'signup' ? 'Create Free Account' : 'Sign In'}</>
+                    <><span aria-hidden="true"><KineoBoltText inheritColor>{tab === 'signup' ? '⚡' : '🔑'}</KineoBoltText> </span>{tab === 'signup' ? 'Create account' : 'Sign In'}</>
                   )}
                 </button>
               </form>
@@ -474,7 +474,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                   <>
                     Don&apos;t have an account?{' '}
                     <button onClick={() => switchTab('signup')} className="font-semibold" style={{ color: 'var(--indigo-light)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                      Sign up free
+                      Sign up
                     </button>
                   </>
                 )}

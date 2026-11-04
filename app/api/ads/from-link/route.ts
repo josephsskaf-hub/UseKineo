@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     const { admin, reason } = await loadAdsAccess(user.id, user.email)
     if (!adsAutoVisible(reason)) return NextResponse.json({ error: 'not_found' }, { status: 404 })
     const gate = adsGate(reason)
-    if (gate !== 'ok') return NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: gate }, { status: 403 })
+    if (gate !== 'ok') return NextResponse.json({ error: 'Studio Ads needs a paid plan.', reason: gate }, { status: 403 })
 
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const orderId = typeof body?.order_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.order_id) ? body.order_id : null

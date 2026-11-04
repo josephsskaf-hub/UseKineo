@@ -344,7 +344,7 @@ export default function Sidebar({
   // unica o rotulo vem da fonte unica (CARD_ENTRY_COPY.ctaLong via ctaPrimary);
   // fora dela o literal legado fica no call site, diff byte a byte zero.
   const freeTierOffer = useFreeTierOffer()
-  const signupCtaLabel = freeTierOffer.cardEntry ? freeTierOffer.copy.ctaPrimary : 'Get Started Free →'
+  const signupCtaLabel = freeTierOffer.cardEntry ? freeTierOffer.copy.ctaPrimary : 'Get started →' // KINEO-BOTOES-SEM-FREE-0411
   const [showAuthModal, setShowAuthModal] = useState(false)
   // KINEO-TOPUP-POPUP-2026-08-18 — popup de recarga sem troca de plano
   const [showTopup, setShowTopup] = useState(false)

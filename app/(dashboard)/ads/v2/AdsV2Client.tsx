@@ -110,7 +110,7 @@ import {
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — o anúncio em andamento a cada 3 s nos 2 primeiros minutos (linha própria)
-import { KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o cartão "Kit Black Friday — US$ 49" (o servidor decide: venda aberta; Business = incluído)
+// KINEO-ADS-SEM-PRECO-0411 — o cartão do Kit Black Friday saiu da tela de trabalho; o Kit segue à venda pelo link direto e em /black-friday.
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
 import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a mesma sala de espera/estreia de todas as telas de geração
 import type { ReactNode } from 'react' // KINEO-ESTREIA-3110
@@ -516,7 +516,7 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
 // KINEO-ADS-SIMPLES-2810 — escolhaSampleAvailable: a amostra grátis ainda aberta para ESTA pessoa (régua única, page.tsx); advancedModes: ?mode=full, ?mode=batch, as abas
 // KINEO-ADS-SIMPLES-2810 — e os atalhos para eles só para a casa (fundador 28/10: um caminho só para o cliente). Sem a prop = o cliente vê só o modo simples (Escolha).
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false, escolhaSampleAvailable = false, advancedModes = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; escolhaSampleAvailable?: boolean; advancedModes?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate. // KINEO-ADS-SIMPLES-2810 — + escolhaSampleAvailable, advancedModes
+export default function AdsV2Client({ guest = false, initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false, escolhaSampleAvailable = false, advancedModes = false }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ guest?: boolean; initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; escolhaSampleAvailable?: boolean; advancedModes?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate. // KINEO-ADS-SIMPLES-2810 — + escolhaSampleAvailable, advancedModes
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -533,7 +533,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   const [rowSlot, setRowSlot] = useState<HTMLDivElement | null>(null)
   const lang = useInterfaceLanguage()
   // KINEO-ADS-MARCAS-1510 — as marcas (clientes) do workspace: sem a migration (ready:false) = 'legacy' e a tela de sempre (kit único).
-  const marcas = useAdsBrands() // KINEO-ADS-MARCAS-1510
+  const marcas = useAdsBrands(!guest) // KINEO-ADS-MARCAS-1510 // KINEO-CARDS-ANTES-DO-LOGIN-0411 — visitante não pergunta (seria 401)
   const [brandDlg, setBrandDlg] = useState<{ brand: AdBrandView | null } | null>(null) // KINEO-ADS-MARCAS-1510 — a janela "Nova marca"/"Editar marca"
   const marcasOn = marcas.state.status === 'ready' && (mode === 'simple' || mode === 'batch') && !(sampleGone && sample) // KINEO-ADS-MARCAS-1510
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
@@ -598,12 +598,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   }
 
   const refreshBalance = useCallback(async () => {
+    if (guest) return // KINEO-CARDS-ANTES-DO-LOGIN-0411
     // KINEO-EQUIPE-BUSINESS-2026-10-10 — membro: o saldo que vale é o do DONO (o /api/credits é o da própria conta).
     const r = await api<{ credits?: unknown }>(workspace?.role === 'member' ? '/api/ads/team' : '/api/credits')
     if (r.ok && typeof r.data.credits === 'number' && Number.isFinite(r.data.credits)) setBalance(r.data.credits)
     // KINEO-ADS-CONSERTOS-TELA-1410 — o contador da barra de cima (TopBar) só relê o saldo com este evento; sem ele ficava parado depois do débito.
     try { window.dispatchEvent(new Event('creditsChanged')) } catch {}
-  }, [workspace?.role])
+  }, [workspace?.role, guest])
 
   useEffect(() => {
     if (confirmingReset) confirmRef.current?.focus()
@@ -611,12 +612,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
 
   // "Get credits" abre /pricing em OUTRA aba (a página guarda fotos e plano só na memória): ao voltar, relê o saldo.
   useEffect(() => {
+    if (guest) return // KINEO-CARDS-ANTES-DO-LOGIN-0411
     const onVisible = () => {
       if (document.visibilityState === 'visible') void refreshBalance()
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [refreshBalance])
+  }, [refreshBalance, guest])
 
   // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum — no modo simples.
   function startOver() {
@@ -708,7 +710,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <div className="kps-panel">
       {/* KINEO-ADS-MARCAS-1510 — "Marca: X ▾" no topo do formulário (a caixa do motor do "Make a film"): escolher a marca preenche o kit do anúncio novo. */}
       {marcasOn && marcas.state.status === 'ready' ? <AdsBrandSwitcher lang={lang} state={marcas.state} selected={marcas.selected} onSelect={marcas.select} onNew={() => setBrandDlg({ brand: null })} onEdit={(b) => setBrandDlg({ brand: b })} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
-      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface="ads" slim={!!n9Head} /* KINEO-ADS-NOTA9-2110 — na tela foco o kit vira uma faixa de uma linha (o link de compra fica) */ /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}
+      {/* KINEO-ADS-SEM-PRECO-0411 — sem preço na tela de trabalho. */}
       {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business no lugar da sessão (e do erro genérico). */}
       {sampleGone && sample && business && mode ? (
         <AdsAfterSampleOffer lang={mode === 'full' ? 'en' : lang} business={business} />
@@ -732,6 +734,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
           key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
+          guest={guest} /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */
           resume={session === 0}
           escolhaInternal={escolhaInternal} escolhaSample={escolhaSample} escolhaOwnerKey={escolhaOwnerKey} escolhaTestControls={escolhaTestControls} /* KINEO-ADS-ESCOLHA-2310 */
           escolhaSampleAvailable={escolhaSampleAvailable} /* KINEO-ADS-SIMPLES-2810 — a amostra desta pessoa (régua única), não o interruptor geral */
@@ -763,7 +766,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       {/* KINEO-ADS-FLUXO-2026-10-13 — no modo simples, enquanto a pessoa monta, a fileira da casa vira "Comece deste" (a sessão preenche a vaga). */}
       {mode === 'simple' && !groupId ? <div ref={setRowSlot} className="adv2f-rowslot" /> : null}
       {/* KINEO-ADS-MARCAS-1510 — "Seus anúncios": os que começaram, filtráveis por marca (cada pedido grava brand_id). */}
-      {(mode === 'simple' || mode === 'batch') && !groupId && marcas.state.status !== 'loading' && !(sampleGone && sample) ? <AdsBrandOrders lang={lang} brands={marcas.brands} brandsOn={marcasOn} refreshKey={activeWork ? 1 : 0} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
+      {!guest && (mode === 'simple' || mode === 'batch') && !groupId && marcas.state.status !== 'loading' && !(sampleGone && sample) ? <AdsBrandOrders lang={lang} brands={marcas.brands} brandsOn={marcasOn} refreshKey={activeWork ? 1 : 0} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {brandDlg && marcas.state.status === 'ready' ? <AdsBrandDialog lang={lang} brand={brandDlg.brand} canArchive={marcas.state.role === 'owner'} limit={marcas.state.limit} onSave={marcas.save} onArchive={marcas.archive} onClose={() => setBrandDlg(null)} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {mode === 'simple' && simplePreview && !groupId ? null : (
       <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
