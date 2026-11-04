@@ -15,7 +15,7 @@ checa('motor escolhido no link é mantido', m.motorDaCaixa('kling') === 'kling' 
 checa('sem escolha diz Auto; escolhido diz o nome', m.nomeDoMotorEscolhido('seedance') === null && m.nomeDoMotorEscolhido('hollywood') === 'Kling 4.0')
 checa('campanha estranha não passa', m.campanhaDaCaixa('home_card') === 'home_card' && m.campanhaDaCaixa('a b<c') === 'studio_simple' && m.campanhaDaCaixa(undefined) === 'studio_simple')
 
-const u = new URL(m.pedidoDoStudioSimples({ motor: 'seedance', texto: 'A wave & more', duracao: 60, formato: '9:16', lingua: 'en', palavraPorPalavra: false, campanha: 'home_card' }), 'https://x.test')
+const u = new URL(m.pedidoDoStudioSimples({ motor: 'seedance', texto: 'A wave & more', duracao: 60, formato: '9:16', lingua: 'auto', palavraPorPalavra: false, campanha: 'home_card' }), 'https://x.test')
 checa('o pedido vai para a mesma porta', u.pathname === '/studio/create')
 checa('o pedido tem os mesmos campos do Studio completo', ['engine', 'prompt', 'duration', 'script_mode', 'autoanalyze', 'studio', 'intent_campaign'].every((k) => u.searchParams.has(k)) && u.searchParams.get('prompt') === 'A wave & more' && u.searchParams.get('script_mode') === 'ai')
 checa('padrões ficam fora da URL', !u.searchParams.has('aspect') && !u.searchParams.has('language'))

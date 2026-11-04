@@ -74,7 +74,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
   const [texto, setTexto] = useState('')
   const [duracao, setDuracao] = useState<number>(60)
   const [formato, setFormato] = useState<string>('9:16')
-  const [lingua, setLingua] = useState<string>('en')
+  const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
   const [palavraPorPalavra, setPalavraPorPalavra] = useState(false)
   const [folha, setFolha] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -111,7 +111,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
     setAviso(null)
     registrar('mrr_generate_clicked')
     void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length })
-    try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua })) } catch {}
+    try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
     router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))
   }
 
@@ -159,7 +159,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
             <h2>Settings</h2>
             <div><span className="ksx-lab">Length</span><div className="ksx-opts">{opcoesDuracao.map((d) => <button key={d} type="button" className="ksx-opt" aria-pressed={duracao === d} onClick={() => setDuracao(d)}>{d} s</button>)}</div></div>
             <div><span className="ksx-lab">Format</span><div className="ksx-opts">{FORMATOS.map((f) => <button key={f} type="button" className="ksx-opt" aria-pressed={formato === f} onClick={() => setFormato(f)}>{f}</button>)}</div></div>
-            <div><label className="ksx-lab" htmlFor="ksx-lingua">Narration</label><select id="ksx-lingua" className="ksx-sel" value={lingua} onChange={(e) => setLingua(e.target.value)}>{NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}</select></div>
+            <div><label className="ksx-lab" htmlFor="ksx-lingua">Narration</label><select id="ksx-lingua" className="ksx-sel" value={lingua} onChange={(e) => setLingua(e.target.value)}><option value="auto">Same as my text</option>{NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}</select></div>
             <label className="ksx-check"><input type="checkbox" checked={palavraPorPalavra} onChange={(e) => setPalavraPorPalavra(e.target.checked)} />Narrate my text word for word</label>
             <div className="ksx-motor"><span>{nomeMotor ? `Engine: ${nomeMotor}` : 'Engine: Auto'}</span><a href={maisOpcoes} data-kineo="studio-simple-more">More options</a></div>
             <button type="button" className="ksx-done" onClick={() => setFolha(false)}>Done</button>

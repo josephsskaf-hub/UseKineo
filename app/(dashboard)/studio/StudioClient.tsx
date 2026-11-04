@@ -26,6 +26,7 @@ import { KineoBoltText } from '@/components/KineoBolt'
 //     interna fica no title/tooltip)
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
+import { linguaDoRoteiro, LINGUA_DO_ROTEIRO_VERSAO } from '@/lib/linguaDoRoteiro' // KINEO-ROTEIRO-NA-LINGUA-0411
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 // KINEO-ESTRELA-DO-FILME-2026-09-29 — o bloco "Estrela do filme": interruptor, régua pura (motor com âncora + sobretaxa, a MESMA função
 // que o servidor soma ao preço) e os textos novos nas 16 línguas.
@@ -318,6 +319,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // KINEO-IDIOMAS-15-2026-09-17 — a língua da narração é escolhida AQUI (antes só existia ?language= na URL e o detector
   // en/pt/es). Viaja na querystring para o /generate como as outras escolhas.
   const [language, setLanguage] = useState<NarrationLanguage>('en')
+  const linguaTocadaRef = useRef(false) // KINEO-ROTEIRO-NA-LINGUA-0411
   // KINEO-RES-HONESTA-2026-08-20 — estado REMOVIDO junto com o seletor. Ele
   // nunca chegou a valer nada (o 720p vivia desabilitado) e virou perigoso:
   // um valor chamado `resolution` fixo em '1080p' convida o próximo a mandá-lo
@@ -975,6 +977,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     // quando não é o padrão, para que todo link existente continue idêntico.
     if (aspect !== '9:16') q.set('aspect', aspect)
     if (language !== 'en') q.set('language', language) // KINEO-IDIOMAS-15
+    { const lingua = linguaDoRoteiro({ hint: language, explicita: linguaTocadaRef.current, texto: finalPrompt, motor: engine }); if (lingua.trocou) { q.set('language', lingua.language); void trackEvent('script_language_resolved', { version: LINGUA_DO_ROTEIRO_VERSAO, language: lingua.language, origem: lingua.origem, engine, surface: 'studio' }) } } // KINEO-ROTEIRO-NA-LINGUA-0411 — pedido em português não vira filme em inglês; a pessoa que escolheu a língua manda
     // KINEO-TRIAL-FIRST-HANDOFF-2026-08-30 — production showed 4 people
     // clicking the banner's premium first-delivery CTA, but only 1 completed
     // Seedance. One later armed the Fast activation contract. Engine/duration
@@ -1391,7 +1394,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
               <select
                 id="studio-narration-language"
                 value={language}
-                onChange={(e) => setLanguage(narrationLanguage(e.target.value) ?? 'en')}
+                onChange={(e) => { linguaTocadaRef.current = true; setLanguage(narrationLanguage(e.target.value) ?? 'en') }} /* KINEO-ROTEIRO-NA-LINGUA-0411 */
                 // KINEO-SELECT-LEGIVEL-2026-09-21 — fundador (print de 21/09 00:50): a lista abria BRANCA com as 16 línguas
                 // em cinza-claro, parecendo todas desabilitadas (só a que estava sob o mouse era legível). O <select> herdava
                 // color: var(--text) (quase branco) e o Chrome pintava o popup nativo de branco. colorScheme: 'inherit' faz o

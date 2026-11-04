@@ -1,4 +1,6 @@
 // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — as regras puras da caixa única: quem a vê, qual motor e o pedido que ela monta.
+import { linguaDoRoteiro } from '@/lib/linguaDoRoteiro' // KINEO-ROTEIRO-NA-LINGUA-0411
+
 export interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string }
 
 /** Parâmetros de quem só chegou. Qualquer outro (texto do ChatGPT, retomada, episódio, volta do pagamento) segue para o Studio completo, que sabe tratá-lo. */
@@ -28,6 +30,7 @@ export function campanhaDaCaixa(intent: string | string[] | undefined): string {
 export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao: number; formato: string; lingua: string; palavraPorPalavra: boolean; campanha: string }): string {
   const q = new URLSearchParams({ engine: p.motor, prompt: p.texto, duration: String(p.duracao), script_mode: p.palavraPorPalavra ? 'verbatim' : 'ai', autoanalyze: '1', studio: '1', intent_campaign: p.campanha })
   if (p.formato !== '9:16') q.set('aspect', p.formato)
-  if (p.lingua !== 'en') q.set('language', p.lingua)
+  const lingua = p.lingua === 'auto' ? linguaDoRoteiro({ hint: 'en', texto: p.texto, motor: p.motor }).language : p.lingua // KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, a língua do texto
+  if (lingua !== 'en') q.set('language', lingua)
   return `/studio/create?${q.toString()}`
 }
