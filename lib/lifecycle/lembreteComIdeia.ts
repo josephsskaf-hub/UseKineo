@@ -43,6 +43,7 @@ export const TRIAL_SEM_FILME: readonly string[] = ['region_paid_only', 'blocked'
  */
 export function podeGerarParaLembrete(row: { trial_status?: string | null } | null | undefined, filmeDeRegiaoDisponivel: boolean = false): boolean {
   const ts = typeof row?.trial_status === 'string' ? row.trial_status.trim().toLowerCase() : ''
+  if (ts === 'on_request') return false // KINEO-TRIAL-A-PEDIDO-0411 — sem crédito até pedir: a carta "a um clique" não diria a verdade
   if (ts === 'region_paid_only' && filmeDeRegiaoDisponivel === true) return true
   return !TRIAL_SEM_FILME.includes(ts)
 }

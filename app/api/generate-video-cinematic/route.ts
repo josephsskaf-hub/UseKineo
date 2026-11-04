@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'
 import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
+import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
 import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { julgarStillDoFilme, stillFoiAprovado } from '@/lib/cinematic/filmQualityJudge'
@@ -2385,6 +2386,8 @@ async function manipularPost(req: NextRequest) {
           { status: 402 },
         )
       }
+      // KINEO-TRIAL-A-PEDIDO-0411 [TRAVA 8.2 — fundador 04/11: "2a"] — lado "a pedido" do teste: o filme grátis existe e está a 1 clique; nada foi cobrado.
+      if (profile?.trial_status === TRIAL_PEDIDO_STATUS) return NextResponse.json({ error: TRIAL_PEDIDO_REFUSAL, upsell: 'creator', reason: 'trial_on_request', balance }, { status: 402 })
       return NextResponse.json(
         {
           // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — PAYWALL

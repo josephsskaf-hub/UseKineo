@@ -10,6 +10,8 @@ import WorkspaceSecondaryNotice from '@/components/WorkspaceSecondaryNotice'
 // ChatGPT (150 pessoas, 0 conversoes; caem direto no /generate e pulam toda
 // a narrativa de valor). Ver o cabecalho do componente para a medicao.
 import ChatGptWelcomeBanner from '@/components/ChatGptWelcomeBanner'
+import TrialPedidoBanner from '@/components/TrialPedidoBanner' // KINEO-TRIAL-A-PEDIDO-0411
+import { trialPedidoVisivel } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 // Push #427 — push-notification opt-in ("know when your video is ready")
 import EnablePushBanner from '@/components/EnablePushBanner'
 // Push #443 — referral loop: fires attribute+qualify on any authenticated page
@@ -210,6 +212,7 @@ export default async function DashboardLayout({
       {/* KINEO-PREVIA-CENAS-2026-10-03 — depois de pagar, quem viu a prévia volta ao Studio com o roteiro a 1 clique. Só para
           conta que já pode fazer filme (pagou ou tem plano); o aviso só aparece com a prévia guardada no navegador. */}
       {user && ((profile as { has_paid?: boolean | null } | null)?.has_paid === true || !['free', ''].includes(String((profile as { plan?: string | null } | null)?.plan ?? 'free').toLowerCase())) && <ScenePreviewResumeBanner />}
+      {user && trialPedidoVisivel(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <TrialPedidoBanner />}{/* KINEO-TRIAL-A-PEDIDO-0411 */}
       <Suspense fallback={null}>
         <ChatGptWelcomeBanner />
       </Suspense>

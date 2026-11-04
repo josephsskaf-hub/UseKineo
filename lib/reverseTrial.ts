@@ -75,6 +75,8 @@ import {
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY, CARD_ENTRY_REQUIRED_EVENT, CARD_ENTRY_TRIAL_STATUS } from './entryPolicy'
 import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS, TRIAL_REGION_EXCLUDED_EVENT, REGION_FREE_CLIP_PUBLIC, REGION_FREE_CLIP_CREDITS, REGION_FREE_CLIP_GRANTED_EVENT } from './freeFilmPolicy'
+import { isInternalEmail } from './internalAccounts' // KINEO-TRIAL-A-PEDIDO-0411
+import { ladoDoTeste, testeAberto, TRIAL_PEDIDO_ATRIBUIDO_EVENT, TRIAL_PEDIDO_LIBERADO_EVENT, TRIAL_PEDIDO_STATUS, TRIAL_PEDIDO_TESTE } from './trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { REGION_FREE_FILM_LIVE, REGION_FREE_FILM_GRANTED_EVENT, REGION_FREE_FILM_QUALITY, REGION_FREE_FILM_SECONDS, regionFreeFilmGrantCredits } from './freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
@@ -1065,6 +1067,26 @@ export async function maybeActivateReverseTrial(args: {
       return { activated: false, reason: 'fingerprint_limit' }
     }
 
+    // KINEO-TRIAL-A-PEDIDO-0411 [TRAVA 8.2 — fundador 04/11: "Metade das contas sem crédito" + "2a"] — depois de todas as portas: metade das contas novas nasce sem o crédito, com o filme grátis a 1 clique. A digital é queimada aqui, como na ativação: o clique depois não abre outra conta grátis.
+    const noTeste = testeAberto(Date.now()) && !isInternalEmail(args.email)
+    const ladoTeste = noTeste ? ladoDoTeste(args.userId) : null
+    if (ladoTeste === 'a_pedido') {
+      const { data: marcadas, error: marcaPedidoErr } = await db
+        .from('profiles')
+        .update({ trial_status: TRIAL_PEDIDO_STATUS })
+        .eq('id', args.userId)
+        .is('trial_status', null)
+        .select('id')
+      if (marcaPedidoErr) {
+        console.error('[reverse-trial] on-request mark failed:', marcaPedidoErr.message)
+        return { activated: false, reason: 'update_error' }
+      }
+      if (!Array.isArray(marcadas) || marcadas.length === 0) return { activated: false, reason: 'lost_race' }
+      await recordTrialFingerprint(db, { hash: fingerprintHash, userId: args.userId, outcome: 'activated' })
+      await writeServerEvent({ name: TRIAL_PEDIDO_ATRIBUIDO_EVENT, userId: args.userId, metadata: { test: TRIAL_PEDIDO_TESTE, arm: ladoTeste, country: args.country ?? null } })
+      return { activated: false, reason: 'on_request' }
+    }
+
     const variant = trialVariantFor(args.userId)
     const endsAt = new Date(Date.now() + TRIAL_VARIANT_DAYS[variant] * 24 * 60 * 60 * 1000).toISOString()
 
@@ -1197,10 +1219,44 @@ export async function maybeActivateReverseTrial(args: {
         trial_ends_at: endsAt,
       },
     })
+    if (ladoTeste === 'controle') await writeServerEvent({ name: TRIAL_PEDIDO_ATRIBUIDO_EVENT, userId: args.userId, metadata: { test: TRIAL_PEDIDO_TESTE, arm: ladoTeste, country: args.country ?? null } }) // KINEO-TRIAL-A-PEDIDO-0411
     return { activated: true, reason: variant }
   } catch (e) {
     console.error('[reverse-trial] activation threw:', e instanceof Error ? e.message : String(e))
     return { activated: false, reason: 'threw' }
+  }
+}
+
+/**
+ * KINEO-TRIAL-A-PEDIDO-0411 — o clique "quero meu filme grátis": a MESMA concessão do cadastro, numa escrita só. Compare-and-swap em
+ * trial_status='on_request' e no saldo: dois cliques não somam, e quem pagou nesse meio-tempo não recebe.
+ */
+export async function claimOnRequestTrial(userId: string): Promise<{ claimed: boolean; reason: string }> {
+  try {
+    const db = adminClient()
+    if (!db) return { claimed: false, reason: 'no_admin_client' }
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const { data: row, error: readErr } = await db.from('profiles').select('video_credits, trial_status, has_paid, plan').eq('id', userId).maybeSingle()
+      if (readErr || !row) return { claimed: false, reason: 'read_error' }
+      if (row.trial_status === 'active') return { claimed: false, reason: 'already_claimed' }
+      const plan = String(row.plan ?? 'free').toLowerCase()
+      if (row.trial_status !== TRIAL_PEDIDO_STATUS || row.has_paid === true || (plan !== 'free' && plan !== '')) return { claimed: false, reason: 'not_on_request' }
+      const balance = typeof row.video_credits === 'number' ? row.video_credits : null
+      const variant = trialVariantFor(userId)
+      const endsAt = new Date(Date.now() + TRIAL_VARIANT_DAYS[variant] * 24 * 60 * 60 * 1000).toISOString()
+      const write = db.from('profiles').update({ trial_status: 'active', trial_ends_at: endsAt, trial_variant: variant, video_credits: (balance ?? 0) + TRIAL_GRANT_CREDITS, trial_credits_granted: TRIAL_GRANT_CREDITS }).eq('id', userId).eq('trial_status', TRIAL_PEDIDO_STATUS)
+      const { data: updated, error: updateErr } = await (balance === null ? write.is('video_credits', null) : write.eq('video_credits', balance)).select('id')
+      if (updateErr) return { claimed: false, reason: 'update_error' }
+      if (updated && updated.length > 0) {
+        await writeServerEvent({ name: 'trial_credits_granted', userId, metadata: { credits: TRIAL_GRANT_CREDITS, cap: TRIAL_CREDIT_CAP, variant, trial_ends_at: endsAt, source: TRIAL_PEDIDO_STATUS } })
+        await writeServerEvent({ name: TRIAL_PEDIDO_LIBERADO_EVENT, userId, metadata: { test: TRIAL_PEDIDO_TESTE, credits: TRIAL_GRANT_CREDITS } })
+        return { claimed: true, reason: 'granted' }
+      }
+    }
+    return { claimed: false, reason: 'lost_race' }
+  } catch (e) {
+    console.error('[reverse-trial] on-request claim threw:', e instanceof Error ? e.message : String(e))
+    return { claimed: false, reason: 'threw' }
   }
 }
 

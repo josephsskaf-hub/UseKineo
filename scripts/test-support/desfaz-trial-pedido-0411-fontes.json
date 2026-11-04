@@ -1,0 +1,20 @@
+{
+ "base": "8f07a9add39172b00d40da9f69f8e88e72845fa3",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "2b664a617f9d7540d2748d86916e9df6e1eb22913ce2c6447bf6804337ee9b23",
+   "afterSha256": "083ef072b1e83cc823a1577677b1d587cbda8b1f3b436c2d643206f9afda4c61",
+   "hunks": [
+    {
+     "before": "import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010\nimport { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411",
+     "after": "import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010\nimport { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411\nimport { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411"
+    },
+    {
+     "before": "      }\n      return NextResponse.json(",
+     "after": "      }\n      // KINEO-TRIAL-A-PEDIDO-0411 [TRAVA 8.2 — fundador 04/11: \"2a\"] — lado \"a pedido\" do teste: o filme grátis existe e está a 1 clique; nada foi cobrado.\n      if (profile?.trial_status === TRIAL_PEDIDO_STATUS) return NextResponse.json({ error: TRIAL_PEDIDO_REFUSAL, upsell: 'creator', reason: 'trial_on_request', balance }, { status: 402 })\n      return NextResponse.json("
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

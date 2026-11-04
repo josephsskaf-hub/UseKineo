@@ -61,7 +61,7 @@ export interface PreviaProfile {
  * has_paid != true, plano grátis. Espelhada aqui sem import (módulo puro); o guardião confere que as duas concordam.
  */
 export function previaEligible(row: PreviaProfile | null | undefined, publicFlag: boolean = PREVIA_CENAS_PUBLIC): boolean {
-  if (!publicFlag || !row || row.trial_status !== 'region_paid_only') return false
+  if (!publicFlag || !row || (row.trial_status !== 'region_paid_only' && row.trial_status !== 'on_request')) return false // KINEO-TRIAL-A-PEDIDO-0411 — o lado "a pedido" do teste também vê a prévia
   if (row.has_paid === true) return false
   const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : 'free'
   return plan === 'free' || plan === ''
