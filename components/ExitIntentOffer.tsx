@@ -38,6 +38,7 @@
 // itself on their next visits inside the 24h window. Converters end up
 // has_paid=true, which the banner already filters out server-side.
 
+import { PROMO_CARDS_LIVE } from '@/lib/growth/promoCards' // KINEO-SEM-CARD-DE-PROMO-0411
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -158,6 +159,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     } catch {
       // sessionStorage unavailable (private mode) — still show once via ref
     }
+    if (!PROMO_CARDS_LIVE) return // KINEO-SEM-CARD-DE-PROMO-0411
     // KINEO-REBASE-2026-07-10 — arm the post-exit $2.90 countdown
     // (Offer290Banner). Written at show time; converters become has_paid
     // and the banner filters them out server-side.

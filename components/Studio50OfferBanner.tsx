@@ -3,6 +3,7 @@
 // KINEO-STUDIO50-2026-09-22 — a oferta "Studio a 50%" mora onde a pessoa VOLTA sozinha (pricing e checkout
 // cancelado), não só no e-mail (4 cartas, 196 envios, 0 pagamentos nessa coorte). Quem decide se mostra é o
 // servidor (/api/offers/studio50); este componente só desenha e mede. Nada aparece para quem já paga.
+import { PROMO_CARDS_LIVE } from '@/lib/growth/promoCards' // KINEO-SEM-CARD-DE-PROMO-0411
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { STUDIO50_CLICKED_EVENT, STUDIO50_SHOWN_EVENT, offerCheckoutHref, studio50Copy, studio50OfferFor } from '@/lib/offers/studio50'
@@ -23,11 +24,12 @@ export default function Studio50OfferBanner({ surface }: { surface: 'pricing' | 
   }, [])
 
   useEffect(() => {
-    if (!elig?.eligible || shown.current) return
+    if (!PROMO_CARDS_LIVE || !elig?.eligible || shown.current) return // KINEO-SEM-CARD-DE-PROMO-0411
     shown.current = true
     void trackEvent(STUDIO50_SHOWN_EVENT, { surface, attempts: elig.attempts, last_attempt_at: elig.lastAttemptAt, last_tier: elig.lastTier, offer: studio50OfferFor(elig.lastTier).code })
   }, [elig, surface])
 
+  if (!PROMO_CARDS_LIVE) return null // KINEO-SEM-CARD-DE-PROMO-0411
   if (!elig?.eligible) return null
   const offer = studio50OfferFor(elig.lastTier)
   const copy = studio50Copy(offer)

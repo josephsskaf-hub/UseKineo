@@ -18,6 +18,7 @@
 //     do dia: nunca prometer o que o produto não executa).
 //   · Cantos 10px, fundo escuro — padrão vitrine aprovado dos modais (#273).
 
+import { PROMO_CARDS_LIVE } from '@/lib/growth/promoCards' // KINEO-SEM-CARD-DE-PROMO-0411
 import { useEffect, useState } from 'react'
 import { formatCheckoutMoney, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { videosPerMonth } from '@/lib/marketingPrice'
@@ -34,6 +35,7 @@ export default function Creator30OfferModal() {
   const [percent, setPercent] = useState(30)
 
   useEffect(() => {
+    if (!PROMO_CARDS_LIVE) return // KINEO-SEM-CARD-DE-PROMO-0411
     try {
       if (localStorage.getItem(SEEN_KEY)) return
     } catch {

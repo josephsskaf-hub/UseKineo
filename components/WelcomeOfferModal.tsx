@@ -1,5 +1,6 @@
 'use client'
 
+import { PROMO_CARDS_LIVE } from '@/lib/growth/promoCards' // KINEO-SEM-CARD-DE-PROMO-0411
 import KineoBolt from '@/components/KineoBolt'
 
 // ═══ KINEO-WELCOME20-2026-08-25 — O MODAL DE BOAS-VINDAS COM NOME ═══════════
@@ -219,6 +220,7 @@ export default function WelcomeOfferModal({
       // Recheck after the async plan/auth reads: another mounted surface or
       // tab may have claimed the same 72-hour exposure in the meantime.
       if (cancelled || seenRecently()) return
+      if (!PROMO_CARDS_LIVE) return // KINEO-SEM-CARD-DE-PROMO-0411 — antes de começar o relógio da oferta
       // KINEO-CHECKOUT-CLAREZA-1610 — com conta, o servidor diz o prazo (e começa o relógio se é a 1ª vez que ela vê a
       // oferta). Vencido = o convite não abre. Sem conta = o convite de sempre, sem contagem.
       if (userResult?.data?.user) {
