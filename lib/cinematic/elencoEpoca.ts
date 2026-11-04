@@ -25,6 +25,7 @@
 import { sanitizeRealPeople } from '@/lib/hollywood/realPeople' // KINEO-QUALIDADE-TODOS-MOTORES-2910 — pure sanitization, including Ads client. // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
 import { figuraFiel, descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
+import { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311
 
 export const MARCA_ELENCO_EPOCA = 'KINEO-ELENCO-EPOCA-2710' // KINEO-ELENCO-EPOCA-2710
 export const ELENCO_EPOCA_VERSAO = 'elenco_epoca_v1' // KINEO-ELENCO-EPOCA-2710
@@ -190,6 +191,7 @@ const NOME_RUN_RE = new RegExp(String.raw`(?<![\p{L}\p{N}'’])((?:\p{Lu}[\p{Ll}
 
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim() // KINEO-ELENCO-EPOCA-2710
 for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.
+for (const palavra of GRUPOS_NAO_NOME) NAO_NOME.add(palavra) // KINEO-CITADO-NAO-AGE-0311 — "Investigators appealed": grupo que abre frase não é "Investigators, a woman with a ponytail"
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINEO-ELENCO-EPOCA-2710
 const normaliza = (s: string) => s.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '') // KINEO-ELENCO-EPOCA-2710
 function hash(texto: string): number { let h = 0x811c9dc5; for (let i = 0; i < texto.length; i++) { h ^= texto.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 } return h >>> 0 } // KINEO-ELENCO-EPOCA-2710 — FNV-1a, como elencoDaHistoria
@@ -416,7 +418,7 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
 export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
   const texto = limpa(sanitizeRealPeople(semRotulosDeSecao(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
-  const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710
+  const lista = candidatos(texto).filter((c) => !nomeSoCitado(texto, c.nome, VERBO_RE)).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710 // KINEO-CITADO-NAO-AGE-0311 — "A mystery woman filmed Kennedy's assassination": o citado não entra; a protagonista sem nome entra pelo caminho de sempre
   const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710
   const personificados = nomesPersonificados(texto) // KINEO-SERES-PERSONIFICADOS-3010
   const saida = lista.flatMap((c): PersonagemNomeado[] => { // KINEO-ELENCO-EPOCA-2710 · KINEO-JUIZ-REFAZ-2810 — flatMap: a coisa de cenário sai sem deixar buraco; o protagonista é decidido depois

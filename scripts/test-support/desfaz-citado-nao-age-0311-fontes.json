@@ -1,0 +1,58 @@
+{
+ "base": "46282cb6cc82c0cb561e17729e3cdeeeaef4c0fc",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "687debb3385ea74de3eefb780ccaaa68dc6513f9a4cfcd7404ae458c99ee135c",
+   "afterSha256": "8d577019df7dd4d2c917e9e5846666393ae9f3a22cbc419bf3b71ba31212ff1d",
+   "hunks": [
+    {
+     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\n",
+     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n"
+    },
+    {
+     "before": "for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710",
+     "after": "for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.\nfor (const palavra of GRUPOS_NAO_NOME) NAO_NOME.add(palavra) // KINEO-CITADO-NAO-AGE-0311 — \"Investigators appealed\": grupo que abre frase não é \"Investigators, a woman with a ponytail\"\nconst escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "before": "  if (!texto) return [] // KINEO-ELENCO-EPOCA-2710\n  const lista = candidatos(texto).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710",
+     "after": "  if (!texto) return [] // KINEO-ELENCO-EPOCA-2710\n  const lista = candidatos(texto).filter((c) => !nomeSoCitado(texto, c.nome, VERBO_RE)).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710 // KINEO-CITADO-NAO-AGE-0311 — \"A mystery woman filmed Kennedy's assassination\": o citado não entra; a protagonista sem nome entra pelo caminho de sempre\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710"
+    }
+   ]
+  },
+  "lib/cinematic/filmQuality.ts": {
+   "beforeSha256": "7c595095d6cb49b14dda828dcdd9a91d818be12bcb7f74407c2b2b6c2df77fed",
+   "afterSha256": "d7356330ff33b047650f81935375b062cd49524b5a0068b2d01f1db954b82e72",
+   "hunks": [
+    {
+     "before": "import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'\nimport { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'",
+     "after": "import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'\nimport { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311\nimport { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'"
+    },
+    {
+     "before": "    for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {\n      const detected = cast.relato.elenco.find(e => e.nome.toLowerCase() === ficha.nome.toLowerCase())\n      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)",
+     "after": "    for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {\n      const detected = cast.relato.elenco.find(e => mesmoPersonagem(e.nome, ficha.nome)) // KINEO-CITADO-NAO-AGE-0311 — era nome exato: \"the woman\" x \"the mystery woman\" (e \"F. Kennedy\" x \"Kennedy\") ficavam com DUAS descrições na mesma cena\n      if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)"
+    }
+   ]
+  },
+  "lib/cinematic/folhaDePersonagem.ts": {
+   "beforeSha256": "c4977508541206933f70c7880180ab0998e47dcc54641a56385f878018723963",
+   "afterSha256": "a054c1996fdae855cb2e38c799115714e68b5e8ace6145ae1facba88581735e8",
+   "hunks": [
+    {
+     "before": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\n",
+     "after": "import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910\nimport { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311\n"
+    },
+    {
+     "before": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910\n    const fim = (m.index ?? 0) + m[0].length",
+     "after": "    const nome = m[2]\n    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311\n    const fim = (m.index ?? 0) + m[0].length"
+    },
+    {
+     "before": "    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break\n    // KINEO-SERES-PERSONIFICADOS-3010 — \"Broccoli opens his eyes\": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado",
+     "after": "    if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break\n    if (nomeSoCitado(semTags, nome, VERBO_RE)) continue // KINEO-CITADO-NAO-AGE-0311 — \"A mystery woman filmed Kennedy's assassination\": Kennedy é citado; a protagonista sem nome entra logo abaixo\n    // KINEO-SERES-PERSONIFICADOS-3010 — \"Broccoli opens his eyes\": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/cinematic/citadoNaoAge.ts": "f0978daca61ed2ad31c104874a6b58f2cee2684e41d0eb09187987612279c889"
+ }
+}

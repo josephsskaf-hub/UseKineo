@@ -1,5 +1,6 @@
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
 import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
+import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311
 import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente } from '@/lib/cinematic/juizFicha' // KINEO-CONSISTENCIA-SER-3010
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
@@ -186,7 +187,7 @@ export function prepararQualidadeDoFilme(args: {
     }
     // Reuse the canonical source description, never cast the continuation again.
     for (const ficha of elenco.filter(f => cenas[i]?.nomes.includes(f.nome))) {
-      const detected = cast.relato.elenco.find(e => e.nome.toLowerCase() === ficha.nome.toLowerCase())
+      const detected = cast.relato.elenco.find(e => mesmoPersonagem(e.nome, ficha.nome)) // KINEO-CITADO-NAO-AGE-0311 — era nome exato: "the woman" x "the mystery woman" (e "F. Kennedy" x "Kennedy") ficavam com DUAS descrições na mesma cena
       if (detected && detected.descricao !== ficha.canonica) p = p.split(detected.descricao).join(ficha.canonica)
       // KINEO-CONSISTENCIA-SER-3010 — ser não humano: a cena perde a descrição concorrente (fora do texto da ficha) e a ficha literal ganha o desenho fixo
       if (ficha.tipo !== 'humano') p = p.split(ficha.canonica).map((trecho) => semDescricaoConcorrente(trecho, ficha.nucleo)).join(ficha.canonica)

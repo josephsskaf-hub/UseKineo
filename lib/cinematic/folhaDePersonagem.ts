@@ -37,6 +37,7 @@ import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie: a ficha canônica deixa de inventar o mascote
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
+import { GRUPOS_NAO_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
 export const PERSONAGEM_VERSAO = 'personagem_v1'
@@ -226,7 +227,7 @@ function nomesDoRoteiro(script: string): string[] {
   const re = /(^|[^\p{L}\p{N}'’])(\p{Lu}[\p{Ll}]{2,})(?:'s|’s)?(?=($|[^\p{L}\p{N}]))/gu
   for (const m of texto.matchAll(re)) {
     const nome = m[2]
-    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910
+    if (NAO_NOME.has(nome.toLowerCase()) || (PALAVRAS_DE_SECAO as readonly string[]).includes(nome.toLowerCase()) || GRUPOS_NAO_NOME.includes(nome.toLowerCase())) continue // KINEO-ELENCO-MARCADOR-2910 // KINEO-CITADO-NAO-AGE-0311
     const fim = (m.index ?? 0) + m[0].length
     const depois = texto.slice(fim, fim + 40).replace(/^[\s]+/, '')
     const possessivo = /(?:'s|’s)$/.test(m[0])
@@ -257,6 +258,7 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
   const personificados = nomesPersonificados(semTags) // KINEO-SERES-PERSONIFICADOS-3010
   for (const nome of nomesDoRoteiro(bruto)) {
     if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
+    if (nomeSoCitado(semTags, nome, VERBO_RE)) continue // KINEO-CITADO-NAO-AGE-0311 — "A mystery woman filmed Kennedy's assassination": Kennedy é citado; a protagonista sem nome entra logo abaixo
     // KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli opens his eyes": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado
     if (personificados.has(nome.toLowerCase())) { elenco.push({ nome, nucleo: nome, tipo: 'criatura', canonica: descricaoDoSerPersonificado(nome, nome), origem: 'deterministica', protagonista: elenco.length === 0, genero: null }); continue }
     const { tipo, especie } = tipoDoNome(bruto, nome)

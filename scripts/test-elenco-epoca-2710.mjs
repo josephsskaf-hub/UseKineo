@@ -23,7 +23,7 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falh
 const roda = (src, mods = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/hollywood/realPeople' ? mods['@/lib/hollywood/router'] ?? roda(rd('lib/hollywood/realPeople.ts')) : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : {}), console, process: { env: {} }, Intl }) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — mantém a injeção do sanitizador no teste F6, agora importado do módulo puro.
+  vm.runInNewContext(js, { exports: exp, module: { exports: exp }, require: (id) => (id in mods ? mods[id] : id === '@/lib/hollywood/realPeople' ? mods['@/lib/hollywood/router'] ?? roda(rd('lib/hollywood/realPeople.ts')) : id === '@/lib/cinematic/pessoasDaNarracao' ? roda(rd('lib/cinematic/pessoasDaNarracao.ts')) : id === '@/lib/cinematic/citadoNaoAge' ? roda(rd('lib/cinematic/citadoNaoAge.ts')) /* KINEO-CITADO-NAO-AGE-0311 */ : {}), console, process: { env: {} }, Intl }) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — mantém a injeção do sanitizador no teste F6, agora importado do módulo puro.
   return exp
 }
 const MARCA = 'KINEO-ELENCO-EPOCA-2710'
