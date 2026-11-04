@@ -89,7 +89,7 @@ import {
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
-import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
+import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive, adsPassOnSale } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
 import { DFY_FILMS3_FILMS, DFY_FILMS3_FILM_SECONDS, DFY_FILMS3_DELIVERY_HOURS, DFY_FILMS3_PACK_ID, DFY_FILMS3_PRICE_USD_MINOR, DFY_FILMS3_VERSION, briefMetadata, dfyFilms3Eligible } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import { AUTOPILOT_UNAVAILABLE_MESSAGE, AUTOPILOT_UNAVAILABLE_REASON, autopilotCheckoutOpen, isAutopilotFamilySku } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
@@ -4703,6 +4703,7 @@ export async function GET(req: NextRequest) {
       // documentada no branch do autopilot_pilot logo abaixo.
       // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads (desligado por NEXT_PUBLIC_ADS_PASS_LIVE; interno passa).
       if (packParam === ADS_PASS_ID) {
+        if (!adsPassOnSale()) return NextResponse.redirect(`${req.nextUrl.origin}/pricing`) // KINEO-ADS-SEM-PRECO-0411 — o passe saiu de venda: sem cobrança; quem já comprou segue pelo webhook
         return await buildAdsPassAndRedirect(req, true)
       }
       // KINEO-PACOTE-3-FILMES-1610 — "3 filmes feitos por nós" (US$ 19, único). ANTES do fallback buildPackAndRedirect,
