@@ -196,7 +196,7 @@ ok(component.includes("if (params.get('already_subscribed') === '1') return"), '
 
 equal((component.match(/kineo_exit_offer_shown'/g) ?? []).length, 1, 'legacy key remains a single canonical literal')
 ok(pricing.includes('<ExitIntentOffer />'), 'pricing still requests the default deal variant')
-ok(home.includes('<ExitIntentOffer variant="free" />'), 'home still requests the free variant')
+ok(!home.includes('<ExitIntentOffer'), 'KINEO-HOME-SEM-PROMO-0411: a home não mostra mais o aviso de saída a quem não está logado')
 ok(component.indexOf("sessionStorage.getItem(SESSION_KEY) === '1'") < component.indexOf('const params = new URLSearchParams'), 'collision probe runs at the existing session guard before trigger wiring')
 ok(!eventSink.includes("'exit_intent_suppressed',"), 'suppression remains browser analytics, not server authority')
 

@@ -55,20 +55,7 @@ export default function GoogleSignInButton({ redirectTo, onError, onSelect, labe
       onClick={handleClick}
       disabled={loading}
       className="w-full rounded-xl py-3 px-4 font-bold text-sm transition-all flex items-center justify-center gap-3"
-      style={{
-        background: '#FFFFFF',
-        color: '#1F2937',
-        border: '1px solid rgba(0,0,0,0.08)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-        opacity: loading ? 0.7 : 1,
-        cursor: loading ? 'not-allowed' : 'pointer',
-      }}
-      onMouseEnter={(e) => {
-        if (!loading) e.currentTarget.style.background = '#F9FAFB'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = '#FFFFFF'
-      }}
+      style={{ background: 'transparent', color: 'var(--text)', border: '1px solid var(--border2)', opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
         <path

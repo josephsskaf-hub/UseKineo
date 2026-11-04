@@ -236,7 +236,7 @@ export default function HomeAuthModal({ signedIn = false }: { signedIn?: boolean
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: 440,
+          maxWidth: 960, // KINEO-LOGIN-QUADRO-0411 — o quadro com a vitrine
           margin: 'auto',
           borderRadius: 20,
           overflow: 'hidden',

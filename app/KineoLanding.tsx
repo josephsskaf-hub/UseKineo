@@ -18,7 +18,6 @@ import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
 // KINEO-HOME-REMODELA-2010 — import { IMG_ENGINES } saiu com o "More tools" do topo (os motores de imagem seguem em /images)
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
-import ExitIntentOffer from '@/components/ExitIntentOffer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
@@ -864,7 +863,8 @@ export default function KineoLanding({
       {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
           site") — convite com nome, 20% no 1º mês de Creator/Studio, 5s após
           o load, 1×/72h por browser, pagante nunca vê. */}
-      <WelcomeOfferModal surface="home" />
+      {/* KINEO-HOME-SEM-PROMO-0411 — fundador 04/11: "a primeira impressão… é uma coisa na cara dela desse negócio de venda… eu não quero mais". Quem não está logado não vê o aviso; o 20% segue no pagamento. */}
+      {isSignedIn && <WelcomeOfferModal surface="home" />}
       {/* KINEO-POUSO-VITRINE-2026-08-25 — o login pousa AQUI agora; este
           tracker preserva a conversão de cadastro do Ads (?signup=1). */}
       <SignupConversionTracker />
@@ -1491,11 +1491,6 @@ export default function KineoLanding({
       </div>
       {/* #5 (aprovado 15/08) — a barra ja existia; agora so para deslogados e com utm da home. */}
       {!isSignedIn && <StickyFreeShortCTA href={referralBridge ? '#try-kineo' : '/signup?utm_source=home_sticky_cta'} />}
-      {/* KINEO-CRO-2026-07-25 — recover exiting logged-out visitors (was only on /pricing). */}
-      {/* KINEO-EXIT-VARIANT-2026-08-03 — na home o exit-intent vende o GRÁTIS
-          (cadastro), não deals: visitante que nunca gerou vídeo não deve levar
-          tabela de preço como última impressão. Deals seguem no /pricing. */}
-      {!isSignedIn && <ExitIntentOffer variant="free" />}
       {/* KINEO-LOGIN-MODAL-1410 — o modal de entrar/criar conta (abre pelos links marcados com data-auth-modal e por /?auth=…). */}
       <HomeAuthModal signedIn={isSignedIn} />
     </main>

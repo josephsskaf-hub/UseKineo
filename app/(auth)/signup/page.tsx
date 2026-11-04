@@ -24,7 +24,9 @@ import {
   type BulkCheckoutAuthContext,
 } from '@/lib/growth/bulkCheckoutAuthContext'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import AuthReel from '@/components/AuthReel'
+import AuthQuadro from '@/components/auth/AuthQuadro'
+import MicrosoftSignInButton from '@/components/MicrosoftSignInButton'
+import { APPLE_LOGIN_LIVE, MICROSOFT_LOGIN_LIVE } from '@/lib/authProviders'
 // KINEO-LOGIN-MODAL-1410 — a MESMA tela, dentro do modal da home (components/auth/HomeAuthModal.tsx): só o layout muda.
 import { useAuthSurface } from '@/components/auth/AuthSurfaceContext'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -213,7 +215,7 @@ export default function SignupPage() {
     }
   }, [])
 
-  function trackOrganicMethod(method: 'google' | 'email'): void {
+  function trackOrganicMethod(method: 'google' | 'apple' | 'microsoft' | 'email'): void {
     const organicHandoff = organicHandoffRef.current
     if (!organicHandoff) return
     void trackEvent('organic_signup_method_selected', {
@@ -505,61 +507,9 @@ export default function SignupPage() {
 
   return (
     <>
-      {/* KINEO-AUTH-SPLIT-2026-08-17 (fundador: 'a tela de entrada nao ficou
-          no modelo novo') — signup ganha o MESMO split-screen do login:
-          vitrine AuthReel a esquerda (Maracaibo HD + avalanche + Tunguska +
-          Lituya), formulario em coluna fixa a direita, azul Kineo. */}
-      <div className={inModal ? 'flex relative' : 'min-h-screen flex relative'} style={{ background: inModal ? 'var(--card)' : 'var(--bg)' }}>
-        {/* KINEO-LOGIN-MODAL-1410 — no modal a vitrine da esquerda fica de fora (a home atrás é a vitrine). */}
-        {!inModal && <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 700, height: 700, background: 'var(--indigo)', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
-          />
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 520, height: 520, background: 'var(--indigo)', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(var(--muted) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
-          />
-          <div className="relative z-10 text-center" style={{ maxWidth: 640 }}>
-            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}>
-              Type an idea. Watch it become a film.
-            </h2>
-            <p className="text-sm" style={{ color: 'var(--muted2)' }}>
-              Real renders from Kineo engines — voice, score and captions included.
-            </p>
-          </div>
-          <div className="relative z-10 w-full flex justify-center">
-            <AuthReel />
-          </div>
-          <ul className="relative z-10 flex items-center gap-6 flex-wrap justify-center">
-            {[
-              'AI writes the script',
-              'Films · images · voices',
-              ft(OFFER, '3 free videos / 24h', `Free trial — ${TRIAL_GRANT_CREDITS_COPY} credits`),
-            ].map((line) => (
-              <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
-                <span
-                  className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: '0.6rem', fontWeight: 800 }}
-                >
-                  ✓
-                </span>
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>}
-
-        {/* RIGHT — form panel */}
-        <div
-          className={inModal ? 'w-full flex flex-col justify-center p-6 sm:p-8 relative z-10' : 'w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen'}
-          style={inModal ? { background: 'var(--card)' } : { background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
-        >
+      {/* KINEO-LOGIN-QUADRO-0411 — o quadro no meio: vitrine à esquerda, formulário à direita. */}
+      <AuthQuadro inModal={inModal}>
+        <div className="w-full flex flex-col" style={{ background: 'var(--card)' }}>
             {!inModal && <Link
               href="/"
               className="inline-block text-xs font-bold mb-4"
@@ -755,11 +705,15 @@ export default function SignupPage() {
                   onError={(msg) => setError(msg)}
                 />
 
-                {/* Apple Sign In — kept in code, hidden until Apple Developer is configured.
-                    Reactivate by setting NEXT_PUBLIC_ENABLE_APPLE=true (see docs/oauth-setup.md). */}
-                {process.env.NEXT_PUBLIC_ENABLE_APPLE === 'true' && (
+                {/* KINEO-LOGIN-QUADRO-0411 — Apple e Microsoft aparecem quando o provedor estiver ativo (lib/authProviders.ts, docs/LOGIN-APPLE-MICROSOFT.md). */}
+                {APPLE_LOGIN_LIVE && (
                   <div className="mt-3">
-                    <AppleSignInButton redirectTo={activationRedirect} onError={(msg) => setError(msg)} />
+                    <AppleSignInButton redirectTo={activationRedirect} analyticsSurface="signup_page" onSelect={() => trackOrganicMethod('apple')} onError={(msg) => setError(msg)} />
+                  </div>
+                )}
+                {MICROSOFT_LOGIN_LIVE && (
+                  <div className="mt-3">
+                    <MicrosoftSignInButton redirectTo={activationRedirect} analyticsSurface="signup_page" onSelect={() => trackOrganicMethod('microsoft')} onError={(msg) => setError(msg)} />
                   </div>
                 )}
 
@@ -1030,7 +984,7 @@ export default function SignupPage() {
               </>
             )}
         </div>
-      </div>
+      </AuthQuadro>
       {/* ONDA3 #17 (14/08) — Footer de marketing removido da tela de auth:
           2 campos e 1 objetivo, sem 278 linhas de links de distracao. */}
     </>

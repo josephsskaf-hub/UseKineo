@@ -5,6 +5,9 @@ import { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
+import AppleSignInButton from '@/components/AppleSignInButton'
+import MicrosoftSignInButton from '@/components/MicrosoftSignInButton'
+import { APPLE_LOGIN_LIVE, MICROSOFT_LOGIN_LIVE } from '@/lib/authProviders'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
@@ -344,6 +347,9 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                 onError={(message) => setError(message)}
                 label={tab === 'signup' ? 'Create account with Google' : 'Sign in with Google'}
               />
+              {/* KINEO-LOGIN-QUADRO-0411 — Apple e Microsoft aparecem quando o provedor estiver ativo. */}
+              {APPLE_LOGIN_LIVE && <div className="mt-3"><AppleSignInButton redirectTo={destination} analyticsSurface="auth_modal" onError={(message) => setError(message)} label={tab === 'signup' ? 'Create account with Apple' : 'Sign in with Apple'} /></div>}
+              {MICROSOFT_LOGIN_LIVE && <div className="mt-3"><MicrosoftSignInButton redirectTo={destination} analyticsSurface="auth_modal" onError={(message) => setError(message)} label={tab === 'signup' ? 'Create account with Microsoft' : 'Sign in with Microsoft'} /></div>}
 
               <div className="flex items-center gap-3 my-5">
                 <div className="flex-1 h-px" style={{ background: 'var(--border2)' }} />

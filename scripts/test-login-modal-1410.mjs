@@ -114,7 +114,7 @@ function rules(F) {
     const body = fnBody(src, header)
     ok('R3', body && !body.includes('inModal'), `${name}: ${header.trim()} não depende de inModal`)
     ok('R3', (src.match(/useAuthSurface\(\)/g) ?? []).length === 1, `${name}: lê o contexto uma vez`)
-    ok('R3', src.includes("{!inModal && <Link") && src.includes("{!inModal && <div className=\"hidden md:flex"), `${name}: no modal só saem o "Back to Home" e a vitrine`)
+    ok('R3', src.includes("{!inModal && <Link") && src.includes('<AuthQuadro inModal={inModal}>'), `${name}: no modal só sai o "Back to Home"; o quadro é o mesmo (KINEO-LOGIN-QUADRO-0411)`)
   }
   ok('R3', F.ctx.includes('createContext<AuthSurface>({ inModal: false })'), 'fora do modal o contexto vale false (páginas como antes)')
 
@@ -183,7 +183,7 @@ function rules(F) {
   // R10 — o modal em si.
   ok('R10', F.modal.includes('role="dialog"') && F.modal.includes('aria-modal="true"') && F.modal.includes('aria-label="Close"'), 'diálogo modal com X')
   ok('R10', F.modal.includes("e.key === 'Escape'") && F.modal.includes("e.key !== 'Tab'") && F.modal.includes('if (e.target === e.currentTarget) close()'), 'Esc, foco preso e clique no fundo')
-  ok('R10', F.modal.includes("document.body.style.overflow = 'hidden'") && F.modal.includes('maxWidth: 440') && F.modal.includes('createPortal('), 'fundo parado, 440 px, portal')
+  ok('R10', F.modal.includes("document.body.style.overflow = 'hidden'") && F.modal.includes('maxWidth: 960') && F.modal.includes('createPortal('), 'fundo parado, 960 px, portal')
   ok('R10', F.modal.includes("document.addEventListener('click', onClick, true)") && !stripComments(F.modal).includes('stopPropagation'), 'intercepta sem engolir a telemetria do menu')
 
   // R11 — evento.

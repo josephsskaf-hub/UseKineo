@@ -12,7 +12,7 @@ import {
 } from '@/lib/growth/checkoutAuthSessionBridge'
 
 export type AuthSurface = 'login_page' | 'signup_page' | 'auth_modal'
-export type AuthMethod = 'email' | 'google' | 'apple'
+export type AuthMethod = 'email' | 'google' | 'apple' | 'microsoft'
 export type CheckoutAuthStep =
   | 'page_view'
   | 'method_selected'
