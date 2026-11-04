@@ -15,6 +15,7 @@
 
 import { useEffect } from 'react'
 import { captureSourceOnce, trackEvent } from '@/lib/analytics'
+import { deviceClass } from '@/lib/deviceClass'
 import { captureRefOnce } from '@/lib/referral'
 import { paidClickCookieWrite } from '@/lib/growth/paidClickAttribution' // KINEO-ANUNCIO-MOTOR-2026-10-07
 import {
@@ -126,6 +127,7 @@ export default function SourceCapture() {
         const source = referrerHost ?? utmSource ?? inferredSource
 
         void trackEvent('landing_session_started', {
+          device: deviceClass(), // KINEO-APARELHO-VISITA-0411
           referrer_host: referrerHost,
           utm_source: utmSource,
           surface,
