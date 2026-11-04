@@ -46,6 +46,8 @@ import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUX
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
+import { PricingAudienceTabs, PricingTeamsBlock } from '@/components/pricing/PricingAudience' // KINEO-PLANOS-ABAS-0411
+import { audienciaDoEndereco, type PricingAudience } from '@/lib/pricingAudience' // KINEO-PLANOS-ABAS-0411
 import { Bf2026PricingBadge } from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
 import { AnnualEarlyOfferBadge, KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { KidsVendaCards } from '@/components/kidsCartoon/KidsVendaCards' // KINEO-KIDS-VENDA-2010 — os planos do desenho infantil (piloto US$ 29/mês · pack US$ 49 · 1º grátis); nada com KIDS_SALES_LIVE=false
@@ -544,6 +546,14 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   // The route resolves monthly campaign handoffs before SSR/hydration. Once
   // displayed, the toggle belongs to the buyer; effects never reset that choice.
   const [billing, setBilling] = useState<PricingPlanChoiceBilling>(initialBilling)
+  // KINEO-PLANOS-ABAS-0411 [fundador 04/11: "planos pessoa física e pessoa jurídica... teams plans e business plans"] — duas portas, com os preços de hoje. /pricing#business e ?for=business abrem a de empresas.
+  const [audience, setAudience] = useState<PricingAudience>('individual')
+  useEffect(() => {
+    const lerEndereco = () => { if (audienciaDoEndereco(window.location.hash, window.location.search) === 'team') setAudience('team') }
+    lerEndereco()
+    window.addEventListener('hashchange', lerEndereco)
+    return () => window.removeEventListener('hashchange', lerEndereco)
+  }, [])
   const resolvedCurrency = displayCurrency ?? 'usd'
   const resolvedRegion = displayRegion
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
@@ -1168,6 +1178,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {/* Push #267 — Free banner removed with Free card */}
 
+        <PricingAudienceTabs audience={audience} onChange={(a) => { setAudience(a); void trackEvent('pricing_audience_tab_clicked', { audience: a }) }} />{/* KINEO-PLANOS-ABAS-0411 */}
+        <div hidden={audience === 'team'} data-testid="pricing-individual-panel">{/* KINEO-PLANOS-ABAS-0411 — o que já existia, intacto; só fica guardado quando a aba de empresas está aberta */}
         {/* #381 — monthly / annual billing toggle */}
         <ConversionPricingEntry />
         <div className="mb-7 flex items-center justify-center">
@@ -1829,7 +1841,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
             KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
         <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
+        </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de pessoas */}
+        <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{/* KINEO-PLANOS-ABAS-0411 */}
         <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
+        <PricingTeamsBlock />
+        </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de empresas */}
 
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}<KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         <div className="mx-auto max-w-3xl"><KidsVendaCards lang="en" surface="pricing" /></div>{/* KINEO-KIDS-VENDA-2010 — embaixo do Kit BF; só com a venda ligada */}
@@ -2312,7 +2328,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             WebkitBackdropFilter: 'blur(12px)',
             borderTop: '1px solid var(--border)',
             padding: '12px 16px',
-            display: 'flex',
+            display: audience === 'team' ? 'none' : 'flex', // KINEO-PLANOS-ABAS-0411 — na aba de empresas a barra dos 3 planos de pessoa não aparece
             gap: 8,
             zIndex: 50,
           }}
