@@ -82,15 +82,20 @@ export const BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, { monthly: number; annu
   // usdToBrlMinor(990/1990) = R$ 49,90 / 99,90 (a etiqueta da V5); anual 4990×8,4 = 41916 → R$ 419,90 ·
   // 9990×8,4 = 83916 → R$ 839,90. O Studio fica onde estava. Era 6490/54590 e 14990/125990.
   // KINEO-PRECO-MERCADO-0411 — usdToBrlMinor(900/1900/5900) = R$ 44,90 / 94,90 / 294,90; anual = 12 × mensal × 0,50 até ,90: R$ 269,90 / 569,90 / 1.769,90.
-  starter: { monthly: 4490, annual: 26990 },
-  basic: { monthly: 9490, annual: 56990 },
-  pro: { monthly: 29490, annual: 176990 },
+  // KINEO-OFERTA-3H-0411 — anual normal 30%: 12 × mensal × 0,70 até ,90 = R$ 377,90 / 797,90 / 2.477,90. Os 50% viram BRL_ANNUAL_WELCOME_MINOR.
+  starter: { monthly: 4490, annual: 37790 },
+  basic: { monthly: 9490, annual: 79790 },
+  pro: { monthly: 29490, annual: 247790 },
 }
+
+/** KINEO-OFERTA-3H-0411 — o anual de boas-vindas em reais (12 × mensal × 0,50 até ,90). Mora aqui, e não só em checkoutPricing, porque os guardiões executam este módulo com checkoutPricing stubado. */
+export const BRL_ANNUAL_WELCOME_MINOR: Record<CheckoutTier, number> = { starter: 26990, basic: 56990, pro: 176990 }
+export const BRL_ANNUAL_WELCOME_PAID_FRACTION = 0.5
 
 /** KINEO-ANUAL-30-2026-10-08 — fração paga no anual (1 − 30%; era 0,6 = 1 − 40% desde KINEO-ANUAL-40OFF-2026-10-05).
  *  Espelho de ANNUAL_DISCOUNT_PERCENT em lib/checkoutPricing.ts, sem import (o guardião executa este módulo com
  *  checkoutPricing stubado). */
-export const BRL_ANNUAL_PAID_FRACTION = 0.5 // KINEO-PRECO-MERCADO-0411
+export const BRL_ANNUAL_PAID_FRACTION = 0.7 // KINEO-OFERTA-3H-0411
 
 /** Anual em reais a partir do mensal em reais: 12 × mensal × 0,70, para cima até ,90. */
 export function brlAnnualFromMonthly(monthlyMinor: number): number {
@@ -167,12 +172,14 @@ export function planSettlementAmountMinor(
   billing: 'monthly' | 'annual',
   currency: SettlementCurrency,
   usdMinor: number,
+  annualTable: 'regular' | 'welcome' = 'regular', // KINEO-OFERTA-3H-0411 — 'welcome' só com a oferta do anual decidida no servidor (o usdMinor já vem no preço dela)
 ): number {
   if (currency !== 'brl') return usdMinor
   // KINEO-AUTOPILOT-LITE-2026-09-16 — como o Autopilot, o Lite não tem linha na tabela BRL: cobra pela conversão.
   if (tier === 'autopilot_lite') return settlementAmountMinor(usdMinor, currency)
   // KINEO-BUSINESS-84-2026-10-09 — Business também não tem linha BRL: cobra pela conversão da casa, como o Autopilot.
   if (tier === 'business') return settlementAmountMinor(usdMinor, currency)
+  if (billing === 'annual' && annualTable === 'welcome') return BRL_ANNUAL_WELCOME_MINOR[tier]
   return BRL_PLAN_PRICES_MINOR[tier][billing]
 }
 
@@ -187,6 +194,8 @@ export function checkSettlementInvariants(usdMonthlyPrices: Record<CheckoutTier,
     if (BRL_PLAN_PRICES_MINOR[tier].annual !== brlAnnualFromMonthly(BRL_PLAN_PRICES_MINOR[tier].monthly)) {
       problems.push(tier + ': BRL anual nao e 12x o mensal com ' + Math.round((1 - BRL_ANNUAL_PAID_FRACTION) * 100) + '% off')
     }
+    const expectWelcome = Math.max(190, Math.ceil((BRL_PLAN_PRICES_MINOR[tier].monthly * 12 * BRL_ANNUAL_WELCOME_PAID_FRACTION) / 100) * 100 - 10)
+    if (BRL_ANNUAL_WELCOME_MINOR[tier] !== expectWelcome) problems.push(tier + ': BRL anual de boas-vindas ' + BRL_ANNUAL_WELCOME_MINOR[tier] + ' != ' + expectWelcome) // KINEO-OFERTA-3H-0411
   }
   return problems
 }
@@ -207,7 +216,7 @@ export function renewalCreditsForInvoice(
   const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : tier === 'business' ? usdToBrlMinor(BUSINESS_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
   // KINEO-PRECO-MERCADO-0411 — a mesma regra do dólar: só o preço novo em reais (mensal ou anual) recebe o grant novo.
   const tierDaTabela = tier === 'starter' || tier === 'basic' || tier === 'pro'
-  const precoNovoEmReais = tierDaTabela && (amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].monthly || amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].annual)
+  const precoNovoEmReais = tierDaTabela && (amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].monthly || amountPaidMinor === BRL_PLAN_PRICES_MINOR[tier].annual || amountPaidMinor === BRL_ANNUAL_WELCOME_MINOR[tier]) // KINEO-OFERTA-3H-0411 — o anual de boas-vindas também é preço de hoje
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && !precoNovoEmReais && (tierDaTabela || amountPaidMinor < currentBrl)) {
     // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:
     // quem pagou a tabela V5 (R$ 49,90 · 99,90 · 199,90) comprou 60/150/300 e mantém; abaixo disso, V6.

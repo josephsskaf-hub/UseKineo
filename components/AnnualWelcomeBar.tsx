@@ -1,0 +1,106 @@
+'use client'
+// KINEO-OFERTA-3H-0411 [fundador 04/11, via coordenação] — a barra fina das 3 h: "Your 50% annual offer ends in 2:41:07", link para o /pricing no anual.
+//
+// SEM PULO DE TELA: `initial` vem do servidor (lib/billing/annualWelcomeBarServer.ts), então a barra já está no HTML com a altura dela, ou não existe nunca.
+// `initial` null não faz fetch e não pode aparecer depois do 1º desenho. Ela só pode SUMIR.
+// O TEMPO VEM DO SERVIDOR: o 1º número é endsAtMs − serverNowMs (igual no HTML e na hidratação); cada leitura de /api/offers/annual-welcome acerta o prazo.
+// Some na hora em que a janela fecha; a leitura repetida a cada minuto, ao trocar de página e ao voltar à aba pega o pagamento. Leitura que falha = some.
+// Sem preço. Dispensa por cookie de sessão. O /pricing não a mostra (lá já existe a linha discreta).
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { trackEvent } from '@/lib/analytics'
+import { ANNUAL_WELCOME_DISCOUNT_PERCENT } from '@/lib/checkoutPricing'
+import {
+  ANNUAL_WELCOME_API,
+  ANNUAL_WELCOME_BAR_CLICKED_EVENT,
+  ANNUAL_WELCOME_BAR_DISMISS_COOKIE,
+  ANNUAL_WELCOME_BAR_HREF,
+  ANNUAL_WELCOME_BAR_SHOWN_EVENT,
+  annualOfferClock,
+  annualWelcomeBarHidden,
+  type AnnualWelcomeBarInitial,
+} from '@/lib/billing/annualWelcomeOffer'
+
+const REREAD_MS = 60_000
+const SHOWN_KEY = 'kineo_annual_bar_shown'
+
+function Bar({ initial, placement }: { initial: AnnualWelcomeBarInitial; placement: 'app' | 'home' }) {
+  const pathname = usePathname() ?? '/'
+  const firstMsLeft = initial.endsAtMs - initial.serverNowMs
+  const [msLeft, setMsLeft] = useState(firstMsLeft)
+  const [gone, setGone] = useState(false)
+  const deadlineRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    deadlineRef.current = Date.now() + firstMsLeft
+    const tick = () => { if (deadlineRef.current !== null) setMsLeft(deadlineRef.current - Date.now()) }
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [firstMsLeft])
+
+  useEffect(() => {
+    if (gone) return
+    let alive = true
+    const read = () => {
+      void fetch(ANNUAL_WELCOME_API, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { nowMs?: unknown; offer?: unknown; endsAtMs?: unknown } | null) => {
+          if (!alive) return
+          if (!j || j.offer !== 'welcome_3h' || typeof j.nowMs !== 'number' || typeof j.endsAtMs !== 'number') { setGone(true); return }
+          deadlineRef.current = Date.now() + (j.endsAtMs - j.nowMs)
+        })
+        .catch(() => { if (alive) setGone(true) })
+    }
+    read()
+    const id = setInterval(read, REREAD_MS)
+    const onVisible = () => { if (document.visibilityState === 'visible') read() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { alive = false; clearInterval(id); document.removeEventListener('visibilitychange', onVisible) }
+  }, [pathname, gone])
+
+  const visible = !gone && msLeft > 0 && !annualWelcomeBarHidden(pathname)
+  useEffect(() => {
+    if (!visible) return
+    try {
+      if (window.sessionStorage.getItem(SHOWN_KEY) === '1') return
+      window.sessionStorage.setItem(SHOWN_KEY, '1')
+    } catch { /* sem storage: conta esta vez */ }
+    void trackEvent(ANNUAL_WELCOME_BAR_SHOWN_EVENT, { placement, surface: pathname })
+  }, [visible, placement, pathname])
+
+  if (!visible) return null
+  return (
+    <div
+      role="region"
+      aria-label="Annual offer"
+      data-kineo="annual-welcome-bar"
+      className="relative z-40 flex h-[30px] w-full flex-shrink-0 items-center justify-center whitespace-nowrap px-8 text-center text-[12px] font-bold tabular-nums"
+      style={{ background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)' }}
+    >
+      <Link
+        href={ANNUAL_WELCOME_BAR_HREF}
+        className="underline-offset-2 hover:underline"
+        onClick={() => { void trackEvent(ANNUAL_WELCOME_BAR_CLICKED_EVENT, { placement, surface: pathname }) }}
+      >
+        Your {ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer ends in {annualOfferClock(msLeft)} →
+      </Link>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-2 text-[15px] leading-none opacity-80 hover:opacity-100"
+        onClick={() => {
+          setGone(true)
+          try { document.cookie = `${ANNUAL_WELCOME_BAR_DISMISS_COOKIE}=1; path=/; SameSite=Lax` } catch { /* nada */ }
+        }}
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
+export default function AnnualWelcomeBar({ initial, placement }: { initial: AnnualWelcomeBarInitial | null | undefined; placement: 'app' | 'home' }) {
+  if (!initial) return null
+  return <Bar initial={initial} placement={placement} />
+}

@@ -1,6 +1,7 @@
-// KINEO-BLACK-FRIDAY-2026 — /black-friday: 40% off o 1º ano de qualquer plano anual, de 24/11 a 01/12 (America/New_York).
+// KINEO-BLACK-FRIDAY-2026 — /black-friday: qualquer plano anual pelo preço de boas-vindas, de 24/11 a 01/12 (America/New_York).
+// KINEO-OFERTA-3H-0411 — sem o cupom de 40%: o checkout cobra ANNUAL_WELCOME_PRICES e a renovação fica nesse preço.
 // Renderizada a cada pedido (force-dynamic): o estado (antes / no ar / acabou) é o relógio do SERVIDOR, o mesmo que o
-// checkout usa para aplicar o cupom. Todo preço sai de lib/checkoutPricing (getAnnualPrice / TIER_PRICES / TIER_CREDITS)
+// checkout usa para cobrar o preço. Todo preço sai de lib/checkoutPricing (getAnnualPrice / ANNUAL_WELCOME_PRICES / TIER_PRICES / TIER_CREDITS)
 // via bf2026PriceRows; a garantia é a frase única ANNUAL_REFUND_POLICY (Termos §4). Nenhum número de preço digitado aqui.
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -21,8 +22,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const TITLE = `Black Friday: ${BF2026_PERCENT_OFF}% Off Your First Year | Kineo`
-const DESCRIPTION = `Black Friday at Kineo: ${BF2026_PERCENT_OFF}% off the first year of any annual plan, Nov 24 to Dec 1, 2026 (New York time). One payment for the year, credits every month.`
+const TITLE = `Black Friday: ${BF2026_PERCENT_OFF}% Off Annual Plans | Kineo`
+const DESCRIPTION = `Black Friday at Kineo: ${BF2026_PERCENT_OFF}% off any annual plan, Nov 24 to Dec 1, 2026 (New York time). One payment for the year, credits every month.`
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -39,11 +40,11 @@ export default function BlackFridayPage() {
   const state = bf2026State(nowMs)
   const rows = bf2026PriceRows()
   const faqs: Array<{ q: string; a: string }> = [
-    { q: 'How am I billed?', a: `One payment covers your first 12 months, at ${BF2026_PERCENT_OFF}% off the regular annual price. A year later the plan renews at the regular annual price shown on this page, unless you cancel before then from Account → Manage billing.` },
+    { q: 'How am I billed?', a: `One payment covers 12 months, at ${BF2026_PERCENT_OFF}% off 12 monthly payments. The plan renews at the same price each year, unless you cancel before then from Account → Manage billing.` },
     { q: 'Do I get all the credits at once?', a: 'No. Like every Kineo annual plan, your credits refill every month for the 12 months. Unused credits do not roll over to the next month.' },
     { q: 'Can I get a refund?', a: ANNUAL_REFUND_POLICY },
     { q: 'Is there a discount on monthly plans?', a: 'No. The Black Friday offer is for annual plans only; monthly plans keep their regular price.' },
-    { q: 'I already have a Kineo plan. Can I use it?', a: 'This offer is for starting a new annual plan. If you already subscribe, checkout will point you to the plan switch on the pricing page, and the Black Friday discount does not apply to plan switches.' },
+    { q: 'I already have a Kineo plan. Can I use it?', a: 'This offer is for starting a new annual plan. If you already subscribe, checkout will point you to the plan switch on the pricing page, and the Black Friday price does not apply to plan switches.' },
     { q: 'Which currency will I pay in?', a: CHECKOUT_CURRENCY_DISCLOSURE },
   ]
   return (
@@ -65,7 +66,7 @@ export default function BlackFridayPage() {
             ) : (
               <p style={{ display: 'inline-block', marginTop: 18, padding: '6px 12px', borderRadius: 999, background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)', fontSize: 13, fontWeight: 800 }}>Live now · ends Dec 1, 11:59 PM ET</p>
             )}
-            <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.04, letterSpacing: '-.04em', margin: '16px 0' }}>{BF2026_PERCENT_OFF}% off your first year of any annual plan</h1>
+            <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.04, letterSpacing: '-.04em', margin: '16px 0' }}>{BF2026_PERCENT_OFF}% off any annual plan</h1>
             <p style={{ maxWidth: 680, fontSize: 19, lineHeight: 1.5, color: 'var(--muted2)' }}>
               One payment for 12 months of Kineo, with credits every month for AI films, clips, images and voice. Black Friday is Nov 27 and Cyber Monday Nov 30; the offer runs Nov 24 to Dec 1 (New York time).
             </p>
@@ -82,9 +83,9 @@ export default function BlackFridayPage() {
                 <p style={{ margin: '10px 0 0', fontSize: 15 }}>Regular annual price: <b>{bf2026Usd(r.annualMinor)}</b>/year</p>
               ) : (
                 <>
-                  <p style={{ margin: '12px 0 0', color: 'var(--muted)', fontSize: 14 }}>Regular <s>{bf2026Usd(r.annualMinor)}</s>/year</p>
-                  <p style={{ margin: 0 }}><b style={{ fontSize: 34, letterSpacing: '-.02em' }}>{bf2026Usd(r.bfMinor)}</b> <span style={{ color: 'var(--muted2)', fontSize: 14 }}>first year</span></p>
-                  <p style={{ margin: 0, color: 'var(--muted2)', fontSize: 13 }}>≈ {bf2026Usd(r.bfPerMonthMinor)}/month for the first year · you save {bf2026Usd(r.savedMinor)}</p>
+                  <p style={{ margin: '12px 0 0', color: 'var(--muted)', fontSize: 14 }}><s>{bf2026Usd(r.twelveMonthlyMinor)}</s> if paid monthly</p>
+                  <p style={{ margin: 0 }}><b style={{ fontSize: 34, letterSpacing: '-.02em' }}>{bf2026Usd(r.bfMinor)}</b> <span style={{ color: 'var(--muted2)', fontSize: 14 }}>a year</span></p>
+                  <p style={{ margin: 0, color: 'var(--muted2)', fontSize: 13 }}>≈ {bf2026Usd(r.bfPerMonthMinor)}/month · you save {bf2026Usd(r.savedMinor)} · regular annual {bf2026Usd(r.annualMinor)}</p>
                 </>
               )}
               {state === 'open' ? (
@@ -96,7 +97,7 @@ export default function BlackFridayPage() {
           ))}
         </section>
         <p style={{ marginTop: 14, fontSize: 13, color: 'var(--muted)' }}>
-          Prices in USD. The discount applies to the first annual payment only; monthly plans are not included. Year two renews at the regular annual price unless you cancel.
+          Prices in USD. Monthly plans are not included. Your plan renews at the same price each year unless you cancel.
         </p>
 
         <section aria-label="FAQ" style={{ marginTop: 44, maxWidth: 760 }}>

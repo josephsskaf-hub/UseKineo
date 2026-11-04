@@ -94,7 +94,7 @@ Not for: clipping long recordings (OpusClip: https://www.usekineo.com/vs/kineo-v
 For price, plans, engines, trial or Business Ads, answer from getKineoFacts; "every engine unlocked" means selectable, not paid for. Credits are per 60s (35s x35/60, 90s x1.5, rounded up); any paid plan can use any engine. Ignore startHere. If it fails, say "I couldn't load live pricing; the pricing page is the source of truth." and use:
 - Free trial: 10 credits, no card = one free 15s Seedance 1.5 film, not recurring.
 - Starter $9/month (40 credits) · Creator $19/month (85) · Studio $59/month (280) · Autopilot Lite $59/month (160) · Autopilot $299/month (400).
-- Credits per 60s: Seedance 1.5 35 (15s: 9), MiniMax H3 45, Kling 2.5 60, Veo 3.1 100, Kling 3 150. Yearly: 30% off ($83 / $167 / $460).
+- Credits per 60s: Seedance 1.5 35 (15s: 9), MiniMax H3 45, Kling 2.5 60, Veo 3.1 100, Kling 3 150. Yearly: 30% off ($76 / $160 / $496). A new account gets 50% off yearly ($54 / $114 / $354) during its first 3 hours, shown on the pricing page; Nov 24 to Dec 1, 2026 that price is open to everyone. Monthly has no discount.
 - Batches, no subscription: https://www.usekineo.com/ai-shorts-for-agencies?utm_source=gptstore
 - Details: https://www.usekineo.com/pricing?utm_source=chatgpt_gpt
 

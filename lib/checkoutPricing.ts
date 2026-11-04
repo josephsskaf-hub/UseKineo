@@ -249,16 +249,30 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
   // $83,16 → $83 ($6,92/mês, 30,1%) · $238,80 × 0,7 = $167,16 → $167 ($13,92/mês, 30,1%). Studio intacto ($460).
   // Quem pagou o anual de $108/$250 (08/10) fica ACIMA do vigente e recebe o grant cheio na recarga.
   // KINEO-PRECO-MERCADO-0411 — 12 × mensal × 0,50: US$ 54 / 114 / 354 (US$ 4,50 / 9,50 / 29,50 por mês). Quem pagou 83 / 167 / 460 fica no legado da recarga anual.
+  // KINEO-OFERTA-3H-0411 — o anual normal passa a 30%: 12 × mensal × 0,70 ao dólar limpo = US$ 76 / 160 / 496 (US$ 6,33 / 13,33 / 41,33 por mês). Os 50% viram ANNUAL_WELCOME_PRICES.
+  starter: { usd: 7600 },
+  basic: { usd: 16000 },
+  pro: { usd: 49600 },
+}
+
+// KINEO-OFERTA-3H-0411 [fundador 04/11, "1A/5A"] — o anual de boas-vindas (50%): primeiras 3 h da conta nova que nunca pagou, e a Black Friday inteira para todos.
+// Regra: lib/billing/annualWelcomeOffer.ts. Quem paga este valor MANTÉM este valor na renovação (price_data inline) e recebe o grant vigente.
+// Os assinantes de US$ 54 / 114 / 354 do período curto de 04/11 caem aqui também: mesmo valor, mesmo grant.
+export const ANNUAL_WELCOME_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 5400 },
   basic: { usd: 11400 },
   pro: { usd: 35400 },
 }
+export const ANNUAL_WELCOME_DISCOUNT_PERCENT = 50
+/** Espelho de BRL_ANNUAL_WELCOME_MINOR do módulo de liquidação (o guardião confere): a recarga anual separa quem pagou a oferta do legado. */
+export const ANNUAL_WELCOME_BRL_MINOR: Record<CheckoutTier, number> = { starter: 26990, basic: 56990, pro: 176990 }
 
 /** KINEO-ANUAL-30-2026-10-08 — o desconto do anual sobre 12 mensalidades (40 de 05/10 a 08/10; 30 desde 08/10,
  *  decisão do fundador). A copy ("save 30%") lê daqui — nunca digita o número. */
 // KINEO-PRECO-MERCADO-0411 — o anual em reais de hoje, espelho de BRL_PLAN_PRICES_MINOR (o guardião confere): a recarga anual separa quem pagou o novo do legado.
-export const ANNUAL_BRL_CURRENT_MINOR: Record<CheckoutTier, number> = { starter: 26990, basic: 56990, pro: 176990 }
-export const ANNUAL_DISCOUNT_PERCENT = 50
+// KINEO-OFERTA-3H-0411 — anual normal em reais: 12 × mensal × 0,70 até ,90.
+export const ANNUAL_BRL_CURRENT_MINOR: Record<CheckoutTier, number> = { starter: 37790, basic: 79790, pro: 247790 }
+export const ANNUAL_DISCOUNT_PERCENT = 30 // KINEO-OFERTA-3H-0411
 
 // KINEO-BUSINESS-84-2026-10-09 — planos em que NENHUM cupom vale: nem ?promo= (WELCOME20, FIRST50, COMEBACK50, privados), nem o campo
 // manual "Add promotion code" da Stripe (o cupom WELCOME20 na Stripe não tem restrição de produto: digitado à mão ele
@@ -670,7 +684,8 @@ export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: numbe
   if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
     // KINEO-PRECO-MERCADO-0411 — o preço CAIU: 9,90 / 19,90 ficaram ACIMA do vigente e a régua "abaixo do vigente = legado" daria 40 / 85 a quem comprou 60 / 150.
     // Agora só o preço novo (mensal ou anual) recebe o grant novo; qualquer outro valor segue a escada do que comprou.
-    if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor !== current && amountPaidMinor !== ANNUAL_PRICES[tier].usd) {
+    // KINEO-OFERTA-3H-0411 — o anual de boas-vindas também é preço de hoje (mesmo grant).
+    if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor !== current && amountPaidMinor !== ANNUAL_PRICES[tier].usd && amountPaidMinor !== ANNUAL_WELCOME_PRICES[tier].usd) {
       return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')
     }
     return TIER_CREDITS[tier]
@@ -1179,6 +1194,7 @@ export function checkPricingInvariants(): string[] {
   // esta checagem é o que avisa antes de o dinheiro entrar errado.
   for (const tier of Object.keys(ANNUAL_PRICES) as CheckoutTier[]) {
     claim(ANNUAL_PRICES[tier].usd, `annual:${tier}`)
+    claim(ANNUAL_WELCOME_PRICES[tier].usd, `annual_welcome:${tier}`) // KINEO-OFERTA-3H-0411
   }
   // KINEO-PRICING-V6-2026-08-19 — o laço do anual REGIONAL saiu junto com a
   // região. Não existe mais um segundo conjunto de valores anuais para
@@ -1243,6 +1259,11 @@ export function checkPricingInvariants(): string[] {
         `annual:${tier} saves ${exact.toFixed(2)}% against 12 monthly payments, but the copy says ` +
         `"save ${ANNUAL_DISCOUNT_PERCENT}%". Re-derive ANNUAL_PRICES (12 × monthly × ${(100 - ANNUAL_DISCOUNT_PERCENT) / 100}).`,
       )
+    }
+    // (8c) KINEO-OFERTA-3H-0411 — o anual de boas-vindas fica a ±0,5 ponto do que a copy anuncia e abaixo do anual normal.
+    const welcomeExact = (1 - ANNUAL_WELCOME_PRICES[tier].usd / (TIER_PRICES[tier].usd * 12)) * 100
+    if (Math.abs(welcomeExact - ANNUAL_WELCOME_DISCOUNT_PERCENT) > 0.5 || ANNUAL_WELCOME_PRICES[tier].usd >= ANNUAL_PRICES[tier].usd) {
+      problems.push(`annual_welcome:${tier} saves ${welcomeExact.toFixed(2)}% against 12 monthly payments, but the copy says ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%, or it is not below the regular annual.`)
     }
   }
 

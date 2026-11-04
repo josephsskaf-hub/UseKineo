@@ -88,7 +88,7 @@ function runChecks(over = {}, verbose = false) {
   const co = src(over, F.CHECKOUT)
   const norm = co.match(/if \(tier === 'business'\) \{\n\s+billing = 'monthly'\n\s+intro = false\n\s+promo = undefined\n\s+\}/)
   check(Boolean(norm), '(1)(7) checkout normaliza business: mensal, sem intro, sem promo')
-  check(/const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business'/.test(co), '(1) unitAmount nunca usa anual para business')
+  check(/let unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business'/.test(co), '(1) unitAmount nunca usa anual para business')
   check(/recurring: \{ interval \}/.test(co) && /price_data: \{\n\s+currency: chargeCurrency,/.test(co), '(1) assinatura em price_data inline com recurring (molde dos outros tiers)')
   check(/: tierParam === 'business' \? 'business'/.test(co), '(1) GET ?tier=business vira tier business (não cai em basic)')
   check(/  business: \{\n    name: 'Kineo — Business',\n    description: `\$\{BUSINESS_ADS_PROMISE\}/.test(co), '(1)(8) TIERS.business no checkout com descrição derivada')
@@ -143,11 +143,12 @@ function runChecks(over = {}, verbose = false) {
   // (7) cupom
   check(P.planAcceptsPromotions('business') === false && P.planAcceptsPromotions('pro') === true, '(7) planAcceptsPromotions: business não, pro sim')
   check(PROMOTIONS.subscriptionAcceptsManualPromotions('business', false) === false && PROMOTIONS.subscriptionAcceptsManualPromotions('business', true) === false, '(7) campo manual da Stripe: Business fica fora no mensal e anual')
-  check(PROMOTIONS.subscriptionAcceptsManualPromotions('pro', false) === true, '(7) controle: Studio mensal continua aceitando promoções')
+  check(PROMOTIONS.subscriptionAcceptsManualPromotions('pro', false) === false && PROMOTIONS.MANUAL_PROMO_FIELD_LIVE === false, '(7) KINEO-CHECKOUT-FINO-0411: nenhum plano abre o campo (interruptor único)')
+  check(/return MANUAL_PROMO_FIELD_LIVE && planAcceptsPromotions\(tier\) && !isAnnual/.test(src(over, F.PROMOTIONS)), '(7) religado, o interruptor segue barrando o Business (planAcceptsPromotions)')
   check(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), '(7) campo manual da Stripe desligado para business (logado)')
   check(/allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)/.test(co), '(7) recuperação da sessão sem campo manual para business (logado)')
   const gu = src(over, F.GUEST)
-  check(/if \(input\.tier === 'business'\) \{\n\s+delete params\.allow_promotion_codes\n\s+params\.after_expiration = \{ recovery: \{ enabled: true, allow_promotion_codes: false \} \}\n\s+\}\n\s+return \{ params, affiliateSystem \}/.test(gu), '(7) convidado: sem campo manual para business (sessão e recuperação)')
+  check(/if \(input\.tier === 'business'\) \{\n\s+delete params\.allow_promotion_codes\n\s+params\.after_expiration = \{ recovery: \{ enabled: true, allow_promotion_codes: false \} \}\n\s+\}\n(?:\s+\/\/[^\n]*\n\s+if \(input\.annualOfferMetadata\)[^\n]*\n)?\s+return \{ params, affiliateSystem \}/.test(gu), '(7) convidado: sem campo manual para business (sessão e recuperação)')
   check(/\(tier !== 'basic' && tier !== 'pro'\) \|\| isAnnual\)/.test(co), '(7) WELCOME20 segue restrito a Creator/Studio mensal')
 
   // (8) copy derivada
@@ -203,7 +204,7 @@ const MUTANTS = [
   ['1º pagamento esquece o business', F.WEBHOOK, "                  : session.metadata?.tier === 'business' ? 'business'", "                  : session.metadata?.tier === 'x_business' ? 'business'", /\(3\) webhook: 1º pagamento/],
   ['checkout volta a aceitar cupom no business', F.CHECKOUT, "    intro = false\n    promo = undefined\n  }", "    intro = false\n  }", /\(1\)\(7\) checkout normaliza/],
   ['campo manual da Stripe ligado para todos', F.CHECKOUT, 'if (!discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual)) {', 'if (!discountApplied) {', /\(7\) campo manual/],
-  ['helper do campo manual libera o Business', F.PROMOTIONS, "return planAcceptsPromotions(tier) && !isAnnual && (tier === 'basic' || tier === 'pro')", 'return true', /\(7\) campo manual/],
+  ['helper do campo manual libera o Business', F.PROMOTIONS, "return MANUAL_PROMO_FIELD_LIVE && planAcceptsPromotions(tier) && !isAnnual && (tier === 'basic' || tier === 'pro')", 'return true', /\(7\) campo manual/],
   ['Studio Ads sem business', F.ADS, ", 'autopilot_lite', 'business']", ", 'autopilot_lite']", /\(5\) Studio Ads abre/],
   ['afiliado do Business volta a 40%', F.AFF, "plan.trim().toLowerCase() === 'business'", "plan.trim().toLowerCase() === 'x_business'", /\(6\) Business paga 20%/],
   ['webhook ignora o plano na comissão', F.WEBHOOK, 'calculateAffiliateCommission(args.amountGross, chargeRate)', 'calculateAffiliateCommission(args.amountGross, rate)', /\(6\) webhook calcula/],

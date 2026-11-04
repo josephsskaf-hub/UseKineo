@@ -2,10 +2,14 @@ import { planAcceptsPromotions } from '@/lib/checkoutPricing'
 
 export const AFFILIATE_LINK_PROMO_SOURCE = 'affiliate_link_50'
 
+// KINEO-CHECKOUT-FINO-0411 [fundador 04/11, "limpo, sem cupom"] — interruptor único: nenhum plano abre o campo "Add promotion code" da Stripe. O que o
+// SERVIDOR aplica (`discounts`: parceiro 50%, ?promo= já emitido) não passa por aqui e segue igual. true devolve o campo ao Creator/Studio mensal.
+export const MANUAL_PROMO_FIELD_LIVE = false as boolean
+
 // Stripe cannot restrict a code by billing interval. Inline products also
 // prevent product scoping, so hosted manual entry follows the same safe scope.
 export function subscriptionAcceptsManualPromotions(tier: string, isAnnual: boolean): boolean {
-  return planAcceptsPromotions(tier) && !isAnnual && (tier === 'basic' || tier === 'pro')
+  return MANUAL_PROMO_FIELD_LIVE && planAcceptsPromotions(tier) && !isAnnual && (tier === 'basic' || tier === 'pro')
 }
 
 // Creator = basic, Studio = pro. The annual price already includes its offer.

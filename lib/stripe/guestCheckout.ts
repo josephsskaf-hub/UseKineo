@@ -99,6 +99,8 @@ export function guestSettlement(input: {
   ipCountry: string | null
   acceptLanguage: string | null
   forcedCurrency: string | null
+  /** KINEO-OFERTA-3H-0411 — o anual da Black Friday: em reais, a tabela da oferta (o unitAmount já vem no preço dela). */
+  annualOffer?: boolean
 }): { chargeCurrency: SettlementCurrency; chargeAmount: number; settlementReason: SettlementReason } {
   const settlement = resolveSettlementCurrency({
     ipCountry: input.ipCountry,
@@ -109,7 +111,7 @@ export function guestSettlement(input: {
   const chargeCurrency = settlement.currency
   const chargeAmount = input.tier === 'autopilot'
     ? settlementAmountMinor(input.unitAmount, chargeCurrency)
-    : planSettlementAmountMinor(input.tier, input.isAnnual ? 'annual' : 'monthly', chargeCurrency, input.unitAmount)
+    : planSettlementAmountMinor(input.tier, input.isAnnual ? 'annual' : 'monthly', chargeCurrency, input.unitAmount, input.annualOffer === true ? 'welcome' : 'regular')
   return { chargeCurrency, chargeAmount, settlementReason: settlement.reason }
 }
 
@@ -149,6 +151,8 @@ export type GuestSessionInput = {
   autopilotPriceId: string | null
   /** KINEO-CUPOM-CONVIDADO-2026-10-07 — oferta de boas-vindas JÁ verificada pela rota; ausente = compra sem desconto. */
   welcomePromo?: GuestWelcomePromoApplied | null
+  /** KINEO-OFERTA-3H-0411 — o carimbo da oferta do anual (Black Friday) na sessão e na assinatura; ausente = compra normal, objeto idêntico ao de antes. */
+  annualOfferMetadata?: Record<string, string> | null
 }
 
 /** O desconto de boas-vindas confirmado na Stripe pela MESMA verificação do caminho logado (resolvePromisedPublicPromo). */
@@ -257,9 +261,10 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
       ...(input.affiliateClickId ? { [GUEST_CHECKOUT_AFFILIATE_CLICK_KEY]: input.affiliateClickId } : {}),
       ...sharedMetadata,
       ...welcomeMetadata,
+      ...(input.annualOfferMetadata ?? {}),
     },
     subscription_data: {
-      metadata: { ...sharedMetadata, ...welcomeMetadata },
+      metadata: { ...sharedMetadata, ...welcomeMetadata, ...(input.annualOfferMetadata ?? {}) },
     },
     // Igual ao logado sem desconto aplicado: campo manual de cupom ligado, e a sessão recuperável também aceita.
     // Com a oferta de boas-vindas (igual ao logado com desconto): `discounts` e nenhum campo manual, nem na recuperação.
@@ -288,8 +293,16 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
     delete params.allow_promotion_codes
     params.after_expiration = { recovery: { enabled: true, allow_promotion_codes: false } }
   }
+  // KINEO-OFERTA-3H-0411 — o preço da oferta não viaja na cópia recuperada da Stripe (o link vive 30 dias): espelho de annualOfferSessionRecovery.
+  if (input.annualOfferMetadata) params.after_expiration = { recovery: { enabled: false } }
   return { params, affiliateSystem }
 }
+
+/**
+ * KINEO-CHECKOUT-FINO-0411 [fundador 04/11, "limpo, sem cupom"] — espelho de MANUAL_PROMO_FIELD_LIVE (lib/affiliateDiscount.ts): nenhum plano abre o campo.
+ * Literal aqui porque o guardião da compra sem login carrega este módulo com imports fechados; o guardião confere que os dois dizem o mesmo.
+ */
+export const GUEST_MANUAL_PROMO_FIELD_LIVE = false as boolean
 
 /**
  * KINEO-BLACK-FRIDAY-2026 — espelho literal de subscriptionAcceptsManualPromotions (lib/affiliateDiscount.ts): o campo
@@ -297,7 +310,7 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
  * e o produto é inline (price_data), então o escopo seguro é este. O guardião confere que os dois dizem o mesmo.
  */
 export function guestSubscriptionAcceptsManualPromotions(tier: string, isAnnual: boolean): boolean {
-  return tier !== 'business' && !isAnnual && (tier === 'basic' || tier === 'pro')
+  return GUEST_MANUAL_PROMO_FIELD_LIVE && tier !== 'business' && !isAnnual && (tier === 'basic' || tier === 'pro')
 }
 
 /** Um clique = uma sessão (mesmo desenho do kineo-sub-v6): mesma compra, mesmo navegador, mesma janela de 5 min. */

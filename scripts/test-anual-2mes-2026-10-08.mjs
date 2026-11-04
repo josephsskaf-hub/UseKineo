@@ -625,16 +625,16 @@ const stripeOps = (env) => env.stripe.calls.map((c) => c.op)
 // KINEO-PRECO-MERCADO-0411 — 4ª coluna: os créditos ficam iguais? Quem paga legado acima do novo vigente (9,90 / 12,90 / 19,90 / 29,90) cairia no anual do site com o grant novo:
 // a troca RECUSA (credits_would_change) em vez de tirar crédito calado. Abaixo do vigente segue a conta do legado.
 const MONTH2_CASES = [
-  [900, 'starter', 54, true],
-  [990, 'starter', 54, false],
-  [1290, 'starter', 54, false],
+  [900, 'starter', 76, true],
+  [990, 'starter', 76, false],
+  [1290, 'starter', 76, false],
   [1592, 'basic', 134, true],
-  [1900, 'basic', 114, true],
-  [1990, 'basic', 114, false],
+  [1900, 'basic', 160, true],
+  [1990, 'basic', 160, false],
   [2900, 'pro', 244, true],
-  [2990, 'basic', 114, false],
+  [2990, 'basic', 160, false],
   [5490, 'pro', 461, true],
-  [5900, 'pro', 354, true],
+  [5900, 'pro', 496, true],
 ]
 
 /** R1: anual do site no mensal vigente, 0,7 no legado, créditos iguais; a regra de 40% intacta. */
@@ -710,8 +710,8 @@ async function sStatusElegivel() {
   const r = await getStatus(env)
   const b = r.body ?? {}
   if (r.status !== 200 || b.live !== true || b.eligible !== true) return [`GET elegível: ${r.status} ${JSON.stringify(b)}`]
-  if (b.offer?.id !== 'month2_annual_30_2026_10_08' || b.offer?.percentOff !== 50) p.push(`oferta no GET: ${JSON.stringify(b.offer)}`)
-  if (b.monthlyMinor !== 900 || b.annualMinor !== 5400 || b.twelveMonthsMinor !== 10800 || b.creditsPerMonth !== 40 || b.refundDays !== 14) p.push(`números do GET: ${JSON.stringify(b)}`)
+  if (b.offer?.id !== 'month2_annual_30_2026_10_08' || b.offer?.percentOff !== 30) p.push(`oferta no GET: ${JSON.stringify(b.offer)}`)
+  if (b.monthlyMinor !== 900 || b.annualMinor !== 7600 || b.twelveMonthsMinor !== 10800 || b.creditsPerMonth !== 40 || b.refundDays !== 14) p.push(`números do GET: ${JSON.stringify(b)}`)
   if (stripeOps(env).join(',') !== 'subscriptions.retrieve,invoices.list') p.push(`GET chamou a Stripe além de assinatura + faturas: ${stripeOps(env).join(',')}`)
   if (env.stripe.ops('invoices.list')[0]?.params?.subscription !== SUB || env.stripe.ops('invoices.list')[0]?.params?.status !== 'paid') p.push('GET não leu as faturas PAGAS da assinatura da pessoa')
   if (snapshot(env) !== before) p.push('GET gravou algo')
@@ -746,7 +746,7 @@ async function sElegibilidade() {
     const before = snapshot(env)
     const g = await getStatus(env)
     if (g.status !== 200 || g.body?.eligible !== false || !(g.body?.reasons ?? []).includes(code)) p.push(`${label}: GET ${g.status} ${JSON.stringify(g.body)} (esperava ${code})`)
-    for (const body of [{}, { confirm: 'SEND', annualAmountUsd: 54 }]) {
+    for (const body of [{}, { confirm: 'SEND', annualAmountUsd: 76 }]) {
       const r = await post(env, body)
       if (r.status !== 409 || r.body?.error !== 'not_eligible' || !(r.body?.reasons ?? []).includes(code) || r.body?.nothing_written !== true) p.push(`${label}: POST ${body.confirm ?? 'ensaio'} ${r.status} ${JSON.stringify(r.body)}`)
     }
@@ -776,17 +776,17 @@ async function sEnsaio() {
   if (r.status !== 200 || b.eligible !== true || !b.preview) return [`ensaio: ${r.status} ${JSON.stringify(b)}`]
   const pv = b.preview
   const credit = expectedCredit(900)
-  if (pv.annualUsd !== 54 || pv.annualMinor !== 5400 || pv.monthlyMinor !== 900) p.push(`prévia sem o anual/mensal: ${JSON.stringify(pv)}`)
-  if (pv.prorationCreditMinor !== credit || pv.chargedNowMinor !== 5400 - credit) p.push(`prévia: crédito ${pv.prorationCreditMinor} (esperava ${credit}), cobrado ${pv.chargedNowMinor} (esperava ${5400 - credit})`)
+  if (pv.annualUsd !== 76 || pv.annualMinor !== 7600 || pv.monthlyMinor !== 900) p.push(`prévia sem o anual/mensal: ${JSON.stringify(pv)}`)
+  if (pv.prorationCreditMinor !== credit || pv.chargedNowMinor !== 7600 - credit) p.push(`prévia: crédito ${pv.prorationCreditMinor} (esperava ${credit}), cobrado ${pv.chargedNowMinor} (esperava ${7600 - credit})`)
   const want = env.balance.renewalBalance(CREDITS_NOW, 40).balance
   if (pv.creditsBefore !== CREDITS_NOW || pv.creditsAfter !== want || pv.creditsPerMonth !== 40) p.push(`prévia sem os créditos antes/depois: ${JSON.stringify(pv)}`)
   if (pv.refundUntil !== new RealDate(T0 + 14 * DAY).toISOString()) p.push(`prévia sem o reembolso de 14 dias: ${pv.refundUntil}`)
-  if (JSON.stringify(b.confirm_with) !== JSON.stringify({ confirm: 'SEND', annualAmountUsd: 54 })) p.push(`confirm_with: ${JSON.stringify(b.confirm_with)}`)
+  if (JSON.stringify(b.confirm_with) !== JSON.stringify({ confirm: 'SEND', annualAmountUsd: 76 })) p.push(`confirm_with: ${JSON.stringify(b.confirm_with)}`)
   if ('metadata_to_write' in b || 'send_with' in b || JSON.stringify(b).includes(USER) || JSON.stringify(b).includes(CUS)) p.push('o ensaio da pessoa vazou o corpo interno do admin (metadata, ids)')
   if (stripeOps(env).join(',') !== 'subscriptions.retrieve,invoices.list,products.retrieve,invoices.createPreview') p.push(`ensaio fez chamadas inesperadas à Stripe: ${stripeOps(env).join(',')}`)
   const det = env.stripe.ops('invoices.createPreview')[0]?.params?.subscription_details
   const it = det?.items?.[0]
-  if (it?.id !== ITEM || it?.price_data?.unit_amount !== 5400 || it?.price_data?.recurring?.interval !== 'year' || it?.price_data?.product !== HOUSE) p.push(`prévia com price_data errado: ${JSON.stringify(it)}`)
+  if (it?.id !== ITEM || it?.price_data?.unit_amount !== 7600 || it?.price_data?.recurring?.interval !== 'year' || it?.price_data?.product !== HOUSE) p.push(`prévia com price_data errado: ${JSON.stringify(it)}`)
   if (det?.proration_behavior !== 'always_invoice' || det?.billing_cycle_anchor !== 'now') p.push(`prévia sem always_invoice/âncora now: ${JSON.stringify(det)}`)
   if (snapshot(env) !== before) p.push('o ensaio gravou algo (banco ou Stripe)')
   return p
@@ -797,30 +797,30 @@ async function sTroca() {
   const p = []
   const env = makeEnv()
   seed(env)
-  const r = await post(env, { confirm: 'SEND', annualAmountUsd: 54, surface: 'studio' })
+  const r = await post(env, { confirm: 'SEND', annualAmountUsd: 76, surface: 'studio' })
   const b = r.body ?? {}
   if (r.status !== 200 || b.switched !== true) return [`SEND: ${r.status} ${JSON.stringify(b)}`]
   const credit = expectedCredit(900)
   const want = env.balance.renewalBalance(CREDITS_NOW, 40).balance
-  if (b.result?.chargedNowMinor !== 5400 - credit || b.result?.creditsAfter !== want || b.result?.creditsGranted !== true || b.result?.refundUntil !== new RealDate(T0 + 14 * DAY).toISOString()) p.push(`resultado: ${JSON.stringify(b.result)}`)
+  if (b.result?.chargedNowMinor !== 7600 - credit || b.result?.creditsAfter !== want || b.result?.creditsGranted !== true || b.result?.refundUntil !== new RealDate(T0 + 14 * DAY).toISOString()) p.push(`resultado: ${JSON.stringify(b.result)}`)
   const ups = env.stripe.ops('subscriptions.update')
   if (ups.length !== 1) p.push(`${ups.length} updates na Stripe`)
   const u = ups[0] ?? {}
   const it = u.params?.items?.[0] ?? {}
-  if (u.id !== SUB || it.id !== ITEM || it.price_data?.unit_amount !== 5400 || it.price_data?.recurring?.interval !== 'year' || it.price_data?.product !== HOUSE || it.price_data?.currency !== 'usd') p.push(`update errado: ${JSON.stringify(u.params?.items)}`)
+  if (u.id !== SUB || it.id !== ITEM || it.price_data?.unit_amount !== 7600 || it.price_data?.recurring?.interval !== 'year' || it.price_data?.product !== HOUSE || it.price_data?.currency !== 'usd') p.push(`update errado: ${JSON.stringify(u.params?.items)}`)
   if (u.params?.proration_behavior !== 'always_invoice' || u.params?.billing_cycle_anchor !== 'now' || u.params?.payment_behavior !== 'error_if_incomplete') p.push(`update sem always_invoice/âncora/error_if_incomplete: ${JSON.stringify([u.params?.proration_behavior, u.params?.billing_cycle_anchor, u.params?.payment_behavior])}`)
-  if (!String(u.idempotencyKey ?? '').startsWith(`kineo-annual-switch-v1:${SUB}:${ITEM}:5400:`)) p.push(`update sem a chave de idempotência do núcleo: ${u.idempotencyKey}`)
+  if (!String(u.idempotencyKey ?? '').startsWith(`kineo-annual-switch-v1:${SUB}:${ITEM}:7600:`)) p.push(`update sem a chave de idempotência do núcleo: ${u.idempotencyKey}`)
   if (u.params?.metadata?.annual_switch_offer !== 'month2_annual_30_2026_10_08' || u.params?.metadata?.supabase_user_id !== USER || u.params?.metadata?.affiliate_system !== 'custom') p.push(`metadata gravada: ${JSON.stringify(u.params?.metadata)}`)
   const ev = env.db.events('plan_switched_to_annual')
   const m = ev[0]?.metadata ?? {}
   if (ev.length !== 1 || ev[0].id !== idFor(`plan_switched_to_annual:${SUB}`) || ev[0].user_id !== USER || ev[0].path !== '/api/stripe/switch-to-annual') p.push(`razão: ${JSON.stringify(ev.map((e) => [e.id, e.user_id, e.path]))}`)
   if (m.offer !== 'month2_annual_30_2026_10_08' || m.source !== 'self_service_switch_to_annual' || m.switched_by !== 'self' || m.surface !== 'studio') p.push(`razão sem offer/source/surface: ${JSON.stringify({ offer: m.offer, source: m.source, by: m.switched_by, surface: m.surface })}`)
-  if (m.annual_minor !== 5400 || m.monthly_minor !== 900 || m.amount_charged_minor !== 5400 - credit || m.credits_granted !== true || m.paid_renewals?.count !== 1) p.push(`razão com valores errados: ${JSON.stringify(m)}`)
+  if (m.annual_minor !== 7600 || m.monthly_minor !== 900 || m.amount_charged_minor !== 7600 - credit || m.credits_granted !== true || m.paid_renewals?.count !== 1) p.push(`razão com valores errados: ${JSON.stringify(m)}`)
   if (env.db.profile(USER).video_credits !== want || env.db.profile(USER).plan !== 'starter') p.push(`perfil depois da troca: ${JSON.stringify(env.db.profile(USER))}`)
   // 2º SEND, GET depois, rota do admin depois: ninguém cobra de novo
   const updates = env.stripe.ops('subscriptions.update').length
   const snap = snapshot(env)
-  const again = await post(env, { confirm: 'SEND', annualAmountUsd: 54 })
+  const again = await post(env, { confirm: 'SEND', annualAmountUsd: 76 })
   if (again.status !== 409 || again.body?.error !== 'already_switched') p.push(`2º SEND: ${again.status} ${JSON.stringify(again.body)}`)
   const g = await getStatus(env)
   if (g.body?.eligible !== false || !(g.body?.reasons ?? []).includes('already_switched')) p.push(`GET depois da troca: ${JSON.stringify(g.body)}`)
@@ -837,7 +837,7 @@ async function sTrocaBordas() {
   {
     const env = makeEnv()
     seed(env)
-    const [a, b] = await Promise.all([post(env, { confirm: 'SEND', annualAmountUsd: 54 }), post(env, { confirm: 'SEND', annualAmountUsd: 54 })])
+    const [a, b] = await Promise.all([post(env, { confirm: 'SEND', annualAmountUsd: 76 }), post(env, { confirm: 'SEND', annualAmountUsd: 76 })])
     const applied = [...env.stripe.invoiceMap.values()].filter((i) => i.billing_reason === 'subscription_update')
     if (applied.length !== 1) p.push(`clique duplo aplicou ${applied.length} trocas`)
     if (env.db.events('plan_switched_to_annual').length !== 1) p.push('clique duplo gravou mais de um razão')
@@ -849,7 +849,7 @@ async function sTrocaBordas() {
     seed(env)
     const before = snapshot(env)
     const r = await post(env, { confirm: 'SEND', annualAmountUsd: 84 })
-    if (r.status !== 409 || r.body?.error !== 'price_changed' || r.body?.expected_annual_usd !== 54) p.push(`valor diferente da prévia: ${r.status} ${JSON.stringify(r.body)}`)
+    if (r.status !== 409 || r.body?.error !== 'price_changed' || r.body?.expected_annual_usd !== 76) p.push(`valor diferente da prévia: ${r.status} ${JSON.stringify(r.body)}`)
     if (env.stripe.ops('subscriptions.update').length || snapshot(env) !== before) p.push('valor diferente da prévia cobrou ou gravou')
   }
   {
@@ -863,7 +863,7 @@ async function sTrocaBordas() {
     seed(env)
     env.stripe.state.cardDeclined = true
     const before = snapshot(env)
-    const r = await post(env, { confirm: 'SEND', annualAmountUsd: 54 })
+    const r = await post(env, { confirm: 'SEND', annualAmountUsd: 76 })
     if (r.status !== 402 || r.body?.error !== 'card_declined' || r.body?.nothing_written !== true) p.push(`cartão recusado: ${r.status} ${JSON.stringify(r.body)}`)
     if (snapshot(env) !== before) p.push('cartão recusado gravou algo')
   }
@@ -879,7 +879,7 @@ async function sPropria() {
   const before = snapshot(env)
   const anonGet = await getStatus(env, 'anon')
   if (anonGet.status !== 200 || anonGet.body?.eligible !== false || !(anonGet.body?.reasons ?? []).includes('not_signed_in')) p.push(`GET anônimo: ${JSON.stringify(anonGet.body)}`)
-  const anonPost = await post(env, { confirm: 'SEND', annualAmountUsd: 54 }, 'anon')
+  const anonPost = await post(env, { confirm: 'SEND', annualAmountUsd: 76 }, 'anon')
   if (anonPost.status !== 401) p.push(`POST anônimo: ${anonPost.status}`)
   if (env.stripe.calls.length || env.db.ops.length) p.push(`anônimo leu banco/Stripe: ${env.db.ops.join(',')} ${stripeOps(env).join(',')}`)
   // a pessoa manda o id da OUTRA no corpo: a rota ignora e age sobre a própria assinatura
@@ -888,7 +888,7 @@ async function sPropria() {
   if (env.stripe.ops('subscriptions.retrieve').some((c) => c.id !== SUB)) p.push(`o corpo escolheu a assinatura: ${env.stripe.ops('subscriptions.retrieve').map((c) => c.id).join(',')}`)
   if (snapshot(env) !== before) p.push('o ensaio com corpo alheio gravou algo')
   // superfície fora da lista não entra no razão
-  const s = await post(env, { confirm: 'SEND', annualAmountUsd: 54, surface: '<script>' })
+  const s = await post(env, { confirm: 'SEND', annualAmountUsd: 76, surface: '<script>' })
   if (s.status !== 200 || env.db.events('plan_switched_to_annual')[0]?.metadata?.surface !== null) p.push(`superfície fora da lista no razão: ${JSON.stringify(env.db.events('plan_switched_to_annual')[0]?.metadata?.surface)}`)
   if (env.stripe.subs.get(OTHER_SUB).items.data[0].price.recurring.interval !== 'month') p.push('a assinatura da OUTRA pessoa foi trocada')
   return p
@@ -904,8 +904,13 @@ async function sPrecoVigente() {
   const env = makeEnv()
   const tabela = env.world.load('lib/checkoutPricing.ts')
   const conta = (m) => Math.floor((m * 840 + 5000) / 10000)
-  const tier = ['basic', 'pro', 'starter'].find((t) => conta(tabela.TIER_PRICES[t].usd) * 100 !== tabela.ANNUAL_PRICES[t].usd)
-  if (!tier) return ['nenhum plano tem conta × 12 × 0,7 diferente do anual do site: o cenário não consegue provar que o núcleo usa o plano']
+  // KINEO-OFERTA-3H-0411 — a 30% a conta × 0,7 e o anual do site empatam nos 3 planos ($76 / $160 / $496), e nenhum cenário provaria que quem manda é a tabela.
+  // Sem plano que difira, o cenário afasta o anual do Studio da conta só neste mundo de teste (a tabela é a mesma que o núcleo e a recarga leem): $490 no site, $496 na conta.
+  let tier = ['basic', 'pro', 'starter'].find((t) => conta(tabela.TIER_PRICES[t].usd) * 100 !== tabela.ANNUAL_PRICES[t].usd)
+  if (!tier) {
+    tier = 'pro'
+    tabela.ANNUAL_PRICES.pro.usd = (conta(tabela.TIER_PRICES.pro.usd) - 6) * 100
+  }
   const monthly = tabela.TIER_PRICES[tier].usd
   const credits = tabela.TIER_CREDITS[tier]
   seed(env, { monthlyMinor: monthly, tier, planCredits: credits })
@@ -937,7 +942,7 @@ async function sDesligado() {
   const before = snapshot(env)
   const g = await getStatus(env)
   if (g.status !== 200 || g.body?.live !== false || g.body?.eligible !== false || JSON.stringify(g.body?.reasons) !== '["offer_not_live"]') p.push(`GET desligado: ${JSON.stringify(g.body)}`)
-  for (const body of [{}, { confirm: 'SEND', annualAmountUsd: 54 }]) {
+  for (const body of [{}, { confirm: 'SEND', annualAmountUsd: 76 }]) {
     const r = await post(env, body)
     if (r.status !== 404 || r.body?.error !== 'offer_not_live') p.push(`POST desligado (${body.confirm ?? 'ensaio'}): ${r.status} ${JSON.stringify(r.body)}`)
   }
@@ -949,7 +954,7 @@ async function sDesligado() {
   if (dry.status !== 200 || dry.body?.mode !== 'DRY_RUN' || dry.body?.live !== false || dry.body?.no_proximo_lote !== 1 || env.resend.calls.length) p.push(`cron ensaio desligado (mostra a coorte, não envia): ${dry.status} ${JSON.stringify(dry.body)}`)
   if (snapshot(env) !== before) p.push('o ensaio do cron gravou algo')
   const O = env.offer
-  const status = { live: true, eligible: true, reasons: [], offer: { id: O.MONTH2_ANNUAL_OFFER, percentOff: 50 }, monthlyMinor: 900, annualMinor: 5400, twelveMonthsMinor: 10800, creditsPerMonth: 40, refundDays: 14 }
+  const status = { live: true, eligible: true, reasons: [], offer: { id: O.MONTH2_ANNUAL_OFFER, percentOff: 30 }, monthlyMinor: 900, annualMinor: 7600, twelveMonthsMinor: 10800, creditsPerMonth: 40, refundDays: 14 }
   if (O.MONTH2_ANNUAL_OFFER_LIVE !== false || O.month2OfferVisible({ live: O.MONTH2_ANNUAL_OFFER_LIVE, status, variant: 'card', dismissed: false }) !== false) p.push('desligado, a regra da tela ainda pintaria')
   const html = renderUi({ live: false, state: { status } })
   if (html !== '') p.push(`a peça renderizou desligada: ${html.slice(0, 120)}`)
@@ -965,7 +970,7 @@ async function sAntesDaData() {
   const before = snapshot(env)
   const g = await getStatus(env)
   if (g.status !== 200 || g.body?.live !== false || JSON.stringify(g.body?.reasons) !== '["offer_not_live"]') p.push(`antes de 12/10 o GET abriu: ${JSON.stringify(g.body)}`)
-  const r = await post(env, { confirm: 'SEND', annualAmountUsd: 54 })
+  const r = await post(env, { confirm: 'SEND', annualAmountUsd: 76 })
   if (r.status !== 404 || r.body?.error !== 'offer_not_live') p.push(`antes de 12/10 o POST abriu: ${r.status} ${JSON.stringify(r.body)}`)
   const send = await runCron(env, '?confirm=SEND')
   if (send.status !== 409 || send.body?.error !== 'offer_not_live' || env.resend.calls.length) p.push(`antes de 12/10 o cron enviou: ${send.status} (${env.resend.calls.length} e-mails)`)
@@ -995,7 +1000,7 @@ async function sEmail() {
   if (forbidden.status !== 403 || env.db.ops.length || env.resend.calls.length) p.push(`cron sem segredo e sem admin: ${forbidden.status} (${env.db.ops.join(',')})`)
   const dry = await runCron(env, '')
   const d = dry.body ?? {}
-  if (dry.status !== 200 || d.mode !== 'DRY_RUN' || d.no_proximo_lote !== 1 || !String(d.lista?.[0] ?? '').includes(EMAIL_ADDR) || !String(d.lista?.[0] ?? '').includes('$54/ano')) p.push(`ensaio do cron: ${dry.status} ${JSON.stringify(d)}`)
+  if (dry.status !== 200 || d.mode !== 'DRY_RUN' || d.no_proximo_lote !== 1 || !String(d.lista?.[0] ?? '').includes(EMAIL_ADDR) || !String(d.lista?.[0] ?? '').includes('$76/ano')) p.push(`ensaio do cron: ${dry.status} ${JSON.stringify(d)}`)
   if (d.excluidos?.nao_e_a_1a_renovacao !== 1 || d.excluidos?.renovacao_fora_da_janela !== 1 || d.excluidos?.optout !== 1 || d.suprimidos_24h !== 1) p.push(`ensaio do cron: filtros ${JSON.stringify({ ex: d.excluidos, sup: d.suprimidos_24h })}`)
   if (d.coorte_bruta !== 5) p.push(`coorte bruta ${d.coorte_bruta}: conversão do teste e troca de plano não são renovação (esperava 5)`)
   if (env.resend.calls.length || snapshot(env) !== before) p.push('o ensaio do cron enviou ou gravou')
@@ -1004,12 +1009,12 @@ async function sEmail() {
   if (s1.status !== 200 || s1.body?.enviados !== 1 || env.resend.calls.length !== 1) return [...p, `1º SEND: ${s1.status} ${JSON.stringify(s1.body)} (${env.resend.calls.length} e-mails)`]
   const mail = env.resend.calls[0]
   if (JSON.stringify(mail.to) !== JSON.stringify([EMAIL_ADDR]) || !String(mail.from).includes('Kineo') || !mail.reply_to || !mail.headers?.['List-Unsubscribe']) p.push(`e-mail: destinatário/remetente/descadastro ${JSON.stringify({ to: mail.to, from: mail.from, h: mail.headers })}`)
-  if (!/50%/.test(mail.subject) || !mail.text.includes('$54/year instead of $9 × 12') || !mail.text.includes('40 credits') || !mail.text.includes('14 days')) p.push(`e-mail sem a oferta da pessoa: ${mail.subject} | ${mail.text.slice(0, 300)}`)
+  if (!/30%/.test(mail.subject) || !mail.text.includes('$76/year instead of $9 × 12') || !mail.text.includes('40 credits') || !mail.text.includes('14 days')) p.push(`e-mail sem a oferta da pessoa: ${mail.subject} | ${mail.text.slice(0, 300)}`)
   const link = `https://www.usekineo.com/login?redirect=${encodeURIComponent('/account?tab=billing&offer=annual&utm_source=lifecycle&utm_medium=email&utm_campaign=month2_annual_30')}`
   if (!mail.text.includes(link) || !mail.html.includes(link.split('&').join('&amp;'))) p.push('e-mail sem o link de login com destino na conta (aba de cobrança, oferta aberta)')
   if (!mail.html.includes(`data-unsub="${USER}"`) || !mail.text.includes(`unsubscribe ${USER}`)) p.push('e-mail sem o rodapé de descadastro')
   const marker = env.db.T('events').find((e) => e.id === idFor(`month2_annual_offer_sent:${SUB}`))
-  if (!marker || marker.name !== 'month2_annual_offer_sent' || marker.user_id !== USER || marker.metadata?.status !== 'sent' || marker.metadata?.resend_id !== 're_1' || marker.metadata?.annual_minor !== 5400) p.push(`carimbo do e-mail: ${JSON.stringify(marker)}`)
+  if (!marker || marker.name !== 'month2_annual_offer_sent' || marker.user_id !== USER || marker.metadata?.status !== 'sent' || marker.metadata?.resend_id !== 're_1' || marker.metadata?.annual_minor !== 7600) p.push(`carimbo do e-mail: ${JSON.stringify(marker)}`)
   if (!env.quota.some((q) => q.kind === 'month2_annual_offer' && q.priority === 'revenue' && q.userId === USER && q.ok === true)) p.push(`ledger de envio: ${JSON.stringify(env.quota)}`)
   const run = env.db.events('campaign_run_v1')
   if (run.length !== 1 || run[0].metadata?.campanha !== 'month2_annual_30' || run[0].metadata?.enviados !== 1) p.push(`linha da corrida: ${JSON.stringify(run.map((x) => x.metadata))}`)
@@ -1024,7 +1029,7 @@ async function sEmail() {
   {
     const e2 = makeEnv()
     seed(e2)
-    await post(e2, { confirm: 'SEND', annualAmountUsd: 54 })
+    await post(e2, { confirm: 'SEND', annualAmountUsd: 76 })
     const x = await runCron(e2, '?confirm=SEND')
     if (e2.resend.calls.length || x.body?.excluidos?.ja_anual !== 1) p.push(`já anual recebeu o e-mail: ${JSON.stringify(x.body)}`)
   }
@@ -1125,30 +1130,30 @@ const unescapeHtml = (s) => s.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').re
 /** R8: a peça pinta só elegível, com números reais e em cada língua; dispensada some; modal, sucesso e erro. */
 async function sTela() {
   const p = []
-  const status = { live: true, eligible: true, reasons: [], offer: { id: 'month2_annual_30_2026_10_08', percentOff: 50 }, tier: 'starter', monthlyMinor: 900, annualMinor: 5400, twelveMonthsMinor: 10800, creditsPerMonth: 40, refundDays: 14 }
+  const status = { live: true, eligible: true, reasons: [], offer: { id: 'month2_annual_30_2026_10_08', percentOff: 50 }, tier: 'starter', monthlyMinor: 900, annualMinor: 7600, twelveMonthsMinor: 10800, creditsPerMonth: 40, refundDays: 14 }
   const en = unescapeHtml(renderUi({ state: { status } }))
-  for (const want of ['Switch to annual and save 50%', '$54/year instead of $9 × 12. Unused days are credited. Full refund within 14 days.', 'Same plan, same 40 credits every month.', 'Switch to annual →', 'data-kineo="month2-annual-card"']) {
+  for (const want of ['Switch to annual and save 50%', '$76/year instead of $9 × 12. Unused days are credited. Full refund within 14 days.', 'Same plan, same 40 credits every month.', 'Switch to annual →', 'data-kineo="month2-annual-card"']) {
     if (!en.includes(want)) p.push(`cartão (en) sem "${want}"`)
   }
   if (/\{[a-z]+\}/.test(en)) p.push(`marcador sobrando no cartão: ${en.match(/\{[a-z]+\}/)[0]}`)
   const pt = unescapeHtml(renderUi({ lang: 'pt', state: { status } }))
-  if (!pt.includes('Mude para o anual e economize 50%') || !pt.includes('$54/ano em vez de $9 × 12') || /\{[a-z]+\}/.test(pt)) p.push(`cartão (pt): ${pt.slice(0, 300)}`)
+  if (!pt.includes('Mude para o anual e economize 50%') || !pt.includes('$76/ano em vez de $9 × 12') || /\{[a-z]+\}/.test(pt)) p.push(`cartão (pt): ${pt.slice(0, 300)}`)
   const ar = unescapeHtml(renderUi({ lang: 'ar', state: { status } }))
   if (!ar.includes('انتقل إلى الخطة السنوية ووفّر 50%') || /\{[a-z]+\}/.test(ar)) p.push(`cartão (ar): ${ar.slice(0, 200)}`)
   if (renderUi({ state: { status: { ...status, eligible: false, reasons: ['no_renewal_yet'] } } }) !== '') p.push('não elegível pintou')
   if (renderUi({ state: { status: null } }) !== '') p.push('sem estado do servidor pintou')
   const notice = unescapeHtml(renderUi({ state: { status }, props: { variant: 'notice', surface: 'studio' } }))
-  if (!notice.includes('data-kineo="month2-annual-notice"') || !notice.includes('aria-label="Dismiss"') || !notice.includes('$54/year instead of $9 × 12')) p.push(`aviso do /studio: ${notice.slice(0, 300)}`)
+  if (!notice.includes('data-kineo="month2-annual-notice"') || !notice.includes('aria-label="Dismiss"') || !notice.includes('$76/year instead of $9 × 12')) p.push(`aviso do /studio: ${notice.slice(0, 300)}`)
   if (renderUi({ state: { status, dismissed: true }, props: { variant: 'notice', surface: 'studio' } }) !== '') p.push('aviso dispensado continuou pintando')
   const credit = expectedCredit(900)
-  const preview = { annualUsd: 54, annualMinor: 5400, monthlyMinor: 900, prorationCreditMinor: credit, chargedNowMinor: 5400 - credit, creditsPerMonth: 40, creditsBefore: CREDITS_NOW, creditsAfter: 40, refundUntil: new RealDate(T0 + 14 * DAY).toISOString() }
+  const preview = { annualUsd: 54, annualMinor: 7600, monthlyMinor: 900, prorationCreditMinor: credit, chargedNowMinor: 7600 - credit, creditsPerMonth: 40, creditsBefore: CREDITS_NOW, creditsAfter: 40, refundUntil: new RealDate(T0 + 14 * DAY).toISOString() }
   const money = (minor) => `$${Math.floor(minor / 100)}.${String(minor % 100).padStart(2, '0')}`
   const modal = unescapeHtml(renderUi({ state: { status, modal: true, phase: 'preview', preview } }))
-  for (const want of ['role="dialog"', 'Annual plan', '$54/year', `− ${money(credit)}`, `Due today`, money(5400 - credit), `${CREDITS_NOW} → 40`, '40 credits', 'Full refund until', `Confirm — pay ${money(5400 - credit)} today`, 'Not now']) {
+  for (const want of ['role="dialog"', 'Annual plan', '$76/year', `− ${money(credit)}`, `Due today`, money(7600 - credit), `${CREDITS_NOW} → 40`, '40 credits', 'Full refund until', `Confirm — pay ${money(7600 - credit)} today`, 'Not now']) {
     if (!modal.includes(want)) p.push(`modal da prévia sem "${want}"`)
   }
-  const done = unescapeHtml(renderUi({ state: { status, modal: true, phase: 'done', result: { chargedNowMinor: 5400 - credit, creditsAfter: 40, refundUntil: preview.refundUntil } } }))
-  if (!done.includes("Done — you're on the annual plan.") || !done.includes(`Charged today: ${money(5400 - credit)}. Balance: 40 credits.`)) p.push(`sucesso: ${done.slice(0, 300)}`)
+  const done = unescapeHtml(renderUi({ state: { status, modal: true, phase: 'done', result: { chargedNowMinor: 7600 - credit, creditsAfter: 40, refundUntil: preview.refundUntil } } }))
+  if (!done.includes("Done — you're on the annual plan.") || !done.includes(`Charged today: ${money(7600 - credit)}. Balance: 40 credits.`)) p.push(`sucesso: ${done.slice(0, 300)}`)
   const declined = unescapeHtml(renderUi({ state: { status, modal: true, phase: 'error', error: 'card_declined' } }))
   if (!declined.includes('Your card was declined.')) p.push('erro de cartão sem a frase')
   const lost = unescapeHtml(renderUi({ state: { status, modal: true, phase: 'error', error: 'network' } }))
@@ -1294,7 +1299,7 @@ const MUTANTS = [
   ['M30 a oferta abre sem esperar 12/10', { [OFFER]: [replaceOnce('  return MONTH2_ANNUAL_OFFER_LIVE && nowMs >= Date.parse(MONTH2_ANNUAL_OFFER_STARTS_AT)\n', '  return MONTH2_ANNUAL_OFFER_LIVE\n', 'sem a data')] }, 'antesDaData'],
   ['M19 a peça pinta sem a renovação confirmada pelo servidor', { [OFFER]: [replaceOnce('  if (!s || s.live !== true || s.eligible !== true) return false\n', '  if (!s || s.live !== true) return false\n', 'sem eligible')] }, 'tela'],
   // KINEO-PRECO-TESTE-2026-10-08 — o alvo do M27 segue a linha nova (o vigente devolve o anual do site); + M29, o teto.
-  ['M27 o mensal vigente volta a pagar a conta (Studio 461, dois preços anuais para o mesmo plano)', { [LIB]: [replaceOnce('  if (tier && monthlyMinor === current) return siteUsd\n', '  if (false && tier && monthlyMinor === current) return siteUsd\n', 'sem o anual do site')] }, 'regra'],
+  ['M27 o mensal vigente volta a pagar a conta (Studio 461, dois preços anuais para o mesmo plano)', { [LIB]: [replaceOnce('  if (tier && monthlyMinor === current) return siteUsd\n', '  if (false && tier && monthlyMinor === current) return siteUsd\n', 'sem o anual do site')] }, 'precoVigente'],
   ['M29 quem paga acima do vigente (V8-A no teste) volta a receber anual mais caro que o do site', { [LIB]: [replaceOnce("  if (tier && typeof current === 'number' && monthlyMinor > current) return siteUsd === null ? null : Math.min(legacyUsd, siteUsd)\n", '', 'sem o teto do site')] }, 'regra'],
   ['M28 o núcleo calcula o anual sem o plano', { [CORE]: [replaceOnce('  const expectedUsd = annualUsdForOffer(offer, monthlyMinor, tierPick.tier)\n', '  const expectedUsd = annualUsdForOffer(offer, monthlyMinor)\n', 'núcleo sem o plano')] }, 'precoVigente'],
   ['M20 aviso dispensado volta', { [OFFER]: [replaceOnce("  if (input.variant === 'notice' && input.dismissed) return false\n", '', 'dispensa ignorada')] }, 'tela'],

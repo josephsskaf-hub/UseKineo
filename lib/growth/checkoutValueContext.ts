@@ -54,6 +54,13 @@ export type CheckoutValueContext = {
   version: typeof CHECKOUT_VALUE_CONTEXT_VERSION
 }
 
+/** KINEO-CHECKOUT-FINO-0411 [fundador 04/11] — a linha única do produto na Stripe. A contagem de filmes segue em outputCount (telemetria) e no /pricing. */
+export function checkoutPlanLine(credits: number, billing: 'monthly' | 'annual'): string {
+  return billing === 'annual'
+    ? `${credits} credits a month · Billed yearly · Cancel anytime`
+    : `${credits} credits a month · Cancel anytime`
+}
+
 function resultCountDescription(input: CheckoutValueContextInput): {
   lineItemDescription: string | null
   outputCount: number | null
@@ -66,39 +73,20 @@ function resultCountDescription(input: CheckoutValueContextInput): {
   // 1.5 (e, no Studio, de Kling 3), contados pela MESMA função que cobra.
   if (input.tier === 'starter') {
     const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
-    const seedanceShortCost = creditCostForDuration('cinematic_ai', true, 35)
     const outputCount = Math.floor(input.credits / seedanceCost)
-    const shortCount = Math.floor(input.credits / seedanceShortCost)
-    return {
-      lineItemDescription:
-        `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI film${outputCount === 1 ? '' : 's'} ` +
-        `or ${shortCount} of 35s, with AI voiceover, captions and no watermark`,
-      outputCount,
-    }
+    return { lineItemDescription: checkoutPlanLine(input.credits, 'monthly'), outputCount }
   }
 
   if (input.tier === 'basic') {
     const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
     const outputCount = Math.floor(input.credits / seedanceCost)
-    return {
-      lineItemDescription:
-        `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI films, ` +
-        'with voiceover, captions and no watermark',
-      outputCount,
-    }
+    return { lineItemDescription: checkoutPlanLine(input.credits, 'monthly'), outputCount }
   }
 
   if (input.tier === 'pro') {
     const klingCost = creditCostForDuration('cinematic_hollywood', true, 60)
-    const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
     const klingFilms = Math.floor(input.credits / klingCost)
-    const seedanceFilms = Math.floor(input.credits / seedanceCost)
-    return {
-      lineItemDescription:
-        `${input.credits} credits / month — ${klingFilms} ${input.kling4Paid ? 'Kling 4.0' : 'Kling 3'} 60s film` + // KINEO-VENDER-3-2910
-        `${klingFilms === 1 ? '' : 's'} or up to ${seedanceFilms} Seedance 60s AI films, with voiceover, captions and no watermark`,
-      outputCount: klingFilms,
-    }
+    return { lineItemDescription: checkoutPlanLine(input.credits, 'monthly'), outputCount: klingFilms }
   }
 
   return { lineItemDescription: null, outputCount: null }
@@ -112,10 +100,10 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
   const renewal = input.billing === 'annual' ? 'yearly' : 'monthly'
   // KINEO-ANUAL-40OFF-2026-10-05 — o anual tem política própria (fundador 05/10): reembolso integral em 14 dias,
   // depois nenhum; e os créditos chegam mês a mês. O texto do anual era o do mensal ("7-day money-back").
+  // KINEO-CHECKOUT-FINO-0411 — só os termos: renovação, cancelamento e reembolso. "Credits a month · Billed yearly" já está na linha do produto.
   const submitMessage = input.billing === 'annual'
-    ? `Credits are added after payment succeeds and arrive month by month. Renews ${renewal} at the price shown. ` +
-      `Cancel anytime from Account. ${CHECKOUT_ANNUAL_REFUND_SENTENCE}`
-    : `Credits are added after payment succeeds. Renews ${renewal} at the price shown. ` +
+    ? `Renews ${renewal} at the price shown. Cancel anytime from Account. ${CHECKOUT_ANNUAL_REFUND_SENTENCE}`
+    : `Renews ${renewal} at the price shown. ` +
       'Cancel anytime from Account. 7-day money-back guarantee.' + ` ${CHECKOUT_FIRST_FILM_GUARANTEE_SENTENCE}` // KINEO-AVULSO-GARANTIA-2810
 
   // KINEO-VENDER-3-2910 — a promo abre a frase do botão de pagar e fecha a linha do produto (quando há linha).
@@ -142,8 +130,7 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
   const outputCount = Math.floor(input.credits / TRIAL_BALANCE_BRIDGE_COST)
   return {
     lineItemDescription: withPromoLine(
-      `${input.credits} credits / month — up to ${outputCount} Seedance ${TRIAL_BALANCE_BRIDGE_DURATION}s films ` +
-      `(${TRIAL_BALANCE_BRIDGE_COST} credits each), watermark-free`),
+      `${input.credits} credits a month · up to ${outputCount} Seedance ${TRIAL_BALANCE_BRIDGE_DURATION}s films · Cancel anytime`),
     outputCount,
     submitMessage: promoSubmit,
     variant: 'trial_balance_seedance',

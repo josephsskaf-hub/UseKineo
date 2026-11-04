@@ -71,7 +71,7 @@ vm.runInNewContext(js, {
       return eo
     }
     if (mod !== '@/lib/checkoutPricing') throw new Error('import inesperado: ' + mod)
-    return { ANNUAL_PRICES: ANNUAL, TIER_PRICES: tabelaUsd('TIER_PRICES'), TIER_CREDITS, legacyCreditsForUsd, LEGACY_TIER_CREDITS_V5: LEGACY_V5, ANNUAL_BRL_CURRENT_MINOR: Object.fromEntries([...(pricing.match(/export const ANNUAL_BRL_CURRENT_MINOR[^=]*=\s*\{([^}]*)\}/)?.[1] ?? '').matchAll(/(starter|basic|pro):\s*(\d+)/g)].map((x) => [x[1], Number(x[2])])) }
+    return { ANNUAL_WELCOME_PRICES: tabelaUsd('ANNUAL_WELCOME_PRICES'), ANNUAL_WELCOME_BRL_MINOR: Object.fromEntries([...(pricing.match(/export const ANNUAL_WELCOME_BRL_MINOR[^=]*=\s*\{([^}]*)\}/)?.[1] ?? '').matchAll(/(starter|basic|pro):\s*(\d+)/g)].map((x) => [x[1], Number(x[2])])), ANNUAL_PRICES: ANNUAL, TIER_PRICES: tabelaUsd('TIER_PRICES'), TIER_CREDITS, legacyCreditsForUsd, LEGACY_TIER_CREDITS_V5: LEGACY_V5, ANNUAL_BRL_CURRENT_MINOR: Object.fromEntries([...(pricing.match(/export const ANNUAL_BRL_CURRENT_MINOR[^=]*=\s*\{([^}]*)\}/)?.[1] ?? '').matchAll(/(starter|basic|pro):\s*(\d+)/g)].map((x) => [x[1], Number(x[2])])) }
   },
 })
 const lib = exp
@@ -114,8 +114,8 @@ checa('anual pago abaixo do piso legado E do vigente (assinante V6) → grant V6
 // recebe o grant vigente; o do Studio ($395) segue abaixo do vigente ($460) e é o degrau legado que o salva de 180.
 checa('anual de 40% off (9290/21500/39500) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]))
 checa('troca por e-mail a 40% a partir do mensal V8-A ($93 / $215 / $395) → mesmos 60/150/300 de hoje', lib.annualRefillCredits('starter', 9300, 'usd') === 60 && lib.annualRefillCredits('basic', 21500, 'usd') === 150 && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
-checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 50% off ($354) → 280', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 35400 && TIER_CREDITS.pro === 280)
-checa('fatura em BRL: só o anual novo recebe o grant novo; outro valor mantém 60/150/300', lib.annualRefillCredits('pro', 176990, 'brl') === TIER_CREDITS.pro && lib.annualRefillCredits('pro', 230990, 'brl') === 300 && lib.annualRefillCredits('basic', 83990, 'brl') === 150)
+checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 30% off ($496) ou no de boas-vindas ($354) → 280', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && lib.annualRefillCredits('pro', 35400, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 49600 && TIER_CREDITS.pro === 280)
+checa('fatura em BRL: só os dois anuais de hoje recebem o grant novo; outro valor mantém 60/150/300', lib.annualRefillCredits('pro', 247790, 'brl') === TIER_CREDITS.pro && lib.annualRefillCredits('pro', 176990, 'brl') === TIER_CREDITS.pro && lib.annualRefillCredits('pro', 230990, 'brl') === 300 && lib.annualRefillCredits('basic', 83990, 'brl') === 150)
 checa('valor ausente → grant vigente', lib.annualRefillCredits('starter', null, 'usd') === TIER_CREDITS.starter)
 checa('só starter/basic/pro têm anual', lib.annualTierFromMetadata('pro') === 'pro' && lib.annualTierFromMetadata('autopilot') === null && lib.annualTierFromMetadata(undefined) === null)
 checa('cinematic_tokens: Studio 1, demais 0 (Push #088)', lib.annualRefillCinematicTokens('pro') === 1 && lib.annualRefillCinematicTokens('basic') === 0)

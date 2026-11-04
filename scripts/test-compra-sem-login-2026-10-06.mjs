@@ -888,8 +888,8 @@ async function guestPurchase(env, { browser = newBrowser({ kineo_event_session_i
   const delivered = deliverWebhook ? await deliver(env, 'checkout.session.completed', snapshot) : null
   return { res, browser, sessionId, snapshot, delivered }
 }
-async function loggedPurchase(env, { email, query = 'tier=basic&billing=monthly&intro=1', country = 'US', lang, profile = {} } = {}) {
-  const user = env.db.seedUser({ email, profile })
+async function loggedPurchase(env, { email, query = 'tier=basic&billing=monthly&intro=1', country = 'US', lang, profile = {}, createdAt } = {}) {
+  const user = env.db.seedUser({ email, profile, ...(createdAt ? { createdAt } : {}) })
   const browser = newBrowser({ kineo_event_session_id: `sess_${nodeCrypto.randomBytes(5).toString('hex')}` })
   browser.userId = user.id
   const res = await checkoutGet(env, browser, query, { country, lang })
@@ -974,7 +974,7 @@ async function sCurrencyParity(env) {
     const guestBrowser = newBrowser()
     await checkoutGet(env, guestBrowser, f.query, { country: f.country, lang: f.lang })
     const guest = lastCreate(env)?.params
-    const logged = await loggedPurchase(env, { email: `paridade-${nodeCrypto.randomBytes(3).toString('hex')}@exemplo.com`, query: f.query, country: f.country, lang: f.lang })
+    const logged = await loggedPurchase(env, { email: `paridade-${nodeCrypto.randomBytes(3).toString('hex')}@exemplo.com`, query: f.query, country: f.country, lang: f.lang, createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString() }) // KINEO-OFERTA-3H-0411 — conta fora das 3 h: a paridade é do anual normal
     const mine = lastCreate(env)?.params
     if (!guest || !mine || !logged.sessionId) { p.push(`${f.name}: faltou uma das sessões`); continue }
     const gli = guest.line_items?.[0]?.price_data
@@ -2254,7 +2254,7 @@ async function run(name, scenario, opts) {
   check(key() === key() && key() !== key({ nonceHash: 'b'.repeat(64) }) && key() !== key({ window: 8 }), 'idempotência: mesmo navegador + mesma janela = mesma sessão')
   // Leva 4 — a oferta de boas-vindas nos parâmetros: ausente = o objeto de antes; presente = o espelho do logado.
   check(JSON.stringify(b({})) === JSON.stringify(b({ welcomePromo: null })), 'sem a oferta de boas-vindas, os parâmetros são exatamente os de antes (null = ausente)')
-  check(p1.allow_promotion_codes === true && p1.after_expiration.recovery.allow_promotion_codes === true && !('discounts' in p1), 'compra sem cupom: campo manual ligado e nenhum desconto (como hoje)')
+  check(!('allow_promotion_codes' in p1) && p1.after_expiration.recovery.allow_promotion_codes === false && !('discounts' in p1), 'compra sem cupom: sem campo manual e nenhum desconto (KINEO-CHECKOUT-FINO-0411)')
   {
     const w = b({ welcomePromo: { kind: 'welcome_first_month_20', requestedCode: 'WELCOME20', promotionCodeId: 'promo_x', firstChargeMinor: 2392 } }).params
     check(JSON.stringify(w.discounts) === '[{"promotion_code":"promo_x"}]' && !('allow_promotion_codes' in w) && w.after_expiration.recovery.allow_promotion_codes === false, 'oferta de boas-vindas: o desconto no lugar do campo manual (a Stripe não aceita os dois)')
@@ -2407,7 +2407,7 @@ const MUTANTS = [
   ['link do e-mail: token inválido entra', { [LINK]: [replaceOnce('  if (error || !data?.user || !data.session) {\n', '  if (!data?.user) return NextResponse.redirect(new URL(next, origin))\n  if (false) {\n', 'sem checagem do verifyOtp')] }, sOtherBrowserEmail, true],
   ['servidor: conta sem carimbo da sessão', { [SERVER]: [replaceOnce('        [GUEST_ACCOUNT_SESSION_APP_METADATA_KEY]: sessionId,\n', '', 'sem carimbo em app_metadata')] }, sNewAccount, true],
   ['servidor: assinatura sem dono', { [SERVER]: [replaceOnce('    await deps.updateSubscriptionMetadata(subscriptionId, { supabase_user_id: userId })\n', '', 'sem carimbo na assinatura')] }, sNewAccount, true],
-  ['servidor: BRL ignorado', { [SERVER]: [replaceOnce("    : planSettlementAmountMinor(input.tier, input.isAnnual ? 'annual' : 'monthly', chargeCurrency, input.unitAmount)", '    : input.unitAmount', 'sem tabela em reais')] }, sCurrencyParity, true],
+  ['servidor: BRL ignorado', { [SERVER]: [replaceOnce("    : planSettlementAmountMinor(input.tier, input.isAnnual ? 'annual' : 'monthly', chargeCurrency, input.unitAmount, input.annualOffer === true ? 'welcome' : 'regular')", '    : input.unitAmount', 'sem tabela em reais')] }, sCurrencyParity, true],
   ['servidor: afiliado fora da sessão', { [SERVER]: [replaceOnce('      ...(input.affiliateCode ? { [GUEST_CHECKOUT_AFFILIATE_CODE_KEY]: input.affiliateCode } : {}),\n', '', 'sem aff_code')] }, sAffiliate, true],
   ['servidor: conflito ignorado', { [SERVER]: [replaceOnce('  const conflict = bornFromThisSession ? null : guestPurchaseConflict(profile, subscriptionId)', '  const conflict = null as null', 'sem conflito')] }, sConflict, true],
   ['webhook: Path B sem o dono do convidado', { [WEBHOOK]: [replaceOnce('          session.metadata = { ...(session.metadata ?? {}), supabase_user_id: guestOwner.userId }\n', '', 'sem o carimbo do dono na entrega')] }, sNewAccount, true],
@@ -2461,9 +2461,9 @@ const MUTANTS = [
   ['checkout: oferta recusada vira compra a preço cheio', { [CHECKOUT]: [replaceOnce("    if (resolution.status === 'rejected') {\n      return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', resolution.reason) } }\n    }\n    welcome = {\n", "    if (resolution.status === 'rejected') {\n      welcome = null\n    } else welcome = {\n", 'recusa segue sem desconto')] }, sWelcomeStripeFailure, true, true],
   // visitante com WELCOME20 vai à Stripe com o desconto
   ['servidor: sessão sem o desconto', { [SERVER]: [replaceOnce('    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),\n', '    ...(welcome ? {} : { allow_promotion_codes: true }),\n', 'sem discounts')] }, sWelcomeGuest, true, true],
-  ['servidor: desconto junto com o campo manual', { [SERVER]: [replaceOnce('    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),\n', '    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : {}),\n    allow_promotion_codes: true,\n', 'discounts + campo manual')] }, sWelcomeGuest, true, true],
+  ['servidor: desconto junto com o campo manual', { [SERVER]: [replaceOnce('    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),\n', '    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : {}),\n    allow_promotion_codes: true,\n', 'discounts + campo manual'), replaceOnce('GUEST_MANUAL_PROMO_FIELD_LIVE = false', 'GUEST_MANUAL_PROMO_FIELD_LIVE = true', 'campo religado (KINEO-CHECKOUT-FINO-0411: sem isto o interruptor esconde o mutante)')], 'lib/affiliateDiscount.ts': [replaceOnce('MANUAL_PROMO_FIELD_LIVE = false', 'MANUAL_PROMO_FIELD_LIVE = true', 'campo religado na rota')] }, sWelcomeGuest, true, true],
   // o webhook concede o mesmo grant e registra a oferta
-  ['servidor: sessão sem o carimbo da oferta', { [SERVER]: [replaceOnce('      ...sharedMetadata,\n      ...welcomeMetadata,\n    },\n', '      ...sharedMetadata,\n    },\n', 'sem carimbo na sessão')] }, sWelcomeGrant, true, true],
+  ['servidor: sessão sem o carimbo da oferta', { [SERVER]: [replaceOnce('      ...sharedMetadata,\n      ...welcomeMetadata,\n      ...(input.annualOfferMetadata ?? {}),\n    },\n', '      ...sharedMetadata,\n    },\n', 'sem carimbo na sessão')] }, sWelcomeGrant, true, true],
   ['servidor: 1º mês com crédito de intro', { [SERVER]: [replaceOnce('        public_promo_first_charge_minor: String(welcome.firstChargeMinor),\n      }\n    : {}\n', "        public_promo_first_charge_minor: String(welcome.firstChargeMinor),\n        intro: '1',\n        intro_credits: '10',\n      }\n    : {}\n", 'grant de intro')] }, sWelcomeGrant, true, true],
   ['webhook: payment_success sem a oferta', { [WEBHOOK]: [replaceOnce('guest_checkout_version: GUEST_CHECKOUT_VERSION, ...guestWelcomePromoEventMetadata(session.metadata) } : {}),', 'guest_checkout_version: GUEST_CHECKOUT_VERSION } : {}),', 'evento sem a oferta')] }, sWelcomeGrant, true, true],
   // reuso grava guest_welcome_promo_reused e dispara o aviso

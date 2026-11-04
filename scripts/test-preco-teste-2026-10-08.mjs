@@ -55,17 +55,17 @@ function avalia(src) {
   // KINEO-PRECO-MERCADO-0411 — re-ancorado na tabela de 04/11 (9 / 19 / 59, anual 50%); o que este guardião vigia segue igual.
   t('A1 mensal: Starter 900 · Creator 1900 · Studio 5900', M.starter === 900 && M.basic === 1900 && M.pro === 5900)
   t('A2 intro = mensal (nenhum 1º mês com desconto reaparece)', usdDe(intro, 'starter') === M.starter && usdDe(intro, 'basic') === M.basic)
-  t('A3 anual: 5400 · 11400 · 35400', A.starter === 5400 && A.basic === 11400 && A.pro === 35400)
-  t('A4 anual a 50% ± 0,5 ponto de 12 mensalidades nos três planos', ['starter', 'basic', 'pro'].every((x) => Math.abs((1 - A[x] / (M[x] * 12)) * 100 - 50) <= 0.5))
+  t('A3 anual: 7600 · 16000 · 49600', A.starter === 7600 && A.basic === 16000 && A.pro === 49600) // KINEO-OFERTA-3H-0411
+  t('A4 anual a 30% ± 0,5 ponto de 12 mensalidades nos três planos', ['starter', 'basic', 'pro'].every((x) => Math.abs((1 - A[x] / (M[x] * 12)) * 100 - 30) <= 0.5))
   t('A5 marca da decisão junto da tabela', src.cp.includes('KINEO-PRECO-MERCADO-0411 — fundador 04/11'))
-  t('A6 BRL: Starter R$ 44,90 / anual R$ 269,90 · Creator R$ 94,90 / anual R$ 569,90 · Studio R$ 294,90 / anual R$ 1.769,90',
-    src.sc.includes('  starter: { monthly: 4490, annual: 26990 },\n  basic: { monthly: 9490, annual: 56990 },\n  pro: { monthly: 29490, annual: 176990 },'))
+  t('A6 BRL: Starter R$ 44,90 / anual R$ 377,90 · Creator R$ 94,90 / anual R$ 797,90 · Studio R$ 294,90 / anual R$ 2.477,90',
+    src.sc.includes('  starter: { monthly: 4490, annual: 37790 },\n  basic: { monthly: 9490, annual: 79790 },\n  pro: { monthly: 29490, annual: 247790 },'))
 
   // B. espelhos puros
   t('B1 entryPolicy (módulo puro) diz "Plans start at $9/month" e não guarda o preço antigo', src.ep.includes('Plans start at $9/month') && !src.ep.includes('Plans start at $9.90/month') && !src.ep.includes('Plans start at $12.90/month'))
   const ocupados = ((src.offer.match(/ONE_TIME_USD_MINOR_OCCUPIED: readonly number\[\] = \[([^\]]*)\]/) || [])[1] || '').split(',').map((s) => Number(s.trim())).filter(Number.isFinite)
   t('B2 Studio Ads: mensais e anuais de hoje ocupados; 1990 (= o passe), 2990, 10800 e 25000 fora',
-    [900, 1900, 5400, 5900, 11400, 35400].every((n) => ocupados.includes(n)) && ![1990, 2990, 10800, 25000].some((n) => ocupados.includes(n)))
+    [900, 1900, 5400, 5900, 7600, 11400, 16000, 35400, 49600].every((n) => ocupados.includes(n)) && ![1990, 2990, 10800, 25000].some((n) => ocupados.includes(n)))
 
   // C. efeitos colaterais vigiados
   t('C1 clipes: a referência do Creator fica congelada em 2990 (o clipe não sobe ~50% em créditos sem decisão)',
@@ -106,9 +106,9 @@ const MUTANTES = [
   ['Starter volta a 1290 sem decisão', mut('cp', '  starter: { usd: 900 },\n  basic: { usd: 1900 },\n  pro: { usd: 5900 },', '  starter: { usd: 1290 },\n  basic: { usd: 1900 },\n  pro: { usd: 5900 },')],
   ['Creator fica em 2990 (só o Starter caiu)', mut('cp', '  starter: { usd: 900 },\n  basic: { usd: 1900 },\n  pro: { usd: 5900 },', '  starter: { usd: 900 },\n  basic: { usd: 2990 },\n  pro: { usd: 5900 },')],
   ['Studio cai junto para 3990', mut('cp', '  basic: { usd: 1900 },\n  pro: { usd: 5900 },', '  basic: { usd: 1900 },\n  pro: { usd: 3990 },')],
-  ['anual do Creator esquecido em 25000', mut('cp', 'basic: { usd: 11400 }', 'basic: { usd: 25000 }')],
+  ['anual do Creator esquecido em 25000', mut('cp', 'basic: { usd: 16000 }', 'basic: { usd: 25000 }')],
   ['intro do Starter fica em 1290 (desconto de 1º mês ao contrário)', mut('cp', '  starter: { usd: 900 },\n  basic: { usd: 1900 },\n}', '  starter: { usd: 1290 },\n  basic: { usd: 1900 },\n}')],
-  ['BRL do Creator esquecido em R$ 149,90', mut('sc', 'basic: { monthly: 9490, annual: 56990 }', 'basic: { monthly: 14990, annual: 125990 }')],
+  ['BRL do Creator esquecido em R$ 149,90', mut('sc', 'basic: { monthly: 9490, annual: 79790 }', 'basic: { monthly: 14990, annual: 125990 }')],
   ['entryPolicy volta a $12.90', mut('ep', 'Plans start at $9/month', 'Plans start at $12.90/month')],
   ['1990 entra na lista do Studio Ads (colide com o passe)', mut('offer', '900, 1290,', '900, 1290, 1990,')],
   ['referência dos clipes acompanha o Creator (clipe sobe ~50% em créditos)', mut('clip', 'export const CREATOR_PLAN_USD_CENTS = 2990\n', 'export const CREATOR_PLAN_USD_CENTS = 1990\n')],

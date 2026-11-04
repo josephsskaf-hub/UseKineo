@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
+import AnnualWelcomeBar from '@/components/AnnualWelcomeBar' // KINEO-OFERTA-3H-0411
+import { readAnnualWelcomeBar } from '@/lib/billing/annualWelcomeBarServer' // KINEO-OFERTA-3H-0411
 import { extractShortTitle } from '@/lib/resumeStrip'
 import type { ResumeStripData } from '@/lib/resumeStrip'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
@@ -178,6 +180,7 @@ export default async function HomePage({
     )
   )
 
+  const annualWelcomeBar = await readAnnualWelcomeBar(supabase, user) // KINEO-OFERTA-3H-0411 — no HTML, para a tela não pular
   return (
     <>
       <script
@@ -185,6 +188,7 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
       />
       <FaqStructuredData />
+      <AnnualWelcomeBar initial={annualWelcomeBar} placement="home" />
       <KineoLanding
         initialUser={user ? { id: user.id } : null}
         engineWall={engineWall}

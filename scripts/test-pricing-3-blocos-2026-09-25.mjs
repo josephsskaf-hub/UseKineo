@@ -88,7 +88,7 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   ok(src.split('<PricingAdsBlock />').length === 2 && src.split('<PricingCreditsBlock />').length === 2, '1b cada bloco montado exatamente uma vez')
   ok(/^import PricingAdsBlock from '@\/components\/pricing\/PricingAdsBlock'/m.test(src) && /^import PricingCreditsBlock from '@\/components\/pricing\/PricingCreditsBlock'/m.test(src), '1c imports dos dois componentes novos')
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo do anual virou "SAVE {ANNUAL_DISCOUNT_PERCENT}%" (era "2 MONTHS FREE").
-  ok(src.includes("setBilling('monthly')") && src.includes("setBilling('annual')") && src.includes('SAVE {ANNUAL_DISCOUNT_PERCENT}%'), '1d seletor Mensal/Anual intacto')
+  ok(src.includes("setBilling('monthly')") && src.includes("setBilling('annual')") && src.includes('Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%'), '1d seletor Mensal/Anual intacto')
   // Os blocos NÃO podem nascer dentro de um ramo do seletor (são compras únicas, valem para os dois lados).
   const antes = src.slice(Math.max(0, ads - 400), ads)
   ok(!/billing === '(monthly|annual)' &&[^}]*$/.test(antes.split(')}').pop()), '1e blocos fora de qualquer ramo `billing === ...`')

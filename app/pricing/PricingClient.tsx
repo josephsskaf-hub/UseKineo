@@ -50,6 +50,7 @@ import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-
 import { PricingAudienceTabs, PricingTeamsBlock } from '@/components/pricing/PricingAudience' // KINEO-PLANOS-ABAS-0411
 import { audienciaDoEndereco, type PricingAudience } from '@/lib/pricingAudience' // KINEO-PLANOS-ABAS-0411
 import { Bf2026PricingBadge } from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
+import { AnnualOfferCountdown, useAnnualOffer } from '@/components/pricing/AnnualOfferCountdown' // KINEO-OFERTA-3H-0411
 import { AnnualEarlyOfferBadge } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
@@ -101,6 +102,7 @@ import {
   AUTOPILOT_LITE_PRICES,
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo, a linha do card e a política de reembolso do anual leem daqui.
   ANNUAL_DISCOUNT_PERCENT,
+  ANNUAL_WELCOME_DISCOUNT_PERCENT, ANNUAL_WELCOME_PRICES, // KINEO-OFERTA-3H-0411
   TOPUPS_LIVE, // KINEO-PRECO-MERCADO-0411
   MONEY_BACK_GUARANTEE, // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a política do anual entra nela)
   INTRO_CREDITS,
@@ -556,8 +558,14 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   }, [])
   const resolvedCurrency = displayCurrency ?? 'usd'
   const resolvedRegion = displayRegion
+  // KINEO-OFERTA-3H-0411 — com a oferta aberta para esta conta (o servidor decide), o cartão anual mostra o preço dela e risca o anual normal. Quem já assina
+  // não compra por aqui (a troca de plano não aplica a oferta), então segue vendo o anual normal.
+  const annualOffer = useAnnualOffer()
+  const annualOfferLive = annualOffer !== null && !planSwitch.subscribed
+  const annualMinorFor = (tier: PaidTier): number =>
+    annualOfferLive ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
-    const totalMinor = getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
+    const totalMinor = annualMinorFor(tier)
     result[tier] = {
       total: formatCheckoutMoney(resolvedCurrency, totalMinor),
       perMonth: formatCheckoutMoney(resolvedCurrency, totalMinor / 12),
@@ -1199,13 +1207,15 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             >
               Annual
               <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
-                SAVE {ANNUAL_DISCOUNT_PERCENT}%
+                Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%
               </span>
             </button>
           </div>
         </div>
         {/* KINEO-BLACK-FRIDAY-2026 — o selo da aba anual: só de 24/11 a 01/12 (relógio do servidor), link para /black-friday. */}
         {billing === 'annual' ? <Bf2026PricingBadge /> : null}
+        {/* KINEO-OFERTA-3H-0411 — uma linha discreta, com o fim que o servidor deu. A Black Friday tem o selo acima. */}
+        {billing === 'annual' && annualOfferLive && annualOffer?.kind === 'welcome_3h' ? <AnnualOfferCountdown deadlineMs={annualOffer.deadlineMs} percentOff={ANNUAL_WELCOME_DISCOUNT_PERCENT} /> : null}
         {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
         <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
@@ -1268,7 +1278,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                       : signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo, introDiscount: billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && hasIntroOffer(p.tier, resolvedCurrency, resolvedRegion) })
                         ? 'Sign up & continue'
                         : ctaLabel
-                    const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
+                    const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - annualMinorFor(tier)
                     // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — mensal do Creator/Studio: o 1º mês com 20%, o preço cheio riscado ao lado.
                     const welcome = (affiliateOnCard(tier) || welcomeOnCard(tier)) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
                     return (
@@ -1283,16 +1293,16 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
                         credits={TIER_CREDITS[tier]}
                         // KINEO-CHECKOUT-CLAREZA-1610 — preço CHEIO por mês (mensal do caixa, ou anual ÷ 12): o cartão faz "≈ US$ X per film".
-                        monthlyPriceMinor={displayCurrency ? (annual ? getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12 : getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null}
+                        monthlyPriceMinor={displayCurrency ? (annual ? annualMinorFor(tier) / 12 : getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null}
                         amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
-                        was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}
+                        was={(annual || welcome !== null) && displayCurrency ? (annual && annualOfferLive ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price) : undefined}
                         per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
                         note={settlementCurrency === 'brl'
                           ? welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
                             ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
                             : settlementNote(
-                            planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd')),
+                            planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd'), annualOfferLive ? 'welcome' : 'regular'),
                             'brl',
                             billing === 'annual' ? 'yr' : 'mo',
                           )
@@ -1402,7 +1412,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 </div>
                 <div className="mt-1 text-[12.5px] font-semibold text-[var(--accent)]">
                   {billing === 'annual'
-                    ? `/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`
+                    ? `/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${annualOfferLive ? ANNUAL_WELCOME_DISCOUNT_PERCENT : ANNUAL_DISCOUNT_PERCENT}%`
                     : p.priceSub}
                 </div>
                 {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
@@ -1415,6 +1425,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         billing === 'annual' ? 'annual' : 'monthly',
                         'brl',
                         billing === 'annual' ? getAnnualPrice(p.tier as PaidTier, 'usd') : getTierPrice(p.tier as PaidTier, 'usd'),
+                        annualOfferLive ? 'welcome' : 'regular',
                       ),
                       'brl',
                       billing === 'annual' ? 'yr' : 'mo',

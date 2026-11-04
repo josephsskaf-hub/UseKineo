@@ -104,7 +104,8 @@ function problems(replacements = {}) {
     const credits = cp.TIER_CREDITS[tier]
     const a = lib.annualLineItemDescription({ billing: 'annual', tier, credits, kling4Paid: false })
     const m = cv.buildCheckoutValueContext({ billing: 'monthly', credits, intentCampaign: undefined, tier, kling4Paid: false }).lineItemDescription
-    if (!a || a !== `${m} · billed yearly, credits arrive monthly`) p.push(`anual ${tier}: "${a}"`)
+    // KINEO-CHECKOUT-FINO-0411 — a linha única do anual; o mensal idem (fundador 04/11: "mais fino").
+    if (!a || !m || a !== `${credits} credits a month · Billed yearly · Cancel anytime`) p.push(`anual ${tier}: "${a}"`)
     if (a && /Fast videos|priority render queue/i.test(a)) p.push(`anual ${tier} promete o que não existe: ${a}`)
     if (lib.annualLineItemDescription({ billing: 'monthly', tier, credits }) !== null) p.push(`mensal ${tier} deveria seguir a linha de sempre (null aqui)`)
   }

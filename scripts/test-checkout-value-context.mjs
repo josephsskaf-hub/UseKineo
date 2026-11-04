@@ -24,11 +24,12 @@ function executeTs(file, mocks = {}) {
       throw new Error(`unmocked import: ${id}`)
     },
     Math,
+    process: { env: {} },
   }, { filename: file })
   return moduleBox.exports
 }
 
-const engineCost = executeTs('lib/credits/engineCost.ts')
+const engineCost = executeTs('lib/credits/engineCost.ts', { '@/lib/kling4PaidPolicy': executeTs('lib/kling4PaidPolicy.ts'), '@/lib/kling4PaidPricing': executeTs('lib/kling4PaidPricing.ts') })
 const bridge = executeTs('lib/growth/trialBalanceBridge.ts', {
   '@/lib/credits/engineCost': engineCost,
 })
@@ -51,8 +52,7 @@ const SEEDANCE_35S = engineCost.creditCostForDuration('cinematic_ai', true, 35)
 const SEEDANCE_60S = engineCost.creditCostForDuration('cinematic_ai', true, 60)
 equal(creatorBridge.outputCount, Math.floor(90 / SEEDANCE_35S), `Creator translates 90 credits into canonical ${SEEDANCE_35S}-credit films`)
 check(creatorBridge.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_35S)} Seedance 35s films`), 'Creator names the tangible output')
-check(creatorBridge.lineItemDescription.includes(`(${SEEDANCE_35S} credits each)`), 'Creator exposes the per-film cost')
-check(creatorBridge.lineItemDescription.includes('watermark-free'), 'paid ownership benefit remains visible')
+check(creatorBridge.lineItemDescription.endsWith('· Cancel anytime'), 'the bridge is one short line too (KINEO-CHECKOUT-FINO-0411)')
 
 const studioBridge = policy.buildCheckoutValueContext({
   billing: 'monthly',
@@ -61,7 +61,7 @@ const studioBridge = policy.buildCheckoutValueContext({
   tier: 'pro',
 })
 equal(studioBridge.outputCount, Math.floor(180 / SEEDANCE_35S), 'Studio translates its canonical grant into films (KINEO-SEEDANCE-35CR-2026-10-04)')
-check(studioBridge.lineItemDescription.includes('180 credits / month'), 'Studio uses the runtime grant')
+check(studioBridge.lineItemDescription.includes('180 credits a month'), 'Studio uses the runtime grant')
 
 for (const [input, label] of [
   [{ billing: 'monthly', credits: 400, intentCampaign: bridge.TRIAL_BALANCE_BRIDGE_VERSION, tier: 'autopilot' }, 'Autopilot keeps its done-for-you description'],
@@ -81,30 +81,29 @@ equal(starter.variant, 'standard_result_count', 'ordinary Starter receives resul
 // função que cobra, nada digitado), agora em filmes de Seedance 1.5, e passa a EXIGIR a ausência de Fast e da fila prioritária.
 const SEEDANCE_35S_STARTER = engineCost.creditCostForDuration('cinematic_ai', true, 35)
 equal(starter.outputCount, Math.floor(40 / SEEDANCE_60S), `Starter derives Seedance 60s films from canonical ${SEEDANCE_60S}-credit cost`)
-check(starter.lineItemDescription.includes(`up to ${Math.floor(40 / SEEDANCE_60S)} Seedance 60s AI film`), 'Starter names the output')
-check(starter.lineItemDescription.includes(`or ${Math.floor(40 / SEEDANCE_35S_STARTER)} of 35s`), 'Starter also names the shorter Seedance film')
-check(starter.lineItemDescription.includes('AI voiceover, captions and no watermark'), 'Starter names the finished-video benefits')
+// KINEO-CHECKOUT-FINO-0411 [fundador 04/11: "mais fino"] — a contagem sai da linha da Stripe; ela segue em outputCount (telemetria) e no /pricing.
+equal(starter.lineItemDescription, '40 credits a month · Cancel anytime', 'Starter is one short line')
+void SEEDANCE_35S_STARTER
 check(!/Fast/.test(starter.lineItemDescription), 'Starter no longer promises Kineo 1 (Fast) output to a new buyer')
 
 const creator = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 90, intentCampaign: 'unrelated', tier: 'basic' })
 equal(creator.variant, 'standard_result_count', 'ordinary Creator receives result-count copy')
 // KINEO-SEEDANCE-35CR-2026-10-04 — custo do Seedance de 60 s lido da função (35 cr; era 25).
 equal(creator.outputCount, Math.floor(90 / SEEDANCE_60S), `Creator derives Seedance films from canonical ${SEEDANCE_60S}-credit cost`)
-check(creator.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_60S)} Seedance 60s AI films`), 'Creator names engine, count and duration')
+equal(creator.lineItemDescription, '90 credits a month · Cancel anytime', 'Creator is one short line')
 check(!/Fast/.test(creator.lineItemDescription), 'Creator no longer promises Kineo 1 (Fast) output to a new buyer') // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
-check(creator.lineItemDescription.includes('voiceover, captions and no watermark'), 'Creator keeps finished-output ownership visible')
 
 const studio = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 180, intentCampaign: undefined, tier: 'pro' })
 equal(studio.outputCount, 1, 'Studio derives one Kling 3 film from canonical 150-credit cost')
 // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o resto do Studio era "Fast Shorts, priority queue": Kineo 1 (fora da entrada) e
 // uma fila prioritária que não existe. Agora: a alternativa em Seedance 60 s, da mesma função que cobra.
-check(studio.lineItemDescription.includes(`1 Kling 3 60s film or up to ${Math.floor(180 / SEEDANCE_60S)} Seedance 60s AI films`), 'Studio translates its grant into usable outputs')
+equal(studio.lineItemDescription, '180 credits a month · Cancel anytime', 'Studio is one short line')
 check(!/Fast|priority queue/.test(studio.lineItemDescription), 'Studio promises neither Kineo 1 nor a priority queue')
 
 equal(
   creatorBridge.submitMessage,
   // KINEO-AVULSO-GARANTIA-2810 — o mensal fecha com "refazemos ou devolvemos" (fundador 28/10).
-  "Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee. Not happy with your first film? We'll redo it or refund you — just reply to your receipt.",
+  "Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee. Not happy with your first film? We'll redo it or refund you — just reply to your receipt.",
   'monthly settlement, renewal, cancellation and guarantee are explicit',
 )
 const annual = policy.buildCheckoutValueContext({ billing: 'annual', credits: 90, intentCampaign: undefined, tier: 'basic' })
@@ -125,7 +124,7 @@ check(policySource.includes("creditCostForDuration('cinematic_hollywood', true, 
 const route = read('app/api/stripe/checkout/route.ts')
 check(route.includes("import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'"), 'live route imports the executable policy')
 check(route.includes('const checkoutValueContext = buildCheckoutValueContext({'), 'live route executes the policy')
-check(route.includes(': checkoutValueContext.lineItemDescription ?? plan.description'), 'campaign description reaches the Stripe line item')
+check(route.includes(': checkoutValueContext.lineItemDescription ?? annualLineItemDescription('), 'campaign description reaches the Stripe line item')
 check(route.includes('message: checkoutValueContext.submitMessage'), 'settlement copy reaches Stripe custom text')
 check((route.match(/checkout_value_context: checkoutValueContext\.version/g) ?? []).length >= 3, 'version reaches event, Session and Subscription metadata')
 check(route.includes('checkout_value_variant: checkoutValueContext.variant'), 'variant is attributable')

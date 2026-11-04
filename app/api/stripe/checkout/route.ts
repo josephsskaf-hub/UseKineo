@@ -53,6 +53,7 @@ import {
   // do mesmo valor na mesma moeda e estava digitando '$5.90' à mão.
   TOPUP_PRICES,
   getAnnualPrice,
+  ANNUAL_WELCOME_PRICES, // KINEO-OFERTA-3H-0411
   getIntroPrice,
   introDiscountMinor,
   isBulkPackId,
@@ -101,7 +102,8 @@ import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' /
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
-import { BF2026_CAMPAIGN, BF2026_COUPON_ID, BF2026_COUPON_REDEEM_BY_SECONDS, BF2026_EVENTS, BF2026_PERCENT_OFF, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, bf2026PriceMinor, bf2026SessionRecovery, bf2026State, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano do anual, só de 24/11 a 01/12 (America/New_York)
+import { BF2026_CAMPAIGN, BF2026_ENDS_AT, BF2026_EVENTS, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 · KINEO-OFERTA-3H-0411 — o anual pelo preço de boas-vindas, para todos, de 24/11 a 01/12 (America/New_York)
+import { ANNUAL_WELCOME_APPLIED_EVENT, annualOfferSessionRecovery, resolveAnnualOffer } from '@/lib/billing/annualWelcomeOffer' // KINEO-OFERTA-3H-0411
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -385,8 +387,10 @@ async function recordCheckoutEvent(
     // de convidado mas voltou ao caminho de hoje, com o motivo (os dois SERVER_ONLY).
     | 'checkout_guest_started'
     | 'guest_checkout_fallback'
-    // KINEO-BLACK-FRIDAY-2026 — a sessão da Stripe com o cupom da Black Friday existe (SERVER_ONLY em app/api/events).
-    | 'bf2026_checkout_started',
+    // KINEO-BLACK-FRIDAY-2026 — a sessão da Stripe com o preço da Black Friday existe (SERVER_ONLY em app/api/events).
+    | 'bf2026_checkout_started'
+    // KINEO-OFERTA-3H-0411 — a sessão da Stripe com o anual de boas-vindas existe (SERVER_ONLY em app/api/events).
+    | 'annual_welcome_offer_applied',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -415,7 +419,7 @@ async function recordCheckoutEvent(
     const stripeSessionId = typeof metadata.stripe_session_id === 'string' ? metadata.stripe_session_id : null
     // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — o evento do convidado ganha o MESMO id determinístico (nome:sessão): dois
     // cliques na janela de idempotência devolvem a mesma sessão e não podem contar duas compras abertas.
-    const deterministicCheckoutEvent = name === 'checkout_started' || name === 'checkout_guest_started' || name === 'bf2026_checkout_started' // KINEO-BLACK-FRIDAY-2026 — 1 por sessão da Stripe
+    const deterministicCheckoutEvent = name === 'checkout_started' || name === 'checkout_guest_started' || name === 'bf2026_checkout_started' || name === 'annual_welcome_offer_applied' // KINEO-BLACK-FRIDAY-2026 · KINEO-OFERTA-3H-0411 — 1 por sessão da Stripe
     if (deterministicCheckoutEvent && stripeSessionId) {
       const hex = createHash('sha256').update(`${name}:${stripeSessionId}`).digest('hex').slice(0, 32)
       eventRow.id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
@@ -1218,6 +1222,8 @@ async function buildAndRedirect(
   // cupom universal editável no devtools. Só afeta starter/basic — pro,
   // autopilot, packs, top-ups e atacado leem tabelas sem região.
   const region: PriceRegion = resolvePriceRegion(country)
+  // KINEO-OFERTA-3H-0411 — o ?promo=BF2026 de link antigo não é cupom nem atribuição: sai aqui, antes de a régua do convidado o ver como "pediu desconto".
+  if (isBf2026PromoCode(promo)) promo = undefined
   const rawPromo = (promo ?? '').trim()
   // KINEO-CHECKOUT-CLAREZA-1610 — `let`: o prazo de 48 h vencido descarta o ?promo=WELCOME20 explícito (sessão a preço cheio).
   let requestedPromo: string | undefined = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : undefined
@@ -1229,9 +1235,13 @@ async function buildAndRedirect(
   // ANNUAL_PRICES). ?billing=annual on autopilot silently degrades to monthly
   // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
-  const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business' // KINEO-BUSINESS-84-2026-10-09
+  // KINEO-OFERTA-3H-0411 — na Black Friday o anual já nasce no preço de boas-vindas, para todos (convidado inclusive). As 3 h da conta nova só se decidem
+  // depois de ler a conta, mais abaixo (annualOffer). Por isso `let`: unitAmount é o preço de lista desta compra.
+  const bfAnnualOpen = !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual })
+  let unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business' // KINEO-BUSINESS-84-2026-10-09
     ? annualEarlyOfferPriceMinor(getAnnualPrice(tier, currency, region), monthlyPriceMinor(tier, currency, region)) // KINEO-KIT-BF-VENDA-2010 — na janela (até 21/11), o MENOR entre o anual vigente e 10 × o mensal; hoje o vigente (30%) vence em todo plano = o mesmo valor; era: ? getAnnualPrice(tier, currency, region)
     : monthlyPriceMinor(tier, currency, region)
+  if (bfAnnualOpen && (tier === 'starter' || tier === 'basic' || tier === 'pro')) unitAmount = ANNUAL_WELCOME_PRICES[tier].usd
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const checkoutValueContext = buildCheckoutValueContext({
     billing,
@@ -1354,6 +1364,11 @@ async function buildAndRedirect(
     // exact percentage, duration and scope promised by the live UI.
     ...publicPromoTruthMetadata(promisedPublicPromo, 'requested'),
   }
+  // KINEO-OFERTA-3H-0411 — o carimbo da oferta da Black Friday: em todo evento desta compra, logada ou convidada.
+  const bfAnnualStamp: Record<string, string> = bfAnnualOpen
+    ? { annual_offer: 'black_friday_2026', annual_offer_ends_at: BF2026_ENDS_AT, promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE }
+    : {}
+  checkoutMetadata = { ...checkoutMetadata, ...bfAnnualStamp }
   // ═══ KINEO-CLARITY-WELCOME20-2026-10-12 — os 20% da faixa do /pricing valem em QUALQUER porta ═══════════════════
   // A faixa anuncia "20% off your first month on Creator and Studio monthly plans" para todo visitante; só o botão do
   // cartão do /pricing levava o ?promo=WELCOME20. Agora, com o MESMO interruptor (WELCOME20_SITE_OFFER_LIVE), o Creator/
@@ -1437,11 +1452,7 @@ async function buildAndRedirect(
     // NUNCA PIOR QUE HOJE: se a sessão de convidado não abrir (exceção, 4xx da Stripe, sessão sem URL), o visitante
     // segue para o caminho de hoje logo abaixo — o mesmo checkout_auth_required e o mesmo redirect ao cadastro.
     let guestFailure: { reason: GuestCheckoutFailureReason; detail: Record<string, unknown> } | null = null
-    // KINEO-BLACK-FRIDAY-2026 — o anual na janela da Black Friday ganha o cupom no caminho logado: sem conta, ele volta ao
-    // cadastro (a compra inteira viaja na URL) em vez de virar convidado a preço cheio. Marca o motivo na telemetria.
-    const bf2026GuestNeedsAccount = guestFallback === null && !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual, wantsTrial })
-    if (bf2026GuestNeedsAccount) checkoutMetadata = { ...checkoutMetadata, guest_fallback_bf2026: true }
-    if (guestFallback === null && !bf2026GuestNeedsAccount) {
+    if (guestFallback === null) {
       failureContext = { ...checkoutMetadata, guest_checkout: true }
       try {
         const guest = await buildGuestSubscriptionAndRedirect(req, {
@@ -1463,6 +1474,7 @@ async function buildAndRedirect(
           // KINEO-CLARITY-WELCOME20-2026-10-12 — sem ?promo= nenhum, o Creator/Studio mensal leva o WELCOME20 automático
           // (auto: true = se a Stripe não confirmar, segue convidado a preço cheio em vez de voltar ao cadastro).
           affiliateOffer,
+          annualOfferMetadata: bfAnnualOpen ? bfAnnualStamp : null, // KINEO-OFERTA-3H-0411
           welcomePromo: promisedPublicPromo && requestedPromo
             ? { kind: promisedPublicPromo, requestedCode: requestedPromo }
             : autoWelcome20 && GUEST_WELCOME_PROMO_LIVE
@@ -1568,7 +1580,7 @@ async function buildAndRedirect(
   const customAffiliateId = await resolveCustomAffiliateBeforeSubscription(req, user, profile)
   affiliateOffer = await resolveAffiliateDisplayOffer(user.id, req.cookies.get('sf_aff')?.value, req.cookies.get('sf_aff_click')?.value)
   // KINEO-CLARITY-WELCOME20-2026-10-12 — conta já atribuída a um afiliado (first-touch permanente, sem o cookie neste
-  // navegador) também fica fora do automático: o campo manual da Stripe continua aberto para o cupom do parceiro.
+  // navegador) também fica fora do automático.
   if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {
     autoWelcome20 = false
     checkoutMetadata.public_promo_auto = 'affiliate'
@@ -1924,9 +1936,24 @@ async function buildAndRedirect(
     priorBrazilianCardFailure: await priorBrazilianCardFailure(user.id),
   })
   const chargeCurrency = settlement.currency
+  // ═══ KINEO-OFERTA-3H-0411 [fundador 04/11, "1A/5A"] — o anual de boas-vindas: decidido AQUI, com a conta verificada ═══════════════════════════════
+  // A janela é user.created_at (getUser, no Supabase) + 3 h e has_paid desta conta: nada vem do navegador, nada reinicia. Na Black Friday vale para todos.
+  // É preço inline, não cupom: a Stripe renova por este valor (a escolha do fundador) e renewalCreditsFor/annualRefillCredits dão o grant vigente.
+  const annualOffer = resolveAnnualOffer({
+    tier,
+    isAnnual,
+    signedIn: true,
+    accountCreatedAt: user.created_at,
+    hasPaid: (profile as { has_paid?: boolean | null }).has_paid,
+    bfOpen: bfAnnualOpen,
+    bfEndsAtMs: Date.parse(BF2026_ENDS_AT),
+    nowMs: Date.now(),
+    privatePromo: privatePackPromo,
+  })
+  if (annualOffer && (tier === 'starter' || tier === 'basic' || tier === 'pro')) unitAmount = ANNUAL_WELCOME_PRICES[tier].usd
   const chargeAmount = tier === 'autopilot'
     ? settlementAmountMinor(unitAmount, chargeCurrency)
-    : planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', chargeCurrency, unitAmount)
+    : planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', chargeCurrency, unitAmount, annualOffer ? 'welcome' : 'regular')
 
   // ═══════════════════════════════════════════════════════════════════════
   // KINEO-PAGAR-SETTLEMENT-NO-FUNIL-2026-09-10 — o funil precisa saber em que
@@ -1972,7 +1999,7 @@ async function buildAndRedirect(
             name: isAnnual ? `${plan.name} (Annual)` : plan.name,
             description: withCheckoutPaymentGuidance(
               planFitContext?.plan_fit_selected_tier_matches === '1'
-                ? `${plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
+                ? `${checkoutValueContext.lineItemDescription ?? plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
                 : checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing, tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description, // KINEO-VALOR-NO-CHECKOUT-3110
             ),
             // Stripe's hosted Checkout shows this beside the line item. Use a
@@ -2418,78 +2445,19 @@ async function buildAndRedirect(
     }
   }
 
-  // ═══ KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano de qualquer plano ANUAL, só na janela (relógio do servidor) ═══════════
-  // Portão único: bf2026CheckoutEligible (lib/billing/blackFriday2026.ts) — anual · Starter/Creator/Studio ·
-  // planAcceptsPromotions (Business fora) · sem teste com cartão · 24/11 00:00 → 01/12 23:59 America/New_York.
-  // Dentro dele, TODO checkout anual recebe o cupom, venha ou não com ?promo=BF2026 (a frase "any annual plan" vale em
-  // qualquer porta: /black-friday, aba anual do /pricing, e-mail). Fora dele, o ?promo=BF2026 é ignorado (promoBlocked)
-  // e a compra segue a preço cheio — a página da Stripe mostra o valor real antes do pagamento. O mensal nunca ganha.
-  // O cupom KINEO_BF2026 nasce aqui no 1º uso (padrão do KINEO_FIRST50), percent_off vale em qualquer moeda, e ele NÃO
-  // tem promotion code: ninguém o digita no campo manual da Stripe. Todo anual da janela recebeu uma promessa (faixa,
-  // selo, página): se o cupom não puder ser confirmado, a compra para com aviso honesto em vez de cobrar o preço cheio.
-  // A sessão com o cupom NÃO tem recuperação da Stripe (bf2026SessionRecovery, mais abaixo): a cópia recuperada levaria
-  // o cupom para depois da janela.
-  const bf2026Requested = isBf2026PromoCode(requestedPromo)
-  const bf2026Eligible = !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual, wantsTrial })
-  let bf2026Applied = false
-  if (bf2026Requested && !bf2026Eligible) {
-    console.warn(`[stripe/checkout] BF2026 ignorado (tier=${tier}, annual=${isAnnual}, janela=${bf2026State()}) — vale só no anual, de 24/11 a 01/12`)
+  // ═══ KINEO-OFERTA-3H-0411 — com a oferta do anual (3 h da conta nova ou Black Friday), o preço já é o desconto: nenhum ?promo= entra em cima ═══════════
+  // O bloqueio é de todos os códigos: é o que garante "nunca empilha". O preço já está em unitAmount/chargeAmount; aqui só o carimbo na sessão e na assinatura.
+  if (annualOffer) {
     resolvedPromo = null
     promoBlocked = true
+    const annualOfferStamp: Record<string, string> = annualOffer.kind === 'black_friday_2026'
+      ? bfAnnualStamp
+      : { annual_offer: annualOffer.kind, annual_offer_ends_at: new Date(annualOffer.endsAtMs).toISOString() }
+    Object.assign(sessionParams.metadata!, annualOfferStamp)
+    Object.assign(sessionParams.subscription_data!.metadata!, annualOfferStamp)
+    checkoutMetadata = { ...checkoutMetadata, ...annualOfferStamp }
+    failureContext = { ...checkoutMetadata }
   }
-  if (bf2026Eligible && !discountApplied) {
-    let bfCouponOk = false
-    try {
-      let coupon: Stripe.Coupon | null = null
-      try {
-        coupon = await stripe.coupons.retrieve(BF2026_COUPON_ID)
-      } catch {
-        coupon = await stripe.coupons.create({
-          id: BF2026_COUPON_ID,
-          percent_off: BF2026_PERCENT_OFF,
-          duration: 'once',
-          redeem_by: BF2026_COUPON_REDEEM_BY_SECONDS,
-          name: `Black Friday: ${BF2026_PERCENT_OFF}% off first year`,
-          metadata: { campaign: BF2026_CAMPAIGN },
-        })
-      }
-      bfCouponOk = Boolean(coupon) && (coupon as { deleted?: boolean }).deleted !== true && coupon!.valid === true &&
-        coupon!.percent_off === BF2026_PERCENT_OFF && coupon!.duration === 'once' && !coupon!.applies_to?.products?.length
-    } catch (e) {
-      console.warn('[stripe/checkout] BF2026 cupom não confirmado:', e)
-    }
-    if (bfCouponOk) {
-      sessionParams.discounts = [{ coupon: BF2026_COUPON_ID }]
-      discountApplied = true
-      bf2026Applied = true
-      resolvedPromo = null
-      Object.assign(sessionParams.metadata!, { promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE })
-      Object.assign(sessionParams.subscription_data!.metadata!, { promo_campaign: BF2026_CAMPAIGN })
-      checkoutMetadata = { ...checkoutMetadata, promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE, bf2026_applied: true, bf2026_requested: bf2026Requested }
-      failureContext = { ...checkoutMetadata }
-      // A volta mostra o que a 1ª fatura cobrou de verdade (telemetria humana e valor da conversão), nunca a tabela.
-      sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
-        adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
-        appUrl,
-        tier,
-        currency: chargeCurrency,
-        amount: bf2026PriceMinor(chargeAmount),
-      })
-    } else {
-      // Revisão 01/11: o selo do /pricing promete o desconto "applied at checkout on every annual plan", então TODO
-      // checkout anual da janela é uma promessa — não só o que veio com ?promo=BF2026. Cupom não confirmado = para com
-      // aviso, em qualquer porta; nunca segue a preço cheio calado.
-      await recordCheckoutEvent(
-        'checkout_failed',
-        user.id,
-        { ...checkoutMetadata, failure_stage: 'bf2026_promo', failure_reason: 'coupon_unverified', bf2026_requested: bf2026Requested },
-        browserSessionId ?? undefined,
-      )
-      const message = 'We could not apply the Black Friday discount right now. You have not been charged. Please try again in a minute.'
-      return isGet ? redirectError(message) : jsonError(message, 503)
-    }
-  }
-  // ═══ FIM KINEO-BLACK-FRIDAY-2026 ═══════════════════════════════════════════════════════════════════════════════════
 
   // KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês. Só monthly, só
   // starter/basic, 1 por cliente. Cede a vez a um ?promo= válido (ver acima).
@@ -2929,11 +2897,10 @@ async function buildAndRedirect(
       allow_promotion_codes: !discountApplied && subscriptionAcceptsManualPromotions(tier, isAnnual),
     },
   }
-  // KINEO-BLACK-FRIDAY-2026 — a sessão com o cupom da BF não tem recuperação: a cópia recuperada (link de 30 dias da
-  // Stripe, usado pelo e-mail de carrinho e pelo /resume) levaria os 40% para depois de 01/12, até o redeem_by. Dentro da
-  // janela, quem perdeu a sessão abre outra e o portão aplica o cupom de novo; depois dela, compra a preço cheio.
-  const bf2026Recovery = bf2026SessionRecovery(bf2026Applied)
-  if (bf2026Recovery) sessionParams.after_expiration = bf2026Recovery
+  // KINEO-OFERTA-3H-0411 — a sessão com o preço da oferta não tem recuperação: a cópia recuperada (link de 30 dias da Stripe, usado pelo e-mail de carrinho e
+  // pelo /resume) levaria os 50% para depois da janela. Dentro dela, quem perdeu a sessão abre outra; depois dela, compra pelo anual normal.
+  const annualRecovery = annualOfferSessionRecovery(annualOffer !== null)
+  if (annualRecovery) sessionParams.after_expiration = annualRecovery
 
   // The payment page may need its normal amount copy, but a successful
   // post-video purchase must return to the exact saved render for a clean
@@ -3135,19 +3102,18 @@ async function buildAndRedirect(
     },
     browserSessionId ?? undefined,
   )
-  // KINEO-BLACK-FRIDAY-2026 — o funil da Black Friday nomeado: só depois que a sessão da Stripe COM o cupom existe.
-  if (bf2026Applied) {
+  // KINEO-OFERTA-3H-0411 — o funil da oferta nomeado: só depois que a sessão da Stripe COM o preço existe.
+  if (annualOffer) {
     await recordCheckoutEvent(
-      BF2026_EVENTS.checkoutStarted,
+      annualOffer.kind === 'black_friday_2026' ? BF2026_EVENTS.checkoutStarted : ANNUAL_WELCOME_APPLIED_EVENT,
       user.id,
       {
         tier,
         billing,
         stripe_session_id: session.id,
-        requested: bf2026Requested,
-        percent_off: BF2026_PERCENT_OFF,
-        list_amount_minor: chargeAmount,
-        first_charge_minor: bf2026PriceMinor(chargeAmount),
+        annual_offer: annualOffer.kind,
+        annual_offer_ends_at: new Date(annualOffer.endsAtMs).toISOString(),
+        charged_minor: chargeAmount,
         currency: chargeCurrency,
         intent_campaign: intentCampaign ?? null,
       },
@@ -3200,6 +3166,8 @@ async function buildGuestSubscriptionAndRedirect(
     checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
     /** KINEO-CUPOM-CONVIDADO-2026-10-07 — a oferta de boas-vindas liberada pela régua; null = compra sem cupom. */
     affiliateOffer: AffiliateLinkOffer | null
+    /** KINEO-OFERTA-3H-0411 — o carimbo da Black Friday (o unitAmount já vem no preço dela); null = compra normal. */
+    annualOfferMetadata: Record<string, string> | null
     welcomePromo: { kind: PromisedPublicPromoKind; requestedCode: string; auto?: true } | null
   },
 ): Promise<
@@ -3269,6 +3237,7 @@ async function buildGuestSubscriptionAndRedirect(
     ipCountry: ctx.country,
     acceptLanguage: req.headers.get('accept-language'),
     forcedCurrency: req.nextUrl.searchParams.get('currency'),
+    annualOffer: ctx.annualOfferMetadata !== null, // KINEO-OFERTA-3H-0411
   })
   // O segredo deste navegador: reaproveitado se já existe (dois cliques = mesma sessão Stripe), novo senão. Só o
   // sha256 vai para a Stripe; o login de uso único exige o cookie que bate com ele.
@@ -3319,6 +3288,7 @@ async function buildGuestSubscriptionAndRedirect(
     rewardfulReferral,
     autopilotPriceId,
     welcomePromo: welcome,
+    annualOfferMetadata: ctx.annualOfferMetadata, // KINEO-OFERTA-3H-0411
   })
 
   // The hosted field cannot enforce monthly-only coupons; gate it before Stripe.
@@ -3414,6 +3384,7 @@ async function buildGuestSubscriptionAndRedirect(
   }
   await recordCheckoutEvent('checkout_started', null, startedMetadata, ctx.browserSessionId ?? undefined)
   await recordCheckoutEvent(GUEST_CHECKOUT_EVENTS.started, null, startedMetadata, ctx.browserSessionId ?? undefined)
+  if (ctx.annualOfferMetadata) await recordCheckoutEvent(BF2026_EVENTS.checkoutStarted, null, startedMetadata, ctx.browserSessionId ?? undefined) // KINEO-OFERTA-3H-0411
 
   // Sem o cookie de retomada (kineo_checkout_session): a retomada é autenticada e checa o dono pela metadata, que
   // aqui só existe depois do pagamento.

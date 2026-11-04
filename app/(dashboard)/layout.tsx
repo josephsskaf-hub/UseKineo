@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Suspense } from 'react'
 import DashboardShell from './DashboardShell'
+import { readAnnualWelcomeBar } from '@/lib/billing/annualWelcomeBarServer' // KINEO-OFERTA-3H-0411
 // Push #423 — mobile users see a one-tap "Install app" banner (Android)
 // or the Add-to-Home-Screen hint (iOS). Dashboard only, so the public
 // landing/ads funnel stays distraction-free.
@@ -169,6 +170,7 @@ export default async function DashboardLayout({
       isPro={profile?.is_pro ?? false}
       generationsUsed={videosCount}
       isLoggedIn={!!user}
+      annualWelcomeBar={await readAnnualWelcomeBar(supabase, user) /* KINEO-OFERTA-3H-0411 — no HTML, para a tela não pular */}
     >
       {/* KINEO-TRIAL-ENTRY-VISIBILITY-2026-08-08 — ANTES de `{children}` de
           propósito: em fluxo normal, no topo do `<main>`, é o único lugar do app

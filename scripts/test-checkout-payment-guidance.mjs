@@ -29,7 +29,7 @@ function executeTs(file, mocks = {}) {
   return box.exports
 }
 
-const engine = executeTs('lib/credits/engineCost.ts')
+const engine = executeTs('lib/credits/engineCost.ts', { '@/lib/kling4PaidPolicy': executeTs('lib/kling4PaidPolicy.ts'), '@/lib/kling4PaidPricing': executeTs('lib/kling4PaidPricing.ts') })
 const autopilot = executeTs('lib/autopilot/config.ts', {
   '@/lib/credits/engineCost': engine,
 })
@@ -40,21 +40,17 @@ const checkout = executeTs('lib/checkoutPricing.ts', {
 const policy = executeTs('lib/growth/checkoutPaymentGuidance.ts', {
   '@/lib/checkoutPricing': checkout,
 })
-equal(policy.CHECKOUT_PAYMENT_GUIDANCE_VERSION, 'checkout_payment_guidance_v2', 'cohort version is stable')
+equal(policy.CHECKOUT_PAYMENT_GUIDANCE_VERSION, 'checkout_payment_guidance_v3', 'cohort version is stable') // KINEO-CHECKOUT-FINO-0411
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Apple Pay'), 'compact copy names Apple Pay')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Google Pay'), 'compact copy names Google Pay')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('when available'), 'wallet copy respects device and regional eligibility')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Link sign-in is optional'), 'compact copy removes the false mandatory-login reading')
-check(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('choose Pay without Link'), 'Stripe copy names the exact escape action')
-check(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('Charged in USD worldwide'), 'Stripe copy repeats the canonical checkout currency at the decision point')
-check(!policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('local currency'), 'Stripe copy never promises a local-currency charge')
-
-const guided = policy.withCheckoutPaymentGuidance('40 credits / month')
-check(guided.startsWith('40 credits / month'), 'guidance preserves the commercial description')
-check(guided.endsWith(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE), 'guidance reaches the always-visible Stripe line item')
-equal(policy.withCheckoutPaymentGuidance(guided), guided, 'guidance is idempotent')
-equal(policy.withCheckoutPaymentGuidance('   '), policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE, 'empty input fails to guidance, not invented product copy')
-check(guided.length <= 500, 'guided line stays inside Stripe product-description limit')
+// KINEO-CHECKOUT-FINO-0411 [fundador 04/11] — a frase saiu da descrição: "Charged in USD worldwide" era falsa para quem paga em reais.
+check(!('CHECKOUT_PAYMENT_GUIDANCE_STRIPE' in policy), 'the worldwide-USD sentence no longer exists')
+const guided = policy.withCheckoutPaymentGuidance('  85 credits a month · Cancel anytime ')
+equal(guided, '85 credits a month · Cancel anytime', 'the description stays one short line, nothing appended')
+equal(policy.withCheckoutPaymentGuidance(guided), guided, 'idempotent')
+equal(policy.withCheckoutPaymentGuidance('   '), policy.CHECKOUT_LINE_ITEM_FALLBACK, 'empty input never reaches Stripe empty')
 
 const route = read('app/api/stripe/checkout/route.ts')
 check(route.includes("from '@/lib/growth/checkoutPaymentGuidance'"), 'live checkout imports the policy')
@@ -87,7 +83,6 @@ const currencyPreviewPath = 'docs/previews/CHECKOUT-USD-TRUTH-2026-09-04.html'
 check(fs.existsSync(path.join(root, currencyPreviewPath)), 'currency before/after preview exists')
 const currencyPreview = read(currencyPreviewPath)
 check(currencyPreview.includes('BEFORE') && currencyPreview.includes('AFTER'), 'currency preview contains both states')
-check(currencyPreview.includes(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE), 'currency preview renders the exact live Stripe guidance')
 check(!/https?:\/\//i.test(currencyPreview), 'currency preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} checkout payment-guidance checks`)

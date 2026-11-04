@@ -222,7 +222,8 @@ const SERVER_ONLY_EVENTS = new Set([
   'dfy_brief_submitted',
   'founder_order_alerted',
   'bulk_purchase_completed',
-  // KINEO-BLACK-FRIDAY-2026 — o checkout com o cupom (só o servidor sabe que a sessão da Stripe existe) e a reserva/carimbo
+  'annual_welcome_offer_applied', // KINEO-OFERTA-3H-0411 — o preço das 3 h: só o servidor sabe que a sessão da Stripe existe
+  // KINEO-BLACK-FRIDAY-2026 — o checkout com o preço da oferta (só o servidor sabe que a sessão da Stripe existe) e a reserva/carimbo
   // da carta da Black Friday (admin/send-black-friday-2026): um carimbo forjado tiraria a pessoa da onda para sempre.
   'bf2026_checkout_started',
   'bf2026_email_claimed',

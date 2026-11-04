@@ -1,24 +1,25 @@
-// KINEO-BLACK-FRIDAY-2026 — guardião da Black Friday 2026 (40% off o 1º ano de qualquer plano anual, 24/11 → 01/12 NY).
+// KINEO-BLACK-FRIDAY-2026 — guardião da Black Friday 2026 (qualquer plano anual pelo preço de boas-vindas, 24/11 → 01/12 NY).
+// KINEO-OFERTA-3H-0411 — reancorado na decisão do fundador de 04/11: sem o cupom de 40%, os mesmos 50% do anual de boas-vindas, para todos, convidado inclusive.
 // Prova: (1) a janela — antes, dentro, depois, nas bordas exatas e no fuso de Nova York (EST, sem horário de verão);
-// (2) o cupom só no anual de Starter/Creator/Studio (mensal, Business, Autopilot e teste com cartão nunca), e o checkout
-// aplica pelo portão único, sem promotion code digitável; (3) a brecha do cupom manual na compra sem conta fechada
-// (FIRST50/COMEBACK50 não entram no anual nem no Starter), espelho do caminho logado; (4) preços lidos das fontes
+// (2) o preço só no anual de Starter/Creator/Studio (mensal, Business, Autopilot e teste com cartão nunca), e o checkout
+// aplica pelo portão único, sem cupom; (3) o campo manual de cupom fechado nos dois caminhos; (4) preços lidos das fontes
 // únicas, sem número digitado na página nem na carta; (5) a carta em dry-run por padrão, recusa fora da janela, só nas
 // datas certas pelo cron, deduplicada por pessoa+onda, excluindo quem não deve receber; (6) eventos, faixa, selo e pares.
 // Rodar: npx tsx scripts/test-black-friday-2026.mts
 import fs from 'node:fs'
 import path from 'node:path'
 import {
-  BF2026_APP_ROUTE_PREFIXES, BF2026_CAMPAIGN, BF2026_COUPON_ID, BF2026_COUPON_REDEEM_BY_SECONDS, BF2026_EMAIL_BATCH_MAX,
+  BF2026_APP_ROUTE_PREFIXES, BF2026_CAMPAIGN, BF2026_EMAIL_BATCH_MAX,
   BF2026_EMAIL_CLAIM, BF2026_EMAIL_SENT, BF2026_ENDS_AT, BF2026_EVENTS, BF2026_PERCENT_OFF, BF2026_PROMO_CODE,
   BF2026_STARTS_AT, BF2026_TIER_NAMES, bf2026BannerHidden, bf2026CheckoutEligible, bf2026CheckoutHref, bf2026ClaimSeed,
-  bf2026Countdown, bf2026DiscountMinor, bf2026EmailBody, bf2026EmailSkipReason, bf2026EmailUrl, bf2026NyDate, bf2026Open,
-  bf2026PriceMinor, bf2026PriceRows, bf2026PricesMatchTable, bf2026SendDecision, bf2026State, bf2026Subject,
+  bf2026Countdown, bf2026EmailBody, bf2026EmailSkipReason, bf2026EmailUrl, bf2026NyDate, bf2026Open,
+  bf2026PriceRows, bf2026PricesMatchTable, bf2026SendDecision, bf2026State, bf2026Subject,
   bf2026UuidFromHex, bf2026WaveForDate, bf2026WorthAsking, isBf2026PromoCode,
   BF2026_CRONS, BF2026_EMAIL_BATCH_DEFAULT, BF2026_SEND_BUDGET_MS, BF2026_WAVE_UTC_DAYS, bf2026CronPath,
-  bf2026CronRunsPerWave, bf2026OfferVisible, bf2026OutOfTime, bf2026SessionRecovery, bf2026WaveReachCeiling,
+  bf2026CronRunsPerWave, bf2026OfferVisible, bf2026OutOfTime, bf2026WaveReachCeiling,
 } from '../lib/billing/blackFriday2026'
-import { ANNUAL_PRICES, ANNUAL_REFUND_DAYS, TIER_CREDITS, TIER_PRICES, getAnnualPrice, planAcceptsPromotions } from '../lib/checkoutPricing'
+import { ANNUAL_PRICES, ANNUAL_REFUND_DAYS, ANNUAL_WELCOME_DISCOUNT_PERCENT, ANNUAL_WELCOME_PRICES, TIER_CREDITS, TIER_PRICES, getAnnualPrice, planAcceptsPromotions } from '../lib/checkoutPricing'
+import { annualOfferSessionRecovery } from '../lib/billing/annualWelcomeOffer'
 import { ANNUAL_EARLY_OFFER_ENDS_AT } from '../lib/billing/annualEarlyOffer'
 import { subscriptionAcceptsManualPromotions } from '../lib/affiliateDiscount'
 import { buildGuestSubscriptionSessionParams, guestSubscriptionAcceptsManualPromotions } from '../lib/stripe/guestCheckout'
@@ -46,47 +47,40 @@ const nyHour = (iso: string) => Number(new Intl.DateTimeFormat('en-US', { timeZo
 ok(nyHour(BF2026_STARTS_AT) === 0 && nyHour(BF2026_ENDS_AT) === 0, 'início e fim caem à meia-noite de NY (sem horário de verão no meio)')
 ok(Date.parse(ANNUAL_EARLY_OFFER_ENDS_AT) <= Date.parse(BF2026_STARTS_AT), 'a oferta antecipada do anual (21/11) já acabou quando a Black Friday começa: nunca somam')
 
-console.log('— 2. cupom só no anual')
+console.log('— 2. o preço da oferta só no anual, sem cupom')
 const IN = T('2026-11-27T15:00:00Z'), BEFORE = T('2026-11-20T15:00:00Z'), AFTER = T('2026-12-03T15:00:00Z')
 for (const tier of ['starter', 'basic', 'pro'] as const) {
-  ok(bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN }), `${tier} anual na janela → cupom`)
+  ok(bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN }), `${tier} anual na janela → preço da oferta`)
   ok(!bf2026CheckoutEligible({ tier, isAnnual: false, nowMs: IN }), `${tier} MENSAL na janela → sem desconto de BF`)
   ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: BEFORE }) && !bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: AFTER }), `${tier} anual fora da janela → ignorado`)
-  ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN, wantsTrial: true }), `${tier} anual com teste de cartão → sem cupom`)
+  ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN, wantsTrial: true }), `${tier} anual com teste de cartão → sem a oferta`)
 }
 ok(!planAcceptsPromotions('business') && !bf2026CheckoutEligible({ tier: 'business', isAnnual: true, nowMs: IN }), 'Business fica fora (planAcceptsPromotions)')
 ok(!bf2026CheckoutEligible({ tier: 'autopilot', isAnnual: true, nowMs: IN }) && !bf2026CheckoutEligible({ tier: 'autopilot_lite', isAnnual: true, nowMs: IN }), 'Autopilot/Lite (sem anual) ficam fora')
 ok(isBf2026PromoCode('BF2026') && isBf2026PromoCode(' bf2026 ') && !isBf2026PromoCode('FIRST50') && !isBf2026PromoCode(undefined), 'reconhece o ?promo=BF2026')
-ok(BF2026_PERCENT_OFF === 40 && BF2026_COUPON_ID === 'KINEO_BF2026' && BF2026_PROMO_CODE === 'BF2026', '40% · KINEO_BF2026 · BF2026')
-ok(BF2026_COUPON_REDEEM_BY_SECONDS * 1000 > Date.parse(BF2026_ENDS_AT), 'o cupom na Stripe só vence depois da janela (sessão aberta às 23:50 não quebra)')
+ok(BF2026_PERCENT_OFF === ANNUAL_WELCOME_DISCOUNT_PERCENT && BF2026_PERCENT_OFF === 50 && BF2026_PROMO_CODE === 'BF2026', '50% lido da tabela · BF2026 é só link velho')
 
 const co = rd('app/api/stripe/checkout/route.ts')
-const bfAt = co.indexOf('KINEO-BLACK-FRIDAY-2026 — 40% no 1º ano de qualquer plano ANUAL')
-ok(bfAt > 0, 'checkout: bloco da Black Friday presente')
-ok(/const bf2026Eligible = !privatePackPromo && bf2026CheckoutEligible\(\{ tier, isAnnual, wantsTrial \}\)/.test(co), 'checkout: portão único bf2026CheckoutEligible (sem link privado)')
-ok(/if \(bf2026Requested && !bf2026Eligible\) \{[\s\S]{0,300}resolvedPromo = null\n\s+promoBlocked = true/.test(co), 'checkout: ?promo=BF2026 fora do portão é ignorado com segurança (promoBlocked, preço cheio)')
-ok(/sessionParams\.discounts = \[\{ coupon: BF2026_COUPON_ID \}\]/.test(co), 'checkout: o cupom entra direto por `discounts` (sem promotion code)')
-ok(!/promotionCodes\.create\(\{[^}]*BF2026/.test(co) && !/code: 'BF2026'/.test(co), 'checkout: nenhum promotion code BF2026 é criado (ninguém o digita no campo manual)')
-ok(/coupons\.create\(\{\n\s+id: BF2026_COUPON_ID,\n\s+percent_off: BF2026_PERCENT_OFF,\n\s+duration: 'once',\n\s+redeem_by: BF2026_COUPON_REDEEM_BY_SECONDS,/.test(co), "checkout: cupom auto-provisionado 40% 'once' (a 1ª fatura anual) com redeem_by")
-ok(/coupon!\.percent_off === BF2026_PERCENT_OFF && coupon!\.duration === 'once'/.test(co), 'checkout: cupom existente só vale se for exatamente 40% once')
-// Revisão 01/11, defeito 4: pela aba anual do /pricing (sem ?promo=) o selo também promete o desconto — falha do cupom
-// parava só quem veio com ?promo=BF2026; os outros pagavam cheio sem aviso.
-ok(/if \(bfCouponOk\) \{[\s\S]{0,2000}?\} else \{[\s\S]{0,700}You have not been charged/.test(co) && !/\} else if \(bf2026Requested\) \{/.test(co), 'checkout: cupom não confirmado → para com aviso em QUALQUER checkout anual da janela (com ou sem ?promo=), nunca cobra cheio calado')
-// Revisão 01/11, defeito 5: a recuperação da Stripe copiava o cupom e o link vive 30 dias → 40% até 04/12.
-ok(JSON.stringify(bf2026SessionRecovery(true)) === '{"recovery":{"enabled":false}}' && bf2026SessionRecovery(false) === null, 'recuperação: sessão com o cupom = sem recuperação; sem cupom = a de sempre')
-const recAt = co.indexOf('const bf2026Recovery = bf2026SessionRecovery(bf2026Applied)')
+const bfAt = co.indexOf('  if (annualOffer) {\n    resolvedPromo = null')
+ok(bfAt > 0, 'checkout: bloco da oferta do anual presente')
+ok(/const bfAnnualOpen = !privatePackPromo && bf2026CheckoutEligible\(\{ tier, isAnnual \}\)/.test(co), 'checkout: portão único bf2026CheckoutEligible (sem link privado)')
+ok(co.includes('if (isBf2026PromoCode(promo)) promo = undefined'), 'checkout: ?promo=BF2026 de link velho é descartado na entrada')
+ok(!/BF2026_COUPON|KINEO_BF2026|stripe\.coupons\.[a-z]+\(BF/.test(co), 'checkout: o cupom de 40% morreu: nada para empilhar')
+ok(!/promotionCodes\.create\(\{[^}]*BF2026/.test(co) && !/code: 'BF2026'/.test(co), 'checkout: nenhum promotion code BF2026 é criado')
+ok(JSON.stringify(annualOfferSessionRecovery(true)) === '{"recovery":{"enabled":false}}' && annualOfferSessionRecovery(false) === null, 'recuperação: sessão com a oferta = sem recuperação; sem oferta = a de sempre')
+const recAt = co.indexOf('const annualRecovery = annualOfferSessionRecovery(annualOffer !== null)')
 const recBaseAt = co.indexOf('  sessionParams.after_expiration = {\n    recovery: {\n      enabled: true,')
-ok(recAt > 0 && recBaseAt > 0 && recAt > recBaseAt && co.includes('if (bf2026Recovery) sessionParams.after_expiration = bf2026Recovery') && recAt < co.indexOf('sessionParams.expires_at = recurringCheckoutExpiresAt(checkoutWindow)'), 'checkout: a recuperação da BF é desligada DEPOIS da recuperação padrão (ninguém a religa) e antes de a sessão nascer')
+ok(recAt > 0 && recBaseAt > 0 && recAt > recBaseAt && co.includes('if (annualRecovery) sessionParams.after_expiration = annualRecovery') && recAt < co.indexOf('sessionParams.expires_at = recurringCheckoutExpiresAt(checkoutWindow)'), 'checkout: a recuperação da oferta é desligada DEPOIS da recuperação padrão (ninguém a religa) e antes de a sessão nascer')
 const genericAt = co.indexOf('if (!discountApplied && requestedPromo && !promoBlocked) { // KINEO-FIRST50-2026-08-18: gate')
 const introAt = co.indexOf('// KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês.')
-ok(bfAt > 0 && introAt > bfAt && genericAt > bfAt, 'checkout: a Black Friday decide antes do intro e do bloco genérico de ?promo= (nunca empilha)')
-ok(/amount: bf2026PriceMinor\(chargeAmount\)/.test(co), 'checkout: a volta do sucesso leva o valor cobrado com desconto')
-ok(/if \(bf2026Applied\) \{\n\s+await recordCheckoutEvent\(\n\s+BF2026_EVENTS\.checkoutStarted,/.test(co) && co.indexOf('BF2026_EVENTS.checkoutStarted,') > co.indexOf("    'checkout_started',\n    user.id,"), 'checkout: bf2026_checkout_started só depois da sessão com cupom existir')
-ok(/const bf2026GuestNeedsAccount = guestFallback === null && !privatePackPromo && bf2026CheckoutEligible\(\{ tier, isAnnual, wantsTrial \}\)/.test(co) && co.includes('if (guestFallback === null && !bf2026GuestNeedsAccount) {'), 'checkout: sem conta, o anual da janela vai ao cadastro (não vira convidado a preço cheio)')
+ok(bfAt > 0 && introAt > bfAt && genericAt > bfAt, 'checkout: a oferta decide antes do intro e do bloco genérico de ?promo= (nunca empilha)')
+ok(/annualOffer\.kind === 'black_friday_2026' \? BF2026_EVENTS\.checkoutStarted : ANNUAL_WELCOME_APPLIED_EVENT/.test(co) && co.indexOf('BF2026_EVENTS.checkoutStarted :') > co.indexOf("    'checkout_started',\n    user.id,"), 'checkout: bf2026_checkout_started só depois da sessão existir')
+ok(co.includes('if (ctx.annualOfferMetadata) await recordCheckoutEvent(BF2026_EVENTS.checkoutStarted, null, startedMetadata'), 'checkout: o convidado também conta no funil da oferta')
+ok(!co.includes('bf2026GuestNeedsAccount') && co.includes('annualOfferMetadata: bfAnnualOpen ? bfAnnualStamp : null') && co.includes('if (guestFallback === null) {'), 'checkout: sem conta, o anual da janela sai como convidado (fundador: aberto a todos)')
 ok(co.includes('      promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,\n'), 'checkout: a régua do convidado segue byte a byte (guardiões da compra sem login)')
 ok(/name === 'bf2026_checkout_started'/.test(co), 'checkout: o evento da BF tem id determinístico por sessão (sem contagem dupla)')
 
-console.log('— 3. mensal sem desconto e brecha do cupom manual fechada')
+console.log('— 3. mensal sem desconto e campo manual de cupom fechado (KINEO-CHECKOUT-FINO-0411)')
 for (const tier of ['starter', 'basic', 'pro', 'business', 'autopilot']) for (const isAnnual of [false, true]) {
   ok(guestSubscriptionAcceptsManualPromotions(tier, isAnnual) === subscriptionAcceptsManualPromotions(tier, isAnnual), `campo manual: convidado = logado (${tier}, ${isAnnual ? 'anual' : 'mensal'})`)
 }
@@ -103,9 +97,11 @@ ok(closed(g({ tier: 'pro', billing: 'annual', interval: 'year' })), 'convidado S
 ok(closed(g({ tier: 'starter' })) && closed(g({ tier: 'starter', billing: 'annual', interval: 'year' })), 'convidado Starter (mensal e anual): sem campo manual')
 ok(closed(g({ tier: 'business' })), 'convidado Business: sem campo manual (como antes)')
 const open = g({})
-ok(open.allow_promotion_codes === true && open.after_expiration?.recovery?.allow_promotion_codes === true && !('discounts' in open), 'convidado Creator MENSAL: campo manual segue aberto (como hoje)')
-ok(g({ tier: 'pro' }).allow_promotion_codes === true, 'convidado Studio MENSAL: campo manual segue aberto')
-ok(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), 'logado: o campo manual continua só no Creator/Studio mensal')
+ok(closed(open) && !('discounts' in open), 'convidado Creator MENSAL: sem campo manual (fundador 04/11)')
+ok(closed(g({ tier: 'pro' })), 'convidado Studio MENSAL: sem campo manual')
+const comOferta = g({ billing: 'annual', interval: 'year', annualOfferMetadata: { annual_offer: 'black_friday_2026', promo_campaign: BF2026_CAMPAIGN } })
+ok(JSON.stringify(comOferta.after_expiration) === '{"recovery":{"enabled":false}}' && comOferta.metadata?.promo_campaign === BF2026_CAMPAIGN && comOferta.subscription_data?.metadata?.annual_offer === 'black_friday_2026', 'convidado na BF: carimbo na sessão e na assinatura, sem recuperação')
+ok(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual\)\) \{\n\s+sessionParams\.allow_promotion_codes = true/.test(co), 'logado: o campo manual passa pelo interruptor')
 
 console.log('— 4. preços lidos da fonte')
 ok(bf2026PricesMatchTable(), 'getAnnualPrice = ANNUAL_PRICES nos três planos')
@@ -113,20 +109,19 @@ const rows = bf2026PriceRows()
 ok(rows.length === 3 && rows.map((r) => r.tier).join() === 'starter,basic,pro', 'três linhas: Starter, Creator, Studio')
 for (const r of rows) {
   ok(r.annualMinor === getAnnualPrice(r.tier, 'usd') && r.twelveMonthlyMinor === TIER_PRICES[r.tier].usd * 12 && r.credits === TIER_CREDITS[r.tier], `${r.name}: anual, 12 mensais e créditos da fonte única`)
-  ok(r.bfMinor === r.annualMinor - Math.round(r.annualMinor * 0.4) && r.savedMinor + r.bfMinor === r.annualMinor, `${r.name}: 1º ano = anual − 40% (arredondado como a Stripe)`)
+  ok(r.bfMinor === ANNUAL_WELCOME_PRICES[r.tier].usd && r.savedMinor + r.bfMinor === r.twelveMonthlyMinor && r.bfMinor === Math.round(r.twelveMonthlyMinor / 2), `${r.name}: preço da BF = anual de boas-vindas = 50% de 12 mensalidades`)
   ok(r.bfMinor < r.annualMinor && r.bfMinor < ANNUAL_PRICES[r.tier].usd, `${r.name}: preço da BF abaixo do anual de tabela`)
   ok(r.name === VALOR_TIER_NAMES[r.tier] && BF2026_TIER_NAMES[r.tier] === r.name, `${r.name}: nome igual ao da régua do checkout`)
 }
-ok(bf2026DiscountMinor(0) === 0 && bf2026PriceMinor(-5) === 0 && bf2026DiscountMinor(12345) === 4938, 'aritmética do desconto (inválido = 0; meio centavo arredonda)')
 const page = rd('app/black-friday/page.tsx')
 const strip = (s: string) => s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
 ok(!/\$\s?\d/.test(strip(page)) && !/\b\d{2,3}\.\d{2}\b/.test(strip(page)), 'página: nenhum preço digitado')
-ok(page.includes('bf2026PriceRows()') && page.includes('bf2026Usd(r.annualMinor)') && page.includes('bf2026Usd(r.bfMinor)'), 'página: antes/depois lidos de bf2026PriceRows')
+ok(page.includes('bf2026PriceRows()') && page.includes('bf2026Usd(r.annualMinor)') && page.includes('bf2026Usd(r.bfMinor)') && page.includes('bf2026Usd(r.twelveMonthlyMinor)'), 'página: antes/depois lidos de bf2026PriceRows')
 ok(page.includes('ANNUAL_REFUND_POLICY') && page.includes('CHECKOUT_CURRENCY_DISCLOSURE'), 'página: garantia e moeda pelas frases únicas da casa')
 ok(page.includes("export const dynamic = 'force-dynamic'") && page.includes('bf2026State(nowMs)'), 'página: estado pelo relógio do servidor a cada pedido')
 ok(page.includes("state === 'open' ?") && page.includes('bf2026CheckoutHref(r.tier, \'page\')') && page.includes('Available Nov 24'), 'página: CTA do checkout só no ar; antes, só a data')
 ok(page.includes('Black Friday has ended'), 'página: depois da janela, sem oferta (só os planos de sempre)')
-ok(bf2026CheckoutHref('basic') === '/api/stripe/checkout?tier=basic&billing=annual&promo=BF2026&intent_campaign=bf2026_page', 'CTA abre o checkout ANUAL com o ?promo=BF2026')
+ok(bf2026CheckoutHref('basic') === '/api/stripe/checkout?tier=basic&billing=annual&intent_campaign=bf2026_page', 'CTA abre o checkout ANUAL, sem ?promo=')
 const cd = bf2026Countdown(BF2026_ENDS_AT, T('2026-11-30T05:00:00Z'))
 ok(cd.days === 2 && cd.hours === 0 && cd.minutes === 0 && bf2026Countdown(BF2026_ENDS_AT, AFTER).totalMs === 0, 'contagem regressiva real até o fim (e para em zero)')
 const countdown = rd('components/BlackFridayCountdown.tsx')
@@ -226,7 +221,7 @@ ok(!(LIFECYCLE_EMAIL_EVENT_NAMES as readonly string[]).includes(BF2026_EMAIL_CLA
 // O webhook NÃO é tocado (camada desfaz-compra-avulsa-2410 confere o arquivo por hash): a compra da BF se reconhece pela
 // sessão — bf2026_checkout_started.stripe_session_id = payment_success.stripe_session_id — e a sessão/assinatura levam
 // metadata promo_campaign=bf2026 na Stripe.
-ok(/Object\.assign\(sessionParams\.metadata!, \{ promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE \}\)/.test(co) && /Object\.assign\(sessionParams\.subscription_data!\.metadata!, \{ promo_campaign: BF2026_CAMPAIGN \}\)/.test(co) && BF2026_CAMPAIGN === 'bf2026', 'sessão e assinatura da Stripe carimbadas promo_campaign=bf2026')
+ok(co.includes('promo_campaign: BF2026_CAMPAIGN, public_promo_source: BF2026_PROMO_SOURCE }') && co.includes('Object.assign(sessionParams.metadata!, annualOfferStamp)') && co.includes('Object.assign(sessionParams.subscription_data!.metadata!, annualOfferStamp)') && BF2026_CAMPAIGN === 'bf2026', 'sessão e assinatura da Stripe carimbadas promo_campaign=bf2026')
 ok(!rd('app/api/stripe/webhook/route.ts').includes('KINEO-BLACK-FRIDAY-2026'), 'webhook intocado')
 ok(!bf2026WorthAsking(T('2026-11-01T12:00:00Z')) && bf2026WorthAsking(IN) && !bf2026WorthAsking(T('2026-12-10T00:00:00Z')), 'faixa: o navegador nem pergunta fora de época')
 ok(bf2026BannerHidden('/black-friday', 'site') && bf2026BannerHidden('/login', 'site') && bf2026BannerHidden('/admin/people', 'app') && bf2026BannerHidden('/terms', 'site'), 'faixa: escondida na própria página, login, admin e páginas não comerciais')
@@ -257,7 +252,7 @@ ok(!rd('app/layout.tsx').includes('BlackFriday'), 'app/layout.tsx intocado (cama
 ok(shell.includes('<BlackFridayBanner placement="app" />'), 'DashboardShell: faixa do app dentro da coluna (o shell é h-screen)')
 ok(pricing.includes("{billing === 'annual' ? <Bf2026PricingBadge /> : null}"), '/pricing: selo só na aba anual')
 ok(!rd('components/Sidebar.tsx').includes('black-friday') && !rd('components/MobileNav.tsx').includes('black-friday'), 'pares de navegação (Sidebar/MobileNav) sem item novo: a faixa não é menu')
-ok(banner.includes(`{BF2026_PERCENT_OFF}% off your first year of any annual plan`) && !/\$\s?\d/.test(banner), 'faixa: copy honesta, sem preço digitado')
+ok(banner.includes(`{BF2026_PERCENT_OFF}% off any annual plan`) && !/\$\s?\d/.test(banner), 'faixa: copy honesta, sem preço digitado')
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -1,23 +1,15 @@
-import { CURRENCY_DISPLAY, resolveCheckoutCurrency } from '@/lib/checkoutPricing'
-
-export const CHECKOUT_PAYMENT_GUIDANCE_VERSION = 'checkout_payment_guidance_v2' as const
-
-const CHECKOUT_CURRENCY_LABEL =
-  CURRENCY_DISPLAY[resolveCheckoutCurrency(null)].label
+export const CHECKOUT_PAYMENT_GUIDANCE_VERSION = 'checkout_payment_guidance_v3' as const // KINEO-CHECKOUT-FINO-0411 — a linha saiu da descrição; v3 separa a coorte
 
 export const CHECKOUT_PAYMENT_GUIDANCE_COMPACT =
   'Card, or Apple Pay / Google Pay when available · Link sign-in is optional'
 
-export const CHECKOUT_PAYMENT_GUIDANCE_STRIPE =
-  `Charged in ${CHECKOUT_CURRENCY_LABEL} worldwide. Pay by card, or Apple Pay / Google Pay when available. Link is optional — choose Pay without Link to enter your card.`
+/** A Stripe recusa descrição vazia; nenhum plano chega aqui vazio, mas a compra não pode morrer por isso. */
+export const CHECKOUT_LINE_ITEM_FALLBACK = 'Cancel anytime'
 
 /**
- * Keeps the payment-choice explanation inside Stripe's always-visible line item.
- * Price, grant, entitlement and available payment methods remain provider-owned.
+ * KINEO-CHECKOUT-FINO-0411 [fundador 04/11: "mais fino, mais profissional, mais minimalista"] — a descrição do produto é uma linha só.
+ * A frase "Charged in USD worldwide…" saiu daqui: era falsa para quem paga em reais, e a própria página da Stripe mostra a moeda e os meios de pagamento.
  */
 export function withCheckoutPaymentGuidance(description: string): string {
-  const base = description.trim()
-  if (!base) return CHECKOUT_PAYMENT_GUIDANCE_STRIPE
-  if (base.includes(CHECKOUT_PAYMENT_GUIDANCE_STRIPE)) return base
-  return `${base} · ${CHECKOUT_PAYMENT_GUIDANCE_STRIPE}`
+  return description.trim() || CHECKOUT_LINE_ITEM_FALLBACK
 }

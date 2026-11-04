@@ -76,7 +76,7 @@ import { llmsTimeSentence, measuredTimeFor } from '@/lib/seo/measuredRenderTime'
 // nem o número de ferramentas nem os limites de arquivo são digitados aqui.
 import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEditing/settings'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
-import { TIER_PRICES, formatCheckoutMoney, packPriceLabel, ANNUAL_DISCOUNT_PERCENT as ANNUAL_DISCOUNT_PERCENT_FACT } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
+import { ANNUAL_PRICES, ANNUAL_WELCOME_DISCOUNT_PERCENT, ANNUAL_WELCOME_PRICES, TIER_PRICES, formatCheckoutMoney, packPriceLabel, ANNUAL_DISCOUNT_PERCENT as ANNUAL_DISCOUNT_PERCENT_FACT } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 import { AGENCIES_PAGE_PATH, AGENCY_OFFER } from '@/lib/growth/agencyProgram' // KINEO-AGENCIAS-2026-10-13
 import { ENGINE_PAUSE, PAUSED_ON_OFFER_KEYS, AVATAR_PUBLIC, KINEO1_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28 · KINEO-FILME-GRATIS-15S-2026-09-29 · KINEO-OMNI-FORA-2026-10-12
@@ -572,6 +572,7 @@ ${H3MAX_PUBLIC ? `- 2026-10-13: MiniMax H3 Max is live on Kineo — MiniMax’s 
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
 - 2026-11-04: plans repriced — Starter $9 (40 credits), Creator $19 (85), Studio $59 (280) a month. Annual plans are 50% off 12 monthly payments ($54 / $114 / $354 a year). Monthly plans have no first-month discount. One-time passes and credit top-ups are no longer sold. Existing subscribers keep the price and credits they signed up with.
+- 2026-11-04 (later the same day): the regular annual discount became ${ANNUAL_DISCOUNT_PERCENT_FACT}% off 12 monthly payments (${formatCheckoutMoney('usd', ANNUAL_PRICES.starter.usd)} / ${formatCheckoutMoney('usd', ANNUAL_PRICES.basic.usd)} / ${formatCheckoutMoney('usd', ANNUAL_PRICES.pro.usd)} a year). A new account that has not paid gets ${ANNUAL_WELCOME_DISCOUNT_PERCENT}% (${formatCheckoutMoney('usd', ANNUAL_WELCOME_PRICES.starter.usd)} / ${formatCheckoutMoney('usd', ANNUAL_WELCOME_PRICES.basic.usd)} / ${formatCheckoutMoney('usd', ANNUAL_WELCOME_PRICES.pro.usd)} a year) during its first 3 hours, once per account, and keeps that price on renewal. From Nov 24 to Dec 1, 2026 (New York time) that same annual price is open to everyone for Black Friday.
 - 2026-09-28: plans repriced to a three-tier ladder — Starter $12.90 / Creator $29.90 / Studio $54.90
   per month; annual = 10 months at the time (replaced by 40% off on 2026-10-05, then 30% off on 2026-10-08); credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
 - 2026-10-05: annual plans became 40% off 12 monthly payments (was 10× the monthly price),

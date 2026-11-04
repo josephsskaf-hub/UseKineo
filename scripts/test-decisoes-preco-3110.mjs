@@ -169,7 +169,7 @@ async function problems(replacements = {}) {
   if (handoff.pricingBillingHandoff({}).initialBilling !== 'annual') p.push('4 SIM: /pricing não abre no anual')
   if (handoff.pricingBillingHandoff({ billing: 'monthly' }).initialBilling !== 'monthly') p.push('?billing=monthly explícito deixou de abrir no mensal')
   if (!src(PRICING).includes("export default function PricingClient({ initialBilling = 'annual' }")) p.push('PricingClient não nasce no anual')
-  const esperado = { starter: 900 * 12 - 5400, basic: 1900 * 12 - 11400, pro: 5900 * 12 - 35400 } // KINEO-PRECO-MERCADO-0411
+  const esperado = { starter: 900 * 12 - 7600, basic: 1900 * 12 - 16000, pro: 5900 * 12 - 49600 } // KINEO-OFERTA-3H-0411
   for (const tier of ['starter', 'basic', 'pro']) {
     if (prices.TIER_PRICES[tier].usd * 12 - prices.ANNUAL_PRICES[tier].usd !== esperado[tier]) p.push(`preço do plano ${tier} mudou (mensal/anual)`)
     const s = mrr.annualSavingMinor(tier, 'usd', 'standard')
@@ -178,7 +178,7 @@ async function problems(replacements = {}) {
     if (plan.annualSaving !== prices.formatCheckoutMoney('usd', esperado[tier])) p.push(`parede: "Save ${plan.annualSaving}/yr" no ${tier}, esperado ${prices.formatCheckoutMoney('usd', esperado[tier])}`)
     if (mrr.conversionPlan(tier, 'monthly', 'usd', 'standard').annualSaving !== null) p.push(`mensal do ${tier} mostra economia do anual`)
   }
-  if (!src(PRICING).includes('const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)') || !src(PRICING).includes('<>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>')) p.push('/pricing: o cartão perdeu o "Save $X a year" da conta real')
+  if (!src(PRICING).includes('const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - annualMinorFor(tier)') || !src(PRICING).includes('<>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>')) p.push('/pricing: o cartão perdeu o "Save $X a year" da conta real')
   if (!src(UPGRADE).includes("useState<ConversionBilling>('annual')") || !src(UPGRADE).includes('Save {plan.annualSaving}/yr')) p.push('parede: anual não pré-selecionado ou sem "Save $X/yr"')
   return p
 }

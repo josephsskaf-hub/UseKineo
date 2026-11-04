@@ -183,7 +183,7 @@ async function verify() {
   equal(p.affiliateDiscountEligible({ ...BASE, intro: true }), true, 'ineffective intro flag alone does not hide partner offer')
   equal(p.affiliateDiscountEligible({ ...BASE, intro: true, discountApplied: true }), false, 'real posted intro discount blocks partner offer')
   for (const tier of ['starter', 'basic', 'pro', 'business', 'autopilot', 'autopilot_lite']) {
-    for (const isAnnual of [true, false]) equal(p.subscriptionAcceptsManualPromotions(tier, isAnnual), ['basic', 'pro'].includes(tier) && !isAnnual, `manual promotion scope ${tier}/${isAnnual}`)
+    for (const isAnnual of [true, false]) equal(p.subscriptionAcceptsManualPromotions(tier, isAnnual), false, `manual promotion field closed ${tier}/${isAnnual}`) // KINEO-CHECKOUT-FINO-0411
   }
   check(!planAcceptsPromotions('business'), 'Business real plan policy refuses promotions')
 

@@ -1,23 +1,22 @@
-// KINEO-BLACK-FRIDAY-2026 — Black Friday 2026: 40% off o 1º ano de qualquer plano ANUAL (fundador 01/11, "vai black friday").
+// KINEO-BLACK-FRIDAY-2026 — Black Friday 2026: qualquer plano ANUAL pelo preço de boas-vindas (fundador 01/11, "vai black friday").
+// KINEO-OFERTA-3H-0411 [fundador 04/11: "os mesmos 50% para todos, sem o cupom de 40%"] — o cupom de 40% morreu. Na janela, o checkout cobra
+// ANNUAL_WELCOME_PRICES (price_data inline): quem compra mantém esse preço na renovação, e não há cupom para empilhar. Vale para convidado também.
 //
-// A DECISÃO: só o anual ganha desconto (o mensal NÃO), 40% na 1ª fatura anual (cupom 'once' = o 1º ano), só na janela de
+// A DECISÃO: só o anual ganha desconto (o mensal NÃO), só na janela de
 // 24/11/2026 00:00 a 01/12/2026 23:59 no horário de Nova York (America/New_York). Black Friday = 27/11, Cyber Monday = 30/11.
 // Objetivo: caixa de uma vez + 12 meses sem risco de cancelamento, na caça da meta de MRR de US$ 1.000 até 30/11.
 //
 // COMO LIGA SOZINHO: tudo aqui é relógio do SERVIDOR. Publicar antes de 24/11 não muda nada para ninguém; às 05:00 UTC de
 // 24/11 (00:00 EST — o horário de verão dos EUA acabou em 01/11, então Nova York está em UTC−5 a janela inteira) o checkout
-// anual passa a aplicar o cupom, a faixa e o selo acordam e a página /black-friday troca "starts Nov 24" pela oferta. Às
+// anual passa a cobrar o preço da oferta, a faixa e o selo acordam e a página /black-friday troca "starts Nov 24" pela oferta. Às
 // 05:00 UTC de 02/12 tudo desliga do mesmo jeito.
 //
 // ONDE O DESCONTO VALE (o portão é bf2026CheckoutEligible, e o checkout é o único lugar que aplica):
 //   · SÓ anual; SÓ Starter/Creator/Studio (os três que têm anual); SÓ planos que aceitam promoção (planAcceptsPromotions —
 //     o Business fica fora, e ele nem tem anual); nunca no teste com cartão.
-//   · TODO checkout anual elegível dentro da janela recebe o cupom — venha do /black-friday (?promo=BF2026), do /pricing
-//     na aba anual ou de um e-mail antigo. Assim a frase "40% off your first year of any annual plan" é verdade em
-//     qualquer porta; o ?promo=BF2026 só serve de atribuição. Fora da janela (ou no mensal), o ?promo=BF2026 é ignorado
-//     e a compra segue a preço cheio, que a própria página da Stripe mostra antes do pagamento.
-//   · O cupom KINEO_BF2026 NÃO tem promotion code: ninguém consegue digitá-lo no campo "Add promotion code" da Stripe (que
-//     não sabe restringir por intervalo de cobrança). Só o servidor o aplica, via `discounts: [{ coupon }]`.
+//   · TODO checkout anual elegível dentro da janela paga o preço da oferta, venha de onde vier: /black-friday, /pricing na aba
+//     anual ou um e-mail antigo. O ?promo=BF2026 de um link velho é descartado na entrada da rota (nunca vira cupom nem manda o
+//     convidado ao cadastro).
 //
 // MÓDULO PURO: nem Stripe, nem Supabase, nem React. O checkout (app/api/stripe/checkout), a rota de estado
 // (/api/offers/bf2026), a página /black-friday, a faixa, o selo do /pricing, a carta (admin/send-black-friday-2026) e o
@@ -25,6 +24,8 @@
 import {
   ANNUAL_PRICES,
   ANNUAL_REFUND_DAYS,
+  ANNUAL_WELCOME_DISCOUNT_PERCENT,
+  ANNUAL_WELCOME_PRICES,
   formatCheckoutMoney,
   TIER_PRICES,
   TIER_CREDITS,
@@ -36,11 +37,10 @@ import { isNonCommercialSurface } from '@/lib/nonCommercialSurface'
 
 export const BF2026_MARKER = 'KINEO-BLACK-FRIDAY-2026' as const
 export const BF2026_CAMPAIGN = 'bf2026' as const
-/** O texto do ?promo= (atribuição); não existe como promotion code na Stripe. */
+/** O texto do ?promo= de link antigo: a rota descarta. Não existe como cupom nem como promotion code na Stripe. */
 export const BF2026_PROMO_CODE = 'BF2026' as const
-/** O cupom na Stripe, auto-provisionado no 1º uso (padrão do KINEO_FIRST50). */
-export const BF2026_COUPON_ID = 'KINEO_BF2026' as const
-export const BF2026_PERCENT_OFF = 40
+/** KINEO-OFERTA-3H-0411 — a copy lê este número; ele sai da tabela (sobre 12 mensalidades). */
+export const BF2026_PERCENT_OFF = ANNUAL_WELCOME_DISCOUNT_PERCENT
 /** O carimbo de origem do desconto no checkout_started e na sessão. */
 export const BF2026_PROMO_SOURCE = 'black_friday_2026' as const
 export const BF2026_TIME_ZONE = 'America/New_York' as const
@@ -52,13 +52,6 @@ export const BF2026_ENDS_AT = '2026-12-02T05:00:00.000Z'
 /** Dia da Black Friday e da Cyber Monday (data de Nova York). */
 export const BF2026_BLACK_FRIDAY_DATE = '2026-11-27'
 export const BF2026_CYBER_MONDAY_DATE = '2026-11-30'
-/**
- * O cupom vale na Stripe até 48 h depois do fim da janela: uma sessão aberta às 23:50 de 01/12 (a sessão vive até 24 h)
- * não pode falhar no pagamento por um cupom vencido. Quem decide se o cupom ENTRA é o relógio do servidor (janela);
- * o redeem_by só evita a falha no meio de uma compra já aberta. Sem promotion code, ninguém o digita depois.
- */
-export const BF2026_COUPON_REDEEM_BY_SECONDS = Math.floor(Date.parse(BF2026_ENDS_AT) / 1000) + 48 * 3600
-
 export type Bf2026State = 'before' | 'open' | 'after'
 
 /** Em que lado da janela estamos. Relógio inválido = 'after' (nada liga com relógio quebrado). */
@@ -78,7 +71,7 @@ export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']
 /** Espelho de VALOR_TIER_NAMES (lib/valorNoCheckout.ts); o guardião confere a igualdade. */
 export const BF2026_TIER_NAMES: Record<CheckoutTier, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio' }
 
-/** O portão do checkout: o cupom entra SÓ aqui. */
+/** O portão do checkout: o preço da oferta entra SÓ aqui. */
 export function bf2026CheckoutEligible(input: {
   tier: string
   isAnnual: boolean
@@ -92,44 +85,24 @@ export function bf2026CheckoutEligible(input: {
     bf2026Open(input.nowMs ?? Date.now())
 }
 
-/**
- * A recuperação da Stripe para a sessão com o cupom (revisão 01/11): a sessão recuperada é uma cópia exata — cupom
- * incluído — e o link vive 30 dias; com recuperação, os 40% vazariam até o redeem_by (04/12). Sessão com o cupom = sem
- * recuperação (null = o checkout mantém a recuperação de sempre).
- */
-export function bf2026SessionRecovery(couponApplied: boolean): { recovery: { enabled: false } } | null {
-  return couponApplied ? { recovery: { enabled: false } } : null
-}
-
-/** O ?promo= pedido é o da Black Friday? (só atribuição; o portão acima é quem decide). */
+/** O ?promo= pedido é o da Black Friday? (link antigo; a rota descarta, o portão acima é quem decide). */
 export function isBf2026PromoCode(raw: unknown): boolean {
   return typeof raw === 'string' && raw.trim().toUpperCase() === BF2026_PROMO_CODE
-}
-
-/** Desconto em centavos, arredondado como a Stripe arredonda um percent_off (meio centavo para cima). */
-export function bf2026DiscountMinor(amountMinor: number): number {
-  if (!Number.isInteger(amountMinor) || amountMinor <= 0) return 0
-  return Math.round((amountMinor * BF2026_PERCENT_OFF) / 100)
-}
-
-/** O que a 1ª fatura anual cobra com o cupom. */
-export function bf2026PriceMinor(amountMinor: number): number {
-  if (!Number.isInteger(amountMinor) || amountMinor <= 0) return 0
-  return amountMinor - bf2026DiscountMinor(amountMinor)
 }
 
 export type Bf2026PriceRow = {
   tier: CheckoutTier
   name: string
   credits: number
-  /** Preço anual de tabela (o que o ano 2 renova). */
+  /** Preço anual normal (o que vale depois da Black Friday). */
   annualMinor: number
-  /** O 1º ano com 40%. */
+  /** O preço da oferta: ANNUAL_WELCOME_PRICES. É o que cobra e o que renova. */
   bfMinor: number
+  /** Contra 12 mensalidades, a base dos 50%. */
   savedMinor: number
-  /** 12 mensalidades de tabela (referência do "antes" mais honesta para quem paga mensal). */
+  /** 12 mensalidades de tabela: é contra este número que o "50% off" é verdade. */
   twelveMonthlyMinor: number
-  /** bfMinor / 12, arredondado para baixo — o "≈ por mês" do 1º ano. */
+  /** bfMinor / 12, arredondado para baixo — o "≈ por mês". */
   bfPerMonthMinor: number
 }
 
@@ -137,15 +110,16 @@ export type Bf2026PriceRow = {
 export function bf2026PriceRows(): Bf2026PriceRow[] {
   return BF2026_TIERS.map((tier) => {
     const annualMinor = getAnnualPrice(tier, 'usd')
-    const bfMinor = bf2026PriceMinor(annualMinor)
+    const bfMinor = ANNUAL_WELCOME_PRICES[tier].usd
+    const twelveMonthlyMinor = TIER_PRICES[tier].usd * 12
     return {
       tier,
       name: BF2026_TIER_NAMES[tier],
       credits: TIER_CREDITS[tier],
       annualMinor,
       bfMinor,
-      savedMinor: annualMinor - bfMinor,
-      twelveMonthlyMinor: TIER_PRICES[tier].usd * 12,
+      savedMinor: twelveMonthlyMinor - bfMinor,
+      twelveMonthlyMinor,
       bfPerMonthMinor: Math.floor(bfMinor / 12),
     }
   })
@@ -156,9 +130,9 @@ export function bf2026PricesMatchTable(): boolean {
   return BF2026_TIERS.every((t) => getAnnualPrice(t, 'usd') === ANNUAL_PRICES[t].usd)
 }
 
-/** O link do checkout anual com a atribuição da campanha (o cupom entra pelo portão, não pelo link). */
+/** O link do checkout anual com a atribuição da campanha (o preço entra pelo portão, não pelo link). */
 export function bf2026CheckoutHref(tier: CheckoutTier, surface: 'page' | 'pricing' | 'email' = 'page'): string {
-  return `/api/stripe/checkout?tier=${tier}&billing=annual&promo=${BF2026_PROMO_CODE}&intent_campaign=${BF2026_CAMPAIGN}_${surface}`
+  return `/api/stripe/checkout?tier=${tier}&billing=annual&intent_campaign=${BF2026_CAMPAIGN}_${surface}`
 }
 
 export const BF2026_PAGE_PATH = '/black-friday' as const
@@ -192,7 +166,7 @@ export function bf2026WorthAsking(nowMs: number): boolean {
 /**
  * A faixa e o selo pintam para ESTA pessoa? Só com o servidor dizendo 'open' E com a certeza de que ela não assina hoje
  * (subscribed === false). Quem assina não consegue pegar a oferta (o checkout recusa uma 2ª assinatura e a troca de plano
- * não aplica o cupom) — mostrar "40% off any annual plan" para ela seria prometer o que a compra não entrega (revisão
+ * não aplica o preço) — mostrar "any annual plan" para ela seria prometer o que a compra não entrega (revisão
  * 01/11). Assinatura ainda desconhecida (null, resposta a caminho) = não pinta: nunca pisca a oferta para quem paga.
  */
 export function bf2026OfferVisible(input: { serverState: Bf2026State | null; subscribed: boolean | null }): boolean {
@@ -204,7 +178,7 @@ export const BF2026_EVENTS = {
   bannerShown: 'bf2026_banner_shown',
   bannerClicked: 'bf2026_banner_clicked',
   pageView: 'bf2026_page_view',
-  /** SERVER-ONLY (app/api/events/route.ts): só o checkout grava, depois que a sessão da Stripe com o cupom existe. */
+  /** SERVER-ONLY (app/api/events/route.ts): só o checkout grava, depois que a sessão da Stripe com o preço da oferta existe. */
   checkoutStarted: 'bf2026_checkout_started',
 } as const
 
@@ -370,19 +344,19 @@ export function bf2026EmailUrl(wave: Bf2026Wave, app = 'https://www.usekineo.com
 
 export function bf2026Subject(wave: Bf2026Wave): string {
   return wave === 'bf'
-    ? `Black Friday: ${BF2026_PERCENT_OFF}% off a full year of Kineo`
-    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off a year of Kineo ends Dec 1`
+    ? `Black Friday: ${BF2026_PERCENT_OFF}% off Kineo annual plans`
+    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off annual plans ends Dec 1`
 }
 
 /** Corpo curto, em inglês. Preço nenhum digitado: as linhas vêm de bf2026PriceRows(). */
 export function bf2026EmailBody(wave: Bf2026Wave, rows: Bf2026PriceRow[], footer: { text: string; html: string }, app = 'https://www.usekineo.com'): { text: string; html: string } {
   const url = bf2026EmailUrl(wave, app)
   const opener = wave === 'bf'
-    ? `For Black Friday, every Kineo annual plan is ${BF2026_PERCENT_OFF}% off for the first year.`
+    ? `For Black Friday, every Kineo annual plan is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
     : `Last call: the Black Friday deal on Kineo annual plans ends Tuesday, Dec 1 at 11:59 PM (New York time).`
-  const lines = rows.map((r) => `- ${r.name}: ${usd(r.bfMinor)} for the first year (regular ${usd(r.annualMinor)}), ${r.credits} credits every month`)
-  const htmlLines = rows.map((r) => `<li><strong>${esc(r.name)}: ${usd(r.bfMinor)}</strong> for the first year <span style="color:#6b7280">(regular <s>${usd(r.annualMinor)}</s>)</span> · ${r.credits} credits every month</li>`).join('')
-  const fine = `One payment for the year, credits refill every month, and the annual plan is fully refundable within ${ANNUAL_REFUND_DAYS} days. The second year renews at the regular annual price unless you cancel.`
+  const lines = rows.map((r) => `- ${r.name}: ${usd(r.bfMinor)} a year (${usd(r.twelveMonthlyMinor)} if paid monthly), ${r.credits} credits every month`)
+  const htmlLines = rows.map((r) => `<li><strong>${esc(r.name)}: ${usd(r.bfMinor)}</strong> a year <span style="color:#6b7280">(<s>${usd(r.twelveMonthlyMinor)}</s> if paid monthly)</span> · ${r.credits} credits every month</li>`).join('')
+  const fine = `One payment for the year, credits refill every month, and the annual plan is fully refundable within ${ANNUAL_REFUND_DAYS} days. It renews at the same price each year unless you cancel.`
   const text = `Hey,
 
 ${opener}

@@ -12,7 +12,7 @@
 // Uma régua só: toda tela que mostra um destes números importa daqui. Contagem = floor(créditos ÷ custo), "≈" na tela.
 import { creditCostForDuration, type Quality } from './credits/engineCost'
 import { TIER_CREDITS, TIER_PRICES, type CheckoutTier } from './checkoutPricing'
-import { buildCheckoutValueContext, type CheckoutValueContextInput } from './growth/checkoutValueContext'
+import { buildCheckoutValueContext, checkoutPlanLine, type CheckoutValueContextInput } from './growth/checkoutValueContext'
 import { engineLabelFor } from './engineLabel'
 import { KLING4_PAID_LIVE } from './kling4PaidPolicy'
 
@@ -159,10 +159,10 @@ export function filmsMadeLine(input: { films: number | null | undefined; creator
 }
 
 // ─── 4. A linha da Stripe no anual ────────────────────────────────────────────────────────────────────────────────────────
-/** A mesma linha do mensal (buildCheckoutValueContext) para o anual, com "credits arrive monthly"; null fora dos 3 planos. */
+/** A linha única do anual ("85 credits a month · Billed yearly · Cancel anytime"); null fora dos 3 planos. */
 export function annualLineItemDescription(input: Pick<CheckoutValueContextInput, 'tier' | 'credits' | 'kling4Paid'> & { billing: 'monthly' | 'annual' }): string | null {
   if (input.billing !== 'annual') return null
   if (input.tier !== 'starter' && input.tier !== 'basic' && input.tier !== 'pro') return null
   const monthly = buildCheckoutValueContext({ billing: 'monthly', credits: input.credits, intentCampaign: undefined, tier: input.tier, kling4Paid: input.kling4Paid })
-  return monthly.lineItemDescription ? `${monthly.lineItemDescription} · billed yearly, credits arrive monthly` : null
+  return monthly.lineItemDescription ? checkoutPlanLine(input.credits, 'annual') : null // KINEO-CHECKOUT-FINO-0411
 }

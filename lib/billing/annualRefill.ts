@@ -32,6 +32,7 @@ import {
   legacyCreditsForUsd,
   LEGACY_TIER_CREDITS_V5,
   ANNUAL_BRL_CURRENT_MINOR,
+  ANNUAL_WELCOME_PRICES, ANNUAL_WELCOME_BRL_MINOR, // KINEO-OFERTA-3H-0411
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { annualEarlyOfferFloorMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010
@@ -91,8 +92,9 @@ export function annualRefillCredits(
   const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'
   // KINEO-PRECO-MERCADO-0411 — o anual CAIU (83 / 167 / 460 → 54 / 114 / 354): só o preço novo recebe o grant novo; quem pagou outro valor segue com o que comprou.
   if (typeof annualAmountMinor === 'number' && annualAmountMinor > 0) {
-    if (cur === 'usd' && annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
-    if (cur === 'brl' && annualAmountMinor !== ANNUAL_BRL_CURRENT_MINOR[tier]) return LEGACY_TIER_CREDITS_V5[tier]
+    // KINEO-OFERTA-3H-0411 — o anual normal (30%) e o de boas-vindas (50%) são os dois preços de hoje: mesmo grant.
+    if (cur === 'usd' && annualAmountMinor !== ANNUAL_WELCOME_PRICES[tier].usd && annualAmountMinor !== annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
+    if (cur === 'brl' && annualAmountMinor !== ANNUAL_WELCOME_BRL_MINOR[tier] && annualAmountMinor !== ANNUAL_BRL_CURRENT_MINOR[tier]) return LEGACY_TIER_CREDITS_V5[tier]
   }
   return TIER_CREDITS[tier]
 }

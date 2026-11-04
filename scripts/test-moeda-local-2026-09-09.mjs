@@ -50,16 +50,16 @@ const m = roda(libSrc)
 // KINEO-ANUAL-40OFF-2026-10-05 — o anual em reais virou 12 × mensal × 0,60 até ,90 (era 10×): 467,90 / 1.079,90 / 1.979,90.
 // KINEO-ANUAL-30-2026-10-08 — reancorado com a decisão do fundador (30% off): 12 × mensal × 0,70 até ,90 = 545,90 / 1.259,90 / 2.309,90.
 // KINEO-PRECO-TESTE-2026-10-08 — Starter e Creator voltaram à etiqueta da V5 (R$ 49,90 / 99,90); anual 12 × mensal × 0,70 até ,90.
-// KINEO-PRECO-MERCADO-0411 — re-ancorado: R$ 44,90 / 94,90 / 294,90; anual 12 × mensal × 0,50 até ,90.
-checa('Starter R$ 44,90 · anual R$ 269,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 26990)
-checa('Creator R$ 94,90 · anual R$ 569,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9490 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 56990)
-checa('Studio R$ 294,90 · anual R$ 1.769,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 29490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 176990)
-checa('fração paga no anual em reais = 0,50 (espelho de ANNUAL_DISCOUNT_PERCENT = 50)', m.BRL_ANNUAL_PAID_FRACTION === 0.5)
+// KINEO-OFERTA-3H-0411 — re-ancorado: R$ 44,90 / 94,90 / 294,90; anual normal 12 × mensal × 0,70 até ,90; boas-vindas 0,50.
+checa('Starter R$ 44,90 · anual R$ 377,90 · boas-vindas R$ 269,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 37790 && m.BRL_ANNUAL_WELCOME_MINOR.starter === 26990)
+checa('Creator R$ 94,90 · anual R$ 797,90 · boas-vindas R$ 569,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9490 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 79790 && m.BRL_ANNUAL_WELCOME_MINOR.basic === 56990)
+checa('Studio R$ 294,90 · anual R$ 2.477,90 · boas-vindas R$ 1.769,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 29490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 247790 && m.BRL_ANNUAL_WELCOME_MINOR.pro === 176990)
+checa('fração paga no anual em reais = 0,70 (espelho de ANNUAL_DISCOUNT_PERCENT = 30)', m.BRL_ANNUAL_PAID_FRACTION === 0.7)
 checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
 checa('a tabela é exatamente o que a fórmula da casa dá sobre $9/$19/$59 (invariante vazio)', m.checkSettlementInvariants({ starter: 900, basic: 1900, pro: 5900 }).length === 0)
 checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 1900, pro: 5900 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,50 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9999) === 26990 && m.usdToBrlMinor(9999) !== 26990) // KINEO-PRECO-MERCADO-0411 — a 50% a fórmula sobre 5400 coincide com a tabela (R$ 269,90); o valor em USD passado é ignorado
+checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,70 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9999) === 37790 && m.usdToBrlMinor(9999) !== 37790) // KINEO-PRECO-MERCADO-0411 — a 50% a fórmula sobre 5400 coincide com a tabela (R$ 269,90); o valor em USD passado é ignorado
 checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão
@@ -82,7 +82,7 @@ console.log('== a rota de checkout usa a decisão ==')
 const rt = rd('app/api/stripe/checkout/route.ts')
 checa('importa da fonte única', /import \{ planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor \} from '@\/lib\/settlementCurrency'/.test(rt))
 checa('plano: decide DEPOIS de conhecer a pessoa (a recusa anterior é por user_id)', rt.indexOf('priorBrazilianCardFailure: await priorBrazilianCardFailure(user.id)') > rt.indexOf("const { data: { user }, error: authError } = await supabase.auth.getUser()"))
-checa('plano: preço de lista (USD) continua sendo `unitAmount`; a cobrança é `chargeAmount` pela tabela', /const chargeAmount = tier === 'autopilot'\n\s+\? settlementAmountMinor\(unitAmount, chargeCurrency\)\n\s+: planSettlementAmountMinor\(tier, isAnnual \? 'annual' : 'monthly', chargeCurrency, unitAmount\)/.test(rt))
+checa('plano: preço de lista (USD) continua sendo `unitAmount`; a cobrança é `chargeAmount` pela tabela', /const chargeAmount = tier === 'autopilot'\n\s+\? settlementAmountMinor\(unitAmount, chargeCurrency\)\n\s+: planSettlementAmountMinor\(tier, isAnnual \? 'annual' : 'monthly', chargeCurrency, unitAmount, annualOffer \? 'welcome' : 'regular'\)/.test(rt))
 checa('plano: a linha da Stripe nasce na moeda de liquidação', /price_data: \{\n\s+currency: chargeCurrency,\n\s+product_data: \{\n\s+name: isAnnual \? `\$\{plan\.name\} \(Annual\)` : plan\.name,/.test(rt) && /unit_amount: chargeAmount,\n\s+recurring: \{ interval \},/.test(rt))
 checa('plano: nenhuma linha de plano ficou em `currency,` cru dentro de price_data', !/price_data: \{\n\s+currency,\n/.test(rt))
 // KINEO-LEVA-2410: a amostra transporta a ordem no mesmo objeto; moeda/valor seguem os cobrados.

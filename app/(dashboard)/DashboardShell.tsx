@@ -11,6 +11,8 @@ import AffiliateFirstClickNudge from '@/components/AffiliateFirstClickNudge'
 // KINEO-REBASE-2026-07-10 — one-time 2:1 credit-rebase notice (self-expires 24/07)
 import CreditRebaseBanner from '@/components/CreditRebaseBanner'
 import BlackFridayBanner from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026 — a faixa dentro da coluna (o shell é h-screen)
+import AnnualWelcomeBar from '@/components/AnnualWelcomeBar' // KINEO-OFERTA-3H-0411
+import type { AnnualWelcomeBarInitial } from '@/lib/billing/annualWelcomeOffer' // KINEO-OFERTA-3H-0411
 // KINEO-CREATOR30-2026-08-24 — modal da coorte do print (30% Creator, 1ª
 // fatura). Auto-contido: elegibilidade vem de /api/me/creator30-offer e o
 // componente some sozinho depois de 31/08.
@@ -24,6 +26,7 @@ interface DashboardShellProps {
   isPro: boolean
   generationsUsed: number
   isLoggedIn: boolean
+  annualWelcomeBar?: AnnualWelcomeBarInitial | null // KINEO-OFERTA-3H-0411
 }
 
 const pageTitles: Record<string, string> = {
@@ -73,6 +76,7 @@ export default function DashboardShell({
   isPro,
   generationsUsed,
   isLoggedIn,
+  annualWelcomeBar,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
@@ -127,6 +131,8 @@ export default function DashboardShell({
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10 min-w-0">
+        {/* KINEO-OFERTA-3H-0411 — a barra fina das 3 h: vem do servidor no 1º desenho, ou não existe. */}
+        <AnnualWelcomeBar initial={annualWelcomeBar} placement="app" />
         <TopBar
           title={title}
           isPro={isPro}
