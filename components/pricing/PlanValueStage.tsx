@@ -20,10 +20,7 @@ import { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing
 import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
 import { planValueCardLines, planValueFor, type PlanValue } from '@/lib/pricingPlanValue'
 // KINEO-CHECKOUT-CLAREZA-1610 — o custo por filme (mesma régua da linha de filmes do cartão) e a garantia única sob o botão.
-import { planValuePerFilm, planValuePerFilmLine } from '@/lib/pricingPlanValue'
-import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing'
 // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob o botão de compra (copy que o suporte honra à mão).
-import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee'
 
 export type PlanValueTier = 'starter' | 'basic' | 'pro'
 
@@ -51,7 +48,7 @@ export function planValueForPage(credits: number): PlanValue {
 export const PLAN_VALUE_STAGE_CSS = `
 .pv-stage{--pv-card-bg:var(--card);--pv-head-bg:var(--card2);--pv-line:var(--border);--pv-text:var(--text);--pv-muted:var(--muted);
   --pv-faint:var(--muted2);--pv-accent:var(--indigo);--pv-chip-bg:var(--accent-soft);--pv-chip-text:var(--indigo);--pv-pop-line:var(--indigo);
-  --pv-pop-bg:var(--card);--pv-pop-shadow:0 26px 60px -36px rgba(10,92,255,.55);--pv-cta-bg:var(--text);--pv-cta-text:var(--bg);
+  --pv-pop-bg:var(--card);--pv-pop-shadow:none;--pv-cta-bg:var(--text);--pv-cta-text:var(--bg);
   --pv-cta-pop-bg:var(--indigo);--pv-cta-pop-text:var(--on-accent);
   position:relative;margin:4px auto 0;max-width:1120px;color:var(--pv-text);font-family:var(--font-sans)}
 .pv-stage[data-palette=cobalto],.pv-stage[data-palette=ambar],.pv-stage[data-palette=tinta]{color-scheme:dark;
@@ -67,14 +64,15 @@ export const PLAN_VALUE_STAGE_CSS = `
   --pv-pop-shadow:none;--pv-cta-pop-bg:#F2F4F7;--pv-cta-pop-text:#07090D;--pv-cta-bg:transparent;--pv-cta-text:#F2F4F7}
 .pv-stage[data-palette=tinta] .pv-cta:not(.pv-cta-pop){box-shadow:inset 0 0 0 1px rgba(242,244,247,.3)}
 .pv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
-.pv-card{position:relative;display:flex;flex-direction:column;min-width:0;border-radius:22px;padding:8px;background:var(--pv-card-bg);border:1px solid var(--pv-line);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-swift)}
+/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "melhorar a correlação das cores, algo mais profissional". */
+.pv-card{position:relative;display:flex;flex-direction:column;min-width:0;border-radius:16px;padding:6px 6px 14px;background:var(--pv-card-bg);border:1px solid var(--pv-line);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-swift)}
 .pv-card:not([data-selected=true]):hover{border-color:var(--pv-faint)}
 .pricing-blue #plans>.pv-card[data-selected=true]{border-color:var(--pv-pop-line);background:var(--pv-pop-bg);box-shadow:var(--pv-pop-shadow)!important}
 .pv-card[data-requested=true]{outline:2px solid var(--pv-accent);outline-offset:3px}
-.pv-head{border-radius:16px;padding:18px 18px 16px;background:var(--pv-head-bg)}
+.pv-head{padding:18px 16px 4px}
 .pv-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-.pv-name{font-size:20px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
-.pv-chip{border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;line-height:1.2;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
+.pv-name{font-size:19px;font-weight:700;line-height:1.1}
+.pv-chip{border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:600;line-height:1.3;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
 .pv-chip.pv-deal{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-tag{margin:6px 0 0;font-size:13px;font-weight:500;color:var(--pv-muted)}
 .pv-rule{height:1px;margin:14px 0;border:0;background:var(--pv-line)}
@@ -86,13 +84,13 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-n{font-weight:700;font-variant-numeric:tabular-nums}
 .pv-dim{color:var(--pv-muted)}
 .pv-mix{margin:10px 0 0;font-size:12px;color:var(--pv-faint)}
-.pv-buy{padding:18px 10px 4px}
+.pv-buy{padding:14px 16px 4px}
 .pv-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px}
 .pv-was{font-size:18px;font-weight:600;color:var(--pv-faint);text-decoration:line-through}
-.pv-amount{font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.pv-amount{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .pv-per{font-size:13px;font-weight:500;color:var(--pv-muted)}
 .pv-note{margin:6px 0 0;font-size:12px;color:var(--pv-muted)}
-.pv-cta{margin-top:14px;display:block;width:100%;min-height:48px;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-size:15px;font-weight:700;
+.pv-cta{margin-top:14px;display:block;width:100%;min-height:46px;border:0;border-radius:10px;padding:12px 16px;font:inherit;font-size:15px;font-weight:700;
   cursor:pointer;background:var(--pv-cta-bg);color:var(--pv-cta-text);transition:filter var(--dur-fast) var(--ease-swift),transform var(--dur-fast) var(--ease-swift)}
 .pv-cta.pv-cta-pop{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-cta:hover{filter:brightness(1.08);transform:translateY(-1px)}
@@ -103,7 +101,10 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-perfilm{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--pv-text)}
 .pv-guarantee{margin:6px 0 0;text-align:center;font-size:11.5px;line-height:1.45;color:var(--pv-muted)}
 .pv-extra{margin-top:8px}
-.pv-sec{margin:16px 10px 0;padding-top:14px;border-top:1px solid var(--pv-line)}
+.pv-sec{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--pv-line)}
+.pv-more{margin:14px 16px 0;border-top:1px solid var(--pv-line)}
+.pv-more>summary{padding:12px 0 0;font-size:13.5px;font-weight:600;color:var(--pv-muted);cursor:pointer}
+.pv-more>summary:focus-visible{outline:2px solid var(--pv-accent);outline-offset:3px}
 .pv-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--pv-muted)}
 .pv-table{width:100%;margin-top:6px;border-collapse:collapse;font-size:13.5px}
 .pv-table th{padding:4px 0 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pv-faint);text-align:right;white-space:nowrap}
@@ -186,7 +187,6 @@ export function PlanValueCard(props: PlanValueCardProps) {
   const value = planValueForPage(props.credits)
   const lines = planValueCardLines(value)
   const topClip = lines.clips[0] ?? null
-  const perFilmLine = planValuePerFilmLine(planValuePerFilm(value, props.monthlyPriceMinor)) // KINEO-CHECKOUT-CLAREZA-1610
   // Uma linha por motor, na ordem do cartão (clipes); o filme do mesmo motor na coluna ao lado.
   const engines: Array<{ engine: string; label: string; clip: number | null; film: number | null }> = value.clips.map((c) => ({
     engine: c.engine,
@@ -240,7 +240,6 @@ export function PlanValueCard(props: PlanValueCardProps) {
             </li>
           ) : null}
         </ul>
-        <p className="pv-mix">One credit balance. Mix them any way you like.</p>
       </div>
 
       <div className="pv-buy">
@@ -249,17 +248,16 @@ export function PlanValueCard(props: PlanValueCardProps) {
           <span className="pv-amount">{props.amount}</span>
           <span className="pv-per">{props.per}</span>
         </div>
-        {perFilmLine ? <p className="pv-perfilm" data-testid="plan-per-film">{perFilmLine}</p> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}
         {props.note ? <p className="pv-note">{props.note}</p> : null}
         <button type="button" className={props.selected ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} aria-pressed={props.selected} onClick={(e) => { e.stopPropagation(); if (props.selected) props.onBuy(); else props.onSelect() }}>
           {props.selected ? props.ctaLabel : `Select ${props.name}`}
         </button>
         {props.save ? <p className="pv-save">{props.save}</p> : null}
-        <p className="pv-guarantee" data-testid="plan-guarantee">{MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 — sob o botão de pagar */}
-        <p className="pv-guarantee" data-testid="plan-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>{/* KINEO-AVULSO-GARANTIA-2810 */}
         {props.extra ? <div className="pv-extra">{props.extra}</div> : null}
       </div>
 
+      <details className="pv-more">{/* KINEO-PRICING-LIMPO-0411 — a lista por motor e o "incluso" ficam a um clique: a página cabia em 3 telas de rolagem */}
+      <summary>See everything included</summary>
       <div className="pv-sec">
         <div className="pv-label">Each month, by engine</div>
         <table className="pv-table">
@@ -294,7 +292,8 @@ export function PlanValueCard(props: PlanValueCardProps) {
           ))}
         </ul>
       </div>
-      {props.footnote ? <div className="pv-foot">{props.footnote}</div> : <div className="pv-foot" aria-hidden="true" />}
+      </details>
+      {props.footnote ? <div className="pv-foot">{props.footnote}</div> : null}
     </div>
   )
 }

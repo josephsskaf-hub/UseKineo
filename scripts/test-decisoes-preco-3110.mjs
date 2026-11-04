@@ -140,7 +140,7 @@ async function problems(replacements = {}) {
   if (prices.ONE_TIME_ITEM_USD_MINOR.one_time_film35 !== 500 || prices.ONE_TIME_ITEM_USD_MINOR.one_time_ad !== 900) p.push('preço do avulso mudou (decisão do fundador: não inventar preço)')
   if (otiLib.getOneTimeItem('one_time_film35').credits !== otiLib.oneTimeItemV1Credits('one_time_film35') || otiLib.getOneTimeItem('one_time_ad').credits !== otiLib.oneTimeItemV1Credits('one_time_ad') || !otiLib.oneTimeItemContractReady()) p.push('contrato V1 do avulso (créditos × preço) quebrado — o checkout recusaria')
   const html = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing' }))
-  for (const want of ['ONE-TIME PACK', 'Not ready for a plan?', '$5.00', '$9.00', 'No subscription']) if (!html.includes(want)) p.push(`/pricing: o pacote não diz "${want}"`)
+  for (const want of ['ONE-TIME PACK', 'Not ready for a plan?', '$5', '$9', 'No subscription']) if (!html.includes(want)) p.push(`/pricing: o pacote não diz "${want}"`)
   const htmlAds = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'ads_choice' }))
   if (!htmlAds.includes('I only want 1 now') || htmlAds.includes('ONE-TIME PACK')) p.push('Studio Ads perdeu o título dele')
   if (!src(PRICING).includes('<OneTimeItemOffer surface="pricing" checkout={checkout} />')) p.push('/pricing sem o pacote embaixo dos planos')

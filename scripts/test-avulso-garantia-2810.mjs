@@ -4,6 +4,7 @@
 // avulso), que nada de preço/plano/reembolso mudou junto, e que o avulso do cartão é o MESMO SKU (?pack=starter&
 // return=wm) que o compose/unlock aceita, com preço lido da fonte única (packPriceLabel / PACK_PRICE_MINOR).
 import { existsSync, readFileSync, statSync } from 'node:fs'
+const PRICING_SRC = readFileSync('app/pricing/PricingClient.tsx', 'utf8') // KINEO-PRICING-LIMPO-0411
 import { dirname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -54,11 +55,11 @@ checa('nenhuma cópia promete prazo, porcentagem ou automático que o suporte n�
 
 console.log('2) /pricing: sob o botão de compra de cada cartão')
 const stage = rd('components/pricing/PlanValueStage.tsx')
-checa('importa a fonte única', stage.includes("import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee'"))
+checa('importa a fonte única', PRICING_SRC.includes("import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee'")) // KINEO-PRICING-LIMPO-0411: a frase saiu do cartão e fica uma vez na página
 const iCta = stage.indexOf("{props.selected ? props.ctaLabel : `Select ${props.name}`}")
 const iLine = stage.indexOf('data-testid="plan-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>')
-checa('a linha vem depois do botão e da garantia de 7 dias, dentro do bloco de compra', iCta > 0 && iLine > iCta && iLine > stage.indexOf('data-testid="plan-guarantee"') && iLine < stage.indexOf('<div className="pv-sec">', iCta))
-checa('a garantia de 7 dias continua lá, intocada', stage.includes('<p className="pv-guarantee" data-testid="plan-guarantee">{MONEY_BACK_GUARANTEE}</p>'))
+checa('a linha aparece uma vez, logo abaixo dos planos', PRICING_SRC.includes('data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>') && !stage.includes('FIRST_FILM_GUARANTEE'))
+checa('a garantia de 7 dias continua no topo da página', PRICING_SRC.includes("['Cancel anytime', MONEY_BACK_GUARANTEE]"))
 
 console.log('3) portão "Continue to secure checkout" (compra sem conta)')
 const gateSrc = rd('lib/growth/checkoutRobotGate.ts')

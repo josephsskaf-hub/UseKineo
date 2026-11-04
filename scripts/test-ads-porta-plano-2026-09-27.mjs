@@ -46,7 +46,7 @@ checa('2f. nenhum preço/crédito/contagem digitado ("9.90", "60 credits", "20 a
 const cp = load('lib/checkoutPricing.ts')
 const offer = load('lib/ads/offer.ts')
 const starterPrice = cp.formatCheckoutMoney('usd', cp.getTierPrice('starter', 'usd', 'standard'))
-checa('2g. EXECUTADO: o preço do Starter é moeda formatada a partir de TIER_PRICES e é outro número que o passe', /^\$\d+\.\d{2}$/.test(starterPrice) && starterPrice === cp.formatCheckoutMoney('usd', cp.TIER_PRICES.starter.usd) && cp.TIER_PRICES.starter.usd !== offer.ADS_PASS_USD_MINOR)
+checa('2g. EXECUTADO: o preço do Starter é moeda formatada a partir de TIER_PRICES e é outro número que o passe', /^\$\d+(\.\d{2})?$/.test(starterPrice) && starterPrice === cp.formatCheckoutMoney('usd', cp.TIER_PRICES.starter.usd) && cp.TIER_PRICES.starter.usd !== offer.ADS_PASS_USD_MINOR)
 const ads35 = Math.floor(cp.TIER_CREDITS.starter / offer.KINEO1_35S_CREDITS)
 checa('2h. EXECUTADO: "About N ads of 35 s" com N inteiro ≥ 1 e N × custo ≤ créditos mensais do Starter', Number.isInteger(ads35) && ads35 >= 1 && ads35 * offer.KINEO1_35S_CREDITS <= cp.TIER_CREDITS.starter)
 checa('2i. EXECUTADO: o Starter custa menos que o passe — a razão de vir primeiro', cp.getTierPrice('starter', 'usd', 'standard') < offer.ADS_PASS_USD_MINOR)

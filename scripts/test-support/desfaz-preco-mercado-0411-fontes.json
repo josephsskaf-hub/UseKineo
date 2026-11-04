@@ -3,7 +3,7 @@
  "scope": {
   "lib/checkoutPricing.ts": {
    "beforeSha256": "acaf822a0d71f1e7d957da3d48cbeb8c4327f3fd38009021341354d81427652b",
-   "afterSha256": "9c5883d861d0c42aa5a6c26dcf16348b56f31f37909b4718bc9a9435526fa539",
+   "afterSha256": "7b7beef4983d36fc1b2fb859708396cf40c948ba22be737752c3919d0d97a046",
    "hunks": [
     {
      "before": "// Guardião: scripts/test-preco-teste-2026-10-08.mjs.\nexport const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 1990 },\n  pro: { usd: 5490 },\n}",
@@ -36,6 +36,10 @@
     {
      "before": "// Worst-case margins: +$2.59 (48%) and +$4.96 (41%).\nexport const TOPUP_CREDITS = {",
      "after": "// Worst-case margins: +$2.59 (48%) and +$4.96 (41%).\n/** KINEO-PRECO-MERCADO-0411 — fundador 04/11: \"não quero mais top ups\". Crédito só vem de plano. true reabre a venda; o preço precisaria subir (invariante 1). */\nexport const TOPUPS_LIVE = false as boolean\nexport const TOPUP_CREDITS = {"
+    },
+    {
+     "before": "  const config = CURRENCY_DISPLAY[currency]\n  const fractionDigits = 2\n  return new Intl.NumberFormat(config.locale, {",
+     "after": "  const config = CURRENCY_DISPLAY[currency]\n  const fractionDigits = amountMinor % 100 === 0 ? 0 : 2 // KINEO-PRICING-LIMPO-0411 — fundador 04/11: \"9, 19 e pro maior sem os centavos\"\n  return new Intl.NumberFormat(config.locale, {"
     },
     {
      "before": "  // (1) Every top-up costs MORE per credit than the cheapest recurring plan.\n  for (const id of Object.keys(TOPUP_CREDITS) as TopupId[]) {\n    const usd = TOPUP_USD_PRICES[id] / 100",

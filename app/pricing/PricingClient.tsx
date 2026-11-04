@@ -46,11 +46,11 @@ import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUX
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
+import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-PRICING-LIMPO-0411
 import { PricingAudienceTabs, PricingTeamsBlock } from '@/components/pricing/PricingAudience' // KINEO-PLANOS-ABAS-0411
 import { audienciaDoEndereco, type PricingAudience } from '@/lib/pricingAudience' // KINEO-PLANOS-ABAS-0411
 import { Bf2026PricingBadge } from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
-import { AnnualEarlyOfferBadge, KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
-import { KidsVendaCards } from '@/components/kidsCartoon/KidsVendaCards' // KINEO-KIDS-VENDA-2010 — os planos do desenho infantil (piloto US$ 29/mês · pack US$ 49 · 1º grátis); nada com KIDS_SALES_LIVE=false
+import { AnnualEarlyOfferBadge } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
 // KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
@@ -119,7 +119,6 @@ import {
   type CheckoutTier as PaidTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
-import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import { formatSettlementMoney, planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
@@ -1137,9 +1136,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             ))}
           </div>
           {/* KINEO-PACOTE-3-FILMES-1610 — link discreto para quem não quer assinar: a equipe faz 3 filmes por US$ 19, único. */}
-          <p className="mt-2 text-center text-[12.5px] font-semibold text-[var(--muted)]" data-testid="pricing-dfy-films3">
-            <a href={dfyFilms3EntryHref('pricing')} className="underline underline-offset-2">{dfyFilms3EntryCopy()}</a>
-          </p>
 
           {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5: prova social com números
               REAIS no ponto de decisão. Cada número é conferível no banco COM o
@@ -1714,6 +1710,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
             recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>{/* KINEO-PRICING-LIMPO-0411 — saiu de cada cartão, fica uma vez */}
         <FilmsMadeProof surface="pricing" />
         <PlanFinder />
 
@@ -1848,11 +1845,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <PricingTeamsBlock />
         </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de empresas */}
 
-        <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}<KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
-        <div className="mx-auto max-w-3xl"><KidsVendaCards lang="en" surface="pricing" /></div>{/* KINEO-KIDS-VENDA-2010 — embaixo do Kit BF; só com a venda ligada */}
+        <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
+        {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
-        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
+        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className="pricing-compare mx-auto mt-10 max-w-4xl"><summary className="cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
 
@@ -2132,66 +2129,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         )}
 
-        {/* Push #097 — Guarantee row directly under the plan cards.
-            Reinforces buyer confidence between the CTA and the comparison
-            table below. */}
-        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] font-bold text-[var(--text)]">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-[var(--accent)]">✓</span> Cancel anytime
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-[var(--accent)]">✓</span> Instant access
-          </span>
-          {/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia mora sob o botão de cada cartão (a frase única); aqui não repete outra versão. */}
-        </div>
-
-        {/* ROBO1-PRICE-2026-06-28 — replaced three fabricated 5-star
-            testimonials (invented names + invented view/subscriber numbers)
-            with honest "what you actually get" cards. Same spot, same job:
-            answer "does this really work?" before the comparison table —
-            but with real product facts instead of fake proof. */}
-        <div className="mx-auto mt-8 grid max-w-4xl gap-3 sm:grid-cols-3">
-          {[
-            {
-              icon: '🎬',
-              title: 'A finished Short, per idea',
-              body: 'One topic in → hook, script, AI voice, captions and B-roll out. Built deliberately for that idea, not re-clipped from a long video.',
-            },
-            {
-              icon: '🆓',
-              title: 'Try before you pay',
-              body: ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card. Free access grants no credits or premium AI Generated videos.', OFFER.copy.planCardBody),
-            },
-            {
-              icon: '📲',
-              title: 'Ready to post anywhere',
-              body: 'Paid plans export a clean, watermark-free 9:16 MP4 — download and upload straight to YouTube Shorts, TikTok and Reels.',
-            },
-          ].map((c) => (
-            <div
-              key={c.title}
-              className="rounded-2xl p-4"
-              style={{
-                background: 'var(--card2)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div className="text-[18px] mb-2" aria-hidden>
-                <KineoBoltText>{c.icon}</KineoBoltText>
-              </div>
-              <p className="text-[13.5px] font-bold text-[var(--text)] leading-snug mb-1.5">
-                {c.title}
-              </p>
-              <p className="text-[12.5px] text-[var(--muted)] leading-snug">
-                {c.body}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Push #099 — FAQ accordion. Five evergreen objections lifted from
-            support tickets and the homepage CRO copy. Pure client-side
-            useState toggle so the page stays static-renderable. */}
         {/* KINEO-QUOTE-PRICING-2026-08-24 (pacote noturno, UI#5) — a voz real
             na página onde 44 pessoas morreram no preço. Quem hesita no valor
             lê um assinante de verdade, com nome e link verificável (mesmas
@@ -2269,42 +2206,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </p>
         </div>
 
-        {/* Push #116 — explicit 7-day money-back guarantee callout under
-            the FAQ. The trust row at the top of the page mentions the
-            guarantee in passing; this spells out the terms so the buyer
-            who scrolled all the way through gets the reassurance
-            without leaving the page. */}
-        <div
-          className="mx-auto mt-12 max-w-3xl rounded-2xl p-5 sm:p-6"
-          style={{
-            background: 'var(--accent-soft)',
-            border: '1px solid var(--border2)',
-            boxShadow: '0 0 40px rgba(41,151,255,.10)',
-          }}
-        >
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div
-              aria-hidden
-              style={{
-                fontSize: '1.6rem',
-                lineHeight: 1,
-                flexShrink: 0,
-              }}
-            >
-              🛡️
-            </div>
-            <div>
-              {/* KINEO-CHECKOUT-CLAREZA-1610 — eram duas versões ("all plans… Works for all plans" + a do anual): agora a frase única. */}
-              <div className="text-[14px] font-black text-[var(--text)] mb-1">
-                Money-back guarantee
-              </div>
-              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0" data-testid="money-back-guarantee">
-                {MONEY_BACK_GUARANTEE}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
       {/* Push #117 — spacer so the sticky bar below doesn't cover the
           last bit of the FAQ on mobile. Desktop ignores it. */}

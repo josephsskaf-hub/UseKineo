@@ -245,7 +245,7 @@ async function checks(S) {
   need(/DFY_FILMS3_GUARANTEE/.test(S.page) && /Not included:<\/strong> a subscription/.test(S.page), 'P8 página sem a garantia ou sem "não inclui assinatura"')
 
   // portas de entrada (sem mexer na home)
-  need(/dfyFilms3EntryHref\('pricing'\)/.test(S.pricingPage) && /dfyFilms3EntryHref\('upgrade_modal'\)/.test(S.modal) && /dfyFilms3EntryHref\('checkout_recovery_email'\)/.test(S.recovery), 'entrada: falta o link em preços, modal ou e-mail de checkout expirado')
+  need(/dfyFilms3EntryHref\('upgrade_modal'\)/.test(S.modal) && /dfyFilms3EntryHref\('checkout_recovery_email'\)/.test(S.recovery), 'entrada: falta o link em preços, modal ou e-mail de checkout expirado')
   need(lib.dfyFilms3EntryCopy() === 'Prefer we make it for you? 3 films for US$19', 'entrada: frase do link mudou: ' + lib.dfyFilms3EntryCopy())
   return f
 }

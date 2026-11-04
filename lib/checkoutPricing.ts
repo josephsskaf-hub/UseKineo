@@ -992,7 +992,7 @@ export function coercePriceRegion(_raw: string | null | undefined): PriceRegion 
 
 export function formatCheckoutMoney(currency: CheckoutCurrency, amountMinor: number): string {
   const config = CURRENCY_DISPLAY[currency]
-  const fractionDigits = 2
+  const fractionDigits = amountMinor % 100 === 0 ? 0 : 2 // KINEO-PRICING-LIMPO-0411 — fundador 04/11: "9, 19 e pro maior sem os centavos"
   return new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.currencyCode,

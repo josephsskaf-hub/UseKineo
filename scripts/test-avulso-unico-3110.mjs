@@ -105,7 +105,7 @@ async function problems(replacements = {}) {
   const html = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing' }))
   const htmlWall = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'generate_paywall' }))
   for (const [nome, h] of [['/pricing', html], ['parede de criação', htmlWall]]) {
-    for (const want of ['ONE-TIME PACK', 'Not ready for a plan? One 60-second film for $4.99, once.', '$4.99', '1 film of 60 s', `${prices.PACK_CREDITS.starter} credits: one 60-second Seedance 1.5 film`, '$9.00', '1 ad without a watermark', 'No subscription']) if (!h.includes(want)) p.push(`${nome}: o pacote não diz "${want}"`)
+    for (const want of ['ONE-TIME PACK', 'Not ready for a plan? One 60-second film for $4.99, once.', '$4.99', '1 film of 60 s', `${prices.PACK_CREDITS.starter} credits: one 60-second Seedance 1.5 film`, '$9', '1 ad without a watermark', 'No subscription']) if (!h.includes(want)) p.push(`${nome}: o pacote não diz "${want}"`)
     for (const bad of ['$5.00', '35 s', '35-second', 'Buy just one']) if (h.includes(bad)) p.push(`${nome}: ainda mostra "${bad}" (o pacote de US$ 5)`)
   }
   const htmlPt = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing', lang: 'pt' }))
@@ -130,7 +130,7 @@ async function problems(replacements = {}) {
   // ── 3. O anúncio avulso fica como está ──────────────────────────────────────────────────────────────────────────────────────
   if (prices.ONE_TIME_ITEM_USD_MINOR.one_time_ad !== 900 || otiLib.getOneTimeItem('one_time_ad').credits !== 41 || otiLib.oneTimeItemV1Credits('one_time_ad') !== 41) p.push('o anúncio avulso mudou (US$ 9 / 41 cr)')
   const htmlAds = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'ads_choice', newTab: true }))
-  if (!htmlAds.includes('I only want 1 now') || !htmlAds.includes('$9.00') || htmlAds.includes('$4.99') || htmlAds.includes('ONE-TIME PACK') || !htmlAds.includes('pack=one_time_ad')) p.push('Studio Ads: a oferta mudou (tem de ser só o anúncio de US$ 9, em outra aba)')
+  if (!htmlAds.includes('I only want 1 now') || !htmlAds.includes('$9') || htmlAds.includes('$4.99') || htmlAds.includes('ONE-TIME PACK') || !htmlAds.includes('pack=one_time_ad')) p.push('Studio Ads: a oferta mudou (tem de ser só o anúncio de US$ 9, em outra aba)')
   if (!src(ADS).includes('<OneTimeItemOffer surface="ads_choice" lang={lang} orderId={orderId || undefined} newTab busy={!!busy} />')) p.push('Studio Ads perdeu o anúncio avulso')
   return p
 }
