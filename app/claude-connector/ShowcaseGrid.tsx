@@ -20,7 +20,7 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
   {
     key: 'ugc',
     label: 'UGC ads',
-    line: 'An AI person shows the product while a voiceover tells why to buy.',
+    line: 'An AI person holds the product and tells why to buy.',
     href: '/ads',
     clips: [
       { src: '/previews/home-card-ugc-presenter.mp4', poster: '/posters/home-card-ugc-presenter.webp', title: 'Perfume, told by an AI presenter', badge: 'Kling Avatar' },

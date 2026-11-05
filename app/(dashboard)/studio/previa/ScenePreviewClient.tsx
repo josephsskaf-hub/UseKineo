@@ -9,9 +9,6 @@ import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { PREVIA_COPY, PREVIA_IDEA_MAX, PREVIA_IDEA_MIN, PREVIA_RESUME_STORAGE_KEY, type PreviaResume } from '@/lib/scenePreview'
 import { REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
-import { trackEvent } from '@/lib/analytics' // KINEO-FLUXO2-G-0411
-import { previaResumeStudioHref } from '@/lib/scenePreview' // KINEO-FLUXO2-G-0411
-import { TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_PREVIA_EVENT, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido' // KINEO-FLUXO2-G-0411
 
 type Scene = { label: string; text: string; image: string }
 type Preview = { script: string; scenes: Scene[]; idea: string; language: string }
@@ -22,8 +19,7 @@ const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
   border: primary ? '1px solid var(--accent)' : C.border, background: primary ? 'var(--accent)' : C.card, color: primary ? 'var(--on-accent)' : C.text,
 })
 
-// KINEO-FLUXO2-G-0411 [fundador 04/11: "recomendações"] — aPedido: conta do lado "a pedido" do teste, com o filme grátis ainda por pedir (decidido no servidor, page.tsx). 2 das 3 primeiras saíram daqui para os planos sem nunca pedir o filme: para ela o botão principal pede o filme pela mesma rota da faixa e volta à geração com o roteiro; os planos viram link. As outras contas veem a tela de sempre.
-export default function ScenePreviewClient({ initialIdea, from, aPedido = false }: { initialIdea: string; from: string; aPedido?: boolean }) {
+export default function ScenePreviewClient({ initialIdea, from }: { initialIdea: string; from: string }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
   const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
@@ -32,8 +28,6 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
   const [error, setError] = useState<string | null>(null)
   const [left, setLeft] = useState<number | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
-  const [pedido, setPedido] = useState<'pronto' | 'indo' | 'falhou'>('pronto') // KINEO-FLUXO2-G-0411
-  const copyPedido = pickInterfaceCopy(TRIAL_PEDIDO_COPY, language) // KINEO-FLUXO2-G-0411
 
   useEffect(() => {
     fetch('/api/scene-preview', { cache: 'no-store' })
@@ -72,21 +66,6 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
     }
     void fetch('/api/scene-preview/cta', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ placement, scenes: preview?.scenes.length ?? 0 }), keepalive: true }).catch(() => undefined)
     window.location.href = `${REGION_PAID_ONLY_PLANS_HREF}?from=scene_preview`
-  }
-
-  // KINEO-FLUXO2-G-0411 — mesma rota da faixa: o servidor confere tudo e o cliente não manda nada. Quem já tinha pedido recebe ok e segue.
-  async function pedirFilme() {
-    if (!preview || pedido === 'indo') return
-    setPedido('indo')
-    void trackEvent(TRIAL_PEDIDO_PREVIA_EVENT, { test: TRIAL_PEDIDO_TESTE, language, scenes: preview.scenes.length })
-    try {
-      const res = await fetch(TRIAL_PEDIDO_CLAIM_PATH, { method: 'POST' })
-      if (!res.ok) throw new Error(String(res.status))
-      window.dispatchEvent(new Event('creditsChanged'))
-      window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language }))
-    } catch {
-      setPedido('falhou')
-    }
   }
 
   const tooShort = idea.trim().length < PREVIA_IDEA_MIN
@@ -130,19 +109,8 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
           </section>
 
           <section style={{ display: 'grid', gap: 6, maxWidth: 720 }}>
-            {aPedido ? (
-              <>
-                <button type="button" onClick={() => { void pedirFilme() }} disabled={pedido === 'indo'} style={btn(true, pedido === 'indo')} data-testid="scene-preview-claim">{pedido === 'indo' ? copyPedido.working : copyPedido.claim} →</button>
-                {pedido === 'falhou' ? <p role="alert" style={{ margin: 0, color: C.danger, fontSize: 14 }}>{copyPedido.failed}</p> : null}
-                <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>{copyPedido.previewHint}</p>
-                <a href={`${REGION_PAID_ONLY_PLANS_HREF}?from=scene_preview`} onClick={(e) => { e.preventDefault(); toFilm('preview_plans') }} data-testid="scene-preview-plans" style={{ fontSize: 13, color: C.text2, width: 'max-content', maxWidth: '100%' }}>{copyPedido.plans}</a>
-              </>
-            ) : (
-              <>
-                <button type="button" onClick={() => toFilm('preview')} style={btn(true)} data-testid="scene-preview-to-film">{copy.toFilm} →</button>
-                <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>{copy.toFilmHint}</p>
-              </>
-            )}
+            <button type="button" onClick={() => toFilm('preview')} style={btn(true)} data-testid="scene-preview-to-film">{copy.toFilm} →</button>
+            <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>{copy.toFilmHint}</p>
           </section>
         </>
       ) : null}

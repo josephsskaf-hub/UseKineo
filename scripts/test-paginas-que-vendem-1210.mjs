@@ -103,7 +103,7 @@ checa('llms.txt: pacotes avulsos só com o interruptor ligado', /\$\{BULK_PACKS_
 checa('llms.txt: roteador público sem o lote fixo', llms.includes('${PUBLIC_BUSINESS_ROUTER.choices.map(') && !llms.includes('${BUSINESS_ANSWER_ENGINE_ROUTER.choices.map('))
 const pitch = rd('lib/growth/businessPitch.ts')
 checa('Business: anúncios/mês e duração lidos de lib/businessPlan', /about \$\{BUSINESS_ADS_PER_MONTH\} product ads of \$\{BUSINESS_AD_SECONDS\} s per month/.test(pitch))
-checa('Business: pessoa de IA e 1º anúncio grátis pelos interruptores', /if \(ADS_V2_PRESENTER_PUBLIC\) extras\.push\('an optional AI person holding the product, with a voiceover'\)/.test(pitch) && /ADS_SAMPLE_LIVE \? ' Your first ad is free to try\.'/.test(pitch))
+checa('Business: pessoa de IA e 1º anúncio grátis pelos interruptores', /if \(ADS_V2_PRESENTER_PUBLIC\) extras\.push\('an optional AI person holding the product and talking about it'\)/.test(pitch) && /ADS_SAMPLE_LIVE \? ' Your first ad is free to try\.'/.test(pitch))
 const facts = rd('lib/kineoFacts.ts')
 checa('facts: Starter não promete mais stock footage', !facts.includes("'Stock footage matched scene by scene to the narration'"))
 checa('facts: Kling 2.5 sem "at 1080p"', !facts.includes('Kling 2.5 at 1080p'))

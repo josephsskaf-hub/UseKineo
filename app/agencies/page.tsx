@@ -89,7 +89,7 @@ const FAQ = [
   },
   {
     q: 'What does the client get each month?',
-    a: `${O.monthlyCredits} credits. A ${O.adSeconds}-second ad at the Commercial level uses enough credits for ${O.adsPerMonth} of them a month; simpler ads cost less, and the cost is always shown before creating. Each ad starts from one product photo or a product link, with ${O.styles} visual styles, voice, music and on-screen text, and an optional AI person holding the product, with a voiceover. Commercial use is included and credits reset monthly.`,
+    a: `${O.monthlyCredits} credits. A ${O.adSeconds}-second ad at the Commercial level uses enough credits for ${O.adsPerMonth} of them a month; simpler ads cost less, and the cost is always shown before creating. Each ad starts from one product photo or a product link, with ${O.styles} visual styles, voice, music and on-screen text, and an optional AI person talking about the product. Commercial use is included and credits reset monthly.`,
   },
   {
     q: 'Is the first ad really free?',
@@ -220,7 +220,7 @@ export default function AgenciesPage() {
 
         <section id="ads" className="kag-sec" aria-labelledby="kag-ads-title">
           <h2 id="kag-ads-title">Ads your clients get</h2>
-          <p className="kag-sec-sub">Made by Kineo from a single product photo. {O.styles} styles to choose from, plus an optional AI person holding the product, with a voiceover.</p>
+          <p className="kag-sec-sub">Made by Kineo from a single product photo. {O.styles} styles to choose from, plus an optional AI person who talks about the product.</p>
           <div className="kag-ads" data-testid="agency-showcase">
             {SHOWCASE.map((a) => (
               <figure className="kag-ad" key={a.key}>

@@ -45,7 +45,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
-  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false, onAskStartOver = undefined, availability = null } = {}) { // KINEO-FLUXO2-0411 — + onAskStartOver (A), + availability (B)
+  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false } = {}) {
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
@@ -66,7 +66,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
-      : id === '@/components/Kling4PaidNotice' ? { __esModule: true, default: () => null, useKling4PaidAvailability: () => availability } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — offline = motor pago desligado, como o guardião do Black Friday
+      : id === '@/components/Kling4PaidNotice' ? { __esModule: true, default: () => null, useKling4PaidAvailability: () => null } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — offline = motor pago desligado, como o guardião do Black Friday
       : id === '@/lib/analytics' ? { trackEvent: async () => true }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
@@ -89,7 +89,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []
-        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {}, onAskStartOver })
+        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {} })
         for (const effect of pending) effect()
         if (!changed) return tree
       }
@@ -156,7 +156,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   check(existing.states[1] === 'delivered' && existing.states[8].endsWith('existing.mp4') && existing.states[5] === 'Fala já paga e preservada.' && existing.requests.every(request => request.body === null), 'UI delivers an existing legacy order without any stills or render POST')
   const previousPlan = client({ query: `?order=${oldId}` }); previousPlan.render()
   previousPlan.responses.push([200, { order_id: oldId, status: 'planned' }]); await previousPlan.poll()
-  check(previousPlan.states[1] === 'failed' && previousPlan.states[9].includes('versão anterior') && !previousPlan.nodes().some(node => node.type === 'button' && /Preparar quatro|Gerar vídeo com esta foto/u.test(nodeText(node))) && previousPlan.requests.every(request => request.body === null), 'UI old planned order requires a new plan and cannot receive stills or render POST')
+  check(previousPlan.states[1] === 'failed' && previousPlan.states[9].includes('fluxo anterior') && !previousPlan.nodes().some(node => node.type === 'button' && /Preparar quatro|Gerar vídeo com esta foto/u.test(nodeText(node))) && previousPlan.requests.every(request => request.body === null), 'UI old planned order requires a new plan and cannot receive stills or render POST')
   const choiceLink = client({ query: `?order=${ID}` }); choiceLink.render()
   choiceLink.responses.push([200, { order_id: ID, status: 'planned', stage: 'choose', presenter_id: 'sofia', scenario_id: 'perfume_evening', stills: STILLS, selected_still_id: 'still-2', narration_used: 'Fala já planejada.' }]); await choiceLink.poll()
   check(choiceLink.states[1] === 'choose' && choiceLink.states[0].presenter_id === 'sofia' && choiceLink.states[0].scenario_id === 'perfume_evening' && choiceLink.states[0].category === 'perfume' && choiceLink.states[4] === 'still-2', 'UI new choice link restores exact server person, scenario and selected still')
@@ -165,7 +165,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
 
   const partial = client({ saved: { ...saved, stage: 'stills', stills: [], still_id: '' } }); partial.render()
   partial.responses.push([200, { order_id: ID, stage: 'choose', stills: STILLS.slice(0, 3), charged: false }]); await partial.poll()
-  const partialVisible = partial.states[3].length === 3 && partial.states[4] === '' && partial.nodes().some(node => node.type === 'p' && nodeText(node) === '3 fotos ficaram prontas. Você pode escolher uma delas.') && !partial.requests.some(request => request.body?.stage === 'render')
+  const partialVisible = partial.states[3].length === 3 && partial.states[4] === '' && partial.nodes().some(node => node.type === 'p' && nodeText(node) === 'O fornecedor retornou 3 fotos. Você pode escolher uma opção disponível.') && !partial.requests.some(request => request.body?.stage === 'render')
   partial.nodes().find(node => node.type === 'input' && node.props.name === 'ace-still' && node.props.value === 'still-2').props.onChange(); partial.render()
   partial.responses.push([202, { order_id: ID }]); await partial.click('Gerar vídeo com esta foto')
   check(partialVisible && partial.requests.filter(request => request.body?.stage === 'render').length === 1 && partial.requests.at(-1).body.still_id === 'still-2', 'UI partial supplier result explains three stills without auto-selection and renders exactly the explicitly chosen available still')

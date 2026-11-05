@@ -26,7 +26,7 @@ export function businessPitch(baseUrl = ''): BusinessPitch {
     `from one product photo or a product link${styles ? `, in ${styles} styles` : ''}`,
   ]
   const extras: string[] = []
-  if (ADS_V2_PRESENTER_PUBLIC) extras.push('an optional AI person holding the product, with a voiceover')
+  if (ADS_V2_PRESENTER_PUBLIC) extras.push('an optional AI person holding the product and talking about it')
   const firstAd = ADS_SAMPLE_LIVE ? ' Your first ad is free to try.' : ''
   return {
     price: BUSINESS_PRICE_LABEL,

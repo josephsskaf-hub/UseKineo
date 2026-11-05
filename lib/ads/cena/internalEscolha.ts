@@ -24,7 +24,6 @@ import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_MARK, isEscolhaSamplePlan }
 import { escolhaSampleAccountOk as escolhaSampleAccountOkPais, reserveEscolhaSample as reserveEscolhaSamplePais } from './escolhaSampleServer' // KINEO-ADS-SIMPLES-2810 — as versões com o país do pedido (os nomes de sempre viram fechos locais abaixo)
 import { upgradeEscolhaSample } from './escolhaSampleUpgrade'
 import { amostraSemPlano, AMOSTRA_QUEIMADA_MARCA } from './escolhaSampleServer' // KINEO-AMOSTRA-QUEIMADA-0311 — a semente cujo plano nunca saiu é retomada
-import { esperaDaSementeMs, soltarSementeDaAmostra } from './escolhaSampleServer' // KINEO-FLUXO2-D-0411 — recusa antes de gastar solta a semente; semente em curso diz quanto falta
 import type { SupabaseClient } from '@supabase/supabase-js' // KINEO-ADS-SIMPLES-2810 — o tipo dos fechos locais acima
 
 export type EscolhaEffects = Pick<EscolhaStillDeps, 'submit' | 'poll' | 'persist'>
@@ -81,9 +80,6 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
           if (won.error || !won.data) return v2Fail('cena_order_failed', 503)
           sampleOrder = parada.orderId
           try { await (await import('@/lib/serverEvents')).writeServerEvent({ name: 'ads_sample_seed_resumed', userId: uid, path: '/api/ads/cena', metadata: { order_id: parada.orderId, marker: AMOSTRA_QUEIMADA_MARCA } }) } catch { /* o rastro nunca derruba a retomada */ }
-        } else {
-          const espera = await esperaDaSementeMs(d.admin, user.id, now()) // KINEO-FLUXO2-D-0411 — ainda em curso: a verdade é "tente em N minutos", nunca "já usou"
-          if (espera !== null) return v2Fail('ads_sample_plan_wait', 429, { retry_after_seconds: Math.ceil(espera / 1000) })
         }
         const seed = sampleOrder ? null : await d.admin.from('ads_v2_orders').insert({ user_id: uid, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, assembly_lease_at: planLease, plan: { cena: { route, plan: { escolha: { marker: 'KINEO-ADS-ESCOLHA-2310', sample: ADS_ESCOLHA_SAMPLE_MARK } } } } }).select('id').maybeSingle()
         if (seed) { // KINEO-AMOSTRA-QUEIMADA-0311 — só a semente NOVA reserva; a retomada já tem a reserva dela
@@ -93,20 +89,12 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
           if (!reservation.ok) return v2Fail(reservation.error, reservation.status)
         }
       }
-      // KINEO-FLUXO2-D-0411 — toda recusa daqui até gravar o plano acontece antes de qualquer foto, vídeo ou crédito: a semente é solta e a pessoa tenta de novo na hora.
-      const soltar = async (motivo: string) => {
-        if (!sampleOrder || !await soltarSementeDaAmostra(d.admin, { orderId: sampleOrder, ownerId: uid, lease: planLease })) return
-        try { await (await import('@/lib/serverEvents')).writeServerEvent({ name: 'ads_sample_seed_released', userId: uid, path: '/api/ads/cena', metadata: { order_id: sampleOrder, reason: motivo.slice(0, 80), marker: 'KINEO-FLUXO2-D-0411' } }) } catch { /* o rastro nunca derruba a resposta */ }
-      }
-      let plan: Awaited<ReturnType<typeof planCenaEscolha>>
-      try {
       const first = cena95ModerationFailure(await d.moderate([input.frase, input.oferta, input.cta, ...(input.beneficios ?? [])].filter(Boolean).join('\n')))
-      if (first) { await soltar(first.error); return v2Fail(first.error, first.status) }
-      plan = await planCenaEscolha(input, route, d.json, { presenter_id: presenter.id, scenario_id: scenario.id, category: scenario.category, ...(sampleMode ? { sample: true } : {}) })
+      if (first) return v2Fail(first.error, first.status)
+      const plan = await planCenaEscolha(input, route, d.json, { presenter_id: presenter.id, scenario_id: scenario.id, category: scenario.category, ...(sampleMode ? { sample: true } : {}) })
       preflightCenaEscolha(plan, route)
       const safety = cena95ModerationFailure(await d.moderate(plan.script.narration))
-      if (safety) { await soltar(safety.error); return v2Fail(safety.error, safety.status) }
-      } catch (e) { await soltar(e instanceof Error ? e.message : 'cena_plan_failed'); throw e }
+      if (safety) return v2Fail(safety.error, safety.status)
       const response = { engine: 'KINEO-ADS-ESCOLHA-2310', engine_used: route, stage: 'planned', charged: false, plan, narration_used: plan.script.narration, quality_notes: plan.quality_notes ?? [], credits: sampleMode ? 0 : route === 'kling4' ? KLING4_AD_CREDITS : adsV2Credits('commercial', 15), ...(sampleMode ? { sample: true, seconds: 8, max_photo_rounds: 1 } : {}) }
       if (body.dry_run === true) return v2Json({ ...response, dry_run: true })
       const skeleton = { ...planShots({ sector: 'store', tier: 'commercial', seconds: 15, photos: [{ id: '00000000-0000-4000-8000-000000000001', url: input.foto, kind: 'text' }] }), ...(sampleMode ? { totalSeconds: 8 } : {}) }
@@ -115,7 +103,7 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       const ins = sampleOrder
         ? await d.admin.from('ads_v2_orders').update({ ...values, assembly_lease_at: null }).eq('id', sampleOrder).eq('user_id', uid).eq('status', 'planned').eq('assembly_lease_at', planLease).select('id').maybeSingle()
         : await d.admin.from('ads_v2_orders').insert(values).select('id').maybeSingle()
-      if (ins.error || !ins.data) { await soltar('cena_order_failed'); return v2Fail('cena_order_failed', 503) }
+      if (ins.error || !ins.data) return v2Fail('cena_order_failed', 503)
       await writeEscolhaEvent('plan', uid, String(ins.data.id), stored)
       return v2Json({ ...response, order_id: String(ins.data.id) }, 201)
     }

@@ -57,7 +57,7 @@ function carregar(fontes) {
 const base = { email: 'maria@example.com', displayName: 'Maria', plan: 'basic', credits: 34, onClose() {}, onSignOut() {} }
 const LINHAS = [
   ['My videos', '/history'], ['Profile', '/account?tab=profile'], ['Usage &amp; activity', '/account?tab=usage'],
-  ['Help', '/support'], ['Affiliate program', '/affiliate'],
+  ['Help Center', '/support'], ['Affiliate program', '/affiliate'],
 ]
 
 function verificar(fontes = {}) {
@@ -205,7 +205,7 @@ mutante('cor fixa no CSS', PAINEL, '.kmc-bar>span{display:block;height:100%;bord
 mutante('foco invisível', PAINEL, '.kmc a:focus-visible,.kmc button:focus-visible,.kmc select:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}', '')
 mutante('botão de top-up de volta', PAINEL, 'href="/pricing" onClick={go}', 'href="/checkout?pack=topup40" onClick={go}')
 mutante('rótulo de compra de crédito', PAINEL, "{t('Upgrade')}", "{'Buy more credits'}")
-mutante('Help em outro destino', REGRAS, "href: '/support'", "href: '/help'")
+mutante('Help Center em outro destino', REGRAS, "href: '/support'", "href: '/help'")
 mutante('My videos na biblioteca', REGRAS, "href: '/history'", "href: '/library'")
 mutante('aba errada em Usage', REGRAS, "href: '/account?tab=usage'", "href: '/account'")
 mutante('linha removida', REGRAS, `{ id: 'affiliate', href: '/affiliate', label: 'Affiliate program', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM14.8 9.2c-.5-1-1.5-1.5-2.8-1.5-1.6 0-2.8.8-2.8 2.1 0 3 5.8 1.5 5.8 4.5 0 1.3-1.3 2.1-3 2.1-1.4 0-2.5-.6-3-1.6M12 6v12' },`, '')

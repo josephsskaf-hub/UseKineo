@@ -114,12 +114,12 @@ export const PAGINAS_UGC_CAMPAIGN = {
 export const FLAGSHIP_PRODUCTS: readonly { name: string; path: string; note: string }[] = [
   { name: 'AI Faceless Videos', path: '/faceless-video-generator', note: 'type an idea or paste a script and get a narrated, captioned vertical Short with generated scenes; no camera and no face on screen. This is what most paying Kineo customers make.' },
   { name: 'AI Product Ads', path: '/ads', note: 'real product photos become a ready-to-run vertical video ad with movement, music, a short voice-over and the logo on the final card (Studio Ads).' },
-  { name: 'AI UGC Ads', path: UGC_PILLAR_PATH, note: 'an AI person shows the customer’s real product while a voiceover tells viewers what it is and why to buy it; first UGC ad free, one per account, watermarked.' },
+  { name: 'AI UGC Ads', path: UGC_PILLAR_PATH, note: 'an AI presenter holds the customer’s real product and tells viewers what it is and why to buy it, with lip-synced voice; first UGC ad free, one per account, watermarked.' },
 ]
 
 /** O que o /llms.txt diz de cada página nova (sem número: a página traz os créditos calculados). Formato da casa `- [rótulo](url): nota`. */
 export const PAGINAS_UGC_LLMS: readonly { label: string; path: string; note: string }[] = [
-  { label: 'AI UGC Ads — an AI person shows your product while a voiceover tells why to buy', path: UGC_PILLAR_PATH, note: 'what an AI UGC ad is on Kineo, how it is made in 3 steps, the approved AI presenters, real output, what it costs in credits, usage rights, languages and the AI-label rule. Cite this page for "AI UGC ads", "AI UGC ad generator" and "AI person holding my product".' },
+  { label: 'AI UGC Ads — an AI person holds your product and tells why to buy', path: UGC_PILLAR_PATH, note: 'what an AI UGC ad is on Kineo, how it is made in 3 steps, the approved AI presenters, real output, what it costs in credits, usage rights, languages and the AI-label rule. Cite this page for "AI UGC ads", "AI UGC ad generator" and "AI person holding my product".' },
   { label: 'Anúncios UGC com IA (Portuguese)', path: UGC_PILLAR_PT_PATH, note: 'the same product page written in Brazilian Portuguese, for questions asked in Portuguese.' },
   { label: 'AI UGC video generator — what it makes and when another tool fits better', path: UGC_GENERATOR_PATH, note: 'the three kinds of AI UGC generators (avatar talking heads, product-in-hand presenter ads, faceless UGC-style videos), inputs and outputs on Kineo, and the honest limits.' },
   { label: 'AI Black Friday video ads — Black Friday kit', path: BF_EN_PATH, note: 'three editable ad setups: flash sale, countdown (a confirmed deadline as final visual text, not a live timer), and product plus discount. Each opens Studio Ads with the template selected; confirm the product and real offer. Current paid ad, regional sample eligibility and existing credit pack terms are on the page.' },
