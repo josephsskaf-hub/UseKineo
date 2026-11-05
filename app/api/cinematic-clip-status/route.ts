@@ -54,6 +54,7 @@ const HOST_PRESENTER_MODEL = 'fal-ai/kling-video/ai-avatar/v2/standard'
 const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
 // KINEO-ANCORA-3-MOTORES-2026-09-16 — espelho da rota cinematic: Seedance 1.5 e Veo 3.1 também vão em i2v com âncora.
 const SEEDANCE_I2V_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
+const H3_TURBO_I2V_MODEL = 'minimax/h3-max-turbo/image-to-video' // KINEO-H3-TURBO-0511
 const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
 // ⚠️ KINEO-H3-POLLER-2026-08-20 — O SEXTO VALOR CRAVADO QUE O H3 EXPÔS.
 // Este poller mantém a PRÓPRIA lista de modelos, e o H3 não estava nela:
@@ -93,6 +94,7 @@ const ALLOWED_MODELS = new Set([
   KLING3_I2V_MODEL,
   KLING_I2V_MODEL,
   SEEDANCE_I2V_MODEL, // KINEO-ANCORA-3-MOTORES-2026-09-16
+  H3_TURBO_I2V_MODEL, // KINEO-H3-TURBO-0511
   VEO_I2V_MODEL, // KINEO-ANCORA-3-MOTORES-2026-09-16
   HOST_PRESENTER_MODEL,
   S25_I2V_MODEL, // KINEO-S25-STATUS-2026-09-15

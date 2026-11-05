@@ -95,6 +95,11 @@ export function qualityPaused(quality: string | null | undefined): EnginePause |
 // recusa antes de qualquer débito. Desligar o motor se o canário falhar = trocar esta linha para false. [KINEO-H3MAX-2026-10-13]
 // Guardião: scripts/test-h3max-motor-2026-10-13.mjs. [KINEO-H3MAX-2026-10-13]
 export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13
+// KINEO-H3-TURBO-0511 [TRAVA 8.2 — fundador 05/11, vendo a comparação de motores: "O H3 é o melhor... vamos colocar esses dois motores para funcionar"]: o filme padrão (35 cr) anima os quadros no H3 Max Turbo. false = só as contas da casa, até o filme real passar. Sem still na cena, a reserva de texto segue no Seedance.
+export const H3_TURBO_PUBLIC = false as boolean
+export function h3TurboNoFilmePadrao(email?: string | null): boolean {
+  return H3_TURBO_PUBLIC || isInternalEmail(email)
+}
 // KINEO-H3MAX-2026-10-13
 /** O H3 Max aparece (e o servidor aceita) para este e-mail? Público com H3MAX_PUBLIC; senão, só a casa. [KINEO-H3MAX-2026-10-13] */
 export function h3maxVisible(email?: string | null): boolean { // KINEO-H3MAX-2026-10-13

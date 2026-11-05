@@ -2,9 +2,11 @@
 // 4 arquivos do motor, para os guardiões históricos que comparam com a base. Trecho ausente ou repetido = lança (edição desconhecida continua
 // reprovando). Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
+import { semH3Turbo0511 } from './desfaz-h3-turbo-0511.mjs' // KINEO-H3-TURBO-0511 — a camada mais nova sai primeiro
 const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-elenco-fim-0511-fontes.json', import.meta.url), 'utf8'))
 const MARCA = 'KINEO-ELENCO-ATE-O-FIM-0511'
 export function semElencoFim0511(source, file) {
+  source = semH3Turbo0511(source, file) // KINEO-H3-TURBO-0511
   const hunks = ESCOPO[String(file ?? '').replace(/\\/g, '/')]
   if (typeof source !== 'string' || !hunks || !source.includes(MARCA)) return source
   const crlf = source.includes('\r\n')

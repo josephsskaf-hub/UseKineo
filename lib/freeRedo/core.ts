@@ -22,7 +22,7 @@
 //
 // LIB PURA (só node:crypto + constantes de lib/classicSceneRetry): o guardião scripts/test-meta95-refazer-1910.mjs a executa.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { CLASSIC, CLASSIC_I2V, SEEDANCE_MODEL, SEEDANCE_I2V_MODEL, KLING_MODEL, KLING_I2V_MODEL, VEO_MODEL, VEO_I2V_MODEL } from '@/lib/classicSceneRetry'
+import { CLASSIC, CLASSIC_I2V, SEEDANCE_MODEL, SEEDANCE_I2V_MODEL, KLING_MODEL, KLING_I2V_MODEL, VEO_MODEL, VEO_I2V_MODEL, H3_TURBO_I2V_MODEL } from '@/lib/classicSceneRetry'
 import { cenasKling4ParaRefazer, emendarCenaKling4 } from '@/lib/freeRedo/kling4Scene'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { FREE_REDO_FILM_PATH, FREE_REDO_FILM_QUALITIES, filmQualityCovered } from '@/lib/freeRedo/public'
@@ -58,6 +58,7 @@ export const FREE_REDO_USD_PER_SECOND: Record<string, number> = {
   [SEEDANCE_MODEL]: 0.026, [SEEDANCE_I2V_MODEL]: 0.026,
   [KLING_MODEL]: 0.07, [KLING_I2V_MODEL]: 0.07,
   [VEO_MODEL]: 0.15, [VEO_I2V_MODEL]: 0.15,
+  [H3_TURBO_I2V_MODEL]: 0.04, // KINEO-H3-TURBO-0511 — preço cheio da fal a partir de 16/11; US$ 0,028 até 15/11
 }
 export const FREE_REDO_TITLE_SUFFIX = ' · v2'
 /** O pedido de variação que entra no fim do prompt assinado (o resto do prompt fica byte a byte). */

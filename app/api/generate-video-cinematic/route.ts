@@ -41,6 +41,8 @@ import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai
 // a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
+import { h3TurboNoFilmePadrao } from '@/lib/engineLaunch' // KINEO-H3-TURBO-0511
+import { H3_TURBO_I2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-H3-TURBO-0511
 import { decideEstrelaRequest, estrelaPedida, estrelaSobretaxa, estrelaFingerprintSuffix, formatoComEstrela, fichaDaEstrela, planoDaEstrela, promptRetratoEstrela, relatoDaEstrela, motorDaEstrela, ESTRELA_VERSION } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '@/lib/estrelaServer' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-ESTRELA-DO-FILME-2026-09-29 — celebridade atual nomeada + estrela = recusa
@@ -812,6 +814,17 @@ function buildFalInput(
   // branch above). negative_prompt/cfg_scale mirror the Kling t2v branch so the
   // faceless brand carries over; the shared seed keeps retries stable. Only sent
   // for this model → every other (existing) call stays byte-identical.
+  // KINEO-H3-TURBO-0511 — schema lido em 05/11: prompt, image_url, duration número até 15, resolution 768P, prompt_expansion_mode. O formato vem do quadro. O som nativo do clipe é zerado na montagem clássica (volume 0%).
+  if (model === H3_TURBO_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      duration: Math.max(2, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
+      resolution: '768P',
+      prompt_expansion_mode: 'disabled',
+      ...(typeof seed === 'number' ? { seed } : {}),
+    }
+  }
   if (model === SEEDANCE_I2V_MODEL) {
     return {
       image_url: imageUrl,
@@ -7391,7 +7404,8 @@ async function manipularPost(req: NextRequest) {
     // it cannot create a duplicate billable CLIP.
     // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
     const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
-    const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
+    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
+    const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
     const kling4ExtraStillApprovals: Array<{ cena: number; url: string | null; veredito: string | null }> = []
@@ -7551,7 +7565,7 @@ async function manipularPost(req: NextRequest) {
       // retry-after), e a ordem dos modelos e i2v -> t2v como TENTATIVA DE
       // OUTRO MODELO, nunca retry escondido.
       const modelos = imageUrl
-        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? SEEDANCE_I2V_MODEL : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
+        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? i2vDoFilmePadrao /* KINEO-H3-TURBO-0511 */ : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
         : [model]
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),

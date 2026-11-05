@@ -20,7 +20,8 @@ export const KLING_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video'
 export const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
 export const VEO_MODEL = 'fal-ai/veo3.1/fast'
 export const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
-export const CLASSIC_I2V: ReadonlySet<string> = new Set<string>([SEEDANCE_I2V_MODEL, KLING_I2V_MODEL, VEO_I2V_MODEL])
+export const H3_TURBO_I2V_MODEL = 'minimax/h3-max-turbo/image-to-video' // KINEO-H3-TURBO-0511
+export const CLASSIC_I2V: ReadonlySet<string> = new Set<string>([SEEDANCE_I2V_MODEL, KLING_I2V_MODEL, VEO_I2V_MODEL, H3_TURBO_I2V_MODEL])
 export const CLASSIC: ReadonlySet<string> = new Set<string>([SEEDANCE_MODEL, KLING_MODEL, VEO_MODEL, ...CLASSIC_I2V])
 
 // A janela em que um marcador 'submitting' ainda pode ter dono vivo — o MESMO número do compose, do /api/compose/active
