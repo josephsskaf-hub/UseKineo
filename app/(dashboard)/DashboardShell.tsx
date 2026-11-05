@@ -12,6 +12,7 @@ import AffiliateFirstClickNudge from '@/components/AffiliateFirstClickNudge'
 import CreditRebaseBanner from '@/components/CreditRebaseBanner'
 import BlackFridayBanner from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026 — a faixa dentro da coluna (o shell é h-screen)
 import AnnualWelcomeBar from '@/components/AnnualWelcomeBar' // KINEO-OFERTA-3H-0411
+import CaixaDePresente0511 from '@/components/CaixaDePresente0511' // KINEO-CAIXA-PRESENTE-0511
 import type { AnnualWelcomeBarInitial } from '@/lib/billing/annualWelcomeOffer' // KINEO-OFERTA-3H-0411
 // KINEO-CREATOR30-2026-08-24 — modal da coorte do print (30% Creator, 1ª
 // fatura). Auto-contido: elegibilidade vem de /api/me/creator30-offer e o
@@ -138,6 +139,7 @@ export default function DashboardShell({
           title={title}
           isPro={isPro}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
+          presente={isLoggedIn ? <CaixaDePresente0511 /> : null /* KINEO-CAIXA-PRESENTE-0511 — só conta logada, ao lado do chip de créditos */}
         />
         {/* KINEO-REBASE-2026-07-10 — credit-rebase conversion notice (dismissible,
             localStorage kineo_rebase_seen, hard-stops after 2026-07-24) */}

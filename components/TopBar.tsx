@@ -5,7 +5,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
 import { isCreditsReadFailure, READ_FAILED_EVENT, READ_FAILED_LABEL, READ_FAILED_HINT } from '@/lib/creditsReadFailure'
@@ -19,6 +19,7 @@ interface TopBarProps {
   subtitle?: string
   onMenuToggle?: () => void
   isPro: boolean
+  presente?: ReactNode // KINEO-CAIXA-PRESENTE-0511
 }
 
 // Push #082 — auth UI consolidated to the Sidebar inside the dashboard layout.
@@ -28,7 +29,7 @@ interface TopBarProps {
 // and sign-out button for signed-in users, plus a "Get Started Free" CTA and
 // inline Sign in button for guests, so the duplicate header tail was just
 // noise. The TopBar now keeps only the breadcrumb + Pro badge.
-export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarProps) {
+export default function TopBar({ title, subtitle, onMenuToggle, isPro, presente }: TopBarProps) {
   return (
     <div
       className="kineo-topbar flex items-center gap-3 flex-shrink-0 sticky top-0 z-30 px-4 sm:px-6"
@@ -95,6 +96,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
         <InterfaceLanguageSelect />
         <AppearanceSettingsButton />
+        {presente}
         {/* Push #098 — header credits badge. Red link to /pricing when 0,
             amber when <=5 and not Pro, neutral otherwise. */}
         <CreditsBadge isPro={isPro} />
