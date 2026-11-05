@@ -8,7 +8,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { KIDS_CARTOON_LIVE, KIDS_CARTOON_TEMPLATE_PATH, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon'
 import KidsCartoonTemplate from '@/components/kidsCartoon/KidsCartoonTemplate'
 import { desenhoAbreSemConta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
-import KidsVendaPanel from '@/components/kidsCartoon/KidsVendaPanel' // KINEO-KIDS-VENDA-2010 — meus episódios + planos (piloto/pack/grátis); o servidor decide se aparece (KIDS_SALES_LIVE ou casa)
+import KidsVendaPanel from '@/components/kidsCartoon/KidsVendaPanel' // KINEO-KIDS-VENDA-2010 — meus episódios; o servidor decide se aparece (KIDS_SALES_LIVE ou casa) // KINEO-CARTOON-TELA-0411 — sem o quadro de planos
 
 export const metadata = { title: 'AI Cartoon Videos — Kineo', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
@@ -20,5 +20,5 @@ export default async function KidsCartoonPage({ searchParams }: { searchParams?:
   if (!user && KIDS_CARTOON_LIVE && desenhoAbreSemConta(searchParams?.utm_source)) return <KidsCartoonTemplate visitante />
   if (!user) redirect(`/login?redirect=${encodeURIComponent(KIDS_CARTOON_TEMPLATE_PATH)}`)
   if (!kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email))) notFound()
-  return <><KidsVendaPanel />{/* KINEO-KIDS-VENDA-2010 — acima do template: nada muda no template em si */}<KidsCartoonTemplate /></>
+  return <KidsCartoonTemplate episodios={<KidsVendaPanel />} /> // KINEO-KIDS-VENDA-2010 · KINEO-CARTOON-TELA-0411 — era: o painel acima do template, com o quadro de planos; agora só os episódios de quem já tem pedido, dentro da página
 }

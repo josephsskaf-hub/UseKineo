@@ -13,15 +13,22 @@
 // personagem em toda cena, marca d'água e débito continuam no servidor; se a aba fechar, o cron finish-stranded-renders termina.
 // KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar"); o botão
 // "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
+// KINEO-CARTOON-TELA-0411 [fundador 05/11] — o layout da tela nova de anúncios: cabeçalho igual, formulário à esquerda, personagem à direita (celular: formulário primeiro), um botão principal, opcionais em "More options", preço só na linha do botão final. Pedidos, endpoints e retomada do filme não mudaram.
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import { guardarRascunhoDoDesenho, lerRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import Link from 'next/link'
 import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { STUDIO_KIT_CSS } from '@/components/studioKit' // KINEO-CARTOON-TELA-0411 — a mesma pilha de estilos do /ads/v2
+import { ADS_WIZARD_THEME_CSS } from '@/app/(dashboard)/ads/new/adsWizardTheme' // KINEO-CARTOON-TELA-0411
+import { ADS_QUADRO_STUDIO_CSS, ADS_QUADRO_TINT_CSS } from '@/app/(dashboard)/ads/v2/AdsV2Quadro' // KINEO-CARTOON-TELA-0411
+import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CARTOON-TELA-0411
+import KidsEpisodioGratis from '@/components/kidsCartoon/KidsEpisodioGratis' // KINEO-CARTOON-TELA-0411 — o 1º episódio grátis, sem o quadro de planos
+import { KIDS_TELA_CSS, kidsTelaCopy } from '@/lib/kidsCartoon/telaCartoon' // KINEO-CARTOON-TELA-0411
 import {
   KIDS_CARTOON_DEFAULT_DURATION,
   KIDS_CARTOON_DURATIONS,
@@ -84,40 +91,18 @@ interface KidsRender {
 type Stage = 'idle' | 'writing' | 'review' | 'starting' | 'clips' | 'composing' | 'done' | 'failed'
 
 export const KIDS_TEMPLATE_CSS = `
-.kkc{--bg:#F7F7F5;--card:#fff;--line:#E4E4E0;--txt:#0E1116;--muted:#5A5F67;--blue:#0A5CFF;--soft:#E8EFFF;max-width:980px;margin:0 auto;padding:28px 20px 64px;color:var(--txt);font-family:var(--font-sans),Inter,system-ui,sans-serif}
-html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F4F7;--muted:#9AA3B2;--blue:#4D8DFF;--soft:#12203A}
-.kkc h1{font-size:clamp(1.6rem,3vw,2.3rem);letter-spacing:-.03em;margin:10px 0 6px;font-weight:820}
-.kkc-badge{display:inline-flex;gap:7px;align-items:center;font-size:11px;font-weight:800;letter-spacing:.11em;padding:6px 10px;border-radius:999px;background:var(--soft);color:var(--blue)}
-.kkc-lead{color:var(--muted);margin:0 0 22px;line-height:1.55;max-width:62ch}
-.kkc-sec{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:0 0 14px}
-.kkc-sec h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:800}
-.kkc-chars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.kkc-char{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:14px;border:2px solid var(--line);background:transparent;color:inherit;cursor:pointer;font:inherit}
-.kkc-char[aria-pressed=true]{border-color:var(--blue);background:var(--soft)}
-.kkc-face{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:24px;color:#fff;background:linear-gradient(135deg,#FFB347,#FF6F91 55%,#7B6CFF);overflow:hidden}
-.kkc-face img{width:100%;height:100%;object-fit:cover}
-.kkc-char b{font-size:14px}.kkc-char span{font-size:12px;color:var(--muted)}
-.kkc textarea{width:100%;min-height:72px;border-radius:12px;border:1px solid var(--line);padding:12px;font:inherit;background:transparent;color:inherit;resize:vertical}
-.kkc-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
-.kkc-chip{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
-.kkc-chip[aria-pressed=true]{border-color:var(--blue);background:var(--soft);color:var(--blue)}
-.kkc-row{display:flex;flex-wrap:wrap;gap:24px}
-.kkc-seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px}
-.kkc-seg button{border:0;background:transparent;color:inherit;font:inherit;font-size:14px;padding:7px 14px;border-radius:999px;cursor:pointer}
-.kkc-seg button[aria-pressed=true]{background:var(--blue);color:#fff}
-.kkc-go{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;background:var(--blue);color:#fff!important;font:inherit;font-weight:750;font-size:15px;padding:13px 22px;cursor:pointer;text-decoration:none}
+.kkc{--line:var(--border,#E4E4E0);--txt:var(--text,#0E1116);--blue:var(--accent,#0A5CFF);--soft:var(--accent-soft,#E8EFFF)}
+.kkc-sec{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin:0 0 14px;min-width:0}
+.kkc textarea{width:100%;min-height:96px}
+.kkc .kkc-go,.ace button.kkc-go{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--blue);border-radius:11px;background:var(--blue);color:#fff!important;font:inherit;font-weight:750;font-size:15px;padding:13px 22px;cursor:pointer;text-decoration:none}
 .kkc-go[disabled]{opacity:.55;cursor:default}
-.kkc-ghost{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:11px 18px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.kkc-ghost{border:1px solid var(--line);background:transparent;color:inherit;border-radius:11px;padding:11px 18px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
 .kkc-err{color:#C62828;margin:10px 0 0;font-size:14px}
 .kkc-note{color:var(--muted);font-size:13px;margin:8px 0 0;line-height:1.5}
 .kkc-story{font-size:1.05rem;line-height:1.6;margin:0 0 14px;white-space:pre-wrap}
 .kkc-cap{display:flex;gap:10px;align-items:flex-start;background:var(--soft);border-radius:12px;padding:12px;font-size:14px;line-height:1.5;margin:12px 0 0}
 .kkc-cap p{margin:0;flex:1}
 .kkc *,.kkc *::before,.kkc *::after{box-sizing:border-box}
-.kkc-chars-lg .kkc-char{padding:12px 6px 10px}
-.kkc-chars-lg .kkc-face{width:84px;height:84px;box-shadow:0 6px 18px -10px rgba(14,17,22,.45)}
-.kkc-char[aria-pressed=true] .kkc-face{outline:3px solid var(--blue);outline-offset:2px}
-.kkc-char[disabled]{cursor:default;opacity:.6}
 .kkc-who{display:flex;align-items:center;gap:12px;margin:0 0 12px}
 .kkc-who img{width:52px;height:52px;border-radius:50%;object-fit:cover}
 .kkc-who b{display:block;font-size:16px}.kkc-who span{font-size:13px;color:var(--muted)}
@@ -132,7 +117,7 @@ html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F
 .kkc-toggle b{display:block;font-size:15px}.kkc-toggle small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .kkc-cost i{width:9px;height:9px;border-radius:50%;background:#12B76A;flex-shrink:0}
 .kkc-cost[data-enough=false]{color:#B42318}.kkc-cost[data-enough=false] i{background:#B42318}
-.kkc-big{font-size:17px;padding:16px 28px;justify-content:center;min-width:280px}
+.kkc .kkc-big,.ace button.kkc-big{font-size:16px;padding:14px 26px;min-width:280px}
 .kkc-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .kkc-steps{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:10px}
 .kkc-steps li{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--muted)}
@@ -147,14 +132,16 @@ html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F
 .kkc-video{width:100%;aspect-ratio:9/16;border-radius:16px;background:#000;display:block;object-fit:contain}
 @keyframes kkcspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.kkc-steps li[data-s=on] b{animation:none}}
-@media (max-width:760px){.kkc{padding:18px 16px 48px}.kkc-chars{grid-template-columns:repeat(3,minmax(0,1fr))}.kkc-go{width:100%;justify-content:center}.kkc-big{min-width:0}.kkc-chars-lg .kkc-face{width:72px;height:72px}.kkc-done{grid-template-columns:1fr}.kkc-ready{font-size:clamp(1.3rem,2.2vw,1.7rem)!important;letter-spacing:-.02em!important;text-transform:none!important;color:var(--txt)!important;margin:0 0 14px!important}
+@media (max-width:760px){.kkc .kkc-go,.ace button.kkc-go{width:100%}.kkc .kkc-big,.ace button.kkc-big{min-width:0}.kkc-done{grid-template-columns:1fr}.kkc-ready{font-size:clamp(1.3rem,2.2vw,1.7rem)!important;letter-spacing:-.02em!important;text-transform:none!important;color:var(--txt)!important;margin:0 0 14px!important}
 .kkc-quote{border-inline-start:3px solid var(--line);padding-inline-start:12px;margin-top:14px!important;font-style:italic}
 .kkc-video{max-width:300px;margin:0 auto}.kkc-edit{min-height:280px!important}.kkc-ghost{width:100%;justify-content:center}}
 `
 
-export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ visitante?: boolean }) {
+export default function KidsCartoonTemplate({ visitante = false, episodios = null }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ visitante?: boolean; /* KINEO-CARTOON-TELA-0411 — os episódios de quem já tem pedido, entre o cabeçalho e o formulário */ episodios?: ReactNode }) {
   const ui = useInterfaceLanguage()
   const t = kidsTemplateCopy(ui)
+  const tela = kidsTelaCopy(ui) // KINEO-CARTOON-TELA-0411
+  useProductStage('ads') // KINEO-CARTOON-TELA-0411 — o mesmo fundo e a mesma barra lateral da tela de anúncios
   const ideaLang: 'en' | 'pt' | 'es' = ui === 'pt' || ui === 'es' ? ui : 'en' // KINEO-IDIOMAS-FORMATOS-2410 — idioma editorial da interface separado da narração
   const [character, setCharacter] = useState<KidsCharacterId>('leo')
   const [idea, setIdea] = useState('')
@@ -431,13 +418,23 @@ export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CA
   const premiereTitle = (() => { const first = (script.match(/^[^.!?。！？]*[.!?。！？]?/)?.[0] ?? '').trim(); return first ? (first.length > 110 ? `${first.slice(0, 107)}…` : first) : `${char.name}’s cartoon` })()
 
   return (
-    <main className="kkc" data-kids-cartoon="template" data-stage={stage}>
-      <style dangerouslySetInnerHTML={{ __html: KIDS_TEMPLATE_CSS }} />
-      <h1>{t.title}</h1>
-      <p className="kkc-lead">{t.lead}</p>
-
+    <div className="stu adsw adv2 kps-page adv2q kkc" data-kids-cartoon="template" data-stage={stage}>
+      <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS }} />
+      <ProductStageStyles />
+      <style dangerouslySetInnerHTML={{ __html: ADS_QUADRO_TINT_CSS + ADS_QUADRO_STUDIO_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: KIDS_TELA_CSS + KIDS_TEMPLATE_CSS }} />
+      <header className="adsw-header adv2-head">
+        <div>
+          <h1>{t.title}</h1>
+          <p className="sub">{t.lead}</p>
+        </div>
+      </header>
+      {episodios}
+      <div className="kps-grid">
+      <div className="kps-panel">
       {renderView ? (
-        <section style={{ margin: '0 0 14px' }} data-kids-render={stage}>
+        <section className="kkc-sec" data-kids-render={stage}>
           <div className="kkc-who"><img src={char.portrait} alt="" /><div><b>{char.name}</b><span>{kidsDurationChip(ui, duration, cost)} · {LANG_LABEL[language]}</span></div></div>
           {stage === 'done' && videoUrl ? (
             // KINEO-ESTREIA-3110 — a estreia: o desenho toca sozinho, Download grande (o mesmo kids_cartoon_downloaded), biblioteca e legenda logo abaixo.
@@ -479,25 +476,27 @@ export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CA
           )}
         </section>
       ) : (
-        <>
+        <div className="ace" data-kineo="kids-formulario">
           {reviewing ? null : (<>
-          <section className="kkc-sec" aria-label={t.character}>
-            <h2>{t.character}</h2>
-            <div className="kkc-chars kkc-chars-lg">
+          <section className="ace-card" aria-label={t.character} data-kineo="kids-personagem">
+            <h3 className="ace-step"><b>1</b>{t.character}</h3>
+            <fieldset className="ace-faces" aria-label={t.character}>
               {KIDS_CHARACTERS.map((c) => (
-                <button key={c.id} type="button" className="kkc-char" aria-pressed={character === c.id} disabled={busy} onClick={() => setCharacter(c.id)} data-kids-character={c.id}>
+                <label key={c.id} className="ace-radio" data-selected={character === c.id} data-kids-character={c.id}>
+                  <input type="radio" name="kkc-character" value={c.id} checked={character === c.id} disabled={busy} onChange={() => setCharacter(c.id)} />
                   <span className="kkc-face" aria-hidden="true">{c.portrait ? <img src={c.portrait} alt="" /> : c.name.slice(0, 1)}</span>
-                  <b>{c.name}</b>
-                  <span>{c.kind[ideaLang]}</span>
-                </button>
+                  <strong>{c.name}</strong>
+                  <small>{c.kind[ideaLang]}</small>
+                  {character === c.id ? <span className="ace-check" aria-hidden="true">✓</span> : null}
+                </label>
               ))}
-            </div>
+            </fieldset>
           </section>
 
-          <section className="kkc-sec" aria-label={t.idea}>
-            <h2>{t.idea}</h2>
-            <textarea value={idea} maxLength={KIDS_IDEA_MAX_CHARS} placeholder={t.ideaPlaceholder} disabled={busy} onChange={(e) => { setIdea(e.target.value); setIdeaId(null) }} />
-            <p className="kkc-note">{t.ready}</p>
+          <section className="ace-card" aria-label={t.idea} data-kineo="kids-ideia">
+            <h3 className="ace-step"><b>2</b>{t.idea}</h3>
+            <label className="ace-field"><textarea aria-label={t.idea} value={idea} maxLength={KIDS_IDEA_MAX_CHARS} placeholder={t.ideaPlaceholder} disabled={busy} onChange={(e) => { setIdea(e.target.value); setIdeaId(null) }} /></label>
+            <p className="ace-hint">{t.ready}</p>
             <div className="kkc-chips">
               {KIDS_IDEAS.map((i) => (
                 <button key={i.id} type="button" className="kkc-chip" aria-pressed={ideaId === i.id} disabled={busy} onClick={() => { setIdeaId(i.id); setIdea('') }} data-kids-idea={i.id}>{i[ideaLang]}</button>
@@ -505,31 +504,34 @@ export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CA
             </div>
           </section>
 
-          <section className="kkc-sec">
-            <div className="kkc-row">
-              <div>
-                <h2>{t.language}</h2>
+          {/* KINEO-CARTOON-TELA-0411 — os opcionais fechados e montados, como no anúncio: nenhum valor se perde ao fechar; sem preço aqui. */}
+          <details className="ace-more" data-kineo="kids-mais-opcoes">
+            <summary><strong>{tela.more}</strong><span className="ace-more-list">{tela.moreList}</span></summary>
+            <div className="ace-open-body">
+            <div className="ace-fields">
+              <label className="ace-field">{t.language}
                 <select aria-label={t.language} value={language} disabled={busy} onChange={e => { if (isKidsCartoonLanguage(e.target.value)) setLanguage(e.target.value) }} style={{ width: '100%', minHeight: 46, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, background: 'var(--card)', color: 'var(--txt)', font: 'inherit', colorScheme: 'inherit' }}>{NARRATION_LANGUAGES.map(l => <option key={l.code} value={l.code} lang={l.code} dir={l.rtl ? 'rtl' : 'ltr'}>{l.native}</option>)}</select>
-              </div>
-              <div>
-                <h2>{t.duration}</h2>
-                <div className="kkc-seg">{KIDS_CARTOON_DURATIONS.map((d) => <button key={d} type="button" aria-pressed={duration === d} disabled={busy} onClick={() => setDuration(d)}>{kidsDurationChip(ui, d, kidsCartoonCost(d))}</button>)}</div>
+              </label>
+              <div className="ace-field">{t.duration}
+                <div className="ace-seg" role="group" aria-label={t.duration}>{KIDS_CARTOON_DURATIONS.map((d) => <button key={d} type="button" aria-pressed={duration === d} disabled={busy} onClick={() => setDuration(d)}>{d} s</button>)}</div>
               </div>
             </div>
-            <p className="kkc-note">{t.rules}</p>
-          </section>
+            <p className="ace-hint">{t.rules}</p>
+            </div>
+          </details>
           </>)}
 
           {stage === 'idle' || stage === 'writing' || (stage === 'failed' && !script) ? (
-            <div>
+            <div className="ace-actions" data-kineo="kids-botao">
               <button type="button" className="kkc-go kkc-big" onClick={() => { void write() }} disabled={busy || (!idea.trim() && !ideaId)}>{stage === 'writing' ? t.writing : t.write} <span aria-hidden="true">→</span></button>
               {error ? <p className="kkc-err" role="alert">{error}</p> : null}
+              {!visitante ? <KidsEpisodioGratis character={character} language={language} tema={idea} /> : null}
             </div>
           ) : (
-            <section className="kkc-sec" aria-label={t.story} data-kids-story="1">
-              <h2>{t.story}</h2>
+            <section className="ace-card" aria-label={t.story} data-kids-story="1">
+              <h3 className="ace-step">{t.story}</h3>
               <div className="kkc-who"><img src={char.portrait} alt="" /><div><b>{char.name}</b><span>{char.kind[ideaLang]} · {LANG_LABEL[language]}</span></div></div>
-              <textarea className="kkc-edit" value={script} maxLength={KIDS_HANDOFF_PROMPT_MAX_CHARS} onChange={(e) => { setScript(e.target.value); if (stage === 'failed') setStage('review') }} aria-label={t.story} />
+              <div className="ace-field"><textarea className="kkc-edit" value={script} maxLength={KIDS_HANDOFF_PROMPT_MAX_CHARS} onChange={(e) => { setScript(e.target.value); if (stage === 'failed') setStage('review') }} aria-label={t.story} /></div>
               <p className="kkc-note">{t.storyHint} {t.rules}</p>
               {editedRefusal ? <p className="kkc-err" role="alert">{language === 'pt' ? KIDS_REFUSAL_MESSAGE.pt : KIDS_REFUSAL_MESSAGE.en}</p> : null}
               <div className="kkc-actions" style={{ marginTop: 10 }}>
@@ -552,8 +554,22 @@ export default function KidsCartoonTemplate({ visitante = false }: { /* KINEO-CA
               </div>
             </section>
           )}
-        </>
+        </div>
       )}
-    </main>
+      </div>
+      {/* KINEO-CARTOON-TELA-0411 — a prévia honesta: o retrato do personagem escolhido, com o rótulo de ilustração; o filme é feito depois. */}
+      <div className="adv2s-slot">
+        <aside className="ace-stage" aria-label={tela.preview} data-kineo="kids-previa">
+          <span className="ace-tag">{tela.tag}</span>
+          <h3>{char.name}</h3>
+          <p>{char.kind[ideaLang]}</p>
+          <div className="ace-stage-media">
+            <img className="ace-stage-portrait" src={char.portrait} alt={char.name} />
+            <span className="ace-stage-label">{tela.illustrative}</span>
+          </div>
+        </aside>
+      </div>
+      </div>
+    </div>
   )
 }

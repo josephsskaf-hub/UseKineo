@@ -29,7 +29,7 @@
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [
-   "  return <><KidsVendaPanel />{/* KINEO-KIDS-VENDA-2010 — acima do template: nada muda no template em si */}<KidsCartoonTemplate /></>",
+   "  return <KidsCartoonTemplate episodios={<KidsVendaPanel />} /> // KINEO-KIDS-VENDA-2010 · KINEO-CARTOON-TELA-0411 — era: o painel acima do template, com o quadro de planos; agora só os episódios de quem já tem pedido, dentro da página",
    "  return <KidsCartoonTemplate />"
   ]
  ],

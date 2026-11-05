@@ -179,7 +179,7 @@ function s5(libSrc = rd(F.lib)) {
   return p
 }
 // ─── S6 tela ───────────────────────────────────────────────────────────────────
-function s6(tpl = rd(F.tpl), libSrc = rd(F.lib)) {
+function s6(tpl = fs.readFileSync(path.join(ROOT, F.tpl), 'utf8').replace(/\r\n/g, '\n'), libSrc = rd(F.lib)) { // KINEO-CARTOON-TELA-0411 — a tela foi reescrita em 05/11: lê o arquivo de hoje, sem o desfaz em cadeia
   const p = []
   if (!tpl.includes('const [captions, setCaptions] = useState(true)')) p.push('legenda não nasce ligada')
   if (/className="kkc-badge"|KIDS_CARTOON_ENGINE_LABEL/.test(tpl) || /className="kug-badge"|KIDS_CARTOON_ENGINE_LABEL/.test(rd('components/kidsCartoon/KidsCartoonPages.tsx'))) p.push('pílula do motor na porta de entrada')

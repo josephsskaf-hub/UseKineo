@@ -123,7 +123,7 @@ function t4(tpl = rd(F.tpl), libSrc = rd(F.lib), rota = rd(F.rota)) {
   if (iCusto < 0 || iBotao < 0 || iPlanos < 0 || !(iCusto < iPlanos && iPlanos < iBotao) || code.slice(iCusto, iBotao).split('kkc-cost').length !== 2) p.push('a linha de custo não fica logo acima do botão (ou há mais de uma)')
   if ((code.match(/kkc-cost"/g) || []).length !== 1) p.push('mais de uma linha de custo')
   if (/median|\+\{|'\+'|`\+\$\{/.test(code)) p.push('"+N" ou mediana na tela')
-  if (!code.includes('KIDS_CARTOON_DURATIONS.map((d) =>') || !code.includes('kidsDurationChip(ui, d, kidsCartoonCost(d))')) p.push('durações sem os créditos de cada uma')
+  if (!code.includes('KIDS_CARTOON_DURATIONS.map((d) =>') || code.includes('kidsDurationChip(ui, d, kidsCartoonCost(d))')) p.push('durações com preço no formulário') // KINEO-CARTOON-TELA-0411 — fundador 05/11: o preço fica só na linha do botão final; era: exigia os créditos em cada duração
   const L = puro(libSrc)
   if (JSON.stringify(L.KIDS_CARTOON_DURATIONS) !== '[15,35]') p.push('durações ≠ 15/35')
   const c = (lang, b, cost = 9, s = 15) => L.kidsCostLine(lang, { seconds: s, cost, balance: b })
