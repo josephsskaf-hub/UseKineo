@@ -165,7 +165,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
 
   const partial = client({ saved: { ...saved, stage: 'stills', stills: [], still_id: '' } }); partial.render()
   partial.responses.push([200, { order_id: ID, stage: 'choose', stills: STILLS.slice(0, 3), charged: false }]); await partial.poll()
-  const partialVisible = partial.states[3].length === 3 && partial.states[4] === '' && partial.nodes().some(node => node.type === 'p' && nodeText(node) === 'O fornecedor retornou 3 fotos. Você pode escolher uma opção disponível.') && !partial.requests.some(request => request.body?.stage === 'render')
+  const partialVisible = partial.states[3].length === 3 && partial.states[4] === '' && partial.nodes().some(node => node.type === 'p' && nodeText(node) === '3 fotos ficaram prontas. Você pode escolher uma delas.') && !partial.requests.some(request => request.body?.stage === 'render')
   partial.nodes().find(node => node.type === 'input' && node.props.name === 'ace-still' && node.props.value === 'still-2').props.onChange(); partial.render()
   partial.responses.push([202, { order_id: ID }]); await partial.click('Gerar vídeo com esta foto')
   check(partialVisible && partial.requests.filter(request => request.body?.stage === 'render').length === 1 && partial.requests.at(-1).body.still_id === 'still-2', 'UI partial supplier result explains three stills without auto-selection and renders exactly the explicitly chosen available still')
