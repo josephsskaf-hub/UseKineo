@@ -9,7 +9,7 @@ export const ACCOUNT_MENU_LINKS = [
   { id: 'videos', href: '/history', label: 'My videos', icon: 'M4 5.5h16v13H4zM10 9.5l5 2.5-5 2.5z' },
   { id: 'profile', href: '/account?tab=profile', label: 'Profile', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c1.5-3.4 4.5-5.3 8-5.3s6.5 1.9 8 5.3' },
   { id: 'usage', href: '/account?tab=usage', label: 'Usage & activity', icon: 'M4 19.5V12M10 19.5V5.5M16 19.5V9M21 19.5H3.5' },
-  { id: 'help', href: '/support', label: 'Help Center', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8M12 17.2v.1' },
+  { id: 'help', href: '/support', label: 'Help', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8M12 17.2v.1' },
   { id: 'affiliate', href: '/affiliate', label: 'Affiliate program', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM14.8 9.2c-.5-1-1.5-1.5-2.8-1.5-1.6 0-2.8.8-2.8 2.1 0 3 5.8 1.5 5.8 4.5 0 1.3-1.3 2.1-3 2.1-1.4 0-2.5-.6-3-1.6M12 6v12' },
 ] as const
 
