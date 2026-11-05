@@ -6,10 +6,12 @@ import type { HomeCardClip, HomeCardPlaylist, HomeCycleCardId } from '@/lib/ui/h
 
 const trailer = (name: string): HomeCardClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp`, objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' })
 
-/** Só os dois cards aprovados. Um clipe só: o tocador liga o laço nativo (lib/ui/homeCardPlayback.ts). */
+/** KINEO-CARDS-TRAILER-4-0411 — fundador 05/11: "gera os clipes novos agora... vai subir": os 4 cards com trailer. Um clipe só: o tocador liga o laço nativo (lib/ui/homeCardPlayback.ts). */
 export const HOME_CARD_TRAILERS_0411: Partial<Record<HomeCycleCardId, HomeCardPlaylist>> = {
   films: [trailer('home-card-trailer-film')],
   kids_cartoon: [trailer('home-card-trailer-cartoon')],
+  product_ads: [trailer('home-card-trailer-product')],
+  ugc_ads: [trailer('home-card-trailer-ugc')],
 }
 
 /** KINEO-HOME-CARD-MENOR-0411 — fundador 05/11: os 4 cards 10% mais baixos no computador, para a fileira de baixo não ficar cortada. Fora de lib/ui/homeKidsCard.ts, que é travado. */

@@ -20,8 +20,8 @@ const ok = (c, m) => { assert.ok(c, m); n++ }
 
 // 1. Só os dois cards aprovados, um clipe cada, enquadrado pelo topo (o texto do card cobre a parte de baixo).
 const { HOME_CARD_TRAILERS_0411: T } = modulo('lib/ui/homeCardsTrailer0411.ts')
-ok(JSON.stringify(Object.keys(T).sort()) === '["films","kids_cartoon"]', 'só Filmes e Cartoon têm trailer')
-for (const [card, name] of [['films', 'home-card-trailer-film'], ['kids_cartoon', 'home-card-trailer-cartoon']]) {
+ok(JSON.stringify(Object.keys(T).sort()) === '["films","kids_cartoon","product_ads","ugc_ads"]', 'os 4 cards têm trailer (KINEO-CARDS-TRAILER-4-0411)')
+for (const [card, name] of [['films', 'home-card-trailer-film'], ['kids_cartoon', 'home-card-trailer-cartoon'], ['product_ads', 'home-card-trailer-product'], ['ugc_ads', 'home-card-trailer-ugc']]) {
   ok(T[card].length === 1, card + ': um clipe só')
   const c = T[card][0]
   ok(c.src === `/previews/${name}.mp4` && c.poster === `/posters/${name}.webp`, card + ': arquivos com o nome combinado')
@@ -44,7 +44,6 @@ ok(kids.includes('playlist={HOME_CARD_TRAILERS_0411.kids_cartoon}'), 'card de Ca
 
 // 4. Produto e UGC seguem as listas de hoje.
 const pure = modulo('lib/ui/homeThreeCards.ts')
-ok(T.product_ads === undefined && T.ugc_ads === undefined, 'Produto e UGC sem trailer')
 ok(pure.HOME_CARD_PLAYLISTS.product_ads.default.length === 3, 'Produto continua com os 3 clipes')
 ok(pure.HOME_CARD_PLAYLISTS.ugc_ads.default.length === 4, 'UGC continua com os 4 clipes')
 
