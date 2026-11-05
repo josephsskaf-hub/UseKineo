@@ -1,6 +1,7 @@
 // KINEO-FLUXO2-0411 [fundador 04/11 ~22h: "recomendações" — "a tarefa mais importante do dia"]
 // Guardião sem rede do fluxo de quem compra. Executa a tela de verdade pelo suporte de hooks dos outros guardiões, as regras puras reais, e cada regra tem mutante.
 import fs from 'node:fs'
+import ts from 'typescript'
 import { runEscolhaUiProof } from './test-support/ads-escolha-ui-2310.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
@@ -180,6 +181,94 @@ checa('F a régua que torna a cláusula necessária segue valendo', carregar('li
 checa('F o motivo segue valendo: o público recebe narração', ler(UI).includes("...(!internalControls || sampleMode ? { voice_mode: 'narrated' } : {})") && ler('lib/ads/cena/internalEscolha.ts').includes("...(!internal || sampleMode ? { voice_mode: 'narrated' } : {})"))
 const mutF = (src) => FALSO.test(src)
 checa('F mutante: a frase velha de volta seria percebida', mutF("extras.push('an optional AI person holding the product and talking about it')") && mutF('An AI person holds your product and tells why to buy.'))
+
+// ── G: o filme grátis na prévia, lado "a pedido". Executa a tela real por um suporte de hooks mínimo.
+const PREVIA = 'app/(dashboard)/studio/previa/ScenePreviewClient.tsx', TP = 'lib/trialPedido.ts', FAIXA = 'components/TrialPedidoBanner.tsx'
+const walkG = (n, r = []) => { if (Array.isArray(n)) n.forEach((x) => walkG(x, r)); else if (n && typeof n === 'object' && n.props) { r.push(n); walkG(n.props.children, r) } return r }
+const textoG = (n) => Array.isArray(n) ? n.map(textoG).join('') : n == null || typeof n === 'boolean' ? '' : typeof n === 'object' ? textoG(n.props?.children) : String(n)
+const ULTIMA = { script: '[HOOK] Why the sky is blue.', scenes: [{ label: 'a', text: 'b', image: '/x.png' }], idea: 'why the sky is blue', language: 'en' }
+async function telaPrevia({ aPedido, claim = [200, { ok: true }], mutar = {}, lang = 'en' }) {
+  const estados = [], efeitos = [], pedidos = [], eventos = [], guardado = new Map(), navega = []
+  let i = 0, tree
+  const React = (await import('node:module')).createRequire(import.meta.url)('react')
+  const hooks = { ...React, useState(v) { const k = i++; if (!(k in estados)) estados[k] = v; return [estados[k], (x) => { estados[k] = typeof x === 'function' ? x(estados[k]) : x }] }, useEffect(f) { efeitos.push(f) }, useCallback: (f) => f }
+  const fetchG = async (url, op = {}) => {
+    pedidos.push({ url, method: op.method ?? 'GET' })
+    if (String(url) === '/api/scene-preview' && !op.method) return { ok: true, json: async () => ({ left: 2, last: ULTIMA }) }
+    if (String(url) === carregarTP().TRIAL_PEDIDO_CLAIM_PATH) return { ok: claim[0] < 300, status: claim[0], json: async () => claim[1] }
+    return { ok: true, json: async () => ({ ok: true }) }
+  }
+  const windowG = { location: { href: 'https://offline.invalid/studio/previa', assign: (u) => navega.push(u), search: '' }, dispatchEvent: () => true }
+  const load = createOfflineLoader({
+    mocks: { react: hooks, 'react/jsx-runtime': (await import('node:module')).createRequire(import.meta.url)('react/jsx-runtime'), '@/components/InterfaceLanguage': { useInterfaceLanguage: () => lang }, '@/lib/analytics': { trackEvent: async (n, m) => { eventos.push([n, m]); return true } } },
+    globals: { fetch: fetchG, localStorage: { setItem: (k, v) => guardado.set(k, v), getItem: (k) => guardado.get(k) ?? null, removeItem: (k) => guardado.delete(k) }, window: windowG, Event: class {} },
+    source: (rel, t) => { const m = mutar[rel] ? mutar[rel](lf(t)) : t; return rel === PREVIA ? ts.transpileModule(m, { fileName: 'previa.tsx', compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText : m },
+  })
+  const C = load(PREVIA).default
+  const desenha = () => { i = 0; efeitos.length = 0; tree = C({ initialIdea: '', from: '', aPedido }); return tree }
+  desenha()
+  for (const f of efeitos.splice(0)) f()
+  for (let n = 0; n < 12; n++) await Promise.resolve()
+  desenha()
+  const no = (id) => walkG(tree).find((x) => x.props?.['data-testid'] === id)
+  return { no, pedidos, eventos, navega, guardado, windowG, desenha, assenta: async () => { for (let n = 0; n < 12; n++) await Promise.resolve(); desenha() }, texto: () => walkG(tree).map(textoG).join(' ') }
+}
+const carregarTP = () => createOfflineLoader()(TP)
+async function provaG(mutar = {}) {
+  const erros = [], exige = (c, m) => { if (!c) erros.push(m) }
+  const T = carregarTP()
+  const a = await telaPrevia({ aPedido: true, mutar })
+  exige(!!a.no('scene-preview-claim') && !a.no('scene-preview-to-film'), 'G a pedido: o botão principal pede o filme')
+  exige(/Get my free film/.test(textoG(a.no('scene-preview-claim') ?? '')), 'G a pedido: o botão diz o filme grátis')
+  exige(!!a.no('scene-preview-plans'), 'G a pedido: os planos seguem como link')
+  a.no('scene-preview-claim')?.props.onClick(); await a.assenta()
+  exige(a.pedidos.some((p) => p.url === T.TRIAL_PEDIDO_CLAIM_PATH && p.method === 'POST'), 'G o clique usa a rota de sempre, por POST')
+  exige(a.eventos.some(([n, m]) => n === T.TRIAL_PEDIDO_PREVIA_EVENT && m.test === T.TRIAL_PEDIDO_TESTE), 'G o clique vira evento')
+  const destino = new URL(a.navega[0] ?? '/nada', 'https://x.invalid')
+  exige(destino.pathname === '/studio' && destino.searchParams.get('prompt')?.includes('Why the sky is blue'), 'G volta à geração com o roteiro da prévia')
+  exige(destino.searchParams.get('engine') === 'seedance' && destino.searchParams.get('duration') === '15', 'G o motor e a duração são os da prévia, sem mudança')
+  exige(!a.navega.some((u) => String(u).includes('pricing')) && !String(a.windowG.location.href).includes('pricing'), 'G pedir o filme não leva aos planos')
+  const f = await telaPrevia({ aPedido: true, claim: [503, { error: 'x' }], mutar })
+  f.no('scene-preview-claim')?.props.onClick(); await f.assenta()
+  exige(f.navega.length === 0 && /did not work/.test(f.texto()) && !f.no('scene-preview-claim')?.props.disabled, 'G recusa: fica na tela, diz o erro, e dá para tentar de novo')
+  const p = await telaPrevia({ aPedido: true, mutar })
+  p.no('scene-preview-plans')?.props.onClick({ preventDefault() {} }); await p.assenta()
+  exige(String(p.windowG.location.href).includes('/pricing') || String(p.windowG.location.href).includes('from=scene_preview'), 'G o link leva aos planos, guardando o roteiro')
+  exige(p.guardado.size === 1 && !p.pedidos.some((x) => x.url === T.TRIAL_PEDIDO_CLAIM_PATH), 'G o link não pede o filme')
+  exige(p.pedidos.some((x) => x.url === '/api/scene-preview/cta'), 'G o link continua medido como ida aos planos')
+  const o = await telaPrevia({ aPedido: false, mutar })
+  exige(!!o.no('scene-preview-to-film') && !o.no('scene-preview-claim') && !o.no('scene-preview-plans'), 'G as outras contas: a tela de sempre')
+  o.no('scene-preview-to-film')?.props.onClick(); await o.assenta()
+  exige(String(o.windowG.location.href).includes('from=scene_preview') && !o.pedidos.some((x) => x.url === T.TRIAL_PEDIDO_CLAIM_PATH) && o.eventos.length === 0, 'G as outras contas: vai aos planos, sem pedir nem medir o novo')
+  const es = await telaPrevia({ aPedido: true, lang: 'es', mutar })
+  exige(/Quiero mi película gratis/.test(textoG(es.no('scene-preview-claim') ?? '')), 'G em espanhol')
+  return erros
+}
+const errosG = await provaG()
+for (const e of errosG) checa(e, false)
+checa('G a tela real passa nas provas', errosG.length === 0)
+const TG = carregarTP()
+checa('G a rota existe no caminho que a tela chama', fs.existsSync(`app${TG.TRIAL_PEDIDO_CLAIM_PATH}/route.ts`) && /export async function POST\(\)/.test(ler(`app${TG.TRIAL_PEDIDO_CLAIM_PATH}/route.ts`)) && ler(`app${TG.TRIAL_PEDIDO_CLAIM_PATH}/route.ts`).includes('claimOnRequestTrial(user.id)'))
+checa('G o servidor decide quem vê', ler('app/(dashboard)/studio/previa/page.tsx').includes('aPedido={trialPedidoVisivel(data as'))
+checa('G quem é elegível, sorteio e crédito não mudaram', ler('lib/reverseTrial.ts').includes('video_credits: (balance ?? 0) + TRIAL_GRANT_CREDITS') && /fnv1a\(`\$\{TRIAL_PEDIDO_TESTE\}:\$\{userId\}`\) % 2 === 0 \? 'controle' : 'a_pedido'/.test(ler(TP)))
+checa('G a faixa volta com a ideia', TG.filmeGratisDestino('um filme') === '/studio?prompt=um+filme' && TG.filmeGratisDestino('  ') === '/studio' && TG.filmeGratisDestino(null) === '/studio' && new URL(TG.filmeGratisDestino('x'.repeat(3000)), 'https://x.invalid').searchParams.get('prompt').length === 2000)
+checa('G a faixa usa o destino com a ideia', ler(FAIXA).includes('window.location.assign(filmeGratisDestino(') && !ler(FAIXA).includes("window.location.assign('/studio')"))
+for (const l of ['en', 'pt', 'es']) checa(`G textos em ${l}`, TG.TRIAL_PEDIDO_COPY[l].previewHint.length > 10)
+checa('G a nota do desenho novo existe', ler('docs/DECISAO-TRIAL-A-PEDIDO-PREVIA-2026-11-04.md').includes('Não misturar o antes e o depois') && ler(TP).includes('DECISAO-TRIAL-A-PEDIDO-PREVIA-2026-11-04'))
+for (const [nome, mutar, esperado] of [
+  ['G botão volta aos planos', { [PREVIA]: (t) => t.replace('{aPedido ? (', '{false ? (') }, /pede o filme/],
+  ['G todo mundo vê o pedido', { [PREVIA]: (t) => t.replace('{aPedido ? (', '{true ? (') }, /tela de sempre/],
+  ['G pedido sem voltar à geração', { [PREVIA]: (t) => t.replace('window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language }))', "window.location.assign('/studio')") }, /com o roteiro/],
+  ['G clique sem evento', { [PREVIA]: (t) => t.replace('void trackEvent(TRIAL_PEDIDO_PREVIA_EVENT,', 'void (async (..._x: unknown[]) => {})(TRIAL_PEDIDO_PREVIA_EVENT,') }, /vira evento/],
+  ['G recusa navega assim mesmo', { [PREVIA]: (t) => t.replace("if (!res.ok) throw new Error(String(res.status))\n      window.dispatchEvent", 'window.dispatchEvent') }, /recusa: fica na tela/],
+  ['G planos somem', { [PREVIA]: (t) => t.replace('data-testid="scene-preview-plans"', 'data-testid="off"') }, /seguem como link/],
+]) {
+  const mudou = Object.entries(mutar).every(([f, fn]) => fn(ler(f)) !== ler(f))
+  let r = []
+  try { r = await provaG(mutar) } catch (e) { r = ['estourou: ' + e.message] }
+  if (process.env.VER_MUTANTES) console.log('    ', nome, '=>', JSON.stringify(r).slice(0, 300))
+  checa(`mutante "${nome}" fica vermelho`, mudou && r.some((m) => esperado.test(m)))
+}
 
 const MUTANTES = [
   ['E Sofia de volta como fábrica', (t) => t.replace("const PESSOA_PADRAO = 'jade'", 'const PESSOA_PADRAO = CENA_ESCOLHA_PRESENTERS[0].id'), /retrato com rótulo|retrato sem rótulo/],

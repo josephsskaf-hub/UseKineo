@@ -9,6 +9,8 @@
 //   · Depois do fim, conta nova volta ao trial de sempre sozinha. Para parar antes: TRIAL_PEDIDO_LIVE = false.
 //   · A varredura de trial órfão só lê trial_status NULL e a cota semanal só admite estados da lista dela: nenhuma recredita esta conta.
 //
+//   · KINEO-FLUXO2-G-0411: o desenho do lado "a pedido" mudou em 04/11, antes de haver resultado. Medir em separado (docs/DECISAO-TRIAL-A-PEDIDO-PREVIA-2026-11-04.md).
+//
 // Módulo puro: sem env, sem banco. Guardião: scripts/test-trial-a-pedido-0411.mjs.
 export const TRIAL_PEDIDO_LIVE: boolean = true
 export const TRIAL_PEDIDO_INICIO_UTC = '2026-11-04T17:00:00.000Z'
@@ -18,6 +20,15 @@ export const TRIAL_PEDIDO_TESTE = 'trial_a_pedido_0411'
 export const TRIAL_PEDIDO_ATRIBUIDO_EVENT = 'trial_test_assigned'
 export const TRIAL_PEDIDO_LIBERADO_EVENT = 'trial_on_request_claimed'
 export const TRIAL_PEDIDO_CLAIM_PATH = '/api/trial/claim'
+/** KINEO-FLUXO2-G-0411 — o clique no botão principal da prévia. A faixa continua com trial_on_request_clicked: as duas portas contam separado. */
+export const TRIAL_PEDIDO_PREVIA_EVENT = 'trial_on_request_preview_clicked'
+const IDEIA_MAX = 2000
+
+/** KINEO-FLUXO2-G-0411 — depois de pedir, de volta à geração com a ideia que a pessoa já escreveu. Sem ideia, o /studio de sempre. */
+export function filmeGratisDestino(ideia: unknown): string {
+  const texto = typeof ideia === 'string' ? ideia.trim().slice(0, IDEIA_MAX) : ''
+  return texto ? `/studio?${new URLSearchParams({ prompt: texto }).toString()}` : '/studio'
+}
 
 export type LadoDoTeste = 'controle' | 'a_pedido'
 
@@ -47,9 +58,9 @@ export function trialPedidoVisivel(row: { trial_status?: string | null; has_paid
 
 export const TRIAL_PEDIDO_REFUSAL = 'Your free film is waiting: tap "Get my free film" at the top of this page, or pick a plan. Nothing was charged.'
 
-export interface TrialPedidoCopy { title: string; body: string; claim: string; working: string; failed: string; preview: string; plans: string }
+export interface TrialPedidoCopy { title: string; body: string; claim: string; working: string; failed: string; preview: string; plans: string; previewHint: string }
 export const TRIAL_PEDIDO_COPY: { en: TrialPedidoCopy; pt: TrialPedidoCopy; es: TrialPedidoCopy } = {
-  en: { title: 'Your first film is free', body: 'See your scenes first, or get the free film when you are ready.', claim: 'Get my free film', working: 'Getting it ready…', failed: 'That did not work. Please try again.', preview: 'Preview my scenes', plans: 'See plans' },
-  pt: { title: 'Seu primeiro filme é grátis', body: 'Veja suas cenas antes, ou peça o filme grátis quando quiser.', claim: 'Quero meu filme grátis', working: 'Preparando…', failed: 'Não funcionou. Tente de novo.', preview: 'Ver minhas cenas', plans: 'Ver planos' },
-  es: { title: 'Tu primera película es gratis', body: 'Mira tus escenas antes, o pide la película gratis cuando quieras.', claim: 'Quiero mi película gratis', working: 'Preparando…', failed: 'No funcionó. Inténtalo de nuevo.', preview: 'Ver mis escenas', plans: 'Ver planes' },
+  en: { title: 'Your first film is free', body: 'See your scenes first, or get the free film when you are ready.', claim: 'Get my free film', working: 'Getting it ready…', failed: 'That did not work. Please try again.', preview: 'Preview my scenes', plans: 'See plans', previewHint: 'Your first film is free. Your script stays saved and opens ready to generate.' },
+  pt: { title: 'Seu primeiro filme é grátis', body: 'Veja suas cenas antes, ou peça o filme grátis quando quiser.', claim: 'Quero meu filme grátis', working: 'Preparando…', failed: 'Não funcionou. Tente de novo.', preview: 'Ver minhas cenas', plans: 'Ver planos', previewHint: 'Seu primeiro filme é grátis. O seu roteiro fica guardado e abre pronto para gerar.' },
+  es: { title: 'Tu primera película es gratis', body: 'Mira tus escenas antes, o pide la película gratis cuando quieras.', claim: 'Quiero mi película gratis', working: 'Preparando…', failed: 'No funcionó. Inténtalo de nuevo.', preview: 'Ver mis escenas', plans: 'Ver planes', previewHint: 'Tu primera película es gratis. Tu guion queda guardado y se abre listo para generar.' },
 }

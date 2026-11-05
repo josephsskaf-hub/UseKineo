@@ -4,6 +4,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PREVIA_CENAS_PUBLIC, previaEligible, type PreviaProfile } from '@/lib/scenePreview'
+import { trialPedidoVisivel } from '@/lib/trialPedido' // KINEO-FLUXO2-G-0411
 import ScenePreviewClient from './ScenePreviewClient'
 
 export const metadata = { title: 'Free preview — Kineo' }
@@ -18,5 +19,5 @@ export default async function ScenePreviewPage({ searchParams }: Props) {
   if (!user) redirect(`/login?redirect=${encodeURIComponent('/studio/previa')}`)
   const { data } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
   if (!PREVIA_CENAS_PUBLIC || !previaEligible(data as PreviaProfile | null)) redirect('/studio')
-  return <ScenePreviewClient initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} />
+  return <ScenePreviewClient initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} aPedido={trialPedidoVisivel(data as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null)} />
 }
