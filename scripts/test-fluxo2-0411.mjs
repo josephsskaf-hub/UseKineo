@@ -157,6 +157,30 @@ for (const lang of ['en', 'pt', 'es']) {
 
 checa('E o retrato da pessoa de fábrica existe', fs.existsSync('public/ads/presenters/jade.webp'))
 
+// ── F: o que é falso sobre "pessoa falando" e a cláusula de país
+const FALSO = /talking about (it|the product)|talks about the product|lip-synced voice|(?<!voiceover )tells why to buy\.|says the voice-over/i
+const carregar = createOfflineLoader()
+for (const f of ['lib/growth/businessPitch.ts']) {
+  const pitch = carregar(f)
+  const texto = JSON.stringify(pitch.BUSINESS_PITCH ?? pitch)
+  checa('F o resumo de vendas do Business fala em narração, não em fala', !FALSO.test(texto))
+}
+for (const f of ['lib/kineoFacts.ts', 'lib/growth/businessPitch.ts', 'lib/comparisons.ts', 'lib/seo/paginasUgc2010.ts', 'app/agencies/page.tsx', 'app/ads/page.tsx', 'app/claude-connector/ShowcaseGrid.tsx', 'lib/growth/paginasUgc2010Content.ts']) {
+  checa(`F ${f} sem a promessa de pessoa falando`, !FALSO.test(ler(f).split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')))
+}
+checa('F páginas em português sem voz sincronizada', !/voz sincronizada/.test(ler('lib/growth/paginasUgc2010Content.ts')))
+const linha = carregar('lib/ui/homeCardLinha0411.ts'), copia = JSON.parse(ler('lib/ui/refinementCopy.json'))
+checa('F o card UGC diz narração', /voiceover/.test(linha.homeCardLinha('ugc_ads')) && !FALSO.test(linha.homeCardLinha('ugc_ads')))
+checa('F os outros cards seguem iguais', linha.homeCardLinha('films') === carregar('lib/ui/homeThreeCards.ts').HOME_CARD_COPY.films.line && linha.homeCardLinha('product_ads') === carregar('lib/ui/homeThreeCards.ts').HOME_CARD_COPY.product_ads.line)
+checa('F a frase do card existe nas 16 línguas', Object.keys(copia).length === 16 && Object.values(copia).every((t) => typeof t[linha.HOME_CARD_LINHA_UGC] === 'string' && t[linha.HOME_CARD_LINHA_UGC].length > 10))
+checa('F o card usa a frase nova', ler('components/home/HomeThreeCards.tsx').includes('{copy(homeCardLinha(card))}'))
+const modal = ler('components/AuthModal.tsx')
+checa('F login: o crédito grátis leva a cláusula de país, como a barra lateral', modal.includes('credits${GRANT_COUNTRY_CLAUSE}`}') && ler('components/Sidebar.tsx').includes('free credits${GRANT_COUNTRY_CLAUSE}`}'))
+checa('F a régua que torna a cláusula necessária segue valendo', carregar('lib/freeFilmPolicy.ts').filmeGratisPermitido('IN') === false)
+checa('F o motivo segue valendo: o público recebe narração', ler(UI).includes("...(!internalControls || sampleMode ? { voice_mode: 'narrated' } : {})") && ler('lib/ads/cena/internalEscolha.ts').includes("...(!internal || sampleMode ? { voice_mode: 'narrated' } : {})"))
+const mutF = (src) => FALSO.test(src)
+checa('F mutante: a frase velha de volta seria percebida', mutF("extras.push('an optional AI person holding the product and talking about it')") && mutF('An AI person holds your product and tells why to buy.'))
+
 const MUTANTES = [
   ['E Sofia de volta como fábrica', (t) => t.replace("const PESSOA_PADRAO = 'jade'", 'const PESSOA_PADRAO = CENA_ESCOLHA_PRESENTERS[0].id'), /retrato com rótulo|retrato sem rótulo/],
   ['E Amara como fábrica', (t) => t.replace("const PESSOA_PADRAO = 'jade'", "const PESSOA_PADRAO = 'amara'"), /retrato com rótulo/],

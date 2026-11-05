@@ -12,7 +12,7 @@ import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { GRANT_COUNTRY_CLAUSE, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer' // KINEO-FLUXO2-F-0411 — + a cláusula de país
 import {
   buildCheckoutPasswordRecoveryHref,
   readCheckoutPasswordRecoveryContext,
@@ -292,7 +292,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                   style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.18)', color: '#2997ff' }}
                 >
                   <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse-dot" style={{ background: '#2997ff', boxShadow: '0 0 6px rgba(41,151,255,.5)' }} aria-hidden="true" />
-                  <FreeTierCopy legacy="Up to 3 free Fast previews per day — no card required" on={`Free Creator trial — ${TRIAL_GRANT_CREDITS_COPY} credits`} />
+                  <FreeTierCopy legacy="Up to 3 free Fast previews per day — no card required" on={`Free Creator trial — ${TRIAL_GRANT_CREDITS_COPY} credits${GRANT_COUNTRY_CLAUSE}`} />
                 </div>
               )}
 

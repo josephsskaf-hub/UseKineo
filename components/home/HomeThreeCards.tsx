@@ -25,6 +25,7 @@ import {
   homeCardHref,
   type HomeCardId,
 } from '@/lib/ui/homeThreeCards'
+import { homeCardLinha } from '@/lib/ui/homeCardLinha0411' // KINEO-FLUXO2-F-0411
 import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-BEBE-QUE-FALA-2010 — o reel do card de produto no modo 4 cards
 import HomeKidsCard from '@/components/home/HomeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — o 4º card (AI Kids Cartoons), só com o interruptor
 import { HOME_CARDS_AJUSTE_CSS, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
@@ -126,7 +127,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
               {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span> */}
               <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
-                <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>
+                <p className="k3c-sub">{copy(homeCardLinha(card))}</p>
                 <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className="k3c-arrow" aria-hidden="true">→</span></span>{/* KINEO-HOME-CARDS-BOTOES-2010 */}
               </span>
             </Link>
