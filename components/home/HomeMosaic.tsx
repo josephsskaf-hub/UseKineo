@@ -19,6 +19,7 @@ import { publicEffectPages, effectPagePath, effectSlug } from '@/lib/clips/clipE
 import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalleryImage } from '@/components/home/HomeImageGallery'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
+import { FORA_DE_ESTACAO, afastaVizinhos, semLargoNoFim, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -62,19 +63,24 @@ type Tile =
   | { kind: 'effect'; effect: ClipEffect }
   | { kind: 'image'; img: MosaicImage }
   | { kind: 'style'; style: MosaicStyle } // KINEO-MWK-MOSAICO-3110 — estilo de anúncio (prévia feita pelo próprio estilo)
+  | { kind: 'novo'; clip: ClipeNovo; grande: boolean } // KINEO-CLIPES-NOS-2-LUGARES-0411 — os clipes da lista compartilhada; grande = cartão de 2 colunas
+
+// KINEO-CLIPES-NOS-2-LUGARES-0411 — efeitos que a data já passou saem da vitrine (lista em lib/clipesNos2Lugares.ts).
+const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
 
 // KINEO-VITRINE-ESTACAO-3110 — a lista da estação mora em lib/clips/clipSeason.ts (a mesma do "Trending this week" do Clipe).
 // KINEO-MWK-MOSAICO-3110 — o selo "⚡ NEW" é honesto: só os efeitos da estação e os 8 mais novos do catálogo o recebem.
 export function mosaicNewEffectKeys(now: number = Date.now()): Set<string> {
-  const pages = publicEffectPages()
+  const pages = efeitosDaVitrine() // KINEO-CLIPES-NOS-2-LUGARES-0411
   return new Set([...seasonalEffectKeys(now), ...pages.slice(-HOME_MOSAIC_EFFECTS).map((e) => e.key)])
 }
 
 /** Os efeitos da vitrine: os da estação primeiro, depois os mais novos do catálogo, alternando quem pede pessoa e quem não. */
 export function homeMosaicEffects(now: number = Date.now(), limit: number = HOME_MOSAIC_EFFECTS): ClipEffect[] { // KINEO-MWK-MOSAICO-3110 — limit: a página Made with Kineo mostra TODOS
-  const pages = publicEffectPages()
-  const seasonal = seasonalEffectKeys(now).map((k) => pages.find((e) => e.key === k) ?? null)
-  const newest = pages.slice(-Math.max(0, Math.min(limit, pages.length))).reverse()
+  const pages = efeitosDaVitrine() // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const dia = diaDaVitrine(now) // KINEO-CLIPES-NOS-2-LUGARES-0411 — a estação segue abrindo; dentro de cada grupo a ordem muda 1 vez por dia
+  const seasonal = embaralhaDoDia(seasonalEffectKeys(now).map((k) => pages.find((e) => e.key === k) ?? null), dia, 'efeitos-estacao') // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const newest = embaralhaDoDia(pages.slice(-Math.max(0, Math.min(limit, pages.length))).reverse(), dia, 'efeitos') // KINEO-CLIPES-NOS-2-LUGARES-0411
   const pool = [...seasonal.filter((e): e is ClipEffect => !!e), ...newest].filter((e, i, all) => all.findIndex((x) => x.key === e.key) === i)
   const people = pool.filter((e) => e.person)
   const others = pool.filter((e) => !e.person)
@@ -92,25 +98,34 @@ export function homeMosaicFilms() {
 
 /** Ordem da vitrine: um clipe ou filme grande a cada 5 blocos, efeitos e imagens preenchendo; o que sobra de imagem vai até o fim. */
 export function homeMosaicTiles(now: number = Date.now(), opts: { full?: boolean; styles?: readonly MosaicStyle[] } = {}): Tile[] { // KINEO-MWK-MOSAICO-3110 — full = página Made with Kineo (todos os efeitos + estilos de anúncio)
-  const big: Tile[] = []
-  const clips = HOME_NEW_CLIPS.map((clip): Tile => ({ kind: 'clip', clip }))
-  const films = homeMosaicFilms().map((f): Tile => ({ kind: 'film', title: f.title, badge: f.badge, video: f.previewUrl ?? f.videoUrl, poster: f.posterUrl, focus: MOSAIC_FILM_FOCUS[assetOf(f.previewUrl ?? f.videoUrl)] ?? f.focalPoint }))
+  const dia = diaDaVitrine(now) // KINEO-CLIPES-NOS-2-LUGARES-0411 — fundador 05/11 "embaralhar": cada grupo muda de ordem 1 vez por dia; a cadência de cartões grandes e pequenos é a de sempre
+  const novos = clipesNovosDoDia(dia) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const big0: Tile[] = [] // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const clips = embaralhaDoDia(HOME_NEW_CLIPS.filter((c) => !FORA_DE_ESTACAO.clipes.includes(c.id)), dia, 'clipes').map((clip): Tile => ({ kind: 'clip', clip })) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const films = embaralhaDoDia(homeMosaicFilms(), dia, 'filmes').map((f): Tile => ({ kind: 'film', title: f.title, badge: f.badge, video: f.previewUrl ?? f.videoUrl, poster: f.posterUrl, focus: MOSAIC_FILM_FOCUS[assetOf(f.previewUrl ?? f.videoUrl)] ?? f.focalPoint })) // KINEO-CLIPES-NOS-2-LUGARES-0411
   while (clips.length || films.length) {
-    const c = clips.shift(); if (c) big.push(c)
-    const f = films.shift(); if (f) big.push(f)
+    const c = clips.shift(); if (c) big0.push(c)
+    const f = films.shift(); if (f) big0.push(f)
   }
+  const big = intercala(big0, novos.grandes.map((clip): Tile => ({ kind: 'novo', clip, grande: true }))) // KINEO-CLIPES-NOS-2-LUGARES-0411
   const fx = homeMosaicEffects(now, opts.full ? Number.MAX_SAFE_INTEGER : HOME_MOSAIC_EFFECTS).map((effect): Tile => ({ kind: 'effect', effect }))
-  const st = (opts.styles ?? []).map((style): Tile => ({ kind: 'style', style }))
-  const effects: Tile[] = [] // KINEO-MWK-MOSAICO-3110 — efeitos e estilos se alternam (2 efeitos, 1 estilo) para a grade não virar blocos
-  while (fx.length || st.length) { for (let i = 0; i < 2; i++) { const e = fx.shift(); if (e) effects.push(e) } const s = st.shift(); if (s) effects.push(s) }
-  const images = [...HOME_GALLERY_IMAGES.map((i) => ({ ...i, dir: HOME_GALLERY_DIR })), ...HOME_MOSAIC_EXTRA_IMAGES.map((i) => ({ ...i, dir: HOME_MOSAIC_DIR }))].map((img): Tile => ({ kind: 'image', img }))
+  const st = embaralhaDoDia(opts.styles ?? [], dia, 'estilos').map((style): Tile => ({ kind: 'style', style })) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const effects0: Tile[] = [] // KINEO-MWK-MOSAICO-3110 — efeitos e estilos se alternam (2 efeitos, 1 estilo) para a grade não virar blocos
+  while (fx.length || st.length) { for (let i = 0; i < 2; i++) { const e = fx.shift(); if (e) effects0.push(e) } const s = st.shift(); if (s) effects0.push(s) }
+  const effects = intercala(effects0, novos.pequenos.map((clip): Tile => ({ kind: 'novo', clip, grande: false }))) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const imagensDaVitrine = [...HOME_GALLERY_IMAGES.map((i) => ({ ...i, dir: HOME_GALLERY_DIR })), ...HOME_MOSAIC_EXTRA_IMAGES.map((i) => ({ ...i, dir: HOME_MOSAIC_DIR }))].filter((i) => !FORA_DE_ESTACAO.imagens.includes(i.file)) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const images = [...imagensDaVitrine.filter((i) => HOME_GALLERY_BIG.has(i.file)), ...semLargoNoFim(embaralhaDoDia(imagensDaVitrine.filter((i) => !HOME_GALLERY_BIG.has(i.file)), dia, 'imagens'), (i) => i.w > i.h, 8)].map((img): Tile => ({ kind: 'image', img })) // KINEO-CLIPES-NOS-2-LUGARES-0411 — a imagem grande segue na 1ª fileira: ela segura o desenho da 1ª tela e o número de vídeos que nascem ali
   const out: Tile[] = []
   while (big.length || effects.length || images.length) {
     const b = big.shift(); if (b) out.push(b)
     for (let i = 0; i < 2; i++) { const e = effects.shift(); if (e) out.push(e) }
     for (let i = 0; i < (big.length ? 2 : images.length); i++) { const m = images.shift(); if (m) out.push(m) }
   }
-  return out
+  const eGrande = (t: Tile) => t.kind === 'clip' || t.kind === 'film' || (t.kind === 'novo' && t.grande) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const ePequeno = (t: Tile) => t.kind === 'effect' || t.kind === 'style' || (t.kind === 'novo' && !t.grande) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const mesmoTamanho = (a: Tile, b: Tile) => (eGrande(a) && eGrande(b)) || (ePequeno(a) && ePequeno(b)) // KINEO-CLIPES-NOS-2-LUGARES-0411
+  const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2) // KINEO-CLIPES-NOS-2-LUGARES-0411 — misturado, nunca 3 clipes novos em bloco
+  return afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa, (a, b) => mesmoTamanho(a, b) && b.kind !== 'novo') // KINEO-CLIPES-NOS-2-LUGARES-0411 — a mesma pessoa nunca colada nela mesma
 }
 
 const CSS = `
@@ -174,6 +189,21 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </div>
               ) : card
             }
+            if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
+              const c = t.clip
+              const motor = CLIP_ENGINES[c.engine].label
+              return (
+                <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${motor}`}>
+                  <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
+                    <WallMedia src={clipeNovoVideo(c)} />
+                  </div>
+                  <span className="kmz-shade" aria-hidden="true" />
+                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {motor}</i><b><UiLabel>{c.title}</UiLabel></b></span>
+                </Link>
+              )
+            }
             if (t.kind === 'film') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_film" aria-label={`${t.title} — narrated film`}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
@@ -220,6 +250,6 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
 export function homeMosaicCounts(now: number = Date.now()) {
   const tiles = homeMosaicTiles(now)
   const count = (k: Tile['kind']) => tiles.filter((t) => t.kind === k).length
-  return { clips: count('clip'), films: count('film'), effects: count('effect'), images: count('image') }
+  return { clips: count('clip'), novos: count('novo'), films: count('film'), effects: count('effect'), images: count('image') } // KINEO-CLIPES-NOS-2-LUGARES-0411
 }
 

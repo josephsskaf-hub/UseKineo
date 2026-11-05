@@ -80,7 +80,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
         <section className="tr-hero" aria-labelledby="mwk-title">
           <p className="tr-eyebrow"><UiLabel>Real renders from the Kineo team</UiLabel></p>
           <h1 id="mwk-title">{MADE_WITH_KINEO_LABEL}</h1>
-          <p className="tr-lead"><UiLabel>Clips, effects, images and narrated films, newest first. Tap one to make yours in the same style.</UiLabel></p>
+          <p className="tr-lead"><UiLabel>Clips, effects, images and narrated films. Tap one to make yours in the same style.</UiLabel></p>{/* KINEO-CLIPES-NOS-2-LUGARES-0411 — a grade agora muda de ordem todo dia: "o mais novo primeiro" deixou de ser verdade */}
         </section>
         {/* KINEO-MWK-MOSAICO-3110 — uma grade só, misturada, o mais novo em cima (o mosaico da home em modo completo). */}
         <div className="klp" style={{ paddingTop: 6 }}><HomeMosaic signedIn={signedIn} full styles={adStyles} /></div>
