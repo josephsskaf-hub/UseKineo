@@ -14,7 +14,7 @@ import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { GRANT_COUNTRY_CLAUSE, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer' // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — fora da lista de países a conta nasce com 0 crédito (lib/freeFilmPolicy.ts): o aviso do visitante leva a cláusula, como as outras frases públicas do grant
 import { trackEvent } from '@/lib/analytics'
 import { isCreditsReadFailure, READ_FAILED_EVENT, READ_FAILED_LABEL, READ_FAILED_HINT } from '@/lib/creditsReadFailure'
 import {
@@ -762,7 +762,7 @@ export default function Sidebar({
         {!isLoggedIn ? (
           <div className="px-3 pt-3 pb-3 flex-shrink-0">
             <div style={{ borderRadius: 14, padding: '14px 14px', background: 'rgba(41,151,255,0.05)', border: '1px solid rgba(41,151,255,0.18)' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}><KineoBolt /> <FreeTierCopy legacy="3 free Fast previews daily" on={`Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
+              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}><KineoBolt /> <FreeTierCopy legacy="3 free Fast previews daily" on={`Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits${GRANT_COUNTRY_CLAUSE}`} /></p>
               <p style={{ fontSize: '0.72rem', color: 'var(--muted)', lineHeight: 1.5, marginBottom: 10 }}>Sign up and start creating in under a minute.</p>
               <button
                 onClick={() => setShowAuthModal(true)}

@@ -88,7 +88,7 @@ for (const lang of ['en', 'pt', 'es']) for (const id of C.BF_TEMPLATE_IDS) {
   assert.equal(ui.state[0].frase, C.bfTemplate(lang, id).frase)
   assert.equal(ui.state[0].language, lang); assert.equal(ui.state[0].formato, 'product'); assert.equal(ui.state[0].oferta, '')
   assert.ok(ui.nodes().find(n => n.props['data-kineo'] === 'bf-template-loaded'))
-  const confirm = () => ui.nodes().find(n => n.type === 'button' && String(n.props.children).includes('Confirm choices'))
+  const confirm = () => ui.nodes().find(n => n.type === 'button' && String(n.props.children).includes('Prepare four')) // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — o botão único
   assert.equal(confirm().props.disabled, true, 'placeholder cannot be submitted')
   confirm().props.onClick(); for (let n = 0; n < 10; n++) await Promise.resolve()
   assert.equal(ui.requests.length, 0, 'even direct handler invocation cannot submit a placeholder')

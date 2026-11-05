@@ -90,7 +90,7 @@ export interface AdsNota9Copy {
 
 const EN: AdsNota9Copy = {
   titleUgc: 'AI UGC Ads',
-  subUgc: 'Pick an AI person, add your product, and we make a 15-second video of them holding it and talking about it.',
+  subUgc: 'Pick an AI person, add your product, and we make a 15-second video of them holding it, with a voiceover.', // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — para o cliente é narração por cima (AdsV2Escolha força voice_mode 'narrated'); a pessoa não fala
   titleProduct: 'AI Product Ads',
   subProduct: 'Add your product photo or link. We make a 15-second ad with your real product.',
   who: 'Pick who presents your product',
@@ -118,7 +118,7 @@ const EN: AdsNota9Copy = {
   advanced: 'Advanced',
   advancedHint: 'brand kit, scene, offer, variations, level, voice, script',
   moreWays: 'More ways to make ads:',
-  holds: 'holds your product and talks about it',
+  holds: 'holds your product, with a voiceover', // KINEO-ADS-PRODUTO-PRIMEIRO-0411
   eyebrowUgc: 'Your presenter',
   eyebrowProduct: 'Real product close-up',
   productDesc: 'Only your real photos, with camera moves. Your product is never redrawn by AI.',
@@ -133,7 +133,7 @@ const EN: AdsNota9Copy = {
 
 const PT: AdsNota9Copy = {
   titleUgc: 'Anúncios UGC com IA',
-  subUgc: 'Escolha uma pessoa de IA, envie o seu produto e fazemos um vídeo de 15 segundos dela segurando e falando dele.',
+  subUgc: 'Escolha uma pessoa de IA, envie o seu produto e fazemos um vídeo de 15 segundos dela segurando o produto, com narração.', // KINEO-ADS-PRODUTO-PRIMEIRO-0411
   titleProduct: 'Anúncios de produto com IA',
   subProduct: 'Envie a foto ou o link do produto. Fazemos um anúncio de 15 segundos com o seu produto de verdade.',
   who: 'Escolha quem apresenta o seu produto',
@@ -161,7 +161,7 @@ const PT: AdsNota9Copy = {
   advanced: 'Avançado',
   advancedHint: 'kit da marca, cena, oferta, variações, nível, voz, roteiro',
   moreWays: 'Outros jeitos de fazer anúncios:',
-  holds: 'segura o seu produto e fala dele',
+  holds: 'segura o seu produto, com narração', // KINEO-ADS-PRODUTO-PRIMEIRO-0411
   eyebrowUgc: 'Seu apresentador',
   eyebrowProduct: 'Close do produto real',
   productDesc: 'Só as suas fotos reais, com movimento de câmera. A IA nunca redesenha o seu produto.',
@@ -176,7 +176,7 @@ const PT: AdsNota9Copy = {
 
 const ES: AdsNota9Copy = {
   titleUgc: 'Anuncios UGC con IA',
-  subUgc: 'Elige una persona de IA, sube tu producto y hacemos un video de 15 segundos de ella sosteniéndolo y hablando de él.',
+  subUgc: 'Elige una persona de IA, sube tu producto y hacemos un video de 15 segundos de ella sosteniéndolo, con voz en off.', // KINEO-ADS-PRODUTO-PRIMEIRO-0411
   titleProduct: 'Anuncios de producto con IA',
   subProduct: 'Sube la foto o el enlace de tu producto. Hacemos un anuncio de 15 segundos con tu producto real.',
   who: 'Elige quién presenta tu producto',
@@ -204,7 +204,7 @@ const ES: AdsNota9Copy = {
   advanced: 'Avanzado',
   advancedHint: 'kit de marca, escena, oferta, variaciones, nivel, voz, guion',
   moreWays: 'Otras formas de hacer anuncios:',
-  holds: 'sostiene tu producto y habla de él',
+  holds: 'sostiene tu producto, con voz en off', // KINEO-ADS-PRODUTO-PRIMEIRO-0411
   eyebrowUgc: 'Tu presentador',
   eyebrowProduct: 'Primer plano del producto real',
   productDesc: 'Solo tus fotos reales, con movimientos de cámara. La IA nunca redibuja tu producto.',

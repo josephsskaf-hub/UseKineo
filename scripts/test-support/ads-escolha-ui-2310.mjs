@@ -41,7 +41,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const pure = createOfflineLoader({ source: (file, text) => source(rawCurrent ? text : semAdsEscolhaPublico2410(text, file), file) }) // KINEO-IDIOMAS-FORMATOS-2410 — current:true retains every current language/format source.
   const componentCode = compile(read(COMPONENT), COMPONENT)
   const catalog = pure(CATALOG) // KINEO-APRESENTADORES-2410 — current catalog has a reviewed JSON dependency; execute its real imports.
-  const tiers = {}; new Function('exports', compile(read('lib/ads/v2Tiers.ts'), 'lib/ads/v2Tiers.ts'))(tiers)
+  const tiers = pure('lib/ads/v2Tiers.ts') // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — v2Tiers agora importa a política do Kling 4; com new Function este suporte morria antes de renderizar
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
@@ -54,7 +54,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       ...React,
       useState(initial) {
         const index = stateIndex++
-        if (!(index in states)) states[index] = index === 0 ? structuredClone(form) : initial
+        if (!(index in states)) states[index] = index === 0 && form ? structuredClone(form) : initial // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — form: null = o estado inicial real da tela
         return [states[index], value => { const next = typeof value === 'function' ? value(states[index]) : value; if (next !== states[index]) { states[index] = next; changed = true } }]
       },
       useRef(value) { const index = refIndex++; return refs[index] ?? (refs[index] = { current: value }) },
@@ -66,13 +66,16 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
+      : id === '@/components/Kling4PaidNotice' ? { __esModule: true, default: () => null, useKling4PaidAvailability: () => null } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — offline = motor pago desligado, como o guardião do Black Friday
+      : id === '@/lib/analytics' ? { trackEvent: async () => true }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
           : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id === '@/components/OneTimeItemOffer' ? id + '.tsx' : id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
           : id === '@/lib/ads/bfCampaign' || id === '@/lib/textLanguage' || id.includes('escolhaShots') || id.includes('checkoutPricing') ? pure(id) // KINEO-BF-CAMPAIGN-2810 — execute the pure template contract in the current editor.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
-              : require(id)
+              : id.startsWith('@/') ? pure(id) // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — os módulos puros que a tela importou depois deste suporte
+                : require(id)
     const transport = async (url, options = {}) => {
       requests.push({ url, body: options.body ? JSON.parse(options.body) : null })
       const response = responses.shift()
@@ -99,22 +102,21 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       button.props.onClick(); await settle()
     }
     async function poll() { const callback = [...timers.values()].at(-1); assert.ok(callback, 'UI poll must be scheduled'); callback(); await settle() }
-    return { states, responses, requests, storage, storageKey, timers, render, click, poll, nodes: () => walk(tree) }
+    return { states, responses, requests, storage, storageKey, timers, render, click, poll, settle, nodes: () => walk(tree) } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — + settle: o plano e as fotos agora são um clique, a segunda chamada parte do efeito
   }
 
   if (scenario) return scenario({ client, read, check, nodeText, walk, compile }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — new raw UI proof reuses only the offline hook boundary.
   const ui = client(); ui.render()
   check(ui.requests.length === 0, 'UI does not automatically plan or render')
-  ui.responses.push([201, { order_id: ID, stage: 'planned', plan: { script: { narration: 'Narração final.' } } }])
-  await ui.click('Confirmar escolhas')
+  // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — o botão único: plano e, em seguida, fotos. As mesmas provas de antes, sobre as duas chamadas.
+  ui.responses.push([201, { order_id: ID, stage: 'planned', plan: { script: { narration: 'Narração final.' } } }], [202, { order_id: ID, stage: 'stills', stills: STILLS.slice(0, 1), charged: false }])
+  await ui.click('Preparar quatro'); await ui.settle()
   check(ui.requests[0].body.presenter_id === 'amara' && ui.requests[0].body.scenario_id === 'footwear_beach' && ui.requests[0].body.category === 'footwear', 'UI sends the exact chosen person, scene and category')
   check(ui.requests[0].body.rota === 'kling3' && ui.requests[0].body.voice_mode === 'narrated', 'UI normalizes narrated and Kling defaults')
   check(ui.requests[0].body.beneficios[0] === 'Leve.', 'UI preserves typed benefits')
-  check(ui.states[1] === 'planned' && ui.states[5] === 'Narração final.', 'UI accepts plan201 and shows actual narration')
+  check(ui.requests[0].body.stage === 'plan' && ui.states[5] === 'Narração final.', 'UI accepts plan201 and shows actual narration')
   check(ui.nodes().filter(node => node.type === 'input' && node.props.name === 'ace-person').every(node => node.props.disabled), 'UI locks the chosen person after planning')
-  ui.responses.push([202, { order_id: ID, stage: 'stills', stills: STILLS.slice(0, 1), charged: false }])
-  await ui.click('Preparar quatro')
-  check(ui.states[1] === 'stills' && ui.requests.at(-1).body.stage === 'stills', 'UI starts stills only and accepts pending202')
+  check(ui.states[1] === 'stills' && ui.requests.length === 2 && ui.requests.at(-1).body.stage === 'stills' && ui.requests.at(-1).body.order_id === ID, 'UI starts stills only and accepts pending202')
   ui.responses.push([200, { order_id: ID, stage: 'choose', stills: STILLS, narration_used: 'A mesma fala.', quality_notes: [{ message: 'Joelho: confira.' }] }])
   await ui.poll()
   check(ui.states[1] === 'choose' && ui.states[3].length === 4, 'UI polling exposes all four stills for choice')
@@ -138,12 +140,12 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     denied.responses.push([status, { error: 'forbidden' }]); await denied.poll()
     check(denied.states[12] === true && denied.states[2] === '' && denied.storage.size === 0 && denied.timers.size === 0, `UI clears a pending order, storage and polls after auth${status}`)
   }
-  const mismatch = client(); mismatch.render(); mismatch.responses.push([400, { error: 'escolha_scenario_category_mismatch' }]); await mismatch.click('Confirmar escolhas')
+  const mismatch = client(); mismatch.render(); mismatch.responses.push([400, { error: 'escolha_scenario_category_mismatch' }]); await mismatch.click('Preparar quatro')
   check(mismatch.states[9].includes('outra categoria'), 'UI explains the category mismatch')
-  const talking = client({ form: { ...FORM, voice_mode: 'talking' } }); talking.render(); talking.responses.push([201, { order_id: ID, stage: 'planned' }]); await talking.click('Confirmar escolhas')
+  const talking = client({ form: { ...FORM, voice_mode: 'talking' } }); talking.render(); talking.responses.push([201, { order_id: ID, stage: 'planned' }], [202, { order_id: ID, stage: 'stills' }]); await talking.click('Preparar quatro')
   check(talking.requests[0].body.rota === 'veo31', 'UI defaults explicit talking to Veo without changing the voice mode')
   const unsupported = client({ form: { ...FORM, voice_mode: 'talking', rota: 'kling3' } }); unsupported.render()
-  check(unsupported.nodes().find(node => node.type === 'button' && nodeText(node).includes('Confirmar escolhas')).props.disabled, 'UI clearly blocks unsupported Kling native speech language')
+  check(unsupported.nodes().find(node => node.type === 'button' && nodeText(node).includes('Preparar quatro')).props.disabled, 'UI clearly blocks unsupported Kling native speech language')
 
   const oldId = '00000000-0000-4000-8000-000000000099'
   const existing = client({ saved, query: `?order=${oldId}` }); existing.render()

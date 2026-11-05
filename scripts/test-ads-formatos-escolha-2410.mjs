@@ -72,7 +72,7 @@ async function uiProof(){
   const component=load(UI).default;const render=()=>{at=ref=0;return component({lang:'pt',ownerKey:'offline',resume:false})};let tree=render()
   assert.ok(walk(tree).some(n=>n.type==='option'&&n.props.value===formato),'UI exposes selected new format')
   const button=walk(tree).find(n=>n.type==='button'&&n.props.className==='primary');assert.equal(button.props.disabled,false);button.props.onClick();for(let k=0;k<20;k++)await Promise.resolve()
-  assert.equal(requests.length,1);assert.equal(requests[0].formato,formato);assert.equal(requests[0].stage,'plan','UI only plans before explicit photo choice')
+  assert.equal(requests.length,1);assert.equal(requests[0].formato,formato);assert.equal(requests[0].stage,'plan','the first call is the plan; the video still waits for the explicit photo choice')
  }
 }
 const result=await proof();await uiProof();await localePostProof()
