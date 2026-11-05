@@ -220,14 +220,15 @@ export function PlanValueCard(props: PlanValueCardProps) {
           <li className="pv-line">
             <span className="pv-sym" aria-hidden="true">=</span>
             <span>
-              <span className="pv-n">{lines.images.count}</span> {lines.images.label} {plural(lines.images.count, 'image', 'images')}
+              {/* KINEO-CARTAO-SEM-MOTOR-0411 — fundador 04/11: "pode tirar os nomes dos motores dos cards". Os nomes ficam em "See everything included". */}
+              <span className="pv-n">{lines.images.count}</span> {plural(lines.images.count, 'image', 'images')}
             </span>
           </li>
           {topClip ? (
             <li className="pv-line">
               <span className="pv-sym" aria-hidden="true">≈</span>
               <span>
-                <span className="pv-n">{topClip.count}</span> {topClip.label} {plural(topClip.count, 'clip', 'clips')} <span className="pv-dim">· {topClip.seconds} s</span>
+                <span className="pv-n">{topClip.count}</span> {plural(topClip.count, 'clip', 'clips')} <span className="pv-dim">· {topClip.seconds} s</span>
               </span>
             </li>
           ) : null}
@@ -235,7 +236,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
             <li className="pv-line">
               <span className="pv-sym" aria-hidden="true">≈</span>
               <span>
-                <span className="pv-n">{lines.film.count}</span> narrated {plural(lines.film.count, 'film', 'films')} <span className="pv-dim">· {lines.film.seconds} s, {lines.film.label}</span>
+                <span className="pv-n">{lines.film.count}</span> narrated {plural(lines.film.count, 'film', 'films')} <span className="pv-dim">· {lines.film.seconds} s</span>
               </span>
             </li>
           ) : null}

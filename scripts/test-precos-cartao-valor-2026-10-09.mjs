@@ -117,9 +117,9 @@ function problems(replacements = {}) {
     const card = valueLib.planValueCardLines(v)
     const html = strip(renderToStaticMarkup(React.createElement(stage.PlanValueCard, props('basic', 'Creator', true))))
     if (!html.includes(`${v.credits}</span> credits a month`)) p.push('cartão: linha de créditos por mês')
-    if (!html.includes(`${v.images.count}</span> Nano Banana Pro images`)) p.push('cartão: linha das imagens Nano Banana Pro')
+    if (!html.includes(`${v.images.count}</span> images`)) p.push('cartão: linha das imagens, sem o nome do motor (KINEO-CARTAO-SEM-MOTOR-0411)')
     const top = card.clips[0]
-    if (!top || !html.includes(`${top.count}</span> ${top.label} clips`)) p.push('cartão: linha do clipe do topo')
+    if (!top || !html.includes(`${top.count}</span> clips`)) p.push('cartão: linha do clipe do topo, sem o nome do motor')
     if (card.film && !html.includes(`${card.film.count}</span> narrated films`)) p.push('cartão: linha do filme de 60 s')
     for (const c of v.clips) {
       const f = v.films.find((x) => x.engine === c.engine)
@@ -136,7 +136,7 @@ function problems(replacements = {}) {
     // o MESMO cartão com o Starter: um número digitado no componente acertaria um plano e erraria o outro
     const s = values.starter
     const htmlS = strip(renderToStaticMarkup(React.createElement(stage.PlanValueCard, props('starter', 'Starter', false))))
-    if (!htmlS.includes(`${s.credits}</span> credits a month`) || !htmlS.includes(`${s.images.count}</span> Nano Banana Pro images`)) p.push('cartão do Starter: créditos e imagens do próprio plano')
+    if (!htmlS.includes(`${s.credits}</span> credits a month`) || !htmlS.includes(`${s.images.count}</span> images`)) p.push('cartão do Starter: créditos e imagens do próprio plano')
     if (htmlS.includes('Most popular')) p.push('cartão do Starter com selo de mais popular')
     // o clique de verdade: no cartão não selecionado o botão só seleciona; no selecionado, compra
     const achaBotao = (el) => {
