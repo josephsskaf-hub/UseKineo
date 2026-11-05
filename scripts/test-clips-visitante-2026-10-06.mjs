@@ -75,7 +75,7 @@ async function run({ mutate = null, cutoff = null, rollback = false } = {}) {
   return guest.body
 }
 function checkPrices(source) {
-  const fx = source.slice(source.indexOf('{effects.map'), source.indexOf('</section>', source.indexOf('{effects.map')))
+  const fx = source.slice(source.indexOf('{efeitosDaVitrine.map'), source.indexOf('</section>', source.indexOf('{efeitosDaVitrine.map'))) // reancorado KINEO-CLIPS-TELA-0511: a grade de efeitos lê a lista sem Halloween; a regra de preço é a mesma
   const engines = source.slice(source.indexOf('{engines.map'), source.indexOf('</div>}', source.indexOf('{engines.map')))
   assert.ok(fx.includes('{fx.engine_label}'))
   assert.ok(!/\b(?:credits|seconds)\b/.test(fx), 'Effect cards only show the engine badge')

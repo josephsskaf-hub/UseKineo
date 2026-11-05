@@ -10,6 +10,17 @@ const ROOT = path.resolve(import.meta.dirname, '..', '..')
 // KINEO-ROSTO-NO-CLIPE-2810 (interruptor desligado, 28/10): o commit "botão do rosto só interno" mexe SÓ em arquivos que nasceram
 // neste ramo (lib/clips/faceRemix.ts e scripts/test-rosto-no-clipe-2810.mjs) — nada que exista em 24ebecdce —, então não tem camada.
 export const CAMADAS = {
+  // KINEO-CLIPS-TELA-0511 — a camada MAIS NOVA (05/11, fundador: "em Clips, a galeria fica abaixo da caixa"): só a ordem da tela do /clips, motor e
+  // ajustes recolhidos, Halloween fora da vitrine. Base = a main de então (03b266b75), tip = árvore de trabalho até o commit.
+  'clips-tela-0511': {
+    fn: 'semClipsTela0511',
+    marca: 'KINEO-CLIPS-TELA-0511',
+    o_que: 'a tela do /clips com a caixa primeiro, a grade embaixo, motor recolhido e sem Halloween na vitrine',
+    base: '03b266b75',
+    tip: null,
+    arquivos: ['app/(dashboard)/clips/ClipsClient.tsx'],
+    novos: ['lib/clips/clipsTela0511.ts', 'scripts/test-clips-tela-0511.mjs', 'scripts/test-support/desfaz-clips-tela-0511.mjs'],
+  },
   // KINEO-PAGINAS-IA-0111 — a camada MAIS NOVA (01/11, [TRAVA 8.2 — vai do fundador 01/11 "vai tudo, avulso 2,90"]): 20 páginas novas
   // nas famílias que o ChatGPT/Bing já citam — 8 nichos em /free-ai-shorts, 4 casos de uso + 6 alternativas no catálogo /for e 2 artigos
   // de dinheiro do YouTube com fonte oficial —, sitemap, llms.txt e atribuição. Base = a main de então (85a82bbe9), tip = árvore de

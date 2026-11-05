@@ -3,6 +3,7 @@
 //   semRostoCards2810(fs.readFileSync(p, 'utf8'), p)
 // Entrega nova neste ramo = uma camada nova no topo de CAMADAS (gerada por generate-rosto-cards-2810-undo.mjs).
 import path from 'node:path'
+import { semClipsTela0511 } from './desfaz-clips-tela-0511.mjs' // KINEO-CLIPS-TELA-0511 — a mais nova (05/11): a ordem da tela do /clips mudou de propósito; sai primeiro
 import { semAnoInventado0211 } from './desfaz-ano-inventado-0211.mjs' // KINEO-ANO-INVENTADO-0211 — a mais nova (02/11, o escritor nunca inventa o ano) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: sai primeiro
 import { semFilmeGratisComeca0211 } from './desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — a mais nova (02/11, o clique do filme grátis começa o filme) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: sai primeiro
 import { semPaginasIa0111, ARQUIVOS as PAGINAS_IA_0111_ARQUIVOS } from './desfaz-paginas-ia-0111.mjs' // KINEO-PAGINAS-IA-0111 — a mais nova (01/11, 20 páginas que o ChatGPT/Bing citam) [TRAVA 8.2 — vai do fundador 01/11 "vai tudo, avulso 2,90"]: sai primeiro
@@ -27,7 +28,7 @@ import { semRostoAjuste2810, ARQUIVOS as ROSTO_AJUSTE_ARQUIVOS } from './desfaz-
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 /** Da mais nova para a mais velha. */
-const CAMADAS = [semAnoInventado0211, semFilmeGratisComeca0211, semPaginasIa0111, semPublicarGanhar3110, semDancaPublica3110, semAvulsoUnico3110, semRemixPaginas3110, semEp2Painel3110, semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
+const CAMADAS = [semClipsTela0511, semAnoInventado0211, semFilmeGratisComeca0211, semPaginasIa0111, semPublicarGanhar3110, semDancaPublica3110, semAvulsoUnico3110, semRemixPaginas3110, semEp2Painel3110, semDecisoesPreco3110, semDancaSextou3110, semRecusaBotao3110, semValorNoCheckout3110, semEstreia3110, semAbracoBeijo3110, semRostoQuadroChave2810, semFilaQuedaFal2810, semRostoAjuste2810, semMenuUniforme2810, semGaleriaCheia2810, semCardsRosto2810, semRostoNoClipe2810] // KINEO-ROSTO-QUADRO-CHAVE-2810 — reaplicada em 30/10 sobre 796bb74d8: a mais nova, sai primeiro
 /** Todos os arquivos que as entregas deste ramo modificaram (para inventários de guardiões antigos). */
 export const ARQUIVOS_ROSTO_CARDS_2810 = [...new Set([...PAGINAS_IA_0111_ARQUIVOS, ...PUBLICAR_GANHAR_ARQUIVOS, ...AVULSO_UNICO_ARQUIVOS, ...REMIX_PAGINAS_ARQUIVOS, ...RECUSA_BOTAO_ARQUIVOS, ...ABRACO_BEIJO_ARQUIVOS, ...ROSTO_QUADRO_CHAVE_ARQUIVOS, ...FILA_QUEDA_FAL_ARQUIVOS, ...ROSTO_AJUSTE_ARQUIVOS, ...MENU_UNIFORME_ARQUIVOS, ...GALERIA_CHEIA_ARQUIVOS, ...CARDS_ROSTO_ARQUIVOS, ...ROSTO_NO_CLIPE_ARQUIVOS, ...EP2_PAINEL_ARQUIVOS, ...DECISOES_PRECO_ARQUIVOS, ...DANCA_SEXTOU_ARQUIVOS, ...DANCA_PUBLICA_ARQUIVOS])] // KINEO-ROSTO-QUADRO-CHAVE-2810
 

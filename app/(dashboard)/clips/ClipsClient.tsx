@@ -35,6 +35,7 @@ import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KIN
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera vira a estreia
 import { useUiCopy } from '@/components/InterfaceLanguage' // KINEO-ESTREIA-3110 — textos da estreia (props de texto) na língua da tela
+import { CLIPS_TELA_CSS, clipsTelaMaisOpcoes, efeitosDaVitrineDoClipe } from '@/lib/clips/clipsTela0511' // KINEO-CLIPS-TELA-0511 — a caixa primeiro, a grade embaixo, sem Halloween
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
 // Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
@@ -243,6 +244,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [lockedEngines, setLockedEngines] = useState<LockedEngine[]>([]) // KINEO-S25-CLIPES-2026-10-06
   const [effects, setEffects] = useState<EffectCard[]>([])
   const [effectKey, setEffectKey] = useState<string | null>(null)
+  const [maisOpcoes, setMaisOpcoes] = useState(false) // KINEO-CLIPS-TELA-0511 — motor e ajustes recolhidos; só muda no onToggle do <details>, nunca em efeito
   const [faceRemixes, setFaceRemixes] = useState<FaceRemixCard[]>([]) // KINEO-ROSTO-NO-CLIPE-2810
   const [remixId, setRemixId] = useState<string | null>(null) // KINEO-ROSTO-NO-CLIPE-2810
   const [remixConsent, setRemixConsent] = useState(false) // KINEO-ROSTO-NO-CLIPE-2810 — a foto é da pessoa ou de alguém que concordou (o servidor exige)
@@ -416,18 +418,21 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
 
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
+  // KINEO-CLIPS-TELA-0511 — duração que o motor não faz deixa o botão apagado: as opções abrem para a explicação aparecer. Derivado, sem setState.
+  const opcoesAbertas = maisOpcoes || (!!engine && !engine.seconds.includes(seconds))
+  const efeitosDaVitrine = useMemo(() => efeitosDaVitrineDoClipe(effects), [effects]) // KINEO-CLIPS-TELA-0511 — só a vitrine; `effects` segue inteiro para ?effect= e "Meus clipes"
 
   // KINEO-S25-CLIPES-2026-10-06 — o denominador do selo: o card trancado ESTEVE na tela (1× por carga e por motor). Mesmo
   // evento do card do filme do 2.5, com surface:'clips'; o clique (CLIP_PAID_EVENTS.clicked) sem isto seria número solto.
   const lockedSeenRef = useRef(new Set<string>())
   useEffect(() => {
-    if (loading || effect) return
+    if (loading || effect || !opcoesAbertas) return // KINEO-CLIPS-TELA-0511 — o card trancado agora mora nas opções recolhidas: impressão só quando ele aparece
     for (const e of lockedEngines) {
       if (lockedSeenRef.current.has(e.key)) continue
       lockedSeenRef.current.add(e.key)
       void trackClosedEvent(CLIP_PAID_EVENTS.shown, { surface: 'clips', engine: e.key, balance })
     }
-  }, [lockedEngines, loading, effect]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lockedEngines, loading, effect, opcoesAbertas]) // eslint-disable-line react-hooks/exhaustive-deps
   const withPhoto = !!photoUrl
   const allSeconds = useMemo(() => Array.from(new Set(engines.flatMap((e) => e.seconds))).sort((a, b) => a - b), [engines])
   const aspectChoices = engine ? (withPhoto ? engine.photoAspects : engine.textAspects) : []
@@ -647,7 +652,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const premiereReady = premiereClip?.status === 'done' && !!premiereClip.video_url
   usePremiereBeacon(premiereReady, 'clip')
   const premiereTitle = premiere?.title ? ui(premiere.title) : premiereClip?.prompt ? premiereClip.prompt.slice(0, 90) : ui('Your clip')
-  const premiereNextFx = premiereClip ? trendRowEffects(effects, 0).find((fx) => fx.key !== premiereClip.effect && !fx.pair) ?? null : null
+  const premiereNextFx = premiereClip ? trendRowEffects(efeitosDaVitrine, 0).find((fx) => fx.key !== premiereClip.effect && !fx.pair) ?? null : null
   useEffect(() => {
     if (!premiere?.id) return
     window.requestAnimationFrame(() => premiereRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
@@ -848,122 +853,12 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         @container clips-studio (max-width:700px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.clips-workspace .creation-input{padding:16px}}
         @media(max-width:900px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}}
       `}</style>
+      <style dangerouslySetInnerHTML={{ __html: CLIPS_TELA_CSS }} />{/* KINEO-CLIPS-TELA-0511 — depois das regras de sempre, para valer por cima */}
 
       <h1>{t('title')}</h1>
       <p className="sub">{t('sub')}</p>
 
-      {/* KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana": clipes REAIS feitos com a mesma ideia e o mesmo motor (selo honesto). */}
-      {!remix && CLIP_TRENDS_PUBLIC && engines.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
-        <section aria-labelledby="clip-trends-title" className="trend-sec">
-          <div className="lab" id="clip-trends-title"><UiLabel>🔥 Trending this week</UiLabel></div>
-          <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}><UiLabel>The AI videos blowing up on TikTok and Reels right now. Tap one and Kineo fills in the idea for you.</UiLabel></p>
-          <div className="fx-grid" role="group" aria-labelledby="clip-trends-title">
-            {CLIP_TRENDS.map((tr) => {
-              const target = trendTarget(tr, engines)
-              if (!target) return null
-              return (
-                <button key={tr.key} type="button" className="fx-card trend-card" data-clip-action="select_trend" data-clip-trend={tr.key} onClick={() => applyTrend(tr)}>
-                  <span className="fx-media">
-                    <video src={tr.preview.video} poster={tr.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
-                  </span>
-                  <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
-                  <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
-                  <span className="fx-foot">
-                    <span className="tag">{target.label}</span>
-                    <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
-                  </span>
-                </button>
-              )
-            })}
-            {/* KINEO-VITRINE-ESTACAO-3110 — fundador 30/10: "lotar o Trending this week com os de Natal" — os efeitos da estação
-                (Halloween → Día de Muertos → Natal, lib/clips/clipSeason.ts) entram depois das ideias; o clique escolhe o efeito. */}
-            {trendRowEffects(effects, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (
-              <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
-                <span className="fx-media">
-                  <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
-                </span>
-                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
-                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
-                <span className="fx-foot">
-                  <span className="tag">{fx.engine_label}</span>
-                  <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!remix && (effects.length > 0 || houseRemixes.length > 0) && ( // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + modelos da casa
-        <section aria-labelledby="clip-effects-title">
-          <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
-          <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
-          <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
-            {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
-              <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-foot"><span className="tag">{rx.engine_label}</span><span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-              </button>
-            ))}
-            {effects.map((fx) => (
-              <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
-                <span className="fx-media">
-                  {fx.preview
-                    ? <video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
-                    : <span className="fx-soon">{t('previewSoon')}</span>}
-                </span>
-                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
-                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
-                <span className="fx-foot">
-                  <span className="tag">{fx.engine_label}</span>
-                </span>
-                {fx.preview && <span className="fx-note">{fx.preview.note}</span>}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!effect && !remix && <div className="lab"><span className="n">1</span>{t('engine')}</div>}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-      {!effect && !remix && <div className="clip-engines" role="group" aria-label={t('engine')}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-        {/* KINEO-FAROL-VITRINE-2026-10-06 — card com vitrine (lib/clips/clipEngineShowcase.ts, hoje só o 2.5): o clipe REAL do
-            motor cobre o card por baixo do texto, com o selo "Feito com <motor> · N s". Os outros cards seguem iguais. */}
-        {engines.map((e) => {
-          const sc = clipEngineShowcase(e.key)
-          return (
-            <button key={e.key} type="button" className={`clip-engine${sc ? ' has-showcase' : ''}`} aria-pressed={e.key === engineKey} onClick={() => chooseEngine(e)}>
-              {sc && <EngineShowcaseMedia sc={sc} />}
-              <span className="nm">{e.label}</span>
-              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
-              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
-              {!e.text && <span className="tag">{t('photoOnly')}</span>}
-              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
-            </button>
-          )
-        })}
-        {/* KINEO-S25-CLIPES-2026-10-06 — card trancado: o motor REAL (selo honesto) + "NEW · paid plans"; o clique leva aos
-            planos e nunca escolhe o motor (o servidor recusaria com a mesma régua, antes de qualquer débito). Sem preço.
-            KINEO-FAROL-VITRINE-2026-10-06 — com vitrine, o farol do 2.5 cobre o card (o clique continua levando aos planos). */}
-        {lockedEngines.map((e) => {
-          const sc = clipEngineShowcase(e.key)
-          return (
-            <a key={`locked-${e.key}`} className={`clip-engine locked${sc ? ' has-showcase' : ''}`} href={e.upgradeHref} data-clip-locked={e.key}
-              onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
-              {sc && <EngineShowcaseMedia sc={sc} />}
-              <span className="nm">{e.label}</span>
-              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
-              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
-              <span className="tag paid">{t('paidBadge')}</span>
-              <span className="pr">{t('paidHint')}</span>
-              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
-            </a>
-          )
-        })}
-      </div>}
-
-      <div className="grid creation-grid">
+      <div className={`grid creation-grid${!effect && !remix ? ' clip-livre' : ''}`}>{/* KINEO-CLIPS-TELA-0511 */}
         {remix ? ( // KINEO-ROSTO-NO-CLIPE-2810
           <>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
             <div className="card creation-input" id="clip-remix-panel" data-face-remix={remix.id}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
@@ -986,7 +881,6 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <div className="rail creation-settings">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="cost" id="clip-remix-review" tabIndex={-1}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
                 <div className="sum"><UiLabel>{remix.title}</UiLabel> · {t('madeWith', { engine: remix.engine_label })} · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-                {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
                 <button type="button" disabled={busy || uploading || (!!photoUrl && !remixConsent)} className={`go ${busy || uploading || (!!photoUrl && !remixConsent) ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-face-remix={remix.id}
                   onClick={() => (photoUrl ? void generateRemix() : fileRef.current?.click())}>{/* KINEO-ROSTO-NO-CLIPE-2810 — o preço mora SÓ neste botão */}
@@ -1030,7 +924,6 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <div className="rail creation-settings">
               <div className="cost" id="clip-effect-review" tabIndex={-1}>
                 <div className="sum"><UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
-                {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-clip-effect={effect.key}
                   onClick={() => (photoUrl ? void generateEffect() : effect.pair ? pairRefs[pairFiles[0] ? 1 : 0].current?.click() : fileRef.current?.click())}> {/* KINEO-ABRACO-BEIJO-3110 */}
@@ -1041,7 +934,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           </>
         ) : (<>
         <div className="card creation-input">
-          <div className="lab"><span className="n">2</span>{t('yourClip')}</div>
+          <div className="lab">{t('yourClip')}</div>{/* KINEO-CLIPS-TELA-0511 — um passo só: sem número */}
           <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
           {photoRow}
@@ -1079,8 +972,50 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         </div>
 
         <div className="rail creation-settings">
+          {/* KINEO-CLIPS-TELA-0511 — "gerar sem escolher motor": abre com o padrão pronto e um botão; quem quer escolher abre aqui. Sem preço. */}
+          <details className="clip-more" data-kineo="clips-mais-opcoes" open={opcoesAbertas} onToggle={(e) => setMaisOpcoes(e.currentTarget.open)}>
+            <summary><strong>{clipsTelaMaisOpcoes(language)}</strong><span className="clip-more-list">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</span></summary>
+            <div className="clip-more-body">
+            <div className="clip-more-engines">{/* KINEO-CLIPS-TELA-0511 */}
+              <div className="lab">{t('engine')}</div>
+              {opcoesAbertas && <div className="clip-engines" role="group" aria-label={t('engine')}>{/* KINEO-CLIPS-TELA-0511 — só monta aberto: fechado, nenhum vídeo de motor carrega */}
+        {/* KINEO-FAROL-VITRINE-2026-10-06 — card com vitrine (lib/clips/clipEngineShowcase.ts, hoje só o 2.5): o clipe REAL do
+            motor cobre o card por baixo do texto, com o selo "Feito com <motor> · N s". Os outros cards seguem iguais. */}
+        {engines.map((e) => {
+          const sc = clipEngineShowcase(e.key)
+          return (
+            <button key={e.key} type="button" className={`clip-engine${sc ? ' has-showcase' : ''}`} aria-pressed={e.key === engineKey} onClick={() => chooseEngine(e)}>
+              {sc && <EngineShowcaseMedia sc={sc} />}
+              <span className="nm">{e.label}</span>
+              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
+              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
+              {!e.text && <span className="tag">{t('photoOnly')}</span>}
+              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
+            </button>
+          )
+        })}
+        {/* KINEO-S25-CLIPES-2026-10-06 — card trancado: o motor REAL (selo honesto) + "NEW · paid plans"; o clique leva aos
+            planos e nunca escolhe o motor (o servidor recusaria com a mesma régua, antes de qualquer débito). Sem preço.
+            KINEO-FAROL-VITRINE-2026-10-06 — com vitrine, o farol do 2.5 cobre o card (o clique continua levando aos planos). */}
+        {lockedEngines.map((e) => {
+          const sc = clipEngineShowcase(e.key)
+          return (
+            <a key={`locked-${e.key}`} className={`clip-engine locked${sc ? ' has-showcase' : ''}`} href={e.upgradeHref} data-clip-locked={e.key}
+              onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
+              {sc && <EngineShowcaseMedia sc={sc} />}
+              <span className="nm">{e.label}</span>
+              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
+              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
+              <span className="tag paid">{t('paidBadge')}</span>
+              <span className="pr">{t('paidHint')}</span>
+              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
+            </a>
+          )
+        })}
+              </div>}
+            </div>
           <div className="card">
-            <div className="lab"><span className="n">3</span>{t('length')}</div>
+            <div className="lab">{t('length')}</div>
             <div className="row">
               {allSeconds.map((s) => (
                 <button key={s} type="button" className={`pill${seconds === s ? ' on' : ''}${engine && !engine.seconds.includes(s) ? ' off' : ''}`} onClick={() => { setSeconds(s); setError(null) }}>
@@ -1103,7 +1038,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           </div>
 
           <div className="card">
-            <div className="lab"><span className="n">4</span>{t('format')}</div>
+            <div className="lab">{t('format')}</div>
             {aspectChoices.length === 0
               ? <p className="clip-meta" style={{ marginTop: 0 }}>{t('samePhoto')}</p>
               : <div className="row">
@@ -1115,9 +1050,10 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 </div>}
           </div>
 
+            </div>
+          </details>
+
           <div className="cost" id="clip-generation-review" tabIndex={-1}>
-            <div className="sum">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</div>
-            {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
             {roteiroDeFilme && !busy ? (<>{/* KINEO-CLIPE-OU-FILME-3010 — o Filme narrado é o botão principal; o clipe, a opção pequena */}
               <a className="go ok" href={hrefDoFilmeComTexto(prompt)} data-clip-action="long_script_film_main" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}
                 onClick={() => { void trackClosedEvent(CLIPE_ROTEIRO_EVENTOS.film, { surface: 'main_button', chars: prompt.trim().length }) }}>{t('longScriptCta')} →</a>
@@ -1176,7 +1112,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                       <a className="pill on film-upsell" href={premiereClip.film_href} onClick={(event) => filmClick(event, premiereClip)}>{t('filmUpsell')} →</a>
                     )}
                   </div>
-                  {/* o aviso do "Post it" (legenda copiada etc.) aparece no cartão deste mesmo clipe, logo abaixo na grade */}
+                  {/* KINEO-CLIPS-TELA-0511 — o cartão de "Meus clipes" agora fica depois da grade: o aviso do "Post it" aparece aqui também */}
+                  {postNote?.id === premiereClip.id && <p className="clip-meta" role="status" style={{ marginTop: 6 }}>{ui(CLIP_POST_COPY[postNote.kind])}</p>}
                 </PremiereResult>
               ) : (
                 <PremiereStage
@@ -1195,6 +1132,86 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* KINEO-CLIPS-TELA-0511 — fundador 05/11: a grade de clipes prontos fica ABAIXO da caixa; clicar num cartão faz o mesmo de antes. */}
+      {/* KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana": clipes REAIS feitos com a mesma ideia e o mesmo motor (selo honesto). */}
+      {!remix && CLIP_TRENDS_PUBLIC && engines.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
+        <section aria-labelledby="clip-trends-title" className="trend-sec">
+          <div className="lab" id="clip-trends-title"><UiLabel>🔥 Trending this week</UiLabel></div>
+          <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}><UiLabel>The AI videos blowing up on TikTok and Reels right now. Tap one and Kineo fills in the idea for you.</UiLabel></p>
+          <div className="fx-grid" role="group" aria-labelledby="clip-trends-title">
+            {CLIP_TRENDS.map((tr) => {
+              const target = trendTarget(tr, engines)
+              if (!target) return null
+              return (
+                <button key={tr.key} type="button" className="fx-card trend-card" data-clip-action="select_trend" data-clip-trend={tr.key} onClick={() => applyTrend(tr)}>
+                  <span className="fx-media">
+                    <video src={tr.preview.video} poster={tr.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                  </span>
+                  <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
+                  <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
+                  <span className="fx-foot">
+                    <span className="tag">{target.label}</span>
+                    <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
+                  </span>
+                </button>
+              )
+            })}
+            {/* KINEO-VITRINE-ESTACAO-3110 — fundador 30/10: "lotar o Trending this week com os de Natal" — os efeitos da estação
+                (Halloween → Día de Muertos → Natal, lib/clips/clipSeason.ts) entram depois das ideias; o clique escolhe o efeito. */}
+            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (
+              <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
+                <span className="fx-media">
+                  <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                </span>
+                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
+                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
+                <span className="fx-foot">
+                  <span className="tag">{fx.engine_label}</span>
+                  <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!remix && (efeitosDaVitrine.length > 0 || houseRemixes.length > 0) && ( // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + modelos da casa
+        <section aria-labelledby="clip-effects-title">
+          <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
+          <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
+          <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
+            {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
+              <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-foot"><span className="tag">{rx.engine_label}</span><span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+              </button>
+            ))}
+            {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511 — fora de estação sai da grade; o link ?effect= segue abrindo o efeito
+              <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
+                <span className="fx-media">
+                  {fx.preview
+                    ? <video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                    : <span className="fx-soon">{t('previewSoon')}</span>}
+                </span>
+                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
+                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
+                <span className="fx-foot">
+                  <span className="tag">{fx.engine_label}</span>
+                </span>
+                {fx.preview && <span className="fx-note">{fx.preview.note}</span>}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* KINEO-CLIPS-TELA-0511 — "Meus clipes" segue depois da grade, como antes; o clipe desta visita estreia colado na caixa. */}
+      <div className="clip-meus">
           <div className="lab" style={{ marginTop: 18 }}>{t('myClips')}</div>
           {!loading && !loadFailed && clips.length === 0 && <p className="clip-meta">{t('empty')}</p>}
           <div className="clip-grid">
@@ -1227,7 +1244,6 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
               </div>
             ))}
           </div>
-        </div>
       </div>
     </div>
   )

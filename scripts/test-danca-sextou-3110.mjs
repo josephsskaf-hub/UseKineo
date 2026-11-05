@@ -152,7 +152,7 @@ function checa(over = {}) {
   // (F) KINEO-DANCA-PUBLICA-3110 — o cartão na grade de efeitos do /clips (onde a pessoa procura efeito); home intocada
   const ui = over[F.ui] ?? read(F.ui)
   if (!ui.includes('const houseRemixes = faceRemixes.filter((r) => r.house === true)')) e.push('/clips não separa os modelos da casa')
-  if (!/\{!remix && \(effects\.length > 0 \|\| houseRemixes\.length > 0\) && \(/.test(ui)) e.push('grade de efeitos some sem efeitos mesmo com modelo da casa')
+  if (!/\{!remix && \(efeitosDaVitrine\.length > 0 \|\| houseRemixes\.length > 0\) && \(/.test(ui)) e.push('grade de efeitos some sem efeitos mesmo com modelo da casa') // reancorado KINEO-CLIPS-TELA-0511: a grade agora lê os efeitos da vitrine (sem Halloween); a regra é a mesma
   const card = ui.match(/\{houseRemixes\.map\(\(rx\) => \([\s\S]*?\n {12}\)\)\}/)?.[0] ?? ''
   if (!card) e.push('/clips sem o cartão do modelo da casa na grade de efeitos')
   else {
@@ -191,7 +191,7 @@ const mutantes = [
   ['/clips lista todos os remixes', mut(F.ui, 'const houseRemixes = faceRemixes.filter((r) => r.house === true)', 'const houseRemixes = faceRemixes')], // KINEO-DANCA-PUBLICA-3110
   ['cartão com preço', mut(F.ui, '<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span>', '<span className="pr trend-go">{rx.credits} credits</span>')], // KINEO-DANCA-PUBLICA-3110
   ['cartão não abre o painel', mut(F.ui, '    setRemixId(id) // KINEO-DANCA-PUBLICA-3110\n', '')], // KINEO-DANCA-PUBLICA-3110
-  ['grade some sem efeitos', mut(F.ui, '{!remix && (effects.length > 0 || houseRemixes.length > 0) && (', '{!remix && effects.length > 0 && (')], // KINEO-DANCA-PUBLICA-3110
+  ['grade some sem efeitos', mut(F.ui, '{!remix && (efeitosDaVitrine.length > 0 || houseRemixes.length > 0) && (', '{!remix && efeitosDaVitrine.length > 0 && (')], // KINEO-DANCA-PUBLICA-3110 · reancorado KINEO-CLIPS-TELA-0511: efeitos da vitrine
   ['resolvedor dá o modelo da casa a qualquer um', mut(F.remix, 'faceRemixHouseFor(raw, ctx.house === true)', 'faceRemixHouseFor(raw, true)')],
   ['GET de conta comum com modelos da casa', mut(F.remix, 'isInternal: boolean = false): PublicFaceRemix[]', 'isInternal: boolean = true): PublicFaceRemix[]')],
   ['rota diz que todo mundo é da casa', mut(F.route, 'house: isInternalEmail(user.email), consent:', 'house: true, consent:')],
