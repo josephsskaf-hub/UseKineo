@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useReadyBeacon } from '@/components/video/useReadyBeacon'
 import s from './premiere.module.css'
+import EsperaPerguntas0511 from './EsperaPerguntas0511' // KINEO-PERGUNTAS-NA-ESPERA-0511
 
 export type PremiereSurface =
   | 'film' | 'clip' | 'image' | 'audio' | 'ads' | 'animate' | 'avatar' | 'cartoon' | 'spaces' | 'thumbnail' | 'podcast'
@@ -193,6 +194,7 @@ export function PremiereStage(props: {
         </div>
       ) : null}
       {props.children}
+      {surface === 'film' ? <EsperaPerguntas0511 /> : null}{/* KINEO-PERGUNTAS-NA-ESPERA-0511 — 1 clique, pulável, só na espera do filme */}
       {props.notify !== false && <div className={s.actions}><PremiereNotify surface={surface} /></div>}
       {pct != null && (
         <div className={s.bar} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
