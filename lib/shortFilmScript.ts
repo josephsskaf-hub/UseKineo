@@ -371,6 +371,23 @@ export function palavrasPorSecao(script: string): { label: string; words: number
   return parseBlocks(String(script ?? '')).blocks.map((b) => ({ label: labelOf(b), words: wordsOf(b.body) }))
 }
 
+/**
+ * KINEO-K4-FAIXA-TETO-0511B — a apara (só apaga e encurta) manteve a revelação? A última frase do PAYOFF novo vem das palavras do
+ * PAYOFF de antes, e a última frase de antes continua lá: pelo menos um terço das palavras de 4+ letras e todo número. "The result
+ * will truly surprise you" no lugar da resposta reprova. Na dúvida (língua sem espaços, PAYOFF ausente) reprova: fica a versão anterior.
+ */
+export function aparaGuardaARevelacao(antes: string, depois: string): boolean {
+  const payoff = (t: string) => parseBlocks(String(t ?? '')).blocks.find((b) => b.kind === 'PAYOFF')?.body ?? ''
+  const fortes = (t: string) => (semAcento(t).match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => w.length >= 4 || /\p{N}/u.test(w))
+  const pa = payoff(antes), pd = payoff(depois)
+  const ultimaAntes = fortes(sentencesOf(pa).pop() ?? ''), ultimaDepois = fortes(sentencesOf(pd).pop() ?? '')
+  if (!pd || ultimaDepois.length === 0) return false
+  const emAntes = new Set(fortes(pa)), emDepois = new Set(fortes(pd))
+  if (ultimaDepois.filter((w) => emAntes.has(w)).length / ultimaDepois.length < 0.6) return false
+  if (ultimaAntes.some((w) => /\p{N}/u.test(w) && !emDepois.has(w))) return false
+  return ultimaAntes.length === 0 || ultimaAntes.filter((w) => emDepois.has(w)).length / ultimaAntes.length >= 1 / 3
+}
+
 /** O reforço da nova tentativa do filme curto (a rota junta aos problemas medidos). */
 export function shortFilmRetryInstruction(maxWords: number, minWords: number, seconds: number): string {
   return `This is a ${seconds}-second film. Rewrite the FULL script with ONLY these 4 sections, each on its own line, in this order: ${SHORT_FILM_SECTIONS.join(', ')}. Do NOT write MICRO REWARD 3, ESCALATION or RHYTHM. Use at least ${minWords} and at most ${maxWords} spoken words in total — count them, and aim for about ${maxWords} (the [Pexels: ...] cues and the headers do not count). Every sentence must be complete. Do NOT add any follow/subscribe/like call to action. The film ends when the narration ends, so the PAYOFF must still deliver the concrete answer the HOOK promised, with no teasing. Respond with ONLY the script.`

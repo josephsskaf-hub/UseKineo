@@ -72,7 +72,7 @@ async function postar({ routeSrc = null, k4Src = null, body, gpt, plan = 'free',
           if (!ehEscritor(system)) return { choices: [{ message: { content: '{"hook_promises_answer":false,"ends_with_concrete_answer":true}' } }] } // o juiz do fim
           const n = chamadas.length + 1
           const ultimo = req.messages[req.messages.length - 1]?.content ?? ''
-          chamadas.push({ n, system, ultimo, timeout: opts?.timeout })
+          chamadas.push({ n, system, ultimo, assistente: req.messages[req.messages.length - 2]?.content ?? '', timeout: opts?.timeout })
           const content = gpt({ n, system, ultimo })
           if (content instanceof Error) throw content
           return { choices: [{ message: { content } }] }
@@ -92,6 +92,8 @@ async function postar({ routeSrc = null, k4Src = null, body, gpt, plan = 'free',
 }
 const pedido = (topic, language = 'en', engine = 'cinematic_ai', targetSeconds = 15) => ({ topic, language, targetSeconds, engine })
 const so = (mapa, ultimo) => (ctx) => mapa[ctx.n - 1] ?? ultimo
+const S4 = (h, m1, m2, p) => `HOOK: [Pexels: a] ${h}\n\nMICRO REWARD 1: [Pexels: b] ${m1}\n\nMICRO REWARD 2: [Pexels: c] ${m2}\n\nPAYOFF: [Pexels: d] ${p}`
+const secoes = (t) => (String(t ?? '').match(/^(?:HOOK|MICRO REWARD \d|PAYOFF)\b/gm) ?? []).length
 
 // ── A — ideia: o escritor passou do teto nas duas versões ───────────────────────────────────────
 console.log('A — o escritor acima do teto da faixa ganha UMA apara')
@@ -101,6 +103,8 @@ for (const [nome, ideia, lang, acima, apara, palavrasDepois] of [['7e3283df es',
   ok(r.script === apara && r.escrito?.short_film_words === palavrasDepois, `${nome}: sai a apara, ${r.escrito?.short_film_words} palavras (faixa ${r.escrito?.kling4_writer_band?.min}-${r.escrito?.kling4_writer_band?.max})`)
   ok(r.escrito?.kling4_trim?.adopted === true, `${nome}: rastro kling4_trim ${JSON.stringify(r.escrito?.kling4_trim)}`)
   ok(/it must lose \d+ words/.test(r.chamadas[2]?.ultimo ?? '') && /Word budget per section: HOOK/.test(r.chamadas[2]?.ultimo ?? '') && /PAYOFF: \d+ words now/.test(r.chamadas[2]?.ultimo ?? ''), `${nome}: o pedido leva o orçamento por seção`)
+  const soma = [...(r.chamadas[2]?.ultimo ?? '').matchAll(/at most (\d+)(?:;|\.)/g)].map((m) => Number(m[1])).reduce((a, n) => a + n, 0)
+  ok(soma === r.escrito?.kling4_writer_band?.min, `${nome}: o orçamento soma o piso da faixa (${soma}), a apara obediente não é recusada`)
   const base = await postar({ routeSrc: BASE_ROUTE, body: pedido(ideia, lang), gpt: so([acima, acima, apara]) })
   ok(base.chamadas.length === 2 && base.script === lf(acima).trim() && base.escrito?.short_film_cut === 'none', `${nome}, na base: ${base.chamadas.length} chamadas, sai acima do teto com corte "none" (o defeito)`)
 }
@@ -111,7 +115,10 @@ const semPayoff = ROTEIRO_EN_35.replace(/\n\nPAYOFF:.*$/s, '')
 const semBloco = ROTEIRO_EN_35.replace(/\n\nMICRO REWARD 2:[^\n]*/, '')
 const fraseCortada = APARA_EN_31.replace('turbulence caused a crash over the lake.', 'turbulence caused a crash over the')
 const abaixoDoPiso = 'HOOK: [Pexels: fog] A plane vanished.\n\nMICRO REWARD 1: [Pexels: docs] Flight 2501, 1950.\n\nMICRO REWARD 2: [Pexels: boats] No wreckage.\n\nPAYOFF: [Pexels: lake] Turbulence caused the crash.'
-for (const [nome, apara] of [['erro da chamada', new Error('timeout')], ['resposta vazia', ''], ['abaixo do piso', abaixoDoPiso], ['fim em pergunta', semRevelacao], ['sem PAYOFF', semPayoff], ['perdeu uma seção', semBloco], ['frase cortada', fraseCortada], ['não melhorou', ROTEIRO_EN_35], ['recusa do modelo', "I'm sorry, but I can't assist with that request."]]) {
+const revelacaoGenerica = ROTEIRO_EN_35.replace(/PAYOFF:.*$/s, 'PAYOFF: [Pexels: lake] The result will truly surprise you and everyone around you today.')
+const respostaApagada = ROTEIRO_EN_35.replace(/PAYOFF:.*$/s, 'PAYOFF: [Pexels: lake] The leading theory remains a mystery.')
+const secaoVazia = ROTEIRO_EN_35.replace(/(MICRO REWARD 2: \[Pexels: [^\]]*\]).*/, '$1')
+for (const [nome, apara] of [['revelação trocada por frase genérica', revelacaoGenerica], ['revelação apagada, só palavras que já estavam', respostaApagada], ['seção que sobra só com o cabeçalho', secaoVazia], ['erro da chamada', new Error('timeout')], ['resposta vazia', ''], ['abaixo do piso', abaixoDoPiso], ['fim em pergunta', semRevelacao], ['sem PAYOFF', semPayoff], ['perdeu uma seção', semBloco], ['frase cortada', fraseCortada], ['não melhorou', ROTEIRO_EN_35], ['recusa do modelo', "I'm sorry, but I can't assist with that request."]]) {
   const r = await postar({ body: pedido(IDEIA_EN), gpt: so([ROTEIRO_EN_35, ROTEIRO_EN_35, apara]) })
   ok(r.status === 200 && r.script === lf(ROTEIRO_EN_35).trim() && r.escrito?.kling4_trim?.adopted === false && r.chamadas.length === 3, `${nome}: fica a anterior (35 palavras), 200, adopted false`)
 }
@@ -123,6 +130,45 @@ for (const [nome, apara] of [['erro da chamada', new Error('timeout')], ['respos
 }
 
 // ── B — texto colado que o escritor reescreve ──────────────────────────────────────────────────
+console.log('A — a apara parte do roteiro INTEIRO, não da versão que o corte deixou sem bloco')
+{
+  const inteiro = S4('Your savings lose money every single year while you sleep soundly at night.', 'Inflation quietly eats three percent of your cash every single year now.', 'Index funds grew near ten percent.', 'Ten thousand dollars becomes sixty seven thousand in twenty years.') // 41: tirar a MICRO REWARD 2 fica em 35, acima do teto
+  const obedece = S4('Your savings lose money every single year while you sleep.', 'Inflation quietly eats three percent of your cash.', 'Index funds grew near ten percent.', 'Ten thousand dollars becomes sixty seven thousand.')
+  const r = await postar({ body: pedido('Why keeping cash in the bank makes you poorer'), gpt: so([inteiro, inteiro, obedece]) })
+  ok(r.chamadas[2]?.assistente === lf(inteiro).trim() && /MICRO REWARD 2: \d+ words now/.test(r.chamadas[2]?.ultimo ?? ''), 'o modelo recebe as 4 seções, e o orçamento conta as 4')
+  ok(r.script === obedece && r.escrito?.kling4_trim?.adopted === true && secoes(r.script) === 4, `apara com as 4 seções fica (${r.escrito?.short_film_words} palavras)`)
+  const sem = obedece.replace(/\n\nMICRO REWARD 2:[^\n]*/, '')
+  const r2 = await postar({ body: pedido('Why keeping cash in the bank makes you poorer'), gpt: so([inteiro, inteiro, sem]) })
+  ok(r2.script !== sem && r2.escrito?.kling4_trim?.adopted === false, 'apara sem a MICRO REWARD 2 é recusada, mesmo a versão anterior já estando cortada')
+  const pequena = S4('Your savings lose money every single year while you sleep soundly tonight.', 'Inflation quietly eats three percent of your cash every year.', 'Funds grew.', 'Ten thousand dollars becomes sixty seven thousand in twenty years.') // 34 palavras com seção de 2: o corte final a apagaria (32, na faixa)
+  const r3 = await postar({ body: pedido('Why keeping cash in the bank makes you poorer'), gpt: so([inteiro, inteiro, pequena]) })
+  ok(r3.script === pequena && secoes(r3.script) === 4 && r3.escrito?.kling4_trim?.adopted === true, 'apara adotada e ainda acima do teto: a trava final não apaga a seção dela')
+}
+
+console.log('B — colado que só caberia perdendo seção fica inteiro: nunca bloco perdido, e nunca bloco perdido E acima do teto')
+const CARIMBOS = 'Roteiro para seu Short:\n\n0-3s: O Banco Central guardou um segredo por 30 anos.\n3-8s: Em 1994, o Brasil trocou de moeda em uma única noite.\n8-13s: Ninguém sabia se o Real iria sobreviver à inflação de 5000%.\n13-18s: Mas o plano funcionou e a inflação caiu para um dígito.\n18-25s: O segredo? A URV, uma moeda que só existia no papel.\n\n(Música tensa, cortes rápidos, texto grande na tela)'
+const RESPOSTA_CARIMBOS = 'HOOK (0-2s): [Pexels: banco central fachada] O Banco Central guardou um segredo por 30 anos.\n\nMICRO REWARD 1: [Pexels: notas de dinheiro antigas] Em 1994, o Brasil trocou de moeda em uma única noite.\n\nMICRO REWARD 2: [Pexels: gráfico de inflação crescente] Ninguém sabia se o Real iria sobreviver à inflação de 5000%.\n\nPAYOFF: [Pexels: documento URV antigo] Mas o plano funcionou... A URV, uma moeda que só existia no papel.'
+const DIALOGO_46 = 'Ana: Pedro, where did you hide the old map?\nPedro: Under the loose stone by the river.\nAna: And the gold your grandfather buried?\nPedro: There was never any gold, Ana.\nAna: Then why did he draw a map?\nPedro: So we would walk there together.'
+const RESPOSTA_DIALOGO = 'HOOK (0-2s): [Pexels: riverbank stones] Ana asks, "Pedro, where did you hide the old map?"\n\nMICRO REWARD 1: [Pexels: loose stone riverbank] Pedro replies, "Under the loose stone by the river."\n\nMICRO REWARD 2: [Pexels: ancient map closeup] Ana questions, "And the gold your grandfather buried?"\n\nPAYOFF: [Pexels: couple walking river] Pedro reveals, "There was no gold, Ana. He made the map... so we would walk there together."'
+for (const [nome, texto, lang, resposta] of [['pt com marcas de tempo', CARIMBOS, 'pt', RESPOSTA_CARIMBOS], ['diálogo en', DIALOGO_46, 'en', RESPOSTA_DIALOGO]]) {
+  const r = await postar({ body: pedido(texto, lang), gpt: () => resposta })
+  const base = await postar({ routeSrc: BASE_ROUTE, body: pedido(texto, lang), gpt: () => resposta })
+  ok(r.status === 200 && r.script === base.script && secoes(r.script) === 4, `${nome}: mesmo roteiro da base, 4 seções (${r.escrito?.short_film_words} palavras)`)
+  ok((r.escrito?.short_film_blocks_dropped ?? []).length === 0 && r.escrito?.kling4_trim?.adopted === false, `${nome}: sem bloco cortado, apara que não melhora não entra`)
+  ok(r.chamadas[2]?.assistente === lf(resposta).trim(), `${nome}: a apara parte do texto com todas as seções`)
+}
+{
+  const longa = S4('O Banco Central guardou um segredo por trinta anos inteiros.', 'Em 1994, o Brasil trocou de moeda em uma única noite.', 'Ninguém sabia se o Real iria sobreviver à inflação de 5000%.', 'Mas o plano funcionou e a inflação caiu para um dígito. O segredo? A URV, uma moeda que só existia no papel.') // ~50: a régua normal apagaria a MICRO REWARD 2
+  const r = await postar({ body: pedido(CARIMBOS, 'pt'), gpt: () => longa })
+  ok(r.status === 200 && secoes(r.script) === 4 && (r.escrito?.short_film_blocks_dropped ?? []).length === 0 && /URV, uma moeda que só existia no papel\.$/.test(r.script ?? ''), `resposta longa do modelo real (${r.escrito?.short_film_words}): fica inteira até o teto duro da guarda, com o final`)
+  const aparada = S4('O Banco Central guardou um segredo.', 'Em 1994, o Brasil trocou de moeda.', 'Ninguém sabia se o Real sobreviveria.', 'O plano funcionou. A URV, uma moeda que só existia no papel.')
+  const r2 = await postar({ body: pedido(CARIMBOS, 'pt'), gpt: so([longa, longa, aparada]) })
+  ok(r2.script === aparada && r2.escrito?.kling4_trim?.adopted === true, `apara com as 4 seções e na faixa (${r2.escrito?.short_film_words}): fica`)
+  const enorme = S4(Array(20).fill('O Banco Central guardou um segredo enorme').join(' ') + '.', 'Em 1994, o Brasil trocou de moeda.', 'Ninguém sabia se o Real sobreviveria.', 'A URV, uma moeda que só existia no papel.')
+  const r3 = await postar({ body: pedido(CARIMBOS, 'pt'), gpt: () => enorme })
+  ok(r3.status === 200 && typeof r3.script === 'string', 'resposta acima do teto duro: 200, a guarda decide, sem 422 aqui')
+}
+
 console.log('B — colado longo entra na faixa; o texto da pessoa é a história')
 for (const [nome, texto, lang, roteiro, min, max] of [['ee22bac0 Onoda es', ONODA, 'es', ROTEIRO_ONODA_31, 31, 32], ['39ba7383 Kiwify pt', KIWIFY, 'pt', ROTEIRO_KIWIFY_30, 30, 31], ['10e648b1 Petrov en', PETROV, 'en', ROTEIRO_PETROV_31, 31, 32]]) {
   const r = await postar({ body: pedido(texto, lang), gpt: so([roteiro]) })
@@ -135,7 +181,7 @@ for (const [nome, texto, lang, roteiro, min, max] of [['ee22bac0 Onoda es', ONOD
 }
 {
   const r = await postar({ body: pedido(KIWIFY, 'pt'), gpt: so([ROTEIRO_KIWIFY_41]) })
-  ok(r.chamadas.length === 1 && r.escrito?.short_film_words <= 31 && r.escrito?.short_film_cut === 'sentences', `o colado real que o escritor devolveu com 41 (39ba7383): o corte por frases já cai na faixa (${r.escrito?.short_film_words}), sem nova chamada`)
+  ok(r.chamadas.length === 3 && r.script === ROTEIRO_KIWIFY_41 && secoes(r.script) === 4 && r.escrito?.short_film_cut === 'none', `o colado real que o escritor devolveu com 41 (39ba7383): o corte não apaga o bloco; nova tentativa e apara tentam, e sem elas ficam as 4 seções (${r.escrito?.short_film_words}), rumo à reserva`)
   ok(/PAYOFF/.test(r.script ?? '') && /Kiwify\.$/.test(lf(r.script ?? '').trim()), 'o final da pessoa (a Kiwify) segue no fim')
   const curto = 'HOOK: [Pexels: x] One man stopped World War 3.\n\nPAYOFF: [Pexels: y] He was punished.'
   const c = await postar({ body: pedido(PETROV), gpt: so([curto, ROTEIRO_PETROV_31]) })
@@ -181,6 +227,20 @@ await igualABase('Kling 4 pago ligado, colado longo: segue fora da faixa', { bod
 
 // ── M — mutantes: o guardião precisa ficar vermelho ────────────────────────────────────────────
 console.log('M — mutantes')
+const ROTA_ATUAL = lf(fs.readFileSync(ROUTE, 'utf8'))
+const mutanteRota = (de, para) => { if (ROTA_ATUAL.split(de).length !== 2) throw Error('mutante sem âncora: ' + de); return ROTA_ATUAL.replace(de, para) }
+{
+  const m = mutanteRota('if (coladoNaFaixaDoK4 && fim.cut !== \'none\' && (fim.droppedBlocks.length > 0 || fim.overCeiling)) {', 'if (false) {')
+  const r = await postar({ routeSrc: m, body: pedido(CARIMBOS, 'pt'), gpt: () => RESPOSTA_CARIMBOS })
+  ok(secoes(r.script) < 4, 'sem a volta à régua normal, o colado perde seção (os casos do pt e do diálogo pegam)')
+  const m2 = mutanteRota('const inteiro = inteiroDoK4.get(script) ?? script', 'const inteiro = script')
+  const inteiro = S4('Your savings lose money every single year while you sleep soundly at night.', 'Inflation quietly eats three percent of your cash every single year now.', 'Index funds grew near ten percent.', 'Ten thousand dollars becomes sixty seven thousand in twenty years.')
+  const r2 = await postar({ routeSrc: m2, body: pedido('Why keeping cash in the bank makes you poorer'), gpt: () => inteiro })
+  ok(!/MICRO REWARD 2/.test(r2.chamadas[2]?.assistente ?? ''), 'sem o texto inteiro, a apara recebe a versão sem o bloco (o caso do roteiro inteiro pega)')
+  const m3 = mutanteRota('&& aparaGuardaARevelacao(inteiro, fimDaApara.script) ', '')
+  const r3 = await postar({ routeSrc: m3, body: pedido(IDEIA_EN), gpt: so([ROTEIRO_EN_35, ROTEIRO_EN_35, revelacaoGenerica]) })
+  ok(r3.escrito?.kling4_trim?.adopted === true, 'sem a checagem da revelação, a frase genérica entraria (o caso da revelação pega)')
+}
 const K4_ATUAL = lf(fs.readFileSync(K4, 'utf8'))
 const mutante = (de, para) => { if (K4_ATUAL.split(de).length !== 2) throw Error('mutante sem âncora: ' + de); return K4_ATUAL.replace(de, para) }
 {

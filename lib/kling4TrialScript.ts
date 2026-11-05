@@ -274,11 +274,22 @@ export function instrucaoDoColadoNoKling4(faixa: FaixaK4DoEscritor): string {
   return `THE USER'S TEXT IS LONGER THAN THIS FILM (overrides the "within 10%" rule above): condense it to ${faixa.min}-${faixa.max} spoken words. Narrate only what is meant to be spoken: ignore titles, timings, editing notes, on-screen text and descriptions. Keep the user's language, facts, names and order of events, reuse their own words where you can, invent nothing, and end on the user's own ending.`
 }
 
+/** KINEO-K4-FAIXA-TETO-0511B — o orçamento soma exatamente o alvo (maiores restos): arredondar tudo para baixo somava menos que o piso, e a apara obediente era recusada. */
+export function orcamentoPorSecao(palavras: number[], alvo: number): number[] {
+  const total = Math.max(1, palavras.reduce((a, n) => a + n, 0))
+  const brutos = palavras.map((n) => (n * alvo) / total)
+  const limites = brutos.map((b) => Math.max(3, Math.floor(b)))
+  const porResto = brutos.map((b, i) => ({ i, resto: b - Math.floor(b) })).sort((a, z) => z.resto - a.resto).map((x) => x.i)
+  for (let falta = alvo - limites.reduce((a, n) => a + n, 0), k = 0; falta > 0 && limites.length > 0; falta--, k++) limites[porResto[k % porResto.length]] += 1
+  for (let sobra = limites.reduce((a, n) => a + n, 0) - alvo; sobra > 0; sobra--) { const maior = limites.indexOf(Math.max(...limites)); if (limites[maior] <= 3) break; limites[maior] -= 1 }
+  return limites
+}
+
 /** O pedido da apara: o roteiro acima do teto perde palavras, sem ganhar fato. Orçamento por seção: o modelo não acerta o total sozinho. */
 export function pedidoDeAparaDoKling4(script: string, palavras: number, faixa: FaixaK4DoEscritor): string {
   const secoes = palavrasPorSecao(script)
-  const total = secoes.reduce((a, s) => a + s.words, 0)
-  const orcamento = secoes.map((s) => `${s.label}: ${s.words} words now, at most ${Math.max(3, Math.floor((s.words * faixa.min) / Math.max(1, total)))}`).join('; ')
+  const limites = orcamentoPorSecao(secoes.map((s) => s.words), faixa.min)
+  const orcamento = secoes.map((s, i) => `${s.label}: ${s.words} words now, at most ${limites[i]}`).join('; ')
   return `This script has ${palavras} spoken words and this film holds at most ${faixa.max}: it must lose ${palavras - faixa.min} words. Word budget per section: ${orcamento}. Count each section word by word and stay inside its budget. Only delete or shorten: drop adjectives, adverbs, filler and repeated ideas, and shorten a clause when needed; do NOT add a fact, a name or a new sentence. Keep the same sections in the same order, the same [Pexels: ...] cues, and every sentence complete and grammatical. The last sentence of the PAYOFF must still state the same concrete answer. Do not use "..." or em-dashes. Respond with ONLY the script.`
 }
 

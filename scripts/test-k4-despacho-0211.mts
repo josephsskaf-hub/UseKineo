@@ -62,9 +62,7 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
 { let diffGratis = 'x'
   try { diffGratis = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'lib/kling4TrialAsyncStatus.ts', 'lib/kling4Trial.ts', 'lib/kling4TrialScript.ts'], { cwd: raiz, encoding: 'utf8' }).trim() } catch { /* sem git = falha */ }
   // KINEO-K4-FAIXA-TETO-0511 — a faixa do escritor (só acréscimos em lib/kling4TrialScript.ts) não mexe na medição nem no transporte: passa só pelo recibo exato
-  try { const f = 'lib/kling4TrialScript.ts'; if (deltaK4FaixaTeto0511Exato(fs.readFileSync(f, 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/?
-/).filter((x) => x.trim() && x.trim() !== f).join('
-') } catch { /* sem recibo = segue reprovando */ }
+  try { const f = 'lib/kling4TrialScript.ts'; if (deltaK4FaixaTeto0511Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
   ok(diffGratis === '', '2 caminho grátis (status, transporte, portão da voz do 4aba8a177) sem nenhuma mudança') }
 
 console.log('== 3. falha real e reserva já começada continuam como antes ==')
