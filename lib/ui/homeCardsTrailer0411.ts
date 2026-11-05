@@ -11,3 +11,6 @@ export const HOME_CARD_TRAILERS_0411: Partial<Record<HomeCycleCardId, HomeCardPl
   films: [trailer('home-card-trailer-film')],
   kids_cartoon: [trailer('home-card-trailer-cartoon')],
 }
+
+/** KINEO-HOME-CARD-MENOR-0411 — fundador 05/11: os 4 cards 10% mais baixos no computador, para a fileira de baixo não ficar cortada. Fora de lib/ui/homeKidsCard.ts, que é travado. */
+export const HOME_CARD_MENOR_CSS = `@media (min-width:761px){.k3c-grid[data-k3c-cols="4"] .k3c-card{aspect-ratio:5/6}}`

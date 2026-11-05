@@ -182,7 +182,7 @@ html{scroll-behavior:smooth}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
-.klp .nav-links{display:flex;gap:26px;font-size:15px;color:var(--muted);font-weight:550;align-items:center}
+.klp .nav-links{display:flex;gap:26px;font-size:15px;color:var(--txt2);font-weight:650;align-items:center}/* KINEO-MENU-FONTE-0411 — fundador 05/11: "as fontes dos menus principais um pouco mais fortes" */
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */

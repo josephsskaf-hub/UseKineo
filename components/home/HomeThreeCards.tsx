@@ -14,7 +14,7 @@ import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/Interface
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010
 import { homeCardBotao } from '@/lib/ui/homeCardBotoes0411' // KINEO-BOTOES-SEM-FREE-0411 — o nome do botão, sem "free"
-import { HOME_CARD_TRAILERS_0411 } from '@/lib/ui/homeCardsTrailer0411' // KINEO-CARDS-TRAILER-0411
+import { HOME_CARD_MENOR_CSS, HOME_CARD_TRAILERS_0411 } from '@/lib/ui/homeCardsTrailer0411' // KINEO-CARDS-TRAILER-0411
 import {
   // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros")
   HOME_CARD_COPY,
@@ -112,7 +112,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: HOME_CARDS_AJUSTE_CSS }} />{/* KINEO-BEBE-QUE-FALA-2010 — enquadramento dos cards de hoje (letreiro do vídeo nunca cortado na borda; UGC mais claro), sempre */}
-      {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
+      {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS + HOME_CARD_MENOR_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
       <style dangerouslySetInnerHTML={{ __html: HOME_CARD_CYCLE_CSS }} />{/* KINEO-CARDS-GIRO-2410 */}
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
