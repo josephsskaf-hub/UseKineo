@@ -5,9 +5,14 @@ let falhas = 0
 const checa = (n, c) => { console.log((c ? '  ok  ' : '  FALHA ') + n); if (!c) falhas++ }
 const V = createOfflineLoader()('lib/authVitrine.ts')
 const S = V.VITRINE_ENTRADA
-checa('1 vídeo e 3 fotos, nessa ordem', S.length === 4 && S[0].tipo === 'video' && S.slice(1).every((x) => x.tipo === 'foto'))
-checa('todo arquivo existe em public/', S.every((x) => fs.existsSync('public' + x.src)))
-checa('motores reais dos filmes aprovados em 16/09', S.map((x) => x.motor).join() === 'Seedance 1.5,Veo 3.1,Kling 3,Kling 2.5')
+checa('KINEO-LOGIN-4-VIDEOS-0411: 4 vídeos', S.length === 4 && S.every((x) => x.src.endsWith('.mp4') && x.ms >= 3000))
+checa('todo arquivo existe em public/', S.every((x) => fs.existsSync('public' + x.src) && fs.existsSync('public' + x.poster)))
+const vitrineTela = fs.readFileSync('components/auth/AuthVitrine.tsx', 'utf8')
+const semMotor = (dados, tela) => !/Seedance|Veo|Kling/i.test(dados) && !/s\.motor|slide\.titulo|engines/i.test(tela)
+const dadosVitrine = S.map((x) => x.nome + x.src).join()
+checa('sem nome de motor na vitrine', semMotor(dadosVitrine, vitrineTela))
+checa('mutante com motor de volta fica vermelho', !semMotor(dadosVitrine + 'Kling 3', vitrineTela))
+checa('sem clipe de fogo nem a foto do vulcão', !/vulcao|volcano|6b9b363c/.test(dadosVitrine))
 checa('o carrossel volta ao primeiro', V.proximoSlide(3, 4) === 0 && V.proximoSlide(0, 4) === 1)
 checa('barra: cheia antes, enchendo no atual, vazia depois', V.estadoDaBarra(0, 1) === 'cheia' && V.estadoDaBarra(1, 1) === 'enchendo' && V.estadoDaBarra(2, 1) === 'vazia')
 const P = createOfflineLoader()('lib/authProviders.ts')

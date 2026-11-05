@@ -1,6 +1,6 @@
 'use client'
 
-// KINEO-LOGIN-QUADRO-0411 — a vitrine do quadro de entrada: um vídeo e três fotos, com a barra de tempo em cima do nome do motor.
+// KINEO-LOGIN-QUADRO-0411 · KINEO-LOGIN-4-VIDEOS-0411 — a vitrine do quadro de entrada: 4 vídeos passando, com a barra de tempo e sem nome de motor.
 import { useEffect, useRef, useState } from 'react'
 import { VITRINE_ENTRADA as SLIDES, estadoDaBarra, proximoSlide } from '@/lib/authVitrine'
 
@@ -8,7 +8,7 @@ export default function AuthVitrine() {
   const [atual, setAtual] = useState(0)
   const [largo, setLargo] = useState(false)
   const [parado, setParado] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const videos = useRef<Array<HTMLVideoElement | null>>([])
 
   // Só carrega vídeo em tela larga: no celular a vitrine não aparece e não deve gastar dados.
   useEffect(() => {
@@ -27,40 +27,47 @@ export default function AuthVitrine() {
     return () => clearTimeout(t)
   }, [atual, largo, parado])
 
-  // O vídeo recomeça sempre do início ao voltar ao primeiro slide.
+  // Só o vídeo da vez toca, sempre do início; os outros ficam parados.
   useEffect(() => {
-    const v = videoRef.current
-    if (!v) return
-    if (SLIDES[atual].tipo === 'video' && !parado) {
-      v.currentTime = 0
-      void v.play().catch(() => {})
-    } else {
-      v.pause()
-    }
+    videos.current.forEach((v, i) => {
+      if (!v) return
+      if (i === atual && !parado) {
+        v.currentTime = 0
+        void v.play().catch(() => {})
+      } else {
+        v.pause()
+      }
+    })
   }, [atual, parado, largo])
 
   if (!largo) return null
-  const slide = SLIDES[atual]
+  const seguinte = proximoSlide(atual, SLIDES.length)
 
   return (
     <div className="relative overflow-hidden" style={{ minHeight: 600, height: '100%', borderRadius: 16, background: '#0a0a0c' }}>
       <style>{'@keyframes kineoAuthBarra{from{transform:scaleX(0)}to{transform:scaleX(1)}}'}</style>
       {SLIDES.map((s, i) => (
-        s.tipo === 'video'
-          ? <video key={s.src} ref={videoRef} src={s.src} muted playsInline preload="auto" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0 }} />
-          // eslint-disable-next-line @next/next/no-img-element
-          : <img key={s.src} src={s.src} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: i === atual ? 1 : 0 }} />
+        <video
+          key={s.src}
+          ref={(el) => { videos.current[i] = el }}
+          src={s.src}
+          poster={s.poster}
+          muted
+          playsInline
+          preload={i === atual || i === seguinte ? 'auto' : 'none'}
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: i === atual ? 1 : 0, transition: parado ? undefined : 'opacity .45s ease' }}
+        />
       ))}
-      <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(5,6,12,.92) 0%, rgba(5,6,12,.45) 32%, rgba(5,6,12,0) 58%)' }} />
+      <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(5,6,12,.7) 0%, rgba(5,6,12,.2) 14%, rgba(5,6,12,0) 26%)' }} />
       <div className="absolute left-0 right-0 bottom-0" style={{ padding: '0 16px 14px' }}>
-        <span className="inline-block text-[11px] font-bold" style={{ padding: '4px 10px', marginBottom: 10, borderRadius: 8, color: '#fff', background: 'rgba(5,6,12,.62)' }}>{slide.etiqueta}</span>
-        <p className="font-black" style={{ margin: 0, fontSize: '1.9rem', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#fff' }}>{slide.titulo}</p>
-        <p className="text-[13px]" style={{ margin: '8px 0 14px', lineHeight: 1.4, color: 'rgba(255,255,255,.72)' }}>{slide.texto}</p>
-        <div role="tablist" aria-label="Kineo engines" className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${SLIDES.length}, minmax(0, 1fr))` }}>
+        <span className="inline-block text-[11px] font-bold" style={{ padding: '4px 10px', marginBottom: 10, borderRadius: 8, color: '#fff', background: 'rgba(5,6,12,.62)' }}>Made in Kineo</span>
+        <div role="tablist" aria-label="Videos made in Kineo" className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${SLIDES.length}, minmax(0, 1fr))` }}>
           {SLIDES.map((s, i) => {
             const barra = estadoDaBarra(i, atual)
             return (
-              <button key={s.motor} type="button" role="tab" aria-selected={i === atual} onClick={() => setAtual(i)} className="text-left" style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', minWidth: 0 }}>
+              <button key={s.src} type="button" role="tab" aria-label={s.nome} aria-selected={i === atual} onClick={() => setAtual(i)} className="text-left" style={{ background: 'transparent', border: 'none', padding: '8px 0', cursor: 'pointer', minWidth: 0 }}>
                 <span className="block overflow-hidden" style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,.24)' }}>
                   <span
                     key={barra === 'enchendo' ? `${i}-${atual}` : i}
@@ -73,7 +80,6 @@ export default function AuthVitrine() {
                     }}
                   />
                 </span>
-                <span className="block truncate text-[11px]" style={{ marginTop: 6, fontWeight: i === atual ? 700 : 500, color: i === atual ? '#fff' : 'rgba(255,255,255,.55)' }}>{s.motor}</span>
               </button>
             )
           })}

@@ -1,53 +1,20 @@
 // KINEO-LOGIN-QUADRO-0411 — fundador 04/11: "eu quero que o meu login volte a ser assim, esse quadro no meio"; "um vídeo e três fotos"; "com o motor embaixo e a barra de tempo em cima".
 // A vitrine do quadro de entrada. Os quatro filmes são os que o fundador aprovou em 16/09 (lib/homeVideoCuration.ts, APPROVED_HOME_VIDEOS_SEP16); cada selo é o motor real do render.
+// KINEO-LOGIN-4-VIDEOS-0411 — fundador 04/11: "os 4 vídeos muda e nem precisa colocar o motor... só coloca 4 vídeos passando, 4 vídeos melhores. Faz uma curadoria."
+// Curadoria: aventura, mergulho, ficção e cartoon, para mostrar que cabe de tudo; só clipes limpos que já estão no site, sem fogo, sem legenda e sem marca.
 export type SlideDaVitrine = {
-  motor: string
-  tipo: 'video' | 'foto'
+  nome: string
   src: string
-  /** Quanto tempo o slide fica na tela; o vídeo de prévia tem 6 s. */
+  poster: string
+  /** Quanto tempo o slide fica na tela; os quatro clipes têm 5 s. */
   ms: number
-  titulo: string
-  texto: string
-  etiqueta: string
 }
 
 export const VITRINE_ENTRADA: readonly SlideDaVitrine[] = [
-  {
-    motor: 'Seedance 1.5',
-    tipo: 'video',
-    src: '/previews/curation-sep16/b5434412-62b9-48f5-9a10-c36e2e725c9f-h.mp4',
-    ms: 6000,
-    titulo: 'SEEDANCE 1.5',
-    texto: 'One idea becomes a narrated film, with script, voice, music and captions.',
-    etiqueta: 'Made in Kineo',
-  },
-  {
-    motor: 'Veo 3.1',
-    tipo: 'foto',
-    src: '/auth/veo-vulcao.webp',
-    ms: 5000,
-    titulo: 'VEO 3.1',
-    texto: 'Cinematic scenes with scale, from a single sentence.',
-    etiqueta: 'Made in Kineo',
-  },
-  {
-    motor: 'Kling 3',
-    tipo: 'foto',
-    src: '/auth/kling3-relojoeiro.webp',
-    ms: 5000,
-    titulo: 'KLING 3',
-    texto: 'Close-ups that hold a character across the story.',
-    etiqueta: 'Made in Kineo',
-  },
-  {
-    motor: 'Kling 2.5',
-    tipo: 'foto',
-    src: '/auth/kling25-trem.webp',
-    ms: 5000,
-    titulo: 'KLING 2.5',
-    texto: 'Tension and emotion in short, dramatic shots.',
-    etiqueta: 'Made in Kineo',
-  },
+  { nome: 'Surfer on a giant wave', src: '/previews/promo-clips-surf.mp4', poster: '/posters/promo-clips-surf.webp', ms: 5000 },
+  { nome: 'Diver at a lost shipwreck', src: '/previews/home-card-novo-film_shipwreck.mp4', poster: '/posters/home-card-novo-film_shipwreck.webp', ms: 5000 },
+  { nome: 'Astronaut at a door on Mars', src: '/previews/home-card-novo-film_mars_door.mp4', poster: '/posters/home-card-novo-film_mars_door.webp', ms: 5000 },
+  { nome: 'Cartoon fox among fireflies', src: '/previews/home-card-novo-fox.mp4', poster: '/posters/home-card-novo-fox.webp', ms: 5000 },
 ]
 
 const S16 = '/previews/curation-sep16/'
