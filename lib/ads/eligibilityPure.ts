@@ -172,6 +172,7 @@ const REFUSAL: Record<Lang3, Record<string, AdsRefusalCopy>> = {
     cena_photo_credits_required: { message: 'To prepare the photos, keep enough credits for one ad or use a plan. Credits are only used when the video is generated.', next: 'plans' },
     credits_unavailable: { message: 'We could not read your balance. Nothing was charged. Try again in a moment.', next: 'retry' },
     ads_sample_used: { message: 'This account already used its free sample. Generate the full version to continue.', next: 'plans' },
+    ads_sample_plan_wait: { message: 'Your free sample is still yours. Try again in a few minutes.', next: 'wait' }, // KINEO-FLUXO2-D-0411
     ads_sample_cap: { message: "Today's free samples are taken. Come back tomorrow, or make the full version now with a plan.", next: 'wait' },
     ads_sample_account_blocked: { message: 'The free sample needs a confirmed, personal email in a supported country. You can make the full version with a plan.', next: 'confirm_email' },
     ads_sample_account_required: { message: 'The free sample needs a confirmed, personal email in a supported country. You can make the full version with a plan.', next: 'confirm_email' },
@@ -215,6 +216,7 @@ const REFUSAL: Record<Lang3, Record<string, AdsRefusalCopy>> = {
     cena_photo_credits_required: { message: 'Para preparar as fotos, tenha créditos para um anúncio ou use um plano. Os créditos só são usados ao gerar o vídeo.', next: 'plans' },
     credits_unavailable: { message: 'Não conseguimos ler o seu saldo. Nada foi cobrado. Tente de novo em instantes.', next: 'retry' },
     ads_sample_used: { message: 'Esta conta já usou a amostra grátis. Gere a versão completa para continuar.', next: 'plans' },
+    ads_sample_plan_wait: { message: 'Sua amostra grátis continua guardada. Tente de novo em alguns minutos.', next: 'wait' }, // KINEO-FLUXO2-D-0411
     ads_sample_cap: { message: 'As amostras grátis de hoje acabaram. Volte amanhã ou faça a versão completa agora com um plano.', next: 'wait' },
     ads_sample_account_blocked: { message: 'A amostra grátis pede e-mail confirmado e pessoal, em país atendido. Você pode fazer a versão completa com um plano.', next: 'confirm_email' },
     ads_sample_account_required: { message: 'A amostra grátis pede e-mail confirmado e pessoal, em país atendido. Você pode fazer a versão completa com um plano.', next: 'confirm_email' },
@@ -258,6 +260,7 @@ const REFUSAL: Record<Lang3, Record<string, AdsRefusalCopy>> = {
     cena_photo_credits_required: { message: 'Para preparar las fotos, ten créditos para un anuncio o usa un plan. Los créditos solo se usan al generar el video.', next: 'plans' },
     credits_unavailable: { message: 'No pudimos leer tu saldo. No se cobró nada. Inténtalo en un momento.', next: 'retry' },
     ads_sample_used: { message: 'Esta cuenta ya usó su muestra gratis. Genera la versión completa para continuar.', next: 'plans' },
+    ads_sample_plan_wait: { message: 'Tu muestra gratis sigue guardada. Inténtalo de nuevo en unos minutos.', next: 'wait' }, // KINEO-FLUXO2-D-0411
     ads_sample_cap: { message: 'Las muestras gratis de hoy se agotaron. Vuelve mañana o haz la versión completa ahora con un plan.', next: 'wait' },
     ads_sample_account_blocked: { message: 'La muestra gratis requiere un correo confirmado y personal, en un país admitido. Puedes hacer la versión completa con un plan.', next: 'confirm_email' },
     ads_sample_account_required: { message: 'La muestra gratis requiere un correo confirmado y personal, en un país admitido. Puedes hacer la versión completa con un plan.', next: 'confirm_email' },

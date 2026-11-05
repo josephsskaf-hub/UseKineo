@@ -94,6 +94,47 @@ export async function amostraSemPlano(admin: SupabaseClient, actorId: string, no
   } catch { return null }
 }
 
+// KINEO-FLUXO2-D-0411 [fundador 04/11: "recomendações"] — a recusa do plano não pode virar "você já usou sua amostra". A reserva vem antes do planejamento; a
+// pessoa recusada (categoria, moderação, roteiro) ficava 5 min com a semente "em curso", a nova tentativa batia em ads_sample_used e a tela dizia uma coisa falsa.
+//   · soltarSementeDaAmostra: a recusa antes de qualquer gasto envelhece o lease da semente até a régua de cima (AMOSTRA_SEMENTE_PARADA_MS) e a retomada de sempre
+//     vale na hora. Sem migration: é a MESMA semente e a MESMA reserva. A linha de ads_escolha_samples não muda (o papel do servidor nem tem DELETE); 1 amostra por
+//     conta e o teto do dia (reserved_cents) seguem intactos, e foto só existe depois do plano gravado, quando a semente deixa de ser semente.
+//   · AMOSTRA_SOLTURAS_MAX: o custo da recusa é só o texto (classificador e roteirista). A contagem fica na semente: passou do teto, volta a esperar os 5 min de sempre.
+//   · esperaDaSementeMs: semente ainda em curso (duas abas, função que morreu, teto de solturas) responde quanto falta, em vez de "já usou".
+export const AMOSTRA_SOLTURAS_MAX = 5
+type PlanoDaSemente = { cena?: { plan?: { escolha?: { solturas?: unknown } & Record<string, unknown> } } & Record<string, unknown> } & Record<string, unknown>
+/** Recusa antes de gastar: libera a semente para a retomada imediata. Só quem ainda segura o lease; nunca derruba a resposta. Devolve se soltou. */
+export async function soltarSementeDaAmostra(admin: SupabaseClient, i: { orderId: string; ownerId: string; lease: string }): Promise<boolean> {
+  const lease = Date.parse(i.lease)
+  if (!UUID.test(i.orderId) || !UUID.test(i.ownerId) || !Number.isFinite(lease)) return false
+  try {
+    const r = await admin.from('ads_v2_orders').select('id, status, error, credits_charged, started_at, delivered_at, generation_id, plan, assembly_lease_at, updated_at, created_at').eq('id', i.orderId).eq('user_id', i.ownerId).eq('assembly_lease_at', i.lease).maybeSingle()
+    const order = (r.data as PedidoSemente | null) ?? null
+    if (r.error || !order || order.status !== 'planned' || !pedidoDeAmostraSemPlano(order, lease + AMOSTRA_SEMENTE_PARADA_MS)) return false
+    const plano = order.plan as PlanoDaSemente
+    const escolha = plano.cena?.plan?.escolha ?? {}
+    const solturas = Number(escolha.solturas ?? 0)
+    if (!Number.isFinite(solturas) || solturas >= AMOSTRA_SOLTURAS_MAX) return false
+    const novo = { ...plano, cena: { ...plano.cena, plan: { escolha: { ...escolha, solturas: solturas + 1 } } } }
+    const u = await admin.from('ads_v2_orders').update({ assembly_lease_at: new Date(lease - AMOSTRA_SEMENTE_PARADA_MS).toISOString(), plan: novo }).eq('id', i.orderId).eq('user_id', i.ownerId).eq('status', 'planned').eq('assembly_lease_at', i.lease).select('id').maybeSingle()
+    return !u.error && !!u.data
+  } catch { return false }
+}
+/** A semente desta pessoa ainda está dentro dos 5 min: quanto falta, em ms. null = não há semente em curso (e a reserva decide). Qualquer erro = null. */
+export async function esperaDaSementeMs(admin: SupabaseClient, actorId: string, nowMs = Date.now()): Promise<number | null> {
+  if (!UUID.test(actorId)) return null
+  try {
+    const r = await admin.from(TABLE).select('order_id, owner_id, delivered_at').eq('actor_id', actorId).maybeSingle()
+    const row = (r.data as { order_id?: unknown; owner_id?: unknown; delivered_at?: unknown } | null) ?? null
+    if (r.error || !row || row.delivered_at || typeof row.order_id !== 'string' || row.owner_id !== actorId) return null
+    const o = await admin.from('ads_v2_orders').select('id, status, error, credits_charged, started_at, delivered_at, generation_id, plan, assembly_lease_at, updated_at, created_at').eq('id', row.order_id).eq('user_id', actorId).maybeSingle()
+    const order = (o.data as PedidoSemente | null) ?? null
+    if (o.error || !order || !pedidoDeAmostraSemPlano(order, nowMs + AMOSTRA_SEMENTE_PARADA_MS)) return null
+    const falta = AMOSTRA_SEMENTE_PARADA_MS - (nowMs - Date.parse(String(order.assembly_lease_at ?? order.updated_at ?? order.created_at ?? '')))
+    return Number.isFinite(falta) && falta > 0 ? falta : null
+  } catch { return null }
+}
+
 /** Used forever includes failed/deleted orders; an unavailable ledger fails closed. */
 export async function escolhaSampleUsed(admin: SupabaseClient, actorId: string): Promise<boolean> {
   if (!UUID.test(actorId)) return true
