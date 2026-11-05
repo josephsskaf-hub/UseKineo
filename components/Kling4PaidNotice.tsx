@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { KLING4_PAID_COPY, kling4PromoVisible, rebaseKling4Lease, validKling4PaidAvailability, type Kling4PaidAvailability } from '@/lib/kling4PaidPresentation'
 import { trackEvent } from '@/lib/analytics' // KINEO-VENDER-3-2910
@@ -52,8 +52,11 @@ export default function Kling4PaidNotice({ surface, availability }: {
   // KINEO-VENDER-3-2910 — a promo foi ao ar em 29/10 sem nenhuma medição: zero eventos em 12 h. Uma impressão por
   // superfície e estado por montagem; o evento não carrega nada da pessoa além da superfície.
   const shownState = visible ? 'offer' : limited ? 'daily_cap' : null
+  // KINEO-FLUXO2-AVISO-REPETIDO-0411 — a leitura é um aluguel de ~15 s: a renovação passa por null e o estado voltava a 'offer', então a mesma tela contava uma impressão a cada 15 s (149 eventos em 15 sessões em /ads em 2 dias). Agora é uma por superfície e estado, como o comentário acima já prometia.
+  const medido = useRef<string | null>(null)
   useEffect(() => {
-    if (!shownState) return
+    if (!shownState || medido.current === `${surface}:${shownState}`) return
+    medido.current = `${surface}:${shownState}`
     void trackEvent('kling4_promo_notice_shown', { surface, state: shownState, reason: validKling4PaidAvailability(a) ? a.reason : null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surface, shownState])
