@@ -45,7 +45,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
-  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false } = {}) {
+  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false, onAskStartOver = undefined, availability = null } = {}) { // KINEO-FLUXO2-0411 — + onAskStartOver (A), + availability (B)
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
@@ -66,7 +66,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
-      : id === '@/components/Kling4PaidNotice' ? { __esModule: true, default: () => null, useKling4PaidAvailability: () => null } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — offline = motor pago desligado, como o guardião do Black Friday
+      : id === '@/components/Kling4PaidNotice' ? { __esModule: true, default: () => null, useKling4PaidAvailability: () => availability } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — offline = motor pago desligado, como o guardião do Black Friday
       : id === '@/lib/analytics' ? { trackEvent: async () => true }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
@@ -89,7 +89,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []
-        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {} })
+        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {}, onAskStartOver })
         for (const effect of pending) effect()
         if (!changed) return tree
       }
