@@ -108,18 +108,16 @@ check(
 )
 check(sidebar.includes('{showTopup && <CreditsTopupModal'), 'existing top-up modal remains mounted only after an eligible click')
 
+// KINEO-MENU-CONTA-0411 — o cartão de créditos do painel virou uma linha do menu compacto, e o top-up saiu de venda em
+// 04/11. O que este bloco protege continua o mesmo: o painel não promete recarga que não existe, e quem precisa de mais
+// crédito vai para /pricing. Só o caminho mudou: não há mais botão de compra nem o ramo "eligible" aqui.
 const account = read('components/AccountPanel.tsx')
-const creditsCardStart = account.indexOf('{/* CRÉDITOS')
-const creditsCardEnd = account.indexOf('{/* PLANO E RENOVAÇÃO', creditsCardStart)
-const creditsCard = account.slice(creditsCardStart, creditsCardEnd)
-check(creditsCardStart >= 0 && creditsCardEnd > creditsCardStart, 'real credits card is located')
-check(account.includes('canPurchaseCreditTopup(planKey)'), 'account panel uses the shared policy')
-check(creditsCard.includes('{topupEligible ? ('), 'credits card branches on actual top-up eligibility')
-check(creditsCard.includes('Buy more credits'), 'eligible account path keeps the existing top-up CTA')
-check(creditsCard.includes('href="/pricing"'), 'ineligible account path links to pricing')
-check(creditsCard.includes('data-topup-eligibility="ineligible"'), 'ineligible account CTA is testable in the DOM')
-check(creditsCard.includes('Choose a plan to keep creating.'), 'low-balance Starter copy no longer promises an unavailable top-up')
-check(!creditsCard.includes('!isPaid && ('), 'credits CTA no longer uses the paid-plan shortcut that misclassifies Starter')
+const accountRender = account.slice(account.indexOf('return portal('), account.indexOf('const MENU_CSS'))
+check(!account.includes('canPurchaseCreditTopup'), 'account panel has no top-up branch of its own')
+check(!account.includes('onBuyCredits') && !sidebar.includes('onBuyCredits'), 'account panel has no buy-credits callback')
+check(!/Buy more credits|one-time pack|Top up/i.test(accountRender), 'account panel does not offer an unavailable top-up')
+check(!/topup/i.test(accountRender), 'account panel links nowhere near a top-up SKU')
+check(accountRender.includes('href="/pricing"'), 'account path to more credits links to pricing')
 
 const route = read('app/api/stripe/checkout/route.ts')
 const topupStart = route.indexOf('async function buildTopupAndRedirect')

@@ -381,21 +381,9 @@ export default function Sidebar({
   const [planResolved, setPlanResolved] = useState(initialIsPro)
   const creditChipRef = useRef<HTMLButtonElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  // KINEO-STORAGE-METER-2026-08-17 (fundador: "no menu de configurações a
-  // pessoa vê tudo que ela tem — vídeos, imagens, áudios — e o storage"):
-  // carregado UMA vez, na primeira abertura do popup.
-  const [storageInfo, setStorageInfo] = useState<{
-    videos: number; images: number; audios: number; total: number
-    limit: number | null; retention: string
-  } | null>(null)
-  useEffect(() => {
-    if (!settingsOpen || storageInfo) return
-    fetch('/api/storage-usage', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d && typeof d.total === 'number') setStorageInfo(d) })
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsOpen])
+  // KINEO-MENU-CONTA-0411 — o plano que a pessoa COMPROU, de /api/credits. O `plan` acima vem de /api/me/plan, que achata
+  // Starter em 'basic' e Business em 'pro' para os portões de motor; serve para decidir, não para dizer o nome do plano.
+  const [accountPlan, setAccountPlan] = useState<string | null>(null)
 
   function extractDisplayName(meta: Record<string, unknown> | undefined | null): string {
     if (!meta) return ''
@@ -431,6 +419,7 @@ export default function Sidebar({
       } else {
         setCreditsReadFailed(false)
         setCredits(typeof data?.credits === 'number' ? data.credits : 0)
+        setAccountPlan(typeof data?.plan === 'string' ? data.plan : null) // KINEO-MENU-CONTA-0411
       }
     } catch {
       setCreditsReadFailed(true)
@@ -781,20 +770,16 @@ export default function Sidebar({
 
         {/* User row + settings menu + small logout */}
         <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px 12px', position: 'relative' }}>
-          {/* KINEO-ACCOUNT-PANEL-2026-08-19 — o painel de 950x430 (uma caixa
-              de Library + tres links empilhados) virou components/AccountPanel:
-              1240x620, com creditos, plano, data de renovacao real vinda da
-              Stripe, biblioteca e o botao de top-up AO LADO do saldo. O
-              raciocinio inteiro esta no cabecalho daquele arquivo. */}
+          {/* KINEO-MENU-CONTA-0411 — menu compacto com créditos, renovação e atalhos; o raciocínio está no cabeçalho de
+              components/AccountPanel. */}
           {settingsOpen && (
             <AccountPanel
               email={userEmail ?? ''}
               displayName={displayName ?? ''}
-              plan={plan}
+              plan={accountPlan}
               credits={credits}
-              storage={storageInfo}
+              creditsReadFailed={creditsReadFailed}
               onClose={() => setSettingsOpen(false)}
-              onBuyCredits={() => setShowTopup(true)}
               onSignOut={handleSignOut}
               signingOut={signingOut}
               onNavigate={onClose}
@@ -803,7 +788,9 @@ export default function Sidebar({
 
           <div className="flex items-center gap-2.5">
             <div
+              onClick={isLoggedIn ? () => setSettingsOpen((v) => !v) : undefined} // KINEO-MENU-CONTA-0411 — a linha do usuário abre o menu; para o teclado, a engrenagem
               style={{
+                cursor: isLoggedIn ? 'pointer' : undefined,
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                 background: isLoggedIn ? 'linear-gradient(135deg, #2997ff, #2997ff)' : 'var(--border)',
                 border: isLoggedIn ? 'none' : '1px solid rgba(255,255,255,0.08)',
@@ -813,7 +800,7 @@ export default function Sidebar({
             >
               {isLoggedIn ? ((displayName || userEmail)?.[0] ?? 'U').toUpperCase() : '👤'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, cursor: isLoggedIn ? 'pointer' : undefined }} onClick={isLoggedIn ? () => setSettingsOpen((v) => !v) : undefined}>
               {isLoggedIn ? (
                 <>
                   <div className="flex items-center gap-1.5" style={{ minWidth: 0 }}>
@@ -853,7 +840,7 @@ export default function Sidebar({
                 onClick={() => setSettingsOpen((v) => !v)}
                 title="Account settings"
                 aria-label="Account settings"
-                aria-haspopup="menu"
+                aria-haspopup="dialog"
                 aria-expanded={settingsOpen}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -133,6 +133,8 @@ function regras(fonte) {
   // 2. sem clique duplo, com retorno visível
   add(/onClick=\{\(\) => \{ if \(!signingOut\) onSignOut\(\) \}\}/.test(pn) && !/onClose\(\); onSignOut\(\)/.test(pn), 'painel: o clique NÃO fecha o painel antes de sair e ignora o 2º clique')
   add(/disabled=\{signingOut\}/.test(pn) && /signingOut \? 'Signing out…' : 'Sign out'/.test(pn), 'painel: botão desligado dizendo "Signing out…"')
+  // KINEO-MENU-CONTA-0411 — o menu novo fecha com Esc e clique fora; nada disso pode fechá-lo com a saída em curso.
+  add(/const dismiss = useCallback\(\(\) => \{ if \(!signingOut\) onClose\(\) \}/.test(pn) && /className="kmc-backdrop" onClick=\{dismiss\}/.test(pn), 'painel: Esc e clique fora não fecham durante a saída')
   add(/disabled=\{signingOut\}/.test(ac) && /signingOut \? 'Signing out…' : 'Sign out'/.test(ac), '/account: botão desligado dizendo "Signing out…"')
   add(/let saidaEmCurso: Promise<void> \| null = null/.test(cl) && /if \(!saidaEmCurso\) \{/.test(cl), 'cliente: uma saída por vez (promessa única)')
 
@@ -196,6 +198,7 @@ mutante('Sidebar volta ao race de 3 s', ARQ.sidebar, '    void sairDaConta()\n  
 mutante('/account volta ao signOut antigo', ARQ.conta, '    void sairDaConta()\n  }', "    void supabase.auth.signOut({ scope: 'local' })\n  }")
 mutante('painel fecha antes de sair', ARQ.painel, 'onClick={() => { if (!signingOut) onSignOut() }}', 'onClick={() => { onClose(); onSignOut() }}')
 mutante('painel sem disabled', ARQ.painel, 'disabled={signingOut}', '')
+mutante('menu fecha com Esc ou clique fora durante a saída', ARQ.painel, 'if (!signingOut) onClose()', 'onClose()')
 mutante('saída concorrente (sem promessa única)', ARQ.cliente, 'if (!saidaEmCurso) {', 'if (true) {')
 mutante('apaga no navegador ANTES do servidor', ARQ.cliente, '  // 2. Servidor:', '  apagarSessaoNoNavegador()\n  // 2. Servidor:')
 mutante('navegação mole (router.push)', ARQ.cliente, 'window.location.replace(SAIR_DA_CONTA_DESTINO)\n}', "router.push('/login')\n}")
