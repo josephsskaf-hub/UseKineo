@@ -7,6 +7,7 @@
 // O pedido do cron com run pendente presa ao generationId passa sempre: o que já está na fila termina e é entregue.
 // Sem kids_cartoon no pedido, esta regra não lê nada e não muda nada. Guardião: scripts/test-cartoon-so-plano-0411.mjs.
 import { ADS_SUBSCRIBER_PLANS, isAdsInternalEmail } from '@/lib/ads/access'
+import { isCourtesyActive, isCourtesyLevel } from '@/lib/courtesy' // KINEO-CARTOON-CORTESIA-0511
 import { KIDS_ORDERS_TABLE, kidsOrderAdmits, kidsServiceClient } from '@/lib/kidsVenda/server'
 
 export const KIDS_PLANO_REASON = 'kids_plan_required'
@@ -39,7 +40,15 @@ export async function kidsAcessoAoDesenho(i: { userId: string; email: string | n
   try {
     const perfil = await db.from('profiles').select('plan').eq('id', i.userId).maybeSingle()
     if (perfil.error) return 'sem_leitura'
-    if (temPlanoComprado((perfil.data as { plan?: unknown } | null)?.plan)) return 'ok'
+    const plano = (perfil.data as { plan?: unknown } | null)?.plan
+    if (temPlanoComprado(plano)) return 'ok'
+    // KINEO-CARTOON-CORTESIA-0511 [TRAVA 8.2 — fundador 05/11, "2 sim": liberar os parceiros em cortesia] — cortesia ATIVA dada pelo admin abre o desenho, pagando com os créditos dela. Teste *_trial sem concessão e cortesia vencida seguem fora.
+    if (typeof plano === 'string' && isCourtesyLevel(plano.trim().toLowerCase())) {
+      const cortesia = await db.from('courtesy_grants').select('level, status, ends_at').eq('user_id', i.userId).eq('status', 'active').maybeSingle()
+      if (cortesia.error) return 'sem_leitura'
+      const g = cortesia.data as { level?: unknown; status?: unknown; ends_at?: unknown } | null
+      if (g && g.level === plano.trim().toLowerCase() && isCourtesyActive({ status: String(g.status ?? ''), ends_at: String(g.ends_at ?? '') }, Date.now())) return 'ok'
+    }
     const pedidos = await db.from(KIDS_ORDERS_TABLE).select('kind, status').eq('user_id', i.userId).limit(50)
     if (pedidos.error) return (pedidos.error as { code?: string }).code === '42P01' || (pedidos.error as { code?: string }).code === 'PGRST205' ? 'sem_plano' : 'sem_leitura'
     const linhas = (pedidos.data ?? []) as { kind?: string; status?: string }[]

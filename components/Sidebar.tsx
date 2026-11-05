@@ -109,6 +109,13 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="m3.5 9 16-4.5.8 3M8 7.6l2 2.9M13 6.2l2 2.9" />
     </svg>
   ),
+  // KINEO-CARTOON-NO-MENU-0511 — Cartoon: rosto simples de personagem; mesma grade 17px / stroke 1.7 / currentColor.
+  cartoon: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9 10v.5M15 10v.5M8.5 14.5c1 1.5 2.2 2.2 3.5 2.2s2.5-.7 3.5-2.2" />
+    </svg>
+  ),
   // KINEO-AUDIO-2026-08-17 — [STAGE] Kineo Audio (texto→voz multi-motor)
   audio: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

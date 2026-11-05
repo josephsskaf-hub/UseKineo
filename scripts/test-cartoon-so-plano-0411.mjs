@@ -41,7 +41,7 @@ function carregador({ mocks = {}, mutar = {}, globais = {} } = {}) {
 }
 
 // ═══ o banco de mentira ═══
-function banco({ plan = 'free', pedidos = [], erroPerfil = false, erroPedidos = false, pendente = false, pedidoAtivo = false } = {}) {
+function banco({ plan = 'free', pedidos = [], erroPerfil = false, erroPedidos = false, pendente = false, pedidoAtivo = false, cortesia = null, erroCortesia = false } = {}) {
   const leituras = []
   const consulta = (t) => {
     leituras.push(t)
@@ -49,6 +49,7 @@ function banco({ plan = 'free', pedidos = [], erroPerfil = false, erroPedidos = 
       limit: async () => (erroPedidos ? { data: null, error: { code: 'XX' } } : { data: pedidos, error: null }),
       maybeSingle: async () => {
         if (t === 'profiles') return erroPerfil ? { data: null, error: { code: 'XX' } } : { data: { plan }, error: null }
+        if (t === 'courtesy_grants') return erroCortesia ? { data: null, error: { code: 'XX' } } : { data: cortesia, error: null }
         if (t === 'kids_orders') return { data: pedidoAtivo ? { id: 'o', user_id: 'u', status: 'active' } : null, error: null }
         if (t === 'kids_runs') return { data: pendente ? { id: 'r', status: 'pending' } : null, error: null }
         return { data: null, error: null }
@@ -83,6 +84,14 @@ async function provaDaRegra(mutar = {}) {
   const casa = banco()
   exige((await regra(casa, mutar).kidsRecusaSemPlano(pedidoFilme({ email: 'casa@example.org' }))) === null && casa.leituras.length === 0, 'conta da casa passa sem ler nada')
   exige((await pede({}, { email: 'test123@example.org' }))?.status === 402, 'e-mail que só parece da casa (test123) é recusado')
+  // KINEO-CARTOON-CORTESIA-0511 — parceiro em cortesia ativa abre; vencida, de outro nível ou sem concessão, não
+  const futuro = '2099-01-01T00:00:00Z', passado = '2020-01-01T00:00:00Z'
+  for (const plan of ['creator_trial', 'studio_trial']) exige((await pede({ plan, cortesia: { level: plan, status: 'active', ends_at: futuro } })) === null, `cortesia ativa passa: ${plan}`)
+  exige((await pede({ plan: 'creator_trial', cortesia: { level: 'creator_trial', status: 'active', ends_at: passado } }))?.status === 402, 'cortesia vencida é recusada')
+  exige((await pede({ plan: 'creator_trial', cortesia: { level: 'studio_trial', status: 'active', ends_at: futuro } }))?.status === 402, 'cortesia de outro nível é recusada')
+  exige((await pede({ plan: 'free', cortesia: { level: 'creator_trial', status: 'active', ends_at: futuro } }))?.status === 402, 'conta free com concessão solta é recusada')
+  const semCortesia = await pede({ plan: 'creator_trial', erroCortesia: true })
+  exige(semCortesia?.status === 503 && !semCortesia.corpo.upsell, 'leitura da cortesia que falha: 503, sem liberar')
   // pedido na fila termina
   exige((await pede({ pedidoAtivo: true, pendente: true }, { kidsOrder: ID })) === null, 'pedido em andamento ainda entrega: filme do cron com run pendente passa em conta free')
   exige((await pede({ pedidoAtivo: true, pendente: false }, { kidsOrder: ID }))?.status === 402, 'kids_order sem run pendente não abre nada')
@@ -301,7 +310,10 @@ const blocoFora = (t) => t.split('\n').filter((l) => !l.includes('kidsRecusaSemP
 const MUTANTES = [
   ['conta free com crédito passa', REGRA, (t) => t.replace("  return kidsRecusaDeAcesso(acesso, i.language)\n}", "  return null\n}"), provaDaRegra, /conta free com crédito é recusada/],
   ['*_trial conta como plano', REGRA, (t) => t.replace("return typeof plan === 'string' && ADS_SUBSCRIBER_PLANS.includes(plan.trim().toLowerCase())", "return typeof plan === 'string' && plan !== 'free'"), provaDaRegra, /teste creator_trial/],
-  ['has_paid em vez do plano: qualquer conta com leitura', REGRA, (t) => t.replace("if (temPlanoComprado((perfil.data as { plan?: unknown } | null)?.plan)) return 'ok'", "if (perfil.data) return 'ok'"), provaDaRegra, /conta free com crédito é recusada/],
+  ['has_paid em vez do plano: qualquer conta com leitura', REGRA, (t) => t.replace("if (temPlanoComprado(plano)) return 'ok'", "if (perfil.data) return 'ok'"), provaDaRegra, /conta free com crédito é recusada/],
+  ['cortesia vencida abre', REGRA, (t) => t.replace("&& isCourtesyActive({ status: String(g.status ?? ''), ends_at: String(g.ends_at ?? '') }, Date.now())", ''), provaDaRegra, /cortesia vencida/],
+  ['cortesia ativa fechada', REGRA, (t) => t.replace("if (g && g.level === plano.trim().toLowerCase() && isCourtesyActive", "if (false && g && isCourtesyActive"), provaDaRegra, /cortesia ativa passa/],
+  ['erro da cortesia libera', REGRA, (t) => t.replace("if (cortesia.error) return 'sem_leitura'", "if (cortesia.error) return 'ok'"), provaDaRegra, /leitura da cortesia/],
   ['pedido em andamento deixa de entregar', REGRA, (t) => t.replace("if (await kidsOrderAdmits({ raw: i.kidsOrder, userId: i.userId, generationId: i.generationId, engine: i.engine, duration: i.duration })) return null\n", ""), provaDaRegra, /pedido em andamento ainda entrega/],
   ['a história do cron deixa de passar', REGRA, (t) => t.replace("if (i.paraHistoria && linhas.some((o) => o.kind === 'sample' && o.status === 'active')) return 'ok'\n", ""), provaDaRegra, /a história do cron passa/],
   ['quem comprou perde o acesso', REGRA, (t) => t.replace("if (linhas.some((o) => o.kind !== 'sample' && o.status !== 'cancelled')) return 'ok'\n", ""), provaDaRegra, /quem comprou passa/],

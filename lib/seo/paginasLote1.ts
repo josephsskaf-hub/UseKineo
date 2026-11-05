@@ -80,7 +80,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
   cartoon: {
     searchTarget: 'ai cartoon video generator / 3d animated story shorts',
     label: '3D Cartoon Stories',
-    h1: 'Free AI 3D Cartoon Shorts Generator',
+    h1: 'AI 3D Cartoon Shorts Generator', // KINEO-CARTOON-TITULO-0511 — fundador 05/11 ("3 ok trocar"): cartoon agora é de plano pago
     metaTitle: 'AI 3D Cartoon Story Video Generator for Shorts — Kineo',
     metaDescription: `Describe a character and a tiny plot; Kineo writes, narrates and generates every 3D-style scene of a vertical cartoon Short. First ${FREE_S}-second film free on ${FREE_FILM_ENGINE_NAME} (watermarked).`, // KINEO-LLMS-K4-2910
     intro:

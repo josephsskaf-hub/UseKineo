@@ -33,11 +33,13 @@ export const MORE_TOOLS_NAV = [
 // Made with Kineo, 🔥 Trending, Images, Clips — e por último Library e Pricing (coisas de conta). Spaces sai só da lateral
 // (/spaces segue no ar, no topo do site e no "More" do celular). O celular (MobileNav) não muda.
 const SIDEBAR_LAST = new Set(['/library', '/pricing'])
+// KINEO-CARTOON-NO-MENU-0511 — fundador 05/11 ("1 sim"): quem compra precisa achar o Cartoon; entra logo depois de Clips na lateral e no "More" do celular.
+export const CARTOON_NAV = { href: '/kids-cartoon', label: 'Cartoon', icon: 'cartoon' } as const
 export function sidebarNavItems(clipsOn: boolean): readonly { href: string; label: string; icon: string }[] {
   const doors = WORKSPACE_NAV.filter(item => !SIDEBAR_LAST.has(item.href))
   const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces' && (item.href !== '/clips' || clipsOn))
   const last = WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))
-  return [...doors, ...tools, ...last]
+  return [...doors, ...tools, CARTOON_NAV, ...last]
 }
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 // KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0
