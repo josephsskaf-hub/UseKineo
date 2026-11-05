@@ -21,6 +21,7 @@ import ImageResultPreview from '@/components/ImageResultPreview'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
 import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
+import { IMAGES_TELA_CSS, rotuloDoBotaoImagem } from '@/lib/images/telaImagens' // KINEO-IMAGES-TELA-0511
 
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
 
@@ -163,11 +164,11 @@ export default function ImagesClient() {
   }
 
   const eng = IMG_ENGINES.find((e) => e.key === model)!
-  // KINEO-ABAS-PALCO-2026-10-01 — palco da aba Imagens: as imagens da própria conta feitas neste motor (as mais recentes)
-  // ou, sem nenhuma, os exemplos da casa — com o selo do motor real de cada peça (Nano Banana Pro).
+  // KINEO-ABAS-PALCO-2026-10-01 — a cor da aba Imagens na tela e na barra lateral.
   useProductStage('images')
-  const mine: StageItem[] = items.filter((x) => x.model === model).slice(0, 4).map((x) => ({ title: ui('Your image'), badge: eng.name, after: x.upscaled ?? x.url, poster: x.upscaled ?? x.url, contain: true }))
-  const stageItems: StageItem[] = mine.length ? mine : HOUSE_IMAGES
+  // KINEO-IMAGES-TELA-0511 — abaixo da caixa: a galeria da própria pessoa quando houver; senão, a vitrine da casa (com o selo do
+  // motor real de cada peça). Lendo a galeria ou com um pedido em voo ela não aparece: não pode piscar para quem já tem imagens.
+  const mostraVitrine = !galleryLoading && items.length === 0 && !premiere
   const unitCost = Number.parseInt(eng.credits, 10) || 1
   // Referência só vai no Nano Banana Pro; nos outros motores as fotos ficam guardadas na tela mas não são enviadas.
   const readyRefs = refs.filter((r) => r.path)
@@ -368,12 +369,6 @@ export default function ImagesClient() {
         .stu.images-workspace .pill{background:var(--card2);border-color:var(--border);color:var(--text2);min-height:40px}
         .stu.images-workspace .pill:hover{border-color:var(--border2);color:var(--text)}
         .stu.images-workspace .pill.on{background:var(--indigo);border-color:var(--indigo);color:var(--on-accent,#fff)}
-        .stu.images-workspace .cost{background:var(--accent-soft,var(--card));border-color:var(--border2);border-radius:var(--r-md,18px)}
-        .stu.images-workspace .cost::before{display:none}
-        .stu.images-workspace .cost .sum,.stu.images-workspace .cost .val b{color:var(--indigo)}
-        .stu.images-workspace .cost .val span,.stu.images-workspace .gnote{color:var(--muted2)}
-        .stu.images-workspace .go.ok{background:var(--indigo);color:var(--on-accent,#fff);box-shadow:none;border-radius:var(--r-sm,13px)}
-        .stu.images-workspace .go.no{background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:var(--r-sm,13px)}
         .stu.images-workspace .creation-results{border-color:var(--border);padding-top:24px}
         .stu.images-workspace .image-engine-picker{border:0;padding:0;margin:0 0 28px;min-width:0}
         .stu.images-workspace .image-engine-picker legend{padding:0;margin-bottom:12px}
@@ -412,51 +407,24 @@ export default function ImagesClient() {
         .stu.images-workspace .kps-panel .image-engine-picker{margin-bottom:14px}
         .stu.images-workspace .kps-panel .image-engines{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
         .stu.images-workspace .kps-panel .image-engine-card{min-height:0;padding:10px 11px;gap:4px}
-        .stu.images-workspace .kps-panel .image-engine-desc,.stu.images-workspace .kps-panel .image-reference-note,.stu.images-workspace .kps-panel .engine-real-sample,.stu.images-workspace .kps-panel .engine-sample-empty{display:none}
+        .stu.images-workspace .kps-panel .image-reference-note,.stu.images-workspace .kps-panel .engine-real-sample,.stu.images-workspace .kps-panel .engine-sample-empty{display:none}
         .stu.images-workspace .kps-panel .image-engine-top{display:none}
         .stu.images-workspace .kps-panel .creation-input{padding:14px 0 4px}
         .stu.images-workspace .kps-panel textarea{min-height:120px;height:140px}
-        .stu.images-workspace .kps-panel .cost{margin-top:12px}
         .stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);margin-top:8px}
       `}</style>
+      <style dangerouslySetInnerHTML={{ __html: IMAGES_TELA_CSS }} />
 
       <h1><UiLabel>Images</UiLabel></h1>
-      <p className="sub"><UiLabel>Type it. See it. Six image engines, one screen.</UiLabel></p>
+      <p className="sub"><UiLabel>Pro images from a sentence — or keep a face from your own photo</UiLabel></p>
 
-{/* KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: quadro de engenharia na esquerda, palco do motor na direita. */}
+{/* KINEO-IMAGES-TELA-0511 — o esqueleto do Cartoon: a caixa primeiro, um padrão pronto, um botão com o preço, os opcionais recolhidos
+    e montados (nenhum valor se perde ao fechar); abaixo, a galeria da pessoa ou a vitrine. Coluna única: a vitrine saiu da direita. */}
 <div className="kps-grid">
 <div className="kps-panel">
-      <fieldset className="image-engine-picker">
-        <legend className="lab"><span className="n">1</span><UiLabel>Engine</UiLabel></legend>
-        <p className="image-reference-note"><UiLabel>References from your own generated images.</UiLabel></p>
-        <div className="image-engines">
-          {IMG_ENGINES.map((engine) => (
-            <div key={engine.key} className="image-engine-option">
-            <label>
-              <input className="image-engine-choice" type="radio" name="image-engine" value={engine.key}
-                checked={model === engine.key} onChange={() => setModel(engine.key)} />
-              <span className="image-engine-card">
-                <span className="image-engine-top" aria-hidden="true">
-                  <span className="image-engine-icon"><ControlIcon name="image" /></span>
-                  <span className="image-engine-check">✓</span>
-                </span>
-                <span className="image-engine-name">{engine.name}</span>
-                <span className="image-engine-desc"><UiLabel>{engine.desc}</UiLabel></span>
-                <span className="image-engine-price">{engine.credits} / <UiLabel>image</UiLabel></span>
-              </span>
-            </label>
-            {items.find(item => item.model === engine.key) ? <button type="button" className="engine-real-sample" aria-label={`${ui('Preview')}: ${engine.name}`} onClick={() => {
-              const item = items.find(item => item.model === engine.key)!
-              setSample({ src: item.upscaled ?? item.url, name: engine.name })
-            }}><img src={items.find(item => item.model === engine.key)!.upscaled ?? items.find(item => item.model === engine.key)!.url} alt="" loading="lazy" decoding="async" /><span><ControlIcon name="expand" /><UiLabel>Your latest result</UiLabel></span></button>
-              : <div className="engine-sample-empty"><ControlIcon name="image" /><UiLabel>No sample yet</UiLabel></div>}
-            </div>
-          ))}
-        </div>
-      </fieldset>
-
-<div className="card creation-input">
-            <div className="lab"><span className="n">2</span><UiLabel>Your image</UiLabel></div>
+<div className="images-form" data-kineo="images-formulario">
+<div className="card creation-input" data-kineo="images-caixa">
+            <div className="lab"><UiLabel>Your image</UiLabel></div>
             <textarea ref={promptRef} aria-label={ui('Your image')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
@@ -474,6 +442,60 @@ export default function ImagesClient() {
                 ))}
               </div>
             )}
+            {error && (
+              <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: 'var(--text)', fontSize: 12.5 }}>
+                ⚠️ {error}
+                {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
+                {error.toLowerCase().includes('credits') && (
+                  <> <button type="button" onClick={openCreditsWall} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
+                )}
+                {error.toLowerCase().includes('signed in') && (
+                  <> <a href="/login?redirect=/images" style={{ color: 'var(--indigo)', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
+                )}
+              </p>
+            )}
+          </div>
+
+<details className="ace-more" data-kineo="images-mais-opcoes">
+  <summary><strong><UiLabel>Settings</UiLabel></strong><span className="ace-more-list">{eng.name} · {SIZES.find((s) => s.key === size)?.label}{sendRefs ? ` · 📷 ${readyRefs.length}` : ''}</span></summary>
+  <div className="ace-open-body">
+      <fieldset className="image-engine-picker">
+        <legend className="lab"><UiLabel>Engine</UiLabel></legend>
+        <p className="image-reference-note"><UiLabel>References from your own generated images.</UiLabel></p>
+        <div className="image-engines">
+          {IMG_ENGINES.map((engine) => (
+            <div key={engine.key} className="image-engine-option">
+            <label>
+              <input className="image-engine-choice" type="radio" name="image-engine" value={engine.key}
+                checked={model === engine.key} onChange={() => setModel(engine.key)} />
+              <span className="image-engine-card">
+                <span className="image-engine-top" aria-hidden="true">
+                  <span className="image-engine-icon"><ControlIcon name="image" /></span>
+                  <span className="image-engine-check">✓</span>
+                </span>
+                <span className="image-engine-name">{engine.name}</span>
+                <span className="image-engine-desc"><UiLabel>{engine.desc}</UiLabel></span>
+              </span>
+            </label>
+            {items.find(item => item.model === engine.key) ? <button type="button" className="engine-real-sample" aria-label={`${ui('Preview')}: ${engine.name}`} onClick={() => {
+              const item = items.find(item => item.model === engine.key)!
+              setSample({ src: item.upscaled ?? item.url, name: engine.name })
+            }}><img src={items.find(item => item.model === engine.key)!.upscaled ?? items.find(item => item.model === engine.key)!.url} alt="" loading="lazy" decoding="async" /><span><ControlIcon name="expand" /><UiLabel>Your latest result</UiLabel></span></button>
+              : <div className="engine-sample-empty"><ControlIcon name="image" /><UiLabel>No sample yet</UiLabel></div>}
+            </div>
+          ))}
+        </div>
+      </fieldset>
+          <div className="card">
+            <div className="lab"><UiLabel>Format</UiLabel></div>
+            <div className="row">
+              {SIZES.map((s) => (
+                <button key={s.key} type="button" className={`pill${size === s.key ? ' on' : ''}`} onClick={() => setSize(s.key)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
             {model === REF_MODEL ? (
               <div className="image-ref">
                 <div className="image-ref-head"><ControlIcon name="image" /> <UiLabel>Reference photo (optional)</UiLabel></div>
@@ -506,51 +528,15 @@ export default function ImagesClient() {
                 <button type="button" className="pill" onClick={() => setModel(REF_MODEL)}><UiLabel>Use Nano Banana Pro</UiLabel></button>
               </div>
             )}
-            {showTopup && <CreditsTopupModal surface="images_402" onClose={() => setShowTopup(false)} />}
-            {showPlans && (
-              <OutOfCreditsPlansModal
-                product="images"
-                unitCost={unitCost}
-                credits={balance}
-                plan={plan}
-                madeThisSession={madeThisSession}
-                onClose={() => setShowPlans(false)}
-              />
-            )}
-            {error && (
-              <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: 'var(--text)', fontSize: 12.5 }}>
-                ⚠️ {error}
-                {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
-                {error.toLowerCase().includes('credits') && (
-                  <> <button type="button" onClick={openCreditsWall} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
-                )}
-                {error.toLowerCase().includes('signed in') && (
-                  <> <a href="/login?redirect=/images" style={{ color: 'var(--indigo)', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
-                )}
-              </p>
-            )}
-          </div>
-          <div className="card">
-            <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
-            <div className="row">
-              {SIZES.map((s) => (
-                <button key={s.key} type="button" className={`pill${size === s.key ? ' on' : ''}`} onClick={() => setSize(s.key)}>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
+  </div>
+</details>
 
-          <div className="cost" id="image-generation-review" tabIndex={-1}>
-            <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}{sendRefs ? ` · 📷 ${readyRefs.length}` : ''}</div>
-            <div className="val"><span><UiLabel>Cost per image</UiLabel></span><b>{eng.credits}</b></div>
+          <div className="images-go" id="image-generation-review" tabIndex={-1} data-kineo="images-botao">
             <button type="button" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
-              <UiLabel>{busy ? 'Creating…' : refsUploading ? 'Uploading photo…' : needsConsent ? 'Confirm permission for the photo first' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}</UiLabel>
+              {rotuloDoBotaoImagem(ui(busy ? 'Creating…' : refsUploading ? 'Uploading photo…' : needsConsent ? 'Confirm permission for the photo first' : prompt.trim() ? 'Generate image →' : 'Describe your image first'), eng.credits, !busy && !refsUploading && !needsConsent)}
             </button>
-            <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary><div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div></details>
           </div>
 </div>
-        <ProductStage name={eng.name} desc={eng.desc} meta={`${eng.credits} / ${ui('image')}`} items={stageItems} wide={!mine.length} />
 </div>
       {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração (components/premiere).
           A imagem nova continua entrando primeiro em "My Images" logo abaixo. */}
@@ -605,7 +591,6 @@ export default function ImagesClient() {
           ) : null}
         </div>
       ) : null}
-      <ProductRow title="Made on Kineo" sub="Real images from our engines — every one started as a sentence." items={HOUSE_ROW} />
 <div className="grid creation-grid">
 <div className="creation-results">
 {galleryFailed && (
@@ -659,7 +644,22 @@ export default function ImagesClient() {
           )}
 </div>
 </div>
-      <MobileCreationShortcut targetId="image-generation-review" cost={`${eng.name} · ${eng.credits}`} />
+        {mostraVitrine && <ProductStage name={ui('Made on Kineo')} desc="Real images from our engines — every one started as a sentence." items={HOUSE_IMAGES} wide />}
+</div>
+      {mostraVitrine && <ProductRow title="Images made by Kineo" items={HOUSE_ROW} />}
+      {/* KINEO-IMAGES-TELA-0511 — fora do painel: o painel tem backdrop-filter, que prenderia o popup. */}
+      {showTopup && <CreditsTopupModal surface="images_402" onClose={() => setShowTopup(false)} />}
+      {showPlans && (
+        <OutOfCreditsPlansModal
+          product="images"
+          unitCost={unitCost}
+          credits={balance}
+          plan={plan}
+          madeThisSession={madeThisSession}
+          onClose={() => setShowPlans(false)}
+        />
+      )}
+      <MobileCreationShortcut targetId="image-generation-review" cost={ui('Your image')} />
       {sample && <ImageResultPreview {...sample} onClose={() => setSample(null)} />}
     </div>
   )

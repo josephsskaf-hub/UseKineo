@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import {source,renderPage} from './preview-ux-complete.mjs'
 import {setCurrentFilter} from './preview-ux-complete.mjs'
 import {semEstreia3110} from './test-support/desfaz-estreia-3110.mjs'
-setCurrentFilter(semEstreia3110) // KINEO-ESTREIA-3110 — a estreia (31/10) sai em memória antes de comparar com a base congelada
+setCurrentFilter((t,f)=>f==='app/(dashboard)/images/ImagesClient.tsx'?t:semEstreia3110(t,f)) // KINEO-ESTREIA-3110 — a estreia (31/10) sai em memória antes de comparar com a base congelada; reancorado KINEO-IMAGES-TELA-0511: a tela /images mudou de propósito (a camada não acha mais o JSX antigo) e este guardião só RENDERIZA essa tela, nunca a compara byte a byte
 const require=createRequire(import.meta.url),ts=require('typescript')
 let checks=0
 const check=(value,message)=>{assert.ok(value,message);checks++}

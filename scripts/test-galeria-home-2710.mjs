@@ -57,7 +57,7 @@ const S = {
   side: rd('components/Sidebar.tsx'),
   mob: rd('components/MobileNav.tsx'),
   clips: rd('app/(dashboard)/clips/ClipsClient.tsx'),
-  images: rd('app/(dashboard)/images/ImagesClient.tsx'),
+  images: lf(fs.readFileSync(path.join(ROOT, 'app/(dashboard)/images/ImagesClient.tsx'), 'utf8')), // reancorado KINEO-IMAGES-TELA-0511: a tela mudou de propósito e a corrente de camadas não acha mais o JSX antigo; aqui só se confere a ausência da marca da galeria
   fx: rd('lib/clips/clipEffects.ts'),
   trends: rd('lib/clips/clipTrends.ts'),
   showcase: rd('lib/publicExamples.ts'),

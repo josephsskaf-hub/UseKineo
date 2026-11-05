@@ -41,7 +41,7 @@ for(const page of ['images/ImagesClient','audio/AudioClient']){
  const file=`app/(dashboard)/${page}.tsx`
  for(const [state,fixture] of Object.entries({empty:{galleryLoading:false},busy:{busy:true,prompt:'user text',text:'user text'},picker:{pickerOpen:true},failure:{galleryLoading:false,galleryFailed:true,error:'Example error'},results:{galleryLoading:false,items:[{url:'/fixture.png',model:'dev',text:'User-owned content'}]}})){
   const rendered=renderPage(file,false,fixture)
-  const input=rendered.indexOf('<textarea'), settings=page.startsWith('images/')?rendered.indexOf('<span class="n">3</span>'):rendered.indexOf('class="rail creation-settings"')
+  const input=rendered.indexOf('<textarea'), settings=page.startsWith('images/')?rendered.indexOf('data-kineo="images-mais-opcoes"')/* reancorado KINEO-IMAGES-TELA-0511: o passo numerado 3 virou Settings recolhido; a regra (a caixa antes dos ajustes) é a mesma */:rendered.indexOf('class="rail creation-settings"')
   ok(input>=0 && settings>input,page+' '+state+': authored input precedes format settings in DOM')
   ok(rendered.includes('class="creation-results"'),page+' '+state+': results separate from editor')
   if(state==='empty'||state==='busy')ok(/disabled="" class="go/.test(rendered),page+' '+state+': generate remains disabled')
