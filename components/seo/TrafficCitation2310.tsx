@@ -1,4 +1,5 @@
-import { TRAFFIC_CITATIONS, TRAFFIC_CITATION_UPDATED, type TrafficCitationPage } from '@/lib/seo/trafficCitation2310'
+import { TRAFFIC_CITATIONS, type TrafficCitationPage } from '@/lib/seo/trafficCitation2310'
+import { PAGINAS_CITADAS_0511_ATUALIZADO, planosPorFilmeTexto0511 } from '@/lib/seo/paginasCitadas0511' // KINEO-PAGINAS-CITADAS-0511
 
 const STYLE = `
 .kc2310{color:#0E1116;text-align:left;margin:36px 0;font-family:inherit}
@@ -23,6 +24,7 @@ export function CitationDirectAnswer({ page }: { page: TrafficCitationPage }) {
 export function CitationDetails({ page }: { page: TrafficCitationPage }) {
   const citation = TRAFFIC_CITATIONS[page]
   const pt = page === 'portuguese'
+  const planos = planosPorFilmeTexto0511(pt) // KINEO-PAGINAS-CITADAS-0511 — os 3 planos de 04/11 e o que um mês de créditos cobre
   const labels = pt ? ['O que você recebe', 'Duração do vídeo', 'Tempo de geração', 'Preço', 'Créditos'] : ['What you receive', 'Video duration', 'Generation time', 'Price', 'Credits']
   return (
     <section className="kc2310" aria-labelledby={`citation-${page}`} data-citation-details={page}>
@@ -36,7 +38,15 @@ export function CitationDetails({ page }: { page: TrafficCitationPage }) {
       <div className="kc2310-faq" aria-label={pt ? 'Perguntas frequentes' : 'Frequently asked questions'}>
         {citation.faq.map((item) => <div key={item.q}><h3>{item.q}</h3><p>{item.a}</p></div>)}
       </div>
-      <p className="kc2310-updated">{pt ? 'Atualizado em: ' : 'Updated: '}<time dateTime={TRAFFIC_CITATION_UPDATED}>{pt ? '23 de outubro de 2026' : 'October 23, 2026'}</time>. <a href="/pricing">{pt ? 'Preços e condições atuais do teste' : 'Current prices and trial terms'}</a>.</p>
+      {/* KINEO-PAGINAS-CITADAS-0511 — tabela nova, mesma folha de estilo; sem <h3>, para as 5 perguntas seguirem sendo as únicas */}
+      <h2 style={{ marginTop: 30 }} data-citation-plans={page}>{planos.heading}</h2>
+      <table>
+        <caption style={{ textAlign: 'left', color: '#5A5F67', fontSize: 13, marginBottom: 10 }}>{planos.caption}</caption>
+        <thead><tr>{planos.labels.map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
+        <tbody>{planos.rows.map((row) => <tr key={row[0]}>{row.map((cell, i) => <td key={planos.labels[i]} data-label={planos.labels[i]}>{cell}</td>)}</tr>)}</tbody>
+      </table>
+      <p style={{ marginTop: 12 }}>{planos.nota}</p>
+      <p className="kc2310-updated">{pt ? 'Atualizado em: ' : 'Updated: '}<time dateTime={PAGINAS_CITADAS_0511_ATUALIZADO}>{planos.atualizadoEm}</time>. <a href="/pricing">{planos.termos}</a>.</p>
     </section>
   )
 }

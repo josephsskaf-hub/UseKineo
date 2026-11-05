@@ -53,7 +53,7 @@ function checa(over = {}) {
   req(Array.isArray(L.filtrarSitemapPorLingua([])) && L.filtrarSitemapPorLingua([{ url: 'nao-e-url' }]).length === 1, 'B nunca lança com entrada estranha')
   // (C)
   const sm = over[F.sitemap] ?? read(F.sitemap)
-  req(/return filtrarSitemapPorLingua\(trafego2310Sitemap\(carimbaBingSeo1510\(\[/.test(sm), 'C o sitemap inteiro passa pelo filtro')
+  req(/return (?:carimbaPaginasCitadas0511\()?filtrarSitemapPorLingua\(trafego2310Sitemap\(carimbaBingSeo1510\(\[/.test(sm), 'C o sitemap inteiro passa pelo filtro') // KINEO-PAGINAS-CITADAS-0511 (reancorado 05/11): o carimbo de data das 6 páginas citadas entra por fora do filtro e não tira nem põe URL
   const mw = over[F.mw] ?? read(F.mw)
   const ramo = mw.indexOf('if (caminhoForaDasLinguas(request.nextUrl.pathname)) {')
   req(ramo > 0 && /if \(caminhoForaDasLinguas\(request\.nextUrl\.pathname\)\) \{\n\s*const linguaResponse = await updateSession\(request\)\n\s*linguaResponse\.headers\.set\('X-Robots-Tag', 'noindex, follow'\)\n\s*return linguaResponse/.test(mw), 'C middleware: ramo próprio com noindex, follow (a sessão é renovada como sempre)')

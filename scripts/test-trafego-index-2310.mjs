@@ -48,10 +48,11 @@ const expected = [
   ...ENGINE_SLUGS.filter(isIndexableEngineSlug).map(s => `/ai-video-generator/${s}`),
 ]
 const byPath = new Map(sitemap.map(e => [new URL(e.url).pathname, e]))
+const CITADAS_0511 = new Set(['/', '/ai-video-generator/seedance', '/text-to-video-shorts', '/free-ai-shorts/horror', '/ai-video-generator/for/urdu', '/gerador-de-shorts-gratis']) // KINEO-PAGINAS-CITADAS-0511
 assert.equal(sitemap.length, new Set(sitemap.map(e => e.url)).size, 'canonical deduplication')
 for (const path of [...expected, '/ai-kids-cartoon-videos', '/desenho-infantil-3d-com-ia', '/pricing']) {
   assert.ok(byPath.has(path), `mapped: ${path}`)
-  assert.equal(new Date(byPath.get(path).lastModified).toISOString().slice(0, 10), '2026-10-23', `review date: ${path}`)
+  assert.equal(new Date(byPath.get(path).lastModified).toISOString().slice(0, 10), CITADAS_0511.has(path) ? '2026-11-05' : '2026-10-23', `review date: ${path}`) // KINEO-PAGINAS-CITADAS-0511 — as 6 páginas relidas andam; o resto fica em 23/10
 }
 for (const entry of sitemap) {
   assert.equal(new URL(entry.url).origin, 'https://www.usekineo.com')

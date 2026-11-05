@@ -42,7 +42,7 @@ for (const page of pages) {
   assert.equal(citation.faq.length, 5)
   assert(citation.rows.every((row) => row.length === 5))
   const html = render(React.createElement(CitationDetails, { page: page.key }))
-  assert(html.toLowerCase().includes('datetime="2026-10-23"'))
+  assert(html.toLowerCase().includes('datetime="2026-11-05"')) // KINEO-PAGINAS-CITADAS-0511 — o bloco foi relido em 05/11; a data anda com o conteúdo
   assert.equal((html.match(/<h3>/g) || []).length, 5)
   assert(html.includes('scope="col"'))
   results.push({ page: page.route, answerWords: count, faqs: citation.faq.length, tableRows: citation.rows.length })

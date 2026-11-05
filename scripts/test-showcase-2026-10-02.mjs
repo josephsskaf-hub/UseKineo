@@ -193,6 +193,10 @@ function discovery(overrides = {}) {
       // money-article paths (lib/seo/paginasIa0111Paths.ts); without them this run died reading an undefined list. Inert here: the real
       // entries are exercised by test-paginas-ia-0111, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       PAGINAS_IA_0111_REVIEWED_ISO: '2026-11-01', PAGINAS_IA_0111_MONEY_PATHS: [],
+      // KINEO-PAGINAS-CITADAS-0511 (re-anchored 05/11) — the sitemap stamps the 6 cited pages with their 05/11 review date on the way out
+      // (lib/seo/paginasCitadas0511.ts). Inert here: the stamp is exercised by test-paginas-citadas-0511, and the run below still REQUIRES
+      // the showcase/hub/study entries exactly as before.
+      carimbaPaginasCitadas0511: (entries) => entries,
     }
     // KINEO-LEVA-2410: carimbo puro da rodada de tráfego é executado, não dublado.
     new Function('exports', 'require', 'module', js)(mod.exports, id => id === '@/lib/seo/trafego2310' ? load('lib/seo/trafego2310.ts') : fixtures, mod)
