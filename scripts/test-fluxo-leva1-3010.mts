@@ -1,5 +1,6 @@
 // KINEO-BRIEF-NAO-E-FALA-3010 · KINEO-LEGENDA-LARGURA-3010 · KINEO-LEGENDA-FRASE-3010 · KINEO-PEDIDO-MUDO-3010 · KINEO-CLIPE-LOGO-3010 ·
 // KINEO-SEM-MARCA-3010 · KINEO-CLIPE-OU-FILME-3010 — guardião sem rede com os pedidos REAIS do revisor (29-30/10).
+import { semK4FaixaTeto0511 } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a camada mais nova sai primeiro, pelo recibo exato
 import { readFileSync } from 'node:fs'
 import { detectPastedScript, isProductionBrief, semPreambuloDeChat, PRODUCTION_BRIEF_RULE } from '../lib/pastedScript'
 import { fonteDaLegendaQueCabe, terminaEmPalavraFuncao, buildCaptionsFromWhisperWords } from '../lib/compose'
@@ -19,7 +20,7 @@ check('1.4 conto colado (prosa longa) segue roteiro colado', detectPastedScript(
 check('1.5 diálogo colado segue diálogo', detectPastedScript('Motu: Chutki, is Bheem home?\nChutki: No, he went to the forest.').reason === 'dialogue')
 check('1.6 ideia curta segue ideia curta', detectPastedScript('the secret life of vegetables').reason === 'short_idea')
 check('1.7 texto sem preâmbulo fica igual', semPreambuloDeChat('A dog runs on the beach') === 'A dog runs on the beach')
-const rota = readFileSync(new URL('../app/api/generate-script/route.ts', import.meta.url), 'utf8')
+const rota = semK4FaixaTeto0511(readFileSync(new URL('../app/api/generate-script/route.ts', import.meta.url), 'utf8'), 'app/api/generate-script/route.ts')
 check('1.8 o escritor liga a regra do pedido de produção', rota.includes("colado.reason === 'production_brief' ? `\\n\\n${PRODUCTION_BRIEF_RULE}`"))
 check('1.9 as 2 chamadas ao escritor usam o tema sem preâmbulo', (rota.match(/this topic:\\n\\n' \+ temaDoEscritor/g) ?? []).length === 2)
 check('1.10 a regra proíbe narrar formato/música/duração', /Never narrate the request itself/.test(PRODUCTION_BRIEF_RULE))

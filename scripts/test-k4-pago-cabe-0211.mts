@@ -6,6 +6,7 @@
 // fala prevista cabe em K4_TETO_MEDIDO_SEGUNDOS (15,5 s, o mesmo teto do grátis) na voz real mais lenta, e piso acima do portão
 // pago — e a rota do escritor usa a faixa (instrução, piso, teto e teto duro). Na origin/main a régua do escritor dá 35–42 → reprova.
 // Rodar: npx tsx scripts/test-k4-pago-cabe-0211.mts
+import { semK4FaixaTeto0511 } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a camada mais nova sai primeiro, pelo recibo exato
 import fs from 'node:fs'
 import { faixaDoKling4PagoNoEscritor, faixaDoKling4PagoParaOPedido, faixaDoKling4NoEscritor, instrucaoDoKling4NoEscritor, K4_TETO_MEDIDO_SEGUNDOS, K4_FATOR_REAL_PADRAO, palavrasNoPortao } from '../lib/kling4TrialScript'
 import { RITMO_HOLLYWOOD, fatorDoRitmoDoIdioma, checarFalaCurtaDoMotor } from '../lib/durationByEngine'
@@ -72,7 +73,7 @@ console.log('4. o corte por frases com teto duro = teto da faixa nunca devolve a
 
 console.log('5. a rota do escritor usa a faixa do pago (fonte)')
 {
-  const gs = rd('app/api/generate-script/route.ts')
+  const gs = semK4FaixaTeto0511(rd('app/api/generate-script/route.ts'), 'app/api/generate-script/route.ts')
   ok(/const faixaK4Pago = filmeCurto && !colado\.pasted \? faixaDoKling4PagoParaOPedido\(\{ engine: body\.engine, seconds: alvoSegundos, language \}\) : null/.test(gs), 'faixaK4Pago calculada no filme curto escrito pela IA (roteiro colado fica fora)')
   ok(/const faixaK4 = faixaK4Pago \?\? \(filmeCurto && !colado\.pasted \? await faixaDoKling4ParaOPedido\(/.test(gs), 'faixaK4 = pago ?? grátis — piso, teto, instrução e "curto para o alvo" seguem a mesma faixa')
   ok(/if \(faixaK4Pago\) tetoDuroFilmeCurto = faixaK4Pago\.max/.test(gs), 'no pago o teto duro do corte = teto da faixa (sem medição da voz, passar do teto não tem rede)')

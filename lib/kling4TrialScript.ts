@@ -30,6 +30,7 @@ import { vozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-K4-PAGO-CABE-0211 — o mesmo interruptor da rota (paidKling4 = engine 'hollywood' && KLING4_PAID_LIVE)
 import { RITMO_HOLLYWOOD } from '@/lib/durationByEngine' // KINEO-K4-PAGO-CABE-0211 — a régua do portão pago (narrationFitAt na família hollywood)
+import { palavrasPorSecao } from '@/lib/shortFilmScript' // KINEO-K4-FAIXA-TETO-0511 — o orçamento por seção do pedido de apara
 
 /** Teto da fala MEDIDA (mp3 da voz da montagem) para o clipe único de 15 s. */
 export const K4_TETO_MEDIDO_SEGUNDOS = 15.5
@@ -252,4 +253,36 @@ export function instrucaoDoKling4NoEscritor(faixa: FaixaK4DoEscritor): string {
 - Total script: ${faixa.min}-${faixa.max} spoken words (not counting the [Pexels: ...] cues or the section headers). Never fewer than ${faixa.min}, never more than ${faixa.max}.
 - Every pause costs screen time: do NOT use "..." or em-dashes in this script; end sentences with periods. Prefer short, common words.
 - Still HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF — and the PAYOFF still delivers the concrete answer as the last sentence.`
+}
+
+// ═══ KINEO-K4-FAIXA-TETO-0511 — o roteiro do filme grátis Kling 4 nasce NA faixa, também quando o escritor condensa texto colado ═══
+// Medido (events, 26/10–05/11): de 12 claims, 5 foram ao Seedance de reserva por fala acima de 15,5 s, todos com roteiro acima do teto:
+//   A) o escritor passou da faixa nas duas versões (31–32 pedidas, 38→37 e 38→35 entregues) e o corte por frases não tinha o que tirar
+//      (cada bloco é uma frase: tirar uma cai abaixo do piso); B) texto colado longo (ChatGPT, 59–446 palavras) ficava sem a faixa
+//      (!colado.pasted) e o escritor o condensava para o teto do Seedance (41 palavras, 16,6–18,8 s), já sem ser palavra por palavra.
+// Conserto: (B) colado que NÃO fica palavra por palavra (mais palavras que o teto normal do filme curto) entra na faixa; colado que
+// cabe segue intacto, sem faixa. (A) ainda acima do teto depois da nova tentativa: UMA apara (só apaga e encurta), adotada só se
+// melhora sem perder estrutura, final nem o piso. Falhou ou não melhorou: fica como está, e a medição da voz manda ao Seedance. O teto
+// duro do corte por frases NÃO muda: nunca filme truncado, nunca 422.
+/** O texto colado vai ser reescrito pelo escritor (não fica palavra por palavra)? Só aí a faixa do Kling 4 grátis vale para ele. */
+export function coladoVaiNaFaixaDoKling4(colado: { pasted: boolean; words: number }, tetoDoFilmeCurto: number): boolean {
+  return colado.pasted && colado.words > tetoDoFilmeCurto
+}
+
+/** Instrução extra quando o escritor condensa o texto colado para o Kling 4 grátis (a regra do colado pede ±10 %, impossível aqui). */
+export function instrucaoDoColadoNoKling4(faixa: FaixaK4DoEscritor): string {
+  return `THE USER'S TEXT IS LONGER THAN THIS FILM (overrides the "within 10%" rule above): condense it to ${faixa.min}-${faixa.max} spoken words. Narrate only what is meant to be spoken: ignore titles, timings, editing notes, on-screen text and descriptions. Keep the user's language, facts, names and order of events, reuse their own words where you can, invent nothing, and end on the user's own ending.`
+}
+
+/** O pedido da apara: o roteiro acima do teto perde palavras, sem ganhar fato. Orçamento por seção: o modelo não acerta o total sozinho. */
+export function pedidoDeAparaDoKling4(script: string, palavras: number, faixa: FaixaK4DoEscritor): string {
+  const secoes = palavrasPorSecao(script)
+  const total = secoes.reduce((a, s) => a + s.words, 0)
+  const orcamento = secoes.map((s) => `${s.label}: ${s.words} words now, at most ${Math.max(3, Math.floor((s.words * faixa.min) / Math.max(1, total)))}`).join('; ')
+  return `This script has ${palavras} spoken words and this film holds at most ${faixa.max}: it must lose ${palavras - faixa.min} words. Word budget per section: ${orcamento}. Count each section word by word and stay inside its budget. Only delete or shorten: drop adjectives, adverbs, filler and repeated ideas, and shorten a clause when needed; do NOT add a fact, a name or a new sentence. Keep the same sections in the same order, the same [Pexels: ...] cues, and every sentence complete and grammatical. The last sentence of the PAYOFF must still state the same concrete answer. Do not use "..." or em-dashes. Respond with ONLY the script.`
+}
+
+/** A apara fica? Só com menos palavras, sem cair abaixo do piso e sem perder nada que a versão anterior tinha (a rota mede o resto). */
+export function aparaDoKling4Serve(a: { antes: number; depois: number; pisoDepois: number; faixa: FaixaK4DoEscritor; estruturaIntacta: boolean }): boolean {
+  return a.estruturaIntacta && a.depois < a.antes && a.pisoDepois >= a.faixa.min
 }

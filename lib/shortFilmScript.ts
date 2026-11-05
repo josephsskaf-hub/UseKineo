@@ -366,6 +366,11 @@ export function finishShortFilmScript(script: string, args: FitShortFilmArgs): F
   return { ...ajuste, droppedSections: so4.dropped, ctaRemoved: semCta.removed }
 }
 
+/** KINEO-K4-FAIXA-TETO-0511 — as seções do roteiro com as palavras faladas de cada uma (o pedido de apara do Kling 4 grátis). */
+export function palavrasPorSecao(script: string): { label: string; words: number }[] {
+  return parseBlocks(String(script ?? '')).blocks.map((b) => ({ label: labelOf(b), words: wordsOf(b.body) }))
+}
+
 /** O reforço da nova tentativa do filme curto (a rota junta aos problemas medidos). */
 export function shortFilmRetryInstruction(maxWords: number, minWords: number, seconds: number): string {
   return `This is a ${seconds}-second film. Rewrite the FULL script with ONLY these 4 sections, each on its own line, in this order: ${SHORT_FILM_SECTIONS.join(', ')}. Do NOT write MICRO REWARD 3, ESCALATION or RHYTHM. Use at least ${minWords} and at most ${maxWords} spoken words in total — count them, and aim for about ${maxWords} (the [Pexels: ...] cues and the headers do not count). Every sentence must be complete. Do NOT add any follow/subscribe/like call to action. The film ends when the narration ends, so the PAYOFF must still deliver the concrete answer the HOOK promised, with no teasing. Respond with ONLY the script.`

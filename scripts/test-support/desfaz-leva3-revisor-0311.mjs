@@ -3,6 +3,7 @@
 // Recibo EXATO desta entrega em lib/compose.ts e app/api/generate-script/route.ts: para cada arquivo existente, o hash de antes (origin/main),
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
 // estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais continua reprovando. Nunca usar em lib/app.
+import { semK4FaixaTeto0511 } from './desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
@@ -43,5 +44,5 @@ export function lerSemLeva3(arquivo, codificacao) {
   const texto = lerCru(arquivo, codificacao)
   if (typeof texto !== 'string') return texto
   const r = rel(/^[a-zA-Z]:[\\/]|^\//.test(String(arquivo)) ? relativo(RAIZ_LEVA3, String(arquivo)) : String(arquivo))
-  return semLeva3Revisor0311(texto, r)
+  return semLeva3Revisor0311(semK4FaixaTeto0511(texto, r), r) // KINEO-K4-FAIXA-TETO-0511 — a camada mais nova (05/11) sai antes
 }

@@ -12,6 +12,7 @@
 //   C. /api/analyze-idea: o brief (viral_title/hook/captions/voiceover) e os 2 diretores visuais (viral_title + captions)
 //      trazem data + regra; o único system prompt sem a regra é o de pontuação (proibido mudar qualquer palavra).
 // Rodar: npx tsx scripts/test-ano-inventado-0211.mts   (sem rede, sem custo)
+import { semK4FaixaTeto0511 } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a camada mais nova sai primeiro, pelo recibo exato
 import fs from 'node:fs'
 import ts from 'typescript'
 
@@ -21,7 +22,7 @@ function checa(nome: string, cond: unknown) {
   if (cond) { ok++; console.log('  ok  ' + nome) } else { falhas.push(nome); console.log('  XX  ' + nome) }
 }
 const lf = (t: string) => t.replace(/\r\n/g, '\n')
-const GS = lf(fs.readFileSync('app/api/generate-script/route.ts', 'utf8'))
+const GS = lf(semK4FaixaTeto0511(fs.readFileSync('app/api/generate-script/route.ts', 'utf8'), 'app/api/generate-script/route.ts'))
 const AI = lf(fs.readFileSync('app/api/analyze-idea/route.ts', 'utf8'))
 const js = (code: string) => ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText
 function roda(code: string, env: Record<string, unknown>) {

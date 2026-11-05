@@ -5,6 +5,7 @@
 // a preço de Kling 4 (45 cr). E o cinematic_dispatch_result do caminho pago dizia attempted 0 / not_attempted 1 /
 // invariant_ok false / claim_action unknown — "nunca postou" — para um clipe aceito.
 // Sem rede, sem fal, sem banco (db é um Proxy que conta acessos e falha). Rodar: npx tsx scripts/test-k4-despacho-0211.mts
+import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
@@ -60,6 +61,10 @@ console.log('== 2. o pago tem janela própria (20 min), o grátis segue em 8 min
 ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS intocado (8 min)')
 { let diffGratis = 'x'
   try { diffGratis = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'lib/kling4TrialAsyncStatus.ts', 'lib/kling4Trial.ts', 'lib/kling4TrialScript.ts'], { cwd: raiz, encoding: 'utf8' }).trim() } catch { /* sem git = falha */ }
+  // KINEO-K4-FAIXA-TETO-0511 — a faixa do escritor (só acréscimos em lib/kling4TrialScript.ts) não mexe na medição nem no transporte: passa só pelo recibo exato
+  try { const f = 'lib/kling4TrialScript.ts'; if (deltaK4FaixaTeto0511Exato(fs.readFileSync(f, 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/?
+/).filter((x) => x.trim() && x.trim() !== f).join('
+') } catch { /* sem recibo = segue reprovando */ }
   ok(diffGratis === '', '2 caminho grátis (status, transporte, portão da voz do 4aba8a177) sem nenhuma mudança') }
 
 console.log('== 3. falha real e reserva já começada continuam como antes ==')
