@@ -20,7 +20,7 @@ Quem entra no teste, o sorteio de 50/50 (`ladoDoTeste`), a janela de 30 dias, a 
 
 **Não misturar o antes e o depois.** O teste abriu em 04/11/2026 às 17:00 UTC. O corte é o instante em que este commit entrou em produção: anote aqui ao publicar.
 
-- Corte (deploy em produção): _preencher ao publicar_
+- Corte (deploy em produção): 05/11/2026 ~03:03 UTC (a23e2200d). O desenho novo também ficou no ar de 01:49 a ~02:02 UTC, antes da reversão.
 - Antes do corte: desenho "a prévia leva aos planos".
 - Depois do corte: desenho "a prévia pede o filme".
 - A comparação com o lado controle deve usar só as contas criadas depois do corte. As contas criadas antes ainda veem o desenho novo ao voltar, então também ficam de fora da conta do "depois".
