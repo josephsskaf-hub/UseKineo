@@ -4,6 +4,7 @@ import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4
 import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
 
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
+import PricingIncludes0511 from '@/components/pricing/PricingIncludes0511' // KINEO-PRICING-INCLUI-0511
 
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
@@ -1772,6 +1773,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         )}
 
+        <PricingIncludes0511 />{/* KINEO-PRICING-INCLUI-0511 */}
         <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
         </div>
         
