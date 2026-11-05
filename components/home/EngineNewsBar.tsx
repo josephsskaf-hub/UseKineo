@@ -77,10 +77,10 @@ export default function EngineNewsBar({ signedIn = false }: { signedIn?: boolean
         {halloween ? <Link className="knb-emoji" href="/ai-halloween-video" data-home-cta="halloween_bar" aria-label="Halloween effects">🎃</Link> : null}
         {firstFilmFree ? <>{/* KINEO-FAIXA-COERENTE-3110 — a mesma frase do selo da página, e o Creator vem como o passo seguinte */}
           <span className="knb-text"><UiLabel>{KLING4_TRIAL_NOTICE_COPY}</UiLabel>{kling4Promo ? <span className="knb-sub"> · <UiLabel>then 30 days free with Creator</UiLabel></span> : null}</span>
-          <Link className="knb-cta" href={engineNewsBarTrialHref(signedIn)} data-home-cta="news_bar_first_film"><UiLabel>Make mine</UiLabel> →</Link>
+          <Link className="knb-cta" href={engineNewsBarTrialHref(signedIn)} data-home-cta="news_bar_first_film"><UiLabel>Make my film</UiLabel> →</Link>
         </> : <>
           <span className="knb-text">{kling4Promo ? <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>free for 30 days with Creator</UiLabel></> : <><span className="knb-hi-k">Kling 4.0</span> <UiLabel>is live</UiLabel></>}{/* KINEO-HOME-SEM-PROMO-0411 — quem não está logado não vê desconto na 1ª impressão */}{WELCOME20_SITE_OFFER_LIVE && signedIn ? <span className="knb-sub"> · <span className="knb-hi">{WELCOME20_PERCENT_OFF}% off</span> <UiLabel>your first month</UiLabel></span> : null}</span>
-          <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>See plans</UiLabel> →</Link>
+          <Link className="knb-cta" href={ENGINE_NEWS_BAR_HREF}><UiLabel>{signedIn ? 'Upgrade' : 'See plans'}</UiLabel> →</Link>{/* KINEO-FAIXA-UPGRADE-0411 — fundador 05/11: "colocar upgrade no plano" */}
         </>}
       </span>
       <button
