@@ -617,7 +617,7 @@ export default function SignupPage() {
                       ? savedProductDestination.heading
                       : savedCreation
                         ? `Your ${savedCreation.kind} is ready to continue`
-                        : 'Create your AI Short'}
+                        : 'Create your account'}
                 </h1>
                 <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
                   {isCheckoutResume
