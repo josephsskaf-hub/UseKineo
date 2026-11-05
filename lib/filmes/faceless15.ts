@@ -56,7 +56,8 @@ export const FACELESS15_ASPECT = '9:16'
 
 // ── F1 · legenda (§3.4 do estudo) ────────────────────────────────────────────────────────────────────────────────────
 /** Borda inferior da caixa da legenda (hoje 78 % em lib/compose CAPTION_BOTTOM_Y): fora dos 35 % de baixo do Meta, abaixo do rosto em plano médio (25–45 %). */
-export const FACELESS15_LEGENDA_Y = '62%'
+// KINEO-LEGENDA-15S-MAIS-BAIXA-0411 [TRAVA 8.2 — fundador 05/11: "abaixar a legenda... tá muito pro meio do vídeo"]: 62 % vira 72 %, acima do nome e da descrição do TikTok, que começam perto de 81 %.
+export const FACELESS15_LEGENDA_Y = '72%'
 export const FACELESS15_LEGENDA_FONTE = 64
 export const FACELESS15_LEGENDA_FONTE_GANCHO = 80
 export const FACELESS15_LEGENDA_PALAVRAS = 5
