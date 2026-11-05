@@ -2,7 +2,7 @@
 
 // KINEO-CARDS-GIRO-2410 — SSR first poster, two buffers and per-clip framing.
 import { useEffect, useRef, type CSSProperties } from 'react'
-import { homeCardClips, type HomeCycleCardId } from '@/lib/ui/homeThreeCards'
+import { homeCardClips, type HomeCardPlaylist, type HomeCycleCardId } from '@/lib/ui/homeThreeCards'
 import { attachHomeCardPlayback } from '@/lib/ui/homeCardPlayback'
 
 export const HOME_CARD_CYCLE_CSS = `
@@ -13,9 +13,9 @@ export const HOME_CARD_CYCLE_CSS = `
 @media(prefers-reduced-motion:reduce){.k3c-card .k3c-media[data-home-cycle] video[data-home-cycle-slot]{display:none;transition:none}}
 `
 
-export default function HomeCardCycleMedia({ card, language }: { card: HomeCycleCardId; language: string }) {
+export default function HomeCardCycleMedia({ card, language, playlist }: { card: HomeCycleCardId; language: string; playlist?: HomeCardPlaylist }) { // KINEO-CARDS-TRAILER-0411 — playlist opcional: sem ela, as listas de sempre
   const root = useRef<HTMLSpanElement>(null)
-  const clips = homeCardClips(card, language)
+  const clips = playlist ?? homeCardClips(card, language) // KINEO-CARDS-TRAILER-0411
   useEffect(() => {
     if (root.current) return attachHomeCardPlayback(root.current, clips)
   }, [clips])

@@ -37,6 +37,7 @@ export function attachHomeCardPlayback(root: HTMLElement, clips: readonly HomeCa
     video.style.setProperty('--home-clip-scale', String(clip.scale ?? 1))
     video.poster = clip.poster
     video.preload = next ? 'auto' : 'none'
+    video.loop = clips.length === 1 // KINEO-CARDS-TRAILER-0411 — card de um clipe só: laço nativo, sem a pausa do "ended, volta a 0, toca de novo"
     assigned[slot] = index
     video.src = clip.src
     video.load()

@@ -14,6 +14,7 @@ import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/Interface
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010
 import { homeCardBotao } from '@/lib/ui/homeCardBotoes0411' // KINEO-BOTOES-SEM-FREE-0411 — o nome do botão, sem "free"
+import { HOME_CARD_TRAILERS_0411 } from '@/lib/ui/homeCardsTrailer0411' // KINEO-CARDS-TRAILER-0411
 import {
   // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros")
   HOME_CARD_COPY,
@@ -89,7 +90,7 @@ export const HOME_THREE_CARDS_CSS = `
 
 // KINEO-CARDS-GIRO-2410 — all cards share the event-driven double buffer.
 function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
-  return <HomeCardCycleMedia card={card} language={language} />
+  return <HomeCardCycleMedia card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
 }
 
 export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {

@@ -13,10 +13,11 @@ import { HOME_CARD_EVENT } from '@/lib/ui/homeThreeCards'
 import { HOME_KIDS_CARD_ID, HOME_KIDS_CARD_POSITION, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — posição padrão preservada.
 
 import HomeCardCycleMedia from '@/components/home/HomeCardCycleMedia' // KINEO-CARDS-GIRO-2410
+import { HOME_CARD_TRAILERS_0411 } from '@/lib/ui/homeCardsTrailer0411' // KINEO-CARDS-TRAILER-0411
 
 function KidsMedia() {
   const language = useInterfaceLanguage()
-  return <HomeCardCycleMedia card="kids_cartoon" language={language} />
+  return <HomeCardCycleMedia card="kids_cartoon" language={language} playlist={HOME_CARD_TRAILERS_0411.kids_cartoon} /> // KINEO-CARDS-TRAILER-0411 — o card de Cartoon mostra só o trailer
 }
 
 export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION }: { signedIn: boolean; position?: number }) { // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
