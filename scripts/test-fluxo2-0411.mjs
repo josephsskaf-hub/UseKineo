@@ -47,7 +47,53 @@ async function provaDaTela(mutar = {}) {
   return erros
 }
 // As provas dos outros itens entram aqui.
-async function provasExtras() {}
+async function provasExtras(h) { await provaB(h) }
+
+// ── B: a promoção do Kling 4 sai do formulário; a linha no botão final diz a verdade para quem ela vale
+const lease = (reason, promoAvailable = reason === 'ok') => ({ paidLive: true, promoLive: true, promoAvailable, publicOfferLive: true, reason, checkedAt: new Date(Date.now() - 1000).toISOString(), validUntil: new Date(Date.now() + 10000).toISOString(), expiresAt: null, remainingToday: 3 })
+const ESCOLHA = (extra = {}) => SALVO({ stage: 'choose', stills: STILLS, still_id: 's1', engine_used: 'kling4', ...extra })
+async function provaB({ client, nodeText, exige, textos, kineo }) {
+  const botao = (u) => u.nodes().find((n) => n.type === 'button' && /Generate video with this/.test(nodeText(n)))
+  const tela = async (availability, saved = ESCOLHA(), extra = {}) => { const u = client({ lang: 'en', internalControls: false, form: VAZIO, saved, availability, ...extra }); u.render(); await u.settle(); return u }
+  const linha = (u) => { const n = kineo(u, 'ads-kling4-linha'); return n ? nodeText(n) : null }
+  const assinante = await tela(lease('ok'))
+  exige(/Included in your Kling 4.0 promotion · 0 credits/.test(linha(assinante) ?? ''), 'B assinante com cota: a linha diz incluído')
+  exige(/· 0 credits/.test(nodeText(botao(assinante) ?? '')), 'B assinante com cota: o botão diz 0 créditos')
+  assinante.responses.push([202, { order_id: ID, status: 'generating', stage: 'chosen' }])
+  await assinante.click('Generate video with this')
+  exige(assinante.requests.at(-1)?.body?.kling4_expect_promo === true, 'B assinante com cota: o pedido confirma a promoção')
+  const fora = await tela(lease('not_subscribed'))
+  exige(linha(fora) === null && /· 41 credits/.test(nodeText(botao(fora) ?? '')), 'B quem não assina: sem linha, preço no botão')
+  const semPlano = await tela(lease('plan_not_included'))
+  exige(linha(semPlano) === null, 'B plano fora da promoção: sem linha')
+  const usada = await tela(lease('daily_limit'))
+  exige(/used up: this video uses 41 credits/.test(linha(usada) ?? '') && /· 41 credits/.test(nodeText(botao(usada) ?? '')), 'B cota do dia usada: a linha diz que usa créditos, com o número do botão')
+  const proprio = await tela(lease('daily_limit'), ESCOLHA({ kling4_promo: { free: true, reason: 'ok' } }))
+  exige(/Included/.test(linha(proprio) ?? '') && /· 0 credits/.test(nodeText(botao(proprio) ?? '')), 'B a reserva deste pedido manda: a 3ª do dia segue incluída')
+  proprio.responses.push([202, { order_id: ID, status: 'generating', stage: 'chosen' }])
+  await proprio.click('Generate video with this')
+  exige(proprio.requests.at(-1)?.body?.kling4_expect_promo === true, 'B a reserva deste pedido vai no pedido')
+  const negado = await tela(lease('ok'), ESCOLHA({ kling4_promo: { free: false, reason: 'daily_cap' } }))
+  exige(/used up/.test(linha(negado) ?? '') && /· 41 credits/.test(nodeText(botao(negado) ?? '')), 'B pedido sem reserva grátis: a leitura geral não promete de novo')
+  negado.responses.push([202, { order_id: ID, status: 'generating', stage: 'chosen' }])
+  await negado.click('Generate video with this')
+  exige(negado.requests.at(-1)?.body?.kling4_expect_promo === false, 'B pedido sem reserva grátis: não pede promoção')
+  const recusa = await tela(lease('ok'))
+  recusa.responses.push([409, { error: 'kling4_promo_unavailable', credits: 45, reason: 'daily_cap' }])
+  await recusa.click('Generate video with this')
+  exige(recusa.states[9].includes('it uses 45 credits') && recusa.states[9].includes('Nothing was charged'), 'B recusa da promoção diz o preço, sem cobrar')
+  exige(/used up/.test(linha(recusa) ?? '') && /· 45 credits/.test(nodeText(botao(recusa) ?? '')) && recusa.requests.length === 1, 'B depois da recusa o botão e a linha mudam, e nada parte sozinho')
+  const antigo = await tela(lease('ok'), ESCOLHA({ engine_used: undefined }))
+  exige(linha(antigo) === null && /· 41 credits/.test(nodeText(botao(antigo) ?? '')), 'B rascunho sem motor gravado: a linha não contradiz o botão')
+  const amostra = await tela(lease('ok'), ESCOLHA({ sample: true }))
+  exige(linha(amostra) === null, 'B amostra grátis: sem linha')
+  const form = client({ lang: 'en', internalControls: false, form: VAZIO, availability: lease('ok') }); form.render()
+  exige(linha(form) === null && !/Kling 4\.0 free for 30 days/.test(textos(form)), 'B o formulário não fala da promoção')
+  const pt = await tela(lease('ok'), ESCOLHA(), { lang: 'pt' })
+  exige(/Incluído na sua promoção/.test(linha(pt) ?? ''), 'B a linha em português')
+  const es = await tela(lease('daily_cap'), ESCOLHA(), { lang: 'es' })
+  exige(/La cuota gratis de hoy/.test(linha(es) ?? ''), 'B a linha em espanhol')
+}
 
 const erros = await provaDaTela()
 for (const e of erros) checa(e, false)
@@ -58,7 +104,28 @@ checa('A a sessão entrega a confirmação à tela', simples.includes('<AdsV2Esc
 checa('A o invólucro liga a sessão simples ao Start over de sempre', /<AdsV2SimpleSession[\s\S]{0,900}onAskStartOver=\{\(\) => setConfirmingReset\(true\)\}/.test(cliente))
 checa('A o servidor não mudou: Start over segue sendo a remontagem da sessão', cliente.includes('setSession((s) => s + 1)') && cliente.includes('onClick={startOver}'))
 
+// ── B: a regra pura e a fiação
+const P = createOfflineLoader()('lib/kling4PaidPresentation.ts')
+for (const [reason, esperado] of [['ok', 'included'], ['daily_limit', 'used_up'], ['daily_cap', 'used_up'], ['unavailable', 'unconfirmed'], ['subscription_unverified', 'unconfirmed'], ['not_subscribed', null], ['plan_not_included', null], ['expired', null], ['promo_off', null]]) {
+  checa(`B kling4AdLine com ${reason} = ${esperado}`, P.kling4AdLine(lease(reason), null) === esperado)
+}
+checa('B leitura vencida ou ausente não promete nada', P.kling4AdLine({ ...lease('ok'), validUntil: new Date(Date.now() - 1).toISOString() }, null) === null && P.kling4AdLine(null, null) === null)
+checa('B o que o pedido gravou vence a leitura geral', P.kling4AdLine(lease('daily_limit'), { free: true, reason: 'ok' }) === 'included' && P.kling4AdLine(lease('ok'), { free: false, reason: 'not_subscribed' }) === null)
+const fonteUI = ler(UI)
+checa('B o cartão saiu da tela', !fonteUI.includes('Kling4PaidNotice surface') && !fonteUI.includes('import Kling4PaidNotice'))
+checa('B a linha mora no bloco do botão final', fonteUI.indexOf('data-kineo="ads-kling4-linha"') > fonteUI.indexOf("void run('render')"))
+checa('B o servidor entrega a decisão do pedido', ler('lib/ads/cena/escolhaStills.ts').includes('kling4_promo: { free: promoDoPedido.free') && ler('lib/ads/cena/internalEscolha.ts').includes('stored.kling4Promo = { free: promo.isFree, reason: promo.reason }'))
+
 const MUTANTES = [
+  ['B cartão de volta no formulário', (t) => t.replace('{bfCampaign && !orderId ? <section', '{!orderId ? <p>Kling 4.0 free for 30 days</p> : null}{bfCampaign && !orderId ? <section'), /não fala da promoção/],
+  ['B linha para todo mundo', (t) => t.replace("const linhaKling4 = linhaBruta === 'included' && !promoZero ? null : linhaBruta", "const linhaKling4 = 'included' as 'included' | 'used_up' | 'unconfirmed' | null"), /quem não assina|amostra grátis|formulário/],
+  ['B a leitura geral vence o pedido', (t) => t.replace('const promoZero = orderPromo ? orderPromo.free : ', 'const promoZero = '), /reserva deste pedido|não promete de novo/],
+  ['B promessa vai fixa do que a leitura diz', (t) => t.replace("route === 'kling4' && promoZero, kling4_expected_engine", "route === 'kling4' && kling4PromoZeroCredits(kling4Availability, 15), kling4_expected_engine"), /reserva deste pedido|não pede promoção/],
+  ['B recusa volta a ser erro genérico', (t) => t.replace("if (code === 'kling4_promo_unavailable') return", "if (code === 'kling4_promo_unavailable_off') return"), /diz o preço/],
+  ['B recusa não muda o botão', (t) => t.replace("else if (data.error === 'kling4_promo_unavailable') setOrderPromo", "else if (data.error === 'off') setOrderPromo"), /botão e a linha mudam/],
+  ['B linha contradiz o botão', (t) => t.replace("const linhaKling4 = linhaBruta === 'included' && !promoZero ? null : linhaBruta", 'const linhaKling4 = linhaBruta'), /não contradiz o botão/],
+  ['B a tela esquece o motor ao recarregar', (t) => t.replace('setOrderEngine(saved.engine_used as Form', 'void (saved.engine_used as Form'), /assinante com cota/],
+  ['B a tela esquece o pedido ao recarregar', (t) => t.replace("setOrderPromo(typeof saved.kling4_promo?.free === 'boolean'", "setOrderPromo(typeof saved.kling4_promo?.free === 'number'"), /reserva deste pedido/],
   ['A linha some', (t) => t.replace('{orderId ? <div className="ace-andamento"', '{false ? <div className="ace-andamento"'), /duas saídas/],
   ['A travado de volta', (t) => t.replace("t3('Este é o seu anúncio em andamento', 'This is your ad in progress', 'Este es tu anuncio en curso')", "'Choices locked'"), /Choices locked|duas saídas/],
   ['A novo anúncio apaga sem confirmar', (t) => t.replace('if (onAskStartOver) onAskStartOver(); else reset()', 'reset()'), /confirmação de sempre/],
