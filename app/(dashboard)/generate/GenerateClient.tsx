@@ -12077,6 +12077,24 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, error]) // KINEO-FILME-GRATIS-COMECA-0211
 
+  // ═══ KINEO-BOTAO-35S-0411 [TRAVA 8.2 — fundador 03/11: "já pode arrumar"] — "Make it 35s" começa o filme ═══
+  // O caso (breakthroughs2026, 04/11, pagante, 97 cr): a recusa do roteiro curto oferecia "Make it 35s"; o clique só trocava a
+  // duração e devolvia a tela parada; ela foi embora. Em 30 dias: 1 clique, 0 filmes depois.
+  // Reusa o trilho do "Make my free film" (o clique é o consentimento): a análise roda no render seguinte, já com a duração nova,
+  // sem prévia e sem subida automática (fixarDuracao: "30-40 seconds" no texto voltaria a 60 s e à MESMA recusa); em 'options'
+  // despacha UMA vez pelo handleGenerateGuarded (qualidade, pacote caindo, saldo) e o aviso da ordem colada segura. Recusa nova: a tela dela, sem repetir.
+  function duracaoMenorEmCurso(): boolean { // KINEO-BOTAO-35S-0411 — duplo clique e reentrada
+    return filmeGratisDespachoRef.current !== null || generationInFlightRef.current || isProcessingPhase(phase)
+  }
+  function comecarNaDuracaoMenor(segundos: number) { // KINEO-BOTAO-35S-0411
+    const texto = (structuredScriptRef.current ?? prompt).trim()
+    if (!texto || segundos === duration) return // nada para filmar, ou a duração que acabou de ser recusada: não recomeça
+    studioOneClickFiredRef.current = true
+    studioAutoFirePendingRef.current = false
+    filmeGratisDespachoRef.current = { at: Date.now(), started: false, analisou: false, segundos: segundos as Duration, pedido: { texto, modo: scriptMode, descartouRoteiro: false, estruturar: false } }
+    setFilmeGratisTick((t) => t + 1)
+  }
+
   // PUSH #38 — a live TAAFT signup reached /generate four times and opened
   // pricing, but never fired analyze_idea_clicked. The only primary CTA sat
   // below uploads, examples, engines and duration. Give a free account with
@@ -17193,6 +17211,7 @@ export default function GenerateClient({
                         // canônica — e só com um valor que o seletor tem.
                         <button
                           onClick={() => {
+                            if (duracaoMenorEmCurso()) return // KINEO-BOTAO-35S-0411
                             const segundos = expandState.suggestedDuration as number
                             // KINEO-351 — NÃO PERDER O TEXTO. O #350 apagava o
                             // candidato aqui e na edição manual: a tela dizia
@@ -17216,12 +17235,14 @@ export default function GenerateClient({
                               seconds: segundos,
                               after_expand_exhausted: true,
                               from_outcome: expandState.kind,
+                              starts_film: true, // KINEO-BOTAO-35S-0411
                             })
+                            comecarNaDuracaoMenor(segundos) // KINEO-BOTAO-35S-0411
                           }}
                           className="rounded-xl px-5 py-2.5 text-sm font-bold"
                           style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                         >
-                          Make it {expandState.suggestedDuration}s instead — this text fits
+                          Make it {expandState.suggestedDuration}s now ({costForDurationOption(expandState.suggestedDuration as Duration)} cr) — this text fits {/* KINEO-BOTAO-35S-0411 — o clique agora gasta: o custo vem no rótulo, da função que cobra */}
                         </button>
                       )}
                     <button
@@ -17336,11 +17357,12 @@ export default function GenerateClient({
                   {scriptTooShort.suggestedDuration > 0 && (
                     <button
                       onClick={() => {
+                        if (duracaoMenorEmCurso()) return // KINEO-BOTAO-35S-0411
                         setDuration(scriptTooShort.suggestedDuration as Duration)
                         setScriptTooShort(null)
                         setError(null)
                         setPhase('idle')
-                        void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration })
+                        void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration, starts_film: true }) // KINEO-BOTAO-35S-0411
                         void trackEvent('script_completion_action_clicked', {
                           cause: 'narration_short',
                           screen: 'narration_short',
@@ -17349,11 +17371,12 @@ export default function GenerateClient({
                           deterministic: true,
                           seconds: scriptTooShort.suggestedDuration,
                         })
+                        comecarNaDuracaoMenor(scriptTooShort.suggestedDuration) // KINEO-BOTAO-35S-0411
                       }}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold"
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                     >
-                      Make it {scriptTooShort.suggestedDuration}s instead
+                      Make it {scriptTooShort.suggestedDuration}s now ({costForDurationOption(scriptTooShort.suggestedDuration as Duration)} cr) {/* KINEO-BOTAO-35S-0411 */}
                     </button>
                   )}
                   <button

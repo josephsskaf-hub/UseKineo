@@ -3,6 +3,7 @@
 // Recibo EXATO desta entrega no GenerateClient: para cada arquivo existente, o hash de antes (origin/main),
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
 // estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais continua reprovando. Nunca usar em lib/app.
+import { semBotao35s0411 } from './desfaz-botao-35s-0411.mjs' // KINEO-BOTAO-35S-0411 — camada mais nova (04/11) sai primeiro
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semDuracaoColadaSaldo0411(source, file) {
+  source = semBotao35s0411(source, file) // KINEO-BOTAO-35S-0411
   const entry = DURACAO_COLADA_SALDO_0411.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -29,6 +31,7 @@ export function semDuracaoColadaSaldo0411(source, file) {
 /** O arquivo de hoje é exatamente "origin/main + esta entrega"? (arquivo novo: hash exato e ausente na origin/main) */
 export function deltaDuracaoColadaSaldo0411Exato(source, upstream, file) {
   if (typeof source !== 'string') return false
+  source = semBotao35s0411(source, file) // KINEO-BOTAO-35S-0411
   const path = rel(file), text = lf(source), entry = DURACAO_COLADA_SALDO_0411.scope[path]
   if (entry) return typeof upstream === 'string' && sha(text) === entry.afterSha256 && sha(lf(upstream)) === entry.beforeSha256 && lf(semDuracaoColadaSaldo0411(text, path)) === lf(upstream)
   const added = DURACAO_COLADA_SALDO_0411.addedSources[path]

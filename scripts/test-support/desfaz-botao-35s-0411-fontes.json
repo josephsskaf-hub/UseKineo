@@ -1,0 +1,44 @@
+{
+ "base": "363b2db0722e28a50cc0e1baf3736efb1b28a682",
+ "scope": {
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "34427870c35f85881505e1ce16fb0203019450e814425b9f2f8ffd89247eb0ea",
+   "afterSha256": "ea0976c2c359a656c32bbf6387d45efb7ce6f0e16f29a411d171ce9a177a8657",
+   "hunks": [
+    {
+     "before": "\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened",
+     "after": "\n  // ═══ KINEO-BOTAO-35S-0411 [TRAVA 8.2 — fundador 03/11: \"já pode arrumar\"] — \"Make it 35s\" começa o filme ═══\n  // O caso (breakthroughs2026, 04/11, pagante, 97 cr): a recusa do roteiro curto oferecia \"Make it 35s\"; o clique só trocava a\n  // duração e devolvia a tela parada; ela foi embora. Em 30 dias: 1 clique, 0 filmes depois.\n  // Reusa o trilho do \"Make my free film\" (o clique é o consentimento): a análise roda no render seguinte, já com a duração nova,\n  // sem prévia e sem subida automática (fixarDuracao: \"30-40 seconds\" no texto voltaria a 60 s e à MESMA recusa); em 'options'\n  // despacha UMA vez pelo handleGenerateGuarded (qualidade, pacote caindo, saldo) e o aviso da ordem colada segura. Recusa nova: a tela dela, sem repetir.\n  function duracaoMenorEmCurso(): boolean { // KINEO-BOTAO-35S-0411 — duplo clique e reentrada\n    return filmeGratisDespachoRef.current !== null || generationInFlightRef.current || isProcessingPhase(phase)\n  }\n  function comecarNaDuracaoMenor(segundos: number) { // KINEO-BOTAO-35S-0411\n    const texto = (structuredScriptRef.current ?? prompt).trim()\n    if (!texto || segundos === duration) return // nada para filmar, ou a duração que acabou de ser recusada: não recomeça\n    studioOneClickFiredRef.current = true\n    studioAutoFirePendingRef.current = false\n    filmeGratisDespachoRef.current = { at: Date.now(), started: false, analisou: false, segundos: segundos as Duration, pedido: { texto, modo: scriptMode, descartouRoteiro: false, estruturar: false } }\n    setFilmeGratisTick((t) => t + 1)\n  }\n\n  // PUSH #38 — a live TAAFT signup reached /generate four times and opened"
+    },
+    {
+     "before": "                          onClick={() => {\n                            const segundos = expandState.suggestedDuration as number",
+     "after": "                          onClick={() => {\n                            if (duracaoMenorEmCurso()) return // KINEO-BOTAO-35S-0411\n                            const segundos = expandState.suggestedDuration as number"
+    },
+    {
+     "before": "                              from_outcome: expandState.kind,\n                            })\n                          }}",
+     "after": "                              from_outcome: expandState.kind,\n                              starts_film: true, // KINEO-BOTAO-35S-0411\n                            })\n                            comecarNaDuracaoMenor(segundos) // KINEO-BOTAO-35S-0411\n                          }}"
+    },
+    {
+     "before": "                        >\n                          Make it {expandState.suggestedDuration}s instead — this text fits\n                        </button>",
+     "after": "                        >\n                          Make it {expandState.suggestedDuration}s now ({costForDurationOption(expandState.suggestedDuration as Duration)} cr) — this text fits {/* KINEO-BOTAO-35S-0411 — o clique agora gasta: o custo vem no rótulo, da função que cobra */}\n                        </button>"
+    },
+    {
+     "before": "                      onClick={() => {\n                        setDuration(scriptTooShort.suggestedDuration as Duration)",
+     "after": "                      onClick={() => {\n                        if (duracaoMenorEmCurso()) return // KINEO-BOTAO-35S-0411\n                        setDuration(scriptTooShort.suggestedDuration as Duration)"
+    },
+    {
+     "before": "                        setPhase('idle')\n                        void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration })\n                        void trackEvent('script_completion_action_clicked', {",
+     "after": "                        setPhase('idle')\n                        void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration, starts_film: true }) // KINEO-BOTAO-35S-0411\n                        void trackEvent('script_completion_action_clicked', {"
+    },
+    {
+     "before": "                        })\n                      }}",
+     "after": "                        })\n                        comecarNaDuracaoMenor(scriptTooShort.suggestedDuration) // KINEO-BOTAO-35S-0411\n                      }}"
+    },
+    {
+     "before": "                    >\n                      Make it {scriptTooShort.suggestedDuration}s instead\n                    </button>",
+     "after": "                    >\n                      Make it {scriptTooShort.suggestedDuration}s now ({costForDurationOption(scriptTooShort.suggestedDuration as Duration)} cr) {/* KINEO-BOTAO-35S-0411 */}\n                    </button>"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
