@@ -16,7 +16,7 @@ import Footer from '@/components/Footer'
 import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
 import { getEngineBenchmarkStats, type EngineBenchmarkRow } from '@/lib/engineBenchmarkStats'
 import { STUDY_REVALIDATE_SECONDS } from '@/lib/studyStats'
-import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
+import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 import { ENGINE_FACTS } from '@/lib/kineoFacts'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
@@ -68,23 +68,33 @@ type TableRow = EngineBenchmarkRow & {
   starterValue: string
   fitsStarter: boolean
   paused: boolean
+  /** KINEO-MOTORES-SAEM-0511 — saiu da oferta: o número medido fica (é história), o preço não se anuncia. */
+  retired: boolean
+  href: string | null
 }
+
+// KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — esta é a página para onde vão os 301 do Veo e do Kling 2.5. Quem chega precisa ler o que houve e o que usar.
+const RETIRED_MEASURED: Readonly<Record<string, string>> = { cinematic_veo: 'veo', cinematic_kling: 'kling' }
+const RETIRED_NOTICE = 'Veo 3.1 and Kling 2.5 left Kineo’s engine list on November 5, 2026, so they cannot be picked for new films. Films already made with them keep their engine label and stay in your library. For new films: Seedance 1.5 for frequent narrated Shorts, MiniMax H3 for a character who speaks on camera, Kling 4.0 for premium directed films.'
 
 function buildRows(rows: EngineBenchmarkRow[]): TableRow[] {
   const starterMinorPerCredit = TIER_PRICES.starter.usd / TIER_CREDITS.starter
   const out: TableRow[] = []
   for (const r of rows) {
-    const slug = ENGINE_SLUGS.find((s) => ENGINES[s].qualityMode === r.qualityMode)
+    const retiredSlug = RETIRED_MEASURED[r.qualityMode]
+    const slug = retiredSlug ?? ENGINE_SLUGS.find((s) => ENGINES[s].qualityMode === r.qualityMode)
     if (!slug) continue
     const engine = ENGINES[slug]
     const credits60 = creditCostForDuration(r.qualityMode as Quality, true, REFERENCE_SECONDS)
     out.push({
       ...r,
       slug,
-      name: engine.name,
+      name: engineOfferName(slug),
+      retired: Boolean(retiredSlug),
+      href: retiredSlug ? null : engineOfferPath(slug),
       // A frase de ENGINE_FACTS do Kineo 1 termina com um ponteiro interno ("described separately in trialAccess")
       // que faz sentido no /api/facts e não numa tabela pública: sai daqui, o resto fica igual à fonte.
-      what: (ENGINE_FACTS.find((f) => f.name === engine.name)?.what ?? engine.bestFor).replace("; temporary new-account trial access is described separately in trialAccess.", "."),
+      what: (ENGINE_FACTS.find((f) => f.name === engineOfferName(slug))?.what ?? engine.bestFor).replace("; temporary new-account trial access is described separately in trialAccess.", "."),
       credits60,
       starterValue: formatCheckoutMoney('usd', Math.round(starterMinorPerCredit * credits60)),
       fitsStarter: credits60 <= TIER_CREDITS.starter,
@@ -99,7 +109,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = titleFor(s.totalFilms)
   const description =
     `How many finished Shorts each AI video engine actually delivered on Kineo in the last ${s.windowDays} days — ` +
-    `Seedance 1.5, Veo 3.1, Kling 2.5, Kling 3 and MiniMax H3 — with distinct creators, median length and ` + // KINEO-FILME-GRATIS-15S-2026-09-29
+    `Seedance 1.5, MiniMax H3 and Kling 4.0, plus Veo 3.1 and Kling 2.5 until they left the list on November 5, 2026 — with distinct creators, median length and ` + // KINEO-FILME-GRATIS-15S-2026-09-29 · KINEO-MOTORES-SAEM-0511
     `credits per 60-second film. Internal accounts excluded, free to cite.`
   return {
     title,
@@ -129,14 +139,13 @@ export default async function SeedanceVsVeoVsKlingPage() {
       a:
         `On Kineo's own data for the last ${s.windowDays} days, Seedance 1.5 is the generative engine people actually ` +
         `finish films with: ${seedance?.films ?? 0} finished Shorts by ${seedance?.people ?? 0} people, against ` +
-        `${veo?.films ?? 0} on Veo 3.1 and ${kling?.films ?? 0} on Kling 2.5. Veo and Kling cost more credits per ` +
-        `film (${veo?.credits60 ?? '—'} and ${kling?.credits60 ?? '—'} vs ${seedance?.credits60 ?? '—'} for 60 s), so ` +
-        `their samples are small — read them as "rarely chosen", not as a quality verdict.`,
+        `${veo?.films ?? 0} on Veo 3.1 and ${kling?.films ?? 0} on Kling 2.5, read as "rarely chosen", not as a quality verdict. ` +
+        RETIRED_NOTICE,
     },
     {
       q: 'How much does one 60-second AI Short cost on each engine?',
       a:
-        `In credits: ${rows.map((r) => `${r.name} ${r.credits60}`).join(', ')}. At the Starter plan's credit price ` +
+        `In credits: ${rows.filter((r) => !r.retired).map((r) => `${r.name} ${r.credits60}`).join(', ')}. At the Starter plan's credit price ` +
         `(${starterPrice}/month for ${TIER_CREDITS.starter} credits) a 60-second Seedance film is worth ` +
         `${seedance?.starterValue ?? '—'} of credits. Engines above ${TIER_CREDITS.starter} credits do not fit in one ` +
         `Starter month.`,
@@ -194,6 +203,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
           Original data · {s.measured ? `read ${measuredHuman}` : `last reading ${measuredHuman}`}
         </p>
         <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.4rem)', fontWeight: 900, lineHeight: 1.15, margin: '0 0 16px' }}>{title}</h1>
+        <p data-kineo="motores-saem-0511" style={{ color: '#ffb454', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 12px' }}>{RETIRED_NOTICE}</p>
+        <p data-kineo="motores-saem-0511" style={{ color: '#ffb454', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 12px' }}>{RETIRED_NOTICE}</p>
         {models ? <p data-kineo="geo-r3-answer" style={{ color: '#f5f5f7', fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 12px' }}>{models.lead}</p> : null}
         <p style={{ color: MUTED, fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           Kineo turns a topic or a finished script into a narrated vertical Short, and lets you pick the engine that
@@ -229,7 +240,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
               {rows.map((r, i) => (
                 <tr key={r.qualityMode} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: i % 2 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
                   <td style={{ ...td, fontWeight: 800, whiteSpace: 'nowrap' }}>
-                    <Link href={`/ai-video-generator/${r.slug}`} style={{ color: '#f5f5f7', textDecoration: 'none' }}>{r.name}</Link>
+                    {r.href ? <Link href={r.href} style={{ color: '#f5f5f7', textDecoration: 'none' }}>{r.name}</Link> : r.name}
+                    {r.retired ? <div style={{ color: '#ffb454', fontSize: '0.75rem', fontWeight: 700 }}>no longer offered</div> : null}
                     {r.paused ? <div style={{ color: '#ffb454', fontSize: '0.75rem', fontWeight: 700 }}>paused for maintenance</div> : null}
                   </td>
                   <td style={td}>
@@ -238,10 +250,10 @@ export default async function SeedanceVsVeoVsKlingPage() {
                   </td>
                   <td style={td}>{r.people}</td>
                   <td style={td}>{r.medianSeconds === null ? '—' : `${Math.round(r.medianSeconds)} s`}</td>
-                  <td style={td}>{r.credits60}</td>
+                  <td style={td}>{r.retired ? '—' : r.credits60}</td>
                   <td style={td}>
-                    {r.starterValue}
-                    {!r.fitsStarter ? <div style={{ color: MUTED, fontSize: '0.75rem' }}>more than one Starter month</div> : null}
+                    {r.retired ? '—' : r.starterValue}
+                    {!r.retired && !r.fitsStarter ? <div style={{ color: MUTED, fontSize: '0.75rem' }}>more than one Starter month</div> : null}
                   </td>
                   <td style={{ ...td, color: MUTED, minWidth: 260 }}>{r.what}</td>
                 </tr>
@@ -254,8 +266,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
         <p style={{ color: '#d2d2d7', lineHeight: 1.65, margin: '0 0 12px' }}>
           Seedance 1.5 is where generative Shorts actually get finished: {seedance?.films ?? 0} films by {seedance?.people ?? 0}{' '}
           people, at {seedance?.credits60 ?? '—'} credits for 60 seconds. Veo 3.1 ({veo?.films ?? 0} films) and Kling 2.5
-          ({kling?.films ?? 0}) are chosen far less often — they cost {veo?.credits60 ?? '—'} and {kling?.credits60 ?? '—'} credits
-          per 60-second film, and at that size of sample the honest reading is &ldquo;rarely picked&rdquo;, not &ldquo;worse&rdquo;.
+          ({kling?.films ?? 0}) were chosen far less often before they left the list, and at that size of sample the honest reading is &ldquo;rarely picked&rdquo;, not &ldquo;worse&rdquo;.
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público e desta tabela (ENGINE_SLUGS). */}
           {/* KINEO-LLMS-K4-2910 */}
           {` The free way to try Kineo: a new account’s trial credits${GRANT_COUNTRY_CLAUSE} pay for one 15-second film made with ${FREE_FILM_ENGINE_NAME}.`}

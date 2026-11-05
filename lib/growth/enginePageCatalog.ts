@@ -2,7 +2,7 @@
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
-import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
+import { H3MAX_PUBLIC, engineOffered } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511
 import { engineIsPaidPlansOnly } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
@@ -44,7 +44,7 @@ const GEO_PLANS: CitationPlan[] = [
 const GEO_TRIAL = { credits: TRIAL_CREDITS_SHOWN, countryClause: GRANT_COUNTRY_CLAUSE, freeFilmLabel: FREE_FILM_LABEL, freeFilmCredits: TRIAL_FREE_FILM_CREDITS }
 /** Página de motor indexável = motor fora de manutenção e liberado pelo interruptor de lançamento (S25 só com S25_PUBLIC). */
 function geoVisible(param: EngineLandingParam): boolean {
-  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC) && (param !== 'h3max' || H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13
+  return engineOffered(param) && !enginePaused(param) && (param !== 's25' || S25_PUBLIC) && (param !== 'h3max' || H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511
 }
 // KINEO-S25-ABRE-2026-10-06 — quem usa o motor e se o clipe avulso dele está à venda: o 2.5 é só de plano pago (o servidor
 // recusa trial e conta grátis, lib/s25Access.ts). KINEO-S25-CLIPES-2026-10-06 — o clipe do 2.5 está à venda para o público
@@ -54,7 +54,7 @@ function accessFor(param: EngineLandingParam): CitationAccess {
   return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || clipS25Visible(null) } : OPEN_ACCESS
 }
 function geoFor(slug: string, param: EngineLandingParam): EngineCitation | null {
-  return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL, access: accessFor(param) }) : null
+  return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: slug === 'kling-3' ? 'Kling 3' : ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL, access: accessFor(param) }) : null
 }
 /** A entrada citável "onde usar + quanto custa" (+ "é mais barato direto?" quando há preço direto conferido). */
 function geoFaq(geo: EngineCitation | null): { q: string; a: string }[] {
@@ -179,8 +179,8 @@ export const ENGINES: Record<string, Engine> = {
         a: 'ByteDance Seedance 1.5 Pro (text-to-video), called scene by scene from the script Kineo writes for your topic. The badge on every video on this page is the real engine that rendered it — nothing is relabelled.',
       },
       {
-        q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${KLING_COST} with Kling 2.5 or ${VEO_COST} with Veo 3.1. New accounts${GRANT_COUNTRY_CLAUSE} receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
+        q: 'Seedance, MiniMax or Kling — which should I pick?',
+        a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${H3_COST} with MiniMax H3 or ${KLING3_COST} with Kling 4.0. New accounts${GRANT_COUNTRY_CLAUSE} receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
       ...(SEEDANCE_VS_25 ? [SEEDANCE_VS_25.faq] : []), // KINEO-GEO-RODADA2-2026-10-08 — Seedance 1.5 × 2.5
     ],
@@ -341,8 +341,8 @@ export const ENGINES: Record<string, Engine> = {
         a: `${H3_COST} credits per 60-second finished film. The Creator monthly grant fits ${videosPerMonth('basic', 'cinematic_h3')} films; Studio fits ${videosPerMonth('pro', 'cinematic_h3')}.`,
       }]),
       {
-        q: 'Why choose MiniMax H3 over Kling 3?',
-        a: `Cost and directed dialogue. Kling 3 costs ${KLING3_COST} credits, so the Creator monthly grant fits ${videosPerMonth('basic', 'cinematic_hollywood')} and Studio ${videosPerMonth('pro', 'cinematic_hollywood')}. H3 costs ${H3_COST}, supports image-anchored scenes and can alternate lip-synced dialogue with documentary narration. Kling 3 still wins when native generated voice and the strongest dialogue scene matter most.`,
+        q: 'Why choose MiniMax H3 over Kling 4.0?',
+        a: `Cost and directed dialogue. Kling 4.0 costs ${KLING3_COST} credits, so the Creator monthly grant fits ${videosPerMonth('basic', 'cinematic_hollywood')} and Studio ${videosPerMonth('pro', 'cinematic_hollywood')}. H3 costs ${H3_COST}, supports image-anchored scenes and can alternate lip-synced dialogue with documentary narration. Kling 3 still wins when native generated voice and the strongest dialogue scene matter most.`,
       },
       {
         q: 'Does MiniMax H3 generate its own audio?',
@@ -366,7 +366,7 @@ export const ENGINES: Record<string, Engine> = {
           h1: 'MiniMax H3 Max AI video generator — the sharpest MiniMax film engine', // KINEO-H3MAX-2026-10-13
           intro: // KINEO-H3MAX-2026-10-13
             `MiniMax H3 Max is the post-trained version of MiniMax H3, running in the same Kineo cinematic pipeline: your script is narrated word for word, every scene is planned against the narration and anchored to its own still image, and Kineo adds captions and a soundtrack before delivering a vertical 1080×1920 master. A 60-second finished film costs ${H3MAX_COST} credits (MiniMax H3: ${H3_COST}), so a Creator plan makes ${videosPerMonth('basic', 'cinematic_h3max')} and a Studio plan ${videosPerMonth('pro', 'cinematic_h3max')} — against ${videosPerMonth('pro', 'cinematic_hollywood')} Kling 3 films at ${KLING3_COST} credits each.`, // KINEO-H3MAX-2026-10-13
-          bestFor: pausedLead('h3max') + 'Narrated cinematic films with people and faces when you want a step up from MiniMax H3 without paying Kling 3 prices.', // KINEO-H3MAX-2026-10-13
+          bestFor: pausedLead('h3max') + 'Narrated cinematic films with people and faces when you want a step up from MiniMax H3 without paying Kling 4.0 prices.', // KINEO-H3MAX-2026-10-13
           tradeoff: 'Renders at 768p rather than 1080p — plenty for a 9:16 Short, and one-click HD Enhance covers the cases where it is not. Narration languages: English, Portuguese and Spanish.', // KINEO-H3MAX-2026-10-13
           faq: [ // KINEO-H3MAX-2026-10-13
             ...(H3MAX_GEO ? geoFaq(H3MAX_GEO) : [{ // KINEO-H3MAX-2026-10-13
@@ -456,7 +456,8 @@ export const RETIRED_ENGINE_SLUGS: readonly string[] = ['kineo-1']
 // hub, do sitemap, da tabela "Every engine, side by side" e dos links "other engines" de toda página de motor. O texto do
 // catálogo fica (mesmo padrão do Kineo 1) para o dia em que o fundador devolver o motor à oferta. Lista separada da do
 // Kineo 1 de propósito: o guardião do Kineo 1 muta a linha acima pelo texto exato.
-export const OFFER_RETIRED_ENGINE_SLUGS: readonly string[] = ['gemini-omni-flash']
+// KINEO-MOTORES-SAEM-0511 — o mesmo para as páginas do Kling 2.5 e do Veo 3.1 (301 para a comparação de motores, next.config.js).
+export const OFFER_RETIRED_ENGINE_SLUGS: readonly string[] = ['gemini-omni-flash', 'kling', 'veo']
 export const ENGINE_SLUGS = Object.keys(ENGINES).filter((slug) => !RETIRED_ENGINE_SLUGS.includes(slug) && !OFFER_RETIRED_ENGINE_SLUGS.includes(slug))
 
 // ═══ KINEO-MOTORES-GEO-2026-10-06 — a camada citável por slug e a régua "motor desligado não tem página indexável" ═══
@@ -473,6 +474,14 @@ export const ENGINE_GEO: Record<string, EngineCitation | null> = {
   ...(H3MAX_PUBLIC ? { 'minimax-h3-max': H3MAX_GEO } : {}), // KINEO-H3MAX-2026-10-13
   'gemini-omni-flash': OMNI_GEO, // KINEO-OMNI-FORA-2026-10-12 — null enquanto pausado; e o slug está fora de ENGINE_SLUGS (não indexável)
   ...(S25_PUBLIC ? { 'seedance-2-5': S25_GEO } : {}),
+}
+// KINEO-MOTORES-SAEM-0511 — o nome e o destino NA OFERTA. A página /ai-video-generator/kling-3 fica no ar (descreve o clipe Kling 3, que é real); as tabelas, o hub e os links
+// "outros motores" falam do filme premium, que renderiza Kling 4.0, e levam à página dele.
+export function engineOfferName(slug: string): string {
+  return slug === 'kling-3' ? 'Kling 4.0' : ENGINES[slug]?.name ?? slug
+}
+export function engineOfferPath(slug: string): string {
+  return slug === 'kling-3' ? '/ai-video-generator/kling-4' : `/ai-video-generator/${slug}`
 }
 /** A página /ai-video-generator/<slug> pode ser indexada? (publicada, fora de manutenção, liberada pelo lançamento) */
 export function isIndexableEngineSlug(slug: string): boolean {

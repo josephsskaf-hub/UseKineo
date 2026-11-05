@@ -57,5 +57,5 @@ export function describeEngineRefusal(r: HandoffEngineRefusal): string {
   if (r.reason === 'too_long_for_kineo1') {
     return `This script narrates for about ${r.speechSeconds}s on Kineo 1 (fast), and Kineo 1 films go up to ${r.maxSeconds}s. Trim it to at most ${r.maxWords} spoken words (labels not counted) and send it again, or send it with engineHint "seedance".`
   }
-  return `Kling 3 and MiniMax H3 narrate only English, Spanish or Portuguese, and this script is in "${r.language}". Send it again with engineHint "seedance" (it narrates this language).`
+  return `Kling 4.0 and MiniMax H3 narrate only English, Spanish or Portuguese, and this script is in "${r.language}". Send it again with engineHint "seedance" (it narrates this language).`
 }

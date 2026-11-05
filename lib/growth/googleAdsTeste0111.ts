@@ -40,7 +40,7 @@ export type GsGrupo = {
 export const GS_GRUPOS: readonly GsGrupo[] = [
   { key: 'kling4', nome: 'Kling 4.0', path: '/ai-video-generator/kling-4', engineParam: 'hollywood', intentCampaign: 'seo_engine_kling4' },
   { key: 'seedance', nome: 'Seedance', path: '/ai-video-generator/seedance', engineParam: 'seedance', intentCampaign: 'seo_engine_seedance' },
-  { key: 'veo', nome: 'Veo 3 alternative / premium AI video', path: '/ai-video-generator/veo', engineParam: 'veo', intentCampaign: 'seo_engine_veo' },
+  { key: 'veo', nome: 'Veo 3 alternative / premium AI video', path: '/seedance-vs-veo-vs-kling', engineParam: 'seedance', intentCampaign: 'seo_engine_veo' }, // KINEO-MOTORES-SAEM-0511: a página do Veo virou 301
 ] as const
 
 export const GS_ORIGIN = 'https://www.usekineo.com' as const

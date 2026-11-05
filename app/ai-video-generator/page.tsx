@@ -12,7 +12,7 @@ import WallMedia from '@/components/WallMedia'
 import CitationAnswerLinks from '@/components/CitationAnswerLinks'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import { enginePaused, KINEO1_PUBLIC } from '@/lib/engineLaunch'
-import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
+import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
@@ -28,8 +28,8 @@ const ENGINE_HUB_SIGNUP_HREF = buildProductSurfaceSignupHref({
 
 // Revisão da E2b (texto, achado 7): o título e o parágrafo seguem o interruptor do Kineo 1 (fora do catálogo público
 // desde a E1), como o /arena — antes o hub ainda publicava "Seedance, Kling, Veo & Kineo 1" e "its own Kineo 1".
-const HUB_TITLE = KINEO1_PUBLIC ? 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo' : 'AI Video Generator — Seedance, Kling, Veo & MiniMax H3 | Kineo'
-const HUB_ENGINE_LIST = KINEO1_PUBLIC ? 'Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3 and its own Kineo 1' : 'Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1 and Kling 3'
+const HUB_TITLE = KINEO1_PUBLIC ? 'AI Video Generator — Seedance, Kling & Kineo 1 | Kineo' : 'AI Video Generator — Seedance, Kling & MiniMax H3 | Kineo' // KINEO-MOTORES-SAEM-0511
+const HUB_ENGINE_LIST = KINEO1_PUBLIC ? 'Seedance 1.5, MiniMax H3, Kling 4.0 and its own Kineo 1' : 'Seedance 1.5, MiniMax H3 and Kling 4.0' // KINEO-MOTORES-SAEM-0511
 
 const HUB_DESCRIPTION = 'Compare Kineo video engines for finished vertical Shorts with narration and captions. Open each engine page for credit costs, limits and current availability.'
 
@@ -73,7 +73,7 @@ export default async function EngineHubPage() {
     itemListElement: ENGINE_SLUGS.map((slug, i) => ({
       '@type': 'ListItem',
       position: i + 1,
-      name: `${ENGINES[slug].name} AI video generator`,
+      name: `${engineOfferName(slug)} AI video generator`,
       url: `${BASE}/ai-video-generator/${slug}`,
     })),
   }
@@ -121,7 +121,7 @@ export default async function EngineHubPage() {
             return (
               <Link
                 key={slug}
-                href={`/ai-video-generator/${slug}`}
+                href={engineOfferPath(slug)}
                 style={{ display: 'flex', gap: 12, padding: 12, borderRadius: 16, ...CARD, textDecoration: 'none', color: 'inherit' }}
               >
                 <div style={{ position: 'relative', flex: '0 0 84px', aspectRatio: '9 / 16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
@@ -130,7 +130,7 @@ export default async function EngineHubPage() {
                   ) : null}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 900, fontSize: '1.02rem' }}>{e.name}</div>
+                  <div style={{ fontWeight: 900, fontSize: '1.02rem' }}>{engineOfferName(slug)}</div>
                   <div style={{ fontSize: '0.78rem', color: pause ? '#f0c264' : e.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700, margin: '2px 0 6px' }}>
                     {pause ? `Temporarily paused · ${pause.alternative.label} covers it` : e.tier === 'Free' ? 'Free · watermarked' : `${e.creditCost} credits / 60s · ${e.tier}`}
                   </div>

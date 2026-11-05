@@ -89,9 +89,9 @@ const cases = [
   {
     surface: 'hollywood',
     redirect: '/studio?engine=hollywood&intent_campaign=seo_engine_kling_3',
-    heading: 'Kling 3 is selected',
-    label: 'Studio · Kling 3',
-    phrase: 'Kling 3 selected',
+    heading: 'Kling 4.0 is selected',
+    label: 'Studio · Kling 4.0',
+    phrase: 'Kling 4.0 selected',
   },
   {
     surface: 'h3',
@@ -175,7 +175,7 @@ for (const engine of engineIntent.ENGINE_LANDING_PARAMS) {
   const result = preview.buildSignupProductDestinationPreview(signupUrl.searchParams.get('redirect'))
   equal(result?.surface, engine, `${engine}: real engine landing href is recognized at signup`)
   equal(result?.destinationLabel, `Studio · ${engineIntent.ENGINE_LANDING_LABELS[engine]}`, `${engine}: label survives the full handoff`)
-  const pair = new RegExp(`param: '${engine}'[\\s\\S]{0,180}name: '${engineIntent.ENGINE_LANDING_LABELS[engine].replace('.', '\\.')}'`)
+  const pair = new RegExp(`param: '${engine}'[\\s\\S]{0,180}name: '${(engine === 'hollywood' ? 'Kling 3' /* KINEO-MOTORES-SAEM-0511: a página kling-3 descreve o Kling 3; a tela diz o motor do filme */ : engineIntent.ENGINE_LANDING_LABELS[engine]).replace('.', '\\.')}'`)
   ok(pair.test(enginePage), `${engine}: public page name matches the signup proof`)
 }
 

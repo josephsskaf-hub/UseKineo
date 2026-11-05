@@ -45,7 +45,7 @@ import {
   buildEngineLandingSignupHref,
 } from '@/lib/growth/engineLandingIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
-import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
+import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath, type Engine } from '@/lib/growth/enginePageCatalog'
 import { EngineAnswerLead, EnginePriceCard, engineGeoFor, pausedAccessNote } from '@/components/EngineCitationAnswer' // KINEO-MOTORES-GEO-2026-10-06
 import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINAS-MOTOR-1610
 import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5
@@ -316,7 +316,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                         {here ? (
                           <span style={{ color: '#0A5CFF' }}>{o.name} <span style={{ fontWeight: 600, color: '#5A5F67' }}>· you are here</span></span>
                         ) : (
-                          <Link href={`/ai-video-generator/${slug}`} style={{ color: '#0E1116', textDecoration: 'none' }}>{o.name}</Link>
+                          <Link href={engineOfferPath(slug)} style={{ color: '#0E1116', textDecoration: 'none' }}>{engineOfferName(slug)}</Link>
                         )}
                       </td>
                       <td style={{ padding: '11px 10px', color: '#2A2F37', whiteSpace: 'nowrap' }}>{o.tier === 'Free' ? 'Free' : `${o.creditCost} cr`}</td>
@@ -375,7 +375,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {ENGINE_SLUGS.filter((s) => s !== params.engine).map((s, i) => (
               <span key={s}>
                 {i > 0 && ' · '}
-                <Link href={`/ai-video-generator/${s}`} style={{ color: '#5A5F67', textDecoration: 'none' }}>{ENGINES[s].name}</Link>
+                <Link href={engineOfferPath(s)} style={{ color: '#5A5F67', textDecoration: 'none' }}>{engineOfferName(s)}</Link>
               </span>
             ))}
           </div>

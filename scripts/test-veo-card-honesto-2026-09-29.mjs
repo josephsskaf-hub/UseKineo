@@ -3,6 +3,7 @@
 // 720p e carregavam um selo "Studio" digitado — com o gate de planos DESLIGADO na fonte (restauração 09/09) e
 // o Veo a 35 s cabendo no Starter. Este guardião lê a fonte (readFileSync) e EXECUTA lib/enginePlanGate.ts:
 // o selo de plano só existe quando o gate está ligado, e volta sozinho (mutante) no dia em que religar.
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,7 +11,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMotoresSaem0511(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

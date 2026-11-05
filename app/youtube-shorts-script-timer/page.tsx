@@ -179,8 +179,8 @@ export default function YouTubeShortsScriptTimerPage() {
           <p>
             Most word counters divide every word on the page by one generic speaking speed. This one first removes structural labels,
             bracketed shot directions and production metadata with the narration parser Kineo uses for verbatim scripts, then applies the
-            pace each engine family really uses before it renders: the Kineo narrator voice your script would get on Seedance 1.5, Kling 2.5
-            and Veo 3.1, and the engine-voice pace on Kling 3, MiniMax H3 and Seedance 2.5. The numbers are estimates, not audio measurements.
+            pace each engine family really uses before it renders: the Kineo narrator voice your script would get on Seedance 1.5,
+            and the engine-voice pace on Kling 4.0, MiniMax H3 and Seedance 2.5. The numbers are estimates, not audio measurements.
             How long the render itself takes is measured separately, every month, in the <Link href="/ai-video-index">Kineo AI Video Index</Link>.
           </p>
         </section>
@@ -197,7 +197,7 @@ export default function YouTubeShortsScriptTimerPage() {
         </section>
 
         <p className="timer-links">
-          Engines: <Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/veo">Veo 3.1</Link> · <Link href="/ai-video-generator/kling-3">Kling 3</Link> · <Link href="/seedance-vs-veo-vs-kling">Seedance vs Veo vs Kling</Link> · <Link href="/pricing">Pricing</Link> · <Link href="/studio">Open the Studio</Link>
+          Engines: <Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/kling-4">Kling 4.0</Link> · <Link href="/seedance-vs-veo-vs-kling">Engine comparison</Link> · <Link href="/pricing">Pricing</Link> · <Link href="/studio">Open the Studio</Link>
         </p>
       </div>
       <Footer showStats={false} />

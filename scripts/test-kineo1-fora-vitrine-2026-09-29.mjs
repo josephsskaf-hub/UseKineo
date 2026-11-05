@@ -21,6 +21,7 @@
 // Consertos da revisão E1 (29/09): R1/R4 → (h); R2 → metadata do /arena executado em (e); R3 → passe em (g); R5 →
 // mutantes gravados no tmpdir do sistema, nunca na worktree; A1 → (i); A2 → (j).
 // Cada bloco tem mutante em memória que precisa ficar VERMELHO.
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs'
 import { join, dirname, relative } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -32,7 +33,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMotoresSaem0511(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { let v = false; try { v = typeof c === 'function' ? c() : c } catch { v = false } if (v) ok++; else falhas.push(n) }
@@ -135,7 +136,7 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
   // KINEO-H3MAX-2026-10-13 — reancorado: + "MiniMax H3 Max" na lista do FAQ (contagem "Seven").
-  checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)'))
+  checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Kling 4.0, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)')) // KINEO-MOTORES-SAEM-0511
   // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Kineo 1 do mega-menu também para a casa; sobra o chip final.
   checa('home (casa): sobra 1 porta do Kineo 1 (chip final); mega-menu e tile sem ele', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))
@@ -153,14 +154,14 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
 // ── (e) /arena renderizada ──────────────────────────────────────────────────────────────────────────────────────────
 console.log('== (e) /arena: sem o card, contagem = cards ==')
 {
-  const arenaSrc = rd('app/arena/page.tsx')
+  const arenaSrc = readFileSync(join(RAIZ, 'app/arena/page.tsx'), 'utf8').replace(/\r\n/g, '\n') // KINEO-MOTORES-SAEM-0511: o mutante roda a página de hoje
   const renderArena = (entry) => renderPage(entry, false, {}, {})
   const html = renderArena('app/arena/page.tsx')
   const cards = conta(html, 'Try this engine →')
   // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o card do Omni Flash também saiu (motor fora da oferta), então a
   // contagem renderizada caiu de 6 para 5 ("Five"/"five"). A regra que este bloco protege (palavra = número de cards, sem
   // Kineo 1) segue igual; e o Omni não pode voltar a virar card (sem engine=omni).
-  checa(`/arena: sem "KINEO 1", sem engine=fast, ${cards} cards e a página diz "Five"/"five" (nunca "seven")`, !html.includes('KINEO 1') && !html.includes('engine=fast') && !html.includes('engine=omni') && cards === 5 && html.includes('Five AI video engines.') && html.includes('All five.') && !/seven/i.test(html))
+  checa(`/arena: sem "KINEO 1", sem engine=fast, ${cards} cards e a página diz "Three"/"three" (nunca "seven")`, !html.includes('KINEO 1') && !html.includes('engine=fast') && !html.includes('engine=omni') && !html.includes('engine=veo') && !html.includes('engine=kling') && cards === 3 && html.includes('Three AI video engines.') && html.includes('All three.') && !/seven/i.test(html)) // KINEO-MOTORES-SAEM-0511: saíram os cards do Veo e do Kling 2.5
   checa('/arena: o card continua DECLARADO (dado em publicExamples exigido pela vitrine) e só o filtro o tira', arenaSrc.includes("badge: 'KINEO 1',") && arenaSrc.includes("const FIGHTERS: Fighter[] = FIGHTER_CARDS.filter((f) => f.quality !== 'fast' || KINEO1_PUBLIC)") && pe.PUBLIC_ENGINE_EXAMPLES.some((e) => e.id === '0ab3e871-2c99-4f6e-9f3c-59773208b12e'))
   // Conserto da revisão E1 (R2): o `metadata` não sai no HTML renderizado, e a checagem antiga só ancorava as
   // constantes — voltar o título/descrição de compartilhamento para "seven … Kineo 1" cravado passava verde. Agora o
@@ -182,9 +183,9 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
   const provaMeta = (m) => {
     const t = [m?.title, m?.description, m?.openGraph?.title, m?.openGraph?.description].map((x) => String(x ?? ''))
     // KINEO-OMNI-FORA-2026-10-12 — reancorado: "five" (o Omni saiu da contagem) e o Omni fora do título/descrição.
-    return t.every((x) => x.length > 0 && !/Kineo 1|seven|Omni/i.test(x)) && /\bfive different AI video engines\b/.test(t[1]) && t[2].includes('five engines') && t[3].includes('Kling 2.5 and Seedance 1.5 — side by side')
+    return t.every((x) => x.length > 0 && !/Kineo 1|seven|Omni/i.test(x)) && /\bthree different AI video engines\b/.test(t[1]) && t[2].includes('three engines') && t[3].includes('MiniMax H3 and Seedance 1.5 — side by side') /* KINEO-MOTORES-SAEM-0511 */
   }
-  checa('/arena metadata EXECUTADO: descrição e openGraph dizem "five", sem "Kineo 1", sem Omni e sem "seven"', provaMeta(metaArena(arenaSrc)))
+  checa('/arena metadata EXECUTADO: descrição e openGraph dizem "three", sem "Kineo 1", sem Omni e sem "seven"', provaMeta(metaArena(arenaSrc)))
   checa('mutante (openGraph.title cravado em "seven") → vermelho', !provaMeta(metaArena(trocar(arenaSrc, 'title: `AI Video Engine Arena — ${ARENA_COUNT} engines, real renders, one pipeline`', "title: 'AI Video Engine Arena — seven engines, real renders, one pipeline'"))))
   checa('mutante (openGraph.description cravada com Kineo 1) → vermelho', !provaMeta(metaArena(trocar(arenaSrc, 'description: `${ARENA_ENGINE_LIST} — side by side, honestly labeled.`', "description: 'Omni Flash (#1, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5 and Kineo 1 — side by side, honestly labeled.'"))))
   checa('mutante (KINEO1_PUBLIC=true no engineLaunch) → metadata volta a "seven"/Kineo 1 (derivado do interruptor)', !provaMeta(metaArena(arenaSrc, { ...launchReal, KINEO1_PUBLIC: true })))
@@ -192,7 +193,7 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
   try {
     writeFileSync(join(RAIZ, tmp), trocar(arenaSrc, "import { KINEO1_PUBLIC } from '@/lib/engineLaunch'\n", 'const KINEO1_PUBLIC = true\n'))
     const mut = renderArena(tmp)
-    checa('mutante (KINEO1_PUBLIC=true na página) → 6 cards, "Six" e o card do Kineo 1 de volta', conta(mut, 'Try this engine →') === 6 && mut.includes('Six AI video engines.') && mut.includes('KINEO 1')) // KINEO-OMNI-FORA-2026-10-12
+    checa('mutante (KINEO1_PUBLIC=true na página) → 4 cards, "Four" e o card do Kineo 1 de volta', conta(mut, 'Try this engine →') === 4 && mut.includes('Four AI video engines.') && mut.includes('KINEO 1')) // KINEO-OMNI-FORA-2026-10-12
   } finally { rmSync(join(RAIZ, tmp), { force: true }) }
 }
 

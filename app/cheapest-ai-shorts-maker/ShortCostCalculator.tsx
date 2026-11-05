@@ -29,9 +29,8 @@ const PUBLIC_DEFAULT_QUALITY: PlanFitQuality = KINEO1_PUBLIC ? 'fast' : 'cinemat
 const PUBLIC_ENGINES: readonly PublicEngine[] = [
   ...(KINEO1_PUBLIC ? [{ quality: 'fast' as const, detail: 'Matched stock footage + AI voiceover' }] : []),
   { quality: 'cinematic_ai', detail: 'Seedance 1.5 generated scenes' },
-  { quality: 'cinematic_kling', detail: 'Kling 2.5 cinematic scenes' },
-  { quality: 'cinematic_veo', detail: 'Google Veo 3.1 cinematic scenes' },
-  { quality: 'cinematic_hollywood', detail: 'Kling 3 with native lip sync' },
+  { quality: 'cinematic_h3', detail: 'MiniMax H3, characters can speak with lip sync' }, // KINEO-MOTORES-SAEM-0511: saem Kling 2.5 e Veo 3.1
+  { quality: 'cinematic_hollywood', detail: 'Kling 4.0 directed film scenes (15, 30 or 60 s)' },
   ...(S25_PUBLIC ? [{ quality: 'cinematic_s25' as const, detail: 'Seedance 2.5, newest ByteDance model (480p→HD)' }] : []),
 ]
 
@@ -130,7 +129,10 @@ export default function ShortCostCalculator() {
 
   function chooseDuration(next: (typeof PUBLIC_DURATIONS)[number]) {
     setSeconds(next)
-    recordChange(quality, videos, next, 'duration')
+    // KINEO-MOTORES-SAEM-0511 — o Kling 4.0 não faz 35 nem 90 s: nessas durações ele some da lista e a conta volta ao motor padrão.
+    const nextQuality = quality === 'cinematic_hollywood' && next !== 60 ? 'cinematic_ai' : quality
+    if (nextQuality !== quality) setQuality(nextQuality)
+    recordChange(nextQuality, videos, next, 'duration')
   }
 
   function commitVideos(raw: number) {
@@ -178,7 +180,7 @@ export default function ShortCostCalculator() {
       <div style={{ marginTop: 24 }}>
         <div style={{ color: '#d2d2d7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>1. Visual engine</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
-          {PUBLIC_ENGINES.map((option) => {
+          {PUBLIC_ENGINES.filter((option) => option.quality !== 'cinematic_hollywood' || seconds === 60).map((option) => {
             const selected = option.quality === quality
             const oneFilm = calculatePlanFit({ quality: option.quality, seconds, monthlyFilms: 1, currency })
             return (

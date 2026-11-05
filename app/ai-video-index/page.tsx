@@ -327,7 +327,7 @@ export default function AiVideoIndexPage() {
           <strong>More data from Kineo</strong>
           <ul>
             <li><Link href="/state-of-ai-shorts-2026">State of AI Shorts — what creators make and how long it takes</Link></li>
-            <li><Link href="/seedance-vs-veo-vs-kling">Seedance vs Veo vs Kling, measured on real renders</Link></li>
+            <li><Link href="/seedance-vs-veo-vs-kling">Engines compared, measured on real renders</Link></li>
             <li><Link href={VIEW.pricePage.path}>Price per video on every engine — {VIEW.pricePage.label}</Link></li>
             <li><Link href="/models-pricing">Cost per engine</Link></li>
             <li><Link href="/ai-video-generator">Every engine Kineo runs</Link></li>

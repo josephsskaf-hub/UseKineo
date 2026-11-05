@@ -37,8 +37,8 @@ const META: Record<string, { name: string; desc: string; href: string }> = {
   // vitrine = par obrigatório AQUI (META + POSTER), não só no engineWall.
   cinematic_h3: { name: 'MiniMax H3', desc: 'Cinematic film — 9-image consistency', href: '/studio?engine=h3&intent_campaign=hero_engine' },
   cinematic_omni: { name: 'Omni Flash', desc: '#1-ranked video model — Aug 2026 arena', href: '/studio?engine=omni&intent_campaign=hero_engine' },
-  cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/studio?engine=veo&intent_campaign=hero_engine' },
-  cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/studio?engine=kling&intent_campaign=hero_engine' },
+  cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/studio?engine=seedance&intent_campaign=hero_engine' }, // KINEO-MOTORES-SAEM-0511: o selo do filme segue real; o botão abre um motor da oferta
+  cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/studio?engine=seedance&intent_campaign=hero_engine' }, // KINEO-MOTORES-SAEM-0511
   cinematic_hollywood: { name: 'Kling 3', desc: 'Film scenes, native voice & lip sync', href: '/studio?engine=hollywood&intent_campaign=hero_engine' },
   cinematic_ai: { name: 'Seedance 1.5', desc: 'The workhorse AI video engine', href: '/studio?engine=seedance&intent_campaign=hero_engine' },
   presenter: { name: 'Avatar', desc: 'Talking video from one photo', href: '/avatar?intent_campaign=hero_engine' },

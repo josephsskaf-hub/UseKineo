@@ -15,10 +15,11 @@
 //   · o pop-up ancora o Studio no Kling 3 (motor ativo), sem superlativo e sem "plus change";
 //   · o /ai-robot-video-generator vende o Kling 3 e o FILME dos robôs (render real do Omni) continua na página.
 // Node puro (readFileSync, sem alias @/), com mutantes em memória: reintroduzir qualquer linha velha dá vermelho.
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const read = (p) => semMotoresSaem0511(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n'), p)
 
 const FILES = {
   engineLaunch: 'lib/engineLaunch.ts',

@@ -18,7 +18,7 @@ import { refundRenderCredits } from '@/lib/credits/refund'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa no pedido dos Clipes
-import { enginePaused } from '@/lib/engineLaunch' // KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 lê clipS25Visible (lib/clips/clipLaunch.ts)
+import { enginePaused, engineOffered, engineRetired } from '@/lib/engineLaunch' // KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 lê clipS25Visible (lib/clips/clipLaunch.ts)
 import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -34,7 +34,8 @@ import {
   type ClipEngineKey,
 } from '@/lib/clips/clipCatalog'
 import { clipCreditCost } from '@/lib/clips/clipPricing'
-import { clipEffectFilmHref, clipEffectForRow, type ClipEffectKey } from '@/lib/clips/clipEffects'
+import { CLIP_EFFECTS, clipEffectFilmHref, clipEffectForRow, type ClipEffectKey } from '@/lib/clips/clipEffects'
+import { SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS, SPACE_KINDS, buildSpaceMotionPrompt } from '@/lib/spaces/spaces' // KINEO-MOTORES-SAEM-0511
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do "Put your face in it": o quadro-chave (PNG do Nano Banana) vai para o NOSSO bucket em
 // caminho determinístico e o vídeo (i2v do motor) parte dele. A ORDEM mora em lib/clips/clipFlow.ts settleClip; aqui só os fios.
 import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -138,6 +139,17 @@ export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'c
   })
 }
 
+// KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — o que sai é o CLIPE LIVRE. Os efeitos do catálogo rodam em Kling 2.5 de verdade (i2v do trilho 'kling')
+// e os Espaços animam a foto nele (app/(dashboard)/spaces): os dois continuam, com o selo real, até o fundador decidir trocá-los. O prompt deles é fixo e escrito
+// pela casa, então é ele que identifica o pedido — nunca um campo do navegador. Motor da oferta: null, nada muda.
+export function retiredClipRefusal(req: { engine: ClipEngineKey; mode: 't2v' | 'i2v'; seconds: number; prompt: string }): string | null {
+  const fora = engineRetired(req.engine)
+  if (!fora) return null
+  if (req.mode === 'i2v' && CLIP_EFFECTS.some((e) => !e.template && e.engine === req.engine && e.seconds === req.seconds && e.prompt === req.prompt)) return null
+  if (req.mode === 'i2v' && req.engine === SPACE_CLIP_ENGINE && req.seconds === SPACE_CLIP_SECONDS && SPACE_KINDS.some((k) => buildSpaceMotionPrompt(k) === req.prompt)) return null
+  return `${fora.label} is no longer available for new clips. Nothing was charged. Your existing clips stay in your library. ${fora.alternative.label} is available right now.`
+}
+
 /**
  * KINEO-S25-CLIPES-2026-10-06 — pagante para o clipe do Seedance 2.5 = o portão do FILME do 2.5, a mesma função
  * (lib/s25Access.ts s25AccessFor): a casa EXATA do validador de $0 (isDryRunAccount — não o isInternalEmail largo) ou plano
@@ -163,7 +175,8 @@ export interface PublicClipEngine {
 
 /** Só o que a conta pode apertar — a rota recusa o resto com a MESMA régua. */
 export function clipCatalogFor(access: (engine: ClipEngineKey) => ClipEngineAccess): PublicClipEngine[] {
-  return CLIP_ENGINE_ORDER.filter((key) => access(key).ok).map((key) => {
+  // KINEO-MOTORES-SAEM-0511 — Kling 2.5 e Veo 3.1 fora do seletor. O acesso (access) NÃO muda: é ele que mantém os efeitos do trilho 'kling' de pé (publicClipEffects).
+  return CLIP_ENGINE_ORDER.filter((key) => engineOffered(key) && access(key).ok).map((key) => {
     const modes = modesFor(key)
     const seconds = offeredSecondsFor(key)
     return {
@@ -196,7 +209,7 @@ export interface LockedClipEngine {
 export function lockedClipEnginesFor(access: (engine: ClipEngineKey) => ClipEngineAccess): LockedClipEngine[] {
   return CLIP_ENGINE_ORDER.flatMap((key) => {
     const verdict = access(key)
-    if (verdict.ok || verdict.reason !== 'paid') return []
+    if (!engineOffered(key) || verdict.ok || verdict.reason !== 'paid') return [] // KINEO-MOTORES-SAEM-0511
     return [{ key, label: CLIP_ENGINES[key].label, seconds: offeredSecondsFor(key), upgradeHref: clipPaidUpgradeHref(key) }]
   })
 }
@@ -516,6 +529,7 @@ export function submitDepsFor(args: {
   return {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
     engineAccess: engineAccessFor(account),
+    retiredClipRefusal, // KINEO-MOTORES-SAEM-0511
     findByKey: async (userId, key) => {
       const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('user_id', userId).eq('idempotency_key', key).maybeSingle()
       if (error) throw new Error(`clip lookup failed: ${error.message}`)

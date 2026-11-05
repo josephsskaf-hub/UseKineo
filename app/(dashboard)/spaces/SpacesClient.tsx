@@ -19,10 +19,13 @@ import {
   SPACE_NOTES_MAX,
   SPACE_SIGNATURE_MAX,
   buildSpaceMotionPrompt,
+  SPACE_CLIP_ENGINE,
+  SPACE_CLIP_SECONDS,
   buildStagingPrompt,
   type SpaceKind,
 } from '@/lib/spaces/spaces'
 import { spacesCopy, type SpacesCopyKey } from '@/lib/spaces/spacesCopy'
+import { clipCreditCost } from '@/lib/clips/clipPricing' // KINEO-MOTORES-SAEM-0511
 import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
 import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -146,7 +149,7 @@ export default function SpacesClient() {
   const [busy, setBusy] = useState<'photos' | 'video' | null>(null)
   const [video, setVideo] = useState<{ status: string; url: string | null; progress: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [clipCredits, setClipCredits] = useState<number>(5)
+  const clipCredits = clipCreditCost(SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS) // KINEO-MOTORES-SAEM-0511 — o Kling 2.5 saiu do catálogo de /api/clips; o preço é a mesma função que a rota cobra
   const fileRef = useRef<HTMLInputElement>(null)
 
   const errorText = useCallback((status: number) => {
@@ -166,16 +169,6 @@ export default function SpacesClient() {
     if (!r.ok || !j?.url) throw new Error(errorText(r.status))
     return j.url as string
   }, [errorText])
-
-  useEffect(() => {
-    fetch('/api/clips', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j: { engines?: { key: string; credits?: Record<string, number> }[] }) => {
-        const k = j.engines?.find((e) => e.key === 'kling')
-        if (k?.credits?.['5']) setClipCredits(k.credits['5'])
-      })
-      .catch(() => undefined)
-  }, [])
 
   const patch = (key: string, p: Partial<Photo>) => setPhotos((list) => list.map((x) => (x.key === key ? { ...x, ...p } : x)))
   const briefLines = useMemo(() => brief.split('\n').map((s) => s.trim()).filter(Boolean), [brief])
@@ -273,7 +266,7 @@ export default function SpacesClient() {
         const r = await fetch('/api/clips', {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'idempotency-key': `spaces-${p.key}-${p.stagedUrl!.slice(-12)}` },
-          body: JSON.stringify({ engine: 'kling', seconds: 5, aspect: '9:16', image_url: stagedAnim, prompt: buildSpaceMotionPrompt(kind) }),
+          body: JSON.stringify({ engine: SPACE_CLIP_ENGINE, seconds: SPACE_CLIP_SECONDS, aspect: '9:16', image_url: stagedAnim, prompt: buildSpaceMotionPrompt(kind) }),
         })
         const j = await r.json().catch(() => null)
         if (!r.ok || !j?.clip?.id) throw new Error(errorText(r.status))

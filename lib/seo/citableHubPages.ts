@@ -27,7 +27,7 @@ export const BASE = 'https://www.usekineo.com'
 
 /** As páginas desta mudança (sitemap, llms.txt, rodapé e links cruzados leem daqui). */
 export const HUB_PAGES = {
-  oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
+  oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and MiniMax in one place' },
   faceless: { path: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
   brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },
 } as const
@@ -60,7 +60,7 @@ export function hubEngines(): HubEngine[] {
     const e = ENGINES[slug]
     if (!geo || !e) continue
     const param = e.param as EngineLandingParam
-    out.push({ slug, path: engineLandingPublicPath(param) || `/ai-video-generator/${slug}`, param, name: geo.name, maker: MAKER[geo.key] ?? '', geo })
+    out.push({ slug, path: engineLandingPublicPath(param) || `/ai-video-generator/${slug}`, param, name: slug === 'kling-3' ? 'Kling 4.0' : geo.name, maker: MAKER[geo.key] ?? '', geo })
   }
   return out.sort((a, b) => a.geo.rows.film60.credits - b.geo.rows.film60.credits || a.name.localeCompare(b.name))
 }

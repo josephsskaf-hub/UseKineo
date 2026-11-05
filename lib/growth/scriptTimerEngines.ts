@@ -26,7 +26,7 @@ import { parseSpeed, parseUserScript } from '../scriptParser'
 import { selectPersonaForScript } from '../narration/niche-mapping'
 import { resolveNarrationLanguage, type NarrationLanguage } from '../textLanguage'
 import { ENGINE_LANDING_LABELS, ENGINE_LANDING_PARAMS } from './engineLandingIntent'
-import { KINEO1_PUBLIC, enginePaused } from '../engineLaunch'
+import { KINEO1_PUBLIC, engineOffered, enginePaused } from '../engineLaunch'
 import { countScriptWords } from './shortsScriptTimer'
 
 export const SCRIPT_TIMER_ENGINES_MARK = 'KINEO-GEO-RODADA3-2026-10-08'
@@ -64,7 +64,7 @@ export interface ScriptTimerEnginesResult {
 
 /** Os motores de cada família que estão no ar hoje (Kineo 1 só quando público; motor pausado fica de fora). */
 export function engineNamesFor(family: SpeechFamily): string[] {
-  return ENGINE_LANDING_PARAMS.filter((p) => (p !== 'fast' || KINEO1_PUBLIC) && !enginePaused(p) && speechFamilyForQuality(p) === family).map((p) => ENGINE_LANDING_LABELS[p])
+  return ENGINE_LANDING_PARAMS.filter((p) => (p !== 'fast' || KINEO1_PUBLIC) && engineOffered(p) && !enginePaused(p) && speechFamilyForQuality(p) === family).map((p) => ENGINE_LANDING_LABELS[p])
 }
 
 /** O passo da voz clássica para um texto: a persona que o compose escolheria (tier cinematic) × velocidade escrita no roteiro. */
@@ -110,7 +110,7 @@ export function estimateByEngineFamily(rawScript: string): ScriptTimerEnginesRes
     {
       family: 'hollywood',
       engines: engineNamesFor('hollywood'),
-      voice: 'Kling 3 and MiniMax H3 speak in the engine’s own voice; Kineo narrates Seedance 2.5 — all timed at the same pace',
+      voice: 'Kling 4.0 and MiniMax H3 run in the engine’s own pace; Kineo narrates Seedance 2.5 — all timed at the same pace',
       wordsPerSecond: hollywood,
       seconds: spokenWords / hollywood,
       capacity: capacityAt(hollywood),

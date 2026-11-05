@@ -55,8 +55,8 @@ const KINEO_KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
 // de comparação medem o Kineo pelo Seedance 1.5, o motor de entrada (e o do filme grátis de 15 s).
 const KINEO_ENGINE_METERING =
   `Seedance ${KINEO_SEEDANCE_COST}, ` +
-  `Kling 2.5 ${KINEO_KLING_COST}, ` +
-  `Kling 3 ${KINEO_KLING3_COST} credits per 60-second video`
+  `MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, ` +
+  `Kling 4.0 ${KINEO_KLING3_COST} credits per 60-second video`
 
 export const VERIFIED_ON = 'July 26, 2026'
 export const BASE = 'https://www.usekineo.com'
@@ -371,12 +371,12 @@ export const TOOLS: Record<ToolId, Tool> = {
     // nenhum dos 27 concorrentes tem. Ficar de fora daqui era esconder o
     // argumento no lugar onde a decisão acontece.
     voice:
-      'AI voiceover generated from the script, with a narrator voice matched to the subject. On Kling 3 and MiniMax H3 a character on screen can also speak the scripted line with lip sync, alternating with the narrator inside the same film.',
+      'AI voiceover generated from the script, with a narrator voice matched to the subject. On MiniMax H3 a character on screen can also speak the scripted line with lip sync, alternating with the narrator inside the same film.',
     stock: 'Stock footage matched scene by scene to the actual voiceover lines, plus generative engines on higher tiers.',
     exportLimits:
       // Custo SEMPRE de creditCostFor (disciplina #296). KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu desta régua
       // pública (motor fora da oferta, lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS).
-      `Credit-metered per 60-second video: Seedance ${KINEO_SEEDANCE_COST} credits, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}. Credits do not roll over between months.`,
+      `Credit-metered per 60-second video: Seedance ${KINEO_SEEDANCE_COST} credits, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 4.0 ${KINEO_KLING3_COST}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,

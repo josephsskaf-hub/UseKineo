@@ -131,6 +131,9 @@ export function buildStagingPrompt(args: { description: string; kind: SpaceKind;
   ].filter(Boolean).join(' ')
 }
 
+// KINEO-MOTORES-SAEM-0511 — os Espaços animam em Kling 2.5, 5 s. O motor saiu da oferta dos clipes; este uso fixo segue (lib/clips/clipServer.ts retiredClipRefusal).
+export const SPACE_CLIP_ENGINE = 'kling' as const
+export const SPACE_CLIP_SECONDS = 5
 export function buildSpaceMotionPrompt(kind: SpaceKind): string {
   return `${KIND_MOTION[kind]}. Steady cinematic camera. The architecture stays exactly the same.`
 }

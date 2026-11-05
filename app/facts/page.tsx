@@ -81,7 +81,7 @@ function plan(id: PlanFact['id']): PlanFact {
 // As constantes seguem com o nome interno antigo porque são referenciadas
 // dezenas de vezes abaixo; quem muda é o RÓTULO PUBLICADO, não a variável.
 const SEEDANCE = engine('Seedance 1.5')
-const KLING = engine('Kling 2.5')
+const KLING = engine('MiniMax H3') // KINEO-MOTORES-SAEM-0511: era o Kling 2.5
 // KINEO-KLING4-FACTS-2910 — com KLING4_PAID_LIVE o motor premium publica como "Kling 4.0" (lib/growth/kling4PaidCitation.ts); a busca segue o mesmo nome, senão o build de /facts quebra.
 const HOLLYWOOD = engine(kling4PaidCitation()?.name ?? 'Kling 3')
 

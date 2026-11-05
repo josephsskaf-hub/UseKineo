@@ -305,7 +305,7 @@ const faqSchema = {
       name: 'What is the best AI video generator for faceless YouTube channels?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.',
+        text: 'It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Seedance 2.5 and Kling 4.0, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.',
       },
     },
   ],

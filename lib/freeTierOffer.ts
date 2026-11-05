@@ -254,7 +254,7 @@ export const TRIAL_FIRST_FILM_SHORT: string = TRIAL_SEEDANCE15_FILMS >= 1
   ? `first AI film, ${TRIAL_FREE_FILM_SECONDS} s`
   : `a head start on a first AI film`
 /** Onde os motores premium começam — a outra metade da verdade (acesso a Kling/Veo exige plano pago). */
-export const PREMIUM_ENGINES_FROM_STARTER = 'Kling and Veo from Starter'
+export const PREMIUM_ENGINES_FROM_STARTER = 'Kling 4.0 and MiniMax H3 from Starter'
 
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — O FILME GRÁTIS VIRA O SEEDANCE 1.5 DE 15 s. Com a entrada nova ligada
 // (SEEDANCE_15S_PUBLIC), o que o grant compra é o filme curto do Seedance, no custo PAGO de 15 s (é assim que o trial
@@ -314,7 +314,7 @@ const ON_COPY: FreeTierCopy = {
   // o grant COMPRA (Kineo 1, derivado) e onde os motores de IA começam
   // (Starter). Números de G e TRIAL_KINEO1_FILMS — nunca digitados.
   sentence:
-    `Every new account${CC} gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
+    `Every new account${CC} gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Kling 4.0, MiniMax H3) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
   // KINEO-VERDADE-TRIAL-2026-10-05 — o chip diz o que o grant COMPRA, não um acesso que o saldo não paga.
   chip: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — ${TRIAL_FIRST_FILM_PHRASE}`,
   chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — ${TRIAL_FIRST_FILM_PHRASE}`,
@@ -328,7 +328,7 @@ const ON_COPY: FreeTierCopy = {
   limitHitError:
     'This engine is now on paid plans only. Keep creating now with Starter. Cancel anytime.',
   cmpKineoFree:
-    `Kineo: ${G} free credits on signup${CC} = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
+    `Kineo: ${G} free credits on signup${CC} = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Kling 4.0, MiniMax H3) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
   // KINEO-E4-SAIDA-B-2026-09-29 — sem cota de Kineo 1 não existe "volta em 7 dias"; o send-cap-hit sai cedo com
   // limit 0 (quota_off) e estas linhas ficam só como texto coerente, nunca como promessa.
   limitHitEmailSubject: 'This engine is now on paid plans — Starter keeps you creating',

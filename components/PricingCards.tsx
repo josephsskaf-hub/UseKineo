@@ -111,7 +111,7 @@ const STARTER_FEATURES = [
 // calculado na hora, das mesmas constantes que o servidor debita.
 const BASIC_FEATURES = [
   `~${CREATOR_AI_FILMS} AI-generated videos/month (Seedance)`,
-  `Or ${CREATOR_CINEMATIC_FILMS} cinematic Kling 2.5 video/month`,
+  `Or ${videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films/month`,
   'Seedance AI engine (great quality)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
@@ -122,8 +122,8 @@ const BASIC_FEATURES = [
 // KINEO-PRICING-V6-2026-08-19 — o Studio é o plano que FECHA um filme
 // Hollywood (180 ≥ 150). A promessa que estava no card errado veio para cá.
 const PRO_FEATURES = [
-  `${STUDIO_HOLLYWOOD_FILMS} Hollywood film/month — or ~${STUDIO_CINEMATIC_FILMS} cinematic Kling 2.5, or ~${STUDIO_AI_FILMS} Seedance`,
-  'Kling 2.5 + Kling 3 engines (top-tier cinematic)',
+  `${STUDIO_HOLLYWOOD_FILMS} Kling 4.0 film/month — or ~${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3, or ~${STUDIO_AI_FILMS} Seedance`,
+  'MiniMax H3 + Kling 4.0 engines (top-tier cinematic)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',

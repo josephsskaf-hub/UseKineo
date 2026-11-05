@@ -6,8 +6,8 @@ export const SORA_API_SHUTDOWN = 'Sora 2 shut down on September 24, 2026'
 export const SORA_API_SOURCE = 'https://developers.openai.com/api/docs/deprecations'
 export const SORA_REPLACEMENTS = ([
   { name: 'Seedance 1.5', quality: 'cinematic_ai', key: 'seedance' },
-  { name: 'Kling 3', quality: 'cinematic_hollywood', key: 'hollywood' },
-  { name: 'Veo 3.1', quality: 'cinematic_veo', key: 'veo' },
+  { name: 'Kling 4.0', quality: 'cinematic_hollywood', key: 'hollywood' }, // KINEO-MOTORES-SAEM-0511
+  { name: 'MiniMax H3', quality: 'cinematic_h3', key: 'h3' }, // KINEO-MOTORES-SAEM-0511: no lugar do Veo 3.1
   // KINEO-OMNI-FORA-2026-10-12 — a linha do Omni Flash saiu (motor fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS). A coluna de pausa continua derivada do portão comum para os motores que ficaram.
 ] as const).map(engine => {

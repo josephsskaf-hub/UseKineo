@@ -925,10 +925,8 @@ export default function KineoLanding({
                   {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
                       29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
                   <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="Fast, everyday narrated films" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" thumb="/nav-thumbs/seedance.webp" />
-                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Smooth, realistic motion" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" thumb="/nav-thumbs/kling.webp" />
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
-                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" thumb="/nav-thumbs/veo.webp" />
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
                       lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
                   {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
@@ -941,7 +939,7 @@ export default function KineoLanding({
                   {s25Visible(initialEmail) && (
                     <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} thumb="/nav-thumbs/s25.webp" />
                   )}
-                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Premium look with native voice" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" thumb="/nav-thumbs/kling3.webp" />
+                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 4.0" desc="Premium directed film scenes" preview="/previews/studio-kling4-werewolf-kid.mp4" thumb="/nav-thumbs/kling4.webp" />
                   {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
                       da vitrine tem de ser deste motor, e o primeiro render de
                       validacao ainda nao rodou. Emprestar clipe de outro motor
@@ -1313,7 +1311,7 @@ export default function KineoLanding({
               {WELCOME20_SITE_OFFER_LIVE ? <div className="pr-then"><LandingPlanPrice tier="basic" variant="then" /></div> : null}
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('basic')}</UiLabel></b><UiLabel>, finished</UiLabel></li>
-                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('basic', 'cinematic_kling')}<UiLabel> Kling 2.5 cinematic films</UiLabel></b><UiLabel> — Kling and Veo included</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('basic', 'cinematic_h3')}<UiLabel> MiniMax H3 cinematic films</UiLabel></b></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('basic')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('basic')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('basic')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · voice + karaoke captions + score</UiLabel></li>
                 {/* KINEO-HOME-TEXTOS-2026-10-12 — o armazenamento "para sempre" era promessa sem garantia: app/api/storage-usage/route.ts só CONTA
@@ -1334,7 +1332,7 @@ export default function KineoLanding({
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
                 {/* KINEO-SELO-OMNI-POPUP-2026-09-30 · KINEO-OMNI-FORA-2026-10-12 — o cartão Studio vendia "Or N films on
                     Omni Flash"; com o Omni fora da oferta a linha é sempre a do Kling 3 (sem ramo do Omni). */}
-                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 4.0 films</UiLabel></b></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Unlimited projects · your films stay in your library</UiLabel></li>
@@ -1417,7 +1415,7 @@ export default function KineoLanding({
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
             <details className="qa"><summary><h3><UiLabel>How much does Kineo cost?</UiLabel></h3></summary><p><UiLabel>Kineo has three monthly plans: Starter at $</UiLabel>{usdPrice(TIER_PRICES.starter.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits, Creator at $</UiLabel>{usdPrice(TIER_PRICES.basic.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.basic}<UiLabel> credits and Studio at $</UiLabel>{usdPrice(TIER_PRICES.pro.usd)}<UiLabel> for </UiLabel>{TIER_CREDITS.pro}<UiLabel> credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. </UiLabel><UiLabel>{CHECKOUT_CURRENCY_DISCLOSURE}</UiLabel><UiLabel>{` Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`}</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Which AI video engines can I use in Kineo?</UiLabel></h3></summary><p><UiLabel>{VIDEO_ENGINE_COUNT_WORD}</UiLabel><UiLabel>, behind one interface and one balance: </UiLabel><UiLabel>{VIDEO_ENGINE_LIST_COPY}</UiLabel><UiLabel>. </UiLabel><UiLabel>{PAUSED_ENGINES_COPY}</UiLabel><UiLabel> You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>What is the best AI video generator for faceless YouTube channels?</UiLabel></h3></summary><p><UiLabel>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>What is the best AI video generator for faceless YouTube channels?</UiLabel></h3></summary><p><UiLabel>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Seedance 2.5 and Kling 4.0, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</UiLabel></p></details>
           </div>
         </div>
       </section>
@@ -1435,9 +1433,7 @@ export default function KineoLanding({
               <div className="fchips">
                 {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>}
                 <Link href="/studio?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
-                <Link href="/studio?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
-                <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
-                <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
+                <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 4.0</Link>
               </div>
               {/* KINEO-SEM-PORTEIRO-2026-09-02 b — o CTA final da home escapou
                   da primeira varredura porque não usa o atributo href com o caminho literal:

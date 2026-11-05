@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
+import { UNAVAILABLE_ENGINE_KEYS } from '@/lib/engineLaunch' // KINEO-MOTORES-SAEM-0511: pausados + fora da oferta
 import { isAnthropicEgressIp, MCP_PROTOCOL_VERSIONS, JSONRPC_INVALID_REQUEST, JSONRPC_PARSE_ERROR, jsonRpcError } from '@/lib/mcp/kineoMcp'
 import { studioAllowsEmail, studioLiveMode, studioPublicOrigin } from '@/lib/mcp/studioLaunch'
 import { bearerFrom, wwwAuthenticateHeader } from '@/lib/mcp/studioOauth'
@@ -128,11 +128,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const viaAnthropic = isAnthropicEgressIp(clientIp(req.headers))
   const deps: StudioDeps = {
     user: { id: ctx.userId, email: ctx.email },
-    pausedEngines: PAUSED_ENGINE_KEYS,
+    pausedEngines: UNAVAILABLE_ENGINE_KEYS,
     plansUrl: `${ctx.publicOrigin}/pricing?utm_source=claude_studio_connector`,
     counts: () => studioCounts(ctx),
     balance: () => studioBalance(ctx),
-    account: () => studioAccount(ctx, PAUSED_ENGINE_KEYS),
+    account: () => studioAccount(ctx, UNAVAILABLE_ENGINE_KEYS),
     createVideo: (input, estimate) => studioCreateVideo(ctx, input, estimate),
     videoStatus: (jobId) => studioVideoStatus(ctx, jobId),
     listVideos: (limit) => studioListVideos(ctx, limit),

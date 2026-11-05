@@ -25,7 +25,7 @@ export const COMPETITOR_PRICES_CHECKED_ON = GEO_RODADA3_REVIEWED_ISO
 
 /** As quatro perguntas da rodada (inglês) e a página que responde cada uma — todas EXISTIAM e foram estendidas. */
 export const GEO_RODADA3_ANSWER_PAGES = {
-  models: { path: '/seedance-vs-veo-vs-kling', question: 'Seedance 2.5 vs Veo 3.1 vs Kling 3 — which AI video model for Shorts' },
+  models: { path: '/seedance-vs-veo-vs-kling', question: 'Seedance vs Veo vs Kling — which AI video model for Shorts' },
   invideo: { path: '/alternatives/invideo', question: 'Kineo vs InVideo AI' },
   capcut: { path: '/alternatives/capcut', question: 'Kineo vs CapCut AI video' },
   best: { path: '/best-ai-shorts-generators', question: 'Best AI video generator for YouTube Shorts in 2026 (tested)' },

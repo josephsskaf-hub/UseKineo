@@ -2,7 +2,7 @@
 // 33 pessoas abriram o checkout 155 vezes em 7 d e 1 pagou). NADA de preço, plano, crédito ou desconto muda; prova que:
 //   1. EXECUTADO: "≈ N more films like this" = floor(TIER_CREDITS ÷ creditCostForDuration(motor do filme, pago, duração)),
 //      nos 3 planos; qualidade que não é filme (anúncio, avatar, legado) e duração ausente → nada (sem conta inventada);
-//   2. EXECUTADO: "Which plan fits me?" — para TODAS as 36 combinações (3 × 4 × 3), filmes/mês = ceil(por semana × 52/12),
+//   2. EXECUTADO: "Which plan fits me?" — para TODAS as 24 combinações (2 × 4 × 3; KINEO-MOTORES-SAEM-0511: o Kling 2.5 saiu), filmes/mês = ceil(por semana × 52/12),
 //      o plano é o MAIS BARATO com créditos ≥ necessidade (ou Studio com covers=false), e o preço é o de TIER_PRICES;
 //   3. EXECUTADO: a prova social só aparece com número real ≥ piso (100) e nunca arredonda para cima;
 //   4. EXECUTADO: a linha da Stripe no ANUAL é a mesma régua do mensal + "credits arrive monthly" (sai "Fast videos" e
@@ -88,10 +88,10 @@ function problems(replacements = {}) {
     const math = lib.planFinderMathLine(r)
     if (!math.includes(`${films} `) || !math.includes(`× ${each} credits = ${need} credits`) || !math.includes(`includes ${cp.TIER_CREDITS[tier]}`)) p.push(`finder ${pw}/${s}/${e.key}: conta à vista "${math}"`)
   }
-  if (combos !== 36) p.push(`finder: ${combos} combinações (esperado 3 × 4 × 3 = 36)`)
+  if (combos !== 24) p.push(`finder: ${combos} combinações (esperado 2 × 4 × 3 = 24)`)
   if (lib.recommendPlan({ perWeek: 2, seconds: 35, engine: 'seedance' }) !== null || lib.recommendPlan({ perWeek: 1, seconds: 30, engine: 'seedance' }) !== null || lib.recommendPlan({ perWeek: 1, seconds: 35, engine: 'veo' }) !== null) p.push('finder aceita resposta fora das opções')
   const engines = lib.PLAN_FINDER_ENGINES.map((e) => e.quality).join(',')
-  if (engines !== 'cinematic_ai,cinematic_kling,cinematic_hollywood') p.push(`finder: motores ${engines}`)
+  if (engines !== 'cinematic_ai,cinematic_hollywood') p.push(`finder: motores ${engines}`)
 
   // 3. prova social
   if (lib.filmsMadeLine({ films: 99, creators: 90 }) !== null) p.push('prova social abaixo do piso apareceu')

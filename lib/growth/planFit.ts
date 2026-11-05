@@ -316,7 +316,7 @@ export function engineName(quality: PlanFitQuality): string {
     case 'fast': return 'Kineo 1'
     case 'cinematic_ai': return 'Seedance 1.5'
     case 'cinematic_kling': return 'Kling 2.5'
-    case 'cinematic_hollywood': return 'Kling 3'
+    case 'cinematic_hollywood': return 'Kling 4.0' // KINEO-MOTORES-SAEM-0511
     case 'cinematic_veo': return 'Veo 3.1'
     case 'cinematic_h3': return 'MiniMax H3'
     case 'cinematic_h3max': return 'MiniMax H3 Max' // KINEO-H3MAX-2026-10-13

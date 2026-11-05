@@ -16,7 +16,7 @@ import { navThumbAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — 
 // KINEO-MENU-VIDEO-RODANDO-2610 — fundador 26/10: "onde estão os motores, no menu, eu quero vídeos rodando, não fotos paradas…
 // KINEO-MENU-VIDEO-RODANDO-2610 — dá sinal de que os nossos vídeos são bons". Miniatura com mp4 irmão (public/nav-thumbs/<motor>.mp4,
 // KINEO-MENU-VIDEO-RODANDO-2610 — 96 px, 4 s, ~10 KB, cortado do MESMO clipe real do motor que deu a foto) roda sozinha em loop; a foto vira o pôster.
-const NAV_THUMB_VIDEOS = new Set(['seedance', 'kling', 'veo', 'kling3', 'h3', 's25']) // KINEO-MENU-VIDEO-RODANDO-2610
+const NAV_THUMB_VIDEOS = new Set(['seedance', 'kling', 'veo', 'kling3', 'kling4', 'h3', 's25']) // KINEO-MENU-VIDEO-RODANDO-2610
 const NAV_THUMB_VIDEO_STYLE = { width: '100%', height: '100%', objectFit: 'cover' as const, display: 'block' } // KINEO-MENU-VIDEO-RODANDO-2610
 function navThumbVideo(thumb?: string): string | null { // KINEO-MENU-VIDEO-RODANDO-2610
   const m = /^\/nav-thumbs\/([a-z0-9]+)\.webp$/.exec(thumb ?? '') // KINEO-MENU-VIDEO-RODANDO-2610

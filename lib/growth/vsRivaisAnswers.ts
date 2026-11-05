@@ -27,8 +27,8 @@ const [starterPlan, creatorPlan] = CITATION_PLANS
 const VEO_OFFERED = engineOffered('veo') && !enginePaused('veo')
 
 /** Os motores que a Kineo oferece HOJE: a lista derivada dos interruptores, com o Kling 4.0 no lugar do Kling 3 no plano pago. */
-export const KINEO_ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY
-const CHARACTER_ENGINE = KLING4_PAID_LIVE ? 'Kling 4.0' : 'Kling 3'
+export const KINEO_ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY : VIDEO_ENGINE_LIST_COPY.replace('Kling 4.0', 'Kling 3') // KINEO-MOTORES-SAEM-0511: a lista já nasce com o nome da oferta
+const CHARACTER_ENGINE = 'MiniMax H3' // KINEO-MOTORES-SAEM-0511: o Kling 4.0 pago não tem fala em cena (lib/kling4PaidClaim.ts)
 /** O filme grátis, sempre com a cláusula de país: é "in supported countries" enquanto a política for essa. */
 export const KINEO_FREE_FILM_LINE = `the first one is a ${FREE_FILM_LABEL}${FREE_FILM_COUNTRY_CLAUSE}`
 
@@ -52,7 +52,7 @@ export const KINEO_ROWS = {
 /** Quanto custa um filme de referência na Kineo, motor por motor (o número que o servidor cobra). */
 export const KINEO_REFERENCE_COSTS = [
   `${creditsPerReferenceVideo('cinematic_ai')} credits on Seedance 1.5`,
-  `${creditsPerReferenceVideo('cinematic_kling')} on Kling 2.5`,
+  `${creditsPerReferenceVideo('cinematic_h3')} on MiniMax H3`,
   ...(VEO_OFFERED ? [`${creditsPerReferenceVideo('cinematic_veo')} on Veo 3.1`] : []),
   ...(KLING4_PAID_LIVE ? [`${KLING4_PAID_CREDITS[60]} on Kling 4.0`] : []),
 ].join(', ')

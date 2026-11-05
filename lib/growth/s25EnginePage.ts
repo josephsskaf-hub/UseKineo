@@ -173,7 +173,7 @@ export function s25PageCopy(f: S25PageFacts = s25PageFacts()): S25PageCopy {
       // KINEO-PAGINAS-MOTOR-1610 — a pergunta do diálogo na câmera (o limite que as páginas de motor passam a dizer).
       {
         q: 'Can a character speak on camera with Seedance 2.5?',
-        a: 'If a speaking character is the point of the film, choose Kling 3: it is the engine Kineo builds around on-camera dialogue, with English lines only. On Seedance 2.5 the model’s own audio is off and your script is narrated word for word.',
+        a: 'If a speaking character is the point of the film, choose MiniMax H3: it is the engine Kineo builds around on-camera dialogue. On Seedance 2.5 the model’s own audio is off and your script is narrated word for word.',
       },
     ],
   }

@@ -199,9 +199,10 @@ export function PlanValueCard(props: PlanValueCardProps) {
     engine: c.engine,
     label: c.label,
     clip: c.count,
-    film: value.films.find((f) => f.engine === c.engine)?.count ?? null,
+    // KINEO-MOTORES-SAEM-0511 — selo honesto: o clipe segue no Kling 3 e o filme premium já é Kling 4.0; com nomes diferentes, cada um na sua linha.
+    film: value.films.find((f) => f.engine === c.engine && f.label === c.label)?.count ?? null,
   }))
-  for (const f of value.films) if (!engines.some((e) => e.engine === f.engine)) engines.push({ engine: f.engine, label: f.label, clip: null, film: f.count })
+  for (const f of value.films) if (!engines.some((e) => e.engine === f.engine && e.label === f.label)) engines.push({ engine: f.engine, label: f.label, clip: null, film: f.count })
   const clipSeconds = value.clips.length ? seconds(value.clips.map((c) => c.seconds)) : ''
   const filmSeconds = value.films.length ? seconds(value.films.map((f) => f.seconds)) : ''
   const cell = (n: number | null) => (typeof n === 'number' && n >= 1 ? <b>{n}</b> : <span className="pv-none">—</span>)
@@ -277,7 +278,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
           </thead>
           <tbody>
             {engines.map((e) => (
-              <tr key={e.engine}>
+              <tr key={`${e.engine}:${e.label}`}>
                 <td>{e.label}</td>
                 <td>{cell(e.clip)}</td>
                 <td>{cell(e.film)}</td>

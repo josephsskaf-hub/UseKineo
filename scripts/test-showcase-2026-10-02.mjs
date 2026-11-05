@@ -129,7 +129,7 @@ function discovery(overrides = {}) {
   // renamed there turns this red until the fixture follows — and the run below REQUIRES every hub page and the monthly
   // AI Video Index exactly once, with the switch on and off.
   const HUB_PAGES = {
-    oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
+    oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and MiniMax in one place' },
     faceless: { path: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
     brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },
   }

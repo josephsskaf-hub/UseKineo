@@ -241,7 +241,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     q: 'What’s the difference between AI Generated and Cinematic AI?',
     // KINEO-REBASE-2026-07-10 — 2:1 rebase (Seedance 20, Kling 45) + universal
     // engines: every engine is on every paid plan now (no Studio exclusivity).
-    a: `AI Generated uses the Seedance engine (great quality, ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second video). Cinematic AI uses the premium Kling engine for top-tier cinematic motion (${creditsPerReferenceVideo('cinematic_kling')} credits per 60-second video). Every paid plan can access every engine once its balance covers the full cost; you can add extra credits when needed. Fast Mode uses smart stock footage.`,
+    a: `AI Generated uses the Seedance engine (great quality, ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second video). Cinematic AI uses the MiniMax H3 engine for top-tier cinematic motion (${creditsPerReferenceVideo('cinematic_h3')} credits per 60-second video). Every paid plan can access every engine once its balance covers the full cost; you can add extra credits when needed. Fast Mode uses smart stock footage.`,
   },
   {
     q: 'How do credits work?',
@@ -250,7 +250,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
     // KINEO-SELO-OMNI-POPUP-2026-09-30 · KINEO-OMNI-FORA-2026-10-12 — o "or Omni Flash" saiu de vez (motor fora da oferta).
-    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3 = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')})${AUTOPILOT_PUBLIC ? `; Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you` : ''}. Credits reset each month (no rollover).`,
+    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, MiniMax H3 = ${creditsPerReferenceVideo('cinematic_h3')}, Kling 3 = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')})${AUTOPILOT_PUBLIC ? `; Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you` : ''}. Credits reset each month (no rollover).`,
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
@@ -355,7 +355,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
       // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
-      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
+      outcome: `Every available engine — Kling 3, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610
       cta: { label: 'Get Started', href: '#checkout' },
@@ -1438,8 +1438,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   // TIER_CREDITS ÷ creditCostFor — régua do caixa, #296.
                   const costSeed = creditsPerReferenceVideo('cinematic_ai')
                   const costH3 = creditsPerReferenceVideo('cinematic_h3')
-                  const costKling25 = creditsPerReferenceVideo('cinematic_kling')
-                  const costVeo = creditsPerReferenceVideo('cinematic_veo')
+                  // KINEO-MOTORES-SAEM-0511 — saem as linhas de filme dos dois motores que deixaram a oferta
                   const costFlag = creditsPerReferenceVideo('cinematic_hollywood')
                   // KINEO-AVATAR-FORA-2026-09-28 — a linha 'AI Presenter videos' (70 cr) só entra com AVATAR_PUBLIC=true:
                   // o Avatar saiu do catálogo público em 27/09. O custo continua no biller (engineCost 'presenter').
@@ -1448,9 +1447,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
                     // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha do motor de stock saiu (fora do catálogo público).
                     { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
-                    { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
+                    { ic: '🎞', name: 'MiniMax H3 films', cost: costH3 },
                     ...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),
-                    { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
                     { ic: '🏆', name: klingPaidName, cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
                   ]
                   return (
@@ -1737,8 +1735,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
             <span>🎬 Film (Seedance) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
-            <span>🎥 Kling 2.5 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_kling')} cr</b></span>
-            <span>🌐 Veo 3.1 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_veo')} cr</b></span>
+            <span>🎥 MiniMax H3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_h3')} cr</b></span>
             <span>🎞 {klingPaidName} — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
             <span>🖼 Image — <b className="text-[var(--text)]">1-5 cr</b></span>
             <span>🎙 Voiceover — <b className="text-[var(--text)]">1-2 cr</b></span>

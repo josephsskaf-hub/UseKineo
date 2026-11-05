@@ -65,9 +65,8 @@ const ROWS: Row[] = [
   { key: 'h3', name: 'MiniMax H3', quality: 'cinematic_h3', what: 'Lower-credit cinematic film; characters can speak with lip sync', path: ENGINE_LANDING_PUBLIC_PATHS.h3 }, // KINEO-MOTORES-GEO-2026-10-06 — era "9-image consistency" (uma âncora por cena; a identidade pode variar)
   // KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max logo depois do H3 (interruptor H3MAX_PUBLIC); o preço sai da régua única.
   ...(H3MAX_PUBLIC ? [{ key: 'h3max', name: 'MiniMax H3 Max', quality: 'cinematic_h3max' as Quality, what: 'MiniMax’s sharpest film engine — the post-trained H3, same pipeline', path: ENGINE_LANDING_PUBLIC_PATHS.h3max }] : []), // KINEO-H3MAX-2026-10-13
-  { key: 'kling', name: 'Kling 2.5', quality: 'cinematic_kling', what: 'Cinematic motion and camera work', path: ENGINE_LANDING_PUBLIC_PATHS.kling },
-  { key: 'veo', name: 'Veo 3.1', quality: 'cinematic_veo', what: 'Google’s Veo 3.1, in its Fast version', path: ENGINE_LANDING_PUBLIC_PATHS.veo },
-  { key: 'hollywood', name: 'Kling 3', quality: 'cinematic_hollywood', what: 'Film scenes, native voice and lip sync', path: ENGINE_LANDING_PUBLIC_PATHS.hollywood },
+  // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — saem as linhas do Kling 2.5 e do Veo 3.1. O Kling 3 vira Kling 4.0, que só faz 15, 30 e 60 s: nas colunas de 35 e 90 s a linha mostra "—".
+  { key: 'hollywood', name: 'Kling 4.0', quality: 'cinematic_hollywood', what: 'Directed film scenes with your narration, captions and music', path: ENGINE_LANDING_PUBLIC_PATHS.hollywood },
   // KINEO-OMNI-FORA-2026-10-12 — a linha do Omni Flash saiu da tabela (motor fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS). Os filmes feitos com ele seguem na vitrine; o preço dele não é mais anunciado.
   // O S25 só aparece quando o interruptor único abrir para o público — mostrar
@@ -139,7 +138,7 @@ export default function ModelsPricingPage() {
                   </td>
                   {LENGTHS.map((s) => (
                     <td key={s} style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {creditCostForDuration(r.quality, true, s)} cr
+                      {r.key === 'hollywood' && s !== 60 ? '—' : `${creditCostForDuration(r.quality, true, s)} cr`}
                     </td>
                   ))}
                   <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap', color: free >= 1 || freeShort ? '#7ee2a8' : '#8f8f9c' }}>

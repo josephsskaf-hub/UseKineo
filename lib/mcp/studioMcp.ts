@@ -154,7 +154,7 @@ export function validateCreateInput(args: Record<string, unknown>, pausedEngines
   const engine = engineRaw as StudioEngine
   if (pausedEngines.includes(engine)) {
     const alt = activeStudioEngines(pausedEngines)
-    return { ok: false, error: `${studioEngineLabel(engine)} (${engine}) is temporarily paused. Use ${alt.join(' or ')} instead.` }
+    return { ok: false, error: `${studioEngineLabel(engine)} (${engine}) is ${engine === 'kling' || engine === 'veo' ? 'no longer available for new videos' : 'temporarily paused'}. Use ${alt.join(' or ')} instead.` } // KINEO-MOTORES-SAEM-0511
   }
   const duration = args.duration === undefined ? STUDIO_DEFAULT_DURATION : Number(args.duration)
   const allowed = durationsFor(engine)

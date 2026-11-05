@@ -103,7 +103,7 @@ export function nomePublicoDoMotor(engine: string | null | undefined): string {
   const k = motorNormalizado(engine)
   if (isKling25(k)) return 'Kling 2.5'
   if (isVeo31(k)) return 'Veo 3.1'
-  if (k === 'hollywood' || k === 'cinematic_hollywood') return 'Kling 3'
+  if (k === 'hollywood' || k === 'cinematic_hollywood') return 'Kling 4.0' // KINEO-MOTORES-SAEM-0511 — recusa de pedido novo fala o nome da oferta
   if (k === 'h3' || k === 'cinematic_h3') return 'MiniMax H3'
   if (k === 'h3max' || k === 'cinematic_h3max') return 'MiniMax H3 Max' // KINEO-H3MAX-2026-10-13
   if (k === 'omni' || k === 'cinematic_omni') return 'Omni'
@@ -138,7 +138,7 @@ export function checarDuracao(engine: string | null | undefined, seconds: number
   return { ok: true }
 }
 
-export const ONLY_SEEDANCE_15S_MESSAGE = 'Short films are available on Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3, MiniMax H3, Omni and Seedance 2.5; pick 35 s for this engine.'
+export const ONLY_SEEDANCE_15S_MESSAGE = 'Short films are available on Seedance 1.5, Kling 4.0, MiniMax H3 and Seedance 2.5; pick 35 s for this engine.'
 export const SEEDANCE_DURATION_NOT_OFFERED_MESSAGE = `Seedance 1.5 films are ${SEEDANCE_DURATIONS.join(', ')} seconds long; pick one of those. Nothing was charged.`
 /** Recusa de duração fora da tabela de um motor com duração curta (Kling 2.5, Veo, estrada hollywood). */
 export function duracaoNaoOferecidaMessage(engine: string | null | undefined): string {

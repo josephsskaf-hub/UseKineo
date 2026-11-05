@@ -78,7 +78,7 @@ export function engineDisplayName(engine: string): string {
       return 'Veo 3.1'
     case 'hollywood':
     case 'cinematic_hollywood':
-      return 'Kling 3'
+      return 'Kling 4.0' // KINEO-MOTORES-SAEM-0511
     case 'h3':
     case 'cinematic_h3':
       return 'MiniMax H3'

@@ -165,7 +165,7 @@ async function run(rep = {}) {
     `Creator: ${usd(checkout.TIER_PRICES.basic.usd)}/month, ${checkout.TIER_CREDITS.basic} credits`,
     `Studio: ${usd(checkout.TIER_PRICES.pro.usd)}/month, ${checkout.TIER_CREDITS.pro} credits`,
     `${market.creditsPerReferenceVideo('cinematic_ai')} credits on Seedance 1.5`,
-    `${market.creditsPerReferenceVideo('cinematic_kling')} on Kling 2.5`,
+    `${market.creditsPerReferenceVideo('cinematic_h3')} on MiniMax H3`,
     ...(k4Policy.KLING4_PAID_LIVE ? [`${k4.KLING4_PAID_CREDITS[60]} on Kling 4.0`] : []),
   ]
   for (const [id, h] of Object.entries(html)) for (const want of expected) if (!h.includes(escapeHtml(want))) fail('R3', `${id}: a página não mostra "${want}" das constantes do código`)
@@ -324,7 +324,7 @@ const MUTANTS = [
   ['M19 hub sem as páginas', 'R5', () => sub(HUB, '...VS_RIVAL_LINKS,', '')],
   ['M20 promessa proibida na resposta', 'R6', () => sub(ANSWERS, "output: 'One finished film:", "output: 'Priority queue and one finished film:")],
   ['M21 filme grátis sem a cláusula de país', 'R6', () => sub(ANSWERS, '`the first one is a ${FREE_FILM_LABEL}${FREE_FILM_COUNTRY_CLAUSE}`', '`the first one is a ${FREE_FILM_LABEL}`')],
-  ['M22 lista de motores digitada com motor pausado', 'R6', () => sub(ANSWERS, "export const KINEO_ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY", "export const KINEO_ENGINE_LIST = 'Omni Flash, Kling 3 and Seedance 2.5'")],
+  ['M22 lista de motores digitada com motor pausado', 'R6', () => sub(ANSWERS, "export const KINEO_ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY : VIDEO_ENGINE_LIST_COPY.replace('Kling 4.0', 'Kling 3')", "export const KINEO_ENGINE_LIST = 'Omni Flash, Kling 3 and Seedance 2.5'")],
   ['M23 Pictory volta a 13/10', 'R7', () => sub(PICTORY_PAGE, 'reviewDate={VS_RIVAIS_CHECKED_ISO}', "reviewDate={'2026-10-13'}")],
   ['M24 preço do Higgsfield digitado de novo', 'R7', () => sub(HIGGS_PAGE, "on Higgsfield's own pricing page (checked November 2026): ${HIGGS.text}", "Higgsfield's plans start at $15/month.")],
   ['M25 relida com lastmod velho', 'R7', () => sub(SITEMAP, '...[...VS_RIVAL_LINKS.map(({ path }) => path), ...VS_RIVAIS_REFRESHED_PATHS]', '...VS_RIVAL_LINKS.map(({ path }) => path)')],

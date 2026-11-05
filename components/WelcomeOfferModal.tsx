@@ -58,7 +58,7 @@ import {
 // Agora o motor-âncora do Studio LÊ o interruptor: pausado → Kling 3 (a alternativa que o próprio ENGINE_PAUSE
 // indica, mesma etiqueta de 150cr); de volta ao ar → Omni Flash, sozinho, sem ninguém redigitar a linha.
 // Guardião: scripts/test-selo-omni-pausado-2026-09-30.mjs.
-const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 3 film' } as const
+const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 4.0 film' } as const // KINEO-MOTORES-SAEM-0511
 // KINEO-OMNI-FORA-2026-10-12 — o Omni saiu da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): o motor-âncora do
 // Studio é sempre o Kling 3. Sem ramo do Omni e sem leitura do interruptor — voltar o Omni à oferta é decisão do fundador.
 const studioLead = KLING3_LEAD
@@ -296,12 +296,12 @@ export default function WelcomeOfferModal({
         'Seedance film',
         TIER_CREDITS.pro,
       ),
-      perks: [`${formatResultCount(videosPerMonth('pro', studioLead.quality), studioLead.film)} or ${formatResultCount(videosPerMonth('pro', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
+      perks: [`${formatResultCount(videosPerMonth('pro', studioLead.quality), studioLead.film)} or ${formatResultCount(videosPerMonth('pro', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Kling 4.0 directed film scenes', '2 free HD Enhance upscales / month'],
       highlight: true,
     },
   ]
   // KINEO-POPUP-KLING4-2910 — com a promo viva, o 1º item vira a oferta do Kling 4.0 (sai a linha antiga do Kling 3 e o "Every engine").
-  if (kling4Promo) for (const plan of plans) plan.perks = [KLING4_PAID_COPY.offer, ...plan.perks.filter((perk) => !perk.startsWith('Kling 3 film scenes') && perk !== 'Every engine incl. MiniMax H3')]
+  if (kling4Promo) for (const plan of plans) plan.perks = [KLING4_PAID_COPY.offer, ...plan.perks.filter((perk) => !perk.startsWith('Kling 4.0 directed film scenes') && perk !== 'Every engine incl. MiniMax H3')]
 
   return (
     <div

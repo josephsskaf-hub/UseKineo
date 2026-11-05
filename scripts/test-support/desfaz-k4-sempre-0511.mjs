@@ -3,6 +3,7 @@
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
 // estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais continua reprovando. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
+import { semMotoresSaem0511 } from './desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 — a camada mais nova (05/11) sai primeiro
 import { createHash } from 'node:crypto'
 
 export const K4_SEMPRE_0511 = JSON.parse(readFileSync(new URL('./desfaz-k4-sempre-0511-fontes.json', import.meta.url), 'utf8'))
@@ -12,6 +13,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semK4Sempre0511(source, file) {
+  source = semMotoresSaem0511(source, file)
   const entry = K4_SEMPRE_0511.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

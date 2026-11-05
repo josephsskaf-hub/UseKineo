@@ -161,13 +161,13 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
   { key: 'h3', paused: Boolean(enginePaused('h3')), icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
-  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
   // KINEO-VEO-CARD-HONESTO-2026-09-29 — o Veo roda em 1080p pelo mesmo preço desde 16/08
   // (KINEO-VEO-1080, fal cobra igual) e o card ainda dizia 720p. O selo 'Studio' digitado
   // saiu: o gate está desligado na fonte (lib/enginePlanGate.ts) e a 35 s o filme cabe no
   // Starter — o selo automático abaixo (ENGINE_GATE_ACTIVE) volta sozinho se o gate religar.
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', desc: 'Google’s flagship cinematic engine · 1080p', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
-  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
+  // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — os cards do Kling 2.5 e do Veo 3.1 saíram do seletor (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS).
+  // ?engine=kling|veo cai no padrão (a linha do useEffect só aceita chave com card), e o servidor recusa sem cobrar.
+  { key: 'hollywood', preview: '/previews/studio-kling4-werewolf-kid.mp4', icon: 'K4', name: 'Kling 4.0', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
   // KINEO-OMNI-FORA-2026-10-12 — o card do Omni Flash saiu do seletor (motor fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS). Sem a linha aqui, ?engine=omni não acha o motor e cai no padrão (linha do
   // KINEO-MOTOR-EM-MANUTENCAO abaixo), e o servidor segue recusando o Omni antes de qualquer débito.
@@ -1408,7 +1408,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
-                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5 narrates in this language. Kling 4.0, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
               )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.

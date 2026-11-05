@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getKineoFacts } from '@/lib/kineoFacts'
-import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
+import { UNAVAILABLE_ENGINE_KEYS } from '@/lib/engineLaunch' // KINEO-MOTORES-SAEM-0511: pausados + fora da oferta
 import { writeServerEvent } from '@/lib/serverEvents'
 import { clientIp, handoffPublicOrigin } from '@/lib/gptHandoffStore'
 import { createConnectorHandoff } from '@/lib/mcp/connectorHandoff'
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   const deps: McpDeps = {
     facts: () => getKineoFacts() as unknown as Record<string, unknown>,
     createHandoff: (args) => createConnectorHandoff(args, { ip, userAgent: req.headers.get('user-agent'), origin }),
-    pausedEngines: PAUSED_ENGINE_KEYS,
+    pausedEngines: UNAVAILABLE_ENGINE_KEYS,
   }
 
   try {

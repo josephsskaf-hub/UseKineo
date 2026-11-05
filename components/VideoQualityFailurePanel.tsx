@@ -22,7 +22,7 @@ const COPY = {
     // que outro fornecedor funcione. Sem retry automático, sem preço, sem oferta.
     // KINEO-OMNI-FORA-2026-10-12 — as alternativas não citam mais o Omni Flash (fora da oferta) nas 3 línguas.
     engineTitle: 'We could not complete the presenter scene with Seedance 2.5',
-    engineDetail: 'The presenter voice could not be prepared for this attempt, so we stopped rather than deliver a silent presenter. You can pick another engine for the presenter (Kling 3 and MiniMax H3 are the options) or ask for a narrated film without an on-camera presenter. Your text, length and engine have not been changed.',
+    engineDetail: 'The presenter voice could not be prepared for this attempt, so we stopped rather than deliver a silent presenter. You can pick another engine for the presenter (MiniMax H3 is the option) or ask for a narrated film without an on-camera presenter. Your text, length and engine have not been changed.',
     setAside: (n: number) => `${n} scene${n === 1 ? '' : 's'} had already started and ${n === 1 ? 'was' : 'were'} set aside. A new film starts from scratch at its normal price; those scenes are not reused.`,
     changeEngine: 'Change engine or format',
     // KINEO-SILENCIO-NA-TELA-2026-09-23 — the server's own count, said plainly.
@@ -38,7 +38,7 @@ const COPY = {
     pending: 'No pudimos confirmar que este intento y sus créditos estén totalmente resueltos. No lo inicies de nuevo todavía. Contacta con soporte e incluye la referencia de abajo.',
     reference: 'Referencia del intento', edit: 'Editar mi idea', support: 'Contactar con soporte', history: 'Abrir historial de videos',
     engineTitle: 'No pudimos completar la escena del presentador con Seedance 2.5',
-    engineDetail: 'La voz del presentador no pudo prepararse en este intento, así que nos detuvimos en lugar de entregar un presentador mudo. Puedes elegir otro motor para el presentador (Kling 3 y MiniMax H3 son las opciones) o pedir un video narrado sin presentador en cámara. Tu texto, duración y motor no han cambiado.',
+    engineDetail: 'La voz del presentador no pudo prepararse en este intento, así que nos detuvimos en lugar de entregar un presentador mudo. Puedes elegir otro motor para el presentador (MiniMax H3 es la opción) o pedir un video narrado sin presentador en cámara. Tu texto, duración y motor no han cambiado.',
     setAside: (n: number) => `${n} escena${n === 1 ? '' : 's'} ya ${n === 1 ? 'había' : 'habían'} empezado y ${n === 1 ? 'quedó' : 'quedaron'} apartada${n === 1 ? '' : 's'}. Un video nuevo empieza desde cero a su precio normal; esas escenas no se reutilizan.`,
     changeEngine: 'Cambiar motor o formato',
     wordsTitle: 'Tu guion es un poco corto para esta duración',

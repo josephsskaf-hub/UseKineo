@@ -62,7 +62,7 @@ const FAQ_JSONLD = {
       name: 'What is the best Sora alternative for short-form creators?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo combines script, narration, footage and captions for finished videos. Seedance 1.5, Kling 3 and Veo 3.1 require a paid plan and sufficient credits. The no-card trial has ${TRIAL_CREDITS_SHOWN} credits — enough for one ${FREE_FILM_LABEL} — not free access to every generative engine.`,
+        text: `Kineo combines script, narration, footage and captions for finished videos. Seedance 1.5, MiniMax H3 and Kling 4.0 require a paid plan and sufficient credits. The no-card trial has ${TRIAL_CREDITS_SHOWN} credits — enough for one ${FREE_FILM_LABEL} — not free access to every generative engine.`,
       },
     },
   ],
@@ -104,15 +104,15 @@ export default function SoraAlternativePage() {
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>Then: pick your next tool by what you actually made</h2>
       <p style={{ color: '#c7c7cc' }}>
         <b>If you used Sora for raw cinematic clips</b> — standalone text-to-video shots — the direct
-        successors are engines like <b>Kling 3</b>, <b>Veo 3.1</b> and <b>MiniMax</b>. You can access
-        those through various platforms, including ours.
+        successors are models like <b>Kling</b>, <b>Veo</b> and <b>MiniMax</b>. You can access
+        them through various platforms; Kineo offers Kling 4.0 and MiniMax H3.
       </p>
       <p style={{ color: '#c7c7cc' }}>
         <b>If your real goal was finished short-form videos</b> — the clip was always just one
         ingredient — that’s the case Kineo was built for: you type an idea, and it returns a finished
-        9:16 Short with script, AI voiceover, footage from those same engines, and captions. On Kling 3
-        and MiniMax H3, characters can speak scripted lines with lip sync. Those engines require a paid plan and enough credits. The{' '}
-        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>no-card trial</a> has {TRIAL_CREDITS_SHOWN} credits — enough for one {FREE_FILM_LABEL} — not free access to Kling, Veo or longer Seedance films.
+        9:16 Short with script, AI voiceover, generated footage, and captions. On MiniMax H3,
+        characters can speak scripted lines with lip sync. Those engines require a paid plan and enough credits. The{' '}
+        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>no-card trial</a> has {TRIAL_CREDITS_SHOWN} credits — enough for one {FREE_FILM_LABEL} — not free access to Kling, MiniMax or longer Seedance films.
       </p>
       <p style={{ color: '#c7c7cc' }}>
         {/* KINEO-MULTIFORMATO-2026-09-02 — este parágrafo mandava embora todo

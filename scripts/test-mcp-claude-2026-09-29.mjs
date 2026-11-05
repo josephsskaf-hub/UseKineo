@@ -201,7 +201,7 @@ ok(/if \(outcome\.kind === 'too_short'\) \{\n\s+return \{ ok: false/.test(handof
 ok(/counts && !viaAnthropic && ipHash && counts\.ip >= RATE_LIMIT_PER_IP_PER_HOUR/.test(handoffCode) && /counts && counts\.global >= RATE_LIMIT_GLOBAL_PER_HOUR/.test(handoffCode), '(C7) teto por IP fora da Anthropic + teto global para todos')
 ok(/claude_connector: \{ utmSource: 'claude_connector', intentCampaign: 'kineo_claude_connector' \}/.test(libHandoff) && G.CHANNEL_TAGS.claude_connector?.utmSource === 'claude_connector', '(C8) CHANNEL_TAGS.claude_connector escrito uma vez, na lib')
 ok(/export async function POST/.test(routeCode) && /export function GET\(\): NextResponse \{\n\s+return methodNotAllowed\(\)/.test(routeCode) && /export function OPTIONS/.test(routeCode), '(C9) rota: POST + GET 405 + OPTIONS')
-ok(/pausedEngines: PAUSED_ENGINE_KEYS/.test(routeCode) && /getKineoFacts\(\)/.test(routeCode), '(C10) rota injeta os motores pausados e os fatos vivos (sem cópia)')
+ok(/pausedEngines: UNAVAILABLE_ENGINE_KEYS/.test(routeCode) && /getKineoFacts\(\)/.test(routeCode), '(C10) rota injeta os motores pausados e os fatos vivos (sem cópia)')
 ok(!/req\.headers\.get\('origin'\)/i.test(routeCode), '(C11) sem checagem estrita de Origin (derruba o initialize do Claude)')
 ok(/name: 'mcp_tool_called'/.test(routeCode) && /name: 'mcp_initialized'/.test(routeCode) && /await writeServerEvent/.test(routeCode), '(C12) adoção medida (mcp_initialized / mcp_tool_called), com await')
 

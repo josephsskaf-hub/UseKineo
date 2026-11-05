@@ -27,6 +27,7 @@ import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import { CheapestAnswer1610, CompetitorTable1610 } from '@/components/PaginasMotor1610'
 import {
   ENGINE_REFS,
+  engineOfferRef,
   FONTES_CONCORRENTES_1610,
   PAGINAS_MOTOR_1610_CHECKED_LABEL,
   REFERENCE_PLAN_LINE,
@@ -50,15 +51,15 @@ const CALCULATOR_EXAMPLES = [
 // Os números da página (todos derivados): o filme mais barato de 60 s e os três motores mais usados.
 const ANSWER = cheapestAnswer()
 const SEEDANCE_60 = filmCredits('seedance', 60) as number
-const KLING_60 = filmCredits('kling', 60) as number
-const VEO_60 = filmCredits('veo', 60) as number
+const H3_60 = filmCredits('h3', 60) as number // KINEO-MOTORES-SAEM-0511
+const K4_60 = filmCredits('hollywood', 60) as number
 const HAS_FREE_FILM = TRIAL_SEEDANCE15_FILMS >= 1
 const FLOW = FONTES_CONCORRENTES_1610.googleFlow
 const FLOW_CLIPS_60 = Math.ceil(60 / FLOW.veoFastMaxSeconds)
 const FLOW_CREDITS_60 = FLOW_CLIPS_60 * FLOW.veoFastCreditsPerGeneration
 const ENGINE_LIST_60 = (['seedance', 'kling', 'h3', 'veo', 'hollywood', 's25'] as const)
   .filter(engineListed)
-  .map((k) => `${ENGINE_REFS[k].name} ${filmCredits(k, 60)}`)
+  .map((k) => `${engineOfferRef(k).name} ${filmCredits(k, 60)}`)
   .join(', ')
 
 export const metadata: Metadata = {
@@ -77,7 +78,7 @@ export const metadata: Metadata = {
 
 const STEPS: { n: string; t: string; d: string }[] = [
   { n: '1', t: 'Type one idea or paste your script', d: 'No source footage, no long video to re-clip. One line is enough — "the island too dangerous to visit", "how compound interest works".' },
-  { n: '2', t: 'Pick the engine by cost', d: `For a 60-second film, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.kling.name} ${KLING_60} and ${ENGINE_REFS.veo.name} ${VEO_60}. Shorter films cost proportionally less.` },
+  { n: '2', t: 'Pick the engine by cost', d: `For a 60-second film, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.h3.name} ${H3_60} and ${engineOfferRef('hollywood').name} ${K4_60}. Shorter films cost proportionally less.` },
   { n: '3', t: 'Download a ready-to-post Short', d: 'A finished 9:16 video — script, AI voiceover, generated scenes, captions and music — with no editor and no timeline.' },
 ]
 
@@ -93,7 +94,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'How much does one AI YouTube Short cost on Kineo?', a: `In credits, a finished 60-second film costs: ${ENGINE_LIST_60}. At the ${REFERENCE_PLAN_LINE()}, the ${ANSWER.cheapest.name} film is worth about ${usd(creditsToCents(ANSWER.cheapest.c60))}. A 15-second ${ANSWER.cheapest.name} film costs ${ANSWER.cheapest.c15} credits. You pay for a plan; every film uses credits from the same monthly balance.` },
   { q: 'Is Google Flow cheaper than Kineo?', a: `In money, Google Flow’s free tier can be: free accounts get ${FLOW.freeCreditsPerDay} credits a day and a Veo 3.1 Fast generation costs ${FLOW.veoFastCreditsPerGeneration} (Google’s help page, read ${PAGINAS_MOTOR_1610_CHECKED_LABEL}). A 60-second Short from ${FLOW.veoFastMaxSeconds}-second clips needs ${FLOW_CLIPS_60} clips, or ${FLOW_CREDITS_60} credits, and you still write the script, record or generate the voice-over and add captions. Kineo charges per finished film with all of that done. Which is cheaper depends on what your editing time is worth.` },
   { q: 'Why is a cheap AI Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — no help if you are faceless and starting from scratch. Kineo creates the video from an idea, so the price buys a finished Short, not chopped-up footage.' },
-  { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.kling.name} ${KLING_60} and ${ENGINE_REFS.veo.name} ${VEO_60}. A higher credit price is what you spend, not a guarantee of a better Short.` },
+  { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.h3.name} ${H3_60} and ${engineOfferRef('hollywood').name} ${K4_60}. A higher credit price is what you spend, not a guarantee of a better Short.` },
   { q: 'Are the dollar amounts the price of one video?', a: `No. They are what the credits are worth at the ${REFERENCE_PLAN_LINE()}. Your checkout charges for the plan you choose; other creations use the same balance.` },
   { q: 'Can I try it before paying for a plan?', a: `${HAS_FREE_FILM ? `Yes. New accounts${GRANT_COUNTRY_CLAUSE} get one ${FREE_FILM_LABEL}, watermarked.` : 'You can compare the published examples on each engine page first.'} Paid plans unlock clean exports.` },
 ]

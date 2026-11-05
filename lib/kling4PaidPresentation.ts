@@ -52,7 +52,9 @@ export function rebaseKling4Lease(value: unknown, receivedAt: number): unknown {
 }
 
 export function kling4PaidName(a: unknown, now = Date.now()): string {
-  return validKling4PaidAvailability(a, now) && a.paidLive ? 'Kling 4.0' : 'Kling 3'
+  // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — o nome da oferta é Kling 4.0. Só a resposta válida do servidor com o interruptor DESLIGADO
+  // devolve o Kling 3 (o filme sairia nele: selo honesto); enquanto a leitura não chega, ou expirou, a tela não mostra o nome antigo.
+  return validKling4PaidAvailability(a, now) && !a.paidLive ? 'Kling 3' : 'Kling 4.0'
 }
 
 export function kling4PromoVisible(a: unknown, now = Date.now()): a is Kling4PaidAvailability {

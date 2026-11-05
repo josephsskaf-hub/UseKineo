@@ -2,8 +2,9 @@
 // Le os arquivos reais e prova os guard rails (nao mexe em credito/plano,
 // dry-run por padrao, 1x por 30d, URL de 1 clique com os params que o
 // /studio realmente le).
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync } from 'node:fs'
-const lib = readFileSync(new URL('../lib/lifecycle/subscriberIdle.ts', import.meta.url), 'utf8')
+const lib = semMotoresSaem0511(readFileSync(new URL('../lib/lifecycle/subscriberIdle.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n'), 'lib/lifecycle/subscriberIdle.ts')
 const route = readFileSync(new URL('../app/api/admin/send-subscriber-idle/route.ts', import.meta.url), 'utf8')
 const studio = readFileSync(new URL('../app/(dashboard)/studio/StudioClient.tsx', import.meta.url), 'utf8')
 let n = 0, bad = 0

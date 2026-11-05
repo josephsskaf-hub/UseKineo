@@ -33,7 +33,7 @@ import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
-import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
+import { UNAVAILABLE_ENGINE_KEYS } from '@/lib/engineLaunch' // KINEO-MOTORES-SAEM-0511
 import { ENGINE_LABELS, HANDOFF_TTL_DAYS, SCRIPT_MAX_CHARS, type HandoffEngine } from '@/lib/gptHandoff'
 import { MCP_SERVER_VERSION, buildTools } from '@/lib/mcp/kineoMcp'
 import { CLAUDE_CONNECT_ANCHOR, CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, CLAUDE_STUDIO_CONNECT_ANCHOR, claudePromptHref } from '@/lib/claudeConnect' // KINEO-MCP-STUDIO-AJUSTE-2010: + âncora do Kineo Studio
@@ -118,7 +118,7 @@ const PRESETS: readonly {
     title: 'Narrated 35-second film',
     line: 'From one line to a narrated Short with a hook, a build and a twist.',
     engine: 'hollywood',
-    learnMore: '/ai-video-generator/kling-3',
+    learnMore: '/ai-video-generator/kling-4',
     prompt: 'Using the Kineo connector, write a 35-second narrated YouTube Short from this one line and send it to Kineo Studio: the lake where lightning almost never stops.',
   },
   {
@@ -126,7 +126,7 @@ const PRESETS: readonly {
     cat: 'ads',
     title: 'Product ad in 3 variations',
     line: 'Three angles on the same offer, each saved as its own Studio link.',
-    engine: 'veo',
+    engine: 'seedance',
     learnMore: '/ads',
     prompt: 'Using the Kineo connector, write 3 variations of a 15-second ad script for my product and send each one to Kineo Studio. My product is: [describe your product].',
   },
@@ -144,9 +144,9 @@ const PRESETS: readonly {
     cat: 'shorts',
     title: 'History in 35 seconds',
     line: 'One moment from history told as a Short, ready to open in Studio.',
-    engine: 'kling',
-    learnMore: '/ai-video-generator/kling',
-    prompt: 'Using the Kineo connector, write a 35-second history YouTube Short script about a lost Roman treasure, set the engine to Kling 2.5 and send it to Kineo Studio.',
+    engine: 'seedance',
+    learnMore: '/ai-video-generator/seedance',
+    prompt: 'Using the Kineo connector, write a 35-second history YouTube Short script about a lost Roman treasure, set the engine to Seedance 1.5 and send it to Kineo Studio.',
   },
   {
     id: 'plans',
@@ -160,7 +160,7 @@ const PRESETS: readonly {
 ]
 
 export default function ClaudeConnectorPage() {
-  const tools = buildTools({ pausedEngines: PAUSED_ENGINE_KEYS })
+  const tools = buildTools({ pausedEngines: UNAVAILABLE_ENGINE_KEYS })
   const h2: CSSProperties = { fontSize: 'clamp(1.5rem, 3.6vw, 2.2rem)', fontWeight: 650, letterSpacing: '-0.024em', lineHeight: 1.12, margin: '80px 0 12px', color: C.text }
   const h2Center: CSSProperties = { ...h2, textAlign: 'center' }
   const p: CSSProperties = { fontSize: '1rem', color: C.body, lineHeight: 1.7, margin: '0 0 14px' }

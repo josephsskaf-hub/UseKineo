@@ -9,7 +9,7 @@ if (process.argv.includes('--mutant')) table = table.replace('Paused — unavail
 check('official API source and exact dated statement', SORA_API_SOURCE === 'https://developers.openai.com/api/docs/deprecations' && SORA_API_SHUTDOWN === 'Sora 2 shut down on September 24, 2026')
 // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: a linha do Omni Flash saiu (motor fora da oferta); a tabela fica com os
 // três motores que o cliente aperta e não pode voltar a listar o Omni.
-check('three named replacement rows, no Omni', SORA_REPLACEMENTS.length === 3 && ['Seedance 1.5','Kling 3','Veo 3.1'].every(n => SORA_REPLACEMENTS.some(r => r.name === n)) && !SORA_REPLACEMENTS.some(r => /omni/i.test(r.name) || r.key === 'omni'))
+check('three named replacement rows, no Omni', SORA_REPLACEMENTS.length === 3 && ['Seedance 1.5','Kling 4.0','MiniMax H3'].every(n => SORA_REPLACEMENTS.some(r => r.name === n)) && !SORA_REPLACEMENTS.some(r => /omni/i.test(r.name) || r.key === 'omni'))
 for (const engine of SORA_REPLACEMENTS) {
   check(`${engine.name} cost derives from engine and plan source`, engine.credits === creditCostForDuration(engine.quality,true,DURATION_REFERENCE_SECONDS) && engine.allocatedUsd === engine.credits * PLANS.pro.price / PLANS.pro.credits)
   check(`${engine.name} pause derives from shared gate`, Boolean(engine.paused) === Boolean(enginePaused(engine.key)))

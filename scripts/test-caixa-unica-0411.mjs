@@ -11,7 +11,7 @@ const m = carrega()
 checa('quem só chegou vê a caixa', m.usarCaixaUnica({}) && m.usarCaixaUnica({ engine: 'seedance', intent_campaign: 'home_card', utm_source: 'x', gclid: 'y' }))
 for (const k of ['prompt', 'topic', 'avancado', 'resume', 'generationId', 'session_id', 'series_parent', 'mode', 'welcome', 'return']) checa(`com ${k}, segue para o Studio completo`, !m.usarCaixaUnica({ [k]: '1' }))
 checa('motor sem escolha é o padrão', m.motorDaCaixa(undefined) === 'seedance' && m.motorDaCaixa('fast') === 'seedance' && m.motorDaCaixa('qualquer') === 'seedance' && m.motorDaCaixa(['kling']) === 'seedance')
-checa('motor escolhido no link é mantido', m.motorDaCaixa('kling') === 'kling' && m.motorDaCaixa('hollywood') === 'hollywood')
+checa('motor escolhido no link é mantido', m.motorDaCaixa('kling') === 'seedance' && m.motorDaCaixa('h3') === 'h3' && m.motorDaCaixa('hollywood') === 'hollywood')
 checa('sem escolha diz Auto; escolhido diz o nome', m.nomeDoMotorEscolhido('seedance') === null && m.nomeDoMotorEscolhido('hollywood') === 'Kling 4.0')
 checa('campanha estranha não passa', m.campanhaDaCaixa('home_card') === 'home_card' && m.campanhaDaCaixa('a b<c') === 'studio_simple' && m.campanhaDaCaixa(undefined) === 'studio_simple')
 

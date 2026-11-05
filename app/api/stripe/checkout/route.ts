@@ -1106,7 +1106,7 @@ const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; descriptio
   topup100: { credits: TOPUP_CREDITS.topup100, name: `Kineo — +${TOPUP_CREDITS.topup100} credits`, description: `One-time: ${TOPUP_CREDITS.topup100} credits (${describeSeedanceMix(TOPUP_CREDITS.topup100)}). No subscription.`, prices: TOPUP_PRICES.topup100 },
   // KINEO-TOPUP300-2026-08-20 — o nome diz o FILME, não o crédito: é o único
   // pacote que compra o motor da vitrine, e é assim que ele se vende.
-  topup300: { credits: TOPUP_CREDITS.topup300, name: `Kineo — ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'Kling 3 film')} (${TOPUP_CREDITS.topup300} credits)`, description: `One-time: ${TOPUP_CREDITS.topup300} credits — enough for ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'full Kling 3 film')}, our top cinematic engine. Best value per credit. No subscription.`, prices: TOPUP_PRICES.topup300 },
+  topup300: { credits: TOPUP_CREDITS.topup300, name: `Kineo — ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'Kling 4.0 film')} (${TOPUP_CREDITS.topup300} credits)`, description: `One-time: ${TOPUP_CREDITS.topup300} credits — enough for ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'full Kling 3 film')}, our top cinematic engine. Best value per credit. No subscription.`, prices: TOPUP_PRICES.topup300 },
 }
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time "AI Avatar packs"

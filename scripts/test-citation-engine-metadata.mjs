@@ -185,7 +185,7 @@ assert.match(hubBefore.description, /Real user renders/)
 assert.doesNotMatch(hubAfter.description, /real user renders|demo reel|rendered by each/i)
 assert.equal(hubAfter.openGraph.description, hubAfter.description)
 if (kineo1Public) assert.equal(hubAfter.title, hubBefore.title)
-else { assert.doesNotMatch(hubAfter.title, /Kineo 1/); assert.equal(hubAfter.title, hubBefore.title.replace('Veo & Kineo 1', 'Veo & MiniMax H3')) }
+else { assert.doesNotMatch(hubAfter.title, /Kineo 1/); assert.equal(hubAfter.title, hubBefore.title.replace('Kling, Veo & Kineo 1', 'Kling & MiniMax H3')) }
 assert.equal(hubAfter.openGraph.title, hubAfter.title)
 {
   // O mesmo metadado com o interruptor LIGADO devolve o título da base, byte a byte (mutante do interruptor).
@@ -193,7 +193,7 @@ assert.equal(hubAfter.openGraph.title, hubAfter.title)
   const decl = tree.statements.filter(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(d => ['HUB_DESCRIPTION', 'HUB_TITLE', 'metadata'].includes(d.name.getText(tree))))
   const exports = {}
   vm.runInNewContext(ts.transpileModule(decl.map(n => n.getText(tree)).join('\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, URL, BASE: 'https://www.usekineo.com', KINEO1_PUBLIC: true }, { timeout: 2000 })
-  assert.equal(exports.metadata.title, hubBefore.title, 'com KINEO1_PUBLIC=true o título volta ao da base')
+  assert.equal(exports.metadata.title, hubBefore.title.replace('Kling, Veo', 'Kling'), 'com KINEO1_PUBLIC=true o título volta ao da base (sem o Veo, KINEO-MOTORES-SAEM-0511)')
 }
 assert.equal(hubAfter.alternates.canonical, hubBefore.alternates.canonical)
 assert.equal(hubAfter.openGraph.url, hubBefore.openGraph.url)

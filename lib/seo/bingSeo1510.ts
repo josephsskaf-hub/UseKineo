@@ -36,9 +36,9 @@ export const DESCRIPTION_MIN = 120
 export const DESCRIPTION_MAX = 160
 
 // ─── metadados (texto fixo; o guardião mede o comprimento RENDERIZADO, com os números que vêm do código) ─────────────
-export const HOME_TITLE_1510 = 'Kineo AI — Faceless YouTube Shorts: Veo 3.1, Kling, Seedance'
+export const HOME_TITLE_1510 = 'Kineo AI — Faceless YouTube Shorts: Kling, MiniMax, Seedance'
 export const HOME_DESCRIPTION_1510 =
-  'Pick an engine — Veo 3.1, Kling 3, Kling 2.5 or Seedance 1.5 — type a topic and get a finished faceless YouTube Short with script, voice and captions.'
+  'Pick an engine — Kling 4.0, MiniMax H3 or Seedance 1.5 — type a topic and get a finished faceless YouTube Short with script, voice and captions.'
 export const FACELESS_TITLE_1510 = 'Faceless YouTube Shorts Generator: Cost per Short | Kineo'
 export const FACELESS_DESCRIPTION_1510 =
   'Type a topic or paste a script and get a finished faceless YouTube Short: script, AI voiceover, scenes, captions and music. Dated price per Short, every model.'

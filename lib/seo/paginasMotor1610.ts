@@ -51,6 +51,10 @@ export const ENGINE_REFS: Record<EngineKey, EngineRef> = {
   hollywood: { key: 'hollywood', name: 'Kling 3', quality: 'cinematic_hollywood', path: '/ai-video-generator/kling-3' },
   s25: { key: 's25', name: 'Seedance 2.5', quality: 'cinematic_s25', path: '/ai-video-generator/seedance-2-5' },
 }
+/** KINEO-MOTORES-SAEM-0511 — o nome e a página NA OFERTA: a chave hollywood filma em Kling 4.0. ENGINE_REFS segue espelhando os selos do catálogo. */
+export function engineOfferRef(key: EngineKey): { name: string; path: string } {
+  return key === 'hollywood' ? { name: 'Kling 4.0', path: '/ai-video-generator/kling-4' } : ENGINE_REFS[key]
+}
 /** Motor que pode aparecer em página pública: na oferta, fora de manutenção e (o 2.5) com o interruptor ligado. */
 export function engineListed(key: EngineKey): boolean {
   return engineOffered(key) && !enginePaused(key) && (key !== 's25' || S25_PUBLIC)
@@ -401,32 +405,29 @@ export interface DecisionRow { name: string; path: string; considerFor: string; 
 export function decisionRows1610(): DecisionRow[] {
   const spec: { key: EngineKey; considerFor: string; limitation: string }[] = [
     { key: 'seedance', considerFor: 'Frequent narrated history, mystery and unusual-fact Shorts', limitation: 'Narrated — no character speaking on camera' },
-    { key: 'kling', considerFor: 'Sports, action, travel and camera-led scenes', limitation: 'Silent generated scenes with Kineo narration' },
-    { key: 'veo', considerFor: 'Narrated stories where you want Google’s Veo 3.1 Fast on every scene', limitation: 'Veo’s own audio is off in Kineo; no on-camera dialogue' },
-    { key: 'hollywood', considerFor: 'Short stories where a character speaks on camera', limitation: 'On-camera lines in English only' },
+    { key: 'h3', considerFor: 'Short stories where a character speaks on camera', limitation: 'Spoken lines in English, Portuguese or Spanish' },
+    { key: 'hollywood', considerFor: 'Premium directed films where the look is the product', limitation: 'Vertical 9:16, 15, 30 or 60 s; narrated, no on-camera dialogue' },
     { key: 's25', considerFor: 'Spectacle: weather, machines, crowds, set pieces', limitation: 'Paid plans only; slower to render' },
   ]
   return spec.filter((x) => engineListed(x.key)).map((x) => {
     const credits60 = c(x.key, 60)
-    return { name: ENGINE_REFS[x.key].name, path: ENGINE_REFS[x.key].path, considerFor: x.considerFor, credits60, usdCents60: creditsToCents(credits60), limitation: x.limitation }
+    return { name: engineOfferRef(x.key).name, path: engineOfferRef(x.key).path, considerFor: x.considerFor, credits60, usdCents60: creditsToCents(credits60), limitation: x.limitation }
   })
 }
 
 /** Os "When NOT to use this" e as perguntas novas da comparação (FAQ visível = JSON-LD: a página monta os dois do mesmo array). */
 export function compareExtras1610(): { whenNot: string[]; faq: { q: string; a: string }[] } {
-  const k3 = engineListed('hollywood')
   return {
     whenNot: [
       'Do not use an engine comparison to choose a tool for exact product demonstrations, factual evidence or identity-critical footage: if a shot must prove what a real object did, film the object.',
-      ...(k3 ? ['Do not pay for Kling 3 because its version number is higher — its extra cost buys on-camera dialogue (English), which a narrated story does not use.'] : []),
-      'Do not pick Veo in Kineo for native audio: the narrated workflow switches the model’s audio off.',
+      'Do not pick a premium engine because its version number is higher: Kling 4.0 costs more per film, and a frequent narrated story is usually fine on Seedance 1.5.',
     ],
     faq: [
       {
         q: 'Can every engine make characters talk on Kineo?',
-        a: k3
-          ? 'No. Kling 3 is the engine Kineo builds around a character speaking on camera (English lines only). Seedance 1.5, Kling 2.5 and Veo 3.1 films are narrated: Kineo’s narrator speaks over the scenes. Supplier demos of native dialogue do not describe Kineo’s finished-film workflow.'
-          : 'Seedance 1.5, Kling 2.5 and Veo 3.1 films are narrated: Kineo’s narrator speaks over the scenes. Supplier demos of native dialogue do not describe Kineo’s finished-film workflow.',
+        a: engineListed('h3')
+          ? 'No. MiniMax H3 is the engine Kineo builds around a character speaking on camera. Seedance 1.5 and Kling 4.0 films are narrated: Kineo’s narrator speaks over the scenes. Supplier demos of native dialogue do not describe Kineo’s finished-film workflow.'
+          : 'Seedance 1.5 and Kling 4.0 films are narrated: Kineo’s narrator speaks over the scenes. Supplier demos of native dialogue do not describe Kineo’s finished-film workflow.',
       },
       {
         q: 'Are the dollar amounts the price of one video?',

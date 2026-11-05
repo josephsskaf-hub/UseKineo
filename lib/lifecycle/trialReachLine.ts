@@ -59,7 +59,7 @@ export const TRIAL_REACH_ENGINE_NAME = 'Seedance 1.5'
 
 /** O motor que ele NÃO alcança, e que a carta nomeava. Existe para o guardião. */
 export const TRIAL_OUT_OF_REACH_QUALITY = 'cinematic_hollywood' as const
-export const TRIAL_OUT_OF_REACH_ENGINE_NAME = 'Kling 3'
+export const TRIAL_OUT_OF_REACH_ENGINE_NAME = 'Kling 4.0'
 
 /**
  * Quantos filmes do motor alcançável o saldo cobre. Zero é resposta legítima

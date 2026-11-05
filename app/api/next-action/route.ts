@@ -266,7 +266,7 @@ const MOTORES: ReadonlyArray<{ quality: Quality; label: string; deeplink: string
   { quality: 'cinematic_veo', label: 'Veo 3.1', deeplink: 'veo' },
   { quality: 'cinematic_h3', label: 'MiniMax H3', deeplink: 'h3' },
   { quality: 'cinematic_omni', label: 'Omni Flash', deeplink: 'omni' },
-  { quality: 'cinematic_hollywood', label: 'Kling 3', deeplink: 'hollywood' },
+  { quality: 'cinematic_hollywood', label: 'Kling 4.0', deeplink: 'hollywood' },
 ]
 
 // ═══ KINEO-SAIDA-BARATA-2026-09-06 — sprint-assinaturas #16 ════════════

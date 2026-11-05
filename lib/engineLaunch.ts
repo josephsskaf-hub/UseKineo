@@ -35,7 +35,7 @@ export const S25_PUBLIC = true
 export type PausedEngineKey = 'omni'
 export interface EnginePause { since: string; label: string; alternative: { key: 'hollywood' | 'kling'; label: string }; message: string }
 export const ENGINE_PAUSE: Record<PausedEngineKey, EnginePause> = {
-  omni: { since: '2026-09-15', label: 'Omni Flash', alternative: { key: 'hollywood', label: 'Kling 3' }, message: 'Omni Flash is temporarily paused for maintenance while we fix its film quality. Nothing was charged. Kling 3 is the closest engine and is available right now.' },
+  omni: { since: '2026-09-15', label: 'Omni Flash', alternative: { key: 'hollywood', label: 'Kling 4.0' }, message: 'Omni Flash is temporarily paused for maintenance while we fix its film quality. Nothing was charged. Kling 4.0 is the closest engine and is available right now.' },
 }
 export const PAUSED_ENGINE_KEYS: readonly PausedEngineKey[] = ['omni'] // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-S25-ABRE-2026-10-06
 /** Pausa do motor pela chave da UI/rota ('omni'); null quando o motor está ativo. */
@@ -52,12 +52,35 @@ export function enginePaused(engine: string | null | undefined): EnginePause | n
 // exemplos, trending, lib/engineWall.ts, lib/homeVideoCuration.ts) ficam onde estão. Para devolver o Omni à oferta:
 // tirar 'omni' daqui E religar as linhas apagadas nesta mudança (o guardião lista as superfícies).
 // Guardião: scripts/test-omni-fora-da-oferta-1210.mjs.
-export const OFFER_RETIRED_ENGINE_KEYS: readonly string[] = ['omni']
+// KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"; docs/PROPOSTA-CREDITOS-B-E-MOTORES-2026-11-05.md §3 e §6] — Kling 2.5 e Veo 3.1
+// saem da oferta (o Veo antes de 17/11, quando a fal desliga o endpoint). Motor, custo, polling, montagem e selo ficam: quem já tem
+// filme deles continua vendo o selo real e baixando, e job em andamento termina. Guardião: scripts/test-motores-saem-0511.mjs.
+export const OFFER_RETIRED_ENGINE_KEYS: readonly string[] = ['omni', 'kling', 'veo']
 /** O motor (chave da UI/rota) está na oferta pública? false = fora de todo menu, seletor, tabela e copy de venda. */
 export function engineOffered(engine: string | null | undefined): boolean {
   const k = typeof engine === 'string' ? engine.toLowerCase() : ''
   return !OFFER_RETIRED_ENGINE_KEYS.includes(k)
 }
+// KINEO-MOTORES-SAEM-0511 — APOSENTADO ≠ PAUSADO: a pausa diz "manutenção, volta"; estes não voltam. Recusa própria (410, antes de
+// qualquer débito e de qualquer POST), com a saída que aceita o mesmo pedido em toda língua: o Seedance 1.5 é da mesma estrada clássica.
+export interface EngineRetirement { since: string; label: string; alternative: { key: 'seedance'; label: string }; message: string }
+export const ENGINE_RETIREMENT: Record<string, EngineRetirement> = {
+  kling: { since: '2026-11-05', label: 'Kling 2.5', alternative: { key: 'seedance', label: 'Seedance 1.5' }, message: 'Kling 2.5 is no longer available for new films. Nothing was charged. Your existing Kling 2.5 films stay in your library. Seedance 1.5 is the closest engine and is available right now.' },
+  veo: { since: '2026-11-05', label: 'Veo 3.1', alternative: { key: 'seedance', label: 'Seedance 1.5' }, message: 'Veo 3.1 is no longer available for new films. Nothing was charged. Your existing Veo 3.1 films stay in your library. Seedance 1.5 is the closest engine and is available right now.' },
+}
+/** Aposentadoria do motor pela chave da UI/rota; null quando o motor segue na oferta (ou é só pausa, como o Omni). */
+export function engineRetired(engine: string | null | undefined): EngineRetirement | null {
+  const k = typeof engine === 'string' ? engine.toLowerCase() : ''
+  return Object.prototype.hasOwnProperty.call(ENGINE_RETIREMENT, k) ? ENGINE_RETIREMENT[k] : null
+}
+/** Evento de servidor e motivo de fio da recusa do motor aposentado. */
+export const ENGINE_RETIRED_EVENT = 'engine_retired_refused'
+export const ENGINE_RETIRED_REASON = 'engine_retired'
+/** O que os conectores recusam agora: os pausados + os aposentados (o catálogo deles lê daqui). */
+export const UNAVAILABLE_ENGINE_KEYS: readonly string[] = [...PAUSED_ENGINE_KEYS, ...Object.keys(ENGINE_RETIREMENT)]
+/** O nome do filme premium na oferta atual: a chave 'hollywood' renderiza Kling 4.0 (KLING4_PAID_LIVE); filme antigo guarda o selo real em lib/engineLabel.ts. */
+export const PREMIUM_FILM_ENGINE_OFFER_NAME = 'Kling 4.0'
+
 /** Pausa pela quality do biller ('cinematic_omni'). */
 export function qualityPaused(quality: string | null | undefined): EnginePause | null {
   const q = typeof quality === 'string' ? quality.toLowerCase() : ''
@@ -236,7 +259,7 @@ export function estrelaVisible(email?: string | null): boolean {
 // de que é dos planos pagos, porque é isso que o servidor cobra (lib/s25Access.ts): a lista diz o que existe E o que
 // precisa para apertar. Virar S25_PUBLIC=false (ou pausar o motor) devolve 'Five' sozinho.
 const PUBLIC_VIDEO_ENGINE_NAMES: readonly string[] = [
-  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', // KINEO-H3MAX-2026-10-13
+  PREMIUM_FILM_ENGINE_OFFER_NAME, 'MiniMax H3', // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511: saem Veo 3.1 e Kling 2.5; o Kling 3 vira Kling 4.0
   ...(H3MAX_PUBLIC && enginePaused('h3max') === null ? ['MiniMax H3 Max'] : []), // KINEO-H3MAX-2026-10-13: sete — o H3 Max entra
   'Seedance 1.5', // KINEO-H3MAX-2026-10-13
   ...(S25_PUBLIC && enginePaused('s25') === null ? ['Seedance 2.5 (paid plans)'] : []),

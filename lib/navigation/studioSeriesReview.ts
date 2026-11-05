@@ -18,8 +18,8 @@ type QueryReader = Pick<URLSearchParams, 'get'>
 const STUDIO_ENGINE_FOR_ORIGIN: Readonly<Record<string, string>> = {
   fast: 'fast',
   cinematic_ai: 'seedance',
-  cinematic_kling: 'kling',
-  cinematic_veo: 'veo',
+  cinematic_kling: 'seedance', // KINEO-MOTORES-SAEM-0511 — o próximo episódio nasce num motor da oferta
+  cinematic_veo: 'seedance', // KINEO-MOTORES-SAEM-0511
   cinematic_hollywood: 'hollywood',
   cinematic_h3: 'h3',
   cinematic_h3max: 'h3max', // KINEO-H3MAX-2026-10-13

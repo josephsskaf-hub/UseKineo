@@ -43,10 +43,13 @@ const KINEO1_URL_KEYS = ['fast', 'kineo1', 'kineo-1', 'kineo_1']
  * `?engine=` da URL traduzido pela régua: pedido de Kineo 1 sem Kineo 1 na tela vira o Seedance (o motor da entrada).
  * Vazio devolve null (a tela segue o padrão dela). Qualquer outro motor passa como veio.
  */
+// KINEO-MOTORES-SAEM-0511 — espelho de ENGINE_RETIREMENT (lib/engineLaunch.ts): os guardiões executam este módulo sem import novo; scripts/test-motores-saem-0511.mjs confere a igualdade.
+const RETIRED_URL_KEYS: readonly string[] = ['kling', 'veo']
 export function motorDaUrl(raw: string | null | undefined, kineo1Visivel: boolean): string | null {
   const e = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
   if (!e) return null
   if (KINEO1_URL_KEYS.includes(e)) return kineo1Visivel ? 'fast' : 'seedance'
+  if (RETIRED_URL_KEYS.includes(e)) return 'seedance' // KINEO-MOTORES-SAEM-0511 — link velho com ?engine=kling|veo abre no motor da mesma estrada clássica, sem cobrar nada
   return e
 }
 

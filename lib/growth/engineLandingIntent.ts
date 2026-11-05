@@ -17,7 +17,7 @@ export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
   seedance: 'Seedance 1.5',
   kling: 'Kling 2.5',
   veo: 'Veo 3.1',
-  hollywood: 'Kling 3',
+  hollywood: 'Kling 4.0', // KINEO-MOTORES-SAEM-0511
   h3: 'MiniMax H3',
   h3max: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
   omni: 'Omni Flash',
@@ -34,9 +34,10 @@ export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
   // o caminho público de 'fast' aponta para o destino final, sem pular por um redirect.
   fast: '/ai-video-generator/seedance',
   seedance: '/ai-video-generator/seedance',
-  kling: '/ai-video-generator/kling',
-  veo: '/ai-video-generator/veo',
-  hollywood: '/ai-video-generator/kling-3',
+  // KINEO-MOTORES-SAEM-0511 — as duas páginas viraram 301 para a comparação (next.config.js): o caminho público aponta para o destino final.
+  kling: '/seedance-vs-veo-vs-kling',
+  veo: '/seedance-vs-veo-vs-kling',
+  hollywood: '/ai-video-generator/kling-4', // KINEO-MOTORES-SAEM-0511
   h3: '/ai-video-generator/minimax-h3',
   h3max: '/ai-video-generator/minimax-h3-max', // KINEO-H3MAX-2026-10-13
   // KINEO-OMNI-FORA-2026-10-12 — a página do Omni Flash virou 301 para a do Kling 3 (next.config.js); o caminho público

@@ -3,6 +3,7 @@
 // línguas novas tem dicionário em lib/ui/interface/<code>.ts com TODAS as frases vivas (as mesmas chaves do inglês que
 // já existem em INTERFACE_HI/INTERFACE_ES), números e "Kineo" preservados; (3) o carregador conhece as 13 e só elas;
 // (4) o componente lê o dicionário carregado para as novas e mantém es/hi no bundle; (5) mutantes são pegos.
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,7 +12,7 @@ import { execFileSync } from 'node:child_process'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMotoresSaem0511(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p)
 const original = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }

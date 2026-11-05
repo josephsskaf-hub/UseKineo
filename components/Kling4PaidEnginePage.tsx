@@ -39,6 +39,6 @@ export default function Kling4PaidEnginePage({ serverPaidLive = false, freeFilmI
         </article>)}
       </div>
     </> : <p role="status" style={{ margin: '24px 0', padding: 18, border: '1px solid var(--border)', borderRadius: 14 }}><UiLabel>{KLING4_PAID_COPY.paused}</UiLabel> <Link href="/studio?engine=hollywood">Studio →</Link></p>}
-    <p style={{ marginTop: 32 }}><Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/kling-3">Kling 3</Link></p>
+    <p style={{ marginTop: 32 }}><Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/minimax-h3">MiniMax H3</Link></p>
   </main>
 }

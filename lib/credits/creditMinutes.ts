@@ -9,9 +9,8 @@ export interface EngineMinutes { quality: Quality; label: string; creditsPerMinu
 export const MINUTE_ENGINES: ReadonlyArray<{ quality: Quality; label: string }> = [
   { quality: 'fast', label: 'Kineo 1' },
   { quality: 'cinematic_ai', label: 'Seedance 1.5' },
-  { quality: 'cinematic_kling', label: 'Kling 2.5' },
-  { quality: 'cinematic_veo', label: 'Veo 3.1' },
-  { quality: 'cinematic_hollywood', label: 'Kling 3' },
+  { quality: 'cinematic_h3', label: 'MiniMax H3' }, // KINEO-MOTORES-SAEM-0511: saem Kling 2.5 e Veo 3.1
+  { quality: 'cinematic_hollywood', label: 'Kling 4.0' },
 ]
 
 /** Quantos minutos de vídeo pago um saldo de créditos rende em cada motor (arredondado para baixo, meio minuto). */
@@ -29,7 +28,7 @@ export function creditsToMinutes(credits: number, engines = MINUTE_ENGINES): Eng
 // EXEMPLO muda: créditos e preços cobrados (inclusive a descrição da Stripe do passe de anúncios) seguem os mesmos.
 export function minutesLine(
   credits: number,
-  pick: Quality[] = ['cinematic_ai', 'cinematic_kling', 'cinematic_hollywood'],
+  pick: Quality[] = ['cinematic_ai', 'cinematic_h3', 'cinematic_hollywood'], // KINEO-MOTORES-SAEM-0511
   format: (engine: EngineMinutes) => string = (e) => `${Number.isInteger(e.minutes) ? e.minutes : e.minutes.toFixed(1)} min of ${e.label}`,
 ): string {
   return creditsToMinutes(credits)

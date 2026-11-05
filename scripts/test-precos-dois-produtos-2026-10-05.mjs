@@ -34,7 +34,7 @@ function problems(replacements = {}) {
   const m = comp.twoProductsModelForPage()
   const rate = prices.TIER_PRICES.basic.usd / 100 / prices.TIER_CREDITS.basic
   if (Math.abs(m.usdPerCredit - rate) > 1e-12) p.push(`US$/crédito ${m.usdPerCredit} ≠ Creator ${rate}`)
-  const listed = cat.CLIP_ENGINE_ORDER.filter((e) => !launch.enginePaused(e) && (e !== 's25' || launch.S25_PUBLIC))
+  const listed = cat.CLIP_ENGINE_ORDER.filter((e) => launch.engineOffered(e) && !launch.enginePaused(e) && (e !== 's25' || launch.S25_PUBLIC)) // KINEO-MOTORES-SAEM-0511
   // REANCORADO KINEO-S25-ABRE-2026-10-06: o FILME do Seedance 2.5 está à venda (planos pagos) e o CLIPE dele não (segue só da
   // casa, s25ClipVisible) — a tabela de clipes do visitante segue a régua do clipe; a de filmes, a do motor.
   // REANCORADO KINEO-S25-CLIPES-2026-10-06: a régua do clipe do 2.5 virou o interruptor ÚNICO dele (lib/clips/clipLaunch.ts
@@ -65,9 +65,11 @@ function problems(replacements = {}) {
     if (row.quality !== quality) p.push(`${row.engine}: qualidade do filme ${row.quality} ≠ ${quality}`)
     row.cells.forEach((c, i) => {
       const s = [15, 30, 60, 90][i]
-      if (!shown(row.engine, s)) { if (c !== null) p.push(`${row.engine} filme ${s}s: mostra duração que o motor não aceita`); return }
+      // KINEO-MOTORES-SAEM-0511 — o filme hollywood é Kling 4.0 na oferta: 15 s = 45, 30 s = 80, 60 s = 150, e nada de 90 s.
+      const k4 = row.engine === 'hollywood' ? { 15: 45, 30: 80, 60: 150, 90: null }[s] : undefined
+      if (!shown(row.engine, s) || k4 === null) { if (c !== null) p.push(`${row.engine} filme ${s}s: mostra duração que o motor não aceita`); return }
       if (!c) { p.push(`${row.engine} filme ${s}s: faltou`); return }
-      if (c.credits !== cost.creditCostForDuration(quality, true, s)) p.push(`${row.engine} filme ${s}s: ${c.credits} ≠ creditCostForDuration`)
+      if (c.credits !== (k4 ?? cost.creditCostForDuration(quality, true, s))) p.push(`${row.engine} filme ${s}s: ${c.credits} ≠ creditCostForDuration`)
       if (c.usdCents !== usdCents(c.credits)) p.push(`${row.engine} filme ${s}s: ≈US$ errado`)
     })
   }
@@ -108,8 +110,7 @@ const real = problems(OFFP)
 ok(real.p.length === 0, 'cada célula = clipCreditCost / creditCostForDuration, ≈US$ no Creator, contagens para baixo, só motores públicos' + (real.p.length ? '\n       ' + real.p.join('\n       ') : ''))
 const row = (list, e) => list.find((r) => r.engine === e)
 ok(row(real.m.films, 'seedance').cells[1] === null && row(real.m.films, 'hollywood').cells[1] !== null, 'filme de 30 s só na estrada hollywood (Seedance 1.5 não aceita 30)')
-ok(JSON.stringify(row(real.m.clips, 'veo').cells.map((c) => c.seconds)) === '[6,8]', 'Veo mostra 6 s e 8 s (o que entrega), nunca "5 s"')
-ok(row(real.m.clips, 'kling').cells.every((c) => c && [5, 10].includes(c.seconds)), 'Kling 2.5: 5 s e 10 s')
+ok(!row(real.m.clips, 'veo') && !row(real.m.clips, 'kling') && !row(real.m.films, 'veo') && !row(real.m.films, 'kling'), 'Kling 2.5 e Veo 3.1 fora da tabela (KINEO-MOTORES-SAEM-0511)')
 // REANCORADO KINEO-S25-ABRE-2026-10-06: o Omni segue pausado (fora das duas tabelas); o Seedance 2.5 voltou só como FILME de plano
 // pago — o clipe dele não está à venda para o público.
 // REANCORADO KINEO-S25-CLIPES-2026-10-06: a linha do CLIPE do 2.5 segue o interruptor único do clipe (CLIP_S25_PUBLIC) — ligado,
@@ -126,7 +127,7 @@ ok(s35.p.length === 0 && row(s35.m.films, 'seedance').cells[2].credits === 35 &&
 const mkt = problems()
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: com o piso de 40% no Creator mensal, a régua ligada dá 8 cr
 // ao Kling 3 de 5 s (era 6 com o piso no Studio) — igual à regra de 29/09 desligada. A tabela segue a fonte sem tocar nela.
-ok(mkt.p.length === 0 && row(mkt.m.clips, 'hollywood').cells[0].credits === 8 && row(real.m.clips, 'hollywood').cells[0].credits === 8 && row(mkt.m.clips, 'veo').cells[0].credits === 8, 'régua de mercado ligada: o clipe Kling 3 de 5 s e o Veo de 6 s saem a 8 cr na tabela sem tocar nela')
+ok(mkt.p.length === 0 && row(mkt.m.clips, 'hollywood').cells[0].credits === 8 && row(real.m.clips, 'hollywood').cells[0].credits === 8 && row(mkt.m.clips, 'h3'), 'régua de mercado ligada: o clipe Kling 3 de 5 s e o Veo de 6 s saem a 8 cr na tabela sem tocar nela')
 
 console.log('4. marcação')
 ok(real.html.includes('data-kineo="two-products-pricing"') && real.html.includes('Clips — per second') && real.html.includes('Narrated films — per film'), 'render offline das duas seções')
@@ -140,12 +141,12 @@ const mut = (file, from, to) => {
   return { [file]: base.replace(from, to) }
 }
 const MUTANTS = [
-  ['filme com preço fixo de 60 s', mut(MODEL, 'cell(seconds, creditCostForDuration(quality, true, seconds), usdPerCredit)', 'cell(seconds, creditCostForDuration(quality, true, 60), usdPerCredit)')],
-  ['filme mostra 30 s em todo motor', mut(MODEL, 'offered.includes(seconds) ? cell(', 'true ? cell(')],
-  ['sem filtro de motor público', mut(COMP, "engineListed: (engine) => !enginePaused(engine) && (engine !== 's25' || S25_PUBLIC)", 'engineListed: () => true')],
+  ['filme com preço fixo de 60 s', mut(MODEL, 'offer ? offer.credits(seconds) : creditCostForDuration(quality, true, seconds)', 'offer ? offer.credits(seconds) : creditCostForDuration(quality, true, 60)')],
+  ['filme mostra 30 s em todo motor', mut(MODEL, 'if (!offered.includes(seconds)) return null', 'if (false) return null')],
+  ['sem filtro de motor público', mut(COMP, "engineListed: (engine) => engineOffered(engine) && !enginePaused(engine) && (engine !== 's25' || S25_PUBLIC)", 'engineListed: () => true')],
   ['contagem arredondada para cima', mut(MODEL, 'count: Math.floor(plan.credits / clipHigh.credits)', 'count: Math.ceil(plan.credits / clipHigh.credits)')],
   ['≈US$ no crédito do Studio', mut(COMP, 'creator: PLANS[1],', 'creator: PLANS[2],')],
-  ['clipe na duração do alvo, não na real', mut(MODEL, 'return real !== null && offeredSecondsFor(engine).includes(real) ? real : null', 'return target')],
+  // KINEO-MOTORES-SAEM-0511 — saiu o mutante "clipe na duração do alvo": só o Veo (6 s para o alvo de 5) tinha duração real diferente do alvo, e o Veo saiu da tabela.
   ['clipe com foto cobrado diferente', mut(MODEL, 'cell(seconds, clipCreditCost(engine, seconds, false), usdPerCredit)', 'cell(seconds, clipCreditCost(engine, seconds, false) - 1, usdPerCredit)')],
 ]
 for (const [name, over] of MUTANTS) {

@@ -24,7 +24,7 @@ import { buyCreatorPrice, creatorSeedanceFilms } from '@/lib/growth/buyCreatorOf
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { FREE_ENTRY_COUNTRY_CLAUSE_MIRROR } from '@/lib/entryPolicy'
-import { STARTER_PRICE, STUDIO_PRICE, STUDIO_HOLLYWOOD_FILMS, CREATOR_CINEMATIC_FILMS } from '@/lib/marketingPrice'
+import { STARTER_PRICE, STUDIO_PRICE, STUDIO_HOLLYWOOD_FILMS, videosPerMonth } from '@/lib/marketingPrice'
 import { resolveHouseFilm, type HouseFilm, type HouseFilmEngine, type IdeaSource } from '@/lib/seo/houseFilmIdeas'
 
 export { LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
@@ -386,8 +386,8 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
         a: `Create an account${WHERE} and your first ${FREE_S}-second ${FREE_FILM_ENGINE_NAME} film is free with a watermark — no card.`, // KINEO-LLMS-K4-2910
       },
       {
-        q: 'Which plan covers premium engines like Kling 3?',
-        a: `Studio (${STUDIO_PRICE}/month) holds ${STUDIO_HOLLYWOOD_FILMS} Kling 3 films of 60 seconds a month. Creator (${CREATOR_DEAL}) is built around ${CREATOR_FILMS} Seedance 1.5 films; the Studio shows the exact credit cost of any engine before you generate.`,
+        q: 'Which plan covers premium engines like Kling 4.0?',
+        a: `Studio (${STUDIO_PRICE}/month) holds ${STUDIO_HOLLYWOOD_FILMS} Kling 4.0 films of 60 seconds a month. Creator (${CREATOR_DEAL}) is built around ${CREATOR_FILMS} Seedance 1.5 films; the Studio shows the exact credit cost of any engine before you generate.`,
       },
     ],
     film: {
@@ -513,7 +513,7 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
       },
       {
         q: 'How much does a creepy facts channel cost to run?',
-        a: `Creator at ${CREATOR_DEAL} gives ${CREATOR_FILMS} clean 60-second Seedance 1.5 films a month, or ${CREATOR_CINEMATIC_FILMS} on Kling 2.5. The Studio shows the cost per film before you generate.`,
+        a: `Creator at ${CREATOR_DEAL} gives ${CREATOR_FILMS} clean 60-second Seedance 1.5 films a month, or ${videosPerMonth('basic', 'cinematic_h3')} on MiniMax H3. The Studio shows the cost per film before you generate.`,
       },
     ],
     film: {
@@ -609,7 +609,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       {
         h2: 'What changes when you pay',
         paragraphs: [
-          'The watermark goes away on every export, films can run 60 seconds and longer, and premium engines like Kling and Veo unlock for scenes that need more spectacle. Your videos are yours to post anywhere, including monetized channels and client work.',
+          'The watermark goes away on every export, films can run 60 seconds and longer, and premium engines like Kling 4.0 and MiniMax H3 unlock for scenes that need more spectacle. Your videos are yours to post anywhere, including monetized channels and client work.',
           'Plans are monthly and cancel anytime from the account page. Credits are spent per film, and the Studio shows the cost of each engine and length before you press Generate, so there are no surprises at the end of the month.',
         ],
       },
@@ -664,7 +664,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
     badge: 'AI short film generator',
     h1: 'AI Short Film Generator: One Paragraph In, a Narrated Film Out',
     metaTitle: 'AI Short Film Generator — Narrated 60-Second Films | Kineo',
-    metaDescription: `Write a paragraph or a full script; Kineo directs it into a narrated, captioned vertical short film with generated scenes on Seedance, Kling or Veo. First ${FREE_S}-second film free.`,
+    metaDescription: `Write a paragraph or a full script; Kineo directs it into a narrated, captioned vertical short film with generated scenes on Seedance, Kling or MiniMax. First ${FREE_S}-second film free.`,
     lead:
       'Write the story — a boat found drifting, a letter from a father, a detective’s last case — and Kineo turns it into a narrated short film: it splits the story into shots, directs each scene, records the narrator, adds captions and assembles a vertical MP4. You choose the engine; the Studio shows the cost before you generate.',
     freeCta: 'Make a free test film',
@@ -682,7 +682,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
     ],
     steps: [
       { t: 'Write the story', d: 'A paragraph is enough. A finished script can be narrated exactly as written.' },
-      { t: 'Pick the engine', d: 'Seedance 1.5 for an affordable generated film, Kling or Veo when the scenes need more spectacle.' },
+      { t: 'Pick the engine', d: 'Seedance 1.5 for an affordable generated film, MiniMax H3 or Kling 4.0 when the scenes need more spectacle.' },
       { t: 'Review, then generate', d: 'Check duration and scenes, press Generate, and download the finished film in about 6 minutes.' },
     ],
     sections: [
@@ -703,7 +703,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       {
         h2: 'Choosing the engine for your film',
         paragraphs: [
-          `Seedance 1.5 is the everyday engine: generated scenes at the lowest cost per film, while the first free film uses ${FREE_FILM_ENGINE_NAME}. Kling 2.5 and Kling 3 bring heavier cinematic light and motion for hero moments, and Veo 3.1 is strong on realistic lighting. Mixing is not required — most creators pick one engine per film and keep it.`, // KINEO-LLMS-K4-2910
+          `Seedance 1.5 is the everyday engine: generated scenes at the lowest cost per film, while the first free film uses ${FREE_FILM_ENGINE_NAME}. MiniMax H3 and Kling 4.0 bring heavier cinematic light and motion for hero moments. Mixing is not required — most creators pick one engine per film and keep it.`, // KINEO-LLMS-K4-2910
         ],
       },
     ],
@@ -714,7 +714,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       },
       {
         q: 'Which engine made the film on this page, and what does it cost?',
-        a: `Kling 3. It is a premium engine: Studio (${STUDIO_PRICE}/month) holds ${STUDIO_HOLLYWOOD_FILMS} Kling 3 films of 60 seconds a month. On Creator (${CREATOR_DEAL}) the same credits make ${CREATOR_FILMS} Seedance 1.5 films of 60 seconds.`,
+        a: `Kling 4.0. It is a premium engine: Studio (${STUDIO_PRICE}/month) holds ${STUDIO_HOLLYWOOD_FILMS} Kling 4.0 films of 60 seconds a month. On Creator (${CREATOR_DEAL}) the same credits make ${CREATOR_FILMS} Seedance 1.5 films of 60 seconds.`,
       },
       {
         q: 'How long can a film be?',
@@ -806,7 +806,7 @@ export const LOTE1_LANDINGS: Readonly<Record<string, Lote1Landing>> = {
       },
       {
         q: '¿Cuánto cuesta publicar seguido?',
-        a: `Creator cuesta ${CREATOR_DEAL_ES} e incluye ${CREATOR_FILMS} videos de 60 segundos en Seedance 1.5 sin marca de agua, o ${CREATOR_CINEMATIC_FILMS} en Kling 2.5. Starter cuesta ${STARTER_PRICE}/mes y Studio ${STUDIO_PRICE}/mes. Precio de referencia en USD.`,
+        a: `Creator cuesta ${CREATOR_DEAL_ES} e incluye ${CREATOR_FILMS} videos de 60 segundos en Seedance 1.5 sin marca de agua, o ${videosPerMonth('basic', 'cinematic_h3')} en MiniMax H3. Starter cuesta ${STARTER_PRICE}/mes y Studio ${STUDIO_PRICE}/mes. Precio de referencia en USD.`,
       },
       {
         q: '¿Cuánto tarda cada video?',

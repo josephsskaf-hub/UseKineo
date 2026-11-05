@@ -97,6 +97,8 @@ export interface ClipSubmitDeps {
   now(): number
   /** KINEO-CLIPE-AUTO-3110 — troca o motor da linha ainda 'pending' (motor, modelo, duração, formato, preço e referência de cobrança). Sem ela, não há troca. */
   switchEngine?(id: string, patch: Pick<ClipRow, 'engine' | 'model' | 'seconds' | 'aspect' | 'credits' | 'fal_usd' | 'billing_reference'>): Promise<boolean>
+  /** KINEO-MOTORES-SAEM-0511 — a frase da recusa do clipe NOVO em motor fora da oferta; null = pode seguir (motor da oferta, efeito do catálogo ou Espaços). */
+  retiredClipRefusal?(req: ClipRequest): string | null
 }
 
 export type ClipSubmitResult =
@@ -234,6 +236,13 @@ export async function submitClip(
       return { ok: false, status: 409, code: 'idempotency_conflict', error: 'This request key was already used for a different clip.' }
     }
     return { ok: true, status: 200, clip: existing, replay: true, balance: null }
+  }
+
+  // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — depois do replay de propósito: o pedido que já existe volta como sempre (job antigo termina);
+  // só o clipe NOVO em Kling 2.5/Veo 3.1 é recusado, antes de foto, moderação, saldo, débito e fornecedor. Efeito-modelo e remix nem perguntam.
+  if (!template && !remix) {
+    const recusa = deps.retiredClipRefusal?.(req) ?? null
+    if (recusa) return { ok: false, status: 410, code: 'engine_retired', error: recusa }
   }
 
   if ((await deps.countActive(args.userId)) >= CLIP_MAX_ACTIVE) {

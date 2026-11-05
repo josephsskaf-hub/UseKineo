@@ -77,10 +77,9 @@ export function filmsLikeThisMath(value: FilmsLikeThis | null): string | null {
 export type PlanFinderEngine = 'seedance' | 'kling' | 'cinematic'
 export interface PlanFinderEngineOption { key: PlanFinderEngine; quality: Quality; label: string; hint: string }
 
-/** Três estradas que o público vê (Seedance 1.5 · Kling 2.5 · Kling 3/4.0), do custo menor ao maior. */
+/** As estradas que o público vê (Seedance 1.5 · Kling 4.0), do custo menor ao maior. KINEO-MOTORES-SAEM-0511: saiu o Kling 2.5. */
 export const PLAN_FINDER_ENGINES: readonly PlanFinderEngineOption[] = [
   { key: 'seedance', quality: 'cinematic_ai', label: 'Seedance 1.5', hint: 'AI scenes · best value' },
-  { key: 'kling', quality: 'cinematic_kling', label: 'Kling 2.5', hint: 'smoother motion' },
   { key: 'cinematic', quality: 'cinematic_hollywood', label: KLING4_PAID_LIVE ? 'Kling 4.0' : 'Kling 3', hint: 'top cinematic' },
 ]
 /** Durações que as três estradas aceitam (lib/durationByEngine.ts supportedDurationsFor: 15/35/60/90 em todas). */

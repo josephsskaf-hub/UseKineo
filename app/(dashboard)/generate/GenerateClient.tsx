@@ -1633,7 +1633,7 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'].includes(engine)) { // KINEO-H3MAX-2026-10-13
+    if (['seedance', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'].includes(engine)) { // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511: Kling 2.5 e Veo 3.1 não entram pela URL
       // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — motor pausado não entra pela URL: fica no padrão (o card mostra a manutenção).
       if (enginePaused(engine) && searchParams.get('maint') !== '1') return // KINEO-MANUTENCAO-INTERNA: &maint=1 só entra aqui; o servidor recusa quem não é conta interna
       setMode('cinematic_ai')
@@ -4166,7 +4166,7 @@ export default function GenerateClient({
             // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor da URL passa pela régua (?engine=fast sem Kineo 1 = Seedance).
             const kineo1NoPlano = kineo1NaTela({ entrada15: seedance15Ok, kineo1: kineo1Visible, hasPaid: data.hasPaid === true })
             const urlEnginePick = motorDaUrl(searchParams?.get('engine'), kineo1NoPlano) ?? ''
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max' /* KINEO-H3MAX-2026-10-13 */, 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
+            const urlPickedEngine = ['fast', 'seedance', 'sora', 'hollywood', 'h3', 'h3max' /* KINEO-H3MAX-2026-10-13 */, 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
             // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B8) — com a entrada nova e sem Kineo 1: Seedance na MAIOR duração
             // que o saldo paga (o trial de 10 cr abre em 15 s), sem ?duration e sem auto-start (que decide a própria).
             const entradaNoPlano = seedance15Ok && !kineo1NoPlano
@@ -9656,7 +9656,7 @@ export default function GenerateClient({
     // render do React (deps incluem mode/aiEngine/duration).
     const uEng = motorDaUrl(searchParams?.get('engine'), kineo1Shown) ?? '' // KINEO-ENTRADA-SEEDANCE15: ?engine=fast sem Kineo 1 = Seedance
     if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
-    if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
+    if (['seedance', 'hollywood'].includes(uEng)) { // KINEO-MOTORES-SAEM-0511
       if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
       if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
     }
@@ -22254,7 +22254,7 @@ function ModeSelector({
   // é do Codex e tem precedência: nunca ofereço como saída algo que ele tranca.
   const motoresDisponiveis = [
     ...(seedanceUnlocked ? ['seedance'] : []),
-    ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3', ...(h3maxOk ? ['h3max'] : [])] : []), // KINEO-H3MAX-2026-10-13
+    ...(cinematicUnlocked ? ['hollywood', 'h3', ...(h3maxOk ? ['h3max'] : [])] : []), // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511
   ]
   // KINEO-SEEDANCE-15S-2026-09-29 (B10) — espelho de `duracoesDoResgate` na rota do cinematic: 15 s só no Seedance e só
   // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
@@ -22386,8 +22386,7 @@ function ModeSelector({
               // da oferta, lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). O servidor segue recusando o Omni sem cobrar.
               ...(s25Ok ? [{ key: 's25' as const, label: 'Seedance 2.5', sub: 'ByteDance · newest · 480p→HD', cr: creditCostForDuration('cinematic_s25', true, duration) }] : []),
               // KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08 (KINEO-VEO-1080).
-              { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion · 1080p', cr: creditCostForDuration('cinematic_veo', true, duration) },
-              { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
+              // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — os botões do Veo 3.1 e do Kling 2.5 saíram (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). O servidor recusa os dois sem cobrar.
             ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => { // KINEO-H3MAX-2026-10-13
               const active = mode === 'cinematic_ai' && aiEngine === m.key
               // sprint-v1v4 #13 — mesma regra do seletor de duração
@@ -23253,7 +23252,7 @@ function UpgradeModal({
     },
     studio: {
       title: 'Unlock premium AI engines 🎬',
-      sub: 'Kling, Veo and Hollywood are available on every paid plan — you just need the credits. Pick a plan below. Cancel anytime · 7-day money-back.',
+      sub: 'Every engine is available on every paid plan — you just need the credits. Pick a plan below. Cancel anytime · 7-day money-back.',
     },
     // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — razão PRÓPRIA para o cadeado de
     // "My footage" / "My voice". Reusar `creator` era a saída barata e teria
@@ -23841,7 +23840,7 @@ function UpgradeModal({
                 {
                   id: 'topup300',
                   label: `+${TOPUP_CREDITS.topup300} credits`,
-                  sub: `${videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood')} Kling 3 films ⭐ best value`,
+                  sub: `${videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood')} Kling 4.0 films ⭐ best value`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup300[currency]) : '—',
                 },
               ].map((t) => {

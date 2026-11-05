@@ -47,6 +47,8 @@ export interface TwoProductsVisibility {
    *  Existe porque o filme do Seedance 2.5 abriu (só para quem paga) e o clipe dele tem interruptor próprio
    *  (KINEO-S25-CLIPES-2026-10-06: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC — o único). */
   clipListed?: (engine: ClipEngineKey) => boolean
+  /** KINEO-MOTORES-SAEM-0511 — o FILME do motor tem nome e preços próprios (a chave hollywood filma em Kling 4.0, o clipe dela segue Kling 3). Ausente/null = catálogo. */
+  filmOffer?: (engine: ClipEngineKey) => { label: string; credits: (seconds: number) => number | null } | null
   /** DURACOES_CURTAS_PUBLIC (15/30 s fora do Seedance). */
   shortDurations: boolean
   /** SEEDANCE_15S_PUBLIC (15 s do Seedance 1.5). */
@@ -127,13 +129,16 @@ export function buildTwoProductsModel(args: { creator: TwoProductsPlan; plans: r
   const films: FilmRow[] = engines.map((engine) => {
     const quality = CLIP_COSTS[engine].filmQuality as Quality
     const offered = filmSecondsFor(engine, args.visibility)
+    const offer = args.visibility.filmOffer?.(engine) ?? null // KINEO-MOTORES-SAEM-0511
     return {
       engine,
-      label: CLIP_ENGINES[engine].label,
+      label: offer?.label ?? CLIP_ENGINES[engine].label,
       quality,
-      cells: TWO_PRODUCTS_FILM_SECONDS.map((seconds) =>
-        offered.includes(seconds) ? cell(seconds, creditCostForDuration(quality, true, seconds), usdPerCredit) : null,
-      ),
+      cells: TWO_PRODUCTS_FILM_SECONDS.map((seconds) => {
+        if (!offered.includes(seconds)) return null
+        const credits = offer ? offer.credits(seconds) : creditCostForDuration(quality, true, seconds)
+        return credits === null ? null : cell(seconds, credits, usdPerCredit)
+      }),
     }
   })
 

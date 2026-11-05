@@ -465,7 +465,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {[
                 ['~3 min', 'from topic to finished video'],
                 ['9:16', 'built for Shorts, TikTok & Reels'],
-                ['6 engines', 'Veo, Kling 3, Seedance…'],
+                ['5 engines', 'Kling 4.0, MiniMax H3, Seedance…'],
                 // KINEO-EXIT-INTENT-VERDADE-2026-09-27 — o tile "$1 for 7 days of
                 // Creator" anunciava um trial DESLIGADO (lib/checkoutPricing.ts
                 // CARD_TRIAL_LIVE = false). Entra o Starter, com preço e créditos
@@ -589,7 +589,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             NENHUMA afirmação de desconto — o que a gente tem de verdade para
             oferecer aqui é a escada (o degrau barato), não um desconto. */}
         <p id="exit-offer-desc" className="text-[13.5px] text-[var(--muted)] mb-5 leading-relaxed">
-          A monthly balance for finished films. Kling and Veo included. Cancel anytime.
+          A monthly balance for finished films. Kling 4.0 included. Cancel anytime.
         </p>
 
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs

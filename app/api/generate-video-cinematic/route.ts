@@ -31,7 +31,7 @@ import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
+import { S25_PUBLIC, enginePaused, engineRetired, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { s25AccessFor } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06 — o 2.5 só para quem paga (isPayingPlan), recusa antes do débito
@@ -1761,6 +1761,15 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: pausa.message, reason: 'engine_paused', engine: body.engine, alternative: pausa.alternative, retryable: false, charged: false, refunded: false }, { status: 423 })
       }
     }
+    // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — Kling 2.5 e Veo 3.1 fora da oferta: pedido NOVO é recusado aqui, antes de qualquer
+    // reserva/débito e de qualquer POST, com a alternativa e charged:false. Filme já em andamento não passa por este portão (polling e compose são outras rotas). A conta da casa segue passando: é como a bateria e os validadores de $0 provam os motores.
+    {
+      const aposentado = engineRetired(body.engine)
+      if (aposentado && !isDryRunAccount(user.email)) {
+        void writeServerEvent({ name: ENGINE_RETIRED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine, alternative: aposentado.alternative.key, charged: false, since: aposentado.since } })
+        return NextResponse.json({ error: aposentado.message, reason: ENGINE_RETIRED_REASON, engine: body.engine, alternative: aposentado.alternative, retryable: false, charged: false, refunded: false }, { status: 410 })
+      }
+    }
     // KINEO-H3MAX-2026-10-13 — o interruptor do H3 Max (lib/engineLaunch.ts H3MAX_PUBLIC) vale também aqui, ANTES de qualquer
     // KINEO-H3MAX-2026-10-13 — reserva/débito e de qualquer POST: com a flag desligada só a casa usa; o resto recebe a recusa sem cobrança.
     if (wantsH3Max && !h3maxVisible(user.email)) { // KINEO-H3MAX-2026-10-13
@@ -2617,7 +2626,7 @@ async function manipularPost(req: NextRequest) {
             duracoes: duracoesDoResgateCurtas ?? duracoesDoResgate, // KINEO-DURACOES-CURTAS-2026-09-29
             custoDe,
             motoresDisponiveis: premiumLiberado
-              ? ['seedance', 'h3', ...(h3maxVisible(user.email) ? ['h3max'] : []), 'kling', 'veo', 'hollywood', 'omni'] // KINEO-H3MAX-2026-10-13
+              ? ['seedance', 'h3', ...(h3maxVisible(user.email) ? ['h3max'] : []), 'kling', 'veo', 'hollywood', 'omni'].filter((m) => engineOffered(m)) // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511: o resgate do saldo só oferece motor da oferta
               : ['seedance'],
           })
       const fraseDoResgate =

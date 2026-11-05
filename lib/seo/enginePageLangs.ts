@@ -14,7 +14,7 @@ import { FREE_SHORTS_LANG_BY_CODE, type FreeShortsLang } from '@/lib/seo/freeSho
 // abaixo não precisarem ser apagados (voltam com a página, se o fundador religar KINEO1_PUBLIC).
 const ALL_LOCALIZED_ENGINE_SLUGS = ['kineo-1', 'seedance', 'veo'] as const
 export type LocalizedEngineSlug = (typeof ALL_LOCALIZED_ENGINE_SLUGS)[number]
-export const LOCALIZED_ENGINE_SLUGS: readonly LocalizedEngineSlug[] = ALL_LOCALIZED_ENGINE_SLUGS.filter((slug) => slug !== 'kineo-1')
+export const LOCALIZED_ENGINE_SLUGS: readonly LocalizedEngineSlug[] = ALL_LOCALIZED_ENGINE_SLUGS.filter((slug) => slug !== 'kineo-1' && slug !== 'veo') // KINEO-MOTORES-SAEM-0511: /ai-video-generator/veo/<lang> virou 301 (next.config.js)
 
 // KINEO-GEO-RODADA3-2026-10-08 — `medianMinutes`/`indicative`: o tempo MEDIDO do motor no Kineo AI Video Index (a página monta
 // com lib/seo/measuredRenderTime.ts; este módulo segue SEM import). Ausente = a FAQ não cita tempo nenhum (era uma faixa digitada).

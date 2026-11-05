@@ -114,12 +114,12 @@ function baseLinks(extra: { href: string; label: string }[] = []): { href: strin
 }
 
 // ─── (a) Seedance 2.5 vs Veo 3.1 vs Kling 3 ──────────────────────────────────────────────────────────────────────────
-const MODEL_SLUGS = ['seedance-2-5', 'veo', 'kling-3'] as const
+const MODEL_SLUGS = ['seedance-2-5', 'seedance', 'minimax-h3'] as const // KINEO-MOTORES-SAEM-0511: Veo 3.1 saiu da oferta; a citação do Kling 3 descreve outro motor do filme de hoje (Kling 4.0, 15/30/60 s, seção própria)
 /** O ponto forte de cada modelo, nas palavras do catálogo (bestFor das páginas de motor) — resumido, nunca inventado. */
 const MODEL_STRENGTH: Record<(typeof MODEL_SLUGS)[number], string> = {
   'seedance-2-5': 'spectacle — weather, crowds, machines and historical set pieces',
-  veo: 'prompt-faithful, coherent scenes for the one hero video of the week',
-  'kling-3': 'characters who speak on camera with lip sync',
+  seedance: 'frequent narrated Shorts at the lowest cost per film',
+  'minimax-h3': 'characters who speak on camera with lip sync',
 }
 
 export function modelsAnswer(): Round3Answer | null {
@@ -322,10 +322,10 @@ export function bestGeneratorAnswer(): Round3Answer | null {
       { q: 'What is the best AI video generator for YouTube Shorts in 2026?', a: lead },
       { q: 'How was Kineo tested?', a: `On its own production renders, not a demo: the ${indexEditionRef()} measures, per engine, the time from request to finished MP4, the length of the finished film and how many started renders finish, with house accounts kept apart and small samples marked indicative. Kineo did not run the other tools on this page; their entries use their official pages (${CHECKED}).` },
     ],
-    films: onePerEngine(['cinematic_ai', 'cinematic_veo', 'cinematic_hollywood']),
+    films: onePerEngine(['cinematic_ai', 'cinematic_h3', 'cinematic_hollywood']),
     links: baseLinks([
-      { href: '/ai-video-generator/veo', label: 'Veo 3.1 — price per video' },
-      { href: '/ai-video-generator/kling-3', label: 'Kling 3 — price per video' },
+      { href: '/ai-video-generator/minimax-h3', label: 'MiniMax H3 — price per video' },
+      { href: '/ai-video-generator/kling-4', label: 'Kling 4.0 — price per video' },
     ]),
     campaign: 'seo_geo_best_generator',
   }

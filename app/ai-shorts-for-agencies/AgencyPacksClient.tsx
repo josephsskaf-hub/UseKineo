@@ -218,7 +218,7 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
       </div>
 
       <p style={{ maxWidth: 820, margin: '17px auto 0', color: 'var(--muted)', fontSize: 12, lineHeight: 1.6, textAlign: 'center' }}>
-        Fast uses stock footage matched to your narration. If you choose Seedance, Kling, Veo or another generative engine, the same universal credits are used at that engine&apos;s published rate and the pack will produce fewer videos.
+        Fast uses stock footage matched to your narration. If you choose Seedance, Kling or another generative engine, the same universal credits are used at that engine&apos;s published rate and the pack will produce fewer videos.
       </p>
 
       <div

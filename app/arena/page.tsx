@@ -38,12 +38,12 @@ const STARTER_PRICE_LABEL = formatCheckoutMoney('usd', getTierPrice('starter', '
 // KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): o card dele
 // continua DECLARADO em FIGHTER_CARDS (mesmo padrão do Kineo 1), mas não é renderizado; a contagem, a lista, o título e a
 // FAQ deixam de citá-lo. O filme dos robôs segue na vitrine da home e do /examples.
-const ARENA_COUNT = KINEO1_PUBLIC ? 'six' : 'five'
-const ARENA_COUNT_CAP = KINEO1_PUBLIC ? 'Six' : 'Five'
-const ARENA_ENGINE_LIST = 'Veo 3.1, Kling 3, MiniMax H3, Kling 2.5' + (KINEO1_PUBLIC ? ', Seedance 1.5 and Kineo 1' : ' and Seedance 1.5')
+const ARENA_COUNT = KINEO1_PUBLIC ? 'four' : 'three' // KINEO-MOTORES-SAEM-0511: saíram os cards do Veo e do Kling 2.5
+const ARENA_COUNT_CAP = KINEO1_PUBLIC ? 'Four' : 'Three'
+const ARENA_ENGINE_LIST = 'Kling 4.0, MiniMax H3' + (KINEO1_PUBLIC ? ', Seedance 1.5 and Kineo 1' : ' and Seedance 1.5') // KINEO-MOTORES-SAEM-0511
 
 export const metadata: Metadata = {
-  title: 'AI Video Engine Arena — Veo 3.1 vs Kling 3 vs MiniMax H3 vs Kling 2.5 | Kineo',
+  title: 'AI Video Engine Arena — Kling 4.0 vs MiniMax H3 vs Seedance 1.5 | Kineo',
   description:
     `The same kind of script, rendered by ${ARENA_COUNT} different AI video engines — real Kineo renders, honest engine labels, credit cost per film. Pick the engine by what you actually see, not by a demo reel.`,
   alternates: { canonical: `${BASE}/arena` },
@@ -93,16 +93,16 @@ const FIGHTER_CARDS: Fighter[] = soNaOferta([
     engineParam: 'hollywood',
     quality: 'cinematic_hollywood',
     exampleId: '4b12925e-16e6-4b56-af5a-7047f9ae7a28',
-    strength: 'Film scenes with native voice and lip sync: a character on camera can actually speak your line, mouth matching.',
-    watchOut: 'Premium price per film — worth it when someone has to talk.',
-    bestFor: 'Storytelling with a narrator on camera, interviews, testimony scenes.',
+    strength: 'This film was made on Kling 3, the engine before Kling 4.0. New films run on Kling 4.0: directed scenes with your narration, captions and music.', // KINEO-MOTORES-SAEM-0511: o selo fica real
+    watchOut: 'Premium price per film.',
+    bestFor: 'Premium directed films where the look is the product.',
   },
   {
     badge: 'MINIMAX H3',
     engineParam: 'h3',
     quality: 'cinematic_h3',
     exampleId: '8aabb05a-2492-48de-a96a-0a7875c0c8d3',
-    strength: 'Directed talking-character scenes with lip sync, alternating with documentary narration, at a lower credit cost than Kling 3.',
+    strength: 'Directed talking-character scenes with lip sync, alternating with documentary narration, at a lower credit cost than Kling 4.0.',
     watchOut: 'Each scene uses one anchor image, so identity can still drift between shots. Renders at 768p, mastered vertically on delivery.',
     bestFor: 'Dialogue-led explainers and channels that need cinematic output more often.',
   },
@@ -145,7 +145,7 @@ const FAQ_JSONLD = {
       name: 'Which AI video model is the best in 2026?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: '"Best" depends on the shot: Veo 3.1 leads on cinematic light; Kling 3 gives dialogue scenes native generated voice and lip sync; MiniMax H3 also supports directed lip-synced dialogue at a lower credit cost; and Kling 2.5 is the lower-credit camera-motion option. On Kineo all of them run in the same pipeline, so you pick per video instead of per subscription.',
+        text: '"Best" depends on the shot: Kling 4.0 leads on premium directed scenes; MiniMax H3 supports directed lip-synced dialogue at a lower credit cost; and Seedance 1.5 is the lower-credit everyday option. On Kineo all of them run in the same pipeline, so you pick per video instead of per subscription.',
       },
     },
     {

@@ -182,6 +182,12 @@ const nextConfig = {
       { source: '/ai-video-generator/gemini-omni-flash', destination: '/ai-video-generator/kling-3', statusCode: 301 },
       { source: '/ai-video-generator/gemini-omni-flash/:lang', destination: '/ai-video-generator/kling-3', statusCode: 301 },
       { source: '/omni-flash-vs-sora', destination: '/sora-alternative', statusCode: 301 },
+      // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — Kling 2.5 e Veo 3.1 saíram da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). As páginas
+      // deles e as versões por língua viram 301 para a comparação de motores, que diz com data o que aconteceu e o que usar agora. Saíram do sitemap e do llms.txt.
+      { source: '/ai-video-generator/veo', destination: '/seedance-vs-veo-vs-kling', statusCode: 301 },
+      { source: '/ai-video-generator/veo/:lang', destination: '/seedance-vs-veo-vs-kling', statusCode: 301 },
+      { source: '/ai-video-generator/kling', destination: '/seedance-vs-veo-vs-kling', statusCode: 301 },
+      { source: '/ai-video-generator/kling/:lang', destination: '/seedance-vs-veo-vs-kling', statusCode: 301 },
       // 02/08 ordem C (AEO): a rota exact-match do spec aponta para a
       // ferramenta que JÁ existe e já está no sitemap (Regra Zero — não criar
       // página duplicada). 308 real captura a busca sem diluir crawl budget.

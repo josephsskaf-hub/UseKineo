@@ -67,12 +67,11 @@ const WHY: { t: string; d: string }[] = [
 ]
 
 const ENGINES: { name: string; credits: string; d: string }[] = [
-  { name: 'Kling 3', credits: `${KLING3_60_CREDITS} credits / 60s`, d: 'Native audio, the strongest dialogue scenes, cinematic look. The premium option when the film is the product.' },
   { name: 'MiniMax H3', credits: `${H3_60_CREDITS} credits / 60s`, d: 'Same directed dialogue-plus-narration structure at roughly a third of the cost. The everyday choice for a channel posting daily.' },
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'Can AI make a video where the character actually talks?', a: 'Yes. On Kling 3 and MiniMax H3, Kineo renders dialogue scenes where a character on screen speaks a specific line with lip sync, and narrated scenes where a voiceover carries the story. Both come from the same script, in one finished video.' },
+  { q: 'Can AI make a video where the character actually talks?', a: 'Yes. On MiniMax H3, Kineo renders dialogue scenes where a character on screen speaks a specific line with lip sync, and narrated scenes where a voiceover carries the story. Both come from the same script, in one finished video.' },
   { q: 'Is this an avatar or talking-head generator?', a: 'No. Avatar tools put one presenter in front of a static background for the whole video. Here the talking character is one type of scene inside a film that also has cinematic b-roll, narration, captions and music — the character appears when the story needs a face, not for 60 straight seconds.' },
   { q: 'Do I need to record or clone a voice?', a: 'No. The character speaks with a voice generated at render time, and the narrator uses a voice matched to the subject of your script. Nothing to record, nothing to upload, no voice cloning step.' },
   { q: 'Will the character say exactly what I wrote?', a: 'If you choose "Use my script as is", yes — the spoken lines come from your text, split into scenes in code rather than rewritten by a model. If you prefer, the AI can structure a one-line idea into a full script first.' },
@@ -125,7 +124,7 @@ export default function TalkingCharactersPage() {
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          Works on Kling 3 and MiniMax H3 · No avatar to pick · No voice cloning
+          Works on MiniMax H3 · No avatar to pick · No voice cloning
         </p>
         <p style={{ fontSize: 12.5, color: '#86868b', lineHeight: 1.55, margin: '8px 0 0', maxWidth: 650 }}>
           Your {TRIAL_CREDITS_SHOWN} $1-trial credits apply to your account. A 60-second MiniMax H3 film costs {H3_60_CREDITS} credits, so this specific engine needs additional balance; the Studio shows the selected engine and cost before you submit.

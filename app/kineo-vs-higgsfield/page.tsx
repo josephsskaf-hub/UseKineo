@@ -29,7 +29,7 @@ const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 // KINEO-VENDER-3-2910 — quem procura "Higgsfield alternative" já paga por vídeo com IA e mora onde se paga. A página falava
 // de Kling 3 (substituído pelo Kling 4.0 no plano pago em 29/10) e não tocava em cobrança, a reclamação mais comum sobre
 // eles. Tudo derivado dos interruptores; os fatos sobre o Higgsfield vêm da central de ajuda deles (out/2026).
-const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY.replace('Kling 3', 'Kling 4.0') : VIDEO_ENGINE_LIST_COPY
+const ENGINE_LIST = KLING4_PAID_LIVE ? VIDEO_ENGINE_LIST_COPY : VIDEO_ENGINE_LIST_COPY.replace('Kling 4.0', 'Kling 3') // KINEO-MOTORES-SAEM-0511
 const FREE_IS_K4 = FREE_FILM_IS_KLING4 // KINEO-K4-NARRACAO-CABE-0111
 const PROMO_ON = KLING4_PAID_LIVE && kling4PromoPolicyReason(kling4PromoPolicy()) === 'ok'
 const PROMO_UNTIL = new Date(Date.parse(KLING4_PROMO_SIGNUP_CUTOFF) - 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -81,7 +81,7 @@ const FAQ_JSONLD = {
         '@type': 'Answer',
         text: KLING4_PAID_LIVE // KINEO-VENDER-3-2910
           ? `Kineo runs ${ENGINE_COUNT} engines you can use today — ${ENGINE_LIST} — all inside one subscription, selectable per video.`
-          : `Kineo runs ${ENGINE_COUNT} engines you can use today — ${VIDEO_ENGINE_LIST_COPY}, with Kling 3 adding native voice and lip sync — all inside one subscription, selectable per video.`, // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
+          : `Kineo runs ${ENGINE_COUNT} engines you can use today — ${ENGINE_LIST}, with Kling 3 adding native voice and lip sync — all inside one subscription, selectable per video.`, // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
       },
     },
     // KINEO-VENDER-3-2910 — as duas perguntas de quem está saindo de lá.

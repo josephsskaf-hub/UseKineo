@@ -50,7 +50,7 @@ const FAQS = [
   },
   {
     q: 'Can I turn my images into videos?',
-    a: 'Yes — that is the point of having everything in one studio. Generate an image, then animate it or use it as a reference frame in a cinematic video engine (Seedance, Kling, Veo). One account, one credit balance, image to film in the same workflow.',
+    a: 'Yes — that is the point of having everything in one studio. Generate an image, then animate it or use it as a reference frame in a cinematic video engine (Seedance, Kling, MiniMax). One account, one credit balance, image to film in the same workflow.',
   },
 ]
 

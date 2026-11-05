@@ -182,7 +182,7 @@ export default function PhPage() {
             ['Creator', TIER_PRICES.basic.usd, `${videosPerMonth('basic', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' só com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
             // KINEO-SELO-OMNI-POPUP-2026-09-30 · KINEO-OMNI-FORA-2026-10-12 — ', Omni Flash' saiu de vez (motor fora da oferta).
-            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3${AVATAR_PUBLIC ? ', Avatar' : ''}`],
+            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 4.0, MiniMax H3${AVATAR_PUBLIC ? ', Avatar' : ''}`],
           ] as Array<[string, number, string, string]>).map(([name, minor, promise, engines]) => (
             <div key={name} style={{ border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '16px 18px' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,.6)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</div>
@@ -201,7 +201,7 @@ export default function PhPage() {
           {[
             ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — enough for one ${FREE_FILM_LABEL}, watermarked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
             ['Is there a free tier?', `Yes: ${FREE_ENTRY_CREDITS} credits on signup, no card. Trial films are watermarked; any paid plan unlocks clean downloads.`],
-            ['How long does a film take?', 'Usually 8–20 minutes on the AI engines (Seedance 1.5, Kling 2.5); cinematic engines (Kling 3, Veo 3.1) take longer, especially when the provider is busy.'],
+            ['How long does a film take?', 'Usually 8–20 minutes on the AI engines (Seedance 1.5, MiniMax H3); Kling 4.0 can take longer, especially when the provider is busy.'],
             ['Who owns the videos?', 'You do. Download the MP4 and post it anywhere.'],
           ].map(([q, a]) => (
             <details key={q} style={{ borderTop: '1px solid rgba(255,255,255,.1)', padding: '12px 0' }}>

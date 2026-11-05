@@ -117,7 +117,8 @@ export type HandoffEngine = (typeof HANDOFF_ENGINES)[number]
 // esquema da Action do GPT (public/gpt/openapi.json) — um link antigo ou uma conta legada não quebra. Mas o que se ENSINA ao
 // ChatGPT (/llms.txt, /api/facts) é só esta lista: ninguém recomenda a uma conta nova um motor que ela não vê.
 // O contrato do app do ChatGPT em revisão (lib/mcp/chatgptContract.ts CHATGPT_V1_ENGINES) NÃO lê daqui de propósito.
-export const UNADVERTISED_HANDOFF_ENGINES: readonly HandoffEngine[] = ['fast', 'omni']
+// KINEO-MOTORES-SAEM-0511 — Kling 2.5 e Veo 3.1 entram aqui: link velho não quebra (o Studio abre no Seedance 1.5, lib/growth/entradaSeedance15.ts motorDaUrl), e ninguém mais os ensina.
+export const UNADVERTISED_HANDOFF_ENGINES: readonly HandoffEngine[] = ['fast', 'omni', 'kling', 'veo']
 export const ADVERTISED_HANDOFF_ENGINES: readonly HandoffEngine[] = HANDOFF_ENGINES.filter(
   (engine) => !UNADVERTISED_HANDOFF_ENGINES.includes(engine),
 )

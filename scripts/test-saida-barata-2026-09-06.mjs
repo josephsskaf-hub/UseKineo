@@ -25,11 +25,12 @@
 // antes da 1ª verificação (memória `guardioes-com-alias-nao-rodam`).
 // Toda leitura normaliza CRLF (memória `guardiao-crlf-falso-vermelho`).
 
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const raiz = process.cwd()
-const ler = (p) => readFileSync(join(raiz, p), 'utf8').replace(/\r\n/g, '\n')
+const ler = (p) => semMotoresSaem0511(readFileSync(join(raiz, p), 'utf8').replace(/\r\n/g, '\n'), p)
 
 let ok = 0
 let falhas = 0

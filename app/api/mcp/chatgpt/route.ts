@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
+import { UNAVAILABLE_ENGINE_KEYS } from '@/lib/engineLaunch' // KINEO-MOTORES-SAEM-0511: pausados + fora da oferta
 import { handoffPublicOrigin } from '@/lib/gptHandoffStore'
 import { createConnectorHandoff } from '@/lib/mcp/connectorHandoff'
 import { chatgptRateIdentity } from '@/lib/mcp/chatgptIdentity'
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     profile: 'chatgpt',
     // Commercial facts are deliberately not loaded by this endpoint.
     facts: () => ({}),
-    pausedEngines: PAUSED_ENGINE_KEYS,
+    pausedEngines: UNAVAILABLE_ENGINE_KEYS,
     createHandoff: (args, meta) => {
       const identity = chatgptRateIdentity(req.headers, meta, process.env.VERCEL === '1')
       return createConnectorHandoff(args, {

@@ -19,8 +19,6 @@ export const metadata = { title: 'Studio — Kineo' }
 const HERO_ENGINE: Record<string, string> = {
   fast: 'fast',
   seedance: 'cinematic_ai',
-  kling: 'cinematic_kling',
-  veo: 'cinematic_veo',
   hollywood: 'cinematic_hollywood',
   h3: 'cinematic_h3',
   omni: 'cinematic_omni',

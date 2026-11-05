@@ -38,7 +38,7 @@ export type DraftEngine =
 // o rascunho vem do sessionStorage, que é `unknown` até ser conferido.
 const DRAFT_QUALITIES: readonly DraftQuality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']
 const DRAFT_MODES: readonly DraftMode[] = ['fast', 'cinematic_ai', 'cinematic', 'creator']
-const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13
+const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511: rascunho velho em Kling 2.5/Veo volta sem motor (cai no padrão)
 // KINEO-SEM-INICIO-AUTOMATICO-0211 — a duração restaurada é EXATAMENTE a escolhida: 15 (Seedance curto) e 30 (estrada
 // hollywood) também voltam. Antes eram recusados aqui e a tela renascia no padrão dela — trocar a escolha por um chute.
 const DRAFT_DURATIONS: readonly number[] = [15, 30, 35, 45, 60, 90]

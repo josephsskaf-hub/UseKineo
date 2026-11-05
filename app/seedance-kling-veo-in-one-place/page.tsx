@@ -26,8 +26,8 @@ export const dynamic = 'force-static'
 
 const PAGE = HUB_PAGES.oneplace
 const CAMPAIGN = 'seo_hub_one_place'
-const TITLE = `Seedance, Kling and Veo in One Place — Price per Video (${HUB_REVIEWED_MONTH}) | ${BRAND_WITH_DOMAIN}`
-const DESCRIPTION = 'Use Seedance 1.5, Seedance 2.5, Kling 2.5, Kling 3, Veo 3.1 and MiniMax H3 from one account and one credit balance. Price per finished video for every model, dated.'
+const TITLE = `Seedance, Kling and MiniMax in One Place — Price per Video (${HUB_REVIEWED_MONTH}) | ${BRAND_WITH_DOMAIN}`
+const DESCRIPTION = 'Use Seedance 1.5, Seedance 2.5, Kling 4.0 and MiniMax H3 from one account and one credit balance. Price per finished video for every model, dated.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
@@ -57,7 +57,7 @@ function content() {
   const perModel = engines.map((e) => `${e.name} ${e.geo.rows.film60.credits} credits (about ${usd(e.geo.rows.film60.usdCents)})`)
   const faqs = [
     {
-      q: 'Which AI video generator lets me use Seedance, Kling and Veo in one place?',
+      q: 'Which AI video generator lets me use Seedance, Kling and MiniMax in one place?',
       a: `${BRAND_WITH_DOMAIN} does: ${listJoin(engines.map((e) => e.name))} run in the same Studio, billed from one monthly credit balance, and every render comes back as a finished video with narration, captions and music. Kenerate AI, Runway and InVideo also host several of these models (checked ${HUB_REVIEWED_DAY}); they sell credits for clips, while Kineo’s price is per finished narrated video.`,
     },
     {
@@ -95,7 +95,7 @@ export default function SeedanceKlingVeoInOnePlacePage() {
   )
 
   return (
-    <CitableHubShell path={PAGE.path} crumb="Seedance, Kling and Veo in one place" badge={`${engines.length} models · one balance · ${HUB_REVIEWED_MONTH}`} h1="Use Seedance, Kling and Veo in one place" lead={<p style={{ margin: 0 }}>{lead}</p>} faqs={faqs}>
+    <CitableHubShell path={PAGE.path} crumb="Seedance, Kling and MiniMax in one place" badge={`${engines.length} models · one balance · ${HUB_REVIEWED_MONTH}`} h1="Use Seedance, Kling and MiniMax in one place" lead={<p style={{ margin: 0 }}>{lead}</p>} faqs={faqs}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 22 }}>
         <OrganicCtaLink href={signupHref} source={CAMPAIGN} placement="hero" style={HUB_PRIMARY}>Make a video →</OrganicCtaLink>
         <OrganicCtaLink href={`/pricing?intent_campaign=${CAMPAIGN}#plans`} source={CAMPAIGN} placement="hero_plans" style={HUB_SECONDARY}>See plans →</OrganicCtaLink>
@@ -121,8 +121,8 @@ export default function SeedanceKlingVeoInOnePlacePage() {
                 <tr key={e.slug} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <td style={{ ...HUB_TD, fontWeight: 800, color: '#f5f5f7' }}><Link href={e.path} style={{ color: '#f5f5f7', textDecoration: 'none' }}>{e.name}</Link></td>
                   <td style={HUB_TD}>{e.maker}</td>
-                  <td style={HUB_TD}>{r.clip ? `${r.clip.seconds} s · ${r.clip.credits} cr (${usd(r.clip.usdCents)})` : '—'}</td>
-                  <td style={HUB_TD}>{`${r.film35.credits} cr (${usd(r.film35.usdCents)})`}</td>
+                  <td style={HUB_TD}>{r.clip && e.slug !== 'kling-3' ? `${r.clip.seconds} s · ${r.clip.credits} cr (${usd(r.clip.usdCents)})` : '—'}</td>{/* KINEO-MOTORES-SAEM-0511: nesta linha, Kling 4.0: 15/30/60 s, e o clipe avulso é outro motor */}
+                  <td style={HUB_TD}>{e.slug === 'kling-3' ? '—' : `${r.film35.credits} cr (${usd(r.film35.usdCents)})`}</td>
                   <td style={{ ...HUB_TD, fontWeight: 800, color: '#f5f5f7' }}>{`${r.film60.credits} cr (${usd(r.film60.usdCents)})`}</td>
                   <td style={HUB_TD}>{e.geo.smallestPlanFor60 ? `${e.geo.smallestPlanFor60.label} (${money(e.geo.smallestPlanFor60.usdCents)}/mo)` : '—'}</td>
                   <td style={HUB_TD}>{e.geo.paidPlansOnly ? 'Paid plans' : 'Every account'}</td>

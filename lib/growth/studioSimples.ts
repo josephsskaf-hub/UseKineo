@@ -10,7 +10,7 @@ export function usarCaixaUnica(params: Record<string, string | string[] | undefi
   return Object.keys(params).every((k) => SO_CHEGOU.test(k))
 }
 
-const NOMES: Readonly<Record<string, string>> = { kling: 'Kling 2.5', veo: 'Veo 3.1', hollywood: 'Kling 4.0', h3: 'MiniMax H3', h3max: 'MiniMax H3 Max', omni: 'Omni Flash', s25: 'Seedance 2.5' }
+const NOMES: Readonly<Record<string, string>> = { hollywood: 'Kling 4.0', h3: 'MiniMax H3', h3max: 'MiniMax H3 Max', omni: 'Omni Flash', s25: 'Seedance 2.5' }
 
 /** O motor do pedido: o que a pessoa trouxe no link ou, sem escolha (e no Kineo 1, fora da entrada desde 29/09), o padrão. */
 export function motorDaCaixa(engine: string | string[] | undefined): string {

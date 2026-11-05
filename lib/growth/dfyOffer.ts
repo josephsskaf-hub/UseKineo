@@ -76,7 +76,7 @@ export const DFY_TIERS: Record<DfyTier, DfyTierSpec> = {
     linkId: 'plink_1UJ4FXIah5dxzSBf8hU9ggtE',
     hours: 72,
     revisions: 2,
-    engines: 'Seedance or Kling 3',
+    engines: 'Seedance or Kling 4.0',
     detail: 'Same characters across scenes, script written for you, narration in your language, captions, music, your logo and photos where the format allows. 2 revisions, 72 h.',
   },
 }

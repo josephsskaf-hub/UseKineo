@@ -62,7 +62,7 @@ export const NOT_COVERED_LINE = 'Kineo 1 (stock-footage assembly) is not a gener
  * A página com o PREÇO DA KINEO por vídeo de cada motor (rodada 1 da visibilidade no ChatGPT): o índice linka para ela
  * em vez de repetir preço. Espelho de HUB_PAGES.oneplace (lib/seo/citableHubPages.ts, que não é puro); o guardião confere.
  */
-export const PRICE_PER_VIDEO_PAGE = { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' } as const
+export const PRICE_PER_VIDEO_PAGE = { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and MiniMax in one place' } as const
 /** Âncora da tabela de preço do fornecedor (o achado do custo por segundo aponta para ela). */
 export const PROVIDER_TABLE_ID = 'avi-provider-title'
 const BASE = 'https://www.usekineo.com'

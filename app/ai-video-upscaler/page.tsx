@@ -47,7 +47,7 @@ const FAQS = [
   },
   {
     q: 'Can I enhance a video I made in another tool?',
-    a: `The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts start free with 10 credits, no card.`,
+    a: `The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, MiniMax), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts start free with 10 credits, no card.`,
   },
   {
     q: 'How much does it cost?',

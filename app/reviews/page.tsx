@@ -93,7 +93,7 @@ export default function ReviewsPage() {
       <p style={{ color: '#c7c7cc' }}>
         Because the product is weeks old, and we refuse to buy or fake them. Kineo generates
         finished 9:16 Shorts from a typed idea — script, AI voiceover, footage, captions — and on
-        its top engines (Kling 3, MiniMax H3) characters on screen speak the scripted line with
+        MiniMax H3 characters on screen speak the scripted line with
         lip sync, alternating with a narrator inside one film. That claim is checkable in minutes:{' '}
         <a href={`${BASE}/examples`} style={{ color: '#2997ff' }}>watch real output</a> or{' '}
         <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>generate one free, no card</a>.

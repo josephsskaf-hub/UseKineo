@@ -1,5 +1,6 @@
 // Founder requested canonical Light/Dark, 29/09. Real SSR, no effects or requests.
 import assert from 'node:assert/strict'
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
@@ -25,7 +26,7 @@ for (const part of approvedDiff.split(/^@@[^\n]*\n/m).slice(1)) {
 }
 assert.equal(approvedHunks.length, 5, 'only the five exact later agency-page hunks are projected')
 function appearanceSource(file) {
- let text = source(file).replace(/\r\n/g, '\n')
+ let text = semMotoresSaem0511(source(file).replace(/\r\n/g, '\n'), file) // KINEO-MOTORES-SAEM-0511 — a troca de copy dos motores sai antes da foto congelada
  if (file.endsWith('/AgencyBriefClient.tsx')) {
   // 474d568e added explicit privacy masking after the palette work; retain and separately prove that protection.
   const mask = '              data-clarity-mask="true"\n'

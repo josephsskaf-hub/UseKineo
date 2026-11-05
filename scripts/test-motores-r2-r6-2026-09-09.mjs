@@ -4,6 +4,7 @@
 //
 // Executa as libs PURAS em sandbox (sem imports) com casos reais lidos do
 // banco em 09/09, e prova por texto que as rotas e a tela as chamam.
+import { semMotoresSaem0511 } from './test-support/desfaz-motores-saem-0511.mjs' // KINEO-MOTORES-SAEM-0511 [fundador 05/11 "3 sim"] — guardião histórico: lê a fonte sem a saída dos motores da oferta
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +13,7 @@ import ts from 'typescript'
 import { hollywoodSafetyChecks, storyModeChecks, sensitiveMutationChecks, kling4TextSafetyChecks } from './test-support/qualidade-sensitive-2910.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMotoresSaem0511(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

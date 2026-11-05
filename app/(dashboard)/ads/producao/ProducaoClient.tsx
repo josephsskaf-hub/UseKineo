@@ -130,7 +130,7 @@ export default function ProducaoClient() {
 
   const tpl = producaoTemplate(template)
   const photoEngines = useMemo(() => engines.filter((e) => e.photo && e.seconds.length > 0), [engines])
-  const defaultEngine = photoEngines.find((e) => e.key === 'kling') ?? photoEngines[0] ?? null
+  const defaultEngine = photoEngines.find((e) => e.key === 'seedance') ?? photoEngines[0] ?? null // KINEO-MOTORES-SAEM-0511: era o Kling 2.5
 
   useEffect(() => {
     fetch('/api/clips', { cache: 'no-store' }).then((r) => r.json()).then((j: { engines?: ClipEngine[] }) => setEngines(j.engines ?? [])).catch(() => undefined)
@@ -219,14 +219,14 @@ export default function ProducaoClient() {
       if (!r.ok || !Array.isArray(j?.shots)) throw new Error(errorFor(r.status, j))
       setPlanSource(j.source as string)
       setShots((j.shots as ProducaoShot[]).map((s) => ({
-        ...s, key: newKey(), voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5,
+        ...s, key: newKey(), voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'seedance', seconds: defaultEngine?.seconds[0] ?? 5,
         imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null,
       })))
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not plan the shots.') } finally { setBusy(null) }
   }
   function addShot() {
     if (shots.length >= PRODUCAO_MAX_SHOTS) return
-    setShots((l) => [...l, { key: newKey(), title: `Shot ${l.length + 1}`, imagePrompt: '', motionPrompt: 'slow cinematic push-in, natural movement', mode: 'clip', line: '', voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5, imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null }])
+    setShots((l) => [...l, { key: newKey(), title: `Shot ${l.length + 1}`, imagePrompt: '', motionPrompt: 'slow cinematic push-in, natural movement', mode: 'clip', line: '', voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'seedance', seconds: defaultEngine?.seconds[0] ?? 5, imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null }])
   }
   function move(key: string, d: -1 | 1) {
     setShots((l) => {

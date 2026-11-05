@@ -320,7 +320,7 @@ async function callTool(name: string, args: Record<string, unknown>, deps: McpDe
     const alternatives = activeEngines(deps.pausedEngines).filter((e) => engineFamily(e as never) === engineFamily(engine)).join(' or ')
     return {
       ok: false,
-      result: toolError(`${ENGINE_LABELS[engine]} (${engine}) is temporarily paused. Send engineHint ${alternatives || DEFAULT_ENGINE} instead.`),
+      result: toolError(`${ENGINE_LABELS[engine]} (${engine}) is ${engine === 'kling' || engine === 'veo' ? 'no longer available for new videos' : 'temporarily paused'}. Send engineHint ${alternatives || DEFAULT_ENGINE} instead.`), // KINEO-MOTORES-SAEM-0511
     }
   }
   let r: HandoffToolResult
