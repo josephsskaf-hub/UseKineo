@@ -46,20 +46,20 @@ export function kidsLaunchEmail(userId: string, language: KidsLaunchLanguage) {
   const pt = language === 'pt'
   const url = `https://www.usekineo.com/${pt ? 'desenho-infantil-3d-com-ia' : 'ai-kids-cartoon-videos'}?utm_source=email&utm_medium=launch&utm_campaign=cartoon_tracao_2210`
   const subject = pt
-    ? 'Crie seu canal de desenho com o mesmo personagem — 1º episódio grátis'
-    : 'Create your cartoon channel with the same character — first episode free'
+    ? 'Crie seu canal de desenho com o mesmo personagem — nos planos pagos'
+    : 'Create your cartoon channel with the same character — in paid plans'
   const paragraphs = pt ? [
     'Olá,',
-    'Crie seu canal de desenho com o mesmo personagem — comece pelo 1º episódio grátis, com marca d’água e sujeito à elegibilidade da conta e aos limites da amostra.',
-    'Escolha Leo, Mia, Dino, Pip, Bibi ou Ollie, escreva uma ideia e revise a história antes de gerar. A Kineo acrescenta narração e legendas em português, inglês ou espanhol. Pequenos detalhes do personagem podem variar entre cenas.',
-    'Depois da amostra, você pode escolher o piloto mensal ou o pack avulso na página do Cartoon. Você baixa os episódios e decide onde publicar; a Kineo não cria nem publica o canal por você.',
-    'Confira as condições e faça seu primeiro desenho:',
+    'Crie seu canal de desenho com o mesmo personagem. Os desenhos fazem parte dos planos pagos e usam os créditos do plano.',
+    'Escolha Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina ou Amora, escreva uma ideia e revise a história antes de gerar. A Kineo acrescenta narração e legendas em português, inglês ou espanhol. Pequenos detalhes do personagem podem variar entre cenas.',
+    'Você baixa os episódios e decide onde publicar; a Kineo não cria nem publica o canal por você.',
+    'Veja como funciona e faça seu primeiro desenho:',
   ] : [
     'Hi,',
-    'Create your cartoon channel with the same character — start with your first free episode, watermarked and subject to account eligibility and sample limits.',
-    'Choose Leo, Mia, Dino, Pip, Bibi or Ollie, write an idea and review the story before generating. Kineo adds narration and captions in English, Portuguese or Spanish. Small character details can vary between scenes.',
-    'After the sample, choose the monthly pilot or one-time pack on the Cartoon page. Download the episodes and decide where to post; Kineo does not create or publish the channel for you.',
-    'Review the terms and make your first cartoon:',
+    'Create your cartoon channel with the same character. Cartoons are included in paid plans and use your plan credits.',
+    'Choose Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina or Amora, write an idea and review the story before generating. Kineo adds narration and captions in English, Portuguese or Spanish. Small character details can vary between scenes.',
+    'Download the episodes and decide where to post; Kineo does not create or publish the channel for you.',
+    'See how it works and make your first cartoon:',
   ]
   const text = `${paragraphs.join('\n\n')}\n${url}\n\nJoseph\nKineo${emailFooterText(userId)}`
   const html = `<div lang="${language}" style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px">${paragraphs.map(p => `<p>${p}</p>`).join('')}<p><a href="${url.replace(/&/g, '&amp;')}">${pt ? 'Fazer meu primeiro desenho' : 'Make my first cartoon'} →</a></p><p>Joseph<br>Kineo</p></div>${emailFooterHtml(userId)}`

@@ -212,8 +212,8 @@ function provaDaTela(mutar = {}) {
   exige(previa(h).includes('/kids-cartoon/leo.webp') && previa(h).includes('Illustrative'), 'prévia: retrato escolhido com o rótulo Illustrative')
   const mia = semEstilo(desenharTela({ over: { [CHAR]: 'mia' }, mutar }))
   exige(previa(mia).includes('/kids-cartoon/mia.webp') && !previa(mia).includes('/kids-cartoon/leo.webp') && previa(mia).includes('Mia'), 'a prévia muda com a escolha')
-  // 1º episódio grátis: com conta sim, visitante não
-  exige(h.includes('data-kineo="kids-episodio-gratis"'), 'quem tem conta passa pelo episódio grátis')
+  // KINEO-CARTOON-SO-PLANO-0411 — sem episódio grátis novo; era: quem tem conta via o botão
+  exige(!h.includes('data-kineo="kids-episodio-gratis"'), 'o episódio grátis saiu da tela')
   const visitante = semEstilo(desenharTela({ props: { visitante: true }, mutar }))
   exige(!visitante.includes('kids-episodio-gratis') && visitante.includes('class="kps-grid"'), 'visitante vê a mesma tela, sem pedir à API')
   // a linha do botão final ainda diz o preço
@@ -279,7 +279,7 @@ const MUTANTES = [
   ['personagem depois da ideia', TPL, (t) => { const a = t.indexOf('          <section className="ace-card" aria-label={t.character}'), b = t.indexOf('          <section className="ace-card" aria-label={t.idea}'), c = t.indexOf('          {/* KINEO-CARTOON-TELA-0411 — os opcionais'); return t.slice(0, a) + t.slice(b, c) + t.slice(a, b) + t.slice(c) }, provaDaTela, /ordem/],
   ['personagem sem retrato', TPL, (t) => t.replace('<span className="kkc-face" aria-hidden="true">{c.portrait ? <img src={c.portrait} alt="" /> : c.name.slice(0, 1)}</span>', ''), provaDaTela, /com retrato/],
   ['custo some do botão final', TPL, (t) => t.replace('<p className="kkc-cost" data-enough={String(costLine.enough)}><i aria-hidden="true" />{costLine.text}</p>', ''), provaDaTela, /linha de custo/],
-  ['visitante pede o episódio à API', TPL, (t) => t.replace('{!visitante ? <KidsEpisodioGratis', '{true ? <KidsEpisodioGratis'), provaDaTela, /visitante vê/],
+  ['o episódio grátis volta à tela', TPL, (t) => t.replace('{KIDS_EPISODIO_GRATIS_LIVE && !visitante ? <KidsEpisodioGratis', '{true ? <KidsEpisodioGratis'), provaDaTela, /episódio grátis saiu|visitante vê/],
   ['um <main> dentro do outro', TPL, (t) => t.replace('<div className="stu adsw adv2 kps-page adv2q kkc"', '<main className="stu adsw adv2 kps-page adv2q kkc"').replace('      </div>\n    </div>\n  )\n}', '      </div>\n    </main>\n  )\n}'), provaDaTela, /<main/],
 ]
 for (const [nome, arq, muta, prova, esperado] of MUTANTES) {

@@ -35,6 +35,8 @@ import {
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
+import { kidsAcessoAoDesenho, kidsRecusaDeAcesso } from '@/lib/kidsVenda/planoDoDesenho' // KINEO-CARTOON-SO-PLANO-0411
+
 const PATH = '/api/kids-cartoon/story'
 
 /** A faixa de palavras do Seedance 1.5 na duração e na língua (a mesma conta do /api/generate-script para 'cinematic_ai'). */
@@ -54,6 +56,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
   if (!kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email))) return NextResponse.json({ error: 'Not found.' }, { status: 404 })
+  const semPlano = kidsRecusaDeAcesso(await kidsAcessoAoDesenho({ userId: user.id, email: user.email, paraHistoria: true }), null) // KINEO-CARTOON-SO-PLANO-0411 — antes do escritor: sem plano, nada de custo; o cron com pedido na fila passa
+  if (semPlano) { await writeServerEvent({ name: 'kids_cartoon_story_refused', userId: user.id, path: PATH, metadata: { reason: semPlano.corpo.reason } }).catch(() => false); return NextResponse.json(semPlano.corpo, { status: semPlano.status }) } // KINEO-CARTOON-SO-PLANO-0411
 
   let raw: unknown
   try { raw = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 }) }

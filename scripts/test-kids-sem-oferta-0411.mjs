@@ -63,7 +63,7 @@ function provaDasPaginas(mutar = {}) {
     exige(!/#plans|kids-venda-cards|kids-venda-cta/.test(h), `página ${lang}: sem o link morto`)
     exige((h.match(/href="\/[^"]*kids-cartoon[^"]*"|href="\/(signup|login)[^"]*kids-cartoon[^"]*"/g) ?? []).length >= 2 && (h.match(/data-kids-cta|class="kug-cta"/g) ?? []).length >= 2, `página ${lang}: os 2 botões seguem indo a /kids-cartoon`)
     exige(/<h1>/.test(h) && /id="kk-how"/.test(h) && /id="kk-faq"/.test(h) && /id="kk-chars"/.test(h), `página ${lang}: as seções seguem de pé`)
-    const naoAberta = lang === 'pt' ? 'As ofertas dedicadas estão indisponíveis no momento' : 'Dedicated offers are currently unavailable'
+    const naoAberta = lang === 'pt' ? 'Os desenhos fazem parte dos planos pagos' : 'Cartoons are included in paid plans' // KINEO-CARTOON-SO-PLANO-0411 — era: "currently unavailable"
     exige(h.includes(naoAberta), `página ${lang}: a pergunta da assinatura responde que não há oferta`)
   }
   return e

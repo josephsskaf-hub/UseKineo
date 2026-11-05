@@ -64,39 +64,37 @@ export function kidsPageCitation(lang: KidsLang) {
   return {
     answer: !salesOpen
       ? (pt
-        ? 'A Kineo cria desenhos infantis 3D narrados a partir de uma ideia, usando um de seis personagens. Escolha português, inglês ou espanhol e uma história de 15 ou 35 segundos. Leia e edite antes de gerar. O custo aparece antes da confirmação. Pequenos detalhes do personagem podem variar entre cenas.'
-        : 'Kineo creates narrated 3D kids cartoons from an idea, using one of six characters. Choose English, Portuguese or Spanish and a 15- or 35-second story. Read and edit the story before generating. The credit cost appears before confirmation. Small character details can vary between scenes.')
+        ? 'A Kineo cria desenhos infantis 3D narrados a partir de uma ideia, usando um de nove personagens. Escolha português, inglês ou espanhol e uma história de 15 ou 35 segundos. Leia e edite antes de gerar. Os desenhos fazem parte dos planos pagos e usam os créditos do plano; o custo aparece antes da confirmação. Pequenos detalhes do personagem podem variar entre cenas.'
+        : 'Kineo creates narrated 3D kids cartoons from an idea, using one of nine characters. Choose English, Portuguese or Spanish and a 15- or 35-second story. Read and edit the story before generating. Cartoons are included in paid plans and use your plan credits; the credit cost appears before confirmation. Small character details can vary between scenes.')
       : pt
-      ? `A Kineo transforma uma ideia em desenho infantil 3D narrado, com legendas e um de seis personagens recorrentes. Escolha português, inglês ou espanhol e revise a história escrita antes de gerar. Experimente o primeiro episódio grátis, com marca d’água. A assinatura inclui ${total} episódios de ${duration} segundos mensais; também existe pack avulso.`
-      : `Kineo turns an idea into a narrated 3D kids cartoon with captions and one of six recurring characters. Choose English, Portuguese or Spanish, and review the written story first. Try one watermarked episode free. The dedicated subscription includes ${total} episodes of ${duration} seconds per month; a one-time ${KIDS_VIDEOS.pack}-episode pack is also available.`,
+      ? `A Kineo transforma uma ideia em desenho infantil 3D narrado, com legendas e um de nove personagens recorrentes. Escolha português, inglês ou espanhol e revise a história escrita antes de gerar. A assinatura inclui ${total} episódios de ${duration} segundos mensais; também existe pack avulso.`
+      : `Kineo turns an idea into a narrated 3D kids cartoon with captions and one of nine recurring characters. Choose English, Portuguese or Spanish, and review the written story first. The dedicated subscription includes ${total} episodes of ${duration} seconds per month; a one-time ${KIDS_VIDEOS.pack}-episode pack is also available.`,
     caption: pt ? 'O que vem em cada opção do AI Kids Cartoon' : 'What each AI Kids Cartoon option includes',
     headers: pt ? ['O que você recebe', 'Duração do vídeo', 'Tempo e entrega', 'Preço', 'Créditos'] : ['What you receive', 'Video duration', 'Timing and delivery', 'Price', 'Credits'],
     rows: pt ? [
-      ['Primeiro episódio 3D narrado, com legendas e marca d’água', `${duration} s`, 'Sem prazo fixo de geração; 1 por conta elegível, com limites regionais e diários', 'Grátis', 'Não usa seu saldo de créditos'],
       [`Piloto: ${total} episódios do mesmo personagem e tema, com título, legenda e hashtags`, `${duration} s por episódio`, '1 novo episódio por dia, na biblioteca + e-mail; geração sem prazo fixo', `${monthly}/mês`, 'Geração incluída; não usa seu saldo de créditos'],
       [`Pack: ${KIDS_VIDEOS.pack} episódios do mesmo personagem e tema, para baixar da biblioteca`, `${duration} s por episódio`, 'Produção em fila; sem prazo fixo de conclusão', `${pack}, pagamento único`, 'Geração incluída; não usa seu saldo de créditos'],
     ] : [
-      ['First narrated 3D episode with captions and a watermark', `${duration} s`, 'No fixed generation time; 1 per eligible account, with regional and daily limits', 'Free', 'Does not use your credit balance'],
       [`Pilot: ${total} episodes with the same character and theme, plus titles, captions and hashtags`, `${duration} s per episode`, '1 new episode per day, in your library + email; no fixed generation time', `${monthly}/month`, 'Generation included; does not use your credit balance'],
       [`Pack: ${KIDS_VIDEOS.pack} episodes with the same character and theme, to download from your library`, `${duration} s per episode`, 'Produced in a queue; no fixed completion time', `${pack}, one-time payment`, 'Generation included; does not use your credit balance'],
     ],
     currencyNote,
     manualNote: pt
-      ? 'No gerador manual, você também pode escolher 15 ou 35 segundos. Escrever e editar a história é grátis; o custo do filme em créditos aparece antes da confirmação.'
-      : 'In the manual generator, you can also choose 15 or 35 seconds. Writing and editing the story is free; the film credit cost appears before confirmation.',
+      ? 'No gerador manual, você também pode escolher 15 ou 35 segundos. Escrever e editar a história não usa créditos; o custo do filme em créditos aparece antes da confirmação.'
+      : 'In the manual generator, you can also choose 15 or 35 seconds. Writing and editing the story uses no credits; the film credit cost appears before confirmation.',
     updated: pt ? 'Atualizado em: 22 de outubro de 2026' : 'Updated: October 22, 2026',
     faqs: (pt ? [
       { q: 'Quais idiomas estão disponíveis?', a: 'Português do Brasil, inglês e espanhol, com narração e legendas no idioma escolhido.' },
-      { q: 'Quais personagens posso escolher?', a: 'Leo, Mia, Dino, Pip, Bibi ou Ollie — personagens próprios da Kineo.' },
+      { q: 'Quais personagens posso escolher?', a: 'Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina ou Amora — personagens próprios da Kineo.' },
       { q: 'O personagem será idêntico em todos os quadros?', a: 'A descrição e o estilo 3D são reutilizados em toda cena. Pequenos detalhes, como cabelo ou roupa, ainda podem variar.' },
       { q: 'Posso editar a história antes de gerar?', a: 'Sim. No gerador manual, você lê e altera a história escrita antes de confirmar a geração do desenho; escrever e editar não cobra créditos.' },
-      { q: 'Existe assinatura dedicada ao Cartoon?', a: salesOpen ? `Sim. O piloto inclui ${total} episódios de ${duration} segundos por mês por ${monthly}/mês. O pack avulso inclui ${KIDS_VIDEOS.pack} episódios por ${pack}. O primeiro episódio elegível é grátis, com marca d’água. ${currencyNote}` : 'As ofertas dedicadas estão indisponíveis no momento. Consulte o gerador e a página de preços para as opções disponíveis.' },
+      { q: 'Existe assinatura dedicada ao Cartoon?', a: salesOpen ? `Sim. O piloto inclui ${total} episódios de ${duration} segundos por mês por ${monthly}/mês. O pack avulso inclui ${KIDS_VIDEOS.pack} episódios por ${pack}. ${currencyNote}` : 'Os desenhos fazem parte dos planos pagos e usam os créditos do plano. Não há assinatura separada: veja os planos na página de preços. O custo em créditos aparece antes de você confirmar.' },
     ] : [
       { q: 'Which languages are available?', a: 'English, Brazilian Portuguese and Spanish, with narration and captions in the chosen language.' },
-      { q: 'Which characters can I choose?', a: 'Leo, Mia, Dino, Pip, Bibi or Ollie — Kineo’s own characters.' },
+      { q: 'Which characters can I choose?', a: 'Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina or Amora — Kineo’s own characters.' },
       { q: 'Will the character be identical in every frame?', a: 'The character description and 3D style are reused in every scene. Small details, such as hair or clothes, can still vary.' },
       { q: 'Can I edit the story before generating?', a: 'Yes. In the manual generator, read and edit the written story before confirming cartoon generation; writing and editing do not charge credits.' },
-      { q: 'Is there a dedicated cartoon subscription?', a: salesOpen ? `Yes. The pilot includes ${total} episodes of ${duration} seconds per month for ${monthly}/month. The one-time pack includes ${KIDS_VIDEOS.pack} episodes for ${pack}. The first eligible episode is free and watermarked. ${currencyNote}` : 'Dedicated offers are currently unavailable. Check the generator and pricing page for available options.' },
+      { q: 'Is there a dedicated cartoon subscription?', a: salesOpen ? `Yes. The pilot includes ${total} episodes of ${duration} seconds per month for ${monthly}/month. The one-time pack includes ${KIDS_VIDEOS.pack} episodes for ${pack}. ${currencyNote}` : 'Cartoons are included in paid plans and use your plan credits. There is no separate subscription: see the plans on the pricing page. The credit cost appears before you confirm.' },
     ]) as Qa[],
   }
 }
@@ -111,11 +109,11 @@ export function kidsPageCopy(lang: KidsLang) {
       eyebrow: 'Vídeos de desenho com IA',
       h1: 'Vídeos de desenho com IA: histórias infantis em 3D a partir de uma ideia',
       lead: 'Você escreve a ideia (ou escolhe uma pronta), escolhe o personagem e a língua. A Kineo escreve uma história curta e inocente e entrega um desenho 3D vertical narrado, com legenda — o mesmo personagem do começo ao fim.',
-      cta: 'Fazer meu primeiro desenho', how: 'Como funciona', note: 'O preço em créditos aparece no botão de gerar, antes de você confirmar.', reviewed: 'Revisado em',
+      cta: 'Fazer meu primeiro desenho', how: 'Como funciona', note: 'Faz parte dos planos pagos. O preço em créditos aparece no botão de gerar, antes de você confirmar.', reviewed: 'Revisado em',
       caption: 'Curta de teste feito no fluxo de filme (Seedance 1.5, estilo 3D). Saiu com a marca usekineo.com/free porque foi feito na conta da casa.',
       summaryHeading: 'O que é', summary: [citation.answer], // KINEO-CARTOON-TRACAO-2210
       stepsHeading: 'Em 3 passos', steps: [
-        { title: 'Escolha o personagem', body: 'Leo, Mia, Dino, Pip, Bibi ou Ollie — personagens próprios da Kineo, não de outro estúdio.' },
+        { title: 'Escolha o personagem', body: 'Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina ou Amora — personagens próprios da Kineo, não de outro estúdio.' },
         { title: 'Escreva a ideia', body: 'Uma linha basta ("aprende a dividir os brinquedos"), ou uma das 6 ideias prontas. Escolha a língua e 15 ou 35 s.' },
         { title: 'Gere o desenho', body: 'A história sai escrita para você ler e mudar o que quiser. Um botão faz o desenho ali mesmo, com o progresso e o download na mesma página.' },
       ],
@@ -138,11 +136,11 @@ export function kidsPageCopy(lang: KidsLang) {
     eyebrow: 'AI cartoon videos',
     h1: 'AI cartoon videos: narrated 3D kids stories from one idea',
     lead: 'You type the idea (or pick a ready one), choose the character and the language. Kineo writes a short, innocent story and renders a vertical 3D cartoon with narration and captions — the same character from start to finish.',
-    cta: 'Make my first cartoon', how: 'How it works', note: 'The credit price shows on the Generate button, before you confirm.', reviewed: 'Reviewed',
+    cta: 'Make my first cartoon', how: 'How it works', note: 'Included in paid plans. The credit price shows on the Generate button, before you confirm.', reviewed: 'Reviewed',
     caption: 'Test short made with the film flow (Seedance 1.5, 3D style). It carries the usekineo.com/free mark because it was made on the house account.',
     summaryHeading: 'What it is', summary: [citation.answer], // KINEO-CARTOON-TRACAO-2210
     stepsHeading: 'In 3 steps', steps: [
-      { title: 'Pick the character', body: 'Leo, Mia, Dino, Pip, Bibi or Ollie — Kineo’s own characters, not another studio’s.' },
+      { title: 'Pick the character', body: 'Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina or Amora — Kineo’s own characters, not another studio’s.' },
       { title: 'Type the idea', body: 'One line is enough ("learns to share toys"), or one of 6 ready ideas. Choose the language and 15 or 35 s.' },
       { title: 'Generate the cartoon', body: 'You read the written story first and change anything you like. One button makes the cartoon right there, with progress and the download on the same page.' },
     ],
@@ -251,7 +249,7 @@ export function KidsCartoonPage({ lang }: { lang: KidsLang }) {
           <ul className="kug-rules">{KIDS_IDEAS.map((i) => <li key={i.id}>{i[lang]}</li>)}</ul>
         </div>
       </section>
-      <div className="kug-wrap"><KidsVendaCards lang={lang} surface="page" /></div>{/* KINEO-KIDS-VENDA-2010 — os planos (piloto US$ 29/mês · pack US$ 49 · 1º grátis) antes do FAQ; nada com a venda desligada */}
+      <div className="kug-wrap"><KidsVendaCards lang={lang} surface="page" /></div>{/* KINEO-KIDS-VENDA-2010 — os planos (piloto US$ 29/mês · pack US$ 49) antes do FAQ; nada com a venda desligada */}
       <section className="kug-sec" aria-labelledby="kk-faq">
         <div className="kug-wrap">
           <h2 id="kk-faq">{c.faqHeading}</h2>

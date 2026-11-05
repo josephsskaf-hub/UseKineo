@@ -70,7 +70,7 @@ Seu canal de histórias para os pequenos pode começar com uma frase: “Leo enc
 
 Desenho 3D criado com IA. Pequenos detalhes do personagem podem variar.
 
-Crie sua primeira história em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, uma vez por conta elegível; veja as condições.
+Crie sua primeira história em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #DesenhoInfantil #HistoriasInfantis #FeitoComIA
@@ -85,7 +85,7 @@ Your kids story channel can start with one sentence: “Leo finds a rainbow afte
 
 3D cartoon made with AI. Small character details can vary.
 
-Create your first story at usekineo.com — link in bio. First episode free with a watermark, once per eligible account; see terms.
+Create your first story at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #KidsCartoon #CartoonStories #MadeWithAI
@@ -108,7 +108,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | “Leo encontra um arco-íris depois da chuva e descobre cores numa poça.” | “Leo finds a rainbow after the rain and discovers colors in a puddle.” |
 | 4 | Escolha Leo, defina o idioma e revise a história. Ele é da biblioteca Kineo; detalhes podem variar. | Choose Leo, select the language and review the story. He is a Kineo library character; details can vary. |
 | 5 | A frase inicia o episódio. O adulto cria o canal e decide onde publicar. | The sentence starts the episode. The adult creates the channel and chooses where to publish. |
-| 6 | Primeiro episódio grátis com marca, por conta elegível. Condições em usekineo.com. Link da bio. | First episode free with a watermark, per eligible account. Terms at usekineo.com. Link in bio. |
+| 6 | Desenhos incluídos nos planos pagos, com créditos. Condições em usekineo.com. Link da bio. | Cartoons are included in paid plans, using credits. Terms at usekineo.com. Link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -119,7 +119,7 @@ Escolha um personagem, uma ação pequena e uma descoberta. Exemplo: “Leo enco
 
 O projeto do canal e a publicação ficam com você.
 
-Comece em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; confira as condições.
+Comece em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #CanalInfantil #ComoCriarDesenhos #HistoriasInfantis #FeitoComIA
@@ -134,7 +134,7 @@ Choose a character, a small action and a discovery. Try: “Leo finds a rainbow 
 
 You handle the channel project and publishing.
 
-Start at usekineo.com — link in bio. First episode free with a watermark, per eligible account; check terms.
+Start at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #KidsStoryChannel #CartoonIdeas #KidsStories #MadeWithAI
@@ -158,7 +158,7 @@ O personagem continua; o assunto muda. Uma semente pode ser a ideia do próximo 
 
 Desenho criado com IA. Detalhes do personagem podem variar.
 
-Experimente sua ideia em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, uma vez por conta elegível; veja condições.
+Experimente sua ideia em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #HistoriasInfantis #Desenho3D #FeitoComIA
@@ -173,7 +173,7 @@ Keep the character; change the subject. A tiny seed can inspire the next episode
 
 Cartoon made with AI. Character details can vary.
 
-Try your idea at usekineo.com — link in bio. First episode free with a watermark, once per eligible account; see terms.
+Try your idea at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #KidsStories #3DCartoon #MadeWithAI
@@ -196,7 +196,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | Próxima frase: “Leo rega uma semente e aprende a esperar.” | Next sentence: “Leo waters a seed and learns to wait.” |
 | 4 | Mantenha Leo selecionado. Varie a ação e o assunto; revise a história. | Keep Leo selected. Vary the action and subject; review the story. |
 | 5 | Mesmo personagem da biblioteca, novas histórias. Pequenos detalhes visuais podem variar. | Same library character, new stories. Small visual details can vary. |
-| 6 | Comece em usekineo.com. Episódio grátis com marca, por conta elegível. Condições no link da bio. | Start at usekineo.com. Free watermarked episode, per eligible account. Terms at the link in bio. |
+| 6 | Comece em usekineo.com. Desenhos incluídos nos planos pagos, com créditos. Condições no link da bio. | Start at usekineo.com. Cartoons are included in paid plans, using credits. Terms at the link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -205,7 +205,7 @@ A fórmula da próxima frase: mesmo personagem + nova ação + outra descoberta.
 
 Leo já encontrou um arco-íris. Agora pode cuidar de uma semente. Crie histórias diferentes com um protagonista que a família reconhece, sabendo que a IA pode variar pequenos detalhes visuais.
 
-Comece sua história com IA em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; confira condições.
+Comece sua história com IA em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #CanalDeDesenho #IdeiasDeHistorias #FeitoComIA
@@ -218,7 +218,7 @@ The next-sentence formula: same character + new action + another discovery.
 
 Leo has found a rainbow. Now he can care for a seed. Build different stories around a familiar lead, knowing that AI can vary small visual details.
 
-Create your AI story at usekineo.com — link in bio. First episode free with a watermark, per eligible account; check terms.
+Create your AI story at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #CartoonChannel #StoryIdeas #MadeWithAI
@@ -242,7 +242,7 @@ A ideia deste episódio: “Leo divide a proteção do guarda-chuva com um carac
 
 Desenho 3D criado com IA; detalhes podem variar. Revise o resultado antes de publicar.
 
-Comece em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; veja condições.
+Comece em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #Gentileza #DesenhoInfantil #FeitoComIA
@@ -257,7 +257,7 @@ This episode starts with: “Leo shares his umbrella’s shelter with a snail.�
 
 3D cartoon made with AI; details can vary. Review the result before posting.
 
-Start at usekineo.com — link in bio. First episode free with a watermark, per eligible account; see terms.
+Start at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #KindnessStory #KidsCartoon #MadeWithAI
@@ -280,7 +280,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | Uma frase: “Leo divide o guarda-chuva com um caracol numa chuva tranquila.” | One sentence: “Leo shares his umbrella with a snail in gentle rain.” |
 | 4 | O adulto escolhe o idioma, revisa a história e confere o vídeo. | The adult selects the language, reviews the story and checks the video. |
 | 5 | Seu filho inspira o tema; Leo protagoniza. Isto não recria a aparência da criança. | Your child inspires the theme; Leo is the lead. This does not recreate your child’s appearance. |
-| 6 | Comece em usekineo.com. Episódio grátis com marca, por conta elegível. Condições no link da bio. | Start at usekineo.com. Free watermarked episode, per eligible account. Terms at the link in bio. |
+| 6 | Comece em usekineo.com. Desenhos incluídos nos planos pagos, com créditos. Condições no link da bio. | Start at usekineo.com. Cartoons are included in paid plans, using credits. Terms at the link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -289,7 +289,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 
 Agora dê uma ação ao Leo: “Leo divide o guarda-chuva com um caracol.” O adulto conduz o projeto, revisa o roteiro e decide o que publicar. Leo é personagem da Kineo; a proposta não depende da foto do seu filho.
 
-Experimente criar uma história com IA em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; confira condições.
+Experimente criar uma história com IA em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #HistoriasEmFamilia #CanalInfantil #CriarDesenhos #FeitoComIA
@@ -302,7 +302,7 @@ https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 Now give Leo an action: “Leo shares his umbrella with a snail.” The adult leads the project, reviews the script and decides what to publish. Leo is a Kineo character; the idea doesn’t depend on a photo of your child.
 
-Try creating an AI story at usekineo.com — link in bio. First episode free with a watermark, per eligible account; check terms.
+Try creating an AI story at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #FamilyStories #KidsStoryChannel #CreateCartoons #MadeWithAI
@@ -326,7 +326,7 @@ Leo organiza os brinquedos por cor e encontra a peça que procurava. Um personag
 
 Desenho criado com IA; detalhes do personagem podem variar.
 
-Qual situação viraria sua primeira história? Comece em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; veja condições.
+Qual situação viraria sua primeira história? Comece em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #HistoriasDoCotidiano #DesenhoInfantil #FeitoComIA
@@ -341,7 +341,7 @@ Leo sorts his toys by color and finds the piece he was looking for. A recurring 
 
 Cartoon made with AI; character details can vary.
 
-What everyday moment would inspire your first story? Start at usekineo.com — link in bio. First episode free with a watermark, per eligible account; see terms.
+What everyday moment would inspire your first story? Start at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #EverydayStories #KidsCartoon #MadeWithAI
@@ -364,7 +364,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | Uma frase: “Leo organiza os blocos e encontra a peça amarela.” | One sentence: “Leo sorts the blocks and finds the yellow piece.” |
 | 4 | Uma busca. Um gesto. Uma descoberta. Revise antes de gerar. | One search. One action. One discovery. Review before generating. |
 | 5 | Piloto e pack têm episódios de 15 segundos. Planeje a ideia para esse formato. | Pilot and pack episodes are 15 seconds long. Plan your idea for that format. |
-| 6 | Comece em usekineo.com. Episódio grátis com marca, por conta elegível. Condições no link da bio. | Start at usekineo.com. Free watermarked episode, per eligible account. Terms at the link in bio. |
+| 6 | Comece em usekineo.com. Desenhos incluídos nos planos pagos, com créditos. Condições no link da bio. | Start at usekineo.com. Cartoons are included in paid plans, using credits. Terms at the link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -375,7 +375,7 @@ Para o primeiro episódio, experimente uma história pequena.
 
 Desenhos criados com IA. Episódios do piloto e do pack: 15 segundos.
 
-Crie sua primeira história em usekineo.com — link da bio. Amostra grátis com marca d’água, por conta elegível; confira condições.
+Crie sua primeira história em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #RoteiroInfantil #IdeiasDeHistorias #Desenho3D #FeitoComIA
@@ -390,7 +390,7 @@ For your first episode, try a small story.
 
 Cartoons made with AI. Pilot and pack episodes: 15 seconds.
 
-Create your first story at usekineo.com — link in bio. Free watermarked sample, per eligible account; check terms.
+Create your first story at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #KidsStorytelling #StoryIdeas #3DCartoon #MadeWithAI
@@ -414,7 +414,7 @@ A frase deste episódio: “Leo encontra pegadas no jardim e descobre que são d
 
 Desenho 3D criado com IA; pequenos detalhes visuais podem variar.
 
-Sua ideia também pode começar com uma descoberta. Acesse usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; veja condições.
+Sua ideia também pode começar com uma descoberta. Acesse usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #PequenasDescobertas #HistoriasInfantis #FeitoComIA
@@ -429,7 +429,7 @@ This episode starts with: “Leo finds footprints in the garden and discovers th
 
 3D cartoon made with AI; small visual details can vary.
 
-Your idea can start with a discovery too. Visit usekineo.com — link in bio. First episode free with a watermark, per eligible account; see terms.
+Your idea can start with a discovery too. Visit usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #LittleDiscoveries #KidsStories #MadeWithAI
@@ -452,7 +452,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | Escolha personagem e idioma; revise a história antes de gerar. | Choose a character and language; review the story before generating. |
 | 4 | Confira o episódio entregue e baixe da biblioteca. | Check the delivered episode and download it from your library. |
 | 5 | Você escolhe onde publicar e identifica como feito com IA. O canal fica sob sua gestão. | You choose where to publish and identify it as AI-made. You manage the channel. |
-| 6 | Comece em usekineo.com. Episódio grátis com marca, por conta elegível. Condições no link da bio. | Start at usekineo.com. Free watermarked episode, per eligible account. Terms at the link in bio. |
+| 6 | Comece em usekineo.com. Desenhos incluídos nos planos pagos, com créditos. Condições no link da bio. | Start at usekineo.com. Cartoons are included in paid plans, using credits. Terms at the link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -461,7 +461,7 @@ O canal é seu projeto. A Kineo ajuda a produzir os episódios.
 
 Comece com uma frase, escolha um personagem da biblioteca e revise a história. Depois da entrega, confira o desenho, baixe e decida onde publicar pela sua conta. Identifique o conteúdo como feito com IA.
 
-Experimente em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; veja as condições atuais.
+Experimente em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #CanalDeHistorias #CriacaoDeConteudo #DesenhoInfantil #FeitoComIA
@@ -474,7 +474,7 @@ The channel is your project. Kineo helps produce the episodes.
 
 Start with a sentence, choose a library character and review the story. After delivery, check the cartoon, download it and decide where to post from your own account. Identify the content as AI-made.
 
-Try it at usekineo.com — link in bio. First episode free with a watermark, per eligible account; see current terms.
+Try it at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #StoryChannel #ContentCreation #KidsCartoon #MadeWithAI
@@ -498,7 +498,7 @@ Leo encerra o dia com uma pequena história: olhar pela janela, encontrar a estr
 
 Desenho criado com IA. Pequenos detalhes do personagem podem variar.
 
-Comece sua história em usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível; confira as condições.
+Comece sua história em usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #Leo #HistoriaDeBoaNoite #DesenhoInfantil #FeitoComIA
@@ -513,7 +513,7 @@ Leo ends the day with a small story: looking through the window, finding the sta
 
 Cartoon made with AI. Small character details can vary.
 
-Start your story at usekineo.com — link in bio. First episode free with a watermark, per eligible account; check terms.
+Start your story at usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #Leo #GoodnightStory #KidsCartoon #MadeWithAI
@@ -536,7 +536,7 @@ https://www.usekineo.com/ai-kids-cartoon-videos
 | 3 | Outra ideia para continuar: “Leo descobre uma nuvem em forma de barco.” | Another idea to continue: “Leo discovers a cloud shaped like a boat.” |
 | 4 | Mantenha o personagem. Varie as histórias e revise cada entrega. Detalhes podem variar. | Keep the character. Vary the stories and review each delivery. Details can vary. |
 | 5 | Piloto: 30 episódios por ciclo mensal. Pack: 30 em compra única. Episódios de 15 segundos. Veja preço e condições da sua região na página. | Pilot: 30 episodes per monthly cycle. Pack: 30 in a one-time purchase. Episodes are 15 seconds long. See your region’s price and terms on the page. |
-| 6 | Primeiro episódio grátis com marca, por conta elegível. Sua série começa em usekineo.com. Link da bio. | First episode free with a watermark, per eligible account. Your series starts at usekineo.com. Link in bio. |
+| 6 | Desenhos incluídos nos planos pagos, com créditos. Sua série começa em usekineo.com. Link da bio. | Cartoons are included in paid plans, using credits. Your series starts at usekineo.com. Link in bio. |
 
 **Legenda PT, com hashtags:**
 
@@ -547,7 +547,7 @@ Comece com uma frase para o primeiro episódio. Para continuar, veja o piloto me
 
 Desenhos feitos com IA; detalhes podem variar. Você confere e decide onde publicar.
 
-Acesse usekineo.com — link da bio. Primeiro episódio grátis com marca d’água, por conta elegível.
+Acesse usekineo.com — link da bio. Desenhos incluídos nos planos pagos, com créditos.
 https://www.usekineo.com/desenho-infantil-3d-com-ia
 
 #Kineo #CanalDeDesenho #SerieInfantil #HistoriasInfantis #FeitoComIA
@@ -562,7 +562,7 @@ Start with a sentence for your first episode. To continue, see the monthly pilot
 
 Cartoons made with AI; details can vary. You review and decide where to publish.
 
-Visit usekineo.com — link in bio. First episode free with a watermark, per eligible account.
+Visit usekineo.com — link in bio. Cartoons are included in paid plans, using credits.
 https://www.usekineo.com/ai-kids-cartoon-videos
 
 #Kineo #CartoonChannel #KidsSeries #KidsStories #MadeWithAI

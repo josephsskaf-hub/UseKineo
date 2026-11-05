@@ -7,7 +7,7 @@
 import Link from 'next/link'
 import { KIDS_CARTOON_TEMPLATE_PATH } from '@/lib/kidsCartoon/kidsCartoon'
 import { KIDS_SALES_OPEN_FOR_PUBLIC, kidsVendaCardText } from '@/lib/kidsVenda/kidsVenda'
-import { KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
+import { KIDS_EPISODIO_GRATIS_LIVE, KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
 
 const CSS = `
 /* KINEO-KIDS-VENDA-LIGA-2110 — a venda acompanha os cartões claros e o azul da tela nova. */
@@ -36,7 +36,7 @@ export function KidsVendaCards({ lang = 'en', surface }: { lang?: string; surfac
       <ul>
         <li><b>{t.autopilot}</b> — {t.autopilotNote}</li>
         <li><b>{t.pack}</b> — {t.packNote}</li>
-        <li>{t.sample}</li>
+        {KIDS_EPISODIO_GRATIS_LIVE ? <li>{t.sample}</li> : null}{/* KINEO-CARTOON-SO-PLANO-0411 */}
       </ul>
       <div className="kvc-row">
         <Link className="kvc-cta" data-kineo="kids-venda-cta" href={href}>{t.ctaOpen}</Link>

@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { KIDS_PRICES, KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_VENDA_DURATION, KIDS_VIDEOS, kidsSalesOpen } from '@/lib/kidsVenda/kidsVenda'
 import { kidsSampleEligibility, kidsServiceClient, loadKidsStatus } from '@/lib/kidsVenda/server'
+import { KIDS_EPISODIO_GRATIS_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-CARTOON-SO-PLANO-0411
+import { kidsAcessoAoDesenho } from '@/lib/kidsVenda/planoDoDesenho' // KINEO-CARTOON-SO-PLANO-0411
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -19,10 +21,12 @@ export async function GET() {
   const db = kidsServiceClient()
   if (!db) return NextResponse.json({ ready: false, open, orders: [] }, { headers: { 'Cache-Control': 'private, no-store' } })
   const status = await loadKidsStatus(db, user.id)
-  const sample = open ? await kidsSampleEligibility(db, { userId: user.id, live: KIDS_SALES_OPEN_FOR_PUBLIC, internal }) : { ok: false as const, reason: 'closed' as const }
+  const acesso = await kidsAcessoAoDesenho({ userId: user.id, email: user.email }) // KINEO-CARTOON-SO-PLANO-0411
+  const sample = open && KIDS_EPISODIO_GRATIS_LIVE ? await kidsSampleEligibility(db, { userId: user.id, live: KIDS_SALES_OPEN_FOR_PUBLIC, internal }) : { ok: false as const, reason: 'closed' as const }
   return NextResponse.json({
     ready: status.ready,
     open,
+    cartoon_plan: acesso === 'ok' ? true : acesso === 'sem_plano' ? false : null, // KINEO-CARTOON-SO-PLANO-0411 — null = não deu para ler; quem decide no fim é a rota
     prices: { autopilot: KIDS_PRICES.autopilot.usdMinor, pack: KIDS_PRICES.pack.usdMinor, currency: 'usd' },
     videos: KIDS_VIDEOS,
     duration: KIDS_VENDA_DURATION,

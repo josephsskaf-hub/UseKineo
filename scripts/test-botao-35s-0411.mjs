@@ -212,7 +212,7 @@ console.log('== F. recibo e vizinhos ==')
   checa('F7 o botão de saldo do seletor não mudou', GC.includes('Make it {maxAffordableDuration}s ({costForDurationOption(maxAffordableDuration)} cr) →'))
   const regua = (src) => src.split('\n').filter((l) => /largestFittingDuration\(|minCoverageFor\(/.test(l)).join('\n')
   checa('F8 nenhuma linha de régua mudou no GenerateClient', regua(GC) === regua(baseGc))
-  const tocados = execFileSync('git', ['diff', '--name-only', baseSha, '--', 'lib/pastedScript.ts', 'lib/pastedDirectives.ts', 'lib/scriptParser.ts', 'lib/expandPolicy.ts', 'lib/narrationFit.ts', 'lib/speechRate.ts', 'app/api'], { encoding: 'utf8' }).trim()
+  const tocados = execFileSync('git', ['diff', '--name-only', baseSha, '--', 'lib/pastedScript.ts', 'lib/pastedDirectives.ts', 'lib/scriptParser.ts', 'lib/expandPolicy.ts', 'lib/narrationFit.ts', 'lib/speechRate.ts', 'app/api', ':!app/api/kids-cartoon', ':!app/api/kids-venda'], { encoding: 'utf8' }).trim().split('\n').filter((f) => !(f === 'app/api/generate-video-cinematic/route.ts' && lf(fs.readFileSync(path.join(ROOT, f), 'utf8')).split('\n').filter((l) => !l.includes('KINEO-CARTOON-SO-PLANO-0411')).join('\n') === lf(execFileSync('git', ['show', `${baseSha}:${f}`], { encoding: 'utf8', maxBuffer: 64 << 20 })))).join('\n').trim() // KINEO-CARTOON-SO-PLANO-0411 — a guarda do plano do desenho: só as linhas marcadas na rota do filme; rotas de Kids não são régua nem motor
   checa('F9 fora de escopo intocado (régua, motores, rotas)', tocados === '')
 }
 

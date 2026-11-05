@@ -28,6 +28,7 @@ import { ADS_WIZARD_THEME_CSS } from '@/app/(dashboard)/ads/new/adsWizardTheme' 
 import { ADS_QUADRO_STUDIO_CSS, ADS_QUADRO_TINT_CSS } from '@/app/(dashboard)/ads/v2/AdsV2Quadro' // KINEO-CARTOON-TELA-0411
 import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CARTOON-TELA-0411
 import KidsEpisodioGratis from '@/components/kidsCartoon/KidsEpisodioGratis' // KINEO-CARTOON-TELA-0411 — o 1º episódio grátis, sem o quadro de planos
+import { KIDS_EPISODIO_GRATIS_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-CARTOON-SO-PLANO-0411
 import { KIDS_TELA_CSS, kidsTelaCopy } from '@/lib/kidsCartoon/telaCartoon' // KINEO-CARTOON-TELA-0411
 import {
   KIDS_CARTOON_DEFAULT_DURATION,
@@ -149,6 +150,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
   const [language, setLanguage] = useState<KidsCartoonLanguage>(isKidsCartoonLanguage(ui) ? ui : 'en')
   const [duration, setDuration] = useState<KidsCartoonDuration>(KIDS_CARTOON_DEFAULT_DURATION)
   const [stage, setStage] = useState<Stage>('idle')
+  const [semPlano, setSemPlano] = useState(false) // KINEO-CARTOON-SO-PLANO-0411 — o servidor disse que esta conta não tem plano: o botão vira "See plans"
   const [error, setError] = useState<string | null>(null)
   const [needPlans, setNeedPlans] = useState(false)
   const [script, setScript] = useState('')
@@ -190,8 +192,11 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
         if (KIDS_CHARACTERS.some((c) => c.id === r.character)) setCharacter(r.character as KidsCharacterId)
         if (typeof r.idea === 'string') setIdea(r.idea)
         if (isKidsCartoonLanguage(r.language)) setLanguage(r.language)
+        if (KIDS_IDEAS.some((i) => i.id === r.ideaId)) setIdeaId(r.ideaId as KidsIdeaId) // KINEO-CARTOON-SO-PLANO-0411
+        if ((KIDS_CARTOON_DURATIONS as readonly unknown[]).includes(r.duration)) setDuration(r.duration as KidsCartoonDuration) // KINEO-CARTOON-SO-PLANO-0411
       }
     }
+    if (!visitante) fetch('/api/kids-venda/status', { cache: 'no-store', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).then((d: { cartoon_plan?: unknown } | null) => { if (alive.current && d?.cartoon_plan === false) setSemPlano(true) }).catch(() => { /* sem leitura: a rota decide no clique */ }) // KINEO-CARTOON-SO-PLANO-0411
     const onCredits = () => readBalance()
     window.addEventListener('creditsChanged', onCredits)
     // Retomada: o filme que estava saindo nesta conta, nesta aba ou noutra, continua na mesma tela depois de recarregar.
@@ -216,6 +221,13 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
     void trackEvent('kids_cartoon_failed', { reason, character, language, duration })
   }
 
+  /** KINEO-CARTOON-SO-PLANO-0411 — sem plano: nada começa; guarda o que a pessoa escolheu e vai aos planos. */
+  function irAosPlanos() {
+    guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })
+    void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })
+    window.location.assign(KIDS_PLANS_PATH)
+  }
+
   async function write(dur: KidsCartoonDuration = duration) {
     if (visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — a primeira ação que precisa de conta: guarda as escolhas e volta à mesma tela depois do login
       guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur })
@@ -230,7 +242,8 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ character, language, duration: dur, idea: idea.trim(), ideaId }),
       })
-      const data = await res.json().catch(() => ({})) as { script?: string; caption?: string; error?: string }
+      const data = await res.json().catch(() => ({})) as { script?: string; caption?: string; error?: string; reason?: string }
+      if (data.reason === 'kids_plan_required') { setSemPlano(true); setError(data.error ?? null); setStage('idle'); return } // KINEO-CARTOON-SO-PLANO-0411 — a tela ainda não sabia; o servidor sabe
       if (!res.ok || !data.script) { setError(data.error ?? 'Something went wrong. Nothing was charged — please try again.'); setStage(script ? 'review' : 'idle'); return }
       setScript(data.script); setCaption(data.caption ?? ''); setStage('review')
       void trackEvent('kids_cartoon_story_ready', { character, language, duration: dur, idea_id: ideaId })
@@ -523,9 +536,9 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
 
           {stage === 'idle' || stage === 'writing' || (stage === 'failed' && !script) ? (
             <div className="ace-actions" data-kineo="kids-botao">
-              <button type="button" className="kkc-go kkc-big" onClick={() => { void write() }} disabled={busy || (!idea.trim() && !ideaId)}>{stage === 'writing' ? t.writing : t.write} <span aria-hidden="true">→</span></button>
+              {semPlano && !visitante ? <button type="button" className="kkc-go kkc-big" data-kineo="kids-ver-planos" onClick={irAosPlanos}>{t.plans} <span aria-hidden="true">→</span></button> : <button type="button" className="kkc-go kkc-big" onClick={() => { void write() }} disabled={busy || (!idea.trim() && !ideaId)}>{stage === 'writing' ? t.writing : t.write} <span aria-hidden="true">→</span></button>}
               {error ? <p className="kkc-err" role="alert">{error}</p> : null}
-              {!visitante ? <KidsEpisodioGratis character={character} language={language} tema={idea} /> : null}
+              {KIDS_EPISODIO_GRATIS_LIVE && !visitante ? <KidsEpisodioGratis character={character} language={language} tema={idea} /> : null}
             </div>
           ) : (
             <section className="ace-card" aria-label={t.story} data-kids-story="1">

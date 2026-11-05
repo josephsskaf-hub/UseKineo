@@ -42,6 +42,6 @@ export function guardarRascunhoDoDesenho(r: { character: string; idea: string; i
   guardar(CHAVE_DESENHO, r)
 }
 
-export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; language?: unknown } | null {
+export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; ideaId?: unknown; language?: unknown; duration?: unknown } | null { // KINEO-CARTOON-SO-PLANO-0411 — + ideaId e duration: a ideia pronta e a duração voltam junto
   return ler(CHAVE_DESENHO)
 }

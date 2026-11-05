@@ -71,13 +71,13 @@ const intro = body.slice(0, body.indexOf('## Videos from an idea or a script'))
 const facts = llmsLoad('lib/kineoFacts.ts').getKineoFacts()
 assert.ok(intro.includes(facts.studioAds.url) && intro.includes(facts.businessVideoService.url), 'current intro preserves both public Ads paths after Film first')
 assert.ok(intro.includes('free and trial accounts can make their first ad free (one per account, within a daily limit)') && intro.includes('guaranteed sales') && !intro.includes('free trial does not include it'), 'current intro preserves the actual first-ad sample limits and excludes a sales guarantee')
-for (const text of ['Product information reviewed: 2026-10-23', 'Customers in Brazil pay in BRL', '/text-to-video-shorts', '/ai-video-generator/for/urdu', 'AI UGC', 'Cartoon subscription and pack', 'Small visual details may vary']) assert.ok(body.includes(text), `llms: ${text}`)
+for (const text of ['Product information reviewed: 2026-10-23', 'Customers in Brazil pay in BRL', '/text-to-video-shorts', '/ai-video-generator/for/urdu', 'AI UGC']) assert.ok(body.includes(text), `llms: ${text}`)
 assert.doesNotMatch(body, /charges? (?:plan prices )?in USD worldwide|All prices in USD\./i)
 const cost = llmsLoad('lib/credits/engineCost.ts').creditCostForDuration
 assert.ok(body.includes(`${cost('cinematic_ai', true, 15)} credits at 15 seconds or ${cost('cinematic_ai', true, 60)} credits at 60 seconds`))
 const kids = llmsLoad('lib/kidsVenda/kidsVenda.ts')
 const money = llmsLoad('lib/checkoutPricing.ts').formatCheckoutMoney
-assert.ok(body.includes(`${money('usd', kids.KIDS_PRICES.autopilot.usdMinor)}/month for ${kids.KIDS_VIDEOS.autopilot} cartoons`), 'Cartoon source of price/count')
+assert.ok(!body.includes('Cartoon subscription and pack') && !body.includes(`${money('usd', kids.KIDS_PRICES.autopilot.usdMinor)}/month for`), 'KINEO-KIDS-SEM-OFERTA-0411: /llms.txt no longer advertises the cartoon pilot or pack') // era: exigia a oferta com preço
 const withoutSales = createOfflineLoader({ globals: { Response }, mocks: { '@/lib/kineoFacts': llmsLoad('lib/kineoFacts.ts') }, source: (file, text) => file === 'lib/kidsVenda/kidsVenda.ts' ? text.replace('export const KIDS_SALES_LIVE = true', 'export const KIDS_SALES_LIVE = false') : text })
 assert.ok(!(await withoutSales('app/llms.txt/route.ts').GET().text()).includes('Cartoon subscription and pack'), 'closed sales are absent')
 console.log(JSON.stringify({ classification: 'FATO CONFIRMADO / TESTADO LOCALMENTE', date: '2026-10-23', sitemapUrls: sitemap.length, clearPages: expected.length, cartoonPages: 2, missing: [], duplicates: 0, llms: 'Film first; current Cartoon offers; Brazil BRL; real GET' }))

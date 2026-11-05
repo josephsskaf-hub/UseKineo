@@ -273,6 +273,7 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 import { decideEngineGate, engineGateMessage } from '@/lib/enginePlanGate'
+import { kidsRecusaSemPlano } from '@/lib/kidsVenda/planoDoDesenho' // KINEO-CARTOON-SO-PLANO-0411
 import { kidsOrderAdmits } from '@/lib/kidsVenda/server' // KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"] — a admissão do pedido infantil pago/grátis (run pendente presa a este generationId)
 import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o som do desenho infantil (voz contadora, trilha infantil, legenda opcional)
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
@@ -1729,6 +1730,9 @@ async function manipularPost(req: NextRequest) {
     if (wantsHollywood && typeof expectedKlingEngine === 'string' && expectedKlingEngine !== (paidKling4 ? 'kling4' : 'kling3')) {
       return NextResponse.json({ error: 'The film engine changed. Refresh the engine card before generating.', reason: 'kling4_engine_changed', charged: false }, { status: 409 })
     }
+    // KINEO-CARTOON-SO-PLANO-0411 [TRAVA 8.2 — fundador 05/11: "só dentro do plano com crédito (plano comprado)"] — sem kids_cartoon no pedido, nada é lido e o caminho é o de sempre. Com ele e sem plano: recusa aqui, antes de tradução, escritor, débito, claim e fornecedor.
+    const kidsSemPlano = await kidsRecusaSemPlano({ raw: (body as { kids_cartoon?: unknown }).kids_cartoon, kidsOrder: (body as { kids_order?: unknown }).kids_order, userId: user.id, email: user.email, generationId, engine: body.engine, duration: Number(body.duration), language: body.language }) // KINEO-CARTOON-SO-PLANO-0411
+    if (kidsSemPlano) { void writeServerEvent({ name: 'kids_cartoon_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: kidsSemPlano.corpo.reason, charged: false } }); return NextResponse.json(kidsSemPlano.corpo, { status: kidsSemPlano.status }) } // KINEO-CARTOON-SO-PLANO-0411
     // KINEO-H3-2026-08-19 — o H3 é uma FAMÍLIA do caminho Hollywood, não um
     // caminho novo: `hollywoodPath` é o que liga o planner, o Contrato de
     // duração, a narração verbatim e a variedade determinística. `family` só
