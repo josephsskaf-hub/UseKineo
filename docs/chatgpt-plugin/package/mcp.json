@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "kineo": {
+    "kineo-scripts": {
       "type": "streamable-http",
       "url": "https://plugin.usekineo.com/api/mcp/chatgpt",
       "extensions": {
