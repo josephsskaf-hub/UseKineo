@@ -543,6 +543,8 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
   const shell = mode === 'full' ? ADS_V2_SIMPLE_COPY.en.shell : pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
   const nav = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
   useProductStage('ads') // KINEO-ABAS-PALCO-2026-10-01 — a cor do Ads pinta a tela e a barra lateral
+  // KINEO-ADS-PASSAGEM-0511 [fundador 05/11, vídeo: "quando você clica, ele tá passando por aquela parte antiga"] — quem vai à tela nova não vê a vitrine antiga no meio do caminho (fica até a tela carregar).
+  const vaiPraTelaNova = (mode === 'simple' || mode === null) && !groupId && ((escolhaInternal && !sample) || escolhaSample) && !!escolhaOwnerKey
   const n9Focus = mode === 'simple' || mode === null ? adsNota9Focus(entry) : null // KINEO-ADS-NOTA9-2110 — a tela foco: só o modo simples aberto por um card da home (null = o instante antes de ler a URL: o título já nasce certo)
   const n9Head = n9Focus ? ((c) => (n9Focus === 'ugc' ? { title: c.titleUgc, sub: c.subUgc } : { title: c.titleProduct, sub: c.subProduct }))(adsNota9Copy(lang)) : null // KINEO-ADS-NOTA9-2110
 
@@ -760,7 +762,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
       ) : null}
       </div>
         {mode === 'simple' ? <div ref={setPreviewSlot} className="adv2s-slot" /> : null}
-        {mode === 'simple' && simplePreview ? null : <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />}
+        {vaiPraTelaNova || (mode === 'simple' && simplePreview) ? null : <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />}
       </div>
       )}
       {/* KINEO-ADS-FLUXO-2026-10-13 — no modo simples, enquanto a pessoa monta, a fileira da casa vira "Comece deste" (a sessão preenche a vaga). */}
@@ -768,7 +770,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
       {/* KINEO-ADS-MARCAS-1510 — "Seus anúncios": os que começaram, filtráveis por marca (cada pedido grava brand_id). */}
       {!guest && (mode === 'simple' || mode === 'batch') && !groupId && marcas.state.status !== 'loading' && !(sampleGone && sample) ? <AdsBrandOrders lang={lang} brands={marcas.brands} brandsOn={marcasOn} refreshKey={activeWork ? 1 : 0} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {brandDlg && marcas.state.status === 'ready' ? <AdsBrandDialog lang={lang} brand={brandDlg.brand} canArchive={marcas.state.role === 'owner'} limit={marcas.state.limit} onSave={marcas.save} onArchive={marcas.archive} onClose={() => setBrandDlg(null)} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
-      {mode === 'simple' && simplePreview && !groupId ? null : (
+      {vaiPraTelaNova || (mode === 'simple' && simplePreview && !groupId) ? null : (
       <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
       )}
     </div>
