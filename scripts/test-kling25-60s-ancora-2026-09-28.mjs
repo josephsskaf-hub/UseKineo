@@ -220,7 +220,7 @@ checa('fala de 70,3 s num pedido de 60 s → filme de 70,3 s', filmeSegundos(fal
 checa('fala de 66,8 s num pedido de 35 s → filme de 66,8 s (passar do alvo é bom, em qualquer alvo)', filmeSegundos(false, 66.8, 35, urls12) === 66.8)
 checa('fala de 59,2 s num pedido de 60 s → 61,5 s (TIKTOK-61 só ESTICA, nunca corta)', filmeSegundos(false, 59.2, 60, urls12) === 61.5)
 checa('único teto do caminho: 90 s (fala de 95 s → 90; documentado em klingShots como o limite dos 225+ palavras)', filmeSegundos(false, 95, 60, urls12) === 90)
-checa('o clamp da fatia é [5, 90] e não há outro Math.min sobre totalDuration fora do avatar', relogioSrc.includes('let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, 90)') && (relogioSrc.match(/Math\.min\(totalDuration/g) ?? []).length === 1 && relogioSrc.includes('if (hasAvatar && realAudioDuration'))
+checa('o clamp da fatia é [5, 90] e não há outro Math.min sobre totalDuration fora do avatar', relogioSrc.includes('let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, hasAvatar ? 90 : 120)') && (relogioSrc.match(/Math\.min\(totalDuration/g) ?? []).length === 1 && relogioSrc.includes('if (hasAvatar && realAudioDuration'))
 
 // linha do tempo com teto por clipe, executada: cobre o filme inteiro sem passar do comprimento de nenhum clipe
 const planoSrc = fatia(compose, 'export function planCappedClipTimeline(', '\n  return slots\n}\n')

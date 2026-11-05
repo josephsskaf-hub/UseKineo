@@ -3,6 +3,7 @@
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
 // estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais continua reprovando. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
+import { semElencoFim0511 } from './desfaz-elenco-fim-0511.mjs' // KINEO-ELENCO-ATE-O-FIM-0511 — a camada mais nova sai primeiro
 import { createHash } from 'node:crypto'
 
 export const MOTORES_SAEM_0511 = JSON.parse(readFileSync(new URL('./desfaz-motores-saem-0511-fontes.json', import.meta.url), 'utf8'))
@@ -12,6 +13,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semMotoresSaem0511(source, file) {
+  source = semElencoFim0511(source, file) // KINEO-ELENCO-ATE-O-FIM-0511
   const entry = MOTORES_SAEM_0511.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -28,7 +30,7 @@ export function semMotoresSaem0511(source, file) {
 /** O arquivo de hoje é exatamente "origin/main + esta entrega"? (arquivo novo: hash exato e ausente na origin/main) */
 export function deltaMotoresSaem0511Exato(source, upstream, file) {
   if (typeof source !== 'string') return false
-  const path = rel(file), text = lf(source), entry = MOTORES_SAEM_0511.scope[path]
+  const path = rel(file), text = lf(semElencoFim0511(source, path)), entry = MOTORES_SAEM_0511.scope[path] // KINEO-ELENCO-ATE-O-FIM-0511
   if (entry) return typeof upstream === 'string' && sha(text) === entry.afterSha256 && sha(lf(upstream)) === entry.beforeSha256 && lf(semMotoresSaem0511(text, path)) === lf(upstream)
   const added = MOTORES_SAEM_0511.addedSources[path]
   return !!added && upstream === null && sha(text) === added

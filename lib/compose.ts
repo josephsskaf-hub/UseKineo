@@ -2216,7 +2216,8 @@ export function buildCreatomateSource({
     realAudioDuration && realAudioDuration > minPlausibleAudio && realAudioDuration < 120
       ? realAudioDuration
       : duration
-  let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, 90)
+  // KINEO-ELENCO-ATE-O-FIM-0511 — o corte em 90 s amputava o desfecho: Roland, 238 palavras = ~103 s de fala sobre 110 s de imagem já pagos, e o filme parava em "Silent". A fala manda até o teto de 120 s da medição acima.
+  let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, hasAvatar ? 90 : 120)
   // Three 6s clips supply enough image; short measured TTS used to shrink the film.
   // Preserve all speech and hold the existing final shot/music through the 14s floor.
   if (seedanceShortFilm === true && quality === 'cinematic_ai' && duration === 15 && !hasAvatar) totalDuration = Math.max(14, totalDuration)

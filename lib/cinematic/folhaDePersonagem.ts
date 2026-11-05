@@ -52,8 +52,8 @@ export const PERSONAGEM_EDIT_SLUG: string = ESTRELA_EDIT_SLUG
 /** Motores com still por cena na estrada clássica (KINEO-ANCORA-3-MOTORES). Hollywood/s25/sora/fast ficam de fora na fase 1. */
 export const PERSONAGEM_MOTORES = ['seedance', 'kling', 'veo'] as const
 export const PERSONAGEM_MAX_PERSONAGENS = 2
-/** Teto de stills com folha por filme (custo: 90 s no Veo planeja até ~14 planos). */
-export const PERSONAGEM_MAX_STILLS = 9
+/** Teto de stills com folha por filme (custo: 90 s no Veo planeja até ~14 planos). KINEO-ELENCO-ATE-O-FIM-0511 [TRAVA 8.2 — fundador 05/11, vendo o filme do Roland: "são pessoas diferentes"]: era 9; num filme de 11 cenas as 2 últimas saíam sem a folha, com outro rosto bem no desfecho. */
+export const PERSONAGEM_MAX_STILLS = 14
 /** Custos de log (US$): a folha é um FLUX dev 9:16 (0,59 MP × US$ 0,025/MP); o still com folha é um Nano Banana Pro 1K; o
  *  crítico com 2 imagens em detail 'low' (2 × 2.833 tokens + texto) ≈ US$ 0,001; o casting ≈ US$ 0,0005. */
 export const PERSONAGEM_FOLHA_USD = 0.015

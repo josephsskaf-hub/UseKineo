@@ -950,10 +950,12 @@ const ERA_WORD_RE =
 // KINEO-ROMANCE-ADULTO-2026-10-13 — antes da busca de ano: "resolution: 1080", "1080 x 1920", "1080 by 1920", "1080p", "1920px".
 const RESOLUCAO_NO_PEDIDO_RE = /\b(?:resolution|resolução|resolucao|resolución|resolucion|res)\s*[:=]?\s*\d{3,4}(?:\s*(?:[×✕*xX]|by|por)\s*\d{3,4})?|\b\d{3,4}\s*(?:[×✕*xX]|by|por)\s*\d{3,4}\b|\b\d{3,4}\s*(?:p|px|pixels?|fps|hz)\b/gi // KINEO-ROMANCE-ADULTO-2026-10-13
 
+// KINEO-ELENCO-ATE-O-FIM-0511 — "ancient hieroglyphics" (comparação) num filme de geladeira inteligente virava "period piece, absolutely no modern objects". Objeto de hoje na história: palavra de era sozinha não trava a época; ano escrito continua travando.
+const OBJETO_DE_HOJE_RE = /\b(?:smart[\s-]?(?:fridge|phone|home|tv|watch|vacuum|speaker|device)s?|smartphones?|iphones?|wi-?fi|laptops?|robot vacuums?|auto-update|software update)\b/i
 function eraLockSuffix(context: string): string {
   const ctx = (context || '').slice(0, 4000).replace(RESOLUCAO_NO_PEDIDO_RE, ' ') // KINEO-ROMANCE-ADULTO-2026-10-13 — era (context || '').slice(0, 4000)
   const yearMatch = ctx.match(ERA_YEAR_RE)
-  if (!yearMatch && !ERA_WORD_RE.test(ctx)) return ''
+  if (!yearMatch && (!ERA_WORD_RE.test(ctx) || OBJETO_DE_HOJE_RE.test(ctx))) return '' // KINEO-ELENCO-ATE-O-FIM-0511
   const era = yearMatch ? `the year ${yearMatch[0]}` : 'the historical era being narrated'
   return (
     `, period piece set strictly in ${era}, only historically accurate clothing, weapons, ` +
@@ -7650,7 +7652,7 @@ async function manipularPost(req: NextRequest) {
       const referenciaP: (DecisaoDaReferencia | null)[] = new Array(scenes.length).fill(null) // KINEO-ELENCO-TRAVA-0311 — ok | retry_ok | vizinha | texto_ficha, por cena
       const stillsP: (string | null)[] = new Array(scenes.length).fill(null) // KINEO-META95-PERSONAGEM-2010
       const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje
-      const prazoP = Date.now() + 60_000 // KINEO-META95-PERSONAGEM-2010
+      const prazoP = Date.now() + Math.min(110_000, Math.max(60_000, filaP.length * 8_000)) // KINEO-META95-PERSONAGEM-2010 · KINEO-ELENCO-ATE-O-FIM-0511 — era 60_000: com 11+ cenas, as últimas estouravam o prazo do lote
       const fichasDaCena = (c: { nomes: string[] }) => elencoP.filter((f) => c.nomes.includes(f.nome) && folhaDe.has(f.nome)) // KINEO-META95-PERSONAGEM-2010
       const folhasDaCena = (c: { nomes: string[] }) => fichasDaCena(c).map((f) => folhaDe.get(f.nome) as string) // KINEO-META95-PERSONAGEM-2010 — 2 personagens na cena = 2 folhas no image_urls (o edit aceita até 14)
       const trabalhadorP = async () => { while (filaP.length > 0 && Date.now() < prazoP) { const c = filaP.shift()!; let r = await gerarStillComFolha({ prompt: promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichasDaCena(c), aspectRequested), imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs: Math.max(5_000, Math.min(40_000, prazoP - Date.now())), fichas: fichasDaCena(c) }); motivosP[r.motivo] = (motivosP[r.motivo] ?? 0) + 1; const planoR = r.url ? null : planoDaRetentativa(r, prazoP - Date.now()); if (r.url) referenciaP[c.indice] = 'ok'; else if (planoR) { const r2 = await gerarStillComFolha({ prompt: promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichasDaCena(c), aspectRequested), imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs: planoR.janelaMs, fichas: fichasDaCena(c), retomar: planoR.retomar }); if (r2.url) { r = r2; referenciaP[c.indice] = 'retry_ok' } } /* KINEO-ELENCO-TRAVA-0311 — (a) UMA 2ª tentativa dentro do prazo do lote: o prazo estourado LÊ o mesmo pedido; POST novo só com a fal dizendo FAILED ou foto fora do formato; envio que lançou (ambíguo) nunca é repetido — vai direto à vizinha / texto_ficha */ if (r.reconferida && r.url) reconferidasP++; if (r.url) stillsP[c.indice] = r.url } } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — formato do filme por extenso + sem painel; still fora do formato ou barrado = o FLUX; era: gerarStillDaEstrela({ prompt: promptDoStillComFolha(…) … })

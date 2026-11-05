@@ -1,0 +1,38 @@
+{
+ "app/api/generate-video-cinematic/route.ts": [
+  {
+   "antes": "\nfunction eraLockSuffix(context: string): string {",
+   "depois": "\n// KINEO-ELENCO-ATE-O-FIM-0511 — \"ancient hieroglyphics\" (comparação) num filme de geladeira inteligente virava \"period piece, absolutely no modern objects\". Objeto de hoje na história: palavra de era sozinha não trava a época; ano escrito continua travando.\nconst OBJETO_DE_HOJE_RE = /\\b(?:smart[\\s-]?(?:fridge|phone|home|tv|watch|vacuum|speaker|device)s?|smartphones?|iphones?|wi-?fi|laptops?|robot vacuums?|auto-update|software update)\\b/i\nfunction eraLockSuffix(context: string): string {"
+  },
+  {
+   "antes": "  const yearMatch = ctx.match(ERA_YEAR_RE)\n  if (!yearMatch && !ERA_WORD_RE.test(ctx)) return ''\n  const era = yearMatch ? `the year ${yearMatch[0]}` : 'the historical era being narrated'",
+   "depois": "  const yearMatch = ctx.match(ERA_YEAR_RE)\n  if (!yearMatch && (!ERA_WORD_RE.test(ctx) || OBJETO_DE_HOJE_RE.test(ctx))) return '' // KINEO-ELENCO-ATE-O-FIM-0511\n  const era = yearMatch ? `the year ${yearMatch[0]}` : 'the historical era being narrated'"
+  },
+  {
+   "antes": "      const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje\n      const prazoP = Date.now() + 60_000 // KINEO-META95-PERSONAGEM-2010\n      const fichasDaCena = (c: { nomes: string[] }) => elencoP.filter((f) => c.nomes.includes(f.nome) && folhaDe.has(f.nome)) // KINEO-META95-PERSONAGEM-2010",
+   "depois": "      const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje\n      const prazoP = Date.now() + Math.min(110_000, Math.max(60_000, filaP.length * 8_000)) // KINEO-META95-PERSONAGEM-2010 · KINEO-ELENCO-ATE-O-FIM-0511 — era 60_000: com 11+ cenas, as últimas estouravam o prazo do lote\n      const fichasDaCena = (c: { nomes: string[] }) => elencoP.filter((f) => c.nomes.includes(f.nome) && folhaDe.has(f.nome)) // KINEO-META95-PERSONAGEM-2010"
+  }
+ ],
+ "lib/compose.ts": [
+  {
+   "antes": "      : duration\n  let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, 90)\n  // Three 6s clips supply enough image; short measured TTS used to shrink the film.",
+   "depois": "      : duration\n  // KINEO-ELENCO-ATE-O-FIM-0511 — o corte em 90 s amputava o desfecho: Roland, 238 palavras = ~103 s de fala sobre 110 s de imagem já pagos, e o filme parava em \"Silent\". A fala manda até o teto de 120 s da medição acima.\n  let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10, hasAvatar ? 3 : 5, hasAvatar ? 90 : 120)\n  // Three 6s clips supply enough image; short measured TTS used to shrink the film."
+  }
+ ],
+ "lib/cinematic/folhaDePersonagem.ts": [
+  {
+   "antes": "export const PERSONAGEM_MAX_PERSONAGENS = 2\n/** Teto de stills com folha por filme (custo: 90 s no Veo planeja até ~14 planos). */\nexport const PERSONAGEM_MAX_STILLS = 9\n/** Custos de log (US$): a folha é um FLUX dev 9:16 (0,59 MP × US$ 0,025/MP); o still com folha é um Nano Banana Pro 1K; o",
+   "depois": "export const PERSONAGEM_MAX_PERSONAGENS = 2\n/** Teto de stills com folha por filme (custo: 90 s no Veo planeja até ~14 planos). KINEO-ELENCO-ATE-O-FIM-0511 [TRAVA 8.2 — fundador 05/11, vendo o filme do Roland: \"são pessoas diferentes\"]: era 9; num filme de 11 cenas as 2 últimas saíam sem a folha, com outro rosto bem no desfecho. */\nexport const PERSONAGEM_MAX_STILLS = 14\n/** Custos de log (US$): a folha é um FLUX dev 9:16 (0,59 MP × US$ 0,025/MP); o still com folha é um Nano Banana Pro 1K; o"
+  }
+ ],
+ "lib/cinematic/elencoSemantico.ts": [
+  {
+   "antes": " */\nexport function trechoDaPessoa(p: Pick<PersonagemSemantico, 'name' | 'role_text' | 'age_text'>, textoOriginal: string): string | null {",
+   "depois": " */\n// KINEO-ELENCO-ATE-O-FIM-0511 — a aparência que vem colada no papel (\"a gruff old man with shoulder-length gray-brown hair\"): sem ela, a ficha ficava rala, a folha inventava o resto (barba branca) e o cabelo do autor sumia.\nconst APARENCIA_COLADA_RE = /^\\s+((?:with|com|con)\\s+[^.,;:!?…]{3,70})/iu\nconst APARENCIA_PALAVRA_RE = /(?<![\\p{L}])(?:hair|beard|mustache|moustache|eyes|glasses|skin|scar|freckles|cabelos?|barba|bigode|olhos|[óo]culos|pele|cicatriz|sardas|cabello|pelo|ojos|gafas|lentes|piel)(?![\\p{L}])/iu\nexport function aparenciaColada(texto: string, fim: number): string | null {\n  const m = APARENCIA_COLADA_RE.exec(texto.slice(fim, fim + 90))\n  return m && APARENCIA_PALAVRA_RE.test(m[1]) ? limpa(m[1]) : null\n}\nexport function trechoDaPessoa(p: Pick<PersonagemSemantico, 'name' | 'role_text' | 'age_text'>, textoOriginal: string): string | null {"
+  },
+  {
+   "antes": "  if (!literal) return null\n  // o próprio nome não se repete no trecho (\"Seven-Year-Old Mia\")",
+   "depois": "  if (!literal) return null\n  const aparencia = aparenciaColada(texto, Math.max(papel?.fim ?? 0, idade?.fim ?? 0)) // KINEO-ELENCO-ATE-O-FIM-0511\n  if (aparencia) literal = `${literal} ${aparencia}`\n  // o próprio nome não se repete no trecho (\"Seven-Year-Old Mia\")"
+  }
+ ]
+}

@@ -424,6 +424,13 @@ export function trechoPerto(textoOriginal: string, bruto: unknown, ancora: strin
  * Rodada 12: o trecho do AUTOR sobre esta pessoa — papel e idade aceitos, na grafia do texto. Colados no texto (≤ 3 palavras entre eles,
  * sem fim de frase no meio): o trecho contínuo ("um menino de sete anos", "a 9-year-old inventor"); separados: os dois, na ordem do texto.
  */
+// KINEO-ELENCO-ATE-O-FIM-0511 — a aparência que vem colada no papel ("a gruff old man with shoulder-length gray-brown hair"): sem ela, a ficha ficava rala, a folha inventava o resto (barba branca) e o cabelo do autor sumia.
+const APARENCIA_COLADA_RE = /^\s+((?:with|com|con)\s+[^.,;:!?…]{3,70})/iu
+const APARENCIA_PALAVRA_RE = /(?<![\p{L}])(?:hair|beard|mustache|moustache|eyes|glasses|skin|scar|freckles|cabelos?|barba|bigode|olhos|[óo]culos|pele|cicatriz|sardas|cabello|pelo|ojos|gafas|lentes|piel)(?![\p{L}])/iu
+export function aparenciaColada(texto: string, fim: number): string | null {
+  const m = APARENCIA_COLADA_RE.exec(texto.slice(fim, fim + 90))
+  return m && APARENCIA_PALAVRA_RE.test(m[1]) ? limpa(m[1]) : null
+}
 export function trechoDaPessoa(p: Pick<PersonagemSemantico, 'name' | 'role_text' | 'age_text'>, textoOriginal: string): string | null {
   const texto = semTags(textoOriginal)
   const ancora = p.name ?? (p.role_text ?? '').split(' ').pop() ?? null
@@ -445,6 +452,8 @@ export function trechoDaPessoa(p: Pick<PersonagemSemantico, 'name' | 'role_text'
     }
   } else { const x = papel ?? idade; literal = x ? comArtigo(x.ini, x.fim) : null }
   if (!literal) return null
+  const aparencia = aparenciaColada(texto, Math.max(papel?.fim ?? 0, idade?.fim ?? 0)) // KINEO-ELENCO-ATE-O-FIM-0511
+  if (aparencia) literal = `${literal} ${aparencia}`
   // o próprio nome não se repete no trecho ("Seven-Year-Old Mia")
   if (fonteNome) literal = literal.replace(new RegExp(fonteNome, 'gu'), ' ')
   literal = limpa(literal).replace(/\s+([,;])/gu, '$1').replace(/^[,;:—–\-\s]+|[,;:—–\-\s]+$/gu, '')
