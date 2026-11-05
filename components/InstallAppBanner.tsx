@@ -14,6 +14,8 @@ import { KineoBrandIcon } from '@/components/KineoBolt'
 
 import { useEffect, useState } from 'react'
 
+const CARTAO_DE_INSTALAR_LIGADO = false as boolean // KINEO-AVISOS-ANTIGOS-0511
+
 const DISMISS_KEY = 'sfai_install_dismissed_at'
 const DISMISS_DAYS = 14
 
@@ -93,7 +95,8 @@ export default function InstallAppBanner() {
     }
   }
 
-  if (mode === 'hidden') return null
+  // KINEO-AVISOS-ANTIGOS-0511 [fundador 05/11: "tira esses avisos tb, muito antigos"] — o convite para instalar o app não aparece mais.
+  if (mode === 'hidden' || !CARTAO_DE_INSTALAR_LIGADO) return null
 
   return (
     <div

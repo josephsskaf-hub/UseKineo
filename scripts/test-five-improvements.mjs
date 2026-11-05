@@ -90,7 +90,7 @@ const pushSource=fs.readFileSync('components/EnablePushBanner.tsx','utf8')
 ok(pushSource.indexOf('isFocusedWorkspace(pathname)')>pushSource.indexOf('useEffect(() =>'),'only UI is suppressed, not subscription effect')
 ok(!renderPage('components/EnablePushBanner.tsx',false,{show:true,pathname:'/studio'}),'push prompt absent in Studio')
 // Actual existing CTA is Notify me, not an invented Enable label.
-ok(renderPage('components/EnablePushBanner.tsx',false,{show:true,pathname:'/account'}).includes('Notify me'),'push prompt still available elsewhere')
+ok(!renderPage('components/EnablePushBanner.tsx',false,{show:true,pathname:'/account'}).includes('Notify me'),'KINEO-AVISOS-ANTIGOS-0511: o cartão de push não aparece em tela nenhuma')
 const affiliate=fs.readFileSync('lib/affiliateFirstClick.ts','utf8')
 ok(affiliate.includes("'/affiliate'")&&affiliate.includes("'/referral'"),'affiliate nudge remains reachable in its own area')
 const wf=fs.readFileSync('.github/workflows/guardiao.yml','utf8').split('  legacy:')[0]

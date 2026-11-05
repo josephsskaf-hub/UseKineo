@@ -14,6 +14,8 @@ import { VAPID_PUBLIC_KEY } from '@/lib/push'
 
 const DISMISS_KEY = 'sfai_push_dismissed_at'
 const DISMISS_DAYS = 14
+// KINEO-AVISOS-ANTIGOS-0511 [fundador 05/11: "tira esses avisos tb, muito antigos"] — o cartão não aparece mais. Fica só o trabalho silencioso: quem já autorizou continua inscrito. Pedir aviso segue no botão "Ping me when it's ready" da espera do filme.
+const CARTAO_DO_PUSH_LIGADO = false as boolean
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -101,6 +103,7 @@ export default function EnablePushBanner() {
   }
 
   // Keep granted subscriptions refreshed by the effect; only suppress the prompt.
+  if (!CARTAO_DO_PUSH_LIGADO) return null // KINEO-AVISOS-ANTIGOS-0511
   if (!show || isFocusedWorkspace(pathname)) return null
 
   return (
