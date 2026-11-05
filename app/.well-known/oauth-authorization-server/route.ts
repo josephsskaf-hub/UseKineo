@@ -15,6 +15,8 @@ export function OPTIONS(): NextResponse {
 }
 
 export function GET(req: NextRequest): NextResponse {
+  // KINEO-PLUGIN-SEM-LOGIN-0511 [fundador 05/11: "faz do jeito que a gente vai ter mais chances de ser aprovado"] — o plugin do ChatGPT não pede conta. O portal da OpenAI lê este anúncio e exige o login do conector; no host só do plugin, ele não existe.
+  if ((req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(',')[0].trim().toLowerCase().split(':')[0] === 'plugin.usekineo.com') return NextResponse.json({ error: 'not_found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
   if (studioLiveMode() === 'off') return NextResponse.json({ error: 'not_found' }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
   return NextResponse.json(authorizationServerMetadata(studioPublicOrigin(req.nextUrl.origin)), { headers: HEADERS })
 }
