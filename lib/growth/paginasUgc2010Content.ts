@@ -426,10 +426,10 @@ export function ugcPillarCopy(lang: UgcLang, f: UgcFacts): UgcPillarCopy {
   if (lang === 'pt') {
     return {
       title: 'Anúncios UGC com IA: uma pessoa segura seu produto | Kineo',
-      description: 'Uma pessoa de IA segura o seu produto e conta por que comprar, em anúncios verticais feitos com as suas fotos. O 1º anúncio UGC é grátis.',
+      description: 'Uma pessoa de IA mostra o seu produto enquanto uma narração conta por que comprar, em anúncios verticais feitos com as suas fotos. O 1º anúncio UGC é grátis.',
       eyebrow: 'Anúncios UGC com IA',
-      h1: 'Anúncios UGC com IA: uma pessoa de IA segura o seu produto e conta por que comprar',
-      lead: `Envie as fotos do produto e uma frase sobre ele. O Kineo cria uma pessoa de IA segurando o seu produto, escreve um roteiro curto de apresentador e entrega um anúncio vertical com voz sincronizada, as suas fotos, música e o seu logo no fim.`,
+      h1: 'Anúncios UGC com IA: uma pessoa de IA mostra o seu produto enquanto uma narração conta por que comprar',
+      lead: `Envie as fotos do produto e uma frase sobre ele. O Kineo cria uma pessoa de IA segurando o seu produto, escreve um roteiro curto e entrega um anúncio vertical com narração, as suas fotos, música e o seu logo no fim.`,
       ctaFree: 'Fazer meu 1º anúncio UGC grátis',
       ctaPaid: 'Fazer meu anúncio UGC',
       ctaNote: FREE_ON(f) ? `1 anúncio grátis por conta · ${f.sampleSeconds} s · marca-d'água discreta${f.noCard ? ' · sem cartão' : ''}` : 'Incluído nos planos pagos do Studio Ads.',
@@ -437,14 +437,14 @@ export function ugcPillarCopy(lang: UgcLang, f: UgcFacts): UgcPillarCopy {
       summaryHeading: 'Em resumo',
       summary: [
         'Anúncio UGC ("conteúdo gerado pelo usuário") é o formato que parece gravado no celular por uma pessoa comum. No Kineo, quem aparece é um apresentador de IA, nunca um cliente de verdade, e o anúncio sai com o aviso de que foi feito com IA.',
-        `Você manda de ${f.minPhotos} a ${f.maxPhotos} fotos reais do produto e uma frase (ou o link). O apresentador segura o seu produto, fala o que ele é, para quem é e por que comprar agora, e as suas fotos entram entre as falas.`,
+        `Você manda de ${f.minPhotos} a ${f.maxPhotos} fotos reais do produto e uma frase (ou o link). A pessoa de IA mostra o seu produto enquanto a narração diz o que ele é, para quem é e por que comprar agora, e as suas fotos entram entre as frases.`,
         FREE_ON(f) ? `O primeiro anúncio UGC é grátis (1 por conta, ${f.sampleSeconds} s, com marca-d'água). Depois, um anúncio de 15 s usa ${f.ugcCredits.s15} créditos de qualquer plano pago.` : `Um anúncio de 15 s usa ${f.ugcCredits.s15} créditos de qualquer plano pago.`,
       ],
       stepsHeading: 'Como funciona, em 3 passos',
       steps: [
         { title: 'Mostre o produto', body: `Uma frase sobre o produto (ou o link da loja), o seu logo e de ${f.minPhotos} a ${f.maxPhotos} fotos reais. O roteiro usa só os fatos que você der.` },
         { title: 'Escolha quem apresenta', body: 'Escolha um dos apresentadores aprovados ou deixe o Kineo escolher. Você vê o plano e o roteiro antes de qualquer cobrança: planejar é grátis.' },
-        { title: 'Receba o anúncio', body: 'O apresentador fala com voz sincronizada, as suas fotos entram entre as falas, com música por baixo e o seu logo no final. Baixe o MP4 vertical e poste onde quiser.' },
+        { title: 'Receba o anúncio', body: 'A narração conta a história, as suas fotos entram entre as frases, com música por baixo e o seu logo no final. Baixe o MP4 vertical e poste onde quiser.' },
       ],
       facesHeading: 'Os apresentadores disponíveis',
       facesIntro: 'Cada um tem rosto e voz próprios, aprovados pelo nosso time depois de testes reais. Ouça a voz antes de escolher.',
@@ -498,10 +498,10 @@ export function ugcPillarCopy(lang: UgcLang, f: UgcFacts): UgcPillarCopy {
   }
   return {
     title: 'AI UGC Ads: an AI Person Holds Your Product | Kineo',
-    description: 'An AI presenter holds your real product and tells viewers why to buy it, in vertical ads made from your photos. First AI UGC ad free.',
+    description: 'An AI person shows your real product while a voiceover tells viewers why to buy it, in vertical ads made from your photos. First AI UGC ad free.',
     eyebrow: 'AI UGC Ads',
-    h1: 'AI UGC Ads: an AI person holds your product and tells why to buy',
-    lead: 'Upload your product photos and one sentence about the product. Kineo creates an AI presenter holding your product, writes a short presenter script and delivers a vertical ad with lip-synced voice, your photos, music and your logo at the end.',
+    h1: 'AI UGC Ads: an AI person shows your product while a voiceover tells why to buy',
+    lead: 'Upload your product photos and one sentence about the product. Kineo creates an AI presenter holding your product, writes a short script and delivers a vertical ad with a voiceover, your photos, music and your logo at the end.',
     ctaFree: 'Make my first UGC ad free',
     ctaPaid: 'Make my UGC ad',
     ctaNote: FREE_ON(f) ? `1 free ad per account · ${f.sampleSeconds} s · small watermark${f.noCard ? ' · no card' : ''}` : 'Included in Studio Ads on paid plans.',
@@ -509,14 +509,14 @@ export function ugcPillarCopy(lang: UgcLang, f: UgcFacts): UgcPillarCopy {
     summaryHeading: 'In short',
     summary: [
       'A UGC ad ("user-generated content") is the format that looks filmed on a phone by an ordinary person. On Kineo the person on screen is an AI presenter, never a real customer, and the ad is delivered with a reminder to label it as AI.',
-      `You send ${f.minPhotos} to ${f.maxPhotos} real photos of the product and one sentence (or the product link). The presenter holds your product and says what it is, who it is for and why to buy it now, while your photos cut in between the lines.`,
+      `You send ${f.minPhotos} to ${f.maxPhotos} real photos of the product and one sentence (or the product link). The AI person shows your product while a voiceover says what it is, who it is for and why to buy it now, and your photos cut in between the lines.`,
       FREE_ON(f) ? `The first UGC ad is free (one per account, ${f.sampleSeconds} seconds, watermarked). After that, a 15-second ad uses ${f.ugcCredits.s15} credits from any paid plan.` : `A 15-second ad uses ${f.ugcCredits.s15} credits from any paid plan.`,
     ],
     stepsHeading: 'How it works, in 3 steps',
     steps: [
       { title: 'Show your product', body: `One sentence about the product (or your store link), your logo and ${f.minPhotos} to ${f.maxPhotos} real photos. The script uses only the facts you give it.` },
       { title: 'Pick the presenter', body: 'Choose one of the approved presenters or let Kineo choose. You see the plan and the script before anything is charged: planning is free.' },
-      { title: 'Get your ad', body: 'The presenter speaks with a lip-synced voice, your photos cut in between the lines, music plays underneath and your logo closes the ad. Download the vertical MP4 and post it anywhere.' },
+      { title: 'Get your ad', body: 'A voiceover tells the story, your photos cut in between the lines, music plays underneath and your logo closes the ad. Download the vertical MP4 and post it anywhere.' },
     ],
     facesHeading: 'The presenters you can choose',
     facesIntro: 'Each one has a face and a voice of their own, approved by our team after real test renders. Play the voice before you choose.',
@@ -578,7 +578,7 @@ export function ugcGeneratorCopy(f: UgcFacts) {
     h1: 'AI UGC video generator: what it makes, and which kind you need',
     answer: [
       'An AI UGC video generator makes a phone-style video in which a person (generated by AI) talks to the camera. Under that one name the market sells three different things, and picking the wrong one is the most common reason people are disappointed with the result.',
-      `Kineo makes the second kind below: a presenter who holds YOUR real product. You give it ${f.minPhotos} to ${f.maxPhotos} photos and one sentence; it returns a vertical ad of 15 to 30 seconds with a lip-synced voice, your photos cut in, music and your logo.`,
+      `Kineo makes the second kind below: a presenter who holds YOUR real product. You give it ${f.minPhotos} to ${f.maxPhotos} photos and one sentence; it returns a vertical ad of 15 to 30 seconds with a voiceover, your photos cut in, music and your logo.`,
     ],
     kindsHeading: 'The three kinds of AI UGC generator',
     kinds: [
@@ -590,7 +590,7 @@ export function ugcGeneratorCopy(f: UgcFacts) {
     io: [
       { k: 'You provide', v: `One sentence or a product link, your logo, ${f.minPhotos}–${f.maxPhotos} product photos.` },
       { k: 'You choose', v: 'One of the approved AI presenters (or let Kineo pick), and 15, 20 or 30 seconds on paid plans.' },
-      { k: 'You get', v: 'A vertical 9:16 MP4: presenter with lip-synced voice, your photos as cut-ins, music, logo end card.' },
+      { k: 'You get', v: 'A vertical 9:16 MP4: an AI person with your product, a voiceover, your photos as cut-ins, music, logo end card.' },
       { k: 'Cost', v: FREE_ON(f) ? `First ad free (one per account, ${f.sampleSeconds} s, watermarked); then ${f.ugcCredits.s15} credits for 15 seconds.` : `${f.ugcCredits.s15} credits for 15 seconds on any paid plan.` },
     ],
     limitsHeading: 'Limits worth knowing before you start',

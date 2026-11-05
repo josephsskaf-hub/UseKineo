@@ -443,7 +443,7 @@ const BUSINESS_FACT: PlanFact = {
     `About ${BUSINESS_PITCH.adsPerMonth} product ads of ${BUSINESS_PITCH.adSeconds} s a month`,
     'Upload a product photo or paste a product link; Kineo writes, voices and edits a vertical ad with music and on-screen text',
     ...(BUSINESS_PITCH.styles ? [`${BUSINESS_PITCH.styles} ad styles to choose from`] : []),
-    ...(BUSINESS_PITCH.aiPerson ? ['Optional AI person holding the product and talking about it'] : []),
+    ...(BUSINESS_PITCH.aiPerson ? ['Optional AI person holding the product, with a voiceover'] : []),
     ...(BUSINESS_PITCH.firstAdFree ? ['First ad free to try (free and trial accounts, one per account, within a daily limit)'] : []),
     'Several variations of an ad to A/B test',
     'Commercial use; monthly billing, cancel anytime',
@@ -991,7 +991,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
         // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "não temos avatar" deixou de ser verdade inteira: o Studio Ads tem a pessoa de
         // IA opcional segurando o produto e falando (lib/ads/v2Presenter.ts). Para FILMES continua não havendo motor de avatar.
         : BUSINESS_PITCH.aiPerson
-          ? 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films — it makes faceless narrated films over cut visuals; only its self-service product ads (Business plan) can add an optional AI person holding the product and talking about it.'
+          ? 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films — it makes faceless narrated films over cut visuals; only its self-service product ads (Business plan) can add an optional AI person holding the product, with a voiceover.'
           : 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films: it makes faceless narrated films over cut visuals.',
   },
   {

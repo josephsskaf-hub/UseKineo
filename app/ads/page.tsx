@@ -257,7 +257,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
                 <li>Music, a short voice-over you can turn off, and your real logo on the last frame</li>
                 <li>Every shot, the words on screen and the voice-over shown before you generate</li>
                 <li>Not happy with a shot? Redo just that one</li>
-                {ADS_V2_PRESENTER_PUBLIC ? <li>Optional AI presenter: an AI person holds your product and says the voice-over, always labeled as AI, in vertical 9:16</li> : null}
+                {ADS_V2_PRESENTER_PUBLIC ? <li>Optional AI person: holds your product while a voiceover tells the story, always labeled as AI, in vertical 9:16</li> : null}
               </ul>
             </div>
             <div className="card">

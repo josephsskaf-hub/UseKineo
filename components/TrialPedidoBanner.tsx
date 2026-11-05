@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
-import { TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido'
+import { filmeGratisDestino, TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido'
 
 export default function TrialPedidoBanner() {
   const language = useInterfaceLanguage()
@@ -26,7 +26,9 @@ export default function TrialPedidoBanner() {
       const res = await fetch(TRIAL_PEDIDO_CLAIM_PATH, { method: 'POST' })
       if (!res.ok) throw new Error(String(res.status))
       window.dispatchEvent(new Event('creditsChanged'))
-      window.location.assign('/studio')
+      // KINEO-FLUXO2-G-0411 — a ideia que está na tela (a caixa da prévia ou o ?prompt= da página) volta com a pessoa; antes ela caía no /studio vazio.
+      const caixa = document.getElementById('previa-idea') as HTMLTextAreaElement | null
+      window.location.assign(filmeGratisDestino(caixa?.value || new URLSearchParams(window.location.search).get('prompt')))
     } catch {
       setEstado('falhou')
     }
