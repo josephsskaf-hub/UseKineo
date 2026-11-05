@@ -66,10 +66,10 @@ equal(language.planFilmLanguageMetadata(), {
 const starterFilms = marketing.videosPerMonth('starter', 'fast')
 const creatorFilms = marketing.videosPerMonth('basic', 'cinematic_ai')
 const studioFilms = marketing.videosPerMonth('pro', 'cinematic_ai')
-equal(Object.fromEntries(['starter', 'basic', 'pro'].map(tier => [tier, pricing.TIER_CREDITS[tier]])), { starter: 40, basic: 85, pro: 280 }, 'approved main keeps the 40/85/280 grant ladder')
+equal(Object.fromEntries(['starter', 'basic', 'pro'].map(tier => [tier, pricing.TIER_CREDITS[tier]])), { starter: 40, basic: 150, pro: 470 }, 'approved main keeps the 40/150/470 grant ladder')
 equal(starterFilms, 8, 'Starter historical Kineo 1 capacity follows the approved grant')
-equal(creatorFilms, 2, 'Creator grant buys two full Seedance films')
-equal(studioFilms, 8, 'Studio grant buys eight full Seedance films')
+equal(creatorFilms, 4, 'Creator grant buys four full Seedance films')
+equal(studioFilms, 13, 'Studio grant buys thirteen full Seedance films')
 
 equal(
   language.formatPlanFilmCapacity(starterFilms, 'Kineo 1 film', pricing.TIER_CREDITS.starter),
@@ -78,12 +78,12 @@ equal(
 )
 equal(
   language.formatPlanFilmCapacity(creatorFilms, 'Seedance film', pricing.TIER_CREDITS.basic),
-  '2 Seedance films / month · 85 credits',
+  '4 Seedance films / month · 150 credits',
   'Creator label puts finished films before credits',
 )
 equal(
   language.formatPlanFilmCapacity(studioFilms, 'Seedance film', pricing.TIER_CREDITS.pro),
-  '8 Seedance films / month · 280 credits',
+  '13 Seedance films / month · 470 credits',
   'Studio label puts finished films before credits',
 )
 equal(

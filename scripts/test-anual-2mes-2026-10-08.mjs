@@ -630,9 +630,9 @@ const MONTH2_CASES = [
   [1290, 'starter', 76, false],
   [1592, 'basic', 134, true],
   [1900, 'basic', 160, true],
-  [1990, 'basic', 160, false],
+  [1990, 'basic', 160, true], // KINEO-CREDITOS-B-0511 — o grant vigente do Creator é 150: o legado não perde crédito
   [2900, 'pro', 244, true],
-  [2990, 'basic', 160, false],
+  [2990, 'basic', 160, true], // KINEO-CREDITOS-B-0511
   [5490, 'pro', 461, true],
   [5900, 'pro', 496, true],
 ]
@@ -733,9 +733,7 @@ const ELIGIBILITY_CASES = [
   ['outra pessoa na metadata da assinatura', { owner: OTHER }, 'not_owner', true],
   ['Studio a 39,90 (créditos cairiam de 300 para 180)', { monthlyMinor: 3990, tier: 'pro', planCredits: 300 }, 'credits_would_change', true],
   // KINEO-PRECO-MERCADO-0411 — ninguém perde crédito calado: o legado acima do vigente é recusado.
-  ['Starter legado a 9,90 (créditos cairiam de 60 para 40)', { monthlyMinor: 990, tier: 'starter', planCredits: 60 }, 'credits_would_change', true],
-  ['Creator legado a 19,90 (créditos cairiam de 150 para 85)', { monthlyMinor: 1990, tier: 'basic', planCredits: 150 }, 'credits_would_change', true],
-]
+  ['Starter legado a 9,90 (créditos cairiam de 60 para 40)', { monthlyMinor: 990, tier: 'starter', planCredits: 60 }, 'credits_would_change', true],]
 
 /** R3: cada bloqueio = GET não elegível e POST (ensaio e SEND) 409 com o motivo, nada gravado. */
 async function sElegibilidade() {

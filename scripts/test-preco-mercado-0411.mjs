@@ -10,7 +10,7 @@ checa('mensal 9 / 19 / 59', P.TIER_PRICES.starter.usd === 900 && P.TIER_PRICES.b
 // KINEO-OFERTA-3H-0411 — o anual normal virou 30%; os 50% viraram o anual de boas-vindas (guardião próprio: test-oferta-3h-0411.mjs).
 checa('anual normal 30%: 76 / 160 / 496', P.ANNUAL_PRICES.starter.usd === 7600 && P.ANNUAL_PRICES.basic.usd === 16000 && P.ANNUAL_PRICES.pro.usd === 49600 && P.ANNUAL_DISCOUNT_PERCENT === 30)
 checa('anual de boas-vindas 50%: 54 / 114 / 354', P.ANNUAL_WELCOME_PRICES.starter.usd === 5400 && P.ANNUAL_WELCOME_PRICES.basic.usd === 11400 && P.ANNUAL_WELCOME_PRICES.pro.usd === 35400 && P.ANNUAL_WELCOME_DISCOUNT_PERCENT === 50)
-checa('créditos 40 / 85 / 280', P.TIER_CREDITS.starter === 40 && P.TIER_CREDITS.basic === 85 && P.TIER_CREDITS.pro === 280)
+checa('créditos 40 / 150 / 470', P.TIER_CREDITS.starter === 40 && P.TIER_CREDITS.basic === 150 && P.TIER_CREDITS.pro === 470) // reancorado KINEO-CREDITOS-B-0511 (fundador 05/11): 40 / 150 / 470
 const porCredito = (t) => P.TIER_PRICES[t].usd / P.TIER_CREDITS[t]
 checa('o crédito fica mais barato a cada degrau', porCredito('starter') > porCredito('basic') && porCredito('basic') > porCredito('pro'))
 checa('sem 1º mês com desconto', P.INTRO_PRICES.starter.usd === 900 && P.INTRO_PRICES.basic.usd === 1900)
@@ -20,13 +20,13 @@ const r = P.renewalCreditsFor
 checa('Starter a 9,90 / 12,90 mantém 60', r('starter', 990) === 60 && r('starter', 1290) === 60)
 checa('Creator a 19,90 / 29,90 / 15,92 mantém 150', r('basic', 1990) === 150 && r('basic', 2990) === 150 && r('basic', 1592) === 150)
 checa('Studio a 54,90 / 39,90 mantém 300; a 29 mantém 180', r('pro', 5490) === 300 && r('pro', 3990) === 300 && r('pro', 2900) === 180)
-checa('preço novo recebe o grant novo, mensal e anual', r('starter', 900) === 40 && r('basic', 1900) === 85 && r('pro', 5900) === 280 && r('basic', 16000) === 85 && r('basic', 11400) === 85)
+checa('preço novo recebe o grant novo, mensal e anual', r('starter', 900) === 40 && r('basic', 1900) === 150 && r('pro', 5900) === 470 && r('basic', 16000) === 150 && r('basic', 11400) === 150)
 const b = S.renewalCreditsForInvoice
-checa('em reais: legado mantém, novo recebe o novo', b('basic', 9990, 'brl') === 150 && b('starter', 4990, 'brl') === 60 && b('pro', 27490, 'brl') === 300 && b('basic', 9490, 'brl') === 85 && b('pro', 29490, 'brl') === 280 && b('starter', 37790, 'brl') === 40 && b('starter', 26990, 'brl') === 40)
+checa('em reais: legado mantém, novo recebe o novo', b('basic', 9990, 'brl') === 150 && b('starter', 4990, 'brl') === 60 && b('pro', 27490, 'brl') === 300 && b('basic', 9490, 'brl') === 150 && b('pro', 29490, 'brl') === 470 && b('starter', 37790, 'brl') === 40 && b('starter', 26990, 'brl') === 40)
 const a = A.annualRefillCredits
 checa('recarga anual: legado em dólar mantém', a('starter', 8300, 'usd') === 60 && a('basic', 16700, 'usd') === 150 && a('pro', 46000, 'usd') === 300)
-checa('recarga anual: novo em dólar recebe o novo', a('starter', 7600, 'usd') === 40 && a('basic', 16000, 'usd') === 85 && a('pro', 49600, 'usd') === 280 && a('starter', 5400, 'usd') === 40 && a('basic', 11400, 'usd') === 85 && a('pro', 35400, 'usd') === 280)
-checa('recarga anual: legado em reais mantém, novo recebe o novo', a('basic', 83990, 'brl') === 150 && a('pro', 230990, 'brl') === 300 && a('basic', 79790, 'brl') === 85 && a('basic', 56990, 'brl') === 85)
+checa('recarga anual: novo em dólar recebe o novo', a('starter', 7600, 'usd') === 40 && a('basic', 16000, 'usd') === 150 && a('pro', 49600, 'usd') === 470 && a('starter', 5400, 'usd') === 40 && a('basic', 11400, 'usd') === 150 && a('pro', 35400, 'usd') === 470)
+checa('recarga anual: legado em reais mantém, novo recebe o novo', a('basic', 83990, 'brl') === 150 && a('pro', 230990, 'brl') === 300 && a('basic', 79790, 'brl') === 150 && a('basic', 56990, 'brl') === 150)
 for (const t of ['starter', 'basic', 'pro']) checa('anual em reais tem espelho certo: ' + t, P.ANNUAL_BRL_CURRENT_MINOR[t] === S.BRL_PLAN_PRICES_MINOR[t].annual)
 // loja
 checa('top-up fora nos dois lugares', P.TOPUPS_LIVE === false && T.TOPUP_SALES_OPEN === false && T.canPurchaseCreditTopup('pro') === false)

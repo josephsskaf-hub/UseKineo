@@ -20,7 +20,7 @@ checa('a grade de planos fica no painel de pessoas', iPess > 0 && iPess < iGrade
 checa('o Business fica no painel de empresas', iFimPess < iEmp && iEmp < iBiz && iBiz < iFimEmp)
 checa('o painel de pessoas é o padrão', pag.includes("useState<PricingAudience>('individual')"))
 checa('os dois painéis seguem no HTML (hidden, não some da página)', pag.includes("hidden={audience === 'team'}") && pag.includes("hidden={audience !== 'team'}"))
-checa('a barra fixa dos planos de pessoa some na aba de empresas', pag.includes("display: audience === 'team' ? 'none' : 'flex'"))
+checa('a barra fixa de baixo saiu da página (KINEO-PRECOS-0511)', !pag.includes('mobile-sticky-cta'))
 checa('o botão do Business continua no checkout de sempre', pag.includes("handleBuy('business')"))
 const bloco = lf(fs.readFileSync('components/pricing/PricingBusinessBlock.tsx', 'utf8'))
 checa('o preço do Business continua vindo de lib/businessPlan', bloco.includes('BUSINESS_PRICE_LABEL') && bloco.includes("from '@/lib/businessPlan'"))

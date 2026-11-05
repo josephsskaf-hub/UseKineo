@@ -27,12 +27,12 @@ const groups = [
     a: {
       path: ['Seedance-2-5', 'Online'],
       h: ['Seedance 2.5 Online', 'Use Seedance 2.5 Today', 'Seedance 2.5 Video Generator', 'Seedance 2.5 Clips: 8 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $9 a Month', '60-Second Film: 150 Credits', '35-Second Film: 88 Credits', 'Commercial Use on Every Plan', 'Clean MP4 on Paid Plans', 'Vertical 9:16, Ready to Post', 'Film Ready in Minutes', '6 AI Video Models, 1 Account'],
-      d: ['Type one sentence. Kineo directs Seedance 2.5 scenes, voiceover, captions and music.', 'A 5-second Seedance 2.5 clip costs 8 credits. A finished 60-second film costs 150.', 'Seedance 2.5 runs on paid plans. Creator: $19/month for 85 credits.', 'No editing: script, scenes, narration and captions arrive as one vertical MP4.'],
+      d: ['Type one sentence. Kineo directs Seedance 2.5 scenes, voiceover, captions and music.', 'A 5-second Seedance 2.5 clip costs 8 credits. A finished 60-second film costs 150.', 'Seedance 2.5 runs on paid plans. Creator: $19/month for 150 credits.', 'No editing: script, scenes, narration and captions arrive as one vertical MP4.'],
     },
     b: {
       path: ['AI-Video', 'Films'],
       h: ['Cinematic AI Video Online', 'Storms, Crowds and Explosions', 'Script, Scenes and Edit Done', 'Type an Idea, Get a Film', 'Cancel Anytime', ...SAFE_SHARED],
-      d: ['Type one sentence. Kineo writes the script, generates every scene and adds narration.', 'Captions, music and the edit included. One vertical MP4, ready to post.', 'Plans from $9/month. Creator: $19/month for 85 credits.', 'Commercial use on every plan. Paid plans export clean MP4s with no watermark.'],
+      d: ['Type one sentence. Kineo writes the script, generates every scene and adds narration.', 'Captions, music and the edit included. One vertical MP4, ready to post.', 'Plans from $9/month. Creator: $19/month for 150 credits.', 'Commercial use on every plan. Paid plans export clean MP4s with no watermark.'],
     },
   },
   {
@@ -42,7 +42,7 @@ const groups = [
     a: {
       path: ['Kling-3', 'Online'],
       h: ['Kling 3 Online', 'Use Kling 3 Today', 'Kling 3 Video Generator', 'Kling 3 With Lip Sync', 'Kling 3 Clips: 6 Credits', 'Characters Speak On Camera', 'Native Voice and Lip Sync', 'Finished Films, Not Just Clips', '60-Second Film: 150 Credits', 'Plans From $9 a Month', 'Narration, Captions and Music', 'No Camera, No Studio, No Actor', 'Commercial Use on Every Plan', 'Film Ready in Minutes', '6 AI Video Models, 1 Account'],
-      d: ['Kling 3 inside Kineo: talking characters with native voice and lip sync, fully edited.', 'A 5-second Kling 3 clip costs 6 credits. A finished 60-second film costs 150 credits.', 'Type one sentence. Kineo writes the script, routes scenes to Kling 3 and edits the film.', 'Plans from $9/month. Studio ($59, 280 credits) covers a 60-second Kling 3 film.'],
+      d: ['Kling 3 inside Kineo: talking characters with native voice and lip sync, fully edited.', 'A 5-second Kling 3 clip costs 6 credits. A finished 60-second film costs 150 credits.', 'Type one sentence. Kineo writes the script, routes scenes to Kling 3 and edits the film.', 'Plans from $9/month. Studio ($59, 470 credits) covers a 60-second Kling 3 film.'],
     },
     b: {
       path: ['AI-Video', 'Lip-Sync'],
@@ -57,7 +57,7 @@ const groups = [
     a: {
       path: ['Veo-3-1', 'Online'],
       h: ['Veo 3.1 Online', 'Use Veo 3.1 Fast Today', 'Veo 3.1 Video Generator', 'Veo 3.1 Fast, Fully Edited', 'Veo 3.1 Clips: 6 Credits', '60-Second Film: 100 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $9 a Month', 'Creator Plan: $19 a Month', 'Commercial Use on Every Plan', 'Film Ready in Minutes', 'Vertical 9:16, Ready to Post', '6 AI Video Models, 1 Account'],
-      d: ['Kineo runs Veo 3.1 Fast and turns one sentence into a narrated, captioned vertical film.', 'A 6-second Veo 3.1 clip costs 6 credits. A finished 60-second film costs 100 credits.', 'No raw clips to stitch: script, scenes, voiceover, captions and music in one MP4.', 'Plans from $9/month. Studio ($59, 280 credits) covers a 60-second Veo 3.1 film.'],
+      d: ['Kineo runs Veo 3.1 Fast and turns one sentence into a narrated, captioned vertical film.', 'A 6-second Veo 3.1 clip costs 6 credits. A finished 60-second film costs 100 credits.', 'No raw clips to stitch: script, scenes, voiceover, captions and music in one MP4.', 'Plans from $9/month. Studio ($59, 470 credits) covers a 60-second Veo 3.1 film.'],
     },
     b: {
       path: ['AI-Video', 'Films'],

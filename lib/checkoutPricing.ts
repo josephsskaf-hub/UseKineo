@@ -591,10 +591,10 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // Kling 3 (150cr) por mês com folga.
   // KINEO-PLANOS-9-19-29-2026-09-08 — 60 = "3 films a week" (12 Kineo 1 ou 3 Seedance);
   // 150 = "1 film a day" (30 Kineo 1 + 2 Seedance); 180 = Studio como estava (piso de margem).
-  // KINEO-PRECO-MERCADO-0411 — 40 / 85 / 280.
+  // KINEO-CREDITOS-B-0511 [fundador 05/11, "1 sim"; contas em docs/PROPOSTA-CREDITOS-B-E-MOTORES-2026-11-05.md] — 40 / 150 / 470, com os mesmos US$ 9 / 19 / 59. Era 40 / 85 / 280 (KINEO-PRECO-MERCADO-0411). Quem já assina pelo preço de hoje recebe o grant novo na próxima recarga.
   starter: 40,
-  basic: 85,
-  pro: 280,
+  basic: 150,
+  pro: 470,
   autopilot: 400,
   // KINEO-AUTOPILOT-LITE-2026-09-16 — 160: os ~5 episódios semanais do mês saem do mesmo saldo (Kineo 1 = 5 cr
   // cada) e sobra folga para filmes manuais em qualquer motor. Pior caso (tudo em Seedance): 160 × $0,117 ≈ $18,7
@@ -714,7 +714,7 @@ export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
   // ou seja, o primeiro mês de todo assinante novo seria prejuízo. É o tipo de
   // erro que só aparece em produção, no extrato, um mês depois.
   starter: 40,
-  basic: 85,
+  basic: 150, // KINEO-CREDITOS-B-0511
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (a). The entry packs used to grant 10

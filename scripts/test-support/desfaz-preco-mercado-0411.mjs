@@ -1,3 +1,4 @@
+import { semCreditosB0511 } from './desfaz-creditos-b-0511.mjs' // KINEO-CREDITOS-B-0511
 // KINEO-PRECO-MERCADO-0411 — [fundador 04/11: "9. 19. 59", mensal sem desconto, anual 50%, sem avulso, sem top-up].
 // Recibo EXATO desta entrega para os guardiões históricos que comparam a tabela de preços com a base byte a byte: o hash de antes,
 // o de depois e os trechos trocados. Só desfaz se o arquivo for EXATAMENTE o "depois"; edição desconhecida, parcial ou a mais segue
@@ -12,6 +13,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semPrecoMercado0411(source, file) {
+  source = semCreditosB0511(source, file)
   const entry = PRECO_MERCADO_0411.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

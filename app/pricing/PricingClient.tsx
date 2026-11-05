@@ -141,12 +141,7 @@ import {
   sanitizePricingTierHandoff,
   type PricingTierHandoffTier,
 } from '@/lib/growth/pricingTierHandoff'
-import {
-  mobileStickyExposureKey,
-  mobileStickyPlanLabel,
-  mobileStickyTelemetry,
-  type MobileStickyTier,
-} from '@/lib/growth/mobileStickyBillingTruth'
+import { annualOfferCoversTier } from '@/lib/billing/annualWelcomeOffer' // KINEO-CREDITOS-B-0511
 import {
   checkoutSetupFailureStorageKey,
   checkoutSetupFailureTelemetry,
@@ -522,7 +517,6 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   // valor real. Brasil não entra aqui: brasileiro assina em reais pela Stripe.
   const [localMethod, setLocalMethod] = useState<'upi' | null>(null)
   const currencyTrackedRef = useRef(false)
-  const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
   // KINEO-PLANO-SELECIONADO-2026-10-09 — o plano escolhido no cartão (começa no Creator; quem chega com ?tier= começa nele).
   const [selectedTier, setSelectedTier] = useState<'starter' | 'basic' | 'pro'>('basic')
@@ -537,7 +531,6 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   // Push #117 — sticky mobile CTA bar shows after 300px scroll so phone
   // users always have the "Basic / Pro" choice in reach without
   // scrolling back up to the cards.
-  const [showStickyCta, setShowStickyCta] = useState<boolean>(false)
 
   // #381 — monthly vs annual billing toggle. KINEO-ANUAL-40OFF-2026-10-05: annual = 40% off 12 monthly payments.
   // KINEO-ANUAL-30-2026-10-08 (fundador): annual = 30% off — o selo, o "≈ $X/mo" e o total leem ANNUAL_DISCOUNT_PERCENT
@@ -562,8 +555,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   // não compra por aqui (a troca de plano não aplica a oferta), então segue vendo o anual normal.
   const annualOffer = useAnnualOffer()
   const annualOfferLive = annualOffer !== null && !planSwitch.subscribed
+  const ofertaNoPlano = (tier: string): boolean => annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
   const annualMinorFor = (tier: PaidTier): number =>
-    annualOfferLive ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
+    ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
     const totalMinor = annualMinorFor(tier)
     result[tier] = {
@@ -839,12 +833,6 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
     if (!started) return
-    if (placement === 'mobile_sticky' && !isMonthlyOnly) {
-      void trackEvent(
-        'pricing_mobile_sticky_checkout_clicked',
-        mobileStickyTelemetry({ billing: effectiveBilling, tier: tier as MobileStickyTier }),
-      )
-    }
     const eventName = tier === 'pro'
       ? 'pro_checkout_clicked'
       : tier === 'starter'
@@ -998,44 +986,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     })
   }, [])
 
-  useEffect(() => {
-    if (!showStickyCta || typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return
-    const node = mobileStickyRef.current
-    if (!node) return
 
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (!entry?.isIntersecting || entry.intersectionRatio < 0.6) return
-      const storageKey = mobileStickyExposureKey(billing)
-      try {
-        if (sessionStorage.getItem(storageKey)) {
-          observer.disconnect()
-          return
-        }
-        sessionStorage.setItem(storageKey, '1')
-      } catch {
-        // Privacy modes can deny storage; visibility and checkout stay usable.
-      }
-      void trackEvent('pricing_mobile_sticky_billing_viewed', mobileStickyTelemetry({ billing }))
-      observer.disconnect()
-    }, { threshold: 0.6 })
-
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [billing, showStickyCta])
-
-  // Push #117 — show the sticky mobile CTA only after the user scrolls
-  // past the hero. We pin the listener to passive so it never blocks
-  // scroll on slower phones.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const onScroll = () => {
-      setShowStickyCta(window.scrollY > 300)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   return (
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
@@ -1207,7 +1158,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             >
               Annual
               <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
-                Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%
+                {annualOfferLive ? <>Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%</> : <>Save {ANNUAL_DISCOUNT_PERCENT}%</>}
               </span>
             </button>
           </div>
@@ -1295,14 +1246,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         // KINEO-CHECKOUT-CLAREZA-1610 — preço CHEIO por mês (mensal do caixa, ou anual ÷ 12): o cartão faz "≈ US$ X per film".
                         monthlyPriceMinor={displayCurrency ? (annual ? annualMinorFor(tier) / 12 : getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null}
                         amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
-                        was={(annual || welcome !== null) && displayCurrency ? (annual && annualOfferLive ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price) : undefined}
+                        was={(annual || welcome !== null) && displayCurrency ? (annual && ofertaNoPlano(tier) ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price) : undefined}
                         per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
                         note={settlementCurrency === 'brl'
                           ? welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
                             ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
                             : settlementNote(
-                            planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd'), annualOfferLive ? 'welcome' : 'regular'),
+                            planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd'), ofertaNoPlano(tier) ? 'welcome' : 'regular'),
                             'brl',
                             billing === 'annual' ? 'yr' : 'mo',
                           )
@@ -1412,7 +1363,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 </div>
                 <div className="mt-1 text-[12.5px] font-semibold text-[var(--accent)]">
                   {billing === 'annual'
-                    ? `/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${annualOfferLive ? ANNUAL_WELCOME_DISCOUNT_PERCENT : ANNUAL_DISCOUNT_PERCENT}%`
+                    ? `/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ofertaNoPlano(p.tier) ? ANNUAL_WELCOME_DISCOUNT_PERCENT : ANNUAL_DISCOUNT_PERCENT}%`
                     : p.priceSub}
                 </div>
                 {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
@@ -1425,7 +1376,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         billing === 'annual' ? 'annual' : 'monthly',
                         'brl',
                         billing === 'annual' ? getAnnualPrice(p.tier as PaidTier, 'usd') : getTierPrice(p.tier as PaidTier, 'usd'),
-                        annualOfferLive ? 'welcome' : 'regular',
+                        ofertaNoPlano(p.tier) ? 'welcome' : 'regular',
                       ),
                       'brl',
                       billing === 'annual' ? 'yr' : 'mo',
@@ -1826,9 +1777,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             se aplica, então esta letra miúda deixa de ser divulgação e vira
             afirmação falsa sobre duração E sobre créditos do 1º mês. */}
         {billing === 'monthly' && !arrivedWithPromo && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[var(--muted)]">
+          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
             Plans renew monthly — cancel anytime. Starter includes{' '}
-            {TIER_CREDITS.starter} credits a month and Creator {TIER_CREDITS.basic};
+            {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
             credits reset each month (no rollover).
           </p>
         )}
@@ -2220,119 +2171,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         </section>
 
-      {/* Push #117 — spacer so the sticky bar below doesn't cover the
-          last bit of the FAQ on mobile. Desktop ignores it. */}
-      {showStickyCta && <div aria-hidden className="h-24 md:hidden" />}
+      {/* KINEO-PRECOS-0511 [fundador 05/11, print: "tire essas coisas de starter, creator e estúdio que está lá embaixo"] — a barra fixa de baixo saiu. */}
 
-      {/* Push #117 — sticky mobile checkout bar. Only renders on
-          small viewports (md:hidden), only after 300 px of scroll, and
-          uses backdrop-blur + the safe-area class so the bar clears the
-          iOS home-indicator. Buttons go through the same handleBuy used
-          by the cards above. */}
-      {showStickyCta && (
-        <div
-          ref={mobileStickyRef}
-          className="mobile-sticky-cta md:hidden"
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: 'var(--card)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderTop: '1px solid var(--border)',
-            padding: '12px 16px',
-            display: audience === 'team' ? 'none' : 'flex', // KINEO-PLANOS-ABAS-0411 — na aba de empresas a barra dos 3 planos de pessoa não aparece
-            gap: 8,
-            zIndex: 50,
-          }}
-        >
-          {/* #409 — Starter added to the sticky bar (was missing after the 3-tier launch) */}
-          {/* KINEO-SPRINT-OFFER-2026-07-14 — primary (filled blue) button moved
-              Studio → Creator so the sticky bar matches the card hierarchy
-              ("Most Popular" = Creator). Studio goes neutral. */}
-          <button
-            type="button"
-            disabled={purchasing === 'starter'}
-            onClick={() => handleBuy('starter', 'mobile_sticky')}
-            style={{
-              flex: 1,
-              padding: '12px 6px',
-              borderRadius: 10,
-              background: 'var(--card2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              minHeight: 48,
-            }}
-          >
-            {purchasing === 'starter'
-              ? 'Opening secure checkout…'
-              : mobileStickyPlanLabel({
-                  tier: 'starter',
-                  billing,
-                  monthlyLabel: entryPriceLabel('starter'),
-                  annualTotalLabel: annualPrices.starter.total,
-                })}
-          </button>
-          <button
-            type="button"
-            disabled={purchasing === 'basic'}
-            onClick={() => handleBuy('basic', 'mobile_sticky')}
-            style={{
-              flex: 1,
-              padding: '12px 8px',
-              borderRadius: 10,
-              background: 'var(--indigo)',
-              color: 'var(--on-accent)',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              minHeight: 48,
-              border: 'none',
-              boxShadow: '0 8px 22px rgba(41,151,255,.35)',
-            }}
-          >
-            {purchasing === 'basic'
-              ? 'Opening secure checkout…'
-              : mobileStickyPlanLabel({
-                  tier: 'basic',
-                  billing,
-                  monthlyLabel: affiliateOnCard('basic') || welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic'), // KINEO-AFILIADO-50-2610
-                  annualTotalLabel: annualPrices.basic.total,
-                })}
-          </button>
-          <button
-            type="button"
-            disabled={purchasing === 'pro'}
-            onClick={() => handleBuy('pro', 'mobile_sticky')}
-            style={{
-              flex: 1,
-              padding: '12px 6px',
-              borderRadius: 10,
-              background: 'var(--card2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              minHeight: 48,
-            }}
-          >
-            {purchasing === 'pro'
-              ? 'Opening secure checkout…'
-              : mobileStickyPlanLabel({
-                  tier: 'pro',
-                  billing,
-                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, affiliateOnCard('pro') || welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion)), // KINEO-AFILIADO-50-2610
-                  annualTotalLabel: annualPrices.pro.total,
-                })}
-          </button>
-        </div>
-      )}
 
       {/* ───────── Footer ───────── */}
       <footer className="relative z-10 border-t border-[var(--border)]">

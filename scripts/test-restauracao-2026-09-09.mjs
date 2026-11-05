@@ -43,7 +43,7 @@ checa('TIER_PRICES = 900 / 1900 / 5900', /starter: \{ usd: 900 \},\n  basic: \{ 
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: anual = 12 × mensal × 0,70 arredondado (fundador 08/10; era 40% off).
 checa('ANNUAL = 5400 / 11400 / 35400 (50% off)', /starter: \{ usd: 5400 \},\n  basic: \{ usd: 11400 \},\n  pro: \{ usd: 35400 \},/.test(cp))
 checa('INTRO = preço cheio (900 / 1900)', /starter: \{ usd: 900 \},\n  basic: \{ usd: 1900 \},\n\}/.test(cp))
-checa('créditos dos planos = 40/85/280', /starter: 40,\n  basic: 85,\n  pro: 280,/.test(cp))
+checa('créditos dos planos = 40/150/470', /starter: 40,\n  basic: 150,\n  pro: 470,/.test(cp)) // reancorado KINEO-CREDITOS-B-0511 (fundador 05/11): 40 / 150 / 470
 
 // KINEO-TRIAL-10-2026-09-16 — fundador reduziu o trial de cadastro novo para 10 ("impulso maior de comprar"). Quem já tinha 30 mantém (trialCapFor).
 console.log('== 2. entrada grátis de 10 (era 30 até 16/09) ==')

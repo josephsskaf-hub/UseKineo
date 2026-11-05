@@ -109,7 +109,7 @@ function verificar(fontes = {}) {
   checa(!/canPurchaseCreditTopup|onBuyCredits|CreditsTopupModal/.test(pn), 'o painel não conhece top-up')
 
   // ── 4. crédito, plano, Upgrade ──
-  checa(/<b class="kmc-credits-n">34<\/b><span class="kmc-credits-of">\/ 85<\/span>/.test(creator) && /kmc-bar/.test(corpo(creator)), 'Creator: número, grant e barra')
+  checa(/<b class="kmc-credits-n">34<\/b><span class="kmc-credits-of">\/ 150<\/span>/.test(creator) && /kmc-bar/.test(corpo(creator)), 'Creator: número, grant e barra')
   const free = corpo(html({ plan: 'free', credits: 12 }))
   checa(/kmc-credits-n">12</.test(free) && !/kmc-bar/.test(free) && !/kmc-credits-of">\//.test(free), 'grátis: só o número, sem barra nem denominador')
   checa(/kmc-plan[^>]*>Free</.test(free) && /href="\/pricing"/.test(free), 'grátis: plano e Upgrade')
@@ -118,7 +118,7 @@ function verificar(fontes = {}) {
   for (const plan of ['free', 'starter', 'basic', 'starter_trial', 'basic_trial']) checa(/href="\/pricing"/.test(html({ plan })), `com Upgrade para ${plan}`)
   checa(!/kmc-plan/.test(corpo(html({ plan: null }))) && !/kmc-plan/.test(corpo(html({ plan: 'plano_que_nao_existe' }))), 'plano desconhecido não vira "Free"')
   const cheio = corpo(html({ plan: 'pro', credits: 1489 }))
-  checa(/kmc-credits-n">1489</.test(cheio) && !/\/ 280/.test(cheio) && /width:100%/.test(cheio), 'acima do grant: barra cheia, sem "1489 / 280"')
+  checa(/kmc-credits-n">1489</.test(cheio) && !/\/ 470/.test(cheio) && /width:100%/.test(cheio), 'acima do grant: barra cheia, sem "1489 / 470"')
   const lendo = corpo(html({ credits: null }))
   checa(/kmc-credits-n">…</.test(lendo) && !/kmc-bar/.test(lendo), 'saldo ainda não lido: reticências, sem barra')
   const falha = corpo(html({ credits: null, creditsReadFailed: true }))

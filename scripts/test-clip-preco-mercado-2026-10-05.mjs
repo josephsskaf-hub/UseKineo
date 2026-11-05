@@ -163,7 +163,7 @@ const tierPrices = checkout.slice(checkout.indexOf('export const TIER_PRICES'))
 ok(OFF.price.CREATOR_PLAN_USD_CENTS === 2990
   && Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]) === 1900, 'referência do Creator nos clipes congelada em 2990 (TIER_PRICES.basic é 1900 desde 04/11)')
 const tierCredits = checkout.slice(checkout.indexOf('export const TIER_CREDITS'))
-ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === 85 && OFF.price.CREATOR_PLAN_CREDITS === 150, 'créditos do Creator nos clipes congelados em 150 (TIER_CREDITS.basic é 85 desde 04/11)')
+ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === 150 && OFF.price.CREATOR_PLAN_CREDITS === 150, 'créditos do Creator nos clipes congelados em 150 (TIER_CREDITS.basic é 85 desde 04/11)')
 ok(Math.abs(OFF.price.CREATOR_USD_PER_CREDIT - OFF.price.CREATOR_PLAN_USD_CENTS / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12, 'US$/crédito do Creator é derivado, não digitado')
 // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o Studio deixou de ser o crédito mais barato
 // (08/10); o piso é LIDO de checkoutPricing (Creator mensal) e o Creator congelado em 2990 segue de referência (alvo).

@@ -18,6 +18,7 @@
 import type { ReactNode } from 'react'
 import { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'
 import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
+import { contaDeFilmes } from '@/lib/contaDeFilmes' // KINEO-CARTAO-DUAS-CONTAS-0511
 import { planValueCardLines, planValueFor, type PlanValue } from '@/lib/pricingPlanValue'
 // KINEO-CHECKOUT-CLAREZA-1610 — o custo por filme (mesma régua da linha de filmes do cartão) e a garantia única sob o botão.
 // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob o botão de compra (copy que o suporte honra à mão).
@@ -74,12 +75,17 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-name{font-size:19px;font-weight:700;line-height:1.1}
 .pv-chip{border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:600;line-height:1.3;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
 .pv-chip.pv-deal{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
-.pv-tag{margin:6px 0 0;font-size:13px;font-weight:500;color:var(--pv-muted)}
+.pv-tag{margin:6px 0 0;font-size:14px;font-weight:500;line-height:1.4;color:var(--pv-muted)}
+.pv-films{margin:14px 0 0;padding:14px 14px 13px;border-radius:12px;background:var(--pv-chip-bg);color:var(--pv-text)}
+.pv-films-main{margin:0;font-size:17px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+.pv-films-n{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.pv-films-or{margin:7px 0 0;font-size:14px;font-weight:500;line-height:1.4}
+.pv-films-or b{font-weight:700;font-variant-numeric:tabular-nums}
 .pv-rule{height:1px;margin:14px 0;border:0;background:var(--pv-line)}
 .pv-credits{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
 .pv-credits svg{width:18px;height:18px;flex:none}
 .pv-lines{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
-.pv-line{display:flex;gap:8px;font-size:13.5px;font-weight:500;line-height:1.4}
+.pv-line{display:flex;gap:8px;font-size:14.5px;font-weight:500;line-height:1.4}
 .pv-sym{width:14px;flex:none;text-align:center;color:var(--pv-faint);font-weight:700}
 .pv-n{font-weight:700;font-variant-numeric:tabular-nums}
 .pv-dim{color:var(--pv-muted)}
@@ -89,14 +95,14 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-was{font-size:18px;font-weight:600;color:var(--pv-faint);text-decoration:line-through}
 .pv-amount{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
 .pv-per{font-size:13px;font-weight:500;color:var(--pv-muted)}
-.pv-note{margin:6px 0 0;font-size:12px;color:var(--pv-muted)}
+.pv-note{margin:6px 0 0;font-size:12.5px;color:var(--pv-muted)}
 .pv-cta{margin-top:14px;display:block;width:100%;min-height:46px;border:0;border-radius:10px;padding:12px 16px;font:inherit;font-size:15px;font-weight:700;
   cursor:pointer;background:var(--pv-cta-bg);color:var(--pv-cta-text);transition:filter var(--dur-fast) var(--ease-swift),transform var(--dur-fast) var(--ease-swift)}
 .pv-cta.pv-cta-pop{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-cta:hover{filter:brightness(1.08);transform:translateY(-1px)}
 .pv-cta:disabled{opacity:.6;cursor:wait}
 .pv-cta:focus-visible{outline:2px solid var(--pv-accent);outline-offset:3px}
-.pv-save{margin:10px 0 0;text-align:center;font-size:12.5px;font-weight:500;color:var(--pv-muted)}
+.pv-save{margin:10px 0 0;text-align:center;font-size:13.5px;font-weight:500;color:var(--pv-muted)}
 .pv-save b{color:var(--pv-text);font-weight:700}
 .pv-perfilm{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--pv-text)}
 .pv-guarantee{margin:6px 0 0;text-align:center;font-size:11.5px;line-height:1.45;color:var(--pv-muted)}
@@ -187,6 +193,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
   const value = planValueForPage(props.credits)
   const lines = planValueCardLines(value)
   const topClip = lines.clips[0] ?? null
+  const filmes = contaDeFilmes(props.credits) // KINEO-CARTAO-DUAS-CONTAS-0511
   // Uma linha por motor, na ordem do cartão (clipes); o filme do mesmo motor na coluna ao lado.
   const engines: Array<{ engine: string; label: string; clip: number | null; film: number | null }> = value.clips.map((c) => ({
     engine: c.engine,
@@ -216,6 +223,13 @@ export function PlanValueCard(props: PlanValueCardProps) {
             <span className="pv-n">{value.credits}</span> credits a month
           </span>
         </div>
+        {/* KINEO-CARTAO-DUAS-CONTAS-0511 — o que o plano faz, em filmes: a conta padrão em destaque e a do Kling 4.0 logo abaixo. */}
+        <div className="pv-films" data-kineo="plano-filmes">
+          <p className="pv-films-main"><span className="pv-films-n">{filmes.padrao60}</span> {plural(filmes.padrao60, 'standard film', 'standard films')} <span className="pv-dim">· 60 s</span></p>
+          {filmes.kling15 >= 1 ? (
+            <p className="pv-films-or">or {filmes.kling60 >= 1 ? <><b>{filmes.kling60}</b> Kling 4.0 {plural(filmes.kling60, 'film', 'films')} · 60 s <span className="pv-dim">(or <b>{filmes.kling15}</b> of 15 s)</span></> : <><b>{filmes.kling15}</b> Kling 4.0 {plural(filmes.kling15, 'film', 'films')} · 15 s</>}</p>
+          ) : null}
+        </div>
         <ul className="pv-lines">
           <li className="pv-line">
             <span className="pv-sym" aria-hidden="true">=</span>
@@ -229,14 +243,6 @@ export function PlanValueCard(props: PlanValueCardProps) {
               <span className="pv-sym" aria-hidden="true">≈</span>
               <span>
                 <span className="pv-n">{topClip.count}</span> {plural(topClip.count, 'clip', 'clips')} <span className="pv-dim">· {topClip.seconds} s</span>
-              </span>
-            </li>
-          ) : null}
-          {lines.film ? (
-            <li className="pv-line">
-              <span className="pv-sym" aria-hidden="true">≈</span>
-              <span>
-                <span className="pv-n">{lines.film.count}</span> narrated {plural(lines.film.count, 'film', 'films')} <span className="pv-dim">· {lines.film.seconds} s</span>
               </span>
             </li>
           ) : null}

@@ -72,12 +72,13 @@ function problemas(repl = {}) {
   checa('mensal nunca', O.resolveAnnualOffer({ ...base, isAnnual: false }) === null && O.resolveAnnualOffer({ ...base, isAnnual: false, bfOpen: true }) === null)
   for (const tier of ['business', 'autopilot', 'autopilot_lite']) checa(`${tier} fica fora`, O.resolveAnnualOffer({ ...base, tier }) === null && O.resolveAnnualOffer({ ...base, tier, bfOpen: true }) === null)
   checa('link privado fica fora', O.resolveAnnualOffer({ ...base, privatePromo: true }) === null)
-  for (const t of TIERS) checa(`${t} entra`, O.resolveAnnualOffer({ ...base, tier: t })?.kind === 'welcome_3h')
+  for (const t of ['starter', 'basic']) checa(`${t} entra`, O.resolveAnnualOffer({ ...base, tier: t })?.kind === 'welcome_3h')
+  checa('Studio fora dos 50% (KINEO-CREDITOS-B-0511)', O.resolveAnnualOffer({ ...base, tier: 'pro' }) === null)
 
   // 2. Black Friday aberta para todos, sem cupom
   checa('BF aberta: convidado entra', O.resolveAnnualOffer({ ...base, signedIn: false, bfOpen: true })?.kind === 'black_friday_2026')
   checa('BF aberta: conta velha e já paga entram', O.resolveAnnualOffer({ ...base, accountCreatedAt: '2020-01-01T00:00:00Z', hasPaid: true, bfOpen: true })?.kind === 'black_friday_2026')
-  checa('portão da BF: anual dentro, mensal e fora da janela não', B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: T0 }))
+  checa('portão da BF: anual dentro, mensal e fora da janela não', B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: T0 }))
   checa('BF no preço de boas-vindas', B.bf2026PriceRows().every((r) => r.bfMinor === Pr.ANNUAL_WELCOME_PRICES[r.tier].usd && r.annualMinor === Pr.ANNUAL_PRICES[r.tier].usd && r.savedMinor + r.bfMinor === Pr.TIER_PRICES[r.tier].usd * 12))
   checa('BF lê o percentual da tabela', B.BF2026_PERCENT_OFF === Pr.ANNUAL_WELCOME_DISCOUNT_PERCENT)
   checa('link da BF sem ?promo=', !B.bf2026CheckoutHref('basic').includes('promo='))
@@ -107,7 +108,7 @@ function problemas(repl = {}) {
   checa('invariantes', Pr.checkPricingInvariants().length === 0 && S.checkSettlementInvariants({ starter: 900, basic: 1900, pro: 5900 }).length === 0)
 
   // 4. renovação e recarga para cada valor velho e novo
-  const novo = { starter: 40, basic: 85, pro: 280 }
+  const novo = { starter: 40, basic: 150, pro: 470 }
   for (const t of TIERS) {
     for (const v of [Pr.TIER_PRICES[t].usd, Pr.ANNUAL_PRICES[t].usd, Pr.ANNUAL_WELCOME_PRICES[t].usd]) {
       checa(`renovação USD ${t} ${v}`, Pr.renewalCreditsFor(t, v) === novo[t])
@@ -172,9 +173,9 @@ function problemas(repl = {}) {
   // 8. /pricing
   const pr = src(F.pricing), rl = src(F.relogio)
   checa('chip "Up to 50%"', pr.includes('Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%') && !/SAVE \{ANNUAL_DISCOUNT_PERCENT\}%/.test(pr))
-  checa('cartão no preço da oferta, normal riscado', pr.includes('annualOfferLive ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)') && pr.includes('annual && annualOfferLive ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price'))
+  checa('cartão no preço da oferta, normal riscado', pr.includes('ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)') && pr.includes('annual && ofertaNoPlano(tier) ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price'))
   checa('quem assina vê o anual normal', pr.includes('annualOffer !== null && !planSwitch.subscribed'))
-  checa('reais do cartão na tabela da oferta', pr.includes("getTierPrice(tier, 'usd'), annualOfferLive ? 'welcome' : 'regular')"))
+  checa('reais do cartão na tabela da oferta', pr.includes("getTierPrice(tier, 'usd'), ofertaNoPlano(tier) ? 'welcome' : 'regular')"))
   checa('linha discreta só nas 3 h, só no anual', pr.includes("billing === 'annual' && annualOfferLive && annualOffer?.kind === 'welcome_3h' ? <AnnualOfferCountdown"))
   checa('relógio vem do servidor', rl.includes('j.endsAtMs - j.nowMs') && rl.includes('ANNUAL_WELCOME_API') && !/localStorage|sessionStorage|ANNUAL_WELCOME_WINDOW_MS/.test(rl))
   checa('relógio some ao zerar', rl.includes('if (msLeft <= 0) return null') && rl.includes('if (alive) setOffer(null)'))
@@ -245,7 +246,7 @@ const MUTANTES = [
   ['convidado entra', muta(F.regra, "if (input.signedIn !== true) return null\n", '\n')],
   ['Black Friday só para logado', muta(F.regra, "if (input.bfOpen === true) return { kind: 'black_friday_2026'", "if (input.bfOpen === true && input.signedIn) return { kind: 'black_friday_2026'")],
   ['mensal ganha a oferta', muta(F.regra, 'input.isAnnual !== true || ', '')],
-  ['Business ganha a oferta', muta(F.regra, "['starter', 'basic', 'pro']", "['starter', 'basic', 'pro', 'business']")],
+  ['Business ganha a oferta', muta(F.regra, "['starter', 'basic']", "['starter', 'basic', 'business']")],
   ['cupom da BF volta', muta(F.rota, '  const annualRecovery = annualOfferSessionRecovery', "  if (annualOffer?.kind === 'black_friday_2026') sessionParams.discounts = [{ coupon: 'KINEO_BF2026' }]\n  const annualRecovery = annualOfferSessionRecovery")],
   ['?promo= empilha na oferta', muta(F.rota, '    resolvedPromo = null\n    promoBlocked = true\n    const annualOfferStamp', '    const annualOfferStamp')],
   ['recuperação leva a oferta', muta(F.rota, 'if (annualRecovery) sessionParams.after_expiration = annualRecovery', '')],

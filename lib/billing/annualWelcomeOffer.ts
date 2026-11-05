@@ -18,7 +18,10 @@ export const ANNUAL_WELCOME_API = '/api/offers/annual-welcome'
 export type AnnualOfferKind = 'welcome_3h' | 'black_friday_2026'
 export type AnnualOfferDecision = { kind: AnnualOfferKind; endsAtMs: number }
 
-const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic', 'pro']
+// KINEO-CREDITOS-B-0511 [fundador 05/11, "2 sim"] — os 50% (3 h da conta nova + Black Friday) só no Starter e no Creator; no Studio o teto é o anual normal de 30%.
+const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']
+/** Este plano entra na oferta de 50%? O Studio não: o cartão dele segue no anual normal. */
+export function annualOfferCoversTier(tier: string): boolean { return TIERS_COM_ANUAL.includes(tier) }
 /** Relógio do Supabase um pouco à frente do nosso não fecha a janela; created_at bem no futuro é dado errado e fecha. */
 const FOLGA_DE_RELOGIO_MS = 60_000
 

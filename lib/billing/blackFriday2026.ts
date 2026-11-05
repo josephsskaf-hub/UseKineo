@@ -67,7 +67,7 @@ export function bf2026Open(nowMs: number = Date.now()): boolean {
 }
 
 /** Os três planos com anual. Autopilot/Lite/Business não têm anual. */
-export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']
+export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic'] // KINEO-CREDITOS-B-0511 [fundador 05/11, "2 sim"] — Studio fora dos 50%: teto de 30%
 /** Espelho de VALOR_TIER_NAMES (lib/valorNoCheckout.ts); o guardião confere a igualdade. */
 export const BF2026_TIER_NAMES: Record<CheckoutTier, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio' }
 
