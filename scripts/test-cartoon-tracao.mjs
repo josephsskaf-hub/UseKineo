@@ -237,8 +237,8 @@ const cases = {
       ok(['autopilot', 'pack'].every(kind => citation.currencyNote.includes(settlement.formatSettlementMoney('brl', settlement.settlementAmountMinor(K.KIDS_PRICES[kind].usdMinor, 'brl')))), 'Brazil charges reais from exact house conversion ' + lang)
       ok(citation.currencyNote.includes(lang === 'pt' ? 'reais' : 'reais'), 'Brazil currency note is explicit ' + lang)
       const html = renderToStaticMarkup(React.createElement(exports.KidsCartoonPage, { lang }))
-      ok(html.includes('<table') && html.includes('2026-10-22'), 'SSR has citable offer table plus updated date ' + lang)
-      ok(/15/.test(html) && /30/.test(html), 'table includes actual duration and episode quantity ' + lang)
+      ok(!html.includes('<table') && html.includes('2026-10-22'), 'KINEO-KIDS-SEM-OFERTA-0411: with the offer switch off, no offer table, updated date stays ' + lang) // era: exigia a tabela de preços na página
+      ok(/15/.test(html), 'page still states the actual duration ' + lang) // KINEO-KIDS-SEM-OFERTA-0411 — era: duração e quantidade na tabela
       const metadata = exports.kidsPageMetadata(lang)
       ok(JSON.stringify(metadata) === JSON.stringify(previous.kidsPageMetadata(lang)), 'title/description/canonical/hreflang/robots metadata remain exactly unchanged ' + lang)
       ok(JSON.stringify(metadata.alternates).includes(lang === 'pt' ? '/desenho-infantil-3d-com-ia' : '/ai-kids-cartoon-videos'), 'canonical retains localized URL ' + lang)

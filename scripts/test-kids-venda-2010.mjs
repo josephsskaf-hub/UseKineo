@@ -20,6 +20,7 @@
 //   D  desfaz + novos + marca + encadeamento + contagem; M mutantes (todos APLICADOS e VERMELHOS), em memória.
 import { semCompraAvulsa2410 } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import { readFileSync, existsSync } from 'node:fs'
+import { semKidsSemOferta0411 } from './test-support/desfaz-kids-sem-oferta-0411.mjs' // KINEO-KIDS-SEM-OFERTA-0411
 import { semCronOrigem2610 } from './test-support/desfaz-cron-origem-2610.mjs' // KINEO-CRON-ORIGEM-2610 — a origem pública do cron (camada mais nova) sai antes, em memória
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -34,7 +35,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-KIDS-VENDA-2010'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(semCompraAvulsa2410(semAfiliado50_2610(p, readFileSync(join(ROOT, p), 'utf8')), p)) // KINEO-COMPRA-AVULSA-2410
+const disco = (p) => lf(semCompraAvulsa2410(semAfiliado50_2610(p, semKidsSemOferta0411(readFileSync(join(ROOT, p), 'utf8'), p)), p)) // KINEO-COMPRA-AVULSA-2410 // KINEO-KIDS-SEM-OFERTA-0411 — a camada mais nova sai antes
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIDS_VENDA_2010_BASE}:${p}`)) } catch { return null } }
 let pass = 0

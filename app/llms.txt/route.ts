@@ -85,6 +85,7 @@ import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-H3MAX-
 import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { trafego2310FilmIntro, trafego2310CartoonOffer } from '@/lib/seo/trafego2310' // KINEO-TRAFEGO-2310
 import { KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_PRICES, KIDS_VIDEOS, KIDS_VENDA_DURATION } from '@/lib/kidsVenda/kidsVenda' // KINEO-TRAFEGO-2310 — current public offer, never an old launch proposal
+import { KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -392,7 +393,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
 ${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday; com o Studio Ads desligado, nada (as páginas vendem anúncio). */ STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) : ''}
-${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${trafego2310CartoonOffer(BASE, KIDS_CARTOON_PAGES_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? { monthly: formatCheckoutMoney('usd', KIDS_PRICES.autopilot.usdMinor), pack: formatCheckoutMoney('usd', KIDS_PRICES.pack.usdMinor), videos: KIDS_VIDEOS.autopilot, seconds: KIDS_VENDA_DURATION } : null)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
+${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${trafego2310CartoonOffer(BASE, KIDS_VENDA_LIVE && KIDS_CARTOON_PAGES_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? { monthly: formatCheckoutMoney('usd', KIDS_PRICES.autopilot.usdMinor), pack: formatCheckoutMoney('usd', KIDS_PRICES.pack.usdMinor), videos: KIDS_VIDEOS.autopilot, seconds: KIDS_VENDA_DURATION } : null)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a
 topic, or paste your own script and ask for it to be narrated word for word.

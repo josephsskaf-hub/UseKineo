@@ -18,6 +18,7 @@ import { KIDS_CARTOON_PAGES_LIVE, KIDS_CHARACTERS, KIDS_IDEAS } from '@/lib/kids
 import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard'
 import { KIDS_PRICES, KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_VENDA_DURATION, KIDS_VIDEOS, kidsPriceLabel } from '@/lib/kidsVenda/kidsVenda' // KINEO-CARTOON-TRACAO-2210
 import { formatSettlementMoney, settlementAmountMinor } from '@/lib/settlementCurrency' // KINEO-CARTOON-TRACAO-2210
+import { KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
 import {
   KIDS_EN_PATH, KIDS_PT_PATH, PAGINAS_KIDS_BASE, PAGINAS_KIDS_CAMPAIGN, PAGINAS_KIDS_MARK, PAGINAS_KIDS_REVIEWED_ISO,
   paginasKidsAlternates, paginasKidsRobots,
@@ -50,7 +51,7 @@ const CARTOON_CITATION_CSS = `
 /** Valores exibidos vêm do contrato vendido e da mesma conversão BRL do checkout. */
 export function kidsPageCitation(lang: KidsLang) {
   const pt = lang === 'pt'
-  const salesOpen = KIDS_SALES_OPEN_FOR_PUBLIC
+  const salesOpen = KIDS_VENDA_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC // KINEO-KIDS-SEM-OFERTA-0411 — sem oferta, a página usa o texto que já existia para a venda fechada; era: KIDS_SALES_OPEN_FOR_PUBLIC
   const monthly = kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)
   const pack = kidsPriceLabel(KIDS_PRICES.pack.usdMinor)
   const monthlyBrl = formatSettlementMoney('brl', settlementAmountMinor(KIDS_PRICES.autopilot.usdMinor, 'brl'))
@@ -218,7 +219,7 @@ export function KidsCartoonPage({ lang }: { lang: KidsLang }) {
           <h2 id="kk-summary">{c.summaryHeading}</h2>
           <div className="kug-summary">{c.summary.map((p) => <p key={p}>{p}</p>)}</div>
           {/* BEGIN KINEO-CARTOON-TRACAO-2210 — tabela legível em desktop e em cartões no celular. */}
-          {KIDS_SALES_OPEN_FOR_PUBLIC ? <>
+          {KIDS_VENDA_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? <>{/* KINEO-KIDS-SEM-OFERTA-0411 */}
             <table className="kk-offer-table" role="table">
               <caption>{citation.caption}</caption>
               <thead><tr>{citation.headers.map((heading) => <th key={heading} scope="col">{heading}</th>)}</tr></thead>

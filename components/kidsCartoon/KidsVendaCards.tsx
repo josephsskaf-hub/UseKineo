@@ -7,6 +7,7 @@
 import Link from 'next/link'
 import { KIDS_CARTOON_TEMPLATE_PATH } from '@/lib/kidsCartoon/kidsCartoon'
 import { KIDS_SALES_OPEN_FOR_PUBLIC, kidsVendaCardText } from '@/lib/kidsVenda/kidsVenda'
+import { KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
 
 const CSS = `
 /* KINEO-KIDS-VENDA-LIGA-2110 — a venda acompanha os cartões claros e o azul da tela nova. */
@@ -24,6 +25,7 @@ const CSS = `
 
 /** O cartão. `lang` = a língua da interface (16; desconhecida = inglês). */
 export function KidsVendaCards({ lang = 'en', surface }: { lang?: string; surface: 'pricing' | 'page' }) {
+  if (!KIDS_VENDA_LIVE) return null // KINEO-KIDS-SEM-OFERTA-0411 — o botão levava a /kids-cartoon#plans, que não vende mais
   if (!KIDS_SALES_OPEN_FOR_PUBLIC) return null
   const t = kidsVendaCardText(lang)
   const href = `${KIDS_CARTOON_TEMPLATE_PATH}?utm_source=kids_${surface}#plans`

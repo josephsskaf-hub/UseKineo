@@ -26,6 +26,7 @@ import {
   kidsIdeaForRun, kidsNextSeq, kidsPriceLabel, kidsReadyEmailCopy, kidsStartsAllowedThisPass, KIDS_PRICES, type KidsOrderKind,
 } from '@/lib/kidsVenda/kidsVenda'
 import { kidsSampleIdea, kidsSampleOrdinalFallback } from '@/lib/kidsVenda/kidsVenda' // KINEO-DESENHO-LEO-0111 — a amostra grátis varia a história
+import { KIDS_VENDA_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-KIDS-SEM-OFERTA-0411
 import { KIDS_ORDERS_TABLE, KIDS_ORDER_COLUMNS, KIDS_RUNS_TABLE, KIDS_RUN_COLUMNS, isMissingKidsTable, type KidsOrderRow, type KidsRunRow } from '@/lib/kidsVenda/server'
 
 export const KIDS_CRON_PATH = '/api/cron/autopilot-generate'
@@ -118,7 +119,7 @@ async function sendKidsReadyEmail(db: Db, run: KidsRunRow, order: KidsOrderRow, 
   const lang = (order.language === 'pt' || order.language === 'es' ? order.language : 'en') as KidsCartoonLanguage
   const copy = kidsReadyEmailCopy(lang, { title: run.title ?? 'Episode', seq: run.seq, total: order.videos_total, kind: order.kind })
   const link = `${baseUrl}/kids-cartoon?utm_source=kids_ready#my-episodes`
-  const offer = order.kind === 'sample'
+  const offer = !KIDS_VENDA_LIVE ? '' : order.kind === 'sample' // KINEO-KIDS-SEM-OFERTA-0411 — só o convite sai; o e-mail do episódio continua igual
     ? (lang === 'pt' ? `\n\nGostou? Canal no piloto automático por ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/mês (30 episódios) ou pack de 30 por ${kidsPriceLabel(KIDS_PRICES.pack.usdMinor)}: ${link}` : lang === 'es' ? `\n\n¿Te gustó? Canal en piloto automático por ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/mes (30 episodios) o pack de 30 por ${kidsPriceLabel(KIDS_PRICES.pack.usdMinor)}: ${link}` : `\n\nLiked it? Channel on autopilot for ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/month (30 episodes) or a pack of 30 for ${kidsPriceLabel(KIDS_PRICES.pack.usdMinor)}: ${link}`)
     : order.kind === 'pack' && run.seq >= order.videos_total
       ? (lang === 'pt' ? `\n\nSeus 30 episódios estão completos. Para o canal não parar: piloto automático por ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/mês: ${link}` : lang === 'es' ? `\n\nTus 30 episodios están completos. Para que el canal no pare: piloto automático por ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/mes: ${link}` : `\n\nYour 30 episodes are complete. To keep the channel going: autopilot for ${kidsPriceLabel(KIDS_PRICES.autopilot.usdMinor)}/month: ${link}`)
