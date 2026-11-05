@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-ADS-CENA-95-2110 — camada mais nova primeiro; snapshot LF exata, CRLF e integridade fechada.
 import { semPaginasIaClaras2110 } from './desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { readFileSync } from 'node:fs'
@@ -20,6 +21,7 @@ export const ADS_CENA_95_2110_NOVOS = Object.freeze([
 ])
 const lf = s => s.replace(/\r\n/g, '\n')
 export function semAdsCena952110(texto, p) {
+  texto = semK4Sempre0511(texto, p)
   texto = semPaginasIaClaras2110(texto, p) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
   texto = semRoteiroCurto2210(texto, p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve 95/Kids and every integrity check below.
   const rel = String(p ?? '').replace(/\\/g, '/'), known = table[rel]

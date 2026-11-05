@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-K4-PAGO-SILENCIO-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 // (a régua de silêncio do Kling 4 PAGO de 15 s julga o clipe único de 15 s com a fala inteira, no passo real da faixa do escritor).
 // Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semK4PagoSilencio0211(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = K4_PAGO_SILENCIO_0211.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

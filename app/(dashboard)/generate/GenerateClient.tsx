@@ -2203,6 +2203,7 @@ export default function GenerateClient({
   const [brollPlanRevision, setBrollPlanRevision] = useState(0)
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
+  const [textoEncurtadoK4, setTextoEncurtadoK4] = useState(false) // KINEO-K4-SEMPRE-0511 — o filme grátis saiu com o texto encurtado para caber nos 15 s
   const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)
   const [actualEngineNote, setActualEngineNote] = useState<string | null>(null) // KINEO-K4-NARRACAO-CABE-0111 — 'narration_over_15s': o grátis saiu no Seedance porque a fala passou de 15 s
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
@@ -7117,6 +7118,7 @@ export default function GenerateClient({
             setPhase('failed')
             return
           }
+          setTextoEncurtadoK4(data.engine_note === 'narration_shortened') // KINEO-K4-SEMPRE-0511
           if (!deductedRef.current && data.creditsDeducted) {
             deductedRef.current = true
             try { window.dispatchEvent(new Event('creditsChanged')) } catch {}
@@ -17997,6 +17999,7 @@ export default function GenerateClient({
                   vertical — o recurso novo pareceria defeito. `-wide` dá ao
                   filme deitado a largura que ele merece (460px de largura em
                   16:9 renderiam uma tarja de 259px de altura). */}
+              {textoEncurtadoK4 ? <p data-kling4-shortened-note style={{ fontSize: 12, margin: '6px auto 0', maxWidth: 460, textAlign: 'center', color: 'var(--muted)' }}><UiLabel>We shortened your text to fit this free 15-second film. The 60-second version tells all of it.</UiLabel></p> : null /* KINEO-K4-SEMPRE-0511 */}
               <FirstFilmRedoHint videoId={publicVideoId} />{/* KINEO-REFAZER-GRATIS-2810 — a linha do primeiro filme, acima do player; o servidor decide se aparece */}
               <div className="done-result-preview">
               <div

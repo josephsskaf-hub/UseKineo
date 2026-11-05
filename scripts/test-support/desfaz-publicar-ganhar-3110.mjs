@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-PUBLICAR-GANHAR-3110 — DESFAZ, em memória, esta entrega (o "Publish & earn" (cartão de publicar na tela de pronto + crédito ao dono quando alguém faz a própria versão)) nos arquivos que ela MODIFICOU, para os guardiões que
 // conferem arquivos BYTE A BYTE contra uma base anterior. Diff REVERSO exato (contexto 3, gerado por generate-rosto-cards-2810-undo.mjs
 // publicar-ganhar-3110): cada bloco de AGORA (moldurado por quebras de linha) aparece UMA vez e volta a ser o de ANTES. Arquivo fora da lista ou sem
@@ -11,6 +12,7 @@ const SEM_MARCA = new Set(["vercel.json"])
 export const NOVOS = ["lib/publicarGanhar3110.ts","lib/publicarGanhar3110Server.ts","components/PublishEarnCta.tsx","app/api/cron/remix-reward/route.ts","scripts/test-publicar-ganhar-3110.mjs","scripts/test-support/desfaz-publicar-ganhar-3110.mjs"]
 export const ARQUIVOS = [...Object.keys(DESFAZ), ...NOVOS]
 export function semPublicarGanhar3110(text, rel) {
+  text = semK4Sempre0511(text, rel)
   if (typeof text !== 'string') return text
   const original = text
   const chave = String(rel ?? '').replace(/\\/g, '/').replace(/^\.\//, '')

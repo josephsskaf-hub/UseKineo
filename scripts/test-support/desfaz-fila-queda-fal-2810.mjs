@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-FILA-QUEDA-FAL-2810 — DESFAZ, em memória, esta entrega (a fila da queda da fal: estacionar em vez de perder, modo serviço na rota, alarme horário, resgate honesto) nos arquivos que ela MODIFICOU, para os guardiões que
 // conferem arquivos BYTE A BYTE contra uma base anterior. Diff REVERSO exato (contexto 3, gerado por generate-rosto-cards-2810-undo.mjs
 // fila-queda-fal-2810): cada bloco de AGORA (moldurado por quebras de linha) aparece UMA vez e volta a ser o de ANTES. Arquivo fora da lista ou sem
@@ -11,6 +12,7 @@ const SEM_MARCA = new Set(["vercel.json"])
 export const NOVOS = ["app/api/cron/resume-parked-renders/route.ts","lib/filaQuedaFal.ts","lib/filaQuedaFalServer.ts","scripts/test-fila-queda-fal-2810.mjs","scripts/test-support/desfaz-fila-queda-fal-2810.mjs"]
 export const ARQUIVOS = [...Object.keys(DESFAZ), ...NOVOS]
 export function semFilaQuedaFal2810(text, rel) {
+  text = semK4Sempre0511(text, rel)
   if (typeof text !== 'string') return text
   const original = text
   const chave = String(rel ?? '').replace(/\\/g, '/').replace(/^\.\//, '')

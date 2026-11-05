@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-SO-GENTE-NA-FICHA-0411 — [TRAVA 8.2 — fundador 04/11: "Concerta tudo, melhora todos os proximos videos"]
 // (palavra comum não vira personagem + embalagem sem letra: rota gerativa, clipe, elenco, folha, superfície e o helper novo).
 // Recibo EXATO desta entrega: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semSoGente0411(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = SO_GENTE_0411.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -44,6 +46,7 @@ export function lerSemSoGente(arquivo, codificacao) {
 }
 /** O mesmo desfazer sobre um texto JÁ lido (para encadear camadas: a mais nova sai primeiro). */
 export function semSoGenteNoTexto(texto, arquivo) {
+  texto = semK4Sempre0511(texto, arquivo)
   if (typeof texto !== 'string') return texto
   const r = rel(/^[a-zA-Z]:[\\/]|^\//.test(String(arquivo)) ? relativo(RAIZ_SO_GENTE, String(arquivo)) : String(arquivo))
   return semSoGente0411(texto, r)

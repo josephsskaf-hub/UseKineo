@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-SUJEITO-TODOS-0311 — [TRAVA 8.2 — fundador 03/11: "universalizar"]
 // (o sujeito central do pedido em pelo menos 1 cena nas estradas clássica e hollywood).
 // Recibo EXATO desta entrega em route.ts, lib/cinematic/elencoEpoca.ts (KINEO-PROTAGONISTA-DOC-0311) e lib/cinematic/sujeitoTodosMotores.ts (novo): para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semSujeitoTodos0311(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = SUJEITO_TODOS_0311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -44,6 +46,7 @@ export function lerSemSujeitoTodos(arquivo, codificacao) {
 }
 /** O mesmo desfazer sobre um texto JÁ lido (para encadear camadas: a mais nova sai primeiro). */
 export function semSujeitoTodosNoTexto(texto, arquivo) {
+  texto = semK4Sempre0511(texto, arquivo)
   if (typeof texto !== 'string') return texto
   const r = rel(/^[a-zA-Z]:[\\/]|^\//.test(String(arquivo)) ? relativo(RAIZ_SUJEITO_TODOS, String(arquivo)) : String(arquivo))
   return semSujeitoTodos0311(texto, r)

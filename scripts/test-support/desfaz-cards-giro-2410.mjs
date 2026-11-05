@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 import { semCartoonTracao2210 } from './desfaz-cartoon-tracao-2210.mjs' // KINEO-LEVA-2410
 // KINEO-CARDS-GIRO-2410 — exact leaf; immutable before bytes, complete target hash, no writes and no older undo imports.
 import { readFileSync } from 'node:fs'
@@ -9,6 +10,7 @@ export const CARDS_GIRO_2410_FILES = Object.freeze(Object.keys(CARDS_GIRO_2410_M
 export const CARDS_GIRO_2410_NEW = Object.freeze(CARDS_GIRO_2410_MANIFEST.newFiles)
 const hash = source => createHash('sha256').update(source).digest('hex')
 export function semCardsGiro2410(text, file) {
+  text = semK4Sempre0511(text, file)
   text = semCartoonTracao2210(text, file) // KINEO-LEVA-2410 — newest merged layers before Giro hashes.
   text = semCardsBordas2410(text, file) // KINEO-CARDS-BORDAS-2410 — camada mais nova sai antes dos hashes do giro.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = CARDS_GIRO_2410_MANIFEST.sources[relative]

@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-CASA-FICHA-SEM-LETRAS-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor); escopo universal pedido pelo fundador 02/11
 // (revisão dos 20 vídeos do dia da casa: cenário do filme e sem letras/figura pública em todo motor)].
 // Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semCasaFichaSemLetras0211(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = CASA_FICHA_SEM_LETRAS_0211.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

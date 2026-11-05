@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-QUALIDADE-REGRESSOES-2910 — exact historical projection of the two reviewed
 // 29/10 commits plus the NO_TEXT regression restoration. They added filmQuality
 // and moved existing helpers; older byte/hash
@@ -15,6 +16,7 @@ const sha = text => createHash('sha256').update(text).digest('hex')
 const rel = file => String(file ?? '').replace(/\\/g, '/')
 
 export function semQualidadeElenco2910(source, file) {
+  source = semK4Sempre0511(source, file)
   source = semAdsCtaVazio0311(source, file) // KINEO-ADS-CTA-VAZIO-0311b
   const path = rel(file), entry = QUALIDADE_ELENCO_2910.scope[path]
   if (typeof source !== 'string' || !entry) return source

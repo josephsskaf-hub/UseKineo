@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-CENA-PEDIDO-3010 — [TRAVA 8.2 — vai do fundador 30/10: "pode fazer esse bloco cena-pedido 3010 por aqui" e "faz tudo junto,
 // publica tudo junto"]. Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main),
 // o de depois e os trechos trocados; para cada arquivo novo, o hash dele. Um guardião histórico só ignora o arquivo se desfazer
@@ -12,6 +13,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semCenaPedido3010(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = CENA_PEDIDO_3010.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

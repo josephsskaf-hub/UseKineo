@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-RETOMADA-DEBITA-0311 — [TRAVA 8.2 — fundador 03/11: "universalizar"]
 // (a retomada do filme estacionado debita pelo RPC de serviço).
 // Recibo EXATO desta entrega em app/api/generate-video-cinematic/route.ts: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semRetomadaDebita0311(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = RETOMADA_DEBITA_0311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -44,6 +46,7 @@ export function lerSemRetomadaDebita(arquivo, codificacao) {
 }
 /** O mesmo desfazer sobre um texto JÁ lido (para encadear camadas: a mais nova sai primeiro). */
 export function semRetomadaDebitaNoTexto(texto, arquivo) {
+  texto = semK4Sempre0511(texto, arquivo)
   if (typeof texto !== 'string') return texto
   const r = rel(/^[a-zA-Z]:[\\/]|^\//.test(String(arquivo)) ? relativo(RAIZ_RETOMADA_DEBITA, String(arquivo)) : String(arquivo))
   return semRetomadaDebita0311(texto, r)

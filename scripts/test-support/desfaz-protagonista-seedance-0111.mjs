@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-PROTAGONISTA-SEEDANCE-0111 — [TRAVA 8.2 — vai do fundador 01/11 "vai personagem"; conserto local, sem publicar]: o elenco do
 // roteiro passa a ser lido pelo SENTIDO (lib/cinematic/elencoSemantico: gpt-4o-mini, JSON estrito, conferido contra o texto, falha
 // segura = o determinístico) quando há protagonista nomeado — BRO é pombo, Mila é gente, Max não é o filhote, lugar não é personagem.
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semProtagonistaSeedance0111(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = PROTAGONISTA_SEEDANCE_0111.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

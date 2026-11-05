@@ -18,6 +18,8 @@ import { readFilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance' 
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
+import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
+import { encaixarFalaNoKling4, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
@@ -7862,6 +7864,21 @@ async function manipularPost(req: NextRequest) {
       else if (r.relato.motivo_sem_sujeito && r.relato.fonte_do_pedido) console.log(`[cinematic] KINEO-K4-SUJEITO: nada injetado (${r.relato.motivo_sem_sujeito})`)
     }
     let kling4Trial: Kling4TrialResult | null = null
+    // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:
+    // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.
+    const kling4Encaixe: { r: EncaixeK4 | null } = { r: null }
+    const medirFalaDoKling4Trial = async (a: Parameters<typeof medirFalaK4Crua>[0]): Promise<FalaK4> => {
+      let fala = await medirFalaK4Crua(a)
+      if (fala.seconds === null) fala = await medirFalaK4Crua({ ...a, prazoMs: 15_000 })
+      if (fala.reason !== 'narration_over_kling4_15s') return fala
+      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }) })
+      if (!encaixe) return fala
+      kling4Encaixe.r = encaixe
+      scenes.forEach((s, i) => { s.voiceover = encaixe.falas[i]; kling4Timing.voiceovers[i] = encaixe.falas[i] })
+      if (verbatim && parsedScript.narration) parsedScript.narration = encaixe.falas.join(' ')
+      console.log(`[cinematic] KINEO-K4-SEMPRE-0511 fala encurtada: ${encaixe.rastro.de.palavras} → ${encaixe.rastro.para.palavras} palavras, ${encaixe.rastro.de.segundos}s → ${encaixe.rastro.para.segundos}s`)
+      return encaixe.fala
+    }
     let kling4Posts = 0
     // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"] — o clipe do Kling 4 tem 15 s.
     // A fala NÃO é estimada: ANTES da reserva e do POST pago, a narração é sintetizada como a montagem vai sintetizar (mesmo
@@ -8155,6 +8172,7 @@ async function manipularPost(req: NextRequest) {
           },
         } : {}),
       }
+      if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada
       if (kling4Trial.job) {
         const shotSeconds = kling4TrialSceneDurations(kling4Timing.voiceovers, kling4Timing.wordsPerSecond)
         let shotStart = 0

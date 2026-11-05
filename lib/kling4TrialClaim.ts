@@ -22,6 +22,12 @@ export function kling4TrialFallbackPorFalaLonga(response: Record<string, unknown
   return (response!.kling4_trial as Record<string, unknown>).reason === 'narration_over_kling4_15s'
 }
 
+/** KINEO-K4-SEMPRE-0511 — selo honesto: o filme saiu no Kling 4 com o texto ENCURTADO para caber nos 15 s. A tela avisa. */
+export function kling4TrialFalaEncurtada(response: Record<string, unknown> | null | undefined): boolean {
+  if (kling4TrialEngineFromClaim(response) !== 'kling4') return false
+  return !!(response!.kling4_trial as Record<string, unknown>).narration_refit
+}
+
 /** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */
 export function kling4TrialVideoUrlFromClaim(response: Record<string, unknown> | null | undefined): string | null {
   if (kling4TrialEngineFromClaim(response) !== 'kling4') return null

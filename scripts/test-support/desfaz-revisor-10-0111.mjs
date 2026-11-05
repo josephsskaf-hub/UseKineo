@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-REVISOR-10-0111 — [TRAVA 8.2 — vai do fundador 01/11: "puxa do canal revisor os últimos 10 vídeos ... e arrumam os defeitos"
 // (Kling 4 grátis sem voltar à abertura; elenco sem avião/lugar/fantasma-adjetivo; número na legenda RTL; narrador não lê descrição; desenho do Leo)].
 // Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semRevisor100111(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = REVISOR_10_0111.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

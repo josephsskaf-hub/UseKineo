@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-MOTOR-15S-1510 — DESFAZ, em memória, o conserto do filme grátis de 15 s no roteirista e no /generate
 // (app/api/generate-script/route.ts e app/(dashboard)/generate/GenerateClient.tsx), para os guardiões que conferem esses
 // arquivos BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -79,6 +80,7 @@ export const FORMA_MOTOR_15S_1510 = {
 
 /** O texto de ANTES deste conserto (LF). Idempotente: sem nada marcado, devolve o texto igual (só LF). */
 export function semMotor15s1510(s, arquivo) {
+  s = semK4Sempre0511(s, arquivo)
   const texto = String(s).replace(/\r\n/g, '\n')
   const trocas = arquivo ? TROCAS[arquivo] : [...TROCAS.client, ...TROCAS.route]
   const acrescimos = arquivo ? ACRESCIMOS[arquivo] : [...ACRESCIMOS.client, ...ACRESCIMOS.route]

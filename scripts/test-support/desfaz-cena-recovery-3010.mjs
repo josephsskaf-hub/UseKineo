@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-CENA-RETRY-3010 — [TRAVA 8.2 — pedido explícito do fundador 30/10: "RETENTAR A CENA, NÃO MATAR O FILME"].
 // Exact source receipt; unknown or partial edits remain rejected. Test support only.
 import { readFileSync } from 'node:fs'
@@ -10,6 +11,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semCenaRecovery3010(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = CENA_RECOVERY_3010.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

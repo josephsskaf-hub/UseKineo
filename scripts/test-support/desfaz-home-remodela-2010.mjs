@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-HOME-REMODELA-2010 — DESFAZ, em memória, a home e o menu remodelados de 20/10 (8 clipes para todos, fileira PromoCards fora da home,
 // "Images made by Kineo" com 10 fotos de anúncio, topo = 4 principais + "Claude & ChatGPT" + Trending + Pricing, "More tools" fora),
 // para os guardiões que conferem arquivos BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste.
@@ -54,6 +55,7 @@ function semChavesJson(texto) {
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeRemodela2010(texto, p) {
+  texto = semK4Sempre0511(texto, p)
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string') return texto

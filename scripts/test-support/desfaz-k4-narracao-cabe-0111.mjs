@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-K4-NARRACAO-CABE-0111 — [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
 // (opção C: o escritor do filme grátis Kling 4 escreve na faixa medida, dentro da do Seedance de 15 s; a rota mede a fala — a TTS da
 // montagem, reaproveitada no cache, com prazo próprio — antes do POST pago; a sobra é movimento).
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semK4NarracaoCabe0111(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = K4_NARRACAO_CABE_0111.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

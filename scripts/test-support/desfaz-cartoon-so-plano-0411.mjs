@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-CARTOON-SO-PLANO-0411 [TRAVA 8.2 — fundador 05/11: "só dentro do plano com crédito (plano comprado)"] — desfaz, em memória, as linhas desta entrega na rota do filme,
 // para os guardiões históricos que conferem a rota byte a byte. Tira só as 4 linhas marcadas e exige que sejam exatamente 4. Módulo auxiliar; não é teste; nunca usar em lib/app.
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
@@ -6,6 +7,7 @@ const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 export function semCartoonSoPlano0411(source, file) {
+  source = semK4Sempre0511(source, file)
   if (typeof source !== 'string' || !rel(file).endsWith(ROTA) || !source.includes(MARCA)) return source
   const crlf = source.includes('\r\n')
   const linhas = lf(source).split('\n')

@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 import { semConsertos2710 } from './desfaz-consertos-2710.mjs' // KINEO-CONSERTOS-2710 — as 6 entregas de 27/10 (camada mais nova) saem primeiro
 import { semCronOrigem2610 } from './desfaz-cron-origem-2610.mjs' // KINEO-CRON-ORIGEM-2610
 import { semEmAlta2610 } from './desfaz-em-alta-2610.mjs' // KINEO-EM-ALTA-2610
@@ -776,6 +777,7 @@ const LAYERS = {
 export const AFILIADO50_2610_ARQUIVOS = Object.keys(LAYERS)
 
 export function semAfiliado50_2610(rel, text) {
+  rel = semK4Sempre0511(rel, text)
   text = semConsertos2710(text, rel) // KINEO-CONSERTOS-2710
   if (rel === 'scripts/test-paginas-ia-claras-2110.mjs' || rel === 'scripts/test-roteiro-curto-undo-2210.mjs') text = semEmAlta2610(semCronOrigem2610(text, rel), rel) // KINEO-CRON-ORIGEM-2610 · KINEO-EM-ALTA-2610 — camadas da main posteriores à leva saem antes (idempotente: sem a marca, volta igual)
   const hunks = LAYERS[rel]

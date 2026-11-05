@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-LEGENDA-CENA-3110 — [TRAVA 8.2 — vai do fundador 31/10: "pode fazer os 3 consertos agora"
 // (revisor 30/10 23:20: legenda fecha frase em ؟ ۔ । 。！？; cena com ação e lado da câmera; última cena ≠ primeira)].
 // Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main),
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semLegendaCena3110(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = LEGENDA_CENA_3110.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-ADS-ESCOLHA-2310 — restore this newest exact layer before every older policy.
 // Leaf helper: it must never import a prior desfaz, which would create a cycle.
 import { readFileSync } from 'node:fs'
@@ -30,6 +31,7 @@ export const ADS_ESCOLHA_NEW = Object.freeze([
 ])
 
 export function semAdsEscolha2310(texto, file) {
+  texto = semK4Sempre0511(texto, file)
   texto = semAdsEscolhaPublico2410(texto, file) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest before every old hash/early return.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(ADS_ESCOLHA_MARK)) return texto

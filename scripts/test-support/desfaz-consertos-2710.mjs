@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-CONSERTOS-2710 — DESFAZ, em memória, as 6 entregas de 27/10 (banco de prova · juiz da ficha · elenco de época · legenda RTL ·
 // pedido certo · refazer cena) nos arquivos que elas MODIFICARAM, para guardiões que conferem arquivos BYTE A BYTE contra uma base
 // anterior. Diff REVERSO exato (contexto mínimo 0-3 por bloco, moldurado por quebras de linha inteiras), uma tabela por marca:
@@ -21,6 +22,7 @@ function tira(c, text, rel) {
   return text
 }
 function desde(idx, text, rel) {
+  text = semK4Sempre0511(text, rel)
   if (typeof text !== 'string') return text
   rel = String(rel ?? '').replace(/\\/g, '/')
   text = semRostoCards2810(text, rel) // KINEO-FILA-QUEDA-FAL-2810 — a corrente de 28/10 (a fila da queda da fal, sobre 9d6dd2e77, mexe na rota cinematic e no cron de resgate) sai ANTES das seis de 27/10

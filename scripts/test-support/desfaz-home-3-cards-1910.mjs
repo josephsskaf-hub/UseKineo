@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-HOME-3-CARDS-1910 — DESFAZ, em memória, a entrega dos 3 cards da home + a amostra grátis pela entrada do card (?entry=product|ugc;
 // a amostra com a pessoa pelo card UGC) nos arquivos que JÁ existiam, para os guardiões que conferem rotas e telas BYTE A BYTE contra uma
 // base antiga (ou executam o arquivo com stubs da época). Módulo auxiliar; não é teste (o nome não começa com test-).
@@ -77,6 +78,7 @@ export const HOME_3_CARDS_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHome3Cards1910(texto, p) {
+  texto = semK4Sempre0511(texto, p)
   texto = semHomeCardsBotoes2010(texto, p) // KINEO-HOME-CARDS-BOTOES-2010 — a camada mais nova sai primeiro
   texto = semApresentadorOlhos1910(texto, p) // KINEO-APRESENTADOR-OLHOS-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_3_CARDS_1910) || !HOME_3_CARDS_1910_ARQUIVOS.includes(p)) return texto

@@ -1,0 +1,134 @@
+{
+ "base": "4dfc546dfec4a8212f4092290949f7b7c8086400",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "87424ec90bee837cbb6d7e3e574e015b74ce747062a86140b651aaff952bf647",
+   "afterSha256": "d468989f2dbeffcb05faae96b72f0093e63405e0c801a495325e41e01f33eeb1",
+   "hunks": [
+    {
+     "before": "import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'\nimport { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'",
+     "after": "import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'\nimport { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 \"vai\"]\nimport { encaixarFalaNoKling4, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511\nimport { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'"
+    },
+    {
+     "before": "    let kling4Trial: Kling4TrialResult | null = null\n    let kling4Posts = 0",
+     "after": "    let kling4Trial: Kling4TrialResult | null = null\n    // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 \"vai\"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:\n    // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.\n    const kling4Encaixe: { r: EncaixeK4 | null } = { r: null }\n    const medirFalaDoKling4Trial = async (a: Parameters<typeof medirFalaK4Crua>[0]): Promise<FalaK4> => {\n      let fala = await medirFalaK4Crua(a)\n      if (fala.seconds === null) fala = await medirFalaK4Crua({ ...a, prazoMs: 15_000 })\n      if (fala.reason !== 'narration_over_kling4_15s') return fala\n      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }) })\n      if (!encaixe) return fala\n      kling4Encaixe.r = encaixe\n      scenes.forEach((s, i) => { s.voiceover = encaixe.falas[i]; kling4Timing.voiceovers[i] = encaixe.falas[i] })\n      if (verbatim && parsedScript.narration) parsedScript.narration = encaixe.falas.join(' ')\n      console.log(`[cinematic] KINEO-K4-SEMPRE-0511 fala encurtada: ${encaixe.rastro.de.palavras} → ${encaixe.rastro.para.palavras} palavras, ${encaixe.rastro.de.segundos}s → ${encaixe.rastro.para.segundos}s`)\n      return encaixe.fala\n    }\n    let kling4Posts = 0"
+    },
+    {
+     "before": "      }\n      if (kling4Trial.job) {",
+     "after": "      }\n      if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada\n      if (kling4Trial.job) {"
+    }
+   ]
+  },
+  "app/api/compose/status/[renderId]/route.ts": {
+   "beforeSha256": "53be3b7536a91f47c2f3c8b6448335a0a04e80a502f7d447b999c1db4c79441d",
+   "afterSha256": "3a686ea038795fdeddeb49e67f059e94b858b26c3f8356a3f819e3d742f85e3b",
+   "hunks": [
+    {
+     "before": "          if (!engine) return {}\n          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : {}) }\n        })()),",
+     "after": "          if (!engine) return {}\n          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }\n        })()),"
+    }
+   ]
+  },
+  "app/(dashboard)/generate/GenerateClient.tsx": {
+   "beforeSha256": "ea0976c2c359a656c32bbf6387d45efb7ce6f0e16f29a411d171ce9a177a8657",
+   "afterSha256": "58929ed5dcbe9bab8e590586b3dfeaf47e46f3f07fd7a83a3f82db61dc1283cf",
+   "hunks": [
+    {
+     "before": "  const [generateProgress, setGenerateProgress] = useState<number>(0)\n  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)",
+     "after": "  const [generateProgress, setGenerateProgress] = useState<number>(0)\n  const [textoEncurtadoK4, setTextoEncurtadoK4] = useState(false) // KINEO-K4-SEMPRE-0511 — o filme grátis saiu com o texto encurtado para caber nos 15 s\n  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)"
+    },
+    {
+     "before": "          }\n          if (!deductedRef.current && data.creditsDeducted) {",
+     "after": "          }\n          setTextoEncurtadoK4(data.engine_note === 'narration_shortened') // KINEO-K4-SEMPRE-0511\n          if (!deductedRef.current && data.creditsDeducted) {"
+    },
+    {
+     "before": "                  16:9 renderiam uma tarja de 259px de altura). */}\n              <FirstFilmRedoHint videoId={publicVideoId} />{/* KINEO-REFAZER-GRATIS-2810 — a linha do primeiro filme, acima do player; o servidor decide se aparece */}",
+     "after": "                  16:9 renderiam uma tarja de 259px de altura). */}\n              {textoEncurtadoK4 ? <p data-kling4-shortened-note style={{ fontSize: 12, margin: '6px auto 0', maxWidth: 460, textAlign: 'center', color: 'var(--muted)' }}><UiLabel>We shortened your text to fit this free 15-second film. The 60-second version tells all of it.</UiLabel></p> : null /* KINEO-K4-SEMPRE-0511 */}\n              <FirstFilmRedoHint videoId={publicVideoId} />{/* KINEO-REFAZER-GRATIS-2810 — a linha do primeiro filme, acima do player; o servidor decide se aparece */}"
+    }
+   ]
+  },
+  "lib/kling4TrialClaim.ts": {
+   "beforeSha256": "7dcc7099369171712e679ccdf30bb7922170cda1f006f57a63ba76c00db3271e",
+   "afterSha256": "cec422e72654b564f9bf7b4f2d7d6af5d324381976582af10ba8b3e89b903873",
+   "hunks": [
+    {
+     "before": "\n/** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */",
+     "after": "\n/** KINEO-K4-SEMPRE-0511 — selo honesto: o filme saiu no Kling 4 com o texto ENCURTADO para caber nos 15 s. A tela avisa. */\nexport function kling4TrialFalaEncurtada(response: Record<string, unknown> | null | undefined): boolean {\n  if (kling4TrialEngineFromClaim(response) !== 'kling4') return false\n  return !!(response!.kling4_trial as Record<string, unknown>).narration_refit\n}\n\n/** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */"
+    }
+   ]
+  },
+  "lib/ui/refinementCopy.json": {
+   "beforeSha256": "1ce14d414bc68d6fc43f2723a07b37e6d5eeffc7aaaaa9fb85dc4b0bf77af0a1",
+   "afterSha256": "c321561d3d82125685b3d778b5f3afb206d7a407fa2e018a4fe1befae312c14c",
+   "hunks": [
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads is included in every paid plan\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads is included in every paid plan\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Sua narração passou de 15 s, então este foi feito com o Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"O Studio Ads está incluído em todos os planos pagos\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Sua narração passou de 15 s, então este foi feito com o Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Encurtamos seu texto para caber neste filme grátis de 15 s. A versão de 60 s conta tudo.\",\n    \"Studio Ads is included in every paid plan\": \"O Studio Ads está incluído em todos os planos pagos\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Tu narración duró más de 15 s, así que esta película se hizo con Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads está incluido en todos los planes de pago\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Tu narración duró más de 15 s, así que esta película se hizo con Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Acortamos tu texto para que quepa en esta película gratis de 15 s. La versión de 60 s lo cuenta todo.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads está incluido en todos los planes de pago\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Votre narration dépassait 15 s : ce film a donc été fait avec Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads est inclus dans toutes les offres payantes\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Votre narration dépassait 15 s : ce film a donc été fait avec Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Nous avons raccourci votre texte pour ce film gratuit de 15 s. La version de 60 s raconte tout.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads est inclus dans toutes les offres payantes\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Deine Erzählung war länger als 15 s, deshalb wurde dieser Film mit Seedance 1.5 erstellt\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ist in jedem bezahlten Plan enthalten\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Deine Erzählung war länger als 15 s, deshalb wurde dieser Film mit Seedance 1.5 erstellt\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Wir haben deinen Text für diesen kostenlosen 15-Sekunden-Film gekürzt. Die 60-Sekunden-Version erzählt alles.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ist in jedem bezahlten Plan enthalten\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"La tua narrazione superava i 15 s, quindi questo film è stato fatto con Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads è incluso in tutti i piani a pagamento\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"La tua narrazione superava i 15 s, quindi questo film è stato fatto con Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Abbiamo accorciato il tuo testo per questo film gratuito di 15 s. La versione da 60 s racconta tutto.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads è incluso in tutti i piani a pagamento\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Je vertelling was langer dan 15 s, dus deze film is gemaakt met Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads zit in elk betaald plan\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Je vertelling was langer dan 15 s, dus deze film is gemaakt met Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"We hebben je tekst ingekort voor deze gratis film van 15 s. De versie van 60 s vertelt alles.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads zit in elk betaald plan\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Twoja narracja była dłuższa niż 15 s, więc ten film powstał w Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads jest w każdym płatnym planie\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Twoja narracja była dłuższa niż 15 s, więc ten film powstał w Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Skróciliśmy Twój tekst do tego darmowego filmu 15 s. Wersja 60 s opowiada wszystko.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads jest w każdym płatnym planie\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Anlatımın 15 sn’den uzundu, bu yüzden bu film Seedance 1.5 ile yapıldı\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads tüm ücretli planlara dahil\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Anlatımın 15 sn’den uzundu, bu yüzden bu film Seedance 1.5 ile yapıldı\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Metnini bu ücretsiz 15 saniyelik filme sığacak şekilde kısalttık. 60 saniyelik sürüm hepsini anlatır.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads tüm ücretli planlara dahil\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваш текст звучал дольше 15 с, поэтому этот фильм сделан на Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входит в каждый платный план\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваш текст звучал дольше 15 с, поэтому этот фильм сделан на Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Мы сократили ваш текст для этого бесплатного фильма на 15 с. Версия на 60 с расскажет всё.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входит в каждый платный план\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваша розповідь була довшою за 15 с, тому цей фільм зроблено на Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входить у кожен платний план\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Ваша розповідь була довшою за 15 с, тому цей фільм зроблено на Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Ми скоротили ваш текст для цього безкоштовного фільму на 15 с. Версія на 60 с розповість усе.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads входить у кожен платний план\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"كان التعليق الصوتي أطول من 15 ثانية، لذلك صُنع هذا الفيلم باستخدام Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads مشمول في كل خطة مدفوعة\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"كان التعليق الصوتي أطول من 15 ثانية، لذلك صُنع هذا الفيلم باستخدام Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"اختصرنا نصك ليناسب هذا الفيلم المجاني ومدته 15 ثانية. نسخة 60 ثانية تروي كل شيء.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads مشمول في كل خطة مدفوعة\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"آپ کی نریشن 15 سیکنڈ سے لمبی تھی، اس لیے یہ فلم Seedance 1.5 سے بنی\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ہر پیڈ پلان میں شامل ہے\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"آپ کی نریشن 15 سیکنڈ سے لمبی تھی، اس لیے یہ فلم Seedance 1.5 سے بنی\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"ہم نے آپ کا متن اس مفت 15 سیکنڈ کی فلم کے لیے مختصر کیا ہے۔ 60 سیکنڈ والا ورژن سب کچھ بتاتا ہے۔\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads ہر پیڈ پلان میں شامل ہے\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"आपका नैरेशन 15 सेकंड से लंबा था, इसलिए यह फ़िल्म Seedance 1.5 से बनी\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads हर पेड प्लान में शामिल है\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"आपका नैरेशन 15 सेकंड से लंबा था, इसलिए यह फ़िल्म Seedance 1.5 से बनी\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"हमने आपका टेक्स्ट इस मुफ़्त 15 सेकंड की फ़िल्म के लिए छोटा किया है। 60 सेकंड का वर्शन पूरी बात बताता है।\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads हर पेड प्लान में शामिल है\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Narasimu lebih dari 15 detik, jadi film ini dibuat dengan Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads sudah termasuk di setiap paket berbayar\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Narasimu lebih dari 15 detik, jadi film ini dibuat dengan Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Kami mempersingkat teksmu agar muat di film gratis 15 detik ini. Versi 60 detik menceritakan semuanya.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads sudah termasuk di setiap paket berbayar\","
+    },
+    {
+     "before": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Lời dẫn của bạn dài hơn 15 giây, nên phim này được làm bằng Seedance 1.5\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads có trong mọi gói trả phí\",",
+     "after": "    \"Your narration was longer than 15 s, so this one was made with Seedance 1.5\": \"Lời dẫn của bạn dài hơn 15 giây, nên phim này được làm bằng Seedance 1.5\",\n\n\n    \"We shortened your text to fit this free 15-second film. The 60-second version tells all of it.\": \"Chúng tôi đã rút gọn văn bản của bạn cho phim miễn phí 15 giây này. Bản 60 giây kể đầy đủ.\",\n    \"Studio Ads is included in every paid plan\": \"Studio Ads có trong mọi gói trả phí\","
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/kling4TrialEncaixe.ts": "64bbc4ce750383d5168873f1bcb7fd710fadc85482e489cbefad7aa26b56c117"
+ }
+}

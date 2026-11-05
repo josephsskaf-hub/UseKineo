@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-RECUSA-BOTAO-3110 — [TRAVA 8.2 — vai do fundador 31/10 "10 tarefas, já vamos fazer"] (a recusa do gerador vira botão).
 // Recibo EXATO desta entrega no gerador de filme: para cada arquivo existente, o hash de antes (origin/main), o de depois e os
 // trechos trocados; para cada arquivo novo, o hash dele (gerado por gerar-recibo-recusa-botao-3110.mjs). Um guardião histórico só
@@ -13,6 +14,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semRecusaBotao3110Recibo(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = RECUSA_BOTAO_3110.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

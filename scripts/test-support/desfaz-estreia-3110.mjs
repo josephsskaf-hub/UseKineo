@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-ESTREIA-3110 — DESFAZ, em memória, esta entrega (a estreia ao vivo (sala de espera + estreia final) nas 12 telas de geração) nos arquivos que ela MODIFICOU, para os guardiões que
 // conferem arquivos BYTE A BYTE contra uma base anterior. Diff REVERSO exato (contexto 3, gerado por generate-rosto-cards-2810-undo.mjs
 // estreia-3110): cada bloco de AGORA (moldurado por quebras de linha) aparece UMA vez e volta a ser o de ANTES. Arquivo fora da lista ou sem
@@ -11,6 +12,7 @@ const SEM_MARCA = new Set([])
 export const NOVOS = ["components/premiere/Premiere.tsx","components/premiere/premiere.module.css"]
 export const ARQUIVOS = [...Object.keys(DESFAZ), ...NOVOS]
 export function semEstreia3110(text, rel) {
+  text = semK4Sempre0511(text, rel)
   if (typeof text !== 'string') return text
   const original = text
   const chave = String(rel ?? '').replace(/\\/g, '/').replace(/^\.\//, '')

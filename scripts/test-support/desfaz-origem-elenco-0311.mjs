@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-ORIGEM-DO-ELENCO-0311 — [TRAVA 8.2 — fundador 03/11: "Conserta a etnia agora"]
 // (de onde é quem está em cena, em todos os motores + KINEO-LEGENDA-NUMERO-CARREGA-0311).
 // Recibo EXATO desta entrega: para cada arquivo existente, o hash de antes (origin/main), o de depois e os trechos trocados; para cada
@@ -17,6 +18,7 @@ const caminho = (arquivo) => rel(/^[a-zA-Z]:[\\/]|^\//.test(String(arquivo)) ? r
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semOrigemElenco0311(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = ORIGEM_ELENCO_0311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
@@ -41,6 +43,7 @@ export function deltaOrigemElenco0311Exato(source, upstream, file) {
 
 /** O mesmo desfazer sobre um texto JÁ lido (para encadear camadas: a mais nova sai primeiro). */
 export function semOrigemElencoNoTexto(texto, arquivo) {
+  texto = semK4Sempre0511(texto, arquivo)
   if (typeof texto !== 'string') return texto
   return semOrigemElenco0311(texto, caminho(arquivo))
 }

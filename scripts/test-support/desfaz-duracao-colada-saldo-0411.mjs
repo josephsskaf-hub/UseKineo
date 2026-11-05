@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-DURACAO-COLADA-SALDO-0411 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 // ("esta conta paga?" não depende de /api/me/plan ter chegado: a duração colada não sobe além do saldo e a descida do filme grátis acontece).
 // Recibo EXATO desta entrega no GenerateClient: para cada arquivo existente, o hash de antes (origin/main),
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semDuracaoColadaSaldo0411(source, file) {
+  source = semK4Sempre0511(source, file)
   source = semBotao35s0411(source, file) // KINEO-BOTAO-35S-0411
   const entry = DURACAO_COLADA_SALDO_0411.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source

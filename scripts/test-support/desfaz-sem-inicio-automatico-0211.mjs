@@ -1,3 +1,4 @@
+import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]
 // (depois do checkout nada começa sozinho; a duração restaurada é a escolhida — o 35 → 60 da manobiayousaf; o 1º filme que
 // custa crédito espera o clique; /create?autostart só preenche).
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semSemInicioAutomatico0211(source, file) {
+  source = semK4Sempre0511(source, file)
   const entry = SEM_INICIO_AUTOMATICO_0211.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
