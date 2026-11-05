@@ -113,10 +113,11 @@ for (const arq of VERSAO_B ? ['components/ChatGptWelcomeBanner.tsx', 'components
 
 // ── E. a faixa do ChatGPT e os selos do modal falam a porta em vigor ────────
 const CG = readFileSync('components/ChatGptWelcomeBanner.tsx', 'utf8')
-check('E1 ChatGptWelcomeBanner mostra o grant pela fonte unica',
-  CG.includes('TRIAL_CREDITS_SHOWN'))
-check(VERSAO_B ? 'E2 ChatGptWelcomeBanner nomeia a porta de $1' : 'E2 ChatGptWelcomeBanner nomeia a entrada grátis (restauração 09/09)',
-  VERSAO_B ? /\$1 trial|for \$1/.test(CG) : /free credits/.test(CG))
+// KINEO-PRIMEIRA-TELA-0511 (reancorado 05/11): regra "tela limpa" de 02/11; a frase antiga prometia créditos a quem está em país sem teste.
+check('E1 ChatGptWelcomeBanner não escreve número de créditos à mão',
+  !/\d+ free credits/.test(CG))
+check('E2 ChatGptWelcomeBanner não promete crédito nem preço antes do 1º filme',
+  !/free credits|plans from|TRIAL_CREDITS_SHOWN/.test(CG))
 
 console.log(`\n${notas.map((n) => `  · ${n}`).join('\n')}`)
 const total = 12
