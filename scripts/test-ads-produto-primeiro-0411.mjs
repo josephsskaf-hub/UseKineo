@@ -76,7 +76,7 @@ async function provaDaTela(mutar = {}) {
     exige(c.states[1] === 'choose' && !c.requests.some((r) => r.body?.stage === 'render'), 'para na escolha da foto: o vídeo espera a escolha')
     exige(c.states[5] === 'Fala.' && textos(c).includes('Fala.'), 'a fala segue visível antes do vídeo')
     // o preço está no botão final, e continua sendo o de sempre
-    exige(/Generate video with this still · 41 credits/.test(nodeText(botao(c, /Generate video with this still/) ?? '')), 'preço no botão final')
+    exige(/Generate video with this photo · 41 credits/.test(nodeText(botao(c, /Generate video with this photo/) ?? '')), 'preço no botão final')
     c.nodes().find((n) => n.type === 'input' && n.props.name === 'ace-still' && n.props.value === 's2')?.props.onChange(); c.render()
     exige(!c.requests.some((r) => r.body?.stage === 'render'), 'escolher a foto não gera')
 
@@ -84,8 +84,8 @@ async function provaDaTela(mutar = {}) {
     const r = client({ lang: 'en', internalControls: false, form: CHEIO }); r.render()
     r.responses.push([201, { order_id: ID, stage: 'planned', credits: 41 }], [429, { error: 'cena_photo_daily_limit' }])
     await r.click('Prepare four'); await r.settle()
-    exige(r.states[1] === 'planned' && r.states[2] === ID && r.states[9].includes('six still orders'), 'cota do dia: fica no pedido, com a frase de sempre')
-    exige(!!botao(r, /Prepare four stills/) && r.requests.length === 2, 'o botão manual volta, e nada tentou de novo sozinho')
+    exige(r.states[1] === 'planned' && r.states[2] === ID && r.states[9].includes('six photo requests'), 'cota do dia: fica no pedido, com a frase de sempre')
+    exige(!!botao(r, /Prepare four photos/) && r.requests.length === 2, 'o botão manual volta, e nada tentou de novo sozinho')
     // plano sem pedido não encadeia
     const s = client({ lang: 'en', internalControls: false, form: CHEIO }); s.render()
     s.responses.push([400, { error: 'escolha_scenario_category_mismatch' }])
@@ -95,7 +95,7 @@ async function provaDaTela(mutar = {}) {
     // ── Pedido retomado: nada parte sozinho
     const saved = { version: 'KINEO-ADS-ESCOLHA-2310', form: CHEIO, order_id: ID, stage: 'planned', stills: [], still_id: '', narration_used: 'x', quality_notes: [], credits: 41 }
     const v = client({ lang: 'en', internalControls: false, form: VAZIO, saved }); v.render(); await v.settle()
-    exige(v.states[1] === 'planned' && v.requests.length === 0 && !!botao(v, /Prepare four stills/), 'pedido salvo em planned não pede fotos sozinho')
+    exige(v.states[1] === 'planned' && v.requests.length === 0 && !!botao(v, /Prepare four photos/), 'pedido salvo em planned não pede fotos sozinho')
     // ── Pedido aberto por link: a pessoa nunca é o padrão
     const l = client({ lang: 'en', internalControls: false, form: VAZIO, query: `?order=${ID}` }); l.render()
     exige(l.states[0].presenter_id === '', 'pedido por link não mostra a pessoa padrão')

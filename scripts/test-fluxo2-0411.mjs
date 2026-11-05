@@ -47,7 +47,23 @@ async function provaDaTela(mutar = {}) {
   return erros
 }
 // As provas dos outros itens entram aqui.
-async function provasExtras(h) { await provaB(h) }
+async function provasExtras(h) { await provaB(h); await provaC(h) }
+
+// ── C: a tela fala a língua de quem compra
+async function provaC({ client, exige, textos }) {
+  const cliente = client({ lang: 'en', internalControls: false, form: VAZIO, saved: SALVO({ stage: 'choose', stills: STILLS, still_id: 's1' }) }); cliente.render(); await cliente.settle()
+  const tudo = textos(cliente)
+  exige(/Your voiceover/.test(tudo) && !/The narration that will be used/.test(tudo), 'C "Your voiceover" no lugar de "The narration that will be used"')
+  exige(!/Review notes/.test(tudo) && !/nota interna/.test(tudo), 'C cliente não vê as notas de revisão')
+  exige(!/\bstills?\b/i.test(tudo.replace(/Still needed/g, '')), 'C sem a palavra "still" para o cliente')
+  exige(!/provider|visual direction|previous flow|another plan|new plan|Sequential shots/i.test(tudo), 'C sem jargão de bastidor')
+  const pt = client({ lang: 'pt', internalControls: false, form: VAZIO, saved: SALVO() }); pt.render(); await pt.settle()
+  exige(/Sua narração/.test(textos(pt)) && !/A fala que será usada/.test(textos(pt)), 'C "Sua narração" em português')
+  const es = client({ lang: 'es', internalControls: false, form: VAZIO, saved: SALVO() }); es.render(); await es.settle()
+  exige(/Tu narración/.test(textos(es)), 'C "Tu narración" em espanhol')
+  const casa = client({ lang: 'en', internalControls: true, form: VAZIO, saved: SALVO() }); casa.render(); await casa.settle()
+  exige(/Review notes/.test(textos(casa)) && /nota interna/.test(textos(casa)), 'C a casa continua vendo as notas de revisão')
+}
 
 // ── B: a promoção do Kling 4 sai do formulário; a linha no botão final diz a verdade para quem ela vale
 const lease = (reason, promoAvailable = reason === 'ok') => ({ paidLive: true, promoLive: true, promoAvailable, publicOfferLive: true, reason, checkedAt: new Date(Date.now() - 1000).toISOString(), validUntil: new Date(Date.now() + 10000).toISOString(), expiresAt: null, remainingToday: 3 })
@@ -116,7 +132,19 @@ checa('B o cartão saiu da tela', !fonteUI.includes('Kling4PaidNotice surface') 
 checa('B a linha mora no bloco do botão final', fonteUI.indexOf('data-kineo="ads-kling4-linha"') > fonteUI.indexOf("void run('render')"))
 checa('B o servidor entrega a decisão do pedido', ler('lib/ads/cena/escolhaStills.ts').includes('kling4_promo: { free: promoDoPedido.free') && ler('lib/ads/cena/internalEscolha.ts').includes('stored.kling4Promo = { free: promo.isFree, reason: promo.reason }'))
 
+// ── C: a tabela de recusas, nas três línguas
+const R = createOfflineLoader()('lib/ads/eligibilityPure.ts')
+for (const lang of ['en', 'pt', 'es']) {
+  const frases = ['cena_photo_daily_limit', 'cena_photo_round_limit', 'cena_stills_busy', 'cena_still_choice_required', 'cena_choice_locked', 'cena_choice_plan_required', 'order_not_found', 'not_editable', 'escolha_spoken_core_exceeds_15s', 'plan_failed'].map((c) => R.adsV2RefusalFor(c, lang)?.message ?? '')
+  checa(`C recusas em ${lang}: todas com frase`, frases.every(Boolean))
+  checa(`C recusas em ${lang}: sem "still", fluxo nem plano interno`, !frases.some((f) => /\bstills?\b|\bflujo\b|\bfluxo\b|previous flow|outro plano|plano novo|another plan|new plan|otro plan\b|plan nuevo/i.test(f)))
+}
+
 const MUTANTES = [
+  ['C notas de revisão para o cliente', (t) => t.replace('{internalControls && notes.length ?', '{notes.length ?'), /notas de revisão/],
+  ['C título técnico de volta', (t) => t.replace("t3('Sua narração', 'Your voiceover', 'Tu narración')", "'The narration that will be used'"), /Your voiceover/],
+  ['C still de volta', (t) => t.replace("t('Gerar vídeo com esta foto', 'Generate video with this photo')", "t('Gerar vídeo com esta foto', 'Generate video with this still')"), /palavra "still"/],
+  ['C plano interno de volta', (t) => t.replace("t3('Começar outro anúncio', 'Start another ad', 'Empezar otro anuncio')", "'Start another plan'"), /jargão/],
   ['B cartão de volta no formulário', (t) => t.replace('{bfCampaign && !orderId ? <section', '{!orderId ? <p>Kling 4.0 free for 30 days</p> : null}{bfCampaign && !orderId ? <section'), /não fala da promoção/],
   ['B linha para todo mundo', (t) => t.replace("const linhaKling4 = linhaBruta === 'included' && !promoZero ? null : linhaBruta", "const linhaKling4 = 'included' as 'included' | 'used_up' | 'unconfirmed' | null"), /quem não assina|amostra grátis|formulário/],
   ['B a leitura geral vence o pedido', (t) => t.replace('const promoZero = orderPromo ? orderPromo.free : ', 'const promoZero = '), /reserva deste pedido|não promete de novo/],
