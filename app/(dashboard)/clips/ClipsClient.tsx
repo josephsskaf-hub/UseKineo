@@ -790,7 +790,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       <ClipTelemetry actor={measurementActor} surface="clips" ready={!loading && !loadFailed && engines.length > 0} />
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
-      <style>{`
+      {/* KINEO-HIDRATACAO-0511 — como texto filho, o servidor escapava as aspas (&quot;) e o navegador não: o React refazia a página. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .stu.clips-workspace{width:100%;min-width:0;max-width:none;background:var(--bg);color:var(--text);container:clips-studio / inline-size}
         .stu.clips-workspace .sub{color:var(--muted2);margin-bottom:24px}
         .stu.clips-workspace .grid.creation-grid{width:100%;max-width:none;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:24px}
@@ -852,7 +853,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .remix-consent input{margin-top:2px;width:18px;height:18px;flex:none} /* KINEO-ROSTO-NO-CLIPE-2810 */
         @container clips-studio (max-width:700px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.clips-workspace .creation-input{padding:16px}}
         @media(max-width:900px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}}
-      `}</style>
+      ` }} />
       <style dangerouslySetInnerHTML={{ __html: CLIPS_TELA_CSS }} />{/* KINEO-CLIPS-TELA-0511 — depois das regras de sempre, para valer por cima */}
 
       <h1>{t('title')}</h1>

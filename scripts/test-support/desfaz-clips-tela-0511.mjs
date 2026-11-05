@@ -19,6 +19,10 @@ export function semClipsTela0511(text, rel) {
   if (SEM_MARCA.has(chave) ? !original.replace(/\r\n/g, '\n').includes(hunks[0].now) : !original.includes(MARCA)) return original
   const crlf = original.includes('\r\n')
   let s = '\n' + original.replace(/\r\n/g, '\n') + '\n'
+  // KINEO-HIDRATACAO-0511 — mudança posterior no mesmo bloco: sai antes, para os blocos desta camada baterem.
+  if (chave === 'app/(dashboard)/clips/ClipsClient.tsx') s = s
+    .replace(/\n {6}\{\/\* KINEO-HIDRATACAO-0511 [^\n]*\n {6}<style dangerouslySetInnerHTML=\{\{ __html: `\n/, '\n      <style>{`\n')
+    .replace('\n      ` }} />\n      <style dangerouslySetInnerHTML={{ __html: CLIPS_TELA_CSS }} />', '\n      `}</style>\n      <style dangerouslySetInnerHTML={{ __html: CLIPS_TELA_CSS }} />')
   for (const h of hunks) {
     const parts = s.split('\n' + h.now + '\n')
     if (parts.length !== 2) throw new Error('semClipsTela0511: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')

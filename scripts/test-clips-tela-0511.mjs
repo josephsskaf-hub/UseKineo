@@ -6,7 +6,8 @@
 //   (D) o que vai ao gerar e o que o cartão da grade faz não mudaram;
 //   (E) sem Halloween: executa o filtro e o trendRowEffects DE VERDADE; o Natal fica; o efeito segue no catálogo, no ?effect= e em /effects;
 //   (F) sem laço de render: setMaisOpcoes só no onToggle, nenhum useEffect novo, memo com dependência estável;
-//   (G) mesma cor de botão da referência (/kids-cartoon);
+//   (G) mesma cor de botão da referência (/kids-cartoon), ligado e apagado, igual a /images;
+//   (H) nenhum <style> com texto filho (o servidor escapa as aspas e o React refaz a página, #425 de 05/11);
 //   (M) mutantes ficam vermelhos, cada um trocando a FONTE antes de checar.
 // Rodar: node scripts/test-clips-tela-0511.mjs
 import fs from 'node:fs'
@@ -148,13 +149,22 @@ function verifica(f) {
 
   // (G) mesmas cores
   exige(css.includes('--indigo:var(--accent,#0A5CFF)') && f['components/kidsCartoon/KidsCartoonTemplate.tsx'].includes('--blue:var(--accent,#0A5CFF)'), 'G o botão não usa o mesmo --accent do /kids-cartoon')
+  // KINEO-HIDRATACAO-0511 — botão apagado igual ao de /images e /kids-cartoon: mesma cor do ligado, com a mesma transparência.
+  const apagado = css.match(/^\.stu\.clips-workspace \.go\.no\{([^}]*)\}/m)?.[1] ?? ''
+  const opacidade = (txt) => txt.match(/opacity:([.\d]+)/)?.[1] ?? null
+  exige(/background:var\(--indigo\)/.test(apagado) && /color:var\(--on-accent,#fff\)/.test(apagado), 'G botão apagado sem a cor do botão ligado')
+  const opacidadeImagens = opacidade(f['lib/images/telaImagens.ts'].match(/\.images-go \.go\.no\{([^}]*)\}/)?.[1] ?? '')
+  exige(!!opacidadeImagens && opacidade(apagado) === opacidadeImagens && f['components/kidsCartoon/KidsCartoonTemplate.tsx'].includes(`.kkc-go[disabled]{opacity:${opacidadeImagens}`), 'G botão apagado com transparência diferente de /images e /kids-cartoon')
+  exige(/\.go\.ok,\.stu\.clips-workspace \.go\.no\{border:1px solid var\(--indigo\)/.test(css), 'G o botão muda de tamanho ao ligar (borda só em um estado)')
+  // KINEO-HIDRATACAO-0511 — <style> com texto filho: o servidor escapa aspas e o navegador não, e o React refaz a página (#425).
+  exige(!/<style>\{/.test(c), 'H <style> com texto filho em /clips: use dangerouslySetInnerHTML')
   exige(corpo.indexOf('CLIPS_TELA_CSS') < 0 && c.indexOf('__html: CLIPS_TELA_CSS') < c.indexOf("<h1>{t('title')}</h1>") && c.indexOf('__html: CLIPS_TELA_CSS') > c.indexOf('.stu.clips-workspace{width:100%'), 'G o CSS da tela não vem depois das regras antigas')
   for (const lang of ['en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'ur', 'hi', 'id', 'vi']) exige(!!tela.clipsTelaMaisOpcoes(lang) && (lang === 'en' || tela.clipsTelaMaisOpcoes(lang) !== 'More options'), 'G "More options" sem tradução: ' + lang)
   exige(c.includes(MARCA) && css.includes(MARCA), 'marca ausente')
   return e
 }
 
-const fontes = () => Object.fromEntries([CLIENTE, TELA, NOS2, ESTACAO, 'lib/clips/clipEffects.ts', 'components/kidsCartoon/KidsCartoonTemplate.tsx'].map((r) => [r, rd(r)]))
+const fontes = () => Object.fromEntries([CLIENTE, TELA, NOS2, ESTACAO, 'lib/clips/clipEffects.ts', 'lib/images/telaImagens.ts', 'components/kidsCartoon/KidsCartoonTemplate.tsx'].map((r) => [r, rd(r)]))
 
 let pass = 0
 let fail = 0
@@ -191,6 +201,10 @@ mutante('preço no cartão da grade', CLIENTE, (s) => s.replace('<span className
 mutante('o pedido de gerar muda', CLIENTE, (s) => s.replace('prompt: promptDoClipeComEstilo(prompt), image_url: photoUrl })', 'prompt, image_url: photoUrl })'))
 mutante('laço: setState em efeito sem dependência', CLIENTE, (s) => s.replace("useProductStage('clips')", "useProductStage('clips'); useEffect(() => { setMaisOpcoes((v) => !v) })"))
 mutante('cor de botão diferente', TELA, (s) => s.replace('--indigo:var(--accent,#0A5CFF)', '--indigo:#2997ff'))
+mutante('botão apagado volta a ser cinza', TELA, (s) => s.replace('.go.no{background:var(--indigo);color:var(--on-accent,#fff)', '.go.no{background:var(--card2);color:var(--muted)'))
+mutante('botão apagado com outra transparência', TELA, (s) => s.replace('opacity:.55;cursor:not-allowed', 'opacity:.3;cursor:not-allowed'))
+mutante('borda só num estado do botão', TELA, (s) => s.replace('.go.no{border:1px solid var(--indigo);border-radius:11px', '.go.no{border-radius:11px'))
+mutante('<style> volta a ter texto filho', CLIENTE, (s) => s.replace('<style dangerouslySetInnerHTML={{ __html: `', '<style>{`').replace('` }} />', '`}</style>'))
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

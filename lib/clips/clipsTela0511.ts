@@ -52,7 +52,8 @@ export const CLIPS_TELA_CSS = `
 .stu.clips-workspace .cost{padding:0;background:none;border:0;border-radius:0;overflow:visible}
 .stu.clips-workspace .cost::before{display:none}
 .stu.clips-workspace .cost .sum{color:var(--muted)}
-.stu.clips-workspace .go.ok,.stu.clips-workspace .go.no{border-radius:11px;font-weight:750}
+.stu.clips-workspace .go.ok,.stu.clips-workspace .go.no{border:1px solid var(--indigo);border-radius:11px;font-weight:750}
+.stu.clips-workspace .go.no{background:var(--indigo);color:var(--on-accent,#fff);opacity:.55;cursor:not-allowed}
 .stu.clips-workspace .go.ok:hover{transform:none;box-shadow:none;filter:brightness(1.08)}
 .stu.clips-workspace .clip-livre .cost{display:flex;flex-wrap:wrap;gap:8px}
 .stu.clips-workspace .clip-livre .cost .go{width:auto;min-width:280px;padding:14px 26px;font-size:16px}

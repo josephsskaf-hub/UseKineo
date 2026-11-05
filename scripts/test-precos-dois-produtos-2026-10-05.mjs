@@ -154,6 +154,20 @@ for (const [name, over] of MUTANTS) {
   try { caught = problems({ ...OFFP, ...over }).p.length > 0 } catch { caught = true }
   ok(caught, `mutante pego: ${name}`)
 }
+// KINEO-HIDRATACAO-0511 — KLING4_PAID_LIVE existe no servidor e não no navegador. A tabela tem de sair igual nos dois, senão o React
+// refaz a página (#425, Server "45" Client "38", 05/11). Quem protege hoje é o filmOffer constante de KINEO-MOTORES-SAEM-0511.
+console.log('6. servidor e navegador escrevem a mesma tabela')
+{
+  const POLICY = 'lib/kling4PaidPolicy.ts'
+  const LIGADO = "export const KLING4_PAID_LIVE = process.env.KLING4_PAID_LIVE === 'true'"
+  if (!read(POLICY).includes(LIGADO)) throw new Error('âncora do interruptor sumiu: ' + LIGADO)
+  const servidor = { [POLICY]: read(POLICY).replace(LIGADO, 'export const KLING4_PAID_LIVE = true') }
+  const tabela = (over) => renderToStaticMarkup(React.createElement(offlineModules({ replacements: over })(COMP).default))
+  ok(tabela(servidor) === tabela({}), 'a tabela sai idêntica com o interruptor ligado (servidor) e desligado (navegador)')
+  const semOferta = read(COMP).replace(/filmOffer: \(engine\) => engine === 'hollywood' \?/, "filmOffer: (engine) => false ?")
+  if (semOferta === read(COMP)) throw new Error('mutante de hidratação não aplicou')
+  ok(tabela({ ...servidor, [COMP]: semOferta }) !== tabela({ [COMP]: semOferta }), 'mutante pego: sem o filmOffer constante, a tabela volta a ler o interruptor do servidor')
+}
 // KINEO-LIGA-TUDO-2026-10-05 — o interruptor agora está LIGADO por decisão do fundador; a prova vira: desligá-lo seria pego.
 ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC) && !/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC.replace(/PRECOS_DOIS_PRODUTOS_PUBLIC = true/, 'PRECOS_DOIS_PRODUTOS_PUBLIC = false')), 'mutante pego: interruptor desligado no código')
 
