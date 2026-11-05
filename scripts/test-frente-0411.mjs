@@ -17,7 +17,7 @@ const BOT = 'lib/ui/homeCardBotoes0411.ts'
 const bot = carregar(BOT)
 checa('cartão de anúncio: Make my ad', bot.homeCardBotao('product_ads', 'en', true) === 'Make my ad')
 checa('cartão de UGC: Make my UGC ad', bot.homeCardBotao('ugc_ads', 'en', true) === 'Make my UGC ad')
-checa('sem a amostra aberta para a pessoa, o rótulo de plano de sempre', bot.homeCardBotao('product_ads', 'en', false) === 'Make a product ad' && bot.homeCardBotao('ugc_ads', 'en', false) === 'Make a UGC ad')
+checa('sem a amostra aberta, o mesmo nome (KINEO-PRIMEIRA-TELA-0511)', bot.homeCardBotao('product_ads', 'en', false) === 'Make my ad' && bot.homeCardBotao('ugc_ads', 'en', false) === 'Make my UGC ad')
 const grátis = /\b(free|gr[aá]tis|gratuit|gratis|kostenlos|darmo|darmowa|[üu]cretsiz|бесплат|безкошт|مجان|مفت|मुफ़्त|miễn phí)/iu
 const semGratis = (m) => Object.entries(m.HOME_CARD_BOTOES_0411).every(([, r]) => !grátis.test(r[0]) && !grátis.test(r[1]))
 checa('nenhuma das 16 línguas diz grátis no botão do cartão', Object.keys(bot.HOME_CARD_BOTOES_0411).length === 16 && semGratis(bot) && Object.keys(cards.HOME_CARD_ADS_CTA).every((l) => bot.HOME_CARD_BOTOES_0411[l]))

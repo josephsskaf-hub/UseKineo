@@ -466,16 +466,18 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // antigas nunca souberam que isso existe.
   const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }[]>([])
   const [firstFilmHistoryEmpty, setFirstFilmHistoryEmpty] = useState(false)
+  const [historicoLido, setHistoricoLido] = useState(false) // KINEO-PRIMEIRA-TELA-0511 — sem isto, o aviso do Kling 4 aparecia até a leitura do histórico chegar (19 pessoas sem filme em 3 dias)
   // KINEO-MURO-PRIMEIRO-FILME-0311 [TRAVA 8.2 — "vai" do fundador 03/11] — conta sem filme e sem pagar não vê oferta antes do 1º
   // filme: o card trancado do Seedance 2.5 (7 d: 5 de 5 cliques no selo eram contas sem filme, 0 pagou — tesla1of1/US saiu por
   // ele) e o aviso da promo do Kling 4 (76 pessoas sem filme o viram no Studio). A página de preços continua com tudo.
   const s25SomeNoPrimeiroFilme = firstFilmHistoryEmpty && s25Liberado !== true
-  const semOfertaAntesDoFilme = firstFilmHistoryEmpty && contaPaga !== true
+  const semOfertaAntesDoFilme = (firstFilmHistoryEmpty || !historicoLido) && contaPaga !== true // KINEO-PRIMEIRA-TELA-0511
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { videos: [] }))
       .then((d) => { if (Array.isArray(d?.videos)) setMyVids(d.videos.filter((v: { video_url?: string | null }) => v.video_url).slice(0, 6)); setFirstFilmHistoryEmpty(d?.historyReliable === true && d?.completedCount === 0 && Array.isArray(d?.videos) && d.videos.length === 0) })
       .catch(() => {})
+      .finally(() => setHistoricoLido(true)) // KINEO-PRIMEIRA-TELA-0511 — leitura que falha mantém o comportamento de antes
   }, [])
 
   // KINEO-SPRINT-V1V4-2026-08-31 (#8) — EXPOSICAO ANTES DE TAXA. A licao da

@@ -13,6 +13,7 @@ import { WELCOME20_PERCENT_OFF, WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/p
 import { halloweenSkinOn } from '@/components/home/HalloweenSkin' // KINEO-FAIXA-UNICA-2910
 import { useKling4TrialNoticeVisible } from '@/components/Kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
 import { KLING4_TRIAL_NOTICE_COPY } from '@/lib/kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
+import { faixaSomeParaPlano } from '@/lib/ui/faixaPlanoMaisAlto0511' // KINEO-PRIMEIRA-TELA-0511
 
 // KINEO-FAIXA-OFERTA-2910 — fundador 29/10: a faixa azul passa a vender a oferta (Kling 4.0 grátis 30 dias no Creator + o desconto do
 // 1º mês que o servidor já aplica). Chave nova: quem fechou a faixa do Seedance volta a ver esta uma vez.
@@ -50,7 +51,7 @@ const CSS = `
 .knb :focus-visible{outline:2px solid #fff;outline-offset:2px}
 .knb-emoji{display:none}
 @media (max-width:900px){.knb-halloween,.knb-sep{display:none}.knb-emoji{display:inline-flex}}
-@media (max-width:640px){.knb-sub{display:none}.knb{justify-content:flex-start;gap:8px;padding:8px 44px 8px 12px;font-size:12.5px}.knb-part{gap:8px}}
+@media (max-width:640px){[data-kling4-trial-notice="home"]{display:none !important}.knb-sub{display:none}.knb{justify-content:flex-start;gap:8px;padding:8px 44px 8px 12px;font-size:12.5px}.knb-part{gap:8px}}
 `
 
 export default function EngineNewsBar({ signedIn = false }: { signedIn?: boolean }) {
@@ -58,6 +59,13 @@ export default function EngineNewsBar({ signedIn = false }: { signedIn?: boolean
   useEffect(() => {
     try { if (localStorage.getItem(DISMISS_KEY) === '1') setHidden(true) } catch { /* sem storage: a faixa fica */ }
   }, [])
+  // KINEO-PRIMEIRA-TELA-0511 — quem já está no plano mais alto não vê "Upgrade". Leitura que falha deixa a faixa como sempre.
+  useEffect(() => {
+    if (!signedIn) return
+    let vivo = true
+    fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).then((d: { plan?: unknown } | null) => { if (vivo && faixaSomeParaPlano(d?.plan)) setHidden(true) }).catch(() => { /* a faixa fica */ })
+    return () => { vivo = false }
+  }, [signedIn])
   const kling4Promo = kling4PromoVisible(useKling4PaidAvailability()) // KINEO-FAIXA-OFERTA-2910
   const firstFilmFree = useKling4TrialNoticeVisible() // KINEO-FAIXA-COERENTE-3110
   const [halloween, setHalloween] = useState(false) // KINEO-FAIXA-UNICA-2910

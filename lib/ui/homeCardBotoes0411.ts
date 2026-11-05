@@ -1,7 +1,7 @@
 // KINEO-BOTOES-SEM-FREE-0411 [fundador 04/11: "Get started" no geral; cards "Make my ad", "Make my UGC ad", "Make my cartoon"] — o nome dos botões dos cards de anúncio.
-// Só o nome muda: o link, o evento e a amostra grátis seguem iguais. Com a amostra aberta para a pessoa, o rótulo curto novo; sem ela, os rótulos de plano de sempre (HOME_CARD_ADS_CTA).
+// Só o nome muda: o link, o evento e a amostra grátis seguem iguais. KINEO-PRIMEIRA-TELA-0511: o rótulo curto vale com ou sem a amostra aberta, o mesmo que os trailers dos cards mostram.
 // Arquivo próprio porque lib/ui/homeThreeCards.ts é travado byte a byte pelas camadas dos guardiões. Guardião: scripts/test-frente-0411.mjs.
-import { HOME_CARD_ADS_CTA, type HomeCardId } from '@/lib/ui/homeThreeCards'
+import type { HomeCardId } from '@/lib/ui/homeThreeCards'
 
 /** [produto, UGC] nas 16 línguas da interface. */
 export const HOME_CARD_BOTOES_0411: Record<string, readonly [string, string]> = {
@@ -24,9 +24,7 @@ export const HOME_CARD_BOTOES_0411: Record<string, readonly [string, string]> = 
 }
 
 /** O rótulo do botão do card de anúncio, sem a palavra "grátis". */
-export function homeCardBotao(card: HomeCardId, language: string, sampleLive: boolean): string {
-  const ugc = card === 'ugc_ads'
-  if (sampleLive) { const t = HOME_CARD_BOTOES_0411[language] ?? HOME_CARD_BOTOES_0411.en; return ugc ? t[1] : t[0] }
-  const t = HOME_CARD_ADS_CTA[language] ?? HOME_CARD_ADS_CTA.en
-  return ugc ? t[3] : t[2]
+export function homeCardBotao(card: HomeCardId, language: string, _sampleLive?: boolean): string {
+  const t = HOME_CARD_BOTOES_0411[language] ?? HOME_CARD_BOTOES_0411.en
+  return card === 'ugc_ads' ? t[1] : t[0]
 }

@@ -20,8 +20,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
-import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
-import { STARTER_MO } from '@/lib/marketingPrice'
 import {
   CHATGPT_QUICKSTART_INPUT_LIMIT,
   CHATGPT_QUICKSTART_VARIANT,
@@ -269,7 +267,8 @@ export function ChatGptWelcomeCard({
       </div>
       {/* KINEO-PLUGIN-SEM-PROMO-2026-10-05 — a promessa de todos os motores liberados era falsa (conta grátis não usa Kling/Veo sem plano). */}
       <p className={styles.proof}>
-        {TRIAL_CREDITS_SHOWN} free credits · no card · plans from {STARTER_MO}
+        {/* KINEO-PRIMEIRA-TELA-0511 — regra de 02/11: sem preço antes do 1º filme. E a frase antiga prometia créditos grátis também a quem não tem (35 pessoas de país sem teste em 7 dias). */}
+        Narration, scenes, captions and music included.
       </p>
       <button type="button" aria-label="Dismiss" className={styles.dismiss} onClick={onDismiss}>
         ×

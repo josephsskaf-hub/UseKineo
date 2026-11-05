@@ -94,7 +94,7 @@ function checa(over = {}) {
   const st = over[F.studio] ?? read(F.studio)
   req(/const s25SomeNoPrimeiroFilme = firstFilmHistoryEmpty && s25Liberado !== true/.test(st) && /\(e\.key !== 's25' \|\| \(internal && !s25SomeNoPrimeiroFilme\)\)/.test(st), 'C Studio: o card trancado do 2.5 some do seletor para conta sem filme')
   req(/s25SomeNoPrimeiroFilme \/\* KINEO-MURO-PRIMEIRO-FILME-0311 \*\/ \|\| s25SeloVistoRef\.current/.test(st), 'C Studio: a impressão do selo não conta quem não viu o selo')
-  req(/const semOfertaAntesDoFilme = firstFilmHistoryEmpty && contaPaga !== true/.test(st) && /\{!semOfertaAntesDoFilme && <Kling4PaidNotice surface="studio"/.test(st), 'C Studio: aviso do Kling 4 some só para conta sem filme e sem pagar')
+  req(/const semOfertaAntesDoFilme = \(firstFilmHistoryEmpty \|\| !historicoLido\) && contaPaga !== true/.test(st) && /\{!semOfertaAntesDoFilme && <Kling4PaidNotice surface="studio"/.test(st), 'C Studio: aviso do Kling 4 some só para conta sem filme e sem pagar')
   req(!/primeiroFilme|semOfertaAntesDoFilme/.test(over[F.pricing] ?? read(F.pricing)), 'C o componente do aviso não muda (preços/anúncios seguem mostrando)')
   return erros
 }
