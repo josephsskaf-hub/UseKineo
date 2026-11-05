@@ -50,8 +50,8 @@ async function provaDaTela(mutar = {}) {
 
     // ── Padrões reais do catálogo; prévia nunca vazia
     const real = client({ lang: 'en', internalControls: false, form: null }); real.render()
-    exige(real.states[0].presenter_id === 'sofia' && real.states[0].category === '' && real.states[0].scenario_id === '', 'estado inicial real: pessoa marcada, categoria e cenário esperando a categoria')
-    exige(/Sofia/.test(nodeText(kineo(real, 'ads-pessoa-cena'))), 'estado inicial real: a linha mostra a pessoa')
+    exige(real.states[0].presenter_id === 'jade' && real.states[0].category === '' && real.states[0].scenario_id === '', 'estado inicial real: pessoa marcada, categoria e cenário esperando a categoria') // KINEO-FLUXO2-E-0411 — a pessoa padrão deixou de ser a primeira do catálogo: o retrato da Sofia mostra um rótulo de marca
+    exige(/Jade/.test(nodeText(kineo(real, 'ads-pessoa-cena'))), 'estado inicial real: a linha mostra a pessoa')
     const entradaUgc = client({ lang: 'en', internalControls: false, form: null }); entradaUgc.render()
     exige(!!entradaUgc.states[0].language, 'estado inicial real: língua da interface')
     const novo = client({ lang: 'en', internalControls: false, form: VAZIO }); novo.render()
@@ -124,7 +124,7 @@ checa('os controles internos seguem atrás da chave', fonte.includes('{internalC
 // ── Padrões existem no catálogo (executando o catálogo)
 const carregar = createOfflineLoader()
 const cat = carregar('lib/ads/cena/escolhaCatalog.ts')
-checa('a pessoa padrão é a primeira do catálogo', fonte.includes('const PESSOA_PADRAO = CENA_ESCOLHA_PRESENTERS[0].id') && !!cat.escolhaPresenter(cat.CENA_ESCOLHA_PRESENTERS[0].id))
+checa('a pessoa padrão existe no catálogo', /const PESSOA_PADRAO = 'jade'/.test(fonte) && !!cat.escolhaPresenter('jade'))
 checa('toda categoria tem primeiro cenário real', fonte.includes('escolhaScenarios(category)[0]?.id') && Object.keys(cat.CENA_ESCOLHA_CATEGORY_LABELS).every((c) => cat.escolhaScenario(cat.escolhaScenarios(c)[0]?.id)?.category === c))
 
 // ── A categoria não nasce marcada ENQUANTO o servidor recusar (a armadilha da amostra presa por 5 min)

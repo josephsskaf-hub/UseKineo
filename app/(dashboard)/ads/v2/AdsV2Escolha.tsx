@@ -27,9 +27,10 @@ type Note = { message?: string; code?: string }
 type Form = { foto: string; frase: string; oferta: string; beneficios: string; cta: string; language: string; formato: CenaEscolhaFormat; voice_mode: 'narrated' | 'talking'; rota: '' | 'kling3' | 'kling4' | 'seedance2' | 'veo31'; presenter_id: string; category: '' | CenaCategory; scenario_id: string }
 type Saved = { version: typeof CENA_ESCOLHA_MARK; form: Form; order_id: string; stage: Stage; stills: Still[]; still_id: string; narration_used: string; quality_notes: Note[]; credits: number | null; photo_round?: number; max_photo_rounds?: number; photo_failure?: boolean; choice_locked?: boolean; sample?: boolean; kling4_promo?: { free?: unknown; reason?: unknown } | null; engine_used?: unknown }
 const COMPLETE_CREDITS = adsV2Credits('commercial', 15)
-// KINEO-ADS-PRODUTO-PRIMEIRO-0411 — padrões tirados do catálogo, nunca digitados: a primeira pessoa e o primeiro cenário da categoria.
+// KINEO-ADS-PRODUTO-PRIMEIRO-0411 — padrões tirados do catálogo: o primeiro cenário da categoria.
 // ⛔ A categoria NÃO nasce marcada: lib/ads/cena/escolhaPlan.ts recusa quando a foto é de outra categoria (só o classificador dizer 'other' passa). Com "Outro produto" de fábrica, perfume, relógio ou tênis ouviriam essa recusa em toda primeira tentativa. Marcar por padrão só depois de mudar aquela regra no servidor.
-const PESSOA_PADRAO = CENA_ESCOLHA_PRESENTERS[0].id
+// KINEO-FLUXO2-E-0411 [fundador 04/11: "recomendações"] — a primeira prévia não mostra marca de ninguém: os retratos de Sofia e Amara seguram um frasco com rótulo legível ("LUME"), Jade não segura produto. Conferido a olho em public/ads/presenters; o catálogo e a ordem da lista não mudam. Quem escolher Sofia continua vendo Sofia.
+const PESSOA_PADRAO = 'jade'
 const cenaPadrao = (category: unknown): string => escolhaScenarios(category)[0]?.id ?? ''
 const SAMPLE_PLANS: readonly { tier: CheckoutPlanTier; name: string }[] = [{ tier: 'starter', name: 'Starter' }, { tier: 'basic', name: 'Creator' }, { tier: 'pro', name: 'Studio' }, { tier: 'business', name: 'Business' }]
 const https = (v: unknown): v is string => { try { return typeof v === 'string' && new URL(v).protocol === 'https:' } catch { return false } }

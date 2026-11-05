@@ -47,7 +47,22 @@ async function provaDaTela(mutar = {}) {
   return erros
 }
 // As provas dos outros itens entram aqui.
-async function provasExtras(h) { await provaB(h); await provaC(h) }
+async function provasExtras(h) { await provaB(h); await provaC(h); await provaE(h) }
+
+// ── E: a primeira prévia não mostra marca de ninguém
+const COM_ROTULO = ['sofia', 'amara'] // os dois retratos com frasco e rótulo legível, conferidos a olho em 04/11
+async function provaE({ client, nodeText, exige, kineo }) {
+  const u = client({ lang: 'en', internalControls: false, form: null }); u.render()
+  exige(!COM_ROTULO.includes(u.states[0].presenter_id), 'E a pessoa de fábrica não é um retrato com rótulo')
+  const portrait = u.nodes().find((n) => n.type === 'img' && n.props.className === 'ace-stage-portrait')
+  exige(!!portrait && !COM_ROTULO.some((p) => portrait.props.src.includes(p)), 'E a prévia de fábrica mostra um retrato sem rótulo')
+  exige(/Jade/.test(nodeText(kineo(u, 'ads-pessoa-cena'))), 'E a linha nomeia a pessoa da prévia')
+  const lista = u.nodes().filter((n) => n.props?.name === 'ace-person').map((n) => n.props.value)
+  exige(lista[0] === 'sofia' && lista.includes('jade'), 'E o catálogo e a ordem da lista não mudaram')
+  const escolheu = client({ lang: 'en', internalControls: false, form: null }); escolheu.render()
+  escolheu.nodes().find((n) => n.props?.name === 'ace-person' && n.props.value === 'sofia').props.onChange(); escolheu.render()
+  exige(escolheu.states[0].presenter_id === 'sofia' && escolheu.nodes().some((n) => n.type === 'img' && n.props.className === 'ace-stage-portrait' && n.props.src.includes('sofia')), 'E quem escolhe Sofia vê a Sofia')
+}
 
 // ── C: a tela fala a língua de quem compra
 async function provaC({ client, exige, textos }) {
@@ -140,7 +155,11 @@ for (const lang of ['en', 'pt', 'es']) {
   checa(`C recusas em ${lang}: sem "still", fluxo nem plano interno`, !frases.some((f) => /\bstills?\b|\bflujo\b|\bfluxo\b|previous flow|outro plano|plano novo|another plan|new plan|otro plan\b|plan nuevo/i.test(f)))
 }
 
+checa('E o retrato da pessoa de fábrica existe', fs.existsSync('public/ads/presenters/jade.webp'))
+
 const MUTANTES = [
+  ['E Sofia de volta como fábrica', (t) => t.replace("const PESSOA_PADRAO = 'jade'", 'const PESSOA_PADRAO = CENA_ESCOLHA_PRESENTERS[0].id'), /retrato com rótulo|retrato sem rótulo/],
+  ['E Amara como fábrica', (t) => t.replace("const PESSOA_PADRAO = 'jade'", "const PESSOA_PADRAO = 'amara'"), /retrato com rótulo/],
   ['C notas de revisão para o cliente', (t) => t.replace('{internalControls && notes.length ?', '{notes.length ?'), /notas de revisão/],
   ['C título técnico de volta', (t) => t.replace("t3('Sua narração', 'Your voiceover', 'Tu narración')", "'The narration that will be used'"), /Your voiceover/],
   ['C still de volta', (t) => t.replace("t('Gerar vídeo com esta foto', 'Generate video with this photo')", "t('Gerar vídeo com esta foto', 'Generate video with this still')"), /palavra "still"/],
