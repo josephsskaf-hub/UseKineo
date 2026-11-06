@@ -5,7 +5,7 @@ import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/
 
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 import PricingIncludes0511 from '@/components/pricing/PricingIncludes0511' // KINEO-PRICING-INCLUI-0511
-import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/pricing/planoDetalhado' // KINEO-PRICING-DETALHE-0611
+import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/planoDetalhado' // KINEO-PRICING-DETALHE-0611
 
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'

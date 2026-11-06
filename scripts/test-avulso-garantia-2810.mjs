@@ -59,7 +59,7 @@ checa('importa a fonte única', PRICING_SRC.includes("import { FIRST_FILM_GUARAN
 const iCta = stage.indexOf("{props.selected ? props.ctaLabel : `Select ${props.name}`}")
 const iLine = stage.indexOf('data-testid="plan-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>')
 checa('a linha aparece uma vez, logo abaixo dos planos', PRICING_SRC.includes('data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>') && !stage.includes('FIRST_FILM_GUARANTEE'))
-checa('a garantia de 7 dias continua no topo da página', PRICING_SRC.includes("['Cancel anytime', MONEY_BACK_GUARANTEE]"))
+checa('a garantia de 7 dias continua no topo da página', PRICING_SRC.includes('{[MONEY_BACK_GUARANTEE].map(') /* KINEO-PRICING-DETALHE-0611 — cancelar saiu do topo; a garantia fica */)
 
 console.log('3) portão "Continue to secure checkout" (compra sem conta)')
 const gateSrc = rd('lib/growth/checkoutRobotGate.ts')

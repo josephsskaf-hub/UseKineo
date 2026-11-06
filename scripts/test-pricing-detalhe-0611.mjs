@@ -3,7 +3,7 @@ import fs from 'node:fs'
 const ler = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')
 let falhas = 0
 const checa = (n, c) => { console.log((c ? '  ok  ' : '  FALHA ') + n); if (!c) falhas++ }
-const pagina = ler('app/pricing/PricingClient.tsx'), cartao = ler('components/pricing/PlanValueStage.tsx'), inclui = ler('components/pricing/PricingIncludes0511.tsx'), lista = ler('lib/pricing/planoDetalhado.ts')
+const pagina = ler('app/pricing/PricingClient.tsx'), cartao = ler('components/pricing/PlanValueStage.tsx'), inclui = ler('components/pricing/PricingIncludes0511.tsx'), lista = ler('lib/planoDetalhado.ts')
 checa('topo sem cancelar', !pagina.includes("{['Cancel anytime', MONEY_BACK_GUARANTEE]"))
 const sob = pagina.slice(pagina.indexOf('save={annual'), pagina.indexOf('extra={localMethod'))
 checa('sem cancelar embaixo do botão', !/cancel anytime/i.test(sob))
