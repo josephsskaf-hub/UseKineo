@@ -36,8 +36,8 @@ const CSS = `
 .kb-biz-list li{display:flex;gap:10px;font-size:14px;line-height:1.45;color:var(--text2,var(--text))}
 .kb-biz-list li::before{content:"✓";font-weight:800;color:var(--accent)}
 .kb-biz-buy{border:1px solid var(--border);background:var(--card2,var(--card));border-radius:18px;padding:24px;text-align:center}
-.kb-biz-price{font-size:44px;font-weight:800;line-height:1;color:var(--text)}
-.kb-biz-price small{font-size:15px;font-weight:600;color:var(--muted)}
+.kb-biz-price{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--text)} /* KINEO-PRECO-CIFRAO-0611 */
+.kb-biz-price small{font-size:15px;font-weight:600;letter-spacing:0;color:var(--muted)}
 .kb-biz-note{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
 .kb-biz-cta{display:block;width:100%;margin:18px 0 0;border:0;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:750;cursor:pointer;background:var(--accent);color:var(--on-accent,#fff)}
 .kb-biz-cta[disabled]{opacity:.7;cursor:progress}

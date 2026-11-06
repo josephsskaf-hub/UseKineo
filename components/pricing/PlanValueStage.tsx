@@ -78,22 +78,24 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-tag{margin:6px 0 0;font-size:14px;font-weight:500;line-height:1.4;color:var(--pv-muted)}
 .pv-films{margin:14px 0 0;padding:14px 14px 13px;border-radius:12px;background:var(--pv-chip-bg);color:var(--pv-text)}
 .pv-films-main{margin:0;font-size:17px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
-.pv-films-n{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.pv-films-n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
 .pv-films-or{margin:7px 0 0;font-size:14px;font-weight:500;line-height:1.4}
-.pv-films-or b{font-weight:700;font-variant-numeric:tabular-nums}
+.pv-films-or b{font-weight:700}
 .pv-rule{height:1px;margin:14px 0;border:0;background:var(--pv-line)}
 .pv-credits{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
 .pv-credits svg{width:18px;height:18px;flex:none}
 .pv-lines{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
 .pv-line{display:flex;gap:8px;font-size:14.5px;font-weight:500;line-height:1.4}
 .pv-sym{width:14px;flex:none;text-align:center;color:var(--pv-faint);font-weight:700}
-.pv-n{font-weight:700;font-variant-numeric:tabular-nums}
+.pv-n{font-weight:700}
 .pv-dim{color:var(--pv-muted)}
 .pv-mix{margin:10px 0 0;font-size:12px;color:var(--pv-faint)}
 .pv-buy{padding:14px 16px 4px}
 .pv-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px}
 .pv-was{font-size:18px;font-weight:600;color:var(--pv-faint);text-decoration:line-through}
-.pv-amount{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+/* KINEO-PRECO-CIFRAO-0611 — fundador 06/11: "o cifrão está esquisito". O espaço fixo dos números abria um vão no 1 ("$1 9") e o cifrão pesava igual ao valor: número proporcional e cifrão pequeno no alto. */
+.pv-amount{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.pv-cur{position:relative;top:-.62em;margin-right:.06em;font-size:.56em;font-weight:600;letter-spacing:0}
 .pv-per{font-size:13px;font-weight:500;color:var(--pv-muted)}
 .pv-note{margin:6px 0 0;font-size:12.5px;color:var(--pv-muted)}
 .pv-cta{margin-top:14px;display:block;width:100%;min-height:46px;border:0;border-radius:10px;padding:12px 16px;font:inherit;font-size:15px;font-weight:700;
@@ -191,7 +193,14 @@ const seconds = (list: number[]) => {
   return lo === hi ? `${lo} s` : `${lo}–${hi} s`
 }
 
+/** KINEO-PRECO-CIFRAO-0611 — separa o símbolo do valor ("$19", "R$ 94,90"). Sem símbolo na frente ou sem número ("—"), o texto segue inteiro. */
+export function partesDoPreco(amount: string): { simbolo: string; valor: string } | null {
+  const m = /^([^\d\s]+)\s*(\d.*)$/.exec(amount.trim())
+  return m ? { simbolo: m[1], valor: m[2] } : null
+}
+
 export function PlanValueCard(props: PlanValueCardProps) {
+  const preco = partesDoPreco(props.amount)
   const value = planValueForPage(props.credits)
   const lines = planValueCardLines(value)
   const topClip = lines.clips[0] ?? null
@@ -255,7 +264,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
       <div className="pv-buy">
         <div className="pv-price">
           {props.was ? <span className="pv-was">{props.was}</span> : null}
-          <span className="pv-amount">{props.amount}</span>
+          <span className="pv-amount">{preco ? <><span className="pv-cur">{preco.simbolo}</span>{preco.valor}</> : props.amount}</span>
           <span className="pv-per">{props.per}</span>
         </div>
         {props.note ? <p className="pv-note">{props.note}</p> : null}
