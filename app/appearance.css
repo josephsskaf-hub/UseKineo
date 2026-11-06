@@ -374,11 +374,3 @@ body::before{z-index:-1}
 @media(max-width:767px){
   body:has(.ksx) .kineo-aviso-teste{display:none!important}
 }
-
-/* KINEO-HOME-DOIS-EIXOS-0611 — fundador 06/11: os cards de baixo só apareciam em 20%. Só no computador: os 4 de cima mais baixos, para a vitrine dividir a primeira tela. */
-@media (min-width:761px){
-  .klp .k3c-grid{max-width:100%!important}
-  .klp .k3c-card{aspect-ratio:auto!important;height:clamp(300px,42vh,400px)!important}
-  .klp .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 12%!important}
-  .klp .kmz{padding-top:10px!important}
-}
