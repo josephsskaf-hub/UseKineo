@@ -368,3 +368,4 @@ body::before{z-index:-1}
   .kpn-menu a[data-nav-item="login"]{margin-top:auto}
   .kpn-menu a.kpn-cta{flex:none;justify-content:center;margin-top:12px!important;background:var(--indigo)!important;border-color:var(--indigo)!important;color:var(--on-accent,#04122E)!important}
 }
+@media(max-width:767px){.kpn-right .kpn-menu .kineo-interface-language{display:block!important;flex:none;width:100%;margin:6px 0 0}}
