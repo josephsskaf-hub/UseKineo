@@ -2165,6 +2165,87 @@ export function clipSpeechAnchors(input: {
   return out
 }
 
+// ═══ KINEO-FIM-NAO-VOLTA-0611 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — os cortes do ramo clássico ═══
+// Revisor 05/11 (Roland, 54bc40c3: Seedance 1.5, 11 clipes de 10 s, fala de 104,9 s → filme de 105 s): os últimos 3,6 s do filme
+// voltaram à cena de ABERTURA. Com 105 s / 11 clipes o slot é 9,545 s e o teto do corte é 10 s: o encaixe no início de frase só
+// conseguia ENCURTAR (até −1,8 s), quase nunca alongar (+0,455 s). Quatro cortes encurtados (−1,275 −0,93 −1,12 −0,305) somaram
+// 3,63 s; os 11 clipes acabaram em 101,365 s e a sobra foi para cleanClips[11 % 11] = o clipe 0. Irmão do mesmo defeito: no último
+// clipe, resto entre o slot e o teto (ou só o arredondamento do slot) deixava um toco que também caía no clipe 0.
+// Esta função é a conta dos cortes do ramo (o laço de antes, linha a linha) mais UMA guarda na 1ª passada pelos clipes
+// (`guardaDoFim`, fora do fast stock): o que sobra da linha do tempo tem de caber nos clipes que restam, cada um com no máximo o
+// teto do corte (maxCut — o mesmo teto de antes: nenhum clipe mostra mais tela do que já podia). O corte de antes que respeita isso
+// fica como era (todo plano que não voltava ao clipe 0 sai igual); senão vale o início de frase mais perto do alvo que respeite;
+// sem frase que sirva, a cadência fixa ou, se nem ela basta, o mínimo necessário; o último clipe leva o resto. Quando a imagem não
+// cobre a fala (clipes × teto < duração) nada muda: o reuso de sempre. Pura e sem dependência (o guardião a executa).
+export function planClassicClipCuts(input: {
+  totalDuration: number
+  clipCount: number
+  slotLen: number
+  minCut: number
+  maxCut: number
+  beatTimes: ReadonlyArray<number>
+  /** false no fast stock (Kineo 1): lá reciclar clipe é de propósito. */
+  guardaDoFim: boolean
+}): number[] {
+  const { totalDuration, clipCount, slotLen, minCut, maxCut, beatTimes } = input
+  const r3 = (v: number) => Math.round(v * 1000) / 1000
+  const tetoMs = Math.round(maxCut * 1000)
+  const cobre = input.guardaDoFim && clipCount > 0 && clipCount * tetoMs >= Math.ceil(totalDuration * 1000 - 1e-6)
+  const cortes: number[] = []
+  let cursor = 0
+  let i = 0
+  while (cursor < totalDuration) {
+    const remaining = totalDuration - cursor
+    let segLen = r3(Math.min(slotLen, remaining))
+    const idealEnd = cursor + slotLen
+    const lo = cursor + minCut
+    const hi = cursor + maxCut
+    const fraseMaisPerto = (piso: number): number | null => {
+      let best: number | null = null
+      let bestDist = Infinity
+      for (const t of beatTimes) {
+        if (t <= lo || t >= hi) continue
+        if (r3(t - cursor) < piso) continue
+        const d = Math.abs(t - idealEnd)
+        if (d < bestDist) {
+          bestDist = d
+          best = t
+        }
+      }
+      return best
+    }
+    // Snap this cut's END to the nearest sentence start inside [min,max]. Only
+    // when there's still more than a full max-slot of timeline left, so the
+    // final clip keeps the plain fixed behavior and never leaves a stub.
+    if (beatTimes.length > 0 && remaining > maxCut) {
+      const best = fraseMaisPerto(0)
+      if (best != null) {
+        const snapped = r3(best - cursor)
+        if (snapped >= minCut && snapped <= remaining) segLen = snapped
+      }
+    }
+    if (!(segLen > 0.4)) segLen = r3(Math.min(slotLen, remaining))
+    if (cobre && i < clipCount) {
+      // quanto ESTE clipe precisa levar para o resto caber nos clipes que faltam (cada um até o teto), em milissegundos inteiros
+      const precisa = (Math.ceil(remaining * 1000 - 1e-6) - (clipCount - 1 - i) * tetoMs) / 1000
+      if (segLen < precisa) {
+        segLen = Math.max(precisa, r3(Math.min(slotLen, remaining)))
+        if (beatTimes.length > 0 && remaining > maxCut) {
+          const best = fraseMaisPerto(precisa)
+          if (best != null) {
+            const snapped = r3(best - cursor)
+            if (snapped >= minCut && snapped <= remaining) segLen = snapped
+          }
+        }
+      }
+    }
+    cortes.push(segLen)
+    cursor = r3(cursor + segLen)
+    i += 1
+  }
+  return cortes
+}
+
 /**
  * Build a Creatomate source JSON: video clips tiled to fill `duration`,
  * voiceover audio across the full timeline, captions evenly distributed, and —
@@ -2652,34 +2733,13 @@ export function buildCreatomateSource({
       : []
   const minCut = isFastStock ? FAST_MIN_CUT_SECONDS : Math.max(1.5, slotLen - 1.8)
   const maxCut = isFastStock ? FAST_MAX_CUT_SECONDS : Math.min(CLIP_LEN, slotLen + 2.5)
+  // KINEO-FIM-NAO-VOLTA-0611 — a conta dos cortes (o laço de antes) vive em planClassicClipCuts, com a guarda que não deixa o fim
+  // do filme voltar ao clipe 0 quando os clipes cobrem a fala. Fast stock: sem guarda, cortes byte a byte os de antes.
+  const cortes = planClassicClipCuts({ totalDuration, clipCount: cleanClips.length, slotLen, minCut, maxCut, beatTimes, guardaDoFim: !isFastStock })
   let cursor = 0
   let i = 0
-  while (cursor < totalDuration) {
-    const remaining = totalDuration - cursor
-    let segLen = round3(Math.min(slotLen, remaining))
-    // Snap this cut's END to the nearest sentence start inside [min,max]. Only
-    // when there's still more than a full max-slot of timeline left, so the
-    // final clip keeps the plain fixed behavior and never leaves a stub.
-    if (beatTimes.length > 0 && remaining > maxCut) {
-      const idealEnd = cursor + slotLen
-      const lo = cursor + minCut
-      const hi = cursor + maxCut
-      let best: number | null = null
-      let bestDist = Infinity
-      for (const t of beatTimes) {
-        if (t <= lo || t >= hi) continue
-        const d = Math.abs(t - idealEnd)
-        if (d < bestDist) {
-          bestDist = d
-          best = t
-        }
-      }
-      if (best != null) {
-        const snapped = round3(best - cursor)
-        if (snapped >= minCut && snapped <= remaining) segLen = snapped
-      }
-    }
-    if (!(segLen > 0.4)) segLen = round3(Math.min(slotLen, remaining))
+  while (i < cortes.length) {
+    const segLen = cortes[i]
     const url = cleanClips[i % cleanClips.length]
     // KINEO-SPRINT-12H-2026-07-29 — RE-ENTRY OFFSET on recycled footage.
     //
