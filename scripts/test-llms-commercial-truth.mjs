@@ -18,6 +18,8 @@ async function verify(reverseTrialEnabled) {
   const route = load('app/llms.txt/route.ts')
   const policy = load('lib/entryPolicy.ts')
   const facts = load('lib/kineoFacts.ts')
+  const launch = load('lib/engineLaunch.ts')
+  const checkout = load('lib/checkoutPricing.ts')
   const settlement = load('lib/settlementCurrency.ts')
   const { CITATION_ANSWER_LINKS, CITATION_BASE } = load('lib/growth/citationAnswers.ts')
   const response = route.GET()
@@ -43,7 +45,8 @@ async function verify(reverseTrialEnabled) {
   // em 05/10 (o saldo do trial paga o filme grátis de 15 s, não um filme nos outros motores). A seção diz o que o saldo paga;
   // a frase velha não volta (prova com mutante: scripts/test-geo-rodada3-2026-10-08.mjs, R10 / M27).
   assert.doesNotMatch(free, /every engine.*unlocked/i)
-  assert.match(free, /Trial engine access: the trial balance pays for the free film below; a full film on any other engine needs a paid plan or a credit pack/)
+  assert.ok(free.includes(`a full film on any other engine needs a paid plan${checkout.TOPUPS_LIVE ? ' or a credit pack' : ''};`))
+  if (!checkout.TOPUPS_LIVE) assert.doesNotMatch(free, /or a credit pack/)
   assert.match(free, /Access does not mean the balance covers a full video\./)
   } else {
   assert.ok(free.includes(`Up to ${facts.FREE_TIER.videosPer24h} ${facts.FREE_TIER.engine} videos every 24 hours`), 'Legacy flag state remains unchanged')
@@ -68,6 +71,11 @@ async function verify(reverseTrialEnabled) {
   assert.doesNotMatch(shipped, /2026-09-09 \(morning|2026-09-08 \(|2026-08-19\/20/)
   assert.doesNotMatch(shipped, /\$1 trial|no free tier any more|single USD price worldwide|supersedes the two entries below/)
   assert.match(shipped, /2026-09-09 \(evening\): the free trial is back/)
+  assert.match(shipped, /Studio uses its regular annual price/)
+  if (launch.H3_TURBO_PUBLIC) {
+    assert.doesNotMatch(body, /Where to use Seedance 1\.5 online/)
+    assert.match(body, /The standard narrated film uses MiniMax H3 Turbo/)
+  }
   for (const { path } of CITATION_ANSWER_LINKS) {
     assert.ok(body.includes(`](${CITATION_BASE}${path})`), `Existing guide remains linked: ${path}`)
   }
