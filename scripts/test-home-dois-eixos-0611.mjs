@@ -8,6 +8,6 @@ ok('cards de cima sem altura fixa', !css.includes('KINEO-HOME-DOIS-EIXOS-0611') 
 ok('2 vídeos abrem a vitrine da home, em fileira cheia', m.includes('[...HOME_MOTION_TILES, ...ordem]') && (m.match(/kind: 'motion', title/g) || []).length === 3)
 ok('página Made with Kineo sem os 2', m.includes('if (opts.full) return ordem'))
 ok('selo do motor real', m.includes('Multi-camera · Kling 3'))
-for (const f of ['public/previews/motion-surf-0611.mp4', 'public/previews/motion-rua-0611.mp4', 'public/posters/motion-surf-0611.webp', 'public/posters/motion-rua-0611.webp', 'public/previews/motion-corrida-0611.mp4', 'public/posters/motion-corrida-0611.webp']) ok('arquivo ' + f, existsSync(new URL('../' + f, import.meta.url)))
+for (const f of ['public/previews/motion-surf-0611.mp4', 'public/previews/motion-rua-0611.mp4', 'public/posters/motion-surf-0611.webp', 'public/posters/motion-rua-0611.webp', 'public/previews/motion-neve-0611.mp4', 'public/posters/motion-neve-0611.webp']) ok('arquivo ' + f, existsSync(new URL('../' + f, import.meta.url)))
 if (falhas) { console.error(falhas + ' FALHA(S)'); process.exit(1) }
 console.log('TUDO OK')

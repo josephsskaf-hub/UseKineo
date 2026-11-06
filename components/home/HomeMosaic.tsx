@@ -71,7 +71,7 @@ type Tile =
 export const HOME_MOTION_TILES: readonly Tile[] = [
   { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
   { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
-  { kind: 'motion', title: 'Street-level tracking', video: '/previews/motion-corrida-0611.mp4', poster: '/posters/motion-corrida-0611.webp', focus: '50% 70%' },
+  { kind: 'motion', title: 'One rider, one mountain', video: '/previews/motion-neve-0611.mp4', poster: '/posters/motion-neve-0611.webp', focus: '50% 50%' },
 ]
 
 const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
