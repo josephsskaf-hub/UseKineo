@@ -8,6 +8,7 @@ import { KIDS_PRICES, KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_VENDA_DURATION, KIDS_VIDE
 import { kidsSampleEligibility, kidsServiceClient, loadKidsStatus } from '@/lib/kidsVenda/server'
 import { KIDS_EPISODIO_GRATIS_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-CARTOON-SO-PLANO-0411
 import { kidsAcessoAoDesenho } from '@/lib/kidsVenda/planoDoDesenho' // KINEO-CARTOON-SO-PLANO-0411
+import { filmeGratisAberto } from '@/lib/kidsVenda/filmeGratisDoDesenho' // KINEO-CELULAR-FLUXO-0611
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -23,7 +24,17 @@ export async function GET() {
   const status = await loadKidsStatus(db, user.id)
   const acesso = await kidsAcessoAoDesenho({ userId: user.id, email: user.email }) // KINEO-CARTOON-SO-PLANO-0411
   const sample = open && KIDS_EPISODIO_GRATIS_LIVE ? await kidsSampleEligibility(db, { userId: user.id, live: KIDS_SALES_OPEN_FOR_PUBLIC, internal }) : { ok: false as const, reason: 'closed' as const }
+  // KINEO-CELULAR-FLUXO-0611 — só lê: conta sem plano com filme grátis ainda aberto. Erro de leitura = não mostra.
+  let freeFilm = false
+  if (acesso === 'sem_plano') {
+    const [{ data: perfil, error: e1 }, { count, error: e2 }] = await Promise.all([
+      db.from('profiles').select('trial_status, has_paid, video_credits').eq('id', user.id).maybeSingle(),
+      db.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'completed'),
+    ])
+    freeFilm = !e1 && !e2 && filmeGratisAberto(perfil, count ?? null)
+  }
   return NextResponse.json({
+    free_film: freeFilm,
     ready: status.ready,
     open,
     cartoon_plan: acesso === 'ok' ? true : acesso === 'sem_plano' ? false : null, // KINEO-CARTOON-SO-PLANO-0411 — null = não deu para ler; quem decide no fim é a rota

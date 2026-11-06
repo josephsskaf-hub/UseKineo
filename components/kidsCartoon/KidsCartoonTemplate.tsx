@@ -160,6 +160,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
   const [balance, setBalance] = useState<number | null>(null)
   const [clips, setClips] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   const [composePct, setComposePct] = useState(0)
+  const [filmeGratis, setFilmeGratis] = useState(false) // KINEO-CELULAR-FLUXO-0611 — por último: o guardião do Cartoon conta os estados pela ordem
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   // KINEO-ESTREIA-3110 — o status de CADA cena que o poll já recebia (só tela) + a fala de cada cena para a linha "agora".
   const [sceneClips, setSceneClips] = useState<{ status: string; url: string | null }[]>([])
@@ -196,7 +197,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
         if ((KIDS_CARTOON_DURATIONS as readonly unknown[]).includes(r.duration)) setDuration(r.duration as KidsCartoonDuration) // KINEO-CARTOON-SO-PLANO-0411
       }
     }
-    if (!visitante) fetch('/api/kids-venda/status', { cache: 'no-store', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).then((d: { cartoon_plan?: unknown } | null) => { if (alive.current && d?.cartoon_plan === false) setSemPlano(true) }).catch(() => { /* sem leitura: a rota decide no clique */ }) // KINEO-CARTOON-SO-PLANO-0411
+    if (!visitante) fetch('/api/kids-venda/status', { cache: 'no-store', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).then((d: { cartoon_plan?: unknown; free_film?: unknown } | null) => { if (alive.current && d?.cartoon_plan === false) setSemPlano(true); if (alive.current && d?.free_film === true) setFilmeGratis(true) /* KINEO-CELULAR-FLUXO-0611 */ }).catch(() => { /* sem leitura: a rota decide no clique */ }) // KINEO-CARTOON-SO-PLANO-0411
     const onCredits = () => readBalance()
     window.addEventListener('creditsChanged', onCredits)
     // Retomada: o filme que estava saindo nesta conta, nesta aba ou noutra, continua na mesma tela depois de recarregar.
@@ -443,6 +444,13 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
           <p className="sub">{t.lead}</p>
         </div>
       </header>
+      {/* KINEO-CELULAR-FLUXO-0611 — conta sem plano com filme grátis aberto: a saída vem antes dos personagens; o desenho segue só com plano. */}
+      {semPlano && filmeGratis && !visitante ? (
+        <section className="ace-card" data-kineo="kids-filme-gratis">
+          <p className="ace-hint">{t.freeFilmNote}</p>
+          <Link className="kkc-go kkc-big" href="/studio" onClick={() => { void trackEvent('kids_cartoon_free_film_clicked', { surface: 'top' }) }}>{t.freeFilmCta} <span aria-hidden="true">→</span></Link>
+        </section>
+      ) : null}
       {episodios}
       <div className="kps-grid">
       <div className="kps-panel">

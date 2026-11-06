@@ -61,3 +61,13 @@
   .continueButton, .ideaButton { min-width: 0; min-height: 44px; }
   .proof { text-align: left; }
 }
+
+/* KINEO-CELULAR-FLUXO-0611 — no celular o cartão media 623 px e empurrava o Generate para 994 px, fora da primeira tela. 37 de 47
+   visitas do ChatGPT vêm do celular. Fica a caixa e um botão; o botão da ideia volta quando há texto. A caixa de ideia está logo abaixo. */
+@media (max-width: 767px) {
+  .quickstart { gap: 10px; padding: 14px 38px 12px 14px; }
+  .copy p, .editor label, .editor > span, .proof, .noScript, .ideaButton:disabled { display: none; }
+  .editor { padding: 0; background: none; border: 0; }
+  .limitRow { min-height: 0; }
+  .limitRow .counter:not(.counterOver) { display: none; }
+}

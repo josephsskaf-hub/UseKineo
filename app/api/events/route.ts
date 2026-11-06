@@ -358,6 +358,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'scene_preview_shown',
   'scene_preview_refused',
   'scene_preview_cta_clicked',
+  'kids_cartoon_free_film_clicked', // KINEO-CELULAR-FLUXO-0611
   'scene_preview_routed',
   // KINEO-BRASIL-VOLTA-2026-10-03 — escrito SÓ por /api/admin/br-recredit (com ?confirm=APPLY): é o rastro do crédito.
   'admin_br_trial_recredited',
