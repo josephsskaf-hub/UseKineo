@@ -45,7 +45,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro, presente 
       {/* Hamburger (mobile) */}
       <button
         onClick={onMenuToggle}
-        className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+        className="md:hidden w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
         style={{
           background: 'rgba(255,255,255,.03)',
           border: '1px solid var(--border)',
@@ -94,8 +94,10 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro, presente 
           was removed on every page per Joseph: the sidebar entry is the single
           nav home for the Avatar product; the top bar stays clean. */}
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-        <InterfaceLanguageSelect />
-        <AppearanceSettingsButton />
+        <div className="kineo-topbar-extras flex items-center gap-2">{/* KINEO-CELULAR-A-0611 — no celular, idioma e aparência moram na gaveta */}
+          <InterfaceLanguageSelect />
+          <AppearanceSettingsButton />
+        </div>
         {presente}
         {/* Push #098 — header credits badge. Red link to /pricing when 0,
             amber when <=5 and not Pro, neutral otherwise. */}

@@ -17,6 +17,7 @@ import { MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine'
 import { nomeDoMotorEscolhido, pedidoDoStudioSimples, type FilmeDaCaixa } from '@/lib/growth/studioSimples'
 import { EVENTO_DA_LINHA, LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { temCookieDeSessao } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CAIXA-GRATIS-VISIVEL-0411
+import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
 
 const CSS = `
 .ksx{max-width:760px;margin:0 auto;padding:clamp(20px,6vh,64px) 16px 48px;color:var(--text)}
@@ -58,16 +59,36 @@ const CSS = `
 .ksx-done{height:48px;border:0;border-radius:13px;background:#2997ff;color:#000;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer}
 @media (min-width:640px){.ksx-dim{align-items:center}.ksx-sheet{border-radius:22px}}
 @media (max-width:560px){.ksx-films{grid-template-columns:repeat(2,minmax(0,1fr))}.ksx-go{flex:1 1 110px;margin-left:0;padding:0 12px}.ksx-set{flex:1 1 auto;padding:0 10px}}
+.ksx-marca,.ksx-chip img{display:none}
+/* KINEO-CELULAR-A-0611 — no celular, marca e caixa primeiro; produtos e filmes depois. */
+@media (max-width:767px){
+.ksx{display:flex;flex-direction:column;padding-top:clamp(24px,8vh,64px)}
+.ksx-marca{display:flex;order:1;align-items:center;justify-content:center;gap:9px;margin:0 0 18px;font-size:27px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.ksx h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+.ksx-box{order:2}
+.ksx-gratis{order:3}
+.ksx-chips{order:4;margin:18px 0 0;overflow:visible;gap:8px;padding:0}
+.ksx-chip{position:relative;flex:1 1 0;min-width:0;height:auto;aspect-ratio:4/5;align-items:flex-end;padding:8px;overflow:hidden;color:#fff;font-size:13px;text-shadow:0 1px 5px rgba(0,0,0,.85);border-radius:14px}
+.ksx-chip img{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ksx-chip b{position:relative;font-weight:800}
+.ksx-chip[aria-current="page"]{background:var(--card);color:#fff;border:2px solid #2997ff}
+.ksx-films{order:5}
+.ksx-hint{order:6}
+.ksx-row{flex-wrap:nowrap;justify-content:space-between}
+.ksx-set{flex:0 1 auto;border-radius:999px}
+.ksx-go{flex:none;width:44px;margin-left:0;padding:0;border-radius:50%;font-size:0}
+.ksx-go::before{content:"↑";font-size:20px;line-height:1}
+}
 @media (prefers-reduced-motion:no-preference){.ksx-sheet{animation:ksx-up .18s ease-out}@keyframes ksx-up{from{transform:translateY(16px);opacity:.6}to{transform:none;opacity:1}}}
 `
 
 const DURACOES = [15, 35, 60, 90] as const
 const FORMATOS = ['9:16', '16:9', '1:1', '4:5'] as const
-const PRODUTOS: ReadonlyArray<{ rotulo: string; href: string | null }> = [
-  { rotulo: 'Film', href: null },
-  { rotulo: 'Ad', href: '/ads/new?utm_source=studio_door' },
-  { rotulo: 'Cartoon', href: '/kids-cartoon' },
-  { rotulo: 'Clip', href: '/clips' },
+const PRODUTOS: ReadonlyArray<{ rotulo: string; href: string | null; img: string }> = [
+  { rotulo: 'Film', href: null, img: '/posters/hero-seedance.webp' },
+  { rotulo: 'Ad', href: '/ads/new?utm_source=studio_door', img: '/home-images/perfume-splash.webp' },
+  { rotulo: 'Cartoon', href: '/kids-cartoon', img: '/kids-cartoon/leo.webp' },
+  { rotulo: 'Clip', href: '/clips', img: '/posters/galeria/knight-cat.webp' },
 ]
 
 export default function StudioSimples({ filmes, motor, campanha }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string }) {
@@ -139,9 +160,10 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <nav className="ksx-chips" aria-label="What to make">
         {PRODUTOS.map((p) => p.href
-          ? <a key={p.rotulo} className="ksx-chip" href={p.href} data-kineo={`studio-simple-${p.rotulo.toLowerCase()}`}>{p.rotulo}</a>
-          : <span key={p.rotulo} className="ksx-chip" aria-current="page">{p.rotulo}</span>)}
+          ? <a key={p.rotulo} className="ksx-chip" href={p.href} data-kineo={`studio-simple-${p.rotulo.toLowerCase()}`}><img src={p.img} alt="" loading="lazy" /><b>{p.rotulo}</b></a>
+          : <span key={p.rotulo} className="ksx-chip" aria-current="page"><img src={p.img} alt="" loading="lazy" /><b>{p.rotulo}</b></span>)}
       </nav>
+      <span className="ksx-marca" aria-hidden="true"><KineoBrandIcon size={30} />Kineo</span>{/* KINEO-CELULAR-A-0611 */}
       <h1>What&apos;s your film about?</h1>
       <div className="ksx-box">
         <textarea
@@ -155,7 +177,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
         {aviso ? <p className="ksx-msg" role="alert">{aviso}</p> : null}
         <div className="ksx-row">
           <button type="button" className="ksx-set" data-testid="studio-simple-settings" aria-haspopup="dialog" onClick={() => setFolha(true)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" aria-hidden="true"><path d="M2 4h7M13 4h1M2 12h1M7 12h7"></path><circle cx="11" cy="4" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>Settings<span className="ksx-set-v">{duracao} s · {formato}</span></button>
-          <button type="button" className="ksx-go" data-testid="studio-simple-generate" onClick={gerar}>Generate</button>
+          <button type="button" className="ksx-go" data-testid="studio-simple-generate" aria-label="Generate" onClick={gerar}>Generate</button>
         </div>
       </div>
       {temFilmeGratis ? <p className="ksx-gratis" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}

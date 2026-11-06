@@ -5,7 +5,8 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import Link from 'next/link'
 import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-CELULAR-A-0611
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { sairDaConta } from '@/lib/auth/sairDaContaCliente' // KINEO-SAIR-DA-CONTA-1510
@@ -597,7 +598,7 @@ export default function Sidebar({
       )}
 
       <aside
-        className="fixed left-0 top-0 flex flex-col z-50 transition-transform duration-300"
+        className="kineo-gaveta fixed left-0 top-0 flex flex-col z-50 transition-transform duration-300"
         style={{
           width: 248,
           height: '100dvh',
@@ -662,6 +663,7 @@ export default function Sidebar({
                     others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
                     match for a commission/money concept. */}
                 <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Earn 30%" exact={false} pathname={pathname} onClick={onClose} />
+                <div className="kineo-gaveta-extras"><InterfaceLanguageSelect /><AppearanceSettingsButton /></div>{/* KINEO-CELULAR-A-0611 */}
               </>
             </div>
           )}

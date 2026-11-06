@@ -94,6 +94,8 @@ function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
   return <HomeCardCycleMedia card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
 }
 
+import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CELULAR-A-0611
+
 export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
   const language = useInterfaceLanguage()
@@ -134,6 +136,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
           ))}
         </div>
       </div>
+      <HomePortasCelular signedIn={signedIn} />{/* KINEO-CELULAR-A-0611 */}
     </section>
   )
 }

@@ -35,6 +35,6 @@ checa('saída só para conta sem plano, logada, com filme aberto', tela.includes
 checa('o botão de desenho sem plano segue indo aos planos', tela.includes('data-kineo="kids-ver-planos"'))
 const copy = ler('lib/kidsCartoon/kidsCartoon.ts')
 checa('3 línguas', (copy.match(/freeFilmCta:/g) || []).length === 3)
-checa('evento aceito', ler('app/api/events/route.ts').includes("'kids_cartoon_free_film_clicked'"))
+checa('evento do navegador não está na lista só do servidor', !ler('app/api/events/route.ts').includes("'kids_cartoon_free_film_clicked'"))
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1) }
 console.log('TUDO OK')
