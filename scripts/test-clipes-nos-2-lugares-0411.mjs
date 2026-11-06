@@ -57,20 +57,20 @@ const React = require('react')
 
 // ─── a verdade de cada clipe (tabela `clips`, conferida em 05/11): clipe, motor, modo ─────────────────────────────────────────
 const VERDADE = {
-  'coffee-run-walk': ['010378d7-c383-4987-82f2-0f28bd5f9b04', 'seedance', 'foto', 'Seedance 1.5'],
-  'hair-flip': ['39e1e298-17ac-4e41-8581-c76cebfdb866', 'seedance', 'foto', 'Seedance 1.5'],
-  unboxing: ['0a6fde6b-63a8-45d3-bd0a-eac7f3e28019', 'seedance', 'foto', 'Seedance 1.5'],
-  'first-bite': ['6920fdd1-fa01-4685-9565-c2244ad52aeb', 'seedance', 'foto', 'Seedance 1.5'],
-  'beach-sprint': ['3c090b26-af8a-4272-a6d0-5cdbec98bc8b', 'seedance', 'foto', 'Seedance 1.5'],
-  'dress-spin': ['b0f5c203-dee1-485c-92bf-212356450043', 'seedance', 'foto', 'Seedance 1.5'],
-  'serum-on-hand': ['9720a221-c156-4cfe-8233-6b79ecae5611', 'seedance', 'foto', 'Seedance 1.5'],
-  'lime-splash': ['59480573-ba4c-4cc4-927f-24c5b2c8c643', 'seedance', 'texto', 'Seedance 1.5'],
+  'pet-barista': ['fal:01a1ae37-2f30-7d63-ab53-52234e4ed8c8', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'virada-natal': ['fal:01a1ae37-2ed6-7493-acb9-3b42c05aae15', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'adeus-2026': ['fal:01a1ae37-3613-75f0-9c89-7722df1bcb94', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'bebe-danca': ['fal:01a1ae37-3003-76e1-8031-e5613d253e39', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'glow-up': ['fal:01a1ae37-7f7f-7d42-a0d3-18662c36f1f1', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'ugc-homem-cafe': ['fal:01a1ae37-7de0-7b91-8927-ac13fd481ed5', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'ugc-idosa-creme': ['fal:01a1ae37-8225-7641-855d-7b77d62f0a06', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'ugc-indiano-fone': ['fal:01a1ae37-80fa-7e73-861a-ab40bb2e13c3', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'produto-tenis-rua': ['fal:01a1ae37-d069-7270-93f7-f0332a0e4d7c', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'produto-perfume-marmore': ['fal:01a1ae37-ca14-7463-8c1b-6bc50ab14e8b', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
+  'produto-burger-mesa': ['fal:01a1ae37-cdde-74c1-acd8-a8dc4054634e', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
   'flying-burger': ['b248db19-c3fb-4b08-878c-1d10d3b9af7b', 'seedance', 'texto', 'Seedance 1.5'],
-  'cream-pour': ['a66b156f-4dc5-4de1-a69e-24e6d8769361', 'seedance', 'texto', 'Seedance 1.5'],
   'spinning-headphones': ['6e6b1249-69c9-4036-b2b3-36e5c157dda1', 'seedance', 'texto', 'Seedance 1.5'],
   'perfume-splash': ['c9d321e0-0fe4-44b7-871b-2407a55bec91', 'hollywood', 'texto', 'Kling 3'],
-  'sneaker-drop': ['335980ac-9a5b-4647-9b6c-a226858e430f', 'seedance', 'texto', 'Seedance 1.5'],
-  'red-dress-walk': ['39e2587f-df55-4841-b0a9-1242095b3b89', 'hollywood', 'texto', 'Kling 3'],
   'iced-coffee-pour': ['a3576c28-47ba-4c19-a141-b5e8e196c9dd', 'seedance', 'texto', 'Seedance 1.5'],
 }
 const INICIO = Date.parse('2026-11-05T12:00:00Z')
@@ -286,8 +286,8 @@ mutante('pôster baixa antes da hora', { [MOSAICO]: troca('alt="" loading="lazy"
 mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNovoVideo(c)} />', '<video src={clipeNovoVideo(c)} autoPlay muted loop playsInline />') }, { mosaico: rd(MOSAICO).replace('<WallMedia src={clipeNovoVideo(c)} />', '') })
 mutante('cartão chama de anúncio', { [MOSAICO]: troca('<i><UiLabel>Clip</UiLabel> · {motor}</i>', '<i><UiLabel>Ad</UiLabel> · {motor}</i>') })
 mutante('cartão leva às Ads', { [MOSAICO]: troca('href={viaSignup(clipeNovoDestino(c), signedIn)}', "href={viaSignup('/ads/new', signedIn)}") })
-mutante('arquivo faltando', {}, {}, (rel) => !rel.includes('hair-flip.mp4') && fs.existsSync(path.join(ROOT, rel)))
-mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('sneaker-drop.webp') && fs.existsSync(path.join(ROOT, rel)))
+mutante('arquivo faltando', {}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
+mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })
 
 console.log(`${pass} ok, ${fail} falha(s)`)
