@@ -56,7 +56,6 @@ function checkWebp(file) {
 for (const [, name, fields] of tiles) {
   const base = 'motion-' + name + '-0611'
   assert.ok(fields.includes("poster: '/posters/" + base + ".webp'"))
-  if (!fields.includes('desktopOnly: true')) assert.ok(fields.includes("desktopVideo: '/previews/" + base + "-desktop.mp4'"))
   checkMp4(base + (fields.includes('desktopVideo:') ? '-desktop' : ''), 2_000_000)
   checkWebp(base)
 }

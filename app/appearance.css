@@ -386,8 +386,6 @@ body::before{z-index:-1}
   .klp #samples .kmz-grid>.kmz-t:nth-child(-n+6)[data-home-cta="mosaic_motion"]{display:block!important;grid-column:span 1!important;grid-row:span 3!important}
   .klp #samples [data-home-cta="mosaic_motion"] .kmz-motion-original{display:none!important}
   .klp #samples [data-home-cta="mosaic_motion"] .kmz-motion-desktop{display:block!important}
-  .klp #samples [data-home-cta="mosaic_motion"] .kmz-md{background-size:contain!important;background-position:50% 50%!important}
-  .klp #samples [data-home-cta="mosaic_motion"] video{object-fit:contain!important;object-position:50% 50%!important}
 
   /* Nas telas baixas, usar o espaço do cabeçalho sem esconder links nem baixar o piso dos cartões. */
   .klp:has(> #samples){--k2f-nav:clamp(54px,calc(54px + (100vh - 720px) * .27),88px)!important}
