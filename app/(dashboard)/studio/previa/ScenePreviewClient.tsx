@@ -23,6 +23,8 @@ const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
 })
 
 // KINEO-FLUXO2-G-0411 [fundador 04/11: "recomendações"] — aPedido: conta do lado "a pedido" do teste, com o filme grátis ainda por pedir (decidido no servidor, page.tsx). 2 das 3 primeiras saíram daqui para os planos sem nunca pedir o filme: para ela o botão principal pede o filme pela mesma rota da faixa e volta à geração com o roteiro; os planos viram link. As outras contas veem a tela de sempre.
+import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PREVIA-LIMITE-FILME-0611
+
 export default function ScenePreviewClient({ initialIdea, from, aPedido = false }: { initialIdea: string; from: string; aPedido?: boolean }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
@@ -33,6 +35,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
   const [left, setLeft] = useState<number | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)
   const [pedido, setPedido] = useState<'pronto' | 'indo' | 'falhou'>('pronto') // KINEO-FLUXO2-G-0411
+  const [limite, setLimite] = useState(false) // KINEO-PREVIA-LIMITE-FILME-0611
   const copyPedido = pickInterfaceCopy(TRIAL_PEDIDO_COPY, language) // KINEO-FLUXO2-G-0411
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
     try {
       const r = await fetch('/api/scene-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idea, language: scriptLanguage }) })
       const j = await r.json().catch(() => null)
-      if (!r.ok || !j?.script) { setError(typeof j?.error === 'string' ? j.error : copy.refused.busy); return }
+      if (!r.ok || !j?.script) { setError(typeof j?.error === 'string' ? j.error : copy.refused.busy); if (j?.reason === 'daily_limit' || j?.reason === 'total_limit' || j?.reason === 'global_limit') setLimite(true); return }
       setPreview({ script: j.script, scenes: j.scenes ?? [], idea, language: typeof j.language === 'string' ? j.language : scriptLanguage })
       if (typeof j.left === 'number') setLeft(j.left)
     } finally {
@@ -76,13 +79,15 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
 
   // KINEO-FLUXO2-G-0411 — mesma rota da faixa: o servidor confere tudo e o cliente não manda nada. Quem já tinha pedido recebe ok e segue.
   async function pedirFilme() {
-    if (!preview || pedido === 'indo') return
+    if (pedido === 'indo') return
     setPedido('indo')
-    void trackEvent(TRIAL_PEDIDO_PREVIA_EVENT, { test: TRIAL_PEDIDO_TESTE, language, scenes: preview.scenes.length })
+    void trackEvent(TRIAL_PEDIDO_PREVIA_EVENT, { test: TRIAL_PEDIDO_TESTE, language, scenes: preview?.scenes.length ?? 0, surface: preview ? 'preview' : 'preview_limit' })
     try {
       const res = await fetch(TRIAL_PEDIDO_CLAIM_PATH, { method: 'POST' })
       if (!res.ok) throw new Error(String(res.status))
       window.dispatchEvent(new Event('creditsChanged'))
+      // KINEO-PREVIA-LIMITE-FILME-0611 — sem prévia na tela, a pessoa volta à caixa com a ideia escrita; o filme só começa no Generate dela.
+      if (!preview) { window.location.assign(voltaParaCaixa(idea) ?? '/studio'); return }
       window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language }))
     } catch {
       setPedido('falhou')
@@ -106,6 +111,13 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
           {left !== null ? <span style={{ fontSize: 13, color: C.muted }}>{copy.left.replace('{n}', String(left))}</span> : null}
         </div>
         {error ? <p role="alert" style={{ margin: 0, color: C.danger, fontSize: 14 }}>{error}</p> : null}
+        {/* KINEO-PREVIA-LIMITE-FILME-0611 [fundador 06/11: "sim"; caso glauciaag78] — acabou a prévia do dia e o filme grátis ainda está por pedir: o botão fica aqui, em vez de só recusar. */}
+        {aPedido && !preview && (limite || left === 0) ? (
+          <div style={{ display: 'grid', gap: 8, justifyItems: 'start' }} data-testid="scene-preview-limit">
+            <button type="button" onClick={() => { void pedirFilme() }} disabled={pedido === 'indo'} style={btn(true, pedido === 'indo')} data-testid="scene-preview-limit-claim">{pedido === 'indo' ? copyPedido.working : copyPedido.claim}</button>
+            {pedido === 'falhou' ? <p role="alert" style={{ margin: 0, color: C.danger, fontSize: 14 }}>{copyPedido.failed}</p> : null}
+          </div>
+        ) : null}
       </section>
 
       {preview ? (
