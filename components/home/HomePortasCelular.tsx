@@ -22,7 +22,7 @@ const CSS = `
 .kpc-tit a{flex:none;font-size:13px;font-weight:600;color:var(--muted);min-height:44px;display:flex;align-items:flex-end}
 .kpc-caixa{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--card);border:1px solid var(--line2);box-shadow:0 10px 28px rgba(0,0,0,.45);font-size:15px;font-weight:600;color:var(--muted)}
 .kpc-caixa em{flex:1;min-width:0;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpc-caixa i{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:20px;font-weight:800;background:var(--blue);color:#fff}
+.kpc-caixa i{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:20px;font-weight:800;background:var(--indigo);color:var(--on-accent,#04122E)}
 }
 `
 

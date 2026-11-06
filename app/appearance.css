@@ -288,7 +288,7 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
   .klp nav{background:var(--s0)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   .klp .nav-in{position:relative;padding-left:56px!important}
   .klp .nav-right{gap:8px}
-  .klp .nav-right>.btn-w{display:inline-flex!important;align-items:center;height:36px!important;padding:0 14px!important;font-size:13px!important;background:var(--blue)!important;color:#fff!important;box-shadow:none!important}
+  .klp .nav-right>.btn-w{display:inline-flex!important;align-items:center;height:36px!important;padding:0 14px!important;font-size:13px!important;background:var(--indigo)!important;color:var(--on-accent,#04122E)!important;box-shadow:none!important}
   .klp .nav-toggle-wrap{position:absolute!important;left:8px;top:9px}
   .klp .nav-toggle-input:checked{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;margin:0;appearance:none;-webkit-appearance:none;opacity:1;background:rgba(0,0,0,.6);z-index:59}
   .klp .nav-mobile-menu{position:fixed!important;top:0!important;left:0!important;right:auto!important;bottom:0!important;width:min(84vw,330px)!important;height:100vh!important;height:100dvh!important;max-height:none!important;padding:12px 12px calc(16px + env(safe-area-inset-bottom,0px))!important;gap:2px!important;border-right:1px solid var(--line)!important;border-bottom:0!important;z-index:60!important;overflow-y:auto!important}
@@ -305,7 +305,7 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
   .klp .nav-mobile-menu a[data-nav-item="login"]{--ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3'/%3E%3C/svg%3E")}
   .klp .nav-mobile-menu a[data-nav-item="video"]{color:var(--blue);background:var(--blue-soft);margin-bottom:6px}
   .klp .nav-mobile-menu select.kineo-idioma-menu{margin:6px 0 auto}
-  .klp .nav-mobile-menu a.btn{flex:none;margin-top:12px!important;border-radius:12px;background:var(--blue)!important;color:#fff!important}
+  .klp .nav-mobile-menu a.btn{flex:none;margin-top:12px!important;border-radius:12px;background:var(--indigo)!important;color:var(--on-accent,#04122E)!important}
   .knb{display:none!important}
   .klp .k3c{padding-top:12px!important}
   .klp .k3c-head{display:none!important}

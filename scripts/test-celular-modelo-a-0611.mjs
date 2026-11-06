@@ -27,7 +27,7 @@ const semMedia = { documentElement: { dataset: {} } }
 vm.runInNewContext(boot, { document: semMedia, localStorage: { getItem: () => null } })
 checa('navegador sem matchMedia fica no claro', semMedia.documentElement.dataset.theme === 'light')
 const css = ler('app/appearance.css'), bloco = css.slice(css.indexOf('KINEO-CELULAR-A-0611'))
-checa('menu lateral só abaixo de 768 px', /@media\(max-width:767px\)\{[\s\S]*\.klp \.nav-mobile-menu\{top:0;left:0/.test(bloco))
+checa('menu lateral só abaixo de 768 px', /@media\(max-width:767px\)\{[\s\S]*\.klp \.nav-mobile-menu\{position:fixed!important;top:0!important/.test(bloco))
 checa('barra de baixo some só no celular', /@media\(max-width:767px\)\{[\s\S]*\.kineo-mobile-nav\{display:none!important\}/.test(bloco))
 const home = ler('app/KineoLanding.tsx')
 for (const item of ['video', 'business', 'pricing', 'login']) checa('menu mantém ' + item, home.includes(`data-nav-item="${item}"`))
