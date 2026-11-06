@@ -1,9 +1,11 @@
 // KINEO-RESERVA-H3-0611 — [TRAVA 8.2 — fundador 06/11: "quero sim o H3... pode trocar"]
 // Recibo exato: desfaz só os trechos desta entrega, para os guardiões históricos lerem o arquivo como era. Trecho ausente ou repetido reprova. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
+import { semH3Letreiro0611 } from './desfaz-h3-letreiro-0611.mjs' // KINEO-H3-LETREIRO-0611
 const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-reserva-h3-0611-fontes.json', import.meta.url), 'utf8'))
 const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 export function semReservaH30611(source, file) {
+  source = semH3Letreiro0611(source, file) // KINEO-H3-LETREIRO-0611 — a camada de cima sai antes
   const hunks = ESCOPO[rel(file)]
   if (typeof source !== 'string' || !hunks) return source
   const crlf = source.includes('\r\n')

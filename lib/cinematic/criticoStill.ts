@@ -502,7 +502,7 @@ export type FilmeDoCritico = {
   regeracoesRestantes: number
   relatos: RelatoCriticoStill[]
 }
-export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; orcamentoMs?: number } = {}): FilmeDoCritico {
+export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; orcamentoMs?: number; regeracoes?: number /* KINEO-H3-LETREIRO-0611 */ } = {}): FilmeDoCritico {
   return {
     modo,
     prazo: typeof o.prazo === 'number' && Number.isFinite(o.prazo) ? o.prazo : Infinity,
@@ -510,7 +510,7 @@ export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; 
     gastoMs: 0,
     erros: 0,
     desligado: false,
-    regeracoesRestantes: STILL_CRITIC_MAX_REGERACOES_FILME,
+    regeracoesRestantes: Math.max(STILL_CRITIC_MAX_REGERACOES_FILME, o.regeracoes ?? 0), // KINEO-H3-LETREIRO-0611 — o teto de 6 vinha do filme de 3 cenas: no de 9, as últimas cenas ficavam sem refação (final fraco)
     relatos: [],
   }
 }

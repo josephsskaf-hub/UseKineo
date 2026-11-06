@@ -7,6 +7,7 @@
 //   (C) o crítico do still fica em 'enforce' para pagante com personagem (grátis 15 s continua enforce; o resto continua log_only);
 //   (M) mutantes ficam vermelhos.
 import fs from 'node:fs'
+import { semH3Letreiro0611 } from './test-support/desfaz-h3-letreiro-0611.mjs' // KINEO-H3-LETREIRO-0611
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
@@ -30,7 +31,7 @@ function provasRota(r) {
   if (!r.includes("modoDoCriticoDoStill(undefined, seedanceShortFilm || (isPaidUser && personagemElenco.elenco.length > 0) ? 'enforce' : 'log_only')")) erros.push('C o crítico não refaz para o pagante com personagem')
   return erros
 }
-const rota = lf(fs.readFileSync(ROTA, 'utf8'))
+const rota = lf(semH3Letreiro0611(fs.readFileSync(ROTA, 'utf8'), 'app/api/generate-video-cinematic/route.ts')) // KINEO-H3-LETREIRO-0611 — [TRAVA 8.2, fundador 06/11]: agora todo filme refaz a imagem; a prova nova está em test-h3-letreiro-0611.mjs
 const e = provasRota(rota)
 checa(`B/C a rota liga a folha e o crítico do pagante${e.length ? ': ' + e.join(' · ') : ''}`, e.length === 0)
 const MUTANTES = [

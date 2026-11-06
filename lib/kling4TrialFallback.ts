@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { RESERVA_H3_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
@@ -37,7 +38,7 @@ export async function submitKling4TrialH3Fallback(input: Record<string, unknown>
   try {
     response = await fetch(`https://queue.fal.run/${RESERVA_H3_MODEL}`, {
       method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(input), cache: 'no-store', signal: AbortSignal.timeout(10_000),
+      body: JSON.stringify(entradaSemConviteDeLetreiro(RESERVA_H3_MODEL, input)), /* KINEO-H3-LETREIRO-0611 */ cache: 'no-store', signal: AbortSignal.timeout(10_000),
     })
   } catch { throw new Kling4FallbackSubmitError(true) }
   if (!response.ok) throw new Kling4FallbackSubmitError(response.status === 408 || response.status >= 500)

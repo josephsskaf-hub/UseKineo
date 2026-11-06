@@ -1,0 +1,38 @@
+{
+ "lib/falQueue.ts": [
+  {
+   "antes": "import { FAL_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'",
+   "depois": "import { FAL_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'\nimport { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611"
+  },
+  {
+   "antes": "        body: JSON.stringify(input),\n        cache: 'no-store',",
+   "depois": "        body: JSON.stringify(entradaSemConviteDeLetreiro(model, input)), // KINEO-H3-LETREIRO-0611\n        cache: 'no-store',"
+  }
+ ],
+ "lib/kling4TrialFallback.ts": [
+  {
+   "antes": "import { randomUUID } from 'node:crypto'\n",
+   "depois": "import { randomUUID } from 'node:crypto'\nimport { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611\n"
+  },
+  {
+   "antes": "response = await fetch(`https://queue.fal.run/${RESERVA_H3_MODEL}`, {\n      method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },\n      body: JSON.stringify(input), cache",
+   "depois": "response = await fetch(`https://queue.fal.run/${RESERVA_H3_MODEL}`, {\n      method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },\n      body: JSON.stringify(entradaSemConviteDeLetreiro(RESERVA_H3_MODEL, input)), /* KINEO-H3-LETREIRO-0611 */ cache"
+  }
+ ],
+ "lib/cinematic/criticoStill.ts": [
+  {
+   "antes": "export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; orcamentoMs?: number } = {}): FilmeDoCritico {",
+   "depois": "export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; orcamentoMs?: number; regeracoes?: number /* KINEO-H3-LETREIRO-0611 */ } = {}): FilmeDoCritico {"
+  },
+  {
+   "antes": "    regeracoesRestantes: STILL_CRITIC_MAX_REGERACOES_FILME,\n    relatos: [],",
+   "depois": "    regeracoesRestantes: Math.max(STILL_CRITIC_MAX_REGERACOES_FILME, o.regeracoes ?? 0), // KINEO-H3-LETREIRO-0611 — o teto de 6 vinha do filme de 3 cenas: no de 9, as últimas cenas ficavam sem refação (final fraco)\n    relatos: [],"
+  }
+ ],
+ "app/api/generate-video-cinematic/route.ts": [
+  {
+   "antes": "      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm || (isPaidUser && personagemElenco.elenco.length > 0) ? 'enforce' : 'log_only') // KINEO-FOLHA-PAGANTE-0311 — pagante com personagem: o still reprovado (identidade/sujeito) é refeito dentro dos limites de sempre (1 por still, 6 por filme), não só registrado // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: \"porta não aparece\", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando\n      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410",
+   "depois": "      const criticoModo = modoDoCriticoDoStill(undefined, 'enforce') // KINEO-H3-LETREIRO-0611 — todo filme: imagem reprovada é refeita antes de animar; era 'enforce' só no filme curto e no pagante com personagem\n      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline, regeracoes: scenes.length + 3 }) // KINEO-H3-LETREIRO-0611"
+  }
+ ]
+}

@@ -7468,8 +7468,8 @@ async function manipularPost(req: NextRequest) {
       // STILL_CRITIC_MODE: off = nada roda (byte a byte o de antes) · log_only (PADRÃO) = só o evento cinematic_still_critic, nunca // KINEO-JUIZ-STILL-1410
       // regera · enforce = FAIL refaz o still UMA vez (máx. 3 por filme) e segue o melhor. A escolha só entra em sceneStills depois // KINEO-JUIZ-STILL-1410
       // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410
-      const criticoModo = modoDoCriticoDoStill(undefined, seedanceShortFilm || (isPaidUser && personagemElenco.elenco.length > 0) ? 'enforce' : 'log_only') // KINEO-FOLHA-PAGANTE-0311 — pagante com personagem: o still reprovado (identidade/sujeito) é refeito dentro dos limites de sempre (1 por still, 6 por filme), não só registrado // KINEO-JUIZ-STILL-1410 · KINEO-FILME15-FIEL-2610 — o filme grátis de 15 s refaz o still reprovado UMA vez (pena dourada 26/10: "porta não aparece", nota 20, seguiu em log_only); env STILL_CRITIC_MODE explícita continua mandando
-      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410
+      const criticoModo = modoDoCriticoDoStill(undefined, 'enforce') // KINEO-H3-LETREIRO-0611 — todo filme: imagem reprovada é refeita antes de animar; era 'enforce' só no filme curto e no pagante com personagem
+      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline, regeracoes: scenes.length + 3 }) // KINEO-H3-LETREIRO-0611
       const criticoTarefas: Promise<{ idx: number; url: string }>[] = [] // KINEO-JUIZ-STILL-1410
       const criticoEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
       const criticarStillClassico = async (idx: number, url: string): Promise<{ idx: number; url: string }> => { // KINEO-JUIZ-STILL-1410

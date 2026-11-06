@@ -1,4 +1,5 @@
 import { FAL_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
+import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 
 /**
  * A paid Fal queue submission must be sent exactly once. The SDK may retry
@@ -79,7 +80,7 @@ export async function submitFalQueueOnce(
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(input),
+        body: JSON.stringify(entradaSemConviteDeLetreiro(model, input)), // KINEO-H3-LETREIRO-0611
         cache: 'no-store',
       })
     } catch (error) {
