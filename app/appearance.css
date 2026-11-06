@@ -317,3 +317,6 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
   .klp .k3c-cta{font-size:13px!important;padding:9px 14px!important;margin-top:8px!important}
   .klp .hero{padding-top:10px!important}
 }
+
+/* KINEO-CELULAR-A-0611 — no escuro, o véu azul do body ficava por cima do conteúdo das páginas sem camada própria e apagava os textos. */
+body::before{z-index:-1}
