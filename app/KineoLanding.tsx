@@ -931,7 +931,7 @@ export default function KineoLanding({
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
                       lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
                   {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
-                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href="/studio?engine=h3max&intent_campaign=nav_mega" name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} icon="H3+" />} {/* KINEO-H3MAX-2026-10-13 */}
+                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href="/studio?engine=h3max&intent_campaign=nav_mega" name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} thumb="/nav-thumbs/h3max.webp" />} {/* KINEO-H3MAX-2026-10-13 · KINEO-MENU-THUMB-H3MAX-0511: quadro do filme real do H3 Max (15cff0dc, 13/10) */}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor).
