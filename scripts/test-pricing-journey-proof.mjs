@@ -67,7 +67,7 @@ equal(policy.decidePricingJourneyProof({ ...base, completedCount: -1 }), { state
 
 const trialBefore = policy.decidePricingJourneyProof(base)
 equal(trialBefore.state, 'before_first_delivery', 'zero-delivery reverse trial gets proof-first state')
-equal(trialBefore.engineLabel, 'Seedance 1.5', 'reverse trial names the premium proof engine')
+equal(trialBefore.engineLabel, 'MiniMax H3 Turbo', 'reverse trial names the premium proof engine')
 equal(trialBefore.duration, 35, 'proof duration is bounded')
 check(trialBefore.creationHref.includes('engine=seedance'), 'reverse trial routes to Seedance')
 check(trialBefore.creationHref.includes('intent_campaign=pricing_journey_proof_v1'), 'proof handoff is attributable')
