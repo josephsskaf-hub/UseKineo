@@ -924,8 +924,8 @@ export default function KineoLanding({
                       pagina) + caixinha com monograma/glifo de cada produto. */}
                   {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
                       29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
-                  {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Sem preview nem miniatura até haver render dele na vitrine (selo honesto). */}
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" />
+                  {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Prévia = clipe real do H3 Max Turbo (Adeus 2026, render 05/11). */}
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" preview="/previews/galeria/adeus-2026.mp4" thumb="/posters/galeria/adeus-2026.webp" />
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,

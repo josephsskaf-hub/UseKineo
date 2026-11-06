@@ -54,12 +54,12 @@ ok(lf('lib/ui/refinementCopy.json').includes('so this one was made with Seedance
 
 // ── o nome nas telas ────────────────────────────────────────────────────────────────────────────────────────
 const L = lf('app/KineoLanding.tsx')
-const menu = (t) => t.includes(`<NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="${N}" desc="Fast, everyday narrated films" />`) && !t.includes('name="Seedance 1.5"')
+const menu = (t) => t.includes(`<NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="${N}" desc="Fast, everyday narrated films" preview="/previews/galeria/adeus-2026.mp4" thumb="/posters/galeria/adeus-2026.webp" />`) && !t.includes('name="Seedance 1.5"')
 ok(menu(L), 'menu do topo: o nome real, a mesma chave, sem clipe de outro motor')
 ok(!menu(L.replace(`name="${N}" desc="Fast`, 'name="Seedance 1.5" desc="Fast')), 'mutante: o nome velho no menu fica vermelho')
 ok(L.includes('name="Seedance 2.5"'), 'o Seedance 2.5 fica no menu')
 const S = lf('app/(dashboard)/studio/StudioClient.tsx')
-ok(S.includes(`{ key: 'seedance', icon: 'H3T', name: '${N}'`) && S.includes("res: '768p'"), 'card do Studio: nome e resolução do motor real')
+ok(S.includes(`{ key: 'seedance', preview: '/previews/galeria/adeus-2026.mp4', icon: 'H3T', name: '${N}'`) && S.includes("res: '768p'"), 'card do Studio: nome e resolução do motor real')
 ok(S.includes("videos={scriptMode !== 'clip' && engine === 'seedance' ? []"), 'palco do Studio: filme de Seedance não leva o nome do Turbo')
 ok(S.includes("bestFilms.filter((f) => f.engine !== 'seedance')"), 'vitrine do Studio: "use o motor dele" não aponta filme de Seedance para o Turbo')
 ok(S.includes("name={scriptMode === 'clip' ? 'Seedance 1.5'"), 'o modo Clipe segue no Seedance 1.5')

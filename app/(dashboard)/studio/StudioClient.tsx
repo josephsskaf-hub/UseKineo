@@ -152,7 +152,7 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   { key: 'fast', icon: '⚡', name: 'Kineo 1', tag: 'Start here', desc: 'Cheapest way to see your idea as a film', res: '720p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
   // 'Popular' saiu: ele nao era popular por escolha, era o PADRAO. Chamar de
   // popular o que ninguem escolheu e uma prova social inventada.
-  { key: 'seedance', icon: 'H3T', name: 'MiniMax H3 Turbo', desc: 'The workhorse AI video engine', res: '768p', /* KINEO-H3-TURBO-ABRE-0511 — a chave segue 'seedance'. Sem preview até haver filme dele na vitrine: clipe de outro motor não entra (selo honesto). */ credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
+  { key: 'seedance', preview: '/previews/galeria/adeus-2026.mp4', icon: 'H3T', name: 'MiniMax H3 Turbo', desc: 'The workhorse AI video engine', res: '768p', /* KINEO-H3-TURBO-ABRE-0511 — a chave segue 'seedance'. Prévia = clipe real do H3 Max Turbo (render 05/11); clipe de outro motor não entra (selo honesto). */ credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
   // Sobe para logo depois do Seedance, com o selo honesto do que cabe no plano.
   // e nenhum cliente o escolheu em 45 dias porque ele estava atrás de Kling/Veo/Kling 3.
   // KINEO-MOTORES-R6-2026-09-09 — relatório dos motores: H3 tirou 85% e custa 45 cr,

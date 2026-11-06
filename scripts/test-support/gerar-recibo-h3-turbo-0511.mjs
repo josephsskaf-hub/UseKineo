@@ -7,7 +7,10 @@ import { join } from 'node:path'
 const raiz = join(import.meta.dirname, '..', '..')
 const BASE = '497575632'
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ARQUIVOS = git('diff', '--name-only', BASE, '--', 'app', 'lib', 'components').split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+const TODOS = git('diff', '--name-only', BASE, '--', 'app', 'lib', 'components').split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+// Entregas de outros que subiram entre o Turbo e a abertura (hidratação, clipes e cards) não são desta camada.
+const DE_OUTROS = new Set(['app/(dashboard)/clips/ClipsClient.tsx', 'lib/clipesNos2Lugares.ts', 'lib/clips/clipsTela0511.ts'])
+const ARQUIVOS = TODOS.filter((x) => !DE_OUTROS.has(x))
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const saida = {}
 for (const file of ARQUIVOS) {
